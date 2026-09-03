@@ -3,17 +3,17 @@ using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
-public sealed class LeaderboardProofViewerBrowserTests
+[Collection(BrowserTestCollections.WorkloadB)]
+public sealed class LeaderboardProofViewerBrowserTests(
+    PlaywrightBrowserFixture browserFixture,
+    BrowserTestAppFixture appFixture)
+    : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Fact]
     public async Task ProofViewer_StopsAtEndsAndRestoresCurrentProofFocus()
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
             BaseURL = app.BaseAddress.ToString(),
@@ -193,12 +193,8 @@ public sealed class LeaderboardProofViewerBrowserTests
     [Fact]
     public async Task ProofViewer_HistoryClosesOneLayerAtATime()
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
             BaseURL = app.BaseAddress.ToString(),
@@ -280,11 +276,11 @@ public sealed class LeaderboardProofViewerBrowserTests
         Assert.Equal("enlarged", await page.EvaluateAsync<string>("() => history.state?.modal"));
         Assert.Equal("/athlete/history-test", new Uri(page.Url).AbsolutePath);
 
-        await page.GoBackAsync();
+        await TraverseHistoryAsync(page, -1);
         await viewer.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Hidden });
         await AssertDetailsStateAsync(page);
 
-        await page.GoForwardAsync();
+        await TraverseHistoryAsync(page, 1);
         await page.Locator("#athleteImageViewer.show").WaitForAsync();
         Assert.Equal("enlarged", await page.EvaluateAsync<string>("() => history.state?.modal"));
 
@@ -311,7 +307,7 @@ public sealed class LeaderboardProofViewerBrowserTests
         Assert.True(await page.Locator("#detailsModal .modal-content").EvaluateAsync<bool>("element => element.classList.contains('guess-mode')"));
         Assert.False(await page.Locator("#athleteShareMenu").EvaluateAsync<bool>("element => element.hidden"));
         await page.EvaluateAsync("() => closeAthleteShareMenu()");
-        await page.GoBackAsync();
+        await TraverseHistoryAsync(page, -1);
         await page.WaitForFunctionAsync(
             "() => history.state?.modal === 'details' && location.pathname === '/athlete/history-test'");
         Assert.True(await page.Locator("#detailsModal .modal-content").EvaluateAsync<bool>("element => element.classList.contains('guess-mode')"));
@@ -338,7 +334,7 @@ public sealed class LeaderboardProofViewerBrowserTests
         await page.EvaluateAsync(
             "() => openEnlargedView(document.querySelector('#proofsGallery .proof-item img'))");
         await page.Locator("#athleteImageViewer.show").WaitForAsync();
-        await page.GoBackAsync();
+        await TraverseHistoryAsync(page, -1);
         await viewer.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Hidden });
         await AssertDetailsStateAsync(page);
 
@@ -348,7 +344,7 @@ public sealed class LeaderboardProofViewerBrowserTests
         await page.WaitForFunctionAsync("() => document.getElementById('detailsModal')?.style.display === 'none'");
         Assert.Equal("/", new Uri(page.Url).AbsolutePath);
 
-        await page.GoForwardAsync();
+        await TraverseHistoryAsync(page, 1);
         await page.WaitForFunctionAsync("() => location.pathname === '/' && !history.state?.modal");
         Assert.Equal("/", new Uri(page.Url).AbsolutePath);
         Assert.True(await viewer.IsHiddenAsync());
@@ -385,20 +381,27 @@ public sealed class LeaderboardProofViewerBrowserTests
             }
             """);
         Assert.True(openedRealAthlete);
-        await page.WaitForFunctionAsync(
+        var populatedChronologicalAgeHandle = await page.WaitForFunctionAsync(
             """
             () => {
                 const content = document.querySelector('#detailsModal .modal-content');
+                const age = document.getElementById('chronologicalAge');
+                const visibleAge = age?.checkVisibility()
+                    ? age.innerText.trim()
+                    : '';
                 return history.state?.modal === 'details'
                     && content?.dataset.athleteSlug === window.__proofHistoryAthleteSlug
-                    && !content.classList.contains('is-loading');
+                    && !content.classList.contains('is-loading')
+                    && visibleAge
+                    ? visibleAge
+                    : false;
             }
             """);
+        var populatedChronologicalAge = await populatedChronologicalAgeHandle.JsonValueAsync<string>();
         var realAthletePath = new Uri(page.Url).AbsolutePath;
         var expectedRealAthletePath = await page.EvaluateAsync<string>(
             "() => `/athlete/${window.__proofHistoryAthleteSlug}`");
         Assert.Equal(expectedRealAthletePath, realAthletePath);
-        var populatedChronologicalAge = await page.Locator("#chronologicalAge").InnerTextAsync();
         Assert.False(string.IsNullOrWhiteSpace(populatedChronologicalAge));
 
         await page.EvaluateAsync(
@@ -412,22 +415,21 @@ public sealed class LeaderboardProofViewerBrowserTests
         await page.Locator("#athleteImageViewer.show").WaitForAsync();
         var realProfileSource = await viewer.Locator("img").GetAttributeAsync("src");
         Assert.False(string.IsNullOrWhiteSpace(realProfileSource));
-        await page.GoBackAsync();
+        await TraverseHistoryAsync(page, -1);
         await viewer.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Hidden });
         Assert.Equal("details", await page.EvaluateAsync<string>("() => history.state?.modal"));
 
-        await page.GoBackAsync();
+        await TraverseHistoryAsync(page, -1);
         await page.WaitForFunctionAsync("() => document.getElementById('detailsModal')?.style.display === 'none'");
         Assert.Equal("/", new Uri(page.Url).AbsolutePath);
 
         var failAthleteRequest = false;
         var omitAthleteFromResponse = false;
-        var athleteRequestDelayMilliseconds = 300;
+        TaskCompletionSource? athleteRequestGate = null;
         await page.RouteAsync("**/api/data/athletes", async route =>
         {
             if (failAthleteRequest)
             {
-                await Task.Delay(100);
                 await route.FulfillAsync(new RouteFulfillOptions
                 {
                     Status = 503,
@@ -448,11 +450,14 @@ public sealed class LeaderboardProofViewerBrowserTests
                 return;
             }
 
-            await Task.Delay(athleteRequestDelayMilliseconds);
+            var requestGate = athleteRequestGate;
+            if (requestGate is not null)
+                await requestGate.Task;
             await route.ContinueAsync();
         });
         await page.EvaluateAsync("() => { window.__sharedAthletesRequest = null; }");
-        await page.GoForwardAsync();
+        athleteRequestGate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await TraverseHistoryAsync(page, 1);
         await page.WaitForFunctionAsync(
             """
             () => {
@@ -465,7 +470,9 @@ public sealed class LeaderboardProofViewerBrowserTests
         Assert.Equal(realAthletePath, new Uri(page.Url).AbsolutePath);
         Assert.Equal("block", await page.Locator("#detailsModal").EvaluateAsync<string>("element => element.style.display"));
 
-        await page.GoForwardAsync();
+        await TraverseHistoryAsync(page, 1);
+        athleteRequestGate.SetResult();
+        athleteRequestGate = null;
         await page.Locator("#athleteImageViewer.show").WaitForAsync();
         await page.WaitForFunctionAsync(
             "() => !document.querySelector('#detailsModal .modal-content')?.classList.contains('is-loading')");
@@ -489,6 +496,7 @@ public sealed class LeaderboardProofViewerBrowserTests
         await page.EvaluateAsync("() => history.go(-2)");
         await page.WaitForFunctionAsync(
             "() => location.pathname === '/' && document.getElementById('detailsModal')?.style.display === 'none'");
+        athleteRequestGate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         await page.EvaluateAsync(
             "() => { window.__sharedAthletesRequest = null; history.go(2); }");
         await page.WaitForFunctionAsync(
@@ -496,7 +504,9 @@ public sealed class LeaderboardProofViewerBrowserTests
             () => history.state?.modal === 'enlarged'
                 && document.querySelector('#detailsModal .modal-content')?.classList.contains('is-loading')
             """);
-        await page.GoBackAsync();
+        await TraverseHistoryAsync(page, -1);
+        athleteRequestGate.SetResult();
+        athleteRequestGate = null;
         await page.WaitForFunctionAsync(
             """
             () => history.state?.modal === 'details'
@@ -505,7 +515,7 @@ public sealed class LeaderboardProofViewerBrowserTests
         Assert.True(await viewer.IsHiddenAsync());
         Assert.Equal(realAthletePath, new Uri(page.Url).AbsolutePath);
 
-        await page.GoBackAsync();
+        await TraverseHistoryAsync(page, -1);
         await page.WaitForFunctionAsync(
             "() => location.pathname === '/' && document.getElementById('detailsModal')?.style.display === 'none'");
         failAthleteRequest = true;
@@ -533,21 +543,35 @@ public sealed class LeaderboardProofViewerBrowserTests
         Assert.False(await page.Locator("#athlete-proofs").IsVisibleAsync());
         Assert.Null(await page.Locator("#modalProfilePic").GetAttributeAsync("data-full-src"));
 
-        await page.GoForwardAsync();
-        await page.WaitForFunctionAsync(
+        await page.EvaluateAsync(
             """
-            () => history.state?.modal === 'enlarged'
-                && document.querySelector('#detailsModal .modal-content')?.classList.contains('is-loading')
+            () => {
+                const content = document.querySelector('#detailsModal .modal-content');
+                window.__proofHistorySawEnlargedLoading = false;
+                const capture = () => {
+                    if (history.state?.modal === 'enlarged' && content.classList.contains('is-loading')) {
+                        window.__proofHistorySawEnlargedLoading = true;
+                    }
+                };
+                const observer = new MutationObserver(capture);
+                observer.observe(content, { attributes: true, attributeFilter: ['class'] });
+                window.addEventListener('popstate', () => queueMicrotask(capture), { once: true });
+                window.__proofHistoryLoadingObserver = observer;
+                capture();
+            }
             """);
+        await TraverseHistoryAsync(page, 1);
         await page.WaitForFunctionAsync(
             """
             () => history.state?.modal === 'details'
                 && document.querySelector('#detailsModal .modal-content')?.classList.contains('has-load-error')
             """);
+        Assert.True(await page.EvaluateAsync<bool>(
+            "() => { window.__proofHistoryLoadingObserver?.disconnect(); return window.__proofHistorySawEnlargedLoading === true; }"));
         Assert.True(await viewer.IsHiddenAsync());
         Assert.True(await loadError.IsVisibleAsync());
 
-        await page.GoBackAsync();
+        await TraverseHistoryAsync(page, -1);
         await page.WaitForFunctionAsync(
             "() => location.pathname === '/' && document.getElementById('detailsModal')?.style.display === 'none'");
 
@@ -583,10 +607,10 @@ public sealed class LeaderboardProofViewerBrowserTests
         Assert.True(await page.Locator("#athlete-stats").IsVisibleAsync());
         Assert.True(await page.Locator("#athleteLoadError").IsHiddenAsync());
 
-        await page.GoBackAsync();
+        await TraverseHistoryAsync(page, -1);
         await page.WaitForFunctionAsync(
             "() => location.pathname === '/' && document.getElementById('detailsModal')?.style.display === 'none'");
-        athleteRequestDelayMilliseconds = 700;
+        athleteRequestGate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var delayedResponse = page.WaitForResponseAsync(
             response => response.Url.Contains("/api/data/athletes", StringComparison.OrdinalIgnoreCase));
         var openedBeforeClose = await page.EvaluateAsync<bool>(
@@ -602,6 +626,8 @@ public sealed class LeaderboardProofViewerBrowserTests
         await page.Locator("#closeAthleteDetailsModal").ClickAsync();
         await page.WaitForFunctionAsync(
             "() => document.getElementById('detailsModal')?.style.display === 'none'");
+        athleteRequestGate.SetResult();
+        athleteRequestGate = null;
         await delayedResponse;
         await page.WaitForFunctionAsync(
             "() => location.pathname === '/' && !history.state?.modal && document.getElementById('detailsModal')?.style.display === 'none'");
@@ -615,6 +641,9 @@ public sealed class LeaderboardProofViewerBrowserTests
         Assert.Equal("block", await page.Locator("#detailsModal").EvaluateAsync<string>("element => element.style.display"));
         Assert.False(await page.Locator("#detailsModal .modal-content").EvaluateAsync<bool>("element => element.inert"));
     }
+
+    private static Task TraverseHistoryAsync(IPage page, int delta)
+        => page.EvaluateAsync("delta => history.go(delta)", delta);
 
     private static Task<bool> IsFocusedAsync(ILocator locator) =>
         locator.EvaluateAsync<bool>("element => element === document.activeElement");

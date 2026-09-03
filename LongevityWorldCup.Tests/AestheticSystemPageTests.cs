@@ -2,7 +2,8 @@ using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
-public sealed class AestheticSystemPageTests
+[Collection(HttpTestCollections.ReadOnly)]
+public sealed class AestheticSystemPageTests(TestWebApplicationFactory sharedFactory)
 {
     [Theory]
     [InlineData("/", true)]
@@ -13,7 +14,7 @@ public sealed class AestheticSystemPageTests
     [InlineData("/?view=pheno", false)]
     public async Task HomepageHeroClass_IsLimitedToTheActualHomepage(string path, bool expectsHomepageHero)
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync(path);
@@ -32,7 +33,7 @@ public sealed class AestheticSystemPageTests
     [Fact]
     public async Task SearchDeepLink_UsesLeaderboardChrome()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/?search=pascoe");
@@ -53,7 +54,7 @@ public sealed class AestheticSystemPageTests
     [InlineData("/privacy")]
     public async Task SharedPages_LoadVersionedAestheticSystemLastInHead(string path)
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync(path);
@@ -82,7 +83,7 @@ public sealed class AestheticSystemPageTests
     [InlineData("/ruleset")]
     public async Task SharedPages_LoadVersionedSelfHostedFontAwesome(string path)
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync(path);
@@ -97,7 +98,7 @@ public sealed class AestheticSystemPageTests
     [Fact]
     public async Task SelfHostedFontAwesome_DistributionIsCompleteAndServedLocally()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var css = await client.GetStringAsync("/vendor/font-awesome/6.7.2/css/all.min.css");
@@ -129,7 +130,7 @@ public sealed class AestheticSystemPageTests
     [Fact]
     public async Task AestheticSystem_DefinesSemanticPaletteGeometryAndStateFallbacks()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var css = await client.GetStringAsync("/css/aesthetic-system.css");
@@ -156,7 +157,7 @@ public sealed class AestheticSystemPageTests
     [Fact]
     public async Task TaskPages_UsePurposefulVisualsAndReadableCopy()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var proofs = await client.GetStringAsync("/proofs");
@@ -178,7 +179,7 @@ public sealed class AestheticSystemPageTests
     [Fact]
     public async Task SharedSystem_UsesOneAccentAndBoundsCompactBadgeDensity()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var header = await client.GetStringAsync("/");
@@ -192,7 +193,7 @@ public sealed class AestheticSystemPageTests
     [Fact]
     public async Task SharedFormAndBadgeStates_KeepAccessibleContrastAndRestrainedMotion()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var aestheticCss = await client.GetStringAsync("/css/aesthetic-system.css");
@@ -209,7 +210,7 @@ public sealed class AestheticSystemPageTests
     [Fact]
     public async Task PrivacyPolicy_WrapsExtremeTokensInsideTheSharedVisualSystem()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/privacy");
@@ -224,7 +225,7 @@ public sealed class AestheticSystemPageTests
     [Fact]
     public async Task UnsubscribePage_UsesTheSharedAccentGeometryAndRestrainedMotion()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/unsubscribe");
@@ -242,7 +243,7 @@ public sealed class AestheticSystemPageTests
     [Fact]
     public async Task HelstabChallenge_UsesTheSharedAccentForActionsAndStructuralMarkers()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var css = await client.GetStringAsync("/css/helstab-kihivas.css");
@@ -274,7 +275,7 @@ public sealed class AestheticSystemPageTests
     [InlineData("/ruleset")]
     public async Task DocumentationPages_ProgressivelyEnhanceDeepMobileNavigation(string path)
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync(path);
@@ -291,7 +292,7 @@ public sealed class AestheticSystemPageTests
     [Fact]
     public async Task ProofViewer_OffersReadableMobileZoomAndPanControls()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/leaderboard");
@@ -308,7 +309,7 @@ public sealed class AestheticSystemPageTests
     [Fact]
     public async Task GuessMyAge_ReservesBubbleSpaceAndAllowsShortViewportRecovery()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/leaderboard");
@@ -322,134 +323,9 @@ public sealed class AestheticSystemPageTests
     }
 
     [Fact]
-    public async Task GuessMyAge_RestoresBoundedRevealChoreographyWithoutHeavyDependencies()
-    {
-        using var factory = new TestWebApplicationFactory();
-        using var client = factory.CreateClient();
-
-        var html = await client.GetStringAsync("/leaderboard");
-
-        Assert.Contains("/assets/content-images/trollface.png?v=", html);
-        Assert.DoesNotContain("claim your rickroll", html);
-        Assert.DoesNotContain("id=\"gmaTrollNote\"", html);
-        Assert.Contains("userGuess === +gmaRange.min || userGuess === +gmaRange.max", html);
-        Assert.Contains("gmaTriggerTrollAnimation();", html);
-        Assert.Contains("className = 'gma-trollface-container';", html);
-        Assert.Contains("@keyframes gmaTrollSlideUpOverlay", html);
-        Assert.Contains("from { bottom: -100%; }", html);
-        Assert.Contains("to { bottom: 0; }", html);
-        Assert.Contains("animation-timing-function: ease-out;", html);
-        Assert.Contains("animation-fill-mode: forwards;", html);
-        Assert.Contains("object-fit: cover;", html);
-        Assert.Contains("const GMA_TROLL_REDIRECT_MS = 2000;", html);
-        Assert.Contains("const GMA_TROLL_RECOVERY_MS = 2000;", html);
-        Assert.Contains("trollImg.alt = 'Trollface';", html);
-        Assert.Contains("trollImg.setAttribute('aria-hidden', 'true');", html);
-        Assert.Contains("if (athleteProfile) athleteProfile.inert = true;", html);
-        Assert.Contains("if (athleteProfile) athleteProfile.inert = profileWasInert;", html);
-        Assert.Contains("trollDiv.addEventListener('keydown', keepTrollFocus);", html);
-        Assert.Contains("trollDiv.removeEventListener('keydown', keepTrollFocus);", html);
-        Assert.Contains("if (recoveryTimer) window.clearTimeout(recoveryTimer);", html);
-        Assert.Contains("window.location.href = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';", html);
-        Assert.Contains("result.guessAccepted === true && crowdCountBeforeGuess === 0", html);
-        Assert.DoesNotContain("That guess was not accepted", html);
-        Assert.Contains("#gmaBubble.gma-bubble-inactive", html);
-        Assert.Contains("opacity: 0.4;", html);
-        Assert.DoesNotContain("content: 'YOU';", html);
-        Assert.DoesNotContain("content: 'ACTUAL';", html);
-        Assert.Contains("Right on the nose.", html);
-        Assert.Contains("You guessed younger — high five.", html);
-        Assert.Contains("You guessed older — oof.", html);
-        Assert.DoesNotContain("canvas-confetti", html);
-        Assert.DoesNotContain("spawnTimeIcons", html);
-        Assert.DoesNotContain("spawnConfetti", html);
-        Assert.Contains("animateActualAgeReveal", html);
-        Assert.Contains("showGmaReaction", html);
-        Assert.Contains("spawnGmaCelebration", html);
-        Assert.Contains("const sparkCount = isFirst ? 28 : 48;", html);
-        Assert.Contains("const GMA_EXACT_JACKPOT_MS = 15000;", html);
-        Assert.Contains("const GMA_EXACT_WAVE_COUNT = 30;", html);
-        Assert.Contains("const GMA_EXACT_CONFETTI_CAP = 2200;", html);
-        Assert.Contains("const GMA_EXACT_TIME_ICON_CAP = 420;", html);
-        Assert.Contains("const GMA_EXACT_CANVAS_PIXEL_CAP = 3000000;", html);
-        Assert.Contains("const GMA_EXACT_WAVE_DELAYS_MS = Object.freeze([", html);
-        Assert.Contains("if (waveIndex < 5) return 'opening';", html);
-        Assert.Contains("if (waveIndex < 13) return 'escalation';", html);
-        Assert.Contains("if (waveIndex < 24) return 'frenzy';", html);
-        Assert.Contains("? { opening: 75, escalation: 130, frenzy: 190, finale: 280 }", html);
-        Assert.Contains(": { opening: 110, escalation: 190, frenzy: 290, finale: 460 };", html);
-        Assert.Contains("GMA_EXACT_WAVE_DELAYS_MS[waveIndex]", html);
-        Assert.Contains("A cheap canvas clock face", html);
-        Assert.Contains("launchGmaExactJackpot(presentation);", html);
-        Assert.Contains("gmaExactJackpotController?.cancel();", html);
-        Assert.Contains("waveTimers.forEach(timer => window.clearTimeout(timer));", html);
-        Assert.Contains("if (frameId) window.cancelAnimationFrame(frameId);", html);
-        Assert.Contains("window.removeEventListener('resize', resizeCanvas);", html);
-        Assert.Contains("document.removeEventListener('visibilitychange', handleVisibilityChange);", html);
-        Assert.Contains("cleanupTimer = window.setTimeout(cancel, GMA_EXACT_JACKPOT_MS);", html);
-        Assert.Contains("if (portrait) portrait.inert = true;", html);
-        Assert.Contains("if (portrait) portrait.inert = portraitWasInert;", html);
-        Assert.Contains("detailsModal?.classList.add('gma-exact-takeover-active');", html);
-        Assert.Contains("detailsModal?.classList.remove('gma-exact-takeover-active');", html);
-        Assert.Contains("Could not play the Guess My Age celebration.", html);
-        Assert.Contains("Could not refresh the Guess My Age profile row.", html);
-        Assert.Contains("const outcomeDwell = userError === 0 && !prefersReducedGmaMotion()", html);
-        Assert.Contains("? 16000", html);
-        Assert.Contains(": 5000;", html);
-        Assert.Contains("Math.sqrt(GMA_EXACT_CANVAS_PIXEL_CAP / (cssWidth * cssHeight))", html);
-        Assert.Contains("Math.min(window.devicePixelRatio || 1, 2, pixelRatioCap)", html);
-        Assert.Contains("if (document.hidden", html);
-        Assert.Contains("document.addEventListener('visibilitychange', handleVisibilityChange);", html);
-        Assert.Contains("motionQuery.addEventListener('change', handleMotionChange);", html);
-        Assert.Contains(".gma-exact-jackpot", html);
-        Assert.Contains("#detailsModal .modal-content.guess-mode > .gma-exact-jackpot,", html);
-        Assert.Contains("ZERO YEARS OFF · ABSOLUTE TIME LORD", html);
-        Assert.DoesNotContain("width: 180vmax", html);
-        Assert.DoesNotContain("mix-blend-mode: screen", html);
-        Assert.Contains("const GMA_MAX_TRAVEL_MS = 7000;", html);
-        Assert.Contains("const detourDistance = 50 - distance;", html);
-        Assert.Contains("Math.sign(roundedActual - roundedStart) * detourDistance", html);
-        Assert.Contains("realBubble.dataset.travelBudget = String(travelBudget);", html);
-        Assert.Contains("targets.length > 1 ? 'return' : 'direct'", html);
-        Assert.Contains("const preludePromise = startGmaResultPrelude(presentation);", html);
-        Assert.Contains("showGmaReaction(reactionKind);", html);
-        Assert.Contains("const preludeCompleted = await preludePromise;", html);
-        Assert.Contains("modalContent.classList.add('gma-result-ready');", html);
-        Assert.Contains("isGuessMyAgeDismissBlocked", html);
-        Assert.Contains("id=\"gmaPayoffRegion\"", html);
-        Assert.Contains("gmaPayoffRegion.replaceChildren(b);", html);
-        Assert.Contains("prefersReducedGmaMotion", html);
-        Assert.Contains("gma-real-age-settle", html);
-        Assert.Contains("gma-card-celebrate", html);
-        Assert.Contains("gma-card-exit", html);
-        Assert.Contains("--gma-exit-height", html);
-        Assert.Contains("gmaGeometryForAge", html);
-        Assert.Contains("--gma-thumb-size", html);
-        Assert.Contains("#detailsModal #gmaRange:focus-visible", html);
-        Assert.DoesNotContain("opacity: 0 !important;", html);
-        Assert.DoesNotContain("height: 0;\n        padding: 0;", html);
-        Assert.Contains("isCurrentGmaPresentation", html);
-        Assert.Contains("realBubble.setAttribute('aria-hidden', 'true');", html);
-        Assert.DoesNotContain("id=\"gmaContinueBtn\"", html);
-        Assert.DoesNotContain("See profile", html);
-        Assert.Contains("gmaStatus.classList.add('gma-status--semantic');", html);
-        Assert.Contains("gmaActions.querySelectorAll('.gma-btn--ghost')", html);
-        const string persistGuessStateCall =
-            "persistGmaGuessState(presentation.athleteSlug, presentation.profileImageId, guessState);";
-        Assert.Contains(persistGuessStateCall, html);
-        Assert.Contains("await animateActualAgeReveal(", html);
-        Assert.True(
-            html.IndexOf(persistGuessStateCall, StringComparison.Ordinal)
-            < html.IndexOf("await animateActualAgeReveal(", StringComparison.Ordinal));
-        Assert.True(
-            html.IndexOf("gmaTriggerTrollAnimation();", StringComparison.Ordinal)
-            < html.IndexOf("const response = await fetch(", StringComparison.Ordinal));
-    }
-
-    [Fact]
     public async Task HungarianChrome_LocalizesTheSharedFooterColumnHeadings()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/helstab-kihivas");
@@ -466,7 +342,7 @@ public sealed class AestheticSystemPageTests
     [InlineData("/error/504.html")]
     public async Task FallbackErrors_KeepRecoveryContentCompactHumorousAndCacheSafe(string path)
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync(path);
@@ -481,7 +357,7 @@ public sealed class AestheticSystemPageTests
     [Fact]
     public async Task StandaloneInternalTools_KeepTheirIndependentVisualSystem()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/internal/custom-event-designer.html");

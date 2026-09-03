@@ -8,7 +8,8 @@ using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
-public sealed class LongevitymaxxingChallengePageTests
+[Collection(HttpTestCollections.ReadOnly)]
+public sealed class LongevitymaxxingChallengePageTests(TestWebApplicationFactory sharedFactory)
 {
     [Fact]
     public void ChallengeApiRequests_AreTimeBoundedPastServerPublicWorkTimeout()
@@ -60,7 +61,7 @@ public sealed class LongevitymaxxingChallengePageTests
     [Fact]
     public async Task ChallengeNoteMentions_ExposeAnAccessibleKeyboardParticipantPicker()
     {
-        using var factory = CreateFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
         var source = ReadFrontendSource();
         var css = await client.GetStringAsync("/css/longevitymaxxing.css");
@@ -211,7 +212,7 @@ public sealed class LongevitymaxxingChallengePageTests
     [Fact]
     public async Task LongevitymaxxingPage_RendersProductCopyAndVersionedAssets()
     {
-        using var factory = CreateFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/longevitymaxxing");
@@ -336,7 +337,7 @@ public sealed class LongevitymaxxingChallengePageTests
     [Fact]
     public async Task LongevitymaxxingCheckInQuotes_AreBucketedAndRenderLinkedSources()
     {
-        using var factory = CreateFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/longevitymaxxing");
@@ -389,7 +390,7 @@ public sealed class LongevitymaxxingChallengePageTests
     [Fact]
     public async Task LongevitymaxxingPublicState_DoesNotExposeParticipantOnlyMeetingLink()
     {
-        using var factory = CreateFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var json = await client.GetStringAsync("/api/longevitymaxxing/state");
@@ -529,7 +530,7 @@ public sealed class LongevitymaxxingChallengePageTests
     [Fact]
     public async Task LongevitymaxxingScript_KeepsLeaderboardVisibleAndFocusesDueCheckIn()
     {
-        using var factory = CreateFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var javascript = ReadFrontendSource();

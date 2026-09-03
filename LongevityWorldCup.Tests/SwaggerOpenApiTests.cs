@@ -6,7 +6,9 @@ using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
-public sealed class SwaggerOpenApiTests
+
+[Collection(HttpTestCollections.ReadOnly)]
+public sealed class SwaggerOpenApiTests(TestWebApplicationFactory sharedFactory)
 {
     private static readonly string[] PublicPaths =
     [
@@ -262,7 +264,7 @@ public sealed class SwaggerOpenApiTests
     [Fact]
     public async Task SwaggerUi_Loads()
     {
-        using var factory = CreateFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
         var response = await client.GetAsync("/swagger");
@@ -275,7 +277,7 @@ public sealed class SwaggerOpenApiTests
     [Fact]
     public async Task SwaggerUiMobileCss_PreservesExpandedModelToggle()
     {
-        using var factory = CreateFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var css = await client.GetStringAsync("/css/swagger-ui-mobile.css");
@@ -287,7 +289,7 @@ public sealed class SwaggerOpenApiTests
     [Fact]
     public async Task SwaggerUiMobileCss_PreservesResponseMediaTypeControls()
     {
-        using var factory = CreateFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var css = await client.GetStringAsync("/css/swagger-ui-mobile.css");
@@ -299,17 +301,11 @@ public sealed class SwaggerOpenApiTests
         Assert.Contains("width: min(100%, 11rem);", css);
     }
 
-    private static async Task<JsonDocument> LoadSwaggerDocumentAsync()
+    private async Task<JsonDocument> LoadSwaggerDocumentAsync()
     {
-        using var factory = CreateFactory();
-        using var client = factory.CreateClient();
+        using var client = sharedFactory.CreateClient();
         using var stream = await client.GetStreamAsync("/swagger/v1/swagger.json");
         return await JsonDocument.ParseAsync(stream);
-    }
-
-    private static WebApplicationFactory<Program> CreateFactory()
-    {
-        return new TestWebApplicationFactory();
     }
 
     private static IEnumerable<JsonElement> EnumerateOperations(JsonElement paths)

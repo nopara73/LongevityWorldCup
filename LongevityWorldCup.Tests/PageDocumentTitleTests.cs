@@ -2,7 +2,9 @@ using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
-public sealed class PageDocumentTitleTests
+
+[Collection(HttpTestCollections.ReadOnly)]
+public sealed class PageDocumentTitleTests(TestWebApplicationFactory sharedFactory)
 {
     [Theory]
     [InlineData("/privacy", "Privacy Policy | Longevity World Cup", false)]
@@ -19,7 +21,7 @@ public sealed class PageDocumentTitleTests
     [InlineData("/unsubscribe", "Unsubscribe | Longevity World Cup", true)]
     public async Task UtilityPages_KeepSpecificBrowserTabTitles(string path, string expectedTitle, bool expectsNoIndex)
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync(path);

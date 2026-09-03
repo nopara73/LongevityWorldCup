@@ -4,17 +4,17 @@ using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
-public sealed class EventBoardBrowserTests
+[Collection(BrowserTestCollections.WorkloadA)]
+public sealed class EventBoardBrowserTests(
+    PlaywrightBrowserFixture browserFixture,
+    BrowserTestAppFixture appFixture)
+    : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Fact]
     public async Task CustomEventRowChrome_TogglesDetailsWithoutStealingInteractiveClicks()
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
             BaseURL = app.BaseAddress.ToString(),
@@ -96,12 +96,8 @@ public sealed class EventBoardBrowserTests
     [Fact]
     public async Task AthleteEmbed_ImprovementLeaderEventStartsSentenceOnNameLine()
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
             BaseURL = app.BaseAddress.ToString(),
@@ -229,17 +225,6 @@ public sealed class EventBoardBrowserTests
                               }
                             ]
                             """
-                    });
-                    return;
-                }
-
-                if (uri.AbsolutePath.Equals("/api/bitcoin/total-received", StringComparison.OrdinalIgnoreCase))
-                {
-                    await route.FulfillAsync(new RouteFulfillOptions
-                    {
-                        Status = 200,
-                        ContentType = "application/json",
-                        Body = """{"totalReceivedSatoshis":210000}"""
                     });
                     return;
                 }

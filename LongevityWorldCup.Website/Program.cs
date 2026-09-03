@@ -453,9 +453,11 @@ namespace LongevityWorldCup.Website
                 context => !context.Request.Path.StartsWithSegments(PublicApiPathPrefix),
                 site => site.UseCors(SiteCorsPolicy));
 
-            app.UseStatusCodePagesWithReExecute("/error/{0}");
-
+            // Keep limiter rejections outside status-code re-execution so a
+            // deliberate 429 cannot be transformed into the static 404 flow.
             app.UseRateLimiter();
+
+            app.UseStatusCodePagesWithReExecute("/error/{0}");
 
             app.UseRequestTimeouts();
 

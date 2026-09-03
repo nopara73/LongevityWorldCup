@@ -4,7 +4,11 @@ using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
-public sealed class LabAccessPanelTests
+[Collection(BrowserTestCollections.WorkloadC)]
+public sealed class LabAccessPanelTests(
+    PlaywrightBrowserFixture browserFixture,
+    BrowserTestAppFixture appFixture)
+    : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Fact]
     public void BortzPageShowsNewZealandPanelForEligibleVisitors()
@@ -87,8 +91,7 @@ public sealed class LabAccessPanelTests
     [InlineData("/bortz-age")]
     public async Task RenderedBioagePagesUseCloudflareCountryHeaderForLabAccess(string path)
     {
-        using var factory = new TestWebApplicationFactory();
-        using var client = factory.CreateClient();
+        using var client = App.CreateClient();
         client.DefaultRequestHeaders.Add("CF-IPCountry", "NZ");
 
         var html = await client.GetStringAsync(path);
@@ -102,8 +105,7 @@ public sealed class LabAccessPanelTests
     [InlineData("/bortz-age")]
     public async Task RenderedBioagePagesUseAustralianCloudflareCountryHeaderForLabAccess(string path)
     {
-        using var factory = new TestWebApplicationFactory();
-        using var client = factory.CreateClient();
+        using var client = App.CreateClient();
         client.DefaultRequestHeaders.Add("CF-IPCountry", "AU");
 
         var html = await client.GetStringAsync(path);
@@ -126,12 +128,8 @@ public sealed class LabAccessPanelTests
         string expectedHref,
         string expectedDescription)
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
             BaseURL = app.BaseAddress.ToString(),
@@ -147,22 +145,27 @@ public sealed class LabAccessPanelTests
                 errors.Add(message.Text);
         };
         page.PageError += (_, error) => errors.Add(error);
+        try
+        {
+            await page.GotoAsync(path, new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
 
-        await page.GotoAsync(path, new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+            var panel = page.Locator(".lab-access-panel");
+            await panel.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Visible });
 
-        var panel = page.Locator(".lab-access-panel");
-        await panel.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Visible });
-
-        Assert.Contains(expectedDescription, await panel.InnerTextAsync());
-        Assert.Equal(expectedHref, await panel.Locator(".lab-access-link").GetAttributeAsync("href"));
-        Assert.Empty(errors);
+            Assert.Contains(expectedDescription, await panel.InnerTextAsync());
+            Assert.Equal(expectedHref, await panel.Locator(".lab-access-link").GetAttributeAsync("href"));
+            Assert.True(errors.Count == 0, $"{path}: {string.Join(Environment.NewLine, errors)}");
+        }
+        finally
+        {
+            await page.CloseAsync();
+        }
     }
 
     [Fact]
     public async Task RenderedBortzPageReceivesCloudflareUsCountryHeaderForFallback()
     {
-        using var factory = new TestWebApplicationFactory();
-        using var client = factory.CreateClient();
+        using var client = App.CreateClient();
         client.DefaultRequestHeaders.Add("CF-IPCountry", "US");
 
         var html = await client.GetStringAsync("/bortz-age");
@@ -176,8 +179,7 @@ public sealed class LabAccessPanelTests
     [Fact]
     public async Task RenderedBioagePagesIgnoreInvalidCloudflareCountryHeader()
     {
-        using var factory = new TestWebApplicationFactory();
-        using var client = factory.CreateClient();
+        using var client = App.CreateClient();
         client.DefaultRequestHeaders.Add("CF-IPCountry", "NZ<script>");
 
         var html = await client.GetStringAsync("/pheno-age");

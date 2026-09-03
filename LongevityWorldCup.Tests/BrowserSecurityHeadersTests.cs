@@ -4,13 +4,14 @@ using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
-public sealed class BrowserSecurityHeadersTests
+
+[Collection(HttpTestCollections.ReadOnly)]
+public sealed class BrowserSecurityHeadersTests(TestWebApplicationFactory sharedFactory)
 {
     [Fact]
     public async Task HtmlResponses_IncludeBrowserSecurityHeadersCompatibleWithInlineScripts()
     {
-        using var factory = new TestWebApplicationFactory();
-        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        using var client = sharedFactory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
         using var response = await client.GetAsync("/");
 
@@ -33,8 +34,7 @@ public sealed class BrowserSecurityHeadersTests
     [Fact]
     public async Task StaticFileResponses_IncludeBrowserSecurityHeaders()
     {
-        using var factory = new TestWebApplicationFactory();
-        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        using var client = sharedFactory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
         using var response = await client.GetAsync("/css/badges.css");
 

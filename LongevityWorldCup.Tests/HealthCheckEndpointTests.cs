@@ -5,13 +5,14 @@ using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
-public sealed class HealthCheckEndpointTests
+
+[Collection(HttpTestCollections.ReadOnly)]
+public sealed class HealthCheckEndpointTests(TestWebApplicationFactory sharedFactory)
 {
     [Fact]
     public async Task HealthEndpoint_ReturnsHealthyJson()
     {
-        using var factory = new TestWebApplicationFactory();
-        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        using var client = sharedFactory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
         using var response = await client.GetAsync("/health");
 

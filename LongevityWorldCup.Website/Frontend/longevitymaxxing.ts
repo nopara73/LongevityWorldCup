@@ -2782,10 +2782,11 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const athlete = findAthleteForParticipant(row);
         const athleteProfileImage = isPlaceholderProfileImage(athlete?.profilePic) ? "" : (athlete?.profilePic || "");
         const image = athleteProfileImage || String(row.profileImageUrl || "").trim();
+        const hydrationAttributes = participantAvatarHydrationAttributes("mention", row.participantId, row.displayName);
         if (image) {
-            return `<span class="lmx-mention-avatar" aria-hidden="true"><img src="${escAttr(image)}" alt="" loading="lazy" decoding="async"></span>`;
+            return `<span class="lmx-mention-avatar" ${hydrationAttributes} aria-hidden="true"><img src="${escAttr(image)}" alt="" loading="lazy" decoding="async"></span>`;
         }
-        return `<span class="lmx-mention-avatar fallback" aria-hidden="true">${esc(row.displayName.slice(0, 1).toLocaleUpperCase())}</span>`;
+        return `<span class="lmx-mention-avatar fallback" ${hydrationAttributes} aria-hidden="true">${esc(row.displayName.slice(0, 1).toLocaleUpperCase())}</span>`;
     }
 
     function lifetimeHabitEvidence(key: HabitKey): GardenHabitState {
@@ -3385,7 +3386,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const avatarClass = avatar.hasProfileImage
             ? "lmx-discussion-author-avatar"
             : "lmx-discussion-author-avatar placeholder";
-        const content = `<span class="${avatarClass}" aria-hidden="${avatar.hasProfileImage ? "false" : "true"}">
+        const hydrationAttributes = participantAvatarHydrationAttributes("discussion", participantId, displayName);
+        const content = `<span class="${avatarClass}" ${hydrationAttributes} aria-hidden="${avatar.hasProfileImage ? "false" : "true"}">
                 <img src="${escAttr(avatar.image)}" alt="${escAttr(avatar.alt)}" loading="lazy" decoding="async">
             </span>
             <strong>${esc(displayName)}</strong>`;
@@ -4748,6 +4750,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     function participantNameHtml(row: LeaderboardRow, nameHtml: string, rank: number): string {
         const avatar = participantAvatarDetails(row, row.displayName);
         const avatarClass = avatar.hasProfileImage ? "lmx-participant-avatar" : "lmx-participant-avatar placeholder";
+        const hydrationAttributes = participantAvatarHydrationAttributes("participant", row.participantId, row.displayName);
         const badges = [row.challengeInactive ? "Resting" : ""].filter(Boolean);
         const rankNumber = Number.isFinite(Number(rank)) ? Math.trunc(Number(rank)) : null;
         const rankHtml = rankNumber && rankNumber > 0
@@ -4755,7 +4758,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             : "";
         return `<div class="lmx-participant-name">
             ${rankHtml}
-            <span class="${avatarClass}" aria-hidden="${avatar.hasProfileImage ? "false" : "true"}">
+            <span class="${avatarClass}" ${hydrationAttributes} aria-hidden="${avatar.hasProfileImage ? "false" : "true"}">
                 <img src="${escAttr(avatar.image)}" alt="${escAttr(avatar.alt)}" loading="lazy" decoding="async">
             </span>
             <span class="lmx-participant-label">${nameHtml}${badges.length ? `<span class="lmx-row-badges">${badges.map(badge => `<em>${esc(badge)}</em>`).join("")}</span>` : ""}</span>
@@ -4776,6 +4779,48 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             hasProfileImage,
             alt: hasProfileImage ? `${displayName || "Participant"} profile picture` : ""
         };
+    }
+
+    function participantAvatarHydrationAttributes(
+        kind: "participant" | "discussion" | "mention",
+        participantId: string,
+        displayName: string
+    ): string {
+        return `data-lmx-participant-avatar="${escAttr(kind)}" data-participant-id="${escAttr(participantId)}" data-display-name="${escAttr(displayName)}"`;
+    }
+
+    function hydrateRenderedParticipantAvatars(): void {
+        const participants = new Map(challengeParticipants().map(row => [row.participantId, row]));
+        document.querySelectorAll<HTMLElement>("[data-lmx-participant-avatar]").forEach(container => {
+            const row = participants.get(String(container.dataset.participantId || ""));
+            if (!row) return;
+
+            const displayName = String(container.dataset.displayName || row.displayName || "Participant");
+            const avatar = participantAvatarDetails(row, displayName);
+            if (container.dataset.lmxParticipantAvatar === "mention") {
+                container.className = avatar.hasProfileImage ? "lmx-mention-avatar" : "lmx-mention-avatar fallback";
+                container.setAttribute("aria-hidden", "true");
+                if (avatar.hasProfileImage) replaceAvatarContents(container, avatar.image, "");
+                else container.textContent = displayName.slice(0, 1).toLocaleUpperCase();
+                return;
+            }
+
+            const baseClass = container.dataset.lmxParticipantAvatar === "discussion"
+                ? "lmx-discussion-author-avatar"
+                : "lmx-participant-avatar";
+            container.className = avatar.hasProfileImage ? baseClass : `${baseClass} placeholder`;
+            container.setAttribute("aria-hidden", avatar.hasProfileImage ? "false" : "true");
+            replaceAvatarContents(container, avatar.image, avatar.alt);
+        });
+    }
+
+    function replaceAvatarContents(container: HTMLElement, source: string, alt: string): void {
+        const image = document.createElement("img");
+        image.setAttribute("src", source);
+        image.setAttribute("alt", alt);
+        image.loading = "lazy";
+        image.decoding = "async";
+        container.replaceChildren(image);
     }
 
     function isPlaceholderProfileImage(url: unknown): boolean {
@@ -4816,7 +4861,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                     .filter(a => a.name && a.slug)
                     .sort((a, b) => a.name.localeCompare(b.name));
 
-                if (publicState) renderAll();
+                hydrateRenderedParticipantAvatars();
                 return athleteDirectory;
             })
             .catch(() => {

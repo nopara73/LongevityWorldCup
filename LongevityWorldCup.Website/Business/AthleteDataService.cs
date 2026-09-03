@@ -94,8 +94,12 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
     private readonly EventDataService _eventDataService;
     private readonly FileSystemWatcher _athleteWatcher;
     private readonly SemaphoreSlim _reloadLock = new(1, 1);
-
-    private CancellationTokenSource? _debounceCts;
+    private readonly DrainableOperationLifetime _reloadOperations = new(nameof(AthleteDataService));
+    private readonly CancellationTokenSource _reloadWorkerCts = new();
+    private readonly SemaphoreSlim _reloadSignal = new(0, 1);
+    private readonly Task _reloadWorkerTask;
+    private readonly ILogger<AthleteDataService>? _logger;
+    private int _disposed;
     private static readonly TimeSpan _debounceInterval = TimeSpan.FromMilliseconds(100);
 
     private const string DatabaseFileName = "LongevityWorldCup.db";
@@ -125,11 +129,16 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
 
     private readonly object _athletesJsonLock = new();
 
-    public AthleteDataService(IWebHostEnvironment env, EventDataService eventDataService, DatabaseManager db)
+    public AthleteDataService(
+        IWebHostEnvironment env,
+        EventDataService eventDataService,
+        DatabaseManager db,
+        ILogger<AthleteDataService>? logger = null)
     {
         _env = env;
         _eventDataService = eventDataService;
         _db = db ?? throw new ArgumentNullException(nameof(db));
+        _logger = logger;
 
         var dataDir = EnvironmentHelpers.GetDataDir();
         Directory.CreateDirectory(dataDir);
@@ -273,7 +282,7 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
         });
 
         // Initial load
-        LoadAthletesAsync().GetAwaiter().GetResult();
+        _athletes = LoadAthletesAsync().GetAwaiter().GetResult();
 
         var newlyJoined = EnsureDbRowsForNewAthletes();
 
@@ -298,7 +307,7 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
         }
 
         // Hydrate persisted age‐guess stats from SQLite
-        ReloadCrowdStats();
+        ReloadCrowdStatsCore();
         SyncCrowdAgeTop10Placements(emitEvents: false);
         HydrateAgeImprovementIntoAthletesJson();
         HydrateNewFlagsIntoAthletesJson();
@@ -360,6 +369,7 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
 
         // Close the startup gap between the initial snapshot and watcher activation.
         // Run after constructor initialization so the rescan cannot overlap startup work.
+        _reloadWorkerTask = ProcessReloadRequestsAsync(_reloadWorkerCts.Token);
         DebounceReload();
     }
 
@@ -385,10 +395,14 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
 
     private void OnDatabaseChanged()
     {
+        using var operation = _reloadOperations.TryEnter();
+        if (operation is null)
+            return;
+
         _reloadLock.Wait();
         try
         {
-            ReloadCrowdStats();
+            ReloadCrowdStatsCore();
             SyncCrowdAgeTop10Placements(emitEvents: false);
             HydrateAgeImprovementIntoAthletesJson();
             HydratePlacementsIntoAthletesJson();
@@ -437,8 +451,10 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
         return result;
     }
 
-    private async Task LoadAthletesAsync()
+    private async Task<JsonArray> LoadAthletesAsync(CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         // Build up a JsonArray by reading every athlete.json under wwwroot/athletes
         var athletesRoot = new JsonArray();
         var activeGeneratedProfileAssets = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -447,18 +463,20 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
 
         foreach (var file in files)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             // retry read in case the file is mid-write
             string text = "";
             for (int i = 0; ; i++)
             {
                 try
                 {
-                    text = File.ReadAllText(file);
+                    text = await File.ReadAllTextAsync(file, cancellationToken).ConfigureAwait(false);
                     break;
                 }
                 catch (IOException) when (i < 5)
                 {
-                    await Task.Delay(50);
+                    await Task.Delay(50, cancellationToken).ConfigureAwait(false);
                 }
             }
 
@@ -483,7 +501,7 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
                 .FirstOrDefault();
             var publishedProfile = pic is null
                 ? null
-                : await PublishProfileImageSnapshotAsync(pic, folderName).ConfigureAwait(false);
+                : await PublishProfileImageSnapshotAsync(pic, folderName, cancellationToken).ConfigureAwait(false);
             var profileImageId = publishedProfile?.ImageId;
             athlete[ProfileImageIdProperty] = profileImageId;
             var profilePicUrl = publishedProfile?.Url;
@@ -504,7 +522,8 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
                     folderName: folderName,
                     thumbSuffix: "_thumb_sm",
                     sizePx: EventThumbSizePx,
-                    quality: EventThumbQuality) ?? profilePicUrl;
+                    quality: EventThumbQuality,
+                    cancellationToken: cancellationToken) ?? profilePicUrl;
             athlete["ProfilePicLeaderboardThumb"] = publishedProfile is null
                 ? profilePicUrl
                 : BuildOrGetProfileThumbUrl(
@@ -513,7 +532,8 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
                     folderName: folderName,
                     thumbSuffix: "_thumb_md",
                     sizePx: LeaderboardThumbSizePx,
-                    quality: LeaderboardThumbQuality) ?? profilePicUrl;
+                    quality: LeaderboardThumbQuality,
+                    cancellationToken: cancellationToken) ?? profilePicUrl;
 
             // PROOFS: look for proof_*.ext
             var proofs = new JsonArray();
@@ -531,8 +551,9 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
             athletesRoot.Add(athlete);
         }
 
-        lock (_athletesJsonLock) _athletes = athletesRoot;
-        PruneStaleGeneratedProfileAssets(activeGeneratedProfileAssets);
+        cancellationToken.ThrowIfCancellationRequested();
+        PruneStaleGeneratedProfileAssets(activeGeneratedProfileAssets, cancellationToken);
+        return athletesRoot;
     }
 
     private static string BuildVersionedAthleteAssetUrl(string folderName, string fileName, string version)
@@ -550,7 +571,8 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
 
     private async Task<PublishedProfileImage> PublishProfileImageSnapshotAsync(
         string sourcePath,
-        string folderName)
+        string folderName,
+        CancellationToken cancellationToken)
     {
         byte[] sourceBytes;
         for (var attempt = 0; ; attempt++)
@@ -565,13 +587,13 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
                     bufferSize: 64 * 1024,
                     options: FileOptions.Asynchronous | FileOptions.SequentialScan);
                 using var buffer = new MemoryStream();
-                await stream.CopyToAsync(buffer).ConfigureAwait(false);
+                await stream.CopyToAsync(buffer, cancellationToken).ConfigureAwait(false);
                 sourceBytes = buffer.ToArray();
                 break;
             }
             catch (IOException) when (attempt < 5)
             {
-                await Task.Delay(50).ConfigureAwait(false);
+                await Task.Delay(50, cancellationToken).ConfigureAwait(false);
             }
         }
 
@@ -586,7 +608,7 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
                 $".{publishedFileName}.{Guid.NewGuid():N}.tmp");
             try
             {
-                await File.WriteAllBytesAsync(pendingPath, sourceBytes).ConfigureAwait(false);
+                await File.WriteAllBytesAsync(pendingPath, sourceBytes, cancellationToken).ConfigureAwait(false);
                 try
                 {
                     File.Move(pendingPath, publishedPath, overwrite: false);
@@ -634,8 +656,17 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
 
     private sealed record PublishedProfileImage(string ImageId, string Path, string Url);
 
-    private string? BuildOrGetProfileThumbUrl(string sourceImagePath, string sourceImageId, string folderName, string thumbSuffix, int sizePx, int quality)
+    private string? BuildOrGetProfileThumbUrl(
+        string sourceImagePath,
+        string sourceImageId,
+        string folderName,
+        string thumbSuffix,
+        int sizePx,
+        int quality,
+        CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         if (string.IsNullOrWhiteSpace(sourceImagePath) ||
             string.IsNullOrWhiteSpace(sourceImageId) ||
             !File.Exists(sourceImagePath))
@@ -660,6 +691,7 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
                     _profileThumbDir,
                     $".{thumbFileName}.{Guid.NewGuid():N}.tmp");
                 using var image = Image.Load(sourceImagePath);
+                cancellationToken.ThrowIfCancellationRequested();
                 image.Mutate(ctx => ctx
                     .AutoOrient()
                     .Resize(new ResizeOptions
@@ -675,6 +707,7 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
                     FileFormat = WebpFileFormatType.Lossy,
                     Quality = quality
                 });
+                cancellationToken.ThrowIfCancellationRequested();
                 var expectedThumbLength = new FileInfo(pendingThumbPath).Length;
                 if (File.Exists(thumbPath) && !HasExpectedLength(thumbPath, expectedThumbLength))
                     File.Delete(thumbPath);
@@ -700,6 +733,10 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
 
             return $"/generated/thumbs/athletes/{thumbFileName}?v={sourceImageId}";
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
         catch
         {
             return null;
@@ -724,22 +761,27 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
     private string GetProfileThumbPath(string folderName, string thumbSuffix, string sourceImageId)
         => Path.Combine(_profileThumbDir, $"{folderName}{thumbSuffix}_{sourceImageId}.webp");
 
-    private void PruneStaleGeneratedProfileAssets(IReadOnlySet<string> activePaths)
+    private void PruneStaleGeneratedProfileAssets(
+        IReadOnlySet<string> activePaths,
+        CancellationToken cancellationToken)
     {
         var cutoffUtc = DateTime.UtcNow - GeneratedProfileAssetRetention;
-        PruneDirectory(_publishedProfileDir, activePaths, cutoffUtc);
-        PruneDirectory(_profileThumbDir, activePaths, cutoffUtc);
+        PruneDirectory(_publishedProfileDir, activePaths, cutoffUtc, cancellationToken);
+        PruneDirectory(_profileThumbDir, activePaths, cutoffUtc, cancellationToken);
     }
 
     private static void PruneDirectory(
         string directory,
         IReadOnlySet<string> activePaths,
-        DateTime cutoffUtc)
+        DateTime cutoffUtc,
+        CancellationToken cancellationToken)
     {
         foreach (var path in Directory
                      .EnumerateFiles(directory, "*", SearchOption.TopDirectoryOnly)
                      .Where(path => !path.EndsWith(".inactive", StringComparison.OrdinalIgnoreCase)))
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             var inactiveMarkerPath = path + ".inactive";
             try
             {
@@ -790,6 +832,8 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
                      "*.inactive",
                      SearchOption.TopDirectoryOnly))
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             try
             {
                 var assetPath = markerPath[..^".inactive".Length];
@@ -807,22 +851,51 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
 
     private void DebounceReload()
     {
-        _debounceCts?.Cancel();
-        _debounceCts = new CancellationTokenSource();
-        var token = _debounceCts.Token;
+        if (Volatile.Read(ref _disposed) != 0)
+            return;
 
-        _ = Task.Run(async () =>
+        try
+        {
+            _reloadSignal.Release();
+        }
+        catch (SemaphoreFullException)
+        {
+            // One queued signal is enough; the worker restarts the debounce
+            // window whenever it observes additional changes.
+        }
+        catch (ObjectDisposedException) when (Volatile.Read(ref _disposed) != 0)
+        {
+        }
+    }
+
+    private async Task ProcessReloadRequestsAsync(CancellationToken cancellationToken)
+    {
+        while (true)
         {
             try
             {
-                await Task.Delay(_debounceInterval, token);
-                if (!token.IsCancellationRequested)
-                    await OnSourceChangedAsync(this, null);
+                await _reloadSignal.WaitAsync(cancellationToken).ConfigureAwait(false);
+
+                var restartDebounce = true;
+                while (restartDebounce)
+                {
+                    await Task.Delay(_debounceInterval, cancellationToken).ConfigureAwait(false);
+                    restartDebounce = false;
+                    while (_reloadSignal.Wait(0))
+                        restartDebounce = true;
+                }
+
+                await ReloadFromSourceAsync(cancellationToken).ConfigureAwait(false);
             }
-            catch (TaskCanceledException)
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
+                return;
             }
-        }, CancellationToken.None);
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "Athlete source reload failed; the watcher remains active for the next change.");
+            }
+        }
     }
 
     private static void CanonicalizeIsoDatesInPlace(JsonNode node)
@@ -887,60 +960,71 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
         }
     }
 
-    private async Task OnSourceChangedAsync(object sender, FileSystemEventArgs? e)
+    private async Task ReloadFromSourceAsync(CancellationToken cancellationToken)
     {
+        using var operation = _reloadOperations.TryEnter();
+        if (operation is null)
+            return;
+
         var notify = false;
 
-        await _reloadLock.WaitAsync();
+        await _reloadLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            await LoadAthletesAsync();
+            var reloadedAthletes = await LoadAthletesAsync(cancellationToken).ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
 
-            var newlyJoined = EnsureDbRowsForNewAthletes();
-
-            SyncAgeGuessProfileImageIds(migrateLegacyGuesses: false);
-            ReloadCrowdStats();
-            // A new profile image can remove the athlete from the Crowd Age field.
-            // Keep stored placements current without publishing incidental social events.
-            SyncCrowdAgeTop10Placements(emitEvents: false);
-            HydrateAgeImprovementIntoAthletesJson();
-            HydratePlacementsIntoAthletesJson();
-            HydrateNewFlagsIntoAthletesJson();
-            HydrateCurrentPlacementIntoAthletesJson(); // NOTE: no DB persist here
-            HydrateBadgesIntoAthletesJson();           // badges into athlete JSON
-
-            // recompute and persist biomarker/test signatures after reload
-            var changedSigs = SyncBiomarkerSignatures();
-            SyncAgeImprovementTop10Placements(emitEvents: true, eventSubjectSlugs: changedSigs);
-            var becamePro = SyncProTrackStates(newlyJoined.Select(x => x.Athlete["AthleteSlug"]!.GetValue<string>()));
-            var bioAgeImprovements = SyncBestBioAgeStates(
-                changedSigs,
-                newlyJoined.Select(x => x.Athlete["AthleteSlug"]!.GetValue<string>()));
-
-            if (newlyJoined.Count > 0)
+            // Readers must never observe the base JSON between its reset of derived
+            // values and the database-backed hydration that follows. Holding the
+            // snapshot lock publishes the entire reload as one atomic transition.
+            lock (_athletesJsonLock)
             {
-                var payload = BuildJoinedPayloadWithReplaced(newlyJoined);
-                _eventDataService.CreateJoinedEventsForAthletes(payload, skipIfExists: true);
+                _athletes = reloadedAthletes;
+                var newlyJoined = EnsureDbRowsForNewAthletes();
+
+                SyncAgeGuessProfileImageIds(migrateLegacyGuesses: false);
+                ReloadCrowdStatsCore();
+                // A new profile image can remove the athlete from the Crowd Age field.
+                // Keep stored placements current without publishing incidental social events.
+                SyncCrowdAgeTop10Placements(emitEvents: false);
+                HydrateAgeImprovementIntoAthletesJson();
+                HydratePlacementsIntoAthletesJson();
+                HydrateNewFlagsIntoAthletesJson();
+                HydrateCurrentPlacementIntoAthletesJson(); // NOTE: no DB persist here
+                HydrateBadgesIntoAthletesJson();           // badges into athlete JSON
+
+                // recompute and persist biomarker/test signatures after reload
+                var changedSigs = SyncBiomarkerSignatures();
+                SyncAgeImprovementTop10Placements(emitEvents: true, eventSubjectSlugs: changedSigs);
+                var becamePro = SyncProTrackStates(newlyJoined.Select(x => x.Athlete["AthleteSlug"]!.GetValue<string>()));
+                var bioAgeImprovements = SyncBestBioAgeStates(
+                    changedSigs,
+                    newlyJoined.Select(x => x.Athlete["AthleteSlug"]!.GetValue<string>()));
+
+                if (newlyJoined.Count > 0)
+                {
+                    var payload = BuildJoinedPayloadWithReplaced(newlyJoined);
+                    _eventDataService.CreateJoinedEventsForAthletes(payload, skipIfExists: true);
+                }
+
+                if (becamePro.Count > 0)
+                {
+                    _eventDataService.CreateBecameProEvents(becamePro, skipIfExists: true);
+                }
+
+                if (bioAgeImprovements.Count > 0)
+                {
+                    _eventDataService.CreateBiologicalAgeImprovementEvents(bioAgeImprovements, skipIfExists: true);
+                }
+
+                DetectAndEmitRankUpsForSlugs(
+                    changedSlugs: changedSigs,
+                    newcomerSlugs: newlyJoined.Select(x => x.Athlete["AthleteSlug"]!.GetValue<string>())
+                );
+
+                DetectAndEmitAthleteCountMilestones(); // emit milestones on reload/new joins
+                notify = true;
             }
-
-            if (becamePro.Count > 0)
-            {
-                _eventDataService.CreateBecameProEvents(becamePro, skipIfExists: true);
-            }
-
-            if (bioAgeImprovements.Count > 0)
-            {
-                _eventDataService.CreateBiologicalAgeImprovementEvents(bioAgeImprovements, skipIfExists: true);
-            }
-
-            DetectAndEmitRankUpsForSlugs(
-                changedSlugs: changedSigs,
-                newcomerSlugs: newlyJoined.Select(x => x.Athlete["AthleteSlug"]!.GetValue<string>())
-            );
-
-            DetectAndEmitAthleteCountMilestones(); // emit milestones on reload/new joins
-
-            notify = true;
         }
         finally
         {
@@ -983,6 +1067,7 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
     /// </summary>
     public bool TryAddAgeGuess(string athleteSlug, string profileImageId, int ageGuess)
     {
+        using var operation = _reloadOperations.Enter();
         int cnt;
         double median;
 
@@ -1069,6 +1154,20 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
     /// </summary>
     public void ReloadCrowdStats()
     {
+        using var operation = _reloadOperations.Enter();
+        _reloadLock.Wait();
+        try
+        {
+            ReloadCrowdStatsCore();
+        }
+        finally
+        {
+            _reloadLock.Release();
+        }
+    }
+
+    private void ReloadCrowdStatsCore()
+    {
         List<string> slugs;
         lock (_athletesJsonLock)
         {
@@ -1118,6 +1217,7 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
         string expectedProfileImageId,
         out (double Median, int Count) stats)
     {
+        using var operation = _reloadOperations.Enter();
         stats = (0, 0);
         _reloadLock.Wait();
         try
@@ -2225,6 +2325,7 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
 
     public void SetPlacements(string athleteSlug, int?[] placements)
     {
+        using var operation = _reloadOperations.Enter();
         if (placements is null) throw new ArgumentNullException(nameof(placements));
         if (placements.Length != 4) placements = new[] { placements.ElementAtOrDefault(0), placements.ElementAtOrDefault(1), placements.ElementAtOrDefault(2), placements.ElementAtOrDefault(3) };
 
@@ -2423,6 +2524,7 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
     // Public entry-point so other services (e.g., BadgeDataService) can trigger a badges refresh.
     public void RefreshBadgesFromDatabase()
     {
+        using var operation = _reloadOperations.Enter();
         _reloadLock.Wait();
         try
         {
@@ -2516,10 +2618,29 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
 
     public void Dispose()
     {
+        if (Interlocked.Exchange(ref _disposed, 1) != 0)
+            return;
+
+        var reloadOperationsDrained = _reloadOperations.StopAndDrainAsync();
         _db.DatabaseChanged -= OnDatabaseChanged;
         _athleteWatcher.Dispose();
+        _reloadWorkerCts.Cancel();
+
+        try
+        {
+            // Cancellation stops debounce and source I/O before publication. If
+            // atomic snapshot publication has already begun, join it to completion
+            // before the database and synchronization primitives can be disposed.
+            _reloadWorkerTask.GetAwaiter().GetResult();
+        }
+        catch (OperationCanceledException)
+        {
+        }
+
+        reloadOperationsDrained.GetAwaiter().GetResult();
+        _reloadWorkerCts.Dispose();
+        _reloadSignal.Dispose();
         _reloadLock.Dispose();
-        _debounceCts?.Dispose();
         GC.SuppressFinalize(this);
     }
 

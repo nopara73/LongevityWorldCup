@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Logging.Abstractions;
+using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Net;
 using System.Text.Json.Nodes;
 using System.Threading;
@@ -1249,7 +1251,7 @@ public sealed class LongevitymaxxingChallengeServiceTests
             "notes@example.com",
             "Notes Nora",
             nowUtc: DateTimeOffset.Parse("2026-06-19T12:00:00Z"));
-        using var stream = CreatePngStream(width: 2400, height: 1200);
+        using var stream = CreatePngStream(width: 1800, height: 900);
         var file = CreatePngFormFile(stream, formName: "notePhotos", fileName: "kitchen.png");
         var now = DateTimeOffset.Parse("2026-06-20T08:00:00Z");
 
@@ -1339,9 +1341,9 @@ public sealed class LongevitymaxxingChallengeServiceTests
         var row = Assert.Single(state.Public.Leaderboard);
         Assert.Equal(state.Participant.ProfileImageUrl, row.ProfileImageUrl);
 
-        Assert.True(SpinWait.SpinUntil(() => fixture.Http.Requests.Count > 0, TimeSpan.FromSeconds(8)));
+        Assert.True(await WaitUntilAsync(() => fixture.Http.Requests.Count > 0, TimeSpan.FromSeconds(8)));
         gravatarGate.Set();
-        Assert.True(SpinWait.SpinUntil(() =>
+        Assert.True(await WaitUntilAsync(() =>
             fixture.Service.GetParticipantState(access).Participant.ProfileImageUrl is not null,
             TimeSpan.FromSeconds(8)));
         var cached = fixture.Service.GetParticipantState(access);
@@ -1353,7 +1355,7 @@ public sealed class LongevitymaxxingChallengeServiceTests
     }
 
     [Fact]
-    public void PublicStateWarmsUncachedGravatarWithoutBlockingLeaderboard()
+    public async Task PublicStateWarmsUncachedGravatarWithoutBlockingLeaderboard()
     {
         using var gravatar = CreatePngStream();
         using var gravatarGate = new ManualResetEventSlim(false);
@@ -1366,9 +1368,9 @@ public sealed class LongevitymaxxingChallengeServiceTests
         Assert.Equal("Uncached Uma", row.DisplayName);
         Assert.Null(row.ProfileImageUrl);
 
-        Assert.True(SpinWait.SpinUntil(() => fixture.Http.Requests.Count > 0, TimeSpan.FromSeconds(8)));
+        Assert.True(await WaitUntilAsync(() => fixture.Http.Requests.Count > 0, TimeSpan.FromSeconds(8)));
         gravatarGate.Set();
-        Assert.True(SpinWait.SpinUntil(() =>
+        Assert.True(await WaitUntilAsync(() =>
             fixture.Service.GetPublicState(DateTimeOffset.Parse("2026-06-09T09:00:01Z")).Leaderboard.Single().ProfileImageUrl is not null,
             TimeSpan.FromSeconds(8)));
 
@@ -1386,7 +1388,7 @@ public sealed class LongevitymaxxingChallengeServiceTests
             profileImageResponse: profileImage.ToArray());
         var access = await fixture.ConfirmParticipantAsync("plain@example.com", "molnard");
 
-        Assert.True(SpinWait.SpinUntil(() =>
+        Assert.True(await WaitUntilAsync(() =>
             fixture.Service.GetParticipantState(access).Participant.ProfileImageUrl is not null,
             TimeSpan.FromSeconds(8)));
         var state = fixture.Service.GetParticipantState(access);
@@ -1406,7 +1408,7 @@ public sealed class LongevitymaxxingChallengeServiceTests
         using var fixture = TestChallengeFixture.Create(gravatarResponse: gravatar.ToArray());
         var access = await fixture.ConfirmParticipantAsync("linked-gravatar@example.com", "Linked Gail", athleteLink: "/athlete/linked-gail");
 
-        Assert.True(SpinWait.SpinUntil(() =>
+        Assert.True(await WaitUntilAsync(() =>
             fixture.Service.GetParticipantState(access).Participant.ProfileImageUrl is not null,
             TimeSpan.FromSeconds(8)));
         var state = fixture.Service.GetParticipantState(access);
@@ -1426,9 +1428,9 @@ public sealed class LongevitymaxxingChallengeServiceTests
         using var gravatarGate = new ManualResetEventSlim(false);
         using var fixture = TestChallengeFixture.Create(gravatarResponse: gravatar.ToArray(), gravatarGate: gravatarGate);
         var access = await fixture.ConfirmParticipantAsync("priority@example.com", "Priority Pat");
-        Assert.True(SpinWait.SpinUntil(() => fixture.Http.Requests.Count > 0, TimeSpan.FromSeconds(8)));
+        Assert.True(await WaitUntilAsync(() => fixture.Http.Requests.Count > 0, TimeSpan.FromSeconds(8)));
         gravatarGate.Set();
-        Assert.True(SpinWait.SpinUntil(() =>
+        Assert.True(await WaitUntilAsync(() =>
             fixture.Service.GetParticipantState(access).Participant.ProfileImageUrl is not null,
             TimeSpan.FromSeconds(8)));
         fixture.Http.Requests.Clear();
@@ -2738,6 +2740,18 @@ public sealed class LongevitymaxxingChallengeServiceTests
         return stream;
     }
 
+    private static async Task<bool> WaitUntilAsync(Func<bool> condition, TimeSpan timeout)
+    {
+        var stopwatch = Stopwatch.StartNew();
+        while (stopwatch.Elapsed < timeout)
+        {
+            if (condition()) return true;
+            await Task.Delay(10);
+        }
+
+        return condition();
+    }
+
     private static IFormFile CreatePngFormFile(MemoryStream stream, string formName = "profilePicture", string fileName = "profile.png")
     {
         return new FormFile(stream, 0, stream.Length, formName, fileName)
@@ -3048,16 +3062,16 @@ public sealed class LongevitymaxxingChallengeServiceTests
         byte[]? profileImageResponse,
         ManualResetEventSlim? gravatarGate) : IHttpClientFactory
     {
-        public List<Uri> Requests { get; } = [];
-        public List<string> UserAgents { get; } = [];
+        public ConcurrentQueue<Uri> Requests { get; } = new();
+        public ConcurrentQueue<string> UserAgents { get; } = new();
 
         public HttpClient CreateClient(string name)
             => new(new FakeHttpMessageHandler(Requests, UserAgents, gravatarResponse, profileJson, profileImageResponse, gravatarGate));
     }
 
     private sealed class FakeHttpMessageHandler(
-        List<Uri> requests,
-        List<string> userAgents,
+        ConcurrentQueue<Uri> requests,
+        ConcurrentQueue<string> userAgents,
         byte[]? gravatarResponse,
         string? profileJson,
         byte[]? profileImageResponse,
@@ -3071,8 +3085,8 @@ public sealed class LongevitymaxxingChallengeServiceTests
 
         private HttpResponseMessage BuildResponse(HttpRequestMessage request)
         {
-            requests.Add(request.RequestUri!);
-            userAgents.Add(request.Headers.UserAgent.ToString());
+            requests.Enqueue(request.RequestUri!);
+            userAgents.Enqueue(request.Headers.UserAgent.ToString());
             gravatarGate?.Wait();
             if (string.IsNullOrWhiteSpace(request.Headers.UserAgent.ToString()))
                 return new HttpResponseMessage(HttpStatusCode.Forbidden);

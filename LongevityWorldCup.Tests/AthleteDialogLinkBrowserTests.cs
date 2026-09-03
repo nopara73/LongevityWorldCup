@@ -4,7 +4,11 @@ using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
-public sealed class AthleteDialogLinkBrowserTests
+[Collection(BrowserTestCollections.WorkloadD)]
+public sealed class AthleteDialogLinkBrowserTests(
+    PlaywrightBrowserFixture browserFixture,
+    BrowserTestAppFixture appFixture)
+    : BrowserIntegrationTest(browserFixture, appFixture)
 {
     private const string MichaelSlug = "michael-lustgarten";
     private const string ProfileImageA = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
@@ -19,8 +23,7 @@ public sealed class AthleteDialogLinkBrowserTests
     [InlineData("/bortz-age")]
     public async Task PublicAthleteLinkSurfaces_InstallOneScopedDialogRuntime(string path)
     {
-        using var factory = new TestWebApplicationFactory();
-        using var client = factory.CreateClient();
+        using var client = App.CreateClient();
 
         var html = await client.GetStringAsync(path);
 
@@ -37,12 +40,8 @@ public sealed class AthleteDialogLinkBrowserTests
     [Fact]
     public async Task CalculatorHydration_DoesNotWaitForDialogOnlyModules()
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await NewContextAsync(browser, app, width: 1024, height: 720);
 
         var dialogModuleRequestReceived =
@@ -86,12 +85,8 @@ public sealed class AthleteDialogLinkBrowserTests
     [Fact]
     public async Task AboutAthleteLink_QueuesUntilHydratedAndCloseRestoresTheCallingPage()
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await NewContextAsync(browser, app, width: 1024, height: 720);
         await context.AddInitScriptAsync(
             """
@@ -233,12 +228,8 @@ public sealed class AthleteDialogLinkBrowserTests
     [Fact]
     public async Task DelegatedHandler_OpensDynamicAndOfficialLinksButLeavesModifiedClicksNative()
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await NewContextAsync(browser, app, width: 1100, height: 760);
         await context.RouteAsync("**/api/events", route => route.FulfillAsync(new RouteFulfillOptions
         {
@@ -363,9 +354,18 @@ public sealed class AthleteDialogLinkBrowserTests
                 document.querySelector('.documentation-document').appendChild(link);
             }
             """);
-        await page.Locator("#unknownAthleteLink").ClickAsync();
-        await page.WaitForURLAsync("**/athlete/not-a-real-athlete");
-        Assert.Equal("/athlete/not-a-real-athlete", new Uri(page.Url).AbsolutePath);
+        var unknownAthleteRequest = page.WaitForRequestAsync(request =>
+            request.IsNavigationRequest
+            && new Uri(request.Url).AbsolutePath == "/athlete/not-a-real-athlete");
+        await Task.WhenAll(
+            page.WaitForURLAsync(
+                "**/error/404.html",
+                new PageWaitForURLOptions { WaitUntil = WaitUntilState.DOMContentLoaded }),
+            page.Locator("#unknownAthleteLink").ClickAsync());
+        Assert.Equal(
+            "/athlete/not-a-real-athlete",
+            new Uri((await unknownAthleteRequest).Url).AbsolutePath);
+        Assert.Equal("/error/404.html", new Uri(page.Url).AbsolutePath);
     }
 
     [Fact]
@@ -374,12 +374,8 @@ public sealed class AthleteDialogLinkBrowserTests
         const string canonicalSlug = "michael-lustgarten-stable";
         const string legacyNameSlug = "michael-lustgarten";
 
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await NewContextAsync(browser, app, width: 1100, height: 760);
         await context.AddInitScriptAsync(
             """
@@ -492,12 +488,8 @@ public sealed class AthleteDialogLinkBrowserTests
     [Fact]
     public async Task CalculatorAthleteDialog_PaintsAboveTheFixedActionDock()
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await NewContextAsync(browser, app, width: 390, height: 844);
         await context.AddInitScriptAsync("localStorage.setItem('gmaSkipAll', 'true');");
 
@@ -552,12 +544,8 @@ public sealed class AthleteDialogLinkBrowserTests
     [Fact]
     public async Task LeaderboardAndStandaloneLinks_RenderTheSameDialogStructureAndGeometry()
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await NewContextAsync(browser, app, width: 1280, height: 900);
         await context.AddInitScriptAsync("localStorage.setItem('gmaSkipAll', 'true');");
 
@@ -621,21 +609,6 @@ public sealed class AthleteDialogLinkBrowserTests
             ReducedMotion = ReducedMotion.Reduce
         });
         await BrowserTestApp.RouteExternalResourcesAsync(context);
-        await context.RouteAsync("**/api/bitcoin/**", async route =>
-        {
-            var path = new Uri(route.Request.Url).AbsolutePath;
-            var body = path.EndsWith("/donation-address", StringComparison.OrdinalIgnoreCase)
-                ? """{"address":""}"""
-                : path.EndsWith("/btcusd", StringComparison.OrdinalIgnoreCase)
-                    ? """{"btcToUsdRate":0}"""
-                    : """{"totalReceivedSatoshis":0}""";
-            await route.FulfillAsync(new RouteFulfillOptions
-            {
-                Status = 200,
-                ContentType = "application/json",
-                Body = body
-            });
-        });
         return context;
     }
 
@@ -712,6 +685,15 @@ public sealed class AthleteDialogLinkBrowserTests
                 return !image?.src || image.complete;
             }
             """);
+        await page.WaitForFunctionAsync(
+            """
+            () => {
+                const frame = document.getElementById('events-frame');
+                return frame
+                    && frame.style.visibility !== 'hidden'
+                    && Number.parseFloat(frame.style.height) > 1;
+            }
+            """);
         await page.EvaluateAsync("() => document.fonts?.ready || Promise.resolve()");
         await page.EvaluateAsync(
             "() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
@@ -768,11 +750,21 @@ public sealed class AthleteDialogLinkBrowserTests
     private static void AssertEquivalentBox(BoxDiagnostics expected, BoxDiagnostics actual)
     {
         const double renderingTolerance = 0.75;
-        Assert.InRange(Math.Abs(actual.X - expected.X), 0, renderingTolerance);
-        Assert.InRange(Math.Abs(actual.Y - expected.Y), 0, renderingTolerance);
-        Assert.InRange(Math.Abs(actual.Width - expected.Width), 0, renderingTolerance);
-        Assert.InRange(Math.Abs(actual.Height - expected.Height), 0, renderingTolerance);
+        AssertEquivalentDimension(expected.Name, "x", expected.X, actual.X, renderingTolerance);
+        AssertEquivalentDimension(expected.Name, "y", expected.Y, actual.Y, renderingTolerance);
+        AssertEquivalentDimension(expected.Name, "width", expected.Width, actual.Width, renderingTolerance);
+        AssertEquivalentDimension(expected.Name, "height", expected.Height, actual.Height, renderingTolerance);
     }
+
+    private static void AssertEquivalentDimension(
+        string boxName,
+        string dimension,
+        double expected,
+        double actual,
+        double tolerance)
+        => Assert.True(
+            Math.Abs(actual - expected) <= tolerance,
+            $"The {boxName} {dimension} differed: expected {expected}, actual {actual}, tolerance {tolerance}.");
 
     private static int CountOccurrences(string source, string value) =>
         source.Split(value, StringSplitOptions.None).Length - 1;

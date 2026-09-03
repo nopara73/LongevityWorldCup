@@ -3,17 +3,17 @@ using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
-public sealed class VisualViewportFlowBrowserTests
+[Collection(BrowserTestCollections.WorkloadB)]
+public sealed class VisualViewportFlowBrowserTests(
+    PlaywrightBrowserFixture browserFixture,
+    BrowserTestAppFixture appFixture)
+    : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Fact]
     public async Task FlowDock_UsesVisualViewportOffsetAndHeightForDockingAndClearance()
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
             BaseURL = app.BaseAddress.ToString(),
@@ -119,12 +119,8 @@ public sealed class VisualViewportFlowBrowserTests
     [Fact]
     public async Task BioageResultReveal_UsesShiftedVisualViewportBounds()
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
             BaseURL = app.BaseAddress.ToString(),

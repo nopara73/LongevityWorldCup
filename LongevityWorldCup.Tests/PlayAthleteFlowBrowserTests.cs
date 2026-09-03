@@ -4,17 +4,17 @@ using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
-public sealed class PlayAthleteFlowBrowserTests
+[Collection(BrowserTestCollections.WorkloadC)]
+public sealed class PlayAthleteFlowBrowserTests(
+    PlaywrightBrowserFixture browserFixture,
+    BrowserTestAppFixture appFixture)
+    : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Fact]
     public async Task PlayForwardActions_KeepTheirGreenNavigationCue()
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
             BaseURL = app.BaseAddress.ToString(),
@@ -31,7 +31,7 @@ public sealed class PlayAthleteFlowBrowserTests
         await ExpectGreenPlayActionAsync(page.Locator("#newGameBtn"));
 
         await page.Locator("#newGameBtn").ClickAsync();
-        await page.WaitForURLAsync("**/join");
+        await page.WaitForDomContentLoadedUrlAsync("**/join");
         await page.WaitForFunctionAsync(
             "() => !document.getElementById('joinGoProButton').disabled && getComputedStyle(document.getElementById('joinGoProButton')).backgroundColor === 'rgb(31, 122, 56)'");
 
@@ -46,12 +46,8 @@ public sealed class PlayAthleteFlowBrowserTests
         string expectedFlow,
         string expectedTrack)
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
             BaseURL = app.BaseAddress.ToString(),
@@ -61,37 +57,40 @@ public sealed class PlayAthleteFlowBrowserTests
         await BrowserTestApp.RouteExternalResourcesAsync(context);
 
         var page = await context.NewPageAsync();
-        await page.GotoAsync("/join", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-        await page.WaitForFunctionAsync(
-            "controlId => !document.getElementById(controlId)?.disabled",
-            controlId);
+        try
+        {
+            await page.GotoAsync("/join", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+            await page.WaitForFunctionAsync(
+                "controlId => !document.getElementById(controlId)?.disabled",
+                controlId);
 
-        var selectionRequestTask = page.WaitForRequestAsync(request =>
-            request.Url.Contains("/api/site-statistics/event", StringComparison.OrdinalIgnoreCase) &&
-            (request.PostData ?? string.Empty).Contains("\"eventName\":\"onboarding_clock_selected\"", StringComparison.Ordinal));
+            var selectionRequestTask = page.WaitForRequestAsync(request =>
+                request.Url.Contains("/api/site-statistics/event", StringComparison.OrdinalIgnoreCase) &&
+                (request.PostData ?? string.Empty).Contains("\"eventName\":\"onboarding_clock_selected\"", StringComparison.Ordinal));
 
-        await page.Locator($"#{controlId}").ClickAsync();
-        var selectionRequest = await selectionRequestTask;
-        using var payload = JsonDocument.Parse(selectionRequest.PostData ?? "{}");
-        var root = payload.RootElement;
+            await page.Locator($"#{controlId}").ClickAsync();
+            var selectionRequest = await selectionRequestTask;
+            using var payload = JsonDocument.Parse(selectionRequest.PostData ?? "{}");
+            var root = payload.RootElement;
 
-        Assert.Equal("onboarding_clock_selected", root.GetProperty("eventName").GetString());
-        Assert.Equal(expectedFlow, root.GetProperty("flow").GetString());
-        Assert.Equal(expectedTrack, root.GetProperty("step").GetString());
-        Assert.Equal("join_game", root.GetProperty("component").GetString());
-        Assert.Equal("selected", root.GetProperty("outcome").GetString());
-        Assert.Equal(expectedTrack, root.GetProperty("metadata").GetProperty("track").GetString());
+            Assert.Equal("onboarding_clock_selected", root.GetProperty("eventName").GetString());
+            Assert.Equal(expectedFlow, root.GetProperty("flow").GetString());
+            Assert.Equal(expectedTrack, root.GetProperty("step").GetString());
+            Assert.Equal("join_game", root.GetProperty("component").GetString());
+            Assert.Equal("selected", root.GetProperty("outcome").GetString());
+            Assert.Equal(expectedTrack, root.GetProperty("metadata").GetProperty("track").GetString());
+        }
+        finally
+        {
+            await page.CloseAsync();
+        }
     }
 
     [Fact]
     public async Task PaymentOfferFailures_DistinguishPreparationFromStorage()
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
             BaseURL = app.BaseAddress.ToString(),
@@ -152,12 +151,8 @@ public sealed class PlayAthleteFlowBrowserTests
     [Fact]
     public async Task AmateurGoProAction_PreservesUpgradeOfferOnlyForExplicitUpgradeFlow()
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
             BaseURL = app.BaseAddress.ToString(),
@@ -192,7 +187,7 @@ public sealed class PlayAthleteFlowBrowserTests
         var goProButton = page.GetByRole(AriaRole.Button).Filter(new LocatorFilterOptions { HasTextString = "Go pro" });
         await goProButton.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Visible });
         await goProButton.ClickAsync();
-        await page.WaitForURLAsync("**/bortz-age?update=1&upgrade=1");
+        await page.WaitForDomContentLoadedUrlAsync("**/bortz-age?update=1&upgrade=1");
         await page.WaitForFunctionAsync("() => document.querySelector('#lwc-step-2')?.classList.contains('lwc-step--visible')");
 
         var storedOffer = await page.EvaluateAsync<string?>("() => sessionStorage.getItem('pendingPaymentOffer')");
@@ -229,12 +224,8 @@ public sealed class PlayAthleteFlowBrowserTests
     [Fact]
     public async Task NewAthleteNavigation_KeepsJoinUrlPanelAndBackActionsInSync()
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
             BaseURL = app.BaseAddress.ToString(),
@@ -260,7 +251,7 @@ public sealed class PlayAthleteFlowBrowserTests
             request.Url.Contains("/api/site-statistics/event", StringComparison.OrdinalIgnoreCase) &&
             (request.PostData ?? string.Empty).Contains("\"eventName\":\"onboarding_entry_viewed\"", StringComparison.Ordinal));
         await page.Locator("#newGameBtn").ClickAsync();
-        await page.WaitForURLAsync("**/join");
+        await page.WaitForDomContentLoadedUrlAsync("**/join");
         var joinStatsRequest = await joinStatsRequestTask;
         using (var statsPayload = JsonDocument.Parse(joinStatsRequest.PostData ?? "{}"))
         {
@@ -280,20 +271,20 @@ public sealed class PlayAthleteFlowBrowserTests
         Assert.True(await page.GetByRole(AriaRole.Link, new() { Name = "Try our longevitymaxxing lifestyle challenge instead" }).IsVisibleAsync());
 
         await page.GoBackAsync();
-        await page.WaitForURLAsync("**/play");
+        await page.WaitForDomContentLoadedUrlAsync("**/play");
         await ExpectActivePlayPanelAsync(page, "playStartPanel");
         await ExpectNoPlayPanelTransitionAsync(page);
         Assert.Equal("/play", new Uri(page.Url).AbsolutePath);
 
         await page.GoForwardAsync();
-        await page.WaitForURLAsync("**/join");
+        await page.WaitForDomContentLoadedUrlAsync("**/join");
         await ExpectActivePlayPanelAsync(page, "joinTrackPanel");
         await ExpectNoPlayPanelTransitionAsync(page);
         await ExpectActionStackDockedInViewportAsync(page, ".play-join-actions");
         Assert.Equal("/join", new Uri(page.Url).AbsolutePath);
 
         await page.GetByRole(AriaRole.Button, new() { Name = "Back" }).ClickAsync();
-        await page.WaitForURLAsync("**/play");
+        await page.WaitForDomContentLoadedUrlAsync("**/play");
         await ExpectActivePlayPanelAsync(page, "playStartPanel");
         await ExpectNoPlayPanelTransitionAsync(page);
         Assert.Equal("/play", new Uri(page.Url).AbsolutePath);
@@ -310,12 +301,8 @@ public sealed class PlayAthleteFlowBrowserTests
     [Fact]
     public async Task ExistingAthleteNavigation_KeepsUrlPanelAndBackActionsInSync()
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
             BaseURL = app.BaseAddress.ToString(),
@@ -357,7 +344,7 @@ public sealed class PlayAthleteFlowBrowserTests
         Assert.Equal("/play", new Uri(page.Url).AbsolutePath);
 
         await page.Locator("#continueGameBtn").ClickAsync();
-        await page.WaitForURLAsync("**/select-athlete");
+        await page.WaitForDomContentLoadedUrlAsync("**/select-athlete");
         await ExpectActivePlayPanelAsync(page, "athleteSelectionPanel");
         await ExpectNoPlayPanelTransitionAsync(page);
         Assert.Equal("/select-athlete", new Uri(page.Url).AbsolutePath);
@@ -367,7 +354,7 @@ public sealed class PlayAthleteFlowBrowserTests
         await ExpectAthletePictureFallbackAsync(page, "#athleteSelectionPicture");
 
         await page.Locator("#playConfirmAthleteBtn").ClickAsync();
-        await page.WaitForURLAsync("**/dashboard");
+        await page.WaitForDomContentLoadedUrlAsync("**/dashboard");
         await ExpectActivePlayPanelAsync(page, "athleteDashboardPanel");
         await ExpectNoPlayPanelTransitionAsync(page);
         Assert.Equal("/dashboard", new Uri(page.Url).AbsolutePath);
@@ -376,7 +363,7 @@ public sealed class PlayAthleteFlowBrowserTests
         Assert.True(await page.GetByRole(AriaRole.Button, new() { Name = "Longevitymaxxing" }).IsVisibleAsync());
 
         await page.GoBackAsync();
-        await page.WaitForURLAsync("**/select-athlete");
+        await page.WaitForDomContentLoadedUrlAsync("**/select-athlete");
         await ExpectActivePlayPanelAsync(page, "athleteSelectionPanel");
         await ExpectNoPlayPanelTransitionAsync(page);
         Assert.Equal("/select-athlete", new Uri(page.Url).AbsolutePath);
@@ -384,14 +371,14 @@ public sealed class PlayAthleteFlowBrowserTests
         Assert.True(await page.Locator("#playConfirmAthleteBtn").IsEnabledAsync());
 
         await page.GoForwardAsync();
-        await page.WaitForURLAsync("**/dashboard");
+        await page.WaitForDomContentLoadedUrlAsync("**/dashboard");
         await ExpectActivePlayPanelAsync(page, "athleteDashboardPanel");
         await ExpectNoPlayPanelTransitionAsync(page);
         Assert.Equal("/dashboard", new Uri(page.Url).AbsolutePath);
         Assert.Equal("Browser Test Athlete", await page.Locator("#athleteDashboardTitle").InnerTextAsync());
 
         await page.GetByRole(AriaRole.Button, new() { Name = "Edit profile" }).ClickAsync();
-        await page.WaitForURLAsync("**/edit-profile");
+        await page.WaitForDomContentLoadedUrlAsync("**/edit-profile");
         Assert.Equal("/edit-profile", new Uri(page.Url).AbsolutePath);
         await page.WaitForFunctionAsync("() => document.querySelector('#character-title')?.textContent?.trim() === 'Browser Test Athlete'");
         Assert.Equal("Browser Test Athlete", await page.Locator("#character-title").InnerTextAsync());
@@ -399,14 +386,14 @@ public sealed class PlayAthleteFlowBrowserTests
         Assert.Equal("Open", await page.Locator("#divisionDisplaySelect").InputValueAsync());
 
         await page.GetByRole(AriaRole.Button, new() { Name = "Back" }).ClickAsync();
-        await page.WaitForURLAsync("**/dashboard");
+        await page.WaitForDomContentLoadedUrlAsync("**/dashboard");
         await ExpectActivePlayPanelAsync(page, "athleteDashboardPanel");
         await ExpectNoPlayPanelTransitionAsync(page);
         Assert.Equal("/dashboard", new Uri(page.Url).AbsolutePath);
         Assert.Equal("Browser Test Athlete", await page.Locator("#athleteDashboardTitle").InnerTextAsync());
 
         await page.GetByRole(AriaRole.Button, new() { Name = "Change athlete" }).ClickAsync();
-        await page.WaitForURLAsync("**/select-athlete");
+        await page.WaitForDomContentLoadedUrlAsync("**/select-athlete");
         await ExpectActivePlayPanelAsync(page, "athleteSelectionPanel");
         await ExpectNoPlayPanelTransitionAsync(page);
         Assert.Equal("/select-athlete", new Uri(page.Url).AbsolutePath);
@@ -419,12 +406,8 @@ public sealed class PlayAthleteFlowBrowserTests
     [Fact]
     public async Task ExistingAthleteSelectionWithStoredAthlete_WaitsForProfilePictureBeforeRevealingPanel()
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
             BaseURL = app.BaseAddress.ToString(),
@@ -488,7 +471,7 @@ public sealed class PlayAthleteFlowBrowserTests
         await page.Locator("#continueGameBtn").ClickAsync();
         await page.WaitForFunctionAsync("() => window.location.pathname === '/select-athlete'");
         await imageRequestReceived.Task.WaitAsync(TimeSpan.FromSeconds(5));
-        await page.WaitForTimeoutAsync(100);
+        await WaitForTwoAnimationFramesAsync(page);
 
         await ExpectActivePlayPanelAsync(page, "playStartPanel");
         Assert.True(await page.Locator("#athleteSelectionPanel").IsHiddenAsync());
@@ -518,12 +501,8 @@ public sealed class PlayAthleteFlowBrowserTests
     [Fact]
     public async Task ExistingAthleteSelectionWithStoredAthlete_WaitsForProfilePictureDecodeBeforeRevealingPanel()
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
             BaseURL = app.BaseAddress.ToString(),
@@ -585,7 +564,7 @@ public sealed class PlayAthleteFlowBrowserTests
             () => window.__profilePictureDecodeCount > 0
                 || !document.getElementById('athleteSelectionPanel')?.hidden
             """);
-        await page.WaitForTimeoutAsync(100);
+        await WaitForTwoAnimationFramesAsync(page);
 
         Assert.True(await page.EvaluateAsync<bool>("() => window.__profilePictureDecodeCount > 0"));
         await ExpectActivePlayPanelAsync(page, "playStartPanel");
@@ -616,12 +595,8 @@ public sealed class PlayAthleteFlowBrowserTests
     [Fact]
     public async Task CachedFallbackPicture_CompletesReadinessWithoutASecondLoadEvent()
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
             BaseURL = app.BaseAddress.ToString(),
@@ -709,12 +684,8 @@ public sealed class PlayAthleteFlowBrowserTests
         int viewportHeight,
         bool expectDockedActions)
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
             BaseURL = app.BaseAddress.ToString(),
@@ -859,12 +830,8 @@ public sealed class PlayAthleteFlowBrowserTests
     [Fact]
     public async Task ExistingAthleteSelectionWithSavedName_DoesNotRevealSelectionAfterBackBeforeMatchLoads()
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
             BaseURL = app.BaseAddress.ToString(),
@@ -881,6 +848,7 @@ public sealed class PlayAthleteFlowBrowserTests
 
         var athleteRequestReceived = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var releaseAthletesResponse = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var athleteResponseCompleted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         await context.RouteAsync("**/api/data/athletes", async route =>
         {
             athleteRequestReceived.TrySetResult();
@@ -902,6 +870,7 @@ public sealed class PlayAthleteFlowBrowserTests
                     }]
                     """
             });
+            athleteResponseCompleted.TrySetResult();
         });
 
         var page = await context.NewPageAsync();
@@ -929,7 +898,8 @@ public sealed class PlayAthleteFlowBrowserTests
         await ExpectActivePlayPanelAsync(page, "playStartPanel");
 
         releaseAthletesResponse.SetResult();
-        await page.WaitForTimeoutAsync(350);
+        await athleteResponseCompleted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await WaitForTwoAnimationFramesAsync(page);
 
         Assert.Equal("/play", new Uri(page.Url).AbsolutePath);
         await ExpectActivePlayPanelAsync(page, "playStartPanel");
@@ -940,12 +910,8 @@ public sealed class PlayAthleteFlowBrowserTests
     [Fact]
     public async Task ExistingAthleteSelectionWithHungLookup_LeavesHydrationAtDeadline()
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
             BaseURL = app.BaseAddress.ToString(),
@@ -967,6 +933,7 @@ public sealed class PlayAthleteFlowBrowserTests
 
         var athleteRequestReceived = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var releaseAthletesResponse = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var athleteResponseCompleted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         await context.RouteAsync("**/api/data/athletes", async route =>
         {
             athleteRequestReceived.TrySetResult();
@@ -977,6 +944,7 @@ public sealed class PlayAthleteFlowBrowserTests
                 ContentType = "application/json",
                 Body = "[]"
             });
+            athleteResponseCompleted.TrySetResult();
         });
 
         var page = await context.NewPageAsync();
@@ -1009,7 +977,8 @@ public sealed class PlayAthleteFlowBrowserTests
         await ExpectActivePlayPanelAsync(page, "playStartPanel");
 
         releaseAthletesResponse.SetResult();
-        await page.WaitForTimeoutAsync(250);
+        await athleteResponseCompleted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await WaitForTwoAnimationFramesAsync(page);
         Assert.Equal("/play", new Uri(page.Url).AbsolutePath);
         await ExpectActivePlayPanelAsync(page, "playStartPanel");
         Assert.Empty(errors);
@@ -1018,12 +987,8 @@ public sealed class PlayAthleteFlowBrowserTests
     [Fact]
     public async Task DirectExistingAthleteSelectionWithSavedName_WaitsForAthleteMatchBeforeRevealingPanel()
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
             BaseURL = app.BaseAddress.ToString(),
@@ -1106,12 +1071,8 @@ public sealed class PlayAthleteFlowBrowserTests
     [Fact]
     public async Task DashboardRouteWithoutSelectedAthlete_FallsBackToSelectionPanel()
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
             BaseURL = app.BaseAddress.ToString(),
@@ -1173,6 +1134,10 @@ public sealed class PlayAthleteFlowBrowserTests
             () => !document.documentElement.classList.contains('play-panel-transitioning')
             """);
     }
+
+    private static Task WaitForTwoAnimationFramesAsync(IPage page)
+        => page.EvaluateAsync(
+            "() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
 
     private static async Task ExpectActionStackDockedInViewportAsync(IPage page, string selector)
     {

@@ -2,13 +2,14 @@ using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
-public sealed class RulesetImageAccessibilityTests
+
+[Collection(HttpTestCollections.ReadOnly)]
+public sealed class RulesetImageAccessibilityTests(TestWebApplicationFactory sharedFactory)
 {
     [Fact]
     public async Task RulesetDiagrams_HaveDescriptiveAlternativeText()
     {
-        using var factory = new TestWebApplicationFactory();
-        using var client = factory.CreateClient();
+        using var client = sharedFactory.CreateClient();
 
         var html = await client.GetStringAsync("/ruleset");
 

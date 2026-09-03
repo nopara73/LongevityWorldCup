@@ -4,17 +4,17 @@ using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
-public sealed class LeaderboardRouteBrowserTests
+[Collection(BrowserTestCollections.WorkloadC)]
+public sealed class LeaderboardRouteBrowserTests(
+    PlaywrightBrowserFixture browserFixture,
+    BrowserTestAppFixture appFixture)
+    : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Fact]
     public async Task FlagLeaderboard_ActionAndDirectRoutes_ShowFullLeaderboardsWithBoundedAccurateTitles()
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await NewContextAsync(browser, app);
         var page = await context.NewPageAsync();
 
@@ -41,13 +41,13 @@ public sealed class LeaderboardRouteBrowserTests
         var response = await documentResponse;
         Assert.True(response.Ok);
 
-        await AssertFullLeaderboardAsync(page, "/flag/hungary", "#flag-filter-section input[name=\"flag\"][value=\"Hungary\"]:checked");
+        await AssertFullLeaderboardAsync(page, "/flag/hungary", "#flag-filter-section input[name=\"flag\"][value=\"Hungary\"]:checked", expectedCount);
         Assert.Equal(expectedCount, await CountVisibleAthleteRowsAsync(page));
         Assert.Equal("Leaderboard: Hungary | Longevity World Cup", await page.TitleAsync());
 
         var directPage = await context.NewPageAsync();
         await directPage.GotoAsync("/flag/hungary", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-        await AssertFullLeaderboardAsync(directPage, "/flag/hungary", "#flag-filter-section input[name=\"flag\"][value=\"Hungary\"]:checked");
+        await AssertFullLeaderboardAsync(directPage, "/flag/hungary", "#flag-filter-section input[name=\"flag\"][value=\"Hungary\"]:checked", expectedCount);
         Assert.Equal(expectedCount, await CountVisibleAthleteRowsAsync(directPage));
         Assert.Equal("Leaderboard: Hungary | Longevity World Cup", await directPage.TitleAsync());
 
@@ -60,6 +60,8 @@ public sealed class LeaderboardRouteBrowserTests
             directPage,
             "/flag/czech-republic",
             "#flag-filter-section input[name=\"flag\"][value=\"Czech Republic\"]:checked");
+        await directPage.WaitForFunctionAsync(
+            "() => document.querySelector('.collapsed-title')?.textContent?.trim() === 'CZECH REPUBLIC'");
         Assert.Equal("CZECH REPUBLIC", (await directPage.Locator(".collapsed-title").TextContentAsync())?.Trim());
         Assert.Equal("Leaderboard: Czech Republic", await directPage.Locator(".collapsed-title").GetAttributeAsync("aria-label"));
         Assert.Equal("Leaderboard: Czech Republic | Longevity World Cup", await directPage.TitleAsync());
@@ -69,6 +71,14 @@ public sealed class LeaderboardRouteBrowserTests
             directPage,
             "/flag/live-long-enough-to-live-forever",
             "#flag-filter-section input[name=\"flag\"][value=\"Live long enough to live forever\"]:checked");
+        await directPage.WaitForFunctionAsync(
+            """
+            () => {
+                const title = document.querySelector('.collapsed-title');
+                return title?.textContent?.trim() === 'FLAG'
+                    && title.getAttribute('title') === 'Leaderboard: Live long enough to live forever';
+            }
+            """);
 
         var collapsedTitle = directPage.Locator(".collapsed-title");
         Assert.Equal("FLAG", (await collapsedTitle.TextContentAsync())?.Trim());
@@ -96,12 +106,8 @@ public sealed class LeaderboardRouteBrowserTests
     [Fact]
     public async Task LeaderboardPresentation_KeepsCopyRoutesAndModalTitleAlignedWithFilterState()
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await NewContextAsync(browser, app);
         var page = await context.NewPageAsync();
 
@@ -167,7 +173,9 @@ public sealed class LeaderboardRouteBrowserTests
 
         await page.Locator("#clearSidebarFiltersBtn").EvaluateAsync("button => button.click()");
         var proTrack = page.Locator("input[name=\"leagueTrack\"][value=\"Professional\"]");
-        await proTrack.CheckAsync();
+        Assert.False(await proTrack.IsDisabledAsync());
+        await proTrack.EvaluateAsync(
+            "input => { input.checked = true; input.dispatchEvent(new Event('change', { bubbles: true })); }");
         await page.WaitForFunctionAsync(
             "() => location.pathname === '/leaderboard' && new URLSearchParams(location.search).get('filters') === 'professional' && document.title === 'Pro League | Longevity World Cup'");
 
@@ -195,14 +203,12 @@ public sealed class LeaderboardRouteBrowserTests
     [Theory]
     [InlineData("/league/amateur", "#league-track-filter-section input[value=\"Amateur\"]:checked")]
     [InlineData("/league/bortz", "#view-bortz:checked")]
-    public async Task LeagueRoute_RendersFullLeaderboardAndPreservesCanonicalPath(string path, string activeStateSelector)
+    public async Task LeagueRoute_RendersFullLeaderboardAndPreservesCanonicalPath(
+        string path,
+        string activeStateSelector)
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await NewContextAsync(browser, app);
         var page = await context.NewPageAsync();
 
@@ -220,21 +226,6 @@ public sealed class LeaderboardRouteBrowserTests
             ViewportSize = new ViewportSize { Width = 1280, Height = 720 }
         });
         await BrowserTestApp.RouteExternalResourcesAsync(context);
-        await context.RouteAsync("**/api/bitcoin/**", async route =>
-        {
-            var path = new Uri(route.Request.Url).AbsolutePath;
-            var body = path.EndsWith("/btcusd", StringComparison.OrdinalIgnoreCase)
-                ? """{"btcToUsdRate":0}"""
-                : path.EndsWith("/donation-address", StringComparison.OrdinalIgnoreCase)
-                    ? """{"address":""}"""
-                    : """{"totalReceivedSatoshis":0}""";
-            await route.FulfillAsync(new RouteFulfillOptions
-            {
-                Status = 200,
-                ContentType = "application/json",
-                Body = body
-            });
-        });
         return context;
     }
 
@@ -244,10 +235,35 @@ public sealed class LeaderboardRouteBrowserTests
             "() => document.getElementById('leaderboardStatus')?.textContent === 'Leaderboard loaded.'");
     }
 
-    private static async Task AssertFullLeaderboardAsync(IPage page, string expectedPath, string activeStateSelector)
+    private static async Task AssertFullLeaderboardAsync(
+        IPage page,
+        string expectedPath,
+        string activeStateSelector,
+        int? expectedVisibleRowCount = null)
     {
-        await WaitForLeaderboardAsync(page);
-        await page.WaitForTimeoutAsync(700);
+        await page.WaitForFunctionAsync(
+            """
+            ({ expectedPath, activeStateSelector }) =>
+                location.pathname === expectedPath
+                    && document.getElementById('leaderboardStatus')?.textContent === 'Leaderboard loaded.'
+                    && document.querySelector('[data-leaderboard-page="full"]')
+                    && document.querySelector(activeStateSelector)
+                    && !document.getElementById('viewAllAthletesBtn')
+            """,
+            new { expectedPath, activeStateSelector });
+        if (expectedVisibleRowCount is not null)
+        {
+            await page.WaitForFunctionAsync(
+                """
+                expectedCount => Array.from(document.querySelectorAll('.leaderboard tbody tr[data-athlete-name]'))
+                    .filter(row => {
+                        const rect = row.getBoundingClientRect();
+                        const style = getComputedStyle(row);
+                        return rect.width > 0 && rect.height > 0 && style.display !== 'none' && style.visibility !== 'hidden';
+                    }).length === expectedCount
+                """,
+                expectedVisibleRowCount.Value);
+        }
 
         Assert.Equal(expectedPath, new Uri(page.Url).AbsolutePath);
         Assert.NotNull(await page.QuerySelectorAsync("[data-leaderboard-page=\"full\"]"));

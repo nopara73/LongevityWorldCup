@@ -1,19 +1,20 @@
+using System.Collections.Concurrent;
 using Microsoft.Playwright;
 using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
-public sealed class FlowActionDockBrowserTests
+[Collection(BrowserTestCollections.WorkloadD)]
+public sealed class FlowActionDockBrowserTests(
+    PlaywrightBrowserFixture browserFixture,
+    BrowserTestAppFixture appFixture)
+    : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Fact]
     public async Task HomePlayButton_NavigatesDirectlyToReadablePlayMenu()
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
             BaseURL = app.BaseAddress.ToString(),
@@ -25,9 +26,9 @@ public sealed class FlowActionDockBrowserTests
         var page = await context.NewPageAsync();
         var errors = CapturePageErrors(page);
 
-        await page.GotoAsync("/", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.GotoAsync("/", new PageGotoOptions { WaitUntil = WaitUntilState.Commit });
         await Task.WhenAll(
-            page.WaitForURLAsync("**/play", new PageWaitForURLOptions { WaitUntil = WaitUntilState.DOMContentLoaded }),
+            page.WaitForURLAsync("**/play", new PageWaitForURLOptions { WaitUntil = WaitUntilState.Commit }),
             page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = "Play the game" }).ClickAsync());
         errors.Clear();
         await page.WaitForFunctionAsync("() => document.querySelector('.play-menu-wordmark')?.textContent?.trim() === 'JUST TRACK IT'");
@@ -41,16 +42,13 @@ public sealed class FlowActionDockBrowserTests
     [Fact]
     public async Task PlayStartFirstPaint_IsReadableBeforeIntroSettles()
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
             BaseURL = app.BaseAddress.ToString(),
             Locale = "en-US",
+            ReducedMotion = ReducedMotion.NoPreference,
             ViewportSize = new ViewportSize { Width = 390, Height = 844 }
         });
         await BrowserTestApp.RouteExternalResourcesAsync(context);
@@ -58,9 +56,10 @@ public sealed class FlowActionDockBrowserTests
         var page = await context.NewPageAsync();
         var errors = CapturePageErrors(page);
 
-        await page.GotoAsync("/play", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.GotoAsync("/play", new PageGotoOptions { WaitUntil = WaitUntilState.Commit });
         await page.WaitForSelectorAsync(".play-menu-wordmark");
-        await page.WaitForTimeoutAsync(120);
+        await page.EvaluateAsync(
+            "() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
 
         var firstPaint = await page.EvaluateAsync<PlayStartFirstPaintState>(
             """
@@ -98,42 +97,34 @@ public sealed class FlowActionDockBrowserTests
     [InlineData("/pheno-age", "#lwcStepOneActions")]
     [InlineData("/bortz-age", "#lwcStepOneActions")]
     [InlineData("/apply?fake=1", ".convergence-actions")]
-    public async Task MobileWorkflowActionStacks_DockInsideTheFirstViewport(string path, string actionSelector)
+    public async Task MobileWorkflowActionStacks_DockInsideTheFirstViewport(
+        string path,
+        string actionSelector)
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
-        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
+        var app = App;
+        await using var context = await Browser.NewContextAsync(new BrowserNewContextOptions
         {
             BaseURL = app.BaseAddress.ToString(),
             Locale = "en-US",
             ViewportSize = new ViewportSize { Width = 390, Height = 844 }
         });
         await BrowserTestApp.RouteExternalResourcesAsync(context);
-
         var page = await context.NewPageAsync();
         var errors = CapturePageErrors(page);
 
-        await page.GotoAsync(path, new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.GotoAsync(path, new PageGotoOptions { WaitUntil = WaitUntilState.Commit });
 
         await ExpectActionStackDockedInViewportAsync(page, actionSelector);
         await ExpectNoHorizontalOverflowAsync(page);
 
-        Assert.Empty(errors);
+        Assert.True(errors.Count == 0, $"{path}: {string.Join(Environment.NewLine, errors)}");
     }
 
     [Fact]
     public async Task MobileOnboardingActions_RemainDockedWhileEnteringContactEmail()
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
             BaseURL = app.BaseAddress.ToString(),
@@ -153,7 +144,7 @@ public sealed class FlowActionDockBrowserTests
         await ExpectActionStackDockedInViewportAsync(page, ".convergence-actions");
 
         await page.Locator("#accountEmail").FocusAsync();
-        await page.WaitForTimeoutAsync(100);
+        await page.WaitForFunctionAsync("() => document.activeElement?.id === 'accountEmail'");
 
         Assert.True(
             await HasDockClassAsync(page, ".convergence-actions"),
@@ -165,12 +156,8 @@ public sealed class FlowActionDockBrowserTests
     [Fact]
     public async Task MobileBioageContinue_FirstTapAfterEditingAdvancesTheFlow()
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
             BaseURL = app.BaseAddress.ToString(),
@@ -184,7 +171,7 @@ public sealed class FlowActionDockBrowserTests
         var page = await context.NewPageAsync();
         var errors = CapturePageErrors(page);
 
-        await page.GotoAsync("/pheno-age", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.GotoAsync("/pheno-age", new PageGotoOptions { WaitUntil = WaitUntilState.Commit });
         await page.Locator("#dob-year").SelectOptionAsync("1980");
         await page.Locator("#dob-month").SelectOptionAsync("5");
         await page.WaitForFunctionAsync(
@@ -211,85 +198,79 @@ public sealed class FlowActionDockBrowserTests
         int viewportWidth,
         int viewportHeight)
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
             BaseURL = app.BaseAddress.ToString(),
             Locale = "en-US",
+            ReducedMotion = ReducedMotion.NoPreference,
             ViewportSize = new ViewportSize { Width = viewportWidth, Height = viewportHeight }
         });
         await BrowserTestApp.RouteExternalResourcesAsync(context);
-
         var page = await context.NewPageAsync();
         var errors = CapturePageErrors(page);
 
-        await page.GotoAsync("/play", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.GotoAsync("/play", new PageGotoOptions { WaitUntil = WaitUntilState.Commit });
         await page.WaitForFunctionAsync("() => window.LwcFlowActionDock && !document.querySelector('#newGameBtn')?.disabled");
         await page.Locator("#newGameBtn").ClickAsync();
-        await page.WaitForURLAsync("**/join");
+        await page.WaitForDomContentLoadedUrlAsync("**/join");
         await page.WaitForFunctionAsync("() => !document.querySelector('#joinTrackPanel')?.hidden");
 
         await page.Locator("#joinTrackBackBtn").ClickAsync();
-        await page.WaitForURLAsync("**/play");
+        await page.WaitForDomContentLoadedUrlAsync("**/play");
         await page.WaitForFunctionAsync("() => !document.querySelector('#playStartPanel')?.hidden");
         await page.WaitForFunctionAsync(
             """
-            () => {
-                const panel = document.getElementById('playStartPanel');
-                const actions = document.querySelector('.play-menu-actions');
-                return panel && !panel.hidden
-                    && !document.documentElement.classList.contains('play-panel-transitioning')
-                    && actions?.classList.contains('flow-action-stack--docked');
-            }
-            """);
+                () => {
+                    const panel = document.getElementById('playStartPanel');
+                    const actions = document.querySelector('.play-menu-actions');
+                    return panel && !panel.hidden
+                        && !document.documentElement.classList.contains('play-panel-transitioning')
+                        && actions?.classList.contains('flow-action-stack--docked');
+                }
+                """);
 
         var state = await page.EvaluateAsync<PlayStartBackDockState>(
             """
-            () => {
-                const actions = document.querySelector('.play-menu-actions');
-                const panel = document.getElementById('playStartPanel');
-                const rect = actions.getBoundingClientRect();
-                return {
-                    ActionDocked: actions.classList.contains('flow-action-stack--docked'),
-                    ActionTop: rect.top,
-                    ActionRight: rect.right,
-                    ActionBottom: rect.bottom,
-                    ActionLeft: rect.left,
-                    ViewportWidth: window.innerWidth,
-                    ViewportHeight: window.innerHeight,
-                    PanelClass: panel?.className || '',
-                    PanelTransform: panel ? getComputedStyle(panel).transform : ''
-                };
-            }
-            """);
+                () => {
+                    const actions = document.querySelector('.play-menu-actions');
+                    const panel = document.getElementById('playStartPanel');
+                    const rect = actions.getBoundingClientRect();
+                    return {
+                        ActionDocked: actions.classList.contains('flow-action-stack--docked'),
+                        ActionTop: rect.top,
+                        ActionRight: rect.right,
+                        ActionBottom: rect.bottom,
+                        ActionLeft: rect.left,
+                        ViewportWidth: window.innerWidth,
+                        ViewportHeight: window.innerHeight,
+                        PanelClass: panel?.className || '',
+                        PanelTransform: panel ? getComputedStyle(panel).transform : ''
+                    };
+                }
+                """);
 
-        Assert.True(state.ActionDocked, "Back to /play should keep the start actions in the bottom dock immediately.");
+        var scenario = $"{viewportWidth}x{viewportHeight}";
+        Assert.True(state.ActionDocked, $"{scenario}: back to /play should keep the start actions in the bottom dock immediately.");
         Assert.InRange(Math.Abs(state.ActionBottom - state.ViewportHeight), 0, 1.1);
-        Assert.True(state.ActionTop >= 0, $"The returned play actions start above the viewport: {state.ActionTop}.");
-        Assert.True(state.ActionLeft <= 1, $"The returned play dock is inset from the left edge during transition: {state.ActionLeft}.");
-        Assert.True(state.ActionRight >= state.ViewportWidth - 1, $"The returned play dock does not reach the right edge during transition: {state.ActionRight} < {state.ViewportWidth}.");
+        Assert.True(state.ActionTop >= 0, $"{scenario}: the returned play actions start above the viewport: {state.ActionTop}.");
+        Assert.True(state.ActionLeft <= 1, $"{scenario}: the returned play dock is inset from the left edge during transition: {state.ActionLeft}.");
+        Assert.True(state.ActionRight >= state.ViewportWidth - 1, $"{scenario}: the returned play dock does not reach the right edge during transition: {state.ActionRight} < {state.ViewportWidth}.");
         Assert.Equal("none", state.PanelTransform);
-        Assert.Empty(errors);
+        Assert.True(errors.Count == 0, $"{scenario}: {string.Join(" | ", errors)}");
     }
 
     [Fact]
     public async Task DockedActionStack_PortalsWithoutMutatingContainingBlockAncestors()
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
             BaseURL = app.BaseAddress.ToString(),
             Locale = "en-US",
+            ReducedMotion = ReducedMotion.NoPreference,
             ViewportSize = new ViewportSize { Width = 390, Height = 844 }
         });
         await BrowserTestApp.RouteExternalResourcesAsync(context);
@@ -297,7 +278,7 @@ public sealed class FlowActionDockBrowserTests
         var page = await context.NewPageAsync();
         var errors = CapturePageErrors(page);
 
-        await page.GotoAsync("/play", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.GotoAsync("/play", new PageGotoOptions { WaitUntil = WaitUntilState.Commit });
         await ExpectActionStackDockedInViewportAsync(page, ".play-menu-actions");
 
         var state = await page.EvaluateAsync<ModernContainingBlockDockState>(
@@ -355,12 +336,8 @@ public sealed class FlowActionDockBrowserTests
     [Fact]
     public async Task DockedActionStack_RemovalCleansItsPlaceholderWithoutResurrectingControls()
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
             BaseURL = app.BaseAddress.ToString(),
@@ -372,7 +349,7 @@ public sealed class FlowActionDockBrowserTests
         var page = await context.NewPageAsync();
         var errors = CapturePageErrors(page);
 
-        await page.GotoAsync("/play", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.GotoAsync("/play", new PageGotoOptions { WaitUntil = WaitUntilState.Commit });
         await ExpectActionStackDockedInViewportAsync(page, ".play-menu-actions");
         await page.Locator(".play-menu-actions").EvaluateAsync("element => element.remove()");
         await page.WaitForFunctionAsync(
@@ -390,12 +367,8 @@ public sealed class FlowActionDockBrowserTests
         int viewportHeight,
         double minimumArtworkHeight)
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
             BaseURL = app.BaseAddress.ToString(),
@@ -403,18 +376,15 @@ public sealed class FlowActionDockBrowserTests
             ViewportSize = new ViewportSize { Width = viewportWidth, Height = viewportHeight }
         });
         await BrowserTestApp.RouteExternalResourcesAsync(context);
-
         var page = await context.NewPageAsync();
         var errors = CapturePageErrors(page);
 
-        await page.GotoAsync("/review", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.GotoAsync("/review", new PageGotoOptions { WaitUntil = WaitUntilState.Commit });
         await page.WaitForSelectorAsync(".application-review-copy.primary");
-        await page.EvaluateAsync("() => window.LwcFlowActionDock?.refreshNow()");
-        await page.WaitForTimeoutAsync(850);
-        await page.EvaluateAsync("() => window.LwcFlowActionDock?.refreshNow()");
-        await ExpectActionStackInViewportAsync(page, ".application-review-actions");
         await page.WaitForFunctionAsync(
             "() => { const image = document.querySelector('.application-review-visual .illustration'); return image?.complete && image.naturalWidth > 0; }");
+        await page.EvaluateAsync("() => window.LwcFlowActionDock?.refreshNow()");
+        await ExpectActionStackInViewportAsync(page, ".application-review-actions");
 
         var titleRect = await ReadElementRectAsync(page, ".application-review-title");
         var visualRect = await ReadElementRectAsync(page, ".application-review-visual .illustration");
@@ -423,62 +393,60 @@ public sealed class FlowActionDockBrowserTests
         var actionDocked = await HasDockClassAsync(page, ".application-review-actions");
         var visibleSecondaryCopies = await page.EvaluateAsync<double[]>(
             """
-            () => Array.from(document.querySelectorAll('.application-review-copy:not(.primary)'))
-                .filter(element => {
-                    const style = getComputedStyle(element);
-                    const rect = element.getBoundingClientRect();
-                    return style.display !== 'none'
-                        && style.visibility !== 'hidden'
-                        && rect.width > 0
-                        && rect.height > 0;
-                })
-                .map(element => element.getBoundingClientRect().bottom)
-            """);
+                () => Array.from(document.querySelectorAll('.application-review-copy:not(.primary)'))
+                    .filter(element => {
+                        const style = getComputedStyle(element);
+                        const rect = element.getBoundingClientRect();
+                        return style.display !== 'none'
+                            && style.visibility !== 'hidden'
+                            && rect.width > 0
+                            && rect.height > 0;
+                    })
+                    .map(element => element.getBoundingClientRect().bottom)
+                """);
 
+        var scenario = $"{viewportWidth}x{viewportHeight}";
         Assert.True(titleRect.Top >= 0,
-            $"Review title starts above the viewport: {titleRect.Top}px.");
+            $"{scenario}: review title starts above the viewport: {titleRect.Top}px.");
         Assert.Equal(1, await page.Locator(".application-review-visual .illustration").CountAsync());
         Assert.True(
             await page.Locator(".application-review-visual .illustration").EvaluateAsync<bool>(
                 "image => image.complete && image.naturalWidth > 0"),
-            "Review joke artwork did not decode.");
+            $"{scenario}: review joke artwork did not decode.");
         Assert.True(visualRect.Width > 0 && visualRect.Height > 0,
-            $"Review joke artwork is not visibly rendered: {visualRect.Width}x{visualRect.Height}px.");
+            $"{scenario}: review joke artwork is not visibly rendered: {visualRect.Width}x{visualRect.Height}px.");
         Assert.True(visualRect.Height + 0.5 >= minimumArtworkHeight,
-            $"Review joke artwork was over-compressed: {visualRect.Height}px < {minimumArtworkHeight}px.");
+            $"{scenario}: review joke artwork was over-compressed: {visualRect.Height}px < {minimumArtworkHeight}px.");
         Assert.InRange(Math.Abs(visualRect.Width / visualRect.Height - 860d / 721d), 0, 0.02);
         Assert.True(visualRect.Left >= 0 && visualRect.Right <= viewportWidth,
-            $"Review joke artwork escapes the viewport horizontally: {visualRect.Left}-{visualRect.Right}px in {viewportWidth}px.");
+            $"{scenario}: review joke artwork escapes the viewport horizontally: {visualRect.Left}-{visualRect.Right}px in {viewportWidth}px.");
         Assert.True(visualRect.Top >= 0 && visualRect.Bottom <= viewportHeight,
-            $"Review joke artwork escapes the viewport vertically: {visualRect.Top}-{visualRect.Bottom}px in {viewportHeight}px.");
+            $"{scenario}: review joke artwork escapes the viewport vertically: {visualRect.Top}-{visualRect.Bottom}px in {viewportHeight}px.");
         Assert.True(visualRect.Bottom <= primaryCopyRect.Top,
-            $"Review joke artwork overlaps the primary message: artwork bottom {visualRect.Bottom}px, copy top {primaryCopyRect.Top}px.");
+            $"{scenario}: review joke artwork overlaps the primary message: artwork bottom {visualRect.Bottom}px, copy top {primaryCopyRect.Top}px.");
         Assert.True(primaryCopyRect.Bottom <= actionRect.Top - 8,
-            $"Review primary message is too close to the Home action: copy bottom {primaryCopyRect.Bottom}px, action top {actionRect.Top}px.");
+            $"{scenario}: review primary message is too close to the Home action: copy bottom {primaryCopyRect.Bottom}px, action top {actionRect.Top}px.");
         Assert.NotEmpty(visibleSecondaryCopies);
         foreach (var secondaryBottom in visibleSecondaryCopies)
         {
             Assert.True(secondaryBottom <= actionRect.Top - 8,
-                $"Review secondary copy is too close to the Home action: copy bottom {secondaryBottom}px, action top {actionRect.Top}px.");
+                $"{scenario}: review secondary copy is too close to the Home action: copy bottom {secondaryBottom}px, action top {actionRect.Top}px.");
         }
         Assert.False(actionDocked,
-            "Review Home should stay inline on standard phone and desktop viewports instead of becoming a detached bottom dock.");
-        Assert.Empty(errors);
+            $"{scenario}: review Home should stay inline on standard phone and desktop viewports instead of becoming a detached bottom dock.");
+        Assert.True(errors.Count == 0, $"{scenario}: {string.Join(" | ", errors)}");
     }
 
     [Fact]
     public async Task MobileAthleteSearch_KeepsDockVisibleWhileTyping()
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
             BaseURL = app.BaseAddress.ToString(),
             Locale = "en-US",
+            ReducedMotion = ReducedMotion.NoPreference,
             ViewportSize = new ViewportSize { Width = 390, Height = 844 }
         });
         await BrowserTestApp.RouteExternalResourcesAsync(context);
@@ -486,7 +454,7 @@ public sealed class FlowActionDockBrowserTests
         var page = await context.NewPageAsync();
         var errors = CapturePageErrors(page);
 
-        await page.GotoAsync("/select-athlete", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.GotoAsync("/select-athlete", new PageGotoOptions { WaitUntil = WaitUntilState.Commit });
         await ExpectActionStackDockedInViewportAsync(page, ".play-athlete-actions");
         var beforeFocus = await ReadElementRectAsync(page, ".play-athlete-actions");
 
@@ -503,12 +471,8 @@ public sealed class FlowActionDockBrowserTests
     [Fact]
     public async Task TabletJoinTitle_StaysAtWorkflowScale()
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
             BaseURL = app.BaseAddress.ToString(),
@@ -520,7 +484,7 @@ public sealed class FlowActionDockBrowserTests
         var page = await context.NewPageAsync();
         var errors = CapturePageErrors(page);
 
-        await page.GotoAsync("/join", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.GotoAsync("/join", new PageGotoOptions { WaitUntil = WaitUntilState.Commit });
         await page.WaitForSelectorAsync(".play-join-title");
 
         var title = await page.Locator(".play-join-title").EvaluateAsync<WorkflowTitleLayout>(
@@ -552,12 +516,8 @@ public sealed class FlowActionDockBrowserTests
     [InlineData("/bortz-age")]
     public async Task FlowEntryPages_DoNotStealInitialFocus(string path)
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
             BaseURL = app.BaseAddress.ToString(),
@@ -565,35 +525,30 @@ public sealed class FlowActionDockBrowserTests
             ViewportSize = new ViewportSize { Width = 390, Height = 844 }
         });
         await BrowserTestApp.RouteExternalResourcesAsync(context);
-
         var page = await context.NewPageAsync();
         var errors = CapturePageErrors(page);
 
-        await page.GotoAsync(path, new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.GotoAsync(path, new PageGotoOptions { WaitUntil = WaitUntilState.Commit });
         await page.WaitForFunctionAsync("() => window.LwcFlowActionDock");
 
         var focusedElementId = await page.EvaluateAsync<string?>(
             """
-            () => {
-                const active = document.activeElement;
-                if (!active || active === document.body || active === document.documentElement) return null;
-                return active.id || active.tagName;
-            }
-            """);
+                () => {
+                    const active = document.activeElement;
+                    if (!active || active === document.body || active === document.documentElement) return null;
+                    return active.id || active.tagName;
+                }
+                """);
 
         Assert.Null(focusedElementId);
-        Assert.Empty(errors);
+        Assert.True(errors.Count == 0, $"{path}: {string.Join(" | ", errors)}");
     }
 
     [Fact]
     public async Task StoredAthleteSelection_DoesNotFocusSearchInputOnEntry()
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
             BaseURL = app.BaseAddress.ToString(),
@@ -616,9 +571,13 @@ public sealed class FlowActionDockBrowserTests
         var page = await context.NewPageAsync();
         var errors = CapturePageErrors(page);
 
-        await page.GotoAsync("/select-athlete", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.GotoAsync("/select-athlete", new PageGotoOptions { WaitUntil = WaitUntilState.Commit });
         await page.WaitForFunctionAsync("() => window.LwcFlowActionDock");
-        await page.WaitForTimeoutAsync(650);
+        await page.WaitForFunctionAsync(
+            """
+            () => document.getElementById('playAthleteInput')?.value === 'Browser Test Athlete'
+                && !document.body.classList.contains('play-route-hydrating')
+            """);
 
         var focusedElementId = await page.EvaluateAsync<string?>(
             """
@@ -636,12 +595,8 @@ public sealed class FlowActionDockBrowserTests
     [Fact]
     public async Task PlayStartWordmark_IsUnboxedOnHeaderBackground()
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
             BaseURL = app.BaseAddress.ToString(),
@@ -653,7 +608,7 @@ public sealed class FlowActionDockBrowserTests
         var page = await context.NewPageAsync();
         var errors = CapturePageErrors(page);
 
-        await page.GotoAsync("/play", new PageGotoOptions { WaitUntil = WaitUntilState.Load });
+        await page.GotoAsync("/play", new PageGotoOptions { WaitUntil = WaitUntilState.Commit });
         await page.WaitForFunctionAsync(
             """
             () => {
@@ -849,2533 +804,24 @@ public sealed class FlowActionDockBrowserTests
         Assert.Empty(errors);
     }
 
-    [Theory]
-    [InlineData(390, 844, false)]
-    [InlineData(844, 390, false)]
-    [InlineData(1280, 720, true)]
-    [InlineData(1366, 768, true)]
-    [InlineData(1366, 1024, true)]
-    public async Task ProofUpload_LeavesUploadControlsInlineAndKeepsBackInlineBeforeSubmitIsReady(
-        int viewportWidth,
-        int viewportHeight,
-        bool expectDesktopCenteredBack)
-    {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
-        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
-        {
-            BaseURL = app.BaseAddress.ToString(),
-            Locale = "en-US",
-            ViewportSize = new ViewportSize { Width = viewportWidth, Height = viewportHeight }
-        });
-        await BrowserTestApp.RouteExternalResourcesAsync(context);
-        await context.AddInitScriptAsync(
-            """
-            window.sessionStorage.setItem('selectedAthlete', JSON.stringify({
-                Name: 'Browser Test Athlete',
-                DisplayName: 'Browser Test Athlete',
-                Biomarkers: []
-            }));
-            window.sessionStorage.setItem('biomarkerData', JSON.stringify({
-                Biomarkers: [
-                    { Date: '2026-06-19', AlbGL: 45, GluMmolL: 5.1 }
-                ]
-            }));
-            """);
-
-        var page = await context.NewPageAsync();
-        var errors = CapturePageErrors(page);
-
-        await page.GotoAsync("/proofs", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-        await page.WaitForFunctionAsync("() => window.LwcFlowActionDock");
-        await page.WaitForFunctionAsync(
-            "() => document.getElementById('uploadProofButton')?.getAttribute('data-listener') === 'true'");
-        await page.WaitForTimeoutAsync(900);
-        await page.EvaluateAsync("() => window.LwcFlowActionDock.refreshNow()");
-
-        Assert.False(await HasDockClassAsync(page, ".proof-upload-primary-action"));
-
-        var initialLayout = await page.EvaluateAsync<ProofUploadActionLayout>(
-            """
-            () => {
-                const upload = document.querySelector('#uploadProofButton');
-                const actions = document.querySelector('.proof-upload-final-actions');
-                const placeholder = actions.previousElementSibling?.classList.contains('flow-action-dock-placeholder')
-                    ? actions.previousElementSibling
-                    : null;
-                const checklist = document.querySelector('#biomarker-checklist');
-                const placeholderRect = placeholder?.getBoundingClientRect();
-                const submit = document.querySelector('#submitButton');
-                const back = actions.querySelector('.back-button');
-                const uploadRect = upload.getBoundingClientRect();
-                const actionsRect = actions.getBoundingClientRect();
-                const submitRect = submit.getBoundingClientRect();
-                const backRect = back.getBoundingClientRect();
-                const checklistRect = checklist.getBoundingClientRect();
-                const submitStyle = getComputedStyle(submit);
-                const backStyle = getComputedStyle(back);
-                const checklistStyle = getComputedStyle(checklist);
-                return {
-                    UploadTop: uploadRect.top,
-                    UploadBottom: uploadRect.bottom,
-                    UploadLeft: uploadRect.left,
-                    UploadRight: uploadRect.right,
-                    ChecklistTop: checklistRect.top,
-                    ChecklistBottom: checklistRect.bottom,
-                    ChecklistVisible: checklistStyle.display !== 'none'
-                        && checklistStyle.visibility !== 'hidden'
-                        && checklistRect.width > 0
-                        && checklistRect.height > 0,
-                    DockTop: actionsRect.top,
-                    DockBottom: actionsRect.bottom,
-                    ActionsDocked: actions.classList.contains('flow-action-stack--docked'),
-                    SubmitDisabled: submit.disabled,
-                    SubmitVisible: submitStyle.display !== 'none'
-                        && submitStyle.visibility !== 'hidden'
-                        && submitRect.width > 0
-                        && submitRect.height > 0,
-                    BackVisible: backStyle.display !== 'none'
-                        && backStyle.visibility !== 'hidden'
-                        && backRect.width > 0
-                        && backRect.height > 0,
-                    BackCenterDelta: Math.abs((backRect.left + (backRect.width / 2)) - (window.innerWidth / 2)),
-                    BackWidth: backRect.width,
-                    BackHeight: backRect.height,
-                    BackTop: backRect.top,
-                    BackBottom: backRect.bottom,
-                    BackLeft: backRect.left,
-                    BackRight: backRect.right,
-                    PlaceholderHeight: placeholderRect?.height || 0,
-                    ActionHeight: actionsRect.height,
-                    ViewportHeight: window.innerHeight
-                };
-            }
-            """);
-
-        if (viewportWidth <= 760)
-        {
-            Assert.False(initialLayout.ActionsDocked, "Mobile proof upload should keep Back inline while the page is short and no proof exists.");
-        }
-
-        if (initialLayout.ActionsDocked)
-        {
-            await ExpectDockPlaceholderMatchesVisibleStackAsync(page, ".proof-upload-final-actions");
-            Assert.True(initialLayout.UploadBottom <= initialLayout.DockTop - 20,
-                $"Upload action should remain above the Back dock: upload bottom {initialLayout.UploadBottom}, dock top {initialLayout.DockTop}.");
-            Assert.True(initialLayout.DockBottom <= initialLayout.ViewportHeight + 1,
-                $"Proof upload Back dock should stay inside the viewport: {initialLayout.DockBottom} > {initialLayout.ViewportHeight}.");
-        }
-        else
-        {
-            if (viewportWidth >= 640 && viewportHeight <= 480)
-            {
-                Assert.True(initialLayout.BackRight <= initialLayout.UploadLeft - 8 || initialLayout.UploadRight <= initialLayout.BackLeft - 8,
-                    $"Landscape proof upload Back should sit beside the upload choices, not overlap them: back {initialLayout.BackLeft}-{initialLayout.BackRight}, upload {initialLayout.UploadLeft}-{initialLayout.UploadRight}.");
-            }
-            else
-            {
-                Assert.True(initialLayout.UploadBottom <= initialLayout.BackTop - 8,
-                    $"Inline proof upload Back should remain below, not over, the upload action: upload bottom {initialLayout.UploadBottom}, back top {initialLayout.BackTop}.");
-            }
-
-            Assert.True(initialLayout.BackBottom <= initialLayout.ViewportHeight - 8,
-                $"Inline proof upload Back should stay in the first viewport when undocked: {initialLayout.BackBottom} > {initialLayout.ViewportHeight}.");
-        }
-
-        Assert.False(initialLayout.ChecklistVisible, "Proof tracker should stay out of the first proof-upload viewport until a proof exists.");
-        Assert.True(initialLayout.ChecklistBottom <= initialLayout.DockTop - 20 || initialLayout.ChecklistTop >= initialLayout.DockBottom - 1,
-            $"Proof tracker should not be half-covered by the dock: checklist {initialLayout.ChecklistTop}-{initialLayout.ChecklistBottom}, dock {initialLayout.DockTop}-{initialLayout.DockBottom}.");
-        Assert.True(initialLayout.SubmitDisabled, "Proof upload Submit should start disabled until proof is attached.");
-        Assert.False(initialLayout.SubmitVisible, "Disabled proof Submit should not appear as a fake primary action in the dock.");
-        Assert.True(initialLayout.BackVisible, "Proof upload Back action should remain visible.");
-        Assert.True(initialLayout.BackHeight <= 70,
-            $"Proof upload Back action should stay button-height, not card-height: {initialLayout.BackHeight}px.");
-        if (initialLayout.ActionsDocked)
-        {
-            Assert.True(initialLayout.PlaceholderHeight <= initialLayout.ActionHeight + 8,
-                $"Proof upload dock placeholder should not reserve hidden Submit space: {initialLayout.PlaceholderHeight}px placeholder vs {initialLayout.ActionHeight}px dock.");
-        }
-        if (expectDesktopCenteredBack && initialLayout.ActionsDocked)
-        {
-            Assert.True(initialLayout.BackCenterDelta <= 3,
-                $"Lone desktop proof Back action should be centered in the dock; center was off by {initialLayout.BackCenterDelta}px.");
-            Assert.True(initialLayout.BackWidth <= 190,
-                $"Lone desktop proof Back action should stay compact; width was {initialLayout.BackWidth}px.");
-        }
-
-        await page.EvaluateAsync(
-            """
-            () => {
-                document.body.classList.add('proof-upload-has-proofs');
-                document.querySelector('#submitButton').disabled = false;
-                window.LwcFlowActionDock.refreshNow();
-            }
-            """);
-        await page.WaitForTimeoutAsync(300);
-
-        var submitVisible = await page.Locator("#submitButton").EvaluateAsync<bool>(
-            """
-            button => {
-                const rect = button.getBoundingClientRect();
-                const style = getComputedStyle(button);
-                return style.display !== 'none'
-                    && style.visibility !== 'hidden'
-                    && rect.width > 0
-                    && rect.height > 0;
-            }
-            """);
-        Assert.True(submitVisible, "Enabled proof Submit should appear once a proof exists.");
-
-        Assert.Empty(errors);
-    }
-
-    [Theory]
-    [InlineData(844, 390, 32)]
-    [InlineData(768, 1024, 38)]
-    [InlineData(1280, 720, 36)]
-    public async Task ProofUpload_FirstViewportUsesFormScaleTitleAndShowsUploadAction(
-        int viewportWidth,
-        int viewportHeight,
-        double maxTitleFontSize)
-    {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
-        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
-        {
-            BaseURL = app.BaseAddress.ToString(),
-            Locale = "en-US",
-            ViewportSize = new ViewportSize { Width = viewportWidth, Height = viewportHeight }
-        });
-        await BrowserTestApp.RouteExternalResourcesAsync(context);
-        await context.AddInitScriptAsync(
-            """
-            window.sessionStorage.setItem('selectedAthlete', JSON.stringify({
-                Name: 'Browser Test Athlete',
-                DisplayName: 'Browser Test Athlete',
-                Biomarkers: []
-            }));
-            window.sessionStorage.setItem('biomarkerData', JSON.stringify({
-                Biomarkers: [
-                    { Date: '2026-06-19', AlbGL: 45, GluMmolL: 5.1 }
-                ]
-            }));
-            """);
-
-        var page = await context.NewPageAsync();
-        var errors = CapturePageErrors(page);
-
-        await page.GotoAsync("/proofs", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-        await page.WaitForFunctionAsync(
-            """
-            () => document.querySelector('#character-title')?.textContent.trim() === 'Browser Test Athlete'
-                && document.querySelector('.proof-upload-symbol .fa-file-medical')
-                && document.querySelector('#uploadProofButton')?.getAttribute('data-listener') === 'true'
-            """);
-
-        var layout = await page.EvaluateAsync<ProofUploadFirstViewportLayout>(
-            """
-            () => {
-                const title = document.querySelector('#character-title');
-                const illustration = document.querySelector('.proof-upload-symbol');
-                const uploadButton = document.querySelector('#uploadProofButton');
-                const rectOf = element => {
-                    const rect = element.getBoundingClientRect();
-                    return {
-                        Top: rect.top,
-                        Bottom: rect.bottom,
-                        Left: rect.left,
-                        Right: rect.right,
-                        Width: rect.width,
-                        Height: rect.height
-                    };
-                };
-
-                return {
-                    TitleFontSize: parseFloat(getComputedStyle(title).fontSize),
-                    Title: rectOf(title),
-                    Illustration: rectOf(illustration),
-                    UploadButton: rectOf(uploadButton),
-                    ViewportHeight: window.innerHeight
-                };
-            }
-            """);
-
-        Assert.True(layout.TitleFontSize <= maxTitleFontSize,
-            $"Proof upload title fell back to oversized global h1 sizing: {layout.TitleFontSize}px > {maxTitleFontSize}px.");
-        Assert.InRange(layout.Illustration.Height, 80, 104);
-        Assert.Equal(0, await page.Locator(".proof-upload-visual img").CountAsync());
-        Assert.True(layout.UploadButton.Bottom <= layout.ViewportHeight - 8,
-            $"Upload proofs action is cut off in the first viewport: bottom {layout.UploadButton.Bottom}px, viewport {layout.ViewportHeight}px.");
-        Assert.Empty(errors);
-    }
-
-    [Fact]
-    public async Task DesktopPlayEntry_KeepsActionsInlineAtCommonViewport()
-    {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
-        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
-        {
-            BaseURL = app.BaseAddress.ToString(),
-            Locale = "en-US",
-            ViewportSize = new ViewportSize { Width = 1366, Height = 768 }
-        });
-        await BrowserTestApp.RouteExternalResourcesAsync(context);
-
-        var page = await context.NewPageAsync();
-        var errors = CapturePageErrors(page);
-
-        await page.GotoAsync("/play", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-        await page.WaitForFunctionAsync("() => window.LwcFlowActionDock");
-        await page.WaitForFunctionAsync(
-            "selector => !document.querySelector(selector)?.classList.contains('flow-action-stack--docked')",
-            ".play-menu-actions");
-
-        await ExpectActionStackInViewportAsync(page, ".play-menu-actions");
-
-        var inlineTail = await page.EvaluateAsync<double>(
-            """
-            () => {
-                const main = document.querySelector('.play-hub-main');
-                const actions = document.querySelector('.play-menu-actions');
-                if (!main || !actions) return Number.POSITIVE_INFINITY;
-                return main.getBoundingClientRect().bottom - actions.getBoundingClientRect().bottom;
-            }
-            """);
-
-        Assert.True(inlineTail <= 16,
-            $"Inline /play actions leave {inlineTail}px of trailing page background after the menu.");
-        Assert.Empty(errors);
-    }
-
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task DesktopPlayEntry_InlineActionsStaySameHeightAtDefaultBrowserSize(bool hasApplication)
-    {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
-        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
-        {
-            BaseURL = app.BaseAddress.ToString(),
-            Locale = "en-US",
-            ViewportSize = new ViewportSize { Width = 1280, Height = 720 }
-        });
-        await BrowserTestApp.RouteExternalResourcesAsync(context);
-        await context.AddInitScriptAsync(
-            hasApplication
-                ? "window.localStorage.setItem('hasApplication', 'true');"
-                : "window.localStorage.removeItem('hasApplication');");
-
-        var page = await context.NewPageAsync();
-        var errors = CapturePageErrors(page);
-
-        await page.GotoAsync("/play", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-        await page.WaitForFunctionAsync("() => window.LwcFlowActionDock");
-        await page.WaitForFunctionAsync(
-            "selector => !document.querySelector(selector)?.classList.contains('flow-action-stack--docked')",
-            ".play-menu-actions");
-        await ExpectActionStackInViewportAsync(page, ".play-menu-actions");
-
-        var layout = await ReadFlowActionChildLayoutAsync(page, ".play-menu-actions");
-        Assert.Equal(2, layout.Count);
-        Assert.True(layout.MaxHeightDelta <= 1,
-            $"Inline /play actions have mismatched heights by {layout.MaxHeightDelta}px.");
-        Assert.True(layout.MaxHeight is >= 56 and <= 62,
-            $"Inline /play actions have unexpected height: {layout.MaxHeight}px.");
-        Assert.Empty(errors);
-    }
-
-    [Fact]
-    public async Task PlayHub_DoesNotExposeGlobalFooterBetweenHeroAndDockedActions()
-    {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
-        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
-        {
-            BaseURL = app.BaseAddress.ToString(),
-            Locale = "en-US",
-            ViewportSize = new ViewportSize { Width = 500, Height = 1200 }
-        });
-        await BrowserTestApp.RouteExternalResourcesAsync(context);
-
-        var page = await context.NewPageAsync();
-        var errors = CapturePageErrors(page);
-
-        await page.GotoAsync("/play", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-        await ExpectActionStackDockedInViewportAsync(page, ".play-menu-actions");
-
-        var footerDisplay = await page.Locator(".footer").EvaluateAsync<string>(
-            "footer => getComputedStyle(footer).display");
-        Assert.Equal("none", footerDisplay);
-        Assert.Empty(errors);
-    }
-
-    [Theory]
-    [InlineData("/play")]
-    [InlineData("/join")]
-    [InlineData("/select-athlete")]
-    [InlineData("/dashboard")]
-    [InlineData("/edit-profile")]
-    [InlineData("/proofs")]
-    public async Task PlayWorkflowPages_DoNotExposeGlobalFooter(string path)
-    {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
-        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
-        {
-            BaseURL = app.BaseAddress.ToString(),
-            Locale = "en-US",
-            ViewportSize = new ViewportSize { Width = 480, Height = 1040 }
-        });
-        await BrowserTestApp.RouteExternalResourcesAsync(context);
-        await context.AddInitScriptAsync(
-            """
-            const athlete = {
-                Name: 'Browser Test Athlete',
-                DisplayName: 'Browser Test Athlete',
-                Division: "Men's",
-                Country: 'United States',
-                DateOfBirth: { Year: 1980, Month: 5, Day: 20 },
-                Biomarkers: [{ Date: '2026-06-19', Hba1cMmolMol: 35 }]
-            };
-            window.sessionStorage.setItem('selectedAthlete', JSON.stringify(athlete));
-            window.localStorage.setItem('selectedAthleteName', athlete.Name);
-            window.localStorage.setItem('hasApplication', 'true');
-            window.sessionStorage.setItem('biomarkerData', JSON.stringify({
-                Biomarkers: [{ Date: '2026-06-19', Hba1cMmolMol: 35 }]
-            }));
-            """);
-
-        var page = await context.NewPageAsync();
-        var errors = CapturePageErrors(page);
-
-        await page.GotoAsync(path, new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-        await page.WaitForFunctionAsync("() => document.querySelector('.footer')");
-
-        var footer = await page.Locator(".footer").EvaluateAsync<FooterVisibility>(
-            """
-            footer => {
-                const style = getComputedStyle(footer);
-                const visibleLinkCount = Array.from(footer.querySelectorAll('a')).filter(link => {
-                    const rect = link.getBoundingClientRect();
-                    const linkStyle = getComputedStyle(link);
-                    return rect.width > 0
-                        && rect.height > 0
-                        && linkStyle.display !== 'none'
-                        && linkStyle.visibility !== 'hidden';
-                }).length;
-                return {
-                    Display: style.display,
-                    VisibleLinkCount: visibleLinkCount
-                };
-            }
-            """);
-
-        Assert.Equal("none", footer.Display);
-        Assert.Equal(0, footer.VisibleLinkCount);
-        Assert.Empty(errors);
-    }
-
-    [Theory]
-    [InlineData(390, 844, false)]
-    [InlineData(1280, 720, true)]
-    [InlineData(1366, 768, true)]
-    public async Task EditProfile_UnchangedAthleteWithStaleDraft_KeepsOnlyBackActionWithoutCoveringVisibleFields(
-        int viewportWidth,
-        int viewportHeight,
-        bool expectDesktopCenteredBack)
-    {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
-        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
-        {
-            BaseURL = app.BaseAddress.ToString(),
-            Locale = "en-US",
-            ViewportSize = new ViewportSize { Width = viewportWidth, Height = viewportHeight }
-        });
-        await BrowserTestApp.RouteExternalResourcesAsync(context);
-        await context.AddInitScriptAsync(
-            """
-            const athlete = {
-                Name: 'Browser Test Athlete',
-                DisplayName: 'Browser Test Athlete',
-                Division: "Men's",
-                Flag: 'United States',
-                Country: 'United States',
-                PersonalLink: 'https://example.test/browser-test-athlete',
-                MediaContact: 'browser-test-athlete@example.test',
-                Why: 'Testing the athlete navigation flow.',
-                ProfilePic: '/assets/content-images/longevity-world-cup-silhouette.webp',
-                ProfilePictureUrl: '/assets/content-images/longevity-world-cup-silhouette.webp',
-                DateOfBirth: { Year: 1980, Month: 5, Day: 20 },
-                Biomarkers: [{ Date: '2026-06-19', Hba1cMmolMol: 35 }]
-            };
-            window.sessionStorage.setItem('selectedAthlete', JSON.stringify(athlete));
-            window.sessionStorage.setItem('tempAthlete', JSON.stringify(athlete));
-            window.localStorage.setItem('selectedAthleteName', athlete.Name);
-            window.localStorage.setItem('hasApplication', 'true');
-            """);
-
-        var page = await context.NewPageAsync();
-        var errors = CapturePageErrors(page);
-
-        await page.GotoAsync("/edit-profile", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-        await page.WaitForFunctionAsync(
-            """
-            () => window.LwcFlowActionDock
-                && document.querySelector('#divisionDisplaySelect')?.value === "Men's"
-                && document.querySelector('.edit-profile-actions')
-            """);
-        await page.WaitForTimeoutAsync(900);
-        await page.EvaluateAsync("() => window.LwcFlowActionDock.refreshNow()");
-        await WaitForManagedActionStacksSettledAsync(page);
-        await ExpectActionStackInViewportAsync(page, ".edit-profile-actions");
-
-        var state = await page.EvaluateAsync<EditProfileInitialState>(
-            """
-            () => {
-                const actions = document.querySelector('.edit-profile-actions');
-                const actionRect = actions.getBoundingClientRect();
-                const placeholder = actions.previousElementSibling?.classList.contains('flow-action-dock-placeholder')
-                    ? actions.previousElementSibling
-                    : null;
-                const placeholderRect = placeholder?.getBoundingClientRect();
-                const submit = document.querySelector('#submitButton');
-                const submitStyle = getComputedStyle(submit);
-                const back = actions.querySelector('.back-button');
-                const backRect = back.getBoundingClientRect();
-                const backStyle = getComputedStyle(back);
-                return {
-                    SubmitDisabled: submit.disabled,
-                    SubmitVisible: submitStyle.display !== 'none'
-                        && submitStyle.visibility !== 'hidden'
-                        && submit.getBoundingClientRect().width > 0
-                        && submit.getBoundingClientRect().height > 0,
-                    ActionsDocked: actions.classList.contains('flow-action-stack--docked'),
-                    BodyDockActive: document.body.classList.contains('flow-action-dock-active'),
-                    CoveredVisibleFieldCount: Array.from(document.querySelectorAll('#editOptionsGroup .inline-option-group'))
-                        .filter(row => {
-                            const rowRect = row.getBoundingClientRect();
-                            const rowStyle = getComputedStyle(row);
-                            const visible = rowStyle.display !== 'none'
-                                && rowStyle.visibility !== 'hidden'
-                                && rowRect.width > 0
-                                && rowRect.height > 0;
-                            return visible
-                                && rowRect.top < actionRect.bottom - 1
-                                && rowRect.bottom > actionRect.top + 1;
-                        })
-                        .length,
-                    BackVisible: backStyle.display !== 'none'
-                        && backStyle.visibility !== 'hidden'
-                        && backRect.width > 0
-                        && backRect.height > 0,
-                    BackCenterDelta: Math.abs((backRect.left + (backRect.width / 2)) - (window.innerWidth / 2)),
-                    BackWidth: backRect.width,
-                    PlaceholderHeight: placeholderRect?.height || 0,
-                    ActionHeight: actionRect.height,
-                    TempAthlete: window.sessionStorage.getItem('tempAthlete') || '',
-                    ActionBottom: actionRect.bottom,
-                    ViewportHeight: window.innerHeight,
-                    Division: document.querySelector('#divisionDisplaySelect').value
-                };
-            }
-            """);
-
-        Assert.Equal("Men's", state.Division);
-        Assert.True(state.SubmitDisabled, "Unchanged edit profile should not present Submit as an available primary action.");
-        Assert.False(state.SubmitVisible, "Disabled Submit should not appear as a fake primary action in the unchanged edit-profile dock.");
-        Assert.True(state.BackVisible, "Back should remain visible while unchanged edit-profile actions are available.");
-        Assert.Equal(0, state.CoveredVisibleFieldCount);
-        Assert.True(state.ActionBottom <= state.ViewportHeight + 1,
-            $"Unchanged edit-profile Back action should stay inside the viewport: {state.ActionBottom} > {state.ViewportHeight}.");
-        if (state.ActionsDocked)
-        {
-            Assert.True(state.BodyDockActive, "Unchanged edit profile should reserve the bottom dock when Back docks.");
-            Assert.True(state.PlaceholderHeight <= state.ActionHeight + 8,
-                $"Unchanged edit-profile dock placeholder should not reserve hidden Submit space: {state.PlaceholderHeight}px placeholder vs {state.ActionHeight}px dock.");
-        }
-
-        if (expectDesktopCenteredBack && state.ActionsDocked)
-        {
-            Assert.True(state.BackCenterDelta <= 3,
-                $"Lone desktop Back action should be centered in the dock; center was off by {state.BackCenterDelta}px.");
-            Assert.True(state.BackWidth <= 190,
-                $"Lone desktop Back action should stay compact; width was {state.BackWidth}px.");
-        }
-        Assert.Equal("", state.TempAthlete);
-        Assert.Empty(errors);
-    }
-
-    [Theory]
-    [InlineData(768, 1024)]
-    [InlineData(1366, 768)]
-    public async Task EditProfile_UnchangedProfile_DoesNotLetFieldsEnterActionBand(int viewportWidth, int viewportHeight)
-    {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
-        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
-        {
-            BaseURL = app.BaseAddress.ToString(),
-            Locale = "en-US",
-            ViewportSize = new ViewportSize { Width = viewportWidth, Height = viewportHeight }
-        });
-        await BrowserTestApp.RouteExternalResourcesAsync(context);
-        await context.AddInitScriptAsync(
-            """
-            const athlete = {
-                Name: 'Browser Test Athlete',
-                DisplayName: 'Browser Test Athlete',
-                DateOfBirth: { Year: 1980, Month: 5, Day: 20 },
-                Division: 'Open',
-                Flag: 'Hungary',
-                PersonalLink: 'https://example.test/browser-test-athlete',
-                MediaContact: 'browser-test-athlete@example.test',
-                Why: 'Testing the athlete navigation flow.',
-                ProfilePic: '/assets/favicon-512x512.png',
-                Biomarkers: []
-            };
-            window.sessionStorage.setItem('selectedAthlete', JSON.stringify(athlete));
-            window.localStorage.setItem('selectedAthleteName', athlete.Name);
-            window.localStorage.setItem('hasApplication', 'true');
-            """);
-
-        var page = await context.NewPageAsync();
-        var errors = CapturePageErrors(page);
-
-        await page.GotoAsync("/edit-profile", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-        await page.WaitForFunctionAsync(
-            """
-            () => window.LwcFlowActionDock
-                && document.querySelector('#flagDisplayInput')?.value === 'Hungary'
-                && document.querySelector('#submitButton')?.disabled === true
-            """);
-        await page.EvaluateAsync("() => window.LwcFlowActionDock.refreshNow()");
-        await WaitForManagedActionStacksSettledAsync(page);
-        await ExpectActionStackInViewportAsync(page, ".edit-profile-actions");
-
-        var coveredRows = await page.EvaluateAsync<string[]>(
-            """
-            () => {
-                const actions = document.querySelector('.edit-profile-actions');
-                const actionRect = actions.getBoundingClientRect();
-                const unsafeTop = actionRect.top;
-                return Array.from(document.querySelectorAll('#editOptionsGroup .inline-option-group'))
-                    .filter(row => {
-                        const rowRect = row.getBoundingClientRect();
-                        const rowStyle = getComputedStyle(row);
-                        const visible = rowStyle.display !== 'none'
-                            && rowStyle.visibility !== 'hidden'
-                            && rowRect.width > 0
-                            && rowRect.height > 0;
-                        return visible
-                            && rowRect.top < window.innerHeight
-                            && rowRect.bottom > unsafeTop + 1;
-                    })
-                    .map(row => row.querySelector('input, select, textarea')?.id || '');
-            }
-            """);
-
-        Assert.Empty(coveredRows);
-        Assert.Empty(errors);
-    }
-
-    [Theory]
-    [InlineData(390, 844)]
-    [InlineData(1366, 768)]
-    public async Task EditProfile_ChangedAthleteDocksSubmitActionsAfterEditing(int viewportWidth, int viewportHeight)
-    {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
-        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
-        {
-            BaseURL = app.BaseAddress.ToString(),
-            Locale = "en-US",
-            ViewportSize = new ViewportSize { Width = viewportWidth, Height = viewportHeight }
-        });
-        await BrowserTestApp.RouteExternalResourcesAsync(context);
-        await context.AddInitScriptAsync(FlowAuditStateScript);
-
-        var page = await context.NewPageAsync();
-        var errors = CapturePageErrors(page);
-
-        await page.GotoAsync("/edit-profile", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-        await page.WaitForFunctionAsync(
-            """
-            () => window.LwcFlowActionDock
-                && document.querySelector('#personalLinkInput')?.value === 'https://example.test/browser-test-athlete'
-                && document.querySelector('#submitButton')?.disabled === true
-            """);
-
-        await page.Locator("#personalLinkInput").FillAsync("https://example.test/changed-profile");
-        await page.Locator("#personalLinkInput").EvaluateAsync("input => input.blur()");
-        await page.EvaluateAsync("() => window.LwcFlowActionDock.refreshNow()");
-
-        await ExpectActionStackDockedInViewportAsync(page, ".edit-profile-actions");
-        await page.WaitForFunctionAsync(
-            """
-            () => {
-                const actions = document.querySelector('.edit-profile-actions');
-                const personalLink = document.querySelector('#personalLinkInput')?.closest('.inline-option-group');
-                const mediaContact = document.querySelector('#mediaContactInput')?.closest('.inline-option-group');
-                const why = document.querySelector('#whyDisplayInput')?.closest('.inline-option-group');
-                if (!actions || !personalLink || !mediaContact || !why || !actions.classList.contains('flow-action-stack--docked')) return false;
-
-                const actionRect = actions.getBoundingClientRect();
-                const personalLinkRect = personalLink.getBoundingClientRect();
-                const mediaContactRect = mediaContact.getBoundingClientRect();
-                const whyRect = why.getBoundingClientRect();
-                return personalLinkRect.bottom <= actionRect.top
-                    && mediaContactRect.bottom <= actionRect.top
-                    && whyRect.bottom <= actionRect.top;
-            }
-            """);
-
-        var state = await page.EvaluateAsync<EditProfileInitialState>(
-            """
-            () => {
-                const actions = document.querySelector('.edit-profile-actions');
-                const actionRect = actions.getBoundingClientRect();
-                const personalLinkRect = document.querySelector('#personalLinkInput').closest('.inline-option-group').getBoundingClientRect();
-                const mediaContactRect = document.querySelector('#mediaContactInput').closest('.inline-option-group').getBoundingClientRect();
-                const whyRect = document.querySelector('#whyDisplayInput').closest('.inline-option-group').getBoundingClientRect();
-                return {
-                    SubmitDisabled: document.querySelector('#submitButton').disabled,
-                    ActionsDocked: actions.classList.contains('flow-action-stack--docked'),
-                    TempAthlete: window.sessionStorage.getItem('tempAthlete') || '',
-                    ActionBottom: actionRect.bottom,
-                    DockTop: actionRect.top,
-                    PersonalLinkBottom: personalLinkRect.bottom,
-                    MediaContactBottom: mediaContactRect.bottom,
-                    WhyBottom: whyRect.bottom,
-                    ViewportHeight: window.innerHeight,
-                    Division: document.querySelector('#divisionDisplaySelect').value
-                };
-            }
-            """);
-
-        Assert.False(state.SubmitDisabled, "A real edit should present Submit as an available primary action.");
-        Assert.True(state.ActionsDocked, "Changed edit profile actions should dock once text entry has finished.");
-        Assert.NotEmpty(state.TempAthlete);
-        Assert.True(state.ActionBottom <= state.ViewportHeight + 1,
-            $"Docked edit profile actions overflow the viewport: {state.ActionBottom} > {state.ViewportHeight}.");
-        Assert.True(state.PersonalLinkBottom <= state.DockTop,
-            $"Edited personal-link row is covered by the dock: row bottom {state.PersonalLinkBottom}, dock top {state.DockTop}.");
-        Assert.True(state.MediaContactBottom <= state.DockTop,
-            $"Next media-contact row is covered by the dock: row bottom {state.MediaContactBottom}, dock top {state.DockTop}.");
-        Assert.True(state.WhyBottom <= state.DockTop,
-            $"Next why row is covered by the dock: row bottom {state.WhyBottom}, dock top {state.DockTop}.");
-        Assert.Empty(errors);
-    }
-
-    [Fact]
-    public async Task EditProfile_RestoringMissingOriginalProfileFieldsLeavesInputsEmpty()
-    {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
-        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
-        {
-            BaseURL = app.BaseAddress.ToString(),
-            Locale = "en-US",
-            ViewportSize = new ViewportSize { Width = 390, Height = 844 }
-        });
-        await BrowserTestApp.RouteExternalResourcesAsync(context);
-        await context.AddInitScriptAsync(
-            """
-            const originalAthlete = {
-                Name: 'Legacy Browser Athlete',
-                DisplayName: 'Legacy Browser Athlete',
-                Division: "Men's",
-                Flag: 'United States',
-                Country: 'United States',
-                ProfilePic: '/assets/content-images/longevity-world-cup-silhouette.webp',
-                ProfilePictureUrl: '/assets/content-images/longevity-world-cup-silhouette.webp',
-                DateOfBirth: { Year: 1980, Month: 5, Day: 20 },
-                Biomarkers: [{ Date: '2026-06-19', Hba1cMmolMol: 35 }]
-            };
-            const draftAthlete = {
-                ...originalAthlete,
-                PersonalLink: 'https://example.test/legacy-draft',
-                MediaContact: 'legacy-draft@example.test',
-                Why: 'This temporary profile draft should be restorable.'
-            };
-            window.sessionStorage.setItem('selectedAthlete', JSON.stringify(originalAthlete));
-            window.sessionStorage.setItem('tempAthlete', JSON.stringify(draftAthlete));
-            window.localStorage.setItem('selectedAthleteName', originalAthlete.Name);
-            window.localStorage.setItem('hasApplication', 'true');
-            """);
-
-        var page = await context.NewPageAsync();
-        var errors = CapturePageErrors(page);
-
-        await page.GotoAsync("/edit-profile", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-        await page.WaitForFunctionAsync(
-            """
-            () => window.LwcFlowActionDock
-                && document.querySelector('#personalLinkInput')?.value === 'https://example.test/legacy-draft'
-                && document.querySelector('#mediaContactInput')?.value === 'legacy-draft@example.test'
-                && document.querySelector('#whyDisplayInput')?.value === 'This temporary profile draft should be restorable.'
-                && document.querySelector('#submitButton')?.disabled === false
-            """);
-
-        await page.Locator("#restorePersonalLinkBtn").ClickAsync();
-        await page.Locator("#restoreMediaContactBtn").ClickAsync();
-        await page.Locator("#restoreWhyDisplayBtn").ClickAsync();
-        await page.EvaluateAsync("() => window.LwcFlowActionDock.refreshNow()");
-
-        var state = await page.EvaluateAsync<EditProfileMissingOriginalRestoreState>(
-            """
-            () => {
-                const actions = document.querySelector('.edit-profile-actions');
-                const actionRect = actions.getBoundingClientRect();
-                const personalLink = document.querySelector('#personalLinkInput');
-                const mediaContact = document.querySelector('#mediaContactInput');
-                const why = document.querySelector('#whyDisplayInput');
-                const restoreButtons = [
-                    document.querySelector('#restorePersonalLinkBtn'),
-                    document.querySelector('#restoreMediaContactBtn'),
-                    document.querySelector('#restoreWhyDisplayBtn')
-                ];
-                return {
-                    PersonalLink: personalLink.value,
-                    MediaContact: mediaContact.value,
-                    Why: why.value,
-                    HasUndefinedText: [personalLink.value, mediaContact.value, why.value]
-                        .some(value => value === 'undefined'),
-                    SubmitDisabled: document.querySelector('#submitButton').disabled,
-                    TempAthlete: window.sessionStorage.getItem('tempAthlete') || '',
-                    RestoreButtonVisibleCount: restoreButtons
-                        .filter(button => {
-                            const style = getComputedStyle(button);
-                            const rect = button.getBoundingClientRect();
-                            return style.display !== 'none'
-                                && style.visibility !== 'hidden'
-                                && rect.width > 0
-                                && rect.height > 0;
-                        })
-                        .length,
-                    ActionsDocked: actions.classList.contains('flow-action-stack--docked'),
-                    ActionBottom: actionRect.bottom,
-                    ViewportHeight: window.innerHeight
-                };
-            }
-            """);
-
-        Assert.Equal("", state.PersonalLink);
-        Assert.Equal("", state.MediaContact);
-        Assert.Equal("", state.Why);
-        Assert.False(state.HasUndefinedText, "Restoring missing legacy fields should not put the literal text 'undefined' into visible inputs.");
-        Assert.True(state.SubmitDisabled, "Restoring every draft-only profile field should return edit profile to the back-only state.");
-        Assert.Equal("", state.TempAthlete);
-        Assert.Equal(0, state.RestoreButtonVisibleCount);
-        Assert.True(state.ActionsDocked, "Back should remain available in the bottom dock after all draft-only fields are restored.");
-        Assert.True(state.ActionBottom <= state.ViewportHeight + 1,
-            $"Back dock should stay inside the viewport after restoring fields: {state.ActionBottom} > {state.ViewportHeight}.");
-        Assert.Empty(errors);
-    }
-
-    [Theory]
-    [InlineData(768, 1024, 38, 220)]
-    [InlineData(1280, 720, 36, 200)]
-    public async Task EditProfile_FirstViewportUsesFormScaleTitleAndShowsPictureAction(
-        int viewportWidth,
-        int viewportHeight,
-        double maxTitleFontSize,
-        double minPictureHeight)
-    {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
-        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
-        {
-            BaseURL = app.BaseAddress.ToString(),
-            Locale = "en-US",
-            ViewportSize = new ViewportSize { Width = viewportWidth, Height = viewportHeight }
-        });
-        await BrowserTestApp.RouteExternalResourcesAsync(context);
-        await context.AddInitScriptAsync(
-            """
-            const athlete = {
-                Name: 'Browser Test Athlete',
-                DisplayName: 'Browser Test Athlete',
-                Division: "Men's",
-                Flag: 'Hungary',
-                Country: 'Hungary',
-                PersonalLink: 'https://example.test/browser-test-athlete',
-                MediaContact: 'browser-test-athlete@example.test',
-                Why: 'Testing the athlete navigation flow.',
-                ProfilePic: '/assets/favicon-512x512.png',
-                ProfilePictureUrl: '/assets/favicon-512x512.png',
-                DateOfBirth: { Year: 1980, Month: 5, Day: 20 },
-                Biomarkers: [{ Date: '2026-06-19', Hba1cMmolMol: 35 }]
-            };
-            window.sessionStorage.setItem('selectedAthlete', JSON.stringify(athlete));
-            window.localStorage.setItem('selectedAthleteName', athlete.Name);
-            window.localStorage.setItem('hasApplication', 'true');
-            """);
-
-        var page = await context.NewPageAsync();
-        var errors = CapturePageErrors(page);
-
-        await page.GotoAsync("/edit-profile", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-        await page.WaitForFunctionAsync(
-            """
-            () => document.querySelector('#character-title')?.textContent.trim() === 'Browser Test Athlete'
-                && document.querySelector('.edit-profile-visual img')?.complete
-                && document.querySelector('#changeProfilePicButton')
-            """);
-
-        var layout = await page.EvaluateAsync<EditProfileFirstViewportLayout>(
-            """
-            () => {
-                const title = document.querySelector('#character-title');
-                const image = document.querySelector('.edit-profile-visual img');
-                const pictureButton = document.querySelector('#changeProfilePicButton');
-                const options = document.querySelector('#editOptionsGroup');
-                const rectOf = element => {
-                    const rect = element.getBoundingClientRect();
-                    return {
-                        Top: rect.top,
-                        Bottom: rect.bottom,
-                        Left: rect.left,
-                        Right: rect.right,
-                        Width: rect.width,
-                        Height: rect.height
-                    };
-                };
-
-                return {
-                    TitleFontSize: parseFloat(getComputedStyle(title).fontSize),
-                    Title: rectOf(title),
-                    Picture: rectOf(image),
-                    PictureButton: rectOf(pictureButton),
-                    OptionsAos: options?.getAttribute('data-aos') || '',
-                    ViewportHeight: window.innerHeight
-                };
-            }
-            """);
-
-        Assert.True(layout.TitleFontSize <= maxTitleFontSize,
-            $"Edit profile title fell back to oversized global h1 sizing: {layout.TitleFontSize}px > {maxTitleFontSize}px.");
-        Assert.True(layout.Picture.Height >= minPictureHeight,
-            $"Edit profile picture was over-compressed: {layout.Picture.Height}px < {minPictureHeight}px.");
-        Assert.True(layout.PictureButton.Bottom <= layout.ViewportHeight - 8,
-            $"Change profile picture action is cut off in the first viewport: bottom {layout.PictureButton.Bottom}px, viewport {layout.ViewportHeight}px.");
-        Assert.Equal("fade", layout.OptionsAos);
-        Assert.Empty(errors);
-    }
-
-    [Fact]
-    public async Task PlayWorkflowPages_DoNotExposeCompactHeaderMenu()
-    {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
-        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
-        {
-            BaseURL = app.BaseAddress.ToString(),
-            Locale = "en-US",
-            ViewportSize = new ViewportSize { Width = 480, Height = 1040 }
-        });
-        await BrowserTestApp.RouteExternalResourcesAsync(context);
-
-        var page = await context.NewPageAsync();
-        var errors = CapturePageErrors(page);
-
-        await page.GotoAsync("/join", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-        await page.WaitForFunctionAsync("() => document.body.classList.contains('play-flow-route')");
-
-        var chromeState = await page.EvaluateAsync<PlayWorkflowChromeState>(
-            """
-            () => {
-                const footer = document.querySelector('.footer');
-                const menu = document.querySelector('.site-menu');
-                return {
-                    FooterDisplay: footer ? getComputedStyle(footer).display : '',
-                    HasSiteMenu: Boolean(menu),
-                    HasSiteMenuToggle: Boolean(document.querySelector('[data-site-menu-toggle]')),
-                    HasSiteMenuPanel: Boolean(document.getElementById('siteMenuPanel'))
-                };
-            }
-            """);
-
-        Assert.Equal("none", chromeState.FooterDisplay);
-        Assert.False(chromeState.HasSiteMenu);
-        Assert.False(chromeState.HasSiteMenuToggle);
-        Assert.False(chromeState.HasSiteMenuPanel);
-        Assert.Empty(errors);
-    }
-
-    [Fact]
-    public async Task FlowActionPlacement_AuditsScopedRoutesAcrossViewportMatrix()
-    {
-        var routes = new[]
-        {
-            "/play",
-            "/join",
-            "/select-athlete",
-            "/dashboard",
-            "/edit-profile",
-            "/proofs",
-            "/pheno-age",
-            "/bortz-age",
-            "/apply?fake=1",
-            "/review"
-        };
-        var viewports = new (int Width, int Height)[]
-        {
-            (390, 844),
-            (480, 1040),
-            (844, 390),
-            (932, 430),
-            (768, 1024),
-            (1280, 720),
-            (1366, 768)
-        };
-
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
-
-        var failures = new List<string>();
-
-        foreach (var viewport in viewports)
-        {
-            foreach (var route in routes)
-            {
-                await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
-                {
-                    BaseURL = app.BaseAddress.ToString(),
-                    Locale = "en-US",
-                    ViewportSize = new ViewportSize { Width = viewport.Width, Height = viewport.Height }
-                });
-                await BrowserTestApp.RouteExternalResourcesAsync(context);
-                if (route != "/select-athlete")
-                {
-                    await context.AddInitScriptAsync(FlowAuditStateScript);
-                }
-
-                var page = await context.NewPageAsync();
-                var errors = CapturePageErrors(page);
-
-                try
-                {
-                    await page.GotoAsync(route, new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-                    await page.WaitForFunctionAsync("() => window.LwcFlowActionDock");
-                    if (route == "/select-athlete")
-                    {
-                        await page.WaitForFunctionAsync(
-                            """
-                            () => document.documentElement.classList.contains('play-route-ready')
-                                && !document.body.classList.contains('play-route-hydrating')
-                                && document.getElementById('athleteSelectionPanel')?.hidden === false
-                            """);
-                    }
-                    else if (route == "/dashboard")
-                    {
-                        await page.WaitForFunctionAsync(
-                            """
-                            () => document.getElementById('athleteDashboardPanel')?.hidden === false
-                                && document.querySelectorAll('#athleteDashboardActions .flow-action').length >= 4
-                            """);
-                    }
-                    await page.EvaluateAsync("() => window.LwcFlowActionDock.refreshNow()");
-                    await WaitForManagedActionStacksSettledAsync(page);
-
-                    var issues = await page.EvaluateAsync<string[]>(FlowActionPlacementAuditScript);
-                    failures.AddRange(issues.Select(issue => $"{route} @ {viewport.Width}x{viewport.Height}: {issue}"));
-                    failures.AddRange(errors.Select(error => $"{route} @ {viewport.Width}x{viewport.Height}: console error: {error}"));
-                }
-                finally
-                {
-                    await page.CloseAsync();
-                }
-            }
-        }
-
-        Assert.True(failures.Count == 0, string.Join(Environment.NewLine, failures));
-    }
-
-    [Theory]
-    [InlineData(390, 844, false)]
-    [InlineData(844, 390, true)]
-    public async Task ConstrainedJoinTrackActions_DockTrackChoicesInsteadOfBuryingThemInCards(
-        int viewportWidth,
-        int viewportHeight,
-        bool expectCompactLandscapeDock)
-    {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
-        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
-        {
-            BaseURL = app.BaseAddress.ToString(),
-            Locale = "en-US",
-            ViewportSize = new ViewportSize { Width = viewportWidth, Height = viewportHeight }
-        });
-        await BrowserTestApp.RouteExternalResourcesAsync(context);
-
-        var page = await context.NewPageAsync();
-        var errors = CapturePageErrors(page);
-
-        await page.GotoAsync("/join", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-        await page.WaitForFunctionAsync("() => !document.getElementById('joinMobileStartAmateurBtn')?.disabled && !document.getElementById('joinMobileGoProButton')?.disabled");
-        await ExpectActionStackDockedInViewportAsync(page, ".play-join-actions");
-
-        var grouping = await page.EvaluateAsync<JoinTrackActionGrouping>(
-            """
-            () => {
-                window.LwcFlowActionDock?.refreshNow?.();
-                const visible = element => {
-                    if (!element) return false;
-                    const rect = element.getBoundingClientRect();
-                    const style = getComputedStyle(element);
-                    return rect.width > 0
-                        && rect.height > 0
-                        && style.display !== 'none'
-                        && style.visibility !== 'hidden';
-                };
-                const backStack = document.querySelector('.play-join-actions');
-                const stackRect = backStack.getBoundingClientRect();
-                const mobileAmateur = document.getElementById('joinMobileStartAmateurBtn');
-                const mobilePro = document.getElementById('joinMobileGoProButton');
-                const back = document.getElementById('joinTrackBackBtn');
-                const amateurRect = mobileAmateur.getBoundingClientRect();
-                const proRect = mobilePro.getBoundingClientRect();
-                const backRect = back.getBoundingClientRect();
-                return {
-                    AmateurInCard: Boolean(document.getElementById('joinStartAmateurBtn')?.closest('.play-join-card')),
-                    ProInCard: Boolean(document.getElementById('joinGoProButton')?.closest('.play-join-card--pro')),
-                    AmateurInBackStack: Boolean(document.getElementById('joinStartAmateurBtn')?.closest('.play-join-actions')),
-                    ProInBackStack: Boolean(document.getElementById('joinGoProButton')?.closest('.play-join-actions')),
-                    MobileAmateurInBackStack: Boolean(mobileAmateur?.closest('.play-join-actions')),
-                    MobileProInBackStack: Boolean(mobilePro?.closest('.play-join-actions')),
-                    CardAmateurVisible: visible(document.getElementById('joinStartAmateurBtn')),
-                    CardProVisible: visible(document.getElementById('joinGoProButton')),
-                    MobileAmateurVisible: visible(mobileAmateur),
-                    MobileProVisible: visible(mobilePro),
-                    BackStackActionCount: backStack
-                        ? Array.from(backStack.querySelectorAll('.flow-action')).filter(visible).length
-                        : 0,
-                    DockHeight: stackRect.height,
-                    DockBottom: stackRect.bottom,
-                    BackRight: backRect.right,
-                    AmateurLeft: amateurRect.left,
-                    AmateurRight: amateurRect.right,
-                    ProLeft: proRect.left,
-                    ViewportHeight: window.innerHeight
-                };
-            }
-            """);
-
-        Assert.True(grouping.AmateurInCard);
-        Assert.True(grouping.ProInCard);
-        Assert.False(grouping.AmateurInBackStack);
-        Assert.False(grouping.ProInBackStack);
-        Assert.False(grouping.CardAmateurVisible);
-        Assert.False(grouping.CardProVisible);
-        Assert.True(grouping.MobileAmateurInBackStack);
-        Assert.True(grouping.MobileProInBackStack);
-        Assert.True(grouping.MobileAmateurVisible);
-        Assert.True(grouping.MobileProVisible);
-        Assert.Equal(3, grouping.BackStackActionCount);
-        Assert.True(grouping.DockBottom <= grouping.ViewportHeight + 1,
-            $"Join track dock overflows the viewport: {grouping.DockBottom} > {grouping.ViewportHeight}.");
-
-        if (expectCompactLandscapeDock)
-        {
-            Assert.True(grouping.DockHeight <= 76,
-                $"Landscape join track dock should stay as a compact command bar, not a stacked menu: {grouping.DockHeight}px.");
-            Assert.True(grouping.BackRight <= grouping.AmateurLeft - 8,
-                $"Landscape Back should stay secondary on the left: back right {grouping.BackRight}, amateur left {grouping.AmateurLeft}.");
-            Assert.True(grouping.AmateurRight <= grouping.ProLeft - 8,
-                $"Landscape track choices should be separate controls: amateur right {grouping.AmateurRight}, pro left {grouping.ProLeft}.");
-        }
-
-        Assert.Empty(errors);
-    }
-
-    [Fact]
-    public async Task DesktopJoinTrackActions_StayAttachedToTheirTrackCards()
-    {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
-        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
-        {
-            BaseURL = app.BaseAddress.ToString(),
-            Locale = "en-US",
-            ViewportSize = new ViewportSize { Width = 1280, Height = 720 }
-        });
-        await BrowserTestApp.RouteExternalResourcesAsync(context);
-
-        var page = await context.NewPageAsync();
-        var errors = CapturePageErrors(page);
-
-        await page.GotoAsync("/join", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-        await page.WaitForFunctionAsync("() => window.LwcFlowActionDock");
-
-        var grouping = await page.EvaluateAsync<JoinTrackActionGrouping>(
-            """
-            () => {
-                window.LwcFlowActionDock?.refreshNow?.();
-
-                const visible = element => {
-                    if (!element) return false;
-                    const rect = element.getBoundingClientRect();
-                    const style = getComputedStyle(element);
-                    return rect.width > 0
-                        && rect.height > 0
-                        && style.display !== 'none'
-                        && style.visibility !== 'hidden';
-                };
-                const amateurButton = document.getElementById('joinStartAmateurBtn');
-                const proButton = document.getElementById('joinGoProButton');
-                const backStack = document.querySelector('.play-join-actions');
-                return {
-                    AmateurInCard: Boolean(amateurButton?.closest('.play-join-card')),
-                    ProInCard: Boolean(proButton?.closest('.play-join-card--pro')),
-                    AmateurInBackStack: Boolean(amateurButton?.closest('.play-join-actions')),
-                    ProInBackStack: Boolean(proButton?.closest('.play-join-actions')),
-                    MobileAmateurInBackStack: Boolean(document.getElementById('joinMobileStartAmateurBtn')?.closest('.play-join-actions')),
-                    MobileProInBackStack: Boolean(document.getElementById('joinMobileGoProButton')?.closest('.play-join-actions')),
-                    CardAmateurVisible: visible(amateurButton),
-                    CardProVisible: visible(proButton),
-                    MobileAmateurVisible: visible(document.getElementById('joinMobileStartAmateurBtn')),
-                    MobileProVisible: visible(document.getElementById('joinMobileGoProButton')),
-                    BackStackActionCount: backStack
-                        ? Array.from(backStack.querySelectorAll('.flow-action')).filter(visible).length
-                        : 0
-                };
-            }
-            """);
-
-        Assert.True(grouping.AmateurInCard);
-        Assert.True(grouping.ProInCard);
-        Assert.False(grouping.AmateurInBackStack);
-        Assert.False(grouping.ProInBackStack);
-        Assert.True(grouping.MobileAmateurInBackStack);
-        Assert.True(grouping.MobileProInBackStack);
-        Assert.True(grouping.CardAmateurVisible);
-        Assert.True(grouping.CardProVisible);
-        Assert.False(grouping.MobileAmateurVisible);
-        Assert.False(grouping.MobileProVisible);
-        Assert.Equal(1, grouping.BackStackActionCount);
-        Assert.Empty(errors);
-    }
-
-    [Fact]
-    public async Task DesktopJoinTrackActions_StayVisibleInsideCardsWithVisibleBackAction()
-    {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
-        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
-        {
-            BaseURL = app.BaseAddress.ToString(),
-            Locale = "en-US",
-            ViewportSize = new ViewportSize { Width = 1280, Height = 720 }
-        });
-        await BrowserTestApp.RouteExternalResourcesAsync(context);
-
-        var page = await context.NewPageAsync();
-        var errors = CapturePageErrors(page);
-
-        await page.GotoAsync("/join", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-        await page.WaitForFunctionAsync("() => !document.getElementById('joinStartAmateurBtn')?.disabled && !document.getElementById('joinGoProButton')?.disabled");
-
-        await ExpectActionStackInViewportAsync(page, ".play-join-actions");
-
-        var amateurRect = await ReadElementRectAsync(page, "#joinStartAmateurBtn");
-        var proRect = await ReadElementRectAsync(page, "#joinGoProButton");
-        Assert.True(amateurRect.Bottom <= amateurRect.ViewportHeight - 8,
-            $"Amateur CTA is below the first viewport: {amateurRect.Bottom}px > {amateurRect.ViewportHeight}px.");
-        Assert.True(proRect.Bottom <= proRect.ViewportHeight - 8,
-            $"Pro CTA is below the first viewport: {proRect.Bottom}px > {proRect.ViewportHeight}px.");
-        Assert.Empty(errors);
-    }
-
-    [Theory]
-    [InlineData("/pheno-age", "#lwcStepOneActions", 650)]
-    [InlineData("/apply?fake=1", ".convergence-actions", 768)]
-    public async Task DesktopDocks_UseCompactCommandBarHeight(string path, string actionSelector, int viewportHeight)
-    {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
-        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
-        {
-            BaseURL = app.BaseAddress.ToString(),
-            Locale = "en-US",
-            ViewportSize = new ViewportSize { Width = 1366, Height = viewportHeight }
-        });
-        await BrowserTestApp.RouteExternalResourcesAsync(context);
-
-        var page = await context.NewPageAsync();
-        var errors = CapturePageErrors(page);
-
-        await page.GotoAsync(path, new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-        await ExpectActionStackDockedInViewportAsync(page, actionSelector);
-
-        var rect = await ReadElementRectAsync(page, actionSelector);
-        Assert.True(rect.Height <= 68, $"{actionSelector} dock is too tall: {rect.Height}px.");
-        Assert.Empty(errors);
-    }
-
-    [Fact]
-    public async Task DesktopDock_PreservesItsInlinePlaceholderHeightWithoutOscillating()
-    {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
-        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
-        {
-            BaseURL = app.BaseAddress.ToString(),
-            Locale = "en-US",
-            ViewportSize = new ViewportSize { Width = 1366, Height = 768 }
-        });
-        await BrowserTestApp.RouteExternalResourcesAsync(context);
-
-        var page = await context.NewPageAsync();
-        var errors = CapturePageErrors(page);
-        await page.GotoAsync("/pheno-age", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-        await page.WaitForFunctionAsync(
-            "() => { window.LwcFlowActionDock?.refreshNow?.(); const actions = document.getElementById('lwcStepOneActions'); return actions && !actions.classList.contains('flow-action-stack--docked'); }");
-
-        var inlineHeight = await page.Locator("#lwcStepOneActions").EvaluateAsync<double>(
-            "element => element.getBoundingClientRect().height");
-        Assert.True(inlineHeight > 0, "The inline action stack had no measurable height.");
-
-        await page.SetViewportSizeAsync(1366, 650);
-        await ExpectActionStackDockedInViewportAsync(page, "#lwcStepOneActions");
-        var samples = await page.EvaluateAsync<double[][]>(
-            """
-            async () => {
-                const actions = document.getElementById('lwcStepOneActions');
-                const placeholder = document.querySelector('#lwc-step-1 > .flow-action-dock-placeholder');
-                const samples = [];
-                for (let index = 0; index < 10; index += 1) {
-                    window.LwcFlowActionDock?.refreshNow?.();
-                    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-                    samples.push([
-                        placeholder?.getBoundingClientRect().height || 0,
-                        actions?.getBoundingClientRect().height || 0,
-                        actions?.classList.contains('flow-action-stack--docked') ? 1 : 0
-                    ]);
-                }
-                return samples;
-            }
-            """);
-
-        Assert.Equal(10, samples.Length);
-        foreach (var sample in samples)
-        {
-            Assert.Equal(1, sample[2]);
-            Assert.InRange(sample[0], inlineHeight - 1, inlineHeight + 1);
-            Assert.True(sample[1] > 0, "The docked action stack lost its rendered height.");
-        }
-        Assert.Empty(errors);
-    }
-
-    [Fact]
-    public async Task DesktopApplyFirstStage_KeepsDetailsAndActionsVisible()
-    {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
-        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
-        {
-            BaseURL = app.BaseAddress.ToString(),
-            Locale = "en-US",
-            ViewportSize = new ViewportSize { Width = 1280, Height = 720 }
-        });
-        await BrowserTestApp.RouteExternalResourcesAsync(context);
-
-        var page = await context.NewPageAsync();
-        var errors = CapturePageErrors(page);
-
-        await page.GotoAsync("/apply?fake=1", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-        await page.WaitForFunctionAsync("() => document.body.dataset.convergenceStage === '1'");
-        await page.EvaluateAsync("() => window.LwcFlowActionDock?.refreshNow()");
-        await ExpectActionStackInViewportAsync(page, ".convergence-actions");
-
-        var titleRect = await ReadElementRectAsync(page, ".convergence-main > h1");
-        var detailsRect = await ReadElementRectAsync(page, "#personalDetails");
-        var actionsRect = await ReadElementRectAsync(page, ".convergence-actions");
-        var descriptionDisplay = await page.Locator("#descriptionForm").EvaluateAsync<string>("element => getComputedStyle(element).display");
-        var scrollY = await page.EvaluateAsync<double>("() => window.scrollY");
-
-        Assert.True(scrollY <= 1, $"Apply first stage should not auto-scroll on load: scrollY={scrollY}.");
-        Assert.True(titleRect.Top >= 0, $"Apply title starts above the viewport: {titleRect.Top}px.");
-        Assert.Equal("none", descriptionDisplay);
-        Assert.True(detailsRect.Top >= titleRect.Bottom,
-            $"Apply details should follow the title: details top {detailsRect.Top}px, title bottom {titleRect.Bottom}px.");
-        Assert.True(detailsRect.Bottom <= actionsRect.Top - 12,
-            $"Apply details are covered by the action dock: details bottom {detailsRect.Bottom}px, dock top {actionsRect.Top}px.");
-        Assert.Empty(errors);
-    }
-
-    [Theory]
-    [InlineData(390, 844)]
-    [InlineData(1280, 720)]
-    public async Task ApplyNextStageTransition_DoesNotForceViewportScroll(int viewportWidth, int viewportHeight)
-    {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
-        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
-        {
-            BaseURL = app.BaseAddress.ToString(),
-            Locale = "en-US",
-            ViewportSize = new ViewportSize { Width = viewportWidth, Height = viewportHeight }
-        });
-        await BrowserTestApp.RouteExternalResourcesAsync(context);
-        await context.AddInitScriptAsync(
-            """
-            window.__lwcScrollIntoViewCalls = [];
-            const originalScrollIntoView = Element.prototype.scrollIntoView;
-            Element.prototype.scrollIntoView = function (...args) {
-                window.__lwcScrollIntoViewCalls.push({
-                    tag: this.tagName,
-                    id: this.id || '',
-                    className: this.className || '',
-                    text: (this.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 80)
-                });
-                return originalScrollIntoView.apply(this, args);
-            };
-            """);
-
-        var page = await context.NewPageAsync();
-        var errors = CapturePageErrors(page);
-
-        await page.GotoAsync("/apply?fake=1", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-        await page.WaitForFunctionAsync(
-            "() => document.body.dataset.convergenceStage === '1' && !document.getElementById('nextButton')?.disabled");
-        await page.EvaluateAsync("() => window.scrollTo({ top: 0, left: 0, behavior: 'auto' })");
-
-        await page.Locator("#nextButton").ClickAsync();
-        await page.WaitForFunctionAsync("() => document.body.dataset.convergenceStage === '2'");
-
-        var transition = await page.EvaluateAsync<ApplyStageTransitionScrollState>(
-            """
-            () => ({
-                ScrollY: window.scrollY,
-                Calls: window.__lwcScrollIntoViewCalls || []
-            })
-            """);
-
-        Assert.True(transition.ScrollY <= 1,
-            $"Apply Next transition should not force the viewport to jump: scrollY={transition.ScrollY}.");
-        Assert.Empty(transition.Calls);
-        Assert.Empty(errors);
-    }
-
-    [Theory]
-    [InlineData(390, 844)]
-    [InlineData(1280, 720)]
-    public async Task ApplyFirstStage_DoesNotShowDetailsPanelHalfCoveredByDock(int viewportWidth, int viewportHeight)
-    {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
-        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
-        {
-            BaseURL = app.BaseAddress.ToString(),
-            Locale = "en-US",
-            ViewportSize = new ViewportSize { Width = viewportWidth, Height = viewportHeight }
-        });
-        await BrowserTestApp.RouteExternalResourcesAsync(context);
-
-        var page = await context.NewPageAsync();
-        var errors = CapturePageErrors(page);
-
-        await page.GotoAsync("/apply?fake=1", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-        await page.WaitForFunctionAsync("() => document.body.dataset.convergenceStage === '1'");
-        await ExpectActionStackDockedInViewportAsync(page, ".convergence-actions");
-
-        var layout = await page.EvaluateAsync<ApplyFirstStageDetailsLayout>(
-            """
-            () => {
-                const details = document.querySelector('#personalDetails');
-                const actions = document.querySelector('.convergence-actions');
-                const detailsRect = details.getBoundingClientRect();
-                const actionRect = actions.getBoundingClientRect();
-                const detailsStyle = getComputedStyle(details);
-                return {
-                    DetailsTop: detailsRect.top,
-                    DetailsBottom: detailsRect.bottom,
-                    DetailsVisible: detailsStyle.display !== 'none'
-                        && detailsStyle.visibility !== 'hidden'
-                        && detailsRect.width > 0
-                        && detailsRect.height > 0,
-                    DockTop: actionRect.top,
-                    DockBottom: actionRect.bottom,
-                    ViewportHeight: window.innerHeight
-                };
-            }
-            """);
-
-        Assert.True(layout.DetailsVisible, "Apply first stage should keep athlete details available in the document flow.");
-        Assert.True(layout.DetailsBottom <= layout.DockTop - 20 || layout.DetailsTop >= layout.DockBottom - 1,
-            $"Athlete details should not be half-covered by the action dock: details {layout.DetailsTop}-{layout.DetailsBottom}, dock {layout.DockTop}-{layout.DockBottom}, viewport {layout.ViewportHeight}.");
-        Assert.Empty(errors);
-    }
-
-    [Theory]
-    [InlineData("/pheno-age")]
-    [InlineData("/bortz-age")]
-    public async Task DesktopBioageStepActions_DockAsGroupedCommands(string path)
-    {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
-        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
-        {
-            BaseURL = app.BaseAddress.ToString(),
-            Locale = "en-US",
-            // The compact step-one form fits inline at 768px; constrain the height to exercise the dock.
-            ViewportSize = new ViewportSize { Width = 1366, Height = 650 }
-        });
-        await BrowserTestApp.RouteExternalResourcesAsync(context);
-
-        var page = await context.NewPageAsync();
-        var errors = CapturePageErrors(page);
-
-        await page.GotoAsync(path, new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-        await ExpectActionStackDockedInViewportAsync(page, "#lwcStepOneActions");
-
-        var layout = await ReadFlowActionChildLayoutAsync(page, "#lwcStepOneActions");
-        Assert.Equal(2, layout.Count);
-        Assert.True(layout.MaxGap <= 24,
-            $"Docked bioage commands are split apart by {layout.MaxGap}px instead of staying grouped.");
-        Assert.Empty(errors);
-    }
-
-    [Theory]
-    [InlineData("/pheno-age", 1280, 720)]
-    [InlineData("/bortz-age", 1280, 720)]
-    [InlineData("/pheno-age", 390, 844)]
-    [InlineData("/bortz-age", 390, 844)]
-    [InlineData("/pheno-age", 430, 932)]
-    [InlineData("/bortz-age", 430, 932)]
-    public async Task BioageStepOne_DoesNotHalfCoverDatePanelsWithActions(string path, int viewportWidth, int viewportHeight)
-    {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
-        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
-        {
-            BaseURL = app.BaseAddress.ToString(),
-            Locale = "en-US",
-            ViewportSize = new ViewportSize { Width = viewportWidth, Height = viewportHeight }
-        });
-        await BrowserTestApp.RouteExternalResourcesAsync(context);
-
-        var page = await context.NewPageAsync();
-        var errors = CapturePageErrors(page);
-
-        await page.GotoAsync(path, new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-        await page.WaitForFunctionAsync("() => window.LwcFlowActionDock");
-        await page.EvaluateAsync("() => window.LwcFlowActionDock.refreshNow()");
-        await page.WaitForTimeoutAsync(750);
-
-        var layout = await page.EvaluateAsync<BioageStepOneLayout>(
-            """
-            () => {
-                const actions = document.querySelector('#lwcStepOneActions');
-                const dob = document.querySelector('#dobFieldset');
-                const bloodDraw = document.querySelector('#lwc-step-1 fieldset:nth-of-type(2)');
-                const day = document.querySelector('#dob-day');
-                const bloodDrawInput = document.querySelector('#blood-draw-date');
-                const privacy = document.querySelector('#privacyNote');
-                const title = document.querySelector('#mainPageTitleH2');
-                const instructions = document.querySelector('#mainInstructions');
-                const labPanel = document.querySelector('.lab-access-panel:not([hidden])');
-                const rectOf = element => {
-                    const rect = element.getBoundingClientRect();
-                    return {
-                        Top: rect.top,
-                        Bottom: rect.bottom,
-                        Left: rect.left,
-                        Right: rect.right,
-                        Width: rect.width,
-                        Height: rect.height
-                    };
-                };
-
-                return {
-                    Action: rectOf(actions),
-                    DateOfBirth: rectOf(dob),
-                    BloodDraw: rectOf(bloodDraw),
-                    Day: rectOf(day),
-                    BloodDrawInput: rectOf(bloodDrawInput),
-                    Privacy: rectOf(privacy),
-                    Title: rectOf(title),
-                    Instructions: rectOf(instructions),
-                    LabPanel: labPanel ? rectOf(labPanel) : null,
-                    ScrollY: window.scrollY,
-                    ViewportHeight: window.innerHeight
-                };
-            }
-            """);
-
-        Assert.True(layout.ScrollY <= 1,
-            $"Bioage first load should not auto-scroll the header out of view. {layout}");
-        Assert.True(layout.Action.Bottom <= layout.ViewportHeight + 1,
-            $"Bioage step actions are below the viewport: {layout.Action.Bottom} > {layout.ViewportHeight}. {layout}");
-        Assert.True(layout.Day.Bottom <= layout.Action.Top - 6,
-            $"Day selector is covered by actions. {layout}");
-        if (layout.BloodDraw.Bottom <= layout.Action.Top - 6)
-        {
-            Assert.True(layout.BloodDrawInput.Bottom <= layout.Action.Top - 6,
-                $"Blood draw input is covered by actions. {layout}");
-        }
-        Assert.True(layout.Privacy.Bottom <= layout.Action.Top - 6,
-            $"Privacy note is covered by actions. {layout}");
-        Assert.True(layout.BloodDraw.Bottom <= layout.Action.Top - 6 || layout.BloodDraw.Top >= layout.Action.Bottom - 1,
-            $"Blood draw panel should not be half-covered by actions. {layout}");
-        Assert.Empty(errors);
-    }
-
-    [Fact]
-    public async Task DesktopTwoActionDock_MakesBackSecondaryAndKeepsPrimaryCentered()
-    {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
-        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
-        {
-            BaseURL = app.BaseAddress.ToString(),
-            Locale = "en-US",
-            // Keep the desktop width while constraining height enough to exercise the dock.
-            // At 768px the compact form and both actions now fit fully inline by design.
-            ViewportSize = new ViewportSize { Width = 1366, Height = 650 }
-        });
-        await BrowserTestApp.RouteExternalResourcesAsync(context);
-
-        var page = await context.NewPageAsync();
-        var errors = CapturePageErrors(page);
-
-        await page.GotoAsync("/pheno-age", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-        await ExpectActionStackDockedInViewportAsync(page, "#lwcStepOneActions");
-
-        var layout = await page.Locator("#lwcStepOneActions").EvaluateAsync<DockedActionHierarchy>(
-            """
-            element => {
-                const primary = element.querySelector('#lwcToStep2Btn');
-                const back = element.querySelector('.back-button');
-                const primaryRect = primary.getBoundingClientRect();
-                const backRect = back.getBoundingClientRect();
-                return {
-                    PrimaryLeft: primaryRect.left,
-                    PrimaryRight: primaryRect.right,
-                    PrimaryWidth: primaryRect.width,
-                    PrimaryCenter: primaryRect.left + (primaryRect.width / 2),
-                    BackLeft: backRect.left,
-                    BackRight: backRect.right,
-                    BackWidth: backRect.width,
-                    ViewportCenter: window.innerWidth / 2
-                };
-            }
-            """);
-
-        Assert.True(layout.BackRight < layout.PrimaryLeft,
-            $"Back should sit to the left of the primary action. Back right {layout.BackRight}, primary left {layout.PrimaryLeft}.");
-        Assert.True(layout.BackWidth <= layout.PrimaryWidth * 0.7,
-            $"Back should be visibly secondary. Back width {layout.BackWidth}, primary width {layout.PrimaryWidth}.");
-        Assert.True(Math.Abs(layout.PrimaryCenter - layout.ViewportCenter) <= 16,
-            $"Primary action should stay centered. Primary center {layout.PrimaryCenter}, viewport center {layout.ViewportCenter}.");
-        Assert.Empty(errors);
-    }
-
-    [Theory]
-    [InlineData("/pheno-age", "#phenoAgeForm", "#lwcStepOneActions")]
-    [InlineData("/bortz-age", "#bortzAgeForm", "#lwcStepOneActions")]
-    public async Task DesktopBioageStepActions_PortalWithoutRewritingTransformedForm(
-        string path,
-        string formSelector,
-        string actionSelector)
-    {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
-        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
-        {
-            BaseURL = app.BaseAddress.ToString(),
-            Locale = "en-US",
-            ViewportSize = new ViewportSize { Width = 1280, Height = 720 }
-        });
-        await BrowserTestApp.RouteExternalResourcesAsync(context);
-
-        var page = await context.NewPageAsync();
-        var errors = CapturePageErrors(page);
-
-        await page.GotoAsync(path, new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-        await page.WaitForFunctionAsync("() => window.LwcFlowActionDock");
-        await page.Locator(formSelector).EvaluateAsync("form => form.style.transform = 'translateZ(0)'");
-        await page.EvaluateAsync("() => window.LwcFlowActionDock.refreshNow()");
-
-        await ExpectActionStackDockedInViewportAsync(page, actionSelector);
-
-        var state = await page.EvaluateAsync<TransformedFormDockState>(
-            """
-            selectors => {
-                const [formSelector, actionSelector] = selectors.split('|');
-                const form = document.querySelector(formSelector);
-                const actions = document.querySelector(actionSelector);
-                return {
-                    FormTransform: getComputedStyle(form).transform,
-                    ActionsParentIsBody: actions.parentElement === document.body
-                };
-            }
-            """,
-            $"{formSelector}|{actionSelector}");
-        Assert.NotEqual("none", state.FormTransform);
-        Assert.True(state.ActionsParentIsBody);
-        Assert.Empty(errors);
-    }
-
-    [Theory]
-    [InlineData(1366, 768, 340)]
-    [InlineData(1280, 720, 288)]
-    public async Task DesktopSelectAthlete_KeepsPictureInputAndInlineActionsVisibleAtCommonViewport(
-        int viewportWidth,
-        int viewportHeight,
-        double minPictureWidth)
-    {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
-        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
-        {
-            BaseURL = app.BaseAddress.ToString(),
-            Locale = "en-US",
-            ViewportSize = new ViewportSize { Width = viewportWidth, Height = viewportHeight }
-        });
-        await BrowserTestApp.RouteExternalResourcesAsync(context);
-
-        var page = await context.NewPageAsync();
-        var errors = CapturePageErrors(page);
-
-        await page.GotoAsync("/select-athlete", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-        await ExpectActionStackInViewportAsync(page, ".play-athlete-actions");
-
-        var pictureRect = await ReadElementRectAsync(page, "#athleteSelectionPicture");
-        var inputRect = await ReadElementRectAsync(page, "#playAthleteInput");
-        var actionsRect = await ReadElementRectAsync(page, ".play-athlete-actions");
-
-        Assert.True(pictureRect.Width >= minPictureWidth,
-            $"Athlete picture is too small for the available desktop space: {pictureRect.Width}px < {minPictureWidth}px.");
-        Assert.True(pictureRect.Bottom <= inputRect.Top - 16,
-            $"Athlete picture overlaps the search field: picture bottom {pictureRect.Bottom}, input top {inputRect.Top}.");
-        Assert.True(inputRect.Bottom <= actionsRect.Top - 16,
-            $"Athlete input overlaps the actions: input bottom {inputRect.Bottom}, actions top {actionsRect.Top}.");
-        Assert.False(await HasDockClassAsync(page, ".play-athlete-actions"),
-            "Athlete actions should stay inline when the full selection flow fits in the common desktop viewport.");
-        Assert.Empty(errors);
-    }
-
-    [Theory]
-    [InlineData(390, 844, 245, false)]
-    [InlineData(390, 844, 220, true)]
-    [InlineData(1366, 768, 68, false)]
-    [InlineData(1366, 768, 68, true)]
-    [InlineData(1280, 720, 68, false)]
-    [InlineData(1280, 720, 68, true)]
-    public async Task DashboardActions_DockAsCompactCommandGridWhenTheyWouldOverflow(
-        int viewportWidth,
-        int viewportHeight,
-        double maxDockHeight,
-        bool isPro)
-    {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
-        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
-        {
-            BaseURL = app.BaseAddress.ToString(),
-            Locale = "en-US",
-            ViewportSize = new ViewportSize { Width = viewportWidth, Height = viewportHeight }
-        });
-        await BrowserTestApp.RouteExternalResourcesAsync(context);
-        var biomarkersJson = isPro
-            ? "[{ Date: '2026-06-19', Hba1cMmolMol: 35 }]"
-            : "[]";
-        await context.AddInitScriptAsync(
-            $$"""
-            const athlete = {
-                Name: 'Browser Test Athlete',
-                DisplayName: 'Browser Test Athlete',
-                PersonalLink: 'https://example.test/browser-test-athlete',
-                DateOfBirth: { Year: 1980, Month: 5, Day: 20 },
-                Biomarkers: {{biomarkersJson}}
-            };
-            window.sessionStorage.setItem('selectedAthlete', JSON.stringify(athlete));
-            window.localStorage.setItem('selectedAthleteName', athlete.Name);
-            window.localStorage.setItem('hasApplication', 'true');
-            window.localStorage.setItem('gmaHasPerfectGuess', '1');
-            """);
-
-        var page = await context.NewPageAsync();
-        var errors = CapturePageErrors(page);
-
-        await page.GotoAsync("/dashboard", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-        await page.WaitForFunctionAsync(
-            """
-            () => document.getElementById('athleteDashboardPanel')?.hidden === false
-                && document.querySelectorAll('#athleteDashboardActions .flow-action').length >= 4
-                && document.getElementById('athleteDashboardActions')?.getBoundingClientRect().width > 0
-            """);
-        await ExpectActionStackDockedInViewportAsync(page, ".play-dashboard-actions");
-
-        var pictureRect = await ReadElementRectAsync(page, "#athleteDashboardPicture");
-        var actionsRect = await ReadElementRectAsync(page, ".play-dashboard-actions");
-
-        Assert.True(actionsRect.Height <= maxDockHeight,
-            $".play-dashboard-actions dock is too tall: {actionsRect.Height}px.");
-        var compactLabels = await page.Locator("#athleteDashboardActions .flow-action[data-flow-dock-label]").CountAsync();
-        Assert.Equal(0, compactLabels);
-
-        var actionIconSizes = await page.EvaluateAsync<string[]>(
-            """
-            () => Array.from(document.querySelectorAll('#athleteDashboardActions .flow-action > i'))
-                .map(icon => {
-                    const style = getComputedStyle(icon);
-                    return `${style.width}|${style.fontSize}|${style.lineHeight}`;
-                })
-            """);
-        Assert.Equal(5, actionIconSizes.Length);
-        Assert.Single(actionIconSizes.Distinct());
-
-        if (viewportWidth < 960)
-        {
-            var visibleActionIcons = await page.EvaluateAsync<int>(
-                """
-                () => Array.from(document.querySelectorAll('#athleteDashboardActions .flow-action > i'))
-                    .filter(icon => getComputedStyle(icon).display !== 'none').length
-                """);
-            Assert.Equal(5, visibleActionIcons);
-
-            var longevityLabelUsesOneLine = await page.EvaluateAsync<bool>(
-                """
-                () => {
-                    const label = Array.from(document.querySelectorAll('#athleteDashboardActions .flow-action__label'))
-                        .find(candidate => candidate.textContent.trim() === 'Longevitymaxxing');
-                    if (!label) return false;
-                    const lineHeight = parseFloat(getComputedStyle(label).lineHeight);
-                    return label.getBoundingClientRect().height <= lineHeight * 1.25;
-                }
-                """);
-            Assert.True(longevityLabelUsesOneLine,
-                "The Longevitymaxxing action should not split inside its name in the compact dashboard dock.");
-        }
-
-        var actionLabels = (await page.Locator("#athleteDashboardActions .flow-action .flow-action__label")
-            .AllInnerTextsAsync())
-            .Select(label => label.Replace('\u00a0', ' '))
-            .ToArray();
-        Assert.Contains("Edit profile", actionLabels);
-        Assert.Contains("Longevitymaxxing", actionLabels);
-        Assert.Contains("Change athlete", actionLabels);
-        if (isPro)
-        {
-            Assert.Contains("Update Pheno Age", actionLabels);
-            Assert.Contains("Update Bortz Age", actionLabels);
-        }
-        else
-        {
-            Assert.Contains("Submit new results", actionLabels);
-            Assert.Contains(actionLabels, label => label.Contains("Go pro for", StringComparison.Ordinal)
-                && label.Contains("$70", StringComparison.Ordinal));
-        }
-
-        if (!isPro)
-        {
-            var discountState = await page.EvaluateAsync<DashboardDiscountLayoutState>(
-                """
-                () => {
-                    const container = document.getElementById('athleteDashboardDiscounts');
-                    const discount = container?.querySelector('.pro-discount-box');
-                    const picture = document.getElementById('athleteDashboardPicture');
-                    const lines = Array.from(discount?.querySelectorAll('.pro-discount-line') || []);
-                    const icons = Array.from(discount?.querySelectorAll('.pro-discount-badge-slot .badge-class') || []);
-                    const textLefts = lines.map(line => line.querySelector('.pro-discount-text')?.getBoundingClientRect().left || 0);
-                    return {
-                        DiscountVisible: Boolean(discount && discount.getBoundingClientRect().height > 0),
-                        DiscountInsideActionMenu: Boolean(discount?.closest('#athleteDashboardActions')),
-                        DiscountTop: discount?.getBoundingClientRect().top || 0,
-                        PictureBottom: picture?.getBoundingClientRect().bottom || 0,
-                        VisibleLineCount: lines.length,
-                        CompactTexts: lines.map(line => line.querySelector('.pro-discount-text')?.dataset.compactText || ''),
-                        TextLefts: textLefts,
-                        IconWidths: icons.map(icon => icon.getBoundingClientRect().width),
-                        IconHeights: icons.map(icon => icon.getBoundingClientRect().height)
-                    };
-                }
-                """);
-            Assert.True(discountState.DiscountVisible);
-            Assert.False(discountState.DiscountInsideActionMenu,
-                "Discount details belong below the athlete picture, not inside the sticky action menu.");
-            Assert.True(discountState.DiscountTop >= discountState.PictureBottom,
-                "Discount details should follow the athlete picture in the normal document flow.");
-            Assert.Equal(3, discountState.VisibleLineCount);
-            Assert.Contains("10% leaderboard", discountState.CompactTexts);
-            Assert.Contains("10% personal page", discountState.CompactTexts);
-            Assert.Contains("10% perfect guess", discountState.CompactTexts);
-            Assert.Equal(2, discountState.IconWidths.Length);
-            Assert.All(discountState.IconWidths, width => Assert.InRange(width, 43, 45));
-            Assert.All(discountState.IconHeights, height => Assert.InRange(height, 43, 45));
-            Assert.True(discountState.TextLefts.Max() - discountState.TextLefts.Min() <= 1,
-                "Every discount percentage should start on the same vertical alignment line.");
-        }
-
-        if (viewportWidth >= 960)
-        {
-            var secondaryActionsAreFlat = await page.EvaluateAsync<bool>(
-                """
-                () => Array.from(document.querySelectorAll(
-                    '.play-dashboard-actions.flow-action-stack--docked .flow-action--secondary'))
-                    .every(action => {
-                        const style = getComputedStyle(action);
-                        return style.boxShadow === 'none'
-                            && style.backgroundColor === 'rgba(0, 0, 0, 0)';
-                    })
-                """);
-            Assert.True(secondaryActionsAreFlat,
-                "Desktop dashboard secondary actions should read as one command bar, not competing pills.");
-        }
-
-        if (viewportWidth >= 960)
-        {
-            var minPictureWidth = viewportHeight <= 740 ? 310 : 340;
-            Assert.True(pictureRect.Width >= minPictureWidth,
-                $"Dashboard picture is too small for the available desktop space: {pictureRect.Width}px < {minPictureWidth}px.");
-        }
-        Assert.True(pictureRect.Bottom <= actionsRect.Top - 16,
-            $"Dashboard picture overlaps the dock: picture bottom {pictureRect.Bottom}, dock top {actionsRect.Top}.");
-        Assert.Empty(errors);
-    }
-
-    [Fact]
-    public async Task DashboardActions_StayInlineBelowDiscountsWhenTheViewportHasRoom()
-    {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
-        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
-        {
-            BaseURL = app.BaseAddress.ToString(),
-            Locale = "en-US",
-            ViewportSize = new ViewportSize { Width = 1664, Height = 1130 }
-        });
-        await BrowserTestApp.RouteExternalResourcesAsync(context);
-        await context.AddInitScriptAsync(
-            """
-            const athlete = {
-                Name: 'Browser Test Athlete',
-                DisplayName: 'Browser Test Athlete',
-                PersonalLink: 'https://example.test/browser-test-athlete',
-                DateOfBirth: { Year: 1980, Month: 5, Day: 20 },
-                Biomarkers: []
-            };
-            window.sessionStorage.setItem('selectedAthlete', JSON.stringify(athlete));
-            window.localStorage.setItem('selectedAthleteName', athlete.Name);
-            window.localStorage.setItem('hasApplication', 'true');
-            window.localStorage.setItem('gmaHasPerfectGuess', '1');
-            """);
-
-        var page = await context.NewPageAsync();
-        var errors = CapturePageErrors(page);
-
-        await page.GotoAsync("/dashboard", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-        await page.WaitForFunctionAsync(
-            """
-            () => document.getElementById('athleteDashboardPanel')?.hidden === false
-                && document.querySelectorAll('#athleteDashboardActions .flow-action').length >= 4
-            """);
-        await WaitForManagedActionStacksSettledAsync(page);
-
-        var state = await page.EvaluateAsync<InlineDashboardActionState>(
-            """
-            () => {
-                window.LwcFlowActionDock?.refreshNow?.();
-                const picture = document.getElementById('athleteDashboardPicture').getBoundingClientRect();
-                const discounts = document.getElementById('athleteDashboardDiscounts').getBoundingClientRect();
-                const actions = document.getElementById('athleteDashboardActions').getBoundingClientRect();
-                const firstActions = Array.from(document.querySelectorAll('#athleteDashboardActions .flow-action'))
-                    .slice(0, 2)
-                    .map(action => action.getBoundingClientRect());
-                return {
-                    ActionDocked: document.getElementById('athleteDashboardActions')
-                        .classList.contains('flow-action-stack--docked'),
-                    PictureBottom: picture.bottom,
-                    DiscountTop: discounts.top,
-                    DiscountBottom: discounts.bottom,
-                    ActionTop: actions.top,
-                    ActionBottom: actions.bottom,
-                    FirstActionTop: firstActions[0]?.top || 0,
-                    SecondActionTop: firstActions[1]?.top || 0,
-                    ViewportHeight: window.innerHeight
-                };
-            }
-            """);
-
-        Assert.False(state.ActionDocked,
-            "The dashboard menu should remain inline when the complete menu fits in the viewport.");
-        Assert.True(state.PictureBottom <= state.DiscountTop);
-        Assert.True(state.DiscountBottom <= state.ActionTop);
-        Assert.True(state.ActionBottom <= state.ViewportHeight - 12,
-            $"Inline dashboard actions exceed the viewport: {state.ActionBottom}px > {state.ViewportHeight - 12}px.");
-        Assert.InRange(Math.Abs(state.FirstActionTop - state.SecondActionTop), 0, 1);
-
-        await page.SetViewportSizeAsync(1664, 768);
-        await ExpectActionStackDockedInViewportAsync(page, ".play-dashboard-actions");
-
-        await page.SetViewportSizeAsync(1664, 1130);
-        await page.WaitForFunctionAsync(
-            """
-            () => {
-                window.LwcFlowActionDock?.refreshNow?.();
-                const actions = document.getElementById('athleteDashboardActions');
-                const rect = actions?.getBoundingClientRect();
-                return actions
-                    && !actions.classList.contains('flow-action-stack--docked')
-                    && rect.bottom <= window.innerHeight - 12;
-            }
-            """);
-        Assert.Empty(errors);
-    }
-
-    [Fact]
-    public async Task DashboardAthletesIcon_RemainsCenteredAfterResizingFromMobileToDesktop()
-    {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
-        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
-        {
-            BaseURL = app.BaseAddress.ToString(),
-            Locale = "en-US",
-            ViewportSize = new ViewportSize { Width = 390, Height = 844 }
-        });
-        await BrowserTestApp.RouteExternalResourcesAsync(context);
-        await context.AddInitScriptAsync(FlowAuditStateScript);
-
-        var page = await context.NewPageAsync();
-        var errors = CapturePageErrors(page);
-
-        await page.GotoAsync("/dashboard", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-        await page.WaitForFunctionAsync(
-            "() => document.querySelectorAll('#athleteDashboardActions .flow-action').length >= 4");
-        await ExpectActionStackDockedInViewportAsync(page, ".play-dashboard-actions");
-        await page.Locator("#playDashboardBackBtn > i").EvaluateAsync(
-            "icon => { icon.textContent = '\u2190'; icon.style.fontSize = '16px'; }");
-
-        await page.SetViewportSizeAsync(1366, 768);
-        await page.WaitForFunctionAsync(
-            """
-            () => {
-                window.LwcFlowActionDock?.refreshNow?.();
-                const actions = document.querySelector('.play-dashboard-actions');
-                return actions?.classList.contains('flow-action-stack--docked') && window.innerWidth === 1366;
-            }
-            """);
-
-        var iconCenterOffset = await page.Locator("#playDashboardBackBtn").EvaluateAsync<double>(
-            """
-            button => {
-                const buttonRect = button.getBoundingClientRect();
-                const iconRect = button.querySelector('i').getBoundingClientRect();
-                return Math.abs(
-                    (buttonRect.top + buttonRect.height / 2)
-                    - (iconRect.top + iconRect.height / 2));
-            }
-            """);
-
-        Assert.InRange(iconCenterOffset, 0, 2);
-        Assert.Empty(errors);
-    }
-
-    [Theory]
-    [InlineData("/pheno-age", "#phenoAgeResult", ".phenoage-result-actions")]
-    [InlineData("/bortz-age", "#bortzAgeResult", ".bioage-result-actions")]
-    public async Task BioageResultActions_BecomeTheOnlyDockedActionsAfterCalculation(
-        string path,
-        string resultSelector,
-        string resultActionsSelector)
-    {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
-        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
-        {
-            BaseURL = app.BaseAddress.ToString(),
-            Locale = "en-US",
-            ViewportSize = new ViewportSize { Width = 390, Height = 844 }
-        });
-        await BrowserTestApp.RouteExternalResourcesAsync(context);
-
-        var page = await context.NewPageAsync();
-        var errors = CapturePageErrors(page);
-
-        await page.GotoAsync(path, new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-        await FillBioageStepOneAsync(page, DateTime.UtcNow.Date.AddDays(-9).ToString("yyyy-MM-dd"));
-        if (path.Contains("bortz", StringComparison.Ordinal))
-        {
-            await FillBortzBiomarkersAsync(page);
-        }
-        else
-        {
-            await FillPhenoBiomarkersAsync(page);
-        }
-
-        await page.Locator(".bioage-calculate-button").ClickAsync();
-        await page.WaitForSelectorAsync($"{resultSelector}.show");
-        await page.WaitForSelectorAsync("#continueButton.show");
-
-        await ExpectActionStackDockedInViewportAsync(page, resultActionsSelector);
-        await ExpectBioageResultReadableWithDockAsync(page, resultSelector, resultActionsSelector);
-        Assert.False(await HasDockClassAsync(page, "#lwcStepTwoActions"));
-
-        var dockedVisibleActionCount = await page.EvaluateAsync<int>(
-            """
-            () => Array.from(document.querySelectorAll('.flow-action-stack--docked'))
-                .filter(element => {
-                    const rect = element.getBoundingClientRect();
-                    const style = getComputedStyle(element);
-                    return rect.width > 0
-                        && rect.height > 0
-                        && style.display !== 'none'
-                        && style.visibility !== 'hidden';
-                }).length
-            """);
-
-        Assert.Equal(1, dockedVisibleActionCount);
-        Assert.Empty(errors);
-    }
-
-    [Fact]
-    public async Task BioageResult_DoesNotMoveTheReadingPositionWhenRankPreviewExpands()
-    {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
-        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
-        {
-            BaseURL = app.BaseAddress.ToString(),
-            Locale = "en-US",
-            ViewportSize = new ViewportSize { Width = 390, Height = 844 }
-        });
-        await BrowserTestApp.RouteExternalResourcesAsync(context);
-        await context.AddInitScriptAsync(
-            """
-            window.__rankPreviewGate = new Promise(resolve => {
-                window.__releaseRankPreview = resolve;
-            });
-            window.getSharedAthletes = () => window.__rankPreviewGate;
-            """);
-
-        var page = await context.NewPageAsync();
-        var errors = CapturePageErrors(page);
-        await page.GotoAsync("/pheno-age", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-        await FillBioageStepOneAsync(page, DateTime.UtcNow.Date.AddDays(-9).ToString("yyyy-MM-dd"));
-        await FillPhenoBiomarkersAsync(page);
-        await page.Locator(".bioage-calculate-button").ClickAsync();
-        await page.WaitForSelectorAsync("#phenoAgeResult.show");
-        await page.WaitForFunctionAsync(
-            "() => document.getElementById('phenoAgeRankPreview')?.getAttribute('aria-busy') === 'true'");
-        await page.WaitForFunctionAsync(
-            """
-            () => document.getElementById('phenoAgeResult')?.dataset.bioageResultStage === 'rank'
-                && document.querySelector('#phenoAgeResult .bio-age-number-container')?.dataset.bioageRevealState === 'complete'
-            """);
-        await ExpectActionStackDockedInViewportAsync(page, ".phenoage-result-actions");
-        await ExpectBioageResultReadableWithDockAsync(page, "#phenoAgeResult", ".phenoage-result-actions");
-
-        await page.EvaluateAsync(
-            """
-            () => {
-                const result = document.getElementById('phenoAgeResult').getBoundingClientRect();
-                const dock = document.querySelector('.phenoage-result-actions').getBoundingClientRect();
-                window.scrollBy({ top: result.bottom - (dock.top - 12), behavior: 'auto' });
-            }
-            """);
-        await page.EvaluateAsync(
-            "() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
-        var initialLayout = await page.EvaluateAsync<double[]>(
-            """
-            () => {
-                const result = document.getElementById('phenoAgeResult').getBoundingClientRect();
-                const dock = document.querySelector('.phenoage-result-actions').getBoundingClientRect();
-                return [result.height, result.bottom, dock.top, window.scrollY];
-            }
-            """);
-        Assert.InRange(initialLayout[2] - initialLayout[1], 8, 16);
-
-        await page.EvaluateAsync("() => window.__releaseRankPreview([])");
-        await page.WaitForFunctionAsync(
-            """
-            initialResultHeight => {
-                const preview = document.getElementById('phenoAgeRankPreview');
-                const result = document.getElementById('phenoAgeResult');
-                if (preview?.getAttribute('aria-busy') !== 'false'
-                    || !preview.querySelector('.bioage-rank-neighbors')
-                    || !result) return false;
-                return result.getBoundingClientRect().height >= Number(initialResultHeight) + 50;
-            }
-            """,
-            initialLayout[0]);
-        await page.EvaluateAsync(
-            "() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
-
-        var finalLayout = await page.EvaluateAsync<double[]>(
-            """
-            () => {
-                const result = document.getElementById('phenoAgeResult').getBoundingClientRect();
-                const dock = document.querySelector('.phenoage-result-actions').getBoundingClientRect();
-                return [result.height, result.bottom, dock.top, window.scrollY];
-            }
-            """);
-        Assert.True(
-            finalLayout[0] >= initialLayout[0] + 50,
-            $"Rank preview did not materially expand the result: {initialLayout[0]}px to {finalLayout[0]}px.");
-        Assert.InRange(
-            Math.Abs(finalLayout[3] - initialLayout[3]),
-            0,
-            2);
-        Assert.Empty(errors);
-    }
-
-    [Fact]
-    public async Task BioageResult_DoesNotChaseContinuousResultResizing()
-    {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
-        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
-        {
-            BaseURL = app.BaseAddress.ToString(),
-            Locale = "en-US",
-            ViewportSize = new ViewportSize { Width = 390, Height = 844 }
-        });
-        await BrowserTestApp.RouteExternalResourcesAsync(context);
-
-        var page = await context.NewPageAsync();
-        var errors = CapturePageErrors(page);
-        await page.GotoAsync("/bortz-age", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-        await FillBioageStepOneAsync(page, DateTime.UtcNow.Date.AddDays(-9).ToString("yyyy-MM-dd"));
-        await FillBortzBiomarkersAsync(page);
-        await page.Locator(".bioage-calculate-button").ClickAsync();
-        await page.WaitForSelectorAsync("#bortzAgeResult.show");
-        await page.WaitForSelectorAsync("#continueButton.show");
-        await ExpectActionStackDockedInViewportAsync(page, ".bioage-result-actions");
-        await ExpectBioageResultReadableWithDockAsync(page, "#bortzAgeResult", ".bioage-result-actions");
-
-        await page.EvaluateAsync(
-            """
-            () => {
-                const result = document.getElementById('bortzAgeResult');
-                const dock = document.querySelector('.bioage-result-actions');
-                const resultRect = result.getBoundingClientRect();
-                const dockRect = dock.getBoundingClientRect();
-                window.scrollBy({ top: resultRect.bottom - (dockRect.top - 12), behavior: 'auto' });
-                window.__bioageResizeStartScrollY = window.scrollY;
-
-                const growingContent = document.createElement('div');
-                growingContent.setAttribute('aria-hidden', 'true');
-                result.append(growingContent);
-                window.__bioageResizeStormFrame = 0;
-                window.__bioageResizeStormActive = true;
-                const growResult = () => {
-                    if (!window.__bioageResizeStormActive) return;
-                    window.__bioageResizeStormFrame += 1;
-                    growingContent.style.height = `${window.__bioageResizeStormFrame}px`;
-                    if (window.__bioageResizeStormFrame < 600) {
-                        requestAnimationFrame(growResult);
-                    }
-                };
-                requestAnimationFrame(growResult);
-            }
-            """);
-        await page.WaitForFunctionAsync("() => window.__bioageResizeStormFrame >= 24");
-        await page.EvaluateAsync(
-            "() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
-
-        var layout = await page.EvaluateAsync<double[]>(
-            """
-            () => {
-                window.__bioageResizeStormActive = false;
-                const result = document.getElementById('bortzAgeResult').getBoundingClientRect();
-                const dock = document.querySelector('.bioage-result-actions').getBoundingClientRect();
-                return [result.bottom, dock.top, window.__bioageResizeStormFrame, window.scrollY, window.__bioageResizeStartScrollY];
-            }
-            """);
-
-        Assert.InRange(layout[2], 24, 599);
-        Assert.InRange(
-            Math.Abs(layout[3] - layout[4]),
-            0,
-            2);
-        Assert.Empty(errors);
-    }
-
-    private static async Task ExpectBioageResultReadableWithDockAsync(
-        IPage page,
-        string resultSelector,
-        string dockSelector)
-    {
-        await page.WaitForTimeoutAsync(1400);
-
-        var layout = await page.EvaluateAsync<BioageResultDockLayout>(
-            """
-            selectors => {
-                const [resultSelector, dockSelector] = selectors.split('|');
-                const result = document.querySelector(resultSelector);
-                const dock = document.querySelector(dockSelector);
-                if (!result || !dock) {
-                    return { ResultTop: 0, ResultBottom: 0, ResultHeight: 0, DockTop: 0, DockHeight: 0, ScrollY: window.scrollY, MaxScrollY: Math.max(document.documentElement.scrollHeight, document.body.scrollHeight) - window.innerHeight, MissingElement: true };
-                }
-
-                const resultRect = result.getBoundingClientRect();
-                const dockRect = dock.getBoundingClientRect();
-                const resultStyle = getComputedStyle(result);
-                const dockStyle = getComputedStyle(dock);
-
-                return {
-                    ResultTop: resultRect.top,
-                    ResultBottom: resultRect.bottom,
-                    ResultHeight: resultRect.height,
-                    ResultVisible: resultRect.width > 0
-                        && resultRect.height > 0
-                        && resultStyle.display !== 'none'
-                        && resultStyle.visibility !== 'hidden',
-                    DockTop: dockRect.top,
-                    DockBottom: dockRect.bottom,
-                    DockHeight: dockRect.height,
-                    DockVisible: dockRect.width > 0
-                        && dockRect.height > 0
-                        && dockStyle.display !== 'none'
-                        && dockStyle.visibility !== 'hidden',
-                    ScrollY: window.scrollY,
-                    MaxScrollY: Math.max(document.documentElement.scrollHeight, document.body.scrollHeight) - window.innerHeight,
-                    ViewportHeight: window.innerHeight,
-                    RootScrollPaddingTop: getComputedStyle(document.documentElement).scrollPaddingTop,
-                    DockHeightVariable: getComputedStyle(document.documentElement).getPropertyValue('--flow-action-dock-height').trim(),
-                    BodyClasses: document.body.className,
-                    HtmlClasses: document.documentElement.className,
-                    MissingElement: false
-                };
-            }
-            """,
-            $"{resultSelector}|{dockSelector}");
-
-        Assert.False(layout.MissingElement, $"Missing result or dock for {resultSelector} / {dockSelector}.");
-        Assert.True(layout.ResultVisible, $"{resultSelector} is not visibly rendered. {layout}");
-        Assert.True(layout.DockVisible, $"{dockSelector} is not visibly rendered. {layout}");
-        Assert.True(layout.ResultTop >= 0, $"{resultSelector} starts above the viewport. {layout}");
-        Assert.True(
-            layout.ResultTop <= layout.DockTop - 44,
-            $"{resultSelector} does not begin in the readable area above the result action dock. {layout}");
-
-        var remainingScroll = Math.Max(0, layout.MaxScrollY - layout.ScrollY);
-        Assert.True(
-            layout.ResultBottom - remainingScroll <= layout.DockTop - 8,
-            $"{resultSelector} cannot be scrolled fully clear of the result action dock. {layout}");
-    }
-
-    [Fact]
-    public async Task MobileBioageStickyProgress_KeepsOnlyVisibleProgressSemantics()
-    {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
-        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
-        {
-            BaseURL = app.BaseAddress.ToString(),
-            Locale = "en-US",
-            ViewportSize = new ViewportSize { Width = 390, Height = 844 }
-        });
-        await BrowserTestApp.RouteExternalResourcesAsync(context);
-
-        var page = await context.NewPageAsync();
-        var errors = CapturePageErrors(page);
-
-        await page.GotoAsync("/pheno-age", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-        await page.WaitForFunctionAsync("() => window.LwcStickyProgress");
-        await page.WaitForTimeoutAsync(650);
-        await page.EvaluateAsync("window.scrollTo(0, 0)");
-        await page.WaitForFunctionAsync("() => !document.documentElement.classList.contains('sticky-progress-visible')");
-        await page.Mouse.WheelAsync(0, 360);
-        await page.WaitForFunctionAsync("() => document.documentElement.classList.contains('sticky-progress-visible')");
-
-        const string progressStateScript =
-            """
-            element => {
-                const style = getComputedStyle(element);
-                const sticky = document.getElementById('site-sticky-progress');
-                return {
-                    Opacity: style.opacity,
-                    PointerEvents: style.pointerEvents,
-                    AriaHidden: element.getAttribute('aria-hidden'),
-                    Inert: element.inert,
-                    HasInertAttribute: element.hasAttribute('inert'),
-                    StickyAriaHidden: sticky && sticky.getAttribute('aria-hidden'),
-                    StickyRole: sticky && sticky.getAttribute('role'),
-                    StickyAriaLive: sticky && sticky.getAttribute('aria-live')
-                };
-            }
-            """;
-
-        var progressState = await page.Locator("#mainProgressBar").EvaluateAsync<StickyProgressState>(
-            progressStateScript);
-
-        Assert.Equal("0", progressState.Opacity);
-        Assert.Equal("none", progressState.PointerEvents);
-        Assert.Equal("true", progressState.AriaHidden);
-        Assert.True(progressState.Inert);
-        Assert.True(progressState.HasInertAttribute);
-        Assert.Equal("false", progressState.StickyAriaHidden);
-        Assert.Equal("status", progressState.StickyRole);
-        Assert.Equal("polite", progressState.StickyAriaLive);
-
-        await page.EvaluateAsync("window.scrollTo(0, 0)");
-        await page.WaitForFunctionAsync("() => !document.documentElement.classList.contains('sticky-progress-visible')");
-
-        progressState = await page.Locator("#mainProgressBar").EvaluateAsync<StickyProgressState>(
-            progressStateScript);
-
-        Assert.Equal("1", progressState.Opacity);
-        Assert.NotEqual("none", progressState.PointerEvents);
-        Assert.Equal("false", progressState.AriaHidden);
-        Assert.False(progressState.Inert);
-        Assert.False(progressState.HasInertAttribute);
-        Assert.Equal("true", progressState.StickyAriaHidden);
-        Assert.Empty(errors);
-    }
-
-    private static List<string> CapturePageErrors(IPage page)
+    internal static List<string> CapturePageErrors(IPage page)
     {
         var errors = new List<string>();
         page.Console += (_, message) =>
         {
             if (message.Type == "error")
-                errors.Add(message.Text);
+            {
+                var location = message.Location;
+                errors.Add(string.IsNullOrWhiteSpace(location)
+                    ? message.Text
+                    : $"{message.Text} [{location}]");
+            }
         };
         page.PageError += (_, error) => errors.Add(error);
         return errors;
     }
 
-    private static void AssertPlayStartLogoBetweenWordmarkAndActions(
+    internal static void AssertPlayStartLogoBetweenWordmarkAndActions(
         PlayStartWordmarkState state,
         double centerTolerancePixels)
     {
@@ -3387,7 +833,7 @@ public sealed class FlowActionDockBrowserTests
         Assert.InRange(Math.Abs(watermarkCenter - gapCenter), 0, centerTolerancePixels);
     }
 
-    private const string FlowAuditStateScript =
+    internal const string FlowAuditStateScript =
         """
         const athlete = {
             Name: 'Browser Test Athlete',
@@ -3413,7 +859,7 @@ public sealed class FlowActionDockBrowserTests
         }));
         """;
 
-    private const string FlowActionPlacementAuditScript =
+    internal const string FlowActionPlacementAuditScript =
         """
         () => {
             window.LwcFlowActionDock?.refreshNow?.();
@@ -3567,7 +1013,7 @@ public sealed class FlowActionDockBrowserTests
         }
         """;
 
-    private static async Task ExpectActionStackDockedInViewportAsync(IPage page, string selector)
+    internal static async Task ExpectActionStackDockedInViewportAsync(IPage page, string selector)
     {
         await page.WaitForFunctionAsync("() => window.LwcFlowActionDock");
         await page.WaitForFunctionAsync(
@@ -3575,9 +1021,12 @@ public sealed class FlowActionDockBrowserTests
             selector => {
                 const element = document.querySelector(selector);
                 if (!element?.classList.contains('flow-action-stack--docked')) return false;
+                if (document.documentElement.classList.contains('play-panel-transitioning')) return false;
                 const rect = element.getBoundingClientRect();
                 return element?.classList.contains('flow-action-stack--docked')
                     && !element.classList.contains('flow-action-stack--dock-entering')
+                    && element.getAnimations({ subtree: true })
+                        .every(animation => animation.playState !== 'running')
                     && rect.top >= -1
                     && rect.bottom <= window.innerHeight + 1;
             }
@@ -3594,7 +1043,7 @@ public sealed class FlowActionDockBrowserTests
         Assert.True(rect.Height > 0, $"{selector} has no rendered height.");
     }
 
-    private static async Task ExpectDockPlaceholderMatchesVisibleStackAsync(IPage page, string selector)
+    internal static async Task ExpectDockPlaceholderMatchesVisibleStackAsync(IPage page, string selector)
     {
         await page.WaitForFunctionAsync(
             """
@@ -3615,7 +1064,7 @@ public sealed class FlowActionDockBrowserTests
             selector);
     }
 
-    private static async Task WaitForManagedActionStacksSettledAsync(IPage page)
+    internal static async Task WaitForManagedActionStacksSettledAsync(IPage page)
     {
         await page.WaitForFunctionAsync(
             """
@@ -3659,9 +1108,11 @@ public sealed class FlowActionDockBrowserTests
                 });
             }
             """);
+        await page.EvaluateAsync(
+            "() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
     }
 
-    private static async Task ExpectActionStackInViewportAsync(IPage page, string selector)
+    internal static async Task ExpectActionStackInViewportAsync(IPage page, string selector)
     {
         await page.WaitForFunctionAsync("() => window.LwcFlowActionDock");
         var rect = await ReadElementRectAsync(page, selector);
@@ -3674,7 +1125,7 @@ public sealed class FlowActionDockBrowserTests
         Assert.True(rect.Height > 0, $"{selector} has no rendered height.");
     }
 
-    private static async Task<ElementRect> ReadElementRectAsync(IPage page, string selector)
+    internal static async Task<ElementRect> ReadElementRectAsync(IPage page, string selector)
     {
         return await page.Locator(selector).EvaluateAsync<ElementRect>(
             """
@@ -3694,7 +1145,7 @@ public sealed class FlowActionDockBrowserTests
             """);
     }
 
-    private static async Task<FlowActionChildLayout> ReadFlowActionChildLayoutAsync(IPage page, string selector)
+    internal static async Task<FlowActionChildLayout> ReadFlowActionChildLayoutAsync(IPage page, string selector)
     {
         return await page.Locator(selector).EvaluateAsync<FlowActionChildLayout>(
             """
@@ -3735,20 +1186,20 @@ public sealed class FlowActionDockBrowserTests
             """);
     }
 
-    private static async Task ExpectNoHorizontalOverflowAsync(IPage page)
+    internal static async Task ExpectNoHorizontalOverflowAsync(IPage page)
     {
         var overflow = await page.EvaluateAsync<double>(
             "() => Math.max(document.documentElement.scrollWidth, document.body.scrollWidth) - window.innerWidth");
         Assert.True(overflow <= 1, $"Page has {overflow}px horizontal overflow.");
     }
 
-    private static async Task<bool> HasDockClassAsync(IPage page, string selector)
+    internal static async Task<bool> HasDockClassAsync(IPage page, string selector)
     {
         return await page.Locator(selector).EvaluateAsync<bool>(
             "element => element.classList.contains('flow-action-stack--docked')");
     }
 
-    private static async Task FillBioageStepOneAsync(IPage page, string bloodDrawDate)
+    internal static async Task FillBioageStepOneAsync(IPage page, string bloodDrawDate)
     {
         await page.Locator("#dob-year").SelectOptionAsync("1980");
         await page.Locator("#dob-month").SelectOptionAsync("5");
@@ -3761,7 +1212,7 @@ public sealed class FlowActionDockBrowserTests
             "() => document.querySelector('#lwc-step-2')?.classList.contains('lwc-step--visible')");
     }
 
-    private static async Task FillPhenoBiomarkersAsync(IPage page)
+    internal static async Task FillPhenoBiomarkersAsync(IPage page)
     {
         await SetFormValuesAsync(
             page,
@@ -3788,7 +1239,7 @@ public sealed class FlowActionDockBrowserTests
             });
     }
 
-    private static async Task FillBortzBiomarkersAsync(IPage page)
+    internal static async Task FillBortzBiomarkersAsync(IPage page)
     {
         await SetFormValuesAsync(
             page,
@@ -3841,7 +1292,7 @@ public sealed class FlowActionDockBrowserTests
             });
     }
 
-    private static async Task SetFormValuesAsync(IPage page, Dictionary<string, string> values)
+    internal static async Task SetFormValuesAsync(IPage page, Dictionary<string, string> values)
     {
         await page.EvaluateAsync(
             """
@@ -3858,7 +1309,7 @@ public sealed class FlowActionDockBrowserTests
             values);
     }
 
-    private sealed class ElementRect
+    internal sealed class ElementRect
     {
         public double Left { get; set; }
         public double Right { get; set; }
@@ -3870,7 +1321,7 @@ public sealed class FlowActionDockBrowserTests
         public double ViewportHeight { get; set; }
     }
 
-    private sealed class BioageStepOneLayout
+    internal sealed class BioageStepOneLayout
     {
         public ElementRect Action { get; set; } = new();
         public ElementRect DateOfBirth { get; set; } = new();
@@ -3891,7 +1342,7 @@ public sealed class FlowActionDockBrowserTests
         }
     }
 
-    private sealed class FlowActionChildLayout
+    internal sealed class FlowActionChildLayout
     {
         public int Count { get; set; }
         public double MaxGap { get; set; }
@@ -3899,13 +1350,13 @@ public sealed class FlowActionDockBrowserTests
         public double MaxHeightDelta { get; set; }
     }
 
-    private sealed class ApplyStageTransitionScrollState
+    internal sealed class ApplyStageTransitionScrollState
     {
         public double ScrollY { get; set; }
         public ScrollIntoViewCall[] Calls { get; set; } = [];
     }
 
-    private sealed class ScrollIntoViewCall
+    internal sealed class ScrollIntoViewCall
     {
         public string Tag { get; set; } = "";
         public string Id { get; set; } = "";
@@ -3913,7 +1364,7 @@ public sealed class FlowActionDockBrowserTests
         public string Text { get; set; } = "";
     }
 
-    private sealed class WorkflowTitleLayout
+    internal sealed class WorkflowTitleLayout
     {
         public string Text { get; set; } = "";
         public double FontSize { get; set; }
@@ -3921,7 +1372,7 @@ public sealed class FlowActionDockBrowserTests
         public double Bottom { get; set; }
     }
 
-    private sealed class EditProfileInitialState
+    internal sealed class EditProfileInitialState
     {
         public bool SubmitDisabled { get; set; }
         public bool SubmitVisible { get; set; }
@@ -3943,7 +1394,7 @@ public sealed class FlowActionDockBrowserTests
         public string Division { get; set; } = "";
     }
 
-    private sealed class EditProfileMissingOriginalRestoreState
+    internal sealed class EditProfileMissingOriginalRestoreState
     {
         public string PersonalLink { get; set; } = "";
         public string MediaContact { get; set; } = "";
@@ -3957,7 +1408,7 @@ public sealed class FlowActionDockBrowserTests
         public double ViewportHeight { get; set; }
     }
 
-    private sealed class EditProfileFirstViewportLayout
+    internal sealed class EditProfileFirstViewportLayout
     {
         public double TitleFontSize { get; set; }
         public ElementRect Title { get; set; } = new();
@@ -3967,16 +1418,25 @@ public sealed class FlowActionDockBrowserTests
         public double ViewportHeight { get; set; }
     }
 
-    private sealed class ProofUploadFirstViewportLayout
+    internal sealed class ProofUploadFirstViewportLayout
     {
         public double TitleFontSize { get; set; }
         public ElementRect Title { get; set; } = new();
         public ElementRect Illustration { get; set; } = new();
         public ElementRect UploadButton { get; set; } = new();
+        public double ViewportWidth { get; set; }
         public double ViewportHeight { get; set; }
+        public double ScreenWidth { get; set; }
+        public double ScreenHeight { get; set; }
+        public bool LandscapeMediaMatches { get; set; }
+        public bool CompactLandscapeMediaMatches { get; set; }
+
+        public override string ToString()
+            => $"viewport={ViewportWidth}x{ViewportHeight}, screen={ScreenWidth}x{ScreenHeight}, "
+                + $"landscape={LandscapeMediaMatches}, compactLandscape={CompactLandscapeMediaMatches}";
     }
 
-    private sealed class ProofUploadActionLayout
+    internal sealed class ProofUploadActionLayout
     {
         public double UploadTop { get; set; }
         public double UploadBottom { get; set; }
@@ -4003,7 +1463,7 @@ public sealed class FlowActionDockBrowserTests
         public double ViewportHeight { get; set; }
     }
 
-    private sealed class ApplyFirstStageDetailsLayout
+    internal sealed class ApplyFirstStageDetailsLayout
     {
         public double DetailsTop { get; set; }
         public double DetailsBottom { get; set; }
@@ -4013,7 +1473,7 @@ public sealed class FlowActionDockBrowserTests
         public double ViewportHeight { get; set; }
     }
 
-    private sealed class DockedActionHierarchy
+    internal sealed class DockedActionHierarchy
     {
         public double PrimaryLeft { get; set; }
         public double PrimaryRight { get; set; }
@@ -4025,7 +1485,7 @@ public sealed class FlowActionDockBrowserTests
         public double ViewportCenter { get; set; }
     }
 
-    private sealed class PlayStartWordmarkState
+    internal sealed class PlayStartWordmarkState
     {
         public string HeaderBackground { get; set; } = "";
         public string Text { get; set; } = "";
@@ -4086,7 +1546,7 @@ public sealed class FlowActionDockBrowserTests
         public bool HasJustTrackItAsset { get; set; }
     }
 
-    private sealed class PlayStartFirstPaintState
+    internal sealed class PlayStartFirstPaintState
     {
         public string WordmarkText { get; set; } = "";
         public double WordmarkOpacity { get; set; }
@@ -4098,7 +1558,7 @@ public sealed class FlowActionDockBrowserTests
         public double ViewportHeight { get; set; }
     }
 
-    private sealed class PlayStartBackDockState
+    internal sealed class PlayStartBackDockState
     {
         public bool ActionDocked { get; set; }
         public double ActionTop { get; set; }
@@ -4111,7 +1571,7 @@ public sealed class FlowActionDockBrowserTests
         public string PanelTransform { get; set; } = "";
     }
 
-    private sealed class ModernContainingBlockDockState
+    internal sealed class ModernContainingBlockDockState
     {
         public bool ActionDocked { get; set; }
         public double ActionBottom { get; set; }
@@ -4130,13 +1590,13 @@ public sealed class FlowActionDockBrowserTests
         public string PanelWillChange { get; set; } = "";
     }
 
-    private sealed class TransformedFormDockState
+    internal sealed class TransformedFormDockState
     {
         public string FormTransform { get; set; } = "";
         public bool ActionsParentIsBody { get; set; }
     }
 
-    private sealed class StickyProgressState
+    internal sealed class StickyProgressState
     {
         public string Opacity { get; set; } = "";
         public string PointerEvents { get; set; } = "";
@@ -4148,7 +1608,7 @@ public sealed class FlowActionDockBrowserTests
         public string StickyAriaLive { get; set; } = "";
     }
 
-    private sealed class DashboardDiscountLayoutState
+    internal sealed class DashboardDiscountLayoutState
     {
         public bool DiscountVisible { get; set; }
         public bool DiscountInsideActionMenu { get; set; }
@@ -4161,7 +1621,7 @@ public sealed class FlowActionDockBrowserTests
         public double[] IconHeights { get; set; } = [];
     }
 
-    private sealed class InlineDashboardActionState
+    internal sealed class InlineDashboardActionState
     {
         public bool ActionDocked { get; set; }
         public double PictureBottom { get; set; }
@@ -4174,7 +1634,7 @@ public sealed class FlowActionDockBrowserTests
         public double ViewportHeight { get; set; }
     }
 
-    private sealed class BioageResultDockLayout
+    internal sealed class BioageResultDockLayout
     {
         public double ResultTop { get; set; }
         public double ResultBottom { get; set; }
@@ -4199,7 +1659,7 @@ public sealed class FlowActionDockBrowserTests
         }
     }
 
-    private sealed class JoinTrackActionGrouping
+    internal sealed class JoinTrackActionGrouping
     {
         public bool AmateurInCard { get; set; }
         public bool ProInCard { get; set; }
@@ -4221,13 +1681,7 @@ public sealed class FlowActionDockBrowserTests
         public double ViewportHeight { get; set; }
     }
 
-    private sealed class FooterVisibility
-    {
-        public string Display { get; set; } = "";
-        public int VisibleLinkCount { get; set; }
-    }
-
-    private sealed class PlayWorkflowChromeState
+    internal sealed class PlayWorkflowChromeState
     {
         public string FooterDisplay { get; set; } = "";
         public bool HasSiteMenu { get; set; }

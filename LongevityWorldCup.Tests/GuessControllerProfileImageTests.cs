@@ -7,7 +7,8 @@ using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
-public sealed class GuessControllerProfileImageTests
+public sealed class GuessControllerProfileImageTests(TestWebApplicationFactory sharedFactory)
+    : IClassFixture<TestWebApplicationFactory>
 {
     private const string AthleteSlug = "ron_lugbill";
 
@@ -19,7 +20,7 @@ public sealed class GuessControllerProfileImageTests
     public async Task AthleteAgeGuess_WithMissingOrMalformedProfileImageId_ReturnsBadRequestWithoutActualAge(
         string? profileImageId)
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         var athletes = factory.Services.GetRequiredService<AthleteDataService>();
         var actualAge = athletes.GetActualAge(AthleteSlug);
         var before = athletes.GetCrowdStats(AthleteSlug);
@@ -39,7 +40,7 @@ public sealed class GuessControllerProfileImageTests
     [Fact]
     public async Task AthleteAgeGuess_WithUnknownAthlete_ReturnsNotFoundWithoutActualAge()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = CreateClient(factory);
 
         using var response = await client.PostAsync(
@@ -54,7 +55,7 @@ public sealed class GuessControllerProfileImageTests
     [Fact]
     public async Task AthleteAgeGuess_WithStaleProfileImageId_ReturnsConflictWithoutRecordingGuess()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         var athletes = factory.Services.GetRequiredService<AthleteDataService>();
         Assert.True(athletes.TryGetProfileImageId(AthleteSlug, out var currentImageId));
         Assert.Equal(64, currentImageId.Length);
@@ -79,7 +80,7 @@ public sealed class GuessControllerProfileImageTests
     [Fact]
     public async Task AthleteAgeGuess_WithUppercaseCurrentProfileImageId_IsAcceptedAndNormalized()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         var athletes = factory.Services.GetRequiredService<AthleteDataService>();
         Assert.True(athletes.TryGetProfileImageId(AthleteSlug, out var currentImageId));
 

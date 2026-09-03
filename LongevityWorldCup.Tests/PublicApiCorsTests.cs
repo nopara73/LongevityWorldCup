@@ -6,7 +6,9 @@ using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
-public sealed class PublicApiCorsTests
+
+[Collection(HttpTestCollections.ReadOnly)]
+public sealed class PublicApiCorsTests(TestWebApplicationFactory sharedFactory)
 {
     private const string ArbitraryOrigin = "https://public-api-client.example";
     private const string TrustedSiteOrigin = "https://www.longevityworldcup.com";
@@ -14,7 +16,7 @@ public sealed class PublicApiCorsTests
     [Fact]
     public async Task PublicDataGet_AllowsAnyOrigin()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
         using var request = new HttpRequestMessage(HttpMethod.Get, "/api/data/flags");
         request.Headers.Add("Origin", ArbitraryOrigin);
@@ -28,7 +30,7 @@ public sealed class PublicApiCorsTests
     [Fact]
     public async Task PublicDataPostPreflight_AllowsAnyOrigin()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
         using var request = new HttpRequestMessage(HttpMethod.Options, "/api/data/pheno-age");
         request.Headers.Add("Origin", ArbitraryOrigin);
@@ -46,7 +48,7 @@ public sealed class PublicApiCorsTests
     [Fact]
     public async Task PublicDataValidationError_AllowsAnyOrigin()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
         using var request = new HttpRequestMessage(HttpMethod.Post, "/api/data/pheno-age")
         {
@@ -63,7 +65,7 @@ public sealed class PublicApiCorsTests
     [Fact]
     public async Task NonPublicEndpoints_PreserveRestrictedOriginPolicy()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
         using var arbitraryRequest = new HttpRequestMessage(HttpMethod.Get, "/health");
         arbitraryRequest.Headers.Add("Origin", ArbitraryOrigin);
@@ -84,7 +86,7 @@ public sealed class PublicApiCorsTests
     [Fact]
     public async Task NonPublicNotFound_ReExecutesRoutedErrorEndpoint()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient(
             new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 

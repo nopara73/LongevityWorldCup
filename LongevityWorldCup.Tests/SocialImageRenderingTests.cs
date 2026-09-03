@@ -1,18 +1,18 @@
 using LongevityWorldCup.Website;
 using LongevityWorldCup.Website.Business;
-using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using SixLabors.ImageSharp;
 using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
-public sealed class SocialImageRenderingTests
+public sealed class SocialImageRenderingTests(TestWebApplicationFactory sharedFactory)
+    : IClassFixture<TestWebApplicationFactory>
 {
     [Fact]
     public async Task XAutoposterImages_RenderAsPngCanvases()
     {
-        using var factory = CreateFactory();
+        var factory = sharedFactory;
         var images = factory.Services.GetRequiredService<XImageService>();
         var athletes = factory.Services.GetRequiredService<AthleteDataService>();
         var top3Slugs = athletes.GetTop3SlugsForLeague("ultimate").Take(3).ToList();
@@ -35,7 +35,7 @@ public sealed class SocialImageRenderingTests
     [Fact]
     public async Task AthleteCountMilestoneMemes_ResolveOnlyApprovedMemeNumbers()
     {
-        using var factory = CreateFactory();
+        var factory = sharedFactory;
         var memes = factory.Services.GetRequiredService<AthleteCountMilestoneMemeService>();
 
         foreach (var count in new[] { 404, 666, 777, 1337, 9001 })
@@ -57,7 +57,7 @@ public sealed class SocialImageRenderingTests
     [Fact]
     public async Task CustomEventAutoposterImage_RenderAsPngCanvas()
     {
-        using var factory = CreateFactory();
+        var factory = sharedFactory;
         var images = factory.Services.GetRequiredService<CustomEventImageService>();
 
         await AssertPngCanvasAsync(await images.RenderToStreamAsync("Season update\nLongevity World Cup athletes keep pushing biological age sport forward."));
@@ -66,7 +66,7 @@ public sealed class SocialImageRenderingTests
     [Fact]
     public async Task AthleteLeagueAndPageSharePreviewImages_RenderAsPngCanvases()
     {
-        using var factory = CreateFactory();
+        var factory = sharedFactory;
         var athleteImages = factory.Services.GetRequiredService<AthleteOgImageService>();
         var leagueImages = factory.Services.GetRequiredService<LeagueOgImageService>();
         var pageImages = factory.Services.GetRequiredService<PageOgImageService>();
@@ -100,7 +100,7 @@ public sealed class SocialImageRenderingTests
     [Fact]
     public async Task AthleteCrowdAgeSharePreviewImage_UsesCrowdAgeMetrics()
     {
-        using var factory = CreateFactory();
+        var factory = sharedFactory;
         var athletes = factory.Services.GetRequiredService<AthleteDataService>();
         var athleteImages = factory.Services.GetRequiredService<AthleteOgImageService>();
 
@@ -125,7 +125,7 @@ public sealed class SocialImageRenderingTests
     [InlineData("bortz", "Bortz Age")]
     public async Task AthleteBiologicalAgeSharePreviewImage_UsesClockSpecificMetrics(string context, string clockLabel)
     {
-        using var factory = CreateFactory();
+        var factory = sharedFactory;
         var athletes = factory.Services.GetRequiredService<AthleteDataService>();
         var athleteImages = factory.Services.GetRequiredService<AthleteOgImageService>();
         AthleteOgImageService.AthleteOgPayload? payload = null;
@@ -160,7 +160,7 @@ public sealed class SocialImageRenderingTests
         string baselineContext,
         string leaderboardContext)
     {
-        using var factory = CreateFactory();
+        var factory = sharedFactory;
         var athletes = factory.Services.GetRequiredService<AthleteDataService>();
         var athleteImages = factory.Services.GetRequiredService<AthleteOgImageService>();
         AgeImprovementLeaderboardEntry? baselineEntry = null;
@@ -202,7 +202,7 @@ public sealed class SocialImageRenderingTests
     [Fact]
     public async Task AthleteDomainSharePreviewImage_UsesTheDomainWinnerContext()
     {
-        using var factory = CreateFactory();
+        var factory = sharedFactory;
         var athletes = factory.Services.GetRequiredService<AthleteDataService>();
         var badges = factory.Services.GetRequiredService<BadgeDataService>();
         var athleteImages = factory.Services.GetRequiredService<AthleteOgImageService>();
@@ -227,7 +227,7 @@ public sealed class SocialImageRenderingTests
     [InlineData("chronological-youngest", "Youngest athlete")]
     public async Task AthleteChronologicalAgeSharePreviewImage_UsesTheRequestedAgeContext(string context, string leagueName)
     {
-        using var factory = CreateFactory();
+        var factory = sharedFactory;
         var athletes = factory.Services.GetRequiredService<AthleteDataService>();
         var athleteImages = factory.Services.GetRequiredService<AthleteOgImageService>();
         AthleteOgImageService.AthleteOgPayload? payload = null;
@@ -255,7 +255,7 @@ public sealed class SocialImageRenderingTests
     [Fact]
     public void AthleteSharePreview_DoesNotFallBackToUltimateForAnUnavailableKnownContext()
     {
-        using var factory = CreateFactory();
+        var factory = sharedFactory;
         var athletes = factory.Services.GetRequiredService<AthleteDataService>();
         var athleteImages = factory.Services.GetRequiredService<AthleteOgImageService>();
         string? phenoOnlySlug = null;
@@ -298,8 +298,4 @@ public sealed class SocialImageRenderingTests
         Assert.Equal(height, image.Height);
     }
 
-    private static WebApplicationFactory<Program> CreateFactory()
-    {
-        return new TestWebApplicationFactory();
-    }
 }

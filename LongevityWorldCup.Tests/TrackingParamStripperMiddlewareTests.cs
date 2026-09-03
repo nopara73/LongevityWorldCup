@@ -4,12 +4,14 @@ using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
-public sealed class TrackingParamStripperMiddlewareTests
+
+[Collection(HttpTestCollections.ReadOnly)]
+public sealed class TrackingParamStripperMiddlewareTests(TestWebApplicationFactory sharedFactory)
 {
     [Fact]
     public async Task TrackingParameters_AreRemovedAndNonTrackingParametersArePreserved()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
         using var response = await client.GetAsync(
@@ -22,7 +24,7 @@ public sealed class TrackingParamStripperMiddlewareTests
     [Fact]
     public async Task TrackingParameters_AreMatchedCaseInsensitivelyAndRepeatedValuesSurvive()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
         using var response = await client.GetAsync(
@@ -35,7 +37,7 @@ public sealed class TrackingParamStripperMiddlewareTests
     [Fact]
     public async Task TrackingOnlyQuery_RedirectsToCleanPathWithoutQuestionMark()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
         using var response = await client.GetAsync("/css/badges.css?gclid=abc&utm_medium=email");
@@ -47,7 +49,7 @@ public sealed class TrackingParamStripperMiddlewareTests
     [Fact]
     public async Task CleanQuery_DoesNotRedirect()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
         using var response = await client.GetAsync("/css/badges.css?ref=keep");

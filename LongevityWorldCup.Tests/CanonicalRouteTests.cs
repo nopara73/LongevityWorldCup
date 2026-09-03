@@ -4,7 +4,9 @@ using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
-public sealed class CanonicalRouteTests
+
+[Collection(HttpTestCollections.ReadOnly)]
+public sealed class CanonicalRouteTests(TestWebApplicationFactory sharedFactory)
 {
     [Theory]
     [InlineData("/index.html?ref=test", "/?ref=test")]
@@ -18,7 +20,7 @@ public sealed class CanonicalRouteTests
     [InlineData("/RULES/?ref=docs", "/ruleset?ref=docs")]
     public async Task LegacyAliases_RedirectToCanonicalPath(string path, string expectedLocation)
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
         using var response = await client.GetAsync(path);
@@ -32,7 +34,7 @@ public sealed class CanonicalRouteTests
     [InlineData("/about/?ref=footer")]
     public async Task CleanRouteVariants_ServeWithoutRedirect(string path)
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
         using var response = await client.GetAsync(path);
@@ -44,7 +46,7 @@ public sealed class CanonicalRouteTests
     [Fact]
     public async Task CanonicalCleanPath_ServesPageWithoutRedirect()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
         using var response = await client.GetAsync("/about");
@@ -60,7 +62,7 @@ public sealed class CanonicalRouteTests
     [InlineData("/dashboard", "/dashboard")]
     public async Task PlayFlowRoutes_ServeSharedShellWithoutRedirect(string path, string canonicalPath)
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
         using var response = await client.GetAsync(path);

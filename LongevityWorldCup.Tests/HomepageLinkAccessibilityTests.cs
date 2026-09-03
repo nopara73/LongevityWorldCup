@@ -2,12 +2,14 @@ using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
-public sealed class HomepageLinkAccessibilityTests
+
+[Collection(HttpTestCollections.ReadOnly)]
+public sealed class HomepageLinkAccessibilityTests(TestWebApplicationFactory sharedFactory)
 {
     [Fact]
     public async Task LeaderboardsAboutLink_ReplacesTheDuplicateHomepageTagline()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var homepage = await client.GetStringAsync("/");
@@ -24,7 +26,7 @@ public sealed class HomepageLinkAccessibilityTests
     [Fact]
     public async Task HistoryCallToAction_IsOneNamedLink()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/");
@@ -36,7 +38,7 @@ public sealed class HomepageLinkAccessibilityTests
     [Fact]
     public async Task ExtendedFaqCallToAction_IsOneNamedLink()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/");
@@ -48,7 +50,7 @@ public sealed class HomepageLinkAccessibilityTests
     [Fact]
     public async Task ContentSections_HaveStableDeepLinkTargets()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/");
@@ -63,7 +65,7 @@ public sealed class HomepageLinkAccessibilityTests
     [Fact]
     public async Task MerchCarousel_OnlyTabsToTheVisibleSlide()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/");

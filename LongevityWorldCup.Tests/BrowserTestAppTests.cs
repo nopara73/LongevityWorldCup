@@ -1,9 +1,117 @@
+using System.Net;
+using System.Net.Http.Json;
+using LongevityWorldCup.Website.Business;
+using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
 public sealed class BrowserTestAppTests
 {
+    [Fact]
+    public void SynchronousFactoryDisposalRemovesItsWorkingDirectory()
+    {
+        var factory = new TestWebApplicationFactory();
+        _ = factory.Services;
+        var workingDirectory = factory.WorkingDirectory;
+
+        Assert.True(Directory.Exists(workingDirectory));
+
+        factory.Dispose();
+
+        Assert.False(Directory.Exists(workingDirectory));
+    }
+
+    [Fact]
+    public async Task AsyncFactoryDisposalRemovesItsWorkingDirectory()
+    {
+        var factory = new TestWebApplicationFactory();
+        _ = factory.Services;
+        var workingDirectory = factory.WorkingDirectory;
+
+        Assert.True(Directory.Exists(workingDirectory));
+
+        await factory.DisposeAsync();
+
+        Assert.False(Directory.Exists(workingDirectory));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task CustomDatabaseFactoryDisposalWaitsForTheServiceProvider(bool asynchronously)
+    {
+        var databaseRoot = Path.Combine(
+            Path.GetTempPath(),
+            $"lwc-custom-database-disposal-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(databaseRoot);
+        var factory = new TestWebApplicationFactory(builder => builder.ConfigureTestServices(services =>
+        {
+            services.RemoveAll<DatabaseManager>();
+            services.AddSingleton(_ => new DatabaseManager(dbPath: Path.Combine(databaseRoot, "test.db")));
+        }));
+
+        try
+        {
+            _ = factory.Services.GetRequiredService<DatabaseManager>();
+            Assert.True(factory.HostDisposalTrackingActive);
+
+            if (asynchronously)
+                await factory.DisposeAsync();
+            else
+                factory.Dispose();
+
+            Assert.False(Directory.Exists(factory.WorkingDirectory));
+            Directory.Delete(databaseRoot, recursive: true);
+            Assert.False(Directory.Exists(databaseRoot));
+        }
+        finally
+        {
+            await factory.DisposeAsync();
+            if (Directory.Exists(databaseRoot))
+                Directory.Delete(databaseRoot, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task BitcoinEndpointsUseRealApplicationBehaviorWithDeterministicProviders()
+    {
+        await using var app = await BrowserTestApp.StartAsync();
+        using var client = app.CreateClient();
+
+        var price = await client.GetFromJsonAsync<BitcoinUsdResponse>("/api/Bitcoin/btcusd");
+        var total = await client.GetFromJsonAsync<BitcoinTotalResponse>("/api/Bitcoin/total-received");
+        var donation = await client.GetFromJsonAsync<BitcoinDonationResponse>("/api/Bitcoin/donation-address");
+
+        Assert.NotNull(price);
+        Assert.Equal(65_432.10m, price.BtcToUsdRate);
+        Assert.NotNull(total);
+        Assert.Equal(123_456_789, total.TotalReceivedSatoshis);
+        Assert.NotNull(donation);
+        Assert.StartsWith("bc1", donation.Address, StringComparison.Ordinal);
+
+        var external = app.Services.GetRequiredService<DeterministicExternalHttpClientFactory>();
+        Assert.Equal(2, external.Requests.Length);
+        Assert.Contains(external.Requests, request => request.Host == "api.coingecko.com");
+        Assert.Contains(external.Requests, request => request.Host == "blockchain.info");
+    }
+
+    [Fact]
+    public async Task UnconfiguredExternalHostsFailClosedWithoutNetworkAccess()
+    {
+        var external = new DeterministicExternalHttpClientFactory();
+        using var client = external.CreateClient("unconfigured-provider");
+
+        using var response = await client.GetAsync("https://unconfigured.example.test/resource");
+
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
+        Assert.Equal(
+            [new Uri("https://unconfigured.example.test/resource")],
+            external.Requests);
+    }
+
     [Fact]
     public async Task ParallelStartsUseUniqueKestrelAssignedPorts()
     {
@@ -26,4 +134,8 @@ public sealed class BrowserTestAppTests
             await Task.WhenAll(startedApps.Select(app => app.DisposeAsync().AsTask()));
         }
     }
+
+    private sealed record BitcoinUsdResponse(decimal BtcToUsdRate);
+    private sealed record BitcoinTotalResponse(long TotalReceivedSatoshis);
+    private sealed record BitcoinDonationResponse(string Address);
 }

@@ -1406,6 +1406,7 @@ interface Window {
         visualValue.textContent = '0.0';
         let startedAt = 0;
         let lastRenderedBucket = 0;
+        let visibilityAttempts = 0;
         const visualUpdateBudget = getBioageResultVisualUpdateBudget(finalAge);
         const finish = (settle: boolean): void => {
             if (state.generation !== generation) return;
@@ -1464,6 +1465,22 @@ interface Window {
             if (state.generation !== generation) return;
             if (animationOptions.instant || prefersReducedBioageResultMotion()) {
                 finish(false);
+                return;
+            }
+
+            // Layout can still move after the form collapses and the action dock
+            // portals its controls. Never spend the bounded reveal off-screen:
+            // re-anchor after the final layout, or publish the static result if
+            // the viewport cannot settle promptly.
+            if (!isBioageResultValueVisible(resultElement)) {
+                revealBioageResult(resultElement, { instant: true });
+                visibilityAttempts += 1;
+                if (visibilityAttempts >= 12) {
+                    finish(false);
+                    return;
+                }
+
+                state.frame = window.requestAnimationFrame(startCounting);
                 return;
             }
 
@@ -1554,6 +1571,15 @@ interface Window {
 
         return rect.top >= viewportBounds.top
             && rect.bottom <= viewportBounds.bottom;
+    }
+
+    function isBioageResultValueVisible(resultElement: HTMLElement): boolean {
+        const container = getBioageResultValueContainer(resultElement);
+        if (!container) return false;
+
+        const rect = container.getBoundingClientRect();
+        const viewport = getVisualViewportBounds();
+        return rect.top >= viewport.top && rect.bottom <= viewport.bottom;
     }
 
     function getBioageResultRevealScrollTop(resultElement: HTMLElement): number {

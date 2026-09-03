@@ -2,12 +2,14 @@ using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
-public sealed class ProofUploadPageTests
+
+[Collection(HttpTestCollections.ReadOnly)]
+public sealed class ProofUploadPageTests(TestWebApplicationFactory sharedFactory)
 {
     [Fact]
     public async Task ResultUpload_BackButtonReturnsToDashboardWithoutHistoryFallback()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/play/proof-upload.html");
@@ -19,7 +21,7 @@ public sealed class ProofUploadPageTests
     [Fact]
     public async Task ResultUpload_UsesTaskSpecificPageHeading()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/play/proof-upload.html");
@@ -31,7 +33,7 @@ public sealed class ProofUploadPageTests
     [Fact]
     public async Task ResultUpload_UsesOnePrimaryActionForProofMethodChoices()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/play/proof-upload.html");
@@ -52,7 +54,7 @@ public sealed class ProofUploadPageTests
     [InlineData("/play/proof-upload.html")]
     public async Task ProofUploadPages_LoadVersionedProofHelper(string path)
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync(path);
@@ -66,7 +68,7 @@ public sealed class ProofUploadPageTests
     [InlineData("/play/proof-upload.html")]
     public async Task ProofUploadPages_AcceptImagesAndPdfWithoutNarrowingPhonePhotoFormats(string path)
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync(path);
@@ -80,7 +82,7 @@ public sealed class ProofUploadPageTests
     [Fact]
     public async Task ProofHelper_WaitsForPdfRendererBeforeProcessingPdfUploads()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var javascript = await GetProofHelpersTypeScriptAsync(client);
@@ -96,7 +98,7 @@ public sealed class ProofUploadPageTests
     [Fact]
     public async Task ProofHelper_ProcessesAllowedFilesUntilImageCap()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var javascript = await GetProofHelpersTypeScriptAsync(client);
@@ -124,7 +126,7 @@ public sealed class ProofUploadPageTests
     [Fact]
     public async Task ProofHelper_ClearsFileInputAfterFailedProofProcessing()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var javascript = await GetProofHelpersTypeScriptAsync(client);
@@ -148,7 +150,7 @@ public sealed class ProofUploadPageTests
     [Fact]
     public async Task ProofHelper_DisablesProofControlsWhileProcessingSelection()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var javascript = await GetProofHelpersTypeScriptAsync(client);
@@ -185,7 +187,7 @@ public sealed class ProofUploadPageTests
     [Fact]
     public async Task ProofHelper_FallsBackToRawImageWhenClientOptimizationFails()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var javascript = await GetProofHelpersTypeScriptAsync(client);
@@ -201,7 +203,7 @@ public sealed class ProofUploadPageTests
     [Fact]
     public async Task ProofHelper_EncodesPdfCanvasesWithoutDependingOnImageBitmap()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var javascript = await GetProofHelpersTypeScriptAsync(client);
@@ -220,7 +222,7 @@ public sealed class ProofUploadPageTests
     [Fact]
     public async Task ProofHelper_SkipsDuplicateEncodedProofs()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var javascript = await GetProofHelpersTypeScriptAsync(client);
@@ -241,7 +243,7 @@ public sealed class ProofUploadPageTests
     [Fact]
     public async Task ProofHelper_RejectsAllUnsupportedFilesBeforeProcessing()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var javascript = await GetProofHelpersTypeScriptAsync(client);
@@ -278,7 +280,7 @@ public sealed class ProofUploadPageTests
     [Fact]
     public async Task ProofHelper_ProcessesSupportedFilesFromMixedSelection()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var javascript = await GetProofHelpersTypeScriptAsync(client);
@@ -303,7 +305,7 @@ public sealed class ProofUploadPageTests
     [Fact]
     public async Task ProofHelper_ContinuesAfterIndividualProofFileProcessingFailure()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var javascript = await GetProofHelpersTypeScriptAsync(client);
@@ -332,7 +334,7 @@ public sealed class ProofUploadPageTests
     [Fact]
     public async Task ProofHelper_InstructionsAskForDateAndSource()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var javascript = await GetProofHelpersTypeScriptAsync(client);
@@ -344,7 +346,7 @@ public sealed class ProofUploadPageTests
     [Fact]
     public async Task ProofHelper_KeepsChecklistAdvisoryWhenBiomarkersAreListed()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var javascript = await GetProofHelpersTypeScriptAsync(client);
@@ -363,7 +365,7 @@ public sealed class ProofUploadPageTests
     [Fact]
     public async Task ApplicationProofUploadButtons_TolerateMissingProofHelper()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/onboarding/convergence.html");
@@ -379,7 +381,7 @@ public sealed class ProofUploadPageTests
     [Fact]
     public async Task ProofHelper_UsesSafeStorageForChecklistBiomarkerHandoff()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var javascript = await GetProofHelpersTypeScriptAsync(client);
@@ -406,7 +408,7 @@ public sealed class ProofUploadPageTests
     [Fact]
     public async Task ProofHelper_IgnoresBlankStoredBiomarkerValuesInChecklist()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var javascript = await GetProofHelpersTypeScriptAsync(client);
@@ -424,7 +426,7 @@ public sealed class ProofUploadPageTests
     [Fact]
     public async Task ResultUploadFailures_UseReadableErrorExtractor()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/play/proof-upload.html");
@@ -443,7 +445,7 @@ public sealed class ProofUploadPageTests
     [Fact]
     public async Task ResultUploadNetworkFailures_ShowNormalizedErrorMessage()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/play/proof-upload.html");
@@ -459,7 +461,7 @@ public sealed class ProofUploadPageTests
     [Fact]
     public async Task ResultUploadSubmit_GuardsAgainstDuplicateClicks()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/play/proof-upload.html");
@@ -484,7 +486,7 @@ public sealed class ProofUploadPageTests
     [Fact]
     public async Task ResultUpload_TreatsMalformedBiomarkerStorageAsMissing()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/play/proof-upload.html");
@@ -536,7 +538,7 @@ public sealed class ProofUploadPageTests
     [Fact]
     public async Task ResultUpload_SnapshotsPayloadAndKeysRetriesByItsContents()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/play/proof-upload.html");
@@ -559,7 +561,7 @@ public sealed class ProofUploadPageTests
     [Fact]
     public async Task ResultUploadSubmit_UsesSafeStorageForStoredMetadata()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/play/proof-upload.html");
@@ -631,7 +633,7 @@ public sealed class ProofUploadPageTests
     [Fact]
     public async Task ResultUploadSubmit_IgnoresMalformedStoredContactEmail()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/play/proof-upload.html");
@@ -660,7 +662,7 @@ public sealed class ProofUploadPageTests
     [Fact]
     public async Task ResultUploadNoAthleteGuard_ReturnsToAthleteSelection()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/play/proof-upload.html");
@@ -680,7 +682,7 @@ public sealed class ProofUploadPageTests
     [Fact]
     public async Task ResultUploadDisplayName_FallsBackWhenStoredDisplayNameIsNotText()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/play/proof-upload.html");
@@ -693,7 +695,7 @@ public sealed class ProofUploadPageTests
     [Fact]
     public async Task ResultUploadSuccessHandoff_UsesSafeStorageBeforeNavigation()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/play/proof-upload.html");

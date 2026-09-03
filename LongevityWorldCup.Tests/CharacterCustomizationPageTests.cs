@@ -3,12 +3,14 @@ using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
-public sealed class CharacterCustomizationPageTests
+
+[Collection(HttpTestCollections.ReadOnly)]
+public sealed class CharacterCustomizationPageTests(TestWebApplicationFactory sharedFactory)
 {
     [Fact]
     public async Task DashboardRoute_UsesPlayShellDashboardPanel()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/dashboard");
@@ -45,7 +47,7 @@ public sealed class CharacterCustomizationPageTests
     [Fact]
     public async Task DashboardRoute_RendersActionsWhenModuleReadinessRejects()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/dashboard");
@@ -63,7 +65,7 @@ public sealed class CharacterCustomizationPageTests
     [Fact]
     public async Task DashboardRoute_ChangeAthleteUsesPlayShellSelectionRoute()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/dashboard");

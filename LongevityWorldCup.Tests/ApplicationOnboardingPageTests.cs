@@ -5,12 +5,13 @@ using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
-public sealed class ApplicationOnboardingPageTests
+[Collection(HttpTestCollections.ReadOnly)]
+public sealed class ApplicationOnboardingPageTests(TestWebApplicationFactory sharedFactory)
 {
     [Fact]
     public async Task ProfilePictureUpload_UsesNativeButtonsWithoutADuplicateImageTabStop()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/onboarding/convergence.html");
@@ -25,7 +26,7 @@ public sealed class ApplicationOnboardingPageTests
     [Fact]
     public async Task ApplicationContactEmail_UsesARealInputLabel()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/onboarding/convergence.html");
@@ -38,7 +39,7 @@ public sealed class ApplicationOnboardingPageTests
     [Fact]
     public async Task ApplicationRetry_ReenablesEmailFieldAfterSubmissionFailure()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/onboarding/convergence.html");
@@ -51,7 +52,7 @@ public sealed class ApplicationOnboardingPageTests
     [Fact]
     public async Task ApplicationBackButton_UsesExplicitBioageDestinationOnFirstStage()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/onboarding/convergence.html");
@@ -70,7 +71,7 @@ public sealed class ApplicationOnboardingPageTests
     [Fact]
     public async Task ApplicationProfilePreview_UsesStableIllustrationFrame()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/onboarding/convergence.html");
@@ -94,7 +95,7 @@ public sealed class ApplicationOnboardingPageTests
     [Fact]
     public async Task ApplicationSubmissionTimeout_WaitsForDedicatedServerTimeout()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var javascript = await client.GetStringAsync("/js/misc.js");
@@ -108,7 +109,7 @@ public sealed class ApplicationOnboardingPageTests
     [Fact]
     public async Task ApplicationSubmissionId_IsReusedOnlyForTheSamePayload()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var javascript = await client.GetStringAsync("/js/misc.js");
@@ -129,7 +130,7 @@ public sealed class ApplicationOnboardingPageTests
     [Fact]
     public async Task ApplicationSubmissionRecovery_ReusesTheServerResponseAndRedirectsWithoutAnAlertGate()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var javascript = await GetFrontendTypeScriptAsync(client, "misc.ts");
@@ -157,7 +158,7 @@ public sealed class ApplicationOnboardingPageTests
     [Fact]
     public async Task ApplicationSubmissionReport_IsTimeBoundedBecauseItIsBestEffort()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var javascript = await client.GetStringAsync("/js/misc.js");
@@ -183,7 +184,7 @@ public sealed class ApplicationOnboardingPageTests
     [Fact]
     public async Task StartedSubmissionReports_DoNotDelayPrimarySubmission()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         foreach (var path in new[]
@@ -205,7 +206,7 @@ public sealed class ApplicationOnboardingPageTests
     [Fact]
     public async Task FailedSubmissionReports_DoNotDelayRetryUi()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         foreach (var path in new[]
@@ -232,7 +233,7 @@ public sealed class ApplicationOnboardingPageTests
     [Fact]
     public async Task ApplicationFailures_UseReadableErrorExtractor()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var javascript = await GetFrontendTypeScriptAsync(client, "misc.ts");
@@ -268,7 +269,7 @@ public sealed class ApplicationOnboardingPageTests
     [Fact]
     public async Task ClientImageOptimizer_FallsBackWhenCanvasContextIsUnavailable()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var javascript = await GetFrontendTypeScriptAsync(client, "misc.ts");
@@ -282,7 +283,7 @@ public sealed class ApplicationOnboardingPageTests
     [Fact]
     public async Task ApplicationNetworkFailures_ShowNormalizedErrorMessage()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/onboarding/convergence.html");
@@ -298,7 +299,7 @@ public sealed class ApplicationOnboardingPageTests
     [Fact]
     public async Task ApplicationSubmit_GuardsAgainstDuplicateClicks()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/onboarding/convergence.html");
@@ -325,7 +326,7 @@ public sealed class ApplicationOnboardingPageTests
     [Fact]
     public async Task ApplicationValidation_FallsBackWhenValidatorScriptIsUnavailable()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/onboarding/convergence.html");
@@ -364,7 +365,7 @@ public sealed class ApplicationOnboardingPageTests
     [Fact]
     public async Task ApplicationSubmit_NormalizesPersonalLinkAndEmailShapedMediaContactBeforePosting()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/onboarding/convergence.html");
@@ -412,7 +413,7 @@ public sealed class ApplicationOnboardingPageTests
     [Fact]
     public async Task ApplicationFinalValidation_StopsAfterFirstInvalidField()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/onboarding/convergence.html");
@@ -444,7 +445,7 @@ public sealed class ApplicationOnboardingPageTests
     [Fact]
     public async Task ApplicationStageValidationListeners_AreRegisteredOnce()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/onboarding/convergence.html");
@@ -467,7 +468,7 @@ public sealed class ApplicationOnboardingPageTests
     [Fact]
     public async Task ApplicationIdentityFields_AdvertiseExistingLengthRequirements()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/onboarding/convergence.html");
@@ -486,7 +487,7 @@ public sealed class ApplicationOnboardingPageTests
     [Fact]
     public async Task ApplicationFlagAutocomplete_ExposesComboboxAndListboxState()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/onboarding/convergence.html");
@@ -501,7 +502,7 @@ public sealed class ApplicationOnboardingPageTests
     [Fact]
     public async Task ApplicationMotivationField_AdvertisesExistingLengthRequirement()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/onboarding/convergence.html");
@@ -513,7 +514,7 @@ public sealed class ApplicationOnboardingPageTests
     [Fact]
     public async Task ApplicationMediaContactField_AdvertisesFreeTextContactFormats()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/onboarding/convergence.html");
@@ -525,7 +526,7 @@ public sealed class ApplicationOnboardingPageTests
     [Fact]
     public async Task ApplicationContactEmail_ReusesEmailShapedMediaContact()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/onboarding/convergence.html");
@@ -574,7 +575,7 @@ public sealed class ApplicationOnboardingPageTests
     [Fact]
     public async Task ApplicationSubmission_TreatsMalformedBiomarkerStorageAsMissing()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/onboarding/convergence.html");
@@ -639,7 +640,7 @@ public sealed class ApplicationOnboardingPageTests
     [Fact]
     public async Task ApplicationSubmit_UsesSafeStorageForStoredMetadata()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/onboarding/convergence.html");
@@ -697,7 +698,7 @@ public sealed class ApplicationOnboardingPageTests
     [Fact]
     public async Task ApplicationDivisionSelect_UsesFallbackWhenApiFailsOrReturnsEmpty()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/onboarding/convergence.html");
@@ -713,7 +714,7 @@ public sealed class ApplicationOnboardingPageTests
     [Fact]
     public async Task ApplicationFlagAutocomplete_StillInitializesWhenFlagApiFails()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/onboarding/convergence.html");
@@ -733,7 +734,7 @@ public sealed class ApplicationOnboardingPageTests
     [Fact]
     public async Task ApplicationNameFetch_RevalidatesStageOneWhenAthletesLoad()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/onboarding/convergence.html");
@@ -756,7 +757,7 @@ public sealed class ApplicationOnboardingPageTests
     [Fact]
     public async Task ApplicationNameValidation_ChecksExistingDisplayNames()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/onboarding/convergence.html");
@@ -781,7 +782,7 @@ public sealed class ApplicationOnboardingPageTests
     [Fact]
     public async Task ApplicationSubmit_RevalidatesIdentityBeforePosting()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/onboarding/convergence.html");
@@ -807,7 +808,7 @@ public sealed class ApplicationOnboardingPageTests
     [Fact]
     public async Task ApplicationSuccessHandoff_UsesSafeStorageBeforeNavigation()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/onboarding/convergence.html");
@@ -871,7 +872,7 @@ public sealed class ApplicationOnboardingPageTests
     [Fact]
     public async Task ApplicationSubmit_DoesNotBlockOnRememberedAthleteStorage()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/onboarding/convergence.html");
@@ -894,7 +895,7 @@ public sealed class ApplicationOnboardingPageTests
     [Fact]
     public async Task ProfilePhotoSelection_ClearsInputAfterCapturingFile()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/onboarding/convergence.html");
@@ -918,7 +919,7 @@ public sealed class ApplicationOnboardingPageTests
     [Fact]
     public async Task ProfilePhotoUploadButton_PromotesRequiredActionWithoutSecondaryStyling()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/onboarding/convergence.html");
@@ -938,7 +939,7 @@ public sealed class ApplicationOnboardingPageTests
     [Fact]
     public async Task ProfilePhotoCropper_UsesCspAllowedCdn()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/onboarding/convergence.html");
@@ -951,7 +952,7 @@ public sealed class ApplicationOnboardingPageTests
     [Fact]
     public async Task ProfilePhotoSelection_RejectsUnsupportedFormatsBeforeReading()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/onboarding/convergence.html");
@@ -982,7 +983,7 @@ public sealed class ApplicationOnboardingPageTests
     [Fact]
     public async Task ProfilePhotoSelection_ReplacesExistingCropperBeforeNewImage()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/onboarding/convergence.html");
@@ -1011,7 +1012,7 @@ public sealed class ApplicationOnboardingPageTests
     [Fact]
     public async Task ProfilePhotoCrop_CanBeCanceledBackToUploadMode()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/onboarding/convergence.html");
@@ -1034,7 +1035,7 @@ public sealed class ApplicationOnboardingPageTests
     [Fact]
     public async Task ProfilePhotoCrop_FallsBackToRawCropWhenOptimizationFails()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/onboarding/convergence.html");

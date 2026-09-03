@@ -3,17 +3,17 @@ using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
-public sealed class SiteStatisticsTrackingBrowserTests
+[Collection(BrowserTestCollections.WorkloadA)]
+public sealed class SiteStatisticsTrackingBrowserTests(
+    PlaywrightBrowserFixture browserFixture,
+    BrowserTestAppFixture appFixture)
+    : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Fact]
     public async Task Tracker_ForwardsOnlyConfirmedBusinessConversionsToGoogleAnalyticsOnce()
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
             BaseURL = app.BaseAddress.ToString(),

@@ -4,12 +4,14 @@ using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
-public sealed class EventBoardRedirectMiddlewareTests
+
+[Collection(HttpTestCollections.ReadOnly)]
+public sealed class EventBoardRedirectMiddlewareTests(TestWebApplicationFactory sharedFactory)
 {
     [Fact]
     public async Task EventBoardEmbedWithoutAthlete_RedirectsToErrorPage()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
         using var response = await client.GetAsync("/event-board-embed.html?embed=1");
@@ -21,7 +23,7 @@ public sealed class EventBoardRedirectMiddlewareTests
     [Fact]
     public async Task EventBoardEmbedWithoutEmbedFlag_RedirectsToCanonicalAthlete()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
         using var response = await client.GetAsync("/event-board-embed.html?athlete=ron-lugbill&rows=all");
@@ -34,7 +36,7 @@ public sealed class EventBoardRedirectMiddlewareTests
     [Fact]
     public async Task EventBoardEmbedWithEmbedFlag_ServesNoIndexHtml()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
         using var response = await client.GetAsync("/event-board-embed.html?athlete=ron-lugbill&embed=1");

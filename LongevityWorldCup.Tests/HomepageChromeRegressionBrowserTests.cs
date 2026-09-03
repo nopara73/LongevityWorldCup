@@ -3,17 +3,17 @@ using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
-public sealed class HomepageChromeRegressionBrowserTests
+[Collection(BrowserTestCollections.WorkloadA)]
+public sealed class HomepageChromeRegressionBrowserTests(
+    PlaywrightBrowserFixture browserFixture,
+    BrowserTestAppFixture appFixture)
+    : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Fact]
     public async Task HomepageViewAllAthletesButton_ShowsLoadedAthleteCount()
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await NewContextAsync(browser, app);
         var page = await context.NewPageAsync();
 
@@ -33,12 +33,8 @@ public sealed class HomepageChromeRegressionBrowserTests
     [Fact]
     public async Task LeaderboardPortraits_UseTheOriginalPhotoWhenGeneratedThumbnailsFail()
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await NewContextAsync(browser, app);
         await context.RouteAsync(
             "**/generated/thumbs/athletes/devarajan_narayanan_thumb_md_*.webp*",
@@ -88,13 +84,9 @@ public sealed class HomepageChromeRegressionBrowserTests
     [Fact]
     public async Task LeaderboardChangedControls_RetainTheMasterAttentionCue()
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
-        await using var context = await NewContextAsync(browser, app);
+        var app = App;
+        var browser = Browser;
+        await using var context = await NewContextAsync(browser, app, ReducedMotion.NoPreference);
         var page = await context.NewPageAsync();
         await page.GotoAsync("/leaderboard?view=bortz", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
         await page.WaitForFunctionAsync(
@@ -125,12 +117,8 @@ public sealed class HomepageChromeRegressionBrowserTests
     [Fact]
     public async Task HomepageLeaderboardsLink_IsCentered()
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await NewContextAsync(browser, app);
         var page = await context.NewPageAsync();
         await page.GotoAsync("/", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
@@ -157,12 +145,8 @@ public sealed class HomepageChromeRegressionBrowserTests
     [Fact]
     public async Task HomepageSectionFooterLinks_AreCenteredWithinTheirSections()
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await NewContextAsync(browser, app);
         var page = await context.NewPageAsync();
         await page.GotoAsync("/", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
@@ -183,491 +167,7 @@ public sealed class HomepageChromeRegressionBrowserTests
         }
     }
 
-    [Fact]
-    public async Task ContributeDeepLink_KeepsTheQrCodeAndAddressInThePreviewViewport()
-    {
-        const string donationAddress = "bc1qpreviewdonationaddress000000000000000000000";
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
-        await using var context = await NewContextAsync(browser, app);
-        await context.RouteAsync("**/api/bitcoin/donation-address", route =>
-            route.FulfillAsync(new RouteFulfillOptions
-            {
-                Status = 200,
-                ContentType = "application/json",
-                Body = $$"""{"address":"{{donationAddress}}"}"""
-            }));
-        var page = await context.NewPageAsync();
-        await page.SetViewportSizeAsync(1194, 862);
-
-        await page.GotoAsync("/#contribute", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-        await page.WaitForFunctionAsync(
-            """
-            expectedAddress => document.getElementById('leaderboardStatus')?.textContent === 'Leaderboard loaded.'
-                && document.getElementById('eventsStatus')?.textContent === 'Events loaded.'
-                && document.getElementById('btcAddressLink')?.href.includes(expectedAddress)
-                && document.querySelector('.qr-code-img')?.complete
-                && document.querySelector('.qr-code-img')?.naturalWidth > 0
-            """,
-            donationAddress);
-        await page.WaitForTimeoutAsync(1200);
-        await SettleLayoutAsync(page);
-        // Model any late async homepage content that grows above the fragment target.
-        await page.EvaluateAsync(
-            """
-            () => {
-                const simulatedLateContent = document.createElement('div');
-                simulatedLateContent.id = 'simulated-late-homepage-content';
-                simulatedLateContent.style.height = '520px';
-                document.getElementById('contribute').before(simulatedLateContent);
-            }
-            """);
-        await SettleLayoutAsync(page);
-
-        var preview = await page.EvaluateAsync<ContributePreviewDiagnostics>(
-            """
-            () => {
-                const section = document.getElementById('contribute').getBoundingClientRect();
-                const qrCode = document.querySelector('.qr-code-img').getBoundingClientRect();
-                const address = document.querySelector('.btc-address').getBoundingClientRect();
-                return {
-                    Hash: location.hash,
-                    SectionTop: section.top,
-                    QrTop: qrCode.top,
-                    QrBottom: qrCode.bottom,
-                    AddressTop: address.top,
-                    AddressBottom: address.bottom,
-                    ViewportHeight: innerHeight
-                };
-            }
-            """);
-
-        Assert.Equal("#contribute", preview.Hash);
-        Assert.InRange(preview.SectionTop, 0, 80);
-        Assert.InRange(preview.QrTop, 0, preview.ViewportHeight);
-        Assert.InRange(preview.QrBottom, 0, preview.ViewportHeight);
-        Assert.InRange(preview.AddressTop, 0, preview.ViewportHeight);
-        Assert.InRange(preview.AddressBottom, 0, preview.ViewportHeight);
-    }
-
-    [Fact]
-    public async Task SharedHeaderBrand_HoverKeepsItsTextColorAndUsesPointerCursor()
-    {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
-        await using var context = await NewContextAsync(browser, app);
-        var page = await context.NewPageAsync();
-        await page.GotoAsync("/select-athlete", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-        await SettleLayoutAsync(page);
-
-        await AssertHoverKeepsColorAndUsesPointerAsync(
-            page.Locator("header[role=\"banner\"] .header-link"));
-
-        await page.GotoAsync("/history", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-        await page.EvaluateAsync("window.scrollTo(0, Math.min(700, document.documentElement.scrollHeight - innerHeight))");
-        await SettleLayoutAsync(page);
-
-        await page.Locator("#site-sticky-header")
-            .WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Visible });
-        await AssertHoverKeepsColorAndUsesPointerAsync(page.Locator(".site-sticky-header-link"));
-
-        static async Task AssertHoverKeepsColorAndUsesPointerAsync(ILocator brand)
-        {
-            var colorBeforeHover = await brand.EvaluateAsync<string>("element => getComputedStyle(element).color");
-
-            await brand.HoverAsync();
-
-            var colorWhileHovered = await brand.EvaluateAsync<string>("element => getComputedStyle(element).color");
-            var cursorWhileHovered = await brand.EvaluateAsync<string>("element => getComputedStyle(element).cursor");
-            Assert.Equal(colorBeforeHover, colorWhileHovered);
-            Assert.Equal("pointer", cursorWhileHovered);
-        }
-    }
-
-    [Fact]
-    public async Task HomepagePrimaryAction_RemainsProminentVisibleAndSeparateFromTheBrand()
-    {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
-        await using var context = await NewContextAsync(browser, app);
-        var page = await context.NewPageAsync();
-        await page.GotoAsync("/", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-        await SettleLayoutAsync(page);
-
-        foreach (var viewport in new[]
-                 {
-                     new ViewportSize { Width = 320, Height = 720 },
-                     new ViewportSize { Width = 390, Height = 844 },
-                     new ViewportSize { Width = 640, Height = 390 },
-                     new ViewportSize { Width = 844, Height = 390 },
-                     new ViewportSize { Width = 1026, Height = 505 },
-                     new ViewportSize { Width = 1280, Height = 720 }
-                 })
-        {
-            await page.SetViewportSizeAsync(viewport.Width, viewport.Height);
-            await SettleLayoutAsync(page);
-
-            var diagnostics = await MeasureHomepageHeaderAsync(page);
-            Assert.True(diagnostics.ActionVisible,
-                $"Homepage Play action was hidden at {viewport.Width}x{viewport.Height}.");
-            Assert.Equal("PLAY THE GAME", diagnostics.ActionText);
-            Assert.True(diagnostics.ActionWidth >= 44 && diagnostics.ActionHeight >= 44,
-                $"Homepage Play action collapsed to {diagnostics.ActionWidth:F1}x{diagnostics.ActionHeight:F1}px at " +
-                $"{viewport.Width}x{viewport.Height}.");
-            Assert.True(diagnostics.ActionLeft >= -0.5 && diagnostics.ActionRight <= viewport.Width + 0.5,
-                $"Homepage Play action left the viewport at {viewport.Width}x{viewport.Height}.");
-            Assert.False(diagnostics.ActionOverlapsBrand,
-                $"Homepage Play action overlapped the brand at {viewport.Width}x{viewport.Height}.");
-            Assert.True(diagnostics.ActionBackgroundAlpha >= 0.99,
-                $"Homepage Play action lost its opaque fill at {viewport.Width}x{viewport.Height}.");
-            Assert.True(diagnostics.LogoNaturalWidth > 0 && diagnostics.LogoNaturalHeight > 0,
-                "Homepage logo did not decode.");
-            Assert.InRange(
-                Math.Abs(diagnostics.LogoRenderedAspectRatio - diagnostics.LogoNaturalAspectRatio),
-                0,
-                0.01);
-        }
-    }
-
-    [Fact]
-    public async Task HomepagePrimaryAction_RetainsInvitationCuesAndHonorsReducedMotion()
-    {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
-        await using var context = await NewContextAsync(browser, app);
-        var page = await context.NewPageAsync();
-        await page.GotoAsync("/", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-        await SettleLayoutAsync(page);
-
-        var action = page.Locator("body.home-page header[role=\"banner\"] .join-game:not(.scrolled-button)");
-        var cues = await action.EvaluateAsync<InvitationCueDiagnostics>(
-            """
-            element => {
-                const style = getComputedStyle(element);
-                const halo = getComputedStyle(element, '::before');
-                return {
-                    BackgroundImage: style.backgroundImage,
-                    Foreground: style.color,
-                    BoxShadow: style.boxShadow,
-                    AnimationName: style.animationName,
-                    AnimationDuration: style.animationDuration,
-                    AnimationIterationCount: style.animationIterationCount,
-                    HaloDisplay: halo.display,
-                    HaloPointerEvents: halo.pointerEvents,
-                    PlayWeight: getComputedStyle(element.querySelector('strong')).fontWeight,
-                    MiddleWeight: getComputedStyle(element.querySelector('.join-game-middle')).fontWeight,
-                    GameWeight: getComputedStyle(element.querySelector('.join-game-end')).fontWeight,
-                    Transform: style.transform
-                };
-            }
-            """);
-
-        Assert.Contains("linear-gradient", cues.BackgroundImage);
-        Assert.Contains("rgb(31, 111, 53)", cues.BackgroundImage);
-        Assert.Contains("rgb(46, 125, 50)", cues.BackgroundImage);
-        Assert.Equal("rgb(255, 255, 255)", cues.Foreground);
-        Assert.Equal("700", cues.PlayWeight);
-        Assert.Equal("400", cues.MiddleWeight);
-        Assert.Equal("700", cues.GameWeight);
-        Assert.NotEqual("none", cues.BoxShadow);
-        Assert.Equal("play-invitation", cues.AnimationName);
-        Assert.Equal("0.88s", cues.AnimationDuration);
-        Assert.Equal("3", cues.AnimationIterationCount);
-        Assert.Equal("block", cues.HaloDisplay);
-        Assert.Equal("none", cues.HaloPointerEvents);
-
-        await action.HoverAsync();
-        await page.WaitForTimeoutAsync(180);
-        var hovered = await action.EvaluateAsync<InvitationCueDiagnostics>(
-            """
-            element => {
-                const style = getComputedStyle(element);
-                return {
-                    BackgroundImage: style.backgroundImage,
-                    BoxShadow: style.boxShadow,
-                    AnimationName: style.animationName,
-                    AnimationDuration: style.animationDuration,
-                    AnimationIterationCount: style.animationIterationCount,
-                    Transform: style.transform
-                };
-            }
-            """);
-
-        Assert.NotEqual("none", hovered.Transform);
-        Assert.NotEqual(cues.BackgroundImage, hovered.BackgroundImage);
-
-        await using var reducedContext = await NewContextAsync(browser, app, ReducedMotion.Reduce);
-        var reducedPage = await reducedContext.NewPageAsync();
-        await reducedPage.GotoAsync("/", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-        await SettleLayoutAsync(reducedPage);
-        var reduced = await reducedPage
-            .Locator("body.home-page header[role=\"banner\"] .join-game:not(.scrolled-button)")
-            .EvaluateAsync<InvitationCueDiagnostics>(
-                """
-                element => {
-                    const style = getComputedStyle(element);
-                    return {
-                        BackgroundImage: style.backgroundImage,
-                        BoxShadow: style.boxShadow,
-                        AnimationName: style.animationName
-                    };
-                }
-                """);
-
-        Assert.Contains("linear-gradient", reduced.BackgroundImage);
-        Assert.NotEqual("none", reduced.BoxShadow);
-        Assert.Equal("none", reduced.AnimationName);
-    }
-
-    [Fact]
-    public async Task PlayAction_IsNeverAbsentInCompactLandscapeOrAfterScrolling()
-    {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
-        await using var context = await NewContextAsync(browser, app);
-        var page = await context.NewPageAsync();
-
-        // /play deliberately removes the redundant join buttons because it is
-        // already their destination. The dedicated event board also keeps its
-        // long-standing full-screen chrome. These routes retain the global CTA.
-        foreach (var path in new[] { "/", "/leaderboard", "/ruleset", "/history" })
-        {
-            foreach (var viewport in new[]
-                     {
-                         new ViewportSize { Width = 320, Height = 720 },
-                         new ViewportSize { Width = 390, Height = 844 },
-                         new ViewportSize { Width = 667, Height = 375 },
-                         new ViewportSize { Width = 844, Height = 390 },
-                         new ViewportSize { Width = 900, Height = 450 },
-                         new ViewportSize { Width = 1026, Height = 473 }
-                     })
-            {
-                await page.SetViewportSizeAsync(viewport.Width, viewport.Height);
-                await page.GotoAsync(path, new PageGotoOptions { WaitUntil = WaitUntilState.Load });
-                await ScrollToStablePositionAsync(page, 0);
-
-                var atTopActions = await MeasurePlayActionsAsync(page);
-                var atTop = atTopActions
-                    .Where(action => IsActionFullyInsideViewport(viewport, action))
-                    .ToArray();
-                Assert.True(atTop.Length > 0,
-                    $"{path} had no fully visible Play action at the top of {viewport.Width}x{viewport.Height}. " +
-                    DescribeActions(atTopActions));
-                Assert.All(atTop, action => AssertActionInsideViewport(path, viewport, action));
-
-                await ScrollToStablePositionAsync(page, 52);
-                var stickyHeaderVisible = await page.EvaluateAsync<bool>(
-                    "() => document.getElementById('site-sticky-header')?.classList.contains('visible') === true");
-                if (stickyHeaderVisible)
-                {
-                    var boundaryActions = await MeasurePlayActionsAsync(page);
-                    var stickyAction = Assert.Single(
-                        boundaryActions,
-                        action => action.Visible && action.IsScrolled);
-                    AssertActionInsideViewport(path, viewport, stickyAction);
-                }
-
-                await ScrollToStablePositionAsync(page, 700);
-                var afterScrollActions = await MeasurePlayActionsAsync(page);
-                var afterScroll = afterScrollActions
-                    .Where(action => IsActionFullyInsideViewport(viewport, action))
-                    .ToArray();
-                Assert.True(afterScroll.Length > 0,
-                    $"{path} had no fully visible Play action after scrolling at {viewport.Width}x{viewport.Height}. " +
-                    DescribeActions(afterScrollActions));
-                Assert.All(afterScroll, action => AssertActionInsideViewport(path, viewport, action));
-            }
-        }
-    }
-
-    [Fact]
-    public async Task StickyPlayAction_RemainsAWorkingRouteToTheGame()
-    {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
-        await using var context = await NewContextAsync(browser, app);
-        var page = await context.NewPageAsync();
-        await page.SetViewportSizeAsync(305, 844);
-        await page.GotoAsync("/history", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-        await page.EvaluateAsync("window.scrollTo(0, Math.min(700, document.documentElement.scrollHeight - innerHeight))");
-        await SettleLayoutAsync(page);
-
-        var stickyAction = page.Locator("header[role=\"banner\"] .join-game.scrolled-button");
-        await stickyAction.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Visible });
-        Assert.Equal("PLAY", (await stickyAction.InnerTextAsync()).Trim());
-
-        var fit = await page.EvaluateAsync<StickyActionFitDiagnostics>(
-            """
-            () => {
-                const action = document.querySelector('header[role="banner"] .join-game.scrolled-button');
-                const stickyHeader = document.getElementById('site-sticky-header');
-                const actionRect = action.getBoundingClientRect();
-                const stickyRect = stickyHeader.getBoundingClientRect();
-                const halo = getComputedStyle(action, '::before');
-                const haloTop = actionRect.top + parseFloat(halo.top);
-                const haloBottom = actionRect.bottom - parseFloat(halo.bottom);
-                return {
-                    ActionWidth: actionRect.width,
-                    ActionHeight: actionRect.height,
-                    StickyTop: stickyRect.top,
-                    StickyBottom: stickyRect.bottom,
-                    HaloTop: haloTop,
-                    HaloBottom: haloBottom,
-                    CenterOffset: Math.abs(
-                        (haloTop + haloBottom) / 2
-                        - (stickyRect.top + stickyRect.bottom) / 2)
-                };
-            }
-            """);
-
-        Assert.True(fit.HaloTop >= fit.StickyTop - 0.5,
-            $"Compact Play halo escaped above the sticky header: {fit.HaloTop:F1}px < {fit.StickyTop:F1}px.");
-        Assert.True(fit.HaloBottom <= fit.StickyBottom + 0.5,
-            $"Compact Play halo escaped below the sticky header: {fit.HaloBottom:F1}px > {fit.StickyBottom:F1}px.");
-        Assert.InRange(fit.CenterOffset, 0, 1);
-        Assert.True(fit.ActionWidth > fit.ActionHeight,
-            $"Compact Play action became too square: {fit.ActionWidth:F1}x{fit.ActionHeight:F1}px.");
-
-        await stickyAction.ClickAsync();
-        await page.WaitForURLAsync("**/play");
-        Assert.EndsWith("/play", new Uri(page.Url).AbsolutePath, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task NewsletterSubscribeAction_HasOpaqueHighContrastFillAcrossResponsiveLayouts()
-    {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
-        await using var context = await NewContextAsync(browser, app);
-        var page = await context.NewPageAsync();
-        await page.GotoAsync("/", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-        await SettleLayoutAsync(page);
-
-        foreach (var viewport in new[]
-                 {
-                     new ViewportSize { Width = 320, Height = 720 },
-                     new ViewportSize { Width = 390, Height = 844 },
-                     new ViewportSize { Width = 1026, Height = 505 },
-                     new ViewportSize { Width = 1280, Height = 720 }
-                 })
-        {
-            await page.SetViewportSizeAsync(viewport.Width, viewport.Height);
-            await SettleLayoutAsync(page);
-            var diagnostics = await page.Locator(".enhanced-subscribe-btn").EvaluateAsync<FilledActionDiagnostics>(
-                MeasureFilledActionScript);
-
-            Assert.True(diagnostics.Visible,
-                $"Subscribe action was hidden at {viewport.Width}x{viewport.Height}.");
-            Assert.True(diagnostics.Enabled,
-                $"Subscribe action was unexpectedly disabled at {viewport.Width}x{viewport.Height}.");
-            Assert.True(diagnostics.BackgroundAlpha >= 0.99,
-                $"Subscribe action background was {diagnostics.Background} at {viewport.Width}x{viewport.Height}.");
-            Assert.True(diagnostics.TextContrast >= 4.5,
-                $"Subscribe text contrast was only {diagnostics.TextContrast:F2}:1 at " +
-                $"{viewport.Width}x{viewport.Height}; foreground={diagnostics.Foreground}, " +
-                $"background={diagnostics.Background}.");
-            Assert.True(diagnostics.Width >= 44 && diagnostics.Height >= 44,
-                $"Subscribe action collapsed to {diagnostics.Width:F1}x{diagnostics.Height:F1}px at " +
-                $"{viewport.Width}x{viewport.Height}.");
-        }
-    }
-
-    [Fact]
-    public async Task CompactPageHeaders_PreserveTheLogoAndFullPrimaryActionWhenSpaceAllows()
-    {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
-        await using var context = await NewContextAsync(browser, app);
-        var page = await context.NewPageAsync();
-
-        foreach (var path in new[] { "/leaderboard", "/ruleset", "/history" })
-        {
-            foreach (var viewport in new[]
-                     {
-                         new ViewportSize { Width = 464, Height = 800 },
-                         new ViewportSize { Width = 464, Height = 300 }
-                     })
-            {
-                await page.SetViewportSizeAsync(viewport.Width, viewport.Height);
-                await page.GotoAsync(path, new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-                await SettleLayoutAsync(page);
-
-                var diagnostics = await page.EvaluateAsync<CompactHeaderDiagnostics>(
-                    """
-                    () => {
-                        const header = document.querySelector('header[role="banner"]');
-                        const brand = header.querySelector('.header-link');
-                        const logo = brand.querySelector('.main-logo-image');
-                        const action = header.querySelector('.join-game:not(.scrolled-button)');
-                        const brandRect = brand.getBoundingClientRect();
-                        const logoRect = logo.getBoundingClientRect();
-                        const actionRect = action.getBoundingClientRect();
-                        return {
-                            ActionText: action.innerText.trim().replace(/\s+/g, ' '),
-                            ActionLeft: actionRect.left,
-                            ActionRight: actionRect.right,
-                            BrandLeft: brandRect.left,
-                            BrandRight: brandRect.right,
-                            LogoWidth: logoRect.width,
-                            LogoRenderedAspectRatio: logoRect.width / logoRect.height,
-                            LogoNaturalAspectRatio: logo.naturalWidth / logo.naturalHeight,
-                            HasHorizontalOverflow: document.documentElement.scrollWidth
-                                > document.documentElement.clientWidth
-                        };
-                    }
-                    """);
-
-                Assert.Equal("PLAY THE GAME", diagnostics.ActionText);
-                Assert.True(diagnostics.LogoWidth >= 44,
-                    $"{path} logo collapsed to {diagnostics.LogoWidth:F1}px at " +
-                    $"{viewport.Width}x{viewport.Height}.");
-                Assert.InRange(
-                    Math.Abs(diagnostics.LogoRenderedAspectRatio - diagnostics.LogoNaturalAspectRatio),
-                    0,
-                    0.01);
-                Assert.True(diagnostics.ActionLeft >= diagnostics.BrandRight,
-                    $"{path} brand and Play action overlapped at {viewport.Width}x{viewport.Height}.");
-                Assert.True(diagnostics.BrandLeft >= -0.5 && diagnostics.ActionRight <= viewport.Width + 0.5,
-                    $"{path} compact header left the viewport at {viewport.Width}x{viewport.Height}.");
-                Assert.False(diagnostics.HasHorizontalOverflow,
-                    $"{path} overflowed horizontally at {viewport.Width}x{viewport.Height}.");
-            }
-        }
-    }
-
-    private const string MeasureFilledActionScript =
+    internal const string MeasureFilledActionScript =
         """
         element => {
             const parse = value => {
@@ -703,7 +203,7 @@ public sealed class HomepageChromeRegressionBrowserTests
         }
         """;
 
-    private static async Task<IBrowserContext> NewContextAsync(
+    internal static async Task<IBrowserContext> NewContextAsync(
         IBrowser browser,
         BrowserTestApp app,
         ReducedMotion? reducedMotion = null)
@@ -716,40 +216,25 @@ public sealed class HomepageChromeRegressionBrowserTests
             ReducedMotion = reducedMotion
         });
         await BrowserTestApp.RouteExternalResourcesAsync(context);
-        await context.RouteAsync("**/api/bitcoin/**", async route =>
-        {
-            var path = new Uri(route.Request.Url).AbsolutePath;
-            var body = path.EndsWith("/donation-address", StringComparison.OrdinalIgnoreCase)
-                ? """{"address":""}"""
-                : path.EndsWith("/btcusd", StringComparison.OrdinalIgnoreCase)
-                    ? """{"btcToUsdRate":0}"""
-                    : """{"totalReceivedSatoshis":0}""";
-            await route.FulfillAsync(new RouteFulfillOptions
-            {
-                Status = 200,
-                ContentType = "application/json",
-                Body = body
-            });
-        });
         return context;
     }
 
-    private static async Task SettleLayoutAsync(IPage page)
+    internal static async Task SettleLayoutAsync(IPage page)
     {
         await page.EvaluateAsync("() => document.fonts?.ready || Promise.resolve()");
         await page.EvaluateAsync(
             "() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
     }
 
-    private static async Task ScrollToStablePositionAsync(IPage page, int requestedTop)
+    internal static async Task ScrollToStablePositionAsync(IPage page, int requestedTop)
     {
         await page.EvaluateAsync("() => document.fonts?.ready || Promise.resolve()");
         await page.EvaluateAsync(
             """
             requestedTop => new Promise((resolve, reject) => {
                 const positionTolerance = 0.5;
-                const stableDuration = 180;
-                const minimumStableSamples = 4;
+                const stableDuration = 32;
+                const minimumStableSamples = 2;
                 const timeout = 5000;
                 const startedAt = performance.now();
                 let stableSince = null;
@@ -806,7 +291,7 @@ public sealed class HomepageChromeRegressionBrowserTests
             "() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
     }
 
-    private static Task<HomepageHeaderDiagnostics> MeasureHomepageHeaderAsync(IPage page) =>
+    internal static Task<HomepageHeaderDiagnostics> MeasureHomepageHeaderAsync(IPage page) =>
         page.EvaluateAsync<HomepageHeaderDiagnostics>(
             """
             () => {
@@ -837,7 +322,7 @@ public sealed class HomepageChromeRegressionBrowserTests
             }
             """);
 
-    private static Task<VisibleActionDiagnostics[]> MeasurePlayActionsAsync(IPage page) =>
+    internal static Task<VisibleActionDiagnostics[]> MeasurePlayActionsAsync(IPage page) =>
         page.EvaluateAsync<VisibleActionDiagnostics[]>(
             """
             () => [...document.querySelectorAll('header[role="banner"] .join-game')]
@@ -878,14 +363,14 @@ public sealed class HomepageChromeRegressionBrowserTests
                 })
             """);
 
-    private static string DescribeActions(IEnumerable<VisibleActionDiagnostics> actions) =>
+    internal static string DescribeActions(IEnumerable<VisibleActionDiagnostics> actions) =>
         string.Join("; ", actions.Select(action =>
             $"{action.Name} ({action.Text}): display={action.Display}, visibility={action.Visibility}, " +
             $"scrolled={action.IsScrolled}, scrollY={action.ScrollY:F1}/{action.MaxScroll:F1}, " +
             $"rect={action.Left:F1},{action.Top:F1} " +
             $"{action.Width:F1}x{action.Height:F1}"));
 
-    private static bool IsActionFullyInsideViewport(
+    internal static bool IsActionFullyInsideViewport(
         ViewportSize viewport,
         VisibleActionDiagnostics action) =>
         action.Visible
@@ -894,7 +379,7 @@ public sealed class HomepageChromeRegressionBrowserTests
         && action.Top >= -0.5
         && action.Bottom <= viewport.Height + 0.5;
 
-    private static void AssertActionInsideViewport(
+    internal static void AssertActionInsideViewport(
         string path,
         ViewportSize viewport,
         VisibleActionDiagnostics action)
@@ -928,7 +413,7 @@ public sealed class HomepageChromeRegressionBrowserTests
         Assert.Contains("rgb(46, 125, 50)", action.BackgroundImage);
     }
 
-    private sealed class HomepageHeaderDiagnostics
+    internal sealed class HomepageHeaderDiagnostics
     {
         public bool ActionVisible { get; set; }
         public string ActionText { get; set; } = "";
@@ -944,7 +429,7 @@ public sealed class HomepageChromeRegressionBrowserTests
         public double LogoNaturalAspectRatio { get; set; }
     }
 
-    private sealed class ContributePreviewDiagnostics
+    internal sealed class ContributePreviewDiagnostics
     {
         public string Hash { get; set; } = "";
         public double SectionTop { get; set; }
@@ -955,7 +440,7 @@ public sealed class HomepageChromeRegressionBrowserTests
         public double ViewportHeight { get; set; }
     }
 
-    private sealed class VisibleActionDiagnostics
+    internal sealed class VisibleActionDiagnostics
     {
         public string Name { get; set; } = "";
         public string Text { get; set; } = "";
@@ -977,7 +462,7 @@ public sealed class HomepageChromeRegressionBrowserTests
         public double BackgroundAlpha { get; set; }
     }
 
-    private sealed class FilledActionDiagnostics
+    internal sealed class FilledActionDiagnostics
     {
         public bool Visible { get; set; }
         public bool Enabled { get; set; }
@@ -989,7 +474,7 @@ public sealed class HomepageChromeRegressionBrowserTests
         public double Height { get; set; }
     }
 
-    private sealed class CompactHeaderDiagnostics
+    internal sealed class CompactHeaderDiagnostics
     {
         public string ActionText { get; set; } = "";
         public double ActionLeft { get; set; }
@@ -1002,7 +487,7 @@ public sealed class HomepageChromeRegressionBrowserTests
         public bool HasHorizontalOverflow { get; set; }
     }
 
-    private sealed class StickyActionFitDiagnostics
+    internal sealed class StickyActionFitDiagnostics
     {
         public double ActionWidth { get; set; }
         public double ActionHeight { get; set; }
@@ -1013,7 +498,7 @@ public sealed class HomepageChromeRegressionBrowserTests
         public double CenterOffset { get; set; }
     }
 
-    private sealed class InvitationCueDiagnostics
+    internal sealed class InvitationCueDiagnostics
     {
         public string BackgroundImage { get; set; } = "";
         public string Foreground { get; set; } = "";
