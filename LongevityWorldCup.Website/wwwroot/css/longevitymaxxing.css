@@ -911,12 +911,6 @@
     color: var(--lmx-muted);
 }
 
-.lmx-field label span,
-.lmx-field span.lmx-label span {
-    color: var(--lmx-subtle);
-    font-weight: 800;
-}
-
 .lmx-field-help {
     margin: 0;
     color: var(--lmx-muted);
