@@ -310,6 +310,8 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.DoesNotContain("Choose this only if the participant is already listed as a Longevity athlete.", html);
         Assert.DoesNotContain("Only if you are already listed as an athlete", html);
         Assert.Contains("id=\"lmxProfilePictureField\"", html);
+        Assert.Contains("<span class=\"lmx-label\">Profile picture</span>", html);
+        Assert.DoesNotContain("<span>optional</span>", html);
         Assert.Contains("Upload profile picture", html);
         Assert.Contains("id=\"lmxProfilePictureInput\" type=\"file\" accept=\"image/*\"", html);
         Assert.Contains("id=\"lmxSignupTimeZoneLabel\">Timezone</span>", html);
@@ -897,9 +899,9 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("formData.append(\"profilePicture\", uploadFile, uploadFile.name || \"profile-picture.jpg\");", javascript);
         Assert.DoesNotContain("Profile picture must be 8 MB or smaller.", javascript);
         Assert.Contains("const MAX_NOTE_PHOTOS = 4;", javascript);
-        Assert.Contains("Remarks <span>optional</span>", javascript);
-        Assert.Contains("Photos <span>optional</span>", javascript);
-        Assert.Contains(".lmx-field span.lmx-label span", css);
+        Assert.Contains("<label for=\"lmx-note-${day.challengeDay}\">Remarks</label>", javascript);
+        Assert.Contains("<span class=\"lmx-label\">Photos</span>", javascript);
+        Assert.DoesNotContain("<span>optional</span>", javascript);
         Assert.Contains("                Save", javascript);
         Assert.DoesNotContain("Participant note <span>optional</span>", javascript);
         Assert.DoesNotContain("Note photos <span>optional</span>", javascript);
