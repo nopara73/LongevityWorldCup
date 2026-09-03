@@ -5,12 +5,13 @@ using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
-public sealed class EventDataServiceCleanupTests
+public sealed class EventDataServiceCleanupTests(TestWebApplicationFactory sharedFactory)
+    : IClassFixture<TestWebApplicationFactory>
 {
     [Fact]
     public void CleanupEventsForMissingAthletes_HidesOnlyAthleteEventsWithMissingSlugReferences()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         var events = factory.Services.GetRequiredService<EventDataService>();
         var db = factory.Services.GetRequiredService<DatabaseManager>();
 
@@ -59,7 +60,7 @@ public sealed class EventDataServiceCleanupTests
     [Fact]
     public void CleanupEventsForMissingAthletes_SkipsWhenActiveSlugSetLooksInvalid()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         var events = factory.Services.GetRequiredService<EventDataService>();
         var db = factory.Services.GetRequiredService<DatabaseManager>();
 
@@ -81,7 +82,7 @@ public sealed class EventDataServiceCleanupTests
     [Fact]
     public void CleanupEventsForMissingAthletes_RestoresEventsHiddenForAthletesWhoReturned()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         var events = factory.Services.GetRequiredService<EventDataService>();
         var db = factory.Services.GetRequiredService<DatabaseManager>();
 
@@ -114,7 +115,7 @@ public sealed class EventDataServiceCleanupTests
     [Fact]
     public void ReconcileBiologicalAgeImprovementEventDates_MovesExistingUploadTimeEventToResultDate()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         var events = factory.Services.GetRequiredService<EventDataService>();
         var db = factory.Services.GetRequiredService<DatabaseManager>();
 
@@ -144,7 +145,7 @@ public sealed class EventDataServiceCleanupTests
     [Fact]
     public void CleanupAmateurAgeReductionGraduationLinks_RemovesOnlyCurrentProPreviousLinks()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         var events = factory.Services.GetRequiredService<EventDataService>();
         var db = factory.Services.GetRequiredService<DatabaseManager>();
 

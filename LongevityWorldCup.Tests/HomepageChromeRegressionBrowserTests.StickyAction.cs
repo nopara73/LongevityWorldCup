@@ -1,9 +1,14 @@
 using Microsoft.Playwright;
 using Xunit;
+using static LongevityWorldCup.Tests.HomepageChromeRegressionBrowserTests;
 
 namespace LongevityWorldCup.Tests;
 
-public sealed partial class HomepageChromeRegressionBrowserTests
+[Collection(BrowserTestCollections.WorkloadA)]
+public sealed class HomepageStickyActionBrowserTests(
+    PlaywrightBrowserFixture browserFixture,
+    BrowserTestAppFixture appFixture)
+    : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Fact]
     public async Task StickyPlayAction_RemainsAWorkingRouteToTheGame()

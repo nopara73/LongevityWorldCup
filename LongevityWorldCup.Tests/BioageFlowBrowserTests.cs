@@ -4,9 +4,11 @@ using Xunit;
 namespace LongevityWorldCup.Tests;
 
 
-[Collection(BrowserTestCollections.Integration)]
-public sealed class BioageFlowBrowserTests(PlaywrightBrowserFixture browserFixture)
-    : BrowserIntegrationTest(browserFixture)
+[Collection(BrowserTestCollections.WorkloadC)]
+public sealed class BioageFlowBrowserTests(
+    PlaywrightBrowserFixture browserFixture,
+    BrowserTestAppFixture appFixture)
+    : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Fact]
     public async Task BortzAgeCalculator_ConfiguredCapsPlateauInRawLaboratoryUnits()

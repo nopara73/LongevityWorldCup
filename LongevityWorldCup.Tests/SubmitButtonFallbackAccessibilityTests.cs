@@ -3,7 +3,8 @@ using Xunit;
 namespace LongevityWorldCup.Tests;
 
 
-public sealed class SubmitButtonFallbackAccessibilityTests(TestWebApplicationFactory sharedFactory) : IClassFixture<TestWebApplicationFactory>
+[Collection(HttpTestCollections.ReadOnly)]
+public sealed class SubmitButtonFallbackAccessibilityTests(TestWebApplicationFactory sharedFactory)
 {
     [Theory]
     [InlineData("/play/edit-profile.html", "Submit change request")]

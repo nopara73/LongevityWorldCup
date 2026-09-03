@@ -1,9 +1,14 @@
 using Microsoft.Playwright;
 using Xunit;
+using static LongevityWorldCup.Tests.FlowActionDockBrowserTests;
 
 namespace LongevityWorldCup.Tests;
 
-public sealed partial class FlowActionDockBrowserTests
+[Collection(BrowserTestCollections.WorkloadD)]
+public sealed class FlowActionDockFormBrowserTests(
+    PlaywrightBrowserFixture browserFixture,
+    BrowserTestAppFixture appFixture)
+    : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Theory]
     [InlineData(390, 844, false)]

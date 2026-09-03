@@ -1,9 +1,14 @@
 using Microsoft.Playwright;
 using Xunit;
+using static LongevityWorldCup.Tests.HomepageChromeRegressionBrowserTests;
 
 namespace LongevityWorldCup.Tests;
 
-public sealed partial class HomepageChromeRegressionBrowserTests
+[Collection(BrowserTestCollections.WorkloadD)]
+public sealed class HomepagePlayActionBrowserTests(
+    PlaywrightBrowserFixture browserFixture,
+    BrowserTestAppFixture appFixture)
+    : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Fact]
     public async Task PlayAction_IsNeverAbsentInCompactLandscapeOrAfterScrolling()
@@ -11,54 +16,63 @@ public sealed partial class HomepageChromeRegressionBrowserTests
         var app = App;
         var browser = Browser;
         await using var context = await NewContextAsync(browser, app);
-        var page = await context.NewPageAsync();
-
         // /play deliberately removes the redundant join buttons because it is
         // already their destination. The dedicated event board also keeps its
         // long-standing full-screen chrome. These routes retain the global CTA.
-        foreach (var path in new[] { "/", "/leaderboard", "/ruleset", "/history" })
-        {
-            foreach (var viewport in new[]
-                     {
-                         new ViewportSize { Width = 320, Height = 720 },
-                         new ViewportSize { Width = 390, Height = 844 },
-                         new ViewportSize { Width = 667, Height = 375 },
-                         new ViewportSize { Width = 844, Height = 390 },
-                         new ViewportSize { Width = 900, Height = 450 },
-                         new ViewportSize { Width = 1026, Height = 473 }
-                     })
+        await Parallel.ForEachAsync(
+            new[] { "/", "/leaderboard", "/ruleset", "/history" },
+            new ParallelOptions { MaxDegreeOfParallelism = 4 },
+            async (path, _) =>
             {
-                await page.SetViewportSizeAsync(viewport.Width, viewport.Height);
-                await page.GotoAsync(path, new PageGotoOptions { WaitUntil = WaitUntilState.Load });
-                var phases = await MeasureScrollPhasesAsync(page);
-
-                var atTopActions = phases.AtTop;
-                var atTop = atTopActions
-                    .Where(action => IsActionFullyInsideViewport(viewport, action))
-                    .ToArray();
-                Assert.True(atTop.Length > 0,
-                    $"{path} had no fully visible Play action at the top of {viewport.Width}x{viewport.Height}. " +
-                    DescribeActions(atTopActions));
-                Assert.All(atTop, action => AssertActionInsideViewport(path, viewport, action));
-
-                if (phases.StickyHeaderVisible)
+                var page = await context.NewPageAsync();
+                try
                 {
-                    var stickyAction = Assert.Single(
-                        phases.AtStickyBoundary,
-                        action => action.Visible && action.IsScrolled);
-                    AssertActionInsideViewport(path, viewport, stickyAction);
-                }
+                    await page.GotoAsync(path, new PageGotoOptions { WaitUntil = WaitUntilState.Load });
+                    foreach (var viewport in new[]
+                             {
+                                 new ViewportSize { Width = 320, Height = 720 },
+                                 new ViewportSize { Width = 390, Height = 844 },
+                                 new ViewportSize { Width = 667, Height = 375 },
+                                 new ViewportSize { Width = 844, Height = 390 },
+                                 new ViewportSize { Width = 900, Height = 450 },
+                                 new ViewportSize { Width = 1026, Height = 473 }
+                             })
+                    {
+                        await page.SetViewportSizeAsync(viewport.Width, viewport.Height);
+                        var phases = await MeasureScrollPhasesAsync(page);
 
-                var afterScrollActions = phases.AfterScroll;
-                var afterScroll = afterScrollActions
-                    .Where(action => IsActionFullyInsideViewport(viewport, action))
-                    .ToArray();
-                Assert.True(afterScroll.Length > 0,
-                    $"{path} had no fully visible Play action after scrolling at {viewport.Width}x{viewport.Height}. " +
-                    DescribeActions(afterScrollActions));
-                Assert.All(afterScroll, action => AssertActionInsideViewport(path, viewport, action));
-            }
-        }
+                        var atTopActions = phases.AtTop;
+                        var atTop = atTopActions
+                            .Where(action => IsActionFullyInsideViewport(viewport, action))
+                            .ToArray();
+                        Assert.True(atTop.Length > 0,
+                            $"{path} had no fully visible Play action at the top of {viewport.Width}x{viewport.Height}. " +
+                            DescribeActions(atTopActions));
+                        Assert.All(atTop, action => AssertActionInsideViewport(path, viewport, action));
+
+                        if (phases.StickyHeaderVisible)
+                        {
+                            var stickyAction = Assert.Single(
+                                phases.AtStickyBoundary,
+                                action => action.Visible && action.IsScrolled);
+                            AssertActionInsideViewport(path, viewport, stickyAction);
+                        }
+
+                        var afterScrollActions = phases.AfterScroll;
+                        var afterScroll = afterScrollActions
+                            .Where(action => IsActionFullyInsideViewport(viewport, action))
+                            .ToArray();
+                        Assert.True(afterScroll.Length > 0,
+                            $"{path} had no fully visible Play action after scrolling at {viewport.Width}x{viewport.Height}. " +
+                            DescribeActions(afterScrollActions));
+                        Assert.All(afterScroll, action => AssertActionInsideViewport(path, viewport, action));
+                    }
+                }
+                finally
+                {
+                    await page.CloseAsync();
+                }
+            });
     }
 
     private static Task<ScrollPhaseDiagnostics> MeasureScrollPhasesAsync(IPage page)

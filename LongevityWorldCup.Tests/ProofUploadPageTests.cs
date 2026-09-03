@@ -3,7 +3,8 @@ using Xunit;
 namespace LongevityWorldCup.Tests;
 
 
-public sealed class ProofUploadPageTests(TestWebApplicationFactory sharedFactory) : IClassFixture<TestWebApplicationFactory>
+[Collection(HttpTestCollections.ReadOnly)]
+public sealed class ProofUploadPageTests(TestWebApplicationFactory sharedFactory)
 {
     [Fact]
     public async Task ResultUpload_BackButtonReturnsToDashboardWithoutHistoryFallback()

@@ -3,10 +3,15 @@ using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using Microsoft.Playwright;
 using Xunit;
+using static LongevityWorldCup.Tests.GuessMyAgeBrowserTests;
 
 namespace LongevityWorldCup.Tests;
 
-public sealed partial class GuessMyAgeBrowserTests
+[Collection(BrowserTestCollections.WorkloadC)]
+public sealed class GuessMyAgeCelebrationBrowserTests(
+    PlaywrightBrowserFixture browserFixture,
+    BrowserTestAppFixture appFixture)
+    : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Fact]
     public async Task GuessSubmission_AnimatesThroughTheRevealAndBoundsCelebrationWork()

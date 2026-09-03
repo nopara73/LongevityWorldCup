@@ -5,7 +5,8 @@ using Xunit;
 namespace LongevityWorldCup.Tests;
 
 
-public sealed class AthletesDataCacheTests(TestWebApplicationFactory sharedFactory) : IClassFixture<TestWebApplicationFactory>
+[Collection(HttpTestCollections.ReadOnly)]
+public sealed class AthletesDataCacheTests(TestWebApplicationFactory sharedFactory)
 {
     [Fact]
     public async Task AthletesEndpoint_ReturnsETagAndHonorsConditionalGet()

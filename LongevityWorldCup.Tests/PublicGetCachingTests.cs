@@ -6,7 +6,8 @@ using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
-public sealed class PublicGetCachingTests(TestWebApplicationFactory sharedFactory) : IClassFixture<TestWebApplicationFactory>
+[Collection(HttpTestCollections.ReadOnly)]
+public sealed class PublicGetCachingTests(TestWebApplicationFactory sharedFactory)
 {
     [Theory]
     [InlineData("/api/data/flags")]

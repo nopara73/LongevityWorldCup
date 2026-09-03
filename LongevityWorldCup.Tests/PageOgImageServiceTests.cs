@@ -6,7 +6,8 @@ using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
-public sealed class PageOgImageServiceTests(TestWebApplicationFactory sharedFactory) : IClassFixture<TestWebApplicationFactory>
+[Collection(HttpTestCollections.ReadOnly)]
+public sealed class PageOgImageServiceTests(TestWebApplicationFactory sharedFactory)
 {
     [Fact]
     public void TryGetCurrentPayload_NormalizesSlugAndBuildsVersionedUrl()

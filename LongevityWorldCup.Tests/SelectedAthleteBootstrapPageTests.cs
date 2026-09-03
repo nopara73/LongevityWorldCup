@@ -4,7 +4,8 @@ using Xunit;
 namespace LongevityWorldCup.Tests;
 
 
-public sealed class SelectedAthleteBootstrapPageTests(TestWebApplicationFactory sharedFactory) : IClassFixture<TestWebApplicationFactory>
+[Collection(HttpTestCollections.ReadOnly)]
+public sealed class SelectedAthleteBootstrapPageTests(TestWebApplicationFactory sharedFactory)
 {
     [Theory]
     [InlineData("/onboarding/pheno-age.html", "if (isUpdate && !hasSelectedAthlete)")]

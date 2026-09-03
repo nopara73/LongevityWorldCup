@@ -3,9 +3,11 @@ using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
-[Collection(BrowserTestCollections.Integration)]
-public sealed class VisualViewportFlowBrowserTests(PlaywrightBrowserFixture browserFixture)
-    : BrowserIntegrationTest(browserFixture)
+[Collection(BrowserTestCollections.WorkloadB)]
+public sealed class VisualViewportFlowBrowserTests(
+    PlaywrightBrowserFixture browserFixture,
+    BrowserTestAppFixture appFixture)
+    : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Fact]
     public async Task FlowDock_UsesVisualViewportOffsetAndHeightForDockingAndClearance()

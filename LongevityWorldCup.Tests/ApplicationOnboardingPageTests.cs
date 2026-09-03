@@ -5,7 +5,8 @@ using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
-public sealed class ApplicationOnboardingPageTests(TestWebApplicationFactory sharedFactory) : IClassFixture<TestWebApplicationFactory>
+[Collection(HttpTestCollections.ReadOnly)]
+public sealed class ApplicationOnboardingPageTests(TestWebApplicationFactory sharedFactory)
 {
     [Fact]
     public async Task ProfilePictureUpload_UsesNativeButtonsWithoutADuplicateImageTabStop()

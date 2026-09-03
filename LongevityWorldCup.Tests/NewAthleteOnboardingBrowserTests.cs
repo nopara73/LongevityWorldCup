@@ -8,9 +8,11 @@ using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
-[Collection(BrowserTestCollections.Integration)]
-public sealed class NewAthleteOnboardingBrowserTests(PlaywrightBrowserFixture browserFixture)
-    : BrowserIntegrationTest(browserFixture)
+[Collection(BrowserTestCollections.WorkloadB)]
+public sealed class NewAthleteOnboardingBrowserTests(
+    PlaywrightBrowserFixture browserFixture,
+    BrowserTestAppFixture appFixture)
+    : BrowserIntegrationTest(browserFixture, appFixture)
 {
     private static int s_nextClientAddress;
     private readonly string _clientAddress =

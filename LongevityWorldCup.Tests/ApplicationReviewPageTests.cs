@@ -3,7 +3,8 @@ using Xunit;
 namespace LongevityWorldCup.Tests;
 
 
-public sealed class ApplicationReviewPageTests(TestWebApplicationFactory sharedFactory) : IClassFixture<TestWebApplicationFactory>
+[Collection(HttpTestCollections.ReadOnly)]
+public sealed class ApplicationReviewPageTests(TestWebApplicationFactory sharedFactory)
 {
     [Fact]
     public async Task ApplicationReview_UsesSafeStorageAccessForSubmissionContext()

@@ -1,9 +1,14 @@
 using Microsoft.Playwright;
 using Xunit;
+using static LongevityWorldCup.Tests.FlowActionDockBrowserTests;
 
 namespace LongevityWorldCup.Tests;
 
-public sealed partial class FlowActionDockBrowserTests
+[Collection(BrowserTestCollections.WorkloadB)]
+public sealed class FlowActionDockResultBrowserTests(
+    PlaywrightBrowserFixture browserFixture,
+    BrowserTestAppFixture appFixture)
+    : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Theory]
     [InlineData("/pheno-age")]

@@ -2,7 +2,8 @@ using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
-public sealed class AestheticSystemPageTests(TestWebApplicationFactory sharedFactory) : IClassFixture<TestWebApplicationFactory>
+[Collection(HttpTestCollections.ReadOnly)]
+public sealed class AestheticSystemPageTests(TestWebApplicationFactory sharedFactory)
 {
     [Theory]
     [InlineData("/", true)]

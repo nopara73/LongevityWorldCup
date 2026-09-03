@@ -1,9 +1,14 @@
 using Microsoft.Playwright;
 using Xunit;
+using static LongevityWorldCup.Tests.AestheticSystemBrowserTests;
 
 namespace LongevityWorldCup.Tests;
 
-public sealed partial class AestheticSystemBrowserTests
+[Collection(BrowserTestCollections.WorkloadA)]
+public sealed class AestheticAccessibilityBrowserTests(
+    PlaywrightBrowserFixture browserFixture,
+    BrowserTestAppFixture appFixture)
+    : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Fact]
     public async Task MobileDocumentationNavigation_UsesProgressiveDisclosureAndLargeTargets()

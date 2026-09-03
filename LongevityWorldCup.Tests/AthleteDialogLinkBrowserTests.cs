@@ -4,10 +4,11 @@ using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
-[Collection(BrowserTestCollections.Integration)]
+[Collection(BrowserTestCollections.WorkloadD)]
 public sealed class AthleteDialogLinkBrowserTests(
-    PlaywrightBrowserFixture browserFixture)
-    : BrowserIntegrationTest(browserFixture)
+    PlaywrightBrowserFixture browserFixture,
+    BrowserTestAppFixture appFixture)
+    : BrowserIntegrationTest(browserFixture, appFixture)
 {
     private const string MichaelSlug = "michael-lustgarten";
     private const string ProfileImageA = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";

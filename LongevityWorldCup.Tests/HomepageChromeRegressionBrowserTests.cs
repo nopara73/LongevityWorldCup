@@ -3,9 +3,11 @@ using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
-[Collection(BrowserTestCollections.Integration)]
-public sealed partial class HomepageChromeRegressionBrowserTests(PlaywrightBrowserFixture browserFixture)
-    : BrowserIntegrationTest(browserFixture)
+[Collection(BrowserTestCollections.WorkloadA)]
+public sealed class HomepageChromeRegressionBrowserTests(
+    PlaywrightBrowserFixture browserFixture,
+    BrowserTestAppFixture appFixture)
+    : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Fact]
     public async Task HomepageViewAllAthletesButton_ShowsLoadedAthleteCount()

@@ -10,7 +10,8 @@ using Xunit;
 namespace LongevityWorldCup.Tests;
 
 
-public sealed class PublicRequestTimeoutTests(TestWebApplicationFactory sharedFactory) : IClassFixture<TestWebApplicationFactory>
+[Collection(HttpTestCollections.ReadOnly)]
+public sealed class PublicRequestTimeoutTests(TestWebApplicationFactory sharedFactory)
 {
     [Fact]
     public void PublicWorkTimeoutPolicy_IsConfigured()

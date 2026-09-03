@@ -5,7 +5,8 @@ using Xunit;
 namespace LongevityWorldCup.Tests;
 
 
-public sealed class EventBoardRedirectMiddlewareTests(TestWebApplicationFactory sharedFactory) : IClassFixture<TestWebApplicationFactory>
+[Collection(HttpTestCollections.ReadOnly)]
+public sealed class EventBoardRedirectMiddlewareTests(TestWebApplicationFactory sharedFactory)
 {
     [Fact]
     public async Task EventBoardEmbedWithoutAthlete_RedirectsToErrorPage()

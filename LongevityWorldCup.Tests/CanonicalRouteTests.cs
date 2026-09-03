@@ -5,7 +5,8 @@ using Xunit;
 namespace LongevityWorldCup.Tests;
 
 
-public sealed class CanonicalRouteTests(TestWebApplicationFactory sharedFactory) : IClassFixture<TestWebApplicationFactory>
+[Collection(HttpTestCollections.ReadOnly)]
+public sealed class CanonicalRouteTests(TestWebApplicationFactory sharedFactory)
 {
     [Theory]
     [InlineData("/index.html?ref=test", "/?ref=test")]

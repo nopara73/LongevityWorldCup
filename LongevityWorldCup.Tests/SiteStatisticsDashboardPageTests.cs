@@ -4,7 +4,8 @@ using static LongevityWorldCup.Tests.FrontendSourceTestHelper;
 
 namespace LongevityWorldCup.Tests;
 
-public sealed class SiteStatisticsDashboardPageTests(TestWebApplicationFactory sharedFactory) : IClassFixture<TestWebApplicationFactory>
+[Collection(HttpTestCollections.ReadOnly)]
+public sealed class SiteStatisticsDashboardPageTests(TestWebApplicationFactory sharedFactory)
 {
     [Fact]
     public async Task SiteStatisticsDashboardPage_UsesVersionedLocalAssets()

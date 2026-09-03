@@ -3,7 +3,8 @@ using Xunit;
 namespace LongevityWorldCup.Tests;
 
 
-public sealed class RulesetImageAccessibilityTests(TestWebApplicationFactory sharedFactory) : IClassFixture<TestWebApplicationFactory>
+[Collection(HttpTestCollections.ReadOnly)]
+public sealed class RulesetImageAccessibilityTests(TestWebApplicationFactory sharedFactory)
 {
     [Fact]
     public async Task RulesetDiagrams_HaveDescriptiveAlternativeText()

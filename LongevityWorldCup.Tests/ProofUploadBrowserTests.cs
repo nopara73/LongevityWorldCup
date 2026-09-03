@@ -5,9 +5,11 @@ using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
-[Collection(BrowserTestCollections.Integration)]
-public sealed class ProofUploadBrowserTests(PlaywrightBrowserFixture browserFixture)
-    : BrowserIntegrationTest(browserFixture)
+[Collection(BrowserTestCollections.WorkloadB)]
+public sealed class ProofUploadBrowserTests(
+    PlaywrightBrowserFixture browserFixture,
+    BrowserTestAppFixture appFixture)
+    : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Fact]
     public async Task ResultUpload_WaitsForDelayedProofHelperBeforeBindingUploadControls()

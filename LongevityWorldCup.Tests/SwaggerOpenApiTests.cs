@@ -7,7 +7,8 @@ using Xunit;
 namespace LongevityWorldCup.Tests;
 
 
-public sealed class SwaggerOpenApiTests(TestWebApplicationFactory sharedFactory) : IClassFixture<TestWebApplicationFactory>
+[Collection(HttpTestCollections.ReadOnly)]
+public sealed class SwaggerOpenApiTests(TestWebApplicationFactory sharedFactory)
 {
     private static readonly string[] PublicPaths =
     [

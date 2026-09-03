@@ -1,4 +1,5 @@
 using System.Runtime.ExceptionServices;
+using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Playwright;
 
@@ -6,6 +7,11 @@ namespace LongevityWorldCup.Tests;
 
 public sealed class BrowserTestApp(TestWebApplicationFactory factory, HttpClient client, Uri baseAddress) : IAsyncDisposable
 {
+    private static readonly Regex StubbedThirdPartyUrl = new(
+        @"^https?://(?:cdnjs\.cloudflare\.com|cdn\.jsdelivr\.net|www\.googletagmanager\.com|ipapi\.co)(?:/|$)|^https://github\.com/user-attachments/",
+        RegexOptions.IgnoreCase);
+    private static int s_nextBrowserContextAddress;
+
     public Uri BaseAddress { get; } = baseAddress;
     public IServiceProvider Services => factory.Services;
 
@@ -73,6 +79,16 @@ public sealed class BrowserTestApp(TestWebApplicationFactory factory, HttpClient
         IBrowserContext context,
         Func<Uri, Task>? beforeLoopbackContinueAsync = null)
     {
+        var clientAddress = $"2001:db8::{Interlocked.Increment(ref s_nextBrowserContextAddress):x}";
+        if (beforeLoopbackContinueAsync is null)
+        {
+            await context.RouteAsync(
+                "**/api/site-statistics/event",
+                route => ContinueWithClientAddressAsync(route, clientAddress));
+            await context.RouteAsync(StubbedThirdPartyUrl, FulfillExternalResourceAsync);
+            return;
+        }
+
         await context.RouteAsync("**/*", async route =>
         {
             if (!Uri.TryCreate(route.Request.Url, UriKind.Absolute, out var uri))
@@ -86,12 +102,28 @@ public sealed class BrowserTestApp(TestWebApplicationFactory factory, HttpClient
                 if (beforeLoopbackContinueAsync is not null)
                     await beforeLoopbackContinueAsync(uri);
 
-                await route.ContinueAsync();
+                if (uri.AbsolutePath.Equals("/api/site-statistics/event", StringComparison.OrdinalIgnoreCase))
+                    await ContinueWithClientAddressAsync(route, clientAddress);
+                else
+                    await route.ContinueAsync();
                 return;
             }
 
-            await FulfillExternalResourceAsync(route);
+            if (StubbedThirdPartyUrl.IsMatch(uri.AbsoluteUri))
+                await FulfillExternalResourceAsync(route);
+            else
+                await route.ContinueAsync();
         });
+    }
+
+    private static Task ContinueWithClientAddressAsync(IRoute route, string clientAddress)
+    {
+        var headers = route.Request.Headers.ToDictionary(
+            pair => pair.Key,
+            pair => pair.Value,
+            StringComparer.OrdinalIgnoreCase);
+        headers["X-Forwarded-For"] = clientAddress;
+        return route.ContinueAsync(new RouteContinueOptions { Headers = headers });
     }
 
     private static async Task FulfillExternalResourceAsync(IRoute route)

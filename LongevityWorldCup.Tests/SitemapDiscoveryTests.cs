@@ -8,7 +8,8 @@ using Xunit;
 namespace LongevityWorldCup.Tests;
 
 
-public sealed class SitemapDiscoveryTests(TestWebApplicationFactory sharedFactory) : IClassFixture<TestWebApplicationFactory>
+[Collection(HttpTestCollections.ReadOnly)]
+public sealed class SitemapDiscoveryTests(TestWebApplicationFactory sharedFactory)
 {
     private static readonly string[] PublicLeaguePaths =
     [

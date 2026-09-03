@@ -7,10 +7,11 @@ using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
-[Collection(BrowserTestCollections.Integration)]
+[Collection(BrowserTestCollections.WorkloadC)]
 public sealed class SiteStatisticsDashboardBrowserTests(
-    PlaywrightBrowserFixture browserFixture)
-    : BrowserIntegrationTest(browserFixture)
+    PlaywrightBrowserFixture browserFixture,
+    BrowserTestAppFixture appFixture)
+    : BrowserIntegrationTest(browserFixture, appFixture)
 {
     public override async Task InitializeAsync()
     {

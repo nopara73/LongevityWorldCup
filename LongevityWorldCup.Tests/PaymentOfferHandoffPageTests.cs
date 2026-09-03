@@ -4,7 +4,8 @@ using Xunit;
 namespace LongevityWorldCup.Tests;
 
 
-public sealed class PaymentOfferHandoffPageTests(TestWebApplicationFactory sharedFactory) : IClassFixture<TestWebApplicationFactory>
+[Collection(HttpTestCollections.ReadOnly)]
+public sealed class PaymentOfferHandoffPageTests(TestWebApplicationFactory sharedFactory)
 {
     [Fact]
     public void JoinPaymentOffer_HaltsNavigationWhenStorageFails()

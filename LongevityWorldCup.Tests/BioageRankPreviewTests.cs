@@ -4,7 +4,8 @@ using Xunit;
 namespace LongevityWorldCup.Tests;
 
 
-public sealed class BioageRankPreviewTests(TestWebApplicationFactory sharedFactory) : IClassFixture<TestWebApplicationFactory>
+[Collection(HttpTestCollections.ReadOnly)]
+public sealed class BioageRankPreviewTests(TestWebApplicationFactory sharedFactory)
 {
     [Fact]
     public async Task HypotheticalRankPreviewRequest_IsTimeBounded()

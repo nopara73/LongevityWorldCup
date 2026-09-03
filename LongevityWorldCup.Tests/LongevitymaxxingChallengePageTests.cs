@@ -8,7 +8,8 @@ using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
-public sealed class LongevitymaxxingChallengePageTests(TestWebApplicationFactory sharedFactory) : IClassFixture<TestWebApplicationFactory>
+[Collection(HttpTestCollections.ReadOnly)]
+public sealed class LongevitymaxxingChallengePageTests(TestWebApplicationFactory sharedFactory)
 {
     [Fact]
     public void ChallengeApiRequests_AreTimeBoundedPastServerPublicWorkTimeout()

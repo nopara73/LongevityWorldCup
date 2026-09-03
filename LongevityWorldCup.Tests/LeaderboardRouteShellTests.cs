@@ -5,7 +5,8 @@ using Xunit;
 namespace LongevityWorldCup.Tests;
 
 
-public sealed class LeaderboardRouteShellTests(TestWebApplicationFactory sharedFactory) : IClassFixture<TestWebApplicationFactory>
+[Collection(HttpTestCollections.ReadOnly)]
+public sealed class LeaderboardRouteShellTests(TestWebApplicationFactory sharedFactory)
 {
     [Theory]
     [InlineData("/flag/hungary")]

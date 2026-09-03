@@ -6,7 +6,8 @@ using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
-public sealed class SharePreviewMetadataTests(TestWebApplicationFactory sharedFactory) : IClassFixture<TestWebApplicationFactory>
+[Collection(HttpTestCollections.ReadOnly)]
+public sealed class SharePreviewMetadataTests(TestWebApplicationFactory sharedFactory)
 {
     [Theory]
     [InlineData("/", "/og/page/home.png?v=")]

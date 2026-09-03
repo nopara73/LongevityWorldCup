@@ -3,7 +3,8 @@ using Xunit;
 namespace LongevityWorldCup.Tests;
 
 
-public sealed class HomepageLinkAccessibilityTests(TestWebApplicationFactory sharedFactory) : IClassFixture<TestWebApplicationFactory>
+[Collection(HttpTestCollections.ReadOnly)]
+public sealed class HomepageLinkAccessibilityTests(TestWebApplicationFactory sharedFactory)
 {
     [Fact]
     public async Task LeaderboardsAboutLink_ReplacesTheDuplicateHomepageTagline()

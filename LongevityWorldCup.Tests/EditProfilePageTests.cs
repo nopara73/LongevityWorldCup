@@ -3,7 +3,8 @@ using Xunit;
 namespace LongevityWorldCup.Tests;
 
 
-public sealed class EditProfilePageTests(TestWebApplicationFactory sharedFactory) : IClassFixture<TestWebApplicationFactory>
+[Collection(HttpTestCollections.ReadOnly)]
+public sealed class EditProfilePageTests(TestWebApplicationFactory sharedFactory)
 {
     [Fact]
     public async Task EditProfileFields_HavePersistentLabels()

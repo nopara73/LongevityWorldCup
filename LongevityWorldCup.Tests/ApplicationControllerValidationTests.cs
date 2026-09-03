@@ -16,12 +16,13 @@ using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
-public sealed class ApplicationControllerValidationTests
+public sealed class ApplicationControllerValidationTests(TestWebApplicationFactory sharedFactory)
+    : IClassFixture<TestWebApplicationFactory>
 {
     [Fact]
     public void FailedSubmissionReport_IsLoggedAsClientWarning()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         var logger = new RecordingLogger<ApplicationController>();
         var controller = CreateController(factory, logger: logger);
 
@@ -45,7 +46,7 @@ public sealed class ApplicationControllerValidationTests
     [Fact]
     public async Task ApplicationInvalidModelStateReturnsValidationProblemDetails()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         var controller = CreateController(factory);
         controller.ModelState.AddModelError(nameof(ApplicantData.AccountEmail), "Email is invalid.");
 
@@ -60,7 +61,7 @@ public sealed class ApplicationControllerValidationTests
     [Fact]
     public async Task ApplicationNullBodyReturnsBadRequestBeforeProcessing()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         var controller = CreateController(factory);
 
         var result = await controller.Application(null!, CancellationToken.None);
@@ -72,7 +73,7 @@ public sealed class ApplicationControllerValidationTests
     [Fact]
     public async Task SubmissionStatusReturnsTheCompletedCheckoutResponseWithoutCaching()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         var store = factory.Services.GetRequiredService<ApplicationSubmissionRetryStore>();
         var expected = new ApplicationSubmissionResponse(
             true,
@@ -97,7 +98,7 @@ public sealed class ApplicationControllerValidationTests
     [Fact]
     public async Task SubmissionStatusReturnsNotFoundForAnUnknownSubmission()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         var controller = CreateController(factory);
 
         var result = await controller.SubmissionStatus(
@@ -110,7 +111,7 @@ public sealed class ApplicationControllerValidationTests
     [Fact]
     public async Task ApplicationMissingNameReturnsBadRequestBeforeProcessing()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         var controller = CreateController(factory);
 
         var result = await controller.Application(new ApplicantData { AccountEmail = "athlete@example.test" }, CancellationToken.None);
@@ -122,7 +123,7 @@ public sealed class ApplicationControllerValidationTests
     [Fact]
     public async Task FullApplicationMissingAccountEmailReturnsBadRequestBeforeProcessing()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         var controller = CreateController(factory);
 
         var result = await controller.Application(new ApplicantData
@@ -138,7 +139,7 @@ public sealed class ApplicationControllerValidationTests
     [Fact]
     public async Task FullApplicationInvalidAccountEmailReturnsBadRequestBeforeProcessing()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         var controller = CreateController(factory);
 
         var result = await controller.Application(new ApplicantData
@@ -155,7 +156,7 @@ public sealed class ApplicationControllerValidationTests
     [Fact]
     public async Task FullApplicationMissingDateOfBirthReturnsBadRequestBeforeProcessing()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         var controller = CreateController(factory);
 
         var result = await controller.Application(new ApplicantData
@@ -174,7 +175,7 @@ public sealed class ApplicationControllerValidationTests
     [Fact]
     public async Task FullApplicationInvalidDateOfBirthReturnsBadRequestBeforeProcessing()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         var controller = CreateController(factory);
 
         var result = await controller.Application(new ApplicantData
@@ -191,7 +192,7 @@ public sealed class ApplicationControllerValidationTests
     [Fact]
     public async Task FullApplicationFutureDateOfBirthReturnsBadRequestBeforeProcessing()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         var controller = CreateController(factory);
         var tomorrow = DateTime.UtcNow.Date.AddDays(1);
 
@@ -209,7 +210,7 @@ public sealed class ApplicationControllerValidationTests
     [Fact]
     public async Task FullApplicationMissingBiomarkersReturnsBadRequestBeforeProcessing()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         var controller = CreateController(factory);
 
         var result = await controller.Application(new ApplicantData
@@ -228,7 +229,7 @@ public sealed class ApplicationControllerValidationTests
     [Fact]
     public async Task FullApplicationMissingProofReturnsBadRequestBeforeProcessing()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         var controller = CreateController(factory);
 
         var result = await controller.Application(new ApplicantData
@@ -247,7 +248,7 @@ public sealed class ApplicationControllerValidationTests
     [Fact]
     public async Task FullApplicationMissingProfilePictureReturnsBadRequestBeforeProcessing()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         var controller = CreateController(factory);
 
         var result = await controller.Application(new ApplicantData
@@ -266,7 +267,7 @@ public sealed class ApplicationControllerValidationTests
     [Fact]
     public async Task ResultSubmissionMissingBiomarkerDateReturnsBadRequestBeforeProcessing()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         var controller = CreateController(factory);
 
         var result = await controller.Application(new ApplicantData
@@ -283,7 +284,7 @@ public sealed class ApplicationControllerValidationTests
     [Fact]
     public async Task ResultSubmissionNullBiomarkerRowReturnsDateRequiredBeforeProcessing()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         var controller = CreateController(factory);
 
         var result = await controller.Application(new ApplicantData
@@ -300,7 +301,7 @@ public sealed class ApplicationControllerValidationTests
     [Fact]
     public async Task ResultSubmissionInvalidAccountEmailReturnsBadRequestBeforeProcessing()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         var controller = CreateController(factory);
 
         var result = await controller.Application(new ApplicantData
@@ -320,7 +321,7 @@ public sealed class ApplicationControllerValidationTests
     [InlineData("2026-02-31")]
     public async Task ResultSubmissionInvalidBiomarkerDateReturnsBadRequestBeforeProcessing(string biomarkerDate)
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         var controller = CreateController(factory);
 
         var result = await controller.Application(new ApplicantData
@@ -337,7 +338,7 @@ public sealed class ApplicationControllerValidationTests
     [Fact]
     public async Task ResultSubmissionFutureBiomarkerDateReturnsBadRequestBeforeProcessing()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         var controller = CreateController(factory);
         var tomorrow = DateTime.UtcNow.Date.AddDays(1);
 
@@ -355,7 +356,7 @@ public sealed class ApplicationControllerValidationTests
     [Fact]
     public async Task ResultSubmissionMissingBiomarkerValuesReturnsBadRequestBeforeProcessing()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         var controller = CreateController(factory);
 
         var result = await controller.Application(new ApplicantData
@@ -372,7 +373,7 @@ public sealed class ApplicationControllerValidationTests
     [Fact]
     public async Task ResultSubmissionWithBortzDifferenceMissingBortzPanelReturnsBadRequestBeforeProcessing()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         var controller = CreateController(factory);
 
         var result = await controller.Application(new ApplicantData
@@ -399,7 +400,7 @@ public sealed class ApplicationControllerValidationTests
     [Fact]
     public async Task ResultSubmissionWithPhenoDifferenceMissingPhenoPanelReturnsBadRequestBeforeProcessing()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         var controller = CreateController(factory);
 
         var result = await controller.Application(new ApplicantData
@@ -424,7 +425,7 @@ public sealed class ApplicationControllerValidationTests
     [Fact]
     public async Task SubmissionWithBortzOnlyBiomarkersButNoBortzResultReturnsBadRequest()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         var controller = CreateController(factory);
 
         var result = await controller.Application(new ApplicantData
@@ -458,7 +459,7 @@ public sealed class ApplicationControllerValidationTests
     [Fact]
     public async Task ResultSubmissionMissingProofReturnsBadRequestBeforeProcessing()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         var controller = CreateController(factory);
 
         var result = await controller.Application(new ApplicantData
@@ -474,7 +475,7 @@ public sealed class ApplicationControllerValidationTests
     [Fact]
     public async Task ResultSubmissionBlankProofReturnsProofRequiredBeforeProcessing()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         var controller = CreateController(factory);
 
         var result = await controller.Application(new ApplicantData
@@ -491,7 +492,7 @@ public sealed class ApplicationControllerValidationTests
     [Fact]
     public async Task ResultSubmissionTooManyProofsReturnsBadRequestBeforeProcessing()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         var controller = CreateController(factory);
 
         var result = await controller.Application(new ApplicantData
@@ -510,7 +511,7 @@ public sealed class ApplicationControllerValidationTests
     [Fact]
     public async Task DuplicateProofsAreCollapsedBeforeCountValidation()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         var controller = CreateController(factory);
         var applicant = new ApplicantData
         {
@@ -576,7 +577,7 @@ public sealed class ApplicationControllerValidationTests
     [Fact]
     public async Task ResultSubmissionProofValidationRecordsServerStatistics()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         var statistics = factory.Services.GetRequiredService<SiteStatisticsService>();
         var controller = CreateController(factory, statistics);
 
@@ -610,7 +611,7 @@ public sealed class ApplicationControllerValidationTests
     [Fact]
     public async Task ResultSubmissionMissingBiomarkersReturnsBadRequestBeforeProcessing()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         var controller = CreateController(factory);
 
         var result = await controller.Application(new ApplicantData
@@ -630,7 +631,7 @@ public sealed class ApplicationControllerValidationTests
     [InlineData("mediaContact", "Media contact is required.")]
     public async Task FullApplicationMissingRequiredProfileFieldReturnsBadRequestBeforeProcessing(string missingField, string expectedError)
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         var controller = CreateController(factory);
         var applicantData = CreateValidFullApplication();
 
@@ -659,7 +660,7 @@ public sealed class ApplicationControllerValidationTests
     [Fact]
     public async Task InterviewRequestInvalidModelStateReturnsValidationProblemDetails()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         var controller = CreateController(factory);
         controller.ModelState.AddModelError(nameof(InterviewRequestData.Email), "Email is invalid.");
 
@@ -1079,7 +1080,7 @@ public sealed class ApplicationControllerValidationTests
     [Fact]
     public async Task ApplicationPayments_TreatBtcpayDependencyCancellationAsUnavailable()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         var controller = CreateController(factory, btcpayInvoices: new TimeoutBtcpayInvoiceClient());
         controller.ControllerContext.HttpContext.Request.Scheme = "https";
         controller.ControllerContext.HttpContext.Request.Host = new HostString("submit.example.test");
@@ -1196,7 +1197,7 @@ public sealed class ApplicationControllerValidationTests
     [InlineData(false, true, "https://submit.example.test/review?from=edit-profile")]
     public void ReviewRedirectUrl_PreservesSubmissionReviewSource(bool isResultSubmissionOnly, bool isEditSubmissionOnly, string expected)
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         var controller = CreateController(factory);
         controller.ControllerContext.HttpContext.Request.Scheme = "https";
         controller.ControllerContext.HttpContext.Request.Host = new HostString("submit.example.test");

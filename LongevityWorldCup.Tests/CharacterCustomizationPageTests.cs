@@ -4,7 +4,8 @@ using Xunit;
 namespace LongevityWorldCup.Tests;
 
 
-public sealed class CharacterCustomizationPageTests(TestWebApplicationFactory sharedFactory) : IClassFixture<TestWebApplicationFactory>
+[Collection(HttpTestCollections.ReadOnly)]
+public sealed class CharacterCustomizationPageTests(TestWebApplicationFactory sharedFactory)
 {
     [Fact]
     public async Task DashboardRoute_UsesPlayShellDashboardPanel()

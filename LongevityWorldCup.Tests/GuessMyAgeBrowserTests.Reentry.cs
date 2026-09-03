@@ -3,11 +3,16 @@ using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using Microsoft.Playwright;
 using Xunit;
+using static LongevityWorldCup.Tests.GuessMyAgeBrowserTests;
 
 namespace LongevityWorldCup.Tests;
 
 
-public sealed partial class GuessMyAgeBrowserTests
+[Collection(BrowserTestCollections.WorkloadD)]
+public sealed class GuessMyAgeReentryBrowserTests(
+    PlaywrightBrowserFixture browserFixture,
+    BrowserTestAppFixture appFixture)
+    : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Theory]
     [InlineData(false)]

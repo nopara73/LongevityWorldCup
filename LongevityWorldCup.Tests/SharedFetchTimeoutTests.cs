@@ -3,7 +3,8 @@ using Xunit;
 namespace LongevityWorldCup.Tests;
 
 
-public sealed class SharedFetchTimeoutTests(TestWebApplicationFactory sharedFactory) : IClassFixture<TestWebApplicationFactory>
+[Collection(HttpTestCollections.ReadOnly)]
+public sealed class SharedFetchTimeoutTests(TestWebApplicationFactory sharedFactory)
 {
     [Fact]
     public async Task SharedFetchWithTimeout_AbortsTimedOutRequestsWhenSupported()

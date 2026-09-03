@@ -4,10 +4,11 @@ using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
-[Collection(BrowserTestCollections.Integration)]
+[Collection(BrowserTestCollections.WorkloadC)]
 public sealed class LabAccessPanelTests(
-    PlaywrightBrowserFixture browserFixture)
-    : BrowserIntegrationTest(browserFixture)
+    PlaywrightBrowserFixture browserFixture,
+    BrowserTestAppFixture appFixture)
+    : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Fact]
     public void BortzPageShowsNewZealandPanelForEligibleVisitors()

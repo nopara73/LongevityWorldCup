@@ -3,7 +3,8 @@ using Xunit;
 namespace LongevityWorldCup.Tests;
 
 
-public sealed class EventBoardInteractionAccessibilityTests(TestWebApplicationFactory sharedFactory) : IClassFixture<TestWebApplicationFactory>
+[Collection(HttpTestCollections.ReadOnly)]
+public sealed class EventBoardInteractionAccessibilityTests(TestWebApplicationFactory sharedFactory)
 {
     [Fact]
     public async Task CustomEventExpander_HasVisibleKeyboardFocus()

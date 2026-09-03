@@ -5,7 +5,8 @@ using Xunit;
 namespace LongevityWorldCup.Tests;
 
 
-public sealed class BrowserSecurityHeadersTests(TestWebApplicationFactory sharedFactory) : IClassFixture<TestWebApplicationFactory>
+[Collection(HttpTestCollections.ReadOnly)]
+public sealed class BrowserSecurityHeadersTests(TestWebApplicationFactory sharedFactory)
 {
     [Fact]
     public async Task HtmlResponses_IncludeBrowserSecurityHeadersCompatibleWithInlineScripts()

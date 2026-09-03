@@ -3,7 +3,8 @@ using Xunit;
 namespace LongevityWorldCup.Tests;
 
 
-public sealed class PageDocumentTitleTests(TestWebApplicationFactory sharedFactory) : IClassFixture<TestWebApplicationFactory>
+[Collection(HttpTestCollections.ReadOnly)]
+public sealed class PageDocumentTitleTests(TestWebApplicationFactory sharedFactory)
 {
     [Theory]
     [InlineData("/privacy", "Privacy Policy | Longevity World Cup", false)]

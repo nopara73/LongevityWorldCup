@@ -1,10 +1,15 @@
 using System.Collections.Concurrent;
 using Microsoft.Playwright;
 using Xunit;
+using static LongevityWorldCup.Tests.FlowActionDockBrowserTests;
 
 namespace LongevityWorldCup.Tests;
 
-public sealed partial class FlowActionDockBrowserTests
+[Collection(BrowserTestCollections.WorkloadA)]
+public sealed class FlowActionDockLayoutBrowserTests(
+    PlaywrightBrowserFixture browserFixture,
+    BrowserTestAppFixture appFixture)
+    : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Fact]
     public async Task PlayWorkflowPages_DoNotExposeCompactHeaderMenu()
@@ -72,14 +77,38 @@ public sealed partial class FlowActionDockBrowserTests
             (Width: 1280, Height: 720),
             (Width: 1366, Height: 768)
         };
+        var routeAnchorViewports = new HashSet<(int Width, int Height)>
+        {
+            (390, 844),
+            (1280, 720)
+        };
+        var responsiveRepresentativeRoutes = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "/join",
+            "/apply?fake=1"
+        };
         var app = App;
         var browser = Browser;
-        var failures = new List<string>();
+        var failures = new ConcurrentBag<string>();
+        var scenarios = (
+            from viewport in viewports
+            from route in routes
+            // Every route keeps constrained-mobile and desktop coverage. The
+            // other breakpoint shapes run on two structurally different,
+            // multi-action flows instead of repeating the same shared dock
+            // algorithm for every route/viewport cross-product.
+            where routeAnchorViewports.Contains(viewport)
+                  || responsiveRepresentativeRoutes.Contains(route)
+            select (Route: route, Viewport: viewport))
+            .ToArray();
 
-        foreach (var viewport in viewports)
-        {
-            foreach (var route in routes)
+        await Parallel.ForEachAsync(
+            scenarios,
+            new ParallelOptions { MaxDegreeOfParallelism = 2 },
+            async (scenario, _) =>
             {
+                var route = scenario.Route;
+                var viewport = scenario.Viewport;
                 await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
                 {
                     BaseURL = app.BaseAddress.ToString(),
@@ -96,39 +125,40 @@ public sealed partial class FlowActionDockBrowserTests
                 try
                 {
                     await page.GotoAsync(route, new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-                await page.WaitForFunctionAsync("() => window.LwcFlowActionDock");
-                if (route == "/select-athlete")
-                {
-                    await page.WaitForFunctionAsync(
-                        """
-                        () => document.documentElement.classList.contains('play-route-ready')
-                            && !document.body.classList.contains('play-route-hydrating')
-                            && document.getElementById('athleteSelectionPanel')?.hidden === false
-                            && document.querySelector('.play-athlete-actions')?.getBoundingClientRect().height > 0
-                        """);
-                }
-                else if (route == "/dashboard")
-                {
-                    await page.WaitForFunctionAsync(
-                        """
-                        () => document.getElementById('athleteDashboardPanel')?.hidden === false
-                            && document.querySelectorAll('#athleteDashboardActions .flow-action').length >= 4
-                        """);
-                }
+                    await page.WaitForFunctionAsync("() => window.LwcFlowActionDock");
+                    if (route == "/select-athlete")
+                    {
+                        await page.WaitForFunctionAsync(
+                            """
+                            () => document.documentElement.classList.contains('play-route-ready')
+                                && !document.body.classList.contains('play-route-hydrating')
+                                && document.getElementById('athleteSelectionPanel')?.hidden === false
+                                && document.querySelector('.play-athlete-actions')?.getBoundingClientRect().height > 0
+                            """);
+                    }
+                    else if (route == "/dashboard")
+                    {
+                        await page.WaitForFunctionAsync(
+                            """
+                            () => document.getElementById('athleteDashboardPanel')?.hidden === false
+                                && document.querySelectorAll('#athleteDashboardActions .flow-action').length >= 4
+                            """);
+                    }
 
-                await page.EvaluateAsync("() => window.LwcFlowActionDock.refreshNow()");
-                await WaitForManagedActionStacksSettledAsync(page);
+                    await page.EvaluateAsync("() => window.LwcFlowActionDock.refreshNow()");
+                    await WaitForManagedActionStacksSettledAsync(page);
 
-                var issues = await page.EvaluateAsync<string[]>(FlowActionPlacementAuditScript);
-                failures.AddRange(issues.Select(issue => $"{route} @ {viewport.Width}x{viewport.Height}: {issue}"));
-                failures.AddRange(errors.Select(error => $"{route} @ {viewport.Width}x{viewport.Height}: console error: {error}"));
+                    var issues = await page.EvaluateAsync<string[]>(FlowActionPlacementAuditScript);
+                    foreach (var issue in issues)
+                        failures.Add($"{route} @ {viewport.Width}x{viewport.Height}: {issue}");
+                    foreach (var error in errors)
+                        failures.Add($"{route} @ {viewport.Width}x{viewport.Height}: console error: {error}");
                 }
                 finally
                 {
                     await page.CloseAsync();
                 }
-            }
-        }
+            });
 
         Assert.True(failures.Count == 0, string.Join(Environment.NewLine, failures));
     }
@@ -155,7 +185,7 @@ public sealed partial class FlowActionDockBrowserTests
         var errors = CapturePageErrors(page);
 
         var scenario = $"{viewportWidth}x{viewportHeight}";
-            await page.GotoAsync("/join", new PageGotoOptions { WaitUntil = WaitUntilState.Commit });
+        await page.GotoAsync("/join", new PageGotoOptions { WaitUntil = WaitUntilState.Commit });
         await page.WaitForFunctionAsync("() => !document.getElementById('joinMobileStartAmateurBtn')?.disabled && !document.getElementById('joinMobileGoProButton')?.disabled");
         await ExpectActionStackDockedInViewportAsync(page, ".play-join-actions");
 

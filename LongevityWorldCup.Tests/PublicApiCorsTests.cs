@@ -7,7 +7,8 @@ using Xunit;
 namespace LongevityWorldCup.Tests;
 
 
-public sealed class PublicApiCorsTests(TestWebApplicationFactory sharedFactory) : IClassFixture<TestWebApplicationFactory>
+[Collection(HttpTestCollections.ReadOnly)]
+public sealed class PublicApiCorsTests(TestWebApplicationFactory sharedFactory)
 {
     private const string ArbitraryOrigin = "https://public-api-client.example";
     private const string TrustedSiteOrigin = "https://www.longevityworldcup.com";

@@ -5,7 +5,8 @@ using Xunit;
 namespace LongevityWorldCup.Tests;
 
 
-public sealed class TrackingParamStripperMiddlewareTests(TestWebApplicationFactory sharedFactory) : IClassFixture<TestWebApplicationFactory>
+[Collection(HttpTestCollections.ReadOnly)]
+public sealed class TrackingParamStripperMiddlewareTests(TestWebApplicationFactory sharedFactory)
 {
     [Fact]
     public async Task TrackingParameters_AreRemovedAndNonTrackingParametersArePreserved()
