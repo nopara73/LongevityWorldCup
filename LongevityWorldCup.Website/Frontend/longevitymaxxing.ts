@@ -2500,12 +2500,12 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             ${practice ? `<div class="lmx-practice-note"><strong>Practice check-in.</strong><span>Counts for checked-in days and streak, not points.</span></div>` : ""}
             ${questions}
             <div class="lmx-field lmx-mention-field">
-                <label for="lmx-note-${day.challengeDay}">Remarks <span>optional</span></label>
+                <label for="lmx-note-${day.challengeDay}">Remarks</label>
                 <textarea id="lmx-note-${day.challengeDay}" maxlength="240" placeholder="Visible publicly" data-mention-input role="combobox" aria-autocomplete="list" aria-haspopup="listbox" aria-expanded="false" aria-controls="lmx-mentions-${day.challengeDay}">${esc(note)}</textarea>
                 <div id="lmx-mentions-${day.challengeDay}" class="lmx-mention-options" role="listbox" aria-label="Mention a participant" hidden></div>
             </div>
             <div class="lmx-field lmx-note-photo-field" data-photo-slots="${photoSlotsLeft}">
-                <span class="lmx-label">Photos <span>optional</span></span>
+                <span class="lmx-label">Photos</span>
                 ${savedImageHtml}
                 <div class="lmx-note-photo-picker">
                     <button class="lmx-button secondary" type="button" data-photo-button${photoSlotsLeft <= 0 ? " disabled" : ""}>
