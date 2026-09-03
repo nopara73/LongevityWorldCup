@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
 
 namespace LongevityWorldCup.Tests;
 
@@ -34,6 +35,7 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
     }
 
     internal string WorkingDirectory => _dbRoot;
+    internal bool HostDisposalTrackingActive => _hostDisposalSignal is not null;
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -43,24 +45,12 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
         builder.UseSetting("EnableStartupBadgeRefresh", "false");
         builder.ConfigureTestServices(services =>
         {
-            services.AddSingleton(_ =>
-            {
-                var signal = new HostDisposalSignal();
-                _hostDisposalSignal = signal;
-                return signal;
-            });
             services.RemoveAll<IHttpClientFactory>();
             services.AddSingleton<DeterministicExternalHttpClientFactory>();
             services.AddSingleton<IHttpClientFactory>(serviceProvider =>
                 serviceProvider.GetRequiredService<DeterministicExternalHttpClientFactory>());
             services.RemoveAll<DatabaseManager>();
-            services.AddSingleton(serviceProvider =>
-            {
-                // Resolve the signal before the database so reverse-order DI
-                // disposal completes it only after the database is closed.
-                _ = serviceProvider.GetRequiredService<HostDisposalSignal>();
-                return new DatabaseManager(dbPath: dbPath);
-            });
+            services.AddSingleton(_ => new DatabaseManager(dbPath: dbPath));
             services.RemoveAll<ApplicationSubmissionRetryStore>();
             services.AddSingleton(serviceProvider => new ApplicationSubmissionRetryStore(
                 serviceProvider.GetRequiredService<IMemoryCache>(),
@@ -68,6 +58,21 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
                 TimeProvider.System));
         });
         _configure?.Invoke(builder);
+        builder.ConfigureTestServices(services =>
+        {
+            services.RemoveAll<IHostLifetime>();
+            services.AddSingleton<IHostLifetime>(_ =>
+            {
+                // IHostLifetime is resolved while the host itself is built,
+                // before lazily created application services. DI disposes
+                // singletons in reverse activation order, so this signal marks
+                // the complete provider-disposal boundary independently of
+                // any service a test later replaces.
+                var signal = new HostDisposalSignal();
+                _hostDisposalSignal = signal;
+                return signal;
+            });
+        });
     }
 
     public override async ValueTask DisposeAsync()
@@ -143,11 +148,15 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             ExceptionDispatchInfo.Capture(cleanupFailure).Throw();
     }
 
-    private sealed class HostDisposalSignal : IDisposable
+    private sealed class HostDisposalSignal : IHostLifetime, IDisposable
     {
         private readonly TaskCompletionSource _disposed = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         public Task Disposed => _disposed.Task;
+
+        public Task WaitForStartAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
+        public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 
         public void Dispose() => _disposed.TrySetResult();
     }

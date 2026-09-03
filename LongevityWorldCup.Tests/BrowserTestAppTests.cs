@@ -1,6 +1,9 @@
 using System.Net;
 using System.Net.Http.Json;
+using LongevityWorldCup.Website.Business;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Xunit;
 
 namespace LongevityWorldCup.Tests;
@@ -33,6 +36,43 @@ public sealed class BrowserTestAppTests
         await factory.DisposeAsync();
 
         Assert.False(Directory.Exists(workingDirectory));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task CustomDatabaseFactoryDisposalWaitsForTheServiceProvider(bool asynchronously)
+    {
+        var databaseRoot = Path.Combine(
+            Path.GetTempPath(),
+            $"lwc-custom-database-disposal-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(databaseRoot);
+        var factory = new TestWebApplicationFactory(builder => builder.ConfigureTestServices(services =>
+        {
+            services.RemoveAll<DatabaseManager>();
+            services.AddSingleton(_ => new DatabaseManager(dbPath: Path.Combine(databaseRoot, "test.db")));
+        }));
+
+        try
+        {
+            _ = factory.Services.GetRequiredService<DatabaseManager>();
+            Assert.True(factory.HostDisposalTrackingActive);
+
+            if (asynchronously)
+                await factory.DisposeAsync();
+            else
+                factory.Dispose();
+
+            Assert.False(Directory.Exists(factory.WorkingDirectory));
+            Directory.Delete(databaseRoot, recursive: true);
+            Assert.False(Directory.Exists(databaseRoot));
+        }
+        finally
+        {
+            await factory.DisposeAsync();
+            if (Directory.Exists(databaseRoot))
+                Directory.Delete(databaseRoot, recursive: true);
+        }
     }
 
     [Fact]

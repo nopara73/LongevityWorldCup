@@ -418,14 +418,8 @@ public sealed class CrowdAgeProfileImageTests
 
         public void Dispose()
         {
-            try
-            {
-                if (Directory.Exists(Root))
-                    Directory.Delete(Root, recursive: true);
-            }
-            catch
-            {
-            }
+            if (Directory.Exists(Root))
+                Directory.Delete(Root, recursive: true);
         }
     }
 }
