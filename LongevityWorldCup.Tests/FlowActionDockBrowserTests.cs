@@ -211,17 +211,17 @@ public sealed class FlowActionDockBrowserTests(
         var page = await context.NewPageAsync();
         var errors = CapturePageErrors(page);
 
-            await page.GotoAsync("/play", new PageGotoOptions { WaitUntil = WaitUntilState.Commit });
-            await page.WaitForFunctionAsync("() => window.LwcFlowActionDock && !document.querySelector('#newGameBtn')?.disabled");
-            await page.Locator("#newGameBtn").ClickAsync();
-            await page.WaitForDomContentLoadedUrlAsync("**/join");
-            await page.WaitForFunctionAsync("() => !document.querySelector('#joinTrackPanel')?.hidden");
+        await page.GotoAsync("/play", new PageGotoOptions { WaitUntil = WaitUntilState.Commit });
+        await page.WaitForFunctionAsync("() => window.LwcFlowActionDock && !document.querySelector('#newGameBtn')?.disabled");
+        await page.Locator("#newGameBtn").ClickAsync();
+        await page.WaitForDomContentLoadedUrlAsync("**/join");
+        await page.WaitForFunctionAsync("() => !document.querySelector('#joinTrackPanel')?.hidden");
 
-            await page.Locator("#joinTrackBackBtn").ClickAsync();
-            await page.WaitForDomContentLoadedUrlAsync("**/play");
-            await page.WaitForFunctionAsync("() => !document.querySelector('#playStartPanel')?.hidden");
-            await page.WaitForFunctionAsync(
-                """
+        await page.Locator("#joinTrackBackBtn").ClickAsync();
+        await page.WaitForDomContentLoadedUrlAsync("**/play");
+        await page.WaitForFunctionAsync("() => !document.querySelector('#playStartPanel')?.hidden");
+        await page.WaitForFunctionAsync(
+            """
                 () => {
                     const panel = document.getElementById('playStartPanel');
                     const actions = document.querySelector('.play-menu-actions');
@@ -231,8 +231,8 @@ public sealed class FlowActionDockBrowserTests(
                 }
                 """);
 
-            var state = await page.EvaluateAsync<PlayStartBackDockState>(
-                """
+        var state = await page.EvaluateAsync<PlayStartBackDockState>(
+            """
                 () => {
                     const actions = document.querySelector('.play-menu-actions');
                     const panel = document.getElementById('playStartPanel');
@@ -251,14 +251,14 @@ public sealed class FlowActionDockBrowserTests(
                 }
                 """);
 
-            var scenario = $"{viewportWidth}x{viewportHeight}";
-            Assert.True(state.ActionDocked, $"{scenario}: back to /play should keep the start actions in the bottom dock immediately.");
-            Assert.InRange(Math.Abs(state.ActionBottom - state.ViewportHeight), 0, 1.1);
-            Assert.True(state.ActionTop >= 0, $"{scenario}: the returned play actions start above the viewport: {state.ActionTop}.");
-            Assert.True(state.ActionLeft <= 1, $"{scenario}: the returned play dock is inset from the left edge during transition: {state.ActionLeft}.");
-            Assert.True(state.ActionRight >= state.ViewportWidth - 1, $"{scenario}: the returned play dock does not reach the right edge during transition: {state.ActionRight} < {state.ViewportWidth}.");
-            Assert.Equal("none", state.PanelTransform);
-            Assert.True(errors.Count == 0, $"{scenario}: {string.Join(" | ", errors)}");
+        var scenario = $"{viewportWidth}x{viewportHeight}";
+        Assert.True(state.ActionDocked, $"{scenario}: back to /play should keep the start actions in the bottom dock immediately.");
+        Assert.InRange(Math.Abs(state.ActionBottom - state.ViewportHeight), 0, 1.1);
+        Assert.True(state.ActionTop >= 0, $"{scenario}: the returned play actions start above the viewport: {state.ActionTop}.");
+        Assert.True(state.ActionLeft <= 1, $"{scenario}: the returned play dock is inset from the left edge during transition: {state.ActionLeft}.");
+        Assert.True(state.ActionRight >= state.ViewportWidth - 1, $"{scenario}: the returned play dock does not reach the right edge during transition: {state.ActionRight} < {state.ViewportWidth}.");
+        Assert.Equal("none", state.PanelTransform);
+        Assert.True(errors.Count == 0, $"{scenario}: {string.Join(" | ", errors)}");
     }
 
     [Fact]
@@ -383,16 +383,16 @@ public sealed class FlowActionDockBrowserTests(
         await page.WaitForSelectorAsync(".application-review-copy.primary");
         await page.WaitForFunctionAsync(
             "() => { const image = document.querySelector('.application-review-visual .illustration'); return image?.complete && image.naturalWidth > 0; }");
-            await page.EvaluateAsync("() => window.LwcFlowActionDock?.refreshNow()");
-            await ExpectActionStackInViewportAsync(page, ".application-review-actions");
+        await page.EvaluateAsync("() => window.LwcFlowActionDock?.refreshNow()");
+        await ExpectActionStackInViewportAsync(page, ".application-review-actions");
 
-            var titleRect = await ReadElementRectAsync(page, ".application-review-title");
-            var visualRect = await ReadElementRectAsync(page, ".application-review-visual .illustration");
-            var primaryCopyRect = await ReadElementRectAsync(page, ".application-review-copy.primary");
-            var actionRect = await ReadElementRectAsync(page, ".application-review-actions");
-            var actionDocked = await HasDockClassAsync(page, ".application-review-actions");
-            var visibleSecondaryCopies = await page.EvaluateAsync<double[]>(
-                """
+        var titleRect = await ReadElementRectAsync(page, ".application-review-title");
+        var visualRect = await ReadElementRectAsync(page, ".application-review-visual .illustration");
+        var primaryCopyRect = await ReadElementRectAsync(page, ".application-review-copy.primary");
+        var actionRect = await ReadElementRectAsync(page, ".application-review-actions");
+        var actionDocked = await HasDockClassAsync(page, ".application-review-actions");
+        var visibleSecondaryCopies = await page.EvaluateAsync<double[]>(
+            """
                 () => Array.from(document.querySelectorAll('.application-review-copy:not(.primary)'))
                     .filter(element => {
                         const style = getComputedStyle(element);
@@ -405,36 +405,36 @@ public sealed class FlowActionDockBrowserTests(
                     .map(element => element.getBoundingClientRect().bottom)
                 """);
 
-            var scenario = $"{viewportWidth}x{viewportHeight}";
-            Assert.True(titleRect.Top >= 0,
-                $"{scenario}: review title starts above the viewport: {titleRect.Top}px.");
-            Assert.Equal(1, await page.Locator(".application-review-visual .illustration").CountAsync());
-            Assert.True(
-                await page.Locator(".application-review-visual .illustration").EvaluateAsync<bool>(
-                    "image => image.complete && image.naturalWidth > 0"),
-                $"{scenario}: review joke artwork did not decode.");
-            Assert.True(visualRect.Width > 0 && visualRect.Height > 0,
-                $"{scenario}: review joke artwork is not visibly rendered: {visualRect.Width}x{visualRect.Height}px.");
-            Assert.True(visualRect.Height + 0.5 >= minimumArtworkHeight,
-                $"{scenario}: review joke artwork was over-compressed: {visualRect.Height}px < {minimumArtworkHeight}px.");
-            Assert.InRange(Math.Abs(visualRect.Width / visualRect.Height - 860d / 721d), 0, 0.02);
-            Assert.True(visualRect.Left >= 0 && visualRect.Right <= viewportWidth,
-                $"{scenario}: review joke artwork escapes the viewport horizontally: {visualRect.Left}-{visualRect.Right}px in {viewportWidth}px.");
-            Assert.True(visualRect.Top >= 0 && visualRect.Bottom <= viewportHeight,
-                $"{scenario}: review joke artwork escapes the viewport vertically: {visualRect.Top}-{visualRect.Bottom}px in {viewportHeight}px.");
-            Assert.True(visualRect.Bottom <= primaryCopyRect.Top,
-                $"{scenario}: review joke artwork overlaps the primary message: artwork bottom {visualRect.Bottom}px, copy top {primaryCopyRect.Top}px.");
-            Assert.True(primaryCopyRect.Bottom <= actionRect.Top - 8,
-                $"{scenario}: review primary message is too close to the Home action: copy bottom {primaryCopyRect.Bottom}px, action top {actionRect.Top}px.");
-            Assert.NotEmpty(visibleSecondaryCopies);
-            foreach (var secondaryBottom in visibleSecondaryCopies)
-            {
-                Assert.True(secondaryBottom <= actionRect.Top - 8,
-                    $"{scenario}: review secondary copy is too close to the Home action: copy bottom {secondaryBottom}px, action top {actionRect.Top}px.");
-            }
-            Assert.False(actionDocked,
-                $"{scenario}: review Home should stay inline on standard phone and desktop viewports instead of becoming a detached bottom dock.");
-            Assert.True(errors.Count == 0, $"{scenario}: {string.Join(" | ", errors)}");
+        var scenario = $"{viewportWidth}x{viewportHeight}";
+        Assert.True(titleRect.Top >= 0,
+            $"{scenario}: review title starts above the viewport: {titleRect.Top}px.");
+        Assert.Equal(1, await page.Locator(".application-review-visual .illustration").CountAsync());
+        Assert.True(
+            await page.Locator(".application-review-visual .illustration").EvaluateAsync<bool>(
+                "image => image.complete && image.naturalWidth > 0"),
+            $"{scenario}: review joke artwork did not decode.");
+        Assert.True(visualRect.Width > 0 && visualRect.Height > 0,
+            $"{scenario}: review joke artwork is not visibly rendered: {visualRect.Width}x{visualRect.Height}px.");
+        Assert.True(visualRect.Height + 0.5 >= minimumArtworkHeight,
+            $"{scenario}: review joke artwork was over-compressed: {visualRect.Height}px < {minimumArtworkHeight}px.");
+        Assert.InRange(Math.Abs(visualRect.Width / visualRect.Height - 860d / 721d), 0, 0.02);
+        Assert.True(visualRect.Left >= 0 && visualRect.Right <= viewportWidth,
+            $"{scenario}: review joke artwork escapes the viewport horizontally: {visualRect.Left}-{visualRect.Right}px in {viewportWidth}px.");
+        Assert.True(visualRect.Top >= 0 && visualRect.Bottom <= viewportHeight,
+            $"{scenario}: review joke artwork escapes the viewport vertically: {visualRect.Top}-{visualRect.Bottom}px in {viewportHeight}px.");
+        Assert.True(visualRect.Bottom <= primaryCopyRect.Top,
+            $"{scenario}: review joke artwork overlaps the primary message: artwork bottom {visualRect.Bottom}px, copy top {primaryCopyRect.Top}px.");
+        Assert.True(primaryCopyRect.Bottom <= actionRect.Top - 8,
+            $"{scenario}: review primary message is too close to the Home action: copy bottom {primaryCopyRect.Bottom}px, action top {actionRect.Top}px.");
+        Assert.NotEmpty(visibleSecondaryCopies);
+        foreach (var secondaryBottom in visibleSecondaryCopies)
+        {
+            Assert.True(secondaryBottom <= actionRect.Top - 8,
+                $"{scenario}: review secondary copy is too close to the Home action: copy bottom {secondaryBottom}px, action top {actionRect.Top}px.");
+        }
+        Assert.False(actionDocked,
+            $"{scenario}: review Home should stay inline on standard phone and desktop viewports instead of becoming a detached bottom dock.");
+        Assert.True(errors.Count == 0, $"{scenario}: {string.Join(" | ", errors)}");
     }
 
     [Fact]
@@ -528,11 +528,11 @@ public sealed class FlowActionDockBrowserTests(
         var page = await context.NewPageAsync();
         var errors = CapturePageErrors(page);
 
-            await page.GotoAsync(path, new PageGotoOptions { WaitUntil = WaitUntilState.Commit });
-            await page.WaitForFunctionAsync("() => window.LwcFlowActionDock");
+        await page.GotoAsync(path, new PageGotoOptions { WaitUntil = WaitUntilState.Commit });
+        await page.WaitForFunctionAsync("() => window.LwcFlowActionDock");
 
-            var focusedElementId = await page.EvaluateAsync<string?>(
-                """
+        var focusedElementId = await page.EvaluateAsync<string?>(
+            """
                 () => {
                     const active = document.activeElement;
                     if (!active || active === document.body || active === document.documentElement) return null;

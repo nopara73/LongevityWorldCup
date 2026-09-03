@@ -221,21 +221,30 @@ public sealed class AestheticAccessibilityBrowserTests(
                 await releaseEventRequest.Task;
                 await route.ContinueAsync();
             });
-            var slowPage = await slowContext.NewPageAsync();
-            await slowPage.GotoAsync("/events", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-            await eventRequestStarted.Task.WaitAsync(TimeSpan.FromSeconds(10));
-            var loadingRoot = slowPage.Locator("#events-root[aria-busy=\"true\"]");
-            await loadingRoot.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Visible });
-            Assert.Equal("Loading events...", await slowPage.Locator("#eventsStatus").InnerTextAsync());
-            var duplicateRequest = slowPage.EvaluateAsync<int>(
-                "async () => (await fetch('/api/events')).status");
-            await duplicateEventRequestStarted.Task.WaitAsync(TimeSpan.FromSeconds(10));
-            Assert.True(Volatile.Read(ref eventRequestCount) >= 2);
+            try
+            {
+                var slowPage = await slowContext.NewPageAsync();
+                await slowPage.GotoAsync("/events", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+                await eventRequestStarted.Task.WaitAsync(TimeSpan.FromSeconds(10));
+                var loadingRoot = slowPage.Locator("#events-root[aria-busy=\"true\"]");
+                await loadingRoot.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Visible });
+                Assert.Equal("Loading events...", await slowPage.Locator("#eventsStatus").InnerTextAsync());
+                var duplicateRequest = slowPage.EvaluateAsync<int>(
+                    "async () => (await fetch('/api/events')).status");
+                await duplicateEventRequestStarted.Task.WaitAsync(TimeSpan.FromSeconds(10));
+                Assert.True(Volatile.Read(ref eventRequestCount) >= 2);
 
-            releaseEventRequest.TrySetResult();
-            Assert.Equal(200, await duplicateRequest);
-            await slowPage.Locator("#events-root[aria-busy=\"false\"]").WaitForAsync(
-                new LocatorWaitForOptions { State = WaitForSelectorState.Visible, Timeout = 15_000 });
+                releaseEventRequest.TrySetResult();
+                Assert.Equal(200, await duplicateRequest);
+                await slowPage.Locator("#events-root[aria-busy=\"false\"]").WaitForAsync(
+                    new LocatorWaitForOptions { State = WaitForSelectorState.Visible, Timeout = 15_000 });
+            }
+            finally
+            {
+                // A failed start waiter or assertion must release every routed
+                // request before the context begins asynchronous disposal.
+                releaseEventRequest.TrySetResult();
+            }
         }
 
         await using (var offlineContext = await NewContextAsync(

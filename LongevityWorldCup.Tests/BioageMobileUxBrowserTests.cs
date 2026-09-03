@@ -30,48 +30,48 @@ public sealed class BioageMobileUxBrowserTests(
         try
         {
             await page.GotoAsync(path, new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-                await page.WaitForFunctionAsync(
-                    "() => document.querySelector('.bioageform')?.classList.contains('bioage-biomarker-entry-ready')");
+            await page.WaitForFunctionAsync(
+                "() => document.querySelector('.bioageform')?.classList.contains('bioage-biomarker-entry-ready')");
 
-                var draftKey = $"bioageDraft:{clock}:v1";
-                await page.EvaluateAsync(
-                    """
+            var draftKey = $"bioageDraft:{clock}:v1";
+            await page.EvaluateAsync(
+                """
                     () => {
                         const input = document.querySelector('#wbc');
                         input.value = '6.54';
                         input.dispatchEvent(new Event('input', { bubbles: true }));
                     }
                     """);
-                await page.WaitForFunctionAsync(
-                    "key => sessionStorage.getItem(key)?.includes('6.54') === true",
-                    draftKey);
+            await page.WaitForFunctionAsync(
+                "key => sessionStorage.getItem(key)?.includes('6.54') === true",
+                draftKey);
 
-                await page.EvaluateAsync(
-                    """
+            await page.EvaluateAsync(
+                """
                     key => {
                         window.dispatchEvent(new PageTransitionEvent('pagehide', { persisted: true }));
                         sessionStorage.removeItem(key);
                         window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true }));
                     }
                     """,
-                    draftKey);
-                await page.EvaluateAsync(
-                    """
+                draftKey);
+            await page.EvaluateAsync(
+                """
                     () => {
                         const input = document.querySelector('#wbc');
                         input.value = '6.55';
                         input.dispatchEvent(new Event('input', { bubbles: true }));
                     }
                     """);
-                Assert.Null(await page.EvaluateAsync<string?>(
-                    "key => sessionStorage.getItem(key)",
-                    draftKey));
-                await page.EvaluateAsync(
-                    "() => window.dispatchEvent(new PageTransitionEvent('pagehide', { persisted: true }))");
+            Assert.Null(await page.EvaluateAsync<string?>(
+                "key => sessionStorage.getItem(key)",
+                draftKey));
+            await page.EvaluateAsync(
+                "() => window.dispatchEvent(new PageTransitionEvent('pagehide', { persisted: true }))");
 
-                Assert.Null(await page.EvaluateAsync<string?>(
-                    "key => sessionStorage.getItem(key)",
-                    draftKey));
+            Assert.Null(await page.EvaluateAsync<string?>(
+                "key => sessionStorage.getItem(key)",
+                draftKey));
         }
         finally
         {

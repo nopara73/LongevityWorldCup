@@ -364,7 +364,7 @@ public sealed class GuessMyAgeCelebrationBrowserTests(
         Assert.Equal(420, await page.Locator(".gma-exact-time-icon").CountAsync());
         Assert.Equal(60, await page.Locator(".gma-exact-target").CountAsync());
         Assert.True((await page.Locator("[data-gma-motif]").EvaluateAllAsync<string[]>(
-            "elements => [...new Set(elements.map(element => element.dataset.gmaMotif))]" )).Length >= 5);
+            "elements => [...new Set(elements.map(element => element.dataset.gmaMotif))]")).Length >= 5);
         Assert.Equal(
             "BULLSEYE!!!",
             await page.Locator(".gma-exact-jackpot-title").InnerTextAsync());

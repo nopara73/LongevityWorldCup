@@ -21,19 +21,23 @@ public static class BrowserTestCollections
 [CollectionDefinition(BrowserTestCollections.WorkloadA)]
 public sealed class BrowserWorkloadACollection :
     ICollectionFixture<PlaywrightBrowserFixture>,
-    ICollectionFixture<BrowserTestAppFixture> { }
+    ICollectionFixture<BrowserTestAppFixture>
+{ }
 
 [CollectionDefinition(BrowserTestCollections.WorkloadB)]
 public sealed class BrowserWorkloadBCollection :
     ICollectionFixture<PlaywrightBrowserFixture>,
-    ICollectionFixture<BrowserTestAppFixture> { }
+    ICollectionFixture<BrowserTestAppFixture>
+{ }
 
 [CollectionDefinition(BrowserTestCollections.WorkloadC)]
 public sealed class BrowserWorkloadCCollection :
     ICollectionFixture<PlaywrightBrowserFixture>,
-    ICollectionFixture<BrowserTestAppFixture> { }
+    ICollectionFixture<BrowserTestAppFixture>
+{ }
 
 [CollectionDefinition(BrowserTestCollections.WorkloadD)]
 public sealed class BrowserWorkloadDCollection :
     ICollectionFixture<PlaywrightBrowserFixture>,
-    ICollectionFixture<BrowserTestAppFixture> { }
+    ICollectionFixture<BrowserTestAppFixture>
+{ }

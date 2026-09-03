@@ -29,12 +29,12 @@ public sealed class FlowActionDockResultBrowserTests(
         var errors = CapturePageErrors(page);
 
         await page.GotoAsync(path, new PageGotoOptions { WaitUntil = WaitUntilState.Commit });
-            await ExpectActionStackDockedInViewportAsync(page, "#lwcStepOneActions");
+        await ExpectActionStackDockedInViewportAsync(page, "#lwcStepOneActions");
 
-            var layout = await ReadFlowActionChildLayoutAsync(page, "#lwcStepOneActions");
-            Assert.Equal(2, layout.Count);
-            Assert.True(layout.MaxGap <= 24,
-                $"{path}: docked bioage commands are split apart by {layout.MaxGap}px instead of staying grouped.");
+        var layout = await ReadFlowActionChildLayoutAsync(page, "#lwcStepOneActions");
+        Assert.Equal(2, layout.Count);
+        Assert.True(layout.MaxGap <= 24,
+            $"{path}: docked bioage commands are split apart by {layout.MaxGap}px instead of staying grouped.");
         Assert.True(errors.Count == 0, $"{path}: {string.Join(" | ", errors)}");
     }
 
@@ -62,13 +62,13 @@ public sealed class FlowActionDockResultBrowserTests(
         var page = await context.NewPageAsync();
         var errors = CapturePageErrors(page);
 
-            await page.GotoAsync(path, new PageGotoOptions { WaitUntil = WaitUntilState.Commit });
-            await page.WaitForFunctionAsync("() => window.LwcFlowActionDock");
-                await page.EvaluateAsync("() => window.LwcFlowActionDock.refreshNow()");
-                await WaitForManagedActionStacksSettledAsync(page);
+        await page.GotoAsync(path, new PageGotoOptions { WaitUntil = WaitUntilState.Commit });
+        await page.WaitForFunctionAsync("() => window.LwcFlowActionDock");
+        await page.EvaluateAsync("() => window.LwcFlowActionDock.refreshNow()");
+        await WaitForManagedActionStacksSettledAsync(page);
 
-                var layout = await page.EvaluateAsync<BioageStepOneLayout>(
-                    """
+        var layout = await page.EvaluateAsync<BioageStepOneLayout>(
+            """
                     () => {
                         const actions = document.querySelector('#lwcStepOneActions');
                         const dob = document.querySelector('#dobFieldset');
@@ -107,22 +107,22 @@ public sealed class FlowActionDockResultBrowserTests(
                     }
                     """);
 
-                var scenario = $"{path} @ {viewportWidth}x{viewportHeight}";
-                Assert.True(layout.ScrollY <= 1,
-                    $"{scenario}: bioage first load should not auto-scroll the header out of view. {layout}");
-                Assert.True(layout.Action.Bottom <= layout.ViewportHeight + 1,
-                    $"{scenario}: bioage step actions are below the viewport: {layout.Action.Bottom} > {layout.ViewportHeight}. {layout}");
-                Assert.True(layout.Day.Bottom <= layout.Action.Top - 6,
-                    $"{scenario}: day selector is covered by actions. {layout}");
-                if (layout.BloodDraw.Bottom <= layout.Action.Top - 6)
-                {
-                    Assert.True(layout.BloodDrawInput.Bottom <= layout.Action.Top - 6,
-                        $"{scenario}: blood draw input is covered by actions. {layout}");
-                }
-                Assert.True(layout.Privacy.Bottom <= layout.Action.Top - 6,
-                    $"{scenario}: privacy note is covered by actions. {layout}");
-                Assert.True(layout.BloodDraw.Bottom <= layout.Action.Top - 6 || layout.BloodDraw.Top >= layout.Action.Bottom - 1,
-                    $"{scenario}: blood draw panel should not be half-covered by actions. {layout}");
+        var scenario = $"{path} @ {viewportWidth}x{viewportHeight}";
+        Assert.True(layout.ScrollY <= 1,
+            $"{scenario}: bioage first load should not auto-scroll the header out of view. {layout}");
+        Assert.True(layout.Action.Bottom <= layout.ViewportHeight + 1,
+            $"{scenario}: bioage step actions are below the viewport: {layout.Action.Bottom} > {layout.ViewportHeight}. {layout}");
+        Assert.True(layout.Day.Bottom <= layout.Action.Top - 6,
+            $"{scenario}: day selector is covered by actions. {layout}");
+        if (layout.BloodDraw.Bottom <= layout.Action.Top - 6)
+        {
+            Assert.True(layout.BloodDrawInput.Bottom <= layout.Action.Top - 6,
+                $"{scenario}: blood draw input is covered by actions. {layout}");
+        }
+        Assert.True(layout.Privacy.Bottom <= layout.Action.Top - 6,
+            $"{scenario}: privacy note is covered by actions. {layout}");
+        Assert.True(layout.BloodDraw.Bottom <= layout.Action.Top - 6 || layout.BloodDraw.Top >= layout.Action.Bottom - 1,
+            $"{scenario}: blood draw panel should not be half-covered by actions. {layout}");
         Assert.True(errors.Count == 0, $"{scenario}: {string.Join(" | ", errors)}");
     }
 
@@ -197,14 +197,14 @@ public sealed class FlowActionDockResultBrowserTests(
         var errors = CapturePageErrors(page);
 
         await page.GotoAsync(path, new PageGotoOptions { WaitUntil = WaitUntilState.Commit });
-            await page.WaitForFunctionAsync("() => window.LwcFlowActionDock");
-            await page.Locator(formSelector).EvaluateAsync("form => form.style.transform = 'translateZ(0)'");
-            await page.EvaluateAsync("() => window.LwcFlowActionDock.refreshNow()");
+        await page.WaitForFunctionAsync("() => window.LwcFlowActionDock");
+        await page.Locator(formSelector).EvaluateAsync("form => form.style.transform = 'translateZ(0)'");
+        await page.EvaluateAsync("() => window.LwcFlowActionDock.refreshNow()");
 
-            await ExpectActionStackDockedInViewportAsync(page, actionSelector);
+        await ExpectActionStackDockedInViewportAsync(page, actionSelector);
 
-            var state = await page.EvaluateAsync<TransformedFormDockState>(
-                """
+        var state = await page.EvaluateAsync<TransformedFormDockState>(
+            """
                 selectors => {
                     const [formSelector, actionSelector] = selectors.split('|');
                     const form = document.querySelector(formSelector);
@@ -215,9 +215,9 @@ public sealed class FlowActionDockResultBrowserTests(
                     };
                 }
                 """,
-                $"{formSelector}|{actionSelector}");
-            Assert.NotEqual("none", state.FormTransform);
-            Assert.True(state.ActionsParentIsBody, path);
+            $"{formSelector}|{actionSelector}");
+        Assert.NotEqual("none", state.FormTransform);
+        Assert.True(state.ActionsParentIsBody, path);
         Assert.True(errors.Count == 0, $"{path}: {string.Join(" | ", errors)}");
     }
 
@@ -242,23 +242,23 @@ public sealed class FlowActionDockResultBrowserTests(
         var errors = CapturePageErrors(page);
         await page.GotoAsync("/select-athlete", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
 
-            await page.EvaluateAsync("() => window.LwcFlowActionDock?.refreshNow?.()");
-            await WaitForManagedActionStacksSettledAsync(page);
-            await ExpectActionStackInViewportAsync(page, ".play-athlete-actions");
+        await page.EvaluateAsync("() => window.LwcFlowActionDock?.refreshNow?.()");
+        await WaitForManagedActionStacksSettledAsync(page);
+        await ExpectActionStackInViewportAsync(page, ".play-athlete-actions");
 
-            var pictureRect = await ReadElementRectAsync(page, "#athleteSelectionPicture");
-            var inputRect = await ReadElementRectAsync(page, "#playAthleteInput");
-            var actionsRect = await ReadElementRectAsync(page, ".play-athlete-actions");
-            var scenario = $"{viewportWidth}x{viewportHeight}";
+        var pictureRect = await ReadElementRectAsync(page, "#athleteSelectionPicture");
+        var inputRect = await ReadElementRectAsync(page, "#playAthleteInput");
+        var actionsRect = await ReadElementRectAsync(page, ".play-athlete-actions");
+        var scenario = $"{viewportWidth}x{viewportHeight}";
 
-            Assert.True(pictureRect.Width >= minPictureWidth,
-                $"{scenario}: athlete picture is too small for the available desktop space: {pictureRect.Width}px < {minPictureWidth}px.");
-            Assert.True(pictureRect.Bottom <= inputRect.Top - 16,
-                $"{scenario}: athlete picture overlaps the search field: picture bottom {pictureRect.Bottom}, input top {inputRect.Top}.");
-            Assert.True(inputRect.Bottom <= actionsRect.Top - 16,
-                $"{scenario}: athlete input overlaps the actions: input bottom {inputRect.Bottom}, actions top {actionsRect.Top}.");
-            Assert.False(await HasDockClassAsync(page, ".play-athlete-actions"),
-                $"{scenario}: athlete actions should stay inline when the full selection flow fits in the common desktop viewport.");
+        Assert.True(pictureRect.Width >= minPictureWidth,
+            $"{scenario}: athlete picture is too small for the available desktop space: {pictureRect.Width}px < {minPictureWidth}px.");
+        Assert.True(pictureRect.Bottom <= inputRect.Top - 16,
+            $"{scenario}: athlete picture overlaps the search field: picture bottom {pictureRect.Bottom}, input top {inputRect.Top}.");
+        Assert.True(inputRect.Bottom <= actionsRect.Top - 16,
+            $"{scenario}: athlete input overlaps the actions: input bottom {inputRect.Bottom}, actions top {actionsRect.Top}.");
+        Assert.False(await HasDockClassAsync(page, ".play-athlete-actions"),
+            $"{scenario}: athlete actions should stay inline when the full selection flow fits in the common desktop viewport.");
         Assert.True(errors.Count == 0, $"{scenario}: {string.Join(" | ", errors)}");
     }
 
@@ -307,48 +307,48 @@ public sealed class FlowActionDockResultBrowserTests(
 
         var scenario = $"{(isPro ? "pro" : "amateur")} {viewportWidth}x{viewportHeight}";
 
-                await page.WaitForFunctionAsync(
-                    """
+        await page.WaitForFunctionAsync(
+            """
                     () => document.getElementById('athleteDashboardPanel')?.hidden === false
                         && document.querySelectorAll('#athleteDashboardActions .flow-action').length >= 4
                         && document.getElementById('athleteDashboardActions')?.getBoundingClientRect().width > 0
                     """);
-                await page.EvaluateAsync("() => window.LwcFlowActionDock?.refreshNow?.()");
-                await WaitForManagedActionStacksSettledAsync(page);
-                await ExpectActionStackDockedInViewportAsync(page, ".play-dashboard-actions");
+        await page.EvaluateAsync("() => window.LwcFlowActionDock?.refreshNow?.()");
+        await WaitForManagedActionStacksSettledAsync(page);
+        await ExpectActionStackDockedInViewportAsync(page, ".play-dashboard-actions");
 
-                var pictureRect = await ReadElementRectAsync(page, "#athleteDashboardPicture");
-                var actionsRect = await ReadElementRectAsync(page, ".play-dashboard-actions");
+        var pictureRect = await ReadElementRectAsync(page, "#athleteDashboardPicture");
+        var actionsRect = await ReadElementRectAsync(page, ".play-dashboard-actions");
 
-                Assert.True(actionsRect.Height <= maxDockHeight,
-                    $"{scenario}: .play-dashboard-actions dock is too tall: {actionsRect.Height}px.");
-                var compactLabels = await page.Locator("#athleteDashboardActions .flow-action[data-flow-dock-label]").CountAsync();
-                Assert.True(compactLabels == 0, $"{scenario}: found {compactLabels} unexpected compact labels.");
+        Assert.True(actionsRect.Height <= maxDockHeight,
+            $"{scenario}: .play-dashboard-actions dock is too tall: {actionsRect.Height}px.");
+        var compactLabels = await page.Locator("#athleteDashboardActions .flow-action[data-flow-dock-label]").CountAsync();
+        Assert.True(compactLabels == 0, $"{scenario}: found {compactLabels} unexpected compact labels.");
 
-                var actionIconSizes = await page.EvaluateAsync<string[]>(
-                    """
+        var actionIconSizes = await page.EvaluateAsync<string[]>(
+            """
                     () => Array.from(document.querySelectorAll('#athleteDashboardActions .flow-action > i'))
                         .map(icon => {
                             const style = getComputedStyle(icon);
                             return `${style.width}|${style.fontSize}|${style.lineHeight}`;
                         })
                     """);
-                Assert.True(actionIconSizes.Length == 5, $"{scenario}: expected five action icons, found {actionIconSizes.Length}.");
-                Assert.True(actionIconSizes.Distinct().Count() == 1,
-                    $"{scenario}: action icon sizing differed: {string.Join("; ", actionIconSizes)}.");
+        Assert.True(actionIconSizes.Length == 5, $"{scenario}: expected five action icons, found {actionIconSizes.Length}.");
+        Assert.True(actionIconSizes.Distinct().Count() == 1,
+            $"{scenario}: action icon sizing differed: {string.Join("; ", actionIconSizes)}.");
 
-                if (viewportWidth < 960)
-                {
-                    var visibleActionIcons = await page.EvaluateAsync<int>(
-                        """
+        if (viewportWidth < 960)
+        {
+            var visibleActionIcons = await page.EvaluateAsync<int>(
+                """
                         () => Array.from(document.querySelectorAll('#athleteDashboardActions .flow-action > i'))
                             .filter(icon => getComputedStyle(icon).display !== 'none').length
                         """);
-                    Assert.True(visibleActionIcons == 5,
-                        $"{scenario}: expected five visible action icons, found {visibleActionIcons}.");
+            Assert.True(visibleActionIcons == 5,
+                $"{scenario}: expected five visible action icons, found {visibleActionIcons}.");
 
-                    var longevityLabelUsesOneLine = await page.EvaluateAsync<bool>(
-                        """
+            var longevityLabelUsesOneLine = await page.EvaluateAsync<bool>(
+                """
                         () => {
                             const label = Array.from(document.querySelectorAll('#athleteDashboardActions .flow-action__label'))
                                 .find(candidate => candidate.textContent.trim() === 'Longevitymaxxing');
@@ -357,33 +357,33 @@ public sealed class FlowActionDockResultBrowserTests(
                             return label.getBoundingClientRect().height <= lineHeight * 1.25;
                         }
                         """);
-                    Assert.True(longevityLabelUsesOneLine,
-                        $"{scenario}: the Longevitymaxxing action should not split inside its name.");
-                }
+            Assert.True(longevityLabelUsesOneLine,
+                $"{scenario}: the Longevitymaxxing action should not split inside its name.");
+        }
 
-                var actionLabels = (await page.Locator("#athleteDashboardActions .flow-action .flow-action__label")
-                    .AllInnerTextsAsync())
-                    .Select(label => label.Replace('\u00a0', ' '))
-                    .ToArray();
-                Assert.Contains("Edit profile", actionLabels);
-                Assert.Contains("Longevitymaxxing", actionLabels);
-                Assert.Contains("Change athlete", actionLabels);
-                if (isPro)
-                {
-                    Assert.Contains("Update Pheno Age", actionLabels);
-                    Assert.Contains("Update Bortz Age", actionLabels);
-                }
-                else
-                {
-                    Assert.Contains("Submit new results", actionLabels);
-                    Assert.Contains(actionLabels, label => label.Contains("Go pro for", StringComparison.Ordinal)
-                        && label.Contains("$70", StringComparison.Ordinal));
-                }
+        var actionLabels = (await page.Locator("#athleteDashboardActions .flow-action .flow-action__label")
+            .AllInnerTextsAsync())
+            .Select(label => label.Replace('\u00a0', ' '))
+            .ToArray();
+        Assert.Contains("Edit profile", actionLabels);
+        Assert.Contains("Longevitymaxxing", actionLabels);
+        Assert.Contains("Change athlete", actionLabels);
+        if (isPro)
+        {
+            Assert.Contains("Update Pheno Age", actionLabels);
+            Assert.Contains("Update Bortz Age", actionLabels);
+        }
+        else
+        {
+            Assert.Contains("Submit new results", actionLabels);
+            Assert.Contains(actionLabels, label => label.Contains("Go pro for", StringComparison.Ordinal)
+                && label.Contains("$70", StringComparison.Ordinal));
+        }
 
-                if (!isPro)
-                {
-                    var discountState = await page.EvaluateAsync<DashboardDiscountLayoutState>(
-                        """
+        if (!isPro)
+        {
+            var discountState = await page.EvaluateAsync<DashboardDiscountLayoutState>(
+                """
                         () => {
                             const container = document.getElementById('athleteDashboardDiscounts');
                             const discount = container?.querySelector('.pro-discount-box');
@@ -404,28 +404,28 @@ public sealed class FlowActionDockResultBrowserTests(
                             };
                         }
                         """);
-                    Assert.True(discountState.DiscountVisible, $"{scenario}: discount details are not visible.");
-                    Assert.False(discountState.DiscountInsideActionMenu,
-                        $"{scenario}: discount details belong below the athlete picture, not inside the action menu.");
-                    Assert.True(discountState.DiscountTop >= discountState.PictureBottom,
-                        $"{scenario}: discount details should follow the athlete picture in normal flow.");
-                    Assert.True(discountState.VisibleLineCount == 3,
-                        $"{scenario}: expected three discount lines, found {discountState.VisibleLineCount}.");
-                    Assert.Contains("10% leaderboard", discountState.CompactTexts);
-                    Assert.Contains("10% personal page", discountState.CompactTexts);
-                    Assert.Contains("10% perfect guess", discountState.CompactTexts);
-                    Assert.True(discountState.IconWidths.Length == 2,
-                        $"{scenario}: expected two discount icons, found {discountState.IconWidths.Length}.");
-                    Assert.All(discountState.IconWidths, width => Assert.InRange(width, 43, 45));
-                    Assert.All(discountState.IconHeights, height => Assert.InRange(height, 43, 45));
-                    Assert.True(discountState.TextLefts.Max() - discountState.TextLefts.Min() <= 1,
-                        $"{scenario}: discount percentages do not share one alignment line.");
-                }
+            Assert.True(discountState.DiscountVisible, $"{scenario}: discount details are not visible.");
+            Assert.False(discountState.DiscountInsideActionMenu,
+                $"{scenario}: discount details belong below the athlete picture, not inside the action menu.");
+            Assert.True(discountState.DiscountTop >= discountState.PictureBottom,
+                $"{scenario}: discount details should follow the athlete picture in normal flow.");
+            Assert.True(discountState.VisibleLineCount == 3,
+                $"{scenario}: expected three discount lines, found {discountState.VisibleLineCount}.");
+            Assert.Contains("10% leaderboard", discountState.CompactTexts);
+            Assert.Contains("10% personal page", discountState.CompactTexts);
+            Assert.Contains("10% perfect guess", discountState.CompactTexts);
+            Assert.True(discountState.IconWidths.Length == 2,
+                $"{scenario}: expected two discount icons, found {discountState.IconWidths.Length}.");
+            Assert.All(discountState.IconWidths, width => Assert.InRange(width, 43, 45));
+            Assert.All(discountState.IconHeights, height => Assert.InRange(height, 43, 45));
+            Assert.True(discountState.TextLefts.Max() - discountState.TextLefts.Min() <= 1,
+                $"{scenario}: discount percentages do not share one alignment line.");
+        }
 
-                if (viewportWidth >= 960)
-                {
-                    var raisedSecondaryActions = await page.EvaluateAsync<string[]>(
-                        """
+        if (viewportWidth >= 960)
+        {
+            var raisedSecondaryActions = await page.EvaluateAsync<string[]>(
+                """
                         () => Array.from(document.querySelectorAll(
                             '.play-dashboard-actions.flow-action-stack--docked .flow-action--secondary'))
                             .map(action => {
@@ -442,17 +442,17 @@ public sealed class FlowActionDockResultBrowserTests(
                                 + `box-shadow=${item.boxShadow}, background=${item.backgroundColor}, `
                                 + `class=${item.action.className}`)
                         """);
-                    Assert.True(raisedSecondaryActions.Length == 0,
-                        $"{scenario}: desktop secondary actions should read as one command bar: "
-                        + string.Join("; ", raisedSecondaryActions));
+            Assert.True(raisedSecondaryActions.Length == 0,
+                $"{scenario}: desktop secondary actions should read as one command bar: "
+                + string.Join("; ", raisedSecondaryActions));
 
-                    var minPictureWidth = viewportHeight <= 740 ? 310 : 340;
-                    Assert.True(pictureRect.Width >= minPictureWidth,
-                        $"{scenario}: dashboard picture is too small: {pictureRect.Width}px < {minPictureWidth}px.");
-                }
+            var minPictureWidth = viewportHeight <= 740 ? 310 : 340;
+            Assert.True(pictureRect.Width >= minPictureWidth,
+                $"{scenario}: dashboard picture is too small: {pictureRect.Width}px < {minPictureWidth}px.");
+        }
 
-                Assert.True(pictureRect.Bottom <= actionsRect.Top - 16,
-                    $"{scenario}: dashboard picture overlaps the dock: {pictureRect.Bottom} > {actionsRect.Top - 16}.");
+        Assert.True(pictureRect.Bottom <= actionsRect.Top - 16,
+            $"{scenario}: dashboard picture overlaps the dock: {pictureRect.Bottom} > {actionsRect.Top - 16}.");
         Assert.True(errors.Count == 0, $"{scenario}: {string.Join(" | ", errors)}");
     }
 
@@ -625,26 +625,26 @@ public sealed class FlowActionDockResultBrowserTests(
         var errors = CapturePageErrors(page);
         try
         {
-                await page.GotoAsync(path, new PageGotoOptions { WaitUntil = WaitUntilState.Commit });
-                await FillBioageStepOneAsync(page, DateTime.UtcNow.Date.AddDays(-9).ToString("yyyy-MM-dd"));
-                if (path == "/bortz-age")
-                    await FillBortzBiomarkersAsync(page);
-                else
-                    await FillPhenoBiomarkersAsync(page);
+            await page.GotoAsync(path, new PageGotoOptions { WaitUntil = WaitUntilState.Commit });
+            await FillBioageStepOneAsync(page, DateTime.UtcNow.Date.AddDays(-9).ToString("yyyy-MM-dd"));
+            if (path == "/bortz-age")
+                await FillBortzBiomarkersAsync(page);
+            else
+                await FillPhenoBiomarkersAsync(page);
 
-                await page.Locator(".bioage-calculate-button").ClickAsync();
-                await page.WaitForSelectorAsync($"{resultSelector}.show");
-                await page.WaitForSelectorAsync("#continueButton.show");
+            await page.Locator(".bioage-calculate-button").ClickAsync();
+            await page.WaitForSelectorAsync($"{resultSelector}.show");
+            await page.WaitForSelectorAsync("#continueButton.show");
 
-                await ExpectActionStackDockedInViewportAsync(page, resultActionsSelector);
-                await ExpectBioageResultReadableWithDockAsync(
-                    page,
-                    resultSelector,
-                    resultActionsSelector);
-                Assert.False(await HasDockClassAsync(page, "#lwcStepTwoActions"));
+            await ExpectActionStackDockedInViewportAsync(page, resultActionsSelector);
+            await ExpectBioageResultReadableWithDockAsync(
+                page,
+                resultSelector,
+                resultActionsSelector);
+            Assert.False(await HasDockClassAsync(page, "#lwcStepTwoActions"));
 
-                var dockedVisibleActionCount = await page.EvaluateAsync<int>(
-                    """
+            var dockedVisibleActionCount = await page.EvaluateAsync<int>(
+                """
                     () => Array.from(document.querySelectorAll('.flow-action-stack--docked'))
                         .filter(element => {
                             const rect = element.getBoundingClientRect();
@@ -656,7 +656,7 @@ public sealed class FlowActionDockResultBrowserTests(
                         }).length
                     """);
 
-                Assert.Equal(1, dockedVisibleActionCount);
+            Assert.Equal(1, dockedVisibleActionCount);
             Assert.True(errors.Count == 0, $"{path}: {string.Join(Environment.NewLine, errors)}");
         }
         finally

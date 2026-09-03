@@ -23,15 +23,15 @@ public sealed class FlowActionDockFormBrowserTests(
     {
         var app = App;
         var browser = Browser;
-            await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
-            {
-                BaseURL = app.BaseAddress.ToString(),
-                Locale = "en-US",
-                ViewportSize = new ViewportSize { Width = viewportWidth, Height = viewportHeight }
-            });
-            await BrowserTestApp.RouteExternalResourcesAsync(context);
-            await context.AddInitScriptAsync(
-                """
+        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = app.BaseAddress.ToString(),
+            Locale = "en-US",
+            ViewportSize = new ViewportSize { Width = viewportWidth, Height = viewportHeight }
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        await context.AddInitScriptAsync(
+            """
                 window.sessionStorage.setItem('selectedAthlete', JSON.stringify({
                     Name: 'Browser Test Athlete',
                     DisplayName: 'Browser Test Athlete',
@@ -43,32 +43,32 @@ public sealed class FlowActionDockFormBrowserTests(
                     ]
                 }));
                 """);
-            var page = await context.NewPageAsync();
-            var errors = CapturePageErrors(page);
-            await page.GotoAsync("/proofs", new PageGotoOptions { WaitUntil = WaitUntilState.Commit });
+        var page = await context.NewPageAsync();
+        var errors = CapturePageErrors(page);
+        await page.GotoAsync("/proofs", new PageGotoOptions { WaitUntil = WaitUntilState.Commit });
 
-                var scenario = $"{viewportWidth}x{viewportHeight}";
+        var scenario = $"{viewportWidth}x{viewportHeight}";
 
-                await page.WaitForFunctionAsync(
-                    """
+        await page.WaitForFunctionAsync(
+            """
                     () => window.LwcFlowActionDock
                         && document.body
                         && document.getElementById('submitButton')
                         && document.getElementById('uploadProofButton')?.getAttribute('data-listener') === 'true'
                     """);
 
-                await page.EvaluateAsync(
-            """
+        await page.EvaluateAsync(
+    """
             () => {
                 document.body.classList.remove('proof-upload-has-proofs');
                 document.getElementById('submitButton').disabled = true;
                 window.LwcFlowActionDock?.refreshNow();
             }
             """);
-                await page.EvaluateAsync("() => window.LwcFlowActionDock.refreshNow()");
-                await WaitForManagedActionStacksSettledAsync(page);
+        await page.EvaluateAsync("() => window.LwcFlowActionDock.refreshNow()");
+        await WaitForManagedActionStacksSettledAsync(page);
 
-                Assert.False(await HasDockClassAsync(page, ".proof-upload-primary-action"));
+        Assert.False(await HasDockClassAsync(page, ".proof-upload-primary-action"));
 
         var initialLayout = await page.EvaluateAsync<ProofUploadActionLayout>(
             """
@@ -248,15 +248,15 @@ public sealed class FlowActionDockFormBrowserTests(
         var errors = CapturePageErrors(page);
         await page.GotoAsync("/proofs", new PageGotoOptions { WaitUntil = WaitUntilState.Commit });
 
-            await page.WaitForFunctionAsync(
-                """
+        await page.WaitForFunctionAsync(
+            """
                 () => document.querySelector('#character-title')?.textContent.trim() === 'Browser Test Athlete'
                     && document.querySelector('.proof-upload-symbol .fa-file-medical')
                     && document.querySelector('#uploadProofButton')?.getAttribute('data-listener') === 'true'
                 """);
 
-            var layout = await page.EvaluateAsync<ProofUploadFirstViewportLayout>(
-                """
+        var layout = await page.EvaluateAsync<ProofUploadFirstViewportLayout>(
+            """
                 () => {
                     const title = document.querySelector('#character-title');
                     const illustration = document.querySelector('.proof-upload-symbol');
@@ -288,13 +288,13 @@ public sealed class FlowActionDockFormBrowserTests(
                 }
                 """);
 
-            var scenario = $"{viewportWidth}x{viewportHeight}";
-            Assert.True(layout.TitleFontSize <= maxTitleFontSize,
-                $"{scenario}: proof upload title fell back to oversized global h1 sizing: {layout.TitleFontSize}px > {maxTitleFontSize}px. {layout}");
-            Assert.InRange(layout.Illustration.Height, 80, 104);
-            Assert.Equal(0, await page.Locator(".proof-upload-visual img").CountAsync());
-            Assert.True(layout.UploadButton.Bottom <= layout.ViewportHeight - 8,
-                $"{scenario}: upload proofs action is cut off in the first viewport: bottom {layout.UploadButton.Bottom}px, viewport {layout.ViewportHeight}px.");
+        var scenario = $"{viewportWidth}x{viewportHeight}";
+        Assert.True(layout.TitleFontSize <= maxTitleFontSize,
+            $"{scenario}: proof upload title fell back to oversized global h1 sizing: {layout.TitleFontSize}px > {maxTitleFontSize}px. {layout}");
+        Assert.InRange(layout.Illustration.Height, 80, 104);
+        Assert.Equal(0, await page.Locator(".proof-upload-visual img").CountAsync());
+        Assert.True(layout.UploadButton.Bottom <= layout.ViewportHeight - 8,
+            $"{scenario}: upload proofs action is cut off in the first viewport: bottom {layout.UploadButton.Bottom}px, viewport {layout.ViewportHeight}px.");
         Assert.True(errors.Count == 0, $"{scenario}: {string.Join(" | ", errors)}");
     }
 
@@ -450,18 +450,18 @@ public sealed class FlowActionDockFormBrowserTests(
         var errors = CapturePageErrors(page);
 
         await page.GotoAsync("/play", new PageGotoOptions { WaitUntil = WaitUntilState.Commit });
-            await page.WaitForFunctionAsync("() => window.LwcFlowActionDock");
-            await page.WaitForFunctionAsync(
-                "selector => !document.querySelector(selector)?.classList.contains('flow-action-stack--docked')",
-                ".play-menu-actions");
-            await ExpectActionStackInViewportAsync(page, ".play-menu-actions");
+        await page.WaitForFunctionAsync("() => window.LwcFlowActionDock");
+        await page.WaitForFunctionAsync(
+            "selector => !document.querySelector(selector)?.classList.contains('flow-action-stack--docked')",
+            ".play-menu-actions");
+        await ExpectActionStackInViewportAsync(page, ".play-menu-actions");
 
-            var layout = await ReadFlowActionChildLayoutAsync(page, ".play-menu-actions");
-            Assert.Equal(2, layout.Count);
-            Assert.True(layout.MaxHeightDelta <= 1,
-                $"hasApplication={hasApplication}: inline /play actions have mismatched heights by {layout.MaxHeightDelta}px.");
-            Assert.True(layout.MaxHeight is >= 56 and <= 62,
-                $"hasApplication={hasApplication}: inline /play actions have unexpected height: {layout.MaxHeight}px.");
+        var layout = await ReadFlowActionChildLayoutAsync(page, ".play-menu-actions");
+        Assert.Equal(2, layout.Count);
+        Assert.True(layout.MaxHeightDelta <= 1,
+            $"hasApplication={hasApplication}: inline /play actions have mismatched heights by {layout.MaxHeightDelta}px.");
+        Assert.True(layout.MaxHeight is >= 56 and <= 62,
+            $"hasApplication={hasApplication}: inline /play actions have unexpected height: {layout.MaxHeight}px.");
         Assert.True(errors.Count == 0, $"hasApplication={hasApplication}: {string.Join(" | ", errors)}");
     }
 
@@ -508,7 +508,7 @@ public sealed class FlowActionDockFormBrowserTests(
         var errors = CapturePageErrors(page);
         await page.GotoAsync("/edit-profile", new PageGotoOptions { WaitUntil = WaitUntilState.Commit });
 
-            var scenario = $"{viewportWidth}x{viewportHeight}";
+        var scenario = $"{viewportWidth}x{viewportHeight}";
 
         await page.WaitForFunctionAsync(
             """
@@ -668,8 +668,8 @@ public sealed class FlowActionDockFormBrowserTests(
             }
             """);
 
-            Assert.True(coveredRows.Length == 0,
-                $"{scenario}: fields entered the action band: {string.Join(", ", coveredRows)}.");
+        Assert.True(coveredRows.Length == 0,
+            $"{scenario}: fields entered the action band: {string.Join(", ", coveredRows)}.");
         Assert.True(errors.Count == 0, $"{scenario}: {string.Join(" | ", errors)}");
     }
 

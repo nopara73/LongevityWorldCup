@@ -93,10 +93,10 @@ public sealed class FlowActionDockLayoutBrowserTests(
         var scenarios = (
             from viewport in viewports
             from route in routes
-            // Every route keeps constrained-mobile and desktop coverage. The
-            // other breakpoint shapes run on two structurally different,
-            // multi-action flows instead of repeating the same shared dock
-            // algorithm for every route/viewport cross-product.
+                // Every route keeps constrained-mobile and desktop coverage. The
+                // other breakpoint shapes run on two structurally different,
+                // multi-action flows instead of repeating the same shared dock
+                // algorithm for every route/viewport cross-product.
             where routeAnchorViewports.Contains(viewport)
                   || responsiveRepresentativeRoutes.Contains(route)
             select (Route: route, Viewport: viewport))
@@ -578,7 +578,7 @@ public sealed class FlowActionDockLayoutBrowserTests(
         var errors = CapturePageErrors(page);
 
         var scenario = $"{viewportWidth}x{viewportHeight}";
-            await page.GotoAsync("/apply?fake=1", new PageGotoOptions { WaitUntil = WaitUntilState.Commit });
+        await page.GotoAsync("/apply?fake=1", new PageGotoOptions { WaitUntil = WaitUntilState.Commit });
         await page.WaitForFunctionAsync("() => document.body?.dataset.convergenceStage === '1'");
         await ExpectActionStackDockedInViewportAsync(page, ".convergence-actions");
 
@@ -604,10 +604,10 @@ public sealed class FlowActionDockLayoutBrowserTests(
             }
             """);
 
-            Assert.True(layout.DetailsVisible,
-                $"{scenario}: apply first stage should keep athlete details available in document flow.");
-            Assert.True(layout.DetailsBottom <= layout.DockTop - 20 || layout.DetailsTop >= layout.DockBottom - 1,
-                $"{scenario}: athlete details are half-covered by the action dock: details {layout.DetailsTop}-{layout.DetailsBottom}, dock {layout.DockTop}-{layout.DockBottom}, viewport {layout.ViewportHeight}.");
+        Assert.True(layout.DetailsVisible,
+            $"{scenario}: apply first stage should keep athlete details available in document flow.");
+        Assert.True(layout.DetailsBottom <= layout.DockTop - 20 || layout.DetailsTop >= layout.DockBottom - 1,
+            $"{scenario}: athlete details are half-covered by the action dock: details {layout.DetailsTop}-{layout.DetailsBottom}, dock {layout.DockTop}-{layout.DockBottom}, viewport {layout.ViewportHeight}.");
         Assert.True(errors.Count == 0, $"{scenario}: {string.Join(" | ", errors)}");
     }
 
