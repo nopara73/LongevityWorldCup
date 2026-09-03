@@ -954,6 +954,23 @@ public sealed class LongevitymaxxingChallengeBrowserTests(
             discussionReplySnapshot: DiscussionReplySnapshot.BackdatedReplyOutsideLatestWindow,
             publicDiscussionReplySnapshot: DiscussionReplySnapshot.AfterMixedSurfacePagingReply));
         var page = await context.NewPageAsync();
+        var athleteDirectoryRequested = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var releaseAthleteDirectory = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        await page.RouteAsync("**/api/data/athletes", async route =>
+        {
+            athleteDirectoryRequested.TrySetResult(true);
+            await releaseAthleteDirectory.Task;
+            await FulfillJsonAsync(route, JsonSerializer.Serialize(new[]
+            {
+                new
+                {
+                    DisplayName = "Ari Athlete",
+                    Name = "Ari Athlete",
+                    AthleteSlug = "ari-able",
+                    ProfilePicLeaderboardThumb = "/assets/content-images/cr7.webp"
+                }
+            }));
+        });
         await page.RouteAsync("**/api/longevitymaxxing/state", route => FulfillJsonAsync(route, publicStateJson));
         await page.RouteAsync("**/api/longevitymaxxing/participant", route => FulfillJsonAsync(route, participantStateJson));
         await page.RouteAsync("**/api/longevitymaxxing/discussion/replies/page", route =>
@@ -1007,82 +1024,102 @@ public sealed class LongevitymaxxingChallengeBrowserTests(
                 : backdatedReplyStateJson);
         });
 
-        await page.GotoAsync("/longevitymaxxing", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-        var staleActiveSurface = page.Locator(
-            ".lmx-recent-remark[data-discussion-post-participant-id='p7'][data-discussion-post-challenge-day='5']");
-        var newerMainSurface = page.Locator(
-            "#lmxNotes .lmx-note[data-discussion-post-participant-id='p7'][data-discussion-post-challenge-day='5']");
-        await staleActiveSurface.WaitForAsync();
-        await newerMainSurface.WaitForAsync();
-
-        Assert.Equal(
-            ["r3", "r4", "r6"],
-            await staleActiveSurface.Locator(".lmx-discussion-reply-item")
-                .EvaluateAllAsync<string[]>("replies => replies.map(reply => reply.dataset.discussionReplyId)"));
-        Assert.Equal(
-            ["r7", "r8", "r9"],
-            await newerMainSurface.Locator(".lmx-discussion-reply-item")
-                .EvaluateAllAsync<string[]>("replies => replies.map(reply => reply.dataset.discussionReplyId)"));
-        var stalePager = staleActiveSurface.Locator("[data-discussion-replies-page]");
-        await Assertions.Expect(stalePager).ToHaveTextAsync("View 2 earlier replies");
-        Assert.Equal("r3", await stalePager.GetAttributeAsync("data-before-reply-id"));
-        var newerPager = newerMainSurface.Locator("[data-discussion-replies-page]");
-        await Assertions.Expect(newerPager).ToHaveTextAsync("View 5 earlier replies");
-        Assert.Equal("r7", await newerPager.GetAttributeAsync("data-before-reply-id"));
-
-        await stalePager.ClickAsync();
-        await Assertions.Expect(staleActiveSurface.Locator(".lmx-discussion-reply-item")).ToHaveCountAsync(5);
-        Assert.Equal(
-            ["r1", "r2", "r3", "r4", "r6"],
-            await staleActiveSurface.Locator(".lmx-discussion-reply-item")
-                .EvaluateAllAsync<string[]>("replies => replies.map(reply => reply.dataset.discussionReplyId)"));
-        await Assertions.Expect(staleActiveSurface.Locator("[data-discussion-replies-page]")).ToHaveCountAsync(0);
-        Assert.Equal(
-            ["r7", "r8", "r9"],
-            await newerMainSurface.Locator(".lmx-discussion-reply-item")
-                .EvaluateAllAsync<string[]>("replies => replies.map(reply => reply.dataset.discussionReplyId)"));
-        await Assertions.Expect(newerPager).ToHaveTextAsync("View 5 earlier replies");
-        Assert.Equal("r7", await newerPager.GetAttributeAsync("data-before-reply-id"));
-
-        await newerPager.ClickAsync();
-        await Assertions.Expect(newerMainSurface.Locator(".lmx-discussion-reply-item")).ToHaveCountAsync(8);
-        Assert.Equal(
-            ["r1", "r2", "r3", "r4", "r6", "r7", "r8", "r9"],
-            await newerMainSurface.Locator(".lmx-discussion-reply-item")
-                .EvaluateAllAsync<string[]>("replies => replies.map(reply => reply.dataset.discussionReplyId)"));
-        await Assertions.Expect(newerMainSurface.Locator("[data-discussion-replies-page]")).ToHaveCountAsync(0);
-
-        await newerMainSurface.Locator("[data-discussion-reply]").ClickAsync();
-        var composer = newerMainSurface.Locator(".lmx-discussion-reply-composer");
-        await composer.Locator("textarea").FillAsync("One reply after paging both snapshots.");
-        await composer.Locator("[data-reply-submit]").ClickAsync();
-        await Assertions.Expect(page.Locator(".lmx-discussion-reply-composer")).ToHaveCountAsync(0);
-        foreach (var surface in new[] { staleActiveSurface, newerMainSurface })
+        try
         {
-            await Assertions.Expect(surface.Locator(".lmx-discussion-reply-item")).ToHaveCountAsync(9);
+            await page.GotoAsync("/longevitymaxxing", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+            await athleteDirectoryRequested.Task.WaitAsync(TimeSpan.FromSeconds(10));
+            var staleActiveSurface = page.Locator(
+                ".lmx-recent-remark[data-discussion-post-participant-id='p7'][data-discussion-post-challenge-day='5']");
+            var newerMainSurface = page.Locator(
+                "#lmxNotes .lmx-note[data-discussion-post-participant-id='p7'][data-discussion-post-challenge-day='5']");
+            await staleActiveSurface.WaitForAsync();
+            await newerMainSurface.WaitForAsync();
+
             Assert.Equal(
-                ["r1", "r2", "r3", "r4", "r6", "r7", "r8", "r9", "r10"],
-                await surface.Locator(".lmx-discussion-reply-item")
+                ["r3", "r4", "r6"],
+                await staleActiveSurface.Locator(".lmx-discussion-reply-item")
                     .EvaluateAllAsync<string[]>("replies => replies.map(reply => reply.dataset.discussionReplyId)"));
-            await Assertions.Expect(surface.Locator(".lmx-discussion-post-author small")).ToContainTextAsync("9 replies");
-            await Assertions.Expect(surface.Locator("[data-discussion-replies-page]")).ToHaveCountAsync(0);
+            Assert.Equal(
+                ["r7", "r8", "r9"],
+                await newerMainSurface.Locator(".lmx-discussion-reply-item")
+                    .EvaluateAllAsync<string[]>("replies => replies.map(reply => reply.dataset.discussionReplyId)"));
+            var stalePager = staleActiveSurface.Locator("[data-discussion-replies-page]");
+            await Assertions.Expect(stalePager).ToHaveTextAsync("View 2 earlier replies");
+            Assert.Equal("r3", await stalePager.GetAttributeAsync("data-before-reply-id"));
+            var newerPager = newerMainSurface.Locator("[data-discussion-replies-page]");
+            await Assertions.Expect(newerPager).ToHaveTextAsync("View 5 earlier replies");
+            Assert.Equal("r7", await newerPager.GetAttributeAsync("data-before-reply-id"));
+
+            await stalePager.ClickAsync();
+            await Assertions.Expect(staleActiveSurface.Locator(".lmx-discussion-reply-item")).ToHaveCountAsync(5);
+            Assert.Equal(
+                ["r1", "r2", "r3", "r4", "r6"],
+                await staleActiveSurface.Locator(".lmx-discussion-reply-item")
+                    .EvaluateAllAsync<string[]>("replies => replies.map(reply => reply.dataset.discussionReplyId)"));
+            await Assertions.Expect(staleActiveSurface.Locator("[data-discussion-replies-page]")).ToHaveCountAsync(0);
+            Assert.Equal(
+                ["r7", "r8", "r9"],
+                await newerMainSurface.Locator(".lmx-discussion-reply-item")
+                    .EvaluateAllAsync<string[]>("replies => replies.map(reply => reply.dataset.discussionReplyId)"));
+            await Assertions.Expect(newerPager).ToHaveTextAsync("View 5 earlier replies");
+            Assert.Equal("r7", await newerPager.GetAttributeAsync("data-before-reply-id"));
+
+            releaseAthleteDirectory.TrySetResult(true);
+            await Assertions.Expect(staleActiveSurface.Locator("[data-discussion-reply-id='r4'] img"))
+                .ToHaveAttributeAsync("src", "/assets/content-images/cr7.webp");
+            Assert.Equal(
+                ["r1", "r2", "r3", "r4", "r6"],
+                await staleActiveSurface.Locator(".lmx-discussion-reply-item")
+                    .EvaluateAllAsync<string[]>("replies => replies.map(reply => reply.dataset.discussionReplyId)"));
+            Assert.Equal(
+                ["r7", "r8", "r9"],
+                await newerMainSurface.Locator(".lmx-discussion-reply-item")
+                    .EvaluateAllAsync<string[]>("replies => replies.map(reply => reply.dataset.discussionReplyId)"));
+
+            await newerPager.ClickAsync();
+            await Assertions.Expect(newerMainSurface.Locator(".lmx-discussion-reply-item")).ToHaveCountAsync(8);
+            Assert.Equal(
+                ["r1", "r2", "r3", "r4", "r6", "r7", "r8", "r9"],
+                await newerMainSurface.Locator(".lmx-discussion-reply-item")
+                    .EvaluateAllAsync<string[]>("replies => replies.map(reply => reply.dataset.discussionReplyId)"));
+            await Assertions.Expect(newerMainSurface.Locator("[data-discussion-replies-page]")).ToHaveCountAsync(0);
+
+            await newerMainSurface.Locator("[data-discussion-reply]").ClickAsync();
+            var composer = newerMainSurface.Locator(".lmx-discussion-reply-composer");
+            await composer.Locator("textarea").FillAsync("One reply after paging both snapshots.");
+            await composer.Locator("[data-reply-submit]").ClickAsync();
+            await Assertions.Expect(page.Locator(".lmx-discussion-reply-composer")).ToHaveCountAsync(0);
+            foreach (var surface in new[] { staleActiveSurface, newerMainSurface })
+            {
+                await Assertions.Expect(surface.Locator(".lmx-discussion-reply-item")).ToHaveCountAsync(9);
+                Assert.Equal(
+                    ["r1", "r2", "r3", "r4", "r6", "r7", "r8", "r9", "r10"],
+                    await surface.Locator(".lmx-discussion-reply-item")
+                        .EvaluateAllAsync<string[]>("replies => replies.map(reply => reply.dataset.discussionReplyId)"));
+                await Assertions.Expect(surface.Locator(".lmx-discussion-post-author small")).ToContainTextAsync("9 replies");
+                await Assertions.Expect(surface.Locator("[data-discussion-replies-page]")).ToHaveCountAsync(0);
+            }
+
+            await newerMainSurface.Locator("[data-discussion-reply]").ClickAsync();
+            var delayedComposer = newerMainSurface.Locator(".lmx-discussion-reply-composer");
+            await delayedComposer.Locator("textarea").FillAsync("A delayed reply that sorts before the latest window.");
+            await delayedComposer.Locator("[data-reply-submit]").ClickAsync();
+            await Assertions.Expect(page.Locator(".lmx-discussion-reply-composer")).ToHaveCountAsync(0);
+            foreach (var surface in new[] { staleActiveSurface, newerMainSurface })
+            {
+                Assert.Equal(
+                    ["r9", "r10", "r12"],
+                    await surface.Locator(".lmx-discussion-reply-item")
+                        .EvaluateAllAsync<string[]>("replies => replies.map(reply => reply.dataset.discussionReplyId)"));
+                await Assertions.Expect(surface.Locator(".lmx-discussion-post-author small")).ToContainTextAsync("11 replies");
+                var restartedPager = surface.Locator("[data-discussion-replies-page]");
+                await Assertions.Expect(restartedPager).ToHaveTextAsync("View 8 earlier replies");
+                Assert.Equal("r9", await restartedPager.GetAttributeAsync("data-before-reply-id"));
+            }
         }
-
-        await newerMainSurface.Locator("[data-discussion-reply]").ClickAsync();
-        var delayedComposer = newerMainSurface.Locator(".lmx-discussion-reply-composer");
-        await delayedComposer.Locator("textarea").FillAsync("A delayed reply that sorts before the latest window.");
-        await delayedComposer.Locator("[data-reply-submit]").ClickAsync();
-        await Assertions.Expect(page.Locator(".lmx-discussion-reply-composer")).ToHaveCountAsync(0);
-        foreach (var surface in new[] { staleActiveSurface, newerMainSurface })
+        finally
         {
-            Assert.Equal(
-                ["r9", "r10", "r12"],
-                await surface.Locator(".lmx-discussion-reply-item")
-                    .EvaluateAllAsync<string[]>("replies => replies.map(reply => reply.dataset.discussionReplyId)"));
-            await Assertions.Expect(surface.Locator(".lmx-discussion-post-author small")).ToContainTextAsync("11 replies");
-            var restartedPager = surface.Locator("[data-discussion-replies-page]");
-            await Assertions.Expect(restartedPager).ToHaveTextAsync("View 8 earlier replies");
-            Assert.Equal("r9", await restartedPager.GetAttributeAsync("data-before-reply-id"));
+            releaseAthleteDirectory.TrySetResult(true);
         }
     }
 

@@ -323,8 +323,10 @@ public sealed class LongevitymaxxingChallengeService
     }
 
     public LongevitymaxxingParticipantState GetParticipantState(string accessToken, DateTimeOffset? nowUtc = null)
+    {
         // Keep the embedded public and participant discussion windows coherent across concurrent reply mutations.
-        => _db.Run(_ => BuildParticipantState(accessToken, nowUtc));
+        return _db.Run(_ => BuildParticipantState(accessToken, nowUtc));
+    }
 
     private LongevitymaxxingParticipantState BuildParticipantState(string accessToken, DateTimeOffset? nowUtc)
     {

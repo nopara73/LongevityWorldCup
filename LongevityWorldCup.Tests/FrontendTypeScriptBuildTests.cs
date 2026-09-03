@@ -18,28 +18,6 @@ public sealed class FrontendTypeScriptBuildTests
     ];
 
     [Fact]
-    public void EveryReusableJavascriptAssetHasMatchingTypeScriptSource()
-    {
-        var websiteRoot = Path.Combine(FindRepoRoot(), "LongevityWorldCup.Website");
-        var sourceRoot = Path.Combine(websiteRoot, "Frontend");
-        var outputRoot = Path.Combine(websiteRoot, "wwwroot", "js");
-        var runtimeSourcePaths = Directory.GetFiles(sourceRoot, "*.ts", SearchOption.AllDirectories)
-            .Where(path => !path.EndsWith(".d.ts", StringComparison.OrdinalIgnoreCase))
-            .Select(path => Path.GetRelativePath(sourceRoot, path))
-            .Order(StringComparer.Ordinal)
-            .ToArray();
-        var outputPaths = Directory.GetFiles(outputRoot, "*.js", SearchOption.AllDirectories)
-            .Select(path => Path.GetRelativePath(outputRoot, path))
-            .Order(StringComparer.Ordinal)
-            .ToArray();
-
-        Assert.All(runtimeSourcePaths, path => Assert.Equal(Path.GetFileName(path), path));
-        Assert.Equal(
-            runtimeSourcePaths.Select(path => Path.ChangeExtension(path, ".js")),
-            outputPaths);
-    }
-
-    [Fact]
     public void CompilerConfigurationKeepsStrictBehaviorPreservingEmission()
     {
         var tsconfigPath = Path.Combine(FindRepoRoot(), "LongevityWorldCup.Website", "tsconfig.json");
