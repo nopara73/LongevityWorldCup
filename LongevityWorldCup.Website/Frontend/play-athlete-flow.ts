@@ -1,5 +1,5 @@
-const DEFAULT_HEADSHOT_WEBP_FALLBACK = "/assets/content-images/headshot.webp";
-const DEFAULT_HEADSHOT_JPEG_FALLBACK = "/assets/content-images/headshot.jpg";
+const DEFAULT_HEADSHOT_WEBP_FALLBACK = "/assets/content-images/play-athlete-placeholder.webp";
+const DEFAULT_HEADSHOT_JPEG_FALLBACK = "/assets/content-images/play-athlete-placeholder.jpg";
 const ATHLETE_PICTURE_TRANSITION_MS = 180;
 const MIN_USABLE_ATHLETE_PICTURE_SIDE = 16;
 const PENDING_PAYMENT_OFFER_KEY = "pendingPaymentOffer";
@@ -228,9 +228,9 @@ function isDefaultHeadshotSrc(src: string): boolean {
     if (!src) return false;
 
     try {
-        return new URL(src, window.location.href).pathname.endsWith("/assets/content-images/headshot.jpg");
+        return new URL(src, window.location.href).pathname.endsWith(DEFAULT_HEADSHOT_JPEG_FALLBACK);
     } catch (_) {
-        return src.endsWith(DEFAULT_HEADSHOT_JPEG_FALLBACK) || src.endsWith("/assets/content-images/headshot.jpg");
+        return src.endsWith(DEFAULT_HEADSHOT_JPEG_FALLBACK);
     }
 }
 

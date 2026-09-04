@@ -581,6 +581,8 @@ $@"<style{attributes}>
                 .Replace("{{ASSET_HD_LOGO_THUMB_SM}}", _assetVersionProvider.AppendVersion("/assets/HdLogo_thumb_sm.png"))
                 .Replace("{{ASSET_HEADSHOT_WEBP}}", _assetVersionProvider.AppendVersion("/assets/content-images/headshot.webp"))
                 .Replace("{{ASSET_HEADSHOT_JPEG}}", _assetVersionProvider.AppendVersion("/assets/content-images/headshot.jpg"))
+                .Replace("{{ASSET_PLAY_ATHLETE_PLACEHOLDER_WEBP}}", _assetVersionProvider.AppendVersion("/assets/content-images/play-athlete-placeholder.webp"))
+                .Replace("{{ASSET_PLAY_ATHLETE_PLACEHOLDER_JPEG}}", _assetVersionProvider.AppendVersion("/assets/content-images/play-athlete-placeholder.jpg"))
                 .Replace("{{ASSET_JUST_TRACK_IT_IMAGE}}", _assetVersionProvider.AppendVersion("/assets/content-images/JustTrackIt.jpg"))
                 .Replace("{{ASSET_BEAN_WAITING_WEBP}}", _assetVersionProvider.AppendVersion("/assets/content-images/bean-waiting.webp"))
                 .Replace("{{ASSET_BEAN_WAITING_PNG}}", _assetVersionProvider.AppendVersion("/assets/content-images/bean-waiting.png"))

@@ -184,11 +184,14 @@ public sealed class CharacterSelectionPageTests(TestWebApplicationFactory shared
         Assert.Contains("border: 4px solid var(--dark-text-color);", css);
         Assert.Contains("box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);", css);
         Assert.Contains("object-fit: contain;", css);
-        Assert.Contains("object-fit: fill;", css);
+        Assert.DoesNotContain("object-fit: fill;", css);
         Assert.DoesNotContain("object-fit: cover;", css);
         Assert.DoesNotContain("transform: scale(1.42);", css);
         Assert.Contains("border: 0;", css);
         Assert.Contains("class=\"illustration athlete-picture-placeholder\"", html);
+        Assert.Contains("/assets/content-images/play-athlete-placeholder.webp?v=", html);
+        Assert.Contains("/assets/content-images/play-athlete-placeholder.jpg?v=", html);
+        Assert.Contains("width=\"1024\" height=\"1024\"", html);
         Assert.Contains("const ATHLETE_PICTURE_TRANSITION_MS = 180;", flow);
         Assert.Contains("const MIN_USABLE_ATHLETE_PICTURE_SIDE = 16;", flow);
         Assert.Contains("function transitionAthletePicture(frame, image, src)", flow);

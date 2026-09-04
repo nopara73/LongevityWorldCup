@@ -621,7 +621,7 @@ public sealed class PlayAthleteFlowBrowserTests(
                         get: () => source,
                         set: value => {
                             source = value;
-                            sourceComplete = !String(value).includes('/assets/content-images/headshot.jpg');
+                            sourceComplete = !String(value).includes('/assets/content-images/play-athlete-placeholder.jpg');
                         }
                     },
                     currentSrc: {
@@ -672,7 +672,7 @@ public sealed class PlayAthleteFlowBrowserTests(
             }
             """);
 
-        Assert.StartsWith("true|/assets/content-images/headshot.jpg?v=", result, StringComparison.Ordinal);
+        Assert.StartsWith("true|/assets/content-images/play-athlete-placeholder.jpg?v=", result, StringComparison.Ordinal);
         Assert.EndsWith("|true", result, StringComparison.Ordinal);
     }
 
@@ -1167,7 +1167,8 @@ public sealed class PlayAthleteFlowBrowserTests(
                     && image.complete
                     && image.naturalWidth > 16
                     && image.naturalHeight > 16
-                    && image.src.includes('/assets/content-images/headshot.jpg')
+                    && image.src.includes('/assets/content-images/play-athlete-placeholder.jpg')
+                    && image.naturalWidth === image.naturalHeight
                     && image.classList.contains('athlete-picture-placeholder');
             }
             """,
