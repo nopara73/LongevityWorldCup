@@ -710,8 +710,7 @@ public sealed class GuessMyAgeBrowserTests(
         Assert.True(await page.Locator("#guessAgeContainer .gma-actions").EvaluateAsync<bool>("element => element.inert"));
         Assert.False(await page.Locator("#guessAgeContainer .gma-actions").IsVisibleAsync());
         Assert.Equal("41", await page.Locator("#gmaRealBubble").InnerTextAsync());
-        Assert.True(await page.Locator("#gmaBubble").EvaluateAsync<bool>(
-            "element => { const opacity = Number.parseFloat(getComputedStyle(element).opacity); return opacity >= 0.35 && opacity <= 0.5; }"));
+        await Assertions.Expect(page.Locator("#gmaBubble")).ToHaveCSSAsync("opacity", "0.4");
         Assert.Equal(0, await page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = "See profile", Exact = true }).CountAsync());
         Assert.True(await page.Locator("#detailsModal .modal-content").EvaluateAsync<bool>(
             "element => element.classList.contains('gma-result-ready')"));
