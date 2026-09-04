@@ -184,6 +184,7 @@ public sealed class CharacterSelectionPageTests(TestWebApplicationFactory shared
         Assert.Contains("border: 4px solid var(--dark-text-color);", css);
         Assert.Contains("box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);", css);
         Assert.Contains("object-fit: contain;", css);
+        Assert.Contains("object-fit: fill;", css);
         Assert.DoesNotContain("object-fit: cover;", css);
         Assert.DoesNotContain("transform: scale(1.42);", css);
         Assert.Contains("border: 0;", css);

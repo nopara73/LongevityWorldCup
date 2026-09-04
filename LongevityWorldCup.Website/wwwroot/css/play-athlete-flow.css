@@ -41,7 +41,7 @@
 
 .athlete-picture-frame > img.athlete-picture-placeholder,
 .athlete-picture-frame picture img.athlete-picture-placeholder {
-    object-fit: contain;
+    object-fit: fill;
     transform: none;
 }
 

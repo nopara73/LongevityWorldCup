@@ -250,6 +250,7 @@ public sealed class PlayMenuPageTests(TestWebApplicationFactory sharedFactory)
         Assert.Contains("aspect-ratio: 1 / 1;", css);
         Assert.Contains("border: 4px solid var(--dark-text-color);", css);
         Assert.Contains("object-fit: contain;", css);
+        Assert.Contains("object-fit: fill;", css);
         Assert.DoesNotContain("object-fit: cover;", css);
         Assert.DoesNotContain("transform: scale(1.42);", css);
         Assert.Contains("const ATHLETE_PICTURE_TRANSITION_MS = 180;", flow);
