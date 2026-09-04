@@ -120,8 +120,19 @@ public sealed class SmtpLongevitymaxxingEmailSender(Config config, ILogger<SmtpL
                 if (remainingActors > 0)
                     actorText += $" and {remainingActors} more";
 
+                var postDisplayName = SafeName(item.PostDisplayName ?? "a new participant");
+
                 return item.Kind switch
                 {
+                    LongevitymaxxingDiscussionActivityKind.Mention
+                        when item.SystemPostKind == "participant-joined" && item.Count == 1
+                        => $"- {actorText} mentioned you in the welcome thread for {postDisplayName} ({item.Date}).",
+                    LongevitymaxxingDiscussionActivityKind.Mention
+                        when item.SystemPostKind == "participant-joined"
+                        => $"- {item.Count} new mentions in the welcome thread for {postDisplayName} ({item.Date}) from {actorText}.",
+                    LongevitymaxxingDiscussionActivityKind.Reply
+                        when item.SystemPostKind == "participant-joined"
+                        => $"- Your Challenge welcome thread ({item.Date}): {item.Count} new {(item.Count == 1 ? "reply" : "replies")} from {actorText}.",
                     LongevitymaxxingDiscussionActivityKind.Mention when item.Count == 1
                         => $"- {actorText} mentioned you in a Day {item.ChallengeDay} post ({item.Date}).",
                     LongevitymaxxingDiscussionActivityKind.Mention

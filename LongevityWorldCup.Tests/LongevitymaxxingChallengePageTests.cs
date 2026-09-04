@@ -594,12 +594,14 @@ public sealed class LongevitymaxxingChallengePageTests(TestWebApplicationFactory
         Assert.Contains("toggle(\"lmxHabitGrid\", !hasParticipant);", javascript);
         Assert.Contains("toggle(\"lmxTrack\", hasParticipant && dashboardMode);", javascript);
         Assert.Contains("toggle(\"lmxNotesPanel\", dashboardMode);", javascript);
-        Assert.Contains("renderNotes(state.notes || [], false);", javascript);
-        Assert.Contains("renderNotes(state.notes || state.public.notes || [], true);", javascript);
+        Assert.Contains("renderNotes(publicDiscussionThreads(state), false);", javascript);
+        Assert.Contains("renderNotes(participantDiscussionThreads(state), true);", javascript);
         Assert.Contains("const RECENT_REMARK_LIMIT = 3;", javascript);
         Assert.Contains("const DISCUSSION_PAGE_SIZE = 5;", javascript);
+        Assert.Contains("const DISCUSSION_THREAD_LIMIT = 100;", javascript);
         Assert.Contains("renderCheckIns(state.eligibleDays || [], undefined, activePublicDiscussion(state));", javascript);
         Assert.Contains("function activePublicDiscussion(state: ParticipantState): ParticipantNote[]", javascript);
+        Assert.Contains("function systemDiscussionThreads(state: PublicState | null | undefined): ParticipantNote[]", javascript);
         Assert.Contains("function activeDiscussionHtml(notes: ParticipantNote[]): string", javascript);
         Assert.Contains("function discussionThreadsInHotOrder(notes: ParticipantNote[]): ParticipantNote[]", javascript);
         Assert.Contains("function openDiscussionReplyComposer(button: HTMLButtonElement): void", javascript);

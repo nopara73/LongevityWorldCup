@@ -20,7 +20,8 @@ public sealed record LongevitymaxxingDiscussionReplyRequest(
     string PostParticipantId,
     int ChallengeDay,
     string Body,
-    string ReplyId);
+    string ReplyId,
+    string? SystemPostId = null);
 
 public sealed record LongevitymaxxingDiscussionReplyEditRequest(
     string AccessToken,
@@ -36,7 +37,8 @@ public sealed record LongevitymaxxingDiscussionReplyPageRequest(
     string PostParticipantId,
     int ChallengeDay,
     string? BeforeCreatedAtUtc,
-    string? BeforeReplyId);
+    string? BeforeReplyId,
+    string? SystemPostId = null);
 
 public sealed record LongevitymaxxingDiscussionReplyPage(
     IReadOnlyList<LongevitymaxxingDiscussionReply> Replies,
@@ -67,6 +69,7 @@ public sealed record LongevitymaxxingPublicState(
     IReadOnlyList<LongevitymaxxingLeaderboardRow> Leaderboard,
     IReadOnlyList<LongevitymaxxingPodiumRow> Podium,
     IReadOnlyList<LongevitymaxxingParticipantNote> Notes,
+    IReadOnlyList<LongevitymaxxingDiscussionSystemPost> SystemDiscussionPosts,
     IReadOnlyList<LongevitymaxxingPublicCall> Calls,
     string SlackInviteUrl,
     string? SlackRoomUrl);
@@ -195,6 +198,17 @@ public sealed record LongevitymaxxingDiscussionReply(
     string CreatedAtUtc,
     string? EditedAtUtc);
 
+public sealed record LongevitymaxxingDiscussionSystemPost(
+    string Id,
+    string Kind,
+    string ParticipantId,
+    string DisplayName,
+    string Date,
+    string OccurredAtUtc,
+    string LastActivityAtUtc,
+    int ReplyCount,
+    IReadOnlyList<LongevitymaxxingDiscussionReply> Replies);
+
 public sealed record LongevitymaxxingCheckInImage(
     string Url,
     int Width,
@@ -230,7 +244,9 @@ public sealed record LongevitymaxxingDiscussionDigestItem(
     int ChallengeDay,
     string Date,
     int Count,
-    IReadOnlyList<string> ActorDisplayNames);
+    IReadOnlyList<string> ActorDisplayNames,
+    string? SystemPostKind = null,
+    string? PostDisplayName = null);
 
 public enum LongevitymaxxingDiscussionActivityKind
 {

@@ -551,6 +551,58 @@ public sealed class LongevitymaxxingChallengeBrowserTests(
     }
 
     [Fact]
+    public async Task ConfirmedParticipantJoinPostAppearsInDiscussionAndAcceptsReplies()
+    {
+        var app = App;
+        var browser = Browser;
+        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = app.BaseAddress.ToString(),
+            Locale = "en-US",
+            ViewportSize = new ViewportSize { Width = 760, Height = 900 }
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        await context.AddInitScriptAsync("window.localStorage.setItem('lmxAccessToken', 'browser-token');");
+
+        var publicStateJson = JsonSerializer.Serialize(BuildPublicState(includeJoinDiscussionPost: true));
+        var participantStateJson = JsonSerializer.Serialize(BuildParticipantState(includeJoinDiscussionPost: true));
+        var repliedStateJson = JsonSerializer.Serialize(BuildParticipantState(
+            includeJoinDiscussionPost: true,
+            joinDiscussionHasReply: true));
+        string? replyPayload = null;
+        var page = await context.NewPageAsync();
+        await page.RouteAsync("**/api/longevitymaxxing/state", route => FulfillJsonAsync(route, publicStateJson));
+        await page.RouteAsync("**/api/longevitymaxxing/participant", route => FulfillJsonAsync(route, participantStateJson));
+        await page.RouteAsync("**/api/longevitymaxxing/discussion/replies", async route =>
+        {
+            replyPayload = route.Request.PostData;
+            await FulfillJsonAsync(route, repliedStateJson);
+        });
+
+        await page.GotoAsync("/longevitymaxxing", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        var joinPost = page.Locator("#lmxNotes .lmx-note[data-discussion-system-post-id='11111111111111111111111111111111']");
+        await joinPost.WaitForAsync();
+        await Assertions.Expect(joinPost).ToContainTextAsync("New Nina");
+        await Assertions.Expect(joinPost).ToContainTextAsync("Joined the Longevitymaxxing Challenge.");
+        await Assertions.Expect(joinPost).Not.ToContainTextAsync("Day 0");
+
+        await joinPost.Locator("[data-discussion-reply]").ClickAsync();
+        var composer = joinPost.Locator(".lmx-discussion-reply-composer");
+        await composer.Locator("textarea").FillAsync("Welcome aboard!");
+        await composer.Locator("[data-reply-submit]").ClickAsync();
+        await Assertions.Expect(joinPost.Locator(".lmx-discussion-reply-item")).ToContainTextAsync("Welcome aboard!");
+        await Assertions.Expect(joinPost.Locator(".lmx-discussion-post-author small")).ToContainTextAsync("1 reply");
+
+        Assert.NotNull(replyPayload);
+        using var payloadJson = JsonDocument.Parse(replyPayload!);
+        var payload = payloadJson.RootElement;
+        Assert.Equal("11111111111111111111111111111111", payload.GetProperty("systemPostId").GetString());
+        Assert.Equal("p2", payload.GetProperty("postParticipantId").GetString());
+        Assert.Equal(0, payload.GetProperty("challengeDay").GetInt32());
+        Assert.Equal("Welcome aboard!", payload.GetProperty("body").GetString());
+    }
+
+    [Fact]
     public async Task CheckInForm_ShowsLatestDiscussionSupportsRepliesAndOpensPhotosInAccessibleViewer()
     {
         var app = App;
@@ -1852,14 +1904,18 @@ public sealed class LongevitymaxxingChallengeBrowserTests(
         string? eligibleDayDate = null,
         DiscussionReplySnapshot discussionReplySnapshot = DiscussionReplySnapshot.Initial,
         DiscussionReplySnapshot? publicDiscussionReplySnapshot = null,
-        bool includeDiscussionIdentityParticipants = false)
+        bool includeDiscussionIdentityParticipants = false,
+        bool includeJoinDiscussionPost = false,
+        bool joinDiscussionHasReply = false)
         => new
         {
             @public = BuildPublicState(
                 includeMentionParticipants,
                 includeDiscussionNotesWithMentionParticipants,
                 publicDiscussionReplySnapshot ?? discussionReplySnapshot,
-                includeDiscussionIdentityParticipants),
+                includeDiscussionIdentityParticipants,
+                includeJoinDiscussionPost,
+                joinDiscussionHasReply),
             participant = new
             {
                 id = "p1",
@@ -1932,7 +1988,9 @@ public sealed class LongevitymaxxingChallengeBrowserTests(
         bool includeMentionParticipants = false,
         bool includeDiscussionNotesWithMentionParticipants = false,
         DiscussionReplySnapshot discussionReplySnapshot = DiscussionReplySnapshot.Initial,
-        bool includeDiscussionIdentityParticipants = false)
+        bool includeDiscussionIdentityParticipants = false,
+        bool includeJoinDiscussionPost = false,
+        bool joinDiscussionHasReply = false)
         => new
         {
             challengeName = "Longevitymaxxing Challenge",
@@ -1994,11 +2052,37 @@ public sealed class LongevitymaxxingChallengeBrowserTests(
                     MentionLeaderboardRow("p6", "Eli"),
                     MentionLeaderboardRow("p7", "Fox", "/athlete/fox", "/assets/content-images/cr7.webp")
                 }
+                : []).Concat(includeJoinDiscussionPost
+                ? new object[]
+                {
+                    MentionLeaderboardRow("p2", "New Nina")
+                }
                 : []).ToArray(),
             podium = Array.Empty<object>(),
             notes = includeMentionParticipants && !includeDiscussionNotesWithMentionParticipants
                 ? BuildMentionDiscussionNotes()
                 : BuildDiscussionNotes(discussionReplySnapshot),
+            systemDiscussionPosts = includeJoinDiscussionPost
+                ? new object[]
+                {
+                    new
+                    {
+                        id = "11111111111111111111111111111111",
+                        kind = "participant-joined",
+                        participantId = "p2",
+                        displayName = "New Nina",
+                        date = "2026-07-05",
+                        occurredAtUtc = "2026-07-05T09:00:00Z",
+                        lastActivityAtUtc = joinDiscussionHasReply
+                            ? "2026-07-05T09:05:00Z"
+                            : "2026-07-05T09:00:00Z",
+                        replyCount = joinDiscussionHasReply ? 1 : 0,
+                        replies = joinDiscussionHasReply
+                            ? new[] { Reply("join-r1", "p1", "Browser Tester", "Welcome aboard!", "2026-07-05T09:05:00Z") }
+                            : Array.Empty<object>()
+                    }
+                }
+                : Array.Empty<object>(),
             calls = Array.Empty<object>(),
             slackInviteUrl = "",
             slackRoomUrl = (string?)null

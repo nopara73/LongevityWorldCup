@@ -118,6 +118,20 @@
         replyCount?: number;
         images: CheckInImage[];
         replies?: DiscussionReply[];
+        kind?: "check-in" | "participant-joined";
+        systemPostId?: string | null;
+    }
+
+    interface DiscussionSystemPost {
+        id: string;
+        kind: "participant-joined";
+        participantId: string;
+        displayName: string;
+        date: string;
+        occurredAtUtc: string;
+        lastActivityAtUtc: string;
+        replyCount: number;
+        replies: DiscussionReply[];
     }
 
     interface DiscussionReply {
@@ -140,6 +154,7 @@
         challengeDay: number;
         body: string;
         replyId: string;
+        systemPostId: string | null;
     }
 
     interface DiscussionReplyEditPayload {
@@ -159,6 +174,7 @@
         challengeDay: number;
         beforeCreatedAtUtc: string | null;
         beforeReplyId: string | null;
+        systemPostId: string | null;
     }
 
     interface DiscussionReplyPage {
@@ -228,6 +244,7 @@
         leaderboard: LeaderboardRow[];
         podium: PodiumRow[];
         notes: ParticipantNote[];
+        systemDiscussionPosts?: DiscussionSystemPost[];
         calls: PublicCall[];
         slackInviteUrl: string;
         slackRoomUrl: string | null;
@@ -532,6 +549,7 @@
     const MAX_NOTE_MENTIONS = 5;
     const RECENT_REMARK_LIMIT = 3;
     const DISCUSSION_PAGE_SIZE = 5;
+    const DISCUSSION_THREAD_LIMIT = 100;
     const PLANT_LEAF_CAPACITY = 64;
     const PLANT_BUD_CAPACITY = 12;
     const PLANT_YES_GROWTH_RATE = 0.025;
@@ -972,8 +990,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     function changeDiscussionPage(delta: number): void {
         const participantView = participantState !== null;
         const notes = participantState
-            ? (participantState.notes || participantState.public.notes || [])
-            : (publicState?.notes || []);
+            ? participantDiscussionThreads(participantState)
+            : publicState ? publicDiscussionThreads(publicState) : [];
         const page = getDiscussionPage(notes);
         discussionPageIndex = Math.max(0, Math.min(page.pageCount - 1, page.pageIndex + delta));
         renderNotes(notes, participantView);
@@ -1215,14 +1233,18 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     }
 
     function acceptParticipantState(state: ParticipantState): void {
-        invalidateDiscussionReplyCachesForAuthoritativeState([state.notes, state.public.notes]);
+        invalidateDiscussionReplyCachesForAuthoritativeState([
+            state.notes,
+            state.public.notes,
+            systemDiscussionThreads(state.public)
+        ]);
         participantState = state;
         publicState = state.public;
         stateAcceptanceGeneration++;
     }
 
     function acceptPublicState(state: PublicState): void {
-        invalidateDiscussionReplyCachesForAuthoritativeState([state.notes]);
+        invalidateDiscussionReplyCachesForAuthoritativeState([state.notes, systemDiscussionThreads(state)]);
         publicState = state;
         stateAcceptanceGeneration++;
     }
@@ -1241,7 +1263,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         if (participantState) {
             renderParticipant(participantState);
         } else {
-            renderNotes(state.notes || [], false);
+            renderNotes(publicDiscussionThreads(state), false);
         }
 
         syncCheckInDialog();
@@ -1713,7 +1735,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         renderProfilePictureControls(participant);
         renderParticipantCalls(state.calls || [], state.public.callSelectionClosesAtUtc);
         renderCheckIns(state.eligibleDays || [], undefined, activePublicDiscussion(state));
-        renderNotes(state.notes || state.public.notes || [], true);
+        renderNotes(participantDiscussionThreads(state), true);
         renderParticipantTabs();
     }
 
@@ -3080,9 +3102,38 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     }
 
     function activePublicDiscussion(state: ParticipantState): ParticipantNote[] {
-        const notes = Array.isArray(state?.public?.notes) ? state.public.notes : [];
-        return discussionThreadsInHotOrder(notes)
+        return discussionThreadsInHotOrder(publicDiscussionThreads(state.public))
             .slice(0, RECENT_REMARK_LIMIT);
+    }
+
+    function publicDiscussionThreads(state: PublicState): ParticipantNote[] {
+        const checkInPosts = Array.isArray(state?.notes) ? state.notes : [];
+        return checkInPosts.concat(systemDiscussionThreads(state));
+    }
+
+    function participantDiscussionThreads(state: ParticipantState): ParticipantNote[] {
+        const checkInPosts = Array.isArray(state?.notes)
+            ? state.notes
+            : Array.isArray(state?.public?.notes) ? state.public.notes : [];
+        return checkInPosts.concat(systemDiscussionThreads(state.public));
+    }
+
+    function systemDiscussionThreads(state: PublicState | null | undefined): ParticipantNote[] {
+        const posts = Array.isArray(state?.systemDiscussionPosts) ? state.systemDiscussionPosts : [];
+        return posts.map(post => ({
+            participantId: post.participantId,
+            displayName: post.displayName,
+            challengeDay: 0,
+            date: post.date,
+            note: null,
+            updatedAtUtc: post.occurredAtUtc,
+            lastActivityAtUtc: post.lastActivityAtUtc,
+            replyCount: post.replyCount,
+            images: [],
+            replies: post.replies,
+            kind: post.kind,
+            systemPostId: post.id
+        }));
     }
 
     function activeDiscussionHtml(notes: ParticipantNote[]): string {
@@ -3093,16 +3144,16 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         return `<section class="lmx-recent-remarks" aria-label="Active public discussion">
             <strong>Active discussion</strong>
             ${posts.map(note => {
-                const noteText = String(note.note || "").trim();
                 const images = Array.isArray(note.images) ? note.images : [];
                 const imageHtml = images.length
                     ? `<div class="lmx-note-photo-grid">${images.map((image, index) => notePhotoHtml(image, `${note.participantId}-${note.challengeDay}-${index}`)).join("")}</div>`
                     : "";
                 return `<article class="lmx-recent-remark"
                     data-discussion-post-participant-id="${escAttr(note.participantId)}"
-                    data-discussion-post-challenge-day="${escAttr(note.challengeDay)}">
+                    data-discussion-post-challenge-day="${escAttr(note.challengeDay)}"
+                    data-discussion-system-post-id="${escAttr(note.systemPostId || "")}">
                     ${discussionPostHeaderHtml(note, true)}
-                    ${noteText ? `<p>${participantMentionTextHtml(noteText)}</p>` : ""}
+                    ${discussionOpeningPostHtml(note)}
                     ${imageHtml}
                     ${discussionRepliesHtml(note)}
                     <div class="lmx-discussion-reply-slot"></div>
@@ -3112,20 +3163,45 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     }
 
     function discussionThreadsInHotOrder(notes: ParticipantNote[]): ParticipantNote[] {
+        const now = Date.now();
         return (Array.isArray(notes) ? notes : [])
-            .filter(hasParticipantNoteContent);
+            .filter(hasParticipantNoteContent)
+            .slice()
+            .sort((left, right) => {
+                const scoreOrder = discussionHotScore(right, now) - discussionHotScore(left, now);
+                if (scoreOrder) return scoreOrder;
+                const activityOrder = discussionActivityTimestamp(right) - discussionActivityTimestamp(left);
+                if (activityOrder) return activityOrder;
+                const dayOrder = right.challengeDay - left.challengeDay;
+                if (dayOrder) return dayOrder;
+                return left.participantId < right.participantId ? -1 : left.participantId > right.participantId ? 1 : 0;
+            })
+            .slice(0, DISCUSSION_THREAD_LIMIT);
+    }
+
+    function discussionHotScore(note: ParticipantNote, now: number): number {
+        const daysSinceLatestActivity = Math.max(0, now - discussionActivityTimestamp(note)) / 86_400_000;
+        return Math.log2(effectiveDiscussionReplyCount(note) + 1) - daysSinceLatestActivity;
+    }
+
+    function discussionActivityTimestamp(note: ParticipantNote): number {
+        const parsed = Date.parse(String(note.lastActivityAtUtc || note.updatedAtUtc || ""));
+        return Number.isFinite(parsed) ? parsed : 0;
     }
 
     function discussionPostHeaderHtml(note: ParticipantNote, canReply: boolean): string {
         const date = note.date ? formatShortDateLabel(note.date) : "";
         const replyCount = effectiveDiscussionReplyCount(note);
         const replyLabel = `${replyCount} ${replyCount === 1 ? "reply" : "replies"}`;
-        const context = [date, `Day ${note.challengeDay}`, replyLabel].filter(Boolean).join(" · ");
+        const context = note.kind === "participant-joined"
+            ? [date, replyLabel].filter(Boolean).join(" · ")
+            : [date, `Day ${note.challengeDay}`, replyLabel].filter(Boolean).join(" · ");
         const reply = canReply
             ? `<button class="lmx-discussion-reply" type="button"
                 data-discussion-reply
                 data-post-participant-id="${escAttr(note.participantId)}"
                 data-post-challenge-day="${escAttr(note.challengeDay)}"
+                data-system-post-id="${escAttr(note.systemPostId || "")}"
                 data-post-display-name="${escAttr(note.displayName)}"
                 aria-label="Reply to ${escAttr(note.displayName)}"
                 aria-expanded="false">
@@ -3163,6 +3239,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 data-discussion-replies-page
                 data-post-participant-id="${escAttr(note.participantId)}"
                 data-post-challenge-day="${escAttr(note.challengeDay)}"
+                data-system-post-id="${escAttr(note.systemPostId || "")}"
                 data-before-created-at-utc="${escAttr(earliest.createdAtUtc)}"
                 data-before-reply-id="${escAttr(earliest.id)}"
                 data-remaining-earlier-replies="${escAttr(remainingEarlier)}">
@@ -3325,7 +3402,13 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         replies: DiscussionReply[];
         replyCount: number;
     } {
-        const noteCollections = [participantState?.notes, participantState?.public?.notes, publicState?.notes];
+        const noteCollections = [
+            participantState?.notes,
+            participantState?.public?.notes,
+            publicState?.notes,
+            systemDiscussionThreads(participantState?.public),
+            systemDiscussionThreads(publicState)
+        ];
         const notes = noteCollections.flatMap(collection => (collection || [])
             .filter(note => note.participantId === payload.postParticipantId && note.challengeDay === payload.challengeDay));
         const cursorMatches = notes.filter(note => {
@@ -3408,7 +3491,16 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     }
 
     function hasParticipantNoteContent(note: ParticipantNote): boolean {
-        return !!String(note?.note || "").trim() || (Array.isArray(note?.images) && note.images.length > 0);
+        return note?.kind === "participant-joined" ||
+            !!String(note?.note || "").trim() ||
+            (Array.isArray(note?.images) && note.images.length > 0);
+    }
+
+    function discussionOpeningPostHtml(note: ParticipantNote): string {
+        if (note.kind === "participant-joined")
+            return `<p>Joined the Longevitymaxxing Challenge.</p>`;
+        const noteText = String(note.note || "").trim();
+        return noteText ? `<p>${participantMentionTextHtml(noteText)}</p>` : "";
     }
 
     function notePhotoHtml(image: CheckInImage, key: string): string {
@@ -4262,12 +4354,12 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             const imageHtml = images.length
                 ? `<div class="lmx-note-photo-grid">${images.map((image, index) => notePhotoHtml(image, `${note.participantId}-${note.challengeDay}-${index}`)).join("")}</div>`
                 : "";
-            const noteText = String(note.note || "").trim();
             return `<article class="lmx-note"
                 data-discussion-post-participant-id="${escAttr(note.participantId)}"
-                data-discussion-post-challenge-day="${escAttr(note.challengeDay)}">
+                data-discussion-post-challenge-day="${escAttr(note.challengeDay)}"
+                data-discussion-system-post-id="${escAttr(note.systemPostId || "")}">
                 ${discussionPostHeaderHtml(note, canReply)}
-                ${noteText ? `<p>${participantMentionTextHtml(noteText)}</p>` : ""}
+                ${discussionOpeningPostHtml(note)}
                 ${imageHtml}
                 ${discussionRepliesHtml(note)}
                 <div class="lmx-discussion-reply-slot"></div>
@@ -4305,7 +4397,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             postParticipantId: String(button.dataset.postParticipantId || ""),
             challengeDay: Number(button.dataset.postChallengeDay),
             beforeCreatedAtUtc: String(button.dataset.beforeCreatedAtUtc || "") || null,
-            beforeReplyId: String(button.dataset.beforeReplyId || "") || null
+            beforeReplyId: String(button.dataset.beforeReplyId || "") || null,
+            systemPostId: String(button.dataset.systemPostId || "") || null
         };
         const remaining = Math.max(0, Number(button.dataset.remainingEarlierReplies) || 0);
         const original = earlierRepliesButtonLabel(remaining);
@@ -4404,7 +4497,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const result = await getJson(`${API}/state`);
         if (generation !== stateAcceptanceGeneration) return;
         acceptPublicState(result);
-        renderNotes(result.notes || [], false);
+        renderNotes(publicDiscussionThreads(result), false);
     }
 
     function openDiscussionReplyComposer(button: HTMLButtonElement): void {
@@ -4612,7 +4705,13 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             const cached = cache.byId.get(replyId);
             if (cached) return cached;
         }
-        const collections = [participantState?.notes, participantState?.public?.notes, publicState?.notes];
+        const collections = [
+            participantState?.notes,
+            participantState?.public?.notes,
+            publicState?.notes,
+            systemDiscussionThreads(participantState?.public),
+            systemDiscussionThreads(publicState)
+        ];
         for (const collection of collections) {
             for (const note of collection || []) {
                 const reply = (note.replies || []).find(candidate => candidate.id === replyId);
@@ -4626,10 +4725,24 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         discussionReplyCache.forEach(cache => {
             if (cache.byId.has(updated.id)) cache.byId.set(updated.id, updated);
         });
-        const collections = [participantState?.notes, participantState?.public?.notes, publicState?.notes];
+        const collections = [
+            participantState?.notes,
+            participantState?.public?.notes,
+            publicState?.notes,
+            systemDiscussionThreads(participantState?.public),
+            systemDiscussionThreads(publicState)
+        ];
         collections.forEach(collection => (collection || []).forEach(note => {
             if (!Array.isArray(note.replies)) return;
             note.replies = note.replies.map(reply => reply.id === updated.id ? updated : reply);
+        }));
+        const systemPostCollections = [
+            participantState?.public?.systemDiscussionPosts,
+            publicState?.systemDiscussionPosts
+        ];
+        systemPostCollections.forEach(collection => (collection || []).forEach(post => {
+            if (!Array.isArray(post.replies)) return;
+            post.replies = post.replies.map(reply => reply.id === updated.id ? updated : reply);
         }));
     }
 
@@ -4652,7 +4765,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             postParticipantId: String(sourceButton.dataset.postParticipantId || ""),
             challengeDay: Number(sourceButton.dataset.postChallengeDay),
             body,
-            replyId: slot.dataset.replyId
+            replyId: slot.dataset.replyId,
+            systemPostId: String(sourceButton.dataset.systemPostId || "") || null
         };
         const status = slot.querySelector<HTMLElement>(".lmx-status");
         const original = submit.innerHTML;
@@ -4679,7 +4793,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     }
 
     function renderDiscussionSurfaces(state: ParticipantState): void {
-        renderNotes(state.notes || state.public.notes || [], true);
+        renderNotes(participantDiscussionThreads(state), true);
 
         const form = document.querySelector<HTMLFormElement>("#lmxCheckinList .lmx-checkin-card");
         if (!form) return;
@@ -5938,7 +6052,19 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             isArrayOf(value.images, isCheckInImage) &&
             (!hasProperties(value, "lastActivityAtUtc") || typeof value.lastActivityAtUtc === "string") &&
             (!hasProperties(value, "replyCount") || (typeof value.replyCount === "number" && value.replyCount >= 0)) &&
-            (!hasProperties(value, "replies") || isArrayOf(value.replies, isDiscussionReply));
+            (!hasProperties(value, "replies") || isArrayOf(value.replies, isDiscussionReply)) &&
+            (!hasProperties(value, "kind") || value.kind === "check-in" || value.kind === "participant-joined") &&
+            (!hasProperties(value, "systemPostId") || isNullableString(value.systemPostId));
+    }
+
+    function isDiscussionSystemPost(value: unknown): value is DiscussionSystemPost {
+        return hasProperties(value, "id", "kind", "participantId", "displayName", "date", "occurredAtUtc", "lastActivityAtUtc", "replyCount", "replies") &&
+            typeof value.id === "string" && value.kind === "participant-joined" &&
+            typeof value.participantId === "string" && typeof value.displayName === "string" &&
+            typeof value.date === "string" && typeof value.occurredAtUtc === "string" &&
+            typeof value.lastActivityAtUtc === "string" &&
+            typeof value.replyCount === "number" && value.replyCount >= 0 &&
+            isArrayOf(value.replies, isDiscussionReply);
     }
 
     function isDiscussionReply(value: unknown): value is DiscussionReply {
@@ -6004,6 +6130,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             typeof value.dailyMaxScore === "number" && isArrayOf(value.days, isDaySummary) &&
             isArrayOf(value.leaderboard, isLeaderboardRow) && isArrayOf(value.podium, isPodiumRow) &&
             isArrayOf(value.notes, isParticipantNote) && isArrayOf(value.calls, isPublicCall) &&
+            (!hasProperties(value, "systemDiscussionPosts") || isArrayOf(value.systemDiscussionPosts, isDiscussionSystemPost)) &&
             typeof value.slackInviteUrl === "string" && isNullableString(value.slackRoomUrl);
     }
 

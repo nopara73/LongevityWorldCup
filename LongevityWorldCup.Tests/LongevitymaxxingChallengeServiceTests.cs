@@ -915,6 +915,197 @@ public sealed class LongevitymaxxingChallengeServiceTests
     }
 
     [Fact]
+    public async Task FirstConfirmationCreatesOneReplyableJoinThreadWithoutCreatingACheckIn()
+    {
+        using var fixture = TestChallengeFixture.Create();
+        var signedUpAt = DateTimeOffset.Parse("2026-06-07T12:00:00Z");
+        await fixture.Service.SignupAsync(
+            new LongevitymaxxingSignupRequest("new@example.com", "New Nina", "UTC", null),
+            signedUpAt);
+        var confirmationToken = ReadQueryToken(fixture.Email.Confirmations.Single().Url, "confirm");
+
+        var firstAccess = await fixture.Service.ConfirmAsync(confirmationToken, signedUpAt.AddMinutes(1));
+        _ = await fixture.Service.ConfirmAsync(confirmationToken, signedUpAt.AddMinutes(2));
+        var replierAccess = await fixture.ConfirmParticipantAsync(
+            "reply@example.com",
+            "Reply Rae",
+            nowUtc: signedUpAt.AddMinutes(3));
+
+        var joinPost = Assert.Single(
+            firstAccess.State.Public.SystemDiscussionPosts,
+            post => post.ParticipantId == firstAccess.State.Participant.Id);
+        Assert.Equal("participant-joined", joinPost.Kind);
+        Assert.Equal("2026-06-07", joinPost.Date);
+        Assert.Empty(firstAccess.State.Notes);
+        Assert.Equal(0, firstAccess.State.Participant.DaysIn);
+        Assert.Equal(0, firstAccess.State.Public.Leaderboard
+            .Single(row => row.ParticipantId == firstAccess.State.Participant.Id).CheckedInDays);
+
+        var replyId = Guid.NewGuid().ToString("D");
+        var repliedAt = signedUpAt.AddMinutes(5);
+        var repliedState = fixture.Service.SubmitDiscussionReply(
+            new LongevitymaxxingDiscussionReplyRequest(
+                replierAccess,
+                joinPost.ParticipantId,
+                0,
+                "Welcome to the Challenge!",
+                replyId,
+                joinPost.Id),
+            repliedAt);
+
+        var repliedPost = repliedState.Public.SystemDiscussionPosts.Single(post => post.Id == joinPost.Id);
+        Assert.Equal(1, repliedPost.ReplyCount);
+        Assert.Equal(repliedAt, DateTimeOffset.Parse(repliedPost.LastActivityAtUtc));
+        Assert.Equal("Welcome to the Challenge!", Assert.Single(repliedPost.Replies).Body);
+        Assert.Empty(repliedState.Notes);
+
+        var persistedCounts = fixture.Db.Run(sqlite =>
+        {
+            using var cmd = sqlite.CreateCommand();
+            cmd.CommandText =
+                """
+                SELECT
+                    (SELECT COUNT(*) FROM LongevitymaxxingDiscussionSystemPosts WHERE ParticipantId = @participantId),
+                    (SELECT COUNT(*) FROM LongevitymaxxingCheckIns WHERE ParticipantId = @participantId);
+                """;
+            cmd.Parameters.AddWithValue("@participantId", joinPost.ParticipantId);
+            using var reader = cmd.ExecuteReader();
+            Assert.True(reader.Read());
+            return (JoinPosts: reader.GetInt32(0), CheckIns: reader.GetInt32(1));
+        });
+        Assert.Equal((1, 0), persistedCounts);
+
+        var authorReminder = fixture.Service
+            .GetDailyReminderCandidates(DateTimeOffset.Parse("2026-06-09T09:00:00Z"))
+            .Single(candidate => candidate.ParticipantId == joinPost.ParticipantId);
+        Assert.Equal(1, authorReminder.DiscussionDigest.ReplyCount);
+        var digestItem = Assert.Single(authorReminder.DiscussionDigest.Items);
+        Assert.Equal("participant-joined", digestItem.SystemPostKind);
+        Assert.Equal("New Nina", digestItem.PostDisplayName);
+        var email = SmtpLongevitymaxxingEmailSender.BuildDailyReminderEmailContent(
+            authorReminder,
+            fixture.Service.BuildAccessUrl(authorReminder.AccessToken),
+            fixture.Service.BuildStopUrl(authorReminder.StopToken));
+        Assert.Contains("Your Challenge welcome thread (2026-06-07): 1 new reply from Reply Rae.", email.TextBody);
+        Assert.DoesNotContain("Day 0", email.TextBody);
+        fixture.Service.MarkDailyReminderSent(authorReminder, DateTimeOffset.Parse("2026-06-09T09:01:00Z"));
+        var nextReminder = fixture.Service
+            .GetDailyReminderCandidates(DateTimeOffset.Parse("2026-06-10T09:00:00Z"))
+            .Single(candidate => candidate.ParticipantId == joinPost.ParticipantId);
+        Assert.Equal(0, nextReminder.DiscussionDigest.ReplyCount);
+    }
+
+    [Fact]
+    public async Task JoinThreadRepliesCanBePagedEditedAndDeletedWithPendingMentions()
+    {
+        using var fixture = TestChallengeFixture.Create();
+        var authorAccess = await fixture.ConfirmParticipantAsync("author@example.com", "Author Ana");
+        var replierAccess = await fixture.ConfirmParticipantAsync("reply@example.com", "Reply Rae");
+        var mentionedAccess = await fixture.ConfirmParticipantAsync("mia@example.com", "Mention Mia");
+        var authorState = fixture.Service.GetParticipantState(authorAccess);
+        var joinPost = authorState.Public.SystemDiscussionPosts.Single(
+            post => post.ParticipantId == authorState.Participant.Id);
+        var replyId = Guid.NewGuid().ToString("D");
+        var repliedAt = DateTimeOffset.Parse("2026-06-07T08:00:00Z");
+
+        fixture.Service.SubmitDiscussionReply(
+            new LongevitymaxxingDiscussionReplyRequest(
+                replierAccess,
+                joinPost.ParticipantId,
+                0,
+                "Welcome, and hello @Mention Mia.",
+                replyId,
+                joinPost.Id),
+            repliedAt);
+
+        var page = fixture.Service.GetDiscussionReplyPage(
+            new LongevitymaxxingDiscussionReplyPageRequest(
+                mentionedAccess,
+                joinPost.ParticipantId,
+                0,
+                null,
+                null,
+                joinPost.Id));
+        Assert.Equal("Welcome, and hello @Mention Mia.", Assert.Single(page.Replies).Body);
+
+        var editedAt = repliedAt.AddMinutes(1);
+        var edited = fixture.Service.EditDiscussionReply(
+            new LongevitymaxxingDiscussionReplyEditRequest(
+                replierAccess,
+                replyId,
+                "Updated welcome for @Mention Mia."),
+            editedAt);
+        Assert.Equal(editedAt, DateTimeOffset.Parse(edited.EditedAtUtc!));
+
+        var mentionedId = fixture.Service.GetParticipantState(mentionedAccess).Participant.Id;
+        var mentionedReminder = fixture.Service
+            .GetDailyReminderCandidates(DateTimeOffset.Parse("2026-06-09T09:00:00Z"))
+            .Single(candidate => candidate.ParticipantId == mentionedId);
+        Assert.Equal(1, mentionedReminder.DiscussionDigest.MentionCount);
+        Assert.Equal("participant-joined", Assert.Single(mentionedReminder.DiscussionDigest.Items).SystemPostKind);
+
+        var deleted = fixture.Service.DeleteDiscussionReply(
+            new LongevitymaxxingDiscussionReplyDeleteRequest(replierAccess, replyId),
+            editedAt.AddMinutes(1));
+        var deletedPost = deleted.Public.SystemDiscussionPosts.Single(post => post.Id == joinPost.Id);
+        Assert.Equal(0, deletedPost.ReplyCount);
+        Assert.Empty(deletedPost.Replies);
+
+        var persistedCounts = fixture.Db.Run(sqlite =>
+        {
+            using var cmd = sqlite.CreateCommand();
+            cmd.CommandText =
+                """
+                SELECT
+                    (SELECT COUNT(*) FROM LongevitymaxxingDiscussionSystemPostReplies WHERE Id = @replyId),
+                    (SELECT COUNT(*) FROM LongevitymaxxingDiscussionSystemPostNotifications WHERE SourceReplyId = @replyId);
+                """;
+            cmd.Parameters.AddWithValue("@replyId", Guid.Parse(replyId).ToString("N"));
+            using var reader = cmd.ExecuteReader();
+            Assert.True(reader.Read());
+            return (Replies: reader.GetInt32(0), Notifications: reader.GetInt32(1));
+        });
+        Assert.Equal((0, 0), persistedCounts);
+    }
+
+    [Fact]
+    public async Task ReplyIdCannotBeReusedAcrossCheckInAndJoinThreads()
+    {
+        using var fixture = TestChallengeFixture.Create();
+        var authorAccess = await fixture.ConfirmParticipantAsync("author@example.com", "Author Ana");
+        var replierAccess = await fixture.ConfirmParticipantAsync("reply@example.com", "Reply Rae");
+        var postedAt = DateTimeOffset.Parse("2026-06-09T08:00:00Z");
+        var authorState = fixture.Service.SubmitCheckIn(
+            new LongevitymaxxingCheckInRequest(authorAccess, 1, 2, 2, 2, 2, "A regular discussion post."),
+            postedAt);
+        var joinPost = authorState.Public.SystemDiscussionPosts.Single(
+            post => post.ParticipantId == authorState.Participant.Id);
+        var replyId = Guid.NewGuid().ToString("D");
+
+        fixture.Service.SubmitDiscussionReply(
+            new LongevitymaxxingDiscussionReplyRequest(
+                replierAccess,
+                authorState.Participant.Id,
+                1,
+                "Reply on the check-in post.",
+                replyId),
+            postedAt.AddMinutes(1));
+        var conflict = Assert.Throws<InvalidOperationException>(() => fixture.Service.SubmitDiscussionReply(
+            new LongevitymaxxingDiscussionReplyRequest(
+                replierAccess,
+                joinPost.ParticipantId,
+                0,
+                "Attempt to reuse the same id elsewhere.",
+                replyId,
+                joinPost.Id),
+            postedAt.AddMinutes(2)));
+
+        Assert.Equal("That reply request conflicts with an earlier reply. Please try again.", conflict.Message);
+        Assert.Equal(0, fixture.Service.GetPublicState(postedAt.AddMinutes(3))
+            .SystemDiscussionPosts.Single(post => post.Id == joinPost.Id).ReplyCount);
+    }
+
+    [Fact]
     public async Task SignupAndResendNormalizeCopiedEmailLinks()
     {
         using var fixture = TestChallengeFixture.Create();
