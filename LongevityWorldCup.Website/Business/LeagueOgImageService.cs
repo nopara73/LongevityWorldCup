@@ -398,7 +398,7 @@ public sealed class LeagueOgImageService
             Mode = ResizeMode.Crop,
             Position = AnchorPositionMode.Center
         }).Brightness(1.08f).Contrast(1.06f).Saturate(1.05f));
-        MakeCircular(profile);
+        ImageMasks.MakeCircular(profile);
 
         var portraitX = (int)MathF.Round(row.X + 34f);
         var portraitY = (int)MathF.Round(row.Y + ((row.Height - size) / 2f));
@@ -471,35 +471,6 @@ public sealed class LeagueOgImageService
                 HorizontalAlignment = HorizontalAlignment.Left,
                 VerticalAlignment = VerticalAlignment.Top
             }, displayName, nameColor);
-        });
-    }
-
-    private static void MakeCircular(Image<Rgba32> image)
-    {
-        var w = image.Width;
-        var h = image.Height;
-        var radius = Math.Min(w, h) / 2f;
-
-        using var mask = new Image<Rgba32>(w, h, Color.Transparent);
-        mask.Mutate(ctx =>
-        {
-            ctx.SetGraphicsOptions(new GraphicsOptions
-            {
-                Antialias = true,
-                AntialiasSubpixelDepth = 16
-            });
-            ctx.Fill(Color.White, new EllipsePolygon(w / 2f, h / 2f, radius));
-        });
-
-        image.Mutate(ctx =>
-        {
-            ctx.SetGraphicsOptions(new GraphicsOptions
-            {
-                AlphaCompositionMode = PixelAlphaCompositionMode.DestIn,
-                Antialias = true,
-                AntialiasSubpixelDepth = 16
-            });
-            ctx.DrawImage(mask, new Point(0, 0), 1f);
         });
     }
 

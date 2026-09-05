@@ -423,7 +423,7 @@ public class XImageService
                 Mode = ResizeMode.Crop,
                 Position = AnchorPositionMode.Center
             }));
-            MakeCircular(profile);
+            ImageMasks.MakeCircular(profile);
 
             var centerX = x + (size / 2f);
             var centerY = y + (size / 2f);
@@ -698,35 +698,6 @@ public class XImageService
         }
 
         return string.IsNullOrWhiteSpace(trimmed) ? ellipsis : trimmed + ellipsis;
-    }
-
-    private static void MakeCircular(Image<Rgba32> image)
-    {
-        var w = image.Width;
-        var h = image.Height;
-        var radius = Math.Min(w, h) / 2f;
-
-        using var mask = new Image<Rgba32>(w, h, Color.Transparent);
-        mask.Mutate(ctx =>
-        {
-            ctx.SetGraphicsOptions(new GraphicsOptions
-            {
-                Antialias = true,
-                AntialiasSubpixelDepth = 16
-            });
-            ctx.Fill(Color.White, new EllipsePolygon(w / 2f, h / 2f, radius));
-        });
-
-        image.Mutate(ctx =>
-        {
-            ctx.SetGraphicsOptions(new GraphicsOptions
-            {
-                AlphaCompositionMode = PixelAlphaCompositionMode.DestIn,
-                Antialias = true,
-                AntialiasSubpixelDepth = 16
-            });
-            ctx.DrawImage(mask, new Point(0, 0), 1f);
-        });
     }
 
     private static void ClipRoundedRectangle(Image<Rgba32> image, float radius)
