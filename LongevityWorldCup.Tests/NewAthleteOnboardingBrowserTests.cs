@@ -1,4 +1,5 @@
 using Microsoft.Playwright;
+using Microsoft.Extensions.DependencyInjection;
 using LongevityWorldCup.Website.Business;
 using LongevityWorldCup.Website.Tools;
 using System.Globalization;
@@ -125,16 +126,42 @@ public sealed class NewAthleteOnboardingBrowserTests(
         });
     }
 
-    [Fact]
-    public async Task AmateurOnboarding_SubmitsExpectedApplicationPayload()
+    [Theory]
+    [InlineData("https://www.reddit.com/", "social")]
+    [InlineData(null, "campaign")]
+    public async Task AmateurOnboarding_SubmitsExpectedApplicationPayload(string? referrer, string firstSource)
     {
         var bloodDrawDate = DateTime.UtcNow.Date.AddDays(-9).ToString("yyyy-MM-dd");
 
         await RunOnboardingBrowserAsync(async (page, errors) =>
         {
+            var campaign = $"outreach_{Guid.NewGuid():N}";
+            await page.GotoAsync($"/?UTM_Source=newsletter&UTM_MEDIUM=email&UTM_CAMPAIGN={campaign}&ref=keep#top",
+                new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded, Referer = referrer });
             await CompleteAmateurHandoffToApplicationAsync(page, bloodDrawDate);
 
+            var submittedEvent = page.WaitForResponseAsync(response =>
+                response.Url.EndsWith("/api/site-statistics/event", StringComparison.Ordinal) &&
+                (response.Request.PostData?.Contains("\"eventName\":\"application_submit_succeeded\"", StringComparison.Ordinal) ?? false) &&
+                response.Ok);
             var payload = await SubmitFakeApplicationAndCapturePayloadAsync(page);
+            await submittedEvent;
+
+            var statistics = App.Services.GetRequiredService<SiteStatisticsService>();
+            var dashboard = await statistics.GetDashboardAsync(new SiteStatisticsDashboardQuery { Range = "7d", Limit = 5000 });
+            var events = dashboard.Events.Where(ev => ev.FirstCampaign == campaign).ToArray();
+            Assert.Contains(events, ev => ev.EventName == "onboarding_entry_viewed");
+            Assert.Contains(events, ev => ev.EventName == "calculator_result_generated");
+            Assert.Contains(events, ev => ev.EventName == "application_submit_succeeded");
+            Assert.Single(events.Select(ev => ev.SessionHash).Distinct());
+            Assert.All(events, ev =>
+            {
+                Assert.Equal(firstSource, ev.FirstSource);
+                Assert.Equal(referrer is null ? null : "www.reddit.com", ev.FirstReferrerDomain);
+                Assert.Equal("newsletter", ev.FirstUtmSource);
+                Assert.Equal("email", ev.FirstUtmMedium);
+                Assert.StartsWith("/?", ev.LandingRoute);
+            });
 
             AssertSubmittedApplicantBasics(payload, "amateur", 10);
             AssertSubmittedApplicantAgeDifferences(payload, expectBortzDifference: false);
@@ -964,6 +991,7 @@ public sealed class NewAthleteOnboardingBrowserTests(
 
             try
             {
+                Assert.False(string.IsNullOrWhiteSpace(await route.Request.HeaderValueAsync("X-LWC-Stats-Session")));
                 using var document = JsonDocument.Parse(route.Request.PostData ?? "{}");
                 payloadSource.TrySetResult(document.RootElement.Clone());
             }

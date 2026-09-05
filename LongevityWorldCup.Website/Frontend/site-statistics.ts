@@ -1473,7 +1473,9 @@
                 ? uniqueSessions(friction)
                 : label === "Error rate"
                     ? percent(uniqueSessions(friction), uniqueSessions(events))
-                    : tileEvents.length;
+                    : label === "Applications submitted"
+                        ? uniqueSessions(tileEvents)
+                        : tileEvents.length;
             const footer = label === "Friction"
                 ? `${friction.length} events`
                 : label === "Error rate"
@@ -1645,7 +1647,7 @@
                 detailPanel("Acquisition quality", sourceQualityTable(events)),
                 detailPanel("Campaigns", campaignTable(events)),
                 detailPanel("Device split", splitTable(events, e => e.deviceClass || "unknown")),
-                detailPanel("First referrers", splitTable(events, e => e.firstReferrerDomain || e.referrerDomain || acquisitionSource(e)))
+                detailPanel("First referrers", sourceQualityTable(events, firstReferrer, "Referrer"))
             ].join("");
             return;
         }
@@ -2429,15 +2431,19 @@
         ]);
     }
 
-    function sourceQualityTable(events: DashboardEvent[]): string {
-        const rows: [string, number, number, number, number, number][] = Array.from(groupBy(events, acquisitionSource).entries()).map(([source, items]) => {
+    function sourceQualityTable(
+        events: DashboardEvent[],
+        key: (event: DashboardEvent) => string = acquisitionSource,
+        label = "Source"
+    ): string {
+        const rows: [string, number, number, number, number, number][] = Array.from(groupBy(events, key).entries()).map(([source, items]) => {
             const results = uniqueSessionsFor(items, ["calculator_result_generated"]);
             const applications = uniqueSessionsFor(items, ["application_submit_succeeded"]);
             const challenge = uniqueSessionsFor(items, ["challenge_scored_checkin_submitted"]);
             const quality = applications * 5 + challenge * 4 + results;
             return [source, uniqueSessions(items), results, applications, challenge, quality] as [string, number, number, number, number, number];
         }).sort((a, b) => b[5] - a[5]);
-        return table(["Source", "Sessions", "Results", "Apps", "Challenge", "Quality"], rows.slice(0, 12));
+        return table([label, "Sessions", "Results", "Apps", "Challenge", "Quality"], rows.slice(0, 12));
     }
 
     function campaignTable(events: DashboardEvent[]): string {
@@ -2509,7 +2515,9 @@
             source: effectiveSource(event.source, referrerDomain),
             landingRoute: event.landingRoute || "",
             firstReferrerDomain: event.firstReferrerDomain || "",
-            firstSource: effectiveSource(event.firstSource || event.source, event.firstReferrerDomain || referrerDomain),
+            firstSource: event.firstSource
+                ? effectiveSource(event.firstSource, event.firstReferrerDomain)
+                : effectiveSource(event.source, referrerDomain),
             firstCampaign: event.firstCampaign || "",
             firstUtmSource: event.firstUtmSource || "",
             firstUtmMedium: event.firstUtmMedium || "",
@@ -2633,6 +2641,12 @@
 
     function acquisitionSource(event: DashboardEvent): string {
         return event.firstSource || event.source || "direct";
+    }
+
+    function firstReferrer(event: DashboardEvent): string {
+        return event.firstReferrerDomain || (event.landingRoute
+            ? acquisitionSource(event)
+            : event.referrerDomain || acquisitionSource(event));
     }
 
     function campaignLabel(event: DashboardEvent): string {
