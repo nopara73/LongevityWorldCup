@@ -45,14 +45,40 @@
     });
 })();
 
+window.parseMediaContact = function (link) {
+    let value = String(link || '').trim();
+    if (!value) return null;
+
+    // A bare handle does not identify which social platform owns it.
+    if (value.startsWith('@')) return { href: null, isEmail: false, hostname: '' };
+
+    // A handle inside a web URL is not an email address.
+    if (/^[^\s@/:?#]+@[^\s@/:?#]+\.[^\s@/:?#]+$/.test(value)) {
+        value = `mailto:${value}`;
+    }
+
+    const hasScheme = /^[a-z][a-z\d+.-]*:/i.test(value)
+        && !/^[^/?#]+:\d+(?:[/?#]|$)/.test(value);
+    try {
+        const url = new URL(hasScheme ? value : `https://${value.replace(/^\/\//, '')}`);
+        if (!['http:', 'https:', 'mailto:'].includes(url.protocol)) return null;
+        return {
+            href: url.href,
+            isEmail: url.protocol === 'mailto:',
+            hostname: url.hostname.toLowerCase().replace(/\.$/, '')
+        };
+    } catch (_) {
+        return null;
+    }
+};
+
 window.getIcon = function (link) {
-    // Normalize the link to lowercase for case-insensitive matching
-    const normalizedLink = link.toLowerCase().trim();
-    const isEmailLike = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedLink);
+    const contact = window.parseMediaContact(link);
+    if (contact?.isEmail) return '<i class="fas fa-envelope"></i>';
+    if (contact && !contact.href) return '<i class="fas fa-at"></i>';
 
     // Mapping of link identifiers to Font Awesome icon classes
     const iconMap = {
-        email: '<i class="fas fa-envelope"></i>', // Email icon
         'facebook.com': '<i class="fab fa-facebook"></i>',
         'twitter.com': '<i class="fab fa-twitter"></i>',
         'x.com': '<i class="fab fa-twitter"></i>',
@@ -90,14 +116,9 @@ window.getIcon = function (link) {
         // Add more mappings as needed
     };
 
-    // Check for email first
-    if (isEmailLike) {
-        return iconMap.email;
-    }
-
-    // Iterate through the iconMap to find a matching domain
+    // Match the actual host, including subdomains, rather than URL paths or queries.
     for (const [key, icon] of Object.entries(iconMap)) {
-        if (normalizedLink.includes(key)) {
+        if (contact?.hostname === key || contact?.hostname.endsWith(`.${key}`)) {
             return icon;
         }
     }

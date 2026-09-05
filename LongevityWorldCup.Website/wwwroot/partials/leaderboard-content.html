@@ -864,6 +864,7 @@
     }
     .media-contact:hover{ color:var(--primary-color); }
     .media-contact i{ font-size:2rem; width:2rem; height:2rem; line-height:2rem; display:inline-block; text-align:center; vertical-align:middle; }
+    .media-contact-handle{ display:inline-block; max-width:100%; overflow-wrap:anywhere; }
 
     .personal-link-icon{
         display:inline-flex; align-items:center; justify-content:center; width:2rem; height:2rem;
@@ -1862,7 +1863,8 @@
     .league-link:hover{ color:var(--secondary-color); }
 
     .modal-link{ display:flex; align-items:center; gap:.5rem; font-size:1.2rem; color:var(--primary-color); text-decoration:none; transition:color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease); }
-    .modal-link:hover{ color:var(--secondary-color); }
+    .modal-link[href]:hover{ color:var(--secondary-color); }
+    .modal-link:not([href]){ color:inherit; overflow-wrap:anywhere; }
     .modal-link i{ font-size:1.8rem; line-height:1; }
 
     .fade-in-element{ animation:fadeIn var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease); }
@@ -5739,26 +5741,18 @@
     }
 
     function renderMediaContact(contact, isPodium, athleteName) {
-        const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact);
-        const tooltipText = isEmail ? `Email ${athleteName}` : `Contact ${athleteName}`;
-        if (isPodium) {
-            return `${isEmail
-                ? `<a href="mailto:${contact}" aria-label="Email ${contact}" class="personal-link-icon podium-media-link" title="${tooltipText}">
-                ${window.getIcon(contact)}
-               </a>`
-                : `<a href="${contact.startsWith('http') ? contact : 'https://' + contact}" target="_blank" rel="noopener" aria-label="Contact the athlete" class="personal-link-icon podium-media-link" title="${tooltipText}">
-                ${window.getIcon(contact)}
-               </a>`
-            }`;
+        const parsed = window.parseMediaContact(contact);
+        if (!parsed) return '';
+
+        const tooltipText = `${parsed.isEmail ? 'Email' : 'Contact'} ${athleteName}`;
+        if (!parsed.href) {
+            return `<span class="media-contact-handle" title="${escapeHtml(tooltipText)}">${escapeHtml(contact)}</span>`;
         }
-        return `${isEmail
-            ? `<a href="mailto:${contact}" class="media-contact" aria-label="Email ${contact}" title="${tooltipText}">
+        const className = isPodium ? 'personal-link-icon podium-media-link' : 'media-contact';
+        const targetAttributes = parsed.isEmail ? '' : ' target="_blank" rel="noopener"';
+        return `<a href="${escapeHtml(parsed.href)}"${targetAttributes} class="${className}" aria-label="${escapeHtml(tooltipText)}" title="${escapeHtml(tooltipText)}">
             ${window.getIcon(contact)}
-           </a>`
-            : `<a href="${contact.startsWith('http') ? contact : 'https://' + contact}" target="_blank" rel="noopener" class="media-contact" aria-label="Contact the athlete" title="${tooltipText}">
-            ${window.getIcon(contact)}
-           </a>`
-        }`;
+        </a>`;
     }
 
     function renderPodcastLink(link, athleteName) {
@@ -8490,12 +8484,19 @@
 
         // Media Contact
         const mediaContactElement = document.getElementById('mediaContact');
-        if (athleteData.mediaContact) {
-            const isEmail = athleteData.mediaContact.includes('@');
-            mediaContactElement.href = isEmail ? `mailto:${athleteData.mediaContact}` : (athleteData.mediaContact.startsWith('http') ? athleteData.mediaContact : 'https://' + athleteData.mediaContact);
-            mediaContactElement.innerHTML = `${window.getIcon(athleteData.mediaContact)} Media contact`;
+        const mediaContact = window.parseMediaContact(athleteData.mediaContact);
+        if (mediaContact) {
+            if (mediaContact.href) {
+                mediaContactElement.href = mediaContact.href;
+                mediaContactElement.innerHTML = `${window.getIcon(athleteData.mediaContact)} Media contact`;
+                mediaContactElement.setAttribute('aria-label', 'Contact the athlete');
+            } else {
+                mediaContactElement.removeAttribute('href');
+                mediaContactElement.textContent = athleteData.mediaContact;
+                mediaContactElement.removeAttribute('aria-label');
+            }
             mediaContactElement.style.display = 'flex';
-            mediaContactElement.title = isEmail ? `Email ${modalDisplayName}` : `Contact ${modalDisplayName}`;
+            mediaContactElement.title = mediaContact.isEmail ? `Email ${modalDisplayName}` : `Contact ${modalDisplayName}`;
         } else {
             mediaContactElement.style.display = 'none';
         }
