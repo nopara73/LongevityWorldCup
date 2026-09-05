@@ -371,7 +371,7 @@ html body #lmxParticipantTabs .lmx-tab[aria-selected="true"] {
 }
 
 .homepage-faq-item {
-    border-left: 3px solid var(--lwc-border);
+    border-left: 0;
     border-radius: 0;
     background: transparent;
     box-shadow: none;
