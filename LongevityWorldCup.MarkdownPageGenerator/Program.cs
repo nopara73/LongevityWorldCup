@@ -228,9 +228,10 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
             margin: 0 0 0.35rem;
             padding: 0 0.45rem;
             color: var(--lwc-muted, #526373);
-            font-size: 0.78rem;
+            font-size: var(--lwc-type-sm);
             font-weight: 700;
-            text-transform: uppercase;
+            text-transform: none;
+            line-height: 1.5;
         }
 
         .documentation-nav-toggle {
@@ -244,13 +245,16 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
         }
 
         .documentation-nav a {
-            display: block;
+            display: flex;
             padding: 0.38rem 0.45rem;
-            border-radius: 6px;
+            border-radius: var(--lwc-radius-sm);
             color: var(--lwc-ink, #334155);
-            font-size: 0.92rem;
-            line-height: 1.25;
+            font-size: var(--lwc-type-sm);
+            line-height: 1.5;
             text-decoration: none;
+            min-height: 44px;
+            box-sizing: border-box;
+            align-items: center;
         }
 
         .documentation-nav .documentation-nav-level-3 {
@@ -258,7 +262,8 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
             padding-top: 0.28rem;
             padding-bottom: 0.28rem;
             color: var(--lwc-muted, #506176);
-            font-size: 0.86rem;
+            font-size: var(--lwc-type-sm);
+            line-height: 1.5;
         }
 
         .documentation-nav a:hover,
@@ -271,6 +276,7 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
 
         .documentation-nav a.is-active {
             font-weight: 700;
+            box-shadow: inset 3px 0 0 var(--lwc-accent);
         }
 
         .documentation-nav .documentation-source-link {
@@ -386,6 +392,7 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
             border-collapse: collapse;
             background: var(--lwc-surface, #ffffff);
             border-radius: 8px;
+            font-variant-numeric: tabular-nums;
         }
 
         .documentation-document th,
@@ -399,7 +406,7 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
 
         .documentation-document th {
             color: var(--lwc-ink, #111827);
-            background: var(--lwc-accent-soft, rgba(0, 188, 212, 0.1));
+            background: var(--lwc-surface-muted);
             font-weight: 700;
         }
 
@@ -408,8 +415,9 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
             padding-top: 1rem;
             border-top: 1px solid var(--lwc-border, rgba(0, 0, 0, 0.08));
             color: var(--lwc-muted, #506176);
-            font-size: 0.95rem;
+            font-size: var(--lwc-type-sm);
             text-align: left;
+            line-height: 1.5;
         }
 
         @media (max-width: 900px) {
@@ -438,7 +446,7 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
                 min-height: 44px;
                 padding: 0.6rem 0.75rem;
                 border: 1px solid var(--lwc-border-strong, #71808d);
-                border-radius: 6px;
+                border-radius: var(--lwc-radius-md);
                 background: var(--lwc-surface, #ffffff);
                 color: var(--lwc-ink, #334155);
                 font: inherit;
@@ -461,6 +469,9 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
             .documentation-nav-toggle-icon {
                 font-size: 1.25rem;
                 line-height: 1;
+                flex: 0 0 1.5rem;
+                width: 1.5rem;
+                text-align: center;
             }
 
             .documentation-nav-links {
@@ -567,17 +578,18 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
                 gap: 0.35rem;
                 align-items: baseline;
                 color: var(--lwc-ink, #334155);
-                font-size: 0.86rem;
-                line-height: 1.28;
+                font-size: var(--lwc-type-sm);
+                line-height: 1.5;
             }
 
             .documentation-document tbody td::before {
                 content: attr(data-label);
                 color: var(--lwc-muted, #526373);
-                font-size: 0.68rem;
-                font-weight: 800;
-                text-transform: uppercase;
+                font-size: var(--lwc-type-xs);
+                font-weight: 700;
+                text-transform: none;
                 letter-spacing: 0;
+                line-height: 1.5;
             }
 
             .documentation-document tbody td:first-child {
@@ -590,7 +602,8 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
                 grid-row: 2;
                 font-size: 0.96rem;
                 font-weight: 700;
-                white-space: nowrap;
+                white-space: normal;
+                overflow-wrap: anywhere;
             }
 
             .documentation-document tbody td:nth-child(2)::before {
@@ -609,6 +622,19 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
 
             .documentation-document tbody td:last-child::before {
                 white-space: nowrap;
+            }
+        }
+        .documentation-nav a:focus-visible {
+            outline: 2px solid var(--lwc-accent);
+            outline-offset: -2px;
+        }
+        @media (max-width: 600px) {
+            .documentation-document {
+                font-size: var(--lwc-type-body);
+                line-height: 1.65;
+            }
+            .documentation-document :is(p,li) {
+                line-height: 1.65;
             }
         }
     </style>

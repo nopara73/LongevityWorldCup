@@ -435,7 +435,7 @@ html.play-panel-transitioning .play-hub-panel--entering {
     top: 30px;
     width: 148px;
     padding: 6px 12px;
-    font-size: 0.7rem;
+    font-size: var(--lwc-type-xs);
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0;
@@ -444,6 +444,7 @@ html.play-panel-transitioning .play-hub-panel--entering {
     background: linear-gradient(135deg, #f7931a 0%, #ffc107 50%, #f7931a 100%);
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
     transform: rotate(45deg);
+    line-height: 1.25;
 }
 
 .play-join-card h2 {
@@ -496,6 +497,7 @@ html.play-panel-transitioning .play-hub-panel--entering {
 .play-join-meta dd {
     margin: 0;
     color: var(--lwc-ink, #1e293b);
+    font-variant-numeric: tabular-nums;
 }
 
 .join-pro-entry-cell {
@@ -520,7 +522,7 @@ html.play-panel-transitioning .play-hub-panel--entering {
 .play-join-biomarkers {
     margin-top: 0.75rem;
     padding: 0.72rem 0.9rem 0.85rem;
-    border-radius: 10px;
+    border-radius: var(--lwc-radius-md);
     border: 1px solid var(--lwc-border, #e2e8f0);
     border-left: 3px solid var(--lwc-muted, #526373);
     background: var(--lwc-surface-muted, #f8fafc);
@@ -528,9 +530,9 @@ html.play-panel-transitioning .play-hub-panel--entering {
 }
 
 .play-join-card--pro .play-join-biomarkers {
-    border-color: var(--lwc-success, #1f7a38);
-    border-left-color: var(--lwc-success, var(--main-action-color, #16a34a));
-    background: var(--lwc-success-soft, #ecfdf5);
+    border-color: var(--lwc-border);
+    border-left-color: var(--lwc-success);
+    background: var(--lwc-surface-muted);
 }
 
 .play-join-biomarkers details {
@@ -545,11 +547,12 @@ html.play-panel-transitioning .play-hub-panel--entering {
     min-height: 44px;
     cursor: pointer;
     list-style: none;
-    font-size: 0.75rem;
+    font-size: var(--lwc-type-sm);
     font-weight: 700;
-    text-transform: uppercase;
+    text-transform: none;
     letter-spacing: 0;
     color: var(--lwc-muted, #526373);
+    line-height: 1.5;
 }
 
 .play-join-card--pro .play-join-biomarkers summary {
@@ -583,8 +586,8 @@ html.play-panel-transitioning .play-hub-panel--entering {
 .play-join-biomarkers ul {
     margin: 0;
     padding-left: 1.1rem;
-    font-size: 0.82rem;
-    line-height: 1.35;
+    font-size: var(--lwc-type-sm);
+    line-height: 1.5;
     color: var(--lwc-ink, #334155);
 }
 
@@ -1618,4 +1621,14 @@ html.play-panel-transitioning .play-hub-panel--entering {
     html.play-panel-transitioning .play-hub-panel--entering {
         animation: none;
     }
+}
+
+.play-join-biomarkers li + li {
+    margin-top: var(--lwc-space-1);
+}
+
+.play-join-biomarkers summary:focus-visible {
+    outline: 3px solid var(--lwc-accent);
+    outline-offset: 3px;
+    border-radius: var(--lwc-radius-sm);
 }
