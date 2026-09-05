@@ -49,17 +49,7 @@ public class FacebookFillerPostLogService
 
     public void LogPost(DateTime postedAtUtc, FillerType type, string text, string? subjectSlug = null)
     {
-        var infoToken = text ?? "";
-        _db.Run(sqlite =>
-        {
-            using var cmd = sqlite.CreateCommand();
-            cmd.CommandText = $"INSERT INTO {TableName} (PostedAtUtc, Type, Text, SubjectSlug) VALUES (@at, @type, @text, @subjectSlug)";
-            cmd.Parameters.AddWithValue("@at", postedAtUtc.ToString("o"));
-            cmd.Parameters.AddWithValue("@type", (int)type);
-            cmd.Parameters.AddWithValue("@text", infoToken);
-            cmd.Parameters.AddWithValue("@subjectSlug", string.IsNullOrWhiteSpace(subjectSlug) ? DBNull.Value : subjectSlug.Trim());
-            cmd.ExecuteNonQuery();
-        });
+        FillerPostLogStore.LogPost(_db, TableName, postedAtUtc, (int)type, text, subjectSlug);
     }
 
     public void LogSubjectPost(DateTime postedAtUtc, string sourceText, string? subjectSlug)
@@ -67,16 +57,7 @@ public class FacebookFillerPostLogService
         if (string.IsNullOrWhiteSpace(subjectSlug))
             return;
 
-        _db.Run(sqlite =>
-        {
-            using var cmd = sqlite.CreateCommand();
-            cmd.CommandText = $"INSERT INTO {TableName} (PostedAtUtc, Type, Text, SubjectSlug) VALUES (@at, @type, @text, @subjectSlug)";
-            cmd.Parameters.AddWithValue("@at", postedAtUtc.ToString("o"));
-            cmd.Parameters.AddWithValue("@type", -1);
-            cmd.Parameters.AddWithValue("@text", sourceText ?? "");
-            cmd.Parameters.AddWithValue("@subjectSlug", subjectSlug.Trim());
-            cmd.ExecuteNonQuery();
-        });
+        FillerPostLogStore.LogPost(_db, TableName, postedAtUtc, -1, sourceText, subjectSlug);
     }
 
     public bool IsSubjectOnCooldown(string subjectSlug, TimeSpan cooldown, DateTime? nowUtc = null)
