@@ -1,3 +1,5 @@
+using LongevityWorldCup.Website.Tools;
+
 namespace LongevityWorldCup.Website.Business;
 
 internal static class FillerPostOptions
@@ -17,5 +19,28 @@ internal static class FillerPostOptions
         options.Add((FillerType.GitHubRepository, ""));
         options.Add((FillerType.Donation, ""));
         return options;
+    }
+
+    internal static bool MatchesMetaToken(FillerType type, string payloadText, string token)
+    {
+        var payload = payloadText ?? "";
+        var t = token ?? "";
+
+        return type switch
+        {
+            FillerType.Top3Leaderboard => EventHelpers.TryExtractLeague(payload, out var leagueSlug)
+                && !string.IsNullOrWhiteSpace(leagueSlug)
+                && t.Contains($"league[{leagueSlug.Trim().ToLowerInvariant()}]", StringComparison.Ordinal),
+            FillerType.DomainTop => EventHelpers.TryExtractDomain(payload, out var domainKey)
+                && !string.IsNullOrWhiteSpace(domainKey)
+                && t.Contains($"domain[{domainKey.Trim().ToLowerInvariant()}]", StringComparison.Ordinal),
+            FillerType.CrowdGuesses => t.StartsWith("podium[", StringComparison.Ordinal),
+            FillerType.Newcomers => t.StartsWith("slugs[", StringComparison.Ordinal),
+            FillerType.HistoryDocument => t.StartsWith("history-document[", StringComparison.Ordinal),
+            FillerType.Ruleset => t.StartsWith("ruleset[", StringComparison.Ordinal),
+            FillerType.GitHubRepository => t.StartsWith("github-repository[", StringComparison.Ordinal),
+            FillerType.Donation => t.StartsWith("donation-reminder[", StringComparison.Ordinal),
+            _ => false
+        };
     }
 }

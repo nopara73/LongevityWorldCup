@@ -20,8 +20,8 @@ public sealed class PageOgImageService
     private const float TitleY = 258f;
     private const float TitleWidth = 760f;
 
-    private static readonly Color BackgroundTop = ParseHex("030708");
-    private static readonly Color BackgroundBottom = ParseHex("111515");
+    private static readonly Color BackgroundTop = Color.ParseHex("#030708");
+    private static readonly Color BackgroundBottom = Color.ParseHex("#111515");
     private static readonly Color TitleColor = Color.White;
     private static readonly Color ShadowColor = new(new Rgba32(0, 0, 0, 180));
 
@@ -235,10 +235,10 @@ public sealed class PageOgImageService
     private async Task RenderImageAsync(PageOgPayload payload, string outputPath, CancellationToken ct)
     {
         using var image = new Image<Rgba32>(CanvasWidth, CanvasHeight);
-        DrawBackground(image, ParseHex(payload.AccentHex));
+        DrawBackground(image, Color.ParseHex("#" + payload.AccentHex));
 
         var (boldFamily, regularFamily) = GetFontFamilies();
-        var accent = ParseHex(payload.AccentHex);
+        var accent = Color.ParseHex("#" + payload.AccentHex);
 
         await DrawLogoMarksAsync(image, ct);
         DrawHeaderText(image, boldFamily);
@@ -277,28 +277,7 @@ public sealed class PageOgImageService
 
     private async Task<Image<Rgba32>> LoadLogoMarkAsync(CancellationToken ct)
     {
-        await using var logoStream = File.OpenRead(_logoPath);
-        var logo = await Image.LoadAsync<Rgba32>(logoStream, ct);
-        logo.ProcessPixelRows(accessor =>
-        {
-            for (var y = 0; y < accessor.Height; y++)
-            {
-                var row = accessor.GetRowSpan(y);
-                for (var x = 0; x < row.Length; x++)
-                {
-                    var pixel = row[x];
-                    var brightness = (pixel.R + pixel.G + pixel.B) / 3f;
-                    if (brightness < 110f)
-                    {
-                        row[x] = Color.Transparent;
-                        continue;
-                    }
-
-                    var alpha = (byte)Math.Clamp((brightness - 110f) * 2.4f, 0f, pixel.A);
-                    row[x] = new Rgba32(255, 255, 255, alpha);
-                }
-            }
-        });
+        var logo = await ImageLogo.LoadMarkAsync(_logoPath, ct);
 
         var bounds = FindVisibleBounds(logo);
         if (bounds.Width > 0 && bounds.Height > 0)
@@ -353,7 +332,7 @@ public sealed class PageOgImageService
 
     private static void DrawTextContent(Image<Rgba32> image, PageOgPayload payload, FontFamily boldFamily, FontFamily regularFamily, Color accent)
     {
-        var titleFont = FitFontToWidth(boldFamily, payload.Title, 74f, 50f, TitleWidth);
+        var titleFont = ImageTextLayout.FitFontToWidth(boldFamily, payload.Title, 74f, 50f, TitleWidth);
         var subtitleFont = regularFamily.CreateFont(32, FontStyle.Regular);
 
         image.Mutate(ctx =>
@@ -361,8 +340,8 @@ public sealed class PageOgImageService
             ctx.Fill(new Rgba32(accent.ToPixel<Rgba32>().R, accent.ToPixel<Rgba32>().G, accent.ToPixel<Rgba32>().B, 220),
                 new RectangularPolygon(ContentX, AccentY, 126f, 5f));
 
-            DrawWrappedText(ctx, payload.Title, titleFont, ShadowColor, new PointF(ContentX, TitleY + 3f), TitleWidth, 2, 78f);
-            DrawWrappedText(ctx, payload.Title, titleFont, TitleColor, new PointF(ContentX, TitleY), TitleWidth, 2, 78f);
+            ImageTextLayout.DrawWrappedText(ctx, payload.Title, titleFont, ShadowColor, new PointF(ContentX, TitleY + 3f), TitleWidth, 2, 78f);
+            ImageTextLayout.DrawWrappedText(ctx, payload.Title, titleFont, TitleColor, new PointF(ContentX, TitleY), TitleWidth, 2, 78f);
             if (string.Equals(payload.Slug, "longevitymaxxing", StringComparison.OrdinalIgnoreCase))
             {
                 ctx.DrawText(new RichTextOptions(subtitleFont)
@@ -480,91 +459,8 @@ public sealed class PageOgImageService
         return slug.Trim().ToLowerInvariant();
     }
 
-    private static Font FitFontToWidth(FontFamily family, string text, float startSize, float minSize, float maxWidth)
-    {
-        var size = startSize;
-        while (size > minSize)
-        {
-            var font = family.CreateFont(size, FontStyle.Bold);
-            if (TextMeasurer.MeasureSize(text, new RichTextOptions(font)).Width <= maxWidth)
-                return font;
-            size -= 2f;
-        }
-
-        return family.CreateFont(minSize, FontStyle.Bold);
-    }
-
-    private static void DrawWrappedText(
-        IImageProcessingContext ctx,
-        string text,
-        Font font,
-        Color color,
-        PointF origin,
-        float maxWidth,
-        int maxLines,
-        float lineHeight)
-    {
-        var lines = WrapText(text, font, maxWidth, maxLines);
-        for (var i = 0; i < lines.Count; i++)
-        {
-            ctx.DrawText(new RichTextOptions(font)
-            {
-                Origin = new PointF(origin.X, origin.Y + (lineHeight * i)),
-                HorizontalAlignment = HorizontalAlignment.Left,
-                VerticalAlignment = VerticalAlignment.Top
-            }, lines[i], color);
-        }
-    }
-
-    private static IReadOnlyList<string> WrapText(string text, Font font, float maxWidth, int maxLines)
-    {
-        var words = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        var lines = new List<string>();
-        var current = "";
-        var truncated = false;
-        for (var index = 0; index < words.Length; index++)
-        {
-            var word = words[index];
-            var candidate = string.IsNullOrWhiteSpace(current) ? word : $"{current} {word}";
-            if (TextMeasurer.MeasureSize(candidate, new RichTextOptions(font)).Width <= maxWidth)
-            {
-                current = candidate;
-                continue;
-            }
-
-            if (!string.IsNullOrWhiteSpace(current))
-                lines.Add(current);
-            current = word;
-            if (lines.Count >= maxLines)
-            {
-                truncated = index < words.Length - 1;
-                break;
-            }
-        }
-
-        if (!string.IsNullOrWhiteSpace(current) && lines.Count < maxLines)
-            lines.Add(current);
-
-        if (truncated && lines.Count == maxLines && words.Length > 0)
-        {
-            var last = lines[^1];
-            while (last.Length > 0 && TextMeasurer.MeasureSize(last + "...", new RichTextOptions(font)).Width > maxWidth)
-            {
-                last = last[..^1].TrimEnd();
-            }
-            lines[^1] = last + "...";
-        }
-
-        return lines;
-    }
-
     private static int Lerp(byte a, byte b, float t)
     {
         return (int)MathF.Round(a + ((b - a) * t));
-    }
-
-    private static Color ParseHex(string hex)
-    {
-        return Color.ParseHex("#" + hex);
     }
 }

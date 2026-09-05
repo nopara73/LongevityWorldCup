@@ -30,10 +30,10 @@ public sealed class AthleteOgImageService
     private const float RankRowY = 318f;
     private const float ReductionRowY = 422f;
     private const float HeaderX = 72f;
-    private static readonly Color BackgroundTop = ParseHex("05080B");
-    private static readonly Color BackgroundBottom = ParseHex("15181B");
-    private static readonly Color RankColor = ParseHex("FF4081");
-    private static readonly Color ReductionColor = ParseHex("78DA3B");
+    private static readonly Color BackgroundTop = Color.ParseHex("#05080B");
+    private static readonly Color BackgroundBottom = Color.ParseHex("#15181B");
+    private static readonly Color RankColor = Color.ParseHex("#FF4081");
+    private static readonly Color ReductionColor = Color.ParseHex("#78DA3B");
     private static readonly Color NameColor = Color.White;
     private static readonly Color MutedTextColor = new(new Rgba32(214, 222, 232, 220));
     private static readonly Color MetricRowFillColor = new(new Rgba32(18, 29, 28, 218));
@@ -89,7 +89,7 @@ public sealed class AthleteOgImageService
         if (string.IsNullOrWhiteSpace(rawSlug))
             return false;
 
-        var normalized = NormalizeSlug(rawSlug);
+        var normalized = AthleteSlug.Normalize(rawSlug);
         var rankings = _athletes.GetRankingsOrder();
         var leagueSlug = ResolveLeagueSlugOrDefault(rawLeagueContext);
 
@@ -97,7 +97,7 @@ public sealed class AthleteOgImageService
         var athleteJson = snapshot
             .OfType<JsonObject>()
             .FirstOrDefault(o => string.Equals(
-                NormalizeSlug(o["AthleteSlug"]?.GetValue<string>()),
+                AthleteSlug.Normalize(o["AthleteSlug"]?.GetValue<string>()),
                 normalized,
                 StringComparison.Ordinal));
         if (athleteJson is null)
@@ -107,7 +107,7 @@ public sealed class AthleteOgImageService
         var athleteName = athlete["DisplayName"]?.GetValue<string>() ?? athlete["Name"]?.GetValue<string>();
         var name = !string.IsNullOrWhiteSpace(athleteName)
             ? athleteName!.Trim()
-            : ToDisplayName(rawSlug);
+            : AthleteSlug.ToDisplayName(rawSlug);
 
         if (TryBuildSpecialLeaderboardPayload(normalized, rawLeagueContext, athlete, name, out payload))
             return true;
@@ -290,7 +290,7 @@ public sealed class AthleteOgImageService
 
         try
         {
-            using var logo = await LoadLogoMarkAsync();
+            using var logo = await ImageLogo.LoadMarkAsync(_logoPath);
             using var smallLogo = logo.Clone(ctx => ctx.Resize(new ResizeOptions
             {
                 Size = new Size(54, 54),
@@ -324,33 +324,6 @@ public sealed class AthleteOgImageService
         });
     }
 
-    private async Task<Image<Rgba32>> LoadLogoMarkAsync()
-    {
-        await using var logoStream = File.OpenRead(_logoPath);
-        var logo = await Image.LoadAsync<Rgba32>(logoStream);
-        logo.ProcessPixelRows(accessor =>
-        {
-            for (var y = 0; y < accessor.Height; y++)
-            {
-                var row = accessor.GetRowSpan(y);
-                for (var x = 0; x < row.Length; x++)
-                {
-                    var pixel = row[x];
-                    var brightness = (pixel.R + pixel.G + pixel.B) / 3f;
-                    if (brightness < 110f)
-                    {
-                        row[x] = Color.Transparent;
-                        continue;
-                    }
-
-                    var alpha = (byte)Math.Clamp((brightness - 110f) * 2.4f, 0f, pixel.A);
-                    row[x] = new Rgba32(255, 255, 255, alpha);
-                }
-            }
-        });
-        return logo;
-    }
-
     private static void DrawScoreboardMetricRow(
         IImageProcessingContext ctx,
         string value,
@@ -368,7 +341,7 @@ public sealed class AthleteOgImageService
         ctx.Fill(ToRgba(accent, 235), new RectangularPolygon(x, y, 10f, height));
 
         var valueFontToUse = value.Length > 4
-            ? FitFontToWidth(valueFont.Family, value, valueFont.Size, 24f, 142f)
+            ? ImageTextLayout.FitFontToWidth(valueFont.Family, value, valueFont.Size, 24f, 142f)
             : valueFont;
 
         DrawTextShadow(ctx, value, valueFontToUse, new PointF(x + 48f, y + 16f), HorizontalAlignment.Left);
@@ -502,7 +475,7 @@ public sealed class AthleteOgImageService
                 .ThenBy(result => result.Name, StringComparer.OrdinalIgnoreCase)
                 .ToList();
             var index = ranked.FindIndex(result =>
-                string.Equals(NormalizeSlug(result.Slug), normalizedSlug, StringComparison.Ordinal));
+                string.Equals(AthleteSlug.Normalize(result.Slug), normalizedSlug, StringComparison.Ordinal));
             if (index < 0)
                 return false;
 
@@ -544,7 +517,7 @@ public sealed class AthleteOgImageService
         if (TryGetDomainContext(context, out var domainKey, out var domainLabel, out var domainClockLabel))
         {
             var winnerSlug = _athletes.GetBestDomainWinnerSlug(domainKey);
-            if (!string.Equals(NormalizeSlug(winnerSlug), normalizedSlug, StringComparison.Ordinal))
+            if (!string.Equals(AthleteSlug.Normalize(winnerSlug), normalizedSlug, StringComparison.Ordinal))
                 return false;
 
             var domainLeagueSlug = $"domain-{domainKey.Replace('_', '-')}";
@@ -864,7 +837,7 @@ public sealed class AthleteOgImageService
         var exclusiveBySlug = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         foreach (var o in snapshot.OfType<JsonObject>())
         {
-            var slug = NormalizeSlug(o["AthleteSlug"]?.GetValue<string>());
+            var slug = AthleteSlug.Normalize(o["AthleteSlug"]?.GetValue<string>());
             if (string.IsNullOrWhiteSpace(slug))
                 continue;
 
@@ -883,7 +856,7 @@ public sealed class AthleteOgImageService
 
         foreach (var row in rankings.OfType<JsonObject>())
         {
-            var rowSlug = NormalizeSlug(row["AthleteSlug"]?.GetValue<string>());
+            var rowSlug = AthleteSlug.Normalize(row["AthleteSlug"]?.GetValue<string>());
             if (string.IsNullOrWhiteSpace(rowSlug))
                 continue;
 
@@ -991,11 +964,6 @@ public sealed class AthleteOgImageService
         return null;
     }
 
-    private static string NormalizeSlug(string? slug)
-    {
-        return (slug ?? "").Trim().Replace('-', '_').ToLowerInvariant();
-    }
-
     private static string NormalizeContextSlug(string? context)
     {
         var normalized = (context ?? string.Empty).Trim().ToLowerInvariant();
@@ -1015,22 +983,9 @@ public sealed class AthleteOgImageService
         return normalizedSlug.Replace('_', '-');
     }
 
-    private static string ToDisplayName(string slug)
-    {
-        var parts = NormalizeSlug(slug).Split('_', StringSplitOptions.RemoveEmptyEntries);
-        if (parts.Length == 0)
-            return slug;
-        return string.Join(" ", parts.Select(p => char.ToUpperInvariant(p[0]) + p[1..]));
-    }
-
     private static string FormatReduction(double value)
     {
         return value.ToString("+#0.0;-#0.0;0.0", CultureInfo.InvariantCulture);
-    }
-
-    private static Color ParseHex(string hex)
-    {
-        return Color.ParseHex("#" + hex);
     }
 
     private static Rgba32 ToRgba(Color color, byte alpha)
@@ -1044,43 +999,13 @@ public sealed class AthleteOgImageService
         return a + ((b - a) * t);
     }
 
-    private static Font FitFontToWidth(FontFamily family, string text, float startSize, float minSize, float maxWidth)
-    {
-        var size = startSize;
-        while (size > minSize)
-        {
-            var font = family.CreateFont(size, FontStyle.Bold);
-            if (TextMeasurer.MeasureSize(text, new RichTextOptions(font)).Width <= maxWidth)
-                return font;
-            size -= 2f;
-        }
-
-        return family.CreateFont(minSize, FontStyle.Bold);
-    }
-
     private static (string Text, Font Font) FitTextToWidth(FontFamily family, string text, float startSize, float minSize, float maxWidth)
     {
-        var font = FitFontToWidth(family, text, startSize, minSize, maxWidth);
+        var font = ImageTextLayout.FitFontToWidth(family, text, startSize, minSize, maxWidth);
         if (TextMeasurer.MeasureSize(text, new RichTextOptions(font)).Width <= maxWidth)
             return (text, font);
 
-        return (EllipsizeToWidth(text, font, maxWidth), font);
-    }
-
-    private static string EllipsizeToWidth(string text, Font font, float maxWidth)
-    {
-        const string ellipsis = "...";
-        if (TextMeasurer.MeasureSize(text, new RichTextOptions(font)).Width <= maxWidth)
-            return text;
-
-        var trimmed = text.TrimEnd();
-        while (trimmed.Length > 0 &&
-               TextMeasurer.MeasureSize(trimmed + ellipsis, new RichTextOptions(font)).Width > maxWidth)
-        {
-            trimmed = trimmed[..^1].TrimEnd();
-        }
-
-        return string.IsNullOrWhiteSpace(trimmed) ? ellipsis : trimmed + ellipsis;
+        return (ImageTextLayout.EllipsizeToWidth(text, font, maxWidth), font);
     }
 
     private static void DrawTextShadow(
@@ -1100,5 +1025,4 @@ public sealed class AthleteOgImageService
             text,
             TextShadowColor);
     }
-
 }

@@ -21,6 +21,8 @@ public sealed class AssetVersionProvider
             ? environment.WebRootPath
             : Path.Combine(environment.ContentRootPath, "wwwroot");
         _webRootPath = Path.GetFullPath(webRootPath);
+        if (!_webRootPath.EndsWith(Path.DirectorySeparatorChar))
+            _webRootPath += Path.DirectorySeparatorChar;
     }
 
     public string AppendVersion(string assetPath)
@@ -35,7 +37,7 @@ public sealed class AssetVersionProvider
         var relativePath = cleanPath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
         var fullPath = Path.GetFullPath(Path.Combine(_webRootPath, relativePath));
 
-        if (!IsUnderWebRoot(fullPath) || !File.Exists(fullPath))
+        if (!fullPath.StartsWith(_webRootPath, PathComparison) || !File.Exists(fullPath))
         {
             return assetPath;
         }
@@ -52,15 +54,6 @@ public sealed class AssetVersionProvider
         return queryIndex >= 0
             ? $"{assetPath}&v={version}"
             : $"{assetPath}?v={version}";
-    }
-
-    private bool IsUnderWebRoot(string fullPath)
-    {
-        var root = _webRootPath.EndsWith(Path.DirectorySeparatorChar)
-            ? _webRootPath
-            : _webRootPath + Path.DirectorySeparatorChar;
-
-        return fullPath.StartsWith(root, PathComparison);
     }
 
     private static string ComputeHash(string fullPath)

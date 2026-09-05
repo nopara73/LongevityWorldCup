@@ -21,9 +21,9 @@ public sealed class LeagueOgImageService
     private const float LeagueSubtitleY = 145f;
     private static readonly Color LeagueTitleColor = Color.White;
     private static readonly Color LeagueSubtitleColor = new(new Rgba32(255, 255, 255, 205));
-    private static readonly Color AccentColor = ParseHex("78DA3B");
-    private static readonly Color BackgroundTop = ParseHex("05080B");
-    private static readonly Color BackgroundBottom = ParseHex("15181B");
+    private static readonly Color AccentColor = Color.ParseHex("#78DA3B");
+    private static readonly Color BackgroundTop = Color.ParseHex("#05080B");
+    private static readonly Color BackgroundBottom = Color.ParseHex("#15181B");
     private static readonly Rgba32 RowFillColor = new(34, 42, 38, 255);
     private static readonly Rgba32 RowStrokeColor = new(255, 255, 255, 26);
     private static readonly Rgba32 RowShadowColor = new(0, 0, 0, 70);
@@ -166,7 +166,7 @@ public sealed class LeagueOgImageService
         var top3Slugs = _athletes.GetTop3SlugsForLeague(normalized)
             .Where(s => !string.IsNullOrWhiteSpace(s))
             .Take(3)
-            .Select(NormalizeAthleteSlug)
+            .Select(AthleteSlug.Normalize)
             .ToArray();
 
         var top3Names = GetAthleteDisplayNames(top3Slugs);
@@ -239,7 +239,7 @@ public sealed class LeagueOgImageService
         await DrawBrandAsync(image, fonts.Bold, ct);
         await DrawLeaderboardRowsAsync(image, payload, fonts.Bold, ct);
 
-        var titleFont = FitFontToWidth(fonts.Bold, payload.DisplayName, 56f, 38f, 800f);
+        var titleFont = ImageTextLayout.FitFontToWidth(fonts.Bold, payload.DisplayName, 56f, 38f, 800f, sizeStep: 1f);
         var subtitleFont = fonts.Regular.CreateFont(24f, FontStyle.Regular);
         var title = payload.DisplayName;
         var subtitle = payload.Top3Names.Count == 0 ? "Rankings opening soon" : "Current top longevity athletes";
@@ -272,7 +272,7 @@ public sealed class LeagueOgImageService
 
         try
         {
-            using var logo = await LoadLogoMarkAsync(ct);
+            using var logo = await ImageLogo.LoadMarkAsync(_logoPath, ct);
             using var smallLogo = logo.Clone(ctx => ctx.Resize(new ResizeOptions
             {
                 Size = new Size(54, 54),
@@ -304,33 +304,6 @@ public sealed class LeagueOgImageService
                 VerticalAlignment = VerticalAlignment.Top
             }, "LONGEVITY\nWORLD CUP", LeagueTitleColor);
         });
-    }
-
-    private async Task<Image<Rgba32>> LoadLogoMarkAsync(CancellationToken ct)
-    {
-        await using var logoStream = File.OpenRead(_logoPath);
-        var logo = await Image.LoadAsync<Rgba32>(logoStream, ct);
-        logo.ProcessPixelRows(accessor =>
-        {
-            for (var y = 0; y < accessor.Height; y++)
-            {
-                var row = accessor.GetRowSpan(y);
-                for (var x = 0; x < row.Length; x++)
-                {
-                    var pixel = row[x];
-                    var brightness = (pixel.R + pixel.G + pixel.B) / 3f;
-                    if (brightness < 110f)
-                    {
-                        row[x] = Color.Transparent;
-                        continue;
-                    }
-
-                    var alpha = (byte)Math.Clamp((brightness - 110f) * 2.4f, 0f, pixel.A);
-                    row[x] = new Rgba32(255, 255, 255, alpha);
-                }
-            }
-        });
-        return logo;
     }
 
     private async Task DrawLeaderboardRowsAsync(Image<Rgba32> image, LeagueOgPayload payload, FontFamily boldFamily, CancellationToken ct)
@@ -446,7 +419,7 @@ public sealed class LeagueOgImageService
     {
         var rankText = "#" + row.Rank.ToString(CultureInfo.InvariantCulture);
         var rankFont = boldFamily.CreateFont(row.Rank == 1 ? 27f : 25f, FontStyle.Bold);
-        var nameFont = FitFontToWidth(boldFamily, displayName, row.Rank == 1 ? 34f : 31f, 22f, row.Width - 286f);
+        var nameFont = ImageTextLayout.FitFontToWidth(boldFamily, displayName, row.Rank == 1 ? 34f : 31f, 22f, row.Width - 286f, sizeStep: 1f);
         var centerY = row.Y + (row.Height / 2f);
         var rankX = row.X + 132f;
         var nameX = row.X + 206f;
@@ -550,20 +523,6 @@ public sealed class LeagueOgImageService
         }, text, new Rgba32(0, 0, 0, 150));
     }
 
-    private static Font FitFontToWidth(FontFamily family, string text, float startSize, float minSize, float maxWidth)
-    {
-        var size = startSize;
-        while (size > minSize)
-        {
-            var font = family.CreateFont(size, FontStyle.Bold);
-            if (TextMeasurer.MeasureSize(text, new RichTextOptions(font)).Width <= maxWidth)
-                return font;
-            size -= 1f;
-        }
-
-        return family.CreateFont(minSize, FontStyle.Bold);
-    }
-
     private static float CenterTextY(string text, Font font, float centerY)
     {
         var measurement = TextMeasurer.MeasureSize(text, new RichTextOptions(font));
@@ -609,7 +568,7 @@ public sealed class LeagueOgImageService
             .OfType<JsonObject>()
             .Select(o => new
             {
-                Slug = NormalizeAthleteSlug(o["AthleteSlug"]?.GetValue<string>()),
+                Slug = AthleteSlug.Normalize(o["AthleteSlug"]?.GetValue<string>()),
                 ProfileImageId = o["ProfileImageId"]?.GetValue<string>()
                     ?? o["ProfilePic"]?.GetValue<string>()
                     ?? ""
@@ -619,7 +578,7 @@ public sealed class LeagueOgImageService
             .ToDictionary(g => g.Key, g => g.First().ProfileImageId, StringComparer.Ordinal);
 
         return athleteSlugs
-            .Select(NormalizeAthleteSlug)
+            .Select(AthleteSlug.Normalize)
             .Select(s => bySlug.TryGetValue(s, out var profileImageId) ? profileImageId : "")
             .ToArray();
     }
@@ -630,13 +589,13 @@ public sealed class LeagueOgImageService
         if (string.IsNullOrWhiteSpace(athleteSlug))
             return false;
 
-        var normalizedSlug = NormalizeAthleteSlug(athleteSlug);
+        var normalizedSlug = AthleteSlug.Normalize(athleteSlug);
         var snapshot = _athletes.GetAthletesSnapshot();
         var athlete = snapshot
             .OfType<JsonObject>()
             .FirstOrDefault(o =>
                 string.Equals(
-                    NormalizeAthleteSlug(o["AthleteSlug"]?.GetValue<string>()),
+                    AthleteSlug.Normalize(o["AthleteSlug"]?.GetValue<string>()),
                     normalizedSlug,
                     StringComparison.Ordinal));
         var profileUrl = athlete?["ProfilePic"]?.GetValue<string>();
@@ -687,7 +646,7 @@ public sealed class LeagueOgImageService
             .OfType<JsonObject>()
             .Select(o => new
             {
-                Slug = NormalizeAthleteSlug(o["AthleteSlug"]?.GetValue<string>()),
+                Slug = AthleteSlug.Normalize(o["AthleteSlug"]?.GetValue<string>()),
                 Name = (o["DisplayName"]?.GetValue<string>() ?? o["Name"]?.GetValue<string>() ?? "").Trim()
             })
             .Where(x => !string.IsNullOrWhiteSpace(x.Slug))
@@ -695,8 +654,8 @@ public sealed class LeagueOgImageService
             .ToDictionary(g => g.Key, g => g.First().Name, StringComparer.Ordinal);
 
         return top3Slugs
-            .Select(NormalizeAthleteSlug)
-            .Select(s => bySlug.TryGetValue(s, out var n) ? n : ToDisplayName(s))
+            .Select(AthleteSlug.Normalize)
+            .Select(s => bySlug.TryGetValue(s, out var n) ? n : AthleteSlug.ToDisplayName(s))
             .ToArray();
     }
 
@@ -728,22 +687,9 @@ public sealed class LeagueOgImageService
         }
     }
 
-    private static string NormalizeAthleteSlug(string? slug)
-    {
-        return (slug ?? "").Trim().Replace('-', '_').ToLowerInvariant();
-    }
-
     private static string ToRouteSlug(string normalizedSlug)
     {
         return normalizedSlug.Replace('_', '-');
-    }
-
-    private static string ToDisplayName(string slug)
-    {
-        var parts = NormalizeAthleteSlug(slug).Split('_', StringSplitOptions.RemoveEmptyEntries);
-        if (parts.Length == 0)
-            return slug;
-        return string.Join(" ", parts.Select(p => char.ToUpperInvariant(p[0]) + p[1..]));
     }
 
     private static string NormalizeToken(string raw)
@@ -762,10 +708,5 @@ public sealed class LeagueOgImageService
             .Replace("-", "-", StringComparison.Ordinal);
         normalized = string.Join(" ", normalized.Split(' ', StringSplitOptions.RemoveEmptyEntries));
         return normalized;
-    }
-
-    private static Color ParseHex(string hex)
-    {
-        return Color.ParseHex("#" + hex);
     }
 }

@@ -47,7 +47,8 @@ namespace LongevityWorldCup.Website.Middleware
         {
             var path = string.IsNullOrWhiteSpace(rawPath) ? "/" : rawPath.Trim();
             if (!path.StartsWith('/')) path = "/" + path;
-            path = path.Split('?', '#')[0];
+            var suffixIndex = path.AsSpan().IndexOfAny('?', '#');
+            if (suffixIndex >= 0) path = path[..suffixIndex];
             return path.Length > 1 ? path.TrimEnd('/') : path;
         }
 

@@ -171,7 +171,7 @@ public sealed class CustomEventImageService
         {
             var availableTextWidth = cardWidth - ((HorizontalPadding + HorizontalTextSafetyInset) * 2);
             var wrapped = WrapSegments(segments, regularFont, boldFont, availableTextWidth);
-            var targetCardHeight = Clamp((int)Math.Ceiling(wrapped.TotalHeight) + (VerticalPadding * 2), CardMinHeight, CardMaxHeight);
+            var targetCardHeight = Math.Clamp((int)Math.Ceiling(wrapped.TotalHeight) + (VerticalPadding * 2), CardMinHeight, CardMaxHeight);
             var availableTextHeight = targetCardHeight - (VerticalPadding * 2);
             var fits = wrapped.TotalHeight <= availableTextHeight + 0.5f;
 
@@ -605,13 +605,6 @@ public sealed class CustomEventImageService
         var dx = sampleX - cx;
         var dy = sampleY - cy;
         return (dx * dx) + (dy * dy) <= clampedRadius * clampedRadius;
-    }
-
-    private static int Clamp(int value, int min, int max)
-    {
-        if (value < min) return min;
-        if (value > max) return max;
-        return value;
     }
 
     private void EnsureFontsLoaded()

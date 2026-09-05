@@ -27,10 +27,10 @@ public static class ThreadsMessageBuilder
             return RejectIfTooLong($"{lead}\n\n{SocialPostLinks.LeaderboardUrl}");
         }
 
-        var eventBasis = DetermineSampleBasisForEvent(type, rawText);
-        var eventLeagueScope = DetermineLeagueScopeForEvent(type, rawText);
-        var eventPhase = GetPhase(sampleForBasis, eventBasis, getFieldSizeForLeague, eventLeagueScope);
-        if (ShouldSuppressEvent(type, rawText, eventPhase))
+        var eventBasis = SocialPostPolicy.DetermineSampleBasisForEvent(type, rawText);
+        var eventLeagueScope = SocialPostPolicy.DetermineLeagueScopeForEvent(type, rawText);
+        var eventPhase = SocialPostPolicy.GetPhase(sampleForBasis, eventBasis, getFieldSizeForLeague, eventLeagueScope);
+        if (SocialPostPolicy.ShouldSuppressEvent(type, rawText, eventPhase))
             return "";
 
         if (type == EventType.NewRank)
@@ -57,7 +57,7 @@ public static class ThreadsMessageBuilder
             if (!EventHelpers.TryExtractBiologicalAgeImprovement(rawText, out var clock, out var fromAge, out var toAge)) return "";
             var athlete = slugToName(improvementSlug);
             var clockContext = string.Equals(clock, "bortz", StringComparison.OrdinalIgnoreCase) ? "bortz" : "pheno";
-            return RejectIfTooLong(BuildBiologicalAgeImprovementLine(athlete, clock, fromAge, toAge, SocialPostLinks.AthleteUrl(improvementSlug, clockContext)));
+            return RejectIfTooLong(SocialPostText.BuildBiologicalAgeImprovementLine(athlete, clock, fromAge, toAge, SocialPostLinks.AthleteUrl(improvementSlug, clockContext)));
         }
 
         if (type == EventType.CrowdAgeTop10Change)
@@ -67,7 +67,7 @@ public static class ThreadsMessageBuilder
             EventHelpers.TryExtractPrev(rawText, out var prevSlug);
             var athlete = slugToName(crowdSlug);
             var prev = !string.IsNullOrWhiteSpace(prevSlug) ? slugToName(prevSlug) : null;
-            return RejectIfTooLong(BuildCrowdAgeTop10Line(athlete, crowdPlace, previousPlace, prev, crowdAge, crowdCount, getChronoAgeForSlug?.Invoke(crowdSlug), SocialPostLinks.AthleteUrl(crowdSlug, "crowd")));
+            return RejectIfTooLong(SocialPostText.BuildCrowdAgeTop10Line(athlete, crowdPlace, previousPlace, prev, crowdAge, crowdCount, getChronoAgeForSlug?.Invoke(crowdSlug), SocialPostLinks.AthleteUrl(crowdSlug, "crowd")));
         }
 
         if (type == EventType.AgeImprovementTop10Change)
@@ -78,7 +78,7 @@ public static class ThreadsMessageBuilder
             var athlete = slugToName(improvementLeaderboardSlug);
             var prev = !string.IsNullOrWhiteSpace(prevSlug) ? slugToName(prevSlug) : null;
             var leagueCtxSlug = string.Equals(improvementClock, "bortz", StringComparison.OrdinalIgnoreCase) ? "bortz-improvement" : "improvement";
-            return RejectIfTooLong(BuildAgeImprovementTop10Line(athlete, improvementClock, improvementPlace, previousPlace, prev, improvement, SocialPostLinks.AthleteUrl(improvementLeaderboardSlug, leagueCtxSlug)));
+            return RejectIfTooLong(SocialPostText.BuildAgeImprovementTop10Line(athlete, improvementClock, improvementPlace, previousPlace, prev, improvement, SocialPostLinks.AthleteUrl(improvementLeaderboardSlug, leagueCtxSlug)));
         }
 
         if (type != EventType.BadgeAward) return "";
@@ -224,12 +224,12 @@ public static class ThreadsMessageBuilder
         Func<IReadOnlyList<string>>? getRecentNewcomersForX = null,
         Func<string, string?>? getBestDomainWinnerSlug = null)
     {
-        var fillerBasis = DetermineSampleBasisForFiller(fillerType, payloadText ?? "");
-        var fillerLeagueScope = DetermineLeagueScopeForFiller(fillerType, payloadText ?? "");
+        var fillerBasis = SocialPostPolicy.DetermineSampleBasisForFiller(fillerType, payloadText ?? "");
+        var fillerLeagueScope = SocialPostPolicy.DetermineLeagueScopeForFiller(fillerType, payloadText ?? "");
         var fillerPhase = fillerType == FillerType.Top3Leaderboard
-            ? GetTop3LeaderboardPhase(payloadText ?? "", sampleForBasis, getFieldSizeForLeague, getBortzFieldSizeForLeague)
-            : GetPhase(sampleForBasis, fillerBasis, getFieldSizeForLeague, fillerLeagueScope);
-        if (ShouldSuppressFiller(fillerType, fillerPhase))
+            ? SocialPostPolicy.GetTop3LeaderboardPhase(payloadText ?? "", sampleForBasis, getFieldSizeForLeague, getBortzFieldSizeForLeague)
+            : SocialPostPolicy.GetPhase(sampleForBasis, fillerBasis, getFieldSizeForLeague, fillerLeagueScope);
+        if (SocialPostPolicy.ShouldSuppressFiller(fillerType, fillerPhase))
             return "";
 
         if (fillerType == FillerType.HistoryDocument)
@@ -325,268 +325,35 @@ public static class ThreadsMessageBuilder
             69 => $"{countLabel} athletes are now on the leaderboard. The internet will notice.",
             100 => $"{countLabel} athletes are now on the leaderboard. First triple-digit mark.",
             123 => $"{countLabel} athletes are now on the leaderboard. Nice clean count.",
-            200 => $"{countLabel} athletes are now on the leaderboard.",
             222 => $"{countLabel} athletes are now on the leaderboard. Perfectly doubled.",
-            250 => $"{countLabel} athletes are now on the leaderboard.",
             256 => $"{countLabel} athletes are now on the leaderboard. A tidy power-of-two milestone.",
             300 => $"{countLabel} athletes are now on the leaderboard. Sparta would approve.",
             404 => $"{countLabel} athletes are now on the leaderboard. This time nothing is missing.",
-            500 => $"{countLabel} athletes are now on the leaderboard.",
             666 => $"{countLabel} athletes are now on the leaderboard. Slightly cursed milestone.",
             777 => $"{countLabel} athletes are now on the leaderboard. Lucky sevens.",
             888 => $"{countLabel} athletes are now on the leaderboard. Triple eights.",
             999 => $"{countLabel} athletes are now on the leaderboard. One away from the comma club.",
-            1000 => $"{countLabel} athletes are now on the leaderboard.",
             1024 => $"{countLabel} athletes are now on the leaderboard. Proper power-of-two territory.",
             1234 => $"{countLabel} athletes are now on the leaderboard. Counting up nicely.",
             1337 => $"{countLabel} athletes are now on the leaderboard. Old internet heads will appreciate that one.",
-            1500 => $"{countLabel} athletes are now on the leaderboard.",
             1618 => $"{countLabel} athletes are now on the leaderboard. Golden-ratio territory.",
-            2000 => $"{countLabel} athletes are now on the leaderboard.",
             2048 => $"{countLabel} athletes are now on the leaderboard. Power-of-two territory.",
             2222 => $"{countLabel} athletes are now on the leaderboard. Twos all the way down.",
-            2500 => $"{countLabel} athletes are now on the leaderboard.",
-            3000 => $"{countLabel} athletes are now on the leaderboard.",
             3141 => $"{countLabel} athletes are now on the leaderboard. Very close to pi.",
             3333 => $"{countLabel} athletes are now on the leaderboard. Repeating digits, serious field.",
-            4000 => $"{countLabel} athletes are now on the leaderboard.",
             4444 => $"{countLabel} athletes are now on the leaderboard. Four-four-four-four and still found.",
             5000 => $"{countLabel} athletes are now on the leaderboard. That is a real field now.",
             5555 => $"{countLabel} athletes are now on the leaderboard. Repeating fives.",
             6969 => $"{countLabel} athletes are now on the leaderboard. Yes, that number.",
-            7500 => $"{countLabel} athletes are now on the leaderboard.",
             8008 => $"{countLabel} athletes are now on the leaderboard. Calculator humor survived.",
             8888 => $"{countLabel} athletes are now on the leaderboard. Jackpot-adjacent.",
             9001 => $"{countLabel} athletes are now on the leaderboard. Over nine thousand.",
             9999 => $"{countLabel} athletes are now on the leaderboard. One short of five digits.",
-            10000 => $"{countLabel} athletes are now on the leaderboard.",
             11111 => $"{countLabel} athletes are now on the leaderboard. The one key is doing overtime.",
             12345 => $"{countLabel} athletes are now on the leaderboard. Counting is officially a feature.",
             22222 => $"{countLabel} athletes are now on the leaderboard. Twos all the way down again.",
             54321 => $"{countLabel} athletes are now on the leaderboard. Countdown complete and somehow upward.",
             _ => $"{countLabel} athletes are now on the leaderboard."
-        };
-    }
-
-    private static XPostSampleBasis? DetermineSampleBasisForEvent(EventType type, string rawText)
-    {
-        if (type == EventType.NewRank)
-            return XPostSampleBasis.Combined;
-
-        if (type == EventType.BecamePro)
-            return XPostSampleBasis.Bortz;
-
-        if (type == EventType.BiologicalAgeImproved)
-        {
-            if (!EventHelpers.TryExtractClock(rawText, out var clock))
-                return null;
-
-            return string.Equals(clock, "bortz", StringComparison.OrdinalIgnoreCase)
-                ? XPostSampleBasis.Bortz
-                : XPostSampleBasis.PhenoAge;
-        }
-
-        if (type != EventType.BadgeAward)
-            return null;
-
-        if (!EventHelpers.TryExtractBadgeLabel(rawText, out var label))
-            return null;
-
-        var norm = EventHelpers.NormalizeBadgeLabel(label);
-        if (string.Equals(norm, "Pheno Age – lowest", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(norm, "Pheno Age best improvement", StringComparison.OrdinalIgnoreCase))
-            return XPostSampleBasis.PhenoAge;
-
-        if (string.Equals(norm, "Bortz Age – lowest", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(norm, "Bortz Age best improvement", StringComparison.OrdinalIgnoreCase))
-            return XPostSampleBasis.Bortz;
-
-        if (string.Equals(norm, "Age reduction", StringComparison.OrdinalIgnoreCase) &&
-            EventHelpers.TryExtractPlace(rawText, out var place) && place == 1 &&
-            EventHelpers.TryExtractCategory(rawText, out var category) &&
-            !string.Equals(category, "Global", StringComparison.OrdinalIgnoreCase))
-        {
-            if (string.Equals(category, "Amateur", StringComparison.OrdinalIgnoreCase))
-                return XPostSampleBasis.PhenoAge;
-
-            return XPostSampleBasis.Combined;
-        }
-
-        return null;
-    }
-
-    private static XPostSampleBasis? DetermineSampleBasisForFiller(FillerType fillerType, string payloadText)
-    {
-        if (fillerType == FillerType.DomainTop)
-        {
-            if (!EventHelpers.TryExtractDomain(payloadText, out var domain))
-                return null;
-
-            if (string.Equals(domain, "inflammation", StringComparison.OrdinalIgnoreCase))
-                return XPostSampleBasis.Combined;
-
-            return XPostSampleBasis.Bortz;
-        }
-
-        if (fillerType == FillerType.Top3Leaderboard)
-        {
-            if (!EventHelpers.TryExtractLeague(payloadText, out var league))
-                return null;
-
-            if (string.Equals(league, "amateur", StringComparison.OrdinalIgnoreCase))
-                return XPostSampleBasis.PhenoAge;
-
-            return XPostSampleBasis.Combined;
-        }
-
-        return null;
-    }
-
-    private static string? DetermineLeagueScopeForEvent(EventType type, string rawText)
-    {
-        if (type == EventType.NewRank)
-            return "ultimate";
-
-        if (type != EventType.BadgeAward)
-            return null;
-
-        if (!EventHelpers.TryExtractBadgeLabel(rawText, out var label))
-            return null;
-
-        var norm = EventHelpers.NormalizeBadgeLabel(label);
-        if (string.Equals(norm, "Age reduction", StringComparison.OrdinalIgnoreCase) &&
-            EventHelpers.TryExtractPlace(rawText, out var place) && place == 1 &&
-            EventHelpers.TryExtractCategory(rawText, out var category))
-        {
-            EventHelpers.TryExtractValue(rawText, out var value);
-            return SocialPostLinks.LeagueContextSlug(category, value);
-        }
-
-        return null;
-    }
-
-    private static string? DetermineLeagueScopeForFiller(FillerType fillerType, string payloadText)
-    {
-        if (fillerType == FillerType.Top3Leaderboard &&
-            EventHelpers.TryExtractLeague(payloadText, out var league) &&
-            !string.IsNullOrWhiteSpace(league))
-            return league.Trim();
-
-        return null;
-    }
-
-    private static XPostPhase? GetPhase(
-        Func<XPostSampleBasis, XPostSampleSize>? sampleForBasis,
-        XPostSampleBasis? basis,
-        Func<string, int?>? getFieldSizeForLeague,
-        string? leagueScope)
-    {
-        XPostPhase? basisPhase = null;
-        if (basis.HasValue && sampleForBasis is not null)
-        {
-            var sample = sampleForBasis(basis.Value);
-            basisPhase = XPostPhaseDecider.Determine(sample);
-        }
-
-        XPostPhase? scopePhase = null;
-        if (!string.IsNullOrWhiteSpace(leagueScope) && getFieldSizeForLeague is not null)
-        {
-            var fieldSize = getFieldSizeForLeague(leagueScope);
-            if (fieldSize.HasValue)
-            {
-                var scopedSample = new XPostSampleSize(
-                    Basis: basis ?? XPostSampleBasis.Combined,
-                    N: fieldSize.Value,
-                    PhenoCount: 0,
-                    BortzCount: 0,
-                    CombinedCount: fieldSize.Value);
-                scopePhase = XPostPhaseDecider.Determine(scopedSample);
-            }
-        }
-
-        if (basisPhase.HasValue && scopePhase.HasValue)
-            return XPostPhaseDecider.Min(basisPhase.Value, scopePhase.Value);
-
-        return basisPhase ?? scopePhase;
-    }
-
-    private static XPostPhase? GetTop3LeaderboardPhase(
-        string payloadText,
-        Func<XPostSampleBasis, XPostSampleSize>? sampleForBasis,
-        Func<string, int?>? getFieldSizeForLeague,
-        Func<string, int?>? getBortzFieldSizeForLeague)
-    {
-        if (!EventHelpers.TryExtractLeague(payloadText, out var leagueSlug) || string.IsNullOrWhiteSpace(leagueSlug))
-            return null;
-
-        var normalizedLeague = leagueSlug.Trim();
-        if (string.Equals(normalizedLeague, "amateur", StringComparison.OrdinalIgnoreCase))
-            return GetPhase(sampleForBasis, XPostSampleBasis.PhenoAge, getFieldSizeForLeague, normalizedLeague);
-
-        var totalPhase = GetPhase(null, null, getFieldSizeForLeague, normalizedLeague);
-        var bortzPhase = GetPhase(null, null, getBortzFieldSizeForLeague, normalizedLeague);
-
-        if (totalPhase.HasValue && bortzPhase.HasValue)
-            return XPostPhaseDecider.Min(totalPhase.Value, bortzPhase.Value);
-
-        return bortzPhase ?? totalPhase;
-    }
-
-    private static bool ShouldSuppressEvent(EventType type, string rawText, XPostPhase? phase)
-    {
-        if (!phase.HasValue || phase == XPostPhase.Mature)
-            return false;
-
-        if (type == EventType.NewRank)
-        {
-            return !EventHelpers.TryExtractRank(rawText, out var rank) || rank != 1;
-        }
-
-        if (type != EventType.BadgeAward)
-            return false;
-
-        if (!EventHelpers.TryExtractBadgeLabel(rawText, out var label))
-            return false;
-
-        var norm = EventHelpers.NormalizeBadgeLabel(label);
-        if (string.Equals(norm, "Podcast", StringComparison.OrdinalIgnoreCase))
-            return false;
-
-        if (string.Equals(norm, "Pheno Age – lowest", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(norm, "Bortz Age – lowest", StringComparison.OrdinalIgnoreCase))
-            return false;
-
-        if (string.Equals(norm, "Age reduction", StringComparison.OrdinalIgnoreCase))
-        {
-            return !(
-                EventHelpers.TryExtractPlace(rawText, out var place) &&
-                place == 1 &&
-                EventHelpers.TryExtractCategory(rawText, out var category) &&
-                !string.Equals(category, "Global", StringComparison.OrdinalIgnoreCase));
-        }
-
-        if (phase == XPostPhase.Early &&
-            (string.Equals(norm, "Pheno Age best improvement", StringComparison.OrdinalIgnoreCase) ||
-             string.Equals(norm, "Bortz Age best improvement", StringComparison.OrdinalIgnoreCase)))
-            return false;
-
-        return true;
-    }
-
-    private static bool ShouldSuppressFiller(FillerType fillerType, XPostPhase? phase)
-    {
-        if (!phase.HasValue)
-            return false;
-
-        if (phase == XPostPhase.Mature)
-            return false;
-
-        return fillerType switch
-        {
-            FillerType.Top3Leaderboard => phase == XPostPhase.Tiny,
-            FillerType.DomainTop => true,
-            FillerType.Newcomers => false,
-            _ => false
         };
     }
 
@@ -662,115 +429,6 @@ public static class ThreadsMessageBuilder
         return $"{athleteName} went Pro.\n\nBortz Age results now place them in the Pro track.\n\n{athleteUrl}";
     }
 
-    private static string BuildBiologicalAgeImprovementLine(
-        string athleteName,
-        string clock,
-        double fromAge,
-        double toAge,
-        string athleteUrl)
-    {
-        var clockLabel = string.Equals(clock, "bortz", StringComparison.OrdinalIgnoreCase)
-            ? "Bortz Age"
-            : "pheno age";
-        var fromText = fromAge.ToString("0.##", CultureInfo.InvariantCulture);
-        var toText = toAge.ToString("0.##", CultureInfo.InvariantCulture);
-        return $"{athleteName} improved their {clockLabel} from {fromText} to {toText} years.\n\n{athleteUrl}";
-    }
-
-    private static string FormatSignedYears(double years)
-    {
-        var text = years.ToString("0.#", CultureInfo.InvariantCulture);
-        return years > 0 ? $"+{text}" : text;
-    }
-
-    private static string BuildCrowdAgeTop10Line(
-        string athleteName,
-        int place,
-        int? previousPlace,
-        string? previousAthlete,
-        double crowdAge,
-        int crowdCount,
-        double? chronologicalAge,
-        string athleteUrl)
-    {
-        var crowdAgeText = crowdAge.ToString("0.#", CultureInfo.InvariantCulture);
-        var countText = crowdCount.ToString("N0", CultureInfo.InvariantCulture);
-        var movement = BuildCrowdAgeMovement(place, previousPlace);
-        var signal = BuildCrowdAgeSignal(crowdAge, chronologicalAge);
-        var metricLine = !string.IsNullOrWhiteSpace(signal)
-            ? $"{athleteName}'s Crowd Age is {crowdAgeText}, {signal}."
-            : $"{athleteName}'s Crowd Age is {crowdAgeText}.";
-
-        return $"{athleteName} {movement} in Crowd Age with {countText} guesses.\n{metricLine}\n\n{athleteUrl}";
-    }
-
-    private static string BuildCrowdAgeMovement(int place, int? previousPlace)
-    {
-        var placeText = CrowdOrdinal(place);
-        return previousPlace.HasValue
-            ? previousPlace.Value > place
-                ? $"climbed from {CrowdOrdinal(previousPlace.Value)} to {placeText}"
-                : $"moved from {CrowdOrdinal(previousPlace.Value)} to {placeText}"
-            : $"just entered the top 10 at {placeText}";
-    }
-
-    private static string? BuildCrowdAgeSignal(double crowdAge, double? chronologicalAge)
-    {
-        if (!chronologicalAge.HasValue || !double.IsFinite(chronologicalAge.Value))
-            return null;
-
-        var difference = crowdAge - chronologicalAge.Value;
-        if (!double.IsFinite(difference))
-            return null;
-
-        if (Math.Abs(difference) < 0.05)
-            return "about the same age as their chronological age";
-
-        var years = Math.Abs(difference).ToString("0.#", CultureInfo.InvariantCulture);
-        return difference < 0
-            ? $"{years} years below chronological age"
-            : $"{years} years above chronological age";
-    }
-
-    private static string BuildAgeImprovementTop10Line(
-        string athleteName,
-        string clock,
-        int place,
-        int? previousPlace,
-        string? previousAthlete,
-        double improvement,
-        string athleteUrl)
-    {
-        var placeText = CrowdOrdinal(place);
-        var movement = previousPlace.HasValue
-            ? previousPlace.Value > place ? $"climbed from {CrowdOrdinal(previousPlace.Value)} to {placeText}" : $"moved from {CrowdOrdinal(previousPlace.Value)} to {placeText}"
-            : place == 1 ? $"took {placeText} place" : $"entered the top 10 at {placeText}";
-        var leaderboardName = string.Equals(clock, "bortz", StringComparison.OrdinalIgnoreCase)
-            ? "Bortz Improvement"
-            : "Pheno Improvement";
-        var improvementText = FormatSignedYears(improvement);
-
-        var lead = !string.IsNullOrWhiteSpace(previousAthlete)
-            ? $"{athleteName} {movement} in the {leaderboardName} leaderboard, ahead of {previousAthlete}."
-            : $"{athleteName} {movement} in the {leaderboardName} leaderboard.";
-
-        return $"{lead}\n\nImprovement: {improvementText} years from worst to latest eligible result.\n\n{athleteUrl}";
-    }
-
-    private static string CrowdOrdinal(int n)
-    {
-        var suffix = (n % 100) is 11 or 12 or 13
-            ? "th"
-            : (n % 10) switch
-            {
-                1 => "st",
-                2 => "nd",
-                3 => "rd",
-                _ => "th"
-            };
-        return $"{n}{suffix}";
-    }
-
     private static string BuildTop3LeaderboardIntro(XPostPhase? phase, string leagueDisplayName)
     {
         return phase switch
@@ -801,4 +459,3 @@ public static class ThreadsMessageBuilder
         return string.IsNullOrEmpty(emoji) ? lineBase : $"{lineBase} {emoji}";
     }
 }
-

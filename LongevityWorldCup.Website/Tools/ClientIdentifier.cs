@@ -31,7 +31,8 @@ public static class ClientIdentifier
         var forwardedFor = context.Request.Headers["X-Forwarded-For"].FirstOrDefault();
         if (!string.IsNullOrWhiteSpace(forwardedFor))
         {
-            var firstHop = forwardedFor.Split(',')[0].Trim();
+            var separator = forwardedFor.IndexOf(',');
+            var firstHop = separator >= 0 ? forwardedFor[..separator] : forwardedFor;
             if (TryParseIp(firstHop, out var parsedForwardedIp))
                 return parsedForwardedIp;
         }
