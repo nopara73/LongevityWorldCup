@@ -1,5 +1,6 @@
 using Microsoft.Playwright;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Xunit;
 
 namespace LongevityWorldCup.Tests;
@@ -10,6 +11,46 @@ public sealed class LeaderboardRouteBrowserTests(
     BrowserTestAppFixture appFixture)
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
+    [Theory]
+    [InlineData("100%", false, 1)]
+    [InlineData("%E0%A4%A", false, 0)]
+    [InlineData("literal %20", true, 0)]
+    [InlineData("michael lustgarten", true, 1)]
+    public async Task SearchLinks_LoadLiteralPercentsAndPreserveSharedUrlRoundTrips(
+        string query, bool legacyEncoding, int expectedRows)
+    {
+        await using var context = await NewContextAsync(Browser, App);
+        await context.AddInitScriptAsync("localStorage.setItem('gmaSkipAll', 'true');");
+        await context.RouteAsync("**/api/data/athletes", async route =>
+        {
+            var response = await route.FetchAsync();
+            var athletes = JsonNode.Parse(await response.TextAsync())!.AsArray();
+            var athlete = athletes.OfType<JsonObject>()
+                .Single(item => item["Name"]?.GetValue<string>() == "Michael Lustgarten");
+            athlete["Why"] = "100% committed";
+            await route.FulfillAsync(new RouteFulfillOptions
+            {
+                ContentType = "application/json",
+                Body = new JsonArray(athlete.DeepClone()).ToJsonString()
+            });
+        });
+        var page = await context.NewPageAsync();
+        var encoded = Uri.EscapeDataString(legacyEncoding ? Uri.EscapeDataString(query) : query);
+        await page.GotoAsync("/leaderboard?search=" + encoded);
+        await WaitForLeaderboardAsync(page);
+
+        Assert.Equal(query, await page.Locator("#athleteSearch").InputValueAsync());
+        await Assertions.Expect(page.Locator(".leaderboard tbody tr[data-athlete-name]:visible"))
+            .ToHaveCountAsync(expectedRows);
+
+        // Filtering writes the shareable URL. Loading it again must keep its meaning.
+        await page.ReloadAsync();
+        await WaitForLeaderboardAsync(page);
+        Assert.Equal(query.ToLowerInvariant(), await page.Locator("#athleteSearch").InputValueAsync());
+        await Assertions.Expect(page.Locator(".leaderboard tbody tr[data-athlete-name]:visible"))
+            .ToHaveCountAsync(expectedRows);
+    }
+
     [Fact]
     public async Task FlagLeaderboard_ActionAndDirectRoutes_ShowFullLeaderboardsWithBoundedAccurateTitles()
     {

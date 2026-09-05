@@ -351,6 +351,9 @@ public sealed class FlowActionDockBrowserTests(
 
         await page.GotoAsync("/play", new PageGotoOptions { WaitUntil = WaitUntilState.Commit });
         await ExpectActionStackDockedInViewportAsync(page, ".play-menu-actions");
+        // The dock can paint before the menu binds these controls. Remove them
+        // only after initialization so this tests dock cleanup, not a broken bootstrap.
+        await Assertions.Expect(page.Locator("#newGameBtn")).ToBeEnabledAsync();
         await page.Locator(".play-menu-actions").EvaluateAsync("element => element.remove()");
         await page.WaitForFunctionAsync(
             "() => !document.querySelector('.play-menu-actions') && !document.querySelector('.play-start-panel .flow-action-dock-placeholder')");

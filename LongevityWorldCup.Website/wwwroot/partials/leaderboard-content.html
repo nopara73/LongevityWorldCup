@@ -5136,7 +5136,13 @@
                     let searchOrFilterApplied = false; // Flag to check if filter was applied
                     const searchParam = new URLSearchParams(window.location.search).get('search') || '';
                     if (searchParam) {
-                        var query = decodeURIComponent(searchParam);
+                        // Shared search links carry an extra encoding layer. A
+                        // literal percent in a direct URL is also valid search text.
+                        let query = searchParam;
+                        try {
+                            query = decodeURIComponent(searchParam);
+                        } catch (_) {
+                        }
                         const searchInput = document.getElementById('athleteSearch');
                         searchInput.value = query;
                         searchOrFilterApplied = true;
