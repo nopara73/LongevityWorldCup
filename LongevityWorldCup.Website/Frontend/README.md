@@ -18,6 +18,8 @@ Keep strict null, unchecked-index, exact-optional-property, and erasable-syntax 
 
 `HtmlInjectionMiddleware` dynamically imports these ES modules (an empty emitted export is allowed): `misc`, `flags`, `leagueIcons`, `pheno-age`, `bortz-age`, `badges`, `age-visualization`, `play-athlete-flow`, `proof-helpers`, `pro-discounts`, `play-menu`, `bioage-rank-preview`.
 
+HTML rendering reads only the page's referenced partials and required nested dialog fragments. `HtmlAssetPlaceholders` resolves asset tokens once after page assembly, reusing each URL's version within that response. Keep asset mappings there and resolve versions again for each response so file edits remain visible.
+
 Keep these classic scripts free of imports/exports: `flow-action-dock`, `bioage-flow`, `custom-event-markup`, `longevitymaxxing`, `site-statistics-tracking`, `site-statistics`.
 
 The head partial defines `navigateToFlowDestination` synchronously so inline Back handlers work before the asynchronous modules finish. Application Next starts disabled until initialization binds stage validation.
