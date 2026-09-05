@@ -119,7 +119,7 @@ Expected result:
 2. Select the app
 3. Open **Publish**
 4. Add a valid **Privacy Policy URL**
-   - `https://longevityworldcup.com/privacy-policy.html`
+   - `https://longevityworldcup.com/privacy`
 5. Save changes, go back and Publish the app
 
 ---
