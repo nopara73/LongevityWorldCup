@@ -627,63 +627,6 @@
     color: var(--lwc-accent-hover, #087f91);
 }
 
-.bioage-entry-tools {
-    margin: var(--lwc-space-3) 0 var(--lwc-space-5);
-    border: 1px solid var(--lwc-border);
-    border-radius: var(--lwc-radius-md);
-    background: var(--lwc-surface-muted);
-    overflow: hidden;
-}
-.bioage-entry-status {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: var(--lwc-space-2);
-    padding: var(--lwc-space-3);
-}
-.bioage-entry-status .bioage-biomarker-progress { margin: 0; text-align: left; flex: 1 1 150px; }
-.bioageform .bioage-next-entry,
-.bioageform .bioage-entry-list button {
-    min-height: 44px;
-    margin: 0;
-    padding: var(--lwc-space-2) var(--lwc-space-3);
-    border: 1px solid var(--lwc-border);
-    border-radius: var(--lwc-radius-sm);
-    background: var(--lwc-surface);
-    color: var(--lwc-accent);
-    font: inherit;
-    font-size: var(--lwc-type-sm);
-    line-height: 1.4;
-    cursor: pointer;
-    box-shadow: none;
-    transform: none;
-}
-.bioageform .bioage-next-entry { width: auto; flex: 0 1 auto; font-weight: 700; }
-.bioageform .bioage-next-entry[hidden],
-.bioage-entry-overview [hidden] { display: none; }
-.bioage-entry-overview { border-top: 1px solid var(--lwc-border); }
-.bioage-entry-overview summary { min-height: 44px; padding: var(--lwc-space-3); cursor: pointer; color: var(--lwc-accent); font-size: var(--lwc-type-sm); font-weight: 700; }
-.bioage-entry-list { list-style: none; margin: 0; padding: 0 var(--lwc-space-3) var(--lwc-space-3); display: grid; gap: var(--lwc-space-1); }
-.bioageform .bioage-entry-list button { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; align-items: center; gap: var(--lwc-space-3); width: 100%; text-align: left; border-color: transparent; }
-.bioage-entry-label { color: var(--lwc-ink); }
-.bioage-entry-value { color: var(--lwc-muted); font-variant-numeric: tabular-nums; }
-.bioage-entry-row--complete .bioage-entry-value { color: var(--lwc-ink); font-weight: 700; }
-.bioage-entry-row--invalid .bioage-entry-value { color: var(--lwc-danger); }
-.bioage-entry-empty,
-.bioage-entry-note { margin: 0; padding: 0 var(--lwc-space-3) var(--lwc-space-3); color: var(--lwc-muted); font-size: var(--lwc-type-sm); line-height: 1.5; }
-.bioageform .bioage-next-entry:hover,
-.bioageform .bioage-entry-list button:hover,
-.bioage-entry-overview summary:hover { background: var(--lwc-accent-soft); }
-.bioage-next-entry:focus-visible,
-.bioage-entry-overview summary:focus-visible,
-.bioage-entry-list button:focus-visible { outline: 3px solid var(--lwc-accent); outline-offset: -3px; }
-@media (max-width: 420px) {
-    .bioage-entry-status .bioage-biomarker-progress { flex-basis: 100%; }
-    .bioageform .bioage-next-entry { width: 100%; }
-    .bioageform .bioage-entry-list button { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) auto; gap: var(--lwc-space-2); }
-}
-
 .bioage-biomarker-error {
     margin: 0.45rem 0 0;
     color: var(--danger-color, #b4233b);

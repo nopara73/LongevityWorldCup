@@ -85,8 +85,6 @@ interface BioageBiomarkerEntryController {
     invalidBatchActive: boolean;
     isUpdate: boolean;
     progress: HTMLParagraphElement;
-    nextEntry: HTMLButtonElement;
-    overview: HTMLDetailsElement;
     restoring: boolean;
     saveTimer: number;
     step: 1 | 2;
@@ -903,7 +901,6 @@ interface Window {
                         : 'Enter at least 1 new biomarker value'
             : `${completed} of ${total} biomarkers entered`;
         controller.progress.classList.toggle('bioage-biomarker-progress--complete', ready);
-        syncBiomarkerOverview(controller);
 
         // The flow dock portals the action stack out of the form on small screens.
         const calculateButton = document.querySelector<HTMLButtonElement>('.bioage-calculate-button');
@@ -916,83 +913,6 @@ interface Window {
                 calculateButton.classList.toggle('flow-action--secondary', !ready);
             }
         }
-    }
-
-    function syncBiomarkerOverview(controller: BioageBiomarkerEntryController): void {
-        const next = getNextIncompleteBiomarker(controller);
-        controller.nextEntry.hidden = !next;
-        controller.nextEntry.textContent = next?.value.trim()
-            ? 'Check next value'
-            : controller.isUpdate ? 'Add a biomarker' : 'Find next missing';
-
-        let visibleRows = 0;
-        controller.inputs.forEach(input => {
-            const row = controller.overview.querySelector<HTMLElement>(`[data-entry-field="${input.id}"]`)!;
-            const entered = input.value.trim() !== '' || input.validity.badInput;
-            row.hidden = controller.isUpdate && !entered;
-            if (!row.hidden) visibleRows++;
-            const complete = isCompleteBiomarkerInput(input);
-            const belowDetection = input.id === 'crp' && controller.form.querySelector<HTMLInputElement>('#crp-negative')?.checked;
-            const unit = input.closest('.input-group')?.querySelector<HTMLSelectElement>('select')?.selectedOptions[0]?.textContent?.trim() || '';
-            const value = belowDetection ? 'Below detection limit'
-                : entered ? `${input.value} ${unit}${complete ? '' : ' · Check value'}`.trim()
-                : 'To enter';
-            row.querySelector<HTMLElement>('.bioage-entry-value')!.textContent = value;
-            row.classList.toggle('bioage-entry-row--complete', complete);
-            row.classList.toggle('bioage-entry-row--invalid', entered && !complete);
-            row.querySelector('button')!.setAttribute('aria-label', `${getBiomarkerLabel(input)}: ${value}. Edit`);
-        });
-        controller.overview.querySelector<HTMLElement>('.bioage-entry-empty')!.hidden = visibleRows > 0;
-    }
-
-    function getNextIncompleteBiomarker(controller: BioageBiomarkerEntryController): HTMLInputElement | undefined {
-        const editable = controller.inputs.filter(input => !input.disabled);
-        return editable.find(input => (input.value.trim() !== '' || input.validity.badInput) && !isCompleteBiomarkerInput(input))
-            || editable.find(input => !isCompleteBiomarkerInput(input));
-    }
-
-    function createBiomarkerOverview(inputs: HTMLInputElement[], isUpdate: boolean): HTMLDetailsElement {
-        const overview = document.createElement('details');
-        overview.className = 'bioage-entry-overview';
-        const summary = document.createElement('summary');
-        summary.textContent = 'Review entries';
-        const list = document.createElement('ul');
-        list.className = 'bioage-entry-list';
-        inputs.forEach(input => {
-            const row = document.createElement('li');
-            row.dataset.entryField = input.id;
-            const button = document.createElement('button');
-            button.type = 'button';
-            const label = document.createElement('span');
-            label.className = 'bioage-entry-label';
-            label.textContent = getBiomarkerLabel(input);
-            const value = document.createElement('span');
-            value.className = 'bioage-entry-value';
-            const arrow = document.createElement('span');
-            arrow.textContent = '›';
-            arrow.setAttribute('aria-hidden', 'true');
-            button.append(label, value, arrow);
-            button.addEventListener('click', () => {
-                if (input.disabled && input.id === 'crp') {
-                    expandBiomarkerCard(input);
-                    input.form?.querySelector<HTMLInputElement>('#crp-negative')?.focus();
-                    ensureBiomarkerVisible(input);
-                } else focusBiomarkerInput(input);
-            });
-            row.appendChild(button);
-            list.appendChild(row);
-        });
-        const empty = document.createElement('p');
-        empty.className = 'bioage-entry-empty';
-        empty.textContent = 'No new values entered yet.';
-        overview.append(summary, list, empty);
-        if (isUpdate) {
-            const note = document.createElement('p');
-            note.className = 'bioage-entry-note';
-            note.textContent = 'Only your new values are shown. Unchanged values carry over from your latest result.';
-            overview.appendChild(note);
-        }
-        return overview;
     }
 
     function refreshAllBiomarkerCompletion(): void {
@@ -1153,39 +1073,24 @@ interface Window {
         progress.setAttribute('role', 'status');
         progress.setAttribute('aria-live', 'polite');
         progress.setAttribute('aria-atomic', 'true');
-        const inputs = Array.from(options.form.querySelectorAll<HTMLInputElement>('.biomarker-card input[type="number"][required]'));
-        const overview = createBiomarkerOverview(inputs, options.isUpdate === true);
-        const nextEntry = document.createElement('button');
-        nextEntry.type = 'button';
-        nextEntry.className = 'bioage-next-entry';
-        const tools = document.createElement('div');
-        tools.className = 'bioage-entry-tools';
-        const status = document.createElement('div');
-        status.className = 'bioage-entry-status';
-        status.append(progress, nextEntry);
-        tools.append(status, overview);
-        stepHeading?.insertAdjacentElement('afterend', tools);
+        stepHeading?.insertAdjacentElement('afterend', progress);
 
         const controller: BioageBiomarkerEntryController = {
             clock: options.clock,
             draftPersistenceSuppressed: false,
             form: options.form,
             hasPersistedDraft: false,
-            inputs,
+            inputs: Array.from(options.form.querySelectorAll<HTMLInputElement>(
+                '.biomarker-card input[type="number"][required]'
+            )),
             invalidBatchActive: false,
             isUpdate: options.isUpdate === true,
             progress,
-            nextEntry,
-            overview,
             restoring: false,
             saveTimer: 0,
             step: 1,
             visitedInputs: new Set()
         };
-        nextEntry.addEventListener('click', () => {
-            const next = getNextIncompleteBiomarker(controller);
-            if (next) focusBiomarkerInput(next);
-        });
 
         options.form.classList.add('bioage-biomarker-entry-ready');
         biomarkerEntryControllers.set(options.clock, controller);
