@@ -98,6 +98,7 @@
         nutrition: number;
         vices: number;
         note: string | null;
+        submissionId: string;
     }
 
     interface EligibleDay {
@@ -715,6 +716,11 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     const savedDays = new Set<number>();
     const pendingNotePhotos = new Map<string, File[]>();
     const pendingNotePhotoUrls = new Map<string, string[]>();
+    const checkInDrafts = new Map<string, CheckInFormDraft>();
+    const checkInResetUndo = new Map<string, { values: CheckInFormDraft; photos: File[] }>();
+    const checkInErrors = new Map<string, string>();
+    const checkInSubmissions = new Map<string, { id: string; values: string; photos: File[] }>();
+    let checkInSaving: { key: string; day: number } | null = null;
     const discussionReplyCache = new Map<string, DiscussionReplyCacheEntry>();
     const PARTICIPANT_TABS: readonly ParticipantTab[] = ["checkin", "profile", "home"];
     const athleteSelectors = new Map<string, AthleteSelectorController>();
@@ -923,6 +929,12 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             button.addEventListener("keydown", event => {
                 handleParticipantTabKeydown(event, button);
             });
+        });
+
+        window.addEventListener("beforeunload", event => {
+            if (!checkInDrafts.size && !pendingNotePhotos.size) return;
+            event.preventDefault();
+            event.returnValue = "";
         });
 
         profilePictureButton.addEventListener("click", () => {
@@ -1233,6 +1245,15 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     }
 
     function acceptParticipantState(state: ParticipantState): void {
+        const eligibleKeys = new Set(state.eligibleDays.map(day => checkInDraftKey(day, state.participant.id)));
+        for (const key of new Set([...checkInDrafts.keys(), ...pendingNotePhotos.keys(), ...checkInResetUndo.keys(), ...checkInErrors.keys(), ...checkInSubmissions.keys()])) {
+            if (eligibleKeys.has(key)) continue;
+            checkInDrafts.delete(key);
+            checkInResetUndo.delete(key);
+            checkInErrors.delete(key);
+            checkInSubmissions.delete(key);
+            clearPendingNotePhotos(key);
+        }
         invalidateDiscussionReplyCachesForAuthoritativeState([
             state.notes,
             state.public.notes,
@@ -2379,6 +2400,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     function renderCheckIns(days: EligibleDay[], containerId = "lmxCheckinList", activeDiscussion: ParticipantNote[] = []): void {
         const container = document.getElementById(containerId || "lmxCheckinList");
         if (!container) return;
+        const previousForm = container.querySelector<HTMLFormElement>(".lmx-checkin-card");
+        if (previousForm) revokePendingNotePhotoUrls(checkInDayKey(previousForm));
         if (!days.length) {
             container.innerHTML = emptyCheckInHtml();
             return;
@@ -2386,13 +2409,12 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
 
         const orderedDays = [...days].sort((a, b) => a.challengeDay - b.challengeDay);
         const activeDay = pickActiveCheckInDay(orderedDays);
-        const previousForm = container.querySelector<HTMLFormElement>(".lmx-checkin-card");
-        if (previousForm) revokePendingNotePhotoUrls(checkInDayKey(previousForm));
         container.innerHTML = checkInSwitcherHtml(orderedDays, activeDay) + checkInCardHtml(activeDay, activeDiscussion);
         container.querySelectorAll<HTMLButtonElement>(".lmx-checkin-switcher button").forEach(button => {
             button.addEventListener("click", () => {
                 selectedCheckInDay = Number(button.dataset.day);
-                renderCheckIns(orderedDays, containerId, activeDiscussion);
+                renderCheckIns(participantState?.eligibleDays || orderedDays, containerId, participantState ? activePublicDiscussion(participantState) : activeDiscussion);
+                container.querySelector<HTMLButtonElement>(`.lmx-checkin-switcher button[data-day='${selectedCheckInDay}']`)?.focus({ preventScroll: true });
             });
         });
         container.querySelectorAll<HTMLInputElement>(".lmx-answer-input").forEach(input => {
@@ -2405,6 +2427,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             });
         });
         container.querySelectorAll<HTMLFormElement>("form").forEach(form => {
+            form.querySelector<HTMLButtonElement>("[data-checkin-reset]")?.addEventListener("click", () => resetCheckIn(form));
             const noteInput = form.querySelector<HTMLTextAreaElement>("textarea[data-mention-input]");
             if (noteInput) wireMentionAutocomplete(noteInput, () => updateCheckInSaveState(form));
             wireDiscussionControls(form);
@@ -2447,8 +2470,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         return `<div class="lmx-checkin-switcher" aria-label="Eligible check-in days">
             ${days.map(day => {
                 const isActive = day.challengeDay === activeDay.challengeDay;
-                const status = day.existing ? "Saved" : "Due";
-                return `<button type="button" data-day="${day.challengeDay}" aria-pressed="${isActive ? "true" : "false"}">
+                const status = checkInDrafts.has(checkInDraftKey(day)) ? "In progress" : day.existing ? "Saved" : "Due";
+                return `<button type="button" data-day="${day.challengeDay}" data-draft-key="${escAttr(checkInDraftKey(day))}" data-saved="${!!day.existing}" aria-pressed="${isActive ? "true" : "false"}">
                     <strong>${esc(checkInDayLabel(day))}</strong>
                     <span>${esc(formatShortDateLabel(day.date))}</span>
                     <em>${status}</em>
@@ -2483,6 +2506,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
 
     function checkInCardHtml(day: EligibleDay, activeDiscussion: ParticipantNote[]): string {
         const existing: Partial<CheckInDraft> = day.existing || {};
+        const draft = checkInDrafts.get(checkInDraftKey(day));
         const saved = savedDays.has(day.challengeDay);
         const practice = day.countsForScore === false;
         const hasExisting = !!day.existing;
@@ -2495,7 +2519,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const questions = QUESTIONS.map(q => {
             const savedValue = existing[q.key];
             const originalValue = typeof savedValue === "number" ? clampHabitValue(savedValue) : null;
-            const current = typeof savedValue === "number" ? clampHabitValue(savedValue) : null;
+            const current = draft ? draft[q.key] : originalValue;
             const evidence = lifetimeHabitEvidence(q.key);
             const answerName = `lmx-answer-${day.challengeDay}-${q.key}`;
             const answers = ANSWERS.map(answer => `<label class="lmx-answer-option" data-answer="${answer.tone}">
@@ -2517,13 +2541,14 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             .map(q => `data-original-${q.key}="${typeof existing[q.key] === "number" ? existing[q.key] : ""}"`)
             .join(" ");
 
-        return `<form class="lmx-checkin-card" data-day="${day.challengeDay}" data-saved="${hasExisting ? "true" : "false"}" ${originalAttrs} data-original-note="${escAttr(note)}">
+        return `<form class="lmx-checkin-card" data-day="${day.challengeDay}" data-draft-key="${escAttr(checkInDraftKey(day))}" data-saved="${hasExisting ? "true" : "false"}" ${originalAttrs} data-original-note="${escAttr(note)}">
             <h3><span data-check-in-day-label>${esc(checkInDayLabel(day))}</span> <span class="lmx-phase">${practice ? `Practice check-in - ${esc(formatCheckInDate(day.date))}` : esc(formatCheckInDate(day.date))}</span></h3>
             ${practice ? `<div class="lmx-practice-note"><strong>Practice check-in.</strong><span>Counts for checked-in days and streak, not points.</span></div>` : ""}
+            <div class="lmx-checkin-entry">
             ${questions}
             <div class="lmx-field lmx-mention-field">
                 <label for="lmx-note-${day.challengeDay}">Remarks</label>
-                <textarea id="lmx-note-${day.challengeDay}" maxlength="240" placeholder="Visible publicly" data-mention-input role="combobox" aria-autocomplete="list" aria-haspopup="listbox" aria-expanded="false" aria-controls="lmx-mentions-${day.challengeDay}">${esc(note)}</textarea>
+                <textarea id="lmx-note-${day.challengeDay}" maxlength="240" placeholder="Visible publicly" data-mention-input role="combobox" aria-autocomplete="list" aria-haspopup="listbox" aria-expanded="false" aria-controls="lmx-mentions-${day.challengeDay}">${esc(draft ? draft.note : note)}</textarea>
                 <div id="lmx-mentions-${day.challengeDay}" class="lmx-mention-options" role="listbox" aria-label="Mention a participant" hidden></div>
             </div>
             <div class="lmx-field lmx-note-photo-field" data-photo-slots="${photoSlotsLeft}">
@@ -2538,12 +2563,17 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                     <span class="lmx-photo-count" data-photo-count>${photoSlotsLeft <= 0 ? "Photo limit reached" : `${photoSlotsLeft} slots left`}</span>
                 </div>
                 <div class="lmx-note-photo-grid pending" data-photo-previews></div>
+                <div class="lmx-photo-feedback" data-photo-feedback role="status" aria-live="polite"></div>
             </div>
-            <button class="lmx-button" type="submit" disabled>
-                <i class="fas fa-check" aria-hidden="true"></i>
-                Save
-            </button>
-            <div class="lmx-status${saved || day.existing ? " success" : ""}">${saved || day.existing ? SAVED_CHECKIN_TEXT : ""}</div>
+            <div class="lmx-checkin-actions">
+                <div class="lmx-checkin-save-row">
+                    <div class="lmx-checkin-progress" role="status" aria-live="polite" aria-atomic="true"><strong>${esc(checkInDayLabel(day))}</strong><span data-checkin-progress></span></div>
+                    <button class="lmx-button secondary lmx-checkin-reset" type="button" data-checkin-reset aria-label="Reset this check-in" title="Reset this check-in" hidden><i class="fas fa-rotate-left" aria-hidden="true"></i></button>
+                    <button class="lmx-button" type="submit" disabled><i class="fas fa-check" aria-hidden="true"></i>Save</button>
+                </div>
+                <div class="lmx-status${saved || day.existing ? " success" : ""}" data-checkin-status role="status" aria-live="polite">${saved || day.existing ? SAVED_CHECKIN_TEXT : ""}</div>
+            </div>
+            </div>
             ${activeDiscussionHtml(activeDiscussion)}
         </form>`;
     }
@@ -2957,8 +2987,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         return "thriving";
     }
 
-    function syncGrowthControl(question: HTMLElement, value: number): void {
-        const current = clampHabitValue(value);
+    function syncGrowthControl(question: HTMLElement, value: number | null): void {
+        const current = value === null ? null : clampHabitValue(value);
         const plant = question.querySelector<HTMLElement>(".lmx-plant");
         if (plant) {
             const key = question.dataset.key as HabitKey;
@@ -2976,7 +3006,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 originalValue,
                 key,
                 challengeDay);
-            plant.dataset.preview = String(current);
+            plant.dataset.preview = current === null ? "" : String(current);
             plant.dataset.vitality = projection.vitality.toFixed(4);
             plant.dataset.vitalityBand = vitalityBand(projection.vitality);
             plant.dataset.projectedYes = String(projection.yesCount);
@@ -3804,18 +3834,38 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
 
     function setPendingNotePhotos(form: HTMLFormElement, files: File[]): void {
         const key = checkInDayKey(form);
+        if (checkInSaving?.key === key) return;
         const slots = Number(form.querySelector<HTMLElement>(".lmx-note-photo-field")?.dataset.photoSlots || MAX_NOTE_PHOTOS);
-        const photos = files
-            .filter(file => /^image\//i.test(String(file.type || "")) || /\.(heic|heif)$/i.test(file.name || ""))
-            .slice(0, Math.max(0, slots));
+        const photos = [...getPendingNotePhotos(form)];
+        let unsupported = 0;
+        let duplicates = 0;
+        let excess = 0;
+        for (const file of files) {
+            if (!/^image\//i.test(file.type) && !/\.(heic|heif)$/i.test(file.name)) {
+                unsupported++;
+            } else if (photos.some(photo => photo.name === file.name && photo.size === file.size && photo.lastModified === file.lastModified && photo.type === file.type)) {
+                duplicates++;
+            } else if (photos.length >= slots) {
+                excess++;
+            } else {
+                photos.push(file);
+            }
+        }
 
         revokePendingNotePhotoUrls(key);
         if (photos.length) pendingNotePhotos.set(key, photos);
         else pendingNotePhotos.delete(key);
+        const feedback = form.querySelector<HTMLElement>("[data-photo-feedback]");
+        if (feedback) feedback.textContent = [
+            unsupported ? `${unsupported} unsupported ${unsupported === 1 ? "file" : "files"} skipped. Choose images.` : "",
+            duplicates ? `${duplicates} ${duplicates === 1 ? "photo" : "photos"} already selected.` : "",
+            excess ? `${MAX_NOTE_PHOTOS} photos maximum. ${excess} ${excess === 1 ? "photo" : "photos"} not added.` : ""
+        ].filter(Boolean).join(" ");
     }
 
     function removePendingNotePhoto(form: HTMLFormElement, index: number): void {
         const key = checkInDayKey(form);
+        if (checkInSaving?.key === key) return;
         const photos = getPendingNotePhotos(form).filter((_, photoIndex) => photoIndex !== index);
         revokePendingNotePhotoUrls(key);
         if (photos.length) pendingNotePhotos.set(key, photos);
@@ -3824,6 +3874,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         if (input && !photos.length) input.value = "";
         renderSelectedNotePhotoPreviews(form);
         updateCheckInSaveState(form);
+        const remainingButtons = form.querySelectorAll<HTMLButtonElement>("[data-remove-photo]");
+        (remainingButtons[Math.min(index, remainingButtons.length - 1)] || form.querySelector<HTMLButtonElement>("[data-photo-button]"))?.focus({ preventScroll: true });
     }
 
     function renderSelectedNotePhotoPreviews(form: HTMLFormElement): void {
@@ -3838,12 +3890,13 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const urls = photos.map(photo => URL.createObjectURL(photo));
         if (urls.length) pendingNotePhotoUrls.set(key, urls);
 
-        previews.innerHTML = photos.map((photo, index) => `<span class="lmx-note-photo pending-item">
-            <img src="${escAttr(urls[index])}" alt="" loading="lazy" decoding="async">
-            <button type="button" class="lmx-note-photo-remove" data-remove-photo="${index}" title="Remove photo" aria-label="Remove photo">
+        previews.innerHTML = photos.map((photo, index) => `<figure class="lmx-pending-photo">
+            <div class="lmx-note-photo pending-item"><img src="${escAttr(urls[index])}" alt="" loading="lazy" decoding="async">
+            <button type="button" class="lmx-note-photo-remove" data-remove-photo="${index}" title="Remove photo" aria-label="${escAttr(`Remove ${photo.name}`)}">
                 <i class="fas fa-xmark" aria-hidden="true"></i>
-            </button>
-        </span>`).join("");
+            </button></div>
+            <figcaption>${esc(photo.name)}</figcaption>
+        </figure>`).join("");
 
         previews.querySelectorAll<HTMLElement>("[data-remove-photo]").forEach(button => {
             button.addEventListener("click", () => removePendingNotePhoto(form, Number(button.dataset.removePhoto)));
@@ -3851,14 +3904,14 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
 
         if (count) {
             const remaining = Math.max(0, slots - photos.length);
+            const capacity = `${remaining} ${remaining === 1 ? "slot" : "slots"} left`;
             count.textContent = photos.length
-                ? `${photos.length} selected · ${remaining} slots left`
-                : (slots <= 0 ? "Photo limit reached" : `${slots} slots left`);
+                ? `${photos.length} selected · ${capacity}`
+                : (slots <= 0 ? "Photo limit reached" : capacity);
         }
     }
 
-    function clearPendingNotePhotos(challengeDay: number): void {
-        const key = String(challengeDay);
+    function clearPendingNotePhotos(key: string): void {
         revokePendingNotePhotoUrls(key);
         pendingNotePhotos.delete(key);
     }
@@ -3873,7 +3926,11 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     }
 
     function checkInDayKey(form: HTMLFormElement): string {
-        return String(Number(form?.dataset.day || 0));
+        return form.dataset.draftKey || "";
+    }
+
+    function checkInDraftKey(day: EligibleDay, participantId = participantState?.participant.id || ""): string {
+        return `${participantId}:${day.date}:${day.challengeDay}`;
     }
 
     function emptyCheckInHtml() {
@@ -4115,7 +4172,11 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     }
 
     async function submitCheckIn(form: HTMLFormElement): Promise<void> {
-        if (!accessToken) return;
+        if (!accessToken || checkInSaving) return;
+        if (!participantState?.eligibleDays.some(day => checkInDraftKey(day) === checkInDayKey(form))) {
+            renderAll();
+            return;
+        }
         const currentAccessToken = accessToken;
         if (!hasCheckInChanged(form)) return;
         const draft = collectCheckInDraft(form);
@@ -4124,9 +4185,19 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             form.querySelector<HTMLInputElement>(".lmx-question:not(:has(.lmx-answer-input:checked)) .lmx-answer-input")?.focus();
             return;
         }
-        await withButton(form.querySelector<HTMLButtonElement>("button[type='submit']"), async () => {
+        const key = checkInDayKey(form);
+        checkInSaving = { key, day: Number(form.dataset.day) };
+        checkInErrors.delete(key);
+        updateCheckInSaveState(form);
+        try {
             const quoteBucket = selectQuoteBucket(draft);
             const notePhotos = getPendingNotePhotos(form);
+            const values = JSON.stringify({ ...draft, note: draft.note.trim() });
+            let submission = checkInSubmissions.get(key);
+            if (!submission || submission.values !== values || submission.photos.length !== notePhotos.length || submission.photos.some((photo, index) => photo !== notePhotos[index])) {
+                submission = { id: window.crypto.randomUUID(), values, photos: [...notePhotos] };
+                checkInSubmissions.set(key, submission);
+            }
             const payload: CheckInPayload = {
                 accessToken: currentAccessToken,
                 challengeDay: Number(form.dataset.day),
@@ -4134,26 +4205,38 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 exercise: draft.exercise,
                 nutrition: draft.nutrition,
                 vices: draft.vices,
-                note: draft.note || null
+                note: draft.note.trim() || null,
+                submissionId: submission.id
             };
             const result = notePhotos.length
                 ? await postCheckInWithPhotos(payload, notePhotos)
                 : await postJson(`${API}/check-in`, payload);
+            if (accessToken !== currentAccessToken) return;
             savedDays.add(payload.challengeDay);
-            clearPendingNotePhotos(payload.challengeDay);
+            clearPendingNotePhotos(key);
+            checkInDrafts.delete(key);
+            checkInResetUndo.delete(key);
+            checkInSubmissions.delete(key);
+            const stillOnSubmittedDay = selectedCheckInDay === payload.challengeDay;
             acceptParticipantState(result);
             const nextMissing = getPendingCheckInDays(result)
                 .sort((a, b) => a.challengeDay - b.challengeDay)[0];
-            selectedCheckInDay = nextMissing ? nextMissing.challengeDay : payload.challengeDay;
+            if (stillOnSubmittedDay) selectedCheckInDay = nextMissing ? nextMissing.challengeDay : payload.challengeDay;
             renderAll();
-            if (quoteBucket) void showRandomCheckInQuote(quoteBucket);
-        }, "Saving...");
+            if (quoteBucket && stillOnSubmittedDay && participantActiveTab === "checkin") void showRandomCheckInQuote(quoteBucket);
+        } catch (err) {
+            if (accessToken === currentAccessToken) checkInErrors.set(key, messageOf(err));
+        } finally {
+            checkInSaving = null;
+            document.querySelectorAll<HTMLFormElement>(".lmx-checkin-card").forEach(updateCheckInSaveState);
+        }
     }
 
     async function postCheckInWithPhotos(payload: CheckInPayload, photos: File[]): Promise<ParticipantState> {
         const formData = new FormData();
         formData.append("accessToken", payload.accessToken);
         formData.append("challengeDay", String(payload.challengeDay));
+        formData.append("submissionId", payload.submissionId);
         formData.append("sleep", String(payload.sleep));
         formData.append("exercise", String(payload.exercise));
         formData.append("nutrition", String(payload.nutrition));
@@ -4174,7 +4257,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             return input ? clampHabitValue(Number(input.value)) : null;
         };
         const draft: CheckInFormDraft = {
-            note: form.querySelector<HTMLTextAreaElement>("textarea")?.value.trim() || "",
+            note: form.querySelector<HTMLTextAreaElement>("textarea")?.value || "",
             sleep: readHabit("sleep"),
             exercise: readHabit("exercise"),
             nutrition: readHabit("nutrition"),
@@ -4188,30 +4271,96 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     }
 
     function hasCheckInChanged(form: HTMLFormElement): boolean {
-        if (!form || form.dataset.saved !== "true") return true;
-
         const draft = collectCheckInDraft(form);
-        if (!isCompleteCheckInDraft(draft)) return false;
         if (getPendingNotePhotos(form).length > 0) return true;
-        if ((form.dataset.originalNote || "") !== draft.note) return true;
+        if ((form.dataset.originalNote || "") !== draft.note.trim()) return true;
 
-        return QUESTIONS.some(q => Number(form.dataset[`original${capitalize(q.key)}`]) !== draft[q.key]);
+        return QUESTIONS.some(q => originalCheckInValue(form, q.key) !== draft[q.key]);
+    }
+
+    function originalCheckInValue(form: HTMLFormElement, key: HabitKey): number | null {
+        const value = form.dataset[`original${capitalize(key)}`];
+        return value === undefined || value === "" ? null : clampHabitValue(Number(value));
+    }
+
+    function resetCheckIn(form: HTMLFormElement): void {
+        const key = checkInDayKey(form);
+        if (checkInSaving?.key === key) return;
+        const undo = checkInResetUndo.get(key);
+        let values: CheckInFormDraft;
+        if (hasCheckInChanged(form)) {
+            checkInResetUndo.set(key, { values: collectCheckInDraft(form), photos: [...getPendingNotePhotos(form)] });
+            clearPendingNotePhotos(key);
+            values = { sleep: originalCheckInValue(form, "sleep"), exercise: originalCheckInValue(form, "exercise"), nutrition: originalCheckInValue(form, "nutrition"), vices: originalCheckInValue(form, "vices"), note: form.dataset.originalNote || "" };
+        } else if (undo) {
+            values = undo.values;
+            if (undo.photos.length) pendingNotePhotos.set(key, undo.photos);
+            checkInResetUndo.delete(key);
+        } else return;
+        checkInErrors.delete(key);
+        const feedback = form.querySelector<HTMLElement>("[data-photo-feedback]");
+        if (feedback) feedback.textContent = "";
+        const note = form.querySelector<HTMLTextAreaElement>("textarea");
+        if (note) note.value = values.note;
+        for (const question of QUESTIONS) {
+            const control = form.querySelector<HTMLElement>(`.lmx-question[data-key='${question.key}']`);
+            control?.querySelectorAll<HTMLInputElement>(".lmx-answer-input").forEach(input => { input.checked = Number(input.value) === values[question.key]; });
+            if (control) syncGrowthControl(control, values[question.key]);
+        }
+        renderSelectedNotePhotoPreviews(form);
+        updateCheckInSaveState(form);
     }
 
     function updateCheckInSaveState(form: HTMLFormElement): void {
         if (!form) return;
-
+        const key = checkInDayKey(form);
+        const draft = collectCheckInDraft(form);
         const button = form.querySelector<HTMLButtonElement>("button[type='submit']");
-        const status = form.querySelector(".lmx-status");
-        const complete = isCompleteCheckInDraft(collectCheckInDraft(form));
+        const status = form.querySelector<HTMLElement>("[data-checkin-status]");
+        const complete = isCompleteCheckInDraft(draft);
         const changed = hasCheckInChanged(form);
-
-        if (button) button.disabled = !complete || !changed;
-        if (status && form.dataset.saved === "true") {
-            status.textContent = changed ? "" : SAVED_CHECKIN_TEXT;
-            status.classList.remove("error");
-            status.classList.toggle("success", !changed);
+        const savingThisDay = checkInSaving?.key === key;
+        if (changed) {
+            checkInDrafts.set(key, draft);
+            checkInResetUndo.delete(key);
+        } else checkInDrafts.delete(key);
+        form.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLButtonElement>(".lmx-checkin-entry input, .lmx-checkin-entry textarea, .lmx-checkin-entry button").forEach(control => { control.disabled = savingThisDay; });
+        const slots = Number(form.querySelector<HTMLElement>(".lmx-note-photo-field")?.dataset.photoSlots || MAX_NOTE_PHOTOS);
+        form.querySelectorAll<HTMLInputElement | HTMLButtonElement>("[data-photo-button], [data-note-photos]").forEach(control => { control.disabled = savingThisDay || getPendingNotePhotos(form).length >= slots; });
+        if (button) {
+            button.disabled = !!checkInSaving || !complete || !changed;
+            button.toggleAttribute("aria-busy", savingThisDay);
+            if (savingThisDay) button.setAttribute("aria-busy", "true");
+            button.innerHTML = savingThisDay ? `<i class="fas fa-spinner fa-spin" aria-hidden="true"></i>Saving…` : `<i class="fas fa-check" aria-hidden="true"></i>${checkInErrors.has(key) ? "Retry" : "Save"}`;
         }
+        const reset = form.querySelector<HTMLButtonElement>("[data-checkin-reset]");
+        if (reset) {
+            const canUndo = !changed && checkInResetUndo.has(key);
+            reset.hidden = !changed && !canUndo;
+            reset.title = canUndo ? "Undo reset" : "Reset this check-in";
+            reset.setAttribute("aria-label", reset.title);
+            reset.innerHTML = canUndo ? "Undo" : `<i class="fas fa-rotate-left" aria-hidden="true"></i>`;
+        }
+        const progress = form.querySelector<HTMLElement>("[data-checkin-progress]");
+        if (progress) {
+            const answered = QUESTIONS.filter(q => draft[q.key] !== null).length;
+            progress.textContent = checkInSaving
+                ? savingThisDay ? "Please wait" : `Saving Day ${checkInSaving.day}…`
+                : !changed && form.dataset.saved === "true" ? "Saved"
+                : complete ? "Ready to save" : `${answered}/${QUESTIONS.length} answered`;
+        }
+        if (status) {
+            const error = checkInErrors.get(key);
+            status.textContent = error ? `Not saved. ${error}` : !changed && form.dataset.saved === "true" ? SAVED_CHECKIN_TEXT : "";
+            status.classList.toggle("error", !!error);
+            status.classList.toggle("success", !error && !changed && form.dataset.saved === "true");
+        }
+        document.querySelectorAll<HTMLButtonElement>(".lmx-checkin-switcher button").forEach(day => {
+            const label = day.querySelector("em");
+            const dirty = checkInDrafts.has(day.dataset.draftKey || "");
+            day.classList.toggle("has-draft", dirty);
+            if (label) label.textContent = checkInSaving?.key === day.dataset.draftKey ? "Saving…" : dirty ? "In progress" : day.dataset.saved === "true" ? "Saved" : "Due";
+        });
     }
 
     async function uploadProfilePicture(file: File, input: HTMLInputElement): Promise<void> {

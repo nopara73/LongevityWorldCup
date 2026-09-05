@@ -356,7 +356,7 @@ public sealed class LongevitymaxxingChallengePageTests(TestWebApplicationFactory
         Assert.Contains("const soleWorst = worst[0];", javascript);
         Assert.Contains("return worst.length === 1 && soleWorst ? soleWorst.key : \"mindset\";", javascript);
         Assert.Contains("const quoteBucket = selectQuoteBucket(draft);", javascript);
-        Assert.Contains("if (quoteBucket) void showRandomCheckInQuote(quoteBucket);", javascript);
+        Assert.Contains("if (quoteBucket && stillOnSubmittedDay && participantActiveTab === \"checkin\") void showRandomCheckInQuote(quoteBucket);", javascript);
         Assert.Contains("showCheckInQuoteDialog(quote, null, token);", javascript);
         Assert.Contains("updateCheckInQuoteDialogRank(quote, computeQuoteAthleteBestRank(athlete), token);", javascript);
         Assert.Contains("dialog.dataset.quoteToken !== token", javascript);
@@ -662,7 +662,7 @@ public sealed class LongevitymaxxingChallengePageTests(TestWebApplicationFactory
         Assert.Contains("<span class=\"lmx-mini-label\">your trend</span>", javascript);
         Assert.DoesNotContain("displayName: getIdentityDisplayName(\"edit\")", javascript);
         Assert.DoesNotContain("athleteLink: getIdentityAthletePayload(\"edit\")", javascript);
-        Assert.Contains("renderCheckIns(orderedDays, containerId, activeDiscussion);", javascript);
+        Assert.Contains("renderCheckIns(participantState?.eligibleDays || orderedDays, containerId, participantState ? activePublicDiscussion(participantState) : activeDiscussion);", javascript);
         Assert.Contains("function renderParticipantNotice", javascript);
         Assert.Contains("Did you do what you reasonably could yesterday to eat in a way you consider healthy?", javascript);
         Assert.DoesNotContain("By your own standards, did you eat healthy yesterday?", javascript);
@@ -795,7 +795,7 @@ public sealed class LongevitymaxxingChallengePageTests(TestWebApplicationFactory
         Assert.Contains("function handleAccessTabKeydown", javascript);
         Assert.DoesNotContain("Already joined or opened this page in a new browser?", javascript);
         Assert.DoesNotContain("Send participant link", javascript);
-        Assert.Contains(".lmx-checkin-card > .lmx-button", css);
+        Assert.Contains(".lmx-checkin-save-row > .lmx-button", css);
         Assert.Contains(".lmx-checkin-switcher", css);
         Assert.Contains("function pickActiveCheckInDay", javascript);
         Assert.Contains("function checkInSwitcherHtml", javascript);
@@ -904,7 +904,7 @@ public sealed class LongevitymaxxingChallengePageTests(TestWebApplicationFactory
         Assert.Contains("<label for=\"lmx-note-${day.challengeDay}\">Remarks</label>", javascript);
         Assert.Contains("<span class=\"lmx-label\">Photos</span>", javascript);
         Assert.DoesNotContain("<span>optional</span>", javascript);
-        Assert.Contains("                Save", javascript);
+        Assert.Contains("aria-hidden=\"true\"></i>Save</button>", javascript);
         Assert.DoesNotContain("Participant note <span>optional</span>", javascript);
         Assert.DoesNotContain("Note photos <span>optional</span>", javascript);
         Assert.DoesNotContain("Save day ${day.challengeDay}", javascript);
@@ -983,7 +983,7 @@ public sealed class LongevitymaxxingChallengePageTests(TestWebApplicationFactory
         Assert.Contains("border-color: var(--lmx-answer-accent);", css);
         Assert.DoesNotContain("background: rgba(var(--lmx-habit-soft), 0.12);", css);
         Assert.Contains("function isCompleteCheckInDraft", javascript);
-        Assert.Contains("button.disabled = !complete || !changed;", javascript);
+        Assert.Contains("button.disabled = !!checkInSaving || !complete || !changed;", javascript);
         Assert.DoesNotContain("type=\"range\"", javascript);
         Assert.DoesNotContain("lmx-lever", javascript);
         Assert.DoesNotContain("lmx-lever", css);
