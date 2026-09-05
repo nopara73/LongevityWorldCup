@@ -286,6 +286,8 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
 
         var newlyJoined = EnsureDbRowsForNewAthletes();
 
+        _eventDataService.SyncAcceptedResultEvents(GetAthletesSnapshot(), _serviceStartUtc);
+
         // Existing guesses predate profile-image versioning. Treat the image that is
         // public at migration time as their continuity baseline; future image changes
         // then create a clean boundary without deleting the historical guesses.
@@ -981,6 +983,8 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
             {
                 _athletes = reloadedAthletes;
                 var newlyJoined = EnsureDbRowsForNewAthletes();
+
+                _eventDataService.SyncAcceptedResultEvents(GetAthletesSnapshot(), DateTime.UtcNow);
 
                 SyncAgeGuessProfileImageIds(migrateLegacyGuesses: false);
                 ReloadCrowdStatsCore();

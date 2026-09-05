@@ -47,7 +47,7 @@ public static class SocialEventSkipPolicy
             return false;
         }
 
-        if (type is EventType.BecamePro or EventType.BiologicalAgeImproved)
+        if (type is EventType.BecamePro or EventType.BiologicalAgeImproved or EventType.TestResultAccepted)
         {
             reason = SocialEventSkipReason.UnsupportedEventType;
             return true;

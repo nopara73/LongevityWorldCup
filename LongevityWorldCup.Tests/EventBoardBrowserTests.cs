@@ -116,7 +116,7 @@ public sealed class EventBoardBrowserTests(
         page.PageError += (_, error) => errors.Add(error);
 
         await page.GotoAsync(
-            "/event-board-embed.html?athlete=majoros_gabor&rows=all&viewAll=false&linkNames=false&theme=dark",
+            "/event-board-embed.html?athlete=majoros_gabor&rows=all&viewAll=false&linkNames=false&theme=dark&embed=1",
             new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
         await page.WaitForSelectorAsync("#eventsTable tbody tr.main-row .event-message-cell");
 
@@ -165,6 +165,61 @@ public sealed class EventBoardBrowserTests(
         Assert.True(
             Math.Abs(nameTop - wordTop) < 3,
             $"Expected the sentence to continue on the athlete-name line. Diagnostics: {diagnosticsJson}");
+        Assert.Empty(errors);
+    }
+
+    [Theory]
+    [InlineData(635)]
+    [InlineData(360)]
+    public async Task AcceptedTestsAppearOnlyOnTheirAthletesProfileWithTheCorrectTestDate(int width)
+    {
+        await using var context = await Browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = App.BaseAddress.ToString(),
+            Locale = "en-US",
+            TimezoneId = "America/Los_Angeles",
+            ViewportSize = new ViewportSize { Width = width, Height = 480 }
+        });
+        var eventsBody = JsonSerializer.Serialize(new[]
+        {
+            new { Id = "accepted-latest", Type = 13, Text = "slug[majoros_gabor] date[2026-08-31]", OccurredAt = DateTime.UtcNow, Relevance = 5 },
+            new { Id = "accepted-backfill", Type = 13, Text = "slug[majoros_gabor] date[2024-01-01]", OccurredAt = DateTime.UtcNow, Relevance = 5 },
+            new { Id = "accepted-other", Type = 13, Text = "slug[nopara73] date[2026-08-31]", OccurredAt = DateTime.UtcNow, Relevance = 5 },
+            new { Id = "improvement", Type = 10, Text = "slug[majoros_gabor] clock[pheno] from[40] to[35]", OccurredAt = DateTime.UtcNow, Relevance = 9 }
+        });
+        await RouteEventBoardDependenciesAsync(context, eventsBody);
+        var page = await context.NewPageAsync();
+        var errors = new List<string>();
+        page.PageError += (_, error) => errors.Add(error);
+        page.Console += (_, message) =>
+        {
+            if (message.Type == "error" && !message.Text.StartsWith("Error fetching athletes:", StringComparison.Ordinal))
+                errors.Add(message.Text);
+        };
+
+        await page.GotoAsync("/event-board-embed.html?athlete=majoros_gabor&rows=all&viewAll=false&linkNames=false&theme=dark&embed=1");
+        var latest = page.Locator("tr[data-event-id='accepted-latest']");
+        try
+        {
+            await latest.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Visible });
+        }
+        catch (TimeoutException)
+        {
+            throw new Xunit.Sdk.XunitException(string.Join("\n", errors) + "\n" + await page.Locator("body").InnerTextAsync());
+        }
+        Assert.Contains("Majoros Gábor (#99) submitted a new test (Aug 31", (await latest.InnerTextAsync()).Replace('\u00A0', ' '));
+        Assert.Contains("submitted a new test (Jan 1, 2024)", await page.Locator("tr[data-event-id='accepted-backfill']").InnerTextAsync());
+        Assert.Equal(3, await page.Locator("tr.main-row").CountAsync());
+        Assert.Equal(0, await page.Locator("tr[data-event-id='accepted-other']").CountAsync());
+        Assert.Equal(1, await latest.Locator(".avatar-disabled").CountAsync());
+        Assert.False(await page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth > window.innerWidth"));
+
+        foreach (var url in new[] { "/events", "/" })
+        {
+            await page.GotoAsync(url);
+            await page.Locator("tr[data-event-id='improvement']").WaitForAsync();
+            Assert.Equal(0, await page.Locator("tr[data-event-id^='accepted-']").CountAsync());
+        }
         Assert.Empty(errors);
     }
 
