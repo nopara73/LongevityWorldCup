@@ -19,6 +19,9 @@
     const touchedFields = new Set<string>();
     let lastRequiredProgress = -1;
     let lastCheckInKind = "scored";
+    // These fallbacks last for this document. Cross-page attribution requires sessionStorage.
+    let sessionId: string | null = null;
+    let firstTouch: StoredFirstTouch | null = null;
 
     interface StoredFirstTouch {
         landingRoute?: unknown;
@@ -82,11 +85,12 @@
     }
 
     function getSessionId(): string {
+        if (sessionId) return sessionId;
         const existing = safe(() => sessionStorage.getItem(sessionKey));
-        if (existing) return existing;
+        if (existing) return sessionId = existing;
         const id = createSessionId();
         safe(() => sessionStorage.setItem(sessionKey, id));
-        return id;
+        return sessionId = id;
     }
 
     function route(): string {
@@ -94,12 +98,14 @@
     }
 
     function campaignValue(name: string): string {
-        const value = safe(() => new URLSearchParams(window.location.search).get(name)) || "";
+        const value = safe(() => Array.from(new URLSearchParams(window.location.search))
+            .find(([key]) => key.toLowerCase() === name)?.[1]) || "";
         return safeToken(value, 96);
     }
 
     function hasCampaignParams(): boolean {
-        return !!(campaignValue("campaign") || campaignValue("utm_source") || campaignValue("utm_medium") || campaignValue("utm_campaign"));
+        return !!(campaignValue("campaign") || campaignValue("utm_source") || campaignValue("utm_medium")
+            || campaignValue("utm_campaign") || campaignValue("utm_term") || campaignValue("utm_content"));
     }
 
     function flowFromPath(): string {
@@ -177,10 +183,13 @@
     }
 
     function getFirstTouch(): StoredFirstTouch {
+        if (firstTouch) return firstTouch;
         const existing = safe(() => sessionStorage.getItem(firstTouchKey));
         if (existing) {
             const parsed: unknown = safe(() => JSON.parse(existing));
-            if (parsed && typeof parsed === "object") return parsed as StoredFirstTouch;
+            if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+                return firstTouch = parsed as StoredFirstTouch;
+            }
         }
 
         const touch = {
@@ -195,7 +204,7 @@
             firstUtmContent: campaignValue("utm_content")
         };
         safe(() => sessionStorage.setItem(firstTouchKey, JSON.stringify(touch)));
-        return touch;
+        return firstTouch = touch;
     }
 
     function trackGoogleKeyEvent(eventName: string | null): void {
@@ -240,8 +249,7 @@
             const body = JSON.stringify(payload);
             if (navigator.sendBeacon && body.length < 60000) {
                 const blob = new Blob([body], { type: "application/json" });
-                navigator.sendBeacon(endpoint, blob);
-                return;
+                if (navigator.sendBeacon(endpoint, blob)) return;
             }
 
             originalFetch(endpoint, {
@@ -1084,6 +1092,8 @@
     };
     Reflect.set(window, "LwcSiteStats", siteStatisticsApi);
 
+    // Capture the entry URL before SPA navigation or application requests can change it.
+    safe(getFirstTouch);
     setupFetchTracking();
     setupSpaRouteTracking();
     listen(document, "DOMContentLoaded", () => {

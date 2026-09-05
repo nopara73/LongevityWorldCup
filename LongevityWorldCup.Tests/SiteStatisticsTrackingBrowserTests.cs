@@ -1,4 +1,5 @@
 using Microsoft.Playwright;
+using System.Text.Json;
 using Xunit;
 
 namespace LongevityWorldCup.Tests;
@@ -9,6 +10,45 @@ public sealed class SiteStatisticsTrackingBrowserTests(
     BrowserTestAppFixture appFixture)
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
+    [Fact]
+    public async Task Tracker_KeepsCurrentDocumentAttributionWhenStorageAndBeaconAreUnavailable()
+    {
+        await using var context = await Browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = App.BaseAddress.ToString()
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        await context.AddInitScriptAsync("""
+            Object.defineProperty(window, "sessionStorage", {
+                get() { throw new DOMException("Storage blocked", "SecurityError"); }
+            });
+            navigator.sendBeacon = () => false;
+            """);
+        var page = await context.NewPageAsync();
+        var submissionSession = new TaskCompletionSource<string?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        await page.RouteAsync("**/api/application/application", async route =>
+        {
+            submissionSession.TrySetResult(await route.Request.HeaderValueAsync("X-LWC-Stats-Session"));
+            await route.FulfillAsync(new() { Status = 200, ContentType = "application/json", Body = "{}" });
+        });
+        await page.GotoAsync("/join?utm_source=newsletter&utm_campaign=storage-fallback");
+        var recorded = page.WaitForResponseAsync(response =>
+            response.Url.EndsWith("/api/site-statistics/event", StringComparison.Ordinal) &&
+            (response.Request.PostData?.Contains("\"eventName\":\"acquisition_test\"", StringComparison.Ordinal) ?? false) &&
+            response.Ok);
+        await page.EvaluateAsync("""
+            async () => {
+                await fetch("/api/application/application", { method: "POST" });
+                window.LwcSiteStats.track("acquisition_test");
+            }
+            """);
+        var response = await recorded;
+        using var payload = JsonDocument.Parse(response.Request.PostData!);
+        Assert.Equal(await submissionSession.Task, payload.RootElement.GetProperty("sessionId").GetString());
+        Assert.Equal("storage-fallback", payload.RootElement.GetProperty("firstCampaign").GetString());
+        Assert.Equal("newsletter", payload.RootElement.GetProperty("firstUtmSource").GetString());
+    }
+
     [Fact]
     public async Task Tracker_ForwardsOnlyConfirmedBusinessConversionsToGoogleAnalyticsOnce()
     {

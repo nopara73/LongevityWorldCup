@@ -846,7 +846,7 @@ public sealed class SiteStatisticsService : IHostedService
                     END,
                     FirstReferrerDomain = CASE
                         WHEN @hasExplicitFirstTouch = 1 AND lower(coalesce(SiteStatisticSessions.FirstSource, 'direct')) IN ('direct', 'internal') THEN excluded.FirstReferrerDomain
-                        WHEN excluded.FirstSeenAtUtc < SiteStatisticSessions.FirstSeenAtUtc OR SiteStatisticSessions.FirstReferrerDomain IS NULL THEN COALESCE(excluded.FirstReferrerDomain, SiteStatisticSessions.FirstReferrerDomain)
+                        WHEN excluded.FirstSeenAtUtc < SiteStatisticSessions.FirstSeenAtUtc THEN COALESCE(excluded.FirstReferrerDomain, SiteStatisticSessions.FirstReferrerDomain)
                         ELSE SiteStatisticSessions.FirstReferrerDomain
                     END,
                     FirstSource = CASE
@@ -1080,7 +1080,10 @@ public sealed class SiteStatisticsService : IHostedService
             ? rawRoute
             : request.LandingRoute!;
         var landingRoute = BuildRouteProjection(landingRouteRaw).Route ?? sanitizedRoute;
-        var firstReferrerDomain = SafeDomain(request.FirstReferrerDomain) ?? referrerDomain;
+        // An explicit browser first touch may have no referrer. The telemetry/API
+        // request's Referer is our own page and must not become the acquisition source.
+        var firstReferrerDomain = SafeDomain(request.FirstReferrerDomain)
+            ?? (string.IsNullOrWhiteSpace(request.FirstSource) ? referrerDomain : null);
         var firstUtmSource = SafeCampaignValue(request.FirstUtmSource) ?? QueryValue(landingRouteRaw, "utm_source");
         var firstUtmMedium = SafeCampaignValue(request.FirstUtmMedium) ?? QueryValue(landingRouteRaw, "utm_medium");
         var firstUtmCampaign = SafeCampaignValue(request.FirstUtmCampaign) ?? QueryValue(landingRouteRaw, "utm_campaign");

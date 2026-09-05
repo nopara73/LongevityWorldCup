@@ -2,6 +2,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using LongevityWorldCup.Website.Business;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Playwright;
 using Xunit;
 
@@ -35,6 +36,69 @@ public sealed class SiteStatisticsDashboardBrowserTests(
         });
 
         await statistics.StartAsync(CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task Dashboard_AttributesServerConfirmedApplicationsOncePerSession()
+    {
+        var statistics = App.Services.GetRequiredService<SiteStatisticsService>();
+        foreach (var session in new[] { "server-only", "both-events", "direct-application", "failed-application" })
+        {
+            var direct = session == "direct-application";
+            await statistics.RecordClientEventAsync(new SiteStatisticsEventRequest
+            {
+                EventName = "proof_flow_opened",
+                SessionId = session,
+                Flow = "application",
+                Route = "/apply",
+                LandingRoute = "/join",
+                FirstSource = direct ? "direct" : "social",
+                FirstReferrerDomain = direct ? null : "www.reddit.com",
+                FirstCampaign = direct ? null : "outreach"
+            }, new DefaultHttpContext());
+
+            var submissionContext = new DefaultHttpContext();
+            submissionContext.Request.Headers["X-LWC-Stats-Session"] = session;
+            submissionContext.Request.Headers.Referer = "https://www.longevityworldcup.com/apply";
+            await statistics.RecordServerEventAsync(
+                session == "failed-application" ? "application_submit_failed" : "application_submit_succeeded",
+                submissionContext, flow: "application", component: "application", step: "submit");
+            if (session == "both-events")
+            {
+                await statistics.RecordClientEventAsync(new SiteStatisticsEventRequest
+                {
+                    EventName = "application_submit_succeeded", SessionId = session, Flow = "application"
+                }, new DefaultHttpContext());
+            }
+        }
+
+        await using var context = await Browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = App.BaseAddress.ToString(),
+            ViewportSize = new ViewportSize { Width = 1440, Height = 980 }
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/internal/site-statistics.html?tab=Source%20Quality");
+
+        var applications = page.Locator("#outcomeStrip .metric-tile")
+            .Filter(new() { HasText = "Applications submitted" }).Locator(".metric-value");
+        await Assertions.Expect(applications).ToHaveTextAsync("3");
+        var sourcePanel = page.Locator("#detailSections .detail-panel")
+            .Filter(new() { Has = page.GetByRole(AriaRole.Heading, new() { Name = "Acquisition quality", Exact = true }) });
+        var social = sourcePanel.Locator("tbody tr").Filter(new() { HasText = "social" });
+        await Assertions.Expect(social.Locator("td")).ToHaveTextAsync(["social", "3", "0", "2", "0", "10"]);
+        var directRow = sourcePanel.Locator("tbody tr").Filter(new() { HasText = "direct" });
+        await Assertions.Expect(directRow.Locator("td")).ToHaveTextAsync(["direct", "1", "0", "1", "0", "5"]);
+
+        var referrers = page.Locator("#detailSections .detail-panel")
+            .Filter(new() { Has = page.GetByRole(AriaRole.Heading, new() { Name = "First referrers", Exact = true }) });
+        await Assertions.Expect(referrers.Locator("tbody tr").Filter(new() { HasText = "www.reddit.com" }).Locator("td"))
+            .ToHaveTextAsync(["www.reddit.com", "3", "2"]);
+        var campaigns = page.Locator("#detailSections .detail-panel")
+            .Filter(new() { Has = page.GetByRole(AriaRole.Heading, new() { Name = "Campaigns", Exact = true }) });
+        await Assertions.Expect(campaigns.Locator("tbody tr").Filter(new() { HasText = "outreach" }).Locator("td"))
+            .ToHaveTextAsync(["outreach", "3", "social", "0", "2"]);
     }
 
     [Fact]

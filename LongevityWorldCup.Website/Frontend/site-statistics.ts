@@ -1473,7 +1473,9 @@
                 ? uniqueSessions(friction)
                 : label === "Error rate"
                     ? percent(uniqueSessions(friction), uniqueSessions(events))
-                    : tileEvents.length;
+                    : label === "Applications submitted"
+                        ? uniqueSessions(tileEvents)
+                        : tileEvents.length;
             const footer = label === "Friction"
                 ? `${friction.length} events`
                 : label === "Error rate"
@@ -1645,7 +1647,7 @@
                 detailPanel("Acquisition quality", sourceQualityTable(events)),
                 detailPanel("Campaigns", campaignTable(events)),
                 detailPanel("Device split", splitTable(events, e => e.deviceClass || "unknown")),
-                detailPanel("First referrers", splitTable(events, e => e.firstReferrerDomain || e.referrerDomain || acquisitionSource(e)))
+                detailPanel("First referrers", referrerQualityTable(events))
             ].join("");
             return;
         }
@@ -2440,6 +2442,15 @@
         return table(["Source", "Sessions", "Results", "Apps", "Challenge", "Quality"], rows.slice(0, 12));
     }
 
+    function referrerQualityTable(events: DashboardEvent[]): string {
+        const rows = Array.from(groupBy(events, firstReferrer).entries()).map(([referrer, items]) => [
+            referrer,
+            uniqueSessions(items),
+            uniqueSessionsFor(items, ["application_submit_succeeded"])
+        ] as [string, number, number]).sort((a, b) => b[2] - a[2] || b[1] - a[1]);
+        return table(["Referrer", "Sessions", "Apps"], rows.slice(0, 12));
+    }
+
     function campaignTable(events: DashboardEvent[]): string {
         const rows: [string, number, string, number, number][] = Array.from(groupBy(events, campaignLabel).entries())
             .filter(([campaign]) => campaign !== "none")
@@ -2509,7 +2520,9 @@
             source: effectiveSource(event.source, referrerDomain),
             landingRoute: event.landingRoute || "",
             firstReferrerDomain: event.firstReferrerDomain || "",
-            firstSource: effectiveSource(event.firstSource || event.source, event.firstReferrerDomain || referrerDomain),
+            firstSource: event.firstSource
+                ? effectiveSource(event.firstSource, event.firstReferrerDomain)
+                : effectiveSource(event.source, referrerDomain),
             firstCampaign: event.firstCampaign || "",
             firstUtmSource: event.firstUtmSource || "",
             firstUtmMedium: event.firstUtmMedium || "",
@@ -2633,6 +2646,12 @@
 
     function acquisitionSource(event: DashboardEvent): string {
         return event.firstSource || event.source || "direct";
+    }
+
+    function firstReferrer(event: DashboardEvent): string {
+        return event.firstReferrerDomain || (event.landingRoute
+            ? acquisitionSource(event)
+            : event.referrerDomain || acquisitionSource(event));
     }
 
     function campaignLabel(event: DashboardEvent): string {
