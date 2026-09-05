@@ -775,7 +775,7 @@ html.play-panel-transitioning .play-hub-panel--entering {
         display: block;
         min-height: 44px;
         padding: 0.6rem 0.7rem;
-        border-radius: 6px;
+        border-radius: var(--lwc-radius-sm);
         box-sizing: border-box;
         color: var(--lwc-ink, #2d3748);
         cursor: pointer;
@@ -796,9 +796,7 @@ html.play-panel-transitioning .play-hub-panel--entering {
 
         .autocomplete-items div strong {
             display: inline;
-            padding: 0 0.12rem;
-            border-radius: 4px;
-            background: var(--lwc-accent-soft, rgba(0, 188, 212, 0.16));
+            font-weight: 700;
             color: var(--lwc-accent-hover, #0f5965);
         }
 

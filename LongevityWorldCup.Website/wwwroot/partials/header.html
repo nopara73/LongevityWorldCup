@@ -1033,13 +1033,13 @@
         --play-flow-action-hover-color: #17612d;
     }
 
-    body.play-flow-route .option-button.green {
+    body.play-flow-route .option-button.green:not(:disabled):not([aria-disabled="true"]) {
         border-color: transparent;
         background: var(--play-flow-action-color);
         color: #ffffff;
     }
 
-    body.play-flow-route .option-button.green:hover {
+    body.play-flow-route .option-button.green:not(:disabled):not([aria-disabled="true"]):hover {
         background: var(--play-flow-action-hover-color);
     }
 
