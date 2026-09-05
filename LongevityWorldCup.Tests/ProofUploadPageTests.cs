@@ -140,7 +140,7 @@ public sealed class ProofUploadPageTests(TestWebApplicationFactory sharedFactory
         Assert.Contains("if (proofPics.length > proofCountBeforeFile)", processingBody);
         Assert.Contains("review.render();", processingBody);
         Assert.Contains("checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);", processingBody);
-        Assert.Contains("nextButton.disabled = true;", processingBody);
+        Assert.Contains("proofProcessingButtons.has(nextButton)", javascript);
         Assert.Contains("if (failedFiles > 0)", javascript);
         Assert.Contains("window.customAlert('Some proof files could not be processed. Please try them again as images or PDFs.')", javascript);
         Assert.Contains(".then(() => focusProofRetryButton(retryButton));", javascript);

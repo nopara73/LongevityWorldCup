@@ -40,6 +40,26 @@ public sealed class LeaderboardSelectionBrowserTests(PlaywrightBrowserFixture br
     }
 
     [Fact]
+    public async Task TrackChips_UseTheSameProAndAmateurLabelsAsTheSelectedFilters()
+    {
+        await using var context = await NewContextAsync(Browser, App, new());
+        var page = await context.NewPageAsync();
+        foreach (var (filter, label) in new[] { ("professional", "Pro"), ("amateur", "Amateur") })
+        {
+            await page.GotoAsync($"/leaderboard?filters={filter}");
+            var chip = page.GetByRole(AriaRole.Button, new() { Name = $"Remove {label} filter", Exact = true });
+            await chip.WaitForAsync();
+            Assert.Equal(1, await page.Locator(".leaderboard-selection-chip").CountAsync());
+            var selectedTrack = page.Locator("input[name=leagueTrack]:checked");
+            Assert.Equal(filter, (await selectedTrack.InputValueAsync()).ToLowerInvariant());
+            Assert.Contains(label, await page.Locator("#rankingExplanation").InnerTextAsync());
+            await chip.ClickAsync();
+            await Assertions.Expect(page.Locator(".leaderboard-selection-chip")).ToHaveCountAsync(0);
+            Assert.Equal("/leaderboard", new Uri(page.Url).PathAndQuery);
+        }
+    }
+
+    [Fact]
     public async Task EmptySearch_CanBeRemovedWithoutLosingTheSelectedLeague()
     {
         await using var context = await NewContextAsync(Browser, App, new());

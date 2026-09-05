@@ -6420,7 +6420,7 @@
         for (const name of ['leagueTrack', 'division', 'generation', 'exclusiveLeague', 'flag']) {
             if (name === 'leagueTrack' && state.leagueTracks.length !== 1) continue;
             document.querySelectorAll(`input[name="${name}"]:checked`).forEach(input => {
-                const label = name === 'leagueTrack' ? (input.value === 'pro' ? 'Pro' : 'Amateur') : input.value;
+                const label = name === 'leagueTrack' ? getLeagueTrackLabel(input.value) : input.value;
                 choices.push({ label, remove: () => { input.checked = false; } });
             });
         }
@@ -6513,6 +6513,10 @@
                 .map(checkbox => checkbox.value),
             view: viewRadio ? viewRadio.value.toLowerCase() : 'ultimate'
         };
+    }
+
+    function getLeagueTrackLabel(track) {
+        return track === 'Professional' ? 'Pro' : track;
     }
 
     window.getFullLeaderboardUrlWithCurrentState = function () {
@@ -7061,7 +7065,7 @@
         }
 
         if (state.leagueTracks.length === 1) {
-            const trackLabel = state.leagueTracks[0] === 'Professional' ? 'Pro' : state.leagueTracks[0];
+            const trackLabel = getLeagueTrackLabel(state.leagueTracks[0]);
             const leagueLabel = `${trackLabel} League`;
             return { railText: leagueLabel, compactRailText: trackLabel === 'Pro' ? 'PRO' : 'AM', documentTitle: leagueLabel, accessibleLabel: leagueLabel };
         }
@@ -7495,11 +7499,12 @@
         const professionalCount = athletes.filter(a => isPro(a)).length;
 
         const tracks = [
-            { value: 'Professional', label: 'Pro', count: professionalCount },
-            { value: 'Amateur', label: 'Amateur', count: amateurCount }
+            { value: 'Professional', count: professionalCount },
+            { value: 'Amateur', count: amateurCount }
         ];
 
-        tracks.forEach(({ value, label, count }) => {
+        tracks.forEach(({ value, count }) => {
+            const label = getLeagueTrackLabel(value);
             const icon = window.TryGetLeagueTrackFaIcon ? window.TryGetLeagueTrackFaIcon(value) : '';
             const li = document.createElement('li');
             li.innerHTML = `

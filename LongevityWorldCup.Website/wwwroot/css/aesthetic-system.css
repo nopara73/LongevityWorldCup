@@ -675,6 +675,10 @@ body.proof-review-open { overflow: hidden; }
     .proof-review-navigation { display: grid; grid-template-columns: 1fr auto 1fr; gap: var(--lwc-space-2); padding-bottom: max(var(--lwc-space-3), env(safe-area-inset-bottom)); }
     .proof-review-zoom { grid-column: 1 / -1; margin-left: 0 !important; }
 }
+@media (max-width: 360px) {
+    .proof-page-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .proof-page-preview img { height: 128px; }
+}
 
 body .bioage-rank-error,
 body .events-recovery,

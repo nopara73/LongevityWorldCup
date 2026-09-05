@@ -1,6 +1,7 @@
 interface ProofUploadSetupOptions {
     cameraButton?: HTMLButtonElement | null;
     cameraInput?: HTMLInputElement | null;
+    isActive?: () => boolean;
 }
 
 interface ProofFileRejectedTrackOptions {
@@ -249,6 +250,7 @@ function trackProofFileRejected(
 
 const proofReviews = new WeakMap<HTMLElement, ProofReview>();
 const proofProcessingButtons = new WeakSet<HTMLButtonElement>();
+const proofStepIsActive = new WeakMap<HTMLButtonElement, () => boolean>();
 const maxProofImages = 37;
 
 class ProofReview {
@@ -471,6 +473,8 @@ window.setupProofUploadHTML = function (
     biomarkers: readonly string[],
     options?: ProofUploadSetupOptions
 ): void {
+    if (options?.isActive) proofStepIsActive.set(nextButton, options.isActive);
+    if (proofStepIsActive.get(nextButton)?.() === false) return;
     nextButton.disabled = true;
     const cameraButton = options && options.cameraButton;
     const cameraInput = options && options.cameraInput;
@@ -554,7 +558,7 @@ window.setupProofUploadHTML = function (
         proofPicInput.disabled = true;
         if (cameraButton) cameraButton.disabled = true;
         if (cameraInput) cameraInput.disabled = true;
-        nextButton.disabled = true;
+        checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
         review.setProgress({ label: 'Preparing proof files…', completed: 0, total: supportedFiles.length });
         try {
             // Helper to read a File or encoded canvas Blob as a data URL.
@@ -738,7 +742,6 @@ window.setupProofUploadHTML = function (
                         }
                         review.render();
                         checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
-                        nextButton.disabled = true;
                         continue;
                     }
 
@@ -759,7 +762,6 @@ window.setupProofUploadHTML = function (
                         if (addProofImage(dataUrl)) {
                             review.render();
                             checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
-                            nextButton.disabled = true;
                         }
                     } else {
                         failedFiles++;
@@ -771,7 +773,6 @@ window.setupProofUploadHTML = function (
                     if (proofPics.length > proofCountBeforeFile) {
                         review.render();
                         checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
-                        nextButton.disabled = true;
                     }
                 }
             }
@@ -887,6 +888,8 @@ function checkProofImages(
     cameraButton: HTMLButtonElement | null | undefined,
     _biomarkerChecklistContainer: HTMLElement | null
 ): void {
+    // Onboarding reuses Next across steps; background file work only owns it on the proof step.
+    if (proofStepIsActive.get(nextButton)?.() === false) return;
     const hasProofs = proofPics.length > 0;
     document.body?.classList.toggle('proof-upload-has-proofs', hasProofs);
     nextButton.disabled = !hasProofs || proofProcessingButtons.has(nextButton);

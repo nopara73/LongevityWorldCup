@@ -15,10 +15,14 @@ public sealed class ProofReviewBrowserTests(PlaywrightBrowserFixture browserFixt
     [InlineData(true)]
     public async Task RemovalAndUndo_PreserveTheSubmittedPagesAndTheirOrder(bool onboarding)
     {
-        await using var context = await NewContextAsync(Browser, App, new());
+        await using var context = await NewContextAsync(Browser, App, new() { ViewportSize = new() { Width = 320, Height = 844 } });
         var page = await PrepareAsync(context, onboarding);
         await UploadAsync(page, await CreatePagesAsync(3));
         var original = await ReadSourcesAsync(page);
+        var firstCard = (await page.Locator(".proof-page-card").First.BoundingBoxAsync())!;
+        var secondCard = (await page.Locator(".proof-page-card").Nth(1).BoundingBoxAsync())!;
+        Assert.InRange(Math.Abs(firstCard.Y - secondCard.Y), 0, 1);
+        Assert.True(secondCard.X >= firstCard.X + firstCard.Width);
         await page.Locator(".proof-page-remove").Nth(1).ClickAsync();
         await page.Locator(".proof-page-remove").First.ClickAsync();
         Assert.Equal(original.Skip(2), await ReadSourcesAsync(page));
@@ -130,6 +134,42 @@ public sealed class ProofReviewBrowserTests(PlaywrightBrowserFixture browserFixt
         Assert.Equal(2, (await ReadSourcesAsync(page)).Length);
         Assert.True(await page.Locator("#submitButton").IsEnabledAsync());
         Assert.Equal(0, await page.Locator(".proof-preparation").CountAsync());
+    }
+
+    [Fact]
+    public async Task LeavingTheProofStepDuringPreparation_PreservesTheOtherStepsValidation()
+    {
+        await using var context = await NewContextAsync(Browser, App, new() { ReducedMotion = ReducedMotion.Reduce });
+        var page = await PrepareAsync(context, true);
+        await page.EvaluateAsync("""
+            () => {
+                const optimize = window.optimizeImageClient;
+                window.optimizeImageClient = async (...args) => {
+                    await new Promise(resolve => window.__releaseProofPreparation = resolve);
+                    return optimize(...args);
+                };
+            }
+            """);
+        await page.Locator("#proofPicInput").SetInputFilesAsync((await CreatePagesAsync(1))[0]);
+        await page.WaitForFunctionAsync("() => typeof window.__releaseProofPreparation === 'function'");
+        foreach (var heading in new[] { "4/a. Almost there", "3. The price of glory", "2. Finding your why" })
+        {
+            await page.Locator("#backButton").ClickAsync();
+            await page.GetByRole(AriaRole.Heading, new() { Name = heading, Exact = true }).WaitForAsync();
+        }
+        await page.Locator("#why").FillAsync("");
+        Assert.True(await page.Locator("#nextButton").IsDisabledAsync());
+        await page.EvaluateAsync("window.__releaseProofPreparation()");
+        await page.WaitForFunctionAsync("() => !document.querySelector('#proofPicInput').disabled");
+        Assert.True(await page.Locator("#nextButton").IsDisabledAsync());
+        await page.Locator("#why").FillAsync("To live a longer and healthier life with the people I love.");
+        foreach (var heading in new[] { "3. The price of glory", "4/a. Almost there", "4/b. Don't trust, verify" })
+        {
+            await page.Locator("#nextButton").ClickAsync();
+            await page.GetByRole(AriaRole.Heading, new() { Name = heading, Exact = true }).WaitForAsync();
+        }
+        Assert.Equal(2, await page.Locator(".proof-page-preview").CountAsync());
+        Assert.True(await page.Locator("#nextButton").IsEnabledAsync());
     }
 
     [Fact]
