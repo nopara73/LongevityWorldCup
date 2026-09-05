@@ -29,7 +29,7 @@ public static class XMessageBuilder
 
         var eventBasis = SocialPostPolicy.DetermineSampleBasisForEvent(type, rawText);
         var eventLeagueScope = SocialPostPolicy.DetermineLeagueScopeForEvent(type, rawText);
-        var eventPhase = GetPhase(sampleForBasis, eventBasis, getFieldSizeForLeague, eventLeagueScope);
+        var eventPhase = SocialPostPolicy.GetPhase(sampleForBasis, eventBasis, getFieldSizeForLeague, eventLeagueScope);
         if (ShouldSuppressEvent(type, rawText, eventPhase))
             return "";
 
@@ -227,8 +227,8 @@ public static class XMessageBuilder
         var fillerBasis = SocialPostPolicy.DetermineSampleBasisForFiller(fillerType, payloadText ?? "");
         var fillerLeagueScope = SocialPostPolicy.DetermineLeagueScopeForFiller(fillerType, payloadText ?? "");
         var fillerPhase = fillerType == FillerType.Top3Leaderboard
-            ? GetTop3LeaderboardPhase(payloadText ?? "", sampleForBasis, getFieldSizeForLeague, getBortzFieldSizeForLeague)
-            : GetPhase(sampleForBasis, fillerBasis, getFieldSizeForLeague, fillerLeagueScope);
+            ? SocialPostPolicy.GetTop3LeaderboardPhase(payloadText ?? "", sampleForBasis, getFieldSizeForLeague, getBortzFieldSizeForLeague)
+            : SocialPostPolicy.GetPhase(sampleForBasis, fillerBasis, getFieldSizeForLeague, fillerLeagueScope);
         if (ShouldSuppressFiller(fillerType, fillerPhase))
             return "";
 
@@ -366,63 +366,6 @@ public static class XMessageBuilder
             54321 => $"{countLabel} athletes are now on the leaderboard, countdown complete and somehow upward.",
             _ => $"{countLabel} athletes are now on the leaderboard."
         };
-    }
-
-    private static XPostPhase? GetPhase(
-        Func<XPostSampleBasis, XPostSampleSize>? sampleForBasis,
-        XPostSampleBasis? basis,
-        Func<string, int?>? getFieldSizeForLeague,
-        string? leagueScope)
-    {
-        XPostPhase? basisPhase = null;
-        if (basis.HasValue && sampleForBasis is not null)
-        {
-            var sample = sampleForBasis(basis.Value);
-            basisPhase = XPostPhaseDecider.Determine(sample);
-        }
-
-        XPostPhase? scopePhase = null;
-        if (!string.IsNullOrWhiteSpace(leagueScope) && getFieldSizeForLeague is not null)
-        {
-            var fieldSize = getFieldSizeForLeague(leagueScope);
-            if (fieldSize.HasValue)
-            {
-                var scopedSample = new XPostSampleSize(
-                    Basis: basis ?? XPostSampleBasis.Combined,
-                    N: fieldSize.Value,
-                    PhenoCount: 0,
-                    BortzCount: 0,
-                    CombinedCount: fieldSize.Value);
-                scopePhase = XPostPhaseDecider.Determine(scopedSample);
-            }
-        }
-
-        if (basisPhase.HasValue && scopePhase.HasValue)
-            return XPostPhaseDecider.Min(basisPhase.Value, scopePhase.Value);
-
-        return basisPhase ?? scopePhase;
-    }
-
-    private static XPostPhase? GetTop3LeaderboardPhase(
-        string payloadText,
-        Func<XPostSampleBasis, XPostSampleSize>? sampleForBasis,
-        Func<string, int?>? getFieldSizeForLeague,
-        Func<string, int?>? getBortzFieldSizeForLeague)
-    {
-        if (!EventHelpers.TryExtractLeague(payloadText, out var leagueSlug) || string.IsNullOrWhiteSpace(leagueSlug))
-            return null;
-
-        var normalizedLeague = leagueSlug.Trim();
-        if (string.Equals(normalizedLeague, "amateur", StringComparison.OrdinalIgnoreCase))
-            return GetPhase(sampleForBasis, XPostSampleBasis.PhenoAge, getFieldSizeForLeague, normalizedLeague);
-
-        var totalPhase = GetPhase(null, null, getFieldSizeForLeague, normalizedLeague);
-        var bortzPhase = GetPhase(null, null, getBortzFieldSizeForLeague, normalizedLeague);
-
-        if (totalPhase.HasValue && bortzPhase.HasValue)
-            return XPostPhaseDecider.Min(totalPhase.Value, bortzPhase.Value);
-
-        return bortzPhase ?? totalPhase;
     }
 
     private static bool ShouldSuppressEvent(EventType type, string rawText, XPostPhase? phase)
