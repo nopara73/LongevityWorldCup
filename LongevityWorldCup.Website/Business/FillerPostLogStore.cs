@@ -87,4 +87,46 @@ internal static class FillerPostLogStore
             return false;
         return string.Equals(last, token, StringComparison.Ordinal);
     }
+
+    internal static IReadOnlyList<(FillerType Type, string PayloadText)> GetSuggestedFillersOrdered(
+        DatabaseManager db,
+        string tableName,
+        Func<FillerType, string, string, bool> tokenBelongsToOption)
+    {
+        var options = FillerPostOptions.Create();
+
+        var lastByOption = db.Run(sqlite =>
+        {
+            var rows = new List<(FillerType Type, string Text, DateTime PostedAtUtc)>();
+            using var cmd = sqlite.CreateCommand();
+            cmd.CommandText = $"SELECT Type, Text, PostedAtUtc FROM {tableName}";
+            using var r = cmd.ExecuteReader();
+            while (r.Read())
+            {
+                var typeInt = r.GetInt32(0);
+                var text = r.IsDBNull(1) ? "" : r.GetString(1);
+                var type = Enum.IsDefined(typeof(FillerType), typeInt) ? (FillerType)typeInt : (FillerType)(-1);
+                if (type < 0) continue;
+                if (DateTime.TryParse(r.GetString(2), null, System.Globalization.DateTimeStyles.RoundtripKind, out var dt))
+                    rows.Add((type, text, dt));
+            }
+            return rows;
+        });
+
+        var dict = new Dictionary<(FillerType, string), DateTime>();
+        foreach (var (type, payloadText) in options)
+        {
+            var last = lastByOption
+                .Where(x => x.Type == type && tokenBelongsToOption(type, payloadText, x.Text))
+                .Select(x => x.PostedAtUtc)
+                .DefaultIfEmpty(DateTime.MinValue)
+                .Max();
+            dict[(type, payloadText)] = last;
+        }
+
+        return options
+            .OrderBy(x => dict.TryGetValue((x.Type, x.Text), out var t) ? t : DateTime.MinValue)
+            .Select(x => (x.Type, x.Text))
+            .ToList();
+    }
 }
