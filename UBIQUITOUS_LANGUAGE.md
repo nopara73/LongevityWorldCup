@@ -10,6 +10,7 @@
 - **Pheno Age**, **Bortz Age**, and **Crowd Age** are distinct clocks/views.
 - **Biological Age Difference** is biological age minus chronological age; lower is better. **Age Reduction** is the favorable public label.
 - Biological age differences use unrounded biological and chronological ages; rounding is presentation-only.
+- Albumin has a ceiling of 54 g/L in both pheno age and bortz age calculations, including domain contributions. Apply the ceiling after converting to g/L; preserve the original laboratory value in stored and displayed results. Values above the ceiling provide no further score or ranking benefit.
 - **Effective Age Reduction** is the Ultimate League score: Bortz for Pro, otherwise pheno.
 - **Crowd Count** is accepted realistic guesses behind Crowd Age.
 - Each Crowd Age guess belongs to the exact published profile-picture content identified by `ProfileImageId`; Crowd Age and Crowd Count use only guesses for the athlete's current image.
