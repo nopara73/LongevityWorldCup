@@ -98,42 +98,55 @@ namespace LongevityWorldCup.Website.Middleware
                 if (File.Exists(filePath))
                 {
                     // Read the main HTML file
-                    var bodyContent = await File.ReadAllTextAsync(filePath);
+                    var bodyContent = await File.ReadAllTextAsync(filePath, context.RequestAborted);
                     var usesSharedHead = bodyContent.Contains("<!--HEAD-->", StringComparison.Ordinal);
                     var optsIntoSharedAestheticSystem = bodyContent.Contains("<!--AESTHETIC-SYSTEM-->", StringComparison.Ordinal);
                     var containsLeaderboardContent = bodyContent.Contains("<!--LEADERBOARD-CONTENT-->", StringComparison.Ordinal);
 
-                    // Read the header and footer files
-                    var head = await File.ReadAllTextAsync(Path.Combine(_webRootPath, "partials", "head.html"));
-                    var header = await File.ReadAllTextAsync(Path.Combine(_webRootPath, "partials", "header.html"));
-                    var footer = await File.ReadAllTextAsync(Path.Combine(_webRootPath, "partials", "footer.html"));
-                    var progressBar = await File.ReadAllTextAsync(Path.Combine(_webRootPath, "partials", "main-progress-bar.html"));
-                    var subProgressBar = await File.ReadAllTextAsync(Path.Combine(_webRootPath, "partials", "sub-progress-bar.html"));
-                    var leaderboardContent = await File.ReadAllTextAsync(Path.Combine(_webRootPath, "partials", "leaderboard-content.html"));
-                    var guessMyAge = await File.ReadAllTextAsync(Path.Combine(_webRootPath, "partials", "guess-my-age.html"));
-                    var eventBoardContent = await File.ReadAllTextAsync(Path.Combine(_webRootPath, "partials", "event-board-content.html"));
-                    var ageVisualization = await File.ReadAllTextAsync(Path.Combine(_webRootPath, "partials", "age-visualization.html"));
+                    Task<string> ReadPartialAsync(string name, bool needed) => needed
+                        ? File.ReadAllTextAsync(Path.Combine(_webRootPath, "partials", name), context.RequestAborted)
+                        : Task.FromResult(string.Empty);
+
+                    // Read only the fragments this page uses, including nested dialog content.
+                    var head = await ReadPartialAsync("head.html", usesSharedHead);
+                    var header = await ReadPartialAsync("header.html", bodyContent.Contains("<!--HEADER-->", StringComparison.Ordinal));
+                    var footer = await ReadPartialAsync("footer.html", bodyContent.Contains("<!--FOOTER-->", StringComparison.Ordinal));
+                    var progressBar = await ReadPartialAsync("main-progress-bar.html", bodyContent.Contains("<!--MAIN-PROGRESS-BAR-->", StringComparison.Ordinal));
+                    var subProgressBar = await ReadPartialAsync("sub-progress-bar.html", bodyContent.Contains("<!--SUB-PROGRESS-BAR-->", StringComparison.Ordinal));
+                    var needsAthleteDialogRuntime = !containsLeaderboardContent && ShouldInjectAthleteDialogRuntime(path);
+                    var leaderboardContent = await ReadPartialAsync("leaderboard-content.html", containsLeaderboardContent || needsAthleteDialogRuntime);
+                    var guessMyAge = await ReadPartialAsync("guess-my-age.html",
+                        bodyContent.Contains("<!--GUESS-MY-AGE-->", StringComparison.Ordinal) || leaderboardContent.Contains("<!--GUESS-MY-AGE-->", StringComparison.Ordinal));
+                    var eventBoardContent = await ReadPartialAsync("event-board-content.html", bodyContent.Contains("<!--EVENT-BOARD-CONTENT-->", StringComparison.Ordinal));
+                    var ageVisualization = await ReadPartialAsync("age-visualization.html",
+                        bodyContent.Contains("<!--AGE-VISUALIZATION-->", StringComparison.Ordinal) || leaderboardContent.Contains("<!--AGE-VISUALIZATION-->", StringComparison.Ordinal));
                     var seo = GetSeoMeta(context);
 
-                    var previewTitle = BuildPreviewTitle(seo.OgTitle);
-                    head = head
-                        .Replace("{{SEO_DESCRIPTION}}", EncodeMeta(seo.Description))
-                        .Replace("{{SEO_ROBOTS}}", EncodeMeta(seo.Robots))
-                        .Replace("{{SEO_CANONICAL_URL}}", EncodeMeta(seo.CanonicalUrl))
-                        .Replace("{{SEO_OG_TITLE}}", EncodeMeta(previewTitle))
-                        .Replace("{{SEO_OG_DESCRIPTION}}", EncodeMeta(seo.OgDescription))
-                        .Replace("{{SEO_OG_URL}}", EncodeMeta(seo.CanonicalUrl))
-                        .Replace("{{SEO_OG_IMAGE}}", EncodeMeta(seo.OgImageUrl))
-                        .Replace("{{SEO_STRUCTURED_DATA}}", BuildStructuredDataJson(seo));
-                    head = ApplyHeadAssets(head, path ?? string.Empty);
+                    if (usesSharedHead)
+                    {
+                        var previewTitle = BuildPreviewTitle(seo.OgTitle);
+                        head = head
+                            .Replace("{{SEO_DESCRIPTION}}", EncodeMeta(seo.Description))
+                            .Replace("{{SEO_ROBOTS}}", EncodeMeta(seo.Robots))
+                            .Replace("{{SEO_CANONICAL_URL}}", EncodeMeta(seo.CanonicalUrl))
+                            .Replace("{{SEO_OG_TITLE}}", EncodeMeta(previewTitle))
+                            .Replace("{{SEO_OG_DESCRIPTION}}", EncodeMeta(seo.OgDescription))
+                            .Replace("{{SEO_OG_URL}}", EncodeMeta(seo.CanonicalUrl))
+                            .Replace("{{SEO_OG_IMAGE}}", EncodeMeta(seo.OgImageUrl))
+                            .Replace("{{SEO_STRUCTURED_DATA}}", BuildStructuredDataJson(seo));
+                        head = ApplyHeadAssets(head, path ?? string.Empty);
+                    }
 
                     // Replace placeholders within leaderboardContent first (since it contains nested placeholders)
                     leaderboardContent = leaderboardContent.Replace("<!--AGE-VISUALIZATION-->", ageVisualization);
                     leaderboardContent = leaderboardContent.Replace("<!--GUESS-MY-AGE-->", guessMyAge);
-                    leaderboardContent = ApplyLeaderboardRows(leaderboardContent, context);
-                    leaderboardContent = ApplyLongevitymaxxingPromo(leaderboardContent);
+                    if (containsLeaderboardContent)
+                    {
+                        leaderboardContent = ApplyLeaderboardRows(leaderboardContent, context);
+                        leaderboardContent = ApplyLongevitymaxxingPromo(leaderboardContent);
+                    }
 
-                    if (!containsLeaderboardContent && ShouldInjectAthleteDialogRuntime(path))
+                    if (needsAthleteDialogRuntime)
                     {
                         if (TryBuildAthleteDialogRuntime(leaderboardContent, out var athleteDialogRuntime))
                         {
@@ -161,7 +174,7 @@ namespace LongevityWorldCup.Website.Middleware
                     // Replace placeholders with header and footer content
                     bodyContent = bodyContent
                         .Replace("<!--HEAD-->", head)
-                        .Replace("<!--HEADER-->", ApplySharedAssetPlaceholders(header))
+                        .Replace("<!--HEADER-->", header)
                         .Replace("<!--FOOTER-->", footer)
                         .Replace("<!--MAIN-PROGRESS-BAR-->", progressBar)
                         .Replace("<!--SUB-PROGRESS-BAR-->", subProgressBar)
@@ -169,22 +182,9 @@ namespace LongevityWorldCup.Website.Middleware
                         .Replace("<!--GUESS-MY-AGE-->", guessMyAge)
                         .Replace("<!--EVENT-BOARD-CONTENT-->", eventBoardContent)
                         .Replace("<!--AGE-VISUALIZATION-->", ageVisualization)
-                        .Replace("{{ASSET_BIOAGEFORM_CSS}}", _assetVersionProvider.AppendVersion("/css/bioageform.css"))
-                        .Replace("{{ASSET_CUSTOM_EVENT_MARKUP_JS}}", _assetVersionProvider.AppendVersion("/js/custom-event-markup.js"))
-                        .Replace("{{ASSET_PRO_DISCOUNTS_JS}}", _assetVersionProvider.AppendVersion("/js/pro-discounts.js"))
-                        .Replace("{{ASSET_LONGEVITYMAXXING_CSS}}", _assetVersionProvider.AppendVersion("/css/longevitymaxxing.css"))
-                        .Replace("{{ASSET_LONGEVITYMAXXING_JS}}", _assetVersionProvider.AppendVersion("/js/longevitymaxxing.js"))
-                        .Replace("{{ASSET_HELSTAB_KIHIVAS_CSS}}", _assetVersionProvider.AppendVersion("/css/helstab-kihivas.css"))
-                        .Replace("{{ASSET_SITE_STATISTICS_CSS}}", _assetVersionProvider.AppendVersion("/css/site-statistics.css"))
-                        .Replace("{{ASSET_SITE_STATISTICS_JS}}", _assetVersionProvider.AppendVersion("/js/site-statistics.js"))
-                        .Replace("{{ASSET_SITE_STATISTICS_TRACKING_JS}}", _assetVersionProvider.AppendVersion("/js/site-statistics-tracking.js"))
-                        .Replace("{{ASSET_CUSTOM_EVENT_IMAGE}}", _assetVersionProvider.AppendVersion("/assets/custom_event.png"))
-                        .Replace("{{ASSET_MARTIN_HELSTAB_PROFILE_IMAGE}}", _assetVersionProvider.AppendVersion("/athletes/martin_helstab/martin_helstab.webp"))
-                        .Replace("{{ASSET_POPPINS_REGULAR}}", _assetVersionProvider.AppendVersion("/assets/fonts/Poppins-Regular.ttf"))
-                        .Replace("{{ASSET_POPPINS_BOLD}}", _assetVersionProvider.AppendVersion("/assets/fonts/Poppins-Bold.ttf"))
                         .Replace("{{REQUEST_COUNTRY_CODE}}", GetRequestCountryCode(context))
                         .Replace("{{BODY_CLASS_ATTRIBUTE}}", IsHomepageRequest(context) ? " class=\"home-page\"" : string.Empty);
-                    bodyContent = ApplySharedCssPlaceholders(ApplySharedAssetPlaceholders(bodyContent));
+                    bodyContent = HtmlAssetPlaceholders.Replace(bodyContent, _assetVersionProvider.AppendVersion);
                     bodyContent = bodyContent.Replace("<!--AESTHETIC-SYSTEM-->", string.Empty, StringComparison.Ordinal);
                     bodyContent = ReplacePageTitle(bodyContent, seo.PageTitle);
                     if (usesSharedHead || optsIntoSharedAestheticSystem)
@@ -203,7 +203,7 @@ namespace LongevityWorldCup.Website.Middleware
                     {
                         context.Response.Headers["X-Robots-Tag"] = seo.Robots;
                     }
-                    await context.Response.WriteAsync(bodyContent);
+                    await context.Response.WriteAsync(bodyContent, context.RequestAborted);
 
                     // Short-circuit the pipeline
                     return;
@@ -250,28 +250,9 @@ namespace LongevityWorldCup.Website.Middleware
                         .Where(value => !string.IsNullOrEmpty(value)));
             }
 
-            return ApplySharedCssPlaceholders(ApplySharedAssetPlaceholders(html))
+            return html
                 .Replace("{{OPTIONAL_HEAD_SCRIPTS}}", optionalHeadScripts)
-                .Replace("{{MODULES_BOOTSTRAP}}", modulesBootstrap)
-                .Replace("{{ASSET_FAVICON_ICO}}", _assetVersionProvider.AppendVersion("/assets/favicon.ico"))
-                .Replace("{{ASSET_FAVICON_DARK_ICO}}", _assetVersionProvider.AppendVersion("/assets/favicon-dark.ico"))
-                .Replace("{{ASSET_FAVICON_192}}", _assetVersionProvider.AppendVersion("/assets/favicon-192x192.png"))
-                .Replace("{{ASSET_FAVICON_DARK_192}}", _assetVersionProvider.AppendVersion("/assets/favicon-dark-192x192.png"))
-                .Replace("{{ASSET_APPLE_TOUCH_ICON}}", _assetVersionProvider.AppendVersion("/assets/apple-touch-icon.png"))
-                .Replace("{{ASSET_APPLE_TOUCH_ICON_DARK}}", _assetVersionProvider.AppendVersion("/assets/apple-touch-icon-dark.png"))
-                .Replace("{{ASSET_SITE_WEBMANIFEST}}", _assetVersionProvider.AppendVersion("/assets/site.webmanifest"))
-                .Replace("{{ASSET_SITE_DARK_WEBMANIFEST}}", _assetVersionProvider.AppendVersion("/assets/site-dark.webmanifest"))
-                .Replace("{{ASSET_FONT_AWESOME_CSS}}", _assetVersionProvider.AppendVersion("/vendor/font-awesome/6.7.2/css/all.min.css"))
-                .Replace("{{ASSET_BADGES_CSS}}", _assetVersionProvider.AppendVersion("/css/badges.css"))
-                .Replace("{{ASSET_FLAG_ICONS_CSS}}", _assetVersionProvider.AppendVersion("/vendor/flag-icons/css/flag-icons.min.css"))
-                .Replace("{{ASSET_MISC_JS}}", _assetVersionProvider.AppendVersion("/js/misc.js"))
-                .Replace("{{ASSET_LEAGUE_ICONS_JS}}", _assetVersionProvider.AppendVersion("/js/leagueIcons.js"))
-                .Replace("{{ASSET_PHENO_AGE_JS}}", _assetVersionProvider.AppendVersion("/js/pheno-age.js"))
-                .Replace("{{ASSET_BORTZ_AGE_JS}}", _assetVersionProvider.AppendVersion("/js/bortz-age.js"))
-                .Replace("{{ASSET_BADGES_JS}}", _assetVersionProvider.AppendVersion("/js/badges.js"))
-                .Replace("{{ASSET_PRO_DISCOUNTS_JS}}", _assetVersionProvider.AppendVersion("/js/pro-discounts.js"))
-                .Replace("{{ASSET_PROOF_HELPERS_JS}}", _assetVersionProvider.AppendVersion("/js/proof-helpers.js"))
-                .Replace("{{ASSET_AGE_VISUALIZATION_JS}}", _assetVersionProvider.AppendVersion("/js/age-visualization.js"));
+                .Replace("{{MODULES_BOOTSTRAP}}", modulesBootstrap);
         }
 
         private static bool ShouldInjectAthleteDialogRuntime(string? path)
@@ -562,40 +543,6 @@ $@"<style{attributes}>
                 return environment.WebRootPath;
 
             return Path.Combine(environment.ContentRootPath, "wwwroot");
-        }
-
-        private string ApplySharedAssetPlaceholders(string html)
-        {
-            return html
-                .Replace("{{ASSET_FAVICON_128}}", _assetVersionProvider.AppendVersion("/assets/favicon-128x128.png"))
-                .Replace("{{ASSET_FAVICON_512}}", _assetVersionProvider.AppendVersion("/assets/favicon-512x512.png"))
-                .Replace("{{ASSET_FAVICON_DARK_512}}", _assetVersionProvider.AppendVersion("/assets/favicon-dark-512x512.png"))
-                .Replace("{{ASSET_ROBOTO_LIGHT}}", _assetVersionProvider.AppendVersion("/assets/fonts/Roboto-Light.woff2"))
-                .Replace("{{ASSET_ROBOTO_REGULAR}}", _assetVersionProvider.AppendVersion("/assets/fonts/Roboto-Regular.woff2"))
-                .Replace("{{ASSET_ROBOTO_BOLD}}", _assetVersionProvider.AppendVersion("/assets/fonts/Roboto-Bold.woff2"))
-                .Replace("{{ASSET_ORBITRON_BOLD}}", _assetVersionProvider.AppendVersion("/assets/fonts/Orbitron-Bold.woff2"))
-                .Replace("{{ASSET_MERCH_MUG}}", _assetVersionProvider.AppendVersion("/assets/content-images/merch/mug.webp"))
-                .Replace("{{ASSET_MERCH_HOODIE}}", _assetVersionProvider.AppendVersion("/assets/content-images/merch/hoodie.webp"))
-                .Replace("{{ASSET_MERCH_CAP}}", _assetVersionProvider.AppendVersion("/assets/content-images/merch/cap.webp"))
-                .Replace("{{ASSET_DONATION_QR}}", _assetVersionProvider.AppendVersion("/assets/Donation25QR.png"))
-                .Replace("{{ASSET_HD_LOGO_THUMB_SM}}", _assetVersionProvider.AppendVersion("/assets/HdLogo_thumb_sm.png"))
-                .Replace("{{ASSET_HEADSHOT_WEBP}}", _assetVersionProvider.AppendVersion("/assets/content-images/headshot.webp"))
-                .Replace("{{ASSET_HEADSHOT_JPEG}}", _assetVersionProvider.AppendVersion("/assets/content-images/headshot.jpg"))
-                .Replace("{{ASSET_PLAY_ATHLETE_PLACEHOLDER_WEBP}}", _assetVersionProvider.AppendVersion("/assets/content-images/play-athlete-placeholder.webp"))
-                .Replace("{{ASSET_PLAY_ATHLETE_PLACEHOLDER_JPEG}}", _assetVersionProvider.AppendVersion("/assets/content-images/play-athlete-placeholder.jpg"))
-                .Replace("{{ASSET_JUST_TRACK_IT_IMAGE}}", _assetVersionProvider.AppendVersion("/assets/content-images/JustTrackIt.jpg"))
-                .Replace("{{ASSET_BEAN_WAITING_WEBP}}", _assetVersionProvider.AppendVersion("/assets/content-images/bean-waiting.webp"))
-                .Replace("{{ASSET_BEAN_WAITING_PNG}}", _assetVersionProvider.AppendVersion("/assets/content-images/bean-waiting.png"))
-                .Replace("{{ASSET_TROLLFACE}}", _assetVersionProvider.AppendVersion("/assets/content-images/trollface.png"));
-        }
-
-        private string ApplySharedCssPlaceholders(string html)
-        {
-            return html
-                .Replace("{{ASSET_MOBILE_ROUGHNESS_CSS}}", _assetVersionProvider.AppendVersion("/css/mobile-roughness.css"))
-                .Replace("{{ASSET_FLOW_CONTROLS_CSS}}", _assetVersionProvider.AppendVersion("/css/flow-controls.css"))
-                .Replace("{{ASSET_PLAY_MENU_CSS}}", _assetVersionProvider.AppendVersion("/css/play-menu.css"))
-                .Replace("{{ASSET_PLAY_ATHLETE_FLOW_CSS}}", _assetVersionProvider.AppendVersion("/css/play-athlete-flow.css"));
         }
 
         private string InjectAestheticSystemStylesheet(string html)

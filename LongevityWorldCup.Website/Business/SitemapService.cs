@@ -92,17 +92,17 @@ public sealed class SitemapService(LeaderboardFactsService leaderboardFacts, IWe
     {
         var webRoot = env.WebRootPath;
         var normalizedPath = NormalizePath(path);
-        var athletesLastModifiedBySlug = GetAthleteJsonLastModifiedBySlug(webRoot);
-        var leaderboardLastModified = MaxUtc(athletesLastModifiedBySlug.Values) ?? DateTime.UtcNow.Date;
-
         var staticRoute = StaticRoutes.FirstOrDefault(route =>
             string.Equals(NormalizePath(route.Path), normalizedPath, StringComparison.OrdinalIgnoreCase));
-        if (staticRoute is not null)
+        if (staticRoute?.RelativeFilePath is { } relativeFilePath &&
+            GetFileLastModifiedUtc(webRoot, relativeFilePath) is { } pageLastModified)
         {
-            return staticRoute.RelativeFilePath is null
-                ? leaderboardLastModified
-                : GetFileLastModifiedUtc(webRoot, staticRoute.RelativeFilePath) ?? leaderboardLastModified;
+            return pageLastModified;
         }
+
+        // Athlete timestamps are only needed for dynamic routes or missing page files.
+        var athletesLastModifiedBySlug = GetAthleteJsonLastModifiedBySlug(webRoot);
+        var leaderboardLastModified = MaxUtc(athletesLastModifiedBySlug.Values) ?? DateTime.UtcNow.Date;
 
         if (PublicLeaguePaths.Contains(normalizedPath, StringComparer.OrdinalIgnoreCase) ||
             normalizedPath.StartsWith("/league/", StringComparison.OrdinalIgnoreCase) ||
