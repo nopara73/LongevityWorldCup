@@ -19,6 +19,7 @@
     const touchedFields = new Set<string>();
     let lastRequiredProgress = -1;
     let lastCheckInKind = "scored";
+    // These fallbacks last for this document. Cross-page attribution requires sessionStorage.
     let sessionId: string | null = null;
     let firstTouch: StoredFirstTouch | null = null;
 

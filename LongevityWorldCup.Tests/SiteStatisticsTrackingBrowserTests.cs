@@ -11,7 +11,7 @@ public sealed class SiteStatisticsTrackingBrowserTests(
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Fact]
-    public async Task Tracker_KeepsAttributionAndSubmissionSessionWhenStorageAndBeaconAreUnavailable()
+    public async Task Tracker_KeepsCurrentDocumentAttributionWhenStorageAndBeaconAreUnavailable()
     {
         await using var context = await Browser.NewContextAsync(new BrowserNewContextOptions
         {

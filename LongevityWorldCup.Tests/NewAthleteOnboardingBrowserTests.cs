@@ -1,5 +1,6 @@
 using Microsoft.Playwright;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.AspNetCore.Http;
 using LongevityWorldCup.Website.Business;
 using LongevityWorldCup.Website.Tools;
 using System.Globalization;
@@ -140,14 +141,18 @@ public sealed class NewAthleteOnboardingBrowserTests(
                 new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded, Referer = referrer });
             await CompleteAmateurHandoffToApplicationAsync(page, bloodDrawDate);
 
-            var submittedEvent = page.WaitForResponseAsync(response =>
-                response.Url.EndsWith("/api/site-statistics/event", StringComparison.Ordinal) &&
-                (response.Request.PostData?.Contains("\"eventName\":\"application_submit_succeeded\"", StringComparison.Ordinal) ?? false) &&
-                response.Ok);
-            var payload = await SubmitFakeApplicationAndCapturePayloadAsync(page);
-            await submittedEvent;
-
             var statistics = App.Services.GetRequiredService<SiteStatisticsService>();
+            var payload = await SubmitFakeApplicationAndCapturePayloadAsync(page, async request =>
+            {
+                // The endpoint is stubbed to avoid mail/payment side effects. Persist its
+                // server-side success event using the actual browser request's correlation headers.
+                var submissionContext = new DefaultHttpContext();
+                submissionContext.Request.Headers["X-LWC-Stats-Session"] =
+                    await request.HeaderValueAsync("X-LWC-Stats-Session");
+                submissionContext.Request.Headers.Referer = await request.HeaderValueAsync("Referer");
+                await statistics.RecordServerEventAsync("application_submit_succeeded", submissionContext,
+                    flow: "application", route: "/api/application/application", outcome: "succeeded");
+            });
             var dashboard = await statistics.GetDashboardAsync(new SiteStatisticsDashboardQuery { Range = "7d", Limit = 5000 });
             var events = dashboard.Events.Where(ev => ev.FirstCampaign == campaign).ToArray();
             Assert.Contains(events, ev => ev.EventName == "onboarding_entry_viewed");
@@ -958,9 +963,10 @@ public sealed class NewAthleteOnboardingBrowserTests(
             markerKeys);
     }
 
-    private static async Task<JsonElement> SubmitFakeApplicationAndCapturePayloadAsync(IPage page)
+    private static async Task<JsonElement> SubmitFakeApplicationAndCapturePayloadAsync(
+        IPage page, Func<IRequest, Task>? onSubmission = null)
     {
-        var payloadTask = await CaptureApplicationPostPayloadAsync(page);
+        var payloadTask = await CaptureApplicationPostPayloadAsync(page, onSubmission);
 
         await GoToFakeApplicationFinalStageAsync(page);
         await page.Locator("#nextButton").ClickAsync();
@@ -968,7 +974,8 @@ public sealed class NewAthleteOnboardingBrowserTests(
         return await payloadTask.WaitAsync(TimeSpan.FromSeconds(10));
     }
 
-    private static async Task<Task<JsonElement>> CaptureApplicationPostPayloadAsync(IPage page)
+    private static async Task<Task<JsonElement>> CaptureApplicationPostPayloadAsync(
+        IPage page, Func<IRequest, Task>? onSubmission = null)
     {
         var payloadSource = new TaskCompletionSource<JsonElement>(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -993,6 +1000,8 @@ public sealed class NewAthleteOnboardingBrowserTests(
             {
                 Assert.False(string.IsNullOrWhiteSpace(await route.Request.HeaderValueAsync("X-LWC-Stats-Session")));
                 using var document = JsonDocument.Parse(route.Request.PostData ?? "{}");
+                if (onSubmission is not null)
+                    await onSubmission(route.Request);
                 payloadSource.TrySetResult(document.RootElement.Clone());
             }
             catch (Exception exception)
