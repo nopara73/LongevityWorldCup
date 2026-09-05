@@ -135,5 +135,5 @@ Before going live:
 2. Open:
    - **Publish**
 3. Set the privacy policy URL:
-   - `https://longevityworldcup.com/privacy-policy.html`
+   - `https://longevityworldcup.com/privacy`
 4. Publish the app

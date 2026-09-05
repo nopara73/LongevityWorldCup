@@ -23,6 +23,14 @@ namespace LongevityWorldCup.Website.Middleware
 
         public async Task Invoke(HttpContext context)
         {
+            // URL cleanup must not turn API submissions into GET requests or
+            // change callback payloads. Only normalize navigational requests.
+            if (!HttpMethods.IsGet(context.Request.Method) && !HttpMethods.IsHead(context.Request.Method))
+            {
+                await _next(context);
+                return;
+            }
+
             var qs = context.Request.QueryString.Value;
             if (string.IsNullOrEmpty(qs))
             {

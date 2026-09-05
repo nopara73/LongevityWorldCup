@@ -30,17 +30,17 @@ public sealed class CanonicalRouteTests(TestWebApplicationFactory sharedFactory)
     }
 
     [Theory]
-    [InlineData("/Leaderboard?sort=rank")]
-    [InlineData("/about/?ref=footer")]
-    public async Task CleanRouteVariants_ServeWithoutRedirect(string path)
+    [InlineData("/Leaderboard?sort=rank", "/leaderboard?sort=rank")]
+    [InlineData("/about/?ref=footer", "/about?ref=footer")]
+    public async Task CleanRouteVariants_RedirectWithoutLosingQuery(string path, string expectedLocation)
     {
         var factory = sharedFactory;
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
         using var response = await client.GetAsync(path);
 
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Null(response.Headers.Location);
+        Assert.Equal(HttpStatusCode.MovedPermanently, response.StatusCode);
+        Assert.Equal(expectedLocation, response.Headers.Location?.ToString());
     }
 
     [Fact]
