@@ -406,6 +406,9 @@ public sealed class GuessMyAgeReentryBrowserTests(
         Assert.Null(await page.EvaluateAsync<string?>(
             "imageId => JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}')['storage-failure-submit-test']?.byImage?.[imageId]?.value ?? null",
             ProfileImageA));
+        Assert.Equal(54, await page.EvaluateAsync<int>(
+            "imageId => window.LwcGuessState.get({ slug: 'storage-failure-submit-test', profileImageId: imageId })?.value",
+            ProfileImageA));
 
         await page.EvaluateAsync(
             """
@@ -425,7 +428,45 @@ public sealed class GuessMyAgeReentryBrowserTests(
 
         Assert.True(await page.Locator("#closeAthleteDetailsModal").EvaluateAsync<bool>(
             "element => element === document.activeElement"));
+        Assert.True(await page.EvaluateAsync<bool>(
+            "imageId => window.LwcGuessState.get({ slug: 'storage-failure-skip-test', profileImageId: imageId })?.skipped === true",
+            ProfileImageB));
         Assert.Empty(errors);
+    }
+
+    [Fact]
+    public async Task GuessHistory_BlockedStorageRetainsProgressForEachImageInTheCurrentPage()
+    {
+        await using var context = await Browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = App.BaseAddress.ToString()
+        });
+        await context.AddInitScriptAsync("""
+            Object.defineProperty(window, 'localStorage', {
+                get() { throw new DOMException('Storage blocked', 'SecurityError'); }
+            });
+            """);
+        await context.RouteAsync("**/guess-storage-test", route => route.FulfillAsync(new RouteFulfillOptions
+        {
+            ContentType = "text/html",
+            Body = "<html><body><script type='module' src='/js/misc.js'></script></body></html>"
+        }));
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/guess-storage-test");
+        await page.WaitForFunctionAsync("() => !!window.LwcGuessState");
+
+        Assert.True(await page.EvaluateAsync<bool>("""
+            ({ imageA, imageB }) => {
+                const guessed = { slug: 'storage-test', profileImageId: imageA };
+                const unseen = { slug: 'storage-test', profileImageId: imageB };
+                window.LwcGuessState.set(guessed, { value: 42, skipped: false, first: true, exact: true });
+                if (window.LwcGuessState.get(unseen) !== null) return false;
+                window.LwcGuessState.ensureSkippedMany([guessed, unseen]);
+                return window.LwcGuessState.get(guessed)?.value === 42
+                    && window.LwcGuessState.get(unseen)?.skipped === true
+                    && window.LwcGuessState.getAll().length === 2;
+            }
+            """, new { imageA = ProfileImageA, imageB = ProfileImageB }));
     }
 
 }

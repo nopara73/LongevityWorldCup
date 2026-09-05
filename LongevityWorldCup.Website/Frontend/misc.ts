@@ -153,6 +153,8 @@ window.slugifyName = function (name, encode) {
 }
 
 const GUESS_MY_AGE_STORAGE_KEY = 'gmaAllGuesses';
+let guessStateMemoryStore: Record<string, unknown> = {};
+let guessStateStorageUnavailable = false;
 
 interface GuessStateIdentity {
     readonly canonicalSlug: string;
@@ -220,17 +222,35 @@ function getGuessStateIdentity(athleteOrSlug: unknown): GuessStateIdentity {
 }
 
 function readGuessStateStore(): Record<string, unknown> {
+    if (guessStateStorageUnavailable) return guessStateMemoryStore;
+
+    let raw: string | null;
     try {
-        const parsed: unknown = JSON.parse(
-            localStorage.getItem(GUESS_MY_AGE_STORAGE_KEY) || '{}');
-        return isRecord(parsed) ? parsed : {};
+        raw = localStorage.getItem(GUESS_MY_AGE_STORAGE_KEY);
     } catch (_) {
-        return {};
+        guessStateStorageUnavailable = true;
+        return guessStateMemoryStore;
     }
+
+    try {
+        const parsed: unknown = JSON.parse(raw || '{}');
+        guessStateMemoryStore = isRecord(parsed) ? parsed : {};
+    } catch (_) {
+        guessStateMemoryStore = {};
+    }
+    return guessStateMemoryStore;
 }
 
 function writeGuessStateStore(store: Record<string, unknown>): void {
-    localStorage.setItem(GUESS_MY_AGE_STORAGE_KEY, JSON.stringify(store));
+    // Keep this page's progress when storage is blocked or full. A failed write
+    // must not be replaced by stale persisted data on the next read.
+    guessStateMemoryStore = store;
+    if (guessStateStorageUnavailable) return;
+    try {
+        localStorage.setItem(GUESS_MY_AGE_STORAGE_KEY, JSON.stringify(store));
+    } catch (_) {
+        guessStateStorageUnavailable = true;
+    }
 }
 
 function guessStatePriority(state: unknown): number {
