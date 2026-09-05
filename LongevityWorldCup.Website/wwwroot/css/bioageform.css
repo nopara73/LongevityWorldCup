@@ -401,12 +401,20 @@
     .bioageform {
         width: 100%;
         max-width: calc(100vw - 1.5rem);
-        margin: 1.35rem auto;
+        margin: var(--lwc-space-2) auto;
         padding: 0.9rem;
     }
 
     .bioageform #lwc-step-1.lwc-step--active > fieldset {
         padding: 0.75rem 0.9rem;
+    }
+
+    .bioageform #lwc-step-1.lwc-step--active > fieldset:first-of-type {
+        margin-top: 0;
+    }
+
+    .bioageform .lwc-wizard-nav {
+        margin-bottom: 0;
     }
 
     .bioageform #lwc-step-1.lwc-step--active label {
