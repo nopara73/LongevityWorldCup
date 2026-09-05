@@ -63,7 +63,7 @@ public sealed class ProofUploadPageTests(TestWebApplicationFactory sharedFactory
 
         var javascript = await GetProofHelpersTypeScriptAsync(client);
         var handlerStart = javascript.IndexOf("const handleProofFiles = async function (", StringComparison.Ordinal);
-        var loadingStart = javascript.IndexOf("showLoading();", handlerStart, StringComparison.Ordinal);
+        var loadingStart = javascript.IndexOf("review.setProgress(", handlerStart, StringComparison.Ordinal);
 
         Assert.True(handlerStart >= 0);
         Assert.True(loadingStart > handlerStart);
@@ -138,9 +138,9 @@ public sealed class ProofUploadPageTests(TestWebApplicationFactory sharedFactory
         Assert.Contains("if (!context) throw new Error('Canvas context unavailable.');", processingBody);
         Assert.Contains("failedFiles++;", processingBody);
         Assert.Contains("if (proofPics.length > proofCountBeforeFile)", processingBody);
-        Assert.Contains("updateProofImageContainer(proofImageContainer, nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);", processingBody);
+        Assert.Contains("review.render();", processingBody);
         Assert.Contains("checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);", processingBody);
-        Assert.Contains("nextButton.disabled = true;", processingBody);
+        Assert.Contains("proofProcessingButtons.has(nextButton)", javascript);
         Assert.Contains("if (failedFiles > 0)", javascript);
         Assert.Contains("window.customAlert('Some proof files could not be processed. Please try them again as images or PDFs.')", javascript);
         Assert.Contains(".then(() => focusProofRetryButton(retryButton));", javascript);

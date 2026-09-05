@@ -240,82 +240,6 @@
             border-radius: 6px;
         }
 
-        #proofImageContainer {
-            width: min(100%, 408px);
-            max-width: 408px;
-            margin: 1rem auto 0;
-            padding: 0;
-            text-align: center;
-        }
-
-        #proofImageContainer:empty,
-        #proofImageContainer:not(:has(img)) {
-            display: none !important;
-        }
-
-        #proofImageContainer p {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 42px;
-            margin: 0 0 0.75rem;
-            padding: 0.6rem 0.85rem;
-            border: 1px solid var(--lwc-success, rgba(22, 163, 74, 0.35));
-            border-radius: 8px;
-            background: var(--lwc-success-soft, rgba(240, 253, 244, 0.94));
-            box-shadow: none;
-            box-sizing: border-box;
-            color: var(--lwc-ink, #166534);
-            font-weight: 700;
-            line-height: 1.25;
-        }
-
-        #proofImageContainer div {
-            position: relative;
-            display: block !important;
-            margin: 0 !important;
-            padding: 0.45rem;
-            border: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.14));
-            border-radius: 8px;
-            background: var(--lwc-surface, #fff);
-            box-shadow: none;
-            box-sizing: border-box;
-            overflow: hidden;
-        }
-
-        #proofImageContainer div + div {
-            margin-top: 0.85rem !important;
-        }
-
-        #proofImageContainer img {
-            display: block !important;
-            width: 100%;
-            height: clamp(160px, 46vw, 240px);
-            max-width: 100% !important;
-            border: 0 !important;
-            border-radius: 6px;
-            background: var(--lwc-surface-muted, #f8fafc);
-            object-fit: contain;
-        }
-
-        #proofImageContainer button {
-            position: absolute;
-            top: 0.75rem !important;
-            right: 0.75rem !important;
-            min-height: 44px;
-            min-width: 44px;
-            padding: 0.45rem 0.75rem !important;
-            background-color: #b91c1c !important;
-            color: var(--light-text-color);
-            border: none;
-            border-radius: 999px !important;
-            box-shadow: 0 3px 8px rgba(127, 29, 29, 0.28);
-            box-sizing: border-box;
-            cursor: pointer;
-            font-size: 0.8rem;
-            font-weight: 700;
-        }
-
         #biomarker-checklist {
             width: min(100%, 408px);
             max-width: 408px;
@@ -1762,7 +1686,8 @@
                 checklistLabels,
                 {
                     cameraButton: takeProofPhotoButton,
-                    cameraInput: proofCameraInput
+                    cameraInput: proofCameraInput,
+                    isActive: () => currentStage === 5
                 }
             );
         }

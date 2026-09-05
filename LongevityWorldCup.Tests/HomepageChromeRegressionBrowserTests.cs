@@ -82,7 +82,7 @@ public sealed class HomepageChromeRegressionBrowserTests(
     }
 
     [Fact]
-    public async Task LeaderboardChangedControls_KeepAttentionCuesDistinctFromSearchFocus()
+    public async Task LeaderboardChangedControls_ShowTheSelectionCountAlongsideSearchFocus()
     {
         var app = App;
         var browser = Browser;
@@ -111,7 +111,9 @@ public sealed class HomepageChromeRegressionBrowserTests(
             }
             """);
 
-        Assert.Equal(["rgb(255, 64, 129)", "rgb(255, 64, 129)", "rgb(8, 118, 133)", "rgb(8, 118, 133)"], cueColors);
+        Assert.Equal(["rgb(8, 118, 133)", "rgb(255, 64, 129)", "rgb(8, 118, 133)", "rgb(8, 118, 133)"], cueColors);
+        Assert.Equal("1", await page.Locator(".sidebar-toggle").GetAttributeAsync("data-filter-count"));
+        Assert.Equal("1 active filter", await page.Locator(".sidebar-toggle").GetAttributeAsync("aria-description"));
     }
 
     [Fact]
