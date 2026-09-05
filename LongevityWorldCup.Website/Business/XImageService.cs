@@ -76,7 +76,7 @@ public class XImageService
             var titleFont = ImageTextLayout.FitFontToWidth(fonts.Bold, "New athletes", 70f, 52f, 520f);
             ctx.Fill(ToRgba(GreenAccent, 225), new RectangularPolygon(HeaderX, 138f, 152f, 5f));
             DrawTextShadow(ctx, "New athletes", titleFont, new PointF(HeaderX, 204f), HorizontalAlignment.Left, 3f);
-            DrawWrappedText(ctx, "New athletes", titleFont, TextColor, new PointF(HeaderX, 204f), 560f, 1, 74f);
+            ImageTextLayout.DrawWrappedText(ctx, "New athletes", titleFont, TextColor, new PointF(HeaderX, 204f), 560f, 1, 74f);
 
             FillRoundedRect(ctx, 88f, 312f, 1024f, 196f, 24f, new Rgba32(10, 17, 15, 215));
             ctx.Draw(new Rgba32(255, 255, 255, 28), 1f, new RectangularPolygon(88f, 312f, 1024f, 196f));
@@ -160,13 +160,13 @@ public class XImageService
 
             ctx.Fill(ToRgba(GreenAccent, 225), new RectangularPolygon(622f, 178f, 152f, 5f));
             DrawTextShadow(ctx, title, titleFont, new PointF(622f, 248f), HorizontalAlignment.Left, 4f);
-            DrawWrappedText(ctx, title, titleFont, TextColor, new PointF(622f, 248f), 420f, 1, 80f);
+            ImageTextLayout.DrawWrappedText(ctx, title, titleFont, TextColor, new PointF(622f, 248f), 420f, 1, 80f);
 
             DrawTextShadow(ctx, winner.Name, winnerFont, new PointF(622f, 356f), HorizontalAlignment.Left, 3f);
-            DrawWrappedText(ctx, winner.Name, winnerFont, TextColor, new PointF(622f, 356f), 420f, 1, 52f);
+            ImageTextLayout.DrawWrappedText(ctx, winner.Name, winnerFont, TextColor, new PointF(622f, 356f), 420f, 1, 52f);
 
             DrawTextShadow(ctx, previous.Name, previousFont, new PointF(984f, 470f), HorizontalAlignment.Left, 2f);
-            DrawWrappedText(ctx, previous.Name, previousFont, MutedTextColor, new PointF(984f, 470f), 180f, 1, 34f);
+            ImageTextLayout.DrawWrappedText(ctx, previous.Name, previousFont, MutedTextColor, new PointF(984f, 470f), 180f, 1, 34f);
         });
 
         return await SaveToStreamAsync(image);
@@ -191,7 +191,7 @@ public class XImageService
             var labelFont = fonts.Regular.CreateFont(28f, FontStyle.Regular);
 
             DrawTextShadow(ctx, athlete.Name, titleFont, new PointF(454f, 188f), HorizontalAlignment.Left, 3f);
-            DrawWrappedText(ctx, athlete.Name, titleFont, TextColor, new PointF(454f, 188f), 620f, 1, 72f);
+            ImageTextLayout.DrawWrappedText(ctx, athlete.Name, titleFont, TextColor, new PointF(454f, 188f), 620f, 1, 72f);
             DrawScoreboardMetricRow(ctx, BuildRankValue(athlete), "Current rank", valueFont, labelFont, PinkAccent, 454f, 318f, 574f, 82f);
             DrawScoreboardMetricRow(ctx, BuildReductionValue(athlete), "Age Reduction", valueFont, labelFont, GreenAccent, 454f, 422f, 574f, 82f);
         });
@@ -221,7 +221,7 @@ public class XImageService
             var titleFont = fonts.Bold.CreateFont(58f, FontStyle.Bold);
             ctx.Fill(ToRgba(CyanAccent, 225), new RectangularPolygon(HeaderX, 136f, 150f, 5f));
             DrawTextShadow(ctx, "Top 3", titleFont, new PointF(HeaderX, 164f), HorizontalAlignment.Left, 3f);
-            DrawWrappedText(ctx, "Top 3", titleFont, TextColor, new PointF(HeaderX, 164f), 240f, 1, 64f);
+            ImageTextLayout.DrawWrappedText(ctx, "Top 3", titleFont, TextColor, new PointF(HeaderX, 164f), 240f, 1, 64f);
         });
 
         var rows = new[]
@@ -267,7 +267,7 @@ public class XImageService
                 }, $"#{row.Rank}", accent);
 
                 DrawTextShadow(ctx, athlete.Name, nameFont, new PointF(row.X + 246f, row.Y + 22f), HorizontalAlignment.Left, 2f);
-                DrawWrappedText(ctx, athlete.Name, nameFont, i == 0 ? TextColor : MutedTextColor, new PointF(row.X + 246f, row.Y + 22f), row.Width - 350f, 1, 36f);
+                ImageTextLayout.DrawWrappedText(ctx, athlete.Name, nameFont, i == 0 ? TextColor : MutedTextColor, new PointF(row.X + 246f, row.Y + 22f), row.Width - 350f, 1, 36f);
             });
         }
 
@@ -406,9 +406,9 @@ public class XImageService
 
             ctx.Fill(ToRgba(accent, 225), new RectangularPolygon(HeaderX, ruleY, 150f, 5f));
             DrawTextShadow(ctx, title, titleFont, new PointF(HeaderX, titleY), HorizontalAlignment.Left, 3f);
-            DrawWrappedText(ctx, title, titleFont, TextColor, new PointF(HeaderX, titleY), 760f, 1, 64f);
+            ImageTextLayout.DrawWrappedText(ctx, title, titleFont, TextColor, new PointF(HeaderX, titleY), 760f, 1, 64f);
             if (hasSubtitle)
-                DrawWrappedText(ctx, subtitle, subtitleFont, MutedTextColor, new PointF(HeaderX, titleY + 62f), 760f, 1, 38f);
+                ImageTextLayout.DrawWrappedText(ctx, subtitle, subtitleFont, MutedTextColor, new PointF(HeaderX, titleY + 62f), 760f, 1, 38f);
         });
     }
 
@@ -1059,69 +1059,6 @@ public class XImageService
             return d;
 
         return null;
-    }
-
-    private static void DrawWrappedText(
-        IImageProcessingContext ctx,
-        string text,
-        Font font,
-        Color color,
-        PointF origin,
-        float maxWidth,
-        int maxLines,
-        float lineHeight)
-    {
-        var lines = WrapText(text, font, maxWidth, maxLines);
-        for (var i = 0; i < lines.Count; i++)
-        {
-            ctx.DrawText(new RichTextOptions(font)
-            {
-                Origin = new PointF(origin.X, origin.Y + (lineHeight * i)),
-                HorizontalAlignment = HorizontalAlignment.Left,
-                VerticalAlignment = VerticalAlignment.Top
-            }, lines[i], color);
-        }
-    }
-
-    private static IReadOnlyList<string> WrapText(string text, Font font, float maxWidth, int maxLines)
-    {
-        var words = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        var lines = new List<string>();
-        var current = "";
-        var truncated = false;
-
-        for (var index = 0; index < words.Length; index++)
-        {
-            var word = words[index];
-            var candidate = string.IsNullOrWhiteSpace(current) ? word : $"{current} {word}";
-            if (TextMeasurer.MeasureSize(candidate, new RichTextOptions(font)).Width <= maxWidth)
-            {
-                current = candidate;
-                continue;
-            }
-
-            if (!string.IsNullOrWhiteSpace(current))
-                lines.Add(current);
-            current = word;
-            if (lines.Count >= maxLines)
-            {
-                truncated = index < words.Length - 1;
-                break;
-            }
-        }
-
-        if (!string.IsNullOrWhiteSpace(current) && lines.Count < maxLines)
-            lines.Add(current);
-
-        if (truncated && lines.Count == maxLines && words.Length > 0)
-        {
-            var last = lines[^1];
-            while (last.Length > 0 && TextMeasurer.MeasureSize(last + "...", new RichTextOptions(font)).Width > maxWidth)
-                last = last[..^1].TrimEnd();
-            lines[^1] = last + "...";
-        }
-
-        return lines;
     }
 
     private static void DrawTextShadow(

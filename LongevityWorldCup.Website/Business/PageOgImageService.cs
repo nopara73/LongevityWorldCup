@@ -361,8 +361,8 @@ public sealed class PageOgImageService
             ctx.Fill(new Rgba32(accent.ToPixel<Rgba32>().R, accent.ToPixel<Rgba32>().G, accent.ToPixel<Rgba32>().B, 220),
                 new RectangularPolygon(ContentX, AccentY, 126f, 5f));
 
-            DrawWrappedText(ctx, payload.Title, titleFont, ShadowColor, new PointF(ContentX, TitleY + 3f), TitleWidth, 2, 78f);
-            DrawWrappedText(ctx, payload.Title, titleFont, TitleColor, new PointF(ContentX, TitleY), TitleWidth, 2, 78f);
+            ImageTextLayout.DrawWrappedText(ctx, payload.Title, titleFont, ShadowColor, new PointF(ContentX, TitleY + 3f), TitleWidth, 2, 78f);
+            ImageTextLayout.DrawWrappedText(ctx, payload.Title, titleFont, TitleColor, new PointF(ContentX, TitleY), TitleWidth, 2, 78f);
             if (string.Equals(payload.Slug, "longevitymaxxing", StringComparison.OrdinalIgnoreCase))
             {
                 ctx.DrawText(new RichTextOptions(subtitleFont)
@@ -478,70 +478,6 @@ public sealed class PageOgImageService
     private static string NormalizeSlug(string slug)
     {
         return slug.Trim().ToLowerInvariant();
-    }
-
-    private static void DrawWrappedText(
-        IImageProcessingContext ctx,
-        string text,
-        Font font,
-        Color color,
-        PointF origin,
-        float maxWidth,
-        int maxLines,
-        float lineHeight)
-    {
-        var lines = WrapText(text, font, maxWidth, maxLines);
-        for (var i = 0; i < lines.Count; i++)
-        {
-            ctx.DrawText(new RichTextOptions(font)
-            {
-                Origin = new PointF(origin.X, origin.Y + (lineHeight * i)),
-                HorizontalAlignment = HorizontalAlignment.Left,
-                VerticalAlignment = VerticalAlignment.Top
-            }, lines[i], color);
-        }
-    }
-
-    private static IReadOnlyList<string> WrapText(string text, Font font, float maxWidth, int maxLines)
-    {
-        var words = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        var lines = new List<string>();
-        var current = "";
-        var truncated = false;
-        for (var index = 0; index < words.Length; index++)
-        {
-            var word = words[index];
-            var candidate = string.IsNullOrWhiteSpace(current) ? word : $"{current} {word}";
-            if (TextMeasurer.MeasureSize(candidate, new RichTextOptions(font)).Width <= maxWidth)
-            {
-                current = candidate;
-                continue;
-            }
-
-            if (!string.IsNullOrWhiteSpace(current))
-                lines.Add(current);
-            current = word;
-            if (lines.Count >= maxLines)
-            {
-                truncated = index < words.Length - 1;
-                break;
-            }
-        }
-
-        if (!string.IsNullOrWhiteSpace(current) && lines.Count < maxLines)
-            lines.Add(current);
-
-        if (truncated && lines.Count == maxLines && words.Length > 0)
-        {
-            var last = lines[^1];
-            while (last.Length > 0 && TextMeasurer.MeasureSize(last + "...", new RichTextOptions(font)).Width > maxWidth)
-            {
-                last = last[..^1].TrimEnd();
-            }
-            lines[^1] = last + "...";
-        }
-
-        return lines;
     }
 
     private static int Lerp(byte a, byte b, float t)
