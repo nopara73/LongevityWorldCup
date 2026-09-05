@@ -30,10 +30,10 @@ public sealed class AthleteOgImageService
     private const float RankRowY = 318f;
     private const float ReductionRowY = 422f;
     private const float HeaderX = 72f;
-    private static readonly Color BackgroundTop = ParseHex("05080B");
-    private static readonly Color BackgroundBottom = ParseHex("15181B");
-    private static readonly Color RankColor = ParseHex("FF4081");
-    private static readonly Color ReductionColor = ParseHex("78DA3B");
+    private static readonly Color BackgroundTop = Color.ParseHex("#05080B");
+    private static readonly Color BackgroundBottom = Color.ParseHex("#15181B");
+    private static readonly Color RankColor = Color.ParseHex("#FF4081");
+    private static readonly Color ReductionColor = Color.ParseHex("#78DA3B");
     private static readonly Color NameColor = Color.White;
     private static readonly Color MutedTextColor = new(new Rgba32(214, 222, 232, 220));
     private static readonly Color MetricRowFillColor = new(new Rgba32(18, 29, 28, 218));
@@ -1001,11 +1001,6 @@ public sealed class AthleteOgImageService
         return value.ToString("+#0.0;-#0.0;0.0", CultureInfo.InvariantCulture);
     }
 
-    private static Color ParseHex(string hex)
-    {
-        return Color.ParseHex("#" + hex);
-    }
-
     private static Rgba32 ToRgba(Color color, byte alpha)
     {
         var pixel = color.ToPixel<Rgba32>();
@@ -1043,5 +1038,4 @@ public sealed class AthleteOgImageService
             text,
             TextShadowColor);
     }
-
 }

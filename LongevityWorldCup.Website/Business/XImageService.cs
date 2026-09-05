@@ -19,15 +19,15 @@ public class XImageService
     private const int CanvasHeight = 675;
     private const float HeaderX = 72f;
 
-    private static readonly Color BackgroundTop = ParseHex("05080B");
-    private static readonly Color BackgroundBottom = ParseHex("15181B");
+    private static readonly Color BackgroundTop = Color.ParseHex("#05080B");
+    private static readonly Color BackgroundBottom = Color.ParseHex("#15181B");
     private static readonly Color TextColor = Color.White;
     private static readonly Color MutedTextColor = new(new Rgba32(214, 222, 232, 220));
     private static readonly Color FaintTextColor = new(new Rgba32(148, 163, 184, 255));
     private static readonly Color ShadowColor = new(new Rgba32(0, 0, 0, 185));
-    private static readonly Color GreenAccent = ParseHex("78DA3B");
-    private static readonly Color CyanAccent = ParseHex("00BCD4");
-    private static readonly Color PinkAccent = ParseHex("FF4081");
+    private static readonly Color GreenAccent = Color.ParseHex("#78DA3B");
+    private static readonly Color CyanAccent = Color.ParseHex("#00BCD4");
+    private static readonly Color PinkAccent = Color.ParseHex("#FF4081");
 
     private readonly IWebHostEnvironment _env;
     private readonly AthleteDataService _athletes;
@@ -1043,11 +1043,6 @@ public class XImageService
     {
         var pixel = color.ToPixel<Rgba32>();
         return new Rgba32(pixel.R, pixel.G, pixel.B, alpha);
-    }
-
-    private static Color ParseHex(string hex)
-    {
-        return Color.ParseHex("#" + hex);
     }
 
     private sealed record AthleteRenderInfo(string Slug, string Name, string? ProfilePath, int Rank, double? AgeReduction);

@@ -20,8 +20,8 @@ public sealed class PageOgImageService
     private const float TitleY = 258f;
     private const float TitleWidth = 760f;
 
-    private static readonly Color BackgroundTop = ParseHex("030708");
-    private static readonly Color BackgroundBottom = ParseHex("111515");
+    private static readonly Color BackgroundTop = Color.ParseHex("#030708");
+    private static readonly Color BackgroundBottom = Color.ParseHex("#111515");
     private static readonly Color TitleColor = Color.White;
     private static readonly Color ShadowColor = new(new Rgba32(0, 0, 0, 180));
 
@@ -235,10 +235,10 @@ public sealed class PageOgImageService
     private async Task RenderImageAsync(PageOgPayload payload, string outputPath, CancellationToken ct)
     {
         using var image = new Image<Rgba32>(CanvasWidth, CanvasHeight);
-        DrawBackground(image, ParseHex(payload.AccentHex));
+        DrawBackground(image, Color.ParseHex("#" + payload.AccentHex));
 
         var (boldFamily, regularFamily) = GetFontFamilies();
-        var accent = ParseHex(payload.AccentHex);
+        var accent = Color.ParseHex("#" + payload.AccentHex);
 
         await DrawLogoMarksAsync(image, ct);
         DrawHeaderText(image, boldFamily);
@@ -462,10 +462,5 @@ public sealed class PageOgImageService
     private static int Lerp(byte a, byte b, float t)
     {
         return (int)MathF.Round(a + ((b - a) * t));
-    }
-
-    private static Color ParseHex(string hex)
-    {
-        return Color.ParseHex("#" + hex);
     }
 }

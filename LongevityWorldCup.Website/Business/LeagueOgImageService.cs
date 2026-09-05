@@ -21,9 +21,9 @@ public sealed class LeagueOgImageService
     private const float LeagueSubtitleY = 145f;
     private static readonly Color LeagueTitleColor = Color.White;
     private static readonly Color LeagueSubtitleColor = new(new Rgba32(255, 255, 255, 205));
-    private static readonly Color AccentColor = ParseHex("78DA3B");
-    private static readonly Color BackgroundTop = ParseHex("05080B");
-    private static readonly Color BackgroundBottom = ParseHex("15181B");
+    private static readonly Color AccentColor = Color.ParseHex("#78DA3B");
+    private static readonly Color BackgroundTop = Color.ParseHex("#05080B");
+    private static readonly Color BackgroundBottom = Color.ParseHex("#15181B");
     private static readonly Rgba32 RowFillColor = new(34, 42, 38, 255);
     private static readonly Rgba32 RowStrokeColor = new(255, 255, 255, 26);
     private static readonly Rgba32 RowShadowColor = new(0, 0, 0, 70);
@@ -721,10 +721,5 @@ public sealed class LeagueOgImageService
             .Replace("-", "-", StringComparison.Ordinal);
         normalized = string.Join(" ", normalized.Split(' ', StringSplitOptions.RemoveEmptyEntries));
         return normalized;
-    }
-
-    private static Color ParseHex(string hex)
-    {
-        return Color.ParseHex("#" + hex);
     }
 }
