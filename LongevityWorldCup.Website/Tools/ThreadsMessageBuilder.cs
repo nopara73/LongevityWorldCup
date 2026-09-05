@@ -30,7 +30,7 @@ public static class ThreadsMessageBuilder
         var eventBasis = SocialPostPolicy.DetermineSampleBasisForEvent(type, rawText);
         var eventLeagueScope = SocialPostPolicy.DetermineLeagueScopeForEvent(type, rawText);
         var eventPhase = SocialPostPolicy.GetPhase(sampleForBasis, eventBasis, getFieldSizeForLeague, eventLeagueScope);
-        if (ShouldSuppressEvent(type, rawText, eventPhase))
+        if (SocialPostPolicy.ShouldSuppressEvent(type, rawText, eventPhase))
             return "";
 
         if (type == EventType.NewRank)
@@ -229,7 +229,7 @@ public static class ThreadsMessageBuilder
         var fillerPhase = fillerType == FillerType.Top3Leaderboard
             ? SocialPostPolicy.GetTop3LeaderboardPhase(payloadText ?? "", sampleForBasis, getFieldSizeForLeague, getBortzFieldSizeForLeague)
             : SocialPostPolicy.GetPhase(sampleForBasis, fillerBasis, getFieldSizeForLeague, fillerLeagueScope);
-        if (ShouldSuppressFiller(fillerType, fillerPhase))
+        if (SocialPostPolicy.ShouldSuppressFiller(fillerType, fillerPhase))
             return "";
 
         if (fillerType == FillerType.HistoryDocument)
@@ -365,64 +365,6 @@ public static class ThreadsMessageBuilder
             22222 => $"{countLabel} athletes are now on the leaderboard. Twos all the way down again.",
             54321 => $"{countLabel} athletes are now on the leaderboard. Countdown complete and somehow upward.",
             _ => $"{countLabel} athletes are now on the leaderboard."
-        };
-    }
-
-    private static bool ShouldSuppressEvent(EventType type, string rawText, XPostPhase? phase)
-    {
-        if (!phase.HasValue || phase == XPostPhase.Mature)
-            return false;
-
-        if (type == EventType.NewRank)
-        {
-            return !EventHelpers.TryExtractRank(rawText, out var rank) || rank != 1;
-        }
-
-        if (type != EventType.BadgeAward)
-            return false;
-
-        if (!EventHelpers.TryExtractBadgeLabel(rawText, out var label))
-            return false;
-
-        var norm = EventHelpers.NormalizeBadgeLabel(label);
-        if (string.Equals(norm, "Podcast", StringComparison.OrdinalIgnoreCase))
-            return false;
-
-        if (string.Equals(norm, "Pheno Age – lowest", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(norm, "Bortz Age – lowest", StringComparison.OrdinalIgnoreCase))
-            return false;
-
-        if (string.Equals(norm, "Age reduction", StringComparison.OrdinalIgnoreCase))
-        {
-            return !(
-                EventHelpers.TryExtractPlace(rawText, out var place) &&
-                place == 1 &&
-                EventHelpers.TryExtractCategory(rawText, out var category) &&
-                !string.Equals(category, "Global", StringComparison.OrdinalIgnoreCase));
-        }
-
-        if (phase == XPostPhase.Early &&
-            (string.Equals(norm, "Pheno Age best improvement", StringComparison.OrdinalIgnoreCase) ||
-             string.Equals(norm, "Bortz Age best improvement", StringComparison.OrdinalIgnoreCase)))
-            return false;
-
-        return true;
-    }
-
-    private static bool ShouldSuppressFiller(FillerType fillerType, XPostPhase? phase)
-    {
-        if (!phase.HasValue)
-            return false;
-
-        if (phase == XPostPhase.Mature)
-            return false;
-
-        return fillerType switch
-        {
-            FillerType.Top3Leaderboard => phase == XPostPhase.Tiny,
-            FillerType.DomainTop => true,
-            FillerType.Newcomers => false,
-            _ => false
         };
     }
 

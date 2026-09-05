@@ -167,4 +167,62 @@ internal static class SocialPostPolicy
 
         return bortzPhase ?? totalPhase;
     }
+
+    internal static bool ShouldSuppressEvent(EventType type, string rawText, XPostPhase? phase)
+    {
+        if (!phase.HasValue || phase == XPostPhase.Mature)
+            return false;
+
+        if (type == EventType.NewRank)
+        {
+            return !EventHelpers.TryExtractRank(rawText, out var rank) || rank != 1;
+        }
+
+        if (type != EventType.BadgeAward)
+            return false;
+
+        if (!EventHelpers.TryExtractBadgeLabel(rawText, out var label))
+            return false;
+
+        var norm = EventHelpers.NormalizeBadgeLabel(label);
+        if (string.Equals(norm, "Podcast", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        if (string.Equals(norm, "Pheno Age – lowest", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(norm, "Bortz Age – lowest", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        if (string.Equals(norm, "Age reduction", StringComparison.OrdinalIgnoreCase))
+        {
+            return !(
+                EventHelpers.TryExtractPlace(rawText, out var place) &&
+                place == 1 &&
+                EventHelpers.TryExtractCategory(rawText, out var category) &&
+                !string.Equals(category, "Global", StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (phase == XPostPhase.Early &&
+            (string.Equals(norm, "Pheno Age best improvement", StringComparison.OrdinalIgnoreCase) ||
+             string.Equals(norm, "Bortz Age best improvement", StringComparison.OrdinalIgnoreCase)))
+            return false;
+
+        return true;
+    }
+
+    internal static bool ShouldSuppressFiller(FillerType fillerType, XPostPhase? phase)
+    {
+        if (!phase.HasValue)
+            return false;
+
+        if (phase == XPostPhase.Mature)
+            return false;
+
+        return fillerType switch
+        {
+            FillerType.Top3Leaderboard => phase == XPostPhase.Tiny,
+            FillerType.DomainTop => true,
+            FillerType.Newcomers => false,
+            _ => false
+        };
+    }
 }
