@@ -1365,8 +1365,8 @@
         box-sizing: border-box;
         background: rgba(246,244,237,.055);
         border: 1px solid rgba(246,244,237,.16);
-        border-radius: 20px;
-        box-shadow: inset 0 1px 0 rgba(255,255,255,.05), 0 10px 24px rgba(0,0,0,.15);
+        border-radius: var(--lwc-radius-lg);
+        box-shadow: none;
     }
     #detailsModal .athlete-links a,
     #detailsModal .athlete-links button,
@@ -1378,16 +1378,22 @@
     #detailsModal .athlete-links button{
         min-height: 44px;
         padding: .55rem 1rem;
-        border: 1px solid var(--athlete-modal-cream-border);
-        border-radius: 999px;
-        background: rgba(246,244,237,.08);
-        box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 10px 22px rgba(0,0,0,.18);
+        border: 1px solid var(--athlete-modal-border);
+        border-radius: var(--lwc-radius-md);
+        background: var(--athlete-modal-card);
+        box-shadow: none;
         font-size: .95rem;
         font-weight: 700;
         font-family: inherit;
         cursor: pointer;
         gap: .4rem;
         line-height: 1.15;
+    }
+    #detailsModal .athlete-links > a > i,
+    #detailsModal .athlete-share-wrapper > button > i {
+        flex: 0 0 1.25rem;
+        width: 1.25rem;
+        text-align: center;
     }
     #detailsModal .athlete-links button{
         appearance: none;
@@ -1405,8 +1411,8 @@
         min-width:12.5rem;
         padding:.35rem;
         border:1px solid var(--athlete-modal-border-strong);
-        border-radius:14px;
-        background:rgb(18,20,20);
+        border-radius:var(--lwc-radius-lg);
+        background:var(--athlete-modal-card);
         box-shadow:0 20px 42px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,255,255,.06);
     }
     #detailsModal .athlete-share-menu.is-above{
@@ -1417,10 +1423,10 @@
     #detailsModal .athlete-share-menu a,
     #detailsModal .athlete-share-menu button{
         width:100%;
-        min-height:42px;
+        min-height:44px;
         padding:.55rem .7rem;
         border:0;
-        border-radius:10px;
+        border-radius:var(--lwc-radius-md);
         background:transparent;
         box-shadow:none;
         color:var(--athlete-modal-link);
@@ -1594,11 +1600,11 @@
         width:100%;
         min-height:44px;
         color:var(--athlete-modal-text);
-        background:rgba(18,20,20,.82);
-        border:1px solid rgba(246,244,237,.48);
-        border-radius:999px;
+        background:var(--athlete-modal-card);
+        border:1px solid var(--athlete-modal-border);
+        border-radius:var(--lwc-radius-md);
         padding:.65rem 2.35rem .65rem 1.05rem;
-        box-shadow:inset 0 1px 0 rgba(255,255,255,.1), 0 0 0 3px rgba(0,0,0,.16);
+        box-shadow:none;
         font-size:.88rem;
         font-weight:700;
         line-height:1.15;
