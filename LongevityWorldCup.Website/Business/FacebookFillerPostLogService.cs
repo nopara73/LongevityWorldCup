@@ -1,4 +1,3 @@
-using Microsoft.Data.Sqlite;
 using LongevityWorldCup.Website.Tools;
 
 namespace LongevityWorldCup.Website.Business;
@@ -11,40 +10,7 @@ public class FacebookFillerPostLogService
     public FacebookFillerPostLogService(DatabaseManager db)
     {
         _db = db ?? throw new ArgumentNullException(nameof(db));
-        _db.Run(sqlite =>
-        {
-            using var cmd = sqlite.CreateCommand();
-            cmd.CommandText = $"""
-                CREATE TABLE IF NOT EXISTS {TableName} (
-                    PostedAtUtc TEXT NOT NULL,
-                    Type       INTEGER NOT NULL,
-                    Text       TEXT NOT NULL,
-                    SubjectSlug TEXT NULL
-                );
-                """;
-            cmd.ExecuteNonQuery();
-            var addedSubjectSlug = false;
-            cmd.CommandText = $"ALTER TABLE {TableName} ADD COLUMN SubjectSlug TEXT NULL;";
-            try
-            {
-                cmd.ExecuteNonQuery();
-                addedSubjectSlug = true;
-            }
-            catch (SqliteException ex) when (ex.SqliteErrorCode == 1 && ex.Message.Contains("duplicate column name", StringComparison.OrdinalIgnoreCase))
-            {
-            }
-
-            if (addedSubjectSlug)
-            {
-                cmd.CommandText = $"UPDATE {TableName} SET SubjectSlug = NULL WHERE SubjectSlug IS NULL;";
-                cmd.ExecuteNonQuery();
-            }
-
-            cmd.CommandText = $"CREATE INDEX IF NOT EXISTS IX_{TableName}_Type_PostedAtUtc ON {TableName}(Type, PostedAtUtc);";
-            cmd.ExecuteNonQuery();
-            cmd.CommandText = $"CREATE INDEX IF NOT EXISTS IX_{TableName}_SubjectSlug_PostedAtUtc ON {TableName}(SubjectSlug, PostedAtUtc);";
-            cmd.ExecuteNonQuery();
-        });
+        FillerPostLogStore.EnsureCreated(_db, TableName);
     }
 
     public void LogPost(DateTime postedAtUtc, FillerType type, string text, string? subjectSlug = null)
