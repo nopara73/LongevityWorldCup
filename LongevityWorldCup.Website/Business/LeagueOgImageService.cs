@@ -210,15 +210,15 @@ public sealed class LeagueOgImageService
                 return outputPath;
             }
 
-            var tempPath = BuildTempRenderPath(outputPath);
+            var tempPath = ImageRenderFiles.CreateTempPath(outputPath);
             try
             {
                 await RenderImageAsync(payload, tempPath, ct);
-                PublishTempRender(tempPath, outputPath);
+                ImageRenderFiles.Publish(tempPath, outputPath);
             }
             finally
             {
-                DeleteTempRender(tempPath);
+                ImageRenderFiles.DeleteTemp(tempPath);
             }
 
             CleanupOldRenders(payload.InternalSlug, outputPath);
@@ -264,36 +264,6 @@ public sealed class LeagueOgImageService
         });
 
         await image.SaveAsPngAsync(outputPath, ct);
-    }
-
-    private static string BuildTempRenderPath(string outputPath)
-    {
-        return $"{outputPath}.{Guid.NewGuid():N}.tmp";
-    }
-
-    private static void PublishTempRender(string tempPath, string outputPath)
-    {
-        try
-        {
-            File.Move(tempPath, outputPath);
-        }
-        catch (IOException) when (File.Exists(outputPath))
-        {
-            // Another app instance finished the same render first.
-        }
-    }
-
-    private static void DeleteTempRender(string tempPath)
-    {
-        try
-        {
-            if (File.Exists(tempPath))
-                File.Delete(tempPath);
-        }
-        catch
-        {
-            // Best-effort cleanup for abandoned temp renders.
-        }
     }
 
     private async Task DrawBrandAsync(Image<Rgba32> image, FontFamily boldFamily, CancellationToken ct)
