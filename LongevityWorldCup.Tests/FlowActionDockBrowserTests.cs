@@ -139,7 +139,10 @@ public sealed class FlowActionDockBrowserTests(
         var errors = CapturePageErrors(page);
 
         await page.GotoAsync("/apply?fake=1", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-        await page.WaitForFunctionAsync("() => window.LwcFlowActionDock && typeof window.goToStage === 'function'");
+        // The function and stage attribute exist in the initial HTML. Wait for the
+        // asynchronous bootstrap to bind stage one before selecting the email stage.
+        await page.WaitForFunctionAsync(
+            "() => window.LwcFlowActionDock && document.getElementById('name')?.dataset.stage1ValidityListener === 'true'");
         await page.EvaluateAsync("() => { window.goToStage(7); window.LwcFlowActionDock.refreshNow(); }");
         await ExpectActionStackDockedInViewportAsync(page, ".convergence-actions");
 

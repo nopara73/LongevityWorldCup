@@ -520,7 +520,7 @@ public sealed class FlowActionDockLayoutBrowserTests(
         var scenario = $"{viewportWidth}x{viewportHeight}";
         await page.GotoAsync("/apply?fake=1", new PageGotoOptions { WaitUntil = WaitUntilState.Commit });
         await page.WaitForFunctionAsync(
-            "() => typeof window.goToStage === 'function' && document.body?.dataset.convergenceStage === '1' && !document.getElementById('nextButton')?.disabled");
+            "() => document.getElementById('name')?.dataset.stage1ValidityListener === 'true' && document.body?.dataset.convergenceStage === '1' && !document.getElementById('nextButton')?.disabled");
         await page.EvaluateAsync("() => window.scrollTo({ top: 0, left: 0, behavior: 'auto' })");
         await page.WaitForFunctionAsync(
             """
