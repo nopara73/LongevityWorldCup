@@ -10,6 +10,60 @@ public sealed class AestheticAccessibilityBrowserTests(
     BrowserTestAppFixture appFixture)
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
+    [Theory]
+    [InlineData("/about", 720)]
+    [InlineData("/about", 350)]
+    [InlineData("/ruleset", 720)]
+    [InlineData("/ruleset", 350)]
+    [InlineData("/history", 720)]
+    [InlineData("/history", 350)]
+    public async Task DesktopDocumentationNavigation_KeepsEveryLinkReachableOnShortScreens(string path, int height)
+    {
+        await using var context = await NewContextAsync(
+            Browser,
+            App,
+            new BrowserNewContextOptions
+            {
+                ViewportSize = new ViewportSize { Width = 1280, Height = height }
+            });
+        var page = await context.NewPageAsync();
+        await NavigateAndSettleAsync(page, path);
+        await page.EvaluateAsync("window.scrollTo({ top: 400, behavior: 'instant' })");
+        await page.EvaluateAsync(
+            "() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+
+        var navigation = page.Locator(".documentation-nav");
+        var navigationBox = await navigation.BoundingBoxAsync();
+        Assert.NotNull(navigationBox);
+        Assert.True(navigationBox.Y >= 0 && navigationBox.Y + navigationBox.Height <= height - 8,
+            $"{path} contents extend beyond the {height}px viewport: y={navigationBox.Y}, height={navigationBox.Height}.");
+
+        var links = navigation.Locator("a");
+        var count = await links.CountAsync();
+        Assert.True(count > 1);
+        await links.First.FocusAsync();
+        for (var index = 0; index < count; index++)
+        {
+            if (index > 0)
+                await page.Keyboard.PressAsync("Tab");
+
+            var link = links.Nth(index);
+            Assert.True(await link.EvaluateAsync<bool>("element => element === document.activeElement"),
+                $"{path} contents link {index + 1} was skipped by keyboard navigation.");
+            var linkBox = await link.BoundingBoxAsync();
+            Assert.NotNull(linkBox);
+            navigationBox = await navigation.BoundingBoxAsync();
+            Assert.NotNull(navigationBox);
+            Assert.True(linkBox.Y >= navigationBox.Y - 1 &&
+                        linkBox.Y + linkBox.Height <= Math.Min(height, navigationBox.Y + navigationBox.Height) + 1,
+                $"{path} focused contents link {index + 1} is clipped at {height}px height.");
+        }
+
+        Assert.True(await navigation.Locator(".documentation-source-link")
+            .EvaluateAsync<bool>("element => element === document.activeElement"),
+            "Keyboard navigation must reach the source link at the end of the contents.");
+    }
+
     [Fact]
     public async Task MobileDocumentationNavigation_UsesProgressiveDisclosureAndLargeTargets()
     {

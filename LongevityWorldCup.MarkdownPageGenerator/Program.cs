@@ -213,8 +213,9 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
         }
 
         .documentation-nav {
+            --documentation-nav-offset: 4.25rem;
             position: sticky;
-            top: 4.25rem;
+            top: var(--documentation-nav-offset);
             display: grid;
             gap: 0.2rem;
             padding: 0.85rem 0.7rem 0.95rem;
@@ -222,6 +223,18 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
             border-radius: 0 8px 8px 0;
             background: var(--lwc-surface-muted, #eef2f5);
             box-shadow: none;
+        }
+
+        @media (min-width: 901px) {
+            .documentation-nav {
+                box-sizing: border-box;
+                max-height: calc(100dvh - var(--documentation-nav-offset) - 1rem);
+                overflow-y: auto;
+                overscroll-behavior: contain;
+                scroll-padding-block: var(--lwc-space-2);
+                scrollbar-width: thin;
+                scrollbar-color: var(--lwc-border-strong) transparent;
+            }
         }
 
         .documentation-nav-title {
