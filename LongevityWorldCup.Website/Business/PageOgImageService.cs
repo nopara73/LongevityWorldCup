@@ -277,28 +277,7 @@ public sealed class PageOgImageService
 
     private async Task<Image<Rgba32>> LoadLogoMarkAsync(CancellationToken ct)
     {
-        await using var logoStream = File.OpenRead(_logoPath);
-        var logo = await Image.LoadAsync<Rgba32>(logoStream, ct);
-        logo.ProcessPixelRows(accessor =>
-        {
-            for (var y = 0; y < accessor.Height; y++)
-            {
-                var row = accessor.GetRowSpan(y);
-                for (var x = 0; x < row.Length; x++)
-                {
-                    var pixel = row[x];
-                    var brightness = (pixel.R + pixel.G + pixel.B) / 3f;
-                    if (brightness < 110f)
-                    {
-                        row[x] = Color.Transparent;
-                        continue;
-                    }
-
-                    var alpha = (byte)Math.Clamp((brightness - 110f) * 2.4f, 0f, pixel.A);
-                    row[x] = new Rgba32(255, 255, 255, alpha);
-                }
-            }
-        });
+        var logo = await ImageLogo.LoadMarkAsync(_logoPath, ct);
 
         var bounds = FindVisibleBounds(logo);
         if (bounds.Width > 0 && bounds.Height > 0)
