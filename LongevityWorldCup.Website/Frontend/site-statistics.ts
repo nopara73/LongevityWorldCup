@@ -1647,7 +1647,7 @@
                 detailPanel("Acquisition quality", sourceQualityTable(events)),
                 detailPanel("Campaigns", campaignTable(events)),
                 detailPanel("Device split", splitTable(events, e => e.deviceClass || "unknown")),
-                detailPanel("First referrers", sourceQualityTable(events, firstReferrer, "Referrer"))
+                detailPanel("First referrers", referrerQualityTable(events))
             ].join("");
             return;
         }
@@ -2431,19 +2431,24 @@
         ]);
     }
 
-    function sourceQualityTable(
-        events: DashboardEvent[],
-        key: (event: DashboardEvent) => string = acquisitionSource,
-        label = "Source"
-    ): string {
-        const rows: [string, number, number, number, number, number][] = Array.from(groupBy(events, key).entries()).map(([source, items]) => {
+    function sourceQualityTable(events: DashboardEvent[]): string {
+        const rows: [string, number, number, number, number, number][] = Array.from(groupBy(events, acquisitionSource).entries()).map(([source, items]) => {
             const results = uniqueSessionsFor(items, ["calculator_result_generated"]);
             const applications = uniqueSessionsFor(items, ["application_submit_succeeded"]);
             const challenge = uniqueSessionsFor(items, ["challenge_scored_checkin_submitted"]);
             const quality = applications * 5 + challenge * 4 + results;
             return [source, uniqueSessions(items), results, applications, challenge, quality] as [string, number, number, number, number, number];
         }).sort((a, b) => b[5] - a[5]);
-        return table([label, "Sessions", "Results", "Apps", "Challenge", "Quality"], rows.slice(0, 12));
+        return table(["Source", "Sessions", "Results", "Apps", "Challenge", "Quality"], rows.slice(0, 12));
+    }
+
+    function referrerQualityTable(events: DashboardEvent[]): string {
+        const rows = Array.from(groupBy(events, firstReferrer).entries()).map(([referrer, items]) => [
+            referrer,
+            uniqueSessions(items),
+            uniqueSessionsFor(items, ["application_submit_succeeded"])
+        ] as [string, number, number]).sort((a, b) => b[2] - a[2] || b[1] - a[1]);
+        return table(["Referrer", "Sessions", "Apps"], rows.slice(0, 12));
     }
 
     function campaignTable(events: DashboardEvent[]): string {

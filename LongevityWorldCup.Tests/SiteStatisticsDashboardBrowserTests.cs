@@ -94,7 +94,7 @@ public sealed class SiteStatisticsDashboardBrowserTests(
         var referrers = page.Locator("#detailSections .detail-panel")
             .Filter(new() { Has = page.GetByRole(AriaRole.Heading, new() { Name = "First referrers", Exact = true }) });
         await Assertions.Expect(referrers.Locator("tbody tr").Filter(new() { HasText = "www.reddit.com" }).Locator("td"))
-            .ToHaveTextAsync(["www.reddit.com", "3", "0", "2", "0", "10"]);
+            .ToHaveTextAsync(["www.reddit.com", "3", "2"]);
         var campaigns = page.Locator("#detailSections .detail-panel")
             .Filter(new() { Has = page.GetByRole(AriaRole.Heading, new() { Name = "Campaigns", Exact = true }) });
         await Assertions.Expect(campaigns.Locator("tbody tr").Filter(new() { HasText = "outreach" }).Locator("td"))
