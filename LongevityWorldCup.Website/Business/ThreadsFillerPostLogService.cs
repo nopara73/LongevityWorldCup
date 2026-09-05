@@ -1,5 +1,3 @@
-using LongevityWorldCup.Website.Tools;
-
 namespace LongevityWorldCup.Website.Business;
 
 public class ThreadsFillerPostLogService
@@ -33,12 +31,12 @@ public class ThreadsFillerPostLogService
 
     public IReadOnlyList<(FillerType Type, string PayloadText)> GetSuggestedFillersOrdered()
     {
-        return FillerPostLogStore.GetSuggestedFillersOrdered(_db, TableName, TokenBelongsToOption);
+        return FillerPostLogStore.GetSuggestedFillersOrdered(_db, TableName, FillerPostOptions.MatchesMetaToken);
     }
 
     public bool IsUnchangedFromLastForOption(FillerType type, string payloadText, string infoToken)
     {
-        return FillerPostLogStore.IsUnchangedFromLastForOption(_db, TableName, type, payloadText, infoToken, TokenBelongsToOption);
+        return FillerPostLogStore.IsUnchangedFromLastForOption(_db, TableName, type, payloadText, infoToken, FillerPostOptions.MatchesMetaToken);
     }
 
     public bool IsOnCooldownForType(FillerType type, TimeSpan cooldown, DateTime? nowUtc = null)
@@ -49,28 +47,5 @@ public class ThreadsFillerPostLogService
     public bool IsOnRandomizedCooldownForType(FillerType type, int minDays, int maxDays, DateTime? nowUtc = null)
     {
         return FillerPostLogSchedule.IsOnRandomizedCooldownForType(_db, TableName, type, minDays, maxDays, nowUtc);
-    }
-
-    private static bool TokenBelongsToOption(FillerType type, string payloadText, string token)
-    {
-        var payload = payloadText ?? "";
-        var t = token ?? "";
-
-        return type switch
-        {
-            FillerType.Top3Leaderboard => EventHelpers.TryExtractLeague(payload, out var leagueSlug)
-                && !string.IsNullOrWhiteSpace(leagueSlug)
-                && t.Contains($"league[{leagueSlug.Trim().ToLowerInvariant()}]", StringComparison.Ordinal),
-            FillerType.DomainTop => EventHelpers.TryExtractDomain(payload, out var domainKey)
-                && !string.IsNullOrWhiteSpace(domainKey)
-                && t.Contains($"domain[{domainKey.Trim().ToLowerInvariant()}]", StringComparison.Ordinal),
-            FillerType.CrowdGuesses => t.StartsWith("podium[", StringComparison.Ordinal),
-            FillerType.Newcomers => t.StartsWith("slugs[", StringComparison.Ordinal),
-            FillerType.HistoryDocument => t.StartsWith("history-document[", StringComparison.Ordinal),
-            FillerType.Ruleset => t.StartsWith("ruleset[", StringComparison.Ordinal),
-            FillerType.GitHubRepository => t.StartsWith("github-repository[", StringComparison.Ordinal),
-            FillerType.Donation => t.StartsWith("donation-reminder[", StringComparison.Ordinal),
-            _ => false
-        };
     }
 }
