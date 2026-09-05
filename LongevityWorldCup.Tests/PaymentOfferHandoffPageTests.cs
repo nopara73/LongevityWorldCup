@@ -4,8 +4,7 @@ using Xunit;
 namespace LongevityWorldCup.Tests;
 
 
-[Collection(HttpTestCollections.ReadOnly)]
-public sealed class PaymentOfferHandoffPageTests(TestWebApplicationFactory sharedFactory)
+public sealed class PaymentOfferHandoffPageTests
 {
     [Fact]
     public void JoinPaymentOffer_HaltsNavigationWhenStorageFails()
@@ -77,22 +76,6 @@ public sealed class PaymentOfferHandoffPageTests(TestWebApplicationFactory share
         Assert.Contains("renderJoinPricing();", playMenu);
         Assert.Contains("if (!window.proDiscounts || typeof window.proDiscounts.buildDiscountBreakdown !== 'function') return;", playMenu);
         Assert.DoesNotContain("const ready = window.modulesReady || Promise.resolve();", playMenu);
-    }
-
-    [Fact]
-    public async Task JoinPricing_DiscountBadgeSlotFitsMobileTapTarget()
-    {
-        using var client = sharedFactory.CreateClient();
-
-        var css = await client.GetStringAsync("/css/play-menu.css");
-
-        Assert.Contains(".pro-discount-badge-slot {\n    width: 44px;", css);
-        Assert.Contains("min-width: 44px;", css);
-        Assert.Contains("height: 44px;", css);
-        Assert.Contains(".pro-discount-badge-slot:empty", css);
-        Assert.Contains(".pro-discount-breakdown.pro-discount-breakdown--with-badges .pro-discount-badge-slot:empty", css);
-        Assert.Contains(".pro-discount-text", css);
-        Assert.Contains("overflow-wrap: anywhere;", css);
     }
 
     [Fact]

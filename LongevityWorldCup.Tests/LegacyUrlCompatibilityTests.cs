@@ -62,6 +62,16 @@ public sealed class LegacyUrlCompatibilityTests(TestWebApplicationFactory factor
         Assert.Null(canonicalResponse.Headers.Location);
         Assert.Contains($"<link rel=\"canonical\" href=\"https://longevityworldcup.com{canonical}\"", html);
         Assert.DoesNotContain("{{SEO_", html);
+
+        if (canonical is "/pheno-age" or "/bortz-age" or "/play" or "/join" or "/apply"
+            or "/review" or "/proofs" or "/select-athlete" or "/dashboard" or "/edit-profile" or "/unsubscribe")
+        {
+            Assert.Contains("<meta name=\"robots\" content=\"noindex, nofollow\"", html);
+        }
+        else if (canonical == "/privacy")
+        {
+            Assert.DoesNotContain("<meta name=\"robots\" content=\"noindex, nofollow\"", html);
+        }
     }
 
     [Theory]

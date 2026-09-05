@@ -1,5 +1,28 @@
 # Test audit ledger
 
+## September 2026 source snapshot pruning
+
+The requested suite reduction removes 326 test cases (229 fact/theory methods). The fixed starting baseline is master `99f77f96`, whose [successful CI run](https://github.com/nopara73/LongevityWorldCup/actions/runs/33945073077) passed 1,538 cases: 21.2% of that suite is removed. Concurrent URL, contact, attribution, and submission-error regression additions are retained; final runner totals include those additions.
+
+The removed tests predominantly searched HTML, CSS, and JavaScript for exact source fragments, helper names, markup, colors, or copy. They constrained implementation details without executing the behavior named by the test. The motion-source auditor and tests of its own parser were removed together. This intentionally reduces source-shape coverage; it does not claim that every deleted assertion has an equivalent behavioral assertion.
+
+| Removed snapshots | Retained coverage |
+| --- | --- |
+| Application, review, proof-upload, profile-edit, and selected-athlete page snapshots | `NewAthleteOnboardingBrowserTests`, `ProofUploadBrowserTests`, `PlayAthleteFlowBrowserTests`, controller validation, payment policy, submission retry, and image-processing tests; retain the original source checks for the proof cap, duplicates, unsupported/mixed selections, and per-file recovery |
+| Stored-biomarker and calculator handoff snapshots | Calculator/API tests, `BioageFlowBrowserTests`, `BioageMobileUxBrowserTests`, keyboard/viewport tests, and rank-preview tests; retain all six original automatic-unit-correction/handoff checks |
+| Play menu, shared flow controls, CSS motion, accessibility markup, badge colors, radar drawing, and leaderboard script snapshots | Every browser test, including the flow, accessibility, responsive-layout, reduced-motion, proof-viewer, and navigation scenarios; ranking, badge, and Event tests |
+| Aesthetic-system and statistics source/copy snapshots | Served-page routing, versioned assets, local font files, standalone-page isolation, statistics service, dashboard browser, and tracking browser tests |
+| Exact utility-page titles and ruleset diagram copy/placement | Keep every indexing-policy assertion from the title tests in the existing canonical-page response checks, which already request those same pages |
+| Custom-event designer wording/source fragments and discount-badge CSS dimensions | Custom-event delivery, preview-service, and queue tests; payment handoff checks and every existing play/flow browser test |
+
+The original best-rank candidate-set and modal-metadata checks also remain because the route browser tests do not exercise those contracts. Source checks with unique ranking, unit-conversion, or proof-processing coverage are retained even when a future behavioral replacement would be preferable.
+
+Surviving assertions are unchanged; indexing-policy assertions move into the existing canonical-page tests. `ApplicationSubmissionTimeout_WaitsForDedicatedServerTimeout` moves intact into `PublicRequestTimeoutTests` so the browser/server deadline relationship stays covered. No test is skipped, filtered out of CI, or converted into a passing placeholder.
+
+## Earlier architecture audit
+
+The counts and measurements below are historical results from the earlier architecture work.
+
 The sub-minute runtime target was abandoned in favor of correctness-first repair. Performance changes below are retained only where the protected contract remains explicit and repeated runs show a real saving. No test was removed merely for being slow.
 
 ## Coverage disposition

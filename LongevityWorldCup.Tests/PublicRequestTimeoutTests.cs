@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using System.Text.RegularExpressions;
 using Xunit;
 
 namespace LongevityWorldCup.Tests;
@@ -91,5 +92,19 @@ public sealed class PublicRequestTimeoutTests(TestWebApplicationFactory sharedFa
             Assert.NotNull(timeout);
             Assert.Equal(PublicRequestTimeoutPolicies.ApplicationSubmission, timeout.PolicyName);
         });
+    }
+
+    [Fact]
+    public async Task ApplicationSubmissionTimeout_WaitsForDedicatedServerTimeout()
+    {
+        var factory = sharedFactory;
+        using var client = factory.CreateClient();
+
+        var javascript = await client.GetStringAsync("/js/misc.js");
+        var match = Regex.Match(javascript, @"APPLICATION_SUBMISSION_TIMEOUT_MS\s*=\s*(\d+)");
+
+        Assert.True(match.Success);
+        var timeoutMs = int.Parse(match.Groups[1].Value);
+        Assert.True(timeoutMs > PublicRequestTimeoutPolicies.ApplicationSubmissionTimeout.TotalMilliseconds);
     }
 }
