@@ -6,8 +6,6 @@ namespace LongevityWorldCup.Website.Business;
 public class ThreadsFillerPostLogService
 {
     private const string TableName = "ThreadsFillerPostLog";
-    private static readonly string[] Top3LeagueSlugs = ["ultimate", "amateur", "mens", "womens", "open", "silent-generation", "baby-boomers", "gen-x", "millennials", "gen-z", "gen-alpha", "prosperan"];
-    private static readonly string[] DomainKeys = ["liver", "kidney", "metabolic", "inflammation", "immune", "vitamin_d"];
     private readonly DatabaseManager _db;
 
     public ThreadsFillerPostLogService(DatabaseManager db)
@@ -114,15 +112,7 @@ public class ThreadsFillerPostLogService
 
     public IReadOnlyList<(FillerType Type, string PayloadText)> GetSuggestedFillersOrdered()
     {
-        var options = new List<(FillerType Type, string Text)>();
-        foreach (var slug in Top3LeagueSlugs)
-            options.Add((FillerType.Top3Leaderboard, $"league[{slug}]"));
-        foreach (var dk in DomainKeys)
-            options.Add((FillerType.DomainTop, $"domain[{dk}]"));
-        options.Add((FillerType.HistoryDocument, ""));
-        options.Add((FillerType.Ruleset, ""));
-        options.Add((FillerType.GitHubRepository, ""));
-        options.Add((FillerType.Donation, ""));
+        var options = FillerPostOptions.Create();
 
         var lastByOption = _db.Run(sqlite =>
         {
