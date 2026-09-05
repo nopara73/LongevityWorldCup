@@ -66,8 +66,7 @@ public sealed class AssetVersionProvider
     private static string ComputeHash(string fullPath)
     {
         using var stream = File.OpenRead(fullPath);
-        using var sha256 = SHA256.Create();
-        var hash = sha256.ComputeHash(stream);
+        var hash = SHA256.HashData(stream);
         return Convert.ToHexString(hash[..8]).ToLowerInvariant();
     }
 
