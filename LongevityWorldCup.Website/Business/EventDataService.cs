@@ -33,7 +33,8 @@ public enum EventType
     BecamePro = 9,
     BiologicalAgeImproved = 10,
     CrowdAgeTop10Change = 11,
-    AgeImprovementTop10Change = 12
+    AgeImprovementTop10Change = 12,
+    TestResultAccepted = 13
 }
 
 public sealed record CustomEventDeliveryTargets(
@@ -337,7 +338,7 @@ public sealed class EventDataService : IDisposable
 
     internal static bool ShouldSkipSlackNotification(EventType type, DateTime occurredAtUtc, DateTime freshCutoffUtc)
     {
-        if (type is EventType.BecamePro or EventType.BiologicalAgeImproved)
+        if (type is EventType.BecamePro or EventType.BiologicalAgeImproved or EventType.TestResultAccepted)
             return true;
 
         return type == EventType.AthleteCountMilestone && EnsureUtc(occurredAtUtc) < freshCutoffUtc;
@@ -1024,6 +1025,99 @@ public sealed class EventDataService : IDisposable
         {
             ReloadIntoCache();
         }
+    }
+
+    public int SyncAcceptedResultEvents(JsonArray athletes, DateTime acceptedAtUtc)
+    {
+        ArgumentNullException.ThrowIfNull(athletes);
+        if (athletes.Count == 0)
+            return 0;
+
+        // Published results are identified by athlete and test date, not mutable
+        // biomarker values or array positions. Partial panels also represent tests.
+        var results = new HashSet<(string Slug, string Date)>();
+        foreach (var athlete in athletes.OfType<JsonObject>())
+        {
+            var slug = NormalizeAthleteSlugForEventCleanup(athlete["AthleteSlug"]?.GetValue<string>());
+            if (string.IsNullOrWhiteSpace(slug) || athlete["Biomarkers"] is not JsonArray biomarkers)
+                continue;
+
+            foreach (var result in biomarkers.OfType<JsonObject>())
+            {
+                if (result["Date"] is not JsonValue dateValue ||
+                    !dateValue.TryGetValue<string>(out var dateText) ||
+                    !DateOnly.TryParse(dateText, CultureInfo.InvariantCulture, DateTimeStyles.None, out var date) ||
+                    !result.Any(field => field.Key != "Date" && field.Value is JsonValue value &&
+                        value.TryGetValue<double>(out var number) && double.IsFinite(number)))
+                    continue;
+
+                results.Add((slug, date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)));
+            }
+        }
+
+        var created = _db.Run(sqlite =>
+        {
+            using var tx = sqlite.BeginTransaction();
+            using var schema = sqlite.CreateCommand();
+            schema.Transaction = tx;
+            schema.CommandText = "SELECT 1 FROM sqlite_master WHERE type='table' AND name='AcceptedAthleteResults';";
+            var baseline = schema.ExecuteScalar() is null;
+            schema.CommandText =
+                """
+                CREATE TABLE IF NOT EXISTS AcceptedAthleteResults (
+                    AthleteSlug TEXT NOT NULL,
+                    ResultDate TEXT NOT NULL,
+                    PRIMARY KEY (AthleteSlug, ResultDate)
+                );
+                """;
+            schema.ExecuteNonQuery();
+
+            using var remember = sqlite.CreateCommand();
+            remember.Transaction = tx;
+            remember.CommandText =
+                """
+                INSERT INTO AcceptedAthleteResults (AthleteSlug, ResultDate) VALUES (@slug, @date)
+                ON CONFLICT (AthleteSlug, ResultDate) DO NOTHING;
+                """;
+            var pSlug = remember.Parameters.Add("@slug", SqliteType.Text);
+            var pDate = remember.Parameters.Add("@date", SqliteType.Text);
+
+            using var insert = sqlite.CreateCommand();
+            insert.Transaction = tx;
+            insert.CommandText =
+                """
+                INSERT INTO Events (Id, Type, Text, OccurredAt, Relevance, SlackProcessed, XProcessed, ThreadsProcessed, FacebookProcessed)
+                VALUES (@id, @type, @text, @occurredAt, 5, 1, 1, 1, 1)
+                ON CONFLICT (Id) DO NOTHING;
+                """;
+            var pId = insert.Parameters.Add("@id", SqliteType.Text);
+            var pText = insert.Parameters.Add("@text", SqliteType.Text);
+            insert.Parameters.AddWithValue("@type", (int)EventType.TestResultAccepted);
+            insert.Parameters.AddWithValue("@occurredAt", EnsureUtc(acceptedAtUtc).ToString("o"));
+
+            var count = 0;
+            foreach (var (slug, date) in results.OrderBy(result => result.Slug, StringComparer.Ordinal).ThenBy(result => result.Date, StringComparer.Ordinal))
+            {
+                pSlug.Value = slug;
+                pDate.Value = date;
+                if (remember.ExecuteNonQuery() == 0 || baseline)
+                    continue;
+
+                pId.Value = $"accepted-result:{slug}:{date}";
+                pText.Value = $"slug[{slug}] date[{date}]";
+                count += insert.ExecuteNonQuery();
+            }
+
+            // Creating the ledger and seeding history is one transaction. A failed
+            // first load cannot leave an empty ledger that floods profiles on retry.
+            // Later loads remember results and create their Events atomically too.
+            tx.Commit();
+            return count;
+        });
+
+        if (created > 0)
+            ReloadIntoCache();
+        return created;
     }
 
     public void CreateBiologicalAgeImprovementEvents(
@@ -2216,7 +2310,8 @@ public sealed class EventDataService : IDisposable
             or EventType.BecamePro
             or EventType.BiologicalAgeImproved
             or EventType.CrowdAgeTop10Change
-            or EventType.AgeImprovementTop10Change;
+            or EventType.AgeImprovementTop10Change
+            or EventType.TestResultAccepted;
 
     internal static IReadOnlyList<string> ExtractReferencedAthleteSlugs(string text)
     {

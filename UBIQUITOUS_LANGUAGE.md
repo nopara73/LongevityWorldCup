@@ -34,6 +34,7 @@ Use lowercase pheno age, bortz age, crowd age, age reduction, and effective age 
 
 ## Events
 
+- Accepted-test Events appear only in the athlete's profile highlights when a dated biomarker result becomes public, including non-improvements, partial panels, and older backfilled tests. Each athlete and test date identifies one result across clocks; same-date corrections, additional markers, reordered records, reloads, and restarts do not create another Event. The Event date is when publication is first observed, and its text identifies the test date. Existing results are silently baselined when tracking is first introduced; subsequent results are remembered and their Events saved atomically, including results first observed at startup. These Events do not enter the shared highlights feed or social queues.
 - Biological-age improvement Events represent chronologically new personal bests, use the result date as the Event date, and are not created when an older backfilled result predates the athlete's previous personal best.
 - Pheno/Bortz best-improvement badges compare the latest eligible result with the first eligible result. Improvement leaderboards and their placement Events compare the latest eligible result with the worst eligible result.
 

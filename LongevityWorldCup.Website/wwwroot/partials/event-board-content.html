@@ -1082,7 +1082,7 @@
             return window.__sharedAthletesRequest;
         };
 
-        const EVENT_TYPE = { General: 0, Joined: 1, NewRank: 2, DonationReceived: 3, AthleteCountMilestone: 4, BadgeAward: 5, CustomEvent: 6, SeasonFinalResult: 7, LongevitymaxxingChallengeResult: 8, BecamePro: 9, BiologicalAgeImproved: 10, CrowdAgeTop10Change: 11, AgeImprovementTop10Change: 12 };
+        const EVENT_TYPE = { General: 0, Joined: 1, NewRank: 2, DonationReceived: 3, AthleteCountMilestone: 4, BadgeAward: 5, CustomEvent: 6, SeasonFinalResult: 7, LongevitymaxxingChallengeResult: 8, BecamePro: 9, BiologicalAgeImproved: 10, CrowdAgeTop10Change: 11, AgeImprovementTop10Change: 12, TestResultAccepted: 13 };
         const EVENT_TYPE_NAME_BY_ID = {};
         Object.keys(EVENT_TYPE).forEach(name => {
             EVENT_TYPE_NAME_BY_ID[String(EVENT_TYPE[name])] = name;
@@ -1637,6 +1637,7 @@
                 const leagueValue = extractLeagueValue(text);
                 const place = extractPlace(text);
 
+                const resultDate = extractToken(text, "date");
                 const seasonId = extractSeason(text);
                 const clockId = extractClock(text);
                 const ageDiff = extractAgeDiff(text);
@@ -1654,7 +1655,7 @@
                 const eventImprovement = extractFloatToken(text, "improvement");
                 const eventAgeReduction = extractFloatToken(text, "ageReduction");
 
-                return { id, type, text, occurredAt, relevance, slugs: slugTokens, primarySlug, prevSlug, prevSlugs, isSolo, badgeBurstKey, rank, sats, milestoneCount, badgeLabel, leagueCategory, leagueValue, place, seasonId, clockId, ageDiff, challengeKey, challengeDisplayName, checkedInDays, totalPoints, challengeDays, challengeCompleted, bioAgeFrom, bioAgeTo, previousPlace, eventCrowdAge, eventCrowdCount, eventImprovement, eventAgeReduction };
+                return { id, type, text, occurredAt, relevance, slugs: slugTokens, primarySlug, prevSlug, prevSlugs, isSolo, badgeBurstKey, rank, sats, milestoneCount, badgeLabel, leagueCategory, leagueValue, place, resultDate, seasonId, clockId, ageDiff, challengeKey, challengeDisplayName, checkedInDays, totalPoints, challengeDays, challengeCompleted, bioAgeFrom, bioAgeTo, previousPlace, eventCrowdAge, eventCrowdCount, eventImprovement, eventAgeReduction };
             });
         }
 
@@ -1908,7 +1909,7 @@
                 const isSelfRow = athletePageTargetSlug && primaryKey===athletePageTargetSlug;
 
                 let avatarHtml = "";
-                const canLinkAvatar = (r.type === EVENT_TYPE.Joined || r.type === EVENT_TYPE.NewRank || r.type === EVENT_TYPE.BadgeAward || r.type === EVENT_TYPE.SeasonFinalResult || r.type === EVENT_TYPE.LongevitymaxxingChallengeResult || r.type === EVENT_TYPE.BecamePro || r.type === EVENT_TYPE.BiologicalAgeImproved || r.type === EVENT_TYPE.CrowdAgeTop10Change || r.type === EVENT_TYPE.AgeImprovementTop10Change)
+                const canLinkAvatar = (r.type === EVENT_TYPE.Joined || r.type === EVENT_TYPE.NewRank || r.type === EVENT_TYPE.BadgeAward || r.type === EVENT_TYPE.SeasonFinalResult || r.type === EVENT_TYPE.LongevitymaxxingChallengeResult || r.type === EVENT_TYPE.BecamePro || r.type === EVENT_TYPE.BiologicalAgeImproved || r.type === EVENT_TYPE.CrowdAgeTop10Change || r.type === EVENT_TYPE.AgeImprovementTop10Change || r.type === EVENT_TYPE.TestResultAccepted)
                     && r.primarySlug
                     && url
                     && !isSelfRow
@@ -1922,7 +1923,7 @@
                     ? ` data-athlete-slug="${esc(primaryKey)}"`
                     : ``;
 
-                if (r.type === EVENT_TYPE.Joined || r.type === EVENT_TYPE.NewRank || r.type === EVENT_TYPE.BadgeAward || r.type === EVENT_TYPE.SeasonFinalResult || r.type === EVENT_TYPE.BecamePro || r.type === EVENT_TYPE.BiologicalAgeImproved || r.type === EVENT_TYPE.CrowdAgeTop10Change || r.type === EVENT_TYPE.AgeImprovementTop10Change || (r.type === EVENT_TYPE.LongevitymaxxingChallengeResult && r.primarySlug)) {
+                if (r.type === EVENT_TYPE.Joined || r.type === EVENT_TYPE.NewRank || r.type === EVENT_TYPE.BadgeAward || r.type === EVENT_TYPE.SeasonFinalResult || r.type === EVENT_TYPE.BecamePro || r.type === EVENT_TYPE.BiologicalAgeImproved || r.type === EVENT_TYPE.CrowdAgeTop10Change || r.type === EVENT_TYPE.AgeImprovementTop10Change || r.type === EVENT_TYPE.TestResultAccepted || (r.type === EVENT_TYPE.LongevitymaxxingChallengeResult && r.primarySlug)) {
                     if (img) {
                         avatarHtml = canLinkAvatar
                             ? `<a href="${url}" class="avatar-link event-athlete-link" title="${esc(name)}" aria-label="${esc(name)}"${avatarModalAttrs}${avatarTargetAttrs}><img class="avatar" src="${esc(img)}" alt="${esc(name)}" ${avatarLoadingAttrs} decoding="async" referrerpolicy="no-referrer"></a>`
@@ -2042,6 +2043,15 @@
                         afterNameWithCurrentRankFor()
                     );
                     msgHtml = `${nameWithRank} went Pro`;
+                } else if (r.type === EVENT_TYPE.TestResultAccepted && r.primarySlug) {
+                    const nameWithRank = renderTextWithSlugLinks(
+                        `slug[${r.primarySlug}]`,
+                        linkNames,
+                        athletesIndex,
+                        afterNameWithCurrentRankFor()
+                    );
+                    const testDate = r.resultDate ? ` (${esc(formatListDate(`${r.resultDate}T00:00:00`))})` : "";
+                    msgHtml = `${nameWithRank} submitted a new test${testDate}`;
                 } else if (r.type === EVENT_TYPE.BiologicalAgeImproved && r.primarySlug) {
                     const nameWithRank = renderTextWithSlugLinks(
                         `slug[${r.primarySlug}]`,
@@ -2770,6 +2780,7 @@
                 }else{
                     rows=rows.filter(r=>
                         r.type!==EVENT_TYPE.SeasonFinalResult &&
+                        r.type!==EVENT_TYPE.TestResultAccepted &&
                         (r.type!==EVENT_TYPE.LongevitymaxxingChallengeResult || isAllowedLongevitymaxxingChallengeResult(r, mode)) &&
                         (r.type!==EVENT_TYPE.NewRank || isTop10Rank(r, athletesIndex)));
                 }

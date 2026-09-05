@@ -18,6 +18,7 @@ public sealed class SocialEventSkipPolicyTests
         yield return new object[] { EventType.NewRank, "slug[alice] rank[1]", now.AddDays(-8), 0, freshCutoff, true, true, SocialEventSkipReason.StalePrimaryEvent };
         yield return new object[] { EventType.AthleteCountMilestone, "athletes[100]", now, 8, freshCutoff, true, false, SocialEventSkipReason.None };
         yield return new object[] { EventType.BecamePro, "slug[alice]", now, 8, freshCutoff, true, true, SocialEventSkipReason.UnsupportedEventType };
+        yield return new object[] { EventType.TestResultAccepted, "slug[alice] date[2026-06-06]", now, 99, freshCutoff, true, true, SocialEventSkipReason.UnsupportedEventType };
         yield return new object[] { EventType.BecamePro, "not-a-slug", now, 8, freshCutoff, true, true, SocialEventSkipReason.UnsupportedEventType };
         yield return new object[] { EventType.BiologicalAgeImproved, "slug[alice] clock[pheno] from[44.2] to[41.8]", now, 8, freshCutoff, true, true, SocialEventSkipReason.UnsupportedEventType };
         yield return new object[] { EventType.BiologicalAgeImproved, "slug[alice] clock[pheno] from[41.8] to[44.2]", now, 8, freshCutoff, true, true, SocialEventSkipReason.UnsupportedEventType };
@@ -40,6 +41,7 @@ public sealed class SocialEventSkipPolicyTests
         yield return new object[] { EventType.BadgeAward, true, SocialEventSkipReason.FacebookSupportsCustomEventsOnly };
         yield return new object[] { EventType.AthleteCountMilestone, true, SocialEventSkipReason.FacebookSupportsCustomEventsOnly };
         yield return new object[] { EventType.BecamePro, true, SocialEventSkipReason.FacebookSupportsCustomEventsOnly };
+        yield return new object[] { EventType.TestResultAccepted, true, SocialEventSkipReason.FacebookSupportsCustomEventsOnly };
         yield return new object[] { EventType.BiologicalAgeImproved, true, SocialEventSkipReason.FacebookSupportsCustomEventsOnly };
         yield return new object[] { EventType.CrowdAgeTop10Change, true, SocialEventSkipReason.FacebookSupportsCustomEventsOnly };
         yield return new object[] { EventType.AgeImprovementTop10Change, true, SocialEventSkipReason.FacebookSupportsCustomEventsOnly };
@@ -129,6 +131,10 @@ public sealed class SocialEventSkipPolicyTests
             freshCutoffUtc));
         Assert.True(EventDataService.ShouldSkipSlackNotification(
             EventType.BiologicalAgeImproved,
+            freshCutoffUtc,
+            freshCutoffUtc));
+        Assert.True(EventDataService.ShouldSkipSlackNotification(
+            EventType.TestResultAccepted,
             freshCutoffUtc,
             freshCutoffUtc));
     }

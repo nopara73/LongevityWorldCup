@@ -23,6 +23,8 @@ public sealed class EventDataServiceCleanupTests(TestWebApplicationFactory share
 
             InsertEvent(sqlite, "valid-rank", EventType.NewRank, "slug[alice] rank[1] prev[bob]");
             InsertEvent(sqlite, "missing-primary", EventType.NewRank, "slug[ghost] rank[1]");
+            InsertEvent(sqlite, "missing-test", EventType.TestResultAccepted, "slug[ghost] date[2026-08-31]");
+            InsertEvent(sqlite, "valid-test", EventType.TestResultAccepted, "slug[alice] date[2026-08-31]");
             InsertEvent(sqlite, "missing-prev", EventType.BadgeAward, "slug[alice] badge[Test] cat[Global] val[] place[1] prev[ghost]");
             InsertEvent(sqlite, "custom", EventType.CustomEvent, "slug[ghost]\n\nEditorial note");
             InsertEvent(sqlite, "milestone", EventType.AthleteCountMilestone, "athletes[100]");
@@ -43,9 +45,11 @@ public sealed class EventDataServiceCleanupTests(TestWebApplicationFactory share
             "judy"
         });
 
-        Assert.Equal(2, hidden);
+        Assert.Equal(3, hidden);
         var visibleIds = events.GetEvents(visibleOnWebsite: true).Select(e => e.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
         Assert.Contains("valid-rank", visibleIds);
+        Assert.Contains("valid-test", visibleIds);
+        Assert.DoesNotContain("missing-test", visibleIds);
         Assert.Contains("custom", visibleIds);
         Assert.Contains("milestone", visibleIds);
         Assert.Contains("challenge", visibleIds);
