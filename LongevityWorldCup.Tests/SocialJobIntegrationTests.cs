@@ -227,6 +227,92 @@ public sealed class SocialJobIntegrationTests
         Assert.Equal(2, fixture.FacebookRequests.Count);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task XSend_RetriesMissingPostIdWithTheSameTextAndMedia(bool retrySucceeds)
+    {
+        var attempts = 0;
+        using var fixture = SocialJobFixture.Create(responseOverride: _ =>
+            new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(++attempts == 2 && retrySucceeds
+                    ? """{"data":{"id":"tweet-1"}}"""
+                    : "{}")
+            });
+
+        var sent = await fixture.XEvents.TrySendAsync("Keep the original caption", ["media-1"]);
+
+        Assert.Equal(retrySucceeds, sent);
+        Assert.Equal(2, attempts);
+        foreach (var request in fixture.XRequests)
+        {
+            Assert.Equal("/2/tweets", request.RequestUri?.AbsolutePath);
+            var body = await request.Content!.ReadAsStringAsync();
+            Assert.Contains("\"text\":\"Keep the original caption\"", body, StringComparison.Ordinal);
+            Assert.Contains("\"media_ids\":[\"media-1\"]", body, StringComparison.Ordinal);
+        }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ThreadsSend_DoesNotRestartAfterPermanentClientFailure(bool imagePost)
+    {
+        using var fixture = SocialJobFixture.Create(
+            enableThreads: true,
+            responseOverride: _ => new HttpResponseMessage(HttpStatusCode.BadRequest)
+            {
+                Content = new StringContent("""{"error":{"message":"Invalid parameter","code":100}}""")
+            });
+
+        var sent = imagePost
+            ? await fixture.ThreadsEvents.TrySendImageAsync("Keep the original caption", " https://example.test/image.png ")
+            : await fixture.ThreadsEvents.TrySendAsync("Keep the original caption");
+
+        Assert.False(sent);
+        var request = Assert.Single(fixture.ThreadsRequests);
+        Assert.Equal("/me/threads", request.RequestUri?.AbsolutePath);
+        var body = await request.Content!.ReadAsStringAsync();
+        Assert.Contains(imagePost ? "media_type=IMAGE" : "media_type=TEXT", body, StringComparison.Ordinal);
+        if (imagePost)
+            Assert.Contains("image_url=https%3A%2F%2Fexample.test%2Fimage.png", body, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task FacebookSend_RetriesMissingPostIdWithTheSamePayload(bool imagePost, bool retrySucceeds)
+    {
+        var attempts = 0;
+        using var fixture = SocialJobFixture.Create(
+            seedLeaderboardAssets: imagePost,
+            responseOverride: _ => new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(++attempts == 2 && retrySucceeds
+                    ? """{"id":"facebook-1"}"""
+                    : "{}")
+            });
+
+        // A long title selects image mode while keeping the rendered body small.
+        var sent = imagePost
+            ? await fixture.FacebookEvents.TrySendEventAsync(
+                EventType.CustomEvent,
+                new string('a', 63207) + "\n\nRead [details](https://example.test).",
+                "retry-image")
+            : await fixture.FacebookEvents.TrySendAsync("Keep the original caption");
+
+        Assert.Equal(retrySucceeds, sent);
+        Assert.Equal(2, attempts);
+        Assert.All(fixture.FacebookRequests, request =>
+            Assert.Equal(imagePost ? "/v23.0/page-id/photos" : "/v23.0/page-id/feed", request.RequestUri?.AbsolutePath));
+        var firstBody = await fixture.FacebookRequests[0].Content!.ReadAsStringAsync();
+        Assert.Equal(firstBody, await fixture.FacebookRequests[1].Content!.ReadAsStringAsync());
+        Assert.Contains(imagePost ? "retry-image.png" : "message=Keep+the+original+caption", firstBody, StringComparison.Ordinal);
+    }
+
     [Fact]
     public async Task FacebookJob_CustomEventClaimPreventsImmediateDispatchDuplicate()
     {
@@ -353,7 +439,9 @@ public sealed class SocialJobIntegrationTests
             bool facebookSendSucceeds = true,
             Action? onFacebookRequest = null,
             bool seedLeaderboardAssets = false,
-            bool xMediaUploadSucceeds = true)
+            bool xMediaUploadSucceeds = true,
+            bool enableThreads = false,
+            Func<HttpRequestMessage, HttpResponseMessage>? responseOverride = null)
         {
             var root = Path.Combine(Path.GetTempPath(), "lwc-social-job-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(Path.Combine(root, "athletes"));
@@ -370,7 +458,7 @@ public sealed class SocialJobIntegrationTests
                 XConsumerSecret = "x-consumer-secret",
                 XUserAccessToken = "x-user-token",
                 XUserAccessTokenSecret = "x-user-token-secret",
-                ThreadsAccessToken = null,
+                ThreadsAccessToken = enableThreads ? "threads-token" : null,
                 ThreadsAccessTokenExpiresAtUtc = DateTimeOffset.UtcNow.AddDays(60).ToString("o"),
                 FacebookPageId = "page-id",
                 FacebookPageAccessToken = "facebook-token"
@@ -391,13 +479,13 @@ public sealed class SocialJobIntegrationTests
 
             var xClient = new XApiClient(
                 new HttpClient(new RecordingHttpHandler(
-                    request => request.RequestUri?.AbsolutePath == "/1.1/media/upload.json"
+                    request => responseOverride?.Invoke(request) ?? (request.RequestUri?.AbsolutePath == "/1.1/media/upload.json"
                         ? xMediaUploadSucceeds
                             ? new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("""{"media_id_string":"media-1"}""") }
                             : new HttpResponseMessage(HttpStatusCode.InternalServerError) { Content = new StringContent("""{"error":"media boom"}""") }
                         : xSendSucceeds
                             ? new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("""{"data":{"id":"tweet-1"}}""") }
-                            : new HttpResponseMessage(HttpStatusCode.InternalServerError) { Content = new StringContent("""{"error":"boom"}""") },
+                            : new HttpResponseMessage(HttpStatusCode.InternalServerError) { Content = new StringContent("""{"error":"boom"}""") }),
                     xRequests)),
                 config,
                 env,
@@ -405,18 +493,18 @@ public sealed class SocialJobIntegrationTests
                 new XDevPreviewService(NullLogger<XDevPreviewService>.Instance, httpFactory, appConfig));
             var threadsClient = new ThreadsApiClient(
                 new HttpClient(new RecordingHttpHandler(
-                    _ => new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("""{"id":"threads-1","status":"FINISHED"}""") },
+                    request => responseOverride?.Invoke(request) ?? new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("""{"id":"threads-1","status":"FINISHED"}""") },
                     threadsRequests)),
                 config,
                 NullLogger<ThreadsApiClient>.Instance);
             var facebookClient = new FacebookApiClient(
                 new HttpClient(new RecordingHttpHandler(
-                    _ =>
+                    request =>
                     {
                         onFacebookRequest?.Invoke();
-                        return facebookSendSucceeds
+                        return responseOverride?.Invoke(request) ?? (facebookSendSucceeds
                             ? new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("""{"id":"facebook-1"}""") }
-                            : new HttpResponseMessage(HttpStatusCode.InternalServerError) { Content = new StringContent("""{"error":"boom"}""") };
+                            : new HttpResponseMessage(HttpStatusCode.InternalServerError) { Content = new StringContent("""{"error":"boom"}""") });
                     },
                     facebookRequests)),
                 config,
@@ -548,6 +636,7 @@ public sealed class SocialJobIntegrationTests
             foreach (var relativePath in new[]
                      {
                          Path.Combine("assets", "HdLogo.png"),
+                         Path.Combine("assets", "custom_event.png"),
                          Path.Combine("assets", "fonts", "Poppins-Bold.ttf"),
                          Path.Combine("assets", "fonts", "Poppins-Regular.ttf")
                      })
@@ -605,10 +694,10 @@ public sealed class SocialJobIntegrationTests
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             var recorded = new HttpRequestMessage(request.Method, request.RequestUri);
-            if (string.Equals(request.Content?.Headers.ContentType?.MediaType, "application/json", StringComparison.OrdinalIgnoreCase))
+            if (request.Content?.Headers.ContentType?.MediaType is "application/json" or "application/x-www-form-urlencoded")
             {
                 var body = await request.Content!.ReadAsStringAsync(cancellationToken);
-                recorded.Content = new StringContent(body, System.Text.Encoding.UTF8, "application/json");
+                recorded.Content = new StringContent(body, System.Text.Encoding.UTF8, request.Content.Headers.ContentType.MediaType);
             }
             else if (request.Content?.Headers.ContentType is { } contentType)
             {
