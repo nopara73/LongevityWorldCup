@@ -116,6 +116,58 @@ public sealed class AestheticAccessibilityBrowserTests(
         }
     }
 
+    [Theory]
+    [InlineData(1280, false)]
+    [InlineData(1280, true)]
+    [InlineData(390, false)]
+    [InlineData(390, true)]
+    public async Task DocumentContentsNavigation_ArrivesAtTheChosenSectionWithoutIntermediatePaneJumps(int width, bool reducedMotion)
+    {
+        await using var context = await NewContextAsync(
+            Browser,
+            App,
+            new BrowserNewContextOptions
+            {
+                ViewportSize = new ViewportSize { Width = width, Height = width > 900 ? 350 : 844 },
+                ReducedMotion = reducedMotion ? ReducedMotion.Reduce : ReducedMotion.NoPreference
+            });
+        var page = await context.NewPageAsync();
+        await NavigateAndSettleAsync(page, "/history");
+        var links = page.Locator(".documentation-nav a[href^='#']");
+        var count = await links.CountAsync();
+        foreach (var index in new[] { count - 5, count - 1, 0 })
+        {
+            if (width <= 900)
+                await page.Locator(".documentation-nav-toggle").ClickAsync();
+            var link = links.Nth(index);
+            var href = await link.GetAttributeAsync("href");
+            await link.ClickAsync();
+
+            var stableArrival = await page.EvaluateAsync<bool>(
+                """
+                async href => {
+                    const heading = document.getElementById(decodeURIComponent(href.slice(1)));
+                    const pane = document.querySelector('.documentation-nav');
+                    const documentY = scrollY;
+                    const paneY = pane.scrollTop;
+                    for (let frame = 0; frame < 10; frame++) {
+                        await new Promise(resolve => requestAnimationFrame(resolve));
+                        const headingBox = heading.getBoundingClientRect();
+                        if (headingBox.top < 69 || headingBox.bottom > innerHeight ||
+                            Math.abs(scrollY - documentY) > 1 || Math.abs(pane.scrollTop - paneY) > 1 ||
+                            document.querySelector('.documentation-nav a.is-active')?.getAttribute('href') !== href ||
+                            document.activeElement !== heading || location.hash !== href) {
+                            return false;
+                        }
+                    }
+                    return true;
+                }
+                """, href);
+            Assert.True(stableArrival,
+                $"Selecting {href} moved through intermediate document or contents positions (width={width}, reducedMotion={reducedMotion}).");
+        }
+    }
+
     [Fact]
     public async Task MobileDocumentationNavigation_UsesProgressiveDisclosureAndLargeTargets()
     {

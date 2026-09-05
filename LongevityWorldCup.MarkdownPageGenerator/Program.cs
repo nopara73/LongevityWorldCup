@@ -741,14 +741,13 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
                     }
 
                     event.preventDefault();
-                    const top = target.getBoundingClientRect().top + window.scrollY - getOffset();
-                    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-                    window.scrollTo({ top, behavior: reducedMotion ? "auto" : "smooth" });
-                    history.pushState(null, "", link.getAttribute("href"));
-                    setActive(target.id);
                     if (window.matchMedia("(max-width: 900px)").matches) {
                         setDocumentationNavOpen(false);
                     }
+                    const top = target.getBoundingClientRect().top + window.scrollY - getOffset();
+                    window.scrollTo({ top, behavior: "instant" });
+                    history.pushState(null, "", link.getAttribute("href"));
+                    setActive(target.id);
 
                     target.setAttribute("tabindex", "-1");
                     target.focus({ preventScroll: true });
@@ -765,6 +764,9 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
                     } else {
                         break;
                     }
+                }
+                if (window.scrollY > 0 && window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 1) {
+                    current = headings[headings.length - 1];
                 }
 
                 if (current) {
