@@ -2,18 +2,21 @@
 
 ## September 2026 source snapshot pruning
 
-The requested suite reduction removes 320 test cases (234 fact/theory methods). Against master `465ed08f` and its 1,591 passing cases, this is a 20.1% reduction to 1,271 cases. The baseline is the successful [.NET run](https://github.com/nopara73/LongevityWorldCup/actions/runs/33945556567).
+The requested suite reduction removes 321 test cases (224 fact/theory methods). Against the 1,599-case master suite, this is a 20.08% reduction to 1,278 cases, including the recently added URL-compatibility and athlete-contact browser cases.
 
 The removed tests predominantly searched HTML, CSS, and JavaScript for exact source fragments, helper names, markup, colors, or copy. They constrained implementation details without executing the behavior named by the test. The motion-source auditor and tests of its own parser were removed together. This intentionally reduces source-shape coverage; it does not claim that every deleted assertion has an equivalent behavioral assertion.
 
 | Removed snapshots | Retained coverage |
 | --- | --- |
-| Application, review, proof-upload, profile-edit, and selected-athlete page snapshots | `NewAthleteOnboardingBrowserTests`, `ProofUploadBrowserTests`, `PlayAthleteFlowBrowserTests`, controller validation, payment policy, submission retry, and image-processing tests |
-| Stored-biomarker and calculator handoff snapshots | Calculator/API tests, `BioageFlowBrowserTests`, `BioageMobileUxBrowserTests`, keyboard/viewport tests, and rank-preview tests |
+| Application, review, proof-upload, profile-edit, and selected-athlete page snapshots | `NewAthleteOnboardingBrowserTests`, `ProofUploadBrowserTests`, `PlayAthleteFlowBrowserTests`, controller validation, payment policy, submission retry, and image-processing tests; retain the original source checks for the proof cap, duplicates, unsupported/mixed selections, and per-file recovery |
+| Stored-biomarker and calculator handoff snapshots | Calculator/API tests, `BioageFlowBrowserTests`, `BioageMobileUxBrowserTests`, keyboard/viewport tests, and rank-preview tests; retain all six original automatic-unit-correction/handoff checks |
 | Play menu, shared flow controls, CSS motion, accessibility markup, badge colors, radar drawing, and leaderboard script snapshots | Every browser test, including the flow, accessibility, responsive-layout, reduced-motion, proof-viewer, and navigation scenarios; ranking, badge, and Event tests |
 | Aesthetic-system and statistics source/copy snapshots | Served-page routing, versioned assets, local font files, standalone-page isolation, statistics service, dashboard browser, and tracking browser tests |
+| Exact utility-page titles and ruleset diagram copy/placement | Keep every indexing-policy assertion from the title tests in the existing canonical-page response checks, which already request those same pages |
 
-All surviving test bodies are unchanged. `ApplicationSubmissionTimeout_WaitsForDedicatedServerTimeout` moves intact into `PublicRequestTimeoutTests` so the browser/server deadline relationship stays covered. No test is skipped, filtered out of CI, or converted into a passing placeholder.
+The original best-rank candidate-set and modal-metadata checks also remain because the route browser tests do not exercise those contracts. Source checks with unique ranking, unit-conversion, or proof-processing coverage are retained even when a future behavioral replacement would be preferable.
+
+Surviving assertions are unchanged; indexing-policy assertions move into the existing canonical-page tests. `ApplicationSubmissionTimeout_WaitsForDedicatedServerTimeout` moves intact into `PublicRequestTimeoutTests` so the browser/server deadline relationship stays covered. No test is skipped, filtered out of CI, or converted into a passing placeholder.
 
 ## Earlier architecture audit
 

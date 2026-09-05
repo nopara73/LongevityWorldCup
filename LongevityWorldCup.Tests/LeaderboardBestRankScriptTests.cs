@@ -1,0 +1,76 @@
+using System.Runtime.CompilerServices;
+using Xunit;
+
+namespace LongevityWorldCup.Tests;
+
+public class LeaderboardBestRankScriptTests
+{
+    [Fact]
+    public void BestRankCandidates_CoverLeaderboardViewsAndSidebarLeagues()
+    {
+        var html = ReadLeaderboardPartial();
+
+        Assert.Contains("assignBestRankCandidates(athleteResults);", html);
+        Assert.Contains("leagueType: 'ultimate'", html);
+        Assert.Contains("leagueType: 'bortz'", html);
+        Assert.Contains("leagueType: 'pheno'", html);
+        Assert.Contains("leagueType: 'amateur'", html);
+        Assert.Contains("leagueType: 'pheno-improvement'", html);
+        Assert.Contains("leagueType: 'bortz-improvement'", html);
+        Assert.Contains("leagueType: 'crowd'", html);
+        Assert.Contains("leagueType: 'pheno-pace'", html);
+        Assert.Contains("leagueType: 'bortz-pace'", html);
+        Assert.Contains("leagueType: 'division'", html);
+        Assert.Contains("leagueType: 'generation'", html);
+        Assert.Contains("leagueType: 'combination'", html);
+        Assert.Contains("leagueType: 'exclusive'", html);
+        Assert.Contains("leagueType: 'flag'", html);
+
+        Assert.Contains("CROWD_AGE_LEADERBOARD_MINIMUM_GUESS_COUNT", html);
+        Assert.Contains("buildFiltersHref([generation, division])", html);
+        Assert.Contains("href: buildFlagHref(flagOption.name)", html);
+        Assert.Contains("leagueLabel: flagOption.name", html);
+        Assert.Contains("leagueLabelHtml: renderFlagLabel(flagOption.name)", html);
+        Assert.DoesNotContain("leagueLabelHtml: `${renderFlagLabel(flagOption.name)} Flag`", html);
+    }
+
+    [Fact]
+    public void BestRankModal_RendersFromCandidateMetadata()
+    {
+        var html = ReadLeaderboardPartial();
+
+        Assert.Contains("renderBestRankLink(rankSummary && rankSummary.bestCandidate)", html);
+        Assert.Contains("const preposition = candidate.leagueType === 'flag' ? 'for' : 'in the';", html);
+        Assert.Contains("href=\"${escapeHtml(candidate.href)}\"", html);
+        Assert.Contains("candidates.length === 0 && Number.isFinite(ultimateRank)", html);
+        Assert.DoesNotContain("bestLeagueType ===", html);
+    }
+
+    private static string ReadLeaderboardPartial()
+    {
+        var repoRoot = FindRepoRoot();
+        return File.ReadAllText(Path.Combine(
+            repoRoot,
+            "LongevityWorldCup.Website",
+            "wwwroot",
+            "partials",
+            "leaderboard-content.html"));
+    }
+
+    private static string FindRepoRoot([CallerFilePath] string sourceFilePath = "")
+    {
+        var startDirectory = Path.GetDirectoryName(sourceFilePath) ?? AppContext.BaseDirectory;
+        var current = new DirectoryInfo(startDirectory);
+        while (current is not null)
+        {
+            if (File.Exists(Path.Combine(current.FullName, "LongevityWorldCup.sln")))
+            {
+                return current.FullName;
+            }
+
+            current = current.Parent;
+        }
+
+        throw new DirectoryNotFoundException($"Could not find repository root from {startDirectory}.");
+    }
+}
