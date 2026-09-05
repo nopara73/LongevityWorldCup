@@ -4,6 +4,37 @@ namespace LongevityWorldCup.Website.Business;
 
 public static class FillerPostLogSchedule
 {
+    internal static bool IsSubjectOnCooldown(DatabaseManager db, string tableName, string subjectSlug, TimeSpan cooldown, DateTime? nowUtc = null)
+    {
+        if (cooldown <= TimeSpan.Zero || string.IsNullOrWhiteSpace(subjectSlug))
+            return false;
+
+        var normalized = subjectSlug.Trim();
+        var lastAt = db.Run(sqlite =>
+        {
+            using var cmd = sqlite.CreateCommand();
+            cmd.CommandText = $"""
+                SELECT PostedAtUtc
+                FROM {tableName}
+                WHERE SubjectSlug = @subjectSlug
+                ORDER BY PostedAtUtc DESC
+                LIMIT 1
+                """;
+            cmd.Parameters.AddWithValue("@subjectSlug", normalized);
+            var raw = cmd.ExecuteScalar();
+            if (raw is string s &&
+                DateTime.TryParse(s, null, DateTimeStyles.RoundtripKind, out var dt))
+                return (DateTime?)dt;
+            return (DateTime?)null;
+        });
+
+        if (!lastAt.HasValue)
+            return false;
+
+        var now = nowUtc ?? DateTime.UtcNow;
+        return now - lastAt.Value < cooldown;
+    }
+
     public static bool IsOnCooldownForType(
         DatabaseManager db,
         string tableName,

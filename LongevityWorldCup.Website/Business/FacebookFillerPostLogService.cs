@@ -81,33 +81,7 @@ public class FacebookFillerPostLogService
 
     public bool IsSubjectOnCooldown(string subjectSlug, TimeSpan cooldown, DateTime? nowUtc = null)
     {
-        if (cooldown <= TimeSpan.Zero || string.IsNullOrWhiteSpace(subjectSlug))
-            return false;
-
-        var normalized = subjectSlug.Trim();
-        var lastAt = _db.Run(sqlite =>
-        {
-            using var cmd = sqlite.CreateCommand();
-            cmd.CommandText = $"""
-                SELECT PostedAtUtc
-                FROM {TableName}
-                WHERE SubjectSlug = @subjectSlug
-                ORDER BY PostedAtUtc DESC
-                LIMIT 1
-                """;
-            cmd.Parameters.AddWithValue("@subjectSlug", normalized);
-            var raw = cmd.ExecuteScalar();
-            if (raw is string s &&
-                DateTime.TryParse(s, null, System.Globalization.DateTimeStyles.RoundtripKind, out var dt))
-                return (DateTime?)dt;
-            return (DateTime?)null;
-        });
-
-        if (!lastAt.HasValue)
-            return false;
-
-        var now = nowUtc ?? DateTime.UtcNow;
-        return now - lastAt.Value < cooldown;
+        return FillerPostLogSchedule.IsSubjectOnCooldown(_db, TableName, subjectSlug, cooldown, nowUtc);
     }
 
     public IReadOnlyList<(FillerType Type, string PayloadText)> GetSuggestedFillersOrdered()
