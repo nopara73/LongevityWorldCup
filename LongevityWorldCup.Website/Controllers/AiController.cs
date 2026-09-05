@@ -11,36 +11,26 @@ namespace LongevityWorldCup.Website.Controllers;
 public sealed class AiController(LeaderboardFactsService facts) : Controller
 {
     [HttpGet("leaderboard.md")]
-    public IActionResult GetLeaderboardFacts()
-    {
-        var document = facts.GetLeaderboardMarkdown();
-        var eTag = PublicGetCacheHeaders.BuildWeakContentETag(document.Markdown);
-
-        PublicGetCacheHeaders.Apply(Response, PublicGetCacheHeaders.AiFactsCacheControl, PublicGetCacheHeaders.AiFactsMaxAgeSeconds, eTag, document.LastModifiedUtc);
-        Response.Headers["X-Robots-Tag"] = "index, follow";
-        if (PublicGetCacheHeaders.RequestHasMatchingETag(Request.Headers, eTag))
-            return StatusCode(StatusCodes.Status304NotModified);
-
-        return Content(document.Markdown, "text/markdown; charset=utf-8");
-    }
+    public IActionResult GetLeaderboardFacts() => RenderMarkdown(facts.GetLeaderboardMarkdown());
 
     [HttpGet("athlete-names.md")]
-    public IActionResult GetAthleteNames()
-    {
-        var document = facts.GetAthleteNamesMarkdown();
-        var eTag = PublicGetCacheHeaders.BuildWeakContentETag(document.Markdown);
-
-        PublicGetCacheHeaders.Apply(Response, PublicGetCacheHeaders.AiFactsCacheControl, PublicGetCacheHeaders.AiFactsMaxAgeSeconds, eTag, document.LastModifiedUtc);
-        Response.Headers["X-Robots-Tag"] = "index, follow";
-        if (PublicGetCacheHeaders.RequestHasMatchingETag(Request.Headers, eTag))
-            return StatusCode(StatusCodes.Status304NotModified);
-
-        return Content(document.Markdown, "text/markdown; charset=utf-8");
-    }
+    public IActionResult GetAthleteNames() => RenderMarkdown(facts.GetAthleteNamesMarkdown());
 
     [HttpGet("athletes.md")]
     public IActionResult RedirectAthletes()
     {
         return RedirectPermanent("/ai/leaderboard.md");
+    }
+
+    private IActionResult RenderMarkdown(LeaderboardFactsDocument document)
+    {
+        var eTag = PublicGetCacheHeaders.BuildWeakContentETag(document.Markdown);
+
+        PublicGetCacheHeaders.Apply(Response, PublicGetCacheHeaders.AiFactsCacheControl, PublicGetCacheHeaders.AiFactsMaxAgeSeconds, eTag, document.LastModifiedUtc);
+        Response.Headers["X-Robots-Tag"] = "index, follow";
+        if (PublicGetCacheHeaders.RequestHasMatchingETag(Request.Headers, eTag))
+            return StatusCode(StatusCodes.Status304NotModified);
+
+        return Content(document.Markdown, "text/markdown; charset=utf-8");
     }
 }

@@ -480,5 +480,5 @@ Add BTCPay entries to `config.json`:
 Notes:
 - Keep `BTCPayGreenfieldApiKey` secret, same handling as SMTP/Google secrets.
 - Required API key permissions: `btcpay.store.cancreateinvoice`, `btcpay.store.canviewinvoices`.
-- The server creates invoices and sets redirect to: `https://www.longevityworldcup.com/onboarding/application-review.html`.
+- The server creates invoices and sets redirect to: `https://www.longevityworldcup.com/review`. Existing invoices using `/onboarding/application-review.html` remain supported by a permanent redirect.
 

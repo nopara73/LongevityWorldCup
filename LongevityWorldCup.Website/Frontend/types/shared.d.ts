@@ -383,6 +383,12 @@ interface LwcGuessStateApi {
     getAll(): readonly GuessMyAgeStoredEntry[];
 }
 
+interface MediaContactLink {
+    readonly href: string | null;
+    readonly isEmail: boolean;
+    readonly hostname: string;
+}
+
 interface Window {
     PhenoAge?: PhenoAgeApi;
     BortzAge?: BortzAgeApi;
@@ -395,6 +401,7 @@ interface Window {
     LwcFlowActionDock?: LwcFlowActionDockApi;
     LwcGuessState?: LwcGuessStateApi;
     refreshAthleteAfterStaleGuess?: ((athleteSlug: string) => Promise<boolean>) | undefined;
+    parseMediaContact(link: string | null | undefined): MediaContactLink | null;
     getIcon(link: string): string;
     slugifyName(name: string, encode?: boolean): string;
     normalizeString?: ((value: string) => string) | undefined;

@@ -14,6 +14,69 @@ public sealed class AthleteDialogLinkBrowserTests(
     private const string ProfileImageA = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 
     [Theory]
+    [InlineData("/", "https://www.youtube.com/@alice", "https://www.youtube.com/@alice")]
+    [InlineData("/", "www.youtube.com/@alice.example", "https://www.youtube.com/@alice.example")]
+    [InlineData("/", "HTTPS://X.COM/alice", "https://x.com/alice")]
+    [InlineData("/", "mailto:alice@example.com", "mailto:alice@example.com")]
+    [InlineData("/", "alice@example.com", "mailto:alice@example.com")]
+    [InlineData("/", "@alice", null)]
+    [InlineData("/about", "@alice", null)]
+    [InlineData("/about", "https://www.youtube.com/@alice", "https://www.youtube.com/@alice")]
+    public async Task MediaContacts_PreserveTheirDestinationAcrossLeaderboardAndDialogs(
+        string path,
+        string contact,
+        string? expectedHref)
+    {
+        await using var context = await NewContextAsync(Browser, App, width: 1100, height: 760);
+        await context.AddInitScriptAsync("localStorage.setItem('gmaSkipAll', 'true');");
+        await context.RouteAsync("**/api/data/athletes", async route =>
+        {
+            var response = await route.FetchAsync();
+            var athletes = JsonNode.Parse(await response.TextAsync())!.AsArray();
+            foreach (var athlete in athletes.OfType<JsonObject>())
+                athlete["MediaContact"] = contact;
+
+            await route.FulfillAsync(new RouteFulfillOptions
+            {
+                Status = response.Status,
+                ContentType = "application/json",
+                Body = athletes.ToJsonString()
+            });
+        });
+
+        var page = await context.NewPageAsync();
+        await page.GotoAsync(path, new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await AssertSharedDialogInstalledAsync(page);
+
+        if (path == "/" && expectedHref is null)
+        {
+            await page.WaitForSelectorAsync(".podium-link-row .media-contact-handle");
+            await page.WaitForSelectorAsync(".leaderboard .media-contact-handle",
+                new PageWaitForSelectorOptions { State = WaitForSelectorState.Attached });
+            var handles = await page.Locator(".media-contact-handle").AllAsync();
+            foreach (var handle in handles)
+                Assert.Equal(contact, await handle.TextContentAsync());
+        }
+        else if (path == "/")
+        {
+            await page.WaitForSelectorAsync(".podium-media-link");
+            await page.WaitForSelectorAsync(".leaderboard .media-contact",
+                new PageWaitForSelectorOptions { State = WaitForSelectorState.Attached });
+            var contacts = await page.Locator(".podium-media-link, .leaderboard .media-contact").AllAsync();
+            foreach (var link in contacts)
+                Assert.Equal(expectedHref, await link.GetAttributeAsync("href"));
+        }
+
+        await page.EvaluateAsync("slug => window.openAthleteModalBySlug(slug)", MichaelSlug);
+        await WaitForOpenAthleteDialogAsync(page, MichaelSlug);
+        var modalContact = page.Locator("#mediaContact");
+        Assert.True(await modalContact.IsVisibleAsync());
+        Assert.Equal(expectedHref, await modalContact.GetAttributeAsync("href"));
+        if (expectedHref is null)
+            Assert.Equal(contact, await modalContact.TextContentAsync());
+    }
+
+    [Theory]
     [InlineData("/about")]
     [InlineData("/history")]
     [InlineData("/events")]

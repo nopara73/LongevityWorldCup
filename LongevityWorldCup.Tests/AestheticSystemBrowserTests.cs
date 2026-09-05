@@ -732,25 +732,9 @@ public sealed class AestheticSystemBrowserTests(
             """);
 
     internal static string[] GetCanonicalFirstPartyRoutes()
-    {
-        var repositoryRoot = FindRepositoryRoot();
-        var middlewarePath = Path.Combine(
-            repositoryRoot,
-            "LongevityWorldCup.Website",
-            "Middleware",
-            "CleanPathMiddleware.cs");
-        var source = File.ReadAllText(middlewarePath);
-        var rewrittenRoutes = Regex.Matches(
-                source,
-                "case\\s+\"(?<path>/[^\"]+)\"\\s*:",
-                RegexOptions.CultureInvariant)
-            .Select(match => match.Groups["path"].Value);
-
-        return new[] { "/" }
-            .Concat(rewrittenRoutes)
-            .Distinct(StringComparer.Ordinal)
+        => LongevityWorldCup.Website.Middleware.RouteCanonicalization.Pages
+            .Select(page => page.CanonicalPath)
             .ToArray();
-    }
 
     internal static Task<ExtremeContentDiagnostics> InjectAndMeasureExtremeContentAsync(IPage page)
         => page.EvaluateAsync<ExtremeContentDiagnostics>(

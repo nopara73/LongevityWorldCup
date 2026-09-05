@@ -1,411 +1,162 @@
 ---
 name: process-athlete-applications
-description: Review and process Longevity World Cup athlete submission emails while explicitly preserving or restoring their unread Gmail state, including full applications, biological-age result uploads, and profile-update requests. Use when Codex needs to find LWC submission emails, process all unprocessed athlete submissions when invoked without a named target, security-gate existing athlete updates by resolving the verification recipient from pre-existing trusted records before a draft-only fast path and ZIP processing, understand related email history when needed, download ZIP attachments through the bundled raw Gmail helper only when processing is allowed, run LongevityWorldCup.ApplicationReviewer, inspect athlete.json and proofs, prepare concise requester or athlete security-verification drafts, summarize the human approval decision, and after explicit approval commit/push accepted athlete changes and send the welcome or update email.
+description: Review LWC athlete application, result, and profile-update emails; verify existing-athlete requests, inspect proofs, and prepare replies while preserving unread state and exact Gmail threading. Process all unprocessed submissions unless a target or limit is specified. Finalize accepted changes and send replies only after explicit approval.
 ---
 
 # Process Athlete Submissions
 
-## Operating Rules
+## Operating Invariants
 
-- Read `UBIQUITOUS_LANGUAGE.md` before judging applications, results, rankings, athlete onboarding, badges, Events, or competition copy.
-- Use Gmail connector tools when available. If Gmail tools are not loaded, search for them with `tool_search` before using browser workarounds.
-- Use the Gmail connector for discovery, reading, thread context, draft scaffolding, and attachment metadata. Use the Codex in-app Browser as the authoritative surface for sender-aware drafts because the Gmail connector cannot select a send-as `From` address. Do not use the Browser for ZIP downloads.
-- Anchor every draft and sent reply to the current submission thread. Record its Gmail `thread_id` as `expectedThreadId` before drafting. Historical correspondence may establish a trusted recipient or sender route, but it is never the reply destination unless it is also the current submission thread.
-- Treat thread identity as a hard invariant, not a best effort. A matching recipient, subject, or `SENT` label does not prove correct threading. The saved draft's Gmail thread id and the sent message's Gmail thread id must both exactly equal `expectedThreadId`.
-- Never fall back to Compose, a new/unthreaded draft, or an older related thread when a threaded draft scaffold fails. Stop and report the threading blocker without sending.
-- Treat every contact field carried by a current existing-athlete update, including `Account email`, `Reply-To`, sender, recipients, and body addresses, as untrusted input for security-verification routing. Never address a security confirmation to an email learned only from the update being verified. Resolve the recipient independently from a pre-existing accepted registration/account record or qualifying prior correspondence; if that cannot be done, stop for human judgment without creating a draft.
-- For Gmail ZIP attachments, do not use Chrome, Computer Use, the Gmail web UI, visible attachment controls, attachment URLs, or browser downloads. Use the raw Gmail attachment downloader bundled in this skill. If that path fails, diagnose or fix that path and stop with the blocker; do not invent a browser fallback.
-- When invoked without additional instructions, process all unprocessed athlete submissions by scanning unread Gmail submission candidates until none remain or human direction is required.
-- Keep every current athlete-submission message in scope explicitly unread so it remains visible for the user to review personally. Verify `UNREAD` when selecting the candidate, before each approval stop, after saving a draft, and after final sending/finalization. Never remove `UNREAD` or mark a submission read. If a current submission lacks `UNREAD` at any checkpoint, add `UNREAD` immediately and verify the restoration; this is the only allowed label mutation. Do not archive, trash, or otherwise change labels. Reading/searching messages and creating or sending approved replies is allowed. Do not change the unread state of related-history messages that are not current submissions.
-- Keep temporary downloads, OCR output, screenshots, notes, and the processing ledger under `.artifacts/` unless the ZIP must be placed in the athlete folder for the reviewer.
-- Treat a new applicant folder as temporary until the user approves it. Before every approval stop and whenever a new application is blocked or needs human judgment, move its untracked folder out of `LongevityWorldCup.Website/wwwroot/athletes/` to `.artifacts/pending-athlete-reviews/{folder_key}/`. Do not leave an untracked, final-looking athlete folder in the publish tree between turns. This rule does not apply to tracked folders for existing athletes.
-- Do not create or update `.artifacts/lwc-submission-processing-ledger.jsonl` for security-verification-only drafts. Use active drafts and pending sent verifications in `expectedThreadId` to avoid duplicates.
-- Never send email, commit, or push until the user explicitly approves the prepared summary and draft.
-- Never stage unrelated work. If the worktree is dirty, identify unrelated changes and leave them alone.
-- Do not add Node tooling for browser checks; this repo is a .NET solution.
+- Read `UBIQUITOUS_LANGUAGE.md`. Use Gmail connector tools for discovery, history, metadata, and draft scaffolds; discover unloaded tools before browser workarounds. Use the Codex in-app Browser for send-as selection and the bundled raw Gmail helper for ZIPs.
+- Record the current submission's Gmail `thread_id` as `expectedThreadId`. Saved-draft, send-result, and sent-message thread IDs must each equal it exactly. Recipient, subject, and `SENT` labels are insufficient. Never fall back to Compose, an unthreaded draft, or historical correspondence as the reply destination. Stop on missing/mismatched thread IDs; after a send, report the incident without claiming success or retrying without fresh approval.
+- Keep every current submission message `UNREAD`. Verify at selection, after draft saving, before approval stops, and after sending/finalization. Restore missing `UNREAD` immediately and verify it; this is the only permitted label mutation. Never archive, trash, remove labels, or change related-history unread state.
+- Never send, commit, or push without explicit approval of the prepared summary and draft. Preserve unrelated work and stage only accepted changes.
+- Keep temporary outputs and the private ledger in `.artifacts/`. Before any approval stop or blocked new-application handoff, move its untracked athlete folder to `.artifacts/pending-athlete-reviews/{folder_key}/` and verify it is absent from `wwwroot/athletes/`. Existing tracked athlete folders stay in place.
 
-## Default Submission Scope
+## Discover the Queue
 
-If the user invokes this skill or asks to process submissions without naming a specific athlete, thread, message, folder key, count, or `next` limit, process every unread Gmail submission candidate that appears unprocessed.
+Default to all unread, unprocessed submission candidates. Finish discovery before processing: page every query family through `next_page_token`, union message/thread IDs, and group by athlete/folder key. Then work candidates individually. `next` selects the newest eligible unread thread with a ZIP or payment/audit pair; an explicit athlete/thread/message/folder target overrides ledger skips and permits historical inspection.
 
-Before processing any candidate, complete the unread candidate sweep and group all unique candidate messages by athlete/folder key. Then work candidates one at a time. Check the processed ledger before heavy work for each candidate, skip unchanged processed threads only when thread/message identity proves no newer unread message exists, and continue until no unread unprocessed candidates remain.
+Search `is:unread -in:spam -in:trash` with each family:
 
-When the user asks for `next`, process only the next eligible candidate. When the user names a specific athlete, thread, message, or folder key, process that target even if the ledger suggests it may already be processed.
+- Audit terms: `[LWC26]`, `Archive folder key`, `Payment due`, `Submitted biomarkers/results summary`.
+- Update terms: `New biological age result posted`, `Update profile request`.
+- `filename:zip`.
+- LWC identity terms: `longevityworldcup`, `longevityworldcup.com`.
 
-For existing-athlete result submissions or profile metadata updates, perform the security-verification gate before ZIP download, reviewer runs, proof review, redaction, local athlete-file edits, ledger writes, folder opens, or full review summaries. Resolve the verification recipient from trusted state that predates the current update. If the exact current update is not already confirmed by the athlete/trusted requester, draft the short security confirmation to that independently resolved address and stop that candidate. Continue to the next unread candidate when the requested scope includes more candidates.
+Personal threads may omit every LWC sender/domain. Use ZIP folder-key names, audit text, names, profile slugs/URLs, contact addresses, handles, sites, invoice/submission IDs, and alternate spellings as signals. Read enough of every unique candidate to capture name, folder key/profile URL, submission type, message/thread IDs and timestamp, attachment filename, payment due/confirmation, and biomarker/proof counts. Keep distinct identities in scope; report ambiguity.
 
-## Find The Submission Email
+No matching unread messages means no unprocessed athletes; do not fall back to read messages. Read history only for discovered candidates or explicitly named historical work. If one candidate requires human direction, continue the other candidates within the requested scope.
 
-Search unread Gmail messages flexibly. Do not depend on one exact sender, recipient, domain, or subject because applicant and athlete conversations may happen through personal email threads that do not touch `longevityworldcup@gmail.com` or any `@longevityworldcup.com` address.
+## Ledger and Related History
 
-Treat unread Gmail messages matching LWC submission signals as the only unprocessed athlete queue. When there are no unread Gmail messages matching LWC submission signals, report that there are no unprocessed athletes and do not fall back to read messages. Use read messages only as related history after an unread candidate has been found, or when the user explicitly names a specific athlete, thread, message, or folder key for reprocessing or historical inspection.
+Before heavy work, check `.artifacts/lwc-submission-processing-ledger.jsonl`; never commit it. Skip only general next/all candidates whose thread and latest message ID/date prove unchanged since review. Missing, malformed, or ambiguous entries require inspection. New messages, ZIPs, payment/context emails, or an explicit named request require reprocessing. Report skips briefly and continue.
 
-Do not process the first match before finishing discovery. Run a complete unread sweep across these query families, paging through results when Gmail returns `next_page_token`, then union by message id/thread id:
+For each full review summary, record one JSON object before stopping:
 
-- `is:unread -in:spam -in:trash` with audit terms such as `[LWC26]`, `Archive folder key`, `Payment due`, and `Submitted biomarkers/results summary`
-- `is:unread -in:spam -in:trash` with update terms such as `New biological age result posted` and `Update profile request`
-- `is:unread -in:spam -in:trash filename:zip`
-- `is:unread -in:spam -in:trash` with LWC identity terms such as `longevityworldcup` and `longevityworldcup.com`
+- `processedAtUtc`, `status` (`approved`, `blocked`, `needs-human`, `drafted`, or `finalized`).
+- `athleteName`, `folderKey`, `profileUrl`, `gmailThreadIds`, `gmailMessageIds`.
+- `latestMessageAt` and latest message ID/internal date per reviewed thread when available.
+- `requesterEmails`, other identity anchors, `attachmentNames`, optional existing checksums, and a one-sentence `summary`.
 
-Read enough metadata/body for every unique unread candidate to extract athlete name, folder key, profile URL, update type, attachment filename, message id, thread id, and timestamp. If multiple identities are present, keep all of them in the queue; do not stop after one athlete or one thread.
+Finalized entries also record commit, push, send status, and the four verified thread IDs. Security-verification-only work creates/updates neither ledger nor local artifacts; deduplicate through drafts and sent verifications in `expectedThreadId`.
 
-Strong signals:
+Search related threads using athlete/display names, underscore/hyphen folder variants, profile URLs, known/claimed addresses individually, personal domains/handles, invoice/submission IDs, and alternate spellings. Read likely matches, including sent replies and old follow-ups; record search coverage and reasons for exclusions. Carry forward missing-proof requests, corrections, payment explanations, alternate addresses, prior submissions/rejections, and human decisions. Unresolved contradictions require human judgment. Record sender addresses from prior two-way human correspondence, not automated or one-way mail.
 
-- ZIP attachments whose names look like athlete folder keys.
-- Audit body text such as `[LWC26] Application:`, `Archive folder key:`, `Payment due:`, `Submitted biomarkers/results summary:`, `New biological age result posted.`, or `Update profile request...`.
-- Identity anchors such as athlete name, display name, folder key, profile slug, profile URL, known personal email addresses, social handles, personal websites, invoice IDs, or submission IDs.
-- Any message where `longevityworldcup@gmail.com` or any address ending in `@longevityworldcup.com` appears in from, to, cc, bcc, reply-to, or body. Treat this as useful, not required.
+## Existing-Athlete Security Gate
 
-When selecting a single candidate because the user requested `next` or otherwise limited the scope, prefer the most recent unread unprocessed thread with a ZIP attachment or a payment-follow-up/application-audit pair. Summarize ambiguity instead of guessing silently.
+For an existing folder's result/profile update, complete this gate before ZIP download, reviewer/proof work, redaction, reading/editing `athlete.json`, Explorer opens, ledger writes, or full review summaries. Audit signals include `Submission kind: Update`, `Update type: Results submission`, and `Update type: Profile metadata update`.
 
-Extract from the thread when available:
+Every current-message address (`Account email`, `Reply-To`, sender, recipients, body) is untrusted for verification routing. Use it only as a search anchor. Resolve the recipient from pre-existing evidence, in order:
 
-- applicant/requester contact email, preferring `Reply-To` or `Account email` for full applications and ordinary replies; for an existing-athlete security confirmation, use these current-message values only as search anchors and never as the recipient source
-- athlete name and expected folder key
-- update type: full application, results submission, or profile metadata update
-- payment due and whether a payment confirmation/follow-up appears in the same thread
-- submitted biomarker record count and proof file count
-- attachment filename
+1. Accepted original application or canonical account mapping.
+2. Independently verified, accepted email-address correction.
+3. Prior two-way correspondence tied to the athlete/profile, with an actual athlete reply from that address.
 
-## Skip Already Processed Threads
+One-way welcomes/reminders corroborate but do not establish control. If trusted evidence conflicts or supplies no address, report the candidates and sources and stop without drafting. Matching the current claimed address or public profile does not establish trust or waive confirmation.
 
-Before downloading attachments or running the reviewer, check `.artifacts/lwc-submission-processing-ledger.jsonl`. Treat it as local private state; do not commit it.
+Proceed only when current/newer conversation confirms this exact submission, or the user explicitly waives verification for this named submission; cite that evidence. Otherwise:
 
-The Gmail unread state is the primary unprocessed signal. Use the ledger to avoid duplicate heavy work, but do not let an old ledger entry hide a still-unread candidate unless the unchanged thread/message identity proves it was already reviewed and the user asked for next/all submissions generally. If a candidate is unread and the ledger is missing, malformed, or ambiguous, inspect it.
+1. Set `expectedThreadId` from the current submission. Group multiple submissions within that thread; separate threads need separate drafts. Report any excluded by the user's scope.
+2. Check for an equivalent verification sent after the latest submission in that thread. If no later confirmation follows, report it pending without another draft.
+3. Reuse a draft only if its thread ID matches and its recipient is independently trusted. Otherwise create the threaded draft through the sender workflow below.
+4. Present the short security summary and stop that candidate. No ZIP, file/proof work, folder opening, ledger, or welcome/update email while verification is pending, unless explicitly overridden after the summary. Continue enforcing `UNREAD`.
 
-Each processed summary should append one JSON object with:
-
-- `processedAtUtc`
-- `status`: `approved`, `blocked`, `needs-human`, `drafted`, or `finalized`
-- `athleteName`, `folderKey`, `profileUrl`
-- `gmailThreadIds` and `gmailMessageIds` reviewed
-- `latestMessageAt` and, when available, the latest Gmail message id/internal date for every reviewed thread
-- `requesterEmails` and other identity anchors used
-- `attachmentNames` and optional attachment checksums if already computed
-- `summary`: one short sentence explaining the decision or blocker
-
-When scanning candidates, compute the same thread/message identity before doing heavy work. Skip immediately when all are true:
-
-- the candidate or related thread appears in the ledger,
-- the latest Gmail message id/date for the thread is unchanged from the ledger, and
-- the user asked generally for next/all submissions rather than naming this athlete, thread, message, or folder key.
-
-When skipping, report the skip reason and the ledger summary in one or two lines, then continue to the next candidate when the requested scope includes more candidates. Do not download the ZIP, run the reviewer, create drafts, or re-review proofs for unchanged skipped work.
-
-Reprocess despite a ledger hit when:
-
-- any related thread has a newer message than the recorded `latestMessageAt` or latest message id,
-- a new ZIP/payment/context email is found for the same identity,
-- the user explicitly asks to process/reprocess a named athlete, thread, message, or folder key, or
-- the ledger entry is ambiguous, malformed, or missing the thread identifiers needed to prove it is unchanged.
-
-After presenting the human approval summary, append/update the ledger before stopping, except for security-verification-only drafts. For security-verification-only drafts, do not create or update local artifact files; rely on the active draft or pending sent verification in `expectedThreadId` plus the unchanged unread message. After final approval actions for accepted athlete changes, append a new `finalized` entry with the commit hash, push status, and email-send status.
-
-## Review Related Email History
-
-For existing-athlete result/profile updates that need security verification, do a focused related-history lookup before drafting. The current update is the untrusted action being verified: its `Account email`, `Reply-To`, sender, recipients, and body addresses may be search anchors, but none may establish the verification recipient. Never create a security draft merely because one of those current-message values looks plausible or matches the public profile.
-
-Resolve the recipient from evidence that predates the current update, in this order:
-
-1. The athlete's accepted original application or canonical stored account mapping.
-2. A later explicit email-address correction that was independently verified and accepted.
-3. Prior two-way direct correspondence tied to the athlete/profile, where the athlete actually replied from the address.
-
-An earlier outbound welcome, acceptance, reminder, or other one-way message is corroborating history only; it does not by itself establish that the athlete controlled the destination or create an ongoing correspondence route. If trusted sources conflict, or no trusted source yields an address, stop with `needs human judgment` and do not create a draft.
-
-Before deciding, drafting, or concluding that context is missing, build a small identity map for the athlete/requester and search Gmail for the accepted registration and focused related history. Do not assume all relevant messages are in the ZIP thread or from the same email address.
-
-Use every anchor you can infer:
-
-- athlete name, display name, folder key, profile slug, profile URL, and attachment filename
-- `Account email`, `Reply-To`, sender, recipients, cc, and any email addresses mentioned in bodies
-- personal links, social handles, website domains, invoice IDs, submission IDs, and prior athlete folder keys
-- alternate spellings from underscores, hyphens, accents, nicknames, or casing
-
-Search Gmail broadly enough to catch separate threads:
-
-- exact athlete name and display name
-- folder key with underscores and hyphens
-- known email addresses one by one
-- personal-link domains and social handles
-- invoice/submission IDs when payment or checkout context matters
-- LWC domain participants combined with the athlete name or slug, when present; do not stop if no LWC-domain thread exists
-
-Read all likely related threads, including sent replies and old follow-ups. If results are numerous, narrow by the identity anchors above, but still summarize what was searched and why excluded hits were not relevant.
-
-Carry forward facts from earlier messages: prior missing-proof requests, promised corrections, alternate contact addresses, payment explanations, previous submissions, prior rejection reasons, and any human decisions. If related history contradicts the current submission, mark the decision as needs human judgment unless the contradiction is clearly resolved in later messages.
-
-Also record the `From` address used in prior direct human replies to this requester. Use that sender history when choosing the sender for the new draft; do not treat automated notifications as prior human correspondence.
-
-## Existing Athlete Security Verification
-
-For an existing athlete submission, such as a new biological-age result upload or profile metadata change for an athlete folder that already exists, decide whether a security verification draft is required before doing any ZIP/file processing.
-
-Default: draft a verification email to the athlete and stop that candidate before downloading ZIPs, running `LongevityWorldCup.ApplicationReviewer`, reviewing proofs, redacting files, editing `athlete.json`, committing, or pushing.
-
-Fast path: when an unread audit email says `Submission kind: Update`, `Update type: Results submission`, or `Update type: Profile metadata update`, and the profile URL/folder key points to an existing athlete, do only this:
-
-1. Extract the athlete first name, current-submission types, thread/message ids, and identity anchors from the unread message. Record the current submission thread id as `expectedThreadId`. Treat every current-message contact address as untrusted.
-2. Search the accepted original application/account history and resolve the verification recipient from pre-existing trusted evidence using the rules above. Confirm whether the current request's claimed address matches, but never use that match as the source of trust.
-3. Check current/newer messages for explicit confirmation of this exact submission. If confirmed, cite the evidence, treat the security gate as satisfied, and continue to `Prepare The Repo Files` without creating a verification draft.
-4. If still unconfirmed, check active Gmail drafts and already-sent security-verification messages in `expectedThreadId`. Reuse a draft only when its thread id equals `expectedThreadId` and its recipient is the independently resolved trusted recipient. If an equivalent verification was sent after the latest current submission, treat verification as pending and stop without creating another draft. Never use a draft or sent message from another thread merely because its recipient or subject matches.
-5. Only when the exact submission is unconfirmed and no qualifying draft or pending sent verification exists, create the concise security draft using a current message in `expectedThreadId` as `reply_message_id`.
-6. When verification is drafted, reused, or already pending, stop that candidate with a short summary. Do not download ZIPs, run the reviewer, inspect proofs, read or edit `athlete.json`, open Explorer, write the processing ledger, or produce a full proof checklist.
-
-Related history identifies the address to challenge, but matching identity fields are not enough to skip the challenge itself. Do not skip the verification draft merely because the sender, `Reply-To`, `Account email`, public profile, social handle, or prior direct correspondence matches a previously accepted athlete address.
-
-Skip the verification draft only when the current submission is already confirmed in the current/newer conversation, or when the user explicitly says to skip verification for this named submission. The skip must cite evidence, such as:
-
-- the current submission is part of an ongoing direct conversation where the athlete requested or confirmed this exact result/profile change,
-- a later message in the related history confirms this exact current submission from the athlete or trusted requester, or
-- the user explicitly says to skip verification for this named submission.
-
-If no independently trusted athlete contact address is known, mark the decision as needs human judgment, explain which possible contact addresses were found and where each came from, and do not create a security draft.
-
-When one athlete has multiple unread current submissions in the same Gmail thread, combine them into one security draft. When current submissions span distinct Gmail threads, treat each thread as an independent candidate and prepare a separate draft anchored to each thread. If the user explicitly limits scope to one thread, leave the others pending and report them; never let one selected thread represent submissions from another. Use the shortest clear body and do not include proof findings, correction details, a long explanation, or a signature unless the user explicitly asks. Draft this verification email when required, adjusting only the first name and submitted item phrase:
+Use this body, adjusting the first name and selecting the submitted item phrase. Omit the greeting if a prior human reply in the thread already greeted them; no signature or proof details unless requested.
 
 ```text
 Hi {firstName}, for security reasons can you confirm you've submitted {the new results/the change request/the new results and the change request}?
 ```
 
-Examples:
+## Prepare Files
 
-- Result plus profile/update request: `Hi David, for security reasons can you confirm you've submitted the new results and the change request?`
-- Result only: `Hi David, for security reasons can you confirm you've submitted the new results?`
-- Profile/update request only: `Hi Cher, for security reasons can you confirm you've submitted the change request?`
+Enter only after any existing-athlete security gate is satisfied. If payment is due without a Gmail confirmation/follow-up, stop with a payment draft before ZIP/file processing.
 
-Do not download, review, redact, edit local files, open the athlete folder, write the ledger, commit, push, send an update/welcome email, or mutate Gmail labels for an existing athlete submission while verification is pending, except to add/restore `UNREAD` as required by the unread-state invariant, unless the user explicitly overrides after seeing the summary.
+Download ZIPs only through the bundled helper, never Gmail `read_attachment`, Chrome, Computer Use, web attachment controls/URLs, or browser fetch/XHR/downloads. Unsupported ZIP responses and oversized MIME output are expected connector limitations, not fallback authorization. Diagnose/fix the helper path; if still blocked, report it. Manual download requires the user to choose that fallback.
 
-## Prepare The Repo Files
+Save ZIPs under `LongevityWorldCup.Website/wwwroot/athletes/`. Inspect same-named ZIPs/folders before replacement; never overwrite unrelated work. For a returning new applicant, restore its pending folder only if no tracked or unrelated destination exists.
 
-Do not enter this section for an existing-athlete result/profile update until the security-verification gate has been satisfied by current/newer confirmation or by explicit user override. For an unconfirmed existing-athlete update, the correct action is only to create the concise security draft and stop that candidate.
-
-Download ZIP attachments through the raw Gmail connector helper, not through Chrome, Computer Use, Gmail `read_attachment`, the Gmail web UI, or a browser-controlled attachment URL. `application/zip` returning `read_attachment_supported: false`, `unsupported_attachment_type`, or an oversized raw MIME payload in normal chat/tool output is expected; these are not reasons to use a browser.
-
-Save full application ZIPs and result/profile ZIPs into:
-
-```powershell
-LongevityWorldCup.Website\wwwroot\athletes\
-```
-
-For a reprocessed new applicant, first check `.artifacts/pending-athlete-reviews/{folder_key}/`. If it exists and no tracked athlete folder exists for that key, move it back to `LongevityWorldCup.Website/wwwroot/athletes/{folder_key}/` for the active reviewer run. Never merge a pending folder over a tracked athlete folder or an unrelated working-tree folder.
-
-First search/read the parent Gmail message with connector tools and copy the Gmail message id plus the exact attachment filename from message metadata. Prefer `--filename` for ZIPs because Gmail attachment ids may be reissued between connector reads; use `--attachment-id` only when filenames are absent or ambiguous. Then run from the solution root:
+Read the parent message with the connector for the message ID and exact filename. Prefer `--filename`; use `--attachment-id` only if filenames are missing/ambiguous because attachment IDs may change between reads. From the solution root:
 
 ```powershell
 node .\.codex\skills\process-athlete-applications\scripts\download-gmail-attachment-raw.mjs --message-id {gmail_message_id} --filename "{attachment_filename}" --out .\LongevityWorldCup.Website\wwwroot\athletes\
 ```
 
-If the helper cannot infer the current Codex thread, add `--thread-id <codex-thread-id>`. The downloader starts a temporary local `codex app-server`, calls Gmail `read_email` with `include_raw_mime=true`, writes the selected attachment bytes directly to the requested local path, and prints JSON containing `savedPath`, `filename`, `mimeType`, `size`, and `sha256`.
-
-If the helper fails, fix or diagnose the helper/app-server/Gmail connector path. If it still cannot download the ZIP, stop and report the blocker. Do not open Gmail in Chrome, do not click attachment controls, do not use browser `fetch`/XHR/downloads, and do not ask the user to manually download the ZIP unless they explicitly choose that fallback after seeing the blocker.
-
-After downloading, verify `mimeType` is `application/zip`, the size is plausible, and the saved file opens as a ZIP locally before running the reviewer.
-
-Preserve the attachment filename unless doing so would overwrite an unrelated ZIP. If a same-named ZIP or athlete folder already exists, inspect before replacing because result uploads merge into existing athlete folders.
-
-Run the reviewer from the solution root:
+Add `--thread-id <codex-thread-id>` if inference fails. The helper starts temporary `codex app-server`, requests Gmail `read_email` with `include_raw_mime=true`, writes attachment bytes locally, and reports `savedPath`, `filename`, `mimeType`, `size`, and `sha256`. Require `application/zip`, plausible size, and a locally readable ZIP.
 
 ```powershell
 dotnet run --project .\LongevityWorldCup.ApplicationReviewer\LongevityWorldCup.ApplicationReviewer.csproj
 ```
 
-The reviewer scans `LongevityWorldCup.Website\wwwroot\athletes` for `*.zip`, extracts or merges the athlete folder, deletes the ZIP, starts the website on `https://localhost:7080` if needed, opens the athlete page in Chrome incognito, and opens the athlete folder in Explorer. If it fails because projects are not built, build the solution or relevant projects, then rerun the reviewer.
+The reviewer scans every `*.zip` in the athletes directory, extracts/merges folders, deletes ZIPs, starts `https://localhost:7080` if needed, and opens Chrome incognito and Explorer. Build relevant projects if needed and retry. Identify changed folders against the email key, ZIP name, and `git status`. After review/validation, move unapproved new folders back to the pending path and recheck status.
 
-After the reviewer runs, identify the changed athlete folder from the email folder key, ZIP filename, or `git status`.
+## JSON and Proofs
 
-After proof review and local validation, but before presenting the human approval summary, check whether this is a new applicant whose entire athlete folder is untracked. Move that folder to `.artifacts/pending-athlete-reviews/{folder_key}/`, verify the original `wwwroot/athletes/{folder_key}/` path is absent, and re-run `git status --short`. Keep the pending files there while awaiting approval or corrected proof. Report the pending artifact path instead of presenting it as a published athlete folder.
+Parse `athlete.json`; compare email audit fields and visible proofs. Check identity/profile metadata (name/display name, division, flag, personal link, media contact, Why), plausible DOB/test chronology, numeric biomarkers in expected units, profile-image filename matching the folder key, and present `proof_*.ext` evidence for results. Append new records without replacing unrelated history.
 
-## Review athlete.json
+A plausible-year December 31 DOB is an allowed privacy placeholder; never replace it with the exact DOB on a proof. Full applications require DOB. Use these sources when uncertain:
 
-Open the extracted `athlete.json` and parse it as JSON. Compare it with the email audit summary and the visible proofs.
+- `LongevityWorldCup.Website/Business/ApplicantData.cs`: submitted fields.
+- `LongevityWorldCup.Website/Controllers/ApplicationController.cs`: audit/ZIP generation.
+- `LongevityWorldCup.Website/Tools/PhenoStatsCalculator.cs`: clock requirements.
+- `LongevityWorldCup.Documentation/Ruleset.md`: competition rules.
 
-Required checks:
+Visually inspect every proof image/PDF page; OCR is supplementary. For each record:
 
-- Name, display name, division, flag, personal link, media contact, and "Why" text are plausible and not obviously malformed.
-- `DateOfBirth` is present for full applications and produces a plausible chronological age for the test dates.
-- Treat `DateOfBirth` month/day `12/31` as an allowed privacy placeholder when the year is plausible. Do not "correct" a submitted December 31 DOB to an exact DOB visible on proof documents. The onboarding flow explicitly allows leaving the birthday at December 31 as a privacy precaution, at a slight competitive disadvantage.
-- `Biomarkers` records have ISO-like dates and numeric values in the repository's expected units.
-- New result submissions append new biomarker records rather than replacing unrelated existing history.
-- Profile image filename matches the athlete folder key with an allowed image extension.
-- Public proof files are named `proof_*.ext` and are present for result-bearing submissions.
+- Verify ownership, collection date, each value/unit, and required biomarkers against one blood draw/coherent report for that date. Never combine unrelated tests, dates, or documents. Convert units only when the source unit is clear.
+- Correct unambiguous clerical errors locally (collection versus report date, mistyped value); disclose them. Uncertain values, units, or medical interpretation need human judgment.
+- Below-detection-limit results are valid: store the stated limit (CRP `<0.5 mg/L` becomes `"CrpMgL": 0.5`). If CRP's detection limit is unknown, use the competition default `1 mg/L`. Do not reject/remove the result because of the qualifier; disclose any changed submission value.
+- Retain every complete submitted report page and all clinical content, including unused analytes, units/ranges, flags, comments, diagnoses/referrals, and specimen/report dates. Public proof is not a competition-marker excerpt.
+- Crop screenshots to complete report-page boundaries before redaction. Remove OS/browser/viewer chrome, filenames, toolbars, external canvas, and partial adjacent pages. Preserve report headers/footers, page numbers, provenance, dates, and clinical rows. If no complete page can be isolated, keep the source private and request a clean complete-page export.
+- Redact private identifiers and unique administrative tokens for patients, clinicians, labs, providers, facilities, insurers, and other organizations: personal phone/email/home address; client/patient/medical-record/health/insurance/member IDs; license/registry/provider/facility/organization/staff codes; order/accession/specimen/report/account/payment numbers; encoding barcodes/QR codes.
+- Preserve the applicant's name, age, sex, clinical content, human-readable lab/provider names and logos, clinician/referrer/validator/technician/signer names/titles, facility addresses/contacts, doctor phone numbers, and renderer/footer metadata. Provider registry/code identifiers still require redaction.
+- With a non-December-31 JSON DOB, leave the full proof DOB visible. With the `12/31` placeholder, redact only proof DOB month/day everywhere, retaining the birth year and all other evidence.
+- Inspect every final page at readable size for remaining viewer UI, partial neighboring pages, and text fragments at redaction edges. For re-encoded proofs, decoded-pixel comparison or equivalent must confirm retained-page pixels changed only in intended redaction regions.
 
-Use code as source of truth when uncertain:
-
-- `LongevityWorldCup.Website\Business\ApplicantData.cs` for submitted field names.
-- `LongevityWorldCup.Website\Controllers\ApplicationController.cs` for audit email fields and ZIP creation.
-- `LongevityWorldCup.Website\Tools\PhenoStatsCalculator.cs` for which biomarker fields count toward pheno age and bortz age.
-
-## Proof Review Checklist
-
-Review every proof image/PDF page visually. OCR may help, but do not accept solely from OCR when the proof is visible.
-
-For each JSON biomarker record:
-
-- Match the proof date to the JSON `Date`.
-- Match each recorded value to a visible proof value, accounting for explicit unit conversion only when the source unit is clear.
-- Treat a result reported below a laboratory detection limit as valid evidence. Store the stated limit as the numeric value used by the calculator: for example, proof showing CRP `<0.5 mg/L` becomes `"CrpMgL": 0.5`. If a CRP result is below the detection limit but the limit itself is unknown, use the competition default of `1 mg/L`. This is the established competition rule in `LongevityWorldCup.Documentation\Ruleset.md`; do not reject the result, remove the biomarker, or propose an athlete/profile without a biological age because of the qualifier. If processing changed the submitted value, disclose the correction in the human summary and athlete draft.
-- Confirm all values in the record are from one blood draw or one coherent lab report for the same test date. Do not accept a single JSON record assembled from different blood tests, different dates, or unrelated documents.
-- Confirm that required biomarkers for the claimed result are actually supported.
-- Correct obvious JSON clerical mismatches locally instead of blocking. Examples: use the blood draw/collection date instead of a report/submission date when the report clearly shows both; fix a mistyped numeric value such as `ShbgNmolL` when the proof value and unit are unambiguous. Report the correction in the human approval summary.
-- Preserve the submitted medical or laboratory evidence broadly. Retain every submitted report page, including pages that do not contain a competition-required biomarker, and keep all clinical content visible: analytes and results, units, reference ranges, abnormal flags, comments and interpretations, diagnoses or referral reasons, specimen and report dates, and other medical values. Public proof is not a competition-field-only excerpt.
-- When a proof is a screenshot of a document viewer or operating system, crop each image to the boundary of the complete report page before redaction or publication. Remove operating-system status bars, window/browser/PDF-viewer chrome, filenames, toolbars, navigation arrows, external canvas, and partial neighboring pages. If one screenshot contains one complete page plus partial duplicates of adjacent pages, publish only the complete page.
-- Treat this as document-boundary cropping, not a biomarker-only excerpt: preserve every complete submitted report page and all of its clinical content. Do not crop away report headers, footers, page numbers, laboratory provenance, dates, comments, or clinical rows. If no complete page can be isolated without losing evidence, keep the source private and request a cleaner complete-page export instead of publishing an incomplete crop.
-- Redact private identifiers and unique administrative tokens that are irrelevant to public result verification, regardless of whether they identify the applicant, clinician, laboratory, provider, facility, insurer, payer, or another organization. This includes personal phone numbers or email addresses, home addresses, client/patient/medical-record/health/insurance/member numbers, professional/license/registry numbers, provider/facility/organization codes, staff or collector IDs shown as codes, and unique order/accession/specimen/report/account/payment numbers. Redact barcodes and QR codes that may encode those identifiers. Preserve the applicant's name as the ownership signal, and do not redact age, sex, clinical content, or a laboratory value merely because the competition does not use it.
-- Preserve human-readable laboratory and provider provenance, including laboratory names and logos; clinician, referrer, validator, technician, and signer names and titles; facility and organization names; facility addresses and contact details; doctor phone numbers; and renderer/generator/footer metadata. A provider-side code or registry number is still an identifier and must be redacted; do not preserve it merely because it is shared provider information rather than the applicant's personal data.
-- After cropping and redaction, visually inspect every page at a readable size and confirm that no viewer interface or partial neighboring page remains and no text fragments remain at rectangle edges. When proofs are re-encoded, use a decoded-pixel comparison or an equivalent check to verify that pixels inside the retained page changed only within the intended redaction regions.
-- Leave a proof's full date of birth visible when `athlete.json` contains a date other than December 31. When `athlete.json` uses the `12/31` privacy placeholder, redact only the month and day wherever the proof shows the DOB; keep the birth year visible, preserve the rest of the report, and do not use the proof DOB to overwrite the JSON placeholder.
-- Confirm the proof belongs to the applicant when the document exposes a name or other safe identity signal.
-
-Pheno age requires one record with:
+Pheno age requires one record containing:
 
 `AlbGL`, `CreatUmolL`, `GluMmolL`, `CrpMgL`, `Wbc1000cellsuL`, `LymPc`, `McvFL`, `RdwPc`, `AlpUL`.
 
-Bortz age requires one record with:
+Bortz age requires one record containing:
 
 `AlbGL`, `AlpUL`, `UreaMmolL`, `CholesterolMmolL`, `CreatUmolL`, `CystatinCMgL`, `Hba1cMmolMol`, `CrpMgL`, `GgtUL`, `Rbc10e12L`, `McvFL`, `RdwPc`, `MonocytePc`, `NeutrophilPc`, `LymPc`, `AltUL`, `ShbgNmolL`, `VitaminDNmolL`, `GluMmolL`, `MchPg`, `ApoA1GL`.
 
-`MonocytePc` and `NeutrophilPc` are stored as percentages; the site derives counts from WBC.
+`MonocytePc` and `NeutrophilPc` are stored percentages; the site derives counts from WBC.
 
-## Blocking Issues
+Block and draft a specific reply for missing/irreconcilable evidence, mixed tests, unsafe redaction, unpaid fees, wrong/unexpected folders, unverifiable ownership, or unresolved history contradictions. Missing required history/ledger/security checks must be resolved before continuing; named submissions may bypass ledger skips. If processing occurred before security confirmation, report it and stop. Keep uncertain secondary findings in the human summary.
 
-Mark the submission blocked and prepare a draft reply when any of these are true:
+## Choose and Save the Draft Sender
 
-- Required biomarker values are missing from proofs.
-- JSON values or dates do not match visible proof values and cannot be confidently corrected from the proof.
-- A single JSON biomarker record combines multiple tests, dates, or reports.
-- Proofs expose uncensored private identifiers that cannot be safely censored locally without hiding verification evidence.
-- Payment is due and no payment confirmation/follow-up is visible in Gmail.
-- The ZIP/reviewer output modifies the wrong athlete folder or creates an unexpected folder key.
-- The applicant's identity, test date, or result ownership cannot be reasonably verified.
-- Related email history was not searched, or it contains unresolved contradictions about proof, payment, identity, or requested changes.
-- The processed ledger was not checked before ZIP download/reviewer work, unless the user explicitly requested a named submission.
-- Existing athlete result/profile-change submissions do not have a drafted security verification email, current/newer confirmation of the exact submission, or an explicit user override.
-- An existing-athlete security draft is addressed to an email obtained only from the current update, or trusted pre-existing recipient evidence was not checked first.
-- Existing athlete result/profile-change submissions were downloaded, reviewed, redacted, or applied locally before security verification was satisfied.
+Explicit user sender instructions override this hierarchy:
 
-For obvious issues, draft the email directly. For uncertain medical/unit interpretation issues, explain the uncertainty in the summary and wait for the human decision.
+1. Reply from the address directly receiving the latest athlete/requester-authored inbound message when it is `hi@longevityworldcup.com`, `adam.ficsor73@gmail.com`, or `adam@longevityworldcup.com`.
+2. Otherwise reuse the sender from the most recent two-way human exchange with this requester among those addresses. One-way/automated mail establishes no route.
+3. Default to `adam@longevityworldcup.com`.
 
-## Choose And Save The Draft Sender
+For ordinary/full-application replies, prefer requester `Reply-To` or `Account email`; security recipients must come from the trusted-history gate.
 
-Choose the draft's `From` address in this order:
+1. Select a current `anchorMessageId` in `expectedThreadId`. Check active drafts; for security drafts, also recheck exact-submission confirmation and pending sent verification.
+2. Create the connector scaffold with `reply_message_id: anchorMessageId`; verify the returned thread ID immediately. Stop on failure/mismatch, without Compose or another thread as fallback.
+3. Open that exact draft from Gmail Drafts in the Codex in-app Browser under `adam.ficsor73@gmail.com`. Identify the displayed account email, not a fixed `/u/0` or `/u/1`; do not open the source Inbox message or create a browser replacement draft.
+4. Expand headers, select `From`, and confirm recipient/subject/body. Save and close without sending.
+5. Verify `From` and exact thread ID using `list_drafts` or underlying message metadata. Stop if the profile/send-as route is unavailable, sender is wrong, or thread identity cannot be proved; do not present an incorrect draft as ready.
+6. Verify/restore every current submission's `UNREAD` and report both expected and saved draft thread IDs.
 
-1. Preserve the direct route of the latest athlete/requester-authored inbound message:
-   - When it was addressed directly to `hi@longevityworldcup.com`, reply from `hi@longevityworldcup.com`.
-   - When it was addressed directly to `adam.ficsor73@gmail.com`, reply from `adam.ficsor73@gmail.com`.
-   - When it was addressed directly to `adam@longevityworldcup.com`, reply from `adam@longevityworldcup.com`.
-2. When the direct recipient is another address or is ambiguous, inspect related history. Reuse the sender from the most recent two-way direct human exchange with this requester among `hi@longevityworldcup.com`, `adam.ficsor73@gmail.com`, and `adam@longevityworldcup.com`, but only when the requester actually replied in that conversation. A one-way welcome, acceptance, reminder, or other outbound message does not establish a correspondence route and must not override the default sender.
-3. When no useful direct route or prior human correspondence exists, use `adam@longevityworldcup.com`.
-4. An explicit sender instruction from the user overrides this hierarchy.
+## Reply Content
 
-Use this draft workflow:
+Continue the latest direct exchange in a warm, concise human voice. Match demonstrated sender style from actual correspondence (brevity, punctuation, emoji, headings, calls to action). Avoid stacked prose praise; repeated completion emoji may fit established style. Greet only in the first direct human reply in a thread. Acknowledge relevant supplied proof/corrections, not unrelated side topics.
 
-1. Record the current submission's Gmail `thread_id` as `expectedThreadId` and select a current message in that thread as `anchorMessageId`. Never use a historical correspondence message as the anchor.
-2. Check active Gmail drafts before creating anything. For security verification, first check whether a current/newer athlete message confirms the exact submission; if so, do not draft and continue processing. Otherwise check already-sent messages in `expectedThreadId`; if an equivalent verification was sent after the latest current submission, report verification as pending and do not create a duplicate. Reuse a draft only when its Gmail thread id exactly equals `expectedThreadId`; recipient or subject matches alone are insufficient.
-3. Use the Gmail connector to create the threaded draft scaffold with `reply_message_id: anchorMessageId`. Immediately verify that the returned draft/message thread id equals `expectedThreadId`. If creation fails or returns a different thread, stop. Do not use Compose, create a new draft, or move the reply to an older thread as a fallback.
-4. Open that exact draft from Gmail's Drafts view in the Codex in-app Browser under the `adam.ficsor73@gmail.com` Google profile. Identify the profile by its displayed account email; do not assume a fixed `/u/0` or `/u/1` index. Do not open the source Inbox message merely to reach the draft, and do not create a replacement draft in the Browser.
-5. Expand the draft headers, select the `From` address chosen above, and confirm the recipient, subject, and body. Save and close the draft; never click Send before explicit approval.
-6. Verify the saved draft with Gmail `list_drafts`, including the exact `From` address and exact thread id. Require `draftThreadId == expectedThreadId`; display both ids in the approval summary. If the connector omits the draft thread id, read the draft's underlying message metadata and verify it there. If the ids differ or cannot be verified, stop without sending.
-7. Verify that every current source submission still has `UNREAD`; if one does not, add `UNREAD` immediately and verify it. Do not remove or change any other labels.
+Language priority: explicit user/athlete instruction; otherwise a clearly non-English `Why` field; otherwise latest direct exchange; otherwise English. Localize the entire reply, retaining names, URLs, biomarker labels, and exact values. Lab-report language alone does not establish preference.
 
-If the Adam Google profile is not signed in, the required send-as address is unavailable, or the saved draft reports the wrong `From`, stop and report the blocker. Do not leave a draft from the wrong sender as if it were ready.
+For paid new applications blocked by missing evidence, introduce Adam on first contact, ask only about the confirmed blocker, and offer a refund if the evidence may not exist. Typical blockers need just the missing markers, same-draw requirement, requested safe proof, or outstanding payment explained.
 
-## Draft Replies
+Every accepted full-application welcome briefly introduces Adam as LWC's founder, even after requested corrections. Include acceptance, the new profile link, and an invitation to report corrections. Acknowledge the actual preceding exchange without repeating an earlier greeting.
 
-Draft replies in Gmail, do not send them before approval.
+When review changes athlete-submitted information, include `Changes I made during the review:` with one short bullet per change, showing submitted versus stored values/units where relevant. Place it before a new profile link; for existing-athlete updates it may be the entire substantive body. Omit the section if no corrections occurred. Exclude routine processing, redaction, filenames, internal details, and normal result additions; never invent changes.
 
-Write athlete-facing replies in a warm, casual, conversational voice. Keep them concise and accurate; avoid stiff support-language, forced slang, or unnecessary formality. Treat the templates below as starting points, not scripts.
+Existing-athlete replies normally omit repeated greeting, generic profile-updated text, unchanged/known URL, founder introduction, Slack invitation, signature, and unnecessary calls to action. Include links only for new/changed profiles, when requested, or when useful to resolve the request. With no correction/action, a brief sender-appropriate completion line is sufficient.
 
-Before saving any draft, inspect the prior direct human replies in `expectedThreadId` for an earlier salutation to the athlete. Treat the Gmail thread as one conversation: use `Hi/Hey {name}` only in the first direct human reply in that thread. If a prior human reply already greeted them, start the follow-up with the acknowledgment or substance instead, including security, correction, welcome, and update replies. Template salutations are conditional and never override this rule.
-
-Calibrate the reply to the selected sender's demonstrated human voice before applying a generic template. Use direct sent replies already found in the current thread and related-history review to match brevity, emoji repetition, punctuation, headings, and calls to action. Thread-specific sender style outranks generic template tone when it remains clear and accurate; do not invent stylistic quirks without evidence.
-
-Keep prose praise restrained: do not stack `great`, `good`, `excellent`, or equivalent praise. A repeated emoji completion marker such as `🚀🚀🚀` is not stacked praise and may be preserved when it matches the sender's demonstrated voice.
-
-Choose the reply language in this order:
-
-1. If the athlete's `Why` field is clearly written in a language other than English, write the entire reply naturally in that language. This applies to welcome, update, correction-disclosure, and blocked-submission drafts; do not translate only the greeting.
-2. Otherwise, follow the language used by the athlete/requester in the latest direct exchange.
-3. If neither signal is clear, use English. An explicit language instruction from the user or athlete overrides these defaults.
-
-Do not infer reply language from the laboratory report alone; a report's language may reflect the provider rather than the athlete's preference. Preserve proper names, URLs, biomarker labels, and exact submitted/corrected values when localizing a draft.
-
-Before drafting, read the latest direct exchange with the athlete and continue that conversation naturally. Briefly acknowledge the athlete's latest submission-relevant action—such as sending requested proof or a correction—using only details present in the thread. Do not force an acknowledgment of unrelated side topics merely to demonstrate that the thread was read. For every accepted full-application welcome, introduce the sender briefly as Adam, the founder of LWC, in the reply's language. Keep this personal introduction even when the applicant supplied a requested item before acceptance; result/profile-update replies do not need to repeat it.
-
-Before saving, remove every sentence that neither communicates new information or a required action nor preserves the sender's demonstrated voice. Existing-athlete updates are continuations of a relationship, not onboarding announcements.
-
-When blocked, keep the message concise and specific:
-
-For a paid new application, introduce Adam on first contact, ask only about the confirmed blocker, and offer a refund if the missing evidence may not exist. Keep uncertain secondary findings in the internal summary.
-
-```text
-Hi {name},
-
-{specific issue}
-
-Best,
-Longevity World Cup
-```
-
-Common `{specific issue}` examples:
-
-- `The proof does not show {missing biomarkers}, which are needed for the submitted {pheno age/bortz age} result.`
-- `The submitted biomarker record appears to combine values from different test dates. Each result record needs to come from one blood draw or one coherent lab report for the same test date.`
-- `I could not safely censor {identifier type} without hiding the proof values needed for verification. Please upload a censored version.`
-- `The submission still shows a payment due, and I do not see a payment confirmation yet. Please complete the payment or reply if you believe it was already paid.`
-
-When accepted and the user approves finalization, send a welcome/update reply. If you changed any athlete-submitted information during review, include a `Changes I made during the review:` section. For a new application, place it before the profile link; for an existing-athlete update, it may be the entire substantive body. Use one short bullet per change, explaining what the athlete submitted and what was ultimately stored; include the original and corrected values or units when relevant.
-
-List only changes the athlete should know about. Do not mention routine processing, proof-file redaction, filenames, internal implementation details, or the normal addition of an accepted result. Never invent a change. When no corrections were made, omit the heading and the entire section.
-
-Examples:
-
-- `Your glucose was submitted as 90 mmol/L, but the proof shows 90 mg/dL, so I stored it as 5.0 mmol/L.`
-- `I corrected your Instagram handle from @oldvalue to @correctvalue.`
-
-For an accepted full application on first contact, use:
-
-```text
-Hey {name},
-
-I'm Adam, the founder of LWC. I reviewed your application and it looks good to me.
-
-{Include the Changes I made during the review section here only when required by the preceding instructions.}
-
-Your athlete profile: {profileUrl}
-
-Please reply if you spot anything that needs a correction.
-
-Want to hang out with other longevity athletes? Join the #longevity-world-cup room on the TumbleBit Slack!
-```
-
-For an accepted full application after the athlete supplied a requested item or correction, adapt the acknowledgment to the actual exchange. For example:
-
-```text
-Hey {name},
-
-I'm Adam, the founder of LWC. Thanks for sending {the requested item}. I reviewed {the complete report/the update}, and your application looks good to me.
-
-{Include the Changes I made during the review section here only when required by the preceding instructions.}
-
-Your athlete profile: {profileUrl}
-
-Please reply if you spot anything that needs a correction.
-
-Want to hang out with other longevity athletes? Join the #longevity-world-cup room on the TumbleBit Slack!
-```
-
-For an accepted result upload or profile update, draft the shortest natural continuation that communicates the outcome and any athlete-facing correction or required action. Normally omit all of the following from an ongoing existing-athlete thread:
-
-- a repeated greeting,
-- the generic sentence `Your Longevity World Cup profile has been updated.`,
-- the profile URL when it is already known and unchanged,
-- `Please reply if you spot anything that needs a correction.` when no action is required,
-- the Slack invitation, founder introduction, and signature.
-
-Include a profile link only when the profile is new, the link changed, the athlete asked for it, or it materially helps resolve the request. Include a call to action only when the athlete needs to do something.
-
-When a clerical correction is the only meaningful athlete-facing delta and the sender's demonstrated voice supports a celebratory completion marker, prefer this shape:
+For example, only when these are the actual correction and demonstrated voice:
 
 ```text
 🚀🚀🚀
@@ -415,59 +166,40 @@ Changes I made during the review:
 - Your MCV was submitted as 84.7 fL, but the proof shows 86.7 fL, so I stored 86.7 fL.
 ```
 
-Adapt the field and values to the actual correction; do not copy the MCV example when it does not apply. When there is no correction or required action, one short, sender-appropriate completion line may be sufficient.
+Include the following only in the first accepted full-application welcome if history shows it has not already been sent, unless explicitly requested elsewhere:
 
-Include the Slack invitation only in the first accepted full-application welcome when related history does not show that it was already sent, unless the user explicitly requests it elsewhere. In Gmail's rich-text editor, hyperlink only the visible words `TumbleBit Slack` to `https://join.slack.com/t/tumblebit/shared_invite/zt-2wzmjg6tg-PRup8nbL7GxViJzofNoBFQ`. Do not paste the full Slack URL into the visible email body. Keep the Slack invitation as the final paragraph, with no signature after it.
-
-## Human Approval Summary
-
-Stop after review and present a summary before any send/commit/push. Include:
-
-For an existing-athlete security-verification-only draft, keep the summary short: athlete name/profile, current submission message id, `expectedThreadId`, saved draft thread id, recipient, the pre-existing trusted evidence used to resolve that recipient, whether the current update claimed the same address, selected `From` address and why it was chosen, exact draft text or existing draft id, and `No ZIP downloaded, no files inspected or changed, no ledger written, and every current submission confirmed unread.` State whether any `UNREAD` label had to be restored. Do not include JSON highlights, proof checklist, files changed, or folder-open status for this fast path.
-
-- Recommended decision: approve, block, or needs human judgment.
-- Athlete folder or pending-review artifact path and public profile URL. Folder keys use underscores; profile URLs use hyphens. For a new applicant awaiting approval or corrected proof, the folder must be under `.artifacts/pending-athlete-reviews/`, not `wwwroot/athletes/`.
-- Gmail current submission message id, `expectedThreadId`, saved draft thread id, whether a draft reply was created, and the verified `From` address. State explicitly whether the two thread ids are identical.
-- Unread preservation: confirm that every current submission message has `UNREAD`, and identify any message whose `UNREAD` label was restored.
-- Related email history reviewed: search anchors used, additional threads found, alternate requester addresses, and relevant prior context.
-- Processed ledger: whether this was new, reprocessed because of newer email, or explicitly overridden by the user.
-- Existing-athlete security verification: draft created, skipped with cited evidence, pending athlete reply, or explicitly overridden by the user.
-- Payment status from the audit email and any confirmation found.
-- Files changed from `git status --short`.
-- JSON highlights: name, division, flag, date of birth, biomarker record dates, pheno/bortz availability.
-- Proof checklist: for each biomarker record, list proof files reviewed, date match, value match, same-test status, censoring status, and any missing evidence. For existing-athlete submissions stopped at the security gate, say proof/files were intentionally not downloaded or reviewed pending confirmation.
-- Exact next actions you will take if the user says to approve.
-
-If the athlete or pending-review folder is not already open and this is not a security-verification-only draft, open the actual current folder in Explorer before presenting the summary. New applicants awaiting approval should be opened from `.artifacts/pending-athlete-reviews/{folder_key}`.
-
-```powershell
-explorer .\.artifacts\pending-athlete-reviews\{folder_key}
+```text
+Want to hang out with other longevity athletes? Join the #longevity-world-cup room on the TumbleBit Slack!
 ```
+
+In Gmail rich text, hyperlink only `TumbleBit Slack` to `https://join.slack.com/t/tumblebit/shared_invite/zt-2wzmjg6tg-PRup8nbL7GxViJzofNoBFQ`. Keep it last, with no visible raw URL or following signature. Remove sentences adding neither information/action nor demonstrated human voice.
+
+## Approval Summary
+
+Before sending/committing/pushing, present the decision and exact proposed actions with:
+
+- Athlete/profile and actual folder path (underscore folder keys, hyphenated URL slugs); new applicants stay under `.artifacts/pending-athlete-reviews/`.
+- Current message ID, `expectedThreadId`, saved draft thread ID, explicit equality, draft text/ID, verified sender, unread status/restorations.
+- Related-history search/evidence, ledger/new-message status, security confirmation/override, payment evidence, and blockers.
+- Changed files from `git status --short`; identity/DOB, record dates and available clocks; per-record proof/date/value/same-test/privacy checks and missing evidence.
+
+Open the actual athlete/pending folder in Explorer if not already open before a full summary. Write the full-review ledger entry before stopping.
+
+For security-only work, instead give a short summary: athlete/profile, message and thread IDs, draft ID/text, trusted recipient and its pre-existing source, whether the update claimed that address, selected sender and reason, pending/confirmation status, and verified unread/restorations. Confirm no ZIP download, local file inspection/change, or ledger write. No Explorer, JSON highlights, or proof checklist.
 
 ## Finalize After Explicit Approval
 
-Only after the user explicitly approves the prepared summary and draft, follow the applicable branch below.
+Security-only approval authorizes the verified security email, not ZIP/reviewer work, athlete edits, Git operations, or ledger writes. Recheck exact-submission confirmation and same-thread pending verifications before sending; a newly confirmed submission needs no verification email, and pending verification needs no duplicate.
 
-### Send Security Verification Only
+For approved accepted changes:
 
-For a security-verification-only approval, do not stage, commit, push, download or process the ZIP, edit athlete files, or write the processing ledger.
+1. Restore a new applicant's reviewed pending folder only into an absent destination; verify the restored files match the review.
+2. Recheck `git status`, stage only accepted files/supporting changes, and commit with a short message.
+3. Push `origin master` only from `master` with approval to push; ask before switching/pushing from another branch.
 
-1. Re-read the current submission anchor and set `expectedThreadId` from its Gmail metadata.
-2. Re-read the approved draft and require its thread id to equal `expectedThreadId`. Recheck its `From`, recipient, subject, and body. If any check fails or the thread id is unavailable, stop without sending.
-3. Recheck `expectedThreadId` for an equivalent verification sent after the latest current submission. If one exists and no later athlete confirmation follows it, do not send a duplicate; report that verification is already pending.
-4. Send the verified draft. Require the send result's thread id and the sent message metadata's thread id to both equal `expectedThreadId`. A `SENT` label, correct recipient, or matching subject is insufficient. If either id differs, report the threading incident immediately and do not claim success or retry without fresh user approval.
-5. Verify that every current submission message still has `UNREAD`. If one does not, add `UNREAD` immediately and verify the restoration. Never remove `UNREAD` or alter any other label.
-6. Report `expectedThreadId`, saved draft thread id, send-result thread id, sent-message thread id, verified sender, confirmation that every current submission remains unread, and whether any `UNREAD` label was restored. State that no ledger entry or repository change was made and that application processing remains pending athlete confirmation.
+For either email branch:
 
-### Finalize Accepted Athlete Changes
-
-1. For an approved new applicant, move `.artifacts/pending-athlete-reviews/{folder_key}/` back to `LongevityWorldCup.Website/wwwroot/athletes/{folder_key}/`. Verify the destination was absent before the move and that the restored files are exactly the reviewed files.
-2. Recheck `git status --short`.
-3. Stage only the accepted athlete files and any intentional supporting changes.
-4. Commit with a short message such as `Add {Name} athlete` or `Update {Name} athlete results`.
-5. Push `origin master` only when on `master` and the user approved pushing. If not on `master`, ask before switching or pushing.
-6. Re-read the current submission anchor and set `expectedThreadId` from its Gmail metadata. Re-read the approved welcome/update draft and require its thread id to equal `expectedThreadId`. Recheck its `From`, recipient, subject, and body. If any check fails or the thread id is unavailable, stop without sending.
-7. Send the verified draft. Require the send result's thread id and the sent message metadata's thread id to both equal `expectedThreadId`. A `SENT` label, correct recipient, or matching subject is insufficient. If either id differs, report the threading incident immediately and do not claim successful finalization or retry without fresh user approval.
-8. Verify that every current submission message still has `UNREAD`. If one does not, add `UNREAD` immediately and verify the restoration. Never remove `UNREAD` or alter any other label; the user decides when to mark submission emails read.
-9. Append the finalized ledger entry with `expectedThreadId`, saved draft thread id, send-result thread id, and sent-message thread id so the thread invariant is auditable.
-10. Report the commit hash, pushed branch, profile URL, email-send status, all four verified thread ids, confirmation that every current submission remains unread, and whether any `UNREAD` label was restored.
+1. Re-read the current submission anchor and approved draft. Require its thread ID to equal `expectedThreadId`; recheck `From`, recipient, subject, and body before sending.
+2. Send and verify both send-result and sent-message thread IDs against `expectedThreadId`. On mismatch, report the incident and stop without retrying or claiming success.
+3. Verify/restore all current submissions' `UNREAD`. Report expected, saved-draft, send-result, and sent-message thread IDs, sender, send status, and unread/restorations.
+4. For accepted changes, append the finalized ledger entry and report commit, pushed branch, and profile URL. For security-only sending, confirm no repository/ledger change and that processing remains pending athlete confirmation.
