@@ -538,32 +538,29 @@
     }
 
     .bioageform.bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card-content .input-group {
-        display: flex;
-        flex-direction: row !important;
+        display: grid;
+        grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
         align-items: stretch;
-        gap: 0.4rem;
+        gap: var(--lwc-space-2);
     }
 
     .bioageform.bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card-content .input-group input,
     .bioageform.bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card-content .input-group select {
         min-width: 0 !important;
+        width: 100% !important;
         min-height: 46px;
         margin: 0 !important;
     }
 
     .bioageform.bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card-content .input-group input {
-        flex: 1 1 58% !important;
-        width: 58% !important;
         font-size: 1rem;
     }
 
     .bioageform.bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card-content .input-group select {
-        flex: 0 1 42% !important;
-        width: 42% !important;
         padding-left: 0.55rem;
         padding-right: 1.6rem;
         background-position: right 0.5rem center;
-        font-size: 0.86rem;
+        font-size: var(--lwc-type-sm);
     }
 
     .bioageform.bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card-content .input-group .bioage-fixed-unit-select {
@@ -572,17 +569,16 @@
 
     .bioageform.bioage-biomarker-entry-ready #lwc-step-2 .bioage-fixed-unit {
         display: inline-flex;
-        flex: 0 0 auto;
         align-items: center;
         justify-content: center;
-        min-width: 3.4rem;
+        min-width: 0;
         min-height: 46px;
         padding: 0 0.65rem;
         border: 1px solid var(--lwc-border, rgba(148, 163, 184, 0.38));
-        border-radius: 4px;
-        background: var(--lwc-surface, #fff);
+        border-radius: var(--lwc-radius-md);
+        background: var(--lwc-surface-muted, #eef2f5);
         color: var(--lwc-muted, #526373);
-        font-size: 0.86rem;
+        font-size: var(--lwc-type-sm);
         font-weight: 700;
         box-sizing: border-box;
     }

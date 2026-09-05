@@ -106,7 +106,7 @@ body.play-flow-route > main {
     padding: 0.55rem max(0.75rem, env(safe-area-inset-left)) calc(0.58rem + env(safe-area-inset-bottom)) max(0.75rem, env(safe-area-inset-right));
     border-top: 0;
     border-top: 1px solid var(--border-color, #d7e0e6);
-    background: var(--flow-action-dock-surface, rgba(243, 245, 247, 0.985));
+    background: var(--flow-action-dock-surface, var(--lwc-canvas, #f3f5f7));
     box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.08);
     opacity: 1;
     transform: translateY(0) !important;

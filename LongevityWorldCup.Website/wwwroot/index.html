@@ -233,12 +233,12 @@
             .homepage-faq-grid {
                 display: grid;
                 grid-template-columns: repeat(2, minmax(0, 1fr));
-                gap: 1rem 1.5rem;
+                gap: var(--lwc-space-5) var(--lwc-space-6);
             }
 
             .homepage-faq-item {
-                border-top: 1px solid rgba(15, 23, 42, 0.12);
-                padding-top: 0.9rem;
+                border-top: 1px solid var(--lwc-border);
+                padding-top: var(--lwc-space-4);
             }
 
             .homepage-faq-item h3 {
@@ -251,7 +251,7 @@
             .homepage-faq-item p {
                 margin: 0;
                 color: var(--lwc-muted, #4a5568);
-                font-size: 0.95rem;
+                font-size: var(--lwc-type-body);
                 line-height: 1.6;
             }
 
@@ -331,11 +331,31 @@
 
         /* Align form elements */
         #newsletter-form {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 0.75rem;
-            flex-wrap: wrap;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            align-items: stretch;
+            gap: var(--lwc-space-2) var(--lwc-space-3);
+            max-width: 600px;
+        }
+
+        #newsletter-form .shared-email-label {
+            grid-column: 1 / -1;
+            margin: 0;
+            text-align: left;
+        }
+
+        #newsletter-form .shared-email-input,
+        #newsletter-form .shared-email-button {
+            width: 100%;
+            max-width: none;
+            min-width: 0;
+            margin: 0;
+            border-radius: var(--lwc-radius-md);
+        }
+
+        #newsletter-form .shared-email-button i {
+            flex: 0 0 1.25rem;
+            text-align: center;
         }
 
         /* Styles for the copy button */
@@ -748,10 +768,10 @@
                 }
 
             #newsletter-form {
-                flex-direction: column;
+                grid-template-columns: minmax(0, 1fr);
                 width: min(100%, 22rem);
                 margin: 0 auto;
-                gap: 0.85rem;
+                gap: var(--lwc-space-2);
             }
 
                 #newsletter-form .shared-email-input {

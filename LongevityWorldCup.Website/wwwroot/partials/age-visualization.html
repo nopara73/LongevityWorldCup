@@ -180,10 +180,18 @@
     #detailsModal .age-radar-fallback .age-diff {
         color: var(--athlete-modal-text, rgba(255,255,255,.94));
     }
+    #detailsModal .age-radar-summary .age-diff-label,
+    #detailsModal .age-radar-fallback .age-diff-label {
+        color: var(--athlete-modal-accent, #7bdde3);
+        font-size: var(--lwc-type-sm, .875rem);
+        font-weight: 400;
+        letter-spacing: normal;
+    }
     #detailsModal .age-radar-summary .age-bio-age,
     #detailsModal .age-radar-fallback .age-bio-age,
     #detailsModal .age-radar-caption {
         color: var(--athlete-modal-muted, rgba(255,255,255,.68));
+        font-size: var(--lwc-type-sm, .875rem);
     }
     #detailsModal .age-radar-summary.positive .age-diff,
     #detailsModal .age-radar-summary.positive .age-diff-label {
@@ -202,13 +210,17 @@
         border-color: var(--athlete-modal-cream-border, rgba(246,244,237,.52));
     }
     #detailsModal .age-clock-switch [role="tablist"] {
-        background: rgba(0,0,0,.22);
-        border: 1px solid var(--athlete-modal-cream-border, rgba(246,244,237,.52));
-        box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 8px 20px rgba(0,0,0,.16);
+        background: var(--athlete-modal-surface);
+        border: 1px solid var(--athlete-modal-border);
+        border-radius: var(--lwc-radius-md);
+        box-shadow: none;
     }
     #detailsModal .age-clock-switch [role="tab"] {
         color: var(--athlete-modal-cream, rgba(246,244,237,.92));
         border: 1px solid transparent;
+        border-radius: var(--lwc-radius-sm);
+        font-size: var(--lwc-type-sm);
+        font-weight: 700;
     }
     #detailsModal .age-clock-switch [role="tab"]:hover,
     #detailsModal .age-clock-switch [role="tab"]:focus-visible {
@@ -216,10 +228,10 @@
         color: #fff;
     }
     #detailsModal .age-clock-switch [role="tab"][aria-selected="true"] {
-        background: var(--athlete-modal-cream, rgba(246,244,237,.92));
-        color: rgba(12,16,16,.94);
-        border-color: rgba(255,255,255,.78);
-        box-shadow: 0 8px 18px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.72);
+        background: var(--athlete-modal-card-hover);
+        color: var(--athlete-modal-accent, #7bdde3);
+        border-color: transparent;
+        box-shadow: inset 0 -2px 0 var(--athlete-modal-accent, #7bdde3);
     }
     @media (max-width: 768px) {
         #detailsModal .age-visualization {
