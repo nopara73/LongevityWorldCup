@@ -1,5 +1,24 @@
 # Test audit ledger
 
+## September 2026 source snapshot pruning
+
+The requested suite reduction removes 320 test cases (234 fact/theory methods). Against master `465ed08f` and its 1,591 passing cases, this is a 20.1% reduction to 1,271 cases. The baseline is the successful [.NET run](https://github.com/nopara73/LongevityWorldCup/actions/runs/33945556567).
+
+The removed tests predominantly searched HTML, CSS, and JavaScript for exact source fragments, helper names, markup, colors, or copy. They constrained implementation details without executing the behavior named by the test. The motion-source auditor and tests of its own parser were removed together. This intentionally reduces source-shape coverage; it does not claim that every deleted assertion has an equivalent behavioral assertion.
+
+| Removed snapshots | Retained coverage |
+| --- | --- |
+| Application, review, proof-upload, profile-edit, and selected-athlete page snapshots | `NewAthleteOnboardingBrowserTests`, `ProofUploadBrowserTests`, `PlayAthleteFlowBrowserTests`, controller validation, payment policy, submission retry, and image-processing tests |
+| Stored-biomarker and calculator handoff snapshots | Calculator/API tests, `BioageFlowBrowserTests`, `BioageMobileUxBrowserTests`, keyboard/viewport tests, and rank-preview tests |
+| Play menu, shared flow controls, CSS motion, accessibility markup, badge colors, radar drawing, and leaderboard script snapshots | Every browser test, including the flow, accessibility, responsive-layout, reduced-motion, proof-viewer, and navigation scenarios; ranking, badge, and Event tests |
+| Aesthetic-system and statistics source/copy snapshots | Served-page routing, versioned assets, local font files, standalone-page isolation, statistics service, dashboard browser, and tracking browser tests |
+
+All surviving test bodies are unchanged. `ApplicationSubmissionTimeout_WaitsForDedicatedServerTimeout` moves intact into `PublicRequestTimeoutTests` so the browser/server deadline relationship stays covered. No test is skipped, filtered out of CI, or converted into a passing placeholder.
+
+## Earlier architecture audit
+
+The counts and measurements below are historical results from the earlier architecture work.
+
 The sub-minute runtime target was abandoned in favor of correctness-first repair. Performance changes below are retained only where the protected contract remains explicit and repeated runs show a real saving. No test was removed merely for being slow.
 
 ## Coverage disposition
