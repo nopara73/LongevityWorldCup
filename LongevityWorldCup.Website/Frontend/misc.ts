@@ -1211,13 +1211,13 @@ window.extractApplicationErrorMessage = function (text, fallback) {
             if (messages.length) return messages.join('\n');
         }
 
+        if (isRecord(data) && typeof data.title === 'string' && data.title.trim()) {
+            return data.title.trim();
+        }
+
         if (isRecord(data)) {
             const messages = collectMessages(Object.values(data));
             if (messages.length) return messages.join('\n');
-        }
-
-        if (isRecord(data) && typeof data.title === 'string' && data.title.trim()) {
-            return data.title.trim();
         }
     } catch (_) {
         return raw;
