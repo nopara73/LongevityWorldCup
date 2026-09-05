@@ -183,6 +183,41 @@ public sealed class AestheticAccessibilityBrowserTests(
             "href => document.querySelector('.documentation-nav a.is-active')?.getAttribute('href') === href", middleHref);
     }
 
+    [Theory]
+    [InlineData("/history")]
+    [InlineData("/about")]
+    [InlineData("/ruleset")]
+    public async Task DocumentContentsNavigation_TracksThePageEndAndFragmentHistory(string path)
+    {
+        await using var context = await NewContextAsync(
+            Browser,
+            App,
+            new BrowserNewContextOptions
+            {
+                ViewportSize = new ViewportSize { Width = 1280, Height = 900 }
+            });
+        var page = await context.NewPageAsync();
+        await NavigateAndSettleAsync(page, path);
+        var links = page.Locator(".documentation-nav a[href^='#']");
+        var lastHref = await links.Last.GetAttributeAsync("href");
+        var previousHref = await links.Nth(await links.CountAsync() - 2).GetAttributeAsync("href");
+
+        await page.EvaluateAsync("window.scrollTo({top: document.documentElement.scrollHeight, behavior: 'instant'})");
+        await page.EvaluateAsync(
+            "() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+        Assert.Equal(lastHref, await page.Locator(".documentation-nav a.is-active").GetAttributeAsync("href"));
+
+        await page.GotoAsync(path + previousHref, new PageGotoOptions { WaitUntil = WaitUntilState.Load });
+        await page.WaitForFunctionAsync(
+            "href => document.querySelector('.documentation-nav a.is-active')?.getAttribute('href') === href", previousHref);
+        await links.Last.ClickAsync();
+        Assert.Equal(lastHref, await page.Locator(".documentation-nav a.is-active").GetAttributeAsync("href"));
+
+        await page.GoBackAsync(new PageGoBackOptions { WaitUntil = WaitUntilState.Load });
+        await page.WaitForFunctionAsync(
+            "href => document.querySelector('.documentation-nav a.is-active')?.getAttribute('href') === href", previousHref);
+    }
+
     [Fact]
     public async Task MobileDocumentationNavigation_UsesProgressiveDisclosureAndLargeTargets()
     {
