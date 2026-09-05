@@ -74,12 +74,15 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
         var access = await fixture.ConfirmParticipantAsync("concurrent-retry@example.com", "Concurrent Riley");
         var now = DateTimeOffset.Parse("2026-06-20T08:00:00Z");
         var request = new LongevitymaxxingCheckInRequest(access, 12, 2, 2, 2, 2, "One upload.", Guid.NewGuid().ToString());
+        using var processingGate = new Barrier(2);
         var results = await Task.WhenAll(Enumerable.Range(0, 2).Select(_ => Task.Run(async () => {
             using var image = CreatePngStream(1000, 1000);
-            return await fixture.Service.SubmitCheckInAsync(request, [CreatePngFormFile(image)], now);
+            return await fixture.Service.SubmitCheckInAsync(request, [new PairedUpload(CreatePngFormFile(image), processingGate)], now);
         })));
         Assert.All(results, result => Assert.Single(Assert.Single(result.Notes).Images));
         Assert.Single(Directory.GetFiles(PhotoDirectory(fixture)));
+        var statistics = await fixture.Statistics.GetDashboardAsync(new SiteStatisticsDashboardQuery { Range = "30d", Flow = "challenge", Limit = 100 });
+        Assert.Single(statistics.Events, entry => entry.EventName == "challenge_scored_checkin_submitted");
     }
 
     [Fact]
@@ -144,4 +147,23 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
     }
 
     private static string PhotoDirectory(TestChallengeFixture fixture) => Path.Combine(fixture.ContentRoot, "generated", "longevitymaxxing", "check-in-photos");
+
+    private sealed class PairedUpload(IFormFile inner, Barrier gate) : IFormFile
+    {
+        private int opens;
+        public string ContentType => inner.ContentType;
+        public string ContentDisposition => inner.ContentDisposition;
+        public IHeaderDictionary Headers => inner.Headers;
+        public long Length => inner.Length;
+        public string Name => inner.Name;
+        public string FileName => inner.FileName;
+        public Stream OpenReadStream()
+        {
+            // Both uploads must finish their receipt lookup before either can save.
+            if (Interlocked.Increment(ref opens) == 2) Assert.True(gate.SignalAndWait(TimeSpan.FromSeconds(20)));
+            return inner.OpenReadStream();
+        }
+        public void CopyTo(Stream target) => inner.CopyTo(target);
+        public Task CopyToAsync(Stream target, CancellationToken cancellationToken = default) => inner.CopyToAsync(target, cancellationToken);
+    }
 }

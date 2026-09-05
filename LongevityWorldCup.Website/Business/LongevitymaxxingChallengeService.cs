@@ -530,8 +530,8 @@ public sealed class LongevitymaxxingChallengeService
             var replay = ReplayCheckIn(request, requestHash, nowUtc);
             if (replay is not null) return replay;
             checkIn = ValidateCheckIn(request, nowUtc);
-            var state = SaveCheckIn(checkIn, [], requestHash);
-            TrackCheckInEvent(
+            var (state, applied) = SaveCheckIn(checkIn, [], requestHash);
+            if (applied) TrackCheckInEvent(
                 CheckInEventName(checkIn.CountsForScore, "submitted"),
                 checkIn,
                 state,
@@ -590,8 +590,8 @@ public sealed class LongevitymaxxingChallengeService
 
             if (photoFiles.Count == 0)
             {
-                var stateWithoutPhotos = SaveCheckIn(checkIn, [], requestHash);
-                await TrackCheckInEventAsync(
+                var (stateWithoutPhotos, applied) = SaveCheckIn(checkIn, [], requestHash);
+                if (applied) await TrackCheckInEventAsync(
                     CheckInEventName(checkIn.CountsForScore, "submitted"),
                     checkIn,
                     stateWithoutPhotos,
@@ -614,8 +614,8 @@ public sealed class LongevitymaxxingChallengeService
                     ct).ConfigureAwait(false));
             }
 
-            var state = SaveCheckIn(checkIn, processedImages, requestHash);
-            await TrackCheckInEventAsync(
+            var (state, photosApplied) = SaveCheckIn(checkIn, processedImages, requestHash);
+            if (photosApplied) await TrackCheckInEventAsync(
                 CheckInEventName(checkIn.CountsForScore, "submitted"),
                 checkIn,
                 state,
@@ -1545,7 +1545,7 @@ public sealed class LongevitymaxxingChallengeService
         return true;
     }
 
-    private LongevitymaxxingParticipantState SaveCheckIn(ValidatedCheckIn checkIn, IReadOnlyList<PendingCheckInImage> newImages, string requestHash)
+    private (LongevitymaxxingParticipantState State, bool Applied) SaveCheckIn(ValidatedCheckIn checkIn, IReadOnlyList<PendingCheckInImage> newImages, string requestHash)
     {
         var applied = _db.Run(sqlite =>
         {
@@ -1685,7 +1685,7 @@ public sealed class LongevitymaxxingChallengeService
             foreach (var image in newImages) TryDeleteFile(image.OutputPath);
 
         ReactivateMissedDayInactiveParticipantIfCaughtUp(checkIn.Participant, checkIn.NowUtc);
-        return GetParticipantState(checkIn.Request.AccessToken, checkIn.NowUtc);
+        return (GetParticipantState(checkIn.Request.AccessToken, checkIn.NowUtc), applied);
     }
 
     private static (string? Note, int ImageCount, int LastImageIndex) GetPersistedDiscussionSnapshot(
