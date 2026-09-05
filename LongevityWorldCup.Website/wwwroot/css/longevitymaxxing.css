@@ -747,6 +747,8 @@
 
 .lmx-action-card {
     position: sticky;
+    /* Field popovers must sit above the leaderboard's sticky cells. */
+    z-index: 5;
     top: 0.75rem;
     display: grid;
     align-content: start;
