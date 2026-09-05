@@ -73,41 +73,7 @@ public class FacebookFillerPostLogService
 
     public bool IsUnchangedFromLastForOption(FillerType type, string payloadText, string infoToken)
     {
-        var payload = payloadText ?? "";
-        var token = infoToken ?? "";
-        if (string.IsNullOrWhiteSpace(token))
-            return false;
-
-        var candidates = _db.Run(sqlite =>
-        {
-            var rows = new List<(string Text, DateTime PostedAtUtc)>();
-            using var cmd = sqlite.CreateCommand();
-            cmd.CommandText = $"""
-                SELECT Text, PostedAtUtc
-                FROM {TableName}
-                WHERE Type = @type
-                ORDER BY PostedAtUtc DESC
-                """;
-            cmd.Parameters.AddWithValue("@type", (int)type);
-            using var r = cmd.ExecuteReader();
-            while (r.Read())
-            {
-                var text = r.IsDBNull(0) ? "" : r.GetString(0);
-                var dt = DateTime.MinValue;
-                if (!r.IsDBNull(1))
-                    DateTime.TryParse(r.GetString(1), null, System.Globalization.DateTimeStyles.RoundtripKind, out dt);
-                rows.Add((text, dt));
-            }
-            return rows;
-        });
-
-        var last = candidates
-            .Where(x => TokenBelongsToOption(type, payload, x.Text))
-            .Select(x => x.Text)
-            .FirstOrDefault();
-        if (string.IsNullOrWhiteSpace(last))
-            return false;
-        return string.Equals(last, token, StringComparison.Ordinal);
+        return FillerPostLogStore.IsUnchangedFromLastForOption(_db, TableName, type, payloadText, infoToken, TokenBelongsToOption);
     }
 
     public bool IsOnCooldownForType(FillerType type, TimeSpan cooldown, DateTime? nowUtc = null)

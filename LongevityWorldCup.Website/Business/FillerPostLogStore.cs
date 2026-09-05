@@ -48,4 +48,43 @@ internal static class FillerPostLogStore
             cmd.ExecuteNonQuery();
         });
     }
+
+    internal static bool IsUnchangedFromLastForOption(
+        DatabaseManager db,
+        string tableName,
+        FillerType type,
+        string payloadText,
+        string infoToken,
+        Func<FillerType, string, string, bool> tokenBelongsToOption)
+    {
+        var payload = payloadText ?? "";
+        var token = infoToken ?? "";
+        if (string.IsNullOrWhiteSpace(token))
+            return false;
+
+        var candidates = db.Run(sqlite =>
+        {
+            var rows = new List<string>();
+            using var cmd = sqlite.CreateCommand();
+            cmd.CommandText = $"""
+                SELECT Text
+                FROM {tableName}
+                WHERE Type = @type
+                ORDER BY PostedAtUtc DESC
+                """;
+            cmd.Parameters.AddWithValue("@type", (int)type);
+            using var r = cmd.ExecuteReader();
+            while (r.Read())
+            {
+                var text = r.IsDBNull(0) ? "" : r.GetString(0);
+                rows.Add(text);
+            }
+            return rows;
+        });
+
+        var last = candidates.FirstOrDefault(text => tokenBelongsToOption(type, payload, text));
+        if (string.IsNullOrWhiteSpace(last))
+            return false;
+        return string.Equals(last, token, StringComparison.Ordinal);
+    }
 }
