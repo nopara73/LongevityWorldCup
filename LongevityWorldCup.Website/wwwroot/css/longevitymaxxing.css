@@ -1002,8 +1002,9 @@
 
 .lmx-mention-option strong {
     border-radius: 4px;
-    background: var(--lmx-accent-soft);
-    color: var(--lmx-accent-hover);
+    background: transparent;
+    color: var(--lmx-accent);
+    font-weight: 700;
 }
 
 .lmx-mention-avatar {
@@ -1032,8 +1033,9 @@
     align-items: center;
     padding: 0.55rem;
     color: var(--lmx-muted);
-    font-size: 0.84rem;
-    font-weight: 750;
+    font-size: var(--lwc-type-sm);
+    font-weight: 400;
+    line-height: 1.5;
 }
 
 .lmx-note-photo-field {
@@ -1061,8 +1063,9 @@
 
 .lmx-photo-count {
     color: var(--lmx-muted);
-    font-size: 0.82rem;
-    font-weight: 800;
+    font-size: var(--lwc-type-sm);
+    font-weight: 400;
+    line-height: 1.5;
 }
 
 .lmx-note-photo-grid {
@@ -1094,9 +1097,9 @@
 }
 
 .lmx-note-photo:hover {
-    border-color: rgba(0, 188, 212, 0.58);
-    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.14);
-    transform: translateY(-1px);
+    border-color: var(--lmx-accent);
+    box-shadow: var(--lwc-shadow-sm);
+    transform: none;
 }
 
 .lmx-note-photo:focus-visible {
@@ -1127,8 +1130,8 @@
     position: absolute;
     top: 0.35rem;
     right: 0.35rem;
-    width: 2rem;
-    height: 2rem;
+    width: 44px;
+    height: 44px;
     border: 0;
     border-radius: 999px;
     display: inline-flex;
@@ -1137,6 +1140,8 @@
     background: rgba(15, 23, 42, 0.84);
     color: #ffffff;
     cursor: pointer;
+    min-width: 44px;
+    min-height: 44px;
 }
 
 .lmx-note-photo-remove:focus-visible {
@@ -1483,9 +1488,10 @@
 
 .lmx-profile-identity em {
     color: var(--lmx-muted);
-    font-size: 0.78rem;
+    font-size: var(--lwc-type-sm);
     font-style: normal;
-    font-weight: 800;
+    font-weight: 400;
+    line-height: 1.5;
 }
 
 .lmx-athlete-options {
@@ -1730,9 +1736,9 @@
 .lmx-profile-upload {
     display: grid;
     grid-template-columns: 3.25rem minmax(0, 1fr);
-    gap: 0.65rem;
+    gap: var(--lwc-space-2);
     align-items: center;
-    padding: 0.65rem;
+    padding: var(--lwc-space-3);
     border: 1px solid var(--lmx-border);
     border-radius: 8px;
     background: var(--lmx-surface-muted);
@@ -1741,7 +1747,7 @@
 .lmx-profile-preview {
     width: 3.25rem;
     height: 3.25rem;
-    border: 2px solid var(--secondary-color, #ff4f87);
+    border: 1px solid var(--lmx-border-strong);
     border-radius: 999px;
     background: var(--lmx-surface-muted);
     overflow: hidden;
@@ -1972,11 +1978,11 @@
 }
 
 .lmx-compact-button {
-    min-height: 2.15rem;
+    min-height: 44px;
     padding: 0.32rem 0.62rem;
-    border-radius: 999px;
-    font-size: 0.78rem;
-    font-weight: 900;
+    border-radius: var(--lwc-radius-md);
+    font-size: var(--lwc-type-sm);
+    font-weight: 700;
 }
 
 .lmx-button.slack {
@@ -1989,9 +1995,12 @@
 }
 
 .lmx-button:disabled {
-    opacity: 0.6;
+    opacity: 1;
     cursor: not-allowed;
     box-shadow: none;
+    color: var(--lmx-muted);
+    background: var(--lmx-surface-muted);
+    border: 1px solid var(--lmx-border);
 }
 
 .lmx-button[aria-busy="true"] {
@@ -2478,7 +2487,7 @@ body.lmx-checkin-dialog-open {
 
 .lmx-recent-remark strong {
     color: var(--lmx-ink);
-    font-size: 0.82rem;
+    font-size: var(--lwc-type-sm);
 }
 
 .lmx-recent-remark p {
@@ -2503,7 +2512,7 @@ body.lmx-checkin-dialog-open {
 .lmx-discussion-post-author {
     min-width: 0;
     display: grid;
-    gap: 0.08rem;
+    gap: var(--lwc-space-1);
 }
 
 .lmx-discussion-author-identity {
@@ -2555,10 +2564,10 @@ a.lmx-discussion-author-identity:focus-visible {
 
 .lmx-discussion-post-author small {
     padding-left: 2.45rem;
-    color: var(--lmx-subtle);
-    font-size: 0.74rem;
-    font-weight: 700;
-    line-height: 1.3;
+    color: var(--lmx-muted);
+    font-size: var(--lwc-type-sm);
+    font-weight: 400;
+    line-height: 1.5;
 }
 
 .lmx-discussion-reply {
@@ -2574,8 +2583,8 @@ a.lmx-discussion-author-identity:focus-visible {
     justify-content: center;
     gap: 0.35rem;
     font: inherit;
-    font-size: 0.78rem;
-    font-weight: 850;
+    font-size: var(--lwc-type-sm);
+    font-weight: 700;
     cursor: pointer;
     touch-action: manipulation;
     transition:
@@ -2596,8 +2605,8 @@ a.lmx-discussion-author-identity:focus-visible {
 
 .lmx-discussion-replies {
     margin-top: 0.65rem;
-    padding-left: 0.7rem;
-    border-left: 2px solid rgba(20, 184, 166, 0.3);
+    padding-left: var(--lwc-space-3);
+    border-left: 2px solid var(--lmx-border);
 }
 
 .lmx-discussion-replies-toggle {
@@ -2607,8 +2616,8 @@ a.lmx-discussion-author-identity:focus-visible {
     background: transparent;
     color: var(--lmx-accent-hover);
     font: inherit;
-    font-size: 0.78rem;
-    font-weight: 850;
+    font-size: var(--lwc-type-sm);
+    font-weight: 700;
     cursor: pointer;
 }
 
@@ -2653,7 +2662,7 @@ a.lmx-discussion-author-identity:focus-visible {
     display: inline;
     margin: 0;
     color: var(--lmx-ink);
-    font-size: 0.78rem;
+    font-size: var(--lwc-type-sm);
 }
 
 .lmx-discussion-reply-time {
@@ -2664,9 +2673,10 @@ a.lmx-discussion-author-identity:focus-visible {
 
 .lmx-discussion-reply-meta time,
 .lmx-discussion-edited {
-    color: var(--lmx-subtle);
-    font-size: 0.7rem;
-    font-weight: 700;
+    color: var(--lmx-muted);
+    font-size: var(--lwc-type-sm);
+    font-weight: 400;
+    line-height: 1.5;
 }
 
 .lmx-discussion-edited::before {
@@ -2686,12 +2696,12 @@ a.lmx-discussion-author-identity:focus-visible {
     min-height: 44px;
     padding: 0 0.42rem;
     border: 0;
-    border-radius: 6px;
+    border-radius: var(--lwc-radius-sm);
     background: transparent;
-    color: var(--lmx-subtle);
+    color: var(--lmx-muted);
     font: inherit;
-    font-size: 0.72rem;
-    font-weight: 800;
+    font-size: var(--lwc-type-sm);
+    font-weight: 700;
     cursor: pointer;
 }
 
@@ -2714,12 +2724,13 @@ a.lmx-discussion-author-identity:focus-visible {
     display: block;
     margin: 0.16rem 0 0 2.2rem;
     color: var(--lmx-ink);
-    font-size: 0.84rem;
-    line-height: 1.4;
+    font-size: var(--lwc-type-body);
+    line-height: 1.5;
     overflow: visible;
     white-space: pre-wrap;
     overflow-wrap: anywhere;
     -webkit-line-clamp: unset;
+    margin-top: var(--lwc-space-1);
 }
 
 .lmx-discussion-reply-item [data-discussion-reply-body][hidden] {
@@ -2733,9 +2744,14 @@ a.lmx-discussion-author-identity:focus-visible {
 
 .lmx-discussion-reply-status:not(:empty) {
     margin: 0.25rem 0 0 2.2rem;
-    color: var(--lmx-danger, #b4233b);
-    font-size: 0.75rem;
-    font-weight: 750;
+    color: var(--lmx-ink);
+    font-size: var(--lwc-type-sm);
+    font-weight: 400;
+    line-height: 1.5;
+    padding: var(--lwc-space-2);
+    border-left: 3px solid var(--lmx-danger);
+    border-radius: var(--lwc-radius-sm);
+    background: var(--lmx-surface-muted);
 }
 
 .lmx-discussion-reply-slot:not(:empty) {
@@ -2744,8 +2760,8 @@ a.lmx-discussion-author-identity:focus-visible {
 
 .lmx-discussion-reply-composer {
     display: grid;
-    gap: 0.55rem;
-    padding: 0.65rem;
+    gap: var(--lwc-space-2);
+    padding: var(--lwc-space-3);
     border: 1px solid var(--lmx-border);
     border-radius: 8px;
     background: var(--lmx-surface);
@@ -2755,8 +2771,9 @@ a.lmx-discussion-author-identity:focus-visible {
     display: grid;
     gap: 0.35rem;
     color: var(--lmx-ink);
-    font-size: 0.8rem;
-    font-weight: 850;
+    font-size: var(--lwc-type-sm);
+    font-weight: 700;
+    line-height: 1.5;
 }
 
 .lmx-discussion-reply-composer textarea {
@@ -2771,17 +2788,21 @@ a.lmx-discussion-author-identity:focus-visible {
     color: var(--lmx-ink);
     font: inherit;
     font-weight: 400;
+    font-size: var(--lwc-type-body);
+    line-height: 1.5;
 }
 
 .lmx-discussion-reply-composer textarea:focus {
-    border-color: rgba(0, 188, 212, 0.72);
-    outline: 3px solid rgba(0, 188, 212, 0.22);
+    border-color: var(--lmx-accent);
+    outline: 2px solid var(--lmx-accent);
+    outline-offset: 2px;
 }
 
 .lmx-discussion-reply-actions {
     display: flex;
     justify-content: flex-end;
-    gap: 0.45rem;
+    gap: var(--lwc-space-2);
+    flex-wrap: wrap;
 }
 
 .lmx-discussion-reply-actions .lmx-button {
@@ -2897,9 +2918,9 @@ a.lmx-note-mention:focus-visible {
 
 .lmx-call-when small {
     color: var(--lmx-muted);
-    font-size: 0.82rem;
-    font-weight: 700;
-    line-height: 1.2;
+    font-size: var(--lwc-type-sm);
+    font-weight: 400;
+    line-height: 1.5;
 }
 
 .lmx-call-countdown {
@@ -2912,16 +2933,17 @@ a.lmx-note-mention:focus-visible {
 
 .lmx-call-countdown small {
     color: var(--lmx-muted);
-    font-size: 0.72rem;
-    font-weight: 800;
-    line-height: 1;
+    font-size: var(--lwc-type-sm);
+    font-weight: 400;
+    line-height: 1.5;
 }
 
 .lmx-call-countdown b {
     color: var(--lmx-ink);
-    font-size: 0.9rem;
-    font-weight: 900;
-    line-height: 1;
+    font-size: var(--lwc-type-sm);
+    font-weight: 700;
+    line-height: 1.5;
+    font-variant-numeric: tabular-nums;
 }
 
 .lmx-call-countdown.live {
@@ -3472,8 +3494,9 @@ a.lmx-note-mention:focus-visible {
 
 .lmx-checkin-switcher span {
     color: var(--lmx-muted);
-    font-size: 0.82rem;
-    font-weight: 800;
+    font-size: var(--lwc-type-sm);
+    font-weight: 400;
+    line-height: 1.5;
 }
 
 .lmx-checkin-switcher em {
@@ -3483,10 +3506,11 @@ a.lmx-note-mention:focus-visible {
     border-radius: 999px;
     background: var(--lmx-surface-muted);
     color: var(--lmx-ink);
-    font-size: 0.68rem;
+    font-size: var(--lwc-type-xs);
     font-style: normal;
-    font-weight: 900;
-    text-transform: uppercase;
+    font-weight: 700;
+    text-transform: none;
+    line-height: 1.5;
 }
 
 .lmx-checkin-switcher button[aria-pressed="true"] {
@@ -3532,13 +3556,14 @@ a.lmx-note-mention:focus-visible {
 
 .lmx-practice-note {
     display: grid;
-    gap: 0.15rem;
+    gap: var(--lwc-space-1);
     margin: 0.55rem 0 0.25rem;
     padding: 0.65rem 0.7rem;
-    border: 1px solid rgba(14, 165, 233, 0.24);
+    border: 1px solid var(--lmx-border);
     border-radius: 8px;
-    background: var(--lmx-accent-soft);
+    background: var(--lmx-surface-muted);
     color: var(--lmx-ink);
+    border-left: 3px solid var(--lmx-accent);
 }
 
 .lmx-practice-note strong {
@@ -3607,12 +3632,12 @@ a.lmx-note-mention:focus-visible {
     gap: 0.55rem;
     margin: 0.65rem 0;
     padding: 0.7rem;
-    border: 1px solid rgba(var(--lmx-habit-soft), 0.15);
-    border-radius: 13px;
+    border: 1px solid var(--lmx-border);
+    border-radius: var(--lwc-radius-lg);
     background:
         radial-gradient(circle at 0 0, rgba(var(--lmx-habit-soft), 0.07), transparent 34%),
         var(--lmx-surface);
-    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+    box-shadow: none;
 }
 
 .lmx-question-label {
@@ -3620,8 +3645,8 @@ a.lmx-note-mention:focus-visible {
     align-items: center;
     gap: 0.6rem;
     color: var(--lmx-ink);
-    font-weight: 900;
-    line-height: 1.35;
+    font-weight: 700;
+    line-height: 1.5;
 }
 
 .lmx-question-label i,
@@ -3632,10 +3657,10 @@ a.lmx-note-mention:focus-visible {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    border-radius: 9px;
+    border-radius: var(--lwc-radius-md);
     background: var(--lmx-habit-accent);
     color: #ffffff;
-    box-shadow: inset 0 0 0 1px rgba(var(--lmx-habit-soft), 0.1);
+    box-shadow: none;
 }
 
 .lmx-question-icon svg {
@@ -4525,4 +4550,9 @@ a.lmx-note-mention:focus-visible {
     .lmx-answer-option > .lmx-answer-face {
         transition: none;
     }
+}
+
+#lmxProfilePictureStatus:empty,
+#lmxEditStatus:empty {
+    display: none;
 }

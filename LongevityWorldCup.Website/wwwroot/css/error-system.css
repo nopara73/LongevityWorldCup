@@ -83,7 +83,7 @@ h1 {
     margin: 0;
     color: var(--error-ink);
     font-size: clamp(2rem, 6vw, 3.25rem);
-    line-height: 1.05;
+    line-height: 1.15;
     text-wrap: initial;
     white-space: nowrap;
 }
@@ -95,6 +95,7 @@ h1 {
 
 .note {
     color: var(--error-muted);
+    line-height: 1.5;
 }
 
 button {
@@ -106,6 +107,9 @@ button {
     box-shadow: none;
     font-weight: 700;
     transition: background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, cubic-bezier(0.2, 0, 0, 1));
+    font-family: inherit;
+    font-size: 1rem;
+    line-height: 1.5;
 }
 
 button:hover,
@@ -151,7 +155,8 @@ button:focus-visible {
 
     .code {
         margin-left: auto;
-        font-size: .72rem;
+        font-size: 0.875rem;
+        line-height: 1.5;
     }
 
     .card-body {

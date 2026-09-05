@@ -56,11 +56,13 @@
             width: 100%;
             max-height: min(12rem, 36vh);
             overflow-y: auto;
-            box-shadow: 0 12px 24px rgba(15, 23, 42, 0.16);
+            box-shadow: var(--lwc-shadow-md);
             box-sizing: border-box;
             z-index: 9999;
             scrollbar-width: thin;
             scrollbar-color: rgba(96, 125, 139, 0.45) transparent;
+            overscroll-behavior: contain;
+            scroll-padding-block: var(--lwc-space-1);
         }
 
             .autocomplete-items div {
@@ -68,12 +70,12 @@
                 align-items: center;
                 min-height: 44px;
                 padding: 0.6rem 0.7rem;
-                border-radius: 6px;
+                border-radius: var(--lwc-radius-sm);
                 box-sizing: border-box;
                 color: var(--lwc-ink, #2d3748);
                 cursor: pointer;
                 font-size: 1rem;
-                line-height: 1.25;
+                line-height: 1.5;
             }
 
                 .autocomplete-items div + div {
@@ -117,7 +119,7 @@
             border-radius: 8px;
             font-size: 1rem;
             font-family: inherit;
-            line-height: 1.35;
+            line-height: 1.5;
             transition: border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
             background-color: var(--lwc-surface, #fff);
             color: var(--lwc-ink, #17212b);
@@ -172,13 +174,14 @@
             max-height: calc(100dvh - 1.5rem);
             overflow: auto;
             border: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.12));
-            border-radius: 8px;
-            box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28);
+            border-radius: var(--lwc-radius-lg);
+            box-shadow: var(--lwc-shadow-md);
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             gap: 0.95rem;
+            overscroll-behavior: contain;
         }
 
         .cropper-dialog-title {
@@ -481,7 +484,14 @@
             }
 
             #editOptionsGroup {
-                gap: 0.55rem;
+                gap: var(--lwc-space-2);
+            }
+
+            #flagDisplayInput,
+            #personalLinkInput,
+            #mediaContactInput,
+            #whyDisplayInput {
+                padding-block: var(--lwc-space-2);
             }
         }
 
@@ -555,6 +565,28 @@
             #takeProfileSelfieButton {
                 display: inline-flex;
             }
+        }
+        .edit-profile-main :is(input,select,textarea):focus {
+            border-color: var(--lwc-accent);
+            box-shadow: 0 0 0 3px var(--lwc-accent-soft);
+            outline: 2px solid var(--lwc-accent);
+            outline-offset: 1px;
+        }
+        .edit-profile-main .field-requirement {
+            font-size: var(--lwc-type-sm);
+            line-height: 1.5;
+        }
+        #whyDisplayInput {
+            resize: vertical;
+        }
+        .edit-profile-main .option-button.icon-only {
+            background: var(--lwc-surface-muted);
+            color: var(--lwc-muted);
+            border-color: var(--lwc-border);
+        }
+        .edit-profile-main .option-button.icon-only:hover {
+            background: var(--lwc-accent-soft);
+            color: var(--lwc-accent);
         }
     </style>
 </head>
