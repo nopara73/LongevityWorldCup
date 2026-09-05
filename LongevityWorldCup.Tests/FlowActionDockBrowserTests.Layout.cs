@@ -27,7 +27,9 @@ public sealed class FlowActionDockLayoutBrowserTests(
         var page = await context.NewPageAsync();
         var errors = CapturePageErrors(page);
 
-        await page.GotoAsync("/join", new PageGotoOptions { WaitUntil = WaitUntilState.Commit });
+        // The route class appears before the footer is parsed, so wait for the full
+        // document before checking whether page chrome is absent or hidden.
+        await page.GotoAsync("/join", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
         await page.WaitForFunctionAsync("() => document.body?.classList.contains('play-flow-route')");
 
         var chromeState = await page.EvaluateAsync<PlayWorkflowChromeState>(
