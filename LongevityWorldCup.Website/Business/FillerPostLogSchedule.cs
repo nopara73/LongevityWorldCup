@@ -4,6 +4,24 @@ namespace LongevityWorldCup.Website.Business;
 
 public static class FillerPostLogSchedule
 {
+    public static bool IsOnCooldownForType(
+        DatabaseManager db,
+        string tableName,
+        FillerType type,
+        TimeSpan cooldown,
+        DateTime? nowUtc = null)
+    {
+        if (cooldown <= TimeSpan.Zero)
+            return false;
+
+        var lastAt = GetLastPostedAtForType(db, tableName, type);
+        if (!lastAt.HasValue)
+            return false;
+
+        var now = nowUtc ?? DateTime.UtcNow;
+        return now - lastAt.Value < cooldown;
+    }
+
     public static bool IsOnRandomizedCooldownForType(
         DatabaseManager db,
         string tableName,

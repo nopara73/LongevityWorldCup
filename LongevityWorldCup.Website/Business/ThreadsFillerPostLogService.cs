@@ -200,32 +200,7 @@ public class ThreadsFillerPostLogService
 
     public bool IsOnCooldownForType(FillerType type, TimeSpan cooldown, DateTime? nowUtc = null)
     {
-        if (cooldown <= TimeSpan.Zero)
-            return false;
-
-        var lastAt = _db.Run(sqlite =>
-        {
-            using var cmd = sqlite.CreateCommand();
-            cmd.CommandText = $"""
-                SELECT PostedAtUtc
-                FROM {TableName}
-                WHERE Type = @type
-                ORDER BY PostedAtUtc DESC
-                LIMIT 1
-                """;
-            cmd.Parameters.AddWithValue("@type", (int)type);
-            var raw = cmd.ExecuteScalar();
-            if (raw is string s &&
-                DateTime.TryParse(s, null, System.Globalization.DateTimeStyles.RoundtripKind, out var dt))
-                return (DateTime?)dt;
-            return (DateTime?)null;
-        });
-
-        if (!lastAt.HasValue)
-            return false;
-
-        var now = nowUtc ?? DateTime.UtcNow;
-        return now - lastAt.Value < cooldown;
+        return FillerPostLogSchedule.IsOnCooldownForType(_db, TableName, type, cooldown, nowUtc);
     }
 
     public bool IsOnRandomizedCooldownForType(FillerType type, int minDays, int maxDays, DateTime? nowUtc = null)
