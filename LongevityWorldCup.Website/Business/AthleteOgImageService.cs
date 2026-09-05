@@ -1050,23 +1050,7 @@ public sealed class AthleteOgImageService
         if (TextMeasurer.MeasureSize(text, new RichTextOptions(font)).Width <= maxWidth)
             return (text, font);
 
-        return (EllipsizeToWidth(text, font, maxWidth), font);
-    }
-
-    private static string EllipsizeToWidth(string text, Font font, float maxWidth)
-    {
-        const string ellipsis = "...";
-        if (TextMeasurer.MeasureSize(text, new RichTextOptions(font)).Width <= maxWidth)
-            return text;
-
-        var trimmed = text.TrimEnd();
-        while (trimmed.Length > 0 &&
-               TextMeasurer.MeasureSize(trimmed + ellipsis, new RichTextOptions(font)).Width > maxWidth)
-        {
-            trimmed = trimmed[..^1].TrimEnd();
-        }
-
-        return string.IsNullOrWhiteSpace(trimmed) ? ellipsis : trimmed + ellipsis;
+        return (ImageTextLayout.EllipsizeToWidth(text, font, maxWidth), font);
     }
 
     private static void DrawTextShadow(
