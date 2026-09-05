@@ -166,7 +166,7 @@ public sealed class LeagueOgImageService
         var top3Slugs = _athletes.GetTop3SlugsForLeague(normalized)
             .Where(s => !string.IsNullOrWhiteSpace(s))
             .Take(3)
-            .Select(NormalizeAthleteSlug)
+            .Select(AthleteSlug.Normalize)
             .ToArray();
 
         var top3Names = GetAthleteDisplayNames(top3Slugs);
@@ -578,7 +578,7 @@ public sealed class LeagueOgImageService
             .ToDictionary(g => g.Key, g => g.First().ProfileImageId, StringComparer.Ordinal);
 
         return athleteSlugs
-            .Select(NormalizeAthleteSlug)
+            .Select(AthleteSlug.Normalize)
             .Select(s => bySlug.TryGetValue(s, out var profileImageId) ? profileImageId : "")
             .ToArray();
     }
@@ -654,7 +654,7 @@ public sealed class LeagueOgImageService
             .ToDictionary(g => g.Key, g => g.First().Name, StringComparer.Ordinal);
 
         return top3Slugs
-            .Select(NormalizeAthleteSlug)
+            .Select(AthleteSlug.Normalize)
             .Select(s => bySlug.TryGetValue(s, out var n) ? n : AthleteSlug.ToDisplayName(s))
             .ToArray();
     }
