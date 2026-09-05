@@ -401,12 +401,20 @@
     .bioageform {
         width: 100%;
         max-width: calc(100vw - 1.5rem);
-        margin: 1.35rem auto;
+        margin: var(--lwc-space-2) auto;
         padding: 0.9rem;
     }
 
     .bioageform #lwc-step-1.lwc-step--active > fieldset {
         padding: 0.75rem 0.9rem;
+    }
+
+    .bioageform #lwc-step-1.lwc-step--active > fieldset:first-of-type {
+        margin-top: 0;
+    }
+
+    .bioageform .lwc-wizard-nav {
+        margin-bottom: 0;
     }
 
     .bioageform #lwc-step-1.lwc-step--active label {
@@ -415,13 +423,13 @@
     }
 
     .bioageform #lwc-step-1.lwc-step--active fieldset > label:first-of-type {
-        margin-top: 0.35rem;
+        margin-top: 0.5rem;
     }
 
     .bioageform #lwc-step-1.lwc-step--active .privacy-note {
-        margin-top: 0.25rem;
-        font-size: 0.78rem;
-        line-height: 1.22;
+        margin-top: var(--lwc-space-2);
+        font-size: var(--lwc-type-sm);
+        line-height: 1.5;
     }
 
     .bioageform #lwc-step-1.lwc-step--active > fieldset:nth-of-type(2) {
@@ -430,7 +438,7 @@
 
     .bioageform #dobFieldset {
         display: grid;
-        grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.25fr) minmax(0, 0.8fr);
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr) minmax(0, 1fr);
         column-gap: 0.4rem;
         row-gap: 0.3rem;
     }
@@ -478,7 +486,14 @@
         padding-left: 0.38rem;
         padding-right: 1.3rem;
         background-position: right 0.38rem center;
-        font-size: 0.82rem;
+        font-size: var(--lwc-type-body);
+    }
+
+    .bioageform #dobFieldset label span {
+        display: block;
+        color: var(--lwc-muted);
+        font-size: var(--lwc-type-sm);
+        line-height: 1.5;
     }
 
     .bioageform.bioage-biomarker-entry-ready #lwc-step-2 > fieldset {
@@ -621,6 +636,13 @@
 
 .bioageform .bioage-update-date-fieldset {
     margin-top: 0.75rem;
+}
+
+@media (max-width: 360px) {
+    .bioageform #lwc-step-1.lwc-step--active #dobFieldset {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1.75fr) minmax(0, 1fr);
+        padding-inline: var(--lwc-space-2);
+    }
 }
 
 @media (min-width: 640px) and (max-width: 932px) and (max-height: 480px) and (orientation: landscape) {

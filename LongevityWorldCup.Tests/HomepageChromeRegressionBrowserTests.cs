@@ -82,7 +82,7 @@ public sealed class HomepageChromeRegressionBrowserTests(
     }
 
     [Fact]
-    public async Task LeaderboardChangedControls_RetainTheMasterAttentionCue()
+    public async Task LeaderboardChangedControls_KeepAttentionCuesDistinctFromSearchFocus()
     {
         var app = App;
         var browser = Browser;
@@ -93,7 +93,7 @@ public sealed class HomepageChromeRegressionBrowserTests(
             "() => document.getElementById('view-bortz')?.checked === true && document.querySelector('.sidebar-toggle')?.classList.contains('has-active-state') === true");
         await page.Locator("#athleteSearch").ClickAsync();
         await page.WaitForFunctionAsync(
-            "() => getComputedStyle(document.getElementById('athleteSearch')).borderColor === 'rgb(255, 64, 129)'");
+            "() => getComputedStyle(document.getElementById('athleteSearch')).borderColor === 'rgb(8, 118, 133)'");
 
         var cueColors = await page.EvaluateAsync<string[]>(
             """
@@ -111,7 +111,7 @@ public sealed class HomepageChromeRegressionBrowserTests(
             }
             """);
 
-        Assert.All(cueColors, color => Assert.Equal("rgb(255, 64, 129)", color));
+        Assert.Equal(["rgb(255, 64, 129)", "rgb(255, 64, 129)", "rgb(8, 118, 133)", "rgb(8, 118, 133)"], cueColors);
     }
 
     [Fact]

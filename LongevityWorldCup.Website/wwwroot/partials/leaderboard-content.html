@@ -36,7 +36,7 @@
         padding:1.15rem 1rem; border:1px solid rgba(0,188,212,.18); border-radius:14px; background:rgba(0,188,212,.045);
         box-sizing:border-box;
     }
-    .no-results-empty-state p{ margin:0; }
+    .no-results-empty-state p{ margin:0; font-size:var(--lwc-type-body); line-height:1.5; font-weight:400; }
     .show-all-athletes-btn,
     .leaderboard-retry-button{
         min-height:44px; border:1px solid var(--primary-color); border-radius:999px; background:var(--card-bg); color:var(--primary-color);
@@ -403,14 +403,15 @@
         -webkit-background-clip:text; -webkit-text-fill-color:transparent; text-shadow:none; border-radius:5px;
     }
     .sidebar:hover .collapsed-title, .sidebar.expanded .collapsed-title{ display:none; }
-    .sidebar:hover .sidebar-title, .sidebar.expanded .sidebar-title{ width:100%; }
+    .sidebar-heading{ display:flex; align-items:center; gap:var(--lwc-space-2); width:100%; border-bottom:1px solid var(--lwc-border); }
+    .sidebar:hover .sidebar-title, .sidebar.expanded .sidebar-title{ width:auto; }
     .sidebar:hover:not(.button-collapsed) .sidebar-title,
     .sidebar.expanded .sidebar-title{ position:static; justify-content:flex-start; }
 
     .sidebar-title{
-        width:100%; box-sizing:border-box;
+        flex:1; min-width:0; box-sizing:border-box;
         margin:0; padding:1rem 0; text-align:center; font-size:1.2rem; color:var(--primary-color);
-        display:flex; align-items:center; justify-content:center; border-bottom:1px solid var(--lwc-border);
+        display:flex; align-items:center; justify-content:center;
     }
     .sidebar .sidebar-title .sidebar-icon{
         display:inline-flex; align-items:center; justify-content:center; flex:0 0 2.25rem; width:2.25rem; height:2.25rem;
@@ -425,7 +426,7 @@
     .sidebar:hover .sidebar-title .sidebar-title-text,
     .sidebar.expanded .sidebar-title .sidebar-title-text{ display:inline-block; }
     .clear-sidebar-filters{
-        display:none; align-items:center; gap:.35rem; min-height:44px; margin:.6rem 0 1rem; padding:.35rem .65rem;
+        display:none; align-items:center; justify-content:center; flex:0 0 44px; width:44px; height:44px; margin:0; padding:0;
         color:#777; background:rgba(0,0,0,.035); border:1px solid rgba(0,0,0,.07); border-radius:999px;
         font-size:.85rem; font-weight:700; cursor:pointer; line-height:1.2; visibility:hidden; pointer-events:none;
         font-family:inherit; appearance:none; -webkit-appearance:none; box-sizing:border-box;
@@ -434,6 +435,10 @@
     .clear-sidebar-filters .clear-sidebar-filters-icon{
         display:inline-block; width:.85rem; color:inherit; font-size:.85rem; line-height:1; text-align:center; vertical-align:-.05em;
     }
+    .clear-sidebar-filters > span{ position:absolute; width:1px; height:1px; margin:-1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
+    .sidebar:hover:not(.button-collapsed) .clear-sidebar-filters,
+    .sidebar.expanded .clear-sidebar-filters{ display:inline-flex; }
+    .sidebar-heading .sidebar-close{ position:static; flex:0 0 44px; margin:0; }
     .clear-sidebar-filters:hover,
     .clear-sidebar-filters:focus,
     .clear-sidebar-filters:active{
@@ -1655,7 +1660,8 @@
         aspect-ratio:4 / 3;
         background: rgba(255,255,255,.95);
         border: 1px solid var(--athlete-modal-border);
-        box-shadow: 0 14px 30px rgba(0,0,0,.28);
+        border-radius:var(--lwc-radius-md);
+        box-shadow:var(--lwc-shadow-sm);
     }
     #detailsModal .proof-item img{
         width:100%;
@@ -1664,8 +1670,9 @@
         object-fit:contain;
     }
     #detailsModal .proof-item:hover{
-        transform: translateY(-2px);
-        box-shadow: 0 18px 38px rgba(0,0,0,.34);
+        transform:none;
+        border-color:var(--lwc-accent);
+        box-shadow:var(--lwc-shadow-sm);
     }
     #detailsModal .proofs-empty{
         grid-column:1 / -1;
@@ -1824,13 +1831,16 @@
         outline-offset:2px;
     }
     .enlarged-portrait .image-zoom-controls button:disabled{
-        opacity:.42;
-        cursor:default;
+        opacity:1;
+        color:#a4b1bf;
+        background:#17212b;
+        border-color:#465360;
+        cursor:not-allowed;
     }
     .enlarged-portrait .image-zoom-status{
         min-width:3.75rem;
         color:rgba(255,255,255,.96);
-        font-size:.85rem;
+        font-size:var(--lwc-type-sm);
         font-variant-numeric:tabular-nums;
         font-weight:700;
         text-align:center;
@@ -1842,10 +1852,10 @@
         max-width:calc(100% - 2rem);
         margin:0;
         padding:.35rem .65rem;
-        border-radius:6px;
+        border-radius:var(--lwc-radius-sm);
         background:rgba(12,14,14,.88);
         color:rgba(255,255,255,.92);
-        font-size:.78rem;
+        font-size:var(--lwc-type-sm);
         line-height:1.25;
         text-align:center;
         transform:translateX(-50%);
@@ -2029,17 +2039,17 @@
         .sidebar.expanded .filter-section{ display:block; }
         .sidebar .collapsed-title{ display:none; }
         .sidebar .sidebar-close{
-            position:sticky; top:calc(env(safe-area-inset-top) + .9rem); right:auto; margin-left:auto; margin-bottom:-44px;
+            position:static; margin:0;
         }
-        .sidebar .sidebar-title{ width:100%; padding:.75rem 2.75rem .75rem 0; }
-        .sidebar .sidebar-title .sidebar-title-text{ display:inline-block; }
-        .clear-sidebar-filters{ min-height:44px; align-items:center; align-self:flex-start; padding:.45rem .75rem; }
+        .sidebar-heading{ position:sticky; top:-1rem; z-index:10; background:var(--card-bg); }
+        .sidebar .sidebar-title{ width:auto; padding:.75rem 0; }
+        .sidebar .sidebar-title .sidebar-title-text{ display:inline-block; font-size:1.25rem; }
+        .sidebar .sidebar-title .sidebar-icon{ flex-basis:1.5rem; width:1.5rem; height:1.5rem; font-size:1.5rem; }
         .sidebar.has-active-state.expanded .clear-sidebar-filters{
-            display:flex; width:max-content; position:sticky; top:calc(env(safe-area-inset-top) + 4rem); z-index:8; align-self:flex-end; margin-left:auto; margin-right:.75rem;
-            background:var(--lwc-accent-soft, #e7f7f8); box-shadow:0 0 0 8px var(--card-bg), 0 8px 18px rgba(8,118,133,.16);
+            display:flex; background:var(--lwc-accent-soft); box-shadow:none;
         }
         .sidebar.has-active-state.expanded .clear-sidebar-filters:focus-visible{
-            box-shadow:0 0 0 8px var(--card-bg), 0 0 0 12px rgba(8,118,133,.18), 0 8px 18px rgba(8,118,133,.16);
+            outline:3px solid var(--lwc-accent); outline-offset:2px; box-shadow:none;
         }
         .filter-section label{ min-height:44px; padding:.52rem .65rem; }
         .content{ margin-left:0; }
@@ -2847,25 +2857,25 @@
     }
 
     #athleteSearch:focus {
-        border-color: var(--leaderboard-change-cue);
-        box-shadow: 0 0 0 4px rgba(255, 64, 129, .16), 0 4px 10px rgba(0, 0, 0, .08);
+        border-color:var(--lwc-accent);
+        box-shadow:0 0 0 3px var(--lwc-accent-soft);
     }
 
     .search-container:focus-within .search-icon,
     .clear-icon:hover,
     .clear-icon:focus-visible {
-        color: var(--leaderboard-change-cue);
+        color:var(--lwc-accent);
     }
 
     .clear-icon:hover,
     .clear-icon:focus-visible {
-        background: rgba(255, 64, 129, .08);
-        border-color: rgba(255, 64, 129, .22);
+        background:var(--lwc-accent-soft);
+        border-color:var(--lwc-border);
     }
 
     .clear-icon:focus-visible {
-        outline-color: var(--leaderboard-change-cue);
-        box-shadow: 0 0 0 4px rgba(255, 64, 129, .16), 0 4px 10px rgba(0, 0, 0, .1);
+        outline-color:var(--lwc-accent);
+        box-shadow:none;
     }
 
     .ranking-explanation,
@@ -3032,15 +3042,17 @@
 
         <div class="leaderboard">
             <div class="sidebar" id="leaderboardFilters">
-                <button class="sidebar-close" aria-label="Hide league filters" title="Hide league filters"><i class="fa fa-times"></i></button>
+                <div class="sidebar-heading">
                 <h2 class="sidebar-title" data-aos="fade" data-aos-duration="700" data-aos-delay="200">
                     <span class="sidebar-icon"><i class="fa fa-trophy"></i></span>
                     <span class="sidebar-title-text">Leagues</span>
                 </h2>
-                <button type="button" class="clear-sidebar-filters" id="clearSidebarFiltersBtn" tabindex="-1" aria-hidden="true">
-                    <i class="fa fa-times clear-sidebar-filters-icon" aria-hidden="true"></i>
+                <button type="button" class="clear-sidebar-filters" id="clearSidebarFiltersBtn" title="Clear filters" tabindex="-1" aria-hidden="true">
+                    <i class="fa fa-undo clear-sidebar-filters-icon" aria-hidden="true"></i>
                     <span>Clear filters</span>
                 </button>
+                <button class="sidebar-close" aria-label="Hide league filters" title="Hide league filters"><i class="fa fa-times"></i></button>
+                </div>
                 <div class="collapsed-title" data-aos="fade" data-aos-duration="700" data-aos-delay="200">ULTIMATE LEAGUE</div>
                 <div class="filter-section" id="aging-clock-filter-section">
                     <h3>Ranking views</h3>

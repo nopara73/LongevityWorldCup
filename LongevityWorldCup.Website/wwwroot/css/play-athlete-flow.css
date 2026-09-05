@@ -5,10 +5,10 @@
     aspect-ratio: 1 / 1;
     margin-inline: auto;
     overflow: hidden;
-    border: 4px solid var(--dark-text-color);
+    border: 1px solid var(--lwc-border);
     border-radius: 8px;
-    background: #b9b9b9;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+    background: var(--lwc-surface-muted);
+    box-shadow: var(--lwc-shadow-sm);
     box-sizing: border-box;
     line-height: 0;
 }

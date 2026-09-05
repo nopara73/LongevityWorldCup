@@ -747,6 +747,8 @@
 
 .lmx-action-card {
     position: sticky;
+    /* Field popovers must sit above the leaderboard's sticky cells. */
+    z-index: 5;
     top: 0.75rem;
     display: grid;
     align-content: start;
@@ -899,6 +901,24 @@
     color: #ffffff;
 }
 
+.lmx-identity-options label::before {
+    content: '';
+    width: 0.8rem;
+    height: 0.8rem;
+    flex: 0 0 0.8rem;
+}
+
+.lmx-identity-options label:has(input:checked)::before {
+    content: '\2713';
+    line-height: 0.8rem;
+}
+
+.lmx-identity-options label::after {
+    content: '';
+    width: 0.8rem;
+    flex: 0 0 0.8rem;
+}
+
 .lmx-identity-options label:focus-within {
     outline: 3px solid rgba(0, 188, 212, 0.24);
     outline-offset: 2px;
@@ -906,7 +926,7 @@
 
 .lmx-field label,
 .lmx-field span.lmx-label {
-    font-size: 0.84rem;
+    font-size: var(--lwc-type-sm);
     font-weight: 700;
     color: var(--lmx-muted);
 }
@@ -920,8 +940,8 @@
 .lmx-field-help {
     margin: 0;
     color: var(--lmx-muted);
-    font-size: 0.82rem;
-    line-height: 1.35;
+    font-size: var(--lwc-type-sm);
+    line-height: 1.5;
 }
 
 .lmx-field input,
@@ -1562,7 +1582,7 @@
 
 .lmx-timezone-button small {
     color: var(--lmx-muted);
-    font-size: 0.78rem;
+    font-size: var(--lwc-type-sm);
     font-weight: 800;
     white-space: nowrap;
 }
@@ -1652,11 +1672,11 @@
     min-height: 48px;
     height: auto;
     display: grid;
-    gap: 0.04rem;
+    gap: var(--lwc-space-1);
     align-content: center;
     padding: 0.4rem 0.55rem;
     border: 0;
-    border-radius: 6px;
+    border-radius: var(--lwc-radius-sm);
     background: transparent;
     color: var(--lmx-ink);
     font: inherit;
@@ -1675,16 +1695,19 @@
 }
 
 .lmx-timezone-option span {
-    font-weight: 850;
+    font-weight: 700;
     line-height: 1.2;
 }
 
 .lmx-timezone-option small {
+    color: var(--lmx-muted);
+    font-size: var(--lwc-type-sm);
+    font-weight: 400;
+    line-height: 1.5;
+}
+
+.lmx-timezone-option[aria-selected="true"] small {
     color: inherit;
-    opacity: 0.72;
-    font-size: 0.75rem;
-    font-weight: 750;
-    line-height: 1.25;
 }
 
 .lmx-timezone-empty {
@@ -2410,6 +2433,11 @@ body.lmx-checkin-dialog-open {
     min-height: 1.3rem;
     color: var(--lmx-muted);
     font-weight: 700;
+}
+
+#lmxSignupStatus:empty,
+#lmxResendStatus:empty {
+    display: none;
 }
 
 .lmx-status.error {
@@ -4059,7 +4087,7 @@ a.lmx-note-mention:focus-visible {
         min-height: 2.75rem;
         padding: 0 0.65rem;
         border: 1px solid var(--lmx-border);
-        border-radius: 9px;
+        border-radius: var(--lwc-radius-md);
         background: var(--lmx-surface);
         color: var(--lmx-ink);
         box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
@@ -4068,8 +4096,8 @@ a.lmx-note-mention:focus-visible {
         justify-content: center;
         gap: 0.42rem;
         font: inherit;
-        font-size: 0.78rem;
-        font-weight: 850;
+        font-size: var(--lwc-type-sm);
+        font-weight: 700;
         cursor: pointer;
         touch-action: manipulation;
     }
@@ -4086,8 +4114,10 @@ a.lmx-note-mention:focus-visible {
     }
 
     .lmx-week-pager button:disabled {
-        opacity: 0.42;
-        cursor: default;
+        opacity: 1;
+        color: var(--lmx-muted);
+        background: var(--lmx-surface-muted);
+        cursor: not-allowed;
         box-shadow: none;
     }
 
@@ -4097,9 +4127,10 @@ a.lmx-note-mention:focus-visible {
         align-items: center;
         justify-content: center;
         color: var(--lmx-ink);
-        font-family: Orbitron, Roboto, sans-serif;
-        font-size: 0.76rem;
-        font-weight: 800;
+        font-family: inherit;
+        font-size: var(--lwc-type-sm);
+        font-variant-numeric: tabular-nums;
+        font-weight: 700;
         line-height: 1.2;
         text-align: center;
     }

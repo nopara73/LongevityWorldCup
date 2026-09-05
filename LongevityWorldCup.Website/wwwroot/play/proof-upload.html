@@ -173,9 +173,10 @@
                 min-height: 42px;
                 margin: 0 0 0.75rem;
                 padding: 0.6rem 0.85rem;
-                border: 1px solid var(--lwc-success, rgba(22, 163, 74, 0.35));
+                border: 1px solid var(--lwc-border);
+                border-inline-start: 4px solid var(--lwc-success);
                 border-radius: 8px;
-                background: var(--lwc-success-soft, rgba(240, 253, 244, 0.94));
+                background: var(--lwc-surface-muted);
                 box-shadow: none;
                 box-sizing: border-box;
                 color: var(--lwc-ink, #166534);
@@ -205,26 +206,26 @@
                 height: clamp(160px, 46vw, 240px);
                 max-width: 100% !important;
                 border: 0 !important;
-                border-radius: 6px;
+                border-radius: var(--lwc-radius-sm);
                 background: var(--lwc-surface-muted, #f8fafc);
                 object-fit: contain;
             }
 
             #proofImageContainer button {
-                position: absolute;
-                top: 0.75rem !important;
-                right: 0.75rem !important;
+                position: static !important;
+                display: block;
+                margin: var(--lwc-space-2) 0 0 auto;
                 min-height: 44px;
                 min-width: 44px;
                 padding: 0.45rem 0.75rem !important;
-                background-color: #b91c1c !important;
-                color: var(--light-text-color);
-                border: none;
-                border-radius: 999px !important;
-                box-shadow: 0 3px 8px rgba(127, 29, 29, 0.28);
+                background-color: var(--lwc-surface) !important;
+                color: var(--lwc-danger) !important;
+                border: 1px solid var(--lwc-border) !important;
+                border-radius: var(--lwc-radius-md) !important;
+                box-shadow: none;
                 box-sizing: border-box;
                 cursor: pointer;
-                font-size: 0.8rem;
+                font-size: var(--lwc-type-sm);
                 font-weight: 700;
             }
 
@@ -559,6 +560,10 @@
             .proof-upload-primary-action .upload-choice-divider {
                 display: flex;
             }
+        }
+        .proof-upload-main .proof-upload-copy {
+            text-align: left;
+            line-height: 1.5;
         }
     </style>
 </head>
