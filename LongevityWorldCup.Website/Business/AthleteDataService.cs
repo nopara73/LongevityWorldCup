@@ -3490,12 +3490,9 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
 
     private static string Sha256Hex(string input)
     {
-        using var sha = SHA256.Create();
         var bytes = Encoding.UTF8.GetBytes(input ?? "");
-        var hash = sha.ComputeHash(bytes);
-        var sb = new StringBuilder(hash.Length * 2);
-        foreach (var b in hash) sb.Append(b.ToString("x2", CultureInfo.InvariantCulture));
-        return sb.ToString();
+        var hash = SHA256.HashData(bytes);
+        return Convert.ToHexString(hash).ToLowerInvariant();
     }
 
     private static string NormalizeAthleteSlug(string? slug)

@@ -656,11 +656,7 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
     private static string BuildEditorialRuleHash(string label, string? note = null)
     {
         string sig = $"label={label}|category=Global|type=editorial|note={note ?? "n/a"}";
-        using var sha = SHA256.Create();
-        var bytes = sha.ComputeHash(Encoding.UTF8.GetBytes(sig));
-        var sb = new StringBuilder(bytes.Length * 2);
-        foreach (var b in bytes) sb.Append(b.ToString("x2", CultureInfo.InvariantCulture));
-        return sb.ToString();
+        return ComputeRuleHash(sig);
     }
 
     private void AddEditorialAwards(
@@ -931,9 +927,8 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
 
     private static string ComputeRuleHash(string signature)
     {
-        using var sha = SHA256.Create();
-        var bytes = sha.ComputeHash(Encoding.UTF8.GetBytes(signature));
-        return BitConverter.ToString(bytes).Replace("-", "").ToLowerInvariant();
+        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(signature));
+        return Convert.ToHexString(bytes).ToLowerInvariant();
     }
 
     private static string BuildRankedRuleHash(
