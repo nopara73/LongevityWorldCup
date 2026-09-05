@@ -494,8 +494,8 @@ public sealed class FlowActionDockFormBrowserTests(
                     PersonalLink: 'https://example.test/browser-test-athlete',
                     MediaContact: 'browser-test-athlete@example.test',
                     Why: 'Testing the athlete navigation flow.',
-                    ProfilePic: '/assets/content-images/longevity-world-cup-silhouette.webp',
-                    ProfilePictureUrl: '/assets/content-images/longevity-world-cup-silhouette.webp',
+                    ProfilePic: '/assets/content-images/headshot.webp',
+                    ProfilePictureUrl: '/assets/content-images/headshot.webp',
                     DateOfBirth: { Year: 1980, Month: 5, Day: 20 },
                     Biomarkers: [{ Date: '2026-06-19', Hba1cMmolMol: 35 }]
                 };
@@ -519,6 +519,9 @@ public sealed class FlowActionDockFormBrowserTests(
         await page.EvaluateAsync("() => window.LwcFlowActionDock.refreshNow()");
         await WaitForManagedActionStacksSettledAsync(page);
         await ExpectActionStackInViewportAsync(page, ".edit-profile-actions");
+
+        // The real portrait fills the header; keyboard navigation must still reveal the last field.
+        await page.Locator("#whyDisplayInput").FocusAsync();
 
         var state = await page.EvaluateAsync<EditProfileInitialState>(
             """

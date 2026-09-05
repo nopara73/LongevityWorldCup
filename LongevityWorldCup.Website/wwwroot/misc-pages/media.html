@@ -13,9 +13,10 @@
             max-width: 820px;
             margin: 2.25rem auto;
             padding: 1.75rem;
-            background: rgba(255, 255, 255, 0.74);
-            border-radius: 16px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            background: var(--lwc-surface);
+            border-radius: var(--lwc-radius-lg);
+            box-shadow: var(--lwc-shadow-sm);
+            border: 1px solid var(--lwc-border);
         }
 
         .media-kit-title {
@@ -48,12 +49,13 @@
             gap: 0.5rem;
             min-height: 44px;
             padding: 0.78rem 1.25rem;
-            border-radius: 999px;
-            background: #0a7c0a;
-            color: #fff;
+            border-radius: var(--lwc-radius-md);
+            background: var(--lwc-accent);
+            color: var(--lwc-on-accent);
             font-weight: 700;
             text-decoration: none;
-            box-shadow: 0 8px 18px rgba(10, 124, 10, 0.16);
+            box-shadow: none;
+            transition: background-color var(--lwc-duration-fast) var(--lwc-ease);
         }
 
         .media-kit-primary-download::before {
@@ -66,8 +68,8 @@
 
         .media-kit-primary-download:hover,
         .media-kit-primary-download:focus-visible {
-            background: #096f09;
-            color: #fff;
+            background: var(--lwc-accent-hover);
+            color: var(--lwc-on-accent);
         }
 
         .media-kit-preview {
@@ -93,20 +95,20 @@
             box-sizing: border-box;
             display: grid;
             grid-template-columns: minmax(0, 1fr) auto;
-            gap: 0.75rem;
+            gap: var(--lwc-space-3);
             align-items: center;
             padding: 0.65rem 0.75rem;
-            border: 1px solid rgba(0, 0, 0, 0.06);
-            border-radius: 10px;
-            background: rgba(248, 250, 252, 0.8);
+            border: 1px solid var(--lwc-border);
+            border-radius: var(--lwc-radius-md);
+            background: var(--lwc-surface-muted);
         }
 
         .media-file-name {
             min-width: 0;
-            color: #243446;
+            color: var(--lwc-ink);
             overflow-wrap: break-word;
             word-break: normal;
-            line-height: 1.35;
+            line-height: 1.5;
         }
 
         .media-file-button {
@@ -117,13 +119,15 @@
             gap: 0.38rem;
             min-height: 44px;
             padding: 0.42rem 0.75rem;
-            border: 1px solid rgba(0, 188, 212, 0.34);
-            border-radius: 7px;
-            background: rgba(255, 255, 255, 0.9);
-            color: var(--primary-color);
+            border: 1px solid var(--lwc-border-strong);
+            border-radius: var(--lwc-radius-md);
+            background: var(--lwc-surface);
+            color: var(--lwc-accent);
             font-weight: 700;
             cursor: pointer;
             white-space: nowrap;
+            font-family: inherit;
+            font-size: var(--lwc-type-sm);
         }
 
         .media-file-button::before {
@@ -220,6 +224,38 @@
                 font-size: 0.95rem;
             }
         }
+        .media-kit-primary-download:focus-visible, .media-file-button:focus-visible {
+            outline: 3px solid var(--lwc-accent);
+            outline-offset: 3px;
+        }
+        @media (max-width: 600px) {
+            .media-kit-panel {
+                border-radius: var(--lwc-radius-lg);
+            }
+            .media-kit-primary-download, .media-file-button, .media-file-name {
+                font-size: var(--lwc-type-sm);
+                line-height: 1.5;
+            }
+            .media-file-button {
+                border-radius: var(--lwc-radius-md);
+                padding-block: var(--lwc-space-2);
+            }
+        }
+        .media-kit-intro {
+            color: var(--lwc-ink);
+        }
+        .media-kit-loading {
+            color: var(--lwc-muted);
+        }
+        .media-kit-fallback {
+            padding: var(--lwc-space-3);
+            border: 1px solid var(--lwc-border);
+            border-left: 3px solid var(--lwc-warning);
+            border-radius: var(--lwc-radius-md);
+            background: var(--lwc-surface-muted);
+            color: var(--lwc-ink);
+            text-align: left;
+        }
     </style>
 </head>
 <body>
@@ -307,6 +343,7 @@
 
                     const btn = document.createElement('button');
                     btn.textContent = 'Download';
+                    btn.setAttribute('aria-label', `Download ${path.split('/').pop()}`);
                     btn.className = 'media-file-button';
                     btn.addEventListener('click', async () => {
                         const file = zip.file(path);

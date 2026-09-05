@@ -59,6 +59,7 @@ interface FlagOption {
 }
 
 interface LwcFlagsApi {
+    bindAutocomplete(input: HTMLInputElement, options: FlagAutocompleteOptions): { refresh(): void };
     buildFlagOptions(flags: unknown, athletes: unknown): FlagOption[];
     countFlagUsage(
         athletes: unknown,
@@ -74,6 +75,12 @@ interface LwcFlagsApi {
     renderFlagIcon(flag: unknown, className?: string): string;
     renderFlagLabel(flag: unknown): string;
     renderFlagOptionLabel(flag: unknown, query?: unknown): string;
+}
+
+interface FlagAutocompleteOptions {
+    getOptions(): readonly FlagOption[];
+    limit?: number;
+    hideExactMatch?: boolean;
 }
 
 interface CustomEventMarkupOptions {

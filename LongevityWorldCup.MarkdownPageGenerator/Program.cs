@@ -213,8 +213,9 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
         }
 
         .documentation-nav {
+            --documentation-nav-offset: 4.25rem;
             position: sticky;
-            top: 4.25rem;
+            top: var(--documentation-nav-offset);
             display: grid;
             gap: 0.2rem;
             padding: 0.85rem 0.7rem 0.95rem;
@@ -224,13 +225,26 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
             box-shadow: none;
         }
 
+        @media (min-width: 901px) {
+            .documentation-nav {
+                box-sizing: border-box;
+                max-height: calc(100dvh - var(--documentation-nav-offset) - 1rem);
+                overflow-y: auto;
+                overscroll-behavior: contain;
+                scroll-padding-block: var(--lwc-space-2);
+                scrollbar-width: thin;
+                scrollbar-color: var(--lwc-border-strong) transparent;
+            }
+        }
+
         .documentation-nav-title {
             margin: 0 0 0.35rem;
             padding: 0 0.45rem;
             color: var(--lwc-muted, #526373);
-            font-size: 0.78rem;
+            font-size: var(--lwc-type-sm);
             font-weight: 700;
-            text-transform: uppercase;
+            text-transform: none;
+            line-height: 1.5;
         }
 
         .documentation-nav-toggle {
@@ -244,13 +258,16 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
         }
 
         .documentation-nav a {
-            display: block;
+            display: flex;
             padding: 0.38rem 0.45rem;
-            border-radius: 6px;
+            border-radius: var(--lwc-radius-sm);
             color: var(--lwc-ink, #334155);
-            font-size: 0.92rem;
-            line-height: 1.25;
+            font-size: var(--lwc-type-sm);
+            line-height: 1.5;
             text-decoration: none;
+            min-height: 44px;
+            box-sizing: border-box;
+            align-items: center;
         }
 
         .documentation-nav .documentation-nav-level-3 {
@@ -258,7 +275,8 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
             padding-top: 0.28rem;
             padding-bottom: 0.28rem;
             color: var(--lwc-muted, #506176);
-            font-size: 0.86rem;
+            font-size: var(--lwc-type-sm);
+            line-height: 1.5;
         }
 
         .documentation-nav a:hover,
@@ -271,6 +289,7 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
 
         .documentation-nav a.is-active {
             font-weight: 700;
+            box-shadow: inset 3px 0 0 var(--lwc-accent);
         }
 
         .documentation-nav .documentation-source-link {
@@ -386,6 +405,7 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
             border-collapse: collapse;
             background: var(--lwc-surface, #ffffff);
             border-radius: 8px;
+            font-variant-numeric: tabular-nums;
         }
 
         .documentation-document th,
@@ -399,7 +419,7 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
 
         .documentation-document th {
             color: var(--lwc-ink, #111827);
-            background: var(--lwc-accent-soft, rgba(0, 188, 212, 0.1));
+            background: var(--lwc-surface-muted);
             font-weight: 700;
         }
 
@@ -408,8 +428,9 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
             padding-top: 1rem;
             border-top: 1px solid var(--lwc-border, rgba(0, 0, 0, 0.08));
             color: var(--lwc-muted, #506176);
-            font-size: 0.95rem;
+            font-size: var(--lwc-type-sm);
             text-align: left;
+            line-height: 1.5;
         }
 
         @media (max-width: 900px) {
@@ -438,7 +459,7 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
                 min-height: 44px;
                 padding: 0.6rem 0.75rem;
                 border: 1px solid var(--lwc-border-strong, #71808d);
-                border-radius: 6px;
+                border-radius: var(--lwc-radius-md);
                 background: var(--lwc-surface, #ffffff);
                 color: var(--lwc-ink, #334155);
                 font: inherit;
@@ -461,6 +482,9 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
             .documentation-nav-toggle-icon {
                 font-size: 1.25rem;
                 line-height: 1;
+                flex: 0 0 1.5rem;
+                width: 1.5rem;
+                text-align: center;
             }
 
             .documentation-nav-links {
@@ -567,17 +591,18 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
                 gap: 0.35rem;
                 align-items: baseline;
                 color: var(--lwc-ink, #334155);
-                font-size: 0.86rem;
-                line-height: 1.28;
+                font-size: var(--lwc-type-sm);
+                line-height: 1.5;
             }
 
             .documentation-document tbody td::before {
                 content: attr(data-label);
                 color: var(--lwc-muted, #526373);
-                font-size: 0.68rem;
-                font-weight: 800;
-                text-transform: uppercase;
+                font-size: var(--lwc-type-xs);
+                font-weight: 700;
+                text-transform: none;
                 letter-spacing: 0;
+                line-height: 1.5;
             }
 
             .documentation-document tbody td:first-child {
@@ -590,7 +615,8 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
                 grid-row: 2;
                 font-size: 0.96rem;
                 font-weight: 700;
-                white-space: nowrap;
+                white-space: normal;
+                overflow-wrap: anywhere;
             }
 
             .documentation-document tbody td:nth-child(2)::before {
@@ -609,6 +635,19 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
 
             .documentation-document tbody td:last-child::before {
                 white-space: nowrap;
+            }
+        }
+        .documentation-nav a:focus-visible {
+            outline: 2px solid var(--lwc-accent);
+            outline-offset: -2px;
+        }
+        @media (max-width: 600px) {
+            .documentation-document {
+                font-size: var(--lwc-type-body);
+                line-height: 1.65;
+            }
+            .documentation-document :is(p,li) {
+                line-height: 1.65;
             }
         }
     </style>
@@ -659,16 +698,40 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
                 return ((stickyHeader && stickyHeader.offsetHeight) || 52) + 18;
             };
 
+            let activeLink = null;
+            let navigationDestination = null;
+            const revealActiveLink = () => {
+                const link = documentationNav?.querySelector("a:focus") || activeLink;
+                if (!documentationNav || !link || !window.matchMedia("(min-width: 901px)").matches) {
+                    return;
+                }
+
+                const pane = documentationNav.getBoundingClientRect();
+                const target = link.getBoundingClientRect();
+                const padding = parseFloat(getComputedStyle(documentationNav).scrollPaddingTop) || 0;
+                if (target.top < pane.top + padding) {
+                    documentationNav.scrollTop += target.top - pane.top - padding;
+                } else if (target.bottom > pane.bottom - padding) {
+                    documentationNav.scrollTop += target.bottom - pane.bottom + padding;
+                }
+            };
+
             const setActive = id => {
+                const previousActiveLink = activeLink;
+                activeLink = null;
                 navLinks.forEach(link => {
                     const active = decodeURIComponent(link.getAttribute("href").slice(1)) === id;
                     link.classList.toggle("is-active", active);
                     if (active) {
+                        activeLink = link;
                         link.setAttribute("aria-current", "location");
                     } else {
                         link.removeAttribute("aria-current");
                     }
                 });
+                if (activeLink !== previousActiveLink) {
+                    revealActiveLink();
+                }
             };
 
             navLinks.forEach(link => {
@@ -679,14 +742,14 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
                     }
 
                     event.preventDefault();
-                    const top = target.getBoundingClientRect().top + window.scrollY - getOffset();
-                    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-                    window.scrollTo({ top, behavior: reducedMotion ? "auto" : "smooth" });
-                    history.pushState(null, "", link.getAttribute("href"));
-                    setActive(target.id);
                     if (window.matchMedia("(max-width: 900px)").matches) {
                         setDocumentationNavOpen(false);
                     }
+                    const top = target.getBoundingClientRect().top + window.scrollY - getOffset();
+                    window.scrollTo({ top, behavior: "instant" });
+                    history.pushState(null, "", link.getAttribute("href"));
+                    navigationDestination = { target, scrollY: window.scrollY, hash: window.location.hash };
+                    setActive(target.id);
 
                     target.setAttribute("tabindex", "-1");
                     target.focus({ preventScroll: true });
@@ -695,6 +758,17 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
 
             const updateActiveFromScroll = () => {
                 const offset = getOffset() + 6;
+                // A section near the page end may be visible without reaching the offset.
+                // Honor that destination until the reader moves away from its landing position.
+                if (navigationDestination && window.scrollY === navigationDestination.scrollY &&
+                    window.location.hash === navigationDestination.hash) {
+                    const bounds = navigationDestination.target.getBoundingClientRect();
+                    if (bounds.bottom > offset && bounds.top < window.innerHeight) {
+                        setActive(navigationDestination.target.id);
+                        return;
+                    }
+                }
+                navigationDestination = null;
                 let current = headings[0];
 
                 for (const heading of headings) {
@@ -704,10 +778,30 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
                         break;
                     }
                 }
-
+                if (window.scrollY > 0 && window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 1) {
+                    current = headings[headings.length - 1];
+                }
                 if (current) {
                     setActive(current.id);
                 }
+            };
+
+            const synchronizeNavigationFromHash = () => {
+                let id;
+                try {
+                    id = decodeURIComponent(window.location.hash.slice(1));
+                } catch {
+                    id = "";
+                }
+                const target = headings.find(heading => heading.id === id);
+                navigationDestination = null;
+                if (target) {
+                    const bounds = target.getBoundingClientRect();
+                    if (bounds.bottom > getOffset() && bounds.top < window.innerHeight) {
+                        navigationDestination = { target, scrollY: window.scrollY, hash: window.location.hash };
+                    }
+                }
+                updateActiveFromScroll();
             };
 
             let ticking = false;
@@ -722,8 +816,21 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
                     ticking = false;
                 });
             }, { passive: true });
+            window.addEventListener("resize", () => {
+                updateActiveFromScroll();
+                revealActiveLink();
+            });
+            window.addEventListener("hashchange", () => window.requestAnimationFrame(synchronizeNavigationFromHash));
+            window.addEventListener("pageshow", event => {
+                if (!event.persisted && window.location.hash) {
+                    synchronizeNavigationFromHash();
+                }
+            });
 
             updateActiveFromScroll();
+            if (window.location.hash) {
+                window.requestAnimationFrame(synchronizeNavigationFromHash);
+            }
         });
     </script>
 </body>

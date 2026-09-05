@@ -138,7 +138,7 @@ public sealed class AestheticSystemPageTests(TestWebApplicationFactory sharedFac
 
         var html = await client.GetStringAsync(path);
 
-        Assert.Contains("/css/error-system.css?v=20260719-1", html);
+        Assert.Contains("/css/error-system.css?v=20260905-1", html);
         Assert.Contains("<figure class=\"visual\">", html);
         Assert.Contains("src=\"/error/herold.png\"", html);
         Assert.Contains("alt=\"Herold waiting through a temporary outage\" width=\"1024\" height=\"1536\"", html);

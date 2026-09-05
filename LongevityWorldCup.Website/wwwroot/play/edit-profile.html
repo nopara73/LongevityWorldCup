@@ -33,12 +33,15 @@
         }
 
         .edit-profile-visual {
+            width: min(100%, 408px);
             margin: 0 auto 1.45rem;
             text-align: center;
         }
 
         .edit-profile-visual .illustration {
             width: min(100%, 408px);
+            aspect-ratio: 1;
+            object-fit: contain;
             margin-bottom: 0;
             box-sizing: border-box;
         }
@@ -56,11 +59,13 @@
             width: 100%;
             max-height: min(12rem, 36vh);
             overflow-y: auto;
-            box-shadow: 0 12px 24px rgba(15, 23, 42, 0.16);
+            box-shadow: var(--lwc-shadow-md);
             box-sizing: border-box;
             z-index: 9999;
             scrollbar-width: thin;
             scrollbar-color: rgba(96, 125, 139, 0.45) transparent;
+            overscroll-behavior: contain;
+            scroll-padding-block: var(--lwc-space-1);
         }
 
             .autocomplete-items div {
@@ -68,12 +73,12 @@
                 align-items: center;
                 min-height: 44px;
                 padding: 0.6rem 0.7rem;
-                border-radius: 6px;
+                border-radius: var(--lwc-radius-sm);
                 box-sizing: border-box;
                 color: var(--lwc-ink, #2d3748);
                 cursor: pointer;
                 font-size: 1rem;
-                line-height: 1.25;
+                line-height: 1.5;
             }
 
                 .autocomplete-items div + div {
@@ -84,6 +89,10 @@
                 .autocomplete-active {
                     background-color: var(--lwc-accent-soft, rgba(0, 188, 212, 0.12));
                     color: var(--lwc-ink, #243446);
+                }
+
+                .autocomplete-items .autocomplete-active {
+                    box-shadow: inset 3px 0 var(--lwc-accent);
                 }
 
                 .autocomplete-items div .lwc-flag-icon {
@@ -117,7 +126,7 @@
             border-radius: 8px;
             font-size: 1rem;
             font-family: inherit;
-            line-height: 1.35;
+            line-height: 1.5;
             transition: border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
             background-color: var(--lwc-surface, #fff);
             color: var(--lwc-ink, #17212b);
@@ -172,13 +181,14 @@
             max-height: calc(100dvh - 1.5rem);
             overflow: auto;
             border: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.12));
-            border-radius: 8px;
-            box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28);
+            border-radius: var(--lwc-radius-lg);
+            box-shadow: var(--lwc-shadow-md);
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             gap: 0.95rem;
+            overscroll-behavior: contain;
         }
 
         .cropper-dialog-title {
@@ -481,7 +491,14 @@
             }
 
             #editOptionsGroup {
-                gap: 0.55rem;
+                gap: var(--lwc-space-2);
+            }
+
+            #flagDisplayInput,
+            #personalLinkInput,
+            #mediaContactInput,
+            #whyDisplayInput {
+                padding-block: var(--lwc-space-2);
             }
         }
 
@@ -516,7 +533,7 @@
             }
 
             .edit-profile-visual .illustration {
-                width: auto;
+                width: min(100%, 240px, 26dvh);
                 max-width: min(100%, 240px);
                 max-height: 26dvh;
                 object-fit: contain;
@@ -555,6 +572,28 @@
             #takeProfileSelfieButton {
                 display: inline-flex;
             }
+        }
+        .edit-profile-main :is(input,select,textarea):focus {
+            border-color: var(--lwc-accent);
+            box-shadow: 0 0 0 3px var(--lwc-accent-soft);
+            outline: 2px solid var(--lwc-accent);
+            outline-offset: 1px;
+        }
+        .edit-profile-main .field-requirement {
+            font-size: var(--lwc-type-sm);
+            line-height: 1.5;
+        }
+        #whyDisplayInput {
+            resize: vertical;
+        }
+        .edit-profile-main .option-button.icon-only {
+            background: var(--lwc-surface-muted);
+            color: var(--lwc-muted);
+            border-color: var(--lwc-border);
+        }
+        .edit-profile-main .option-button.icon-only:hover {
+            background: var(--lwc-accent-soft);
+            color: var(--lwc-accent);
         }
     </style>
 </head>
@@ -680,7 +719,6 @@
     </div>
     <!--FOOTER-->
     <script>
-        let currentFlagFocus = -1;
         let isEditProfileSubmitting = false;
 
         function setBrowserStorageItem(storageName, key, value) {
@@ -924,17 +962,26 @@
                 updateSubmitButtonState(divisionSelect);
             });
 
-            // —— FLAG INPUT & AUTOCOMPLETE LOGIC ——
             const flagInput = document.getElementById('flagDisplayInput');
             const restoreFlagBtn = document.getElementById('restoreFlagBtn');
-
-            // Fetch and prepare flag list
             const currentFlag = window.LwcFlags.getCanonicalFlagName(athlete.Flag);
-            let availableFlags = currentFlag ? [currentFlag] : [];
+            let availableFlags = window.LwcFlags.buildFlagOptions(currentFlag ? [currentFlag] : [], []);
             flagInput.value = athlete.Flag;
             if (normalizeEditText(athlete.Flag) !== normalizeEditText(originalAthlete.Flag)) {
                 restoreFlagBtn.style.display = 'inline-flex';
             }
+
+            flagInput.addEventListener('input', function () {
+                athlete.Flag = this.value.trim();
+                restoreFlagBtn.style.display = normalizeEditText(this.value) !== normalizeEditText(originalAthlete.Flag)
+                    ? 'inline-flex' : 'none';
+                updateSubmitButtonState(flagInput);
+            });
+            const flagAutocomplete = window.LwcFlags.bindAutocomplete(flagInput, {
+                getOptions: () => availableFlags,
+                limit: 5,
+                hideExactMatch: true
+            });
 
             const athletesForFlagOptions = window.getSharedAthletes
                 ? window.getSharedAthletes()
@@ -942,105 +989,10 @@
             Promise.all([
                 fetch('/api/data/flags').then(r => r.ok ? r.json() : []).catch(() => []),
                 Promise.resolve(athletesForFlagOptions).catch(() => [])
-            ])
-                .then(([flags, athletes]) => {
-                    availableFlags = window.LwcFlags
-                        .buildFlagOptions(flags, athletes)
-                        .map(option => option.name);
-                    if (currentFlag && !availableFlags.includes(currentFlag)) availableFlags.push(currentFlag);
-                })
-                .catch(error => {
-                    console.error('Error fetching flags:', error);
-                });
-
-            // Autocomplete dropdown
-            flagInput.addEventListener('input', function () {
-                athlete.Flag = this.value.trim();
-                // Show or hide the Restore-Flag button based on whether the input matches original
-                if (normalizeEditText(flagInput.value) !== normalizeEditText(originalAthlete.Flag)) {
-                    restoreFlagBtn.style.display = 'inline-flex';
-                } else {
-                    restoreFlagBtn.style.display = 'none';
-                }
-
-                updateSubmitButtonState(flagInput);
-
-                // Hide autocomplete if input exactly matches one of the flags
-                if (availableFlags.includes(flagInput.value.trim())) {
-                    closeFlagLists();
-                    return;
-                }
-
-                const terms = this.value.trim().split(/\s+/).filter(t => t);
-                closeFlagLists();
-                if (!terms.length) return;
-                const list = document.createElement('div');
-                list.id = this.id + '-autocomplete-list';
-                list.className = 'autocomplete-items';
-                this.parentNode.appendChild(list);
-                let count = 0;
-                availableFlags.forEach(f => {
-                    if (count >= 5) return;
-                    if (terms.every(t => window.LwcFlags.matchesFlagOption({ name: f }, t))) {
-                        const item = document.createElement('div');
-                        item.className = 'flag-autocomplete-item';
-                        item.innerHTML = window.LwcFlags.renderFlagOptionLabel(f, this.value.trim());
-                        item.dataset.value = f;
-                        item.addEventListener('mousedown', e => {
-                            e.preventDefault();
-                            selectFlag(e.currentTarget.dataset.value);
-                        });
-                        list.appendChild(item);
-                        count++;
-                    }
-                });
-            });
-
-            flagInput.addEventListener('keydown', function (e) {
-                let items = document.getElementById(this.id + '-autocomplete-list');
-                if (items) items = items.getElementsByTagName('div');
-                if (e.keyCode === 40) { currentFlagFocus++; addActiveFlag(items); }
-                else if (e.keyCode === 38) { currentFlagFocus--; addActiveFlag(items); }
-                else if (e.keyCode === 13) {
-                    e.preventDefault();
-                    if (currentFlagFocus > -1 && items) {
-                        items[currentFlagFocus].dispatchEvent(new MouseEvent('mousedown'));
-                    }
-                }
-            });
-
-            function addActiveFlag(items) {
-                if (!items) return;
-                removeActiveFlag(items);
-                if (currentFlagFocus >= items.length) currentFlagFocus = 0;
-                if (currentFlagFocus < 0) currentFlagFocus = items.length - 1;
-                items[currentFlagFocus].classList.add('autocomplete-active');
-                items[currentFlagFocus].scrollIntoView({ block: 'nearest' });
-            }
-            function removeActiveFlag(items) {
-                Array.from(items).forEach(i => i.classList.remove('autocomplete-active'));
-            }
-            function closeFlagLists() {
-                document.querySelectorAll('#flagDisplayInput-autocomplete-list')
-                    .forEach(el => el.remove());
-                currentFlagFocus = -1;
-            }
-            document.addEventListener('click', closeFlagLists);
-
-            // When a flag is chosen
-            function selectFlag(value) {
-                athlete.Flag = value;
-                flagInput.value = value;
-
-                if (normalizeEditText(value) !== normalizeEditText(originalAthlete.Flag)) {
-                    restoreFlagBtn.style.display = 'inline-flex';
-                } else {
-                    restoreFlagBtn.style.display = 'none';
-                }
-                updateSubmitButtonState(flagInput);
-
-                closeFlagLists();
-            }
+            ]).then(([flags, athletes]) => {
+                availableFlags = window.LwcFlags.buildFlagOptions([...flags, currentFlag], athletes);
+                flagAutocomplete.refresh();
+            }).catch(error => console.error('Error fetching flags:', error));
 
             const mediaContactInput = document.getElementById('mediaContactInput');
             const personalLinkInput = document.getElementById('personalLinkInput');
@@ -1048,7 +1000,7 @@
 
             [flagInput, personalLinkInput, mediaContactInput].forEach(input => {
                 input.addEventListener('keydown', e => {
-                    if (e.key === 'Enter') {
+                    if (e.key === 'Enter' && !e.defaultPrevented && !e.isComposing) {
                         e.preventDefault();
                         submitButton.click();
                     }

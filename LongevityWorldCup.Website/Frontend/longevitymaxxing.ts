@@ -5704,6 +5704,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     function wireAthleteSelector(input: HTMLInputElement, athletes: AthleteOption[]): void {
         if (athleteSelectors.has(input.id)) return;
 
+        const listId = input.id + "-autocomplete-list";
+        input.setAttribute("aria-controls", listId);
         let currentFocus = -1;
         const selected = document.getElementById(`${input.id}Selected`);
         const clearButton = document.getElementById(`${input.id}Clear`);
@@ -5778,11 +5780,15 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         });
 
         input.addEventListener("focus", () => {
-            if (!input.value.trim()) renderSuggestions(true);
+            if (!input.dataset.athleteSlug) renderSuggestions(true);
         });
+        input.addEventListener("blur", closeList);
 
         input.addEventListener("keydown", event => {
-            let list = document.getElementById(`${input.id}-autocomplete-list`);
+            if (event.isComposing) return;
+            if ((event.key === "ArrowDown" || event.key === "ArrowUp")
+                && !document.getElementById(listId) && !input.dataset.athleteSlug) renderSuggestions(true);
+            const list = document.getElementById(listId);
             const items = list ? Array.from(list.getElementsByClassName("lmx-athlete-option")) : [];
 
             if (event.key === "ArrowDown") {
@@ -5799,6 +5805,9 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 event.preventDefault();
                 activeItem.dispatchEvent(new MouseEvent("mousedown"));
             } else if (event.key === "Escape") {
+                if (list) event.preventDefault();
+                closeList();
+            } else if (event.key === "Tab") {
                 closeList();
             }
         });
@@ -5829,9 +5838,10 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 .slice(0, 6);
 
             const list = document.createElement("div");
-            list.id = `${input.id}-autocomplete-list`;
+            list.id = listId;
             list.className = "lmx-athlete-options";
             list.setAttribute("role", "listbox");
+            list.setAttribute("aria-label", "Athlete suggestions");
             input.closest(".lmx-athlete-picker")?.appendChild(list);
             input.setAttribute("aria-expanded", "true");
 
@@ -5840,10 +5850,12 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 return;
             }
 
-            matches.forEach(athlete => {
+            matches.forEach((athlete, index) => {
                 const item = document.createElement("div");
+                item.id = listId + "-option-" + index;
                 item.className = "lmx-athlete-option";
                 item.setAttribute("role", "option");
+                item.setAttribute("aria-selected", "false");
                 item.innerHTML = `
                     ${athlete.profilePic ? `<img src="${escAttr(athlete.profilePic)}" alt="" loading="lazy">` : "<span class=\"lmx-athlete-fallback\"></span>"}
                     <span><span class="lmx-athlete-name">${highlightMatch(athlete.name, terms[0] || "")}</span><em>${esc(athlete.slug.replace(/_/g, "-"))}</em></span>`;
@@ -5883,17 +5895,25 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         }
 
         function closeList(): void {
-            document.getElementById(`${input.id}-autocomplete-list`)?.remove();
+            document.getElementById(listId)?.remove();
             input.setAttribute("aria-expanded", "false");
+            input.removeAttribute("aria-activedescendant");
             currentFocus = -1;
         }
 
         function setActive(items: Element[]): void {
             if (!items.length) return;
-            items.forEach(item => item.classList.remove("autocomplete-active"));
+            items.forEach(item => {
+                item.classList.remove("autocomplete-active");
+                item.setAttribute("aria-selected", "false");
+            });
             if (currentFocus >= items.length) currentFocus = 0;
             if (currentFocus < 0) currentFocus = items.length - 1;
             const activeItem = items[currentFocus];
+            if (activeItem) {
+                activeItem.setAttribute("aria-selected", "true");
+                input.setAttribute("aria-activedescendant", activeItem.id);
+            }
             activeItem?.classList.add("autocomplete-active");
             activeItem?.scrollIntoView({ block: "nearest" });
         }

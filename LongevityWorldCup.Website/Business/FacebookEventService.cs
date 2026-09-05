@@ -38,44 +38,14 @@ public class FacebookEventService
         _ = await TrySendAsync(text);
     }
 
-    public async Task<bool> TrySendAsync(string text)
+    public Task<bool> TrySendAsync(string text)
     {
-        const int maxAttempts = 2;
-        const int retryDelayMs = 750;
-
-        for (var attempt = 1; attempt <= maxAttempts; attempt++)
-        {
-            try
-            {
-                var postId = await _facebook.SendPostAsync(text);
-                if (!string.IsNullOrWhiteSpace(postId))
-                    return true;
-
-                if (attempt < maxAttempts)
-                {
-                    _log.LogWarning("Facebook send returned no post id, retrying ({Attempt}/{MaxAttempts}): {Text}", attempt, maxAttempts, text);
-                    await Task.Delay(retryDelayMs);
-                    continue;
-                }
-
-                _log.LogWarning("Facebook send returned no post id after retries: {Text}", text);
-                return false;
-            }
-            catch (Exception ex)
-            {
-                if (attempt < maxAttempts)
-                {
-                    _log.LogWarning(ex, "Facebook send failed (attempt {Attempt}/{MaxAttempts}), retrying: {Text}", attempt, maxAttempts, text);
-                    await Task.Delay(retryDelayMs);
-                    continue;
-                }
-
-                _log.LogError(ex, "Facebook send failed after retries: {Text}", text);
-                return false;
-            }
-        }
-
-        return false;
+        return SocialPostRetry.TrySendAsync(
+            () => _facebook.SendPostAsync(text),
+            _log,
+            "Facebook send",
+            text,
+            retryMissingPostId: true);
     }
 
     public async Task SendEventAsync(EventType type, string rawText)
@@ -128,41 +98,12 @@ public class FacebookEventService
             imageAsset.Value.PublicUrl,
             plan.PostText.Length);
 
-        const int maxAttempts = 2;
-        const int retryDelayMs = 750;
-        for (var attempt = 1; attempt <= maxAttempts; attempt++)
-        {
-            try
-            {
-                var postId = await _facebook.SendPhotoPostAsync(plan.PostText, imageAsset.Value.PublicUrl);
-                if (!string.IsNullOrWhiteSpace(postId))
-                    return true;
-
-                if (attempt < maxAttempts)
-                {
-                    _log.LogWarning("Facebook image send returned no post id, retrying ({Attempt}/{MaxAttempts}): {Text}", attempt, maxAttempts, plan.PostText);
-                    await Task.Delay(retryDelayMs);
-                    continue;
-                }
-
-                _log.LogWarning("Facebook image send returned no post id after retries: {Text}", plan.PostText);
-                return false;
-            }
-            catch (Exception ex)
-            {
-                if (attempt < maxAttempts)
-                {
-                    _log.LogWarning(ex, "Facebook image send failed (attempt {Attempt}/{MaxAttempts}), retrying: {Text}", attempt, maxAttempts, plan.PostText);
-                    await Task.Delay(retryDelayMs);
-                    continue;
-                }
-
-                _log.LogError(ex, "Facebook image send failed after retries: {Text}", plan.PostText);
-                return false;
-            }
-        }
-
-        return false;
+        return await SocialPostRetry.TrySendAsync(
+            () => _facebook.SendPhotoPostAsync(plan.PostText, imageAsset.Value.PublicUrl),
+            _log,
+            "Facebook image send",
+            plan.PostText,
+            retryMissingPostId: true);
     }
 
     public string? TryBuildMessage(EventType type, string rawText, string? eventId = null, bool visibleOnWebsite = true)

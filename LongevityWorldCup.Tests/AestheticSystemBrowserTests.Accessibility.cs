@@ -10,6 +10,214 @@ public sealed class AestheticAccessibilityBrowserTests(
     BrowserTestAppFixture appFixture)
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
+    [Theory]
+    [InlineData("/about", 720)]
+    [InlineData("/about", 350)]
+    [InlineData("/ruleset", 720)]
+    [InlineData("/ruleset", 350)]
+    [InlineData("/history", 720)]
+    [InlineData("/history", 350)]
+    public async Task DesktopDocumentationNavigation_KeepsEveryLinkReachableOnShortScreens(string path, int height)
+    {
+        await using var context = await NewContextAsync(
+            Browser,
+            App,
+            new BrowserNewContextOptions
+            {
+                ViewportSize = new ViewportSize { Width = 1280, Height = height }
+            });
+        var page = await context.NewPageAsync();
+        await NavigateAndSettleAsync(page, path);
+        await page.EvaluateAsync("window.scrollTo({ top: 400, behavior: 'instant' })");
+        await page.EvaluateAsync(
+            "() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+
+        var navigation = page.Locator(".documentation-nav");
+        var navigationBox = await navigation.BoundingBoxAsync();
+        Assert.NotNull(navigationBox);
+        Assert.True(navigationBox.Y >= 0 && navigationBox.Y + navigationBox.Height <= height - 8,
+            $"{path} contents extend beyond the {height}px viewport: y={navigationBox.Y}, height={navigationBox.Height}.");
+
+        var links = navigation.Locator("a");
+        var count = await links.CountAsync();
+        Assert.True(count > 1);
+        await links.First.FocusAsync();
+        for (var index = 0; index < count; index++)
+        {
+            if (index > 0)
+                await page.Keyboard.PressAsync("Tab");
+
+            var link = links.Nth(index);
+            Assert.True(await link.EvaluateAsync<bool>("element => element === document.activeElement"),
+                $"{path} contents link {index + 1} was skipped by keyboard navigation.");
+            var linkBox = await link.BoundingBoxAsync();
+            Assert.NotNull(linkBox);
+            navigationBox = await navigation.BoundingBoxAsync();
+            Assert.NotNull(navigationBox);
+            Assert.True(linkBox.Y >= navigationBox.Y - 1 &&
+                        linkBox.Y + linkBox.Height <= Math.Min(height, navigationBox.Y + navigationBox.Height) + 1,
+                $"{path} focused contents link {index + 1} is clipped at {height}px height.");
+        }
+
+        Assert.True(await navigation.Locator(".documentation-source-link")
+            .EvaluateAsync<bool>("element => element === document.activeElement"),
+            "Keyboard navigation must reach the source link at the end of the contents.");
+    }
+
+    [Theory]
+    [InlineData(720)]
+    [InlineData(350)]
+    public async Task DesktopDocumentationNavigation_FollowsReadingWithoutMovingTheDocument(int height)
+    {
+        await using var context = await NewContextAsync(
+            Browser,
+            App,
+            new BrowserNewContextOptions
+            {
+                ViewportSize = new ViewportSize { Width = 1280, Height = height }
+            });
+        var page = await context.NewPageAsync();
+        await NavigateAndSettleAsync(page, "/history");
+        var navigation = page.Locator(".documentation-nav");
+        var links = navigation.Locator("a[href^='#']");
+        var count = await links.CountAsync();
+
+        foreach (var index in new[] { count - 5, 0 })
+        {
+            var link = links.Nth(index);
+            var href = await link.GetAttributeAsync("href");
+            var requestedScroll = await page.EvaluateAsync<double>(
+                """
+                href => {
+                    const heading = document.getElementById(decodeURIComponent(href.slice(1)));
+                    const top = Math.max(0, heading.getBoundingClientRect().top + scrollY - 70);
+                    window.scrollTo({top, behavior: 'instant'});
+                    return Math.min(top, document.documentElement.scrollHeight - innerHeight);
+                }
+                """, href);
+            await page.WaitForFunctionAsync(
+                "href => document.querySelector('.documentation-nav a.is-active')?.getAttribute('href') === href", href);
+
+            var navBox = await navigation.BoundingBoxAsync();
+            var linkBox = await link.BoundingBoxAsync();
+            Assert.NotNull(navBox);
+            Assert.NotNull(linkBox);
+            Assert.True(linkBox.Y >= Math.Max(0, navBox.Y) &&
+                        linkBox.Y + linkBox.Height <= Math.Min(height, navBox.Y + navBox.Height),
+                $"The current section is outside the contents pane at {height}px height.");
+            Assert.InRange(Math.Abs(await page.EvaluateAsync<double>("scrollY") - requestedScroll), 0, 1);
+
+            // Browsing the contents independently must not snap back on every document scroll event.
+            await navigation.EvaluateAsync("element => element.scrollTop = 0");
+            await page.EvaluateAsync("window.scrollTo({top: scrollY + 1, behavior: 'instant'})");
+            await page.EvaluateAsync(
+                "() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+            Assert.Equal(0, await navigation.EvaluateAsync<double>("element => element.scrollTop"));
+        }
+    }
+
+    [Theory]
+    [InlineData("/history", 1280, false)]
+    [InlineData("/history", 1280, true)]
+    [InlineData("/history", 390, false)]
+    [InlineData("/history", 390, true)]
+    [InlineData("/about", 1280, false)]
+    [InlineData("/about", 1280, true)]
+    [InlineData("/about", 390, false)]
+    [InlineData("/about", 390, true)]
+    [InlineData("/ruleset", 1280, false)]
+    [InlineData("/ruleset", 1280, true)]
+    [InlineData("/ruleset", 390, false)]
+    [InlineData("/ruleset", 390, true)]
+    public async Task DocumentContentsNavigation_ArrivesAtTheChosenSectionWithoutIntermediatePaneJumps(string path, int width, bool reducedMotion)
+    {
+        await using var context = await NewContextAsync(
+            Browser,
+            App,
+            new BrowserNewContextOptions
+            {
+                ViewportSize = new ViewportSize { Width = width, Height = width > 900 ? 900 : 844 },
+                ReducedMotion = reducedMotion ? ReducedMotion.Reduce : ReducedMotion.NoPreference
+            });
+        var page = await context.NewPageAsync();
+        await NavigateAndSettleAsync(page, path);
+        var links = page.Locator(".documentation-nav a[href^='#']");
+        var count = await links.CountAsync();
+        foreach (var index in new[] { count / 2, count - 2, count - 1, 0 })
+        {
+            if (width <= 900)
+                await page.Locator(".documentation-nav-toggle").ClickAsync();
+            var link = links.Nth(index);
+            var href = await link.GetAttributeAsync("href");
+            await link.ClickAsync();
+
+            var stableArrival = await page.EvaluateAsync<bool>(
+                """
+                async href => {
+                    const heading = document.getElementById(decodeURIComponent(href.slice(1)));
+                    const pane = document.querySelector('.documentation-nav');
+                    const documentY = scrollY;
+                    const paneY = pane.scrollTop;
+                    for (let frame = 0; frame < 10; frame++) {
+                        await new Promise(resolve => requestAnimationFrame(resolve));
+                        const headingBox = heading.getBoundingClientRect();
+                        if (headingBox.top < 69 || headingBox.bottom > innerHeight ||
+                            Math.abs(scrollY - documentY) > 1 || Math.abs(pane.scrollTop - paneY) > 1 ||
+                            document.querySelector('.documentation-nav a.is-active')?.getAttribute('href') !== href ||
+                            document.activeElement !== heading || location.hash !== href) {
+                            return false;
+                        }
+                    }
+                    return true;
+                }
+                """, href);
+            Assert.True(stableArrival,
+                $"{path}: selecting {href} moved through intermediate document or contents positions (width={width}, reducedMotion={reducedMotion}).");
+        }
+
+        var middleHref = await links.Nth(count / 2).GetAttributeAsync("href");
+        await page.EvaluateAsync(
+            "href => window.scrollTo({top: document.getElementById(decodeURIComponent(href.slice(1))).getBoundingClientRect().top + scrollY - 70, behavior: 'instant'})",
+            middleHref);
+        await page.WaitForFunctionAsync(
+            "href => document.querySelector('.documentation-nav a.is-active')?.getAttribute('href') === href", middleHref);
+    }
+
+    [Theory]
+    [InlineData("/history")]
+    [InlineData("/about")]
+    [InlineData("/ruleset")]
+    public async Task DocumentContentsNavigation_TracksThePageEndAndFragmentHistory(string path)
+    {
+        await using var context = await NewContextAsync(
+            Browser,
+            App,
+            new BrowserNewContextOptions
+            {
+                ViewportSize = new ViewportSize { Width = 1280, Height = 900 }
+            });
+        var page = await context.NewPageAsync();
+        await NavigateAndSettleAsync(page, path);
+        var links = page.Locator(".documentation-nav a[href^='#']");
+        var lastHref = await links.Last.GetAttributeAsync("href");
+        var previousHref = await links.Nth(await links.CountAsync() - 2).GetAttributeAsync("href");
+
+        await page.EvaluateAsync("window.scrollTo({top: document.documentElement.scrollHeight, behavior: 'instant'})");
+        await page.EvaluateAsync(
+            "() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+        Assert.Equal(lastHref, await page.Locator(".documentation-nav a.is-active").GetAttributeAsync("href"));
+
+        await page.GotoAsync(path + previousHref, new PageGotoOptions { WaitUntil = WaitUntilState.Load });
+        await page.WaitForFunctionAsync(
+            "href => document.querySelector('.documentation-nav a.is-active')?.getAttribute('href') === href", previousHref);
+        await links.Last.ClickAsync();
+        Assert.Equal(lastHref, await page.Locator(".documentation-nav a.is-active").GetAttributeAsync("href"));
+
+        await page.GoBackAsync(new PageGoBackOptions { WaitUntil = WaitUntilState.Load });
+        await page.WaitForFunctionAsync(
+            "href => document.querySelector('.documentation-nav a.is-active')?.getAttribute('href') === href", previousHref);
+    }
+
     [Fact]
     public async Task MobileDocumentationNavigation_UsesProgressiveDisclosureAndLargeTargets()
     {

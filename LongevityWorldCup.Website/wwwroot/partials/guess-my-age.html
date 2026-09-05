@@ -488,7 +488,7 @@
         border: none;
         border-radius: 999px;
         cursor: pointer;
-        font-weight: 600;
+        font-weight: 700;
         transition: background var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease), color var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease), transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
     }
 
@@ -1295,8 +1295,9 @@
         box-shadow: 0 0.55rem 1.35rem rgba(0,0,0,.26);
     }
     #detailsModal .gma-btn:focus-visible {
-        outline: none;
-        box-shadow: var(--athlete-modal-focus, 0 0 0 3px rgba(0,188,212,.34));
+        outline: 3px solid var(--lwc-accent-bright);
+        box-shadow: none;
+        outline-offset: 3px;
     }
     #detailsModal .gma-btn--ghost {
         background: rgba(246,244,237,.06);
@@ -1621,6 +1622,26 @@
 
         #detailsModal .modal-content.guess-mode > .gma-trollface-container {
             bottom: 0;
+        }
+    }
+    #detailsModal .gma-actions {
+        gap: var(--lwc-space-2);
+    }
+
+    #detailsModal #gmaBubble,
+    #detailsModal #gmaRealBubble {
+        font-variant-numeric: tabular-nums;
+    }
+
+    #detailsModal #gmaStatus {
+        font-size: var(--lwc-type-sm);
+        line-height: 1.5;
+    }
+
+    @media (max-width: 420px) {
+        #detailsModal .gma-btn--ghost {
+            font-size: var(--lwc-type-sm);
+            line-height: 1.5;
         }
     }
 </style>
