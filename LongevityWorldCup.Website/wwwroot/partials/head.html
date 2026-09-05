@@ -56,6 +56,14 @@
 
 <script>
     window.modulesReady = Promise.resolve();
+
+    // Inline Back handlers can run before the asynchronous page modules load.
+    window.navigateToFlowDestination = function (destination) {
+        const target = typeof destination === 'string' && destination.trim()
+            ? destination
+            : '/';
+        window.location.replace(target);
+    };
 </script>
 
 <script>
