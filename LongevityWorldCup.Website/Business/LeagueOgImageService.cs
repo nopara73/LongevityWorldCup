@@ -239,7 +239,7 @@ public sealed class LeagueOgImageService
         await DrawBrandAsync(image, fonts.Bold, ct);
         await DrawLeaderboardRowsAsync(image, payload, fonts.Bold, ct);
 
-        var titleFont = FitFontToWidth(fonts.Bold, payload.DisplayName, 56f, 38f, 800f);
+        var titleFont = ImageTextLayout.FitFontToWidth(fonts.Bold, payload.DisplayName, 56f, 38f, 800f, sizeStep: 1f);
         var subtitleFont = fonts.Regular.CreateFont(24f, FontStyle.Regular);
         var title = payload.DisplayName;
         var subtitle = payload.Top3Names.Count == 0 ? "Rankings opening soon" : "Current top longevity athletes";
@@ -446,7 +446,7 @@ public sealed class LeagueOgImageService
     {
         var rankText = "#" + row.Rank.ToString(CultureInfo.InvariantCulture);
         var rankFont = boldFamily.CreateFont(row.Rank == 1 ? 27f : 25f, FontStyle.Bold);
-        var nameFont = FitFontToWidth(boldFamily, displayName, row.Rank == 1 ? 34f : 31f, 22f, row.Width - 286f);
+        var nameFont = ImageTextLayout.FitFontToWidth(boldFamily, displayName, row.Rank == 1 ? 34f : 31f, 22f, row.Width - 286f, sizeStep: 1f);
         var centerY = row.Y + (row.Height / 2f);
         var rankX = row.X + 132f;
         var nameX = row.X + 206f;
@@ -548,20 +548,6 @@ public sealed class LeagueOgImageService
             HorizontalAlignment = alignment,
             VerticalAlignment = VerticalAlignment.Top
         }, text, new Rgba32(0, 0, 0, 150));
-    }
-
-    private static Font FitFontToWidth(FontFamily family, string text, float startSize, float minSize, float maxWidth)
-    {
-        var size = startSize;
-        while (size > minSize)
-        {
-            var font = family.CreateFont(size, FontStyle.Bold);
-            if (TextMeasurer.MeasureSize(text, new RichTextOptions(font)).Width <= maxWidth)
-                return font;
-            size -= 1f;
-        }
-
-        return family.CreateFont(minSize, FontStyle.Bold);
     }
 
     private static float CenterTextY(string text, Font font, float centerY)

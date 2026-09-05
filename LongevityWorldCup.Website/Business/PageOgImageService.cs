@@ -353,7 +353,7 @@ public sealed class PageOgImageService
 
     private static void DrawTextContent(Image<Rgba32> image, PageOgPayload payload, FontFamily boldFamily, FontFamily regularFamily, Color accent)
     {
-        var titleFont = FitFontToWidth(boldFamily, payload.Title, 74f, 50f, TitleWidth);
+        var titleFont = ImageTextLayout.FitFontToWidth(boldFamily, payload.Title, 74f, 50f, TitleWidth);
         var subtitleFont = regularFamily.CreateFont(32, FontStyle.Regular);
 
         image.Mutate(ctx =>
@@ -478,20 +478,6 @@ public sealed class PageOgImageService
     private static string NormalizeSlug(string slug)
     {
         return slug.Trim().ToLowerInvariant();
-    }
-
-    private static Font FitFontToWidth(FontFamily family, string text, float startSize, float minSize, float maxWidth)
-    {
-        var size = startSize;
-        while (size > minSize)
-        {
-            var font = family.CreateFont(size, FontStyle.Bold);
-            if (TextMeasurer.MeasureSize(text, new RichTextOptions(font)).Width <= maxWidth)
-                return font;
-            size -= 2f;
-        }
-
-        return family.CreateFont(minSize, FontStyle.Bold);
     }
 
     private static void DrawWrappedText(

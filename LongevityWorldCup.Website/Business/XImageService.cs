@@ -73,7 +73,7 @@ public class XImageService
 
         image.Mutate(ctx =>
         {
-            var titleFont = FitFontToWidth(fonts.Bold, "New athletes", 70f, 52f, 520f);
+            var titleFont = ImageTextLayout.FitFontToWidth(fonts.Bold, "New athletes", 70f, 52f, 520f);
             ctx.Fill(ToRgba(GreenAccent, 225), new RectangularPolygon(HeaderX, 138f, 152f, 5f));
             DrawTextShadow(ctx, "New athletes", titleFont, new PointF(HeaderX, 204f), HorizontalAlignment.Left, 3f);
             DrawWrappedText(ctx, "New athletes", titleFont, TextColor, new PointF(HeaderX, 204f), 560f, 1, 74f);
@@ -154,9 +154,9 @@ public class XImageService
         image.Mutate(ctx =>
         {
             var title = winner.Rank > 0 ? $"New #{winner.Rank}" : "New rank";
-            var titleFont = FitFontToWidth(fonts.Bold, title, 78f, 56f, 420f);
-            var winnerFont = FitFontToWidth(fonts.Bold, winner.Name, 44f, 32f, 420f);
-            var previousFont = FitFontToWidth(fonts.Bold, previous.Name, 30f, 22f, 180f);
+            var titleFont = ImageTextLayout.FitFontToWidth(fonts.Bold, title, 78f, 56f, 420f);
+            var winnerFont = ImageTextLayout.FitFontToWidth(fonts.Bold, winner.Name, 44f, 32f, 420f);
+            var previousFont = ImageTextLayout.FitFontToWidth(fonts.Bold, previous.Name, 30f, 22f, 180f);
 
             ctx.Fill(ToRgba(GreenAccent, 225), new RectangularPolygon(622f, 178f, 152f, 5f));
             DrawTextShadow(ctx, title, titleFont, new PointF(622f, 248f), HorizontalAlignment.Left, 4f);
@@ -186,7 +186,7 @@ public class XImageService
 
         image.Mutate(ctx =>
         {
-            var titleFont = FitFontToWidth(fonts.Bold, athlete.Name, 66f, 42f, 620f);
+            var titleFont = ImageTextLayout.FitFontToWidth(fonts.Bold, athlete.Name, 66f, 42f, 620f);
             var valueFont = fonts.Bold.CreateFont(42f, FontStyle.Bold);
             var labelFont = fonts.Regular.CreateFont(28f, FontStyle.Regular);
 
@@ -257,7 +257,7 @@ public class XImageService
             image.Mutate(ctx =>
             {
                 var rankFont = fonts.Bold.CreateFont(i == 0 ? 34f : 30f, FontStyle.Bold);
-                var nameFont = FitFontToWidth(fonts.Bold, athlete.Name, i == 0 ? 36f : 30f, 22f, row.Width - 350f);
+                var nameFont = ImageTextLayout.FitFontToWidth(fonts.Bold, athlete.Name, i == 0 ? 36f : 30f, 22f, row.Width - 350f);
 
                 ctx.DrawText(new RichTextOptions(rankFont)
                 {
@@ -385,7 +385,7 @@ public class XImageService
         Color accent)
     {
         var kickerFont = fonts.Bold.CreateFont(24f, FontStyle.Bold);
-        var titleFont = FitFontToWidth(fonts.Bold, title, 58f, 42f, 720f);
+        var titleFont = ImageTextLayout.FitFontToWidth(fonts.Bold, title, 58f, 42f, 720f);
         var subtitleFont = fonts.Regular.CreateFont(28f, FontStyle.Regular);
         var hasKicker = !string.IsNullOrWhiteSpace(kicker);
         var hasSubtitle = !string.IsNullOrWhiteSpace(subtitle);
@@ -495,7 +495,7 @@ public class XImageService
         ctx.Fill(ToRgba(accent, 235), new RectangularPolygon(x, y, 10f, height));
 
         var valueFontToUse = value.Length > 4
-            ? FitFontToWidth(valueFont.Family, value, valueFont.Size, 24f, 140f)
+            ? ImageTextLayout.FitFontToWidth(valueFont.Family, value, valueFont.Size, 24f, 140f)
             : valueFont;
 
         DrawTextShadow(ctx, value, valueFontToUse, new PointF(x + 48f, y + 16f), HorizontalAlignment.Left, 2f);
@@ -527,7 +527,7 @@ public class XImageService
         if (string.IsNullOrWhiteSpace(text))
             return;
 
-        var font = FitFontToWidth(boldFamily, text, startSize, 18f, maxWidth);
+        var font = ImageTextLayout.FitFontToWidth(boldFamily, text, startSize, 18f, maxWidth);
         image.Mutate(ctx =>
         {
             DrawTextShadow(ctx, text, font, new PointF(centerX, topY + 4f), HorizontalAlignment.Center, 2f);
@@ -1059,20 +1059,6 @@ public class XImageService
             return d;
 
         return null;
-    }
-
-    private static Font FitFontToWidth(FontFamily family, string text, float startSize, float minSize, float maxWidth)
-    {
-        var size = startSize;
-        while (size > minSize)
-        {
-            var font = family.CreateFont(size, FontStyle.Bold);
-            if (TextMeasurer.MeasureSize(text, new RichTextOptions(font)).Width <= maxWidth)
-                return font;
-            size -= 2f;
-        }
-
-        return family.CreateFont(minSize, FontStyle.Bold);
     }
 
     private static void DrawWrappedText(

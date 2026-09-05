@@ -368,7 +368,7 @@ public sealed class AthleteOgImageService
         ctx.Fill(ToRgba(accent, 235), new RectangularPolygon(x, y, 10f, height));
 
         var valueFontToUse = value.Length > 4
-            ? FitFontToWidth(valueFont.Family, value, valueFont.Size, 24f, 142f)
+            ? ImageTextLayout.FitFontToWidth(valueFont.Family, value, valueFont.Size, 24f, 142f)
             : valueFont;
 
         DrawTextShadow(ctx, value, valueFontToUse, new PointF(x + 48f, y + 16f), HorizontalAlignment.Left);
@@ -1044,23 +1044,9 @@ public sealed class AthleteOgImageService
         return a + ((b - a) * t);
     }
 
-    private static Font FitFontToWidth(FontFamily family, string text, float startSize, float minSize, float maxWidth)
-    {
-        var size = startSize;
-        while (size > minSize)
-        {
-            var font = family.CreateFont(size, FontStyle.Bold);
-            if (TextMeasurer.MeasureSize(text, new RichTextOptions(font)).Width <= maxWidth)
-                return font;
-            size -= 2f;
-        }
-
-        return family.CreateFont(minSize, FontStyle.Bold);
-    }
-
     private static (string Text, Font Font) FitTextToWidth(FontFamily family, string text, float startSize, float minSize, float maxWidth)
     {
-        var font = FitFontToWidth(family, text, startSize, minSize, maxWidth);
+        var font = ImageTextLayout.FitFontToWidth(family, text, startSize, minSize, maxWidth);
         if (TextMeasurer.MeasureSize(text, new RichTextOptions(font)).Width <= maxWidth)
             return (text, font);
 
