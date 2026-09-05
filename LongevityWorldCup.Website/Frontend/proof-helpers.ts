@@ -247,6 +247,220 @@ function trackProofFileRejected(
     } satisfies ProofFileRejectedTrackOptions);
 }
 
+const proofReviews = new WeakMap<HTMLElement, ProofReview>();
+const proofProcessingButtons = new WeakSet<HTMLButtonElement>();
+const maxProofImages = 37;
+
+class ProofReview {
+    readonly labels = new Map<string, string>();
+    private removed: { image: string; index: number }[] = [];
+    private notice = '';
+    private progress: { label: string; completed: number; total: number } | null = null;
+    private dialog: HTMLDialogElement | null = null;
+    private viewerIndex = 0;
+    private opener: HTMLElement | null = null;
+    private zoomed = false;
+    private container: HTMLElement;
+    private images: string[];
+    private changed: () => void;
+
+    constructor(container: HTMLElement, images: string[], changed: () => void) {
+        this.container = container;
+        this.images = images;
+        this.changed = changed;
+        container.classList.add('proof-review-panel');
+    }
+
+    setProgress(progress: { label: string; completed: number; total: number } | null): void {
+        this.progress = progress;
+        this.render();
+    }
+
+    announce(message: string): void {
+        this.notice = message;
+        this.render();
+    }
+
+    render(): void {
+        this.container.replaceChildren();
+        this.container.hidden = !this.images.length && !this.removed.length && !this.progress && !this.notice;
+        const heading = document.createElement('h3');
+        heading.className = 'proof-review-heading';
+        heading.textContent = `${this.images.length} proof ${this.images.length === 1 ? 'page' : 'pages'}`;
+        this.container.appendChild(heading);
+
+        if (this.progress) {
+            const status = document.createElement('div');
+            status.className = 'proof-preparation';
+            status.setAttribute('role', 'status');
+            const label = document.createElement('span');
+            label.textContent = this.progress.label;
+            const meter = document.createElement('progress');
+            meter.max = this.progress.total;
+            meter.value = this.progress.completed;
+            meter.setAttribute('aria-label', 'Preparing proof files');
+            status.append(label, meter);
+            this.container.appendChild(status);
+        }
+
+        const grid = document.createElement('div');
+        grid.className = 'proof-page-grid';
+        grid.setAttribute('aria-busy', String(Boolean(this.progress)));
+        this.images.forEach((source, index) => {
+            const card = document.createElement('article');
+            card.className = 'proof-page-card';
+            const preview = this.button('', 'proof-page-preview', () => this.open(index, preview));
+            preview.disabled = Boolean(this.progress);
+            preview.setAttribute('aria-label', `Review proof page ${index + 1}${this.labels.has(source) ? `: ${this.labels.get(source)}` : ''}`);
+            const image = document.createElement('img');
+            image.src = source;
+            image.alt = `Proof image ${index + 1}`;
+            const previewLabel = document.createElement('span');
+            previewLabel.textContent = 'Review page';
+            preview.append(image, previewLabel);
+            const caption = document.createElement('div');
+            caption.className = 'proof-page-caption';
+            const title = document.createElement('strong');
+            title.textContent = `Page ${index + 1}`;
+            const label = document.createElement('span');
+            label.className = 'proof-page-source';
+            label.textContent = this.labels.get(source) || 'Attached image';
+            label.title = label.textContent;
+            caption.append(title, label);
+            const remove = this.button('Remove', 'proof-page-remove', () => {
+                this.removed.push({ image: source, index });
+                this.images.splice(index, 1);
+                this.notice = `Page ${index + 1} removed.`;
+                this.render();
+                this.changed();
+                const target = this.container.querySelectorAll<HTMLButtonElement>('.proof-page-remove')[Math.min(index, this.images.length - 1)]
+                    || this.container.querySelector<HTMLButtonElement>('.proof-undo');
+                target?.focus({ preventScroll: true });
+            });
+            remove.disabled = Boolean(this.progress);
+            remove.setAttribute('aria-label', `Remove proof page ${index + 1}`);
+            card.append(preview, caption, remove);
+            grid.appendChild(card);
+        });
+        this.container.appendChild(grid);
+
+        if (this.notice || this.removed.length) {
+            const status = document.createElement('div');
+            status.className = 'proof-review-feedback';
+            const message = document.createElement('span');
+            message.className = 'proof-upload-notice';
+            message.setAttribute('role', 'status');
+            message.textContent = this.notice;
+            status.appendChild(message);
+            if (this.removed.length) {
+                const undo = this.button('Undo removal', 'proof-undo', () => {
+                    const removed = this.removed.pop();
+                    if (!removed) return;
+                    if (!this.images.includes(removed.image)) {
+                        this.images.splice(Math.min(removed.index, this.images.length), 0, removed.image);
+                    }
+                    this.notice = 'Page restored.';
+                    this.render();
+                    this.changed();
+                    this.container.querySelectorAll<HTMLButtonElement>('.proof-page-preview')[this.images.indexOf(removed.image)]?.focus({ preventScroll: true });
+                });
+                undo.disabled = Boolean(this.progress) || this.images.length >= maxProofImages;
+                status.appendChild(undo);
+            }
+            this.container.appendChild(status);
+        }
+    }
+
+    private button(label: string, className: string, click: () => void): HTMLButtonElement {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = className;
+        button.textContent = label;
+        button.addEventListener('click', click);
+        return button;
+    }
+
+    private open(index: number, opener: HTMLElement): void {
+        this.opener = opener;
+        this.viewerIndex = index;
+        this.zoomed = false;
+        if (!this.dialog) {
+            const dialog = document.createElement('dialog');
+            dialog.className = 'proof-review-dialog';
+            dialog.setAttribute('aria-label', 'Review attached proofs');
+            dialog.innerHTML = `<div class="proof-review-toolbar"><h2></h2><button type="button" class="proof-review-close" aria-label="Close proof review">Close <span aria-hidden="true">×</span></button></div>
+                <div class="proof-review-stage" tabindex="0" role="region" aria-label="Proof page"><img alt=""></div>
+                <div class="proof-review-navigation"><button type="button" class="proof-review-previous">← Previous</button><span class="proof-review-position" role="status"></span><button type="button" class="proof-review-next">Next →</button><button type="button" class="proof-review-zoom">Zoom in</button></div>`;
+            dialog.querySelector('.proof-review-close')?.addEventListener('click', () => dialog.close());
+            dialog.querySelector('.proof-review-previous')?.addEventListener('click', () => this.navigate(-1));
+            dialog.querySelector('.proof-review-next')?.addEventListener('click', () => this.navigate(1));
+            dialog.querySelector('.proof-review-zoom')?.addEventListener('click', () => { this.zoomed = !this.zoomed; this.updateViewer(); });
+            dialog.addEventListener('keydown', event => {
+                if (event.key === 'Tab') {
+                    const controls = Array.from(dialog.querySelectorAll<HTMLElement>('button:not(:disabled), [tabindex="0"]'));
+                    const first = controls[0];
+                    const last = controls[controls.length - 1];
+                    if ((event.shiftKey && document.activeElement === first) || (!event.shiftKey && document.activeElement === last)) {
+                        event.preventDefault();
+                        (event.shiftKey ? last : first)?.focus();
+                    }
+                }
+                if (this.zoomed && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) {
+                    event.preventDefault();
+                    const stage = dialog.querySelector<HTMLElement>('.proof-review-stage')!;
+                    const horizontal = event.key === 'ArrowLeft' || event.key === 'ArrowRight';
+                    const distance = (event.key === 'ArrowLeft' || event.key === 'ArrowUp' ? -1 : 1) * 120;
+                    stage.scrollBy({ left: horizontal ? distance : 0, top: horizontal ? 0 : distance, behavior: 'instant' });
+                    return;
+                }
+                if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+                    event.preventDefault();
+                    this.navigate(event.key === 'ArrowLeft' ? -1 : 1);
+                }
+            });
+            dialog.addEventListener('click', event => {
+                if (event.target !== dialog) return;
+                const box = dialog.getBoundingClientRect();
+                if (event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom) dialog.close();
+            });
+            dialog.addEventListener('close', () => {
+                document.body.classList.remove('proof-review-open');
+                if (this.opener?.isConnected) this.opener.focus({ preventScroll: true });
+            });
+            this.dialog = dialog;
+            document.body.appendChild(dialog);
+        }
+        this.updateViewer();
+        document.body.classList.add('proof-review-open');
+        this.dialog.showModal();
+    }
+
+    private navigate(direction: number): void {
+        this.viewerIndex = Math.max(0, Math.min(this.images.length - 1, this.viewerIndex + direction));
+        this.zoomed = false;
+        this.updateViewer();
+    }
+
+    private updateViewer(): void {
+        const dialog = this.dialog;
+        const source = this.images[this.viewerIndex];
+        if (!dialog || !source) return;
+        dialog.querySelector('h2')!.textContent = this.labels.get(source) || `Proof page ${this.viewerIndex + 1}`;
+        const image = dialog.querySelector('img')!;
+        image.src = source;
+        image.alt = `Proof page ${this.viewerIndex + 1} of ${this.images.length}`;
+        dialog.querySelector('.proof-review-position')!.textContent = `${this.viewerIndex + 1} / ${this.images.length}`;
+        dialog.querySelector<HTMLButtonElement>('.proof-review-previous')!.disabled = this.viewerIndex === 0;
+        dialog.querySelector<HTMLButtonElement>('.proof-review-next')!.disabled = this.viewerIndex === this.images.length - 1;
+        const zoom = dialog.querySelector<HTMLButtonElement>('.proof-review-zoom')!;
+        zoom.textContent = this.zoomed ? 'Fit page' : 'Zoom in';
+        zoom.setAttribute('aria-pressed', String(this.zoomed));
+        dialog.classList.toggle('is-zoomed', this.zoomed);
+        const stage = dialog.querySelector<HTMLElement>('.proof-review-stage')!;
+        stage.scrollTo(0, 0);
+    }
+}
+
 window.setupProofUploadHTML = function (
     nextButton: HTMLButtonElement,
     uploadProofButton: HTMLButtonElement,
@@ -260,13 +474,22 @@ window.setupProofUploadHTML = function (
     nextButton.disabled = true;
     const cameraButton = options && options.cameraButton;
     const cameraInput = options && options.cameraInput;
+    const existingReview = proofReviews.get(proofImageContainer);
+    if (existingReview) {
+        proofImageContainer.style.display = 'block';
+        existingReview.render();
+        checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
+        return;
+    }
     let isProofUploadProcessing = false;
     const proofOptimizationOptions = {
         maxSize: 2560,
         quality: 0.88,
         targetMaxBytes: 1.5 * 1024 * 1024
     };
-    const maxProofImages = 37;
+    const review = new ProofReview(proofImageContainer, proofPics,
+        () => checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer));
+    proofReviews.set(proofImageContainer, review);
     const proofSourceImages = new Map<string, string>();
     let preferredProofCanvasContentType: Promise<'image/webp' | 'image/jpeg'> | null = null;
 
@@ -296,18 +519,7 @@ window.setupProofUploadHTML = function (
     };
 
     const showProofUploadNotice: (message: string) => void = message => {
-        if (!proofImageContainer) return;
-
-        let notice = proofImageContainer.querySelector<HTMLElement>('.proof-upload-notice');
-        if (!notice) {
-            notice = document.createElement('p');
-            notice.className = 'proof-upload-notice smaller-text';
-            notice.setAttribute('role', 'status');
-            notice.setAttribute('aria-live', 'polite');
-            notice.setAttribute('aria-atomic', 'true');
-            proofImageContainer.appendChild(notice);
-        }
-        notice.textContent = message;
+        review.announce(message);
     };
 
     const handleProofFiles = async function (
@@ -337,12 +549,13 @@ window.setupProofUploadHTML = function (
         }
 
         isProofUploadProcessing = true;
+        proofProcessingButtons.add(nextButton);
         uploadProofButton.disabled = true;
         proofPicInput.disabled = true;
         if (cameraButton) cameraButton.disabled = true;
         if (cameraInput) cameraInput.disabled = true;
         nextButton.disabled = true;
-        window.showLoading();
+        review.setProgress({ label: 'Preparing proof files…', completed: 0, total: supportedFiles.length });
         try {
             // Helper to read a File or encoded canvas Blob as a data URL.
             const readDataURL: (file: Blob) => Promise<string> = file => new Promise((res, rej) => {
@@ -484,6 +697,8 @@ window.setupProofUploadHTML = function (
             };
             // process one by one to preserve order
             for (const file of supportedFiles) {
+                const fileIndex = supportedFiles.indexOf(file);
+                review.setProgress({ label: `Preparing ${file.name}`, completed: fileIndex, total: supportedFiles.length });
                 const proofCountBeforeFile = proofPics.length;
                 try {
                     const fileBytes = await file.arrayBuffer();
@@ -495,6 +710,8 @@ window.setupProofUploadHTML = function (
                         const pdfDoc = await loadingTask.promise;
                         // render each page
                         for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
+                            review.setProgress({ label: `${file.name} · Page ${pageNum} of ${pdfDoc.numPages}`,
+                                completed: fileIndex + (pageNum - 1) / pdfDoc.numPages, total: supportedFiles.length });
                             if (proofPics.length >= maxProofImages) {
                                 hitImageLimit = true;
                                 break;
@@ -514,11 +731,12 @@ window.setupProofUploadHTML = function (
                             await page.render({ canvasContext: context, viewport }).promise;
                             const optimizedPage = await encodeProofCanvas(canvas);
                             if (optimizedPage) {
+                                if (!review.labels.has(optimizedPage)) review.labels.set(optimizedPage, `${file.name} · Page ${pageNum}`);
                                 addProofImage(optimizedPage);
                                 proofSourceImages.set(sourceKey, optimizedPage);
                             }
                         }
-                        updateProofImageContainer(proofImageContainer, nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
+                        review.render();
                         checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
                         nextButton.disabled = true;
                         continue;
@@ -536,9 +754,10 @@ window.setupProofUploadHTML = function (
                     const raw = await readDataURL(file);
                     const dataUrl = await optimizeProofImageOrFallback(raw);
                     if (dataUrl) {
+                        if (!review.labels.has(dataUrl)) review.labels.set(dataUrl, file.name);
                         proofSourceImages.set(sourceKey, dataUrl);
                         if (addProofImage(dataUrl)) {
-                            updateProofImageContainer(proofImageContainer, nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
+                            review.render();
                             checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
                             nextButton.disabled = true;
                         }
@@ -550,7 +769,7 @@ window.setupProofUploadHTML = function (
                     failedFiles++;
                     failedFileSamples.push(file);
                     if (proofPics.length > proofCountBeforeFile) {
-                        updateProofImageContainer(proofImageContainer, nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
+                        review.render();
                         checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
                         nextButton.disabled = true;
                     }
@@ -571,7 +790,7 @@ window.setupProofUploadHTML = function (
                 uploadNotices.push('Duplicate proof images were skipped.');
             }
             if (hitImageLimit) {
-                updateProofImageContainer(proofImageContainer, nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
+                review.render();
                 uploadNotices.push('Only the first ' + maxProofImages + ' proof images were kept. Remove one to add another.');
             }
             if (uploadNotices.length > 0) {
@@ -584,8 +803,9 @@ window.setupProofUploadHTML = function (
         } finally {
             // Reset the file input's value to allow re-uploading the same file if needed.
             if (input) input.value = "";
-            window.hideLoading();
             isProofUploadProcessing = false;
+            proofProcessingButtons.delete(nextButton);
+            review.setProgress(null);
             uploadProofButton.disabled = false;
             proofPicInput.disabled = false;
             if (cameraButton) cameraButton.disabled = false;
@@ -612,7 +832,7 @@ window.setupProofUploadHTML = function (
     proofImageContainer.style.display = 'block';
 
     // Display any existing proof images
-    updateProofImageContainer(proofImageContainer, nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
+    review.render();
 
     generateBiomarkerChecklist(biomarkerChecklistContainer, biomarkers, nextButton, proofPics, uploadProofButton, cameraButton);
 
@@ -660,46 +880,6 @@ function setPdfWorker(pdfLib: PdfJsLibrary): void {
     pdfLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.8.162/pdf.worker.min.js';
 }
 
-function updateProofImageContainer(
-    container: HTMLElement,
-    nextButton: HTMLButtonElement,
-    proofPics: string[],
-    uploadProofButton: HTMLButtonElement,
-    cameraButton: HTMLButtonElement | null | undefined,
-    biomarkerChecklistContainer: HTMLElement | null
-): void {
-    container.innerHTML = '';
-    // Use the global `proofPics` variable directly
-    if (proofPics.length > 0) {
-        container.innerHTML = '<p><strong>Proof uploaded successfully.</strong></p>';
-        for (let i = 0; i < proofPics.length; i++) {
-            let imgContainer = document.createElement('div');
-            imgContainer.style.cssText = 'position: relative; display: inline-block; margin: 0.5rem;';
-
-            let img = document.createElement('img');
-            const proofImage = proofPics[i];
-            if (proofImage === undefined) continue;
-            img.src = proofImage;
-            img.alt = 'Proof image ' + (i + 1);
-            img.style.cssText = 'max-width: 100%; border: 2px solid var(--dark-text-color); border-radius: 8px;';
-
-            let removeButton = document.createElement('button');
-            removeButton.textContent = 'Remove';
-            removeButton.style.cssText = 'position: absolute; top: 5px; right: 5px; background-color: rgba(255, 0, 0, 0.7); color: var(--light-text-color); border: none; border-radius: 3px; cursor: pointer;';
-            removeButton.addEventListener('click', function () {
-                proofPics.splice(i, 1);
-                updateProofImageContainer(container, nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
-                // Check proof images
-                checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
-            });
-
-            imgContainer.appendChild(img);
-            imgContainer.appendChild(removeButton);
-            container.appendChild(imgContainer);
-        }
-    }
-}
-
 function checkProofImages(
     nextButton: HTMLButtonElement,
     proofPics: readonly string[],
@@ -709,7 +889,7 @@ function checkProofImages(
 ): void {
     const hasProofs = proofPics.length > 0;
     document.body?.classList.toggle('proof-upload-has-proofs', hasProofs);
-    nextButton.disabled = !hasProofs;
+    nextButton.disabled = !hasProofs || proofProcessingButtons.has(nextButton);
     window.updateProofUploadButtons(nextButton, uploadProofButton, cameraButton);
 }
 
@@ -720,7 +900,7 @@ window.updateProofUploadButtons = function (
 ): void {
     if (!nextButton || !uploadProofButton) return;
 
-    const uploadIsRequired = nextButton.disabled;
+    const uploadIsRequired = nextButton.disabled && !proofProcessingButtons.has(nextButton);
     uploadProofButton.classList.toggle('green', uploadIsRequired);
     uploadProofButton.classList.toggle('grey', !uploadIsRequired);
     uploadProofButton.classList.toggle('flow-action--secondary', !uploadIsRequired);

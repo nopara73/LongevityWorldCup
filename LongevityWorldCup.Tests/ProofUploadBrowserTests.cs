@@ -236,6 +236,8 @@ public sealed class ProofUploadBrowserTests(
         await page.WaitForFunctionAsync(
             "() => document.querySelector('#proofImageContainer .proof-upload-notice')?.textContent?.includes('Duplicate proof images were skipped.')");
         Assert.Equal(3, await page.Locator("#proofImageContainer img").CountAsync());
+        Assert.Equal(new[] { "lab-results.pdf · Page 1", "lab-results.pdf · Page 2", "lab-results.pdf · Page 3" },
+            await page.Locator(".proof-page-source").AllTextContentsAsync());
         var encodeRequests = await page.EvaluateAsync<JsonElement>("() => window.__proofCanvasEncodeRequests");
         Assert.Equal(1, encodeRequests.GetProperty("webp").GetInt32());
         Assert.Equal(3, encodeRequests.GetProperty("jpeg").GetInt32());
