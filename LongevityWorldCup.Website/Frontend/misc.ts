@@ -842,8 +842,8 @@ window.optimizeImageClient = async function (dataUri, options) {
         let { width, height } = img;
         if (width > maxSize || height > maxSize) {
             const ratio = Math.min(maxSize / width, maxSize / height);
-            width = Math.round(width * ratio);
-            height = Math.round(height * ratio);
+            width = Math.max(1, Math.round(width * ratio));
+            height = Math.max(1, Math.round(height * ratio));
         }
 
         const canvas = document.createElement('canvas');
