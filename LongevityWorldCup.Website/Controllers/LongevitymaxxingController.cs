@@ -145,7 +145,8 @@ public sealed class LongevitymaxxingController(LongevitymaxxingChallengeService 
                 request.Exercise,
                 request.Nutrition,
                 request.Vices,
-                request.Note);
+                request.Note,
+                request.SubmissionId);
             return Ok(await _challenge.SubmitCheckInAsync(checkIn, notePhotos, context: HttpContext, ct: ct).ConfigureAwait(false));
         }
         catch (UnauthorizedAccessException ex)
@@ -271,4 +272,5 @@ public sealed class LongevitymaxxingCheckInFormRequest
     public int Nutrition { get; set; }
     public int Vices { get; set; }
     public string? Note { get; set; }
+    public string? SubmissionId { get; set; }
 }
