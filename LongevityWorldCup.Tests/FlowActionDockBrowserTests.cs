@@ -850,8 +850,8 @@ public sealed class FlowActionDockBrowserTests(
             PersonalLink: 'https://example.test/browser-test-athlete',
             MediaContact: 'browser-test-athlete@example.test',
             Why: 'Testing the athlete navigation flow.',
-            ProfilePic: '/assets/content-images/longevity-world-cup-silhouette.webp',
-            ProfilePictureUrl: '/assets/content-images/longevity-world-cup-silhouette.webp',
+            ProfilePic: '/assets/content-images/headshot.webp',
+            ProfilePictureUrl: '/assets/content-images/headshot.webp',
             DateOfBirth: { Year: 1980, Month: 5, Day: 20 },
             Biomarkers: [
                 { Date: '2026-06-19', AlbGL: 45, GluMmolL: 5.1, Hba1cMmolMol: 35 }

@@ -87,15 +87,18 @@
             max-height: min(14rem, 42vh);
             overflow-y: auto;
             width: 100%;
-            box-shadow: 0 12px 24px rgba(15, 23, 42, 0.16);
+            box-shadow: var(--lwc-shadow-md);
             box-sizing: border-box;
             scrollbar-width: thin;
             scrollbar-color: rgba(96, 125, 139, 0.45) transparent;
+            overscroll-behavior: contain;
+            scroll-padding-block: var(--lwc-space-1);
         }
 
             .autocomplete-items .autocomplete-active {
                 background-color: var(--lwc-accent-soft, rgba(0, 188, 212, 0.12));
                 color: var(--lwc-ink, #243446);
+                box-shadow: inset 3px 0 var(--lwc-accent);
             }
 
             .autocomplete-items div {
@@ -105,10 +108,10 @@
                 padding: 0.6rem 0.7rem;
                 box-sizing: border-box;
                 cursor: pointer;
-                border-radius: 6px;
+                border-radius: var(--lwc-radius-sm);
                 color: var(--lwc-ink, #2d3748);
                 font-size: 1rem;
-                line-height: 1.25;
+                line-height: 1.5;
             }
 
                 .autocomplete-items div + div {
@@ -131,11 +134,8 @@
                 }
 
                 .autocomplete-items div strong {
-                    padding: 0 0.12rem;
-                    border-radius: 4px;
-                    background: var(--lwc-accent-soft, rgba(0, 188, 212, 0.12));
-                    color: var(--lwc-accent-hover, #007f90);
-                    font-weight: 800;
+                    color: var(--lwc-accent);
+                    font-weight: 700;
                 }
         /* Add a new class for the pointer cursor */
         .clickable {
@@ -1818,142 +1818,9 @@
                 athletesPromise
             ])
                 .then(([flags, athletes]) => {
-                    const flagInput = document.getElementById('flag');
                     const flagOptions = window.LwcFlags.buildFlagOptions(flags, athletes);
-                    let currentFocus;
-
-                    function openFlagList(inputVal) {
-                        currentFocus = -1;
-                        closeAllLists();
-
-                        const listContainer = document.createElement('div');
-                        listContainer.setAttribute('id', flagInput.id + '-autocomplete-list');
-                        listContainer.setAttribute('class', 'autocomplete-items');
-                        listContainer.setAttribute('role', 'listbox');
-                        listContainer.setAttribute('aria-label', 'Flag suggestions');
-                        const container = flagInput.closest('.autocomplete-container');
-                        container.appendChild(listContainer);
-
-                        flagOptions
-                            .filter(option => window.LwcFlags.matchesFlagOption(option, inputVal))
-                            .forEach((option, optionIndex) => {
-                                const listItem = document.createElement('div');
-
-                                listItem.innerHTML = window.LwcFlags.renderFlagOptionLabel(option.name, inputVal);
-                                listItem.setAttribute('data-value', option.name);
-                                listItem.id = `${listContainer.id}-option-${optionIndex}`;
-                                listItem.setAttribute('role', 'option');
-                                listItem.setAttribute('aria-selected', 'false');
-
-                                listItem.addEventListener('mousedown', function (e) {
-                                    e.preventDefault(); // Prevent focus loss
-                                    flagInput.value = this.getAttribute('data-value');
-                                    flagInput.dispatchEvent(new Event('input'));
-
-                                    closeAllLists();
-                                });
-
-                                listContainer.appendChild(listItem);
-                                listItem.classList.add('autocomplete-item');
-                            });
-
-                        if (listContainer.childElementCount > 0) {
-                            flagInput.setAttribute('aria-expanded', 'true');
-                        } else {
-                            listContainer.remove();
-                            flagInput.setAttribute('aria-expanded', 'false');
-                        }
-                    }
-
-                    flagInput.addEventListener('focus', function () {
-                        openFlagList(this.value);
-                    });
-
-                    flagInput.addEventListener('input', function () {
-                        openFlagList(this.value);
-                    });
-
-                    // Ensure the keydown event listener is added only once
-                    if (!flagInput.hasAttribute('data-keydown-listener')) {
-                        flagInput.addEventListener('keydown', function (e) {
-                            let list = document.getElementById(this.id + '-autocomplete-list');
-                            let items;
-                            if (list) {
-                                items = list.getElementsByClassName('autocomplete-item');
-                            }
-                            if (e.key === 'ArrowDown') {
-                                // Down key
-                                currentFocus++;
-                                addActive(items);
-                                e.preventDefault();
-                            } else if (e.key === 'ArrowUp') {
-                                // Up key
-                                currentFocus--;
-                                addActive(items);
-                                e.preventDefault();
-                            } else if (e.key === 'Enter') {
-                                // Enter key
-                                e.preventDefault();
-                                if (currentFocus > -1) {
-                                    if (items) {
-                                        // Dispatch a mousedown event on the current item
-                                        const mousedownEvent = new MouseEvent('mousedown', {
-                                            bubbles: true,
-                                            cancelable: true,
-                                            view: window,
-                                        });
-                                        items[currentFocus].dispatchEvent(mousedownEvent);
-                                    }
-                                }
-                            } else if (e.key === 'Escape') {
-                                // Escape key
-                                closeAllLists();
-                            }
-                        });
-                        flagInput.setAttribute('data-keydown-listener', 'true');
-                    }
-
-                    function closeAllLists(elmnt) {
-                        const items = document.getElementsByClassName('autocomplete-items');
-                        for (let i = items.length - 1; i >= 0; i--) {
-                            if (elmnt != items[i] && !items[i].contains(elmnt) && elmnt != flagInput) {
-                                items[i].parentNode.removeChild(items[i]);
-                            }
-                        }
-                        currentFocus = -1;
-                        flagInput.setAttribute('aria-expanded', 'false');
-                        flagInput.removeAttribute('aria-activedescendant');
-                    }
-
-                    function addActive(items) {
-                        if (!items || items.length === 0) return false;
-                        removeActive(items); // Clear previous active item
-                        if (currentFocus >= items.length) currentFocus = 0;
-                        if (currentFocus < 0) currentFocus = items.length - 1;
-                        items[currentFocus].classList.add('autocomplete-active');
-                        items[currentFocus].setAttribute('aria-selected', 'true');
-                        flagInput.setAttribute('aria-activedescendant', items[currentFocus].id);
-                    }
-
-                    function removeActive(items) {
-                        for (let i = 0; i < items.length; i++) {
-                            items[i].classList.remove('autocomplete-active');
-                            items[i].setAttribute('aria-selected', 'false');
-                        }
-                        flagInput.removeAttribute('aria-activedescendant');
-                    }
-
-                    // Add a hover event to clear keyboard focus
-                    document.addEventListener('mouseover', function (e) {
-                        const hoveredItem = e.target.closest('.autocomplete-item');
-                        if (hoveredItem) {
-                            const list = document.getElementsByClassName('autocomplete-item');
-                            removeActive(list); // Clear all active classes
-                        }
-                    });
-
-                    document.addEventListener('click', function (e) {
-                        closeAllLists(e.target);
+                    window.LwcFlags.bindAutocomplete(document.getElementById('flag'), {
+                        getOptions: () => flagOptions
                     });
                 });
 
@@ -2007,7 +1874,7 @@
             // catch Enter anywhere in the inputForm (but not in the textarea)
             const inputForm = document.getElementById('inputForm');
             inputForm.addEventListener('keydown', function (e) {
-                if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
+                if (e.key === 'Enter' && !e.defaultPrevented && !e.isComposing && e.target.tagName !== 'TEXTAREA') {
                     e.preventDefault();                     // prevent native submit/newline
                     document.getElementById('nextButton').click();
                 }

@@ -177,7 +177,154 @@
         return `${renderFlagIcon(canonicalFlag)}<span class="lwc-flag-name">${renderHighlightedFlagName(canonicalFlag, query)}</span>`;
     }
 
+    function bindAutocomplete(input: HTMLInputElement, options: FlagAutocompleteOptions): { refresh(): void } {
+        const listId = input.id + "-autocomplete-list";
+        let list: HTMLDivElement | null = null;
+        let currentFocus = -1;
+        let wantsSuggestions = false;
+        input.setAttribute("role", "combobox");
+        input.setAttribute("aria-autocomplete", "list");
+        input.setAttribute("aria-controls", listId);
+        input.setAttribute("aria-expanded", "false");
+
+        function close(): void {
+            list?.remove();
+            list = null;
+            currentFocus = -1;
+            input.setAttribute("aria-expanded", "false");
+            input.removeAttribute("aria-activedescendant");
+        }
+
+        function dismiss(): void {
+            wantsSuggestions = false;
+            close();
+        }
+
+        function positionList(): void {
+            const parent = input.parentElement;
+            if (!list || !parent) return;
+            const inputBox = input.getBoundingClientRect();
+            const parentBox = parent.getBoundingClientRect();
+            const viewport = window.visualViewport;
+            const gap = 8;
+            const visibleTop = (viewport?.offsetTop ?? 0) + gap;
+            let visibleBottom = (viewport?.offsetTop ?? 0) + (viewport?.height ?? window.innerHeight) - gap;
+            const dock = document.querySelector(".flow-action-stack--docked")?.getBoundingClientRect();
+            if (dock && dock.height > 0 && dock.bottom > visibleTop && dock.top < visibleBottom) {
+                visibleBottom = dock.top - gap;
+            }
+
+            // Measure the stylesheet's preferred limit before fitting to the available viewport.
+            list.style.maxHeight = "";
+            const preferredHeight = list.getBoundingClientRect().height;
+            const above = Math.max(0, inputBox.top - visibleTop - gap);
+            const below = Math.max(0, visibleBottom - inputBox.bottom - gap);
+            const openAbove = below < preferredHeight && above > below;
+            list.style.maxHeight = Math.min(preferredHeight, openAbove ? above : below) + "px";
+            list.style.marginTop = "0";
+            const inputTop = inputBox.top - parentBox.top - parent.clientTop + parent.scrollTop;
+            list.style.top = openAbove ? "auto" : inputTop + inputBox.height + gap + "px";
+            list.style.bottom = openAbove ? parent.clientHeight - inputTop + gap + "px" : "auto";
+        }
+
+        function setActive(index: number, scroll = true): void {
+            const items = list ? Array.from(list.children) : [];
+            if (!items.length) return;
+            currentFocus = (index + items.length) % items.length;
+            items.forEach((item, itemIndex) => {
+                const active = itemIndex === currentFocus;
+                item.classList.toggle("autocomplete-active", active);
+                item.setAttribute("aria-selected", String(active));
+            });
+            const activeItem = items[currentFocus];
+            if (!activeItem || !list) return;
+            input.setAttribute("aria-activedescendant", activeItem.id);
+            if (scroll) {
+                // Scroll the popup only; navigating suggestions must not move the form.
+                const itemBox = activeItem.getBoundingClientRect();
+                const listBox = list.getBoundingClientRect();
+                if (itemBox.top < listBox.top + 4) list.scrollTop -= listBox.top + 4 - itemBox.top;
+                else if (itemBox.bottom > listBox.bottom - 4) list.scrollTop += itemBox.bottom - listBox.bottom + 4;
+            }
+        }
+
+        function render(): void {
+            close();
+            const query = input.value.trim();
+            const available = options.getOptions();
+            if (options.hideExactMatch && available.some(option => option.name === query)) return;
+            const terms = query.split(/\s+/).filter(Boolean);
+            const matches = available.filter(option => terms.every(term => matchesFlagOption(option, term)))
+                .slice(0, options.limit);
+            if (!matches.length || !input.parentElement) return;
+            list = document.createElement("div");
+            list.id = listId;
+            list.className = "autocomplete-items lwc-flag-suggestions";
+            list.setAttribute("role", "listbox");
+            list.setAttribute("aria-label", "Flag suggestions");
+            matches.forEach((option, index) => {
+                const item = document.createElement("div");
+                item.className = "autocomplete-item";
+                item.id = listId + "-option-" + index;
+                item.setAttribute("role", "option");
+                item.setAttribute("aria-selected", "false");
+                item.dataset.value = option.name;
+                item.innerHTML = renderFlagOptionLabel(option.name, query);
+                item.addEventListener("mousedown", event => {
+                    event.preventDefault();
+                    input.value = option.name;
+                    input.dispatchEvent(new Event("input", { bubbles: true }));
+                    dismiss();
+                });
+                item.addEventListener("pointermove", () => setActive(index, false));
+                list!.appendChild(item);
+            });
+            input.parentElement.appendChild(list);
+            input.setAttribute("aria-expanded", "true");
+            positionList();
+        }
+
+        function open(): void {
+            wantsSuggestions = true;
+            render();
+        }
+
+        input.addEventListener("focus", open);
+        input.addEventListener("input", open);
+        input.addEventListener("blur", dismiss);
+        input.addEventListener("keydown", event => {
+            if (event.isComposing) return;
+            if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+                if (!list) open();
+                if (!list) return;
+                event.preventDefault();
+                const next = currentFocus < 0
+                    ? (event.key === "ArrowDown" ? 0 : list.childElementCount - 1)
+                    : currentFocus + (event.key === "ArrowDown" ? 1 : -1);
+                setActive(next);
+            } else if (event.key === "Enter" && currentFocus >= 0 && list) {
+                event.preventDefault();
+                list.children[currentFocus]?.dispatchEvent(new MouseEvent("mousedown"));
+            } else if (event.key === "Escape") {
+                if (list) event.preventDefault();
+                dismiss();
+            } else if (event.key === "Tab") {
+                dismiss();
+            }
+        });
+        input.setAttribute("data-keydown-listener", "true");
+        document.addEventListener("click", event => {
+            if (event.target !== input && (!(event.target instanceof Node) || !list?.contains(event.target))) dismiss();
+        });
+        window.addEventListener("resize", positionList);
+        window.addEventListener("scroll", event => { if (event.target !== list) positionList(); }, true);
+        window.visualViewport?.addEventListener("resize", positionList);
+        window.visualViewport?.addEventListener("scroll", positionList);
+        return { refresh() { if (wantsSuggestions && document.activeElement === input) render(); } };
+    }
+
     window.LwcFlags = {
+        bindAutocomplete,
         buildFlagOptions,
         countFlagUsage,
         getCanonicalFlagName,

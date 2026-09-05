@@ -513,8 +513,7 @@ function createAthleteSelectionController(
     input.setAttribute("aria-expanded", "false");
 
     function closeAllLists(): void {
-        document.querySelectorAll<HTMLElement>(".autocomplete-items")
-            .forEach(list => list.remove());
+        document.getElementById(autocompleteListId)?.remove();
         currentFocus = -1;
         input.setAttribute("aria-expanded", "false");
         input.removeAttribute("aria-activedescendant");
@@ -688,7 +687,7 @@ function createAthleteSelectionController(
                     }
                 }
 
-                if (!currentAthlete) {
+                if (!currentAthlete && document.activeElement === input) {
                     renderAthleteMatches();
                 }
 
@@ -716,7 +715,11 @@ function createAthleteSelectionController(
         if (isBound) return api;
         isBound = true;
 
-        input.addEventListener("focus", retryAthleteLoad);
+        input.addEventListener("focus", () => {
+            retryAthleteLoad();
+            if (athleteAutocompleteReady) renderAthleteMatches();
+        });
+        input.addEventListener("blur", closeAllLists);
         input.addEventListener("input", () => {
             hasUserEditedInput = true;
             retryAthleteLoad();
@@ -726,6 +729,11 @@ function createAthleteSelectionController(
         });
 
         input.addEventListener("keydown", event => {
+            if (event.isComposing) return;
+            if ((event.key === "ArrowDown" || event.key === "ArrowUp")
+                && !document.getElementById(autocompleteListId) && athleteAutocompleteReady) {
+                renderAthleteMatches();
+            }
             const listElement = document.getElementById(autocompleteListId);
             const list = listElement?.getElementsByTagName("div") ?? null;
             if (event.key === "ArrowDown") {
@@ -752,6 +760,9 @@ function createAthleteSelectionController(
                     }
                 }
             } else if (event.key === "Escape") {
+                if (listElement) event.preventDefault();
+                closeAllLists();
+            } else if (event.key === "Tab") {
                 closeAllLists();
             }
         });
