@@ -52,6 +52,21 @@ public sealed class TrackingParamStripperMiddlewareTests(TestWebApplicationFacto
     }
 
     [Fact]
+    public async Task DocumentNavigation_PreservesCampaignLabelsForBrowserAttribution()
+    {
+        using var client = sharedFactory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        using var request = new HttpRequestMessage(HttpMethod.Get,
+            "/join?UTM_Source=newsletter&utm_medium=email&utm_campaign=summer&utm_term=athletes&utm_content=invite&fbclid=abc&ref=keep");
+        request.Headers.Accept.ParseAdd("text/html");
+
+        using var response = await client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Null(response.Headers.Location);
+        Assert.Contains("/js/site-statistics-tracking.js?v=", await response.Content.ReadAsStringAsync());
+    }
+
+    [Fact]
     public async Task TrackingParameters_AreRemovedAndNonTrackingParametersArePreserved()
     {
         var factory = sharedFactory;

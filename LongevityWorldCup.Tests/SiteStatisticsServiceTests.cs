@@ -12,6 +12,51 @@ namespace LongevityWorldCup.Tests;
 
 public sealed class SiteStatisticsServiceTests
 {
+    [Theory]
+    [InlineData("direct", false)]
+    [InlineData("direct", true)]
+    [InlineData("campaign", false)]
+    [InlineData("campaign", true)]
+    public async Task Dashboard_PreservesReferrerlessAcquisitionAcrossClientAndServerRequests(
+        string firstSource, bool serverArrivesFirst)
+    {
+        var dbPath = Path.Combine(Path.GetTempPath(), "LongevityWorldCup.Tests", $"{Guid.NewGuid():N}.db");
+        Directory.CreateDirectory(Path.GetDirectoryName(dbPath)!);
+        await using var cleanup = new TempDatabaseCleanup(dbPath);
+        using var database = new DatabaseManager(dbPath: dbPath);
+        var service = new SiteStatisticsService(database, NullLogger<SiteStatisticsService>.Instance);
+        var serverContext = new DefaultHttpContext();
+        serverContext.Request.Headers["X-LWC-Stats-Session"] = "referrerless-acquisition";
+        serverContext.Request.Headers.Referer = "https://www.longevityworldcup.com/apply";
+        var clientContext = new DefaultHttpContext();
+        clientContext.Request.Headers.Referer = "https://www.longevityworldcup.com/join";
+
+        Task RecordSubmission() => service.RecordServerEventAsync(
+            "application_submit_succeeded", serverContext, flow: "application", outcome: "succeeded");
+        if (serverArrivesFirst) await RecordSubmission();
+        await service.RecordClientEventAsync(new SiteStatisticsEventRequest
+        {
+            EventName = "onboarding_entry_viewed",
+            SessionId = "referrerless-acquisition",
+            Route = "/join",
+            LandingRoute = "/join",
+            FirstSource = firstSource,
+            FirstReferrerDomain = "",
+            FirstUtmCampaign = firstSource == "campaign" ? "outreach" : null
+        }, clientContext);
+        if (!serverArrivesFirst) await RecordSubmission();
+
+        var dashboard = await service.GetDashboardAsync(new SiteStatisticsDashboardQuery { Range = "7d" });
+        Assert.Equal(2, dashboard.Events.Count);
+        Assert.Single(dashboard.Events.Select(ev => ev.SessionHash).Distinct());
+        Assert.All(dashboard.Events, ev =>
+        {
+            Assert.Equal(firstSource, ev.FirstSource);
+            Assert.Null(ev.FirstReferrerDomain);
+            Assert.Equal("/join", ev.LandingRoute);
+        });
+    }
+
     [Fact]
     public async Task RecordClientEventAsync_RedactsSensitiveValuesFromDashboardProjection()
     {
