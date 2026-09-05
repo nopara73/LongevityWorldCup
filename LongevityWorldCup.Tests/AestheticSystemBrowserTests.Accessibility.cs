@@ -117,25 +117,33 @@ public sealed class AestheticAccessibilityBrowserTests(
     }
 
     [Theory]
-    [InlineData(1280, false)]
-    [InlineData(1280, true)]
-    [InlineData(390, false)]
-    [InlineData(390, true)]
-    public async Task DocumentContentsNavigation_ArrivesAtTheChosenSectionWithoutIntermediatePaneJumps(int width, bool reducedMotion)
+    [InlineData("/history", 1280, false)]
+    [InlineData("/history", 1280, true)]
+    [InlineData("/history", 390, false)]
+    [InlineData("/history", 390, true)]
+    [InlineData("/about", 1280, false)]
+    [InlineData("/about", 1280, true)]
+    [InlineData("/about", 390, false)]
+    [InlineData("/about", 390, true)]
+    [InlineData("/ruleset", 1280, false)]
+    [InlineData("/ruleset", 1280, true)]
+    [InlineData("/ruleset", 390, false)]
+    [InlineData("/ruleset", 390, true)]
+    public async Task DocumentContentsNavigation_ArrivesAtTheChosenSectionWithoutIntermediatePaneJumps(string path, int width, bool reducedMotion)
     {
         await using var context = await NewContextAsync(
             Browser,
             App,
             new BrowserNewContextOptions
             {
-                ViewportSize = new ViewportSize { Width = width, Height = width > 900 ? 350 : 844 },
+                ViewportSize = new ViewportSize { Width = width, Height = width > 900 ? 900 : 844 },
                 ReducedMotion = reducedMotion ? ReducedMotion.Reduce : ReducedMotion.NoPreference
             });
         var page = await context.NewPageAsync();
-        await NavigateAndSettleAsync(page, "/history");
+        await NavigateAndSettleAsync(page, path);
         var links = page.Locator(".documentation-nav a[href^='#']");
         var count = await links.CountAsync();
-        foreach (var index in new[] { count - 5, count - 1, 0 })
+        foreach (var index in new[] { count / 2, count - 2, count - 1, 0 })
         {
             if (width <= 900)
                 await page.Locator(".documentation-nav-toggle").ClickAsync();
@@ -164,8 +172,15 @@ public sealed class AestheticAccessibilityBrowserTests(
                 }
                 """, href);
             Assert.True(stableArrival,
-                $"Selecting {href} moved through intermediate document or contents positions (width={width}, reducedMotion={reducedMotion}).");
+                $"{path}: selecting {href} moved through intermediate document or contents positions (width={width}, reducedMotion={reducedMotion}).");
         }
+
+        var middleHref = await links.Nth(count / 2).GetAttributeAsync("href");
+        await page.EvaluateAsync(
+            "href => window.scrollTo({top: document.getElementById(decodeURIComponent(href.slice(1))).getBoundingClientRect().top + scrollY - 70, behavior: 'instant'})",
+            middleHref);
+        await page.WaitForFunctionAsync(
+            "href => document.querySelector('.documentation-nav a.is-active')?.getAttribute('href') === href", middleHref);
     }
 
     [Fact]

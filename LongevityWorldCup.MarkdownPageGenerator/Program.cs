@@ -699,6 +699,7 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
             };
 
             let activeLink = null;
+            let navigationDestination = null;
             const revealActiveLink = () => {
                 const link = documentationNav?.querySelector("a:focus") || activeLink;
                 if (!documentationNav || !link || !window.matchMedia("(min-width: 901px)").matches) {
@@ -747,6 +748,7 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
                     const top = target.getBoundingClientRect().top + window.scrollY - getOffset();
                     window.scrollTo({ top, behavior: "instant" });
                     history.pushState(null, "", link.getAttribute("href"));
+                    navigationDestination = { target, scrollY: window.scrollY, hash: window.location.hash };
                     setActive(target.id);
 
                     target.setAttribute("tabindex", "-1");
@@ -756,6 +758,17 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
 
             const updateActiveFromScroll = () => {
                 const offset = getOffset() + 6;
+                // A section near the page end may be visible without reaching the offset.
+                // Honor that destination until the reader moves away from its landing position.
+                if (navigationDestination && window.scrollY === navigationDestination.scrollY &&
+                    window.location.hash === navigationDestination.hash) {
+                    const bounds = navigationDestination.target.getBoundingClientRect();
+                    if (bounds.bottom > offset && bounds.top < window.innerHeight) {
+                        setActive(navigationDestination.target.id);
+                        return;
+                    }
+                }
+                navigationDestination = null;
                 let current = headings[0];
 
                 for (const heading of headings) {
@@ -765,10 +778,6 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
                         break;
                     }
                 }
-                if (window.scrollY > 0 && window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 1) {
-                    current = headings[headings.length - 1];
-                }
-
                 if (current) {
                     setActive(current.id);
                 }
