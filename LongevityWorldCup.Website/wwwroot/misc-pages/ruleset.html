@@ -650,16 +650,39 @@
                 return ((stickyHeader && stickyHeader.offsetHeight) || 52) + 18;
             };
 
+            let activeLink = null;
+            const revealActiveLink = () => {
+                const link = documentationNav?.querySelector("a:focus") || activeLink;
+                if (!documentationNav || !link || !window.matchMedia("(min-width: 901px)").matches) {
+                    return;
+                }
+
+                const pane = documentationNav.getBoundingClientRect();
+                const target = link.getBoundingClientRect();
+                const padding = parseFloat(getComputedStyle(documentationNav).scrollPaddingTop) || 0;
+                if (target.top < pane.top + padding) {
+                    documentationNav.scrollTop += target.top - pane.top - padding;
+                } else if (target.bottom > pane.bottom - padding) {
+                    documentationNav.scrollTop += target.bottom - pane.bottom + padding;
+                }
+            };
+
             const setActive = id => {
+                const previousActiveLink = activeLink;
+                activeLink = null;
                 navLinks.forEach(link => {
                     const active = decodeURIComponent(link.getAttribute("href").slice(1)) === id;
                     link.classList.toggle("is-active", active);
                     if (active) {
+                        activeLink = link;
                         link.setAttribute("aria-current", "location");
                     } else {
                         link.removeAttribute("aria-current");
                     }
                 });
+                if (activeLink !== previousActiveLink) {
+                    revealActiveLink();
+                }
             };
 
             navLinks.forEach(link => {
@@ -713,6 +736,10 @@
                     ticking = false;
                 });
             }, { passive: true });
+            window.addEventListener("resize", () => {
+                updateActiveFromScroll();
+                revealActiveLink();
+            });
 
             updateActiveFromScroll();
         });

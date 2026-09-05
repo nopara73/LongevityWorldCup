@@ -64,6 +64,58 @@ public sealed class AestheticAccessibilityBrowserTests(
             "Keyboard navigation must reach the source link at the end of the contents.");
     }
 
+    [Theory]
+    [InlineData(720)]
+    [InlineData(350)]
+    public async Task DesktopDocumentationNavigation_FollowsReadingWithoutMovingTheDocument(int height)
+    {
+        await using var context = await NewContextAsync(
+            Browser,
+            App,
+            new BrowserNewContextOptions
+            {
+                ViewportSize = new ViewportSize { Width = 1280, Height = height }
+            });
+        var page = await context.NewPageAsync();
+        await NavigateAndSettleAsync(page, "/history");
+        var navigation = page.Locator(".documentation-nav");
+        var links = navigation.Locator("a[href^='#']");
+        var count = await links.CountAsync();
+
+        foreach (var index in new[] { count - 5, 0 })
+        {
+            var link = links.Nth(index);
+            var href = await link.GetAttributeAsync("href");
+            var requestedScroll = await page.EvaluateAsync<double>(
+                """
+                href => {
+                    const heading = document.getElementById(decodeURIComponent(href.slice(1)));
+                    const top = Math.max(0, heading.getBoundingClientRect().top + scrollY - 70);
+                    window.scrollTo({top, behavior: 'instant'});
+                    return Math.min(top, document.documentElement.scrollHeight - innerHeight);
+                }
+                """, href);
+            await page.WaitForFunctionAsync(
+                "href => document.querySelector('.documentation-nav a.is-active')?.getAttribute('href') === href", href);
+
+            var navBox = await navigation.BoundingBoxAsync();
+            var linkBox = await link.BoundingBoxAsync();
+            Assert.NotNull(navBox);
+            Assert.NotNull(linkBox);
+            Assert.True(linkBox.Y >= Math.Max(0, navBox.Y) &&
+                        linkBox.Y + linkBox.Height <= Math.Min(height, navBox.Y + navBox.Height),
+                $"The current section is outside the contents pane at {height}px height.");
+            Assert.InRange(Math.Abs(await page.EvaluateAsync<double>("scrollY") - requestedScroll), 0, 1);
+
+            // Browsing the contents independently must not snap back on every document scroll event.
+            await navigation.EvaluateAsync("element => element.scrollTop = 0");
+            await page.EvaluateAsync("window.scrollTo({top: scrollY + 1, behavior: 'instant'})");
+            await page.EvaluateAsync(
+                "() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+            Assert.Equal(0, await navigation.EvaluateAsync<double>("element => element.scrollTop"));
+        }
+    }
+
     [Fact]
     public async Task MobileDocumentationNavigation_UsesProgressiveDisclosureAndLargeTargets()
     {
