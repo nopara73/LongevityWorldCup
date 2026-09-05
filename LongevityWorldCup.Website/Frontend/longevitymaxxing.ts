@@ -1416,7 +1416,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const totalPoints = row && typeof row.totalPoints === "number"
             ? row.totalPoints
             : scoredCells.reduce((sum, cell) => sum + (typeof cell.score === "number" ? cell.score : 0), 0);
-        const today = new Date().toISOString().slice(0, 10);
+        const today = isoDateInTimeZone(new Date(), getParticipantTimeZone());
         const dayHeaders = cells.map(cell => {
             const classes = ["lmx-dashboard-day"];
             if (cell.date === today) classes.push("today");
@@ -6607,13 +6607,13 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     function formatDateLabel(value: string): string {
         const date = parseIsoDate(value);
         if (!date) return value || "";
-        return new Intl.DateTimeFormat("en-US", { weekday: "long", month: "short", day: "numeric" }).format(date);
+        return new Intl.DateTimeFormat("en-US", { timeZone: "UTC", weekday: "long", month: "short", day: "numeric" }).format(date);
     }
 
     function formatShortDateLabel(value: string): string {
         const date = parseIsoDate(value);
         if (!date) return value || "";
-        return new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric" }).format(date);
+        return new Intl.DateTimeFormat("en-US", { timeZone: "UTC", weekday: "short", month: "short", day: "numeric" }).format(date);
     }
 
     function checkInDayLabel(day: EligibleDay): string {
@@ -6640,15 +6640,13 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     }
 
     function formatCheckInDate(value: string): string {
-        const date = parseIsoDate(value);
-        if (!date) return value || "";
-        return new Intl.DateTimeFormat("en-US", { weekday: "long", month: "short", day: "numeric" }).format(date);
+        return formatDateLabel(value);
     }
 
     function formatWeekday(value: string): string {
         const date = parseIsoDate(value);
         if (!date) return value || "";
-        return new Intl.DateTimeFormat("en-US", { weekday: "short" }).format(date);
+        return new Intl.DateTimeFormat("en-US", { timeZone: "UTC", weekday: "short" }).format(date);
     }
 
     function parseIsoDate(value: string | undefined): Date | null {

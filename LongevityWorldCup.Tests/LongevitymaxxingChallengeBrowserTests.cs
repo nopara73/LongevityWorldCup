@@ -11,6 +11,37 @@ public sealed class LongevitymaxxingChallengeBrowserTests(
     BrowserTestAppFixture appFixture)
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
+    [Theory]
+    [InlineData("Asia/Bangkok", "Pacific/Kiritimati", "22")]
+    [InlineData("America/Los_Angeles", "Asia/Tokyo", "21")]
+    public async Task DashboardDates_UseTheParticipantDayWithoutShiftingCalendarLabels(
+        string participantTimeZone, string browserTimeZone, string expectedDay)
+    {
+        await using var context = await Browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = App.BaseAddress.ToString(),
+            TimezoneId = browserTimeZone,
+            Locale = "en-US"
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        var page = await context.NewPageAsync();
+        await page.Clock.SetFixedTimeAsync(DateTime.Parse("2026-06-28T20:00:00Z", CultureInfo.InvariantCulture,
+            DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal));
+        await page.RouteAsync("**/api/longevitymaxxing/state",
+            route => FulfillJsonAsync(route, JsonSerializer.Serialize(BuildPublicState())));
+        await page.RouteAsync("**/api/longevitymaxxing/participant",
+            route => FulfillJsonAsync(route, JsonSerializer.Serialize(BuildParticipantState(timeZoneId: participantTimeZone))));
+        await page.GotoAsync("/longevitymaxxing?token=browser-token");
+        await page.Locator(".lmx-dashboard-day.today").WaitForAsync();
+
+        Assert.Equal(expectedDay, await page.Locator(".lmx-dashboard-day.today").InnerTextAsync());
+        var todayCells = await page.Locator(".lmx-category-day.today").AllAsync();
+        Assert.Equal(4, todayCells.Count);
+        foreach (var cell in todayCells)
+            Assert.Equal(expectedDay, await cell.GetAttributeAsync("data-day"));
+        Assert.Contains("Monday, Jun 29", await page.Locator(".lmx-category-day[data-day='22']").First.GetAttributeAsync("title"));
+    }
+
     [Fact]
     public async Task TimeZonePicker_NormalizesBrowserAliasesAndUsesOneFocusBoundary()
     {
@@ -1941,7 +1972,8 @@ public sealed class LongevitymaxxingChallengeBrowserTests(
         bool includeDiscussionIdentityParticipants = false,
         bool includeJoinDiscussionPost = false,
         bool joinDiscussionHasReply = false,
-        bool includeMissedCatchUpDay = false)
+        bool includeMissedCatchUpDay = false,
+        string timeZoneId = "UTC")
         => new
         {
             @public = BuildPublicState(
@@ -1956,7 +1988,7 @@ public sealed class LongevitymaxxingChallengeBrowserTests(
                 id = "p1",
                 email = "browser@example.test",
                 displayName = "Browser Tester",
-                timeZoneId = "UTC",
+                timeZoneId,
                 athleteSlug = (string?)null,
                 athleteUrl = (string?)null,
                 profileImageUrl = (string?)null,
