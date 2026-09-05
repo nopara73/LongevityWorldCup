@@ -348,8 +348,7 @@ function pickClickUrl(b: ServerBadge, athlete?: BadgeAthlete | null): string | n
     if (label === 'Podcast') {
         const podcastLink = (athlete && (athlete.podcastLink || athlete.PodcastLink)) || null;
         if (!podcastLink) return null;
-        const podcastUrl = String(podcastLink);
-        return podcastUrl.startsWith('http') ? podcastUrl : ('https://' + podcastUrl);
+        return window.normalizeWebUrl(String(podcastLink));
     }
     return null;
 }
@@ -758,9 +757,8 @@ window.setBadges = function (athlete, athleteCell) {
 
     const items: RenderedBadgeItem[] = [];
 
-    const personalLink = String(athlete.personalLink || athlete.PersonalLink || '');
-    if (personalLink) {
-        const href = personalLink.startsWith('http') ? personalLink : `https://${personalLink}`;
+    const href = window.normalizeWebUrl(String(athlete.personalLink || athlete.PersonalLink || ''));
+    if (href) {
         items.push({
             order: 0,
             searchText: 'Personal page',

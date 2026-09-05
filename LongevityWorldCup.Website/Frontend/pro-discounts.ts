@@ -96,9 +96,7 @@ function hasPersonalLink(athlete: BadgeAthlete | null | undefined): boolean {
 
 function getPersonalLinkUrl(athlete: BadgeAthlete | null | undefined): string | null {
     const link = athlete?.PersonalLink ?? athlete?.personalLink ?? "";
-    const raw = String(link || "").trim();
-    if (!raw) return null;
-    return raw.startsWith("http") ? raw : `https://${raw}`;
+    return window.normalizeWebUrl(String(link || ""));
 }
 
 function hasPerfectGuessMarker() {

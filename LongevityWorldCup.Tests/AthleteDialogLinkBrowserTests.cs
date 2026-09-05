@@ -14,6 +14,49 @@ public sealed class AthleteDialogLinkBrowserTests(
     private const string ProfileImageA = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 
     [Theory]
+    [InlineData("/", "HTTPS://EXAMPLE.COM/profile", "https://example.com/profile")]
+    [InlineData("/", "httpbin.org/profile", "https://httpbin.org/profile")]
+    [InlineData("/", "//example.com/profile", "https://example.com/profile")]
+    [InlineData("/about", "HTTPS://EXAMPLE.COM/profile", "https://example.com/profile")]
+    public async Task PersonalAndPodcastLinks_PreserveTheirDestinationAcrossAllRenderers(
+        string path, string link, string expectedHref)
+    {
+        await using var context = await NewContextAsync(Browser, App, width: 1100, height: 760);
+        await context.AddInitScriptAsync("localStorage.setItem('gmaSkipAll', 'true');");
+        await context.RouteAsync("**/api/data/athletes", async route =>
+        {
+            var response = await route.FetchAsync();
+            var athletes = JsonNode.Parse(await response.TextAsync())!.AsArray();
+            foreach (var athlete in athletes.OfType<JsonObject>())
+            {
+                athlete["PersonalLink"] = link;
+                athlete["PodcastLink"] = link;
+                athlete["Badges"] = new JsonArray(new JsonObject { ["BadgeLabel"] = "Podcast" });
+            }
+            await route.FulfillAsync(new RouteFulfillOptions
+            {
+                Status = response.Status,
+                ContentType = "application/json",
+                Body = athletes.ToJsonString()
+            });
+        });
+        var page = await context.NewPageAsync();
+        await page.GotoAsync(path);
+        await AssertSharedDialogInstalledAsync(page);
+        if (path == "/")
+        {
+            await page.WaitForSelectorAsync(".podium-podcast-link");
+            var links = await page.Locator(".podium-personal-link, .podium-podcast-link, .leaderboard .badge-section a").AllAsync();
+            Assert.NotEmpty(links);
+            foreach (var rendered in links)
+                Assert.Equal(expectedHref, await rendered.GetAttributeAsync("href"));
+        }
+        await page.EvaluateAsync("slug => window.openAthleteModalBySlug(slug)", MichaelSlug);
+        await WaitForOpenAthleteDialogAsync(page, MichaelSlug);
+        Assert.Equal(expectedHref, await page.Locator("#personalLink").GetAttributeAsync("href"));
+    }
+
+    [Theory]
     [InlineData("/", "https://www.youtube.com/@alice", "https://www.youtube.com/@alice")]
     [InlineData("/", "www.youtube.com/@alice.example", "https://www.youtube.com/@alice.example")]
     [InlineData("/", "HTTPS://X.COM/alice", "https://x.com/alice")]

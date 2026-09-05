@@ -402,6 +402,7 @@ interface Window {
     LwcGuessState?: LwcGuessStateApi;
     refreshAthleteAfterStaleGuess?: ((athleteSlug: string) => Promise<boolean>) | undefined;
     parseMediaContact(link: string | null | undefined): MediaContactLink | null;
+    normalizeWebUrl(link: string | null | undefined): string | null;
     getIcon(link: string): string;
     slugifyName(name: string, encode?: boolean): string;
     normalizeString?: ((value: string) => string) | undefined;

@@ -4952,9 +4952,7 @@
                                                 <button type="button" class="athlete-name" title="View stats of ${athlete.displayName}">${athlete.displayName}</button>
                                             </div>
                                             <div class="podium-link-row">
-                                                ${athlete.personalLink ? `<a href="${athlete.personalLink.startsWith('http') ? athlete.personalLink : 'https://' + athlete.personalLink}" target="_blank" rel="noopener"  class="personal-link-icon podium-personal-link" aria-label="Visit athlete's personal page" title="Visit personal page of ${athlete.displayName}">
-                                                <i class="fa fa-link"></i>
-                                                </a>` : ''}
+                                                ${renderPersonalLink(athlete.personalLink, athlete.displayName)}
                                                 ${renderPodcastLink(athlete.podcastLink, athlete.displayName)}
                                                 ${renderMediaContact(athlete.mediaContact, true, athlete.displayName)}
                                             </div>
@@ -5755,10 +5753,19 @@
         </a>`;
     }
 
+    function renderPersonalLink(link, athleteName) {
+        const href = window.normalizeWebUrl(link);
+        if (!href) return '';
+        return `<a href="${escapeHtml(href)}" target="_blank" rel="noopener" class="personal-link-icon podium-personal-link" aria-label="Visit athlete's personal page" title="${escapeHtml(`Visit personal page of ${athleteName}`)}">
+            <i class="fa fa-link"></i>
+        </a>`;
+    }
+
     function renderPodcastLink(link, athleteName) {
-        if (!link) return '';
-        const href = link.startsWith('http') ? link : 'https://' + link;
-        return `<a href="${href}" target="_blank" rel="noopener" class="personal-link-icon podium-podcast-link" aria-label="Listen to ${athleteName}'s podcast appearance" title="Listen to ${athleteName}'s podcast appearance">
+        const href = window.normalizeWebUrl(link);
+        if (!href) return '';
+        const label = escapeHtml(`Listen to ${athleteName}'s podcast appearance`);
+        return `<a href="${escapeHtml(href)}" target="_blank" rel="noopener" class="personal-link-icon podium-podcast-link" aria-label="${label}" title="${label}">
             <i class="fa fa-microphone"></i>
         </a>`;
     }
@@ -8474,8 +8481,9 @@
 
         // Personal Link
         const personalLinkElement = document.getElementById('personalLink');
-        if (athleteData.personalLink) {
-            personalLinkElement.href = athleteData.personalLink.startsWith('http') ? athleteData.personalLink : 'https://' + athleteData.personalLink;
+        const personalLink = window.normalizeWebUrl(athleteData.personalLink);
+        if (personalLink) {
+            personalLinkElement.href = personalLink;
             personalLinkElement.style.display = 'flex';
             personalLinkElement.title = `Visit personal page of ${modalDisplayName}`;
         } else {

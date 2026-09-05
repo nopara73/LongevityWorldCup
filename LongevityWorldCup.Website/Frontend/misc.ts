@@ -72,6 +72,11 @@ window.parseMediaContact = function (link) {
     }
 };
 
+window.normalizeWebUrl = function (link) {
+    const parsed = window.parseMediaContact(link);
+    return parsed && !parsed.isEmail ? parsed.href : null;
+};
+
 window.getIcon = function (link) {
     const contact = window.parseMediaContact(link);
     if (contact?.isEmail) return '<i class="fas fa-envelope"></i>';
