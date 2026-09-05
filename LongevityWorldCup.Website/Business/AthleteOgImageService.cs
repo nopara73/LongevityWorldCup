@@ -89,7 +89,7 @@ public sealed class AthleteOgImageService
         if (string.IsNullOrWhiteSpace(rawSlug))
             return false;
 
-        var normalized = NormalizeSlug(rawSlug);
+        var normalized = AthleteSlug.Normalize(rawSlug);
         var rankings = _athletes.GetRankingsOrder();
         var leagueSlug = ResolveLeagueSlugOrDefault(rawLeagueContext);
 
@@ -97,7 +97,7 @@ public sealed class AthleteOgImageService
         var athleteJson = snapshot
             .OfType<JsonObject>()
             .FirstOrDefault(o => string.Equals(
-                NormalizeSlug(o["AthleteSlug"]?.GetValue<string>()),
+                AthleteSlug.Normalize(o["AthleteSlug"]?.GetValue<string>()),
                 normalized,
                 StringComparison.Ordinal));
         if (athleteJson is null)
@@ -107,7 +107,7 @@ public sealed class AthleteOgImageService
         var athleteName = athlete["DisplayName"]?.GetValue<string>() ?? athlete["Name"]?.GetValue<string>();
         var name = !string.IsNullOrWhiteSpace(athleteName)
             ? athleteName!.Trim()
-            : ToDisplayName(rawSlug);
+            : AthleteSlug.ToDisplayName(rawSlug);
 
         if (TryBuildSpecialLeaderboardPayload(normalized, rawLeagueContext, athlete, name, out payload))
             return true;
@@ -475,7 +475,7 @@ public sealed class AthleteOgImageService
                 .ThenBy(result => result.Name, StringComparer.OrdinalIgnoreCase)
                 .ToList();
             var index = ranked.FindIndex(result =>
-                string.Equals(NormalizeSlug(result.Slug), normalizedSlug, StringComparison.Ordinal));
+                string.Equals(AthleteSlug.Normalize(result.Slug), normalizedSlug, StringComparison.Ordinal));
             if (index < 0)
                 return false;
 
@@ -517,7 +517,7 @@ public sealed class AthleteOgImageService
         if (TryGetDomainContext(context, out var domainKey, out var domainLabel, out var domainClockLabel))
         {
             var winnerSlug = _athletes.GetBestDomainWinnerSlug(domainKey);
-            if (!string.Equals(NormalizeSlug(winnerSlug), normalizedSlug, StringComparison.Ordinal))
+            if (!string.Equals(AthleteSlug.Normalize(winnerSlug), normalizedSlug, StringComparison.Ordinal))
                 return false;
 
             var domainLeagueSlug = $"domain-{domainKey.Replace('_', '-')}";
@@ -837,7 +837,7 @@ public sealed class AthleteOgImageService
         var exclusiveBySlug = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         foreach (var o in snapshot.OfType<JsonObject>())
         {
-            var slug = NormalizeSlug(o["AthleteSlug"]?.GetValue<string>());
+            var slug = AthleteSlug.Normalize(o["AthleteSlug"]?.GetValue<string>());
             if (string.IsNullOrWhiteSpace(slug))
                 continue;
 
@@ -856,7 +856,7 @@ public sealed class AthleteOgImageService
 
         foreach (var row in rankings.OfType<JsonObject>())
         {
-            var rowSlug = NormalizeSlug(row["AthleteSlug"]?.GetValue<string>());
+            var rowSlug = AthleteSlug.Normalize(row["AthleteSlug"]?.GetValue<string>());
             if (string.IsNullOrWhiteSpace(rowSlug))
                 continue;
 
@@ -964,11 +964,6 @@ public sealed class AthleteOgImageService
         return null;
     }
 
-    private static string NormalizeSlug(string? slug)
-    {
-        return (slug ?? "").Trim().Replace('-', '_').ToLowerInvariant();
-    }
-
     private static string NormalizeContextSlug(string? context)
     {
         var normalized = (context ?? string.Empty).Trim().ToLowerInvariant();
@@ -986,14 +981,6 @@ public sealed class AthleteOgImageService
     private static string ToRouteSlug(string normalizedSlug)
     {
         return normalizedSlug.Replace('_', '-');
-    }
-
-    private static string ToDisplayName(string slug)
-    {
-        var parts = NormalizeSlug(slug).Split('_', StringSplitOptions.RemoveEmptyEntries);
-        if (parts.Length == 0)
-            return slug;
-        return string.Join(" ", parts.Select(p => char.ToUpperInvariant(p[0]) + p[1..]));
     }
 
     private static string FormatReduction(double value)

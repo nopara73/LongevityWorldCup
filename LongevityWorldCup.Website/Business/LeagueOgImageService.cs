@@ -568,7 +568,7 @@ public sealed class LeagueOgImageService
             .OfType<JsonObject>()
             .Select(o => new
             {
-                Slug = NormalizeAthleteSlug(o["AthleteSlug"]?.GetValue<string>()),
+                Slug = AthleteSlug.Normalize(o["AthleteSlug"]?.GetValue<string>()),
                 ProfileImageId = o["ProfileImageId"]?.GetValue<string>()
                     ?? o["ProfilePic"]?.GetValue<string>()
                     ?? ""
@@ -589,13 +589,13 @@ public sealed class LeagueOgImageService
         if (string.IsNullOrWhiteSpace(athleteSlug))
             return false;
 
-        var normalizedSlug = NormalizeAthleteSlug(athleteSlug);
+        var normalizedSlug = AthleteSlug.Normalize(athleteSlug);
         var snapshot = _athletes.GetAthletesSnapshot();
         var athlete = snapshot
             .OfType<JsonObject>()
             .FirstOrDefault(o =>
                 string.Equals(
-                    NormalizeAthleteSlug(o["AthleteSlug"]?.GetValue<string>()),
+                    AthleteSlug.Normalize(o["AthleteSlug"]?.GetValue<string>()),
                     normalizedSlug,
                     StringComparison.Ordinal));
         var profileUrl = athlete?["ProfilePic"]?.GetValue<string>();
@@ -646,7 +646,7 @@ public sealed class LeagueOgImageService
             .OfType<JsonObject>()
             .Select(o => new
             {
-                Slug = NormalizeAthleteSlug(o["AthleteSlug"]?.GetValue<string>()),
+                Slug = AthleteSlug.Normalize(o["AthleteSlug"]?.GetValue<string>()),
                 Name = (o["DisplayName"]?.GetValue<string>() ?? o["Name"]?.GetValue<string>() ?? "").Trim()
             })
             .Where(x => !string.IsNullOrWhiteSpace(x.Slug))
@@ -655,7 +655,7 @@ public sealed class LeagueOgImageService
 
         return top3Slugs
             .Select(NormalizeAthleteSlug)
-            .Select(s => bySlug.TryGetValue(s, out var n) ? n : ToDisplayName(s))
+            .Select(s => bySlug.TryGetValue(s, out var n) ? n : AthleteSlug.ToDisplayName(s))
             .ToArray();
     }
 
@@ -687,22 +687,9 @@ public sealed class LeagueOgImageService
         }
     }
 
-    private static string NormalizeAthleteSlug(string? slug)
-    {
-        return (slug ?? "").Trim().Replace('-', '_').ToLowerInvariant();
-    }
-
     private static string ToRouteSlug(string normalizedSlug)
     {
         return normalizedSlug.Replace('_', '-');
-    }
-
-    private static string ToDisplayName(string slug)
-    {
-        var parts = NormalizeAthleteSlug(slug).Split('_', StringSplitOptions.RemoveEmptyEntries);
-        if (parts.Length == 0)
-            return slug;
-        return string.Join(" ", parts.Select(p => char.ToUpperInvariant(p[0]) + p[1..]));
     }
 
     private static string NormalizeToken(string raw)

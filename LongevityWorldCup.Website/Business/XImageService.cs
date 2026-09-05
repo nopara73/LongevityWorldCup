@@ -767,12 +767,12 @@ public class XImageService
         if (string.IsNullOrWhiteSpace(slug))
             return null;
 
-        var normalized = NormalizeSlug(slug);
+        var normalized = AthleteSlug.Normalize(slug);
         var snapshot = _athletes.GetAthletesSnapshot();
         var athlete = snapshot
             .OfType<JsonObject>()
             .FirstOrDefault(o => string.Equals(
-                NormalizeSlug(o["AthleteSlug"]?.GetValue<string>()),
+                AthleteSlug.Normalize(o["AthleteSlug"]?.GetValue<string>()),
                 normalized,
                 StringComparison.Ordinal));
 
@@ -780,7 +780,7 @@ public class XImageService
             ? (athlete["DisplayName"]?.GetValue<string>() ?? athlete["Name"]?.GetValue<string>())
             : null;
         if (string.IsNullOrWhiteSpace(name))
-            name = ToDisplayName(normalized);
+            name = AthleteSlug.ToDisplayName(normalized);
         else
             name = name.Trim();
 
@@ -790,7 +790,7 @@ public class XImageService
         var rankings = _athletes.GetRankingsOrder();
         foreach (var row in rankings.OfType<JsonObject>())
         {
-            var rowSlug = NormalizeSlug(row["AthleteSlug"]?.GetValue<string>());
+            var rowSlug = AthleteSlug.Normalize(row["AthleteSlug"]?.GetValue<string>());
             if (string.IsNullOrWhiteSpace(rowSlug))
                 continue;
 
@@ -818,14 +818,14 @@ public class XImageService
             .OfType<JsonObject>()
             .Select(o => new
             {
-                Slug = NormalizeSlug(o["AthleteSlug"]?.GetValue<string>()),
+                Slug = AthleteSlug.Normalize(o["AthleteSlug"]?.GetValue<string>()),
                 ProfilePic = o["ProfilePic"]?.GetValue<string>()
             })
             .Where(x => !string.IsNullOrWhiteSpace(x.Slug))
             .GroupBy(x => x.Slug, StringComparer.Ordinal)
             .ToDictionary(g => g.Key, g => g.First().ProfilePic, StringComparer.Ordinal);
 
-        var normalizedSlug = NormalizeSlug(slug);
+        var normalizedSlug = AthleteSlug.Normalize(slug);
         if (!bySlug.TryGetValue(normalizedSlug, out var url))
             url = null;
 
@@ -887,19 +887,6 @@ public class XImageService
         return athlete.AgeReduction.HasValue
             ? FormatReduction(athlete.AgeReduction.Value)
             : "-";
-    }
-
-    private static string NormalizeSlug(string? slug)
-    {
-        return (slug ?? "").Trim().Replace('-', '_').ToLowerInvariant();
-    }
-
-    private static string ToDisplayName(string slug)
-    {
-        var parts = NormalizeSlug(slug).Split('_', StringSplitOptions.RemoveEmptyEntries);
-        if (parts.Length == 0)
-            return slug;
-        return string.Join(" ", parts.Select(p => char.ToUpperInvariant(p[0]) + p[1..]));
     }
 
     private static string FormatReduction(double value)
