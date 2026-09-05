@@ -3252,10 +3252,33 @@ public sealed class LongevitymaxxingChallengeService
         checkIns.TryGetValue(participant.Id, out var byDay);
         byDay ??= [];
 
-        return new[] { localDate.AddDays(-1), localDate.AddDays(-2) }
+        var eligibleDates = new HashSet<DateOnly>(
+            new[] { localDate.AddDays(-1), localDate.AddDays(-2) }
+                .Where(date => date >= settings.StartDate && date >= joinedLocalDate));
+        var latestEligibleDay = DayFromDate(settings, localDate.AddDays(-1));
+        if (latestEligibleDay is not null)
+        {
+            var firstParticipantDay = DayFromDate(settings, joinedLocalDate) ?? 1;
+            var leaderboardWindowStartDay = GetLeaderboardWindowStartDay(
+                GetVisibleDayCount(settings, checkIns, now),
+                maxChallengeDay: null);
+            var windowStartDay = Math.Max(
+                firstParticipantDay,
+                leaderboardWindowStartDay);
+            if (windowStartDay <= latestEligibleDay.Value)
+            {
+                var oldestMissedDay = Enumerable.Range(
+                        windowStartDay,
+                        latestEligibleDay.Value - windowStartDay + 1)
+                    .FirstOrDefault(day => !byDay.ContainsKey(day));
+                if (oldestMissedDay > 0)
+                    eligibleDates.Add(settings.StartDate.AddDays(oldestMissedDay - 1));
+            }
+        }
+
+        return eligibleDates
             .Select(date => (date, day: DayFromDate(settings, date)))
             .Where(x => x.day is not null)
-            .Where(x => x.date >= joinedLocalDate)
             .OrderBy(x => x.day!.Value)
             .Select(x =>
             {

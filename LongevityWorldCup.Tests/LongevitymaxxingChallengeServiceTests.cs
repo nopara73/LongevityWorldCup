@@ -1279,6 +1279,42 @@ public sealed class LongevitymaxxingChallengeServiceTests
     }
 
     [Fact]
+    public async Task OldestMissedDayStaysEligibleWithinScoringWindowAndAdvancesAfterSave()
+    {
+        using var fixture = TestChallengeFixture.Create();
+        var access = await fixture.ConfirmParticipantAsync("catch-up-window@example.com", "Catch-up Casey");
+        for (var day = 1; day <= 8; day++)
+        {
+            if (day is 3 or 4)
+                continue;
+
+            fixture.Service.SubmitCheckIn(
+                new LongevitymaxxingCheckInRequest(access, day, 2, 2, 2, 2, null),
+                DateTimeOffset.Parse("2026-06-09T08:00:00Z").AddDays(day - 1));
+        }
+
+        var now = DateTimeOffset.Parse("2026-06-17T08:00:00Z");
+        var state = fixture.Service.GetParticipantState(access, now);
+
+        Assert.Equal(new[] { 3, 8, 9 }, state.EligibleDays.Select(day => day.ChallengeDay));
+        Assert.Null(state.EligibleDays.Single(day => day.ChallengeDay == 3).Existing);
+        Assert.NotNull(state.EligibleDays.Single(day => day.ChallengeDay == 8).Existing);
+
+        var caughtUp = fixture.Service.SubmitCheckIn(
+            new LongevitymaxxingCheckInRequest(access, 3, 2, 2, 2, 2, null),
+            now.AddMinutes(1));
+
+        Assert.Equal(new[] { 4, 8, 9 }, caughtUp.EligibleDays.Select(day => day.ChallengeDay));
+        Assert.True(Assert.Single(caughtUp.Public.Leaderboard).Cells.Single(cell => cell.ChallengeDay == 3).CheckedIn);
+
+        var outsideWindow = fixture.Service.GetParticipantState(
+            access,
+            DateTimeOffset.Parse("2026-06-30T08:00:00Z"));
+        Assert.DoesNotContain(outsideWindow.EligibleDays, day => day.ChallengeDay == 4);
+        Assert.Contains(outsideWindow.EligibleDays, day => day.ChallengeDay == 10);
+    }
+
+    [Fact]
     public async Task SignupStaysOpenBeforeChallengeStartAfterConfiguredSignupClose()
     {
         using var fixture = TestChallengeFixture.Create(signupClosesAtUtc: "2026-06-01T00:00:00Z");

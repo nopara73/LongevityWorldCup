@@ -2434,7 +2434,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
 
         const missing = [...days]
             .filter(day => !day.existing)
-            .sort((a, b) => b.challengeDay - a.challengeDay)[0];
+            .sort((a, b) => a.challengeDay - b.challengeDay)[0];
         const fallback = missing || days.at(-1);
         if (!fallback) throw new Error("At least one eligible check-in day is required.");
         selectedCheckInDay = fallback.challengeDay;
@@ -4143,7 +4143,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             clearPendingNotePhotos(payload.challengeDay);
             acceptParticipantState(result);
             const nextMissing = getPendingCheckInDays(result)
-                .sort((a, b) => b.challengeDay - a.challengeDay)[0];
+                .sort((a, b) => a.challengeDay - b.challengeDay)[0];
             selectedCheckInDay = nextMissing ? nextMissing.challengeDay : payload.challengeDay;
             renderAll();
             if (quoteBucket) void showRandomCheckInQuote(quoteBucket);

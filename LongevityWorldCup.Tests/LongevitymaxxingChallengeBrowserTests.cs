@@ -1781,6 +1781,40 @@ public sealed class LongevitymaxxingChallengeBrowserTests(
     }
 
     [Fact]
+    public async Task MultipleDueCheckIns_PrioritizeOldestMissedDay()
+    {
+        var app = App;
+        var browser = Browser;
+        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = app.BaseAddress.ToString(),
+            Locale = "en-US",
+            ViewportSize = new ViewportSize { Width = 760, Height = 900 }
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+
+        var page = await context.NewPageAsync();
+        await page.RouteAsync(
+            "**/api/longevitymaxxing/state",
+            route => FulfillJsonAsync(route, JsonSerializer.Serialize(BuildPublicState())));
+        await page.RouteAsync(
+            "**/api/longevitymaxxing/participant",
+            route => FulfillJsonAsync(route, JsonSerializer.Serialize(BuildParticipantState(includeMissedCatchUpDay: true))));
+
+        await page.GotoAsync(
+            "/longevitymaxxing?token=browser-token",
+            new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+
+        var form = page.Locator("#lmxParticipantPanel .lmx-checkin-card");
+        await form.WaitForAsync();
+        Assert.Equal("17", await form.GetAttributeAsync("data-day"));
+        Assert.Equal(3, await page.Locator(".lmx-checkin-switcher button").CountAsync());
+        Assert.Equal(
+            "true",
+            await page.Locator(".lmx-checkin-switcher button[data-day='17']").GetAttributeAsync("aria-pressed"));
+    }
+
+    [Fact]
     public async Task CheckInGarden_UsesEstablishedGrowthDamageWithSeedlingStartAndBoundedProceduralPlants()
     {
         var app = App;
@@ -1906,7 +1940,8 @@ public sealed class LongevitymaxxingChallengeBrowserTests(
         DiscussionReplySnapshot? publicDiscussionReplySnapshot = null,
         bool includeDiscussionIdentityParticipants = false,
         bool includeJoinDiscussionPost = false,
-        bool joinDiscussionHasReply = false)
+        bool joinDiscussionHasReply = false,
+        bool includeMissedCatchUpDay = false)
         => new
         {
             @public = BuildPublicState(
@@ -1931,16 +1966,23 @@ public sealed class LongevitymaxxingChallengeBrowserTests(
             },
             eligibleDays = includeUpcomingCall
                 ? Array.Empty<object>()
-                : new object[]
-                {
-                    new
+                : includeMissedCatchUpDay
+                    ? new object[]
                     {
-                        challengeDay = 22,
-                        date = eligibleDayDate ?? "2026-06-29",
-                        countsForScore = true,
-                        existing = (object?)null
+                        new { challengeDay = 17, date = "2026-06-24", countsForScore = true, existing = (object?)null },
+                        new { challengeDay = 21, date = "2026-06-28", countsForScore = true, existing = (object?)null },
+                        new { challengeDay = 22, date = "2026-06-29", countsForScore = true, existing = (object?)null }
                     }
-                },
+                    : new object[]
+                    {
+                        new
+                        {
+                            challengeDay = 22,
+                            date = eligibleDayDate ?? "2026-06-29",
+                            countsForScore = true,
+                            existing = (object?)null
+                        }
+                    },
             notes = (includeMentionParticipants && !includeDiscussionNotesWithMentionParticipants
                     ? BuildMentionDiscussionNotes()
                     : BuildDiscussionNotes(discussionReplySnapshot))
