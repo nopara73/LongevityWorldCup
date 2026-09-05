@@ -775,13 +775,6 @@ window.goBackOrHome = function () {
     }
 }
 
-window.navigateToFlowDestination = function (destination) {
-    const target = typeof destination === 'string' && destination.trim()
-        ? destination
-        : '/';
-    window.location.replace(target);
-}
-
 window.optimizeImageClient = async function (dataUri, options) {
     const settings = options || {};
     const MaxBase64Length = 50 * 1024 * 1024; // 50 MB

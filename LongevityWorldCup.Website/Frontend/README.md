@@ -20,6 +20,8 @@ Keep strict null, unchecked-index, exact-optional-property, and erasable-syntax 
 
 Keep these classic scripts free of imports/exports: `flow-action-dock`, `bioage-flow`, `custom-event-markup`, `longevitymaxxing`, `site-statistics-tracking`, `site-statistics`.
 
+The head partial defines `navigateToFlowDestination` synchronously so inline Back handlers work before the asynchronous modules finish. Application Next starts disabled until initialization binds stage validation.
+
 Shared type-only contracts belong in `types/*.d.ts`. Runtime entry points stay self-contained to preserve request order, cache coverage, and independent failure. Ranking fallbacks and athlete-picture transitions have distinct failure, privacy, and timing behavior; consolidation requires equivalence and browser coverage.
 
 ## Inline Scripts
