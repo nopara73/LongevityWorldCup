@@ -2,7 +2,7 @@
 
 ## September 2026 source snapshot pruning
 
-The requested suite reduction removes 321 test cases (224 fact/theory methods). Against the 1,599-case master suite, this is a 20.08% reduction to 1,278 cases, including the recently added URL-compatibility and athlete-contact browser cases.
+The requested suite reduction removes 326 test cases (229 fact/theory methods). The fixed starting baseline is master `99f77f96`, whose [successful CI run](https://github.com/nopara73/LongevityWorldCup/actions/runs/33945073077) passed 1,538 cases: 21.2% of that suite is removed. Concurrent URL, contact, attribution, and submission-error regression additions are retained; final runner totals include those additions.
 
 The removed tests predominantly searched HTML, CSS, and JavaScript for exact source fragments, helper names, markup, colors, or copy. They constrained implementation details without executing the behavior named by the test. The motion-source auditor and tests of its own parser were removed together. This intentionally reduces source-shape coverage; it does not claim that every deleted assertion has an equivalent behavioral assertion.
 
@@ -13,6 +13,7 @@ The removed tests predominantly searched HTML, CSS, and JavaScript for exact sou
 | Play menu, shared flow controls, CSS motion, accessibility markup, badge colors, radar drawing, and leaderboard script snapshots | Every browser test, including the flow, accessibility, responsive-layout, reduced-motion, proof-viewer, and navigation scenarios; ranking, badge, and Event tests |
 | Aesthetic-system and statistics source/copy snapshots | Served-page routing, versioned assets, local font files, standalone-page isolation, statistics service, dashboard browser, and tracking browser tests |
 | Exact utility-page titles and ruleset diagram copy/placement | Keep every indexing-policy assertion from the title tests in the existing canonical-page response checks, which already request those same pages |
+| Custom-event designer wording/source fragments and discount-badge CSS dimensions | Custom-event delivery, preview-service, and queue tests; payment handoff checks and every existing play/flow browser test |
 
 The original best-rank candidate-set and modal-metadata checks also remain because the route browser tests do not exercise those contracts. Source checks with unique ranking, unit-conversion, or proof-processing coverage are retained even when a future behavioral replacement would be preferable.
 
