@@ -1,59 +1,30 @@
 # LongevityWorldCup Design Decisions
 
-This file records durable UI decisions for Longevity World Cup. Keep it short: add only reusable product-design guidance, not implementation history, workflow rules, or one-off polish notes.
+Keep reusable product decisions here; omit implementation history and one-off polish notes.
 
-## Principles
+## Visual System
 
-- Text should earn its place. Do not add explanatory UI copy, labels, hints, subtitles, or helper text unless the concept cannot be made clear through layout, affordance, grouping, placement, or a more self-evident visual cue. When a symbol, badge, color, or marker is misunderstood, first improve or replace the visual pattern itself; add words only after the non-text options fail.
+- Make meaning clear through layout, grouping, affordances, and visual cues before adding labels or helper copy. Fix misunderstood visual patterns before explaining them with words.
+- Use graphite chrome, cool neutral canvases, white task surfaces, and one teal action/data accent. Play, challenge, and athlete artwork may be expressive; controls and typography follow the shared system.
+- Use shared `--space-*`, `--type-*`, `--radius-*`, `--shadow-*`, and `--duration-*` scales. Exceptions need a content or platform constraint.
+- Roboto regular/bold is functional; Orbitron is only for short decorative competition marks.
+- Radii are 4px, 8px, and 12px for small, standard, and large components. Circles suit icons/portraits; pills suit compact badges/chips, not full-width actions.
+- Group with whitespace and neutral surface changes. Use small shadows for raised surfaces and medium shadows for active overlays. Combine tint, border, and shadow only when each conveys a distinct state.
+- Strong color marks action, selection, or named status; borders stay neutral. Also convey state through text, icons, or shape. Design light/dark palettes independently, without filters; pair semantic foreground/surface colors and use on-accent tokens for action text.
 
-- The shared visual direction is precision sport: graphite chrome, cool neutral canvases, white task surfaces, and one teal action/data accent. Feature artwork may make the Play entry, challenge hero, and athlete photography more expressive, but their controls, type hierarchy, states, and geometry still use the shared system.
+## Motion
 
-## Decisions
+- Use shared standard easing with 140ms transitions or 220ms state transitions. Avoid generic scroll entrances, looping decoration, delayed routine text, and unbounded particles in focused tasks.
+- First-visit game storytelling may pace existing text once; repeat visits fast-forward and reduced motion displays it immediately.
+- Important outcomes may combine shared durations into bounded choreography that explains the result. Publish semantic results and actions immediately, never gate progress on `animationend`, cap decoration, and provide an immediate reduced-motion state.
+- Render indefinite activities from aggregate state with bounded elements, never one image or DOM node per historical event.
 
-- Shared UI uses the `--space-*`, `--type-*`, `--radius-*`, `--shadow-*`, and `--duration-*` scales. New one-off values need a content or platform constraint that the existing scale cannot express.
+## Controls and Layout
 
-- Roboto is the functional typeface with regular and bold as the normal weights. Orbitron is reserved for short decorative competition marks, never form labels, filters, metrics, or body copy.
-
-- Use 4px, 8px, and 12px corner radii for small, standard, and large components. Reserve circles for circular icons or portraits and pills for compact badges or chips, not full-width actions.
-
-- Prefer whitespace and a neutral surface change for grouping. Use the small shadow for quiet raised surfaces and the medium shadow only for the active overlay; do not combine a tinted fill, border, and shadow unless each communicates a distinct state.
-
-- The default transition is 140ms and the longer state transition is 220ms, using the shared standard easing. Motion should explain continuity or state change; focused tasks do not use generic scroll entrances, looping decoration, routine delayed text, or unbounded celebration particles. A first-visit game prompt may pace its already-published text as one bounded storytelling beat when repeat views fast-forward it and reduced motion shows it immediately.
-
-- High-value outcome moments may compose the shared durations into one bounded choreography when motion makes the result easier to follow: for example, a guessed value travelling to the answer, a calculated age counting to its result, or a leaderboard place visibly moving. Publish the semantic result and available actions immediately, never gate progress on `animationend`, cap generated decoration, and provide an immediate reduced-motion state.
-
-- Strong color communicates an action, selection, or named status. Structural borders stay neutral, and state meaning must also be available through text, iconography, or shape. Light and dark palettes are designed independently rather than produced with filters.
-
-- Neutral foregrounds and surfaces must be paired through the shared semantic palette; do not place a hard-coded light-palette text color on a theme-switched surface. Actions use the palette's on-accent color instead of assuming white text.
-
-- Inline informational, success, warning, and error feedback uses the same neutral message surface, semantic leading edge, spacing, and recovery-action geometry. A blocking alert keeps the dialog shell because it is a focused interruption, but reuses the same palette, type, radius, and action hierarchy.
-
-- Direct-tap controls in mobile, toolbar, footer, and modal contexts should generally be easy to hit, with about a 44px target when space allows.
-
-- Controls that belong to the same flow should share the same visual language: inherited font, consistent height, modest radius, light border, and a visible focus state.
-
-- Form states must remain distinguishable without placeholder text: filled fields use the teal boundary, read-only fields use a neutral muted surface, invalid fields use a danger boundary plus nearby language, and disabled fields retain readable text with a non-interactive cursor.
-
-- Helper, confirmation, validation, and empty-state copy should be grouped in compact light panels when grouping improves scanning or anchors the message to nearby controls.
-
-- File, proof, and profile-image previews should stay inside bounded frames with `object-fit: contain` when unusual aspect ratios are likely.
-
-- Autocomplete and suggestion menus should appear as padded floating panels with clear row hover/focus states; on constrained viewports, avoid covering the next likely action.
-
-- Dense table and list hovers should not change font size or reflow neighboring content. Prefer color, underline, surface, edge, shadow, or slight lift for feedback.
-
-- Empty states inside data tables should be compact and include an obvious recovery action whose shape matches nearby controls.
-
-- Filter and segmented controls should make active, clearable, and unavailable states visually distinct without relying on a tiny badge alone.
-
-- Mobile foreground surfaces such as drawers and full-screen viewers should have clear close targets and enough backdrop contrast that the active surface is unambiguous.
-
-- Long user-generated labels, names, and button text should wrap without clipping; icons in action buttons should stay in fixed slots when labels wrap.
-
-- Badges are compact visual tokens. Keep badge groups predictable and avoid hover behavior that turns them into unstable or overly tall content.
-
-- Badge detail that appears on pointer hover must also appear on keyboard focus. Keep at most three badges plus a bounded overflow count in dense leaderboard rows; the athlete detail view may show the complete set.
-
-- Mobile modal content should prefer readable stacked sections over preserving desktop columns; avoid nested scrolling when stacked content can use the modal's main scroll.
-
-- Long-running progress visuals should consume aggregate state and render a bounded number of elements. Do not create one image or DOM node per historical event when a challenge or activity can continue indefinitely.
+- Related controls share inherited fonts, height, modest radius, light borders, and visible focus. Aim for 44px direct-tap targets where space allows.
+- Fields distinguish filled (teal boundary), read-only (muted neutral), invalid (danger boundary plus nearby explanation), and disabled (readable text, non-interactive cursor) states without relying on placeholders.
+- Informational, success, warning, and error messages share neutral surfaces, semantic leading edges, spacing, and recovery-action geometry. Blocking alerts retain dialog shells with the same palette, type, radius, and action hierarchy. Group helper, confirmation, validation, and empty-state copy in compact light panels when useful.
+- Frame file, proof, and profile previews; use `object-fit: contain` for variable aspect ratios. Autocomplete uses padded floating panels with clear hover/focus rows and must avoid covering the next mobile action.
+- Dense rows never resize text or reflow on hover. Keep empty table states compact with recovery controls matching their neighbors. Filters and segments visibly distinguish active, clearable, and unavailable states beyond tiny badges.
+- Mobile drawers/viewers need clear close targets and contrasting backdrops. Stack modal sections and prefer the main scroll over nested scrolling. Long names/labels wrap without clipping; button icons keep fixed slots.
+- Keep badges compact and stable on hover; details also appear on keyboard focus. Dense leaderboard rows show at most three badges plus bounded overflow; athlete detail views may show all.
