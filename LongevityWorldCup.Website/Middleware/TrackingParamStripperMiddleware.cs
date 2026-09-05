@@ -31,18 +31,18 @@ namespace LongevityWorldCup.Website.Middleware
                 return;
             }
 
-            var qs = context.Request.QueryString.Value;
-            if (string.IsNullOrEmpty(qs))
+            var queryString = context.Request.QueryString.Value;
+            if (string.IsNullOrEmpty(queryString))
             {
                 await _next(context);
                 return;
             }
 
-            var dict = QueryHelpers.ParseQuery(qs);
+            var queryParameters = QueryHelpers.ParseQuery(queryString);
             var removed = false;
 
-            foreach (var k in StripKeys.ToArray())
-                removed |= dict.Remove(k);
+            foreach (var key in StripKeys)
+                removed |= queryParameters.Remove(key);
 
             if (!removed)
             {
@@ -51,12 +51,12 @@ namespace LongevityWorldCup.Website.Middleware
             }
 
             // rebuild query string
-            var pairs = dict.SelectMany(kvp =>
+            var pairs = queryParameters.SelectMany(kvp =>
                 kvp.Value.Count == 0
                     ? new[] { Uri.EscapeDataString(kvp.Key ?? "") }
                     : kvp.Value.Select(v => $"{Uri.EscapeDataString(kvp.Key ?? "")}={Uri.EscapeDataString(v ?? "")}"));
 
-            var newQuery = pairs.Any() ? "?" + string.Join("&", pairs) : string.Empty;
+            var newQuery = queryParameters.Count > 0 ? "?" + string.Join("&", pairs) : string.Empty;
             var newUrl = context.Request.PathBase.Add(context.Request.Path).ToString() + newQuery;
 
             context.Response.Redirect(newUrl, permanent: true);
