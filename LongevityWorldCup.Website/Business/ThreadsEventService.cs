@@ -43,72 +43,28 @@ public class ThreadsEventService
         _ = await TrySendAsync(text);
     }
 
-    public async Task<bool> TrySendAsync(string text)
+    public Task<bool> TrySendAsync(string text)
     {
-        const int maxAttempts = 2;
-        const int retryDelayMs = 750;
-
-        for (var attempt = 1; attempt <= maxAttempts; attempt++)
-        {
-            try
-            {
-                var postId = await _threads.SendPostAsync(text);
-                if (!string.IsNullOrWhiteSpace(postId))
-                    return true;
-
-                _log.LogWarning("Threads send returned no post id: {Text}", text);
-                return false;
-            }
-            catch (Exception ex)
-            {
-                if (attempt < maxAttempts)
-                {
-                    _log.LogWarning(ex, "Threads send failed (attempt {Attempt}/{MaxAttempts}), retrying: {Text}", attempt, maxAttempts, text);
-                    await Task.Delay(retryDelayMs);
-                    continue;
-                }
-
-                _log.LogError(ex, "Threads send failed after retries: {Text}", text);
-                return false;
-            }
-        }
-
-        return false;
+        // The client owns container/publish retries; a missing id must not restart the post.
+        return SocialPostRetry.TrySendAsync(
+            () => _threads.SendPostAsync(text),
+            _log,
+            "Threads send",
+            text,
+            retryMissingPostId: false);
     }
 
-    public async Task<bool> TrySendImageAsync(string text, string imageUrl)
+    public Task<bool> TrySendImageAsync(string text, string imageUrl)
     {
-        const int maxAttempts = 2;
-        const int retryDelayMs = 750;
         text ??= "";
         imageUrl = imageUrl?.Trim() ?? "";
 
-        for (var attempt = 1; attempt <= maxAttempts; attempt++)
-        {
-            try
-            {
-                var postId = await _threads.SendImagePostAsync(text, imageUrl);
-                if (!string.IsNullOrWhiteSpace(postId))
-                    return true;
-
-                _log.LogWarning("Threads image send returned no post id: {Text}", text);
-                return false;
-            }
-            catch (Exception ex)
-            {
-                if (attempt < maxAttempts)
-                {
-                    _log.LogWarning(ex, "Threads image send failed (attempt {Attempt}/{MaxAttempts}), retrying: {Text}", attempt, maxAttempts, text);
-                    await Task.Delay(retryDelayMs);
-                    continue;
-                }
-
-                _log.LogError(ex, "Threads image send failed after retries: {Text}", text);
-                return false;
-            }
-        }
-
-        return false;
+        return SocialPostRetry.TrySendAsync(
+            () => _threads.SendImagePostAsync(text, imageUrl),
+            _log,
+            "Threads image send",
+            text,
+            retryMissingPostId: false);
     }
 
     public async Task SendEventAsync(EventType type, string rawText)
