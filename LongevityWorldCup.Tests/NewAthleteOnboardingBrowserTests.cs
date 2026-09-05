@@ -201,7 +201,7 @@ public sealed class NewAthleteOnboardingBrowserTests(
         await RunOnboardingBrowserAsync(async (page, errors) =>
         {
             await page.GotoAsync("/apply", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-            await page.GetByRole(AriaRole.Heading, new() { Name = "1. Enter the arena" }).WaitForAsync();
+            await page.Locator("#name[data-stage1-validity-listener='true']").WaitForAsync();
 
             await page.EvaluateAsync("() => { currentStage = 4; goToStage(4); }");
 
