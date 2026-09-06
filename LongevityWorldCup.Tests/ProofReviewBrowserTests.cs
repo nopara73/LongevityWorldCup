@@ -79,6 +79,44 @@ public sealed class ProofReviewBrowserTests(PlaywrightBrowserFixture browserFixt
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
+    public async Task AcceptedSubmissionWithPaymentFailure_ClearsTheExitWarningBeforeConfirmation(bool onboarding)
+    {
+        await using var context = await NewContextAsync(Browser, App, new());
+        var page = await PrepareAsync(context, onboarding);
+        await UploadAsync(page, await CreatePagesAsync(1));
+        await page.EvaluateAsync("""
+            () => {
+                window.trySendApplicationSubmissionReport = async () => {};
+                window.submitApplicationWithRecovery = async () => ({
+                    ok: false,
+                    response: new Response('Application sent, but failed to create BTCPay invoice: unavailable', {status: 502})
+                });
+            }
+            """);
+        if (onboarding)
+        {
+            foreach (var heading in new[] { "5. Final details", "Application" })
+            {
+                await page.Locator("#nextButton").ClickAsync();
+                await page.GetByRole(AriaRole.Heading, new() { Name = heading, Exact = true }).WaitForAsync();
+            }
+            await page.Locator("#accountEmail").FillAsync("proof@example.test");
+        }
+        var dialogs = new List<string>();
+        page.Dialog += async (_, dialog) => { dialogs.Add(dialog.Type); await dialog.AcceptAsync(); };
+        await page.Locator(onboarding ? "#nextButton" : "#submitButton").ClickAsync();
+        var received = onboarding ? "Your application was received" : "Your results were received";
+        await Assertions.Expect(page.Locator("#custom-alert-message"))
+            .ToHaveTextAsync($"{received}, but the payment page could not be created. We will follow up by email.");
+        Assert.False(await WouldWarnOnExitAsync(page));
+        await page.Locator("#custom-alert-close").ClickAsync();
+        await page.WaitForURLAsync(url => new Uri(url).AbsolutePath == "/review");
+        Assert.Empty(dialogs);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     public async Task RemovalAndUndo_PreserveTheSubmittedPagesAndTheirOrder(bool onboarding)
     {
         await using var context = await NewContextAsync(Browser, App, new() { ViewportSize = new() { Width = 320, Height = 844 } });
