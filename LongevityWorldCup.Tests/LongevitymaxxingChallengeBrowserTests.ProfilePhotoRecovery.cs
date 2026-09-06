@@ -17,7 +17,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
     public async Task ProfilePhotoUpload_RetryKeepsTheFileAndSerializesRequests(string failure, int width, ColorScheme theme)
     {
         await using var context = await NewContextAsync(Browser, App, new() { ViewportSize = new() { Width = width, Height = 844 }, ColorScheme = theme, ReducedMotion = ReducedMotion.Reduce });
-        var page = await OpenPhotoProfileAsync(context);
+        var page = await OpenProfileWorkspaceAsync(context);
         var requests = new List<byte[]>();
         var retryStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var retryGate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -32,7 +32,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
             }
             retryStarted.TrySetResult();
             await retryGate.Task;
-            await FulfillJsonAsync(route, PhotoProfileState(PhotoSavedUrl).ToJsonString());
+            await FulfillJsonAsync(route, ProfileWorkspaceState(PhotoSavedUrl).ToJsonString());
         });
         try
         {
@@ -73,7 +73,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
     public async Task ProfilePhotoUpload_LateFailureKeepsOutsideFocusAndSurvivesViews(bool leaveProfile)
     {
         await using var context = await NewContextAsync(Browser, App, new() { ViewportSize = new() { Width = 390, Height = 844 } });
-        var page = await OpenPhotoProfileAsync(context);
+        var page = await OpenProfileWorkspaceAsync(context);
         var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         await page.RouteAsync("**/api/longevitymaxxing/profile-picture", async route =>
@@ -104,7 +104,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
     public async Task ProfilePhotoUpload_SuccessKeepsConcurrentTimezoneEdits(bool saveTimezone, bool photoFinishesFirst)
     {
         await using var context = await NewContextAsync(Browser, App, new() { ViewportSize = new() { Width = 390, Height = 844 } });
-        var page = await OpenPhotoProfileAsync(context);
+        var page = await OpenProfileWorkspaceAsync(context);
         var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var timezoneGate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -112,12 +112,12 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await page.RouteAsync("**/api/longevitymaxxing/profile-picture", async route =>
         {
             started.TrySetResult(); await gate.Task;
-            await FulfillJsonAsync(route, PhotoProfileState(PhotoSavedUrl).ToJsonString());
+            await FulfillJsonAsync(route, ProfileWorkspaceState(PhotoSavedUrl).ToJsonString());
         });
         await page.RouteAsync("**/api/longevitymaxxing/edit", async route =>
         {
             await timezoneGate.Task;
-            await FulfillJsonAsync(route, PhotoProfileState(timeZone: "Europe/London").ToJsonString());
+            await FulfillJsonAsync(route, ProfileWorkspaceState(timeZone: "Europe/London").ToJsonString());
         });
         try
         {
@@ -129,7 +129,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
             if (saveTimezone)
             {
                 await page.Locator("#lmxEditForm > button[type='submit']").ClickAsync();
-                if (!photoFinishesFirst) await Assertions.Expect(page.Locator("#lmxEditStatus")).ToHaveTextAsync("Saved.");
+                if (!photoFinishesFirst) await WaitForTimeZoneSaveAsync(page);
             }
             await page.Locator("#lmxEditTimeZoneButton").FocusAsync();
             gate.TrySetResult();
@@ -139,7 +139,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
             if (saveTimezone)
             {
                 timezoneGate.TrySetResult();
-                await Assertions.Expect(page.Locator("#lmxEditStatus")).ToHaveTextAsync("Saved.");
+                await WaitForTimeZoneSaveAsync(page);
                 await Assertions.Expect(page.Locator("#lmxProfilePictureImage")).ToHaveAttributeAsync("src", PhotoSavedUrl);
                 await page.Locator("#lmxHomeTab").ClickAsync();
                 await page.Locator("#lmxProfileTab").ClickAsync();
@@ -154,13 +154,13 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
     public async Task ProfilePhotoUpload_ReplacementKeepsTheNewFileAcrossAnotherFailure()
     {
         await using var context = await NewContextAsync(Browser, App, new() { ViewportSize = new() { Width = 320, Height = 844 } });
-        var page = await OpenPhotoProfileAsync(context);
+        var page = await OpenProfileWorkspaceAsync(context);
         var requests = new List<byte[]>();
         await page.RouteAsync("**/api/longevitymaxxing/profile-picture", async route =>
         {
             requests.Add(route.Request.PostDataBuffer!);
             if (requests.Count < 3) await route.FulfillAsync(new() { Status = requests.Count == 1 ? 400 : 503, ContentType = "application/json", Body = "{\"message\":\"Please try another picture.\"}" });
-            else await FulfillJsonAsync(route, PhotoProfileState(PhotoSavedUrl).ToJsonString());
+            else await FulfillJsonAsync(route, ProfileWorkspaceState(PhotoSavedUrl).ToJsonString());
         });
         var first = ProfilePhotoFile("first.png");
         var replacement = ProfilePhotoFile("replacement-with-a-long-filename-that-must-wrap.png");
@@ -186,7 +186,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
     public async Task ProfilePhotoUpload_CancellingReplacementKeepsRetryAndAllowsSameFileSelection()
     {
         await using var context = await NewContextAsync(Browser, App, new());
-        var page = await OpenPhotoProfileAsync(context);
+        var page = await OpenProfileWorkspaceAsync(context);
         var requests = 0;
         await page.RouteAsync("**/api/longevitymaxxing/profile-picture", async route =>
         {
@@ -211,13 +211,13 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
     public async Task ProfilePhotoUpload_UnreadableSelectionFallsBackAndCanBeReplaced()
     {
         await using var context = await NewContextAsync(Browser, App, new());
-        var page = await OpenPhotoProfileAsync(context);
+        var page = await OpenProfileWorkspaceAsync(context);
         var requests = 0;
         await page.RouteAsync("**/api/longevitymaxxing/profile-picture", async route =>
         {
             requests++;
             if (requests == 1) await route.FulfillAsync(new() { Status = 400, ContentType = "application/json", Body = "{\"message\":\"Please upload a JPG, PNG, or WebP image.\"}" });
-            else await FulfillJsonAsync(route, PhotoProfileState(PhotoSavedUrl).ToJsonString());
+            else await FulfillJsonAsync(route, ProfileWorkspaceState(PhotoSavedUrl).ToJsonString());
         });
         await page.Locator("#lmxProfilePictureInput").SetInputFilesAsync(new FilePayload { Name = "unreadable.heic", MimeType = "image/heic", Buffer = Encoding.UTF8.GetBytes("not an image") });
         await Assertions.Expect(page.Locator("#lmxProfilePictureStatus")).ToContainTextAsync("JPG, PNG, or WebP");
@@ -235,16 +235,16 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
     public async Task ProfilePhotoUpload_LinkedAthletesKeepTheirPublishedPicture()
     {
         await using var context = await NewContextAsync(Browser, App, new());
-        var state = PhotoProfileState();
+        var state = ProfileWorkspaceState();
         state["participant"]!["athleteSlug"] = "linked-athlete";
         state["participant"]!["athleteUrl"] = "/athlete/linked-athlete";
-        var page = await OpenPhotoProfileAsync(context, state);
+        var page = await OpenProfileWorkspaceAsync(context, state);
         await Assertions.Expect(page.Locator("#lmxProfilePictureField")).ToBeHiddenAsync();
     }
 
     private const string PhotoSavedUrl = "/generated/longevitymaxxing/profile-pictures/browser-test.webp?v=photo-2";
     private static FilePayload ProfilePhotoFile(string name) => new() { Name = name, MimeType = "image/png", Buffer = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j7GQAAAAASUVORK5CYII=") };
-    private static JsonObject PhotoProfileState(string? image = null, string timeZone = "UTC")
+    private static JsonObject ProfileWorkspaceState(string? image = null, string timeZone = "UTC")
     {
         var state = JsonSerializer.SerializeToNode(BuildParticipantState(timeZoneId: timeZone))!.AsObject();
         state["eligibleDays"] = new JsonArray();
@@ -253,11 +253,11 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
             if (row!["participantId"]!.GetValue<string>() == "p1") row["profileImageUrl"] = image;
         return state;
     }
-    private static async Task<IPage> OpenPhotoProfileAsync(IBrowserContext context, JsonObject? state = null)
+    private static async Task<IPage> OpenProfileWorkspaceAsync(IBrowserContext context, JsonObject? state = null)
     {
         await context.AddInitScriptAsync("localStorage.setItem('lmxAccessToken','browser-token')");
         await context.RouteAsync("**/api/longevitymaxxing/state", route => FulfillJsonAsync(route, JsonSerializer.Serialize(BuildPublicState())));
-        await context.RouteAsync("**/api/longevitymaxxing/participant", route => FulfillJsonAsync(route, (state ?? PhotoProfileState()).ToJsonString()));
+        await context.RouteAsync("**/api/longevitymaxxing/participant", route => FulfillJsonAsync(route, (state ?? ProfileWorkspaceState()).ToJsonString()));
         await context.RouteAsync("**/generated/longevitymaxxing/profile-pictures/browser-test.webp*", route => route.FulfillAsync(new() { ContentType = "image/png", BodyBytes = ProfilePhotoFile("served.png").Buffer }));
         var page = await context.NewPageAsync();
         await page.GotoAsync("/longevitymaxxing", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
