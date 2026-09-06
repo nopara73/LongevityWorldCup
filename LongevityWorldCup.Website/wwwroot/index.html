@@ -81,12 +81,6 @@
             line-height: 1.5;
         }
 
-        #newsletterSuccessMessage,
-        #newsletterSuccessMessage strong {
-            overflow-wrap: anywhere;
-            word-break: break-word;
-        }
-
         .dialog-button {
             display: inline-block;
             padding: 0.7rem 1.5rem;
@@ -356,6 +350,40 @@
         #newsletter-form .shared-email-button i {
             flex: 0 0 1.25rem;
             text-align: center;
+        }
+
+        #newsletter-form .shared-email-button {
+            transform: none;
+        }
+
+        #newsletter-form .shared-email-button[aria-disabled="true"] {
+            background: var(--lwc-surface-muted);
+            color: var(--lwc-muted);
+            border-color: var(--lwc-border);
+        }
+
+        #newsletterStatus {
+            max-width: 600px;
+            margin: var(--lwc-space-3) auto 0;
+            color: var(--lwc-ink);
+            line-height: 1.5;
+            text-align: left;
+            overflow-wrap: anywhere;
+        }
+
+        #newsletterStatus:empty {
+            margin: 0;
+        }
+
+        #newsletterStatus:not(:empty) {
+            padding: var(--lwc-space-3) var(--lwc-space-4);
+            border-inline-start: 3px solid var(--lwc-success);
+            border-radius: var(--lwc-radius-sm);
+            background: var(--lwc-surface-muted);
+        }
+
+        #newsletterStatus.is-error {
+            border-inline-start-color: var(--lwc-danger);
         }
 
         /* Styles for the copy button */
@@ -1972,39 +2000,26 @@
                 </span>
             </p>
 
-            <form id="newsletter-form">
+            <form id="newsletter-form" novalidate>
                 <label for="emailInput" class="shared-email-label">Email address</label>
-                <input type="email" id="emailInput" class="shared-email-input" placeholder="athlete@example.com" autocomplete="email" required>
-                <button type="submit" class="enhanced-subscribe-btn shared-email-button" aria-label="Subscribe to the Longevity World&nbsp;Cup newsletter">
-                    <i class="fas fa-paper-plane"></i> Subscribe
+                <input type="email" id="emailInput" class="shared-email-input" placeholder="athlete@example.com" autocomplete="email" aria-describedby="newsletterStatus" required>
+                <button type="submit" class="enhanced-subscribe-btn shared-email-button" aria-describedby="newsletterStatus">
+                    <i class="fas fa-paper-plane" aria-hidden="true"></i> Subscribe
                 </button>
             </form>
+            <p id="newsletterStatus" role="status" aria-live="polite" aria-atomic="true"></p>
         </section>
-        <!-- Newsletter success dialog -->
-        <div id="newsletterModal" class="dialog" role="dialog" aria-modal="true" aria-labelledby="newsletterModalTitle" aria-describedby="newsletterSuccessMessage">
-            <div class="dialog-content">
-                <h2 id="newsletterModalTitle" class="visually-hidden">Newsletter subscription successful</h2>
-                <button type="button" id="closeNewsletterBtn1" class="close" aria-label="Close dialog">&times;</button>
-                <div class="checkmark-container"></div>
-                <p id="newsletterSuccessMessage">
-                    You subscribed with <strong>foo@bar.com</strong>. At the beginning of each year, we’ll send you an update about last year’s winners and announce the start of the new season.
-                </p>
-                <div style="text-align: center; margin-top: 20px;">
-                    <button id="closeNewsletterBtn2" class="dialog-button">OK</button>
-                </div>
-            </div>
-        </div>
     </main>
     <!--FOOTER-->
 
     <script>
         let bitcoinDonationAddress = '';
-        let newsletterModalPreviousFocus = null;
-        let newsletterModalCloseTimer = null;
-        const newsletterModal = document.getElementById("newsletterModal");
+        let newsletterSubmitting = false;
+        let newsletterRetryEmail = '';
         const newsletterForm = document.getElementById('newsletter-form');
         const newsletterEmailInput = document.getElementById('emailInput');
         const newsletterSubmitButton = newsletterForm.querySelector('button[type="submit"]');
+        const newsletterStatus = document.getElementById('newsletterStatus');
         const bitcoinAddressLink = document.getElementById('btcAddressLink');
         const bitcoinCopyButton = document.getElementById('bitcoinCopyButton');
 
@@ -2290,110 +2305,77 @@
         });
 
 
-        document.getElementById("closeNewsletterBtn1").onclick = function () {
-            closeNewsletterModal();
-        };
-
-        document.getElementById('closeNewsletterBtn2').addEventListener('click', function () {
-            closeNewsletterModal();
-        });
-
-        window.addEventListener('click', function (event) {
-            if (event.target === newsletterModal) {
-                closeNewsletterModal();
-            }
-        });
-        document.addEventListener('keydown', function (event) {
-            if (newsletterModal.style.display === 'flex' && event.key === 'Escape') {
-                event.preventDefault();
-                closeNewsletterModal();
-            }
-        });
-
-        function openNewsletterModal(focusTarget) {
-            newsletterModalPreviousFocus = focusTarget || (document.activeElement instanceof HTMLElement ? document.activeElement : null);
-            newsletterModal.style.display = 'flex';
-            document.body.classList.add('no-scroll');
-            requestAnimationFrame(() => document.getElementById('closeNewsletterBtn1').focus());
+        function setNewsletterStatus(message, isError = false) {
+            newsletterStatus.textContent = message;
+            newsletterStatus.classList.toggle('is-error', isError);
         }
 
-        function closeNewsletterModal() {
-            if (newsletterModal.style.display !== 'flex') {
+        function renderNewsletterAction() {
+            const retry = newsletterRetryEmail && newsletterRetryEmail === newsletterEmailInput.value.trim();
+            newsletterSubmitButton.setAttribute('aria-disabled', String(newsletterSubmitting));
+            newsletterSubmitButton.setAttribute('aria-busy', String(newsletterSubmitting));
+            newsletterForm.setAttribute('aria-busy', String(newsletterSubmitting));
+            newsletterSubmitButton.innerHTML = newsletterSubmitting
+                ? '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i> Subscribing…'
+                : retry
+                    ? '<i class="fas fa-redo" aria-hidden="true"></i> Retry'
+                    : '<i class="fas fa-paper-plane" aria-hidden="true"></i> Subscribe';
+        }
+
+        function showNewsletterFailure(email, message) {
+            newsletterRetryEmail = email;
+            setNewsletterStatus(newsletterEmailInput.value.trim() === email ? message : `${email}: ${message}`, true);
+        }
+
+        newsletterEmailInput.addEventListener('input', () => {
+            newsletterRetryEmail = '';
+            newsletterEmailInput.removeAttribute('aria-invalid');
+            setNewsletterStatus('');
+            renderNewsletterAction();
+        });
+
+        newsletterForm.addEventListener('submit', async function (e) {
+            e.preventDefault();
+            if (newsletterSubmitting) return;
+
+            const email = newsletterEmailInput.value.trim();
+            newsletterEmailInput.value = email;
+            if (!newsletterEmailInput.checkValidity()) {
+                setNewsletterStatus(email ? 'Enter a valid email address.' : 'Enter your email address.', true);
+                newsletterEmailInput.setAttribute('aria-invalid', 'true');
+                newsletterEmailInput.focus();
                 return;
             }
 
-            if (newsletterModalCloseTimer) {
-                clearTimeout(newsletterModalCloseTimer);
-            }
-
-            newsletterModal.classList.add('fade-out');
-            newsletterModalCloseTimer = setTimeout(() => {
-                newsletterModal.style.display = "none";
-                newsletterModal.classList.remove('fade-out');
-                document.body.classList.remove('no-scroll');
-                newsletterModalCloseTimer = null;
-
-                if (newsletterModalPreviousFocus && typeof newsletterModalPreviousFocus.focus === 'function') {
-                    newsletterModalPreviousFocus.focus();
+            newsletterEmailInput.removeAttribute('aria-invalid');
+            newsletterRetryEmail = '';
+            setNewsletterStatus('');
+            newsletterSubmitting = true;
+            renderNewsletterAction();
+            try {
+                const response = await fetchWithTimeout('/api/home/subscribe', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email })
+                }, 10000);
+                const message = (await response.text()).trim();
+                const alreadySubscribed = response.status === 400 && message === 'This email is already subscribed.';
+                if (!response.ok && !alreadySubscribed) {
+                    const explanation = response.status === 400 && response.headers.get('content-type')?.includes('text/plain') && message
+                        ? message
+                        : 'Couldn’t confirm the subscription. Try again.';
+                    showNewsletterFailure(email, explanation);
+                    return;
                 }
 
-                newsletterModalPreviousFocus = null;
-            }, 400);
-        }
-
-        newsletterForm.addEventListener('submit', function (e) {
-            e.preventDefault();
-
-            const emailInput = newsletterEmailInput.value.trim();
-            newsletterEmailInput.value = emailInput;
-            newsletterEmailInput.blur();
-
-            if (newsletterSubmitButton.disabled) {
-                return;
-            }
-
-            if (newsletterEmailInput.checkValidity()) {
-                const originalButtonHtml = newsletterSubmitButton.innerHTML;
-                newsletterSubmitButton.disabled = true;
-                newsletterSubmitButton.classList.add('is-loading');
-                newsletterSubmitButton.setAttribute('aria-busy', 'true');
-                newsletterForm.setAttribute('aria-busy', 'true');
-                newsletterSubmitButton.innerHTML = '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i> Subscribing...';
-
-                fetchWithTimeout('/api/home/subscribe', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ email: emailInput })
-                }, 10000)
-                    .then(response => {
-                        if (response.ok) {
-                            return response.text();
-                        } else if (response.status === 400) {
-                            return response.text().then(text => { throw new Error(text); });
-                        } else {
-                            throw new Error('An unexpected error occurred.');
-                        }
-                    })
-                    .then(() => {
-                        const successMessage = document.getElementById('newsletterSuccessMessage');
-                        successMessage.innerHTML = `You subscribed with <strong>${emailInput}</strong>. At the beginning of each year, we’ll send you an update about last year’s winners and announce the start of the new season.`;
-                        newsletterForm.reset();
-                        openNewsletterModal(newsletterSubmitButton);
-                    })
-                    .catch(error => {
-                        customAlert(error.message);
-                    })
-                    .finally(() => {
-                        newsletterSubmitButton.disabled = false;
-                        newsletterSubmitButton.classList.remove('is-loading');
-                        newsletterSubmitButton.setAttribute('aria-busy', 'false');
-                        newsletterForm.setAttribute('aria-busy', 'false');
-                        newsletterSubmitButton.innerHTML = originalButtonHtml;
-                    });
-            } else {
-                customAlert('Please enter a valid email address.');
+                // A response confirms its submitted address, not a later edit in the field.
+                if (newsletterEmailInput.value.trim() === email) newsletterEmailInput.value = '';
+                setNewsletterStatus(alreadySubscribed ? `${email} is already subscribed.` : `Subscribed with ${email}.`);
+            } catch {
+                showNewsletterFailure(email, 'Couldn’t confirm the subscription. Try again.');
+            } finally {
+                newsletterSubmitting = false;
+                renderNewsletterAction();
             }
         });
 
