@@ -616,6 +616,40 @@
             outline-color: var(--lwc-danger);
             box-shadow: 0 0 0 3px var(--lwc-danger-soft);
         }
+        .profile-draft {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            flex-wrap: wrap;
+            grid-column: 1 / -1;
+            width: 100%;
+            max-width: 408px;
+            margin: 0 auto;
+        }
+        .profile-draft-status {
+            flex-basis: 100%;
+            margin: var(--lwc-space-1) 0;
+            color: var(--lwc-danger);
+            font-size: var(--lwc-type-sm);
+            line-height: 1.5;
+            text-align: left;
+        }
+        .profile-draft button {
+            min-height: 44px;
+            padding: var(--lwc-space-2);
+            border: 0;
+            border-radius: var(--lwc-radius-sm);
+            background: transparent;
+            color: var(--lwc-muted);
+            font: inherit;
+            font-size: var(--lwc-type-sm);
+            text-decoration: underline;
+            text-underline-offset: 0.2em;
+            cursor: pointer;
+        }
+        .profile-draft button:hover { color: var(--lwc-ink); }
+        .profile-draft button:focus-visible { outline: 2px solid var(--lwc-accent); outline-offset: 2px; }
+        .profile-draft[hidden], .profile-draft [hidden] { display: none; }
     </style>
 </head>
 <body class="play-flow-route">
@@ -720,6 +754,11 @@
                 <p id="whyDisplayInputError" class="profile-field-error" aria-live="polite" hidden></p>
             </div>
         </div>
+        <div id="profileDraftSummary" class="profile-draft" hidden>
+            <button type="button" id="resetProfileDraftButton">Reset all</button>
+            <button type="button" id="undoProfileDraftButton" hidden>Undo reset</button>
+            <p id="profileDraftStatus" class="profile-draft-status" role="status" hidden></p>
+        </div>
         <div class="options-container edit-profile-actions flow-action-stack flow-action-stack--hide-disabled-primary" data-flow-dock="auto" data-aos="fade" data-aos-duration="700" data-aos-delay="400">
             <button id="submitButton" type="submit" disabled class="option-button green flow-action"><span class="flow-action__label">Submit change request</span><i class="fa fa-rocket" aria-hidden="true"></i></button>
             <button type="button" class="option-button back-button flow-action flow-action--secondary flow-action--icon-left" onclick="window.navigateToFlowDestination('/dashboard')">
@@ -750,11 +789,16 @@
     <script>
         let isEditProfileSubmitting = false;
         const pendingProfileFieldValidation = new Map();
+        let profileEditorReady = false;
+        let resetProfileDraftSnapshot = null;
+        let hasUnsavedProfileDraft = false;
 
         function setBrowserStorageItem(storageName, key, value) {
             try {
                 window[storageName].setItem(key, value);
+                return true;
             } catch (_) {
+                return false;
             }
         }
 
@@ -769,13 +813,15 @@
         function removeBrowserStorageItem(storageName, key) {
             try {
                 window[storageName].removeItem(key);
+                return true;
             } catch (_) {
+                return false;
             }
         }
 
-        function setSessionItem(key, value) { setBrowserStorageItem('sessionStorage', key, value); }
+        function setSessionItem(key, value) { return setBrowserStorageItem('sessionStorage', key, value); }
         function setLocalItem(key, value) { setBrowserStorageItem('localStorage', key, value); }
-        function removeSessionItem(key) { removeBrowserStorageItem('sessionStorage', key); }
+        function removeSessionItem(key) { return removeBrowserStorageItem('sessionStorage', key); }
         function removeLocalItem(key) { removeBrowserStorageItem('localStorage', key); }
         function getSessionItem(key) { return getBrowserStorageItem('sessionStorage', key); }
         function getLocalItem(key) { return getBrowserStorageItem('localStorage', key); }
@@ -874,6 +920,10 @@
             tempAthlete = null;
         }
 
+        if (tempAthlete && (!isValidSelectedAthlete(tempAthlete) || tempAthlete.Name !== originalAthlete.Name)) {
+            removeSessionItem('tempAthlete');
+            tempAthlete = null;
+        }
         const athlete = isValidSelectedAthlete(tempAthlete)
             ? tempAthlete
             : JSON.parse(JSON.stringify(originalAthlete));  // ← deep‐clone here
@@ -894,6 +944,7 @@
         });
 
         function finishEditProfileSubmission(submissionContext) {
+            profileEditorReady = false;
             const reviewContactEmail = normalizeContactEmail(submissionContext.accountEmail);
             if (reviewContactEmail) {
                 if (submissionContext.applicantName) {
@@ -902,7 +953,11 @@
                 setSessionItem('contactEmail', reviewContactEmail);
                 setLocalItem('contactEmail', reviewContactEmail);
             }
-            window.clearPendingApplicationSubmission(submissionContext.submissionId);
+            const draftCleared = removeSessionItem('tempAthlete') || setSessionItem('tempAthlete', 'null');
+            if (draftCleared) window.clearPendingApplicationSubmission(submissionContext.submissionId);
+            // If cleanup is blocked, retain the submission receipt so re-entry
+            // recovers the accepted request instead of offering its draft again.
+            hasUnsavedProfileDraft = false;
             setSessionItem('came-from', 'edit-profile');
             customAlert('Change request submitted!').then(() => {
                 window.location.href = '/review?from=edit-profile';
@@ -913,7 +968,7 @@
 
         document.addEventListener('DOMContentLoaded', async function () {
             const pendingSubmission = window.getPendingApplicationSubmission('edit-request');
-            if (pendingSubmission) {
+            if (pendingSubmission && pendingSubmission.applicantName === originalAthlete.Name) {
                 showLoading();
                 try {
                     const recovered = await window.tryRecoverPendingApplicationSubmission('edit-request');
@@ -970,7 +1025,8 @@
                 updateSubmitButtonState();
             }
 
-            // Populate the dropdown
+            // Keep the editor usable while optional division options load.
+            populateDivisionSelect(fallbackDivisions);
             fetch('/api/data/divisions')
                 .then(r => r.ok ? r.json() : fallbackDivisions)
                 .then(populateDivisionSelect)
@@ -1128,6 +1184,7 @@
                 });
 
                 isEditProfileSubmitting = true;
+                updateSubmitButtonState();
                 submitButton.disabled = true;
                 submitButton.textContent = 'Submitting...';
                 showLoading();
@@ -1154,6 +1211,7 @@
                                 });
                                 customAlert(`Failed to submit change request. Please try again later.\n\n${txt}`).then(() => {
                                     isEditProfileSubmitting = false;
+                                    updateSubmitButtonState();
                                     submitButton.disabled = false;
                                     submitButton.innerHTML = '<span class="flow-action__label">Submit change request</span><i class="fa fa-rocket" aria-hidden="true"></i>';
                                     submitButton.focus();
@@ -1171,6 +1229,7 @@
                         });
                         customAlert(alertMessage).then(() => {
                             isEditProfileSubmitting = false;
+                            updateSubmitButtonState();
                             submitButton.disabled = false;
                             submitButton.innerHTML = '<span class="flow-action__label">Submit change request</span><i class="fa fa-rocket" aria-hidden="true"></i>';
                             submitButton.focus();
@@ -1243,6 +1302,8 @@
             restorePersonalLinkBtn.addEventListener('click', restorePersonalLinkToOriginal);
             restoreWhyDisplayBtn.addEventListener('click', restoreWhyDisplayToOriginal);
             restoreMediaContactBtn.addEventListener('click', restoreMediaContactToOriginal);
+            initializeProfileDraftControls();
+            profileEditorReady = true;
             updateSubmitButtonState();
 
         });
@@ -1585,42 +1646,89 @@
         }
 
         function updateSubmitButtonState(sourceElement) {
+            if (!profileEditorReady) return;
             const submitButton = document.getElementById('submitButton');
-            const currentPicSrc = document.querySelector('.illustration').getAttribute('src');
-            const currentDivision = document.getElementById('divisionDisplaySelect').value;
-            const currentFlag = normalizeEditText(document.getElementById('flagDisplayInput').value);
-            const currentPersonalLink = normalizeOptionalUrl(document.getElementById('personalLinkInput').value);
-            const currentMediaContact = normalizeEditText(document.getElementById('mediaContactInput').value);
-            const currentWhyDisplay = normalizeEditText(document.getElementById('whyDisplayInput').value);
-
-            const picChanged = currentPicSrc !== originalAthlete.ProfilePic;
-            const divChanged = currentDivision !== originalAthlete.Division;
-            const flagChanged = currentFlag !== normalizeEditText(originalAthlete.Flag);
-            const personalLinkChanged = currentPersonalLink !== normalizeOptionalUrl(originalAthlete.PersonalLink);
-            const mediaContactChanged = currentMediaContact !== normalizeEditText(originalAthlete.MediaContact);
-            const whyChanged = currentWhyDisplay !== normalizeEditText(originalAthlete.Why);
-
-            const anyChanged = picChanged
-                || divChanged
-                || flagChanged
-                || personalLinkChanged
-                || mediaContactChanged
-                || whyChanged;
-
-            submitButton.disabled = !anyChanged;
-
-            // save or clear draft
-            if (anyChanged) {
-                setSessionItem('tempAthlete', JSON.stringify(athlete));
-            } else {
-                removeSessionItem('tempAthlete');
-            }
+            const changed = getProfileEditFields().filter(field => {
+                athlete[field.key] = field.normalize(readProfileField(field));
+                const isChanged = athlete[field.key] !== field.normalize(originalAthlete[field.key]);
+                document.getElementById(field.restoreId).style.display = isChanged ? 'inline-flex' : 'none';
+                return isChanged;
+            });
+            const anyChanged = changed.length > 0;
+            submitButton.disabled = isEditProfileSubmitting || !anyChanged;
+            if (anyChanged) resetProfileDraftSnapshot = null;
+            const draftSaved = anyChanged
+                ? setSessionItem('tempAthlete', JSON.stringify(athlete))
+                : removeSessionItem('tempAthlete');
+            hasUnsavedProfileDraft = !draftSaved && (anyChanged || Boolean(resetProfileDraftSnapshot));
+            const summary = document.getElementById('profileDraftSummary');
+            summary.hidden = !anyChanged && !resetProfileDraftSnapshot;
+            const status = document.getElementById('profileDraftStatus');
+            const message = hasUnsavedProfileDraft ? 'Changes could not be saved. Keep this page open.' : '';
+            if (status.textContent !== message) status.textContent = message;
+            status.hidden = !hasUnsavedProfileDraft;
+            const resetButton = document.getElementById('resetProfileDraftButton');
+            resetButton.hidden = !anyChanged;
+            resetButton.disabled = isEditProfileSubmitting;
+            document.getElementById('undoProfileDraftButton').hidden = !resetProfileDraftSnapshot;
 
             if (sourceElement && anyChanged) {
                 keepEditedControlClearOfDock(sourceElement);
             } else {
                 window.LwcFlowActionDock?.refresh?.();
             }
+        }
+
+        function getProfileEditFields() {
+            return [
+                { key: 'ProfilePic', id: 'changeProfilePicButton', restoreId: 'restoreProfilePicButton', normalize: normalizeEditText },
+                { key: 'Division', id: 'divisionDisplaySelect', restoreId: 'restoreDivisionBtn', normalize: normalizeEditText },
+                { key: 'Flag', id: 'flagDisplayInput', restoreId: 'restoreFlagBtn', normalize: normalizeEditText },
+                { key: 'PersonalLink', id: 'personalLinkInput', restoreId: 'restorePersonalLinkBtn', normalize: normalizeOptionalUrl },
+                { key: 'MediaContact', id: 'mediaContactInput', restoreId: 'restoreMediaContactBtn', normalize: normalizeMediaContact },
+                { key: 'Why', id: 'whyDisplayInput', restoreId: 'restoreWhyDisplayBtn', normalize: normalizeEditText }
+            ];
+        }
+
+        function readProfileField(field) {
+            return field.key === 'ProfilePic' ? document.querySelector('.illustration').getAttribute('src')
+                : document.getElementById(field.id).value;
+        }
+
+        function applyProfileDraftValues(values) {
+            pendingProfileFieldValidation.clear();
+            getProfileEditFields().forEach(field => {
+                if (field.key === 'ProfilePic') document.querySelector('.illustration').src = values[field.key].value;
+                else document.getElementById(field.id).value = values[field.key].value;
+                if (document.getElementById(field.id + 'Error')) setProfileFieldError(field.id, values[field.key].error || '');
+            });
+            updateSubmitButtonState();
+        }
+
+        function initializeProfileDraftControls() {
+            document.getElementById('resetProfileDraftButton').addEventListener('click', () => {
+                if (isEditProfileSubmitting) return;
+                pendingProfileFieldValidation.forEach((validate, input) => validate(input.value));
+                resetProfileDraftSnapshot = Object.fromEntries(getProfileEditFields().map(field => [field.key, {
+                    value: readProfileField(field), error: document.getElementById(field.id + 'Error')?.textContent || ''
+                }]));
+                applyProfileDraftValues(Object.fromEntries(getProfileEditFields().map(field => [field.key, {
+                    value: field.normalize(originalAthlete[field.key])
+                }])));
+                document.getElementById('undoProfileDraftButton').focus({ preventScroll: true });
+            });
+            document.getElementById('undoProfileDraftButton').addEventListener('click', () => {
+                if (isEditProfileSubmitting || !resetProfileDraftSnapshot) return;
+                const snapshot = resetProfileDraftSnapshot;
+                resetProfileDraftSnapshot = null;
+                applyProfileDraftValues(snapshot);
+                document.getElementById('resetProfileDraftButton').focus({ preventScroll: true });
+            });
+            window.addEventListener('beforeunload', event => {
+                if (!hasUnsavedProfileDraft) return;
+                event.preventDefault();
+                event.returnValue = '';
+            });
         }
 
         function setProfileFieldError(id, message) {
