@@ -5265,7 +5265,7 @@
                     const normalizedAthlete = window.slugifyName(athleteParam, false);
                     const athleteData = getAthleteData(normalizedAthlete);
                     if (athleteData) {
-                        fetchFullAthleteData(normalizedAthlete, athleteData);
+                        fetchFullAthleteData(normalizedAthlete, athleteData, { historyMode: 'replace' });
                     } else {
                         // Redirect to the .NET 404 endpoint
                         window.location.href = '/error/404';
@@ -5765,6 +5765,7 @@
         const modalContent = modal.querySelector('.modal-content');
         if (!imageState
             || modal.style.display !== 'block'
+            || modalContent?.dataset.athleteSlug !== state.athlete
             || modalContent?.classList.contains('is-loading')
             || modalContent?.classList.contains('has-load-error')) {
             return false;
@@ -5997,6 +5998,7 @@
     const athleteDetails = document.getElementById("athleteDetails");
     let ageChart;
     let savedBodyScroll = 0;
+    let savedBodyScrollRestoration = null;
     let savedBodyBackground = '';
     let currentAthleteModalRequestId = 0;
     const chartJsSrc = 'https://cdn.jsdelivr.net/npm/chart.js';
@@ -6092,6 +6094,9 @@
     function resetModalForLoading(athleteSlug) {
         ensureAthleteModalDeferredSections();
         closeAthleteShareMenu();
+        const viewer = document.querySelector('#athleteImageViewer[aria-hidden="false"]');
+        if (viewer) closeEnlargedView(viewer);
+        modal._historyClosePending = false;
 
         if (modal._closeTimer) {
             clearTimeout(modal._closeTimer);
@@ -6166,6 +6171,10 @@
         if (document.body.classList.contains('no-scroll')) return;
         
         savedBodyScroll = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
+        if ('scrollRestoration' in history) {
+            savedBodyScrollRestoration ??= history.scrollRestoration;
+            history.scrollRestoration = 'manual';
+        }
         document.body.classList.add('no-scroll');
         
         // Prevent iOS bounce
@@ -6175,6 +6184,12 @@
         document.body.style.width = '100%';
         savedBodyBackground = document.body.style.backgroundColor;
         document.body.style.backgroundColor = getComputedStyle(document.body).backgroundColor || getComputedStyle(document.documentElement).backgroundColor;
+    }
+
+    function restoreAthleteHistoryScroll() {
+        if (savedBodyScrollRestoration === null) return;
+        history.scrollRestoration = savedBodyScrollRestoration;
+        savedBodyScrollRestoration = null;
     }
 
     function restoreBodyScroll() {
@@ -6372,7 +6387,7 @@
         stickyCloseBtn.onclick = function() {
             const modalContent = document.querySelector('.modal-content');
             if (modalContent && modalContent.classList.contains('guess-mode')) return;
-            closeModal();
+            requestCloseAthleteModal();
         };
     }
 
@@ -6380,19 +6395,41 @@
         // Keep an unresolved round locked; a confirmed result reuses this standard close control.
         const modalContent = document.querySelector('.modal-content');
         if (isGuessMyAgeDismissBlocked(modalContent)) return;
-        closeModal();
+        requestCloseAthleteModal();
     };
 
     window.addEventListener('click', function (event) {
         const modalContent = document.querySelector('.modal-content');
         if (event.target === modal && modalContent && !modalContent.classList.contains('guess-mode')) {
-            closeModal();
+            requestCloseAthleteModal();
         }
     });
 
-    function closeModal() {
+    function requestCloseAthleteModal() {
+        if (modal.style.display !== 'block' || modal._historyClosePending) return;
+        if (isGuessMyAgeDismissBlocked(modal.querySelector('.modal-content'))) return;
+        const depth = history.state?.athleteDialogDepth;
+        if (history.state?.modal === 'details' && Number.isInteger(depth) && depth > 0 && depth < history.length) {
+            // Return past only the profile visits created above the calling page.
+            // Direct profile entries have no such page underneath them.
+            modal._historyClosePending = true;
+            history.go(-depth);
+            return;
+        }
+
+        if (getInitialAthleteSlug()) {
+            const pageState = { ...(history.state || {}) };
+            for (const key of ['modal', 'athlete', 'athleteDialogDepth', 'enlargedImage']) delete pageState[key];
+            history.replaceState(pageState, '', originalAthletelessURL);
+        }
+        closeModal({ fromHistory: true });
+    }
+
+    function closeModal(options) {
+        if (!options?.fromHistory) return requestCloseAthleteModal();
         const modalContent = document.querySelector('.modal-content');
         if (!modalContent) return;
+        modal._historyClosePending = false;
 
         if (modalContent.classList.contains('gma-result-ready')) {
             modalContent.classList.remove('guess-mode', 'gma-fast', 'gma-result-ready');
@@ -6437,14 +6474,12 @@
             modal._closeTimer = 0;
             modal.style.display = "none";
             modal.classList.remove('fade-out');
+            restoreAthleteHistoryScroll();
             
             // Reset scroll position for next open
             if (modalContent) {
                 modalContent.scrollTop = 0;
             }
-
-            // Clear the athlete parameter from the URL:
-            history.replaceState({}, "", originalAthletelessURL);
 
             resetPageTitle();
             if (returnFocusElement?.isConnected) {
@@ -7785,7 +7820,8 @@
         if (isGuessMyAgeDismissBlocked(modalContent)) return;
 
         if (modal.style.display === "block") {
-            closeModal();
+            if (options?.fromHistory) closeModal({ fromHistory: true });
+            else requestCloseAthleteModal();
         }
     }
 
@@ -7875,6 +7911,7 @@
         modal.style.display = 'none';
         modal.classList.remove('fade-out');
         restoreBodyScroll();
+        restoreAthleteHistoryScroll();
         window.location.assign(fallbackUrl);
     }
 
@@ -7997,7 +8034,8 @@
     });
 
     function getAthletelessURL() {
-        const url = new URL(window.location.href.replace(/\/athlete\/[^/]+\/?$/, ''));
+        const url = new URL(window.location.href);
+        if (/^\/athlete\/[^/]+\/?$/i.test(url.pathname)) url.pathname = '/';
         url.searchParams.delete('athlete');
         url.searchParams.delete('guessmyage');
         return url;
@@ -8392,9 +8430,20 @@
                 if (!/^\/athlete\/[^/]+\/?$/.test(pathnameBeforeOpen)) {
                     originalAthletelessURL = getAthletelessURL();
                 }
-                const shouldPushHistory = !options || options.historyMode !== 'preserve';
-                if (shouldPushHistory) {
-                    history.pushState({ modal: 'details', athlete: athleteSlug }, "", `/athlete/${athleteSlug}`);
+                const historyMode = options?.historyMode || 'push';
+                const previousState = history.state;
+                if (historyMode === 'replace' || (historyMode === 'push'
+                    && previousState?.modal === 'details' && previousState.athlete === athleteSlug)) {
+                    history.replaceState({ ...previousState, modal: 'details', athlete: athleteSlug }, '', window.location.href);
+                } else if (historyMode === 'push') {
+                    const previousIsProfile = previousState?.modal === 'details' || previousState?.modal === 'enlarged';
+                    const previousDepth = previousState?.athleteDialogDepth;
+                    const depth = previousIsProfile
+                        ? (Number.isInteger(previousDepth) && previousDepth > 0
+                            ? previousDepth + (previousState.modal === 'enlarged' ? 2 : 1)
+                            : 0)
+                        : 1;
+                    history.pushState({ modal: 'details', athlete: athleteSlug, athleteDialogDepth: depth }, '', `/athlete/${athleteSlug}`);
                 }
 
                 // Biomarker chart is created after modal is shown (see below) so the canvas has layout dimensions.
@@ -8565,7 +8614,7 @@
                     && currentEnlargedState?.modal === 'enlarged'
                     && currentEnlargedState.athlete === athleteSlug
                     && !restoreEnlargedViewFromHistory(currentEnlargedState)) {
-                    history.replaceState({ modal: 'details', athlete: athleteSlug }, '', window.location.href);
+                    history.replaceState({ ...history.state, modal: 'details', athlete: athleteSlug }, '', window.location.href);
                 }
 
             })
@@ -9443,7 +9492,8 @@
                 closeEnlargedView(viewer);
             }
 
-            if (modal.style.display !== 'block' || modal.classList.contains('fade-out')) {
+            if (modal.style.display !== 'block' || modal.classList.contains('fade-out')
+                || modal.querySelector('.modal-content')?.dataset.athleteSlug !== event.state.athlete) {
                 const restored = event.state.athlete
                     && window.openAthleteModalBySlug(event.state.athlete, { historyMode: 'preserve' });
                 if (!restored) {
@@ -9454,7 +9504,7 @@
         }
 
         const modalContent = document.querySelector('#detailsModal .modal-content');
-        if (modal.style.display === 'block' && modalContent?.classList.contains('guess-mode')) {
+        if (modal.style.display === 'block' && isGuessMyAgeDismissBlocked(modalContent)) {
             // Guess My Age deliberately cannot be abandoned mid-round. Undo a
             // Back-menu jump, then let the details-state pop close any viewer.
             history.forward();

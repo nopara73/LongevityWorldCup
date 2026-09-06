@@ -317,6 +317,7 @@ public sealed class AthleteDialogLinkBrowserTests(
 
             await CloseAthleteDialogAsync(page, "/about");
 
+            Assert.Equal(scrollIsolation.ScrollRestoration, await page.EvaluateAsync<string>("history.scrollRestoration"));
             Assert.InRange(
                 Math.Abs(await page.EvaluateAsync<double>("() => window.scrollY") - callingScrollY),
                 0,

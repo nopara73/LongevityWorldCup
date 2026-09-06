@@ -150,6 +150,7 @@ public sealed class LeaderboardRouteBrowserTests(
         var app = App;
         var browser = Browser;
         await using var context = await NewContextAsync(browser, app);
+        await context.AddInitScriptAsync("localStorage.setItem('gmaSkipAll', 'true');");
         var page = await context.NewPageAsync();
 
         await page.GotoAsync("/leaderboard", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
@@ -236,7 +237,7 @@ public sealed class LeaderboardRouteBrowserTests(
         await page.Locator(".leaderboard tbody tr[data-athlete-name]:visible .athlete-name").First.ClickAsync();
         await page.WaitForFunctionAsync("() => document.getElementById('detailsModal')?.style.display === 'block' && document.title.includes('(#')");
         Assert.NotEqual(leaderboardTitle, await page.TitleAsync());
-        await page.EvaluateAsync("() => window.closeModal()");
+        await page.Locator("#closeAthleteDetailsModal").ClickAsync();
         await page.WaitForFunctionAsync("title => document.getElementById('detailsModal')?.style.display === 'none' && document.title === title", leaderboardTitle);
         Assert.Equal(leaderboardTitle, await page.TitleAsync());
     }
