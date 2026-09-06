@@ -74,6 +74,13 @@
         images: CheckInImage[];
     }
 
+    interface ProfileTimeZoneDraft {
+        participantId: string;
+        timeZoneId: string;
+        saving: boolean;
+        error: string;
+    }
+
     interface ProfilePictureDraft {
         participantId: string;
         file: File;
@@ -749,6 +756,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     const checkInSubmissions = new Map<string, { id: string; values: string; photos: File[] }>();
     let checkInSaving: { key: string; day: number } | null = null;
     let profilePictureDraft: ProfilePictureDraft | null = null;
+    let profileTimeZoneDraft: ProfileTimeZoneDraft | null = null;
     const discussionReplyCache = new Map<string, DiscussionReplyCacheEntry>();
     const discussionDrafts = new Map<string, DiscussionDraft>();
     let activeDiscussionDraft: { key: string; surface: string } | null = null;
@@ -964,7 +972,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         });
 
         window.addEventListener("beforeunload", event => {
-            if (!checkInDrafts.size && !pendingNotePhotos.size && !hasUnpublishedDiscussionWork()) return;
+            if (!checkInDrafts.size && !pendingNotePhotos.size && !hasUnpublishedDiscussionWork()
+                && !hasProfileTimeZoneChanges() && !profileTimeZoneDraft?.saving) return;
             event.preventDefault();
             event.returnValue = "";
         });
@@ -985,23 +994,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
 
         editForm.addEventListener("submit", async event => {
             event.preventDefault();
-            if (!accessToken) return;
-            await withButton(editForm.querySelector("button[type='submit']"), async () => {
-                const currentAccessToken = accessToken;
-                const pictureBeforeSave = participantState?.participant.profileImageUrl;
-                const result = await postJson(`${API}/edit`, {
-                    accessToken: currentAccessToken,
-                    timeZoneId: requiredSelect("lmxEditTimeZone").value
-                });
-                if (accessToken !== currentAccessToken) return;
-                if (participantState?.participant.id === result.participant.id && participantState.participant.profileImageUrl !== pictureBeforeSave) {
-                    // A photo completed after this timezone request began.
-                    setProfilePictureInState(result, participantState.participant.profileImageUrl);
-                }
-                acceptParticipantState(result);
-                renderAll();
-                setStatus("lmxEditStatus", "Saved.", false);
-            }, "Saving...");
+            await saveProfileTimeZone();
         });
 
         inactiveToggle?.addEventListener("click", () => {
@@ -1010,6 +1003,11 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         });
 
         editTimeZone.addEventListener("change", () => {
+            if (profileTimeZoneDraft) {
+                profileTimeZoneDraft.timeZoneId = editTimeZone.value;
+                profileTimeZoneDraft.error = "";
+                renderProfileTimeZoneControls();
+            }
             if (participantState) renderParticipantCalls(participantState.calls || [], participantState.public.callSelectionClosesAtUtc);
         });
     }
@@ -1275,6 +1273,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             await refreshPublicOnly();
         } else {
             participantState = null;
+            profileTimeZoneDraft = null;
             accessLoading = false;
             renderAll();
         }
@@ -1284,11 +1283,21 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const keepParticipant = !!(options && options.keepParticipant);
         const result = await getJson(`${API}/state`);
         acceptPublicState(result);
-        if (!keepParticipant) participantState = null;
+        if (!keepParticipant) {
+            participantState = null;
+            profileTimeZoneDraft = null;
+        }
         renderAll();
     }
 
     function acceptParticipantState(state: ParticipantState): void {
+        const timeZoneId = preferredTimeZoneId(state.participant.timeZoneId || "UTC");
+        if (!profileTimeZoneDraft || profileTimeZoneDraft.participantId !== state.participant.id) {
+            profileTimeZoneDraft = { participantId: state.participant.id, timeZoneId, saving: false, error: "" };
+        } else if (!profileTimeZoneDraft.saving && !hasProfileTimeZoneChanges()) {
+            profileTimeZoneDraft.timeZoneId = timeZoneId;
+            profileTimeZoneDraft.error = "";
+        }
         if (profilePictureDraft && (profilePictureDraft.participantId !== state.participant.id || state.participant.athleteSlug || state.participant.athleteUrl)) {
             clearProfilePictureDraft();
         }
@@ -1314,6 +1323,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         participantState = state;
         publicState = state.public;
         stateAcceptanceGeneration++;
+        renderProfileTimeZoneControls();
     }
 
     function acceptPublicState(state: PublicState): void {
@@ -1804,7 +1814,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         renderParticipantHeading(state, activeTab, pendingCheckInDays);
 
         renderProfileIdentity(participant);
-        setSelectValue(requiredSelect("lmxEditTimeZone"), participant.timeZoneId);
+        renderProfileTimeZoneControls();
         renderProfilePictureControls(participant);
         renderParticipantCalls(state.calls || [], state.public.callSelectionClosesAtUtc);
         renderCheckIns(state.eligibleDays || [], undefined, activePublicDiscussion(state));
@@ -4448,6 +4458,59 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             day.classList.toggle("has-draft", dirty);
             if (label) label.textContent = checkInSaving?.key === day.dataset.draftKey ? "Saving…" : dirty ? "In progress" : day.dataset.saved === "true" ? "Saved" : "Due";
         });
+    }
+
+    function hasProfileTimeZoneChanges(): boolean {
+        return !!profileTimeZoneDraft && profileTimeZoneDraft.participantId === participantState?.participant.id
+            && profileTimeZoneDraft.timeZoneId !== preferredTimeZoneId(participantState.participant.timeZoneId || "UTC");
+    }
+
+    function renderProfileTimeZoneControls(): void {
+        const draft = profileTimeZoneDraft;
+        if (!draft || draft.participantId !== participantState?.participant.id) return;
+        setSelectValue(requiredSelect("lmxEditTimeZone"), draft.timeZoneId);
+        const button = requiredButton("lmxSaveProfileButton");
+        const changed = hasProfileTimeZoneChanges();
+        // Keep focus on the action as its request completes; guard submission below.
+        button.setAttribute("aria-disabled", String(draft.saving || !changed));
+        button.toggleAttribute("aria-busy", draft.saving);
+        if (draft.saving) button.setAttribute("aria-busy", "true");
+        button.textContent = draft.saving ? "Saving…" : draft.error && changed ? "Retry" : "Save";
+        setStatus("lmxEditStatus", changed ? draft.error : "", changed && !!draft.error);
+    }
+
+    async function saveProfileTimeZone(): Promise<void> {
+        const draft = profileTimeZoneDraft;
+        if (!accessToken || !participantState || !draft || draft.saving || !hasProfileTimeZoneChanges()) return;
+        const currentAccessToken = accessToken;
+        const submittedTimeZone = draft.timeZoneId;
+        const pictureBeforeSave = participantState.participant.profileImageUrl;
+        draft.saving = true;
+        draft.error = "";
+        renderProfileTimeZoneControls();
+        try {
+            const result = await postJson(`${API}/edit`, { accessToken: currentAccessToken, timeZoneId: submittedTimeZone });
+            if (profileTimeZoneDraft !== draft || accessToken !== currentAccessToken || participantState?.participant.id !== draft.participantId) return;
+            if (result.participant.id !== draft.participantId) throw invalidApiResponse(`${API}/edit`);
+            if (participantState.participant.profileImageUrl !== pictureBeforeSave) {
+                // A photo completed after this timezone request began.
+                setProfilePictureInState(result, participantState.participant.profileImageUrl);
+            }
+            // Accept the response's eligibility/call state, while retaining an edit
+            // made after this request began (including a return to the old timezone).
+            if (draft.timeZoneId === submittedTimeZone) draft.timeZoneId = preferredTimeZoneId(result.participant.timeZoneId || "UTC");
+            acceptParticipantState(result);
+            renderAll();
+        } catch (err) {
+            if (profileTimeZoneDraft === draft && accessToken === currentAccessToken) {
+                draft.error = hasProperties(err, "status") ? messageOf(err) : "Couldn’t save the timezone. Try again.";
+            }
+        } finally {
+            if (profileTimeZoneDraft === draft) {
+                draft.saving = false;
+                renderProfileTimeZoneControls();
+            }
+        }
     }
 
     async function uploadProfilePicture(file: File, input: HTMLInputElement): Promise<void> {

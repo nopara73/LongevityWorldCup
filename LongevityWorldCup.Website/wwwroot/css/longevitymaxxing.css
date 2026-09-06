@@ -2052,7 +2052,9 @@
     min-height: 3.15rem;
 }
 
-.lmx-button:disabled {
+.lmx-button:disabled,
+#lmxSaveProfileButton[aria-disabled="true"] {
+    transform: none;
     opacity: 1;
     cursor: not-allowed;
     box-shadow: none;
