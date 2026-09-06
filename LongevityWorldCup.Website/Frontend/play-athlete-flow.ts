@@ -86,8 +86,12 @@ function isAthleteInputValue(
         || getAthleteDisplayName(athlete).toLowerCase() === query;
 }
 
+function normalizeAthleteSearch(value: string): string {
+    return value.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+}
+
 function getAthleteSearchText(athlete: PlayAthlete): string {
-    return `${getAthleteCanonicalName(athlete)} ${getAthleteDisplayName(athlete)}`.toLowerCase();
+    return normalizeAthleteSearch(`${getAthleteCanonicalName(athlete)} ${getAthleteDisplayName(athlete)}`);
 }
 
 function getAthletePictureImageSrc(athlete: PlayAthlete | null | undefined): string {
@@ -471,18 +475,45 @@ function resetAthletePreview({ titleElement, frameElement, defaultTitle }: Athle
     transitionAthletePicture(frameElement, createDefaultAthleteImage(), getDefaultHeadshotJpeg());
 }
 
-function appendHighlightedText(container: HTMLElement, text: string, query: string): void {
-    const lowerText = text.toLowerCase();
-    const idx = lowerText.indexOf(query);
-    if (idx < 0) {
-        container.textContent = text;
-        return;
+function appendHighlightedText(container: HTMLElement, text: string, terms: string[]): void {
+    const searchText = normalizeAthleteSearch(text);
+    const sourceSpans: { start: number; end: number }[] = [];
+    let offset = 0;
+    // Folding can remove accents or expand a ligature. Keep highlights on the original text.
+    for (const character of text) {
+        const span = { start: offset, end: offset + character.length };
+        const foldedLength = normalizeAthleteSearch(character).length;
+        if (foldedLength) {
+            for (let index = 0; index < foldedLength; index++) sourceSpans.push(span);
+        } else {
+            const previous = sourceSpans.at(-1);
+            if (previous) previous.end = span.end;
+        }
+        offset = span.end;
     }
 
-    container.append(document.createTextNode(text.slice(0, idx)));
-    const strong = document.createElement("strong");
-    strong.textContent = text.slice(idx, idx + query.length);
-    container.append(strong, document.createTextNode(text.slice(idx + query.length)));
+    const highlighted = new Array<boolean>(text.length).fill(false);
+    for (const term of terms) {
+        for (let match = searchText.indexOf(term); match >= 0; match = searchText.indexOf(term, match + term.length)) {
+            const start = sourceSpans[match]?.start;
+            const end = sourceSpans[match + term.length - 1]?.end;
+            if (start !== undefined && end !== undefined) highlighted.fill(true, start, end);
+        }
+    }
+
+    for (let start = 0; start < text.length;) {
+        let end = start + 1;
+        while (end < text.length && highlighted[end] === highlighted[start]) end++;
+        const content = text.slice(start, end);
+        if (highlighted[start]) {
+            const strong = document.createElement("strong");
+            strong.textContent = content;
+            container.append(strong);
+        } else {
+            container.append(document.createTextNode(content));
+        }
+        start = end;
+    }
 }
 
 function createAthleteSelectionController(
@@ -548,14 +579,20 @@ function createAthleteSelectionController(
         resetAthletePreview({ titleElement, frameElement, defaultTitle });
     }
 
-    function findExactAthleteMatch(value: string): PlayAthlete | null {
-        return athletes.find(athlete => isAthleteInputValue(athlete, value)) || null;
+    function findUniqueAthleteMatch(value: string): PlayAthlete | null {
+        const query = normalizeAthleteSearch(value.trim());
+        if (!query) return null;
+        const foldedMatches = athletes.filter(athlete =>
+            normalizeAthleteSearch(getAthleteCanonicalName(athlete)) === query
+            || normalizeAthleteSearch(getAthleteDisplayName(athlete)) === query);
+        return foldedMatches.length === 1 ? foldedMatches[0] ?? null : null;
     }
 
     function renderSelectedAthletePreview(
         athlete: PlayAthlete,
         selectionOptions: AthleteSelectionRenderOptions = {}
     ): Promise<HTMLImageElement | void> {
+        clearSearchFeedback();
         const displayName = getAthleteDisplayName(athlete);
         input.value = displayName;
         titleElement.textContent = displayName;
@@ -587,12 +624,20 @@ function createAthleteSelectionController(
         return true;
     }
 
+    function clearSearchFeedback(): void {
+        if (!errorElement.classList.contains("athlete-search-empty")) return;
+        errorElement.replaceChildren();
+        errorElement.classList.remove("athlete-search-empty");
+    }
+
     function renderAthleteMatches(): boolean {
-        const query = input.value.trim().toLowerCase();
+        const query = normalizeAthleteSearch(input.value.trim());
         const terms = query.split(/\s+/).filter(term => term);
         clearCurrentAthleteSelectionIfInputChanged(input.value);
 
+        clearSearchFeedback();
         closeAllLists();
+        if (!athleteAutocompleteReady) return false;
         if (currentAthlete && isAthleteInputValue(currentAthlete, input.value)) return false;
         if (!terms.length) return false;
 
@@ -609,14 +654,12 @@ function createAthleteSelectionController(
             if (!getAthleteCanonicalName(athlete)) return;
             const searchText = getAthleteSearchText(athlete);
             if (terms.every(term => searchText.includes(term))) {
-                const first = terms[0];
-                if (!first) return;
                 const displayName = getAthleteDisplayName(athlete);
                 const item = document.createElement("div");
                 item.id = `${autocompleteListId}-option-${count}`;
                 item.setAttribute("role", "option");
                 item.setAttribute("aria-selected", "false");
-                appendHighlightedText(item, displayName, first);
+                appendHighlightedText(item, displayName, terms);
                 item.dataset.value = athlete.Name;
                 if (typeof athlete.ProfilePic === "string") {
                     item.dataset.profilePic = athlete.ProfilePic;
@@ -639,6 +682,9 @@ function createAthleteSelectionController(
         if (count === 0) {
             list.remove();
             input.setAttribute("aria-expanded", "false");
+            errorElement.classList.add("athlete-search-empty");
+            errorElement.setAttribute("role", "status");
+            errorElement.textContent = "No matching athlete.";
             return false;
         }
 
@@ -647,6 +693,7 @@ function createAthleteSelectionController(
     }
 
     function renderAthleteLoadError(): void {
+        clearSearchFeedback();
         errorElement.replaceChildren();
         errorElement.setAttribute("role", "alert");
 
@@ -751,9 +798,9 @@ function createAthleteSelectionController(
                     return;
                 }
 
-                const exactMatch = findExactAthleteMatch(input.value);
-                if (exactMatch) {
-                    selectAthlete(exactMatch);
+                const uniqueMatch = findUniqueAthleteMatch(input.value);
+                if (uniqueMatch) {
+                    selectAthlete(uniqueMatch);
                     closeAllLists();
                     if (options.focusConfirmAfterSelection !== false) {
                         focusWithoutScrolling(confirmButton);
