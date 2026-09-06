@@ -1721,6 +1721,7 @@
     }
     .enlarged-portrait .image-nav--previous{ left:max(16px, env(safe-area-inset-left)); }
     .enlarged-portrait .image-nav--next{ right:max(16px, env(safe-area-inset-right)); }
+    .enlarged-portrait .image-navigation{ display:contents; }
     .enlarged-portrait .image-nav:not(:disabled):hover{
         color:var(--light-text-color);
         background:rgba(0,0,0,.9);
@@ -1753,6 +1754,7 @@
         transform:translateX(-50%);
         z-index:1;
     }
+    .enlarged-portrait .image-navigation[hidden],
     .enlarged-portrait .image-nav[hidden],
     .enlarged-portrait .image-position[hidden],
     .enlarged-portrait .image-zoom-controls[hidden],
@@ -1825,6 +1827,9 @@
     .enlarged-portrait .image-load-retry:focus-visible{
         outline:3px solid #e6edf3;
         outline-offset:3px;
+    }
+    .enlarged-portrait.is-proof-gallery{
+        background:#0e171f;
     }
     .enlarged-portrait.is-proof-gallery .image-viewer-stage{
         height:calc(100% - 8rem);
@@ -1917,21 +1922,57 @@
         .enlarged-portrait{
             padding:max(4.4rem, calc(env(safe-area-inset-top) + 4.4rem)) max(.75rem, env(safe-area-inset-right)) max(7.2rem, calc(env(safe-area-inset-bottom) + 7.2rem)) max(.75rem, env(safe-area-inset-left));
         }
+        .enlarged-portrait.is-proof-gallery:not([hidden]){
+            display:grid;
+            grid-template-rows:minmax(0, 1fr) auto auto;
+            justify-items:center;
+            align-items:stretch;
+            padding-bottom:max(1rem, env(safe-area-inset-bottom));
+        }
         .enlarged-portrait.is-proof-gallery .image-viewer-stage{
+            grid-row:1;
+            min-height:0;
             width:100%;
             height:100%;
             max-height:100%;
         }
+        .enlarged-portrait.is-proof-gallery .image-viewer-hint{
+            grid-row:2;
+            position:static;
+            max-width:100%;
+            transform:none;
+        }
+        .enlarged-portrait.is-proof-gallery .image-zoom-controls{
+            grid-row:3;
+            position:static;
+            transform:none;
+        }
+        .enlarged-portrait .image-navigation{
+            position:absolute;
+            top:max(16px, env(safe-area-inset-top));
+            left:calc(max(16px, env(safe-area-inset-left)) + 56px);
+            right:max(16px, env(safe-area-inset-right));
+            display:flex;
+            align-items:center;
+            gap:.5rem;
+            z-index:1;
+        }
         .enlarged-portrait .image-nav{
-            top:auto;
-            bottom:max(16px, env(safe-area-inset-bottom));
+            position:static;
+            flex:0 0 48px;
             transform:none;
         }
         .enlarged-portrait .image-nav:not(:disabled):hover{
             transform:none;
         }
         .enlarged-portrait .image-position{
-            top:max(18px, env(safe-area-inset-top));
+            order:-1;
+            position:static;
+            min-width:0;
+            margin-right:auto;
+            padding:.4rem .5rem;
+            line-height:1.2;
+            transform:none;
         }
     }
 
@@ -3454,6 +3495,11 @@
                  aria-hidden="true"
                  hidden>
                 <button type="button" class="close-btn" aria-label="Close enlarged image">&times;</button>
+                <div class="image-navigation" role="group" aria-label="Proof navigation" hidden>
+                    <button type="button" class="image-nav image-nav--previous" aria-label="Previous proof" hidden>&lsaquo;</button>
+                    <button type="button" class="image-nav image-nav--next" aria-label="Next proof" hidden>&rsaquo;</button>
+                    <span class="image-position" aria-live="polite" aria-atomic="true" hidden></span>
+                </div>
                 <div class="image-viewer-stage" tabindex="0" aria-label="Enlarged image">
                     <img alt="" hidden>
                     <div class="image-load-feedback" hidden>
@@ -3470,9 +3516,6 @@
                     <button type="button" class="image-zoom-in" aria-label="Zoom proof in">+</button>
                     <button type="button" class="image-zoom-fit" aria-label="Fit proof to viewer">Fit</button>
                 </div>
-                <button type="button" class="image-nav image-nav--previous" aria-label="Previous proof" hidden>&lsaquo;</button>
-                <button type="button" class="image-nav image-nav--next" aria-label="Next proof" hidden>&rsaquo;</button>
-                <span class="image-position" aria-live="polite" aria-atomic="true" hidden></span>
                 <p class="image-viewer-hint" hidden>Zoomed for readable text. Scroll to inspect the full proof.</p>
             </div>
         </div>
@@ -3486,15 +3529,15 @@
         <canvas id="biomarkerChart" style="width: 100%; height: 300px;"></canvas>
     </div>
 
-    <div class="events-embed" style="margin-top:16px">
-        <iframe id="events-frame" title="Events" loading="lazy" style="width:100%;border:0;display:block;height:1px;"></iframe>
-    </div>
-
     <div class="proofs-section" id="athlete-proofs">
         <h3>Proofs</h3>
         <div class="proofs-gallery" id="proofsGallery">
             <!-- Proof images will be inserted here -->
         </div>
+    </div>
+
+    <div class="events-embed" style="margin-top:16px">
+        <iframe id="events-frame" title="Events" loading="lazy" style="width:100%;border:0;display:block;height:1px;"></iframe>
     </div>
 </template>
 <!--ATHLETE-DIALOG-DEFERRED-END-->
@@ -5636,6 +5679,7 @@
         const position = enlargedElem.querySelector('.image-position');
         const stage = enlargedElem.querySelector('.image-viewer-stage');
         const zoomControls = enlargedElem.querySelector('.image-zoom-controls');
+        const navigation = enlargedElem.querySelector('.image-navigation');
         const isProofGallery = enlargedElem.isProofGallery;
         const canNavigate = isProofGallery && imageCount > 1;
 
@@ -5657,6 +5701,7 @@
                 : `Enlarged ${sourceImage.alt || 'image'}`);
         }
         if (zoomControls) zoomControls.hidden = !isProofGallery;
+        if (navigation) navigation.hidden = !isProofGallery;
         if (!isProofGallery) {
             enlargedElem.style.removeProperty('--proof-viewer-zoom');
         }

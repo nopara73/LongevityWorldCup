@@ -87,12 +87,14 @@ public sealed class LeaderboardProofViewerBrowserTests(
                 const stageRect = stage.getBoundingClientRect();
                 const previousRect = previous.getBoundingClientRect();
                 const nextRect = next.getBoundingClientRect();
+                const overlapsStage = rect => rect.left < stageRect.right && rect.right > stageRect.left
+                    && rect.top < stageRect.bottom && rect.bottom > stageRect.top;
                 return {
                     StageClientWidth: stage.clientWidth,
                     StageScrollWidth: stage.scrollWidth,
                     StageClientHeight: stage.clientHeight,
                     StageScrollHeight: stage.scrollHeight,
-                    NavigationOverlapsStage: previousRect.top < stageRect.bottom || nextRect.top < stageRect.bottom,
+                    NavigationOverlapsStage: overlapsStage(previousRect) || overlapsStage(nextRect),
                     HintIsVisible: !hint.hidden && getComputedStyle(hint).display !== 'none',
                     ZoomStatus: zoomStatus.textContent.trim()
                 };
@@ -164,6 +166,10 @@ public sealed class LeaderboardProofViewerBrowserTests(
 
         await page.Keyboard.PressAsync("End");
         await previousButton.FocusAsync();
+        await page.Keyboard.PressAsync("Tab");
+        Assert.True(await IsFocusedAsync(viewer.Locator(".image-viewer-stage")));
+        await page.WaitForFunctionAsync("() => document.getElementById('athleteImageViewer')?.dataset.imageState === 'ready'");
+        await fitButton.FocusAsync();
         await page.Keyboard.PressAsync("Tab");
         Assert.True(await IsFocusedAsync(closeButton));
 
