@@ -226,10 +226,12 @@
                                     <img id="lmxProfilePictureImage" src="{{ASSET_PLAY_ATHLETE_PLACEHOLDER_WEBP}}" alt="" loading="lazy" decoding="async">
                                 </span>
                                 <div class="lmx-profile-upload-actions">
-                                    <button id="lmxProfilePictureButton" class="lmx-button secondary" type="button">
+                                    <span id="lmxProfilePictureFilename" class="lmx-profile-filename" hidden></span>
+                                    <button id="lmxProfilePictureButton" class="lmx-button secondary" type="button" aria-describedby="lmxProfilePictureFilename lmxProfilePictureStatus">
                                         <i class="fas fa-image" aria-hidden="true"></i>
                                         Upload profile picture
                                     </button>
+                                    <button id="lmxChooseProfilePictureButton" class="lmx-button secondary" type="button" hidden>Choose another</button>
                                     <input id="lmxProfilePictureInput" type="file" accept="image/*" tabindex="-1" aria-label="Choose profile picture">
                                     <div id="lmxProfilePictureStatus" class="lmx-status" role="status" aria-live="polite" aria-atomic="true"></div>
                                 </div>

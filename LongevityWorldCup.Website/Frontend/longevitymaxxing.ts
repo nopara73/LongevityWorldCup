@@ -74,6 +74,15 @@
         images: CheckInImage[];
     }
 
+    interface ProfilePictureDraft {
+        participantId: string;
+        file: File;
+        preparedFile: File | null;
+        previewUrl: string | null;
+        uploading: boolean;
+        error: string;
+    }
+
     interface CheckInFormDraft {
         sleep: number | null;
         exercise: number | null;
@@ -739,6 +748,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     const checkInErrors = new Map<string, string>();
     const checkInSubmissions = new Map<string, { id: string; values: string; photos: File[] }>();
     let checkInSaving: { key: string; day: number } | null = null;
+    let profilePictureDraft: ProfilePictureDraft | null = null;
     const discussionReplyCache = new Map<string, DiscussionReplyCacheEntry>();
     const discussionDrafts = new Map<string, DiscussionDraft>();
     let activeDiscussionDraft: { key: string; surface: string } | null = null;
@@ -959,7 +969,12 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         });
 
         profilePictureButton.addEventListener("click", () => {
-            profilePictureInput.click();
+            if (profilePictureDraft?.uploading) return;
+            if (profilePictureDraft) void uploadProfilePicture(profilePictureDraft.file, profilePictureInput);
+            else profilePictureInput.click();
+        });
+        requiredButton("lmxChooseProfilePictureButton").addEventListener("click", () => {
+            if (!profilePictureDraft?.uploading) profilePictureInput.click();
         });
 
         profilePictureInput.addEventListener("change", async () => {
@@ -1266,6 +1281,9 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     }
 
     function acceptParticipantState(state: ParticipantState): void {
+        if (profilePictureDraft && (profilePictureDraft.participantId !== state.participant.id || state.participant.athleteSlug || state.participant.athleteUrl)) {
+            clearProfilePictureDraft();
+        }
         for (const [key, draft] of discussionDrafts) {
             if (draft.participantId === state.participant.id) continue;
             discussionDrafts.delete(key);
@@ -2007,11 +2025,38 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         field.classList.toggle("lmx-hidden", !canUpload);
         if (!canUpload) return;
 
+        const draft = profilePictureDraft;
+        const uploading = !!draft?.uploading;
+        const button = requiredButton("lmxProfilePictureButton");
+        const another = requiredButton("lmxChooseProfilePictureButton");
+        const filename = requiredElement("lmxProfilePictureFilename", HTMLElement);
+        filename.textContent = draft?.file.name || "";
+        filename.hidden = !draft;
+        another.hidden = !draft;
+        button.classList.toggle("secondary", !draft);
+        button.innerHTML = uploading
+            ? '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i>Uploading…'
+            : draft ? '<i class="fas fa-rotate-right" aria-hidden="true"></i>Retry upload'
+            : '<i class="fas fa-image" aria-hidden="true"></i>Upload profile picture';
+        // Keep keyboard focus on the action while its request is in progress.
+        for (const action of [button, another]) action.setAttribute("aria-disabled", String(uploading));
+        field.setAttribute("aria-busy", String(uploading));
+        requiredInput("lmxProfilePictureInput").disabled = uploading;
+        setStatus("lmxProfilePictureStatus", draft?.error || "", !!draft?.error);
+
         const profileImage = String(participant.profileImageUrl || "").trim();
-        preview.classList.toggle("placeholder", !profileImage);
-        preview.setAttribute("aria-hidden", profileImage ? "false" : "true");
-        image.src = profileImage || ATHLETE_PLACEHOLDER_IMAGE;
-        image.alt = profileImage ? `${participant.displayName || "Participant"} profile picture` : "";
+        const selectedImage = draft?.previewUrl;
+        const source = selectedImage || profileImage || ATHLETE_PLACEHOLDER_IMAGE;
+        preview.classList.toggle("placeholder", !selectedImage && !profileImage);
+        preview.setAttribute("aria-hidden", selectedImage || profileImage ? "false" : "true");
+        image.alt = selectedImage ? "Selected profile picture" : profileImage ? `${participant.displayName || "Participant"} profile picture` : "";
+        image.onerror = selectedImage && draft ? () => {
+            if (profilePictureDraft !== draft || draft.previewUrl !== image.getAttribute("src")) return;
+            URL.revokeObjectURL(selectedImage);
+            draft.previewUrl = null;
+            renderProfilePictureControls(participantState?.participant || participant);
+        } : null;
+        if (image.getAttribute("src") !== source) image.src = source;
     }
 
     function renderParticipantCalls(calls: ParticipantCall[], callSelectionClosesAtUtc: string): void {
@@ -4398,32 +4443,59 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     }
 
     async function uploadProfilePicture(file: File, input: HTMLInputElement): Promise<void> {
-        if (!accessToken) return;
-
-        const button = optionalElement("lmxProfilePictureButton", HTMLButtonElement);
-        input.disabled = true;
-        if (button) button.disabled = true;
-        let shouldFocusRetry = false;
-        setStatus("lmxProfilePictureStatus", "Uploading...", false);
+        if (!accessToken || !participantState || profilePictureDraft?.uploading || participantState.participant.athleteSlug || participantState.participant.athleteUrl) return;
+        const currentAccessToken = accessToken;
+        if (!profilePictureDraft || profilePictureDraft.file !== file) {
+            clearProfilePictureDraft();
+            profilePictureDraft = { participantId: participantState.participant.id, file, preparedFile: null, previewUrl: null, uploading: false, error: "" };
+        }
+        const draft = profilePictureDraft;
+        draft.uploading = true;
+        draft.error = "";
+        input.value = "";
+        renderProfilePictureControls(participantState.participant);
+        let restoreUploadFocus = false;
         try {
-            const uploadFile = await prepareProfilePictureFile(file);
+            if (!draft.preparedFile) {
+                draft.preparedFile = await prepareProfilePictureFile(file);
+                if (profilePictureDraft !== draft) return;
+                try { draft.previewUrl = URL.createObjectURL(draft.preparedFile); } catch { /* The file can still upload without a local preview. */ }
+                renderProfilePictureControls(participantState.participant);
+            }
             const formData = new FormData();
-            formData.append("accessToken", accessToken);
-            formData.append("profilePicture", uploadFile, uploadFile.name || "profile-picture.jpg");
+            formData.append("accessToken", currentAccessToken);
+            formData.append("profilePicture", draft.preparedFile, draft.preparedFile.name || "profile-picture.jpg");
 
             const result = await postForm(`${API}/profile-picture`, formData);
-            acceptParticipantState(result);
-            renderAll();
-            setStatus("lmxProfilePictureStatus", "Uploaded.", false);
+            if (profilePictureDraft !== draft || accessToken !== currentAccessToken || participantState.participant.id !== draft.participantId) return;
+            if (result.participant.id !== draft.participantId) throw invalidApiResponse(`${API}/profile-picture`);
+            // This response owns only the picture. A concurrent timezone save or
+            // another view may already have newer state and unfinished edits.
+            const image = result.participant.profileImageUrl;
+            participantState.participant.profileImageUrl = image;
+            for (const state of new Set([participantState.public, publicState])) {
+                const row = state?.leaderboard.find(row => row.participantId === draft.participantId);
+                if (row) row.profileImageUrl = image;
+            }
+            stateAcceptanceGeneration++;
+            hydrateRenderedParticipantAvatars();
+            restoreUploadFocus = document.activeElement?.id === "lmxChooseProfilePictureButton";
+            clearProfilePictureDraft();
         } catch (err) {
-            shouldFocusRetry = true;
-            setStatus("lmxProfilePictureStatus", messageOf(err), true);
+            if (profilePictureDraft === draft && accessToken === currentAccessToken) {
+                draft.error = hasProperties(err, "status") ? messageOf(err) : "Couldn’t upload the picture. Try again.";
+            }
         } finally {
-            input.disabled = false;
-            if (button) button.disabled = false;
-            input.value = "";
-            if (shouldFocusRetry) button?.focus();
+            if (profilePictureDraft === draft) draft.uploading = false;
+            input.disabled = !!profilePictureDraft?.uploading;
+            if (participantState) renderProfilePictureControls(participantState.participant);
+            if (restoreUploadFocus) requiredButton("lmxProfilePictureButton").focus({ preventScroll: true });
         }
+    }
+
+    function clearProfilePictureDraft(): void {
+        if (profilePictureDraft?.previewUrl) URL.revokeObjectURL(profilePictureDraft.previewUrl);
+        profilePictureDraft = null;
     }
 
     async function prepareProfilePictureFile(file: File): Promise<File> {

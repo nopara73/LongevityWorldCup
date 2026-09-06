@@ -317,6 +317,12 @@ html body #lmxParticipantTabs .lmx-tab[aria-selected="true"] {
     color: var(--lwc-ink);
 }
 
+.lmx-button.secondary:hover:not(:disabled),
+.lmx-button.secondary:active:not(:disabled) {
+    background: var(--lwc-surface-muted);
+    color: var(--lwc-ink);
+}
+
 .lmx-identity-field,
 .lmx-field input,
 .lmx-field select,
