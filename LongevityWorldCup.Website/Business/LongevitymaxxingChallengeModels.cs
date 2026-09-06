@@ -13,7 +13,8 @@ public sealed record LongevitymaxxingCheckInRequest(
     int Exercise,
     int Nutrition,
     int Vices,
-    string? Note);
+    string? Note,
+    string? SubmissionId = null);
 
 public sealed record LongevitymaxxingDiscussionReplyRequest(
     string AccessToken,

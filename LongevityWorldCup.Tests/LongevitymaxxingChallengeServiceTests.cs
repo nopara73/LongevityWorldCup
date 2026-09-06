@@ -17,7 +17,7 @@ using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
-public sealed class LongevitymaxxingChallengeServiceTests
+public sealed partial class LongevitymaxxingChallengeServiceTests
 {
     [Fact]
     public async Task DiscussionReplyIsStoredUnderItsPostWithoutEditingEitherCheckInPost()

@@ -6,7 +6,7 @@ using Xunit;
 namespace LongevityWorldCup.Tests;
 
 [Collection(BrowserTestCollections.WorkloadA)]
-public sealed class LongevitymaxxingChallengeBrowserTests(
+public sealed partial class LongevitymaxxingChallengeBrowserTests(
     PlaywrightBrowserFixture browserFixture,
     BrowserTestAppFixture appFixture)
     : BrowserIntegrationTest(browserFixture, appFixture)
@@ -766,7 +766,7 @@ public sealed class LongevitymaxxingChallengeBrowserTests(
         var replyBox = await replyButtons.First.BoundingBoxAsync();
         Assert.NotNull(replyBox);
         Assert.True(replyBox.Width >= 44 && replyBox.Height >= 44, $"Expected at least a 44px discussion reply target; got {replyBox.Width}x{replyBox.Height}.");
-        var discussionInput = page.Locator(".lmx-checkin-card > .lmx-field textarea[data-mention-input]").First;
+        var discussionInput = page.Locator(".lmx-checkin-entry > .lmx-field textarea[data-mention-input]").First;
         Assert.Equal("", await discussionInput.InputValueAsync());
         await discussionInput.FillAsync("Unsaved check-in discussion draft.");
         var unsavedExerciseNo = page.Locator(".lmx-checkin-card .lmx-question[data-key='exercise'] input[value='0']");
@@ -1765,7 +1765,7 @@ public sealed class LongevitymaxxingChallengeBrowserTests(
         Assert.True(closeBox.Width >= 44 && closeBox.Height >= 44, $"Expected a 44px close target; got {closeBox.Width}x{closeBox.Height}.");
         Assert.True(await closeButton.EvaluateAsync<bool>("button => button === document.activeElement"));
 
-        var save = dialog.Locator(".lmx-checkin-card > button[type='submit']");
+        var save = dialog.Locator(".lmx-checkin-card button[type='submit']");
         Assert.False(await save.IsEnabledAsync());
         var selections = new[]
         {

@@ -523,11 +523,15 @@ public sealed class LongevitymaxxingChallengeService
     {
         var startedAt = Stopwatch.GetTimestamp();
         ValidatedCheckIn? checkIn = null;
+        string? requestHash = null;
         try
         {
+            requestHash = CheckInRequestHash(request, []);
+            var replay = ReplayCheckIn(request, requestHash, nowUtc);
+            if (replay is not null) return replay;
             checkIn = ValidateCheckIn(request, nowUtc);
-            var state = SaveCheckIn(checkIn, []);
-            TrackCheckInEvent(
+            var (state, applied) = SaveCheckIn(checkIn, [], requestHash);
+            if (applied) TrackCheckInEvent(
                 CheckInEventName(checkIn.CountsForScore, "submitted"),
                 checkIn,
                 state,
@@ -540,6 +544,11 @@ public sealed class LongevitymaxxingChallengeService
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
+            if (requestHash is not null)
+            {
+                var replay = ReplayCheckIn(request, requestHash, nowUtc);
+                if (replay is not null) return replay;
+            }
             TrackCheckInFailure(request, checkIn, ex, notePhotoCount: 0, durationMs: ElapsedMilliseconds(startedAt), context: context);
             throw;
         }
@@ -556,18 +565,33 @@ public sealed class LongevitymaxxingChallengeService
         ValidatedCheckIn? checkIn = null;
         var notePhotoCount = 0;
         var processedImages = new List<PendingCheckInImage>();
+        string? requestHash = null;
         try
         {
-            checkIn = ValidateCheckIn(request, nowUtc);
             var photoFiles = (notePhotos ?? [])
                 .Where(photo => photo is { Length: > 0 })
                 .ToList();
             notePhotoCount = photoFiles.Count;
+            if (photoFiles.Count > MaxCheckInPhotoCount || photoFiles.Any(photo => photo.Length > MaxCheckInPhotoUploadBytes))
+                throw new InvalidOperationException($"Choose up to {MaxCheckInPhotoCount} standard phone photos.");
+            // Authenticate before reading uploads, including replays of a closed catch-up day.
+            RequireParticipantByAccessToken(request.AccessToken);
+            var photoHashes = new List<string>();
+            if (request.SubmissionId is not null)
+                foreach (var photo in photoFiles)
+                {
+                    await using var input = photo.OpenReadStream();
+                    photoHashes.Add(Convert.ToHexString(await SHA256.HashDataAsync(input, ct).ConfigureAwait(false)));
+                }
+            requestHash = CheckInRequestHash(request, photoHashes);
+            var replay = ReplayCheckIn(request, requestHash, nowUtc);
+            if (replay is not null) return replay;
+            checkIn = ValidateCheckIn(request, nowUtc);
 
             if (photoFiles.Count == 0)
             {
-                var stateWithoutPhotos = SaveCheckIn(checkIn, []);
-                await TrackCheckInEventAsync(
+                var (stateWithoutPhotos, applied) = SaveCheckIn(checkIn, [], requestHash);
+                if (applied) await TrackCheckInEventAsync(
                     CheckInEventName(checkIn.CountsForScore, "submitted"),
                     checkIn,
                     stateWithoutPhotos,
@@ -580,24 +604,18 @@ public sealed class LongevitymaxxingChallengeService
                 return stateWithoutPhotos;
             }
 
-            var existingImages = GetCheckInImagesFor(checkIn.Participant.Id, checkIn.Request.ChallengeDay);
-            if (existingImages.Count + photoFiles.Count > MaxCheckInPhotoCount)
-                throw new InvalidOperationException($"Each check-in can have up to {MaxCheckInPhotoCount} photos.");
-
-            var nextIndex = existingImages.Count == 0 ? 1 : existingImages.Max(image => image.ImageIndex) + 1;
             foreach (var photo in photoFiles)
             {
                 processedImages.Add(await ProcessCheckInPhotoAsync(
                     checkIn.Participant,
                     checkIn.Request.ChallengeDay,
                     photo,
-                    nextIndex++,
                     checkIn.NowUtc,
                     ct).ConfigureAwait(false));
             }
 
-            var state = SaveCheckIn(checkIn, processedImages);
-            await TrackCheckInEventAsync(
+            var (state, photosApplied) = SaveCheckIn(checkIn, processedImages, requestHash);
+            if (photosApplied) await TrackCheckInEventAsync(
                 CheckInEventName(checkIn.CountsForScore, "submitted"),
                 checkIn,
                 state,
@@ -611,8 +629,14 @@ public sealed class LongevitymaxxingChallengeService
         }
         catch (Exception ex)
         {
-            foreach (var image in processedImages)
+            foreach (var image in processedImages.Where(image => !image.Committed))
                 TryDeleteFile(image.OutputPath);
+
+            if (ex is not OperationCanceledException && requestHash is not null)
+            {
+                var replay = ReplayCheckIn(request, requestHash, nowUtc);
+                if (replay is not null) return replay;
+            }
 
             if (ex is not OperationCanceledException)
             {
@@ -1493,16 +1517,47 @@ public sealed class LongevitymaxxingChallengeService
     private static bool RangesOverlap(int firstStart, int firstLength, int secondStart, int secondLength)
         => firstStart < secondStart + secondLength && secondStart < firstStart + firstLength;
 
-    private LongevitymaxxingParticipantState SaveCheckIn(ValidatedCheckIn checkIn, IReadOnlyList<PendingCheckInImage> newImages)
+    private LongevitymaxxingParticipantState? ReplayCheckIn(LongevitymaxxingCheckInRequest request, string requestHash, DateTimeOffset? nowUtc)
     {
-        _db.Run(sqlite =>
+        if (request.SubmissionId is null) return null;
+        var participant = RequireParticipantByAccessToken(request.AccessToken);
+        return _db.Run(sqlite => HasCheckInReceipt(sqlite, null, participant.Id, request.SubmissionId, requestHash))
+            ? GetParticipantState(request.AccessToken, nowUtc) : null;
+    }
+
+    private static string CheckInRequestHash(LongevitymaxxingCheckInRequest request, IReadOnlyList<string> photoHashes)
+        => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(new {
+            request.ChallengeDay, request.Sleep, request.Exercise, request.Nutrition, request.Vices,
+            Note = NormalizeNote(request.Note), Photos = photoHashes
+        }))));
+
+    private static bool HasCheckInReceipt(SqliteConnection sqlite, SqliteTransaction? transaction, string participantId, string? submissionId, string requestHash)
+    {
+        if (submissionId is null) return false;
+        if (!Guid.TryParseExact(submissionId, "D", out _)) throw new InvalidOperationException("Invalid check-in submission ID.");
+        using var receipt = sqlite.CreateCommand();
+        receipt.Transaction = transaction;
+        receipt.CommandText = "SELECT RequestHash FROM LongevitymaxxingCheckInSubmissions WHERE ParticipantId = @participantId AND SubmissionId = @submissionId;";
+        Add(receipt, "@participantId", participantId);
+        Add(receipt, "@submissionId", submissionId.ToLowerInvariant());
+        if (receipt.ExecuteScalar() is not string storedHash) return false;
+        if (storedHash != requestHash) throw new InvalidOperationException("This check-in submission ID was already used for different content.");
+        return true;
+    }
+
+    private (LongevitymaxxingParticipantState State, bool Applied) SaveCheckIn(ValidatedCheckIn checkIn, IReadOnlyList<PendingCheckInImage> newImages, string requestHash)
+    {
+        var applied = _db.Run(sqlite =>
         {
             using var transaction = sqlite.BeginTransaction(deferred: false);
+            if (HasCheckInReceipt(sqlite, transaction, checkIn.Participant.Id, checkIn.Request.SubmissionId, requestHash)) return false;
             var existingDiscussion = GetPersistedDiscussionSnapshot(
                 sqlite,
                 transaction,
                 checkIn.Participant.Id,
                 checkIn.Request.ChallengeDay);
+            if (existingDiscussion.ImageCount + newImages.Count > MaxCheckInPhotoCount)
+                throw new InvalidOperationException($"Each check-in can have up to {MaxCheckInPhotoCount} photos.");
             var confirmedParticipants = GetConfirmedParticipants(sqlite, transaction);
             var hasDiscussionContent = checkIn.Note is not null || existingDiscussion.ImageCount + newImages.Count > 0;
             var discussionChanged = !string.Equals(checkIn.Note, existingDiscussion.Note, StringComparison.Ordinal) || newImages.Count > 0;
@@ -1564,6 +1619,7 @@ public sealed class LongevitymaxxingChallengeService
             Add(upsert, "@updated", checkIn.NowUtc.ToString("o"));
             upsert.ExecuteNonQuery();
 
+            var nextImageIndex = existingDiscussion.LastImageIndex + 1;
             foreach (var image in newImages)
             {
                 using var insertImage = sqlite.CreateCommand();
@@ -1576,7 +1632,7 @@ public sealed class LongevitymaxxingChallengeService
                     """;
                 Add(insertImage, "@participantId", checkIn.Participant.Id);
                 Add(insertImage, "@day", checkIn.Request.ChallengeDay);
-                Add(insertImage, "@imageIndex", image.ImageIndex);
+                Add(insertImage, "@imageIndex", nextImageIndex++);
                 Add(insertImage, "@fileName", image.FileName);
                 Add(insertImage, "@width", image.Width);
                 Add(insertImage, "@height", image.Height);
@@ -1610,14 +1666,29 @@ public sealed class LongevitymaxxingChallengeService
                 notify.ExecuteNonQuery();
             }
 
+            if (checkIn.Request.SubmissionId is not null)
+            {
+                using var receipt = sqlite.CreateCommand();
+                receipt.Transaction = transaction;
+                receipt.CommandText = "INSERT INTO LongevitymaxxingCheckInSubmissions (ParticipantId, SubmissionId, RequestHash) VALUES (@participantId, @submissionId, @requestHash);";
+                Add(receipt, "@participantId", checkIn.Participant.Id);
+                Add(receipt, "@submissionId", checkIn.Request.SubmissionId.ToLowerInvariant());
+                Add(receipt, "@requestHash", requestHash);
+                receipt.ExecuteNonQuery();
+            }
             transaction.Commit();
+            foreach (var image in newImages) image.Committed = true;
+            return true;
         });
 
+        if (!applied)
+            foreach (var image in newImages) TryDeleteFile(image.OutputPath);
+
         ReactivateMissedDayInactiveParticipantIfCaughtUp(checkIn.Participant, checkIn.NowUtc);
-        return GetParticipantState(checkIn.Request.AccessToken, checkIn.NowUtc);
+        return (GetParticipantState(checkIn.Request.AccessToken, checkIn.NowUtc), applied);
     }
 
-    private static (string? Note, int ImageCount) GetPersistedDiscussionSnapshot(
+    private static (string? Note, int ImageCount, int LastImageIndex) GetPersistedDiscussionSnapshot(
         SqliteConnection sqlite,
         SqliteTransaction transaction,
         string participantId,
@@ -1631,7 +1702,9 @@ public sealed class LongevitymaxxingChallengeService
                    (SELECT COUNT(*)
                     FROM LongevitymaxxingCheckInImages i
                     WHERE i.ParticipantId = c.ParticipantId
-                      AND i.ChallengeDay = c.ChallengeDay)
+                      AND i.ChallengeDay = c.ChallengeDay),
+                   (SELECT COALESCE(MAX(i.ImageIndex), 0) FROM LongevitymaxxingCheckInImages i
+                    WHERE i.ParticipantId = c.ParticipantId AND i.ChallengeDay = c.ChallengeDay)
             FROM LongevitymaxxingCheckIns c
             WHERE c.ParticipantId = @participantId
               AND c.ChallengeDay = @day
@@ -1641,8 +1714,8 @@ public sealed class LongevitymaxxingChallengeService
         Add(cmd, "@day", challengeDay);
         using var reader = cmd.ExecuteReader();
         return reader.Read()
-            ? (reader.IsDBNull(0) ? null : reader.GetString(0), reader.GetInt32(1))
-            : (null, 0);
+            ? (reader.IsDBNull(0) ? null : reader.GetString(0), reader.GetInt32(1), reader.GetInt32(2))
+            : (null, 0, 0);
     }
 
     private static void RemovePendingOpeningPostMentionsExcept(
@@ -1868,14 +1941,13 @@ public sealed class LongevitymaxxingChallengeService
         ParticipantRecord participant,
         int challengeDay,
         IFormFile photo,
-        int imageIndex,
         DateTimeOffset nowUtc,
         CancellationToken ct)
     {
         if (photo.Length > MaxCheckInPhotoUploadBytes)
             throw new InvalidOperationException("That photo could not be uploaded. Choose one standard phone photo and try again.");
 
-        var fileName = $"{participant.Id}-day{challengeDay:00}-{imageIndex}.webp";
+        var fileName = $"{participant.Id}-day{challengeDay:00}-{Guid.NewGuid():N}.webp";
         var outputPath = GetCheckInPhotoPath(fileName);
         var tempPath = $"{outputPath}.{Guid.NewGuid():N}.tmp";
         Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
@@ -1900,7 +1972,7 @@ public sealed class LongevitymaxxingChallengeService
             }, ct).ConfigureAwait(false);
 
             File.Move(tempPath, outputPath, overwrite: true);
-            return new PendingCheckInImage(imageIndex, fileName, outputPath, image.Width, image.Height, nowUtc);
+            return new PendingCheckInImage(fileName, outputPath, image.Width, image.Height, nowUtc);
         }
         catch (UnknownImageFormatException ex)
         {
@@ -2581,6 +2653,14 @@ public sealed class LongevitymaxxingChallengeService
                     Height INTEGER NOT NULL,
                     CreatedAtUtc TEXT NOT NULL,
                     PRIMARY KEY (ParticipantId, ChallengeDay, ImageIndex)
+                );
+
+                CREATE TABLE IF NOT EXISTS LongevitymaxxingCheckInSubmissions (
+                    ParticipantId TEXT NOT NULL,
+                    SubmissionId TEXT NOT NULL,
+                    RequestHash TEXT NOT NULL,
+                    PRIMARY KEY (ParticipantId, SubmissionId),
+                    FOREIGN KEY (ParticipantId) REFERENCES LongevitymaxxingParticipants(Id) ON DELETE CASCADE
                 );
 
                 CREATE TABLE IF NOT EXISTS LongevitymaxxingDiscussionReplies (
@@ -5003,12 +5083,14 @@ public sealed class LongevitymaxxingChallengeService
         bool CountsForScore);
 
     private sealed record PendingCheckInImage(
-        int ImageIndex,
         string FileName,
         string OutputPath,
         int Width,
         int Height,
-        DateTimeOffset CreatedAtUtc);
+        DateTimeOffset CreatedAtUtc)
+    {
+        public bool Committed { get; set; }
+    }
 
     private sealed record CheckInImageRecord(
         string ParticipantId,

@@ -1079,6 +1079,29 @@
     display: none;
 }
 
+.lmx-pending-photo {
+    min-width: 0;
+    margin: 0;
+}
+
+.lmx-pending-photo figcaption {
+    padding: var(--lwc-space-1) 2px;
+    color: var(--lmx-muted);
+    font-size: var(--lwc-type-xs);
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+.lmx-photo-feedback {
+    margin-top: var(--lwc-space-2);
+    color: var(--lmx-muted);
+    font-size: var(--lwc-type-sm);
+}
+
+.lmx-photo-feedback:empty {
+    display: none;
+}
+
 .lmx-note-photo {
     position: relative;
     display: block;
@@ -3497,6 +3520,8 @@ a.lmx-note-mention:focus-visible {
 }
 
 .lmx-checkin-switcher span {
+    grid-column: 1 / -1;
+    grid-row: 2;
     color: var(--lmx-muted);
     font-size: var(--lwc-type-sm);
     font-weight: 400;
@@ -3504,7 +3529,7 @@ a.lmx-note-mention:focus-visible {
 }
 
 .lmx-checkin-switcher em {
-    grid-row: 1 / span 2;
+    grid-row: 1;
     grid-column: 2;
     padding: 0.18rem 0.45rem;
     border-radius: 999px;
@@ -3528,8 +3553,13 @@ a.lmx-note-mention:focus-visible {
 }
 
 .lmx-checkin-switcher button[aria-pressed="true"] em {
-    background: #10b981;
-    color: #ffffff;
+    background: var(--lmx-surface);
+    color: var(--lmx-ink);
+}
+
+.lmx-checkin-switcher button.has-draft em {
+    background: var(--lmx-accent);
+    color: var(--lwc-on-accent);
 }
 
 .lmx-checkin-switcher button:focus-visible,
@@ -3552,10 +3582,70 @@ a.lmx-note-mention:focus-visible {
     gap: 0.35rem;
 }
 
-.lmx-checkin-card > .lmx-button {
-    width: 100%;
-    justify-self: stretch;
-    margin-top: 0.5rem;
+.lmx-checkin-entry {
+    min-width: 0;
+}
+
+.lmx-checkin-actions {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    margin: var(--lwc-space-2) -0.8rem 0;
+    padding: var(--lwc-space-2) 0.8rem;
+    border-top: 1px solid var(--lmx-border);
+    background: var(--lmx-surface);
+}
+
+.lmx-checkin-save-row {
+    display: flex;
+    align-items: center;
+    gap: var(--lwc-space-2);
+}
+
+.lmx-checkin-progress {
+    flex: 1;
+    min-width: 0;
+    display: grid;
+    font-size: var(--lwc-type-sm);
+    line-height: 1.5;
+}
+
+.lmx-checkin-progress span {
+    color: var(--lmx-muted);
+}
+
+.lmx-checkin-save-row > .lmx-button {
+    flex: 0 0 auto;
+    margin: 0;
+}
+
+.lmx-checkin-save-row > .lmx-checkin-reset {
+    width: 44px;
+    padding-inline: 0;
+    font-size: var(--lwc-type-xs);
+}
+
+.lmx-checkin-actions .lmx-status:empty,
+.lmx-checkin-reset[hidden] {
+    display: none;
+}
+
+.lmx-checkin-actions .lmx-status.error {
+    margin-top: var(--lwc-space-2);
+    padding: var(--lwc-space-2);
+    border-left: 3px solid var(--lmx-danger);
+    background: var(--lmx-surface-muted);
+    font-size: var(--lwc-type-sm);
+}
+
+.lmx-checkin-entry :is(.lmx-question, textarea, .lmx-note-photo-field) {
+    scroll-margin-block: 80px;
+}
+
+.lmx-checkin-dialog-panel .lmx-checkin-actions {
+    bottom: -1rem;
+    margin-inline: 0;
+    padding-inline: 0;
 }
 
 .lmx-practice-note {
@@ -4504,11 +4594,6 @@ a.lmx-note-mention:focus-visible {
         height: 2.35rem;
     }
 
-    .lmx-checkin-card > .lmx-button {
-        width: 100%;
-        justify-self: stretch;
-    }
-
 }
 
 @media (max-width: 360px) {
@@ -4531,7 +4616,7 @@ a.lmx-note-mention:focus-visible {
     }
 
     .lmx-growth-control {
-        grid-template-columns: 5.75rem minmax(0, 1fr);
+        grid-template-columns: 4.5rem minmax(0, 1fr);
     }
 
 }
