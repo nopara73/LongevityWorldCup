@@ -1084,6 +1084,12 @@
         outline-offset: 3px;
     }
 
+    @media (max-width: 932px) {
+        header[role="banner"] .tagline {
+            display: none;
+        }
+    }
+
     @media (max-width: 640px) {
         main {
             margin-top: var(--space-5);
@@ -1114,7 +1120,6 @@
             text-overflow: ellipsis;
         }
 
-        header[role="banner"] .tagline,
         .join-game-middle,
         .join-game-end {
             display: none;
@@ -1249,10 +1254,6 @@
             font-size: clamp(1rem, 3vw, 1.3rem);
             line-height: 1.05;
             text-overflow: ellipsis;
-        }
-
-        header[role="banner"] .tagline {
-            display: none;
         }
 
         header[role="banner"] .join-game:not(.scrolled-button) {

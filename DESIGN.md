@@ -15,6 +15,7 @@ Keep reusable product decisions here; omit implementation history and one-off po
 ## Motion
 
 - Use shared standard easing with 140ms transitions or 220ms state transitions. Avoid generic scroll entrances, looping decoration, delayed routine text, and unbounded particles in focused tasks.
+- Shared interaction transitions name their visual properties explicitly. Responsive widths, flex sizing, and gaps update immediately so neighboring controls keep their space during resizing.
 - First-visit game storytelling may pace existing text once; repeat visits fast-forward and reduced motion displays it immediately.
 - Important outcomes may combine shared durations into bounded choreography that explains the result. Publish semantic results and actions immediately, never gate progress on `animationend`, cap decoration, and provide an immediate reduced-motion state.
 - Render indefinite activities from aggregate state with bounded elements, never one image or DOM node per historical event.
