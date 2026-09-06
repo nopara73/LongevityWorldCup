@@ -758,6 +758,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     let checkInSaving: { key: string; day: number } | null = null;
     let profilePictureDraft: ProfilePictureDraft | null = null;
     let profileTimeZoneDraft: ProfileTimeZoneDraft | null = null;
+    const handledTimeZoneSuggestions = new Set<string>();
     const discussionReplyCache = new Map<string, DiscussionReplyCacheEntry>();
     const discussionDrafts = new Map<string, DiscussionDraft>();
     let activeDiscussionDraft: { key: string; surface: string } | null = null;
@@ -996,6 +997,16 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         editForm.addEventListener("submit", async event => {
             event.preventDefault();
             await saveProfileTimeZone();
+        });
+
+        requiredButton("lmxReviewTimeZoneButton").addEventListener("click", () => handleTimeZoneSuggestion(true));
+        requiredButton("lmxKeepTimeZoneButton").addEventListener("click", () => handleTimeZoneSuggestion(false));
+        window.addEventListener("focus", renderTimeZoneSuggestion);
+        document.addEventListener("visibilitychange", () => {
+            if (document.visibilityState === "visible") renderTimeZoneSuggestion();
+        });
+        window.addEventListener("storage", event => {
+            if (event.key?.startsWith("lmxTimeZoneChoice:")) renderTimeZoneSuggestion();
         });
 
         inactiveToggle?.addEventListener("click", () => {
@@ -1347,6 +1358,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         if (participantState) {
             renderParticipant(participantState);
         } else {
+            renderTimeZoneSuggestion();
             renderNotes(publicDiscussionThreads(state), false);
         }
 
@@ -4479,6 +4491,65 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         if (draft.saving) button.setAttribute("aria-busy", "true");
         button.textContent = draft.saving ? "Saving…" : draft.error && changed ? "Retry" : "Save";
         setStatus("lmxEditStatus", changed ? draft.error : "", changed && !!draft.error);
+        renderTimeZoneSuggestion();
+    }
+
+    function getTimeZoneSuggestion() {
+        if (!participantState || !profileTimeZoneDraft || profileTimeZoneDraft.saving || hasProfileTimeZoneChanges()
+            || isParticipantTabLocked("profile", participantState)) return null;
+        try {
+            // Compare timezone identities, not UTC offsets: DST is not travel,
+            // and IANA aliases such as Calcutta/Kolkata describe the same zone.
+            const deviceZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            const savedZone = participantState.participant.timeZoneId;
+            const deviceIdentity = deviceZone && resolveTimeZoneId(deviceZone);
+            const savedIdentity = savedZone && resolveTimeZoneId(savedZone);
+            if (!deviceIdentity || !savedIdentity || deviceIdentity === savedIdentity) return null;
+            const storageKey = `lmxTimeZoneChoice:${participantState.participant.id}`;
+            const choice = JSON.stringify([savedIdentity, deviceIdentity]);
+            const key = `${storageKey}:${choice}`;
+            if (handledTimeZoneSuggestions.has(key) || safeStorageGet(storageKey) === choice) return null;
+            return { deviceZone: preferredTimeZoneId(deviceZone), savedZone, storageKey, choice, key };
+        } catch (_) {
+            // An unavailable device timezone is not evidence of a change.
+            return null;
+        }
+    }
+
+    function renderTimeZoneSuggestion(): void {
+        const panel = document.getElementById("lmxTimeZoneSuggestion");
+        if (!panel) return;
+        const suggestion = getTimeZoneSuggestion();
+        const returnFocus = !suggestion && panel.contains(document.activeElement);
+        panel.hidden = !suggestion;
+        panel.dataset.suggestionKey = suggestion?.key || "";
+        if (returnFocus) document.querySelector<HTMLElement>("[data-lmx-tab][aria-selected='true']")?.focus({ preventScroll: true });
+        if (!suggestion) return;
+        const message = `Your device uses ${timeZoneDisplayName(suggestion.deviceZone)}. Your challenge uses ${timeZoneDisplayName(suggestion.savedZone)}.`;
+        const description = document.getElementById("lmxTimeZoneSuggestionDescription");
+        if (description && description.textContent !== message) description.textContent = message;
+        const keep = requiredButton("lmxKeepTimeZoneButton");
+        const label = `Keep ${timeZoneDisplayName(suggestion.savedZone).split(", ")[0]}`;
+        if (keep.textContent !== label) keep.textContent = label;
+    }
+
+    function handleTimeZoneSuggestion(review: boolean): void {
+        const suggestion = getTimeZoneSuggestion();
+        // Recheck on click in case the device or saved zone changed since render.
+        if (!suggestion || document.getElementById("lmxTimeZoneSuggestion")?.dataset.suggestionKey !== suggestion.key) {
+            renderTimeZoneSuggestion();
+            return;
+        }
+        handledTimeZoneSuggestions.add(suggestion.key);
+        if (review && profileTimeZoneDraft) {
+            profileTimeZoneDraft.timeZoneId = suggestion.deviceZone;
+            profileTimeZoneDraft.error = "";
+            setParticipantTab("profile", true);
+            requiredButton("lmxEditTimeZoneButton").focus();
+        } else {
+            safeStorageSet(suggestion.storageKey, suggestion.choice);
+            renderTimeZoneSuggestion();
+        }
     }
 
     async function saveProfileTimeZone(): Promise<void> {
