@@ -98,20 +98,27 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task ProfilePhotoUpload_SuccessKeepsConcurrentTimezoneEdits(bool saveTimezone)
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task ProfilePhotoUpload_SuccessKeepsConcurrentTimezoneEdits(bool saveTimezone, bool photoFinishesFirst)
     {
         await using var context = await NewContextAsync(Browser, App, new() { ViewportSize = new() { Width = 390, Height = 844 } });
         var page = await OpenPhotoProfileAsync(context);
         var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var timezoneGate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        if (!photoFinishesFirst) timezoneGate.TrySetResult();
         await page.RouteAsync("**/api/longevitymaxxing/profile-picture", async route =>
         {
             started.TrySetResult(); await gate.Task;
             await FulfillJsonAsync(route, PhotoProfileState(PhotoSavedUrl).ToJsonString());
         });
-        await page.RouteAsync("**/api/longevitymaxxing/edit", route => FulfillJsonAsync(route, PhotoProfileState(timeZone: "Europe/London").ToJsonString()));
+        await page.RouteAsync("**/api/longevitymaxxing/edit", async route =>
+        {
+            await timezoneGate.Task;
+            await FulfillJsonAsync(route, PhotoProfileState(timeZone: "Europe/London").ToJsonString());
+        });
         try
         {
             await page.Locator("#lmxProfilePictureInput").SetInputFilesAsync(ProfilePhotoFile("new-picture.png"));
@@ -122,7 +129,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
             if (saveTimezone)
             {
                 await page.Locator("#lmxEditForm > button[type='submit']").ClickAsync();
-                await Assertions.Expect(page.Locator("#lmxEditStatus")).ToHaveTextAsync("Saved.");
+                if (!photoFinishesFirst) await Assertions.Expect(page.Locator("#lmxEditStatus")).ToHaveTextAsync("Saved.");
             }
             await page.Locator("#lmxEditTimeZoneButton").FocusAsync();
             gate.TrySetResult();
@@ -131,13 +138,16 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
             await Assertions.Expect(page.Locator("#lmxEditTimeZoneButton")).ToBeFocusedAsync();
             if (saveTimezone)
             {
+                timezoneGate.TrySetResult();
+                await Assertions.Expect(page.Locator("#lmxEditStatus")).ToHaveTextAsync("Saved.");
+                await Assertions.Expect(page.Locator("#lmxProfilePictureImage")).ToHaveAttributeAsync("src", PhotoSavedUrl);
                 await page.Locator("#lmxHomeTab").ClickAsync();
                 await page.Locator("#lmxProfileTab").ClickAsync();
                 await Assertions.Expect(page.Locator("#lmxEditTimeZone")).ToHaveValueAsync("Europe/London");
                 await Assertions.Expect(page.Locator("#lmxProfilePictureImage")).ToHaveAttributeAsync("src", PhotoSavedUrl);
             }
         }
-        finally { gate.TrySetResult(); }
+        finally { gate.TrySetResult(); timezoneGate.TrySetResult(); }
     }
 
     [Fact]

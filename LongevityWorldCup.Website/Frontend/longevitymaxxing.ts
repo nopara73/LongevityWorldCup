@@ -986,10 +986,17 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             event.preventDefault();
             if (!accessToken) return;
             await withButton(editForm.querySelector("button[type='submit']"), async () => {
+                const currentAccessToken = accessToken;
+                const pictureBeforeSave = participantState?.participant.profileImageUrl;
                 const result = await postJson(`${API}/edit`, {
-                    accessToken,
+                    accessToken: currentAccessToken,
                     timeZoneId: requiredSelect("lmxEditTimeZone").value
                 });
+                if (accessToken !== currentAccessToken) return;
+                if (participantState?.participant.id === result.participant.id && participantState.participant.profileImageUrl !== pictureBeforeSave) {
+                    // A photo completed after this timezone request began.
+                    setProfilePictureInState(result, participantState.participant.profileImageUrl);
+                }
                 acceptParticipantState(result);
                 renderAll();
                 setStatus("lmxEditStatus", "Saved.", false);
@@ -4472,11 +4479,9 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             // This response owns only the picture. A concurrent timezone save or
             // another view may already have newer state and unfinished edits.
             const image = result.participant.profileImageUrl;
-            participantState.participant.profileImageUrl = image;
-            for (const state of new Set([participantState.public, publicState])) {
-                const row = state?.leaderboard.find(row => row.participantId === draft.participantId);
-                if (row) row.profileImageUrl = image;
-            }
+            setProfilePictureInState(participantState, image);
+            const publicRow = publicState?.leaderboard.find(row => row.participantId === draft.participantId);
+            if (publicRow) publicRow.profileImageUrl = image;
             stateAcceptanceGeneration++;
             hydrateRenderedParticipantAvatars();
             restoreUploadFocus = document.activeElement?.id === "lmxChooseProfilePictureButton";
@@ -4496,6 +4501,12 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     function clearProfilePictureDraft(): void {
         if (profilePictureDraft?.previewUrl) URL.revokeObjectURL(profilePictureDraft.previewUrl);
         profilePictureDraft = null;
+    }
+
+    function setProfilePictureInState(state: ParticipantState, image: string | null): void {
+        state.participant.profileImageUrl = image;
+        const row = state.public.leaderboard.find(row => row.participantId === state.participant.id);
+        if (row) row.profileImageUrl = image;
     }
 
     async function prepareProfilePictureFile(file: File): Promise<File> {
