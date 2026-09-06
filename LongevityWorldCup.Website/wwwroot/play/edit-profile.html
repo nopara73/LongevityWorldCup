@@ -595,6 +595,27 @@
             background: var(--lwc-accent-soft);
             color: var(--lwc-accent);
         }
+        .edit-profile-main .inline-option-group > :is(input, select, textarea) {
+            flex: 1 1 0;
+            min-width: 0;
+        }
+        .profile-field-error {
+            flex: 0 0 100%;
+            margin: calc(-1 * var(--lwc-space-1)) 0 0;
+            color: var(--lwc-danger);
+            font-size: var(--lwc-type-sm);
+            line-height: 1.5;
+            text-align: left;
+            overflow-wrap: anywhere;
+        }
+        .profile-field-error[hidden] { display: none; }
+        .edit-profile-main #editOptionsGroup [aria-invalid="true"] {
+            border-color: var(--lwc-danger);
+        }
+        .edit-profile-main #editOptionsGroup [aria-invalid="true"]:focus {
+            outline-color: var(--lwc-danger);
+            box-shadow: 0 0 0 3px var(--lwc-danger-soft);
+        }
     </style>
 </head>
 <body class="play-flow-route">
@@ -634,6 +655,7 @@
                 <label for="flagDisplayInput" class="field-label">Flag <span class="field-requirement">(required)</span></label>
                 <input type="text"
                        id="flagDisplayInput"
+                       aria-describedby="flagDisplayInputError"
                        name="flagDisplay"
                        required
                        aria-required="true"
@@ -646,11 +668,13 @@
                 <button id="restoreFlagBtn" class="option-button icon-only" style="display:none" title="Restore flag" aria-label="Restore flag">
                     <i class="fas fa-undo" aria-hidden="true"></i>
                 </button>
+                <p id="flagDisplayInputError" class="profile-field-error" aria-live="polite" hidden></p>
             </div>
             <div class="niceInputFieldDisplayWrapper options-container inline-option-group">
                 <label for="personalLinkInput" class="field-label">Personal link <span class="field-requirement">(optional)</span></label>
                 <input type="text"
                        id="personalLinkInput"
+                       aria-describedby="personalLinkInputError"
                        name="personalLink"
                        inputmode="url"
                        autocomplete="url"
@@ -660,11 +684,13 @@
                 <button id="restorePersonalLinkBtn" class="option-button icon-only" style="display:none" title="Restore personal link" aria-label="Restore personal link">
                     <i class="fas fa-undo" aria-hidden="true"></i>
                 </button>
+                <p id="personalLinkInputError" class="profile-field-error" aria-live="polite" hidden></p>
             </div>
             <div class="niceInputFieldDisplayWrapper options-container inline-option-group">
                 <label for="mediaContactInput" class="field-label">Media contact <span class="field-requirement">(required)</span></label>
                 <input type="text"
                        id="mediaContactInput"
+                       aria-describedby="mediaContactInputError"
                        name="mediaContact"
                        required
                        aria-required="true"
@@ -676,10 +702,12 @@
                 <button id="restoreMediaContactBtn" class="option-button icon-only" style="display:none" title="Restore media contact" aria-label="Restore media contact">
                     <i class="fas fa-undo" aria-hidden="true"></i>
                 </button>
+                <p id="mediaContactInputError" class="profile-field-error" aria-live="polite" hidden></p>
             </div>
             <div class="niceInputFieldDisplayWrapper options-container inline-option-group">
                 <label for="whyDisplayInput" class="field-label">Motivation <span class="field-requirement">(required)</span></label>
                 <textarea id="whyDisplayInput"
+                          aria-describedby="whyDisplayInputError"
                           name="whyDisplay"
                           rows="3"
                           required
@@ -689,6 +717,7 @@
                 <button id="restoreWhyDisplayBtn" class="option-button icon-only" style="display:none" title="Restore your why" aria-label="Restore your why">
                     <i class="fas fa-undo" aria-hidden="true"></i>
                 </button>
+                <p id="whyDisplayInputError" class="profile-field-error" aria-live="polite" hidden></p>
             </div>
         </div>
         <div class="options-container edit-profile-actions flow-action-stack flow-action-stack--hide-disabled-primary" data-flow-dock="auto" data-aos="fade" data-aos-duration="700" data-aos-delay="400">
@@ -720,6 +749,7 @@
     <!--FOOTER-->
     <script>
         let isEditProfileSubmitting = false;
+        const pendingProfileFieldValidation = new Map();
 
         function setBrowserStorageItem(storageName, key, value) {
             try {
@@ -998,6 +1028,43 @@
             const personalLinkInput = document.getElementById('personalLinkInput');
             const whyDisplayInput = document.getElementById('whyDisplayInput');
 
+            const profileFields = [
+                [flagInput, validateFlagDisplay],
+                [personalLinkInput, validatePersonalLink],
+                [mediaContactInput, validateMediaContact],
+                [whyDisplayInput, validateWhyDisplay]
+            ];
+            let profilePointerDown = false;
+            document.addEventListener('pointerdown', event => {
+                if (event.isPrimary) profilePointerDown = true;
+            }, true);
+            const finishProfilePointer = event => {
+                if (event.isPrimary === false) return;
+                profilePointerDown = false;
+                // An error row must not move a click target between pointerdown
+                // and click. Commit blur feedback after the gesture finishes.
+                setTimeout(() => {
+                    if (profilePointerDown || !pendingProfileFieldValidation.size) return;
+                    const pending = [...pendingProfileFieldValidation];
+                    pendingProfileFieldValidation.clear();
+                    pending.forEach(([input, validate]) => validate(input.value));
+                    const focused = document.activeElement;
+                    if (profileFields.some(([input]) => input === focused)) keepEditedControlClearOfDock(focused);
+                }, 0);
+            };
+            document.addEventListener('pointerup', finishProfilePointer, true);
+            document.addEventListener('pointercancel', finishProfilePointer, true);
+            window.addEventListener('blur', finishProfilePointer);
+            profileFields.forEach(([input, validate]) => {
+                input.addEventListener('blur', () => {
+                    if (profilePointerDown) pendingProfileFieldValidation.set(input, validate);
+                    else validate(input.value);
+                });
+                input.addEventListener('input', () => {
+                    if (input.getAttribute('aria-invalid') === 'true') validate(input.value);
+                });
+            });
+
             [flagInput, personalLinkInput, mediaContactInput].forEach(input => {
                 input.addEventListener('keydown', e => {
                     if (e.key === 'Enter' && !e.defaultPrevented && !e.isComposing) {
@@ -1018,13 +1085,12 @@
             submitButton.addEventListener('click', async function () {
                 if (isEditProfileSubmitting || submitButton.disabled) return;
 
-                // click-guard: validate before submitting
-                if (
-                    !validateFlagDisplay(flagInput.value) ||
-                    !validatePersonalLink(personalLinkInput.value) ||
-                    !validateMediaContact(mediaContactInput.value) ||
-                    !validateWhyDisplay(whyDisplayInput.value)
-                ) {
+                pendingProfileFieldValidation.clear();
+                const invalidFields = profileFields.filter(([input, validate]) => !validate(input.value));
+                if (invalidFields.length) {
+                    const firstInvalidInput = invalidFields[0][0];
+                    firstInvalidInput.focus();
+                    keepEditedControlClearOfDock(firstInvalidInput);
                     return;
                 }
 
@@ -1156,62 +1222,18 @@
                 updateSubmitButtonState(whyDisplayInput);
             });
 
-            let skipFlagValidation = false;
-            restoreFlagBtn.addEventListener('mousedown', () => {
-                skipFlagValidation = true;
-            });
-
-            flagInput.addEventListener('blur', function () {
-                if (skipFlagValidation) {
-                    skipFlagValidation = false;
-                    return;
-                }
-                validateFlagDisplay(this.value);
-            });
-
-            // --- SKIP-ON-RESTORE FLAGS ---
-            let skipPersonalLinkValidation = false;
-            restorePersonalLinkBtn.addEventListener('mousedown', () => {
-                skipPersonalLinkValidation = true;
-            });
-
-            let skipMediaContactValidation = false;
-            restoreMediaContactBtn.addEventListener('mousedown', () => {
-                skipMediaContactValidation = true;
-            });
-
             // --- BLUR HANDLERS ---
             personalLinkInput.addEventListener('blur', function () {
-                if (skipPersonalLinkValidation) {
-                    skipPersonalLinkValidation = false;
-                    return;
-                }
                 const normalized = normalizeOptionalUrl(this.value);
                 if (isOptionalUrl(normalized)) {
                     this.value = normalized;
                 }
-                validatePersonalLink(this.value);
-                updateSubmitButtonState(this);
+                updateSubmitButtonState();
             });
 
             mediaContactInput.addEventListener('blur', function () {
-                if (skipMediaContactValidation) {
-                    skipMediaContactValidation = false;
-                    return;
-                }
                 this.value = normalizeMediaContact(this.value);
-                validateMediaContact(this.value);
-                updateSubmitButtonState(this);
-            });
-
-            let skipWhyValidation = false;
-            restoreWhyDisplayBtn.addEventListener('mousedown', () => { skipWhyValidation = true; });
-            whyDisplayInput.addEventListener('blur', function () {
-                if (skipWhyValidation) {
-                    skipWhyValidation = false;
-                    return;
-                }
-                validateWhyDisplay(this.value);
+                updateSubmitButtonState();
             });
 
             document.getElementById('restoreProfilePicButton')
@@ -1249,7 +1271,7 @@
             const restoreFlagBtn = document.getElementById('restoreFlagBtn');
             flagInput.value = originalAthlete.Flag;
             athlete.Flag = originalAthlete.Flag;
-            restoreFlagBtn.style.display = 'none';
+            restoreProfileFieldFeedback(flagInput, restoreFlagBtn);
             updateSubmitButtonState();
         }
 
@@ -1259,7 +1281,7 @@
             const originalPersonalLink = normalizeOptionalUrl(originalAthlete.PersonalLink);
             personalLinkInput.value = originalPersonalLink;
             athlete.PersonalLink = originalPersonalLink;
-            restorePersonalLinkBtn.style.display = 'none';
+            restoreProfileFieldFeedback(personalLinkInput, restorePersonalLinkBtn);
             updateSubmitButtonState();
         }
 
@@ -1269,7 +1291,7 @@
             const originalMediaContact = normalizeMediaContact(originalAthlete.MediaContact);
             mediaContactInput.value = originalMediaContact;
             athlete.MediaContact = originalMediaContact;
-            restoreMediaContactBtn.style.display = 'none';
+            restoreProfileFieldFeedback(mediaContactInput, restoreMediaContactBtn);
             updateSubmitButtonState();
         }
         function restoreWhyDisplayToOriginal() {
@@ -1278,7 +1300,7 @@
             const originalWhy = normalizeEditText(originalAthlete.Why);
             whyDisplayInput.value = originalWhy;
             athlete.Why = originalWhy;
-            restoreWhyDisplayBtn.style.display = 'none';
+            restoreProfileFieldFeedback(whyDisplayInput, restoreWhyDisplayBtn);
             updateSubmitButtonState();
         }
 
@@ -1601,20 +1623,32 @@
             }
         }
 
+        function setProfileFieldError(id, message) {
+            const input = document.getElementById(id);
+            const feedback = document.getElementById(id + 'Error');
+            input.setAttribute('aria-invalid', message ? 'true' : 'false');
+            feedback.hidden = !message;
+            if (feedback.textContent !== message) feedback.textContent = message;
+            return !message;
+        }
+
+        function restoreProfileFieldFeedback(input, restoreButton) {
+            pendingProfileFieldValidation.delete(input);
+            setProfileFieldError(input.id, '');
+            if (document.activeElement === restoreButton) input.focus({ preventScroll: true });
+            restoreButton.style.display = 'none';
+        }
+
         function validateFlagDisplay(value) {
             const trimmed = value.trim();
             const regex = /^[A-Za-zÀ-ÖØ-öø-ÿ][A-Za-zÀ-ÖØ-öø-ÿ0-9\s'(),.\-]{2,99}$/;
             if (trimmed.length < 3) {
-                customAlert('Flag must be at least 3 characters long.')
-                    .then(() => document.getElementById('flagDisplayInput')?.focus());
-                return false;
+                return setProfileFieldError('flagDisplayInput', 'Flag must be at least 3 characters long.');
             }
             if (!regex.test(trimmed)) {
-                customAlert('Flag contains invalid characters.')
-                    .then(() => document.getElementById('flagDisplayInput')?.focus());
-                return false;
+                return setProfileFieldError('flagDisplayInput', 'Flag contains invalid characters.');
             }
-            return true;
+            return setProfileFieldError('flagDisplayInput', '');
         }
 
         function isOptionalUrl(value) {
@@ -1650,30 +1684,18 @@
 
         function validatePersonalLink(value) {
             const v = value.trim();
-            if (!v) return true;                            // empty OK
-            if (!isOptionalUrl(v)) {
-                customAlert('Please enter a valid URL for your personal link.').then(() => document.getElementById('personalLinkInput')?.focus());
-                return false;
-            }
-            return true;
+            return setProfileFieldError('personalLinkInput', !v || isOptionalUrl(v)
+                ? '' : 'Enter a valid website address, such as example.com.');
         }
 
         function validateMediaContact(value) {
             const v = value.trim();
-            if (!v) {
-                customAlert('Media contact is required.').then(() => document.getElementById('mediaContactInput')?.focus());
-                return false;
-            }
-            return true;                                    // any non-empty string OK
+            return setProfileFieldError('mediaContactInput', v ? '' : 'Enter a media contact.');
         }
 
         function validateWhyDisplay(value) {
             const v = value.trim();
-            if (!v) {
-                customAlert('Your why is the light. Don’t leave us in the dark.').then(() => document.getElementById('whyDisplayInput')?.focus());
-                return false;
-            }
-            return true;
+            return setProfileFieldError('whyDisplayInput', v ? '' : 'Enter your motivation.');
         }
     </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js" defer></script>
