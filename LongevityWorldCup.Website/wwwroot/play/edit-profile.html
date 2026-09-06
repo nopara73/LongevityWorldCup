@@ -971,8 +971,10 @@
                 setSessionItem('contactEmail', reviewContactEmail);
                 setLocalItem('contactEmail', reviewContactEmail);
             }
-            window.clearPendingApplicationSubmission(submissionContext.submissionId);
-            removeSessionItem('tempAthlete');
+            const draftCleared = removeSessionItem('tempAthlete') || setSessionItem('tempAthlete', 'null');
+            if (draftCleared) window.clearPendingApplicationSubmission(submissionContext.submissionId);
+            // If cleanup is blocked, retain the submission receipt so re-entry
+            // recovers the accepted request instead of offering its draft again.
             hasUnsavedProfileDraft = false;
             setSessionItem('came-from', 'edit-profile');
             customAlert('Change request submitted!').then(() => {
@@ -984,7 +986,7 @@
 
         document.addEventListener('DOMContentLoaded', async function () {
             const pendingSubmission = window.getPendingApplicationSubmission('edit-request');
-            if (pendingSubmission) {
+            if (pendingSubmission && pendingSubmission.applicantName === originalAthlete.Name) {
                 showLoading();
                 try {
                     const recovered = await window.tryRecoverPendingApplicationSubmission('edit-request');
@@ -1746,6 +1748,7 @@
             });
             document.getElementById('resetProfileDraftButton').addEventListener('click', () => {
                 if (isEditProfileSubmitting) return;
+                pendingProfileFieldValidation.forEach((validate, input) => validate(input.value));
                 resetProfileDraftSnapshot = Object.fromEntries(getProfileEditFields().map(field => [field.key, {
                     value: readProfileField(field), error: document.getElementById(field.id + 'Error')?.textContent || ''
                 }]));

@@ -79,16 +79,88 @@ public sealed class ProfileDraftBrowserTests(
     {
         await using var context = await CreateContextAsync(390);
         var page = await OpenEditorAsync(context);
+        var recoveries = 0;
+        await context.RouteAsync("**/api/application/submission-status", async route =>
+        {
+            recoveries++;
+            await route.FulfillAsync(new() { ContentType = "application/json", Body = "{\"success\":true}" });
+        });
         await page.EvaluateAsync("""
             () => { const draft = JSON.parse(sessionStorage.getItem('selectedAthlete'));
                 draft.Name = 'Another Athlete'; draft.DisplayName = 'Another Athlete'; draft.Why = 'Someone else';
-                sessionStorage.setItem('tempAthlete', JSON.stringify(draft)); }
+                sessionStorage.setItem('tempAthlete', JSON.stringify(draft));
+                window.rememberPendingApplicationSubmission({submissionId:'another-athlete-request', payloadFingerprint:'other-draft',
+                    submissionKind:'edit-request', applicantName:draft.Name}); }
             """);
         await page.ReloadAsync();
         await Assertions.Expect(page.Locator("#character-title")).ToHaveTextAsync("Alex Morgan");
         await Assertions.Expect(page.Locator("#whyDisplayInput")).ToHaveValueAsync("Training for a longer, healthier life.");
         await Assertions.Expect(page.Locator("#submitButton")).ToBeDisabledAsync();
         Assert.Null(await page.EvaluateAsync<string?>("sessionStorage.getItem('tempAthlete')"));
+        Assert.Equal(0, recoveries);
+    }
+
+    [Fact]
+    public async Task ResetBeforeBlurValidation_UndoRestoresTheInvalidFieldFeedback()
+    {
+        await using var context = await CreateContextAsync(390);
+        var page = await OpenEditorAsync(context);
+        await page.Locator("#whyDisplayInput").FillAsync("");
+        await page.Locator("#resetProfileDraftButton").ClickAsync();
+        await page.Locator("#undoProfileDraftButton").ClickAsync();
+        await Assertions.Expect(page.Locator("#whyDisplayInput")).ToHaveValueAsync("");
+        await Assertions.Expect(page.Locator("#whyDisplayInput")).ToHaveAttributeAsync("aria-invalid", "true");
+        await Assertions.Expect(page.Locator("#whyDisplayInputError")).ToBeVisibleAsync();
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task CleanupFailure_DoesNotOfferAnAcceptedDraftForResubmission(bool blockReplacement)
+    {
+        await using var context = await CreateContextAsync(390);
+        var page = await OpenEditorAsync(context);
+        var submissions = 0;
+        var recoveries = 0;
+        await context.RouteAsync("**/api/application/application", async route =>
+        {
+            submissions++;
+            await page.EvaluateAsync("""
+                blockReplacement => {
+                    const remove = Storage.prototype.removeItem, set = Storage.prototype.setItem;
+                    Storage.prototype.removeItem = function(key) {
+                        if (key === 'tempAthlete') throw new DOMException('Storage blocked', 'SecurityError');
+                        return remove.call(this, key);
+                    };
+                    Storage.prototype.setItem = function(key, value) {
+                        if (blockReplacement && key === 'tempAthlete') throw new DOMException('Storage blocked', 'SecurityError');
+                        return set.call(this, key, value);
+                    };
+                }
+                """, blockReplacement);
+            await route.FulfillAsync(new() { ContentType = "application/json", Body = "{}" });
+        });
+        await context.RouteAsync("**/api/application/submission-status", async route =>
+        {
+            recoveries++;
+            await route.FulfillAsync(new() { ContentType = "application/json", Body = "{\"success\":true}" });
+        });
+        await page.Locator("#whyDisplayInput").FillAsync("This change was accepted.");
+        await page.Locator("#submitButton").ClickAsync();
+        await Assertions.Expect(page.Locator("#custom-alert")).ToContainTextAsync("Change request submitted!");
+        if (blockReplacement)
+            Assert.True(await page.EvaluateAsync<bool>("Boolean(window.getPendingApplicationSubmission('edit-request'))"));
+        else
+            Assert.True(await page.EvaluateAsync<bool>("JSON.parse(sessionStorage.getItem('tempAthlete')) === null"));
+        await page.ReloadAsync();
+        if (blockReplacement)
+            await Assertions.Expect(page.Locator("#custom-alert")).ToContainTextAsync("Change request submitted!");
+        else
+            await Assertions.Expect(page.Locator("#whyDisplayInput")).ToHaveValueAsync("Training for a longer, healthier life.");
+        Assert.Null(await page.EvaluateAsync<string?>("sessionStorage.getItem('tempAthlete')"));
+        Assert.False(await page.EvaluateAsync<bool>("Boolean(window.getPendingApplicationSubmission('edit-request'))"));
+        Assert.Equal(blockReplacement ? 1 : 0, recoveries);
+        Assert.Equal(1, submissions);
     }
 
     [Fact]
