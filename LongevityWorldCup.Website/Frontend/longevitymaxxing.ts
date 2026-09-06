@@ -1026,7 +1026,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             : publicState ? publicDiscussionThreads(publicState) : [];
         const page = getDiscussionPage(notes);
         discussionPageIndex = Math.max(0, Math.min(page.pageCount - 1, page.pageIndex + delta));
-        renderNotes(notes, participantView);
+        renderNotes(notes, participantView, false);
     }
 
     function wireAccessTabs() {
@@ -3161,8 +3161,12 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     }
 
     function activePublicDiscussion(state: ParticipantState): ParticipantNote[] {
-        return discussionThreadsInHotOrder(publicDiscussionThreads(state.public))
-            .slice(0, RECENT_REMARK_LIMIT);
+        const ordered = discussionThreadsInHotOrder(publicDiscussionThreads(state.public));
+        const preview = ordered.slice(0, RECENT_REMARK_LIMIT);
+        const draft = activeDiscussionDraft?.surface === "checkin" ? discussionDrafts.get(activeDiscussionDraft.key) : null;
+        const thread = draft ? ordered.find(note => isDiscussionDraftThread(note, draft)) : null;
+        if (thread && !preview.includes(thread)) preview.splice(RECENT_REMARK_LIMIT - 1, 1, thread);
+        return preview;
     }
 
     function publicDiscussionThreads(state: PublicState): ParticipantNote[] {
@@ -4516,10 +4520,15 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         return `${clean || "profile-picture"}.${extension}`;
     }
 
-    function renderNotes(notes: ParticipantNote[], participantView: boolean): void {
+    function renderNotes(notes: ParticipantNote[], participantView: boolean, keepActiveThread = true): void {
         const container = document.getElementById("lmxNotes");
         if (!container) return;
         const restoreDraftFocus = preserveDiscussionDraftFocus(container);
+        const draft = activeDiscussionDraft?.surface === "notes" ? discussionDrafts.get(activeDiscussionDraft.key) : null;
+        if (keepActiveThread && draft && container.querySelector("[data-discussion-draft]")) {
+            const index = discussionThreadsInHotOrder(notes).findIndex(note => isDiscussionDraftThread(note, draft));
+            if (index >= 0) discussionPageIndex = Math.floor(index / DISCUSSION_PAGE_SIZE);
+        }
         const page = getDiscussionPage(notes);
         updateDiscussionPager(page);
         if (!page.totalCount) {
@@ -4693,6 +4702,11 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
 
     function discussionDraftSurface(element: Element): string {
         return element.closest("#lmxNotes") ? "notes" : "checkin";
+    }
+
+    function isDiscussionDraftThread(note: ParticipantNote, draft: DiscussionDraft): boolean {
+        return draft.systemPostId ? note.systemPostId === draft.systemPostId
+            : !note.systemPostId && note.participantId === draft.postParticipantId && note.challengeDay === draft.challengeDay;
     }
 
     function hasUnpublishedDiscussionWork(): boolean {

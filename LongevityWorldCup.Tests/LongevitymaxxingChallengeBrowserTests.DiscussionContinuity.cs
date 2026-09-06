@@ -279,6 +279,70 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         Assert.Equal(0, dialogs);
     }
 
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task DiscussionBackgroundReordering_KeepsTheActiveThreadOnScreen(bool checkInPreview, bool editing)
+    {
+        await using var context = await NewContextAsync(Browser, App, new());
+        var state = DiscussionWorkspaceState();
+        var targetId = checkInPreview ? "p3" : "p5";
+        var day = checkInPreview ? 21 : 19;
+        if (editing) {
+            foreach (var collection in new[] { state["notes"]!.AsArray(), state["public"]!["notes"]!.AsArray() }) {
+                var thread = collection.Single(n => (string?)n!["participantId"] == targetId)!;
+                thread["replies"]!.AsArray().Add(JsonSerializer.SerializeToNode(Reply("active-edit", "p1", "Browser Tester", "Published reply.", (string)thread["updatedAtUtc"]!)));
+                thread["replyCount"] = thread["replies"]!.AsArray().Count;
+            }
+        }
+        var page = await OpenDiscussionWorkspaceAsync(context, state);
+        await page.Clock.SetFixedTimeAsync(DateTime.Parse("2026-07-02T10:00:00Z", System.Globalization.CultureInfo.InvariantCulture));
+        var response = state.DeepClone().AsObject();
+        foreach (var collection in new[] { response["notes"]!.AsArray(), response["public"]!["notes"]!.AsArray() }) {
+            var thread = collection.Single(n => (string?)n!["participantId"] == "p6")!;
+            thread["lastActivityAtUtc"] = "2026-07-02T10:00:00Z";
+            thread["replies"]!.AsArray().Add(JsonSerializer.SerializeToNode(Reply("just-posted", "p1", "Browser Tester", "New activity.", "2026-07-02T10:00:00Z")));
+            thread["replyCount"] = thread["replies"]!.AsArray().Count;
+        }
+        var requested = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await page.RouteAsync("**/api/longevitymaxxing/discussion/replies", async route => {
+            requested.TrySetResult();
+            await release.Task;
+            await FulfillJsonAsync(route, response.ToJsonString());
+        });
+        try {
+            await page.Locator("#lmxNotesOlder").ClickAsync();
+            var eli = DiscussionThread(page, "p6", 19);
+            await eli.Locator("[data-discussion-reply]").ClickAsync();
+            await eli.Locator("textarea").FillAsync("New activity.");
+            await eli.Locator("[data-reply-submit]").ClickAsync();
+            await requested.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            await page.Locator("#lmxNotesNewer").ClickAsync();
+            var target = DiscussionThread(page, targetId, day, checkInPreview ? "#lmxCheckinList" : "#lmxNotes");
+            await target.Locator(editing ? "[data-discussion-reply-edit]" : "[data-discussion-reply]").ClickAsync();
+            await target.Locator("textarea").FillAsync("Still writing when the order changes.");
+            await target.Locator("textarea").EvaluateAsync("e => e.setSelectionRange(3, 7)");
+            var top = await target.Locator("textarea").EvaluateAsync<double>("e => e.getBoundingClientRect().top");
+            release.TrySetResult();
+            await Assertions.Expect(target.Locator("[data-reply-action='submit']")).ToBeEnabledAsync();
+            await Assertions.Expect(target.Locator("textarea")).ToBeFocusedAsync();
+            Assert.Equal("Still writing when the order changes.", await target.Locator("textarea").InputValueAsync());
+            Assert.Equal(new[] { 3, 7 }, await target.Locator("textarea").EvaluateAsync<int[]>("e => [e.selectionStart, e.selectionEnd]"));
+            Assert.InRange(Math.Abs(top - await target.Locator("textarea").EvaluateAsync<double>("e => e.getBoundingClientRect().top")), 0, 2);
+            if (checkInPreview) Assert.Equal(3, await page.Locator("#lmxCheckinList .lmx-recent-remark").CountAsync());
+            else {
+                await Assertions.Expect(page.Locator("#lmxNotesNewer")).ToBeEnabledAsync();
+                await page.Locator("#lmxNotesNewer").ClickAsync();
+                await Assertions.Expect(target).ToHaveCountAsync(0);
+                await page.Locator("#lmxProfileTab").ClickAsync();
+                await Assertions.Expect(target).ToHaveCountAsync(0);
+            }
+        } finally { release.TrySetResult(); }
+    }
+
     private static ILocator DiscussionThread(IPage page, string participantId, int day, string root = "#lmxNotes") =>
         page.Locator($"{root} article[data-discussion-post-participant-id='{participantId}'][data-discussion-post-challenge-day='{day}']");
 
