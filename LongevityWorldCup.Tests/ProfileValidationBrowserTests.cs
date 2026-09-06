@@ -174,7 +174,7 @@ public sealed class ProfileValidationBrowserTests(
         });
         await context.AddInitScriptAsync("""
             if (!sessionStorage.getItem('selectedAthlete')) {
-                const athlete = {Name:'Alex Morgan', DisplayName:'Alex Morgan', ProfilePic:'/assets/content-images/headshot.jpg',
+                const athlete = {Name:'Alex Morgan', DisplayName:'Alex Morgan', ProfilePic:'/assets/content-images/play-athlete-placeholder.jpg',
                     Division:"Men's", Flag:'United Kingdom', PersonalLink:'https://example.com',
                     MediaContact:'press@example.com', Why:'Training for a longer, healthier life.', Biomarkers:[]};
                 sessionStorage.setItem('selectedAthlete', JSON.stringify(athlete));

@@ -886,7 +886,6 @@ public sealed class LongevitymaxxingChallengePageTests(TestWebApplicationFactory
         Assert.Contains("Select an athlete from the list or clear this field.", javascript);
         Assert.Contains("No listed athlete found", javascript);
         Assert.Contains("DisplayName || a.Name", javascript);
-        Assert.Contains("ATHLETE_PLACEHOLDER_IMAGE = \"/assets/content-images/headshot.webp\"", javascript);
         Assert.Contains("function participantNameHtml", javascript);
         Assert.Contains("findAthleteForParticipant(row)", javascript);
         Assert.Contains("function isPlaceholderProfileImage", javascript);

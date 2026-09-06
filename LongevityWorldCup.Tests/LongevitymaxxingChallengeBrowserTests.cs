@@ -35,6 +35,9 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
         await page.Locator(".lmx-dashboard-day.today").WaitForAsync();
 
         Assert.Equal(expectedDay, await page.Locator(".lmx-dashboard-day.today").InnerTextAsync());
+        var placeholder = await page.Locator("meta[name='lwc-athlete-placeholder']").GetAttributeAsync("content");
+        Assert.StartsWith("/assets/content-images/play-athlete-placeholder.webp?v=", placeholder);
+        await Assertions.Expect(page.Locator(".lmx-participant-avatar.placeholder img").First).ToHaveAttributeAsync("src", placeholder!);
         var todayCells = await page.Locator(".lmx-category-day.today").AllAsync();
         Assert.Equal(4, todayCells.Count);
         foreach (var cell in todayCells)
@@ -1284,7 +1287,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
         var ariReplyIdentity = foxSurfaces.First
             .Locator("[data-discussion-reply-id='r4'] .lmx-discussion-author-identity");
         Assert.Equal("/athlete/ari-able", await ariReplyIdentity.GetAttributeAsync("href"));
-        Assert.Equal("/assets/content-images/headshot.jpg", await ariReplyIdentity.Locator("img").GetAttributeAsync("src"));
+        Assert.Equal("/assets/content-images/play-athlete-placeholder.jpg", await ariReplyIdentity.Locator("img").GetAttributeAsync("src"));
         Assert.Equal(1, await foxSurfaces.First.Locator("[data-discussion-reply-edit]").CountAsync());
         Assert.Equal(1, await foxSurfaces.First.Locator("[data-discussion-reply-delete]").CountAsync());
         Assert.Equal(0, await foxSurfaces.First.Locator("[data-discussion-reply-id='r4'] [data-discussion-reply-edit]").CountAsync());
@@ -2115,7 +2118,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
             }.Concat(includeMentionParticipants
                 ? new object[]
                 {
-                    MentionLeaderboardRow("p2", "Ari Able", "/athlete/ari-able", "/assets/content-images/headshot.jpg"),
+                    MentionLeaderboardRow("p2", "Ari Able", "/athlete/ari-able", "/assets/content-images/play-athlete-placeholder.jpg"),
                     MentionLeaderboardRow("p3", "Bea Builder")
                 }
                 : []).Concat(includeDiscussionIdentityParticipants

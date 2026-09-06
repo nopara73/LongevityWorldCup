@@ -137,7 +137,8 @@ declare global {
 
     'use strict';
 
-    var athletePlaceholderImage = '/assets/content-images/headshot.webp';
+    var athletePlaceholderImage = document.querySelector<HTMLMetaElement>('meta[name="lwc-athlete-placeholder"]')?.content
+        || '/assets/content-images/play-athlete-placeholder.webp';
     var sharedAthletesPromise: Promise<unknown[]> | null = null;
     var targetRenderTokens = new Map<string, number>();
 
@@ -413,7 +414,7 @@ declare global {
     function buildAvatar(row: RankRow): string {
         if (row.isYou) {
             return '<span class="bioage-rank-row-avatar bioage-rank-row-avatar-placeholder" aria-hidden="true">' +
-                '<img src="' + athletePlaceholderImage + '" alt="" loading="lazy" decoding="async">' +
+                '<img src="' + escapeHtml(athletePlaceholderImage) + '" alt="" loading="lazy" decoding="async">' +
                 '</span>';
         }
 
