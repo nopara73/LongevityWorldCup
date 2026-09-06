@@ -691,7 +691,8 @@
     };
     const QUOTE_BUCKETS = ["sleep", "exercise", "nutrition", "vices", "mindset"];
     const CROWD_AGE_LEADERBOARD_MINIMUM_GUESS_COUNT = 100;
-    const ATHLETE_PLACEHOLDER_IMAGE = "/assets/content-images/headshot.webp";
+    const ATHLETE_PLACEHOLDER_IMAGE = document.querySelector<HTMLMetaElement>('meta[name="lwc-athlete-placeholder"]')?.content
+        || "/assets/content-images/play-athlete-placeholder.webp";
     const FALLBACK_TIME_ZONES = [
         "UTC",
         "Europe/London",
@@ -5296,7 +5297,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
 
     function isPlaceholderProfileImage(url: unknown): boolean {
         const value = String(url || "").trim();
-        return !value || value.includes(ATHLETE_PLACEHOLDER_IMAGE);
+        // Recognize both generations independently of the current asset version.
+        return !value || /\/assets\/content-images\/(?:play-athlete-placeholder|headshot)\.(?:webp|jpg)(?:[?#]|$)/.test(value);
     }
 
     function findAthleteForParticipant(row: LeaderboardRow): AthleteOption | null {

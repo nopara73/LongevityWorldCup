@@ -494,8 +494,8 @@ public sealed class FlowActionDockFormBrowserTests(
                     PersonalLink: 'https://example.test/browser-test-athlete',
                     MediaContact: 'browser-test-athlete@example.test',
                     Why: 'Testing the athlete navigation flow.',
-                    ProfilePic: '/assets/content-images/headshot.webp',
-                    ProfilePictureUrl: '/assets/content-images/headshot.webp',
+                    ProfilePic: '/assets/content-images/play-athlete-placeholder.webp',
+                    ProfilePictureUrl: '/assets/content-images/play-athlete-placeholder.webp',
                     DateOfBirth: { Year: 1980, Month: 5, Day: 20 },
                     Biomarkers: [{ Date: '2026-06-19', Hba1cMmolMol: 35 }]
                 };

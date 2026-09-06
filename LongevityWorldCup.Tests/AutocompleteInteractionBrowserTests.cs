@@ -217,7 +217,7 @@ public sealed class AutocompleteInteractionBrowserTests(
         });
         var releasePicture = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var pictureRequested = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        await context.RouteAsync("**/assets/content-images/headshot.webp*", async route =>
+        await context.RouteAsync("**/assets/content-images/play-athlete-placeholder.webp*", async route =>
         {
             pictureRequested.TrySetResult();
             await releasePicture.Task;
@@ -278,7 +278,7 @@ public sealed class AutocompleteInteractionBrowserTests(
             await context.AddInitScriptAsync("""
                 const athlete = {Name:'Browser Test Athlete',DisplayName:'Browser Test Athlete',Division:'Open',Flag:'Hungary',
                     DateOfBirth:{Year:1980,Month:5,Day:20},PersonalLink:'https://example.test',MediaContact:'preview@example.test',
-                    Why:'A longer, healthier life.',ProfilePic:'/assets/content-images/headshot.webp',Biomarkers:[]};
+                    Why:'A longer, healthier life.',ProfilePic:'/assets/content-images/play-athlete-placeholder.webp',Biomarkers:[]};
                 sessionStorage.setItem('selectedAthlete',JSON.stringify(athlete));
                 localStorage.setItem('selectedAthleteName',athlete.Name);
                 localStorage.setItem('hasApplication','true');
