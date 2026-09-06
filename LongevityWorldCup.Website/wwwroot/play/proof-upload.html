@@ -937,7 +937,8 @@
                 : [];
             window.setupProofUploadHTML(submitButton, uploadProofButton, proofPicInput, proofImageContainer, proofPics, biomarkerChecklistContainer, checklistItems, {
                 cameraButton: takeProofPhotoButton,
-                cameraInput: proofCameraInput
+                cameraInput: proofCameraInput,
+                hasUnsubmittedProofs: () => proofPics.length > 0
             });
         }
 

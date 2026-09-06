@@ -1687,6 +1687,7 @@
                 {
                     cameraButton: takeProofPhotoButton,
                     cameraInput: proofCameraInput,
+                    hasUnsubmittedProofs: () => proofPics.length > 0,
                     isActive: () => currentStage === 5
                 }
             );

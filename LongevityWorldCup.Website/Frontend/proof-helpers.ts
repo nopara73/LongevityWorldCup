@@ -2,6 +2,7 @@ interface ProofUploadSetupOptions {
     cameraButton?: HTMLButtonElement | null;
     cameraInput?: HTMLInputElement | null;
     isActive?: () => boolean;
+    hasUnsubmittedProofs?: () => boolean;
 }
 
 interface ProofFileRejectedTrackOptions {
@@ -265,11 +266,18 @@ class ProofReview {
     private container: HTMLElement;
     private images: string[];
     private changed: () => void;
+    private hasUnsubmittedProofs: () => boolean;
+    private warnBeforeLeaving = (event: BeforeUnloadEvent): void => {
+        if (!this.progress && !this.hasUnsubmittedProofs()) return;
+        event.preventDefault();
+        event.returnValue = '';
+    };
 
-    constructor(container: HTMLElement, images: string[], changed: () => void) {
+    constructor(container: HTMLElement, images: string[], changed: () => void, hasUnsubmittedProofs: () => boolean) {
         this.container = container;
         this.images = images;
         this.changed = changed;
+        this.hasUnsubmittedProofs = hasUnsubmittedProofs;
         container.classList.add('proof-review-panel');
     }
 
@@ -279,11 +287,17 @@ class ProofReview {
     }
 
     announce(message: string): void {
+        if (this.notice === message) return;
         this.notice = message;
         this.render();
     }
 
     render(): void {
+        if (this.progress || this.hasUnsubmittedProofs()) {
+            window.addEventListener('beforeunload', this.warnBeforeLeaving);
+        } else {
+            window.removeEventListener('beforeunload', this.warnBeforeLeaving);
+        }
         this.container.replaceChildren();
         this.container.hidden = !this.images.length && !this.removed.length && !this.progress && !this.notice;
         const heading = document.createElement('h3');
@@ -332,7 +346,7 @@ class ProofReview {
             const remove = this.button('Remove', 'proof-page-remove', () => {
                 this.removed.push({ image: source, index });
                 this.images.splice(index, 1);
-                this.notice = `Page ${index + 1} removed.`;
+                this.notice = '';
                 this.render();
                 this.changed();
                 const target = this.container.querySelectorAll<HTMLButtonElement>('.proof-page-remove')[Math.min(index, this.images.length - 1)]
@@ -361,7 +375,7 @@ class ProofReview {
                     if (!this.images.includes(removed.image)) {
                         this.images.splice(Math.min(removed.index, this.images.length), 0, removed.image);
                     }
-                    this.notice = 'Page restored.';
+                    this.notice = '';
                     this.render();
                     this.changed();
                     this.container.querySelectorAll<HTMLButtonElement>('.proof-page-preview')[this.images.indexOf(removed.image)]?.focus({ preventScroll: true });
@@ -492,7 +506,8 @@ window.setupProofUploadHTML = function (
         targetMaxBytes: 1.5 * 1024 * 1024
     };
     const review = new ProofReview(proofImageContainer, proofPics,
-        () => checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer));
+        () => checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer),
+        options?.hasUnsubmittedProofs || (() => proofPics.length > 0));
     proofReviews.set(proofImageContainer, review);
     const proofSourceImages = new Map<string, string>();
     let preferredProofCanvasContentType: Promise<'image/webp' | 'image/jpeg'> | null = null;
@@ -541,6 +556,7 @@ window.setupProofUploadHTML = function (
             if (input) input.value = "";
             return;
         }
+        review.announce('');
 
         const unsupportedFiles = selectedFiles.filter(file => !isSupportedProofFile(file));
         const supportedFiles = selectedFiles.filter(file => isSupportedProofFile(file));
