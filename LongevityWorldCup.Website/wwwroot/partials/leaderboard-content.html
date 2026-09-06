@@ -5557,7 +5557,8 @@
         if (image) {
             image.onload = null;
             image.onerror = null;
-            image.removeAttribute('src');
+            // Keep a completed image painted while the reader fades closed.
+            if (enlargedElem.dataset.imageState !== 'ready') image.removeAttribute('src');
         }
     }
 

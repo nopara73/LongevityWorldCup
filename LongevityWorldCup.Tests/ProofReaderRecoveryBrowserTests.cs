@@ -238,6 +238,36 @@ public sealed class ProofReaderRecoveryBrowserTests(
         await Assertions.Expect(viewer.Locator(".image-viewer-stage")).ToBeFocusedAsync();
     }
 
+    [Fact]
+    public async Task ClosingLoadedImage_KeepsTheProofRenderedDuringTheFade()
+    {
+        await using var context = await CreateContextAsync(390);
+        await context.RouteAsync("**/proof-reader-test/**", FulfillImageAsync);
+        var page = await OpenProfileAsync(context);
+        await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.NoPreference });
+        await page.Locator("#proofsGallery img").First.ClickAsync();
+        var viewer = page.Locator("#athleteImageViewer");
+        await ExpectStateAsync(viewer, "ready");
+        await Assertions.Expect(viewer).ToHaveCSSAsync("opacity", "1");
+        await viewer.EvaluateAsync("""
+            viewer => {
+                const observer = new MutationObserver(() => {
+                    if (viewer.getAttribute('aria-hidden') !== 'true') return;
+                    const image = viewer.querySelector('.image-viewer-stage img');
+                    window.__closingProofRendered = !viewer.hidden && !image.hidden
+                        && image.complete && image.naturalWidth > 0;
+                    observer.disconnect();
+                });
+                observer.observe(viewer, { attributes: true, attributeFilter: ['aria-hidden'] });
+            }
+            """);
+        await page.Keyboard.PressAsync("Escape");
+        await page.WaitForFunctionAsync("() => typeof window.__closingProofRendered === 'boolean'");
+        Assert.True(await page.EvaluateAsync<bool>("window.__closingProofRendered"));
+        await Assertions.Expect(viewer).ToBeHiddenAsync();
+        await Assertions.Expect(page.Locator("#proofsGallery img").First).ToBeFocusedAsync();
+    }
+
     private async Task<IBrowserContext> CreateContextAsync(int width, bool dark = false, bool singleProof = false)
     {
         var context = await AestheticSystemBrowserTests.NewContextAsync(Browser, App, new()
