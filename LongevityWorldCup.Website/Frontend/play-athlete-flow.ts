@@ -579,10 +579,7 @@ function createAthleteSelectionController(
         resetAthletePreview({ titleElement, frameElement, defaultTitle });
     }
 
-    function findExactAthleteMatch(value: string): PlayAthlete | null {
-        const exactMatches = athletes.filter(athlete => isAthleteInputValue(athlete, value));
-        if (exactMatches.length) return exactMatches.length === 1 ? exactMatches[0] ?? null : null;
-
+    function findUniqueAthleteMatch(value: string): PlayAthlete | null {
         const query = normalizeAthleteSearch(value.trim());
         if (!query) return null;
         const foldedMatches = athletes.filter(athlete =>
@@ -801,9 +798,9 @@ function createAthleteSelectionController(
                     return;
                 }
 
-                const exactMatch = findExactAthleteMatch(input.value);
-                if (exactMatch) {
-                    selectAthlete(exactMatch);
+                const uniqueMatch = findUniqueAthleteMatch(input.value);
+                if (uniqueMatch) {
+                    selectAthlete(uniqueMatch);
                     closeAllLists();
                     if (options.focusConfirmAfterSelection !== false) {
                         focusWithoutScrolling(confirmButton);

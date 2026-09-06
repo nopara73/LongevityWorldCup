@@ -52,11 +52,13 @@ public sealed class AthleteNameSearchBrowserTests(
         Assert.Equal("false", await input.GetAttributeAsync("aria-expanded"));
     }
 
-    [Fact]
-    public async Task Enter_RequiresExplicitSelectionWhenFoldedNamesAreAmbiguous()
+    [Theory]
+    [InlineData("José Silva", "Josè Silva")]
+    [InlineData("Jose Silva", "José Silva")]
+    public async Task Enter_RequiresExplicitSelectionWhenFoldedNamesAreAmbiguous(string firstName, string secondName)
     {
         await using var context = await NewContextAsync(Browser, App, new());
-        var page = await PrepareAsync(context, ["José Silva", "Josè Silva"]);
+        var page = await PrepareAsync(context, [firstName, secondName]);
         var input = page.Locator("#playAthleteInput");
         await input.FillAsync("jose silva");
         await Assertions.Expect(page.GetByRole(AriaRole.Option)).ToHaveCountAsync(2);
@@ -66,13 +68,15 @@ public sealed class AthleteNameSearchBrowserTests(
         await input.PressAsync("ArrowDown");
         await input.PressAsync("ArrowDown");
         await input.PressAsync("Enter");
-        Assert.Equal("Josè Silva", await input.InputValueAsync());
+        Assert.Equal(secondName, await input.InputValueAsync());
         await Assertions.Expect(page.Locator("#playConfirmAthleteBtn")).ToBeEnabledAsync();
 
-        // An exact spelling still disambiguates the other athlete without arrow navigation.
-        await input.FillAsync("José Silva");
+        // Exact spelling must not bypass the ambiguity visible in the suggestions.
+        await input.FillAsync(firstName);
         await input.PressAsync("Enter");
-        Assert.Equal("José Silva", await input.InputValueAsync());
+        await Assertions.Expect(page.Locator("#playConfirmAthleteBtn")).ToBeDisabledAsync();
+        await page.GetByRole(AriaRole.Option, new() { Name = firstName, Exact = true }).ClickAsync();
+        Assert.Equal(firstName, await input.InputValueAsync());
         await Assertions.Expect(page.Locator("#playConfirmAthleteBtn")).ToBeEnabledAsync();
     }
 
