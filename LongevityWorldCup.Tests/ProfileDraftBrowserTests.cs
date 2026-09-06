@@ -12,7 +12,7 @@ public sealed class ProfileDraftBrowserTests(
     [Theory]
     [InlineData(320, true)]
     [InlineData(1280, false)]
-    public async Task ReturningToDraft_ListsOnlyChangedFieldsAndLinksBackToThem(int width, bool dark)
+    public async Task ReturningToDraft_RestoresEditsWithoutRoutineStatusMessages(int width, bool dark)
     {
         await using var context = await CreateContextAsync(width, dark);
         var page = await OpenEditorAsync(context);
@@ -21,16 +21,13 @@ public sealed class ProfileDraftBrowserTests(
         await page.Locator(".back-button").ClickAsync();
         await page.WaitForURLAsync("**/dashboard");
         await page.GotoAsync("/edit-profile");
-        await Assertions.Expect(page.Locator("#profileDraftTitle")).ToHaveTextAsync("2 unsent changes");
-        await Assertions.Expect(page.Locator("#profileDraftChanges button:visible")).ToHaveCountAsync(2);
-        await Assertions.Expect(page.Locator("#profileDraftStatus")).ToHaveTextAsync("Draft saved in this tab.");
-        var link = page.GetByRole(AriaRole.Button, new() { Name = "Edit changed personal link", Exact = true });
-        await link.ClickAsync();
-        await Assertions.Expect(page.Locator("#personalLinkInput")).ToBeFocusedAsync();
         await Assertions.Expect(page.Locator("#personalLinkInput")).ToHaveValueAsync("https://example.com/alex");
+        await Assertions.Expect(page.Locator("#whyDisplayInput")).ToHaveValueAsync("More healthy years with my family.");
+        await Assertions.Expect(page.Locator("#profileDraftStatus")).ToBeHiddenAsync();
+        await Assertions.Expect(page.Locator("#resetProfileDraftButton")).ToBeVisibleAsync();
         await page.Locator("#restorePersonalLinkBtn").ClickAsync();
-        await Assertions.Expect(page.Locator("#profileDraftTitle")).ToHaveTextAsync("1 unsent change");
-        await Assertions.Expect(link).ToBeHiddenAsync();
+        await Assertions.Expect(page.Locator("#personalLinkInput")).ToHaveValueAsync("https://example.com");
+        await Assertions.Expect(page.Locator("#whyDisplayInput")).ToHaveValueAsync("More healthy years with my family.");
         Assert.False(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth > innerWidth"));
     }
 
@@ -45,13 +42,12 @@ public sealed class ProfileDraftBrowserTests(
                 sessionStorage.setItem('tempAthlete', JSON.stringify(draft)); }
             """);
         await page.ReloadAsync();
-        await Assertions.Expect(page.Locator("#profileDraftTitle")).ToHaveTextAsync("1 unsent change");
+        await Assertions.Expect(page.Locator("#resetProfileDraftButton")).ToBeVisibleAsync();
         await page.Locator("#divisionDisplaySelect").SelectOptionAsync("Open");
         await page.Locator("#flagDisplayInput").FillAsync("?");
         await page.Locator("#personalLinkInput").FillAsync("");
         await page.Locator("#mediaContactInput").FillAsync("@alex");
         await page.Locator("#whyDisplayInput").FillAsync("A different motivation.");
-        await Assertions.Expect(page.Locator("#profileDraftTitle")).ToHaveTextAsync("6 unsent changes");
         await page.Locator("#resetProfileDraftButton").ClickAsync();
         await Assertions.Expect(page.Locator("#undoProfileDraftButton")).ToBeFocusedAsync();
         await Assertions.Expect(page.Locator("#submitButton")).ToBeDisabledAsync();
@@ -59,7 +55,6 @@ public sealed class ProfileDraftBrowserTests(
         await Assertions.Expect(page.Locator(".illustration")).ToHaveAttributeAsync("src", "/assets/content-images/play-athlete-placeholder.jpg");
         Assert.Null(await page.EvaluateAsync<string?>("sessionStorage.getItem('tempAthlete')"));
         await page.Locator("#undoProfileDraftButton").PressAsync("Enter");
-        await Assertions.Expect(page.Locator("#profileDraftTitle")).ToHaveTextAsync("6 unsent changes");
         await Assertions.Expect(page.Locator("#resetProfileDraftButton")).ToBeFocusedAsync();
         await Assertions.Expect(page.Locator("#flagDisplayInput")).ToHaveValueAsync("?");
         await Assertions.Expect(page.Locator("#flagDisplayInput")).ToHaveAttributeAsync("aria-invalid", "true");
@@ -71,7 +66,7 @@ public sealed class ProfileDraftBrowserTests(
         await page.Locator("#resetProfileDraftButton").ClickAsync();
         await page.Locator("#whyDisplayInput").FillAsync("Start a new draft.");
         await Assertions.Expect(page.Locator("#undoProfileDraftButton")).ToBeHiddenAsync();
-        await Assertions.Expect(page.Locator("#profileDraftTitle")).ToHaveTextAsync("1 unsent change");
+        await Assertions.Expect(page.Locator("#submitButton")).ToBeEnabledAsync();
     }
 
     [Fact]

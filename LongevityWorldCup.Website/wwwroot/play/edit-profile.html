@@ -617,52 +617,38 @@
             box-shadow: 0 0 0 3px var(--lwc-danger-soft);
         }
         .profile-draft {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            flex-wrap: wrap;
             grid-column: 1 / -1;
             width: 100%;
             max-width: 408px;
-            margin: var(--lwc-space-4) auto 0;
-            padding: var(--lwc-space-3);
-            box-sizing: border-box;
-            border: 1px solid var(--lwc-border);
-            border-radius: var(--lwc-radius-md);
-            background: var(--lwc-surface);
-            text-align: left;
-        }
-        .profile-draft-heading, .profile-draft-links {
-            display: flex;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: var(--lwc-space-2);
-        }
-        .profile-draft h2 {
-            flex: 1;
-            margin: 0;
-            text-align: left;
-            font-size: var(--lwc-type-body);
-            line-height: 1.5;
+            margin: 0 auto;
         }
         .profile-draft-status {
-            margin: var(--lwc-space-1) 0 var(--lwc-space-2);
-            color: var(--lwc-muted);
+            flex-basis: 100%;
+            margin: var(--lwc-space-1) 0;
+            color: var(--lwc-danger);
             font-size: var(--lwc-type-sm);
             line-height: 1.5;
+            text-align: left;
         }
-        .profile-draft-status[data-save-failed="true"] { color: var(--lwc-danger); }
         .profile-draft button {
             min-height: 44px;
-            padding: var(--lwc-space-2) var(--lwc-space-3);
-            border: 1px solid var(--lwc-border);
+            padding: var(--lwc-space-2);
+            border: 0;
             border-radius: var(--lwc-radius-sm);
-            background: var(--lwc-surface-muted);
-            color: var(--lwc-ink);
+            background: transparent;
+            color: var(--lwc-muted);
             font: inherit;
             font-size: var(--lwc-type-sm);
+            text-decoration: underline;
+            text-underline-offset: 0.2em;
             cursor: pointer;
         }
-        .profile-draft button:hover { border-color: var(--lwc-accent); }
+        .profile-draft button:hover { color: var(--lwc-ink); }
         .profile-draft button:focus-visible { outline: 2px solid var(--lwc-accent); outline-offset: 2px; }
-        .profile-draft-link { display: inline-flex; align-items: center; gap: var(--lwc-space-2); }
-        .profile-draft-link i { color: var(--lwc-accent); }
         .profile-draft[hidden], .profile-draft [hidden] { display: none; }
     </style>
 </head>
@@ -768,15 +754,11 @@
                 <p id="whyDisplayInputError" class="profile-field-error" aria-live="polite" hidden></p>
             </div>
         </div>
-        <section id="profileDraftSummary" class="profile-draft" aria-labelledby="profileDraftTitle" hidden>
-            <div class="profile-draft-heading">
-                <h2 id="profileDraftTitle"></h2>
-                <button type="button" id="resetProfileDraftButton">Reset all</button>
-            </div>
-            <p id="profileDraftStatus" class="profile-draft-status" role="status"></p>
-            <div id="profileDraftChanges" class="profile-draft-links"></div>
+        <div id="profileDraftSummary" class="profile-draft" hidden>
+            <button type="button" id="resetProfileDraftButton">Reset all</button>
             <button type="button" id="undoProfileDraftButton" hidden>Undo reset</button>
-        </section>
+            <p id="profileDraftStatus" class="profile-draft-status" role="status" hidden></p>
+        </div>
         <div class="options-container edit-profile-actions flow-action-stack flow-action-stack--hide-disabled-primary" data-flow-dock="auto" data-aos="fade" data-aos-duration="700" data-aos-delay="400">
             <button id="submitButton" type="submit" disabled class="option-button green flow-action"><span class="flow-action__label">Submit change request</span><i class="fa fa-rocket" aria-hidden="true"></i></button>
             <button type="button" class="option-button back-button flow-action flow-action--secondary flow-action--icon-left" onclick="window.navigateToFlowDestination('/dashboard')">
@@ -1670,7 +1652,6 @@
                 athlete[field.key] = field.normalize(readProfileField(field));
                 const isChanged = athlete[field.key] !== field.normalize(originalAthlete[field.key]);
                 document.getElementById(field.restoreId).style.display = isChanged ? 'inline-flex' : 'none';
-                document.getElementById('profileDraftChange' + field.key).hidden = !isChanged;
                 return isChanged;
             });
             const anyChanged = changed.length > 0;
@@ -1682,13 +1663,10 @@
             hasUnsavedProfileDraft = !draftSaved && (anyChanged || Boolean(resetProfileDraftSnapshot));
             const summary = document.getElementById('profileDraftSummary');
             summary.hidden = !anyChanged && !resetProfileDraftSnapshot;
-            document.getElementById('profileDraftTitle').textContent = anyChanged
-                ? `${changed.length} unsent ${changed.length === 1 ? 'change' : 'changes'}` : 'Changes reset';
             const status = document.getElementById('profileDraftStatus');
-            const message = hasUnsavedProfileDraft ? 'Draft could not be saved. Keep this page open.'
-                : anyChanged ? 'Draft saved in this tab.' : 'Previous values restored.';
+            const message = hasUnsavedProfileDraft ? 'Changes could not be saved. Keep this page open.' : '';
             if (status.textContent !== message) status.textContent = message;
-            status.dataset.saveFailed = String(hasUnsavedProfileDraft);
+            status.hidden = !hasUnsavedProfileDraft;
             const resetButton = document.getElementById('resetProfileDraftButton');
             resetButton.hidden = !anyChanged;
             resetButton.disabled = isEditProfileSubmitting;
@@ -1703,12 +1681,12 @@
 
         function getProfileEditFields() {
             return [
-                { key: 'ProfilePic', label: 'Profile picture', id: 'changeProfilePicButton', restoreId: 'restoreProfilePicButton', normalize: normalizeEditText },
-                { key: 'Division', label: 'Division', id: 'divisionDisplaySelect', restoreId: 'restoreDivisionBtn', normalize: normalizeEditText },
-                { key: 'Flag', label: 'Flag', id: 'flagDisplayInput', restoreId: 'restoreFlagBtn', normalize: normalizeEditText },
-                { key: 'PersonalLink', label: 'Personal link', id: 'personalLinkInput', restoreId: 'restorePersonalLinkBtn', normalize: normalizeOptionalUrl },
-                { key: 'MediaContact', label: 'Media contact', id: 'mediaContactInput', restoreId: 'restoreMediaContactBtn', normalize: normalizeMediaContact },
-                { key: 'Why', label: 'Motivation', id: 'whyDisplayInput', restoreId: 'restoreWhyDisplayBtn', normalize: normalizeEditText }
+                { key: 'ProfilePic', id: 'changeProfilePicButton', restoreId: 'restoreProfilePicButton', normalize: normalizeEditText },
+                { key: 'Division', id: 'divisionDisplaySelect', restoreId: 'restoreDivisionBtn', normalize: normalizeEditText },
+                { key: 'Flag', id: 'flagDisplayInput', restoreId: 'restoreFlagBtn', normalize: normalizeEditText },
+                { key: 'PersonalLink', id: 'personalLinkInput', restoreId: 'restorePersonalLinkBtn', normalize: normalizeOptionalUrl },
+                { key: 'MediaContact', id: 'mediaContactInput', restoreId: 'restoreMediaContactBtn', normalize: normalizeMediaContact },
+                { key: 'Why', id: 'whyDisplayInput', restoreId: 'restoreWhyDisplayBtn', normalize: normalizeEditText }
             ];
         }
 
@@ -1728,24 +1706,6 @@
         }
 
         function initializeProfileDraftControls() {
-            getProfileEditFields().forEach(field => {
-                const button = document.createElement('button');
-                button.type = 'button';
-                button.id = 'profileDraftChange' + field.key;
-                button.className = 'profile-draft-link';
-                button.setAttribute('aria-label', 'Edit changed ' + field.label.toLowerCase());
-                button.append(document.createTextNode(field.label));
-                const arrow = document.createElement('i');
-                arrow.className = 'fa fa-arrow-up';
-                arrow.setAttribute('aria-hidden', 'true');
-                button.append(arrow);
-                button.addEventListener('click', () => {
-                    const target = document.getElementById(field.id);
-                    target.focus();
-                    keepEditedControlClearOfDock(target);
-                });
-                document.getElementById('profileDraftChanges').append(button);
-            });
             document.getElementById('resetProfileDraftButton').addEventListener('click', () => {
                 if (isEditProfileSubmitting) return;
                 pendingProfileFieldValidation.forEach((validate, input) => validate(input.value));
