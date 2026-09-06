@@ -6078,7 +6078,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             refreshDirectory() {
                 input.setAttribute("aria-busy", String(athleteDirectoryState === "loading"));
                 input.setCustomValidity?.("");
-                if (document.getElementById(listId) && container?.contains(document.activeElement)) {
+                if (document.getElementById(listId)) {
                     renderSuggestions(true);
                 }
             },

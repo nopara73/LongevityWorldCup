@@ -201,6 +201,38 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
+    public async Task AthleteDirectory_VisibleFeedbackUpdatesAfterClickingNonFocusableContent(bool succeeds)
+    {
+        await using var context = await NewAthleteRecoveryContextAsync();
+        var page = await context.NewPageAsync();
+        var releaseDirectory = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await page.RouteAsync("**/api/data/athletes", async route =>
+        {
+            await releaseDirectory.Task;
+            await route.FulfillAsync(new() { Status = succeeds ? 200 : 503, ContentType = "application/json", Body = RecoveryAthletes });
+        });
+        try
+        {
+            var input = await OpenAthleteRecoveryFormAsync(page);
+            await input.FillAsync("Recovery");
+            var message = page.Locator(".lmx-athlete-feedback [role=status]");
+            await Assertions.Expect(message).ToContainTextAsync("Loading athletes");
+            await page.Locator(".lmx-athlete-search > i").ClickAsync();
+            Assert.True(await page.EvaluateAsync<bool>("document.activeElement === document.body"));
+            releaseDirectory.TrySetResult();
+            if (succeeds)
+                await Assertions.Expect(page.Locator(".lmx-athlete-option")).ToHaveCountAsync(1);
+            else
+                await Assertions.Expect(page.GetByRole(AriaRole.Button, new() { Name = "Retry", Exact = true })).ToBeVisibleAsync();
+            Assert.True(await page.EvaluateAsync<bool>("document.activeElement === document.body"));
+            Assert.Equal("Recovery", await input.InputValueAsync());
+        }
+        finally { releaseDirectory.TrySetResult(); }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     public async Task AthleteDirectory_RetryRemainsReadableOnHoverAndPress(bool dark)
     {
         await using var context = await NewAthleteRecoveryContextAsync(width: 320, dark: dark);
