@@ -23,6 +23,7 @@ Keep reusable product decisions here; omit implementation history and one-off po
 
 - Related controls share inherited fonts, height, modest radius, light borders, and visible focus. Aim for 44px direct-tap targets where space allows.
 - Fields distinguish filled (teal boundary), read-only (muted neutral), invalid (danger boundary plus nearby explanation), and disabled (readable text, non-interactive cursor) states without relying on placeholders.
+- Profile field errors appear beside the field without interrupting the next edit. Submission shows all invalid fields and focuses the first; correcting or restoring a value clears its feedback while keeping the draft intact.
 - Informational, success, warning, and error messages share neutral surfaces, semantic leading edges, spacing, and recovery-action geometry. Blocking alerts retain dialog shells with the same palette, type, radius, and action hierarchy. Group helper, confirmation, validation, and empty-state copy in compact light panels when useful.
 - Frame file, proof, and profile previews; use `object-fit: contain` for variable aspect ratios. Autocomplete uses padded floating panels with clear hover/focus rows and must avoid covering the next mobile action.
 - Proof uploads show an ordered page grid with source filenames, a zoomable reader, and removal undo. Keep preparation progress beside the pages and disable submission while files are processing. Returning to the step retains the attached pages and checklist; background preparation must respect the active step's validation.
