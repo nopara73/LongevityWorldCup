@@ -1781,6 +1781,51 @@
         cursor:default;
         box-shadow:0 24px 70px rgba(0,0,0,.42);
     }
+    .enlarged-portrait .image-viewer-stage img[hidden],
+    .enlarged-portrait .image-load-feedback[hidden],
+    .enlarged-portrait .image-load-retry[hidden]{ display:none; }
+    .enlarged-portrait .image-load-feedback{
+        box-sizing:border-box;
+        flex:0 0 auto;
+        width:min(100%, 24rem);
+        padding:var(--lwc-space-6);
+        border:1px solid #465360;
+        border-radius:var(--lwc-radius-lg);
+        background:#17212b;
+        color:#e6edf3;
+        text-align:left;
+    }
+    .enlarged-portrait .image-load-title{
+        display:block;
+        font-size:var(--lwc-type-h3);
+        line-height:1.35;
+    }
+    .enlarged-portrait .image-load-message{
+        margin:var(--lwc-space-2) 0 0;
+        color:#a4b1bf;
+        font-size:var(--lwc-type-sm);
+        line-height:1.5;
+    }
+    .enlarged-portrait .image-load-retry{
+        display:inline-flex;
+        align-items:center;
+        justify-content:center;
+        min-height:46px;
+        margin-top:var(--lwc-space-5);
+        padding:var(--lwc-space-3) var(--lwc-space-5);
+        border:1px solid transparent;
+        border-radius:var(--lwc-radius-md);
+        background:#19c3d1;
+        color:#06252d;
+        font:inherit;
+        font-weight:700;
+        cursor:pointer;
+    }
+    .enlarged-portrait .image-load-retry:hover{ background:#65dce6; }
+    .enlarged-portrait .image-load-retry:focus-visible{
+        outline:3px solid #e6edf3;
+        outline-offset:3px;
+    }
     .enlarged-portrait.is-proof-gallery .image-viewer-stage{
         height:calc(100% - 8rem);
         max-height:calc(100vh - 8rem);
@@ -1795,6 +1840,12 @@
         max-width:none;
         max-height:none;
         object-fit:initial;
+    }
+    .enlarged-portrait[data-image-state="loading"] .image-viewer-stage,
+    .enlarged-portrait[data-image-state="error"] .image-viewer-stage{
+        align-items:center;
+        justify-content:center;
+        overflow:auto;
     }
     .enlarged-portrait .image-zoom-controls{
         position:absolute;
@@ -3404,7 +3455,14 @@
                  hidden>
                 <button type="button" class="close-btn" aria-label="Close enlarged image">&times;</button>
                 <div class="image-viewer-stage" tabindex="0" aria-label="Enlarged image">
-                    <img src="" alt="" loading="lazy">
+                    <img alt="" hidden>
+                    <div class="image-load-feedback" hidden>
+                        <div role="status" aria-live="polite" aria-atomic="true">
+                            <strong class="image-load-title"></strong>
+                            <p class="image-load-message"></p>
+                        </div>
+                        <button type="button" class="image-load-retry" hidden>Try again</button>
+                    </div>
                 </div>
                 <div class="image-zoom-controls" role="group" aria-label="Proof zoom controls" hidden>
                     <button type="button" class="image-zoom-out" aria-label="Zoom proof out">&minus;</button>
@@ -5458,7 +5516,7 @@
 
     function centerProofViewer(enlargedElem) {
         const stage = enlargedElem.querySelector('.image-viewer-stage');
-        if (!stage || !enlargedElem.isProofGallery) return;
+        if (!stage || !enlargedElem.isProofGallery || enlargedElem.dataset.imageState !== 'ready') return;
 
         stage.scrollLeft = Math.max(0, (stage.scrollWidth - stage.clientWidth) / 2);
         stage.scrollTop = 0;
@@ -5469,15 +5527,19 @@
         const zoom = proofViewerZoomLevels[boundedIndex];
         const zoomOut = enlargedElem.querySelector('.image-zoom-out');
         const zoomIn = enlargedElem.querySelector('.image-zoom-in');
+        const fit = enlargedElem.querySelector('.image-zoom-fit');
         const status = enlargedElem.querySelector('.image-zoom-status');
         const hint = enlargedElem.querySelector('.image-viewer-hint');
+        const ready = enlargedElem.dataset.imageState === 'ready';
 
         enlargedElem.proofZoomIndex = boundedIndex;
         enlargedElem.style.setProperty('--proof-viewer-zoom', String(zoom));
-        if (zoomOut) zoomOut.disabled = boundedIndex === 0;
-        if (zoomIn) zoomIn.disabled = boundedIndex === proofViewerZoomLevels.length - 1;
+        if (zoomOut) zoomOut.disabled = !ready || boundedIndex === 0;
+        if (zoomIn) zoomIn.disabled = !ready || boundedIndex === proofViewerZoomLevels.length - 1;
+        if (fit) fit.disabled = !ready;
         if (status) status.textContent = `${Math.round(zoom * 100)}%`;
         if (hint) {
+            hint.hidden = !enlargedElem.isProofGallery || !ready;
             hint.textContent = zoom > 1
                 ? 'Zoomed for readable text. Scroll to inspect the full proof.'
                 : 'Use the zoom controls for fine text, then scroll to inspect.';
@@ -5488,6 +5550,79 @@
         }
     }
 
+    function stopEnlargedImageLoad(enlargedElem) {
+        clearTimeout(enlargedElem._imageLoadTimer);
+        enlargedElem._imageLoadTimer = null;
+        const image = enlargedElem.querySelector('.image-viewer-stage img');
+        if (image) {
+            image.onload = null;
+            image.onerror = null;
+            image.removeAttribute('src');
+        }
+    }
+
+    function setEnlargedImageLoadState(enlargedElem, state) {
+        const stage = enlargedElem.querySelector('.image-viewer-stage');
+        const feedback = enlargedElem.querySelector('.image-load-feedback');
+        const retry = enlargedElem.querySelector('.image-load-retry');
+        const ready = state === 'ready';
+        const failed = state === 'error';
+        const subject = enlargedElem.isProofGallery ? 'proof' : 'image';
+        // Move focus before hiding the retry control. Subsequent completion must
+        // not steal focus from navigation or Close while the request is pending.
+        if (!failed && document.activeElement === retry) stage.focus({ preventScroll: true });
+        enlargedElem.dataset.imageState = state;
+        stage.setAttribute('aria-busy', state === 'loading' ? 'true' : 'false');
+        stage.querySelector('img').hidden = !ready;
+        feedback.hidden = ready;
+        retry.hidden = !failed;
+        feedback.querySelector('.image-load-title').textContent = failed
+            ? `This ${subject} couldn't load`
+            : ready ? '' : `Loading ${subject}…`;
+        const message = feedback.querySelector('.image-load-message');
+        message.hidden = !failed;
+        message.textContent = failed
+            ? (enlargedElem.isProofGallery && enlargedElem.galleryImages.length > 1
+                ? 'Try again, or move to another proof.'
+                : `Try loading this ${subject} again.`)
+            : '';
+        setProofViewerZoom(enlargedElem, enlargedElem.proofZoomIndex ?? 0, false);
+    }
+
+    function loadEnlargedImage(enlargedElem, sourceImage) {
+        stopEnlargedImageLoad(enlargedElem);
+        // A separate element per attempt keeps a late response from a previous
+        // page from changing the currently selected proof or its loading state.
+        const image = document.createElement('img');
+        image.alt = sourceImage.alt;
+        image.loading = 'eager';
+        enlargedElem.querySelector('.image-viewer-stage img').replaceWith(image);
+        setEnlargedImageLoadState(enlargedElem, 'loading');
+        const finish = state => {
+            if (enlargedElem.querySelector('.image-viewer-stage img') !== image
+                || enlargedElem.dataset.imageState !== 'loading') return;
+            clearTimeout(enlargedElem._imageLoadTimer);
+            enlargedElem._imageLoadTimer = null;
+            image.onload = null;
+            image.onerror = null;
+            setEnlargedImageLoadState(enlargedElem, state);
+            if (state === 'ready') {
+                requestAnimationFrame(() => {
+                    if (enlargedElem.querySelector('.image-viewer-stage img') === image) centerProofViewer(enlargedElem);
+                });
+            }
+        };
+        image.onload = () => finish(image.naturalWidth > 0 ? 'ready' : 'error');
+        image.onerror = () => finish('error');
+        enlargedElem._imageLoadTimer = setTimeout(() => {
+            finish('error');
+            image.removeAttribute('src');
+        }, 15000);
+        // Preserve the original versioned asset URL on every attempt.
+        image.src = sourceImage.dataset.fullSrc || sourceImage.src;
+        if (image.complete && image.naturalWidth > 0) finish('ready');
+    }
+
     function updateEnlargedImage(enlargedElem, index) {
         const galleryImages = enlargedElem.galleryImages;
         if (!Array.isArray(galleryImages) || galleryImages.length === 0) return;
@@ -5495,21 +5630,18 @@
         const imageCount = galleryImages.length;
         const boundedIndex = Math.min(Math.max(index, 0), imageCount - 1);
         const sourceImage = galleryImages[boundedIndex];
-        const img = enlargedElem.querySelector('img');
         const previousButton = enlargedElem.querySelector('.image-nav--previous');
         const nextButton = enlargedElem.querySelector('.image-nav--next');
         const position = enlargedElem.querySelector('.image-position');
         const stage = enlargedElem.querySelector('.image-viewer-stage');
         const zoomControls = enlargedElem.querySelector('.image-zoom-controls');
-        const hint = enlargedElem.querySelector('.image-viewer-hint');
         const isProofGallery = enlargedElem.isProofGallery;
         const canNavigate = isProofGallery && imageCount > 1;
 
         enlargedElem.currentImageIndex = boundedIndex;
         enlargedElem.returnFocusTo = sourceImage;
         enlargedElem.classList.toggle('is-proof-gallery', isProofGallery);
-        img.src = sourceImage.dataset.fullSrc || sourceImage.src;
-        img.alt = sourceImage.alt;
+        loadEnlargedImage(enlargedElem, sourceImage);
 
         if (history.state?.modal === 'enlarged') {
             history.replaceState({
@@ -5524,12 +5656,7 @@
                 : `Enlarged ${sourceImage.alt || 'image'}`);
         }
         if (zoomControls) zoomControls.hidden = !isProofGallery;
-        if (hint) hint.hidden = !isProofGallery;
-        if (isProofGallery) {
-            setProofViewerZoom(enlargedElem, enlargedElem.proofZoomIndex ?? 0, false);
-            img.addEventListener('load', () => centerProofViewer(enlargedElem), { once: true });
-            requestAnimationFrame(() => centerProofViewer(enlargedElem));
-        } else {
+        if (!isProofGallery) {
             enlargedElem.style.removeProperty('--proof-viewer-zoom');
         }
 
@@ -5537,8 +5664,8 @@
         nextButton.hidden = !canNavigate;
         previousButton.disabled = !canNavigate || boundedIndex === 0;
         nextButton.disabled = !canNavigate || boundedIndex === imageCount - 1;
-        position.hidden = !canNavigate;
-        if (!canNavigate) {
+        position.hidden = !isProofGallery;
+        if (!isProofGallery) {
             enlargedElem.setAttribute('aria-label', 'Enlarged image');
             return;
         }
@@ -5563,7 +5690,8 @@
     function trapEnlargedViewFocus(enlargedElem, event) {
         if (event.key !== 'Tab') return;
 
-        const focusableControls = Array.from(enlargedElem.querySelectorAll('.image-viewer-stage[tabindex="0"], button:not([hidden]):not(:disabled)'));
+        const focusableControls = Array.from(enlargedElem.querySelectorAll('.image-viewer-stage[tabindex="0"], button:not([hidden]):not(:disabled)'))
+            .filter(control => control.getClientRects().length > 0 && !control.closest('[hidden]'));
         if (focusableControls.length === 0) return;
 
         const firstControl = focusableControls[0];
@@ -5678,6 +5806,10 @@
         viewer.querySelector('.image-zoom-fit').addEventListener('click', () => {
             setProofViewerZoom(viewer, 0);
         });
+        viewer.querySelector('.image-load-retry').addEventListener('click', () => {
+            const sourceImage = viewer.galleryImages[viewer.currentImageIndex];
+            if (sourceImage && viewer.dataset.imageState === 'error') loadEnlargedImage(viewer, sourceImage);
+        });
 
         viewer.addEventListener('keydown', event => {
             if (event.key === 'Escape' || event.key === 'Esc') {
@@ -5689,7 +5821,7 @@
 
             trapEnlargedViewFocus(viewer, event);
             if (!viewer.isProofGallery || viewer.galleryImages.length < 2) return;
-            if ((viewer.proofZoomIndex ?? 0) > 0 && event.target.closest('.image-viewer-stage')) return;
+            if (viewer.dataset.imageState === 'ready' && (viewer.proofZoomIndex ?? 0) > 0 && event.target.closest('.image-viewer-stage')) return;
 
             if (event.key === 'ArrowLeft') {
                 event.preventDefault();
@@ -5724,7 +5856,7 @@
             const startingTouch = touchStart;
             touchStart = null;
             if (!completedTouch) return;
-            if ((viewer.proofZoomIndex ?? 0) > 0) return;
+            if (viewer.dataset.imageState === 'ready' && (viewer.proofZoomIndex ?? 0) > 0) return;
             const horizontalDistance = completedTouch.clientX - startingTouch.x;
             const verticalDistance = completedTouch.clientY - startingTouch.y;
             if (Math.abs(horizontalDistance) < 50 || Math.abs(horizontalDistance) <= Math.abs(verticalDistance)) return;
@@ -5757,6 +5889,7 @@
     function closeEnlargedView(enlargedElem) {
         if (!enlargedElem || enlargedElem.hidden || enlargedElem.getAttribute('aria-hidden') !== 'false') return;
 
+        stopEnlargedImageLoad(enlargedElem);
         enlargedElem._historyClosePending = false;
         if (enlargedElem._showFrame != null) {
             cancelAnimationFrame(enlargedElem._showFrame);
