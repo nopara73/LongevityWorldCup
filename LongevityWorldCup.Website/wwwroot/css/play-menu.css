@@ -803,6 +803,14 @@ html.play-panel-transitioning .play-hub-panel--entering {
             color: var(--lwc-accent-hover, #0f5965);
         }
 
+.error-message.athlete-search-empty:not(:empty) {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--lwc-muted);
+    font-weight: 400;
+}
+
 .error-message {
     display: none;
 }
