@@ -370,7 +370,7 @@
 
     interface AthleteSelectorController {
         input: HTMLInputElement;
-        athletes: AthleteOption[];
+        refreshDirectory: () => void;
         clear: () => void;
         getPayload: () => string | null;
         getSelectedName: () => string;
@@ -747,6 +747,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     const athleteSelectors = new Map<string, AthleteSelectorController>();
     let athleteDirectory: AthleteOption[] = [];
     let athleteDirectoryPromise: Promise<AthleteOption[]> | null = null;
+    let athleteDirectoryState: "loading" | "ready" | "error" = "loading";
     let quoteAthleteResults: QuoteAthlete[] = [];
     let boardScrollObserver: ResizeObserver | null = null;
     let boardScrollObservedElement: Element | null = null;
@@ -5315,10 +5316,13 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     function loadAthleteDirectory(): Promise<AthleteOption[]> {
         if (athleteDirectoryPromise) return athleteDirectoryPromise;
 
-        athleteDirectoryPromise = fetch("/api/data/athletes")
+        athleteDirectoryState = "loading";
+        athleteSelectors.forEach(selector => selector.refreshDirectory());
+        athleteDirectoryPromise = requestJson("/api/data/athletes", { headers: { "Accept": "application/json" } })
             .then(async response => {
-                if (!response.ok) return [];
+                if (!response.ok) throw new Error("Athlete directory unavailable");
                 const data: unknown = await response.json();
+                if (!Array.isArray(data)) throw new Error("Invalid athlete directory");
                 return data;
             })
             .then(data => {
@@ -5334,13 +5338,16 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                     .filter(a => a.name && a.slug)
                     .sort((a, b) => a.name.localeCompare(b.name));
 
+                athleteDirectoryState = "ready";
                 hydrateRenderedParticipantAvatars();
                 return athleteDirectory;
             })
             .catch(() => {
+                athleteDirectoryState = "error";
                 athleteDirectoryPromise = null;
                 return [];
-            });
+            })
+            .finally(() => athleteSelectors.forEach(selector => selector.refreshDirectory()));
 
         return athleteDirectoryPromise;
     }
@@ -6049,32 +6056,36 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             .filter((input): input is HTMLInputElement => input !== null);
         if (!inputs.length) return;
 
-        inputs.forEach(input => {
-            input.setAttribute("role", "combobox");
-            input.setAttribute("aria-autocomplete", "list");
-            input.setAttribute("aria-expanded", "false");
-            input.setAttribute("aria-haspopup", "listbox");
-        });
-
-        loadAthleteDirectory()
-            .then(athletes => inputs.forEach(input => wireAthleteSelector(input, athletes)));
+        inputs.forEach(input => wireAthleteSelector(input));
+        void loadAthleteDirectory();
     }
 
-    function wireAthleteSelector(input: HTMLInputElement, athletes: AthleteOption[]): void {
+    function wireAthleteSelector(input: HTMLInputElement): void {
         if (athleteSelectors.has(input.id)) return;
 
         const listId = input.id + "-autocomplete-list";
+        const container = input.closest<HTMLElement>(".lmx-athlete-selector");
+        input.setAttribute("role", "combobox");
+        input.setAttribute("aria-autocomplete", "list");
+        input.setAttribute("aria-expanded", "false");
+        input.setAttribute("aria-haspopup", "listbox");
         input.setAttribute("aria-controls", listId);
         let currentFocus = -1;
         const selected = document.getElementById(`${input.id}Selected`);
         const clearButton = document.getElementById(`${input.id}Clear`);
         const selector: AthleteSelectorController = {
             input,
-            athletes,
+            refreshDirectory() {
+                input.setAttribute("aria-busy", String(athleteDirectoryState === "loading"));
+                input.setCustomValidity?.("");
+                if (document.getElementById(listId)) {
+                    renderSuggestions(true);
+                }
+            },
             setValue(value: string) {
                 const raw = String(value || "").trim();
                 const normalized = normalizeAthleteSlug(raw);
-                const match = athletes.find(a =>
+                const match = athleteDirectory.find(a =>
                     normalizeAthleteSlug(a.slug) === normalized ||
                     a.name.toLowerCase() === raw.toLowerCase() ||
                     a.legalName.toLowerCase() === raw.toLowerCase());
@@ -6107,7 +6118,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 }
 
                 const normalized = normalizeAthleteSlug(raw);
-                const match = athletes.find(a =>
+                const match = athleteDirectory.find(a =>
                     a.name.toLowerCase() === raw.toLowerCase() ||
                     a.legalName.toLowerCase() === raw.toLowerCase() ||
                     normalizeAthleteSlug(a.slug) === normalized);
@@ -6117,7 +6128,11 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                     return match.slug;
                 }
 
-                const message = "Select an athlete from the list or clear this field.";
+                const message = athleteDirectoryState === "error"
+                    ? "Couldn't load athletes. Retry the search."
+                    : athleteDirectoryState === "loading"
+                        ? "Athletes are still loading."
+                        : "Select an athlete from the list or clear this field.";
                 input.setCustomValidity?.(message);
                 input.reportValidity?.();
                 input.focus();
@@ -6141,10 +6156,19 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         input.addEventListener("focus", () => {
             if (!input.dataset.athleteSlug) renderSuggestions(true);
         });
-        input.addEventListener("blur", closeList);
+        container?.addEventListener("focusout", event => {
+            if (event.relatedTarget instanceof Node && !container.contains(event.relatedTarget)) closeList();
+        });
 
-        input.addEventListener("keydown", event => {
+        container?.addEventListener("keydown", event => {
             if (event.isComposing) return;
+            if (event.key === "Escape") {
+                if (document.getElementById(listId)) event.preventDefault();
+                if (event.target !== input) input.focus({ preventScroll: true });
+                closeList();
+                return;
+            }
+            if (event.target !== input) return;
             if ((event.key === "ArrowDown" || event.key === "ArrowUp")
                 && !document.getElementById(listId) && !input.dataset.athleteSlug) renderSuggestions(true);
             const list = document.getElementById(listId);
@@ -6158,21 +6182,18 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 event.preventDefault();
                 currentFocus--;
                 setActive(items);
-            } else if (event.key === "Enter" && currentFocus > -1) {
+            } else if (event.key === "Enter" && (currentFocus > -1 || athleteDirectoryState !== "ready")) {
+                event.preventDefault();
                 const activeItem = items[currentFocus];
                 if (!activeItem) return;
-                event.preventDefault();
                 activeItem.dispatchEvent(new MouseEvent("mousedown"));
-            } else if (event.key === "Escape") {
-                if (list) event.preventDefault();
-                closeList();
-            } else if (event.key === "Tab") {
+            } else if (event.key === "Tab" && !list?.querySelector(".lmx-athlete-retry")) {
                 closeList();
             }
         });
 
         document.addEventListener("click", event => {
-            if (!(event.target instanceof Node) || !input.closest(".lmx-athlete-selector")?.contains(event.target)) closeList();
+            if (!container || !event.composedPath().includes(container)) closeList();
         });
 
         clearButton?.addEventListener("click", () => {
@@ -6186,7 +6207,39 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             closeList();
             if (!terms.length && !showInitial) return;
 
-            const matches = athletes
+            const list = document.createElement("div");
+            list.id = listId;
+            list.className = "lmx-athlete-options";
+            list.tabIndex = -1;
+            input.closest(".lmx-athlete-picker")?.appendChild(list);
+
+            if (athleteDirectoryState !== "ready") {
+                list.classList.add("lmx-athlete-feedback");
+                const message = document.createElement("span");
+                message.id = listId + "-status";
+                message.setAttribute("role", "status");
+                message.textContent = athleteDirectoryState === "error" ? "Couldn't load athletes" : "Loading athletes…";
+                list.appendChild(message);
+                input.setAttribute("aria-describedby", message.id);
+                if (athleteDirectoryState === "error") {
+                    const retry = document.createElement("button");
+                    retry.type = "button";
+                    retry.className = "lmx-button secondary lmx-compact-button lmx-athlete-retry";
+                    retry.textContent = "Retry";
+                    retry.addEventListener("click", () => {
+                        input.focus({ preventScroll: true });
+                        void loadAthleteDirectory();
+                    });
+                    list.appendChild(retry);
+                }
+                return;
+            }
+
+            list.setAttribute("role", "listbox");
+            list.setAttribute("aria-label", "Athlete suggestions");
+            input.setAttribute("aria-expanded", "true");
+
+            const matches = athleteDirectory
                 .filter(a => {
                     if (!terms.length) return true;
                     const name = a.name.toLowerCase();
@@ -6195,14 +6248,6 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                     return terms.every(term => name.includes(term) || legalName.includes(term) || slug.includes(term));
                 })
                 .slice(0, 6);
-
-            const list = document.createElement("div");
-            list.id = listId;
-            list.className = "lmx-athlete-options";
-            list.setAttribute("role", "listbox");
-            list.setAttribute("aria-label", "Athlete suggestions");
-            input.closest(".lmx-athlete-picker")?.appendChild(list);
-            input.setAttribute("aria-expanded", "true");
 
             if (!matches.length) {
                 list.innerHTML = `<div class="lmx-athlete-empty" role="option" aria-disabled="true">No listed athlete found</div>`;
@@ -6257,6 +6302,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             document.getElementById(listId)?.remove();
             input.setAttribute("aria-expanded", "false");
             input.removeAttribute("aria-activedescendant");
+            input.removeAttribute("aria-describedby");
             currentFocus = -1;
         }
 

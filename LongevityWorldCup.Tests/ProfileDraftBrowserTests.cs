@@ -36,8 +36,10 @@ public sealed class ProfileDraftBrowserTests(
     {
         await using var context = await CreateContextAsync(390);
         var page = await OpenEditorAsync(context);
-        await page.EvaluateAsync("""
-            () => { const draft = JSON.parse(sessionStorage.getItem('selectedAthlete'));
+        // Seed the next document so the current editor's late division response
+        // cannot overwrite the fixture with its still-unchanged profile.
+        await page.AddInitScriptAsync("""
+            { const draft = JSON.parse(sessionStorage.getItem('selectedAthlete'));
                 draft.ProfilePic = '/assets/content-images/play-athlete-placeholder.webp';
                 sessionStorage.setItem('tempAthlete', JSON.stringify(draft)); }
             """);
