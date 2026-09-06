@@ -15,6 +15,87 @@ public sealed class ProofReaderRecoveryBrowserTests(
     private const string ThirdProof = "/proof-reader-test/page-3.png?v=original-version";
 
     [Theory]
+    [InlineData(320, 568)]
+    [InlineData(390, 844)]
+    public async Task MobileReader_KeepsNavigationZoomAndReadingAreaSeparate(int width, int height)
+    {
+        await using var context = await CreateContextAsync(width, height: height);
+        await context.RouteAsync("**/proof-reader-test/**", FulfillImageAsync);
+        var page = await OpenProfileAsync(context);
+        await page.Locator("#proofsGallery img").Nth(1).ClickAsync();
+        var viewer = page.Locator("#athleteImageViewer");
+        await ExpectStateAsync(viewer, "ready");
+        var overlaps = await viewer.EvaluateAsync<string[]>(
+            """
+            viewer => {
+                const elements = [...viewer.querySelectorAll('button, .image-position, .image-viewer-hint, .image-viewer-stage')]
+                    .filter(element => element.checkVisibility());
+                const failures = [];
+                for (let i = 0; i < elements.length; i++) {
+                    const a = elements[i].getBoundingClientRect();
+                    const name = elements[i].getAttribute('aria-label') || elements[i].className;
+                    if (a.left < 0 || a.top < 0 || a.right > innerWidth || a.bottom > innerHeight)
+                        failures.push(`${name} is outside the viewport`);
+                    for (let j = i + 1; j < elements.length; j++) {
+                        const b = elements[j].getBoundingClientRect();
+                        if (a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top)
+                            failures.push(`${name} overlaps ${elements[j].getAttribute('aria-label') || elements[j].className}`);
+                    }
+                }
+                return failures;
+            }
+            """);
+        Assert.Empty(overlaps);
+
+        // The outer edges of these targets used to be covered by other controls.
+        await viewer.Locator(".image-nav--next").ClickAsync(new() { Position = new() { X = 2, Y = 24 } });
+        await Assertions.Expect(viewer.Locator(".image-position")).ToHaveTextAsync("Proof 3 of 3");
+        await viewer.Locator(".image-nav--previous").ClickAsync(new() { Position = new() { X = 46, Y = 24 } });
+        await ExpectStateAsync(viewer, "ready");
+        await viewer.Locator(".image-zoom-out").ClickAsync(new() { Position = new() { X = 2, Y = 22 } });
+        await Assertions.Expect(viewer.Locator(".image-zoom-status")).ToHaveTextAsync("150%");
+    }
+
+    [Theory]
+    [InlineData(320)]
+    [InlineData(1280)]
+    public async Task LoadingHighlights_KeepsTheProofUnderThePointer(int width)
+    {
+        await using var context = await CreateContextAsync(width);
+        await context.RouteAsync("**/proof-reader-test/**", FulfillImageAsync);
+        var requested = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await context.RouteAsync("**/event-board-embed.html?athlete=**", async route =>
+        {
+            requested.TrySetResult();
+            await release.Task;
+            await route.ContinueAsync();
+        });
+        try
+        {
+            var page = await OpenProfileAsync(context, waitForHighlights: false);
+            await requested.Task.WaitAsync(TimeSpan.FromSeconds(15));
+            var proof = page.Locator("#proofsGallery img").First;
+            var before = await proof.BoundingBoxAsync();
+            Assert.NotNull(before);
+            var x = before.X + before.Width / 2;
+            var y = before.Y + before.Height / 2;
+            await page.Mouse.MoveAsync(x, y);
+            release.TrySetResult();
+            await WaitForHighlightsAsync(page);
+            var after = await proof.BoundingBoxAsync();
+            Assert.NotNull(after);
+            Assert.InRange(Math.Abs(after.Y - before.Y), 0, 1);
+            await page.Mouse.ClickAsync(x, y);
+            await Assertions.Expect(page.Locator("#athleteImageViewer")).ToBeVisibleAsync();
+        }
+        finally
+        {
+            release.TrySetResult();
+        }
+    }
+
+    [Theory]
     [InlineData("/leaderboard", 390, false)]
     [InlineData("/about", 320, true)]
     [InlineData("/leaderboard", 1280, false)]
@@ -107,9 +188,11 @@ public sealed class ProofReaderRecoveryBrowserTests(
         await Assertions.Expect(viewer.Locator(".image-position")).ToHaveTextAsync("Proof 1 of 3");
         await viewer.Locator(".close-btn").FocusAsync();
         await page.Keyboard.PressAsync("Shift+Tab");
-        await Assertions.Expect(viewer.Locator(".image-nav--next")).ToBeFocusedAsync();
+        await Assertions.Expect(viewer.Locator(".image-load-retry")).ToBeFocusedAsync();
         await page.Keyboard.PressAsync("Tab");
         await Assertions.Expect(viewer.Locator(".close-btn")).ToBeFocusedAsync();
+        await page.Keyboard.PressAsync("Tab");
+        await Assertions.Expect(viewer.Locator(".image-nav--next")).ToBeFocusedAsync();
     }
 
     [Theory]
@@ -268,11 +351,11 @@ public sealed class ProofReaderRecoveryBrowserTests(
         await Assertions.Expect(page.Locator("#proofsGallery img").First).ToBeFocusedAsync();
     }
 
-    private async Task<IBrowserContext> CreateContextAsync(int width, bool dark = false, bool singleProof = false)
+    private async Task<IBrowserContext> CreateContextAsync(int width, bool dark = false, bool singleProof = false, int height = 900)
     {
         var context = await AestheticSystemBrowserTests.NewContextAsync(Browser, App, new()
         {
-            ViewportSize = new() { Width = width, Height = 900 },
+            ViewportSize = new() { Width = width, Height = height },
             ColorScheme = dark ? ColorScheme.Dark : ColorScheme.Light,
             ReducedMotion = ReducedMotion.Reduce
         });
@@ -288,7 +371,7 @@ public sealed class ProofReaderRecoveryBrowserTests(
         return context;
     }
 
-    private static async Task<IPage> OpenProfileAsync(IBrowserContext context, string path = "/leaderboard")
+    private static async Task<IPage> OpenProfileAsync(IBrowserContext context, string path = "/leaderboard", bool waitForHighlights = true)
     {
         var page = await context.NewPageAsync();
         await page.GotoAsync(path);
@@ -307,11 +390,14 @@ public sealed class ProofReaderRecoveryBrowserTests(
                     && document.querySelectorAll('#proofsGallery img').length > 0;
             }
             """);
-        // The lazy highlights iframe above the proofs resizes after its data arrives.
-        // Wait for its final height so that expansion cannot intercept the proof click.
         await page.Locator("#proofsGallery").ScrollIntoViewIfNeededAsync();
         await page.EvaluateAsync("() => document.fonts.ready");
-        await page.WaitForFunctionAsync("""
+        if (waitForHighlights) await WaitForHighlightsAsync(page);
+        return page;
+    }
+
+    private static Task WaitForHighlightsAsync(IPage page)
+        => page.WaitForFunctionAsync("""
             () => {
                 const frame = document.getElementById('events-frame');
                 const embedded = frame?.contentDocument;
@@ -321,8 +407,6 @@ public sealed class ProofReaderRecoveryBrowserTests(
                     && parseFloat(frame.style.height) === Math.ceil(root.getBoundingClientRect().height);
             }
             """);
-        return page;
-    }
 
     private async Task FulfillImageAsync(IRoute route)
     {
