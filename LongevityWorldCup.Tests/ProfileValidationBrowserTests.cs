@@ -30,9 +30,17 @@ public sealed class ProfileValidationBrowserTests(
         var feedback = page.Locator("#personalLinkInputError");
         await Assertions.Expect(feedback).ToBeVisibleAsync();
         await Assertions.Expect(page.Locator("#custom-alert")).ToBeHiddenAsync();
-        var fieldBox = await link.BoundingBoxAsync();
-        var feedbackBox = await feedback.BoundingBoxAsync();
-        var restoreBox = await page.Locator("#restorePersonalLinkBtn").BoundingBoxAsync();
+        // Blur feedback can move the form between browser calls. Compare related
+        // controls in one frame so page movement cannot appear as misalignment.
+        var boxes = await page.EvaluateAsync<LocatorBoundingBoxResult[]>("""
+            () => ['personalLinkInput', 'personalLinkInputError', 'restorePersonalLinkBtn'].map(id => {
+                const rect = document.getElementById(id).getBoundingClientRect();
+                return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+            })
+            """);
+        var fieldBox = boxes[0];
+        var feedbackBox = boxes[1];
+        var restoreBox = boxes[2];
         Assert.NotNull(fieldBox);
         Assert.NotNull(feedbackBox);
         Assert.NotNull(restoreBox);
