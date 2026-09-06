@@ -32,6 +32,8 @@ public sealed class HomepagePlayActionBrowserTests(
                              {
                                  new ViewportSize { Width = 320, Height = 720 },
                                  new ViewportSize { Width = 390, Height = 844 },
+                                 new ViewportSize { Width = 641, Height = 844 },
+                                 new ViewportSize { Width = 720, Height = 900 },
                                  new ViewportSize { Width = 667, Height = 375 },
                                  new ViewportSize { Width = 844, Height = 390 },
                                  new ViewportSize { Width = 900, Height = 450 },
@@ -73,6 +75,55 @@ public sealed class HomepagePlayActionBrowserTests(
                     await page.CloseAsync();
                 }
             });
+    }
+
+    [Theory]
+    [InlineData(ReducedMotion.NoPreference)]
+    [InlineData(ReducedMotion.Reduce)]
+    public async Task HeaderResize_KeepsTheBrandSeparateFromPlayThroughoutTheTransition(ReducedMotion motion)
+    {
+        await using var context = await NewContextAsync(Browser, App, motion);
+        var page = await context.NewPageAsync();
+        await page.SetViewportSizeAsync(900, 450);
+        await page.GotoAsync("/leaderboard");
+        await SettleLayoutAsync(page);
+        await page.EvaluateAsync(
+            """
+            () => {
+                window.headerResizeSamples = [];
+                window.headerResizeComplete = false;
+                window.addEventListener('resize', () => {
+                    let frames = 0;
+                    const sample = () => {
+                        const brand = document.querySelector('header[role="banner"] .header-link').getBoundingClientRect();
+                        const action = document.querySelector('header[role="banner"] .join-game:not(.scrolled-button)').getBoundingClientRect();
+                        window.headerResizeSamples.push({
+                            BrandRight: brand.right,
+                            ActionLeft: action.left,
+                            Overlap: action.left < brand.right && action.right > brand.left
+                                && action.top < brand.bottom && action.bottom > brand.top
+                        });
+                        if (++frames < 20) requestAnimationFrame(sample);
+                        else window.headerResizeComplete = true;
+                    };
+                    sample();
+                }, { once: true });
+            }
+            """);
+
+        await page.SetViewportSizeAsync(1026, 473);
+        await page.WaitForFunctionAsync("() => window.headerResizeComplete === true");
+        var samples = await page.EvaluateAsync<HeaderResizeSample[]>("() => window.headerResizeSamples");
+        Assert.NotEmpty(samples);
+        Assert.All(samples, sample => Assert.False(sample.Overlap,
+            $"Brand ended at {sample.BrandRight:F1}px while Play began at {sample.ActionLeft:F1}px during resize."));
+    }
+
+    private sealed class HeaderResizeSample
+    {
+        public double BrandRight { get; set; }
+        public double ActionLeft { get; set; }
+        public bool Overlap { get; set; }
     }
 
     private static Task<ScrollPhaseDiagnostics> MeasureScrollPhasesAsync(IPage page)

@@ -914,6 +914,11 @@ html body .leaderboard-view-switcher .view-badge {
     border-radius: 50%;
 }
 
+/* Set safe defaults while preserving each component's explicit transitions. */
+:where(button, a, input, select, textarea, .view-badge, .leaderboard table tbody tr) {
+    transition-property: background-color, border-color, color, box-shadow, opacity, transform;
+}
+
 /* Motion explains state without making the interface restless. */
 @media (prefers-reduced-motion: no-preference) {
     button,
