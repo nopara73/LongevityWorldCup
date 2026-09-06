@@ -1643,31 +1643,89 @@
     }
     #detailsModal .proofs-gallery{
         display:grid;
-        grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));
-        gap:.85rem;
-        max-height:min(58vh, 560px);
-        overflow-y:auto;
+        grid-template-columns:repeat(3, minmax(0, 1fr));
+        gap:var(--lwc-space-3);
+        max-height:none;
+        overflow:visible;
         justify-content:stretch;
-        padding:.15rem .35rem .15rem .15rem;
-        overscroll-behavior:contain;
-        -webkit-overflow-scrolling:touch;
-        scrollbar-gutter:stable;
+        padding:0;
+        scrollbar-gutter:auto;
+    }
+    #detailsModal .proofs-gallery[data-proof-count="1"]{
+        grid-template-columns:minmax(0, 1fr);
+        max-width:420px;
+        margin-inline:auto;
+    }
+    #detailsModal .proofs-gallery[data-proof-count="2"]{
+        grid-template-columns:repeat(2, minmax(0, 1fr));
+    }
+    #detailsModal .proofs-heading{
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        gap:var(--lwc-space-3);
+        min-height:44px;
+        margin-bottom:var(--lwc-space-3);
+        border-bottom:1px solid var(--athlete-modal-border);
+    }
+    #detailsModal .proofs-heading h3{
+        margin:0;
+        padding:0;
+        border:0;
+    }
+    #detailsModal .proofs-toggle{
+        min-height:44px;
+        padding:var(--lwc-space-2);
+        border:0;
+        border-radius:var(--lwc-radius-sm);
+        background:transparent;
+        color:var(--athlete-modal-link);
+        font:inherit;
+        font-size:var(--lwc-type-sm);
+        text-align:right;
+        text-decoration:underline;
+        cursor:pointer;
+    }
+    #detailsModal .proofs-toggle:hover{
+        background:rgba(255,255,255,.06);
+    }
+    #detailsModal .proofs-toggle:focus-visible{
+        outline:2px solid var(--athlete-modal-link);
+        outline-offset:2px;
+    }
+    #detailsModal .proofs-toggle[hidden],
+    #detailsModal .proof-item[hidden]{
+        display:none;
     }
     #detailsModal .proof-item{
         display:flex;
-        align-items:center;
+        flex-direction:column;
+        align-items:stretch;
         justify-content:center;
-        aspect-ratio:4 / 3;
-        background: rgba(255,255,255,.95);
+        gap:var(--lwc-space-2);
+        padding:var(--lwc-space-2);
+        min-height:0;
+        aspect-ratio:auto;
+        box-sizing:border-box;
+        background:var(--athlete-modal-card-strong);
         border: 1px solid var(--athlete-modal-border);
         border-radius:var(--lwc-radius-md);
         box-shadow:var(--lwc-shadow-sm);
     }
     #detailsModal .proof-item img{
         width:100%;
-        height:100%;
+        height:auto;
+        aspect-ratio:4 / 3;
         max-height:none;
         object-fit:contain;
+        border-radius:var(--lwc-radius-sm);
+        background:rgba(255,255,255,.04);
+    }
+    #detailsModal .proof-number{
+        color:var(--athlete-modal-muted);
+        font-size:var(--lwc-type-sm);
+        line-height:1.4;
+        text-align:center;
     }
     #detailsModal .proof-item:hover{
         transform:none;
@@ -2581,16 +2639,7 @@
             margin-top:1.25rem;
         }
         #detailsModal .proofs-gallery{
-            grid-template-columns:1fr;
-            max-height:none;
-            overflow:visible;
-            padding:.15rem;
-            gap:.95rem;
-            scrollbar-gutter:auto;
-        }
-        #detailsModal .proof-item{
-            aspect-ratio:4 / 5;
-            min-height:260px;
+            grid-template-columns:repeat(2, minmax(0, 1fr));
         }
         .modal-scroll-progress{
             left:1rem;
@@ -3530,7 +3579,10 @@
     </div>
 
     <div class="proofs-section" id="athlete-proofs">
-        <h3>Proofs</h3>
+        <div class="proofs-heading">
+            <h3>Proofs</h3>
+            <button type="button" class="proofs-toggle" hidden aria-expanded="false" aria-controls="proofsGallery">Show all proofs</button>
+        </div>
         <div class="proofs-gallery" id="proofsGallery">
             <!-- Proof images will be inserted here -->
         </div>
@@ -5948,7 +6000,15 @@
         const modalContent = ownerDialog ? ownerDialog.querySelector('.modal-content') : null;
         if (modalContent) modalContent.inert = false;
         if (ownerDialog?.style.display === 'block' && returnFocusTo?.isConnected && typeof returnFocusTo.focus === 'function') {
+            const proofGallery = returnFocusTo.closest('.proofs-gallery');
+            const proofItem = returnFocusTo.closest('.proof-item');
+            if (proofItem?.hidden) proofGallery?._setExpanded?.(true);
             returnFocusTo.focus({ preventScroll: true });
+            if (proofItem) {
+                const headerHeight = ownerDialog.querySelector('.modal-sticky-header')?.getBoundingClientRect().height || 0;
+                proofItem.style.scrollMarginTop = `${headerHeight}px`;
+                proofItem.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'instant' });
+            }
         }
         enlargedElem.classList.remove('show');
         enlargedElem.setAttribute('aria-hidden', 'true');
@@ -9428,12 +9488,26 @@
         const proofs = Array.isArray(fullAthleteData && fullAthleteData.Proofs)
             ? fullAthleteData.Proofs.filter(Boolean)
             : [];
+        const previewCount = 6;
+        const toggle = proofsGallery.closest('.proofs-section')?.querySelector('.proofs-toggle');
+        proofsGallery.dataset.proofCount = String(proofs.length);
+        const setExpanded = expanded => {
+            proofsGallery.querySelectorAll('.proof-item').forEach((item, index) => {
+                item.hidden = !expanded && index >= previewCount;
+            });
+            if (toggle) {
+                toggle.hidden = proofs.length <= previewCount;
+                toggle.setAttribute('aria-expanded', String(expanded));
+                toggle.textContent = expanded ? 'Show fewer' : `Show all ${proofs.length} proofs`;
+            }
+        };
+        proofsGallery._setExpanded = setExpanded;
+        if (toggle) toggle.onclick = () => setExpanded(toggle.getAttribute('aria-expanded') !== 'true');
         if (proofs.length === 0) {
             const empty = document.createElement('p');
             empty.className = 'proofs-empty';
             empty.textContent = 'No public proofs available yet.';
             proofsGallery.appendChild(empty);
-            return;
         }
 
         proofs.forEach((proofUrl, index) => {
@@ -9447,18 +9521,24 @@
             img.setAttribute('aria-label', `Enlarge proof image ${index + 1}`);
             img.loading = 'lazy';
             proofItem.appendChild(img);
+            const number = document.createElement('span');
+            number.className = 'proof-number';
+            number.textContent = `Proof ${index + 1}`;
+            number.setAttribute('aria-hidden', 'true');
+            proofItem.appendChild(number);
             proofsGallery.appendChild(proofItem);
 
             const openProofImage = function () {
-                openEnlargedView(this);
+                openEnlargedView(img);
             };
-            img.addEventListener('click', openProofImage);
+            proofItem.addEventListener('click', openProofImage);
             img.addEventListener('keydown', function (event) {
                 if (event.key !== 'Enter' && event.key !== ' ') return;
                 event.preventDefault();
                 openProofImage.call(this);
             });
         });
+        setExpanded(false);
     }
 
     // Ensure modal history cleanup
