@@ -198,12 +198,36 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         Assert.Equal(JsonValueKind.Null, signup.Value.GetProperty("athleteLink").ValueKind);
     }
 
-    private async Task<IBrowserContext> NewAthleteRecoveryContextAsync()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task AthleteDirectory_RetryRemainsReadableOnHoverAndPress(bool dark)
+    {
+        await using var context = await NewAthleteRecoveryContextAsync(width: 320, dark: dark);
+        var page = await context.NewPageAsync();
+        await page.RouteAsync("**/api/data/athletes", route => route.FulfillAsync(new() { Status = 503 }));
+        var input = await OpenAthleteRecoveryFormAsync(page);
+        await input.FillAsync("Recovery");
+        var retry = page.GetByRole(AriaRole.Button, new() { Name = "Retry", Exact = true });
+        await retry.HoverAsync();
+        await retry.EvaluateAsync("async element => { getComputedStyle(element).color; await Promise.all(element.getAnimations().map(animation => animation.finished.catch(() => {}))); }");
+        BrowserContrast.AssertMinimum("Retry hover", await BrowserContrast.MeasureVisibleTextAsync(page, ".lmx-athlete-retry"));
+        await page.Mouse.DownAsync();
+        try
+        {
+            await retry.EvaluateAsync("async element => { getComputedStyle(element).color; await Promise.all(element.getAnimations().map(animation => animation.finished.catch(() => {}))); }");
+            BrowserContrast.AssertMinimum("Retry pressed", await BrowserContrast.MeasureVisibleTextAsync(page, ".lmx-athlete-retry"));
+        }
+        finally { await page.Mouse.UpAsync(); }
+    }
+
+    private async Task<IBrowserContext> NewAthleteRecoveryContextAsync(int width = 390, bool dark = false)
     {
         var context = await Browser.NewContextAsync(new()
         {
-            BaseURL = App.BaseAddress.ToString(), ViewportSize = new() { Width = 390, Height = 844 },
-            TimezoneId = "Asia/Bangkok", ReducedMotion = ReducedMotion.Reduce
+            BaseURL = App.BaseAddress.ToString(), ViewportSize = new() { Width = width, Height = 844 },
+            TimezoneId = "Asia/Bangkok", ReducedMotion = ReducedMotion.Reduce,
+            ColorScheme = dark ? ColorScheme.Dark : ColorScheme.Light
         });
         await BrowserTestApp.RouteExternalResourcesAsync(context);
         await context.RouteAsync("**/api/longevitymaxxing/state", route => FulfillJsonAsync(route, JsonSerializer.Serialize(BuildPublicState())));
