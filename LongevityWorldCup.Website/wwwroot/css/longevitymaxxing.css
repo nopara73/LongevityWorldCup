@@ -2868,6 +2868,10 @@ a.lmx-discussion-author-identity:focus-visible {
     line-height: 1.5;
 }
 
+.lmx-discussion-edit-resume {
+    margin-top: var(--lwc-space-2);
+}
+
 .lmx-discussion-reply-composer textarea {
     width: 100%;
     min-height: 5rem;

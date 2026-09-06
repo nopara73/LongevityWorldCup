@@ -4694,7 +4694,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     function discussionDraftKey(button: HTMLButtonElement): string {
         const participantId = participantState?.participant.id || "";
         const replyId = button.hasAttribute("data-discussion-reply-edit")
-            ? button.closest<HTMLElement>("[data-discussion-reply-id]")?.dataset.discussionReplyId : null;
+            ? button.dataset.discussionEditId || button.closest<HTMLElement>("[data-discussion-reply-id]")?.dataset.discussionReplyId : null;
         return JSON.stringify(replyId
             ? [participantId, "edit", replyId]
             : [participantId, "reply", button.dataset.postParticipantId, button.dataset.postChallengeDay, button.dataset.systemPostId || ""]);
@@ -4720,11 +4720,49 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             .find(button => discussionDraftKey(button) === draft.key && discussionDraftSurface(button) === surface) || null;
     }
 
+    function discussionDraftThread(draft: DiscussionDraft, surface: string, root: ParentNode = document): HTMLElement | null {
+        return Array.from(root.querySelectorAll<HTMLElement>("article[data-discussion-post-participant-id]"))
+            .find(thread => discussionDraftSurface(thread) === surface && (draft.systemPostId
+                ? thread.dataset.discussionSystemPostId === draft.systemPostId
+                : !thread.dataset.discussionSystemPostId && thread.dataset.discussionPostParticipantId === draft.postParticipantId &&
+                    Number(thread.dataset.discussionPostChallengeDay) === draft.challengeDay)) || null;
+    }
+
+    // An edit can outlive the latest-replies window. Keep its draft reachable without
+    // inserting an unverified old reply into the authoritative reply list or count.
+    function ensureDiscussionEditDraftButtons(root: ParentNode): void {
+        root.querySelectorAll<HTMLButtonElement>("[data-discussion-edit-id]").forEach(button => {
+            const draft = discussionDrafts.get(discussionDraftKey(button));
+            const thread = button.closest("article[data-discussion-post-participant-id]");
+            if (!draft || Array.from(thread?.querySelectorAll<HTMLElement>("[data-discussion-reply-id]") || [])
+                .some(item => item.dataset.discussionReplyId === draft.editReplyId)) button.remove();
+        });
+        for (const draft of discussionDrafts.values()) {
+            if (!draft.editReplyId || draft.participantId !== participantState?.participant.id) continue;
+            for (const surface of ["notes", "checkin"]) {
+                const thread = discussionDraftThread(draft, surface, root);
+                if (!thread || discussionDraftButton(draft, surface, thread)) continue;
+                const button = document.createElement("button");
+                button.type = "button";
+                button.className = "lmx-discussion-reply lmx-discussion-edit-resume";
+                button.setAttribute("data-discussion-reply-edit", "");
+                button.dataset.discussionEditId = draft.editReplyId;
+                button.addEventListener("click", () => openDiscussionReplyEditor(button));
+                thread.querySelector(".lmx-discussion-reply-slot")?.before(button);
+            }
+        }
+    }
+
     function openDiscussionReplyComposer(button: HTMLButtonElement): void {
         openDiscussionDraft(button, null);
     }
 
     function openDiscussionReplyEditor(button: HTMLButtonElement): void {
+        const draft = discussionDrafts.get(discussionDraftKey(button));
+        if (draft?.editReplyId && draft.participantId === participantState?.participant.id) {
+            openDiscussionDraft(button, null);
+            return;
+        }
         const reply = findDiscussionReply(String(button.closest<HTMLElement>("[data-discussion-reply-id]")?.dataset.discussionReplyId || ""));
         if (reply && reply.participantId === participantState?.participant.id) openDiscussionDraft(button, reply);
     }
@@ -4780,7 +4818,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     function mountDiscussionDraft(button: HTMLButtonElement, draft: DiscussionDraft): void {
         const editing = !!draft.editReplyId;
         const item = button.closest<HTMLElement>("[data-discussion-reply-id]");
-        const slot = editing ? item?.querySelector<HTMLElement>("[data-discussion-reply-editor-slot]")
+        const slot = editing && item ? item.querySelector<HTMLElement>("[data-discussion-reply-editor-slot]")
             : button.closest("article[data-discussion-post-participant-id]")?.querySelector<HTMLElement>(".lmx-discussion-reply-slot");
         if (!slot || slot.querySelector("[data-discussion-draft]")) return;
         if (editing) item?.querySelector<HTMLElement>("[data-discussion-reply-body]")?.setAttribute("hidden", "");
@@ -4836,23 +4874,32 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 slot.querySelector<HTMLButtonElement>("[data-reply-action='submit']:not(:disabled)")?.click();
             }
         });
+        const returnFocus = () => {
+            const surface = discussionDraftSurface(slot);
+            const source = button.isConnected ? button : discussionDraftButton(draft, surface) ||
+                discussionDraftThread(draft, surface)?.querySelector<HTMLButtonElement>("[data-discussion-reply]");
+            source?.focus({ preventScroll: true });
+        };
         slot.querySelector("[data-reply-action='close']")?.addEventListener("click", () => {
             closeDiscussionDraft();
-            button.focus({ preventScroll: true });
+            returnFocus();
         });
         slot.querySelector("[data-reply-action='discard']")?.addEventListener("click", () => {
             if (discussionMutation === draft.key) return;
             discussionDrafts.delete(draft.key);
             closeDiscussionDraft();
-            button.focus({ preventScroll: true });
+            returnFocus();
         });
         slot.querySelector("[data-reply-action='submit']")?.addEventListener("click", () => void submitDiscussionReply(draft));
     }
 
     function restoreActiveDiscussionDraft(root: ParentNode): void {
+        ensureDiscussionEditDraftButtons(root);
         if (!activeDiscussionDraft || !participantState || !accessToken) return;
         const draft = discussionDrafts.get(activeDiscussionDraft.key);
         if (!draft || draft.participantId !== participantState.participant.id) return;
+        if (Array.from(document.querySelectorAll<HTMLElement>("[data-discussion-draft]"))
+            .some(composer => composer.dataset.discussionDraft === draft.key)) return;
         const button = discussionDraftButton(draft, activeDiscussionDraft.surface, root);
         if (button) mountDiscussionDraft(button, draft);
     }
@@ -4879,14 +4926,16 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     }
 
     function updateDiscussionDraftControls(): void {
+        ensureDiscussionEditDraftButtons(document);
         document.querySelectorAll<HTMLButtonElement>("[data-discussion-reply], [data-discussion-reply-edit]").forEach(button => {
             const key = discussionDraftKey(button);
             const draft = discussionDrafts.get(key);
             const dirty = !!draft && draft.body !== draft.originalBody;
             const pending = discussionMutation === key;
             const editing = button.hasAttribute("data-discussion-reply-edit");
+            const container = (editing ? button.closest("[data-discussion-reply-id]") : null) || button.closest("article[data-discussion-post-participant-id]");
             const open = activeDiscussionDraft?.key === key && activeDiscussionDraft.surface === discussionDraftSurface(button) &&
-                !!button.closest(editing ? "[data-discussion-reply-id]" : "article[data-discussion-post-participant-id]")?.querySelector("[data-discussion-draft]");
+                !!container?.querySelector("[data-discussion-draft]");
             const label = pending ? (editing ? "Saving…" : "Posting…")
                 : open ? (editing ? "Editing" : "Writing")
                 : draft?.error ? (editing ? "Retry edit" : "Retry reply")
@@ -5066,13 +5115,14 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 focused.closest<HTMLElement>("[data-discussion-draft]")?.dataset.discussionDraft === draft.key;
             const surface = activeDiscussionDraft?.key === draft.key ? activeDiscussionDraft.surface : "notes";
             const restoreOtherDraftFocus = preserveDiscussionDraftFocus(document.body);
-            discussionDrafts.delete(draft.key);
-            if (activeDiscussionDraft?.key === draft.key) activeDiscussionDraft = null;
             discussionMutation = null;
             renderDiscussionSurfaces(participantState);
+            discussionDrafts.delete(draft.key);
+            if (activeDiscussionDraft?.key === draft.key) closeDiscussionDraft();
             for (const name of ["notes", "checkin"]) {
-                const button = discussionDraftButton(draft, name);
-                const slot = button?.closest(draft.editReplyId ? "[data-discussion-reply-id]" : "article[data-discussion-post-participant-id]");
+                const thread = discussionDraftThread(draft, name);
+                const button = discussionDraftButton(draft, name) || thread?.querySelector<HTMLButtonElement>("[data-discussion-reply]");
+                const slot = (draft.editReplyId ? button?.closest("[data-discussion-reply-id]") : null) || thread;
                 if (!slot) continue;
                 const feedback = document.createElement("div");
                 feedback.className = "lmx-discussion-feedback";

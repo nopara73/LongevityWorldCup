@@ -246,16 +246,20 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await Assertions.Expect(owned.Locator("[data-reply-count]")).ToHaveTextAsync("17/240");
     }
 
-    [Fact]
-    public async Task DiscussionPostedReply_ClearsItsDraftAndRestoresFocusWithoutALeaveWarning()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task DiscussionPostedReply_ClearsItsDraftAndRestoresFocusWithoutALeaveWarning(bool fromOlderPage)
     {
         await using var context = await NewContextAsync(Browser, App, new());
         var state = DiscussionWorkspaceState();
         var page = await OpenDiscussionWorkspaceAsync(context, state);
+        var participantId = fromOlderPage ? "p6" : "p2";
+        var day = fromOlderPage ? 19 : 22;
         await page.RouteAsync("**/api/longevitymaxxing/discussion/replies", async route => {
             var payload = JsonNode.Parse(route.Request.PostData!)!;
             foreach (var collection in new[] { state["notes"]!.AsArray(), state["public"]!["notes"]!.AsArray() }) {
-                var thread = collection.Single(n => (string?)n!["participantId"] == "p2" && (int?)n["challengeDay"] == 22)!;
+                var thread = collection.Single(n => (string?)n!["participantId"] == participantId && (int?)n["challengeDay"] == day)!;
                 thread["replies"]!.AsArray().Add(JsonSerializer.SerializeToNode(Reply(
                     (string)payload["replyId"]!, "p1", "Browser Tester", (string)payload["body"]!, "2026-07-01T10:00:00Z")));
                 thread["replyCount"] = thread["replies"]!.AsArray().Count;
@@ -263,7 +267,8 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
             }
             await FulfillJsonAsync(route, state.ToJsonString());
         });
-        var thread = DiscussionThread(page, "p2", 22);
+        if (fromOlderPage) await page.Locator("#lmxNotesOlder").ClickAsync();
+        var thread = DiscussionThread(page, participantId, day);
         await thread.Locator("[data-discussion-reply]").ClickAsync();
         await thread.Locator("textarea").FillAsync("  My published reply.  ");
         await thread.Locator("[data-reply-submit]").ClickAsync();
@@ -340,6 +345,67 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
                 await page.Locator("#lmxProfileTab").ClickAsync();
                 await Assertions.Expect(target).ToHaveCountAsync(0);
             }
+        } finally { release.TrySetResult(); }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task DiscussionEditDraft_RemainsReachableWhenItsReplyLeavesTheVisibleWindow(bool checkInPreview)
+    {
+        await using var context = await NewContextAsync(Browser, App, new());
+        var page = await OpenDiscussionWorkspaceAsync(context);
+        var requested = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var response = JsonSerializer.Serialize(BuildParticipantState(includeMentionParticipants: true,
+            includeDiscussionNotesWithMentionParticipants: true, discussionReplySnapshot: DiscussionReplySnapshot.DisjointAfterFourMoreReplies));
+        await page.RouteAsync("**/api/longevitymaxxing/discussion/replies", async route => {
+            requested.TrySetResult();
+            await release.Task;
+            await FulfillJsonAsync(route, response);
+        });
+        await page.RouteAsync("**/api/longevitymaxxing/discussion/replies/edit", route => FulfillJsonAsync(route,
+            JsonSerializer.Serialize(Reply("r6", "p1", "Browser Tester", "Keep this correction.", "2026-06-30T10:00:00Z", "2026-07-01T10:00:00Z"))));
+        try {
+            var ari = DiscussionThread(page, "p2", 22);
+            await ari.Locator("[data-discussion-reply]").ClickAsync();
+            await ari.Locator("textarea").FillAsync("A new reply while others are joining in.");
+            await ari.Locator("[data-reply-submit]").ClickAsync();
+            await requested.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            var fox = DiscussionThread(page, "p7", 5, checkInPreview ? "#lmxCheckinList" : "#lmxNotes");
+            await fox.Locator("[data-discussion-reply-edit]").ClickAsync();
+            await fox.Locator("textarea").FillAsync("Keep this correction.");
+            release.TrySetResult();
+            await Assertions.Expect(fox.Locator("[data-reply-edit-submit]")).ToBeEnabledAsync();
+            await Assertions.Expect(fox.Locator("textarea")).ToBeFocusedAsync();
+            Assert.Equal("Keep this correction.", await fox.Locator("textarea").InputValueAsync());
+            await Assertions.Expect(page.Locator("[data-discussion-reply-id='r6']")).ToHaveCountAsync(0);
+            await fox.Locator("[data-reply-action='close']").ClickAsync();
+            await fox.Locator("[data-discussion-reply-edit]").ClickAsync();
+            Assert.Equal("Keep this correction.", await fox.Locator("textarea").InputValueAsync());
+            if (!checkInPreview) {
+                await page.RouteAsync("**/api/longevitymaxxing/discussion/replies/page", route => FulfillJsonAsync(route, JsonSerializer.Serialize(new {
+                    replies = new[] {
+                        Reply("r6", "p1", "Browser Tester", "An actual child reply for @Ari Able.", "2026-06-30T10:00:00Z"),
+                        Reply("r7", "p7", "Fox", "Reply seven.", "2026-06-30T11:00:00Z"),
+                        Reply("r8", "p3", "Bea", "Reply eight.", "2026-06-30T12:00:00Z"),
+                        Reply("r9", "p4", "Cam", "Reply nine.", "2026-06-30T13:00:00Z")
+                    },
+                    totalCount = 12, latestReplyIds = new[] { "r10", "r11", "r12" }, remainingEarlierReplyCount = 5,
+                    hasEarlier = true, nextBeforeCreatedAtUtc = "2026-06-30T10:00:00Z", nextBeforeReplyId = "r6"
+                })));
+                await fox.Locator("[data-discussion-replies-page]").ClickAsync();
+                await Assertions.Expect(fox.Locator("[data-discussion-reply-id='r6']")).ToHaveCountAsync(1);
+                await Assertions.Expect(page.Locator("[data-discussion-draft]")).ToHaveCountAsync(1);
+                await fox.Locator("[data-reply-action='close']").ClickAsync();
+                await Assertions.Expect(fox.Locator("[data-discussion-reply-edit]")).ToBeFocusedAsync();
+                await fox.Locator("[data-discussion-reply-edit]").ClickAsync();
+                Assert.Equal("Keep this correction.", await fox.Locator("textarea").InputValueAsync());
+            }
+            await fox.Locator("[data-reply-edit-submit]").ClickAsync();
+            await Assertions.Expect(fox.Locator(".lmx-discussion-feedback")).ToHaveTextAsync("Reply saved.");
+            await Assertions.Expect(fox.Locator(checkInPreview ? "[data-discussion-reply]" : "[data-discussion-reply-edit]")).ToBeFocusedAsync();
+            await Assertions.Expect(fox.Locator("[data-discussion-edit-id]")).ToHaveCountAsync(0);
         } finally { release.TrySetResult(); }
     }
 
