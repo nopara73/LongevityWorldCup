@@ -5765,6 +5765,7 @@
         const modalContent = modal.querySelector('.modal-content');
         if (!imageState
             || modal.style.display !== 'block'
+            || modalContent?.dataset.athleteSlug !== state.athlete
             || modalContent?.classList.contains('is-loading')
             || modalContent?.classList.contains('has-load-error')) {
             return false;
@@ -6093,6 +6094,8 @@
     function resetModalForLoading(athleteSlug) {
         ensureAthleteModalDeferredSections();
         closeAthleteShareMenu();
+        const viewer = document.querySelector('#athleteImageViewer[aria-hidden="false"]');
+        if (viewer) closeEnlargedView(viewer);
         modal._historyClosePending = false;
 
         if (modal._closeTimer) {

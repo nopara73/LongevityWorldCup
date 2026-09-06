@@ -114,6 +114,29 @@ public sealed class AthleteReturnNavigationBrowserTests(
     }
 
     [Fact]
+    public async Task BackToProof_RestoresItsAthleteAfterVisitingAnotherProfile()
+    {
+        await using var context = await CreateContextAsync();
+        var page = await OpenLeaderboardAsync(context);
+        await OpenMichaelAsync(page);
+        await page.Locator("#proofsGallery .proof-item img").First.ClickAsync();
+        await Assertions.Expect(page.Locator("#athleteImageViewer")).ToHaveAttributeAsync("aria-hidden", "false");
+        var proofSource = await page.Locator("#athleteImageViewer .image-viewer-stage img").GetAttributeAsync("src");
+
+        await page.EvaluateAsync("window.openAthleteModalBySlug('christopher-yamba',{suppressGuessMyAge:true})");
+        await WaitForProfileAsync(page, "christopher-yamba");
+        await page.GoBackAsync();
+        await WaitForProfileAsync(page, Michael);
+        await Assertions.Expect(page.Locator("#athleteImageViewer")).ToHaveAttributeAsync("aria-hidden", "false");
+        await Assertions.Expect(page.Locator("#athleteImageViewer .image-viewer-stage img")).ToHaveAttributeAsync("src", proofSource!);
+        await page.Locator("#athleteImageViewer .close-btn").ClickAsync();
+        await Assertions.Expect(page.Locator("#athleteImageViewer")).ToHaveAttributeAsync("aria-hidden", "true");
+        await page.Locator("#closeAthleteDetailsModal").ClickAsync();
+        await Assertions.Expect(page.Locator("#detailsModal")).ToBeHiddenAsync();
+        Assert.Equal(FilteredPath, new Uri(page.Url).PathAndQuery);
+    }
+
+    [Fact]
     public async Task ProofAndProfileClose_EachReturnToTheirOwningView()
     {
         await using var context = await CreateContextAsync();
