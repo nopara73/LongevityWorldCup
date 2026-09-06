@@ -1575,6 +1575,24 @@
     font-weight: 400;
 }
 
+.lmx-athlete-feedback {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--lwc-space-2);
+    min-height: calc(44px + var(--lwc-space-3));
+    color: var(--lmx-muted);
+    box-shadow: var(--lwc-shadow-sm);
+}
+
+.lmx-athlete-feedback > span {
+    padding: var(--lwc-space-2);
+}
+
+.lmx-athlete-retry {
+    flex-shrink: 0;
+}
+
 .lmx-timezone-picker {
     position: relative;
     min-width: 0;

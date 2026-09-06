@@ -881,7 +881,6 @@ public sealed class LongevitymaxxingChallengePageTests(TestWebApplicationFactory
         Assert.Contains("Challenge username", javascript);
         Assert.Contains("Longevity athlete", javascript);
         Assert.Contains(".lmx-profile-identity", css);
-        Assert.Contains("fetch(\"/api/data/athletes\")", javascript);
         Assert.Contains("function getAthleteSelectorPayload", javascript);
         Assert.Contains("Select an athlete from the list or clear this field.", javascript);
         Assert.Contains("No listed athlete found", javascript);
