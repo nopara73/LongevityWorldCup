@@ -77,6 +77,8 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await button.PressAsync("ArrowDown");
         await Assertions.Expect(search).ToBeFocusedAsync();
         await Assertions.Expect(search).ToHaveAttributeAsync("role", "combobox");
+        await Assertions.Expect(search).ToHaveAccessibleNameAsync("Search city or timezone");
+        await Assertions.Expect(search).ToHaveAttributeAsync("aria-controls", id + "List");
         await search.FillAsync("United States");
         for (var i = 0; i < 12; i++) await search.PressAsync("ArrowDown");
         var activeId = await search.GetAttributeAsync("aria-activedescendant");
@@ -142,6 +144,44 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await Assertions.Expect(page.Locator("#" + id + "Button")).ToHaveAttributeAsync("aria-expanded", "false");
         Assert.False(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth > innerWidth"));
         Assert.Equal(0, await page.EvaluateAsync<int>("window.__timezoneSubmits"));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task TimeZonePicker_PointerSelectionSurvivesBlurWithoutANewFocusTarget(bool profile)
+    {
+        await using var context = await NewTimeZoneContextAsync();
+        var (page, id) = await PrepareTimeZonePickerAsync(context, profile);
+        var button = page.Locator("#" + id + "Button");
+        var search = page.Locator("#" + id + "Search");
+        await button.ClickAsync();
+        await Assertions.Expect(search).ToBeFocusedAsync();
+        await search.FillAsync("London");
+        var option = page.Locator("#" + id + "List [data-time-zone='Europe/London']");
+        await option.EvaluateAsync("""
+            option => {
+                const search = option.closest('[data-timezone-picker]').querySelector('input');
+                window.__timezoneNullBlurs = 0;
+                search.addEventListener('focusout', event => {
+                    if (event.relatedTarget === null) window.__timezoneNullBlurs++;
+                });
+                // Reproduce a pointer blur without a focusable destination, as on WebKit.
+                option.addEventListener('mousedown', () => search.blur(), { once: true });
+            }
+            """);
+        await option.ClickAsync();
+        Assert.Equal(1, await page.EvaluateAsync<int>("window.__timezoneNullBlurs"));
+        Assert.Equal("Europe/London", await page.Locator("#" + id).InputValueAsync());
+        await Assertions.Expect(button).ToHaveAttributeAsync("aria-expanded", "false");
+        await Assertions.Expect(button).ToBeFocusedAsync();
+        Assert.Equal(0, await page.EvaluateAsync<int>("window.__timezoneSubmits"));
+
+        await button.ClickAsync();
+        await Assertions.Expect(search).ToBeFocusedAsync();
+        await page.Locator("h1").ClickAsync();
+        await Assertions.Expect(button).ToHaveAttributeAsync("aria-expanded", "false");
+        Assert.Equal("Europe/London", await page.Locator("#" + id).InputValueAsync());
     }
 
     private Task<IBrowserContext> NewTimeZoneContextAsync(int width = 390, bool dark = false, bool touch = false)

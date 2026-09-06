@@ -6713,7 +6713,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             input?.addEventListener("input", () => renderTimeZoneOptions(picker, input.value));
             picker.addEventListener("keydown", event => handleTimeZonePickerKeydown(event, picker));
             picker.addEventListener("focusout", event => {
-                if (!(event.relatedTarget instanceof Node) || !picker.contains(event.relatedTarget)) {
+                // A pointer can blur the search without moving focus; let its click finish first.
+                if (event.relatedTarget instanceof Node && !picker.contains(event.relatedTarget)) {
                     closeTimeZonePicker(picker);
                 }
             });
