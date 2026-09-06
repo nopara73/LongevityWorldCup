@@ -1,0 +1,41 @@
+{
+  "Name": "Pluton",
+  "DisplayName": null,
+  "MediaContact": "co@goagentic.dev",
+  "DateOfBirth": {
+    "Year": 1977,
+    "Month": 5,
+    "Day": 20
+  },
+  "Biomarkers": [
+    {
+      "Date": "2026-09-04",
+      "AlbGL": 44,
+      "CreatUmolL": 81.42,
+      "GluMmolL": 4.94,
+      "CrpMgL": 0.2,
+      "LymPc": 45.9,
+      "McvFL": 89.7,
+      "RdwPc": 11.9,
+      "AlpUL": 50,
+      "Wbc1000cellsuL": 3.8,
+      "NeutrophilPc": 44.8,
+      "MonocytePc": 7.4,
+      "Rbc10e12L": 4.84,
+      "MchPg": 30.2,
+      "UreaMmolL": 7.14,
+      "CystatinCMgL": 0.74,
+      "Hba1cMmolMol": 32.24,
+      "CholesterolMmolL": 3.41,
+      "ApoA1GL": 1.46,
+      "AltUL": 19,
+      "GgtUL": 10,
+      "ShbgNmolL": 70,
+      "VitaminDNmolL": 130
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "United Kingdom",
+  "Why": "Love tracking number go up up.",
+  "PersonalLink": null
+}
