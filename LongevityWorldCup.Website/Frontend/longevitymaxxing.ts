@@ -6711,7 +6711,12 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
 
             button?.addEventListener("click", () => toggleTimeZonePicker(picker));
             input?.addEventListener("input", () => renderTimeZoneOptions(picker, input.value));
-            input?.addEventListener("keydown", event => handleTimeZoneSearchKeydown(event, picker));
+            picker.addEventListener("keydown", event => handleTimeZonePickerKeydown(event, picker));
+            picker.addEventListener("focusout", event => {
+                if (!(event.relatedTarget instanceof Node) || !picker.contains(event.relatedTarget)) {
+                    closeTimeZonePicker(picker);
+                }
+            });
             select?.addEventListener("change", () => syncTimeZonePicker(picker));
             syncTimeZonePicker(picker);
         });
@@ -6745,11 +6750,13 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const popover = picker.querySelector<HTMLElement>(".lmx-timezone-popover");
         const input = picker.querySelector<HTMLInputElement>(".lmx-timezone-search input");
         button?.setAttribute("aria-expanded", "true");
+        input?.setAttribute("aria-expanded", "true");
         if (popover) popover.hidden = false;
         if (input) {
             input.value = "";
             renderTimeZoneOptions(picker, "");
             requestAnimationFrame(() => {
+                if (!picker.classList.contains("open")) return;
                 popover?.scrollIntoView({ block: "nearest" });
                 input.focus({ preventScroll: true });
             });
@@ -6759,6 +6766,9 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     function closeTimeZonePicker(picker: HTMLElement): void {
         picker.classList.remove("open");
         picker.querySelector(".lmx-timezone-button")?.setAttribute("aria-expanded", "false");
+        const input = picker.querySelector(".lmx-timezone-search input");
+        input?.setAttribute("aria-expanded", "false");
+        input?.removeAttribute("aria-activedescendant");
         const popover = picker.querySelector<HTMLElement>(".lmx-timezone-popover");
         if (popover) popover.hidden = true;
     }
@@ -6785,19 +6795,30 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             .sort((a, b) => b.score - a.score || a.zone.localeCompare(b.zone));
 
         list.innerHTML = matches.length
-            ? matches.map((item, index) => timeZoneOptionHtml(item.zone, selected, index === 0)).join("")
+            ? matches.map((item, index) => timeZoneOptionHtml(item.zone, `${list.id}-option-${index}`)).join("")
             : `<div class="lmx-timezone-empty">No timezone found</div>`;
 
         list.querySelectorAll<HTMLElement>(".lmx-timezone-option").forEach(option => {
             option.addEventListener("click", () => chooseTimeZone(picker, option.dataset.timeZone || "UTC"));
         });
+        setActiveTimeZoneOption(picker, list.querySelector<HTMLElement>(".lmx-timezone-option"));
     }
 
-    function timeZoneOptionHtml(zone: string, selected: string, active: boolean): string {
-        return `<button type="button" class="lmx-timezone-option${active ? " active" : ""}" role="option" data-time-zone="${escAttr(zone)}" aria-selected="${zone === selected ? "true" : "false"}">
+    function timeZoneOptionHtml(zone: string, id: string): string {
+        return `<button type="button" tabindex="-1" id="${escAttr(id)}" class="lmx-timezone-option" role="option" data-time-zone="${escAttr(zone)}" aria-selected="false">
             <span>${esc(timeZoneDisplayName(zone))}</span>
             <small>${esc(zone)} · ${esc(timeZoneOffsetLabel(zone))}</small>
         </button>`;
+    }
+
+    function setActiveTimeZoneOption(picker: HTMLElement, active: HTMLElement | null): void {
+        picker.querySelectorAll<HTMLElement>(".lmx-timezone-option").forEach(option => {
+            option.classList.toggle("active", option === active);
+            option.setAttribute("aria-selected", option === active ? "true" : "false");
+        });
+        const input = picker.querySelector(".lmx-timezone-search input");
+        if (active) input?.setAttribute("aria-activedescendant", active.id);
+        else input?.removeAttribute("aria-activedescendant");
     }
 
     function chooseTimeZone(picker: HTMLElement, zone: string): void {
@@ -6809,29 +6830,50 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         picker.querySelector<HTMLButtonElement>(".lmx-timezone-button")?.focus();
     }
 
-    function handleTimeZoneSearchKeydown(event: KeyboardEvent, picker: HTMLElement): void {
-        const options = Array.from(picker.querySelectorAll<HTMLElement>(".lmx-timezone-option"));
-        if (event.key === "Escape") {
+    function handleTimeZonePickerKeydown(event: KeyboardEvent, picker: HTMLElement): void {
+        if (event.isComposing) return;
+        const button = picker.querySelector<HTMLButtonElement>(".lmx-timezone-button");
+        const input = picker.querySelector<HTMLInputElement>(".lmx-timezone-search input");
+        const isArrow = event.key === "ArrowDown" || event.key === "ArrowUp";
+        if (event.target === button && isArrow) {
             event.preventDefault();
-            closeTimeZonePicker(picker);
-            picker.querySelector<HTMLButtonElement>(".lmx-timezone-button")?.focus();
+            if (picker.classList.contains("open")) input?.focus({ preventScroll: true });
+            else openTimeZonePicker(picker);
             return;
         }
-        if (event.key === "Enter") {
+        if (!picker.classList.contains("open")) return;
+        if (event.key === "Escape") {
+            event.preventDefault();
+            event.stopPropagation();
+            closeTimeZonePicker(picker);
+            button?.focus();
+            return;
+        }
+        if (event.key === "Tab" && event.shiftKey && event.target === input) {
+            event.preventDefault();
+            closeTimeZonePicker(picker);
+            button?.focus();
+            return;
+        }
+        if (event.target === button) return;
+        const options = Array.from(picker.querySelectorAll<HTMLElement>(".lmx-timezone-option"));
+        if (event.key === "Enter" && event.target === input) {
             event.preventDefault();
             const active = picker.querySelector<HTMLElement>(".lmx-timezone-option.active") || options[0];
             if (active) chooseTimeZone(picker, active.dataset.timeZone || "UTC");
             return;
         }
-        if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
+        if (!isArrow) return;
         event.preventDefault();
         if (!options.length) return;
         const current = Math.max(0, options.findIndex(option => option.classList.contains("active")));
         const next = event.key === "ArrowDown"
             ? (current + 1) % options.length
             : (current - 1 + options.length) % options.length;
-        options.forEach((option, index) => option.classList.toggle("active", index === next));
-        options[next]?.scrollIntoView({ block: "nearest" });
+        const active = options[next] ?? null;
+        setActiveTimeZoneOption(picker, active);
+        input?.focus({ preventScroll: true });
+        active?.scrollIntoView({ block: "nearest" });
     }
 
     function getAvailableTimeZones(current: string): string[] {
