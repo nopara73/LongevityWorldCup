@@ -149,6 +149,23 @@
         latestKnownReplyCount: number;
     }
 
+    interface DiscussionDraft {
+        key: string;
+        participantId: string;
+        postParticipantId: string;
+        challengeDay: number;
+        systemPostId: string | null;
+        displayName: string;
+        editReplyId: string | null;
+        originalBody: string;
+        body: string;
+        selectionStart: number;
+        selectionEnd: number;
+        replyId: string;
+        submittedBody: string | null;
+        error: string | null;
+    }
+
     interface DiscussionReplyPayload {
         accessToken: string;
         postParticipantId: string;
@@ -722,6 +739,9 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     const checkInSubmissions = new Map<string, { id: string; values: string; photos: File[] }>();
     let checkInSaving: { key: string; day: number } | null = null;
     const discussionReplyCache = new Map<string, DiscussionReplyCacheEntry>();
+    const discussionDrafts = new Map<string, DiscussionDraft>();
+    let activeDiscussionDraft: { key: string; surface: string } | null = null;
+    let discussionMutation: string | null = null;
     const PARTICIPANT_TABS: readonly ParticipantTab[] = ["checkin", "profile", "home"];
     const athleteSelectors = new Map<string, AthleteSelectorController>();
     let athleteDirectory: AthleteOption[] = [];
@@ -932,7 +952,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         });
 
         window.addEventListener("beforeunload", event => {
-            if (!checkInDrafts.size && !pendingNotePhotos.size) return;
+            if (!checkInDrafts.size && !pendingNotePhotos.size && !hasUnpublishedDiscussionWork()) return;
             event.preventDefault();
             event.returnValue = "";
         });
@@ -1245,6 +1265,11 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     }
 
     function acceptParticipantState(state: ParticipantState): void {
+        for (const [key, draft] of discussionDrafts) {
+            if (draft.participantId === state.participant.id) continue;
+            discussionDrafts.delete(key);
+            if (activeDiscussionDraft?.key === key) activeDiscussionDraft = null;
+        }
         const eligibleKeys = new Set(state.eligibleDays.map(day => checkInDraftKey(day, state.participant.id)));
         for (const key of new Set([...checkInDrafts.keys(), ...pendingNotePhotos.keys(), ...checkInResetUndo.keys(), ...checkInErrors.keys(), ...checkInSubmissions.keys()])) {
             if (eligibleKeys.has(key)) continue;
@@ -2400,6 +2425,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     function renderCheckIns(days: EligibleDay[], containerId = "lmxCheckinList", activeDiscussion: ParticipantNote[] = []): void {
         const container = document.getElementById(containerId || "lmxCheckinList");
         if (!container) return;
+        const restoreDraftFocus = preserveDiscussionDraftFocus(container);
         const previousForm = container.querySelector<HTMLFormElement>(".lmx-checkin-card");
         if (previousForm) revokePendingNotePhotoUrls(checkInDayKey(previousForm));
         if (!days.length) {
@@ -2431,6 +2457,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             const noteInput = form.querySelector<HTMLTextAreaElement>("textarea[data-mention-input]");
             if (noteInput) wireMentionAutocomplete(noteInput, () => updateCheckInSaveState(form));
             wireDiscussionControls(form);
+            restoreDraftFocus();
             form.querySelector<HTMLButtonElement>("[data-photo-button]")?.addEventListener("click", () => {
                 form.querySelector<HTMLInputElement>("input[data-note-photos]")?.click();
             });
@@ -2603,7 +2630,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             if (["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) renderSuggestions();
         });
         textarea.addEventListener("keydown", event => {
-            if (list.hidden) return;
+            if (list.hidden || textarea.readOnly || textarea.disabled) return;
 
             if (event.key === "ArrowDown") {
                 event.preventDefault();
@@ -2628,6 +2655,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         });
 
         function renderSuggestions(): void {
+            if (textarea.readOnly || textarea.disabled) { closeList(); return; }
             const context = activeMentionContext(textarea);
             const rows = mentionableParticipants();
             if (!context || isCompletedMentionContext(context) || contextContinuesPastParticipant(context, rows)) {
@@ -2680,6 +2708,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         }
 
         function selectParticipant(row: LeaderboardRow | undefined, restoreFocus = true): void {
+            if (textarea.readOnly || textarea.disabled) return;
             const context = activeMentionContext(textarea);
             if (!row || !context) return;
 
@@ -4490,6 +4519,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     function renderNotes(notes: ParticipantNote[], participantView: boolean): void {
         const container = document.getElementById("lmxNotes");
         if (!container) return;
+        const restoreDraftFocus = preserveDiscussionDraftFocus(container);
         const page = getDiscussionPage(notes);
         updateDiscussionPager(page);
         if (!page.totalCount) {
@@ -4515,6 +4545,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             </article>`;
         }).join("");
         wireDiscussionControls(container);
+        restoreDraftFocus();
     }
 
     function wireDiscussionControls(root: ParentNode): void {
@@ -4538,6 +4569,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             button.dataset.discussionControlWired = "true";
             button.addEventListener("click", () => void deleteDiscussionReply(button));
         });
+        restoreActiveDiscussionDraft(root);
+        updateDiscussionDraftControls();
     }
 
     async function loadEarlierDiscussionReplies(button: HTMLButtonElement): Promise<void> {
@@ -4649,173 +4682,251 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         renderNotes(publicDiscussionThreads(result), false);
     }
 
+    function discussionDraftKey(button: HTMLButtonElement): string {
+        const participantId = participantState?.participant.id || "";
+        const replyId = button.hasAttribute("data-discussion-reply-edit")
+            ? button.closest<HTMLElement>("[data-discussion-reply-id]")?.dataset.discussionReplyId : null;
+        return JSON.stringify(replyId
+            ? [participantId, "edit", replyId]
+            : [participantId, "reply", button.dataset.postParticipantId, button.dataset.postChallengeDay, button.dataset.systemPostId || ""]);
+    }
+
+    function discussionDraftSurface(element: Element): string {
+        return element.closest("#lmxNotes") ? "notes" : "checkin";
+    }
+
+    function hasUnpublishedDiscussionWork(): boolean {
+        return Array.from(discussionDrafts.values()).some(draft =>
+            draft.participantId === participantState?.participant.id &&
+            (draft.body !== draft.originalBody || discussionMutation === draft.key));
+    }
+
+    function discussionDraftButton(draft: DiscussionDraft, surface: string, root: ParentNode = document): HTMLButtonElement | null {
+        return Array.from(root.querySelectorAll<HTMLButtonElement>("[data-discussion-reply], [data-discussion-reply-edit]"))
+            .find(button => discussionDraftKey(button) === draft.key && discussionDraftSurface(button) === surface) || null;
+    }
+
     function openDiscussionReplyComposer(button: HTMLButtonElement): void {
-        if (!participantState || !accessToken) return;
-        const article = button.closest<HTMLElement>("article.lmx-note, article.lmx-recent-remark");
-        const slot = article?.querySelector<HTMLElement>(".lmx-discussion-reply-slot");
-        if (!slot) return;
-
-        const alreadyOpen = !slot.hidden && !!slot.querySelector("[data-discussion-reply-composer]");
-        closeDiscussionReplyComposers();
-        closeDiscussionReplyEditors();
-        if (alreadyOpen) return;
-
-        const displayName = String(button.dataset.postDisplayName || "participant").trim() || "participant";
-        const mentionListId = `lmx-reply-mentions-${String(button.dataset.postParticipantId || "post")}-${Number(button.dataset.postChallengeDay) || 0}`;
-        slot.dataset.replyId = createDiscussionReplyId();
-        delete slot.dataset.replySubmittedBody;
-        slot.hidden = false;
-        slot.innerHTML = `<div class="lmx-discussion-reply-composer" data-discussion-reply-composer>
-            <label class="lmx-mention-field">
-                <span>Reply to ${esc(displayName)}</span>
-                <textarea maxlength="240" rows="3" placeholder="Write a reply or mention @Name"
-                    data-mention-input role="combobox" aria-autocomplete="list" aria-haspopup="listbox"
-                    aria-expanded="false" aria-controls="${escAttr(mentionListId)}"></textarea>
-                <div id="${escAttr(mentionListId)}" class="lmx-mention-options" role="listbox" aria-label="Mention a participant" hidden></div>
-            </label>
-            <div class="lmx-discussion-reply-actions">
-                <button class="lmx-button secondary" type="button" data-reply-cancel>Cancel</button>
-                <button class="lmx-button" type="button" data-reply-submit disabled>Post reply</button>
-            </div>
-            <div class="lmx-status" role="status" aria-live="polite"></div>
-        </div>`;
-        button.setAttribute("aria-expanded", "true");
-
-        const textarea = slot.querySelector<HTMLTextAreaElement>("textarea");
-        const submit = slot.querySelector<HTMLButtonElement>("[data-reply-submit]");
-        const cancel = slot.querySelector<HTMLButtonElement>("[data-reply-cancel]");
-        if (textarea) wireMentionAutocomplete(textarea, () => {
-            if (submit) submit.disabled = !textarea.value.trim();
-        });
-        textarea?.addEventListener("keydown", event => {
-            if ((event.ctrlKey || event.metaKey) && event.key === "Enter" && submit && !submit.disabled) {
-                event.preventDefault();
-                submit.click();
-            }
-        });
-        cancel?.addEventListener("click", () => {
-            slot.replaceChildren();
-            slot.hidden = true;
-            button.setAttribute("aria-expanded", "false");
-            button.focus({ preventScroll: true });
-        });
-        submit?.addEventListener("click", () => void submitDiscussionReply(button, slot, textarea, submit));
-        textarea?.focus({ preventScroll: true });
-    }
-
-    function closeDiscussionReplyComposers(): void {
-        document.querySelectorAll<HTMLElement>(".lmx-discussion-reply-slot").forEach(candidate => {
-            candidate.replaceChildren();
-            candidate.hidden = true;
-        });
-        document.querySelectorAll<HTMLButtonElement>("[data-discussion-reply]").forEach(candidate => {
-            candidate.setAttribute("aria-expanded", "false");
-        });
-    }
-
-    function closeDiscussionReplyEditors(): void {
-        document.querySelectorAll<HTMLElement>(".lmx-discussion-reply-item").forEach(item => {
-            item.querySelector<HTMLElement>("[data-discussion-reply-body]")?.removeAttribute("hidden");
-            const slot = item.querySelector<HTMLElement>("[data-discussion-reply-editor-slot]");
-            if (slot) {
-                slot.replaceChildren();
-                slot.hidden = true;
-            }
-            item.querySelector<HTMLButtonElement>("[data-discussion-reply-edit]")
-                ?.setAttribute("aria-expanded", "false");
-        });
+        openDiscussionDraft(button, null);
     }
 
     function openDiscussionReplyEditor(button: HTMLButtonElement): void {
-        if (!participantState || !accessToken) return;
-        const item = button.closest<HTMLElement>(".lmx-discussion-reply-item");
-        const slot = item?.querySelector<HTMLElement>("[data-discussion-reply-editor-slot]");
-        const replyId = String(item?.dataset.discussionReplyId || "");
-        const reply = findDiscussionReply(replyId);
-        if (!item || !slot || !reply || reply.participantId !== participantState.participant.id) return;
-
-        const alreadyOpen = !slot.hidden && !!slot.querySelector("[data-discussion-reply-editor]");
-        closeDiscussionReplyComposers();
-        closeDiscussionReplyEditors();
-        if (alreadyOpen) return;
-
-        const mentionListId = `lmx-edit-reply-mentions-${reply.id}`;
-        item.querySelector<HTMLElement>("[data-discussion-reply-body]")?.setAttribute("hidden", "");
-        slot.hidden = false;
-        slot.innerHTML = `<div class="lmx-discussion-reply-composer lmx-discussion-reply-editor" data-discussion-reply-editor>
-            <label class="lmx-mention-field">
-                <span>Edit reply</span>
-                <textarea maxlength="240" rows="3"
-                    data-mention-input role="combobox" aria-autocomplete="list" aria-haspopup="listbox"
-                    aria-expanded="false" aria-controls="${escAttr(mentionListId)}"></textarea>
-                <div id="${escAttr(mentionListId)}" class="lmx-mention-options" role="listbox" aria-label="Mention a participant" hidden></div>
-            </label>
-            <div class="lmx-discussion-reply-actions">
-                <button class="lmx-button secondary" type="button" data-reply-edit-cancel>Cancel</button>
-                <button class="lmx-button" type="button" data-reply-edit-submit disabled>Save reply</button>
-            </div>
-            <div class="lmx-status" role="status" aria-live="polite"></div>
-        </div>`;
-        button.setAttribute("aria-expanded", "true");
-
-        const textarea = slot.querySelector<HTMLTextAreaElement>("textarea");
-        const submit = slot.querySelector<HTMLButtonElement>("[data-reply-edit-submit]");
-        const cancel = slot.querySelector<HTMLButtonElement>("[data-reply-edit-cancel]");
-        if (textarea) {
-            textarea.value = reply.body;
-            const updateSaveState = () => {
-                if (submit) submit.disabled = !textarea.value.trim() || textarea.value.trim() === reply.body;
-            };
-            wireMentionAutocomplete(textarea, updateSaveState);
-            textarea.addEventListener("keydown", event => {
-                if ((event.ctrlKey || event.metaKey) && event.key === "Enter" && submit && !submit.disabled) {
-                    event.preventDefault();
-                    submit.click();
-                }
-            });
-        }
-        cancel?.addEventListener("click", () => {
-            closeDiscussionReplyEditors();
-            button.focus({ preventScroll: true });
-        });
-        submit?.addEventListener("click", () => void submitDiscussionReplyEdit(reply, slot, textarea, submit));
-        textarea?.focus({ preventScroll: true });
-        textarea?.setSelectionRange(textarea.value.length, textarea.value.length);
+        const reply = findDiscussionReply(String(button.closest<HTMLElement>("[data-discussion-reply-id]")?.dataset.discussionReplyId || ""));
+        if (reply && reply.participantId === participantState?.participant.id) openDiscussionDraft(button, reply);
     }
 
-    async function submitDiscussionReplyEdit(
-        reply: DiscussionReply,
-        slot: HTMLElement,
-        textarea: HTMLTextAreaElement | null,
-        submit: HTMLButtonElement
-    ): Promise<void> {
-        if (!accessToken || !participantState || !textarea) return;
-        const body = textarea.value.trim();
-        if (!body || body === reply.body) return;
+    function openDiscussionDraft(button: HTMLButtonElement, reply: DiscussionReply | null): void {
+        if (!participantState || !accessToken) return;
+        const key = discussionDraftKey(button);
+        const surface = discussionDraftSurface(button);
+        const alreadyOpen = activeDiscussionDraft?.key === key && activeDiscussionDraft.surface === surface &&
+            button.getAttribute("aria-expanded") === "true";
+        closeDiscussionDraft();
+        if (alreadyOpen) return;
 
-        const payload: DiscussionReplyEditPayload = { accessToken, replyId: reply.id, body };
-        const status = slot.querySelector<HTMLElement>(".lmx-status");
-        const original = submit.innerHTML;
-        submit.disabled = true;
-        submit.setAttribute("aria-busy", "true");
-        submit.innerHTML = `<i class="fas fa-spinner fa-spin" aria-hidden="true"></i>Saving...`;
-        try {
-            const updated = await postJson(`${API}/discussion/replies/edit`, payload);
-            replaceDiscussionReplyEverywhere(updated);
-            renderDiscussionSurfaces(participantState);
-        } catch (err) {
-            if (status) {
-                status.textContent = messageOf(err);
-                status.classList.add("error");
-            }
-            submit.disabled = false;
-            submit.removeAttribute("aria-busy");
-            submit.innerHTML = original;
+        let draft = discussionDrafts.get(key);
+        if (!draft) {
+            const thread = button.closest<HTMLElement>("article[data-discussion-post-participant-id]");
+            const body = reply?.body || "";
+            draft = {
+                key, participantId: participantState.participant.id,
+                postParticipantId: String(thread?.dataset.discussionPostParticipantId || ""),
+                challengeDay: Number(thread?.dataset.discussionPostChallengeDay),
+                systemPostId: String(thread?.dataset.discussionSystemPostId || "") || null,
+                displayName: String(button.dataset.postDisplayName || "participant"),
+                editReplyId: reply?.id || null, originalBody: body, body,
+                selectionStart: body.length, selectionEnd: body.length,
+                replyId: createDiscussionReplyId(), submittedBody: null, error: null
+            };
+            discussionDrafts.set(key, draft);
         }
+        activeDiscussionDraft = { key, surface };
+        mountDiscussionDraft(button, draft);
+        const textarea = document.querySelector<HTMLTextAreaElement>("[data-discussion-draft] textarea");
+        textarea?.focus({ preventScroll: true });
+        updateDiscussionDraftControls();
+    }
+
+    function closeDiscussionDraft(): void {
+        document.querySelectorAll<HTMLElement>("[data-discussion-draft]").forEach(composer => {
+            const item = composer.closest<HTMLElement>("[data-discussion-reply-id]");
+            item?.querySelector<HTMLElement>("[data-discussion-reply-body]")?.removeAttribute("hidden");
+            composer.parentElement?.setAttribute("hidden", "");
+            composer.remove();
+        });
+        if (activeDiscussionDraft) {
+            const draft = discussionDrafts.get(activeDiscussionDraft.key);
+            if (draft && draft.body === draft.originalBody && !draft.error && discussionMutation !== draft.key)
+                discussionDrafts.delete(draft.key);
+        }
+        activeDiscussionDraft = null;
+        updateDiscussionDraftControls();
+    }
+
+    function mountDiscussionDraft(button: HTMLButtonElement, draft: DiscussionDraft): void {
+        const editing = !!draft.editReplyId;
+        const item = button.closest<HTMLElement>("[data-discussion-reply-id]");
+        const slot = editing ? item?.querySelector<HTMLElement>("[data-discussion-reply-editor-slot]")
+            : button.closest("article[data-discussion-post-participant-id]")?.querySelector<HTMLElement>(".lmx-discussion-reply-slot");
+        if (!slot || slot.querySelector("[data-discussion-draft]")) return;
+        if (editing) item?.querySelector<HTMLElement>("[data-discussion-reply-body]")?.setAttribute("hidden", "");
+        const inputId = `lmx-discussion-draft-${draft.replyId}`;
+        slot.hidden = false;
+        slot.innerHTML = `<div class="lmx-discussion-reply-composer${editing ? " lmx-discussion-reply-editor" : ""}"
+                ${editing ? "data-discussion-reply-editor" : "data-discussion-reply-composer"} data-discussion-draft="${escAttr(draft.key)}">
+            <div class="lmx-discussion-composer-heading">
+                <label for="${inputId}">${editing ? "Edit reply" : `Reply to ${esc(draft.displayName)}`}</label>
+                <button class="lmx-discussion-composer-close" type="button" data-reply-action="close"
+                    aria-label="Close ${editing ? "reply edit" : "reply draft"}" title="Close and keep draft">
+                    <i class="fas fa-xmark" aria-hidden="true"></i>
+                </button>
+            </div>
+            <div class="lmx-mention-field">
+                <textarea id="${inputId}" maxlength="240" rows="3" placeholder="Write a reply or mention @Name"
+                    data-mention-input role="combobox" aria-autocomplete="list" aria-haspopup="listbox"
+                    aria-expanded="false" aria-controls="${inputId}-mentions" aria-describedby="${inputId}-count"></textarea>
+                <div id="${inputId}-mentions" class="lmx-mention-options" role="listbox" aria-label="Mention a participant" hidden></div>
+            </div>
+            <div class="lmx-discussion-composer-meta">
+                <span data-draft-hint>Kept while this page is open</span>
+                <span id="${inputId}-count" data-reply-count></span>
+            </div>
+            <div class="lmx-status" role="status" aria-live="polite"></div>
+            <div class="lmx-discussion-reply-actions">
+                <button class="lmx-button secondary" type="button" data-reply-action="discard"
+                    aria-label="Discard ${editing ? "reply edit" : "reply draft"}"
+                    ${editing ? "data-reply-edit-cancel" : "data-reply-cancel"}>Discard</button>
+                <button class="lmx-button" type="button" data-reply-action="submit"
+                    ${editing ? "data-reply-edit-submit" : "data-reply-submit"} disabled>${editing ? "Save reply" : "Post reply"}</button>
+            </div>
+        </div>`;
+        const textarea = slot.querySelector<HTMLTextAreaElement>("textarea")!;
+        textarea.value = draft.body;
+        textarea.setSelectionRange(draft.selectionStart, draft.selectionEnd);
+        const rememberSelection = () => {
+            draft.selectionStart = textarea.selectionStart;
+            draft.selectionEnd = textarea.selectionEnd;
+        };
+        wireMentionAutocomplete(textarea, () => {
+            if (discussionMutation === draft.key) return;
+            draft.body = textarea.value;
+            rememberSelection();
+            if (draft.error && draft.body.trim() !== draft.submittedBody) draft.error = null;
+            updateDiscussionDraftControls();
+        });
+        textarea.addEventListener("select", rememberSelection);
+        textarea.addEventListener("blur", rememberSelection);
+        textarea.addEventListener("keydown", event => {
+            if ((event.ctrlKey || event.metaKey) && event.key === "Enter" && !event.isComposing && !event.defaultPrevented) {
+                event.preventDefault();
+                slot.querySelector<HTMLButtonElement>("[data-reply-action='submit']:not(:disabled)")?.click();
+            }
+        });
+        slot.querySelector("[data-reply-action='close']")?.addEventListener("click", () => {
+            closeDiscussionDraft();
+            button.focus({ preventScroll: true });
+        });
+        slot.querySelector("[data-reply-action='discard']")?.addEventListener("click", () => {
+            if (discussionMutation === draft.key) return;
+            discussionDrafts.delete(draft.key);
+            closeDiscussionDraft();
+            button.focus({ preventScroll: true });
+        });
+        slot.querySelector("[data-reply-action='submit']")?.addEventListener("click", () => void submitDiscussionReply(draft));
+    }
+
+    function restoreActiveDiscussionDraft(root: ParentNode): void {
+        if (!activeDiscussionDraft || !participantState || !accessToken) return;
+        const draft = discussionDrafts.get(activeDiscussionDraft.key);
+        if (!draft || draft.participantId !== participantState.participant.id) return;
+        const button = discussionDraftButton(draft, activeDiscussionDraft.surface, root);
+        if (button) mountDiscussionDraft(button, draft);
+    }
+
+    // Only restore focus when rendering replaced the control the person was using.
+    function preserveDiscussionDraftFocus(root: HTMLElement): () => void {
+        const focused = document.activeElement;
+        if (!(focused instanceof HTMLElement) || !root.contains(focused)) return () => {};
+        const composer = focused.closest<HTMLElement>("[data-discussion-draft]");
+        if (!composer) return () => {};
+        const key = composer.dataset.discussionDraft;
+        const selector = focused instanceof HTMLTextAreaElement ? "textarea" : `[data-reply-action='${focused.dataset.replyAction}']`;
+        const top = focused.getBoundingClientRect().top;
+        return () => {
+            const next = Array.from(root.querySelectorAll<HTMLElement>("[data-discussion-draft]"))
+                .find(candidate => candidate.dataset.discussionDraft === key)?.querySelector<HTMLElement>(selector);
+            if (!next || !next.getClientRects().length) return;
+            next.focus({ preventScroll: true });
+            const shift = next.getBoundingClientRect().top - top;
+            const panel = next.closest<HTMLElement>(".lmx-checkin-dialog-panel");
+            if (panel) panel.scrollTop += shift;
+            else window.scrollBy({ top: shift, behavior: "instant" });
+        };
+    }
+
+    function updateDiscussionDraftControls(): void {
+        document.querySelectorAll<HTMLButtonElement>("[data-discussion-reply], [data-discussion-reply-edit]").forEach(button => {
+            const key = discussionDraftKey(button);
+            const draft = discussionDrafts.get(key);
+            const dirty = !!draft && draft.body !== draft.originalBody;
+            const pending = discussionMutation === key;
+            const editing = button.hasAttribute("data-discussion-reply-edit");
+            const open = activeDiscussionDraft?.key === key && activeDiscussionDraft.surface === discussionDraftSurface(button) &&
+                !!button.closest(editing ? "[data-discussion-reply-id]" : "article[data-discussion-post-participant-id]")?.querySelector("[data-discussion-draft]");
+            const label = pending ? (editing ? "Saving…" : "Posting…")
+                : open ? (editing ? "Editing" : "Writing")
+                : draft?.error ? (editing ? "Retry edit" : "Retry reply")
+                : dirty ? (editing ? "Resume edit" : "Resume reply") : editing ? "Edit" : "Reply";
+            if (editing) {
+                button.textContent = label;
+                button.disabled = discussionMutation === `delete:${button.closest<HTMLElement>("[data-discussion-reply-id]")?.dataset.discussionReplyId}`;
+            }
+            else if (button.querySelector("span")) button.querySelector("span")!.textContent = label;
+            button.classList.toggle("has-draft", dirty || pending);
+            button.setAttribute("aria-label", open ? (editing ? "Close reply edit" : `Close reply to ${button.dataset.postDisplayName || "participant"}`)
+                : editing ? `${dirty ? "Resume" : "Edit"} reply${dirty ? " edit" : ""}`
+                : `${label} to ${button.dataset.postDisplayName || "participant"}`);
+            button.setAttribute("aria-expanded", String(open));
+        });
+        document.querySelectorAll<HTMLButtonElement>("[data-discussion-reply-delete]").forEach(button => {
+            button.disabled = !!discussionMutation;
+        });
+        document.querySelectorAll<HTMLElement>("[data-discussion-draft]").forEach(composer => {
+            const draft = discussionDrafts.get(composer.dataset.discussionDraft || "");
+            if (!draft) return;
+            const pending = discussionMutation === draft.key;
+            const textarea = composer.querySelector<HTMLTextAreaElement>("textarea")!;
+            textarea.readOnly = pending;
+            textarea.style.height = "auto";
+            textarea.style.height = `${Math.min(textarea.scrollHeight + 2, parseFloat(getComputedStyle(textarea).maxHeight))}px`;
+            if (pending) {
+                composer.querySelector<HTMLElement>(".lmx-mention-options")!.hidden = true;
+                textarea.setAttribute("aria-expanded", "false");
+                textarea.removeAttribute("aria-activedescendant");
+            }
+            const count = composer.querySelector<HTMLElement>("[data-reply-count]")!;
+            count.textContent = `${draft.body.length}/240`;
+            count.setAttribute("aria-label", `${draft.body.length} of 240 characters`);
+            count.classList.toggle("at-limit", draft.body.length >= 240);
+            const hint = composer.querySelector<HTMLElement>("[data-draft-hint]")!;
+            hint.textContent = pending ? (draft.editReplyId ? "Saving your edit…" : "Posting your reply…") : "Kept while this page is open";
+            const submit = composer.querySelector<HTMLButtonElement>("[data-reply-action='submit']")!;
+            submit.disabled = !!discussionMutation || !draft.body.trim() || draft.body.trim() === draft.originalBody;
+            submit.textContent = pending ? (draft.editReplyId ? "Saving…" : "Posting…")
+                : draft.error ? "Retry" : draft.editReplyId ? "Save reply" : "Post reply";
+            if (pending) submit.setAttribute("aria-busy", "true");
+            else submit.removeAttribute("aria-busy");
+            const discard = composer.querySelector<HTMLButtonElement>("[data-reply-action='discard']")!;
+            discard.disabled = pending || draft.body === draft.originalBody;
+            const status = composer.querySelector<HTMLElement>(".lmx-status")!;
+            status.textContent = draft.error ? `Couldn’t confirm your ${draft.editReplyId ? "edit" : "reply"}. ${draft.error}`
+                : discussionMutation && !pending ? "Finishing another reply. You can keep writing." : "";
+            status.classList.toggle("error", !!draft.error);
+        });
     }
 
     async function deleteDiscussionReply(button: HTMLButtonElement): Promise<void> {
-        if (!accessToken || !participantState) return;
+        if (!accessToken || !participantState || discussionMutation) return;
         const item = button.closest<HTMLElement>(".lmx-discussion-reply-item");
         const thread = item?.closest<HTMLElement>("article[data-discussion-post-participant-id][data-discussion-post-challenge-day]");
         const replyId = String(item?.dataset.discussionReplyId || "");
@@ -4823,6 +4934,9 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         if (!item || !thread || !reply || reply.participantId !== participantState.participant.id) return;
         if (!window.confirm("Delete this reply?")) return;
 
+        const currentAccessToken = accessToken;
+        discussionMutation = `delete:${replyId}`;
+        updateDiscussionDraftControls();
         const payload: DiscussionReplyDeletePayload = { accessToken, replyId };
         const status = item.querySelector<HTMLElement>(".lmx-discussion-reply-status");
         const original = button.textContent || "Delete";
@@ -4831,6 +4945,12 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         button.textContent = "Deleting...";
         try {
             const result = await postJson(`${API}/discussion/replies/delete`, payload);
+            if (accessToken !== currentAccessToken || participantState?.participant.id !== reply.participantId) return;
+            for (const [key, draft] of discussionDrafts) {
+                if (draft.editReplyId !== replyId) continue;
+                discussionDrafts.delete(key);
+                if (activeDiscussionDraft?.key === key) activeDiscussionDraft = null;
+            }
             const cacheKey = discussionThreadKey(
                 String(thread.dataset.discussionPostParticipantId || ""),
                 Number(thread.dataset.discussionPostChallengeDay));
@@ -4845,6 +4965,9 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             button.disabled = false;
             button.removeAttribute("aria-busy");
             button.textContent = original;
+        } finally {
+            if (discussionMutation === `delete:${replyId}`) discussionMutation = null;
+            updateDiscussionDraftControls();
         }
     }
 
@@ -4895,45 +5018,64 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         }));
     }
 
-    async function submitDiscussionReply(
-        sourceButton: HTMLButtonElement,
-        slot: HTMLElement,
-        textarea: HTMLTextAreaElement | null,
-        submit: HTMLButtonElement
-    ): Promise<void> {
-        if (!accessToken || !textarea) return;
-        const body = textarea.value.trim();
-        if (!body) return;
-
-        if (!slot.dataset.replyId || (slot.dataset.replySubmittedBody && slot.dataset.replySubmittedBody !== body))
-            slot.dataset.replyId = createDiscussionReplyId();
-        slot.dataset.replySubmittedBody = body;
-
-        const payload: DiscussionReplyPayload = {
-            accessToken,
-            postParticipantId: String(sourceButton.dataset.postParticipantId || ""),
-            challengeDay: Number(sourceButton.dataset.postChallengeDay),
-            body,
-            replyId: slot.dataset.replyId,
-            systemPostId: String(sourceButton.dataset.systemPostId || "") || null
-        };
-        const status = slot.querySelector<HTMLElement>(".lmx-status");
-        const original = submit.innerHTML;
-        submit.disabled = true;
-        submit.setAttribute("aria-busy", "true");
-        submit.innerHTML = `<i class="fas fa-spinner fa-spin" aria-hidden="true"></i>Posting...`;
+    async function submitDiscussionReply(draft: DiscussionDraft): Promise<void> {
+        if (!accessToken || !participantState || discussionMutation ||
+            draft.participantId !== participantState.participant.id || discussionDrafts.get(draft.key) !== draft) return;
+        const body = draft.body.trim();
+        if (!body || body === draft.originalBody) return;
+        if (draft.submittedBody !== null && draft.submittedBody !== body) draft.replyId = createDiscussionReplyId();
+        draft.submittedBody = body;
+        draft.error = null;
+        discussionMutation = draft.key;
+        const currentAccessToken = accessToken;
+        const composer = document.activeElement?.closest<HTMLElement>("[data-discussion-draft]");
+        if (composer?.dataset.discussionDraft === draft.key)
+            composer.querySelector<HTMLTextAreaElement>("textarea")?.focus({ preventScroll: true });
+        updateDiscussionDraftControls();
         try {
-            const result = await postJson(`${API}/discussion/replies`, payload);
-            acceptParticipantState(result);
-            renderDiscussionSurfaces(result);
-        } catch (err) {
-            if (status) {
-                status.textContent = messageOf(err);
-                status.classList.add("error");
+            if (draft.editReplyId) {
+                const payload: DiscussionReplyEditPayload = { accessToken, replyId: draft.editReplyId, body };
+                const updated = await postJson(`${API}/discussion/replies/edit`, payload);
+                if (accessToken !== currentAccessToken || participantState?.participant.id !== draft.participantId) return;
+                replaceDiscussionReplyEverywhere(updated);
+            } else {
+                const payload: DiscussionReplyPayload = {
+                    accessToken, postParticipantId: draft.postParticipantId, challengeDay: draft.challengeDay,
+                    systemPostId: draft.systemPostId, body, replyId: draft.replyId
+                };
+                const result = await postJson(`${API}/discussion/replies`, payload);
+                if (accessToken !== currentAccessToken || participantState?.participant.id !== draft.participantId) return;
+                acceptParticipantState(result);
             }
-            submit.disabled = false;
-            submit.removeAttribute("aria-busy");
-            submit.innerHTML = original;
+            const focused = document.activeElement;
+            const restoreFocus = focused instanceof HTMLElement &&
+                focused.closest<HTMLElement>("[data-discussion-draft]")?.dataset.discussionDraft === draft.key;
+            const surface = activeDiscussionDraft?.key === draft.key ? activeDiscussionDraft.surface : "notes";
+            const restoreOtherDraftFocus = preserveDiscussionDraftFocus(document.body);
+            discussionDrafts.delete(draft.key);
+            if (activeDiscussionDraft?.key === draft.key) activeDiscussionDraft = null;
+            discussionMutation = null;
+            renderDiscussionSurfaces(participantState);
+            for (const name of ["notes", "checkin"]) {
+                const button = discussionDraftButton(draft, name);
+                const slot = button?.closest(draft.editReplyId ? "[data-discussion-reply-id]" : "article[data-discussion-post-participant-id]");
+                if (!slot) continue;
+                const feedback = document.createElement("div");
+                feedback.className = "lmx-discussion-feedback";
+                feedback.setAttribute("role", "status");
+                slot.append(feedback);
+                feedback.textContent = draft.editReplyId ? "Reply saved." : "Reply posted.";
+                if (restoreFocus && name === surface) button?.focus({ preventScroll: true });
+            }
+            restoreOtherDraftFocus();
+        } catch (err) {
+            if (accessToken === currentAccessToken && participantState?.participant.id === draft.participantId)
+                draft.error = messageOf(err);
+        } finally {
+            const restoreDraftFocus = preserveDiscussionDraftFocus(document.body);
+            if (discussionMutation === draft.key) discussionMutation = null;
+            updateDiscussionDraftControls();
+            restoreDraftFocus();
         }
     }
 
@@ -4947,6 +5089,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const form = document.querySelector<HTMLFormElement>("#lmxCheckinList .lmx-checkin-card");
         if (!form) return;
         const current = form.querySelector<HTMLElement>(".lmx-recent-remarks");
+        const restoreDraftFocus = preserveDiscussionDraftFocus(form);
         const html = activeDiscussionHtml(activePublicDiscussion(state));
         if (!html) {
             current?.remove();
@@ -4960,6 +5103,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         if (current) current.replaceWith(next);
         else form.append(next);
         wireDiscussionControls(next);
+        restoreDraftFocus();
     }
 
     function getDiscussionPage(notes: ParticipantNote[]): DiscussionPage {

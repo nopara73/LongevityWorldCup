@@ -1,0 +1,306 @@
+using Microsoft.Playwright;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using Xunit;
+using static LongevityWorldCup.Tests.AestheticSystemBrowserTests;
+
+namespace LongevityWorldCup.Tests;
+
+public sealed partial class LongevitymaxxingChallengeBrowserTests
+{
+    [Theory]
+    [InlineData(ColorScheme.Light)]
+    [InlineData(ColorScheme.Dark)]
+    public async Task DiscussionDrafts_SurviveThreadsPagingAndParticipantViews(ColorScheme theme)
+    {
+        await using var context = await NewContextAsync(Browser, App, new() { ColorScheme = theme });
+        var page = await OpenDiscussionWorkspaceAsync(context);
+        var ari = DiscussionThread(page, "p2", 22);
+        var bea = DiscussionThread(page, "p3", 21);
+        await ari.Locator("[data-discussion-reply]").ClickAsync();
+        const string first = "  Keep this reply to @Ari Able.  ";
+        await ari.Locator("textarea").FillAsync(first);
+        await ari.Locator("textarea").EvaluateAsync("e => e.setSelectionRange(5, 10)");
+        await bea.Locator("[data-discussion-reply]").ClickAsync();
+        await bea.Locator("textarea").FillAsync("A different reply.");
+        await Assertions.Expect(ari.Locator("[data-discussion-reply]")).ToHaveTextAsync("Resume reply");
+        await ari.Locator("[data-discussion-reply]").ClickAsync();
+        Assert.Equal(first, await ari.Locator("textarea").InputValueAsync());
+        Assert.Equal(new[] { 5, 10 }, await ari.Locator("textarea").EvaluateAsync<int[]>("e => [e.selectionStart, e.selectionEnd]"));
+        await page.Locator("#lmxNotesOlder").ClickAsync();
+        Assert.Equal(0, await ari.CountAsync());
+        await page.Locator("#lmxNotesNewer").ClickAsync();
+        Assert.Equal(first, await ari.Locator("textarea").InputValueAsync());
+        await page.Locator("#lmxProfileTab").ClickAsync();
+        await page.Locator("#lmxHomeTab").ClickAsync();
+        await page.Locator("#lmxCheckinTab").ClickAsync();
+        Assert.Equal(first, await ari.Locator("textarea").InputValueAsync());
+        await bea.Locator("[data-discussion-reply]").ClickAsync();
+        Assert.Equal("A different reply.", await bea.Locator("textarea").InputValueAsync());
+        Assert.Equal(1, await page.Locator("[data-discussion-draft]").CountAsync());
+    }
+
+    [Fact]
+    public async Task DiscussionDrafts_FollowTheThreadBetweenCheckInAndPublicDiscussion()
+    {
+        await using var context = await NewContextAsync(Browser, App, new());
+        var page = await OpenDiscussionWorkspaceAsync(context);
+        var recent = DiscussionThread(page, "p2", 22, "#lmxCheckinList");
+        var full = DiscussionThread(page, "p2", 22);
+        await recent.Locator("[data-discussion-reply]").ClickAsync();
+        await recent.Locator("textarea").FillAsync("One shared thread draft.");
+        await full.Locator("[data-discussion-reply]").ClickAsync();
+        Assert.Equal("One shared thread draft.", await full.Locator("textarea").InputValueAsync());
+        Assert.Equal(0, await recent.Locator("textarea").CountAsync());
+        await full.Locator("[data-reply-action='close']").ClickAsync();
+        await Assertions.Expect(full.Locator("[data-discussion-reply]")).ToBeFocusedAsync();
+        await Assertions.Expect(recent.Locator("[data-discussion-reply]")).ToHaveTextAsync("Resume reply");
+        await recent.Locator("[data-discussion-reply]").ClickAsync();
+        Assert.Equal("One shared thread draft.", await recent.Locator("textarea").InputValueAsync());
+        await recent.Locator("[data-reply-action='discard']").ClickAsync();
+        await Assertions.Expect(full.Locator("[data-discussion-reply]")).ToHaveTextAsync("Reply");
+        await full.Locator("[data-discussion-reply]").ClickAsync();
+        Assert.Equal("", await full.Locator("textarea").InputValueAsync());
+        await Assertions.Expect(full.Locator("[data-reply-submit]")).ToBeDisabledAsync();
+    }
+
+    [Fact]
+    public async Task DiscussionEditDraft_IsSeparateFromANewReplyAndDiscardRestoresPublishedText()
+    {
+        await using var context = await NewContextAsync(Browser, App, new());
+        var page = await OpenDiscussionWorkspaceAsync(context);
+        var owned = page.Locator("#lmxNotes [data-discussion-reply-id='r6']");
+        var fox = DiscussionThread(page, "p7", 5);
+        await owned.Locator("[data-discussion-reply-edit]").ClickAsync();
+        await owned.Locator("textarea").FillAsync("An unpublished correction.");
+        await fox.Locator("[data-discussion-reply]").ClickAsync();
+        await fox.Locator(":scope > .lmx-discussion-reply-slot textarea").FillAsync("A separate new reply.");
+        var recentOwned = page.Locator("#lmxCheckinList [data-discussion-reply-id='r6']");
+        await recentOwned.Locator("[data-discussion-reply-edit]").ClickAsync();
+        Assert.Equal("An unpublished correction.", await recentOwned.Locator("textarea").InputValueAsync());
+        await recentOwned.Locator("[data-reply-action='discard']").ClickAsync();
+        await Assertions.Expect(recentOwned.Locator("[data-discussion-reply-body]")).ToHaveTextAsync("An actual child reply for @Ari Able.");
+        await owned.Locator("[data-discussion-reply-edit]").ClickAsync();
+        await Assertions.Expect(owned.Locator("[data-reply-edit-submit]")).ToBeDisabledAsync();
+        await fox.Locator("[data-discussion-reply]").ClickAsync();
+        Assert.Equal("A separate new reply.", await fox.Locator(":scope > .lmx-discussion-reply-slot textarea").InputValueAsync());
+    }
+
+    [Fact]
+    public async Task DiscussionRetry_KeepsIdentityWhenReopenedAndRotatesOnlyForChangedContent()
+    {
+        await using var context = await NewContextAsync(Browser, App, new());
+        var page = await OpenDiscussionWorkspaceAsync(context);
+        var requests = new List<JsonObject>();
+        await page.RouteAsync("**/api/longevitymaxxing/discussion/replies", async route => {
+            requests.Add(JsonNode.Parse(route.Request.PostData!)!.AsObject());
+            await route.FulfillAsync(new() { Status = 503, ContentType = "application/json", Body = "{\"message\":\"Please try again.\"}" });
+        });
+        var full = DiscussionThread(page, "p2", 22);
+        var recent = DiscussionThread(page, "p2", 22, "#lmxCheckinList");
+        await full.Locator("[data-discussion-reply]").ClickAsync();
+        await full.Locator("textarea").FillAsync("Keep the same reply.");
+        await full.Locator("[data-reply-submit]").ClickAsync();
+        await Assertions.Expect(full.Locator("[data-reply-submit]")).ToHaveTextAsync("Retry");
+        await full.Locator("[data-reply-action='close']").ClickAsync();
+        await recent.Locator("[data-discussion-reply]").ClickAsync();
+        await Assertions.Expect(recent.Locator(".lmx-status.error")).ToContainTextAsync("Couldn’t confirm your reply.");
+        Assert.Equal("Keep the same reply.", await recent.Locator("textarea").InputValueAsync());
+        await recent.Locator("[data-reply-submit]").ClickAsync();
+        await Assertions.Expect(recent.Locator("[data-reply-submit]")).ToHaveTextAsync("Retry");
+        await recent.Locator("textarea").FillAsync("A changed reply.");
+        await Assertions.Expect(recent.Locator(".lmx-status.error")).ToHaveCountAsync(0);
+        await recent.Locator("[data-reply-submit]").ClickAsync();
+        await Assertions.Expect(recent.Locator("[data-reply-submit]")).ToHaveTextAsync("Retry");
+        Assert.Equal(3, requests.Count);
+        Assert.Equal(requests[0]["replyId"]!.GetValue<string>(), requests[1]["replyId"]!.GetValue<string>());
+        Assert.NotEqual(requests[1]["replyId"]!.GetValue<string>(), requests[2]["replyId"]!.GetValue<string>());
+        Assert.Equal("p2", requests[2]["postParticipantId"]!.GetValue<string>());
+        Assert.Equal(22, requests[2]["challengeDay"]!.GetValue<int>());
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task DiscussionPendingReply_LocksItsDraftAndPreservesAnotherComposerOnCompletion(bool editingOtherReply)
+    {
+        await using var context = await NewContextAsync(Browser, App, new());
+        var state = DiscussionWorkspaceState();
+        var page = await OpenDiscussionWorkspaceAsync(context, state);
+        var requested = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var requests = 0;
+        await page.RouteAsync("**/api/longevitymaxxing/discussion/replies", async route => {
+            requests++;
+            requested.TrySetResult();
+            await release.Task;
+            await FulfillJsonAsync(route, state.ToJsonString());
+        });
+        try {
+            var ari = DiscussionThread(page, "p2", 22);
+            await ari.Locator("[data-discussion-reply]").ClickAsync();
+            await ari.Locator("textarea").FillAsync("The reply being posted.");
+            await ari.Locator("[data-reply-submit]").ClickAsync();
+            await requested.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            await ari.Locator("[data-reply-action='close']").ClickAsync();
+            await ari.Locator("[data-discussion-reply]").ClickAsync();
+            Assert.True(await ari.Locator("textarea").EvaluateAsync<bool>("e => e.readOnly"));
+            await ari.Locator("textarea").PressAsync("Control+Enter");
+            await Assertions.Expect(ari.Locator("[data-reply-action='discard']")).ToBeDisabledAsync();
+            var other = editingOtherReply ? page.Locator("#lmxNotes [data-discussion-reply-id='r6']")
+                : DiscussionThread(page, "p3", 21);
+            await other.Locator(editingOtherReply ? "[data-discussion-reply-edit]" : "[data-discussion-reply]").ClickAsync();
+            await other.Locator("textarea").FillAsync("Continue writing while the first reply finishes.");
+            await other.Locator("textarea").EvaluateAsync("e => e.setSelectionRange(9, 16)");
+            await Assertions.Expect(other.Locator("[data-reply-action='submit']")).ToBeDisabledAsync();
+            var position = await other.Locator("textarea").EvaluateAsync<double>("e => e.getBoundingClientRect().top");
+            release.TrySetResult();
+            await Assertions.Expect(other.Locator("[data-reply-action='submit']")).ToBeEnabledAsync();
+            Assert.Equal("Continue writing while the first reply finishes.", await other.Locator("textarea").InputValueAsync());
+            await Assertions.Expect(other.Locator("textarea")).ToBeFocusedAsync();
+            Assert.Equal(new[] { 9, 16 }, await other.Locator("textarea").EvaluateAsync<int[]>("e => [e.selectionStart, e.selectionEnd]"));
+            Assert.InRange(Math.Abs(position - await other.Locator("textarea").EvaluateAsync<double>("e => e.getBoundingClientRect().top")), 0, 2);
+            Assert.Equal(1, requests);
+            await Assertions.Expect(ari.Locator("[data-discussion-reply]")).ToHaveTextAsync("Reply");
+        } finally { release.TrySetResult(); }
+    }
+
+    [Fact]
+    public async Task DiscussionEditFailure_CanResumeAndSaveWithoutLosingTheCheckIn()
+    {
+        await using var context = await NewContextAsync(Browser, App, new());
+        var page = await OpenDiscussionWorkspaceAsync(context);
+        var note = page.Locator(".lmx-checkin-entry textarea");
+        await note.FillAsync("An unfinished daily remark.");
+        var requests = 0;
+        await page.RouteAsync("**/api/longevitymaxxing/discussion/replies/edit", async route => {
+            requests++;
+            if (requests == 1) await route.FulfillAsync(new() { Status = 503 });
+            else await FulfillJsonAsync(route, JsonSerializer.Serialize(Reply("r6", "p1", "Browser Tester", "My corrected reply.", "2026-06-30T10:00:00Z", "2026-06-30T11:00:00Z")));
+        });
+        var owned = page.Locator("#lmxNotes [data-discussion-reply-id='r6']");
+        await owned.Locator("[data-discussion-reply-edit]").ClickAsync();
+        await owned.Locator("textarea").FillAsync("My corrected reply.");
+        await owned.Locator("[data-reply-edit-submit]").ClickAsync();
+        await Assertions.Expect(owned.Locator("[data-reply-edit-submit]")).ToHaveTextAsync("Retry");
+        await owned.Locator("[data-reply-action='close']").ClickAsync();
+        await owned.Locator("[data-discussion-reply-edit]").ClickAsync();
+        Assert.Equal("My corrected reply.", await owned.Locator("textarea").InputValueAsync());
+        await owned.Locator("textarea").PressAsync("Control+Enter");
+        await Assertions.Expect(owned.Locator("[data-discussion-reply-body]")).ToHaveTextAsync("My corrected reply.");
+        await Assertions.Expect(owned.Locator("[data-discussion-reply-edit]")).ToBeFocusedAsync();
+        await Assertions.Expect(owned.Locator(".lmx-discussion-feedback")).ToHaveTextAsync("Reply saved.");
+        Assert.Equal("An unfinished daily remark.", await note.InputValueAsync());
+        Assert.Equal(2, requests);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task DiscussionUnpublishedWork_WarnsOnLeavingUntilExplicitlyDiscarded(bool editing)
+    {
+        await using var context = await NewContextAsync(Browser, App, new());
+        var page = await OpenDiscussionWorkspaceAsync(context);
+        var target = editing ? page.Locator("#lmxNotes [data-discussion-reply-id='r6']") : DiscussionThread(page, "p2", 22);
+        var toggle = target.Locator(editing ? "[data-discussion-reply-edit]" : "[data-discussion-reply]");
+        await toggle.ClickAsync();
+        await target.Locator("textarea").FillAsync("Don't silently lose this.");
+        await target.Locator("[data-reply-action='close']").ClickAsync();
+        var dialogs = 0;
+        page.Dialog += async (_, dialog) => { dialogs++; Assert.Equal("beforeunload", dialog.Type); await dialog.DismissAsync(); };
+        await page.Locator("#lmxProfileTab").EvaluateAsync("e => { const a = document.createElement('a'); a.id = 'leave-discussion'; a.href = '/about'; a.textContent = 'Leave'; e.parentElement.append(a); }");
+        await page.Locator("#leave-discussion").ClickAsync();
+        Assert.Equal(1, dialogs);
+        Assert.Contains("/longevitymaxxing", page.Url);
+        await toggle.ClickAsync();
+        await target.Locator("[data-reply-action='discard']").ClickAsync();
+        await page.Locator("#leave-discussion").ClickAsync();
+        await page.WaitForURLAsync("**/about");
+        Assert.Equal(1, dialogs);
+    }
+
+    [Theory]
+    [InlineData(320, ColorScheme.Light, false)]
+    [InlineData(390, ColorScheme.Dark, true)]
+    [InlineData(1280, ColorScheme.Light, false)]
+    public async Task DiscussionComposer_KeepsCapacityMentionsAndActionsUsable(int width, ColorScheme theme, bool dialog)
+    {
+        await using var context = await NewContextAsync(Browser, App, new() { ViewportSize = new() { Width = width, Height = 844 }, ColorScheme = theme });
+        var page = await OpenDiscussionWorkspaceAsync(context, dialog: dialog);
+        var root = dialog ? "#lmxCheckinList" : "#lmxNotes";
+        var owned = page.Locator($"{root} [data-discussion-reply-id='r6']");
+        await owned.Locator("[data-discussion-reply-edit]").ClickAsync();
+        await owned.Locator("textarea").FillAsync(new string('x', 240));
+        await Assertions.Expect(owned.Locator("[data-reply-count]")).ToHaveTextAsync("240/240");
+        await owned.Locator("textarea").PressAsync("y");
+        Assert.Equal(240, (await owned.Locator("textarea").InputValueAsync()).Length);
+        var controls = await owned.Locator("[data-reply-action]").EvaluateAllAsync<double[][]>("buttons => buttons.map(b => { const r=b.getBoundingClientRect();return [r.width,r.height,r.left,r.right,r.top] })");
+        Assert.All(controls, box => { Assert.True(box[0] >= 44); Assert.True(box[1] >= 44); Assert.InRange(box[2], 0, width); Assert.InRange(box[3], 0, width); });
+        Assert.Equal(controls[1][4], controls[2][4]);
+        Assert.False(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth > innerWidth"));
+        await owned.Locator("textarea").FillAsync("Thanks @Ar");
+        await owned.Locator(".lmx-mention-options:not([hidden])").WaitForAsync();
+        await owned.Locator("textarea").PressAsync("Control+Enter");
+        Assert.Equal("Thanks @Ari Able ", await owned.Locator("textarea").InputValueAsync());
+        await Assertions.Expect(owned.Locator("[data-reply-edit-submit]")).ToHaveTextAsync("Save reply");
+        await Assertions.Expect(owned.Locator("[data-reply-count]")).ToHaveTextAsync("17/240");
+    }
+
+    [Fact]
+    public async Task DiscussionPostedReply_ClearsItsDraftAndRestoresFocusWithoutALeaveWarning()
+    {
+        await using var context = await NewContextAsync(Browser, App, new());
+        var state = DiscussionWorkspaceState();
+        var page = await OpenDiscussionWorkspaceAsync(context, state);
+        await page.RouteAsync("**/api/longevitymaxxing/discussion/replies", async route => {
+            var payload = JsonNode.Parse(route.Request.PostData!)!;
+            foreach (var collection in new[] { state["notes"]!.AsArray(), state["public"]!["notes"]!.AsArray() }) {
+                var thread = collection.Single(n => (string?)n!["participantId"] == "p2" && (int?)n["challengeDay"] == 22)!;
+                thread["replies"]!.AsArray().Add(JsonSerializer.SerializeToNode(Reply(
+                    (string)payload["replyId"]!, "p1", "Browser Tester", (string)payload["body"]!, "2026-07-01T10:00:00Z")));
+                thread["replyCount"] = thread["replies"]!.AsArray().Count;
+                thread["lastActivityAtUtc"] = "2026-07-01T10:00:00Z";
+            }
+            await FulfillJsonAsync(route, state.ToJsonString());
+        });
+        var thread = DiscussionThread(page, "p2", 22);
+        await thread.Locator("[data-discussion-reply]").ClickAsync();
+        await thread.Locator("textarea").FillAsync("  My published reply.  ");
+        await thread.Locator("[data-reply-submit]").ClickAsync();
+        await Assertions.Expect(thread.Locator("[data-discussion-reply-body]").Last).ToHaveTextAsync("My published reply.");
+        await Assertions.Expect(thread.Locator("[data-discussion-reply]")).ToBeFocusedAsync();
+        await Assertions.Expect(thread.Locator(".lmx-discussion-feedback")).ToHaveTextAsync("Reply posted.");
+        await thread.Locator("[data-discussion-reply]").ClickAsync();
+        Assert.Equal("", await thread.Locator("textarea").InputValueAsync());
+        var dialogs = 0;
+        page.Dialog += async (_, dialog) => { dialogs++; await dialog.DismissAsync(); };
+        await page.EvaluateAsync("location.href = '/about'");
+        await page.WaitForURLAsync("**/about", new() { Timeout = 5000 });
+        Assert.Equal(0, dialogs);
+    }
+
+    private static ILocator DiscussionThread(IPage page, string participantId, int day, string root = "#lmxNotes") =>
+        page.Locator($"{root} article[data-discussion-post-participant-id='{participantId}'][data-discussion-post-challenge-day='{day}']");
+
+    private static JsonObject DiscussionWorkspaceState() => JsonSerializer.SerializeToNode(BuildParticipantState(
+        includeMentionParticipants: true, includeDiscussionNotesWithMentionParticipants: true,
+        discussionReplySnapshot: DiscussionReplySnapshot.ContinuousAfterReply))!.AsObject();
+
+    private static async Task<IPage> OpenDiscussionWorkspaceAsync(IBrowserContext context, JsonObject? state = null, bool dialog = false)
+    {
+        state ??= DiscussionWorkspaceState();
+        if (!dialog) foreach (var day in state["eligibleDays"]!.AsArray()) day!["existing"] = SavedCheckIn("");
+        await context.AddInitScriptAsync("localStorage.setItem('lmxAccessToken','browser-token')");
+        await context.RouteAsync("**/api/longevitymaxxing/state", r => FulfillJsonAsync(r, state["public"]!.ToJsonString()));
+        await context.RouteAsync("**/api/longevitymaxxing/participant", r => FulfillJsonAsync(r, state.ToJsonString()));
+        var page = await context.NewPageAsync();
+        await page.GotoAsync(dialog ? "/longevitymaxxing?token=browser-token&checkin=1" : "/longevitymaxxing");
+        if (dialog) await page.Locator(".lmx-checkin-dialog-panel").WaitForAsync();
+        else {
+            await page.Locator("#lmxParticipantTabs").WaitForAsync();
+            await page.Locator("#lmxCheckinTab").ClickAsync();
+        }
+        await page.Locator(".lmx-recent-remarks").WaitForAsync();
+        return page;
+    }
+}

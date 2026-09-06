@@ -80,7 +80,7 @@ public sealed class LongevitymaxxingChallengePageTests(TestWebApplicationFactory
         Assert.Contains("function participantMentionTextHtml(note: string): string", source);
         Assert.Contains("participantMentionTextHtml(noteText)", source);
         Assert.Contains("participantMentionTextHtml(reply.body)", source);
-        Assert.Contains("if (textarea) wireMentionAutocomplete(textarea", source);
+        Assert.Contains("wireMentionAutocomplete(textarea", source);
         Assert.Contains("if (scope && scope !== \"community-call\")", source);
         Assert.Contains("Discussion activity follows your daily Challenge email setting.", source);
         Assert.Contains("mention.participant.athleteUrl", source);
@@ -615,7 +615,7 @@ public sealed class LongevitymaxxingChallengePageTests(TestWebApplicationFactory
         var replySubmitEnd = javascript.IndexOf("function createDiscussionReplyId()", replySubmitStart, StringComparison.Ordinal);
         Assert.True(replySubmitStart >= 0 && replySubmitEnd > replySubmitStart);
         var replySubmit = javascript[replySubmitStart..replySubmitEnd];
-        Assert.Contains("renderDiscussionSurfaces(result);", replySubmit);
+        Assert.Contains("renderDiscussionSurfaces(participantState);", replySubmit);
         Assert.DoesNotContain("renderAll();", replySubmit);
         Assert.Contains("`${API}/discussion/replies`", javascript);
         Assert.Contains("`${API}/discussion/replies/page`", javascript);
@@ -623,7 +623,7 @@ public sealed class LongevitymaxxingChallengePageTests(TestWebApplicationFactory
         Assert.Contains("`${API}/discussion/replies/delete`", javascript);
         Assert.Contains("function loadEarlierDiscussionReplies(button: HTMLButtonElement): Promise<void>", javascript);
         Assert.Contains("function createDiscussionReplyId(): string", javascript);
-        Assert.Contains("replyId: slot.dataset.replyId", javascript);
+        Assert.Contains("replyId: draft.replyId", javascript);
         Assert.Contains("function discussionRepliesHtml(note: ParticipantNote): string", javascript);
         Assert.Contains("data-discussion-replies-page", javascript);
         Assert.DoesNotContain("data-collapsed-reply", javascript);
