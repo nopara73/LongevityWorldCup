@@ -93,7 +93,9 @@ public sealed class LeaderboardSelectionBrowserTests(PlaywrightBrowserFixture br
         var toggle = page.Locator(".sidebar-toggle");
         Assert.Equal("3", await toggle.GetAttributeAsync("data-filter-count"));
         await toggle.ClickAsync();
+        await Assertions.Expect(toggle).ToHaveAttributeAsync("aria-expanded", "true");
         var results = page.Locator("#showLeaderboardResults");
+        await Assertions.Expect(results).ToBeVisibleAsync();
         var before = await results.BoundingBoxAsync();
         Assert.NotNull(before);
         Assert.InRange(before.Y + before.Height, 44, height);
@@ -104,10 +106,10 @@ public sealed class LeaderboardSelectionBrowserTests(PlaywrightBrowserFixture br
         Assert.NotNull(after);
         Assert.InRange(Math.Abs(before.Y - after.Y), 0, 1);
         Assert.InRange(Math.Abs(after.Width - (await list.BoundingBoxAsync())!.Width), 0, 1);
-        Assert.Equal("Show " + await page.Locator("#leaderboardResultCount").InnerTextAsync(), await results.InnerTextAsync());
+        await Assertions.Expect(results).ToHaveTextAsync("Show " + await page.Locator("#leaderboardResultCount").InnerTextAsync(), new() { UseInnerText = true });
         await page.Locator("#clearSidebarFiltersBtn").ClickAsync();
         await Assertions.Expect(toggle).ToHaveAttributeAsync("data-filter-count", "0");
-        Assert.Equal("Show " + await page.Locator("#leaderboardResultCount").InnerTextAsync(), await results.InnerTextAsync());
+        await Assertions.Expect(results).ToHaveTextAsync("Show " + await page.Locator("#leaderboardResultCount").InnerTextAsync(), new() { UseInnerText = true });
         await results.ClickAsync();
         await Assertions.Expect(toggle).ToHaveAttributeAsync("aria-expanded", "false");
         await Assertions.Expect(toggle).ToBeFocusedAsync();
@@ -119,6 +121,7 @@ public sealed class LeaderboardSelectionBrowserTests(PlaywrightBrowserFixture br
     private static async Task OpenFilteredAsync(IPage page)
     {
         await page.GotoAsync("/leaderboard?filters=hungary,women%27s&view=pheno");
+        await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
         await Assertions.Expect(page.Locator(".leaderboard-selection-chip")).ToHaveCountAsync(3);
         await Assertions.Expect(page.Locator("#leaderboardResultCount")).ToHaveTextAsync($"{await Rows(page).CountAsync()} athletes");
     }
