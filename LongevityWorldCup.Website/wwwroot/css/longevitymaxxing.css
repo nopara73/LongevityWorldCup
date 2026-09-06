@@ -1814,6 +1814,22 @@
     flex-wrap: wrap;
 }
 
+.lmx-profile-filename {
+    flex-basis: 100%;
+    min-width: 0;
+    color: var(--lmx-muted);
+    font-size: var(--lwc-type-sm);
+    overflow-wrap: anywhere;
+}
+
+.lmx-profile-upload-actions [hidden] {
+    display: none;
+}
+
+.lmx-profile-upload-actions .lmx-button[aria-disabled="true"] {
+    cursor: wait;
+}
+
 .lmx-profile-upload input[type="file"] {
     position: absolute;
     width: 1px;
@@ -1827,7 +1843,8 @@
 }
 
 .lmx-profile-upload .lmx-status {
-    min-width: 8rem;
+    flex-basis: 100%;
+    min-width: 0;
 }
 
 .lmx-button-row {
@@ -4567,7 +4584,6 @@ a.lmx-note-mention:focus-visible {
     }
 
     .lmx-profile-upload {
-        grid-template-columns: 1fr;
         align-items: start;
     }
 

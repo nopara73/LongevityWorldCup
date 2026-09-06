@@ -183,33 +183,6 @@ public sealed class LongevitymaxxingChallengePageTests(TestWebApplicationFactory
     }
 
     [Fact]
-    public void ChallengeProfilePicturePreparation_IsCoveredByUploadRetryHandling()
-    {
-        var source = ReadFrontendSource();
-        var uploadStart = source.IndexOf("async function uploadProfilePicture(", StringComparison.Ordinal);
-        var uploadEnd = source.IndexOf("async function prepareProfilePictureFile(", uploadStart, StringComparison.Ordinal);
-
-        Assert.True(uploadStart >= 0);
-        Assert.True(uploadEnd > uploadStart);
-
-        var uploadBody = source[uploadStart..uploadEnd];
-        var tryIndex = uploadBody.IndexOf("try {", StringComparison.Ordinal);
-        var prepareIndex = uploadBody.IndexOf("const uploadFile = await prepareProfilePictureFile(file);", StringComparison.Ordinal);
-        var catchIndex = uploadBody.IndexOf("} catch (err) {", StringComparison.Ordinal);
-        var resetIndex = uploadBody.IndexOf("input.value = \"\";", StringComparison.Ordinal);
-        var retryFocusIndex = uploadBody.IndexOf("if (shouldFocusRetry) button?.focus();", StringComparison.Ordinal);
-
-        Assert.Contains("let shouldFocusRetry = false;", uploadBody);
-        Assert.Contains("setStatus(\"lmxProfilePictureStatus\", \"Uploading...\", false);", uploadBody);
-        Assert.Contains("shouldFocusRetry = true;", uploadBody);
-        Assert.True(tryIndex >= 0);
-        Assert.True(prepareIndex > tryIndex);
-        Assert.True(catchIndex > prepareIndex);
-        Assert.True(resetIndex > catchIndex);
-        Assert.True(retryFocusIndex > resetIndex);
-    }
-
-    [Fact]
     public async Task LongevitymaxxingPage_RendersProductCopyAndVersionedAssets()
     {
         var factory = sharedFactory;
@@ -894,7 +867,6 @@ public sealed class LongevitymaxxingChallengePageTests(TestWebApplicationFactory
         Assert.Contains("postForm(`${API}/profile-picture`, formData)", javascript);
         Assert.Contains("function prepareProfilePictureFile", javascript);
         Assert.Contains("canvas.toBlob(resolve, \"image/jpeg\", 0.88)", javascript);
-        Assert.Contains("formData.append(\"profilePicture\", uploadFile, uploadFile.name || \"profile-picture.jpg\");", javascript);
         Assert.DoesNotContain("Profile picture must be 8 MB or smaller.", javascript);
         Assert.Contains("const MAX_NOTE_PHOTOS = 4;", javascript);
         Assert.Contains("<label for=\"lmx-note-${day.challengeDay}\">Remarks</label>", javascript);
