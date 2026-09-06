@@ -78,6 +78,7 @@
         participantId: string;
         timeZoneId: string;
         saving: boolean;
+        unconfirmed: boolean;
         error: string;
     }
 
@@ -1293,7 +1294,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     function acceptParticipantState(state: ParticipantState): void {
         const timeZoneId = preferredTimeZoneId(state.participant.timeZoneId || "UTC");
         if (!profileTimeZoneDraft || profileTimeZoneDraft.participantId !== state.participant.id) {
-            profileTimeZoneDraft = { participantId: state.participant.id, timeZoneId, saving: false, error: "" };
+            profileTimeZoneDraft = { participantId: state.participant.id, timeZoneId, saving: false, unconfirmed: false, error: "" };
         } else if (!profileTimeZoneDraft.saving && !hasProfileTimeZoneChanges()) {
             profileTimeZoneDraft.timeZoneId = timeZoneId;
             profileTimeZoneDraft.error = "";
@@ -4462,7 +4463,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
 
     function hasProfileTimeZoneChanges(): boolean {
         return !!profileTimeZoneDraft && profileTimeZoneDraft.participantId === participantState?.participant.id
-            && profileTimeZoneDraft.timeZoneId !== preferredTimeZoneId(participantState.participant.timeZoneId || "UTC");
+            && (profileTimeZoneDraft.unconfirmed
+                || profileTimeZoneDraft.timeZoneId !== preferredTimeZoneId(participantState.participant.timeZoneId || "UTC"));
     }
 
     function renderProfileTimeZoneControls(): void {
@@ -4499,11 +4501,15 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             // Accept the response's eligibility/call state, while retaining an edit
             // made after this request began (including a return to the old timezone).
             if (draft.timeZoneId === submittedTimeZone) draft.timeZoneId = preferredTimeZoneId(result.participant.timeZoneId || "UTC");
+            draft.unconfirmed = false;
             acceptParticipantState(result);
             renderAll();
         } catch (err) {
             if (profileTimeZoneDraft === draft && accessToken === currentAccessToken) {
-                draft.error = hasProperties(err, "status") ? messageOf(err) : "Couldn’t save the timezone. Try again.";
+                // The server may have committed even when its response was lost.
+                // Keep a reverted selection retryable until a save is confirmed.
+                draft.unconfirmed = true;
+                draft.error = hasProperties(err, "status") ? messageOf(err) : "Couldn’t confirm the timezone. Try again.";
             }
         } finally {
             if (profileTimeZoneDraft === draft) {

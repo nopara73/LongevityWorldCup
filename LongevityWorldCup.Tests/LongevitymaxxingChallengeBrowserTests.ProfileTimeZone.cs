@@ -219,17 +219,28 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         Assert.Equal(new[] { "Europe/London", replace ? "Asia/Bangkok" : "Europe/London" }, submissions);
     }
 
-    [Fact]
-    public async Task ProfileTimeZone_RevertingDuringAFailedSaveClearsObsoleteFeedback()
+    [Theory]
+    [InlineData("network")]
+    [InlineData("gateway")]
+    public async Task ProfileTimeZone_RevertingDuringALostResponseRemainsRetryableUntilConfirmed(string failure)
     {
         await using var context = await NewContextAsync(Browser, App, new());
         var page = await OpenProfileWorkspaceAsync(context);
         var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var submissions = new List<string>();
+        var savedZone = "UTC";
         await page.RouteAsync("**/api/longevitymaxxing/edit", async route =>
         {
-            started.TrySetResult(); await gate.Task;
-            await route.FulfillAsync(new() { Status = 503, ContentType = "application/json", Body = "{\"error\":\"Try again.\"}" });
+            var zone = JsonNode.Parse(route.Request.PostData!)!["timeZoneId"]!.GetValue<string>();
+            submissions.Add(zone);
+            if (submissions.Count == 1) { started.TrySetResult(); await gate.Task; }
+            // The endpoint commits before it builds its response. Model a lost
+            // response after that write, rather than a definitely rejected edit.
+            savedZone = zone;
+            if (submissions.Count > 1) await FulfillJsonAsync(route, ProfileWorkspaceState(timeZone: savedZone).ToJsonString());
+            else if (failure == "network") await route.AbortAsync();
+            else await route.FulfillAsync(new() { Status = 503, ContentType = "text/html", Body = "<h1>Unavailable</h1>" });
         });
         try
         {
@@ -240,12 +251,24 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
             Assert.True(await ProfileExitGuardAsync(page));
             await page.Locator("#lmxHomeTab").ClickAsync();
             gate.TrySetResult();
-            await WaitForTimeZoneSaveAsync(page);
+            var save = page.Locator("#lmxSaveProfileButton");
+            await Assertions.Expect(save).ToHaveTextAsync("Retry");
+            Assert.Equal("Europe/London", savedZone);
             await Assertions.Expect(page.Locator("#lmxHomeTab")).ToBeFocusedAsync();
             await page.Locator("#lmxProfileTab").ClickAsync();
             await Assertions.Expect(page.Locator("#lmxEditTimeZone")).ToHaveValueAsync("UTC");
-            await Assertions.Expect(page.Locator("#lmxSaveProfileButton")).ToHaveAttributeAsync("aria-disabled", "true");
+            await Assertions.Expect(save).ToHaveAttributeAsync("aria-disabled", "false");
+            Assert.True(await ProfileExitGuardAsync(page));
+            await ChooseProfileTimeZoneAsync(page, "Bangkok", "Asia/Bangkok");
+            await ChooseProfileTimeZoneAsync(page, "UTC", "UTC");
+            await Assertions.Expect(save).ToHaveAttributeAsync("aria-disabled", "false");
+            Assert.True(await ProfileExitGuardAsync(page));
+            await save.ClickAsync();
+            await WaitForTimeZoneSaveAsync(page);
+            await Assertions.Expect(save).ToHaveAttributeAsync("aria-disabled", "true");
             Assert.False(await ProfileExitGuardAsync(page));
+            Assert.Equal("UTC", savedZone);
+            Assert.Equal(new[] { "Europe/London", "UTC" }, submissions);
         }
         finally { gate.TrySetResult(); }
     }
