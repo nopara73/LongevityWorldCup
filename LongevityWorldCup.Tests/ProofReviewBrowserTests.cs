@@ -13,6 +13,110 @@ public sealed class ProofReviewBrowserTests(PlaywrightBrowserFixture browserFixt
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
+    public async Task ReloadWithProofs_CanBeCancelledWithoutLosingThePages(bool onboarding)
+    {
+        await using var context = await NewContextAsync(Browser, App, new());
+        var page = await PrepareAsync(context, onboarding);
+        await UploadAsync(page, await CreatePagesAsync(2));
+        await page.Locator(".biomarker-checkbox").First.CheckAsync();
+        var original = await ReadSourcesAsync(page);
+        await page.Locator(".proof-page-preview").First.ClickAsync();
+        await page.Locator(".proof-review-close").ClickAsync();
+        var warned = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        page.Dialog += async (_, dialog) =>
+        {
+            if (dialog.Type == "beforeunload")
+            {
+                await dialog.DismissAsync();
+                warned.TrySetResult();
+            }
+        };
+        await page.EvaluateAsync("setTimeout(() => location.reload(), 0)");
+        await warned.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.Equal(original, await ReadSourcesAsync(page));
+        Assert.True(await page.Locator(".biomarker-checkbox").First.IsCheckedAsync());
+        Assert.True(await page.Locator(onboarding ? "#nextButton" : "#submitButton").IsEnabledAsync());
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task RemovingAllProofs_ClearsTheExitWarningAndUndoRestoresIt(bool onboarding)
+    {
+        await using var context = await NewContextAsync(Browser, App, new());
+        var page = await PrepareAsync(context, onboarding);
+        await UploadAsync(page, await CreatePagesAsync(1));
+        Assert.True(await WouldWarnOnExitAsync(page));
+        while (await page.Locator(".proof-page-remove").CountAsync() > 0)
+            await page.Locator(".proof-page-remove").First.ClickAsync();
+        Assert.False(await WouldWarnOnExitAsync(page));
+        await page.Locator(".proof-undo").ClickAsync();
+        Assert.True(await WouldWarnOnExitAsync(page));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task AcceptedProofSubmission_CanContinueWithoutAnExitWarning(bool onboarding)
+    {
+        await using var context = await NewContextAsync(Browser, App, new());
+        var page = await PrepareAsync(context, onboarding);
+        await UploadAsync(page, await CreatePagesAsync(1));
+        var dialogs = new List<string>();
+        page.Dialog += async (_, dialog) => { dialogs.Add(dialog.Type); await dialog.AcceptAsync(); };
+        await page.EvaluateAsync("""
+            onboarding => {
+                const finish = onboarding ? finishFullApplicationSubmission : finishResultSubmission;
+                finish({paymentRequired:false}, {applicantName:'Proof Review Test',accountEmail:'proof@example.test',submissionId:'proof-exit-test'});
+            }
+            """, onboarding);
+        Assert.False(await WouldWarnOnExitAsync(page));
+        await page.Locator("#custom-alert-close").ClickAsync();
+        await page.WaitForURLAsync(url => new Uri(url).AbsolutePath == "/review");
+        Assert.Empty(dialogs);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task AcceptedSubmissionWithPaymentFailure_ClearsTheExitWarningBeforeConfirmation(bool onboarding)
+    {
+        await using var context = await NewContextAsync(Browser, App, new());
+        var page = await PrepareAsync(context, onboarding);
+        await UploadAsync(page, await CreatePagesAsync(1));
+        await page.EvaluateAsync("""
+            () => {
+                window.trySendApplicationSubmissionReport = async () => {};
+                window.submitApplicationWithRecovery = async () => ({
+                    ok: false,
+                    response: new Response('Application sent, but failed to create BTCPay invoice: unavailable', {status: 502})
+                });
+            }
+            """);
+        if (onboarding)
+        {
+            foreach (var heading in new[] { "5. Final details", "Application" })
+            {
+                await page.Locator("#nextButton").ClickAsync();
+                await page.GetByRole(AriaRole.Heading, new() { Name = heading, Exact = true }).WaitForAsync();
+            }
+            await page.Locator("#accountEmail").FillAsync("proof@example.test");
+        }
+        var dialogs = new List<string>();
+        page.Dialog += async (_, dialog) => { dialogs.Add(dialog.Type); await dialog.AcceptAsync(); };
+        await page.Locator(onboarding ? "#nextButton" : "#submitButton").ClickAsync();
+        var received = onboarding ? "Your application was received" : "Your results were received";
+        await Assertions.Expect(page.Locator("#custom-alert-message"))
+            .ToHaveTextAsync($"{received}, but the payment page could not be created. We will follow up by email.");
+        Assert.False(await WouldWarnOnExitAsync(page));
+        await page.Locator("#custom-alert-close").ClickAsync();
+        await page.WaitForURLAsync(url => new Uri(url).AbsolutePath == "/review");
+        Assert.Empty(dialogs);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     public async Task RemovalAndUndo_PreserveTheSubmittedPagesAndTheirOrder(bool onboarding)
     {
         await using var context = await NewContextAsync(Browser, App, new() { ViewportSize = new() { Width = 320, Height = 844 } });
@@ -30,6 +134,7 @@ public sealed class ProofReviewBrowserTests(PlaywrightBrowserFixture browserFixt
         await page.GetByRole(AriaRole.Button, new() { Name = "Undo removal", Exact = true }).ClickAsync();
         Assert.Equal(original, await ReadSourcesAsync(page));
         Assert.Equal(original, await page.EvaluateAsync<string[]>("proofPics"));
+        Assert.Equal(0, await page.Locator(".proof-review-feedback").CountAsync());
 
         while (await page.Locator(".proof-page-remove").CountAsync() > 0)
             await page.Locator(".proof-page-remove").First.ClickAsync();
@@ -104,6 +209,9 @@ public sealed class ProofReviewBrowserTests(PlaywrightBrowserFixture browserFixt
         await UploadAsync(page, files);
         Assert.Equal(2, (await ReadSourcesAsync(page)).Length);
         Assert.Contains("Duplicate proof images were skipped.", await page.Locator(".proof-upload-notice").InnerTextAsync());
+        await UploadAsync(page, [(await CreatePagesAsync(3))[2]]);
+        Assert.Equal(3, (await ReadSourcesAsync(page)).Length);
+        Assert.Equal(0, await page.Locator(".proof-review-feedback").CountAsync());
     }
 
     [Fact]
@@ -159,6 +267,7 @@ public sealed class ProofReviewBrowserTests(PlaywrightBrowserFixture browserFixt
         }
         await page.Locator("#why").FillAsync("");
         Assert.True(await page.Locator("#nextButton").IsDisabledAsync());
+        Assert.True(await WouldWarnOnExitAsync(page));
         await page.EvaluateAsync("window.__releaseProofPreparation()");
         await page.WaitForFunctionAsync("() => !document.querySelector('#proofPicInput').disabled");
         Assert.True(await page.Locator("#nextButton").IsDisabledAsync());
@@ -289,6 +398,9 @@ public sealed class ProofReviewBrowserTests(PlaywrightBrowserFixture browserFixt
     }
 
     private static Task<string[]> ReadSourcesAsync(IPage page) => page.Locator("#proofImageContainer img").EvaluateAllAsync<string[]>("images => images.map(image => image.src)");
+
+    private static Task<bool> WouldWarnOnExitAsync(IPage page) =>
+        page.EvaluateAsync<bool>("!window.dispatchEvent(new Event('beforeunload', {cancelable:true}))");
 
     private static async Task<FilePayload[]> CreatePagesAsync(int count)
     {

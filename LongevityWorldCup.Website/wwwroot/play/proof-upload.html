@@ -937,7 +937,8 @@
                 : [];
             window.setupProofUploadHTML(submitButton, uploadProofButton, proofPicInput, proofImageContainer, proofPics, biomarkerChecklistContainer, checklistItems, {
                 cameraButton: takeProofPhotoButton,
-                cameraInput: proofCameraInput
+                cameraInput: proofCameraInput,
+                hasUnsubmittedProofs: () => proofPics.length > 0
             });
         }
 
@@ -1073,21 +1074,10 @@
                                         type: `HTTP ${responseStatus}`,
                                         message: badResponse
                                     });
-                                    customAlert('Your results were received, but the payment page could not be created. We will follow up by email.').then(() => {
-                                        const reviewContactEmail = normalizeContactEmail(applicantData.accountEmail);
-                                        if (reviewContactEmail) {
-                                            rememberAthleteContactEmail(athlete && athlete.Name, reviewContactEmail);
-                                            setSessionItem('contactEmail', reviewContactEmail);
-                                            setLocalItem('contactEmail', reviewContactEmail);
-                                        }
-                                        proofPics = [];
-                                        removeSessionItem(PENDING_PAYMENT_OFFER_KEY);
-                                        clearCompletedBioageState();
-                                        window.clearPendingApplicationSubmission(submissionId);
-                                        removeSessionItem(PENDING_PAYMENT_INVOICE_KEY);
-                                        removeLocalItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY);
-                                        setSessionItem("came-from", "proof-upload");
-                                        window.location.href = '/review?from=proof-upload';
+                                    finishResultSubmission({ paymentRequired: true, paymentUnavailable: true }, {
+                                        submissionId: submissionId,
+                                        applicantName: applicantData.name,
+                                        accountEmail: applicantData.accountEmail
                                     });
                                     return;
                                 }

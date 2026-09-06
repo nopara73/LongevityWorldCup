@@ -1687,6 +1687,7 @@
                 {
                     cameraButton: takeProofPhotoButton,
                     cameraInput: proofCameraInput,
+                    hasUnsubmittedProofs: () => proofPics.length > 0,
                     isActive: () => currentStage === 5
                 }
             );
@@ -1897,18 +1898,10 @@
                                         type: `HTTP ${responseStatus}`,
                                         message: badResponse
                                     });
-                                    customAlert('Your application was received, but the payment page could not be created. We will follow up by email.').then(() => {
-                                        rememberAthleteContactEmail(applicantData.name, applicantData.accountEmail);
-                                        setSessionItem('contactEmail', applicantData.accountEmail);
-                                        setLocalItem('contactEmail', applicantData.accountEmail);
-                                        removeSessionItem(PENDING_PAYMENT_OFFER_KEY);
-                                        clearCompletedBioageState();
-                                        profilePic = null;
-                                        proofPics = [];
-                                        window.clearPendingApplicationSubmission(submissionId);
-                                        removeSessionItem(PENDING_PAYMENT_INVOICE_KEY);
-                                        removeLocalItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY);
-                                        window.location.href = '/review';
+                                    finishFullApplicationSubmission({ paymentRequired: true, paymentUnavailable: true }, {
+                                        submissionId: submissionId,
+                                        applicantName: applicantData.name,
+                                        accountEmail: applicantData.accountEmail
                                     });
                                     return;
                                 }
