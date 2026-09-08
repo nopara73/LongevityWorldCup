@@ -1414,6 +1414,9 @@
         left:0;
         z-index:80;
         min-width:12.5rem;
+        max-height:calc(100dvh - 6rem);
+        overflow-y:auto;
+        overscroll-behavior:contain;
         padding:.35rem;
         border:1px solid var(--athlete-modal-border-strong);
         border-radius:var(--lwc-radius-lg);
@@ -1455,6 +1458,34 @@
         text-align:center;
         font-size:1rem;
         flex:0 0 1.25rem;
+    }
+    #detailsModal .athlete-share-recovery{
+        display:grid;
+        gap:.4rem;
+        padding:.55rem .7rem .75rem;
+        color:var(--athlete-modal-text);
+        text-align:left;
+        font-size:.9rem;
+        line-height:1.4;
+    }
+    #detailsModal .athlete-share-recovery[hidden]{ display:none; }
+    #detailsModal .athlete-share-recovery p{ margin:0; }
+    #detailsModal .athlete-share-recovery label{ color:inherit; }
+    #detailsModal #athleteShareLink{
+        width:100%;
+        min-width:0;
+        min-height:44px;
+        box-sizing:border-box;
+        padding:.55rem;
+        border:1px solid var(--athlete-modal-border-strong);
+        border-radius:var(--lwc-radius-sm);
+        background:var(--athlete-modal-card);
+        color:var(--athlete-modal-text);
+        font:inherit;
+    }
+    #detailsModal .athlete-links button[aria-disabled="true"]{
+        cursor:progress;
+        opacity:.82;
     }
     #detailsModal .modal-link i{
         font-size: 1.15rem;
@@ -3505,28 +3536,34 @@
                         </table>
                     </div>
                     <div class="athlete-links">
-                        <span class="athlete-share-wrapper">
-                            <button id="shareAthleteProfile" type="button" class="modal-link" aria-label="Share athlete profile" aria-haspopup="menu" aria-expanded="false" aria-controls="athleteShareMenu">
+                        <div class="athlete-share-wrapper">
+                            <button id="shareAthleteProfile" type="button" class="modal-link" aria-label="Share athlete profile" aria-haspopup="dialog" aria-expanded="false" aria-controls="athleteShareMenu" aria-describedby="athleteShareStatus">
                                 <i class="fa fa-share-nodes"></i> Share
                             </button>
-                            <span id="athleteShareMenu" class="athlete-share-menu" role="menu" hidden>
-                                <button id="copyAthleteProfileLink" type="button" role="menuitem">
+                            <span id="athleteShareStatus" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></span>
+                            <div id="athleteShareMenu" class="athlete-share-menu" role="dialog" aria-label="Share athlete profile" hidden>
+                                <button id="copyAthleteProfileLink" type="button">
                                     <i class="fa fa-link"></i> Copy link
                                 </button>
-                                <a id="shareAthleteProfileX" href="#" target="_blank" rel="noopener" role="menuitem" aria-label="Share on X">
+                                <div id="athleteShareRecovery" class="athlete-share-recovery" hidden>
+                                    <p id="athleteShareCopyHelp" role="status" aria-live="polite">Copy the link below or try again.</p>
+                                    <label for="athleteShareLink">Profile link</label>
+                                    <input id="athleteShareLink" type="text" readonly aria-describedby="athleteShareCopyHelp" spellcheck="false">
+                                </div>
+                                <a id="shareAthleteProfileX" href="#" target="_blank" rel="noopener" aria-label="Share on X">
                                     <i class="fa-brands fa-x-twitter"></i> Post
                                 </a>
-                                <a id="shareAthleteProfileFacebook" href="#" target="_blank" rel="noopener" role="menuitem">
+                                <a id="shareAthleteProfileFacebook" href="#" target="_blank" rel="noopener">
                                     <i class="fa-brands fa-facebook"></i> Facebook
                                 </a>
-                                <a id="shareAthleteProfileLinkedIn" href="#" target="_blank" rel="noopener" role="menuitem">
+                                <a id="shareAthleteProfileLinkedIn" href="#" target="_blank" rel="noopener">
                                     <i class="fa-brands fa-linkedin"></i> LinkedIn
                                 </a>
-                                <a id="shareAthleteProfileEmail" href="#" role="menuitem">
+                                <a id="shareAthleteProfileEmail" href="#">
                                     <i class="fa fa-envelope"></i> Email
                                 </a>
-                            </span>
-                        </span>
+                            </div>
+                        </div>
                         <a id="personalLink" href="#" target="_blank" rel="noopener" class="modal-link" aria-label="Visit the athlete's personal page">
                             <i class="fa fa-link"></i> Personal page
                         </a>
@@ -6061,6 +6098,7 @@
     let savedBodyScrollRestoration = null;
     let savedBodyBackground = '';
     let currentAthleteModalRequestId = 0;
+    let athleteShareState = null;
     const chartJsSrc = 'https://cdn.jsdelivr.net/npm/chart.js';
 
     window.ensureChartJs = window.ensureChartJs || function () {
@@ -6153,7 +6191,7 @@
 
     function resetModalForLoading(athleteSlug) {
         ensureAthleteModalDeferredSections();
-        closeAthleteShareMenu();
+        resetAthleteShareState();
         const viewer = document.querySelector('#athleteImageViewer[aria-hidden="false"]');
         if (viewer) closeEnlargedView(viewer);
         modal._historyClosePending = false;
@@ -6499,7 +6537,7 @@
         const returnFocusElement = athleteDialogReturnFocusElement;
         athleteDialogReturnFocusElement = null;
 
-        closeAthleteShareMenu();
+        resetAthleteShareState();
         
         const athleteSlug = modalContent.dataset.athleteSlug;
         
@@ -8148,8 +8186,24 @@
 
     function setShareButtonState(button, label, disabled) {
         if (!button) return;
-        button.disabled = !!disabled;
-        button.innerHTML = `<i class="fa fa-share-nodes"></i> ${escapeHtml(label)}`;
+        button.disabled = false;
+        button.setAttribute('aria-disabled', String(!!disabled));
+        button.setAttribute('aria-busy', String(!!disabled));
+        button.innerHTML = `<i class="fa fa-share-nodes" aria-hidden="true"></i> ${escapeHtml(label)}`;
+    }
+
+    function isCurrentAthleteShare(state) {
+        return !!state && athleteShareState === state
+            && state.requestId === currentAthleteModalRequestId && state.button.isConnected;
+    }
+
+    function resetAthleteShareState() {
+        if (athleteShareState?.feedbackTimer) window.clearTimeout(athleteShareState.feedbackTimer);
+        athleteShareState = null;
+        closeAthleteShareMenu();
+        setShareButtonState(document.getElementById('shareAthleteProfile'), 'Share', false);
+        const status = document.getElementById('athleteShareStatus');
+        if (status) status.textContent = '';
     }
 
     function copyTextToClipboard(text) {
@@ -8158,6 +8212,7 @@
         }
 
         return new Promise((resolve, reject) => {
+            const previousFocus = document.activeElement;
             const textarea = document.createElement('textarea');
             textarea.value = text;
             textarea.setAttribute('readonly', '');
@@ -8172,6 +8227,7 @@
                 reject(error);
             } finally {
                 document.body.removeChild(textarea);
+                if (previousFocus instanceof HTMLElement && previousFocus.isConnected) previousFocus.focus({ preventScroll: true });
             }
         });
     }
@@ -8194,29 +8250,33 @@
     function setShareMenuCopyState(label, disabled) {
         const copyButton = document.getElementById('copyAthleteProfileLink');
         if (!copyButton) return;
-        copyButton.disabled = !!disabled;
-        copyButton.innerHTML = `<i class="fa fa-link"></i> ${escapeHtml(label)}`;
+        copyButton.disabled = false;
+        copyButton.setAttribute('aria-disabled', String(!!disabled));
+        copyButton.setAttribute('aria-busy', String(!!disabled));
+        copyButton.innerHTML = `<i class="fa fa-link" aria-hidden="true"></i> ${escapeHtml(label)}`;
     }
 
     function closeAthleteShareMenu(options) {
         const menu = document.getElementById('athleteShareMenu');
-        if (!menu || menu.hidden) {
-            return false;
-        }
+        if (!menu) return false;
+        const wasOpen = !menu.hidden;
+        if (athleteShareState) athleteShareState.menuVersion++;
 
         menu.hidden = true;
         menu.classList.remove('is-above');
         setShareMenuCopyState('Copy link', false);
+        const recovery = document.getElementById('athleteShareRecovery');
+        if (recovery) recovery.hidden = true;
 
         const button = document.getElementById('shareAthleteProfile');
         if (button) {
             button.setAttribute('aria-expanded', 'false');
-            if (options && options.restoreFocus && !button.disabled) {
+            if (wasOpen && options && options.restoreFocus && !button.disabled) {
                 button.focus({ preventScroll: true });
             }
         }
 
-        return true;
+        return wasOpen;
     }
 
     function positionAthleteShareMenu(menu) {
@@ -8256,6 +8316,8 @@
     function configureAthleteShareMenu(button, sharePayload) {
         const menu = document.getElementById('athleteShareMenu');
         if (!menu) return;
+        const state = athleteShareState;
+        if (!isCurrentAthleteShare(state)) return;
 
         const text = sharePayload.text || sharePayload.title || '';
         const encodedText = encodeURIComponent(text);
@@ -8281,19 +8343,46 @@
 
         const copyButton = document.getElementById('copyAthleteProfileLink');
         if (copyButton) {
-            setShareMenuCopyState('Copy link', false);
+            setShareMenuCopyState(state.pending === 'copy' ? 'Copying…' : 'Copy link', state.pending === 'copy');
             copyButton.onclick = async (event) => {
                 event.preventDefault();
                 event.stopPropagation();
+                if (!isCurrentAthleteShare(state) || state.pending) return;
+                const menuVersion = state.menuVersion;
+                const recovery = document.getElementById('athleteShareRecovery');
+                const manualLink = document.getElementById('athleteShareLink');
+                if (recovery) recovery.hidden = true;
+                state.pending = 'copy';
+                setShareMenuCopyState('Copying…', true);
 
                 try {
                     await copyTextToClipboard(sharePayload.url);
-                    closeAthleteShareMenu();
-                    setShareButtonState(button, 'Copied', true);
-                    window.setTimeout(() => setShareButtonState(button, 'Share', false), 1600);
+                    if (!isCurrentAthleteShare(state) || state.menuVersion !== menuVersion || menu.hidden) return;
+                    closeAthleteShareMenu({ restoreFocus: menu.contains(document.activeElement) });
+                    setShareButtonState(button, 'Copied', false);
+                    document.getElementById('athleteShareStatus').textContent = 'Link copied.';
+                    state.feedbackTimer = window.setTimeout(() => {
+                        if (!isCurrentAthleteShare(state)) return;
+                        state.feedbackTimer = null;
+                        setShareButtonState(button, 'Share', false);
+                        document.getElementById('athleteShareStatus').textContent = '';
+                    }, 1600);
                 } catch (error) {
-                    setShareMenuCopyState('Copy failed', true);
-                    window.setTimeout(() => setShareMenuCopyState('Copy link', false), 1800);
+                    if (!isCurrentAthleteShare(state) || state.menuVersion !== menuVersion || menu.hidden) return;
+                    if (recovery && manualLink) {
+                        manualLink.value = sharePayload.url;
+                        recovery.hidden = false;
+                        keepAthleteShareMenuInView(menu);
+                        if (document.activeElement === copyButton) {
+                            manualLink.focus({ preventScroll: true });
+                            manualLink.select();
+                        }
+                    }
+                } finally {
+                    if (isCurrentAthleteShare(state)) {
+                        state.pending = null;
+                        setShareMenuCopyState(recovery && !recovery.hidden ? 'Retry copy' : 'Copy link', false);
+                    }
                 }
             };
         }
@@ -8301,7 +8390,8 @@
 
     function openAthleteShareMenu(button, sharePayload) {
         const menu = document.getElementById('athleteShareMenu');
-        if (!menu) {
+        const state = athleteShareState;
+        if (!menu || !isCurrentAthleteShare(state)) {
             return;
         }
 
@@ -8310,6 +8400,11 @@
             return;
         }
 
+        if (state.feedbackTimer) window.clearTimeout(state.feedbackTimer);
+        state.feedbackTimer = null;
+        setShareButtonState(button, 'Share', false);
+        document.getElementById('athleteShareStatus').textContent = '';
+        state.menuVersion++;
         configureAthleteShareMenu(button, sharePayload);
         menu.hidden = false;
         button.setAttribute('aria-expanded', 'true');
@@ -8325,6 +8420,9 @@
     function configureAthleteShareButton(displayName, athleteSlug, ultimateRank) {
         const button = document.getElementById('shareAthleteProfile');
         if (!button || !athleteSlug) return;
+        resetAthleteShareState();
+        const state = { button, requestId: currentAthleteModalRequestId, pending: null, menuVersion: 0, feedbackTimer: null };
+        athleteShareState = state;
 
         const url = getCanonicalAthleteShareUrl(athleteSlug);
         const title = `${displayName} | Longevity World Cup`;
@@ -8341,19 +8439,29 @@
         button.onclick = async (event) => {
             event.preventDefault();
             event.stopPropagation();
-            if (button.disabled) return;
+            if (!isCurrentAthleteShare(state) || state.pending === 'native') return;
+            if (state.feedbackTimer) window.clearTimeout(state.feedbackTimer);
+            state.feedbackTimer = null;
+            document.getElementById('athleteShareStatus').textContent = '';
 
             const sharePayload = getAthleteSharePayload(button);
 
-            if (shouldUseNativeAthleteShare(sharePayload)) {
+            if (!state.pending && shouldUseNativeAthleteShare(sharePayload)) {
+                state.pending = 'native';
+                setShareButtonState(button, 'Sharing…', true);
                 try {
                     await window.navigator.share(sharePayload);
-                    return;
                 } catch (error) {
-                    if (error && error.name === 'AbortError') {
-                        return;
+                    if (isCurrentAthleteShare(state) && error?.name !== 'AbortError') {
+                        openAthleteShareMenu(button, sharePayload);
+                    }
+                } finally {
+                    if (isCurrentAthleteShare(state)) {
+                        state.pending = null;
+                        setShareButtonState(button, 'Share', false);
                     }
                 }
+                return;
             }
 
             openAthleteShareMenu(button, sharePayload);
