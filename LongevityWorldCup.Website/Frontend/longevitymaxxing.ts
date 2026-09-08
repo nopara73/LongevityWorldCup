@@ -907,17 +907,15 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
 
     function wireForms() {
         const signupForm = requiredForm("lmxSignupForm");
-        const resendForm = requiredForm("lmxResendForm");
         const editForm = requiredForm("lmxEditForm");
         const signupAgain = requiredButton("lmxSignupAgain");
         const signupEmailInput = requiredInput("lmxSignupEmail");
-        const resendEmailInput = requiredInput("lmxResendEmail");
         const profilePictureInput = requiredInput("lmxProfilePictureInput");
         const profilePictureButton = requiredButton("lmxProfilePictureButton");
         const editTimeZone = requiredSelect("lmxEditTimeZone");
         const inactiveToggle = optionalElement("lmxInactiveToggle", HTMLButtonElement);
         wireEmailValidityReset(signupEmailInput);
-        wireEmailValidityReset(resendEmailInput);
+        wireSignInForm();
 
         signupForm.addEventListener("submit", async event => {
             event.preventDefault();
@@ -948,19 +946,6 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             signupSubmitted = false;
             setStatus("lmxSignupStatus", "", false);
             renderAll();
-        });
-
-        resendForm.addEventListener("submit", async event => {
-            event.preventDefault();
-            const resendEmail = validateEmailInput(resendEmailInput);
-            if (!resendEmail) return;
-
-            await withButton(resendForm.querySelector("button[type='submit']"), async () => {
-                await postJson(`${API}/resend`, {
-                    email: resendEmail
-                });
-                setStatus("lmxResendStatus", "Check your email for your private check-in link.", false);
-            }, "Sending...");
         });
 
         document.querySelectorAll<HTMLButtonElement>("[data-lmx-tab]").forEach(button => {
@@ -1136,6 +1121,64 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
 
         const athleteInputId = `${identityPrefix(scope)}Athlete`;
         return getAthleteSelectorDisplayName(athleteInputId);
+    }
+
+    function wireSignInForm(): void {
+        const form = requiredForm("lmxResendForm");
+        const resendEmailInput = requiredInput("lmxResendEmail");
+        const button = requiredButton("lmxResendButton");
+        const status = requiredElement("lmxResendStatus", HTMLElement);
+        let sending = false;
+        let retryEmail = "";
+        let feedback = "";
+        wireEmailValidityReset(resendEmailInput);
+
+        function renderAction(): void {
+            button.setAttribute("aria-disabled", String(sending));
+            button.setAttribute("aria-busy", String(sending));
+            form.setAttribute("aria-busy", String(sending));
+            setText("lmxResendButtonText", sending ? "Sending…"
+                : retryEmail && normalizeEmailValue(resendEmailInput.value) === retryEmail ? "Retry" : "Send check-in link");
+        }
+
+        function showFeedback(text: string, isError: boolean): void {
+            feedback = text;
+            setStatus("lmxResendStatus", text, isError);
+        }
+
+        resendEmailInput.addEventListener("input", () => {
+            retryEmail = "";
+            // The same status also hosts reminder opt-out and access-loading notices.
+            if (feedback && status.textContent === feedback) setStatus("lmxResendStatus", "", false);
+            feedback = "";
+            renderAction();
+        });
+
+        form.addEventListener("submit", async event => {
+            event.preventDefault();
+            if (sending) return;
+            const resendEmail = validateEmailInput(resendEmailInput);
+            if (!resendEmail) return;
+
+            retryEmail = "";
+            showFeedback("", false);
+            sending = true;
+            renderAction();
+            try {
+                await postJson(`${API}/resend`, { email: resendEmail });
+                // Unconfirmed participants receive a confirmation link instead of an access link.
+                showFeedback(`Check ${resendEmail} for a link to continue.`, false);
+            } catch (err) {
+                retryEmail = resendEmail;
+                const explanation = hasProperties(err, "status") && (err.status === 400 || err.status === 429)
+                    ? messageOf(err) : "Couldn’t confirm the email was sent. Try again.";
+                showFeedback(normalizeEmailValue(resendEmailInput.value) === resendEmail
+                    ? explanation : `${resendEmail}: ${explanation}`, true);
+            } finally {
+                sending = false;
+                renderAction();
+            }
+        });
     }
 
     function normalizeEmailInput(input: HTMLInputElement | null): string {
@@ -1671,7 +1714,6 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             participantActiveTab = null;
             participantTabManual = false;
             participantNotice = null;
-            setText("lmxResendButtonText", "Send check-in link");
         }
         renderAccessTabs();
         const slackInvite = optionalElement("lmxSlackInviteLink", HTMLAnchorElement);

@@ -2053,6 +2053,7 @@
 }
 
 .lmx-button:disabled,
+#lmxResendButton[aria-disabled="true"],
 #lmxSaveProfileButton[aria-disabled="true"] {
     transform: none;
     opacity: 1;
@@ -2507,6 +2508,15 @@ body.lmx-checkin-dialog-open {
 #lmxSignupStatus:empty,
 #lmxResendStatus:empty {
     display: none;
+}
+
+#lmxResendStatus {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+#lmxResendButton[aria-busy="true"] {
+    cursor: progress;
 }
 
 .lmx-status.error {

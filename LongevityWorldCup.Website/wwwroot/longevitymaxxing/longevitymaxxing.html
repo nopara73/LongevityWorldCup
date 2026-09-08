@@ -154,9 +154,9 @@
                     <form id="lmxResendForm" class="lmx-form">
                         <div class="lmx-field">
                             <label for="lmxResendEmail">Email</label>
-                            <input id="lmxResendEmail" type="text" inputmode="email" autocomplete="email" autocapitalize="none" spellcheck="false" required>
+                            <input id="lmxResendEmail" type="text" inputmode="email" autocomplete="email" autocapitalize="none" spellcheck="false" aria-describedby="lmxResendStatus" required>
                         </div>
-                        <button class="lmx-button lmx-primary-action" type="submit">
+                        <button id="lmxResendButton" class="lmx-button lmx-primary-action" type="submit" aria-describedby="lmxResendStatus">
                             <i class="fas fa-envelope" aria-hidden="true"></i>
                             <span id="lmxResendButtonText">Send check-in link</span>
                         </button>
