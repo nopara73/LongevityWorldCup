@@ -752,6 +752,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     const pendingNotePhotos = new Map<string, File[]>();
     const pendingNotePhotoUrls = new Map<string, string[]>();
     const checkInDrafts = new Map<string, CheckInFormDraft>();
+    const renderedCheckInDays = new WeakMap<HTMLFormElement, string>();
     const checkInResetUndo = new Map<string, { values: CheckInFormDraft; photos: File[] }>();
     const checkInErrors = new Map<string, string>();
     const checkInSubmissions = new Map<string, { id: string; values: string; photos: File[] }>();
@@ -2543,15 +2544,33 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         if (!container) return;
         const restoreDraftFocus = preserveDiscussionDraftFocus(container);
         const previousForm = container.querySelector<HTMLFormElement>(".lmx-checkin-card");
-        if (previousForm) revokePendingNotePhotoUrls(checkInDayKey(previousForm));
         if (!days.length) {
+            if (previousForm) revokePendingNotePhotoUrls(checkInDayKey(previousForm));
             container.innerHTML = emptyCheckInHtml();
             return;
         }
 
         const orderedDays = [...days].sort((a, b) => a.challengeDay - b.challengeDay);
         const activeDay = pickActiveCheckInDay(orderedDays);
-        container.innerHTML = checkInSwitcherHtml(orderedDays, activeDay) + checkInCardHtml(activeDay, activeDiscussion);
+        const daySnapshot = JSON.stringify(activeDay);
+        const keepForm = previousForm && checkInDayKey(previousForm) === checkInDraftKey(activeDay)
+            && renderedCheckInDays.get(previousForm) === daySnapshot;
+        if (keepForm) {
+            // Background saves refresh shared results without disconnecting the active controls.
+            container.querySelector(".lmx-checkin-switcher")?.remove();
+            previousForm.insertAdjacentHTML("beforebegin", checkInSwitcherHtml(orderedDays, activeDay));
+            const draft = collectCheckInDraft(previousForm);
+            for (const question of QUESTIONS) {
+                const plant = previousForm.querySelector<HTMLElement>(`.lmx-question[data-key='${question.key}'] .lmx-plant`);
+                if (plant) plant.outerHTML = habitPlantHtml(question, lifetimeHabitEvidence(question.key),
+                    draft[question.key], originalCheckInValue(previousForm, question.key), activeDay.challengeDay);
+            }
+            previousForm.querySelector(".lmx-recent-remarks")?.remove();
+            previousForm.insertAdjacentHTML("beforeend", activeDiscussionHtml(activeDiscussion));
+        } else {
+            if (previousForm) revokePendingNotePhotoUrls(checkInDayKey(previousForm));
+            container.innerHTML = checkInSwitcherHtml(orderedDays, activeDay) + checkInCardHtml(activeDay, activeDiscussion);
+        }
         container.querySelectorAll<HTMLButtonElement>(".lmx-checkin-switcher button").forEach(button => {
             button.addEventListener("click", () => {
                 selectedCheckInDay = Number(button.dataset.day);
@@ -2559,6 +2578,12 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 container.querySelector<HTMLButtonElement>(`.lmx-checkin-switcher button[data-day='${selectedCheckInDay}']`)?.focus({ preventScroll: true });
             });
         });
+        if (keepForm) {
+            wireDiscussionControls(previousForm);
+            restoreDraftFocus();
+            updateCheckInSaveState(previousForm);
+            return;
+        }
         container.querySelectorAll<HTMLInputElement>(".lmx-answer-input").forEach(input => {
             input.addEventListener("change", () => {
                 if (!input.checked) return;
@@ -2569,6 +2594,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             });
         });
         container.querySelectorAll<HTMLFormElement>("form").forEach(form => {
+            renderedCheckInDays.set(form, daySnapshot);
             form.querySelector<HTMLButtonElement>("[data-checkin-reset]")?.addEventListener("click", () => resetCheckIn(form));
             const noteInput = form.querySelector<HTMLTextAreaElement>("textarea[data-mention-input]");
             if (noteInput) wireMentionAutocomplete(noteInput, () => updateCheckInSaveState(form));

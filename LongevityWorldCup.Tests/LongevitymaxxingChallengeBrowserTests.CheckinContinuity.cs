@@ -188,10 +188,15 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await Assertions.Expect(form.Locator("button[type='submit']")).ToBeDisabledAsync();
     }
 
-    [Fact]
-    public async Task SlowCheckInSave_LocksTheSubmittedDayAndPreservesAnotherDaysWork()
+    [Theory]
+    [InlineData(390, 844, ColorScheme.Dark)]
+    [InlineData(1280, 900, ColorScheme.Light)]
+    public async Task SlowCheckInSave_LocksTheSubmittedDayAndPreservesAnotherDaysWork(int width, int height, ColorScheme theme)
     {
-        await using var context = await NewContextAsync(Browser, App, new());
+        await using var context = await NewContextAsync(Browser, App, new() {
+            ViewportSize = new() { Width = width, Height = height }, ColorScheme = theme,
+            IsMobile = width == 390, HasTouch = width == 390
+        });
         var state = CheckInWorkspaceState();
         var page = await OpenCheckInWorkspaceAsync(context, state);
         var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -205,6 +210,8 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
             await FulfillJsonAsync(route, state.ToJsonString());
         });
         var form = page.Locator(".lmx-checkin-card");
+        var note = form.Locator("textarea").First;
+        float noteTop = 0;
         await AnswerAllHabitsAsync(form);
         await form.Locator("textarea").First.FillAsync("Submitted day.");
         try {
@@ -217,6 +224,9 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
             await form.Locator("textarea").First.FillAsync("Still writing this day.");
             await AddCheckInPhotosAsync(form, "another-day.png");
             await Assertions.Expect(form.Locator("[data-checkin-progress]")).ToHaveTextAsync("Saving Day 17…");
+            await note.FocusAsync();
+            await note.EvaluateAsync("e => { e.setSelectionRange(0, 5, 'backward'); window.checkInBlurCount = 0; e.addEventListener('blur', () => window.checkInBlurCount++); }");
+            noteTop = (await note.BoundingBoxAsync())!.Y;
         } finally { release.TrySetResult(); }
         await Assertions.Expect(page.Locator(".lmx-checkin-switcher button[data-day='17'] em")).ToHaveTextAsync("Saved");
         Assert.Equal(1, requests);
@@ -224,6 +234,61 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         Assert.Equal("Still writing this day.", await form.Locator("textarea").First.InputValueAsync());
         Assert.True(await form.Locator("[data-key='sleep'] input[value='2']").IsCheckedAsync());
         Assert.Equal("another-day.png", await form.Locator("figcaption").InnerTextAsync());
+        await Assertions.Expect(note).ToBeFocusedAsync();
+        Assert.Equal("0:5:backward", await note.EvaluateAsync<string>("e => `${e.selectionStart}:${e.selectionEnd}:${e.selectionDirection}`"));
+        Assert.Equal(0, await page.EvaluateAsync<int>("window.checkInBlurCount"));
+        Assert.InRange((await note.BoundingBoxAsync())!.Y, noteTop - 1, noteTop + 1);
+        await page.Keyboard.TypeAsync("Kept");
+        await Assertions.Expect(note).ToHaveValueAsync("Kept writing this day.");
+    }
+
+    [Theory]
+    [InlineData(390)]
+    [InlineData(1280)]
+    public async Task SlowCheckInSave_KeepsMentionChoiceAndRefreshesGardenAndDiscussion(int width)
+    {
+        await using var context = await NewContextAsync(Browser, App, new() {
+            ViewportSize = new() { Width = width, Height = 844 },
+            IsMobile = width == 390, HasTouch = width == 390
+        });
+        var state = JsonSerializer.SerializeToNode(BuildParticipantState(includeMissedCatchUpDay: true, includeMentionParticipants: true))!.AsObject();
+        var page = await OpenCheckInWorkspaceAsync(context, state);
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var requests = 0;
+        await page.RouteAsync("**/api/longevitymaxxing/check-in", async route => {
+            requests++;
+            entered.TrySetResult();
+            await release.Task.WaitAsync(TimeSpan.FromSeconds(30));
+            state["eligibleDays"]![0]!["existing"] = SavedCheckIn("", 2);
+            state["garden"]!["sleep"]!["yesCount"] = 761;
+            state["public"]!["notes"]![0]!["note"] = "A newly saved public update.";
+            await FulfillJsonAsync(route, state.ToJsonString());
+        });
+        var form = page.Locator(".lmx-checkin-card");
+        var note = form.Locator("textarea").First;
+        var suggestions = form.Locator(".lmx-mention-options:not([hidden])");
+        await AnswerAllHabitsAsync(form);
+        string? selectedOption = null;
+        try {
+            await form.Locator("button[type='submit']").ClickAsync();
+            await entered.Task.WaitAsync(TimeSpan.FromSeconds(10));
+            await page.Locator(".lmx-checkin-switcher button[data-day='21']").ClickAsync();
+            await AnswerAllHabitsAsync(form);
+            await note.FillAsync("Great work @Be");
+            await Assertions.Expect(suggestions).ToContainTextAsync("Bea Builder");
+            selectedOption = await note.GetAttributeAsync("aria-activedescendant");
+        } finally { release.TrySetResult(); }
+        await Assertions.Expect(page.Locator(".lmx-checkin-switcher button[data-day='17'] em")).ToHaveTextAsync("Saved");
+        await Assertions.Expect(note).ToBeFocusedAsync();
+        await Assertions.Expect(suggestions).ToBeVisibleAsync();
+        Assert.Equal(selectedOption, await note.GetAttributeAsync("aria-activedescendant"));
+        await page.Keyboard.PressAsync("Enter");
+        await Assertions.Expect(note).ToHaveValueAsync("Great work @Bea Builder ");
+        Assert.Equal(1, requests);
+        await Assertions.Expect(form.Locator("[data-key='sleep'] .lmx-plant")).ToHaveAttributeAsync("data-yes-count", "761");
+        await Assertions.Expect(form.Locator(".lmx-recent-remarks")).ToContainTextAsync("A newly saved public update.");
+        await Assertions.Expect(form.Locator("button[type='submit']")).ToBeEnabledAsync();
     }
 
     [Theory]
