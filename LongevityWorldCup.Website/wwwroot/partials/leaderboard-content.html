@@ -923,8 +923,6 @@
     .modal-content.is-loading #chronologicalAge,
     .modal-content.is-loading #lowestBortzAge,
     .modal-content.is-loading #lowestPhenoAge,
-    .modal-content.is-loading #lowestPhenoAgeRank,
-    .modal-content.is-loading #bortzAgeReductionRank,
     .modal-content.is-loading #bortzAgeReduction,
     .modal-content.is-loading #bortzAgeReductionPercent,
     .modal-content.is-loading #ageReduction,
@@ -1190,15 +1188,40 @@
         margin-bottom: .25rem;
         text-shadow: 0 2px 16px rgba(0,0,0,.45);
     }
-    #detailsModal #athleteName .modal-league-rank,
-    #detailsModal #stickyAthleteName .modal-league-rank{
-        display: block;
-        font-size: var(--lwc-type-body, 1rem);
-        font-weight: 400;
-        text-shadow: none;
+    #detailsModal #athleteRankings{
+        display:flex;
+        width:min(100%, var(--athlete-modal-section-width));
+        margin:var(--lwc-space-3) auto var(--lwc-space-2);
     }
-    #detailsModal #stickyAthleteName .modal-league-rank{
-        font-size: var(--lwc-type-sm, .875rem);
+    #detailsModal #athleteRankings[hidden]{ display:none; }
+    #detailsModal #athleteRankings a{
+        display:flex;
+        flex:1 1 0;
+        flex-direction:column;
+        align-items:center;
+        gap:var(--lwc-space-1);
+        min-width:0;
+        min-height:44px;
+        padding:var(--lwc-space-2);
+        color:var(--athlete-modal-muted);
+        font-size:var(--lwc-type-sm);
+        text-decoration:none;
+    }
+    #detailsModal #athleteRankings a + a{ border-left:1px solid var(--athlete-modal-border); }
+    #detailsModal #athleteRankings strong{
+        color:var(--athlete-modal-link);
+        font-size:var(--lwc-type-h3);
+        line-height:1.2;
+        text-decoration:underline;
+        text-underline-offset:.18em;
+    }
+    #detailsModal #athleteRankings a:hover,
+    #detailsModal #athleteRankings a:focus-visible{
+        background:var(--lwc-accent-soft);
+    }
+    #detailsModal #athleteRankings a:focus-visible{
+        outline:2px solid var(--athlete-modal-link);
+        outline-offset:2px;
     }
     #detailsModal #athleteBio{
         width: min(100%, var(--athlete-modal-section-width));
@@ -3446,6 +3469,7 @@
                         <span class="pro-badge" aria-label="Pro division" title="Professional longevity athlete">PRO</span>
                     </span>
                     <h2 id="athleteName"></h2>
+                    <nav id="athleteRankings" aria-label="Competition rankings" hidden></nav>
                     <div id="athleteLoadError" role="alert" hidden>
                         <p>We could not load this profile. Try again, or close the panel and come back later.</p>
                         <button id="retryAthleteLoad" type="button" class="modal-link">Try again</button>
@@ -3525,7 +3549,6 @@
                                 <td>
                                     <span id="bortzAgeReduction"></span> <span class="unit">years</span>
                                     (<span id="bortzAgeReductionPercent"></span><span class="unit">%</span>)
-                                    <span class="detail-muted" hidden>(rank: <a id="bortzAgeReductionRank" class="league-link"></a>)</span>
                                 </td>
                             </tr>
 
@@ -3536,7 +3559,6 @@
                                 <td>
                                     <span id="ageReduction"></span> <span class="unit">years</span>
                                     (<span id="ageReductionPercent"></span><span class="unit">%</span>)
-                                    <span class="detail-muted" hidden>(rank: <a id="lowestPhenoAgeRank" class="league-link"></a>)</span>
                                 </td>
                             </tr>
                             </tbody>
@@ -6245,6 +6267,11 @@
 
         const athleteNameElement = document.getElementById('athleteName');
         if (athleteNameElement) athleteNameElement.textContent = 'Loading...';
+        const athleteRankings = document.getElementById('athleteRankings');
+        if (athleteRankings) {
+            athleteRankings.replaceChildren();
+            athleteRankings.hidden = true;
+        }
         const stickyAthleteName = document.getElementById('stickyAthleteName');
         if (stickyAthleteName) stickyAthleteName.textContent = 'Loading...';
 
@@ -7808,30 +7835,23 @@
         return ` <span class="modal-rank-text">(${rankText})</span>`;
     }
 
-    function getModalTitleRankMarkup(rank, leagueName) {
+    function getModalTitleRankMarkup(rank) {
         const rankText = getModalRankText(rank);
-        const label = leagueName ? `${escapeHtml(leagueName)} ${rankText}` : rankText;
-        const leagueClass = leagueName ? ' modal-league-rank' : '';
-        return rankText ? ` <span class="modal-rank-text${leagueClass}">(${label})</span>` : '';
+        return rankText ? ` <span class="modal-rank-text">(${rankText})</span>` : '';
     }
 
-    function updateClockRankLink(id, athleteData, clock) {
-        const link = document.getElementById(id);
-        const candidate = athleteData.bestRankCandidates?.find(item => item.leagueType === clock);
-        const rankText = getModalRankText(candidate?.rank);
-        const hasRank = !!(rankText && candidate?.href);
-        link.parentElement.hidden = !hasRank;
-        link.textContent = rankText;
-        if (!hasRank) {
-            link.removeAttribute('href');
-            link.removeAttribute('aria-label');
-            return;
-        }
-
-        // Row anchors retain the canonical Ultimate rank in every ranking view.
-        const anchor = getModalRankText(athleteData.rank) ? `#rank-${athleteData.rank}` : '';
-        link.setAttribute('href', `${candidate.href}${anchor}`);
-        link.setAttribute('aria-label', `${candidate.leagueName} League rank ${candidate.rank}`);
+    function renderProfileRankings(athleteData, ultimateRank) {
+        const rankings = document.getElementById('athleteRankings');
+        const candidates = [
+            { leagueType: 'ultimate', leagueName: 'Ultimate', rank: ultimateRank, href: '/leaderboard' },
+            ...['pheno', 'bortz'].map(clock => athleteData.bestRankCandidates?.find(item => item.leagueType === clock))
+        ].filter(candidate => candidate?.href && getModalRankText(candidate.rank));
+        // Every ranking view retains the athlete's canonical row anchor.
+        const anchor = getModalRankText(ultimateRank) ? `#rank-${ultimateRank}` : '';
+        rankings.innerHTML = candidates.map(candidate =>
+            `<a class="league-link" data-competition="${candidate.leagueType}" href="${escapeHtml(candidate.href + anchor)}" aria-label="${escapeHtml(candidate.leagueName)} League rank ${candidate.rank}"><span>${escapeHtml(candidate.leagueName)}</span><strong>${getModalRankText(candidate.rank)}</strong></a>`
+        ).join('');
+        rankings.hidden = candidates.length === 0;
     }
 
     function getModalDetailRankMarkup(rank) {
@@ -8868,16 +8888,14 @@
         const isPro = athleteData.bortzAgeReduction != null && Number.isFinite(athleteData.bortzAgeReduction);
         const shareSlugSource = String(fullAthleteData.AthleteSlug || athleteData.athleteSlug || athleteData.slug || modalDisplayName).replace(/_/g, '-');
         const shareAthleteSlug = window.slugifyName(shareSlugSource, true);
-        const athleteNameWithRank = `${escapeHtml(modalDisplayName)}${getModalTitleRankMarkup(ultimateRank, 'Ultimate League')}`;
         const athleteNameElement = document.getElementById('athleteName');
-        athleteNameElement.innerHTML = athleteNameWithRank;
+        athleteNameElement.textContent = modalDisplayName;
+        renderProfileRankings(athleteData, ultimateRank);
         configureAthleteShareButton(modalDisplayName, shareAthleteSlug, ultimateRank);
         
-        // Set sticky header name - use the full content including rank badges/emojis
         const stickyAthleteName = document.getElementById('stickyAthleteName');
         if (stickyAthleteName) {
-            // Clone the full content including any HTML (like emojis/badges)
-            stickyAthleteName.innerHTML = athleteNameElement.innerHTML;
+            stickyAthleteName.textContent = modalDisplayName;
         }
         
         const profilePic = document.getElementById('modalProfilePic');
@@ -8917,8 +8935,6 @@
             lowestBortzAgeContainer.style.display = 'none';
         }
         document.getElementById('lowestPhenoAge').textContent = athleteData.lowestPhenoAge.toFixed(1);
-        updateClockRankLink('lowestPhenoAgeRank', athleteData, 'pheno');
-        updateClockRankLink('bortzAgeReductionRank', athleteData, 'bortz');
         const bortzAgeReductionContainer = document.getElementById('bortzAgeReductionContainer');
         const bortzAgeReductionLabel = document.getElementById('bortzAgeReductionAccelerationLabel');
         if (athleteData.bortzAgeReduction != null && Number.isFinite(athleteData.bortzAgeReduction)) {

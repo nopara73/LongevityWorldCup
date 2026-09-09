@@ -8,7 +8,7 @@
 - Leaderboard search preserves ranks and displayed score precision within the selected ranking view and league filters. Searching or limiting visible rows never renumbers the matching athletes or substitutes their Ultimate League ranks. Displayed scores and the existing one-decimal score form are searchable.
 - **Biological Age Difference**: biological minus chronological age, lower is better; **Age Reduction** is its favorable public label. Compute with unrounded ages; round only for display.
 - **Effective Age Reduction**: Ultimate League score, Bortz for Pro, otherwise pheno.
-- **Pheno Age**, **Bortz Age**, and **Crowd Age** are distinct clocks/views. Calculator rank previews use only the selected clock's field. Pheno and Bortz competition ranks compare age reduction, not raw biological age; an athlete's profile heading and default sharing use Ultimate League rank.
+- **Pheno Age**, **Bortz Age**, and **Crowd Age** are distinct clocks/views. Calculator rank previews use only the selected clock's field. Pheno and Bortz competition ranks compare age reduction, not raw biological age. Profile competition links show global ranks; default sharing uses Ultimate League rank.
 - Albumin is capped at 54 g/L after unit conversion in both biological-age calculations and domain contributions. Preserve original stored/displayed lab values; higher values confer no scoring benefit.
 - **Proof**: evidence for an athlete, profile, or result. **Profile picture**: public display image.
 - **Event**: persisted public/social output; **Custom Event**: admin-created. **Badge**: computed award. **Social post**: copy for X, Threads, Facebook, Slack, or future integrations.

@@ -10,10 +10,12 @@ public sealed class AthleteCompetitionRankBrowserTests(
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Theory]
+    [InlineData("Michael Lustgarten", false, 320)]
     [InlineData("Michael Lustgarten", false, 390)]
     [InlineData("Michael Lustgarten", false, 1280)]
     [InlineData("Benjamin Garden", true, 390)]
     [InlineData("Benjamin Garden", true, 1280)]
+    [InlineData("Benjamin Garden", true, 320)]
     public async Task ProfileRanks_NameTheirCompetitionAndOpenTheMatchingAthlete(
         string name, bool isPro, int width)
     {
@@ -28,29 +30,31 @@ public sealed class AthleteCompetitionRankBrowserTests(
         await WaitForProfileAsync(page);
         var profileUrl = page.Url;
 
-        await Assertions.Expect(page.Locator("#athleteName")).ToContainTextAsync($"Ultimate League #{ultimateRank}");
+        await Assertions.Expect(page.Locator("#athleteName")).Not.ToContainTextAsync("#");
+        await Assertions.Expect(page.Locator("#athleteName")).ToContainTextAsync(name);
+        await Assertions.Expect(CompetitionLink(page, "ultimate").Locator("strong")).ToHaveTextAsync($"#{ultimateRank}");
         Assert.Contains($"ranked #{ultimateRank}", await page.Locator("#shareAthleteProfile").GetAttributeAsync("data-share-text"));
         Assert.DoesNotContain("rank:", await page.Locator("#lowestPhenoAgeContainer").InnerTextAsync());
-        await AssertClockRankLinkAsync(page, "lowestPhenoAgeRank", "Pheno", phenoRank, ultimateRank);
+        await AssertClockRankLinkAsync(page, "pheno", "Pheno", phenoRank, ultimateRank);
         if (isPro)
-            await AssertClockRankLinkAsync(page, "bortzAgeReductionRank", "Bortz", bortzRank!, ultimateRank);
+            await AssertClockRankLinkAsync(page, "bortz", "Bortz", bortzRank!, ultimateRank);
         else
-            await Assertions.Expect(page.Locator("#bortzAgeReductionRank")).ToBeHiddenAsync();
+            await Assertions.Expect(CompetitionLink(page, "bortz")).ToBeHiddenAsync();
 
-        var phenoLink = page.Locator("#lowestPhenoAgeRank");
-        await phenoLink.ScrollIntoViewIfNeededAsync();
-        var stickyRank = page.Locator("#stickyAthleteName .modal-league-rank");
-        await Assertions.Expect(stickyRank).ToBeVisibleAsync();
-        Assert.True(await stickyRank.EvaluateAsync<bool>("""
-            el => {
-                const text = document.createRange();
-                text.selectNodeContents(el);
-                const label = text.getBoundingClientRect();
-                const title = el.parentElement.getBoundingClientRect();
-                return label.left >= title.left && label.right <= title.right
-                    && label.top >= title.top && label.bottom <= title.bottom;
+        var phenoLink = CompetitionLink(page, "pheno");
+        Assert.True(await page.EvaluateAsync<bool>("""
+            () => {
+                const rankings = document.querySelector('#athleteRankings').getBoundingClientRect();
+                const name = document.querySelector('#athleteName').getBoundingClientRect();
+                const bio = document.querySelector('#athleteBio').getBoundingClientRect();
+                return rankings.top >= name.bottom && rankings.bottom <= bio.top
+                    && rankings.bottom <= innerHeight
+                    && [...document.querySelectorAll('#athleteRankings a')].every(link => {
+                        const box = link.getBoundingClientRect();
+                        return box.width >= 44 && box.height >= 44 && box.left >= rankings.left && box.right <= rankings.right + 1;
+                    });
             }
-            """), "The sticky heading must show the complete competition and rank.");
+            """), "Every competition rank must be visible below the name on opening, with usable links.");
         await phenoLink.FocusAsync();
         await Assertions.Expect(phenoLink).ToBeFocusedAsync();
         await phenoLink.PressAsync("Enter");
@@ -61,16 +65,22 @@ public sealed class AthleteCompetitionRankBrowserTests(
         await page.GoBackAsync();
         await page.WaitForURLAsync(profileUrl);
         await WaitForProfileAsync(page);
-        await Assertions.Expect(page.Locator("#athleteName")).ToContainTextAsync($"Ultimate League #{ultimateRank}");
+        await Assertions.Expect(page.Locator("#athleteName")).Not.ToContainTextAsync("#");
 
         if (isPro)
         {
-            await page.Locator("#bortzAgeReductionRank").ClickAsync();
+            await CompetitionLink(page, "bortz").ClickAsync();
             await AssertRankDestinationAsync(page, name, "bortz", bortzRank!, ultimateRank);
             await page.GoBackAsync();
             await page.WaitForURLAsync(profileUrl);
             await WaitForProfileAsync(page);
         }
+
+        await CompetitionLink(page, "ultimate").ClickAsync();
+        await AssertRankDestinationAsync(page, name, "ultimate", ultimateRank, ultimateRank);
+        await page.GoBackAsync();
+        await page.WaitForURLAsync(profileUrl);
+        await WaitForProfileAsync(page);
 
         await page.Locator("#closeAthleteDetailsModal").ClickAsync();
         await page.WaitForURLAsync(callingUrl);
@@ -127,9 +137,9 @@ public sealed class AthleteCompetitionRankBrowserTests(
         if (entry == "/about")
             await page.Locator("main.documentation-page a[href='/athlete/michael-lustgarten']").First.ClickAsync();
         await WaitForProfileAsync(page);
-        await Assertions.Expect(page.Locator("#athleteName")).ToContainTextAsync($"Ultimate League #{ultimateRank}");
-        await AssertClockRankLinkAsync(page, "lowestPhenoAgeRank", "Pheno", phenoRank, ultimateRank);
-        await page.Locator("#lowestPhenoAgeRank").ClickAsync();
+        await Assertions.Expect(page.Locator("#athleteName")).Not.ToContainTextAsync("#");
+        await AssertClockRankLinkAsync(page, "pheno", "Pheno", phenoRank, ultimateRank);
+        await CompetitionLink(page, "pheno").ClickAsync();
         await AssertRankDestinationAsync(page, name, "pheno", phenoRank, ultimateRank);
     }
 
@@ -141,7 +151,7 @@ public sealed class AthleteCompetitionRankBrowserTests(
         await ReadLeaderboardRankAsync(page, "Benjamin Garden", "ultimate");
         await Row(page, "Benjamin Garden").Locator(".athlete-name").ClickAsync();
         await WaitForProfileAsync(page);
-        await Assertions.Expect(page.Locator("#bortzAgeReductionRank")).ToBeVisibleAsync();
+        await Assertions.Expect(CompetitionLink(page, "bortz")).ToBeVisibleAsync();
         await page.Locator("#closeAthleteDetailsModal").ClickAsync();
         await Assertions.Expect(page.Locator("#detailsModal")).ToBeHiddenAsync();
 
@@ -149,9 +159,9 @@ public sealed class AthleteCompetitionRankBrowserTests(
         var ultimateRank = (await Row(page, "Michael Lustgarten").Locator(".rank").InnerTextAsync()).Trim();
         await Row(page, "Michael Lustgarten").Locator(".athlete-name").ClickAsync();
         await WaitForProfileAsync(page);
-        await Assertions.Expect(page.Locator("#bortzAgeReductionRank")).ToBeHiddenAsync();
-        Assert.Null(await page.Locator("#bortzAgeReductionRank").GetAttributeAsync("href"));
-        await Assertions.Expect(page.Locator("#lowestPhenoAgeRank")).ToHaveAttributeAsync("href", $"/league/pheno#rank-{ultimateRank}");
+        await Assertions.Expect(CompetitionLink(page, "bortz")).ToBeHiddenAsync();
+        await Assertions.Expect(CompetitionLink(page, "bortz")).ToHaveCountAsync(0);
+        await Assertions.Expect(CompetitionLink(page, "pheno")).ToHaveAttributeAsync("href", $"/league/pheno#rank-{ultimateRank}");
     }
 
     private async Task<IBrowserContext> NewContextAsync(int width)
@@ -181,22 +191,22 @@ public sealed class AthleteCompetitionRankBrowserTests(
         return (await Row(page, name).Locator(".rank").InnerTextAsync()).Trim();
     }
 
-    private static async Task AssertClockRankLinkAsync(IPage page, string id, string clock, string rank, string ultimateRank)
+    private static async Task AssertClockRankLinkAsync(IPage page, string view, string clock, string rank, string ultimateRank)
     {
-        var link = page.Locator($"#{id}");
-        await Assertions.Expect(link).ToHaveTextAsync($"#{rank}");
+        var link = CompetitionLink(page, view);
+        await Assertions.Expect(link.Locator("span")).ToHaveTextAsync($"{clock} Age");
+        await Assertions.Expect(link.Locator("strong")).ToHaveTextAsync($"#{rank}");
         await Assertions.Expect(link).ToHaveAttributeAsync("aria-label", $"{clock} Age League rank {rank}");
         await Assertions.Expect(link).ToHaveAttributeAsync("href", $"/league/{clock.ToLowerInvariant()}#rank-{ultimateRank}");
-        var rowId = clock == "Pheno" ? "ageReductionContainer" : "bortzAgeReductionContainer";
-        Assert.True(await link.EvaluateAsync<bool>("(el, id) => el.closest('tr')?.id === id", rowId));
     }
 
     private static async Task AssertRankDestinationAsync(IPage page, string name, string view, string rank, string ultimateRank)
     {
-        await page.WaitForURLAsync(url => new Uri(url).AbsolutePath == $"/league/{view}" && new Uri(url).Fragment == $"#rank-{ultimateRank}");
+        var path = view == "ultimate" ? "/leaderboard" : $"/league/{view}";
+        await page.WaitForURLAsync(url => new Uri(url).AbsolutePath == path && new Uri(url).Fragment == $"#rank-{ultimateRank}");
         await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
         await Assertions.Expect(page.Locator($"#view-{view}")).ToBeCheckedAsync();
-        await Assertions.Expect(page.Locator(".leaderboard-selection-chip")).ToHaveCountAsync(1);
+        await Assertions.Expect(page.Locator(".leaderboard-selection-chip")).ToHaveCountAsync(view == "ultimate" ? 0 : 1);
         await Assertions.Expect(Row(page, name).Locator(".rank")).ToHaveTextAsync(rank);
         await Assertions.Expect(Row(page, name)).ToBeInViewportAsync();
     }
@@ -205,4 +215,5 @@ public sealed class AthleteCompetitionRankBrowserTests(
         "#detailsModal[style*='display: block'] .modal-content[data-athlete-slug]:not(.is-loading):not(.has-load-error)");
 
     private static ILocator Row(IPage page, string name) => page.Locator($".leaderboard tbody tr[data-athlete-name=\"{name}\"]");
+    private static ILocator CompetitionLink(IPage page, string view) => page.Locator($"#athleteRankings a[data-competition='{view}']");
 }
