@@ -1740,7 +1740,7 @@
                     5: 'uploadProofButton', 6: 'personalLink', 7: 'accountEmail'
                 }[stage];
                 const target = targetId ? document.getElementById(targetId) : document.querySelector('h1');
-                target?.focus();
+                target?.focus({ preventScroll: true });
             }
         }
 
