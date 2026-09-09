@@ -17,6 +17,19 @@ public sealed class LongevitymaxxingController(LongevitymaxxingChallengeService 
     public IActionResult GetPublicState()
         => Ok(_challenge.GetPublicState());
 
+    [HttpGet("discussion/thread")]
+    public IActionResult GetDiscussionThread(string? postParticipantId = null, int challengeDay = 0, string? systemPostId = null)
+    {
+        try
+        {
+            return Ok(_challenge.GetDiscussionThread(postParticipantId, challengeDay, systemPostId));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+    }
+
     [HttpPost("signup")]
     public async Task<IActionResult> Signup([FromBody] LongevitymaxxingSignupRequest request, CancellationToken ct)
     {

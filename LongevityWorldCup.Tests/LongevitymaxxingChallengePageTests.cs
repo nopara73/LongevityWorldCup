@@ -591,7 +591,7 @@ public sealed class LongevitymaxxingChallengePageTests(TestWebApplicationFactory
         Assert.Contains("`${API}/discussion/replies/page`", javascript);
         Assert.Contains("`${API}/discussion/replies/edit`", javascript);
         Assert.Contains("`${API}/discussion/replies/delete`", javascript);
-        Assert.Contains("function loadEarlierDiscussionReplies(button: HTMLButtonElement): Promise<void>", javascript);
+        Assert.Contains("function loadEarlierDiscussionReplies(button: HTMLButtonElement", javascript);
         Assert.Contains("function createDiscussionReplyId(): string", javascript);
         Assert.Contains("replyId: draft.replyId", javascript);
         Assert.Contains("function discussionRepliesHtml(note: ParticipantNote): string", javascript);

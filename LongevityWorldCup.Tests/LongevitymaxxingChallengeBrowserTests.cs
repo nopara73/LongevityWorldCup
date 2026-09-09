@@ -757,12 +757,10 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
 
         var checkInText = await page.Locator("#lmxCheckinList").InnerTextAsync();
         Assert.Contains("Active discussion", checkInText);
-        Assert.Contains("Fox\nFri, Jun 12 · Day 5", checkInText);
+        await Assertions.Expect(remarks.Locator(".lmx-discussion-post-author strong")).ToHaveTextAsync(["Fox", "Ari", "Bea"]);
         Assert.Contains("An older post with enough current discussion to rank first.", checkInText);
-        Assert.Contains("Ari\nMon, Jun 29 · Day 22", checkInText);
         Assert.Contains("First recent public remark.", checkInText);
-        Assert.Contains("Bea\nSun, Jun 28 · Day 21", checkInText);
-        Assert.DoesNotContain("Cam\nSat, Jun 27 · Day 20", checkInText);
+        Assert.Equal(new[] { "5", "22", "21" }, await remarks.EvaluateAllAsync<string[]>("items => items.map(item => item.dataset.discussionPostChallengeDay)"));
         Assert.DoesNotContain("Fourth older public remark.", checkInText);
         Assert.DoesNotContain("Private participant-only remark.", checkInText);
 
@@ -1518,11 +1516,8 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
         Assert.True(await newer.IsDisabledAsync());
         Assert.False(await older.IsDisabledAsync());
         var firstPageText = await notes.InnerTextAsync();
-        Assert.Contains("Fox\nFri, Jun 12 · Day 5", firstPageText);
+        await Assertions.Expect(notes.Locator(".lmx-discussion-post-author strong")).ToHaveTextAsync(["Fox", "Ari", "Bea", "Cam", "Dee"]);
         Assert.Contains("An older post with enough current discussion to rank first.", firstPageText);
-        Assert.Contains("Ari\nMon, Jun 29 · Day 22", firstPageText);
-        Assert.Contains("Cam\nSat, Jun 27 · Day 20", firstPageText);
-        Assert.Contains("Dee\nFri, Jun 26 · Day 19", firstPageText);
         Assert.DoesNotContain("Another note from the same day.", firstPageText);
         var postHeader = notes.Locator(".lmx-discussion-post-header").First;
         Assert.Equal("div", await postHeader.EvaluateAsync<string>("element => element.tagName.toLowerCase()"));
@@ -1537,7 +1532,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
         Assert.Equal("6 of 6", await label.InnerTextAsync());
         Assert.Equal("Discussion post 6 of 6", await label.GetAttributeAsync("aria-label"));
         var oldestPageText = await notes.InnerTextAsync();
-        Assert.Contains("Eli\nFri, Jun 26 · Day 19", oldestPageText);
+        await Assertions.Expect(notes.Locator(".lmx-discussion-post-author strong")).ToHaveTextAsync("Eli");
         Assert.Contains("Another note from the same day.", oldestPageText);
         Assert.DoesNotContain("Fox", oldestPageText);
         Assert.True(await older.IsDisabledAsync());
@@ -1719,12 +1714,9 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
         Assert.Equal("Active public discussion", await publicDiscussion.GetAttributeAsync("aria-label"));
         Assert.Equal(3, await publicDiscussion.Locator(".lmx-recent-remark").CountAsync());
         var publicDiscussionText = await publicDiscussion.InnerTextAsync();
-        Assert.Contains("Fox\nFri, Jun 12 · Day 5", publicDiscussionText);
+        await Assertions.Expect(publicDiscussion.Locator(".lmx-discussion-post-author strong")).ToHaveTextAsync(["Fox", "Ari", "Bea"]);
         Assert.Contains("An older post with enough current discussion to rank first.", publicDiscussionText);
-        Assert.Contains("Ari\nMon, Jun 29 · Day 22", publicDiscussionText);
         Assert.Contains("First recent public remark.", publicDiscussionText);
-        Assert.Contains("Bea\nSun, Jun 28 · Day 21", publicDiscussionText);
-        Assert.DoesNotContain("Cam\nSat, Jun 27 · Day 20", publicDiscussionText);
         Assert.DoesNotContain("Private participant-only remark.", publicDiscussionText);
 
         var answerInputs = dialog.Locator(".lmx-answer-input");

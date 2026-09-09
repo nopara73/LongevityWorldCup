@@ -50,6 +50,10 @@ public sealed record LongevitymaxxingDiscussionReplyPage(
     string? NextBeforeCreatedAtUtc,
     string? NextBeforeReplyId);
 
+public sealed record LongevitymaxxingDiscussionThread(
+    LongevitymaxxingParticipantNote? Note,
+    LongevitymaxxingDiscussionSystemPost? SystemPost);
+
 public sealed record LongevitymaxxingParticipantEditRequest(
     string AccessToken,
     string TimeZoneId,

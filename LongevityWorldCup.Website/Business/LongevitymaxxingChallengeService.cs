@@ -890,6 +890,25 @@ public sealed class LongevitymaxxingChallengeService
         return GetParticipantState(request.AccessToken, now);
     }
 
+    public LongevitymaxxingDiscussionThread GetDiscussionThread(string? postParticipantId, int challengeDay, string? systemPostId = null)
+    {
+        const string unavailable = "That discussion post is no longer available.";
+        var now = DateTimeOffset.UtcNow;
+        if (!string.IsNullOrWhiteSpace(systemPostId))
+        {
+            var id = NormalizeOptionalSystemDiscussionPostId(systemPostId);
+            var post = GetSystemDiscussionPosts(now, id).SingleOrDefault()
+                ?? throw new InvalidOperationException(unavailable);
+            return new LongevitymaxxingDiscussionThread(null, post);
+        }
+
+        if (!Guid.TryParse(postParticipantId, out var participantId) || challengeDay < 1)
+            throw new InvalidOperationException(unavailable);
+        var note = GetParticipantNotes(publicOnly: true, now, participantId.ToString("N"), challengeDay).SingleOrDefault()
+            ?? throw new InvalidOperationException(unavailable);
+        return new LongevitymaxxingDiscussionThread(note, null);
+    }
+
     public LongevitymaxxingDiscussionReplyPage GetDiscussionReplyPage(
         LongevitymaxxingDiscussionReplyPageRequest request)
     {
@@ -3480,7 +3499,8 @@ public sealed class LongevitymaxxingChallengeService
         return 1d + ((FinalDayScoreMultiplier - 1d) * progress);
     }
 
-    private IReadOnlyList<LongevitymaxxingParticipantNote> GetParticipantNotes(bool publicOnly, DateTimeOffset now)
+    private IReadOnlyList<LongevitymaxxingParticipantNote> GetParticipantNotes(
+        bool publicOnly, DateTimeOffset now, string? postParticipantId = null, int challengeDay = 0)
     {
         return _db.Run(sqlite =>
         {
@@ -3497,6 +3517,7 @@ public sealed class LongevitymaxxingChallengeService
                   ON r.PostParticipantId = c.ParticipantId
                  AND r.PostChallengeDay = c.ChallengeDay
                 WHERE p.ConfirmedAtUtc IS NOT NULL
+                  AND (@postParticipantId IS NULL OR (c.ParticipantId = @postParticipantId AND c.ChallengeDay = @challengeDay))
                   {(publicOnly ? "AND c.CheckedInAtUtc >= @publicNotesStart" : "")}
                   AND (
                     (c.Note IS NOT NULL AND TRIM(c.Note) <> '')
@@ -3510,6 +3531,8 @@ public sealed class LongevitymaxxingChallengeService
                 GROUP BY p.Id, p.DisplayName, c.ChallengeDay, c.ChallengeDate, c.Note,
                          COALESCE(c.DiscussionUpdatedAtUtc, c.UpdatedAtUtc);
                 """;
+            Add(cmd, "@postParticipantId", postParticipantId);
+            Add(cmd, "@challengeDay", challengeDay);
             if (publicOnly)
                 Add(cmd, "@publicNotesStart", PublicParticipantNotesStartAtUtc);
             var rows = new List<DiscussionThreadRow>();
@@ -3568,7 +3591,7 @@ public sealed class LongevitymaxxingChallengeService
         });
     }
 
-    private IReadOnlyList<LongevitymaxxingDiscussionSystemPost> GetSystemDiscussionPosts(DateTimeOffset now)
+    private IReadOnlyList<LongevitymaxxingDiscussionSystemPost> GetSystemDiscussionPosts(DateTimeOffset now, string? postId = null)
     {
         return _db.Run(sqlite =>
         {
@@ -3581,9 +3604,11 @@ public sealed class LongevitymaxxingChallengeService
                 JOIN LongevitymaxxingParticipants participant ON participant.Id = post.ParticipantId
                 LEFT JOIN LongevitymaxxingDiscussionSystemPostReplies reply ON reply.PostId = post.Id
                 WHERE participant.ConfirmedAtUtc IS NOT NULL
+                  AND (@postId IS NULL OR post.Id = @postId)
                 GROUP BY post.Id, post.Kind, post.ParticipantId, participant.DisplayName,
                          post.OccurredDate, post.OccurredAtUtc;
                 """;
+            Add(cmd, "@postId", postId);
             var rows = new List<SystemDiscussionPostRow>();
             using var reader = cmd.ExecuteReader();
             while (reader.Read())
