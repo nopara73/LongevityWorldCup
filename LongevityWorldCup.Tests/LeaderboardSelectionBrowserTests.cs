@@ -58,6 +58,14 @@ public sealed class LeaderboardSelectionBrowserTests(PlaywrightBrowserFixture br
             await page.SetViewportSizeAsync(390, 844);
             await Assertions.Expect(page.Locator(".collapsed-title")).ToBeHiddenAsync();
             await page.WaitForFunctionAsync("() => !document.querySelector('.leaderboard').style.getPropertyValue('--leaderboard-title-height')");
+            await page.WaitForFunctionAsync(
+                """
+                () => {
+                    const frame = document.querySelector('.leaderboard').getBoundingClientRect();
+                    const table = document.querySelector('.leaderboard > table').getBoundingClientRect();
+                    return Math.abs(frame.height - table.height) <= 2.5;
+                }
+                """);
             await page.SetViewportSizeAsync(1280, 844);
             await AssertVisibleRailAsync(page, title);
         }
