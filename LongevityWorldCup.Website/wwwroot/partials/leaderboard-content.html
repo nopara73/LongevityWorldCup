@@ -923,7 +923,6 @@
     .modal-content.is-loading #chronologicalAge,
     .modal-content.is-loading #lowestBortzAge,
     .modal-content.is-loading #lowestPhenoAge,
-    .modal-content.is-loading #lowestPhenoAgeRank,
     .modal-content.is-loading #bortzAgeReduction,
     .modal-content.is-loading #bortzAgeReductionPercent,
     .modal-content.is-loading #ageReduction,
@@ -1188,6 +1187,41 @@
         color: var(--athlete-modal-text);
         margin-bottom: .25rem;
         text-shadow: 0 2px 16px rgba(0,0,0,.45);
+    }
+    #detailsModal #athleteRankings{
+        display:flex;
+        width:min(100%, var(--athlete-modal-section-width));
+        margin:var(--lwc-space-3) auto var(--lwc-space-2);
+    }
+    #detailsModal #athleteRankings[hidden]{ display:none; }
+    #detailsModal #athleteRankings a{
+        display:flex;
+        flex:1 1 0;
+        flex-direction:column;
+        align-items:center;
+        gap:var(--lwc-space-1);
+        min-width:0;
+        min-height:44px;
+        padding:var(--lwc-space-2);
+        color:var(--athlete-modal-muted);
+        font-size:var(--lwc-type-sm);
+        text-decoration:none;
+    }
+    #detailsModal #athleteRankings a + a{ border-left:1px solid var(--athlete-modal-border); }
+    #detailsModal #athleteRankings strong{
+        color:var(--athlete-modal-link);
+        font-size:var(--lwc-type-h3);
+        line-height:1.2;
+        text-decoration:underline;
+        text-underline-offset:.18em;
+    }
+    #detailsModal #athleteRankings a:hover,
+    #detailsModal #athleteRankings a:focus-visible{
+        background:var(--lwc-accent-soft);
+    }
+    #detailsModal #athleteRankings a:focus-visible{
+        outline:2px solid var(--athlete-modal-link);
+        outline-offset:2px;
     }
     #detailsModal #athleteBio{
         width: min(100%, var(--athlete-modal-section-width));
@@ -3435,6 +3469,7 @@
                         <span class="pro-badge" aria-label="Pro division" title="Professional longevity athlete">PRO</span>
                     </span>
                     <h2 id="athleteName"></h2>
+                    <nav id="athleteRankings" aria-label="Competition rankings" hidden></nav>
                     <div id="athleteLoadError" role="alert" hidden>
                         <p>We could not load this profile. Try again, or close the panel and come back later.</p>
                         <button id="retryAthleteLoad" type="button" class="modal-link">Try again</button>
@@ -3493,7 +3528,7 @@
 
                             <tr id="lowestPhenoAgeContainer">
                                 <th scope="row"><strong>Lowest Pheno Age:</strong></th>
-                                <td><span id="lowestPhenoAge"></span> <span class="unit">years</span> <span class="detail-muted">(rank: <span id="lowestPhenoAgeRank" class="detail-value"></span>)</span></td>
+                                <td><span id="lowestPhenoAge"></span> <span class="unit">years</span></td>
                             </tr>
 
 
@@ -3687,7 +3722,6 @@
     let athleteResults = [];
     let athletesOrderedByPace;
     let athletesOrderedByBortzPace;
-    let athletesOrderedByPhenoAgeReduction;
     const isAthleteDialogOnlyRuntime = athleteDialogRuntime.dataset.athleteDialogOnly === 'true';
     let athleteResultsReady = false;
     let athleteResultsLoadPromise = null;
@@ -4238,6 +4272,24 @@
             slug,
             flagKey: getFlagFilterKey(slug)
         };
+    }
+
+    function normalizeLegacyLeagueRoute() {
+        const url = new URL(window.location.href);
+        const route = getLeagueRouteState(url.pathname);
+        if (route.slug === 'pheno-improvement') {
+            url.pathname = '/league/improvement';
+        } else if (route.slug === 'ultimate') {
+            url.pathname = originalLeaguelessURL.pathname;
+        } else if (route.filterLabel && !leagueFilterRoutes[route.slug]?.canonical) {
+            url.pathname = originalLeaguelessURL.pathname;
+            if (!url.searchParams.has('filters')) {
+                url.searchParams.set('filters', serializeFiltersParam([route.filterLabel.toLowerCase()]));
+            }
+        } else {
+            return;
+        }
+        history.replaceState(history.state || {}, '', url.toString());
     }
 
 
@@ -5085,8 +5137,6 @@
                     athleteResults.filter(a => a.lowestBortzAge != null && a.chronoAtLowestBortzAge != null && Number.isFinite(a.lowestBortzAge / a.chronoAtLowestBortzAge)),
                     a => a.lowestBortzAge / a.chronoAtLowestBortzAge
                 );
-                athletesOrderedByPhenoAgeReduction = athleteResults.slice();
-                athletesOrderedByPhenoAgeReduction.sort(window.compareAthleteRankPhenoOnly);
                 assignBestRankCandidates(athleteResults);
                 athleteResultsReady = true;
 
@@ -5205,7 +5255,7 @@
                                     }, img => `Enlarge ${img.alt || 'image'}`);
 
                                     if (hasActiveLeaderboardState()) {
-                                        performFilter();
+                                        performFilter({ updateUrl: false });
                                     }
                                 })
                                 .catch(error => {
@@ -5325,23 +5375,6 @@
                     addClickListenerToImages('.portrait, .podium-portrait', handleAthleteNameClick);
                 });
                 scheduleLeaderboardTableHeightSync();
-                setLeaderboardStatus('Leaderboard loaded.');
-
-                if (!isAthleteDialogOnlyRuntime) {
-                    performFilter({ updateUrl: false });
-                }
-
-                const hash = window.location.hash;
-                if (hash && /^#rank-\d+$/.test(hash)) {
-                    const el = document.querySelector(hash);
-                    if (el) {
-                        ScrollGuard.setAnchorTarget(el);
-                        // Do the trusted scroll *first*…
-                        ScrollGuard.trustedScrollIntoView(el, { behavior: 'smooth', block: 'start' });
-                        // …then block anything else from hijacking the viewport for ~1.6s
-                        ScrollGuard.block(1600);
-                    }
-                }
 
                 // At the end of the athlete fetch block in LoadLeaderboard, after athleteResults has been populated:
                 const leagueRouteState = getLeagueRouteState(window.location.pathname);
@@ -5421,7 +5454,7 @@
                     updateLeaderboardTitles(getSelectedLeaderboardState());
 
                     if (searchOrFilterApplied) {
-                        debounceFilterAthletes();
+                        toggleClearIcon();
 
                         // Even here scroll to the search when filter applied because the table kinda starts there conceptually
                         setTimeout(() => {
@@ -5431,6 +5464,22 @@
                         }, 1000);
                     }
                 }
+
+                if (!isAthleteDialogOnlyRuntime) {
+                    // Apply the complete incoming selection before locating its athlete.
+                    // Hydration must not remove the rank fragment or rewrite the shared URL.
+                    performFilter({ updateUrl: false });
+                    const hash = window.location.hash;
+                    if (hash && /^#rank-\d+$/.test(hash)) {
+                        const target = document.querySelector(hash);
+                        if (target?.getClientRects().length) {
+                            ScrollGuard.setAnchorTarget(target);
+                            ScrollGuard.trustedScrollIntoView(target, { behavior: 'smooth', block: 'start' });
+                            ScrollGuard.block(1600);
+                        }
+                    }
+                }
+                setLeaderboardStatus('Leaderboard loaded.');
 
                 // Pick up dynamically inserted [data-aos] nodes
                 if (window.AOS && typeof AOS.refreshHard === 'function') {
@@ -6218,6 +6267,11 @@
 
         const athleteNameElement = document.getElementById('athleteName');
         if (athleteNameElement) athleteNameElement.textContent = 'Loading...';
+        const athleteRankings = document.getElementById('athleteRankings');
+        if (athleteRankings) {
+            athleteRankings.replaceChildren();
+            athleteRankings.hidden = true;
+        }
         const stickyAthleteName = document.getElementById('stickyAthleteName');
         if (stickyAthleteName) stickyAthleteName.textContent = 'Loading...';
 
@@ -7195,7 +7249,10 @@
         scheduleLeaderboardTableHeightSync();
 
         // Initial hydration must preserve direct rank/profile fragments and unrelated URL state.
-        if (!updateUrl) return;
+        if (!updateUrl) {
+            normalizeLegacyLeagueRoute();
+            return;
+        }
 
         const url = new URL(window.location.href);
         url.hash = ""; // <- this line removes #ABCD or any other fragment
@@ -7781,6 +7838,20 @@
     function getModalTitleRankMarkup(rank) {
         const rankText = getModalRankText(rank);
         return rankText ? ` <span class="modal-rank-text">(${rankText})</span>` : '';
+    }
+
+    function renderProfileRankings(athleteData, ultimateRank) {
+        const rankings = document.getElementById('athleteRankings');
+        const candidates = [
+            { leagueType: 'ultimate', leagueName: 'Ultimate', rank: ultimateRank, href: '/leaderboard' },
+            ...['pheno', 'bortz'].map(clock => athleteData.bestRankCandidates?.find(item => item.leagueType === clock))
+        ].filter(candidate => candidate?.href && getModalRankText(candidate.rank));
+        // Every ranking view retains the athlete's canonical row anchor.
+        const anchor = getModalRankText(ultimateRank) ? `#rank-${ultimateRank}` : '';
+        rankings.innerHTML = candidates.map(candidate =>
+            `<a class="league-link" data-competition="${candidate.leagueType}" href="${escapeHtml(candidate.href + anchor)}" aria-label="${escapeHtml(candidate.leagueName)} League rank ${candidate.rank}"><span>${escapeHtml(candidate.leagueName)}</span><strong>${getModalRankText(candidate.rank)}</strong></a>`
+        ).join('');
+        rankings.hidden = candidates.length === 0;
     }
 
     function getModalDetailRankMarkup(rank) {
@@ -8817,16 +8888,14 @@
         const isPro = athleteData.bortzAgeReduction != null && Number.isFinite(athleteData.bortzAgeReduction);
         const shareSlugSource = String(fullAthleteData.AthleteSlug || athleteData.athleteSlug || athleteData.slug || modalDisplayName).replace(/_/g, '-');
         const shareAthleteSlug = window.slugifyName(shareSlugSource, true);
-        const athleteNameWithRank = `${escapeHtml(modalDisplayName)}${getModalTitleRankMarkup(ultimateRank)}`;
         const athleteNameElement = document.getElementById('athleteName');
-        athleteNameElement.innerHTML = athleteNameWithRank;
+        athleteNameElement.textContent = modalDisplayName;
+        renderProfileRankings(athleteData, ultimateRank);
         configureAthleteShareButton(modalDisplayName, shareAthleteSlug, ultimateRank);
         
-        // Set sticky header name - use the full content including rank badges/emojis
         const stickyAthleteName = document.getElementById('stickyAthleteName');
         if (stickyAthleteName) {
-            // Clone the full content including any HTML (like emojis/badges)
-            stickyAthleteName.innerHTML = athleteNameElement.innerHTML;
+            stickyAthleteName.textContent = modalDisplayName;
         }
         
         const profilePic = document.getElementById('modalProfilePic');
@@ -8866,11 +8935,6 @@
             lowestBortzAgeContainer.style.display = 'none';
         }
         document.getElementById('lowestPhenoAge').textContent = athleteData.lowestPhenoAge.toFixed(1);
-        const lowestPhenoAgeRank = findAthleteIndexByName(athletesOrderedByPhenoAgeReduction || [], athleteData.name) + 1;
-        const lowestPhenoAgeRankEl = document.getElementById('lowestPhenoAgeRank');
-        lowestPhenoAgeRankEl.textContent = Number.isFinite(lowestPhenoAgeRank) && lowestPhenoAgeRank > 0
-            ? '#' + lowestPhenoAgeRank
-            : '';
         const bortzAgeReductionContainer = document.getElementById('bortzAgeReductionContainer');
         const bortzAgeReductionLabel = document.getElementById('bortzAgeReductionAccelerationLabel');
         if (athleteData.bortzAgeReduction != null && Number.isFinite(athleteData.bortzAgeReduction)) {

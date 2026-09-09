@@ -43,12 +43,37 @@ public sealed class LeaderboardRouteBrowserTests(
         await Assertions.Expect(page.Locator(".leaderboard tbody tr[data-athlete-name]:visible"))
             .ToHaveCountAsync(expectedRows);
 
-        // Filtering writes the shareable URL. Loading it again must keep its meaning.
+        // Hydration and reload preserve the incoming search text and its meaning.
         await page.ReloadAsync();
         await WaitForLeaderboardAsync(page);
-        Assert.Equal(query.ToLowerInvariant(), await page.Locator("#athleteSearch").InputValueAsync());
+        Assert.Equal(query, await page.Locator("#athleteSearch").InputValueAsync());
         await Assertions.Expect(page.Locator(".leaderboard tbody tr[data-athlete-name]:visible"))
             .ToHaveCountAsync(expectedRows);
+    }
+
+    [Theory]
+    [InlineData("professional", "/leaderboard", "professional", "ultimate")]
+    [InlineData("pheno-improvement", "/league/improvement", null, "improvement")]
+    [InlineData("ultimate", "/leaderboard", null, "ultimate")]
+    public async Task LegacyLeagueRoute_NormalizesWithoutLosingSearchOrRankAnchor(
+        string slug, string expectedPath, string? expectedFilters, string expectedView)
+    {
+        await using var context = await NewContextAsync(Browser, App);
+        var page = await context.NewPageAsync();
+        await page.GotoAsync($"/league/{slug}?source=rank-link&search=MiChAeL#rank-37");
+        await WaitForLeaderboardAsync(page);
+        Assert.Equal(expectedPath, new Uri(page.Url).AbsolutePath);
+        Assert.Equal("#rank-37", new Uri(page.Url).Fragment);
+        Assert.Equal("rank-link", await page.EvaluateAsync<string>("() => new URLSearchParams(location.search).get('source')"));
+        Assert.Equal("MiChAeL", await page.EvaluateAsync<string>("() => new URLSearchParams(location.search).get('search')"));
+        Assert.Equal(expectedFilters, await page.EvaluateAsync<string?>("() => new URLSearchParams(location.search).get('filters')"));
+        await Assertions.Expect(page.Locator($"#view-{expectedView}")).ToBeCheckedAsync();
+
+        var canonicalUrl = page.Url;
+        await page.ReloadAsync();
+        await WaitForLeaderboardAsync(page);
+        Assert.Equal(canonicalUrl, page.Url);
+        await Assertions.Expect(page.Locator("#athleteSearch")).ToHaveValueAsync("MiChAeL");
     }
 
     [Fact]
