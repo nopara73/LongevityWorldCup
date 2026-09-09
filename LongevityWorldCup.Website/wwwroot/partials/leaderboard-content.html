@@ -7002,6 +7002,9 @@
             athleteBadgeTextByName.set(athleteName, window.normalizeString(badgeSearchText.toLowerCase()));
         });
 
+        const filtersUsed = selectedDivisions.length > 0 || selectedFlags.length > 0 || selectedGenerations.length > 0 || selectedExclusiveLeagues.length > 0 ||
+            leagueTrackFilterActive || currentLeaderboardView !== 'ultimate';
+        let leagueRank = 0;
         let filteredAthletes = [];
 
         baseList.forEach(athlete => {
@@ -7019,7 +7022,6 @@
             if (currentLeaderboardView !== 'crowd' && Number.isFinite(displayAgeReductionPercent)) metricSearchParts.push(displayAgeReductionPercent.toFixed(1));
             if (currentLeaderboardView === 'crowd' && Number.isFinite(athlete.crowdCount)) metricSearchParts.push(String(athlete.crowdCount));
             const athleteMetricNormalized = window.normalizeString(metricSearchParts.join(' ').toLowerCase());
-            const athleteRankNormalized = window.normalizeString(String(athlete.rank != null ? athlete.rank : '').toLowerCase());
             const athleteFlagNormalized = window.normalizeString(`${athlete.flag || ''} ${athlete.canonicalFlag || ''}`.toLowerCase());
             const athleteWhyNormalized = window.normalizeString((athlete.why || '').toLowerCase());
 
@@ -7054,8 +7056,14 @@
                 matches = selectedExclusiveLeagues.includes((athlete.exclusiveLeague || "").toLowerCase());
             }
 
+            if (!matches) return;
+
+            // Search and the display limit must not change an athlete's rank in the selected league.
+            athlete.filteredRank = filtersUsed ? ++leagueRank : athlete.rank;
+            const athleteRankNormalized = String(athlete.filteredRank ?? '');
+
             // Check search terms
-            if (matches && !showAll) {
+            if (!showAll) {
                 matches = uniqueSearchTerms.every(term =>
                     athleteNameNormalized.includes(term) || athleteBadgeTextNormalized.includes(term) || athleteMediaContactNormalized.includes(term) || athleteMetricNormalized.includes(term) || athleteRankNormalized.includes(term) || athleteFlagNormalized.includes(term) || athleteWhyNormalized.includes(term)
                 );
@@ -7070,23 +7078,6 @@
 
         filteredAthletes = filteredAthletes.slice(0, maxAthletesGlobal);
         updateViewAllAthletesButton(unslicedFilteredAthletes.length);
-
-        // Determine if filters are used (league track counts only when exactly one selected)
-        const filtersUsed = selectedDivisions.length > 0 || selectedFlags.length > 0 || selectedGenerations.length > 0 || selectedExclusiveLeagues.length > 0 ||
-            leagueTrackFilterActive || currentLeaderboardView !== 'ultimate';
-        const searchUsed = uniqueSearchTerms.length > 0;
-
-        // If filters are used, reassign ranks starting from 1
-        if (filtersUsed && !searchUsed) {
-            filteredAthletes.forEach((athlete, index) => {
-                athlete.filteredRank = index + 1;
-            });
-        } else {
-            // Keep original ranks
-            filteredAthletes.forEach(athlete => {
-                athlete.filteredRank = athlete.rank;
-            });
-        }
 
         // First, hide all rows (including tier separator)
         const tableRows = document.querySelectorAll('.leaderboard table tbody tr');
