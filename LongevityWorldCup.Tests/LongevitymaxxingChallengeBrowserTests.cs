@@ -615,6 +615,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
 
         await page.GotoAsync("/longevitymaxxing", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
         var joinPost = page.Locator("#lmxNotes .lmx-note[data-discussion-system-post-id='11111111111111111111111111111111']");
+        await page.Locator("#lmxCheckinDialogClose").ClickAsync();
         await joinPost.WaitForAsync();
         await Assertions.Expect(joinPost).ToContainTextAsync("New Nina");
         await Assertions.Expect(joinPost).ToContainTextAsync("Joined the Longevitymaxxing Challenge.");
@@ -751,6 +752,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
         await page.Locator(".lmx-recent-remarks").WaitForAsync();
 
         var remarks = page.Locator(".lmx-recent-remark");
+        await page.Locator("#lmxCheckinDialogClose").ClickAsync();
         Assert.Equal(3, await remarks.CountAsync());
 
         var checkInText = await page.Locator("#lmxCheckinList").InnerTextAsync();
@@ -1113,6 +1115,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
         try
         {
             await page.GotoAsync("/longevitymaxxing", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+            await page.Locator("#lmxCheckinDialogClose").ClickAsync();
             await athleteDirectoryRequested.Task.WaitAsync(TimeSpan.FromSeconds(10));
             var staleActiveSurface = page.Locator(
                 ".lmx-recent-remark[data-discussion-post-participant-id='p7'][data-discussion-post-challenge-day='5']");
@@ -1278,6 +1281,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
         await page.Locator(".lmx-recent-remarks").WaitForAsync();
 
         var foxSurfaces = page.Locator("article[data-discussion-post-participant-id='p7'][data-discussion-post-challenge-day='5']");
+        await page.Locator("#lmxCheckinDialogClose").ClickAsync();
         Assert.Equal(2, await foxSurfaces.CountAsync());
         var foxIdentity = foxSurfaces.First.Locator(".lmx-discussion-post-author .lmx-discussion-author-identity");
         Assert.Equal("a", await foxIdentity.EvaluateAsync<string>("element => element.tagName.toLowerCase()"));
@@ -1433,6 +1437,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
         await page.GotoAsync("/longevitymaxxing", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
         var foxSurfaces = page.Locator(
             "article[data-discussion-post-participant-id='p7'][data-discussion-post-challenge-day='5']");
+        await page.Locator("#lmxCheckinDialogClose").ClickAsync();
         await Assertions.Expect(foxSurfaces).ToHaveCountAsync(2);
         await foxSurfaces.First.Locator("[data-discussion-replies-page]").ClickAsync();
         for (var index = 0; index < await foxSurfaces.CountAsync(); index++)
@@ -1584,6 +1589,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
 
         await page.GotoAsync("/longevitymaxxing", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
         var textarea = page.Locator("textarea[data-mention-input]");
+        await page.Locator("#lmxCheckinDialogClose").ClickAsync();
         await textarea.WaitForAsync();
 
         var displayedNote = page.Locator(".lmx-recent-remark p");

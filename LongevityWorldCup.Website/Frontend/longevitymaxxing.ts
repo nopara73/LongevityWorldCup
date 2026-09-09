@@ -782,7 +782,6 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     let showInactiveLeaderboard = false;
     let accessTab: AccessTab = "signup";
     let accessLoading = !!accessToken;
-    let checkInDialogRequested = false;
     let checkInDialogDismissed = false;
     let checkInDialogReturnFocus: HTMLElement | null = null;
     let checkInDialogHome: { parent: Node; nextSibling: ChildNode | null } | null = null;
@@ -1242,7 +1241,6 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             if (token.length > 0) {
                 accessToken = token;
                 accessLoading = true;
-                checkInDialogRequested = true;
                 checkInDialogDismissed = false;
                 safeStorageSet(STORAGE_KEY, accessToken);
                 shouldClean = true;
@@ -1774,7 +1772,6 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     function syncCheckInDialog(): void {
         const currentParticipantState = participantState;
         const shouldOpen = !!currentParticipantState
-            && checkInDialogRequested
             && !checkInDialogDismissed
             && getPendingCheckInDays(currentParticipantState).length > 0
             && ensureParticipantTab(currentParticipantState) === "checkin";

@@ -10,6 +10,57 @@ namespace LongevityWorldCup.Tests;
 public sealed partial class LongevitymaxxingChallengeBrowserTests
 {
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task DueCheckIn_StaysFocusedOnReturnAndReloadUntilSaved(bool emailLink)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = 390, Height = 844 },
+            ColorScheme = ColorScheme.Dark,
+            IsMobile = true,
+            HasTouch = true
+        });
+        var state = JsonSerializer.SerializeToNode(BuildParticipantState())!.AsObject();
+        await context.AddInitScriptAsync("localStorage.setItem('lmxAccessToken','browser-token')");
+        await context.RouteAsync("**/api/longevitymaxxing/state", r => FulfillJsonAsync(r, state["public"]!.ToJsonString()));
+        await context.RouteAsync("**/api/longevitymaxxing/participant", r => FulfillJsonAsync(r, state.ToJsonString()));
+        var submissions = 0;
+        await context.RouteAsync("**/api/longevitymaxxing/check-in", async route =>
+        {
+            submissions++;
+            state["eligibleDays"]![0]!["existing"] = SavedCheckIn("", 2);
+            await FulfillJsonAsync(route, state.ToJsonString());
+        });
+        var page = await context.NewPageAsync();
+        await page.GotoAsync(emailLink ? "/longevitymaxxing?token=browser-token" : "/longevitymaxxing");
+        var dialog = page.Locator("#lmxParticipantPanel.lmx-checkin-dialog-panel");
+        await Assertions.Expect(dialog).ToBeVisibleAsync();
+        Assert.DoesNotContain("token=", page.Url);
+
+        await page.ReloadAsync();
+        await Assertions.Expect(dialog).ToBeVisibleAsync();
+        await Assertions.Expect(dialog.Locator("#lmxParticipantTabs")).ToBeHiddenAsync();
+        await Assertions.Expect(dialog.Locator(".lmx-checkin-switcher")).ToBeHiddenAsync();
+        Assert.True(await page.Locator("main").EvaluateAsync<bool>("main => main.inert"));
+
+        var form = dialog.Locator(".lmx-checkin-card");
+        foreach (var key in new[] { "sleep", "exercise", "nutrition", "vices" })
+            await form.Locator($"[data-key='{key}'] .lmx-answer-option[data-answer='yes'] svg").TapAsync();
+        await Assertions.Expect(form.Locator("button[type='submit']")).ToBeEnabledAsync();
+        await form.Locator("button[type='submit']").TapAsync();
+        await Assertions.Expect(dialog).ToHaveCountAsync(0);
+        Assert.Equal(1, submissions);
+        Assert.False(await page.Locator("main").EvaluateAsync<bool>("main => main.inert"));
+        await Assertions.Expect(page.Locator("#lmxProfileTab")).ToBeEnabledAsync();
+        await Assertions.Expect(page.Locator("#lmxHomeTab")).ToBeEnabledAsync();
+
+        await page.ReloadAsync();
+        await Assertions.Expect(page.Locator("#lmxParticipantTabs")).ToBeVisibleAsync();
+        await Assertions.Expect(dialog).ToHaveCountAsync(0);
+    }
+
+    [Theory]
     [InlineData(ColorScheme.Light)]
     [InlineData(ColorScheme.Dark)]
     public async Task CheckInDrafts_KeepSeparateDaysAndRestoreAReset(ColorScheme theme)
@@ -276,6 +327,8 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         var page = await context.NewPageAsync();
         await page.GotoAsync(direct ? "/longevitymaxxing?token=browser-token&checkin=1" : "/longevitymaxxing");
         await page.Locator(".lmx-checkin-card").WaitForAsync(new() { State = WaitForSelectorState.Attached });
+        if (!direct && state["eligibleDays"]!.AsArray().Any(day => day!["existing"] is null))
+            await page.Locator("#lmxCheckinDialogClose").ClickAsync();
         return page;
     }
 

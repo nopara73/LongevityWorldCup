@@ -525,7 +525,6 @@ public sealed class LongevitymaxxingChallengePageTests(TestWebApplicationFactory
         Assert.Contains("return getPendingCheckInDays(state).length ? \"checkin\" : \"home\";", javascript);
         Assert.DoesNotContain("publicClosed", javascript);
         Assert.DoesNotContain("public-board-only", javascript);
-        Assert.Contains("checkInDialogRequested = true;", javascript);
         Assert.Contains("function syncCheckInDialog(): void", javascript);
         Assert.Contains("function openCheckInDialog(): void", javascript);
         Assert.Contains("function closeCheckInDialog(dismissed: boolean", javascript);
