@@ -161,6 +161,25 @@ public sealed class BioageUpdateDraftBrowserTests(PlaywrightBrowserFixture brows
     [Theory]
     [InlineData("pheno")]
     [InlineData("bortz")]
+    public async Task UpdateDraft_KeepsTheDrawDateBeforeItsChangeEvent(string clock)
+    {
+        await using var context = await NewContextAsync(Browser, App, new());
+        var page = await context.NewPageAsync();
+        await SelectAthleteAsync(page);
+        await OpenCalculatorAsync(page, clock);
+        await page.Locator("#blood-draw-date").FillAsync("2026-09-01");
+        await FillMarkerAsync(page, "wbc", "5.2");
+        // A date input can emit input while the edit has not yet committed change.
+        await page.EvaluateAsync("() => { const date = document.querySelector('#blood-draw-date'); date.value = '2026-09-02'; date.dispatchEvent(new Event('input', {bubbles:true})); }");
+        await page.ReloadAsync();
+        await WaitForEntryAsync(page);
+        await Assertions.Expect(page.Locator("#blood-draw-date")).ToHaveValueAsync("2026-09-02");
+        await Assertions.Expect(page.Locator("#wbc")).ToHaveValueAsync("5.2");
+    }
+
+    [Theory]
+    [InlineData("pheno")]
+    [InlineData("bortz")]
     public async Task CachedUpdateReturn_KeepsCarriedValuesOutOfTheRawDraft(string clock)
     {
         await using var context = await NewContextAsync(Browser, App, new() { ViewportSize = new() { Width = 390, Height = 844 }, ReducedMotion = ReducedMotion.Reduce });

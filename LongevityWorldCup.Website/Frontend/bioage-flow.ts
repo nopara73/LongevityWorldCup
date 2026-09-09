@@ -1019,6 +1019,13 @@ interface Window {
             });
         });
 
+        const recordDraftInput = (event: Event) => {
+            if (!controller.restoring) clearStoredBiomarkerHandoff();
+            captureBioageDraftEdit(controller, event.target);
+            syncBiomarkerCompletion(controller);
+            scheduleBioageDraftSave(controller);
+        };
+
         controller.inputs.forEach(input => {
             syncFixedUnitPresentation(input);
             getOrCreateBiomarkerError(input);
@@ -1028,12 +1035,7 @@ interface Window {
                 expandBiomarkerCard(input);
                 ensureBiomarkerVisible(input);
             });
-            input.addEventListener('input', () => {
-                if (!controller.restoring) clearStoredBiomarkerHandoff();
-                captureBioageDraftEdit(controller, input);
-                syncBiomarkerCompletion(controller);
-                scheduleBioageDraftSave(controller);
-            });
+            input.addEventListener('input', recordDraftInput);
             input.addEventListener('blur', () => {
                 if (controller.visitedInputs.has(input)
                     && !isCompleteBiomarkerInput(input)
@@ -1066,12 +1068,8 @@ interface Window {
             });
         });
 
-        controller.form.addEventListener('change', event => {
-            if (!controller.restoring) clearStoredBiomarkerHandoff();
-            captureBioageDraftEdit(controller, event.target);
-            syncBiomarkerCompletion(controller);
-            scheduleBioageDraftSave(controller);
-        });
+        controller.form.querySelector<HTMLInputElement>('#blood-draw-date')?.addEventListener('input', recordDraftInput);
+        controller.form.addEventListener('change', recordDraftInput);
         controller.form.addEventListener('invalid', event => {
             const input = event.target;
             if (!(input instanceof HTMLInputElement) || !controller.inputs.includes(input)) return;
