@@ -19,6 +19,7 @@ Use lowercase pheno age, bortz age, crowd age, age reduction, and effective age 
 - **Crowd Count** counts accepted realistic guesses for the current image. Qualification requires at least 100 guesses; rank by `CrowdAge - chronologicalAge`, then higher Crowd Count, earlier date of birth, and name.
 - Guesses belong to exact published image content via `ProfileImageId`. Byte-identical uploads restore that image's history; any changed bytes, including re-encoding, start with zero active guesses. Preserve older histories.
 - Qualification, placements, and badges use current-image guesses. Image changes silently recompute placements; published Events remain historical. The raw crowd age badge and on-site BadgeAward Events remain visible but produce no social posts.
+- In social placement copy, "younger" and "older" compare crowd age with chronological age.
 
 ## Payments
 

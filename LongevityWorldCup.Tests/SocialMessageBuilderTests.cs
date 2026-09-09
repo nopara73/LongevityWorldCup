@@ -83,11 +83,11 @@ public sealed class SocialMessageBuilderTests
     {
         const string raw = "slug[siim_land] place[3] prevPlace[8] prev[bryan_johnson] crowdAge[35.25] crowdCount[123]";
         var expectedX =
-            "Siim Land climbed from 8th to 3rd in Crowd Age with 123 guesses.\n" +
-            "Siim Land's Crowd Age is 35.3, 24.8 years below chronological age.\n\n" +
+            "Siim Land climbed from 8th to 3rd in crowd age with 123 guesses.\n" +
+            "Crowd age: 35.3 (24.8 years younger).\n\n" +
             "https://longevityworldcup.com/athlete/siim-land?ctx=crowd";
         var expectedSlack =
-            "<https://longevityworldcup.com/athlete/siim-land|Siim Land> climbed from 8th to 3rd in Crowd Age with 123 guesses. <https://longevityworldcup.com/athlete/siim-land|Siim Land>'s Crowd Age is 35.3, 24.8 years below chronological age.";
+            "<https://longevityworldcup.com/athlete/siim-land|Siim Land> climbed from 8th to 3rd in crowd age with 123 guesses. Crowd age: 35.3 (24.8 years younger).";
 
         double? ChronoAge(string slug) => string.Equals(slug, "siim_land", StringComparison.OrdinalIgnoreCase) ? 60.0 : null;
 
@@ -99,16 +99,19 @@ public sealed class SocialMessageBuilderTests
     [Fact]
     public void CrowdAgeTop10ChangeEventBuilders_PreserveFirstEntryMovement()
     {
-        const string raw = "slug[siim_land] place[7] crowdAge[35.25] crowdCount[123]";
+        const string raw = "slug[siim_land] place[6] crowdAge[44] crowdCount[100]";
         var expectedX =
-            "Siim Land just entered the top 10 at 7th in Crowd Age with 123 guesses.\n" +
-            "Siim Land's Crowd Age is 35.3, 24.8 years below chronological age.\n\n" +
+            "Siim Land just entered the top 10 at 6th in crowd age with 100 guesses.\n" +
+            "Crowd age: 44 (6 years younger).\n\n" +
             "https://longevityworldcup.com/athlete/siim-land?ctx=crowd";
+        const string expectedSlack =
+            "<https://longevityworldcup.com/athlete/siim-land|Siim Land> just entered the top 10 at 6th in crowd age with 100 guesses. Crowd age: 44 (6 years younger).";
 
-        double? ChronoAge(string slug) => string.Equals(slug, "siim_land", StringComparison.OrdinalIgnoreCase) ? 60.0 : null;
+        double? ChronoAge(string slug) => string.Equals(slug, "siim_land", StringComparison.OrdinalIgnoreCase) ? 50.0 : null;
 
         Assert.Equal(expectedX, XMessageBuilder.ForEventText(EventType.CrowdAgeTop10Change, raw, SlugToName, getChronoAgeForSlug: ChronoAge));
         Assert.Equal(expectedX, ThreadsMessageBuilder.ForEventText(EventType.CrowdAgeTop10Change, raw, SlugToName, getChronoAgeForSlug: ChronoAge));
+        Assert.Equal(expectedSlack, SlackMessageBuilder.ForEventText(EventType.CrowdAgeTop10Change, raw, SlugToName, getChronoAgeForSlug: ChronoAge));
     }
 
     [Theory]

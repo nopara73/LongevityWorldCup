@@ -35,15 +35,20 @@ internal static class SocialPostText
         double? chronologicalAge,
         string athleteUrl)
     {
-        var crowdAgeText = crowdAge.ToString("0.#", CultureInfo.InvariantCulture);
         var countText = crowdCount.ToString("N0", CultureInfo.InvariantCulture);
         var movement = BuildCrowdAgeMovement(place, previousPlace);
-        var signal = BuildCrowdAgeSignal(crowdAge, chronologicalAge);
-        var metricLine = !string.IsNullOrWhiteSpace(signal)
-            ? $"{athleteName}'s Crowd Age is {crowdAgeText}, {signal}."
-            : $"{athleteName}'s Crowd Age is {crowdAgeText}.";
+        var metricLine = BuildCrowdAgeMetricLine(crowdAge, chronologicalAge);
 
-        return $"{athleteName} {movement} in Crowd Age with {countText} guesses.\n{metricLine}\n\n{athleteUrl}";
+        return $"{athleteName} {movement} in crowd age with {countText} guesses.\n{metricLine}\n\n{athleteUrl}";
+    }
+
+    internal static string BuildCrowdAgeMetricLine(double crowdAge, double? chronologicalAge)
+    {
+        var crowdAgeText = crowdAge.ToString("0.#", CultureInfo.InvariantCulture);
+        var signal = BuildCrowdAgeSignal(crowdAge, chronologicalAge);
+        return !string.IsNullOrWhiteSpace(signal)
+            ? $"Crowd age: {crowdAgeText} ({signal})."
+            : $"Crowd age: {crowdAgeText}.";
     }
 
     private static string BuildCrowdAgeMovement(int place, int? previousPlace)
@@ -66,12 +71,12 @@ internal static class SocialPostText
             return null;
 
         if (Math.Abs(difference) < 0.05)
-            return "about the same age as their chronological age";
+            return "same as actual age";
 
         var years = Math.Abs(difference).ToString("0.#", CultureInfo.InvariantCulture);
         return difference < 0
-            ? $"{years} years below chronological age"
-            : $"{years} years above chronological age";
+            ? $"{years} years younger"
+            : $"{years} years older";
     }
 
     internal static string BuildAgeImprovementTop10Line(

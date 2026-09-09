@@ -378,14 +378,11 @@ public static class SlackMessageBuilder
 
         var name = slugToName(slug);
         var nameLink = Link(AthleteUrl(slug), name);
-        var crowdAgeText = crowdAge.ToString("0.#", CultureInfo.InvariantCulture);
         var countText = crowdCount.ToString("N0", CultureInfo.InvariantCulture);
         var movement = BuildCrowdAgeMovement(place, previousPlace);
-        var signal = BuildCrowdAgeSignal(crowdAge, getChronoAgeForSlug?.Invoke(slug));
-        if (!string.IsNullOrWhiteSpace(signal))
-            return $"{nameLink} {movement} in Crowd Age with {countText} guesses. {nameLink}'s Crowd Age is {crowdAgeText}, {signal}.";
+        var metricLine = SocialPostText.BuildCrowdAgeMetricLine(crowdAge, getChronoAgeForSlug?.Invoke(slug));
 
-        return $"{nameLink} {movement} in Crowd Age with {countText} guesses. {nameLink}'s Crowd Age is {crowdAgeText}.";
+        return $"{nameLink} {movement} in crowd age with {countText} guesses. {metricLine}";
     }
 
     private static string BuildCrowdAgeMovement(int place, int? previousPlace)
@@ -396,24 +393,6 @@ public static class SlackMessageBuilder
                 ? $"climbed from {Ordinal(previousPlace.Value)} to {placeText}"
                 : $"moved from {Ordinal(previousPlace.Value)} to {placeText}"
             : $"just entered the top 10 at {placeText}";
-    }
-
-    private static string? BuildCrowdAgeSignal(double crowdAge, double? chronologicalAge)
-    {
-        if (!chronologicalAge.HasValue || !double.IsFinite(chronologicalAge.Value))
-            return null;
-
-        var difference = crowdAge - chronologicalAge.Value;
-        if (!double.IsFinite(difference))
-            return null;
-
-        if (Math.Abs(difference) < 0.05)
-            return "about the same age as their chronological age";
-
-        var years = Math.Abs(difference).ToString("0.#", CultureInfo.InvariantCulture);
-        return difference < 0
-            ? $"{years} years below chronological age"
-            : $"{years} years above chronological age";
     }
 
     private static string BuildAgeImprovementTop10Change(string? slug, string rawText, Func<string, string> slugToName)
