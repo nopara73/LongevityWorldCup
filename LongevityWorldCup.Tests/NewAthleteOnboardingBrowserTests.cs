@@ -11,7 +11,7 @@ using Xunit;
 namespace LongevityWorldCup.Tests;
 
 [Collection(BrowserTestCollections.WorkloadB)]
-public sealed class NewAthleteOnboardingBrowserTests(
+public sealed partial class NewAthleteOnboardingBrowserTests(
     PlaywrightBrowserFixture browserFixture,
     BrowserTestAppFixture appFixture)
     : BrowserIntegrationTest(browserFixture, appFixture)

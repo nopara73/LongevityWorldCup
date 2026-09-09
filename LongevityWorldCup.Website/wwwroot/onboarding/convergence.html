@@ -20,6 +20,13 @@
             cursor: pointer;
         }
 
+        #applicationDraftStatus {
+            margin: var(--space-2) 0;
+            color: var(--lwc-danger);
+            font-size: var(--type-sm);
+            line-height: 1.5;
+        }
+
         /* Responsive adjustments */
         @media (max-width: 600px) {
             .option-button {
@@ -513,7 +520,7 @@
     <!--HEADER-->
     <main class="convergence-main">
         <!--MAIN-PROGRESS-BAR-->
-        <h1 data-aos="fade" data-aos-duration="700" data-aos-delay="400">1. Enter the arena</h1>
+        <h1 tabindex="-1" data-aos="fade" data-aos-duration="700" data-aos-delay="400">1. Enter the arena</h1>
         <form id="descriptionForm" class="bioageform" data-aos="fade" data-aos-duration="700" data-aos-delay="450">
             <div class="convergence-visual">
                 <picture id="illustrationPicture" style="display:''">
@@ -670,6 +677,7 @@
                 <div id="whyCharCounter" class="char-counter">0/250</div>
             </fieldset>
 
+            <p id="applicationDraftStatus" role="status" hidden></p>
             <div class="options-container convergence-actions flow-action-stack" data-flow-dock="auto">
                 <button type="button" class="option-button green flow-action" id="nextButton" aria-label="Proceed to the next stage" disabled>
                     <span class="flow-action__label">Next</span><i class="fas fa-arrow-right" aria-hidden="true"></i>
@@ -727,6 +735,76 @@
         }
         const urlParams = new URLSearchParams(window.location.search);
         const isFake = urlParams.get('fake') === '1';
+        const APPLICATION_DRAFT_KEY = 'applicationDetailsDraft:v1';
+        const applicationDraftFields = ['name', 'division', 'flag', 'why', 'personalLink', 'mediaContact', 'accountEmail'];
+        let applicationDraftDivision = '';
+        let applicationDraftCompleted = false;
+        let applicationDraftUnsaved = false;
+        let applicationDraftEdited = false;
+        let applicationProfilePending = false;
+
+        function saveApplicationDraft(event) {
+            if (isFake || applicationDraftCompleted) return;
+            if (event?.type === 'input' || event?.type === 'change') applicationDraftEdited = true;
+            const fields = Object.fromEntries(applicationDraftFields.map(id => [id,
+                id === 'division' && !document.getElementById(id).options.length
+                    ? applicationDraftDivision : document.getElementById(id).value]));
+            const hasDetails = Object.values(fields).some(value => value.length > 0);
+            try {
+                if (hasDetails) {
+                    sessionStorage.setItem(APPLICATION_DRAFT_KEY, JSON.stringify({
+                        fields,
+                        emailFromMediaContact: document.getElementById('accountEmail').dataset.prefilledFrom === 'mediaContact'
+                    }));
+                } else {
+                    sessionStorage.removeItem(APPLICATION_DRAFT_KEY);
+                }
+                applicationDraftUnsaved = false;
+            } catch (_) {
+                applicationDraftUnsaved = hasDetails || applicationDraftEdited;
+            }
+            const status = document.getElementById('applicationDraftStatus');
+            status.textContent = applicationDraftUnsaved ? 'Your details could not be saved. Keep this page open.' : '';
+            status.hidden = !applicationDraftUnsaved;
+        }
+
+        function initializeApplicationDraft() {
+            if (isFake) return;
+            try {
+                const draft = JSON.parse(getSessionItem(APPLICATION_DRAFT_KEY));
+                if (draft && draft.fields && typeof draft.fields === 'object') {
+                    applicationDraftFields.forEach(id => {
+                        const value = draft.fields[id];
+                        if (typeof value !== 'string') return;
+                        if (id === 'division') applicationDraftDivision = value;
+                        else document.getElementById(id).value = value;
+                    });
+                    if (draft.emailFromMediaContact === true) {
+                        document.getElementById('accountEmail').dataset.prefilledFrom = 'mediaContact';
+                    }
+                }
+            } catch (_) {
+                removeSessionItem(APPLICATION_DRAFT_KEY);
+            }
+            const form = document.getElementById('inputForm');
+            form.addEventListener('input', saveApplicationDraft);
+            form.addEventListener('change', saveApplicationDraft);
+            form.addEventListener('focusout', saveApplicationDraft);
+            window.addEventListener('pagehide', saveApplicationDraft);
+            window.addEventListener('beforeunload', event => {
+                if (applicationDraftCompleted) return;
+                saveApplicationDraft();
+                if (!applicationDraftUnsaved && !profilePic && !applicationProfilePending) return;
+                event.preventDefault();
+                event.returnValue = '';
+            });
+            window.addEventListener('pageshow', event => {
+                if (event.persisted && applicationDraftCompleted) window.location.reload();
+            });
+        }
+
+        // Restore before asynchronous modules or directory reads can delay typing.
+        initializeApplicationDraft();
 
         // Update the progress bar to the appropriate stage
         // Assuming updateMainProgress and updateSubProgress are defined elsewhere
@@ -1277,6 +1355,10 @@
             }
             removeSessionItem(PENDING_PAYMENT_OFFER_KEY);
             clearCompletedBioageState();
+            if (!isFake) {
+                applicationDraftCompleted = true;
+                removeSessionItem(APPLICATION_DRAFT_KEY);
+            }
             profilePic = null;
             proofPics = [];
 
@@ -1389,7 +1471,7 @@
         }
 
         // Function to update the UI based on the current stage
-        function goToStage(stage) {
+        function goToStage(stage, { focus = false } = {}) {
             document.body.dataset.convergenceStage = String(stage);
             document.getElementById('descriptionForm').style.display = '';
 
@@ -1651,6 +1733,15 @@
 
             updateUploadButtons();
             window.LwcFlowActionDock?.refresh();
+            saveApplicationDraft();
+            if (focus) {
+                const targetId = {
+                    1: 'name', 2: 'why', 4: 'uploadButton',
+                    5: 'uploadProofButton', 6: 'personalLink', 7: 'accountEmail'
+                }[stage];
+                const target = targetId ? document.getElementById(targetId) : document.querySelector('h1');
+                target?.focus({ preventScroll: true });
+            }
         }
 
         async function waitForPageModules() {
@@ -1761,6 +1852,7 @@
             function populateDivisionSelect(divisions) {
                 const divisionSelect = document.getElementById('division');
                 const availableDivisions = Array.isArray(divisions) && divisions.length ? divisions : fallbackDivisions;
+                const selectedDivision = divisionSelect.value || applicationDraftDivision;
 
                 // Clear existing options (if any)
                 divisionSelect.innerHTML = '';
@@ -1780,6 +1872,8 @@
                 defaultOption.disabled = true;
                 defaultOption.selected = true;
                 divisionSelect.insertBefore(defaultOption, divisionSelect.firstChild);
+                if (availableDivisions.includes(selectedDivision)) divisionSelect.value = selectedDivision;
+                applicationDraftDivision = '';
 
                 if (currentStage === 1) {
                     divisionSelect.addEventListener('change', checkFormValidityStage1);
@@ -1825,7 +1919,7 @@
 
             if (currentStage < 7) {
                 currentStage++;
-                goToStage(currentStage);
+                goToStage(currentStage, { focus: true });
             } else {
                 const identityValidationResult = validateApplicationIdentity();
                 if (!identityValidationResult.valid) {
@@ -1949,7 +2043,7 @@
         document.getElementById('backButton').addEventListener('click', function () {
             if (currentStage > 1) {
                 currentStage--;
-                goToStage(currentStage);
+                goToStage(currentStage, { focus: true });
             } else {
                 window.navigateToFlowDestination(getConvergenceBackDestination());
             }
@@ -2002,6 +2096,7 @@
                         return;
                     }
 
+                    applicationProfilePending = true;
                     const reader = new FileReader();
                     reader.onload = function (e) {
                         const nextButton = document.getElementById('nextButton');
@@ -2033,6 +2128,7 @@
                                 minCropBoxHeight: 150,
                             });
                         } catch (_) {
+                            applicationProfilePending = false;
                             if (cropper) {
                                 try { cropper.destroy(); } catch (_) { }
                                 cropper = null;
@@ -2046,6 +2142,7 @@
                         }
                     };
                     reader.onerror = function () {
+                        applicationProfilePending = false;
                         customAlert('Profile picture upload failed. Please try another image.')
                             .then(() => uploadButton?.focus());
                     };
@@ -2090,6 +2187,7 @@
                         document.getElementById('profileImage').src = croppedImageDataURL;
 
                         profilePic = croppedImageDataURL;
+                        applicationProfilePending = false;
 
                         try { activeCropper.destroy(); } catch (_) { }
                         if (cropper === activeCropper) {
@@ -2114,6 +2212,7 @@
 
                 cancelProfileCropButton.addEventListener('click', function () {
                     if (isProfileCropProcessing) return;
+                    applicationProfilePending = false;
                     if (cropper) {
                         try { cropper.destroy(); } catch (_) { }
                         cropper = null;
