@@ -70,6 +70,7 @@ interface BioageDraftField {
 }
 
 interface BioageDraft {
+    athleteName?: string;
     clock: BioageClock;
     fields: Record<string, BioageDraftField>;
     step: 1 | 2;
@@ -77,7 +78,9 @@ interface BioageDraft {
 }
 
 interface BioageBiomarkerEntryController {
+    athleteName: string | null;
     clock: BioageClock;
+    draftKey: string | null;
     draftPersistenceSuppressed: boolean;
     form: HTMLFormElement;
     hasPersistedDraft: boolean;
@@ -116,6 +119,7 @@ interface LwcBioageFlowApi {
     getLocalItem: BioageStorageGetter;
     getSessionItem: BioageStorageGetter;
     getDraftStep: (clock: BioageClock) => 1 | 2;
+    getActiveBioageDraftKey: (clock: BioageClock) => string | null;
     hasFiniteBiomarkerValue: (value: unknown) => boolean;
     hideUpdateModeStepNavigation: () => void;
     initializeBiomarkerEntry: (options: BioageBiomarkerEntryOptions) => BioageBiomarkerEntryResult;
@@ -562,16 +566,22 @@ interface Window {
     );
     const biomarkerEntryControllers = new Map<BioageClock, BioageBiomarkerEntryController>();
 
-    function getBioageDraftKey(clock: BioageClock): string {
-        return `bioageDraft:${clock}:v${BIOAGE_DRAFT_VERSION}`;
+    function getBioageDraftKey(clock: BioageClock, athleteName?: string | null): string {
+        const owner = athleteName ? `update:${encodeURIComponent(athleteName)}:` : '';
+        return `bioageDraft:${clock}:${owner}v${BIOAGE_DRAFT_VERSION}`;
+    }
+
+    function getActiveBioageDraftKey(clock: BioageClock): string | null {
+        return biomarkerEntryControllers.get(clock)?.draftKey || null;
     }
 
     function isBioageClock(value: unknown): value is BioageClock {
         return value === 'pheno' || value === 'bortz';
     }
 
-    function readBioageDraft(clock: BioageClock): BioageDraft | null {
-        const raw = getSessionItem(getBioageDraftKey(clock));
+    function readBioageDraft(clock: BioageClock, athleteName?: string | null): BioageDraft | null {
+        const key = getBioageDraftKey(clock, athleteName);
+        const raw = getSessionItem(key);
         if (!raw) return null;
 
         try {
@@ -579,6 +589,7 @@ interface Window {
             if (!isObject(draft)
                 || Reflect.get(draft, 'version') !== BIOAGE_DRAFT_VERSION
                 || Reflect.get(draft, 'clock') !== clock
+                || (Reflect.get(draft, 'athleteName') || null) !== (athleteName || null)
                 || !isObject(Reflect.get(draft, 'fields'))) {
                 throw new Error('Invalid biological age draft');
             }
@@ -591,7 +602,7 @@ interface Window {
                 fields: Reflect.get(draft, 'fields') as Record<string, BioageDraftField>
             };
         } catch (_) {
-            removeSessionItem(getBioageDraftKey(clock));
+            removeSessionItem(key);
             return null;
         }
     }
@@ -605,7 +616,7 @@ interface Window {
                 if (controller.saveTimer) window.clearTimeout(controller.saveTimer);
             }
             biomarkerEntryControllers.delete(draftClock);
-            removeSessionItem(getBioageDraftKey(draftClock));
+            removeSessionItem(controller?.draftKey || getBioageDraftKey(draftClock));
         });
     }
 
@@ -615,10 +626,10 @@ interface Window {
         ));
     }
 
-    function serializeDraftFields(form: HTMLFormElement): Record<string, BioageDraftField> {
+    function serializeDraftFields(form: HTMLFormElement, isUpdate: boolean): Record<string, BioageDraftField> {
         const fields: Record<string, BioageDraftField> = {};
         getDraftControls(form).forEach(control => {
-            if (!control.id) return;
+            if (!control.id || (isUpdate && control.id.startsWith('dob-'))) return;
 
             const field: BioageDraftField = { value: control.value };
             if (control instanceof HTMLInputElement && control.type === 'checkbox') {
@@ -633,9 +644,9 @@ interface Window {
     }
 
     function canPersistBioageDraft(controller: BioageBiomarkerEntryController): boolean {
-        if (controller.isUpdate || controller.restoring || controller.draftPersistenceSuppressed) return false;
+        if (!controller.draftKey || controller.restoring || controller.draftPersistenceSuppressed) return false;
 
-        if (controller.hasPersistedDraft && getSessionItem(getBioageDraftKey(controller.clock)) === null) {
+        if (controller.hasPersistedDraft && getSessionItem(controller.draftKey) === null) {
             controller.draftPersistenceSuppressed = true;
             if (controller.saveTimer) window.clearTimeout(controller.saveTimer);
             controller.saveTimer = 0;
@@ -647,16 +658,17 @@ interface Window {
 
     function saveBioageDraft(controller: BioageBiomarkerEntryController): void {
         controller.saveTimer = 0;
-        if (!canPersistBioageDraft(controller)) return;
+        if (!canPersistBioageDraft(controller) || !controller.draftKey) return;
         const draft: BioageDraft = {
             version: BIOAGE_DRAFT_VERSION,
             clock: controller.clock,
             step: controller.step,
-            fields: serializeDraftFields(controller.form)
+            fields: serializeDraftFields(controller.form, controller.isUpdate),
+            ...(controller.athleteName ? { athleteName: controller.athleteName } : {})
         };
 
-        setSessionItem(getBioageDraftKey(controller.clock), JSON.stringify(draft));
-        controller.hasPersistedDraft = getSessionItem(getBioageDraftKey(controller.clock)) !== null;
+        setSessionItem(controller.draftKey, JSON.stringify(draft));
+        controller.hasPersistedDraft = getSessionItem(controller.draftKey) !== null;
     }
 
     function scheduleBioageDraftSave(controller: BioageBiomarkerEntryController): void {
@@ -693,22 +705,33 @@ interface Window {
     }
 
     function restoreBioageDraft(controller: BioageBiomarkerEntryController): boolean {
-        if (controller.isUpdate) return false;
-        const draft = readBioageDraft(controller.clock);
+        if (!controller.draftKey) return false;
+        const draft = readBioageDraft(controller.clock, controller.athleteName);
         if (!draft) return false;
 
         controller.hasPersistedDraft = true;
         controller.restoring = true;
         try {
-            applyDraftField(controller.form, draft.fields, 'dob-year');
-            applyDraftField(controller.form, draft.fields, 'dob-month');
-            controller.form.querySelector<HTMLSelectElement>('#dob-month')
-                ?.dispatchEvent(new Event('change', { bubbles: true }));
-            applyDraftField(controller.form, draft.fields, 'dob-day');
+            if (!controller.isUpdate) {
+                applyDraftField(controller.form, draft.fields, 'dob-year');
+                applyDraftField(controller.form, draft.fields, 'dob-month');
+                controller.form.querySelector<HTMLSelectElement>('#dob-month')
+                    ?.dispatchEvent(new Event('change', { bubbles: true }));
+                applyDraftField(controller.form, draft.fields, 'dob-day');
+            }
 
             Object.keys(draft.fields)
                 .filter(id => !['dob-year', 'dob-month', 'dob-day'].includes(id))
                 .forEach(id => applyDraftField(controller.form, draft.fields, id));
+
+            // Update calculations must distinguish the restored new values from
+            // unchanged markers that will carry over from the athlete's last result.
+            if (controller.isUpdate) {
+                controller.inputs.forEach(input => {
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                    if (input.value.trim()) expandBiomarkerCard(input);
+                });
+            }
 
             const negativeCrp = controller.form.querySelector<HTMLInputElement>('#crp-negative');
             if (negativeCrp?.checked) {
@@ -1075,8 +1098,12 @@ interface Window {
         progress.setAttribute('aria-atomic', 'true');
         stepHeading?.insertAdjacentElement('afterend', progress);
 
+        const selectedAthlete = options.isUpdate ? readSelectedAthlete() : null;
+        const athleteName = isValidSelectedAthlete(selectedAthlete) ? selectedAthlete.Name : null;
         const controller: BioageBiomarkerEntryController = {
+            athleteName,
             clock: options.clock,
+            draftKey: options.isUpdate && !athleteName ? null : getBioageDraftKey(options.clock, athleteName),
             draftPersistenceSuppressed: false,
             form: options.form,
             hasPersistedDraft: false,
@@ -1206,6 +1233,7 @@ interface Window {
         remove('bioageClock');
         remove('chronoPhenoDifference');
         remove('chronoBortzDifference');
+        remove('biomarkerDraftKey');
     }
 
     function updateCalculateButton(): void {
@@ -1712,6 +1740,7 @@ interface Window {
         buildUnitSpecificBiomarkerPlaceholders,
         expandBiomarkerCard,
         getDraftStep,
+        getActiveBioageDraftKey,
         getLatestBiomarkerEntry,
         getLatestBiomarkerValue,
         getBackDestination,

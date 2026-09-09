@@ -173,6 +173,7 @@ function persistSelectedAthlete(athlete: PlayAthlete | null): boolean {
         removeSessionItem("bioageClock");
         removeSessionItem("chronoPhenoDifference");
         removeSessionItem("chronoBortzDifference");
+        removeSessionItem("biomarkerDraftKey");
         removeSessionItem("contactEmail");
         removeLocalItem("contactEmail");
     }
