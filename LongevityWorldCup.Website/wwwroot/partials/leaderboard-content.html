@@ -5012,7 +5012,6 @@
                     generateGenerationFilters(athleteResults);
                     generateExclusiveFilters(athleteResults);
                     generateLeagueTrackFilters(athleteResults);
-                    updateFilterCounts(athleteResults);
                 }
 
                 // Sort the athletes by age reduction in ascending order
@@ -5333,6 +5332,10 @@
                 });
                 scheduleLeaderboardTableHeightSync();
                 setLeaderboardStatus('Leaderboard loaded.');
+
+                if (!isAthleteDialogOnlyRuntime) {
+                    performFilter({ updateUrl: false });
+                }
 
                 const hash = window.location.hash;
                 if (hash && /^#rank-\d+$/.test(hash)) {
@@ -6677,22 +6680,22 @@
         });
     }
 
-    function updateFilterCountLabel(label, count) {
+    function updateFilterCountLabel(label, count, available) {
         const countSpan = label.querySelector('.filter-count');
         if (countSpan) {
             countSpan.textContent = count;
         }
 
         const input = label.querySelector('input[type="checkbox"]');
-        label.classList.toggle('is-zero-count', count === 0);
+        label.classList.toggle('is-zero-count', !available);
         if (input) {
-            input.disabled = count === 0 && !input.checked;
+            input.disabled = !available && !input.checked;
         }
 
         if (label.hasAttribute('data-flag-key')) {
             const listItem = label.closest('li');
             if (listItem) {
-                listItem.hidden = count === 0 && !input?.checked;
+                listItem.hidden = !available && !input?.checked;
             }
         }
     }
@@ -6880,7 +6883,7 @@
         return `${url.pathname}${url.search}${url.hash}`;
     };
 
-    function performFilter() {
+    function performFilter({ updateUrl = true } = {}) {
         const selectedState = getSelectedLeaderboardState();
         const selectedDivisions = selectedState.divisions.map(value => value.toLowerCase());
         const selectedFlags = selectedState.flags.map(getFlagFilterKey);
@@ -6900,20 +6903,20 @@
         const hasPhenoImprovement = (a) => Number.isFinite(a.phenoAgeImprovement);
         const hasBortzImprovement = (a) => Number.isFinite(a.bortzAgeImprovement);
 
-        const getMetricValueForView = (athlete) => {
-            if (currentLeaderboardView === 'crowd') {
+        const getMetricValueForView = (athlete, view) => {
+            if (view === 'crowd') {
                 return athlete.crowdAgeReduction;
             }
 
-            if (currentLeaderboardView === 'improvement') {
+            if (view === 'improvement') {
                 return athlete.phenoAgeImprovement;
             }
 
-            if (currentLeaderboardView === 'bortz-improvement') {
+            if (view === 'bortz-improvement') {
                 return athlete.bortzAgeImprovement;
             }
 
-            if (currentLeaderboardView === 'pheno') {
+            if (view === 'pheno') {
                 return athlete.ageReduction;
             }
 
@@ -6922,24 +6925,24 @@
                 : athlete.ageReduction;
         };
 
-        const getMetricDecimalsForView = (athletes, index) => {
-            const value = getMetricValueForView(athletes[index]);
+        const getMetricDecimalsForView = (athletes, index, view) => {
+            const value = getMetricValueForView(athletes[index], view);
             if (!Number.isFinite(value)) return 1;
 
             const rounded = value.toFixed(1);
-            const previousValue = index > 0 ? getMetricValueForView(athletes[index - 1]) : null;
-            const nextValue = index < athletes.length - 1 ? getMetricValueForView(athletes[index + 1]) : null;
+            const previousValue = index > 0 ? getMetricValueForView(athletes[index - 1], view) : null;
+            const nextValue = index < athletes.length - 1 ? getMetricValueForView(athletes[index + 1], view) : null;
             const previousRounded = Number.isFinite(previousValue) ? previousValue.toFixed(1) : null;
             const nextRounded = Number.isFinite(nextValue) ? nextValue.toFixed(1) : null;
 
             return rounded === previousRounded || rounded === nextRounded ? 2 : 1;
         };
 
-        const formatMetricForView = (athletes, athlete, index) => {
-            const value = getMetricValueForView(athlete);
+        const formatMetricForView = (athletes, athlete, index, view) => {
+            const value = getMetricValueForView(athlete, view);
             if (!Number.isFinite(value)) return '';
 
-            const decimals = getMetricDecimalsForView(athletes, index);
+            const decimals = getMetricDecimalsForView(athletes, index, view);
             const prefix = value > 0 ? '+' : '';
             return `${prefix}${value.toFixed(decimals)} years`;
         };
@@ -6957,26 +6960,22 @@
             cell.setAttribute('data-label', metricLabel);
         });
 
-        // Step 1: Apply view inclusion and order
-        let baseList;
-        if (currentLeaderboardView === 'bortz') {
-            baseList = athleteResults.filter(hasBortz);
-            baseList.sort(window.compareAthleteRank);
-        } else if (currentLeaderboardView === 'pheno') {
-            baseList = athleteResults.slice();
-            baseList.sort(window.compareAthleteRankPhenoOnly);
-        } else if (currentLeaderboardView === 'improvement') {
-            baseList = athleteResults.filter(hasPhenoImprovement);
-            baseList.sort(window.compareAthleteRankPhenoImprovement);
-        } else if (currentLeaderboardView === 'bortz-improvement') {
-            baseList = athleteResults.filter(hasBortzImprovement);
-            baseList.sort(window.compareAthleteRankBortzImprovement);
-        } else if (currentLeaderboardView === 'crowd') {
-            baseList = athleteResults.filter(hasCrowdAge);
-            baseList.sort(window.compareAthleteRankCrowdAge);
-        } else {
-            baseList = athleteResults; // ultimate: already in rank order
-        }
+        // Cache each view's order for both the table and proposed sidebar selections.
+        const athletesByView = new Map([['ultimate', athleteResults]]);
+        const getAthletesForView = (view) => {
+            if (!athletesByView.has(view)) {
+                const definitions = {
+                    bortz: [hasBortz, window.compareAthleteRank],
+                    pheno: [() => true, window.compareAthleteRankPhenoOnly],
+                    improvement: [hasPhenoImprovement, window.compareAthleteRankPhenoImprovement],
+                    'bortz-improvement': [hasBortzImprovement, window.compareAthleteRankBortzImprovement],
+                    crowd: [hasCrowdAge, window.compareAthleteRankCrowdAge]
+                };
+                const [eligible, compare] = definitions[view];
+                athletesByView.set(view, athleteResults.filter(eligible).sort(compare));
+            }
+            return athletesByView.get(view);
+        };
 
         const query = window.normalizeString(document.getElementById('athleteSearch').value.trim().toLowerCase());
         const searchTerms = query.split(/\s+/).filter(term => term.length > 0);
@@ -7002,91 +7001,60 @@
             athleteBadgeTextByName.set(athleteName, window.normalizeString(badgeSearchText.toLowerCase()));
         });
 
-        let filteredAthletes = [];
+        const searchTextByAthlete = new Map(athleteResults.map(athlete => [athlete, [
+            athlete.name,
+            athleteBadgeTextByName.get(athlete.name) || '',
+            athlete.mediaContact || '',
+            `${athlete.flag || ''} ${athlete.canonicalFlag || ''}`,
+            athlete.why || ''
+        ].map(text => window.normalizeString(text.toLowerCase())).join(' ')]));
 
-        baseList.forEach(athlete => {
-            const athleteNameNormalized = window.normalizeString(athlete.name);
-            const athleteBadgeTextNormalized = athleteBadgeTextByName.get(athlete.name) || '';
-            const athleteMediaContactNormalized = window.normalizeString((athlete.mediaContact || '').toLowerCase());
-            const displayMetricValue = getMetricValueForView(athlete);
-            const displayAgeReductionPercent = currentLeaderboardView === 'pheno'
-                ? athlete.ageReductionPercent
-                : (currentLeaderboardView === 'improvement' || currentLeaderboardView === 'bortz-improvement')
-                    ? null
-                : ((athlete.bortzAgeReductionPercent != null && Number.isFinite(athlete.bortzAgeReductionPercent)) ? athlete.bortzAgeReductionPercent : athlete.ageReductionPercent);
-            const metricSearchParts = [];
-            if (Number.isFinite(displayMetricValue)) metricSearchParts.push(displayMetricValue.toFixed(1));
-            if (currentLeaderboardView !== 'crowd' && Number.isFinite(displayAgeReductionPercent)) metricSearchParts.push(displayAgeReductionPercent.toFixed(1));
-            if (currentLeaderboardView === 'crowd' && Number.isFinite(athlete.crowdCount)) metricSearchParts.push(String(athlete.crowdCount));
-            const athleteMetricNormalized = window.normalizeString(metricSearchParts.join(' ').toLowerCase());
-            const athleteRankNormalized = window.normalizeString(String(athlete.rank != null ? athlete.rank : '').toLowerCase());
-            const athleteFlagNormalized = window.normalizeString(`${athlete.flag || ''} ${athlete.canonicalFlag || ''}`.toLowerCase());
-            const athleteWhyNormalized = window.normalizeString((athlete.why || '').toLowerCase());
+        const getMatchingEntries = (state) => {
+            const divisions = state.divisions.map(value => value.toLowerCase());
+            const flags = state.flags.map(getFlagFilterKey);
+            const generations = state.generations.map(value => value.toLowerCase());
+            const exclusiveLeagues = state.exclusiveLeagues.map(value => value.toLowerCase());
+            const trackActive = state.leagueTracks.length === 1;
+            const wantPro = state.leagueTracks[0]?.toLowerCase() === 'professional';
+            const filtersUsed = divisions.length > 0 || flags.length > 0 || generations.length > 0 || exclusiveLeagues.length > 0 || trackActive || state.view !== 'ultimate';
+            const cohort = getAthletesForView(state.view).filter(athlete =>
+                (!trackActive || hasBortz(athlete) === wantPro) &&
+                (!divisions.length || divisions.includes(athlete.division.toLowerCase())) &&
+                (!flags.length || flags.includes(athlete.flagFilterKey)) &&
+                (!generations.length || generations.includes(athlete.generation.toLowerCase())) &&
+                (!exclusiveLeagues.length || exclusiveLeagues.includes((athlete.exclusiveLeague || '').toLowerCase()))
+            );
 
-            let matches = true;
+            // Fix rank and displayed precision before search or the display limit.
+            // Keep these on entries so sidebar previews cannot mutate the table's athletes.
+            return cohort.map((athlete, index) => ({
+                athlete,
+                rank: filtersUsed ? index + 1 : athlete.rank,
+                metric: formatMetricForView(cohort, athlete, index, state.view)
+            })).filter(entry => {
+                if (showAll) return true;
+                const { athlete, rank, metric } = entry;
+                const value = getMetricValueForView(athlete, state.view);
+                const percent = state.view === 'pheno'
+                    ? athlete.ageReductionPercent
+                    : (state.view === 'improvement' || state.view === 'bortz-improvement')
+                        ? null
+                        : (Number.isFinite(athlete.bortzAgeReductionPercent) ? athlete.bortzAgeReductionPercent : athlete.ageReductionPercent);
+                // Retain the old one-decimal form for existing shared searches as well.
+                const metricParts = [metric];
+                if (Number.isFinite(value)) metricParts.push(value.toFixed(1));
+                if (state.view !== 'crowd' && Number.isFinite(percent)) metricParts.push(percent.toFixed(1));
+                if (state.view === 'crowd' && Number.isFinite(athlete.crowdCount)) metricParts.push(String(athlete.crowdCount));
+                const metricText = window.normalizeString(metricParts.join(' ').toLowerCase());
+                return uniqueSearchTerms.every(term => searchTextByAthlete.get(athlete).includes(term) || metricText.includes(term) || String(rank).includes(term));
+            });
+        };
 
-            // League track: when exactly one selected, keep only that tier
-            if (leagueTrackFilterActive) {
-                const isPro = hasBortz(athlete);
-                const wantAmateur = selectedLeagueTracks[0].toLowerCase() === 'amateur';
-                const wantPro = selectedLeagueTracks[0].toLowerCase() === 'professional';
-                if (wantAmateur && isPro) matches = false;
-                if (wantPro && !isPro) matches = false;
-            }
-
-            // Check division match
-            if (matches && selectedDivisions.length > 0) {
-                matches = selectedDivisions.includes(athlete.division.toLowerCase());
-            }
-
-            // Check flag match
-            if (matches && selectedFlags.length > 0) {
-                matches = selectedFlags.includes(athlete.flagFilterKey);
-            }
-
-            // Check generation match
-            if (matches && selectedGenerations.length > 0) {
-                matches = selectedGenerations.includes(athlete.generation.toLowerCase());
-            }
-
-            // Check exclusive league match
-            if (matches && selectedExclusiveLeagues.length > 0) {
-                matches = selectedExclusiveLeagues.includes((athlete.exclusiveLeague || "").toLowerCase());
-            }
-
-            // Check search terms
-            if (matches && !showAll) {
-                matches = uniqueSearchTerms.every(term =>
-                    athleteNameNormalized.includes(term) || athleteBadgeTextNormalized.includes(term) || athleteMediaContactNormalized.includes(term) || athleteMetricNormalized.includes(term) || athleteRankNormalized.includes(term) || athleteFlagNormalized.includes(term) || athleteWhyNormalized.includes(term)
-                );
-            }
-
-            if (matches) {
-                filteredAthletes.push(athlete);
-            }
-        });
-
-        const unslicedFilteredAthletes = filteredAthletes;
-
-        filteredAthletes = filteredAthletes.slice(0, maxAthletesGlobal);
+        const matchingEntries = getMatchingEntries(selectedState);
+        const entriesByAthlete = new Map(matchingEntries.map(entry => [entry.athlete, entry]));
+        const unslicedFilteredAthletes = matchingEntries.map(entry => entry.athlete);
+        const filteredAthletes = unslicedFilteredAthletes.slice(0, maxAthletesGlobal);
         updateViewAllAthletesButton(unslicedFilteredAthletes.length);
-
-        // Determine if filters are used (league track counts only when exactly one selected)
-        const filtersUsed = selectedDivisions.length > 0 || selectedFlags.length > 0 || selectedGenerations.length > 0 || selectedExclusiveLeagues.length > 0 ||
-            leagueTrackFilterActive || currentLeaderboardView !== 'ultimate';
-        const searchUsed = uniqueSearchTerms.length > 0;
-
-        // If filters are used, reassign ranks starting from 1
-        if (filtersUsed && !searchUsed) {
-            filteredAthletes.forEach((athlete, index) => {
-                athlete.filteredRank = index + 1;
-            });
-        } else {
-            // Keep original ranks
-            filteredAthletes.forEach(athlete => {
-                athlete.filteredRank = athlete.rank;
-            });
-        }
 
         // First, hide all rows (including tier separator)
         const tableRows = document.querySelectorAll('.leaderboard table tbody tr');
@@ -7114,12 +7082,11 @@
                 // Update the rank cell
                 const rankCell = row.querySelector('td[data-label="Rank"] .rank');
                 if (rankCell) {
-                    rankCell.textContent = athlete.filteredRank;
+                    rankCell.textContent = entriesByAthlete.get(athlete).rank;
                 }
 
                 const ageReductionCell = row.querySelector('.age-reduction');
-                const athleteIndex = filteredAthletes.indexOf(athlete);
-                const displayMetric = formatMetricForView(filteredAthletes, athlete, athleteIndex);
+                const displayMetric = entriesByAthlete.get(athlete).metric;
                 if (ageReductionCell && displayMetric) {
                     ageReductionCell.textContent = displayMetric;
                 }
@@ -7199,7 +7166,7 @@
         });
 
         // Update the counts in the filter sections
-        updateFilterCounts(unslicedFilteredAthletes);
+        updateFilterCounts(selectedState, getMatchingEntries, matchingEntries);
 
         // Add or remove 'blurred' class from podium items based on filtering
         podiumItems.forEach(item => {
@@ -7232,6 +7199,9 @@
 
         updateLeaderboardStateIndicator();
         scheduleLeaderboardTableHeightSync();
+
+        // Initial hydration must preserve direct rank/profile fragments and unrelated URL state.
+        if (!updateUrl) return;
 
         const url = new URL(window.location.href);
         url.hash = ""; // <- this line removes #ABCD or any other fragment
@@ -7435,76 +7405,32 @@
         }
     }
 
-    function updateFilterCounts(filteredAthletes) {
-        // Update aging clock counts
-        const hasBortzForClockCount = (a) => a.bortzAgeReduction != null && Number.isFinite(a.bortzAgeReduction);
-        const hasPhenoForClockCount = (a) => a.ageReduction != null && Number.isFinite(a.ageReduction);
-        const hasPhenoImprovementForClockCount = (a) => Number.isFinite(a.phenoAgeImprovement);
-        const hasBortzImprovementForClockCount = (a) => Number.isFinite(a.bortzAgeImprovement);
-        const hasCrowdForClockCount = (a) => a.crowdCount >= CROWD_AGE_LEADERBOARD_MINIMUM_GUESS_COUNT && Number.isFinite(a.crowdAgeReduction);
-        const agingClockCounts = {
-            bortz: filteredAthletes.filter(hasBortzForClockCount).length,
-            pheno: filteredAthletes.filter(hasPhenoForClockCount).length,
-            improvement: filteredAthletes.filter(hasPhenoImprovementForClockCount).length,
-            'bortz-improvement': filteredAthletes.filter(hasBortzImprovementForClockCount).length,
-            crowd: filteredAthletes.filter(hasCrowdForClockCount).length
+    function updateFilterCounts(state, getMatchingEntries, currentEntries) {
+        const fields = {
+            division: ['divisions', athlete => athlete.division],
+            flag: ['flags', athlete => athlete.flagFilterKey],
+            generation: ['generations', athlete => athlete.generation],
+            exclusiveLeague: ['exclusiveLeagues', athlete => athlete.exclusiveLeague || ''],
+            leagueTrack: ['leagueTracks', athlete => Number.isFinite(athlete.bortzAgeReduction) ? 'Professional' : 'Amateur']
         };
+        document.querySelectorAll('.filter-section label').forEach(label => {
+            const input = label.querySelector('input[type="checkbox"]');
+            if (!input) return;
+            const isView = input.name === 'agingClockView';
+            const field = fields[input.name];
+            if (!isView && !field) return;
 
-        document.querySelectorAll('.filter-section label[data-aging-clock-view]').forEach(label => {
-            const clock = label.getAttribute('data-aging-clock-view');
-            const count = agingClockCounts[clock] || 0;
-            updateFilterCountLabel(label, count);
-        });
-
-        // Update division counts
-        const divisionCounts = {};
-        filteredAthletes.forEach(athlete => {
-            const division = athlete.division;
-            divisionCounts[division] = (divisionCounts[division] || 0) + 1;
-        });
-
-        document.querySelectorAll('.filter-section label[data-division]').forEach(label => {
-            const division = label.getAttribute('data-division');
-            const count = divisionCounts[division] || 0;
-            updateFilterCountLabel(label, count);
-        });
-
-        // Update flag counts
-        const flagCounts = {};
-        filteredAthletes.forEach(athlete => {
-            const flagKey = athlete.flagFilterKey;
-            if (!flagKey) return;
-
-            flagCounts[flagKey] = (flagCounts[flagKey] || 0) + 1;
-        });
-
-        document.querySelectorAll('.filter-section label[data-flag-key]').forEach(label => {
-            const flagKey = label.getAttribute('data-flag-key');
-            const count = flagCounts[flagKey] || 0;
-            updateFilterCountLabel(label, count);
-        });
-
-        // Update generation counts
-        const generationCounts = {};
-        filteredAthletes.forEach(athlete => {
-            const generation = athlete.generation;
-            generationCounts[generation] = (generationCounts[generation] || 0) + 1;
-        });
-
-        document.querySelectorAll('.filter-section label[data-generation]').forEach(label => {
-            const generation = label.getAttribute('data-generation');
-            const count = generationCounts[generation] || 0;
-            updateFilterCountLabel(label, count);
-        });
-
-        // Update league track counts (Amateur / Professional by tier)
-        const hasBortzForCount = (a) => a.bortzAgeReduction != null && Number.isFinite(a.bortzAgeReduction);
-        const amateurCount = filteredAthletes.filter(a => !hasBortzForCount(a)).length;
-        const professionalCount = filteredAthletes.filter(a => hasBortzForCount(a)).length;
-        document.querySelectorAll('.filter-section label[data-league-track]').forEach(label => {
-            const track = label.getAttribute('data-league-track');
-            const count = (track === 'Amateur') ? amateurCount : (track === 'Professional') ? professionalCount : 0;
-            updateFilterCountLabel(label, count);
+            // Counts describe this option's members after adding it to its OR group,
+            // or switching clocks, with all other selections and the search preserved.
+            const candidateState = isView
+                ? { ...state, view: input.value }
+                : { ...state, [field[0]]: [...state[field[0]], input.value] };
+            const entries = input.checked ? currentEntries : getMatchingEntries(candidateState);
+            const value = input.name === 'flag' ? getFlagFilterKey(input.value) : input.value.toLowerCase();
+            const count = isView ? entries.length : entries.filter(entry => field[1](entry.athlete).toLowerCase() === value).length;
+            // Combining leagues can change a matching athlete's rank even when the
+            // added option has no matching members of its own.
+            updateFilterCountLabel(label, count, entries.length > 0);
         });
     }
 

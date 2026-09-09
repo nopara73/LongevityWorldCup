@@ -5,6 +5,7 @@
 - **Longevity athlete**: approved participant with biological age data; **Applicant**: pre-approval.
 - **Track**: Pro (eligible bortz age) or Amateur (non-bortz). **League**: ranking view. **Ultimate League** ranks Pro before Amateur.
 - **Rank**: current computed order; **Placement**: stored/historical position.
+- Leaderboard search preserves ranks and displayed score precision within the selected ranking view and league filters. Searching or limiting visible rows never renumbers the matching athletes or substitutes their Ultimate League ranks. Displayed scores and the existing one-decimal score form are searchable.
 - **Biological Age Difference**: biological minus chronological age, lower is better; **Age Reduction** is its favorable public label. Compute with unrounded ages; round only for display.
 - **Effective Age Reduction**: Ultimate League score, Bortz for Pro, otherwise pheno.
 - **Pheno Age**, **Bortz Age**, and **Crowd Age** are distinct clocks/views. Calculator rank previews use only the selected clock's field.

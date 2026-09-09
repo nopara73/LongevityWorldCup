@@ -1,4 +1,5 @@
 using Microsoft.Playwright;
+using System.Text.Json.Nodes;
 using Xunit;
 using static LongevityWorldCup.Tests.AestheticSystemBrowserTests;
 
@@ -8,6 +9,230 @@ namespace LongevityWorldCup.Tests;
 public sealed class LeaderboardSelectionBrowserTests(PlaywrightBrowserFixture browserFixture, BrowserTestAppFixture appFixture)
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
+    [Theory]
+    [InlineData("/leaderboard", 0)]
+    [InlineData("/league/pheno", 1)]
+    [InlineData("/league/bortz", 1)]
+    [InlineData("/league/improvement", 1)]
+    [InlineData("/league/bortz-improvement", 1)]
+    [InlineData("/league/crowd", 1)]
+    [InlineData("/league/amateur", 1)]
+    [InlineData("/flag/hungary", 1)]
+    [InlineData("/leaderboard?filters=women%27s,gen%20x&view=pheno", 3)]
+    public async Task Searching_PreservesTheSelectedLeagueRanksThroughReloadAndClear(string path, int filterCount)
+    {
+        await using var context = await NewContextAsync(Browser, App, new());
+        await context.AddInitScriptAsync("localStorage.setItem('gmaSkipAll','true')");
+        if (path == "/league/crowd")
+        {
+            await context.RouteAsync("**/api/data/athletes", async route =>
+            {
+                var response = await route.FetchAsync();
+                var athletes = JsonNode.Parse(await response.TextAsync())!.AsArray();
+                foreach (var athlete in athletes.OfType<JsonObject>().Take(5))
+                {
+                    athlete["CrowdAge"] = 30;
+                    athlete["CrowdCount"] = 150;
+                }
+                await route.FulfillAsync(new() { ContentType = "application/json", Body = athletes.ToJsonString() });
+            });
+        }
+
+        var page = await context.NewPageAsync();
+        await page.GotoAsync(path);
+        await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+        await Assertions.Expect(page.Locator("#leaderboardResultCount")).ToHaveTextAsync(new System.Text.RegularExpressions.Regex(@"^\d+ athletes?$"));
+        await Assertions.Expect(page.Locator(".leaderboard-selection-chip")).ToHaveCountAsync(filterCount);
+        var initialCount = await Rows(page).CountAsync();
+        Assert.True(initialCount > 1);
+        var row = Rows(page).Nth(initialCount / 2);
+        var name = (await row.GetAttributeAsync("data-athlete-name"))!;
+        var rank = await row.Locator(".rank").InnerTextAsync();
+        var metric = await row.Locator(".age-reduction").InnerTextAsync();
+        var athleteLabel = (await row.Locator(".athlete-name").GetAttributeAsync("aria-label"))!;
+        var targetRow = Rows(page).Filter(new() { Has = page.GetByRole(AriaRole.Button, new() { Name = athleteLabel, Exact = true }) });
+        Assert.NotEqual("1", rank);
+
+        await page.Locator("#athleteSearch").FillAsync(name);
+        await Assertions.Expect(page.Locator(".leaderboard-selection-chip")).ToHaveCountAsync(filterCount + 1);
+        var matchingCount = await Rows(page).CountAsync();
+        Assert.InRange(matchingCount, 1, initialCount - 1);
+        await Assertions.Expect(targetRow.Locator(".rank")).ToHaveTextAsync(rank);
+        await Assertions.Expect(targetRow.Locator(".age-reduction")).ToHaveTextAsync(metric);
+        await page.ReloadAsync();
+        await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+        await Assertions.Expect(page.Locator(".leaderboard-selection-chip")).ToHaveCountAsync(filterCount + 1);
+        await Assertions.Expect(Rows(page)).ToHaveCountAsync(matchingCount);
+        await Assertions.Expect(targetRow.Locator(".rank")).ToHaveTextAsync(rank);
+        await Assertions.Expect(targetRow.Locator(".age-reduction")).ToHaveTextAsync(metric);
+
+        await page.Locator("#athleteSearch").FillAsync("");
+        await Assertions.Expect(Rows(page)).ToHaveCountAsync(initialCount);
+        await Assertions.Expect(targetRow.Locator(".rank")).ToHaveTextAsync(rank);
+        await Assertions.Expect(targetRow.Locator(".age-reduction")).ToHaveTextAsync(metric);
+    }
+
+    [Fact]
+    public async Task SearchingByRank_UsesTheDisplayedRankAndRecomputesAfterAViewChange()
+    {
+        await using var context = await NewContextAsync(Browser, App, new());
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/league/pheno?search=michael%20lustgarten%201");
+        await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+        await Assertions.Expect(Rows(page)).ToHaveCountAsync(1);
+        await Assertions.Expect(Rows(page).Locator(".rank")).ToHaveTextAsync("1");
+
+        await page.Locator("#athleteSearch").FillAsync("michael lustgarten");
+        await page.GetByRole(AriaRole.Button, new() { Name = "Remove Pheno age filter", Exact = true }).ClickAsync();
+        await Assertions.Expect(page.Locator("#view-ultimate")).ToBeCheckedAsync();
+        var ultimateRank = (await Rows(page).First.GetAttributeAsync("data-rank"))!;
+        Assert.NotEqual("1", ultimateRank);
+        await Assertions.Expect(Rows(page).Locator(".rank")).ToHaveTextAsync(ultimateRank);
+        await page.Locator("#athleteSearch").FillAsync($"michael lustgarten {ultimateRank}");
+        await Assertions.Expect(Rows(page)).ToHaveCountAsync(1);
+        await Assertions.Expect(Rows(page).Locator(".rank")).ToHaveTextAsync(ultimateRank);
+        await page.GotoAsync($"/league/pheno?search=michael%20lustgarten%20{ultimateRank}");
+        await Assertions.Expect(page.Locator("#leaderboardResultCount")).ToHaveTextAsync("0 athletes");
+    }
+
+    [Fact]
+    public async Task SearchingByDisplayedScore_PreservesItsPrecisionThroughReloadAndClear()
+    {
+        await using var context = await NewContextAsync(Browser, App, new());
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/league/pheno");
+        await Assertions.Expect(page.Locator(".leaderboard-selection-chip")).ToHaveCountAsync(1);
+        var row = Rows(page).Filter(new() { Has = page.Locator(".age-reduction").Filter(new() { HasTextRegex = new(@"\d+\.\d{2} years") }) }).First;
+        var name = (await row.GetAttributeAsync("data-athlete-name"))!;
+        var rank = await row.Locator(".rank").InnerTextAsync();
+        var metric = await row.Locator(".age-reduction").InnerTextAsync();
+        var label = (await row.Locator(".athlete-name").GetAttributeAsync("aria-label"))!;
+        var target = Rows(page).Filter(new() { Has = page.GetByRole(AriaRole.Button, new() { Name = label, Exact = true }) });
+
+        await page.Locator("#athleteSearch").FillAsync($"{name} {metric}");
+        await Assertions.Expect(page.Locator(".leaderboard-selection-chip")).ToHaveCountAsync(2);
+        await Assertions.Expect(target).ToHaveCountAsync(1);
+        await Assertions.Expect(target.Locator(".rank")).ToHaveTextAsync(rank);
+        await Assertions.Expect(target.Locator(".age-reduction")).ToHaveTextAsync(metric);
+        await page.ReloadAsync();
+        await Assertions.Expect(page.Locator(".leaderboard-selection-chip")).ToHaveCountAsync(2);
+        await Assertions.Expect(target.Locator(".rank")).ToHaveTextAsync(rank);
+        await Assertions.Expect(target.Locator(".age-reduction")).ToHaveTextAsync(metric);
+
+        var oldScore = double.Parse(metric.Split(' ')[0], System.Globalization.CultureInfo.InvariantCulture)
+            .ToString("F1", System.Globalization.CultureInfo.InvariantCulture);
+        await page.Locator("#athleteSearch").FillAsync($"{name} {oldScore}");
+        await Assertions.Expect(page.Locator(".leaderboard-selection-chip").Last).ToContainTextAsync(oldScore);
+        await Assertions.Expect(target).ToHaveCountAsync(1);
+        await page.Locator("#athleteSearch").FillAsync("");
+        await Assertions.Expect(page.Locator(".leaderboard-selection-chip")).ToHaveCountAsync(1);
+        await Assertions.Expect(target.Locator(".rank")).ToHaveTextAsync(rank);
+        await Assertions.Expect(target.Locator(".age-reduction")).ToHaveTextAsync(metric);
+    }
+
+    [Fact]
+    public async Task SidebarViewSwitch_UsesTheProposedCompetitionRanksDuringSearch()
+    {
+        await using var context = await NewContextAsync(Browser, App, new());
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/leaderboard?search=Max%2011");
+        await Assertions.Expect(page.Locator("#leaderboardResultCount")).ToHaveTextAsync("0 athletes");
+        await page.Locator(".sidebar-toggle").ClickAsync();
+        var pheno = page.Locator("input[name=agingClockView][value=pheno]");
+        await Assertions.Expect(pheno).ToBeEnabledAsync();
+        await Assertions.Expect(pheno.Locator("..").Locator(".filter-count")).ToHaveTextAsync("1");
+        await pheno.CheckAsync();
+        await Assertions.Expect(page.Locator("#view-pheno")).ToBeCheckedAsync();
+        await Assertions.Expect(Rows(page)).ToHaveCountAsync(1);
+        await Assertions.Expect(Rows(page)).ToHaveAttributeAsync("data-athlete-name", "Max");
+        await Assertions.Expect(Rows(page).Locator(".rank")).ToHaveTextAsync("11");
+        await Assertions.Expect(page.Locator("#athleteSearch")).ToHaveValueAsync("Max 11");
+        await page.ReloadAsync();
+        await Assertions.Expect(page.Locator(".leaderboard-selection-chip")).ToHaveCountAsync(2);
+        await Assertions.Expect(Rows(page).Locator(".rank")).ToHaveTextAsync("11");
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task DefaultLeaderboard_InitializesClockCountsAndPreservesDirectLinks(bool profileLink)
+    {
+        await using var context = await NewContextAsync(Browser, App, new());
+        var page = await context.NewPageAsync();
+        var path = profileLink ? "/leaderboard?athlete=michael-lustgarten" : "/leaderboard?utm_source=rank-link#rank-37";
+        await page.GotoAsync(path);
+        await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+        if (profileLink)
+        {
+            await Assertions.Expect(page.Locator("#detailsModal")).ToBeVisibleAsync();
+            await page.Locator("#closeAthleteDetailsModal").ClickAsync();
+            await Assertions.Expect(page.Locator("#detailsModal")).ToBeHiddenAsync();
+            Assert.Equal("/leaderboard", new Uri(page.Url).AbsolutePath);
+        }
+        var pheno = page.Locator("label[data-aging-clock-view=pheno]");
+        var bortz = page.Locator("label[data-aging-clock-view=bortz]");
+        await Assertions.Expect(pheno.Locator(".filter-count")).ToHaveTextAsync((await Rows(page).CountAsync()).ToString());
+        Assert.True(int.Parse(await bortz.Locator(".filter-count").InnerTextAsync()) > 0);
+        if (!profileLink) Assert.Equal(path, new Uri(page.Url).PathAndQuery + new Uri(page.Url).Fragment);
+    }
+
+    [Fact]
+    public async Task SidebarMultiSelect_CanChangeTheRankOfAnAlreadyMatchingAthlete()
+    {
+        await using var context = await NewContextAsync(Browser, App, new());
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/leaderboard?filters=open&search=michael%20lustgarten");
+        await Assertions.Expect(page.Locator(".leaderboard-selection-chip")).ToHaveCountAsync(2);
+        await Assertions.Expect(Rows(page)).ToHaveCountAsync(1);
+        var originalRank = await Rows(page).Locator(".rank").InnerTextAsync();
+        await page.Locator(".sidebar-toggle").ClickAsync();
+        var women = page.Locator("input[name=division][value=\"Women's\"]");
+        await Assertions.Expect(women.Locator("..").Locator(".filter-count")).ToHaveTextAsync("0");
+        await Assertions.Expect(women).ToBeEnabledAsync();
+        await women.CheckAsync();
+        await Assertions.Expect(page.Locator(".leaderboard-selection-chip")).ToHaveCountAsync(3);
+        await Assertions.Expect(Rows(page)).ToHaveCountAsync(1);
+        Assert.True(int.Parse(await Rows(page).Locator(".rank").InnerTextAsync()) > int.Parse(originalRank));
+        var combinedRank = await Rows(page).Locator(".rank").InnerTextAsync();
+        await page.ReloadAsync();
+        await Assertions.Expect(page.Locator(".leaderboard-selection-chip")).ToHaveCountAsync(3);
+        await Assertions.Expect(Rows(page).Locator(".rank")).ToHaveTextAsync(combinedRank);
+    }
+
+    [Theory]
+    [InlineData("division")]
+    [InlineData("flag")]
+    [InlineData("generation")]
+    [InlineData("leagueTrack")]
+    public async Task SidebarMultiSelect_KeepsOtherMembersOfTheSameGroupAvailable(string group)
+    {
+        await using var context = await NewContextAsync(Browser, App, new());
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/leaderboard");
+        await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+        await page.Locator(".sidebar-toggle").ClickAsync();
+        var options = page.Locator($"input[name={group}]");
+        var first = options.Nth(0);
+        var second = options.Nth(1);
+        var firstCount = int.Parse(await first.Locator("..").Locator(".filter-count").InnerTextAsync());
+        var secondCount = int.Parse(await second.Locator("..").Locator(".filter-count").InnerTextAsync());
+        await first.CheckAsync();
+        await Assertions.Expect(Rows(page)).ToHaveCountAsync(firstCount);
+        await Assertions.Expect(second).ToBeEnabledAsync();
+        await Assertions.Expect(second).ToBeVisibleAsync();
+        await Assertions.Expect(second.Locator("..").Locator(".filter-count")).ToHaveTextAsync(secondCount.ToString());
+        await second.CheckAsync();
+        await Assertions.Expect(first).ToBeCheckedAsync();
+        await Assertions.Expect(Rows(page)).ToHaveCountAsync(firstCount + secondCount);
+        if (group == "leagueTrack")
+        {
+            Assert.True(await Rows(page).EvaluateAllAsync<bool>("rows => rows.every(row => row.querySelector('.rank').textContent === row.dataset.rank)"));
+        }
+        await page.ReloadAsync();
+        await Assertions.Expect(page.Locator(".leaderboard-selection-chip")).ToHaveCountAsync(group == "leagueTrack" ? 0 : 2);
+        await Assertions.Expect(Rows(page)).ToHaveCountAsync(firstCount + secondCount);
+    }
+
     [Fact]
     public async Task RemovingOneSelection_PreservesTheOthersAndTheSharedUrl()
     {
