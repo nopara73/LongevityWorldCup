@@ -73,7 +73,7 @@ public sealed class SmtpLongevitymaxxingEmailSender(Config config, ILogger<SmtpL
             : $"Day {reminder.ChallengeDay} is ready. Check in for {reminder.TargetDate}:";
         var guidance = isPractice
             ? "This first check-in counts for checked-in days and streak, not points. Use it to learn the sleep, exercise, nutrition, and vices flow."
-            : "Sleep. Exercise. Nutrition. Vices. Keep the board moving.";
+            : "Sleep. Exercise. Nutrition. Vices. Your next move matters.";
         var continuation = reminder.ChallengeDay == 14
             ? "The 14-day sprint does not stop here. The leaderboard keeps going, and daily check-in emails continue until you stop them or miss 3 scored days in a row.\n\n"
             : "";
