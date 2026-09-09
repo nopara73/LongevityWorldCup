@@ -4252,6 +4252,24 @@
         };
     }
 
+    function normalizeLegacyLeagueRoute() {
+        const url = new URL(window.location.href);
+        const route = getLeagueRouteState(url.pathname);
+        if (route.slug === 'pheno-improvement') {
+            url.pathname = '/league/improvement';
+        } else if (route.slug === 'ultimate') {
+            url.pathname = originalLeaguelessURL.pathname;
+        } else if (route.filterLabel && !leagueFilterRoutes[route.slug]?.canonical) {
+            url.pathname = originalLeaguelessURL.pathname;
+            if (!url.searchParams.has('filters')) {
+                url.searchParams.set('filters', serializeFiltersParam([route.filterLabel.toLowerCase()]));
+            }
+        } else {
+            return;
+        }
+        history.replaceState(history.state || {}, '', url.toString());
+    }
+
 
     if (!isAthleteDialogOnlyRuntime) {
         // Prevent browser auto-restoring scroll on leaderboard history navigation.
@@ -7204,7 +7222,10 @@
         scheduleLeaderboardTableHeightSync();
 
         // Initial hydration must preserve direct rank/profile fragments and unrelated URL state.
-        if (!updateUrl) return;
+        if (!updateUrl) {
+            normalizeLegacyLeagueRoute();
+            return;
+        }
 
         const url = new URL(window.location.href);
         url.hash = ""; // <- this line removes #ABCD or any other fragment
