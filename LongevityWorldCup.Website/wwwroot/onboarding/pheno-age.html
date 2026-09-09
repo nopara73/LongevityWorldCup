@@ -2531,7 +2531,7 @@
         }
 
         window.addEventListener('pageshow', event => {
-            if (event.persisted && isUpdate && bioageFlow.readSelectedAthlete()?.Name !== athlete?.Name) {
+            if (event.persisted && bioageFlow.shouldReloadBioageUpdate('pheno')) {
                 window.location.reload();
                 return;
             }

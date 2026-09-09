@@ -157,6 +157,32 @@ public sealed class BioageUpdateDraftBrowserTests(PlaywrightBrowserFixture brows
         await Assertions.Expect(page.Locator("#blood-draw-date")).ToHaveValueAsync("2026-09-02");
     }
 
+    [Theory]
+    [InlineData("pheno")]
+    [InlineData("bortz")]
+    public async Task CachedUpdateReturn_DropsACompletedDraft(string clock)
+    {
+        await using var context = await NewContextAsync(Browser, App, new() { ViewportSize = new() { Width = 390, Height = 844 }, ReducedMotion = ReducedMotion.Reduce });
+        var page = await context.NewPageAsync();
+        await SelectAthleteAsync(page);
+        await OpenCalculatorAsync(page, clock);
+        await page.Locator("#blood-draw-date").FillAsync("2026-09-01");
+        await FillMarkerAsync(page, "wbc", "5.2");
+        var key = $"bioageDraft:{clock}:update:Draft%20Test%20Athlete:v1";
+        await page.WaitForFunctionAsync("key => sessionStorage.getItem(key)?.includes('5.2')", key);
+        // A successful proof submission removes this key while the calculator is cached.
+        // Exercise the actual return lifecycle, including resetting the visible form.
+        await page.EvaluateAsync("key => {sessionStorage.removeItem(key); window.dispatchEvent(new PageTransitionEvent('pageshow', {persisted:true}));}", key);
+        await Assertions.Expect(page.Locator("#wbc")).ToHaveValueAsync("");
+        await Assertions.Expect(page.Locator("#blood-draw-date")).ToHaveValueAsync("");
+        await WaitForEntryAsync(page);
+        await Assertions.Expect(page.Locator("#calculateBioageButton")).ToBeDisabledAsync();
+        await FillMarkerAsync(page, "wbc", "7.3");
+        await page.ReloadAsync();
+        await WaitForEntryAsync(page);
+        await Assertions.Expect(page.Locator("#wbc")).ToHaveValueAsync("7.3");
+    }
+
     private static async Task SelectAthleteAsync(IPage page)
     {
         if (page.Url == "about:blank") await page.GotoAsync("/dashboard");

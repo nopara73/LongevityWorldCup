@@ -120,6 +120,7 @@ interface LwcBioageFlowApi {
     getSessionItem: BioageStorageGetter;
     getDraftStep: (clock: BioageClock) => 1 | 2;
     getActiveBioageDraftKey: (clock: BioageClock) => string | null;
+    shouldReloadBioageUpdate: (clock: BioageClock) => boolean;
     hasFiniteBiomarkerValue: (value: unknown) => boolean;
     hideUpdateModeStepNavigation: () => void;
     initializeBiomarkerEntry: (options: BioageBiomarkerEntryOptions) => BioageBiomarkerEntryResult;
@@ -573,6 +574,16 @@ interface Window {
 
     function getActiveBioageDraftKey(clock: BioageClock): string | null {
         return biomarkerEntryControllers.get(clock)?.draftKey || null;
+    }
+
+    function shouldReloadBioageUpdate(clock: BioageClock): boolean {
+        const controller = biomarkerEntryControllers.get(clock);
+        if (!controller?.isUpdate) return false;
+        const selectedAthlete = readSelectedAthlete();
+        return !isValidSelectedAthlete(selectedAthlete)
+            || selectedAthlete.Name !== controller.athleteName
+            || (!!controller.draftKey && controller.hasPersistedDraft
+                && getSessionItem(controller.draftKey) === null);
     }
 
     function isBioageClock(value: unknown): value is BioageClock {
@@ -1741,6 +1752,7 @@ interface Window {
         expandBiomarkerCard,
         getDraftStep,
         getActiveBioageDraftKey,
+        shouldReloadBioageUpdate,
         getLatestBiomarkerEntry,
         getLatestBiomarkerValue,
         getBackDestination,
