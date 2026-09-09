@@ -116,13 +116,13 @@ public sealed class LeaderboardRouteBrowserTests(
             """
             () => {
                 const title = document.querySelector('.collapsed-title');
-                return title?.textContent?.trim() === 'FLAG'
+                return title?.textContent?.trim() === 'LIVE LONG ENOUGH TO LIVE FOREVER'
                     && title.getAttribute('title') === 'Leaderboard: Live long enough to live forever';
             }
             """);
 
         var collapsedTitle = directPage.Locator(".collapsed-title");
-        Assert.Equal("FLAG", (await collapsedTitle.TextContentAsync())?.Trim());
+        Assert.Equal("LIVE LONG ENOUGH TO LIVE FOREVER", (await collapsedTitle.TextContentAsync())?.Trim());
         Assert.Equal("Leaderboard: Live long enough to live forever", await collapsedTitle.GetAttributeAsync("title"));
         Assert.Equal("Leaderboard: Live long enough to live forever", await collapsedTitle.GetAttributeAsync("aria-label"));
         Assert.Equal("Leaderboard: Live long enough to live forever | Longevity World Cup", await directPage.TitleAsync());
@@ -132,15 +132,20 @@ public sealed class LeaderboardRouteBrowserTests(
             () => {
                 const sidebar = document.querySelector('.leaderboard > .sidebar').getBoundingClientRect();
                 const table = document.querySelector('.leaderboard > table').getBoundingClientRect();
+                const frame = document.querySelector('.leaderboard').getBoundingClientRect();
                 const title = document.querySelector('.collapsed-title');
                 return {
                     sidebarHeight: sidebar.height,
                     tableHeight: table.height,
+                    frameHeight: frame.height,
+                    titleBottom: title.getBoundingClientRect().bottom,
+                    sidebarBottom: sidebar.bottom,
                     titleOverflow: title.scrollHeight - title.clientHeight
                 };
             }
             """);
-        Assert.InRange(Math.Abs(geometry.GetProperty("sidebarHeight").GetDouble() - geometry.GetProperty("tableHeight").GetDouble()), 0, 1.5);
+        Assert.InRange(geometry.GetProperty("frameHeight").GetDouble() - geometry.GetProperty("sidebarHeight").GetDouble(), 0, 2.5);
+        Assert.True(geometry.GetProperty("titleBottom").GetDouble() <= geometry.GetProperty("sidebarBottom").GetDouble() + 1);
         Assert.InRange(geometry.GetProperty("titleOverflow").GetDouble(), -1, 1.5);
     }
 

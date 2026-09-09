@@ -10,6 +10,82 @@ public sealed class LeaderboardSelectionBrowserTests(PlaywrightBrowserFixture br
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Theory]
+    [InlineData("ultimate", "ULTIMATE LEAGUE")]
+    [InlineData("pheno", "PHENO AGE LEAGUE")]
+    [InlineData("bortz", "BORTZ AGE LEAGUE")]
+    [InlineData("improvement", "PHENO IMPROVEMENT LEAGUE")]
+    [InlineData("bortz-improvement", "BORTZ IMPROVEMENT LEAGUE")]
+    [InlineData("crowd", "CROWD AGE LEAGUE")]
+    public async Task ShortResults_KeepTheFullLeagueNameVisibleWithoutStretchingRows(string view, string title)
+    {
+        await using var context = await NewContextAsync(Browser, App, new() { ViewportSize = new() { Width = 1280, Height = 844 }, ReducedMotion = ReducedMotion.Reduce });
+        await context.AddInitScriptAsync("localStorage.setItem('gmaSkipAll','true')");
+        if (view == "crowd")
+        {
+            await context.RouteAsync("**/api/data/athletes", async route =>
+            {
+                var response = await route.FetchAsync();
+                var athletes = JsonNode.Parse(await response.TextAsync())!.AsArray();
+                foreach (var athlete in athletes.OfType<JsonObject>().Take(5))
+                {
+                    athlete["CrowdAge"] = 30;
+                    athlete["CrowdCount"] = 150;
+                }
+                await route.FulfillAsync(new() { ContentType = "application/json", Body = athletes.ToJsonString() });
+            });
+        }
+
+        var page = await context.NewPageAsync();
+        await page.GotoAsync(view == "ultimate" ? "/leaderboard" : $"/league/{view}");
+        await Assertions.Expect(page.Locator(".leaderboard-selection-chip")).ToHaveCountAsync(view == "ultimate" ? 0 : 1);
+        await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+        var originalCount = await Rows(page).CountAsync();
+        var name = view == "pheno" ? "Max" : (await Rows(page).First.GetAttributeAsync("data-athlete-name"))!;
+        var row = Rows(page).Filter(new() { Has = page.Locator(".athlete-name").Filter(new() { HasText = name }) }).First;
+        var originalHeight = (await row.BoundingBoxAsync())!.Height;
+        await page.Locator("#athleteSearch").FillAsync(view == "pheno" ? "Max -18.30" : name);
+        await Assertions.Expect(Rows(page)).ToHaveCountAsync(1);
+        await AssertVisibleRailAsync(page, title);
+        Assert.InRange(Math.Abs((await Rows(page).BoundingBoxAsync())!.Height - originalHeight), 0, 1);
+
+        await page.ReloadAsync();
+        await Assertions.Expect(Rows(page)).ToHaveCountAsync(1);
+        await AssertVisibleRailAsync(page, title);
+        if (view is "pheno" or "improvement")
+        {
+            await page.SetViewportSizeAsync(800, 844);
+            await AssertVisibleRailAsync(page, title);
+            await page.SetViewportSizeAsync(390, 844);
+            await Assertions.Expect(page.Locator(".collapsed-title")).ToBeHiddenAsync();
+            await page.WaitForFunctionAsync("() => !document.querySelector('.leaderboard').style.getPropertyValue('--leaderboard-title-height')");
+            await page.SetViewportSizeAsync(1280, 844);
+            await AssertVisibleRailAsync(page, title);
+        }
+
+        await page.Locator("#athleteSearch").FillAsync("nobody-matches-this-phrase");
+        await Assertions.Expect(page.Locator("#leaderboardResultCount")).ToHaveTextAsync("0 athletes");
+        await AssertVisibleRailAsync(page, title);
+        await page.Locator("#athleteSearch").FillAsync("");
+        await Assertions.Expect(Rows(page)).ToHaveCountAsync(originalCount);
+        await AssertVisibleRailAsync(page, title);
+    }
+
+    private static Task AssertVisibleRailAsync(IPage page, string title) => page.WaitForFunctionAsync(
+        """
+        expected => {
+            const title = document.querySelector('.collapsed-title');
+            const rail = document.querySelector('.sidebar').getBoundingClientRect();
+            const frame = document.querySelector('.leaderboard').getBoundingClientRect();
+            const rect = title.getBoundingClientRect();
+            return title.textContent.trim() === expected && rect.height > 0
+                && rect.top >= rail.top && rect.bottom <= rail.bottom + 1
+                && title.scrollHeight <= title.clientHeight + 1
+                && Math.abs(frame.bottom - rail.bottom) <= 2
+                && document.documentElement.scrollWidth <= innerWidth;
+        }
+        """, title);
+
+    [Theory]
     [InlineData("/leaderboard", 0)]
     [InlineData("/league/pheno", 1)]
     [InlineData("/league/bortz", 1)]
@@ -197,6 +273,29 @@ public sealed class LeaderboardSelectionBrowserTests(PlaywrightBrowserFixture br
         await page.ReloadAsync();
         await Assertions.Expect(page.Locator(".leaderboard-selection-chip")).ToHaveCountAsync(3);
         await Assertions.Expect(Rows(page).Locator(".rank")).ToHaveTextAsync(combinedRank);
+    }
+
+    [Fact]
+    public async Task SidebarMultiSelect_HidesEmptyFlagsThatCannotChangeTheResult()
+    {
+        await using var context = await NewContextAsync(Browser, App, new());
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/league/pheno?search=michael%20lustgarten");
+        await Assertions.Expect(Rows(page)).ToHaveCountAsync(1);
+        await Assertions.Expect(Rows(page).Locator(".rank")).ToHaveTextAsync("1");
+        await page.Locator(".sidebar-toggle").ClickAsync();
+        var flags = page.Locator("#flag-filter-section input[name=flag]");
+        Assert.True(await flags.CountAsync() > 1);
+        await page.Locator("#flag-filter-section input:not(:disabled)").First.CheckAsync();
+        await Assertions.Expect(page.Locator(".leaderboard-selection-chip")).ToHaveCountAsync(3);
+        await Assertions.Expect(page.Locator("#flag-filter-section li:visible")).ToHaveCountAsync(1);
+        await Assertions.Expect(page.Locator("#flag-filter-section input:not(:disabled)")).ToHaveCountAsync(1);
+        await Assertions.Expect(Rows(page).Locator(".rank")).ToHaveTextAsync("1");
+
+        // Clearing the search restores real alternative members in the same group.
+        await page.Locator("#athleteSearch").FillAsync("");
+        await Assertions.Expect(page.Locator(".leaderboard-selection-chip")).ToHaveCountAsync(2);
+        await Assertions.Expect(page.Locator("#flag-filter-section input:not(:disabled)")).ToHaveCountAsync(await flags.CountAsync());
     }
 
     [Theory]

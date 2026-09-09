@@ -97,7 +97,7 @@
         --leaderboard-table-height: calc(100vh - 2rem);
         --leaderboard-sidebar-sticky-top: 4rem;
         display:flex; align-items:flex-start; background-color:var(--card-bg);
-        min-height:var(--leaderboard-table-height);
+        min-height:max(var(--leaderboard-table-height), var(--leaderboard-title-height, 0px));
         border-radius:15px; box-shadow:0 10px 30px rgba(0,0,0,.1); overflow:clip; flex-grow:1;
     }
 
@@ -319,12 +319,12 @@
        4) Sidebar & filters
        ========================= */
     .sidebar{
-        position:relative; width:50px; height:var(--leaderboard-table-height); min-height:var(--leaderboard-table-height); max-height:var(--leaderboard-table-height); padding:0; background:var(--card-bg); border-radius:15px; box-shadow:0 10px 30px rgba(0,0,0,.1);
+        position:relative; width:50px; height:max(var(--leaderboard-table-height), var(--leaderboard-title-height, 0px)); min-height:max(var(--leaderboard-table-height), var(--leaderboard-title-height, 0px)); max-height:max(var(--leaderboard-table-height), var(--leaderboard-title-height, 0px)); padding:0; background:var(--card-bg); border-radius:15px; box-shadow:0 10px 30px rgba(0,0,0,.1);
         margin-right:.2rem; display:flex; flex-direction:column; align-items:center; transition:width var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease), padding var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
         overflow:hidden; flex-shrink:0;
     }
     .sidebar:hover:not(.button-collapsed), .sidebar.expanded{
-        position:sticky; top:var(--leaderboard-sidebar-sticky-top); width:auto; height:auto; min-height:0; max-height:min(calc(100vh - 2rem), var(--leaderboard-table-height)); padding:1rem; align-items:flex-start;
+        position:sticky; top:var(--leaderboard-sidebar-sticky-top); width:auto; height:auto; min-height:0; max-height:min(calc(100vh - 2rem), max(var(--leaderboard-table-height), var(--leaderboard-title-height, 0px))); padding:1rem; align-items:flex-start;
         overflow-x:hidden; overflow-y:auto; overscroll-behavior:contain; scrollbar-gutter:stable;
         scrollbar-width:thin; scrollbar-color:rgba(0,188,212,.55) transparent;
     }
@@ -397,7 +397,7 @@
 
     .collapsed-title{
         display:block; position:sticky; top:calc(var(--leaderboard-sidebar-sticky-top) + .75rem); z-index:1; writing-mode:vertical-rl; transform:rotate(180deg); text-align:center; font-size:1.8rem; color:var(--primary-color);
-        max-height:calc(var(--leaderboard-table-height) - 4.5rem); overflow:hidden; box-sizing:border-box; white-space:nowrap;
+        flex-shrink:0; box-sizing:border-box; white-space:nowrap;
         padding:15px 0; letter-spacing:1px; word-spacing:10px; font-family:'Orbitron', sans-serif;
         background:linear-gradient(45deg, var(--primary-color), var(--secondary-color)); background-size:200%;
         -webkit-background-clip:text; -webkit-text-fill-color:transparent; text-shadow:none; border-radius:5px;
@@ -2925,12 +2925,6 @@
         letter-spacing: .04em;
         word-spacing: normal;
         -webkit-text-fill-color: currentColor;
-    }
-
-    .collapsed-title.is-compact {
-        padding-block: var(--space-2, .5rem);
-        font-size: .875rem;
-        letter-spacing: .02em;
     }
 
     .sidebar-toggle,
@@ -7272,12 +7266,12 @@
     }
 
     const leaderboardViewPresentations = Object.freeze({
-        ultimate: { railText: 'Ultimate League', compactRailText: 'ULT', documentTitle: 'Ultimate League' },
-        bortz: { railText: 'Bortz Age League', compactRailText: 'BORTZ', documentTitle: 'Bortz Age Leaderboard' },
-        pheno: { railText: 'Pheno Age League', compactRailText: 'PHENO', documentTitle: 'Pheno Age Leaderboard' },
-        improvement: { railText: 'Pheno Improvement League', compactRailText: 'PHENO', documentTitle: 'Pheno Improvement Leaderboard' },
-        'bortz-improvement': { railText: 'Bortz Improvement League', compactRailText: 'BORTZ', documentTitle: 'Bortz Improvement Leaderboard' },
-        crowd: { railText: 'Crowd Age League', compactRailText: 'CROWD', documentTitle: 'Crowd Age Leaderboard' }
+        ultimate: { railText: 'Ultimate League', documentTitle: 'Ultimate League' },
+        bortz: { railText: 'Bortz Age League', documentTitle: 'Bortz Age Leaderboard' },
+        pheno: { railText: 'Pheno Age League', documentTitle: 'Pheno Age Leaderboard' },
+        improvement: { railText: 'Pheno Improvement League', documentTitle: 'Pheno Improvement Leaderboard' },
+        'bortz-improvement': { railText: 'Bortz Improvement League', documentTitle: 'Bortz Improvement Leaderboard' },
+        crowd: { railText: 'Crowd Age League', documentTitle: 'Crowd Age Leaderboard' }
     });
 
     const generationLeagueAliases = Object.freeze({
@@ -7320,63 +7314,47 @@
         const flags = state.flags.filter(Boolean);
         if (flags.length === 1) {
             const documentTitle = `Leaderboard: ${flags[0]}`;
-            return { railText: flags[0], compactRailText: 'FLAG', documentTitle, accessibleLabel: documentTitle };
+            return { railText: flags[0], documentTitle, accessibleLabel: documentTitle };
         }
         if (flags.length > 1) {
             const documentTitle = `${flags.length} Flags Leaderboard`;
-            return { railText: `${flags.length} Flags`, compactRailText: 'FLAGS', documentTitle, accessibleLabel: documentTitle };
+            return { railText: `${flags.length} Flags`, documentTitle, accessibleLabel: documentTitle };
         }
 
         if (state.exclusiveLeagues.length > 0) {
             const leagueLabel = state.exclusiveLeagues.length === 1
                 ? `${state.exclusiveLeagues[0]} League`
                 : 'Exclusive Leagues';
-            return { railText: leagueLabel, compactRailText: 'EXCL', documentTitle: leagueLabel, accessibleLabel: leagueLabel };
+            return { railText: leagueLabel, documentTitle: leagueLabel, accessibleLabel: leagueLabel };
         }
 
         const generationLabel = getGenerationLeagueLabel(state.generations);
         const divisionLabel = getDivisionLeagueLabel(state.divisions);
         if (generationLabel || divisionLabel) {
             const leagueLabel = `${[generationLabel, divisionLabel].filter(Boolean).join(' ')} League`;
-            const compactRailText = generationLabel && divisionLabel
-                ? 'MULTI'
-                : generationLabel
-                    ? 'GEN'
-                    : 'DIV';
-            return { railText: leagueLabel, compactRailText, documentTitle: leagueLabel, accessibleLabel: leagueLabel };
+            return { railText: leagueLabel, documentTitle: leagueLabel, accessibleLabel: leagueLabel };
         }
 
         if (state.leagueTracks.length === 1) {
             const trackLabel = getLeagueTrackLabel(state.leagueTracks[0]);
             const leagueLabel = `${trackLabel} League`;
-            return { railText: leagueLabel, compactRailText: trackLabel === 'Pro' ? 'PRO' : 'AM', documentTitle: leagueLabel, accessibleLabel: leagueLabel };
+            return { railText: leagueLabel, documentTitle: leagueLabel, accessibleLabel: leagueLabel };
         }
 
         return { ...viewPresentation, accessibleLabel: viewPresentation.documentTitle };
     }
 
-    function fitCollapsedTitleToSidebar() {
+    function syncCollapsedTitleHeight() {
         const collapsedTitle = document.querySelector('.collapsed-title');
         if (!collapsedTitle || collapsedTitle.getClientRects().length === 0 || collapsedTitle.clientHeight <= 0) return;
 
-        const fullRailText = collapsedTitle.dataset.fullRailText || collapsedTitle.textContent || '';
-        const compactRailText = collapsedTitle.dataset.compactRailText || fullRailText;
-        collapsedTitle.classList.remove('is-compact');
-        collapsedTitle.style.removeProperty('font-size');
-        collapsedTitle.textContent = fullRailText;
-
-        if (collapsedTitle.scrollHeight <= collapsedTitle.clientHeight + 1) return;
-
-        collapsedTitle.textContent = compactRailText;
-        collapsedTitle.classList.add('is-compact');
-        if (collapsedTitle.scrollHeight <= collapsedTitle.clientHeight + 1) return;
-
-        const computedStyle = window.getComputedStyle(collapsedTitle);
-        const currentFontSize = Number.parseFloat(computedStyle.fontSize);
-        if (Number.isFinite(currentFontSize) && collapsedTitle.scrollHeight > 0) {
-            const fittedFontSize = Math.max(10, currentFontSize * collapsedTitle.clientHeight / collapsedTitle.scrollHeight * .94);
-            collapsedTitle.style.fontSize = `${fittedFontSize}px`;
-        }
+        // Short result sets still need room for the complete league name.
+        // Measure the natural title, independently of the current row count.
+        const heading = document.querySelector('.sidebar-heading');
+        const leaderboard = document.querySelector('.leaderboard');
+        if (!heading || !leaderboard) return;
+        const minimumHeight = Math.ceil(heading.getBoundingClientRect().height + collapsedTitle.scrollHeight);
+        leaderboard.style.setProperty('--leaderboard-title-height', `${minimumHeight}px`);
     }
 
     function updateLeaderboardTitles(state) {
@@ -7385,13 +7363,12 @@
         if (collapsedTitle) {
             const fullRailText = presentation.railText.toUpperCase();
             collapsedTitle.dataset.fullRailText = fullRailText;
-            collapsedTitle.dataset.compactRailText = presentation.compactRailText.toUpperCase();
             collapsedTitle.textContent = fullRailText;
             collapsedTitle.title = presentation.accessibleLabel;
             collapsedTitle.setAttribute('aria-label', presentation.accessibleLabel);
             collapsedTitle.style.opacity = '0';
             requestAnimationFrame(() => {
-                fitCollapsedTitleToSidebar();
+                syncCollapsedTitleHeight();
                 collapsedTitle.style.opacity = '1';
             });
         }
@@ -7406,6 +7383,7 @@
     }
 
     function updateFilterCounts(state, getMatchingEntries, currentEntries) {
+        const currentEntriesByAthlete = new Map(currentEntries.map(entry => [entry.athlete, entry]));
         const fields = {
             division: ['divisions', athlete => athlete.division],
             flag: ['flags', athlete => athlete.flagFilterKey],
@@ -7429,8 +7407,13 @@
             const value = input.name === 'flag' ? getFlagFilterKey(input.value) : input.value.toLowerCase();
             const count = isView ? entries.length : entries.filter(entry => field[1](entry.athlete).toLowerCase() === value).length;
             // Combining leagues can change a matching athlete's rank even when the
-            // added option has no matching members of its own.
-            updateFilterCountLabel(label, count, entries.length > 0);
+            // added option has no matching members of its own. Do not enable empty
+            // options that leave both the matching athletes and their scores unchanged.
+            const changesResults = entries.some(entry => {
+                const current = currentEntriesByAthlete.get(entry.athlete);
+                return !current || current.rank !== entry.rank || current.metric !== entry.metric;
+            });
+            updateFilterCountLabel(label, count, count > 0 || changesResults);
         });
     }
 
@@ -9654,13 +9637,14 @@
 
         if (isMobileDrawerViewport()) {
             leaderboard.style.removeProperty('--leaderboard-table-height');
+            leaderboard.style.removeProperty('--leaderboard-title-height');
             return;
         }
 
         const tableHeight = table.getBoundingClientRect().height;
         if (tableHeight > 0) {
             leaderboard.style.setProperty('--leaderboard-table-height', `${Math.ceil(tableHeight)}px`);
-            fitCollapsedTitleToSidebar();
+            syncCollapsedTitleHeight();
         }
     }
 
@@ -9671,6 +9655,8 @@
         if ('ResizeObserver' in window) {
             leaderboardTableResizeObserver = new ResizeObserver(scheduleLeaderboardTableHeightSync);
             leaderboardTableResizeObserver.observe(table);
+            const title = document.querySelector('.collapsed-title');
+            if (title) leaderboardTableResizeObserver.observe(title);
         }
 
         scheduleLeaderboardTableHeightSync();
@@ -9863,7 +9849,7 @@
         sidebarToggle.setAttribute('aria-label', 'Show league filters');
         sidebarToggle.setAttribute('aria-expanded', 'false');
         syncSidebarDrawerBackdrop();
-        requestAnimationFrame(fitCollapsedTitleToSidebar);
+        requestAnimationFrame(syncCollapsedTitleHeight);
 
         if (options.restoreFocus) {
             requestAnimationFrame(() => {
