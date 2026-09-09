@@ -80,6 +80,7 @@ interface BioageDraft {
 interface BioageBiomarkerEntryController {
     athleteName: string | null;
     clock: BioageClock;
+    draftFields: Record<string, BioageDraftField>;
     draftKey: string | null;
     draftPersistenceSuppressed: boolean;
     form: HTMLFormElement;
@@ -577,13 +578,9 @@ interface Window {
     }
 
     function shouldReloadBioageUpdate(clock: BioageClock): boolean {
-        const controller = biomarkerEntryControllers.get(clock);
-        if (!controller?.isUpdate) return false;
-        const selectedAthlete = readSelectedAthlete();
-        return !isValidSelectedAthlete(selectedAthlete)
-            || selectedAthlete.Name !== controller.athleteName
-            || (!!controller.draftKey && controller.hasPersistedDraft
-                && getSessionItem(controller.draftKey) === null);
+        // A cached calculator can contain published carryover values filled during
+        // calculation. Reinitialize from the raw draft on every cached update return.
+        return biomarkerEntryControllers.get(clock)?.isUpdate === true;
     }
 
     function isBioageClock(value: unknown): value is BioageClock {
@@ -667,6 +664,21 @@ interface Window {
         return true;
     }
 
+    function captureBioageDraftEdit(controller: BioageBiomarkerEntryController, target: EventTarget | null): void {
+        if (!controller.isUpdate || controller.restoring
+            || !(target instanceof HTMLInputElement || target instanceof HTMLSelectElement)) return;
+
+        const fields = serializeDraftFields(controller.form, true);
+        // An entered value or CRP checkbox also owns its unit controls. Changing
+        // just a unit must not turn a calculated carryover value into a new entry.
+        const card = target instanceof HTMLInputElement ? target.closest('.biomarker-card') : null;
+        const controls = card ? card.querySelectorAll<HTMLInputElement | HTMLSelectElement>('input[id], select[id]') : [target];
+        controls.forEach(control => {
+            const field = fields[control.id];
+            if (field) controller.draftFields[control.id] = field;
+        });
+    }
+
     function saveBioageDraft(controller: BioageBiomarkerEntryController): void {
         controller.saveTimer = 0;
         if (!canPersistBioageDraft(controller) || !controller.draftKey) return;
@@ -674,7 +686,9 @@ interface Window {
             version: BIOAGE_DRAFT_VERSION,
             clock: controller.clock,
             step: controller.step,
-            fields: serializeDraftFields(controller.form, controller.isUpdate),
+            // Calculations fill blank DOM inputs from published results. Only
+            // explicit edits belong in an update draft, including on pagehide.
+            fields: controller.isUpdate ? controller.draftFields : serializeDraftFields(controller.form, false),
             ...(controller.athleteName ? { athleteName: controller.athleteName } : {})
         };
 
@@ -1016,6 +1030,7 @@ interface Window {
             });
             input.addEventListener('input', () => {
                 if (!controller.restoring) clearStoredBiomarkerHandoff();
+                captureBioageDraftEdit(controller, input);
                 syncBiomarkerCompletion(controller);
                 scheduleBioageDraftSave(controller);
             });
@@ -1051,8 +1066,9 @@ interface Window {
             });
         });
 
-        controller.form.addEventListener('change', () => {
+        controller.form.addEventListener('change', event => {
             if (!controller.restoring) clearStoredBiomarkerHandoff();
+            captureBioageDraftEdit(controller, event.target);
             syncBiomarkerCompletion(controller);
             scheduleBioageDraftSave(controller);
         });
@@ -1114,6 +1130,7 @@ interface Window {
         const controller: BioageBiomarkerEntryController = {
             athleteName,
             clock: options.clock,
+            draftFields: {},
             draftKey: options.isUpdate && !athleteName ? null : getBioageDraftKey(options.clock, athleteName),
             draftPersistenceSuppressed: false,
             form: options.form,
@@ -1136,6 +1153,7 @@ interface Window {
         syncBiomarkerHeaderSemantics(controller);
 
         const restoredDraft = options.restoreDraft !== false && restoreBioageDraft(controller);
+        controller.draftFields = serializeDraftFields(controller.form, controller.isUpdate);
         syncBiomarkerExamplePlaceholders(options.form);
         syncBiomarkerCompletion(controller);
         removeSessionItem('lwcStep');

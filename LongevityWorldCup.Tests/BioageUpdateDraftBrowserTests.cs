@@ -56,6 +56,7 @@ public sealed class BioageUpdateDraftBrowserTests(PlaywrightBrowserFixture brows
         await page.GoBackAsync();
         await WaitForEntryAsync(page);
         await AssertRawDraftAsync(page);
+        await Assertions.Expect(page.Locator("#albumin")).ToHaveValueAsync("");
         // Cached-page lifecycle must not refill converted handoff values into raw inputs.
         await page.EvaluateAsync("() => window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true }))");
         await AssertRawDraftAsync(page);
@@ -155,6 +156,35 @@ public sealed class BioageUpdateDraftBrowserTests(PlaywrightBrowserFixture brows
         await WaitForEntryAsync(page);
         await Assertions.Expect(page.Locator("#wbc")).ToHaveValueAsync("7.3");
         await Assertions.Expect(page.Locator("#blood-draw-date")).ToHaveValueAsync("2026-09-02");
+    }
+
+    [Theory]
+    [InlineData("pheno")]
+    [InlineData("bortz")]
+    public async Task CachedUpdateReturn_KeepsCarriedValuesOutOfTheRawDraft(string clock)
+    {
+        await using var context = await NewContextAsync(Browser, App, new() { ViewportSize = new() { Width = 390, Height = 844 }, ReducedMotion = ReducedMotion.Reduce });
+        var page = await context.NewPageAsync();
+        await SelectAthleteAsync(page);
+        await OpenCalculatorAsync(page, clock);
+        await page.Locator("#blood-draw-date").FillAsync("2026-09-01");
+        await FillMarkerAsync(page, "wbc", "5.2");
+        await page.Locator("#calculateBioageButton").ClickAsync();
+        await page.WaitForSelectorAsync($"#{clock}AgeResult.show");
+        await Assertions.Expect(page.Locator("#albumin")).ToHaveValueAsync("45");
+
+        // Keep the calculated DOM alive, as the browser back/forward cache does.
+        await page.EvaluateAsync("() => { window.dispatchEvent(new PageTransitionEvent('pagehide', {persisted:true})); window.dispatchEvent(new PageTransitionEvent('pageshow', {persisted:true})); }");
+        await Assertions.Expect(page.Locator("#albumin")).ToHaveValueAsync("");
+        await WaitForEntryAsync(page);
+        await Assertions.Expect(page.Locator("#wbc")).ToHaveValueAsync("5.2");
+        await page.Locator("#blood-draw-date").FillAsync("2026-09-02");
+        await page.ReloadAsync();
+        await WaitForEntryAsync(page);
+        await Assertions.Expect(page.Locator("#blood-draw-date")).ToHaveValueAsync("2026-09-02");
+        await Assertions.Expect(page.Locator("#albumin")).ToHaveValueAsync("");
+        await FillMarkerAsync(page, "wbc", "");
+        await Assertions.Expect(page.Locator("#calculateBioageButton")).ToBeDisabledAsync();
     }
 
     [Theory]
