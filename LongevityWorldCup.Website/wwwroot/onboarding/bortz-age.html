@@ -1537,12 +1537,14 @@
             }
 
             clearStoredBiomarkerHandoff();
+            const draftKey = bioageFlow.getActiveBioageDraftKey('bortz');
             const stored =
                 !!serializedBiomarkerData
                 && setSessionItem('bioageClock', 'bortz')
                 && setSessionItem('chronoBortzDifference', chronoBortzDifference.toFixed(2))
                 && setSessionItem('chronoPhenoDifference', chronoPhenoDifference.toFixed(2))
                 && setSessionItem('biomarkerData', serializedBiomarkerData)
+                && (!draftKey || setSessionItem('biomarkerDraftKey', draftKey))
                 && (!serializedPaymentOffer || setSessionItem(PENDING_PAYMENT_OFFER_KEY, serializedPaymentOffer));
 
             if (!stored) {
@@ -3071,8 +3073,6 @@
             if (isFake) {
                 fillFakeData();
             }
-            overwriteBortzFormFromUrlParams();
-
             // refill only saved biomarkers
             const stored = readStoredBiomarkerData();
             const entry = stored?.Biomarkers?.[0];
@@ -3112,6 +3112,8 @@
                     }
                 });
             }
+            // Explicit links take precedence over an older result handoff.
+            overwriteBortzFormFromUrlParams();
             // Expand cards for any field filled from URL (when no sessionStorage or in addition)
             [...bortzFieldIds, 'wbc'].forEach(id => {
                 const el = document.getElementById(id);
@@ -3119,8 +3121,11 @@
             });
         }
 
-        window.addEventListener('pageshow', () => {
-            updateModeFormInitializerUnique();
+        window.addEventListener('pageshow', event => {
+            if (event.persisted && bioageFlow.shouldReloadBioageUpdate('bortz')) {
+                window.location.reload();
+                return;
+            }
             applyBortzSubmittedBiomarkerPlaceholders();
             setupBortzSubmittedBiomarkerComparisons();
             bioageFlow.syncBiomarkerExamplePlaceholders();

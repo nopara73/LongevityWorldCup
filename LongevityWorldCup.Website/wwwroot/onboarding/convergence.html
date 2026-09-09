@@ -1019,12 +1019,19 @@
             removeSessionItem('bioageClock');
             removeSessionItem('chronoPhenoDifference');
             removeSessionItem('chronoBortzDifference');
+            removeSessionItem('biomarkerDraftKey');
         }
 
         function clearCompletedBioageState() {
+            const draftKey = getSessionItem('biomarkerDraftKey');
             clearStoredBiomarkerHandoff();
-            removeSessionItem('bioageDraft:pheno:v1');
-            removeSessionItem('bioageDraft:bortz:v1');
+            if (draftKey?.startsWith('bioageDraft:')) {
+                removeSessionItem(draftKey);
+            } else {
+                // Legacy handoffs did not identify their originating draft.
+                removeSessionItem('bioageDraft:pheno:v1');
+                removeSessionItem('bioageDraft:bortz:v1');
+            }
         }
 
         function clearPendingPaymentOffer() {
