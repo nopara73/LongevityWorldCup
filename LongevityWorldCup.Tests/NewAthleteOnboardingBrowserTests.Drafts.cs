@@ -12,6 +12,40 @@ public sealed partial class NewAthleteOnboardingBrowserTests
     [Theory]
     [InlineData(390)]
     [InlineData(1280)]
+    public async Task ApplicationDraft_StepNavigationMovesFocusAndKeepsKeyboardTyping(int width)
+    {
+        await RunOnboardingBrowserAsync(async (page, errors) =>
+        {
+            await page.SetViewportSizeAsync(width, 844);
+            await page.GotoAsync("/apply?fake=1");
+            await Assertions.Expect(page.Locator("#nextButton")).ToBeEnabledAsync();
+            await page.Locator("#name").PressAsync("Enter");
+            await Assertions.Expect(page.Locator("#why")).ToBeFocusedAsync();
+            await page.Keyboard.PressAsync("Control+a");
+            await page.Keyboard.TypeAsync(DraftMotivation);
+            await Assertions.Expect(page.Locator("#why")).ToHaveValueAsync(DraftMotivation);
+            await page.Locator("#nextButton").ClickAsync();
+            await Assertions.Expect(page.Locator("h1")).ToBeFocusedAsync();
+            await page.Keyboard.PressAsync("Tab");
+            await Assertions.Expect(page.Locator("#nextButton")).ToBeFocusedAsync();
+            await page.Keyboard.PressAsync("Enter");
+            await Assertions.Expect(page.Locator("#uploadButton")).ToBeFocusedAsync();
+            await page.Locator("#nextButton").ClickAsync();
+            await Assertions.Expect(page.Locator("#uploadProofButton")).ToBeFocusedAsync();
+            await page.Locator("#nextButton").ClickAsync();
+            await Assertions.Expect(page.Locator("#personalLink")).ToBeFocusedAsync();
+            await page.Locator("#nextButton").ClickAsync();
+            await Assertions.Expect(page.Locator("#accountEmail")).ToBeFocusedAsync();
+            await page.Locator("#backButton").ClickAsync();
+            await Assertions.Expect(page.Locator("#personalLink")).ToBeFocusedAsync();
+            Assert.False(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth > innerWidth"));
+            Assert.Empty(errors);
+        });
+    }
+
+    [Theory]
+    [InlineData(390)]
+    [InlineData(1280)]
     public async Task ApplicationDraft_ReloadAndCalculatorReturnKeepEnteredDetails(int width)
     {
         await RunOnboardingBrowserAsync(async (page, errors) =>

@@ -520,7 +520,7 @@
     <!--HEADER-->
     <main class="convergence-main">
         <!--MAIN-PROGRESS-BAR-->
-        <h1 data-aos="fade" data-aos-duration="700" data-aos-delay="400">1. Enter the arena</h1>
+        <h1 tabindex="-1" data-aos="fade" data-aos-duration="700" data-aos-delay="400">1. Enter the arena</h1>
         <form id="descriptionForm" class="bioageform" data-aos="fade" data-aos-duration="700" data-aos-delay="450">
             <div class="convergence-visual">
                 <picture id="illustrationPicture" style="display:''">
@@ -1471,7 +1471,7 @@
         }
 
         // Function to update the UI based on the current stage
-        function goToStage(stage) {
+        function goToStage(stage, { focus = false } = {}) {
             document.body.dataset.convergenceStage = String(stage);
             document.getElementById('descriptionForm').style.display = '';
 
@@ -1734,6 +1734,14 @@
             updateUploadButtons();
             window.LwcFlowActionDock?.refresh();
             saveApplicationDraft();
+            if (focus) {
+                const targetId = {
+                    1: 'name', 2: 'why', 4: 'uploadButton',
+                    5: 'uploadProofButton', 6: 'personalLink', 7: 'accountEmail'
+                }[stage];
+                const target = targetId ? document.getElementById(targetId) : document.querySelector('h1');
+                target?.focus();
+            }
         }
 
         async function waitForPageModules() {
@@ -1911,7 +1919,7 @@
 
             if (currentStage < 7) {
                 currentStage++;
-                goToStage(currentStage);
+                goToStage(currentStage, { focus: true });
             } else {
                 const identityValidationResult = validateApplicationIdentity();
                 if (!identityValidationResult.valid) {
@@ -2035,7 +2043,7 @@
         document.getElementById('backButton').addEventListener('click', function () {
             if (currentStage > 1) {
                 currentStage--;
-                goToStage(currentStage);
+                goToStage(currentStage, { focus: true });
             } else {
                 window.navigateToFlowDestination(getConvergenceBackDestination());
             }
