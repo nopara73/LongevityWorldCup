@@ -397,6 +397,7 @@ interface MediaContactLink {
 }
 
 interface Window {
+    fetchAthleteDirectory(url?: string, options?: RequestInit, timeout?: number): Promise<unknown[]>;
     PhenoAge?: PhenoAgeApi;
     BortzAge?: BortzAgeApi;
     TryGetDivisionFaIcon?: ((division: string) => string) | undefined;

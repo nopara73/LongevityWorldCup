@@ -717,8 +717,7 @@ function createAthleteSelectionController(
         if (athleteLoadPromise) return athleteLoadPromise;
         errorElement.replaceChildren();
         errorElement.setAttribute("role", "status");
-        athleteLoadPromise = fetch(athleteApiPath)
-            .then(response => response.ok ? response.json() : Promise.reject(new Error("Athlete list request failed")))
+        athleteLoadPromise = window.fetchAthleteDirectory(athleteApiPath)
             .then((data: unknown) => {
                 if (!Array.isArray(data)) {
                     throw new Error("Athlete list response was invalid");

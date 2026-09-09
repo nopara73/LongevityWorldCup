@@ -24,6 +24,8 @@ Keep these classic scripts free of imports/exports: `flow-action-dock`, `bioage-
 
 The head partial defines `navigateToFlowDestination` synchronously so inline Back handlers work before the asynchronous modules finish. Application Next starts disabled until initialization binds stage validation.
 
+The head partial also defines `fetchAthleteDirectory` synchronously for directory consumers, including embedded highlights and deferred athlete dialogs. Its deadline covers both fetching and reading the JSON array. Consumers retain their own cache/retry and freshness policies; do not replace it with an unbounded fetch or a timeout that ends at response headers.
+
 Shared type-only contracts belong in `types/*.d.ts`. Runtime entry points stay self-contained to preserve request order, cache coverage, and independent failure. Ranking fallbacks and athlete-picture transitions have distinct failure, privacy, and timing behavior; consolidation requires equivalence and browser coverage.
 
 ## Inline Scripts

@@ -4559,8 +4559,7 @@
 
         window.getSharedAthletes = window.getSharedAthletes || function(){
             if(!window.__sharedAthletesRequest){
-                window.__sharedAthletesRequest = fetch('/api/data/athletes')
-                    .then(response => response.ok ? response.json() : Promise.reject(response.status))
+                window.__sharedAthletesRequest = window.fetchAthleteDirectory()
                     .catch(error => {
                         window.__sharedAthletesRequest = null;
                         throw error;
@@ -8424,8 +8423,7 @@
 
         window.getSharedAthletes = window.getSharedAthletes || function(){
             if(!window.__sharedAthletesRequest){
-                window.__sharedAthletesRequest = fetchWithTimeout('/api/data/athletes', {}, 10000)
-                    .then(response => response.ok ? response.json() : Promise.reject(response.status))
+                window.__sharedAthletesRequest = window.fetchAthleteDirectory()
                     .catch(error => {
                         window.__sharedAthletesRequest = null;
                         throw error;
@@ -8707,14 +8705,10 @@
 
         try {
             const refreshUrl = `/api/data/athletes?profileImageRefresh=${Date.now()}`;
-            const response = await fetchWithTimeout(refreshUrl, {
+            const athletes = await window.fetchAthleteDirectory(refreshUrl, {
                 cache: 'no-store',
                 headers: { accept: 'application/json' }
-            }, 10000);
-            if (!response.ok) return false;
-
-            const athletes = await response.json();
-            if (!Array.isArray(athletes)) return false;
+            });
 
             const fullAthleteData = athletes.find(athlete =>
                 normalizeAthleteSlugForLookup(athlete.AthleteSlug) === normalizedSlug ||

@@ -5580,13 +5580,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
 
         athleteDirectoryState = "loading";
         athleteSelectors.forEach(selector => selector.refreshDirectory());
-        athleteDirectoryPromise = requestJson("/api/data/athletes", { headers: { "Accept": "application/json" } })
-            .then(async response => {
-                if (!response.ok) throw new Error("Athlete directory unavailable");
-                const data: unknown = await response.json();
-                if (!Array.isArray(data)) throw new Error("Invalid athlete directory");
-                return data;
-            })
+        athleteDirectoryPromise = window.fetchAthleteDirectory("/api/data/athletes", { headers: { "Accept": "application/json" } })
             .then(data => {
                 const athletes = Array.isArray(data) ? data.filter(isAthleteRecord) : [];
                 quoteAthleteResults = buildQuoteAthleteResults(athletes);

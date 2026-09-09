@@ -162,13 +162,10 @@ declare global {
             });
         }
         if (!sharedAthletesPromise) {
-            sharedAthletesPromise = fetch('/api/data/athletes', {
+            sharedAthletesPromise = window.fetchAthleteDirectory('/api/data/athletes', {
                 cache: 'no-store',
                 headers: { accept: 'application/json' }
             })
-                .then(function (response) {
-                    return response.ok ? response.json() : Promise.reject(response.status);
-                })
                 .then(function (payload: unknown) {
                     if (!Array.isArray(payload)) throw new TypeError('Athlete response was not an array.');
                     return payload;

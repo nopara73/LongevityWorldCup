@@ -11,6 +11,27 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
          {"Name":"Second Athlete","AthleteSlug":"second_athlete","ProfilePicLeaderboardThumb":"/assets/content-images/cr7.webp?v=directory-version"}]
         """;
 
+    [Fact]
+    public async Task AthleteDirectory_UnfinishedResponseBodyOffersRetryAndKeepsSignupFields()
+    {
+        await using var context = await NewAthleteRecoveryContextAsync();
+        await AthleteDirectoryRecoveryBrowserTests.StallFirstDirectoryAsync(context, stalledBody: true, RecoveryAthletes);
+        var page = await context.NewPageAsync();
+        await page.Clock.InstallAsync();
+        var input = await OpenAthleteRecoveryFormAsync(page);
+        await input.FillAsync("Second");
+        await AthleteDirectoryRecoveryBrowserTests.ExpireDirectoryAsync(page);
+        await page.GetByRole(AriaRole.Button, new() { Name = "Retry", Exact = true }).ClickAsync();
+        await Assertions.Expect(page.Locator(".lmx-athlete-option")).ToContainTextAsync("Second Athlete");
+        await page.EvaluateAsync("() => window.finishLateDirectory()");
+        await input.PressAsync("ArrowDown");
+        await input.PressAsync("Enter");
+        await Assertions.Expect(input).ToHaveAttributeAsync("data-athlete-slug", "second_athlete");
+        await Assertions.Expect(page.Locator("#lmxSignupEmail")).ToHaveValueAsync("recover@example.test");
+        Assert.Equal(0, await page.EvaluateAsync<int>("window.__athleteRecoverySubmits"));
+        Assert.Equal(2, await page.EvaluateAsync<int>("window.directoryAttempts"));
+    }
+
     [Theory]
     [InlineData("http")]
     [InlineData("network")]
