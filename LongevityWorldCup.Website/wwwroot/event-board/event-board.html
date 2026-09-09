@@ -34,13 +34,13 @@
         }
 
         @media (min-width: 601px) and (max-width: 820px) {
+            .event-board-page .events-board {
+                --event-avatar-inset: 12px;
+            }
+
             .event-board-page .events-board table {
                 width: 100%;
                 table-layout: fixed;
-            }
-
-            .event-board-page .events-board col.events-col-avatar {
-                width: 68px;
             }
 
             .event-board-page .events-board col.events-col-date {
@@ -50,11 +50,6 @@
             .event-board-page .events-board tbody td {
                 padding-left: 12px;
                 padding-right: 12px;
-            }
-
-            .event-board-page .events-board td.col-avatar {
-                width: 52px;
-                padding-right: 10px;
             }
 
             .event-board-page .events-board td.event-message {
