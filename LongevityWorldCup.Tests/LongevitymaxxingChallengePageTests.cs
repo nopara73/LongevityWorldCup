@@ -629,7 +629,7 @@ public sealed class LongevitymaxxingChallengePageTests(TestWebApplicationFactory
         Assert.DoesNotContain("Visible to participants only", javascript);
         Assert.DoesNotContain("<h2>Category dashboard</h2>", javascript);
         Assert.DoesNotContain("<div role=\"columnheader\">Category</div>", javascript);
-        Assert.Contains("<h2>Your trend</h2>", javascript);
+        Assert.Contains("<h2>Your habits</h2>", javascript);
         Assert.DoesNotContain("displayName: getIdentityDisplayName(\"edit\")", javascript);
         Assert.DoesNotContain("athleteLink: getIdentityAthletePayload(\"edit\")", javascript);
         Assert.Contains("renderCheckIns(participantState?.eligibleDays || orderedDays, containerId, participantState ? activePublicDiscussion(participantState) : activeDiscussion);", javascript);
@@ -651,7 +651,7 @@ public sealed class LongevitymaxxingChallengePageTests(TestWebApplicationFactory
         Assert.DoesNotContain("placeholder=\"$100\"", javascript);
         Assert.Contains("id=\"lmxParticipantNotice\"", await client.GetStringAsync("/longevitymaxxing"));
         Assert.Contains("class=\"lmx-dashboard-scroll\"", javascript);
-        Assert.Contains("class=\"lmx-dashboard-corner\" role=\"columnheader\">Agency", javascript);
+        Assert.Contains("class=\"lmx-dashboard-corner\" role=\"columnheader\" aria-label=\"Habit\"", javascript);
         Assert.Contains("--lmx-dashboard-day-count: ${dayCount};", javascript);
         Assert.Contains("overflow-x: auto;", css);
         Assert.DoesNotContain(".lmx-dashboard-scroll {\r\n        overflow-x: visible;", css);
@@ -665,13 +665,9 @@ public sealed class LongevitymaxxingChallengePageTests(TestWebApplicationFactory
         Assert.Contains("function categoryDashboardRow", javascript);
         Assert.Contains("function categoryDayCell", javascript);
         Assert.Contains("function clampHabitValue", javascript);
-        Assert.Contains("Locked-in days", javascript);
-        Assert.Contains("const fullDays = checkedCells.filter(cell => isLockedInDay(cell, categories)).length;", javascript);
-        Assert.Contains("function isLockedInDay", javascript);
         Assert.DoesNotContain("lockedInDetail", javascript);
         Assert.DoesNotContain("scored days", javascript);
         Assert.DoesNotContain("scoredFullDays", javascript);
-        Assert.Contains("dashboardStat(\"Locked-in days\", String(fullDays), \"\")", javascript);
         Assert.Contains("row.totalPoints", javascript);
         Assert.Contains("board.className = publicViewer ? \"lmx-board public\" : \"lmx-board\";", javascript);
         Assert.Contains("lmx-cell-strip", javascript);
@@ -693,7 +689,6 @@ public sealed class LongevitymaxxingChallengePageTests(TestWebApplicationFactory
         Assert.Contains("function changeLeaderboardPage", javascript);
         Assert.Contains("function updateLeaderboardPager", javascript);
         Assert.Contains("const visibleDays = cells.length || state.durationDays || 14;", javascript);
-        Assert.Contains("`${checkedCells.length}/${scoringWindowDays} days`", javascript);
         Assert.DoesNotContain("emptyBoardRow(dayCount, publicViewer)", javascript);
         Assert.DoesNotContain("emptyRosterRow(dayCount)", javascript);
         Assert.Contains("class=\"lmx-name lmx-sticky-heading\" role=\"columnheader\">Participant", javascript);
@@ -777,13 +772,11 @@ public sealed class LongevitymaxxingChallengePageTests(TestWebApplicationFactory
         Assert.Contains(".lmx-category-day.partial", css);
         Assert.DoesNotContain("${value}</span>", javascript);
         Assert.DoesNotContain(".lmx-category-day.partial {\r\n    background: #fde68a;", css);
-        Assert.Contains(".lmx-dashboard-stats", css);
         Assert.DoesNotContain("function revealSignupDetailsBeforeSubmit()", javascript);
         Assert.DoesNotContain("Check these once, then join.", javascript);
         Assert.DoesNotContain("signup for free", javascript);
         Assert.DoesNotContain("Join free before", javascript);
         Assert.DoesNotContain("Join free today", javascript);
-        Assert.DoesNotContain("toggle(\"lmxHeroCopy\", false);", javascript);
         Assert.DoesNotContain("Agency > Outcome", javascript);
         Assert.Contains("The first muscle to train is your mind.", javascript);
         Assert.DoesNotContain("Use this page for check-ins, standings, scheduled calls, and participant notes.", javascript);
@@ -968,8 +961,6 @@ public sealed class LongevitymaxxingChallengePageTests(TestWebApplicationFactory
         Assert.Contains("function renderParticipantTabs", javascript);
         Assert.DoesNotContain("function renderParticipantHome", javascript);
         Assert.DoesNotContain("lmxHomeStatusTitle", await client.GetStringAsync("/longevitymaxxing"));
-        Assert.Contains("const daysIn = Math.max(0, Math.trunc(Number(participant.daysIn) || 0));", javascript);
-        Assert.Contains("opsTile(\"Days in\", daysIn)", javascript);
         Assert.DoesNotContain("`${row.checkedInDays}/${duration}`", javascript);
         Assert.Contains("class=\"lmx-empty-state compact\"", javascript);
         Assert.Contains(".lmx-empty-state.compact", css);

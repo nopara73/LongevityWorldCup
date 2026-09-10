@@ -783,6 +783,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     let discussionNavigationGeneration = 0;
     let dashboardScrollObserver: ResizeObserver | null = null;
     let dashboardScrollObservedElement: Element | null = null;
+    let dashboardHistoryExpanded = false;
     let participantActiveTab: ParticipantTab | null = null;
     let participantTabManual = false;
     let participantNotice: ParticipantNotice | null = null;
@@ -1506,20 +1507,15 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const leaderboard = participant.challengeInactive ? (state.leaderboard || []) : leaderboardRows.active;
         const rowIndex = leaderboard.findIndex(row => row.participantId === participant.id);
         const row = rowIndex >= 0 ? leaderboard[rowIndex] : null;
-        const daysIn = Math.max(0, Math.trunc(Number(participant.daysIn) || 0));
-
-        toggle("lmxHeroStatus", true);
-        toggle("lmxHeroMode", true);
-        toggle("lmxHeroCopy", true);
+        toggle("lmxHeroStatus", false);
+        toggle("lmxHeroMode", false);
+        toggle("lmxHeroCopy", false);
         toggle("lmxHeroHighlights", true);
         toggle("lmxLifeStrip", false);
-        setText("lmxHeroMode", "You're in");
-        setText("lmxHeroCopy", "The first muscle to train is your mind.");
         highlights.className = "lmx-benefit-strip lmx-ops-strip";
         highlights.setAttribute("aria-label", "Participant status");
         highlights.innerHTML = [
             opsTile("Rank", row ? `#${rowIndex + 1}` : "-"),
-            opsTile("Days in", daysIn),
             opsTile("Score", row ? row.totalPoints : 0),
             opsTile("Streak", row ? row.currentStreak : 0)
         ].join("");
@@ -1538,6 +1534,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
 
         if (!participantState) {
             track.innerHTML = "";
+            dashboardHistoryExpanded = false;
             return;
         }
 
@@ -1549,15 +1546,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const scoringWindowDays = leaderboardScoringWindowDays(state);
         const scoringWindowCells = cells.slice(Math.max(0, cells.length - scoringWindowDays));
         const scoredCells = scoringWindowCells.filter(cell => cell.checkedIn && cell.countsForScore !== false);
-        const checkedCells = scoringWindowCells.filter(cell => cell.checkedIn);
         const categories = dashboardCategories();
         const summaries = categories.map(category => categorySummary(category, scoringWindowCells, scoredCells));
-        const rankedSummaries = summaries
-            .filter(item => item.max > 0)
-            .sort((a, b) => b.rate - a.rate || b.total - a.total || a.category.label.localeCompare(b.category.label));
-        const best = rankedSummaries[0];
-        const focus = [...rankedSummaries].reverse()[0];
-        const fullDays = checkedCells.filter(cell => isLockedInDay(cell, categories)).length;
         const today = isoDateInTimeZone(new Date(), getParticipantTimeZone());
         const dayHeaders = cells.map(cell => {
             const classes = ["lmx-dashboard-day"];
@@ -1566,27 +1556,33 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             return `<span class="${classes.join(" ")}" title="${escAttr(dayTitle(cell))}">${cell.challengeDay}</span>`;
         }).join("");
         const rows = summaries.map(summary => categoryDashboardRow(summary, cells, today)).join("");
-        const emptyLabel = state.phase === "signup" || state.phase === "roster" ? "Starts soon" : "No check-ins";
 
         track.innerHTML = `
-            <div class="lmx-dashboard-head">
-                <h2>Your trend</h2>
-                <strong>${checkedCells.length ? `${checkedCells.length}/${scoringWindowDays} days` : emptyLabel}</strong>
-            </div>
-            <div class="lmx-dashboard-stats" aria-label="Personal challenge stats">
-                ${dashboardStat("Best", best ? best.category.label : "-", best ? `${Math.round(best.rate * 100)}%` : "-")}
-                ${dashboardStat("Focus", focus ? focus.category.label : "-", focus ? `${Math.round(focus.rate * 100)}%` : "-")}
-                ${dashboardStat("Locked-in days", String(fullDays), "")}
-            </div>
-            <div class="lmx-dashboard-scroll" tabindex="0" role="region" aria-label="Habit history">
-                <div class="lmx-dashboard-grid" role="table" aria-label="Sleep, exercise, nutrition, and vices over time" style="--lmx-dashboard-day-count: ${dayCount};">
-                    <div class="lmx-dashboard-row lmx-dashboard-row-head" role="row">
-                        <div class="lmx-dashboard-corner" role="columnheader">Agency</div>
-                        <div class="lmx-dashboard-days" role="presentation">${dayHeaders}</div>
+            <details class="lmx-habit-history"${dashboardHistoryExpanded ? " open" : ""}>
+                <summary class="lmx-dashboard-head" title="Toggle daily history">
+                    <h2>Your habits</h2>
+                    <span class="lmx-dashboard-period">Last ${scoringWindowDays} days</span>
+                    <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                </summary>
+                <div class="lmx-dashboard-scroll" tabindex="0" role="region" aria-label="Habit history">
+                    <div class="lmx-dashboard-grid" role="table" aria-label="Sleep, exercise, nutrition, and vices over time" style="--lmx-dashboard-day-count: ${dayCount};">
+                        <div class="lmx-dashboard-row lmx-dashboard-row-head" role="row">
+                            <div class="lmx-dashboard-corner" role="columnheader" aria-label="Habit"></div>
+                            <div class="lmx-dashboard-days" role="presentation">${dayHeaders}</div>
+                        </div>
+                        ${rows}
                     </div>
-                    ${rows}
                 </div>
+            </details>
+            <div class="lmx-habit-summary" role="list" aria-label="Habits over the last ${scoringWindowDays} days">
+                ${summaries.map(summary => categoryDashboardLabel(summary, "listitem")).join("")}
             </div>`;
+
+        const history = track.querySelector<HTMLDetailsElement>(".lmx-habit-history");
+        history?.addEventListener("toggle", () => {
+            dashboardHistoryExpanded = history.open;
+            if (history.open) scrollDashboardToLatestDay();
+        });
     }
 
     function normalizeDashboardCells(row: LeaderboardRow | null | undefined, state: PublicState): DashboardCell[] {
@@ -1629,16 +1625,21 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
 
     function categoryDashboardRow(summary: CategorySummary, cells: DashboardCell[], today: string): string {
         const category = summary.category;
-        const width = summary.max > 0 ? Math.round(summary.rate * 100) : 0;
         const dayCells = cells.map(cell => categoryDayCell(category, cell, today)).join("");
         return `<div class="lmx-dashboard-row" role="row">
-            <div class="lmx-dashboard-category ${escAttr(category.tone)}" role="cell">
-                <i class="fas ${escAttr(category.icon)}" aria-hidden="true"></i>
-                <span>${esc(category.label)}</span>
-                <strong>${summary.max > 0 ? `${summary.total}/${summary.max}` : "-"}</strong>
-                <div class="lmx-dashboard-bar" aria-hidden="true"><span style="width:${width}%"></span></div>
-            </div>
+            ${categoryDashboardLabel(summary, "cell")}
             <div class="lmx-dashboard-days" role="cell" aria-label="${escAttr(`${category.label} by challenge day`)}">${dayCells}</div>
+        </div>`;
+    }
+
+    function categoryDashboardLabel(summary: CategorySummary, role: "cell" | "listitem"): string {
+        const category = summary.category;
+        const width = summary.max > 0 ? Math.round(summary.rate * 100) : 0;
+        return `<div class="lmx-dashboard-category ${escAttr(category.tone)}" role="${role}">
+            <i class="fas ${escAttr(category.icon)}" aria-hidden="true"></i>
+            <span>${esc(category.label)}</span>
+            <strong>${summary.max > 0 ? `${summary.total}/${summary.max}` : "-"}</strong>
+            <div class="lmx-dashboard-bar" aria-hidden="true"><span style="width:${width}%"></span></div>
         </div>`;
     }
 
@@ -1654,18 +1655,6 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const value = clampHabitValue(cell[category.key]);
         classes.push(value >= 2 ? "full" : value > 0 ? "partial" : "missed");
         return `<span class="${classes.join(" ")}" data-day="${escAttr(cell.challengeDay)}" title="${escAttr(`${dayTitle(cell)}: ${category.label} ${value}/2`)}" aria-label="${escAttr(`${category.label} day ${cell.challengeDay}: ${value} of 2`)}"></span>`;
-    }
-
-    function dashboardStat(label: string, value: string, detail: string): string {
-        return `<div class="lmx-dashboard-stat">
-            <span>${esc(label)}</span>
-            <strong>${esc(value)}</strong>
-            ${detail ? `<em>${esc(detail)}</em>` : ""}
-        </div>`;
-    }
-
-    function isLockedInDay(cell: DashboardCell, categories: DashboardCategory[]): boolean {
-        return categories.every(category => clampHabitValue(cell[category.key]) >= 2);
     }
 
     function clampHabitValue(value: number | null): number {
@@ -2477,6 +2466,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         if (!scroller) return;
 
         const scrollCurrentDayIntoFocus = () => {
+            if (!scroller.clientWidth) return;
             const grid = scroller.querySelector<HTMLElement>(".lmx-dashboard-grid");
             const header = grid?.querySelector<HTMLElement>(".lmx-dashboard-row-head");
             const dayStrip = header?.querySelector<HTMLElement>(".lmx-dashboard-days");

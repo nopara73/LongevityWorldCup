@@ -30,8 +30,11 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
         await page.RouteAsync("**/api/longevitymaxxing/state",
             route => FulfillJsonAsync(route, JsonSerializer.Serialize(BuildPublicState())));
         await page.RouteAsync("**/api/longevitymaxxing/participant",
-            route => FulfillJsonAsync(route, JsonSerializer.Serialize(BuildParticipantState(timeZoneId: participantTimeZone))));
+            route => FulfillJsonAsync(route, JsonSerializer.Serialize(BuildParticipantState(timeZoneId: participantTimeZone, includeUpcomingCall: true))));
         await page.GotoAsync("/longevitymaxxing?token=browser-token");
+        await Assertions.Expect(page.Locator(".lmx-habit-summary")).ToBeVisibleAsync();
+        await Assertions.Expect(page.Locator(".lmx-dashboard-scroll")).ToBeHiddenAsync();
+        await page.Locator(".lmx-habit-history > summary").ClickAsync();
         await page.Locator(".lmx-dashboard-day.today").WaitForAsync();
 
         Assert.Equal(expectedDay, await page.Locator(".lmx-dashboard-day.today").InnerTextAsync());
@@ -265,7 +268,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
             await participantPage.GotoAsync(
                 "/longevitymaxxing",
                 new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-            await participantPage.Locator(".lmx-dashboard-stat").First.WaitForAsync();
+            await participantPage.Locator(".lmx-ops-tile").First.WaitForAsync();
 
             var participantDiagnostics = await BrowserContrast.MeasureVisibleTextAsync(
                 participantPage,
@@ -274,11 +277,8 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
                 "#lmxHeroCopy",
                 ".lmx-ops-label",
                 ".lmx-ops-tile strong",
-                ".lmx-dashboard-head strong",
+                ".lmx-dashboard-period",
                 ".lmx-mini-label",
-                ".lmx-dashboard-stat span",
-                ".lmx-dashboard-stat strong",
-                ".lmx-dashboard-stat em",
                 ".lmx-dashboard-category span",
                 ".lmx-dashboard-category strong",
                 "#lmxBoardMeta",
@@ -286,7 +286,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
                 ".lmx-board-row:not(.header) .lmx-number");
 
             Assert.True(
-                participantDiagnostics.Length >= 22,
+                participantDiagnostics.Length >= 16,
                 $"Expected representative participant dashboard copy in {scheme} mode.");
             BrowserContrast.AssertMinimum($"{scheme} participant Challenge", participantDiagnostics);
 
