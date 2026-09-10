@@ -233,7 +233,9 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await owned.Locator("textarea").FillAsync(new string('x', 240));
         await Assertions.Expect(owned.Locator("[data-reply-count]")).ToHaveTextAsync("240/240");
         await owned.Locator("textarea").PressAsync("y");
-        Assert.Equal(240, (await owned.Locator("textarea").InputValueAsync()).Length);
+        Assert.Equal(241, (await owned.Locator("textarea").InputValueAsync()).Length);
+        await Assertions.Expect(owned.Locator("[data-reply-count]")).ToHaveTextAsync("1 over");
+        await Assertions.Expect(owned.Locator("[data-reply-edit-submit]")).ToBeDisabledAsync();
         var controls = await owned.Locator("[data-reply-action]").EvaluateAllAsync<double[][]>("buttons => buttons.map(b => { const r=b.getBoundingClientRect();return [r.width,r.height,r.left,r.right,r.top] })");
         Assert.All(controls, box => { Assert.True(box[0] >= 44); Assert.True(box[1] >= 44); Assert.InRange(box[2], 0, width); Assert.InRange(box[3], 0, width); });
         Assert.Equal(controls[1][4], controls[2][4]);
@@ -256,8 +258,10 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         var page = await OpenDiscussionWorkspaceAsync(context, state);
         var participantId = fromOlderPage ? "p6" : "p2";
         var day = fromOlderPage ? 19 : 22;
+        string? postedReplyId = null;
         await page.RouteAsync("**/api/longevitymaxxing/discussion/replies", async route => {
             var payload = JsonNode.Parse(route.Request.PostData!)!;
+            postedReplyId = (string)payload["replyId"]!;
             foreach (var collection in new[] { state["notes"]!.AsArray(), state["public"]!["notes"]!.AsArray() }) {
                 var thread = collection.Single(n => (string?)n!["participantId"] == participantId && (int?)n["challengeDay"] == day)!;
                 thread["replies"]!.AsArray().Add(JsonSerializer.SerializeToNode(Reply(
@@ -273,7 +277,8 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await thread.Locator("textarea").FillAsync("  My published reply.  ");
         await thread.Locator("[data-reply-submit]").ClickAsync();
         await Assertions.Expect(thread.Locator("[data-discussion-reply-body]").Last).ToHaveTextAsync("My published reply.");
-        await Assertions.Expect(thread.Locator("[data-discussion-reply]")).ToBeFocusedAsync();
+        Assert.NotNull(postedReplyId);
+        await Assertions.Expect(thread.Locator($"[data-discussion-reply-id='{postedReplyId}']")).ToBeFocusedAsync();
         await Assertions.Expect(thread.Locator(".lmx-discussion-feedback")).ToHaveTextAsync("Reply posted.");
         await thread.Locator("[data-discussion-reply]").ClickAsync();
         Assert.Equal("", await thread.Locator("textarea").InputValueAsync());

@@ -663,6 +663,7 @@ public sealed class LongevitymaxxingChallengeService
         if (mentionedParticipants.Count > MaxMentionsPerCheckIn)
             throw new InvalidOperationException($"Each reply can mention up to {MaxMentionsPerCheckIn} participants.");
         var replyId = NormalizeDiscussionReplyId(request.ReplyId);
+        var replyToId = string.IsNullOrWhiteSpace(request.ReplyToId) ? null : NormalizeDiscussionReplyId(request.ReplyToId);
 
         _db.Run(sqlite =>
         {
@@ -685,10 +686,14 @@ public sealed class LongevitymaxxingChallengeService
                     request.ChallengeDay,
                     systemPostId,
                     author.Id,
-                    body);
+                    body,
+                    replyToId);
                 transaction.Commit();
                 return;
             }
+
+            if (replyToId is not null)
+                RequireDiscussionReplyContext(sqlite, transaction, replyToId, postParticipantId, request.ChallengeDay, systemPostId);
 
             using (var insert = sqlite.CreateCommand())
             {
@@ -696,14 +701,14 @@ public sealed class LongevitymaxxingChallengeService
                 insert.CommandText = systemPostId is null
                     ? """
                     INSERT OR IGNORE INTO LongevitymaxxingDiscussionReplies
-                    (Id, PostParticipantId, PostChallengeDay, AuthorParticipantId, Body, CreatedAtUtc)
-                    VALUES (@id, @postParticipantId, @day, @authorParticipantId, @body, @created);
+                    (Id, PostParticipantId, PostChallengeDay, AuthorParticipantId, Body, CreatedAtUtc, ReplyToId)
+                    VALUES (@id, @postParticipantId, @day, @authorParticipantId, @body, @created, @replyToId);
                     """
                     :
                     """
                     INSERT OR IGNORE INTO LongevitymaxxingDiscussionSystemPostReplies
-                    (Id, PostId, AuthorParticipantId, Body, CreatedAtUtc)
-                    VALUES (@id, @systemPostId, @authorParticipantId, @body, @created);
+                    (Id, PostId, AuthorParticipantId, Body, CreatedAtUtc, ReplyToId)
+                    VALUES (@id, @systemPostId, @authorParticipantId, @body, @created, @replyToId);
                     """;
                 Add(insert, "@id", replyId);
                 if (systemPostId is null)
@@ -717,6 +722,7 @@ public sealed class LongevitymaxxingChallengeService
                 }
                 Add(insert, "@authorParticipantId", author.Id);
                 Add(insert, "@body", body);
+                Add(insert, "@replyToId", replyToId);
                 Add(insert, "@created", now.ToString("o"));
                 if (insert.ExecuteNonQuery() == 0)
                 {
@@ -728,7 +734,8 @@ public sealed class LongevitymaxxingChallengeService
                         request.ChallengeDay,
                         systemPostId,
                         author.Id,
-                        body);
+                        body,
+                        replyToId);
                     transaction.Commit();
                     return;
                 }
@@ -800,7 +807,7 @@ public sealed class LongevitymaxxingChallengeService
             if (string.Equals(reply.Body, body, StringComparison.Ordinal))
             {
                 transaction.Commit();
-                return ToDiscussionReply(reply);
+                return PopulateDiscussionReplyContexts(sqlite, [ToDiscussionReply(reply)])[0];
             }
 
             var mentionedParticipants = ResolveMentionedParticipants(
@@ -855,13 +862,14 @@ public sealed class LongevitymaxxingChallengeService
                 now);
 
             transaction.Commit();
-            return new LongevitymaxxingDiscussionReply(
+            return PopulateDiscussionReplyContexts(sqlite, [new LongevitymaxxingDiscussionReply(
                 reply.Id,
                 reply.AuthorParticipantId,
                 reply.AuthorDisplayName,
                 body,
                 reply.CreatedAtUtc,
-                now.ToString("o"));
+                now.ToString("o"),
+                reply.ReplyToId)])[0];
         });
     }
 
@@ -967,7 +975,7 @@ public sealed class LongevitymaxxingChallengeService
             using var cmd = sqlite.CreateCommand();
             cmd.CommandText =
                 $"""
-                SELECT r.Id, r.AuthorParticipantId, author.DisplayName, r.Body, r.CreatedAtUtc, r.EditedAtUtc
+                SELECT r.Id, r.AuthorParticipantId, author.DisplayName, r.Body, r.CreatedAtUtc, r.EditedAtUtc, r.ReplyToId
                 FROM {replyTable} r
                 JOIN LongevitymaxxingParticipants author ON author.Id = r.AuthorParticipantId
                 WHERE {targetPredicate}
@@ -1003,9 +1011,11 @@ public sealed class LongevitymaxxingChallengeService
                         reader.GetString(2),
                         reader.GetString(3),
                         reader.GetString(4),
-                        reader.IsDBNull(5) ? null : reader.GetString(5)));
+                        reader.IsDBNull(5) ? null : reader.GetString(5),
+                        reader.IsDBNull(6) ? null : reader.GetString(6)));
                 }
             }
+            PopulateDiscussionReplyContexts(sqlite, replies);
             replies.Reverse();
 
             var earliest = replies.FirstOrDefault();
@@ -1098,7 +1108,8 @@ public sealed class LongevitymaxxingChallengeService
         int challengeDay,
         string? systemPostId,
         string authorParticipantId,
-        string body)
+        string body,
+        string? replyToId)
     {
         var replyTable = systemPostId is null
             ? "LongevitymaxxingDiscussionReplies"
@@ -1116,6 +1127,7 @@ public sealed class LongevitymaxxingChallengeService
               AND {targetPredicate}
               AND AuthorParticipantId = @authorParticipantId
               AND Body = @body
+              AND ReplyToId IS @replyToId
             LIMIT 1;
             """;
         Add(cmd, "@id", replyId);
@@ -1130,8 +1142,62 @@ public sealed class LongevitymaxxingChallengeService
         }
         Add(cmd, "@authorParticipantId", authorParticipantId);
         Add(cmd, "@body", body);
+        Add(cmd, "@replyToId", replyToId);
         if (cmd.ExecuteScalar() is null)
             throw new InvalidOperationException("That reply request conflicts with an earlier reply. Please try again.");
+    }
+
+    private static void RequireDiscussionReplyContext(
+        SqliteConnection sqlite, SqliteTransaction transaction, string replyId,
+        string postParticipantId, int challengeDay, string? systemPostId)
+    {
+        var table = systemPostId is null ? "LongevitymaxxingDiscussionReplies" : "LongevitymaxxingDiscussionSystemPostReplies";
+        var target = systemPostId is null
+            ? "r.PostParticipantId = @participant AND r.PostChallengeDay = @day"
+            : "r.PostId = @post";
+        using var cmd = sqlite.CreateCommand();
+        cmd.Transaction = transaction;
+        cmd.CommandText = $"""
+            SELECT 1 FROM {table} r
+            JOIN LongevitymaxxingParticipants author ON author.Id = r.AuthorParticipantId
+            WHERE r.Id = @id AND {target} AND author.ConfirmedAtUtc IS NOT NULL;
+            """;
+        Add(cmd, "@id", replyId);
+        Add(cmd, "@participant", postParticipantId);
+        Add(cmd, "@day", challengeDay);
+        Add(cmd, "@post", systemPostId);
+        if (cmd.ExecuteScalar() is null)
+            throw new InvalidOperationException("The comment you’re replying to is no longer available. Remove the reply context to post to the thread.");
+    }
+
+    private static List<LongevitymaxxingDiscussionReply> PopulateDiscussionReplyContexts(
+        SqliteConnection sqlite, List<LongevitymaxxingDiscussionReply> replies)
+    {
+        var ids = replies.Select(reply => reply.ReplyToId).OfType<string>().Distinct(StringComparer.Ordinal).ToArray();
+        if (ids.Length == 0) return replies;
+        using var cmd = sqlite.CreateCommand();
+        var parameters = string.Join(",", ids.Select((_, index) => $"@reply{index}"));
+        // Resolve current public text in one bounded query. A deleted source leaves only its reference.
+        cmd.CommandText = $"""
+            SELECT reply.Id, author.DisplayName, reply.Body FROM (
+                SELECT Id, AuthorParticipantId, Body FROM LongevitymaxxingDiscussionReplies WHERE Id IN ({parameters})
+                UNION ALL
+                SELECT Id, AuthorParticipantId, Body FROM LongevitymaxxingDiscussionSystemPostReplies WHERE Id IN ({parameters})
+            ) reply
+            JOIN LongevitymaxxingParticipants author ON author.Id = reply.AuthorParticipantId
+            WHERE author.ConfirmedAtUtc IS NOT NULL;
+            """;
+        for (var index = 0; index < ids.Length; index++) Add(cmd, $"@reply{index}", ids[index]);
+        var contexts = new Dictionary<string, LongevitymaxxingDiscussionReplyContext>(StringComparer.Ordinal);
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read()) contexts[reader.GetString(0)] = new(reader.GetString(1), reader.GetString(2));
+        for (var index = 0; index < replies.Count; index++)
+        {
+            var reply = replies[index];
+            if (reply.ReplyToId is { } id && contexts.TryGetValue(id, out var context))
+                replies[index] = reply with { ReplyTo = context };
+        }
+        return replies;
     }
 
     private static DiscussionReplyRecord RequireOwnedDiscussionReply(
@@ -1153,15 +1219,15 @@ public sealed class LongevitymaxxingChallengeService
                    author.DisplayName,
                    reply.Body,
                    reply.CreatedAtUtc,
-                   reply.EditedAtUtc
+                   reply.EditedAtUtc, reply.ReplyToId
             FROM (
                 SELECT r.Id, r.PostParticipantId, r.PostChallengeDay, NULL AS SystemPostId,
-                       r.AuthorParticipantId, r.Body, r.CreatedAtUtc, r.EditedAtUtc
+                       r.AuthorParticipantId, r.Body, r.CreatedAtUtc, r.EditedAtUtc, r.ReplyToId
                 FROM LongevitymaxxingDiscussionReplies r
                 WHERE r.Id = @id
                 UNION ALL
                 SELECT r.Id, post.ParticipantId, 0, r.PostId,
-                       r.AuthorParticipantId, r.Body, r.CreatedAtUtc, r.EditedAtUtc
+                       r.AuthorParticipantId, r.Body, r.CreatedAtUtc, r.EditedAtUtc, r.ReplyToId
                 FROM LongevitymaxxingDiscussionSystemPostReplies r
                 JOIN LongevitymaxxingDiscussionSystemPosts post ON post.Id = r.PostId
                 WHERE r.Id = @id
@@ -1183,7 +1249,8 @@ public sealed class LongevitymaxxingChallengeService
             reader.GetString(5),
             reader.GetString(6),
             reader.GetString(7),
-            reader.IsDBNull(8) ? null : reader.GetString(8));
+            reader.IsDBNull(8) ? null : reader.GetString(8),
+            reader.IsDBNull(9) ? null : reader.GetString(9));
         if (!string.Equals(reply.AuthorParticipantId, participantId, StringComparison.Ordinal))
             throw new UnauthorizedAccessException($"You can only {action} your own replies.");
         return reply;
@@ -1196,7 +1263,8 @@ public sealed class LongevitymaxxingChallengeService
             reply.AuthorDisplayName,
             reply.Body,
             reply.CreatedAtUtc,
-            reply.EditedAtUtc);
+            reply.EditedAtUtc,
+            reply.ReplyToId);
 
     private static void InsertReplyMentionNotifications(
         SqliteConnection sqlite,
@@ -2690,6 +2758,7 @@ public sealed class LongevitymaxxingChallengeService
                     Body TEXT NOT NULL,
                     CreatedAtUtc TEXT NOT NULL,
                     EditedAtUtc TEXT NULL,
+                    ReplyToId TEXT NULL,
                     FOREIGN KEY (PostParticipantId, PostChallengeDay)
                         REFERENCES LongevitymaxxingCheckIns(ParticipantId, ChallengeDay) ON DELETE CASCADE,
                     FOREIGN KEY (AuthorParticipantId)
@@ -2756,6 +2825,7 @@ public sealed class LongevitymaxxingChallengeService
                     Body TEXT NOT NULL,
                     CreatedAtUtc TEXT NOT NULL,
                     EditedAtUtc TEXT NULL,
+                    ReplyToId TEXT NULL,
                     FOREIGN KEY (PostId)
                         REFERENCES LongevitymaxxingDiscussionSystemPosts(Id) ON DELETE CASCADE,
                     FOREIGN KEY (AuthorParticipantId)
@@ -2826,6 +2896,8 @@ public sealed class LongevitymaxxingChallengeService
             TryAddLongevitymaxxingParticipantsColumn(sqlite, "StoppedCommunityCallEmailsAtUtc TEXT NULL");
             TryAddLongevitymaxxingCheckInsColumn(sqlite, "DiscussionUpdatedAtUtc TEXT NULL");
             TryAddLongevitymaxxingDiscussionRepliesColumn(sqlite, "EditedAtUtc TEXT NULL");
+            TryAddLongevitymaxxingDiscussionRepliesColumn(sqlite, "ReplyToId TEXT NULL");
+            TryAddLongevitymaxxingDiscussionRepliesColumn(sqlite, "ReplyToId TEXT NULL", systemPosts: true);
             BackfillDiscussionUpdatedAtUtc(sqlite);
             RemoveRetiredChallengePaymentData(sqlite);
         });
@@ -2910,10 +2982,11 @@ public sealed class LongevitymaxxingChallengeService
         }
     }
 
-    private static void TryAddLongevitymaxxingDiscussionRepliesColumn(SqliteConnection sqlite, string columnDefinition)
+    private static void TryAddLongevitymaxxingDiscussionRepliesColumn(SqliteConnection sqlite, string columnDefinition, bool systemPosts = false)
     {
         using var cmd = sqlite.CreateCommand();
-        cmd.CommandText = $"ALTER TABLE LongevitymaxxingDiscussionReplies ADD COLUMN {columnDefinition};";
+        var table = systemPosts ? "LongevitymaxxingDiscussionSystemPostReplies" : "LongevitymaxxingDiscussionReplies";
+        cmd.CommandText = $"ALTER TABLE {table} ADD COLUMN {columnDefinition};";
         try
         {
             cmd.ExecuteNonQuery();
@@ -3663,10 +3736,10 @@ public sealed class LongevitymaxxingChallengeService
             cmd.CommandText =
                 """
                 SELECT recent.Id, recent.AuthorParticipantId, recent.DisplayName, recent.Body,
-                       recent.CreatedAtUtc, recent.EditedAtUtc
+                       recent.CreatedAtUtc, recent.EditedAtUtc, recent.ReplyToId
                 FROM (
                     SELECT reply.Id, reply.AuthorParticipantId, author.DisplayName, reply.Body,
-                           reply.CreatedAtUtc, reply.EditedAtUtc
+                           reply.CreatedAtUtc, reply.EditedAtUtc, reply.ReplyToId
                     FROM LongevitymaxxingDiscussionSystemPostReplies reply
                     JOIN LongevitymaxxingParticipants author ON author.Id = reply.AuthorParticipantId
                     WHERE reply.PostId = @postId
@@ -3688,9 +3761,11 @@ public sealed class LongevitymaxxingChallengeService
                     reader.GetString(2),
                     reader.GetString(3),
                     reader.GetString(4),
-                    reader.IsDBNull(5) ? null : reader.GetString(5)));
+                    reader.IsDBNull(5) ? null : reader.GetString(5),
+                    reader.IsDBNull(6) ? null : reader.GetString(6)));
             }
-            result[row.Id] = replies;
+            reader.Close();
+            result[row.Id] = PopulateDiscussionReplyContexts(sqlite, replies);
         }
 
         return result;
@@ -3706,9 +3781,9 @@ public sealed class LongevitymaxxingChallengeService
             using var cmd = sqlite.CreateCommand();
             cmd.CommandText =
                 """
-                SELECT recent.Id, recent.AuthorParticipantId, recent.DisplayName, recent.Body, recent.CreatedAtUtc, recent.EditedAtUtc
+                SELECT recent.Id, recent.AuthorParticipantId, recent.DisplayName, recent.Body, recent.CreatedAtUtc, recent.EditedAtUtc, recent.ReplyToId
                 FROM (
-                    SELECT r.Id, r.AuthorParticipantId, author.DisplayName, r.Body, r.CreatedAtUtc, r.EditedAtUtc
+                    SELECT r.Id, r.AuthorParticipantId, author.DisplayName, r.Body, r.CreatedAtUtc, r.EditedAtUtc, r.ReplyToId
                     FROM LongevitymaxxingDiscussionReplies r
                     JOIN LongevitymaxxingParticipants author ON author.Id = r.AuthorParticipantId
                     WHERE r.PostParticipantId = @postParticipantId
@@ -3732,9 +3807,11 @@ public sealed class LongevitymaxxingChallengeService
                     reader.GetString(2),
                     reader.GetString(3),
                     reader.GetString(4),
-                    reader.IsDBNull(5) ? null : reader.GetString(5)));
+                    reader.IsDBNull(5) ? null : reader.GetString(5),
+                    reader.IsDBNull(6) ? null : reader.GetString(6)));
             }
-            result[(row.ParticipantId, row.ChallengeDay)] = replies;
+            reader.Close();
+            result[(row.ParticipantId, row.ChallengeDay)] = PopulateDiscussionReplyContexts(sqlite, replies);
         }
 
         return result;
@@ -4606,7 +4683,9 @@ public sealed class LongevitymaxxingChallengeService
         var normalized = (note ?? "").Trim();
         if (string.IsNullOrWhiteSpace(normalized))
             return null;
-        return normalized.Length <= 240 ? normalized : normalized[..240];
+        if (normalized.Length > MaxDiscussionReplyLength)
+            throw new InvalidOperationException($"Keep check-in text within {MaxDiscussionReplyLength} characters. Your text has not been saved.");
+        return normalized;
     }
 
     private static string NormalizeDiscussionReply(string? body)
@@ -4614,9 +4693,9 @@ public sealed class LongevitymaxxingChallengeService
         var normalized = (body ?? "").Trim();
         if (string.IsNullOrWhiteSpace(normalized))
             throw new InvalidOperationException("Write a reply before posting.");
-        return normalized.Length <= MaxDiscussionReplyLength
-            ? normalized
-            : normalized[..MaxDiscussionReplyLength];
+        if (normalized.Length > MaxDiscussionReplyLength)
+            throw new InvalidOperationException($"Keep replies within {MaxDiscussionReplyLength} characters. Your text has not been posted.");
+        return normalized;
     }
 
     private static string NormalizeDiscussionReplyId(string? replyId)
@@ -5064,7 +5143,8 @@ public sealed class LongevitymaxxingChallengeService
         string AuthorDisplayName,
         string Body,
         string CreatedAtUtc,
-        string? EditedAtUtc);
+        string? EditedAtUtc,
+        string? ReplyToId);
 
     private sealed record DiscussionThreadRow(
         string ParticipantId,

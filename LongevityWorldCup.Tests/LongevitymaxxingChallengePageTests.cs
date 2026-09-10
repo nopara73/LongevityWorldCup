@@ -939,7 +939,6 @@ public sealed class LongevitymaxxingChallengePageTests(TestWebApplicationFactory
         Assert.Contains("border-color: var(--lmx-answer-accent);", css);
         Assert.DoesNotContain("background: rgba(var(--lmx-habit-soft), 0.12);", css);
         Assert.Contains("function isCompleteCheckInDraft", javascript);
-        Assert.Contains("button.disabled = !!checkInSaving || !complete || !changed;", javascript);
         Assert.DoesNotContain("type=\"range\"", javascript);
         Assert.DoesNotContain("lmx-lever", javascript);
         Assert.DoesNotContain("lmx-lever", css);

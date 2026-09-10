@@ -3205,6 +3205,64 @@ a.lmx-discussion-author-identity:focus-visible {
     line-height: 1.5;
 }
 
+.lmx-discussion-context,
+.lmx-discussion-context-link {
+    display: flex;
+    align-items: center;
+    gap: var(--lwc-space-2);
+    min-width: 0;
+    color: var(--lmx-muted);
+    font-size: var(--lwc-type-xs);
+    line-height: 1.5;
+}
+
+.lmx-discussion-context {
+    padding-left: var(--lwc-space-3);
+    border-left: 2px solid var(--lmx-accent);
+    background: var(--lmx-surface-muted);
+    border-radius: var(--lwc-radius-sm);
+}
+
+.lmx-discussion-context > span,
+.lmx-discussion-context-link > span {
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.lmx-discussion-context > span { flex: 1; }
+.lmx-discussion-context .lmx-discussion-composer-close { font-size: var(--lwc-type-body); }
+.lmx-discussion-context i,
+.lmx-discussion-context-link i { flex-shrink: 0; }
+.lmx-discussion-context[hidden] { display: none; }
+.lmx-discussion-context-link { margin-top: var(--lwc-space-1); width: fit-content; max-width: 100%; }
+a.lmx-discussion-context-link { color: var(--lmx-accent-hover); text-decoration: none; }
+a.lmx-discussion-context-link:hover { text-decoration: underline; }
+.lmx-discussion-context-link:focus-visible { outline: 2px solid var(--lmx-accent); outline-offset: 3px; }
+
+.lmx-discussion-undo { display: flex; align-items: center; gap: var(--lwc-space-3); color: var(--lmx-muted); }
+.lmx-discussion-undo button { color: var(--lmx-accent-hover); }
+.lmx-discussion-just-saved { background: var(--lmx-surface-accent); border-radius: var(--lwc-radius-sm); }
+.lmx-discussion-composer-meta.over-limit,
+.lmx-note-character-count.over-limit { color: var(--lmx-danger); font-weight: 700; }
+.lmx-discussion-reply-composer textarea[aria-invalid="true"],
+.lmx-checkin-card textarea[aria-invalid="true"] { border-color: var(--lmx-danger); }
+.lmx-note-character-count { display: block; text-align: right; font-size: var(--lwc-type-xs); color: var(--lmx-muted); font-variant-numeric: tabular-nums; }
+
+.lmx-note-photo.has-error { position: relative; }
+.lmx-note-photo.has-error img { visibility: hidden; }
+.lmx-note-photo.has-error::after { content: "Retry photo"; position: absolute; inset: 0; display: grid; place-items: center; color: var(--lmx-accent-hover); font-size: var(--lwc-type-sm); }
+.lmx-photo-viewer-stage { position: relative; }
+.lmx-photo-viewer-stage.is-loading,
+.lmx-photo-viewer-stage.has-error { min-width: min(80vw, 36rem); min-height: min(55vh, 28rem); }
+.lmx-photo-viewer-stage.is-loading img,
+.lmx-photo-viewer-stage.has-error img { opacity: 0; }
+.lmx-photo-load-status { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: var(--lwc-space-3); padding: var(--lwc-space-4); color: #fff; text-align: center; }
+.lmx-photo-load-status > i { font-size: var(--lwc-type-h2); opacity: .65; }
+.lmx-photo-load-status[hidden],
+.lmx-photo-load-status button[hidden] { display: none; }
+
 .lmx-discussion-edit-resume {
     margin-top: var(--lwc-space-2);
 }
