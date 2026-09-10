@@ -794,6 +794,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     let discussionNavigationGeneration = 0;
     let dashboardScrollObserver: ResizeObserver | null = null;
     let dashboardScrollObservedElement: Element | null = null;
+    const autoScrollPositions = new WeakMap<Element, number>();
     let dashboardHistoryExpanded = false;
     let participantActiveTab: ParticipantTab | null = null;
     let participantTabManual = false;
@@ -2444,12 +2445,19 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         button.textContent = showInactiveLeaderboard ? "Hide resting" : `Show resting (${rows.inactive.length})`;
     }
 
+    function hasManuallyScrolled(scroller: Element): boolean {
+        const previousAutoScrollLeft = autoScrollPositions.get(scroller);
+        return previousAutoScrollLeft !== undefined && Math.abs(scroller.scrollLeft - previousAutoScrollLeft) > 1;
+    }
+
     function scrollBoardToLatestDay() {
         const scroller = document.querySelector("#lmxBoardSection .lmx-board-scroll");
         if (!scroller) return;
 
         const scrollRight = () => {
+            if (!scroller.isConnected || !scroller.clientWidth || hasManuallyScrolled(scroller)) return;
             scroller.scrollLeft = Math.max(0, scroller.scrollWidth - scroller.clientWidth);
+            autoScrollPositions.set(scroller, scroller.scrollLeft);
         };
 
         requestAnimationFrame(() => {
@@ -2479,7 +2487,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         if (!scroller) return;
 
         const scrollCurrentDayIntoFocus = () => {
-            if (!scroller.clientWidth) return;
+            if (!scroller.isConnected || !scroller.clientWidth) return;
+            const preserveManualScroll = hasManuallyScrolled(scroller);
             const grid = scroller.querySelector<HTMLElement>(".lmx-dashboard-grid");
             const header = grid?.querySelector<HTMLElement>(".lmx-dashboard-row-head");
             const dayStrip = header?.querySelector<HTMLElement>(".lmx-dashboard-days");
@@ -2495,24 +2504,22 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             const cellWidth = (availableWidth - (visibleColumns - 1) * cellGap) / visibleColumns;
             // Fill the visible history with whole columns, including beside the pinned labels.
             grid.style.setProperty("--lmx-dashboard-day-width", `${cellWidth}px`);
+            if (preserveManualScroll) return;
 
             const currentDay = scroller.querySelector<HTMLElement>(".lmx-dashboard-row-head .lmx-dashboard-day.today");
-            if (!currentDay) {
-                scroller.scrollLeft = Math.max(0, scroller.scrollWidth - scroller.clientWidth);
-                return;
-            }
-
-            const dayOffset = currentDay.getBoundingClientRect().left - dayStrip.getBoundingClientRect().left;
-            const centered = dayOffset - Math.floor((visibleColumns - 1) / 2) * (cellWidth + cellGap);
             const maxScroll = Math.max(0, scroller.scrollWidth - scroller.clientWidth);
+            let centered = maxScroll;
+            if (currentDay) {
+                const dayOffset = currentDay.getBoundingClientRect().left - dayStrip.getBoundingClientRect().left;
+                centered = dayOffset - Math.floor((visibleColumns - 1) / 2) * (cellWidth + cellGap);
+            }
             scroller.scrollLeft = Math.max(0, Math.min(maxScroll, centered));
+            autoScrollPositions.set(scroller, scroller.scrollLeft);
         };
 
         requestAnimationFrame(() => {
             scrollCurrentDayIntoFocus();
             requestAnimationFrame(scrollCurrentDayIntoFocus);
-            window.setTimeout(scrollCurrentDayIntoFocus, 120);
-            window.setTimeout(scrollCurrentDayIntoFocus, 500);
         });
 
         if (document.fonts && document.fonts.ready) {

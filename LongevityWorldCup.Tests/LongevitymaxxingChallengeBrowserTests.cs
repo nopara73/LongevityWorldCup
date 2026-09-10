@@ -48,6 +48,48 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
         Assert.Contains("Monday, Jun 29", await page.Locator(".lmx-category-day[data-day='22']").First.GetAttributeAsync("title"));
     }
 
+    [Theory]
+    [InlineData(320)]
+    [InlineData(390)]
+    public async Task DashboardHistory_KeepsManualScrollingThroughLayoutChanges(int width)
+    {
+        await using var context = await Browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = App.BaseAddress.ToString(),
+            ViewportSize = new ViewportSize { Width = width, Height = 850 },
+            TimezoneId = "Asia/Singapore"
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        var page = await context.NewPageAsync();
+        await page.Clock.SetFixedTimeAsync(DateTime.Parse("2026-06-28T20:00:00Z", CultureInfo.InvariantCulture,
+            DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal));
+        await page.RouteAsync("**/api/longevitymaxxing/state",
+            route => FulfillJsonAsync(route, JsonSerializer.Serialize(BuildPublicState())));
+        await page.RouteAsync("**/api/longevitymaxxing/participant",
+            route => FulfillJsonAsync(route, JsonSerializer.Serialize(BuildParticipantState(includeUpcomingCall: true))));
+        await page.GotoAsync("/longevitymaxxing?token=browser-token");
+        await page.Locator(".lmx-habit-history > summary").ClickAsync();
+        var history = page.Locator(".lmx-dashboard-scroll");
+        await page.WaitForFunctionAsync("document.querySelector('.lmx-dashboard-scroll').scrollLeft > 0");
+        var initial = await history.EvaluateAsync<double>("e => e.scrollLeft");
+        await history.FocusAsync();
+        await page.Keyboard.PressAsync("ArrowLeft");
+        await page.WaitForFunctionAsync("start => document.querySelector('.lmx-dashboard-scroll').scrollLeft < start", initial);
+        // Cover delayed positioning as well as the browser's keyboard-scroll animation.
+        await page.WaitForTimeoutAsync(700);
+        Assert.True(await history.EvaluateAsync<double>("e => e.scrollLeft") < initial,
+            "Opening history must not pull a reader back after manual scrolling.");
+
+        await history.EvaluateAsync("e => e.scrollLeft = 0");
+        await page.SetViewportSizeAsync(width + 40, 850);
+        await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+        Assert.InRange(await history.EvaluateAsync<double>("e => e.scrollLeft"), 0, 1);
+        await page.Locator(".lmx-habit-history > summary").ClickAsync();
+        await page.Locator(".lmx-habit-history > summary").ClickAsync();
+        await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+        Assert.InRange(await history.EvaluateAsync<double>("e => e.scrollLeft"), 0, 1);
+    }
+
     [Fact]
     public async Task TimeZonePicker_NormalizesBrowserAliasesAndUsesOneFocusBoundary()
     {
@@ -476,6 +518,18 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
 
         Assert.Equal(22, await cells.CountAsync());
         Assert.True(await page.Locator("#lmxWeekPager").IsHiddenAsync());
+        var timeline = page.Locator("#lmxBoardSection .lmx-board-scroll");
+        await page.WaitForFunctionAsync("document.querySelector('#lmxBoardSection .lmx-board-scroll').scrollLeft > 0");
+        var latestPosition = await timeline.EvaluateAsync<double>("e => e.scrollLeft");
+        await timeline.HoverAsync();
+        await page.Mouse.WheelAsync(-200, 0);
+        await page.WaitForFunctionAsync("start => document.querySelector('#lmxBoardSection .lmx-board-scroll').scrollLeft < start", latestPosition);
+        await page.WaitForTimeoutAsync(1300);
+        Assert.True(await timeline.EvaluateAsync<double>("e => e.scrollLeft") < latestPosition);
+        await timeline.EvaluateAsync("e => e.scrollLeft = 0");
+        await page.SetViewportSizeAsync(1081, 900);
+        await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+        Assert.InRange(await timeline.EvaluateAsync<double>("e => e.scrollLeft"), 0, 1);
         foreach (var desktopWidth in new[] { 1024, 1081, 1200 })
         {
             await page.SetViewportSizeAsync(desktopWidth, 900);
