@@ -3726,6 +3726,7 @@
     const isAthleteDialogOnlyRuntime = athleteDialogRuntime.dataset.athleteDialogOnly === 'true';
     let athleteResultsReady = false;
     let athleteResultsLoadPromise = null;
+    let renderedLeaderboardSelection = '';
     let athleteDialogReturnFocusElement = null;
     const defaultProfilePic = '{{ASSET_HD_LOGO_THUMB_SM}}';
 
@@ -6901,6 +6902,10 @@
         return `${url.pathname}${url.search}${url.hash}`;
     };
 
+    function getLeaderboardSelectionKey() {
+        return JSON.stringify([getSelectedLeaderboardState(), document.getElementById('athleteSearch')?.value || '']);
+    }
+
     function performFilter({ updateUrl = true } = {}) {
         const selectedState = getSelectedLeaderboardState();
         const selectedDivisions = selectedState.divisions.map(value => value.toLowerCase());
@@ -7217,6 +7222,7 @@
 
         updateLeaderboardStateIndicator();
         scheduleLeaderboardTableHeightSync();
+        renderedLeaderboardSelection = getLeaderboardSelectionKey();
 
         // Initial hydration must preserve direct rank/profile fragments and unrelated URL state.
         if (!updateUrl) {
@@ -9579,6 +9585,21 @@
         });
         setExpanded(false);
     }
+
+    // History navigation restores native form values after popstate. Reconcile
+    // the rows afterward instead of relying on a later prize request to do it.
+    let leaderboardHistoryRestoreTimer = 0;
+    function reconcileRestoredLeaderboard() {
+        if (isAthleteDialogOnlyRuntime) return;
+        window.clearTimeout(leaderboardHistoryRestoreTimer);
+        leaderboardHistoryRestoreTimer = window.setTimeout(() => {
+            if (athleteResultsReady && renderedLeaderboardSelection !== getLeaderboardSelectionKey()) {
+                performFilter({ updateUrl: false });
+            }
+        }, 0);
+    }
+    window.addEventListener('pageshow', reconcileRestoredLeaderboard);
+    window.addEventListener('popstate', reconcileRestoredLeaderboard);
 
     // Ensure modal history cleanup
     window.addEventListener('popstate', function (event) {

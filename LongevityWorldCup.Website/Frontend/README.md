@@ -24,6 +24,8 @@ On shared leaderboard/highlight pages, the head owns `getSharedAthletes`, `getSh
 
 Render podium athletes as soon as their data is ready. Prize totals and exchange rates load concurrently and update only the original prize panels; pending or unavailable amounts use a dash. The donation progress and podium share their total-received request. Prize failures must not remove athlete cards or their links.
 
+Reconcile leaderboard rows after `pageshow`/`popstate` native form restoration without rewriting the URL. Re-render only when the restored selection differs from the rendered one, preserving row identity and return focus otherwise. Restoring a ranking selection must not depend on a later prize response.
+
 HTML rendering reads only the page's referenced partials and required nested dialog fragments. `HtmlAssetPlaceholders` resolves asset tokens once after page assembly, reusing each URL's version within that response. Keep asset mappings there and resolve versions again for each response so file edits remain visible.
 
 Keep these classic scripts free of imports/exports: `flow-action-dock`, `bioage-flow`, `custom-event-markup`, `longevitymaxxing`, `site-statistics-tracking`, `site-statistics`.
