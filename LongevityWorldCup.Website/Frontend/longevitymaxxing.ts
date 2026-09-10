@@ -6150,6 +6150,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         try {
             const result = await postJson(`${API}/discussion/replies/delete`, payload);
             if (accessToken !== currentAccessToken || participantState?.participant.id !== reply.participantId) return;
+            reconcileDiscussionReplyReference(replyId, null);
             if (linkedDiscussionThread && linkedDiscussionThread.participantId === thread.dataset.discussionPostParticipantId &&
                 linkedDiscussionThread.challengeDay === Number(thread.dataset.discussionPostChallengeDay)) {
                 const previousCount = reportedDiscussionReplyCount(linkedDiscussionThread);
@@ -6207,8 +6208,15 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     }
 
     function replaceDiscussionReplyEverywhere(updated: DiscussionReply): void {
+        reconcileDiscussionReplyReference(updated.id, updated);
+    }
+
+    function reconcileDiscussionReplyReference(replyId: string, updated: DiscussionReply | null): void {
+        const context = updated ? { displayName: updated.displayName, body: updated.body } : null;
+        const reconcile = (reply: DiscussionReply): DiscussionReply => updated && reply.id === replyId ? updated
+            : reply.replyToId === replyId ? { ...reply, replyTo: context } : reply;
         discussionReplyCache.forEach(cache => {
-            if (cache.byId.has(updated.id)) cache.byId.set(updated.id, updated);
+            cache.byId.forEach((reply, id) => cache.byId.set(id, reconcile(reply)));
         });
         const collections = [
             participantState?.notes,
@@ -6220,7 +6228,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         ];
         collections.forEach(collection => (collection || []).forEach(note => {
             if (!Array.isArray(note.replies)) return;
-            note.replies = note.replies.map(reply => reply.id === updated.id ? updated : reply);
+            note.replies = note.replies.map(reconcile);
         }));
         const systemPostCollections = [
             participantState?.public?.systemDiscussionPosts,
@@ -6228,8 +6236,11 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         ];
         systemPostCollections.forEach(collection => (collection || []).forEach(post => {
             if (!Array.isArray(post.replies)) return;
-            post.replies = post.replies.map(reply => reply.id === updated.id ? updated : reply);
+            post.replies = post.replies.map(reconcile);
         }));
+        discussionDrafts.forEach(draft => {
+            if (draft.replyToId === replyId) draft.replyTo = context;
+        });
     }
 
     async function submitDiscussionReply(draft: DiscussionDraft): Promise<void> {

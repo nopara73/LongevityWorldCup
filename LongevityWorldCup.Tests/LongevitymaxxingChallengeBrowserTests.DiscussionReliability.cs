@@ -57,6 +57,64 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
     }
 
     [Fact]
+    public async Task DiscussionReliability_SourceEditsAndDeletionUpdatePublishedAndDraftContext()
+    {
+        await using var context = await NewContextAsync(Browser, App, new());
+        var state = ConversationWorkspaceState();
+        foreach (var notes in new[] { state["notes"]!, state["public"]!["notes"]! })
+        {
+            var post = notes.AsArray()[0]!;
+            var parent = post["replies"]!.AsArray().Single(reply => (string?)reply!["id"] == "r6")!;
+            var child = JsonSerializer.SerializeToNode(Reply("context-child", "p2", "Ari", "Thanks for the detail.", "2026-06-30T13:00:00Z"))!;
+            child["replyToId"] = "r6";
+            child["replyTo"] = new JsonObject { ["displayName"] = parent["displayName"]!.DeepClone(), ["body"] = parent["body"]!.DeepClone() };
+            post["replies"]!.AsArray().Add(child);
+            post["replyCount"] = post["replyCount"]!.GetValue<int>() + 1;
+        }
+        var page = await OpenDiscussionWorkspaceAsync(context, state);
+        const string revised = "Updated source wording.";
+        await page.RouteAsync("**/api/longevitymaxxing/discussion/replies/edit", async route => {
+            JsonNode? updated = null;
+            foreach (var notes in new[] { state["notes"]!, state["public"]!["notes"]! }) {
+                var replies = notes.AsArray()[0]!["replies"]!.AsArray();
+                updated = replies.Single(reply => (string?)reply!["id"] == "r6")!;
+                updated["body"] = revised;
+                updated["editedAtUtc"] = "2026-07-01T10:00:00Z";
+                replies.Single(reply => (string?)reply!["id"] == "context-child")!["replyTo"]!["body"] = revised;
+            }
+            await FulfillJsonAsync(route, updated!.ToJsonString());
+        });
+        await page.RouteAsync("**/api/longevitymaxxing/discussion/replies/delete", async route => {
+            foreach (var notes in new[] { state["notes"]!, state["public"]!["notes"]! }) {
+                var post = notes.AsArray()[0]!;
+                var replies = post["replies"]!.AsArray();
+                replies.Remove(replies.Single(reply => (string?)reply!["id"] == "r6"));
+                replies.Single(reply => (string?)reply!["id"] == "context-child")!["replyTo"] = null;
+                post["replyCount"] = post["replyCount"]!.GetValue<int>() - 1;
+            }
+            await FulfillJsonAsync(route, state.ToJsonString());
+        });
+        var thread = DiscussionThread(page, "p7", 5);
+        var parentItem = thread.Locator("[data-discussion-reply-id='r6']");
+        var childContext = thread.Locator("[data-discussion-reply-id='context-child'] .lmx-discussion-context-link");
+        await parentItem.Locator("[data-discussion-reply-to]").ClickAsync();
+        await thread.Locator("textarea").FillAsync("Keep my response draft.");
+        await thread.Locator("[data-reply-action='close']").ClickAsync();
+        await parentItem.Locator("[data-discussion-reply-edit]").ClickAsync();
+        await parentItem.Locator("textarea").FillAsync(revised);
+        await parentItem.Locator("[data-reply-edit-submit]").ClickAsync();
+        await Assertions.Expect(childContext).ToHaveAttributeAsync("title", revised);
+        await thread.Locator("[data-discussion-quick-reply]").ClickAsync();
+        await Assertions.Expect(thread.Locator("[data-discussion-compose-context]")).ToContainTextAsync(revised);
+        await Assertions.Expect(thread.Locator("textarea")).ToHaveValueAsync("Keep my response draft.");
+        page.Dialog += (_, dialog) => _ = dialog.AcceptAsync();
+        await parentItem.Locator("[data-discussion-reply-delete]").ClickAsync();
+        await Assertions.Expect(childContext).ToHaveTextAsync("Original reply unavailable");
+        await Assertions.Expect(thread.Locator("[data-discussion-compose-context]")).ToContainTextAsync("Original reply unavailable");
+        await Assertions.Expect(thread.Locator("textarea")).ToHaveValueAsync("Keep my response draft.");
+    }
+
+    [Fact]
     public async Task DiscussionReliability_DiscardUndoRestoresSelectionAndProtectsNewerText()
     {
         await using var context = await NewContextAsync(Browser, App, new());
