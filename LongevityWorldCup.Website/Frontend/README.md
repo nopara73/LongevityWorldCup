@@ -18,6 +18,12 @@ Keep strict null, unchecked-index, exact-optional-property, and erasable-syntax 
 
 `HtmlInjectionMiddleware` dynamically imports these ES modules (an empty emitted export is allowed): `misc`, `flags`, `leagueIcons`, `pheno-age`, `bortz-age`, `badges`, `age-visualization`, `play-athlete-flow`, `proof-helpers`, `pro-discounts`, `play-menu`, `bioage-rank-preview`.
 
+The inline head bootstrap starts dynamic imports during parsing; `window.modulesReady` still gates dependent initialization. Module evaluation must not require body elements before DOM readiness. Homepage athlete and highlight data starts alongside the imports; leaderboard and event pages also start their athlete request early. Other routes fetch on demand.
+
+The head owns `getSharedAthletes`, `getSharedEvents`, `getSharedPrizeFund`, and `fetchPublicJson`. Shared reads deduplicate requests and clear failed promises without invalidating newer refreshes. Public JSON GETs have a ten-second deadline through body consumption, abort a stalled transfer, and retry transport/JSON/server failures once. Client errors are not automatically retried. Exhausted athlete/event attempts reach each section's existing recovery controls. Keep this bootstrap inline so starting a data request does not require another script download.
+
+Render podium athletes as soon as their data is ready. Prize totals and exchange rates load concurrently and update only the original prize panels; pending or unavailable amounts use a dash. The donation progress and podium share their total-received request. Prize failures must not remove athlete cards or their links.
+
 HTML rendering reads only the page's referenced partials and required nested dialog fragments. `HtmlAssetPlaceholders` resolves asset tokens once after page assembly, reusing each URL's version within that response. Keep asset mappings there and resolve versions again for each response so file edits remain visible.
 
 Keep these classic scripts free of imports/exports: `flow-action-dock`, `bioage-flow`, `custom-event-markup`, `longevitymaxxing`, `site-statistics-tracking`, `site-statistics`.

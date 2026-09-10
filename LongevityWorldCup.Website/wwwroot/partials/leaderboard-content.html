@@ -4610,18 +4610,6 @@
         athleteResultsReady = false;
         setLeaderboardLoadingState(includePodium, maxAthletes);
 
-        window.getSharedAthletes = window.getSharedAthletes || function(){
-            if(!window.__sharedAthletesRequest){
-                window.__sharedAthletesRequest = fetch('/api/data/athletes')
-                    .then(response => response.ok ? response.json() : Promise.reject(response.status))
-                    .catch(error => {
-                        window.__sharedAthletesRequest = null;
-                        throw error;
-                    });
-            }
-            return window.__sharedAthletesRequest;
-        };
-
         const currentLoadPromise = window.getSharedAthletes()
             .then(athletes => {
                 // Array to store athletes with their lowest PhenoAge and age reduction
@@ -5150,132 +5138,85 @@
                 const podiumCount = includePodium ? 3 : 0;
 
                 if (includePodium) {
-                    // Fetch the total prize fund from the backend API and calculate prize money
-                    fetch('/api/bitcoin/total-received')
-                        .then(response => response.json())
-                        .then(data => {
-                            const totalReceivedSatoshis = data.totalReceivedSatoshis;
-                            const totalReceivedBTC = totalReceivedSatoshis / 1e8;
-                            const prizeFundBTC = totalReceivedBTC * 0.9; // 90% of total received
+                    // Winners are available now; prize services must not delay their cards.
+                    // Get the top three athletes from athleteResults
+                    const topThree = athleteResults.slice(0, 3);
 
-                            // Fetch current BTC to USD exchange rate
-                            fetch(`/api/bitcoin/btcusd`)
-                                .then(response => response.json())
-                                .then(tickerData => {
-                                    const btcToUsdRate = tickerData.btcToUsdRate;
+                    // Select the podium container and clear existing items
+                    const podium = document.querySelector('.podium');
+                    podium.innerHTML = ''; // Clear any existing podium items
+                    podium.setAttribute('aria-busy', 'false');
 
-                                    // Calculate prize moneys
-                                    const firstPlaceBTC = prizeFundBTC * 0.6;
-                                    const secondPlaceBTC = prizeFundBTC * 0.25;
-                                    const thirdPlaceBTC = prizeFundBTC * 0.15;
+                    // Loop through the top three athletes and create podium items
+                    topThree.forEach(athlete => {
+                        let rankClass, rankEmoji;
 
-                                    const firstPlaceUSD = firstPlaceBTC * btcToUsdRate;
-                                    const secondPlaceUSD = secondPlaceBTC * btcToUsdRate;
-                                    const thirdPlaceUSD = thirdPlaceBTC * btcToUsdRate;
+                        switch (athlete.rank) {
+                            case 1:
+                                rankClass = 'first';
+                                rankEmoji = '<i class="fa-solid fa-crown" style="color: gold;"></i>';
+                                break;
+                            case 2:
+                                rankClass = 'second';
+                                rankEmoji = '<i class="fa-solid fa-medal" style="color: silver;"></i>';
+                                break;
+                            case 3:
+                                rankClass = 'third';
+                                rankEmoji = '<i class="fa-solid fa-award" style="color: #cd7f32;"></i>';
+                                break;
+                            default:
+                                return; // Only handle top three
+                        }
 
-                                    const prizeMoney = {
-                                        1: { btc: firstPlaceBTC.toFixed(8) + " BTC", amount: "$" + firstPlaceUSD.toFixed(2) },
-                                        2: { btc: secondPlaceBTC.toFixed(8) + " BTC", amount: "$" + secondPlaceUSD.toFixed(2) },
-                                        3: { btc: thirdPlaceBTC.toFixed(8) + " BTC", amount: "$" + thirdPlaceUSD.toFixed(2) }
-                                    };
-                                    // Get the top three athletes from athleteResults
-                                    const topThree = athleteResults.slice(0, 3);
+                        // Create the podium-item div
+                        const podiumItem = document.createElement('div');
+                        podiumItem.classList.add('podium-item', rankClass);
 
-                                    // Select the podium container and clear existing items
-                                    const podium = document.querySelector('.podium');
-                                    podium.innerHTML = ''; // Clear any existing podium items
-                                    podium.setAttribute('aria-busy', 'false');
+                        const podiumPortraitUrl = getAthletePortraitUrl(athlete);
 
-                                    // Loop through the top three athletes and create podium items
-                                    topThree.forEach(athlete => {
-                                        let rankClass, rankEmoji;
+                        // Populate the inner HTML of podiumItem
+                        podiumItem.innerHTML = `
+                            <div class="podium-rank" title="${athlete.rank === 1 ? '1st Place' : athlete.rank === 2 ? '2nd Place' : '3rd Place'}">
+                                ${rankEmoji}
+                            </div>
+                            <img src="${podiumPortraitUrl}" alt="${athlete.displayName} portrait" class="podium-portrait" loading="lazy">
+                            <div class="name-row">
+                                <button type="button" class="athlete-name" title="View stats of ${athlete.displayName}">${athlete.displayName}</button>
+                            </div>
+                            <div class="podium-link-row">
+                                ${renderPersonalLink(athlete.personalLink, athlete.displayName)}
+                                ${renderPodcastLink(athlete.podcastLink, athlete.displayName)}
+                                ${renderMediaContact(athlete.mediaContact, true, athlete.displayName)}
+                            </div>
+                            <div><span class="age-reduction">${Math.abs(getDisplayAgeReductionValue(athlete)).toFixed(athlete.ageReductionDisplayDecimals || 1)} years</span> reduced</div>
+                            <a class="podium-item-lower" href="#contribute" aria-label="Donate to the prize pool" aria-busy="true">
+                                <div class="btc-amount">&nbsp;</div>
+                                <div class="prize-money">&mdash;</div>
+                            </a>
+                        `;
 
-                                        switch (athlete.rank) {
-                                            case 1:
-                                                rankClass = 'first';
-                                                rankEmoji = '<i class="fa-solid fa-crown" style="color: gold;"></i>';
-                                                break;
-                                            case 2:
-                                                rankClass = 'second';
-                                                rankEmoji = '<i class="fa-solid fa-medal" style="color: silver;"></i>';
-                                                break;
-                                            case 3:
-                                                rankClass = 'third';
-                                                rankEmoji = '<i class="fa-solid fa-award" style="color: #cd7f32;"></i>';
-                                                break;
-                                            default:
-                                                return; // Only handle top three
-                                        }
+                        // Append the podiumItem to the podium container
+                        podium.appendChild(podiumItem);
+                        wirePortraitFallback(podiumItem.querySelector('img.podium-portrait'), athlete);
 
-                                        // Create the podium-item div
-                                        const podiumItem = document.createElement('div');
-                                        podiumItem.classList.add('podium-item', rankClass);
+                        // After appending the podium item
+                        podiumItem.setAttribute('data-division', athlete.division.toLowerCase());
+                        podiumItem.setAttribute('data-generation', athlete.generation.toLowerCase());
+                        podiumItem.setAttribute('data-athlete-name', athlete.name);
+                        attachAthleteContainerClickListener(podiumItem);
 
-                                        const podiumPortraitUrl = getAthletePortraitUrl(athlete);
+                    });
 
-                                        // Populate the inner HTML of podiumItem
-                                        podiumItem.innerHTML = `
-                                            <div class="podium-rank" title="${athlete.rank === 1 ? '1st Place' : athlete.rank === 2 ? '2nd Place' : '3rd Place'}">
-                                                ${rankEmoji}
-                                            </div>
-                                            <img src="${podiumPortraitUrl}" alt="${athlete.displayName} portrait" class="podium-portrait" loading="lazy">
-                                            <div class="name-row">
-                                                <button type="button" class="athlete-name" title="View stats of ${athlete.displayName}">${athlete.displayName}</button>
-                                            </div>
-                                            <div class="podium-link-row">
-                                                ${renderPersonalLink(athlete.personalLink, athlete.displayName)}
-                                                ${renderPodcastLink(athlete.podcastLink, athlete.displayName)}
-                                                ${renderMediaContact(athlete.mediaContact, true, athlete.displayName)}
-                                            </div>
-                                            <div><span class="age-reduction">${Math.abs(getDisplayAgeReductionValue(athlete)).toFixed(athlete.ageReductionDisplayDecimals || 1)} years</span> reduced</div>
-                                            <a class="podium-item-lower" href="#contribute" aria-label="Donate to the prize pool">
-                                                <div class="btc-amount">(${prizeMoney[athlete.rank].btc})</div>
-                                                <div class="prize-money">${prizeMoney[athlete.rank].amount}</div>
-                                            </a>
-                                        `;
+                    // Attach click event listeners to athlete names
+                    attachAthleteNameClickListeners();
 
-                                        // Append the podiumItem to the podium container
-                                        podium.appendChild(podiumItem);
-                                        wirePortraitFallback(podiumItem.querySelector('img.podium-portrait'), athlete);
+                    animatePodiumContent();
+                    addClickListenerToImages('.portrait, .podium-portrait', handleAthleteNameClick);
+                    addClickListenerToImages('#modalProfilePic', function () {
+                        openEnlargedView(this);
+                    }, img => `Enlarge ${img.alt || 'image'}`);
 
-                                        // After appending the podium item
-                                        podiumItem.setAttribute('data-division', athlete.division.toLowerCase());
-                                        podiumItem.setAttribute('data-generation', athlete.generation.toLowerCase());
-                                        podiumItem.setAttribute('data-athlete-name', athlete.name);
-                                        attachAthleteContainerClickListener(podiumItem);
-
-                                    });
-
-                                    // Attach click event listeners to athlete names
-                                    attachAthleteNameClickListeners();
-
-                                    animatePodiumContent();
-                                    addClickListenerToImages('.portrait, .podium-portrait', handleAthleteNameClick);
-                                    addClickListenerToImages('#modalProfilePic', function () {
-                                        openEnlargedView(this);
-                                    }, img => `Enlarge ${img.alt || 'image'}`);
-
-                                    if (hasActiveLeaderboardState()) {
-                                        performFilter({ updateUrl: false });
-                                    }
-                                })
-                                .catch(error => {
-                                    const podium = document.querySelector('.podium');
-                                    if (podium) {
-                                        podium.innerHTML = '';
-                                        podium.setAttribute('aria-busy', 'false');
-                                    }
-                                    console.error('Error fetching BTC exchange rate:', error);
-                                });
-                        })
-                        .catch(error => {
-                            const podium = document.querySelector('.podium');
-                            if (podium) {
-                                podium.innerHTML = '';
-                                podium.setAttribute('aria-busy', 'false');
-                            }
-                            console.error('Error fetching total prize fund:', error);
-                        });
+                    updatePodiumPrizes(podium);
                 } else {
                     // Hide the podium container if not included
                     const podium = document.querySelector('.podium');
@@ -5628,6 +5569,33 @@
         tableBody.classList.add('loading-skeleton');
         tableBody.setAttribute('aria-busy', 'true');
         tableBody.innerHTML = buildLeaderboardSkeletonRows(skeletonCount);
+    }
+
+    function updatePodiumPrizes(podium) {
+        // Capture these exact panels so a late response cannot replace newer
+        // cards, discard focus, or undo a leaderboard filter/refresh.
+        const panels = [1, 2, 3].map(rank => ({
+            panel: podium.querySelector(`.podium-item.${['', 'first', 'second', 'third'][rank]} .podium-item-lower`),
+            share: [0, 0.6, 0.25, 0.15][rank]
+        }));
+        Promise.all([window.getSharedPrizeFund(), window.fetchPublicJson('/api/bitcoin/btcusd')])
+            .then(([data, tickerData]) => {
+                const prizeFundBTC = data.totalReceivedSatoshis / 1e8 * 0.9;
+                const rate = tickerData.btcToUsdRate;
+                if (!Number.isFinite(prizeFundBTC) || prizeFundBTC < 0 || !Number.isFinite(rate) || rate <= 0) {
+                    throw new Error('Prize data is unavailable');
+                }
+                panels.forEach(({ panel, share }) => {
+                    if (!panel?.isConnected) return;
+                    const btc = prizeFundBTC * share;
+                    panel.querySelector('.btc-amount').textContent = `(${btc.toFixed(8)} BTC)`;
+                    panel.querySelector('.prize-money').textContent = `$${(btc * rate).toFixed(2)}`;
+                });
+            })
+            .catch(error => console.error('Error fetching podium prize amounts:', error))
+            .finally(() => panels.forEach(({ panel }) => {
+                if (panel?.isConnected) panel.setAttribute('aria-busy', 'false');
+            }));
     }
 
     function animatePodiumContent() {
@@ -8498,18 +8466,6 @@
             options?.returnFocusTo instanceof HTMLElement
                 ? options.returnFocusTo
                 : null;
-
-        window.getSharedAthletes = window.getSharedAthletes || function(){
-            if(!window.__sharedAthletesRequest){
-                window.__sharedAthletesRequest = fetchWithTimeout('/api/data/athletes', {}, 10000)
-                    .then(response => response.ok ? response.json() : Promise.reject(response.status))
-                    .catch(error => {
-                        window.__sharedAthletesRequest = null;
-                        throw error;
-                    });
-            }
-            return window.__sharedAthletesRequest;
-        };
 
         const athleteSlug = normalizeAthleteSlugForLookup(
             athleteData?.athleteSlug || athleteNameText);

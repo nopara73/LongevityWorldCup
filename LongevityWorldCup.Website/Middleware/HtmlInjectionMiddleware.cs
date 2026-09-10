@@ -252,7 +252,25 @@ namespace LongevityWorldCup.Website.Middleware
 
             return html
                 .Replace("{{OPTIONAL_HEAD_SCRIPTS}}", optionalHeadScripts)
+                .Replace("{{PAGE_DATA_PREFETCH}}", BuildPageDataPrefetch(path))
                 .Replace("{{MODULES_BOOTSTRAP}}", modulesBootstrap);
+        }
+
+        private static string BuildPageDataPrefetch(string path)
+        {
+            var isHomepageTemplate = IsAthleteRoute(path)
+                || path.Equals("/", StringComparison.OrdinalIgnoreCase)
+                || path.Equals("/index.html", StringComparison.OrdinalIgnoreCase);
+            if (isHomepageTemplate)
+            {
+                return "window.getSharedAthletes().catch(() => {}); window.getSharedEvents().catch(() => {});";
+            }
+
+            return IsLeagueRoute(path) || IsFlagRoute(path)
+                || path.ToLowerInvariant() is "/leaderboard/leaderboard.html"
+                    or "/event-board/event-board.html" or "/event-board-embed.html"
+                ? "window.getSharedAthletes().catch(() => {});"
+                : string.Empty;
         }
 
         private static bool ShouldInjectAthleteDialogRuntime(string? path)
@@ -600,10 +618,11 @@ $@"<style{attributes}>
                 "," + Environment.NewLine,
                 modulePaths.Select(path => $"        import(`{_assetVersionProvider.AppendVersion(path)}`)"));
             return
-$@"<script type=""module"">
+$@"<script>
     window.{readinessProperty} = Promise.all([
 {imports}
     ]);
+    window.{readinessProperty}.catch(() => {{}});
 </script>";
         }
 

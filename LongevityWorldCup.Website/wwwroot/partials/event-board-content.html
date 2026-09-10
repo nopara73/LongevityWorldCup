@@ -1052,29 +1052,6 @@
 <script src="{{ASSET_CUSTOM_EVENT_MARKUP_JS}}"></script>
 <script>
     (function(){
-        window.getSharedEvents = window.getSharedEvents || function(){
-            if(!window.__sharedEventsRequest){
-                window.__sharedEventsRequest = fetch("/api/events",{headers:{accept:"application/json"}})
-                    .then(r=>r.ok?r.json():Promise.reject(r.status))
-                    .catch(err=>{
-                        window.__sharedEventsRequest = null;
-                        throw err;
-                    });
-            }
-            return window.__sharedEventsRequest;
-        };
-        window.getSharedAthletes = window.getSharedAthletes || function(){
-            if(!window.__sharedAthletesRequest){
-                window.__sharedAthletesRequest = fetch("/api/data/athletes",{headers:{accept:"application/json"}})
-                    .then(r=>r.ok?r.json():Promise.reject(r.status))
-                    .catch(err=>{
-                        window.__sharedAthletesRequest = null;
-                        throw err;
-                    });
-            }
-            return window.__sharedAthletesRequest;
-        };
-
         const EVENT_TYPE = { General: 0, Joined: 1, NewRank: 2, DonationReceived: 3, AthleteCountMilestone: 4, BadgeAward: 5, CustomEvent: 6, SeasonFinalResult: 7, LongevitymaxxingChallengeResult: 8, BecamePro: 9, BiologicalAgeImproved: 10, CrowdAgeTop10Change: 11, AgeImprovementTop10Change: 12, TestResultAccepted: 13 };
         const EVENT_TYPE_NAME_BY_ID = {};
         Object.keys(EVENT_TYPE).forEach(name => {
@@ -2649,7 +2626,7 @@
 
             const eventsReq=useSharedEvents
                 ? window.getSharedEvents()
-                : fetch("/api/events",{headers:{accept:"application/json"}}).then(r=>r.ok?r.json():Promise.reject(r.status));
+                : window.fetchPublicJson("/api/events");
             const athletesReq=window.getSharedAthletes();
 
             Promise.all([eventsReq,athletesReq]).then(([events,athletes])=>{
