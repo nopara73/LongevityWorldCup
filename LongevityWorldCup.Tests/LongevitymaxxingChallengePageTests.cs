@@ -1002,7 +1002,7 @@ public sealed class LongevitymaxxingChallengePageTests(TestWebApplicationFactory
         Assert.DoesNotContain("responsiveLabel", javascript);
         Assert.DoesNotContain("lmx-ops-label-short", javascript);
         Assert.DoesNotContain("lmx-ops-label-long", javascript);
-        Assert.DoesNotContain("container-type: inline-size;", css);
+        Assert.DoesNotMatch(@"(?s)\.lmx-ops-tile\s*\{[^}]*container-type\s*:", css);
         Assert.DoesNotContain("@container (min-width: 12.5rem)", css);
         Assert.DoesNotContain(".lmx-ops-tile.community-calls", css);
         Assert.DoesNotContain(".lmx-metrics", css);

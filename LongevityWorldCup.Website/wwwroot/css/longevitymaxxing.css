@@ -2546,14 +2546,11 @@ body.lmx-checkin-dialog-open {
 .lmx-recent-remark {
     min-width: 0;
     display: grid;
-    gap: 0.15rem;
-    padding-top: 0.5rem;
-    border-top: 1px solid var(--lmx-border);
-}
-
-.lmx-recent-remarks > strong + .lmx-recent-remark {
-    padding-top: 0;
-    border-top: 0;
+    gap: var(--lwc-space-1);
+    padding: var(--lwc-space-4);
+    border: 1px solid var(--lmx-border);
+    border-radius: var(--lwc-radius-md);
+    background: var(--lmx-surface);
 }
 
 .lmx-recent-remark strong {
@@ -2564,20 +2561,38 @@ body.lmx-checkin-dialog-open {
 .lmx-recent-remark p {
     margin: 0;
     color: var(--lmx-ink);
-    line-height: 1.35;
+    line-height: 1.5;
     overflow-wrap: anywhere;
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
+    white-space: pre-wrap;
+}
+
+.lmx-note,
+.lmx-recent-remark {
+    --lmx-discussion-indent: 3rem;
+    container-type: inline-size;
+}
+
+.lmx-note:focus-within,
+.lmx-recent-remark:focus-within {
+    position: relative;
+    z-index: 1;
 }
 
 .lmx-discussion-post-header {
+    position: relative;
+    padding-left: var(--lmx-discussion-indent);
     min-width: 0;
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    gap: 0.65rem;
+    gap: var(--lwc-space-2);
+}
+
+.lmx-discussion-post-actions {
+    display: inline-flex;
+    align-items: center;
+    flex: none;
+    gap: var(--lwc-space-1);
 }
 
 .lmx-discussion-post-author {
@@ -2608,13 +2623,20 @@ a.lmx-discussion-author-identity:focus-visible {
 }
 
 .lmx-discussion-author-avatar {
-    width: 2rem;
-    height: 2rem;
-    flex: 0 0 2rem;
+    width: 2.25rem;
+    height: 2.25rem;
+    flex: 0 0 2.25rem;
     overflow: hidden;
     border: 1px solid var(--lmx-border);
     border-radius: 50%;
     background: var(--lmx-surface-accent);
+}
+
+.lmx-discussion-post-header .lmx-discussion-author-avatar,
+.lmx-discussion-reply-meta .lmx-discussion-author-avatar {
+    position: absolute;
+    left: 0;
+    top: var(--lwc-space-1);
 }
 
 .lmx-discussion-author-avatar img {
@@ -2634,7 +2656,6 @@ a.lmx-discussion-author-identity:focus-visible {
 }
 
 .lmx-discussion-post-author small {
-    padding-left: 2.45rem;
     color: var(--lmx-muted);
     font-size: var(--lwc-type-sm);
     font-weight: 400;
@@ -2753,9 +2774,9 @@ a.lmx-discussion-author-identity:focus-visible {
 }
 
 .lmx-discussion-replies {
-    margin-top: 0.65rem;
-    padding-left: var(--lwc-space-3);
-    border-left: 2px solid var(--lmx-border);
+    margin: var(--lwc-space-4) 0 0 1.125rem;
+    padding-left: var(--lwc-space-4);
+    border-left: 1px solid var(--lmx-border);
 }
 
 .lmx-discussion-replies-toggle {
@@ -2783,16 +2804,19 @@ a.lmx-discussion-author-identity:focus-visible {
 
 .lmx-discussion-reply-list {
     display: grid;
-    gap: 0.1rem;
+    gap: var(--lwc-space-3);
 }
 
 .lmx-discussion-reply-item {
+    --lmx-discussion-indent: 2.5rem;
     min-width: 0;
-    padding: 0.5rem 0;
-    border-top: 1px solid var(--lmx-border);
+    padding-block: var(--lwc-space-1);
 }
 
 .lmx-discussion-reply-meta {
+    position: relative;
+    min-height: 2rem;
+    padding-left: var(--lmx-discussion-indent);
     display: flex;
     align-items: center;
     flex-wrap: wrap;
@@ -2801,9 +2825,9 @@ a.lmx-discussion-author-identity:focus-visible {
 }
 
 .lmx-discussion-reply-meta .lmx-discussion-author-avatar {
-    width: 1.75rem;
-    height: 1.75rem;
-    flex-basis: 1.75rem;
+    width: 2rem;
+    height: 2rem;
+    flex-basis: 2rem;
 }
 
 .lmx-discussion-reply-meta strong,
@@ -2825,6 +2849,87 @@ a.lmx-discussion-author-identity:focus-visible {
 
 .lmx-note > p {
     white-space: pre-wrap;
+}
+
+.lmx-discussion-author-marker {
+    padding: 0.1rem var(--lwc-space-1);
+    border-radius: var(--lwc-radius-sm);
+    background: var(--lmx-surface-accent);
+    color: var(--lmx-accent-hover);
+    font-size: var(--lwc-type-xs);
+    line-height: 1.5;
+}
+
+.lmx-discussion-reply-footer {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--lwc-space-1);
+    margin-left: var(--lmx-discussion-indent);
+}
+
+.lmx-discussion-quiet-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--lwc-space-2);
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0 var(--lwc-space-2);
+    border: 0;
+    border-radius: var(--lwc-radius-sm);
+    background: transparent;
+    color: var(--lmx-muted);
+    font: inherit;
+    font-size: var(--lwc-type-sm);
+    cursor: pointer;
+    touch-action: manipulation;
+    transition: background-color var(--lwc-duration-fast) var(--lwc-ease), color var(--lwc-duration-fast) var(--lwc-ease);
+}
+
+.lmx-discussion-quiet-action:hover {
+    color: var(--lmx-accent-hover);
+    background: var(--lmx-surface-accent);
+}
+
+.lmx-discussion-quiet-action:focus-visible {
+    outline: 2px solid var(--lmx-accent-hover);
+    outline-offset: 2px;
+}
+
+.lmx-discussion-copy-feedback:not(.error) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+.lmx-discussion-copy-feedback.error {
+    margin: var(--lwc-space-2) 0 var(--lwc-space-2) var(--lmx-discussion-indent);
+    color: var(--lmx-muted);
+    font-size: var(--lwc-type-sm);
+}
+
+.lmx-discussion-copy-feedback input {
+    display: block;
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    margin-top: var(--lwc-space-1);
+    padding: var(--lwc-space-2);
+    border: 1px solid var(--lmx-border-strong);
+    border-radius: var(--lwc-radius-sm);
+    background: var(--lmx-surface);
+    color: var(--lmx-ink);
+    font: inherit;
+}
+
+.lmx-discussion-copy-feedback input:focus-visible {
+    outline: 2px solid var(--lmx-accent-hover);
+    outline-offset: 2px;
 }
 
 @media (pointer: coarse) {
@@ -2861,7 +2966,6 @@ a.lmx-discussion-author-identity:focus-visible {
 }
 
 .lmx-discussion-reply-owner-actions {
-    margin-left: auto;
     display: inline-flex;
     align-items: center;
     gap: 0.12rem;
@@ -2898,7 +3002,7 @@ a.lmx-discussion-author-identity:focus-visible {
 .lmx-discussion-reply-item p,
 .lmx-recent-remark .lmx-discussion-reply-item p {
     display: block;
-    margin: 0.16rem 0 0 2.2rem;
+    margin: var(--lwc-space-1) 0 0 var(--lmx-discussion-indent);
     color: var(--lmx-ink);
     font-size: var(--lwc-type-body);
     line-height: 1.5;
@@ -2906,7 +3010,6 @@ a.lmx-discussion-author-identity:focus-visible {
     white-space: pre-wrap;
     overflow-wrap: anywhere;
     -webkit-line-clamp: unset;
-    margin-top: var(--lwc-space-1);
 }
 
 .lmx-discussion-reply-item [data-discussion-reply-body][hidden] {
@@ -2915,11 +3018,11 @@ a.lmx-discussion-author-identity:focus-visible {
 
 .lmx-discussion-reply-editor-slot:not([hidden]) {
     display: block;
-    margin: 0.35rem 0 0 2.2rem;
+    margin: var(--lwc-space-2) 0 0 var(--lmx-discussion-indent);
 }
 
 .lmx-discussion-reply-status:not(:empty) {
-    margin: 0.25rem 0 0 2.2rem;
+    margin: var(--lwc-space-1) 0 0 var(--lmx-discussion-indent);
     color: var(--lmx-ink);
     font-size: var(--lwc-type-sm);
     font-weight: 400;
@@ -2931,7 +3034,7 @@ a.lmx-discussion-author-identity:focus-visible {
 }
 
 .lmx-discussion-reply-slot:not(:empty) {
-    margin-top: 0.65rem;
+    margin: var(--lwc-space-4) 0 0 var(--lmx-discussion-indent);
 }
 
 .lmx-discussion-reply-composer {
@@ -4372,13 +4475,13 @@ a.lmx-note-mention:focus-visible {
 
 .lmx-notes {
     display: grid;
-    gap: 0.55rem;
+    gap: var(--lwc-space-3);
 }
 
 .lmx-note {
-    padding: 0.65rem;
-    border-radius: 8px;
-    background: var(--lmx-surface-muted);
+    padding: var(--lwc-space-4);
+    border-radius: var(--lwc-radius-md);
+    background: var(--lmx-surface);
     border: 1px solid var(--lmx-border);
 }
 
@@ -4388,19 +4491,97 @@ a.lmx-note-mention:focus-visible {
     margin-bottom: 0.2rem;
 }
 
-.lmx-note p {
+.lmx-note > p {
     margin: 0;
     color: var(--lmx-ink);
-    line-height: 1.4;
+    line-height: 1.5;
     white-space: pre-wrap;
     overflow-wrap: anywhere;
 }
 
-.lmx-note .lmx-discussion-post-header + p,
-.lmx-note .lmx-discussion-post-header + .lmx-note-photo-grid,
-.lmx-recent-remark .lmx-discussion-post-header + p,
-.lmx-recent-remark .lmx-discussion-post-header + .lmx-note-photo-grid {
-    margin-top: 0.35rem;
+.lmx-note > p,
+.lmx-recent-remark > p,
+.lmx-note > .lmx-note-photo-grid,
+.lmx-recent-remark > .lmx-note-photo-grid {
+    margin: var(--lwc-space-2) 0 0 var(--lmx-discussion-indent);
+}
+
+.lmx-note > p,
+.lmx-recent-remark > p,
+.lmx-discussion-reply-item p {
+    max-width: 72ch;
+}
+
+@media (max-width: 480px) {
+    .lmx-note,
+    .lmx-recent-remark {
+        padding: var(--lwc-space-3);
+    }
+
+    .lmx-discussion-replies {
+        margin-left: var(--lwc-space-2);
+        padding-left: var(--lwc-space-3);
+    }
+
+    .lmx-discussion-reply-slot:not(:empty) {
+        margin-left: 0;
+    }
+}
+
+@container (max-width: 280px) {
+    .lmx-discussion-post-header {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        padding-left: 0;
+    }
+
+    .lmx-discussion-post-author,
+    .lmx-discussion-post-actions {
+        display: contents;
+    }
+
+    .lmx-discussion-post-author > .lmx-discussion-author-identity {
+        grid-column: 1;
+        grid-row: 1;
+        min-height: 44px;
+        padding-left: 2.5rem;
+    }
+
+    .lmx-discussion-post-header .lmx-discussion-author-avatar {
+        width: 2rem;
+        height: 2rem;
+    }
+
+    .lmx-discussion-post-author small {
+        grid-column: 1;
+        grid-row: 2;
+    }
+
+    .lmx-discussion-post-actions .lmx-discussion-reply {
+        grid-column: 2;
+        grid-row: 1;
+    }
+
+    .lmx-discussion-post-actions .lmx-discussion-copy-link {
+        grid-column: 2;
+        grid-row: 2;
+    }
+
+    .lmx-note > p,
+    .lmx-recent-remark > p,
+    .lmx-note > .lmx-note-photo-grid,
+    .lmx-recent-remark > .lmx-note-photo-grid,
+    .lmx-discussion-replies,
+    .lmx-discussion-reply-footer,
+    .lmx-discussion-reply-editor-slot:not([hidden]),
+    .lmx-discussion-copy-feedback.error {
+        margin-left: 0;
+    }
+
+    .lmx-discussion-reply-item p,
+    .lmx-recent-remark .lmx-discussion-reply-item p {
+        margin-left: 0;
+    }
 }
 
 .lmx-hidden {
