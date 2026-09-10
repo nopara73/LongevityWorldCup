@@ -10,6 +10,7 @@ Keep reusable product decisions here; omit implementation history and one-off po
 - Roboto regular/bold is functional; Orbitron is only for short decorative competition marks.
 - Radii are 4px, 8px, and 12px for small, standard, and large components. Circles suit icons/portraits; pills suit compact badges/chips, not full-width actions.
 - Group with whitespace and neutral surface changes. Use small shadows for raised surfaces and medium shadows for active overlays. Combine tint, border, and shadow only when each conveys a distinct state.
+- Signed-in Challenge dashboards show rank, score, streak, and four habit progress bars. Omit enrollment badges, introductory copy, tenure, and derived best/focus/perfect-day summaries. Expand the habit heading to reveal daily history with pinned labels and one day-number axis; preserve the open state through refreshes. Participant tabs use a single selection underline; Home does not repeat the selected tab as a heading.
 - Strong color marks action, selection, or named status; borders stay neutral. Also convey state through text, icons, or shape. Design light/dark palettes independently, without filters; pair semantic foreground/surface colors and use on-accent tokens for action text.
 
 ## Motion
