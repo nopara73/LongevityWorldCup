@@ -1134,7 +1134,8 @@ public sealed class AestheticSystemBrowserTests(
                 ? condition.Value * rootFontSize
                 : condition.Value;
             const string surface = "lmx-note";
-            foreach (var delta in new[] { -1, 0, 1 })
+            // Cross the boundary in both directions on the same component.
+            foreach (var delta in new[] { -1, 0, 1, 0, -1 })
             {
                 var inlineSize = thresholdPixels + delta;
                 var diagnostics = await page.EvaluateAsync<ContainerQueryDiagnostics>(

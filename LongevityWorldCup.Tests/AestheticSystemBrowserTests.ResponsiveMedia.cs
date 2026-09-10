@@ -228,9 +228,18 @@ public sealed class AestheticResponsiveMediaBrowserTests(
                     $"scrollWidth={layout.ScrollWidth}, clientWidth={layout.ClientWidth}.");
             }
         }
+    }
 
-
+    [Fact]
+    public async Task ResponsiveContainerInventory_MatchesAtAndCrossesEveryDeclaredContainerBoundary()
+    {
         var containerInventory = GetResponsiveContainerInventory();
+        Assert.NotEmpty(containerInventory);
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = 1280, Height = 800 }
+        });
+        var page = await context.NewPageAsync();
         await AssertResponsiveContainerBoundariesAsync(page, containerInventory);
     }
 

@@ -211,8 +211,10 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         }
     }
 
-    [Fact]
-    public async Task ConversationLinks_ScrollingDuringDelayedLookupKeepsControlOfFocus()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ConversationLinks_DelayedLookupOnlyYieldsFocusAfterUserInput(bool interrupted)
     {
         await using var context = await NewContextAsync(Browser, App, new());
         var requested = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -229,13 +231,22 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         {
             var page = await OpenDiscussionPolishAsync(context, hash: "#discussion/post/archived/10", signedIn: false);
             await requested.Task.WaitAsync(TimeSpan.FromSeconds(5));
-            await page.EvaluateAsync("document.addEventListener('wheel', () => { window.conversationWheelSeen = true; }, { once: true })");
-            await page.Mouse.WheelAsync(0, 300);
-            await page.WaitForFunctionAsync("window.conversationWheelSeen === true");
+            if (interrupted)
+                await page.WheelAndWaitForInputAsync(0, 300);
             release.TrySetResult();
             var thread = DiscussionThread(page, "archived", 10);
             await Assertions.Expect(thread).ToBeAttachedAsync();
-            Assert.True(await thread.EvaluateAsync<bool>("e => document.activeElement !== e && !e.classList.contains('lmx-discussion-target')"));
+            await Assertions.Expect(page.Locator("#lmxDiscussionLinkStatus")).ToHaveCountAsync(0);
+            if (interrupted)
+            {
+                await Assertions.Expect(thread).Not.ToBeFocusedAsync();
+                Assert.False(await thread.EvaluateAsync<bool>("e => e.classList.contains('lmx-discussion-target')"));
+            }
+            else
+            {
+                await Assertions.Expect(thread).ToBeFocusedAsync();
+                Assert.True(await thread.EvaluateAsync<bool>("e => e.classList.contains('lmx-discussion-target')"));
+            }
         }
         finally { release.TrySetResult(); }
     }

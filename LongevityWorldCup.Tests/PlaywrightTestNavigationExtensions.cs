@@ -4,6 +4,33 @@ namespace LongevityWorldCup.Tests;
 
 internal static class PlaywrightTestNavigationExtensions
 {
+    /// <summary>
+    /// Waits for this wheel input to reach the document before a delayed response
+    /// is released. An existing scroll position does not prove input was handled.
+    /// Callers that assert scroll geometry must also wait for that geometry.
+    /// </summary>
+    public static async Task WheelAndWaitForInputAsync(this IPage page, float deltaX, float deltaY)
+    {
+        await using var input = await page.EvaluateHandleAsync("""
+            () => {
+                const controller = new AbortController();
+                const input = { received: false, dispose: () => controller.abort() };
+                document.addEventListener('wheel', () => { input.received = true; },
+                    { once: true, passive: true, signal: controller.signal });
+                return input;
+            }
+            """);
+        try
+        {
+            await page.Mouse.WheelAsync(deltaX, deltaY);
+            await page.WaitForFunctionAsync("input => input.received", input);
+        }
+        finally
+        {
+            await input.EvaluateAsync("input => input.dispose()");
+        }
+    }
+
     public static async Task SetViewportSizeAndWaitForLayoutAsync(
         this IPage page,
         int width,

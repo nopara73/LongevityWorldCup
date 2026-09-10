@@ -296,8 +296,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
             await thread.Locator("textarea").FillAsync("Keep reading while this saves.");
             await thread.Locator("[data-reply-submit]").ClickAsync();
             await requested.Task.WaitAsync(TimeSpan.FromSeconds(5));
-            await page.Mouse.WheelAsync(0, 450);
-            await page.WaitForFunctionAsync("scrollY > 100");
+            await page.WheelAndWaitForInputAsync(0, 450);
             release.SetResult();
             var saved = thread.Locator($"[data-discussion-reply-id='{replyId}']");
             await Assertions.Expect(saved).ToHaveCountAsync(1);

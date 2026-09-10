@@ -208,6 +208,68 @@ public sealed class AthleteCompetitionRankBrowserTests(
     }
 
     [Theory]
+    [InlineData("pageshow")]
+    [InlineData("popstate")]
+    public async Task HistoryRestoration_ReconcilesNativeSelectionWithoutWaitingForPrizes(string eventType)
+    {
+        const string name = "Michael Lustgarten";
+        await using var context = await NewContextAsync(390);
+        var page = await context.NewPageAsync();
+        var phenoRank = await ReadLeaderboardRankAsync(page, name, "pheno");
+        var ultimateRank = await ReadLeaderboardRankAsync(page, name, "ultimate");
+        Assert.NotEqual(ultimateRank, phenoRank);
+
+        var prizeRequested = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var releasePrize = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await context.RouteAsync("**/api/bitcoin/btcusd", async route =>
+        {
+            prizeRequested.TrySetResult();
+            await releasePrize.Task;
+            await route.FulfillAsync(new() { ContentType = "application/json", Body = "{\"btcToUsdRate\":100000}" });
+        });
+        try
+        {
+            await page.GotoAsync($"/?search={Uri.EscapeDataString(name)}");
+            await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+            await Assertions.Expect(Row(page, name).Locator(".rank")).ToHaveTextAsync(ultimateRank);
+            await prizeRequested.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            var restoredUrl = $"/league/pheno?search={Uri.EscapeDataString(name)}&utm_source=history-test#rank-{ultimateRank}";
+            await page.EvaluateAsync("""
+                ({ EventType, Url }) => {
+                    history.replaceState(history.state, '', Url);
+                    // Native history restoration happens after the event, without
+                    // input/change events. Force that order while prizes are held.
+                    window.dispatchEvent(EventType === 'pageshow'
+                        ? new PageTransitionEvent('pageshow', { persisted: true })
+                        : new PopStateEvent('popstate', { state: history.state }));
+                    document.getElementById('view-pheno').checked = true;
+                }
+                """, new { EventType = eventType, Url = restoredUrl });
+
+            await Assertions.Expect(Row(page, name).Locator(".rank")).ToHaveTextAsync(phenoRank);
+            await Assertions.Expect(page.Locator(".leaderboard-selection-chip")).ToHaveCountAsync(2);
+            Assert.Equal(restoredUrl, new Uri(page.Url).PathAndQuery + new Uri(page.Url).Fragment);
+
+            await using var retainedRow = await Row(page, name).ElementHandleAsync();
+            await page.EvaluateAsync("""
+                eventType => new Promise(resolve => {
+                    window.dispatchEvent(eventType === 'pageshow'
+                        ? new PageTransitionEvent('pageshow', { persisted: true })
+                        : new PopStateEvent('popstate', { state: history.state }));
+                    // Run after the reconciliation task, without a timed sleep.
+                    setTimeout(resolve, 0);
+                })
+                """, eventType);
+            Assert.True(await retainedRow!.EvaluateAsync<bool>("row => row.isConnected"),
+                "Restoring an unchanged selection must preserve the athlete row and its return-focus target.");
+        }
+        finally
+        {
+            releasePrize.TrySetResult();
+        }
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public async Task LatePodiumHydration_PreservesTheIncomingRankOrOpenProfileUrl(bool openProfile)
