@@ -68,6 +68,75 @@
 </script>
 
 <script>
+    (function () {
+        let initialized = false;
+        window.initializeSharedPageData = function () {
+            if (initialized) return;
+            initialized = true;
+
+            // Public GETs share one request per page. The deadline includes reading
+            // the body: receiving response headers does not mean the JSON is ready.
+            window.fetchPublicJson = async function (url) {
+                for (let attempt = 0; attempt < 2; attempt++) {
+                    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+                    let timer;
+                    let retryable = true;
+                    try {
+                        return await Promise.race([
+                            fetch(url, {
+                                headers: { accept: 'application/json' },
+                                ...(controller ? { signal: controller.signal } : {})
+                            }).then(response => {
+                                if (!response.ok) {
+                                    retryable = response.status >= 500;
+                                    throw new Error(`Public data request failed (${response.status})`);
+                                }
+                                return response.json();
+                            }),
+                            new Promise((_, reject) => {
+                                timer = window.setTimeout(() => {
+                                    if (controller) controller.abort();
+                                    reject(new Error('Public data request timed out'));
+                                }, 10000);
+                            })
+                        ]);
+                    } catch (error) {
+                        if (attempt === 1 || !retryable) throw error;
+                    } finally {
+                        window.clearTimeout(timer);
+                    }
+                }
+            };
+
+            function getSharedJson(url, property) {
+                if (!window[property]) {
+                    const request = window.fetchPublicJson(url);
+                    window[property] = request;
+                    request.catch(() => {
+                        // An older request must not invalidate a later refresh.
+                        if (window[property] === request) window[property] = null;
+                    });
+                }
+                return window[property];
+            }
+
+            window.getSharedAthletes = window.getSharedAthletes || function () {
+                return getSharedJson('/api/data/athletes', '__sharedAthletesRequest');
+            };
+            window.getSharedEvents = window.getSharedEvents || function () {
+                return getSharedJson('/api/events', '__sharedEventsRequest');
+            };
+            window.getSharedPrizeFund = function () {
+                return getSharedJson('/api/bitcoin/total-received', '__sharedPrizeFundRequest');
+            };
+        };
+
+        if ({{SHARED_PAGE_DATA_ENABLED}}) window.initializeSharedPageData();
+        {{PAGE_DATA_PREFETCH}}
+    })();
+</script>
+
+<script>
     window.LWC_FREE_PASS_SESSION_KEY = 'lwcFreePass';
     window.LWC_DISCOUNT_SESSION_KEY = 'lwcDiscount';
 
