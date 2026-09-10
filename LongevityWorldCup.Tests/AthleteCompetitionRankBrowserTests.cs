@@ -1,4 +1,5 @@
 using Microsoft.Playwright;
+using System.Text.Json.Nodes;
 using Xunit;
 
 namespace LongevityWorldCup.Tests;
@@ -32,16 +33,19 @@ public sealed class AthleteCompetitionRankBrowserTests(
 
         await Assertions.Expect(page.Locator("#athleteName")).Not.ToContainTextAsync("#");
         await Assertions.Expect(page.Locator("#athleteName")).ToContainTextAsync(name);
+        await Assertions.Expect(CompetitionLink(page, "ultimate").Locator("span")).ToHaveTextAsync("Ultimate League");
+        await Assertions.Expect(CompetitionLink(page, "ultimate")).ToHaveAttributeAsync("aria-label", $"Ultimate League rank {ultimateRank}");
         await Assertions.Expect(CompetitionLink(page, "ultimate").Locator("strong")).ToHaveTextAsync($"#{ultimateRank}");
         Assert.Contains($"ranked #{ultimateRank}", await page.Locator("#shareAthleteProfile").GetAttributeAsync("data-share-text"));
         Assert.DoesNotContain("rank:", await page.Locator("#lowestPhenoAgeContainer").InnerTextAsync());
-        await AssertClockRankLinkAsync(page, "pheno", "Pheno", phenoRank, ultimateRank);
-        if (isPro)
-            await AssertClockRankLinkAsync(page, "bortz", "Bortz", bortzRank!, ultimateRank);
-        else
-            await Assertions.Expect(CompetitionLink(page, "bortz")).ToBeHiddenAsync();
+        var bestView = isPro ? "bortz" : "pheno";
+        var bestRank = isPro ? bortzRank! : phenoRank;
+        await Assertions.Expect(page.Locator("#athleteRankings a")).ToHaveCountAsync(2);
+        await Assertions.Expect(page.Locator("#athleteRankings a").First).ToHaveAttributeAsync("data-competition", "ultimate");
+        await AssertClockRankLinkAsync(page, bestView, isPro ? "Bortz" : "Pheno", bestRank, ultimateRank);
+        await Assertions.Expect(CompetitionLink(page, isPro ? "pheno" : "bortz")).ToHaveCountAsync(0);
 
-        var phenoLink = CompetitionLink(page, "pheno");
+        var bestLink = CompetitionLink(page, bestView);
         Assert.True(await page.EvaluateAsync<bool>("""
             () => {
                 const rankings = document.querySelector('#athleteRankings').getBoundingClientRect();
@@ -55,26 +59,17 @@ public sealed class AthleteCompetitionRankBrowserTests(
                     });
             }
             """), "Every competition rank must be visible below the name on opening, with usable links.");
-        await phenoLink.FocusAsync();
-        await Assertions.Expect(phenoLink).ToBeFocusedAsync();
-        await phenoLink.PressAsync("Enter");
-        await AssertRankDestinationAsync(page, name, "pheno", phenoRank, ultimateRank);
+        await bestLink.FocusAsync();
+        await Assertions.Expect(bestLink).ToBeFocusedAsync();
+        await bestLink.PressAsync("Enter");
+        await AssertRankDestinationAsync(page, name, bestView, bestRank, ultimateRank);
         await page.ReloadAsync();
-        await AssertRankDestinationAsync(page, name, "pheno", phenoRank, ultimateRank);
+        await AssertRankDestinationAsync(page, name, bestView, bestRank, ultimateRank);
 
         await page.GoBackAsync();
         await page.WaitForURLAsync(profileUrl);
         await WaitForProfileAsync(page);
         await Assertions.Expect(page.Locator("#athleteName")).Not.ToContainTextAsync("#");
-
-        if (isPro)
-        {
-            await CompetitionLink(page, "bortz").ClickAsync();
-            await AssertRankDestinationAsync(page, name, "bortz", bortzRank!, ultimateRank);
-            await page.GoBackAsync();
-            await page.WaitForURLAsync(profileUrl);
-            await WaitForProfileAsync(page);
-        }
 
         await CompetitionLink(page, "ultimate").ClickAsync();
         await AssertRankDestinationAsync(page, name, "ultimate", ultimateRank, ultimateRank);
@@ -86,6 +81,89 @@ public sealed class AthleteCompetitionRankBrowserTests(
         await page.WaitForURLAsync(callingUrl);
         await Assertions.Expect(page.Locator("#detailsModal")).ToBeHiddenAsync();
         await Assertions.Expect(Row(page, name).Locator(".rank")).ToHaveTextAsync(phenoRank);
+    }
+
+    [Theory]
+    [InlineData("improvement", "pheno-improvement", "Pheno Improvement", 320)]
+    [InlineData("improvement", "pheno-improvement", "Pheno Improvement", 1280)]
+    [InlineData("bortz-improvement", "bortz-improvement", "Bortz Improvement", 320)]
+    [InlineData("bortz-improvement", "bortz-improvement", "Bortz Improvement", 1280)]
+    [InlineData("crowd", "crowd", "Crowd Age", 320)]
+    [InlineData("crowd", "crowd", "Crowd Age", 1280)]
+    [InlineData("unqualified-crowd", "bortz", "Bortz Age", 390)]
+    public async Task ProfileRanks_IncludeImprovementAndQualifiedCrowdViews(
+        string scenario, string competition, string label, int width)
+    {
+        const string name = "Siim Land";
+        var view = scenario == "unqualified-crowd" ? "bortz" : scenario;
+        await using var context = await NewContextAsync(width);
+        await context.RouteAsync("**/api/data/athletes*", async route =>
+        {
+            var isImageRefresh = new Uri(route.Request.Url).Query.Contains("profileImageRefresh=", StringComparison.Ordinal);
+            var response = await route.FetchAsync();
+            var athletes = JsonNode.Parse(await response.TextAsync())!.AsArray();
+            var target = athletes.OfType<JsonObject>().Single(athlete => athlete["Name"]?.GetValue<string>() == name);
+            foreach (var athlete in athletes.OfType<JsonObject>())
+            {
+                var isTarget = ReferenceEquals(athlete, target);
+                // Keep the other improvement views behind the target's clock ranks.
+                athlete["PhenoAgeImprovementFromWorst"] = isTarget
+                    ? scenario == "improvement" ? -1000 : 0
+                    : -1;
+                athlete["BortzAgeImprovementFromWorst"] = isTarget
+                    ? scenario == "bortz-improvement" ? -1000 : 0
+                    : -1;
+                athlete["CrowdAge"] = 20;
+                athlete["CrowdCount"] = isTarget && scenario == "crowd" && !isImageRefresh ? 100
+                    : isTarget && scenario == "unqualified-crowd" ? 99 : 0;
+                if (isTarget && isImageRefresh)
+                    athlete["ProfileImageId"] = new string('f', 64);
+            }
+            await route.FulfillAsync(new() { ContentType = "application/json", Body = athletes.ToJsonString() });
+        });
+        var page = await context.NewPageAsync();
+        var ultimateRank = await ReadLeaderboardRankAsync(page, name, "ultimate");
+        if (scenario == "unqualified-crowd")
+        {
+            var bortzRank = await ReadLeaderboardRankAsync(page, name, "bortz");
+            var phenoRank = await ReadLeaderboardRankAsync(page, name, "pheno");
+            view = competition = int.Parse(bortzRank) <= int.Parse(phenoRank) ? "bortz" : "pheno";
+            label = view == "bortz" ? "Bortz Age" : "Pheno Age";
+        }
+        var bestRank = await ReadLeaderboardRankAsync(page, name, view);
+        if (scenario != "unqualified-crowd")
+            Assert.Equal("1", bestRank);
+        await Row(page, name).Locator(".athlete-name").ClickAsync();
+        await WaitForProfileAsync(page);
+
+        await Assertions.Expect(page.Locator("#athleteRankings a")).ToHaveCountAsync(2);
+        await Assertions.Expect(CompetitionLink(page, "ultimate").Locator("strong")).ToHaveTextAsync($"#{ultimateRank}");
+        var bestLink = CompetitionLink(page, competition);
+        await Assertions.Expect(bestLink.Locator("span")).ToHaveTextAsync(label);
+        await Assertions.Expect(bestLink.Locator("strong")).ToHaveTextAsync($"#{bestRank}");
+        await Assertions.Expect(bestLink).ToHaveAttributeAsync("href", $"/league/{view}#rank-{ultimateRank}");
+        Assert.True(await page.Locator("#athleteRankings").EvaluateAsync<bool>("""
+            rankings => {
+                const links = [...rankings.querySelectorAll('a')];
+                const ranks = links.map(link => link.querySelector('strong').getBoundingClientRect());
+                return links.every(link => link.scrollWidth <= link.clientWidth)
+                    && Math.abs(ranks[0].bottom - ranks[1].bottom) <= 1;
+            }
+            """), "Complete ranking view labels must fit and their rank values must align on mobile and desktop.");
+        await bestLink.ClickAsync();
+        await AssertRankDestinationAsync(page, name, view, bestRank, ultimateRank);
+        await page.ReloadAsync();
+        await AssertRankDestinationAsync(page, name, view, bestRank, ultimateRank);
+
+        if (scenario == "crowd")
+        {
+            await page.GoBackAsync();
+            await WaitForProfileAsync(page);
+            Assert.True(await page.EvaluateAsync<bool>("() => window.refreshAthleteAfterStaleGuess('siim-land')"));
+            await Assertions.Expect(page.Locator("#athleteRankings a")).ToHaveCountAsync(2);
+            await Assertions.Expect(CompetitionLink(page, "crowd")).ToHaveCountAsync(0);
+            await Assertions.Expect(CompetitionLink(page, "ultimate").Locator("strong")).ToHaveTextAsync($"#{ultimateRank}");
+        }
     }
 
     [Theory]
