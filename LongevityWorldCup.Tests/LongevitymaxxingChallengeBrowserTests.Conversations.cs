@@ -197,6 +197,16 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
             await Assertions.Expect(thread.Locator("textarea")).ToBeFocusedAsync();
             await Assertions.Expect(thread.Locator("textarea")).ToHaveValueAsync("@Ari Able ");
             Assert.True(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth <= window.innerWidth"));
+            var composer = thread.Locator("[data-discussion-draft]");
+            await thread.Locator("textarea").FillAsync(new string('x', 240));
+            Assert.True(await composer.EvaluateAsync<bool>("e => e.scrollWidth <= e.clientWidth"));
+            Assert.True(await composer.EvaluateAsync<bool>("e => e.querySelector('[data-reply-count]').getBoundingClientRect().right + 4 <= e.querySelector('[data-reply-action=discard]').getBoundingClientRect().left"));
+            if (!string.IsNullOrEmpty(capture))
+            {
+                await thread.Locator("textarea").FillAsync("@Ari Able I’ll give that a try next session.");
+                await composer.ScrollIntoViewIfNeededAsync();
+                await composer.ScreenshotAsync(new() { Path = Path.Combine(capture, $"composer-{width}-{theme}-{root[4..]}.png") });
+            }
             await thread.Locator("[data-reply-action='discard']").ClickAsync();
         }
     }
@@ -219,7 +229,9 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         {
             var page = await OpenDiscussionPolishAsync(context, hash: "#discussion/post/archived/10", signedIn: false);
             await requested.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            await page.EvaluateAsync("document.addEventListener('wheel', () => { window.conversationWheelSeen = true; }, { once: true })");
             await page.Mouse.WheelAsync(0, 300);
+            await page.WaitForFunctionAsync("window.conversationWheelSeen === true");
             release.TrySetResult();
             var thread = DiscussionThread(page, "archived", 10);
             await Assertions.Expect(thread).ToBeAttachedAsync();

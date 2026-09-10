@@ -1127,9 +1127,13 @@ public sealed class AestheticSystemBrowserTests(
 
         foreach (var condition in conditions)
         {
+            // Each container rule needs a probe of the component it actually changes.
+            Assert.Equal("css/longevitymaxxing.css", condition.Source);
+            Assert.Equal("max", condition.Bound);
             var thresholdPixels = condition.Unit == "rem"
                 ? condition.Value * rootFontSize
                 : condition.Value;
+            foreach (var surface in new[] { "lmx-note", "lmx-recent-remark" })
             foreach (var delta in new[] { -1, 0, 1 })
             {
                 var inlineSize = thresholdPixels + delta;
@@ -1138,42 +1142,51 @@ public sealed class AestheticSystemBrowserTests(
                     async argument => {
                         let tile = document.getElementById('responsive-container-probe');
                         if (!tile) {
-                            tile = document.createElement('div');
+                            tile = document.createElement('article');
                             tile.id = 'responsive-container-probe';
-                            tile.className = 'lmx-ops-tile community-calls';
                             tile.innerHTML = `
-                                <span class="lmx-ops-label-short">Calls</span>
-                                <span class="lmx-ops-label-long">Community calls</span>
-                                <strong>12</strong>`;
+                                <div class="lmx-discussion-post-header">
+                                    <span class="lmx-discussion-post-author">
+                                        <span class="lmx-discussion-author-identity">Discussion author</span>
+                                        <small>1 hour ago · Day 90 · 9 replies</small>
+                                    </span>
+                                    <span class="lmx-discussion-post-actions">
+                                        <button class="lmx-discussion-copy-link">Link</button>
+                                        <button class="lmx-discussion-reply">Reply</button>
+                                    </span>
+                                </div>
+                                <p>A complete opening post that wraps within its card.</p>`;
                             (document.querySelector('main') || document.body).append(tile);
                         }
+                        tile.className = argument.Surface;
                         tile.style.boxSizing = 'content-box';
                         tile.style.inlineSize = `${argument.InlineSize}px`;
                         tile.style.maxInlineSize = 'none';
                         tile.style.flex = 'none';
                         await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-                        const shortLabel = tile.querySelector('.lmx-ops-label-short');
-                        const longLabel = tile.querySelector('.lmx-ops-label-long');
+                        const header = tile.querySelector('.lmx-discussion-post-header');
                         const root = document.documentElement;
                         const body = document.body;
                         return {
-                            ContainerWidth: tile.getBoundingClientRect().width,
-                            ShortVisible: getComputedStyle(shortLabel).display !== 'none',
-                            LongVisible: getComputedStyle(longLabel).display !== 'none',
+                            ContainerWidth: parseFloat(getComputedStyle(tile).width),
+                            IsCompact: getComputedStyle(header).display === 'grid',
+                            BodyIndent: parseFloat(getComputedStyle(tile.querySelector('p')).marginLeft),
                             HorizontalOverflow: Math.max(
                                 0,
+                                tile.scrollWidth - tile.clientWidth,
                                 root.scrollWidth - root.clientWidth,
                                 body.scrollWidth - root.clientWidth)
                         };
                     }
                     """,
-                    new { InlineSize = inlineSize });
+                    new { InlineSize = inlineSize, Surface = surface });
 
                 var conditionMatches = condition.Bound == "min"
                     ? inlineSize >= thresholdPixels
                     : inlineSize <= thresholdPixels;
-                Assert.Equal(!conditionMatches, diagnostics.ShortVisible);
-                Assert.Equal(conditionMatches, diagnostics.LongVisible);
+                Assert.Equal(inlineSize, diagnostics.ContainerWidth, 1);
+                Assert.Equal(conditionMatches, diagnostics.IsCompact);
+                Assert.Equal(conditionMatches ? 0 : 3 * rootFontSize, diagnostics.BodyIndent, 1);
                 Assert.True(
                     diagnostics.HorizontalOverflow <= 1,
                     $"Container query from {condition.Source} caused {diagnostics.HorizontalOverflow}px " +
@@ -1479,8 +1492,8 @@ public sealed class AestheticSystemBrowserTests(
     internal sealed class ContainerQueryDiagnostics
     {
         public double ContainerWidth { get; set; }
-        public bool ShortVisible { get; set; }
-        public bool LongVisible { get; set; }
+        public bool IsCompact { get; set; }
+        public double BodyIndent { get; set; }
         public double HorizontalOverflow { get; set; }
     }
 

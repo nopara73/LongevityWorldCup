@@ -183,6 +183,7 @@
         error: string | null;
         notice?: string | null;
         returnReplyId?: string | null;
+        returnToQuickReply?: boolean;
     }
 
     interface DiscussionReplyPayload {
@@ -763,6 +764,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     let profileTimeZoneDraft: ProfileTimeZoneDraft | null = null;
     const handledTimeZoneSuggestions = new Set<string>();
     const discussionReplyCache = new Map<string, DiscussionReplyCacheEntry>();
+    const collapsedDiscussionThreads = new Set<string>();
     const discussionDrafts = new Map<string, DiscussionDraft>();
     let activeDiscussionDraft: { key: string; surface: string } | null = null;
     let discussionMutation: string | null = null;
@@ -1750,7 +1752,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         closeButton.addEventListener("click", () => closeCheckInDialog(true));
         backdrop.addEventListener("click", () => closeCheckInDialog(true));
         panel.addEventListener("keydown", event => {
-            if (!panel.classList.contains("lmx-checkin-dialog-panel")) return;
+            if (event.defaultPrevented || !panel.classList.contains("lmx-checkin-dialog-panel")) return;
             if (event.key === "Escape") {
                 event.preventDefault();
                 closeCheckInDialog(true);
@@ -3143,6 +3145,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             }
             if (!thread) return;
             const replyId = match[6] ? decodeURIComponent(match[6]) : null;
+            if (replyId) setDiscussionHistoryExpanded(thread, true);
             const findReply = () => Array.from(thread!.querySelectorAll<HTMLElement>("[data-discussion-reply-id]"))
                 .find(reply => reply.dataset.discussionReplyId === replyId) || null;
             const cursors = new Set<string>();
@@ -3176,13 +3179,13 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 else {
                     thread.classList.add("lmx-discussion-target");
                     thread.focus({ preventScroll: true });
-                    thread.scrollIntoView({ block: "center", behavior: "instant" });
+                    thread.scrollIntoView({ block: "start", behavior: "instant" });
                 }
             } else {
                 target.classList.add("lmx-discussion-target");
                 target.setAttribute("tabindex", target instanceof HTMLButtonElement ? "0" : "-1");
                 target.focus({ preventScroll: true });
-                target.scrollIntoView({ block: "center", behavior: "instant" });
+                target.scrollIntoView({ block: target === thread ? "start" : "center", behavior: "instant" });
             }
         } catch (err) {
             if (isCurrent()) status(messageOf(err), true);
@@ -3577,6 +3580,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                     ${discussionOpeningPostHtml(note)}
                     ${imageHtml}
                     ${discussionRepliesHtml(note)}
+                    ${discussionQuickReplyHtml(note, true)}
                     <div class="lmx-discussion-reply-slot"></div>
                 </article>`;
             }).join("")}
@@ -3672,13 +3676,84 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 ${earlierRepliesButtonLabel(remainingEarlier)}
             </button>`
             : "";
-        return `<div class="lmx-discussion-replies" data-discussion-replies>
+        return `<div class="lmx-discussion-replies" data-discussion-replies data-discussion-total-replies="${totalCount}">
             ${loadEarlier}
+            <button class="lmx-discussion-replies-toggle" type="button" data-discussion-replies-expand hidden></button>
             <div class="lmx-discussion-page-status" role="status" aria-live="polite"></div>
             <div class="lmx-discussion-reply-list">
                 ${replies.map(reply => discussionReplyHtml(reply, note)).join("")}
             </div>
+            <button class="lmx-discussion-replies-toggle lmx-discussion-collapse" type="button" data-discussion-replies-collapse hidden>
+                <i class="fas fa-chevron-up" aria-hidden="true"></i> Show fewer replies
+            </button>
         </div>`;
+    }
+
+    function discussionQuickReplyHtml(note: ParticipantNote, canReply: boolean): string {
+        if (!canReply || !participantState || !accessToken) return "";
+        const participant = participantState.participant;
+        const row = challengeParticipants().find(candidate => candidate.participantId === participant.id) || null;
+        const avatar = discussionAvatarHtml(participant.id, participant.displayName, row);
+        return `<button class="lmx-discussion-quick-reply" type="button" data-discussion-quick-reply
+            aria-label="Reply to ${escAttr(note.displayName)}" aria-expanded="false">
+            <span class="lmx-discussion-quick-avatar" aria-hidden="true">${avatar}</span>
+            <span data-discussion-quick-label>Write a reply…</span>
+            <i class="fas fa-pen" aria-hidden="true"></i>
+        </button>`;
+    }
+
+    function updateDiscussionHistoryControls(article: HTMLElement): void {
+        const replies = article.querySelector<HTMLElement>("[data-discussion-replies]");
+        if (!replies) return;
+        const items = Array.from(replies.querySelectorAll<HTMLElement>(".lmx-discussion-reply-list > [data-discussion-reply-id]"));
+        const earlierItems = items.slice(0, -3);
+        const key = discussionThreadKey(String(article.dataset.discussionPostParticipantId || ""), Number(article.dataset.discussionPostChallengeDay));
+        const editingEarlier = earlierItems.some(item => item.querySelector("[data-discussion-draft]"));
+        // Never conceal an active editor, including one restored by a background refresh.
+        if (editingEarlier) collapsedDiscussionThreads.delete(key);
+        const collapsed = collapsedDiscussionThreads.has(key) && earlierItems.length > 0;
+        items.forEach((item, index) => { item.hidden = collapsed && index < earlierItems.length; });
+        const page = replies.querySelector<HTMLButtonElement>("[data-discussion-replies-page]");
+        if (page) page.hidden = collapsed;
+        const expand = replies.querySelector<HTMLButtonElement>("[data-discussion-replies-expand]")!;
+        expand.hidden = !collapsed;
+        expand.textContent = earlierRepliesButtonLabel(Math.max(0, Math.max(items.length, Number(replies.dataset.discussionTotalReplies) || 0) - 3));
+        const collapse = replies.querySelector<HTMLButtonElement>("[data-discussion-replies-collapse]")!;
+        collapse.hidden = collapsed || !earlierItems.length;
+        collapse.disabled = editingEarlier || !!page?.disabled;
+        collapse.title = editingEarlier ? "Close the earlier reply edit before collapsing" : "";
+    }
+
+    function setDiscussionHistoryExpanded(article: HTMLElement, expanded: boolean): void {
+        const key = discussionThreadKey(String(article.dataset.discussionPostParticipantId || ""), Number(article.dataset.discussionPostChallengeDay));
+        const siblings = Array.from(document.querySelectorAll<HTMLElement>("article[data-discussion-post-participant-id]"))
+            .filter(candidate => candidate.dataset.discussionPostParticipantId === article.dataset.discussionPostParticipantId &&
+                candidate.dataset.discussionPostChallengeDay === article.dataset.discussionPostChallengeDay);
+        if (!expanded && siblings.some(candidate => Array.from(candidate.querySelectorAll<HTMLElement>(".lmx-discussion-reply-list > [data-discussion-reply-id]"))
+            .slice(0, -3).some(item => item.querySelector("[data-discussion-draft]")))) return;
+        if (expanded) collapsedDiscussionThreads.delete(key);
+        else collapsedDiscussionThreads.add(key);
+        siblings.forEach(updateDiscussionHistoryControls);
+    }
+
+    function toggleDiscussionHistory(button: HTMLButtonElement): void {
+        const article = button.closest<HTMLElement>("article[data-discussion-post-participant-id]");
+        if (!article) return;
+        const expanded = button.hasAttribute("data-discussion-replies-expand");
+        const anchor = article.querySelector<HTMLElement>("[data-discussion-reply-id]:not([hidden])");
+        const top = anchor?.getBoundingClientRect().top;
+        setDiscussionHistoryExpanded(article, expanded);
+        if (expanded && anchor && top !== undefined) {
+            const shift = anchor.getBoundingClientRect().top - top;
+            const panel = article.closest<HTMLElement>(".lmx-checkin-dialog-panel");
+            if (panel) panel.scrollTop += shift;
+            else window.scrollBy({ top: shift, behavior: "instant" });
+            anchor.focus({ preventScroll: true });
+        } else {
+            const expand = article.querySelector<HTMLButtonElement>("[data-discussion-replies-expand]");
+            expand?.focus({ preventScroll: true });
+            expand?.scrollIntoView({ block: "nearest", behavior: "instant" });
+        }
     }
 
     function earlierRepliesButtonLabel(remaining: number): string {
@@ -3955,19 +4030,22 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
 
     function discussionAuthorHtml(participantId: string, displayName: string): string {
         const row = challengeParticipants().find(candidate => candidate.participantId === participantId) || null;
-        const avatar = participantAvatarDetails(row, displayName);
         const athleteUrl = String(row?.athleteUrl || "").trim();
+        const content = `${discussionAvatarHtml(participantId, displayName, row)}<strong>${esc(displayName)}</strong>`;
+        return athleteUrl
+            ? `<a class="lmx-discussion-author-identity" href="${escAttr(athleteUrl)}" aria-label="${escAttr(`${displayName}, view athlete profile`)}">${content}</a>`
+            : `<span class="lmx-discussion-author-identity">${content}</span>`;
+    }
+
+    function discussionAvatarHtml(participantId: string, displayName: string, row: LeaderboardRow | null): string {
+        const avatar = participantAvatarDetails(row, displayName);
         const avatarClass = avatar.hasProfileImage
             ? "lmx-discussion-author-avatar"
             : "lmx-discussion-author-avatar placeholder";
         const hydrationAttributes = participantAvatarHydrationAttributes("discussion", participantId, displayName);
-        const content = `<span class="${avatarClass}" ${hydrationAttributes} aria-hidden="${avatar.hasProfileImage ? "false" : "true"}">
+        return `<span class="${avatarClass}" ${hydrationAttributes} aria-hidden="${avatar.hasProfileImage ? "false" : "true"}">
                 <img src="${escAttr(avatar.image)}" alt="${escAttr(avatar.alt)}" loading="lazy" decoding="async">
-            </span>
-            <strong>${esc(displayName)}</strong>`;
-        return athleteUrl
-            ? `<a class="lmx-discussion-author-identity" href="${escAttr(athleteUrl)}" aria-label="${escAttr(`${displayName}, view athlete profile`)}">${content}</a>`
-            : `<span class="lmx-discussion-author-identity">${content}</span>`;
+            </span>`;
     }
 
     function exactDiscussionTime(value: string): string {
@@ -5152,6 +5230,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 ${discussionOpeningPostHtml(note)}
                 ${imageHtml}
                 ${discussionRepliesHtml(note)}
+                ${discussionQuickReplyHtml(note, canReply)}
                 <div class="lmx-discussion-reply-slot"></div>
             </article>`;
         }).join("");
@@ -5160,6 +5239,18 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     }
 
     function wireDiscussionControls(root: ParentNode): void {
+        root.querySelectorAll<HTMLButtonElement>("[data-discussion-quick-reply], [data-discussion-replies-expand], [data-discussion-replies-collapse]").forEach(button => {
+            if (button.dataset.discussionControlWired === "true") return;
+            button.dataset.discussionControlWired = "true";
+            button.addEventListener("click", () => {
+                if (!button.hasAttribute("data-discussion-quick-reply")) return toggleDiscussionHistory(button);
+                const opener = button.closest("article[data-discussion-post-participant-id]")?.querySelector<HTMLButtonElement>("[data-discussion-reply]");
+                if (!opener) return;
+                openDiscussionReplyComposer(opener);
+                const draft = discussionDrafts.get(discussionDraftKey(opener));
+                if (draft) draft.returnToQuickReply = true;
+            });
+        });
         root.querySelectorAll<HTMLButtonElement>("[data-discussion-copy-link], [data-discussion-reply-to]").forEach(button => {
             if (button.dataset.discussionControlWired === "true") return;
             button.dataset.discussionControlWired = "true";
@@ -5206,8 +5297,13 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const article = button.closest<HTMLElement>("article[data-discussion-post-participant-id]");
         const anchor = article?.querySelector<HTMLElement>("[data-discussion-reply-id]");
         const anchorTop = anchor?.getBoundingClientRect().top;
-        const scrollAtStart = window.scrollY;
+        const panel = article?.closest<HTMLElement>(".lmx-checkin-dialog-panel");
         const focusedAtStart = document.activeElement;
+        let userInterrupted = false;
+        const interactionListeners = new AbortController();
+        for (const event of ["wheel", "touchmove", "pointerdown", "keydown"])
+            document.addEventListener(event, () => { userInterrupted = true; },
+                { capture: true, passive: true, signal: interactionListeners.signal });
         const status = article?.querySelector<HTMLElement>(".lmx-discussion-page-status");
         if (status) status.textContent = "";
         const payload: DiscussionReplyPagePayload = {
@@ -5223,6 +5319,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         button.disabled = true;
         button.setAttribute("aria-busy", "true");
         button.textContent = "Loading replies...";
+        if (article) updateDiscussionHistoryControls(article);
         try {
             const page = await postJson(`${API}/discussion/replies/page`, payload);
             const currentBeforeCreatedAtUtc = String(button.dataset.beforeCreatedAtUtc || "") || null;
@@ -5231,10 +5328,12 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 currentBeforeCreatedAtUtc !== payload.beforeCreatedAtUtc ||
                 currentBeforeReplyId !== payload.beforeReplyId) return false;
             await updateDiscussionReplyPages(payload, page);
-            const stillReading = Math.abs(window.scrollY - scrollAtStart) < 10 &&
+            const stillReading = !userInterrupted &&
                 (document.activeElement === focusedAtStart || document.activeElement === document.body);
             if (preservePosition && stillReading && anchor?.isConnected && anchorTop !== undefined) {
-                window.scrollBy({ top: anchor.getBoundingClientRect().top - anchorTop, behavior: "instant" });
+                const shift = anchor.getBoundingClientRect().top - anchorTop;
+                if (panel) panel.scrollTop += shift;
+                else window.scrollBy({ top: shift, behavior: "instant" });
                 if (!button.isConnected && focusedAtStart === button) anchor.focus({ preventScroll: true });
             }
             return true;
@@ -5244,6 +5343,9 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             button.textContent = `Retry · ${original}`;
             if (status) status.textContent = "Couldn’t load earlier replies. Please try again.";
             return false;
+        } finally {
+            interactionListeners.abort();
+            if (article?.isConnected) updateDiscussionHistoryControls(article);
         }
     }
 
@@ -5278,6 +5380,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                     currentBeforeReplyId !== payload.beforeReplyId) return;
                 const pageStatus = replies.querySelector<HTMLElement>(".lmx-discussion-page-status");
                 if (pageStatus) pageStatus.textContent = "";
+                replies.dataset.discussionTotalReplies = String(page.totalCount);
 
                 const existingIds = new Set(Array.from(
                     list.querySelectorAll<HTMLElement>("[data-discussion-reply-id]"),
@@ -5292,6 +5395,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
 
                 if (!page.hasEarlier || page.remainingEarlierReplyCount <= 0 || !page.nextBeforeCreatedAtUtc || !page.nextBeforeReplyId) {
                     currentButton.remove();
+                    updateDiscussionHistoryControls(article);
                     return;
                 }
                 currentButton.dataset.beforeCreatedAtUtc = page.nextBeforeCreatedAtUtc;
@@ -5301,6 +5405,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 currentButton.removeAttribute("aria-busy");
                 currentButton.removeAttribute("title");
                 currentButton.textContent = earlierRepliesButtonLabel(page.remainingEarlierReplyCount);
+                updateDiscussionHistoryControls(article);
             });
     }
 
@@ -5409,6 +5514,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const textarea = thread?.querySelector<HTMLTextAreaElement>("[data-discussion-reply-composer] textarea");
         if (!draft || !textarea) return;
         draft.returnReplyId = reply.id;
+        draft.returnToQuickReply = false;
         if (discussionMutation !== key && reply.participantId !== participantState.participant.id) {
             draft.notice = null;
             const participants = challengeParticipants();
@@ -5473,6 +5579,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         }
         activeDiscussionDraft = { key, surface };
         draft.returnReplyId = null;
+        draft.returnToQuickReply = false;
         mountDiscussionDraft(button, draft);
         const textarea = document.querySelector<HTMLTextAreaElement>("[data-discussion-draft] textarea");
         textarea?.focus({ preventScroll: true });
@@ -5520,16 +5627,17 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                     aria-expanded="false" aria-controls="${inputId}-mentions" aria-describedby="${inputId}-count"></textarea>
                 <div id="${inputId}-mentions" class="lmx-mention-options" role="listbox" aria-label="Mention a participant" hidden></div>
             </div>
-            <div class="lmx-discussion-composer-meta">
-                <span data-draft-hint>Kept while this page is open</span>
-                <span id="${inputId}-count" data-reply-count></span>
-            </div>
             <div class="lmx-status" role="status" aria-live="polite"></div>
             <div class="lmx-discussion-reply-actions">
-                <button class="lmx-button secondary" type="button" data-reply-action="discard"
+                <span class="lmx-discussion-composer-meta" id="${inputId}-count" data-reply-count></span>
+                <span data-draft-hint class="lmx-discussion-draft-hint">Kept while this page is open</span>
+                <button class="lmx-discussion-quiet-action lmx-discussion-discard" type="button" data-reply-action="discard"
                     aria-label="Discard ${editing ? "reply edit" : "reply draft"}"
-                    ${editing ? "data-reply-edit-cancel" : "data-reply-cancel"}>Discard</button>
+                    title="Discard ${editing ? "reply edit" : "reply draft"}"
+                    ${editing ? "data-reply-edit-cancel" : "data-reply-cancel"}><i class="fas fa-trash-can" aria-hidden="true"></i><span>Discard</span></button>
                 <button class="lmx-button" type="button" data-reply-action="submit"
+                    title="${/Mac|iPhone|iPad/.test(navigator.platform) ? "⌘" : "Ctrl"}+Enter to ${editing ? "save" : "post"}"
+                    aria-keyshortcuts="Control+Enter Meta+Enter"
                     ${editing ? "data-reply-edit-submit" : "data-reply-submit"} disabled>${editing ? "Save reply" : "Post reply"}</button>
             </div>
         </div>`;
@@ -5550,6 +5658,13 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         });
         textarea.addEventListener("select", rememberSelection);
         textarea.addEventListener("blur", rememberSelection);
+        slot.querySelector<HTMLElement>("[data-discussion-draft]")!.addEventListener("keydown", event => {
+            if (event.key === "Escape" && !event.isComposing && !event.defaultPrevented) {
+                event.preventDefault();
+                event.stopPropagation();
+                slot.querySelector<HTMLButtonElement>("[data-reply-action='close']")?.click();
+            }
+        });
         textarea.addEventListener("keydown", event => {
             if ((event.ctrlKey || event.metaKey) && event.key === "Enter" && !event.isComposing && !event.defaultPrevented) {
                 event.preventDefault();
@@ -5560,7 +5675,10 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             const surface = discussionDraftSurface(slot);
             const replySource = Array.from(discussionDraftThread(draft, surface)?.querySelectorAll<HTMLElement>("[data-discussion-reply-id]") || [])
                 .find(reply => reply.dataset.discussionReplyId === draft.returnReplyId)?.querySelector<HTMLButtonElement>("[data-discussion-reply-to]");
-            const source = replySource || (button.isConnected ? button : discussionDraftButton(draft, surface)) ||
+            const visibleReplySource = replySource?.getClientRects().length ? replySource : null;
+            const quickSource = draft.returnToQuickReply || (replySource && !visibleReplySource)
+                ? discussionDraftThread(draft, surface)?.querySelector<HTMLButtonElement>("[data-discussion-quick-reply]") : null;
+            const source = quickSource || visibleReplySource || (button.isConnected ? button : discussionDraftButton(draft, surface)) ||
                 discussionDraftThread(draft, surface)?.querySelector<HTMLButtonElement>("[data-discussion-reply]");
             source?.focus({ preventScroll: true });
         };
@@ -5634,7 +5752,19 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 : editing ? `${dirty ? "Resume" : "Edit"} reply${dirty ? " edit" : ""}`
                 : `${label} to ${button.dataset.postDisplayName || "participant"}`);
             button.setAttribute("aria-expanded", String(open));
+            if (!editing) {
+                const quick = container?.querySelector<HTMLButtonElement>("[data-discussion-quick-reply]");
+                if (quick) {
+                    quick.hidden = open;
+                    quick.classList.toggle("has-draft", dirty || pending);
+                    quick.querySelector<HTMLElement>("[data-discussion-quick-label]")!.textContent = pending ? "Posting your reply…"
+                        : draft?.error ? "Retry your reply…" : dirty ? "Resume your reply…" : "Write a reply…";
+                    quick.setAttribute("aria-label", `${dirty || pending ? "Resume reply" : "Reply"} to ${button.dataset.postDisplayName || "participant"}`);
+                    quick.setAttribute("aria-expanded", String(open));
+                }
+            }
         });
+        document.querySelectorAll<HTMLElement>("article[data-discussion-post-participant-id]").forEach(updateDiscussionHistoryControls);
         document.querySelectorAll<HTMLButtonElement>("[data-discussion-reply-delete]").forEach(button => {
             button.disabled = !!discussionMutation;
         });
