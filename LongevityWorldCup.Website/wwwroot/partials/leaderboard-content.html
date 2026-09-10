@@ -7843,17 +7843,19 @@
 
     function renderProfileRankings(athleteData, ultimateRank) {
         const rankings = document.getElementById('athleteRankings');
+        const ultimateRankText = getModalRankText(ultimateRank);
         const rankingViews = ['bortz', 'pheno', 'bortz-improvement', 'pheno-improvement', 'crowd'];
         const bestView = (athleteData.bestRankCandidates || [])
             .filter(candidate => rankingViews.includes(candidate.leagueType)
-                && candidate.href && getModalRankText(candidate.rank))
+                && candidate.href && getModalRankText(candidate.rank)
+                && (!ultimateRankText || candidate.rank < Number(ultimateRank)))
             .sort(compareBestRankCandidates)[0];
         const candidates = [
             { leagueType: 'ultimate', leagueName: 'Ultimate League', rank: ultimateRank, href: '/leaderboard' },
             bestView
         ].filter(candidate => candidate?.href && getModalRankText(candidate.rank));
         // Every ranking view retains the athlete's canonical row anchor.
-        const anchor = getModalRankText(ultimateRank) ? `#rank-${ultimateRank}` : '';
+        const anchor = ultimateRankText ? `#rank-${ultimateRank}` : '';
         rankings.innerHTML = candidates.map(candidate =>
             `<a class="league-link" data-competition="${candidate.leagueType}" href="${escapeHtml(candidate.href + anchor)}" aria-label="${escapeHtml(candidate.leagueName)}${candidate.leagueType === 'ultimate' ? '' : ' League'} rank ${candidate.rank}"><span>${escapeHtml(candidate.leagueName)}</span><strong>${getModalRankText(candidate.rank)}</strong></a>`
         ).join('');
