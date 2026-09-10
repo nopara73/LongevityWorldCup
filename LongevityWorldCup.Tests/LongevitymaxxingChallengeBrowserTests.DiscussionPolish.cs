@@ -39,7 +39,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         }
         var page = await OpenDiscussionPolishAsync(context, state);
         await page.Locator("#lmxCheckinTab").ClickAsync();
-        foreach (var root in new[] { "#lmxNotes", "#lmxCheckinList" })
+        foreach (var root in new[] { "#lmxNotes" })
         {
             var thread = DiscussionThread(page, "p7", 5, root);
             await Assertions.Expect(thread.Locator(".lmx-discussion-post-author time")).ToHaveTextAsync("1 hour ago");

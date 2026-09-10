@@ -23,7 +23,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
             if (payloads.Count == 1) await route.FulfillAsync(new() { Status = 503 });
             else { AppendReliabilityReply(state, payload); await FulfillJsonAsync(route, state.ToJsonString()); }
         });
-        var thread = DiscussionThread(page, "p7", 5, dialog ? "#lmxCheckinList" : "#lmxNotes");
+        var thread = DiscussionThread(page, "p7", 5, "#lmxNotes");
         await thread.Locator("[data-discussion-reply-id='r3'] [data-discussion-reply-to]").ClickAsync();
         var textarea = thread.Locator("textarea");
         await Assertions.Expect(thread.Locator(".lmx-discussion-composer-heading label")).ToHaveTextAsync("Reply to Dee");

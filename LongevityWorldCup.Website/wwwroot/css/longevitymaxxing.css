@@ -2527,52 +2527,12 @@ body.lmx-checkin-dialog-open {
     color: var(--lmx-success);
 }
 
-.lmx-recent-remarks {
-    display: grid;
-    gap: 0.5rem;
-    margin-top: 0.55rem;
-    padding: 0.65rem;
-    border: 1px solid var(--lmx-border);
-    border-radius: 8px;
-    background: var(--lmx-surface-muted);
-}
-
-.lmx-recent-remarks > strong {
-    color: var(--lmx-ink);
-    font-size: 0.86rem;
-}
-
-.lmx-recent-remark {
-    min-width: 0;
-    display: grid;
-    gap: var(--lwc-space-1);
-    padding: var(--lwc-space-4);
-    border: 1px solid var(--lmx-border);
-    border-radius: var(--lwc-radius-md);
-    background: var(--lmx-surface);
-}
-
-.lmx-recent-remark strong {
-    color: var(--lmx-ink);
-    font-size: var(--lwc-type-sm);
-}
-
-.lmx-recent-remark p {
-    margin: 0;
-    color: var(--lmx-ink);
-    line-height: 1.5;
-    overflow-wrap: anywhere;
-    white-space: pre-wrap;
-}
-
-.lmx-note,
-.lmx-recent-remark {
+.lmx-note {
     --lmx-discussion-indent: 3rem;
     container-type: inline-size;
 }
 
-.lmx-note:focus-within,
-.lmx-recent-remark:focus-within {
+.lmx-note:focus-within {
     position: relative;
     z-index: 1;
 }
@@ -3082,8 +3042,7 @@ a.lmx-discussion-author-identity:focus-visible {
     outline-offset: 1px;
 }
 
-.lmx-discussion-reply-item p,
-.lmx-recent-remark .lmx-discussion-reply-item p {
+.lmx-discussion-reply-item p {
     display: block;
     margin: var(--lwc-space-1) 0 0 var(--lmx-discussion-indent);
     color: var(--lmx-ink);
@@ -4646,21 +4605,17 @@ a.lmx-note-mention:focus-visible {
 }
 
 .lmx-note > p,
-.lmx-recent-remark > p,
-.lmx-note > .lmx-note-photo-grid,
-.lmx-recent-remark > .lmx-note-photo-grid {
+.lmx-note > .lmx-note-photo-grid {
     margin: var(--lwc-space-2) 0 0 var(--lmx-discussion-indent);
 }
 
 .lmx-note > p,
-.lmx-recent-remark > p,
 .lmx-discussion-reply-item p {
     max-width: 72ch;
 }
 
 @media (max-width: 480px) {
-    .lmx-note,
-    .lmx-recent-remark {
+    .lmx-note {
         padding: var(--lwc-space-3);
     }
 
@@ -4722,9 +4677,7 @@ a.lmx-note-mention:focus-visible {
     }
 
     .lmx-note > p,
-    .lmx-recent-remark > p,
     .lmx-note > .lmx-note-photo-grid,
-    .lmx-recent-remark > .lmx-note-photo-grid,
     .lmx-discussion-replies,
     .lmx-discussion-reply-footer,
     .lmx-discussion-reply-editor-slot:not([hidden]),
@@ -4732,8 +4685,7 @@ a.lmx-note-mention:focus-visible {
         margin-left: 0;
     }
 
-    .lmx-discussion-reply-item p,
-    .lmx-recent-remark .lmx-discussion-reply-item p {
+    .lmx-discussion-reply-item p {
         margin-left: 0;
     }
 }

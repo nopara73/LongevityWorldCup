@@ -1133,7 +1133,7 @@ public sealed class AestheticSystemBrowserTests(
             var thresholdPixels = condition.Unit == "rem"
                 ? condition.Value * rootFontSize
                 : condition.Value;
-            foreach (var surface in new[] { "lmx-note", "lmx-recent-remark" })
+            const string surface = "lmx-note";
             foreach (var delta in new[] { -1, 0, 1 })
             {
                 var inlineSize = thresholdPixels + delta;

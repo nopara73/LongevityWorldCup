@@ -15,7 +15,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
     {
         await using var context = await NewContextAsync(Browser, App, new() { ViewportSize = new() { Width = 390, Height = 844 } });
         var page = await OpenDiscussionWorkspaceAsync(context, ConversationWorkspaceState(), dialog);
-        var thread = DiscussionThread(page, "p7", 5, dialog ? "#lmxCheckinList" : "#lmxNotes");
+        var thread = DiscussionThread(page, "p7", 5, "#lmxNotes");
         var quick = thread.Locator("[data-discussion-quick-reply]");
         await quick.ClickAsync();
         var textarea = thread.Locator("[data-discussion-reply-composer] textarea");
@@ -30,7 +30,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await Assertions.Expect(textarea).ToHaveCountAsync(0);
         await Assertions.Expect(quick).ToBeFocusedAsync();
         await Assertions.Expect(quick).ToContainTextAsync("Resume your reply…");
-        if (dialog) await Assertions.Expect(page.Locator(".lmx-checkin-dialog-panel")).ToBeVisibleAsync();
+        await Assertions.Expect(page.Locator("#lmxCheckinList [data-discussion-post-participant-id]")).ToHaveCountAsync(0);
         await quick.ClickAsync();
         await Assertions.Expect(textarea).ToHaveValueAsync("Try this with @Ar");
         await thread.Locator("[data-reply-action='submit']").PressAsync("Escape");
@@ -54,7 +54,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
             return FulfillJsonAsync(route, EarlierPolishReplies());
         });
         var page = await OpenDiscussionWorkspaceAsync(context, ConversationWorkspaceState(), dialog);
-        var root = dialog ? "#lmxCheckinList" : "#lmxNotes";
+        var root = "#lmxNotes";
         var thread = DiscussionThread(page, "p7", 5, root);
         var earlier = thread.Locator("[data-discussion-replies-page]");
         await earlier.ScrollIntoViewIfNeededAsync();

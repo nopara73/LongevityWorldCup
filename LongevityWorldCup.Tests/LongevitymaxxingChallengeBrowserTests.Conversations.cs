@@ -16,7 +16,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await using var context = await NewContextAsync(Browser, App, new());
         var state = ConversationWorkspaceState();
         var page = await OpenDiscussionWorkspaceAsync(context, state, dialog);
-        var thread = DiscussionThread(page, "p7", 5, dialog ? "#lmxCheckinList" : "#lmxNotes");
+        var thread = DiscussionThread(page, "p7", 5, "#lmxNotes");
         var ari = thread.Locator("[data-discussion-reply-id='r4'] [data-discussion-reply-to]");
         var dee = thread.Locator("[data-discussion-reply-id='r3'] [data-discussion-reply-to]");
         await ari.ClickAsync();
@@ -123,7 +123,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
             } } });
             """);
         var page = await OpenDiscussionWorkspaceAsync(context, dialog: true);
-        var thread = DiscussionThread(page, "p7", 5, "#lmxCheckinList");
+        var thread = DiscussionThread(page, "p7", 5);
         foreach (var (scope, suffix) in new[] { (thread, ""), (thread.Locator("[data-discussion-reply-id='r4']"), "/reply/r4") })
         {
             var button = scope.Locator("[data-discussion-copy-link]").First;
@@ -151,7 +151,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
     [InlineData(390, ColorScheme.Light)]
     [InlineData(390, ColorScheme.Dark)]
     [InlineData(320, ColorScheme.Light)]
-    public async Task ConversationLayout_FullPostsAndThreadActionsFitBothSurfaces(int width, ColorScheme theme)
+    public async Task ConversationLayout_FullPostsAndThreadActionsFitTheDiscussionPanel(int width, ColorScheme theme)
     {
         await using var context = await NewContextAsync(Browser, App, new()
         {
@@ -174,7 +174,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         }
         var page = await OpenDiscussionPolishAsync(context, state);
         await page.Locator("#lmxCheckinTab").ClickAsync();
-        foreach (var root in new[] { "#lmxNotes", "#lmxCheckinList" })
+        foreach (var root in new[] { "#lmxNotes" })
         {
             var thread = DiscussionThread(page, "p7", 5, root);
             var body = thread.Locator(":scope > p");

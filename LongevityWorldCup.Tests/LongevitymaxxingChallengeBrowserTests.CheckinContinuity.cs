@@ -262,6 +262,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
             await release.Task.WaitAsync(TimeSpan.FromSeconds(30));
             state["eligibleDays"]![0]!["existing"] = SavedCheckIn("", 2);
             state["garden"]!["sleep"]!["yesCount"] = 761;
+            state["notes"]![0]!["note"] = "A newly saved public update.";
             state["public"]!["notes"]![0]!["note"] = "A newly saved public update.";
             await FulfillJsonAsync(route, state.ToJsonString());
         });
@@ -287,7 +288,8 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await Assertions.Expect(note).ToHaveValueAsync("Great work @Bea Builder ");
         Assert.Equal(1, requests);
         await Assertions.Expect(form.Locator("[data-key='sleep'] .lmx-plant")).ToHaveAttributeAsync("data-yes-count", "761");
-        await Assertions.Expect(form.Locator(".lmx-recent-remarks")).ToContainTextAsync("A newly saved public update.");
+        await Assertions.Expect(page.Locator("#lmxNotes")).ToContainTextAsync("A newly saved public update.");
+        await Assertions.Expect(form.Locator("[data-discussion-post-participant-id]")).ToHaveCountAsync(0);
         await Assertions.Expect(form.Locator("button[type='submit']")).ToBeEnabledAsync();
     }
 
@@ -296,7 +298,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
     [InlineData(390, 844, ColorScheme.Dark, true)]
     [InlineData(844, 390, ColorScheme.Dark, true)]
     [InlineData(1280, 900, ColorScheme.Light, false)]
-    public async Task CheckInSaveBar_StaysVisibleWhileAnsweringAndStopsBeforeDiscussion(int width, int height, ColorScheme theme, bool dialog)
+    public async Task CheckInSaveBar_StaysVisibleWithoutAnEmbeddedDiscussion(int width, int height, ColorScheme theme, bool dialog)
     {
         await using var context = await NewContextAsync(Browser, App, new() { ViewportSize = new() { Width = width, Height = height }, ColorScheme = theme });
         var page = await OpenCheckInWorkspaceAsync(context, direct: dialog);
@@ -312,10 +314,16 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await AnswerAllHabitsAsync(form);
         await Assertions.Expect(save).ToBeEnabledAsync();
         await Assertions.Expect(form.Locator("[data-checkin-progress]")).ToHaveTextAsync("Ready to save");
-        await form.Locator(".lmx-recent-remarks").EvaluateAsync("e => e.scrollIntoView({block:'start',behavior:'instant'})");
-        var bar = (await form.Locator(".lmx-checkin-actions").BoundingBoxAsync())!;
-        var discussion = (await form.Locator(".lmx-recent-remarks").BoundingBoxAsync())!;
-        Assert.True(bar.Y + bar.Height <= discussion.Y + 1);
+        await Assertions.Expect(form.Locator("[data-discussion-post-participant-id]")).ToHaveCountAsync(0);
+        await Assertions.Expect(form.Locator(".lmx-recent-remarks")).ToHaveCountAsync(0);
+        await form.Locator("[data-photo-button]").EvaluateAsync("e => e.scrollIntoView({block:'center',behavior:'instant'})");
+        await Assertions.Expect(form.Locator("[data-photo-button]")).ToBeVisibleAsync();
+        await Assertions.Expect(save).ToBeVisibleAsync();
+        var capture = Environment.GetEnvironmentVariable("LWC_CHECKIN_CAPTURE_DIR");
+        if (!string.IsNullOrWhiteSpace(capture)) {
+            Directory.CreateDirectory(capture);
+            await page.ScreenshotAsync(new() { Path = Path.Combine(capture, $"checkin-{width}-{height}-{theme}-{dialog}.png") });
+        }
     }
 
     [Fact]

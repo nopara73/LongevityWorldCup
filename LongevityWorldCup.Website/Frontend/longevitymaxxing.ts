@@ -592,7 +592,6 @@
     const SAVED_CHECKIN_TEXT = "Saved.";
     const MAX_NOTE_PHOTOS = 4;
     const MAX_NOTE_MENTIONS = 5;
-    const RECENT_REMARK_LIMIT = 3;
     const DISCUSSION_PAGE_SIZE = 5;
     const DISCUSSION_THREAD_LIMIT = 100;
     const PLANT_LEAF_CAPACITY = 64;
@@ -1872,7 +1871,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         renderProfileTimeZoneControls();
         renderProfilePictureControls(participant);
         renderParticipantCalls(state.calls || [], state.public.callSelectionClosesAtUtc);
-        renderCheckIns(state.eligibleDays || [], undefined, activePublicDiscussion(state));
+        renderCheckIns(state.eligibleDays || []);
         renderNotes(participantDiscussionThreads(state), true);
         renderParticipantTabs();
     }
@@ -2560,10 +2559,9 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         </div>`;
     }
 
-    function renderCheckIns(days: EligibleDay[], containerId = "lmxCheckinList", activeDiscussion: ParticipantNote[] = []): void {
+    function renderCheckIns(days: EligibleDay[], containerId = "lmxCheckinList"): void {
         const container = document.getElementById(containerId || "lmxCheckinList");
         if (!container) return;
-        const restoreDraftFocus = preserveDiscussionDraftFocus(container);
         const previousForm = container.querySelector<HTMLFormElement>(".lmx-checkin-card");
         if (!days.length) {
             if (previousForm) revokePendingNotePhotoUrls(checkInDayKey(previousForm));
@@ -2586,22 +2584,18 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 if (plant) plant.outerHTML = habitPlantHtml(question, lifetimeHabitEvidence(question.key),
                     draft[question.key], originalCheckInValue(previousForm, question.key), activeDay.challengeDay);
             }
-            previousForm.querySelector(".lmx-recent-remarks")?.remove();
-            previousForm.insertAdjacentHTML("beforeend", activeDiscussionHtml(activeDiscussion));
         } else {
             if (previousForm) revokePendingNotePhotoUrls(checkInDayKey(previousForm));
-            container.innerHTML = checkInSwitcherHtml(orderedDays, activeDay) + checkInCardHtml(activeDay, activeDiscussion);
+            container.innerHTML = checkInSwitcherHtml(orderedDays, activeDay) + checkInCardHtml(activeDay);
         }
         container.querySelectorAll<HTMLButtonElement>(".lmx-checkin-switcher button").forEach(button => {
             button.addEventListener("click", () => {
                 selectedCheckInDay = Number(button.dataset.day);
-                renderCheckIns(participantState?.eligibleDays || orderedDays, containerId, participantState ? activePublicDiscussion(participantState) : activeDiscussion);
+                renderCheckIns(participantState?.eligibleDays || orderedDays, containerId);
                 container.querySelector<HTMLButtonElement>(`.lmx-checkin-switcher button[data-day='${selectedCheckInDay}']`)?.focus({ preventScroll: true });
             });
         });
         if (keepForm) {
-            wireDiscussionControls(previousForm);
-            restoreDraftFocus();
             updateCheckInSaveState(previousForm);
             return;
         }
@@ -2619,8 +2613,6 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             form.querySelector<HTMLButtonElement>("[data-checkin-reset]")?.addEventListener("click", () => resetCheckIn(form));
             const noteInput = form.querySelector<HTMLTextAreaElement>("textarea[data-mention-input]");
             if (noteInput) wireMentionAutocomplete(noteInput, () => updateCheckInSaveState(form));
-            wireDiscussionControls(form);
-            restoreDraftFocus();
             form.querySelector<HTMLButtonElement>("[data-photo-button]")?.addEventListener("click", () => {
                 form.querySelector<HTMLInputElement>("input[data-note-photos]")?.click();
             });
@@ -2694,7 +2686,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         </svg>`;
     }
 
-    function checkInCardHtml(day: EligibleDay, activeDiscussion: ParticipantNote[]): string {
+    function checkInCardHtml(day: EligibleDay): string {
         const existing: Partial<CheckInDraft> = day.existing || {};
         const draft = checkInDrafts.get(checkInDraftKey(day));
         const saved = savedDays.has(day.challengeDay);
@@ -2764,7 +2756,6 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 <div class="lmx-status${saved || day.existing ? " success" : ""}" data-checkin-status role="status" aria-live="polite">${saved || day.existing ? SAVED_CHECKIN_TEXT : ""}</div>
             </div>
             </div>
-            ${activeDiscussionHtml(activeDiscussion)}
         </form>`;
     }
 
@@ -3548,15 +3539,6 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         return `${title} plant vitality ${Math.round(projection.vitality * 100)} percent from ${gardenCheckedInDays()} saved check-ins. ${previewText}`;
     }
 
-    function activePublicDiscussion(state: ParticipantState): ParticipantNote[] {
-        const ordered = discussionThreadsInHotOrder(publicDiscussionThreads(state.public));
-        const preview = ordered.slice(0, RECENT_REMARK_LIMIT);
-        const draft = activeDiscussionDraft?.surface === "checkin" ? discussionDrafts.get(activeDiscussionDraft.key) : null;
-        const thread = draft ? ordered.find(note => isDiscussionDraftThread(note, draft)) : null;
-        if (thread && !preview.includes(thread)) preview.splice(RECENT_REMARK_LIMIT - 1, 1, thread);
-        return preview;
-    }
-
     function publicDiscussionThreads(state: PublicState): ParticipantNote[] {
         const checkInPosts = Array.isArray(state?.notes) ? state.notes : [];
         return checkInPosts.concat(systemDiscussionThreads(state));
@@ -3589,33 +3571,6 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             kind: post.kind,
             systemPostId: post.id
         };
-    }
-
-    function activeDiscussionHtml(notes: ParticipantNote[]): string {
-        const posts = discussionThreadsInHotOrder(notes)
-            .slice(0, RECENT_REMARK_LIMIT);
-        if (!posts.length) return "";
-
-        return `<section class="lmx-recent-remarks" aria-label="Active public discussion">
-            <strong>Active discussion</strong>
-            ${posts.map(note => {
-                const images = Array.isArray(note.images) ? note.images : [];
-                const imageHtml = images.length
-                    ? `<div class="lmx-note-photo-grid">${images.map((image, index) => notePhotoHtml(image, `${note.participantId}-${note.challengeDay}-${index}`)).join("")}</div>`
-                    : "";
-                return `<article class="lmx-recent-remark"
-                    data-discussion-post-participant-id="${escAttr(note.participantId)}"
-                    data-discussion-post-challenge-day="${escAttr(note.challengeDay)}"
-                    data-discussion-system-post-id="${escAttr(note.systemPostId || "")}">
-                    ${discussionPostHeaderHtml(note, true)}
-                    ${discussionOpeningPostHtml(note)}
-                    ${imageHtml}
-                    ${discussionRepliesHtml(note)}
-                    ${discussionQuickReplyHtml(note, true)}
-                    <div class="lmx-discussion-reply-slot"></div>
-                </article>`;
-            }).join("")}
-        </section>`;
     }
 
     function discussionThreadsInHotOrder(notes: ParticipantNote[]): ParticipantNote[] {
@@ -4289,7 +4244,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const source = String(trigger.dataset.photoSrc || "").trim();
         if (!source) return;
 
-        const gallery = trigger.closest<HTMLElement>(".lmx-recent-remarks, .lmx-notes, .lmx-note-photo-field")
+        const gallery = trigger.closest<HTMLElement>(".lmx-notes, .lmx-note-photo-field")
             || trigger.parentElement;
         const triggers = gallery
             ? Array.from(gallery.querySelectorAll<HTMLButtonElement>("button.lmx-note-photo[data-photo-src]"))
@@ -5545,7 +5500,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             const result = await postJson(`${API}/participant`, { token: accessToken });
             if (generation !== stateAcceptanceGeneration) return;
             acceptParticipantState(result);
-            renderDiscussionSurfaces(result);
+            renderParticipantDiscussion(result);
             return;
         }
 
@@ -6169,7 +6124,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 Number(thread.dataset.discussionPostChallengeDay));
             discussionReplyCache.delete(cacheKey);
             acceptParticipantState(result);
-            renderDiscussionSurfaces(result);
+            renderParticipantDiscussion(result);
         } catch (err) {
             if (status) {
                 status.textContent = messageOf(err);
@@ -6286,7 +6241,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             const surface = activeDiscussionDraft?.key === draft.key ? activeDiscussionDraft.surface : "notes";
             const restoreOtherDraftFocus = preserveDiscussionDraftFocus(document.body);
             discussionMutation = null;
-            renderDiscussionSurfaces(participantState);
+            renderParticipantDiscussion(participantState);
             discussionDrafts.delete(draft.key);
             if (activeDiscussionDraft?.key === draft.key) closeDiscussionDraft();
             for (const name of ["notes", "checkin"]) {
@@ -6334,27 +6289,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         return window.crypto.randomUUID().replace(/-/g, "");
     }
 
-    function renderDiscussionSurfaces(state: ParticipantState): void {
+    function renderParticipantDiscussion(state: ParticipantState): void {
         renderNotes(participantDiscussionThreads(state), true);
-
-        const form = document.querySelector<HTMLFormElement>("#lmxCheckinList .lmx-checkin-card");
-        if (!form) return;
-        const current = form.querySelector<HTMLElement>(".lmx-recent-remarks");
-        const restoreDraftFocus = preserveDiscussionDraftFocus(form);
-        const html = activeDiscussionHtml(activePublicDiscussion(state));
-        if (!html) {
-            current?.remove();
-            return;
-        }
-
-        const template = document.createElement("template");
-        template.innerHTML = html.trim();
-        const next = template.content.firstElementChild;
-        if (!(next instanceof HTMLElement)) return;
-        if (current) current.replaceWith(next);
-        else form.append(next);
-        wireDiscussionControls(next);
-        restoreDraftFocus();
     }
 
     function getDiscussionPage(notes: ParticipantNote[]): DiscussionPage {

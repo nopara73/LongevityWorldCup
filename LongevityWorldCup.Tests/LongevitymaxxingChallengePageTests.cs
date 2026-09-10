@@ -566,13 +566,10 @@ public sealed class LongevitymaxxingChallengePageTests(TestWebApplicationFactory
         Assert.Contains("toggle(\"lmxNotesPanel\", dashboardMode);", javascript);
         Assert.Contains("renderNotes(publicDiscussionThreads(state), false);", javascript);
         Assert.Contains("renderNotes(participantDiscussionThreads(state), true);", javascript);
-        Assert.Contains("const RECENT_REMARK_LIMIT = 3;", javascript);
         Assert.Contains("const DISCUSSION_PAGE_SIZE = 5;", javascript);
         Assert.Contains("const DISCUSSION_THREAD_LIMIT = 100;", javascript);
-        Assert.Contains("renderCheckIns(state.eligibleDays || [], undefined, activePublicDiscussion(state));", javascript);
-        Assert.Contains("function activePublicDiscussion(state: ParticipantState): ParticipantNote[]", javascript);
+        Assert.Contains("renderCheckIns(state.eligibleDays || []);", javascript);
         Assert.Contains("function systemDiscussionThreads(state: PublicState | null | undefined): ParticipantNote[]", javascript);
-        Assert.Contains("function activeDiscussionHtml(notes: ParticipantNote[]): string", javascript);
         Assert.Contains("function discussionThreadsInHotOrder(notes: ParticipantNote[]): ParticipantNote[]", javascript);
         Assert.Contains("function openDiscussionReplyComposer(button: HTMLButtonElement): void", javascript);
         Assert.Contains("function openDiscussionReplyEditor(button: HTMLButtonElement): void", javascript);
@@ -580,12 +577,12 @@ public sealed class LongevitymaxxingChallengePageTests(TestWebApplicationFactory
         Assert.Contains("function replaceDiscussionReplyEverywhere(updated: DiscussionReply): void", javascript);
         Assert.DoesNotContain("placeholder=\"Write a reply or mention @Name\" required", javascript);
         Assert.Contains("function submitDiscussionReply(", javascript);
-        Assert.Contains("function renderDiscussionSurfaces(state: ParticipantState): void", javascript);
+        Assert.Contains("function renderParticipantDiscussion(state: ParticipantState): void", javascript);
         var replySubmitStart = javascript.IndexOf("async function submitDiscussionReply(", StringComparison.Ordinal);
         var replySubmitEnd = javascript.IndexOf("function createDiscussionReplyId()", replySubmitStart, StringComparison.Ordinal);
         Assert.True(replySubmitStart >= 0 && replySubmitEnd > replySubmitStart);
         var replySubmit = javascript[replySubmitStart..replySubmitEnd];
-        Assert.Contains("renderDiscussionSurfaces(participantState);", replySubmit);
+        Assert.Contains("renderParticipantDiscussion(participantState);", replySubmit);
         Assert.DoesNotContain("renderAll();", replySubmit);
         Assert.Contains("`${API}/discussion/replies`", javascript);
         Assert.Contains("`${API}/discussion/replies/page`", javascript);
@@ -599,8 +596,7 @@ public sealed class LongevitymaxxingChallengePageTests(TestWebApplicationFactory
         Assert.DoesNotContain("data-collapsed-reply", javascript);
         Assert.DoesNotContain("function toggleDiscussionReplies(", javascript);
         Assert.Contains("function hasParticipantNoteContent(note: ParticipantNote): boolean", javascript);
-        Assert.Contains("Active discussion", javascript);
-        Assert.Contains("aria-label=\"Active public discussion\"", javascript);
+        Assert.DoesNotContain("Active discussion", javascript);
         Assert.Contains("data-discussion-reply", javascript);
         Assert.Contains("data-discussion-reply-edit", javascript);
         Assert.Contains("data-discussion-reply-delete", javascript);
@@ -632,7 +628,7 @@ public sealed class LongevitymaxxingChallengePageTests(TestWebApplicationFactory
         Assert.Contains("<h2>Your habits</h2>", javascript);
         Assert.DoesNotContain("displayName: getIdentityDisplayName(\"edit\")", javascript);
         Assert.DoesNotContain("athleteLink: getIdentityAthletePayload(\"edit\")", javascript);
-        Assert.Contains("renderCheckIns(participantState?.eligibleDays || orderedDays, containerId, participantState ? activePublicDiscussion(participantState) : activeDiscussion);", javascript);
+        Assert.Contains("renderCheckIns(participantState?.eligibleDays || orderedDays, containerId);", javascript);
         Assert.Contains("function renderParticipantNotice", javascript);
         Assert.Contains("Did you do what you reasonably could yesterday to eat in a way you consider healthy?", javascript);
         Assert.DoesNotContain("By your own standards, did you eat healthy yesterday?", javascript);
@@ -893,8 +889,7 @@ public sealed class LongevitymaxxingChallengePageTests(TestWebApplicationFactory
         Assert.Contains(".lmx-photo-viewer-nav", css);
         Assert.Contains("body.lmx-photo-viewer-open", css);
         Assert.Contains("width: 48px;", css);
-        Assert.Contains(".lmx-recent-remarks", css);
-        Assert.Contains(".lmx-recent-remark p", css);
+        Assert.DoesNotContain(".lmx-recent-remarks", css);
         Assert.Contains("object-fit: contain", css);
         Assert.Contains("white-space: pre-wrap;", css);
         Assert.Contains("lmxSlackInviteLink", javascript);
