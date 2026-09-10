@@ -161,6 +161,44 @@ public sealed class HomepageLoadingBrowserTests(
         Assert.Equal(1, totalRequests);
     }
 
+    [Theory]
+    [InlineData("/api/data/athletes")]
+    [InlineData("/api/events")]
+    public async Task TransientDataFailure_RecoversAutomaticallyWithoutDuplicateConsumerRequests(string target)
+    {
+        await using var context = await NewContextAsync(390);
+        var attempts = 0;
+        await context.RouteAsync($"**{target}", async route =>
+        {
+            if (Interlocked.Increment(ref attempts) == 1)
+                await route.FulfillAsync(new() { Status = 503, Body = "Temporarily unavailable" });
+            else
+                await route.ContinueAsync();
+        });
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await ExpectHomepageLoadedAsync(page);
+        Assert.Equal(2, attempts);
+    }
+
+    [Fact]
+    public async Task UnavailableExchangeRate_KeepsPodiumAthletesAndDonationLinks()
+    {
+        await using var context = await NewContextAsync(1440);
+        var attempts = 0;
+        await context.RouteAsync("**/api/bitcoin/btcusd", async route =>
+        {
+            Interlocked.Increment(ref attempts);
+            await route.FulfillAsync(new() { Status = 503, Body = "Temporarily unavailable" });
+        });
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await ExpectHomepageLoadedAsync(page);
+        await Assertions.Expect(page.Locator(".podium-item-lower[aria-busy='false'][href='#contribute']")).ToHaveCountAsync(3);
+        await Assertions.Expect(page.Locator(".podium-item.first .prize-money")).ToHaveTextAsync("—");
+        Assert.Equal(2, attempts);
+    }
+
     private async Task<IBrowserContext> NewContextAsync(int width)
     {
         var context = await Browser.NewContextAsync(new()

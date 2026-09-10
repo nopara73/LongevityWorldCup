@@ -4605,6 +4605,7 @@
     }
 
     function LoadLeaderboard(includePodium = true, maxAthletes = Infinity) {
+        window.initializeSharedPageData();
         includePodiumGlobal = includePodium;
         maxAthletesGlobal = maxAthletes;
         athleteResultsReady = false;
@@ -8462,6 +8463,7 @@
     }
 
     function fetchFullAthleteData(athleteNameText, athleteData, options) {
+        window.initializeSharedPageData();
         athleteDialogReturnFocusElement =
             options?.returnFocusTo instanceof HTMLElement
                 ? options.returnFocusTo

@@ -1052,6 +1052,7 @@
 <script src="{{ASSET_CUSTOM_EVENT_MARKUP_JS}}"></script>
 <script>
     (function(){
+        window.initializeSharedPageData();
         const EVENT_TYPE = { General: 0, Joined: 1, NewRank: 2, DonationReceived: 3, AthleteCountMilestone: 4, BadgeAward: 5, CustomEvent: 6, SeasonFinalResult: 7, LongevitymaxxingChallengeResult: 8, BecamePro: 9, BiologicalAgeImproved: 10, CrowdAgeTop10Change: 11, AgeImprovementTop10Change: 12, TestResultAccepted: 13 };
         const EVENT_TYPE_NAME_BY_ID = {};
         Object.keys(EVENT_TYPE).forEach(name => {

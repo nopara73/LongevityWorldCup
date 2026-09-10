@@ -235,7 +235,9 @@ namespace LongevityWorldCup.Website.Middleware
         {
             var config = GetHeadAssetConfig(path);
             var optionalHeadScripts = BuildOptionalHeadScripts(config);
-            var modulesBootstrap = BuildModulesBootstrap(config);
+            var pageDataPrefetch = BuildPageDataPrefetch(path);
+            var usesSharedPageData = pageDataPrefetch.Length > 0;
+            var modulesBootstrap = BuildModulesBootstrap(config.ModulePaths, "modulesReady", usesSharedPageData);
             if (ShouldInjectAthleteDialogRuntime(path))
             {
                 var athleteDialogModules = AthleteDialogModulePaths
@@ -243,7 +245,8 @@ namespace LongevityWorldCup.Website.Middleware
                     .ToArray();
                 var athleteDialogModulesBootstrap = BuildModulesBootstrap(
                     athleteDialogModules,
-                    "athleteDialogModulesReady");
+                    "athleteDialogModulesReady",
+                    usesSharedPageData);
                 modulesBootstrap = string.Join(
                     Environment.NewLine,
                     new[] { modulesBootstrap, athleteDialogModulesBootstrap }
@@ -252,7 +255,8 @@ namespace LongevityWorldCup.Website.Middleware
 
             return html
                 .Replace("{{OPTIONAL_HEAD_SCRIPTS}}", optionalHeadScripts)
-                .Replace("{{PAGE_DATA_PREFETCH}}", BuildPageDataPrefetch(path))
+                .Replace("{{SHARED_PAGE_DATA_ENABLED}}", usesSharedPageData ? "true" : "false")
+                .Replace("{{PAGE_DATA_PREFETCH}}", pageDataPrefetch)
                 .Replace("{{MODULES_BOOTSTRAP}}", modulesBootstrap);
         }
 
@@ -602,12 +606,10 @@ $@"<style{attributes}>
             return sb.ToString().TrimEnd();
         }
 
-        private string BuildModulesBootstrap(HeadAssetConfig config) =>
-            BuildModulesBootstrap(config.ModulePaths, "modulesReady");
-
         private string BuildModulesBootstrap(
             IReadOnlyList<string> modulePaths,
-            string readinessProperty)
+            string readinessProperty,
+            bool startDuringParsing)
         {
             if (modulePaths.Count == 0)
             {
@@ -617,8 +619,9 @@ $@"<style{attributes}>
             var imports = string.Join(
                 "," + Environment.NewLine,
                 modulePaths.Select(path => $"        import(`{_assetVersionProvider.AppendVersion(path)}`)"));
+            var scriptAttributes = startDuringParsing ? string.Empty : " type=\"module\"";
             return
-$@"<script>
+$@"<script{scriptAttributes}>
     window.{readinessProperty} = Promise.all([
 {imports}
     ]);
