@@ -7813,7 +7813,7 @@
 
     function getModalTitleRankMarkup(rank) {
         const rankText = getModalRankText(rank);
-        return rankText ? ` <span class="modal-rank-text">(${rankText})</span>` : '';
+        return rankText ? `<span class="modal-rank-text"> (${rankText})</span>` : '';
     }
 
     function renderProfileRankings(athleteData, ultimateRank) {
@@ -7825,6 +7825,14 @@
                 && candidate.href && getModalRankText(candidate.rank)
                 && (!ultimateRankText || candidate.rank < Number(ultimateRank)))
             .sort(compareBestRankCandidates)[0];
+        const athleteName = document.getElementById('athleteName');
+        athleteName.querySelector('.modal-rank-text')?.remove();
+        if (ultimateRankText && !bestView) {
+            athleteName.insertAdjacentHTML('beforeend', getModalTitleRankMarkup(ultimateRank));
+            rankings.replaceChildren();
+            rankings.hidden = true;
+            return;
+        }
         const candidates = [
             { leagueType: 'ultimate', leagueName: 'Ultimate League', rank: ultimateRank, href: '/leaderboard' },
             bestView
