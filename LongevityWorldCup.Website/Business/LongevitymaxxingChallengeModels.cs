@@ -22,7 +22,8 @@ public sealed record LongevitymaxxingDiscussionReplyRequest(
     int ChallengeDay,
     string Body,
     string ReplyId,
-    string? SystemPostId = null);
+    string? SystemPostId = null,
+    string? ReplyToId = null);
 
 public sealed record LongevitymaxxingDiscussionReplyEditRequest(
     string AccessToken,
@@ -201,7 +202,11 @@ public sealed record LongevitymaxxingDiscussionReply(
     string DisplayName,
     string Body,
     string CreatedAtUtc,
-    string? EditedAtUtc);
+    string? EditedAtUtc,
+    string? ReplyToId = null,
+    LongevitymaxxingDiscussionReplyContext? ReplyTo = null);
+
+public sealed record LongevitymaxxingDiscussionReplyContext(string DisplayName, string Body);
 
 public sealed record LongevitymaxxingDiscussionSystemPost(
     string Id,
