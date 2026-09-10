@@ -1518,16 +1518,15 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         highlights.className = "lmx-benefit-strip lmx-ops-strip";
         highlights.setAttribute("aria-label", "Participant status");
         highlights.innerHTML = [
-            opsTile("Rank", row ? `#${rowIndex + 1}` : "-", "fa-ranking-star"),
-            opsTile("Days in", daysIn, "fa-calendar-check"),
-            opsTile("Score", row ? row.totalPoints : 0, "fa-bolt"),
-            opsTile("Streak", row ? row.currentStreak : 0, "fa-fire")
+            opsTile("Rank", row ? `#${rowIndex + 1}` : "-"),
+            opsTile("Days in", daysIn),
+            opsTile("Score", row ? row.totalPoints : 0),
+            opsTile("Streak", row ? row.currentStreak : 0)
         ].join("");
     }
 
-    function opsTile(label: string, value: string | number, icon: string): string {
+    function opsTile(label: string, value: string | number): string {
         return `<div class="lmx-ops-tile">
-            <i class="fas ${escAttr(icon)}" aria-hidden="true"></i>
             <span class="lmx-ops-label">${esc(label)}</span>
             <strong>${esc(value)}</strong>
         </div>`;
@@ -1559,9 +1558,6 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const best = rankedSummaries[0];
         const focus = [...rankedSummaries].reverse()[0];
         const fullDays = checkedCells.filter(cell => isLockedInDay(cell, categories)).length;
-        const totalPoints = row && typeof row.totalPoints === "number"
-            ? row.totalPoints
-            : scoredCells.reduce((sum, cell) => sum + (typeof cell.score === "number" ? cell.score : 0), 0);
         const today = isoDateInTimeZone(new Date(), getParticipantTimeZone());
         const dayHeaders = cells.map(cell => {
             const classes = ["lmx-dashboard-day"];
@@ -1574,19 +1570,16 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
 
         track.innerHTML = `
             <div class="lmx-dashboard-head">
-                <div>
-                    <span class="lmx-mini-label">your trend</span>
-                </div>
+                <h2>Your trend</h2>
                 <strong>${checkedCells.length ? `${checkedCells.length}/${scoringWindowDays} days` : emptyLabel}</strong>
             </div>
             <div class="lmx-dashboard-stats" aria-label="Personal challenge stats">
-                ${dashboardStat("Best", best ? best.category.label : "-", best ? `${Math.round(best.rate * 100)}%` : "-", best ? best.category.icon : "fa-arrow-trend-up", best ? best.category.tone : "")}
-                ${dashboardStat("Focus", focus ? focus.category.label : "-", focus ? `${Math.round(focus.rate * 100)}%` : "-", focus ? focus.category.icon : "fa-crosshairs", focus ? focus.category.tone : "")}
-                ${dashboardStat("Locked-in days", String(fullDays), "", "fa-calendar-check")}
-                ${dashboardStat("Points", scoredCells.length ? String(totalPoints) : "-", "", "fa-chart-line")}
+                ${dashboardStat("Best", best ? best.category.label : "-", best ? `${Math.round(best.rate * 100)}%` : "-")}
+                ${dashboardStat("Focus", focus ? focus.category.label : "-", focus ? `${Math.round(focus.rate * 100)}%` : "-")}
+                ${dashboardStat("Locked-in days", String(fullDays), "")}
             </div>
-            <div class="lmx-dashboard-scroll">
-                <div class="lmx-dashboard-grid" role="table" aria-label="Sleep, exercise, nutrition, and vices over time" style="--lmx-dashboard-day-columns: repeat(${dayCount}, 2.15rem); --lmx-dashboard-min-width: ${(13.05 + (dayCount * 2.5)).toFixed(2)}rem;">
+            <div class="lmx-dashboard-scroll" tabindex="0" role="region" aria-label="Habit history">
+                <div class="lmx-dashboard-grid" role="table" aria-label="Sleep, exercise, nutrition, and vices over time" style="--lmx-dashboard-day-count: ${dayCount};">
                     <div class="lmx-dashboard-row lmx-dashboard-row-head" role="row">
                         <div class="lmx-dashboard-corner" role="columnheader">Agency</div>
                         <div class="lmx-dashboard-days" role="presentation">${dayHeaders}</div>
@@ -1663,10 +1656,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         return `<span class="${classes.join(" ")}" data-day="${escAttr(cell.challengeDay)}" title="${escAttr(`${dayTitle(cell)}: ${category.label} ${value}/2`)}" aria-label="${escAttr(`${category.label} day ${cell.challengeDay}: ${value} of 2`)}"></span>`;
     }
 
-    function dashboardStat(label: string, value: string, detail: string, icon: string, tone = ""): string {
-        const toneClass = tone ? ` ${escAttr(tone)}` : "";
-        return `<div class="lmx-dashboard-stat${toneClass}">
-            <i class="fas ${escAttr(icon)}" aria-hidden="true"></i>
+    function dashboardStat(label: string, value: string, detail: string): string {
+        return `<div class="lmx-dashboard-stat">
             <span>${esc(label)}</span>
             <strong>${esc(value)}</strong>
             ${detail ? `<em>${esc(detail)}</em>` : ""}
@@ -2486,18 +2477,30 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         if (!scroller) return;
 
         const scrollCurrentDayIntoFocus = () => {
+            const grid = scroller.querySelector<HTMLElement>(".lmx-dashboard-grid");
+            const header = grid?.querySelector<HTMLElement>(".lmx-dashboard-row-head");
+            const dayStrip = header?.querySelector<HTMLElement>(".lmx-dashboard-days");
+            const stickyColumn = header?.querySelector<HTMLElement>(".lmx-dashboard-corner");
+            if (!grid || !header || !dayStrip || !stickyColumn) return;
+
+            const gap = parseFloat(getComputedStyle(header).columnGap) || 0;
+            const cellGap = parseFloat(getComputedStyle(dayStrip).columnGap) || 0;
+            const stickyWidth = stickyColumn.offsetWidth + gap;
+            const availableWidth = Math.max(1, scroller.clientWidth - stickyWidth);
+            const preferredCellWidth = parseFloat(getComputedStyle(grid).fontSize) * 1.4;
+            const visibleColumns = Math.max(1, Math.floor((availableWidth + cellGap) / (preferredCellWidth + cellGap)));
+            const cellWidth = (availableWidth - (visibleColumns - 1) * cellGap) / visibleColumns;
+            // Fill the visible history with whole columns, including beside the pinned labels.
+            grid.style.setProperty("--lmx-dashboard-day-width", `${cellWidth}px`);
+
             const currentDay = scroller.querySelector<HTMLElement>(".lmx-dashboard-row-head .lmx-dashboard-day.today");
             if (!currentDay) {
                 scroller.scrollLeft = Math.max(0, scroller.scrollWidth - scroller.clientWidth);
                 return;
             }
 
-            const stickyColumn = scroller.querySelector<HTMLElement>(".lmx-dashboard-corner");
-            const styles = getComputedStyle(scroller.querySelector(".lmx-dashboard-grid") || scroller);
-            const gap = parseFloat(styles.getPropertyValue("--lmx-dashboard-gap")) || 0;
-            const stickyWidth = (stickyColumn?.offsetWidth || 0) + gap;
-            const availableWidth = Math.max(currentDay.offsetWidth, scroller.clientWidth - stickyWidth);
-            const centered = currentDay.offsetLeft - stickyWidth - ((availableWidth - currentDay.offsetWidth) / 2);
+            const dayOffset = currentDay.getBoundingClientRect().left - dayStrip.getBoundingClientRect().left;
+            const centered = dayOffset - Math.floor((visibleColumns - 1) / 2) * (cellWidth + cellGap);
             const maxScroll = Math.max(0, scroller.scrollWidth - scroller.clientWidth);
             scroller.scrollLeft = Math.max(0, Math.min(maxScroll, centered));
         };

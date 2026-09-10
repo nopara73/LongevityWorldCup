@@ -307,7 +307,6 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
                     const selectors = [
                         '.lmx-status-pill:not(.muted)',
                         '.lmx-mini-label',
-                        '.lmx-ops-tile i',
                         '.lmx-workflow-step i'
                     ];
                     return selectors.map(selector => [
