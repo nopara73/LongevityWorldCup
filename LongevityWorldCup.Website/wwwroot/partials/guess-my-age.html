@@ -2892,6 +2892,7 @@
             }
 
             if (!isCurrentGmaPresentation(presentation)) return;
+            updateAthleteCrowdAge(presentation.athleteSlug, result.crowdAge, result.crowdCount);
             try {
                 updateYourGuess();
             } catch (profileRefreshError) {
@@ -2901,7 +2902,6 @@
                 console.warn('Could not refresh the Guess My Age profile row.', profileRefreshError);
             }
 
-            updateCrowdContainer(result.crowdAge, result.crowdCount);
             gmaCard.classList.remove('is-submitting');
             gmaCard.classList.add('is-revealing');
             const reactionKind = userGuess === realAge

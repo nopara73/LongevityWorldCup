@@ -242,7 +242,64 @@ public sealed class AthleteCompetitionRankBrowserTests(
         await Assertions.Expect(CompetitionLink(page, "pheno")).ToHaveAttributeAsync("href", $"/league/pheno#rank-{ultimateRank}");
     }
 
-    private async Task<IBrowserContext> NewContextAsync(int width)
+    [Theory]
+    [InlineData(99)]
+    [InlineData(100)]
+    public async Task AcceptedCrowdGuess_RefreshesTheBestViewAndSurvivesReopening(int initialGuessCount)
+    {
+        const string name = "Siim Land";
+        await using var context = await NewContextAsync(390, skipGuess: false);
+        await context.RouteAsync("**/api/data/athletes", async route =>
+        {
+            var response = await route.FetchAsync();
+            var athletes = JsonNode.Parse(await response.TextAsync())!.AsArray();
+            foreach (var athlete in athletes.OfType<JsonObject>())
+            {
+                var isTarget = athlete["Name"]?.GetValue<string>() == name;
+                athlete["CrowdAge"] = 100;
+                athlete["CrowdCount"] = isTarget ? initialGuessCount : 100;
+                athlete["PhenoAgeImprovementFromWorst"] = isTarget ? 0 : -1;
+                athlete["BortzAgeImprovementFromWorst"] = isTarget ? 0 : -1;
+            }
+            await route.FulfillAsync(new() { ContentType = "application/json", Body = athletes.ToJsonString() });
+        });
+        var submissions = 0;
+        await context.RouteAsync("**/api/Guess/athlete-age**", async route =>
+        {
+            submissions++;
+            await route.FulfillAsync(new()
+            {
+                ContentType = "application/json",
+                Body = new JsonObject
+                {
+                    ["crowdAge"] = 1, ["crowdCount"] = initialGuessCount + 1,
+                    ["actualAge"] = 40, ["guessAccepted"] = true
+                }.ToJsonString()
+            });
+        });
+        var page = await context.NewPageAsync();
+        var ultimateRank = await ReadLeaderboardRankAsync(page, name, "ultimate");
+        await Row(page, name).Locator(".athlete-name").ClickAsync();
+        await WaitForProfileAsync(page);
+        await Assertions.Expect(CompetitionLink(page, "crowd")).ToHaveCountAsync(0);
+        await page.Locator("#gmaRange").EvaluateAsync("range => { range.value = '40'; range.dispatchEvent(new Event('input', { bubbles: true })); }");
+        await page.Locator("#guessAgeContainer .gma-btn--primary").ClickAsync();
+
+        await Assertions.Expect(CompetitionLink(page, "crowd").Locator("strong")).ToHaveTextAsync("#1");
+        await Assertions.Expect(page.Locator("#crowdCount")).ToHaveTextAsync((initialGuessCount + 1).ToString());
+        await Assertions.Expect(page.Locator("#athleteRankings a")).ToHaveCountAsync(2);
+        await Assertions.Expect(CompetitionLink(page, "ultimate").Locator("strong")).ToHaveTextAsync($"#{ultimateRank}");
+        await page.Locator("#closeAthleteDetailsModal").ClickAsync();
+        await Assertions.Expect(page.Locator("#detailsModal")).ToBeHiddenAsync();
+        await Row(page, name).Locator(".athlete-name").ClickAsync();
+        await WaitForProfileAsync(page);
+        await Assertions.Expect(CompetitionLink(page, "crowd").Locator("strong")).ToHaveTextAsync("#1");
+        await Assertions.Expect(CompetitionLink(page, "crowd")).ToHaveAttributeAsync("href", $"/league/crowd#rank-{ultimateRank}");
+        await Assertions.Expect(page.Locator("#crowdCount")).ToHaveTextAsync((initialGuessCount + 1).ToString());
+        Assert.Equal(1, submissions);
+    }
+
+    private async Task<IBrowserContext> NewContextAsync(int width, bool skipGuess = true)
     {
         var context = await Browser.NewContextAsync(new()
         {
@@ -252,7 +309,8 @@ public sealed class AthleteCompetitionRankBrowserTests(
             Locale = "en-US"
         });
         await BrowserTestApp.RouteExternalResourcesAsync(context);
-        await context.AddInitScriptAsync("localStorage.setItem('gmaSkipAll','true')");
+        if (skipGuess)
+            await context.AddInitScriptAsync("localStorage.setItem('gmaSkipAll','true')");
         return context;
     }
 

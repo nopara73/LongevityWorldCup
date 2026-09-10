@@ -8802,22 +8802,15 @@
             // Replace the shared snapshot so the ordinary modal loader consumes
             // the same fresh portrait identity we just fetched.
             window.__sharedAthletesRequest = Promise.resolve(athletes);
-            const crowdAge = Number(fullAthleteData.CrowdAge);
-            const crowdCount = Number(fullAthleteData.CrowdCount);
             athleteData.profilePic = fullAthleteData.ProfilePic;
             athleteData.profilePicThumb = fullAthleteData.ProfilePicLeaderboardThumb
                 || fullAthleteData.ProfilePicThumb
                 || fullAthleteData.ProfilePic;
             athleteData.profileImageId = fullAthleteData.ProfileImageId;
-            athleteData.crowdAge = Number.isFinite(crowdAge) ? crowdAge : 0;
-            athleteData.crowdCount = Number.isFinite(crowdCount) ? crowdCount : 0;
-            athleteData.crowdAgeReduction = Number.isFinite(crowdAge)
-                ? crowdAge - athleteData.chronologicalAge
-                : null;
             athleteData.Badges = Array.isArray(fullAthleteData.Badges)
                 ? fullAthleteData.Badges
                 : [];
-            assignBestRankCandidates(athleteResults);
+            updateAthleteCrowdAge(normalizedSlug, fullAthleteData.CrowdAge, fullAthleteData.CrowdCount);
 
             await fetchFullAthleteData(athleteData.name, athleteData, {
                 historyMode: 'preserve'
@@ -10049,6 +10042,30 @@
         }
     }
 
+    function updateAthleteCrowdAge(athleteSlug, crowdAge, crowdCount) {
+        const normalizedSlug = normalizeAthleteSlugForLookup(athleteSlug);
+        const athleteData = findAthleteDataBySlug(normalizedSlug);
+        const age = Number(crowdAge);
+        const count = Number(crowdCount);
+        if (athleteData) {
+            athleteData.crowdAge = Number.isFinite(age) ? age : 0;
+            athleteData.crowdCount = Number.isFinite(count) ? count : 0;
+            athleteData.crowdAgeReduction = Number.isFinite(age)
+                ? age - athleteData.chronologicalAge
+                : null;
+            assignBestRankCandidates(athleteResults);
+        }
+
+        const modalContent = document.querySelector('#detailsModal .modal-content');
+        if (normalizeAthleteSlugForLookup(modalContent?.dataset.athleteSlug) !== normalizedSlug) return;
+        updateCrowdContainer(age, count);
+        if (athleteData) {
+            const rankSummary = computeBestLeagueRank(athleteData);
+            renderProfileRankings(athleteData, rankSummary.ultimateRank);
+            document.getElementById('athleteRank').innerHTML = renderBestRankLink(rankSummary.bestCandidate);
+        }
+    }
+
     function updateCrowdContainer(crowdAge, crowdCount) {
         const crowdContainer = document.getElementById('crowdAgeContainer');
         const notEmptyCrowdContainer = document.getElementById('notEmptyCrowdAgeContainer');
@@ -10124,6 +10141,7 @@
     window.populateProofsGallery = populateProofsGallery;
     window.closeAthleteShareMenu = closeAthleteShareMenu;
     window.closeModal = closeModal;
+    window.updateAthleteCrowdAge = updateAthleteCrowdAge;
     window.updateCrowdContainer = updateCrowdContainer;
     window.updateYourGuess = updateYourGuess;
     window.refreshAthleteAfterStaleGuess = refreshAthleteAfterStaleGuess;
