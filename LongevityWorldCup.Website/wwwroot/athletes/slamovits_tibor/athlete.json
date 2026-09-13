@@ -1,0 +1,28 @@
+{
+  "Name": "Slamovits Tibor",
+  "DisplayName": null,
+  "MediaContact": "info@humancode.hu",
+  "DateOfBirth": {
+    "Year": 1975,
+    "Month": 4,
+    "Day": 14
+  },
+  "Biomarkers": [
+    {
+      "Date": "2026-09-12",
+      "AlbGL": 46,
+      "CreatUmolL": 66,
+      "GluMmolL": 4.4,
+      "CrpMgL": 0.2,
+      "LymPc": 39.1,
+      "McvFL": 90,
+      "RdwPc": 12.7,
+      "AlpUL": 68,
+      "Wbc1000cellsuL": 5.3
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Hungary",
+  "Why": "My motivation is to turn longevity into something measurable and actionable. I want to push my own biological limits, test what truly works, and use data, training and science to build a longer, healthier, higher-performing life.",
+  "PersonalLink": "https://www.humancode.hu"
+}
