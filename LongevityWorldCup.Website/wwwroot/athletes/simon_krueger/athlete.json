@@ -1,0 +1,28 @@
+{
+  "Name": "Simon Krueger",
+  "DisplayName": null,
+  "MediaContact": "si.kr@gmx.net",
+  "DateOfBirth": {
+    "Year": 1990,
+    "Month": 7,
+    "Day": 13
+  },
+  "Biomarkers": [
+    {
+      "Date": "2026-09-11",
+      "AlbGL": 44,
+      "CreatUmolL": 92.92,
+      "GluMmolL": 4.44,
+      "CrpMgL": 1.1,
+      "LymPc": 53,
+      "McvFL": 84.4,
+      "RdwPc": 13.2,
+      "AlpUL": 57,
+      "Wbc1000cellsuL": 6.34
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Germany",
+  "Why": "Join the community of longevity in a fun competition.",
+  "PersonalLink": "https://linkedin.com/in/simon-krueger"
+}
