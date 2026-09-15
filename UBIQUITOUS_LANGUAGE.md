@@ -21,6 +21,7 @@ Use lowercase pheno age, bortz age, crowd age, age reduction, and effective age 
 - Guesses belong to exact published image content via `ProfileImageId`. Byte-identical uploads restore that image's history; any changed bytes, including re-encoding, start with zero active guesses. Preserve older histories.
 - Qualification, placements, and badges use current-image guesses. Image changes silently recompute placements; published Events remain historical. The raw crowd age badge and on-site BadgeAward Events remain visible but produce no social posts.
 - In social placement copy, "younger" and "older" compare crowd age with chronological age.
+- Crowd age placement Events celebrate an athlete's first top-10 entry and new best podium positions (3rd, 2nd, 1st). Movement within positions 4-10 and previously reached milestones create no new Events. Keep live ranks current after every accepted guess. Collect milestones for one hour from the first qualifying change, then publish only the strongest milestone with its original movement context. Pending milestones survive restarts; discard them if the profile image changes before publication. Published Events remain historical, and older routine movement Events are excluded from pending social delivery.
 
 ## Payments
 
