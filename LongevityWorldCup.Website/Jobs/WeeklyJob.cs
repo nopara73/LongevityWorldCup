@@ -15,8 +15,10 @@ public class WeeklyJob : IJob
         _athletes = athletes;
     }
 
-    public Task Execute(IJobExecutionContext context)
+    public ValueTask Execute(IJobExecutionContext context, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         _logger.LogInformation("WeeklyJob {ts}", DateTime.UtcNow);
 
         var ranked = _athletes.GetRankingsOrder();
@@ -36,7 +38,7 @@ public class WeeklyJob : IJob
         }
 
         _logger.LogInformation("Weekly placements stored for {count} athletes", updated);
-        return Task.CompletedTask;
+        return ValueTask.CompletedTask;
     }
 
 }

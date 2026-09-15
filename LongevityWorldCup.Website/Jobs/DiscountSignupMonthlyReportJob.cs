@@ -11,11 +11,13 @@ public sealed class DiscountSignupMonthlyReportJob(
     private readonly DiscountSignupReportService _reports = reports;
     private readonly ILogger<DiscountSignupMonthlyReportJob> _logger = logger;
 
-    public async Task Execute(IJobExecutionContext context)
+    public async ValueTask Execute(IJobExecutionContext context, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         try
         {
-            var result = await _reports.SendPreviousMonthReportAsync(DateTimeOffset.UtcNow, context.CancellationToken);
+            var result = await _reports.SendPreviousMonthReportAsync(DateTimeOffset.UtcNow, cancellationToken);
             if (!result.Sent)
             {
                 _logger.LogInformation(
@@ -24,7 +26,7 @@ public sealed class DiscountSignupMonthlyReportJob(
                     result.Reason);
             }
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
         {
             _logger.LogError(ex, "Discount signup monthly report failed.");
         }

@@ -48,8 +48,10 @@ public class XDailyPostJob : IJob
         _milestoneMemes = milestoneMemes;
     }
 
-    public async Task Execute(IJobExecutionContext context)
+    public async ValueTask Execute(IJobExecutionContext context, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         _logger.LogInformation("XDailyPostJob {ts}", DateTime.UtcNow);
 
         if (!ShouldPostInCurrentSlot(context, out var slotTimeUtc, out var selectedSlotTimeUtc))
@@ -212,7 +214,7 @@ public class XDailyPostJob : IJob
                 payload,
                 _leagueImages,
                 _xApiClient,
-                context.CancellationToken);
+                cancellationToken);
             if (fillerType == FillerType.Top3Leaderboard && fillerMediaIds is not { Count: > 0 })
             {
                 _logger.LogWarning(

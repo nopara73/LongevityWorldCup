@@ -6,9 +6,11 @@ namespace LongevityWorldCup.Website.Jobs;
 [DisallowConcurrentExecution]
 public sealed class CrowdAgeMilestoneJob(EventDataService events) : IJob
 {
-    public Task Execute(IJobExecutionContext context)
+    public ValueTask Execute(IJobExecutionContext context, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         events.PublishPendingCrowdAgeMilestones();
-        return Task.CompletedTask;
+        return ValueTask.CompletedTask;
     }
 }

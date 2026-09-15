@@ -32,10 +32,12 @@ public class ThreadsDailyPostJob : IJob
         _milestoneMemes = milestoneMemes;
     }
 
-    public async Task Execute(IJobExecutionContext context)
+    public async ValueTask Execute(IJobExecutionContext context, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         _logger.LogInformation("ThreadsDailyPostJob {ts}", DateTime.UtcNow);
-        await _threadsEvents.EnsureAccessTokenFreshAsync(context.CancellationToken);
+        await _threadsEvents.EnsureAccessTokenFreshAsync(cancellationToken);
 
         _events.SetAthletesForX(_athletes.GetAthletesForX());
         var pending = _events.GetPendingThreadsEvents();

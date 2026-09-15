@@ -17,8 +17,10 @@ public class DailyJob : IJob
         _athletes = athletes;
     }
 
-    public Task Execute(IJobExecutionContext context)
+    public ValueTask Execute(IJobExecutionContext context, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         _logger.LogInformation("DailyJob {ts}", DateTime.UtcNow);
 
         var ranked = _athletes.GetRankingsOrder();
@@ -38,7 +40,7 @@ public class DailyJob : IJob
         }
 
         _logger.LogInformation("Daily placements stored for {count} athletes", updated);
-        return Task.CompletedTask;
+        return ValueTask.CompletedTask;
     }
 
 }
