@@ -16,9 +16,15 @@ public sealed class CrowdAgeTop10EventTests : IClassFixture<TestWebApplicationFa
     public CrowdAgeTop10EventTests(TestWebApplicationFactory factory)
     {
         _factory = factory;
-        _events = factory.Services.GetRequiredService<EventDataService>();
-        _database = factory.Services.GetRequiredService<DatabaseManager>();
-        Execute("INSERT INTO Athletes (Key, AgeGuesses, CrowdAgeProfileImageId) VALUES (@slug, '[]', 'original-image');");
+        // These synthetic athletes are not part of the host's file-backed directory.
+        // Its background reload must not reconcile their image IDs out from under a test.
+        _database = new DatabaseManager(dbPath: Path.Combine(
+            factory.WorkingDirectory, $"crowd-announcements-{Guid.NewGuid():N}.db"));
+        Execute("""
+            CREATE TABLE Athletes (Key TEXT PRIMARY KEY, AgeGuesses TEXT NOT NULL, CrowdAgeProfileImageId TEXT);
+            INSERT INTO Athletes (Key, AgeGuesses, CrowdAgeProfileImageId) VALUES (@slug, '[]', 'original-image');
+            """);
+        _events = ActivatorUtilities.CreateInstance<EventDataService>(factory.Services, _database);
     }
 
     [Fact]
@@ -139,7 +145,7 @@ public sealed class CrowdAgeTop10EventTests : IClassFixture<TestWebApplicationFa
         Queue(6, 8, _now.AddHours(11));
         Execute($"UPDATE PendingCrowdAgeMilestones SET PublishAfterUtc='{_now.AddHours(12):o}' WHERE AthleteSlug=@slug;");
         Execute("DROP TABLE CrowdAgeAnnouncementState;");
-        using var restarted = ActivatorUtilities.CreateInstance<EventDataService>(_factory.Services);
+        using var restarted = ActivatorUtilities.CreateInstance<EventDataService>(_factory.Services, _database);
         Assert.Equal(0, restarted.PublishPendingCrowdAgeAnnouncements(_now.AddHours(12)));
         Assert.Equal(1, PendingCount());
         Assert.Equal(1, restarted.PublishPendingCrowdAgeAnnouncements(_now.AddHours(24)));
@@ -151,12 +157,12 @@ public sealed class CrowdAgeTop10EventTests : IClassFixture<TestWebApplicationFa
     {
         SeedHistoricalEvent(6, _now.AddDays(-2));
         Execute("UPDATE Events SET XSkipReason='NonMilestoneCrowdAgeChange', ThreadsSkipReason='NonMilestoneCrowdAgeChange' WHERE Id=@slug;");
-        using var restarted = ActivatorUtilities.CreateInstance<EventDataService>(_factory.Services);
+        using var restarted = ActivatorUtilities.CreateInstance<EventDataService>(_factory.Services, _database);
         Assert.Contains(restarted.GetPendingXEvents(), e => e.Id == _slug);
         Assert.Contains(restarted.GetPendingThreadsEvents(), e => e.Id == _slug);
         restarted.MarkEventsXProcessed(new[] { _slug });
         restarted.MarkEventsThreadsProcessed(new[] { _slug });
-        using var again = ActivatorUtilities.CreateInstance<EventDataService>(_factory.Services);
+        using var again = ActivatorUtilities.CreateInstance<EventDataService>(_factory.Services, _database);
         Assert.DoesNotContain(again.GetPendingXEvents(), e => e.Id == _slug);
         Assert.DoesNotContain(again.GetPendingThreadsEvents(), e => e.Id == _slug);
     }
@@ -241,5 +247,9 @@ public sealed class CrowdAgeTop10EventTests : IClassFixture<TestWebApplicationFa
         DELETE FROM Athletes WHERE Key=@slug;
         """, slug);
 
-    public void Dispose() => Cleanup(_slug);
+    public void Dispose()
+    {
+        _events.Dispose();
+        _database.Dispose();
+    }
 }
