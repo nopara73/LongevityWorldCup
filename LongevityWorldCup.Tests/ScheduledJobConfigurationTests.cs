@@ -54,11 +54,11 @@ public sealed class ScheduledJobConfigurationTests
             Assert.Equal(0, trigger.RepeatCount);
         }
 
-        var milestones = Assert.IsAssignableFrom<ISimpleTrigger>(await scheduler.GetTrigger(new TriggerKey("CrowdAgeMilestoneTrigger")));
-        Assert.Equal(new JobKey("CrowdAgeMilestoneJob"), milestones.JobKey);
-        Assert.Equal(TimeSpan.FromMinutes(1), milestones.RepeatInterval);
-        Assert.Equal(-1, milestones.RepeatCount);
-        Assert.NotNull(await scheduler.GetJobDetail(milestones.JobKey));
+        var announcements = Assert.IsAssignableFrom<ISimpleTrigger>(await scheduler.GetTrigger(new TriggerKey("CrowdAgeAnnouncementTrigger")));
+        Assert.Equal(new JobKey("CrowdAgeAnnouncementJob"), announcements.JobKey);
+        Assert.Equal(TimeSpan.FromMinutes(1), announcements.RepeatInterval);
+        Assert.Equal(-1, announcements.RepeatCount);
+        Assert.NotNull(await scheduler.GetJobDetail(announcements.JobKey));
     }
 
     [Fact]

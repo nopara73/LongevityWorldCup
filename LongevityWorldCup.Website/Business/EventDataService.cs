@@ -258,7 +258,7 @@ public sealed partial class EventDataService : IDisposable
             }
         });
 
-        InitializeCrowdAgeMilestones();
+        InitializeCrowdAgeAnnouncements();
 
         if (_enableEventDispatch)
         {
@@ -2406,8 +2406,6 @@ public sealed partial class EventDataService : IDisposable
 
         if (type == EventType.CrowdAgeTop10Change)
         {
-            if (!EventHelpers.TryExtractCrowdAgeTop10Change(rawText, out var place, out var previousPlace, out _, out _) ||
-                !CrowdAgeMilestonePolicy.IsMilestone(place, previousPlace)) return;
             _ = _slackEvents.BufferAsync(type, rawText);
             return;
         }

@@ -15,8 +15,7 @@ public enum SocialEventSkipReason
     TiedBestImprovementBadge,
     StalePrimaryEvent,
     EmptyMessage,
-    FacebookSupportsCustomEventsOnly,
-    NonMilestoneCrowdAgeChange
+    FacebookSupportsCustomEventsOnly
 }
 
 public static class SocialEventSkipPolicy
@@ -56,17 +55,11 @@ public static class SocialEventSkipPolicy
 
         if (type == EventType.CrowdAgeTop10Change)
         {
-            if (!EventHelpers.TryExtractSlug(text, out var slug) ||
-                string.IsNullOrWhiteSpace(slug) ||
-                !EventHelpers.TryExtractCrowdAgeTop10Change(text, out var crowdPlace, out var previousPlace, out _, out _))
-            {
-                reason = SocialEventSkipReason.UnsupportedEventPayload;
-                return true;
-            }
-
-            reason = CrowdAgeMilestonePolicy.IsMilestone(crowdPlace, previousPlace)
+            reason = EventHelpers.TryExtractSlug(text, out var slug) &&
+                     !string.IsNullOrWhiteSpace(slug) &&
+                     EventHelpers.TryExtractCrowdAgeTop10Change(text, out _, out _, out _, out _)
                 ? default
-                : SocialEventSkipReason.NonMilestoneCrowdAgeChange;
+                : SocialEventSkipReason.UnsupportedEventPayload;
             return reason != default;
         }
 

@@ -10,8 +10,8 @@ public sealed class CrowdAgeTop10EventTests : IClassFixture<TestWebApplicationFa
     private readonly TestWebApplicationFactory _factory;
     private readonly EventDataService _events;
     private readonly DatabaseManager _database;
-    private readonly string _slug = $"crowd_milestone_{Guid.NewGuid():N}";
-    private readonly DateTime _now = DateTime.UtcNow.AddDays(1);
+    private readonly string _slug = $"crowd_spacing_{Guid.NewGuid():N}";
+    private readonly DateTime _now = new(2030, 1, 1, 5, 47, 0, DateTimeKind.Utc);
 
     public CrowdAgeTop10EventTests(TestWebApplicationFactory factory)
     {
@@ -22,159 +22,201 @@ public sealed class CrowdAgeTop10EventTests : IClassFixture<TestWebApplicationFa
     }
 
     [Fact]
-    public void Top10EntryPublishesOnceAndTwoMoreGuessesDoNotCreateAnotherAnnouncement()
+    public void EighthToSixthIsAnnouncedAfterTwentyFourHoursInsteadOfLaterTheSameDay()
     {
         Queue(8, null, _now, age: 41, count: 100);
-        AssertNoPublishedMilestones();
-        Assert.Equal(0, _events.PublishPendingCrowdAgeMilestones(_now.AddMinutes(59)));
-        Assert.Equal(1, _events.PublishPendingCrowdAgeMilestones(_now.AddHours(1)));
-
-        Queue(6, 8, _now.AddHours(11), age: 40.5, count: 102);
-        Queue(4, 6, _now.AddHours(12));
-        Queue(7, null, _now.AddDays(1)); // Leaving and re-entering is not another debut.
-        Assert.Equal(0, _events.PublishPendingCrowdAgeMilestones(_now.AddDays(2)));
-        var milestone = Assert.Single(Published());
-        Assert.Contains("place[8]", milestone.Text);
-        Assert.Contains("crowdCount[100]", milestone.Text);
+        var first = Assert.Single(Published());
+        Assert.Contains("place[8]", first.Text);
         Assert.Equal(0, PendingCount());
-    }
 
-    [Fact]
-    public void NearbyMilestonesPublishOnlyTheStrongestAndKeepTheOriginalEntryContext()
-    {
-        Queue(8, null, _now);
-        Queue(3, 8, _now.AddMinutes(20));
-        Queue(2, 3, _now.AddMinutes(50), age: 38.5, count: 130);
-        Assert.Equal(1, PendingCount());
-        AssertNoPublishedMilestones();
-
-        Assert.Equal(1, _events.PublishPendingCrowdAgeMilestones(_now.AddHours(1)));
-        var milestone = Assert.Single(Published());
-        Assert.Contains("place[2]", milestone.Text);
-        Assert.DoesNotContain("prevPlace[", milestone.Text);
-        Assert.Contains("crowdAge[38.5] crowdCount[130]", milestone.Text);
-        Assert.Equal(_now.AddMinutes(50), milestone.OccurredAtUtc);
-        Assert.Contains(_events.GetPendingXEvents(), e => e.Id == milestone.Id);
-        Assert.Contains(_events.GetPendingThreadsEvents(), e => e.Id == milestone.Id);
-        Assert.Equal(0, _events.PublishPendingCrowdAgeMilestones(_now.AddHours(2)));
-
-        Queue(3, 4, _now.AddHours(3)); // A skipped weaker milestone cannot appear later.
-        Assert.Equal(0, PendingCount());
-    }
-
-    [Fact]
-    public void EachNewBestPodiumPositionCanPublishAndRepeatedPositionsCannot()
-    {
-        SeedHistoricalEvent(8);
-        Queue(3, 8, _now);
-        Queue(2, 3, _now.AddHours(2)); // Publish the expired window before starting another.
-        Queue(1, 2, _now.AddHours(4));
-        _events.PublishPendingCrowdAgeMilestones(_now.AddHours(5));
-        Assert.Equal(4, Published().Count);
-        Assert.Contains(Published(), e => e.Text.Contains("place[3] prevPlace[8]"));
-        Assert.Contains(Published(), e => e.Text.Contains("place[2] prevPlace[3]"));
-        Assert.Contains(Published(), e => e.Text.Contains("place[1] prevPlace[2]"));
-
-        Queue(3, 4, _now.AddHours(6));
-        Queue(2, 3, _now.AddHours(7));
-        Queue(1, 2, _now.AddHours(8));
-        Assert.Equal(0, PendingCount());
-        Assert.Equal(4, Published().Count);
-    }
-
-    [Fact]
-    public void CombinedPodiumClimbKeepsThePositionBeforeTheWindow()
-    {
-        SeedHistoricalEvent(8);
-        Queue(3, 8, _now);
-        Queue(1, 3, _now.AddMinutes(30));
-        _events.PublishPendingCrowdAgeMilestones(_now.AddHours(1));
-        Assert.Contains(Published(), e => e.Text.Contains("place[1] prevPlace[8]"));
-        Assert.Equal(2, Published().Count);
-    }
-
-    [Fact]
-    public void QueueAndPreviouslyReachedMilestonesSurviveANewServiceAndDatabaseConnection()
-    {
-        Queue(8, null, _now);
-        using var reopenedDatabase = new DatabaseManager(dbPath: _database.DbPath);
-        using var restarted = ActivatorUtilities.CreateInstance<EventDataService>(_factory.Services, reopenedDatabase);
-        restarted.CreateCrowdAgeTop10ChangeEvents(new[] { (_slug, _now.AddMinutes(30), 3, (int?)8, (string?)"previous", 39d, 125) });
-        Assert.Equal(1, restarted.PublishPendingCrowdAgeMilestones(_now.AddHours(1)));
-        Assert.Contains("place[3]", Assert.Single(Published()).Text);
-
-        restarted.CreateCrowdAgeTop10ChangeEvents(new[] { (_slug, _now.AddHours(2), 8, (int?)null, (string?)"previous", 40d, 150) });
-        Assert.Equal(0, PendingCount());
-    }
-
-    [Fact]
-    public void ImageChangesDiscardUnpublishedMilestonesButKeepPublishedHistory()
-    {
-        SeedHistoricalEvent(8);
-        Queue(3, 8, _now);
-        Execute("UPDATE Athletes SET CrowdAgeProfileImageId='new-image' WHERE Key=@slug;");
-        Assert.Equal(0, _events.PublishPendingCrowdAgeMilestones(_now.AddHours(1)));
-        Assert.Equal(0, PendingCount());
+        Queue(6, 8, _now.AddHours(10).AddMinutes(51), age: 40.5, count: 102);
         Assert.Single(Published());
+        Assert.Equal(1, PendingCount());
+        Assert.DoesNotContain(_events.GetPendingXEvents(), e => e.Text.Contains(_slug) && e.Text.Contains("place[6]"));
+        Assert.DoesNotContain(_events.GetPendingThreadsEvents(), e => e.Text.Contains(_slug) && e.Text.Contains("place[6]"));
+        Assert.Equal(0, _events.PublishPendingCrowdAgeAnnouncements(_now.AddHours(24).AddTicks(-1)));
+        Assert.Equal(1, _events.PublishPendingCrowdAgeAnnouncements(_now.AddHours(24)));
 
-        Queue(3, null, _now.AddHours(2));
-        Assert.Equal(1, _events.PublishPendingCrowdAgeMilestones(_now.AddHours(3)));
-        Assert.Equal(2, Published().Count);
+        var climb = Assert.Single(Published(), e => e.Id != first.Id);
+        Assert.Contains("place[6] prevPlace[8]", climb.Text);
+        Assert.Contains("crowdAge[40.5] crowdCount[102]", climb.Text);
+        Assert.Contains(_events.GetPendingXEvents(), e => e.Id == climb.Id);
+        Assert.Contains(_events.GetPendingThreadsEvents(), e => e.Id == climb.Id);
+        Assert.Equal(0, PendingCount());
     }
 
     [Fact]
-    public void FailedPublicationKeepsThePendingMilestoneForRetry()
+    public void CrossingMidnightDoesNotBypassTheCooldown()
+    {
+        var late = new DateTime(2030, 1, 1, 23, 55, 0, DateTimeKind.Utc);
+        Queue(8, null, late);
+        Queue(6, 8, late.AddMinutes(10));
+        Assert.Equal(0, _events.PublishPendingCrowdAgeAnnouncements(late.AddHours(12)));
+        Assert.Single(Published());
+        Assert.Equal(1, _events.PublishPendingCrowdAgeAnnouncements(late.AddHours(24)));
+    }
+
+    [Fact]
+    public void InterveningGainsBecomeOneStrongestClimbWithTheOriginalMovementContext()
     {
         Queue(8, null, _now);
-        Execute("CREATE TRIGGER FailCrowdMilestone BEFORE INSERT ON Events WHEN NEW.Type=11 BEGIN SELECT RAISE(ABORT, 'Simulated publication failure'); END;");
+        Queue(6, 8, _now.AddHours(11));
+        Queue(4, 6, _now.AddHours(12), age: 39, count: 130);
+        Queue(5, 7, _now.AddHours(20)); // A later weaker gain must not replace the stronger draft.
+        Assert.Equal(1, PendingCount());
+        Assert.Single(Published());
+        Assert.Equal(1, _events.PublishPendingCrowdAgeAnnouncements(_now.AddHours(24)));
+        Assert.Equal(2, Published().Count);
+        Assert.Contains(Published(), e => e.Text.Contains("place[4] prevPlace[8]") && e.Text.Contains("crowdCount[130]"));
+        Assert.Equal(0, _events.PublishPendingCrowdAgeAnnouncements(_now.AddHours(25)));
+    }
+
+    [Fact]
+    public void ADelayedPublicationStartsAFreshTwentyFourHourCooldown()
+    {
+        Queue(8, null, _now);
+        Queue(6, 8, _now.AddHours(11));
+        Assert.Equal(1, _events.PublishPendingCrowdAgeAnnouncements(_now.AddHours(36)));
+        Queue(4, 6, _now.AddHours(37));
+        Assert.Equal(0, _events.PublishPendingCrowdAgeAnnouncements(_now.AddHours(48)));
+        Assert.Equal(2, Published().Count);
+        Assert.Equal(1, _events.PublishPendingCrowdAgeAnnouncements(_now.AddHours(60)));
+        Assert.Equal(3, Published().Count);
+    }
+
+    [Fact]
+    public void PreviouslyUnannouncedPlacesRemainEligibleEvenBelowAPastBest()
+    {
+        SeedHistoricalEvent(4, _now.AddDays(-2));
+        Queue(6, 8, _now);
+        Assert.Contains(Published(), e => e.Text.Contains("place[6] prevPlace[8]"));
+        Assert.Equal(2, Published().Count);
+        Queue(6, 7, _now.AddDays(2));
+        Assert.Equal(2, Published().Count);
+        Assert.Equal(0, PendingCount());
+    }
+
+    [Fact]
+    public void AthletesHaveIndependentCooldowns()
+    {
+        var other = $"{_slug}_other";
+        Execute("INSERT INTO Athletes (Key, AgeGuesses, CrowdAgeProfileImageId) VALUES (@slug, '[]', 'other-image');", other);
         try
         {
-            Assert.Throws<SqliteException>(() => _events.PublishPendingCrowdAgeMilestones(_now.AddHours(1)));
+            Queue(8, null, _now);
+            Queue(6, 8, _now.AddHours(1));
+            _events.CreateCrowdAgeTop10ChangeEvents(
+                new[] { (other, _now.AddHours(2), 7, (int?)null, (string?)null, 40d, 100) }, nowUtc: _now.AddHours(2));
+            Assert.Single(_events.GetEvents(EventType.CrowdAgeTop10Change), e => e.Text.Contains($"slug[{other}]"));
+            Assert.Single(Published());
             Assert.Equal(1, PendingCount());
-            AssertNoPublishedMilestones();
         }
         finally
         {
-            Execute("DROP TRIGGER FailCrowdMilestone;");
+            Cleanup(other);
         }
+    }
 
-        Assert.Equal(1, _events.PublishPendingCrowdAgeMilestones(_now.AddHours(1)));
+    [Fact]
+    public void PendingClimbsAndPublicationTimesSurviveANewServiceAndDatabaseConnection()
+    {
+        Queue(8, null, _now);
+        Queue(6, 8, _now.AddHours(11));
+        using var reopenedDatabase = new DatabaseManager(dbPath: _database.DbPath);
+        using var restarted = ActivatorUtilities.CreateInstance<EventDataService>(_factory.Services, reopenedDatabase);
+        restarted.CreateCrowdAgeTop10ChangeEvents(
+            new[] { (_slug, _now.AddHours(12), 4, (int?)6, (string?)"previous", 39d, 125) }, nowUtc: _now.AddHours(12));
+        Assert.Equal(0, restarted.PublishPendingCrowdAgeAnnouncements(_now.AddHours(23)));
+        Assert.Equal(1, restarted.PublishPendingCrowdAgeAnnouncements(_now.AddHours(24)));
+        Assert.Contains(Published(), e => e.Text.Contains("place[4] prevPlace[8]"));
+        Assert.Equal(2, Published().Count);
+    }
+
+    [Fact]
+    public void ExistingOneHourDraftsMigrateToTheSpacingRuleWithoutBeingLost()
+    {
+        Queue(8, null, _now);
+        Queue(6, 8, _now.AddHours(11));
+        Execute($"UPDATE PendingCrowdAgeMilestones SET PublishAfterUtc='{_now.AddHours(12):o}' WHERE AthleteSlug=@slug;");
+        Execute("DROP TABLE CrowdAgeAnnouncementState;");
+        using var restarted = ActivatorUtilities.CreateInstance<EventDataService>(_factory.Services);
+        Assert.Equal(0, restarted.PublishPendingCrowdAgeAnnouncements(_now.AddHours(12)));
+        Assert.Equal(1, PendingCount());
+        Assert.Equal(1, restarted.PublishPendingCrowdAgeAnnouncements(_now.AddHours(24)));
+        Assert.Equal(2, Published().Count);
+    }
+
+    [Fact]
+    public void OldPodiumOnlySkipReasonsAreReopenedWithoutReplayingOtherProcessedPosts()
+    {
+        SeedHistoricalEvent(6, _now.AddDays(-2));
+        Execute("UPDATE Events SET XSkipReason='NonMilestoneCrowdAgeChange', ThreadsSkipReason='NonMilestoneCrowdAgeChange' WHERE Id=@slug;");
+        using var restarted = ActivatorUtilities.CreateInstance<EventDataService>(_factory.Services);
+        Assert.Contains(restarted.GetPendingXEvents(), e => e.Id == _slug);
+        Assert.Contains(restarted.GetPendingThreadsEvents(), e => e.Id == _slug);
+        restarted.MarkEventsXProcessed(new[] { _slug });
+        restarted.MarkEventsThreadsProcessed(new[] { _slug });
+        using var again = ActivatorUtilities.CreateInstance<EventDataService>(_factory.Services);
+        Assert.DoesNotContain(again.GetPendingXEvents(), e => e.Id == _slug);
+        Assert.DoesNotContain(again.GetPendingThreadsEvents(), e => e.Id == _slug);
+    }
+
+    [Fact]
+    public void ImageChangesDiscardPendingClimbsButKeepPublishedHistory()
+    {
+        Queue(8, null, _now);
+        Queue(6, 8, _now.AddHours(11));
+        Execute("UPDATE Athletes SET CrowdAgeProfileImageId='new-image' WHERE Key=@slug;");
+        Assert.Equal(0, _events.PublishPendingCrowdAgeAnnouncements(_now.AddHours(24)));
+        Assert.Equal(0, PendingCount());
         Assert.Single(Published());
+        Queue(5, null, _now.AddHours(25));
+        Assert.Equal(2, Published().Count);
+    }
+
+    [Fact]
+    public void FailedPublicationKeepsTheDraftAndDoesNotAdvanceTheCooldown()
+    {
+        Queue(8, null, _now);
+        Queue(6, 8, _now.AddHours(11));
+        Execute("CREATE TRIGGER FailCrowdAnnouncement BEFORE INSERT ON Events WHEN NEW.Type=11 BEGIN SELECT RAISE(ABORT, 'Simulated publication failure'); END;");
+        try
+        {
+            Assert.Throws<SqliteException>(() => _events.PublishPendingCrowdAgeAnnouncements(_now.AddHours(24)));
+            Assert.Equal(1, PendingCount());
+            Assert.Single(Published());
+        }
+        finally
+        {
+            Execute("DROP TRIGGER FailCrowdAnnouncement;");
+        }
+        Assert.Equal(1, _events.PublishPendingCrowdAgeAnnouncements(_now.AddHours(24)));
+        Assert.Equal(2, Published().Count);
         Assert.Equal(0, PendingCount());
     }
 
     [Theory]
-    [InlineData(6, 8, 102)]
-    [InlineData(4, 5, 120)]
     [InlineData(3, 2, 150)]
     [InlineData(1, 1, 150)]
     [InlineData(11, null, 150)]
     [InlineData(0, null, 150)]
     [InlineData(8, null, 99)]
-    public void RoutineMovementRegressionsAndUnqualifiedResultsAreNotQueued(int place, int? previousPlace, int count)
+    public void RegressionsRepeatedPositionsAndUnqualifiedResultsAreNotQueued(int place, int? previousPlace, int count)
     {
         Queue(place, previousPlace, _now, count: count);
         Assert.Equal(0, PendingCount());
-        AssertNoPublishedMilestones();
+        Assert.Empty(Published());
     }
 
     private void Queue(int place, int? previousPlace, DateTime at, double age = 40, int count = 110) =>
-        _events.CreateCrowdAgeTop10ChangeEvents(new[] { (_slug, at, place, previousPlace, (string?)null, age, count) });
+        _events.CreateCrowdAgeTop10ChangeEvents(new[] { (_slug, at, place, previousPlace, (string?)null, age, count) }, nowUtc: at);
 
-    private void SeedHistoricalEvent(int place) => Execute(
+    private void SeedHistoricalEvent(int place, DateTime at) => Execute(
         $"INSERT INTO Events (Id, Type, Text, OccurredAt, SlackProcessed, XProcessed, ThreadsProcessed, FacebookProcessed) " +
-        $"VALUES (@slug, 11, 'slug[{_slug}] place[{place}] crowdAge[41] crowdCount[100]', '{_now.AddDays(-1):o}', 1, 1, 1, 1);");
+        $"VALUES (@slug, 11, 'slug[{_slug}] place[{place}] crowdAge[41] crowdCount[100]', '{at:o}', 1, 1, 1, 1);");
 
     private List<EventItem> Published() => _events.GetEvents(EventType.CrowdAgeTop10Change)
         .Where(e => e.Text.Contains($"slug[{_slug}]", StringComparison.Ordinal)).ToList();
-
-    private void AssertNoPublishedMilestones()
-    {
-        Assert.Empty(Published());
-        Assert.DoesNotContain(_events.GetPendingXEvents(), e => e.Text.Contains(_slug));
-        Assert.DoesNotContain(_events.GetPendingThreadsEvents(), e => e.Text.Contains(_slug));
-        Assert.DoesNotContain(_events.Events, e => e!["Text"]!.GetValue<string>().Contains(_slug));
-    }
 
     private long PendingCount() => _database.Run(sqlite =>
     {
@@ -184,17 +226,20 @@ public sealed class CrowdAgeTop10EventTests : IClassFixture<TestWebApplicationFa
         return (long)command.ExecuteScalar()!;
     });
 
-    private void Execute(string sql) => _database.Run(sqlite =>
+    private void Execute(string sql, string? slug = null) => _database.Run(sqlite =>
     {
         using var command = sqlite.CreateCommand();
         command.CommandText = sql;
-        command.Parameters.AddWithValue("@slug", _slug);
+        command.Parameters.AddWithValue("@slug", slug ?? _slug);
         command.ExecuteNonQuery();
     });
 
-    public void Dispose() => Execute("""
+    private void Cleanup(string slug) => Execute("""
         DELETE FROM PendingCrowdAgeMilestones WHERE AthleteSlug=@slug;
+        DELETE FROM CrowdAgeAnnouncementState WHERE AthleteSlug=@slug;
         DELETE FROM Events WHERE instr(Text, @slug) > 0;
         DELETE FROM Athletes WHERE Key=@slug;
-        """);
+        """, slug);
+
+    public void Dispose() => Cleanup(_slug);
 }

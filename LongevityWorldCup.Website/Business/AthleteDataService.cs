@@ -1752,8 +1752,7 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
                     if (string.Equals(previousSlug, slug, StringComparison.OrdinalIgnoreCase))
                         previousSlug = null;
 
-                    if (eventSubjects.Contains(slug) &&
-                        CrowdAgeMilestonePolicy.IsMilestone(currentPlace.Value, previousPlace))
+                    if (ShouldEmitTop10PlacementChangeEvent(slug, previousPlace, currentPlace.Value, previousSlug, eventSubjects))
                     {
                         changed.Add((
                             slug,

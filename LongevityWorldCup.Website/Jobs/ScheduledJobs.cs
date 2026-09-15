@@ -19,11 +19,11 @@ internal static class ScheduledJobs
         var threadsDailyPostKey = new JobKey("ThreadsDailyPostJob");
         var facebookDailyPostKey = new JobKey("FacebookDailyPostJob");
         var longevitymaxxingReminderKey = new JobKey("LongevitymaxxingReminderJob");
-        var crowdAgeMilestoneKey = new JobKey("CrowdAgeMilestoneJob");
+        var crowdAgeAnnouncementKey = new JobKey("CrowdAgeAnnouncementJob");
 
-        scheduler.AddJob<CrowdAgeMilestoneJob>(o => o.WithIdentity(crowdAgeMilestoneKey));
-        scheduler.AddTrigger(t => t.ForJob(crowdAgeMilestoneKey)
-            .WithIdentity("CrowdAgeMilestoneTrigger")
+        scheduler.AddJob<CrowdAgeAnnouncementJob>(o => o.WithIdentity(crowdAgeAnnouncementKey));
+        scheduler.AddTrigger(t => t.ForJob(crowdAgeAnnouncementKey)
+            .WithIdentity("CrowdAgeAnnouncementTrigger")
             .StartNow()
             .WithSimpleSchedule(x => x.WithInterval(TimeSpan.FromMinutes(1)).RepeatForever()));
 

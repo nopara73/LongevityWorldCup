@@ -6,6 +6,13 @@ namespace LongevityWorldCup.Tests;
 public sealed class Top10PlacementEventPolicyTests
 {
     [Fact]
+    public void ShouldEmitTop10PlacementChangeEvent_AllowsSubjectClimbingFromEighthToSixth()
+    {
+        var subjects = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "bree" };
+        Assert.True(AthleteDataService.ShouldEmitTop10PlacementChangeEvent("bree", 8, 6, "previous", subjects));
+    }
+
+    [Fact]
     public void ShouldEmitTop10PlacementChangeEvent_AllowsSubjectEnteringByDisplacingPreviousHolder()
     {
         var subjects = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "martin_helstab" };
