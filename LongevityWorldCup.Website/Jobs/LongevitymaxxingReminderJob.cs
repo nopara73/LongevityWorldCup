@@ -16,11 +16,13 @@ public sealed class LongevitymaxxingReminderJob(
     private readonly ILongevitymaxxingEmailSender _email = email;
     private readonly ILogger<LongevitymaxxingReminderJob> _logger = logger;
 
-    public async Task Execute(IJobExecutionContext context)
-        => await ExecuteAtAsync(DateTimeOffset.UtcNow, context.CancellationToken).ConfigureAwait(false);
+    public async ValueTask Execute(IJobExecutionContext context, CancellationToken cancellationToken = default)
+        => await ExecuteAtAsync(DateTimeOffset.UtcNow, cancellationToken).ConfigureAwait(false);
 
     internal async Task ExecuteAtAsync(DateTimeOffset now, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         _challenge.TrySelectCallSlots(now);
 
         foreach (var start in _challenge.GetChallengeStartCandidates(now))
@@ -34,7 +36,7 @@ public sealed class LongevitymaxxingReminderJob(
                     cancellationToken).ConfigureAwait(false);
                 _challenge.MarkChallengeStartSent(start.ParticipantId, now);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
             {
                 _logger.LogWarning(ex, "Longevitymaxxing challenge start email failed for participant {ParticipantId}", start.ParticipantId);
             }
@@ -55,7 +57,7 @@ public sealed class LongevitymaxxingReminderJob(
                 if (reminder.IncludeCallScheduleUpdate)
                     _challenge.MarkCallScheduleUpdateNoticeSent(reminder.ParticipantId, now);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
             {
                 _logger.LogWarning(ex, "Longevitymaxxing daily reminder failed for participant {ParticipantId} day {ChallengeDay}", reminder.ParticipantId, reminder.ChallengeDay);
             }
@@ -72,7 +74,7 @@ public sealed class LongevitymaxxingReminderJob(
                     cancellationToken).ConfigureAwait(false);
                 _challenge.MarkCallReminderSent(reminder.ParticipantId, reminder.CallKey, reminder.ReminderKind, now);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
             {
                 _logger.LogWarning(ex, "Longevitymaxxing call reminder failed for participant {ParticipantId} call {CallKey} {ReminderKind}", reminder.ParticipantId, reminder.CallKey, reminder.ReminderKind);
             }
@@ -95,7 +97,7 @@ public sealed class LongevitymaxxingReminderJob(
                         SendToFacebook: true));
                 _challenge.MarkCallAnnouncementQueued(announcement.CallKey, announcement.ReminderKind, eventId, now);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
             {
                 _logger.LogWarning(ex, "Longevitymaxxing call announcement failed for call {CallKey} {ReminderKind}", announcement.CallKey, announcement.ReminderKind);
             }
@@ -105,7 +107,7 @@ public sealed class LongevitymaxxingReminderJob(
         {
             _events.UpsertLongevitymaxxingChallengeResults(_challenge.GetFinalResultEventRows(now));
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
         {
             _logger.LogWarning(ex, "Longevitymaxxing challenge result highlights failed.");
         }

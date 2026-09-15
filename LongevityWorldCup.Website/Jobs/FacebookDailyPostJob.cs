@@ -22,8 +22,10 @@ public class FacebookDailyPostJob : IJob
         _fillerLog = fillerLog;
     }
 
-    public async Task Execute(IJobExecutionContext context)
+    public async ValueTask Execute(IJobExecutionContext context, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         _logger.LogInformation("FacebookDailyPostJob {ts}", DateTime.UtcNow);
         _facebookEvents.SetAthletesForFacebook(_athletes.GetAthletesForX());
         var pending = _events.GetPendingFacebookEvents();

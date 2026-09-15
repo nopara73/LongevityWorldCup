@@ -16,13 +16,15 @@ namespace LongevityWorldCup.Website.Jobs
             _logger = logger;
         }
 
-        public async Task Execute(IJobExecutionContext context)
+        public async ValueTask Execute(IJobExecutionContext context, CancellationToken cancellationToken = default)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             try
             {
-                await _btc.CheckDonationAddressAndCreateEventsAsync(context.CancellationToken);
+                await _btc.CheckDonationAddressAndCreateEventsAsync(cancellationToken);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
             {
                 _logger.LogError(ex, "Bitcoin donation check job failed.");
             }

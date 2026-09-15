@@ -276,6 +276,12 @@ Deletion is scoped to `wwwroot/athletes/` and the generated-only `wwwroot/js/` d
 
 Social API token refreshes first try to persist updated token state in `config.json`. If the service account can read but not write that file, the app writes the runtime token fields to `/var/www/.longevityworldcup/runtime-config.json` instead. On startup, that sidecar is applied only when it is newer than `config.json`, so a fresh manual edit to `config.json` takes precedence. Delete or update the sidecar when intentionally resetting social tokens.
 
+## Scheduled Jobs
+
+Quartz 4 uses its in-memory job store. `LongevityWorldCup.Website/Jobs/ScheduledJobs.cs` registers the UTC schedules and one-shot startup triggers; there are no persisted Quartz tables or serialized triggers to migrate. Application data and job delivery ledgers remain in their existing stores. Shutdown waits for running jobs to complete, and jobs receive Quartz's cancellation token explicitly. `ScheduledJobConfigurationTests` verifies the registered next-fire times and startup triggers without executing production jobs.
+
+Before merging an SDK pin change, verify that production can resolve the new `global.json` version. Install a missing SDK alongside the existing versions from the official .NET release artifacts, verifying the published checksum and preserving existing host/runtime files. A successful CI build does not establish that the Node-free production publish can resolve that SDK.
+
 ## Check Website
 https://www.longevityworldcup.com/
 

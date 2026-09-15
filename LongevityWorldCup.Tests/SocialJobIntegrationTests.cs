@@ -16,6 +16,25 @@ namespace LongevityWorldCup.Tests;
 public sealed class SocialJobIntegrationTests
 {
     [Fact]
+    public async Task CancelledSocialJobs_DoNotSendRequests()
+    {
+        using var fixture = SocialJobFixture.Create();
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        IJob[] jobs = [fixture.CreateXJob(), fixture.CreateThreadsJob(), fixture.CreateFacebookJob()];
+
+        foreach (var job in jobs)
+        {
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
+                await job.Execute(TestJobExecutionContext.Now(), cancellation.Token));
+        }
+
+        Assert.Empty(fixture.XRequests);
+        Assert.Empty(fixture.ThreadsRequests);
+        Assert.Empty(fixture.FacebookRequests);
+    }
+
+    [Fact]
     public void BecameProAndBiologicalAgeImprovedEvents_AreWebsiteOnly()
     {
         using var fixture = SocialJobFixture.Create();
@@ -733,8 +752,6 @@ public sealed class SocialJobIntegrationTests
 
     private sealed class TestJobExecutionContext(DateTimeOffset fireTimeUtc) : IJobExecutionContext
     {
-        private readonly Dictionary<object, object> _values = new();
-
         public static TestJobExecutionContext Now() => new(DateTimeOffset.UtcNow);
         public static TestJobExecutionContext At(DateTimeOffset fireTimeUtc) => new(fireTimeUtc);
 
@@ -744,6 +761,7 @@ public sealed class SocialJobIntegrationTests
         public bool Recovering => false;
         public TriggerKey RecoveringTriggerKey => null!;
         public int RefireCount => 0;
+        public int RetryAttempt => 0;
         public JobDataMap MergedJobDataMap { get; } = new();
         public IJobDetail JobDetail => null!;
         public IJob JobInstance => null!;
@@ -756,7 +774,5 @@ public sealed class SocialJobIntegrationTests
         public TimeSpan JobRunTime => TimeSpan.Zero;
         public CancellationToken CancellationToken => CancellationToken.None;
 
-        public void Put(object key, object objectValue) => _values[key] = objectValue;
-        public object? Get(object key) => _values.TryGetValue(key, out var value) ? value : null;
     }
 }

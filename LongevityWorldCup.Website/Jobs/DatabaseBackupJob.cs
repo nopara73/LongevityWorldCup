@@ -18,8 +18,10 @@ namespace LongevityWorldCup.Website.Jobs
             _logger = logger;
         }
 
-        public Task Execute(IJobExecutionContext context)
+        public ValueTask Execute(IJobExecutionContext context, CancellationToken cancellationToken = default)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             try
             {
                 var dir = System.IO.Path.Combine(EnvironmentHelpers.GetDataDir(), "Backups");
@@ -31,7 +33,7 @@ namespace LongevityWorldCup.Website.Jobs
                 _logger.LogError(ex, "Database backup job failed.");
             }
 
-            return Task.CompletedTask;
+            return ValueTask.CompletedTask;
         }
     }
 }
