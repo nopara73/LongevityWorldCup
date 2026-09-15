@@ -114,7 +114,8 @@ public sealed class LongevitymaxxingChallengeService
             GetSystemDiscussionPosts(now),
             BuildPublicCalls(settings),
             settings.SlackInviteUrl,
-            settings.SlackRoomUrl);
+            settings.SlackRoomUrl,
+            GetLeaderboardScoringWindow(settings, now));
     }
 
     public IReadOnlyList<LongevitymaxxingChallengeResultEventRow> GetFinalResultEventRows(DateTimeOffset? nowUtc = null)
@@ -3099,25 +3100,27 @@ public sealed class LongevitymaxxingChallengeService
         int visibleDayCount,
         int? maxChallengeDay = null)
     {
-        var leaderboardWindowStartDay = GetLeaderboardWindowStartDay(visibleDayCount, maxChallengeDay);
-        var categoryLeaders = BuildCategoryLeaders(settings, participants, checkIns, maxChallengeDay, leaderboardWindowStartDay);
+        var leaderboardWindowEndDay = maxChallengeDay ?? GetLeaderboardScoringWindow(settings, now).EndDay;
+        var leaderboardWindowStartDay = GetLeaderboardWindowStartDay(leaderboardWindowEndDay);
+        var categoryLeaders = BuildCategoryLeaders(settings, participants, checkIns, leaderboardWindowEndDay, leaderboardWindowStartDay);
         var athleteTieBreaks = BuildAthleteTieBreaks();
         var rows = participants.Select(p =>
         {
             checkIns.TryGetValue(p.Id, out var byDay);
             byDay ??= [];
             var includedByDay = FilterChallengeDays(byDay, maxChallengeDay);
-            var performanceByDay = FilterLeaderboardPerformanceDays(includedByDay, leaderboardWindowStartDay);
+            var performanceByDay = FilterLeaderboardPerformanceDays(includedByDay, leaderboardWindowStartDay, leaderboardWindowEndDay);
             var checkedInDays = performanceByDay.Count;
             var totalPoints = performanceByDay.Values.Sum(c => GetScoredPoints(settings, p, c, includedByDay));
-            var currentStreak = Math.Min(CalculateCurrentStreak(settings, p, byDay, now), LeaderboardScoringWindowDays);
+            var currentStreak = CalculateCurrentStreak(performanceByDay, leaderboardWindowEndDay);
             var latest = performanceByDay.Values
                 .Select(c => c.CheckedInAtUtc)
                 .Where(x => x is not null)
                 .OrderByDescending(x => x)
                 .FirstOrDefault();
             var badges = BuildBadges(settings, p, p.Id, performanceByDay, currentStreak, categoryLeaders);
-            var challengeInactive = IsParticipantInactive(settings, p, byDay, now);
+            var challengeInactive = HasMissedScoredDayInactiveThreshold(settings, p, includedByDay,
+                settings.StartDate.AddDays(leaderboardWindowEndDay - 1));
             var cells = Enumerable.Range(1, visibleDayCount)
                 .Select(day => includedByDay.TryGetValue(day, out var checkIn)
                     ? new LongevitymaxxingDayCell(
@@ -3162,11 +3165,20 @@ public sealed class LongevitymaxxingChallengeService
         return rows;
     }
 
-    private static int GetLeaderboardWindowStartDay(int visibleDayCount, int? maxChallengeDay)
+    private static LongevitymaxxingScoringWindow GetLeaderboardScoringWindow(ChallengeSettings settings, DateTimeOffset now)
     {
-        var latestChallengeDay = Math.Max(1, maxChallengeDay ?? visibleDayCount);
-        return Math.Max(1, latestChallengeDay - LeaderboardScoringWindowDays + 1);
+        // A habit date closes at noon UTC two dates later: even UTC-12 has had
+        // the entire following local day to report. Never derive scoring from
+        // visible columns or submitted check-ins, which can be ahead of this date.
+        var closedDate = DateOnly.FromDateTime(now.UtcDateTime.AddHours(-12)).AddDays(-2);
+        var endDay = Math.Max(0, closedDate.DayNumber - settings.StartDate.DayNumber + 1);
+        var nextClose = new DateTimeOffset(settings.StartDate.AddDays(endDay + 2)
+            .ToDateTime(new TimeOnly(12, 0)), TimeSpan.Zero);
+        return new LongevitymaxxingScoringWindow(GetLeaderboardWindowStartDay(endDay), endDay, nextClose.ToString("o"));
     }
+
+    private static int GetLeaderboardWindowStartDay(int latestChallengeDay)
+        => Math.Max(1, latestChallengeDay - LeaderboardScoringWindowDays + 1);
 
     private static Dictionary<int, CheckInRecord> FilterChallengeDays(
         IReadOnlyDictionary<int, CheckInRecord> byDay,
@@ -3182,9 +3194,10 @@ public sealed class LongevitymaxxingChallengeService
 
     private static Dictionary<int, CheckInRecord> FilterLeaderboardPerformanceDays(
         IReadOnlyDictionary<int, CheckInRecord> byDay,
-        int minChallengeDay)
+        int minChallengeDay,
+        int maxChallengeDay)
         => byDay
-            .Where(kv => kv.Key >= minChallengeDay)
+            .Where(kv => kv.Key >= minChallengeDay && kv.Key <= maxChallengeDay)
             .ToDictionary(kv => kv.Key, kv => kv.Value);
 
     private bool IsParticipantInactive(
@@ -3192,25 +3205,8 @@ public sealed class LongevitymaxxingChallengeService
         ParticipantRecord participant,
         IReadOnlyDictionary<int, CheckInRecord> byDay,
         DateTimeOffset now)
-        => GetParticipantInactiveReason(settings, participant, byDay, now) is not null;
-
-    private string? GetParticipantInactiveReason(
-        ChallengeSettings settings,
-        ParticipantRecord participant,
-        IReadOnlyDictionary<int, CheckInRecord> byDay,
-        DateTimeOffset now)
-    {
-        if (participant.ChallengeInactiveAtUtc is not null)
-        {
-            return HasMissedScoredDayInactiveThreshold(settings, participant, byDay, now)
-                ? ChallengeInactiveReasonMissedScoredDays
-                : null;
-        }
-
-        return HasMissedScoredDayInactiveThreshold(settings, participant, byDay, now)
-            ? ChallengeInactiveReasonMissedScoredDays
-            : null;
-    }
+        => HasMissedScoredDayInactiveThreshold(settings, participant, byDay,
+            settings.StartDate.AddDays(GetLeaderboardScoringWindow(settings, now).EndDay - 1));
 
     private bool HasMissedScoredDayInactiveThreshold(
         ChallengeSettings settings,
@@ -3221,6 +3217,15 @@ public sealed class LongevitymaxxingChallengeService
         var tz = ResolveTimeZone(participant.TimeZoneId);
         var localNow = TimeZoneInfo.ConvertTime(now, tz);
         var targetDate = DateOnly.FromDateTime(localNow.DateTime).AddDays(-1);
+        return HasMissedScoredDayInactiveThreshold(settings, participant, byDay, targetDate);
+    }
+
+    private static bool HasMissedScoredDayInactiveThreshold(
+        ChallengeSettings settings,
+        ParticipantRecord participant,
+        IReadOnlyDictionary<int, CheckInRecord> byDay,
+        DateOnly targetDate)
+    {
         if (targetDate < GetJoinedLocalDate(participant))
             return false;
 
@@ -3392,17 +3397,10 @@ public sealed class LongevitymaxxingChallengeService
             StringComparer.Ordinal);
     }
 
-    private static int CalculateCurrentStreak(ChallengeSettings settings, ParticipantRecord participant, IReadOnlyDictionary<int, CheckInRecord> byDay, DateTimeOffset now)
+    private static int CalculateCurrentStreak(IReadOnlyDictionary<int, CheckInRecord> byDay, int referenceDay)
     {
-        var tz = ResolveTimeZone(participant.TimeZoneId);
-        var localDate = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(now, tz).DateTime);
-        var referenceDate = localDate.AddDays(-1);
-        var referenceDay = DayFromDate(settings, referenceDate);
-        if (referenceDay is null)
-            return 0;
-
         var streak = 0;
-        for (var day = referenceDay.Value; day >= 1; day--)
+        for (var day = referenceDay; day >= 1; day--)
         {
             if (!byDay.ContainsKey(day))
                 break;
@@ -3431,9 +3429,7 @@ public sealed class LongevitymaxxingChallengeService
         if (latestEligibleDay is not null)
         {
             var firstParticipantDay = DayFromDate(settings, joinedLocalDate) ?? 1;
-            var leaderboardWindowStartDay = GetLeaderboardWindowStartDay(
-                GetVisibleDayCount(settings, checkIns, now),
-                maxChallengeDay: null);
+            var leaderboardWindowStartDay = GetLeaderboardScoringWindow(settings, now).StartDay;
             var windowStartDay = Math.Max(
                 firstParticipantDay,
                 leaderboardWindowStartDay);

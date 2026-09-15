@@ -78,7 +78,10 @@ public sealed record LongevitymaxxingPublicState(
     IReadOnlyList<LongevitymaxxingDiscussionSystemPost> SystemDiscussionPosts,
     IReadOnlyList<LongevitymaxxingPublicCall> Calls,
     string SlackInviteUrl,
-    string? SlackRoomUrl);
+    string? SlackRoomUrl,
+    LongevitymaxxingScoringWindow ScoringWindow);
+
+public sealed record LongevitymaxxingScoringWindow(int StartDay, int EndDay, string NextClosesAtUtc);
 
 public sealed record LongevitymaxxingParticipantState(
     LongevitymaxxingPublicState Public,

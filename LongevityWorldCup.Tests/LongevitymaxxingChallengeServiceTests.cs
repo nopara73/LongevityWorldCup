@@ -1311,7 +1311,8 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
             access,
             DateTimeOffset.Parse("2026-06-30T08:00:00Z"));
         Assert.DoesNotContain(outsideWindow.EligibleDays, day => day.ChallengeDay == 4);
-        Assert.Contains(outsideWindow.EligibleDays, day => day.ChallengeDay == 10);
+        Assert.Equal(7, outsideWindow.Public.ScoringWindow.StartDay);
+        Assert.Contains(outsideWindow.EligibleDays, day => day.ChallengeDay == 9);
     }
 
     [Fact]
@@ -1733,7 +1734,7 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
             0,
             null), DateTimeOffset.Parse("2026-06-11T08:00:00Z"));
 
-        var publicState = fixture.Service.GetPublicState(DateTimeOffset.Parse("2026-06-11T09:00:00Z"));
+        var publicState = fixture.Service.GetPublicState(DateTimeOffset.Parse("2026-06-12T12:00:00Z"));
 
         Assert.Equal("Alice", publicState.Leaderboard[0].DisplayName);
         Assert.Equal(8, publicState.Leaderboard[0].TotalPoints);
@@ -1801,7 +1802,7 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
             2,
             "practice"), DateTimeOffset.Parse("2026-06-09T08:00:00Z"));
 
-        var practiceState = fixture.Service.GetPublicState(DateTimeOffset.Parse("2026-06-09T09:00:00Z"));
+        var practiceState = fixture.Service.GetPublicState(DateTimeOffset.Parse("2026-06-10T12:00:00Z"));
         var alicePractice = practiceState.Leaderboard.Single(row => row.DisplayName == "Alice");
         var aliceDay1 = alicePractice.Cells.Single(cell => cell.ChallengeDay == 1);
         Assert.Equal(1, alicePractice.CheckedInDays);
@@ -1825,7 +1826,7 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
             2,
             null), DateTimeOffset.Parse("2026-06-10T08:00:00Z"));
 
-        var scoredState = fixture.Service.GetPublicState(DateTimeOffset.Parse("2026-06-10T09:00:00Z"));
+        var scoredState = fixture.Service.GetPublicState(DateTimeOffset.Parse("2026-06-11T12:00:00Z"));
         Assert.Equal("Bob", scoredState.Leaderboard[0].DisplayName);
         Assert.Equal(8, scoredState.Leaderboard[0].TotalPoints);
         var bobDay2 = scoredState.Leaderboard[0].Cells.Single(cell => cell.ChallengeDay == 2);
@@ -1875,7 +1876,7 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
             cmd.ExecuteNonQuery();
         });
 
-        var state = fixture.Service.GetPublicState(DateTimeOffset.Parse("2026-06-10T09:00:00Z"));
+        var state = fixture.Service.GetPublicState(DateTimeOffset.Parse("2026-06-11T12:00:00Z"));
         var row = Assert.Single(state.Leaderboard);
         var day1 = row.Cells.Single(cell => cell.ChallengeDay == 1);
         var day2 = row.Cells.Single(cell => cell.ChallengeDay == 2);
@@ -1895,7 +1896,7 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
 
         SubmitChallengeDays(fixture, access, 14, 2, 2, 2, 2);
 
-        var state = fixture.Service.GetPublicState(DateTimeOffset.Parse("2026-06-22T09:00:00Z"));
+        var state = fixture.Service.GetPublicState(DateTimeOffset.Parse("2026-06-23T12:00:00Z"));
         var row = Assert.Single(state.Leaderboard);
 
         Assert.Equal(11, state.DailyMaxScore);
@@ -1970,7 +1971,7 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
                 null), DateTimeOffset.Parse("2026-06-09T08:00:00Z").AddDays(day - 1));
         }
 
-        var state = fixture.Service.GetPublicState(DateTimeOffset.Parse("2026-06-23T09:00:00Z"));
+        var state = fixture.Service.GetPublicState(DateTimeOffset.Parse("2026-06-25T12:00:00Z"));
 
         var recent = state.Leaderboard.Single(row => row.DisplayName == "Recent Window");
         var old = state.Leaderboard.Single(row => row.DisplayName == "Old Window");
@@ -2016,7 +2017,7 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
             2,
             null), DateTimeOffset.Parse("2026-06-26T08:10:00Z"));
 
-        var state = fixture.Service.GetPublicState(DateTimeOffset.Parse("2026-06-26T09:00:00Z"));
+        var state = fixture.Service.GetPublicState(DateTimeOffset.Parse("2026-06-27T12:00:00Z"));
         var row = Assert.Single(state.Leaderboard);
         var day17 = row.Cells.Single(cell => cell.ChallengeDay == 17);
         var day18 = row.Cells.Single(cell => cell.ChallengeDay == 18);
@@ -2060,7 +2061,7 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
             2,
             null), DateTimeOffset.Parse("2026-06-26T08:10:00Z"));
 
-        var state = fixture.Service.GetPublicState(DateTimeOffset.Parse("2026-06-26T09:00:00Z"));
+        var state = fixture.Service.GetPublicState(DateTimeOffset.Parse("2026-06-27T12:00:00Z"));
         var row = Assert.Single(state.Leaderboard);
         Assert.Equal(1, row.CheckedInDays);
         Assert.Equal(0, row.TotalPoints);
@@ -2122,7 +2123,7 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
             2,
             null), DateTimeOffset.Parse("2026-06-14T08:00:00Z"));
 
-        var state = fixture.Service.GetPublicState(DateTimeOffset.Parse("2026-06-14T09:00:00Z"));
+        var state = fixture.Service.GetPublicState(DateTimeOffset.Parse("2026-06-15T12:00:00Z"));
         var row = Assert.Single(state.Leaderboard);
 
         Assert.Equal(8, row.Cells.Single(cell => cell.ChallengeDay == 2).Score);
@@ -2200,9 +2201,12 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
         fixture.Service.ApplyDailyReminderStopRules(DateTimeOffset.Parse("2026-06-12T08:05:00Z"));
         var stopped = fixture.Service.GetParticipantState(access, DateTimeOffset.Parse("2026-06-12T08:06:00Z"));
         Assert.False(stopped.Participant.ChallengeEmailsStopped);
-        Assert.True(stopped.Participant.ChallengeInactive);
+        Assert.False(stopped.Participant.ChallengeInactive);
         Assert.False(stopped.Public.Leaderboard.Single().ChallengeEmailsStopped);
-        Assert.True(stopped.Public.Leaderboard.Single().ChallengeInactive);
+        Assert.False(stopped.Public.Leaderboard.Single().ChallengeInactive);
+        var closed = fixture.Service.GetParticipantState(access, DateTimeOffset.Parse("2026-06-13T12:00:00Z"));
+        Assert.True(closed.Participant.ChallengeInactive);
+        Assert.True(closed.Public.Leaderboard.Single().ChallengeInactive);
     }
 
     [Fact]
@@ -2233,7 +2237,7 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
         Assert.Empty(fixture.Service.GetDailyReminderCandidates(DateTimeOffset.Parse("2026-06-21T08:05:00Z")));
         fixture.Service.ApplyDailyReminderStopRules(DateTimeOffset.Parse("2026-06-21T08:05:00Z"));
         var stopped = fixture.Service.GetParticipantState(access, DateTimeOffset.Parse("2026-06-21T08:06:00Z"));
-        Assert.True(stopped.Participant.ChallengeInactive);
+        Assert.False(stopped.Participant.ChallengeInactive);
         Assert.Contains(stopped.EligibleDays, day => day.ChallengeDay == 12);
         Assert.Contains(stopped.EligibleDays, day => day.ChallengeDay == 13);
 
@@ -2261,6 +2265,7 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
         Assert.True(row.Cells.Single(cell => cell.ChallengeDay == 13).CheckedIn);
         Assert.Contains(caughtUp.Notes, note => note.Note == "catch-up day 12");
         Assert.Contains(caughtUp.Notes, note => note.Note == "catch-up day 13");
+        Assert.False(fixture.Service.GetParticipantState(access, DateTimeOffset.Parse("2026-06-22T12:00:00Z")).Participant.ChallengeInactive);
 
         var resumed = Assert.Single(fixture.Service.GetDailyReminderCandidates(DateTimeOffset.Parse("2026-06-22T08:05:00Z")));
         Assert.Equal(caughtUp.Participant.Id, resumed.ParticipantId);

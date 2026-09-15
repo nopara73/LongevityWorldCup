@@ -662,7 +662,6 @@ public sealed class LongevitymaxxingChallengePageTests(TestWebApplicationFactory
         Assert.Contains("function categoryDayCell", javascript);
         Assert.Contains("function clampHabitValue", javascript);
         Assert.DoesNotContain("lockedInDetail", javascript);
-        Assert.DoesNotContain("scored days", javascript);
         Assert.DoesNotContain("scoredFullDays", javascript);
         Assert.Contains("row.totalPoints", javascript);
         Assert.Contains("board.className = publicViewer ? \"lmx-board public\" : \"lmx-board\";", javascript);

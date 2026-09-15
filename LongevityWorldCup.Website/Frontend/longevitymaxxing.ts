@@ -285,6 +285,7 @@
         endDate: string;
         durationDays: number;
         dailyMaxScore: number;
+        scoringWindow?: { startDay: number; endDay: number; nextClosesAtUtc: string };
         days: DaySummary[];
         leaderboard: LeaderboardRow[];
         podium: PodiumRow[];
@@ -1455,8 +1456,15 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             setText("lmxBoardTitle", "Leaderboard");
             setText("lmxBoardMeta", `${boardRows.active.length} active people signed up · starts ${formatDateLabel(state.startDate)}`);
         } else {
-            setText("lmxBoardTitle", "Live leaderboard");
-            setText("lmxBoardMeta", `${boardRows.active.length} active people · ${checks} check-ins · last 2 weeks count · later days score higher · one slip can still score max, never twice in a row`);
+            setText("lmxBoardTitle", "Leaderboard");
+            const closedDay = state.days.find(day => day.challengeDay === state.scoringWindow?.endDay);
+            const period = state.scoringWindow
+                ? closedDay ? `14-day scores through ${formatDateLabel(closedDay.date)}` : "First reporting period open"
+                : "last 2 weeks count";
+            setText("lmxBoardMeta", `${boardRows.active.length} active people · ${checks} check-ins · ${period}`);
+            const meta = document.getElementById("lmxBoardMeta");
+            if (meta) meta.title = "Score ranks first; checked-in days and streak break ties; later days score higher; one slip can still score max, never twice in a row." +
+                (state.scoringWindow ? " Standings update daily at 12:00 UTC. Open days are not included; late catch-up check-ins can update scored days." : "");
         }
     }
 
@@ -1557,24 +1565,24 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const visibleDays = cells.length || state.durationDays || 14;
         const dayCount = Math.max(1, Math.trunc(Number(visibleDays) || 14));
         const scoringWindowDays = leaderboardScoringWindowDays(state);
-        const scoringWindowCells = cells.slice(Math.max(0, cells.length - scoringWindowDays));
+        const scoringWindowCells = cells.filter(cell => isInScoringWindow(cell.challengeDay, state));
         const scoredCells = scoringWindowCells.filter(cell => cell.checkedIn && cell.countsForScore !== false);
         const categories = dashboardCategories();
         const summaries = categories.map(category => categorySummary(category, scoringWindowCells, scoredCells));
         const today = isoDateInTimeZone(new Date(), getParticipantTimeZone());
         const dayHeaders = cells.map(cell => {
-            const classes = ["lmx-dashboard-day"];
+            const classes = ["lmx-dashboard-day" + reportingDayClasses(cell.challengeDay, state)];
             if (cell.date === today) classes.push("today");
             if (cell.countsForScore === false) classes.push("practice");
-            return `<span class="${classes.join(" ")}" title="${escAttr(dayTitle(cell))}">${cell.challengeDay}</span>`;
+            return `<span class="${classes.join(" ")}" title="${escAttr(dayTitle(cell) + reportingDayTitle(cell.challengeDay, state))}">${cell.challengeDay}</span>`;
         }).join("");
-        const rows = summaries.map(summary => categoryDashboardRow(summary, cells, today)).join("");
+        const rows = summaries.map(summary => categoryDashboardRow(summary, cells, today, state)).join("");
 
         track.innerHTML = `
             <details class="lmx-habit-history"${dashboardHistoryExpanded ? " open" : ""}>
                 <summary class="lmx-dashboard-head" title="Toggle daily history">
                     <h2>Your habits</h2>
-                    <span class="lmx-dashboard-period">Last ${scoringWindowDays} days</span>
+                    <span class="lmx-dashboard-period">${scoringWindowDays ? `Last ${scoringWindowDays} scored days` : "Reporting open"}</span>
                     <i class="fas fa-chevron-down" aria-hidden="true"></i>
                 </summary>
                 <div class="lmx-dashboard-scroll" tabindex="0" role="region" aria-label="Habit history">
@@ -1636,9 +1644,9 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         };
     }
 
-    function categoryDashboardRow(summary: CategorySummary, cells: DashboardCell[], today: string): string {
+    function categoryDashboardRow(summary: CategorySummary, cells: DashboardCell[], today: string, state: PublicState): string {
         const category = summary.category;
-        const dayCells = cells.map(cell => categoryDayCell(category, cell, today)).join("");
+        const dayCells = cells.map(cell => categoryDayCell(category, cell, today, state)).join("");
         return `<div class="lmx-dashboard-row" role="row">
             ${categoryDashboardLabel(summary, "cell")}
             <div class="lmx-dashboard-days" role="cell" aria-label="${escAttr(`${category.label} by challenge day`)}">${dayCells}</div>
@@ -1656,18 +1664,20 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         </div>`;
     }
 
-    function categoryDayCell(category: DashboardCategory, cell: DashboardCell, today: string): string {
-        const classes = ["lmx-category-day"];
+    function categoryDayCell(category: DashboardCategory, cell: DashboardCell, today: string, state: PublicState): string {
+        const classes = ["lmx-category-day" + reportingDayClasses(cell.challengeDay, state)];
+        const reportingTitle = reportingDayTitle(cell.challengeDay, state);
         if (cell.date === today) classes.push("today");
         if (cell.countsForScore === false) classes.push("practice");
         if (!cell.checkedIn) {
             classes.push("empty");
-            return `<span class="${classes.join(" ")}" data-day="${escAttr(cell.challengeDay)}" title="${escAttr(`${dayTitle(cell)}: no check-in`)}" aria-label="${escAttr(`${category.label} day ${cell.challengeDay}: no check-in`)}"></span>`;
+            const status = reportingTitle ? "pending" : "no check-in";
+            return `<span class="${classes.join(" ")}" data-day="${escAttr(cell.challengeDay)}" title="${escAttr(`${dayTitle(cell)}: ${status}${reportingTitle}`)}" aria-label="${escAttr(`${category.label} day ${cell.challengeDay}: ${status}${reportingTitle}`)}"></span>`;
         }
 
         const value = clampHabitValue(cell[category.key]);
         classes.push(value >= 2 ? "full" : value > 0 ? "partial" : "missed");
-        return `<span class="${classes.join(" ")}" data-day="${escAttr(cell.challengeDay)}" title="${escAttr(`${dayTitle(cell)}: ${category.label} ${value}/2`)}" aria-label="${escAttr(`${category.label} day ${cell.challengeDay}: ${value} of 2`)}"></span>`;
+        return `<span class="${classes.join(" ")}" data-day="${escAttr(cell.challengeDay)}" title="${escAttr(`${dayTitle(cell)}: ${category.label} ${value}/2${reportingTitle}`)}" aria-label="${escAttr(`${category.label} day ${cell.challengeDay}: ${value} of 2${reportingTitle}`)}"></span>`;
     }
 
     function clampHabitValue(value: number | null): number {
@@ -2234,7 +2244,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const dayCount = visibleDays.length;
         setBoardDayColumns(board, dayCount, false);
         updateInactiveToggle(state);
-        const dayHeaders = visibleDays.map(day => `<div class="lmx-cell">${day.challengeDay}</div>`).join("");
+        const dayHeaders = visibleDays.map(day => `<div class="lmx-cell${reportingDayClasses(day.challengeDay, state)}" title="${escAttr(`Day ${day.challengeDay}${reportingDayTitle(day.challengeDay, state)}`)}">${day.challengeDay}</div>`).join("");
         const leaderboardRows = splitLeaderboardRows(state);
         const rows = leaderboardRows.visible.map((row, index) => {
             const name = row.athleteUrl
@@ -2242,13 +2252,19 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 : `<span>${esc(row.displayName)}</span>`;
             const participant = participantNameHtml(row, name, index + 1);
             const cellsByDay = new Map((row.cells || []).map(cell => [cell.challengeDay, cell]));
-            const cells = visibleDays.map(day => {
+            const cells = visibleDays.map((day, dayIndex) => {
                 const cell = cellsByDay.get(day.challengeDay);
-                if (!cell || !cell.checkedIn) return `<div class="lmx-cell empty" data-day="${escAttr(day.challengeDay)}" title="Day ${day.challengeDay}"></div>`;
-                if (cell.countsForScore === false) {
-                    return practiceDayCellHtml(cell);
+                const reportingTitle = reportingDayTitle(day.challengeDay, state);
+                const divider = reportingTitle && (dayIndex === 0 || day.challengeDay === (state.scoringWindow?.endDay ?? 0) + 1)
+                    ? `<div class="lmx-open-divider" aria-hidden="true"><i class="fas fa-clock"></i><span>Open</span></div>` : "";
+                if (!cell || !cell.checkedIn) {
+                    const title = `Day ${day.challengeDay}${reportingTitle ? ": pending" + reportingTitle : ": no check-in"}`;
+                    return `${divider}<div class="lmx-cell empty${reportingDayClasses(day.challengeDay, state)}" data-day="${escAttr(day.challengeDay)}" title="${escAttr(title)}" aria-label="${escAttr(title)}"></div>`;
                 }
-                return scoredDayCellHtml(cell);
+                if (cell.countsForScore === false) {
+                    return divider + practiceDayCellHtml(cell, state);
+                }
+                return divider + scoredDayCellHtml(cell, state);
             }).join("");
             return `<div class="lmx-board-row${row.challengeInactive ? " inactive" : ""}" role="row">
                 <div class="lmx-name" role="cell">${participant}</div>
@@ -2264,33 +2280,35 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         </div>${rows || emptyBoardRow(visibleDays, leaderboardRows.inactive.length)}`;
     }
 
-    function practiceDayCellHtml(cell: DayCell): string {
+    function practiceDayCellHtml(cell: DayCell, state: PublicState): string {
         const breakdown = habitBreakdown(cell);
-        const title = practiceCellTitle(cell, breakdown);
+        const title = practiceCellTitle(cell, breakdown) + reportingDayTitle(cell.challengeDay, state);
+        const reportingClasses = reportingDayClasses(cell.challengeDay, state);
         if (!breakdown.length) {
-            return `<div class="lmx-cell practice" data-day="${escAttr(cell.challengeDay)}" title="${escAttr(title)}" aria-label="${escAttr(title)}"><i class="fa fa-rocket" aria-hidden="true"></i></div>`;
+            return `<div class="lmx-cell practice${reportingClasses}" data-day="${escAttr(cell.challengeDay)}" title="${escAttr(title)}" aria-label="${escAttr(title)}"><i class="fa fa-rocket" aria-hidden="true"></i></div>`;
         }
 
         const marks = breakdown.map(item => `<span class="${habitMarkClass(item.value)}" data-key="${item.key}" title="${escAttr(`${item.label} ${item.value}/2`)}" aria-hidden="true">${esc(item.short)}</span>`).join("");
-        return `<div class="lmx-cell lmx-cell-breakdown practice" data-day="${escAttr(cell.challengeDay)}" title="${escAttr(title)}" aria-label="${escAttr(title)}">
+        return `<div class="lmx-cell lmx-cell-breakdown practice${reportingClasses}" data-day="${escAttr(cell.challengeDay)}" title="${escAttr(title)}" aria-label="${escAttr(title)}">
             <span class="lmx-cell-score"><i class="fa fa-rocket" aria-hidden="true"></i></span>
             <span class="lmx-habit-marks">${marks}</span>
         </div>`;
     }
 
-    function scoredDayCellHtml(cell: DayCell): string {
+    function scoredDayCellHtml(cell: DayCell, state: PublicState): string {
         const score = typeof cell.score === "number" ? cell.score : 0;
         const breakdown = habitBreakdown(cell);
-        const title = habitCellTitle(cell, score, breakdown);
+        const title = habitCellTitle(cell, score, breakdown) + reportingDayTitle(cell.challengeDay, state);
+        const reportingClasses = reportingDayClasses(cell.challengeDay, state);
         if (!breakdown.length) {
             const scoreClass = score >= 8 ? "score-high" : score >= 4 ? "score-mid" : "score-low";
-            return `<div class="lmx-cell ${scoreClass}" data-day="${escAttr(cell.challengeDay)}" title="${escAttr(title)}" aria-label="${escAttr(title)}">${score}</div>`;
+            return `<div class="lmx-cell ${scoreClass}${reportingClasses}" data-day="${escAttr(cell.challengeDay)}" title="${escAttr(title)}" aria-label="${escAttr(title)}">${score}</div>`;
         }
 
         const rawScore = breakdown.reduce((sum, item) => sum + item.value, 0);
         const scoreClass = rawScore >= 6 ? "score-high" : rawScore >= 3 ? "score-mid" : "score-low";
         const marks = breakdown.map(item => `<span class="${habitMarkClass(item.value)}" data-key="${item.key}" title="${escAttr(`${item.label} ${item.value}/2`)}" aria-hidden="true">${esc(item.short)}</span>`).join("");
-        return `<div class="lmx-cell lmx-cell-breakdown ${scoreClass}" data-day="${escAttr(cell.challengeDay)}" title="${escAttr(title)}" aria-label="${escAttr(title)}">
+        return `<div class="lmx-cell lmx-cell-breakdown ${scoreClass}${reportingClasses}" data-day="${escAttr(cell.challengeDay)}" title="${escAttr(title)}" aria-label="${escAttr(title)}">
             <span class="lmx-cell-score">${score}</span>
             <span class="lmx-habit-marks">${marks}</span>
         </div>`;
@@ -2428,8 +2446,26 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     }
 
     function leaderboardScoringWindowDays(state: PublicState): number {
+        if (state.scoringWindow) return Math.max(0, state.scoringWindow.endDay - state.scoringWindow.startDay + 1);
         const dayCount = (state?.days || []).length || state?.durationDays || LEADERBOARD_SCORING_WINDOW_DAYS;
         return Math.min(LEADERBOARD_SCORING_WINDOW_DAYS, Math.max(1, Math.trunc(Number(dayCount) || LEADERBOARD_SCORING_WINDOW_DAYS)));
+    }
+
+    function isInScoringWindow(day: number, state: PublicState): boolean {
+        const end = state.scoringWindow?.endDay ?? (state.days.at(-1)?.challengeDay || state.durationDays);
+        const start = state.scoringWindow?.startDay ?? Math.max(1, end - LEADERBOARD_SCORING_WINDOW_DAYS + 1);
+        return day >= start && day <= end;
+    }
+
+    function reportingDayClasses(day: number, state: PublicState): string {
+        const end = state.scoringWindow?.endDay;
+        if (end === undefined || day <= end) return "";
+        return " lmx-reporting-open" + (day === end + 1 ? " lmx-reporting-start" : "");
+    }
+
+    function reportingDayTitle(day: number, state: PublicState): string {
+        return state.scoringWindow && day > state.scoringWindow.endDay
+            ? " · Reporting open; not yet included in standings" : "";
     }
 
     function updateInactiveToggle(state: PublicState): void {
@@ -7679,6 +7715,10 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             typeof value.dailyMaxScore === "number" && isArrayOf(value.days, isDaySummary) &&
             isArrayOf(value.leaderboard, isLeaderboardRow) && isArrayOf(value.podium, isPodiumRow) &&
             isArrayOf(value.notes, isParticipantNote) && isArrayOf(value.calls, isPublicCall) &&
+            (!hasProperties(value, "scoringWindow") || (hasProperties(value.scoringWindow, "startDay", "endDay", "nextClosesAtUtc") &&
+                typeof value.scoringWindow.startDay === "number" && Number.isInteger(value.scoringWindow.startDay) && value.scoringWindow.startDay >= 1 &&
+                typeof value.scoringWindow.endDay === "number" && Number.isInteger(value.scoringWindow.endDay) && value.scoringWindow.endDay >= 0 &&
+                typeof value.scoringWindow.nextClosesAtUtc === "string")) &&
             (!hasProperties(value, "systemDiscussionPosts") || isArrayOf(value.systemDiscussionPosts, isDiscussionSystemPost)) &&
             typeof value.slackInviteUrl === "string" && isNullableString(value.slackRoomUrl);
     }

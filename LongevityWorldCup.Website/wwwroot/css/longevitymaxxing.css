@@ -3924,6 +3924,42 @@ a.lmx-note-mention:focus-visible {
     color: var(--lmx-success);
 }
 
+.lmx-cell.lmx-reporting-open {
+    background: var(--lmx-surface-muted);
+    border-style: dashed;
+    color: var(--lmx-muted);
+    box-shadow: none;
+}
+
+.lmx-reporting-start {
+    position: relative;
+}
+
+.lmx-reporting-start::after {
+    content: "";
+    position: absolute;
+    inset-block: -0.45rem;
+    inset-inline-start: -0.42rem;
+    width: 3px;
+    background: var(--lmx-border-strong);
+    pointer-events: none;
+}
+
+.lmx-dashboard-day.lmx-reporting-open,
+.lmx-category-day.lmx-reporting-open {
+    border: 1px dashed var(--lmx-border-strong);
+}
+
+.lmx-dashboard-day.lmx-reporting-start::after,
+.lmx-category-day.lmx-reporting-start::after {
+    inset-inline-start: -0.18rem;
+    width: 2px;
+}
+
+.lmx-open-divider {
+    display: none;
+}
+
 .lmx-cell-breakdown {
     flex-direction: column;
     gap: 0.12rem;
@@ -4896,8 +4932,14 @@ a.lmx-note-mention:focus-visible {
     .lmx-cell {
         width: 100%;
         height: auto;
-        min-height: 2rem;
+        min-height: 2.75rem;
         aspect-ratio: 1;
+    }
+
+    .lmx-cell-breakdown {
+        justify-content: flex-end;
+        padding: 0.85rem 0.12rem 0.25rem;
+        gap: 0.15rem;
     }
 
     .lmx-cell[data-day]::before {
@@ -4911,6 +4953,22 @@ a.lmx-note-mention:focus-visible {
         font-weight: 900;
         line-height: 1;
         letter-spacing: 0;
+    }
+
+    .lmx-cell.lmx-reporting-start::after {
+        display: none;
+    }
+
+    .lmx-open-divider {
+        grid-column: 1 / -1;
+        display: flex;
+        align-items: center;
+        gap: var(--lwc-space-1);
+        border-top: 3px solid var(--lmx-border-strong);
+        margin-top: var(--lwc-space-1);
+        padding-top: var(--lwc-space-1);
+        color: var(--lmx-muted);
+        font-size: var(--lwc-type-xs);
     }
 }
 

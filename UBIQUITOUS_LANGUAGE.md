@@ -38,8 +38,9 @@ An existing Amateur's first eligible bortz result uses Pro-upgrade pricing. Othe
 ## Longevitymaxxing Challenge
 
 - Challenge scoring is separate from Ultimate League, biological-age placements, and athlete badges. Signup and daily check-ins continue indefinitely after Day 14 on the same global leaderboard; eligibility starts at local signup date.
+- **Closed reporting day**: a habit date closes at 12:00 UTC two calendar dates later, after every timezone has had the full following local day to report. The leaderboard scores the latest 14 closed Challenge days. Points, checked-in-day and streak tie-breaks, latest scored check-in, category badges, and Resting grouping all use that shared cutoff. Open check-ins remain visible but cannot change standings. Eligible late catch-ups can revise closed days; reporting closure does not lock submissions. Personal habit gardens still update immediately.
 - The first eligible check-in is practice: it counts toward checked-in days/streak, never habit points, category badges, point tie-breaks, or missed-scored-day reminder stops. Daily reminders continue until three consecutive missed scored days, excluding practice and pre-signup days.
-- Allow the two latest local check-in dates, plus the oldest missed day in the current 14-day scoring window until saved. Present the oldest due day first.
+- Allow the two latest local check-in dates, plus the oldest missed eligible day from the start of the current 14-day scoring window until saved, including open reporting days. Present the oldest due day first.
 - A repeated check-in submission returns the current state without attaching photos again or overwriting a later edit. Retries of an accepted submission remain valid after its catch-up day closes; a new submission must meet the usual eligibility rules.
 - **Resting**: inactive leaderboard grouping; retain check-ins/discussions. Eligible catch-up check-ins can clear missed-day resting.
 - Avatars prioritize linked Longevity athlete pictures over challenge-only uploads and Gravatar fallbacks. Linked discussion avatars/names open the athlete profile.
