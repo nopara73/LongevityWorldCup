@@ -82,7 +82,7 @@ public sealed class NonRetryableCustomEventDispatchException : Exception
     }
 }
 
-public sealed class EventDataService : IDisposable
+public sealed partial class EventDataService : IDisposable
 {
     private const double DefaultRelevanceJoined = 5d;
     private const double DefaultRelevanceNewRank = 10d;
@@ -257,6 +257,8 @@ public sealed class EventDataService : IDisposable
                 cmd.ExecuteNonQuery();
             }
         });
+
+        InitializeCrowdAgeMilestones();
 
         if (_enableEventDispatch)
         {
@@ -1268,92 +1270,6 @@ public sealed class EventDataService : IDisposable
         return updated;
     }
 
-    public void CreateCrowdAgeTop10ChangeEvents(
-        IEnumerable<(string AthleteSlug, DateTime OccurredAtUtc, int Place, int? PreviousPlace, string? PreviousSlug, double CrowdAge, int CrowdCount)> items,
-        bool skipIfExists = true,
-        double defaultRelevance = DefaultRelevanceCrowdAgeTop10Change)
-    {
-        if (items is null) throw new ArgumentNullException(nameof(items));
-
-        int created = 0;
-
-        _db.Run(sqlite =>
-        {
-            using var tx = sqlite.BeginTransaction();
-
-            using var existsCmd = sqlite.CreateCommand();
-            existsCmd.Transaction = tx;
-            // Crowd age/count can move with each accepted guess; notify once per athlete/place.
-            existsCmd.CommandText =
-                "SELECT 1 FROM Events WHERE Type=@t AND instr(Text, @slugToken) > 0 AND instr(Text, @placeToken) > 0 LIMIT 1;";
-            var exType = existsCmd.Parameters.Add("@t", SqliteType.Integer);
-            var exSlugToken = existsCmd.Parameters.Add("@slugToken", SqliteType.Text);
-            var exPlaceToken = existsCmd.Parameters.Add("@placeToken", SqliteType.Text);
-
-            using var insertCmd = sqlite.CreateCommand();
-            insertCmd.Transaction = tx;
-            insertCmd.CommandText =
-                "INSERT INTO Events (Id, Type, Text, OccurredAt, Relevance) VALUES (@id, @type, @text, @occ, @rel);";
-            var pId = insertCmd.Parameters.Add("@id", SqliteType.Text);
-            var pType = insertCmd.Parameters.Add("@type", SqliteType.Integer);
-            var pText = insertCmd.Parameters.Add("@text", SqliteType.Text);
-            var pOcc = insertCmd.Parameters.Add("@occ", SqliteType.Text);
-            var pRel = insertCmd.Parameters.Add("@rel", SqliteType.Real);
-
-            foreach (var (slug, occurredAtUtc, place, previousPlace, previousSlug, crowdAge, crowdCount) in items)
-            {
-                if (string.IsNullOrWhiteSpace(slug)) continue;
-                if (place is < 1 or > 10) continue;
-                if (previousPlace is < 1 or > 10) continue;
-                if (!double.IsFinite(crowdAge)) continue;
-                if (crowdCount < 1) continue;
-
-                var normalizedSlug = NormalizeEventToken(slug);
-                var placeText = place.ToString(CultureInfo.InvariantCulture);
-                var parts = new List<string>
-                {
-                    $"slug[{normalizedSlug}]",
-                    $"place[{placeText}]"
-                };
-
-                if (previousPlace.HasValue)
-                    parts.Add($"prevPlace[{previousPlace.Value.ToString(CultureInfo.InvariantCulture)}]");
-                if (!string.IsNullOrWhiteSpace(previousSlug))
-                    parts.Add($"prev[{NormalizeEventToken(previousSlug)}]");
-
-                parts.Add($"crowdAge[{crowdAge.ToString("0.##", CultureInfo.InvariantCulture)}]");
-                parts.Add($"crowdCount[{crowdCount.ToString(CultureInfo.InvariantCulture)}]");
-
-                var text = string.Join(" ", parts);
-
-                var shouldInsert = true;
-                if (skipIfExists)
-                {
-                    exType.Value = (int)EventType.CrowdAgeTop10Change;
-                    exSlugToken.Value = $"slug[{normalizedSlug}]";
-                    exPlaceToken.Value = $"place[{placeText}]";
-                    shouldInsert = existsCmd.ExecuteScalar() == null;
-                }
-
-                if (!shouldInsert) continue;
-
-                pId.Value = Guid.NewGuid().ToString("N");
-                pType.Value = (int)EventType.CrowdAgeTop10Change;
-                pText.Value = text;
-                pOcc.Value = EnsureUtc(occurredAtUtc).ToString("o");
-                pRel.Value = defaultRelevance;
-                insertCmd.ExecuteNonQuery();
-                created++;
-            }
-
-            tx.Commit();
-        });
-
-        if (created > 0)
-        {
-            ReloadIntoCache();
-        }
-    }
 
     public void CreateAgeImprovementTop10ChangeEvents(
         IEnumerable<(string AthleteSlug, DateTime OccurredAtUtc, string Clock, int Place, int? PreviousPlace, string? PreviousSlug, double Improvement, double AgeReduction)> items,
@@ -2490,6 +2406,8 @@ public sealed class EventDataService : IDisposable
 
         if (type == EventType.CrowdAgeTop10Change)
         {
+            if (!EventHelpers.TryExtractCrowdAgeTop10Change(rawText, out var place, out var previousPlace, out _, out _) ||
+                !CrowdAgeMilestonePolicy.IsMilestone(place, previousPlace)) return;
             _ = _slackEvents.BufferAsync(type, rawText);
             return;
         }

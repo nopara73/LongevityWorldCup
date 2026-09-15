@@ -1752,7 +1752,8 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
                     if (string.Equals(previousSlug, slug, StringComparison.OrdinalIgnoreCase))
                         previousSlug = null;
 
-                    if (ShouldEmitTop10PlacementChangeEvent(slug, previousPlace, currentPlace.Value, previousSlug, eventSubjects))
+                    if (eventSubjects.Contains(slug) &&
+                        CrowdAgeMilestonePolicy.IsMilestone(currentPlace.Value, previousPlace))
                     {
                         changed.Add((
                             slug,
@@ -1776,7 +1777,7 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
         });
 
         if (changed.Count > 0)
-            _eventDataService.CreateCrowdAgeTop10ChangeEvents(changed, skipIfExists: true);
+            _eventDataService.CreateCrowdAgeTop10ChangeEvents(changed);
     }
 
     private IReadOnlyList<PhenoAgeImprovementRankCandidate> GetPhenoAgeImprovementRankCandidates()

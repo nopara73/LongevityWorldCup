@@ -252,6 +252,13 @@ namespace LongevityWorldCup.Website
                     var threadsDailyPostKey = new JobKey("ThreadsDailyPostJob");
                     var facebookDailyPostKey = new JobKey("FacebookDailyPostJob");
                     var longevitymaxxingReminderKey = new JobKey("LongevitymaxxingReminderJob");
+                    var crowdAgeMilestoneKey = new JobKey("CrowdAgeMilestoneJob");
+
+                    q.AddJob<CrowdAgeMilestoneJob>(o => o.WithIdentity(crowdAgeMilestoneKey));
+                    q.AddTrigger(t => t.ForJob(crowdAgeMilestoneKey)
+                        .WithIdentity("CrowdAgeMilestoneTrigger")
+                        .StartNow()
+                        .WithSimpleSchedule(x => x.WithIntervalInMinutes(1).RepeatForever()));
 
                     // Every day 00:00
                     q.AddJob<DailyJob>(o => o.WithIdentity(dailyKey));
