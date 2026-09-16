@@ -465,14 +465,7 @@
      content:''; display:block; height:3px; margin-top:.15rem; border-radius:999px;
      background:linear-gradient(90deg, rgba(0,188,212,.68), rgba(0,188,212,.18));
  }
- .filter-section li{ margin:0; display:flex; align-items:stretch; gap:.15rem; }
- .filter-section li > label{ flex:1; min-width:0; }
- .filter-league-link{
-     display:flex; align-items:center; justify-content:center; flex:0 0 32px;
-     color:var(--lwc-muted, #526373); border-radius:8px; text-decoration:none;
- }
- .filter-league-link:hover{ color:var(--primary-color); background:var(--lwc-surface-muted); }
- .filter-league-link:focus-visible{ outline:2px solid var(--primary-color); outline-offset:1px; }
+ .filter-section li{ margin:0; }
  .filter-section label{
      display:flex; align-items:center; min-height:44px; padding:.42rem .55rem; border:1px solid rgba(0,0,0,.045);
      border-radius:8px; box-sizing:border-box; cursor:pointer; color:var(--lwc-ink, #555); line-height:1.25;

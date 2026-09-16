@@ -3261,31 +3261,9 @@ function buildLeaderboardNavigationUrl(state, searchQuery = document.getElementB
     return `${url.pathname}${url.search}${url.hash}`;
 }
 
-function updateLeaderboardNavigationLinks() {
+function updateFullLeaderboardLink() {
     const viewAll = getViewAllAthletesButton();
     if (viewAll) viewAll.href = window.getFullLeaderboardUrlWithCurrentState();
-
-    const state = getSelectedLeaderboardState();
-    const fields = { division: 'divisions', flag: 'flags', generation: 'generations', exclusiveLeague: 'exclusiveLeagues', leagueTrack: 'leagueTracks' };
-    document.querySelectorAll('.filter-section li').forEach(item => {
-        const input = item.querySelector('input[type="checkbox"]');
-        if (!input) return;
-        const field = fields[input.name];
-        const candidate = input.name === 'agingClockView'
-            ? { ...state, view: input.value }
-            : { ...state, [field]: [...new Set([...state[field], input.value])] };
-        let link = item.querySelector('.filter-league-link');
-        if (!link) {
-            link = document.createElement('a');
-            link.className = 'filter-league-link';
-            link.innerHTML = '<i class="fas fa-arrow-right" aria-hidden="true"></i>';
-            item.appendChild(link);
-        }
-        link.href = buildLeaderboardNavigationUrl(candidate);
-        const label = item.querySelector('.filter-label-copy').textContent.replace(/\s*\(\d+\)\s*$/, '').trim();
-        link.title = `Open ${label} leaderboard with current filters`;
-        link.setAttribute('aria-label', link.title);
-    });
 }
 
 function getLeaderboardSelectionKey() {
@@ -3675,7 +3653,7 @@ function performFilter({ updateUrl = true } = {}) {
     // Initial hydration must preserve direct rank/profile fragments and unrelated URL state.
     if (!updateUrl) {
         normalizeLegacyLeagueRoute();
-        updateLeaderboardNavigationLinks();
+        updateFullLeaderboardLink();
         return;
     }
 
@@ -3727,7 +3705,7 @@ function performFilter({ updateUrl = true } = {}) {
     }
 
     history.replaceState(history.state || {}, "", url.toString());
-    updateLeaderboardNavigationLinks();
+    updateFullLeaderboardLink();
 }
 
 function updateRankingExplanation(currentLeaderboardView) {
@@ -6064,7 +6042,7 @@ function reconcileRestoredLeaderboard() {
         } else if (athleteResultsReady) {
             // Back/Forward and rank-anchor changes can update the destination
             // without changing any filters or requiring new rows.
-            updateLeaderboardNavigationLinks();
+            updateFullLeaderboardLink();
         }
     }, 0);
 }
