@@ -915,27 +915,27 @@
     .modal.fade-out .modal-sticky-header{
         visibility:hidden;
     }
-    .modal-content.is-loading #athleteBio,
-    .modal-content.is-loading #athleteRank,
-    .modal-content.is-loading #athleteDivision,
-    .modal-content.is-loading #athleteGeneration,
-    .modal-content.is-loading #athleteFlag,
-    .modal-content.is-loading #chronologicalAge,
-    .modal-content.is-loading #lowestBortzAge,
-    .modal-content.is-loading #lowestPhenoAge,
-    .modal-content.is-loading #bortzAgeReduction,
-    .modal-content.is-loading #bortzAgeReductionPercent,
-    .modal-content.is-loading #ageReduction,
-    .modal-content.is-loading #ageReductionPercent,
-    .modal-content.is-loading #paceOfAging,
-    .modal-content.is-loading #paceOfAgingRank,
-    .modal-content.is-loading #bortzPaceOfAging,
-    .modal-content.is-loading #bortzPaceOfAgingRank,
-    .modal-content.is-loading #crowdAge,
-    .modal-content.is-loading #crowdCount,
-    .modal-content.is-loading #yourGuess,
-    .modal-content.is-loading #modalBadgeStrip,
-    .modal-content.is-loading #proofsGallery{
+    .modal-content.is-loading:not([data-server-rendered-profile]) #athleteBio,
+    .modal-content.is-loading:not([data-server-rendered-profile]) #athleteRank,
+    .modal-content.is-loading:not([data-server-rendered-profile]) #athleteDivision,
+    .modal-content.is-loading:not([data-server-rendered-profile]) #athleteGeneration,
+    .modal-content.is-loading:not([data-server-rendered-profile]) #athleteFlag,
+    .modal-content.is-loading:not([data-server-rendered-profile]) #chronologicalAge,
+    .modal-content.is-loading:not([data-server-rendered-profile]) #lowestBortzAge,
+    .modal-content.is-loading:not([data-server-rendered-profile]) #lowestPhenoAge,
+    .modal-content.is-loading:not([data-server-rendered-profile]) #bortzAgeReduction,
+    .modal-content.is-loading:not([data-server-rendered-profile]) #bortzAgeReductionPercent,
+    .modal-content.is-loading:not([data-server-rendered-profile]) #ageReduction,
+    .modal-content.is-loading:not([data-server-rendered-profile]) #ageReductionPercent,
+    .modal-content.is-loading:not([data-server-rendered-profile]) #paceOfAging,
+    .modal-content.is-loading:not([data-server-rendered-profile]) #paceOfAgingRank,
+    .modal-content.is-loading:not([data-server-rendered-profile]) #bortzPaceOfAging,
+    .modal-content.is-loading:not([data-server-rendered-profile]) #bortzPaceOfAgingRank,
+    .modal-content.is-loading:not([data-server-rendered-profile]) #crowdAge,
+    .modal-content.is-loading:not([data-server-rendered-profile]) #crowdCount,
+    .modal-content.is-loading:not([data-server-rendered-profile]) #yourGuess,
+    .modal-content.is-loading:not([data-server-rendered-profile]) #modalBadgeStrip,
+    .modal-content.is-loading:not([data-server-rendered-profile]) #proofsGallery{
         visibility:hidden;
     }
     #detailsModal .modal-content.has-load-error #athlete-profile > :not(#athleteName):not(#athleteLoadError),
@@ -1194,6 +1194,8 @@
         margin:var(--lwc-space-3) auto var(--lwc-space-2);
     }
     #detailsModal #athleteRankings[hidden]{ display:none; }
+    #detailsModal [data-profile-pending][hidden]{ display:none; }
+    #detailsModal [data-server-rendered-profile] #guessAgeContainer{ display:none; }
     #detailsModal #athleteRankings a{
         display:flex;
         flex:1 1 0;
@@ -3221,6 +3223,7 @@
 
     <div class="content">
         <div class="podium" aria-busy="true" style="display:none;">
+<!--LEADERBOARD-PODIUM-START-->
             <div class="podium-item podium-skeleton-item second" aria-hidden="true">
                 <div class="podium-skeleton-portrait skeleton-shimmer"></div>
                 <div class="name-row">
@@ -3242,6 +3245,7 @@
                 </div>
                 <div class="podium-skeleton-line skeleton-shimmer"></div>
             </div>
+<!--LEADERBOARD-PODIUM-END-->
         </div>
 
         <div class="leaderboard-toolbar">
@@ -5147,6 +5151,7 @@
                     // Select the podium container and clear existing items
                     const podium = document.querySelector('.podium');
                     podium.innerHTML = ''; // Clear any existing podium items
+                    podium.removeAttribute('data-server-rendered');
                     podium.setAttribute('aria-busy', 'false');
 
                     // Loop through the top three athletes and create podium items
@@ -5444,9 +5449,13 @@
                 }
                 setLeaderboardStatus('Leaderboard could not load.', true);
                 const podium = document.querySelector('.podium');
-                if (podium) {
+                if (podium && podium.dataset.serverRendered !== 'true') {
                     podium.innerHTML = '';
                     podium.setAttribute('aria-busy', 'false');
+                }
+                const serverProfile = document.querySelector('[data-server-rendered-profile]');
+                if (serverProfile && modal.style.display === 'block') {
+                    handleAthleteModalLoadFailure(serverProfile, serverProfile.dataset.athleteSlug, { historyMode: 'replace' }, error);
                 }
                 console.error('Error fetching athletes:', error);
             });
@@ -5497,8 +5506,7 @@
 
     function hasServerRenderedLeaderboardRows(tableBody) {
         return !!tableBody &&
-            tableBody.getAttribute('data-server-rendered') === 'true' &&
-            !!tableBody.querySelector('tr.server-rendered-leaderboard-row');
+            tableBody.getAttribute('data-server-rendered') === 'true';
     }
 
     function setLeaderboardStatus(message, isError = false) {
@@ -5545,7 +5553,7 @@
         if (podium) {
             if (includePodium) {
                 podium.style.display = 'flex';
-                podium.innerHTML = buildPodiumSkeletonHtml();
+                if (podium.dataset.serverRendered !== 'true') podium.innerHTML = buildPodiumSkeletonHtml();
                 podium.setAttribute('aria-busy', 'true');
             } else {
                 podium.style.display = 'none';
@@ -6118,6 +6126,15 @@
     let athleteShareState = null;
     const chartJsSrc = 'https://cdn.jsdelivr.net/npm/chart.js';
 
+    // Direct profile links arrive with the existing dialog already populated.
+    // Make closing/back navigation available while the data request is pending.
+    const initialServerProfile = modal.querySelector('[data-server-rendered-profile]');
+    if (initialServerProfile) {
+        initialServerProfile.classList.add('is-loading');
+        lockBodyScroll();
+        history.replaceState({ ...history.state, modal: 'details', athlete: initialServerProfile.dataset.athleteSlug }, '', window.location.href);
+    }
+
     window.ensureChartJs = window.ensureChartJs || function () {
         if (typeof window.Chart === 'function') {
             return Promise.resolve(true);
@@ -6221,6 +6238,17 @@
 
         const modalContent = document.querySelector('.modal-content');
         if (!modalContent) return null;
+
+        if (modalContent.dataset.serverRenderedProfile === athleteSlug) {
+            modalContent.classList.add('is-loading');
+            modal.style.display = 'block';
+            document.getElementById('shareAthleteProfile').disabled = true;
+            const loadError = document.getElementById('athleteLoadError');
+            if (loadError) loadError.hidden = true;
+            lockBodyScroll();
+            return modalContent;
+        }
+        delete modalContent.dataset.serverRenderedProfile;
 
         modalContent.classList.remove('has-load-error');
         modalContent.classList.add('is-loading');
@@ -8450,17 +8478,21 @@
     function handleAthleteModalLoadFailure(modalContent, athleteSlug, options, error) {
         window.__sharedAthletesRequest = null;
 
+        // Keep readable server content when enhancement fails. The existing
+        // retry control can retry the interactive details without blanking it.
+        const preserveServerProfile = modalContent?.dataset.serverRenderedProfile === athleteSlug;
+
         if (modalContent) {
-            modalContent.classList.add('has-load-error');
+            modalContent.classList.toggle('has-load-error', !preserveServerProfile);
             modalContent.classList.remove('is-loading');
         }
 
         const athleteNameElement = document.getElementById('athleteName');
-        if (athleteNameElement) athleteNameElement.textContent = 'Athlete details unavailable';
+        if (athleteNameElement && !preserveServerProfile) athleteNameElement.textContent = 'Athlete details unavailable';
         const stickyAthleteName = document.getElementById('stickyAthleteName');
-        if (stickyAthleteName) stickyAthleteName.textContent = 'Athlete details unavailable';
+        if (stickyAthleteName && !preserveServerProfile) stickyAthleteName.textContent = 'Athlete details unavailable';
         const profilePic = document.getElementById('modalProfilePic');
-        if (profilePic) profilePic.alt = '';
+        if (profilePic && !preserveServerProfile) profilePic.alt = '';
         const loadError = document.getElementById('athleteLoadError');
         if (loadError) loadError.hidden = false;
         const retryButton = document.getElementById('retryAthleteLoad');
@@ -8541,6 +8573,11 @@
 
                 // Populate the modal with athlete data
                 populateModal(fullAthleteData, athleteData, rankSummary);
+                delete modalContent.dataset.serverRenderedProfile;
+                modalContent.querySelectorAll('[data-profile-pending]').forEach(element => {
+                    element.hidden = false;
+                    element.removeAttribute('data-profile-pending');
+                });
 
                 updatePageTitleForAthlete((fullAthleteData.DisplayName && fullAthleteData.DisplayName.trim()) ? fullAthleteData.DisplayName.trim() : fullAthleteData.Name, rankSummary.ultimateRank);
 
