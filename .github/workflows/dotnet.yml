@@ -88,6 +88,10 @@ jobs:
         frontend_manifest LongevityWorldCup.Website/wwwroot/js > "$source_manifest"
         test -s "$source_manifest"
 
+        # Prove Node-free publishing recreates the derived dialog CSS, including
+        # a clean checkout where these ignored files do not exist yet.
+        rm -f LongevityWorldCup.Website/wwwroot/css/athlete-dialog/*.css
+
         PATH="$deny_node_bin:$PATH" dotnet publish LongevityWorldCup.Website/LongevityWorldCup.Website.csproj \
           --configuration Release \
           --no-restore \
@@ -101,6 +105,11 @@ jobs:
           exit 1
         fi
         test -z "$(find "$publish_output" -type f -name '*.ts' -print -quit)"
+        test ! -f "$publish_output/Frontend/leaderboard-page.js"
+        for stylesheet in leaderboard-content guess-my-age age-visualization; do
+          cmp "LongevityWorldCup.Website/wwwroot/css/athlete-dialog/$stylesheet.css" \
+              "$publish_output/wwwroot/css/athlete-dialog/$stylesheet.css"
+        done
     - name: Install Playwright Chromium
       run: pwsh LongevityWorldCup.Tests/bin/Debug/net10.0/playwright.ps1 install chromium
     - name: Test with coverage
