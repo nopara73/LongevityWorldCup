@@ -14,8 +14,9 @@
 
   <ItemGroup>
     <TypeScriptSource Include="Frontend\*.ts" />
-    <NestedFrontendRuntimeSource Include="Frontend\**\*.ts"
-                                 Exclude="Frontend\*.ts;Frontend\**\*.d.ts" />
+    <ClassicScriptSource Include="Frontend\*.js" />
+    <NestedFrontendRuntimeSource Include="Frontend\**\*.ts;Frontend\**\*.js"
+                                 Exclude="Frontend\*.ts;Frontend\*.js;Frontend\**\*.d.ts" />
   </ItemGroup>
 
   <ItemGroup>
@@ -49,13 +50,17 @@
   <Target Name="GenerateDocumentationPages" BeforeTargets="BeforeBuild">
     <Exec Command="dotnet build &quot;$(DocumentationPageGeneratorProject)&quot; --configuration &quot;$(Configuration)&quot;" />
     <Exec Command="dotnet &quot;$(DocumentationPageGeneratorDll)&quot; &quot;$(RepositoryRoot)&quot; &quot;$(MSBuildProjectDirectory)&quot;" />
+    <ItemGroup>
+      <Content Remove="wwwroot/css/athlete-dialog/*.css" />
+      <Content Include="wwwroot/css/athlete-dialog/*.css" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    </ItemGroup>
   </Target>
 
   <Target Name="GenerateIndexNowContentManifest" BeforeTargets="BeforeBuild">
     <ItemGroup>
-      <IndexNowDependency Include="Middleware/HtmlInjectionMiddleware.cs;Middleware/RouteCanonicalization.cs;Business/PageStructuredData.cs" Group="html" />
-      <IndexNowDependency Include="Business/Leaderboard*.cs;Business/PublicLeaderboard*.cs;Business/CompetitionRanking.cs;Controllers/AiController.cs;Tools/PhenoStatsCalculator.cs;Tools/*HtmlRenderer.cs;Frontend/badges.ts;Frontend/flags.ts;Frontend/age-visualization.ts" Group="ranking" />
-      <IndexNowDependency Include="Tools/EventHelpers.cs;Tools/CustomEventMarkup.cs;Frontend/custom-event-markup.ts" Group="events" />
+      <IndexNowDependency Include="Middleware/HtmlInjectionMiddleware.cs;Middleware/RouteCanonicalization.cs;Business/PageStructuredData.cs;Frontend/homepage.js;Frontend/site-header.js;Frontend/site-footer.js" Group="html" />
+      <IndexNowDependency Include="Business/Leaderboard*.cs;Business/PublicLeaderboard*.cs;Business/CompetitionRanking.cs;Controllers/AiController.cs;Tools/PhenoStatsCalculator.cs;Tools/*HtmlRenderer.cs;Frontend/badges.ts;Frontend/flags.ts;Frontend/age-visualization.ts;Frontend/leaderboard-page.js;Frontend/guess-my-age.js;Frontend/leaderboard-embed-listener.js" Group="ranking" />
+      <IndexNowDependency Include="Tools/EventHelpers.cs;Tools/CustomEventMarkup.cs;Frontend/custom-event-markup.ts;Frontend/events-page.js" Group="events" />
       <IndexNowDependency Include="Business/LongevitymaxxingChallengeService*.cs;Frontend/longevitymaxxing.ts" Group="challenge" />
       <IndexNowDependency Include="Tools/PhenoAgeHelper.cs;Frontend/pheno-age.ts" Group="pheno" />
       <IndexNowDependency Include="Tools/BortzAgeHelper.cs;Frontend/bortz-age.ts" Group="bortz" />
@@ -83,7 +88,7 @@
 
   <Target Name="ValidateFrontendSourceLayout" BeforeTargets="BeforeBuild">
     <Error Condition="'@(NestedFrontendRuntimeSource)' != ''"
-           Text="Runtime TypeScript entry points must stay directly under Frontend so every emitted script remains independently versioned: @(NestedFrontendRuntimeSource, ', ')." />
+           Text="Runtime entry points must stay directly under Frontend so every emitted script remains independently versioned: @(NestedFrontendRuntimeSource, ', ')." />
   </Target>
 
   <Target Name="CompileTypeScript"
@@ -99,6 +104,7 @@
           Condition="'$(BuildFrontend)' != 'true'">
     <ItemGroup>
       <ExpectedFrontendAsset Include="@(TypeScriptSource->'$(MSBuildProjectDirectory)/wwwroot/js/%(Filename).js')" />
+      <ExpectedFrontendAsset Include="@(ClassicScriptSource->'$(MSBuildProjectDirectory)/wwwroot/js/%(Filename).js')" />
     </ItemGroup>
     <Error Condition="!Exists('%(ExpectedFrontendAsset.Identity)')"
            Text="Generated frontend asset %(ExpectedFrontendAsset.Filename).js is missing. Run npm run build or inject the verified frontend artifact before building with BuildFrontend=false." />

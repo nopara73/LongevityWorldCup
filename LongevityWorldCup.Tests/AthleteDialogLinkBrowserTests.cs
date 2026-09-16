@@ -135,9 +135,12 @@ public sealed class AthleteDialogLinkBrowserTests(
 
         Assert.Equal(1, CountOccurrences(html, "id=\"athleteDialogRuntime\""));
         Assert.Equal(1, CountOccurrences(html, "id=\"detailsModal\""));
-        Assert.Equal(1, CountOccurrences(html, "window.openAthleteModalBySlug = function"));
+        Assert.Equal(1, CountOccurrences(html, "src=\"/js/leaderboard-page.js?v="));
         Assert.Contains("data-athlete-dialog-only=\"true\"", html);
-        Assert.Contains("@scope (#athleteDialogRuntime)", html);
+        Assert.Contains("href=\"/css/athlete-dialog/leaderboard-content.css?v=", html);
+        Assert.Contains("href=\"/css/athlete-dialog/guess-my-age.css?v=", html);
+        Assert.Contains("href=\"/css/athlete-dialog/age-visualization.css?v=", html);
+        Assert.DoesNotContain("href=\"/css/leaderboard-content.css?", html);
         Assert.Contains("--athlete-dialog-layer:10020", html);
         Assert.Contains("window.athleteDialogModulesReady = Promise.all", html);
         Assert.DoesNotContain("<!--ATHLETE-DIALOG-", html);

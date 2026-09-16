@@ -13,9 +13,8 @@ public sealed class HomepageHighlightSelectionTests
         var eventBoardHtml = File.ReadAllText(Path.Combine(
             repoRoot,
             "LongevityWorldCup.Website",
-            "wwwroot",
-            "partials",
-            "event-board-content.html"));
+            "Frontend",
+            "events-page.js"));
 
         Assert.Contains("const HOMEPAGE_ATHLETE_FRESHNESS_WINDOW_MS", eventBoardHtml);
 
@@ -43,9 +42,8 @@ public sealed class HomepageHighlightSelectionTests
         var eventBoardHtml = File.ReadAllText(Path.Combine(
             repoRoot,
             "LongevityWorldCup.Website",
-            "wwwroot",
-            "partials",
-            "event-board-content.html"));
+            "Frontend",
+            "events-page.js"));
 
         var podcastStart = eventBoardHtml.IndexOf("badgeKey === \"podcast\"", StringComparison.Ordinal);
         Assert.True(podcastStart >= 0, "Could not find podcast highlight rendering.");
@@ -65,9 +63,8 @@ public sealed class HomepageHighlightSelectionTests
         var eventBoardHtml = File.ReadAllText(Path.Combine(
             repoRoot,
             "LongevityWorldCup.Website",
-            "wwwroot",
-            "partials",
-            "event-board-content.html"));
+            "Frontend",
+            "events-page.js"));
 
         var biologicalAgeImprovedBase = ExtractHomepageImportanceBase(eventBoardHtml, "BiologicalAgeImproved");
         var ageImprovementTop10ChangeBase = ExtractHomepageImportanceBase(eventBoardHtml, "AgeImprovementTop10Change");
@@ -84,9 +81,8 @@ public sealed class HomepageHighlightSelectionTests
         var eventBoardHtml = File.ReadAllText(Path.Combine(
             repoRoot,
             "LongevityWorldCup.Website",
-            "wwwroot",
-            "partials",
-            "event-board-content.html"));
+            "Frontend",
+            "events-page.js"));
 
         var improvementStart = eventBoardHtml.IndexOf("r.type === EVENT_TYPE.AgeImprovementTop10Change && r.primarySlug", StringComparison.Ordinal);
         Assert.True(improvementStart >= 0, "Could not find Improvement leaderboard event rendering.");
@@ -107,8 +103,8 @@ public sealed class HomepageHighlightSelectionTests
             repoRoot,
             "LongevityWorldCup.Website",
             "wwwroot",
-            "partials",
-            "event-board-content.html"));
+            "css",
+            "event-board.css"));
         var embedHtml = File.ReadAllText(Path.Combine(
             repoRoot,
             "LongevityWorldCup.Website",

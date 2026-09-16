@@ -219,6 +219,11 @@ Publish from the temporary source, not from `~/LongevityWorldCup`. The website b
 
 The production host intentionally does not need Node.js. Generated `wwwroot/js` files are ignored rather than committed. The automatic deploy runner builds and verifies them, packages an exact-commit artifact, checks its checksum after transfer, and injects it into the temporary source before publishing with `BuildFrontend=false`.
 
+The artifact includes both compiled TypeScript and syntax-checked classic scripts
+extracted from page templates. The .NET page generator also creates the scoped
+stylesheets under `wwwroot/css/athlete-dialog` during publish; these are derived
+from tracked shared CSS and do not require Node or a separate transfer artifact.
+
 The production host must have an SDK compatible with the repository's `global.json`. When that pin advances, install the matching SDK before deployment. The deploy preflight resolves the SDK from the isolated source tree and prints both the resolution error and installed SDK list when the host is behind.
 
 Before changing the live publish tree, deployment stops the service and creates a same-filesystem hard-link snapshot. A failed sync, health check, or byte-for-byte script probe restores that prior release before restarting the service. Every master push schedules the workflow; stale runs skip only when a newer run exists, so an otherwise ignored documentation or test commit cannot strand an earlier website change undeployed.

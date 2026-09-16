@@ -10,6 +10,8 @@ var websiteRoot = args.Length > 1
     ? Path.GetFullPath(args[1])
     : Path.Combine(repoRoot, "LongevityWorldCup.Website");
 
+ScopedStylesheetGenerator.Generate(websiteRoot);
+
 var pages = new[]
 {
     new DocumentationPage(

@@ -1,6 +1,6 @@
 # Frontend TypeScript
 
-Source for reusable `wwwroot/js` scripts. Output stays readable and unbundled, preserving filenames, globals, route-specific loading, `window.modulesReady`, version hashes, and public URLs.
+Source for reusable `wwwroot/js` scripts. Output stays readable and unbundled, preserving filenames, globals, route-specific loading, `window.modulesReady`, version hashes, and public URLs. TypeScript remains strictly checked. Classic `.js` entry points extracted from HTML retain their existing untyped code and global scope; the build syntax-checks and copies them byte-for-byte, then verifies output parity. Do not introduce imports/exports or silently convert them into modules.
 
 ## Build
 
@@ -8,7 +8,7 @@ Use the repository's `.node-version`. From `LongevityWorldCup.Website`:
 
 - `npm ci` after dependency changes or a fresh checkout.
 - `npm run check` for strict no-emit type checking.
-- `npm run build` after TypeScript changes; clears stale output, compiles, and verifies exact source/output parity. Never commit generated JavaScript.
+- `npm run build` after frontend changes; clears stale output, compiles TypeScript, checks and copies classic scripts, and verifies exact source/output parity. Never commit generated JavaScript.
 
 Normal `dotnet build` invokes the compiler. CI builds assets once and verifies they are untracked. The Node-free production host receives that exact artifact in temporary source and publishes with `BuildFrontend=false`; see [ServerDeployment.md](../../LongevityWorldCup.Documentation/ServerDeployment.md).
 
@@ -34,6 +34,10 @@ Reconcile leaderboard rows after `pageshow`/`popstate` native form restoration w
 
 HTML rendering reads only the page's referenced partials and required nested dialog fragments. `HtmlAssetPlaceholders` resolves asset tokens once after page assembly, reusing each URL's version within that response. Keep asset mappings there and resolve versions again for each response so file edits remain visible.
 
+Shared homepage, leaderboard, profile, highlights, header/footer, and progress code is loaded through versioned scripts and stylesheets in its original document position. The extracted classic scripts deliberately remain parser-blocking: later inline handlers and scripts may depend on their globals. Small head bootstrap scripts still start data and module requests early. Capture versioned asset configuration from the script's `data-*` attributes during evaluation; `document.currentScript` is unavailable in later callbacks.
+
+Shared CSS lives in `wwwroot/css`. The .NET page generator also builds `css/athlete-dialog` variants from leaderboard, Guess My Age, and age-visualization CSS, using the existing `@scope (#athleteDialogRuntime)` boundary. These generated files are ignored and recreated during normal and Node-free builds. Keep the source of each rule in the shared stylesheet. Header font-face rules remain inline so font URLs retain content versions matching their preloads. See [Page weight](../../LongevityWorldCup.Documentation/PageWeight.md).
+
 Keep these classic scripts free of imports/exports: `flow-action-dock`, `bioage-flow`, `custom-event-markup`, `longevitymaxxing`, `site-statistics-tracking`, `site-statistics`.
 
 The head partial defines `navigateToFlowDestination` synchronously so inline Back handlers work before the asynchronous modules finish. Application Next starts disabled until initialization binds stage validation.
@@ -42,6 +46,6 @@ Shared type-only contracts belong in `types/*.d.ts`. Runtime entry points stay s
 
 ## Inline Scripts
 
-Page/partial scripts remain inline where they depend on server placeholders/JSON, injected DOM, exact bootstrap timing, classic globals, or inline handlers. Moving them requires migrating those contracts together with browser coverage, outside unrelated frontend work.
+Keep request-specific JSON, early data/module bootstraps, and other timing-sensitive small scripts inline. Extract shared application code only when its configuration, document position, global scope, and embedded consumers are migrated together with browser coverage.
 
 The Markdown page generator owns scripts in generated About, History, and Ruleset pages; edit the generator rather than generated output. The head partial's JSON-LD is structured data, not application JavaScript. Full leaderboard pages keep their ItemList synchronized with the displayed selection; see [public page structured data](../../LongevityWorldCup.Documentation/StructuredData.md).

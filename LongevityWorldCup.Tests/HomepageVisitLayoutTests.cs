@@ -11,8 +11,8 @@ public sealed class HomepageVisitLayoutTests
         var indexHtml = File.ReadAllText(Path.Combine(
             FindRepoRoot(),
             "LongevityWorldCup.Website",
-            "wwwroot",
-            "index.html"));
+            "Frontend",
+            "homepage.js"));
 
         Assert.Contains("function isHomepageVisitCounterRoute()", indexHtml);
         Assert.Contains("path === '/' || path === '/index.html'", indexHtml);
