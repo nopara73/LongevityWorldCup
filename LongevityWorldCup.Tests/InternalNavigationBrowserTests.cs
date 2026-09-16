@@ -54,7 +54,7 @@ public sealed class InternalNavigationBrowserTests(
         Assert.Contains("<a href=\"/play\" class=\"join-game\"", home);
         foreach (var view in new[] { "bortz", "pheno", "improvement", "bortz-improvement", "crowd" })
         {
-            Assert.Contains($"class=\"filter-league-link\" href=\"/league/{view}\"", home);
+            Assert.Contains($"name=\"agingClockView\" value=\"{view}\"", home);
             using var response = await client.GetAsync($"/league/{view}");
             Assert.True(response.IsSuccessStatusCode);
         }
@@ -164,14 +164,17 @@ public sealed class InternalNavigationBrowserTests(
     [Theory]
     [InlineData(390)]
     [InlineData(1280)]
-    public async Task LeagueLinks_PreserveOtherSelectionsAndConnectToCalculatorsAndRules(int width)
+    public async Task SidebarFilters_PreserveOtherSelectionsAndConnectToCalculatorsAndRules(int width)
     {
         await using var context = await CreateContextAsync(width);
         var page = await context.NewPageAsync();
         await page.GotoAsync("/?source=league-links&view=pheno&filters=women%27s&search=an");
         await WaitForLeaderboardAsync(page);
         await page.Locator(".sidebar-toggle").ClickAsync();
-        var clockLink = page.Locator("li:has([data-aging-clock-view='bortz']) > a");
+        await Assertions.Expect(page.Locator(".filter-section a")).ToHaveCountAsync(0);
+        await page.Locator("[data-aging-clock-view='bortz']").ClickAsync();
+        await page.Locator(".sidebar-close").ClickAsync();
+        var clockLink = page.Locator("#viewAllAthletesBtn");
         var href = (await clockLink.GetAttributeAsync("href"))!;
         Assert.Contains("view=bortz", href);
         Assert.Contains("source=league-links", href);
@@ -202,7 +205,9 @@ public sealed class InternalNavigationBrowserTests(
         await page.GotoAsync("/");
         await WaitForLeaderboardAsync(page);
         await page.Locator(".sidebar-toggle").ClickAsync();
-        var flag = page.Locator("li:has(label[data-flag='Hungary']) > a");
+        await page.Locator("label[data-flag='Hungary']").ClickAsync();
+        await page.Locator(".sidebar-close").ClickAsync();
+        var flag = page.Locator("#viewAllAthletesBtn");
         await Assertions.Expect(flag).ToHaveAttributeAsync("href", "/flag/hungary");
         await flag.ClickAsync();
         await WaitForLeaderboardAsync(page);

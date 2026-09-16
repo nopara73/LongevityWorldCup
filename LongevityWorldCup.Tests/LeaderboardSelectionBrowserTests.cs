@@ -445,6 +445,8 @@ public sealed class LeaderboardSelectionBrowserTests(PlaywrightBrowserFixture br
         await results.ClickAsync();
         await Assertions.Expect(toggle).ToHaveAttributeAsync("aria-expanded", "false");
         await Assertions.Expect(toggle).ToBeFocusedAsync();
+        await page.Mouse.MoveAsync(100, 100);
+        await Assertions.Expect(page.Locator(".sidebar")).ToBeHiddenAsync();
         Assert.False(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth>innerWidth"));
     }
 
