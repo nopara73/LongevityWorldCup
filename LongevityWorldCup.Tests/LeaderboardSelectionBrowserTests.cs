@@ -134,7 +134,7 @@ public sealed class LeaderboardSelectionBrowserTests(PlaywrightBrowserFixture br
         var rank = await row.Locator(".rank").InnerTextAsync();
         var metric = await row.Locator(".age-reduction").InnerTextAsync();
         var athleteLabel = (await row.Locator(".athlete-name").GetAttributeAsync("aria-label"))!;
-        var targetRow = Rows(page).Filter(new() { Has = page.GetByRole(AriaRole.Button, new() { Name = athleteLabel, Exact = true }) });
+        var targetRow = Rows(page).Filter(new() { Has = page.GetByRole(AriaRole.Link, new() { Name = athleteLabel, Exact = true }) });
         Assert.NotEqual("1", rank);
 
         await page.Locator("#athleteSearch").FillAsync(name);
@@ -191,7 +191,7 @@ public sealed class LeaderboardSelectionBrowserTests(PlaywrightBrowserFixture br
         var rank = await row.Locator(".rank").InnerTextAsync();
         var metric = await row.Locator(".age-reduction").InnerTextAsync();
         var label = (await row.Locator(".athlete-name").GetAttributeAsync("aria-label"))!;
-        var target = Rows(page).Filter(new() { Has = page.GetByRole(AriaRole.Button, new() { Name = label, Exact = true }) });
+        var target = Rows(page).Filter(new() { Has = page.GetByRole(AriaRole.Link, new() { Name = label, Exact = true }) });
 
         await page.Locator("#athleteSearch").FillAsync($"{name} {metric}");
         await Assertions.Expect(page.Locator(".leaderboard-selection-chip")).ToHaveCountAsync(2);
