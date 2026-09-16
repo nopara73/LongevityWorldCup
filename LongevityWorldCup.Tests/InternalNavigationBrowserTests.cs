@@ -15,6 +15,7 @@ public sealed class InternalNavigationBrowserTests(
         using var client = App.CreateClient();
         var home = await client.GetStringAsync("/");
         Assert.Contains("<a id=\"viewAllAthletesBtn\" href=\"/leaderboard\"", home);
+        Assert.Contains("<a href=\"/play\" class=\"join-game\"", home);
         foreach (var view in new[] { "bortz", "pheno", "improvement", "bortz-improvement", "crowd" })
         {
             Assert.Contains($"class=\"filter-league-link\" href=\"/league/{view}\"", home);
@@ -61,6 +62,12 @@ public sealed class InternalNavigationBrowserTests(
         await WaitForLeaderboardAsync(page);
         Assert.Equal(originalUrl, page.Url);
         await Assertions.Expect(page.Locator("#athleteSearch")).ToHaveValueAsync("michael");
+        var play = page.GetByRole(AriaRole.Link, new() { Name = "Play the game" });
+        await Assertions.Expect(play).ToHaveAttributeAsync("href", "/play");
+        var playPage = await context.RunAndWaitForPageAsync(() => play.ClickAsync(new() { Button = MouseButton.Middle }));
+        await playPage.WaitForURLAsync("**/play", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        Assert.Equal(originalUrl, page.Url);
+        await playPage.CloseAsync();
     }
 
     [Theory]
