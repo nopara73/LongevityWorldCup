@@ -1,8 +1,15 @@
 # LongevityWorldCup Agent Notes
 
+## Product Personality
+
+- Preserve the product's personality across the UI, emails, notifications, and social copy. Humor, warmth, wordplay, informal phrasing, distinctive punctuation, established names, and playful visuals are intentional product features.
+- Requests for cleanup, brevity, consistency, or less clutter do not authorize removing that personality or rewriting neighboring copy. Fix the specific problem while preserving the established voice. When in doubt, keep the existing wording.
+- User-approved wording is authoritative. Keep "Questions, concerns, or signs of aging? Reply to this email." and "Update profile request..." exactly unless the user explicitly asks to change them.
+- Apply visual simplicity and concise-copy guidance within these rules; do not use those guidelines to flatten the product's voice.
+
 ## Required Reading
 
-- UI changes: [DESIGN.md](DESIGN.md).
+- UI and product-copy changes: [DESIGN.md](DESIGN.md).
 - Domain, ranking, onboarding, calculator, badge, Event, social-posting, or competition-copy changes: [UBIQUITOUS_LANGUAGE.md](UBIQUITOUS_LANGUAGE.md).
 - Production changes over SSH: [ServerDeployment.md](LongevityWorldCup.Documentation/ServerDeployment.md).
 
