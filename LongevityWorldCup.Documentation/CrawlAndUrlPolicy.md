@@ -10,6 +10,8 @@ Legacy league routes retain their client-side meanings: `ultimate` becomes `/lea
 
 Unknown documents and unknown athletes, leagues, or flags return HTTP 404. Status-code re-execution renders the existing `/error/404.html` template at the original requested URL; it must not redirect to a successful error page. The error template also returns 404 when requested directly, with `noindex, nofollow` and `Cache-Control: no-store`.
 
+The reverse proxy must pass application 404 responses through unchanged. Its static gateway fallbacks apply only to 502, 503, and 504. [Server deployment guidance](ServerDeployment.md#reverse-proxy-error-responses) documents this boundary and the deployment probes that enforce it.
+
 ## Indexing and discovery
 
 `HtmlInjectionMiddleware` owns each rendered page's indexing metadata. The privacy policy takes its robots and canonical metadata from this same source; it is indexable and listed in the sitemap. Private flows and embeds remain excluded.

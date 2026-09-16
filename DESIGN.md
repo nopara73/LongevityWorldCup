@@ -25,6 +25,8 @@ Keep reusable product decisions here; omit implementation history and one-off po
 
 ## Controls and Layout
 
+- AI referral reporting belongs in Source Quality, using compact session-stage bars, shared source filters, provider and landing-page tables, and expandable metric definitions. Show coverage for new events beside the metrics; keep raw event counts distinct from session conversions.
+
 - Related controls share inherited fonts, height, modest radius, light borders, and visible focus. Aim for 44px direct-tap targets where space allows.
 - Searchable timezone choices expand within the form. Keep the text cursor in the search field during arrow navigation, expose the active option to assistive technology, and let Tab or Escape leave without changing the selected timezone.
 - Challenge timezone edits remain in the open page across views and background updates. Retain later edits while saving and protect unfinished work on exit. Keep Save inactive only when the selection is confirmed saved; uncertain results remain retryable even after reverting. Show feedback only for a recoverable failure; saved timezone rules take effect only after an accepted response.

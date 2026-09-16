@@ -39,6 +39,52 @@ public sealed class SiteStatisticsDashboardBrowserTests(
     }
 
     [Fact]
+    public async Task Dashboard_AiReportSharesProviderFiltersAndFitsDesktopAndMobile()
+    {
+        var statistics = App.Services.GetRequiredService<SiteStatisticsService>();
+        for (var i = 0; i < 4; i++)
+        {
+            var session = $"ai-report-{i}";
+            await statistics.RecordClientEventAsync(new()
+            {
+                EventName = "site_page_viewed", SessionId = session, Route = "/join", LandingRoute = i == 0 ? "/" : "/pheno-age",
+                FirstSource = "referral", FirstReferrerDomain = i == 0 ? "perplexity.ai" : "chatgpt.com"
+            }, new DefaultHttpContext());
+            if (i == 3) continue;
+            await statistics.RecordClientEventAsync(new() { EventName = "application_started", SessionId = session, Flow = "application" }, new DefaultHttpContext());
+            await statistics.RecordServerEventAsync("application_submit_succeeded", sessionId: session,
+                metadata: new Dictionary<string, object?> { ["submissionKind"] = "full-application" });
+        }
+        await using var context = await Browser.NewContextAsync(new() { BaseURL = App.BaseAddress.ToString(), Locale = "en-US", ViewportSize = new() { Width = 1440, Height = 980 } });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        var page = await context.NewPageAsync();
+        var errors = new List<string>();
+        page.PageError += (_, error) => errors.Add(error);
+        await page.GotoAsync("/internal/site-statistics.html?tab=Source%20Quality&source=ai:chatgpt");
+        var report = page.Locator("#aiReferralReport");
+        await Assertions.Expect(report.Locator(".ai-stage strong")).ToHaveTextAsync(["3", "0", "0", "2", "2"]);
+        await Assertions.Expect(page.Locator("#statsSource")).ToHaveValueAsync("ai:chatgpt");
+        await Assertions.Expect(report.Locator(".ai-rates")).ToContainTextAsync("66.7%");
+        await page.Locator("#statsSource").SelectOptionAsync("ai");
+        await Assertions.Expect(report.Locator(".ai-stage strong").First).ToHaveTextAsync("4");
+        var output = Environment.GetEnvironmentVariable("LWC_AI_SCREENSHOTS");
+        if (!string.IsNullOrEmpty(output))
+        {
+            Directory.CreateDirectory(output);
+            await report.ScreenshotAsync(new() { Path = Path.Combine(output, "ai-report-desktop.png") });
+        }
+        await report.GetByRole(AriaRole.Button, new() { Name = "Perplexity", Exact = true }).ClickAsync();
+        await Assertions.Expect(report.Locator(".ai-stage strong").First).ToHaveTextAsync("1");
+        await Assertions.Expect(page.Locator("#statsSource")).ToHaveValueAsync("ai:perplexity");
+        await page.SetViewportSizeAsync(390, 844);
+        await page.Locator("#statsSource").SelectOptionAsync("ai");
+        await Assertions.Expect(report.Locator(".ai-stage strong").First).ToHaveTextAsync("4");
+        Assert.True(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth <= window.innerWidth"));
+        if (!string.IsNullOrEmpty(output)) await report.ScreenshotAsync(new() { Path = Path.Combine(output, "ai-report-mobile.png") });
+        Assert.Empty(errors);
+    }
+
+    [Fact]
     public async Task Dashboard_AttributesServerConfirmedApplicationsOncePerSession()
     {
         var statistics = App.Services.GetRequiredService<SiteStatisticsService>();
@@ -82,7 +128,7 @@ public sealed class SiteStatisticsDashboardBrowserTests(
         await page.GotoAsync("/internal/site-statistics.html?tab=Source%20Quality");
 
         var applications = page.Locator("#outcomeStrip .metric-tile")
-            .Filter(new() { HasText = "Applications submitted" }).Locator(".metric-value");
+            .Filter(new() { HasText = "Submissions accepted" }).Locator(".metric-value");
         await Assertions.Expect(applications).ToHaveTextAsync("3");
         var sourcePanel = page.Locator("#detailSections .detail-panel")
             .Filter(new() { Has = page.GetByRole(AriaRole.Heading, new() { Name = "Acquisition quality", Exact = true }) });

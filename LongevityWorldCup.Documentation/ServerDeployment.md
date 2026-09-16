@@ -256,6 +256,16 @@ Before editing, confirm that the enabled symlinks resolve to those two files and
 
 Keep the backups until the application submission path has been verified after deployment.
 
+### Reverse proxy error responses
+
+ASP.NET Core owns 404 responses, including the rendered error page, `X-Robots-Tag: noindex, nofollow`, and `Cache-Control: no-store`. The public HTTPS server in `/etc/nginx/sites-available/default` must not define `error_page 404 /404.html` or an internal `/404.html` location: that obsolete mapping replaces the application's response with a generic nginx page and drops its headers. Apply the same rule to both onion server blocks.
+
+Keep `/etc/nginx/snippets/lwc-error-page.conf` and its `proxy_intercept_errors on` setting with only the 502, 503, and 504 mappings, so gateway failures still use the static fallback pages. Do not disable all error interception to fix a 404. See nginx's [proxy interception](https://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_intercept_errors) and [error-page mapping](https://nginx.org/en/docs/http/ngx_http_core_module.html#error_page) documentation.
+
+Before editing, resolve the enabled symlink and create a timestamped backup in `sites-available`, never `sites-enabled`. Run `sudo nginx -t`, reload nginx, and confirm the service remains active. On a validation or reload failure, restore the backup, retest, and reload. Preserve the application submission timeout, CORS ownership, and onion configuration.
+
+Probe a missing document, athlete, league, and flag through public HTTPS with GET and HEAD, without following redirects. Each must return 404 with no `Location` header, `noindex`, and `no-store`; GET must contain the application's `404 Not Found - Longevity World Cup` title. Check `/error/404.html` directly as well. The automatic deployment runs these probes and rolls back the application release if they fail. Repeat representative probes through the local onion listeners using their onion `Host` header, and verify `/health` after the reload.
+
 ### Reverse proxy CORS ownership
 
 ASP.NET Core owns the route-specific CORS policies. The nginx reverse-proxy location must pass those response headers through unchanged: do not add `Access-Control-Allow-*` or `Access-Control-Expose-Headers` directives at the proxy layer, and do not intercept `OPTIONS` requests. Adding CORS headers in both layers produces duplicate values that browsers reject; applying wildcard headers in nginx also bypasses the application's restricted policy for non-public routes.

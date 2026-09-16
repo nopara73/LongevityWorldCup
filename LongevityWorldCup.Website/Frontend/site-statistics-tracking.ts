@@ -94,13 +94,30 @@
     }
 
     function route(): string {
-        return `${window.location.pathname}${window.location.search || ""}`;
+        return analyticsRoute(window.location.href);
+    }
+
+    function analyticsRoute(value: string): string {
+        const url = new URL(value, window.location.origin);
+        // Keep entry-mode diagnostics, never transmit calculator values or arbitrary query strings.
+        if (/\/(?:pheno|bortz)-age(?:\.html)?$/i.test(url.pathname)) {
+            const params = new URLSearchParams(Array.from(url.searchParams, ([key, val]) => [key.toLowerCase(), val]));
+            for (const flag of ["fake", "update"]) {
+                const val = params.get(flag);
+                if (val !== null && !["0", "false"].includes(val.toLowerCase())) return `${url.pathname}?${flag}=1`;
+            }
+            if (params.has("discount") || params.has("freepass")) return `${url.pathname}?discount=present`;
+            if (Array.from(params.keys()).some(key => /^(year|month|day|date|albgl|alpul|creatumoll|crpmgl|glummoll|lympc|mcvfl|rdwpc|wbc1000cellsul|neutrophilpc|monocytepc|rbc10e12l|mchpg|altul|ggtul|ureammoll|cystatincmgl|hba1cmmolmol|cholesterolmmoll|apoa1gl|shbgnmoll|vitamindnmoll)$/.test(key))) {
+                return `${url.pathname}?Year=present`;
+            }
+        }
+        return url.pathname;
     }
 
     function campaignValue(name: string): string {
         const value = safe(() => Array.from(new URLSearchParams(window.location.search))
             .find(([key]) => key.toLowerCase() === name)?.[1]) || "";
-        return safeToken(value, 96);
+        return value.trim() === safeToken(value, 96) ? safeToken(value, 96) : "";
     }
 
     function hasCampaignParams(): boolean {
@@ -188,7 +205,9 @@
         if (existing) {
             const parsed: unknown = safe(() => JSON.parse(existing));
             if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-                return firstTouch = parsed as StoredFirstTouch;
+                const stored = parsed as StoredFirstTouch;
+                if (typeof stored.landingRoute === "string") stored.landingRoute = analyticsRoute(stored.landingRoute);
+                return firstTouch = stored;
             }
         }
 
@@ -295,6 +314,9 @@
         const init: RequestInit = suppliedInit ? Object.assign({}, suppliedInit) : {};
         const headers = new Headers(init.headers || (typeof Request !== "undefined" && input instanceof Request ? input.headers : undefined));
         if (!headers.has(sessionHeader)) headers.set(sessionHeader, getSessionId());
+        if (!headers.has("X-LWC-Stats-First-Touch")) {
+            headers.set("X-LWC-Stats-First-Touch", encodeURIComponent(JSON.stringify(getFirstTouch())));
+        }
         init.headers = headers;
 
         if (typeof Request !== "undefined" && input instanceof Request) {
@@ -621,7 +643,14 @@
             if (changed || completedFields.size > 0) recordRequiredProgress(source);
         }
 
-        listen(form, "submit", () => {
+        function recordUse(event: Event): void {
+            if (!event.isTrusted) return;
+            trackOnce(`calculator-used-${flowFromPath()}`, "calculator_used", { component: "calculator", outcome: "started" });
+        }
+
+        listen(form, "change", recordUse, true);
+        listen(form, "submit", (event: Event) => {
+            recordUse(event);
             scanRequiredFields("submit");
             track("calculator_started", { component: "calculator", outcome: "submitted" });
         }, true);
@@ -636,6 +665,7 @@
         }, true);
 
         listen(form, "input", (event: Event) => {
+            recordUse(event);
             if (isRequiredCalculatorControl(event.target) && required.includes(event.target)) {
                 recordFieldCompletion(event.target, "input");
                 recordRequiredProgress("input");
@@ -742,6 +772,15 @@
     }
 
     function setupApplicationStageTracking(): void {
+        if (window.location.pathname === "/apply" || window.location.pathname.endsWith("/convergence.html")) {
+            const form = document.getElementById("inputForm");
+            const recordStart = (event: Event): void => {
+                if (!event.isTrusted) return;
+                trackOnce("application-started", "application_started", { component: "application", outcome: "started" });
+            };
+            listen(form, "input", recordStart, true);
+            listen(form, "change", recordStart, true);
+        }
         const path = pathLower();
         if (path !== "/apply" && !path.includes("convergence")) return;
 
@@ -966,7 +1005,7 @@
         if (!originalFetch) return;
 
         window.fetch = function () {
-            const args = withStatsSessionHeader(arguments);
+            const args = safe(() => withStatsSessionHeader(arguments)) || arguments;
             const url = safe(() => String(args[0] instanceof Request ? args[0].url : args[0] || "")) || "";
             const started = now();
             const observed = safe(() => classifyFetch(url));

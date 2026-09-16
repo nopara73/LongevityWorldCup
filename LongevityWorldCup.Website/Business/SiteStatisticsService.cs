@@ -11,7 +11,7 @@ using LongevityWorldCup.Website.Tools;
 
 namespace LongevityWorldCup.Website.Business;
 
-public sealed class SiteStatisticsService : IHostedService
+public sealed partial class SiteStatisticsService : IHostedService
 {
     private const string StatsSessionHeaderName = "X-LWC-Stats-Session";
     private const int MaxEventNameLength = 96;
@@ -25,39 +25,10 @@ public sealed class SiteStatisticsService : IHostedService
     private const int FlushBatchSize = 250;
     private const string PageViewEventNamesSql = "'site_page_viewed','onboarding_entry_viewed','onboarding_page_viewed','challenge_page_viewed'";
     private const string SuccessActionEventNamesSql = "'calculator_result_generated','application_submit_succeeded','application_submit_accepted','challenge_signup_succeeded'";
-    private const string EffectiveSourceSql =
-        """
-        CASE
-            WHEN lower(coalesce(s.FirstReferrerDomain, '')) IN ('longevityworldcup.com', 'www.longevityworldcup.com') THEN 'internal'
-            WHEN lower(coalesce(s.FirstReferrerDomain, '')) = 'com.google.android.gm'
-              OR lower(coalesce(s.FirstReferrerDomain, '')) LIKE 'mail.%'
-              OR lower(coalesce(s.FirstReferrerDomain, '')) LIKE '%.mail.%'
-              OR lower(coalesce(s.FirstReferrerDomain, '')) LIKE '%gmail%'
-              OR lower(coalesce(s.FirstReferrerDomain, '')) LIKE '%outlook%'
-              OR lower(coalesce(s.FirstReferrerDomain, '')) LIKE '%hotmail%'
-              OR lower(coalesce(s.FirstReferrerDomain, '')) LIKE '%protonmail%'
-              OR lower(coalesce(s.FirstReferrerDomain, '')) LIKE '%proton.me%'
-              OR lower(coalesce(s.FirstReferrerDomain, '')) LIKE '%fastmail%'
-              OR lower(coalesce(s.FirstReferrerDomain, '')) LIKE '%icloud%'
-              OR lower(coalesce(s.FirstReferrerDomain, '')) LIKE '%mail.yahoo%'
-              OR lower(coalesce(s.FirstReferrerDomain, '')) LIKE '%yahoomail%' THEN 'email'
-            WHEN s.FirstSource IS NOT NULL THEN s.FirstSource
-            WHEN lower(coalesce(e.ReferrerDomain, '')) IN ('longevityworldcup.com', 'www.longevityworldcup.com') THEN 'internal'
-            WHEN lower(coalesce(e.ReferrerDomain, '')) = 'com.google.android.gm'
-              OR lower(coalesce(e.ReferrerDomain, '')) LIKE 'mail.%'
-              OR lower(coalesce(e.ReferrerDomain, '')) LIKE '%.mail.%'
-              OR lower(coalesce(e.ReferrerDomain, '')) LIKE '%gmail%'
-              OR lower(coalesce(e.ReferrerDomain, '')) LIKE '%outlook%'
-              OR lower(coalesce(e.ReferrerDomain, '')) LIKE '%hotmail%'
-              OR lower(coalesce(e.ReferrerDomain, '')) LIKE '%protonmail%'
-              OR lower(coalesce(e.ReferrerDomain, '')) LIKE '%proton.me%'
-              OR lower(coalesce(e.ReferrerDomain, '')) LIKE '%fastmail%'
-              OR lower(coalesce(e.ReferrerDomain, '')) LIKE '%icloud%'
-              OR lower(coalesce(e.ReferrerDomain, '')) LIKE '%mail.yahoo%'
-              OR lower(coalesce(e.ReferrerDomain, '')) LIKE '%yahoomail%' THEN 'email'
-            ELSE coalesce(e.Source, 'direct')
-        END
-        """;
+    private const string EffectiveReferrerSql = "CASE WHEN s.SessionHash IS NULL THEN e.ReferrerDomain ELSE s.FirstReferrerDomain END";
+    private const string EffectiveSourceSql = "stats_source(coalesce(s.FirstSource, e.Source), " + EffectiveReferrerSql + ", s.FirstUtmSource)";
+    private const string EffectiveAiProviderSql = "stats_ai_provider(" + EffectiveReferrerSql + ", s.FirstUtmSource)";
+    private const string SourceFilterSql = "(@source = '' OR (" + EffectiveSourceSql + ") = @source OR 'ai:' || (" + EffectiveAiProviderSql + ") = @source)";
     private static readonly TimeSpan FlushInterval = TimeSpan.FromSeconds(1);
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
     private static readonly TimeSpan DefaultDashboardRange = TimeSpan.FromDays(30);
@@ -145,7 +116,8 @@ public sealed class SiteStatisticsService : IHostedService
 
     public Task RecordClientEventAsync(SiteStatisticsEventRequest? request, HttpContext context, CancellationToken ct = default)
     {
-        if (request is null || string.IsNullOrWhiteSpace(request.EventName))
+        if (request is null || string.IsNullOrWhiteSpace(request.EventName)
+            || SafeToken(request.EventName, MaxEventNameLength)?.ToLowerInvariant() is "application_submit_succeeded" or "application_submit_accepted")
             return Task.CompletedTask;
 
         return RecordEventAsync(request, context, actorId: null, ct);
@@ -182,6 +154,30 @@ public sealed class SiteStatisticsService : IHostedService
                 : metadata.ToDictionary(kvp => kvp.Key, kvp => JsonSerializer.SerializeToElement(kvp.Value, JsonOptions), StringComparer.OrdinalIgnoreCase)
         };
 
+        // Carry the same minimal first touch when a beacon is blocked, late, or lost.
+        // This header is attribution evidence only; it never supplies the server event name/outcome.
+        var touchHeader = context?.Request.Headers["X-LWC-Stats-First-Touch"].FirstOrDefault();
+        if (touchHeader is { Length: > 0 and <= 8000 })
+        {
+            try
+            {
+                var touch = JsonSerializer.Deserialize<SiteStatisticsEventRequest>(Uri.UnescapeDataString(touchHeader), JsonOptions);
+                if (touch is not null)
+                {
+                    request.LandingRoute = touch.LandingRoute;
+                    request.FirstReferrerDomain = touch.FirstReferrerDomain;
+                    request.FirstSource = touch.FirstSource;
+                    request.FirstCampaign = touch.FirstCampaign;
+                    request.FirstUtmSource = touch.FirstUtmSource;
+                    request.FirstUtmMedium = touch.FirstUtmMedium;
+                    request.FirstUtmCampaign = touch.FirstUtmCampaign;
+                    request.FirstUtmTerm = touch.FirstUtmTerm;
+                    request.FirstUtmContent = touch.FirstUtmContent;
+                }
+            }
+            catch (Exception ex) when (ex is JsonException or UriFormatException) { }
+        }
+
         return RecordEventAsync(request, context, actorId, ct);
     }
 
@@ -200,6 +196,7 @@ public sealed class SiteStatisticsService : IHostedService
             var events = ReadDashboardEvents(sqlite, from, now, query, limit);
             var previousEvents = ReadDashboardEvents(sqlite, previousFrom, from, query, limit);
             var trafficSummary = ReadTrafficSummary(sqlite, from, now, previousFrom, from, query);
+            var aiReferrals = ReadAiReferrals(sqlite, from, now, query);
 
             var filters = new SiteStatisticsDashboardFilters(
                 Range: string.IsNullOrWhiteSpace(query.Range) ? "30d" : query.Range!,
@@ -219,7 +216,8 @@ public sealed class SiteStatisticsService : IHostedService
                 Events: events.Events,
                 PreviousEvents: previousEvents.Events,
                 EventsPage: events.Page,
-                PreviousEventsPage: previousEvents.Page));
+                PreviousEventsPage: previousEvents.Page,
+                AiReferrals: aiReferrals));
         }, ct).ConfigureAwait(false);
     }
 
@@ -264,11 +262,11 @@ public sealed class SiteStatisticsService : IHostedService
         var decodedCursor = DecodeDashboardEventCursor(cursor, from, to, query);
         using var cmd = sqlite.CreateCommand();
         cmd.CommandText =
-            """
+            $$"""
             SELECT e.Id, e.OccurredAtUtc, e.SessionHash, e.ActorHash, e.EventName, e.Flow, e.Route, e.Component, e.Step, e.Outcome,
                    e.ErrorCode, e.DurationMs, e.DeviceClass, e.BrowserFamily, e.ReferrerDomain, e.Source, e.MetadataJson,
                    s.LandingRoute, s.FirstReferrerDomain, s.FirstSource, s.FirstCampaign, s.FirstUtmSource,
-                   s.FirstUtmMedium, s.FirstUtmCampaign, s.FirstUtmTerm, s.FirstUtmContent
+                   s.FirstUtmMedium, s.FirstUtmCampaign, s.FirstUtmTerm, s.FirstUtmContent, s.SessionHash
             FROM SiteStatisticEvents e
             LEFT JOIN SiteStatisticSessions s ON s.SessionHash = e.SessionHash
             WHERE e.OccurredAtUtc >= @from
@@ -277,38 +275,7 @@ public sealed class SiteStatisticsService : IHostedService
                    OR (e.OccurredAtUtc = @cursorOccurred AND e.Id < @cursorId))
               AND (@flow = '' OR e.Flow = @flow)
               AND (@device = '' OR e.DeviceClass = @device)
-              AND (@source = '' OR (
-                    CASE
-                        WHEN lower(coalesce(s.FirstReferrerDomain, '')) IN ('longevityworldcup.com', 'www.longevityworldcup.com') THEN 'internal'
-                        WHEN lower(coalesce(s.FirstReferrerDomain, '')) = 'com.google.android.gm'
-                          OR lower(coalesce(s.FirstReferrerDomain, '')) LIKE 'mail.%'
-                          OR lower(coalesce(s.FirstReferrerDomain, '')) LIKE '%.mail.%'
-                          OR lower(coalesce(s.FirstReferrerDomain, '')) LIKE '%gmail%'
-                          OR lower(coalesce(s.FirstReferrerDomain, '')) LIKE '%outlook%'
-                          OR lower(coalesce(s.FirstReferrerDomain, '')) LIKE '%hotmail%'
-                          OR lower(coalesce(s.FirstReferrerDomain, '')) LIKE '%protonmail%'
-                          OR lower(coalesce(s.FirstReferrerDomain, '')) LIKE '%proton.me%'
-                          OR lower(coalesce(s.FirstReferrerDomain, '')) LIKE '%fastmail%'
-                          OR lower(coalesce(s.FirstReferrerDomain, '')) LIKE '%icloud%'
-                          OR lower(coalesce(s.FirstReferrerDomain, '')) LIKE '%mail.yahoo%'
-                          OR lower(coalesce(s.FirstReferrerDomain, '')) LIKE '%yahoomail%' THEN 'email'
-                        WHEN s.FirstSource IS NOT NULL THEN s.FirstSource
-                        WHEN lower(coalesce(e.ReferrerDomain, '')) IN ('longevityworldcup.com', 'www.longevityworldcup.com') THEN 'internal'
-                        WHEN lower(coalesce(e.ReferrerDomain, '')) = 'com.google.android.gm'
-                          OR lower(coalesce(e.ReferrerDomain, '')) LIKE 'mail.%'
-                          OR lower(coalesce(e.ReferrerDomain, '')) LIKE '%.mail.%'
-                          OR lower(coalesce(e.ReferrerDomain, '')) LIKE '%gmail%'
-                          OR lower(coalesce(e.ReferrerDomain, '')) LIKE '%outlook%'
-                          OR lower(coalesce(e.ReferrerDomain, '')) LIKE '%hotmail%'
-                          OR lower(coalesce(e.ReferrerDomain, '')) LIKE '%protonmail%'
-                          OR lower(coalesce(e.ReferrerDomain, '')) LIKE '%proton.me%'
-                          OR lower(coalesce(e.ReferrerDomain, '')) LIKE '%fastmail%'
-                          OR lower(coalesce(e.ReferrerDomain, '')) LIKE '%icloud%'
-                          OR lower(coalesce(e.ReferrerDomain, '')) LIKE '%mail.yahoo%'
-                          OR lower(coalesce(e.ReferrerDomain, '')) LIKE '%yahoomail%' THEN 'email'
-                        ELSE coalesce(e.Source, 'direct')
-                    END
-                  ) = @source)
+              AND {{SourceFilterSql}}
             ORDER BY e.OccurredAtUtc DESC, e.Id DESC
             LIMIT @fetchLimit;
             """;
@@ -328,7 +295,8 @@ public sealed class SiteStatisticsService : IHostedService
             var id = ReadString(reader, 0);
             var occurredAtUtc = ReadString(reader, 1);
             var referrerDomain = ReadNullableString(reader, 14);
-            var firstReferrerDomain = ReadNullableString(reader, 18);
+            var hasSession = !reader.IsDBNull(26);
+            var firstReferrerDomain = hasSession ? ReadNullableString(reader, 18) : referrerDomain;
             var routeProjection = BuildRouteProjection(ReadNullableString(reader, 6));
             var landingRouteProjection = BuildRouteProjection(ReadNullableString(reader, 17));
             var metadata = ReadMetadata(ReadNullableString(reader, 16));
@@ -359,14 +327,16 @@ public sealed class SiteStatisticsService : IHostedService
                 Source: NormalizeSource(ReadNullableString(reader, 15), referrerDomain),
                 LandingRoute: landingRouteProjection.Route,
                 FirstReferrerDomain: firstReferrerDomain,
-                FirstSource: NormalizeSource(ReadNullableString(reader, 19), firstReferrerDomain),
+                FirstSource: NormalizeSource(ReadNullableString(reader, hasSession ? 19 : 15), firstReferrerDomain, ReadNullableString(reader, 21)),
                 FirstCampaign: ReadNullableString(reader, 20),
                 FirstUtmSource: ReadNullableString(reader, 21),
                 FirstUtmMedium: ReadNullableString(reader, 22),
                 FirstUtmCampaign: ReadNullableString(reader, 23),
                 FirstUtmTerm: ReadNullableString(reader, 24),
                 FirstUtmContent: ReadNullableString(reader, 25),
-                Metadata: metadata),
+                Metadata: metadata,
+                AiProvider: AiReferralPolicy.Classify(firstReferrerDomain, ReadNullableString(reader, 21))?.Provider,
+                AiAttributionBasis: AiReferralPolicy.Classify(firstReferrerDomain, ReadNullableString(reader, 21))?.Basis),
                 Cursor: new DashboardEventPosition(occurredAtUtc, id)));
         }
 
@@ -428,7 +398,7 @@ public sealed class SiteStatisticsService : IHostedService
               AND e.OccurredAtUtc < @to
               AND (@flow = '' OR e.Flow = @flow)
               AND (@device = '' OR e.DeviceClass = @device)
-              AND (@source = '' OR ({{EffectiveSourceSql}}) = @source);
+              AND {{SourceFilterSql}};
             """;
         AddTrafficFilterParameters(cmd, from, to, query);
 
@@ -459,7 +429,7 @@ public sealed class SiteStatisticsService : IHostedService
               AND e.OccurredAtUtc < @to
               AND (@flow = '' OR e.Flow = @flow)
               AND (@device = '' OR e.DeviceClass = @device)
-              AND (@source = '' OR ({{EffectiveSourceSql}}) = @source)
+              AND {{SourceFilterSql}}
             GROUP BY Day
             ORDER BY Day ASC;
             """;
@@ -500,7 +470,7 @@ public sealed class SiteStatisticsService : IHostedService
               AND e.EventName IN ({{PageViewEventNamesSql}})
               AND (@flow = '' OR e.Flow = @flow)
               AND (@device = '' OR e.DeviceClass = @device)
-              AND (@source = '' OR ({{EffectiveSourceSql}}) = @source)
+              AND {{SourceFilterSql}}
             GROUP BY e.Route, e.SessionHash;
             """;
         AddTrafficFilterParameters(cmd, from, to, query);
@@ -549,7 +519,7 @@ public sealed class SiteStatisticsService : IHostedService
               AND e.OccurredAtUtc < @to
               AND (@flow = '' OR e.Flow = @flow)
               AND (@device = '' OR e.DeviceClass = @device)
-              AND (@source = '' OR ({{EffectiveSourceSql}}) = @source)
+              AND {{SourceFilterSql}}
             GROUP BY Label
             ORDER BY Sessions DESC, PageViews DESC, Events DESC, Label ASC
             LIMIT 12;
@@ -589,7 +559,7 @@ public sealed class SiteStatisticsService : IHostedService
                   AND e.OccurredAtUtc < @to
                   AND (@flow = '' OR e.Flow = @flow)
                   AND (@device = '' OR e.DeviceClass = @device)
-                  AND (@source = '' OR ({{EffectiveSourceSql}}) = @source)
+                  AND {{SourceFilterSql}}
             ),
             session_totals AS (
                 SELECT SessionHash,
@@ -829,68 +799,22 @@ public sealed class SiteStatisticsService : IHostedService
                 """
                 INSERT INTO SiteStatisticSessions
                 (SessionHash, FirstSeenAtUtc, LandingRoute, FirstReferrerDomain, FirstSource, FirstCampaign,
-                 FirstUtmSource, FirstUtmMedium, FirstUtmCampaign, FirstUtmTerm, FirstUtmContent)
+                 FirstUtmSource, FirstUtmMedium, FirstUtmCampaign, FirstUtmTerm, FirstUtmContent, FirstTouchCaptured)
                 VALUES
                 (@sessionHash, @firstSeen, @landingRoute, @firstReferrer, @firstSource, @firstCampaign,
-                 @firstUtmSource, @firstUtmMedium, @firstUtmCampaign, @firstUtmTerm, @firstUtmContent)
+                 @firstUtmSource, @firstUtmMedium, @firstUtmCampaign, @firstUtmTerm, @firstUtmContent, @hasExplicitFirstTouch)
                 ON CONFLICT(SessionHash) DO UPDATE SET
-                    FirstSeenAtUtc = CASE
-                        WHEN excluded.FirstSeenAtUtc < SiteStatisticSessions.FirstSeenAtUtc THEN excluded.FirstSeenAtUtc
-                        ELSE SiteStatisticSessions.FirstSeenAtUtc
-                    END,
-                    LandingRoute = CASE
-                        WHEN excluded.FirstSeenAtUtc < SiteStatisticSessions.FirstSeenAtUtc
-                          OR SiteStatisticSessions.LandingRoute IS NULL
-                          OR (@hasExplicitFirstTouch = 1 AND lower(coalesce(SiteStatisticSessions.FirstSource, 'direct')) IN ('direct', 'internal')) THEN COALESCE(excluded.LandingRoute, SiteStatisticSessions.LandingRoute)
-                        ELSE SiteStatisticSessions.LandingRoute
-                    END,
-                    FirstReferrerDomain = CASE
-                        WHEN @hasExplicitFirstTouch = 1 AND lower(coalesce(SiteStatisticSessions.FirstSource, 'direct')) IN ('direct', 'internal') THEN excluded.FirstReferrerDomain
-                        WHEN excluded.FirstSeenAtUtc < SiteStatisticSessions.FirstSeenAtUtc THEN COALESCE(excluded.FirstReferrerDomain, SiteStatisticSessions.FirstReferrerDomain)
-                        ELSE SiteStatisticSessions.FirstReferrerDomain
-                    END,
-                    FirstSource = CASE
-                        WHEN excluded.FirstSeenAtUtc < SiteStatisticSessions.FirstSeenAtUtc
-                          OR SiteStatisticSessions.FirstSource IS NULL
-                          OR (@hasExplicitFirstTouch = 1 AND lower(coalesce(SiteStatisticSessions.FirstSource, 'direct')) IN ('direct', 'internal')) THEN COALESCE(excluded.FirstSource, SiteStatisticSessions.FirstSource)
-                        ELSE SiteStatisticSessions.FirstSource
-                    END,
-                    FirstCampaign = CASE
-                        WHEN excluded.FirstSeenAtUtc < SiteStatisticSessions.FirstSeenAtUtc
-                          OR SiteStatisticSessions.FirstCampaign IS NULL
-                          OR (@hasExplicitFirstTouch = 1 AND lower(coalesce(SiteStatisticSessions.FirstSource, 'direct')) IN ('direct', 'internal')) THEN COALESCE(excluded.FirstCampaign, SiteStatisticSessions.FirstCampaign)
-                        ELSE SiteStatisticSessions.FirstCampaign
-                    END,
-                    FirstUtmSource = CASE
-                        WHEN excluded.FirstSeenAtUtc < SiteStatisticSessions.FirstSeenAtUtc
-                          OR SiteStatisticSessions.FirstUtmSource IS NULL
-                          OR (@hasExplicitFirstTouch = 1 AND lower(coalesce(SiteStatisticSessions.FirstSource, 'direct')) IN ('direct', 'internal')) THEN COALESCE(excluded.FirstUtmSource, SiteStatisticSessions.FirstUtmSource)
-                        ELSE SiteStatisticSessions.FirstUtmSource
-                    END,
-                    FirstUtmMedium = CASE
-                        WHEN excluded.FirstSeenAtUtc < SiteStatisticSessions.FirstSeenAtUtc
-                          OR SiteStatisticSessions.FirstUtmMedium IS NULL
-                          OR (@hasExplicitFirstTouch = 1 AND lower(coalesce(SiteStatisticSessions.FirstSource, 'direct')) IN ('direct', 'internal')) THEN COALESCE(excluded.FirstUtmMedium, SiteStatisticSessions.FirstUtmMedium)
-                        ELSE SiteStatisticSessions.FirstUtmMedium
-                    END,
-                    FirstUtmCampaign = CASE
-                        WHEN excluded.FirstSeenAtUtc < SiteStatisticSessions.FirstSeenAtUtc
-                          OR SiteStatisticSessions.FirstUtmCampaign IS NULL
-                          OR (@hasExplicitFirstTouch = 1 AND lower(coalesce(SiteStatisticSessions.FirstSource, 'direct')) IN ('direct', 'internal')) THEN COALESCE(excluded.FirstUtmCampaign, SiteStatisticSessions.FirstUtmCampaign)
-                        ELSE SiteStatisticSessions.FirstUtmCampaign
-                    END,
-                    FirstUtmTerm = CASE
-                        WHEN excluded.FirstSeenAtUtc < SiteStatisticSessions.FirstSeenAtUtc
-                          OR SiteStatisticSessions.FirstUtmTerm IS NULL
-                          OR (@hasExplicitFirstTouch = 1 AND lower(coalesce(SiteStatisticSessions.FirstSource, 'direct')) IN ('direct', 'internal')) THEN COALESCE(excluded.FirstUtmTerm, SiteStatisticSessions.FirstUtmTerm)
-                        ELSE SiteStatisticSessions.FirstUtmTerm
-                    END,
-                    FirstUtmContent = CASE
-                        WHEN excluded.FirstSeenAtUtc < SiteStatisticSessions.FirstSeenAtUtc
-                          OR SiteStatisticSessions.FirstUtmContent IS NULL
-                          OR (@hasExplicitFirstTouch = 1 AND lower(coalesce(SiteStatisticSessions.FirstSource, 'direct')) IN ('direct', 'internal')) THEN COALESCE(excluded.FirstUtmContent, SiteStatisticSessions.FirstUtmContent)
-                        ELSE SiteStatisticSessions.FirstUtmContent
-                    END;
+                    FirstSeenAtUtc = min(SiteStatisticSessions.FirstSeenAtUtc, excluded.FirstSeenAtUtc),
+                    LandingRoute = CASE WHEN SiteStatisticSessions.FirstTouchCaptured = 0 AND excluded.FirstTouchCaptured = 1 THEN excluded.LandingRoute ELSE SiteStatisticSessions.LandingRoute END,
+                    FirstReferrerDomain = CASE WHEN SiteStatisticSessions.FirstTouchCaptured = 0 AND excluded.FirstTouchCaptured = 1 THEN excluded.FirstReferrerDomain ELSE SiteStatisticSessions.FirstReferrerDomain END,
+                    FirstSource = CASE WHEN SiteStatisticSessions.FirstTouchCaptured = 0 AND excluded.FirstTouchCaptured = 1 THEN excluded.FirstSource ELSE SiteStatisticSessions.FirstSource END,
+                    FirstCampaign = CASE WHEN SiteStatisticSessions.FirstTouchCaptured = 0 AND excluded.FirstTouchCaptured = 1 THEN excluded.FirstCampaign ELSE SiteStatisticSessions.FirstCampaign END,
+                    FirstUtmSource = CASE WHEN SiteStatisticSessions.FirstTouchCaptured = 0 AND excluded.FirstTouchCaptured = 1 THEN excluded.FirstUtmSource ELSE SiteStatisticSessions.FirstUtmSource END,
+                    FirstUtmMedium = CASE WHEN SiteStatisticSessions.FirstTouchCaptured = 0 AND excluded.FirstTouchCaptured = 1 THEN excluded.FirstUtmMedium ELSE SiteStatisticSessions.FirstUtmMedium END,
+                    FirstUtmCampaign = CASE WHEN SiteStatisticSessions.FirstTouchCaptured = 0 AND excluded.FirstTouchCaptured = 1 THEN excluded.FirstUtmCampaign ELSE SiteStatisticSessions.FirstUtmCampaign END,
+                    FirstUtmTerm = CASE WHEN SiteStatisticSessions.FirstTouchCaptured = 0 AND excluded.FirstTouchCaptured = 1 THEN excluded.FirstUtmTerm ELSE SiteStatisticSessions.FirstUtmTerm END,
+                    FirstUtmContent = CASE WHEN SiteStatisticSessions.FirstTouchCaptured = 0 AND excluded.FirstTouchCaptured = 1 THEN excluded.FirstUtmContent ELSE SiteStatisticSessions.FirstUtmContent END,
+                    FirstTouchCaptured = max(SiteStatisticSessions.FirstTouchCaptured, excluded.FirstTouchCaptured);
                 """;
             var sessionHashParam = sessionCmd.Parameters.Add("@sessionHash", SqliteType.Text);
             var firstSeenParam = sessionCmd.Parameters.Add("@firstSeen", SqliteType.Text);
@@ -912,9 +836,13 @@ public sealed class SiteStatisticsService : IHostedService
                 INSERT INTO SiteStatisticEvents
                 (Id, OccurredAtUtc, SessionHash, ActorHash, EventName, Flow, Route, Component, Step, Outcome,
                  ErrorCode, DurationMs, DeviceClass, BrowserFamily, ReferrerDomain, Source, MetadataJson)
-                VALUES
-                (@id, @occurred, @session, @actor, @eventName, @flow, @route, @component, @step, @outcome,
-                 @errorCode, @duration, @device, @browser, @referrer, @source, @metadata);
+                SELECT @id, @occurred, @session, @actor, @eventName, @flow, @route, @component, @step, @outcome,
+                       @errorCode, @duration, @device, @browser, @referrer, @source, @metadata
+                WHERE @eventName NOT IN ('calculator_used', 'application_started') OR NOT EXISTS (
+                    SELECT 1 FROM SiteStatisticEvents
+                    WHERE SessionHash = @session AND EventName = @eventName
+                      AND coalesce(Flow, '') = coalesce(@flow, '')
+                );
                 """;
 
             var id = cmd.Parameters.Add("@id", SqliteType.Text);
@@ -988,6 +916,8 @@ public sealed class SiteStatisticsService : IHostedService
 
             _database.Run(sqlite =>
             {
+                sqlite.CreateFunction<string?, string?, string?, string>("stats_source", NormalizeSource, isDeterministic: true);
+                sqlite.CreateFunction<string?, string?, string?>("stats_ai_provider", (host, tag) => AiReferralPolicy.Classify(host, tag)?.Provider, isDeterministic: true);
                 using var cmd = sqlite.CreateCommand();
                 cmd.CommandText =
                     """
@@ -1026,8 +956,11 @@ public sealed class SiteStatisticsService : IHostedService
                         FirstUtmMedium TEXT NULL,
                         FirstUtmCampaign TEXT NULL,
                         FirstUtmTerm TEXT NULL,
-                        FirstUtmContent TEXT NULL
+                        FirstUtmContent TEXT NULL,
+                        FirstTouchCaptured INTEGER NOT NULL DEFAULT 1
                     );
+                    CREATE TABLE IF NOT EXISTS SiteStatisticFeatures (Name TEXT PRIMARY KEY, EnabledAtUtc TEXT NOT NULL);
+                    INSERT OR IGNORE INTO SiteStatisticFeatures VALUES ('ai-funnel-v1', @enabledAtUtc);
                     CREATE INDEX IF NOT EXISTS IX_SiteStatisticSessions_FirstSeenAtUtc ON SiteStatisticSessions(FirstSeenAtUtc);
                     CREATE INDEX IF NOT EXISTS IX_SiteStatisticSessions_FirstSource ON SiteStatisticSessions(FirstSource);
 
@@ -1037,22 +970,7 @@ public sealed class SiteStatisticsService : IHostedService
                            e.OccurredAtUtc,
                            e.Route,
                            e.ReferrerDomain,
-                           CASE
-                               WHEN lower(coalesce(e.ReferrerDomain, '')) IN ('longevityworldcup.com', 'www.longevityworldcup.com') THEN 'internal'
-                               WHEN lower(coalesce(e.ReferrerDomain, '')) = 'com.google.android.gm'
-                                 OR lower(coalesce(e.ReferrerDomain, '')) LIKE 'mail.%'
-                                 OR lower(coalesce(e.ReferrerDomain, '')) LIKE '%.mail.%'
-                                 OR lower(coalesce(e.ReferrerDomain, '')) LIKE '%gmail%'
-                                 OR lower(coalesce(e.ReferrerDomain, '')) LIKE '%outlook%'
-                                 OR lower(coalesce(e.ReferrerDomain, '')) LIKE '%hotmail%'
-                                 OR lower(coalesce(e.ReferrerDomain, '')) LIKE '%protonmail%'
-                                 OR lower(coalesce(e.ReferrerDomain, '')) LIKE '%proton.me%'
-                                 OR lower(coalesce(e.ReferrerDomain, '')) LIKE '%fastmail%'
-                                 OR lower(coalesce(e.ReferrerDomain, '')) LIKE '%icloud%'
-                                 OR lower(coalesce(e.ReferrerDomain, '')) LIKE '%mail.yahoo%'
-                                 OR lower(coalesce(e.ReferrerDomain, '')) LIKE '%yahoomail%' THEN 'email'
-                               ELSE coalesce(e.Source, 'direct')
-                           END
+                           stats_source(e.Source, e.ReferrerDomain, NULL)
                     FROM SiteStatisticEvents e
                     INNER JOIN (
                         SELECT SessionHash, MIN(OccurredAtUtc) AS FirstSeenAtUtc
@@ -1062,7 +980,16 @@ public sealed class SiteStatisticsService : IHostedService
                       ON first_events.SessionHash = e.SessionHash
                      AND first_events.FirstSeenAtUtc = e.OccurredAtUtc;
                     """;
+                Add(cmd, "@enabledAtUtc", DateTimeOffset.UtcNow.ToString("O", CultureInfo.InvariantCulture));
                 cmd.ExecuteNonQuery();
+                using var columns = sqlite.CreateCommand();
+                columns.CommandText = "SELECT COUNT(*) FROM pragma_table_info('SiteStatisticSessions') WHERE name = 'FirstTouchCaptured';";
+                if (Convert.ToInt64(columns.ExecuteScalar(), CultureInfo.InvariantCulture) == 0)
+                {
+                    using var migrate = sqlite.CreateCommand();
+                    migrate.CommandText = "ALTER TABLE SiteStatisticSessions ADD COLUMN FirstTouchCaptured INTEGER NOT NULL DEFAULT 1;";
+                    migrate.ExecuteNonQuery();
+                }
             });
 
             _initialized = true;
@@ -1102,7 +1029,7 @@ public sealed class SiteStatisticsService : IHostedService
             string.IsNullOrWhiteSpace(request.FirstSource) && hasCampaign && string.IsNullOrWhiteSpace(firstReferrerDomain)
                 ? "campaign"
                 : request.FirstSource ?? source,
-            firstReferrerDomain);
+            firstReferrerDomain, firstUtmSource);
 
         return new SessionFirstTouch(
             landingRoute,
@@ -1354,8 +1281,9 @@ public sealed class SiteStatisticsService : IHostedService
 
     private static string? SafeCampaignValue(string? value)
     {
+        if (LooksSensitiveValue(value)) return null;
         var token = SafeToken(value, MaxCampaignTextLength);
-        return LooksSensitiveValue(token) ? null : token;
+        return string.Equals(token, value?.Trim(), StringComparison.Ordinal) ? token : null;
     }
 
     private static bool LooksSensitiveValue(string? value)
@@ -1420,22 +1348,15 @@ public sealed class SiteStatisticsService : IHostedService
     }
 
     private static string? SafeDomain(string? value)
+        => Uri.TryCreate(value, UriKind.Absolute, out var uri) && uri.Scheme == "android-app"
+            ? AiReferralPolicy.NormalizeHost(uri.Host)
+            : AiReferralPolicy.NormalizeHost(value);
+
+    private static string NormalizeSource(string? source, string? referrerDomain, string? utmSource = null)
     {
-        if (string.IsNullOrWhiteSpace(value))
-            return null;
-
-        if (Uri.TryCreate(value, UriKind.Absolute, out var uri))
-            return SafeToken(uri.Host.ToLowerInvariant(), 96);
-
-        var cleaned = value.Trim().ToLowerInvariant();
-        if (cleaned.Contains('/') || cleaned.Contains('@'))
-            return null;
-
-        return SafeToken(cleaned, 96);
-    }
-
-    private static string NormalizeSource(string? source, string? referrerDomain)
-    {
+        if (AiReferralPolicy.Classify(referrerDomain, utmSource) is not null) return "ai";
+        // Client-supplied source labels alone do not establish AI attribution.
+        if (source?.StartsWith("ai", StringComparison.OrdinalIgnoreCase) == true) source = null;
         if (IsInternalReferrerDomain(referrerDomain))
             return "internal";
 
@@ -1765,7 +1686,8 @@ public sealed record SiteStatisticsDashboardResponse(
     IReadOnlyList<SiteStatisticsDashboardEvent> Events,
     IReadOnlyList<SiteStatisticsDashboardEvent> PreviousEvents,
     SiteStatisticsDashboardEventPage EventsPage,
-    SiteStatisticsDashboardEventPage PreviousEventsPage);
+    SiteStatisticsDashboardEventPage PreviousEventsPage,
+    SiteStatisticsAiReport AiReferrals);
 
 public sealed record SiteStatisticsDashboardEventsPageResponse(
     IReadOnlyList<SiteStatisticsDashboardEvent> Events,
@@ -1811,7 +1733,9 @@ public sealed record SiteStatisticsDashboardEvent(
     string? FirstUtmCampaign,
     string? FirstUtmTerm,
     string? FirstUtmContent,
-    IReadOnlyDictionary<string, string> Metadata);
+    IReadOnlyDictionary<string, string> Metadata,
+    string? AiProvider = null,
+    string? AiAttributionBasis = null);
 
 public sealed record SiteStatisticsTrafficSummary(
     SiteStatisticsTrafficTotals Totals,

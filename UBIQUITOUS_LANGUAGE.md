@@ -24,6 +24,12 @@ Use lowercase pheno age, bortz age, crowd age, age reduction, and effective age 
 - Crowd age top-10 entries and upward moves within the top 10 can produce placement Events, including moves such as 8th to 6th. Preserve one announcement per athlete/place and require the athlete's own accepted guesses to cause the change. Keep live ranks current after every accepted guess.
 - Publish crowd age placement Events at least 24 hours apart per athlete. The first eligible announcement can publish immediately; during the cooldown, retain the strongest pending climb and its original movement context for the next announcement. Measure the cooldown from actual Event publication, not the time of the underlying guess or a calendar-day boundary. Pending announcements and publication times survive restarts; discard pending announcements if their profile image changes. Published Events remain historical. Platform-specific posting cooldowns can impose additional spacing.
 
+## Acquisition Measurement
+
+- An **AI-attributed visit** is a recorded statistics session identified by an allowlisted AI app referrer or an exact recognized first-touch source tag. Campaign evidence takes precedence. It is neither a verified human nor a crawl or citation; absent evidence remains direct/unknown.
+- **Calculator use** means user input, change, or submit; **Application start** means user input or change on the new-application form. Keep these distinct from page views and calculator results, and expose the start of their measurement coverage.
+- An **Application conversion** is a session with a server-confirmed successful full application, before athlete approval or payment. Exclude result/profile updates and unknown submission types from this rate. Count each converting session once; retain raw events separately. Window/filter denominators and first-touch semantics are documented in [AI referral reporting](LongevityWorldCup.Documentation/AiReferralReporting.md).
+
 ## Payments
 
 An existing Amateur's first eligible bortz result uses Pro-upgrade pricing. Other result/profile updates are free. The server classifies submissions from existing athlete and submitted clock data and sets authoritative entry/upgrade pricing; browser payment state is only a handoff hint.
