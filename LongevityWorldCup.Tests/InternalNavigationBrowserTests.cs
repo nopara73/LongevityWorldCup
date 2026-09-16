@@ -54,7 +54,8 @@ public sealed class InternalNavigationBrowserTests(
         await Assertions.Expect(link).ToHaveAttributeAsync("href", new System.Text.RegularExpressions.Regex("#rank-1$"));
         var originalUrl = page.Url;
         var href = (await link.GetAttributeAsync("href"))!;
-        Assert.StartsWith("/league/pheno?", href);
+        Assert.StartsWith("/leaderboard?", href);
+        Assert.Contains("view=pheno", href);
         Assert.Contains("source=internal-links", href);
         Assert.Contains("search=michael", href);
         Assert.EndsWith("#rank-1", href);

@@ -6921,13 +6921,13 @@
         const canonicalLeagueSlug = selectedFlags.length === 0 && filters.length === 1
             ? getCanonicalLeagueSlugForFilter(filters[0])
             : null;
-        if (filters.length === 1 && selectedFlags.length === 1 && currentLeaderboardView === 'ultimate') {
+        if (!searchQuery && filters.length === 1 && selectedFlags.length === 1 && currentLeaderboardView === 'ultimate') {
             url.pathname = buildFlagHref(state.flags[0]);
             url.searchParams.delete('filters');
-        } else if (canonicalLeagueSlug && currentLeaderboardView === 'ultimate') {
+        } else if (!searchQuery && canonicalLeagueSlug && currentLeaderboardView === 'ultimate') {
             url.pathname = `/league/${canonicalLeagueSlug}`;
             url.searchParams.delete('filters');
-        } else if (filters.length === 0 && currentLeaderboardView !== 'ultimate') {
+        } else if (!searchQuery && filters.length === 0 && currentLeaderboardView !== 'ultimate') {
             url.pathname = `/league/${currentLeaderboardView}`;
         } else if (currentLeaderboardView !== 'ultimate') {
             url.searchParams.set('view', currentLeaderboardView);
