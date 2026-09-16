@@ -23,6 +23,16 @@
   },
   "publicPages": [
     {
+      "name": "Pheno Age Calculator",
+      "url": "https://longevityworldcup.com/pheno-age",
+      "description": "Calculate Pheno Age from nine blood biomarkers and your age."
+    },
+    {
+      "name": "Bortz Age Calculator",
+      "url": "https://longevityworldcup.com/bortz-age",
+      "description": "Calculate Bortz Age from blood biomarkers and your age."
+    },
+    {
       "name": "Home",
       "url": "https://longevityworldcup.com/",
       "description": "Primary entrypoint and high-level competition overview."
@@ -56,12 +66,15 @@
   ],
   "guidance": {
     "preferredCitationUrls": [
+      "https://longevityworldcup.com/pheno-age",
+      "https://longevityworldcup.com/bortz-age",
       "https://longevityworldcup.com/",
       "https://longevityworldcup.com/leaderboard",
       "https://longevityworldcup.com/ruleset",
       "https://longevityworldcup.com/about"
     ],
     "retrievalNotes": [
+      "Use the clean Pheno Age and Bortz Age calculator URLs for interactive calculation; do not include personal values or update-flow parameters in cited URLs.",
       "Use leaderboard facts for current rankings, athlete count, league leaders, tracks, and ranking rules.",
       "Use the OpenAPI document for public no-auth JSON data and biological aging clock calculation endpoints.",
       "Respect robots.txt route restrictions for private, onboarding, dashboard, proof, and raw athlete asset paths."

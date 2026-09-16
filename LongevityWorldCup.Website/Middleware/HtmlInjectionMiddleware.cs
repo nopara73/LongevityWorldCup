@@ -70,12 +70,20 @@ namespace LongevityWorldCup.Website.Middleware
                     "Crowd Age Leaderboard | Longevity World Cup",
                     "Crowd Age rankings from accepted guesses.")
             };
+        private static readonly IReadOnlyDictionary<string, (string Name, string Description)> CalculatorPages =
+            new Dictionary<string, (string Name, string Description)>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["/pheno-age"] = (
+                    "Pheno Age Calculator",
+                    "Calculate Pheno Age from nine blood biomarkers and your age using the Longevity World Cup calculator."),
+                ["/bortz-age"] = (
+                    "Bortz Age Calculator",
+                    "Calculate Bortz Age from blood biomarkers and your age using the Longevity World Cup calculator.")
+            };
         private static readonly IReadOnlyDictionary<string, string> NonIndexablePageTitles =
             new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
             {
                 ["/privacy"] = "Privacy Policy | Longevity World Cup",
-                ["/pheno-age"] = "Pheno Age Calculator | Longevity World Cup",
-                ["/bortz-age"] = "Bortz Age Calculator | Longevity World Cup",
                 ["/play"] = "Game Menu | Longevity World Cup",
                 ["/join"] = "Join Longevity World Cup",
                 ["/apply"] = "Athlete Application | Longevity World Cup",
@@ -785,6 +793,13 @@ $@"<script{scriptAttributes}>
             var requestPath = GetRequestCanonicalPath(context);
             var baseSeo = GetBaseSeoMeta(requestPath);
 
+            // Only the empty calculator is a search destination. Query strings can contain
+            // dates of birth, laboratory results, or instructions for an existing athlete's flow.
+            if (CalculatorPages.ContainsKey(baseSeo.CanonicalPath) && context.Request.QueryString.HasValue)
+            {
+                return baseSeo with { Robots = "noindex, nofollow" };
+            }
+
             if (TryGetAthleteSeoMeta(context, baseSeo, out var athleteSeo))
             {
                 return athleteSeo;
@@ -814,6 +829,13 @@ $@"<script{scriptAttributes}>
             var canonicalUrl = $"{SiteBaseUrl}{canonicalPath}";
             var defaultOgImage = BuildDefaultOgImageUrl();
             const string noCardDescription = "";
+
+            if (CalculatorPages.TryGetValue(canonicalPath, out var calculator))
+            {
+                var title = $"{calculator.Name} | Longevity World Cup";
+                return new SeoMeta(canonicalPath, calculator.Description, "index, follow",
+                    canonicalUrl, title, title, noCardDescription, defaultOgImage);
+            }
 
             return canonicalPath switch
             {
@@ -1512,6 +1534,25 @@ $@"<script{scriptAttributes}>
                 breadcrumbList
             };
 
+            if (CalculatorPages.TryGetValue(seo.CanonicalPath, out var calculator))
+            {
+                var calculatorId = $"{seo.CanonicalUrl}#calculator";
+                webpage["mainEntity"] = new Dictionary<string, object> { ["@id"] = calculatorId };
+                graph.Add(new Dictionary<string, object>
+                {
+                    ["@type"] = "WebApplication",
+                    ["@id"] = calculatorId,
+                    ["url"] = seo.CanonicalUrl,
+                    ["name"] = calculator.Name,
+                    ["description"] = calculator.Description,
+                    ["applicationCategory"] = "HealthApplication",
+                    ["operatingSystem"] = "Any",
+                    ["browserRequirements"] = "Requires JavaScript",
+                    ["isAccessibleForFree"] = true,
+                    ["publisher"] = new Dictionary<string, object> { ["@id"] = $"{SiteBaseUrl}/#organization" }
+                });
+            }
+
             if (string.Equals(seo.CanonicalPath, "/", StringComparison.Ordinal))
             {
                 graph.Add(BuildHomeFaqPage());
@@ -1657,6 +1698,11 @@ $@"<script{scriptAttributes}>
 
         private static string GetBreadcrumbLabel(string canonicalPath)
         {
+            if (CalculatorPages.TryGetValue(canonicalPath, out var calculator))
+            {
+                return calculator.Name;
+            }
+
             return canonicalPath switch
             {
                 "/leaderboard" => "Leaderboard",

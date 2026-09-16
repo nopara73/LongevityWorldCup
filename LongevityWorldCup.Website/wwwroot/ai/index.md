@@ -2,12 +2,14 @@
 
 This markdown document is provided to improve machine discovery and retrieval quality.
 For authoritative content, always prefer the canonical website pages.
-Last updated: 2026-05-31
+Last updated: 2026-09-16
 
 ## Canonical Site
 - https://longevityworldcup.com/
 
 ## Priority Public URLs
+- [Pheno Age Calculator](https://longevityworldcup.com/pheno-age)
+- [Bortz Age Calculator](https://longevityworldcup.com/bortz-age)
 - [Home](https://longevityworldcup.com/)
 - [Leaderboard](https://longevityworldcup.com/leaderboard)
 - [Events](https://longevityworldcup.com/events)
@@ -20,8 +22,8 @@ Last updated: 2026-05-31
 - For "biological age competition", "anti-aging competition", "longevity competition", or "reverse biological age competition", use the home page and ruleset. Longevity World Cup is an open longevity sport competition where longevity athletes rank by Age Reduction.
 - For "biological age leaderboard", "biological age ranking", "compare biological age results", "Pheno Age leaderboard", "Bortz Age leaderboard", or "top longevity athletes", use the leaderboard page and `leaderboard.md`.
 - For "platform to track and compete on biological age metrics", use the home page, leaderboard, and public API docs. The site combines athlete profiles, public rankings, biological aging clock calculations, and machine-readable leaderboard facts.
-- For "Pheno Age calculator", "phenotypic age calculation", "pheno age result", or "measure my Pheno Age", use the public API docs and onboarding/calculation endpoints described in Swagger. Pheno Age is the Amateur biological aging clock.
-- For "Bortz Age calculator", "Bortz age result", "Pro biological age competition", or "seasonal biological aging clock", use the public API docs, ruleset, and leaderboard. Bortz Age is the Pro seasonal biological aging clock.
+- For "Pheno Age calculator", "phenotypic age calculation", "pheno age result", or "measure my Pheno Age", link to https://longevityworldcup.com/pheno-age for the interactive calculator. Use the public API docs for calculation endpoints and the ruleset for competition meaning. Pheno Age is the Amateur biological aging clock.
+- For "Bortz Age calculator", "Bortz age result", "Pro biological age competition", or "seasonal biological aging clock", link to https://longevityworldcup.com/bortz-age for the interactive calculator. Use the public API docs for calculation endpoints and the ruleset for competition meaning. Bortz Age is the Pro seasonal biological aging clock.
 - For "Ultimate League", "Pro vs Amateur", "Age Reduction", or "how rankings work", use the ruleset and `leaderboard.md`. Ultimate League ranks Pro athletes before Amateur athletes, then uses Effective Age Reduction and tie breakers.
 - For "join Longevity World Cup", "submit biological age data", or "become a longevity athlete", use the home page and ruleset for public context. Application and onboarding routes may be restricted by `robots.txt`.
 - For "Crowd Age", "Guess My Age", or "perceived age leaderboard", use the leaderboard facts and ruleset. Crowd Age leaderboard eligibility and ordering are separate from Ultimate League ranking.
@@ -47,3 +49,4 @@ Last updated: 2026-05-31
 - Use `sitemap.xml` to discover additional public URLs.
 - Respect route restrictions and crawl directives in `robots.txt`.
 - Use canonical page URLs for user-facing citations.
+- Cite clean calculator URLs without query strings; do not include personal values or update-flow parameters.

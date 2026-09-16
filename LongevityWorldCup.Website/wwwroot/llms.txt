@@ -9,12 +9,14 @@ Leaderboard facts: https://longevityworldcup.com/ai/leaderboard.md
 Athlete names list: https://longevityworldcup.com/ai/athlete-names.md
 Public API docs: https://longevityworldcup.com/swagger
 OpenAPI document: https://longevityworldcup.com/swagger/v1/swagger.json
-Last updated: 2026-05-31
+Last updated: 2026-09-16
 
 ## Definition
 - [Competition Definition](https://longevityworldcup.com/ai/index.md): Longevity World Cup is an open longevity sport competition where longevity athletes submit biological age results and rank on public leaderboards by Age Reduction.
 
 ## Public Pages
+- [Pheno Age Calculator](https://longevityworldcup.com/pheno-age): Calculate Pheno Age from nine blood biomarkers and your age.
+- [Bortz Age Calculator](https://longevityworldcup.com/bortz-age): Calculate Bortz Age from blood biomarkers and your age.
 - [Home](https://longevityworldcup.com/): Platform overview and entrypoint.
 - [Leaderboard](https://longevityworldcup.com/leaderboard): Public rankings and competition standings.
 - [Events](https://longevityworldcup.com/events): Event information and updates.
