@@ -5,11 +5,11 @@ using LongevityWorldCup.Website.Tools;
 namespace LongevityWorldCup.Website.Business.IndexNow;
 
 public sealed class IndexNowContentSnapshot(
-    AthleteDataService athletes,
     LeaderboardFactsService facts,
     EventDataService events,
     LongevitymaxxingChallengeService challenge,
-    IndexNowPageContent pages)
+    IndexNowPageContent pages,
+    TimeProvider? timeProvider = null)
 {
     public const string SiteBaseUrl = SitemapService.SiteBaseUrl;
     private static readonly string[] ProfileFields =
@@ -18,27 +18,33 @@ public sealed class IndexNowContentSnapshot(
         "Why", "PersonalLink", "PodcastLink", "ProfileImageId", "Biomarkers", "Badges", "Placements", "IndexNowProofHash"
     ];
 
-    public IReadOnlyDictionary<string, string> Build(CancellationToken cancellationToken)
+    public IReadOnlyDictionary<string, string> Build(CancellationToken cancellationToken, bool trackEveryPublicChange = false)
     {
-        var snapshot = athletes.GetAthletesSnapshot();
+        var (snapshot, leaderboard) = facts.Capture();
         foreach (var athlete in snapshot.OfType<JsonObject>())
         {
             cancellationToken.ThrowIfCancellationRequested();
             athlete["IndexNowProofHash"] = pages.HashProofs(athlete["Proofs"]?.AsArray() ?? []);
         }
-        var leaderboard = facts.GetLeaderboardSnapshot();
         var paths = SitemapService.StaticRoutes.Select(route => route.Path)
             .Concat(SitemapService.PublicLeaguePaths)
             .Concat(FlagRouteCatalog.BuildRoutes(leaderboard.Rows.Select(row => row.Flag)).Select(flag => flag.Path))
             .Concat(leaderboard.Rows.Select(row => row.AthletePath));
         var pageHashes = pages.Build(paths, cancellationToken);
-        var now = DateTimeOffset.UtcNow;
-        return Build(snapshot, leaderboard, events.GetEvents(visibleOnWebsite: true, toUtc: now.UtcDateTime),
-            pageHashes, JsonSerializer.SerializeToNode(challenge.GetPublicState(now)), now.UtcDateTime);
+        var now = (timeProvider ?? TimeProvider.System).GetUtcNow();
+        var result = Build(snapshot, leaderboard, events.GetEvents(visibleOnWebsite: true, toUtc: now.UtcDateTime),
+            pageHashes, JsonSerializer.SerializeToNode(challenge.GetPublicState(now)), now.UtcDateTime, trackEveryPublicChange).ToDictionary();
+        // Machine documents include all advertised views and use exact content validators.
+        // Their dependencies are broader than the Ultimate-only HTML leaderboard.
+        foreach (var route in SitemapService.StaticRoutes)
+            if (facts.GetDocumentForPath(route.Path) is { } document)
+                result[SiteBaseUrl + route.Path] = IndexNowPageContent.Hash(document.Markdown);
+        return result;
     }
 
     internal static IReadOnlyDictionary<string, string> Build(JsonArray athletes, LeaderboardSnapshot leaderboard,
-        IReadOnlyList<EventItem> events, IReadOnlyDictionary<string, string> pageHashes, JsonNode? challenge, DateTime asOf)
+        IReadOnlyList<EventItem> events, IReadOnlyDictionary<string, string> pageHashes, JsonNode? challenge, DateTime asOf,
+        bool trackEveryPublicChange = false)
     {
         var source = athletes.OfType<JsonObject>().ToDictionary(a => a["AthleteSlug"]!.GetValue<string>(), StringComparer.Ordinal);
         var stats = PhenoStatsCalculator.BuildAll(athletes, asOf.Date);
@@ -79,6 +85,7 @@ public sealed class IndexNowContentSnapshot(
                     Age = stats[row.Slug].ChronoAge is { } age ? (int)age : (int?)null,
                     CrowdAge = Rounded(stats[row.Slug].CrowdAge),
                     CrowdCount = CrowdCountBucket(stats[row.Slug].CrowdCount),
+                    PublicFacts = trackEveryPublicChange ? PublicFacts(stats[row.Slug]) : null,
                     Events = publicEvents.Where(e => EventDataService.ExtractReferencedAthleteSlugs(e.Text).Contains(row.Slug, StringComparer.Ordinal)).ToArray() };
             }
             else if (path == "/" || path == "/leaderboard" || path.StartsWith("/league/", StringComparison.Ordinal) || path.StartsWith("/flag/", StringComparison.Ordinal) || path == "/ai/leaderboard.md")
@@ -88,6 +95,7 @@ public sealed class IndexNowContentSnapshot(
                     row.Slug, row.DisplayName, row.Track, row.Division, row.Generation, row.Flag, row.ExclusiveLeague,
                     row.MediaContact, Image = source.GetValueOrDefault(row.Slug)?["ProfileImageId"]?.GetValue<string>(),
                     Metric = Metric(path, row, stats[row.Slug]),
+                    PublicFacts = trackEveryPublicChange ? PublicFacts(stats[row.Slug]) : null,
                     CrowdCount = path == "/league/crowd" ? CrowdCountBucket(stats[row.Slug].CrowdCount) : (int?)null
                 }).ToArray();
                 content = new { Rows = rows, Events = path == "/" ? sharedEvents.Where(e => IsSharedEvent(e.Event, leaderboard.Rows, homepage: true)).ToArray() : null };
@@ -149,46 +157,8 @@ public sealed class IndexNowContentSnapshot(
         return !homepage && (label is "pheno pace of aging" or "bortz pace of aging" || label.StartsWith("best domain -", StringComparison.Ordinal));
     }
 
-    private static IEnumerable<LeaderboardSnapshotRow> SelectRows(string path, IReadOnlyList<LeaderboardSnapshotRow> rows,
-        IReadOnlyDictionary<string, PhenoStatsCalculator.Result> stats)
-    {
-        if (path.StartsWith("/flag/", StringComparison.Ordinal))
-            return rows.Where(row => FlagRouteCatalog.TryCreate(row.Flag, out var flag) && flag.Path == path);
-        var selected = path switch
-        {
-            "/league/amateur" => rows.Where(row => row.Track == "Amateur"),
-            "/league/mens" => rows.Where(row => row.Division == "Men's"),
-            "/league/womens" => rows.Where(row => row.Division == "Women's"),
-            "/league/open" => rows.Where(row => row.Division == "Open"),
-            "/league/silent-generation" => rows.Where(row => row.Generation == "Silent Generation"),
-            "/league/baby-boomers" => rows.Where(row => row.Generation == "Baby Boomers"),
-            "/league/gen-x" => rows.Where(row => row.Generation == "Gen X"),
-            "/league/millennials" => rows.Where(row => row.Generation == "Millennials"),
-            "/league/gen-z" => rows.Where(row => row.Generation == "Gen Z"),
-            "/league/gen-alpha" => rows.Where(row => row.Generation == "Gen Alpha"),
-            "/league/prosperan" => rows.Where(row => row.ExclusiveLeague == "Prosperan"),
-            "/league/bortz" => rows.Where(row => row.Track == "Pro"),
-            "/league/improvement" => rows.Where(row => stats[row.Slug].PhenoAgeImprovementFromWorst.HasValue),
-            "/league/bortz-improvement" => rows.Where(row => stats[row.Slug].BortzAgeImprovementFromWorst.HasValue),
-            "/league/crowd" => rows.Where(row => stats[row.Slug].CrowdCount >= 100 && stats[row.Slug].CrowdAge.HasValue),
-            _ => rows
-        };
-        var candidates = selected.Select(row => stats[row.Slug]).Where(s => s.DobUtc.HasValue).ToArray();
-        IEnumerable<string>? ordered = path switch
-        {
-            "/league/bortz" or "/league/pheno" => CompetitionRanking.SortByCompetitionRules(candidates.Select(s => new CompetitionRankCandidate(
-                s.Slug, s.Name, false, (path == "/league/pheno" ? s.AgeReduction : s.BortzAgeReduction) ?? 0, s.DobUtc!.Value))).Select(s => s.Slug),
-            "/league/improvement" => CompetitionRanking.SortByPhenoAgeImprovementRules(candidates.Select(s => new PhenoAgeImprovementRankCandidate(
-                s.Slug, s.Name, s.PhenoAgeImprovementFromWorst!.Value, s.AgeReduction ?? 0, s.DobUtc!.Value))).Select(s => s.Slug),
-            "/league/bortz-improvement" => CompetitionRanking.SortByBortzAgeImprovementRules(candidates.Select(s => new BortzAgeImprovementRankCandidate(
-                s.Slug, s.Name, s.BortzAgeImprovementFromWorst!.Value, s.BortzAgeReduction ?? 0, s.DobUtc!.Value))).Select(s => s.Slug),
-            "/league/crowd" => CompetitionRanking.SortByCrowdAgeRules(candidates.Select(s => new CrowdAgeRankCandidate(
-                s.Slug, s.Name, s.CrowdAge!.Value, s.CrowdAge.Value - (s.ChronoAge ?? 0), s.CrowdCount, s.DobUtc!.Value))).Select(s => s.Slug),
-            _ => null
-        };
-        var bySlug = rows.ToDictionary(row => row.Slug, StringComparer.Ordinal);
-        return ordered is null ? selected : ordered.Select(slug => bySlug[slug]);
-    }
+    private static IReadOnlyList<LeaderboardSnapshotRow> SelectRows(string path, IReadOnlyList<LeaderboardSnapshotRow> rows,
+        IReadOnlyDictionary<string, PhenoStatsCalculator.Result> stats) => LeaderboardViewCatalog.SelectRows(path, rows, stats);
 
     private static double? Metric(string path, LeaderboardSnapshotRow row, PhenoStatsCalculator.Result stats) => Rounded(path switch
     {
@@ -200,6 +170,20 @@ public sealed class IndexNowContentSnapshot(
     });
 
     private static double? Rounded(double? value) => value.HasValue && double.IsFinite(value.Value) ? Math.Round(value.Value, 2) : null;
+    // Freshness tracks public facts even when the notification policy deliberately
+    // coalesces small changes, such as an additional guess within a count bucket.
+    private static object PublicFacts(PhenoStatsCalculator.Result stats) => new
+    {
+        ChronologicalAge = Finite(stats.ChronoAge),
+        PhenoAge = stats.SubmissionCount > 0 ? Finite(stats.LowestPhenoAge) : null,
+        BortzAge = stats.BortzSubmissionCount > 0 ? Finite(stats.LowestBortzAge) : null,
+        stats.LowestPhenoAgeDateUtc, stats.LowestBortzAgeDateUtc,
+        AgeReduction = Finite(stats.AgeReduction), BortzAgeReduction = Finite(stats.BortzAgeReduction),
+        PhenoImprovement = Finite(stats.PhenoAgeImprovementFromWorst), BortzImprovement = Finite(stats.BortzAgeImprovementFromWorst),
+        stats.SubmissionCount, stats.BortzSubmissionCount,
+        CrowdAge = Finite(stats.CrowdAge), stats.CrowdCount
+    };
+    private static double? Finite(double? value) => value.HasValue && double.IsFinite(value.Value) ? value : null;
     private static int CrowdCountBucket(int count) => count < 20 ? count : count < 100 ? count / 5 * 5 : count < 1000 ? count / 10 * 10 : count / 100 * 100;
     internal static string Fingerprint(object? content) => IndexNowPageContent.Hash(Normalize(JsonSerializer.SerializeToNode(content))?.ToJsonString() ?? "null");
 

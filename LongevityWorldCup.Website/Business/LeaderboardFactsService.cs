@@ -1,212 +1,243 @@
 using System.Globalization;
 using System.Text;
+using System.Text.Json.Nodes;
 using LongevityWorldCup.Website.Tools;
-using Microsoft.Extensions.Caching.Memory;
 
 namespace LongevityWorldCup.Website.Business;
 
-public sealed class LeaderboardFactsService(AthleteDataService athletes, IMemoryCache cache)
+public sealed class LeaderboardFactsService(
+    IAthleteSnapshotProvider athletes, ContentRevisionStore revisions, EventDataService events, TimeProvider? timeProvider = null)
 {
-    private const string SnapshotCacheKey = "leaderboard-snapshot-v1";
-    private const string CacheKey = "leaderboard-facts-markdown-v1";
-    private const string AthleteNamesCacheKey = "athlete-names-markdown-v1";
-    private const string SiteBaseUrl = "https://longevityworldcup.com";
-    private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(5);
+    private const string SiteBaseUrl = SitemapService.SiteBaseUrl;
+    private readonly TimeProvider _clock = timeProvider ?? TimeProvider.System;
+    private readonly object _gate = new();
+    private string? _snapshotKey;
+    private FactsSnapshot? _snapshot;
 
-    private static readonly (string Slug, string DisplayName)[] LeagueSections =
-    [
-        ("ultimate", "Ultimate League"),
-        ("amateur", "Amateur League"),
-        ("mens", "Men's League"),
-        ("womens", "Women's League"),
-        ("open", "Open League"),
-        ("silent-generation", "Silent Generation League"),
-        ("baby-boomers", "Baby Boomers League"),
-        ("gen-x", "Gen X League"),
-        ("millennials", "Millennials League"),
-        ("gen-z", "Gen Z League"),
-        ("gen-alpha", "Gen Alpha League"),
-        ("prosperan", "Prosperan League")
-    ];
+    public LeaderboardSnapshot GetLeaderboardSnapshot() => Locked(() => GetSnapshot().Leaderboard);
 
-    public LeaderboardSnapshot GetLeaderboardSnapshot()
+    internal (JsonArray Athletes, LeaderboardSnapshot Leaderboard) Capture() => Locked(() =>
     {
-        return cache.GetOrCreate(SnapshotCacheKey, entry =>
-        {
-            entry.AbsoluteExpirationRelativeToNow = CacheDuration;
-            return LeaderboardSnapshotBuilder.Build(
-                athletes.GetRankingsOrder(),
-                athletes.GetAthletesSnapshot(),
-                SiteBaseUrl);
-        })!;
+        var snapshot = GetSnapshot();
+        return (snapshot.Athletes.DeepClone().AsArray(), snapshot.Leaderboard);
+    });
+
+    private T Locked<T>(Func<T> build)
+    {
+        // Serialize capture, rendering and revision observation so a delayed older
+        // request cannot replace a newer document revision.
+        lock (_gate) return build();
     }
 
-    public LeaderboardFactsDocument GetLeaderboardMarkdown()
+    public LeaderboardFactsDocument? GetDocumentForPath(string path) => path switch
     {
-        return cache.GetOrCreate(CacheKey, entry =>
+        "/ai/leaderboard.md" => GetLeaderboardMarkdown(),
+        "/ai/athlete-names.md" => GetAthleteNamesMarkdown(),
+        "/llms.txt" or "/ai/index.md" => Document(path, "/", AiDiscoveryCatalog.Markdown(false), false),
+        "/llms-full.txt" => Document(path, "/", AiDiscoveryCatalog.Markdown(true), false),
+        "/.well-known/agent-card.json" => Document(path, "/", AiDiscoveryCatalog.AgentCard(), false),
+        _ when path.StartsWith("/ai/league/", StringComparison.Ordinal) && path.EndsWith(".md", StringComparison.Ordinal)
+            => GetLeagueMarkdown(path["/ai/league/".Length..^3]),
+        _ when path.StartsWith("/ai/athlete/", StringComparison.Ordinal) && path.EndsWith(".md", StringComparison.Ordinal)
+            => GetAthleteMarkdown(path["/ai/athlete/".Length..^3]),
+        _ => null
+    };
+
+    private FactsSnapshot GetSnapshot()
+    {
+        // One captured dataset drives both the order and its displayed facts. Rebuild on
+        // actual data changes or a UTC date boundary, never on an arbitrary cache timeout.
+        var source = athletes.GetAthletesSnapshot();
+        var day = _clock.GetUtcNow().UtcDateTime.Date;
+        var key = day.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) + ":" +
+            PublicGetCacheHeaders.BuildWeakContentETag(source.ToJsonString());
+        lock (_gate)
         {
-            entry.AbsoluteExpirationRelativeToNow = CacheDuration;
-            var generatedAtUtc = DateTimeOffset.UtcNow;
-            var markdown = RenderMarkdown(generatedAtUtc);
-            return new LeaderboardFactsDocument(markdown, generatedAtUtc);
-        })!;
+            if (_snapshotKey == key) return _snapshot!;
+            var stats = PhenoStatsCalculator.BuildAll(source, day);
+            var leaderboard = LeaderboardSnapshotBuilder.Build(AthleteDataService.BuildRankingsOrder(source, day), source, SiteBaseUrl);
+            _snapshot = new FactsSnapshot(source, leaderboard, stats, day);
+            _snapshotKey = key;
+            return _snapshot;
+        }
     }
 
-    public LeaderboardFactsDocument GetAthleteNamesMarkdown()
+    public LeaderboardFactsDocument GetLeaderboardMarkdown() => Locked(BuildLeaderboardMarkdown);
+
+    private LeaderboardFactsDocument BuildLeaderboardMarkdown()
     {
-        return cache.GetOrCreate(AthleteNamesCacheKey, entry =>
+        var snapshot = GetSnapshot();
+        var sb = new StringBuilder("# Longevity World Cup Leaderboard Facts\n\n");
+        sb.AppendLine($"Public standings: {SiteBaseUrl}/leaderboard. Current leaders are not declared season winners; completed-season records are at {SiteBaseUrl}/history.");
+        sb.AppendLine();
+        sb.AppendLine($"Athlete count: {snapshot.Leaderboard.Rows.Count.ToString(CultureInfo.InvariantCulture)}");
+        if (snapshot.Leaderboard.Rows.FirstOrDefault() is { } leader)
+            sb.AppendLine($"Current Ultimate League leader: {Link(leader.DisplayName, leader.AthleteUrl)}");
+        sb.AppendLine();
+        AppendDefinitions(sb, snapshot);
+        foreach (var view in LeaderboardViewCatalog.Views)
         {
-            entry.AbsoluteExpirationRelativeToNow = CacheDuration;
-            var generatedAtUtc = DateTimeOffset.UtcNow;
-            var markdown = RenderAthleteNames();
-            return new LeaderboardFactsDocument(markdown, generatedAtUtc);
-        })!;
+            var rows = LeaderboardViewCatalog.SelectRows(view.HtmlPath, snapshot.Leaderboard.Rows, snapshot.Stats);
+            sb.AppendLine($"## {view.Name}");
+            sb.AppendLine();
+            sb.AppendLine(view.Rules);
+            sb.AppendLine();
+            sb.AppendLine($"HTML source: {SiteBaseUrl}{view.HtmlPath}. Full machine-readable view: {SiteBaseUrl}{view.MarkdownPath}. Field size: {rows.Count.ToString(CultureInfo.InvariantCulture)}.");
+            sb.AppendLine();
+            AppendRankingTable(sb, view, rows, snapshot, view.Slug == "ultimate" ? rows.Count : 10);
+        }
+        return Document("/ai/leaderboard.md", "/leaderboard", sb.ToString());
     }
 
-    private string RenderMarkdown(DateTimeOffset generatedAtUtc)
+    public LeaderboardFactsDocument? GetLeagueMarkdown(string slug) => Locked(() => BuildLeagueMarkdown(slug));
+
+    private LeaderboardFactsDocument? BuildLeagueMarkdown(string slug)
     {
-        var rows = GetLeaderboardSnapshot().Rows;
-        var rowsBySlug = rows.ToDictionary(row => row.Slug, StringComparer.OrdinalIgnoreCase);
+        var view = LeaderboardViewCatalog.Find(slug);
+        if (view is null) return null;
+        if (view.Slug == "ultimate") return GetLeaderboardMarkdown();
+        var snapshot = GetSnapshot();
+        var rows = LeaderboardViewCatalog.SelectRows(view.HtmlPath, snapshot.Leaderboard.Rows, snapshot.Stats);
+        var sb = new StringBuilder($"# {view.Name}\n\n");
+        sb.AppendLine($"Canonical HTML source: {SiteBaseUrl}{view.HtmlPath}");
+        sb.AppendLine();
+        sb.AppendLine(view.Rules);
+        sb.AppendLine();
+        sb.AppendLine($"Field size: {rows.Count.ToString(CultureInfo.InvariantCulture)}. Current standings, not a completed-season result.");
+        sb.AppendLine();
+        AppendDefinitions(sb, snapshot);
+        AppendRankingTable(sb, view, rows, snapshot, rows.Count);
+        return Document(view.MarkdownPath, view.HtmlPath, sb.ToString());
+    }
+
+    public LeaderboardFactsDocument GetAthleteNamesMarkdown() => Locked(BuildAthleteNamesMarkdown);
+
+    private LeaderboardFactsDocument BuildAthleteNamesMarkdown()
+    {
         var sb = new StringBuilder();
-
-        sb.AppendLine("---");
-        sb.AppendLine("title: Longevity World Cup leaderboard facts");
-        sb.AppendLine($"canonical: {SiteBaseUrl}/ai/leaderboard.md");
-        sb.AppendLine($"generated_at_utc: {generatedAtUtc:O}");
-        sb.AppendLine("---");
-        sb.AppendLine();
-        sb.AppendLine("# Longevity World Cup Leaderboard Facts");
-        sb.AppendLine();
-        sb.AppendLine("This machine-readable page summarizes public Longevity World Cup leaderboard facts for search and retrieval systems. For the interactive human page, use https://longevityworldcup.com/leaderboard.");
-        sb.AppendLine();
-        sb.AppendLine("## Summary");
-        sb.AppendLine();
-        sb.AppendLine($"- Athlete count: {rows.Count.ToString(CultureInfo.InvariantCulture)}");
-        if (rows.FirstOrDefault() is { } leader)
-        {
-            sb.AppendLine($"- Current Ultimate League leader: {MarkdownLink(leader.DisplayName, leader.AthleteUrl)}");
-        }
-        if (rows.FirstOrDefault(row => row.Track == "Pro") is { } proLeader)
-        {
-            sb.AppendLine($"- Current Pro leader: {MarkdownLink(proLeader.DisplayName, proLeader.AthleteUrl)}");
-        }
-        if (rows.FirstOrDefault(row => row.Track == "Amateur") is { } amateurLeader)
-        {
-            sb.AppendLine($"- Current Amateur leader: {MarkdownLink(amateurLeader.DisplayName, amateurLeader.AthleteUrl)}");
-        }
-        sb.AppendLine();
-        sb.AppendLine("## Ranking Rules");
-        sb.AppendLine();
-        sb.AppendLine("- Ultimate League ranking uses the backend competition order.");
-        sb.AppendLine("- Pro athletes, identified by an eligible bortz age result, rank ahead of Amateur athletes in the Ultimate League.");
-        sb.AppendLine("- Within the same track, more negative age reduction ranks higher.");
-        sb.AppendLine("- If age reduction ties, older chronological age ranks higher, then athlete name breaks remaining ties alphabetically.");
-        sb.AppendLine("- The Pro seasonal clock is bortz age; the Amateur all-time clock is pheno age.");
-        sb.AppendLine();
-
-        AppendRankingTable(sb, "Ultimate League Rankings", rows);
-        AppendRankingTable(sb, "Top Pro Athletes", rows.Where(row => row.Track == "Pro").Take(25));
-        AppendRankingTable(sb, "Top Amateur Athletes", rows.Where(row => row.Track == "Amateur").Take(25));
-        AppendLeagueLeaders(sb, rowsBySlug);
-
-        return sb.ToString();
+        foreach (var row in GetSnapshot().Leaderboard.Rows)
+            sb.AppendLine($"{row.Rank.ToString(CultureInfo.InvariantCulture)}. {Text(row.DisplayName)}");
+        return Document("/ai/athlete-names.md", "/leaderboard", sb.ToString(), includeMetadata: false);
     }
 
-    private string RenderAthleteNames()
-    {
-        var sb = new StringBuilder();
-        var number = 1;
-        foreach (var row in GetLeaderboardSnapshot().Rows)
-        {
-            sb.AppendLine($"{number.ToString(CultureInfo.InvariantCulture)}. {SanitizeLine(row.DisplayName)}");
-            number++;
-        }
+    public LeaderboardFactsDocument? GetAthleteMarkdown(string slug) => Locked(() => BuildAthleteMarkdown(slug));
 
-        return sb.ToString();
-    }
-
-    private void AppendLeagueLeaders(StringBuilder sb, IReadOnlyDictionary<string, LeaderboardSnapshotRow> rowsBySlug)
+    private LeaderboardFactsDocument? BuildAthleteMarkdown(string slug)
     {
-        sb.AppendLine("## League Leaders");
+        var snapshot = GetSnapshot();
+        var canonicalSlug = AthleteSlug.Normalize(slug);
+        var row = snapshot.Leaderboard.Rows.FirstOrDefault(row => row.Slug == canonicalSlug);
+        if (row is null) return null;
+        var athlete = snapshot.Athletes.OfType<JsonObject>().Single(athlete => athlete["AthleteSlug"]?.GetValue<string>() == canonicalSlug);
+        var stats = snapshot.Stats[row.Slug];
+        var sb = new StringBuilder($"# {Text(row.DisplayName)}\n\n");
+        sb.AppendLine($"Canonical HTML source: {row.AthleteUrl}");
         sb.AppendLine();
-        sb.AppendLine("| League | Rank in league | Ultimate rank | Athlete | Track | Age reduction |");
-        sb.AppendLine("| --- | ---: | ---: | --- | --- | ---: |");
-
-        foreach (var (slug, displayName) in LeagueSections)
+        sb.AppendLine($"Track: {row.Track}. Division: {Value(row.Division)}. Generation: {Value(row.Generation)}. Flag: {Value(row.Flag)}. Exclusive league: {Value(row.ExclusiveLeague)}.");
+        sb.AppendLine();
+        sb.AppendLine($"Current chronological age: {Number(stats.ChronoAge)} years, as of {snapshot.AsOf:yyyy-MM-dd} UTC.");
+        sb.AppendLine($"Crowd age: {(stats.CrowdCount > 0 ? Number(stats.CrowdAge) : "Not available")} years; accepted guesses for the current image: {stats.CrowdCount.ToString(CultureInfo.InvariantCulture)}; Crowd Age League qualification: {(stats.CrowdCount >= 100 && stats.CrowdAge is { } crowdAge && double.IsFinite(crowdAge) ? "qualified" : "not qualified (100 guesses required)")}.");
+        sb.AppendLine();
+        if (athlete["Why"]?.GetValue<string>() is { Length: > 0 } why)
         {
-            var topSlugs = athletes.GetTop3SlugsForLeague(slug);
-            for (var i = 0; i < topSlugs.Count; i++)
+            sb.AppendLine("## Athlete-provided biography");
+            sb.AppendLine();
+            sb.AppendLine(Text(why));
+            sb.AppendLine();
+        }
+        sb.AppendLine("## Current rankings");
+        sb.AppendLine();
+        sb.AppendLine("| View | Rank in view | Field size | Score (years) | HTML source |");
+        sb.AppendLine("| --- | ---: | ---: | ---: | --- |");
+        foreach (var view in LeaderboardViewCatalog.Views)
+        {
+            var rows = LeaderboardViewCatalog.SelectRows(view.HtmlPath, snapshot.Leaderboard.Rows, snapshot.Stats);
+            var rank = rows.Select((candidate, index) => (candidate.Slug, Rank: index + 1)).FirstOrDefault(item => item.Slug == row.Slug).Rank;
+            if (rank == 0) continue;
+            sb.AppendLine($"| {view.Name} | {rank} | {rows.Count} | {Number(LeaderboardViewCatalog.Metric(view.HtmlPath, row, stats), signed: true)} | {SiteBaseUrl}{view.HtmlPath} |");
+        }
+        sb.AppendLine();
+        sb.AppendLine("A missing view means the athlete is outside that field or does not qualify. Rankings are current, not historical placements. See each view's machine document for its metric and tie breakers.");
+        sb.AppendLine();
+        sb.AppendLine("## Public result history");
+        sb.AppendLine();
+        sb.AppendLine("Test date is the laboratory measurement date. First public announcement is recorded only where a public accepted-result Event exists; older untracked publication dates remain unavailable. Historical test rows are not historical ranks.");
+        sb.AppendLine();
+        sb.AppendLine("| Test date | First public announcement (UTC) | Pheno age | Bortz age |");
+        sb.AppendLine("| --- | --- | ---: | ---: |");
+        var acceptedEvents = events.GetEvents(type: EventType.TestResultAccepted, visibleOnWebsite: true, toUtc: _clock.GetUtcNow().UtcDateTime)
+            .ToDictionary(item => item.Id, StringComparer.Ordinal);
+        foreach (var test in (athlete["Biomarkers"]?.AsArray() ?? []).OfType<JsonObject>()
+            .OrderBy(test => test["Date"]?.GetValue<string>(), StringComparer.Ordinal))
+        {
+            var testDate = test["Date"]?.GetValue<string>();
+            if (!DateOnly.TryParse(testDate, CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
             {
-                if (!rowsBySlug.TryGetValue(topSlugs[i], out var row))
-                {
-                    continue;
-                }
-
-                sb.AppendLine(
-                    $"| {EscapeTable(displayName)} | {(i + 1).ToString(CultureInfo.InvariantCulture)} | {row.Rank.ToString(CultureInfo.InvariantCulture)} | {MarkdownLink(row.DisplayName, row.AthleteUrl)} | {EscapeTable(row.Track)} | {FormatYears(row.EffectiveAgeReductionYears)} |");
+                sb.AppendLine("| Not available | Not available | Not available | Not available |");
+                continue;
             }
+            var isolated = new JsonObject { ["DateOfBirth"] = athlete["DateOfBirth"]?.DeepClone(), ["Biomarkers"] = new JsonArray(test.DeepClone()) };
+            var result = PhenoStatsCalculator.Compute(isolated, snapshot.AsOf);
+            acceptedEvents.TryGetValue($"accepted-result:{row.Slug}:{date:yyyy-MM-dd}", out var publication);
+            sb.AppendLine($"| {date:yyyy-MM-dd} | {(publication is null ? "Not available" : publication.OccurredAtUtc.ToString("O", CultureInfo.InvariantCulture))} | {(result.LowestPhenoAgeDateUtc.HasValue ? Number(result.LowestPhenoAge) : "Not available")} | {(result.BortzSubmissionCount > 0 ? Number(result.LowestBortzAge) : "Not available")} |");
         }
+        sb.AppendLine();
+        sb.AppendLine("Scores are derived from submitted public biomarkers using the site's current calculators. Missing or incomplete panels have unavailable clock results. These measures do not establish a treatment's causal effect or years of life gained.");
+        return Document($"/ai/athlete/{row.RouteSlug}.md", row.AthletePath, sb.ToString());
+    }
 
+    internal LeaderboardFactsDocument Document(string path, string source, string body, bool includeMetadata = true)
+    {
+        body = body.Replace("\r\n", "\n", StringComparison.Ordinal);
+        var changedAt = revisions.Observe("document:" + path, PublicGetCacheHeaders.BuildWeakContentETag(body), _clock.GetUtcNow());
+        var metadata = includeMetadata
+            ? $"---\ncanonical: {SiteBaseUrl}{path}\nsource: {SiteBaseUrl}{source}\nfacts_changed_at_utc: {(changedAt.HasValue ? changedAt.Value.ToString("O", CultureInfo.InvariantCulture) : "unknown")}\n---\n\n"
+            : "";
+        return new LeaderboardFactsDocument(metadata + body, changedAt);
+    }
+
+    private static void AppendDefinitions(StringBuilder sb, FactsSnapshot snapshot)
+    {
+        sb.AppendLine("## Field definitions and dates");
+        sb.AppendLine();
+        sb.AppendLine("- Scores are in years; lower and more negative values rank higher. Sorting uses unrounded scores; tables show two decimals. Rank is within the named view; Ultimate rank is a separate column.");
+        sb.AppendLine("- Age reduction is biological age minus chronological age at the selected test. Crowd age reduction uses the current-image median minus current chronological age.");
+        sb.AppendLine("- Lowest clock ages and their test dates refer to that clock's selected result. Not available means no eligible value was recorded, not zero.");
+        sb.AppendLine($"- Current chronological age and Crowd Age comparisons are evaluated as of {snapshot.AsOf:yyyy-MM-dd} UTC.");
+        sb.AppendLine("- facts_changed_at_utc records an observed change to this document's facts. Unknown means no historical change date has been verified. Cache refresh and response-generation times are not publication or test dates.");
+        sb.AppendLine($"- Competition rules: {SiteBaseUrl}/ruleset. Completed-season results: {SiteBaseUrl}/history.");
         sb.AppendLine();
     }
 
-    private static void AppendRankingTable(StringBuilder sb, string title, IEnumerable<LeaderboardSnapshotRow> rows)
+    private static void AppendRankingTable(StringBuilder sb, LeaderboardViewDefinition view,
+        IReadOnlyList<LeaderboardSnapshotRow> rows, FactsSnapshot snapshot, int limit)
     {
-        sb.AppendLine($"## {title}");
+        sb.AppendLine($"Score: {view.Metric}. Showing {Math.Min(limit, rows.Count)} of {rows.Count} athletes.");
         sb.AppendLine();
-        sb.AppendLine("| Rank | Athlete | Track | Age reduction | Lowest Bortz Age | Lowest Pheno Age | Chronological age | Division | Generation | Flag | Exclusive league | Media contact |");
-        sb.AppendLine("| ---: | --- | --- | ---: | ---: | ---: | ---: | --- | --- | --- | --- | --- |");
-
-        foreach (var row in rows)
+        sb.AppendLine("| Rank in view | Ultimate rank | Athlete | Track | Score (years) | Lowest Bortz Age | Bortz test date | Lowest Pheno Age | Pheno test date | Crowd age | Crowd count | Athlete summary |");
+        sb.AppendLine("| ---: | ---: | --- | --- | ---: | ---: | --- | ---: | --- | ---: | ---: | --- |");
+        for (var i = 0; i < Math.Min(rows.Count, limit); i++)
         {
-            sb.AppendLine(
-                $"| {row.Rank.ToString(CultureInfo.InvariantCulture)} | {MarkdownLink(row.DisplayName, row.AthleteUrl)} | {EscapeTable(row.Track)} | {FormatYears(row.EffectiveAgeReductionYears)} | {FormatNumber(row.LowestBortzAge)} | {FormatNumber(row.LowestPhenoAge)} | {FormatNumber(row.ChronologicalAge)} | {EscapeTable(row.Division)} | {EscapeTable(row.Generation)} | {EscapeTable(row.Flag)} | {EscapeTable(row.ExclusiveLeague)} | {EscapeTable(row.MediaContact)} |");
+            var row = rows[i];
+            var stats = snapshot.Stats[row.Slug];
+            sb.AppendLine($"| {i + 1} | {row.Rank} | {Link(row.DisplayName, row.AthleteUrl)} | {row.Track} | {Number(LeaderboardViewCatalog.Metric(view.HtmlPath, row, stats), signed: true)} | {(stats.BortzSubmissionCount > 0 ? Number(stats.LowestBortzAge) : "Not available")} | {Date(stats.LowestBortzAgeDateUtc)} | {(stats.LowestPhenoAgeDateUtc.HasValue ? Number(stats.LowestPhenoAge) : "Not available")} | {Date(stats.LowestPhenoAgeDateUtc)} | {(stats.CrowdCount > 0 ? Number(stats.CrowdAge) : "Not available")} | {stats.CrowdCount} | {SiteBaseUrl}/ai/athlete/{row.RouteSlug}.md |");
         }
-
+        if (rows.Count == 0) sb.AppendLine("\nNo athletes currently qualify for this view.");
         sb.AppendLine();
     }
 
-    private static string MarkdownLink(string text, string url)
-    {
-        return $"[{EscapeLinkText(text)}]({url})";
-    }
+    private static string Link(string text, string url) => $"[{Text(text)}]({url})";
+    private static string Value(string? value) => string.IsNullOrWhiteSpace(value) ? "Not available" : Text(value);
+    private static string Date(DateTime? value) => value?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? "Not available";
+    private static string Number(double? value, bool signed = false) => value.HasValue && double.IsFinite(value.Value)
+        ? value.Value.ToString(signed ? "+0.00;-0.00;0.00" : "0.00", CultureInfo.InvariantCulture) : "Not available";
+    internal static string Text(string? value) => (value ?? "").Replace("\\", "\\\\", StringComparison.Ordinal)
+        .Replace("\r", " ", StringComparison.Ordinal).Replace("\n", " ", StringComparison.Ordinal)
+        .Replace("|", "\\|", StringComparison.Ordinal).Replace("[", "\\[", StringComparison.Ordinal).Replace("]", "\\]", StringComparison.Ordinal)
+        .Replace("<", "&lt;", StringComparison.Ordinal).Replace(">", "&gt;", StringComparison.Ordinal).Trim();
 
-    private static string EscapeLinkText(string text)
-    {
-        return EscapeTable(text).Replace("[", "\\[", StringComparison.Ordinal).Replace("]", "\\]", StringComparison.Ordinal);
-    }
-
-    private static string EscapeTable(string? value)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            return "";
-        }
-
-        return value
-            .Replace("\r", " ", StringComparison.Ordinal)
-            .Replace("\n", " ", StringComparison.Ordinal)
-            .Replace("|", "\\|", StringComparison.Ordinal)
-            .Trim();
-    }
-
-    private static string SanitizeLine(string value)
-    {
-        return value
-            .Replace("\r", " ", StringComparison.Ordinal)
-            .Replace("\n", " ", StringComparison.Ordinal)
-            .Trim();
-    }
-
-    private static string FormatYears(double? value)
-    {
-        return value.HasValue ? $"{value.Value.ToString("+#0.0;-#0.0;0.0", CultureInfo.InvariantCulture)} years" : "";
-    }
-
-    private static string FormatNumber(double? value)
-    {
-        return value.HasValue ? value.Value.ToString("0.##", CultureInfo.InvariantCulture) : "";
-    }
+    private sealed record FactsSnapshot(JsonArray Athletes, LeaderboardSnapshot Leaderboard,
+        IReadOnlyDictionary<string, PhenoStatsCalculator.Result> Stats, DateTime AsOf);
 }
 
-public sealed record LeaderboardFactsDocument(string Markdown, DateTimeOffset LastModifiedUtc);
+public sealed record LeaderboardFactsDocument(string Markdown, DateTimeOffset? LastModifiedUtc);

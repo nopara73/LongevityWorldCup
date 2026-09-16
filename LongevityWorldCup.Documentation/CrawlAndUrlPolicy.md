@@ -20,6 +20,8 @@ Both robots.txt groups permit the exact public data feeds used by public pages, 
 
 The sitemap and discovery documents use the final `/swagger/index.html` URL. Dynamic AI Markdown documents support GET and HEAD with matching content type, content length, cache validators, and indexing headers; HEAD has no body. Conditional requests retain the same ETag behavior.
 
+Discovery documents are generated from a shared catalog, including all 17 ranking views and links to individual athlete summaries. Content revisions drive optional sitemap and structured-data modification dates; an unknown historical date remains omitted. See [Content freshness and AI summaries](ContentFreshnessAndAiSummaries.md) for the persistent revision ledger, date meanings, endpoints, and validation.
+
 ## Verification
 
 `CrawlUrlConsistencyTests` checks missing pages, canonical redirects, legacy query behavior, unaffected non-document origins, crawler rules, privacy metadata, AI HEAD/conditional requests, and every sitemap URL's HEAD status. The existing legacy URL, CORS, preview metadata, embed, and browser route tests cover compatibility.

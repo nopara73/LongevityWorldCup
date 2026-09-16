@@ -223,6 +223,8 @@ The production host must have an SDK compatible with the repository's `global.js
 
 Before changing the live publish tree, deployment stops the service and creates a same-filesystem hard-link snapshot. A failed sync, health check, or byte-for-byte script probe restores that prior release before restarting the service. Every master push schedules the workflow; stale runs skip only when a newer run exists, so an otherwise ignored documentation or test commit cannot strand an earlier website change undeployed.
 
+Preserve `/var/www/.longevityworldcup/public-content-revisions.json` alongside the database. It stores observed public-content change dates independently of deployment and file timestamps. A missing ledger creates an unknown baseline, so old pages initially omit modification dates instead of acquiring the deployment date. Invalid ledger JSON fails explicitly and should be restored from backup, not silently discarded. See [Content freshness and AI summaries](ContentFreshnessAndAiSummaries.md). Discovery documents are controller endpoints; old `llms.txt`, `llms-full.txt`, `ai/index.md`, and `.well-known/agent-card.json` files left by incremental publish do not take precedence.
+
 ### Application submission proxy timeout
 
 `POST /api/application/application` has a dedicated five-minute ASP.NET Core timeout because an accepted submission may contain up to 37 proof images that must be validated and packaged. The browser waits 310 seconds. Nginx must allow slightly more response-header time than both layers without extending every other public route.
