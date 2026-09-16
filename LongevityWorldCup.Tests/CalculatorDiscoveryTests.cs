@@ -36,6 +36,7 @@ public sealed class CalculatorDiscoveryTests(TestWebApplicationFactory factory)
         Assert.Contains("blood biomarkers", calculator.GetProperty("description").GetString());
         Assert.True(calculator.GetProperty("isAccessibleForFree").GetBoolean());
         var page = Assert.Single(graph, node => node.GetProperty("@type").GetString() == "WebPage");
+        SeoAssertions.PageIdentity(page, path);
         Assert.Equal(canonical + "#calculator", page.GetProperty("mainEntity").GetProperty("@id").GetString());
         var breadcrumb = Assert.Single(graph, node => node.GetProperty("@type").GetString() == "BreadcrumbList");
         Assert.Equal(name, breadcrumb.GetProperty("itemListElement").EnumerateArray().Last().GetProperty("name").GetString());

@@ -128,16 +128,18 @@ public sealed partial class NewAthleteOnboardingBrowserTests(
     }
 
     [Theory]
-    [InlineData("https://www.reddit.com/", "social")]
-    [InlineData(null, "campaign")]
-    public async Task AmateurOnboarding_SubmitsExpectedApplicationPayload(string? referrer, string firstSource)
+    [InlineData("https://www.reddit.com/", "social", "newsletter")]
+    [InlineData(null, "campaign", "newsletter")]
+    [InlineData("https://www.perplexity.ai/", "ai", "newsletter")]
+    [InlineData(null, "ai", "chatgpt.com")]
+    public async Task AmateurOnboarding_SubmitsExpectedApplicationPayload(string? referrer, string firstSource, string utmSource)
     {
         var bloodDrawDate = DateTime.UtcNow.Date.AddDays(-9).ToString("yyyy-MM-dd");
 
         await RunOnboardingBrowserAsync(async (page, errors) =>
         {
             var campaign = $"outreach_{Guid.NewGuid():N}";
-            await page.GotoAsync($"/?UTM_Source=newsletter&UTM_MEDIUM=email&UTM_CAMPAIGN={campaign}&ref=keep#top",
+            await page.GotoAsync($"/?UTM_Source={utmSource}&UTM_MEDIUM=email&UTM_CAMPAIGN={campaign}&ref=keep#top",
                 new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded, Referer = referrer });
             await CompleteAmateurHandoffToApplicationAsync(page, bloodDrawDate);
 
@@ -150,8 +152,10 @@ public sealed partial class NewAthleteOnboardingBrowserTests(
                 submissionContext.Request.Headers["X-LWC-Stats-Session"] =
                     await request.HeaderValueAsync("X-LWC-Stats-Session");
                 submissionContext.Request.Headers.Referer = await request.HeaderValueAsync("Referer");
+                submissionContext.Request.Headers["X-LWC-Stats-First-Touch"] = await request.HeaderValueAsync("X-LWC-Stats-First-Touch");
                 await statistics.RecordServerEventAsync("application_submit_succeeded", submissionContext,
-                    flow: "application", route: "/api/application/application", outcome: "succeeded");
+                    flow: "application", route: "/api/application/application", outcome: "succeeded",
+                    metadata: new Dictionary<string, object?> { ["submissionKind"] = "full-application" });
             });
             var dashboard = await statistics.GetDashboardAsync(new SiteStatisticsDashboardQuery { Range = "7d", Limit = 5000 });
             var events = dashboard.Events.Where(ev => ev.FirstCampaign == campaign).ToArray();
@@ -162,10 +166,10 @@ public sealed partial class NewAthleteOnboardingBrowserTests(
             Assert.All(events, ev =>
             {
                 Assert.Equal(firstSource, ev.FirstSource);
-                Assert.Equal(referrer is null ? null : "www.reddit.com", ev.FirstReferrerDomain);
-                Assert.Equal("newsletter", ev.FirstUtmSource);
+                Assert.Equal(referrer is null ? null : new Uri(referrer).Host, ev.FirstReferrerDomain);
+                Assert.Equal(utmSource, ev.FirstUtmSource);
                 Assert.Equal("email", ev.FirstUtmMedium);
-                Assert.StartsWith("/?", ev.LandingRoute);
+                Assert.Equal("/", ev.LandingRoute);
             });
 
             AssertSubmittedApplicantBasics(payload, "amateur", 10);

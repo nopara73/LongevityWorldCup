@@ -25,6 +25,8 @@ Keep reusable product decisions here; omit implementation history and one-off po
 
 ## Controls and Layout
 
+- AI referral reporting belongs in Source Quality, using compact session-stage bars, shared source filters, provider and landing-page tables, and expandable metric definitions. Show coverage for new events beside the metrics; keep raw event counts distinct from session conversions.
+
 - Related controls share inherited fonts, height, modest radius, light borders, and visible focus. Aim for 44px direct-tap targets where space allows.
 - Navigation uses real links with public destinations, preserving native keyboard, copy-link, and modified-click behavior. Athlete names and portraits keep the normal-click profile experience. Filter checkboxes keep their selection action; adjacent compact links open the corresponding full leaderboard with the current search and other selections. Keep the homepage leaderboard link synchronized with that state.
 - Searchable timezone choices expand within the form. Keep the text cursor in the search field during arrow navigation, expose the active option to assistive technology, and let Tab or Escape leave without changing the selected timezone.
