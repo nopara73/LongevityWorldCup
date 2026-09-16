@@ -1,6 +1,8 @@
 using Microsoft.Playwright;
 using System.Text.Json;
 using Xunit;
+using LongevityWorldCup.Website.Business;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace LongevityWorldCup.Tests;
 
@@ -10,6 +12,56 @@ public sealed class SiteStatisticsTrackingBrowserTests(
     BrowserTestAppFixture appFixture)
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
+    [Fact]
+    public async Task AiJourneyPreservesFirstTouchAndDoesNotTransmitFormValues()
+    {
+        await using var context = await Browser.NewContextAsync(new() { BaseURL = App.BaseAddress.ToString() });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        var payloads = new List<string>();
+        var page = await context.NewPageAsync();
+        page.Request += (_, request) =>
+        {
+            if (request.Url.EndsWith("/api/site-statistics/event", StringComparison.Ordinal) && request.PostData is { } body)
+                payloads.Add(body);
+        };
+        // Exercise the real legacy redirect and the browser's first-touch capture.
+        await page.GotoAsync("/onboarding/pheno-age.html?UTM_SOURCE=chatgpt.com&utm_campaign=ai-journey&AlbGL=49.8765");
+        await page.WaitForFunctionAsync("() => !!window.LwcSiteStats");
+        var firstUse = page.WaitForResponseAsync(r => r.Url.EndsWith("/api/site-statistics/event", StringComparison.Ordinal) && (r.Request.PostData?.Contains("\"eventName\":\"calculator_used\"", StringComparison.Ordinal) ?? false));
+        await page.Locator("#dob-year option[value='1990']").WaitForAsync(new() { State = WaitForSelectorState.Attached });
+        await page.Locator("#dob-year").PressAsync("ArrowDown");
+        await firstUse;
+        await page.WaitForFunctionAsync("() => !!sessionStorage.getItem('lwcSiteStatsFirstTouch')");
+        var session = await page.EvaluateAsync<string>("sessionStorage.getItem('lwcSiteStatsSessionId')");
+        await page.ReloadAsync();
+        var secondUse = page.WaitForResponseAsync(r => r.Url.EndsWith("/api/site-statistics/event", StringComparison.Ordinal) && (r.Request.PostData?.Contains("\"eventName\":\"calculator_used\"", StringComparison.Ordinal) ?? false));
+        await page.Locator("#dob-year option[value='1990']").WaitForAsync(new() { State = WaitForSelectorState.Attached });
+        await page.Locator("#dob-year").PressAsync("ArrowDown");
+        await secondUse;
+        await page.GotoAsync("/apply?utm_source=claude");
+        var started = page.WaitForResponseAsync(r => r.Url.EndsWith("/api/site-statistics/event", StringComparison.Ordinal) && (r.Request.PostData?.Contains("\"eventName\":\"application_started\"", StringComparison.Ordinal) ?? false));
+        await page.Locator("#name").FillAsync("Private Fixture Name");
+        await started;
+        await page.Locator("#name").FillAsync("Private Fixture Name Again");
+        var response = await page.EvaluateAsync<int>("async () => (await fetch('/api/application/application', {method:'POST', headers:{'Content-Type':'application/json'}, body:'{}'})).status");
+        Assert.Equal(400, response);
+        // Flush all pending client events deterministically with a marker and the dashboard read.
+        var marker = page.WaitForResponseAsync(r => r.Url.EndsWith("/api/site-statistics/event", StringComparison.Ordinal) && (r.Request.PostData?.Contains("journey_finished", StringComparison.Ordinal) ?? false));
+        await page.EvaluateAsync("window.LwcSiteStats.track('journey_finished')");
+        await marker;
+        var statistics = App.Services.GetRequiredService<SiteStatisticsService>();
+        var report = await statistics.GetDashboardAsync(new() { Source = "ai:chatgpt", Range = "7d" });
+        var end = Assert.Single(report.Events, e => e.EventName == "journey_finished");
+        var events = report.Events.Where(e => e.SessionHash == end.SessionHash).ToArray();
+        Assert.Single(events, e => e.EventName == "calculator_used");
+        Assert.Single(events, e => e.EventName == "application_started");
+        Assert.Contains(events, e => e.EventName == "application_submit_failed");
+        Assert.DoesNotContain(events, e => e.EventName == "application_submit_succeeded");
+        Assert.All(events, e => { Assert.Equal("chatgpt", e.AiProvider); Assert.Equal("/pheno-age", e.LandingRoute); });
+        Assert.DoesNotContain(payloads, body => body.Contains("49.8765", StringComparison.Ordinal) || body.Contains("Private Fixture", StringComparison.Ordinal));
+        Assert.All(payloads, body => Assert.Equal(session, JsonDocument.Parse(body).RootElement.GetProperty("sessionId").GetString()));
+    }
+
     [Fact]
     public async Task Tracker_KeepsCurrentDocumentAttributionWhenStorageAndBeaconAreUnavailable()
     {

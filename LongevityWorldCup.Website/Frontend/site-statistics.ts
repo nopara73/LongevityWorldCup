@@ -49,6 +49,8 @@
         firstUtmCampaign: string | null;
         firstUtmTerm: string | null;
         firstUtmContent: string | null;
+        aiProvider?: string | null;
+        aiAttributionBasis?: string | null;
         metadata: object;
     }
 
@@ -167,6 +169,7 @@
     type RawTrafficBreakdown = RawTrafficRecord<TrafficBreakdown, "label">;
 
     interface DashboardPayload {
+        aiReferrals?: AiReport | null;
         generatedAtUtc?: string | null;
         filters?: DashboardFilters | null;
         events?: RawDashboardEvent[] | null;
@@ -174,6 +177,32 @@
         eventsPage?: DashboardEventPage | null;
         previousEventsPage?: DashboardEventPage | null;
         trafficSummary?: RawTrafficSummary | null;
+    }
+
+    interface AiMetrics {
+        key: string;
+        label: string;
+        visits: number;
+        events: number;
+        pageViews: number;
+        referrerVisits: number;
+        campaignVisits: number;
+        calculatorUses: number;
+        calculatorResults: number;
+        applicationStarts: number;
+        applications: number;
+        applicationEvents: number;
+        unknownApplicationSessions: number;
+        visitToApplicationRate: number | null;
+        startToApplicationRate: number | null;
+    }
+
+    interface AiReport {
+        interactionTrackingSinceUtc: string;
+        providerOptions: { id: string; name: string }[];
+        totals: AiMetrics;
+        providers: AiMetrics[];
+        landingPages: AiMetrics[];
     }
 
     interface DashboardEventsPagePayload {
@@ -255,6 +284,7 @@
     }
 
     interface DashboardState {
+        aiReferrals: AiReport | null;
         tab: DashboardTab;
         flow: string;
         selectedFlow: string;
@@ -294,6 +324,7 @@
         "Events": publicEventsDiagnosticsTab
     };
     const state: DashboardState = {
+        aiReferrals: null,
         tab: trafficOverviewTab,
         flow: "all",
         selectedFlow: "pheno",
@@ -395,8 +426,8 @@
         ["Calculator starts", ["calculator_started"]],
         ["Calculator results", ["calculator_result_generated"]],
         ["Rank previews", ["rank_preview_rendered"]],
-        ["Application starts", ["proof_flow_opened"]],
-        ["Applications submitted", ["application_submit_succeeded"]],
+        ["Application/proof views", ["proof_flow_opened"]],
+        ["Submissions accepted", ["application_submit_succeeded"]],
         ["Challenge signups", ["challenge_signup_succeeded"]],
         ["Practice check-ins", ["challenge_practice_checkin_submitted"]],
         ["First scored", ["challenge_scored_checkin_submitted"]],
@@ -470,6 +501,11 @@
         if (selectedFlow) state.selectedFlow = selectedFlow;
         for (const [id, key] of [["statsRange", "range"], ["statsFlow", "flow"], ["statsDevice", "device"], ["statsSource", "source"]] as const) {
             const value = params.get(key);
+            if (id === "statsSource" && value && /^ai:[a-z]+$/.test(value)) {
+                const option = new Option(value.slice(3), value);
+                option.dataset.aiProvider = "true";
+                el(id).add(option);
+            }
             if (value) el(id).value = value;
         }
         state.flow = el("statsFlow").value;
@@ -528,6 +564,8 @@
             state.events = events;
             state.previousEvents = previousEvents;
             state.trafficSummary = normalizeTrafficSummary(payload.trafficSummary);
+            state.aiReferrals = payload.aiReferrals || null;
+            updateAiProviderOptions();
             state.filters = filters;
             state.eventsPage = payload.eventsPage || null;
             state.previousEventsPage = payload.previousEventsPage || null;
@@ -547,6 +585,7 @@
             state.previousEvents = [];
             state.previousDefaultEvents = [];
             state.trafficSummary = emptyTrafficSummary();
+            state.aiReferrals = null;
             state.filters = null;
             state.eventsPage = null;
             state.previousEventsPage = null;
@@ -640,9 +679,66 @@
     function renderPageMode(): void {
         const traffic = state.tab === trafficOverviewTab;
         el("trafficOverview").hidden = !traffic;
+        el("aiReferralReport").hidden = state.tab !== sourceQualityTab;
+        renderAiReferrals();
         for (const id of ["dataQualityStrip", "decisionGrid", "decisionSupportGrid", "outcomeStrip", "drilldownPanel", "statsMainGrid", "detailSections"]) {
             el(id).hidden = traffic;
         }
+    }
+
+    function updateAiProviderOptions(): void {
+        const select = el("statsSource");
+        const selected = select.value;
+        select.querySelectorAll("[data-ai-provider]").forEach(option => option.remove());
+        state.aiReferrals?.providerOptions.forEach(provider => {
+            const option = new Option(`AI · ${provider.name}`, `ai:${provider.id}`);
+            option.dataset.aiProvider = "true";
+            select.add(option);
+        });
+        select.value = selected;
+    }
+
+    function renderAiReferrals(): void {
+        const host = el("aiReferralReport");
+        if (state.tab !== sourceQualityTab) return;
+        const report = state.aiReferrals;
+        if (!report) {
+            host.innerHTML = empty("AI reporting is unavailable.");
+            return;
+        }
+        const totals = report.totals;
+        const rate = (value: number | null): string => value === null ? "—" : new Intl.NumberFormat(undefined, { style: "percent", maximumFractionDigits: 1 }).format(value);
+        const stages: [string, number][] = [["Visits", totals.visits], ["Calculator use", totals.calculatorUses],
+            ["Results", totals.calculatorResults], ["Application starts", totals.applicationStarts], ["Applications", totals.applications]];
+        const rows = (items: AiMetrics[], provider: boolean): string => `
+            <div class="ai-table-scroll"><table class="stats-table">
+                <thead><tr><th>${provider ? "Provider" : "Landing page"}</th><th>Visits</th><th>Results</th><th>Starts</th><th>Apps</th><th>Apps / visits</th></tr></thead>
+                <tbody>${items.map(row => `<tr><td>${provider
+                    ? `<button class="stats-button small" type="button" data-ai-source="${escAttr(row.key)}">${esc(row.label)}</button>`
+                    : esc(row.label)}</td><td>${formatNumber(row.visits)}</td><td>${formatNumber(row.calculatorResults)}</td>
+                    <td>${formatNumber(row.applicationStarts)}</td><td>${formatNumber(row.applications)}</td><td>${rate(row.visitToApplicationRate)}</td></tr>`).join("")}</tbody>
+            </table></div>`;
+        host.innerHTML = `
+            <div class="panel-heading"><h2>AI referrals</h2><span class="panel-meta">${formatNumber(totals.referrerVisits)} referrer · ${formatNumber(totals.campaignVisits)} campaign</span></div>
+            <div class="ai-stages">${stages.map(([label, count]) => `<div class="ai-stage"><span>${esc(label)}</span><strong>${formatNumber(count)}</strong>
+                <progress max="${Math.max(1, totals.visits)}" value="${count}" aria-label="${escAttr(label)} sessions"></progress></div>`).join("")}</div>
+            <div class="ai-rates"><span><strong>${rate(totals.visitToApplicationRate)}</strong> visits → applications</span>
+                <span><strong>${rate(totals.startToApplicationRate)}</strong> starts → applications</span>
+                <span>${formatNumber(totals.pageViews)} page-view events · ${formatNumber(totals.events)} total events</span>
+                <span>Use &amp; starts since ${esc(formatDay(report.interactionTrackingSinceUtc.slice(0, 10)))}</span></div>
+            ${totals.visits ? `<div class="ai-breakdowns"><div><h3>Providers</h3>${rows(report.providers, true)}</div>
+                <div><h3>Landing pages</h3>${rows(report.landingPages, false)}</div></div>` : empty("No identifiable AI visits in this window and filter selection.")}
+            <details class="ai-definitions"><summary>Measurement and coverage</summary>
+                <p>Visits and steps count distinct recorded sessions in the selected UTC window and filters; a session can span multiple days. Steps show independent reach, not an ordered funnel. Apps / visits uses all matching sessions; starts → applications uses sessions with both steps divided by sessions that started.</p>
+                <p>Calculator use = user input, change, or submit. Application start = user input or change on the new-application form. These two steps are recorded since ${esc(formatTime(report.interactionTrackingSinceUtc))}; older visits can have results and applications without them. Results and accepted submissions retain their existing history.</p>
+                <p>Applications are server-confirmed full applications, before approval or payment. Result uploads and profile edits are excluded. ${formatNumber(totals.applicationEvents)} successful application events; ${formatNumber(totals.unknownApplicationSessions)} sessions have older submissions of unknown type and are excluded from the application rate.</p>
+                <p>Recognized utm_source tags take precedence over recognized referrers. Campaign attribution is a link label, not proof of origin. Missing referrers remain unassigned to AI. These are recorded browser sessions, not verified humans, crawls, or citations. With storage blocked, correlation lasts only for the current document.</p>
+            </details>`;
+        host.querySelectorAll<HTMLButtonElement>("[data-ai-source]").forEach(button => button.addEventListener("click", () => {
+            el("statsSource").value = `ai:${button.dataset.aiSource}`;
+            updateUrl();
+            loadDashboard();
+        }));
     }
 
     function renderTrafficOverview(): void {
@@ -1473,7 +1569,7 @@
                 ? uniqueSessions(friction)
                 : label === "Error rate"
                     ? percent(uniqueSessions(friction), uniqueSessions(events))
-                    : label === "Applications submitted"
+                    : label === "Submissions accepted"
                         ? uniqueSessions(tileEvents)
                         : tileEvents.length;
             const footer = label === "Friction"
@@ -2439,7 +2535,7 @@
             const quality = applications * 5 + challenge * 4 + results;
             return [source, uniqueSessions(items), results, applications, challenge, quality] as [string, number, number, number, number, number];
         }).sort((a, b) => b[5] - a[5]);
-        return table(["Source", "Sessions", "Results", "Apps", "Challenge", "Quality"], rows.slice(0, 12));
+        return table(["Source", "Sessions", "Results", "Submissions", "Challenge", "Quality"], rows.slice(0, 12));
     }
 
     function referrerQualityTable(events: DashboardEvent[]): string {
@@ -2448,7 +2544,7 @@
             uniqueSessions(items),
             uniqueSessionsFor(items, ["application_submit_succeeded"])
         ] as [string, number, number]).sort((a, b) => b[2] - a[2] || b[1] - a[1]);
-        return table(["Referrer", "Sessions", "Apps"], rows.slice(0, 12));
+        return table(["Referrer", "Sessions", "Submissions"], rows.slice(0, 12));
     }
 
     function campaignTable(events: DashboardEvent[]): string {
@@ -2640,7 +2736,6 @@
     }
 
     function effectiveSource(source: string | null | undefined, referrerDomain: string | null | undefined): string {
-        if (isInternalReferrer(referrerDomain)) return "internal";
         return source || "direct";
     }
 
@@ -2816,7 +2911,7 @@
         }
 
         const events = selectedRawEvents();
-        const headers: (keyof RawDashboardEvent)[] = ["occurredAtUtc", "sessionHash", "actorHash", "eventName", "flow", "route", "component", "step", "outcome", "errorCode", "durationMs", "deviceClass", "browserFamily", "referrerDomain", "source", "landingRoute", "firstReferrerDomain", "firstSource", "firstCampaign", "firstUtmSource", "firstUtmMedium", "firstUtmCampaign", "firstUtmTerm", "firstUtmContent"];
+        const headers: (keyof RawDashboardEvent)[] = ["occurredAtUtc", "sessionHash", "actorHash", "eventName", "flow", "route", "component", "step", "outcome", "errorCode", "durationMs", "deviceClass", "browserFamily", "referrerDomain", "source", "landingRoute", "firstReferrerDomain", "firstSource", "firstCampaign", "firstUtmSource", "firstUtmMedium", "firstUtmCampaign", "firstUtmTerm", "firstUtmContent", "aiProvider", "aiAttributionBasis"];
         const lines = [headers.join(",")].concat(events.map(e => headers.map(h => csv(e[h])).join(",")));
         const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
         const url = URL.createObjectURL(blob);
