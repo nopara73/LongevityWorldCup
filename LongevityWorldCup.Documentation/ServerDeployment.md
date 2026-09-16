@@ -288,6 +288,8 @@ Social API token refreshes first try to persist updated token state in `config.j
 
 ## Scheduled Jobs
 
+IndexNow uses a separate hosted worker and an explicit Production opt-in. Its key and delivery ledger live beside the SQLite database in `indexnow-state.json`, outside the release tree. Preserve and back up that file; do not regenerate it during deployment. See [IndexNow.md](IndexNow.md) for enabling, retries, key verification and status inspection.
+
 Quartz 4 uses its in-memory job store. `LongevityWorldCup.Website/Jobs/ScheduledJobs.cs` registers the UTC schedules, one-shot startup triggers, and the minute-interval crowd age announcement publisher; there are no persisted Quartz tables or serialized triggers to migrate. Application data and job delivery ledgers remain in their existing stores. Shutdown waits for running jobs to complete, and jobs receive Quartz's cancellation token explicitly. `ScheduledJobConfigurationTests` verifies the registered next-fire times, startup triggers, and recurring announcement interval without executing production jobs.
 
 Before merging an SDK pin change, verify that production can resolve the new `global.json` version. Install a missing SDK alongside the existing versions from the official .NET release artifacts, verifying the published checksum and preserving existing host/runtime files. A successful CI build does not establish that the Node-free production publish can resolve that SDK.

@@ -15,6 +15,7 @@ using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Http.Timeouts;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using LongevityWorldCup.Website.Business.IndexNow;
 
 namespace LongevityWorldCup.Website
 {
@@ -209,6 +210,15 @@ namespace LongevityWorldCup.Website
             builder.Services.AddSingleton<LeaderboardFactsService>();
             builder.Services.AddSingleton<PageStructuredData>();
             builder.Services.AddSingleton<SitemapService>();
+            builder.Services.Configure<IndexNowOptions>(builder.Configuration.GetSection("IndexNow"));
+            builder.Services.AddSingleton(sp => new IndexNowStateStore(Path.Combine(
+                Path.GetDirectoryName(sp.GetRequiredService<DatabaseManager>().DbPath)!, "indexnow-state.json")));
+            builder.Services.AddSingleton<IndexNowPageContent>();
+            builder.Services.AddSingleton<IndexNowContentSnapshot>();
+            builder.Services.AddSingleton<IndexNowSubmitter>();
+            builder.Services.AddHttpClient(nameof(IndexNowSubmitter), client => client.Timeout = TimeSpan.FromSeconds(20))
+                .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
+            builder.Services.AddHostedService<IndexNowWorker>();
             builder.Services.AddSingleton<SiteStatisticsService>();
             builder.Services.AddHostedService(sp => sp.GetRequiredService<SiteStatisticsService>());
             builder.Services.AddSingleton<ApplicationSubmissionRetryStore>();
@@ -296,6 +306,7 @@ namespace LongevityWorldCup.Website
 
             app.UseHttpsRedirection();
             app.UseResponseCompression();
+            app.UseMiddleware<IndexNowKeyMiddleware>();
             app.UseRouting();
 
             // The documented public API is intentionally callable from any browser origin.

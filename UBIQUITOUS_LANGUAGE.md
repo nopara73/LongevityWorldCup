@@ -40,6 +40,7 @@ An existing Amateur's first eligible bortz result uses Pro-upgrade pricing. Othe
 - Biological-age improvement Events are chronologically new personal bests, dated to the result; older backfills predating the previous best create none.
 - Pheno/Bortz best-improvement badges compare latest with first eligible result. Separate improvement leaderboards and placement Events rank `latest eligible age - worst eligible age` for that clock. Keep biological-age improvement, Crowd Age placement, and Pheno/Bortz Improvement placement Events distinct.
 - Homepage highlights are curated: preserve fresh-Event athlete de-duplication, stale-event handling, and fourth-visit highlights-before-podium ordering.
+- Search-engine change notifications follow public canonical content visibility. Profile-only Events can change the athlete profile without announcing a shared-highlight change. A notification of a removed public URL remains appropriate after it returns 404/410. Submission acceptance does not establish indexing.
 
 ## Longevitymaxxing Challenge
 
