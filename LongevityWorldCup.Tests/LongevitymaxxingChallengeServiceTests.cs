@@ -1752,7 +1752,7 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
     }
 
     [Fact]
-    public async Task LeaderboardBreaksPerformanceTiesByMainLeaderboardRankThenOlderAthlete()
+    public async Task LeaderboardKeepsStableOrderWithinSharedRanks()
     {
         using var fixture = TestChallengeFixture.Create();
         fixture.AddAthleteTieBreak("young_ranked", currentPlacement: 2, birthYear: 1990, birthMonth: 1, birthDay: 1);
@@ -1784,6 +1784,7 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
         Assert.Equal(
             ["Young Ranked", "Older Ranked", "Same Rank Old", "Same Rank Young", "Aaron Plain"],
             publicState.Leaderboard.Select(row => row.DisplayName).ToArray());
+        Assert.All(publicState.Leaderboard, row => Assert.Equal(1, row.Rank));
     }
 
     [Fact]

@@ -3662,6 +3662,7 @@ a.lmx-note-mention:focus-visible {
 }
 
 .lmx-board-row {
+    --lmx-row-surface: var(--lmx-surface);
     display: grid;
     grid-template-columns: var(--lmx-sticky-name-width) var(--lmx-sticky-score-width) var(--lmx-day-columns);
     gap: var(--lmx-board-gap);
@@ -3669,6 +3670,7 @@ a.lmx-note-mention:focus-visible {
     min-height: 3rem;
     padding: var(--lmx-board-row-padding);
     border-radius: 8px;
+    background: var(--lmx-row-surface);
 }
 
 .lmx-board.public .lmx-board-row {
@@ -3695,7 +3697,8 @@ a.lmx-note-mention:focus-visible {
 }
 
 .lmx-board-row:not(.header):nth-child(even) {
-    background: var(--lmx-surface-muted);
+    --lmx-row-surface: var(--lmx-surface-muted);
+    background: var(--lmx-row-surface);
 }
 
 .lmx-board-row.inactive {
@@ -3713,7 +3716,7 @@ a.lmx-note-mention:focus-visible {
     position: sticky;
     z-index: 2;
     align-self: stretch;
-    background: var(--lmx-surface);
+    background: var(--lmx-row-surface);
 }
 
 .lmx-board-row > .lmx-name {
@@ -3721,7 +3724,7 @@ a.lmx-note-mention:focus-visible {
     align-content: center;
     padding-inline: calc((var(--lmx-board-row-padding) * 2) + 0.35rem) 0.35rem;
     border-radius: 0;
-    box-shadow: var(--lmx-board-gap) 0 0 var(--lmx-surface);
+    box-shadow: var(--lmx-board-gap) 0 0 var(--lmx-row-surface);
 }
 
 .lmx-board-row > .lmx-number {
@@ -3731,7 +3734,7 @@ a.lmx-note-mention:focus-visible {
     justify-content: center;
     border-radius: 0 7px 7px 0;
     box-shadow:
-        var(--lmx-sticky-gap-cover) 0 0 var(--lmx-surface),
+        var(--lmx-sticky-gap-cover) 0 0 var(--lmx-row-surface),
         0.55rem 0 0.75rem -0.82rem rgba(15, 23, 42, 0.55);
 }
 
@@ -3753,16 +3756,16 @@ a.lmx-note-mention:focus-visible {
 
 .lmx-board-row:not(.header):nth-child(even) > .lmx-name,
 .lmx-board-row:not(.header):nth-child(even) > .lmx-number {
-    background: var(--lmx-surface-muted);
+    background: var(--lmx-row-surface);
 }
 
 .lmx-board-row:not(.header):nth-child(even) > .lmx-name {
-    box-shadow: var(--lmx-board-gap) 0 0 var(--lmx-surface-muted);
+    box-shadow: var(--lmx-board-gap) 0 0 var(--lmx-row-surface);
 }
 
 .lmx-board-row:not(.header):nth-child(even) > .lmx-number {
     box-shadow:
-        var(--lmx-sticky-gap-cover) 0 0 var(--lmx-surface-muted),
+        var(--lmx-sticky-gap-cover) 0 0 var(--lmx-row-surface),
         0.55rem 0 0.75rem -0.82rem rgba(15, 23, 42, 0.55);
 }
 
@@ -3783,6 +3786,33 @@ a.lmx-note-mention:focus-visible {
     box-shadow:
         var(--lmx-board-gap) 0 0 var(--lmx-surface-muted),
         0.55rem 0 0.75rem -0.82rem rgba(15, 23, 42, 0.55);
+}
+
+.lmx-board .lmx-board-row.lmx-full-marks {
+    --lmx-row-surface: var(--lmx-surface-accent);
+    background: var(--lmx-row-surface);
+}
+
+.lmx-board .lmx-full-marks-end {
+    margin-bottom: var(--space-3, 0.75rem);
+    border-bottom: 1px solid var(--lmx-border-strong);
+}
+
+.lmx-full-marks .lmx-rank,
+.lmx-full-marks-icon {
+    color: var(--lmx-accent);
+}
+
+.lmx-full-marks-icon {
+    width: 0.9em;
+    height: 0.9em;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.75;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    vertical-align: -0.1em;
+    margin-inline-start: 0.4em;
 }
 
 .lmx-participant-name {
@@ -4878,6 +4908,14 @@ a.lmx-note-mention:focus-visible {
 
     .lmx-board-row:not(.header):nth-child(even) {
         background: var(--lmx-surface);
+    }
+
+    .lmx-board .lmx-board-row.lmx-full-marks {
+        background: var(--lmx-row-surface);
+    }
+
+    .lmx-board .lmx-board-row.lmx-full-marks-end {
+        border-bottom-color: var(--lmx-border-strong);
     }
 
     .lmx-board-row > .lmx-name,
