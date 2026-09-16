@@ -116,6 +116,24 @@ public sealed class IndexNowContentTests : IDisposable
     }
 
     [Fact]
+    public void CrowdCountTiebreakChangesNotifyBothProfilesAndCrowdLeagueWithinSameCountBucket()
+    {
+        var athletes = Athletes();
+        athletes[0]!["CrowdAge"] = 30;
+        athletes[1]!["CrowdAge"] = 30;
+        athletes[0]!["CrowdCount"] = 101;
+        athletes[1]!["CrowdCount"] = 102;
+        var before = Build(athletes);
+        athletes[0]!["CrowdCount"] = 103;
+        var after = Build(athletes);
+        Assert.NotEqual(before[Url("/league/crowd")], after[Url("/league/crowd")]);
+        Assert.NotEqual(before[Url("/athlete/alpha")], after[Url("/athlete/alpha")]);
+        Assert.NotEqual(before[Url("/athlete/beta")], after[Url("/athlete/beta")]);
+        Assert.Equal(before[Url("/leaderboard")], after[Url("/leaderboard")]);
+        Assert.Equal(before[Url("/flag/hungary")], after[Url("/flag/hungary")]);
+    }
+
+    [Fact]
     public void RemovedAthleteAndFlagDisappearFromCurrentEligibleCatalog()
     {
         var athletes = Athletes();

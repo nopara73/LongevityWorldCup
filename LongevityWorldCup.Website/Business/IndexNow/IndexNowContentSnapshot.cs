@@ -42,6 +42,9 @@ public sealed class IndexNowContentSnapshot(
     {
         var source = athletes.OfType<JsonObject>().ToDictionary(a => a["AthleteSlug"]!.GetValue<string>(), StringComparer.Ordinal);
         var stats = PhenoStatsCalculator.BuildAll(athletes, asOf.Date);
+        var viewRanks = new[] { "/league/bortz", "/league/pheno", "/league/improvement", "/league/bortz-improvement", "/league/crowd" }
+            .ToDictionary(path => path, path => SelectRows(path, leaderboard.Rows, stats)
+                .Select((row, index) => (row.Slug, Rank: index + 1)).ToDictionary(row => row.Slug, row => row.Rank));
         var publicEvents = events.Where(e => e.VisibleOnWebsite && e.OccurredAtUtc <= asOf).OrderBy(e => e.Id, StringComparer.Ordinal).ToArray();
         var sharedEvents = publicEvents.Where(e => IsSharedEvent(e, leaderboard.Rows, homepage: false))
             .Select(e => new
@@ -72,6 +75,7 @@ public sealed class IndexNowContentSnapshot(
                 profile["Proofs"] = new JsonArray((athlete["Proofs"]?.AsArray() ?? [])
                     .Select(proof => (JsonNode?)JsonValue.Create(proof?.GetValue<string>().Split('?')[0])).ToArray());
                 content = new { profile, row.Rank, row.Track, Score = Rounded(row.EffectiveAgeReductionYears),
+                    OtherRanks = viewRanks.ToDictionary(view => view.Key, view => view.Value.GetValueOrDefault(row.Slug)),
                     Age = stats[row.Slug].ChronoAge is { } age ? (int)age : (int?)null,
                     CrowdAge = Rounded(stats[row.Slug].CrowdAge),
                     CrowdCount = CrowdCountBucket(stats[row.Slug].CrowdCount),
@@ -150,7 +154,7 @@ public sealed class IndexNowContentSnapshot(
     {
         if (path.StartsWith("/flag/", StringComparison.Ordinal))
             return rows.Where(row => FlagRouteCatalog.TryCreate(row.Flag, out var flag) && flag.Path == path);
-        return path switch
+        var selected = path switch
         {
             "/league/amateur" => rows.Where(row => row.Track == "Amateur"),
             "/league/mens" => rows.Where(row => row.Division == "Men's"),
@@ -163,13 +167,27 @@ public sealed class IndexNowContentSnapshot(
             "/league/gen-z" => rows.Where(row => row.Generation == "Gen Z"),
             "/league/gen-alpha" => rows.Where(row => row.Generation == "Gen Alpha"),
             "/league/prosperan" => rows.Where(row => row.ExclusiveLeague == "Prosperan"),
-            "/league/bortz" => rows.Where(row => row.Track == "Pro").OrderBy(row => row.Slug, StringComparer.Ordinal),
-            "/league/pheno" => rows.OrderBy(row => row.Slug, StringComparer.Ordinal),
-            "/league/improvement" => rows.Where(row => stats[row.Slug].PhenoAgeImprovementFromWorst.HasValue).OrderBy(row => row.Slug, StringComparer.Ordinal),
-            "/league/bortz-improvement" => rows.Where(row => stats[row.Slug].BortzAgeImprovementFromWorst.HasValue).OrderBy(row => row.Slug, StringComparer.Ordinal),
-            "/league/crowd" => rows.Where(row => stats[row.Slug].CrowdCount >= 100).OrderBy(row => row.Slug, StringComparer.Ordinal),
+            "/league/bortz" => rows.Where(row => row.Track == "Pro"),
+            "/league/improvement" => rows.Where(row => stats[row.Slug].PhenoAgeImprovementFromWorst.HasValue),
+            "/league/bortz-improvement" => rows.Where(row => stats[row.Slug].BortzAgeImprovementFromWorst.HasValue),
+            "/league/crowd" => rows.Where(row => stats[row.Slug].CrowdCount >= 100 && stats[row.Slug].CrowdAge.HasValue),
             _ => rows
         };
+        var candidates = selected.Select(row => stats[row.Slug]).Where(s => s.DobUtc.HasValue).ToArray();
+        IEnumerable<string>? ordered = path switch
+        {
+            "/league/bortz" or "/league/pheno" => CompetitionRanking.SortByCompetitionRules(candidates.Select(s => new CompetitionRankCandidate(
+                s.Slug, s.Name, false, (path == "/league/pheno" ? s.AgeReduction : s.BortzAgeReduction) ?? 0, s.DobUtc!.Value))).Select(s => s.Slug),
+            "/league/improvement" => CompetitionRanking.SortByPhenoAgeImprovementRules(candidates.Select(s => new PhenoAgeImprovementRankCandidate(
+                s.Slug, s.Name, s.PhenoAgeImprovementFromWorst!.Value, s.AgeReduction ?? 0, s.DobUtc!.Value))).Select(s => s.Slug),
+            "/league/bortz-improvement" => CompetitionRanking.SortByBortzAgeImprovementRules(candidates.Select(s => new BortzAgeImprovementRankCandidate(
+                s.Slug, s.Name, s.BortzAgeImprovementFromWorst!.Value, s.BortzAgeReduction ?? 0, s.DobUtc!.Value))).Select(s => s.Slug),
+            "/league/crowd" => CompetitionRanking.SortByCrowdAgeRules(candidates.Select(s => new CrowdAgeRankCandidate(
+                s.Slug, s.Name, s.CrowdAge!.Value, s.CrowdAge.Value - (s.ChronoAge ?? 0), s.CrowdCount, s.DobUtc!.Value))).Select(s => s.Slug),
+            _ => null
+        };
+        var bySlug = rows.ToDictionary(row => row.Slug, StringComparer.Ordinal);
+        return ordered is null ? selected : ordered.Select(slug => bySlug[slug]);
     }
 
     private static double? Metric(string path, LeaderboardSnapshotRow row, PhenoStatsCalculator.Result stats) => Rounded(path switch
