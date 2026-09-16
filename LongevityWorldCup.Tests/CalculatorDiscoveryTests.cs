@@ -20,7 +20,7 @@ public sealed class CalculatorDiscoveryTests(TestWebApplicationFactory factory)
         var canonical = "https://longevityworldcup.com" + path;
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.False(response.Headers.Contains("X-Robots-Tag"));
+        Assert.Equal("index, follow", Assert.Single(response.Headers.GetValues("X-Robots-Tag")));
         Assert.Contains("<meta name=\"robots\" content=\"index, follow\"", html);
         Assert.Contains($"<title>{name} | Longevity World Cup</title>", html);
         Assert.Contains($"<link rel=\"canonical\" href=\"{canonical}\"", html);
@@ -36,13 +36,14 @@ public sealed class CalculatorDiscoveryTests(TestWebApplicationFactory factory)
         Assert.Contains("blood biomarkers", calculator.GetProperty("description").GetString());
         Assert.True(calculator.GetProperty("isAccessibleForFree").GetBoolean());
         var page = Assert.Single(graph, node => node.GetProperty("@type").GetString() == "WebPage");
+        SeoAssertions.PageIdentity(page, path);
         Assert.Equal(canonical + "#calculator", page.GetProperty("mainEntity").GetProperty("@id").GetString());
         var breadcrumb = Assert.Single(graph, node => node.GetProperty("@type").GetString() == "BreadcrumbList");
         Assert.Equal(name, breadcrumb.GetProperty("itemListElement").EnumerateArray().Last().GetProperty("name").GetString());
 
         using var head = await client.SendAsync(new HttpRequestMessage(HttpMethod.Head, path));
         Assert.Equal(HttpStatusCode.OK, head.StatusCode);
-        Assert.False(head.Headers.Contains("X-Robots-Tag"));
+        Assert.Equal("index, follow", Assert.Single(head.Headers.GetValues("X-Robots-Tag")));
     }
 
     [Theory]
@@ -107,7 +108,7 @@ public sealed class CalculatorDiscoveryTests(TestWebApplicationFactory factory)
     }
 
     private static string StructuredData(string html) =>
-        Regex.Match(html, "<script type=\"application/ld\\+json\">(.*?)</script>", RegexOptions.Singleline).Groups[1].Value;
+        Regex.Match(html, "<script[^>]*type=\"application/ld\\+json\"[^>]*>(.*?)</script>", RegexOptions.Singleline).Groups[1].Value;
 
     private static string Body(string html) => html[html.IndexOf("<body", StringComparison.Ordinal)..];
 }

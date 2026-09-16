@@ -223,6 +223,8 @@ The production host must have an SDK compatible with the repository's `global.js
 
 Before changing the live publish tree, deployment stops the service and creates a same-filesystem hard-link snapshot. A failed sync, health check, or byte-for-byte script probe restores that prior release before restarting the service. Every master push schedules the workflow; stale runs skip only when a newer run exists, so an otherwise ignored documentation or test commit cannot strand an earlier website change undeployed.
 
+Preserve `/var/www/.longevityworldcup/public-content-revisions.json` alongside the database. It stores observed public-content change dates independently of deployment and file timestamps. A missing ledger creates an unknown baseline, so old pages initially omit modification dates instead of acquiring the deployment date. Invalid ledger JSON fails explicitly and should be restored from backup, not silently discarded. See [Content freshness and AI summaries](ContentFreshnessAndAiSummaries.md). Discovery documents are controller endpoints; old `llms.txt`, `llms-full.txt`, `ai/index.md`, and `.well-known/agent-card.json` files left by incremental publish do not take precedence.
+
 ### Application submission proxy timeout
 
 `POST /api/application/application` has a dedicated five-minute ASP.NET Core timeout because an accepted submission may contain up to 37 proof images that must be validated and packaged. The browser waits 310 seconds. Nginx must allow slightly more response-header time than both layers without extending every other public route.
@@ -256,6 +258,16 @@ Before editing, confirm that the enabled symlinks resolve to those two files and
 
 Keep the backups until the application submission path has been verified after deployment.
 
+### Reverse proxy error responses
+
+ASP.NET Core owns 404 responses, including the rendered error page, `X-Robots-Tag: noindex, nofollow`, and `Cache-Control: no-store`. The public HTTPS server in `/etc/nginx/sites-available/default` must not define `error_page 404 /404.html` or an internal `/404.html` location: that obsolete mapping replaces the application's response with a generic nginx page and drops its headers. Apply the same rule to both onion server blocks.
+
+Keep `/etc/nginx/snippets/lwc-error-page.conf` and its `proxy_intercept_errors on` setting with only the 502, 503, and 504 mappings, so gateway failures still use the static fallback pages. Do not disable all error interception to fix a 404. See nginx's [proxy interception](https://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_intercept_errors) and [error-page mapping](https://nginx.org/en/docs/http/ngx_http_core_module.html#error_page) documentation.
+
+Before editing, resolve the enabled symlink and create a timestamped backup in `sites-available`, never `sites-enabled`. Run `sudo nginx -t`, reload nginx, and confirm the service remains active. On a validation or reload failure, restore the backup, retest, and reload. Preserve the application submission timeout, CORS ownership, and onion configuration.
+
+Probe a missing document, athlete, league, and flag through public HTTPS with GET and HEAD, without following redirects. Each must return 404 with no `Location` header, `noindex`, and `no-store`; GET must contain the application's `404 Not Found - Longevity World Cup` title. Check `/error/404.html` directly as well. The automatic deployment runs these probes and rolls back the application release if they fail. Repeat representative probes through the local onion listeners using their onion `Host` header, and verify `/health` after the reload.
+
 ### Reverse proxy CORS ownership
 
 ASP.NET Core owns the route-specific CORS policies. The nginx reverse-proxy location must pass those response headers through unchanged: do not add `Access-Control-Allow-*` or `Access-Control-Expose-Headers` directives at the proxy layer, and do not intercept `OPTIONS` requests. Adding CORS headers in both layers produces duplicate values that browsers reject; applying wildcard headers in nginx also bypasses the application's restricted policy for non-public routes.
@@ -277,6 +289,8 @@ Deletion is scoped to `wwwroot/athletes/` and the generated-only `wwwroot/js/` d
 Social API token refreshes first try to persist updated token state in `config.json`. If the service account can read but not write that file, the app writes the runtime token fields to `/var/www/.longevityworldcup/runtime-config.json` instead. On startup, that sidecar is applied only when it is newer than `config.json`, so a fresh manual edit to `config.json` takes precedence. Delete or update the sidecar when intentionally resetting social tokens.
 
 ## Scheduled Jobs
+
+IndexNow uses a separate hosted worker and an explicit Production opt-in. Its key and delivery ledger live beside the SQLite database in `indexnow-state.json`, outside the release tree. Preserve and back up that file; do not regenerate it during deployment. See [IndexNow.md](IndexNow.md) for enabling, retries, key verification and status inspection.
 
 Quartz 4 uses its in-memory job store. `LongevityWorldCup.Website/Jobs/ScheduledJobs.cs` registers the UTC schedules, one-shot startup triggers, and the minute-interval crowd age announcement publisher; there are no persisted Quartz tables or serialized triggers to migrate. Application data and job delivery ledgers remain in their existing stores. Shutdown waits for running jobs to complete, and jobs receive Quartz's cancellation token explicitly. `ScheduledJobConfigurationTests` verifies the registered next-fire times, startup triggers, and recurring announcement interval without executing production jobs.
 

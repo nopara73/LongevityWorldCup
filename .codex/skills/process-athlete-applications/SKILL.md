@@ -20,7 +20,7 @@ Default to all unread, unprocessed submission candidates. Finish discovery befor
 Search `is:unread -in:spam -in:trash` with each family:
 
 - Audit terms: `[LWC26]`, `Archive folder key`, `Payment due`, `Submitted biomarkers/results summary`.
-- Update terms: `New biological age result posted`, `Update profile request`.
+- Update terms: `New biological age result received`, `Update profile request`, plus legacy `New biological age result posted` and `Profile update received`.
 - `filename:zip`.
 - LWC identity terms: `longevityworldcup`, `longevityworldcup.com`.
 

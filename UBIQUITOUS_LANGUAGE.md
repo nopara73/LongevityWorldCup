@@ -24,16 +24,25 @@ Use lowercase pheno age, bortz age, crowd age, age reduction, and effective age 
 - Crowd age top-10 entries and upward moves within the top 10 can produce placement Events, including moves such as 8th to 6th. Preserve one announcement per athlete/place and require the athlete's own accepted guesses to cause the change. Keep live ranks current after every accepted guess.
 - Publish crowd age placement Events at least 24 hours apart per athlete. The first eligible announcement can publish immediately; during the cooldown, retain the strongest pending climb and its original movement context for the next announcement. Measure the cooldown from actual Event publication, not the time of the underlying guess or a calendar-day boundary. Pending announcements and publication times survive restarts; discard pending announcements if their profile image changes. Published Events remain historical. Platform-specific posting cooldowns can impose additional spacing.
 
+## Acquisition Measurement
+
+- An **AI-attributed visit** is a recorded statistics session identified by an allowlisted AI app referrer or an exact recognized first-touch source tag. Campaign evidence takes precedence. It is neither a verified human nor a crawl or citation; absent evidence remains direct/unknown.
+- **Calculator use** means user input, change, or submit; **Application start** means user input or change on the new-application form. Keep these distinct from page views and calculator results, and expose the start of their measurement coverage.
+- An **Application conversion** is a session with a server-confirmed successful full application, before athlete approval or payment. Exclude result/profile updates and unknown submission types from this rate. Count each converting session once; retain raw events separately. Window/filter denominators and first-touch semantics are documented in [AI referral reporting](LongevityWorldCup.Documentation/AiReferralReporting.md).
+
 ## Payments
 
 An existing Amateur's first eligible bortz result uses Pro-upgrade pricing. Other result/profile updates are free. The server classifies submissions from existing athlete and submitted clock data and sets authoritative entry/upgrade pricing; browser payment state is only a handoff hint.
 
 ## Events and Improvement
 
+- **Test date** is the laboratory measurement date. **First public announcement** is available only where an accepted-result Event records it; older untracked publication dates remain unknown. **Observed content change** is when the application detects changed public facts or definitions, distinct from response generation, deployment, and cache refresh. Missing values are unavailable, not zero. Current leaders and ranks are not completed-season winners or historical placements.
+
 - Accepted-test Events appear only in athlete profile highlights, including partial, non-improving, and backfilled results. Identity is athlete plus test date across clocks; corrections, added markers, reordering, reloads, and restarts cannot duplicate them. Date the Event at first observed publication and identify the test date in its text. Silently baseline existing results when introducing tracking; atomically remember subsequent results and save Events, including startup discoveries. Exclude these Events from shared highlights and social queues.
 - Biological-age improvement Events are chronologically new personal bests, dated to the result; older backfills predating the previous best create none.
 - Pheno/Bortz best-improvement badges compare latest with first eligible result. Separate improvement leaderboards and placement Events rank `latest eligible age - worst eligible age` for that clock. Keep biological-age improvement, Crowd Age placement, and Pheno/Bortz Improvement placement Events distinct.
 - Homepage highlights are curated: preserve fresh-Event athlete de-duplication, stale-event handling, and fourth-visit highlights-before-podium ordering.
+- Search-engine change notifications follow public canonical content visibility. Profile-only Events can change the athlete profile without announcing a shared-highlight change. A notification of a removed public URL remains appropriate after it returns 404/410. Submission acceptance does not establish indexing.
 
 ## Longevitymaxxing Challenge
 

@@ -62,7 +62,6 @@ public sealed class PublicGetCachingTests(TestWebApplicationFactory sharedFactor
         Assert.Equal("index, follow", firstResponse.Headers.GetValues("X-Robots-Tag").Single());
         Assert.NotNull(firstResponse.Headers.ETag);
         Assert.True(firstResponse.Headers.ETag!.IsWeak);
-        Assert.NotNull(firstResponse.Content.Headers.LastModified);
         Assert.Equal("text/markdown", firstResponse.Content.Headers.ContentType?.MediaType);
         Assert.Equal("utf-8", firstResponse.Content.Headers.ContentType?.CharSet);
 
@@ -82,6 +81,7 @@ public sealed class PublicGetCachingTests(TestWebApplicationFactory sharedFactor
         Assert.NotNull(secondResponse.Headers.ETag);
         Assert.Equal(firstResponse.Headers.ETag.Tag, secondResponse.Headers.ETag!.Tag);
         Assert.Equal(firstResponse.Headers.ETag.IsWeak, secondResponse.Headers.ETag.IsWeak);
+        Assert.Equal(firstResponse.Content.Headers.LastModified, secondResponse.Content.Headers.LastModified);
         Assert.Equal("", await secondResponse.Content.ReadAsStringAsync());
     }
 

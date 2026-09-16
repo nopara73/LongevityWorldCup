@@ -7,7 +7,7 @@ using System.Text.RegularExpressions;
 
 namespace LongevityWorldCup.Website.Middleware
 {
-    public class HtmlInjectionMiddleware(RequestDelegate next, AthleteOgImageService athleteOgImages, LeagueOgImageService leagueOgImages, PageOgImageService pageOgImages, AssetVersionProvider assetVersionProvider, LeaderboardFactsService leaderboardFacts, SitemapService sitemap, ILogger<HtmlInjectionMiddleware> logger, IWebHostEnvironment environment, IAthleteSnapshotProvider athleteSnapshots)
+    public class HtmlInjectionMiddleware(RequestDelegate next, AthleteOgImageService athleteOgImages, LeagueOgImageService leagueOgImages, PageOgImageService pageOgImages, AssetVersionProvider assetVersionProvider, LeaderboardFactsService leaderboardFacts, SitemapService sitemap, PageStructuredData pageStructuredData, ILogger<HtmlInjectionMiddleware> logger, IWebHostEnvironment environment, IAthleteSnapshotProvider athleteSnapshots)
     {
         private readonly RequestDelegate _next = next;
         private readonly AthleteOgImageService _athleteOgImages = athleteOgImages;
@@ -39,18 +39,6 @@ namespace LongevityWorldCup.Website.Middleware
             "/js/badges.js",
             "/js/age-visualization.js"
         ];
-        private static readonly HashSet<string> IndexableRoutes = new(StringComparer.OrdinalIgnoreCase)
-        {
-            "/",
-            "/leaderboard",
-            "/longevitymaxxing",
-            "/helstab-kihivas",
-            "/events",
-            "/media",
-            "/about",
-            "/history",
-            "/ruleset"
-        };
         private static readonly IReadOnlyDictionary<string, LeaderboardViewSeo> LeaderboardViewSeoBySlug =
             new Dictionary<string, LeaderboardViewSeo>(StringComparer.OrdinalIgnoreCase)
             {
@@ -83,7 +71,7 @@ namespace LongevityWorldCup.Website.Middleware
         private static readonly IReadOnlyDictionary<string, string> NonIndexablePageTitles =
             new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
             {
-                ["/privacy"] = "Privacy Policy | Longevity World Cup",
+                ["/error/404.html"] = "404 Not Found - Longevity World Cup",
                 ["/play"] = "Game Menu | Longevity World Cup",
                 ["/join"] = "Join Longevity World Cup",
                 ["/apply"] = "Athlete Application | Longevity World Cup",
@@ -98,6 +86,11 @@ namespace LongevityWorldCup.Website.Middleware
         public async Task Invoke(HttpContext context)
         {
             var path = context.Request.Path.Value;
+            if (string.Equals(path, "/error/404.html", StringComparison.OrdinalIgnoreCase))
+            {
+                context.Response.StatusCode = StatusCodes.Status404NotFound;
+                context.Response.Headers.CacheControl = "no-store";
+            }
             var templatePath = ResolveHtmlTemplatePath(path);
             if (templatePath is not null)
             {
@@ -141,7 +134,7 @@ namespace LongevityWorldCup.Website.Middleware
                             .Replace("{{SEO_OG_DESCRIPTION}}", EncodeMeta(seo.OgDescription))
                             .Replace("{{SEO_OG_URL}}", EncodeMeta(seo.CanonicalUrl))
                             .Replace("{{SEO_OG_IMAGE}}", EncodeMeta(seo.OgImageUrl))
-                            .Replace("{{SEO_STRUCTURED_DATA}}", BuildStructuredDataJson(seo));
+                            .Replace("{{SEO_STRUCTURED_DATA}}", BuildStructuredDataJson(seo, context));
                         head = ApplyHeadAssets(head, path ?? string.Empty);
                     }
 
@@ -181,6 +174,9 @@ namespace LongevityWorldCup.Website.Middleware
 
                     // Replace placeholders with header and footer content
                     bodyContent = bodyContent
+                        .Replace("{{SEO_DESCRIPTION}}", EncodeMeta(seo.Description))
+                        .Replace("{{SEO_ROBOTS}}", EncodeMeta(seo.Robots))
+                        .Replace("{{SEO_CANONICAL_URL}}", EncodeMeta(seo.CanonicalUrl))
                         .Replace("<!--HEAD-->", head)
                         .Replace("<!--HEADER-->", header)
                         .Replace("<!--FOOTER-->", footer)
@@ -207,11 +203,10 @@ namespace LongevityWorldCup.Website.Middleware
 
                     // Write the modified content to the response
                     context.Response.ContentType = "text/html";
-                    if (seo.Robots.StartsWith("noindex", StringComparison.OrdinalIgnoreCase))
-                    {
-                        context.Response.Headers["X-Robots-Tag"] = seo.Robots;
-                    }
-                    await context.Response.WriteAsync(bodyContent, context.RequestAborted);
+                    context.Response.Headers["X-Robots-Tag"] = seo.Robots;
+                    context.Response.ContentLength = Encoding.UTF8.GetByteCount(bodyContent);
+                    if (!HttpMethods.IsHead(context.Request.Method))
+                        await context.Response.WriteAsync(bodyContent, context.RequestAborted);
 
                     // Short-circuit the pipeline
                     return;
@@ -959,23 +954,23 @@ $@"<script{scriptAttributes}>
                     noCardDescription,
                     BuildPageOgImageUrl("ruleset", defaultOgImage)
                 ),
-                _ when !IndexableRoutes.Contains(canonicalPath) => new SeoMeta(
+                "/privacy" => new SeoMeta(
+                    canonicalPath,
+                    "Privacy policy for Longevity World Cup website operations and social publishing integrations.",
+                    "index, follow",
+                    canonicalUrl,
+                    "Privacy Policy | Longevity World Cup",
+                    "Privacy Policy",
+                    noCardDescription,
+                    defaultOgImage
+                ),
+                _ => new SeoMeta(
                     canonicalPath,
                     "Longevity World Cup member page.",
                     "noindex, nofollow",
                     canonicalUrl,
                     GetNonIndexablePageTitle(canonicalPath),
                     GetNonIndexablePageTitle(canonicalPath),
-                    noCardDescription,
-                    defaultOgImage
-                ),
-                _ => new SeoMeta(
-                    canonicalPath,
-                    "Longevity World Cup - reverse biological age and compete globally.",
-                    "index, follow",
-                    canonicalUrl,
-                    "Longevity World Cup",
-                    "Longevity World Cup",
                     noCardDescription,
                     defaultOgImage
                 )
@@ -1334,7 +1329,7 @@ $@"<script{scriptAttributes}>
                 : value.ToLowerInvariant();
         }
 
-        private string BuildStructuredDataJson(SeoMeta seo)
+        private string BuildStructuredDataJson(SeoMeta seo, HttpContext context)
         {
             var breadcrumbItems = new List<object>
             {
@@ -1525,8 +1520,7 @@ $@"<script{scriptAttributes}>
                 }
             };
 
-            var dateModified = _sitemap.GetLastModifiedUtcForPath(seo.CanonicalPath)
-                .ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+            var dateModified = _sitemap.GetLastModifiedUtcForPath(seo.CanonicalPath);
 
             var webpage = new Dictionary<string, object>
             {
@@ -1535,7 +1529,6 @@ $@"<script{scriptAttributes}>
                 ["url"] = seo.CanonicalUrl,
                 ["name"] = seo.PageTitle,
                 ["description"] = seo.Description,
-                ["dateModified"] = dateModified,
                 ["inLanguage"] = IsHungarianPage(seo.CanonicalPath) ? "hu" : "en",
                 ["isPartOf"] = new Dictionary<string, object>
                 {
@@ -1548,6 +1541,9 @@ $@"<script{scriptAttributes}>
                 ["primaryImageOfPage"] = seo.OgImageUrl
             };
 
+            if (dateModified.HasValue)
+                webpage["dateModified"] = dateModified.Value.ToString("yyyy-MM-ddTHH:mm:ss'Z'", CultureInfo.InvariantCulture);
+
             var breadcrumbList = new Dictionary<string, object>
             {
                 ["@type"] = "BreadcrumbList",
@@ -1558,8 +1554,6 @@ $@"<script{scriptAttributes}>
             {
                 organization,
                 website,
-                webApplication,
-                competitionService,
                 webpage,
                 breadcrumbList
             };
@@ -1582,9 +1576,13 @@ $@"<script{scriptAttributes}>
                     ["publisher"] = new Dictionary<string, object> { ["@id"] = $"{SiteBaseUrl}/#organization" }
                 });
             }
+            pageStructuredData.AddSubject(graph, webpage, seo.CanonicalPath, seo.CanonicalUrl,
+                GetRequestCanonicalPath(context), context.Request.Query);
 
             if (string.Equals(seo.CanonicalPath, "/", StringComparison.Ordinal))
             {
+                graph.Add(webApplication);
+                graph.Add(competitionService);
                 graph.Add(BuildHomeFaqPage());
             }
 

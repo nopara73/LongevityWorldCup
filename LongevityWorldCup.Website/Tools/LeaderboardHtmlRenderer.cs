@@ -21,7 +21,7 @@ public static class LeaderboardHtmlRenderer
             var blurred = visibleSlugs.Contains(row.Slug) ? "" : " blurred";
             sb.Append($"<div class=\"podium-item {rankClass}{blurred}\" data-athlete-name=\"{EncodeAttribute(row.AthleteName ?? row.DisplayName)}\">")
                 .Append($"<div class=\"podium-rank\" title=\"{place} Place\"><i class=\"fa-solid fa-{icon}\" style=\"color: {color};\"></i></div>")
-                .Append($"<img src=\"{EncodeAttribute(row.LeaderboardThumbnailUrl)}\" alt=\"{EncodeAttribute(row.DisplayName)} portrait\" class=\"podium-portrait\" loading=\"lazy\">")
+                .Append($"<a class=\"athlete-profile-link\" href=\"{EncodeAttribute(row.AthletePath)}\" aria-label=\"View stats of {EncodeAttribute(row.DisplayName)}\"><img src=\"{EncodeAttribute(row.LeaderboardThumbnailUrl)}\" alt=\"{EncodeAttribute(row.DisplayName)} portrait\" class=\"podium-portrait\" loading=\"lazy\"></a>")
                 .Append($"<div class=\"name-row\"><a class=\"athlete-name\" href=\"{EncodeAttribute(row.AthletePath)}\" title=\"View stats of {EncodeAttribute(row.DisplayName)}\">{EncodeText(row.DisplayName)}</a></div>")
                 .Append("<div class=\"podium-link-row\"></div>")
                 .Append($"<div><span class=\"age-reduction\">{PublicHtmlFormat.Fixed(Math.Abs(row.EffectiveAgeReductionYears ?? 0), row.MetricDecimals)} years</span> reduced</div>")
@@ -76,11 +76,15 @@ public static class LeaderboardHtmlRenderer
         sb.AppendLine("                    <td data-label=\"Athlete\" class=\"athlete-td\">");
         if (!string.IsNullOrWhiteSpace(thumbnail))
         {
-            sb.Append("                        <span class=\"portrait-wrapper\"><img src=\"")
+            sb.Append("                        <a class=\"portrait-wrapper athlete-profile-link\" href=\"")
+                .Append(athletePath)
+                .Append("\" aria-label=\"")
+                .Append(EncodeAttribute($"View stats of {row.DisplayName}"))
+                .Append("\"><img src=\"")
                 .Append(EncodeAttribute(thumbnail))
                 .Append("\" alt=\"")
                 .Append(EncodeAttribute($"{row.DisplayName} portrait"))
-                .AppendLine("\" class=\"portrait\" loading=\"lazy\"></span>");
+                .AppendLine("\" class=\"portrait\" loading=\"lazy\"></a>");
         }
         sb.Append("                        <a class=\"athlete-name\" href=\"")
             .Append(athletePath)

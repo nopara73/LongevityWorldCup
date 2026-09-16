@@ -180,6 +180,7 @@
     }
 
     .join-game {
+        text-decoration: none;
         margin-top: 1rem;
         padding: 0.75rem 1.65rem;
         font-size: 1.15rem;
@@ -1347,14 +1348,14 @@
             longevity leaderboards
         </span>
     </a>
-    <button onclick="window.location.assign('/play')" class="join-game" aria-label="Play the game">
+    <a href="/play" class="join-game" aria-label="Play the game">
         <strong>PLAY</strong>
         <span class="join-game-middle" style="font-size: 1rem;">THE</span>
         <strong class="join-game-end">GAME</strong>
-    </button>
-    <button onclick="window.location.assign('/play')" class="join-game scrolled-button" aria-label="Play the game" style="display: none;">
+    </a>
+    <a href="/play" class="join-game scrolled-button" aria-label="Play the game" style="display: none;">
         <strong>PLAY</strong>
-    </button>
+    </a>
     <div id="custom-alert" role="alertdialog" aria-modal="true" aria-labelledby="custom-alert-title" aria-describedby="custom-alert-message" hidden>
         <div class="custom-alert-panel" tabindex="-1">
             <h2 id="custom-alert-title" class="visually-hidden">Alert</h2>

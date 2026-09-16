@@ -466,7 +466,14 @@
         content:''; display:block; height:3px; margin-top:.15rem; border-radius:999px;
         background:linear-gradient(90deg, rgba(0,188,212,.68), rgba(0,188,212,.18));
     }
-    .filter-section li{ margin:0; }
+    .filter-section li{ margin:0; display:flex; align-items:stretch; gap:.15rem; }
+    .filter-section li > label{ flex:1; min-width:0; }
+    .filter-league-link{
+        display:flex; align-items:center; justify-content:center; flex:0 0 32px;
+        color:var(--lwc-muted, #526373); border-radius:8px; text-decoration:none;
+    }
+    .filter-league-link:hover{ color:var(--primary-color); background:var(--lwc-surface-muted); }
+    .filter-league-link:focus-visible{ outline:2px solid var(--primary-color); outline-offset:1px; }
     .filter-section label{
         display:flex; align-items:center; min-height:44px; padding:.42rem .55rem; border:1px solid rgba(0,0,0,.045);
         border-radius:8px; box-sizing:border-box; cursor:pointer; color:var(--lwc-ink, #555); line-height:1.25;
@@ -874,6 +881,7 @@
     .athlete-name:focus-visible{
         color:var(--secondary-color); background-color:rgba(8,118,133,.08); outline:3px solid rgba(0,188,212,.38); outline-offset:2px;
     }
+    .athlete-profile-link:focus-visible{ outline:3px solid var(--primary-color); outline-offset:3px; border-radius:8px; }
     .podium .athlete-name{ font-size:1.1rem; font-weight:700; padding-bottom:.2rem; }
 
     .media-contact{
@@ -3311,30 +3319,35 @@
                                 <input type="checkbox" name="agingClockView" value="bortz">
                                 <span class="filter-label-copy"><i class="fas fa-droplet filter-icon" aria-hidden="true"></i> Bortz Age <span class="filter-count-group">(<span class="filter-count">0</span>)</span></span>
                             </label>
+                            <a class="filter-league-link" href="/league/bortz" aria-label="Open Bortz Age leaderboard" title="Open Bortz Age leaderboard"><i class="fas fa-arrow-right" aria-hidden="true"></i></a>
                         </li>
                         <li>
                             <label data-aging-clock-view="pheno">
                                 <input type="checkbox" name="agingClockView" value="pheno">
                                 <span class="filter-label-copy"><i class="fas fa-droplet filter-icon" aria-hidden="true"></i> Pheno Age <span class="filter-count-group">(<span class="filter-count">0</span>)</span></span>
                             </label>
+                            <a class="filter-league-link" href="/league/pheno" aria-label="Open Pheno Age leaderboard" title="Open Pheno Age leaderboard"><i class="fas fa-arrow-right" aria-hidden="true"></i></a>
                         </li>
                         <li>
                             <label data-aging-clock-view="improvement">
                                 <input type="checkbox" name="agingClockView" value="improvement">
                                 <span class="filter-label-copy"><i class="fas fa-chart-line filter-icon" aria-hidden="true"></i> Pheno Improvement <span class="filter-count-group">(<span class="filter-count">0</span>)</span></span>
                             </label>
+                            <a class="filter-league-link" href="/league/improvement" aria-label="Open Pheno Improvement leaderboard" title="Open Pheno Improvement leaderboard"><i class="fas fa-arrow-right" aria-hidden="true"></i></a>
                         </li>
                         <li>
                             <label data-aging-clock-view="bortz-improvement">
                                 <input type="checkbox" name="agingClockView" value="bortz-improvement">
                                 <span class="filter-label-copy"><i class="fas fa-chart-line filter-icon" aria-hidden="true"></i> Bortz Improvement <span class="filter-count-group">(<span class="filter-count">0</span>)</span></span>
                             </label>
+                            <a class="filter-league-link" href="/league/bortz-improvement" aria-label="Open Bortz Improvement leaderboard" title="Open Bortz Improvement leaderboard"><i class="fas fa-arrow-right" aria-hidden="true"></i></a>
                         </li>
                         <li>
                             <label data-aging-clock-view="crowd">
                                 <input type="checkbox" name="agingClockView" value="crowd">
                                 <span class="filter-label-copy"><i class="fas fa-people-group filter-icon" aria-hidden="true"></i> Crowd Age <span class="filter-count-group">(<span class="filter-count">0</span>)</span></span>
                             </label>
+                            <a class="filter-league-link" href="/league/crowd" aria-label="Open Crowd Age leaderboard" title="Open Crowd Age leaderboard"><i class="fas fa-arrow-right" aria-hidden="true"></i></a>
                         </li>
                     </ul>
                 </div>
@@ -3377,7 +3390,7 @@
                         </a>
                     </th>
                     <th>
-                        <a href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/Ruleset.md#point-system" target="_blank" rel="noopener" class="leaderboard-metric-link">
+                        <a href="/ruleset#point-system-ranking" class="leaderboard-metric-link">
                             <span id="leaderboardMetricHeader">Age reduction</span>
                         </a>
                     </th>
@@ -3671,11 +3684,11 @@
             <span class="rank"></span>
         </td>
         <td data-label="Athlete" class="athlete-td">
-            <span class="portrait-wrapper">
+            <a class="portrait-wrapper athlete-profile-link" aria-label="View athlete profile">
                 <img src="" alt="" class="portrait" loading="lazy">
                 <span class="pro-badge" aria-label="Pro division" title="Professional longevity athlete">PRO</span>
-            </span>
-            <button type="button" class="athlete-name" title="View stats"></button>
+            </a>
+            <a class="athlete-name" title="View stats"></a>
             <div class="badge-section"></div>
         </td>
         <td data-label="Sponsor" class="sponsor-td"></td>
@@ -5186,9 +5199,9 @@
                             <div class="podium-rank" title="${athlete.rank === 1 ? '1st Place' : athlete.rank === 2 ? '2nd Place' : '3rd Place'}">
                                 ${rankEmoji}
                             </div>
-                            <img src="${podiumPortraitUrl}" alt="${athlete.displayName} portrait" class="podium-portrait" loading="lazy">
+                            <a class="athlete-profile-link" href="${escapeHtml(getAthleteProfileHref(athlete))}" aria-label="View stats of ${escapeHtml(athlete.displayName)}"><img src="${podiumPortraitUrl}" alt="${athlete.displayName} portrait" class="podium-portrait" loading="lazy"></a>
                             <div class="name-row">
-                                <button type="button" class="athlete-name" title="View stats of ${athlete.displayName}">${athlete.displayName}</button>
+                                <a class="athlete-name" href="${escapeHtml(getAthleteProfileHref(athlete))}" title="View stats of ${escapeHtml(athlete.displayName)}">${escapeHtml(athlete.displayName)}</a>
                             </div>
                             <div class="podium-link-row">
                                 ${renderPersonalLink(athlete.personalLink, athlete.displayName)}
@@ -5287,6 +5300,10 @@
                     }
 
                     const athleteNameSpan = athleteCell.querySelector('.athlete-name');
+                    athleteNameSpan.href = getAthleteProfileHref(athlete);
+                    const portraitLink = athleteCell.querySelector('.athlete-profile-link');
+                    portraitLink.href = getAthleteProfileHref(athlete);
+                    portraitLink.setAttribute('aria-label', `View stats of ${athlete.displayName}`);
                     athleteNameSpan.innerHTML = formatAthleteNameForMobile(athlete.displayName);
                     athleteNameSpan.title = `View stats of ${athlete.displayName}`;
 
@@ -5448,6 +5465,7 @@
                     renderLeaderboardLoadError(tableBody);
                 }
                 setLeaderboardStatus('Leaderboard could not load.', true);
+                updateLeaderboardStructuredData(null);
                 const podium = document.querySelector('.podium');
                 if (podium && podium.dataset.serverRendered !== 'true') {
                     podium.innerHTML = '';
@@ -5635,12 +5653,24 @@
     addClickListenerToImages('.portrait, .podium-portrait', handleAthleteNameClick);
 
     // Function to attach click event listener to all athlete-name elements
+    function isPlainLinkActivation(event) {
+        return !event.defaultPrevented && event.button === 0 &&
+            !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey;
+    }
+
+    function getAthleteProfileHref(athlete) {
+        return `/athlete/${encodeURIComponent(normalizeAthleteSlugForLookup(athlete.athleteSlug || athlete.name))}`;
+    }
+
     function activateAthleteName(event) {
+        if (!isPlainLinkActivation(event)) return;
+        event.preventDefault();
         event.stopPropagation();
         handleAthleteNameClick(event);
     }
 
     function activateAthleteContainer(event) {
+        if (!isPlainLinkActivation(event)) return;
         const target = event.target;
         if (!(target instanceof Element)) return;
 
@@ -5659,11 +5689,11 @@
     }
 
     function attachAthleteNameClickListeners() {
-        document.querySelectorAll('.athlete-name').forEach(athleteNameElement => {
-            const athleteName = athleteNameElement.textContent.trim();
+        document.querySelectorAll('a.athlete-name, a.athlete-profile-link').forEach(athleteNameElement => {
+            const athleteName = athleteNameElement.textContent.trim() || athleteNameElement.getAttribute('aria-label');
             if (!athleteName) return;
 
-            athleteNameElement.setAttribute('aria-label', athleteNameElement.title || `View stats of ${athleteName}`);
+            athleteNameElement.setAttribute('aria-label', athleteNameElement.title || athleteNameElement.getAttribute('aria-label') || `View stats of ${athleteName}`);
             athleteNameElement.removeEventListener('click', activateAthleteName);
             athleteNameElement.addEventListener('click', activateAthleteName);
         });
@@ -6884,17 +6914,20 @@
     window.getFullLeaderboardUrlWithCurrentState = function () {
         const button = getViewAllAthletesButton();
         if (button?.dataset.useDefaultLeaderboardUrl === 'true') {
-            return '/leaderboard';
+            return buildLeaderboardNavigationUrl({ divisions: [], flags: [], generations: [], exclusiveLeagues: [], leagueTracks: [], view: 'ultimate' }, '');
         }
 
-        const url = new URL('/leaderboard', window.location.origin);
-        const searchInput = document.getElementById('athleteSearch');
-        const searchQuery = searchInput ? searchInput.value.trim() : '';
+        return buildLeaderboardNavigationUrl(getSelectedLeaderboardState());
+    };
+
+    function buildLeaderboardNavigationUrl(state, searchQuery = document.getElementById('athleteSearch')?.value.trim() || '') {
+        const url = new URL(window.location.href);
+        url.pathname = '/leaderboard';
+        for (const key of ['athlete', 'guessmyage', 'search', 'filters', 'view']) url.searchParams.delete(key);
         if (searchQuery) {
             url.searchParams.set('search', encodeURIComponent(searchQuery));
         }
 
-        const state = getSelectedLeaderboardState();
         const selectedDivisions = state.divisions.map(value => value.toLowerCase());
         const selectedFlags = state.flags.map(getFlagFilterKey);
         const selectedGenerations = state.generations.map(value => value.toLowerCase());
@@ -6913,25 +6946,114 @@
         }
 
         const currentLeaderboardView = state.view;
-        if (!searchQuery && filters.length === 1 && selectedFlags.length === 1 && currentLeaderboardView === 'ultimate') {
-            return buildFlagHref(state.flags[0]);
-        }
         const canonicalLeagueSlug = selectedFlags.length === 0 && filters.length === 1
             ? getCanonicalLeagueSlugForFilter(filters[0])
             : null;
-        if (!searchQuery && canonicalLeagueSlug && currentLeaderboardView === 'ultimate') {
-            return `/league/${canonicalLeagueSlug}`;
-        }
-
-        if (currentLeaderboardView === 'bortz' || currentLeaderboardView === 'pheno' || currentLeaderboardView === 'improvement' || currentLeaderboardView === 'bortz-improvement' || currentLeaderboardView === 'crowd') {
+        if (!searchQuery && filters.length === 1 && selectedFlags.length === 1 && currentLeaderboardView === 'ultimate') {
+            url.pathname = buildFlagHref(state.flags[0]);
+            url.searchParams.delete('filters');
+        } else if (!searchQuery && canonicalLeagueSlug && currentLeaderboardView === 'ultimate') {
+            url.pathname = `/league/${canonicalLeagueSlug}`;
+            url.searchParams.delete('filters');
+        } else if (!searchQuery && filters.length === 0 && currentLeaderboardView !== 'ultimate') {
+            url.pathname = `/league/${currentLeaderboardView}`;
+        } else if (currentLeaderboardView !== 'ultimate') {
             url.searchParams.set('view', currentLeaderboardView);
         }
 
         return `${url.pathname}${url.search}${url.hash}`;
-    };
+    }
+
+    function updateLeaderboardNavigationLinks() {
+        const viewAll = getViewAllAthletesButton();
+        if (viewAll) viewAll.href = window.getFullLeaderboardUrlWithCurrentState();
+
+        const state = getSelectedLeaderboardState();
+        const fields = { division: 'divisions', flag: 'flags', generation: 'generations', exclusiveLeague: 'exclusiveLeagues', leagueTrack: 'leagueTracks' };
+        document.querySelectorAll('.filter-section li').forEach(item => {
+            const input = item.querySelector('input[type="checkbox"]');
+            if (!input) return;
+            const field = fields[input.name];
+            const candidate = input.name === 'agingClockView'
+                ? { ...state, view: input.value }
+                : { ...state, [field]: [...new Set([...state[field], input.value])] };
+            let link = item.querySelector('.filter-league-link');
+            if (!link) {
+                link = document.createElement('a');
+                link.className = 'filter-league-link';
+                link.innerHTML = '<i class="fas fa-arrow-right" aria-hidden="true"></i>';
+                item.appendChild(link);
+            }
+            link.href = buildLeaderboardNavigationUrl(candidate);
+            const label = item.querySelector('.filter-label-copy').textContent.replace(/\s*\(\d+\)\s*$/, '').trim();
+            link.title = `Open ${label} leaderboard with current filters`;
+            link.setAttribute('aria-label', link.title);
+        });
+    }
 
     function getLeaderboardSelectionKey() {
         return JSON.stringify([getSelectedLeaderboardState(), document.getElementById('athleteSearch')?.value || '']);
+    }
+
+    function updateLeaderboardStructuredData(entries) {
+        // This partial also powers homepage and profile dialogs. Only a full ranking page
+        // has the list as its main subject; never replace a profile's Person with its backdrop.
+        if (!pageDocument.querySelector('main[data-leaderboard-page="full"]')) return;
+        const script = pageDocument.getElementById('pageStructuredData');
+        if (!script) return;
+        try {
+            const data = JSON.parse(script.textContent);
+            const graph = data['@graph'];
+            const page = graph.find(node => node['@type'] === 'CollectionPage');
+            if (!page) return;
+            if (entries === null) {
+                data['@graph'] = graph.filter(node => node['@type'] !== 'ItemList');
+                delete page.mainEntity;
+                delete page.about;
+                script.textContent = JSON.stringify(data).replaceAll('<', '\\u003c');
+                return;
+            }
+            const siteUrl = 'https://longevityworldcup.com';
+            const state = getSelectedLeaderboardState();
+            const selectedUrl = new URL(window.getFullLeaderboardUrlWithCurrentState(), siteUrl);
+            const filters = [...state.divisions, ...state.flags, ...state.generations, ...state.exclusiveLeagues,
+                ...(state.leagueTracks.length === 1 ? state.leagueTracks : [])].map(value => value.toLowerCase()).sort();
+            const encode = value => encodeURIComponent(value).replace(/[!'()*]/g, char => '%' + char.charCodeAt(0).toString(16).toUpperCase());
+            const search = document.getElementById('athleteSearch')?.value.trim() || '';
+            if (!search && filters.length === 0) {
+                selectedUrl.pathname = state.view === 'ultimate' ? '/leaderboard' : '/league/' + state.view;
+            }
+            const query = [];
+            if (selectedUrl.pathname === '/leaderboard') {
+                if (filters.length) query.push('filters=' + encode(filters.join(',')));
+                if (search) query.push('search=' + encode(search));
+                if (state.view !== 'ultimate') query.push('view=' + state.view);
+            }
+            const url = siteUrl + selectedUrl.pathname + (query.length ? '?' + query.join('&') : '');
+            const id = url + '#ranking';
+            const list = {
+                '@type': 'ItemList', '@id': id, url,
+                name: pageDocument.getElementById('leaderboardTitle')?.textContent.trim() || 'Longevity World Cup rankings',
+                itemListOrder: 'https://schema.org/ItemListOrderAscending',
+                numberOfItems: entries.length,
+                itemListElement: entries.map(({ athlete, rank }) => {
+                    const athleteUrl = siteUrl + '/athlete/' + encodeURIComponent(athlete.athleteSlug.replaceAll('_', '-').toLowerCase());
+                    return {
+                        '@type': 'ListItem', position: rank,
+                        item: { '@type': 'Person', '@id': athleteUrl + '#person', url: athleteUrl, name: athlete.displayName }
+                    };
+                })
+            };
+            data['@graph'] = graph.filter(node => node['@type'] !== 'ItemList');
+            page.mainEntity = { '@id': id };
+            page.about = { '@id': id };
+            data['@graph'].push(list);
+            // textContent never interprets HTML. Escape '<' as well so serialized HTML
+            // remains safe if an athlete's public display name contains a script end tag.
+            script.textContent = JSON.stringify(data).replaceAll('<', '\\u003c');
+        } catch (error) {
+            console.warn('Could not update leaderboard structured data.', error);
+        }
     }
 
     function performFilter({ updateUrl = true } = {}) {
@@ -7236,6 +7358,7 @@
 
         // Display "No Results Found" if Necessary
         displayNoResults(tableRows, podiumItems, query);
+        updateLeaderboardStructuredData(matchingEntries.slice(0, maxAthletesGlobal));
 
         // Hide podium athletes' rows if no filters/search are applied and includePodiumGlobal is true
         if (hidePodiumRowsInTable) {
@@ -7255,6 +7378,7 @@
         // Initial hydration must preserve direct rank/profile fragments and unrelated URL state.
         if (!updateUrl) {
             normalizeLegacyLeagueRoute();
+            updateLeaderboardNavigationLinks();
             return;
         }
 
@@ -7306,6 +7430,7 @@
         }
 
         history.replaceState(history.state || {}, "", url.toString());
+        updateLeaderboardNavigationLinks();
     }
 
     function updateRankingExplanation(currentLeaderboardView) {
@@ -7313,11 +7438,11 @@
         if (!explanation) return;
 
         const explanations = {
-            ultimate: '<strong>Ultimate League</strong> ranks Pro athletes before Amateur athletes, then by effective age reduction and tie-breakers within each track.',
-            bortz: '<strong>Bortz age</strong> estimates biological age from advanced blood-test markers.',
-            pheno: '<strong>Pheno age</strong> estimates biological age from common blood-test markers.',
-            improvement: '<strong>Pheno improvement</strong> ranks each athlete’s latest pheno age against their worst pheno age.',
-            'bortz-improvement': '<strong>Bortz improvement</strong> ranks each athlete’s latest bortz age against their worst bortz age.',
+            ultimate: '<strong><a href="/ruleset#point-system-ranking">Ultimate League</a></strong> ranks Pro athletes before Amateur athletes, then by effective age reduction and tie-breakers within each track.',
+            bortz: '<strong><a href="/bortz-age">Bortz age</a></strong> estimates biological age from advanced blood-test markers.',
+            pheno: '<strong><a href="/pheno-age">Pheno age</a></strong> estimates biological age from common blood-test markers.',
+            improvement: '<strong>Pheno improvement</strong> ranks each athlete’s latest <a href="/pheno-age">pheno age</a> against their worst pheno age.',
+            'bortz-improvement': '<strong>Bortz improvement</strong> ranks each athlete’s latest <a href="/bortz-age">bortz age</a> against their worst bortz age.',
             crowd: '<strong>Crowd age</strong> is a visual age estimate from visitors. Athletes qualify once they reach 100 accepted guesses.'
         };
 
@@ -7991,7 +8116,9 @@
             .then(() => {
                 if (athleteResultsReady) return athleteResults;
                 if (!athleteResultsLoadPromise) {
-                    LoadLeaderboard(false, 0);
+                    LoadLeaderboard(
+                        isAthleteDialogOnlyRuntime ? false : includePodiumGlobal,
+                        isAthleteDialogOnlyRuntime ? 0 : maxAthletesGlobal);
                 }
                 return athleteResultsLoadPromise;
             })
@@ -8088,12 +8215,7 @@
     }
 
     pageDocument.addEventListener('click', event => {
-        if (event.defaultPrevented ||
-            event.button !== 0 ||
-            event.ctrlKey ||
-            event.metaKey ||
-            event.shiftKey ||
-            event.altKey ||
+        if (!isPlainLinkActivation(event) ||
             !(event.target instanceof Element)) {
             return;
         }
@@ -9642,11 +9764,16 @@
         leaderboardHistoryRestoreTimer = window.setTimeout(() => {
             if (athleteResultsReady && renderedLeaderboardSelection !== getLeaderboardSelectionKey()) {
                 performFilter({ updateUrl: false });
+            } else if (athleteResultsReady) {
+                // Back/Forward and rank-anchor changes can update the destination
+                // without changing any filters or requiring new rows.
+                updateLeaderboardNavigationLinks();
             }
         }, 0);
     }
     window.addEventListener('pageshow', reconcileRestoredLeaderboard);
     window.addEventListener('popstate', reconcileRestoredLeaderboard);
+    window.addEventListener('hashchange', reconcileRestoredLeaderboard);
 
     // Ensure modal history cleanup
     window.addEventListener('popstate', function (event) {
@@ -10030,6 +10157,7 @@
     function addClickListenerToImages(selector, callback, accessibleLabel) {
         document.querySelectorAll(selector).forEach(img => {
             if (!img.dataset.listenerAdded) {
+                if (img.closest('a[href]')) return;
                 if (typeof accessibleLabel === 'function') {
                     img.setAttribute('role', 'button');
                     img.setAttribute('tabindex', '0');

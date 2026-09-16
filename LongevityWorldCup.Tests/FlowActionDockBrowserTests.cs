@@ -11,7 +11,7 @@ public sealed class FlowActionDockBrowserTests(
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Fact]
-    public async Task HomePlayButton_NavigatesDirectlyToReadablePlayMenu()
+    public async Task HomePlayLink_NavigatesDirectlyToReadablePlayMenu()
     {
         var app = App;
         var browser = Browser;
@@ -29,7 +29,7 @@ public sealed class FlowActionDockBrowserTests(
         await page.GotoAsync("/", new PageGotoOptions { WaitUntil = WaitUntilState.Commit });
         await Task.WhenAll(
             page.WaitForURLAsync("**/play", new PageWaitForURLOptions { WaitUntil = WaitUntilState.Commit }),
-            page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = "Play the game" }).ClickAsync());
+            page.GetByRole(AriaRole.Link, new PageGetByRoleOptions { Name = "Play the game" }).ClickAsync());
         errors.Clear();
         await page.WaitForFunctionAsync("() => document.querySelector('.play-menu-wordmark')?.textContent?.trim() === 'JUST TRACK IT'");
 

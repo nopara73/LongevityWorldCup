@@ -44,6 +44,8 @@ public sealed class PublicPageRenderingBrowserTests(PlaywrightBrowserFixture bro
         {
             Assert.Equal(await staticPage.Locator(".podium .athlete-name").AllTextContentsAsync(), await page.Locator(".podium .athlete-name").AllTextContentsAsync());
             Assert.Equal(await staticPage.Locator(".podium .age-reduction").AllTextContentsAsync(), await page.Locator(".podium .age-reduction").AllTextContentsAsync());
+            Assert.Equal(await staticPage.Locator(".podium a.athlete-profile-link").EvaluateAllAsync<string[]>("links => links.map(link => link.getAttribute('href'))"),
+                await page.Locator(".podium a.athlete-profile-link").EvaluateAllAsync<string[]>("links => links.map(link => link.getAttribute('href'))"));
             Assert.Equal(7, initial.Length);
         }
     }
@@ -108,7 +110,7 @@ public sealed class PublicPageRenderingBrowserTests(PlaywrightBrowserFixture bro
     }
 
     [Fact]
-    public async Task ProfileFailure_KeepsReadableDetails_AndRetryRestoresInteractions()
+    public async Task ProfileFailure_KeepsReadableDetails_AndRetryPreservesTheHomepage()
     {
         await using var context = await NewContextAsync(Browser, App, new() { ReducedMotion = ReducedMotion.Reduce });
         var offline = true;
@@ -124,6 +126,11 @@ public sealed class PublicPageRenderingBrowserTests(PlaywrightBrowserFixture bro
         await Assertions.Expect(page.Locator("#athleteLoadError")).ToBeHiddenAsync();
         await Assertions.Expect(page.Locator("#shareAthleteProfile")).ToBeEnabledAsync();
         await Assertions.Expect(page.Locator("#detailsModal")).ToBeVisibleAsync();
+        await page.Locator("#closeAthleteDetailsModal").ClickAsync();
+        await Assertions.Expect(page.Locator("#detailsModal")).ToBeHiddenAsync();
+        Assert.Equal("/", new Uri(page.Url).AbsolutePath);
+        await Assertions.Expect(page.Locator(".podium [data-athlete-name]:visible")).ToHaveCountAsync(3);
+        await Assertions.Expect(page.Locator(".leaderboard table tbody tr[data-athlete-name]:visible")).ToHaveCountAsync(7);
     }
 
     [Fact]

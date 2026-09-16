@@ -250,6 +250,32 @@ jobs:
             fi
             rm -f "$health_body"
 
+            crawl_headers="$frontend_stage/crawl-headers.txt"
+            normalized_crawl_headers="$frontend_stage/crawl-headers.normalized.txt"
+            crawl_body="$frontend_stage/crawl-body.html"
+            for missing_path in /missing-public-page-deploy-verification /athlete/missing-athlete-deploy-verification /league/missing-league-deploy-verification /flag/missing-flag-deploy-verification /error/404.html; do
+              for method in GET HEAD; do
+                if [ "$method" = HEAD ]; then
+                  crawl_status="$(curl -sS --max-time 10 --head -D "$crawl_headers" -o /dev/null -w '%{http_code}' "https://longevityworldcup.com$missing_path")"
+                else
+                  crawl_status="$(curl -sS --max-time 10 -D "$crawl_headers" -o "$crawl_body" -w '%{http_code}' "https://longevityworldcup.com$missing_path")"
+                fi
+                tr -d '\r' < "$crawl_headers" > "$normalized_crawl_headers"
+                if [ "$crawl_status" != 404 ] ||
+                   grep -Eiq '^location:' "$normalized_crawl_headers" ||
+                   ! grep -Eiq '^x-robots-tag:.*noindex' "$normalized_crawl_headers" ||
+                   ! grep -Eiq '^cache-control:.*no-store' "$normalized_crawl_headers"; then
+                  echo "Incorrect public 404 response for $method $missing_path (HTTP $crawl_status)." >&2
+                  cat "$normalized_crawl_headers" >&2
+                  exit 1
+                fi
+                if [ "$method" = GET ] && ! grep -Fq '<title>404 Not Found - Longevity World Cup</title>' "$crawl_body"; then
+                  echo "The proxy replaced the application 404 page for $missing_path." >&2
+                  exit 1
+                fi
+              done
+            done
+
             cors_headers="$frontend_stage/cors-headers.txt"
             normalized_cors_headers="$frontend_stage/cors-headers.normalized.txt"
             assert_single_public_cors_origin() {

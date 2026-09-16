@@ -1413,22 +1413,9 @@ namespace LongevityWorldCup.Website.Controllers
                 .AppendLine($"Hey {greetingName},")
                 .AppendLine()
                 .AppendLine("We'll review your Longevity World Cup application, which usually takes a day or two.")
-                .AppendLine("When the review is done, we'll contact you at this email address.");
+                .AppendLine("We'll email you after the review.");
 
-            if (paymentUnavailable)
-            {
-                body
-                    .AppendLine()
-                    .AppendLine("Your application also has a payment step, but we could not create the payment page automatically. We'll follow up with the next step by email.");
-            }
-            else if (!string.IsNullOrWhiteSpace(checkoutLink))
-            {
-                body
-                    .AppendLine()
-                    .AppendLine("Your application also has a payment step. If you were not redirected automatically, you can continue here:")
-                    .AppendLine(checkoutLink.Trim());
-            }
-
+            AppendSubmissionPaymentInstructions(body, checkoutLink, paymentUnavailable);
             return AppendSubmissionConfirmationClosing(body, slackInviteUrl).ToString();
         }
 
@@ -1441,21 +1428,25 @@ namespace LongevityWorldCup.Website.Controllers
                 .AppendLine("We received your Longevity World Cup result upload and proof.")
                 .AppendLine("We'll review it and update your athlete profile if the result is accepted.");
 
+            AppendSubmissionPaymentInstructions(body, checkoutLink, paymentUnavailable);
+            return AppendSubmissionConfirmationClosing(body, slackInviteUrl).ToString();
+        }
+
+        private static void AppendSubmissionPaymentInstructions(StringBuilder body, string? checkoutLink, bool paymentUnavailable)
+        {
             if (paymentUnavailable)
             {
                 body
                     .AppendLine()
-                    .AppendLine("Your upload also has a payment step, but we could not create the payment page automatically. We'll follow up with the next step by email.");
+                    .AppendLine("Your payment link is unavailable. We'll email you the next step.");
             }
             else if (!string.IsNullOrWhiteSpace(checkoutLink))
             {
                 body
                     .AppendLine()
-                    .AppendLine("Your upload also has a payment step. If you were not redirected automatically, you can continue here:")
+                    .AppendLine("If you haven't paid yet, complete your payment here:")
                     .AppendLine(checkoutLink.Trim());
             }
-
-            return AppendSubmissionConfirmationClosing(body, slackInviteUrl).ToString();
         }
 
         private static string BuildChangeRequestConfirmationBody(string? applicantName, string? slackInviteUrl)
@@ -1573,7 +1564,7 @@ namespace LongevityWorldCup.Website.Controllers
             message.Subject = "LWC Interview Request";
             message.Body = new BodyBuilder
             {
-                TextBody = "Interview request received. Reply to this email to contact the requester."
+                TextBody = "Interview request received."
             }.ToMessageBody();
 
             return message;
@@ -2088,7 +2079,7 @@ namespace LongevityWorldCup.Website.Controllers
         {
             if (isResultSubmissionOnly)
             {
-                sb.AppendLine("New biological age result posted.")
+                sb.AppendLine("New biological age result received.")
                     .AppendLine($"Payment due: {paymentDueText}");
             }
             else if (isEditSubmissionOnly)
@@ -2105,9 +2096,6 @@ namespace LongevityWorldCup.Website.Controllers
                 sb.AppendLine($"Pheno age difference: {chronoPhenoDifference.Trim()}");
             if (!string.IsNullOrWhiteSpace(chronoBortzDifference))
                 sb.AppendLine($"Bortz age difference: {chronoBortzDifference.Trim()}");
-
-            if (!string.IsNullOrWhiteSpace(accountEmail))
-                sb.AppendLine("Reply to this email to contact the requester.");
 
             sb.AppendLine();
         }

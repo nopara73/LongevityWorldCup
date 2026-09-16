@@ -299,6 +299,8 @@
 
         /* Styling for the VIEW FULL RANKINGS button */
         .rankings-btn {
+            display: inline-block;
+            text-decoration: none;
             padding: 0.9rem 1.8rem;
             font-size: 1.08rem;
             background: linear-gradient(135deg, var(--primary-color, #3498db), #4fa3e8); /* Subtle gradient */
@@ -1716,9 +1718,9 @@
 
         <!--LEADERBOARD-CONTENT-->
         <div class="full-rankings-action">
-            <button id="viewAllAthletesBtn" onclick="window.location.href = window.getFullLeaderboardUrlWithCurrentState ? window.getFullLeaderboardUrlWithCurrentState() : '/leaderboard'" class="rankings-btn" aria-label="View all athletes on the leaderboard">
+            <a id="viewAllAthletesBtn" href="/leaderboard" class="rankings-btn" aria-label="View all athletes on the leaderboard">
                 View all athletes
-            </button>
+            </a>
         </div>
 
         <div class="lwc-highlights-countdown-wrapper">

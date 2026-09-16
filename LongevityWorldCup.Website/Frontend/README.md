@@ -16,6 +16,8 @@ Keep strict null, unchecked-index, exact-optional-property, and erasable-syntax 
 
 ## Loading
 
+Public document URLs are validated and canonicalized on the server before rendering. Keep frontend legacy-route and browser-history handling consistent with [CrawlAndUrlPolicy.md](../../LongevityWorldCup.Documentation/CrawlAndUrlPolicy.md).
+
 `HtmlInjectionMiddleware` dynamically imports these ES modules (an empty emitted export is allowed): `misc`, `flags`, `leagueIcons`, `pheno-age`, `bortz-age`, `badges`, `age-visualization`, `play-athlete-flow`, `proof-helpers`, `pro-discounts`, `play-menu`, `bioage-rank-preview`.
 
 Homepage, leaderboard, and event pages start dynamic imports during parsing; `window.modulesReady` still gates dependent initialization. Homepage athlete and highlight data starts alongside the imports; leaderboard and event pages also start their athlete request early. Other pages preserve their deferred module bootstrap. Pages that only embed athlete dialogs initialize shared data lazily when opening a profile, preserving calculator data-loading contracts.
@@ -26,7 +28,7 @@ Render podium athletes as soon as their data is ready. Prize totals and exchange
 
 Public profiles, the homepage preview, and leaderboard/league/flag routes include their existing visible content in the initial HTML. `PublicLeaderboardSnapshot` uses the shared calculators and competition ordering, preserving canonical row anchors and selecting score precision before applying the homepage limit. Tracking parameters do not disable rendering. Shared search links retain the client loading path because search also indexes computed badges. Direct Guess My Age links must not receive server-rendered profile answers.
 
-Enhance the same dialog and table elements without clearing server content during loading or failed requests. A directly opened profile must be closable before its data request completes, and closing it must prevent delayed hydration from reopening it. Keep server/client rank and metric parity covered by browser tests with JavaScript disabled and enabled; do not introduce a separate crawler-only layout.
+Enhance the same dialog and table elements without clearing server content during loading or failed requests. A directly opened profile must be closable before its data request completes, and closing it must prevent delayed hydration from reopening it. Profile retries preserve the calling page's podium and athlete limit; zero-row loading is reserved for pages that only embed the dialog. Keep server/client rank and metric parity covered by browser tests with JavaScript disabled and enabled; do not introduce a separate crawler-only layout.
 
 Reconcile leaderboard rows after `pageshow`/`popstate` native form restoration without rewriting the URL. Re-render only when the restored selection differs from the rendered one, preserving row identity and return focus otherwise. Restoring a ranking selection must not depend on a later prize response.
 
@@ -42,4 +44,4 @@ Shared type-only contracts belong in `types/*.d.ts`. Runtime entry points stay s
 
 Page/partial scripts remain inline where they depend on server placeholders/JSON, injected DOM, exact bootstrap timing, classic globals, or inline handlers. Moving them requires migrating those contracts together with browser coverage, outside unrelated frontend work.
 
-The Markdown page generator owns scripts in generated About, History, and Ruleset pages; edit the generator rather than generated output. The head partial's JSON-LD is structured data, not application JavaScript.
+The Markdown page generator owns scripts in generated About, History, and Ruleset pages; edit the generator rather than generated output. The head partial's JSON-LD is structured data, not application JavaScript. Full leaderboard pages keep their ItemList synchronized with the displayed selection; see [public page structured data](../../LongevityWorldCup.Documentation/StructuredData.md).
