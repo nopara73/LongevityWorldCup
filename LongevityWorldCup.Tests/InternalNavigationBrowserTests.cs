@@ -62,7 +62,7 @@ public sealed class InternalNavigationBrowserTests(
         await WaitForLeaderboardAsync(page);
         Assert.Equal(originalUrl, page.Url);
         await Assertions.Expect(page.Locator("#athleteSearch")).ToHaveValueAsync("michael");
-        var play = page.GetByRole(AriaRole.Link, new() { Name = "Play the game" });
+        var play = page.Locator("a.join-game:not(.scrolled-button)");
         await Assertions.Expect(play).ToHaveAttributeAsync("href", "/play");
         var playPage = await context.RunAndWaitForPageAsync(() => play.ClickAsync(new() { Button = MouseButton.Middle }));
         await playPage.WaitForURLAsync("**/play", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
