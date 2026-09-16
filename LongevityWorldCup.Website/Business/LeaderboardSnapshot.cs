@@ -24,7 +24,12 @@ public sealed record LeaderboardSnapshotRow(
     string Flag,
     string ExclusiveLeague,
     string MediaContact,
-    string? LeaderboardThumbnailUrl);
+    string? LeaderboardThumbnailUrl)
+{
+    public int? AnchorRank { get; init; }
+    public int MetricDecimals { get; init; } = 1;
+    public string? AthleteName { get; init; }
+}
 
 public static class LeaderboardSnapshotBuilder
 {

@@ -26,6 +26,10 @@ On shared leaderboard/highlight pages, the head owns `getSharedAthletes`, `getSh
 
 Render podium athletes as soon as their data is ready. Prize totals and exchange rates load concurrently and update only the original prize panels; pending or unavailable amounts use a dash. The donation progress and podium share their total-received request. Prize failures must not remove athlete cards or their links.
 
+Public profiles, the homepage preview, and leaderboard/league/flag routes include their existing visible content in the initial HTML. `PublicLeaderboardSnapshot` uses the shared calculators and competition ordering, preserving canonical row anchors and selecting score precision before applying the homepage limit. Tracking parameters do not disable rendering. Shared search links retain the client loading path because search also indexes computed badges. Direct Guess My Age links must not receive server-rendered profile answers.
+
+Enhance the same dialog and table elements without clearing server content during loading or failed requests. A directly opened profile must be closable before its data request completes, and closing it must prevent delayed hydration from reopening it. Profile retries preserve the calling page's podium and athlete limit; zero-row loading is reserved for pages that only embed the dialog. Keep server/client rank and metric parity covered by browser tests with JavaScript disabled and enabled; do not introduce a separate crawler-only layout.
+
 Reconcile leaderboard rows after `pageshow`/`popstate` native form restoration without rewriting the URL. Re-render only when the restored selection differs from the rendered one, preserving row identity and return focus otherwise. Restoring a ranking selection must not depend on a later prize response.
 
 HTML rendering reads only the page's referenced partials and required nested dialog fragments. `HtmlAssetPlaceholders` resolves asset tokens once after page assembly, reusing each URL's version within that response. Keep asset mappings there and resolve versions again for each response so file edits remain visible.

@@ -7,7 +7,7 @@ using System.Text.RegularExpressions;
 
 namespace LongevityWorldCup.Website.Middleware
 {
-    public class HtmlInjectionMiddleware(RequestDelegate next, AthleteOgImageService athleteOgImages, LeagueOgImageService leagueOgImages, PageOgImageService pageOgImages, AssetVersionProvider assetVersionProvider, LeaderboardFactsService leaderboardFacts, SitemapService sitemap, PageStructuredData pageStructuredData, ILogger<HtmlInjectionMiddleware> logger, IWebHostEnvironment environment)
+    public class HtmlInjectionMiddleware(RequestDelegate next, AthleteOgImageService athleteOgImages, LeagueOgImageService leagueOgImages, PageOgImageService pageOgImages, AssetVersionProvider assetVersionProvider, LeaderboardFactsService leaderboardFacts, SitemapService sitemap, PageStructuredData pageStructuredData, ILogger<HtmlInjectionMiddleware> logger, IWebHostEnvironment environment, IAthleteSnapshotProvider athleteSnapshots)
     {
         private readonly RequestDelegate _next = next;
         private readonly AthleteOgImageService _athleteOgImages = athleteOgImages;
@@ -143,7 +143,7 @@ namespace LongevityWorldCup.Website.Middleware
                     leaderboardContent = leaderboardContent.Replace("<!--GUESS-MY-AGE-->", guessMyAge);
                     if (containsLeaderboardContent)
                     {
-                        leaderboardContent = ApplyLeaderboardRows(leaderboardContent, context);
+                        leaderboardContent = ApplyPublicContent(leaderboardContent, context);
                         leaderboardContent = ApplyLongevitymaxxingPromo(leaderboardContent);
                     }
 
@@ -428,23 +428,49 @@ $@"<style{attributes}>
                     $"{Environment.NewLine}{content}{Environment.NewLine}");
         }
 
-        private string ApplyLeaderboardRows(string html, HttpContext context)
+        private string ApplyPublicContent(string html, HttpContext context)
         {
-            if (!ShouldRenderLeaderboardRows(context))
-            {
-                return html;
-            }
-
             try
             {
-                var rowsHtml = LeaderboardHtmlRenderer.RenderRows(_leaderboardFacts.GetLeaderboardSnapshot());
-                return string.IsNullOrWhiteSpace(rowsHtml)
-                    ? html
-                    : ReplaceLeaderboardRows(html, rowsHtml);
+                var path = GetRequestCanonicalPath(context);
+                var asOf = DateTime.UtcNow.Date;
+                var snapshot = new PublicLeaderboardSnapshot(athleteSnapshots.GetAthletesSnapshot(), asOf);
+                if (ShouldRenderLeaderboardRows(context))
+                {
+                    var hasProfile = TryResolveAthleteSlug(context, path, out _);
+                    var selection = hasProfile ? snapshot.Select("/", QueryCollection.Empty) : snapshot.Select(path, context.Request.Query);
+                    var table = selection.Snapshot;
+                    if (path == "/" || IsAthleteRoute(path))
+                    {
+                        var visible = table.Rows.Take(10).ToList();
+                        var podium = snapshot.Select("/", QueryCollection.Empty).Snapshot;
+                        html = Regex.Replace(html, "<!--LEADERBOARD-PODIUM-START-->.*?<!--LEADERBOARD-PODIUM-END-->",
+                            _ => "<!--LEADERBOARD-PODIUM-START-->" + LeaderboardHtmlRenderer.RenderPodium(podium, visible.Select(r => r.Slug).ToHashSet()) + "<!--LEADERBOARD-PODIUM-END-->", RegexOptions.Singleline);
+                        html = html.Replace("class=\"podium\" aria-busy=\"true\" style=\"display:none;\"", "class=\"podium\" data-server-rendered=\"true\" aria-busy=\"false\" style=\"display:flex;\"", StringComparison.Ordinal);
+                        table = new LeaderboardSnapshot(selection.IsDefault ? visible.Skip(3).ToList() : visible);
+                    }
+                    html = ReplaceLeaderboardRows(html, LeaderboardHtmlRenderer.RenderRows(table, selection.MetricLabel, selection.View == "ultimate"));
+                    html = PublicProfileHtmlRenderer.SetContent(html, "leaderboardMetricHeader", selection.MetricLabel);
+                    html = Regex.Replace(html, "(<div class=\"collapsed-title\"[^>]*>).*?(</div>)",
+                        match => match.Groups[1].Value + System.Net.WebUtility.HtmlEncode(selection.RailTitle.ToUpperInvariant()) + match.Groups[2].Value, RegexOptions.Singleline);
+                    html = html.Replace("value=\"ultimate\" checked", "value=\"ultimate\"", StringComparison.Ordinal)
+                        .Replace($"value=\"{selection.View}\" aria-label=", $"value=\"{selection.View}\" checked aria-label=", StringComparison.Ordinal);
+                    // Keep the existing "loaded" signal reserved for the fully
+                    // initialized controls, even though the rows are readable now.
+                    html = PublicProfileHtmlRenderer.SetContent(html, "leaderboardStatus", "Leaderboard available.");
+                }
+
+                if (TryResolveAthleteSlug(context, path, out var slug) && context.Request.Query["guessmyage"].FirstOrDefault() != "1")
+                {
+                    var athlete = snapshot.Athletes.FirstOrDefault(a => a.Row.RouteSlug.Equals(slug.Replace('_', '-'), StringComparison.OrdinalIgnoreCase));
+                    if (athlete is not null)
+                        html = PublicProfileHtmlRenderer.Render(html, snapshot, athlete, asOf);
+                }
+                return html;
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Falling back to leaderboard skeleton rows after server row rendering failed.");
+                _logger.LogWarning(ex, "Falling back to client rendering after public page rendering failed.");
                 return html;
             }
         }
@@ -472,8 +498,12 @@ $@"<style{attributes}>
         private static bool ShouldRenderLeaderboardRows(HttpContext context)
         {
             var canonicalPath = GetRequestCanonicalPath(context);
-            return string.Equals(canonicalPath, "/leaderboard", StringComparison.OrdinalIgnoreCase) &&
-                   !context.Request.QueryString.HasValue;
+            // Search includes dynamically computed badge text. Preserve its
+            // existing loading state until that complete search index is ready.
+            // Tracking parameters have no bearing on the displayed content.
+            return (canonicalPath == "/" || IsAthleteRoute(canonicalPath) || string.Equals(canonicalPath, "/leaderboard", StringComparison.OrdinalIgnoreCase) ||
+                    IsLeagueRoute(canonicalPath) || IsFlagRoute(canonicalPath)) &&
+                   string.IsNullOrWhiteSpace(context.Request.Query["search"]);
         }
 
         private static string GetRequestCountryCode(HttpContext context)
