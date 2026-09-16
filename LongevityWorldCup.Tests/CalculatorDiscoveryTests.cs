@@ -107,7 +107,7 @@ public sealed class CalculatorDiscoveryTests(TestWebApplicationFactory factory)
     }
 
     private static string StructuredData(string html) =>
-        Regex.Match(html, "<script type=\"application/ld\\+json\">(.*?)</script>", RegexOptions.Singleline).Groups[1].Value;
+        Regex.Match(html, "<script[^>]*type=\"application/ld\\+json\"[^>]*>(.*?)</script>", RegexOptions.Singleline).Groups[1].Value;
 
     private static string Body(string html) => html[html.IndexOf("<body", StringComparison.Ordinal)..];
 }

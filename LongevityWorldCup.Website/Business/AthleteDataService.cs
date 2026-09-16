@@ -2215,8 +2215,23 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
         return GetLeagueSlugsInRankOrder(leagueSlug, requireBortz: true).Count;
     }
 
-    private IReadOnlyList<string> GetLeagueSlugsInRankOrder(string leagueSlug, bool requireBortz = false)
+    public IReadOnlyList<string> GetLeagueSlugsInRankOrder(string leagueSlug, bool requireBortz = false)
     {
+        if (string.Equals(leagueSlug, "bortz", StringComparison.OrdinalIgnoreCase))
+            return GetLeagueSlugsInRankOrder("ultimate", requireBortz: true);
+
+        if (string.Equals(leagueSlug, "pheno", StringComparison.OrdinalIgnoreCase))
+        {
+            // The Pheno view includes the same field as Ultimate, without the Pro-first rule.
+            var stats = PhenoStatsCalculator.BuildAll(GetAthletesSnapshot(), DateTime.UtcNow.Date);
+            return CompetitionRanking.SortByCompetitionRules(stats.Values
+                    .Where(result => result.DobUtc.HasValue)
+                    .Select(result => new CompetitionRankCandidate(
+                        result.Slug, result.Name, false, result.AgeReduction ?? 0, result.DobUtc!.Value)))
+                .Select(candidate => candidate.Slug)
+                .ToList();
+        }
+
         if (!requireBortz && string.Equals(leagueSlug, "crowd", StringComparison.OrdinalIgnoreCase))
         {
             return CompetitionRanking.SortByCrowdAgeRules(GetCrowdAgeRankCandidates())
