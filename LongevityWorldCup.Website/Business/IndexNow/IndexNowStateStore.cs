@@ -47,7 +47,7 @@ public sealed class IndexNowStateStore
         }
     }
 
-    public static bool IsValidKey(string key) => key.Length is >= 8 and <= 128 &&
+    public static bool IsValidKey(string? key) => key is { Length: >= 8 and <= 128 } &&
         key.All(c => char.IsAsciiLetterOrDigit(c) || c == '-');
 
     private static IndexNowState Clone(IndexNowState state) =>

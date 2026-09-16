@@ -119,8 +119,9 @@ public sealed class IndexNowContentTests : IDisposable
     public void CrowdCountTiebreakChangesNotifyBothProfilesAndCrowdLeagueWithinSameCountBucket()
     {
         var athletes = Athletes();
-        athletes[0]!["CrowdAge"] = 30;
-        athletes[1]!["CrowdAge"] = 30;
+        // Match the hydrated runtime snapshot's double-valued median.
+        athletes[0]!["CrowdAge"] = 30d;
+        athletes[1]!["CrowdAge"] = 30d;
         athletes[0]!["CrowdCount"] = 101;
         athletes[1]!["CrowdCount"] = 102;
         var before = Build(athletes);

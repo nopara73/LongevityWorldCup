@@ -58,6 +58,22 @@ public sealed class IndexNowTests : IDisposable
     }
 
     [Theory]
+    [InlineData("{\"Version\":2,\"Key\":\"12345678\"}")]
+    [InlineData("{\"Version\":1,\"Key\":null}")]
+    public async Task InvalidLedgerDoesNotBreakOtherPlainTextResources(string ledger)
+    {
+        Directory.CreateDirectory(_root);
+        File.WriteAllText(StatePath, ledger);
+        using var services = new ServiceCollection().AddSingleton(_ => new IndexNowStateStore(StatePath)).BuildServiceProvider();
+        var nextCalled = false;
+        var context = new DefaultHttpContext { RequestServices = services };
+        context.Request.Path = "/llms-full.txt";
+        await new IndexNowKeyMiddleware(_ => { nextCalled = true; return Task.CompletedTask; }).InvokeAsync(context);
+        Assert.True(nextCalled);
+        Assert.Equal(ledger, File.ReadAllText(StatePath));
+    }
+
+    [Theory]
     [InlineData("Development", true, false)]
     [InlineData("Test", true, false)]
     [InlineData("Staging", true, false)]

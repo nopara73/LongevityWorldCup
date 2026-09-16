@@ -21,7 +21,7 @@ public sealed class IndexNowPageContent(IWebHostEnvironment environment, string?
         var hashes = new List<string>();
         foreach (var proof in proofs)
         {
-            var path = proof?.GetValue<string>().Split('?')[0] ?? "";
+            var path = Uri.UnescapeDataString(proof?.GetValue<string>().Split('?')[0] ?? "");
             if (!path.StartsWith("/athletes/", StringComparison.Ordinal) || path.Contains("..", StringComparison.Ordinal) || path.Contains('\\'))
                 continue;
             var filePath = Path.GetFullPath(Path.Combine(_webRoot, path.TrimStart('/')));

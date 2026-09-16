@@ -16,7 +16,7 @@ public sealed class IndexNowKeyMiddleware(RequestDelegate next)
         }
         IndexNowStateStore store;
         try { store = context.RequestServices.GetRequiredService<IndexNowStateStore>(); }
-        catch (Exception ex) when (ex is IOException or System.Text.Json.JsonException or UnauthorizedAccessException)
+        catch (Exception ex) when (ex is IOException or InvalidDataException or System.Text.Json.JsonException or UnauthorizedAccessException)
         {
             await next(context);
             return;
