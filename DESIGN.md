@@ -18,6 +18,7 @@ Keep reusable product decisions here; omit implementation history and one-off po
 ## Motion
 
 - Use shared standard easing with 140ms transitions or 220ms state transitions. Avoid generic scroll entrances, looping decoration, delayed routine text, and unbounded particles in focused tasks.
+- The homepage may soften its first paint with one brief arrival: the brand, podium as a group, then supporting panels. Use partially visible fades and at most 6px of movement, finishing within 600ms. Keep navigation, actions, and data immediate. Animate stable containers so hydration does not hide content or replay the entrance; skip it for reduced motion, fragment links, and history returns, and finish immediately on interaction. Scrolling never triggers another entrance.
 - Shared interaction transitions name their visual properties explicitly. Responsive widths, flex sizing, and gaps update immediately so neighboring controls keep their space during resizing.
 - First-visit game storytelling may pace existing text once; repeat visits fast-forward and reduced motion displays it immediately.
 - Important outcomes may combine shared durations into bounded choreography that explains the result. Publish semantic results and actions immediately, never gate progress on `animationend`, cap decoration, and provide an immediate reduced-motion state.

@@ -4,6 +4,33 @@
     <title>Longevity World Cup</title>
     <!--HEAD-->
     <link rel="stylesheet" href="{{ASSET_HOMEPAGE_CSS}}">
+    <script>
+        // Opt in before first paint. The content stays visible if JavaScript is
+        // unavailable; arrivals never wait for modules, data, or animation events.
+        (() => {
+            if (location.pathname !== '/' && location.pathname !== '/index.html') return;
+            const query = new URLSearchParams(location.search);
+            if (['athlete', 'filters', 'search', 'view'].some(key => query.has(key))) return;
+            const motion = matchMedia('(prefers-reduced-motion: reduce)');
+            const navigation = performance.getEntriesByType('navigation')[0];
+            if (motion.matches || location.hash || navigation?.type === 'back_forward') return;
+            const root = document.documentElement;
+            const events = ['pointerdown', 'keydown', 'focusin', 'wheel', 'touchstart', 'hashchange', 'pagehide'];
+            let cleanupTimer;
+            const finish = () => {
+                root.classList.remove('homepage-arriving');
+                clearTimeout(cleanupTimer);
+                events.forEach(name => window.removeEventListener(name, finish, true));
+                motion.removeEventListener('change', finish);
+            };
+            root.classList.add('homepage-arriving');
+            events.forEach(name => window.addEventListener(name, finish, { capture: true, passive: true }));
+            motion.addEventListener('change', finish, { once: true });
+            document.addEventListener('DOMContentLoaded', () => {
+                cleanupTimer = setTimeout(finish, 700);
+            }, { once: true });
+        })();
+    </script>
 </head>
 <body{{BODY_CLASS_ATTRIBUTE}}>
     <!--HEADER-->

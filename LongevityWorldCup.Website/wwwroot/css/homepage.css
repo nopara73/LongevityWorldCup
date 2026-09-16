@@ -1,3 +1,33 @@
+/* A single, brief arrival on stable containers, so hydration cannot replay it.
+   Start partially visible: content and links are usable on the first frame.
+   Backwards fill only; no lasting transform, opacity, or stacking context. */
+@media (prefers-reduced-motion: no-preference) {
+    .homepage-arriving .header-link {
+        animation: homepage-arrival calc(var(--lwc-duration-normal, 220ms) * 2) var(--lwc-ease, ease) backwards;
+    }
+
+    .homepage-arriving .podium {
+        animation: homepage-settle calc(var(--lwc-duration-normal, 220ms) * 2) var(--lwc-ease, ease)
+            calc(var(--lwc-duration-fast, 140ms) / 2) backwards;
+    }
+
+    .homepage-arriving .leaderboard,
+    .homepage-arriving .lwc-highlights-countdown-wrapper {
+        animation: homepage-arrival calc(var(--lwc-duration-normal, 220ms) * 2) var(--lwc-ease, ease)
+            var(--lwc-duration-fast, 140ms) backwards;
+    }
+}
+
+@keyframes homepage-arrival {
+    from { opacity: .55; }
+    to { opacity: 1; }
+}
+
+@keyframes homepage-settle {
+    from { opacity: .45; transform: translateY(6px); }
+    to { opacity: 1; transform: none; }
+}
+
 .dialog {
     display: none;
     position: fixed;
