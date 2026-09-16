@@ -118,6 +118,7 @@ public sealed class SitemapDiscoveryTests(TestWebApplicationFactory sharedFactor
         var xml = await response.Content.ReadAsStringAsync();
         Assert.Contains("<urlset", xml, StringComparison.Ordinal);
         Assert.Contains("https://longevityworldcup.com/", xml, StringComparison.Ordinal);
+        SeoAssertions.SitemapPublicPages(xml);
     }
 
     [Fact]
