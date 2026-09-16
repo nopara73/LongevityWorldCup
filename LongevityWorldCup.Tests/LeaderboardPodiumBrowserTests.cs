@@ -90,6 +90,9 @@ public sealed class LeaderboardPodiumBrowserTests(
         await page.GotoAsync("/", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
         await page.WaitForFunctionAsync(
             "() => document.querySelectorAll('.podium-item:not(.podium-skeleton-item)').length === 3");
+        // Measure the resting baseline after the deliberately staggered entrance.
+        await page.WaitForFunctionAsync(
+            "() => !document.documentElement.classList.contains('homepage-arriving')");
 
         foreach (var viewport in new[]
                  {

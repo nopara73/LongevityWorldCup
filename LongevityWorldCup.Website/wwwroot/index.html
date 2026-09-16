@@ -5,30 +5,86 @@
     <!--HEAD-->
     <link rel="stylesheet" href="{{ASSET_HOMEPAGE_CSS}}">
     <script>
-        // Opt in before first paint. The content stays visible if JavaScript is
-        // unavailable; arrivals never wait for modules, data, or animation events.
+        // One clock from first paint, including cards replaced during hydration.
+        // No hidden base styles, extra requests, or waits for content readiness.
         (() => {
             if (location.pathname !== '/' && location.pathname !== '/index.html') return;
             const query = new URLSearchParams(location.search);
             if (['athlete', 'filters', 'search', 'view'].some(key => query.has(key))) return;
             const motion = matchMedia('(prefers-reduced-motion: reduce)');
             const navigation = performance.getEntriesByType('navigation')[0];
-            if (motion.matches || location.hash || navigation?.type === 'back_forward') return;
+            if (motion.matches || location.hash || navigation?.type === 'back_forward' || !Element.prototype.animate) return;
             const root = document.documentElement;
             const events = ['pointerdown', 'keydown', 'focusin', 'wheel', 'touchstart', 'hashchange', 'pagehide'];
+            const tracks = new Map();
+            let startedAt;
+            let choreography;
             let cleanupTimer;
+            let pendingFrame;
+            let finished = false;
             const finish = () => {
+                finished = true;
                 root.classList.remove('homepage-arriving');
                 clearTimeout(cleanupTimer);
+                cancelAnimationFrame(pendingFrame);
+                observer.disconnect();
+                tracks.forEach(track => track.animation?.cancel());
+                tracks.clear();
                 events.forEach(name => window.removeEventListener(name, finish, true));
                 motion.removeEventListener('change', finish);
             };
+            const enter = () => {
+                if (finished) return;
+                if (startedAt === undefined) {
+                    if (!pendingFrame && document.querySelector('header .main-logo-image')) {
+                        // The timeline can still be zero during parsing. Anchor
+                        // to an actual frame so a cold load cannot consume the
+                        // entrance before anything has been painted.
+                        pendingFrame = requestAnimationFrame(time => { pendingFrame = null; startedAt = time; enter(); });
+                    }
+                    return;
+                }
+                if (!choreography) {
+                    const style = getComputedStyle(root);
+                    const beat = parseFloat(style.getPropertyValue('--lwc-duration-fast')) || 140;
+                    const duration = parseFloat(style.getPropertyValue('--lwc-duration-normal')) || 220;
+                    const easing = style.getPropertyValue('--lwc-ease').trim() || 'ease';
+                    choreography = [
+                        ['header .header-link .main-logo-image', 0, duration * 2, .45, 'translateY(4px) scale(.96)'],
+                        ['header .bannertext', beat / 2, duration * 3, .5, 'translateY(8px)'],
+                        ['.podium-item.first:not(.podium-skeleton-item)', beat, duration * 3, .22, 'translateY(14px)'],
+                        ['.podium-item.second:not(.podium-skeleton-item)', beat * 1.5, duration * 3, .22, 'translateY(14px)'],
+                        ['.podium-item.third:not(.podium-skeleton-item)', beat * 2, duration * 3, .22, 'translateY(14px)'],
+                        ['.leaderboard', beat * 2.5, duration * 2, .55, 'none'],
+                        ['#events-root-index', beat * 2, duration * 2, .55, 'none'],
+                        ['#lwc-countdown-box', beat * 2.5, duration * 2, .55, 'none']
+                    ].map(([selector, delay, length, opacity, transform]) => ({ selector, delay, length, opacity, transform, easing }));
+                    cleanupTimer = setTimeout(finish, Math.max(...choreography.map(track => track.delay + track.length)) + 50);
+                }
+                choreography.forEach(({ selector, delay, length, opacity, transform, easing }) => {
+                    const element = document.querySelector(selector);
+                    const previous = tracks.get(selector);
+                    if (!element || element === previous?.element) return;
+                    previous?.animation?.cancel();
+                    tracks.set(selector, { element });
+                    // A slow response stays immediate; it cannot start a second entrance.
+                    if (document.timeline.currentTime - startedAt >= delay + length) return;
+                    const animation = element.animate([
+                        { opacity, transform },
+                        { opacity: 1, transform: 'none' }
+                    ], { duration: length, delay, easing, fill: 'backwards' });
+                    animation.id = 'homepage-arrival';
+                    animation.startTime = startedAt;
+                    tracks.set(selector, { element, animation });
+                });
+            };
+            // Bounded to the opening second. Observing child insertion catches
+            // both parser output and hydration before their next paint.
+            const observer = new MutationObserver(enter);
             root.classList.add('homepage-arriving');
+            observer.observe(root, { childList: true, subtree: true });
             events.forEach(name => window.addEventListener(name, finish, { capture: true, passive: true }));
             motion.addEventListener('change', finish, { once: true });
-            document.addEventListener('DOMContentLoaded', () => {
-                cleanupTimer = setTimeout(finish, 700);
-            }, { once: true });
         })();
     </script>
 </head>
