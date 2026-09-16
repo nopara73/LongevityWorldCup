@@ -43,7 +43,7 @@ public sealed class SitemapDiscoveryTests(TestWebApplicationFactory sharedFactor
     [Fact]
     public void SitemapRouteCatalog_IncludesPublicApiDocs()
     {
-        Assert.Contains(SitemapService.StaticRoutes, route => route.Path == "/swagger");
+        Assert.Contains(SitemapService.StaticRoutes, route => route.Path == "/swagger/index.html");
     }
 
     [Fact]

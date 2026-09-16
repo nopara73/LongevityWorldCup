@@ -16,6 +16,8 @@ Keep strict null, unchecked-index, exact-optional-property, and erasable-syntax 
 
 ## Loading
 
+Public document URLs are validated and canonicalized on the server before rendering. Keep frontend legacy-route and browser-history handling consistent with [CrawlAndUrlPolicy.md](../../LongevityWorldCup.Documentation/CrawlAndUrlPolicy.md).
+
 `HtmlInjectionMiddleware` dynamically imports these ES modules (an empty emitted export is allowed): `misc`, `flags`, `leagueIcons`, `pheno-age`, `bortz-age`, `badges`, `age-visualization`, `play-athlete-flow`, `proof-helpers`, `pro-discounts`, `play-menu`, `bioage-rank-preview`.
 
 Homepage, leaderboard, and event pages start dynamic imports during parsing; `window.modulesReady` still gates dependent initialization. Homepage athlete and highlight data starts alongside the imports; leaderboard and event pages also start their athlete request early. Other pages preserve their deferred module bootstrap. Pages that only embed athlete dialogs initialize shared data lazily when opening a profile, preserving calculator data-loading contracts.

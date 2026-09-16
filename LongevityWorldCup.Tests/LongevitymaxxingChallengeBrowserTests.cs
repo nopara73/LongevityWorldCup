@@ -23,7 +23,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
             TimezoneId = browserTimeZone,
             Locale = "en-US"
         });
-        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        await RouteChallengeResourcesAsync(context);
         var page = await context.NewPageAsync();
         await page.Clock.SetFixedTimeAsync(DateTime.Parse("2026-06-28T20:00:00Z", CultureInfo.InvariantCulture,
             DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal));
@@ -59,7 +59,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
             ViewportSize = new ViewportSize { Width = width, Height = 850 },
             TimezoneId = "Asia/Singapore"
         });
-        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        await RouteChallengeResourcesAsync(context);
         var page = await context.NewPageAsync();
         await page.Clock.SetFixedTimeAsync(DateTime.Parse("2026-06-28T20:00:00Z", CultureInfo.InvariantCulture,
             DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal));
@@ -101,7 +101,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
             Locale = "en-US",
             ViewportSize = new ViewportSize { Width = 450, Height = 800 }
         });
-        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        await RouteChallengeResourcesAsync(context);
 
         var page = await context.NewPageAsync();
         await page.RouteAsync(
@@ -246,7 +246,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
                 Locale = "en-US",
                 ViewportSize = new ViewportSize { Width = 390, Height = 844 }
             });
-            await BrowserTestApp.RouteExternalResourcesAsync(context);
+            await RouteChallengeResourcesAsync(context);
 
             var page = await context.NewPageAsync();
             await page.RouteAsync(
@@ -381,7 +381,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
                 Locale = "en-US",
                 ViewportSize = new ViewportSize { Width = 390, Height = 844 }
             });
-            await BrowserTestApp.RouteExternalResourcesAsync(context);
+            await RouteChallengeResourcesAsync(context);
             var page = await context.NewPageAsync();
             await page.RouteAsync(
                 "**/api/longevitymaxxing/state",
@@ -456,7 +456,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
             Locale = "en-US",
             ViewportSize = new ViewportSize { Width = 390, Height = 844 }
         });
-        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        await RouteChallengeResourcesAsync(context);
 
         var publicStateJson = JsonSerializer.Serialize(BuildPublicState());
         var page = await context.NewPageAsync();
@@ -556,7 +556,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
             Locale = "en-US",
             ViewportSize = new ViewportSize { Width = 390, Height = 844 }
         });
-        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        await RouteChallengeResourcesAsync(context);
         await context.AddInitScriptAsync("window.localStorage.setItem('lmxAccessToken', 'browser-token');");
 
         var page = await context.NewPageAsync();
@@ -620,7 +620,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
             Locale = "en-US",
             ViewportSize = new ViewportSize { Width = 390, Height = 844 }
         });
-        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        await RouteChallengeResourcesAsync(context);
         await context.AddInitScriptAsync("window.localStorage.setItem('lmxAccessToken', 'browser-token');");
 
         var page = await context.NewPageAsync();
@@ -648,7 +648,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
             Locale = "en-US",
             ViewportSize = new ViewportSize { Width = 760, Height = 900 }
         });
-        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        await RouteChallengeResourcesAsync(context);
         await context.AddInitScriptAsync("window.localStorage.setItem('lmxAccessToken', 'browser-token');");
 
         var publicStateJson = JsonSerializer.Serialize(BuildPublicState(includeJoinDiscussionPost: true));
@@ -701,7 +701,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
             Locale = "en-US",
             ViewportSize = new ViewportSize { Width = 760, Height = 900 }
         });
-        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        await RouteChallengeResourcesAsync(context);
         await context.AddInitScriptAsync("window.localStorage.setItem('lmxAccessToken', 'browser-token');");
 
         var publicStateJson = JsonSerializer.Serialize(BuildPublicState(
@@ -1065,7 +1065,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
             Locale = "en-US",
             ViewportSize = new ViewportSize { Width = 760, Height = 900 }
         });
-        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        await RouteChallengeResourcesAsync(context);
         await context.AddInitScriptAsync("window.localStorage.setItem('lmxAccessToken', 'browser-token');");
 
         var publicStateJson = JsonSerializer.Serialize(BuildPublicState(
@@ -1240,7 +1240,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
             Locale = "en-US",
             ViewportSize = new ViewportSize { Width = 1024, Height = 900 }
         });
-        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        await RouteChallengeResourcesAsync(context);
         await context.AddInitScriptAsync("window.localStorage.setItem('lmxAccessToken', 'browser-token');");
 
         var initialState = BuildParticipantState(
@@ -1364,7 +1364,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
             Locale = "en-US",
             ViewportSize = new ViewportSize { Width = 1024, Height = 900 }
         });
-        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        await RouteChallengeResourcesAsync(context);
         await context.AddInitScriptAsync("window.localStorage.setItem('lmxAccessToken', 'browser-token');");
 
         var initialState = BuildParticipantState(
@@ -1500,7 +1500,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
             Locale = "en-US",
             ViewportSize = new ViewportSize { Width = 1140, Height = 900 }
         });
-        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        await RouteChallengeResourcesAsync(context);
 
         var page = await context.NewPageAsync();
         var errors = new List<string>();
@@ -1578,7 +1578,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
             Locale = "en-US",
             ViewportSize = new ViewportSize { Width = 390, Height = 844 }
         });
-        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        await RouteChallengeResourcesAsync(context);
         await context.AddInitScriptAsync("window.localStorage.setItem('lmxAccessToken', 'browser-token');");
 
         var page = await context.NewPageAsync();
@@ -1684,14 +1684,14 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
             Locale = "en-US",
             ViewportSize = new ViewportSize { Width = 760, Height = 900 }
         });
-        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        await RouteChallengeResourcesAsync(context);
 
         var page = await context.NewPageAsync();
         var errors = new List<string>();
         page.Console += (_, message) =>
         {
             if (message.Type == "error")
-                errors.Add(message.Text);
+                errors.Add($"{message.Text} [{message.Location}]");
         };
         page.PageError += (_, error) => errors.Add(error);
 
@@ -1811,7 +1811,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
         Assert.False(await page.Locator("html").EvaluateAsync<bool>("html => html.classList.contains('lmx-checkin-dialog-open')"));
         Assert.False(await page.Locator("body").EvaluateAsync<bool>("body => body.classList.contains('lmx-checkin-dialog-open')"));
         Assert.True(await page.Locator("#lmxParticipantPanel").EvaluateAsync<bool>("panel => !!panel.closest('.lmx-action-card')"));
-        Assert.Empty(errors);
+        Assert.True(errors.Count == 0, string.Join(Environment.NewLine, errors));
     }
 
     [Fact]
@@ -1825,7 +1825,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
             Locale = "en-US",
             ViewportSize = new ViewportSize { Width = 760, Height = 900 }
         });
-        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        await RouteChallengeResourcesAsync(context);
 
         var page = await context.NewPageAsync();
         await page.RouteAsync(
@@ -1859,7 +1859,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
             Locale = "en-US",
             ViewportSize = new ViewportSize { Width = 390, Height = 844 }
         });
-        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        await RouteChallengeResourcesAsync(context);
         await context.AddInitScriptAsync("window.localStorage.setItem('lmxAccessToken', 'browser-token');");
 
         var page = await context.NewPageAsync();
@@ -1949,6 +1949,21 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
         Assert.Equal("0", await newSleepPlant.GetAttributeAsync("data-leaf-count"));
         Assert.Contains("--lmx-plant-scale: 0.2005", await newSleepPlant.GetAttributeAsync("style"));
         Assert.Empty(errors);
+    }
+
+    private static async Task RouteChallengeResourcesAsync(IBrowserContext context)
+    {
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        // These URLs belong to the synthetic discussion snapshots below, not
+        // to files published by the app. Serve real images for those fixtures.
+        foreach (var name in new[] { "ari", "bea" })
+            await context.RouteAsync($"**/generated/longevitymaxxing/check-in-photos/{name}.webp*",
+                route => route.FulfillAsync(new RouteFulfillOptions
+                {
+                    Status = 200,
+                    ContentType = "image/png",
+                    BodyBytes = ProfilePhotoFile("discussion-fixture.png").Buffer
+                }));
     }
 
     private static Task FulfillJsonAsync(IRoute route, string body)

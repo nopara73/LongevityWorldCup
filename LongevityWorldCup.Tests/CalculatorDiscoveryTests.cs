@@ -20,7 +20,7 @@ public sealed class CalculatorDiscoveryTests(TestWebApplicationFactory factory)
         var canonical = "https://longevityworldcup.com" + path;
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.False(response.Headers.Contains("X-Robots-Tag"));
+        Assert.Equal("index, follow", Assert.Single(response.Headers.GetValues("X-Robots-Tag")));
         Assert.Contains("<meta name=\"robots\" content=\"index, follow\"", html);
         Assert.Contains($"<title>{name} | Longevity World Cup</title>", html);
         Assert.Contains($"<link rel=\"canonical\" href=\"{canonical}\"", html);
@@ -42,7 +42,7 @@ public sealed class CalculatorDiscoveryTests(TestWebApplicationFactory factory)
 
         using var head = await client.SendAsync(new HttpRequestMessage(HttpMethod.Head, path));
         Assert.Equal(HttpStatusCode.OK, head.StatusCode);
-        Assert.False(head.Headers.Contains("X-Robots-Tag"));
+        Assert.Equal("index, follow", Assert.Single(head.Headers.GetValues("X-Robots-Tag")));
     }
 
     [Theory]

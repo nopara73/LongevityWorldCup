@@ -39,7 +39,7 @@ Last updated: 2026-09-16
 - [llms-full.txt](https://longevityworldcup.com/llms-full.txt)
 - [leaderboard.md](https://longevityworldcup.com/ai/leaderboard.md): Current public leaderboard facts, rankings, league leaders, and ranking rules.
 - [athlete-names.md](https://longevityworldcup.com/ai/athlete-names.md): Current public athlete names as a numbered plain-text markdown list. Use `leaderboard.md` for ranking facts.
-- [Swagger API docs](https://longevityworldcup.com/swagger): Human-readable public data and biological aging clock calculation API documentation.
+- [Swagger API docs](https://longevityworldcup.com/swagger/index.html): Human-readable public data and biological aging clock calculation API documentation.
 - [OpenAPI JSON](https://longevityworldcup.com/swagger/v1/swagger.json): Machine-readable public API document.
 - [sitemap.xml](https://longevityworldcup.com/sitemap.xml)
 
