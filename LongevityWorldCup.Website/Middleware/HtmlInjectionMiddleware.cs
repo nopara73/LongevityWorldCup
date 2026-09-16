@@ -28,6 +28,8 @@ namespace LongevityWorldCup.Website.Middleware
         private const string AthleteDialogDeferredStartMarker = "<!--ATHLETE-DIALOG-DEFERRED-START-->";
         private const string AthleteDialogDeferredEndMarker = "<!--ATHLETE-DIALOG-DEFERRED-END-->";
         private const string LeaderboardRuntimeScriptsStartMarker = "<!--LEADERBOARD-RUNTIME-SCRIPTS-START-->";
+        private const string LeaderboardStylesStartMarker = "<!--LEADERBOARD-STYLES-START-->";
+        private const string LeaderboardStylesEndMarker = "<!--LEADERBOARD-STYLES-END-->";
         private const string AthleteDialogRuntimeId = "athleteDialogRuntime";
         private static readonly IReadOnlyList<string> AthleteDialogModulePaths =
         [
@@ -305,7 +307,7 @@ namespace LongevityWorldCup.Website.Middleware
         private static bool TryBuildAthleteDialogRuntime(string leaderboardContent, out string runtime)
         {
             runtime = string.Empty;
-            if (!TryExtractFirstStyleBlock(leaderboardContent, out var styles) ||
+            if (!TryExtractMarkedRegion(leaderboardContent, LeaderboardStylesStartMarker, LeaderboardStylesEndMarker, out var styles) ||
                 !TryExtractMarkedRegion(
                     leaderboardContent,
                     AthleteDialogStartMarker,
@@ -324,7 +326,7 @@ namespace LongevityWorldCup.Website.Middleware
                 return false;
             }
 
-            var runtimeContents = ScopeAthleteDialogStyles(
+            var runtimeContents = UseAthleteDialogStylesheets(
                 string.Join(
                     Environment.NewLine,
                     styles,
@@ -340,16 +342,6 @@ $@"<div id=""{AthleteDialogRuntimeId}""
 </div>
 {runtimeScripts}";
             return true;
-        }
-
-        private static bool TryExtractFirstStyleBlock(string html, out string styleBlock)
-        {
-            var match = Regex.Match(
-                html,
-                @"<style\b[^>]*>.*?</style\s*>",
-                RegexOptions.IgnoreCase | RegexOptions.Singleline);
-            styleBlock = match.Success ? match.Value.Trim() : string.Empty;
-            return match.Success;
         }
 
         private static bool TryExtractMarkedRegion(
@@ -389,27 +381,13 @@ $@"<div id=""{AthleteDialogRuntimeId}""
             return !string.IsNullOrWhiteSpace(tail);
         }
 
-        private static string ScopeAthleteDialogStyles(string html)
+        private static string UseAthleteDialogStylesheets(string html)
         {
-            return Regex.Replace(
-                html,
-                @"<style(?<attributes>\s[^>]*)?>(?<css>.*?)</style\s*>",
-                match =>
-                {
-                    var attributes = match.Groups["attributes"].Value;
-                    var css = Regex.Replace(
-                        match.Groups["css"].Value,
-                        @":root\b",
-                        ":scope",
-                        RegexOptions.IgnoreCase);
-
-                    return
-$@"<style{attributes}>
-    @scope (#{AthleteDialogRuntimeId}) {{{css}
-    }}
-</style>";
-                },
-                RegexOptions.IgnoreCase | RegexOptions.Singleline);
+            // Scoped variants are generated from the shared CSS at build time.
+            // Keep them separate so host-page controls retain their own styles.
+            foreach (var name in new[] { "LEADERBOARD_CONTENT", "GUESS_MY_AGE", "AGE_VISUALIZATION" })
+                html = html.Replace("{{ASSET_" + name + "_CSS}}", "{{ASSET_ATHLETE_DIALOG_" + name + "_CSS}}", StringComparison.Ordinal);
+            return html;
         }
 
         private static string InjectBeforeClosingBody(string html, string content)

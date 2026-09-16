@@ -1032,7 +1032,8 @@ public sealed class AestheticSystemBrowserTests(
         }
 
         var frontendRoot = Path.Combine(websiteRoot, "Frontend");
-        foreach (var path in Directory.EnumerateFiles(frontendRoot, "*.ts", SearchOption.AllDirectories))
+        foreach (var path in Directory.EnumerateFiles(frontendRoot, "*", SearchOption.AllDirectories)
+                     .Where(path => path.EndsWith(".ts", StringComparison.OrdinalIgnoreCase) || path.EndsWith(".js", StringComparison.OrdinalIgnoreCase)))
         {
             var relativePath = "Frontend/" + Path.GetRelativePath(frontendRoot, path).Replace('\\', '/');
             yield return (relativePath, File.ReadAllText(path));

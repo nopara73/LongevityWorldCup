@@ -8,7 +8,7 @@ public class BiomarkerChartScriptTests
     [Fact]
     public void PartialBiomarkerRecords_AreChartedWithoutProducingBiologicalAges()
     {
-        var html = ReadLeaderboardPartial();
+        var html = ReadLeaderboardScript();
 
         Assert.Contains("const chartData = biomarkerData.filter(entry => entry && entry.Date", html);
         Assert.Contains("chartData.forEach(entry =>", html);
@@ -18,15 +18,14 @@ public class BiomarkerChartScriptTests
         Assert.DoesNotContain("const completeData = biomarkerData.filter(isCompleteBiomarkerSet);", html);
     }
 
-    private static string ReadLeaderboardPartial()
+    private static string ReadLeaderboardScript()
     {
         var repoRoot = FindRepoRoot();
         return File.ReadAllText(Path.Combine(
             repoRoot,
             "LongevityWorldCup.Website",
-            "wwwroot",
-            "partials",
-            "leaderboard-content.html"));
+            "Frontend",
+            "leaderboard-page.js"));
     }
 
     private static string FindRepoRoot([CallerFilePath] string sourceFilePath = "")

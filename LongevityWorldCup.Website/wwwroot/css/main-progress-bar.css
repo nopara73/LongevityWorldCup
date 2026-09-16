@@ -1,0 +1,172 @@
+/* In-page progress: compact dots, no bar, all three labels (full journey) */
+.progress-container {
+    width: calc(100% - 30px);
+    max-width: 800px;
+    margin: 40px auto;
+    position: relative;
+    padding: 20px 0 28px;
+}
+
+.progress-bar {
+    display: none; /* Bar removed for cleaner look */
+}
+
+.stages {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    position: relative;
+}
+
+.stage {
+    position: relative;
+    text-align: center;
+    z-index: 2;
+    min-width: 80px; /* enough room for each label so Test / Calculate / Submit don't overlap */
+}
+
+.stage-dot {
+    width: 14px;
+    height: 14px;
+    background: var(--lwc-surface, var(--card-bg));
+    border: 2px solid var(--lwc-border-strong, #71808d);
+    border-radius: 50%;
+    margin: 0 auto;
+    transition: background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+    position: relative;
+    z-index: 2;
+}
+
+.stage.completed .stage-dot {
+    border-color: var(--lwc-muted, #526373);
+    background: var(--lwc-muted, #526373);
+}
+
+.stage.active .stage-dot {
+    border-color: var(--lwc-accent, var(--primary-color));
+    background: var(--lwc-accent, var(--primary-color));
+}
+
+/* In-page: all three labels visible (full journey) */
+.stage-label {
+    position: absolute;
+    top: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: max-content;
+    max-width: min(8rem, 30vw);
+    white-space: normal;
+    overflow-wrap: anywhere;
+    text-align: center;
+    color: var(--lwc-muted, #526373);
+    font-family: 'Roboto', system-ui, sans-serif;
+    font-size: 14px;
+    font-weight: bold;
+    transition: color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+}
+
+.stage.active .stage-label {
+    color: var(--lwc-ink, var(--dark-text-color));
+    line-height: 1;
+    padding: 0.3rem 0.55rem;
+    border: 1px solid var(--lwc-border, rgba(45, 55, 72, 0.2));
+    border-radius: var(--lwc-radius-sm, 6px);
+    background: var(--lwc-surface, #ffffff);
+    box-shadow: none;
+}
+
+.stage.completed .stage-label {
+    color: var(--lwc-muted, #526373);
+}
+
+@media (max-width: 300px) {
+    .progress-container {
+        width: calc(100% - 20px);
+    }
+
+    .stages {
+        justify-content: space-between;
+        gap: 6px;
+    }
+
+    .stage {
+        flex: 1 1 0;
+        min-width: 0;
+    }
+
+    .stage-label {
+        font-size: 12px;
+    }
+
+    .stage.active .stage-label {
+        padding: 0.25rem 0.42rem;
+    }
+}
+
+/* Sticky progress row (under LWC bar): same dark strip as header */
+#site-sticky-progress {
+    position: fixed;
+    top: 52px; /* fallback; JS sets to stickyHeader.offsetHeight when visible */
+    left: 0;
+    right: 0;
+    z-index: 998;
+    background: var(--background-color);
+    color: var(--light-text-color);
+    min-height: 44px;
+    box-sizing: border-box;
+    padding: 0.35rem 1rem;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.34);
+    transition: opacity var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+}
+
+#site-sticky-progress.visible {
+    display: flex;
+}
+
+#site-sticky-progress .sticky-progress-dots {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+#site-sticky-progress .sticky-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.35);
+    background: transparent;
+    transition: background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+}
+
+#site-sticky-progress .sticky-dot.completed {
+    border-color: rgba(255, 255, 255, 0.7);
+    background: rgba(255, 255, 255, 0.7);
+}
+
+#site-sticky-progress .sticky-dot.active {
+    border-color: #fff;
+    background: #fff;
+}
+
+#site-sticky-progress .sticky-stage-label {
+    font-family: 'Roboto', system-ui, sans-serif;
+    font-size: 13px;
+    font-weight: bold;
+    color: var(--light-text-color);
+    line-height: 1;
+    padding: 0.3rem 0.55rem;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: var(--lwc-radius-sm, 6px);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+html.sticky-progress-visible #mainProgressBar {
+    opacity: 0;
+    pointer-events: none;
+}

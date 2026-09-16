@@ -1,4 +1,4 @@
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -20,7 +20,7 @@ function listFiles(root, baseRoot = root) {
 
 const sourceFiles = listFiles(sourceRoot);
 const runtimeSources = sourceFiles
-    .filter(path => path.endsWith(".ts") && !path.endsWith(".d.ts"));
+    .filter(path => (path.endsWith(".ts") && !path.endsWith(".d.ts")) || path.endsWith(".js"));
 const nestedRuntimeSources = runtimeSources.filter(path => path.includes("/"));
 const expectedOutputs = runtimeSources
     .filter(path => !path.includes("/"))
@@ -32,8 +32,21 @@ const actualOutputs = existsSync(outputRoot)
     : [];
 
 if (nestedRuntimeSources.length) {
-    console.error(`Runtime TypeScript entry points must stay directly under Frontend: ${nestedRuntimeSources.join(", ")}`);
+    console.error(`Runtime entry points must stay directly under Frontend: ${nestedRuntimeSources.join(", ")}`);
     process.exitCode = 1;
+}
+
+if (new Set(expectedOutputs).size !== expectedOutputs.length) {
+    console.error("TypeScript and classic JavaScript entry points must not share an output filename.");
+    process.exitCode = 1;
+}
+
+for (const name of runtimeSources.filter(path => path.endsWith(".js") && !path.includes("/"))) {
+    const output = join(outputRoot, name);
+    if (existsSync(output) && !readFileSync(join(sourceRoot, name)).equals(readFileSync(output))) {
+        console.error(`Classic script output differs from source: ${name}`);
+        process.exitCode = 1;
+    }
 }
 
 if (JSON.stringify(actualOutputs) !== JSON.stringify(expectedOutputs)) {

@@ -8,7 +8,7 @@ public class LeaderboardBestRankScriptTests
     [Fact]
     public void BestRankCandidates_CoverLeaderboardViewsAndSidebarLeagues()
     {
-        var html = ReadLeaderboardPartial();
+        var html = ReadLeaderboardScript();
 
         Assert.Contains("assignBestRankCandidates(athleteResults);", html);
         Assert.Contains("leagueType: 'ultimate'", html);
@@ -37,7 +37,7 @@ public class LeaderboardBestRankScriptTests
     [Fact]
     public void BestRankModal_RendersFromCandidateMetadata()
     {
-        var html = ReadLeaderboardPartial();
+        var html = ReadLeaderboardScript();
 
         Assert.Contains("renderBestRankLink(rankSummary && rankSummary.bestCandidate)", html);
         Assert.Contains("const preposition = candidate.leagueType === 'flag' ? 'for' : 'in the';", html);
@@ -46,15 +46,14 @@ public class LeaderboardBestRankScriptTests
         Assert.DoesNotContain("bestLeagueType ===", html);
     }
 
-    private static string ReadLeaderboardPartial()
+    private static string ReadLeaderboardScript()
     {
         var repoRoot = FindRepoRoot();
         return File.ReadAllText(Path.Combine(
             repoRoot,
             "LongevityWorldCup.Website",
-            "wwwroot",
-            "partials",
-            "leaderboard-content.html"));
+            "Frontend",
+            "leaderboard-page.js"));
     }
 
     private static string FindRepoRoot([CallerFilePath] string sourceFilePath = "")
