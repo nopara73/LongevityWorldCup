@@ -14,12 +14,8 @@ namespace LongevityWorldCup.Website.Middleware
                 return;
             }
 
-            if (!string.Equals(originalPath.Value, page.CanonicalPath, StringComparison.Ordinal))
+            if (RouteCanonicalization.RedirectToCanonical(context, page.CanonicalPath))
             {
-                var location = context.Request.PathBase.Add(new PathString(page.CanonicalPath)).ToUriComponent()
-                    + context.Request.QueryString.ToUriComponent();
-                context.Response.Redirect(location, permanent: true,
-                    preserveMethod: !HttpMethods.IsGet(context.Request.Method) && !HttpMethods.IsHead(context.Request.Method));
                 return;
             }
 

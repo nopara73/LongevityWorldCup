@@ -8,7 +8,7 @@
 <link rel="agent-manifest" href="/.well-known/agent-card.json" type="application/json" />
 <link rel="api" href="/swagger/v1/swagger.json" type="application/json" />
 <link rel="service-desc" href="/swagger/v1/swagger.json" type="application/json" />
-<link rel="service-doc" href="/swagger" />
+<link rel="service-doc" href="/swagger/index.html" />
 
 <!-- Open Graph Meta Tags -->
 <meta property="og:title" content="{{SEO_OG_TITLE}}" />
@@ -369,7 +369,7 @@ Must appear before any other script that attaches DOMContentLoaded listeners.
 {{MODULES_BOOTSTRAP}}
 
 <!-- Structured Data -->
-<script type="application/ld+json">{{SEO_STRUCTURED_DATA}}</script>
+<script id="pageStructuredData" type="application/ld+json">{{SEO_STRUCTURED_DATA}}</script>
 
 <!-- Google tag (gtag.js) -->
 <script>

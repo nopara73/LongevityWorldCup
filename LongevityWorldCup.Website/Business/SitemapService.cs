@@ -29,7 +29,7 @@ public sealed class SitemapService(LeaderboardFactsService leaderboardFacts, IWe
         new("/ai/index.md", "ai/index.md", "weekly", 0.2m),
         new("/ai/leaderboard.md", null, "daily", 0.5m),
         new("/ai/athlete-names.md", null, "daily", 0.4m),
-        new("/swagger", null, "weekly", 0.3m)
+        new("/swagger/index.html", null, "weekly", 0.3m)
     ];
 
     public static readonly IReadOnlyList<string> PublicLeaguePaths =

@@ -7,7 +7,7 @@ Extended context: https://longevityworldcup.com/llms-full.txt
 AI markdown index: https://longevityworldcup.com/ai/index.md
 Leaderboard facts: https://longevityworldcup.com/ai/leaderboard.md
 Athlete names list: https://longevityworldcup.com/ai/athlete-names.md
-Public API docs: https://longevityworldcup.com/swagger
+Public API docs: https://longevityworldcup.com/swagger/index.html
 OpenAPI document: https://longevityworldcup.com/swagger/v1/swagger.json
 Last updated: 2026-09-16
 
@@ -27,7 +27,7 @@ Last updated: 2026-09-16
 - [Privacy](https://longevityworldcup.com/privacy): Privacy policy for website operations and social publishing integrations.
 
 ## Machine-Readable Resources
-- [Public API Docs](https://longevityworldcup.com/swagger): Swagger UI for public no-auth JSON data and biological aging clock calculation endpoints.
+- [Public API Docs](https://longevityworldcup.com/swagger/index.html): Swagger UI for public no-auth JSON data and biological aging clock calculation endpoints.
 - [OpenAPI JSON](https://longevityworldcup.com/swagger/v1/swagger.json): Machine-readable OpenAPI document for the public data and calculation API.
 - [Leaderboard Facts](https://longevityworldcup.com/ai/leaderboard.md): Current public rankings, athlete count, league leaders, tracks, and ranking rules.
 - [Athlete Names List](https://longevityworldcup.com/ai/athlete-names.md): Current public athlete names as a numbered plain-text markdown list. For ranking facts, use leaderboard.md.

@@ -466,20 +466,24 @@ public sealed class AthleteDialogLinkBrowserTests(
             && new Uri(request.Url).AbsolutePath == "/athlete/not-a-real-athlete");
         await Task.WhenAll(
             page.WaitForURLAsync(
-                "**/error/404.html",
+                "**/athlete/not-a-real-athlete",
                 new PageWaitForURLOptions { WaitUntil = WaitUntilState.DOMContentLoaded }),
             page.Locator("#unknownAthleteLink").ClickAsync());
         Assert.Equal(
             "/athlete/not-a-real-athlete",
             new Uri((await unknownAthleteRequest).Url).AbsolutePath);
-        Assert.Equal("/error/404.html", new Uri(page.Url).AbsolutePath);
+        Assert.Equal("/athlete/not-a-real-athlete", new Uri(page.Url).AbsolutePath);
+        Assert.Equal(404, (await (await unknownAthleteRequest).ResponseAsync())!.Status);
+        await Assertions.Expect(page.Locator(".not-found-title")).ToBeVisibleAsync();
     }
 
     [Fact]
     public async Task CanonicalAthleteSlug_OpensDialogWhenItDiffersFromTheCurrentName()
     {
-        const string canonicalSlug = "michael-lustgarten-stable";
-        const string legacyNameSlug = "michael-lustgarten";
+        // Keep a real server route while simulating a renamed athlete in the
+        // public snapshot; unknown server slugs correctly return 404 now.
+        const string canonicalSlug = "michael-lustgarten";
+        const string legacyNameSlug = "michael-lustgarten-renamed";
 
         var app = App;
         var browser = Browser;
@@ -488,7 +492,7 @@ public sealed class AthleteDialogLinkBrowserTests(
             """
             if (!sessionStorage.getItem('canonical-slug-guess-seeded')) {
                 localStorage.setItem('gmaAllGuesses', JSON.stringify({
-                    'michael-lustgarten': {
+                    'michael-lustgarten-renamed': {
                         value: 50,
                         skipped: false,
                         first: false,
@@ -507,6 +511,8 @@ public sealed class AthleteDialogLinkBrowserTests(
                 .Single(athlete =>
                     athlete["Name"]?.GetValue<string>() == "Michael Lustgarten");
             michael["AthleteSlug"] = canonicalSlug.Replace('-', '_');
+            michael["Name"] = "Michael Lustgarten Renamed";
+            michael["DisplayName"] = "Michael Lustgarten, PhD";
             michael["ProfileImageId"] = ProfileImageA;
             michael["DateOfBirth"] = new JsonObject
             {

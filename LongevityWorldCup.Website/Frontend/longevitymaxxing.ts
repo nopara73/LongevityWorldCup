@@ -2268,11 +2268,14 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 }
                 return divider + scoredDayCellHtml(cell, state);
             }).join("");
+            const fullMarks = row.hasFullMarks
+                ? '<svg class="lmx-full-marks-icon" viewBox="0 0 20 20" role="img" aria-label="Full marks for the 14-day scoring window"><title>Full marks for the 14-day scoring window, including the forgiveness allowance</title><circle cx="10" cy="10" r="8"></circle><path d="m6 10 3 3 5-6"></path></svg>'
+                : "";
             const fullMarksClass = row.hasFullMarks ? " lmx-full-marks" : "";
             const groupEndClass = row.hasFullMarks && !leaderboardRows.visible[index + 1]?.hasFullMarks ? " lmx-full-marks-end" : "";
             return `<div class="lmx-board-row${row.challengeInactive ? " inactive" : ""}${fullMarksClass}${groupEndClass}" role="row">
                 <div class="lmx-name" role="cell">${participant}</div>
-                <div class="lmx-number" role="cell" data-label="Score">${row.totalPoints}</div>
+                <div class="lmx-number" role="cell" data-label="Score"><span class="lmx-score-value">${row.totalPoints}${fullMarks}</span></div>
                 <div class="lmx-cell-strip" role="cell" aria-label="Daily scores">${cells}</div>
             </div>`;
         }).join("");
@@ -6402,15 +6405,12 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const rankHtml = rankNumber && rankNumber > 0
             ? `<span class="lmx-rank" aria-label="Rank ${rankNumber}">#${rankNumber}</span>`
             : "";
-        const fullMarks = row.hasFullMarks
-            ? '<svg class="lmx-full-marks-icon" viewBox="0 0 20 20" role="img" aria-label="Full marks for the 14-day scoring window"><title>Full marks for the 14-day scoring window, including the forgiveness allowance</title><circle cx="10" cy="10" r="8"></circle><path d="m6 10 3 3 5-6"></path></svg>'
-            : "";
         return `<div class="lmx-participant-name">
             ${rankHtml}
             <span class="${avatarClass}" ${hydrationAttributes} aria-hidden="${avatar.hasProfileImage ? "false" : "true"}">
                 <img src="${escAttr(avatar.image)}" alt="${escAttr(avatar.alt)}" loading="lazy" decoding="async">
             </span>
-            <span class="lmx-participant-label">${nameHtml}${fullMarks}${badges.length ? `<span class="lmx-row-badges">${badges.map(badge => `<em>${esc(badge)}</em>`).join("")}</span>` : ""}</span>
+            <span class="lmx-participant-label">${nameHtml}${badges.length ? `<span class="lmx-row-badges">${badges.map(badge => `<em>${esc(badge)}</em>`).join("")}</span>` : ""}</span>
         </div>`;
     }
 

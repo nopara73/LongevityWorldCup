@@ -18,6 +18,21 @@ Disallow: /error/
 Disallow: /event-board-embed.html
 Disallow: /partials/
 Disallow: /api/
+# Public page data dependencies. Submission, tracking, and account APIs remain excluded.
+Allow: /api/data/athletes$
+Allow: /api/data/athletes?
+Allow: /api/data/flags$
+Allow: /api/data/flags?
+Allow: /api/data/divisions$
+Allow: /api/data/divisions?
+Allow: /api/events$
+Allow: /api/events?
+Allow: /api/bitcoin/total-received$
+Allow: /api/bitcoin/total-received?
+Allow: /api/bitcoin/btcusd$
+Allow: /api/bitcoin/btcusd?
+Allow: /api/bitcoin/donation-address$
+Allow: /api/bitcoin/donation-address?
 Disallow: /athletes/
 Disallow: /join
 Disallow: /apply
@@ -65,6 +80,21 @@ Disallow: /error/
 Disallow: /event-board-embed.html
 Disallow: /partials/
 Disallow: /api/
+# Public page data dependencies. Submission, tracking, and account APIs remain excluded.
+Allow: /api/data/athletes$
+Allow: /api/data/athletes?
+Allow: /api/data/flags$
+Allow: /api/data/flags?
+Allow: /api/data/divisions$
+Allow: /api/data/divisions?
+Allow: /api/events$
+Allow: /api/events?
+Allow: /api/bitcoin/total-received$
+Allow: /api/bitcoin/total-received?
+Allow: /api/bitcoin/btcusd$
+Allow: /api/bitcoin/btcusd?
+Allow: /api/bitcoin/donation-address$
+Allow: /api/bitcoin/donation-address?
 Disallow: /athletes/
 Disallow: /join
 Disallow: /apply

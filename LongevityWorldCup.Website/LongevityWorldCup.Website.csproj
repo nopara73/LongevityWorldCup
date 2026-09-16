@@ -53,13 +53,13 @@
 
   <Target Name="GenerateIndexNowContentManifest" BeforeTargets="BeforeBuild">
     <ItemGroup>
-      <IndexNowDependency Include="Middleware/HtmlInjectionMiddleware.cs;Middleware/RouteCanonicalization.cs" Group="html" />
-      <IndexNowDependency Include="Business/Leaderboard*.cs;Business/PublicLeaderboard*.cs;Business/CompetitionRanking.cs;Tools/PhenoStatsCalculator.cs;Tools/*HtmlRenderer.cs;Frontend/badges.ts;Frontend/flags.ts;Frontend/age-visualization.ts" Group="ranking" />
+      <IndexNowDependency Include="Middleware/HtmlInjectionMiddleware.cs;Middleware/RouteCanonicalization.cs;Business/PageStructuredData.cs" Group="html" />
+      <IndexNowDependency Include="Business/Leaderboard*.cs;Business/PublicLeaderboard*.cs;Business/CompetitionRanking.cs;Controllers/AiController.cs;Tools/PhenoStatsCalculator.cs;Tools/*HtmlRenderer.cs;Frontend/badges.ts;Frontend/flags.ts;Frontend/age-visualization.ts" Group="ranking" />
       <IndexNowDependency Include="Tools/EventHelpers.cs;Tools/CustomEventMarkup.cs;Frontend/custom-event-markup.ts" Group="events" />
       <IndexNowDependency Include="Business/LongevitymaxxingChallengeService*.cs;Frontend/longevitymaxxing.ts" Group="challenge" />
       <IndexNowDependency Include="Tools/PhenoAgeHelper.cs;Frontend/pheno-age.ts" Group="pheno" />
       <IndexNowDependency Include="Tools/BortzAgeHelper.cs;Frontend/bortz-age.ts" Group="bortz" />
-      <IndexNowDependency Include="Controllers/DataController.cs;Tools/PublicData*.cs" Group="api" />
+      <IndexNowDependency Include="Program.cs;Controllers/DataController.cs;Controllers/PublicData*.cs" Group="api" />
     </ItemGroup>
     <GetFileHash Files="@(IndexNowDependency)" Algorithm="SHA256">
       <Output TaskParameter="Items" ItemName="IndexNowHashedDependency" />

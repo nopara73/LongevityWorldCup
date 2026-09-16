@@ -61,7 +61,7 @@ Longevity World Cup is an open longevity sport competition where longevity athle
 - AI markdown index: https://longevityworldcup.com/ai/index.md
 - Leaderboard facts: https://longevityworldcup.com/ai/leaderboard.md
 - Athlete names list: https://longevityworldcup.com/ai/athlete-names.md
-- Public API docs: https://longevityworldcup.com/swagger
+- Public API docs: https://longevityworldcup.com/swagger/index.html
 - OpenAPI document: https://longevityworldcup.com/swagger/v1/swagger.json
 
 ## Machine-Readable Leaderboard Facts
@@ -72,7 +72,7 @@ Longevity World Cup is an open longevity sport competition where longevity athle
 - For user-facing citations, cite the canonical leaderboard page at https://longevityworldcup.com/leaderboard when possible; use the facts page as retrieval context.
 
 ## Public API Documentation
-- Use https://longevityworldcup.com/swagger for human-readable public API documentation.
+- Use https://longevityworldcup.com/swagger/index.html for human-readable public API documentation.
 - Use https://longevityworldcup.com/swagger/v1/swagger.json for the machine-readable OpenAPI document.
 - The public API documents no-auth JSON endpoints for athletes, flags, divisions, Pheno Age calculations, Bortz Age calculations, and hypothetical rank previews.
 
