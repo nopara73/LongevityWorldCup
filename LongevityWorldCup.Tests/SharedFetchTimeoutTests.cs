@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Xunit;
 
 namespace LongevityWorldCup.Tests;
@@ -12,13 +13,13 @@ public sealed class SharedFetchTimeoutTests(TestWebApplicationFactory sharedFact
         var factory = sharedFactory;
         using var client = factory.CreateClient();
 
-        var html = await client.GetStringAsync("/");
+        var script = await ReadHeaderScriptAsync(client);
 
-        Assert.Contains("function fetchWithTimeout(url, options = {}, timeout = 10000)", html);
-        Assert.Contains("new AbortController()", html);
-        Assert.Contains("signal: timeoutController.signal", html);
-        Assert.Contains("timeoutController.abort();", html);
-        Assert.Contains("err.name === 'AbortError' ? new Error('Request timed out') : err", html);
+        Assert.Contains("function fetchWithTimeout(url, options = {}, timeout = 10000)", script);
+        Assert.Contains("new AbortController()", script);
+        Assert.Contains("signal: timeoutController.signal", script);
+        Assert.Contains("timeoutController.abort();", script);
+        Assert.Contains("err.name === 'AbortError' ? new Error('Request timed out') : err", script);
     }
 
     [Fact]
@@ -31,12 +32,21 @@ public sealed class SharedFetchTimeoutTests(TestWebApplicationFactory sharedFact
 
         Assert.Contains("id=\"custom-alert\" role=\"alertdialog\"", html);
         Assert.Contains("id=\"loading-dialog\" role=\"status\" aria-modal=\"true\"", html);
-        Assert.Contains("customAlertDialog.hidden = false;", html);
-        Assert.Contains("loadingDialog.hidden = false;", html);
-        Assert.Contains("function trapFocusWithin(container, event)", html);
-        Assert.Contains("loadingDialog.addEventListener('keydown'", html);
+        var script = await ReadHeaderScriptAsync(client);
+        Assert.Contains("customAlertDialog.hidden = false;", script);
+        Assert.Contains("loadingDialog.hidden = false;", script);
+        Assert.Contains("function trapFocusWithin(container, event)", script);
+        Assert.Contains("loadingDialog.addEventListener('keydown'", script);
         Assert.DoesNotContain("<dialog", html);
-        Assert.DoesNotContain("showModal", html);
-        Assert.DoesNotContain("::backdrop", html);
+        Assert.DoesNotContain("showModal", script);
+        Assert.DoesNotContain("::backdrop", await client.GetStringAsync("/css/site-header.css"));
+    }
+
+    private static async Task<string> ReadHeaderScriptAsync(HttpClient client)
+    {
+        var html = await client.GetStringAsync("/");
+        var source = Regex.Match(html, "src=\"(?<url>/js/site-header\\.js\\?v=[^\"]+)\"");
+        Assert.True(source.Success, "The shared header must load its versioned script.");
+        return await client.GetStringAsync(source.Groups["url"].Value);
     }
 }
