@@ -38,4 +38,4 @@ Shared type-only contracts belong in `types/*.d.ts`. Runtime entry points stay s
 
 Page/partial scripts remain inline where they depend on server placeholders/JSON, injected DOM, exact bootstrap timing, classic globals, or inline handlers. Moving them requires migrating those contracts together with browser coverage, outside unrelated frontend work.
 
-The Markdown page generator owns scripts in generated About, History, and Ruleset pages; edit the generator rather than generated output. The head partial's JSON-LD is structured data, not application JavaScript.
+The Markdown page generator owns scripts in generated About, History, and Ruleset pages; edit the generator rather than generated output. The head partial's JSON-LD is structured data, not application JavaScript. Full leaderboard pages keep their ItemList synchronized with the displayed selection; see [public page structured data](../../LongevityWorldCup.Documentation/StructuredData.md).

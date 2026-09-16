@@ -7,7 +7,7 @@ using System.Text.RegularExpressions;
 
 namespace LongevityWorldCup.Website.Middleware
 {
-    public class HtmlInjectionMiddleware(RequestDelegate next, AthleteOgImageService athleteOgImages, LeagueOgImageService leagueOgImages, PageOgImageService pageOgImages, AssetVersionProvider assetVersionProvider, LeaderboardFactsService leaderboardFacts, SitemapService sitemap, ILogger<HtmlInjectionMiddleware> logger, IWebHostEnvironment environment)
+    public class HtmlInjectionMiddleware(RequestDelegate next, AthleteOgImageService athleteOgImages, LeagueOgImageService leagueOgImages, PageOgImageService pageOgImages, AssetVersionProvider assetVersionProvider, LeaderboardFactsService leaderboardFacts, SitemapService sitemap, PageStructuredData pageStructuredData, ILogger<HtmlInjectionMiddleware> logger, IWebHostEnvironment environment)
     {
         private readonly RequestDelegate _next = next;
         private readonly AthleteOgImageService _athleteOgImages = athleteOgImages;
@@ -141,7 +141,7 @@ namespace LongevityWorldCup.Website.Middleware
                             .Replace("{{SEO_OG_DESCRIPTION}}", EncodeMeta(seo.OgDescription))
                             .Replace("{{SEO_OG_URL}}", EncodeMeta(seo.CanonicalUrl))
                             .Replace("{{SEO_OG_IMAGE}}", EncodeMeta(seo.OgImageUrl))
-                            .Replace("{{SEO_STRUCTURED_DATA}}", BuildStructuredDataJson(seo));
+                            .Replace("{{SEO_STRUCTURED_DATA}}", BuildStructuredDataJson(seo, context));
                         head = ApplyHeadAssets(head, path ?? string.Empty);
                     }
 
@@ -1304,7 +1304,7 @@ $@"<script{scriptAttributes}>
                 : value.ToLowerInvariant();
         }
 
-        private string BuildStructuredDataJson(SeoMeta seo)
+        private string BuildStructuredDataJson(SeoMeta seo, HttpContext context)
         {
             var breadcrumbItems = new List<object>
             {
@@ -1528,8 +1528,6 @@ $@"<script{scriptAttributes}>
             {
                 organization,
                 website,
-                webApplication,
-                competitionService,
                 webpage,
                 breadcrumbList
             };
@@ -1552,9 +1550,13 @@ $@"<script{scriptAttributes}>
                     ["publisher"] = new Dictionary<string, object> { ["@id"] = $"{SiteBaseUrl}/#organization" }
                 });
             }
+            pageStructuredData.AddSubject(graph, webpage, seo.CanonicalPath, seo.CanonicalUrl,
+                GetRequestCanonicalPath(context), context.Request.Query);
 
             if (string.Equals(seo.CanonicalPath, "/", StringComparison.Ordinal))
             {
+                graph.Add(webApplication);
+                graph.Add(competitionService);
                 graph.Add(BuildHomeFaqPage());
             }
 
