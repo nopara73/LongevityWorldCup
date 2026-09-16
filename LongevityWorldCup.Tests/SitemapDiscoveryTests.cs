@@ -96,9 +96,9 @@ public sealed class SitemapDiscoveryTests(TestWebApplicationFactory sharedFactor
             .ToList();
 
         var leaderboard = Assert.Single(urls, url => url.Loc == "https://longevityworldcup.com/leaderboard");
-        Assert.Equal("2026-05-30", leaderboard.LastModified);
+        Assert.Equal("2026-05-30T00:00:00Z", leaderboard.LastModified);
         var amateur = Assert.Single(urls, url => url.Loc == "https://longevityworldcup.com/league/amateur");
-        Assert.Equal("2026-05-21", amateur.LastModified);
+        Assert.Equal("2026-05-21T00:00:00Z", amateur.LastModified);
     }
 
     [Fact]
@@ -173,12 +173,11 @@ public sealed class SitemapDiscoveryTests(TestWebApplicationFactory sharedFactor
     }
 
     [Fact]
-    public void LlmsFiles_DescribeDefinitionAndPrivacy()
+    public async Task LlmsDocuments_DescribeDefinitionAndPrivacy()
     {
-        var llmsPath = FindRepoFile(Path.Combine("LongevityWorldCup.Website", "wwwroot", "llms.txt"));
-        var llmsFullPath = FindRepoFile(Path.Combine("LongevityWorldCup.Website", "wwwroot", "llms-full.txt"));
-        var llms = File.ReadAllText(llmsPath);
-        var llmsFull = File.ReadAllText(llmsFullPath);
+        using var client = sharedFactory.CreateClient();
+        var llms = await client.GetStringAsync("/llms.txt");
+        var llmsFull = await client.GetStringAsync("/llms-full.txt");
 
         Assert.Contains("## Definition", llms);
         Assert.Contains("https://longevityworldcup.com/privacy", llms);

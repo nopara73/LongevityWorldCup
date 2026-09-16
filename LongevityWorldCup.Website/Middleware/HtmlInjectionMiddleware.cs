@@ -1490,8 +1490,7 @@ $@"<script{scriptAttributes}>
                 }
             };
 
-            var dateModified = _sitemap.GetLastModifiedUtcForPath(seo.CanonicalPath)
-                .ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+            var dateModified = _sitemap.GetLastModifiedUtcForPath(seo.CanonicalPath);
 
             var webpage = new Dictionary<string, object>
             {
@@ -1500,7 +1499,6 @@ $@"<script{scriptAttributes}>
                 ["url"] = seo.CanonicalUrl,
                 ["name"] = seo.PageTitle,
                 ["description"] = seo.Description,
-                ["dateModified"] = dateModified,
                 ["inLanguage"] = IsHungarianPage(seo.CanonicalPath) ? "hu" : "en",
                 ["isPartOf"] = new Dictionary<string, object>
                 {
@@ -1512,6 +1510,9 @@ $@"<script{scriptAttributes}>
                 },
                 ["primaryImageOfPage"] = seo.OgImageUrl
             };
+
+            if (dateModified.HasValue)
+                webpage["dateModified"] = dateModified.Value.ToString("yyyy-MM-ddTHH:mm:ss'Z'", CultureInfo.InvariantCulture);
 
             var breadcrumbList = new Dictionary<string, object>
             {

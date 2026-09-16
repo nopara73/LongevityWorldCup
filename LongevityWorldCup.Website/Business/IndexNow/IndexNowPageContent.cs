@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Text.Json.Nodes;
 using LongevityWorldCup.Website.Middleware;
+using System.Collections.Concurrent;
 
 namespace LongevityWorldCup.Website.Business.IndexNow;
 
@@ -14,7 +15,7 @@ public sealed class IndexNowPageContent(IWebHostEnvironment environment, string?
     private static readonly Regex Partial = new(@"<!--([A-Z][A-Z-]+)-->", RegexOptions.Compiled);
     private readonly string _webRoot = environment.WebRootPath;
     private readonly string _manifestPath = manifestPath ?? Path.Combine(AppContext.BaseDirectory, "indexnow-content.txt");
-    private readonly Dictionary<string, (long Length, DateTime ModifiedUtc, string Hash)> _proofHashes = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<string, (long Length, DateTime ModifiedUtc, string Hash)> _proofHashes = new(StringComparer.Ordinal);
 
     internal string HashProofs(JsonArray proofs)
     {

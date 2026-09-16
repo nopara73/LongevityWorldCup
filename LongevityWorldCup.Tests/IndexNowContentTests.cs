@@ -186,7 +186,24 @@ public sealed class IndexNowContentTests : IDisposable
         Assert.Equal(pages.HashProofs([]), pages.HashProofs(new JsonArray("https://evil.example/proof", "/athletes/../config.json")));
     }
 
-    private static Dictionary<string, string> Build(JsonArray athletes, IReadOnlyList<EventItem>? events = null)
+    [Fact]
+    public void FreshnessTracksEveryPublicCrowdGuessWithoutChangingNotificationThresholds()
+    {
+        var athletes = Athletes();
+        athletes[0]!["CrowdAge"] = 30d;
+        athletes[0]!["CrowdCount"] = 101;
+        var notifications = Build(athletes);
+        var freshness = Build(athletes, trackEveryPublicChange: true);
+        athletes[0]!["CrowdCount"] = 102;
+        Assert.Equal(notifications, Build(athletes));
+        var changed = Build(athletes, trackEveryPublicChange: true);
+        foreach (var path in new[] { "/", "/leaderboard", "/league/crowd", "/athlete/alpha" })
+            Assert.NotEqual(freshness[Url(path)], changed[Url(path)]);
+        Assert.Equal(freshness[Url("/about")], changed[Url("/about")]);
+        Assert.Equal(freshness[Url("/athlete/beta")], changed[Url("/athlete/beta")]);
+    }
+
+    private static Dictionary<string, string> Build(JsonArray athletes, IReadOnlyList<EventItem>? events = null, bool trackEveryPublicChange = false)
     {
         var ranked = new JsonArray(athletes.OfType<JsonObject>().Select(a => (JsonNode)new JsonObject
         {
@@ -197,7 +214,7 @@ public sealed class IndexNowContentTests : IDisposable
         var paths = SitemapService.StaticRoutes.Select(r => r.Path).Concat(SitemapService.PublicLeaguePaths)
             .Concat(leaderboard.Rows.Select(r => r.AthletePath))
             .Concat(FlagRouteCatalog.BuildRoutes(leaderboard.Rows.Select(r => r.Flag)).Select(f => f.Path));
-        return IndexNowContentSnapshot.Build(athletes, leaderboard, events ?? [], paths.ToDictionary(p => p, _ => "template"), null, Now).ToDictionary();
+        return IndexNowContentSnapshot.Build(athletes, leaderboard, events ?? [], paths.ToDictionary(p => p, _ => "template"), null, Now, trackEveryPublicChange).ToDictionary();
     }
 
     private static JsonArray Athletes() => JsonNode.Parse("""

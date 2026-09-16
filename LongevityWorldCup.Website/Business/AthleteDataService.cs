@@ -1347,9 +1347,11 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
     }
 
     public JsonArray GetRankingsOrder(DateTime? asOfUtc = null)
+        => BuildRankingsOrder(GetAthletesSnapshot(), asOfUtc ?? DateTime.UtcNow);
+
+    internal static JsonArray BuildRankingsOrder(JsonArray athletesSnapshot, DateTime asOfUtc)
     {
-        var asOf = (asOfUtc ?? DateTime.UtcNow).Date;
-        var athletesSnapshot = GetAthletesSnapshot();
+        var asOf = asOfUtc.Date;
         var results = new List<(CompetitionRankCandidate Candidate, JsonObject Obj)>();
 
         var statsMap = PhenoStatsCalculator.BuildAll(athletesSnapshot, asOf);

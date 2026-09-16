@@ -36,6 +36,8 @@ An existing Amateur's first eligible bortz result uses Pro-upgrade pricing. Othe
 
 ## Events and Improvement
 
+- **Test date** is the laboratory measurement date. **First public announcement** is available only where an accepted-result Event records it; older untracked publication dates remain unknown. **Observed content change** is when the application detects changed public facts or definitions, distinct from response generation, deployment, and cache refresh. Missing values are unavailable, not zero. Current leaders and ranks are not completed-season winners or historical placements.
+
 - Accepted-test Events appear only in athlete profile highlights, including partial, non-improving, and backfilled results. Identity is athlete plus test date across clocks; corrections, added markers, reordering, reloads, and restarts cannot duplicate them. Date the Event at first observed publication and identify the test date in its text. Silently baseline existing results when introducing tracking; atomically remember subsequent results and save Events, including startup discoveries. Exclude these Events from shared highlights and social queues.
 - Biological-age improvement Events are chronologically new personal bests, dated to the result; older backfills predating the previous best create none.
 - Pheno/Bortz best-improvement badges compare latest with first eligible result. Separate improvement leaderboards and placement Events rank `latest eligible age - worst eligible age` for that clock. Keep biological-age improvement, Crowd Age placement, and Pheno/Bortz Improvement placement Events distinct.
