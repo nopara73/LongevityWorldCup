@@ -42,11 +42,10 @@ namespace LongevityWorldCup.Website.Middleware
             }
 
             // otherwise redirect to canonical athlete page
-            var target = ctx.Request.PathBase.Add(new PathString($"/athlete/{athlete}"));
+            var target = $"/athlete/{LongevityWorldCup.Website.Business.AthleteSlug.Normalize(athlete).Replace('_', '-')}";
             var query = QueryString.Create(ctx.Request.Query.Where(pair =>
                 !string.Equals(pair.Key, "athlete", StringComparison.OrdinalIgnoreCase)));
-            ctx.Response.Redirect(target.ToUriComponent() + query.ToUriComponent(), permanent: true,
-                preserveMethod: !HttpMethods.IsGet(ctx.Request.Method) && !HttpMethods.IsHead(ctx.Request.Method));
+            RouteCanonicalization.RedirectToCanonical(ctx, target, query);
         }
     }
 }
