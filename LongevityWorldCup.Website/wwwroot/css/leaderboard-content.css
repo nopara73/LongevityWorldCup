@@ -202,14 +202,6 @@
      color:transparent;
  }
 
- .podium-item > .podium-content-part{
-     opacity:0;
- }
-
- .podium-item > .podium-content-part.is-visible{
-     opacity:1;
- }
-
  .leaderboard-skeleton-block{
      display:inline-block;
      height:16px;

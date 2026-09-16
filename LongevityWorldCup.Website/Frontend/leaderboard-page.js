@@ -1527,7 +1527,6 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity) {
                 // Attach click event listeners to athlete names
                 attachAthleteNameClickListeners();
 
-                animatePodiumContent();
                 addClickListenerToImages('.portrait, .podium-portrait', handleAthleteNameClick);
                 addClickListenerToImages('#modalProfilePic', function () {
                     openEnlargedView(this);
@@ -1921,26 +1920,6 @@ function updatePodiumPrizes(podium) {
         .finally(() => panels.forEach(({ panel }) => {
             if (panel?.isConnected) panel.setAttribute('aria-busy', 'false');
         }));
-}
-
-function animatePodiumContent() {
-    const items = document.querySelectorAll('.podium .podium-item');
-    if (!items.length) return;
-
-    items.forEach(item => {
-        Array.from(item.children).forEach(child => {
-            child.classList.add('podium-content-part');
-        });
-    });
-
-    requestAnimationFrame(() => {
-        items.forEach(item => {
-            Array.from(item.children).forEach(child => {
-                child.style.transitionDelay = '0ms';
-                child.classList.add('is-visible');
-            });
-        });
-    });
 }
 
 // Usage
