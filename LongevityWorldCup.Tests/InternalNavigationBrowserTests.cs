@@ -91,6 +91,9 @@ public sealed class InternalNavigationBrowserTests(
             """));
         await Assertions.Expect(page.Locator("#detailsModal")).ToBeHiddenAsync();
         var newPage = await context.RunAndWaitForPageAsync(() => link.ClickAsync(new() { Modifiers = [KeyboardModifier.ControlOrMeta] }));
+        await newPage.WaitForURLAsync(url => new Uri(url).AbsolutePath == href,
+            new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await WaitForLeaderboardAsync(newPage);
         await Assertions.Expect(newPage.Locator("#detailsModal")).ToBeVisibleAsync();
         Assert.Equal(href, new Uri(newPage.Url).AbsolutePath);
         Assert.Equal(originalUrl, page.Url);
@@ -169,6 +172,9 @@ public sealed class InternalNavigationBrowserTests(
         return context;
     }
 
-    private static Task WaitForLeaderboardAsync(IPage page) =>
-        Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+    private static async Task WaitForLeaderboardAsync(IPage page)
+    {
+        await page.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
+        await page.WaitForFunctionAsync("document.getElementById('leaderboardStatus')?.textContent === 'Leaderboard loaded.'");
+    }
 }
