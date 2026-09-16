@@ -887,6 +887,7 @@ public sealed class ApplicationControllerValidationTests(TestWebApplicationFacto
         Assert.Contains("result upload and proof", body);
         Assert.Contains("update your athlete profile", body);
         Assert.Contains("https://pay.example.test/invoice", body);
+        Assert.Contains("Questions, concerns, or signs of aging? Reply to this email.", body);
         Assert.Contains("Want to hang out with other longevity athletes?", body);
         Assert.Contains("https://slack.example.test/invite", body);
         Assert.Contains("If you haven't paid yet, complete your payment here:", body);
@@ -919,6 +920,7 @@ public sealed class ApplicationControllerValidationTests(TestWebApplicationFacto
         Assert.Contains("Hey Athlete Ada,", body);
         Assert.Contains("profile change request", body);
         Assert.Contains("update your athlete profile", body);
+        Assert.Contains("Questions, concerns, or signs of aging? Reply to this email.", body);
         Assert.Contains("https://slack.example.test/invite", body);
         Assert.DoesNotContain("result upload and proof", body);
         Assert.DoesNotContain("application, which usually takes a day or two", body);
@@ -935,6 +937,7 @@ public sealed class ApplicationControllerValidationTests(TestWebApplicationFacto
         Assert.NotNull(body);
         Assert.Contains("Hey Applicant Ada,", body);
         Assert.Contains("application, which usually takes a day or two", body);
+        Assert.Contains("Questions, concerns, or signs of aging? Reply to this email.", body);
         Assert.Contains("https://slack.example.test/invite", body);
         Assert.DoesNotContain("result upload and proof", body);
     }

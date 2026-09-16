@@ -1465,6 +1465,8 @@ namespace LongevityWorldCup.Website.Controllers
         {
             return body
                 .AppendLine()
+                .AppendLine("Questions, concerns, or signs of aging? Reply to this email.")
+                .AppendLine()
                 .AppendLine(CommunitySlackInvitationText)
                 .AppendLine(ResolveCommunitySlackInviteUrl(slackInviteUrl))
                 .AppendLine()
@@ -2082,7 +2084,7 @@ namespace LongevityWorldCup.Website.Controllers
             }
             else if (isEditSubmissionOnly)
             {
-                sb.AppendLine("Profile update received.");
+                sb.AppendLine("Update profile request...");
             }
             else
             {
