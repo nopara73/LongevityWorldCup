@@ -131,7 +131,19 @@ public sealed class InternalNavigationBrowserTests(
         await Assertions.Expect(page.Locator("input[name='division']:checked")).ToHaveValueAsync("Women's");
         await Assertions.Expect(page.Locator("#athleteSearch")).ToHaveValueAsync("an");
         await Assertions.Expect(page.Locator("#rankingExplanation a")).ToHaveAttributeAsync("href", "/bortz-age");
-        await page.Locator(".leaderboard-metric-link").ClickAsync();
+        await page.Locator("#rankingExplanation a").ClickAsync();
+        await page.WaitForURLAsync("**/bortz-age");
+        await page.GoBackAsync();
+        await WaitForLeaderboardAsync(page);
+        if (width < 480)
+        {
+            await page.Locator(".view-badge-ultimate").ClickAsync();
+            await page.Locator("#rankingExplanation a").ClickAsync();
+        }
+        else
+        {
+            await page.Locator(".leaderboard-metric-link").ClickAsync();
+        }
         await Assertions.Expect(page.Locator("#point-system-ranking")).ToBeVisibleAsync();
         Assert.Equal("/ruleset#point-system-ranking", new Uri(page.Url).PathAndQuery + new Uri(page.Url).Fragment);
 

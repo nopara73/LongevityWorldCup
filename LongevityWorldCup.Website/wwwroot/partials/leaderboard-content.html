@@ -5684,7 +5684,7 @@
             const athleteName = athleteNameElement.textContent.trim() || athleteNameElement.getAttribute('aria-label');
             if (!athleteName) return;
 
-            athleteNameElement.setAttribute('aria-label', athleteNameElement.title || `View stats of ${athleteName}`);
+            athleteNameElement.setAttribute('aria-label', athleteNameElement.title || athleteNameElement.getAttribute('aria-label') || `View stats of ${athleteName}`);
             athleteNameElement.removeEventListener('click', activateAthleteName);
             athleteNameElement.addEventListener('click', activateAthleteName);
         });
