@@ -385,6 +385,7 @@ public sealed class FlowActionDockFormBrowserTests(
             const athlete = {
                 Name: 'Browser Test Athlete',
                 DisplayName: 'Browser Test Athlete',
+                ProfilePic: '/assets/content-images/play-athlete-placeholder.webp',
                 Division: "Men's",
                 Country: 'United States',
                 DateOfBirth: { Year: 1980, Month: 5, Day: 20 },
@@ -425,7 +426,7 @@ public sealed class FlowActionDockFormBrowserTests(
 
         Assert.Equal("none", footer.Display);
         Assert.Equal(0, footer.VisibleLinkCount);
-        Assert.Empty(errors);
+        Assert.True(errors.Count == 0, string.Join(Environment.NewLine, errors));
     }
 
     [Theory]
@@ -786,8 +787,8 @@ public sealed class FlowActionDockFormBrowserTests(
                 Division: "Men's",
                 Flag: 'United States',
                 Country: 'United States',
-                ProfilePic: '/assets/content-images/longevity-world-cup-silhouette.webp',
-                ProfilePictureUrl: '/assets/content-images/longevity-world-cup-silhouette.webp',
+                ProfilePic: '/assets/content-images/play-athlete-placeholder.webp',
+                ProfilePictureUrl: '/assets/content-images/play-athlete-placeholder.webp',
                 DateOfBirth: { Year: 1980, Month: 5, Day: 20 },
                 Biomarkers: [{ Date: '2026-06-19', Hba1cMmolMol: 35 }]
             };
