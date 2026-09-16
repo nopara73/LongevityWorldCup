@@ -26,6 +26,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
             ["startDay"] = 7, ["endDay"] = 20, ["nextClosesAtUtc"] = "2026-06-30T12:00:00Z"
         };
         var rows = state["leaderboard"]!.AsArray();
+        rows[0]!["displayName"] = "Markus Mattiasson";
         for (var index = 0; index < rows.Count; index++)
         {
             var row = rows[index]!;
@@ -70,6 +71,12 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         var colors = await boardRows.EvaluateAllAsync<string[]>("rows => rows.map(row => getComputedStyle(row).backgroundColor)");
         Assert.Equal(colors[0], colors[1]);
         Assert.NotEqual(colors[1], colors[2]);
+        if (width >= 760)
+        {
+            var heights = await boardRows.EvaluateAllAsync<double[]>("rows => rows.map(row => row.getBoundingClientRect().height)");
+            // Allow the group divider's border, while rejecting an extra wrapped line.
+            Assert.InRange(Math.Abs(heights[0] - heights[1]), 0, 1);
+        }
         Assert.True(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth <= window.innerWidth"));
         await page.Locator("#lmxBoardSection").ScrollIntoViewIfNeededAsync();
         var captures = Environment.GetEnvironmentVariable("LWC_SCORING_CAPTURE_DIR");

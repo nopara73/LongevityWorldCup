@@ -207,6 +207,7 @@ namespace LongevityWorldCup.Website
             builder.Services.AddSingleton<AthleteOgImageService>();
             builder.Services.AddSingleton<LeagueOgImageService>();
             builder.Services.AddSingleton<LeaderboardFactsService>();
+            builder.Services.AddSingleton<PageStructuredData>();
             builder.Services.AddSingleton<SitemapService>();
             builder.Services.AddSingleton<SiteStatisticsService>();
             builder.Services.AddHostedService(sp => sp.GetRequiredService<SiteStatisticsService>());
