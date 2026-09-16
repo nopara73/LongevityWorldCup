@@ -211,6 +211,7 @@ namespace LongevityWorldCup.Website
             builder.Services.AddSingleton(sp => new ContentRevisionStore(Path.Combine(
                 Path.GetDirectoryName(sp.GetRequiredService<DatabaseManager>().DbPath)!, "public-content-revisions.json")));
             builder.Services.AddSingleton<PublicContentFreshness>();
+            builder.Services.AddHostedService(sp => sp.GetRequiredService<PublicContentFreshness>());
             builder.Services.AddSingleton<PageStructuredData>();
             builder.Services.AddSingleton<SitemapService>();
             builder.Services.Configure<IndexNowOptions>(builder.Configuration.GetSection("IndexNow"));

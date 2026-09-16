@@ -21,6 +21,12 @@ public sealed class ContentRevisionStore
     public DateTimeOffset? Observe(string key, string contentHash, DateTimeOffset observedAtUtc) =>
         Observe(new Dictionary<string, string> { [key] = contentHash }, observedAtUtc)[key];
 
+    public IReadOnlyDictionary<string, DateTimeOffset?> GetChangeDates(string prefix)
+    {
+        lock (_gate) return _revisions.Where(pair => pair.Key.StartsWith(prefix, StringComparison.Ordinal) && pair.Value.Hash != "unpublished")
+            .ToDictionary(pair => pair.Key, pair => pair.Value.ChangedAtUtc, StringComparer.Ordinal);
+    }
+
     public IReadOnlyDictionary<string, DateTimeOffset?> Observe(
         IReadOnlyDictionary<string, string> content, DateTimeOffset observedAtUtc, string? completePrefix = null)
     {

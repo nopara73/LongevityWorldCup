@@ -10,6 +10,21 @@ namespace LongevityWorldCup.Tests;
 public sealed class AiSummaryTests(TestWebApplicationFactory factory) : IClassFixture<TestWebApplicationFactory>
 {
     [Fact]
+    public void PersistedPageDatesAreAvailableImmediatelyAfterRestartIncludingUnicodeUrls()
+    {
+        var store = new ContentRevisionStore();
+        var clock = new SummaryClock();
+        const string path = "/athlete/élise";
+        var key = "page:" + SitemapService.SiteBaseUrl + new Microsoft.AspNetCore.Http.PathString(path).ToUriComponent();
+        store.Observe(key, "baseline", clock.GetUtcNow());
+        clock.Advance(TimeSpan.FromMinutes(1));
+        store.Observe(key, "changed", clock.GetUtcNow());
+        using var freshness = ActivatorUtilities.CreateInstance<PublicContentFreshness>(factory.Services, store, clock);
+        Assert.Equal(clock.GetUtcNow().UtcDateTime, freshness.GetLastModifiedUtc(path));
+        Assert.Null(freshness.GetLastModifiedUtc("/play/proof-upload.html"));
+    }
+
+    [Fact]
     public void StableFactsSurviveCacheIntervalsAndRestartWhileLiveCrowdChangesAreImmediate()
     {
         var source = new MutableAthleteSnapshot(Athletes());

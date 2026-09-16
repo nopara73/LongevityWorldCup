@@ -4,6 +4,7 @@ using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using LongevityWorldCup.Website.Business;
+using LongevityWorldCup.Website.Business.IndexNow;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
@@ -90,6 +91,8 @@ public sealed class AiFreshnessHttpTests
         var source = new MutableAthleteSnapshot([]);
         await using var factory = CreateFactory(source, clock);
         source.Data = factory.Services.GetRequiredService<AthleteDataService>().GetAthletesSnapshot();
+        var freshness = factory.Services.GetRequiredService<PublicContentFreshness>();
+        freshness.Refresh();
         using var client = factory.CreateClient();
         var beforeSitemap = Dates(await client.GetStringAsync("/sitemap.xml"));
         Assert.Null(beforeSitemap["/"]);
@@ -101,6 +104,7 @@ public sealed class AiFreshnessHttpTests
         var athlete = source.Data.OfType<JsonObject>().First();
         athlete["CrowdAge"] = 30d;
         athlete["CrowdCount"] = 101;
+        freshness.Refresh();
         var afterSitemap = Dates(await client.GetStringAsync("/sitemap.xml"));
         var expected = clock.GetUtcNow().ToString("yyyy-MM-ddTHH:mm:ss'Z'");
         Assert.Equal(expected, afterSitemap["/"]);
@@ -118,6 +122,41 @@ public sealed class AiFreshnessHttpTests
         Assert.Equal(after.Headers.ETag, unchanged.Headers.ETag);
         Assert.Equal(after.Content.Headers.LastModified, unchanged.Content.Headers.LastModified);
         Assert.Equal(afterSitemap, Dates(await client.GetStringAsync("/sitemap.xml")));
+    }
+
+    [Fact]
+    public async Task BackgroundObservationRefreshesRequestedPages()
+    {
+        var source = new MutableAthleteSnapshot(AiSummaryTests.Athletes());
+        var clock = new SummaryClock();
+        await using var factory = CreateFactory(source, clock);
+        using var client = factory.CreateClient();
+        var freshness = factory.Services.GetRequiredService<PublicContentFreshness>();
+        freshness.Refresh();
+        Assert.Null(freshness.GetLastModifiedUtc("/"));
+        source.Data[0]!["CrowdCount"] = 101;
+        clock.Advance(TimeSpan.FromMinutes(1));
+        var deadline = DateTime.UtcNow.AddSeconds(25);
+        while (freshness.GetLastModifiedUtc("/") is null && DateTime.UtcNow < deadline)
+            await Task.Delay(200);
+        Assert.Equal(clock.GetUtcNow().UtcDateTime, freshness.GetLastModifiedUtc("/"));
+        Assert.Equal(clock.GetUtcNow().ToString("yyyy-MM-ddTHH:mm:ss'Z'"), Modified(await client.GetStringAsync("/")));
+    }
+
+    [Fact]
+    public async Task PageRenderingDoesNotWaitForOrRequireASiteWideContentScan()
+    {
+        await using var factory = new TestWebApplicationFactory(builder => builder.ConfigureTestServices(services =>
+        {
+            services.RemoveAll<IndexNowPageContent>();
+            services.AddSingleton(sp => new IndexNowPageContent(sp.GetRequiredService<IWebHostEnvironment>(), "missing-test-manifest"));
+        }));
+        // A dependency scan would fail here. The optional metadata must not turn
+        // an otherwise valid page into a 500 or make it wait for all other pages.
+        using var client = factory.CreateClient();
+        using var response = await client.GetAsync("/");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Null(Modified(await response.Content.ReadAsStringAsync()));
     }
 
     [Fact]
