@@ -74,7 +74,7 @@ public sealed class LeaderboardFactsService(
         if (snapshot.Leaderboard.Rows.FirstOrDefault() is { } leader)
             sb.AppendLine($"Current Ultimate League leader: {Link(leader.DisplayName, leader.AthleteUrl)}");
         sb.AppendLine();
-        AppendDefinitions(sb, snapshot);
+        AppendDefinitions(sb, snapshot, includesCurrentAgeComparison: true);
         foreach (var view in LeaderboardViewCatalog.Views)
         {
             var rows = LeaderboardViewCatalog.SelectRows(view.HtmlPath, snapshot.Leaderboard.Rows, snapshot.Stats);
@@ -105,7 +105,7 @@ public sealed class LeaderboardFactsService(
         sb.AppendLine();
         sb.AppendLine($"Field size: {rows.Count.ToString(CultureInfo.InvariantCulture)}. Current standings, not a completed-season result.");
         sb.AppendLine();
-        AppendDefinitions(sb, snapshot);
+        AppendDefinitions(sb, snapshot, includesCurrentAgeComparison: view.Slug == "crowd");
         AppendRankingTable(sb, view, rows, snapshot, rows.Count);
         return Document(view.MarkdownPath, view.HtmlPath, sb.ToString());
     }
@@ -196,14 +196,15 @@ public sealed class LeaderboardFactsService(
         return new LeaderboardFactsDocument(metadata + body, changedAt);
     }
 
-    private static void AppendDefinitions(StringBuilder sb, FactsSnapshot snapshot)
+    private static void AppendDefinitions(StringBuilder sb, FactsSnapshot snapshot, bool includesCurrentAgeComparison)
     {
         sb.AppendLine("## Field definitions and dates");
         sb.AppendLine();
         sb.AppendLine("- Scores are in years; lower and more negative values rank higher. Sorting uses unrounded scores; tables show two decimals. Rank is within the named view; Ultimate rank is a separate column.");
         sb.AppendLine("- Age reduction is biological age minus chronological age at the selected test. Crowd age reduction uses the current-image median minus current chronological age.");
         sb.AppendLine("- Lowest clock ages and their test dates refer to that clock's selected result. Not available means no eligible value was recorded, not zero.");
-        sb.AppendLine($"- Current chronological age and Crowd Age comparisons are evaluated as of {snapshot.AsOf:yyyy-MM-dd} UTC.");
+        if (includesCurrentAgeComparison)
+            sb.AppendLine($"- Current chronological age and Crowd Age comparisons are evaluated as of {snapshot.AsOf:yyyy-MM-dd} UTC.");
         sb.AppendLine("- facts_changed_at_utc records an observed change to this document's facts. Unknown means no historical change date has been verified. Cache refresh and response-generation times are not publication or test dates.");
         sb.AppendLine($"- Competition rules: {SiteBaseUrl}/ruleset. Completed-season results: {SiteBaseUrl}/history.");
         sb.AppendLine();

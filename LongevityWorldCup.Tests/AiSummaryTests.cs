@@ -25,6 +25,19 @@ public sealed class AiSummaryTests(TestWebApplicationFactory factory) : IClassFi
     }
 
     [Fact]
+    public void ClockViewDoesNotAcquireADailyTimestampWhenItsFactsHaveNotChanged()
+    {
+        var clock = new SummaryClock();
+        var facts = new LeaderboardFactsService(new MutableAthleteSnapshot(Athletes()), new ContentRevisionStore(),
+            factory.Services.GetRequiredService<EventDataService>(), clock);
+        var before = facts.GetLeagueMarkdown("pheno");
+        var crowd = facts.GetLeagueMarkdown("crowd");
+        clock.Advance(TimeSpan.FromDays(1));
+        Assert.Equal(before, facts.GetLeagueMarkdown("pheno"));
+        Assert.NotEqual(crowd, facts.GetLeagueMarkdown("crowd")); // This score uses current chronological age.
+    }
+
+    [Fact]
     public void StableFactsSurviveCacheIntervalsAndRestartWhileLiveCrowdChangesAreImmediate()
     {
         var source = new MutableAthleteSnapshot(Athletes());

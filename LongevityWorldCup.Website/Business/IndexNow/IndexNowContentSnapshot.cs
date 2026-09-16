@@ -174,14 +174,13 @@ public sealed class IndexNowContentSnapshot(
     // coalesces small changes, such as an additional guess within a count bucket.
     private static object PublicFacts(PhenoStatsCalculator.Result stats) => new
     {
-        ChronologicalAge = Finite(stats.ChronoAge),
-        PhenoAge = stats.SubmissionCount > 0 ? Finite(stats.LowestPhenoAge) : null,
+        PhenoAge = stats.LowestPhenoAgeDateUtc.HasValue ? Finite(stats.LowestPhenoAge) : null,
         BortzAge = stats.BortzSubmissionCount > 0 ? Finite(stats.LowestBortzAge) : null,
         stats.LowestPhenoAgeDateUtc, stats.LowestBortzAgeDateUtc,
         AgeReduction = Finite(stats.AgeReduction), BortzAgeReduction = Finite(stats.BortzAgeReduction),
         PhenoImprovement = Finite(stats.PhenoAgeImprovementFromWorst), BortzImprovement = Finite(stats.BortzAgeImprovementFromWorst),
         stats.SubmissionCount, stats.BortzSubmissionCount,
-        CrowdAge = Finite(stats.CrowdAge), stats.CrowdCount
+        CrowdAge = Finite(stats.CrowdAge), CrowdAgeReduction = Rounded(stats.CrowdAge - stats.ChronoAge), stats.CrowdCount
     };
     private static double? Finite(double? value) => value.HasValue && double.IsFinite(value.Value) ? value : null;
     private static int CrowdCountBucket(int count) => count < 20 ? count : count < 100 ? count / 5 * 5 : count < 1000 ? count / 10 * 10 : count / 100 * 100;
