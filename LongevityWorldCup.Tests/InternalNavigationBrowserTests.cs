@@ -4,20 +4,47 @@ using static LongevityWorldCup.Tests.AestheticSystemBrowserTests;
 
 namespace LongevityWorldCup.Tests;
 
-// Native tab-opening gestures share browser focus. Keep other keyboard/pointer
-// workloads out of these assertions while retaining the shared Chromium runtime.
+// Exercise native tab creation in full Chromium, which has the browser UI
+// behavior absent from the lightweight headless shell used by the other lanes.
 [CollectionDefinition(InternalNavigationBrowserCollection.Name, DisableParallelization = true)]
 public sealed class InternalNavigationBrowserCollection :
-    ICollectionFixture<PlaywrightBrowserFixture>, ICollectionFixture<BrowserTestAppFixture>
+    ICollectionFixture<NativeLinkBrowserFixture>, ICollectionFixture<BrowserTestAppFixture>
 {
     public const string Name = "Native link navigation";
 }
 
+public sealed class NativeLinkBrowserFixture : IAsyncLifetime
+{
+    private IPlaywright? _playwright;
+    public IBrowser Browser { get; private set; } = null!;
+
+    public async Task InitializeAsync()
+    {
+        _playwright = await Playwright.CreateAsync();
+        try
+        {
+            Browser = await _playwright.Chromium.LaunchAsync(new() { Headless = true, Channel = "chromium" });
+        }
+        catch
+        {
+            _playwright.Dispose();
+            throw;
+        }
+    }
+
+    public async Task DisposeAsync()
+    {
+        if (Browser is not null) await Browser.DisposeAsync();
+        _playwright?.Dispose();
+    }
+}
+
 [Collection(InternalNavigationBrowserCollection.Name)]
 public sealed class InternalNavigationBrowserTests(
-    PlaywrightBrowserFixture browserFixture, BrowserTestAppFixture appFixture)
-    : BrowserIntegrationTest(browserFixture, appFixture)
+    NativeLinkBrowserFixture browserFixture, BrowserTestAppFixture appFixture)
 {
+    private IBrowser Browser => browserFixture.Browser;
+    private BrowserTestApp App => appFixture.App;
     [Fact]
     public async Task InitialHtml_ContainsPublicNavigationAndValidRulesetAnchor()
     {
@@ -112,6 +139,7 @@ public sealed class InternalNavigationBrowserTests(
             """));
         await Assertions.Expect(page.Locator("#detailsModal")).ToBeHiddenAsync();
         var newPage = await context.RunAndWaitForPageAsync(() => link.ClickAsync(new() { Modifiers = [KeyboardModifier.ControlOrMeta] }));
+        await newPage.BringToFrontAsync();
         await newPage.WaitForURLAsync(url => new Uri(url).AbsolutePath == href,
             new() { WaitUntil = WaitUntilState.DOMContentLoaded });
         await WaitForLeaderboardAsync(newPage);
