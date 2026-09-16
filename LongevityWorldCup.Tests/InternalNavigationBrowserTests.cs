@@ -4,7 +4,16 @@ using static LongevityWorldCup.Tests.AestheticSystemBrowserTests;
 
 namespace LongevityWorldCup.Tests;
 
-[Collection(BrowserTestCollections.WorkloadC)]
+// Native tab-opening gestures share browser focus. Keep other keyboard/pointer
+// workloads out of these assertions while retaining the shared Chromium runtime.
+[CollectionDefinition(InternalNavigationBrowserCollection.Name, DisableParallelization = true)]
+public sealed class InternalNavigationBrowserCollection :
+    ICollectionFixture<PlaywrightBrowserFixture>, ICollectionFixture<BrowserTestAppFixture>
+{
+    public const string Name = "Native link navigation";
+}
+
+[Collection(InternalNavigationBrowserCollection.Name)]
 public sealed class InternalNavigationBrowserTests(
     PlaywrightBrowserFixture browserFixture, BrowserTestAppFixture appFixture)
     : BrowserIntegrationTest(browserFixture, appFixture)
@@ -38,8 +47,12 @@ public sealed class InternalNavigationBrowserTests(
         var page = await context.NewPageAsync();
         await page.GotoAsync("/?source=internal-links&view=pheno&search=michael#rank-1");
         await WaitForLeaderboardAsync(page);
-        var originalUrl = page.Url;
         var link = page.Locator("a#viewAllAthletesBtn");
+        await page.EvaluateAsync("location.hash = 'rank-2'");
+        await Assertions.Expect(link).ToHaveAttributeAsync("href", new System.Text.RegularExpressions.Regex("#rank-2$"));
+        await page.GoBackAsync();
+        await Assertions.Expect(link).ToHaveAttributeAsync("href", new System.Text.RegularExpressions.Regex("#rank-1$"));
+        var originalUrl = page.Url;
         var href = (await link.GetAttributeAsync("href"))!;
         Assert.StartsWith("/league/pheno?", href);
         Assert.Contains("source=internal-links", href);
