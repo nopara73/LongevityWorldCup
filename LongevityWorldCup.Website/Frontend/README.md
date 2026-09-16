@@ -16,6 +16,8 @@ Keep strict null, unchecked-index, exact-optional-property, and erasable-syntax 
 
 ## Loading
 
+Public document URLs are validated and canonicalized on the server before rendering. Keep frontend legacy-route and browser-history handling consistent with [CrawlAndUrlPolicy.md](../../LongevityWorldCup.Documentation/CrawlAndUrlPolicy.md).
+
 `HtmlInjectionMiddleware` dynamically imports these ES modules (an empty emitted export is allowed): `misc`, `flags`, `leagueIcons`, `pheno-age`, `bortz-age`, `badges`, `age-visualization`, `play-athlete-flow`, `proof-helpers`, `pro-discounts`, `play-menu`, `bioage-rank-preview`.
 
 Homepage, leaderboard, and event pages start dynamic imports during parsing; `window.modulesReady` still gates dependent initialization. Homepage athlete and highlight data starts alongside the imports; leaderboard and event pages also start their athlete request early. Other pages preserve their deferred module bootstrap. Pages that only embed athlete dialogs initialize shared data lazily when opening a profile, preserving calculator data-loading contracts.
@@ -38,4 +40,4 @@ Shared type-only contracts belong in `types/*.d.ts`. Runtime entry points stay s
 
 Page/partial scripts remain inline where they depend on server placeholders/JSON, injected DOM, exact bootstrap timing, classic globals, or inline handlers. Moving them requires migrating those contracts together with browser coverage, outside unrelated frontend work.
 
-The Markdown page generator owns scripts in generated About, History, and Ruleset pages; edit the generator rather than generated output. The head partial's JSON-LD is structured data, not application JavaScript.
+The Markdown page generator owns scripts in generated About, History, and Ruleset pages; edit the generator rather than generated output. The head partial's JSON-LD is structured data, not application JavaScript. Full leaderboard pages keep their ItemList synchronized with the displayed selection; see [public page structured data](../../LongevityWorldCup.Documentation/StructuredData.md).

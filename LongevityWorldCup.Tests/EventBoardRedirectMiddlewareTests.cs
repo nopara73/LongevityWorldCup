@@ -31,15 +31,16 @@ public sealed class EventBoardRedirectMiddlewareTests(TestWebApplicationFactory 
     }
 
     [Fact]
-    public async Task EventBoardEmbedWithoutAthlete_RedirectsToErrorPage()
+    public async Task EventBoardEmbedWithoutAthlete_ReturnsNotFound()
     {
         var factory = sharedFactory;
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
         using var response = await client.GetAsync("/event-board-embed.html?embed=1");
 
-        Assert.Equal(HttpStatusCode.Found, response.StatusCode);
-        Assert.Equal("/error/404.html", response.Headers.Location?.ToString());
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.Null(response.Headers.Location);
+        Assert.Contains("404 Not Found", await response.Content.ReadAsStringAsync());
     }
 
     [Fact]

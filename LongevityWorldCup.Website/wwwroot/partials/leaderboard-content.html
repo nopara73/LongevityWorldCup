@@ -5460,6 +5460,7 @@
                     renderLeaderboardLoadError(tableBody);
                 }
                 setLeaderboardStatus('Leaderboard could not load.', true);
+                updateLeaderboardStructuredData(null);
                 const podium = document.querySelector('.podium');
                 if (podium) {
                     podium.innerHTML = '';
@@ -6966,6 +6967,67 @@
         return JSON.stringify([getSelectedLeaderboardState(), document.getElementById('athleteSearch')?.value || '']);
     }
 
+    function updateLeaderboardStructuredData(entries) {
+        // This partial also powers homepage and profile dialogs. Only a full ranking page
+        // has the list as its main subject; never replace a profile's Person with its backdrop.
+        if (!pageDocument.querySelector('main[data-leaderboard-page="full"]')) return;
+        const script = pageDocument.getElementById('pageStructuredData');
+        if (!script) return;
+        try {
+            const data = JSON.parse(script.textContent);
+            const graph = data['@graph'];
+            const page = graph.find(node => node['@type'] === 'CollectionPage');
+            if (!page) return;
+            if (entries === null) {
+                data['@graph'] = graph.filter(node => node['@type'] !== 'ItemList');
+                delete page.mainEntity;
+                delete page.about;
+                script.textContent = JSON.stringify(data).replaceAll('<', '\\u003c');
+                return;
+            }
+            const siteUrl = 'https://longevityworldcup.com';
+            const state = getSelectedLeaderboardState();
+            const selectedUrl = new URL(window.getFullLeaderboardUrlWithCurrentState(), siteUrl);
+            const filters = [...state.divisions, ...state.flags, ...state.generations, ...state.exclusiveLeagues,
+                ...(state.leagueTracks.length === 1 ? state.leagueTracks : [])].map(value => value.toLowerCase()).sort();
+            const encode = value => encodeURIComponent(value).replace(/[!'()*]/g, char => '%' + char.charCodeAt(0).toString(16).toUpperCase());
+            const search = document.getElementById('athleteSearch')?.value.trim() || '';
+            if (!search && filters.length === 0) {
+                selectedUrl.pathname = state.view === 'ultimate' ? '/leaderboard' : '/league/' + state.view;
+            }
+            const query = [];
+            if (selectedUrl.pathname === '/leaderboard') {
+                if (filters.length) query.push('filters=' + encode(filters.join(',')));
+                if (search) query.push('search=' + encode(search));
+                if (state.view !== 'ultimate') query.push('view=' + state.view);
+            }
+            const url = siteUrl + selectedUrl.pathname + (query.length ? '?' + query.join('&') : '');
+            const id = url + '#ranking';
+            const list = {
+                '@type': 'ItemList', '@id': id, url,
+                name: pageDocument.getElementById('leaderboardTitle')?.textContent.trim() || 'Longevity World Cup rankings',
+                itemListOrder: 'https://schema.org/ItemListOrderAscending',
+                numberOfItems: entries.length,
+                itemListElement: entries.map(({ athlete, rank }) => {
+                    const athleteUrl = siteUrl + '/athlete/' + encodeURIComponent(athlete.athleteSlug.replaceAll('_', '-').toLowerCase());
+                    return {
+                        '@type': 'ListItem', position: rank,
+                        item: { '@type': 'Person', '@id': athleteUrl + '#person', url: athleteUrl, name: athlete.displayName }
+                    };
+                })
+            };
+            data['@graph'] = graph.filter(node => node['@type'] !== 'ItemList');
+            page.mainEntity = { '@id': id };
+            page.about = { '@id': id };
+            data['@graph'].push(list);
+            // textContent never interprets HTML. Escape '<' as well so serialized HTML
+            // remains safe if an athlete's public display name contains a script end tag.
+            script.textContent = JSON.stringify(data).replaceAll('<', '\\u003c');
+        } catch (error) {
+            console.warn('Could not update leaderboard structured data.', error);
+        }
+    }
+
     function performFilter({ updateUrl = true } = {}) {
         const selectedState = getSelectedLeaderboardState();
         const selectedDivisions = selectedState.divisions.map(value => value.toLowerCase());
@@ -7268,6 +7330,7 @@
 
         // Display "No Results Found" if Necessary
         displayNoResults(tableRows, podiumItems, query);
+        updateLeaderboardStructuredData(matchingEntries.slice(0, maxAthletesGlobal));
 
         // Hide podium athletes' rows if no filters/search are applied and includePodiumGlobal is true
         if (hidePodiumRowsInTable) {

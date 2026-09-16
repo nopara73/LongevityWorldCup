@@ -18,7 +18,7 @@
     "aiIndex": "https://longevityworldcup.com/ai/index.md",
     "leaderboardFacts": "https://longevityworldcup.com/ai/leaderboard.md",
     "athleteNames": "https://longevityworldcup.com/ai/athlete-names.md",
-    "apiDocs": "https://longevityworldcup.com/swagger",
+    "apiDocs": "https://longevityworldcup.com/swagger/index.html",
     "openApi": "https://longevityworldcup.com/swagger/v1/swagger.json"
   },
   "publicPages": [

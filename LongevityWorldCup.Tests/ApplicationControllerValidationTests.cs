@@ -11,7 +11,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using MimeKit;
 using System.Reflection;
-using System.Text;
 using Xunit;
 
 namespace LongevityWorldCup.Tests;
@@ -770,28 +769,6 @@ public sealed class ApplicationControllerValidationTests(TestWebApplicationFacto
         Assert.Equal(expectedName, mailbox.Name);
     }
 
-    [Theory]
-    [InlineData("athlete@example.test", true)]
-    [InlineData(null, false)]
-    [InlineData("  ", false)]
-    public void ApplicationAuditIntro_IncludesReplyHintWhenRequesterEmailIsKnown(string? accountEmail, bool expectedHint)
-    {
-        var method = typeof(ApplicationController).GetMethod("AppendLegacyApplicationEmailIntro", BindingFlags.Static | BindingFlags.NonPublic);
-        var body = new StringBuilder();
-
-        method!.Invoke(null, [body, accountEmail, "free (USD)", null, null, false, false]);
-
-        var intro = body.ToString();
-        if (expectedHint)
-        {
-            Assert.Contains("Reply to this email to contact the requester.", intro);
-        }
-        else
-        {
-            Assert.DoesNotContain("Reply to this email to contact the requester.", intro);
-        }
-    }
-
     [Fact]
     public void InterviewRequestEmail_UsesRequesterAsReplyTo()
     {
@@ -809,7 +786,7 @@ public sealed class ApplicationControllerValidationTests(TestWebApplicationFacto
         var replyTo = Assert.IsType<MailboxAddress>(message.ReplyTo[0]);
         Assert.Equal("athlete@example.test", replyTo.Address);
         Assert.Equal("athlete@example.test", replyTo.Name);
-        Assert.Contains("Reply to this email to contact the requester.", message.TextBody);
+        Assert.Equal("Interview request received.", message.TextBody);
         Assert.DoesNotContain("athlete@example.test", message.TextBody);
     }
 
@@ -910,11 +887,10 @@ public sealed class ApplicationControllerValidationTests(TestWebApplicationFacto
         Assert.Contains("result upload and proof", body);
         Assert.Contains("update your athlete profile", body);
         Assert.Contains("https://pay.example.test/invoice", body);
-        Assert.Contains("Questions, concerns, or signs of aging? Reply to this email.", body);
         Assert.Contains("Want to hang out with other longevity athletes?", body);
         Assert.Contains("https://slack.example.test/invite", body);
-        Assert.DoesNotContain("Questions or corrections?", body);
-        Assert.DoesNotContain("could not create the payment page automatically", body);
+        Assert.Contains("If you haven't paid yet, complete your payment here:", body);
+        Assert.DoesNotContain("Your payment link is unavailable.", body);
         Assert.DoesNotContain("application, which usually takes a day or two", body);
     }
 
@@ -927,8 +903,8 @@ public sealed class ApplicationControllerValidationTests(TestWebApplicationFacto
 
         Assert.NotNull(body);
         Assert.Contains("result upload and proof", body);
-        Assert.Contains("Your upload also has a payment step, but we could not create the payment page automatically.", body);
-        Assert.DoesNotContain("If you were not redirected automatically", body);
+        Assert.Contains("Your payment link is unavailable. We'll email you the next step.", body);
+        Assert.DoesNotContain("complete your payment here", body);
         Assert.DoesNotContain("https://pay.example.test/invoice", body);
     }
 
@@ -943,11 +919,10 @@ public sealed class ApplicationControllerValidationTests(TestWebApplicationFacto
         Assert.Contains("Hey Athlete Ada,", body);
         Assert.Contains("profile change request", body);
         Assert.Contains("update your athlete profile", body);
-        Assert.Contains("Questions, concerns, or signs of aging? Reply to this email.", body);
         Assert.Contains("https://slack.example.test/invite", body);
         Assert.DoesNotContain("result upload and proof", body);
         Assert.DoesNotContain("application, which usually takes a day or two", body);
-        Assert.DoesNotContain("could not create the payment page automatically", body);
+        Assert.DoesNotContain("Your payment link is unavailable.", body);
     }
 
     [Fact]
@@ -960,7 +935,6 @@ public sealed class ApplicationControllerValidationTests(TestWebApplicationFacto
         Assert.NotNull(body);
         Assert.Contains("Hey Applicant Ada,", body);
         Assert.Contains("application, which usually takes a day or two", body);
-        Assert.Contains("Questions, concerns, or signs of aging? Reply to this email.", body);
         Assert.Contains("https://slack.example.test/invite", body);
         Assert.DoesNotContain("result upload and proof", body);
     }
@@ -974,8 +948,8 @@ public sealed class ApplicationControllerValidationTests(TestWebApplicationFacto
 
         Assert.NotNull(body);
         Assert.Contains("application, which usually takes a day or two", body);
-        Assert.Contains("Your application also has a payment step, but we could not create the payment page automatically.", body);
-        Assert.DoesNotContain("If you were not redirected automatically", body);
+        Assert.Contains("Your payment link is unavailable. We'll email you the next step.", body);
+        Assert.DoesNotContain("complete your payment here", body);
     }
 
     [Fact]

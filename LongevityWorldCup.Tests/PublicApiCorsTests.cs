@@ -92,7 +92,8 @@ public sealed class PublicApiCorsTests(TestWebApplicationFactory sharedFactory)
 
         using var response = await client.GetAsync("/route-that-does-not-exist");
 
-        Assert.Equal(HttpStatusCode.Found, response.StatusCode);
-        Assert.Equal("/error/404.html", response.Headers.Location?.ToString());
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.Null(response.Headers.Location);
+        Assert.Contains("404 Not Found", await response.Content.ReadAsStringAsync());
     }
 }

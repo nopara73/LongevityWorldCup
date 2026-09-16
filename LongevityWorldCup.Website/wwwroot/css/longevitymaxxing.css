@@ -3803,16 +3803,22 @@ a.lmx-note-mention:focus-visible {
     color: var(--lmx-accent);
 }
 
+.lmx-score-value {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3em;
+}
+
 .lmx-full-marks-icon {
     width: 0.9em;
     height: 0.9em;
+    flex: none;
     fill: none;
     stroke: currentColor;
     stroke-width: 1.75;
     stroke-linecap: round;
     stroke-linejoin: round;
-    vertical-align: -0.1em;
-    margin-inline-start: 0.4em;
 }
 
 .lmx-participant-name {

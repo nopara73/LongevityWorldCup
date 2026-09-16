@@ -8,8 +8,8 @@ public sealed class AestheticSystemPageTests(TestWebApplicationFactory sharedFac
     [Theory]
     [InlineData("/", true)]
     [InlineData("/league/pheno", false)]
-    [InlineData("/flag/hu", false)]
-    [InlineData("/athlete/nonexistent-athlete", false)]
+    [InlineData("/flag/hungary", false)]
+    [InlineData("/athlete/ron-lugbill", false)]
     [InlineData("/?search=pascoe", false)]
     [InlineData("/?view=pheno", false)]
     public async Task HomepageHeroClass_IsLimitedToTheActualHomepage(string path, bool expectsHomepageHero)

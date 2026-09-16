@@ -207,6 +207,7 @@ namespace LongevityWorldCup.Website
             builder.Services.AddSingleton<AthleteOgImageService>();
             builder.Services.AddSingleton<LeagueOgImageService>();
             builder.Services.AddSingleton<LeaderboardFactsService>();
+            builder.Services.AddSingleton<PageStructuredData>();
             builder.Services.AddSingleton<SitemapService>();
             builder.Services.AddSingleton<SiteStatisticsService>();
             builder.Services.AddHostedService(sp => sp.GetRequiredService<SiteStatisticsService>());
@@ -295,6 +296,38 @@ namespace LongevityWorldCup.Website
 
             app.UseHttpsRedirection();
             app.UseResponseCompression();
+            app.UseRouting();
+
+            // The documented public API is intentionally callable from any browser origin.
+            app.UseWhen(
+                context => context.Request.Path.StartsWithSegments(PublicApiPathPrefix),
+                publicApi => publicApi.UseCors(PublicApiCorsPolicy));
+            app.UseWhen(
+                context => !context.Request.Path.StartsWithSegments(PublicApiPathPrefix),
+                site => site.UseCors(SiteCorsPolicy));
+
+            // Keep limiter rejections outside status-code re-execution so a
+            // deliberate 429 cannot be transformed into the static 404 flow.
+            app.UseRateLimiter();
+
+            app.UseStatusCodePagesWithReExecute("/error/{0}.html");
+
+            // Only 404 has an HTML error document. Do not turn a 405 (or any
+            // other deliberate error status) into a missing error-template 404.
+            app.Use(async (context, next) =>
+            {
+                await next(context);
+                if (context.Response.StatusCode >= 400 && context.Response.StatusCode != StatusCodes.Status404NotFound
+                    && context.Features.Get<Microsoft.AspNetCore.Diagnostics.IStatusCodePagesFeature>() is { } statusCodePages)
+                    statusCodePages.Enabled = false;
+            });
+
+            app.UseRequestTimeouts();
+
+            app.UseMiddleware<CleanPathMiddleware>();
+
+            app.UseMiddleware<PublicRouteMiddleware>();
+
             app.UseSwagger(options =>
             {
                 options.PreSerializeFilters.Add((swaggerDocument, _) =>
@@ -333,26 +366,6 @@ namespace LongevityWorldCup.Website
                 options.ConfigObject.PersistAuthorization = false;
                 options.ConfigObject.ValidatorUrl = null;
             });
-
-            app.UseRouting();
-
-            // The documented public API is intentionally callable from any browser origin.
-            app.UseWhen(
-                context => context.Request.Path.StartsWithSegments(PublicApiPathPrefix),
-                publicApi => publicApi.UseCors(PublicApiCorsPolicy));
-            app.UseWhen(
-                context => !context.Request.Path.StartsWithSegments(PublicApiPathPrefix),
-                site => site.UseCors(SiteCorsPolicy));
-
-            // Keep limiter rejections outside status-code re-execution so a
-            // deliberate 429 cannot be transformed into the static 404 flow.
-            app.UseRateLimiter();
-
-            app.UseStatusCodePagesWithReExecute("/error/{0}");
-
-            app.UseRequestTimeouts();
-
-            app.UseMiddleware<CleanPathMiddleware>();
 
             app.UseMiddleware<EventBoardRedirectMiddleware>();
 

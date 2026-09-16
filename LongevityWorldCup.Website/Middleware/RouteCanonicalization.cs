@@ -4,6 +4,24 @@ namespace LongevityWorldCup.Website.Middleware
     {
         internal const string CanonicalPathItemKey = "__LwcCanonicalPath";
 
+        // Consolidate document URLs without redirecting API clients, asset requests,
+        // local development, or the onion service to a different origin.
+        internal static bool RedirectToCanonical(HttpContext context, string path, QueryString? query = null)
+        {
+            var canonicalHost = string.Equals(context.Request.Host.Host, "www.longevityworldcup.com", StringComparison.OrdinalIgnoreCase);
+            var targetQuery = query ?? context.Request.QueryString;
+            if (!canonicalHost && string.Equals(context.Request.Path.Value, path, StringComparison.Ordinal)
+                && targetQuery == context.Request.QueryString)
+                return false;
+
+            var location = (canonicalHost ? "https://longevityworldcup.com" : string.Empty)
+                + context.Request.PathBase.Add(new PathString(path)).ToUriComponent()
+                + targetQuery.ToUriComponent();
+            context.Response.Redirect(location, permanent: true,
+                preserveMethod: !HttpMethods.IsGet(context.Request.Method) && !HttpMethods.IsHead(context.Request.Method));
+            return true;
+        }
+
         // Keep public paths, their templates, and every historical alias together.
         // Physical assets, API endpoints, embeds, and error fallback files are not page aliases.
         internal static readonly IReadOnlyList<PageRoute> Pages =
