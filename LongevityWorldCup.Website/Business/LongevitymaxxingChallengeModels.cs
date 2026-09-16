@@ -145,7 +145,11 @@ public sealed record LongevitymaxxingLeaderboardRow(
     IReadOnlyList<string> Badges,
     string? LatestCheckInAtUtc,
     bool ChallengeEmailsStopped,
-    bool ChallengeInactive);
+    bool ChallengeInactive)
+{
+    public int Rank { get; init; }
+    public bool HasFullMarks { get; init; }
+}
 
 public sealed record LongevitymaxxingDayCell(
     int ChallengeDay,

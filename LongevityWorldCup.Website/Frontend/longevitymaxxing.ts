@@ -234,6 +234,8 @@
 
     interface LeaderboardRow {
         participantId: string;
+        rank?: number;
+        hasFullMarks?: boolean;
         displayName: string;
         athleteUrl: string | null;
         profileImageUrl: string | null;
@@ -1536,7 +1538,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         highlights.className = "lmx-benefit-strip lmx-ops-strip";
         highlights.setAttribute("aria-label", "Participant status");
         highlights.innerHTML = [
-            opsTile("Rank", row ? `#${rowIndex + 1}` : "-"),
+            opsTile("Rank", row ? `#${leaderboardRank(state, row)}` : "-"),
             opsTile("Score", row ? row.totalPoints : 0),
             opsTile("Streak", row ? row.currentStreak : 0)
         ].join("");
@@ -2250,7 +2252,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             const name = row.athleteUrl
                 ? `<a href="${escAttr(row.athleteUrl)}">${esc(row.displayName)}</a>`
                 : `<span>${esc(row.displayName)}</span>`;
-            const participant = participantNameHtml(row, name, index + 1);
+            const participant = participantNameHtml(row, name, leaderboardRank(state, row));
             const cellsByDay = new Map((row.cells || []).map(cell => [cell.challengeDay, cell]));
             const cells = visibleDays.map((day, dayIndex) => {
                 const cell = cellsByDay.get(day.challengeDay);
@@ -2266,7 +2268,9 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 }
                 return divider + scoredDayCellHtml(cell, state);
             }).join("");
-            return `<div class="lmx-board-row${row.challengeInactive ? " inactive" : ""}" role="row">
+            const fullMarksClass = row.hasFullMarks ? " lmx-full-marks" : "";
+            const groupEndClass = row.hasFullMarks && !leaderboardRows.visible[index + 1]?.hasFullMarks ? " lmx-full-marks-end" : "";
+            return `<div class="lmx-board-row${row.challengeInactive ? " inactive" : ""}${fullMarksClass}${groupEndClass}" role="row">
                 <div class="lmx-name" role="cell">${participant}</div>
                 <div class="lmx-number" role="cell" data-label="Score">${row.totalPoints}</div>
                 <div class="lmx-cell-strip" role="cell" aria-label="Daily scores">${cells}</div>
@@ -2364,11 +2368,11 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         updateInactiveToggle(state);
         const dayHeaders = visibleDays.map(day => `<div class="lmx-cell">${day.challengeDay}</div>`).join("");
         const leaderboardRows = splitLeaderboardRows(state);
-        const rows = leaderboardRows.visible.map((row, index) => {
+        const rows = leaderboardRows.visible.map(row => {
             const name = row.athleteUrl
                 ? `<a href="${escAttr(row.athleteUrl)}">${esc(row.displayName)}</a>`
                 : `<span>${esc(row.displayName)}</span>`;
-            const participant = participantNameHtml(row, name, index + 1);
+            const participant = participantNameHtml(row, name, leaderboardRank(state, row));
             const cells = visibleDays.map(day => `<div class="lmx-cell empty" data-day="${escAttr(day.challengeDay)}" title="Day ${day.challengeDay}"></div>`).join("");
             return `<div class="lmx-board-row lmx-roster-row${row.challengeInactive ? " inactive" : ""}" role="row">
                 <div class="lmx-name" role="cell">${participant}</div>
@@ -2384,12 +2388,18 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
 
     function leaderboardDayWindow(state: PublicState): LeaderboardDayWindow {
         const configuredDays = state.days || [];
-        const allDays = configuredDays.length
+        const availableDays = configuredDays.length
             ? configuredDays
             : Array.from({ length: Math.max(1, Math.trunc(Number(state.durationDays) || LEADERBOARD_SCORING_WINDOW_DAYS)) }, (_, index) => ({
                 challengeDay: index + 1,
                 date: ""
             }));
+        const latestCheckInDay = (state.leaderboard || []).reduce((latest, row) =>
+            (row.cells || []).reduce((lastDay, cell) => cell.checkedIn ? Math.max(lastDay, cell.challengeDay) : lastDay, latest), 0);
+        const lastVisibleDay = Math.max(state.scoringWindow?.endDay ?? 0, latestCheckInDay);
+        const allDays = state.scoringWindow && !isPreStartSignup(state)
+            ? availableDays.filter(day => day.challengeDay <= lastVisibleDay)
+            : availableDays;
         const mobile = mobileLeaderboardMedia?.matches ?? window.matchMedia(MOBILE_LEADERBOARD_QUERY).matches;
         const pageCount = mobile ? Math.max(1, Math.ceil(allDays.length / LEADERBOARD_SCORING_WINDOW_DAYS)) : 1;
         const pageIndex = mobile ? Math.max(0, Math.min(pageCount - 1, mobileLeaderboardPage)) : 0;
@@ -6377,6 +6387,12 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     }
 
 
+    function leaderboardRank(state: PublicState, row: LeaderboardRow): number {
+        // Keep cached/older API responses consistent with the server's competition ranks.
+        return row.rank && row.rank > 0 ? row.rank
+            : 1 + (state.leaderboard || []).filter(other => other.totalPoints > row.totalPoints).length;
+    }
+
     function participantNameHtml(row: LeaderboardRow, nameHtml: string, rank: number): string {
         const avatar = participantAvatarDetails(row, row.displayName);
         const avatarClass = avatar.hasProfileImage ? "lmx-participant-avatar" : "lmx-participant-avatar placeholder";
@@ -6386,12 +6402,15 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const rankHtml = rankNumber && rankNumber > 0
             ? `<span class="lmx-rank" aria-label="Rank ${rankNumber}">#${rankNumber}</span>`
             : "";
+        const fullMarks = row.hasFullMarks
+            ? '<svg class="lmx-full-marks-icon" viewBox="0 0 20 20" role="img" aria-label="Full marks for the 14-day scoring window"><title>Full marks for the 14-day scoring window, including the forgiveness allowance</title><circle cx="10" cy="10" r="8"></circle><path d="m6 10 3 3 5-6"></path></svg>'
+            : "";
         return `<div class="lmx-participant-name">
             ${rankHtml}
             <span class="${avatarClass}" ${hydrationAttributes} aria-hidden="${avatar.hasProfileImage ? "false" : "true"}">
                 <img src="${escAttr(avatar.image)}" alt="${escAttr(avatar.alt)}" loading="lazy" decoding="async">
             </span>
-            <span class="lmx-participant-label">${nameHtml}${badges.length ? `<span class="lmx-row-badges">${badges.map(badge => `<em>${esc(badge)}</em>`).join("")}</span>` : ""}</span>
+            <span class="lmx-participant-label">${nameHtml}${fullMarks}${badges.length ? `<span class="lmx-row-badges">${badges.map(badge => `<em>${esc(badge)}</em>`).join("")}</span>` : ""}</span>
         </div>`;
     }
 
@@ -7675,6 +7694,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             typeof value.participantId === "string" && typeof value.displayName === "string" &&
             isNullableString(value.athleteUrl) && isNullableString(value.profileImageUrl) &&
             typeof value.checkedInDays === "number" && typeof value.totalPoints === "number" &&
+            (!("rank" in value) || (typeof value.rank === "number" && Number.isInteger(value.rank) && value.rank > 0)) &&
+            (!("hasFullMarks" in value) || typeof value.hasFullMarks === "boolean") &&
             typeof value.currentStreak === "number" && isArrayOf(value.cells, isDayCell) &&
             Array.isArray(value.badges) && value.badges.every(badge => typeof badge === "string") &&
             isNullableString(value.latestCheckInAtUtc) && typeof value.challengeEmailsStopped === "boolean" &&

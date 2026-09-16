@@ -137,6 +137,7 @@ public sealed class LongevitymaxxingChallengeService
         var leaderboard = BuildLeaderboard(settings, participants, checkIns, now, settings.DurationDays, settings.DurationDays);
         var occurredAtUtc = finalResultsAvailableAtUtc.UtcDateTime;
 
+        // The one-time original challenge awards retain their published ordinal placements.
         return leaderboard
             .Select((row, index) =>
             {
@@ -3102,6 +3103,9 @@ public sealed class LongevitymaxxingChallengeService
     {
         var leaderboardWindowEndDay = maxChallengeDay ?? GetLeaderboardScoringWindow(settings, now).EndDay;
         var leaderboardWindowStartDay = GetLeaderboardWindowStartDay(leaderboardWindowEndDay);
+        var maximumWindowPoints = Enumerable.Range(leaderboardWindowStartDay,
+                Math.Max(0, leaderboardWindowEndDay - leaderboardWindowStartDay + 1))
+            .Sum(day => GetScoredPoints(day, RawDailyMaxScore, settings.DurationDays, PracticeCheckInDay));
         var categoryLeaders = BuildCategoryLeaders(settings, participants, checkIns, leaderboardWindowEndDay, leaderboardWindowStartDay);
         var athleteTieBreaks = BuildAthleteTieBreaks();
         var rows = participants.Select(p =>
@@ -3148,7 +3152,11 @@ public sealed class LongevitymaxxingChallengeService
                     badges,
                     latest?.ToString("o"),
                     p.StoppedEmailsAtUtc is not null,
-                    challengeInactive),
+                    challengeInactive)
+                {
+                    HasFullMarks = checkedInDays == LeaderboardScoringWindowDays
+                        && maximumWindowPoints > 0 && totalPoints == maximumWindowPoints
+                },
                 TieBreak: GetAthleteTieBreak(athleteTieBreaks, p.AthleteSlug));
         })
         .OrderByDescending(r => r.Row.TotalPoints)
@@ -3161,6 +3169,15 @@ public sealed class LongevitymaxxingChallengeService
         .ThenBy(r => r.Row.DisplayName, StringComparer.OrdinalIgnoreCase)
         .Select(r => r.Row)
         .ToList();
+
+        // Secondary sort keys keep tied rows in a stable order; only points determine rank.
+        var rank = 0;
+        for (var index = 0; index < rows.Count; index++)
+        {
+            if (index == 0 || rows[index].TotalPoints != rows[index - 1].TotalPoints)
+                rank = index + 1;
+            rows[index] = rows[index] with { Rank = rank };
+        }
 
         return rows;
     }
