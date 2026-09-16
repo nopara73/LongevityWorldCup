@@ -6,7 +6,7 @@ namespace LongevityWorldCup.Website.Business;
 
 public sealed class SitemapService(LeaderboardFactsService leaderboardFacts, IWebHostEnvironment env)
 {
-    private const string SiteBaseUrl = "https://longevityworldcup.com";
+    public const string SiteBaseUrl = "https://longevityworldcup.com";
     private static readonly XNamespace SitemapNamespace = "http://www.sitemaps.org/schemas/sitemap/0.9";
 
     public static readonly IReadOnlyList<SitemapRoute> StaticRoutes =
