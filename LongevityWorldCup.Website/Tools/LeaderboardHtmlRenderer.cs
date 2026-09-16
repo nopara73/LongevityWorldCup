@@ -51,11 +51,15 @@ public static class LeaderboardHtmlRenderer
         sb.AppendLine("                    <td data-label=\"Athlete\" class=\"athlete-td\">");
         if (!string.IsNullOrWhiteSpace(thumbnail))
         {
-            sb.Append("                        <span class=\"portrait-wrapper\"><img src=\"")
+            sb.Append("                        <a class=\"portrait-wrapper athlete-profile-link\" href=\"")
+                .Append(athletePath)
+                .Append("\" aria-label=\"")
+                .Append(EncodeAttribute($"View stats of {row.DisplayName}"))
+                .Append("\"><img src=\"")
                 .Append(EncodeAttribute(thumbnail))
                 .Append("\" alt=\"")
                 .Append(EncodeAttribute($"{row.DisplayName} portrait"))
-                .AppendLine("\" class=\"portrait\" loading=\"lazy\"></span>");
+                .AppendLine("\" class=\"portrait\" loading=\"lazy\"></a>");
         }
         sb.Append("                        <a class=\"athlete-name\" href=\"")
             .Append(athletePath)
