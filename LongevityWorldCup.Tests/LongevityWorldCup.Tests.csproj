@@ -23,6 +23,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\LongevityWorldCup.Website\LongevityWorldCup.Website.csproj" />
+    <ProjectReference Include="..\LongevityWorldCup.ApplicationReviewer\LongevityWorldCup.ApplicationReviewer.csproj" />
   </ItemGroup>
 
 </Project>

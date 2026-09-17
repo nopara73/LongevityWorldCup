@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+    <InternalsVisibleTo Include="LongevityWorldCup.Tests" />
   </ItemGroup>
 
 </Project>
