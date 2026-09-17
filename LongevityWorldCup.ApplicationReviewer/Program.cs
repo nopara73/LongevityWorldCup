@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO.Compression;
 using System.Net;
 using System.Net.Http.Headers;
+using System.Reflection;
 using System.Security.Cryptography;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
@@ -12,12 +13,11 @@ namespace LongevityWorldCup.ApplicationReviewer;
 
 internal class Program
 {
-    private static readonly TimeSpan ServerStartupTimeout = TimeSpan.FromSeconds(45);
     private static readonly TimeSpan AthleteReloadTimeout = TimeSpan.FromSeconds(15);
     private static readonly HashSet<string> ProfileImageExtensions =
         new([".webp", ".png", ".jpg", ".jpeg"], StringComparer.OrdinalIgnoreCase);
 
-    private static void Main()
+    private static async Task Main()
     {
         // get back up to your solution folder
         var solutionRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", ".."));
@@ -25,24 +25,9 @@ internal class Program
 
         // -- ensure the Website is up --
         var serverUrl = "https://localhost:7080";
-        if (!IsServerRunning(serverUrl))
-        {
-            var websiteProject = Path.Combine(solutionRoot, "LongevityWorldCup.Website");
-
-            Process.Start(new ProcessStartInfo
-            {
-                FileName = "dotnet",
-                Arguments = "run"
-                     + $" --project \"{websiteProject}\""
-                     + " --launch-profile \"https\""
-                     + " --no-build"
-                     + " --no-restore",
-                UseShellExecute = false,
-                WorkingDirectory = websiteProject
-            });
-
-            WaitForServer(serverUrl, ServerStartupTimeout);
-        }
+        var configuration = typeof(Program).Assembly
+            .GetCustomAttribute<AssemblyConfigurationAttribute>()?.Configuration ?? "Debug";
+        await WebsitePreview.EnsureReadyAsync(solutionRoot, new Uri(serverUrl), configuration);
 
         // -- now proceed to unzip & open URLs as before --
         var athletesFolder = Path.Combine(solutionRoot,
@@ -309,34 +294,6 @@ internal class Program
         var tempDir = Path.Combine(tempRoot, Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(tempDir);
         return tempDir;
-    }
-
-    private static bool IsServerRunning(string url)
-    {
-        try
-        {
-            using var httpClient = new HttpClient();
-            var response = httpClient.Send(new HttpRequestMessage(HttpMethod.Head, url));
-            return response.IsSuccessStatusCode;
-        }
-        catch
-        {
-            return false;
-        }
-    }
-
-    private static void WaitForServer(string url, TimeSpan timeout)
-    {
-        var deadline = DateTime.UtcNow + timeout;
-        while (DateTime.UtcNow < deadline)
-        {
-            if (IsServerRunning(url))
-                return;
-
-            Thread.Sleep(500);
-        }
-
-        throw new TimeoutException($"Website did not become available at {url} within {timeout.TotalSeconds:0} seconds.");
     }
 
     private static void WaitForAthleteVisible(
