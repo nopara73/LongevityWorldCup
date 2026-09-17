@@ -1,5 +1,6 @@
 using Microsoft.Playwright;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Xunit;
 using LongevityWorldCup.Website.Business;
 using Microsoft.Extensions.DependencyInjection;
@@ -12,6 +13,60 @@ public sealed class SiteStatisticsTrackingBrowserTests(
     BrowserTestAppFixture appFixture)
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
+    [Theory]
+    [InlineData("http://localhost/", false, false)]
+    [InlineData("http://preview.localhost/", false, false)]
+    [InlineData("http://127.0.0.1/", false, false)]
+    [InlineData("http://[::1]/", false, false)]
+    [InlineData("https://longevityworldcup.com/", true, false)]
+    [InlineData("https://longevityworldcup.com/", false, true)]
+    [InlineData("https://www.longevityworldcup.com/", false, true)]
+    [InlineData("http://lwc7tszawiykmkjoq4u2yxramezkwbdys2wxr2fmf6sdr6ug5t36ckqd.onion/", false, true)]
+    [InlineData("https://longevityworldcup.com/longevitymaxxing?token=private-access-token&utm_source=longevityworldcup&utm_medium=email&utm_campaign=longevitymaxxing&utm_content=daily_reminder", false, true, true)]
+    public async Task GoogleAnalyticsSkipsLocalAndAutomatedVisits(string url, bool automated, bool shouldLoad, bool emailCampaign = false)
+    {
+        using var client = App.CreateClient();
+        var html = await client.GetStringAsync("/");
+        var script = Regex.Match(html, "<script id=\"googleAnalytics\">(?<code>[\\s\\S]*?)</script>").Groups["code"].Value;
+        Assert.NotEmpty(script);
+
+        await using var context = await Browser.NewContextAsync();
+        await context.AddInitScriptAsync($"Object.defineProperty(navigator, 'webdriver', {{ get: () => {automated.ToString().ToLowerInvariant()} }});");
+        var tagRequests = 0;
+        await context.RouteAsync("**/*", async route =>
+        {
+            if (route.Request.Url.StartsWith("https://www.googletagmanager.com/gtag/js", StringComparison.Ordinal))
+                Interlocked.Increment(ref tagRequests);
+            await route.FulfillAsync(new()
+            {
+                ContentType = route.Request.ResourceType == "document" ? "text/html" : "application/javascript",
+                Body = route.Request.ResourceType == "document"
+                    ? $"<!doctype html><html><head><script>{script}</script><script>history.replaceState({{}}, '', location.pathname);</script></head><body></body></html>"
+                    : ""
+            });
+        });
+        var page = await context.NewPageAsync();
+        await page.GotoAsync(url);
+        if (shouldLoad)
+            await page.WaitForFunctionAsync("() => !!document.querySelector('script[src*=\"googletagmanager.com/gtag/js\"]')");
+
+        Assert.Equal(shouldLoad, await page.EvaluateAsync<bool>("() => window.dataLayer.some(args => args[0] === 'config')"));
+        Assert.Equal(!shouldLoad, await page.EvaluateAsync<bool>("() => window['ga-disable-G-PSSCLBW37H'] === true"));
+        Assert.Equal(shouldLoad ? 1 : 0, tagRequests);
+        if (emailCampaign)
+        {
+            Assert.DoesNotContain('?', page.Url);
+            var configJson = await page.EvaluateAsync<string>("() => JSON.stringify(window.dataLayer.find(args => args[0] === 'config')[2])");
+            var config = JsonSerializer.Deserialize<Dictionary<string, string>>(configJson)!;
+            Assert.Equal(4, config.Count);
+            Assert.Equal("longevityworldcup", config["campaign_source"]);
+            Assert.Equal("email", config["campaign_medium"]);
+            Assert.Equal("longevitymaxxing", config["campaign_name"]);
+            Assert.Equal("daily_reminder", config["campaign_content"]);
+            Assert.DoesNotContain("private-access-token", JsonSerializer.Serialize(config));
+        }
+    }
+
     [Fact]
     public async Task AiJourneyPreservesFirstTouchAndDoesNotTransmitFormValues()
     {

@@ -372,14 +372,39 @@ Must appear before any other script that attaches DOMContentLoaded listeners.
 <script id="pageStructuredData" type="application/ld+json">{{SEO_STRUCTURED_DATA}}</script>
 
 <!-- Google tag (gtag.js) -->
-<script>
+<script id="googleAnalytics">
     window.dataLayer = window.dataLayer || [];
     function gtag() { dataLayer.push(arguments); }
-    gtag('js', new Date());
-
-    gtag('config', 'G-PSSCLBW37H');
 
     (function () {
+        const host = window.location.hostname.toLowerCase();
+        const localHost = host === 'localhost' || host.endsWith('.localhost') ||
+            /^127(?:\.\d{1,3}){3}$/.test(host) || host === '[::1]';
+        // Local previews and controlled browser checks are not audience traffic.
+        if (localHost || navigator.webdriver) {
+            window['ga-disable-G-PSSCLBW37H'] = true;
+            return;
+        }
+
+        // Capture campaign labels before Challenge sign-in cleans the URL and
+        // before the deferred Google tag loads. Never copy access tokens.
+        const campaignParams = new URLSearchParams(window.location.search);
+        const campaignFields = {
+            utm_source: 'campaign_source',
+            utm_medium: 'campaign_medium',
+            utm_campaign: 'campaign_name',
+            utm_content: 'campaign_content',
+            utm_term: 'campaign_term',
+            utm_id: 'campaign_id'
+        };
+        const googleConfig = {};
+        for (const [parameter, field] of Object.entries(campaignFields)) {
+            const value = campaignParams.get(parameter);
+            if (value) googleConfig[field] = value;
+        }
+
+        gtag('js', new Date());
+        gtag('config', 'G-PSSCLBW37H', googleConfig);
         let googleTagLoaded = false;
 
         function loadGoogleTag() {

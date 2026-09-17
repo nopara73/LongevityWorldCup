@@ -3,6 +3,7 @@ using System.Text;
 using MailKit.Net.Smtp;
 using MailKit.Security;
 using MimeKit;
+using Microsoft.AspNetCore.WebUtilities;
 
 namespace LongevityWorldCup.Website.Business;
 
@@ -25,7 +26,7 @@ public sealed class SmtpLongevitymaxxingEmailSender(Config config, ILogger<SmtpL
         var body =
             $"Hi {SafeName(displayName)},\n\n" +
             "Confirm your Longevitymaxxing Challenge spot:\n" +
-            $"{confirmationUrl}\n\n" +
+            $"{EmailCampaignUrl(confirmationUrl, "confirmation")}\n\n" +
             "After confirmation, this browser can check in without another login.\n\n" +
             "Longevity World Cup";
 
@@ -37,7 +38,7 @@ public sealed class SmtpLongevitymaxxingEmailSender(Config config, ILogger<SmtpL
         var body =
             $"Hi {SafeName(displayName)},\n\n" +
             "Your Longevitymaxxing Challenge link:\n" +
-            $"{accessUrl}\n\n" +
+            $"{EmailCampaignUrl(accessUrl, "access_link")}\n\n" +
             "Open it once on a browser and the page will remember you.\n\n" +
             "Longevity World Cup";
 
@@ -86,7 +87,7 @@ public sealed class SmtpLongevitymaxxingEmailSender(Config config, ILogger<SmtpL
         var body =
             $"Hi {SafeName(reminder.DisplayName)},\n\n" +
             $"{lead}\n" +
-            $"{checkInUrl}\n\n" +
+            $"{EmailCampaignUrl(checkInUrl, "daily_reminder")}\n\n" +
             $"{guidance}\n\n" +
             $"{continuation}" +
             $"{scheduleUpdate}" +
@@ -173,7 +174,7 @@ public sealed class SmtpLongevitymaxxingEmailSender(Config config, ILogger<SmtpL
             $"Hi {SafeName(reminder.DisplayName)},\n\n" +
             $"The Longevitymaxxing {callLabel} starts at {localStartsAt}.\n" +
             $"{link}\n\n" +
-            $"Participant page:\n{challengeUrl}\n\n" +
+            $"Participant page:\n{EmailCampaignUrl(challengeUrl, "call_reminder")}\n\n" +
             $"Stop community call emails: {stopCommunityCallUrl}\n\n" +
             "Longevity World Cup";
 
@@ -212,12 +213,21 @@ public sealed class SmtpLongevitymaxxingEmailSender(Config config, ILogger<SmtpL
             $"Timezone: {SafeTimeZoneLabel(start.TimeZoneId)}\n" +
             $"{calls}\n\n" +
             $"{attachmentText}" +
-            $"Open your participant page for check-ins, leaderboard, Slack, and meeting links:\n{challengeUrl}\n\n" +
+            $"Open your participant page for check-ins, leaderboard, Slack, and meeting links:\n{EmailCampaignUrl(challengeUrl, "challenge_start")}\n\n" +
             $"Stop Challenge reminder emails: {stopUrl}\n\n" +
             "Longevity World Cup";
 
         return new LongevitymaxxingEmailContent("Longevitymaxxing Challenge check-ins are ready", body, attachments);
     }
+
+    private static string EmailCampaignUrl(string url, string content)
+        => QueryHelpers.AddQueryString(url, new Dictionary<string, string?>
+        {
+            ["utm_source"] = "longevityworldcup",
+            ["utm_medium"] = "email",
+            ["utm_campaign"] = "longevitymaxxing",
+            ["utm_content"] = content
+        });
 
     private async Task SendAsync(
         string email,

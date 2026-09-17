@@ -1112,7 +1112,9 @@ $@"<script{scriptAttributes}>
                 : $"/league/{payload.RouteSlug}";
             var canonicalUrl = $"{SiteBaseUrl}{canonicalPath}";
             var title = $"{payload.DisplayName} | Longevity World Cup";
-            var description = "Current league rankings.";
+            var description = string.Equals(payload.InternalSlug, "ultimate", StringComparison.OrdinalIgnoreCase)
+                ? "Compare longevity athletes in the Ultimate League: Pro and Amateur rankings, biological age reduction, biomarker results, and athlete profiles."
+                : $"Explore {payload.DisplayName} longevity rankings, compare biological age reduction, and view athlete profiles and submitted biomarker results.";
             var ogImageUrl = _leagueOgImages.IsConfigured
                 ? _leagueOgImages.BuildVersionedImageUrl(SiteBaseUrl, payload)
                 : BuildDefaultOgImageUrl();

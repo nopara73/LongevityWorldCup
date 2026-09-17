@@ -2702,6 +2702,13 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
         Assert.Contains("Updated call schedule:", content.TextBody);
         Assert.Contains("- Community call: 2026-06-28 06:30 (UTC)", content.TextBody);
         Assert.Contains("Stop Challenge reminder emails:", content.TextBody);
+        var checkInUrl = content.TextBody.Split('\n').Single(line => line.Contains("utm_content=daily_reminder", StringComparison.Ordinal));
+        Assert.Equal(reminder.AccessToken, ReadQueryToken(checkInUrl, "token"));
+        Assert.Equal("longevityworldcup", ReadQueryToken(checkInUrl, "utm_source"));
+        Assert.Equal("email", ReadQueryToken(checkInUrl, "utm_medium"));
+        Assert.Equal("longevitymaxxing", ReadQueryToken(checkInUrl, "utm_campaign"));
+        var stopLine = content.TextBody.Split('\n').Single(line => line.StartsWith("Stop Challenge reminder emails:", StringComparison.Ordinal));
+        Assert.DoesNotContain("utm_", stopLine);
     }
 
     [Fact]

@@ -1,0 +1,13 @@
+# Analytics operations
+
+GA4 property `470056728` receives `calculator_result_generated`, `application_submit_succeeded`, and `challenge_signup_succeeded` from the existing privacy-safe event bridge. All three are marked as key events as of 2026-09-17. This setting applies prospectively; earlier event counts remain available in event reports.
+
+The saved **LWC calculator to application** exploration uses a closed, ordered funnel: calculator result, indirectly followed by successful application submission during the selected reporting window. It includes device breakdown, elapsed time, and next event. It counts observed GA users, not paid or approved athletes; completion in a later reporting window is not included. Keep the raw success event separate from the stricter full-application session definition in [AI referral reporting](AiReferralReporting.md).
+
+Challenge confirmation, access, daily reminder, call reminder, and start email links use fixed campaign labels: `utm_source=longevityworldcup`, `utm_medium=email`, `utm_campaign=longevitymaxxing`, and the message type in `utm_content`. They preserve the original access/confirmation token. The shared Google tag captures campaign labels before Challenge sign-in cleans the URL, so deferred loading retains attribution without copying access tokens into campaign settings. Stop links and calendar attachments retain their existing URLs. Never put recipient details or tokens in campaign labels, or add campaign tags to internal navigation.
+
+Compare complete reporting windows and allow Search Console processing time. Inspect query/page pairs before treating lower secondary-page clicks as a sitewide ranking loss. Inspect hostname and source evidence before attributing Direct growth to campaigns or automation. The public onion mirror is legitimate traffic; location, short engagement, or missing referrers do not establish that a visit is a bot.
+
+The shared Google tag does not configure or load on `localhost`, its subdomains, IPv4 loopback, IPv6 loopback, or browsers explicitly reporting WebDriver automation. Public clearnet and onion visits retain collection. This prevents future test traffic; it does not alter historical reports. The browser test harness also stubs Google Tag Manager. Do not create permanent GA exclusion filters from geography or engagement heuristics.
+
+Search descriptions for league pages describe the rankings, age reduction, results, and athlete profiles; retain the established league names and visible copy. After metadata changes, verify HTTP status, canonical URL, indexability, and Google URL Inspection. An indexing request is an acknowledgement, not a guarantee of a new search snippet or ranking.
