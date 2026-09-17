@@ -1489,6 +1489,39 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
         Assert.Empty(errors);
     }
 
+    [Theory]
+    [InlineData(17, true)]
+    [InlineData(19, false)]
+    public async Task DiscussionOrder_RecencyOutweighsStaleRepliesForCheckInsAndWelcomePosts(int inactiveHours, bool popularFirst)
+    {
+        await using var context = await Browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = App.BaseAddress.ToString(),
+            Locale = "en-US"
+        });
+        await RouteChallengeResourcesAsync(context);
+        var page = await context.NewPageAsync();
+        var now = DateTimeOffset.Parse("2026-07-05T12:00:00Z");
+        await page.Clock.SetFixedTimeAsync(now.UtcDateTime);
+        var state = JsonSerializer.SerializeToNode(BuildPublicState(includeJoinDiscussionPost: true))!;
+        var activity = now.AddHours(-inactiveHours).ToString("o");
+        state["notes"] = JsonSerializer.SerializeToNode(new[]
+        {
+            Note("p7", "Fox", 5, "2026-06-12", "Older conversation.", lastActivityAtUtc: activity, replyCount: 7),
+            Note("p3", "Fresh", 28, "2026-07-05", "A fresh daily post.", updatedAtUtc: now.ToString("o"))
+        });
+        var welcome = state["systemDiscussionPosts"]![0]!;
+        welcome["lastActivityAtUtc"] = activity;
+        welcome["occurredAtUtc"] = "2026-07-04T09:00:00Z";
+        welcome["date"] = "2026-07-04";
+        welcome["replyCount"] = 7;
+        await page.RouteAsync("**/api/longevitymaxxing/state", route => FulfillJsonAsync(route, state.ToJsonString()));
+
+        await page.GotoAsync("/longevitymaxxing");
+        await Assertions.Expect(page.Locator("#lmxNotes .lmx-discussion-post-author strong"))
+            .ToHaveTextAsync(popularFirst ? ["Fox", "New Nina", "Fresh"] : ["Fresh", "Fox", "New Nina"]);
+    }
+
     [Fact]
     public async Task DiscussionPager_PreservesServerHotOrderAndPagesPosts()
     {

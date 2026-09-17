@@ -241,21 +241,34 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
             DateTimeOffset.Parse("2026-06-20T08:00:00Z"));
 
         var state = fixture.Service.GetParticipantState(newAccess, DateTimeOffset.Parse("2026-06-20T09:00:00Z"));
-        Assert.Equal("Old Olivia", state.Notes[0].DisplayName);
-        Assert.Equal(7, state.Notes[0].ReplyCount);
-        Assert.Equal(DateTimeOffset.Parse("2026-06-18T08:00:00Z"), DateTimeOffset.Parse(state.Notes[0].UpdatedAtUtc));
-        Assert.Equal(DateTimeOffset.Parse("2026-06-19T09:00:06Z"), DateTimeOffset.Parse(state.Notes[0].LastActivityAtUtc));
-        Assert.Equal("New Nia", state.Notes[1].DisplayName);
+        Assert.Equal("New Nia", state.Notes[0].DisplayName);
+        Assert.Equal("Old Olivia", state.Notes[1].DisplayName);
+        Assert.Equal(7, state.Notes[1].ReplyCount);
+        Assert.Equal(DateTimeOffset.Parse("2026-06-18T08:00:00Z"), DateTimeOffset.Parse(state.Notes[1].UpdatedAtUtc));
+        Assert.Equal(DateTimeOffset.Parse("2026-06-19T09:00:06Z"), DateTimeOffset.Parse(state.Notes[1].LastActivityAtUtc));
 
-        var popularOlder = LongevitymaxxingChallengeService.CalculateDiscussionHotScore(
-            7,
-            DateTimeOffset.Parse("2026-06-19T09:00:00Z"),
-            DateTimeOffset.Parse("2026-06-20T09:00:00Z"));
-        var newWithoutReplies = LongevitymaxxingChallengeService.CalculateDiscussionHotScore(
-            0,
-            DateTimeOffset.Parse("2026-06-20T09:00:00Z"),
-            DateTimeOffset.Parse("2026-06-20T09:00:00Z"));
-        Assert.True(popularOlder > newWithoutReplies);
+        var revived = fixture.Service.SubmitDiscussionReply(
+            new LongevitymaxxingDiscussionReplyRequest(replierAccess, oldPost.ParticipantId, 10, "Still discussing today.", Guid.NewGuid().ToString("D")),
+            DateTimeOffset.Parse("2026-06-20T09:01:00Z"));
+        Assert.Equal("Old Olivia", revived.Notes[0].DisplayName);
+        Assert.Equal("New Nia", revived.Notes[1].DisplayName);
+    }
+
+    [Theory]
+    [InlineData(1, 5, true)]
+    [InlineData(1, 7, false)]
+    [InlineData(3, 11, true)]
+    [InlineData(3, 13, false)]
+    [InlineData(7, 17, true)]
+    [InlineData(7, 19, false)]
+    [InlineData(15, 23, true)]
+    [InlineData(15, 25, false)]
+    public void DiscussionReplyAdvantageExpiresWithinHours(int replies, int inactiveHours, bool outranksFreshPost)
+    {
+        var now = DateTimeOffset.Parse("2026-06-20T09:00:00Z");
+        var older = LongevitymaxxingChallengeService.CalculateDiscussionHotScore(replies, now.AddHours(-inactiveHours), now);
+        var fresh = LongevitymaxxingChallengeService.CalculateDiscussionHotScore(0, now, now);
+        Assert.Equal(outranksFreshPost, older > fresh);
     }
 
     [Fact]

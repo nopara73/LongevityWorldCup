@@ -3641,7 +3641,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
 
     function discussionHotScore(note: ParticipantNote, now: number): number {
         const daysSinceLatestActivity = Math.max(0, now - discussionActivityTimestamp(note)) / 86_400_000;
-        return Math.log2(effectiveDiscussionReplyCount(note) + 1) - daysSinceLatestActivity;
+        return Math.log2(effectiveDiscussionReplyCount(note) + 1) - (4 * daysSinceLatestActivity);
     }
 
     function discussionActivityTimestamp(note: ParticipantNote): number {

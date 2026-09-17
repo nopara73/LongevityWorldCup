@@ -3889,7 +3889,7 @@ public sealed class LongevitymaxxingChallengeService
         DateTimeOffset nowUtc)
     {
         var ageInDays = Math.Max(0d, (EnsureUtc(nowUtc) - EnsureUtc(lastActivityAtUtc)).TotalDays);
-        return Math.Log2(Math.Max(0, replyCount) + 1d) - ageInDays;
+        return Math.Log2(Math.Max(0, replyCount) + 1d) - (4d * ageInDays);
     }
 
     private IReadOnlyList<LongevitymaxxingParticipantCall> BuildParticipantCalls(ChallengeSettings settings)
