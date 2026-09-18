@@ -1735,6 +1735,9 @@ interface Window {
         const nextButton = document.getElementById('continueButton');
         if (!nextButton) return;
 
+        const label = nextButton.querySelector('.flow-action__label');
+        if (label && !isUpdateMode()) label.textContent = 'Join the leaderboard';
+
         syncBioageResultActions();
         syncBioageResultVisibility();
 

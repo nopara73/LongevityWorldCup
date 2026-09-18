@@ -257,6 +257,11 @@ public sealed class BioageMobileUxBrowserTests(
 
         await calculate.TapAsync();
         await page.WaitForSelectorAsync($"{resultSelector}.show");
+        Assert.Equal(path.Contains("update=1") ? "Next" : "Join the leaderboard",
+            await page.Locator("#continueButton .flow-action__label").InnerTextAsync());
+        Assert.True(await page.Locator("#continueButton .fa-arrow-right").IsVisibleAsync());
+        Assert.True(await page.Locator("#continueButton").EvaluateAsync<bool>(
+            "button => button.scrollWidth <= button.clientWidth && button.getBoundingClientRect().right <= innerWidth"));
         Assert.Equal("5.2", await page.Locator("#glucose").InputValueAsync());
         Assert.Equal("6.54", await page.Locator("#wbc").InputValueAsync());
         Assert.True(await page.Locator("#validAgeInput").IsVisibleAsync());
@@ -315,6 +320,11 @@ public sealed class BioageMobileUxBrowserTests(
         Assert.False(await calculate.IsDisabledAsync());
         await calculate.TapAsync();
         await page.WaitForSelectorAsync($"{resultSelector}.show");
+        Assert.Equal(path.Contains("update=1") ? "Next" : "Join the leaderboard",
+            await page.Locator("#continueButton .flow-action__label").InnerTextAsync());
+        Assert.True(await page.Locator("#continueButton .fa-arrow-right").IsVisibleAsync());
+        Assert.True(await page.Locator("#continueButton").EvaluateAsync<bool>(
+            "button => button.scrollWidth <= button.clientWidth && button.getBoundingClientRect().right <= innerWidth"));
 
         Assert.Null(await page.Locator(resultSelector).GetAttributeAsync("inert"));
         Assert.Equal(0, await page.GetByRole(

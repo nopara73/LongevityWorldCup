@@ -190,6 +190,8 @@ public sealed class PlayAthleteFlowBrowserTests(
         await page.WaitForDomContentLoadedUrlAsync("**/bortz-age?update=1&upgrade=1");
         await page.WaitForFunctionAsync("() => document.querySelector('#lwc-step-2')?.classList.contains('lwc-step--visible')");
 
+        Assert.Equal("Next", await page.Locator("#continueButton .flow-action__label").InnerTextAsync());
+
         var storedOffer = await page.EvaluateAsync<string?>("() => sessionStorage.getItem('pendingPaymentOffer')");
         Assert.NotNull(storedOffer);
         using (var paymentOffer = JsonDocument.Parse(storedOffer))
