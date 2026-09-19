@@ -1,0 +1,41 @@
+{
+  "Name": "Maximal N-of-1",
+  "DisplayName": null,
+  "MediaContact": "athlete@maximalhealth.net",
+  "DateOfBirth": {
+    "Year": 1985,
+    "Month": 7,
+    "Day": 29
+  },
+  "Biomarkers": [
+    {
+      "Date": "2026-09-15",
+      "AlbGL": 48.2,
+      "CreatUmolL": 80,
+      "GluMmolL": 5.09,
+      "CrpMgL": 0.54,
+      "LymPc": 36.71,
+      "McvFL": 87.2,
+      "RdwPc": 12,
+      "AlpUL": 65.99,
+      "Wbc1000cellsuL": 6.62,
+      "NeutrophilPc": 52.57,
+      "MonocytePc": 6.8,
+      "Rbc10e12L": 5,
+      "MchPg": 29.6,
+      "UreaMmolL": 7.5,
+      "CystatinCMgL": 0.71,
+      "Hba1cMmolMol": 36,
+      "CholesterolMmolL": 4.3,
+      "ApoA1GL": 1.32,
+      "AltUL": 23.4,
+      "GgtUL": 16.8,
+      "ShbgNmolL": 44.1,
+      "VitaminDNmolL": 102
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Bulgaria",
+  "Why": "I want to learn what my own longitudinal health data can. I am building an app called \"Maximal Health\" to make personal data easier to analyze.",
+  "PersonalLink": "https://www.youtube.com/@MaximalN-of-1"
+}
