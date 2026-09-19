@@ -21,6 +21,8 @@ Deploy through the normal workflow. Preserve/back up the existing database and `
 
 Startup does **not** scan historical invoice lists, import `ApplicationSubmissionResponses`, or replay legacy notifications. Only orders registered by this implementation enter the queue. Any pre-deployment omissions need separately approved recovery. Do not change legacy sent markers to force a replay. If rolling back to a binary that sends directly from browser callbacks, disable that old notification path or reconcile its sent-marker file first; the old binary cannot consult this outbox.
 
+At first rollout, carry forward outstanding application invoices only after a fresh provider check establishes that they are still unpaid. Match them to the persisted submission responses, retain their original order/invoice IDs and identity, and insert `Pending` records with no paid evidence or sent timestamp. Back up the database first and leave existing rows untouched. Skip already-paid or already-notified invoices; this transition preserves detection of future payments without replaying historical notifications.
+
 Inspect production read-only (do not print the full JSON payload, which contains applicant contact details):
 
 ```sh
