@@ -34,6 +34,8 @@ Use lowercase pheno age, bortz age, crowd age, age reduction, and effective age 
 
 An existing Amateur's first eligible bortz result uses Pro-upgrade pricing. Other result/profile updates are free. The server classifies submissions from existing athlete and submitted clock data and sets authoritative entry/upgrade pricing; browser payment state is only a handoff hint.
 
+Manual application payment review uses reasonable confidence. Credible payment evidence is sufficient despite imperfect identifiers or unavailable corroboration; the user accepts occasional unpaid applicants passing this gate to avoid wrongly blocking honest ones. Record inferred matches honestly and stop checking once reasonably satisfied. This discretion clears the manual review gate without changing the provider's recorded payment state.
+
 ## Events and Improvement
 
 - **Test date** is the laboratory measurement date. **First public announcement** is available only where an accepted-result Event records it; older untracked publication dates remain unknown. **Observed content change** is when the application detects changed public facts or definitions, distinct from response generation, deployment, and cache refresh. Missing values are unavailable, not zero. Current leaders and ranks are not completed-season winners or historical placements.
