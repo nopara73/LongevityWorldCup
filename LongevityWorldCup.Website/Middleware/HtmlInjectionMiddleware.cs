@@ -769,7 +769,7 @@ $@"<script{scriptAttributes}>
                     BlockingScriptPaths: ["/js/flow-action-dock.js"]),
                 "/onboarding/application-review.html" => new HeadAssetConfig(
                     IncludeValidator: false,
-                    ModulePaths: [],
+                    ModulePaths: ["/js/misc.js"],
                     BlockingScriptPaths: ["/js/flow-action-dock.js"]),
                 "/onboarding/join-game.html" => new HeadAssetConfig(
                     IncludeValidator: false,

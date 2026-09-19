@@ -534,6 +534,47 @@ public sealed class ProofUploadBrowserTests(
         Assert.Equal(1, recoveryAttempts);
     }
 
+    [Theory]
+    [InlineData(true, false)]
+    [InlineData(false, false)]
+    [InlineData(true, true)]
+    public async Task ReviewPayment_ClearsCompletedHandoffWithoutWaitingForEmail(bool isPaid, bool newerSubmission)
+    {
+        await using var context = await NewContextAsync(Browser, App);
+        await RoutePageDependenciesAsync(context, delayProofHelper: false);
+        await context.RouteAsync("**/api/application/payment-status", route => route.FulfillAsync(new()
+        {
+            Status = 200,
+            ContentType = "application/json",
+            Body = JsonSerializer.Serialize(new { checkedInvoice = true, isPaid, notificationSent = false, alreadyNotified = false })
+        }));
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.EvaluateAsync("""
+            newer => {
+                const payment = JSON.stringify({invoiceId:'review-invoice', submissionId:'paid-submission', accountEmail:'review@example.test'});
+                sessionStorage.setItem('pendingPaymentInvoice', payment);
+                localStorage.setItem('pendingPaymentInvoicePersistent', payment);
+                localStorage.setItem('pendingApplicationSubmission', JSON.stringify({
+                    submissionId: newer ? 'newer-submission' : 'paid-submission',
+                    payloadFingerprint:'review-test', submissionKind:'full-application', createdAt:Date.now()
+                }));
+            }
+            """, newerSubmission);
+
+        var responseTask = page.WaitForResponseAsync("**/api/application/payment-status");
+        await page.GotoAsync("/review", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await (await responseTask).FinishedAsync();
+        if (isPaid)
+            await page.WaitForFunctionAsync("() => localStorage.getItem('pendingPaymentInvoicePersistent') === null");
+
+        Assert.Equal(!isPaid, await page.EvaluateAsync<bool>("sessionStorage.getItem('pendingPaymentInvoice') !== null"));
+        Assert.Equal(!isPaid, await page.EvaluateAsync<bool>("localStorage.getItem('pendingPaymentInvoicePersistent') !== null"));
+        var submissionId = await page.EvaluateAsync<string?>("JSON.parse(localStorage.getItem('pendingApplicationSubmission') || 'null')?.submissionId ?? null");
+        Assert.Equal(newerSubmission ? "newer-submission" : isPaid ? null : "paid-submission", submissionId);
+        Assert.Equal("review@example.test", await page.Locator("#contactEmailPlaceholder").InnerTextAsync());
+    }
+
     private static async Task<IBrowserContext> NewContextAsync(IBrowser browser, BrowserTestApp app)
     {
         return await browser.NewContextAsync(new BrowserNewContextOptions

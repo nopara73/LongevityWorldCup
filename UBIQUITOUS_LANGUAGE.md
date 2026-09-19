@@ -36,7 +36,7 @@ An existing Amateur's first eligible bortz result uses Pro-upgrade pricing. Othe
 
 Manual application payment review uses reasonable confidence. Credible payment evidence is sufficient despite imperfect identifiers or unavailable corroboration; the user accepts occasional unpaid applicants passing this gate to avoid wrongly blocking honest ones. Record inferred matches honestly and stop checking once reasonably satisfied. This discretion clears the manual review gate without changing the provider's recorded payment state.
 
-Application and Pro-upgrade payment detection is server-owned and survives a closed checkout browser. BTCPay `Settled` status or a positive `paidAmount` counts as paid, including partial payments. Persist that observation and notify the internal reviewer once per invoice; absence of the email does not establish nonpayment. An uncertain mail delivery requires reconciliation before replay. Newly tracked orders are reconciled automatically; historical invoices require an explicit recovery decision.
+Application and Pro-upgrade payment detection is server-owned and survives a closed checkout browser. BTCPay `Settled` status or a positive `paidAmount` counts as paid, including partial payments. Persist that observation and notify the internal reviewer once per invoice; absence of the email does not establish nonpayment. The browser completes its payment handoff when payment is confirmed, independently of notification delivery. An uncertain mail delivery requires reconciliation before replay. Newly tracked orders are reconciled automatically; historical invoices require an explicit recovery decision.
 
 ## Events and Improvement
 
