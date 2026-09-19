@@ -16,7 +16,7 @@ using SixLabors.ImageSharp.Processing;
 
 namespace LongevityWorldCup.Website.Business;
 
-public sealed class LongevitymaxxingChallengeService
+public sealed partial class LongevitymaxxingChallengeService
 {
     private const string ChallengeName = "Longevitymaxxing Challenge";
     private const int RawDailyMaxScore = 8;
@@ -652,6 +652,13 @@ public sealed class LongevitymaxxingChallengeService
     public LongevitymaxxingParticipantState SubmitDiscussionReply(
         LongevitymaxxingDiscussionReplyRequest request,
         DateTimeOffset? nowUtc = null)
+        => SaveDiscussionReply(request, [], "", nowUtc);
+
+    private LongevitymaxxingParticipantState SaveDiscussionReply(
+        LongevitymaxxingDiscussionReplyRequest request,
+        IReadOnlyList<PendingCheckInImage> photos,
+        string photoHash,
+        DateTimeOffset? nowUtc)
     {
         var now = EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow);
         var author = RequireParticipantByAccessToken(request.AccessToken);
@@ -660,7 +667,7 @@ public sealed class LongevitymaxxingChallengeService
         if (systemPostId is null && (string.IsNullOrWhiteSpace(postParticipantId) || request.ChallengeDay < 1))
             throw new InvalidOperationException("That discussion post is no longer available.");
 
-        var body = NormalizeDiscussionReply(request.Body);
+        var body = NormalizeDiscussionReply(request.Body, photos.Count > 0);
         var mentionedParticipants = ResolveMentionedParticipants(body, author.Id, GetConfirmedParticipants());
         if (mentionedParticipants.Count > MaxMentionsPerCheckIn)
             throw new InvalidOperationException($"Each reply can mention up to {MaxMentionsPerCheckIn} participants.");
@@ -689,7 +696,8 @@ public sealed class LongevitymaxxingChallengeService
                     systemPostId,
                     author.Id,
                     body,
-                    replyToId);
+                    replyToId,
+                    photoHash);
                 transaction.Commit();
                 return;
             }
@@ -703,14 +711,14 @@ public sealed class LongevitymaxxingChallengeService
                 insert.CommandText = systemPostId is null
                     ? """
                     INSERT OR IGNORE INTO LongevitymaxxingDiscussionReplies
-                    (Id, PostParticipantId, PostChallengeDay, AuthorParticipantId, Body, CreatedAtUtc, ReplyToId)
-                    VALUES (@id, @postParticipantId, @day, @authorParticipantId, @body, @created, @replyToId);
+                    (Id, PostParticipantId, PostChallengeDay, AuthorParticipantId, Body, CreatedAtUtc, ReplyToId, PhotosJson, PhotoHash)
+                    VALUES (@id, @postParticipantId, @day, @authorParticipantId, @body, @created, @replyToId, @photos, @photoHash);
                     """
                     :
                     """
                     INSERT OR IGNORE INTO LongevitymaxxingDiscussionSystemPostReplies
-                    (Id, PostId, AuthorParticipantId, Body, CreatedAtUtc, ReplyToId)
-                    VALUES (@id, @systemPostId, @authorParticipantId, @body, @created, @replyToId);
+                    (Id, PostId, AuthorParticipantId, Body, CreatedAtUtc, ReplyToId, PhotosJson, PhotoHash)
+                    VALUES (@id, @systemPostId, @authorParticipantId, @body, @created, @replyToId, @photos, @photoHash);
                     """;
                 Add(insert, "@id", replyId);
                 if (systemPostId is null)
@@ -725,6 +733,8 @@ public sealed class LongevitymaxxingChallengeService
                 Add(insert, "@authorParticipantId", author.Id);
                 Add(insert, "@body", body);
                 Add(insert, "@replyToId", replyToId);
+                Add(insert, "@photos", JsonSerializer.Serialize(photos.Select(photo => new DiscussionPhotoRecord(photo.FileName, photo.Width, photo.Height))));
+                Add(insert, "@photoHash", photoHash);
                 Add(insert, "@created", now.ToString("o"));
                 if (insert.ExecuteNonQuery() == 0)
                 {
@@ -737,7 +747,8 @@ public sealed class LongevitymaxxingChallengeService
                         systemPostId,
                         author.Id,
                         body,
-                        replyToId);
+                        replyToId,
+                        photoHash);
                     transaction.Commit();
                     return;
                 }
@@ -788,6 +799,7 @@ public sealed class LongevitymaxxingChallengeService
                 now);
 
             transaction.Commit();
+            foreach (var photo in photos) photo.Committed = true;
         });
 
         return GetParticipantState(request.AccessToken, now);
@@ -800,12 +812,11 @@ public sealed class LongevitymaxxingChallengeService
         var now = EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow);
         var author = RequireParticipantByAccessToken(request.AccessToken);
         var replyId = NormalizeDiscussionReplyId(request.ReplyId);
-        var body = NormalizeDiscussionReply(request.Body);
-
         return _db.Run(sqlite =>
         {
             using var transaction = sqlite.BeginTransaction(deferred: false);
             var reply = RequireOwnedDiscussionReply(sqlite, transaction, replyId, author.Id, "edit");
+            var body = NormalizeDiscussionReply(request.Body, ReadDiscussionPhotos(sqlite, transaction, replyId, reply.SystemPostId).Count > 0);
             if (string.Equals(reply.Body, body, StringComparison.Ordinal))
             {
                 transaction.Commit();
@@ -887,6 +898,7 @@ public sealed class LongevitymaxxingChallengeService
         {
             using var transaction = sqlite.BeginTransaction(deferred: false);
             var reply = RequireOwnedDiscussionReply(sqlite, transaction, replyId, author.Id, "delete");
+            var photos = ReadDiscussionPhotos(sqlite, transaction, replyId, reply.SystemPostId);
             using var delete = sqlite.CreateCommand();
             delete.Transaction = transaction;
             delete.CommandText = reply.SystemPostId is null
@@ -895,6 +907,7 @@ public sealed class LongevitymaxxingChallengeService
             Add(delete, "@id", replyId);
             delete.ExecuteNonQuery();
             transaction.Commit();
+            foreach (var photo in photos) TryDeleteFile(GetCheckInPhotoPath(photo.FileName));
         });
 
         return GetParticipantState(request.AccessToken, now);
@@ -1111,7 +1124,8 @@ public sealed class LongevitymaxxingChallengeService
         string? systemPostId,
         string authorParticipantId,
         string body,
-        string? replyToId)
+        string? replyToId,
+        string photoHash)
     {
         var replyTable = systemPostId is null
             ? "LongevitymaxxingDiscussionReplies"
@@ -1130,6 +1144,7 @@ public sealed class LongevitymaxxingChallengeService
               AND AuthorParticipantId = @authorParticipantId
               AND Body = @body
               AND ReplyToId IS @replyToId
+              AND PhotoHash = @photoHash
             LIMIT 1;
             """;
         Add(cmd, "@id", replyId);
@@ -1145,6 +1160,7 @@ public sealed class LongevitymaxxingChallengeService
         Add(cmd, "@authorParticipantId", authorParticipantId);
         Add(cmd, "@body", body);
         Add(cmd, "@replyToId", replyToId);
+        Add(cmd, "@photoHash", photoHash);
         if (cmd.ExecuteScalar() is null)
             throw new InvalidOperationException("That reply request conflicts with an earlier reply. Please try again.");
     }
@@ -1172,9 +1188,10 @@ public sealed class LongevitymaxxingChallengeService
             throw new InvalidOperationException("The comment you’re replying to is no longer available. Remove the reply context to post to the thread.");
     }
 
-    private static List<LongevitymaxxingDiscussionReply> PopulateDiscussionReplyContexts(
+    private List<LongevitymaxxingDiscussionReply> PopulateDiscussionReplyContexts(
         SqliteConnection sqlite, List<LongevitymaxxingDiscussionReply> replies)
     {
+        PopulateDiscussionReplyPhotos(sqlite, replies);
         var ids = replies.Select(reply => reply.ReplyToId).OfType<string>().Distinct(StringComparer.Ordinal).ToArray();
         if (ids.Length == 0) return replies;
         using var cmd = sqlite.CreateCommand();
@@ -2900,6 +2917,11 @@ public sealed class LongevitymaxxingChallengeService
             TryAddLongevitymaxxingDiscussionRepliesColumn(sqlite, "EditedAtUtc TEXT NULL");
             TryAddLongevitymaxxingDiscussionRepliesColumn(sqlite, "ReplyToId TEXT NULL");
             TryAddLongevitymaxxingDiscussionRepliesColumn(sqlite, "ReplyToId TEXT NULL", systemPosts: true);
+            foreach (var systemPosts in new[] { false, true })
+            {
+                TryAddLongevitymaxxingDiscussionRepliesColumn(sqlite, "PhotosJson TEXT NOT NULL DEFAULT '[]'", systemPosts);
+                TryAddLongevitymaxxingDiscussionRepliesColumn(sqlite, "PhotoHash TEXT NOT NULL DEFAULT ''", systemPosts);
+            }
             BackfillDiscussionUpdatedAtUtc(sqlite);
             RemoveRetiredChallengePaymentData(sqlite);
         });
@@ -3738,7 +3760,7 @@ public sealed class LongevitymaxxingChallengeService
         });
     }
 
-    private static Dictionary<string, IReadOnlyList<LongevitymaxxingDiscussionReply>> GetInitialSystemDiscussionPostReplies(
+    private Dictionary<string, IReadOnlyList<LongevitymaxxingDiscussionReply>> GetInitialSystemDiscussionPostReplies(
         SqliteConnection sqlite,
         IReadOnlyList<SystemDiscussionPostRow> selectedRows)
     {
@@ -3784,7 +3806,7 @@ public sealed class LongevitymaxxingChallengeService
         return result;
     }
 
-    private static Dictionary<(string ParticipantId, int ChallengeDay), List<LongevitymaxxingDiscussionReply>> GetInitialDiscussionReplies(
+    private Dictionary<(string ParticipantId, int ChallengeDay), List<LongevitymaxxingDiscussionReply>> GetInitialDiscussionReplies(
         SqliteConnection sqlite,
         IReadOnlyList<DiscussionThreadRow> selectedRows)
     {
@@ -4701,10 +4723,10 @@ public sealed class LongevitymaxxingChallengeService
         return normalized;
     }
 
-    private static string NormalizeDiscussionReply(string? body)
+    private static string NormalizeDiscussionReply(string? body, bool hasPhotos = false)
     {
         var normalized = (body ?? "").Trim();
-        if (string.IsNullOrWhiteSpace(normalized))
+        if (string.IsNullOrWhiteSpace(normalized) && !hasPhotos)
             throw new InvalidOperationException("Write a reply before posting.");
         if (normalized.Length > MaxDiscussionReplyLength)
             throw new InvalidOperationException($"Keep replies within {MaxDiscussionReplyLength} characters. Your text has not been posted.");

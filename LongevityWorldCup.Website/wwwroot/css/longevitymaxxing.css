@@ -1043,6 +1043,38 @@
     margin: 0;
 }
 
+.lmx-pending-photo-frame {
+    position: relative;
+}
+
+.is-photo-drop-target {
+    outline: 2px dashed var(--lmx-accent);
+    outline-offset: 4px;
+    background: var(--lmx-surface-accent);
+}
+
+.lmx-discussion-compose-tools {
+    display: flex;
+    align-items: center;
+    gap: var(--lwc-space-2);
+    min-width: 0;
+}
+
+.lmx-discussion-add-photo {
+    min-width: 44px;
+    min-height: 44px;
+}
+
+.lmx-reply-photos {
+    max-width: 32rem;
+    margin-bottom: var(--lwc-space-2);
+    margin-left: var(--lmx-discussion-indent);
+}
+
+.lmx-discussion-reply-item [data-discussion-reply-body]:empty {
+    display: none;
+}
+
 .lmx-pending-photo figcaption {
     padding: var(--lwc-space-1) 2px;
     color: var(--lmx-muted);
@@ -1094,7 +1126,6 @@
     width: 100%;
     height: 100%;
     object-fit: contain;
-    pointer-events: none;
 }
 
 .lmx-note-photo.pending-item {
@@ -4758,6 +4789,10 @@ a.lmx-note-mention:focus-visible {
     }
 
     .lmx-discussion-reply-item p {
+        margin-left: 0;
+    }
+
+    .lmx-reply-photos {
         margin-left: 0;
     }
 }

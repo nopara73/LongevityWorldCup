@@ -28,7 +28,7 @@ public sealed record LongevitymaxxingDiscussionReplyRequest(
 public sealed record LongevitymaxxingDiscussionReplyEditRequest(
     string AccessToken,
     string ReplyId,
-    string Body);
+    string? Body);
 
 public sealed record LongevitymaxxingDiscussionReplyDeleteRequest(
     string AccessToken,
@@ -211,7 +211,10 @@ public sealed record LongevitymaxxingDiscussionReply(
     string CreatedAtUtc,
     string? EditedAtUtc,
     string? ReplyToId = null,
-    LongevitymaxxingDiscussionReplyContext? ReplyTo = null);
+    LongevitymaxxingDiscussionReplyContext? ReplyTo = null)
+{
+    public IReadOnlyList<LongevitymaxxingCheckInImage> Images { get; init; } = [];
+}
 
 public sealed record LongevitymaxxingDiscussionReplyContext(string DisplayName, string Body);
 

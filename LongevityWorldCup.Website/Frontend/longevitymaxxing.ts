@@ -157,6 +157,7 @@
         participantId: string;
         displayName: string;
         body: string;
+        images?: CheckInImage[];
         createdAtUtc: string;
         editedAtUtc?: string | null;
         replyToId?: string | null;
@@ -177,6 +178,10 @@
         displayName: string;
         editReplyId: string | null;
         originalBody: string;
+        photos?: File[];
+        photoUrls?: string[];
+        needsPhotos?: boolean;
+        submittedPhotoSignature?: string;
         body: string;
         selectionStart: number;
         selectionEnd: number;
@@ -763,6 +768,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     const savedDays = new Set<number>();
     const pendingNotePhotos = new Map<string, File[]>();
     const pendingNotePhotoUrls = new Map<string, string[]>();
+    const preparedDiscussionPhotos = new WeakMap<File, Promise<File>>();
     const checkInDrafts = new Map<string, CheckInFormDraft>();
     const renderedCheckInDays = new WeakMap<HTMLFormElement, string>();
     const checkInResetUndo = new Map<string, { values: CheckInFormDraft; photos: File[] }>();
@@ -2673,6 +2679,11 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 renderSelectedNotePhotoPreviews(form);
                 updateCheckInSaveState(form);
             });
+            wireDiscussionPhotoTransfer(form, files => {
+                setPendingNotePhotos(form, files);
+                renderSelectedNotePhotoPreviews(form);
+                updateCheckInSaveState(form);
+            }, () => checkInSaving?.key !== checkInDayKey(form));
             renderSelectedNotePhotoPreviews(form);
             updateCheckInSaveState(form);
             form.addEventListener("submit", event => {
@@ -4007,6 +4018,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                     title="${escAttr(reply.replyTo.body)}"><i class="fas fa-reply" aria-hidden="true"></i><span>${esc(reply.replyTo.displayName)}</span></a>`
                 : '<span class="lmx-discussion-context-link unavailable"><i class="fas fa-reply" aria-hidden="true"></i>Original reply unavailable</span>' : ""}
             <p data-discussion-reply-body>${participantMentionTextHtml(reply.body)}</p>
+            ${(reply.images || []).length ? `<div class="lmx-note-photo-grid lmx-reply-photos">${reply.images!.map((image, index) => notePhotoHtml(image, `reply:${reply.id}:${index}`)).join("")}</div>` : ""}
             <div class="lmx-discussion-reply-footer">${replyAction}${discussionCopyLinkHtml(permalink, "reply")}${ownerActions}</div>
             <div class="lmx-discussion-reply-editor-slot" data-discussion-reply-editor-slot hidden></div>
             <div class="lmx-discussion-reply-status" role="status" aria-live="polite"></div>
@@ -4293,7 +4305,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const source = String(trigger.dataset.photoSrc || "").trim();
         if (!source) return;
 
-        const gallery = trigger.closest<HTMLElement>(".lmx-notes, .lmx-note-photo-field")
+        const gallery = trigger.closest<HTMLElement>("[data-reply-photo-previews]") || trigger.closest<HTMLElement>(".lmx-notes, .lmx-note-photo-field")
             || trigger.parentElement;
         const triggers = gallery
             ? Array.from(gallery.querySelectorAll<HTMLButtonElement>("button.lmx-note-photo[data-photo-src]"))
@@ -4500,13 +4512,30 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const key = checkInDayKey(form);
         if (checkInSaving?.key === key) return;
         const slots = Number(form.querySelector<HTMLElement>(".lmx-note-photo-field")?.dataset.photoSlots || MAX_NOTE_PHOTOS);
-        const photos = [...getPendingNotePhotos(form)];
+        const { photos, feedback: message } = selectDiscussionPhotos(getPendingNotePhotos(form), files, slots);
+        revokePendingNotePhotoUrls(key);
+        if (photos.length) pendingNotePhotos.set(key, photos);
+        else pendingNotePhotos.delete(key);
+        const feedback = form.querySelector<HTMLElement>("[data-photo-feedback]");
+        if (feedback) feedback.textContent = message;
+    }
+
+    function isDiscussionPhoto(file: File): boolean {
+        return /^image\//i.test(file.type) || /\.(heic|heif)$/i.test(file.name) ||
+            (!file.type && /\.(png|jpe?g|webp|gif|avif|bmp)$/i.test(file.name));
+    }
+
+    function selectDiscussionPhotos(current: File[], files: File[], slots: number): { photos: File[]; feedback: string } {
+        const photos = [...current];
         let unsupported = 0;
         let duplicates = 0;
         let excess = 0;
+        let tooLarge = 0;
         for (const file of files) {
-            if (!/^image\//i.test(file.type) && !/\.(heic|heif)$/i.test(file.name)) {
+            if (!isDiscussionPhoto(file) || !file.size) {
                 unsupported++;
+            } else if (file.size > 32 * 1024 * 1024) {
+                tooLarge++;
             } else if (photos.some(photo => photo.name === file.name && photo.size === file.size && photo.lastModified === file.lastModified && photo.type === file.type)) {
                 duplicates++;
             } else if (photos.length >= slots) {
@@ -4516,15 +4545,42 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             }
         }
 
-        revokePendingNotePhotoUrls(key);
-        if (photos.length) pendingNotePhotos.set(key, photos);
-        else pendingNotePhotos.delete(key);
-        const feedback = form.querySelector<HTMLElement>("[data-photo-feedback]");
-        if (feedback) feedback.textContent = [
+        return { photos, feedback: [
             unsupported ? `${unsupported} unsupported ${unsupported === 1 ? "file" : "files"} skipped. Choose images.` : "",
+            tooLarge ? `${tooLarge} ${tooLarge === 1 ? "photo exceeds" : "photos exceed"} 32 MB. Choose smaller images.` : "",
             duplicates ? `${duplicates} ${duplicates === 1 ? "photo" : "photos"} already selected.` : "",
             excess ? `${MAX_NOTE_PHOTOS} photos maximum. ${excess} ${excess === 1 ? "photo" : "photos"} not added.` : ""
-        ].filter(Boolean).join(" ");
+        ].filter(Boolean).join(" ") };
+    }
+
+    function wireDiscussionPhotoTransfer(area: HTMLElement, add: (files: File[]) => void, enabled: () => boolean): void {
+        area.addEventListener("paste", event => {
+            const files = Array.from(event.clipboardData?.files || []).filter(isDiscussionPhoto);
+            if (!files.length) return;
+            event.preventDefault();
+            if (enabled()) add(files);
+        });
+        let depth = 0;
+        const clear = () => { depth = 0; area.classList.remove("is-photo-drop-target"); };
+        area.addEventListener("dragenter", event => {
+            if (!event.dataTransfer?.types.includes("Files")) return;
+            event.preventDefault();
+            depth++;
+            if (enabled()) area.classList.add("is-photo-drop-target");
+        });
+        area.addEventListener("dragover", event => {
+            if (!event.dataTransfer?.types.includes("Files")) return;
+            event.preventDefault();
+            event.dataTransfer.dropEffect = enabled() ? "copy" : "none";
+        });
+        area.addEventListener("dragleave", () => { if (--depth <= 0) clear(); });
+        area.addEventListener("drop", event => {
+            clear();
+            if (!event.dataTransfer?.types.includes("Files")) return;
+            event.preventDefault();
+            if (enabled()) add(Array.from(event.dataTransfer.files));
+        });
+        area.addEventListener("dragend", clear);
     }
 
     function removePendingNotePhoto(form: HTMLFormElement, index: number): void {
@@ -4536,6 +4592,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         else pendingNotePhotos.delete(key);
         const input = form.querySelector<HTMLInputElement>("input[data-note-photos]");
         if (input && !photos.length) input.value = "";
+        const feedback = form.querySelector<HTMLElement>("[data-photo-feedback]");
+        if (feedback) feedback.textContent = "";
         renderSelectedNotePhotoPreviews(form);
         updateCheckInSaveState(form);
         const remainingButtons = form.querySelectorAll<HTMLButtonElement>("[data-remove-photo]");
@@ -4554,13 +4612,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const urls = photos.map(photo => URL.createObjectURL(photo));
         if (urls.length) pendingNotePhotoUrls.set(key, urls);
 
-        previews.innerHTML = photos.map((photo, index) => `<figure class="lmx-pending-photo">
-            <div class="lmx-note-photo pending-item"><img src="${escAttr(urls[index])}" alt="" loading="lazy" decoding="async">
-            <button type="button" class="lmx-note-photo-remove" data-remove-photo="${index}" title="Remove photo" aria-label="${escAttr(`Remove ${photo.name}`)}">
-                <i class="fas fa-xmark" aria-hidden="true"></i>
-            </button></div>
-            <figcaption>${esc(photo.name)}</figcaption>
-        </figure>`).join("");
+        previews.innerHTML = pendingDiscussionPhotosHtml(photos, urls, "data-remove-photo");
 
         previews.querySelectorAll<HTMLElement>("[data-remove-photo]").forEach(button => {
             button.addEventListener("click", () => removePendingNotePhoto(form, Number(button.dataset.removePhoto)));
@@ -5564,7 +5616,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         if (!owner || discussionDraftOwner !== owner) return;
         try {
             const drafts = Array.from(discussionDrafts.values()).filter(draft => draft.participantId === owner &&
-                (draft.body !== draft.originalBody || !!draft.error || discussionMutation === draft.key));
+                (discussionDraftHasChanges(draft) || !!draft.error || discussionMutation === draft.key))
+                .map(({ photos, photoUrls: _urls, ...draft }) => ({ ...draft, hadPhotos: !!photos?.length || !!draft.needsPhotos }));
             const key = `lmx-discussion-drafts:${owner}`;
             if (drafts.length) sessionStorage.setItem(key, JSON.stringify({ version: 1, drafts, active: activeDiscussionDraft?.key || null }));
             else sessionStorage.removeItem(key);
@@ -5598,6 +5651,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             submittedReplyToId: hasStringProperty(value, "submittedReplyToId") ? value.submittedReplyToId : null,
             replyToId: hasStringProperty(value, "replyToId") ? value.replyToId : null,
             replyTo,
+            needsPhotos: hasProperties(value, "hadPhotos") && value.hadPhotos === true,
+            submittedPhotoSignature: hasStringProperty(value, "submittedPhotoSignature") ? value.submittedPhotoSignature : "",
             error: value.submittedBody !== null ? "Your last save wasn’t confirmed in this tab. Retry to check it safely." : null
         };
     }
@@ -5650,7 +5705,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 undo.addEventListener("click", () => {
                     const draft = discardedDiscussionDrafts.get(feedback!.dataset.discussionDiscardUndo || "");
                     const current = draft && discussionDrafts.get(draft.key);
-                    if (!draft || discussionMutation || (current && current.body !== current.originalBody)) return;
+                    if (!draft || discussionMutation || (current && discussionDraftHasChanges(current))) return;
                     closeDiscussionDraft();
                     discussionDrafts.set(draft.key, draft);
                     discardedDiscussionDrafts.delete(draft.key);
@@ -5662,7 +5717,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             }
             feedback.dataset.discussionDiscardUndo = entry.key;
             const current = discussionDrafts.get(entry.key);
-            feedback.querySelector<HTMLButtonElement>("button")!.disabled = !!discussionMutation || !!(current && current.body !== current.originalBody);
+            feedback.querySelector<HTMLButtonElement>("button")!.disabled = !!discussionMutation || !!(current && discussionDraftHasChanges(current));
         });
     }
 
@@ -5764,7 +5819,99 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     function hasUnpublishedDiscussionWork(): boolean {
         return Array.from(discussionDrafts.values()).some(draft =>
             draft.participantId === participantState?.participant.id &&
-            (draft.body !== draft.originalBody || discussionMutation === draft.key));
+            (discussionDraftHasChanges(draft) || discussionMutation === draft.key));
+    }
+
+    function pendingDiscussionPhotosHtml(photos: File[], urls: string[], removeAttribute: string): string {
+        return photos.map((photo, index) => `<figure class="lmx-pending-photo">
+            <div class="lmx-pending-photo-frame">
+                <button class="lmx-note-photo is-local-photo" type="button" data-photo-src="${escAttr(urls[index])}"
+                    aria-label="${escAttr(`Preview ${photo.name}`)}" title="${escAttr(photo.name)}">
+                    <img src="${escAttr(urls[index])}" alt="" decoding="async">
+                </button>
+                <button type="button" class="lmx-note-photo-remove" ${removeAttribute}="${index}" title="Remove photo" aria-label="${escAttr(`Remove ${photo.name}`)}">
+                    <i class="fas fa-xmark" aria-hidden="true"></i>
+                </button>
+            </div>
+            <figcaption>${esc(photo.name)}</figcaption>
+        </figure>`).join("");
+    }
+
+    function revokeDiscussionPhotoPreviews(draft: DiscussionDraft): void {
+        draft.photoUrls?.forEach(url => URL.revokeObjectURL(url));
+        draft.photoUrls = [];
+    }
+
+    function renderDiscussionPhotoPreviews(composer: HTMLElement, draft: DiscussionDraft): void {
+        const previews = composer.querySelector<HTMLElement>("[data-reply-photo-previews]");
+        if (!previews) return;
+        revokeDiscussionPhotoPreviews(draft);
+        const photos = draft.photos || [];
+        draft.photoUrls = photos.map(photo => URL.createObjectURL(photo));
+        previews.innerHTML = pendingDiscussionPhotosHtml(photos, draft.photoUrls, "data-remove-reply-photo");
+        previews.querySelectorAll<HTMLButtonElement>("[data-remove-reply-photo]").forEach(button => {
+            button.addEventListener("click", () => {
+                if (discussionMutation === draft.key) return;
+                const index = Number(button.dataset.removeReplyPhoto);
+                draft.photos = photos.filter((_, position) => position !== index);
+                composer.querySelector<HTMLElement>("[data-reply-photo-feedback]")!.textContent = "";
+                renderDiscussionPhotoPreviews(composer, draft);
+                updateDiscussionDraftControls();
+                const remaining = previews.querySelectorAll<HTMLButtonElement>("[data-remove-reply-photo]");
+                (remaining[Math.min(index, remaining.length - 1)] || composer.querySelector<HTMLButtonElement>("[data-reply-photo-button]"))?.focus({ preventScroll: true });
+            });
+        });
+    }
+
+    function wireDiscussionDraftPhotos(composer: HTMLElement, draft: DiscussionDraft): void {
+        const input = composer.querySelector<HTMLInputElement>("[data-reply-photos]")!;
+        const add = (files: File[]) => {
+            if (discussionMutation === draft.key) return;
+            const selection = selectDiscussionPhotos(draft.photos || [], files, MAX_NOTE_PHOTOS);
+            draft.photos = selection.photos;
+            if (draft.photos.length) draft.needsPhotos = false;
+            composer.querySelector<HTMLElement>("[data-reply-photo-feedback]")!.textContent = selection.feedback;
+            renderDiscussionPhotoPreviews(composer, draft);
+            updateDiscussionDraftControls();
+        };
+        composer.querySelector("[data-reply-photo-button]")!.addEventListener("click", () => input.click());
+        input.addEventListener("change", () => { add(Array.from(input.files || [])); input.value = ""; });
+        wireDiscussionPhotoTransfer(composer, add, () => discussionMutation !== draft.key);
+        renderDiscussionPhotoPreviews(composer, draft);
+    }
+
+    async function postDiscussionDraft(draft: DiscussionDraft, payload: DiscussionReplyPayload): Promise<ParticipantState> {
+        const prepared = await Promise.all((draft.photos || []).map(photo => {
+            let result = preparedDiscussionPhotos.get(photo);
+            if (!result) { result = prepareNotePhotoFile(photo); preparedDiscussionPhotos.set(photo, result); }
+            return result;
+        }));
+        const hashes = await Promise.all(prepared.map(async photo => {
+            const hash = await crypto.subtle.digest("SHA-256", await photo.arrayBuffer());
+            return Array.from(new Uint8Array(hash), byte => byte.toString(16).padStart(2, "0")).join("");
+        }));
+        const signature = hashes.join(":");
+        if (draft.submittedPhotoSignature !== undefined && draft.submittedPhotoSignature !== signature) {
+            draft.replyId = createDiscussionReplyId();
+            payload.replyId = draft.replyId;
+        }
+        draft.submittedPhotoSignature = signature;
+        persistDiscussionDrafts();
+        if (!prepared.length) return postJson(`${API}/discussion/replies`, payload);
+        const form = new FormData();
+        for (const [key, value] of Object.entries(payload)) if (value !== null) form.append(key, String(value));
+        prepared.forEach(photo => form.append("photos", photo, photo.name));
+        return postForm(`${API}/discussion/replies`, form);
+    }
+
+    function discussionDraftHasChanges(draft: DiscussionDraft): boolean {
+        return draft.body !== draft.originalBody || !!draft.photos?.length || !!draft.needsPhotos;
+    }
+
+    function discussionDraftCanSubmit(draft: DiscussionDraft): boolean {
+        const hasPhotos = !!draft.photos?.length || !!(draft.editReplyId && findDiscussionReply(draft.editReplyId)?.images?.length);
+        return !draft.needsPhotos && draft.body.length <= 240 && (!!draft.body.trim() || hasPhotos) &&
+            (draft.body.trim() !== draft.originalBody || !!draft.photos?.length);
     }
 
     function discussionDraftButton(draft: DiscussionDraft, surface: string, root: ParentNode = document): HTMLButtonElement | null {
@@ -5909,7 +6056,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         });
         if (activeDiscussionDraft) {
             const draft = discussionDrafts.get(activeDiscussionDraft.key);
-            if (draft && draft.body === draft.originalBody && !draft.error && discussionMutation !== draft.key)
+            if (draft) revokeDiscussionPhotoPreviews(draft);
+            if (draft && !discussionDraftHasChanges(draft) && !draft.error && discussionMutation !== draft.key)
                 discussionDrafts.delete(draft.key);
         }
         activeDiscussionDraft = null;
@@ -5941,9 +6089,15 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                     aria-expanded="false" aria-controls="${inputId}-mentions" aria-describedby="${inputId}-count"></textarea>
                 <div id="${inputId}-mentions" class="lmx-mention-options" role="listbox" aria-label="Mention a participant" hidden></div>
             </div>
+            ${editing ? "" : '<div class="lmx-note-photo-grid pending" data-reply-photo-previews></div><div class="lmx-photo-feedback" data-reply-photo-feedback role="status" aria-live="polite"></div>'}
             <div class="lmx-status" role="status" aria-live="polite"></div>
             <div class="lmx-discussion-reply-actions">
-                <span class="lmx-discussion-composer-meta" id="${inputId}-count" data-reply-count></span>
+                <span class="lmx-discussion-compose-tools">
+                    ${editing ? "" : `<button class="lmx-discussion-quiet-action lmx-discussion-add-photo" type="button" data-reply-photo-button
+                        title="Add photos (or paste or drop an image)" aria-label="Add photos"><i class="fas fa-image" aria-hidden="true"></i></button>
+                        <input type="file" accept="image/*,.heic,.heif" multiple hidden data-reply-photos>`}
+                    <span class="lmx-discussion-composer-meta" id="${inputId}-count" data-reply-count></span>
+                </span>
                 <span data-draft-hint class="lmx-discussion-draft-hint">Kept while this page is open</span>
                 <button class="lmx-discussion-quiet-action lmx-discussion-discard" type="button" data-reply-action="discard"
                     aria-label="Discard ${editing ? "reply edit" : "reply draft"}"
@@ -5956,6 +6110,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             </div>
         </div>`;
         const textarea = slot.querySelector<HTMLTextAreaElement>("textarea")!;
+        if (!editing) wireDiscussionDraftPhotos(slot.querySelector<HTMLElement>("[data-discussion-draft]")!, draft);
         textarea.value = draft.body;
         textarea.setSelectionRange(draft.selectionStart, draft.selectionEnd);
         const rememberSelection = () => {
@@ -6008,6 +6163,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             window.setTimeout(() => {
                 if (discardedDiscussionDrafts.get(draft.key) !== discarded) return;
                 discardedDiscussionDrafts.delete(draft.key);
+                revokeDiscussionPhotoPreviews(discarded);
                 renderDiscussionDiscardUndo();
             }, 15000);
             discussionDrafts.delete(draft.key);
@@ -6054,7 +6210,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         document.querySelectorAll<HTMLButtonElement>("[data-discussion-reply], [data-discussion-reply-edit]").forEach(button => {
             const key = discussionDraftKey(button);
             const draft = discussionDrafts.get(key);
-            const dirty = !!draft && draft.body !== draft.originalBody;
+            const dirty = !!draft && discussionDraftHasChanges(draft);
             const pending = discussionMutation === key;
             const editing = button.hasAttribute("data-discussion-reply-edit");
             const container = (editing ? button.closest("[data-discussion-reply-id]") : null) || button.closest("article[data-discussion-post-participant-id]");
@@ -6116,17 +6272,22 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             count.classList.toggle("at-limit", draft.body.length >= 240);
             const hint = composer.querySelector<HTMLElement>("[data-draft-hint]")!;
             hint.textContent = pending ? (draft.editReplyId ? "Saving your edit…" : "Posting your reply…")
-                : discussionDraftStorageFailed ? "" : "Draft saved in this tab";
+                : draft.photos?.length ? "Photos kept while this page is open" : discussionDraftStorageFailed ? "" : "Draft saved in this tab";
             const submit = composer.querySelector<HTMLButtonElement>("[data-reply-action='submit']")!;
-            submit.disabled = !!discussionMutation || over > 0 || !draft.body.trim() || draft.body.trim() === draft.originalBody;
+            submit.disabled = !!discussionMutation || !discussionDraftCanSubmit(draft);
             submit.textContent = pending ? (draft.editReplyId ? "Saving…" : "Posting…")
                 : draft.errorKind === "auth" ? "Sign in" : draft.error ? "Retry" : draft.editReplyId ? "Save reply" : "Post reply";
             if (pending) submit.setAttribute("aria-busy", "true");
             else submit.removeAttribute("aria-busy");
             const discard = composer.querySelector<HTMLButtonElement>("[data-reply-action='discard']")!;
-            discard.disabled = pending || draft.body === draft.originalBody;
+            discard.disabled = pending || !discussionDraftHasChanges(draft);
+            composer.querySelectorAll<HTMLButtonElement | HTMLInputElement>("[data-reply-photo-button], [data-reply-photos]").forEach(control => {
+                control.disabled = pending || (draft.photos?.length || 0) >= MAX_NOTE_PHOTOS;
+            });
+            composer.querySelectorAll<HTMLButtonElement>("[data-remove-reply-photo]").forEach(control => { control.disabled = pending; });
             const status = composer.querySelector<HTMLElement>(".lmx-status")!;
-            status.textContent = draft.error ? `Couldn’t confirm your ${draft.editReplyId ? "edit" : "reply"}. ${draft.error}`
+            status.textContent = draft.needsPhotos ? "Photos weren’t kept after reload. Add them again before posting."
+                : draft.error ? `Couldn’t confirm your ${draft.editReplyId ? "edit" : "reply"}. ${draft.error}`
                 : discussionMutation && !pending ? "Finishing another reply. You can keep writing."
                 : draft.notice || (discussionDraftStorageFailed ? "Draft couldn’t be saved in this tab. Keep this page open." : "");
             status.classList.toggle("error", !!draft.error || discussionDraftStorageFailed);
@@ -6251,7 +6412,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         if (!accessToken || !participantState || discussionMutation ||
             draft.participantId !== participantState.participant.id || discussionDrafts.get(draft.key) !== draft) return;
         const body = draft.body.trim();
-        if (!body || draft.body.length > 240 || body === draft.originalBody) return;
+        if (!discussionDraftCanSubmit(draft)) return;
         if (draft.errorKind === "auth") { beginDiscussionSignInRecovery(draft); return; }
         if (draft.submittedBody !== null && (draft.submittedBody !== body ||
             (draft.submittedReplyToId || null) !== (draft.replyToId || null))) draft.replyId = createDiscussionReplyId();
@@ -6280,7 +6441,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                     accessToken, postParticipantId: draft.postParticipantId, challengeDay: draft.challengeDay,
                     systemPostId: draft.systemPostId, body, replyId: draft.replyId, replyToId: draft.replyToId || null
                 };
-                const result = await postJson(`${API}/discussion/replies`, payload);
+                const result = await postDiscussionDraft(draft, payload);
                 if (accessToken !== currentAccessToken || participantState?.participant.id !== draft.participantId) return;
                 acceptParticipantState(result);
             }
@@ -6291,6 +6452,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             const restoreOtherDraftFocus = preserveDiscussionDraftFocus(document.body);
             discussionMutation = null;
             renderParticipantDiscussion(participantState);
+            revokeDiscussionPhotoPreviews(draft);
             discussionDrafts.delete(draft.key);
             if (activeDiscussionDraft?.key === draft.key) closeDiscussionDraft();
             for (const name of ["notes", "checkin"]) {
@@ -7673,6 +7835,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             typeof value.id === "string" && typeof value.participantId === "string" &&
             typeof value.displayName === "string" && typeof value.body === "string" &&
             typeof value.createdAtUtc === "string" &&
+            (!hasProperties(value, "images") || isArrayOf(value.images, isCheckInImage)) &&
             (!hasProperties(value, "editedAtUtc") || isNullableString(value.editedAtUtc)) &&
             (!hasProperties(value, "replyToId") || isNullableString(value.replyToId)) &&
             (!hasProperties(value, "replyTo") || value.replyTo === null ||
@@ -7831,7 +7994,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         return data;
     }
 
-    async function postForm(url: `${typeof API}/check-in` | `${typeof API}/profile-picture`, formData: FormData): Promise<ParticipantState> {
+    async function postForm(url: `${typeof API}/check-in` | `${typeof API}/profile-picture` | `${typeof API}/discussion/replies`, formData: FormData): Promise<ParticipantState> {
         const response = await requestJson(url, {
             method: "POST",
             headers: { "Accept": "application/json" },

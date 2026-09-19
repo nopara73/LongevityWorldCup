@@ -173,11 +173,37 @@ public sealed class LongevitymaxxingController(LongevitymaxxingChallengeService 
     }
 
     [HttpPost("discussion/replies")]
+    [Consumes("application/json")]
     public IActionResult ReplyToDiscussion([FromBody] LongevitymaxxingDiscussionReplyRequest request)
     {
         try
         {
             return Ok(_challenge.SubmitDiscussionReply(request));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(new { message = ex.Message });
+        }
+        catch (Exception ex) when (IsClientError(ex))
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpPost("discussion/replies")]
+    [Consumes("multipart/form-data")]
+    [RequestSizeLimit(LongevitymaxxingChallengeService.MaxCheckInPhotoRequestBytes)]
+    public async Task<IActionResult> ReplyToDiscussionWithPhotos(
+        [FromForm] LongevitymaxxingDiscussionReplyFormRequest request,
+        [FromForm(Name = "photos")] List<IFormFile>? photos,
+        CancellationToken ct)
+    {
+        try
+        {
+            var reply = new LongevitymaxxingDiscussionReplyRequest(
+                request.AccessToken, request.PostParticipantId ?? "", request.ChallengeDay,
+                request.Body ?? "", request.ReplyId, request.SystemPostId, request.ReplyToId);
+            return Ok(await _challenge.SubmitDiscussionReplyWithPhotosAsync(reply, photos, ct: ct).ConfigureAwait(false));
         }
         catch (UnauthorizedAccessException ex)
         {
@@ -286,4 +312,15 @@ public sealed class LongevitymaxxingCheckInFormRequest
     public int Vices { get; set; }
     public string? Note { get; set; }
     public string? SubmissionId { get; set; }
+}
+
+public sealed class LongevitymaxxingDiscussionReplyFormRequest
+{
+    public string AccessToken { get; set; } = "";
+    public string? PostParticipantId { get; set; }
+    public int ChallengeDay { get; set; }
+    public string? Body { get; set; }
+    public string ReplyId { get; set; } = "";
+    public string? SystemPostId { get; set; }
+    public string? ReplyToId { get; set; }
 }
