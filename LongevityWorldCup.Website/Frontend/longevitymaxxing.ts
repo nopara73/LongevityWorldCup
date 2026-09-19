@@ -2790,20 +2790,20 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             ${questions}
             <div class="lmx-field lmx-mention-field">
                 <label for="lmx-note-${day.challengeDay}">Remarks</label>
-                <textarea id="lmx-note-${day.challengeDay}" data-character-limit="240" placeholder="Visible publicly" data-mention-input role="combobox" aria-autocomplete="list" aria-haspopup="listbox" aria-expanded="false" aria-controls="lmx-mentions-${day.challengeDay}">${esc(draft ? draft.note : note)}</textarea>
+                <textarea id="lmx-note-${day.challengeDay}" data-character-limit="240" placeholder="Visible publicly" data-mention-input role="combobox" aria-autocomplete="list" aria-haspopup="listbox" aria-expanded="false" aria-controls="lmx-mentions-${day.challengeDay}" aria-describedby="lmx-note-${day.challengeDay}-count">${esc(draft ? draft.note : note)}</textarea>
                 <div id="lmx-mentions-${day.challengeDay}" class="lmx-mention-options" role="listbox" aria-label="Mention a participant" hidden></div>
             </div>
             <div class="lmx-field lmx-note-photo-field" data-photo-slots="${photoSlotsLeft}">
-                <span class="lmx-label">Photos</span>
-                ${savedImageHtml}
                 <div class="lmx-note-photo-picker">
-                    <button class="lmx-button secondary" type="button" data-photo-button${photoSlotsLeft <= 0 ? " disabled" : ""}>
-                        <i class="fas fa-images" aria-hidden="true"></i>
-                        Add photos
+                    <button class="lmx-discussion-quiet-action lmx-discussion-add-photo" type="button" data-photo-button
+                        title="Add photos (or paste or drop an image)" aria-label="Add photos" aria-describedby="lmx-note-${day.challengeDay}-photo-count"${photoSlotsLeft <= 0 ? " disabled" : ""}>
+                        <i class="fas fa-image" aria-hidden="true"></i>
                     </button>
-                    <input id="lmx-note-photos-${day.challengeDay}" type="file" accept="image/*,.heic,.heif" multiple data-note-photos ${photoSlotsLeft <= 0 ? "disabled" : ""}>
-                    <span class="lmx-photo-count" data-photo-count>${photoSlotsLeft <= 0 ? "Photo limit reached" : `${photoSlotsLeft} slots left`}</span>
+                    <input id="lmx-note-photos-${day.challengeDay}" type="file" accept="image/*,.heic,.heif" multiple data-note-photos hidden ${photoSlotsLeft <= 0 ? "disabled" : ""}>
+                    <span id="lmx-note-${day.challengeDay}-photo-count" data-photo-count hidden></span>
+                    <span id="lmx-note-${day.challengeDay}-count" class="lmx-note-character-count" data-note-character-count></span>
                 </div>
+                ${savedImageHtml}
                 <div class="lmx-note-photo-grid pending" data-photo-previews></div>
                 <div class="lmx-photo-feedback" data-photo-feedback role="status" aria-live="polite"></div>
             </div>
@@ -4624,6 +4624,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             count.textContent = photos.length
                 ? `${photos.length} selected · ${capacity}`
                 : (slots <= 0 ? "Photo limit reached" : capacity);
+            const button = form.querySelector<HTMLButtonElement>("[data-photo-button]");
+            if (button) button.title = `Add photos (or paste or drop an image) · ${count.textContent}`;
         }
     }
 
@@ -5047,15 +5049,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             const over = Math.max(0, noteLength - 240);
             note.setCustomValidity(over ? `Remove ${over} characters before saving.` : "");
             note.setAttribute("aria-invalid", String(over > 0));
-            let count = form.querySelector<HTMLElement>("[data-note-character-count]");
-            if (!count) {
-                count = document.createElement("span");
-                count.dataset.noteCharacterCount = "";
-                count.id = `${note.id}-count`;
-                count.className = "lmx-note-character-count";
-                note.after(count);
-                note.setAttribute("aria-describedby", count.id);
-            }
+            const count = form.querySelector<HTMLElement>("[data-note-character-count]")!;
             count.textContent = over ? `${over} over` : `${noteLength}/240`;
             count.classList.toggle("over-limit", over > 0);
         }

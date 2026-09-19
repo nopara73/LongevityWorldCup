@@ -853,7 +853,6 @@ public sealed class LongevitymaxxingChallengePageTests(TestWebApplicationFactory
         Assert.DoesNotContain("Profile picture must be 8 MB or smaller.", javascript);
         Assert.Contains("const MAX_NOTE_PHOTOS = 4;", javascript);
         Assert.Contains("<label for=\"lmx-note-${day.challengeDay}\">Remarks</label>", javascript);
-        Assert.Contains("<span class=\"lmx-label\">Photos</span>", javascript);
         Assert.DoesNotContain("<span>optional</span>", javascript);
         Assert.Contains("aria-hidden=\"true\"></i>Save</button>", javascript);
         Assert.DoesNotContain("Participant note <span>optional</span>", javascript);
