@@ -30,7 +30,7 @@ No matching unread messages means no unprocessed athletes; do not fall back to r
 
 ## Ledger and Related History
 
-Before heavy work, check `.artifacts/lwc-submission-processing-ledger.jsonl`; never commit it. Skip only general next/all candidates whose thread and latest message ID/date prove unchanged since review. Missing, malformed, or ambiguous entries require inspection. New messages, ZIPs, payment/context emails, or an explicit named request require reprocessing. Report skips briefly and continue.
+Before heavy work, check `.artifacts/lwc-submission-processing-ledger.jsonl`; never commit it. Skip only general next/all candidates whose thread and latest message ID/date prove unchanged since review. A prior payment-blocked or payment-unverified entry is an exception: reassess its payment evidence under the reasonable-confidence rule below before deciding to skip, even when Gmail is unchanged, because payment can arrive without a new email. Make a focused read-only provider check when existing evidence is insufficient. Continue when payment is reasonably supported, preserving any independent security or proof blockers. Other unchanged reviewed submissions retain the normal skip rule. Missing, malformed, or ambiguous entries require inspection. New messages, ZIPs, payment/context emails, or an explicit named request require reprocessing. Report skips briefly and continue.
 
 For each full review summary, record one JSON object before stopping:
 
@@ -70,7 +70,9 @@ Hi {firstName}, for security reasons can you confirm you've submitted {the new r
 
 ## Prepare Files
 
-Enter only after any existing-athlete security gate is satisfied. If payment is due without a Gmail confirmation/follow-up, stop with a payment draft before ZIP/file processing.
+Enter only after any existing-athlete security gate is satisfied. For payment, use reasonable confidence, not certainty: the user accepts occasional unpaid applicants slipping through rather than wrongly blocking honest ones. A credible receipt or payment confirmation, including an applicant's confirmation with consistent supporting context, or a provider payment reasonably matching the applicant and amount/time is sufficient. Exact invoice/order/submission-ID linkage and corroboration from both BTCPay and Stripe are helpful, not mandatory. Missing Gmail confirmation, imperfect metadata, or a different payer email alone must not block review. Stop checking once reasonably satisfied and continue without a payment-chasing draft. Record the evidence and any inferred match without presenting it as provider-confirmed. Apply the Payments policy in `UBIQUITOUS_LANGUAGE.md`, including qualifying partial payments.
+
+When existing evidence is insufficient, make a focused read-only BTCPay check, using Stripe or server records only as needed. If reasonably confident the fee remains unpaid, stop with a payment-support draft before ZIP/file processing. If access fails, prominently report the failed check and missing access, but proceed when other credible evidence reasonably supports payment. Seek a concise human decision only for substantive contradictory evidence or when no reasonable basis for accepting payment remains after the focused check; do not pursue exhaustive fraud checks or demand more proof merely to eliminate residual doubt. Payment review does not authorize historical notification replay, refunds, changes to provider payment states, or external replies.
 
 Download ZIPs only through the bundled helper, never Gmail `read_attachment`, Chrome, Computer Use, web attachment controls/URLs, or browser fetch/XHR/downloads. Unsupported ZIP responses and oversized MIME output are expected connector limitations, not fallback authorization. Diagnose/fix the helper path; if still blocked, report it. Manual download requires the user to choose that fallback.
 

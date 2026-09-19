@@ -11,7 +11,6 @@ using SixLabors.ImageSharp.Processing;
 using System.Diagnostics;
 using System.Globalization;
 using System.ComponentModel.DataAnnotations;
-using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -26,8 +25,9 @@ namespace LongevityWorldCup.Website.Controllers
         IWebHostEnvironment environment,
         ILogger<ApplicationController> logger,
         ApplicationSubmissionRetryStore applicationSubmissionRetries,
+        ApplicationPaymentStore applicationPayments,
+        IBtcpayInvoiceClient btcpayInvoices,
         DiscountSignupReportService? discountSignupReports = null,
-        IBtcpayInvoiceClient? btcpayInvoices = null,
         SiteStatisticsService? statistics = null,
         IAthleteSnapshotProvider? athleteSnapshots = null) : ControllerBase
     {
@@ -35,10 +35,10 @@ namespace LongevityWorldCup.Website.Controllers
         private readonly ILogger<ApplicationController> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         private readonly ApplicationSubmissionRetryStore _applicationSubmissionRetries = applicationSubmissionRetries ?? throw new ArgumentNullException(nameof(applicationSubmissionRetries));
         private readonly DiscountSignupReportService? _discountSignupReports = discountSignupReports;
-        private readonly IBtcpayInvoiceClient? _btcpayInvoices = btcpayInvoices;
+        private readonly IBtcpayInvoiceClient _btcpayInvoices = btcpayInvoices;
+        private readonly ApplicationPaymentStore _applicationPayments = applicationPayments;
         private readonly SiteStatisticsService? _statistics = statistics;
         private readonly IAthleteSnapshotProvider? _athleteSnapshots = athleteSnapshots;
-        private static readonly SemaphoreSlim PaidInvoiceNotificationFileLock = new(1, 1);
         private const string DefaultCommunitySlackInviteUrl = "https://join.slack.com/t/tumblebit/shared_invite/zt-2wzmjg6tg-PRup8nbL7GxViJzofNoBFQ";
         private const string CommunitySlackInvitationText = "Want to hang out with other longevity athletes? Join the #longevity-world-cup room on the TumbleBit Slack!";
 
@@ -1578,9 +1578,6 @@ namespace LongevityWorldCup.Website.Controllers
                 return BadRequest("invoiceId is required.");
             }
 
-            request.AccountEmail = NormalizeOptionalAccountEmail(request.AccountEmail);
-            request.SubmissionType = NormalizePaymentSubmissionType(request.SubmissionType);
-
             Config config;
             try
             {
@@ -1592,7 +1589,9 @@ namespace LongevityWorldCup.Website.Controllers
                 return StatusCode(500, $"Failed to load configuration: {ex.Message}");
             }
 
-            var invoiceResult = await GetBtcpayInvoiceAsync(config, request.InvoiceId.Trim(), ct);
+            using var dependencyTimeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            dependencyTimeout.CancelAfter(PublicRequestTimeoutPolicies.ApplicationExternalDependencyTimeout);
+            var invoiceResult = await _btcpayInvoices.GetInvoiceAsync(config, request.InvoiceId.Trim(), dependencyTimeout.Token);
             if (!invoiceResult.Success)
             {
                 return Ok(new
@@ -1607,42 +1606,11 @@ namespace LongevityWorldCup.Website.Controllers
 
             await TryUpdateDiscountSignupPaymentStatusAsync(request.InvoiceId.Trim(), invoiceResult, ct);
 
-            var notificationSent = false;
-            var alreadyNotified = false;
-            if (invoiceResult.IsPaid)
-            {
-                alreadyNotified = await IsInvoiceNotificationAlreadySentAsync(request.InvoiceId!.Trim(), _environment);
-                if (!alreadyNotified)
-                {
-                    if (string.IsNullOrWhiteSpace(request.AccountEmail))
-                    {
-                        request.AccountEmail = NormalizeOptionalAccountEmail(invoiceResult.BuyerEmail);
-                    }
-                    if (string.IsNullOrWhiteSpace(request.ApplicantName))
-                    {
-                        request.ApplicantName = invoiceResult.AthleteNameFromMetadata;
-                    }
-                    if (string.IsNullOrWhiteSpace(request.SubmissionType))
-                    {
-                        request.SubmissionType = NormalizePaymentSubmissionType(invoiceResult.SubmissionTypeFromMetadata);
-                    }
-                    var paymentEmailResult = await SendPaymentFollowupEmailAsync(
-                        config,
-                        request,
-                        invoiceResult.Status,
-                        invoiceResult.AdditionalStatus,
-                        invoiceResult.AmountText,
-                        invoiceResult.Currency,
-                        invoiceResult.PaidAmountText,
-                        invoiceResult.CheckoutLink,
-                        ct);
-                    if (paymentEmailResult.Success)
-                    {
-                        await MarkInvoiceNotificationAsSentAsync(request.InvoiceId.Trim(), _environment);
-                        notificationSent = true;
-                    }
-                }
-            }
+            // Browser callbacks only report status. The durable worker owns all notifications,
+            // including when the applicant never comes back. Client-supplied names/emails cannot
+            // enqueue historical invoices or alter the notification identity.
+            var alreadyNotified = _applicationPayments.GetByInvoice(request.InvoiceId.Trim())?.State == "Sent"
+                || await ApplicationPaymentStore.WasLegacyNotificationSentAsync(_environment.ContentRootPath, request.InvoiceId.Trim(), ct);
 
             return Ok(new
             {
@@ -1650,7 +1618,7 @@ namespace LongevityWorldCup.Website.Controllers
                 isPaid = invoiceResult.IsPaid,
                 status = invoiceResult.Status,
                 additionalStatus = invoiceResult.AdditionalStatus,
-                notificationSent,
+                notificationSent = false,
                 alreadyNotified
             });
         }
@@ -1715,6 +1683,7 @@ namespace LongevityWorldCup.Website.Controllers
                     ["discountPercent"] = applicantData.PaymentOffer?.DiscountPercent,
                     ["perfectGuessDiscount"] = applicantData.PaymentOffer?.PerfectGuessDiscount is true,
                     ["submissionType"] = isEditSubmissionOnly ? "edit" : isResultSubmissionOnly ? "result" : "application",
+                    ["submissionId"] = applicantData.SubmissionId,
                     ["athleteName"] = applicantData.Name?.Trim(),
                     ["buyerEmail"] = accountEmail
                 },
@@ -1722,47 +1691,17 @@ namespace LongevityWorldCup.Website.Controllers
                 RedirectAutomatically: true,
                 ExpirationMinutes: BtcpayInvoiceClient.MaximumInvoiceExpirationMinutes);
 
+            _applicationPayments.Register(config, invoiceRequest, DateTimeOffset.UtcNow);
+
             using var dependencyTimeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
             dependencyTimeout.CancelAfter(PublicRequestTimeoutPolicies.ApplicationExternalDependencyTimeout);
 
             try
             {
-                if (_btcpayInvoices is not null)
-                {
-                    var invoiceResult = await _btcpayInvoices.CreateInvoiceAsync(config, invoiceRequest, dependencyTimeout.Token);
-                    return (invoiceResult.Success, invoiceResult.CheckoutLink, invoiceResult.InvoiceId, invoiceResult.Error);
-                }
-
-                var invoicePayload = BtcpayInvoiceClient.BuildCreateInvoicePayload(invoiceRequest);
-
-                using var client = new HttpClient();
-                var baseUrl = config.BTCPayBaseUrl!.TrimEnd('/');
-                var endpoint = $"{baseUrl}/api/v1/stores/{Uri.EscapeDataString(config.BTCPayStoreId!)}/invoices";
-
-                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("token", config.BTCPayGreenfieldApiKey);
-
-                var body = JsonSerializer.Serialize(invoicePayload);
-                using var content = new StringContent(body, Encoding.UTF8, "application/json");
-                using var response = await client.PostAsync(endpoint, content, dependencyTimeout.Token);
-                var responseBody = await response.Content.ReadAsStringAsync(dependencyTimeout.Token);
-
-                if (!response.IsSuccessStatusCode)
-                {
-                    return (false, null, null, BuildBtcpayFailureMessage(response.StatusCode));
-                }
-
-                using var json = JsonDocument.Parse(responseBody);
-                if (!TryGetPropertyString(json.RootElement, "checkoutLink", out var checkoutLink) || string.IsNullOrWhiteSpace(checkoutLink))
-                {
-                    return (false, null, null, "BTCPay response missing checkoutLink.");
-                }
-
-                if (!TryGetPropertyString(json.RootElement, "id", out var invoiceId) || string.IsNullOrWhiteSpace(invoiceId))
-                {
-                    return (false, null, null, "BTCPay response missing invoice id.");
-                }
-
-                return (true, BtcpayInvoiceClient.PreferDefaultPaymentMethod(checkoutLink), invoiceId, null);
+                var invoiceResult = await _btcpayInvoices.CreateInvoiceAsync(config, invoiceRequest, dependencyTimeout.Token);
+                if (invoiceResult.Success)
+                    _applicationPayments.AttachInvoice(orderId, invoiceResult.InvoiceId!);
+                return (invoiceResult.Success, invoiceResult.CheckoutLink, invoiceResult.InvoiceId, invoiceResult.Error);
             }
             catch (OperationCanceledException) when (!ct.IsCancellationRequested)
             {
@@ -1772,46 +1711,15 @@ namespace LongevityWorldCup.Website.Controllers
 
         private string BuildReviewRedirectUrlForCurrentRequest(bool isResultSubmissionOnly, bool isEditSubmissionOnly)
         {
-            var origin = $"{Request.Scheme}://{Request.Host.Value}".TrimEnd('/');
+            var publicHost = Request.Host.Host.Equals("longevityworldcup.com", StringComparison.OrdinalIgnoreCase)
+                || Request.Host.Host.Equals("www.longevityworldcup.com", StringComparison.OrdinalIgnoreCase);
+            var origin = publicHost ? "https://longevityworldcup.com" : $"{Request.Scheme}://{Request.Host.Value}".TrimEnd('/');
             if (isResultSubmissionOnly)
                 return $"{origin}/review?from=proof-upload";
             if (isEditSubmissionOnly)
                 return $"{origin}/review?from=edit-profile";
             return $"{origin}/review";
         }
-
-        private async Task<BtcpayInvoiceLookupResult> GetBtcpayInvoiceAsync(
-            Config config,
-            string invoiceId,
-            CancellationToken ct)
-        {
-            if (_btcpayInvoices is not null)
-                return await _btcpayInvoices.GetInvoiceAsync(config, invoiceId, ct);
-
-            if (string.IsNullOrWhiteSpace(config.BTCPayBaseUrl))
-                return BtcpayInvoiceLookupResult.Failure("BTCPayBaseUrl is missing in config.");
-            if (string.IsNullOrWhiteSpace(config.BTCPayStoreId))
-                return BtcpayInvoiceLookupResult.Failure("BTCPayStoreId is missing in config.");
-            if (string.IsNullOrWhiteSpace(config.BTCPayGreenfieldApiKey))
-                return BtcpayInvoiceLookupResult.Failure("BTCPayGreenfieldApiKey is missing in config.");
-
-            using var client = new HttpClient();
-            var baseUrl = config.BTCPayBaseUrl!.TrimEnd('/');
-            var endpoint = $"{baseUrl}/api/v1/stores/{Uri.EscapeDataString(config.BTCPayStoreId!)}/invoices/{Uri.EscapeDataString(invoiceId)}";
-            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("token", config.BTCPayGreenfieldApiKey);
-
-            using var response = await client.GetAsync(endpoint, ct);
-            var responseBody = await response.Content.ReadAsStringAsync(ct);
-            if (!response.IsSuccessStatusCode)
-            {
-                return BtcpayInvoiceLookupResult.Failure(BuildBtcpayFailureMessage(response.StatusCode));
-            }
-
-            return BtcpayInvoiceClient.ParseInvoiceJson(responseBody);
-        }
-
-        private static string BuildBtcpayFailureMessage(System.Net.HttpStatusCode statusCode)
-            => $"BTCPay API returned HTTP {(int)statusCode}.";
 
         private static string? NormalizeOptionalAccountEmail(string? accountEmail)
         {
@@ -1906,72 +1814,10 @@ namespace LongevityWorldCup.Website.Controllers
             message.ReplyTo.Add(new MailboxAddress(displayName?.Trim() ?? string.Empty, normalizedEmail));
         }
 
-        private async Task<(bool Success, string? Error)> SendPaymentFollowupEmailAsync(
-            Config config,
-            PaymentStatusRequest request,
-            string? status,
-            string? additionalStatus,
-            string? amount,
-            string? currency,
-            string? paidAmount,
-            string? checkoutLink,
-            CancellationToken ct)
-        {
-            var subject = BuildApplicationSubject(request.ApplicantName);
-            var textBody = string.Join("\n", new[]
-            {
-                BuildPaymentFollowupIntro(request.SubmissionType),
-                $"Invoice ID: {request.InvoiceId}",
-                $"Status: {status ?? "unknown"}",
-                $"Additional status: {additionalStatus ?? "unknown"}",
-                $"Amount: {amount ?? "?"} {currency ?? "?"}",
-                $"Paid amount: {paidAmount ?? "?"} {currency ?? "?"}",
-                $"Checkout link: {checkoutLink ?? "n/a"}",
-                $"{BuildPaymentFollowupContactLabel(request.SubmissionType)}: {request.AccountEmail ?? "n/a"}"
-            });
-
-            try
-            {
-                var message = new MimeMessage();
-                message.From.Add(CreateConfiguredFromAddress(config, "Longevity World Cup"));
-                message.To.Add(CreateConfiguredToAddress(config));
-                AddReplyToIfValid(message, request.AccountEmail, request.ApplicantName);
-                message.Subject = subject; // exact subject for thread grouping
-                message.Body = new BodyBuilder { TextBody = textBody }.ToMessageBody();
-
-                await SendEmailThroughSmtpAsync(config, message, ct);
-                return (true, null);
-            }
-            catch (Exception ex) when (!ct.IsCancellationRequested)
-            {
-                _logger.LogWarning(ex, "Failed to send payment follow-up email for invoice {InvoiceId}", request.InvoiceId);
-                return (false, ex.Message);
-            }
-        }
-
         private static string BuildApplicationSubject(string? applicantName)
         {
-            return $"[LWC26] Application: {applicantName?.Trim() ?? "Unknown"}";
+            return SmtpApplicationPaymentEmailSender.BuildSubject(applicantName);
         }
-
-        private static string? NormalizePaymentSubmissionType(string? submissionType)
-        {
-            var normalized = submissionType?.Trim().ToLowerInvariant();
-            return normalized is "application" or "result" or "edit" ? normalized : null;
-        }
-
-        private static string BuildPaymentFollowupIntro(string? submissionType)
-            => NormalizePaymentSubmissionType(submissionType) switch
-            {
-                "result" => "Payment detected for result upload.",
-                "edit" => "Payment detected for profile change request.",
-                _ => "Payment detected for submitted application."
-            };
-
-        private static string BuildPaymentFollowupContactLabel(string? submissionType)
-            => NormalizePaymentSubmissionType(submissionType) is "result" or "edit"
-                ? "Athlete email"
-                : "Applicant email";
 
         private static string BuildApplicationAuditEmailBody(
             ApplicantData applicantData,
@@ -2452,89 +2298,6 @@ namespace LongevityWorldCup.Website.Controllers
                 throw new InvalidOperationException($"{name} must be configured with a positive port.");
 
             return value;
-        }
-
-        private static async Task<bool> IsInvoiceNotificationAlreadySentAsync(string invoiceId, IWebHostEnvironment environment)
-        {
-            var filePath = GetPaidNotificationFilePath(environment);
-            if (!System.IO.File.Exists(filePath))
-                return false;
-
-            await PaidInvoiceNotificationFileLock.WaitAsync();
-            try
-            {
-                var lines = await System.IO.File.ReadAllLinesAsync(filePath);
-                return lines.Any(line => string.Equals(line.Trim(), invoiceId, StringComparison.OrdinalIgnoreCase));
-            }
-            finally
-            {
-                PaidInvoiceNotificationFileLock.Release();
-            }
-        }
-
-        private static async Task MarkInvoiceNotificationAsSentAsync(string invoiceId, IWebHostEnvironment environment)
-        {
-            var filePath = GetPaidNotificationFilePath(environment);
-            var dir = Path.GetDirectoryName(filePath);
-            if (!string.IsNullOrWhiteSpace(dir))
-                Directory.CreateDirectory(dir);
-
-            await PaidInvoiceNotificationFileLock.WaitAsync();
-            try
-            {
-                await System.IO.File.AppendAllTextAsync(filePath, invoiceId + Environment.NewLine);
-            }
-            finally
-            {
-                PaidInvoiceNotificationFileLock.Release();
-            }
-        }
-
-        private static string GetPaidNotificationFilePath(IWebHostEnvironment environment)
-        {
-            return Path.Combine(environment.ContentRootPath, "AppData", "paid-invoice-email-sent.txt");
-        }
-
-        private static bool TryGetPropertyString(JsonElement element, string propertyName, out string? value)
-        {
-            foreach (var property in element.EnumerateObject())
-            {
-                if (string.Equals(property.Name, propertyName, StringComparison.OrdinalIgnoreCase))
-                {
-                    value = property.Value.ValueKind == JsonValueKind.String
-                        ? property.Value.GetString()
-                        : property.Value.ToString();
-                    return true;
-                }
-            }
-
-            value = null;
-            return false;
-        }
-
-        private static bool TryGetNestedPropertyString(JsonElement element, string parentPropertyName, string childPropertyName, out string? value)
-        {
-            value = null;
-            if (!TryGetPropertyElement(element, parentPropertyName, out var parentElement))
-                return false;
-            if (parentElement.ValueKind != JsonValueKind.Object)
-                return false;
-            return TryGetPropertyString(parentElement, childPropertyName, out value);
-        }
-
-        private static bool TryGetPropertyElement(JsonElement element, string propertyName, out JsonElement value)
-        {
-            foreach (var property in element.EnumerateObject())
-            {
-                if (string.Equals(property.Name, propertyName, StringComparison.OrdinalIgnoreCase))
-                {
-                    value = property.Value;
-                    return true;
-                }
-            }
-
-            value = default;
-            return false;
         }
 
         private static string NormalizeSubmissionId(string? value)

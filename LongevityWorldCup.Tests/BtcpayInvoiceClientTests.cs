@@ -9,6 +9,29 @@ namespace LongevityWorldCup.Tests;
 
 public sealed class BtcpayInvoiceClientTests
 {
+    [Theory]
+    [InlineData("[]", true, null)]
+    [InlineData("[{\"id\":\"one\",\"metadata\":{\"orderId\":\"order/1\"}}]", true, "one")]
+    [InlineData("[{\"id\":\"one\",\"metadata\":{\"orderId\":\"different\"}}]", false, null)]
+    [InlineData("[{\"id\":\"one\"}]", false, null)]
+    [InlineData("[{\"id\":\"one\"},{\"id\":\"two\"}]", false, null)]
+    public async Task RecoverInvoice_UsesExactAuthenticatedOrderQueryAndRejectsAmbiguity(string body, bool success, string? invoiceId)
+    {
+        var handler = new RecordingHandler(_ => new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(body) });
+        var client = new BtcpayInvoiceClient(new RecordingHttpClientFactory(handler));
+        var result = await client.FindInvoiceByOrderIdAsync(new Config
+        {
+            BTCPayBaseUrl = "https://pay.example.test/", BTCPayStoreId = "store id", BTCPayGreenfieldApiKey = "fake-key"
+        }, "order/1");
+        Assert.Equal(success, result.Success);
+        Assert.Equal(invoiceId, result.InvoiceId);
+        var request = Assert.Single(handler.Requests);
+        Assert.Equal("https://pay.example.test/api/v1/stores/store%20id/invoices?orderId=order%2F1&take=2", request.RequestUri!.AbsoluteUri);
+        Assert.Equal(HttpMethod.Get, request.Method);
+        Assert.Equal("token", request.Authorization!.Scheme);
+        Assert.Equal("fake-key", request.Authorization.Parameter);
+    }
+
     [Fact]
     public async Task CreateInvoiceAsync_SendsCanonicalPayloadAndAuthorizationHeader()
     {

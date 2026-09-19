@@ -246,6 +246,12 @@ namespace LongevityWorldCup.Website
             builder.Services.AddSingleton<ILongevitymaxxingEmailSender, SmtpLongevitymaxxingEmailSender>();
             builder.Services.AddSingleton<LongevitymaxxingChallengeService>();
             builder.Services.AddSingleton<IBtcpayInvoiceClient, BtcpayInvoiceClient>();
+            builder.Services.AddSingleton(TimeProvider.System);
+            builder.Services.AddSingleton<ApplicationPaymentStore>();
+            builder.Services.AddSingleton<IApplicationPaymentEmailSender, SmtpApplicationPaymentEmailSender>();
+            builder.Services.AddSingleton<ApplicationPaymentReconciler>();
+            if (builder.Configuration.GetValue("EnableApplicationPaymentReconciliation", builder.Environment.IsProduction()))
+                builder.Services.AddHostedService<ApplicationPaymentWorker>();
             builder.Services.AddSingleton<IDiscountSignupReportEmailSender, SmtpDiscountSignupReportEmailSender>();
             builder.Services.AddSingleton<DiscountSignupReportService>();
 

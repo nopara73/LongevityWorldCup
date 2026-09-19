@@ -385,10 +385,6 @@
             return value === "proof-upload" || value === "edit-profile" ? value : null;
         }
 
-        function normalizePaymentSubmissionType(value) {
-            return value === "application" || value === "result" || value === "edit" ? value : null;
-        }
-
         function normalizeOptionalString(value) {
             return typeof value === "string" && value.trim() ? value.trim() : null;
         }
@@ -421,7 +417,7 @@
                 document.getElementById("whatAreWeReviewing").textContent = "your edit request";
             }
 
-            maybeNotifyPaidInvoice();
+            checkPendingPayment();
         });
 
         // Retrieve the contact email
@@ -439,7 +435,7 @@
         // mark that they’ve submitted an application
         setLocalItem('hasApplication', 'true');
 
-        function maybeNotifyPaidInvoice() {
+        function checkPendingPayment() {
             const pending = pendingPaymentInvoice;
 
             if (!pending || !pending.invoiceId) return;
@@ -447,18 +443,13 @@
             fetchWithTimeout('/api/application/payment-status', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    invoiceId: pending.invoiceId,
-                    applicantName: normalizeOptionalString(pending.applicantName),
-                    accountEmail: normalizeContactEmail(pending.accountEmail) || contactEmail || null,
-                    submissionType: normalizePaymentSubmissionType(pending.submissionType)
-                })
+                body: JSON.stringify({ invoiceId: pending.invoiceId })
             }, 12000)
                 .then(response => response.ok ? response.json() : null)
                 .then(result => {
                     if (!result) return;
-                    // If we confirmed paid + notified (or already notified), we can stop checking.
-                    if (result.isPaid && (result.notificationSent || result.alreadyNotified)) {
+                    // Payment completes the browser handoff; notification delivery is server-owned.
+                    if (result.isPaid) {
                         removeSessionItem(PENDING_PAYMENT_INVOICE_KEY);
                         removeLocalItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY);
                         const completedSubmissionId = normalizeOptionalString(pending.submissionId);

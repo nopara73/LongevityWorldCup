@@ -1185,12 +1185,26 @@ public sealed class ApplicationControllerValidationTests(TestWebApplicationFacto
         Assert.Equal(expected, redirectUrl);
     }
 
+    [Theory]
+    [InlineData("longevityworldcup.com", "https://longevityworldcup.com/review")]
+    [InlineData("www.longevityworldcup.com", "https://longevityworldcup.com/review")]
+    [InlineData("localhost:5000", "http://localhost:5000/review")]
+    [InlineData("example.onion", "http://example.onion/review")]
+    public void ReviewRedirectUrl_UsesHttpsBehindPublicProxyAndPreservesLocalOrigins(string host, string expected)
+    {
+        var controller = CreateController(sharedFactory);
+        controller.Request.Scheme = "http";
+        controller.Request.Host = new HostString(host);
+        var method = typeof(ApplicationController).GetMethod("BuildReviewRedirectUrlForCurrentRequest", BindingFlags.Instance | BindingFlags.NonPublic);
+        Assert.Equal(expected, method!.Invoke(controller, [false, false]));
+    }
+
     [Fact]
     public void BtcpayInvoicePayload_PreservesAccountEmailInMetadata()
     {
         var source = ReadApplicationControllerSource();
         var invoiceRequestStart = source.IndexOf("var invoiceRequest = new BtcpayInvoiceCreateRequest(", StringComparison.Ordinal);
-        var payloadEnd = source.IndexOf("using var client = new HttpClient();", invoiceRequestStart, StringComparison.Ordinal);
+        var payloadEnd = source.IndexOf("_applicationPayments.Register(", invoiceRequestStart, StringComparison.Ordinal);
 
         Assert.True(invoiceRequestStart >= 0);
         Assert.True(payloadEnd > invoiceRequestStart);
@@ -1209,9 +1223,7 @@ public sealed class ApplicationControllerValidationTests(TestWebApplicationFacto
     [InlineData(null, "Payment detected for submitted application.")]
     public void PaymentFollowupIntro_UsesSubmissionSpecificCopy(string? submissionType, string expected)
     {
-        var method = typeof(ApplicationController).GetMethod("BuildPaymentFollowupIntro", BindingFlags.Static | BindingFlags.NonPublic);
-
-        var intro = (string?)method!.Invoke(null, [submissionType]);
+        var intro = SmtpApplicationPaymentEmailSender.BuildPaymentFollowupIntro(submissionType);
 
         Assert.Equal(expected, intro);
     }
@@ -1224,9 +1236,7 @@ public sealed class ApplicationControllerValidationTests(TestWebApplicationFacto
     [InlineData(null, "Applicant email")]
     public void PaymentFollowupContactLabel_UsesSubmissionSpecificLabel(string? submissionType, string expected)
     {
-        var method = typeof(ApplicationController).GetMethod("BuildPaymentFollowupContactLabel", BindingFlags.Static | BindingFlags.NonPublic);
-
-        var label = (string?)method!.Invoke(null, [submissionType]);
+        var label = SmtpApplicationPaymentEmailSender.BuildPaymentFollowupContactLabel(submissionType);
 
         Assert.Equal(expected, label);
     }
@@ -1262,7 +1272,8 @@ public sealed class ApplicationControllerValidationTests(TestWebApplicationFacto
             factory.Services.GetRequiredService<IWebHostEnvironment>(),
             logger ?? NullLogger<ApplicationController>.Instance,
             factory.Services.GetRequiredService<ApplicationSubmissionRetryStore>(),
-            btcpayInvoices: btcpayInvoices,
+            factory.Services.GetRequiredService<ApplicationPaymentStore>(),
+            btcpayInvoices ?? factory.Services.GetRequiredService<IBtcpayInvoiceClient>(),
             statistics: statistics,
             athleteSnapshots: factory.Services.GetRequiredService<IAthleteSnapshotProvider>())
         {
@@ -1320,6 +1331,9 @@ public sealed class ApplicationControllerValidationTests(TestWebApplicationFacto
 
     private sealed class TimeoutBtcpayInvoiceClient : IBtcpayInvoiceClient
     {
+        public Task<BtcpayInvoiceRecoveryResult> FindInvoiceByOrderIdAsync(Config config, string orderId, CancellationToken ct = default)
+            => throw new NotSupportedException();
+
         public Task<BtcpayInvoiceCreateResult> CreateInvoiceAsync(
             Config config,
             BtcpayInvoiceCreateRequest request,

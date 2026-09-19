@@ -505,5 +505,9 @@ Add BTCPay entries to `config.json`:
 Notes:
 - Keep `BTCPayGreenfieldApiKey` secret, same handling as SMTP/Google secrets.
 - Required API key permissions: `btcpay.store.cancreateinvoice`, `btcpay.store.canviewinvoices`.
-- The server creates invoices and sets redirect to: `https://www.longevityworldcup.com/review`. Existing invoices using `/onboarding/application-review.html` remain supported by a permanent redirect.
+- Public-host checkout redirects use `https://longevityworldcup.com/review`, including behind the HTTP reverse proxy. Local/onion origins and result/profile review parameters are preserved. Existing invoices using `/onboarding/application-review.html` remain supported by a permanent redirect.
+
+### Application payment reconciliation
+
+The `ApplicationPaymentWorker` polls a durable `ApplicationPayments` outbox in the existing `/var/www/.longevityworldcup/LongevityWorldCup.db`. It defaults on in Production, independently of Quartz; `EnableApplicationPaymentReconciliation=false` disables it. Development and the integration-test host default off. No BTCPay webhook or additional API permission is required. See [Application payment reconciliation](ApplicationPaymentReconciliation.md) for delivery states, read-only checks, and handling uncertain SMTP delivery.
 

@@ -10,7 +10,7 @@ namespace LongevityWorldCup.Website
     {
         private static readonly string[] Scopes = ["https://mail.google.com/"];
 
-        public static async Task<string> GetAccessTokenAsync(Config cfg)
+        public static async Task<string> GetAccessTokenAsync(Config cfg, CancellationToken ct = default)
         {
             ArgumentNullException.ThrowIfNull(cfg);
 
@@ -33,7 +33,7 @@ namespace LongevityWorldCup.Website
 
             if (cred.Token.IsStale)
             {
-                await cred.RefreshTokenAsync(CancellationToken.None);
+                await cred.RefreshTokenAsync(ct);
             }
 
             return RequireConfiguredValue(cred.Token.AccessToken, "Gmail OAuth access token");
