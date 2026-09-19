@@ -246,6 +246,9 @@ public sealed class DiscountSignupReportServiceTests
 
     private sealed class FakeBtcpayInvoiceClient : IBtcpayInvoiceClient
     {
+        public Task<BtcpayInvoiceRecoveryResult> FindInvoiceByOrderIdAsync(Config config, string orderId, CancellationToken ct = default)
+            => throw new NotSupportedException();
+
         public Dictionary<string, BtcpayInvoiceLookupResult> Results { get; } = new(StringComparer.OrdinalIgnoreCase);
         public List<string> RequestedInvoiceIds { get; } = [];
 

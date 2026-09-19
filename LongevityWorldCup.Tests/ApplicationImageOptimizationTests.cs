@@ -169,7 +169,7 @@ public class ApplicationImageOptimizationTests
     [Fact]
     public void ApplicationBtcpayFailureMessageDoesNotExposeProviderResponseBody()
     {
-        var method = typeof(ApplicationController).GetMethod("BuildBtcpayFailureMessage", BindingFlags.Static | BindingFlags.NonPublic);
+        var method = typeof(BtcpayInvoiceClient).GetMethod("BuildBtcpayFailureMessage", BindingFlags.Static | BindingFlags.NonPublic);
 
         Assert.NotNull(method);
 
@@ -186,7 +186,9 @@ public class ApplicationImageOptimizationTests
         return new ApplicationController(
             new TestWebHostEnvironment(),
             NullLogger<ApplicationController>.Instance,
-            new ApplicationSubmissionRetryStore(cache));
+            new ApplicationSubmissionRetryStore(cache),
+            applicationPayments: null!,
+            btcpayInvoices: null!); // Image-only tests do not execute payment paths.
     }
 
     private sealed class TestWebHostEnvironment : IWebHostEnvironment

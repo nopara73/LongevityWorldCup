@@ -9,6 +9,7 @@ public interface IBtcpayInvoiceClient
 {
     Task<BtcpayInvoiceCreateResult> CreateInvoiceAsync(Config config, BtcpayInvoiceCreateRequest request, CancellationToken ct = default);
     Task<BtcpayInvoiceLookupResult> GetInvoiceAsync(Config config, string invoiceId, CancellationToken ct = default);
+    Task<BtcpayInvoiceRecoveryResult> FindInvoiceByOrderIdAsync(Config config, string orderId, CancellationToken ct = default);
 }
 
 public sealed class BtcpayInvoiceClient(IHttpClientFactory httpClientFactory) : IBtcpayInvoiceClient
@@ -126,6 +127,31 @@ public sealed class BtcpayInvoiceClient(IHttpClientFactory httpClientFactory) : 
         }
 
         return ParseInvoiceJson(responseBody);
+    }
+
+    public async Task<BtcpayInvoiceRecoveryResult> FindInvoiceByOrderIdAsync(Config config, string orderId, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(orderId);
+        if (string.IsNullOrWhiteSpace(config.BTCPayBaseUrl) || string.IsNullOrWhiteSpace(config.BTCPayStoreId)
+            || string.IsNullOrWhiteSpace(config.BTCPayGreenfieldApiKey))
+            return new(false, null, "BTCPay configuration is incomplete.");
+
+        var endpoint = $"{config.BTCPayBaseUrl.TrimEnd('/')}/api/v1/stores/{Uri.EscapeDataString(config.BTCPayStoreId)}/invoices"
+            + $"?orderId={Uri.EscapeDataString(orderId)}&take=2";
+        var client = _httpClientFactory.CreateClient(nameof(BtcpayInvoiceClient));
+        using var request = new HttpRequestMessage(HttpMethod.Get, endpoint);
+        request.Headers.Authorization = new AuthenticationHeaderValue("token", config.BTCPayGreenfieldApiKey);
+        using var response = await client.SendAsync(request, ct);
+        if (!response.IsSuccessStatusCode)
+            return new(false, null, BuildBtcpayFailureMessage(response.StatusCode));
+        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync(ct));
+        var matches = document.RootElement.EnumerateArray().ToArray();
+        if (matches.Length == 0) return new(true, null, null);
+        if (matches.Length != 1
+            || !TryGetNestedPropertyString(matches[0], "metadata", "orderId", out var actualOrder) || actualOrder != orderId
+            || !TryGetPropertyString(matches[0], "id", out var invoiceId) || string.IsNullOrWhiteSpace(invoiceId))
+            return new(false, null, "BTCPay order recovery returned ambiguous or mismatched invoices.");
+        return new(true, invoiceId, null);
     }
 
     internal static BtcpayInvoiceLookupResult ParseInvoiceJson(string json)
@@ -251,6 +277,8 @@ public sealed record BtcpayInvoiceCreateRequest(
     string? RedirectUrl = null,
     bool RedirectAutomatically = false,
     int? ExpirationMinutes = null);
+
+public sealed record BtcpayInvoiceRecoveryResult(bool Success, string? InvoiceId, string? Error);
 
 public sealed record BtcpayInvoiceCreateResult(
     bool Success,

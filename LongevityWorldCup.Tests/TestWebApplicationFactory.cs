@@ -42,6 +42,7 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
         Directory.CreateDirectory(_dbRoot);
         var dbPath = Path.Combine(_dbRoot, "test.db");
         builder.UseSetting("EnableScheduledJobs", "false");
+        builder.UseSetting("EnableApplicationPaymentReconciliation", "false");
         builder.UseSetting("EnableStartupBadgeRefresh", "false");
         builder.ConfigureTestServices(services =>
         {
