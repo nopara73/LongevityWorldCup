@@ -3083,11 +3083,28 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 const url = new URL(/^www\./i.test(label) ? `https://${label}` : label);
                 if (!url.hostname || url.username || url.password) continue;
                 html += participantMentionOnlyTextHtml(note.slice(cursor, match.index));
-                html += `<a class="lmx-discussion-text-link" href="${escAttr(url.href)}" target="_blank" rel="noopener noreferrer ugc">${esc(label)}</a>`;
+                html += discussionYouTubePreviewHtml(url) || `<a class="lmx-discussion-text-link" href="${escAttr(url.href)}" target="_blank" rel="noopener noreferrer ugc">${esc(label)}</a>`;
                 cursor = match.index + label.length;
             } catch { /* Leave malformed URLs as ordinary text. */ }
         }
         return html + participantMentionOnlyTextHtml(note.slice(cursor));
+    }
+
+    function discussionYouTubePreviewHtml(url: URL): string {
+        const host = url.hostname.replace(/^www\./, "");
+        if (url.port) return "";
+        let videoId: string | null = null;
+        if (host === "youtu.be") {
+            videoId = /^\/([\w-]{11})\/?$/.exec(url.pathname)?.[1] || null;
+        } else if (["youtube.com", "m.youtube.com", "music.youtube.com"].includes(host)) {
+            videoId = url.pathname === "/watch" ? url.searchParams.get("v")
+                : /^\/(?:shorts|live|embed)\/([\w-]{11})\/?$/.exec(url.pathname)?.[1] || null;
+        }
+        if (!videoId || !/^[\w-]{11}$/.test(videoId)) return "";
+
+        // Keep the shared URL intact, including start times. External thumbnails
+        // are keyed by YouTube's video ID rather than our local asset versions.
+        return `<a class="lmx-discussion-video" href="${escAttr(url.href)}" target="_blank" rel="noopener noreferrer ugc" aria-label="Watch YouTube video (opens in a new tab)"><img src="https://i.ytimg.com/vi/${videoId}/hqdefault.jpg" alt="" width="480" height="360" loading="lazy" decoding="async" referrerpolicy="no-referrer"><span class="lmx-discussion-video-play" aria-hidden="true"><svg viewBox="0 0 24 24" width="24" height="24"><path d="M8 5v14l11-7z" fill="currentColor"/></svg></span><span class="lmx-discussion-video-label" aria-hidden="true">YouTube<svg viewBox="0 0 24 24" width="16" height="16"><path d="M14 4h6v6M20 4l-9 9M10 4H4v16h16v-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></a>`;
     }
 
     function discussionPermalink(note: Pick<ParticipantNote, "participantId" | "challengeDay" | "systemPostId">): string {
@@ -4161,6 +4178,11 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         document.addEventListener("error", event => {
             const image = event.target;
             if (!(image instanceof HTMLImageElement)) return;
+            const video = image.closest<HTMLAnchorElement>(".lmx-discussion-video");
+            if (video) {
+                video.classList.add("has-error");
+                return;
+            }
             const photo = image.closest<HTMLButtonElement>("button.lmx-note-photo");
             if (photo) {
                 photo.classList.add("has-error");
