@@ -8,6 +8,7 @@ namespace LongevityWorldCup.Tests;
 
 public sealed partial class LongevitymaxxingChallengeBrowserTests
 {
+    private const string YouTubeTitle = "Prolactin Is THE Root Cause of Hair Loss?! Absci’s New Drug May Prove It";
     [Theory]
     [InlineData(1280, ColorScheme.Light, true)]
     [InlineData(844, ColorScheme.Dark, false)]
@@ -34,6 +35,9 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await Assertions.Expect(thread.Locator("iframe")).ToHaveCountAsync(0);
         foreach (var card in new[] { post, reply })
         {
+            await Assertions.Expect(card.Locator(".lmx-discussion-video-title")).ToHaveTextAsync(YouTubeTitle);
+            await Assertions.Expect(card.Locator(".lmx-discussion-video-author")).ToHaveTextAsync("Perfect Hair Health");
+            await Assertions.Expect(card).ToHaveAttributeAsync("aria-label", $"Watch {YouTubeTitle} on YouTube (opens in a new tab)");
             await card.ScrollIntoViewIfNeededAsync();
             await Assertions.Expect(card).ToBeVisibleAsync();
             await Assertions.Expect(card).ToHaveAttributeAsync("target", "_blank");
@@ -41,7 +45,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
             await card.FocusAsync();
             await Assertions.Expect(card).ToBeFocusedAsync();
             Assert.True(await card.EvaluateAsync<bool>("e => getComputedStyle(e).outlineStyle !== 'none'"));
-            Assert.True(await card.EvaluateAsync<bool>("e => { const r = e.getBoundingClientRect(); const p = e.parentElement.getBoundingClientRect(); return r.width <= 360 && Math.abs(r.width / r.height - 16 / 9) < .02 && r.left >= p.left && r.right <= p.right + 1; }"));
+            Assert.True(await card.EvaluateAsync<bool>("e => { const r = e.getBoundingClientRect(), p = e.parentElement.getBoundingClientRect(), m = e.querySelector('.lmx-discussion-video-media').getBoundingClientRect(), t = e.querySelector('.lmx-discussion-video-title'); return r.width <= 360 && Math.abs(m.width / m.height - 16 / 9) < .02 && r.left >= p.left && r.right <= p.right + 1 && t.scrollHeight <= t.clientHeight && getComputedStyle(t).webkitLineClamp === 'none'; }"));
             await Assertions.Expect(card.Locator("img")).ToHaveAttributeAsync("loading", "lazy");
         }
         Assert.True(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth <= innerWidth"));
@@ -80,6 +84,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         const string url = "https://www.youtube.com/watch?v=usE4x1Gyss0";
         var page = await OpenDiscussionPolishAsync(context, YouTubeDiscussionState(url, "A reply."), "#discussion/post/p7/5", signedIn: false);
         var card = DiscussionThread(page, "p7", 5).Locator(".lmx-discussion-video");
+        await Assertions.Expect(card.Locator(".lmx-discussion-video-title")).ToHaveTextAsync(YouTubeTitle);
         await card.ScrollIntoViewIfNeededAsync();
         await Assertions.Expect(card).ToHaveClassAsync("lmx-discussion-video has-error");
         await Assertions.Expect(card.Locator("img")).ToBeHiddenAsync();
@@ -92,6 +97,51 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         var popup = await page.RunAndWaitForPopupAsync(() => page.Keyboard.PressAsync("Enter"));
         await popup.WaitForLoadStateAsync();
         Assert.Equal(url, popup.Url);
+    }
+
+    [Fact]
+    public async Task DiscussionYouTube_RetriesMissingMetadataWithoutReplacingCardsOrDrafts()
+    {
+        await using var context = await NewContextAsync(Browser, App, new());
+        await StubDiscussionThumbnailAsync(context);
+        var calls = 0;
+        await context.RouteAsync("**/api/previews/youtube/*", async route =>
+        {
+            if (++calls == 1) await route.FulfillAsync(new() { Status = 503 });
+            else await FulfillJsonAsync(route, JsonSerializer.Serialize(new { videoId = "usE4x1Gyss0", title = YouTubeTitle, authorName = "Perfect Hair Health" }));
+        });
+        var page = await OpenDiscussionPolishAsync(context,
+            YouTubeDiscussionState("https://youtu.be/usE4x1Gyss0", "https://www.youtube.com/watch?v=usE4x1Gyss0&t=20"), "#discussion/post/p7/5");
+        var thread = DiscussionThread(page, "p7", 5);
+        var cards = thread.Locator(".lmx-discussion-video");
+        await Assertions.Expect(cards.First.Locator(".lmx-discussion-video-title")).ToHaveTextAsync("Watch on YouTube");
+        await Assertions.Expect(cards.Last.Locator(".lmx-discussion-video-title")).ToHaveTextAsync("Watch on YouTube");
+        Assert.Equal(1, calls);
+        await thread.Locator("[data-discussion-reply]").ClickAsync();
+        await thread.Locator("textarea").FillAsync("Keep my draft while the title loads.");
+        await cards.First.EvaluateAsync("e => window.originalVideoCard = e");
+        await page.Clock.FastForwardAsync(31_100);
+        await Assertions.Expect(cards.First.Locator(".lmx-discussion-video-title")).ToHaveTextAsync(YouTubeTitle);
+        await Assertions.Expect(cards.Last.Locator(".lmx-discussion-video-title")).ToHaveTextAsync(YouTubeTitle);
+        Assert.Equal(2, calls);
+        Assert.True(await cards.First.EvaluateAsync<bool>("e => e === window.originalVideoCard"));
+        await Assertions.Expect(thread.Locator("textarea")).ToBeFocusedAsync();
+        await Assertions.Expect(thread.Locator("textarea")).ToHaveValueAsync("Keep my draft while the title loads.");
+    }
+
+    [Fact]
+    public async Task DiscussionYouTube_MetadataIsPlainTextAndLongTitlesRemainReadable()
+    {
+        await using var context = await NewContextAsync(Browser, App, new() { ViewportSize = new() { Width = 320, Height = 900 } });
+        await StubDiscussionThumbnailAsync(context);
+        var title = "A very long video title about a careful experiment and what its findings mean <img src=x onerror=alert(1)> & more";
+        await context.RouteAsync("**/api/previews/youtube/*", route => FulfillJsonAsync(route,
+            JsonSerializer.Serialize(new { videoId = "usE4x1Gyss0", title, authorName = "Channel <script>alert(1)</script>" })));
+        var page = await OpenDiscussionPolishAsync(context, YouTubeDiscussionState("https://youtu.be/usE4x1Gyss0", "A reply."), "#discussion/post/p7/5", signedIn: false);
+        var card = DiscussionThread(page, "p7", 5).Locator(".lmx-discussion-video");
+        await Assertions.Expect(card.Locator(".lmx-discussion-video-title")).ToHaveTextAsync(title);
+        await Assertions.Expect(card.Locator(".lmx-discussion-video-details img, .lmx-discussion-video-details script")).ToHaveCountAsync(0);
+        Assert.True(await card.EvaluateAsync<bool>("e => { const t=e.querySelector('.lmx-discussion-video-title'), a=e.querySelector('.lmx-discussion-video-author'); return t.scrollHeight <= t.clientHeight && t.getBoundingClientRect().bottom <= a.getBoundingClientRect().top && document.documentElement.scrollWidth <= innerWidth; }"));
     }
 
     private static JsonObject YouTubeDiscussionState(string note, string reply)

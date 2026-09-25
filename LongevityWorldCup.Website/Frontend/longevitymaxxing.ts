@@ -769,6 +769,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     const pendingNotePhotos = new Map<string, File[]>();
     const pendingNotePhotoUrls = new Map<string, string[]>();
     const preparedDiscussionPhotos = new WeakMap<File, Promise<File>>();
+    const youtubePreviews = new Map<string, { preview?: YouTubePreview | null; expiresAt: number; promise: Promise<YouTubePreview | null> }>();
     const checkInDrafts = new Map<string, CheckInFormDraft>();
     const renderedCheckInDays = new WeakMap<HTMLFormElement, string>();
     const checkInResetUndo = new Map<string, { values: CheckInFormDraft; photos: File[] }>();
@@ -3102,9 +3103,60 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         }
         if (!videoId || !/^[\w-]{11}$/.test(videoId)) return "";
 
-        // Keep the shared URL intact, including start times. External thumbnails
-        // are keyed by YouTube's video ID rather than our local asset versions.
-        return `<a class="lmx-discussion-video" href="${escAttr(url.href)}" target="_blank" rel="noopener noreferrer ugc" aria-label="Watch YouTube video (opens in a new tab)"><img src="https://i.ytimg.com/vi/${videoId}/hqdefault.jpg" alt="" width="480" height="360" loading="lazy" decoding="async" referrerpolicy="no-referrer"><span class="lmx-discussion-video-play" aria-hidden="true"><svg viewBox="0 0 24 24" width="24" height="24"><path d="M8 5v14l11-7z" fill="currentColor"/></svg></span><span class="lmx-discussion-video-label" aria-hidden="true">YouTube<svg viewBox="0 0 24 24" width="16" height="16"><path d="M14 4h6v6M20 4l-9 9M10 4H4v16h16v-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></a>`;
+        const preview = youtubePreviews.get(videoId)?.preview;
+        const title = preview?.title || "Watch on YouTube";
+        const author = preview?.authorName || "";
+        // Keep timestamps on the original link; metadata is shared by video ID.
+        // YouTube's external thumbnails are keyed by ID, not local asset versions.
+        return `<a class="lmx-discussion-video${preview === undefined ? " is-loading" : ""}" data-youtube-video-id="${videoId}" href="${escAttr(url.href)}" target="_blank" rel="noopener noreferrer ugc" aria-label="${escAttr(youTubePreviewLabel(preview))}">
+            <span class="lmx-discussion-video-details"><span class="lmx-discussion-video-provider">YouTube<svg aria-hidden="true" viewBox="0 0 24 24" width="14" height="14"><path d="M14 4h6v6M20 4l-9 9M10 4H4v16h16v-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="lmx-discussion-video-title">${esc(title)}</span><span class="lmx-discussion-video-author">${esc(author)}</span></span>
+            <span class="lmx-discussion-video-media"><img src="https://i.ytimg.com/vi/${videoId}/hqdefault.jpg" alt="" width="480" height="360" loading="lazy" decoding="async" referrerpolicy="no-referrer"><span class="lmx-discussion-video-play" aria-hidden="true"><svg viewBox="0 0 24 24" width="24" height="24"><path d="M8 5v14l11-7z" fill="currentColor"/></svg></span></span></a>`;
+    }
+
+    interface YouTubePreview { videoId: string; title: string; authorName: string }
+
+    function youTubePreviewLabel(preview?: YouTubePreview | null): string {
+        return preview ? `Watch ${preview.title} on YouTube (opens in a new tab)` : "Watch YouTube video (opens in a new tab)";
+    }
+
+    function fetchYouTubePreview(videoId: string): Promise<YouTubePreview | null> {
+        const cached = youtubePreviews.get(videoId);
+        if (cached && cached.expiresAt > Date.now()) return cached.promise;
+        const promise = (async (): Promise<YouTubePreview | null> => {
+            try {
+                const response = await fetch(`/api/previews/youtube/${videoId}`, { signal: AbortSignal.timeout(8000) });
+                if (!response.ok) return null;
+                const data: unknown = await response.json();
+                if (!data || typeof data !== "object") return null;
+                const preview = data as Partial<YouTubePreview>;
+                return preview.videoId === videoId && typeof preview.title === "string" && preview.title.trim() &&
+                    preview.title.length <= 1000 && typeof preview.authorName === "string" && preview.authorName.length <= 500
+                    ? { videoId, title: preview.title.trim(), authorName: preview.authorName } : null;
+            } catch { return null; }
+        })();
+        const entry: { preview?: YouTubePreview | null; expiresAt: number; promise: Promise<YouTubePreview | null> } = {
+            expiresAt: Infinity, promise: promise.then(preview => {
+                entry.preview = preview;
+                entry.expiresAt = Date.now() + (preview ? 6 * 60 * 60 * 1000 : 30_000);
+                return preview;
+            })
+        };
+        if (youtubePreviews.size >= 512) youtubePreviews.delete(youtubePreviews.keys().next().value!);
+        youtubePreviews.set(videoId, entry);
+        return entry.promise;
+    }
+
+    async function hydrateYouTubePreview(card: HTMLAnchorElement, retry = true): Promise<void> {
+        const videoId = card.dataset.youtubeVideoId!;
+        const preview = await fetchYouTubePreview(videoId);
+        if (!card.isConnected || card.dataset.youtubeVideoId !== videoId) return;
+        card.querySelector(".lmx-discussion-video-title")!.textContent = preview?.title || "Watch on YouTube";
+        card.querySelector(".lmx-discussion-video-author")!.textContent = preview?.authorName || new URL(card.href).hostname;
+        card.setAttribute("aria-label", youTubePreviewLabel(preview));
+        card.classList.remove("is-loading");
+        if (!preview && retry) window.setTimeout(() => {
+            if (card.isConnected) void hydrateYouTubePreview(card, false);
+        }, 31_000);
     }
 
     function discussionPermalink(note: Pick<ParticipantNote, "participantId" | "challengeDay" | "systemPostId">): string {
@@ -5431,6 +5483,11 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     }
 
     function wireDiscussionControls(root: ParentNode): void {
+        root.querySelectorAll<HTMLAnchorElement>("[data-youtube-video-id]").forEach(card => {
+            if (card.dataset.previewWired) return;
+            card.dataset.previewWired = "true";
+            void hydrateYouTubePreview(card);
+        });
         root.querySelectorAll<HTMLButtonElement>("[data-discussion-quick-reply], [data-discussion-replies-expand], [data-discussion-replies-collapse]").forEach(button => {
             if (button.dataset.discussionControlWired === "true") return;
             button.dataset.discussionControlWired = "true";

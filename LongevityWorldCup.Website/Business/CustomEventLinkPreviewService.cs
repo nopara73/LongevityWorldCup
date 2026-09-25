@@ -1,6 +1,4 @@
 using System.Text.Json;
-using System.Text.Json.Serialization;
-using Microsoft.AspNetCore.WebUtilities;
 
 namespace LongevityWorldCup.Website.Business;
 
@@ -11,9 +9,8 @@ public sealed record CustomEventLinkPreview(
     string Description,
     string Image);
 
-public sealed class CustomEventLinkPreviewService(IHttpClientFactory httpClientFactory, ILogger<CustomEventLinkPreviewService> log)
+public sealed class CustomEventLinkPreviewService(IHttpClientFactory httpClientFactory, ILogger<CustomEventLinkPreviewService> log, YouTubePreviewService youtube)
 {
-    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
     private readonly IHttpClientFactory _httpClientFactory = httpClientFactory;
     private readonly ILogger<CustomEventLinkPreviewService> _log = log;
 
@@ -22,19 +19,10 @@ public sealed class CustomEventLinkPreviewService(IHttpClientFactory httpClientF
         if (!TryNormalizeHttpUrl(url, out var normalizedUrl, out _))
             return null;
 
-        var youtubeVideoId = TryGetYouTubeVideoId(normalizedUrl);
-        var microlink = await TryFetchMicrolinkAsync(normalizedUrl, ct);
-        if (IsUsablePreview(microlink))
-            return microlink;
-
-        if (!string.IsNullOrWhiteSpace(youtubeVideoId))
-        {
-            var youtube = await TryFetchYouTubeOEmbedAsync(normalizedUrl, youtubeVideoId, ct);
-            if (IsUsablePreview(youtube))
-                return youtube;
-        }
-
-        return microlink;
+        var videoId = YouTubePreviewService.TryGetVideoId(normalizedUrl);
+        if (videoId is not null && await youtube.FetchAsync(videoId, ct) is { } preview)
+            return new(normalizedUrl, "YouTube", preview.Title, preview.AuthorName, preview.ThumbnailUrl);
+        return await TryFetchMicrolinkAsync(normalizedUrl, ct);
     }
 
     private async Task<CustomEventLinkPreview?> TryFetchMicrolinkAsync(string url, CancellationToken ct)
@@ -77,41 +65,6 @@ public sealed class CustomEventLinkPreviewService(IHttpClientFactory httpClientF
         }
     }
 
-    private async Task<CustomEventLinkPreview?> TryFetchYouTubeOEmbedAsync(string originalUrl, string videoId, CancellationToken ct)
-    {
-        try
-        {
-            var canonicalUrl = $"https://www.youtube.com/watch?v={Uri.EscapeDataString(videoId)}";
-            var endpoint = $"https://www.youtube.com/oembed?url={Uri.EscapeDataString(canonicalUrl)}&format=json";
-            using var request = new HttpRequestMessage(HttpMethod.Get, endpoint);
-            request.Headers.Accept.ParseAdd("application/json");
-
-            using var response = await _httpClientFactory.CreateClient().SendAsync(request, ct);
-            if (!response.IsSuccessStatusCode)
-            {
-                _log.LogDebug("YouTube oEmbed preview fetch failed for {Url}: {StatusCode}", originalUrl, response.StatusCode);
-                return null;
-            }
-
-            await using var stream = await response.Content.ReadAsStreamAsync(ct);
-            var data = await JsonSerializer.DeserializeAsync<YouTubeOEmbedResponse>(stream, JsonOptions, ct);
-            if (data is null)
-                return null;
-
-            var title = FirstNonEmpty(data.Title, "YouTube video");
-            var domain = FirstNonEmpty(data.ProviderName, "YouTube");
-            var description = data.AuthorName ?? "";
-            var image = FirstNonEmpty(data.ThumbnailUrl, $"https://i.ytimg.com/vi/{Uri.EscapeDataString(videoId)}/hqdefault.jpg");
-
-            return new CustomEventLinkPreview(originalUrl, domain, title, description, image);
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException)
-        {
-            _log.LogDebug(ex, "YouTube oEmbed preview fetch failed for {Url}", originalUrl);
-            return null;
-        }
-    }
-
     private static bool TryNormalizeHttpUrl(string? value, out string normalizedUrl, out Uri? uri)
     {
         normalizedUrl = "";
@@ -130,61 +83,6 @@ public sealed class CustomEventLinkPreviewService(IHttpClientFactory httpClientF
         normalizedUrl = parsed.ToString();
         uri = parsed;
         return true;
-    }
-
-    private static string? TryGetYouTubeVideoId(string url)
-    {
-        if (!TryNormalizeHttpUrl(url, out _, out var parsed) || parsed is null)
-            return null;
-
-        var host = parsed.Host.StartsWith("www.", StringComparison.OrdinalIgnoreCase)
-            ? parsed.Host[4..]
-            : parsed.Host;
-        host = host.ToLowerInvariant();
-
-        if (host == "youtu.be")
-        {
-            var id = parsed.AbsolutePath.Split('/', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
-            return IsYouTubeVideoId(id) ? id : null;
-        }
-
-        if (host is "youtube.com" or "m.youtube.com" or "music.youtube.com")
-        {
-            var query = QueryHelpers.ParseQuery(parsed.Query);
-            var fromQuery = query.TryGetValue("v", out var values) ? values.FirstOrDefault() : null;
-            if (IsYouTubeVideoId(fromQuery))
-                return fromQuery;
-
-            var parts = parsed.AbsolutePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
-            for (var i = 0; i < parts.Length - 1; i++)
-            {
-                if (parts[i] is "shorts" or "embed" or "live" && IsYouTubeVideoId(parts[i + 1]))
-                    return parts[i + 1];
-            }
-        }
-
-        return null;
-    }
-
-    private static bool IsYouTubeVideoId(string? value)
-    {
-        if (value?.Length != 11)
-            return false;
-
-        foreach (var ch in value)
-        {
-            if (!char.IsAsciiLetterOrDigit(ch) && ch != '_' && ch != '-')
-                return false;
-        }
-
-        return true;
-    }
-
-    private static bool IsUsablePreview(CustomEventLinkPreview? preview)
-    {
-        return preview is not null &&
-               !string.IsNullOrWhiteSpace(preview.Title) &&
-               !string.Equals(preview.Title, GetDomain(preview.Url), StringComparison.OrdinalIgnoreCase);
     }
 
     private static string GetDomain(string url)
@@ -219,9 +117,4 @@ public sealed class CustomEventLinkPreviewService(IHttpClientFactory httpClientF
         return "";
     }
 
-    private sealed record YouTubeOEmbedResponse(
-        [property: JsonPropertyName("title")] string? Title,
-        [property: JsonPropertyName("author_name")] string? AuthorName,
-        [property: JsonPropertyName("provider_name")] string? ProviderName,
-        [property: JsonPropertyName("thumbnail_url")] string? ThumbnailUrl);
 }

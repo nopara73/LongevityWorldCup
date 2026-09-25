@@ -121,6 +121,11 @@ namespace LongevityWorldCup.Website
             builder.Services.AddRateLimiter(options =>
             {
                 options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+                options.AddPolicy(YouTubePreviewService.RateLimitPolicy, context =>
+                    RateLimitPartition.GetFixedWindowLimiter(ClientIdentifier.From(context), _ => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = 60, Window = TimeSpan.FromMinutes(1), QueueLimit = 0
+                    }));
                 options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
                 {
                     if (!HttpMethods.IsPost(context.Request.Method))
@@ -204,6 +209,9 @@ namespace LongevityWorldCup.Website
             builder.Services.AddSingleton<AthleteCountMilestoneMemeService>();
             builder.Services.AddSingleton<CustomEventImageService>();
             builder.Services.AddSingleton<CustomEventLinkPreviewService>();
+            builder.Services.AddSingleton<YouTubePreviewService>();
+            builder.Services.AddHttpClient(nameof(YouTubePreviewService))
+                .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
             builder.Services.AddSingleton<PageOgImageService>();
             builder.Services.AddSingleton<AthleteOgImageService>();
             builder.Services.AddSingleton<LeagueOgImageService>();

@@ -40,6 +40,9 @@ internal sealed class DeterministicExternalHttpClientFactory : IHttpClientFactor
 
         private static HttpResponseMessage CreateResponse(Uri uri)
         {
+            if (uri.Host == "www.youtube.com" && uri.AbsolutePath == "/oembed")
+                return JsonResponse("""{"title":"Prolactin Is THE Root Cause of Hair Loss?! Absci’s New Drug May Prove It","author_name":"Perfect Hair Health","html":"<iframe>Untrusted embed HTML</iframe>"}""");
+
             if (uri.Host.Equals("api.coingecko.com", StringComparison.OrdinalIgnoreCase) &&
                 uri.AbsolutePath.Equals("/api/v3/simple/price", StringComparison.OrdinalIgnoreCase))
             {

@@ -25,7 +25,8 @@ public sealed class CustomEventLinkPreviewServiceTests
                 }
                 """);
         });
-        var service = CreateService(handler);
+        var (service, youtube) = CreateService(handler);
+        using var cleanup = youtube;
 
         var preview = await service.FetchAsync("https://example.com/post");
 
@@ -38,7 +39,7 @@ public sealed class CustomEventLinkPreviewServiceTests
     }
 
     [Fact]
-    public async Task FetchAsync_FallsBackToYouTubeOEmbedWhenMicrolinkFails()
+    public async Task FetchAsync_UsesSharedYouTubeMetadataBeforeGenericProviders()
     {
         var handler = new RoutingHandler(request =>
         {
@@ -64,7 +65,8 @@ public sealed class CustomEventLinkPreviewServiceTests
                 }
                 """);
         });
-        var service = CreateService(handler);
+        var (service, youtube) = CreateService(handler);
+        using var cleanup = youtube;
 
         var preview = await service.FetchAsync("https://www.youtube.com/watch?v=k3Fr8YtH3hU");
 
@@ -73,14 +75,15 @@ public sealed class CustomEventLinkPreviewServiceTests
         Assert.Equal("Martin Helstáb, The Hungarian Athlete in 7th at the Longevity World Cup", preview.Title);
         Assert.Equal("Longevity World Cup", preview.Description);
         Assert.Equal("https://i.ytimg.com/vi/k3Fr8YtH3hU/hqdefault.jpg", preview.Image);
-        Assert.Equal(2, handler.Requests.Count);
+        Assert.Single(handler.Requests);
     }
 
-    private static CustomEventLinkPreviewService CreateService(HttpMessageHandler handler)
+    private static (CustomEventLinkPreviewService, YouTubePreviewService) CreateService(HttpMessageHandler handler)
     {
-        return new CustomEventLinkPreviewService(
-            new StubHttpClientFactory(new HttpClient(handler)),
-            NullLogger<CustomEventLinkPreviewService>.Instance);
+        var factory = new StubHttpClientFactory(new HttpClient(handler));
+        var youtube = new YouTubePreviewService(factory, NullLogger<YouTubePreviewService>.Instance);
+        return (new CustomEventLinkPreviewService(factory,
+            NullLogger<CustomEventLinkPreviewService>.Instance, youtube), youtube);
     }
 
     private static HttpResponseMessage Json(HttpStatusCode statusCode, string json)
