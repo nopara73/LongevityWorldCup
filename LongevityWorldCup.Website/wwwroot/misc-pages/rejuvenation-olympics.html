@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Rejuvenation Olympics closing? Join Longevity World Cup</title>
+    <title>Coming from Rejuvenation Olympics? Keep competing at LWC</title>
     <!--HEAD-->
     <link rel="stylesheet" href="{{ASSET_RO_GUIDE_CSS}}">
 </head>
@@ -9,63 +9,75 @@
     <!--HEADER-->
     <main class="ro-guide">
         <section class="ro-hero" aria-labelledby="ro-title">
-            <div>
-                <p class="ro-eyebrow">Still in the game.</p>
-                <h1 id="ro-title">Coming from Rejuvenation Olympics?</h1>
-                <p class="ro-lead">RO is winding down. If you want to keep competing, you’re welcome at <a href="https://longevityworldcup.com/">Longevity World Cup</a>.</p>
+            <div class="ro-hero-copy">
+                <p class="ro-eyebrow">Coming from Rejuvenation Olympics?</p>
+                <h1 id="ro-title">Keep<br><span>competing.</span></h1>
+                <p class="ro-lead">Put your biological age on the leaderboard.</p>
                 <div class="ro-actions">
-                    <a class="ro-button" href="#bloodwork-check">Check my bloodwork <span aria-hidden="true">↓</span></a>
-                    <a class="ro-text-action" href="/join">Choose my track <span aria-hidden="true">→</span></a>
+                    <a class="ro-button" href="/join">Join the World Cup <span aria-hidden="true">↗</span></a>
+                    <a class="ro-text-action" href="https://longevityworldcup.com/">See the leaderboard <span aria-hidden="true">↗</span></a>
                 </div>
             </div>
-            <aside class="ro-difference" aria-labelledby="ro-difference-title">
-                <i class="fas fa-vial" aria-hidden="true"></i>
-                <h2 id="ro-difference-title">Different tests. A fresh entry.</h2>
-                <p><strong>A DunedinPACE result alone does not qualify for LWC.</strong> It measures pace of aging using DNA methylation. LWC’s pheno age and bortz age competitions use clinical blood biomarkers to calculate biological age.</p>
-                <p>Your RO score or rank cannot transfer. Your existing clinical bloodwork might qualify.</p>
-            </aside>
+            <div class="ro-arena" aria-hidden="true">
+                <svg class="ro-lanes" viewBox="0 0 520 580" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <g transform="rotate(28 260 290)">
+                        <rect x="24" y="-54" width="472" height="688" rx="236" />
+                        <rect x="58" y="-20" width="404" height="620" rx="202" />
+                        <rect x="92" y="14" width="336" height="552" rx="168" />
+                        <path class="ro-racing-line" d="M428 290V398a168 168 0 0 1-168 168" />
+                    </g>
+                </svg>
+                <img class="ro-phoenix" src="{{ASSET_FAVICON_DARK_512}}" width="512" height="512" alt="" fetchpriority="high">
+                <span class="ro-sport-mark">This is<br>blood sport.</span>
+            </div>
+            <div class="ro-hero-foot">
+                <span><i class="fas fa-globe" aria-hidden="true"></i> Global leaderboards</span>
+                <span><i class="fas fa-vial" aria-hidden="true"></i> Clinical blood tests</span>
+                <span><i class="fab fa-bitcoin" aria-hidden="true"></i> Bitcoin prizes for Pro athletes</span>
+            </div>
         </section>
-
-        <section class="ro-section" aria-labelledby="ro-dates-title">
-            <h2 id="ro-dates-title">When is Rejuvenation Olympics closing?</h2>
-            <ol class="ro-timeline">
-                <li><time datetime="2026-10-30">October 30, 2026</time><strong>New entrants’ first test</strong><p>Submit your first qualifying RO test by this date. The other two can follow.</p></li>
-                <li><time datetime="2027-03-30">March 30, 2027</time><strong>Final samples reach the lab</strong><p>RO requires three qualifying tests within two years for a verified position.</p></li>
-                <li><time datetime="2027-04-15">April 15, 2027</time><strong>Final leaderboard freezes</strong><p>RO rankings and scores stop changing.</p></li>
-            </ol>
-            <p class="ro-note">Source: <a href="https://www.rapamycin.news/t/why-is-the-rejuvenation-olympics-closing/26779/1">RO’s announcement, shared on Rapamycin News</a>. Checked September 26, 2026. The notice does not give a reason for closing. LWC is an independent competition; there is no official partnership or handover.</p>
-        </section>
-
-        <section class="ro-section" aria-labelledby="ro-tracks-title">
-            <h2 id="ro-tracks-title">What can I compete in at LWC?</h2>
-            <p>Public leaderboards rank athletes by <strong>age reduction</strong>: how far biological age is below chronological age. You can compete globally and within leagues such as your generation. Submit further eligible tests to improve your standing.</p>
+        <div class="ro-eligibility">
+            <p><strong>DunedinPACE alone won’t qualify.</strong> LWC uses clinical bloodwork. RO scores and ranks don’t transfer.</p>
+            <a href="#bloodwork-check">Can I use my bloodwork? <span aria-hidden="true">↓</span></a>
+        </div>
+        <section class="ro-entry" id="tracks" aria-labelledby="ro-tracks-title">
+            <div class="ro-section-heading"><h2 id="ro-tracks-title">Pick your competition.</h2><p>One complete blood test. Any lab.</p></div>
             <div class="ro-tracks">
                 <article class="ro-track">
-                    <p class="ro-eyebrow">Amateur · All-time</p>
-                    <h3>Pheno Age</h3>
-                    <p class="ro-marker-count"><strong>9</strong> blood biomarkers</p>
-                    <p>Historical bloodwork is welcome. LWC uses your best eligible pheno age result across your submission history.</p>
-                    <p><strong>US$10 standard entry</strong></p>
-                    <a class="ro-text-action" href="/pheno-age">Open pheno age calculator <span aria-hidden="true">→</span></a>
+                    <div class="ro-track-name"><h3>Amateur</h3><span>Pheno age · All-time</span></div>
+                    <div class="ro-track-stats">
+                        <p class="ro-marker-count"><strong>9</strong><span>blood<br>markers</span></p>
+                        <dl><div><dt>Test date</dt><dd>Any year</dd></div><div><dt>Entry</dt><dd>US$10</dd></div></dl>
+                    </div>
+                    <a class="ro-track-action" href="/pheno-age" aria-label="Enter Amateur — open pheno age calculator">Enter Amateur <span aria-hidden="true">↗</span></a>
                 </article>
-                <article class="ro-track">
-                    <p class="ro-eyebrow">Pro · Season 2026</p>
-                    <h3>Bortz Age</h3>
-                    <p class="ro-marker-count"><strong>22</strong> blood biomarkers for entry</p>
-                    <p>Use results from January 1–December 31, 2026. Pro athletes rank ahead of Amateurs in the Ultimate League and compete for Bitcoin prizes.</p>
-                    <p><strong>US$100 standard entry</strong></p>
-                    <a class="ro-text-action" href="/bortz-age">Open bortz age calculator <span aria-hidden="true">→</span></a>
+                <article class="ro-track ro-track-pro">
+                    <div class="ro-track-name"><h3>Pro</h3><span>Bortz age · Bitcoin prizes</span></div>
+                    <div class="ro-track-stats">
+                        <p class="ro-marker-count"><strong>22</strong><span>blood<br>markers</span></p>
+                        <dl><div><dt>Test date</dt><dd>2026</dd></div><div><dt>Entry</dt><dd>US$100</dd></div></dl>
+                    </div>
+                    <a class="ro-track-action" href="/bortz-age" aria-label="Enter Pro — open bortz age calculator">Enter Pro <span aria-hidden="true">↗</span></a>
                 </article>
             </div>
-            <p class="ro-note">Lab testing costs are separate. Any applicable entry discounts appear during onboarding. See the <a href="/ruleset">full competition rules</a> for season timing, ranking and prizes.</p>
+            <p class="ro-note">Standard entry fees; lab costs are separate. <a href="/ruleset">Competition rules <span aria-hidden="true">↗</span></a></p>
         </section>
-
-        <section class="ro-section" id="markers" aria-labelledby="ro-markers-title">
-            <h2 id="ro-markers-title">Does my bloodwork have what’s needed?</h2>
-            <p><strong>One complete test is enough to apply.</strong> Use any laboratory, with every required marker from the same blood draw or report date. Don’t combine results from different dates or guess missing values. You’ll also need your date of birth and the test date.</p>
-            <details class="ro-markers">
-                <summary>Pheno age: the 9 required markers <span>View markers &amp; units</span></summary>
-                <table>
+        <section class="ro-check" id="bloodwork-check" aria-labelledby="ro-check-title">
+            <div class="ro-check-icon" aria-hidden="true"><i class="far fa-file-lines"></i><i class="fas fa-check"></i></div>
+            <div><h2 id="ro-check-title">Already have a lab report?</h2><p>Email it to us. We’ll check whether it qualifies and tell you what’s missing.</p></div>
+            <div class="ro-check-action">
+                <a class="ro-button" href="mailto:hi@longevityworldcup.com?subject=RO%20bloodwork%20check&amp;body=Hi%20LWC%2C%0D%0A%0D%0AI%27m%20coming%20from%20Rejuvenation%20Olympics.%20Could%20you%20check%20my%20existing%20bloodwork%20for%20LWC%20eligibility%20and%20tell%20me%20which%20markers%20are%20missing%3F%0D%0A%0D%0ATrack%20of%20interest%3A%20%0D%0ATest%20date%28s%29%3A%20%0D%0A%0D%0AI%27ll%20attach%20my%20report%20or%20list%20the%20markers%2C%20values%20and%20units%20below.%0D%0A">Check my bloodwork <span aria-hidden="true">↗</span></a>
+                <span>hi@longevityworldcup.com</span>
+            </div>
+        </section>
+        <section class="ro-reference" aria-label="Bloodwork and application details">
+            <details class="ro-details" id="markers">
+                <summary>Required markers &amp; units <span aria-hidden="true">+</span></summary>
+                <div class="ro-details-body">
+                    <p>Use one complete panel from the same blood draw or report date. Don’t mix dates or guess missing values. Choose the units printed on your report.</p>
+                    <details class="ro-markers">
+                        <summary>Amateur: 9 markers <span aria-hidden="true">+</span></summary>
+<table>
                     <caption>Units accepted by the LWC pheno age calculator</caption>
                     <thead><tr><th scope="col">Marker</th><th scope="col">Accepted units</th></tr></thead>
                     <tbody>
@@ -80,11 +92,11 @@
                         <tr><th scope="row">C-reactive protein (CRP or hs-CRP)</th><td>mg/L or mg/dL</td></tr>
                     </tbody>
                 </table>
-            </details>
-            <details class="ro-markers">
-                <summary>Pro entry: those 9 plus these 13 <span>View markers &amp; units</span></summary>
-                <p>The bortz age model uses 21 biomarkers. LWC’s Pro form also requires WBC, giving 22 in total, to calculate both clocks and handle blood cell counts.</p>
-                <table>
+                    </details>
+                    <details class="ro-markers">
+                        <summary>Pro: those 9 + these 13 <span aria-hidden="true">+</span></summary>
+                        <p>The bortz age model uses 21 markers. LWC also requires WBC to calculate both clocks and convert blood cell counts.</p>
+<table>
                     <caption>Additional markers and units accepted by the LWC bortz age calculator</caption>
                     <thead><tr><th scope="col">Marker</th><th scope="col">Accepted units</th></tr></thead>
                     <tbody>
@@ -103,31 +115,31 @@
                         <tr><th scope="row">Vitamin D (25-OH)</th><td>nmol/L, ng/mL or µg/L</td></tr>
                     </tbody>
                 </table>
+                    </details>
+                    <p class="ro-note">Use RDW-CV (%), not RDW-SD (fL). Absolute lymphocyte, neutrophil and monocyte counts need same-test WBC. For CRP below detection, <a href="/ruleset#how-are-lab-detection-limits-handled-in-the-competition">use the lab’s detection limit</a>.</p>
+                </div>
             </details>
-            <p class="ro-note">Choose the unit printed on your report in the calculator. RDW must be RDW-CV (%), not RDW-SD (fL). Absolute lymphocyte, neutrophil and monocyte counts need WBC from the same test. If CRP is below the lab’s detection limit, use that limit as explained in the <a href="/ruleset#how-are-lab-detection-limits-handled-in-the-competition">ruleset</a>.</p>
+            <details class="ro-details">
+                <summary>What happens when I apply? <span aria-hidden="true">+</span></summary>
+                <div class="ro-details-body">
+                    <p>Calculate with your date of birth, test date and complete panel, then select “Join the leaderboard”. Add your profile, upload lab proof and follow the payment step. We review every application.</p>
+                    <p>Approved profiles and proofs are public. Redact unrelated details before uploading or emailing a report. An email bloodwork check does not submit an application.</p>
+                    <p>Amateur accepts historical tests. Pro accepts tests from January 1–December 31, 2026 and ranks ahead of Amateur in the Ultimate League. Any entry discounts appear during onboarding.</p>
+                    <p>Only have DunedinPACE? You’ll need clinical bloodwork for these tracks. You can join the <a href="/longevitymaxxing">longevitymaxxing challenge</a> without a blood test.</p>
+                </div>
+            </details>
         </section>
-
-        <section class="ro-check" id="bloodwork-check" aria-labelledby="ro-check-title">
-            <div>
-                <h2 id="ro-check-title">Let’s check what you already have.</h2>
-                <p>Email your lab report, or a list of markers with values, units and test dates, to <strong>hi@longevityworldcup.com</strong>. Say you’re coming from RO and which track interests you.</p>
-                <p>We’ll check which required markers are present and tell you what’s missing. This is a manual eligibility check by email; it doesn’t submit an application. You can redact unrelated personal details.</p>
+        <section class="ro-closing" aria-labelledby="ro-dates-title">
+            <div class="ro-section-heading">
+                <h2 id="ro-dates-title">RO’s closing dates</h2>
+                <a href="https://www.rapamycin.news/t/why-is-the-rejuvenation-olympics-closing/26779/1">Read the announcement <span aria-hidden="true">↗</span></a>
             </div>
-            <a class="ro-button" href="mailto:hi@longevityworldcup.com?subject=RO%20bloodwork%20check&amp;body=Hi%20LWC%2C%0D%0A%0D%0AI%27m%20coming%20from%20Rejuvenation%20Olympics.%20Could%20you%20check%20my%20existing%20bloodwork%20for%20LWC%20eligibility%20and%20tell%20me%20which%20markers%20are%20missing%3F%0D%0A%0D%0ATrack%20of%20interest%3A%20%0D%0ATest%20date%28s%29%3A%20%0D%0A%0D%0AI%27ll%20attach%20my%20report%20or%20list%20the%20markers%2C%20values%20and%20units%20below.%0D%0A">Email my bloodwork <i class="fas fa-envelope" aria-hidden="true"></i></a>
-        </section>
-
-        <section class="ro-section" aria-labelledby="ro-join-title">
-            <h2 id="ro-join-title">Ready to join?</h2>
-            <ol class="ro-steps">
-                <li><strong>Choose your track and calculate.</strong> Enter the complete panel, its units, your date of birth and the blood draw date. After calculating, select “Join the leaderboard”.</li>
-                <li><strong>Build your athlete profile.</strong> Add a name or alias, division, flag, profile picture, motivation, public media contact and email address.</li>
-                <li><strong>Upload proof and submit.</strong> Attach report images or a PDF showing the submitted markers, collection date and lab or report source. Follow the entry-payment step and await review. Approved profiles and proofs are public, so censor irrelevant details before uploading.</li>
+            <ol class="ro-timeline">
+                <li><time datetime="2026-10-30"><strong>30 Oct</strong><span>2026</span></time><p>First qualifying test<br>for new entrants</p></li>
+                <li><time datetime="2027-03-30"><strong>30 Mar</strong><span>2027</span></time><p>Final samples<br>must reach the lab</p></li>
+                <li><time datetime="2027-04-15"><strong>15 Apr</strong><span>2027</span></time><p>Leaderboard<br>freezes</p></li>
             </ol>
-            <div class="ro-actions">
-                <a class="ro-button" href="/join">Choose my track <span aria-hidden="true">→</span></a>
-                <a class="ro-text-action" href="https://longevityworldcup.com/">Meet the athletes</a>
-            </div>
-            <p class="ro-note">Only have a DunedinPACE report for now? You’ll need the clinical markers above to enter these competitions. While you arrange them, the <a href="/longevitymaxxing">longevitymaxxing lifestyle challenge</a> is open without a blood test.</p>
+            <p class="ro-note">RO requires three qualifying tests within two years; the other two can follow the first-test deadline. LWC is an independent competition.</p>
         </section>
     </main>
     <!--FOOTER-->
