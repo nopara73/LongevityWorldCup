@@ -250,6 +250,10 @@ button:hover {
     }
 
     .homepage-faq-more {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: var(--lwc-space-3) var(--lwc-space-5);
         margin: 1.5rem 0 0;
         color: var(--dark-text-color);
         font-size: 1rem;

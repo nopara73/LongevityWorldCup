@@ -15,6 +15,7 @@ public sealed class SharePreviewMetadataTests(TestWebApplicationFactory sharedFa
     [InlineData("/media", "/og/page/media.png?v=")]
     [InlineData("/about", "/og/page/about.png?v=")]
     [InlineData("/history", "/og/page/history.png?v=")]
+    [InlineData("/rejuvenation-olympics", "/og/page/rejuvenation-olympics.png?v=")]
     [InlineData("/ruleset", "/og/page/ruleset.png?v=")]
     [InlineData("/longevitymaxxing", "/og/page/longevitymaxxing.png?v=")]
     [InlineData("/league/bortz", "/og/page/view-bortz.png?v=")]

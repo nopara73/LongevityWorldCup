@@ -20,6 +20,7 @@ public static partial class HtmlAssetPlaceholders
         ["{{ASSET_BEAN_WAITING_WEBP}}"] = "/assets/content-images/bean-waiting.webp",
         ["{{ASSET_BIOAGEFORM_CSS}}"] = "/css/bioageform.css",
         ["{{ASSET_BORTZ_AGE_JS}}"] = "/js/bortz-age.js",
+        ["{{ASSET_RO_GUIDE_CSS}}"] = "/css/ro-guide.css",
         ["{{ASSET_CUSTOM_EVENT_IMAGE}}"] = "/assets/custom_event.png",
         ["{{ASSET_CUSTOM_EVENT_MARKUP_JS}}"] = "/js/custom-event-markup.js",
         ["{{ASSET_DONATION_QR}}"] = "/assets/Donation25QR.png",

@@ -13,6 +13,7 @@ public sealed class CanonicalRouteTests(TestWebApplicationFactory sharedFactory)
     [InlineData("/event-board/event-board.html?view=latest", "/events?view=latest")]
     [InlineData("/leaderboard/leaderboard/", "/leaderboard")]
     [InlineData("/misc-pages/ruleset.html", "/ruleset")]
+    [InlineData("/misc-pages/rejuvenation-olympics.html?ref=ro", "/rejuvenation-olympics?ref=ro")]
     [InlineData("/onboarding/convergence.html", "/apply")]
     [InlineData("/onboarding/join-game.html", "/join")]
     [InlineData("/play/character-selection.html", "/select-athlete")]

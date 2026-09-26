@@ -19,6 +19,7 @@ public sealed class SitemapService(LeaderboardFactsService leaderboardFacts, Pub
         new("/media", "misc-pages/media.html", "monthly", 0.6m),
         new("/about", "misc-pages/about.html", "monthly", 0.6m),
         new("/history", "misc-pages/history.html", "monthly", 0.6m),
+        new("/rejuvenation-olympics", "misc-pages/rejuvenation-olympics.html", "monthly", 0.7m),
         new("/ruleset", "misc-pages/ruleset.html", "weekly", 0.7m),
         new("/pheno-age", "onboarding/pheno-age.html", "monthly", 0.7m),
         new("/bortz-age", "onboarding/bortz-age.html", "monthly", 0.7m),

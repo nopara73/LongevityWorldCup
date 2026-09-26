@@ -70,6 +70,13 @@ public sealed class PageOgImageService
                 "Seasons, tracks, valid submissions, rankings, proof requirements, prizes, and payouts.",
                 "FFB020",
                 ["Pro before Amateur", "Valid submissions", "Prize pool"]),
+            ["rejuvenation-olympics"] = new(
+                "rejuvenation-olympics",
+                "Coming from Rejuvenation Olympics?",
+                "Still in the game.",
+                "Closing dates, required bloodwork, and your next competition at Longevity World Cup.",
+                "19C3D1",
+                ["Bloodwork checklist", "Pheno Age", "Bortz Age"]),
             ["longevitymaxxing"] = new(
                 "longevitymaxxing",
                 "Longevitymaxxing Challenge",
