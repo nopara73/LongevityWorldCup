@@ -74,7 +74,7 @@ public sealed class PageOgImageService
                 "rejuvenation-olympics",
                 "Coming from Rejuvenation Olympics?",
                 "Keep competing.",
-                "Put your biological age on the leaderboard. Join Longevity World Cup with clinical bloodwork.",
+                "Put your biological age on the leaderboard.",
                 "19C3D1",
                 ["Bloodwork checklist", "Pheno Age", "Bortz Age"]),
             ["longevitymaxxing"] = new(
