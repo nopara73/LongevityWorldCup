@@ -790,7 +790,9 @@
 
 }
 @media (prefers-reduced-motion: reduce) {
-    .ro-guide *, .ro-guide *::before, .ro-guide *::after {
+    .ro-guide .ro-button,
+    .ro-track-action span,
+    .ro-guide summary > span {
         transition: none;
     }
 

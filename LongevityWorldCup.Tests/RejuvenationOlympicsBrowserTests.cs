@@ -20,6 +20,7 @@ public sealed class RejuvenationOlympicsBrowserTests(
         await using var context = await NewContextAsync(Browser, App, new()
         {
             JavaScriptEnabled = false,
+            ReducedMotion = ReducedMotion.Reduce,
             ViewportSize = new() { Width = width, Height = 900 }
         });
         var page = await context.NewPageAsync();
@@ -27,6 +28,10 @@ public sealed class RejuvenationOlympicsBrowserTests(
         Assert.True(response!.Ok);
         await Assertions.Expect(page.Locator("h1")).ToContainTextAsync("competing.");
         await Assertions.Expect(page.GetByRole(AriaRole.Link, new() { Name = "Join the World Cup" })).ToBeInViewportAsync();
+        Assert.True(await page.EvaluateAsync<bool>(
+            "Array.from(document.querySelectorAll('.ro-guide .ro-button, .ro-track-action span, .ro-guide summary > span'))" +
+            ".every(el => getComputedStyle(el).transitionProperty === 'none')"),
+            "Reduced motion must disable the button, track-arrow and disclosure transitions.");
         Assert.True(await page.EvaluateAsync<bool>(
             "document.querySelector('main').innerText.trim().split(/\\s+/).length < 300"),
             "The landing page should stay concise before the reference details are opened.");
