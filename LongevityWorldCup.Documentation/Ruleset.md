@@ -118,6 +118,8 @@ When your lab reports a biomarker value below the detection limit, that limit is
 You can't.
 
 #### How does the Longevity World Cup compare to the Rejuvenation Olympics?
+
+Coming from RO? See [the closing timetable and LWC bloodwork checklist](https://longevityworldcup.com/rejuvenation-olympics), including how to have your existing report checked before applying.
 - **Focus**: Longevity World Cup emphasizes **absolute age reversal**, while Rejuvenation Olympics measures the **pace of aging** regardless of chronological age.
 - **Structure**: Longevity World Cup has **annual seasons** and may run **multiple clocks/tracks** over time.
 - **Prizes**: Longevity World Cup offers **prize money** funded by Bitcoin donations.

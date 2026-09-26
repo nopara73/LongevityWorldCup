@@ -932,6 +932,16 @@ $@"<script{scriptAttributes}>
                     noCardDescription,
                     BuildPageOgImageUrl("ruleset", defaultOgImage)
                 ),
+                "/rejuvenation-olympics" => new SeoMeta(
+                    canonicalPath,
+                    "Rejuvenation Olympics closing dates and how to join Longevity World Cup: blood markers, units, proof and a manual bloodwork check. DunedinPACE alone does not qualify.",
+                    "index, follow",
+                    canonicalUrl,
+                    "Rejuvenation Olympics closing? Join Longevity World Cup",
+                    "Coming from Rejuvenation Olympics?",
+                    "Check the closing dates, required bloodwork and how to enter Longevity World Cup.",
+                    BuildPageOgImageUrl("rejuvenation-olympics", defaultOgImage)
+                ),
                 "/privacy" => new SeoMeta(
                     canonicalPath,
                     "Privacy policy for Longevity World Cup website operations and social publishing integrations.",
@@ -1721,6 +1731,7 @@ $@"<script{scriptAttributes}>
                 "/about" => "About",
                 "/history" => "History",
                 "/ruleset" => "Ruleset",
+                "/rejuvenation-olympics" => "Coming from Rejuvenation Olympics?",
                 _ when canonicalPath.StartsWith("/league/", StringComparison.OrdinalIgnoreCase) => "Leaderboard",
                 _ when canonicalPath.StartsWith("/flag/", StringComparison.OrdinalIgnoreCase) => "Leaderboard",
                 _ => "Page"

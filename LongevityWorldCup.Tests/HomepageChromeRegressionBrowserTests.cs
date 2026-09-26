@@ -144,13 +144,16 @@ public sealed class HomepageChromeRegressionBrowserTests(
         }
     }
 
-    [Fact]
-    public async Task HomepageSectionFooterLinks_AreCenteredWithinTheirSections()
+    [Theory]
+    [InlineData(320)]
+    [InlineData(1280)]
+    public async Task HomepageSectionFooterLinks_AreCenteredWithinTheirSections(int width)
     {
         var app = App;
         var browser = Browser;
         await using var context = await NewContextAsync(browser, app);
         var page = await context.NewPageAsync();
+        await page.SetViewportSizeAsync(width, 900);
         await page.GotoAsync("/", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
         await SettleLayoutAsync(page);
 
@@ -163,9 +166,26 @@ public sealed class HomepageChromeRegressionBrowserTests(
             var footer = page.Locator(selector);
             Assert.Equal("center", await footer.EvaluateAsync<string>("element => getComputedStyle(element).textAlign"));
 
-            var horizontalOffset = await footer.Locator("a").EvaluateAsync<double>(
-                "element => { const link = element.getBoundingClientRect(); const section = element.closest('.section-container').getBoundingClientRect(); return Math.abs((link.left + link.right - section.left - section.right) / 2); }");
-            Assert.InRange(horizontalOffset, 0, 1);
+            var rowOffsets = await footer.EvaluateAsync<double[]>(
+                """
+                element => {
+                    const section = element.closest('.section-container').getBoundingClientRect();
+                    const rows = [];
+                    for (const link of element.querySelectorAll('a')) {
+                        const rect = link.getBoundingClientRect();
+                        let row = rows.find(row => Math.abs(row.top - rect.top) < 1);
+                        if (!row) {
+                            row = { top: rect.top, left: rect.left, right: rect.right };
+                            rows.push(row);
+                        }
+                        row.left = Math.min(row.left, rect.left);
+                        row.right = Math.max(row.right, rect.right);
+                    }
+                    return rows.map(row => Math.abs((row.left + row.right - section.left - section.right) / 2));
+                }
+                """);
+            Assert.NotEmpty(rowOffsets);
+            Assert.All(rowOffsets, horizontalOffset => Assert.InRange(horizontalOffset, 0, 1));
         }
     }
 
