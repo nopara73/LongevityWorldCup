@@ -5,6 +5,7 @@ Keep reusable product decisions here; omit implementation history and one-off po
 ## Visual System
 
 - Make meaning clear through layout, grouping, affordances, and visual cues before adding labels or helper copy. Fix misunderstood visual patterns before explaining them with words. Follow the [product personality rules](AGENTS.md#product-personality): reducing clutter must preserve the established voice, humor, and user-approved wording.
+- Acquisition pages lead with the reason to participate, a direct entry action, and a compact track comparison. Keep disqualifying requirements visible; put full marker tables and application instructions behind native disclosures.
 - Use graphite chrome, cool neutral canvases, white task surfaces, and one teal action/data accent. Play, challenge, and athlete artwork may be expressive; controls and typography follow the shared system.
 - Use shared `--space-*`, `--type-*`, `--radius-*`, `--shadow-*`, and `--duration-*` scales. Exceptions need a content or platform constraint.
 - Roboto regular/bold is functional; Orbitron is only for short decorative competition marks.

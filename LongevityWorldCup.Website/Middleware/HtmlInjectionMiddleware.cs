@@ -934,12 +934,12 @@ $@"<script{scriptAttributes}>
                 ),
                 "/rejuvenation-olympics" => new SeoMeta(
                     canonicalPath,
-                    "Rejuvenation Olympics closing dates and how to join Longevity World Cup: blood markers, units, proof and a manual bloodwork check. DunedinPACE alone does not qualify.",
+                    "Coming from Rejuvenation Olympics? Keep competing at Longevity World Cup. Choose your track or have your clinical bloodwork checked before applying.",
                     "index, follow",
                     canonicalUrl,
-                    "Rejuvenation Olympics closing? Join Longevity World Cup",
-                    "Coming from Rejuvenation Olympics?",
-                    "Check the closing dates, required bloodwork and how to enter Longevity World Cup.",
+                    "Coming from Rejuvenation Olympics? Keep competing at LWC",
+                    "Keep competing. | Longevity World Cup",
+                    "Put your biological age on the leaderboard. Clinical blood tests, global rankings and Bitcoin prizes for Pro athletes.",
                     BuildPageOgImageUrl("rejuvenation-olympics", defaultOgImage)
                 ),
                 "/privacy" => new SeoMeta(

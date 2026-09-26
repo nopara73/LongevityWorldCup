@@ -73,8 +73,8 @@ public sealed class PageOgImageService
             ["rejuvenation-olympics"] = new(
                 "rejuvenation-olympics",
                 "Coming from Rejuvenation Olympics?",
-                "Still in the game.",
-                "Closing dates, required bloodwork, and your next competition at Longevity World Cup.",
+                "Keep competing.",
+                "Put your biological age on the leaderboard. Join Longevity World Cup with clinical bloodwork.",
                 "19C3D1",
                 ["Bloodwork checklist", "Pheno Age", "Bortz Age"]),
             ["longevitymaxxing"] = new(
