@@ -62,7 +62,7 @@ public sealed class RejuvenationOlympicsBrowserTests(
             Assert.Equal(1, await page.Locator((await anchor.GetAttributeAsync("href"))!).CountAsync());
 
         Assert.Equal("https://www.rapamycin.news/t/why-is-the-rejuvenation-olympics-closing/26779/1",
-            await page.GetByRole(AriaRole.Link, new() { Name = "Read the announcement" }).GetAttributeAsync("href"));
+            await page.GetByRole(AriaRole.Link, new() { Name = "Announcement" }).GetAttributeAsync("href"));
         using var client = App.CreateClient();
         Assert.Contains("https://longevityworldcup.com/rejuvenation-olympics", await client.GetStringAsync("/sitemap.xml"));
     }

@@ -934,12 +934,12 @@ $@"<script{scriptAttributes}>
                 ),
                 "/rejuvenation-olympics" => new SeoMeta(
                     canonicalPath,
-                    "Coming from Rejuvenation Olympics? Keep competing at Longevity World Cup. Choose your track or have your clinical bloodwork checked before applying.",
+                    "Coming from Rejuvenation Olympics? Keep competing at Longevity World Cup. Choose a track or check your bloodwork.",
                     "index, follow",
                     canonicalUrl,
                     "Coming from Rejuvenation Olympics? Keep competing at LWC",
                     "Keep competing. | Longevity World Cup",
-                    "Put your biological age on the leaderboard. Clinical blood tests, global rankings and Bitcoin prizes for Pro athletes.",
+                    "Put your biological age on the leaderboard. Blood tests, global rankings and Bitcoin prizes.",
                     BuildPageOgImageUrl("rejuvenation-olympics", defaultOgImage)
                 ),
                 "/privacy" => new SeoMeta(
