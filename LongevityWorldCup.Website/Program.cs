@@ -58,7 +58,7 @@ namespace LongevityWorldCup.Website
                     Title = "Longevity World Cup Public API",
                     Version = "v1",
                     Description = """
-                        Public no-auth JSON endpoints for Longevity World Cup athlete, field, biological aging clock calculation, and rank-preview data.
+                        Public no-auth JSON endpoints for Longevity World Cup athlete, Event, field, biological aging clock calculation, and rank-preview data.
 
                         The documented endpoints are public data and biological aging clock calculation surfaces used by the website and external clients.
 
@@ -328,11 +328,16 @@ namespace LongevityWorldCup.Website
             app.UseRouting();
 
             // The documented public API is intentionally callable from any browser origin.
+            static bool IsPublicApiRequest(HttpContext context) =>
+                context.Request.Path.StartsWithSegments(PublicApiPathPrefix) ||
+                context.Request.Path.Equals("/api/events", StringComparison.OrdinalIgnoreCase) ||
+                context.Request.Path.Equals("/api/events/", StringComparison.OrdinalIgnoreCase);
+
             app.UseWhen(
-                context => context.Request.Path.StartsWithSegments(PublicApiPathPrefix),
+                IsPublicApiRequest,
                 publicApi => publicApi.UseCors(PublicApiCorsPolicy));
             app.UseWhen(
-                context => !context.Request.Path.StartsWithSegments(PublicApiPathPrefix),
+                context => !IsPublicApiRequest(context),
                 site => site.UseCors(SiteCorsPolicy));
 
             // Keep limiter rejections outside status-code re-execution so a
@@ -391,7 +396,6 @@ namespace LongevityWorldCup.Website
                 options.ShowCommonExtensions();
                 options.ShowExtensions();
                 options.SupportedSubmitMethods([SubmitMethod.Get, SubmitMethod.Post]);
-                options.ConfigObject.MaxDisplayedTags = 1;
                 options.ConfigObject.PersistAuthorization = false;
                 options.ConfigObject.ValidatorUrl = null;
             });

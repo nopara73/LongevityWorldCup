@@ -277,7 +277,7 @@ Probe a missing document, athlete, league, and flag through public HTTPS with GE
 
 ASP.NET Core owns the route-specific CORS policies. The nginx reverse-proxy location must pass those response headers through unchanged: do not add `Access-Control-Allow-*` or `Access-Control-Expose-Headers` directives at the proxy layer, and do not intercept `OPTIONS` requests. Adding CORS headers in both layers produces duplicate values that browsers reject; applying wildcard headers in nginx also bypasses the application's restricted policy for non-public routes.
 
-The automatic deployment probes production after each release. It requires exactly one wildcard `Access-Control-Allow-Origin` header on public API GET and preflight responses, validates the requested preflight method and header, and rejects an arbitrary-origin CORS header on `/health`.
+The automatic deployment probes production after each release. It requires exactly one wildcard `Access-Control-Allow-Origin` header on public API GET and preflight responses (including `/api/events`), validates the requested preflight method and header, and rejects an arbitrary-origin CORS header on `/health`.
 
 Configure the repository's `SSH_FINGERPRINT` Actions secret with the production host-key fingerprint to enforce host verification for both artifact transfer and remote deployment. The workflow remains compatible with the existing secret set when it is absent, but then host identity is not pinned.
 

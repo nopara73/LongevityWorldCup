@@ -55,6 +55,9 @@ public sealed class AiFreshnessHttpTests
             Assert.Contains(view.GetProperty("url").GetString()!, llms);
         Assert.Equal(await client.GetStringAsync("/llms.txt"), await client.GetStringAsync("/ai/index.md"));
         Assert.Contains("Highlights", llms);
+        Assert.Equal("https://longevityworldcup.com/api/events", card.RootElement.GetProperty("resources").GetProperty("events").GetString());
+        Assert.Contains("https://longevityworldcup.com/api/events", llms);
+        Assert.Contains("profile-only accepted results (Type 13)", llms);
         Assert.DoesNotContain("event schedule", llms, StringComparison.OrdinalIgnoreCase);
     }
 

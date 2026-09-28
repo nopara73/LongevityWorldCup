@@ -13,6 +13,74 @@ public sealed class PublicDataSwaggerExamples : IOperationFilter
 
         switch (path)
         {
+            case "/api/events":
+                operation.OperationId = "listEvents";
+                operation.Summary = "List public competition Events";
+                operation.Description = """
+                    Returns the complete persisted website-visible Event history as a JSON array, newest `OccurredAt` first.
+                    No authentication, pagination, query filters, or implicit result limit. An empty history returns `[]`.
+                    Equal timestamps use Event-type priority; order within the same timestamp and type is unspecified.
+                    IDs are opaque stable identifiers, not necessarily UUIDs. Records can be corrected or hidden later;
+                    this is a current snapshot of public history, not an immutable append-only log.
+
+                    **Visibility:** includes profile-only `TestResultAccepted` Events (13). Exclude those from shared
+                    highlights; use them in the referenced athlete's profile history. Social-only and hidden Events
+                    are excluded. Social delivery state, retries, and platform queues are not public fields.
+                    `VisibleOnWebsite` is always true here and does not mean an Event belongs in shared highlights.
+                    The homepage applies additional curation; this feed is not its selected highlights.
+
+                    **Payloads:** `Text` is stored data, not rendered HTML. Most types use space-separated `key[value]`
+                    tokens. Parse by key, not token position; tolerate unknown keys/types and absent or empty optional
+                    values. Missing values are unavailable, not zero. `slug`, `prev`, and comma-separated `prevs`
+                    refer to public athlete slugs from `/api/data/athletes`; `prev`/`prevs` identify replaced athletes.
+                    Escape free text before rendering it in HTML. Numbers use a decimal point; ages and differences
+                    are in years, `rank`/`place`/`prevPlace` are one-based, and `sats` is integer satoshis (100,000,000 per BTC).
+                    `Relevance` is an editorial weight, not a competition score or sorting key for this feed.
+
+                    | Type | Name | Meaning and Text payload |
+                    | --- | --- | --- |
+                    | 0 | General | General announcement; free text. |
+                    | 1 | Joined | Athlete joined; `slug`. |
+                    | 2 | NewRank | Historical Ultimate League placement; `slug`, `rank`, optional `prev`. Not a current live rank. |
+                    | 3 | DonationReceived | Bitcoin donation; `tx` (transaction ID), `sats` (amount). |
+                    | 4 | AthleteCountMilestone | Participation milestone; `athletes` (count). |
+                    | 5 | BadgeAward | Computed badge award; `slug`, `badge` (label), `cat` (league category), `val` (league value, may be empty), `place` (may be empty), optional `solo[1]`, `prev` or `prevs`. Best-improvement badges compare latest with first eligible result. |
+                    | 6 | CustomEvent | Admin-created public announcement; title followed by a blank line and body. Optional markup includes `[bold](text)`, `[strong](text)`, `[label](https://...)`, and `[mention](athlete_slug)`. |
+                    | 7 | SeasonFinalResult | Completed-season placement; `slug`, `season`, `place`, `clock`, `ageDiff` (biological minus chronological age; lower is better). |
+                    | 8 | LongevitymaxxingChallengeResult | Original Challenge award; `challenge`, `pid` (public participant ID), `name`, `place`, `checkedIn` (days), `points`, `days` (duration), optional `slug` and `completed[1]`. Separate from current ongoing Challenge ranks. |
+                    | 9 | BecamePro | Athlete qualified for Pro; `slug`. |
+                    | 10 | BiologicalAgeImproved | Chronologically new personal-best biological age; `slug`, `clock` (`pheno` or `bortz`), `from`, `to` (biological ages). Older backfills create no improvement Event. |
+                    | 11 | CrowdAgeTop10Change | Entry or upward move in the crowd age top 10; `slug`, `place`, `crowdAge`, `crowdCount`, optional `prevPlace` and `prev`. Historical published placement, not live rank. |
+                    | 12 | AgeImprovementTop10Change | Pheno/Bortz improvement top-10 placement; `slug`, `clock`, `place`, `improvement` (latest eligible age minus worst eligible age), `ageReduction` (biological minus chronological age; lower is better), optional `prevPlace` and `prev`. |
+                    | 13 | TestResultAccepted | Profile-only accepted test; `slug`, `date` (ISO laboratory date). Includes partial, non-improving, and backfilled results; one Event per athlete/test date across clocks. |
+
+                    **Dates:** `OccurredAt` is an ISO 8601 UTC Event timestamp, not response generation time.
+                    For type 13 it is first observed public announcement, while `date` is the laboratory measurement date.
+                    Existing results were silently baselined when tracking began, so older publication dates remain unknown.
+                    Type 10 uses the result date; type 7 uses season close; type 11 uses publication time after any cooldown.
+                    Historical placements and badges do not assert the athlete's current standing.
+                    """;
+                SetResponseDescription(operation, "200", "Complete website-visible Event history, newest first; includes profile-only accepted results. Property names are case-sensitive.");
+                SetResponseExample(operation, "200", """
+                    [
+                      {"Id":"accepted-result:example_athlete:2026-01-15","Type":13,"Text":"slug[example_athlete] date[2026-01-15]","OccurredAt":"2026-01-20T12:00:00Z","Relevance":5,"VisibleOnWebsite":true},
+                      {"Id":"example-improvement-place","Type":12,"Text":"slug[example_athlete] clock[pheno] place[3] prevPlace[5] improvement[-2.5] ageReduction[-7.3]","OccurredAt":"2026-01-19T12:00:00Z","Relevance":10,"VisibleOnWebsite":true},
+                      {"Id":"example-crowd","Type":11,"Text":"slug[example_athlete] place[6] prevPlace[8] crowdAge[39] crowdCount[128]","OccurredAt":"2026-01-18T12:00:00Z","Relevance":8,"VisibleOnWebsite":true},
+                      {"Id":"example-improved","Type":10,"Text":"slug[example_athlete] clock[pheno] from[40.7] to[38.2]","OccurredAt":"2026-01-15T00:00:00Z","Relevance":9,"VisibleOnWebsite":true},
+                      {"Id":"example-pro","Type":9,"Text":"slug[example_athlete]","OccurredAt":"2026-01-14T12:00:00Z","Relevance":9,"VisibleOnWebsite":true},
+                      {"Id":"longevitymaxxing-result-example","Type":8,"Text":"challenge[longevitymaxxing] pid[example] name[Example Athlete] place[1] checkedIn[14] points[104] days[14] slug[example_athlete] completed[1]","OccurredAt":"2026-01-13T12:00:00Z","Relevance":9,"VisibleOnWebsite":true},
+                      {"Id":"example-season","Type":7,"Text":"slug[example_athlete] season[2025] place[2] clock[pheno] ageDiff[-7.30]","OccurredAt":"2026-01-01T00:00:00Z","Relevance":2,"VisibleOnWebsite":true},
+                      {"Id":"example-custom","Type":6,"Text":"A new year, a younger you!\n\nWelcome [bold](longevity athletes). [See the leaderboard](https://longevityworldcup.com/leaderboard)","OccurredAt":"2025-12-31T12:00:00Z","Relevance":15,"VisibleOnWebsite":true},
+                      {"Id":"example-badge","Type":5,"Text":"slug[example_athlete] badge[PhenoAge Best Improvement] cat[Global] val[] place[1] solo[1]","OccurredAt":"2025-12-30T12:00:00Z","Relevance":8,"VisibleOnWebsite":true},
+                      {"Id":"example-milestone","Type":4,"Text":"athletes[250]","OccurredAt":"2025-12-29T12:00:00Z","Relevance":8,"VisibleOnWebsite":true},
+                      {"Id":"example-donation","Type":3,"Text":"tx[0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef] sats[100000]","OccurredAt":"2025-12-28T12:00:00Z","Relevance":9,"VisibleOnWebsite":true},
+                      {"Id":"example-rank","Type":2,"Text":"slug[example_athlete] rank[5] prev[another_athlete]","OccurredAt":"2025-12-27T12:00:00Z","Relevance":10,"VisibleOnWebsite":true},
+                      {"Id":"example-joined","Type":1,"Text":"slug[example_athlete]","OccurredAt":"2025-12-26T12:00:00Z","Relevance":5,"VisibleOnWebsite":true},
+                      {"Id":"example-general","Type":0,"Text":"Welcome to Longevity World Cup!","OccurredAt":"2025-12-25T12:00:00Z","Relevance":5,"VisibleOnWebsite":true}
+                    ]
+                    """);
+                break;
+
             case "/api/data/flags":
                 operation.OperationId = "listFlags";
                 operation.Summary = "List selectable flags";

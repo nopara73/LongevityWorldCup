@@ -1,4 +1,5 @@
 using System.Text.Json.Nodes;
+using LongevityWorldCup.Website.Business;
 using Microsoft.OpenApi;
 using Swashbuckle.AspNetCore.SwaggerGen;
 
@@ -17,6 +18,12 @@ public sealed class PublicDataSchemaDescriptions : ISchemaFilter
         {
             openApiSchema.Description = "A hydrated public longevity athlete record. The live endpoint may include additional public fields as the competition data model evolves.";
             openApiSchema.AdditionalPropertiesAllowed = true;
+        }
+        else if (context.Type == typeof(EventType))
+        {
+            openApiSchema.Description = "Numeric Event types: " + string.Join("; ",
+                Enum.GetValues<EventType>().Select(type => $"{(int)type} = {type}")) +
+                ". See listEvents for meanings and payload formats. Clients should tolerate future values.";
         }
         else if (context.Type == typeof(PublicBiomarkerRecordApiDocument))
         {

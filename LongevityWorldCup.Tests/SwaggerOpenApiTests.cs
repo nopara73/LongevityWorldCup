@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text.Json;
 using LongevityWorldCup.Website;
+using LongevityWorldCup.Website.Business;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Xunit;
 
@@ -12,6 +13,7 @@ public sealed class SwaggerOpenApiTests(TestWebApplicationFactory sharedFactory)
 {
     private static readonly string[] PublicPaths =
     [
+        "/api/events",
         "/api/data/athletes",
         "/api/data/flags",
         "/api/data/divisions",
@@ -179,9 +181,67 @@ public sealed class SwaggerOpenApiTests(TestWebApplicationFactory sharedFactory)
         AssertOperationDocumented(paths.GetProperty("/api/data/flags").GetProperty("get"), "listFlags", "List selectable flags");
         AssertOperationDocumented(paths.GetProperty("/api/data/divisions").GetProperty("get"), "listDivisions", "List competition divisions");
         AssertOperationDocumented(paths.GetProperty("/api/data/athletes").GetProperty("get"), "listAthletes", "List public longevity athlete data");
+        AssertOperationDocumented(paths.GetProperty("/api/events").GetProperty("get"), "listEvents", "List public competition Events");
         AssertOperationDocumented(paths.GetProperty("/api/data/pheno-age").GetProperty("post"), "calculatePhenoAge", "Calculate Pheno Age");
         AssertOperationDocumented(paths.GetProperty("/api/data/bortz-age").GetProperty("post"), "calculateBortzAge", "Calculate Bortz Age");
         AssertOperationDocumented(paths.GetProperty("/api/data/hypothetical-rank").GetProperty("post"), "previewHypotheticalRank", "Preview a hypothetical Ultimate League rank");
+    }
+
+    [Fact]
+    public async Task SwaggerJson_DocumentsCompleteEventContract()
+    {
+        using var document = await LoadSwaggerDocumentAsync();
+        var operation = document.RootElement.GetProperty("paths").GetProperty("/api/events").GetProperty("get");
+        var description = operation.GetProperty("description").GetString()!;
+        Assert.Contains("profile-only", description);
+        Assert.Contains("Social-only and hidden Events", description);
+        Assert.Contains("No authentication, pagination, query filters, or implicit result limit", description);
+        Assert.Contains("first observed public announcement", description);
+        Assert.Contains("older publication dates remain unknown", description);
+        Assert.Contains("[mention](athlete_slug)", description);
+        Assert.Contains("biological minus chronological age; lower is better", description);
+
+        var media = operation.GetProperty("responses").GetProperty("200").GetProperty("content").GetProperty("application/json");
+        Assert.Equal("array", media.GetProperty("schema").GetProperty("type").GetString());
+        AssertSchemaReferences(media.GetProperty("schema").GetProperty("items"), "PublicEventApiDocument");
+
+        var schemas = document.RootElement.GetProperty("components").GetProperty("schemas");
+        var eventSchema = schemas.GetProperty("PublicEventApiDocument");
+        var properties = eventSchema.GetProperty("properties");
+        string[] fields = ["Id", "Type", "Text", "OccurredAt", "Relevance", "VisibleOnWebsite"];
+        Assert.Equal(fields.Order(), properties.EnumerateObject().Select(p => p.Name).Order());
+        Assert.Equal(fields.Order(), eventSchema.GetProperty("required").EnumerateArray().Select(p => p.GetString()!).Order());
+        Assert.Equal("string", properties.GetProperty("Id").GetProperty("type").GetString());
+        Assert.Equal("string", properties.GetProperty("Text").GetProperty("type").GetString());
+        Assert.Equal("date-time", properties.GetProperty("OccurredAt").GetProperty("format").GetString());
+        Assert.Equal("number", properties.GetProperty("Relevance").GetProperty("type").GetString());
+        Assert.Equal("boolean", properties.GetProperty("VisibleOnWebsite").GetProperty("type").GetString());
+        AssertSchemaReferences(properties.GetProperty("Type"), "EventType");
+        foreach (var field in fields)
+        {
+            var fieldSchema = field == "Type" ? schemas.GetProperty("EventType") : properties.GetProperty(field);
+            Assert.False(string.IsNullOrWhiteSpace(fieldSchema.GetProperty("description").GetString()));
+        }
+
+        var typeSchema = schemas.GetProperty("EventType");
+        var types = Enum.GetValues<EventType>();
+        Assert.Equal("integer", typeSchema.GetProperty("type").GetString());
+        Assert.Equal(types.Select(t => (int)t), typeSchema.GetProperty("enum").EnumerateArray().Select(t => t.GetInt32()));
+        var examples = media.GetProperty("example").EnumerateArray().ToArray();
+        Assert.Equal(types.Select(t => (int)t).Order(), examples.Select(e => e.GetProperty("Type").GetInt32()).Order());
+        Assert.Equal(examples.Select(e => e.GetProperty("OccurredAt").GetDateTime()).OrderDescending(),
+            examples.Select(e => e.GetProperty("OccurredAt").GetDateTime()));
+        foreach (var type in types)
+        {
+            Assert.Contains($"| {(int)type} | {type} |", description);
+            Assert.Contains($"{(int)type} = {type}", typeSchema.GetProperty("description").GetString());
+        }
+        foreach (var example in examples)
+        {
+            Assert.Equal(fields.Order(), example.EnumerateObject().Select(p => p.Name).Order());
+            Assert.True(example.GetProperty("VisibleOnWebsite").GetBoolean());
+            Assert.Equal(DateTimeKind.Utc, example.GetProperty("OccurredAt").GetDateTime().Kind);
+        }
     }
 
     [Fact]

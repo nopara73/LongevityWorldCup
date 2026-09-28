@@ -41,6 +41,8 @@ Application and Pro-upgrade payment detection is server-owned and survives a clo
 
 ## Events and Improvement
 
+- The public Event API exposes all website-visible Events, including profile-only accepted results, while excluding hidden and social-only Events. It is historical data, not the curated shared-highlight selection or the private social delivery queue. Its payload and date contract is documented in the public OpenAPI `listEvents` operation.
+
 - **Test date** is the laboratory measurement date. **First public announcement** is available only where an accepted-result Event records it; older untracked publication dates remain unknown. **Observed content change** is when the application detects changed public facts or definitions, distinct from response generation, deployment, and cache refresh. Missing values are unavailable, not zero. Current leaders and ranks are not completed-season winners or historical placements.
 
 - Accepted-test Events appear only in athlete profile highlights, including partial, non-improving, and backfilled results. Identity is athlete plus test date across clocks; corrections, added markers, reordering, reloads, and restarts cannot duplicate them. Date the Event at first observed publication and identify the test date in its text. Silently baseline existing results when introducing tracking; atomically remember subsequent results and save Events, including startup discoveries. Exclude these Events from shared highlights and social queues.

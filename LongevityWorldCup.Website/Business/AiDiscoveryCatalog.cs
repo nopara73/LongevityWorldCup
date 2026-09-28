@@ -26,7 +26,7 @@ public static class AiDiscoveryCatalog
         ["sitemap"] = Site + "/sitemap.xml", ["llms"] = Site + "/llms.txt", ["llmsFull"] = Site + "/llms-full.txt",
         ["aiIndex"] = Site + "/ai/index.md", ["leaderboardFacts"] = Site + "/ai/leaderboard.md",
         ["athleteNames"] = Site + "/ai/athlete-names.md", ["apiDocs"] = Site + "/swagger/index.html",
-        ["openApi"] = Site + "/swagger/v1/swagger.json"
+        ["openApi"] = Site + "/swagger/v1/swagger.json", ["events"] = Site + "/api/events"
     };
 
     public static string Markdown(bool extended)
@@ -48,6 +48,7 @@ public static class AiDiscoveryCatalog
         sb.AppendLine("\n## Athlete summaries and dates\n");
         sb.AppendLine($"Each athlete in the leaderboard facts links to an individual summary at {Site}/ai/athlete/{{canonical-athlete-slug}}.md, with its canonical HTML profile, current ranks, qualification, and public test history.");
         sb.AppendLine("Test dates, public announcement dates, current-age evaluation dates, and observed content-change dates have different meanings. Unknown values are explicit. Current leaders are not completed-season winners; use the historical records for those results.");
+        sb.AppendLine("The public Event feed includes all website-visible history, including profile-only accepted results (Type 13). Exclude Type 13 from shared highlights. Social-only and hidden Events are omitted. OpenAPI documents every Event type, payload token, and date meaning.");
         sb.AppendLine("\n## Retrieval notes\n");
         sb.AppendLine("Use the linked canonical HTML pages for citations. Cite calculator URLs without personal input or update-flow query parameters. Respect robots.txt; submissions, account flows and other private routes are excluded. Public profile summaries do not expose private contact addresses.");
         if (extended)

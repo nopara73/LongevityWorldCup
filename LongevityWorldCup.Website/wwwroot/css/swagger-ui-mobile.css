@@ -1,4 +1,45 @@
+.swagger-ui #operations-Events-listEvents .renderedMarkdown th,
+.swagger-ui #operations-Events-listEvents .renderedMarkdown td {
+    padding-right: 1rem;
+}
+
 @media (max-width: 640px) {
+    .swagger-ui .renderedMarkdown {
+        overflow-wrap: anywhere;
+    }
+
+    .swagger-ui #operations-Events-listEvents .renderedMarkdown table,
+    .swagger-ui #operations-Events-listEvents .renderedMarkdown tbody {
+        display: block;
+        width: 100%;
+    }
+
+    .swagger-ui #operations-Events-listEvents .renderedMarkdown thead {
+        display: none;
+    }
+
+    .swagger-ui #operations-Events-listEvents .renderedMarkdown tr {
+        display: grid;
+        grid-template-columns: 1.5rem minmax(0, 1fr);
+        gap: 0.4rem 0.5rem;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid rgba(59, 65, 81, 0.15);
+    }
+
+    .swagger-ui #operations-Events-listEvents .renderedMarkdown td {
+        min-width: 0;
+        width: auto;
+        padding: 0;
+    }
+
+    .swagger-ui #operations-Events-listEvents .renderedMarkdown td:nth-child(2) {
+        font-weight: 600;
+    }
+
+    .swagger-ui #operations-Events-listEvents .renderedMarkdown td:last-child {
+        grid-column: 2;
+    }
+
     .swagger-ui .wrapper {
         padding-left: 1.25rem;
         padding-right: 1.25rem;

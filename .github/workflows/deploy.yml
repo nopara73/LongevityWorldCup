@@ -288,13 +288,15 @@ jobs:
               fi
             }
 
-            curl -fsS --max-time 10 \
-              -H "Origin: https://public-api-client.example" \
-              -D "$cors_headers" \
-              -o /dev/null \
-              "https://www.longevityworldcup.com/api/data/flags"
-            tr -d '\r' < "$cors_headers" > "$normalized_cors_headers"
-            assert_single_public_cors_origin
+            for public_path in /api/data/flags /api/events; do
+              curl -fsS --max-time 10 \
+                -H "Origin: https://public-api-client.example" \
+                -D "$cors_headers" \
+                -o /dev/null \
+                "https://www.longevityworldcup.com$public_path"
+              tr -d '\r' < "$cors_headers" > "$normalized_cors_headers"
+              assert_single_public_cors_origin
+            done
 
             curl -fsS --max-time 10 \
               -X OPTIONS \
@@ -307,6 +309,19 @@ jobs:
             tr -d '\r' < "$cors_headers" > "$normalized_cors_headers"
             assert_single_public_cors_origin
             grep -Eiq '^access-control-allow-methods:.*POST' "$normalized_cors_headers"
+            grep -Eiq '^access-control-allow-headers:.*content-type' "$normalized_cors_headers"
+
+            curl -fsS --max-time 10 \
+              -X OPTIONS \
+              -H "Origin: https://public-api-client.example" \
+              -H "Access-Control-Request-Method: GET" \
+              -H "Access-Control-Request-Headers: content-type" \
+              -D "$cors_headers" \
+              -o /dev/null \
+              "https://www.longevityworldcup.com/api/events"
+            tr -d '\r' < "$cors_headers" > "$normalized_cors_headers"
+            assert_single_public_cors_origin
+            grep -Eiq '^access-control-allow-methods:.*GET' "$normalized_cors_headers"
             grep -Eiq '^access-control-allow-headers:.*content-type' "$normalized_cors_headers"
 
             curl -fsS --max-time 10 \

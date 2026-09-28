@@ -13,35 +13,42 @@ public sealed class PublicApiCorsTests(TestWebApplicationFactory sharedFactory)
     private const string ArbitraryOrigin = "https://public-api-client.example";
     private const string TrustedSiteOrigin = "https://www.longevityworldcup.com";
 
-    [Fact]
-    public async Task PublicDataGet_AllowsAnyOrigin()
+    [Theory]
+    [InlineData("/api/data/flags")]
+    [InlineData("/api/events")]
+    [InlineData("/api/Events/")]
+    public async Task PublicDataGet_AllowsAnyOrigin(string path)
     {
         var factory = sharedFactory;
         using var client = factory.CreateClient();
-        using var request = new HttpRequestMessage(HttpMethod.Get, "/api/data/flags");
+        using var request = new HttpRequestMessage(HttpMethod.Get, path);
         request.Headers.Add("Origin", ArbitraryOrigin);
 
         using var response = await client.SendAsync(request);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal("*", Assert.Single(response.Headers.GetValues("Access-Control-Allow-Origin")));
+        Assert.False(response.Headers.Contains("Access-Control-Allow-Credentials"));
     }
 
-    [Fact]
-    public async Task PublicDataPostPreflight_AllowsAnyOrigin()
+    [Theory]
+    [InlineData("/api/data/pheno-age", "POST")]
+    [InlineData("/api/events", "GET")]
+    [InlineData("/api/Events/", "GET")]
+    public async Task PublicDataPreflight_AllowsAnyOrigin(string path, string method)
     {
         var factory = sharedFactory;
         using var client = factory.CreateClient();
-        using var request = new HttpRequestMessage(HttpMethod.Options, "/api/data/pheno-age");
+        using var request = new HttpRequestMessage(HttpMethod.Options, path);
         request.Headers.Add("Origin", ArbitraryOrigin);
-        request.Headers.Add("Access-Control-Request-Method", "POST");
+        request.Headers.Add("Access-Control-Request-Method", method);
         request.Headers.Add("Access-Control-Request-Headers", "content-type");
 
         using var response = await client.SendAsync(request);
 
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
         Assert.Equal("*", Assert.Single(response.Headers.GetValues("Access-Control-Allow-Origin")));
-        Assert.Contains("POST", response.Headers.GetValues("Access-Control-Allow-Methods"));
+        Assert.Contains(method, response.Headers.GetValues("Access-Control-Allow-Methods"));
         Assert.Contains("content-type", response.Headers.GetValues("Access-Control-Allow-Headers"));
     }
 
@@ -60,6 +67,20 @@ public sealed class PublicApiCorsTests(TestWebApplicationFactory sharedFactory)
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         Assert.Equal("*", Assert.Single(response.Headers.GetValues("Access-Control-Allow-Origin")));
+    }
+
+    [Theory]
+    [InlineData("/api/custom-events")]
+    [InlineData("/api/events-private")]
+    [InlineData("/api/events/admin")]
+    public async Task NonPublicEventPreflight_DoesNotAllowArbitraryOrigins(string path)
+    {
+        using var client = sharedFactory.CreateClient();
+        using var request = new HttpRequestMessage(HttpMethod.Options, path);
+        request.Headers.Add("Origin", ArbitraryOrigin);
+        request.Headers.Add("Access-Control-Request-Method", "POST");
+        using var response = await client.SendAsync(request);
+        Assert.False(response.Headers.Contains("Access-Control-Allow-Origin"));
     }
 
     [Fact]
