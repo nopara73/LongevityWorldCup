@@ -148,6 +148,20 @@ public sealed class AutocompleteInteractionBrowserTests(
         await list.WaitForAsync();
         await AssertPopupFitsAsync(page, list);
 
+        if (path == "/apply")
+        {
+            // Scrolling an open list can put its input partly beneath the action bar.
+            await page.EvaluateAsync("""
+                () => {
+                    const input = document.getElementById('flag').getBoundingClientRect();
+                    const dock = document.querySelector('.flow-action-stack--docked').getBoundingClientRect();
+                    window.scrollBy({top: input.top - dock.top - 8, behavior: 'instant'});
+                }
+                """);
+            await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+            await AssertPopupFitsAsync(page, list);
+        }
+
         // The viewport changes while the popup is open, as it does around a mobile keyboard.
         await page.SetViewportSizeAsync(320, 440);
         await input.ScrollIntoViewIfNeededAsync();
