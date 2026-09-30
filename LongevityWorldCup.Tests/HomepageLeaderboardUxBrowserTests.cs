@@ -94,9 +94,23 @@ public sealed class HomepageLeaderboardUxBrowserTests(PlaywrightBrowserFixture b
     [Theory]
     [InlineData(320)]
     [InlineData(390)]
-    [InlineData(600)]
-    public async Task PhonePodium_KeepsAllThreePlacesAndRankingControlsTogether(int width)
+    [InlineData(548)]
+    [InlineData(683)]
+    public async Task PhoneHomepage_FilterDrawerPreservesTheRefreshedPodium(int width)
     {
+        await using var staticContext = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = 844 }, JavaScriptEnabled = false
+        });
+        var staticPage = await staticContext.NewPageAsync();
+        await staticPage.GotoAsync("/");
+        await staticPage.EvaluateAsync("() => document.fonts.ready");
+        await Assertions.Expect(staticPage.Locator(".podium-score")).ToHaveCountAsync(3);
+        var initialName = (await staticPage.Locator(".podium-item.first .athlete-name").BoundingBoxAsync())!;
+        var initialScore = (await staticPage.Locator(".podium-item.first .podium-score").BoundingBoxAsync())!;
+        Assert.InRange(Math.Abs(initialName.X - initialScore.X), 0, 1);
+        await CaptureAsync(staticPage, $"homepage-{width}-initial");
+
         await using var context = await NewContextAsync(Browser, App, new()
         {
             ViewportSize = new() { Width = width, Height = 844 }, ReducedMotion = ReducedMotion.Reduce
@@ -108,13 +122,31 @@ public sealed class HomepageLeaderboardUxBrowserTests(PlaywrightBrowserFixture b
         var first = (await page.Locator(".podium-item.first").BoundingBoxAsync())!;
         var second = (await page.Locator(".podium-item.second").BoundingBoxAsync())!;
         var third = (await page.Locator(".podium-item.third").BoundingBoxAsync())!;
-        Assert.True(second.X + second.Width <= first.X && first.X + first.Width <= third.X);
-        Assert.InRange(Math.Abs(first.Y + first.Height - second.Y - second.Height), 0, 1);
-        Assert.InRange(Math.Abs(first.Y + first.Height - third.Y - third.Height), 0, 1);
-        Assert.True((await page.Locator(".search-wrapper").BoundingBoxAsync())!.Y < 844,
-            "Phone search should be available in the opening viewport.");
+        Assert.True(first.Y + first.Height <= Math.Min(second.Y, third.Y));
+        Assert.True(second.X + second.Width <= third.X);
+        var nameLeft = (await page.Locator(".podium-item.first .athlete-name").BoundingBoxAsync())!.X;
+        var scoreLeft = (await page.Locator(".podium-item.first .podium-score").BoundingBoxAsync())!.X;
+        var links = page.Locator(".podium-item.first .podium-link-row");
+        await Assertions.Expect(links).ToBeVisibleAsync();
+        Assert.InRange(Math.Abs(nameLeft - scoreLeft), 0, 1);
+        Assert.InRange(Math.Abs(nameLeft - (await links.BoundingBoxAsync())!.X), 0, 1);
+        var podiumBottom = Math.Max(second.Y + second.Height, third.Y + third.Height);
+        Assert.InRange((await page.Locator(".leaderboard-toolbar").BoundingBoxAsync())!.Y - podiumBottom, 0, 40);
         Assert.True(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth <= innerWidth"));
         await CaptureAsync(page, $"homepage-{width}");
+
+        var toggle = page.Locator(".sidebar-toggle");
+        await toggle.ScrollIntoViewIfNeededAsync();
+        var beforeOpening = (await page.Locator(".podium-item.first").BoundingBoxAsync())!;
+        await toggle.ClickAsync();
+        await Assertions.Expect(page.Locator(".sidebar-close")).ToBeFocusedAsync();
+        var openFirst = (await page.Locator(".podium-item.first").BoundingBoxAsync())!;
+        Assert.InRange(Math.Abs(openFirst.X - beforeOpening.X), 0, 1);
+        Assert.InRange(Math.Abs(openFirst.Y - beforeOpening.Y), 0, 1);
+        Assert.InRange(Math.Abs(openFirst.Width - beforeOpening.Width), 0, 1);
+        await page.Locator("#showLeaderboardResults").ClickAsync();
+        await Assertions.Expect(toggle).ToBeFocusedAsync();
+        await Assertions.Expect(page.Locator("#leaderboardFilters")).ToBeHiddenAsync();
 
         foreach (var card in await page.Locator(".podium-item").AllAsync())
         {

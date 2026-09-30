@@ -24,7 +24,7 @@ public static class LeaderboardHtmlRenderer
                 .Append($"<a class=\"athlete-profile-link\" href=\"{EncodeAttribute(row.AthletePath)}\" aria-label=\"View stats of {EncodeAttribute(row.DisplayName)}\"><img src=\"{EncodeAttribute(row.LeaderboardThumbnailUrl)}\" alt=\"{EncodeAttribute(row.DisplayName)} portrait\" class=\"podium-portrait\" loading=\"lazy\"></a>")
                 .Append($"<div class=\"name-row\"><a class=\"athlete-name\" href=\"{EncodeAttribute(row.AthletePath)}\" title=\"View stats of {EncodeAttribute(row.DisplayName)}\">{EncodeText(row.DisplayName)}</a></div>")
                 .Append("<div class=\"podium-link-row\"></div>")
-                .Append($"<div><span class=\"age-reduction\">{PublicHtmlFormat.Fixed(Math.Abs(row.EffectiveAgeReductionYears ?? 0), row.MetricDecimals)} years</span> reduced</div>")
+                .Append($"<div class=\"podium-score\"><span class=\"age-reduction\">{PublicHtmlFormat.Fixed(Math.Abs(row.EffectiveAgeReductionYears ?? 0), row.MetricDecimals)} years</span> reduced</div>")
                 .Append("<a class=\"podium-item-lower\" href=\"#contribute\" aria-label=\"Donate to the prize pool\" aria-busy=\"true\"><div class=\"btc-amount\">&nbsp;</div><div class=\"prize-money\">&mdash;</div></a></div>");
         }
         return sb.ToString();

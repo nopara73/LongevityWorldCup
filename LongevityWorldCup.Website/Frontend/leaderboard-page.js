@@ -1505,7 +1505,7 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity) {
                             ${renderPodcastLink(athlete.podcastLink, athlete.displayName)}
                             ${renderMediaContact(athlete.mediaContact, true, athlete.displayName)}
                         </div>
-                        <div><span class="age-reduction">${Math.abs(getDisplayAgeReductionValue(athlete)).toFixed(athlete.ageReductionDisplayDecimals || 1)} years</span> reduced</div>
+                        <div class="podium-score"><span class="age-reduction">${Math.abs(getDisplayAgeReductionValue(athlete)).toFixed(athlete.ageReductionDisplayDecimals || 1)} years</span> reduced</div>
                         <a class="podium-item-lower" href="#contribute" aria-label="Donate to the prize pool" aria-busy="true">
                             <div class="btc-amount">&nbsp;</div>
                             <div class="prize-money">&mdash;</div>
