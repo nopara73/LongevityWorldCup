@@ -896,13 +896,25 @@ html body .leaderboard table th {
     vertical-align: middle;
 }
 
-.leaderboard .badge-class.badge-family-utility {
-    width: 44px;
-    height: 44px;
+.leaderboard .badge-personal,
+.leaderboard .badge-podcast,
+.leaderboard .badge-overflow-count {
     margin: 0;
-    background: var(--lwc-surface-muted) !important;
-    border: 1px solid var(--lwc-border) !important;
+    background: transparent !important;
+    border: 0 !important;
+    border-radius: 50%;
     color: var(--lwc-muted) !important;
+    box-shadow: none;
+}
+
+.leaderboard .badge-personal:hover,
+.leaderboard .badge-podcast:hover,
+.leaderboard .badge-overflow-count:hover,
+.leaderboard .badge-personal:focus-visible,
+.leaderboard .badge-podcast:focus-visible,
+.leaderboard .badge-overflow-count:focus-visible {
+    background: var(--lwc-surface-muted) !important;
+    color: var(--lwc-accent) !important;
     box-shadow: none;
 }
 

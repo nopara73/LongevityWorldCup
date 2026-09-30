@@ -762,7 +762,7 @@ window.setBadges = function (athlete, athleteCell) {
         items.push({
             order: 0,
             searchText: 'Personal page',
-            html: `<a class="badge-class badge-family-utility badge-clickable" href="${escapeAttr(href)}" target="_blank" rel="noopener" aria-label="Open personal page"
+            html: `<a class="badge-class badge-family-utility badge-personal badge-clickable" href="${escapeAttr(href)}" target="_blank" rel="noopener" aria-label="Open personal page"
                title="Personal page" style="${LEGACY_BG.personal}">
                <i class="fa fa-link"></i>
              </a>`
