@@ -99,19 +99,17 @@ public sealed class HomepageChromeRegressionBrowserTests(
             """
             () => {
                 const toggle = document.querySelector('.sidebar-toggle');
-                const trophy = document.querySelector('.sidebar-icon');
                 const search = document.getElementById('athleteSearch');
                 const searchIcon = document.querySelector('.search-icon');
                 return [
                     getComputedStyle(toggle, '::after').backgroundColor,
-                    getComputedStyle(trophy, '::after').backgroundColor,
                     getComputedStyle(search).borderColor,
                     getComputedStyle(searchIcon).color
                 ];
             }
             """);
 
-        Assert.Equal(["rgb(8, 118, 133)", "rgb(255, 64, 129)", "rgb(8, 118, 133)", "rgb(8, 118, 133)"], cueColors);
+        Assert.Equal(["rgb(8, 118, 133)", "rgb(8, 118, 133)", "rgb(8, 118, 133)"], cueColors);
         Assert.Equal("1", await page.Locator(".sidebar-toggle").GetAttributeAsync("data-filter-count"));
         Assert.Equal("1 active filter", await page.Locator(".sidebar-toggle").GetAttributeAsync("aria-description"));
     }

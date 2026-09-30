@@ -99,6 +99,7 @@ public sealed class LeaderboardRouteBrowserTests(
 
         var expectedCount = await GetActionCountAsync(page);
         Assert.True(expectedCount > 10, $"The Hungary fixture must exercise the former top-10 truncation; found {expectedCount} athletes.");
+        await page.Locator(".sidebar-close").ClickAsync();
 
         var documentResponse = page.WaitForResponseAsync(response =>
             response.Request.ResourceType == "document" &&
@@ -155,22 +156,20 @@ public sealed class LeaderboardRouteBrowserTests(
         var geometry = await directPage.EvaluateAsync<JsonElement>(
             """
             () => {
-                const sidebar = document.querySelector('.leaderboard > .sidebar').getBoundingClientRect();
                 const table = document.querySelector('.leaderboard > table').getBoundingClientRect();
                 const frame = document.querySelector('.leaderboard').getBoundingClientRect();
                 const title = document.querySelector('.collapsed-title');
                 return {
-                    sidebarHeight: sidebar.height,
                     tableHeight: table.height,
                     frameHeight: frame.height,
                     titleBottom: title.getBoundingClientRect().bottom,
-                    sidebarBottom: sidebar.bottom,
+                    titleWritingMode: getComputedStyle(title).writingMode,
                     titleOverflow: title.scrollHeight - title.clientHeight
                 };
             }
             """);
-        Assert.InRange(geometry.GetProperty("frameHeight").GetDouble() - geometry.GetProperty("sidebarHeight").GetDouble(), 0, 2.5);
-        Assert.True(geometry.GetProperty("titleBottom").GetDouble() <= geometry.GetProperty("sidebarBottom").GetDouble() + 1);
+        Assert.InRange(geometry.GetProperty("frameHeight").GetDouble() - geometry.GetProperty("tableHeight").GetDouble(), 0, 2.5);
+        Assert.Equal("horizontal-tb", geometry.GetProperty("titleWritingMode").GetString());
         Assert.InRange(geometry.GetProperty("titleOverflow").GetDouble(), -1, 1.5);
     }
 

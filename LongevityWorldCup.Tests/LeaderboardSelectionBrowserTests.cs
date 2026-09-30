@@ -45,18 +45,18 @@ public sealed class LeaderboardSelectionBrowserTests(PlaywrightBrowserFixture br
         var originalHeight = (await row.BoundingBoxAsync())!.Height;
         await page.Locator("#athleteSearch").FillAsync(view == "pheno" ? "Max -18.30" : name);
         await Assertions.Expect(Rows(page)).ToHaveCountAsync(1);
-        await AssertVisibleRailAsync(page, title);
+        await AssertVisibleContextAsync(page, title);
         Assert.InRange(Math.Abs((await Rows(page).BoundingBoxAsync())!.Height - originalHeight), 0, 1);
 
         await page.ReloadAsync();
         await Assertions.Expect(Rows(page)).ToHaveCountAsync(1);
-        await AssertVisibleRailAsync(page, title);
+        await AssertVisibleContextAsync(page, title);
         if (view is "pheno" or "improvement")
         {
             await page.SetViewportSizeAsync(800, 844);
-            await AssertVisibleRailAsync(page, title);
+            await AssertVisibleContextAsync(page, title);
             await page.SetViewportSizeAsync(390, 844);
-            await Assertions.Expect(page.Locator(".collapsed-title")).ToBeHiddenAsync();
+            await AssertVisibleContextAsync(page, title);
             await page.WaitForFunctionAsync("() => !document.querySelector('.leaderboard').style.getPropertyValue('--leaderboard-title-height')");
             await page.WaitForFunctionAsync(
                 """
@@ -67,28 +67,27 @@ public sealed class LeaderboardSelectionBrowserTests(PlaywrightBrowserFixture br
                 }
                 """);
             await page.SetViewportSizeAsync(1280, 844);
-            await AssertVisibleRailAsync(page, title);
+            await AssertVisibleContextAsync(page, title);
         }
 
         await page.Locator("#athleteSearch").FillAsync("nobody-matches-this-phrase");
         await Assertions.Expect(page.Locator("#leaderboardResultCount")).ToHaveTextAsync("0 athletes");
-        await AssertVisibleRailAsync(page, title);
+        await AssertVisibleContextAsync(page, title);
         await page.Locator("#athleteSearch").FillAsync("");
         await Assertions.Expect(Rows(page)).ToHaveCountAsync(originalCount);
-        await AssertVisibleRailAsync(page, title);
+        await AssertVisibleContextAsync(page, title);
     }
 
-    private static Task AssertVisibleRailAsync(IPage page, string title) => page.WaitForFunctionAsync(
+    private static Task AssertVisibleContextAsync(IPage page, string title) => page.WaitForFunctionAsync(
         """
         expected => {
             const title = document.querySelector('.collapsed-title');
-            const rail = document.querySelector('.sidebar').getBoundingClientRect();
-            const frame = document.querySelector('.leaderboard').getBoundingClientRect();
+            const frame = document.querySelector('.leaderboard-selection-summary').getBoundingClientRect();
             const rect = title.getBoundingClientRect();
             return title.textContent.trim() === expected && rect.height > 0
-                && rect.top >= rail.top && rect.bottom <= rail.bottom + 1
+                && rect.top >= frame.top && rect.bottom <= frame.bottom + 1
                 && title.scrollHeight <= title.clientHeight + 1
-                && Math.abs(frame.bottom - rail.bottom) <= 2
+                && getComputedStyle(title).writingMode === 'horizontal-tb'
                 && document.documentElement.scrollWidth <= innerWidth;
         }
         """, title);
@@ -253,6 +252,7 @@ public sealed class LeaderboardSelectionBrowserTests(PlaywrightBrowserFixture br
             await Assertions.Expect(page.Locator("#detailsModal")).ToBeHiddenAsync();
             Assert.Equal("/leaderboard", new Uri(page.Url).AbsolutePath);
         }
+        await page.Locator(".sidebar-toggle").ClickAsync();
         var pheno = page.Locator("label[data-aging-clock-view=pheno]");
         var bortz = page.Locator("label[data-aging-clock-view=bortz]");
         await Assertions.Expect(pheno.Locator(".filter-count")).ToHaveTextAsync((await Rows(page).CountAsync()).ToString());
@@ -301,8 +301,10 @@ public sealed class LeaderboardSelectionBrowserTests(PlaywrightBrowserFixture br
         await Assertions.Expect(Rows(page).Locator(".rank")).ToHaveTextAsync("1");
 
         // Clearing the search restores real alternative members in the same group.
+        await page.Locator(".sidebar-close").ClickAsync();
         await page.Locator("#athleteSearch").FillAsync("");
         await Assertions.Expect(page.Locator(".leaderboard-selection-chip")).ToHaveCountAsync(2);
+        await page.Locator(".sidebar-toggle").ClickAsync();
         await Assertions.Expect(page.Locator("#flag-filter-section input:not(:disabled)")).ToHaveCountAsync(await flags.CountAsync());
     }
 
@@ -412,7 +414,8 @@ public sealed class LeaderboardSelectionBrowserTests(PlaywrightBrowserFixture br
     [InlineData(320, 720, false)]
     [InlineData(390, 844, true)]
     [InlineData(844, 390, false)]
-    public async Task MobileDrawer_KeepsItsResultsActionVisibleWhileFiltersScroll(int width, int height, bool dark)
+    [InlineData(1280, 844, false)]
+    public async Task FilterDrawer_KeepsItsResultsActionVisibleWhileFiltersScroll(int width, int height, bool dark)
     {
         await using var context = await NewContextAsync(Browser, App, new()
         {

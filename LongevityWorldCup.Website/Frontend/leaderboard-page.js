@@ -1636,7 +1636,6 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity) {
                 }, img => `Enlarge ${img.alt || 'athlete profile picture'}`);
                 addClickListenerToImages('.portrait, .podium-portrait', handleAthleteNameClick);
             });
-            scheduleLeaderboardTableHeightSync();
 
             // At the end of the athlete fetch block in LoadLeaderboard, after athleteResults has been populated:
             const leagueRouteState = getLeagueRouteState(window.location.pathname);
@@ -3626,7 +3625,6 @@ function performFilter({ updateUrl = true } = {}) {
     }
 
     updateLeaderboardStateIndicator();
-    scheduleLeaderboardTableHeightSync();
     renderedLeaderboardSelection = getLeaderboardSelectionKey();
 
     // Initial hydration must preserve direct rank/profile fragments and unrelated URL state.
@@ -3784,19 +3782,6 @@ function buildLeaderboardPresentation(state) {
     return { ...viewPresentation, accessibleLabel: viewPresentation.documentTitle };
 }
 
-function syncCollapsedTitleHeight() {
-    const collapsedTitle = document.querySelector('.collapsed-title');
-    if (!collapsedTitle || collapsedTitle.getClientRects().length === 0 || collapsedTitle.clientHeight <= 0) return;
-
-    // Short result sets still need room for the complete league name.
-    // Measure the natural title, independently of the current row count.
-    const heading = document.querySelector('.sidebar-heading');
-    const leaderboard = document.querySelector('.leaderboard');
-    if (!heading || !leaderboard) return;
-    const minimumHeight = Math.ceil(heading.getBoundingClientRect().height + collapsedTitle.scrollHeight);
-    leaderboard.style.setProperty('--leaderboard-title-height', `${minimumHeight}px`);
-}
-
 function updateLeaderboardTitles(state) {
     const presentation = buildLeaderboardPresentation(state);
     const collapsedTitle = document.querySelector('.collapsed-title');
@@ -3806,11 +3791,6 @@ function updateLeaderboardTitles(state) {
         collapsedTitle.textContent = fullRailText;
         collapsedTitle.title = presentation.accessibleLabel;
         collapsedTitle.setAttribute('aria-label', presentation.accessibleLabel);
-        collapsedTitle.style.opacity = '0';
-        requestAnimationFrame(() => {
-            syncCollapsedTitleHeight();
-            collapsedTitle.style.opacity = '1';
-        });
     }
 
     if (pageDocument.querySelector('[data-leaderboard-page="full"]')) {
@@ -3942,23 +3922,18 @@ document.getElementById('clearLeaderboardSelection')?.addEventListener('click', 
     showAllAthletes();
     document.getElementById('athleteSearch')?.focus({ preventScroll: true });
 });
-document.getElementById('showLeaderboardResults')?.addEventListener('click', () => closeSidebar({ restoreFocus: true }));
+document.getElementById('showLeaderboardResults')?.addEventListener('click', () => closeSidebar());
 clearSidebarFiltersButton?.addEventListener('click', function (event) {
     event.preventDefault();
     event.stopPropagation();
     clearSidebarFilters();
-    if (!isMobileDrawerViewport()) {
-        closeSidebar({ restoreFocus: event.detail === 0 });
-    } else {
-        focusAfterClearingSidebarFilters();
-    }
+    focusAfterClearingSidebarFilters();
 });
 function focusAfterClearingSidebarFilters() {
     const sidebar = document.querySelector('.sidebar');
     const sidebarClose = document.querySelector('.sidebar-close');
     const sidebarToggle = document.querySelector('.sidebar-toggle');
-    const isMobileDrawer = isMobileDrawerViewport();
-    const focusTarget = isMobileDrawer && sidebar?.classList.contains('expanded')
+    const focusTarget = sidebar?.classList.contains('expanded')
         ? sidebarClose
         : sidebarToggle;
 
@@ -6086,318 +6061,99 @@ const sidebar = document.querySelector('.sidebar');
 const sidebarToggle = document.querySelector('.sidebar-toggle');
 const sidebarClose = document.querySelector('.sidebar-close');
 const hasLeaderboardSidebar = !!(sidebar && sidebarToggle && sidebarClose);
-const mobileDrawerMediaQuery = window.matchMedia('(max-width: 768px), (max-width: 932px) and (max-height: 480px) and (orientation: landscape)');
-let leaderboardTableHeightFrame = 0;
-let leaderboardTableResizeObserver = null;
+const sidebarInertRoots = new Set();
 
-function isMobileDrawerViewport() {
-    return mobileDrawerMediaQuery.matches;
-}
-
-function scheduleLeaderboardTableHeightSync() {
-    if (leaderboardTableHeightFrame) return;
-    leaderboardTableHeightFrame = requestAnimationFrame(syncLeaderboardTableHeight);
-}
-
-function syncLeaderboardTableHeight() {
-    leaderboardTableHeightFrame = 0;
-
-    const leaderboard = document.querySelector('.leaderboard');
-    const table = document.querySelector('.leaderboard > table');
-    if (!leaderboard || !table) return;
-
-    if (isMobileDrawerViewport()) {
-        leaderboard.style.removeProperty('--leaderboard-table-height');
-        leaderboard.style.removeProperty('--leaderboard-title-height');
+// The same explicit drawer works with a mouse, touch, or keyboard at every size.
+// It never changes the table's width or scrolls the page as filters change.
+function setSidebarBackgroundInert(isOpen) {
+    if (!isOpen) {
+        sidebarInertRoots.forEach(element => { element.inert = false; });
+        sidebarInertRoots.clear();
         return;
     }
-
-    const tableHeight = table.getBoundingClientRect().height;
-    if (tableHeight > 0) {
-        leaderboard.style.setProperty('--leaderboard-table-height', `${Math.ceil(tableHeight)}px`);
-        syncCollapsedTitleHeight();
+    for (let branch = sidebar; branch && branch !== document.body; branch = branch.parentElement) {
+        for (const sibling of branch.parentElement.children) {
+            if (sibling === branch || sibling.inert) continue;
+            sibling.inert = true;
+            sidebarInertRoots.add(sibling);
+        }
     }
-}
-
-function installLeaderboardTableHeightObserver() {
-    const table = document.querySelector('.leaderboard > table');
-    if (!table) return;
-
-    if ('ResizeObserver' in window) {
-        leaderboardTableResizeObserver = new ResizeObserver(scheduleLeaderboardTableHeightSync);
-        leaderboardTableResizeObserver.observe(table);
-        const title = document.querySelector('.collapsed-title');
-        if (title) leaderboardTableResizeObserver.observe(title);
-    }
-
-    scheduleLeaderboardTableHeightSync();
-}
-
-sidebarToggle?.addEventListener('click', (event) => {
-    toggleSidebar({ focusDrawerClose: event.detail === 0 });
-});
-
-sidebarToggle?.addEventListener('mouseenter', () => {
-    if (sidebar.classList.contains('expanded')) return;
-    sidebar.classList.add('partially-expanded');
-});
-
-sidebarToggle?.addEventListener('mouseleave', () => {
-    sidebar.classList.remove('partially-expanded');
-});
-
-sidebarClose?.addEventListener('click', (event) => {
-    closeSidebar({ restoreFocus: event.detail === 0 });
-});
-
-sidebar?.addEventListener('change', (event) => {
-    if (!event.target.matches('input[type="checkbox"]')) return;
-
-    requestAnimationFrame(pinActiveDesktopSidebar);
-}, true);
-
-document.addEventListener('click', (event) => {
-    if (!hasLeaderboardSidebar) return;
-    const isMobileDrawer = isMobileDrawerViewport();
-    if (!sidebar.classList.contains('expanded')) return;
-    if (sidebar.contains(event.target) || sidebarToggle.contains(event.target)) return;
-
-    if (isMobileDrawer || hasActiveLeaderboardFilterState()) {
-        closeSidebar();
-    }
-});
-
-document.addEventListener('keydown', (event) => {
-    if (!hasLeaderboardSidebar) return;
-    if (event.key !== 'Tab') return;
-    if (modal.style.display === "block") return;
-
-    const isMobileDrawer = isMobileDrawerViewport();
-    if (!isMobileDrawer || !sidebar.classList.contains('expanded')) return;
-
-    const focusableDrawerControls = getSidebarFocusableControls();
-    if (focusableDrawerControls.length === 0) return;
-
-    const firstControl = focusableDrawerControls[0];
-    const lastControl = focusableDrawerControls[focusableDrawerControls.length - 1];
-    const activeElement = document.activeElement;
-
-    if (!sidebar.contains(activeElement)) {
-        event.preventDefault();
-        focusSidebarControl(firstControl);
-    }
-    else if (event.shiftKey && activeElement === firstControl) {
-        event.preventDefault();
-        focusSidebarControl(lastControl);
-    }
-    else if (!event.shiftKey && activeElement === lastControl) {
-        event.preventDefault();
-        focusSidebarControl(firstControl);
-    }
-});
-
-document.addEventListener('keydown', (event) => {
-    if (!hasLeaderboardSidebar) return;
-    if (event.key !== 'Escape' && event.key !== 'Esc') return;
-    if (modal.style.display === "block") return;
-
-    const searchInput = document.getElementById('athleteSearch');
-    if (document.activeElement === searchInput && searchInput.value.trim().length > 0) return;
-
-    const isMobileDrawer = isMobileDrawerViewport();
-    if (!isMobileDrawer || !sidebar.classList.contains('expanded')) return;
-
-    event.preventDefault();
-    closeSidebar({ restoreFocus: true });
-});
-
-function syncSidebarDrawerBackdrop() {
-    if (!hasLeaderboardSidebar) return;
-    const isMobileDrawer = isMobileDrawerViewport();
-    const isOpenMobileDrawer = isMobileDrawer && sidebar.classList.contains('expanded');
-    document.body.classList.toggle('sidebar-drawer-open', isOpenMobileDrawer);
-    sidebar.setAttribute('aria-hidden', isMobileDrawer && !isOpenMobileDrawer ? 'true' : 'false');
 }
 
 function getSidebarFocusableControls() {
-    if (!hasLeaderboardSidebar) return [];
-    return Array.from(sidebar.querySelectorAll('a[href], button, input:not([type="hidden"]), select, textarea, [tabindex]:not([tabindex="-1"])'))
-        .filter(element => {
-            if (element.disabled || element.getAttribute('aria-hidden') === 'true') return false;
-
-            const style = window.getComputedStyle(element);
-            if (style.display === 'none' || style.visibility === 'hidden') return false;
-
-            const rect = element.getBoundingClientRect();
-            return rect.width > 0 && rect.height > 0;
-        });
+    return Array.from(sidebar.querySelectorAll('button, input, a[href], [tabindex]'))
+        .filter(element => !element.disabled && element.tabIndex >= 0 && element.getAttribute('aria-hidden') !== 'true'
+            && element.getClientRects().length > 0 && getComputedStyle(element).visibility !== 'hidden');
 }
 
 function focusSidebarControl(element) {
-    try {
-        element.focus({ focusVisible: true });
-    }
-    catch {
-        element.focus();
-    }
+    if (!element) return;
+    try { element.focus({ preventScroll: true, focusVisible: true }); }
+    catch { element.focus({ preventScroll: true }); }
 }
 
-function toggleSidebar(options = {}) {
+function openSidebar() {
     if (!hasLeaderboardSidebar) return;
-    if (sidebar.classList.contains('expanded')) {
-        closeSidebar();
-    }
-    else {
-        openSidebar(options);
-    }
-}
-
-function pinActiveDesktopSidebar() {
-    if (!hasLeaderboardSidebar) return;
-    if (isMobileDrawerViewport()) return;
-    if (!hasActiveLeaderboardFilterState()) return;
-    if (sidebar.classList.contains('expanded')) return;
-
-    openSidebar({ skipScroll: true });
-}
-
-function openSidebar(options = {}) {
-    if (!hasLeaderboardSidebar) return;
-    const isMobileDrawer = isMobileDrawerViewport();
-    const drawerScrollX = window.scrollX;
-    const drawerScrollY = window.scrollY;
-
-    scheduleLeaderboardTableHeightSync();
-    sidebar.classList.remove('partially-expanded');
-    sidebar.classList.remove('collapsed');
-
-    if (!sidebar.classList.contains('expanded')) {
-        sidebar.classList.add('expanded');
-    }
+    sidebar.inert = false;
+    sidebar.classList.add('expanded');
     sidebar.setAttribute('aria-hidden', 'false');
-    if (!sidebarToggle.classList.contains('active')) {
-        sidebarToggle.classList.add('active')
-    }
-    syncSidebarDrawerBackdrop();
-
-    sidebarToggle.title = "Hide league filters";
+    sidebar.setAttribute('aria-modal', 'true');
+    sidebarToggle.classList.add('active');
+    sidebarToggle.title = 'Hide league filters';
     sidebarToggle.setAttribute('aria-label', 'Hide league filters');
     sidebarToggle.setAttribute('aria-expanded', 'true');
-
-    if (isMobileDrawer) {
-        requestAnimationFrame(() => {
-            if (options.focusDrawerClose) {
-                try {
-                    sidebarClose.focus({ preventScroll: true, focusVisible: true });
-                }
-                catch {
-                    sidebarClose.focus({ preventScroll: true });
-                }
-            }
-            window.scrollTo(drawerScrollX, drawerScrollY);
-        });
-    }
-
-    // Scroll to the leaderboard table
-    if (!isMobileDrawer && !options.skipScroll && canAutoScroll()) {
-        document.querySelector('.search-wrapper .sidebar-toggle').scrollIntoView({
-            behavior: 'smooth',
-            block: 'start',
-        });
-    }
+    document.body.classList.add('sidebar-drawer-open');
+    setSidebarBackgroundInert(true);
+    requestAnimationFrame(() => {
+        if (sidebar.classList.contains('expanded')) focusSidebarControl(sidebarClose);
+    });
 }
 
-function closeSidebar(options = {}) {
-    if (!hasLeaderboardSidebar) return;
+function closeSidebar() {
+    if (!hasLeaderboardSidebar || !sidebar.classList.contains('expanded')) return;
     sidebar.classList.remove('expanded');
     sidebar.setAttribute('aria-hidden', 'true');
+    sidebar.removeAttribute('aria-modal');
+    sidebar.inert = true;
     sidebarToggle.classList.remove('active');
-    sidebar.classList.remove('partially-expanded');
-    if (!sidebar.classList.contains('button-collapsed')) {
-        sidebar.classList.add('button-collapsed');
-    }
-    sidebarToggle.title = "Show league filters";
+    sidebarToggle.title = 'Show league filters';
     sidebarToggle.setAttribute('aria-label', 'Show league filters');
     sidebarToggle.setAttribute('aria-expanded', 'false');
-    syncSidebarDrawerBackdrop();
-    requestAnimationFrame(syncCollapsedTitleHeight);
-
-    if (options.restoreFocus) {
-        requestAnimationFrame(() => {
-            sidebarToggle.classList.add('is-keyboard-focus');
-            sidebarToggle.addEventListener('blur', () => {
-                sidebarToggle.classList.remove('is-keyboard-focus');
-            }, { once: true });
-            try {
-                sidebarToggle.focus({ preventScroll: true, focusVisible: true });
-            }
-            catch {
-                sidebarToggle.focus({ preventScroll: true });
-            }
-        });
-    }
-
-    setTimeout(() => {
-        sidebar.classList.remove('button-collapsed');
-    }, 50);
+    document.body.classList.remove('sidebar-drawer-open');
+    setSidebarBackgroundInert(false);
+    focusSidebarControl(sidebarToggle);
 }
 
-if (hasLeaderboardSidebar) {
-    syncSidebarDrawerBackdrop();
-    installLeaderboardTableHeightObserver();
-    window.addEventListener('resize', () => {
-        syncSidebarDrawerBackdrop();
-        scheduleLeaderboardTableHeightSync();
-    });
-    if (typeof mobileDrawerMediaQuery.addEventListener === 'function') {
-        mobileDrawerMediaQuery.addEventListener('change', scheduleLeaderboardTableHeightSync);
-    } else if (typeof mobileDrawerMediaQuery.addListener === 'function') {
-        mobileDrawerMediaQuery.addListener(scheduleLeaderboardTableHeightSync);
+sidebarToggle?.addEventListener('click', () => {
+    if (sidebar.classList.contains('expanded')) closeSidebar();
+    else openSidebar();
+});
+sidebarClose?.addEventListener('click', closeSidebar);
+
+document.addEventListener('click', event => {
+    if (!hasLeaderboardSidebar || !sidebar.classList.contains('expanded')) return;
+    if (!sidebar.contains(event.target) && !sidebarToggle.contains(event.target)) closeSidebar();
+});
+
+document.addEventListener('keydown', event => {
+    if (!hasLeaderboardSidebar || !sidebar.classList.contains('expanded')) return;
+    if (event.key === 'Escape') {
+        event.preventDefault();
+        closeSidebar();
+        return;
     }
-}
-
-// Sidebar swipe gesture
-let startX = 0;
-let endX = 0;
-let startY = 0;
-let endY = 0;
-const SWIPE_THRESHOLD = 50; // Minimum distance to qualify as a swipe
-const TAP_THRESHOLD = 10; // Allowable movement for taps
-
-document.addEventListener('touchstart', (e) => {
-    if (!hasLeaderboardSidebar) return;
-    if (modal.style.display === "block") return;
-
-    startX = e.changedTouches[0].clientX;
-    startY = e.changedTouches[0].clientY;
-}, false);
-
-document.addEventListener('touchend', (e) => {
-    if (!hasLeaderboardSidebar) return;
-    if (modal.style.display === "block") return;
-
-    endX = e.changedTouches[0].clientX;
-    endY = e.changedTouches[0].clientY;
-
-    const deltaX = endX - startX; // Horizontal movement
-    const deltaY = endY - startY; // Vertical movement
-
-    // Check if it's a tap (small movement)
-    if (Math.abs(deltaX) < TAP_THRESHOLD && Math.abs(deltaY) < TAP_THRESHOLD) {
-        return; // Do nothing, treat as a tap
+    if (event.key !== 'Tab') return;
+    const controls = getSidebarFocusableControls();
+    const first = controls[0];
+    const last = controls[controls.length - 1];
+    if (!sidebar.contains(document.activeElement) || (!event.shiftKey && document.activeElement === last)) {
+        event.preventDefault();
+        focusSidebarControl(first);
+    } else if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        focusSidebarControl(last);
     }
-
-    // Check for swipe
-    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > SWIPE_THRESHOLD) {
-        if (deltaX > 0) {
-            // Swiped from left to right => open sidebar
-            openSidebar();
-        } else {
-            // Swiped from right to left => close sidebar
-            closeSidebar();
-        }
-    }
-}, false);
+});
 
 // Updates the document title for the selected athlete.
 function updatePageTitleForAthlete(athleteName, athleteRank) {

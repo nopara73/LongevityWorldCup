@@ -58,25 +58,28 @@
                         <i class="fa fa-times"></i>
                     </button>
                 </div>
-                <button class="sidebar-toggle" aria-label="Show league filters" aria-controls="leaderboardFilters" aria-expanded="false" title="Show league filters" data-aos="fade" data-aos-duration="700" data-aos-delay="650">
-                    <i class="fa fa-sliders-h"></i>
+                <button type="button" class="sidebar-toggle" aria-label="Show league filters" aria-controls="leaderboardFilters" aria-expanded="false" title="Show league filters">
+                    <i class="fa fa-sliders-h" aria-hidden="true"></i><span>Filters</span>
                 </button>
             </div>
         </div>
 
         <div class="ranking-explanation" id="rankingExplanation" aria-live="polite"></div>
-        <section class="leaderboard-selection-summary" id="leaderboardSelectionSummary" aria-label="Current leaderboard selection" hidden>
+        <section class="leaderboard-selection-summary" id="leaderboardSelectionSummary" aria-label="Current leaderboard selection">
             <div class="leaderboard-selection-heading">
-                <span id="leaderboardResultCount" role="status" aria-live="polite" aria-atomic="true"></span>
+                <div class="leaderboard-selection-context">
+                    <div class="collapsed-title">ULTIMATE LEAGUE</div>
+                    <span id="leaderboardResultCount" role="status" aria-live="polite" aria-atomic="true"></span>
+                </div>
                 <button type="button" id="clearLeaderboardSelection" class="leaderboard-clear-all" hidden>Clear all</button>
             </div>
             <div class="leaderboard-selection-chips" id="leaderboardSelectionChips"></div>
         </section>
 
         <div class="leaderboard">
-            <div class="sidebar" id="leaderboardFilters">
+            <div class="sidebar" id="leaderboardFilters" role="dialog" aria-labelledby="leaderboardFiltersTitle" aria-hidden="true" inert>
                 <div class="sidebar-heading">
-                <h2 class="sidebar-title" data-aos="fade" data-aos-duration="700" data-aos-delay="200">
+                <h2 class="sidebar-title" id="leaderboardFiltersTitle">
                     <span class="sidebar-icon"><i class="fa fa-trophy"></i></span>
                     <span class="sidebar-title-text">Leagues</span>
                 </h2>
@@ -86,7 +89,6 @@
                 </button>
                 <button class="sidebar-close" aria-label="Hide league filters" title="Hide league filters"><i class="fa fa-times"></i></button>
                 </div>
-                <div class="collapsed-title" data-aos="fade" data-aos-duration="700" data-aos-delay="200">ULTIMATE LEAGUE</div>
                 <div class="sidebar-filter-list">
                 <div class="filter-section" id="aging-clock-filter-section">
                     <h3>Aging clocks</h3>
