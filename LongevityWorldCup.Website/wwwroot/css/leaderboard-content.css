@@ -2273,7 +2273,7 @@
      }
      .podium .athlete-name{ font-size:var(--lwc-type-body); }
      .podium-item{ --podium-prize-panel-height:72px; width:calc((100% - var(--lwc-space-3)) / 2); max-width:none; padding:var(--lwc-space-3) var(--lwc-space-2) calc(var(--podium-prize-panel-height) + var(--lwc-space-3)); }
-     .podium-item.first{ --podium-portrait-size:100px; order:1; width:100%; height:auto; min-height:0; }
+     .podium-item.first{ --podium-portrait-size:100px; order:1; width:100%; max-width:440px; height:auto; min-height:0; }
      .podium-item.second{ --podium-portrait-size:72px; order:2; height:auto; min-height:0; }
      .podium-item.third{ --podium-portrait-size:72px; order:3; height:auto; min-height:0; }
      .podium-item.first,
@@ -2288,14 +2288,18 @@
      .podium .btc-amount{ margin-top:var(--lwc-space-1); font-size:.7rem; }
      .podium .prize-money{ font-size:1.25rem; }
      .podium-item.first:not(.podium-skeleton-item){
-         display:grid; grid-template-columns:100px minmax(0, 1fr); grid-template-areas:"portrait name" "portrait links" "portrait score" "prize prize";
-         column-gap:var(--lwc-space-3); padding:var(--lwc-space-4) var(--lwc-space-3) 0;
+         display:grid; grid-template-columns:100px minmax(0, max-content); grid-template-areas:"portrait name" "portrait score" "portrait links";
+         justify-content:center; column-gap:var(--lwc-space-3); row-gap:0;
+         padding:var(--lwc-space-4) var(--lwc-space-3) calc(var(--podium-prize-panel-height) + var(--lwc-space-3)); text-align:left;
      }
      .podium-item.first > .athlete-profile-link{ grid-area:portrait; }
-     .podium-item.first > .name-row{ grid-area:name; }
-     .podium-item.first > .podium-link-row{ grid-area:links; justify-self:center; }
-     .podium-item.first > .podium-score{ grid-area:score; margin-bottom:var(--lwc-space-3); }
-     .podium-item.first > .podium-item-lower{ grid-area:prize; position:relative; width:calc(100% + 2 * var(--lwc-space-3)); margin-inline:calc(-1 * var(--lwc-space-3)); }
+     .podium-item.first .podium-portrait,
+     .podium-item.first .rank-change{ margin:0; }
+     .podium-item.first > .name-row{ grid-area:name; justify-content:flex-start; }
+     .podium-item.first .athlete-name{ padding-inline:0; }
+     .podium-item.first > .podium-link-row{ grid-area:links; justify-self:start; justify-content:flex-start; }
+     .podium-item.first > .podium-score{ grid-area:score; justify-self:start; }
+     .podium-item.first > .podium-item-lower{ left:0; }
 
      .leaderboard table{ width:100%; table-layout:auto; }
      .leaderboard table th:last-child,

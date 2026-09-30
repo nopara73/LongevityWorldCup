@@ -99,6 +99,8 @@ public sealed class LeaderboardPodiumBrowserTests(
                      new ViewportSize { Width = 1026, Height = 505 },
                      new ViewportSize { Width = 769, Height = 481 },
                      new ViewportSize { Width = 768, Height = 481 },
+                     new ViewportSize { Width = 683, Height = 900 },
+                     new ViewportSize { Width = 548, Height = 844 },
                      new ViewportSize { Width = 390, Height = 844 },
                      new ViewportSize { Width = 320, Height = 700 }
                  })
@@ -126,6 +128,8 @@ public sealed class LeaderboardPodiumBrowserTests(
                     "Second and third place must fit beside each other without overlapping.");
                 Assert.InRange(first.CardLeft, 0, viewport.Width);
                 Assert.InRange(third.CardRight, 0, viewport.Width);
+                Assert.InRange(Math.Abs(first.NameLeft - first.MetricLeft), 0, 1);
+                Assert.InRange(Math.Abs(first.NameLeft - first.LinkRowLeft), 0, 1);
                 Assert.True(Math.Max(second.CardBottom, third.CardBottom) - first.CardTop < 600,
                     "The mobile podium must leave room for the standings below it.");
             }
@@ -157,6 +161,14 @@ public sealed class LeaderboardPodiumBrowserTests(
             await athleteName.EvaluateAsync("(element, value) => element.textContent = value", originalName);
             await SettleLayoutAsync(page);
         }
+
+        await page.SetViewportSizeAsync(320, 700);
+        await page.Locator(".podium-item.first .athlete-name").EvaluateAsync(
+            "element => element.textContent = 'Alexandria-Cassandra von Hohenlohe-Longevity-Research-Collective'");
+        await SettleLayoutAsync(page);
+        AssertPodiumContentDoesNotOverlapPrizePanel(
+            await MeasurePodiumAsync(page), new ViewportSize { Width = 320, Height = 700 });
+        Assert.InRange(await page.EvaluateAsync<int>("document.documentElement.scrollWidth"), 0, 320);
     }
 
     private static async Task SettleLayoutAsync(IPage page)
@@ -204,6 +216,9 @@ public sealed class LeaderboardPodiumBrowserTests(
                     CardBottom: cardRect.bottom,
                     ContentBottom: contentBottom,
                     MetricBottom: metricRect.bottom,
+                    MetricLeft: metricRect.left,
+                    NameLeft: card.querySelector('.athlete-name').getBoundingClientRect().left,
+                    LinkRowLeft: card.querySelector('.podium-link-row').getBoundingClientRect().left,
                     PrizePanelTop: panelRect.top
                 };
             })
@@ -252,6 +267,9 @@ public sealed class LeaderboardPodiumBrowserTests(
         public double CardBottom { get; set; }
         public double ContentBottom { get; set; }
         public double MetricBottom { get; set; }
+        public double MetricLeft { get; set; }
+        public double NameLeft { get; set; }
+        public double LinkRowLeft { get; set; }
         public double PrizePanelTop { get; set; }
     }
 }
