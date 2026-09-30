@@ -308,15 +308,18 @@
     ========================= */
  .sidebar{
      position:fixed; inset:0 0 0 auto; z-index:1002;
-     display:flex; flex-direction:column; align-items:stretch;
+     display:none; flex-direction:column; align-items:stretch;
      width:min(360px, calc(100vw - 2rem)); height:100dvh; box-sizing:border-box;
      padding:var(--lwc-space-4) var(--lwc-space-4) 0;
      background:var(--lwc-surface); color:var(--lwc-ink); border-radius:var(--lwc-radius-lg) 0 0 var(--lwc-radius-lg);
      box-shadow:var(--lwc-shadow-md); overflow:hidden;
-     visibility:hidden; pointer-events:none; transform:translateX(105%);
-     transition:transform var(--lwc-duration-normal) var(--lwc-ease);
+     visibility:hidden; pointer-events:none;
  }
- .sidebar.expanded{ visibility:visible; pointer-events:auto; transform:none; }
+ .sidebar.expanded{ display:flex; visibility:visible; pointer-events:auto; }
+ @media (prefers-reduced-motion:no-preference){
+     .sidebar.expanded{ animation:filterDrawerEnter var(--lwc-duration-normal) var(--lwc-ease); }
+ }
+ @keyframes filterDrawerEnter{ from{ transform:translateX(105%); } to{ transform:none; } }
  body.sidebar-drawer-open{ overflow:hidden; }
  body.sidebar-drawer-open::before{
      content:''; position:fixed; inset:0; z-index:1000; background:rgba(0,0,0,.38); cursor:pointer;

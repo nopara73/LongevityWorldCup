@@ -9,6 +9,39 @@ public sealed class HomepageLeaderboardUxBrowserTests(PlaywrightBrowserFixture b
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Theory]
+    [InlineData(320)]
+    [InlineData(390)]
+    public async Task HomepageEntrance_ClosedFiltersDoNotWidenThePage(int width)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = 844 }, ReducedMotion = ReducedMotion.NoPreference
+        });
+        await context.AddInitScriptAsync("""
+            window.uxOpeningLayout = { drawerWidth: 0, overflow: 0, samples: 0, done: false };
+            const sample = () => {
+                const drawer = document.getElementById('leaderboardFilters');
+                const root = document.documentElement;
+                if (drawer && getComputedStyle(drawer).position === 'fixed') {
+                    const state = window.uxOpeningLayout;
+                    state.samples++;
+                    state.drawerWidth = Math.max(state.drawerWidth, drawer.getBoundingClientRect().width);
+                    state.overflow = Math.max(state.overflow, root.scrollWidth - root.clientWidth);
+                }
+                if (document.readyState !== 'complete' || root?.classList.contains('homepage-arriving')) requestAnimationFrame(sample);
+                else window.uxOpeningLayout.done = true;
+            };
+            requestAnimationFrame(sample);
+            """);
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.WaitForFunctionAsync("() => window.uxOpeningLayout.done");
+        Assert.True(await page.EvaluateAsync<bool>("uxOpeningLayout.samples > 0"));
+        Assert.Equal(0, await page.EvaluateAsync<double>("uxOpeningLayout.drawerWidth"));
+        Assert.InRange(await page.EvaluateAsync<double>("uxOpeningLayout.overflow"), 0, 1);
+    }
+
+    [Theory]
     [InlineData(320, 720, true)]
     [InlineData(390, 844, true)]
     [InlineData(844, 390, true)]
