@@ -383,7 +383,6 @@ html body #lmxAccessTabs .lmx-tab[aria-selected="true"] {
 .leaderboard,
 .archive-table-wrapper,
 .archive-mobile-card,
-.ranking-explanation,
 .dialog-content,
 .modal-content,
 .track-card,
@@ -789,6 +788,23 @@ label {
 }
 
 /* Ranking is comparison-heavy: keep the table quiet, aligned, and numeric. */
+main[data-leaderboard-page="full"] > h1 {
+    margin-block: 0 var(--lwc-space-5);
+    font-size: clamp(1.6rem, 3vw, 2rem);
+    text-align: left;
+}
+
+#athleteDialogRuntime > .content {
+    min-width: 0;
+    padding-inline: 0;
+}
+
+body.home-page .game-description {
+    margin-bottom: var(--lwc-space-5);
+    color: var(--lwc-muted);
+    font-size: var(--lwc-type-sm);
+}
+
 .leaderboard-toolbar {
     gap: var(--lwc-space-4);
 }
@@ -833,8 +849,11 @@ html body .leaderboard-view-switcher .view-badge {
 }
 
 .ranking-explanation {
-    border-left: 4px solid var(--lwc-accent-bright);
-    border-radius: var(--lwc-radius-md);
+    padding: 0;
+    margin-block: var(--lwc-space-2) var(--lwc-space-3);
+    border: 0;
+    border-radius: 0;
+    background: transparent;
     color: var(--lwc-muted);
     box-shadow: none;
 }
@@ -842,6 +861,79 @@ html body .leaderboard-view-switcher .view-badge {
 .leaderboard table {
     font-variant-numeric: tabular-nums;
 }
+
+.leaderboard {
+    --portrait-size: 48px;
+    box-shadow: none;
+}
+
+html body .leaderboard table th {
+    padding: var(--lwc-space-2) var(--lwc-space-4);
+    background: var(--lwc-surface-muted);
+    color: var(--lwc-muted);
+    font-size: var(--lwc-type-sm);
+    letter-spacing: 0;
+    text-transform: none;
+    border-bottom: 1px solid var(--lwc-border);
+}
+
+.leaderboard table th:nth-child(2) { text-align: left; }
+.leaderboard table th:nth-child(4) { text-align: right; }
+
+.leaderboard table tbody tr:not(.no-results):not(.tier-separator) > td {
+    padding-block: var(--lwc-space-3);
+    border-bottom: 1px solid var(--lwc-border);
+}
+
+.leaderboard table tbody tr:not(.tier-amateur):nth-child(even) {
+    background: color-mix(in srgb, var(--lwc-surface-muted) 35%, var(--lwc-surface));
+}
+
+.leaderboard .portrait {
+    width: var(--portrait-size);
+    height: var(--portrait-size);
+    margin: 0;
+    vertical-align: middle;
+}
+
+.leaderboard .badge-class.badge-family-utility {
+    width: 44px;
+    height: 44px;
+    margin: 0;
+    background: var(--lwc-surface-muted) !important;
+    border: 1px solid var(--lwc-border) !important;
+    color: var(--lwc-muted) !important;
+    box-shadow: none;
+}
+
+html body .leaderboard .athlete-name {
+    color: var(--lwc-ink);
+    font-weight: 700;
+    text-decoration-color: var(--lwc-border-strong);
+}
+
+.leaderboard .rank { color: var(--lwc-muted); font-size: var(--lwc-type-body); }
+
+.leaderboard .personal-link-icon,
+.leaderboard .media-contact {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    margin: 0;
+    background: transparent;
+    border: 0;
+    border-radius: var(--lwc-radius-md);
+    color: var(--lwc-muted);
+    box-shadow: none;
+}
+
+.leaderboard .media-contact i { width: auto; height: auto; font-size: 1.2rem; line-height: 1; }
+
+.leaderboard-selection-heading { min-height: 32px; }
+.leaderboard-selection-heading:has(button:not([hidden])) { min-height: 44px; }
 
 .leaderboard table thead,
 .archive-table thead {
@@ -948,6 +1040,11 @@ html body .leaderboard-view-switcher .view-badge {
     .leaderboard table,
     .archive-table {
         font-size: 0.95rem;
+    }
+
+    html body .leaderboard table th {
+        padding: var(--lwc-space-2);
+        font-size: var(--lwc-type-xs);
     }
 
     .flow-action-stack .flow-action,
@@ -1090,7 +1187,6 @@ html body .leaderboard-view-switcher .view-badge {
     html body .leaderboard,
     html body .archive-table-wrapper,
     html body .archive-mobile-card,
-    html body .ranking-explanation,
     html body .dialog-content,
     html body .modal-content,
     html body .track-card,
