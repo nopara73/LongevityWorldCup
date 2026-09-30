@@ -4,7 +4,7 @@ on:
   push:
     branches: [ "master" ]
   pull_request:
-    branches: [ "master" ]
+    branches: [ "master", "codex/**" ]
   schedule:
     - cron: "18 4 * * 1"
 
