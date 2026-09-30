@@ -35,7 +35,7 @@
 
         <div class="leaderboard-toolbar">
             <div class="leaderboard-view-switcher" role="radiogroup" aria-labelledby="leaderboardViewLabel">
-                <span class="view-switcher-label" id="leaderboardViewLabel">Ranking</span>
+                <span class="visually-hidden" id="leaderboardViewLabel">Ranking</span>
                 <div class="view-switcher-chips">
                     <input type="radio" name="leaderboardView" id="view-ultimate" value="ultimate" checked aria-label="Ultimate ranking">
                     <label for="view-ultimate" class="view-badge view-badge-ultimate" title="Show the Ultimate League ranking.">Ultimate</label>
@@ -64,14 +64,19 @@
             </div>
         </div>
 
-        <div class="ranking-explanation" id="rankingExplanation" aria-live="polite"></div>
         <section class="leaderboard-selection-summary" id="leaderboardSelectionSummary" aria-label="Current leaderboard selection">
             <div class="leaderboard-selection-heading">
                 <div class="leaderboard-selection-context">
-                    <div class="collapsed-title">ULTIMATE LEAGUE</div>
+                    <div class="collapsed-title" hidden>ULTIMATE LEAGUE</div>
                     <span id="leaderboardResultCount" role="status" aria-live="polite" aria-atomic="true"></span>
                 </div>
-                <button type="button" id="clearLeaderboardSelection" class="leaderboard-clear-all" hidden>Clear all</button>
+                <div class="leaderboard-selection-actions">
+                    <details class="ranking-info" id="rankingInfo" hidden>
+                        <summary aria-label="About this ranking" title="About this ranking"><i class="fas fa-info-circle" aria-hidden="true"></i></summary>
+                        <div class="ranking-explanation" id="rankingExplanation" aria-live="polite"></div>
+                    </details>
+                    <button type="button" id="clearLeaderboardSelection" class="leaderboard-clear-all" hidden>Clear all</button>
+                </div>
             </div>
             <div class="leaderboard-selection-chips" id="leaderboardSelectionChips"></div>
         </section>

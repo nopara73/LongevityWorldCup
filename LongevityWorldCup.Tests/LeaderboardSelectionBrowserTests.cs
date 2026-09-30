@@ -16,7 +16,7 @@ public sealed class LeaderboardSelectionBrowserTests(PlaywrightBrowserFixture br
     [InlineData("improvement", "PHENO IMPROVEMENT LEAGUE")]
     [InlineData("bortz-improvement", "BORTZ IMPROVEMENT LEAGUE")]
     [InlineData("crowd", "CROWD AGE LEAGUE")]
-    public async Task ShortResults_KeepTheFullLeagueNameVisibleWithoutStretchingRows(string view, string title)
+    public async Task ShortResults_KeepRankingContextWithoutRepeatingTheSelectedClockOrStretchingRows(string view, string title)
     {
         await using var context = await NewContextAsync(Browser, App, new() { ViewportSize = new() { Width = 1280, Height = 844 }, ReducedMotion = ReducedMotion.Reduce });
         await context.AddInitScriptAsync("localStorage.setItem('gmaSkipAll','true')");
@@ -84,13 +84,72 @@ public sealed class LeaderboardSelectionBrowserTests(PlaywrightBrowserFixture br
             const title = document.querySelector('.collapsed-title');
             const frame = document.querySelector('.leaderboard-selection-summary').getBoundingClientRect();
             const rect = title.getBoundingClientRect();
-            return title.textContent.trim() === expected && rect.height > 0
-                && rect.top >= frame.top && rect.bottom <= frame.bottom + 1
-                && title.scrollHeight <= title.clientHeight + 1
-                && getComputedStyle(title).writingMode === 'horizontal-tb'
+            const selectedClock = document.querySelector('input[name="leaderboardView"]:checked + label');
+            const hasContext = title.hidden
+                ? selectedClock?.getBoundingClientRect().height > 0
+                : rect.height > 0 && rect.top >= frame.top && rect.bottom <= frame.bottom + 1
+                    && title.scrollHeight <= title.clientHeight + 1
+                    && getComputedStyle(title).writingMode === 'horizontal-tb';
+            return title.textContent.trim() === expected && hasContext
                 && document.documentElement.scrollWidth <= innerWidth;
         }
         """, title);
+
+    [Theory]
+    [InlineData("/", 390, false)]
+    [InlineData("/", 1280, true)]
+    [InlineData("/leaderboard", 320, false)]
+    [InlineData("/leaderboard", 390, true)]
+    [InlineData("/leaderboard", 800, false)]
+    [InlineData("/leaderboard", 1280, false)]
+    public async Task RankingHelp_DoesNotRepeatContextOrMoveResultsAndKeepsRulesAndCalculatorsAccessible(string path, int width, bool dark)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = 844 },
+            ColorScheme = dark ? ColorScheme.Dark : ColorScheme.Light,
+            ReducedMotion = ReducedMotion.Reduce
+        });
+        await context.AddInitScriptAsync("localStorage.setItem('gmaSkipAll','true')");
+        var page = await context.NewPageAsync();
+        await page.GotoAsync(path);
+        await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+        await Assertions.Expect(page.Locator(".collapsed-title")).ToBeHiddenAsync();
+        await Assertions.Expect(page.Locator("#leaderboardResultCount")).ToBeVisibleAsync();
+        var help = page.Locator("#rankingInfo summary");
+        var explanation = page.Locator("#rankingExplanation");
+        await Assertions.Expect(explanation).ToBeHiddenAsync();
+        await help.ScrollIntoViewIfNeededAsync();
+        var table = page.Locator(".leaderboard > table");
+        var original = (await table.BoundingBoxAsync())!;
+        await help.ClickAsync();
+        await Assertions.Expect(explanation).ToBeVisibleAsync();
+        var opened = (await table.BoundingBoxAsync())!;
+        Assert.InRange(Math.Abs(opened.Y - original.Y), 0, 1);
+        Assert.InRange(Math.Abs(opened.Width - original.Width), 0, 1);
+        var infoBounds = (await explanation.BoundingBoxAsync())!;
+        Assert.InRange(infoBounds.X, 0, width);
+        Assert.InRange(infoBounds.X + infoBounds.Width, 0, width);
+        var link = explanation.Locator("a");
+        await Assertions.Expect(link).ToHaveAttributeAsync("href", "/ruleset#point-system-ranking");
+        await page.Keyboard.PressAsync("Tab");
+        await Assertions.Expect(link).ToBeFocusedAsync();
+        await page.Keyboard.PressAsync("Escape");
+        await Assertions.Expect(explanation).ToBeHiddenAsync();
+        await Assertions.Expect(help).ToBeFocusedAsync();
+
+        await help.PressAsync("Enter");
+        await Assertions.Expect(explanation).ToBeVisibleAsync();
+        await page.Locator("#athleteSearch").ClickAsync();
+        await Assertions.Expect(explanation).ToBeHiddenAsync();
+        await page.Locator(".view-badge-bortz").ClickAsync();
+        await Assertions.Expect(page.Locator("#view-bortz")).ToBeCheckedAsync();
+        await Assertions.Expect(page.Locator(".collapsed-title")).ToBeHiddenAsync();
+        await help.ClickAsync();
+        await Assertions.Expect(link).ToHaveAttributeAsync("href", "/bortz-age");
+        await link.ClickAsync();
+        await page.WaitForURLAsync("**/bortz-age");
+    }
 
     [Theory]
     [InlineData("/leaderboard", 0)]
@@ -386,7 +445,7 @@ public sealed class LeaderboardSelectionBrowserTests(PlaywrightBrowserFixture br
             Assert.Equal(1, await page.Locator(".leaderboard-selection-chip").CountAsync());
             var selectedTrack = page.Locator("input[name=leagueTrack]:checked");
             Assert.Equal(filter, (await selectedTrack.InputValueAsync()).ToLowerInvariant());
-            Assert.Contains(label, await page.Locator("#rankingExplanation").InnerTextAsync());
+            Assert.Contains(label, await page.Locator("#rankingExplanation").TextContentAsync());
             await chip.ClickAsync();
             await Assertions.Expect(page.Locator(".leaderboard-selection-chip")).ToHaveCountAsync(0);
             Assert.Equal("/leaderboard", new Uri(page.Url).PathAndQuery);

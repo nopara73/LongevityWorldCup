@@ -3700,7 +3700,12 @@ function updateRankingExplanation(currentLeaderboardView) {
 
     const html = explanations[currentLeaderboardView] || '';
     explanation.innerHTML = html;
-    explanation.classList.toggle('is-visible', html.length > 0);
+    const info = document.getElementById('rankingInfo');
+    if (info) {
+        if (info.dataset.view !== currentLeaderboardView) info.open = false;
+        info.dataset.view = currentLeaderboardView;
+        info.hidden = html.length === 0;
+    }
 }
 
 const leaderboardViewPresentations = Object.freeze({
@@ -3791,6 +3796,11 @@ function updateLeaderboardTitles(state) {
         collapsedTitle.textContent = fullRailText;
         collapsedTitle.title = presentation.accessibleLabel;
         collapsedTitle.setAttribute('aria-label', presentation.accessibleLabel);
+        // The selected clock already names this ranking in the segmented control.
+        // Keep a heading only for context the control cannot represent.
+        const viewPresentation = leaderboardViewPresentations[state.view] || leaderboardViewPresentations.ultimate;
+        collapsedTitle.hidden = presentation.railText === viewPresentation.railText
+            && !!document.querySelector(`#view-${state.view} + label`);
     }
 
     if (pageDocument.querySelector('[data-leaderboard-page="full"]')) {
@@ -6062,6 +6072,20 @@ const sidebarToggle = document.querySelector('.sidebar-toggle');
 const sidebarClose = document.querySelector('.sidebar-close');
 const hasLeaderboardSidebar = !!(sidebar && sidebarToggle && sidebarClose);
 const sidebarInertRoots = new Set();
+const rankingInfo = document.getElementById('rankingInfo');
+
+document.addEventListener('click', event => {
+    if (rankingInfo?.open && !rankingInfo.contains(event.target)) rankingInfo.open = false;
+});
+rankingInfo?.addEventListener('focusout', event => {
+    if (event.relatedTarget && !rankingInfo.contains(event.relatedTarget)) rankingInfo.open = false;
+});
+document.addEventListener('keydown', event => {
+    if (event.key !== 'Escape' || !rankingInfo?.open) return;
+    event.preventDefault();
+    rankingInfo.open = false;
+    rankingInfo.querySelector('summary').focus({ preventScroll: true });
+});
 
 // The same explicit drawer works with a mouse, touch, or keyboard at every size.
 // It never changes the table's width or scrolls the page as filters change.

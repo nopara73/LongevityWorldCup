@@ -56,6 +56,7 @@ public sealed class AestheticContentBrowserTests(
         await page.WaitForSelectorAsync(
             ".leaderboard tbody:not(.loading-skeleton) tr[data-athlete-name] .athlete-name",
             new PageWaitForSelectorOptions { State = WaitForSelectorState.Visible });
+        await page.Locator("#rankingInfo summary").ClickAsync();
         await page.WaitForSelectorAsync(
             ".ranking-explanation",
             new PageWaitForSelectorOptions { State = WaitForSelectorState.Visible });

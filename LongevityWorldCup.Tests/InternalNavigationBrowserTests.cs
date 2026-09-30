@@ -185,6 +185,7 @@ public sealed class InternalNavigationBrowserTests(
         await Assertions.Expect(page.Locator("#view-bortz")).ToBeCheckedAsync();
         await Assertions.Expect(page.Locator("input[name='division']:checked")).ToHaveValueAsync("Women's");
         await Assertions.Expect(page.Locator("#athleteSearch")).ToHaveValueAsync("an");
+        await page.Locator("#rankingInfo summary").ClickAsync();
         await Assertions.Expect(page.Locator("#rankingExplanation a")).ToHaveAttributeAsync("href", "/bortz-age");
         await page.Locator("#rankingExplanation a").ClickAsync();
         await page.WaitForURLAsync("**/bortz-age");
@@ -193,6 +194,7 @@ public sealed class InternalNavigationBrowserTests(
         if (width < 480)
         {
             await page.Locator(".view-badge-ultimate").ClickAsync();
+            await page.Locator("#rankingInfo summary").ClickAsync();
             await page.Locator("#rankingExplanation a").ClickAsync();
         }
         else

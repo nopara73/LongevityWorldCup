@@ -188,7 +188,7 @@ public sealed class LeaderboardRouteBrowserTests(
         Assert.Equal("Ultimate League | Longevity World Cup", await page.TitleAsync());
         Assert.Equal(
             "Ultimate League ranks Pro athletes before Amateur athletes, then by effective age reduction and tie-breakers within each track.",
-            (await page.Locator("#rankingExplanation").InnerTextAsync()).Trim());
+            (await page.Locator("#rankingExplanation").TextContentAsync())?.Trim());
         Assert.Equal("Show league filters", await page.Locator(".sidebar-toggle").GetAttributeAsync("aria-label"));
 
         await page.Locator(".sidebar-toggle").ClickAsync();
@@ -203,7 +203,7 @@ public sealed class LeaderboardRouteBrowserTests(
         Assert.Equal("PHENO IMPROVEMENT LEAGUE", (await page.Locator(".collapsed-title").GetAttributeAsync("data-full-rail-text"))?.Trim());
         Assert.Equal(
             "Pheno improvement ranks each athlete’s latest pheno age against their worst pheno age.",
-            (await page.Locator("#rankingExplanation").InnerTextAsync()).Trim());
+            (await page.Locator("#rankingExplanation").TextContentAsync())?.Trim());
 
         var crowdView = page.Locator("input[name=\"agingClockView\"][value=\"crowd\"]");
         await crowdView.EvaluateAsync(
@@ -211,7 +211,7 @@ public sealed class LeaderboardRouteBrowserTests(
         await page.WaitForFunctionAsync("() => location.pathname === '/league/crowd'");
         Assert.Equal(
             "Crowd age is a visual age estimate from visitors. Athletes qualify once they reach 100 accepted guesses.",
-            (await page.Locator("#rankingExplanation").InnerTextAsync()).Trim());
+            (await page.Locator("#rankingExplanation").TextContentAsync())?.Trim());
         await crowdView.EvaluateAsync(
             "input => { input.disabled = false; input.checked = false; input.dispatchEvent(new Event('change', { bubbles: true })); }");
         await page.WaitForFunctionAsync("() => location.pathname === '/leaderboard'");

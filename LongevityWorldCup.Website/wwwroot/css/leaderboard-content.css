@@ -347,6 +347,7 @@
  .sidebar.has-active-state .clear-sidebar-filters{ visibility:visible; pointer-events:auto; }
  .clear-sidebar-filters > span{ position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
  .collapsed-title{ margin:0; color:var(--lwc-accent); font-size:var(--lwc-type-sm); font-weight:700; overflow-wrap:anywhere; }
+ .collapsed-title[hidden]{ display:none; }
  .leaderboard-selection-context{ display:flex; align-items:baseline; flex-wrap:wrap; column-gap:var(--lwc-space-3); row-gap:var(--lwc-space-1); min-width:0; }
 
  .filter-section{ margin-bottom:1.5rem; width:100%; }
@@ -417,11 +418,8 @@
      .leaderboard-toolbar{ flex-wrap:nowrap; }
  }
  .ranking-explanation{
-     display:none; width:100%; box-sizing:border-box; margin:var(--lwc-space-2) 0 var(--lwc-space-3); padding:0;
-     color:var(--lwc-muted); background:transparent; border:0; border-radius:0; box-shadow:none;
      font-size:var(--lwc-type-sm); line-height:1.5;
  }
- .ranking-explanation.is-visible{ display:block; }
  .ranking-explanation strong{ color:var(--primary-color); }
  .search-wrapper{ display:flex; justify-content:flex-end; margin-bottom:1rem; }
  .search-container{ position:relative; max-width:250px; width:100%; min-height:44px; margin-right:.5rem; }
@@ -462,9 +460,6 @@
     ========================= */
  .leaderboard-view-switcher{
      display:flex; align-items:center; gap:.5rem; margin-bottom:1rem; flex-wrap:wrap;
- }
- .leaderboard-view-switcher .view-switcher-label{
-     font-size:.8rem; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:var(--lwc-muted, #526373); margin-right:.25rem;
  }
  .leaderboard-view-switcher .view-switcher-chips{
      display:inline-flex; align-items:stretch; min-height:44px; background:var(--lwc-surface-muted, rgba(0,0,0,.04)); border:1px solid var(--lwc-border, rgba(0,0,0,.08)); border-radius:8px;
@@ -2093,9 +2088,6 @@
      .leaderboard-view-switcher{
          margin-left:0; order:1; align-items:stretch; width:min(100%, 26rem); max-width:100%; min-width:0; gap:.35rem;
      }
-     .leaderboard-view-switcher .view-switcher-label{
-         flex:0 0 100%; margin-right:0;
-     }
      .leaderboard-view-switcher .view-switcher-chips{
          display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); width:100%; max-width:26rem; min-width:0; flex:0 0 100%;
          gap:1px; padding:1px;
@@ -3021,9 +3013,21 @@
      }
  }
 
- .leaderboard-selection-summary { margin: 0 0 var(--lwc-space-4); }
+ .leaderboard-selection-summary { margin: 0 0 var(--lwc-space-3); }
  .leaderboard-selection-summary[hidden] { display: none; }
- .leaderboard-selection-heading { display: flex; justify-content: space-between; align-items: center; gap: var(--lwc-space-3); min-height: 44px; }
+ .leaderboard-selection-heading { position: relative; display: flex; justify-content: space-between; align-items: center; gap: var(--lwc-space-3); }
+ .leaderboard-selection-actions { display: flex; align-items: center; gap: var(--lwc-space-2); flex: 0 0 auto; }
+ .ranking-info summary { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border-radius: var(--lwc-radius-md); color: var(--lwc-muted); cursor: pointer; list-style: none; }
+ .ranking-info summary::-webkit-details-marker { display: none; }
+ .ranking-info summary:hover,
+ .ranking-info[open] summary { background: var(--lwc-accent-soft); color: var(--lwc-accent); }
+ .ranking-info summary:focus-visible { outline: 3px solid var(--lwc-accent); outline-offset: 2px; }
+ .leaderboard-selection-summary .ranking-explanation {
+     position: absolute; top: calc(100% + var(--lwc-space-2)); right: 0; z-index: 20;
+     width: min(28rem, calc(100vw - 2rem)); box-sizing: border-box; margin: 0; padding: var(--lwc-space-4);
+     background: var(--lwc-surface); color: var(--lwc-ink); border: 1px solid var(--lwc-border);
+     border-radius: var(--lwc-radius-md); box-shadow: var(--lwc-shadow-md);
+ }
  #leaderboardResultCount { color: var(--lwc-muted); font-size: var(--lwc-type-sm); font-variant-numeric: tabular-nums; }
  .leaderboard-selection-chips { display: flex; flex-wrap: wrap; gap: var(--lwc-space-2); }
  .leaderboard-selection-chip,
