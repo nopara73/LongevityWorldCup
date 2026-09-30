@@ -2474,6 +2474,9 @@
 
     function applicationStageTable(events: DashboardEvent[]): string {
         const currentStages: FunnelDefinition[] = [
+            ["application", "Application"]
+        ];
+        const compactStages: FunnelDefinition[] = [
             ["identity", "Identity and motivation"],
             ["profile-picture", "Profile picture"],
             ["proof", "Proof"],
@@ -2491,12 +2494,12 @@
         const stageEvents = events.filter(e => e.eventName === "application_stage_reached");
         if (!stageEvents.length) return empty("No application stage data yet.");
 
-        const currentEvents = stageEvents.filter(e => metadataValue(e, "flowVersion") === "four-step");
-        const earlierEvents = stageEvents.filter(e => metadataValue(e, "flowVersion") !== "four-step");
-        if (!currentEvents.length) return applicationFlowStageTable(events, earlierEvents, earlierStages);
-        if (!earlierEvents.length) return applicationFlowStageTable(events, currentEvents, currentStages);
-        return `<h3>Current application</h3>${applicationFlowStageTable(events, currentEvents, currentStages)}
-            <h3>Earlier application</h3>${applicationFlowStageTable(events, earlierEvents, earlierStages)}`;
+        const cohorts = [
+            { title: "Current application", stages: currentStages, events: stageEvents.filter(e => metadataValue(e, "flowVersion") === "single-page") },
+            { title: "Four-screen application", stages: compactStages, events: stageEvents.filter(e => metadataValue(e, "flowVersion") === "four-step") },
+            { title: "Earlier application", stages: earlierStages, events: stageEvents.filter(e => !["single-page", "four-step"].includes(metadataValue(e, "flowVersion"))) }
+        ].filter(cohort => cohort.events.length);
+        return cohorts.map(cohort => `${cohorts.length > 1 ? `<h3>${cohort.title}</h3>` : ""}${applicationFlowStageTable(events, cohort.events, cohort.stages)}`).join("");
     }
 
     function applicationFlowStageTable(events: DashboardEvent[], stageEvents: DashboardEvent[], stages: FunnelDefinition[]): string {

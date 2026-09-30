@@ -626,8 +626,6 @@ public sealed class ApplicationControllerValidationTests(TestWebApplicationFacto
     [Theory]
     [InlineData("division", "Division is required.")]
     [InlineData("flag", "Flag is required.")]
-    [InlineData("why", "Why is required.")]
-    [InlineData("mediaContact", "Media contact is required.")]
     public async Task FullApplicationMissingRequiredProfileFieldReturnsBadRequestBeforeProcessing(string missingField, string expectedError)
     {
         var factory = sharedFactory;
@@ -642,18 +640,37 @@ public sealed class ApplicationControllerValidationTests(TestWebApplicationFacto
             case "flag":
                 applicantData.Flag = null;
                 break;
-            case "why":
-                applicantData.Why = null;
-                break;
-            case "mediaContact":
-                applicantData.MediaContact = null;
-                break;
         }
 
         var result = await controller.Application(applicantData, CancellationToken.None);
 
         var badRequest = Assert.IsType<BadRequestObjectResult>(result);
         Assert.Equal(expectedError, badRequest.Value);
+    }
+
+    [Fact]
+    public async Task FullApplication_RejectsOversizedOptionalMotivation()
+    {
+        var controller = CreateController(sharedFactory);
+        var applicant = CreateValidFullApplication();
+        applicant.Why = new string('a', 251);
+        var result = await controller.Application(applicant, CancellationToken.None);
+        Assert.Equal("Motivation must be at most 250 characters.", Assert.IsType<BadRequestObjectResult>(result).Value);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task FullApplication_OptionalPublicFieldsDoNotBlockResultValidation(string? optionalValue)
+    {
+        var controller = CreateController(sharedFactory);
+        var applicant = CreateValidFullApplication();
+        applicant.Why = optionalValue;
+        applicant.MediaContact = optionalValue;
+        applicant.Biomarkers![0].Date = "invalid";
+        var result = await controller.Application(applicant, CancellationToken.None);
+        Assert.Equal("Biomarker date is invalid.", Assert.IsType<BadRequestObjectResult>(result).Value);
     }
 
     [Fact]

@@ -46,7 +46,7 @@ public sealed partial class NewAthleteOnboardingBrowserTests(
 
             await page.Locator("#continueButton").ClickAsync();
             await page.WaitForDomContentLoadedUrlAsync("**/apply");
-            await page.GetByRole(AriaRole.Heading, new() { Name = "1. Enter the arena" }).WaitForAsync();
+            await page.GetByRole(AriaRole.Heading, new() { Name = "Enter the arena" }).WaitForAsync();
 
             Assert.Equal("/apply", new Uri(page.Url).AbsolutePath);
             await AssertPhenoHandoffAsync(page, bloodDrawDate);
@@ -97,7 +97,7 @@ public sealed partial class NewAthleteOnboardingBrowserTests(
 
             await page.Locator("#continueButton").ClickAsync();
             await page.WaitForDomContentLoadedUrlAsync("**/apply");
-            await page.GetByRole(AriaRole.Heading, new() { Name = "1. Enter the arena" }).WaitForAsync();
+            await page.GetByRole(AriaRole.Heading, new() { Name = "Enter the arena" }).WaitForAsync();
 
             Assert.Equal("/apply", new Uri(page.Url).AbsolutePath);
             await AssertBortzHandoffAsync(page, bloodDrawDate);
@@ -200,24 +200,16 @@ public sealed partial class NewAthleteOnboardingBrowserTests(
     }
 
     [Fact]
-    public async Task ApplicationProfileUploadButton_IsPrimaryWhenProfilePictureRequired()
+    public async Task ApplicationProfileUpload_IsAvailableWithoutCompletingProfileExtras()
     {
         await RunOnboardingBrowserAsync(async (page, errors) =>
         {
-            await page.GotoAsync("/apply", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-            await page.Locator("#name[data-stage1-validity-listener='true']").WaitForAsync();
-
-            await page.EvaluateAsync("() => goToStage(2)");
-
-            var uploadButton = page.Locator("#uploadButton");
-            await uploadButton.WaitForAsync();
-            await page.WaitForFunctionAsync("() => document.getElementById('uploadButton')?.classList.contains('green')");
-
-            var classes = await uploadButton.GetAttributeAsync("class");
-            Assert.Contains("green", classes);
-            Assert.DoesNotContain("grey", classes);
-            Assert.DoesNotContain("flow-action--secondary", classes);
-            Assert.False(await page.Locator("#nextButton").IsEnabledAsync());
+            await page.GotoAsync("/apply");
+            await page.Locator("#profilePicInput[data-listener='true']").WaitForAsync(new() { State = WaitForSelectorState.Attached });
+            await Assertions.Expect(page.Locator("#uploadButton")).ToBeVisibleAsync();
+            await Assertions.Expect(page.Locator("#uploadProofButton")).ToBeVisibleAsync();
+            await Assertions.Expect(page.Locator("#accountEmail")).ToBeVisibleAsync();
+            await Assertions.Expect(page.Locator("#why")).ToBeHiddenAsync();
             Assert.Empty(errors);
         });
     }
@@ -539,7 +531,7 @@ public sealed partial class NewAthleteOnboardingBrowserTests(
         await FillAndCalculatePhenoAgeAsync(page, bloodDrawDate);
         await page.Locator("#continueButton").ClickAsync();
         await page.WaitForDomContentLoadedUrlAsync("**/apply");
-        await page.GetByRole(AriaRole.Heading, new() { Name = "1. Enter the arena" }).WaitForAsync();
+        await page.GetByRole(AriaRole.Heading, new() { Name = "Enter the arena" }).WaitForAsync();
     }
 
     private static async Task CompleteProHandoffToApplicationAsync(IPage page, string bloodDrawDate)
@@ -550,7 +542,7 @@ public sealed partial class NewAthleteOnboardingBrowserTests(
         await FillAndCalculateBortzAgeAsync(page, bloodDrawDate);
         await page.Locator("#continueButton").ClickAsync();
         await page.WaitForDomContentLoadedUrlAsync("**/apply");
-        await page.GetByRole(AriaRole.Heading, new() { Name = "1. Enter the arena" }).WaitForAsync();
+        await page.GetByRole(AriaRole.Heading, new() { Name = "Enter the arena" }).WaitForAsync();
     }
 
     private static async Task FillAndCalculatePhenoAgeAsync(IPage page, string bloodDrawDate)
@@ -1171,16 +1163,16 @@ public sealed partial class NewAthleteOnboardingBrowserTests(
     private static async Task GoToFakeApplicationFinalStageAsync(IPage page)
     {
         await GoToFakeProofStageAsync(page);
-        await AdvanceOnboardingStageAsync(page, "4. Final details");
+
         await page.WaitForFunctionAsync("() => !document.getElementById('nextButton')?.disabled");
     }
 
     private static async Task GoToFakeProofStageAsync(IPage page)
     {
         await page.GotoAsync("/apply?fake=1", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-        await page.GetByRole(AriaRole.Heading, new() { Name = "1. Enter the arena" }).WaitForAsync();
-        await AdvanceOnboardingStageAsync(page, "2. Almost there");
-        await AdvanceOnboardingStageAsync(page, "3. Don't trust, verify");
+        await page.GetByRole(AriaRole.Heading, new() { Name = "Enter the arena" }).WaitForAsync();
+        await page.Locator("#profileOptions > summary").ClickAsync();
+        await page.Locator("#proofChecklistDetails > summary").ClickAsync();
         await page.WaitForFunctionAsync(
             "() => document.getElementById('uploadProofButton')?.getAttribute('data-listener') === 'true'");
     }
@@ -1192,10 +1184,4 @@ public sealed partial class NewAthleteOnboardingBrowserTests(
             Assert.Contains(expectedLabel, proofChecklist);
     }
 
-    private static async Task AdvanceOnboardingStageAsync(IPage page, string expectedHeading)
-    {
-        await page.WaitForFunctionAsync("() => !document.getElementById('nextButton')?.disabled");
-        await page.Locator("#nextButton").ClickAsync();
-        await page.GetByRole(AriaRole.Heading, new() { Name = expectedHeading }).WaitForAsync();
-    }
 }

@@ -357,14 +357,9 @@ namespace LongevityWorldCup.Website.Controllers
                     return await BadRequestWithStatsAsync("missing_flag", "Flag is required.").ConfigureAwait(false);
                 }
 
-                if (string.IsNullOrWhiteSpace(applicantData.Why))
+                if (applicantData.Why?.Length > 250)
                 {
-                    return await BadRequestWithStatsAsync("missing_why", "Why is required.").ConfigureAwait(false);
-                }
-
-                if (string.IsNullOrWhiteSpace(applicantData.MediaContact))
-                {
-                    return await BadRequestWithStatsAsync("missing_media_contact", "Media contact is required.").ConfigureAwait(false);
+                    return await BadRequestWithStatsAsync("invalid_why", "Motivation must be at most 250 characters.").ConfigureAwait(false);
                 }
             }
 

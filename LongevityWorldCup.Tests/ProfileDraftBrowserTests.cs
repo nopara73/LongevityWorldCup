@@ -98,7 +98,7 @@ public sealed class ProfileDraftBrowserTests(
     }
 
     [Fact]
-    public async Task ResetBeforeBlurValidation_UndoRestoresTheInvalidFieldFeedback()
+    public async Task ResetBeforeBlurValidation_UndoRestoresClearedOptionalMotivationWithoutAnError()
     {
         await using var context = await CreateContextAsync(390);
         var page = await OpenEditorAsync(context);
@@ -106,8 +106,8 @@ public sealed class ProfileDraftBrowserTests(
         await page.Locator("#resetProfileDraftButton").ClickAsync();
         await page.Locator("#undoProfileDraftButton").ClickAsync();
         await Assertions.Expect(page.Locator("#whyDisplayInput")).ToHaveValueAsync("");
-        await Assertions.Expect(page.Locator("#whyDisplayInput")).ToHaveAttributeAsync("aria-invalid", "true");
-        await Assertions.Expect(page.Locator("#whyDisplayInputError")).ToBeVisibleAsync();
+        await Assertions.Expect(page.Locator("#whyDisplayInput")).ToHaveAttributeAsync("aria-invalid", "false");
+        await Assertions.Expect(page.Locator("#whyDisplayInputError")).ToBeHiddenAsync();
     }
 
     [Theory]

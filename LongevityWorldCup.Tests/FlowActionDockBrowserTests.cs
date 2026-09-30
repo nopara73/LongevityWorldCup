@@ -96,7 +96,6 @@ public sealed class FlowActionDockBrowserTests(
     [InlineData("/play", ".play-menu-actions")]
     [InlineData("/pheno-age", "#lwcStepOneActions")]
     [InlineData("/bortz-age", "#lwcStepOneActions")]
-    [InlineData("/apply?fake=1", ".convergence-actions")]
     public async Task MobileWorkflowActionStacks_DockInsideTheFirstViewport(
         string path,
         string actionSelector)
@@ -121,38 +120,20 @@ public sealed class FlowActionDockBrowserTests(
     }
 
     [Fact]
-    public async Task MobileOnboardingActions_RemainDockedWhileEnteringContactEmail()
+    public async Task MobileApplication_InlineActionsKeepEmailTypingAndParticipationTermsAvailable()
     {
-        var app = App;
-        var browser = Browser;
-        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
-        {
-            BaseURL = app.BaseAddress.ToString(),
-            Locale = "en-US",
-            IsMobile = true,
-            HasTouch = true,
-            ViewportSize = new ViewportSize { Width = 390, Height = 844 }
-        });
+        await using var context = await Browser.NewContextAsync(new() { BaseURL = App.BaseAddress.ToString(), IsMobile = true, HasTouch = true, ViewportSize = new() { Width = 390, Height = 844 } });
         await BrowserTestApp.RouteExternalResourcesAsync(context);
-
         var page = await context.NewPageAsync();
         var errors = CapturePageErrors(page);
-
-        await page.GotoAsync("/apply?fake=1", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-        // The function and stage attribute exist in the initial HTML. Wait for the
-        // asynchronous bootstrap to bind stage one before selecting the email stage.
-        await page.WaitForFunctionAsync(
-            "() => window.LwcFlowActionDock && document.getElementById('name')?.dataset.stage1ValidityListener === 'true'");
-        await page.EvaluateAsync("() => { window.goToStage(4); window.LwcFlowActionDock.refreshNow(); }");
-        await ExpectActionStackDockedInViewportAsync(page, ".convergence-actions");
-
-        await page.Locator("#accountEmail").FocusAsync();
-        await page.WaitForFunctionAsync("() => document.activeElement?.id === 'accountEmail'");
-
-        Assert.True(
-            await HasDockClassAsync(page, ".convergence-actions"),
-            "The onboarding action menu should not disappear when a text field receives focus.");
-        await ExpectActionStackInViewportAsync(page, ".convergence-actions");
+        await page.GotoAsync("/apply");
+        await page.WaitForFunctionAsync("() => applicationReady");
+        await page.Locator("#accountEmail").FillAsync("private@example.test");
+        await Assertions.Expect(page.Locator("#accountEmail")).ToBeFocusedAsync();
+        Assert.DoesNotContain("flow-action-stack--docked", await page.Locator(".convergence-actions").GetAttributeAsync("class"));
+        await page.Locator("#nextButton").ScrollIntoViewIfNeededAsync();
+        await Assertions.Expect(page.Locator("#privacyDetails > p")).ToBeInViewportAsync();
+        await Assertions.Expect(page.Locator("#nextButton")).ToBeInViewportAsync();
         Assert.Empty(errors);
     }
 
@@ -895,6 +876,7 @@ public sealed class FlowActionDockBrowserTests(
                 };
             };
             const dockConditionMatches = stack => {
+                if (stack.getAttribute('data-flow-dock') === 'off') return false;
                 const requiredSelector = stack.getAttribute('data-flow-dock-when');
                 if (requiredSelector && !document.querySelector(requiredSelector)) return false;
 
@@ -1087,6 +1069,7 @@ public sealed class FlowActionDockBrowserTests(
                         && style.visibility !== 'hidden';
                 };
                 const dockConditionMatches = stack => {
+                if (stack.getAttribute('data-flow-dock') === 'off') return false;
                     const requiredSelector = stack.getAttribute('data-flow-dock-when');
                     if (requiredSelector && !document.querySelector(requiredSelector)) return false;
                     const excludedSelector = stack.getAttribute('data-flow-dock-unless');

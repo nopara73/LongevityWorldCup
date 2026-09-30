@@ -7,753 +7,215 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
     <link rel="stylesheet" href="{{ASSET_BIOAGEFORM_CSS}}">
     <style>
-        /* Hide the join-game button in the header */
-        .join-game {
-            display: none !important;
+        .join-game { display: none !important; }
+        .convergence-main { width: min(100% - 2rem, 600px); margin: 0 auto; padding: 0; }
+        .convergence-main h1 { margin: 1.5rem 0 0.5rem; text-align: left; }
+        .convergence-main .progress-container { margin: 1rem auto; padding: 0.75rem 0; }
+        #inputForm.application-form {
+            width: 100%; max-width: none; margin: 0 auto 2rem; padding: 0;
+            border: 0; border-radius: 0; box-shadow: none; background: transparent;
+            min-height: 0; align-items: stretch; gap: 0;
         }
-
-        .autocomplete-container {
-            position: relative;
+        .application-section { min-width: 0; padding: 1.25rem 0; border-bottom: 1px solid var(--lwc-border); }
+        .application-section h2 { font-size: var(--type-lg, 1.2rem); margin: 0 0 0.4rem; text-align: left; }
+        .application-form p { margin: 0.4rem 0; line-height: 1.5; }
+        .application-form label { margin-top: 0.85rem; }
+        .application-form label:first-child { margin-top: 0; }
+        .application-form label span, .application-caption { color: var(--lwc-muted); font-size: var(--type-sm, 0.875rem); font-weight: 400; }
+        .application-form input, .application-form select, .application-form textarea { font: inherit; }
+        .application-form textarea { min-height: 5rem; background: var(--lwc-surface); color: var(--lwc-ink); }
+        .application-identity-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0.75rem; }
+        .application-identity-row > div { min-width: 0; }
+        #division { cursor: pointer; }
+        .application-form details > summary {
+            display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+            min-height: 44px; cursor: pointer; list-style: none; color: var(--lwc-ink); font-weight: 700;
         }
-
-        #division {
-            cursor: pointer;
+        .application-form details > summary::-webkit-details-marker { display: none; }
+        .application-form details > summary::after { content: '+'; font-size: 1.2rem; font-weight: 400; }
+        .application-form details[open] > summary::after { content: '−'; }
+        .application-form details > summary:focus-visible { outline: 2px solid var(--lwc-accent); outline-offset: 3px; }
+        .application-form details[open] > summary { margin-bottom: 0.5rem; }
+        #profileOptions { padding: 0.5rem 0; }
+        #profileOptions[open] { padding-bottom: 1.25rem; }
+        #profileOptions .application-caption { margin-top: 0.4rem; }
+        .application-photo-row { display: flex; align-items: center; gap: 1rem; margin: 1rem 0 0.5rem; }
+        .application-photo-preview { flex: 0 0 88px; width: 88px; height: 88px; border-radius: var(--radius-md, 8px); overflow: hidden; background: var(--lwc-surface-muted); }
+        .application-photo-preview img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .application-photo-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.75rem; min-width: 0; }
+        .application-form .application-upload-button {
+            display: inline-flex; align-items: center; justify-content: center; gap: 0.6rem;
+            min-height: 44px; min-width: 0; max-width: 100%; margin: 0; padding: 0.65rem 0.9rem;
+            border: 1px solid var(--lwc-border-strong); border-radius: var(--radius-sm, 4px);
+            color: var(--lwc-ink); background: var(--lwc-surface); font: inherit; cursor: pointer;
         }
-
-        #applicationDraftStatus {
-            margin: var(--space-2) 0;
-            color: var(--lwc-danger);
-            font-size: var(--type-sm);
-            line-height: 1.5;
-        }
-
-        /* Responsive adjustments */
-        @media (max-width: 600px) {
-            .option-button {
-                font-size: 1rem; /* Adjusted for smaller screens */
-                padding: 0.8rem 1.5rem; /* Adjust padding for smaller buttons */
-            }
-        }
-
-        @media (max-width: 320px) {
-            #name {
-                padding-inline: 0.65rem;
-                text-overflow: ellipsis;
-            }
-
-            #name::placeholder {
-                font-size: 0.92rem;
-            }
-        }
-
-        #flag {
-            margin-bottom: 0; /* Reset any margin added here */
-        }
-
-        .error-message {
-            display: none;
-        }
-
-        .error-message:not(:empty) {
-            display: block;
-            margin-top: 0.55rem;
-            padding: 0.55rem 0.7rem;
-            border: 0;
-            border-inline-start: 4px solid var(--lwc-danger, #b4233b);
-            border-radius: 8px;
-            background: var(--lwc-surface-muted, #f4f7f9);
-            color: var(--lwc-ink, #17212b);
-            font-size: 0.9rem;
-            font-weight: 700;
-            line-height: 1.35;
-            box-sizing: border-box;
-        }
-
-        .char-counter {
-            font-size: 0.9rem;
-            color: var(--lwc-muted);
-            position: absolute;
-            bottom: 10px;
-            right: 10px;
-        }
-
-            .char-counter.hidden {
-                display: none;
-            }
-
+        .application-upload-button:hover { border-color: var(--lwc-accent); }
+        .application-form .application-text-button { min-height: 44px; padding: 0.25rem 0; border: 0; background: transparent; color: var(--lwc-accent); font: inherit; cursor: pointer; }
+        .application-form button:focus-visible { outline: 2px solid var(--lwc-accent); outline-offset: 3px; }
+        .application-form button:disabled { opacity: 0.65; cursor: wait; }
+        .application-form [hidden] { display: none !important; }
+        #takeProfileSelfieButton, #takeProofPhotoButton { display: none; }
+        .application-proof-actions { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 1rem; }
+        #croppingPart { margin-top: 1rem; }
+        #cropperImage { display: block; max-width: 100%; max-height: 320px; }
+        .convergence-crop-preview { max-width: 100%; overflow: hidden; background: var(--lwc-surface-muted); }
+        .convergence-crop-preview .cropper-container { max-width: 100%; }
+        .application-crop-actions { display: flex; gap: 1rem; margin-top: 0.5rem; }
+        #profilePicText { margin: 0; }
+        .application-result { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; padding: 0.5rem 0 1rem; color: var(--lwc-muted); }
+        .application-result strong { color: var(--lwc-ink); font-variant-numeric: tabular-nums; }
+        .application-result a { flex-shrink: 0; min-height: 44px; display: inline-flex; align-items: center; }
+        .application-terms { border-bottom: 0; }
+        .application-terms > p { font-size: var(--type-sm, 0.875rem); color: var(--lwc-muted); }
+        .application-privacy-story summary { font-size: var(--type-sm, 0.875rem); }
+        .application-actions { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 0.75rem; margin-top: 0.75rem; }
+        .application-actions .flow-action { margin: 0; min-width: 0; width: 100%; }
+        .error-message, #applicationDraftStatus, #profileUploadStatus { color: var(--lwc-danger); font-size: var(--type-sm, 0.875rem); line-height: 1.5; }
+        .error-message:empty { display: none; }
+        [aria-invalid='true'] { border-color: var(--lwc-danger) !important; }
+        .char-counter { text-align: right; color: var(--lwc-muted); font-size: var(--type-sm, 0.875rem); }
+        .char-counter.hidden { display: none; }
+        .autocomplete-container { position: relative; }
         .autocomplete-items {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            margin-top: 0.45rem;
-            padding: 0.25rem;
-            border: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.14));
-            border-radius: 8px;
-            background-color: var(--lwc-surface, white);
-            z-index: 9999;
-            max-height: min(14rem, 42vh);
-            overflow-y: auto;
-            width: 100%;
-            box-shadow: var(--lwc-shadow-md);
-            box-sizing: border-box;
-            scrollbar-width: thin;
-            scrollbar-color: rgba(96, 125, 139, 0.45) transparent;
-            overscroll-behavior: contain;
-            scroll-padding-block: var(--lwc-space-1);
+            position: absolute; top: 100%; left: 0; margin-top: 0.45rem; padding: 0.25rem;
+            border: 1px solid var(--lwc-border); border-radius: var(--radius-md, 8px);
+            background: var(--lwc-surface); color: var(--lwc-ink); z-index: 9999;
+            max-height: min(14rem, 42vh); overflow-y: auto; width: 100%; box-sizing: border-box;
+            box-shadow: var(--lwc-shadow-md); overscroll-behavior: contain;
         }
-
-            .autocomplete-items .autocomplete-active {
-                background-color: var(--lwc-accent-soft, rgba(0, 188, 212, 0.12));
-                color: var(--lwc-ink, #243446);
-                box-shadow: inset 3px 0 var(--lwc-accent);
-            }
-
-            .autocomplete-items div {
-                display: flex;
-                align-items: center;
-                min-height: 44px;
-                padding: 0.6rem 0.7rem;
-                box-sizing: border-box;
-                cursor: pointer;
-                border-radius: var(--lwc-radius-sm);
-                color: var(--lwc-ink, #2d3748);
-                font-size: 1rem;
-                line-height: 1.5;
-            }
-
-                .autocomplete-items div + div {
-                    margin-top: 0.15rem;
-                }
-
-                .autocomplete-items div:hover {
-                    background-color: var(--lwc-accent-soft, rgba(0, 188, 212, 0.12));
-                    color: var(--lwc-ink, #243446);
-                }
-
-                .autocomplete-items div .lwc-flag-icon {
-                    flex: 0 0 auto;
-                    margin-right: 0.55rem;
-                }
-
-                .autocomplete-items div .lwc-flag-name {
-                    min-width: 0;
-                    overflow-wrap: anywhere;
-                }
-
-                .autocomplete-items div strong {
-                    color: var(--lwc-accent);
-                    font-weight: 700;
-                }
-        /* Add a new class for the pointer cursor */
-        .clickable {
-            cursor: pointer;
+        .autocomplete-items > div { display: flex; align-items: center; min-height: 44px; padding: 0.6rem 0.7rem; cursor: pointer; border-radius: 4px; line-height: 1.5; }
+        .autocomplete-items .autocomplete-active, .autocomplete-items > div:hover { background: var(--lwc-accent-soft); }
+        .autocomplete-items .lwc-flag-icon { flex: 0 0 auto; margin-right: 0.55rem; }
+        .autocomplete-items .lwc-flag-name { min-width: 0; overflow-wrap: anywhere; }
+        @media (pointer: coarse), (max-width: 600px) {
+            #takeProfileSelfieButton, #takeProofPhotoButton { display: inline-flex; }
         }
-
-        .convergence-upload-guidance {
-            width: min(100%, 408px);
-            margin: 0.75rem auto 1.2rem;
-            padding: 0.85rem 1rem 0.85rem 2.25rem;
-            border: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.14));
-            border-radius: 8px;
-            background: var(--lwc-surface-muted, rgba(248, 250, 252, 0.92));
-            box-sizing: border-box;
-            color: var(--lwc-ink, #334155);
-            line-height: 1.55;
+        @media (max-width: 360px) {
+            .application-identity-row { grid-template-columns: minmax(0, 1fr); }
+            .application-photo-row { gap: 0.75rem; }
+            .application-photo-preview { flex-basis: 72px; width: 72px; height: 72px; }
+            .application-result { flex-wrap: wrap; gap: 0; }
         }
-
-        .convergence-upload-guidance li + li {
-            margin-top: 0.25rem;
-        }
-
-        .convergence-upload-action {
-            width: min(100%, 408px);
-            min-width: 0;
-            max-width: 408px;
-            display: flex;
-            flex-direction: column;
-            align-items: stretch;
-            gap: 0.85rem;
-            margin: 1rem auto 0;
-        }
-
-        #profileUploadSection .convergence-upload-action .option-button,
-        #proofUploadSection .convergence-upload-action .option-button {
-            width: 100%;
-            min-width: 0;
-            max-width: none;
-            margin: 0;
-            box-sizing: border-box;
-        }
-
-        #proofUploadSection .camera-capture-action {
-            display: none;
-        }
-
-        #takeProfileSelfieButton {
-            display: none;
-        }
-
-        .upload-choice-divider {
-            display: none;
-            align-items: center;
-            justify-content: center;
-            gap: 0.65rem;
-            min-height: 1.25rem;
-            color: var(--lwc-muted, #526373);
-            font-size: 0.85rem;
-            font-weight: 700;
-            line-height: 1;
-            text-transform: uppercase;
-        }
-
-        .upload-choice-divider::before,
-        .upload-choice-divider::after {
-            content: "";
-            height: 1px;
-            flex: 1 1 auto;
-            background: var(--lwc-border, rgba(100, 116, 139, 0.22));
-        }
-
-        .convergence-upload-action .option-button i {
-            margin-right: 0.45rem;
-        }
-
-        .convergence-crop-preview {
-            width: min(100%, 408px);
-            max-width: 408px;
-            margin: 0.75rem auto 0;
-            padding: 0.45rem;
-            border: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.14));
-            border-radius: 8px;
-            background: var(--lwc-surface, #fff);
-            box-shadow: none;
-            box-sizing: border-box;
-            overflow: hidden;
-        }
-
-        .convergence-crop-preview #cropperImage {
-            display: block;
-            max-width: 100%;
-            max-height: 320px;
-            height: auto;
-            margin: 0 auto;
-            border-radius: 6px;
-            background: var(--lwc-surface-muted, #f8fafc);
-        }
-
-        .convergence-crop-preview .cropper-container {
-            max-width: 100%;
-            margin: 0 auto;
-            border-radius: 6px;
-        }
-
-        #biomarker-checklist {
-            width: min(100%, 408px);
-            max-width: 408px;
-            margin: 1.25rem auto 1.35rem;
-            padding: 0.9rem 1.05rem;
-            border: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.14));
-            border-radius: 8px;
-            background: var(--lwc-surface-muted, rgba(248, 250, 252, 0.92));
-            box-shadow: none;
-            box-sizing: border-box;
-            color: var(--lwc-ink, #222);
-        }
-
-        #biomarker-checklist h4 {
-            margin: 0 0 0.35rem !important;
-            color: var(--lwc-ink, #111827);
-        }
-
-        #biomarker-checklist p {
-            margin: 0 !important;
-            color: var(--lwc-muted, #526373);
-            line-height: 1.35;
-        }
-
-        /* Must use important because back button styles applied later. Without important it doesn't overwrite it. */
-        .back-button {
-            margin-right: auto !important;
-            margin-left: 0 !important; /* Resets left margin */
-        }
-
-        .convergence-main [data-aos]:not(.aos-animate) {
-            opacity: 1;
-            transform: none;
-        }
-
-        .convergence-actions {
-            width: min(100%, 408px);
-            min-width: 0;
-            max-width: 408px;
-            display: flex;
-            flex-direction: column;
-            align-items: stretch;
-            gap: 0.85rem;
-            margin: 1.4rem auto 0;
-        }
-
-        .convergence-actions .option-button {
-            width: 100%;
-            min-width: 0;
-            max-width: none;
-            margin: 0;
-            box-sizing: border-box;
-        }
-
-        .convergence-actions .option-button:disabled {
-            background: var(--lwc-surface-muted, #eef2f7) !important;
-            border: 1px solid var(--lwc-border, rgba(100, 116, 139, 0.16));
-            color: var(--lwc-muted, #526373);
-            box-shadow: none !important;
-            cursor: not-allowed;
-            opacity: 1;
-            transform: none;
-        }
-
-        .convergence-actions .option-button:disabled:hover {
-            background: var(--lwc-surface-muted, #eef2f7) !important;
-            border-color: var(--lwc-border, rgba(100, 116, 139, 0.16));
-            color: var(--lwc-muted, #526373);
-            box-shadow: none !important;
-            transform: none;
-        }
-
-        .convergence-actions .back-button {
-            margin-left: 0 !important;
-            margin-right: 0 !important;
-        }
-
-        .convergence-helper-text {
-            margin: 0.75rem 0 0;
-            padding: 0.8rem 0.9rem;
-            border: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.12));
-            border-radius: 8px;
-            background: var(--lwc-surface-muted, rgba(248, 250, 252, 0.92));
-            color: var(--lwc-ink, #334155);
-            line-height: 1.48;
-            box-sizing: border-box;
-        }
-
-        .convergence-helper-text + label {
-            margin-top: 1.5rem;
-        }
-
-        .convergence-helper-text a,
-        .convergence-application-copy a {
-            font-weight: 700;
-        }
-
-        .convergence-stage-copy {
-            max-width: 32rem;
-            margin: 1.1rem auto 0;
-            padding: 0.95rem 1rem;
-            border: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.12));
-            border-radius: 8px;
-            background: var(--lwc-surface-muted, rgba(248, 250, 252, 0.92));
-            color: var(--lwc-ink, #334155);
-            line-height: 1.5;
-            text-align: left;
-            box-sizing: border-box;
-        }
-
-        .convergence-stage-copy p {
-            margin: 0.65rem 0 0;
-        }
-
-        .convergence-stage-copy p:first-child {
-            margin-top: 0;
-        }
-
-        .convergence-stage-copy strong {
-            color: var(--lwc-ink, #1f2937);
-        }
-
-        .convergence-stage-copy em {
-            color: var(--lwc-ink, #1f2937);
-        }
-
-        .convergence-visual {
-            width: 100%;
-            text-align: center;
-        }
-
-        body[data-convergence-stage="1"] #descriptionForm {
-            display: none !important;
-        }
-
-        body[data-convergence-stage="1"].flow-action-dock-active #inputForm {
-            margin-top: 0.75rem;
-        }
-
-        body[data-convergence-stage="1"].flow-action-dock-active #personalDetails {
-            margin-top: 0;
-            padding-block: 0.95rem;
-        }
-
-        body[data-convergence-stage="1"].flow-action-dock-active #personalDetails > label:first-of-type {
-            margin-top: 0.45rem;
-        }
-
-        @media (min-width: 960px) and (max-height: 780px) {
-            body[data-convergence-stage="1"] #mainProgressBar {
-                margin: 1.6rem auto 1.8rem;
-                padding: 0.9rem 0 1.55rem;
-            }
-
-            body[data-convergence-stage="1"] .convergence-main > h1 {
-                margin: 0.6rem 0 0.9rem;
-                font-size: 2.35rem;
-                line-height: 1.05;
-            }
-
-        }
-
-        @media (min-width: 960px) and (max-height: 720px) {
-            body[data-convergence-stage="1"] #mainProgressBar {
-                margin-block: 1.15rem 1.2rem;
-                padding-block: 0.75rem 1.3rem;
-            }
-
-            body[data-convergence-stage="1"] .convergence-main > h1 {
-                margin-block: 0.4rem 0.55rem;
-                font-size: 2.18rem;
-            }
-
-        }
-
-        #profileImage.illustration {
-            width: 100%;
-            max-width: 408px;
-            aspect-ratio: 4 / 3;
-            object-fit: contain;
-        }
-
-        .convergence-application-copy {
-            margin: 0.75rem 0 1.1rem;
-            padding: 0.85rem 0.95rem;
-            border: 1px solid var(--lwc-border, rgba(0, 188, 212, 0.22));
-            border-radius: 8px;
-            background: var(--lwc-accent-soft, rgba(0, 188, 212, 0.08));
-            color: var(--lwc-ink, #2d3748);
-            line-height: 1.5;
-            box-sizing: border-box;
-        }
-
-        #whyField textarea {
-            margin-bottom: 0;
-        }
-
-        #whyField .char-counter.hidden {
-            display: none;
-        }
-
-        #whyField .char-counter {
-            position: static;
-            display: flex;
-            width: fit-content;
-            min-height: 28px;
-            align-items: center;
-            margin: 0.55rem 0 0 auto;
-            padding: 0.25rem 0.65rem;
-            border: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.12));
-            border-radius: 999px;
-            background: var(--lwc-surface-muted, rgba(248, 250, 252, 0.96));
-            box-sizing: border-box;
-            font-weight: 700;
-            line-height: 1;
-            color: var(--lwc-muted, #526373);
-            box-shadow: none;
-        }
-
-        #inputForm > .sub-progress-container {
-            margin-bottom: var(--space-4);
-        }
-
-        #whyField {
-            margin-top: 0;
-        }
-
-        .application-identity-row {
-            display: grid;
-            grid-template-columns: minmax(0, 1fr);
-            gap: var(--space-2);
-        }
-
-        .application-identity-row > div {
-            min-width: 0;
-        }
-
-        @media (min-width: 360px) {
-            .application-identity-row {
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-                gap: var(--space-3);
-            }
-        }
-
-        #whyField textarea {
-            min-height: 6rem;
-        }
-
-        .application-privacy-story summary {
-            min-height: 44px;
-            display: flex;
-            align-items: center;
-            gap: var(--space-2);
-            cursor: pointer;
-            font-weight: 700;
-            color: var(--lwc-ink);
-        }
-
-        .application-privacy-story summary::before {
-            content: '+';
-            color: var(--lwc-accent);
-        }
-
-        .application-privacy-story[open] summary::before {
-            content: '\2212';
-        }
-
-        .application-privacy-story .convergence-stage-copy {
-            margin-top: var(--space-2);
-        }
-
-        @media (max-width: 600px) {
-            .convergence-actions {
-                width: min(100%, 408px);
-                margin-top: 1.25rem;
-            }
-
-            #descriptionForm {
-                padding: 0.9rem;
-            }
-
-            #descriptionForm .illustration {
-                width: min(100%, 290px);
-                max-height: 218px;
-                border-width: 3px;
-                margin-bottom: 1rem;
-            }
-
-            #descriptionForm #illustrationImage.illustration {
-                object-fit: cover;
-            }
-
-            #descriptionForm #profileImage.illustration {
-                object-fit: contain;
-            }
-
-            #descriptionForm .sub-progress-container {
-                margin-bottom: 1rem;
-                padding-inline: 12px;
-            }
-
-            .convergence-upload-guidance,
-            .convergence-upload-action,
-            .convergence-crop-preview {
-                width: min(100%, 408px);
-            }
-
-            #biomarker-checklist {
-                margin: 1.05rem auto 1.1rem;
-            }
-        }
-
-        @media (pointer: coarse) {
-            #takeProfileSelfieButton,
-            #proofUploadSection .camera-capture-action {
-                display: inline-flex;
-            }
-
-            .upload-choice-divider {
-                display: flex;
-            }
-        }
-
     </style>
 </head>
-<body class="play-flow-route" data-convergence-stage="1" data-sub-progress-steps="4">
+<body class="play-flow-route" data-convergence-stage="1" data-application-flow="single-page">
     <!--HEADER-->
     <main class="convergence-main">
         <!--MAIN-PROGRESS-BAR-->
-        <h1 tabindex="-1" data-aos="fade" data-aos-duration="700" data-aos-delay="400">1. Enter the arena</h1>
-        <form id="descriptionForm" class="bioageform" data-aos="fade" data-aos-duration="700" data-aos-delay="450">
-            <div class="convergence-visual">
-                <picture id="illustrationPicture" style="display:''">
-                    <source type="image/webp" srcset="{{ASSET_ENTER_ARENA_WEBP}}">
-                    <source type="image/jpeg" srcset="{{ASSET_ENTER_ARENA_JPEG}}">
-                    <img id="illustrationImage" src="{{ASSET_ENTER_ARENA_JPEG}}" alt="Longevity World Cup logo" class="illustration" width="1024" height="768" loading="lazy" decoding="async">
-                </picture>
-                <div id="onboardingProofSymbol" class="proof-upload-symbol" aria-hidden="true" hidden><i class="fas fa-file-medical"></i></div>
-                <img style="display:none" id="profileImage" src="" alt="Profile picture" class="illustration" loading="lazy">
+        <h1 tabindex="-1">Enter the arena</h1>
+        <form id="inputForm" class="bioageform application-form" novalidate>
+            <div class="application-result" id="applicationResult">
+                <span id="applicationResultText"></span>
+                <a id="calculatorLink" href="/pheno-age">Edit result</a>
             </div>
-            <div id="profilePicText" class="convergence-stage-copy" style="display:none">
-                <p>Next, provide your profile picture. Smiling is optional!</p>
-            </div>
-
-            <div id="proofText" class="convergence-stage-copy" style="display:none">
-                <p id="mainProofInstructions"></p>
-                <span id="subProofInstructions" class="smaller-text"></span>
-            </div>
-
-        </form>
-
-        <form id="inputForm" class="bioageform" data-aos="fade" data-aos-duration="700" data-aos-delay="500">
-            <!--SUB-PROGRESS-BAR-->
-            <fieldset id="personalDetails">
-                <legend>Athlete details</legend>
-
-                <!-- Name Field -->
-                <label for="name">Name <span class="field-requirement">(required)</span></label>
-                <input type="text" id="name" name="name" required aria-required="true" aria-describedby="nameError" minlength="3" maxlength="100" autocomplete="name" autocapitalize="none" spellcheck="false" placeholder="Name or cyber alias">
+            <section id="personalDetails" class="application-section">
+                <label for="name">Name <span>(required)</span></label>
+                <input type="text" id="name" name="name" required aria-describedby="nameError" minlength="3" maxlength="100" autocomplete="name" autocapitalize="none" spellcheck="false" placeholder="Name or cyber alias">
                 <span id="nameError" class="error-message" aria-live="polite"></span>
-
+                <div id="applyDetails">
+                    <label for="accountEmail">Email address <span>(private, required)</span></label>
+                    <input type="email" id="accountEmail" name="accountEmail" required aria-describedby="accountEmailError" autocomplete="email" autocapitalize="none" spellcheck="false" placeholder="pizza_lover@hungry.com">
+                    <span id="accountEmailError" class="error-message" aria-live="polite"></span>
+                </div>
+            </section>
+            <section id="profileUploadSection" class="application-section">
+                <h2>Profile photo</h2>
+                <p id="profilePicText" class="application-caption">Smiling is optional!</p>
+                <div class="application-photo-row" id="uploadPart">
+                    <div class="application-photo-preview">
+                        <picture id="illustrationPicture">
+                            <source srcset="{{ASSET_PLAY_ATHLETE_PLACEHOLDER_WEBP}}" type="image/webp">
+                            <img id="illustrationImage" src="{{ASSET_PLAY_ATHLETE_PLACEHOLDER_JPEG}}" alt="" width="88" height="88" decoding="async">
+                        </picture>
+                        <img id="profileImage" src="" alt="Your profile photo" hidden>
+                    </div>
+                    <div class="application-photo-actions">
+                        <input type="file" id="profilePicInput" accept="image/*,.heic,.heif" hidden>
+                        <input type="file" id="profileCameraInput" accept="image/*,.heic,.heif" capture="user" hidden>
+                        <button type="button" id="uploadButton" class="application-upload-button"><i class="fa fa-image" aria-hidden="true"></i><span>Upload profile picture</span></button>
+                        <button type="button" id="takeProfileSelfieButton" class="application-text-button"><i class="fa fa-camera" aria-hidden="true"></i> Take selfie</button>
+                        <button type="button" id="editProfileCropButton" class="application-text-button" hidden>Adjust crop</button>
+                    </div>
+                </div>
+                <p id="profileUploadStatus" role="status" hidden></p>
+                <div id="croppingPart" hidden>
+                    <div class="convergence-crop-preview"><img id="cropperImage" src="" alt="Selected profile image preview for cropping"></div>
+                    <div class="application-crop-actions">
+                        <button type="button" id="cropButton" class="application-upload-button">Crop and save</button>
+                        <button type="button" id="cancelProfileCropButton" class="application-text-button">Cancel</button>
+                    </div>
+                </div>
+                <details class="application-caption">
+                    <summary>Headshot guidelines</summary>
+                    <ol><li>It must be you.</li><li>Face the camera directly.</li><li>Include head and shoulders.</li></ol>
+                </details>
+            </section>
+            <details id="profileOptions" class="application-section">
+                <summary>Personalize your public profile</summary>
                 <div class="application-identity-row">
-                    <div>
-                        <label for="division">Division <span class="field-requirement">(required)</span></label>
-                        <select id="division" name="division" required aria-required="true">
-                            <!-- Options will be populated dynamically -->
-                        </select>
-                    </div>
-                    <div>
-                        <label for="flag">Flag <span class="field-requirement">(required)</span></label>
-                        <div class="autocomplete-container">
-                            <input type="text" id="flag" name="flag" required aria-required="true" aria-describedby="flagError" minlength="3" maxlength="100" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Cyberspace" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="flag-autocomplete-list">
-                            <span id="flagError" class="error-message" aria-live="polite"></span>
-                        </div>
-                    </div>
+                    <div><label for="division">Division</label><select id="division" name="division" required aria-describedby="divisionError"><option value="Open" selected>Open</option><option value="Men's">Men's</option><option value="Women's">Women's</option></select><span id="divisionError" class="error-message" aria-live="polite"></span></div>
+                    <div><label for="flag">Flag</label><div class="autocomplete-container">
+                        <input type="text" id="flag" name="flag" value="Cyberspace" required aria-describedby="flagError" minlength="3" maxlength="100" autocomplete="off" autocapitalize="none" spellcheck="false" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="flag-autocomplete-list">
+                        <span id="flagError" class="error-message" aria-live="polite"></span>
+                    </div></div>
                 </div>
-            </fieldset>
-
-            <fieldset id="whyField">
-                <legend>Finding your why</legend>
-                <label for="why">What drives you forward? <span class="field-requirement">(required)</span></label>
-                <textarea id="why" name="why" rows="3" required aria-required="true" maxlength="250" placeholder="Share your motivation here..."></textarea>
-                <div id="whyCharCounter" class="char-counter hidden">0/250</div>
-            </fieldset>
-            <fieldset id="profileUploadSection">
-                <legend>Profile photo</legend>
-                <div id="uploadPart" style="display:block">
-                    <p><strong>Upload a clear headshot:</strong></p>
-                    <ol class="smaller-text convergence-upload-guidance">
-                        <li>It must be you.</li>
-                        <li>Face the camera directly.</li>
-                        <li>Include head and shoulders.</li>
-                    </ol>
-                    <div class="convergence-upload-action flow-action-stack">
-                        <input type="file" id="profilePicInput" accept="image/*,.heic,.heif" style="display: none;">
-                        <input type="file" id="profileCameraInput" accept="image/*,.heic,.heif" capture="user" style="display: none;">
-                        <button type="button" id="takeProfileSelfieButton" class="option-button grey flow-action flow-action--secondary">
-                            <span class="flow-action__label">Take selfie</span><i class="fa fa-camera" aria-hidden="true"></i>
-                        </button>
-                        <span class="upload-choice-divider" aria-hidden="true">or</span>
-                        <button type="button" id="uploadButton" class="option-button grey flow-action flow-action--secondary">
-                            <span class="flow-action__label">Upload profile picture</span><i class="fa fa-image" aria-hidden="true"></i>
-                        </button>
-                    </div>
+                <div id="whyField">
+                    <label for="why">What drives you forward? <span>(optional)</span></label>
+                    <textarea id="why" name="why" rows="2" maxlength="250" placeholder="Share your motivation here..." aria-describedby="whyError"></textarea>
+                    <span id="whyError" class="error-message" aria-live="polite"></span>
+                    <div id="whyCharCounter" class="char-counter hidden">0/250</div>
                 </div>
-                <div id="croppingPart" style="display:none">
-                    <div class="convergence-crop-preview">
-                        <img id="cropperImage" src="" alt="Selected profile image preview for cropping">
-                    </div>
-                    <div class="convergence-upload-action flow-action-stack">
-                        <button type="button" id="cropButton" class="option-button flow-action">
-                            <span class="flow-action__label">Crop and save</span>
-                        </button>
-                        <button type="button" id="cancelProfileCropButton" class="option-button grey flow-action flow-action--secondary">
-                            <span class="flow-action__label">Cancel</span>
-                        </button>
-                    </div>
+                <div id="finalDetails">
+                    <label for="mediaContact">Media contact <span>(public, optional)</span></label>
+                    <input type="text" id="mediaContact" name="mediaContact" inputmode="email" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="media@example.com or @handle">
+                    <details class="application-caption">
+                        <summary>Choosing a media contact</summary>
+                        <p>Please provide a media contact email. Be cautious about using your personal email address. It is recommended to create a dedicated email (e.g.: <a href="https://protonmail.com" target="_blank" rel="noopener">ProtonMail</a>) or use a social media account like Instagram or Twitter if your messages are open to the public.</p>
+                    </details>
+                    <label for="personalLink">Link <span>(optional)</span></label>
+                    <input type="text" id="personalLink" name="personalLink" inputmode="url" autocomplete="url" autocapitalize="none" spellcheck="false" placeholder="yourwebsite.com" aria-describedby="personalLinkError">
+                    <span id="personalLinkError" class="error-message" aria-live="polite"></span>
+                    <p class="application-caption">Provide a link to your personal page, social media profile, or any other online presence you wish to advertise.</p>
                 </div>
-            </fieldset>
-            <fieldset id="proofUploadSection">
-                <legend>Proof upload</legend>
-                <div class="convergence-upload-action flow-action-stack">
-                    <input type="file" id="proofPicInput" accept="image/*,application/pdf,.heic,.heif,.pdf" style="display: none;" multiple>
-                    <input type="file" id="proofCameraInput" accept="image/*,.heic,.heif" capture="environment" style="display: none;">
-                    <button type="button" id="takeProofPhotoButton" class="option-button grey flow-action flow-action--secondary camera-capture-action">
-                        <span class="flow-action__label">Take proof photo</span><i class="fa fa-camera" aria-hidden="true"></i>
-                    </button>
-                    <span class="upload-choice-divider" aria-hidden="true">or</span>
-                    <button type="button" id="uploadProofButton" class="option-button grey flow-action flow-action--secondary">
-                        <span class="flow-action__label">Upload proofs</span><i class="fa fa-file-upload" aria-hidden="true"></i>
-                    </button>
+            </details>
+            <section id="proofUploadSection" class="application-section">
+                <h2>Don't trust, verify</h2>
+                <div id="proofText"><p id="mainProofInstructions"></p><p id="subProofInstructions" class="application-caption"></p></div>
+                <div class="application-proof-actions">
+                    <input type="file" id="proofPicInput" accept="image/*,application/pdf,.heic,.heif,.pdf" hidden multiple>
+                    <input type="file" id="proofCameraInput" accept="image/*,.heic,.heif" capture="environment" hidden>
+                    <button type="button" id="uploadProofButton" class="application-upload-button"><i class="fa fa-file-upload" aria-hidden="true"></i><span>Upload proofs</span></button>
+                    <button type="button" id="takeProofPhotoButton" class="application-text-button camera-capture-action"><i class="fa fa-camera" aria-hidden="true"></i> Take proof photo</button>
                 </div>
-                <!-- Proof Image Container -->
+                <span id="proofError" class="error-message" aria-live="polite"></span>
                 <div id="proofImageContainer"></div>
-                <div id="biomarker-checklist"></div>
-            </fieldset>
-            <fieldset id="finalDetails">
-                <legend>Public profile</legend>
-                <!-- Media Contact (Required) -->
-                <label for="mediaContact">Media contact (required)</label>
-                <input type="text" id="mediaContact" name="mediaContact" required aria-required="true" inputmode="email" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="media@example.com or @handle">
-
-                <p class="convergence-helper-text">
-                    <span class="smaller-text">
-                        Please provide a media contact email. Be cautious about using your personal email address. It is recommended to create a dedicated email (e.g.: <a href="https://protonmail.com" target="_blank" rel="noopener">ProtonMail</a>) or use a social media account like Instagram or Twitter if your messages are open to the public.
-                    </span>
-                </p>
-
-                <label for="personalLink">Link (optional)</label>
-                <input type="text" id="personalLink" name="personalLink" inputmode="url" autocomplete="url" autocapitalize="none" spellcheck="false" placeholder="yourwebsite.com">
-                <p class="convergence-helper-text">
-                    Provide a link to your personal page, social media profile, or any other online presence you wish to advertise.
-                </p>
-            </fieldset>
-            <fieldset id="applyDetails">
-                <!-- Email Field -->
-                <legend>Private contact</legend>
-                <div id="congratsText" class="convergence-application-copy" style="display:none">
-                    <strong>Congratulations!</strong> All that's left to do is to provide your contact details.
-                </div>
-                <label for="accountEmail">Email address <span class="field-requirement">(required)</span></label>
-                <input type="text" id="accountEmail" name="accountEmail" required aria-required="true" inputmode="email" autocomplete="email" autocapitalize="none" spellcheck="false" placeholder="pizza_lover@hungry.com">
-            </fieldset>
-
-            <fieldset id="privacyDetails">
-                <legend>Visibility choice</legend>
-                <p><strong>It's now your turn to make that decision.</strong></p>
-                <p class="smaller-text">
-                    Top-ranked longevity athletes will occasionally be asked to give an interview before their results are posted. Declining means no spot on the leaderboard. By proceeding, you agree to this.
-                </p>
+                <details id="proofChecklistDetails" class="application-caption"><summary>Check your proofs</summary><div id="biomarker-checklist"></div></details>
+            </section>
+            <section id="privacyDetails" class="application-section application-terms">
+                <p>Top-ranked longevity athletes will occasionally be asked to give an interview before their results are posted. Declining means no spot on the leaderboard. By proceeding, you agree to this.</p>
                 <details class="application-privacy-story">
                     <summary>The price of glory</summary>
-                    <div id="privacyText" class="convergence-stage-copy">
+                    <div id="privacyText">
                         <p><strong>Privacy is your ability to selectively reveal yourself to the world.</strong></p>
-                        <p>
-                            Cristiano Ronaldo is one of the greatest football players of all time. Put yourself into his boots. You must work hard, of course, but your job doesn't end with honing your skills. You also need to display them in front of millions of people. <em>There’s no sport without spectators.</em>
-                        </p>
-                        <p>
-                            So, does he lack privacy? <strong>No</strong>, he made a decision to selectively reveal himself to the world.
-                        </p>
+                        <p>Cristiano Ronaldo is one of the greatest football players of all time. Put yourself into his boots. You must work hard, of course, but your job doesn't end with honing your skills. You also need to display them in front of millions of people. <em>There’s no sport without spectators.</em></p>
+                        <p>So, does he lack privacy? <strong>No</strong>, he made a decision to selectively reveal himself to the world.</p>
+                        <p><strong>It's now your turn to make that decision.</strong></p>
                     </div>
                 </details>
-            </fieldset>
-
+            </section>
             <p id="applicationDraftStatus" role="status" hidden></p>
-            <div class="options-container convergence-actions flow-action-stack" data-flow-dock="auto">
-                <button type="button" class="option-button green flow-action" id="nextButton" disabled>
-                    <span class="flow-action__label">Next</span><i class="fas fa-arrow-right" aria-hidden="true"></i>
-                </button>
-                <button type="button" class="option-button back-button flow-action flow-action--secondary flow-action--icon-left" id="backButton">
-                    <i class="fas fa-arrow-left" aria-hidden="true"></i><span class="flow-action__label">Back</span>
-                </button>
+            <div class="application-actions convergence-actions flow-action-stack" data-flow-dock="off">
+                <button type="button" class="option-button back-button flow-action flow-action--secondary flow-action--icon-left" id="backButton"><i class="fas fa-arrow-left" aria-hidden="true"></i><span class="flow-action__label">Back</span></button>
+                <button type="submit" class="option-button green flow-action" id="nextButton" disabled><span class="flow-action__label">Apply</span><i class="fa fa-rocket" aria-hidden="true"></i></button>
             </div>
         </form>
     </main>
     <!--FOOTER-->
-    <!-- JavaScript -->
     <script>
-        var currentStage = 1;
-        const APPLICATION_STAGE_COUNT = 4;
-        const applicationIllustrations = {
-            arena: { webp: '{{ASSET_ENTER_ARENA_WEBP}}', jpeg: '{{ASSET_ENTER_ARENA_JPEG}}' },
-            profile: { webp: '{{ASSET_HEADSHOT_WEBP}}', jpeg: '{{ASSET_HEADSHOT_JPEG}}' }
-        };
         let profilePic = null;
         let proofPics = [];
         let isApplicationSubmitting = false;
+        let applicationReady = false;
         const PENDING_PAYMENT_OFFER_KEY = 'pendingPaymentOffer';
         const PENDING_PAYMENT_INVOICE_KEY = 'pendingPaymentInvoice';
         const PENDING_PAYMENT_INVOICE_STORAGE_KEY = 'pendingPaymentInvoicePersistent';
@@ -801,6 +263,8 @@
         let applicationDraftUnsaved = false;
         let applicationDraftEdited = false;
         let applicationProfilePending = false;
+        let applicationProofPending = false;
+        let applicationValidationShown = false;
 
         function saveApplicationDraft(event) {
             if (isFake || applicationDraftCompleted) return;
@@ -808,7 +272,9 @@
             const fields = Object.fromEntries(applicationDraftFields.map(id => [id,
                 id === 'division' && !document.getElementById(id).options.length
                     ? applicationDraftDivision : document.getElementById(id).value]));
-            const hasDetails = Object.values(fields).some(value => value.length > 0);
+            const hasDetails = Object.entries(fields).some(([id, value]) => id === 'division'
+                ? value !== 'Open' && value !== '' : id === 'flag'
+                    ? value !== 'Cyberspace' : value.length > 0);
             try {
                 if (hasDetails) {
                     sessionStorage.setItem(APPLICATION_DRAFT_KEY, JSON.stringify({
@@ -835,7 +301,14 @@
                     applicationDraftFields.forEach(id => {
                         const value = draft.fields[id];
                         if (typeof value !== 'string') return;
-                        if (id === 'division') applicationDraftDivision = value;
+                        if (id === 'division') {
+                            const select = document.getElementById(id);
+                            applicationDraftDivision = value;
+                            if (Array.from(select.options).some(option => option.value === value)) {
+                                select.value = value;
+                                applicationDraftDivision = '';
+                            }
+                        }
                         else document.getElementById(id).value = value;
                     });
                     if (draft.emailFromMediaContact === true) {
@@ -847,7 +320,10 @@
             }
             const form = document.getElementById('inputForm');
             form.addEventListener('input', saveApplicationDraft);
-            form.addEventListener('change', saveApplicationDraft);
+            form.addEventListener('change', event => {
+                if (event.target.id === 'division') applicationDraftDivision = '';
+                saveApplicationDraft(event);
+            });
             form.addEventListener('focusout', saveApplicationDraft);
             window.addEventListener('pagehide', saveApplicationDraft);
             window.addEventListener('beforeunload', event => {
@@ -865,51 +341,18 @@
         // Restore before asynchronous modules or directory reads can delay typing.
         initializeApplicationDraft();
 
-        // Update the progress bar to the appropriate stage
-        // Assuming updateMainProgress and updateSubProgress are defined elsewhere
+        // Preserve the calculator-to-application journey marker.
         updateMainProgress(3);
-        updateSubProgress(1);
+
 
         function updateUploadButtons() {
-            const uploadProofButton = document.getElementById('uploadProofButton');
-            const takeProofPhotoButton = document.getElementById('takeProofPhotoButton');
-            const uploadProfileButton = document.getElementById('uploadButton');
-            const cropAndSaveButton = document.getElementById('cropButton');
-            const nextButton = document.getElementById('nextButton');
-
-            updateProfileUploadButtons(nextButton, uploadProfileButton, cropAndSaveButton);
-            if (typeof window.updateProofUploadButtons === 'function') {
-                window.updateProofUploadButtons(nextButton, uploadProofButton, takeProofPhotoButton);
-            }
-        }
-
-        function updateProfileUploadButtons(nextButton, uploadProfileButton, cropAndSaveButton) {
-            if (uploadProfileButton) {
-                const label = profilePic ? 'Change profile picture' : 'Upload profile picture';
-                uploadProfileButton.innerHTML = `<span class="flow-action__label">${label}</span><i class="fa fa-image" aria-hidden="true"></i>`;
-            }
-
-            // Toggle primary styling for the required profile picture action.
-            if (nextButton && nextButton.disabled) {
-                if (uploadProfileButton) {
-                    uploadProfileButton.classList.remove('grey', 'flow-action--secondary');
-                    uploadProfileButton.classList.add('green');
-                }
-                if (cropAndSaveButton) cropAndSaveButton.classList.add('green');
-            } else {
-                if (uploadProfileButton) {
-                    uploadProfileButton.classList.remove('green');
-                    uploadProfileButton.classList.add('grey', 'flow-action--secondary');
-                }
-                if (cropAndSaveButton) cropAndSaveButton.classList.remove('green');
-            }
-        }
-
-        function addStageListenerOnce(element, type, listener, key) {
-            if (!element || element.dataset[key] === 'true') return;
-
-            element.addEventListener(type, listener);
-            element.dataset[key] = 'true';
+            document.getElementById('uploadButton').querySelector('span').textContent = profilePic
+                ? 'Change profile picture' : 'Upload profile picture';
+            document.getElementById('illustrationPicture').hidden = !!profilePic;
+            const preview = document.getElementById('profileImage');
+            preview.hidden = !profilePic;
+            if (profilePic) preview.src = profilePic;
+            document.getElementById('editProfileCropButton').hidden = !profilePic;
         }
 
         function setFakeDivisionValue() {
@@ -980,9 +423,8 @@
                 proofPics = [tinyPng];
             }
 
-            // Re-run per-stage validators so "Next" gets enabled when applicable.
-            if (currentStage === 1) checkFormValidityStage1();
-            if (currentStage === 4) checkContactValidity();
+            updateUploadButtons();
+            checkApplicationValidity();
         }
 
         function applyFakeDataIfNeeded() {
@@ -1077,7 +519,7 @@
         function handleAccountEmailInput() {
             const accountEmailInput = document.getElementById('accountEmail');
             delete accountEmailInput.dataset.prefilledFrom;
-            checkContactValidity();
+            checkApplicationValidity();
             saveApplicationDraft();
         }
 
@@ -1099,64 +541,6 @@
                 || extension === 'webp'
                 || extension === 'heic'
                 || extension === 'heif';
-        }
-
-        function validateApplicationIdentity() {
-            const nameValidationResult = validateName(document.getElementById('name').value);
-            if (!nameValidationResult.valid) {
-                return {
-                    valid: false,
-                    stage: 1,
-                    inputId: 'name',
-                    errorId: 'nameError',
-                    error: nameValidationResult.error
-                };
-            }
-
-            const flagValidationResult = validateFlag(document.getElementById('flag').value);
-            if (!flagValidationResult.valid) {
-                return {
-                    valid: false,
-                    stage: 1,
-                    inputId: 'flag',
-                    errorId: 'flagError',
-                    error: flagValidationResult.error
-                };
-            }
-
-            const divisionSelect = document.getElementById('division');
-            if (!divisionSelect || !divisionSelect.value.trim()) {
-                return {
-                    valid: false,
-                    stage: 1,
-                    inputId: 'division',
-                    error: 'Please select a division.'
-                };
-            }
-
-            if (!isMotivationValid()) {
-                return {
-                    valid: false,
-                    stage: 1,
-                    inputId: 'why',
-                    error: 'Please share your motivation in up to 250 characters.'
-                };
-            }
-
-            return { valid: true };
-        }
-
-        function showApplicationIdentityIssue(validationResult) {
-            currentStage = validationResult.stage;
-            goToStage(validationResult.stage);
-
-            if (validationResult.errorId) {
-                const errorElement = document.getElementById(validationResult.errorId);
-                if (errorElement) errorElement.textContent = validationResult.error;
-            }
-
-            const input = document.getElementById(validationResult.inputId);
-            if (input) input.focus();
         }
 
         function clearStoredBiomarkerHandoff() {
@@ -1473,37 +857,13 @@
             const accountEmail = normalizeContactEmail(accountEmailInput.value);
             const personalLink = normalizeOptionalUrl(document.getElementById('personalLink').value);
 
-            // Get the differences from sessionStorage
-            const chronoPhenoDifference = readStoredAgeDifference('chronoPhenoDifference');
-            let chronoBortzDifference = readStoredAgeDifference('chronoBortzDifference');
-
-            // Use the global variables `profilePic` and `proofPics` directly
-            // Get the biomarker data from sessionStorage
-            let biomarkerData = null;
-            try {
-                biomarkerData = JSON.parse(getSessionItem('biomarkerData'));
-            } catch (_) {
-                biomarkerData = null;
-            }
-            const bioageClock = readStoredBioageClock(
-                biomarkerData,
-                chronoPhenoDifference,
-                chronoBortzDifference);
-            if (bioageClock === 'pheno') chronoBortzDifference = null;
-            const isLegacyUnclockedResult = !bioageClock
-                && getSessionItem('bioageClock') === null
-                && chronoPhenoDifference === null
-                && chronoBortzDifference === null
-                && hasStoredBiomarkerValues(biomarkerData);
-            const hasRequiredAgeDifferences = isLegacyUnclockedResult || (chronoPhenoDifference !== null
-                && (bioageClock === 'pheno' || (bioageClock === 'bortz' && chronoBortzDifference !== null)));
-            if ((!bioageClock && !isLegacyUnclockedResult) || !hasRequiredAgeDifferences || !biomarkerData || !hasStoredDateOfBirth(biomarkerData) || !Array.isArray(biomarkerData.Biomarkers) || !biomarkerData.Biomarkers.length || !hasStoredBiomarkerDates(biomarkerData) || !hasCompleteSubmittedBiomarkerValues(biomarkerData, bioageClock)) {
-                const biomarkerRoute = bioageClock === 'bortz' ? '/bortz-age' : '/pheno-age';
-                clearStoredBiomarkerHandoff();
-                customAlert('Biomarker data is missing. Please complete the biomarker step.')
-                    .then(() => window.location.href = biomarkerRoute);
+            const result = readApplicationResult();
+            if (!result) {
+                updateApplicationResult();
+                document.getElementById('calculatorLink').focus();
                 return;
             }
+            const { biomarkerData, chronoPhenoDifference, chronoBortzDifference } = result;
 
             const paymentOffer = readAdjustedPendingPaymentOffer();
             if (paymentOffer === undefined) return;
@@ -1537,218 +897,6 @@
             nextButton.setAttribute('type', 'submit');
         }
 
-        // Function to update the UI based on the current stage
-        function goToStage(stage, { focus = false } = {}) {
-            if (!Number.isInteger(stage) || stage < 1 || stage > APPLICATION_STAGE_COUNT) return;
-            currentStage = stage;
-            document.body.dataset.convergenceStage = String(stage);
-            document.getElementById('descriptionForm').style.display = '';
-
-            // Clear out any lingering click‐handlers on the illustration
-            const oldImg = document.getElementById('illustrationImage');
-            const newImg = oldImg.cloneNode(true);
-            oldImg.parentNode.replaceChild(newImg, oldImg);
-
-            // Clear visibility on all main form sections
-            document.getElementById('profilePicText').style.display = 'none';
-            document.getElementById('proofText').style.display = 'none';
-            document.getElementById('congratsText').style.display = 'none';
-
-            document.getElementById('personalDetails').style.display = 'none';
-            document.getElementById('privacyDetails').style.display = 'none';
-            document.getElementById('profileUploadSection').style.display = 'none';
-            document.getElementById('proofUploadSection').style.display = 'none';
-            document.getElementById('whyField').style.display = 'none';
-            document.getElementById('proofImageContainer').style.display = 'none';
-            document.getElementById('finalDetails').style.display = 'none';
-            document.getElementById('applyDetails').style.display = 'none';
-
-            // Reset the illustrationImage to be clickable or not based on stage
-            const illustrationImage = document.getElementById('illustrationImage');
-            const illustrationPicture = document.getElementById('illustrationPicture');
-            illustrationPicture.style.display = '';
-            const proofUploadSymbol = document.getElementById('onboardingProofSymbol');
-            proofUploadSymbol.hidden = true;
-            const profileImage = document.getElementById('profileImage');
-            profileImage.style.display = 'none';
-            const webpSource = illustrationPicture.querySelector('source[type="image/webp"]');
-            const jpegSource = illustrationPicture.querySelector('source[type="image/jpeg"]');
-
-            function updateIllustration(assets) {
-                webpSource.srcset = assets.webp;
-                jpegSource.srcset = assets.jpeg;
-                illustrationImage.src = assets.jpeg;
-            }
-
-            const nextButton = document.getElementById('nextButton');
-
-            // set attribute type to button, only last step, submission will set it to submit type
-            nextButton.setAttribute('type', 'button');
-
-            // Remove 'clickable' class initially
-            illustrationImage.classList.remove('clickable');
-
-            switch (stage) {
-                case 1:
-                    // Stage 1: Enter the Arena
-                    document.querySelector('h1').innerHTML = "1. Enter the arena";
-                    updateIllustration(applicationIllustrations.arena);
-                    illustrationImage.alt = "Longevity World Cup logo";
-                    illustrationImage.loading = "lazy";
-                    document.getElementById('personalDetails').style.display = '';
-                    document.getElementById('whyField').style.display = '';
-                    nextButton.innerHTML = '<span class="flow-action__label">Next</span><i class="fas fa-arrow-right" aria-hidden="true"></i>';
-                    updateSubProgress(1);
-
-                    // Disable Next button initially
-                    nextButton.disabled = true;
-
-                    // Add event listeners for validation
-                    const nameInput = document.getElementById('name');
-                    const flagInput = document.getElementById('flag');
-                    const divisionSelect = document.getElementById('division');
-
-                    addStageListenerOnce(nameInput, 'input', checkFormValidityStage1, 'stage1ValidityListener');
-                    addStageListenerOnce(flagInput, 'input', checkFormValidityStage1, 'stage1ValidityListener');
-                    addStageListenerOnce(document.getElementById('why'), 'input', checkFormValidityStage1, 'stage1ValidityListener');
-
-                    addStageListenerOnce(nameInput, 'blur', validateStage1Inputs, 'stage1ValidateOnBlur');
-                    addStageListenerOnce(flagInput, 'blur', validateStage1Inputs, 'stage1ValidateOnBlur');
-
-                    addStageListenerOnce(divisionSelect, 'click', validateStage1Inputs, 'stage1ValidateOnClick');
-
-                    function validateStage1Inputs() {
-                        const nameValue = nameInput.value.trim();
-                        const nameValidationResult = validateName(nameValue);
-                        const nameError = document.getElementById('nameError');
-
-                        if (!nameValidationResult.valid) {
-                            nameError.textContent = nameValidationResult.error;
-                        } else {
-                            nameError.textContent = '';
-                        }
-
-                        const divisionSelected = divisionSelect && divisionSelect.value.trim() !== '';
-
-                        // Only validate flag if it's not focused
-                        if (document.activeElement === flagInput) {
-                            const flagError = document.getElementById('flagError');
-                            flagError.textContent = '';
-                        }
-                        else {
-                            const flagValue = flagInput.value.trim();
-                            const flagValidationResult = validateFlag(flagValue);
-                            const flagError = document.getElementById('flagError');
-
-                            if (!flagValidationResult.valid) {
-                                flagError.textContent = flagValidationResult.error;
-                            } else {
-                                flagError.textContent = '';
-                            }
-                        }
-                    }
-
-                    // Run checkFormValidityStage1 initially
-                    checkFormValidityStage1();
-                    break;
-                case 2:
-                    document.querySelector('h1').textContent = "2. Almost there";
-                    updateIllustration(applicationIllustrations.profile);
-                    illustrationImage.alt = "Headshot";
-                    illustrationImage.loading = "lazy";
-                    document.getElementById('profilePicText').style.display = '';
-                    document.getElementById('profileUploadSection').style.display = '';
-
-                    illustrationImage.classList.add('clickable');
-                    nextButton.innerHTML = '<span class="flow-action__label">Next</span><i class="fas fa-arrow-right" aria-hidden="true"></i>';
-                    updateSubProgress(2);
-
-                    // Disable Next button initially
-                    nextButton.disabled = true;
-
-                    // Check if there is a profile picture in the global variable
-                    if (profilePic) {
-                        illustrationPicture.style.display = 'none';
-                        profileImage.style.display = '';
-                        profileImage.src = profilePic;
-                        // Enable Next button if profile picture exists
-                        nextButton.disabled = applicationProfilePending;
-                    }
-                    updateUploadButtons();
-
-                    // Attach event listeners for upload
-                    attachUploadEventListeners();
-                    break;
-                case 3:
-                    document.querySelector('h1').textContent = "3. Don't trust, verify";
-                    illustrationPicture.style.display = 'none';
-                    proofUploadSymbol.hidden = false;
-                    document.getElementById('proofText').style.display = '';
-                    document.getElementById('proofUploadSection').style.display = '';
-                    updateSubProgress(3);
-
-                    illustrationImage.classList.remove('clickable');
-                    nextButton.innerHTML = '<span class="flow-action__label">Next</span><i class="fas fa-arrow-right" aria-hidden="true"></i>';
-
-                    const uploadProofButton = document.getElementById('uploadProofButton');
-                    const takeProofPhotoButton = document.getElementById('takeProofPhotoButton');
-                    const proofPicInput = document.getElementById('proofPicInput');
-                    const proofCameraInput = document.getElementById('proofCameraInput');
-                    const proofImageContainer = document.getElementById('proofImageContainer');
-                    const biomarkerChecklistContainer = document.getElementById('biomarker-checklist');
-
-                    // Proof Tracker: show only biomarkers present in sessionStorage, in bortz-age UI order
-                    setupProofUploadStageControls(
-                        nextButton,
-                        uploadProofButton,
-                        proofPicInput,
-                        proofImageContainer,
-                        biomarkerChecklistContainer,
-                        takeProofPhotoButton,
-                        proofCameraInput);
-
-                    break;
-                case 4:
-                    document.querySelector('h1').textContent = "4. Final details";
-                    document.getElementById('descriptionForm').style.display = 'none';
-                    illustrationPicture.style.display = 'none';
-                    document.getElementById('finalDetails').style.display = '';
-                    document.getElementById('applyDetails').style.display = '';
-                    document.getElementById('congratsText').style.display = '';
-                    document.getElementById('privacyDetails').style.display = '';
-                    setNextButtonToApply();
-                    updateSubProgress(4);
-
-                    // Add event listener for validation
-                    const mediaContactInput = document.getElementById('mediaContact');
-                    const personalLinkInput = document.getElementById('personalLink');
-
-                    addStageListenerOnce(mediaContactInput, 'input', handleMediaContactInput, 'contactValidityListener');
-                    addStageListenerOnce(personalLinkInput, 'input', checkContactValidity, 'contactValidityListener');
-                    addStageListenerOnce(mediaContactInput, 'blur', normalizeMediaContactInput, 'normalizeMediaContactOnBlur');
-                    addStageListenerOnce(personalLinkInput, 'blur', normalizePersonalLinkInput, 'normalizePersonalLinkOnBlur');
-
-                    const accountEmailInput = document.getElementById('accountEmail');
-                    prefillAccountEmailFromMediaContact();
-                    addStageListenerOnce(accountEmailInput, 'input', handleAccountEmailInput, 'contactValidityListener');
-                    checkContactValidity();
-                    break;
-                default:
-                    console.error('Unknown stage:', stage);
-            }
-
-            updateUploadButtons();
-            window.LwcFlowActionDock?.refresh();
-            saveApplicationDraft();
-            if (focus) {
-                const targetId = {
-                    1: 'name', 2: 'uploadButton', 3: 'uploadProofButton', 4: 'mediaContact'
-                }[stage];
-                const target = targetId ? document.getElementById(targetId) : document.querySelector('h1');
-                target?.focus({ preventScroll: true });
-            }
-        }
-
         async function waitForPageModules() {
             try {
                 await Promise.resolve(window.modulesReady || undefined);
@@ -1769,7 +917,7 @@
             }
         }
 
-        function setupProofUploadStageControls(nextButton, uploadProofButton, proofPicInput, proofImageContainer, biomarkerChecklistContainer, takeProofPhotoButton, proofCameraInput) {
+        function initializeProofUploads(nextButton, uploadProofButton, proofPicInput, proofImageContainer, biomarkerChecklistContainer, takeProofPhotoButton, proofCameraInput) {
             if (typeof window.setupProofUploadHTML !== 'function') {
                 nextButton.disabled = true;
                 console.error('Proof upload helper is unavailable.');
@@ -1791,7 +939,10 @@
                     cameraButton: takeProofPhotoButton,
                     cameraInput: proofCameraInput,
                     hasUnsubmittedProofs: () => proofPics.length > 0,
-                    isActive: () => currentStage === 3
+                    onValidityChanged: state => {
+                        applicationProofPending = state.processing;
+                        checkApplicationValidity();
+                    }
                 }
             );
         }
@@ -1817,9 +968,31 @@
                 hideLoading();
             }
 
-            // Initialize the first stage
-            goToStage(currentStage);
             applyFakeDataIfNeeded();
+            updateApplicationResult();
+            attachUploadEventListeners();
+            initializeProofUploads(
+                document.getElementById('nextButton'), document.getElementById('uploadProofButton'),
+                document.getElementById('proofPicInput'), document.getElementById('proofImageContainer'),
+                document.getElementById('biomarker-checklist'), document.getElementById('takeProofPhotoButton'),
+                document.getElementById('proofCameraInput'));
+            const form = document.getElementById('inputForm');
+            form.addEventListener('input', checkApplicationValidity);
+            form.addEventListener('change', checkApplicationValidity);
+            document.getElementById('mediaContact').addEventListener('input', handleMediaContactInput);
+            document.getElementById('mediaContact').addEventListener('blur', normalizeMediaContactInput);
+            document.getElementById('personalLink').addEventListener('blur', normalizePersonalLinkInput);
+            document.getElementById('accountEmail').addEventListener('input', handleAccountEmailInput);
+            ['name', 'flag'].forEach(id => document.getElementById(id).addEventListener('blur', () => {
+                const input = document.getElementById(id);
+                if (!input.value.trim()) return;
+                const result = id === 'name' ? validateName(input.value) : validateFlag(input.value);
+                showFieldIssue(id, result.valid ? '' : result.error);
+            }));
+            prefillAccountEmailFromMediaContact();
+            applicationReady = true;
+            checkApplicationValidity();
+            window.LwcFlowActionDock?.refresh();
 
             const athletesPromise = fetch('/api/data/athletes')
                 .then(response => response.ok ? response.json() : [])
@@ -1834,7 +1007,7 @@
                     existingAthleteNames = Array.isArray(athletes)
                         ? athletes.flatMap(getExistingAthleteNameCandidates)
                         : [];
-                    checkFormValidityStage1();
+                    checkApplicationValidity();
                 });
 
             Promise.all([
@@ -1857,7 +1030,7 @@
             function populateDivisionSelect(divisions) {
                 const divisionSelect = document.getElementById('division');
                 const availableDivisions = Array.isArray(divisions) && divisions.length ? divisions : fallbackDivisions;
-                const selectedDivision = divisionSelect.value || applicationDraftDivision;
+                const selectedDivision = applicationDraftDivision || divisionSelect.value;
 
                 // Clear existing options (if any)
                 divisionSelect.innerHTML = '';
@@ -1870,26 +1043,12 @@
                     divisionSelect.appendChild(option);
                 });
 
-                // Optionally, set a default value or prompt
-                const defaultOption = document.createElement('option');
-                defaultOption.value = '';
-                defaultOption.textContent = 'Select division';
-                defaultOption.disabled = true;
-                defaultOption.selected = true;
-                divisionSelect.insertBefore(defaultOption, divisionSelect.firstChild);
-                if (availableDivisions.includes(selectedDivision)) divisionSelect.value = selectedDivision;
+                divisionSelect.value = availableDivisions.includes(selectedDivision) ? selectedDivision
+                    : availableDivisions.includes('Open') ? 'Open' : availableDivisions[0];
                 applicationDraftDivision = '';
-
-                if (currentStage === 1) {
-                    divisionSelect.addEventListener('change', checkFormValidityStage1);
-                    checkFormValidityStage1(); // Check validity in case other fields are already filled
-                }
-
                 applyFakeDataIfNeeded();
-
-                document.getElementById('division').addEventListener('change', function () {
-                    document.getElementById('flag').focus();
-                });
+                checkApplicationValidity();
+                saveApplicationDraft();
             }
 
             // Fetch divisions and populate the division select element
@@ -1903,60 +1062,21 @@
 
             applyProofInstructionCopy();
 
-            // Enter advances text fields; buttons, disclosures and textareas retain native keyboard behavior.
-            const inputForm = document.getElementById('inputForm');
-            inputForm.addEventListener('keydown', function (e) {
-                if (e.key === 'Enter' && !e.defaultPrevented && !e.isComposing
-                    && e.target.matches('input:not([type="file"]), select')) {
-                    e.preventDefault();                     // prevent native submit/newline
-                    document.getElementById('nextButton').click();
-                }
-            });
+
         });
 
-        // "Next" Button Click Event Handler
-        document.getElementById('nextButton').addEventListener('click', async function (event) {
+        document.getElementById('inputForm').addEventListener('submit', async function (event) {
             event.preventDefault(); // Prevent default button action
             const nextButton = document.getElementById('nextButton');
             if (isApplicationSubmitting || nextButton.disabled) return;
 
-            // Remove the 'clickable' class from the illustrationImage
-            document.getElementById('illustrationImage').classList.remove('clickable');
-
-            if (currentStage < APPLICATION_STAGE_COUNT) {
-                currentStage++;
-                goToStage(currentStage, { focus: true });
-            } else {
-                const identityValidationResult = validateApplicationIdentity();
-                if (!identityValidationResult.valid) {
-                    customAlert(identityValidationResult.error).then(() => {
-                        showApplicationIdentityIssue(identityValidationResult);
-                    });
-                    return;
-                }
-
-                // Final stage requires accountEmail
-                const accountEmailInput = document.getElementById('accountEmail');
-                const personalLinkInput = document.getElementById('personalLink');
-                const rawAccountEmail = accountEmailInput.value.trim();
-                const accountEmail = normalizeContactEmail(accountEmailInput.value);
-                const personalLink = normalizeOptionalUrl(personalLinkInput.value);
-
-                if (!rawAccountEmail) {
-                    customAlert('Please enter your email.').then(() => accountEmailInput.focus());
-                    return;
-                } else if (!accountEmail) {
-                    customAlert('Please enter a valid email address.').then(() => accountEmailInput.focus());
-                    return;
-                }
-
-                if (!isOptionalUrl(personalLink)) {
-                    customAlert('Please enter a valid URL for your personal link.').then(() => personalLinkInput.focus());
-                    return;
-                }
-
-                accountEmailInput.value = accountEmail;
-                personalLinkInput.value = personalLink;
+            applicationValidationShown = true;
+            checkApplicationValidity();
+            if (!validateApplicationForSubmission()) return;
+            const accountEmailInput = document.getElementById('accountEmail');
+            const personalLinkInput = document.getElementById('personalLink');
+            accountEmailInput.value = normalizeContactEmail(accountEmailInput.value);
+            personalLinkInput.value = normalizeOptionalUrl(personalLinkInput.value);
 
                 // Collect all the data and send it to the backend via an API call
                 const applicantData = collectApplicantData();
@@ -2042,268 +1162,252 @@
                             applyButton.focus();
                         });
                     });
-            }
         });
 
         // "Back" Button Click Event Handler
         document.getElementById('backButton').addEventListener('click', function () {
             if (isApplicationSubmitting) return;
-            if (currentStage > 1) {
-                currentStage--;
-                goToStage(currentStage, { focus: true });
-            } else {
-                window.navigateToFlowDestination(getConvergenceBackDestination());
-            }
+            window.navigateToFlowDestination(getConvergenceBackDestination());
+        });
+        document.getElementById('calculatorLink').addEventListener('click', event => {
+            event.preventDefault();
+            if (!isApplicationSubmitting) window.navigateToFlowDestination(getConvergenceBackDestination());
         });
 
+        function readApplicationResult() {
+            let biomarkerData;
+            try { biomarkerData = JSON.parse(getSessionItem('biomarkerData')); } catch (_) { return null; }
+            const chronoPhenoDifference = readStoredAgeDifference('chronoPhenoDifference');
+            let chronoBortzDifference = readStoredAgeDifference('chronoBortzDifference');
+            const bioageClock = readStoredBioageClock(biomarkerData, chronoPhenoDifference, chronoBortzDifference);
+            if (bioageClock === 'pheno') chronoBortzDifference = null;
+            const legacy = !bioageClock && getSessionItem('bioageClock') === null
+                && chronoPhenoDifference === null && chronoBortzDifference === null
+                && hasStoredBiomarkerValues(biomarkerData);
+            const hasDifferences = legacy || (chronoPhenoDifference !== null
+                && (bioageClock === 'pheno' || (bioageClock === 'bortz' && chronoBortzDifference !== null)));
+            if ((!bioageClock && !legacy) || !hasDifferences || !hasStoredDateOfBirth(biomarkerData)
+                || !Array.isArray(biomarkerData?.Biomarkers) || !biomarkerData.Biomarkers.length
+                || !hasStoredBiomarkerDates(biomarkerData) || !hasCompleteSubmittedBiomarkerValues(biomarkerData, bioageClock)) return null;
+            return { biomarkerData, bioageClock, chronoPhenoDifference, chronoBortzDifference };
+        }
+
+        function updateApplicationResult() {
+            const result = readApplicationResult();
+            const text = document.getElementById('applicationResultText');
+            const link = document.getElementById('calculatorLink');
+            link.href = getConvergenceBackDestination();
+            link.textContent = result ? 'Edit result' : 'Calculate your result';
+            text.replaceChildren();
+            if (!result) {
+                text.textContent = 'A calculated result is required.';
+                return;
+            }
+            const clock = result.bioageClock === 'bortz' ? 'Bortz Age' : 'Pheno Age';
+            const difference = result.bioageClock === 'bortz' ? result.chronoBortzDifference : result.chronoPhenoDifference;
+            text.append(clock + ' · ');
+            const value = document.createElement('strong');
+            value.textContent = difference === null ? 'Result ready' : `${Number(difference) > 0 ? '+' : ''}${Number(difference).toFixed(1)} years`;
+            text.append(value);
+        }
+
+        function showFieldIssue(id, message) {
+            const input = document.getElementById(id);
+            const error = document.getElementById(id + 'Error');
+            if (error) error.textContent = message;
+            input?.setAttribute('aria-invalid', message ? 'true' : 'false');
+        }
+
+        function getApplicationIssues() {
+            const issues = [];
+            const name = validateName(document.getElementById('name').value);
+            if (!name.valid) issues.push({ id: 'name', error: name.error });
+            if (!normalizeContactEmail(document.getElementById('accountEmail').value)) issues.push({ id: 'accountEmail', error: 'Please enter a valid email address.' });
+            const flag = validateFlag(document.getElementById('flag').value);
+            if (!flag.valid) issues.push({ id: 'flag', error: flag.error });
+            if (!document.getElementById('division').value) issues.push({ id: 'division', error: 'Please select a division.' });
+            if (document.getElementById('why').value.length > 250) issues.push({ id: 'why', error: 'Keep your motivation within 250 characters.' });
+            if (!isOptionalUrl(document.getElementById('personalLink').value)) issues.push({ id: 'personalLink', error: 'Please enter a valid URL for your personal link.' });
+            return issues;
+        }
+
+        function checkApplicationValidity() {
+            const nextButton = document.getElementById('nextButton');
+            nextButton.disabled = !applicationReady || isApplicationSubmitting || applicationProfilePending || applicationProofPending;
+            const charCount = document.getElementById('why').value.length;
+            const counter = document.getElementById('whyCharCounter');
+            counter.textContent = charCount + '/250';
+            counter.classList.toggle('hidden', charCount === 0);
+            const issues = getApplicationIssues();
+            ['name', 'accountEmail', 'flag', 'division', 'why', 'personalLink'].forEach(id => {
+                const issue = issues.find(candidate => candidate.id === id);
+                if (applicationValidationShown || !issue) showFieldIssue(id, issue?.error || '');
+            });
+            if (profilePic && document.getElementById('profileUploadStatus').textContent === 'Please add your profile photo.') {
+                document.getElementById('profileUploadStatus').hidden = true;
+            }
+            if (proofPics.length) document.getElementById('proofError').textContent = '';
+        }
+
+        function validateApplicationForSubmission() {
+            const issues = getApplicationIssues();
+            if (issues.length) {
+                const input = document.getElementById(issues[0].id);
+                input?.closest('details')?.setAttribute('open', '');
+                input?.focus();
+                return false;
+            }
+            if (!readApplicationResult()) {
+                updateApplicationResult();
+                document.getElementById('calculatorLink').focus();
+                return false;
+            }
+            if (!profilePic) {
+                const status = document.getElementById('profileUploadStatus');
+                status.textContent = 'Please add your profile photo.';
+                status.hidden = false;
+                document.getElementById('uploadButton').focus();
+                return false;
+            }
+            if (!proofPics.length) {
+                document.getElementById('proofError').textContent = 'Please attach proof of your result.';
+                document.getElementById('uploadProofButton').focus();
+                return false;
+            }
+            return true;
+        }
+
         function attachUploadEventListeners() {
-            if (currentStage !== 2) return;
-
-            // Set up event listener for the upload button
             const uploadButton = document.getElementById('uploadButton');
-            if (uploadButton && !uploadButton.hasAttribute('data-listener')) {
-                uploadButton.addEventListener('click', function () {
-                    document.getElementById('profilePicInput').click();
-                });
-                uploadButton.setAttribute('data-listener', 'true');
-            }
-
-            const takeProfileSelfieButton = document.getElementById('takeProfileSelfieButton');
-            if (takeProfileSelfieButton && !takeProfileSelfieButton.hasAttribute('data-listener')) {
-                takeProfileSelfieButton.addEventListener('click', function () {
-                    document.getElementById('profileCameraInput').click();
-                });
-                takeProfileSelfieButton.setAttribute('data-listener', 'true');
-            }
-
-            // Add click event to the image to trigger file selection
-            const illustrationImage = document.getElementById('illustrationImage');
-            if (illustrationImage && !illustrationImage.hasAttribute('data-listener')) {
-                illustrationImage.addEventListener('click', function () {
-                    document.getElementById('profilePicInput').click();
-                });
-                illustrationImage.setAttribute('data-listener', 'true');
-            }
-
-            // Handle the image upload and initialize Cropper.js
             const profilePicInput = document.getElementById('profilePicInput');
             const profileCameraInput = document.getElementById('profileCameraInput');
-            let cropper; // Declare Cropper instance at a higher scope
-            let isProfileCropProcessing = false;
+            const status = document.getElementById('profileUploadStatus');
+            const cropButton = document.getElementById('cropButton');
+            const cancelButton = document.getElementById('cancelProfileCropButton');
+            const cropPart = document.getElementById('croppingPart');
+            let revision = 0;
+            let cropper = null;
+            let source = profilePic;
 
-            function handleProfileUploadChange(event) {
+            function closeCrop() {
+                cropper?.destroy();
+                cropper = null;
+                cropPart.hidden = true;
+            }
+
+            function setPreparing(preparing) {
+                applicationProfilePending = preparing;
+                cropButton.disabled = preparing;
+                cancelButton.disabled = preparing;
+                document.getElementById('editProfileCropButton').disabled = preparing;
+                status.textContent = preparing ? 'Preparing photo…' : '';
+                status.hidden = !preparing;
+                checkApplicationValidity();
+            }
+
+            function showPhotoError(message) {
+                status.textContent = message;
+                status.hidden = false;
+            }
+
+            async function prepareProfilePhoto(event) {
                 const input = event.target;
-                if (!input.files || !input.files.length) return; // Reset if no file selected
-                const file = input.files[0];
+                const file = input.files?.[0];
                 input.value = '';
-                if (file) {
-                    if (!isSupportedProfilePictureFile(file)) {
-                        customAlert('Profile picture must be an image file.')
-                            .then(() => uploadButton?.focus());
-                        return;
+                if (!file) return;
+                if (!isSupportedProfilePictureFile(file)) {
+                    showPhotoError('Profile picture must be an image file.');
+                    return;
+                }
+                const selectedRevision = ++revision;
+                closeCrop();
+                setPreparing(true);
+                try {
+                    const raw = await new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.onload = () => resolve(reader.result);
+                        reader.onerror = reader.onabort = () => reject(new Error('Photo could not be read.'));
+                        reader.readAsDataURL(file);
+                    });
+                    const optimized = await window.optimizeImageClient(raw, window.PROFILE_IMAGE_OPTIMIZATION_OPTIONS);
+                    if (revision !== selectedRevision) return;
+                    if (!optimized?.dataUrl) throw new Error('Photo could not be prepared.');
+                    const image = new Image();
+                    image.src = optimized.dataUrl;
+                    await image.decode();
+                    if (revision !== selectedRevision) return;
+                    profilePic = optimized.dataUrl;
+                    source = raw;
+                    updateUploadButtons();
+                } catch (_) {
+                    if (revision === selectedRevision) showPhotoError('Profile picture upload failed. Please try another image.');
+                } finally {
+                    if (revision === selectedRevision) {
+                        const errorMessage = status.textContent === 'Preparing photo…' ? '' : status.textContent;
+                        setPreparing(false);
+                        if (errorMessage) showPhotoError(errorMessage);
                     }
-
-                    applicationProfilePending = true;
-                    const reader = new FileReader();
-                    reader.onload = function (e) {
-                        const nextButton = document.getElementById('nextButton');
-                        try {
-                            // Disable "Next" button while cropping
-                            if (currentStage === 2) nextButton.disabled = true;
-                            updateUploadButtons();
-
-                            if (cropper) {
-                                cropper.destroy();
-                                cropper = null;
-                            }
-
-                            document.getElementById('cropperImage').src = e.target.result;
-
-                            document.getElementById('uploadPart').style.display = 'none';
-                            document.getElementById('croppingPart').style.display = 'block';
-
-                            cropper = new Cropper(document.getElementById('cropperImage'), {
-                                aspectRatio: 1,
-                                viewMode: 1,
-                                autoCropArea: 1,
-                                movable: true,
-                                zoomable: true,
-                                rotatable: false,
-                                scalable: false,
-                                cropBoxResizable: true,
-                                minCropBoxWidth: 200,
-                                minCropBoxHeight: 150,
-                            });
-                        } catch (_) {
-                            applicationProfilePending = false;
-                            if (cropper) {
-                                try { cropper.destroy(); } catch (_) { }
-                                cropper = null;
-                            }
-                            document.getElementById('uploadPart').style.display = '';
-                            document.getElementById('croppingPart').style.display = 'none';
-                            if (currentStage === 2) nextButton.disabled = !profilePic;
-                            updateUploadButtons();
-                            customAlert('Profile picture upload failed. Please try another image.')
-                                .then(() => uploadButton?.focus());
-                        }
-                    };
-                    reader.onerror = function () {
-                        applicationProfilePending = false;
-                        customAlert('Profile picture upload failed. Please try another image.')
-                            .then(() => uploadButton?.focus());
-                    };
-                    reader.onabort = reader.onerror;
-                    reader.readAsDataURL(file);
                 }
             }
 
-            if (profilePicInput && !profilePicInput.hasAttribute('data-listener')) {
-                profilePicInput.addEventListener('change', handleProfileUploadChange);
-                const cropButton = document.getElementById('cropButton');
-                const cancelProfileCropButton = document.getElementById('cancelProfileCropButton');
-                // Add the crop button event listener once
-                cropButton.addEventListener('click', async function () {
-                    const activeCropper = cropper;
-                    if (isProfileCropProcessing || !activeCropper) return;
+            uploadButton.addEventListener('click', () => profilePicInput.click());
+            document.getElementById('takeProfileSelfieButton').addEventListener('click', () => profileCameraInput.click());
+            profilePicInput.addEventListener('change', prepareProfilePhoto);
+            profileCameraInput.addEventListener('change', prepareProfilePhoto);
+            profilePicInput.setAttribute('data-listener', 'true');
 
-                    isProfileCropProcessing = true;
-                    cropButton.disabled = true;
-                    cancelProfileCropButton.disabled = true;
-                    try {
-                        const croppedCanvas = activeCropper.getCroppedCanvas({
-                            width: 1024,
-                            height: 768,
-                        });
-                        if (!croppedCanvas) {
-                            customAlert('Profile picture crop failed. Please try another image.')
-                                .then(() => cropButton.focus());
-                            return;
-                        }
+            document.getElementById('editProfileCropButton').addEventListener('click', () => {
+                if (!profilePic || applicationProfilePending) return;
+                closeCrop();
+                const image = document.getElementById('cropperImage');
+                image.src = source || profilePic;
+                cropPart.hidden = false;
+                try {
+                    cropper = new Cropper(image, { aspectRatio: 1, viewMode: 1, autoCropArea: 1 });
+                    cropButton.focus({ preventScroll: true });
+                } catch (_) {
+                    closeCrop();
+                    showPhotoError('Photo editing is unavailable. Your selected photo is ready to use.');
+                }
+                window.LwcFlowActionDock?.refresh();
+            });
 
-                        const raw = croppedCanvas.toDataURL('image/png');
-                        let croppedImageDataURL = raw;
-                        try {
-                            const { dataUrl } = await window.optimizeImageClient(raw, window.PROFILE_IMAGE_OPTIMIZATION_OPTIONS);
-                            croppedImageDataURL = dataUrl || raw;
-                        } catch {
-                            croppedImageDataURL = raw;
-                        }
-                        if (currentStage === 2) {
-                            document.getElementById('illustrationPicture').style.display = 'none';
-                            document.getElementById('profileImage').style.display = '';
-                        }
-                        document.getElementById('profileImage').src = croppedImageDataURL;
-
-                        profilePic = croppedImageDataURL;
-                        applicationProfilePending = false;
-
-                        try { activeCropper.destroy(); } catch (_) { }
-                        if (cropper === activeCropper) {
-                            cropper = null; // Reset the Cropper instance
-                        }
-
-                        document.getElementById('uploadPart').style.display = '';
-                        document.getElementById('croppingPart').style.display = 'none';
-
-                        const nextButton = document.getElementById('nextButton');
-                        if (currentStage === 2) nextButton.disabled = false;
-                        updateUploadButtons();
-                    } catch (_) {
-                        customAlert('Profile picture crop failed. Please try another image.')
-                            .then(() => cropButton.focus());
-                    } finally {
-                        isProfileCropProcessing = false;
-                        cropButton.disabled = false;
-                        cancelProfileCropButton.disabled = false;
-                    }
-                });
-
-                cancelProfileCropButton.addEventListener('click', function () {
-                    if (isProfileCropProcessing) return;
-                    applicationProfilePending = false;
-                    if (cropper) {
-                        try { cropper.destroy(); } catch (_) { }
-                        cropper = null;
-                    }
-
-                    document.getElementById('uploadPart').style.display = '';
-                    document.getElementById('croppingPart').style.display = 'none';
-
-                    const nextButton = document.getElementById('nextButton');
-                    if (currentStage === 2) nextButton.disabled = !profilePic;
+            cropButton.addEventListener('click', async () => {
+                if (!cropper || applicationProfilePending) return;
+                const selectedRevision = revision;
+                const activeCropper = cropper;
+                setPreparing(true);
+                try {
+                    const canvas = activeCropper.getCroppedCanvas({ width: 1024, height: 1024 });
+                    if (!canvas) throw new Error('Photo crop failed.');
+                    const optimized = await window.optimizeImageClient(canvas.toDataURL('image/png'), window.PROFILE_IMAGE_OPTIMIZATION_OPTIONS);
+                    if (selectedRevision !== revision) return;
+                    if (!optimized?.dataUrl) throw new Error('Photo crop failed.');
+                    profilePic = optimized.dataUrl;
                     updateUploadButtons();
-                });
-
-                profilePicInput.setAttribute('data-listener', 'true');
-            }
-
-            if (profileCameraInput && !profileCameraInput.hasAttribute('data-listener')) {
-                profileCameraInput.addEventListener('change', handleProfileUploadChange);
-                profileCameraInput.setAttribute('data-listener', 'true');
-            }
-        }
-
-        function checkFormValidityStage1() {
-            if (currentStage !== 1) return;
-
-            const nameInput = document.getElementById('name');
-            const flagInput = document.getElementById('flag');
-            const divisionSelect = document.getElementById('division');
-            const nextButton = document.getElementById('nextButton');
-
-            const nameValue = nameInput.value.trim();
-            const flagValue = flagInput.value.trim();
-            const nameValidationResult = validateName(nameValue);
-            const flagValidationResult = validateFlag(flagValue);
-            const nameValid = nameValidationResult.valid;
-            const flagValid = flagValidationResult.valid;
-            const divisionSelected = divisionSelect && divisionSelect.value.trim() !== '';
-            const motivationValid = isMotivationValid();
-            const charCount = document.getElementById('why').value.length;
-            const charCounter = document.getElementById('whyCharCounter');
-            charCounter.textContent = charCount + '/250';
-            charCounter.classList.toggle('hidden', charCount === 0);
-
-            if (nameValid) {
-                document.getElementById('nameError').textContent = '';
-            }
-
-            if (flagValid) {
-                document.getElementById('flagError').textContent = '';
-            }
-
-            if (nameValid && flagValid && divisionSelected && motivationValid) {
-                nextButton.disabled = false;
-            } else {
-                nextButton.disabled = true;
-            }
-        }
-
-        function isMotivationValid() {
-            const value = document.getElementById('why').value;
-            return value.trim().length > 0 && value.length <= 250;
-        }
-
-        function checkContactValidity() {
-            if (currentStage !== 4 || isApplicationSubmitting) return;
-
-            const mediaContactInput = document.getElementById('mediaContact');
-            const personalLinkInput = document.getElementById('personalLink');
-            const nextButton = document.getElementById('nextButton');
-
-            const mediaContactFilled = mediaContactInput.value.trim() !== '';
-            const personalLinkValue = personalLinkInput.value.trim();
-
-            const personalLinkValid = isOptionalUrl(personalLinkValue);
-            personalLinkInput.setCustomValidity(personalLinkValid ? '' : 'Please enter a valid URL.');
-            nextButton.disabled = !mediaContactFilled || !personalLinkValid
-                || !normalizeContactEmail(document.getElementById('accountEmail').value);
+                    closeCrop();
+                    document.getElementById('editProfileCropButton').focus({ preventScroll: true });
+                } catch (_) {
+                    if (selectedRevision === revision) showPhotoError('Profile picture crop failed. Your previous photo is still selected.');
+                } finally {
+                    if (selectedRevision === revision) {
+                        const errorMessage = status.textContent === 'Preparing photo…' ? '' : status.textContent;
+                        setPreparing(false);
+                        if (errorMessage) showPhotoError(errorMessage);
+                    }
+                }
+            });
+            cancelButton.addEventListener('click', () => {
+                if (applicationProfilePending) return;
+                closeCrop();
+                document.getElementById('editProfileCropButton').focus({ preventScroll: true });
+            });
+            updateUploadButtons();
         }
 
         function handleMediaContactInput() {
             prefillAccountEmailFromMediaContact();
-            checkContactValidity();
+            checkApplicationValidity();
             saveApplicationDraft();
         }
 
@@ -2313,7 +1417,7 @@
 
             mediaContactInput.value = normalizeMediaContact(mediaContactInput.value);
             prefillAccountEmailFromMediaContact();
-            checkContactValidity();
+            checkApplicationValidity();
             saveApplicationDraft();
         }
 
@@ -2325,7 +1429,7 @@
             if (isOptionalUrl(normalized)) {
                 personalLinkInput.value = normalized;
             }
-            checkContactValidity();
+            checkApplicationValidity();
             saveApplicationDraft();
         }
 

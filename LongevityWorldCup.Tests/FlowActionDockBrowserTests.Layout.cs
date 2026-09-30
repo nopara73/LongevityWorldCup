@@ -364,7 +364,6 @@ public sealed class FlowActionDockLayoutBrowserTests(
 
     [Theory]
     [InlineData("/pheno-age", "#lwcStepOneActions", 650)]
-    [InlineData("/apply?fake=1", ".convergence-actions", 768)]
     public async Task DesktopDocks_UseCompactCommandBarHeight(
         string path,
         string actionSelector,
@@ -447,171 +446,72 @@ public sealed class FlowActionDockLayoutBrowserTests(
     }
 
     [Fact]
-    public async Task DesktopApplyFirstStage_KeepsDetailsAndActionsVisible()
+    public async Task DesktopApplication_KeepsPrimaryFieldsVisibleWithoutNestedPanels()
     {
-        var app = App;
-        var browser = Browser;
-        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
-        {
-            BaseURL = app.BaseAddress.ToString(),
-            Locale = "en-US",
-            ViewportSize = new ViewportSize { Width = 1280, Height = 720 }
-        });
+        await using var context = await Browser.NewContextAsync(new() { BaseURL = App.BaseAddress.ToString(), ViewportSize = new() { Width = 1280, Height = 720 } });
         await BrowserTestApp.RouteExternalResourcesAsync(context);
-
         var page = await context.NewPageAsync();
         var errors = CapturePageErrors(page);
-
-        await page.GotoAsync("/apply?fake=1", new PageGotoOptions { WaitUntil = WaitUntilState.Commit });
-        await page.WaitForFunctionAsync("() => document.body?.dataset.convergenceStage === '1'");
-        await page.EvaluateAsync("() => window.LwcFlowActionDock?.refreshNow()");
-        await ExpectActionStackInViewportAsync(page, ".convergence-actions");
-
-        var titleRect = await ReadElementRectAsync(page, ".convergence-main > h1");
-        var detailsRect = await ReadElementRectAsync(page, "#personalDetails");
-        var actionsRect = await ReadElementRectAsync(page, ".convergence-actions");
-        var descriptionDisplay = await page.Locator("#descriptionForm").EvaluateAsync<string>("element => getComputedStyle(element).display");
-        var scrollY = await page.EvaluateAsync<double>("() => window.scrollY");
-
-        Assert.True(scrollY <= 1, $"Apply first stage should not auto-scroll on load: scrollY={scrollY}.");
-        Assert.True(titleRect.Top >= 0, $"Apply title starts above the viewport: {titleRect.Top}px.");
-        Assert.Equal("none", descriptionDisplay);
-        Assert.True(detailsRect.Top >= titleRect.Bottom,
-            $"Apply details should follow the title: details top {detailsRect.Top}px, title bottom {titleRect.Bottom}px.");
-        Assert.True(detailsRect.Bottom <= actionsRect.Top - 12,
-            $"Apply details are covered by the action dock: details bottom {detailsRect.Bottom}px, dock top {actionsRect.Top}px.");
+        await page.GotoAsync("/apply");
+        await page.WaitForFunctionAsync("() => applicationReady");
+        var title = await ReadElementRectAsync(page, ".convergence-main > h1");
+        var details = await ReadElementRectAsync(page, "#personalDetails");
+        Assert.InRange(await page.EvaluateAsync<double>("scrollY"), 0, 1);
+        Assert.True(details.Top >= title.Bottom);
+        Assert.True(details.Bottom < details.ViewportHeight);
+        Assert.Equal(0, await page.Locator("fieldset, #descriptionForm, .sub-progress-container").CountAsync());
+        Assert.Equal("off", await page.Locator(".convergence-actions").GetAttributeAsync("data-flow-dock"));
         Assert.Empty(errors);
     }
 
     [Theory]
     [InlineData(390, 844)]
     [InlineData(1280, 720)]
-    public async Task ApplyNextStageTransition_DoesNotForceViewportScroll(
-        int viewportWidth,
-        int viewportHeight)
+    public async Task Application_BackgroundDirectoryResponseDoesNotScrollOrStealTypingFocus(int viewportWidth, int viewportHeight)
     {
-        var app = App;
-        var browser = Browser;
-        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
-        {
-            BaseURL = app.BaseAddress.ToString(),
-            Locale = "en-US",
-            ViewportSize = new ViewportSize { Width = viewportWidth, Height = viewportHeight }
-        });
+        await using var context = await Browser.NewContextAsync(new() { BaseURL = App.BaseAddress.ToString(), ViewportSize = new() { Width = viewportWidth, Height = viewportHeight } });
         await BrowserTestApp.RouteExternalResourcesAsync(context);
-        await context.AddInitScriptAsync(
-            """
-            window.__lwcScrollIntoViewCalls = [];
-            const originalScrollIntoView = Element.prototype.scrollIntoView;
-            Element.prototype.scrollIntoView = function (...args) {
-                window.__lwcScrollIntoViewCalls.push({
-                    tag: this.tagName,
-                    id: this.id || '',
-                    className: this.className || '',
-                    text: (this.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 80)
-                });
-                return originalScrollIntoView.apply(this, args);
-            };
-            """);
-
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await context.RouteAsync("**/api/data/divisions", async route => { await release.Task; await route.ContinueAsync(); });
         var page = await context.NewPageAsync();
         var errors = CapturePageErrors(page);
-
-        var scenario = $"{viewportWidth}x{viewportHeight}";
-        await page.GotoAsync("/apply?fake=1", new PageGotoOptions { WaitUntil = WaitUntilState.Commit });
-        await page.WaitForFunctionAsync(
-            "() => document.getElementById('name')?.dataset.stage1ValidityListener === 'true' && document.body?.dataset.convergenceStage === '1' && !document.getElementById('nextButton')?.disabled");
-        await page.EvaluateAsync("() => window.scrollTo({ top: 0, left: 0, behavior: 'auto' })");
-        await page.WaitForFunctionAsync(
-            """
-            () => {
-                window.LwcFlowActionDock?.refreshNow?.();
-                const actions = document.querySelector('.convergence-actions');
-                const nextButton = document.getElementById('nextButton');
-                const rect = actions?.getBoundingClientRect();
-                return window.scrollY <= 1
-                    && nextButton
-                    && !nextButton.disabled
-                    && rect
-                    && rect.top >= 0
-                    && rect.bottom <= window.innerHeight;
-            }
-            """);
-        await ExpectActionStackInViewportAsync(page, ".convergence-actions");
-
-        await page.Locator("#nextButton").ClickAsync();
-        await page.WaitForFunctionAsync("() => document.body.dataset.convergenceStage === '2'");
-        await page.EvaluateAsync(
-            "() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
-
-        var transition = await page.EvaluateAsync<ApplyStageTransitionScrollState>(
-            """
-            () => ({
-                ScrollY: window.scrollY,
-                Calls: window.__lwcScrollIntoViewCalls || []
-            })
-            """);
-
-        Assert.True(transition.ScrollY <= 1,
-            $"{scenario}: apply Next transition forced the viewport to jump: scrollY={transition.ScrollY}.");
-        Assert.True(transition.Calls.Length == 0,
-            $"{scenario}: apply Next called scrollIntoView for {string.Join(", ", transition.Calls.Select(call => call.Id))}.");
-        Assert.True(errors.Count == 0, $"{scenario}: {string.Join(" | ", errors)}");
+        try
+        {
+            await page.GotoAsync("/apply");
+            await page.WaitForFunctionAsync("() => applicationReady");
+            await page.Locator("#name").FillAsync("Still Typing");
+            var scroll = await page.EvaluateAsync<double>("scrollY");
+            var response = page.WaitForResponseAsync("**/api/data/divisions");
+            release.SetResult();
+            await response;
+            await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+            await Assertions.Expect(page.Locator("#name")).ToBeFocusedAsync();
+            await Assertions.Expect(page.Locator("#name")).ToHaveValueAsync("Still Typing");
+            Assert.InRange(await page.EvaluateAsync<double>("scrollY"), scroll - 1, scroll + 1);
+            Assert.Empty(errors);
+        }
+        finally { release.TrySetResult(); }
     }
 
     [Theory]
     [InlineData(390, 844)]
     [InlineData(1280, 720)]
-    public async Task ApplyFirstStage_DoesNotShowDetailsPanelHalfCoveredByDock(
-        int viewportWidth,
-        int viewportHeight)
+    public async Task Application_ApplyFollowsTheVisibleParticipationTerms(int viewportWidth, int viewportHeight)
     {
-        var app = App;
-        var browser = Browser;
-        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
-        {
-            BaseURL = app.BaseAddress.ToString(),
-            Locale = "en-US",
-            ViewportSize = new ViewportSize { Width = viewportWidth, Height = viewportHeight }
-        });
+        await using var context = await Browser.NewContextAsync(new() { BaseURL = App.BaseAddress.ToString(), ViewportSize = new() { Width = viewportWidth, Height = viewportHeight } });
         await BrowserTestApp.RouteExternalResourcesAsync(context);
-
         var page = await context.NewPageAsync();
-        var errors = CapturePageErrors(page);
-
-        var scenario = $"{viewportWidth}x{viewportHeight}";
-        await page.GotoAsync("/apply?fake=1", new PageGotoOptions { WaitUntil = WaitUntilState.Commit });
-        await page.WaitForFunctionAsync("() => document.body?.dataset.convergenceStage === '1'");
-        await ExpectActionStackDockedInViewportAsync(page, ".convergence-actions");
-
-        var layout = await page.EvaluateAsync<ApplyFirstStageDetailsLayout>(
-            """
-            () => {
-                const details = document.querySelector('#personalDetails');
-                const actions = document.querySelector('.convergence-actions');
-                const detailsRect = details.getBoundingClientRect();
-                const actionRect = actions.getBoundingClientRect();
-                const detailsStyle = getComputedStyle(details);
-                return {
-                    DetailsTop: detailsRect.top,
-                    DetailsBottom: detailsRect.bottom,
-                    DetailsVisible: detailsStyle.display !== 'none'
-                        && detailsStyle.visibility !== 'hidden'
-                        && detailsRect.width > 0
-                        && detailsRect.height > 0,
-                    DockTop: actionRect.top,
-                    DockBottom: actionRect.bottom,
-                    ViewportHeight: window.innerHeight
-                };
-            }
-            """);
-
-        Assert.True(layout.DetailsVisible,
-            $"{scenario}: apply first stage should keep athlete details available in document flow.");
-        Assert.True(layout.DetailsBottom <= layout.DockTop - 20 || layout.DetailsTop >= layout.DockBottom - 1,
-            $"{scenario}: athlete details are half-covered by the action dock: details {layout.DetailsTop}-{layout.DetailsBottom}, dock {layout.DockTop}-{layout.DockBottom}, viewport {layout.ViewportHeight}.");
-        Assert.True(errors.Count == 0, $"{scenario}: {string.Join(" | ", errors)}");
+        await page.GotoAsync("/apply");
+        await page.WaitForFunctionAsync("() => applicationReady");
+        await page.Locator("#nextButton").ScrollIntoViewIfNeededAsync();
+        await Assertions.Expect(page.Locator("#privacyDetails > p")).ToBeInViewportAsync();
+        await Assertions.Expect(page.Locator("#nextButton")).ToBeInViewportAsync();
+        var terms = await page.Locator("#privacyDetails").BoundingBoxAsync();
+        var actions = await page.Locator(".convergence-actions").BoundingBoxAsync();
+        Assert.NotNull(terms); Assert.NotNull(actions);
+        Assert.True(actions.Y >= terms.Y + terms.Height);
+        Assert.DoesNotContain("flow-action-stack--docked", await page.Locator(".convergence-actions").GetAttributeAsync("class"));
+        Assert.Equal("inputForm", await page.Locator("#nextButton").EvaluateAsync<string>("button => button.form.id"));
     }
-
 
 }

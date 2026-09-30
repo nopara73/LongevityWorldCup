@@ -104,48 +104,15 @@ public sealed class ProofUploadBrowserTests(
         releaseProofHelper.SetResult();
         await navigation;
 
-        await AdvanceOnboardingStageAsync(page, "2. Almost there");
-        await AdvanceOnboardingStageAsync(page, "3. Don't trust, verify");
-
-        await page.WaitForFunctionAsync(
-            "() => document.getElementById('uploadProofButton')?.getAttribute('data-listener') === 'true'");
-
-        Assert.Contains("Upload", await page.Locator("#mainProofInstructions").InnerHTMLAsync());
+        await page.WaitForFunctionAsync("() => document.getElementById('uploadProofButton')?.getAttribute('data-listener') === 'true'");
+        await page.Locator("#proofChecklistDetails > summary").ClickAsync();
         Assert.Contains("proofs", await page.Locator("#mainProofInstructions").InnerHTMLAsync());
         Assert.Contains("Albumin", await page.Locator("#biomarker-checklist").InnerTextAsync());
         Assert.Contains("Glucose", await page.Locator("#biomarker-checklist").InnerTextAsync());
-        Assert.True(await page.Locator("#nextButton").IsEnabledAsync());
-        Assert.True(await page.Locator("#onboardingProofSymbol").IsVisibleAsync());
-        Assert.False(await page.Locator("#illustrationPicture").IsVisibleAsync());
-
-        await page.Locator("#nextButton").ClickAsync();
-        await page.GetByRole(AriaRole.Heading, new() { Name = "4. Final details" }).WaitForAsync();
-        await page.Locator("#backButton").ClickAsync();
-        await page.GetByRole(AriaRole.Heading, new() { Name = "3. Don't trust, verify" }).WaitForAsync();
-        Assert.Equal("stage active", await page.Locator("#subStage3").GetAttributeAsync("class"));
-        Assert.Equal("stage", await page.Locator("#subStage4").GetAttributeAsync("class"));
-        Assert.False(await page.Locator("#subStage5").IsVisibleAsync());
-        Assert.True(await page.Locator("#onboardingProofSymbol").IsVisibleAsync());
-        Assert.False(await page.Locator("#illustrationPicture").IsVisibleAsync());
-
-        var uploadButton = page.Locator("#uploadProofButton");
-        var cameraButton = page.Locator("#takeProofPhotoButton");
-        await AssertSecondaryProofActionAsync(uploadButton);
-        await AssertSecondaryProofActionAsync(cameraButton);
-
-        await page.EvaluateAsync(
-            """
-            () => {
-                const nextButton = document.getElementById('nextButton');
-                const uploadButton = document.getElementById('uploadProofButton');
-                const cameraButton = document.getElementById('takeProofPhotoButton');
-                nextButton.disabled = true;
-                window.updateProofUploadButtons(nextButton, uploadButton, cameraButton);
-            }
-            """);
-
-        await AssertPrimaryProofActionAsync(uploadButton);
-        await AssertSecondaryProofActionAsync(cameraButton);
+        await Assertions.Expect(page.Locator("#accountEmail")).ToBeVisibleAsync();
+        await Assertions.Expect(page.Locator("#profileUploadSection")).ToBeVisibleAsync();
+        await Assertions.Expect(page.Locator("#nextButton")).ToHaveTextAsync("Apply");
+        Assert.Equal(0, await page.Locator(".sub-progress-container").CountAsync());
         Assert.Empty(errors);
     }
 
@@ -598,13 +565,6 @@ public sealed class ProofUploadBrowserTests(
                     await releaseProofHelper;
             }
         });
-    }
-
-    private static async Task AdvanceOnboardingStageAsync(IPage page, string expectedHeading)
-    {
-        await page.WaitForFunctionAsync("() => !document.getElementById('nextButton')?.disabled");
-        await page.Locator("#nextButton").ClickAsync();
-        await page.GetByRole(AriaRole.Heading, new() { Name = expectedHeading }).WaitForAsync();
     }
 
     private static async Task AssertPrimaryProofActionAsync(ILocator button)

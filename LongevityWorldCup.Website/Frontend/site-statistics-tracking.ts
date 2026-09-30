@@ -785,10 +785,7 @@
         if (path !== "/apply" && !path.includes("convergence")) return;
 
         const stageSteps: Readonly<Record<string, string>> = {
-            "1": "identity",
-            "2": "profile-picture",
-            "3": "proof",
-            "4": "final-details"
+            "1": "application"
         };
         const recordCurrentStage = (): void => {
             const stageNumber = document.body?.dataset.convergenceStage;
@@ -796,11 +793,11 @@
             const step = stageSteps[stageNumber];
             if (!step) return;
 
-            trackOnce(`application-stage-four-step-${step}`, "application_stage_reached", {
+            trackOnce(`application-stage-single-page-${step}`, "application_stage_reached", {
                 component: "application",
                 step,
                 outcome: "reached",
-                metadata: { stageNumber, flowVersion: "four-step" }
+                metadata: { stageNumber, flowVersion: "single-page" }
             });
         };
 

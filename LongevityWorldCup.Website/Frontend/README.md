@@ -40,9 +40,9 @@ Shared CSS lives in `wwwroot/css`. The .NET page generator also builds `css/athl
 
 Keep these classic scripts free of imports/exports: `flow-action-dock`, `bioage-flow`, `custom-event-markup`, `longevitymaxxing`, `site-statistics-tracking`, `site-statistics`.
 
-The head partial defines `navigateToFlowDestination` synchronously so inline Back handlers work before the asynchronous modules finish. Application Next starts disabled until initialization binds stage validation.
+The head partial defines `navigateToFlowDestination` synchronously so inline Back handlers work before the asynchronous modules finish. Application Apply starts disabled until initialization binds form validation and upload controls. The form owns submit availability; the proof helper reports its processing state without replacing the form's validation.
 
-Application stage events identify the four-screen flow with `flowVersion: four-step` and versioned per-session deduplication keys. The statistics dashboard reports current and earlier application stages separately when both versions occur in a window; removed screens are not failed transitions in the current flow.
+Application stage events identify the single-page flow with `flowVersion: single-page` and a versioned per-session deduplication key. The statistics dashboard separates single-page, four-screen, and earlier application cohorts when they occur in a window; removed screens are not failed transitions in the current flow.
 
 Shared type-only contracts belong in `types/*.d.ts`. Runtime entry points stay self-contained to preserve request order, cache coverage, and independent failure. Ranking fallbacks and athlete-picture transitions have distinct failure, privacy, and timing behavior; consolidation requires equivalence and browser coverage.
 

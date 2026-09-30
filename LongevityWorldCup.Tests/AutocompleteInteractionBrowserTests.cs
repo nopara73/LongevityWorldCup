@@ -150,12 +150,11 @@ public sealed class AutocompleteInteractionBrowserTests(
 
         if (path == "/apply")
         {
-            // Scrolling an open list can put its input partly beneath the action bar.
+            // Scrolling an open list can put its input partly beneath the viewport edge.
             await page.EvaluateAsync("""
                 () => {
                     const input = document.getElementById('flag').getBoundingClientRect();
-                    const dock = document.querySelector('.flow-action-stack--docked').getBoundingClientRect();
-                    window.scrollBy({top: input.top - dock.top - 8, behavior: 'instant'});
+                    window.scrollBy({top: input.top - innerHeight - 8, behavior: 'instant'});
                 }
                 """);
             await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
@@ -303,6 +302,7 @@ public sealed class AutocompleteInteractionBrowserTests(
         if (path == "/apply")
         {
             await page.WaitForFunctionAsync("() => document.getElementById('flag')?.hasAttribute('data-keydown-listener')");
+            await page.Locator("#profileOptions > summary").ClickAsync();
             await page.Locator("#name").FillAsync("New Test Applicant");
             await page.Locator("#division").SelectOptionAsync("Open");
             await page.Locator("#why").FillAsync("Live well.");

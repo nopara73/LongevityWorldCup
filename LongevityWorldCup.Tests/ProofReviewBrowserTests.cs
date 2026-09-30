@@ -95,11 +95,6 @@ public sealed class ProofReviewBrowserTests(PlaywrightBrowserFixture browserFixt
             """);
         if (onboarding)
         {
-            foreach (var heading in new[] { "4. Final details" })
-            {
-                await page.Locator("#nextButton").ClickAsync();
-                await page.GetByRole(AriaRole.Heading, new() { Name = heading, Exact = true }).WaitForAsync();
-            }
             await page.Locator("#accountEmail").FillAsync("proof@example.test");
         }
         var dialogs = new List<string>();
@@ -138,7 +133,13 @@ public sealed class ProofReviewBrowserTests(PlaywrightBrowserFixture browserFixt
 
         while (await page.Locator(".proof-page-remove").CountAsync() > 0)
             await page.Locator(".proof-page-remove").First.ClickAsync();
-        Assert.True(await page.Locator(onboarding ? "#nextButton" : "#submitButton").IsDisabledAsync());
+        if (onboarding)
+        {
+            await page.Locator("#nextButton").ClickAsync();
+            await Assertions.Expect(page.Locator("#proofError")).ToHaveTextAsync("Please attach proof of your result.");
+            await Assertions.Expect(page.Locator("#uploadProofButton")).ToBeFocusedAsync();
+        }
+        else Assert.True(await page.Locator("#submitButton").IsDisabledAsync());
         Assert.True(await page.Locator(".proof-undo").IsVisibleAsync());
         await page.Locator(".proof-undo").ClickAsync();
         Assert.Single(await ReadSourcesAsync(page));
@@ -245,7 +246,7 @@ public sealed class ProofReviewBrowserTests(PlaywrightBrowserFixture browserFixt
     }
 
     [Fact]
-    public async Task LeavingTheProofStepDuringPreparation_PreservesTheOtherStepsValidation()
+    public async Task ProofPreparation_PreservesTypingAndFormSubmissionState()
     {
         await using var context = await NewContextAsync(Browser, App, new() { ReducedMotion = ReducedMotion.Reduce });
         var page = await PrepareAsync(context, true);
@@ -260,23 +261,13 @@ public sealed class ProofReviewBrowserTests(PlaywrightBrowserFixture browserFixt
             """);
         await page.Locator("#proofPicInput").SetInputFilesAsync((await CreatePagesAsync(1))[0]);
         await page.WaitForFunctionAsync("() => typeof window.__releaseProofPreparation === 'function'");
-        foreach (var heading in new[] { "2. Almost there", "1. Enter the arena" })
-        {
-            await page.Locator("#backButton").ClickAsync();
-            await page.GetByRole(AriaRole.Heading, new() { Name = heading, Exact = true }).WaitForAsync();
-        }
-        await page.Locator("#why").FillAsync("");
+        await page.Locator("#accountEmail").FillAsync("typing@example.test");
         Assert.True(await page.Locator("#nextButton").IsDisabledAsync());
         Assert.True(await WouldWarnOnExitAsync(page));
         await page.EvaluateAsync("window.__releaseProofPreparation()");
         await page.WaitForFunctionAsync("() => !document.querySelector('#proofPicInput').disabled");
-        Assert.True(await page.Locator("#nextButton").IsDisabledAsync());
-        await page.Locator("#why").FillAsync("To live a longer and healthier life with the people I love.");
-        foreach (var heading in new[] { "2. Almost there", "3. Don't trust, verify" })
-        {
-            await page.Locator("#nextButton").ClickAsync();
-            await page.GetByRole(AriaRole.Heading, new() { Name = heading, Exact = true }).WaitForAsync();
-        }
+        await Assertions.Expect(page.Locator("#accountEmail")).ToBeFocusedAsync();
+        await Assertions.Expect(page.Locator("#accountEmail")).ToHaveValueAsync("typing@example.test");
         Assert.Equal(2, await page.Locator(".proof-page-preview").CountAsync());
         Assert.True(await page.Locator("#nextButton").IsEnabledAsync());
     }
@@ -350,7 +341,7 @@ public sealed class ProofReviewBrowserTests(PlaywrightBrowserFixture browserFixt
     }
 
     [Fact]
-    public async Task ReturningToTheProofStep_PreservesReviewStateAndDoesNotBindUploadTwice()
+    public async Task ProfileDisclosureEdits_PreserveProofReviewAndDoNotBindUploadTwice()
     {
         await using var context = await NewContextAsync(Browser, App, new());
         var page = await PrepareAsync(context, true);
@@ -359,10 +350,11 @@ public sealed class ProofReviewBrowserTests(PlaywrightBrowserFixture browserFixt
         var original = await ReadSourcesAsync(page);
         await page.Locator(".biomarker-checkbox").First.CheckAsync();
         await page.Locator(".proof-page-remove").Last.ClickAsync();
-        await page.Locator("#nextButton").ClickAsync();
-        await page.GetByRole(AriaRole.Heading, new() { Name = "4. Final details", Exact = true }).WaitForAsync();
-        await page.Locator("#backButton").ClickAsync();
-        await page.GetByRole(AriaRole.Heading, new() { Name = "3. Don't trust, verify", Exact = true }).WaitForAsync();
+        await page.Locator("#proofChecklistDetails > summary").ClickAsync();
+        await page.Locator("#profileOptions > summary").ClickAsync();
+        await page.Locator("#why").FillAsync("Live well.");
+        await page.Locator("#profileOptions > summary").ClickAsync();
+        await page.Locator("#proofChecklistDetails > summary").ClickAsync();
         Assert.True(await page.Locator(".biomarker-checkbox").First.IsCheckedAsync());
         await page.Locator(".proof-undo").ClickAsync();
         Assert.Equal(original, await ReadSourcesAsync(page));
@@ -381,11 +373,7 @@ public sealed class ProofReviewBrowserTests(PlaywrightBrowserFixture browserFixt
         await page.GotoAsync(onboarding ? "/apply?fake=1" : "/play/proof-upload.html", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
         if (onboarding)
         {
-            foreach (var heading in new[] { "2. Almost there", "3. Don't trust, verify" })
-            {
-                await page.Locator("#nextButton").ClickAsync();
-                await page.GetByRole(AriaRole.Heading, new() { Name = heading, Exact = true }).WaitForAsync();
-            }
+            await page.Locator("#proofChecklistDetails > summary").ClickAsync();
         }
         await page.WaitForFunctionAsync("() => document.querySelector('#proofPicInput')?.hasAttribute('data-listener')");
         return page;

@@ -395,9 +395,9 @@ public sealed class SiteStatisticsDashboardBrowserTests(
 
         Assert.Equal("application_stage_reached", root.GetProperty("eventName").GetString());
         Assert.Equal("application", root.GetProperty("flow").GetString());
-        Assert.Equal("identity", root.GetProperty("step").GetString());
+        Assert.Equal("application", root.GetProperty("step").GetString());
         Assert.Equal("1", root.GetProperty("metadata").GetProperty("stageNumber").GetString());
-        Assert.Equal("four-step", root.GetProperty("metadata").GetProperty("flowVersion").GetString());
+        Assert.Equal("single-page", root.GetProperty("metadata").GetProperty("flowVersion").GetString());
         Assert.DoesNotContain("accountEmail", stageRequest.PostData ?? string.Empty, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("biomarkers", stageRequest.PostData ?? string.Empty, StringComparison.OrdinalIgnoreCase);
     }
@@ -411,7 +411,9 @@ public sealed class SiteStatisticsDashboardBrowserTests(
             ["flowVersion"] = JsonSerializer.SerializeToElement("four-step")
         };
         foreach (var step in new[] { "identity", "profile-picture", "proof", "final-details" })
-            await PostEventAsync(client, "application_stage_reached", "application", "current-flow", "/apply", "application", "reached", metadata, step: step);
+            await PostEventAsync(client, "application_stage_reached", "application", "compact-flow", "/apply", "application", "reached", metadata, step: step);
+        metadata["flowVersion"] = JsonSerializer.SerializeToElement("single-page");
+        await PostEventAsync(client, "application_stage_reached", "application", "current-flow", "/apply", "application", "reached", metadata, step: "application");
         foreach (var step in new[] { "identity", "motivation" })
             await PostEventAsync(client, "application_stage_reached", "application", "earlier-flow", "/apply", "application", "reached", step: step);
         await App.Services.GetRequiredService<SiteStatisticsService>().RecordServerEventAsync(
@@ -427,12 +429,15 @@ public sealed class SiteStatisticsDashboardBrowserTests(
             .Filter(new() { Has = page.GetByRole(AriaRole.Heading, new() { Name = "Application stage completion", Exact = true }) });
         await Assertions.Expect(panel.GetByRole(AriaRole.Heading, new() { Name = "Current application", Exact = true })).ToBeVisibleAsync();
         await Assertions.Expect(panel.GetByRole(AriaRole.Heading, new() { Name = "Earlier application", Exact = true })).ToBeVisibleAsync();
-        await Assertions.Expect(panel.Locator("table")).ToHaveCountAsync(2);
+        await Assertions.Expect(panel.GetByRole(AriaRole.Heading, new() { Name = "Four-screen application", Exact = true })).ToBeVisibleAsync();
+        await Assertions.Expect(panel.Locator("table")).ToHaveCountAsync(3);
         var currentRows = panel.Locator("table").First.Locator("tbody tr");
         await Assertions.Expect(currentRows.Locator("td:first-child")).ToHaveTextAsync(
+            ["Application", "Submitted"]);
+        await Assertions.Expect(currentRows.Locator("td:nth-child(2)")).ToHaveTextAsync(["1", "1"]);
+        await Assertions.Expect(currentRows.Locator("td:nth-child(3)")).ToHaveTextAsync(["0", "-"]);
+        await Assertions.Expect(panel.Locator("table").Nth(1).Locator("tbody tr td:first-child")).ToHaveTextAsync(
             ["Identity and motivation", "Profile picture", "Proof", "Contact details and privacy", "Submitted"]);
-        await Assertions.Expect(currentRows.Locator("td:nth-child(2)")).ToHaveTextAsync(["1", "1", "1", "1", "1"]);
-        await Assertions.Expect(currentRows.Locator("td:nth-child(3)")).ToHaveTextAsync(["0", "0", "0", "0", "-"]);
         await Assertions.Expect(panel.Locator("table").Last.Locator("tbody tr").First.Locator("td:nth-child(2)")).ToHaveTextAsync("1");
     }
 

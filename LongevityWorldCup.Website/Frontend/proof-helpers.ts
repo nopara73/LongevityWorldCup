@@ -3,6 +3,7 @@ interface ProofUploadSetupOptions {
     cameraInput?: HTMLInputElement | null;
     isActive?: () => boolean;
     hasUnsubmittedProofs?: () => boolean;
+    onValidityChanged?: (state: { hasProofs: boolean; processing: boolean }) => void;
 }
 
 interface ProofFileRejectedTrackOptions {
@@ -252,6 +253,8 @@ function trackProofFileRejected(
 const proofReviews = new WeakMap<HTMLElement, ProofReview>();
 const proofProcessingButtons = new WeakSet<HTMLButtonElement>();
 const proofStepIsActive = new WeakMap<HTMLButtonElement, () => boolean>();
+const proofValidityChanged = new WeakMap<HTMLButtonElement, NonNullable<ProofUploadSetupOptions['onValidityChanged']>>();
+const proofButtonStates = new WeakMap<HTMLButtonElement, { hasProofs: boolean; processing: boolean }>();
 const maxProofImages = 37;
 
 class ProofReview {
@@ -488,8 +491,9 @@ window.setupProofUploadHTML = function (
     options?: ProofUploadSetupOptions
 ): void {
     if (options?.isActive) proofStepIsActive.set(nextButton, options.isActive);
+    if (options?.onValidityChanged) proofValidityChanged.set(nextButton, options.onValidityChanged);
     if (proofStepIsActive.get(nextButton)?.() === false) return;
-    nextButton.disabled = true;
+    if (!proofValidityChanged.has(nextButton)) nextButton.disabled = true;
     const cameraButton = options && options.cameraButton;
     const cameraInput = options && options.cameraInput;
     const existingReview = proofReviews.get(proofImageContainer);
@@ -904,11 +908,15 @@ function checkProofImages(
     cameraButton: HTMLButtonElement | null | undefined,
     _biomarkerChecklistContainer: HTMLElement | null
 ): void {
-    // Onboarding reuses Next across steps; background file work only owns it on the proof step.
+    // A shared form owns submission validity; proof preparation reports only its own state.
     if (proofStepIsActive.get(nextButton)?.() === false) return;
     const hasProofs = proofPics.length > 0;
     document.body?.classList.toggle('proof-upload-has-proofs', hasProofs);
-    nextButton.disabled = !hasProofs || proofProcessingButtons.has(nextButton);
+    const state = { hasProofs, processing: proofProcessingButtons.has(nextButton) };
+    proofButtonStates.set(nextButton, state);
+    const changed = proofValidityChanged.get(nextButton);
+    if (changed) changed(state);
+    else nextButton.disabled = !state.hasProofs || state.processing;
     window.updateProofUploadButtons(nextButton, uploadProofButton, cameraButton);
 }
 
@@ -919,7 +927,9 @@ window.updateProofUploadButtons = function (
 ): void {
     if (!nextButton || !uploadProofButton) return;
 
-    const uploadIsRequired = nextButton.disabled && !proofProcessingButtons.has(nextButton);
+    const state = proofButtonStates.get(nextButton);
+    const uploadIsRequired = state ? !state.hasProofs && !state.processing
+        : nextButton.disabled && !proofProcessingButtons.has(nextButton);
     uploadProofButton.classList.toggle('green', uploadIsRequired);
     uploadProofButton.classList.toggle('grey', !uploadIsRequired);
     uploadProofButton.classList.toggle('flow-action--secondary', !uploadIsRequired);

@@ -721,13 +721,11 @@
                 <p id="personalLinkInputError" class="profile-field-error" aria-live="polite" hidden></p>
             </div>
             <div class="niceInputFieldDisplayWrapper options-container inline-option-group">
-                <label for="mediaContactInput" class="field-label">Media contact <span class="field-requirement">(required)</span></label>
+                <label for="mediaContactInput" class="field-label">Media contact <span class="field-requirement">(optional)</span></label>
                 <input type="text"
                        id="mediaContactInput"
                        aria-describedby="mediaContactInputError"
                        name="mediaContact"
-                       required
-                       aria-required="true"
                        inputmode="email"
                        autocomplete="off"
                        autocapitalize="none"
@@ -739,13 +737,11 @@
                 <p id="mediaContactInputError" class="profile-field-error" aria-live="polite" hidden></p>
             </div>
             <div class="niceInputFieldDisplayWrapper options-container inline-option-group">
-                <label for="whyDisplayInput" class="field-label">Motivation <span class="field-requirement">(required)</span></label>
+                <label for="whyDisplayInput" class="field-label">Motivation <span class="field-requirement">(optional)</span></label>
                 <textarea id="whyDisplayInput"
                           aria-describedby="whyDisplayInputError"
                           name="whyDisplay"
                           rows="3"
-                          required
-                          aria-required="true"
                           placeholder="What drives you?"></textarea>
 
                 <button id="restoreWhyDisplayBtn" class="option-button icon-only" style="display:none" title="Restore your why" aria-label="Restore your why">
@@ -1797,13 +1793,11 @@
         }
 
         function validateMediaContact(value) {
-            const v = value.trim();
-            return setProfileFieldError('mediaContactInput', v ? '' : 'Enter a media contact.');
+            return setProfileFieldError('mediaContactInput', '');
         }
 
         function validateWhyDisplay(value) {
-            const v = value.trim();
-            return setProfileFieldError('whyDisplayInput', v ? '' : 'Enter your motivation.');
+            return setProfileFieldError('whyDisplayInput', '');
         }
     </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js" defer></script>

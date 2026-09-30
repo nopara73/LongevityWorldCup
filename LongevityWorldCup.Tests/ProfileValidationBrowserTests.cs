@@ -63,11 +63,11 @@ public sealed class ProfileValidationBrowserTests(
     }
 
     [Theory]
-    [InlineData("flagDisplayInput", "restoreFlagBtn", "?", "United Kingdom")]
-    [InlineData("personalLinkInput", "restorePersonalLinkBtn", "not a link", "https://example.com")]
-    [InlineData("mediaContactInput", "restoreMediaContactBtn", "", "press@example.com")]
-    [InlineData("whyDisplayInput", "restoreWhyDisplayBtn", "", "Training for a longer, healthier life.")]
-    public async Task KeyboardRestore_ClearsTheErrorAndKeepsOtherEdits(string id, string restoreId, string invalid, string original)
+    [InlineData("flagDisplayInput", "restoreFlagBtn", "?", "United Kingdom", true)]
+    [InlineData("personalLinkInput", "restorePersonalLinkBtn", "not a link", "https://example.com", true)]
+    [InlineData("mediaContactInput", "restoreMediaContactBtn", "", "press@example.com", false)]
+    [InlineData("whyDisplayInput", "restoreWhyDisplayBtn", "", "Training for a longer, healthier life.", false)]
+    public async Task KeyboardRestore_ClearsTheErrorAndKeepsOtherEdits(string id, string restoreId, string invalid, string original, bool hasError)
     {
         await using var context = await CreateContextAsync(390);
         var page = await OpenEditorAsync(context);
@@ -77,7 +77,7 @@ public sealed class ProfileValidationBrowserTests(
         var input = page.Locator("#" + id);
         await input.FillAsync(invalid);
         await input.PressAsync("Tab");
-        await Assertions.Expect(input).ToHaveAttributeAsync("aria-invalid", "true");
+        await Assertions.Expect(input).ToHaveAttributeAsync("aria-invalid", hasError ? "true" : "false");
         await Assertions.Expect(page.Locator("#" + restoreId)).ToBeFocusedAsync();
         await page.Keyboard.PressAsync("Enter");
         await Assertions.Expect(input).ToHaveValueAsync(original);
@@ -91,7 +91,7 @@ public sealed class ProfileValidationBrowserTests(
     }
 
     [Fact]
-    public async Task PointerRestore_IsNotMovedAwayByThePreviousFieldsBlurError()
+    public async Task PointerRestore_PreservesAnotherOptionalFieldClear()
     {
         await using var context = await CreateContextAsync(390);
         var page = await OpenEditorAsync(context);
@@ -99,7 +99,7 @@ public sealed class ProfileValidationBrowserTests(
         await page.Locator("#mediaContactInput").FillAsync("");
         await page.Locator("#restoreWhyDisplayBtn").ClickAsync();
         await Assertions.Expect(page.Locator("#whyDisplayInput")).ToHaveValueAsync("Training for a longer, healthier life.");
-        await Assertions.Expect(page.Locator("#mediaContactInput")).ToHaveAttributeAsync("aria-invalid", "true");
+        await Assertions.Expect(page.Locator("#mediaContactInput")).ToHaveAttributeAsync("aria-invalid", "false");
         await Assertions.Expect(page.Locator("#mediaContactInput")).ToHaveValueAsync("");
         await Assertions.Expect(page.Locator("#custom-alert")).ToBeHiddenAsync();
     }
@@ -120,8 +120,8 @@ public sealed class ProfileValidationBrowserTests(
         await page.Locator("#mediaContactInput").FillAsync("");
         await page.Locator("#whyDisplayInput").FillAsync("");
         await page.Locator("#submitButton").ClickAsync();
-        await Assertions.Expect(page.Locator("#editOptionsGroup [aria-invalid=true]")).ToHaveCountAsync(4);
-        await Assertions.Expect(page.Locator(".profile-field-error:visible")).ToHaveCountAsync(4);
+        await Assertions.Expect(page.Locator("#editOptionsGroup [aria-invalid=true]")).ToHaveCountAsync(2);
+        await Assertions.Expect(page.Locator(".profile-field-error:visible")).ToHaveCountAsync(2);
         var first = page.Locator("#flagDisplayInput");
         await Assertions.Expect(first).ToBeFocusedAsync();
         await Assertions.Expect(page.Locator("#custom-alert")).ToBeHiddenAsync();
