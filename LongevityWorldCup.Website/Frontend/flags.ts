@@ -217,14 +217,18 @@
             // Measure the stylesheet's preferred limit before fitting to the available viewport.
             list.style.maxHeight = "";
             const preferredHeight = list.getBoundingClientRect().height;
-            const above = Math.max(0, inputBox.top - visibleTop - gap);
-            const below = Math.max(0, visibleBottom - inputBox.bottom - gap);
+            // The input can be partly outside the visible area after scrolling or docking.
+            // Clamp the popup's anchor as well as its height to keep every option reachable.
+            const aboveBottom = Math.min(visibleBottom, inputBox.top - gap);
+            const belowTop = Math.max(visibleTop, inputBox.bottom + gap);
+            const above = Math.max(0, aboveBottom - visibleTop);
+            const below = Math.max(0, visibleBottom - belowTop);
             const openAbove = below < preferredHeight && above > below;
             list.style.maxHeight = Math.min(preferredHeight, openAbove ? above : below) + "px";
             list.style.marginTop = "0";
-            const inputTop = inputBox.top - parentBox.top - parent.clientTop + parent.scrollTop;
-            list.style.top = openAbove ? "auto" : inputTop + inputBox.height + gap + "px";
-            list.style.bottom = openAbove ? parent.clientHeight - inputTop + gap + "px" : "auto";
+            const parentTop = parentBox.top + parent.clientTop - parent.scrollTop;
+            list.style.top = openAbove ? "auto" : belowTop - parentTop + "px";
+            list.style.bottom = openAbove ? parent.clientHeight - (aboveBottom - parentTop) + "px" : "auto";
         }
 
         function setActive(index: number, scroll = true): void {
@@ -286,6 +290,7 @@
 
         function open(): void {
             wantsSuggestions = true;
+            window.LwcFlowActionDock?.ensureClear?.(input, { behavior: "auto" });
             render();
         }
 

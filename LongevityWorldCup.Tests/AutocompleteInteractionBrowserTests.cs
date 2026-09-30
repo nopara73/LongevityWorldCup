@@ -291,6 +291,7 @@ public sealed class AutocompleteInteractionBrowserTests(
             await page.WaitForFunctionAsync("() => document.getElementById('flag')?.hasAttribute('data-keydown-listener')");
             await page.Locator("#name").FillAsync("New Test Applicant");
             await page.Locator("#division").SelectOptionAsync("Open");
+            await page.Locator("#why").FillAsync("Live well.");
         }
         if (path == "/edit-profile")
         {
