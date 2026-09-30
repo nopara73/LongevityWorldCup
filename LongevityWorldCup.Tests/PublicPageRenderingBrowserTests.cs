@@ -44,6 +44,7 @@ public sealed class PublicPageRenderingBrowserTests(PlaywrightBrowserFixture bro
         {
             Assert.Equal(await staticPage.Locator(".podium .athlete-name").AllTextContentsAsync(), await page.Locator(".podium .athlete-name").AllTextContentsAsync());
             Assert.Equal(await staticPage.Locator(".podium .age-reduction").AllTextContentsAsync(), await page.Locator(".podium .age-reduction").AllTextContentsAsync());
+            Assert.Equal(await ReadPodiumScoreStyles(staticPage), await ReadPodiumScoreStyles(page));
             Assert.Equal(await staticPage.Locator(".podium a.athlete-profile-link").EvaluateAllAsync<string[]>("links => links.map(link => link.getAttribute('href'))"),
                 await page.Locator(".podium a.athlete-profile-link").EvaluateAllAsync<string[]>("links => links.map(link => link.getAttribute('href'))"));
             Assert.Equal(7, initial.Length);
@@ -147,6 +148,9 @@ public sealed class PublicPageRenderingBrowserTests(PlaywrightBrowserFixture bro
 
     private static Task<string[]> ReadRows(IPage page) => page.Locator(".leaderboard table tbody tr[data-athlete-name]:visible").EvaluateAllAsync<string[]>(
         "rows => rows.map(row => [row.id, row.dataset.athleteName, row.querySelector('.rank').textContent, row.querySelector('.age-reduction').textContent].join('|'))");
+
+    private static Task<string[]> ReadPodiumScoreStyles(IPage page) => page.Locator(".podium .age-reduction").EvaluateAllAsync<string[]>(
+        "scores => scores.map(score => { const value = getComputedStyle(score); const label = getComputedStyle(score.parentElement); return [value.fontSize, value.color, label.fontSize, label.color].join('|'); })");
 
     private static Task<string[]> ProfileFacts(IPage page) => page.EvaluateAsync<string[]>(
         "() => ['athleteName', 'athleteRankings', 'athleteBio', 'chronologicalAge', 'lowestPhenoAge', 'lowestBortzAge', 'ageReduction', 'ageReductionPercent', 'bortzAgeReduction', 'bortzAgeReductionPercent'].map(id => document.getElementById(id).textContent.trim())");

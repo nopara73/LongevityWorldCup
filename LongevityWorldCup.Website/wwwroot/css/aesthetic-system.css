@@ -885,7 +885,7 @@ html body .leaderboard table th {
     border-bottom: 1px solid var(--lwc-border);
 }
 
-.leaderboard table tbody tr:not(.tier-amateur):nth-child(even) {
+.leaderboard table tbody tr.tier-pro:nth-child(even):not(:hover):not(:target) {
     background: color-mix(in srgb, var(--lwc-surface-muted) 35%, var(--lwc-surface));
 }
 
