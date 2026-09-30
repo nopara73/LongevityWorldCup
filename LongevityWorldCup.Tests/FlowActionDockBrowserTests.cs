@@ -143,7 +143,7 @@ public sealed class FlowActionDockBrowserTests(
         // asynchronous bootstrap to bind stage one before selecting the email stage.
         await page.WaitForFunctionAsync(
             "() => window.LwcFlowActionDock && document.getElementById('name')?.dataset.stage1ValidityListener === 'true'");
-        await page.EvaluateAsync("() => { window.goToStage(7); window.LwcFlowActionDock.refreshNow(); }");
+        await page.EvaluateAsync("() => { window.goToStage(4); window.LwcFlowActionDock.refreshNow(); }");
         await ExpectActionStackDockedInViewportAsync(page, ".convergence-actions");
 
         await page.Locator("#accountEmail").FocusAsync();

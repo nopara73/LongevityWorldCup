@@ -95,7 +95,7 @@ public sealed class ProofReviewBrowserTests(PlaywrightBrowserFixture browserFixt
             """);
         if (onboarding)
         {
-            foreach (var heading in new[] { "5. Final details", "Application" })
+            foreach (var heading in new[] { "4. Final details" })
             {
                 await page.Locator("#nextButton").ClickAsync();
                 await page.GetByRole(AriaRole.Heading, new() { Name = heading, Exact = true }).WaitForAsync();
@@ -260,7 +260,7 @@ public sealed class ProofReviewBrowserTests(PlaywrightBrowserFixture browserFixt
             """);
         await page.Locator("#proofPicInput").SetInputFilesAsync((await CreatePagesAsync(1))[0]);
         await page.WaitForFunctionAsync("() => typeof window.__releaseProofPreparation === 'function'");
-        foreach (var heading in new[] { "4/a. Almost there", "3. The price of glory", "2. Finding your why" })
+        foreach (var heading in new[] { "2. Almost there", "1. Enter the arena" })
         {
             await page.Locator("#backButton").ClickAsync();
             await page.GetByRole(AriaRole.Heading, new() { Name = heading, Exact = true }).WaitForAsync();
@@ -272,7 +272,7 @@ public sealed class ProofReviewBrowserTests(PlaywrightBrowserFixture browserFixt
         await page.WaitForFunctionAsync("() => !document.querySelector('#proofPicInput').disabled");
         Assert.True(await page.Locator("#nextButton").IsDisabledAsync());
         await page.Locator("#why").FillAsync("To live a longer and healthier life with the people I love.");
-        foreach (var heading in new[] { "3. The price of glory", "4/a. Almost there", "4/b. Don't trust, verify" })
+        foreach (var heading in new[] { "2. Almost there", "3. Don't trust, verify" })
         {
             await page.Locator("#nextButton").ClickAsync();
             await page.GetByRole(AriaRole.Heading, new() { Name = heading, Exact = true }).WaitForAsync();
@@ -360,9 +360,9 @@ public sealed class ProofReviewBrowserTests(PlaywrightBrowserFixture browserFixt
         await page.Locator(".biomarker-checkbox").First.CheckAsync();
         await page.Locator(".proof-page-remove").Last.ClickAsync();
         await page.Locator("#nextButton").ClickAsync();
-        await page.GetByRole(AriaRole.Heading, new() { Name = "5. Final details", Exact = true }).WaitForAsync();
+        await page.GetByRole(AriaRole.Heading, new() { Name = "4. Final details", Exact = true }).WaitForAsync();
         await page.Locator("#backButton").ClickAsync();
-        await page.GetByRole(AriaRole.Heading, new() { Name = "4/b. Don't trust, verify", Exact = true }).WaitForAsync();
+        await page.GetByRole(AriaRole.Heading, new() { Name = "3. Don't trust, verify", Exact = true }).WaitForAsync();
         Assert.True(await page.Locator(".biomarker-checkbox").First.IsCheckedAsync());
         await page.Locator(".proof-undo").ClickAsync();
         Assert.Equal(original, await ReadSourcesAsync(page));
@@ -381,7 +381,7 @@ public sealed class ProofReviewBrowserTests(PlaywrightBrowserFixture browserFixt
         await page.GotoAsync(onboarding ? "/apply?fake=1" : "/play/proof-upload.html", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
         if (onboarding)
         {
-            foreach (var heading in new[] { "2. Finding your why", "3. The price of glory", "4/a. Almost there", "4/b. Don't trust, verify" })
+            foreach (var heading in new[] { "2. Almost there", "3. Don't trust, verify" })
             {
                 await page.Locator("#nextButton").ClickAsync();
                 await page.GetByRole(AriaRole.Heading, new() { Name = heading, Exact = true }).WaitForAsync();

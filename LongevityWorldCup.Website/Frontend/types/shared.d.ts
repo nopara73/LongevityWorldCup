@@ -222,6 +222,7 @@ interface LwcSiteStatisticsMetadata {
     checkinKind?: string;
     clock?: "bortz" | "pheno";
     stageNumber?: string;
+    flowVersion?: string;
 }
 
 interface LwcSiteStatisticsTrackOptions {

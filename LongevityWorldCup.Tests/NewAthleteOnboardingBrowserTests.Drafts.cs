@@ -19,25 +19,23 @@ public sealed partial class NewAthleteOnboardingBrowserTests
             await page.SetViewportSizeAsync(width, 844);
             await page.GotoAsync("/apply?fake=1");
             await Assertions.Expect(page.Locator("#nextButton")).ToBeEnabledAsync();
-            await page.Locator("#name").PressAsync("Enter");
-            await Assertions.Expect(page.Locator("#why")).ToBeFocusedAsync();
+            await page.Locator("#why").FocusAsync();
             await page.Keyboard.PressAsync("Control+a");
             await page.Keyboard.TypeAsync(DraftMotivation);
             await Assertions.Expect(page.Locator("#why")).ToHaveValueAsync(DraftMotivation);
-            await page.Locator("#nextButton").ClickAsync();
-            await Assertions.Expect(page.Locator("h1")).ToBeFocusedAsync();
-            await page.Keyboard.PressAsync("Tab");
-            await Assertions.Expect(page.Locator("#nextButton")).ToBeFocusedAsync();
-            await page.Keyboard.PressAsync("Enter");
+            await page.Locator("#name").PressAsync("Enter");
             await Assertions.Expect(page.Locator("#uploadButton")).ToBeFocusedAsync();
             await page.Locator("#nextButton").ClickAsync();
             await Assertions.Expect(page.Locator("#uploadProofButton")).ToBeFocusedAsync();
             await page.Locator("#nextButton").ClickAsync();
-            await Assertions.Expect(page.Locator("#personalLink")).ToBeFocusedAsync();
-            await page.Locator("#nextButton").ClickAsync();
-            await Assertions.Expect(page.Locator("#accountEmail")).ToBeFocusedAsync();
+            await Assertions.Expect(page.Locator("#mediaContact")).ToBeFocusedAsync();
             await page.Locator("#backButton").ClickAsync();
-            await Assertions.Expect(page.Locator("#personalLink")).ToBeFocusedAsync();
+            await Assertions.Expect(page.Locator("#uploadProofButton")).ToBeFocusedAsync();
+            await page.Locator("#backButton").ClickAsync();
+            await Assertions.Expect(page.Locator("#uploadButton")).ToBeFocusedAsync();
+            await page.Locator("#backButton").ClickAsync();
+            await Assertions.Expect(page.Locator("#name")).ToBeFocusedAsync();
+            await Assertions.Expect(page.Locator("#why")).ToHaveValueAsync(DraftMotivation);
             Assert.False(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth > innerWidth"));
             Assert.Empty(errors);
         });
@@ -54,14 +52,13 @@ public sealed partial class NewAthleteOnboardingBrowserTests
             await page.EmulateMediaAsync(new() { ColorScheme = width == 390 ? ColorScheme.Dark : ColorScheme.Light });
             await CompleteAmateurHandoffToApplicationAsync(page, DateTime.UtcNow.AddDays(-9).ToString("yyyy-MM-dd"));
             await FillApplicationIdentityDraftAsync(page);
-            await page.Locator("#name").PressAsync("Enter");
             await page.Locator("#why").FillAsync(DraftMotivation);
             await page.ReloadAsync();
             await AssertApplicationIdentityDraftAsync(page);
             await Assertions.Expect(page.Locator("#applicationDraftStatus")).ToBeHiddenAsync();
-            await page.Locator("#nextButton").ClickAsync();
             await Assertions.Expect(page.Locator("#why")).ToHaveValueAsync(DraftMotivation);
             await Assertions.Expect(page.Locator("#whyCharCounter")).ToHaveTextAsync($"{DraftMotivation.Length}/250");
+            await page.Locator("#nextButton").ClickAsync();
             await page.Locator("#backButton").ClickAsync();
             await page.Locator("#backButton").ClickAsync();
             await page.WaitForDomContentLoadedUrlAsync("**/pheno-age");
@@ -84,17 +81,16 @@ public sealed partial class NewAthleteOnboardingBrowserTests
         {
             await page.GotoAsync("/apply");
             await FillApplicationIdentityDraftAsync(page);
-            await page.EvaluateAsync("() => { currentStage = 6; goToStage(6); }");
+            await page.EvaluateAsync("() => goToStage(4)");
             await page.Locator("#personalLink").FillAsync("example.com/alex");
             await page.Locator("#mediaContact").FillAsync("media@example.com");
-            await page.Locator("#nextButton").ClickAsync();
+            await page.Locator("#mediaContact").PressAsync("Tab");
             if (explicitEmail) await page.Locator("#accountEmail").FillAsync("private@example.com");
             await page.ReloadAsync();
             await AssertApplicationIdentityDraftAsync(page);
             await Assertions.Expect(page.Locator("#personalLink")).ToHaveValueAsync("https://example.com/alex");
-            await page.EvaluateAsync("() => { currentStage = 6; goToStage(6); }");
+            await page.EvaluateAsync("() => goToStage(4)");
             await page.Locator("#mediaContact").FillAsync("new-media@example.com");
-            await page.Locator("#nextButton").ClickAsync();
             await Assertions.Expect(page.Locator("#accountEmail")).ToHaveValueAsync(explicitEmail ? "private@example.com" : "new-media@example.com");
             Assert.Empty(errors);
         });
@@ -182,12 +178,10 @@ public sealed partial class NewAthleteOnboardingBrowserTests
         {
             await CompleteAmateurHandoffToApplicationAsync(page, DateTime.UtcNow.AddDays(-9).ToString("yyyy-MM-dd"));
             await FillApplicationIdentityDraftAsync(page);
-            await page.Locator("#nextButton").ClickAsync();
             await page.Locator("#why").FillAsync(DraftMotivation);
             // Only media is fixture data. The fields, validation and submission use the real form.
-            await page.EvaluateAsync("image => { profilePic = image; proofPics.push(image); currentStage = 6; goToStage(6); }", DraftImage);
+            await page.EvaluateAsync("image => { profilePic = image; proofPics.push(image); goToStage(4); }", DraftImage);
             await page.Locator("#mediaContact").FillAsync("media@example.com");
-            await page.Locator("#nextButton").ClickAsync();
             await page.Locator("#accountEmail").FillAsync("private@example.com");
             Assert.True(await ApplicationExitIsProtectedAsync(page));
             var requests = 0;
@@ -223,7 +217,7 @@ public sealed partial class NewAthleteOnboardingBrowserTests
                         destroy() {}
                         getCroppedCanvas() { const canvas = document.createElement('canvas'); canvas.width = 20; canvas.height = 20; return canvas; }
                     };
-                    currentStage = 4; goToStage(4);
+                    goToStage(2);
                 }
                 """);
             Assert.False(await ApplicationExitIsProtectedAsync(page));
@@ -265,6 +259,7 @@ public sealed partial class NewAthleteOnboardingBrowserTests
         await page.Locator("#division").SelectOptionAsync("Open");
         await page.Locator("#flag").FillAsync("United Kingdom");
         await page.Locator("#flag").PressAsync("Escape");
+        await page.Locator("#why").FillAsync(DraftMotivation);
     }
 
     private static async Task AssertApplicationIdentityDraftAsync(IPage page)

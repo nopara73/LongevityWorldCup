@@ -104,10 +104,8 @@ public sealed class ProofUploadBrowserTests(
         releaseProofHelper.SetResult();
         await navigation;
 
-        await AdvanceOnboardingStageAsync(page, "2. Finding your why");
-        await AdvanceOnboardingStageAsync(page, "3. The price of glory");
-        await AdvanceOnboardingStageAsync(page, "4/a. Almost there");
-        await AdvanceOnboardingStageAsync(page, "4/b. Don't trust, verify");
+        await AdvanceOnboardingStageAsync(page, "2. Almost there");
+        await AdvanceOnboardingStageAsync(page, "3. Don't trust, verify");
 
         await page.WaitForFunctionAsync(
             "() => document.getElementById('uploadProofButton')?.getAttribute('data-listener') === 'true'");
@@ -121,11 +119,12 @@ public sealed class ProofUploadBrowserTests(
         Assert.False(await page.Locator("#illustrationPicture").IsVisibleAsync());
 
         await page.Locator("#nextButton").ClickAsync();
-        await page.GetByRole(AriaRole.Heading, new() { Name = "5. Final details" }).WaitForAsync();
+        await page.GetByRole(AriaRole.Heading, new() { Name = "4. Final details" }).WaitForAsync();
         await page.Locator("#backButton").ClickAsync();
-        await page.GetByRole(AriaRole.Heading, new() { Name = "4/b. Don't trust, verify" }).WaitForAsync();
-        Assert.Equal("stage active", await page.Locator("#subStage4").GetAttributeAsync("class"));
-        Assert.Equal("stage", await page.Locator("#subStage5").GetAttributeAsync("class"));
+        await page.GetByRole(AriaRole.Heading, new() { Name = "3. Don't trust, verify" }).WaitForAsync();
+        Assert.Equal("stage active", await page.Locator("#subStage3").GetAttributeAsync("class"));
+        Assert.Equal("stage", await page.Locator("#subStage4").GetAttributeAsync("class"));
+        Assert.False(await page.Locator("#subStage5").IsVisibleAsync());
         Assert.True(await page.Locator("#onboardingProofSymbol").IsVisibleAsync());
         Assert.False(await page.Locator("#illustrationPicture").IsVisibleAsync());
 

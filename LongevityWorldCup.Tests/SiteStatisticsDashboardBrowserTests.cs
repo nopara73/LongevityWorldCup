@@ -397,8 +397,43 @@ public sealed class SiteStatisticsDashboardBrowserTests(
         Assert.Equal("application", root.GetProperty("flow").GetString());
         Assert.Equal("identity", root.GetProperty("step").GetString());
         Assert.Equal("1", root.GetProperty("metadata").GetProperty("stageNumber").GetString());
+        Assert.Equal("four-step", root.GetProperty("metadata").GetProperty("flowVersion").GetString());
         Assert.DoesNotContain("accountEmail", stageRequest.PostData ?? string.Empty, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("biomarkers", stageRequest.PostData ?? string.Empty, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task Dashboard_ApplicationStagesKeepCurrentAndEarlierFlowsSeparate()
+    {
+        using var client = new HttpClient { BaseAddress = App.BaseAddress };
+        var metadata = new Dictionary<string, JsonElement>
+        {
+            ["flowVersion"] = JsonSerializer.SerializeToElement("four-step")
+        };
+        foreach (var step in new[] { "identity", "profile-picture", "proof", "final-details" })
+            await PostEventAsync(client, "application_stage_reached", "application", "current-flow", "/apply", "application", "reached", metadata, step: step);
+        foreach (var step in new[] { "identity", "motivation" })
+            await PostEventAsync(client, "application_stage_reached", "application", "earlier-flow", "/apply", "application", "reached", step: step);
+        await App.Services.GetRequiredService<SiteStatisticsService>().RecordServerEventAsync(
+            "application_submit_succeeded", flow: "application", sessionId: "current-flow",
+            metadata: new Dictionary<string, object?> { ["submissionKind"] = "full-application" });
+
+        await using var context = await Browser.NewContextAsync(new() { BaseURL = App.BaseAddress.ToString(), Locale = "en-US" });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/internal/site-statistics.html?tab=Onboarding%20Diagnostics");
+        await page.Locator("#flowSelectors .flow-card").Filter(new() { HasText = "application" }).ClickAsync();
+        var panel = page.Locator("#detailSections .detail-panel")
+            .Filter(new() { Has = page.GetByRole(AriaRole.Heading, new() { Name = "Application stage completion", Exact = true }) });
+        await Assertions.Expect(panel.GetByRole(AriaRole.Heading, new() { Name = "Current application", Exact = true })).ToBeVisibleAsync();
+        await Assertions.Expect(panel.GetByRole(AriaRole.Heading, new() { Name = "Earlier application", Exact = true })).ToBeVisibleAsync();
+        await Assertions.Expect(panel.Locator("table")).ToHaveCountAsync(2);
+        var currentRows = panel.Locator("table").First.Locator("tbody tr");
+        await Assertions.Expect(currentRows.Locator("td:first-child")).ToHaveTextAsync(
+            ["Identity and motivation", "Profile picture", "Proof", "Contact details and privacy", "Submitted"]);
+        await Assertions.Expect(currentRows.Locator("td:nth-child(2)")).ToHaveTextAsync(["1", "1", "1", "1", "1"]);
+        await Assertions.Expect(currentRows.Locator("td:nth-child(3)")).ToHaveTextAsync(["0", "0", "0", "0", "-"]);
+        await Assertions.Expect(panel.Locator("table").Last.Locator("tbody tr").First.Locator("td:nth-child(2)")).ToHaveTextAsync("1");
     }
 
     private static async Task SeedEventsAsync(HttpClient client)

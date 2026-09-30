@@ -207,7 +207,7 @@ public sealed partial class NewAthleteOnboardingBrowserTests(
             await page.GotoAsync("/apply", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
             await page.Locator("#name[data-stage1-validity-listener='true']").WaitForAsync();
 
-            await page.EvaluateAsync("() => { currentStage = 4; goToStage(4); }");
+            await page.EvaluateAsync("() => goToStage(2)");
 
             var uploadButton = page.Locator("#uploadButton");
             await uploadButton.WaitForAsync();
@@ -1171,8 +1171,7 @@ public sealed partial class NewAthleteOnboardingBrowserTests(
     private static async Task GoToFakeApplicationFinalStageAsync(IPage page)
     {
         await GoToFakeProofStageAsync(page);
-        await AdvanceOnboardingStageAsync(page, "5. Final details");
-        await AdvanceOnboardingStageAsync(page, "Application");
+        await AdvanceOnboardingStageAsync(page, "4. Final details");
         await page.WaitForFunctionAsync("() => !document.getElementById('nextButton')?.disabled");
     }
 
@@ -1180,10 +1179,8 @@ public sealed partial class NewAthleteOnboardingBrowserTests(
     {
         await page.GotoAsync("/apply?fake=1", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
         await page.GetByRole(AriaRole.Heading, new() { Name = "1. Enter the arena" }).WaitForAsync();
-        await AdvanceOnboardingStageAsync(page, "2. Finding your why");
-        await AdvanceOnboardingStageAsync(page, "3. The price of glory");
-        await AdvanceOnboardingStageAsync(page, "4/a. Almost there");
-        await AdvanceOnboardingStageAsync(page, "4/b. Don't trust, verify");
+        await AdvanceOnboardingStageAsync(page, "2. Almost there");
+        await AdvanceOnboardingStageAsync(page, "3. Don't trust, verify");
         await page.WaitForFunctionAsync(
             "() => document.getElementById('uploadProofButton')?.getAttribute('data-listener') === 'true'");
     }

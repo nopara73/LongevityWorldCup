@@ -2473,7 +2473,13 @@
     }
 
     function applicationStageTable(events: DashboardEvent[]): string {
-        const stages: FunnelDefinition[] = [
+        const currentStages: FunnelDefinition[] = [
+            ["identity", "Identity and motivation"],
+            ["profile-picture", "Profile picture"],
+            ["proof", "Proof"],
+            ["final-details", "Contact details and privacy"]
+        ];
+        const earlierStages: FunnelDefinition[] = [
             ["identity", "Identity"],
             ["motivation", "Motivation"],
             ["price-and-privacy", "Price and privacy"],
@@ -2485,6 +2491,15 @@
         const stageEvents = events.filter(e => e.eventName === "application_stage_reached");
         if (!stageEvents.length) return empty("No application stage data yet.");
 
+        const currentEvents = stageEvents.filter(e => metadataValue(e, "flowVersion") === "four-step");
+        const earlierEvents = stageEvents.filter(e => metadataValue(e, "flowVersion") !== "four-step");
+        if (!currentEvents.length) return applicationFlowStageTable(events, earlierEvents, earlierStages);
+        if (!earlierEvents.length) return applicationFlowStageTable(events, currentEvents, currentStages);
+        return `<h3>Current application</h3>${applicationFlowStageTable(events, currentEvents, currentStages)}
+            <h3>Earlier application</h3>${applicationFlowStageTable(events, earlierEvents, earlierStages)}`;
+    }
+
+    function applicationFlowStageTable(events: DashboardEvent[], stageEvents: DashboardEvent[], stages: FunnelDefinition[]): string {
         const firstStep = stages[0]?.[0];
         const firstSessions = new Set(stageEvents.filter(e => e.step === firstStep).map(e => e.sessionHash));
         if (!firstSessions.size) return empty("No application stage data yet.");

@@ -1,7 +1,12 @@
 // Function to update sub progress bar based on the current sub-stage
 function updateSubProgress(currentSubStage) {
     const subProgressFill = document.getElementById('subProgressFill');
-    const subStages = document.querySelectorAll('.sub-progress-container .stage');
+    const allStages = Array.from(document.querySelectorAll('.sub-progress-container .stage'));
+    const requestedCount = Number(document.body.dataset.subProgressSteps);
+    const stageCount = Number.isInteger(requestedCount) && requestedCount > 0
+        ? Math.min(requestedCount, allStages.length) : allStages.length;
+    allStages.forEach((stage, index) => { stage.style.display = index < stageCount ? '' : 'none'; });
+    const subStages = allStages.slice(0, stageCount);
 
     // Update sub-progress stages
     subStages.forEach((s, index) => {
@@ -15,7 +20,8 @@ function updateSubProgress(currentSubStage) {
     });
 
     // Update sub-progress bar fill
-    const subProgressPercentage = ((currentSubStage - 1) / (subStages.length - 1)) * 100;
+    const subProgressPercentage = subStages.length > 1
+        ? Math.max(0, Math.min(100, ((currentSubStage - 1) / (subStages.length - 1)) * 100)) : 100;
     subProgressFill.style.width = `${subProgressPercentage}%`;
 
     const subProgressContainerItem = document.getElementById('subProgressContainerItem');

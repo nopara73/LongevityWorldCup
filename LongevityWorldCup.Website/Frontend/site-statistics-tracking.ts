@@ -786,12 +786,9 @@
 
         const stageSteps: Readonly<Record<string, string>> = {
             "1": "identity",
-            "2": "motivation",
-            "3": "price-and-privacy",
-            "4": "profile-picture",
-            "5": "proof",
-            "6": "final-details",
-            "7": "contact-email"
+            "2": "profile-picture",
+            "3": "proof",
+            "4": "final-details"
         };
         const recordCurrentStage = (): void => {
             const stageNumber = document.body?.dataset.convergenceStage;
@@ -799,11 +796,11 @@
             const step = stageSteps[stageNumber];
             if (!step) return;
 
-            trackOnce(`application-stage-${step}`, "application_stage_reached", {
+            trackOnce(`application-stage-four-step-${step}`, "application_stage_reached", {
                 component: "application",
                 step,
                 outcome: "reached",
-                metadata: { stageNumber }
+                metadata: { stageNumber, flowVersion: "four-step" }
             });
         };
 

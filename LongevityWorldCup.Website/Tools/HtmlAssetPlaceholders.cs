@@ -24,6 +24,8 @@ public static partial class HtmlAssetPlaceholders
         ["{{ASSET_CUSTOM_EVENT_IMAGE}}"] = "/assets/custom_event.png",
         ["{{ASSET_CUSTOM_EVENT_MARKUP_JS}}"] = "/js/custom-event-markup.js",
         ["{{ASSET_DONATION_QR}}"] = "/assets/Donation25QR.png",
+        ["{{ASSET_ENTER_ARENA_JPEG}}"] = "/assets/content-images/enter-arena.jpg",
+        ["{{ASSET_ENTER_ARENA_WEBP}}"] = "/assets/content-images/enter-arena.webp",
         ["{{ASSET_FAVICON_128}}"] = "/assets/favicon-128x128.png",
         ["{{ASSET_FAVICON_192}}"] = "/assets/favicon-192x192.png",
         ["{{ASSET_FAVICON_512}}"] = "/assets/favicon-512x512.png",
