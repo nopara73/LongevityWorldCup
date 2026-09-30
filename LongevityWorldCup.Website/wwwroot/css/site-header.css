@@ -1116,32 +1116,31 @@ textarea:focus-visible {
     }
 }
 
-/* The homepage is the competition's front door, so its primary action keeps
-   the full hero hierarchy. Task and documentation routes retain the compact
-   shared header above. */
+/* The front door frames the competition without pushing the athletes below
+   the fold. Keep the complete Play invitation beside the brand on desktop. */
 :where(body.home-page) header[role="banner"] {
     box-sizing: border-box;
-    min-height: clamp(220px, 26vw, 280px);
-    padding: clamp(var(--space-5), 3vw, var(--space-6));
-    flex-direction: column;
-    justify-content: center;
-    gap: var(--space-4);
+    min-height: 116px;
+    padding: var(--space-5) max(var(--space-5), calc((100% - 1152px) / 2));
+    flex-direction: row;
+    justify-content: space-between;
+    gap: var(--space-5);
     background: linear-gradient(120deg, #0b1117 0%, #2d3942 100%);
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.24);
+    box-shadow: none;
 }
 
 :where(body.home-page) header[role="banner"] .header-link {
-    max-width: calc(100% - 2rem);
-    min-height: 0;
+    max-width: none;
+    min-height: 44px;
     flex: 0 1 auto;
-    flex-direction: column;
-    gap: var(--space-1);
+    flex-direction: row;
+    gap: var(--space-4);
 }
 
 :where(body.home-page) header[role="banner"] .header-link > .main-logo-image {
-    width: clamp(72px, 8vw, 88px);
+    width: 56px;
     height: auto;
-    margin: 0 0 var(--space-2);
+    margin: 0;
     object-fit: contain;
 }
 
@@ -1149,7 +1148,7 @@ textarea:focus-visible {
     max-width: 100%;
     padding: 0;
     overflow: visible;
-    font-size: clamp(2rem, 4vw, 2.8rem);
+    font-size: clamp(1.5rem, 2.5vw, 2rem);
     line-height: 1.05;
     text-overflow: clip;
     white-space: nowrap;
@@ -1159,16 +1158,17 @@ textarea:focus-visible {
     position: relative;
     right: auto;
     display: inline-flex;
-    min-height: 52px;
-    max-width: calc(100% - 2rem);
-    padding: 0.8rem 1.8rem;
-    border-radius: var(--radius-lg);
-    font-size: 1.05rem;
+    flex: 0 0 auto;
+    min-height: 48px;
+    max-width: 100%;
+    padding: var(--space-3) var(--space-5);
+    border-radius: var(--radius-md);
+    font-size: 1rem;
     letter-spacing: 0.025em;
 }
 
 :where(body.home-page) header[role="banner"] .join-game:not(.scrolled-button)::before {
-    border-radius: calc(var(--radius-lg) + var(--space-1));
+    border-radius: calc(var(--radius-md) + var(--space-1));
 }
 
 :where(body.home-page) header[role="banner"] .join-game:not(.scrolled-button) .join-game-middle,
@@ -1176,21 +1176,34 @@ textarea:focus-visible {
     display: inline-block;
 }
 
-@media (max-width: 640px) and (min-height: 481px) {
+@media (max-width: 800px) {
     :where(body.home-page) header[role="banner"] {
-        min-height: 240px;
+        min-height: 140px;
         padding: var(--space-4);
+        flex-direction: column;
+        justify-content: center;
+        gap: var(--space-3);
+    }
+
+    :where(body.home-page) header[role="banner"] .header-link {
+        max-width: 100%;
+        gap: var(--space-3);
     }
 
     :where(body.home-page) header[role="banner"] .header-link > .main-logo-image {
-        width: 72px;
+        width: 40px;
         height: auto;
     }
 
     :where(body.home-page) header[role="banner"] .bannertext {
-        font-size: clamp(1.75rem, 8vw, 2.15rem);
+        font-size: clamp(1.2rem, 5.5vw, 1.5rem);
+        white-space: normal;
     }
 
+    :where(body.home-page) header[role="banner"] .join-game:not(.scrolled-button) {
+        min-height: 44px;
+        padding: var(--space-2) var(--space-5);
+    }
 }
 
 @media (max-width: 932px) and (max-height: 480px) and (orientation: landscape) {

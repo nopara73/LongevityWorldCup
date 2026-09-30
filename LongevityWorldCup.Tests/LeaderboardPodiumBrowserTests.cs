@@ -9,8 +9,10 @@ public sealed class LeaderboardPodiumBrowserTests(
     BrowserTestAppFixture appFixture)
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
-    [Fact]
-    public async Task LeaderboardRowsAndPodiumCards_PreserveTheirBroadDetailsHitAreas()
+    [Theory]
+    [InlineData(ColorScheme.Light)]
+    [InlineData(ColorScheme.Dark)]
+    public async Task LeaderboardRowsAndPodiumCards_PreserveFeedbackAndTheirBroadDetailsHitAreas(ColorScheme colorScheme)
     {
         var app = App;
         var browser = Browser;
@@ -18,6 +20,8 @@ public sealed class LeaderboardPodiumBrowserTests(
         {
             BaseURL = app.BaseAddress.ToString(),
             Locale = "en-US",
+            ColorScheme = colorScheme,
+            ReducedMotion = ReducedMotion.Reduce,
             ViewportSize = new ViewportSize { Width = 1026, Height = 720 }
         });
         await context.AddInitScriptAsync("localStorage.setItem('gmaSkipAll', 'true');");
@@ -40,6 +44,25 @@ public sealed class LeaderboardPodiumBrowserTests(
         var fullAthleteCount = await page.EvaluateAsync<int>(
             "() => window.__sharedAthletesRequest.then(athletes => athletes.length)");
         Assert.True(fullAthleteCount >= 200, $"Expected the full-scale athlete fixture; received {fullAthleteCount} rows.");
+
+        var proRows = page.Locator(".leaderboard tbody:not(.loading-skeleton) tr.tier-pro:visible");
+        // Both striped and unstriped athletes must show hover and rank-link feedback.
+        foreach (var index in new[] { 0, 1 })
+        {
+            var row = proRows.Nth(index);
+            await page.Mouse.MoveAsync(0, 0);
+            var restingBackground = await row.EvaluateAsync<string>("row => getComputedStyle(row).backgroundColor");
+            await row.HoverAsync();
+            await Assertions.Expect(row).Not.ToHaveCSSAsync("background-color", restingBackground);
+            await page.Mouse.MoveAsync(0, 0);
+            await Assertions.Expect(row).ToHaveCSSAsync("background-color", restingBackground);
+            var rankAnchor = await row.GetAttributeAsync("id");
+            await page.EvaluateAsync("anchor => location.hash = anchor", rankAnchor);
+            Assert.True(await row.EvaluateAsync<bool>("row => row.matches(':target')"));
+            await Assertions.Expect(row).Not.ToHaveCSSAsync("background-color", restingBackground);
+            await page.EvaluateAsync("location.hash = ''");
+            await Assertions.Expect(row).ToHaveCSSAsync("background-color", restingBackground);
+        }
 
         var visibleRows = page.Locator(".leaderboard tbody:not(.loading-skeleton) tr[data-athlete-name]:visible");
         var visibleRowCount = await visibleRows.CountAsync();
@@ -73,8 +96,10 @@ public sealed class LeaderboardPodiumBrowserTests(
         Assert.False(await page.Locator("#detailsModal").IsVisibleAsync());
     }
 
-    [Fact]
-    public async Task PodiumContent_RemainsAboveThePrizePanelAcrossTheDesktopBoundary()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task PodiumContent_RemainsAboveThePrizePanelAcrossTheDesktopBoundary(bool javaScriptEnabled)
     {
         var app = App;
         var browser = Browser;
@@ -82,6 +107,7 @@ public sealed class LeaderboardPodiumBrowserTests(
         {
             BaseURL = app.BaseAddress.ToString(),
             Locale = "en-US",
+            JavaScriptEnabled = javaScriptEnabled,
             ViewportSize = new ViewportSize { Width = 1026, Height = 505 }
         });
         await BrowserTestApp.RouteExternalResourcesAsync(context);
@@ -90,6 +116,10 @@ public sealed class LeaderboardPodiumBrowserTests(
         await page.GotoAsync("/", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
         await page.WaitForFunctionAsync(
             "() => document.querySelectorAll('.podium-item:not(.podium-skeleton-item)').length === 3");
+        if (javaScriptEnabled)
+        {
+            await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+        }
         // Measure the resting baseline after the deliberately staggered entrance.
         await page.WaitForFunctionAsync(
             "() => !document.documentElement.classList.contains('homepage-arriving')");
@@ -98,11 +128,15 @@ public sealed class LeaderboardPodiumBrowserTests(
                  {
                      new ViewportSize { Width = 1026, Height = 505 },
                      new ViewportSize { Width = 769, Height = 481 },
-                     new ViewportSize { Width = 768, Height = 481 }
+                     new ViewportSize { Width = 768, Height = 481 },
+                     new ViewportSize { Width = 683, Height = 900 },
+                     new ViewportSize { Width = 548, Height = 844 },
+                     new ViewportSize { Width = 390, Height = 844 },
+                     new ViewportSize { Width = 320, Height = 700 }
                  })
         {
             await page.SetViewportSizeAsync(viewport.Width, viewport.Height);
-            await SettleLayoutAsync(page);
+            await SettleLayoutAsync(page, javaScriptEnabled);
 
             var layouts = await MeasurePodiumAsync(page);
             Assert.Equal(3, layouts.Length);
@@ -111,20 +145,29 @@ public sealed class LeaderboardPodiumBrowserTests(
             var first = Assert.Single(layouts, layout => layout.Rank == "first");
             var second = Assert.Single(layouts, layout => layout.Rank == "second");
             var third = Assert.Single(layouts, layout => layout.Rank == "third");
-            Assert.True(first.CardHeight > second.CardHeight);
-            Assert.True(second.CardHeight > third.CardHeight);
-
             if (viewport.Width > 768)
             {
-                var cardBottoms = layouts.Select(layout => layout.CardBottom).ToArray();
-                Assert.True(
-                    cardBottoms.Max() - cardBottoms.Min() <= 1,
-                    $"Podium cards stopped sharing a baseline at {viewport.Width}x{viewport.Height}.");
+                AssertDesktopPodiumGeometry(layouts, $"at {viewport.Width}x{viewport.Height}");
             }
+            else
+            {
+                Assert.True(first.CardBottom <= Math.Min(second.CardTop, third.CardTop),
+                    "The champion must remain above the other two athletes on mobile.");
+                Assert.InRange(Math.Abs(second.CardTop - third.CardTop), 0, 1);
+                Assert.True(second.CardRight <= third.CardLeft,
+                    "Second and third place must fit beside each other without overlapping.");
+                Assert.InRange(first.CardLeft, 0, viewport.Width);
+                Assert.InRange(third.CardRight, 0, viewport.Width);
+                Assert.InRange(Math.Abs(first.NameLeft - first.MetricLeft), 0, 1);
+                Assert.InRange(Math.Abs(first.NameLeft - first.LinkRowLeft), 0, 1);
+                Assert.True(Math.Max(second.CardBottom, third.CardBottom) - first.CardTop < 600,
+                    "The mobile podium must leave room for the standings below it.");
+            }
+            Assert.InRange(await page.EvaluateAsync<int>("document.documentElement.scrollWidth"), 0, viewport.Width);
         }
 
         await page.SetViewportSizeAsync(1026, 505);
-        await SettleLayoutAsync(page);
+        await SettleLayoutAsync(page, javaScriptEnabled);
         foreach (var rank in new[] { "first", "second", "third" })
         {
             var beforeStress = await MeasurePodiumAsync(page);
@@ -134,7 +177,7 @@ public sealed class LeaderboardPodiumBrowserTests(
             await athleteName.EvaluateAsync(
                 "(element, value) => element.textContent = value",
                 $"Alexandria-Cassandra von Hohenlohe-{rank}-Longevity-Research-Collective");
-            await SettleLayoutAsync(page);
+            await SettleLayoutAsync(page, javaScriptEnabled);
 
             var stressedLayouts = await MeasurePodiumAsync(page);
             AssertPodiumContentDoesNotOverlapPrizePanel(
@@ -146,15 +189,30 @@ public sealed class LeaderboardPodiumBrowserTests(
                 $"The {rank}-place card did not grow to accommodate a wrapped athlete name.");
 
             await athleteName.EvaluateAsync("(element, value) => element.textContent = value", originalName);
-            await SettleLayoutAsync(page);
+            await SettleLayoutAsync(page, javaScriptEnabled);
         }
+
+        await page.SetViewportSizeAsync(320, 700);
+        await page.Locator(".podium-item.first .athlete-name").EvaluateAsync(
+            "element => element.textContent = 'Alexandria-Cassandra von Hohenlohe-Longevity-Research-Collective'");
+        await SettleLayoutAsync(page, javaScriptEnabled);
+        AssertPodiumContentDoesNotOverlapPrizePanel(
+            await MeasurePodiumAsync(page), new ViewportSize { Width = 320, Height = 700 });
+        Assert.InRange(await page.EvaluateAsync<int>("document.documentElement.scrollWidth"), 0, 320);
     }
 
-    private static async Task SettleLayoutAsync(IPage page)
+    private static async Task SettleLayoutAsync(IPage page, bool javaScriptEnabled)
     {
-        await page.EvaluateAsync("() => document.fonts?.ready || Promise.resolve()");
-        await page.EvaluateAsync(
-            "() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+        if (javaScriptEnabled)
+        {
+            await page.EvaluateAsync("() => document.fonts?.ready || Promise.resolve()");
+            await page.EvaluateAsync(
+                "() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+        }
+        else
+        {
+            await page.WaitForLoadStateAsync(LoadState.Load);
+        }
     }
 
     private static async Task AssertDetailsModalShowsAthleteAsync(IPage page, string expectedName)
@@ -189,9 +247,15 @@ public sealed class LeaderboardPodiumBrowserTests(
                     Rank: ['first', 'second', 'third'].find(rank => card.classList.contains(rank)),
                     Athlete: card.getAttribute('data-athlete-name'),
                     CardHeight: cardRect.height,
+                    CardTop: cardRect.top,
+                    CardLeft: cardRect.left,
+                    CardRight: cardRect.right,
                     CardBottom: cardRect.bottom,
                     ContentBottom: contentBottom,
                     MetricBottom: metricRect.bottom,
+                    MetricLeft: metricRect.left,
+                    NameLeft: card.querySelector('.athlete-name').getBoundingClientRect().left,
+                    LinkRowLeft: card.querySelector('.podium-link-row').getBoundingClientRect().left,
                     PrizePanelTop: panelRect.top
                 };
             })
@@ -234,9 +298,15 @@ public sealed class LeaderboardPodiumBrowserTests(
         public string Rank { get; set; } = "";
         public string Athlete { get; set; } = "";
         public double CardHeight { get; set; }
+        public double CardTop { get; set; }
+        public double CardLeft { get; set; }
+        public double CardRight { get; set; }
         public double CardBottom { get; set; }
         public double ContentBottom { get; set; }
         public double MetricBottom { get; set; }
+        public double MetricLeft { get; set; }
+        public double NameLeft { get; set; }
+        public double LinkRowLeft { get; set; }
         public double PrizePanelTop { get; set; }
     }
 }
