@@ -148,6 +148,7 @@ public sealed class AestheticSystemBrowserTests(
         Assert.NotEqual(readOnly.Color, proof.FilledActionColor);
 
         await NavigateAndSettleAsync(page, "/review");
+        await Assertions.Expect(page.Locator("#appReviewText")).ToHaveTextAsync("Result review");
         await page.WaitForSelectorAsync(".application-review-copy.primary");
         var review = await page.EvaluateAsync<DarkReviewDiagnostics>(
             """

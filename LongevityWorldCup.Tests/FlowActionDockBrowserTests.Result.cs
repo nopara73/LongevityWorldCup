@@ -917,7 +917,8 @@ public sealed class FlowActionDockResultBrowserTests(
         {
             BaseURL = app.BaseAddress.ToString(),
             Locale = "en-US",
-            ViewportSize = new ViewportSize { Width = 390, Height = 844 }
+            // The shorter date form fits at 844px; use a height that exercises the sticky state.
+            ViewportSize = new ViewportSize { Width = 390, Height = 740 }
         });
         await BrowserTestApp.RouteExternalResourcesAsync(context);
 

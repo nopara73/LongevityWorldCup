@@ -126,7 +126,9 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         {
             var box = await target.BoundingBoxAsync();
             Assert.NotNull(box);
-            Assert.True(box.Width >= 44 && box.Height >= 44, $"Tap target is {box.Width}x{box.Height}.");
+            // DOM rectangles can report a 44px target a fraction of a pixel below 44.
+            Assert.True(Math.Round(box.Width, 2) >= 44 && Math.Round(box.Height, 2) >= 44,
+                $"Tap target is {box.Width}x{box.Height}.");
             Assert.InRange(box.X, 0, width - box.Width + 1);
             Assert.InRange(box.Y, 0, height - box.Height + 1);
         }

@@ -313,7 +313,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         Assert.False(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth > innerWidth"));
         await AnswerAllHabitsAsync(form);
         await Assertions.Expect(save).ToBeEnabledAsync();
-        await Assertions.Expect(form.Locator("[data-checkin-progress]")).ToHaveTextAsync("Ready to save");
+        await Assertions.Expect(form.Locator("[data-checkin-progress]")).ToBeEmptyAsync();
         await Assertions.Expect(form.Locator("[data-discussion-post-participant-id]")).ToHaveCountAsync(0);
         await Assertions.Expect(form.Locator(".lmx-recent-remarks")).ToHaveCountAsync(0);
         await form.Locator("[data-photo-button]").EvaluateAsync("e => e.scrollIntoView({block:'center',behavior:'instant'})");
