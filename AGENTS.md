@@ -19,6 +19,7 @@ Update the relevant guidance when behavior changes. Keep domain rules in the glo
 
 - Fix the underlying invariant, inspect its other implementations, and refactor within that scope when structure causes or conceals bugs. Review both backend and frontend ranking logic when either changes.
 - Put temporary agent outputs in ignored `.artifacts/`; keep disposable files out of tracked folders unless requested.
+- A request for PR screenshots means attach review evidence to the PR. Keep captures in ignored `.artifacts/`; do not force-add them or commit them to the repository.
 - Do not merge ImageSharp v4+ or ImageSharp.Drawing v3+ until the project adopts their licensing path or removes those direct dependencies. Current-major patch/minor upgrades require passing CI and dependency review.
 - Frontend source is `LongevityWorldCup.Website/Frontend`; generated `wwwroot/js` is ignored and must never be committed. Normal builds compile it. Reserve `BuildFrontend=false` for the documented Node-free publish using the exact CI-built artifact. See [Frontend/README.md](LongevityWorldCup.Website/Frontend/README.md) for loading contracts.
 - Injected HTML and partials use placeholders through `HtmlInjectionMiddleware` and `AssetVersionProvider.AppendVersion(...)`. Preserve versioning for scripts, CSS, assets, favicon, manifest, shared logo, and bioage onboarding/rank previews. A raw URL exception needs a verified cache rationale. Check every calling page, modal, iframe, and embedded context. The data service must also version athlete profile/proof URLs.

@@ -26,6 +26,16 @@ jobs:
 
     steps:
     - uses: actions/checkout@v7
+    - name: Reject tracked local artifacts
+      shell: bash
+      run: |
+        set -euo pipefail
+        tracked="$(git ls-files -ci --exclude-standard)"
+        if [[ -n "$tracked" ]]; then
+          echo "Local artifacts must not be tracked:"
+          printf '%s\n' "$tracked"
+          exit 1
+        fi
     - name: Setup .NET
       uses: actions/setup-dotnet@v6
       with:
