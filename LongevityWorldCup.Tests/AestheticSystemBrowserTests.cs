@@ -975,7 +975,7 @@ public sealed class AestheticSystemBrowserTests(
         var repositoryRoot = FindRepositoryRoot();
         var webRoot = Path.Combine(repositoryRoot, "LongevityWorldCup.Website", "wwwroot");
         var containerPattern = new Regex(
-            """@container(?:\s+[\w-]+)?\s*\(\s*(?<bound>min|max)-width\s*:\s*(?<value>\d+(?:\.\d+)?)(?<unit>rem|px)\s*\)""",
+            """@container(?:\s+(?<name>[\w-]+))?\s*\(\s*(?<bound>min|max)-width\s*:\s*(?<value>\d+(?:\.\d+)?)(?<unit>rem|px)\s*\)""",
             RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
         var conditions = new List<ResponsiveContainerCondition>();
 
@@ -1005,7 +1005,8 @@ public sealed class AestheticSystemBrowserTests(
                     match.Groups["bound"].Value.ToLowerInvariant(),
                     double.Parse(match.Groups["value"].Value, System.Globalization.CultureInfo.InvariantCulture),
                     match.Groups["unit"].Value.ToLowerInvariant(),
-                    relativePath));
+                    relativePath,
+                    match.Groups["name"].Success ? match.Groups["name"].Value : null));
             }
         }
 
@@ -1134,6 +1135,43 @@ public sealed class AestheticSystemBrowserTests(
             var thresholdPixels = condition.Unit == "rem"
                 ? condition.Value * rootFontSize
                 : condition.Value;
+            if (condition.Name == "lmx-checkin")
+            {
+                foreach (var delta in new[] { -1, 0, 1, 0, -1 })
+                {
+                    var inlineSize = thresholdPixels + delta;
+                    var diagnostics = await page.EvaluateAsync<ContainerQueryDiagnostics>(
+                        """
+                        async width => {
+                            let entry = document.getElementById('responsive-checkin-probe');
+                            if (!entry) {
+                                entry = document.createElement('div');
+                                entry.id = 'responsive-checkin-probe';
+                                entry.className = 'lmx-checkin-entry';
+                                entry.innerHTML = `<div class="lmx-question">
+                                    <div class="lmx-question-label">Did you set yourself up for good sleep last night?</div>
+                                    <div class="lmx-growth-control"><figure class="lmx-plant"></figure>
+                                        <div class="lmx-answer-options">${[0, 1, 2].map(() => '<label class="lmx-answer-option"><span class="lmx-answer-face"></span></label>').join('')}</div>
+                                    </div></div>`;
+                                document.querySelector('main').append(entry);
+                            }
+                            entry.style.inlineSize = `${width}px`;
+                            await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                            const question = entry.querySelector('.lmx-question');
+                            return {
+                                ContainerWidth: parseFloat(getComputedStyle(entry).width),
+                                IsCompact: getComputedStyle(question).gridTemplateColumns.split(' ').length === 1,
+                                HorizontalOverflow: Math.max(0, entry.scrollWidth - entry.clientWidth)
+                            };
+                        }
+                        """, inlineSize);
+                    Assert.Equal(inlineSize, diagnostics.ContainerWidth, 1);
+                    Assert.Equal(inlineSize <= thresholdPixels, diagnostics.IsCompact);
+                    Assert.True(diagnostics.HorizontalOverflow <= 1);
+                }
+                continue;
+            }
+            Assert.Null(condition.Name);
             const string surface = "lmx-note";
             // Cross the boundary in both directions on the same component.
             foreach (var delta in new[] { -1, 0, 1, 0, -1 })
@@ -1483,7 +1521,8 @@ public sealed class AestheticSystemBrowserTests(
         string Bound,
         double Value,
         string Unit,
-        string Source);
+        string Source,
+        string? Name = null);
 
     internal sealed class ScriptViewportDiagnostics
     {

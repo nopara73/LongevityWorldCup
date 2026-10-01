@@ -4424,9 +4424,9 @@ a.lmx-note-mention:focus-visible {
     --lmx-habit-deep: var(--lmx-category-deep, var(--lmx-sleep-deep));
     --lmx-habit-soft: var(--lmx-category-soft, var(--lmx-sleep-soft));
     display: grid;
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) minmax(12.25rem, 46%);
     align-items: center;
-    gap: var(--lwc-space-1);
+    gap: var(--lwc-space-2);
     margin: var(--lwc-space-1) 0;
     padding: var(--lwc-space-1) var(--lwc-space-2);
     border: 1px solid var(--lmx-border);
@@ -4705,10 +4705,10 @@ a.lmx-note-mention:focus-visible {
 }
 
 /* Size the shared check-in by its form width, including the narrow desktop sidebar. */
-@container lmx-checkin (min-width: 28rem) {
+@container lmx-checkin (max-width: 28rem) {
     .lmx-question {
-        grid-template-columns: minmax(0, 1fr) minmax(12.25rem, 46%);
-        gap: var(--lwc-space-2);
+        grid-template-columns: minmax(0, 1fr);
+        gap: var(--lwc-space-1);
     }
 }
 

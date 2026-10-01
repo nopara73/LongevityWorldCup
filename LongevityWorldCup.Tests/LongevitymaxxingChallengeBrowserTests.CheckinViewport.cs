@@ -66,6 +66,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await Assertions.Expect(page.Locator(".lmx-checkin-dialog-panel")).ToHaveCountAsync(0);
         var form = page.Locator(".lmx-checkin-card");
         await Assertions.Expect(form).ToBeVisibleAsync();
+        await WaitForCheckInScrollToSettleAsync(page);
         // The dashboard precedes the form in the stacked mobile layout.
         if (width <= 1080)
             await form.EvaluateAsync("""
@@ -77,6 +78,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
                     scrollTo({top: scrollY + first.getBoundingClientRect().top - headerBottom - 8, behavior: 'instant'});
                 }
                 """);
+        await WaitForCheckInScrollToSettleAsync(page);
         await CaptureCheckInViewportAsync(page, $"regular-{width}-{height}-{theme}");
         await AssertHabitControlsFitAsync(page, form, width, height);
         await AnswerAllHabitsAsync(form);
@@ -86,6 +88,20 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await form.Locator("textarea").FillAsync("A remark that may be reached by scrolling below the four habits.");
         await Assertions.Expect(form.Locator("button[type='submit']")).ToBeEnabledAsync();
     }
+
+    private static Task WaitForCheckInScrollToSettleAsync(IPage page) => page.EvaluateAsync("""
+        () => new Promise(resolve => {
+            let previous = NaN;
+            let stableFrames = 0;
+            const check = () => {
+                stableFrames = Math.abs(scrollY - previous) < 0.1 ? stableFrames + 1 : 0;
+                previous = scrollY;
+                if (stableFrames >= 4) resolve();
+                else requestAnimationFrame(check);
+            };
+            requestAnimationFrame(check);
+        })
+        """);
 
     private static async Task AssertHabitControlsFitAsync(IPage page, ILocator form, int width, int height)
     {
