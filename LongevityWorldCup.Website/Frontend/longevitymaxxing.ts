@@ -2790,11 +2790,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             <div class="lmx-checkin-entry">
             ${questions}
             <div class="lmx-field lmx-mention-field">
+                <div class="lmx-checkin-note-head">
                 <label for="lmx-note-${day.challengeDay}">Remarks</label>
-                <textarea id="lmx-note-${day.challengeDay}" data-character-limit="240" placeholder="Visible publicly" data-mention-input role="combobox" aria-autocomplete="list" aria-haspopup="listbox" aria-expanded="false" aria-controls="lmx-mentions-${day.challengeDay}" aria-describedby="lmx-note-${day.challengeDay}-count">${esc(draft ? draft.note : note)}</textarea>
-                <div id="lmx-mentions-${day.challengeDay}" class="lmx-mention-options" role="listbox" aria-label="Mention a participant" hidden></div>
-            </div>
-            <div class="lmx-field lmx-note-photo-field" data-photo-slots="${photoSlotsLeft}">
                 <div class="lmx-note-photo-picker">
                     <button class="lmx-discussion-quiet-action lmx-discussion-add-photo" type="button" data-photo-button
                         title="Add photos (or paste or drop an image)" aria-label="Add photos" aria-describedby="lmx-note-${day.challengeDay}-photo-count"${photoSlotsLeft <= 0 ? " disabled" : ""}>
@@ -2804,6 +2801,11 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                     <span id="lmx-note-${day.challengeDay}-photo-count" data-photo-count hidden></span>
                     <span id="lmx-note-${day.challengeDay}-count" class="lmx-note-character-count" data-note-character-count></span>
                 </div>
+                </div>
+                <textarea id="lmx-note-${day.challengeDay}" data-character-limit="240" placeholder="Visible publicly" data-mention-input role="combobox" aria-autocomplete="list" aria-haspopup="listbox" aria-expanded="false" aria-controls="lmx-mentions-${day.challengeDay}" aria-describedby="lmx-note-${day.challengeDay}-count">${esc(draft ? draft.note : note)}</textarea>
+                <div id="lmx-mentions-${day.challengeDay}" class="lmx-mention-options" role="listbox" aria-label="Mention a participant" hidden></div>
+            </div>
+            <div class="lmx-field lmx-note-photo-field" data-photo-slots="${photoSlotsLeft}">
                 ${savedImageHtml}
                 <div class="lmx-note-photo-grid pending" data-photo-previews></div>
                 <div class="lmx-photo-feedback" data-photo-feedback role="status" aria-live="polite"></div>

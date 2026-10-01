@@ -1707,7 +1707,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
     }
 
     [Fact]
-    public async Task DirectCheckInLink_OpensFocusedDialogWithExplicitTaperedTallAnswersAndDisabledSaveUntilComplete()
+    public async Task DirectCheckInLink_OpensFocusedDialogWithCompactTaperedAnswersAndDisabledSaveUntilComplete()
     {
         var app = App;
         var browser = Browser;
@@ -1775,15 +1775,15 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
             "elements => elements.map(element => { const box = element.getBoundingClientRect(); return [box.width, box.height]; })");
         Assert.All(answerIconSizes, size =>
         {
-            Assert.InRange(size[0], 36, 42);
-            Assert.InRange(size[1], 36, 42);
+            Assert.InRange(size[0], 28, 32);
+            Assert.InRange(size[1], 28, 32);
         });
         var answerMouths = await dialog.Locator(".lmx-answer-face-mouth").EvaluateAllAsync<string[]>(
             "elements => elements.map(element => element.getAttribute('d'))");
         Assert.Equal(3, answerMouths.Distinct().Count());
         var answerHeights = await answerFaces.EvaluateAllAsync<double[]>(
             "elements => elements.map(element => element.getBoundingClientRect().height)");
-        Assert.All(answerHeights, height => Assert.True(height >= 100, $"Expected a tall answer button; got {height}px."));
+        Assert.All(answerHeights, height => Assert.True(height >= 44, $"Expected a usable answer tap target; got {height}px."));
         var sleepAnswerBoxes = await dialog
             .Locator(".lmx-question[data-key='sleep'] .lmx-answer-face")
             .EvaluateAllAsync<double[][]>(
