@@ -220,9 +220,13 @@ public sealed class LeaderboardSelectionBrowserTests(PlaywrightBrowserFixture br
         await using var context = await NewContextAsync(Browser, App, new());
         var page = await context.NewPageAsync();
         await page.GotoAsync("/leaderboard?search=Max%2011");
+        await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
         await Assertions.Expect(page.Locator("#leaderboardResultCount")).ToHaveTextAsync("0 athletes");
-        await page.Locator(".sidebar-toggle").ClickAsync();
+        var toggle = page.Locator(".sidebar-toggle");
+        if (await toggle.GetAttributeAsync("aria-expanded") != "true") await toggle.ClickAsync();
+        await Assertions.Expect(toggle).ToHaveAttributeAsync("aria-expanded", "true");
         var pheno = page.Locator("input[name=agingClockView][value=pheno]");
+        await Assertions.Expect(pheno).ToBeVisibleAsync();
         await Assertions.Expect(pheno).ToBeEnabledAsync();
         await Assertions.Expect(pheno.Locator("..").Locator(".filter-count")).ToHaveTextAsync("1");
         await pheno.CheckAsync();
