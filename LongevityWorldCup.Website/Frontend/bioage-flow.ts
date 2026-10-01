@@ -940,13 +940,7 @@ interface Window {
             ? completed > 0 && hasBloodDrawDate
             : total > 0 && completed === total;
         controller.progress.textContent = controller.isUpdate
-            ? !hasBloodDrawDate && completed === 0
-                ? 'Enter the blood draw date and at least 1 new biomarker value'
-                : !hasBloodDrawDate
-                    ? 'Enter the blood draw date'
-                    : completed > 0
-                        ? `${completed} biomarker${completed === 1 ? '' : 's'} ready to update`
-                        : 'Enter at least 1 new biomarker value'
+            ? `${completed} new biomarker${completed === 1 ? '' : 's'}${completed > 0 && !hasBloodDrawDate ? ' · blood draw date required' : ''}`
             : `${completed} of ${total} biomarkers entered`;
         controller.progress.classList.toggle('bioage-biomarker-progress--complete', ready);
 

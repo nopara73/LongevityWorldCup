@@ -222,7 +222,7 @@ public sealed class BioageMobileUxBrowserTests(
 
         var calculate = page.Locator("#calculateBioageButton");
         Assert.True(await calculate.IsDisabledAsync());
-        Assert.Equal("Enter the blood draw date and at least 1 new biomarker value",
+        Assert.Equal("0 new biomarkers",
             await page.Locator(".bioage-biomarker-progress").InnerTextAsync());
         Assert.Equal(biomarkerCount, await page.Locator(
             "#lwc-step-2 .biomarker-card input[type=\"number\"][required]").CountAsync());
@@ -230,8 +230,13 @@ public sealed class BioageMobileUxBrowserTests(
         var bloodDrawDate = page.Locator("#blood-draw-date");
         Assert.True(await bloodDrawDate.IsVisibleAsync());
         Assert.Equal("", await bloodDrawDate.InputValueAsync());
+        await page.Locator("#glucose").FillAsync("5.2");
+        await Assertions.Expect(page.Locator(".bioage-biomarker-progress"))
+            .ToHaveTextAsync("1 new biomarker · blood draw date required");
+        await Assertions.Expect(calculate).ToBeDisabledAsync();
+        await page.Locator("#glucose").FillAsync("");
         await bloodDrawDate.FillAsync(DateTime.UtcNow.Date.AddDays(-9).ToString("yyyy-MM-dd"));
-        Assert.Equal("Enter at least 1 new biomarker value",
+        Assert.Equal("0 new biomarkers",
             await page.Locator(".bioage-biomarker-progress").InnerTextAsync());
         Assert.True(await calculate.IsDisabledAsync());
 
@@ -252,7 +257,7 @@ public sealed class BioageMobileUxBrowserTests(
             }
             """);
         Assert.False(await calculate.IsDisabledAsync(), updateState);
-        Assert.Equal("1 biomarker ready to update",
+        Assert.Equal("1 new biomarker",
             await page.Locator(".bioage-biomarker-progress").InnerTextAsync());
 
         await calculate.TapAsync();

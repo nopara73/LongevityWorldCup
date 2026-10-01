@@ -534,7 +534,7 @@ public sealed class LongevitymaxxingChallengePageTests(TestWebApplicationFactory
         Assert.DoesNotContain("checkin-only", javascript);
         Assert.DoesNotContain(".lmx-hero.checkin-only", css);
         Assert.Contains("toggle(\"lmxBoardSection\", true);", javascript);
-        Assert.Contains("toggle(\"lmxParticipantKicker\", !!kicker);", javascript);
+        Assert.DoesNotContain("lmxParticipantKicker", await client.GetStringAsync("/longevitymaxxing"));
         Assert.Contains("function isParticipantTabLocked", javascript);
         Assert.Contains("if (isParticipantTabLocked(tab, participantState)) return;", javascript);
         Assert.Contains("button.toggleAttribute(\"disabled\", locked);", javascript);
@@ -854,7 +854,7 @@ public sealed class LongevitymaxxingChallengePageTests(TestWebApplicationFactory
         Assert.Contains("const MAX_NOTE_PHOTOS = 4;", javascript);
         Assert.Contains("<label for=\"lmx-note-${day.challengeDay}\">Remarks</label>", javascript);
         Assert.DoesNotContain("<span>optional</span>", javascript);
-        Assert.Contains("aria-hidden=\"true\"></i>Save</button>", javascript);
+        Assert.Contains("<button class=\"lmx-button\" type=\"submit\" disabled>Save</button>", javascript);
         Assert.DoesNotContain("Participant note <span>optional</span>", javascript);
         Assert.DoesNotContain("Note photos <span>optional</span>", javascript);
         Assert.DoesNotContain("Save day ${day.challengeDay}", javascript);

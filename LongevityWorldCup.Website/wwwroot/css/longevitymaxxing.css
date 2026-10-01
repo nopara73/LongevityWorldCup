@@ -1861,15 +1861,6 @@
     background: var(--lmx-surface-muted);
 }
 
-#lmxParticipantPanel:has(#lmxHomeTab[aria-selected="true"]) > .lmx-card-head {
-    display: none;
-}
-
-#lmxParticipantPanel:has(#lmxCheckinTab[aria-selected="true"]) > .lmx-card-head,
-#lmxParticipantPanel:has(#lmxCheckinTab[aria-selected="true"]) > .lmx-card-head h2 {
-    margin-bottom: 0;
-}
-
 #lmxParticipantTabs {
     gap: 0;
     padding: 0;
@@ -1986,8 +1977,7 @@
     gap: 0.25rem;
 }
 
-.lmx-access-loading strong,
-.lmx-access-loading em {
+.lmx-access-loading strong {
     min-width: 0;
     overflow-wrap: anywhere;
 }
@@ -1996,14 +1986,6 @@
     color: var(--lmx-ink);
     font-size: 1.05rem;
     line-height: 1.2;
-}
-
-.lmx-access-loading em {
-    color: var(--lmx-muted);
-    font-size: 0.9rem;
-    font-style: normal;
-    font-weight: 700;
-    line-height: 1.35;
 }
 
 .lmx-button {
@@ -2132,7 +2114,6 @@ body.lmx-checkin-dialog-open {
     transform: translate(-50%, -50%);
 }
 
-.lmx-checkin-dialog-panel > .lmx-card-head,
 .lmx-checkin-dialog-panel > .lmx-tabs,
 .lmx-checkin-dialog-panel .lmx-checkin-switcher {
     display: none;
@@ -4263,6 +4244,10 @@ a.lmx-note-mention:focus-visible {
     gap: 0.35rem;
 }
 
+.lmx-participant-actions:not(.lmx-checkin-dialog-panel) .lmx-checkin-switcher + .lmx-checkin-card > h3 {
+    display: none;
+}
+
 .lmx-checkin-entry {
     min-width: 0;
     container: lmx-checkin / inline-size;
@@ -4281,6 +4266,7 @@ a.lmx-note-mention:focus-visible {
 .lmx-checkin-save-row {
     display: flex;
     align-items: center;
+    justify-content: flex-end;
     gap: var(--lwc-space-2);
 }
 
@@ -4290,9 +4276,6 @@ a.lmx-note-mention:focus-visible {
     display: grid;
     font-size: var(--lwc-type-sm);
     line-height: 1.5;
-}
-
-.lmx-checkin-progress span {
     color: var(--lmx-muted);
 }
 
@@ -4318,14 +4301,6 @@ a.lmx-note-mention:focus-visible {
     border-left: 3px solid var(--lmx-danger);
     background: var(--lmx-surface-muted);
     font-size: var(--lwc-type-sm);
-}
-
-.lmx-checkin-actions .lmx-status.success {
-    min-height: 0;
-    margin-top: var(--lwc-space-1);
-    padding: var(--lwc-space-1) var(--lwc-space-2);
-    font-size: var(--lwc-type-sm);
-    line-height: 1.3;
 }
 
 .lmx-checkin-entry :is(.lmx-question, textarea, .lmx-note-photo-field) {
