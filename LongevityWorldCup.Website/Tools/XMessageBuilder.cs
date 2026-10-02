@@ -19,6 +19,9 @@ public static class XMessageBuilder
         Func<string, double?>? getPhenoDiffForSlug = null,
         Func<string, double?>? getBortzDiffForSlug = null)
     {
+        if (type == EventType.DonationReceived)
+            return DonationReceivedPost.BuildText(rawText) ?? "";
+
         if (type == EventType.AthleteCountMilestone)
         {
             if (!EventHelpers.TryExtractAthleteCount(rawText, out var count) || count <= 0) return "";

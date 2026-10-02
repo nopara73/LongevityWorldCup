@@ -82,6 +82,12 @@ public class ThreadsEventService
         if (type == EventType.CustomEvent)
             return await TrySendCustomEventAsync(rawText, eventId, visibleOnWebsite);
 
+        if (type == EventType.DonationReceived)
+        {
+            var donationMessage = DonationReceivedPost.BuildText(rawText, visibleOnWebsite ? eventId : null);
+            return !string.IsNullOrWhiteSpace(donationMessage) && await TrySendAsync(donationMessage);
+        }
+
         var msg = BuildMessage(type, rawText);
         if (string.IsNullOrWhiteSpace(msg)) return false;
         return await TrySendAsync(msg);
@@ -89,6 +95,9 @@ public class ThreadsEventService
 
     public string? TryBuildMessage(EventType type, string rawText, string? eventId = null, bool visibleOnWebsite = true)
     {
+        if (type == EventType.DonationReceived)
+            return DonationReceivedPost.BuildText(rawText, visibleOnWebsite ? eventId : null);
+
         if (type == EventType.CustomEvent)
         {
             if (string.IsNullOrWhiteSpace(eventId))

@@ -688,7 +688,7 @@ public sealed partial class EventDataService : IDisposable
             return 99;
         }
 
-        if (type == EventType.AthleteCountMilestone)
+        if (type is EventType.AthleteCountMilestone or EventType.DonationReceived)
         {
             return 8;
         }

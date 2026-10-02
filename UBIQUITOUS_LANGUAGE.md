@@ -39,6 +39,12 @@ Manual application payment review uses reasonable confidence. Credible payment e
 
 Application and Pro-upgrade payment detection is server-owned and survives a closed checkout browser. BTCPay `Settled` status or a positive `paidAmount` counts as paid, including partial payments. Persist that observation and notify the internal reviewer once per invoice; absence of the email does not establish nonpayment. The browser completes its payment handoff when payment is confirmed, independently of notification delivery. An uncertain mail delivery requires reconciliation before replay. Newly tracked orders are reconciled automatically; historical invoices require an explicit recovery decision.
 
+## Donations
+
+- A **Donation received** Event acknowledges a Bitcoin transaction received by the public donation address after at least three confirmations. Preserve its transaction identity and exact BTC amount without identifying an anonymous donor. Public acknowledgments link to their receipt, keeping separate donations of the same amount distinct.
+- Donation receipts are eligible for acknowledgments on X, Threads, Facebook, and Slack. Acknowledgments do not expire with athlete-highlight freshness or share the periodic fundraising-reminder cooldown. Failed sends remain pending; successful sends finish that platform's delivery. Repeated detection must not create another Event or replay a completed acknowledgment.
+- Previously skipped donations require a reviewed recovery decision; deploying support does not automatically replay historical receipts.
+
 ## Events and Improvement
 
 - The public Event API exposes all website-visible Events, including profile-only accepted results, while excluding hidden and social-only Events. It is historical data, not the curated shared-highlight selection or the private social delivery queue. Its payload and date contract is documented in the public OpenAPI `listEvents` operation.

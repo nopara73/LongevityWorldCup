@@ -15,6 +15,108 @@ namespace LongevityWorldCup.Tests;
 
 public sealed class SocialJobIntegrationTests
 {
+    [Theory]
+    [InlineData("X")]
+    [InlineData("Threads")]
+    [InlineData("Facebook")]
+    public async Task DonationReceivedEvent_PublishesOnceEvenAfterDelayedDeliveryAndRepeatedDetection(string platform)
+    {
+        using var fixture = SocialJobFixture.Create(enableThreads: true);
+        BlockPeriodicReminders(fixture);
+        var donation = ("donation-transaction", DateTime.UtcNow.AddDays(-30), 8455L);
+        fixture.Events.CreateDonationReceivedEvents([donation]);
+        var receipt = Assert.Single(fixture.Events.GetPendingXEvents());
+        Assert.Equal(8, receipt.XPriority);
+        Assert.Equal(
+            $"Someone has donated 0.00008455 BTC 🎉\n\nThank you for helping fund the prize pool!\n\nhttps://longevityworldcup.com/events?event={receipt.Id}",
+            fixture.FacebookEvents.TryBuildMessage(receipt.Type, receipt.Text, receipt.Id));
+
+        await DonationJob(fixture, platform).Execute(TestJobExecutionContext.At(XDailyPostSlot()));
+
+        Assert.Equal((1, null), fixture.ReadPlatformState(receipt.Id, platform));
+        var requests = DonationRequests(fixture, platform);
+        Assert.NotEmpty(requests);
+        var bodies = await Task.WhenAll(requests
+            .Where(request => request.Content is not null)
+            .Select(request => request.Content!.ReadAsStringAsync()));
+        Assert.Contains(bodies, body => WebUtility.UrlDecode(body)
+            .Contains("Someone has donated 0.00008455 BTC", StringComparison.Ordinal));
+        Assert.Contains(bodies, body => WebUtility.UrlDecode(body)
+            .Contains($"https://longevityworldcup.com/events?event={receipt.Id}", StringComparison.Ordinal));
+        var requestCount = requests.Count;
+
+        fixture.Events.CreateDonationReceivedEvents([donation]);
+        await DonationJob(fixture, platform).Execute(TestJobExecutionContext.At(XDailyPostSlot()));
+
+        Assert.Equal(requestCount, requests.Count);
+        Assert.Equal((1, null), fixture.ReadPlatformState(receipt.Id, platform));
+
+        fixture.Events.CreateDonationReceivedEvents([("second-donation", donation.Item2, 8455L)]);
+        var secondReceipt = Assert.Single(fixture.Events.GetPendingXEvents(), item => item.Text.Contains("tx[second-donation]", StringComparison.Ordinal));
+        await DonationJob(fixture, platform).Execute(TestJobExecutionContext.At(XDailyPostSlot()));
+
+        Assert.Equal((1, null), fixture.ReadPlatformState(secondReceipt.Id, platform));
+        var secondBodies = await Task.WhenAll(requests.Skip(requestCount)
+            .Where(request => request.Content is not null)
+            .Select(request => request.Content!.ReadAsStringAsync()));
+        Assert.Contains(secondBodies, body => WebUtility.UrlDecode(body)
+            .Contains($"https://longevityworldcup.com/events?event={secondReceipt.Id}", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData("X")]
+    [InlineData("Threads")]
+    [InlineData("Facebook")]
+    public async Task DonationReceivedEvent_FailedSendRemainsPendingUntilSuccessfulRetry(string platform)
+    {
+        var sendSucceeds = false;
+        using var fixture = SocialJobFixture.Create(
+            enableThreads: true,
+            responseOverride: _ => sendSucceeds
+                ? new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent("""{"data":{"id":"tweet-1"},"id":"post-1","status":"FINISHED"}""")
+                }
+                : new HttpResponseMessage(HttpStatusCode.BadRequest)
+                {
+                    Content = new StringContent("""{"error":{"message":"Invalid parameter","code":100}}""")
+                });
+        fixture.Events.CreateDonationReceivedEvents([("donation-transaction", DateTime.UtcNow, 8455L)]);
+        var receipt = Assert.Single(fixture.Events.GetPendingXEvents());
+
+        await DonationJob(fixture, platform).Execute(TestJobExecutionContext.At(XDailyPostSlot()));
+
+        Assert.NotEmpty(DonationRequests(fixture, platform));
+        Assert.Equal((0, null), fixture.ReadPlatformState(receipt.Id, platform));
+
+        sendSucceeds = true;
+        await DonationJob(fixture, platform).Execute(TestJobExecutionContext.At(XDailyPostSlot()));
+
+        Assert.Equal((1, null), fixture.ReadPlatformState(receipt.Id, platform));
+    }
+
+    [Theory]
+    [InlineData("X", SocialEventSkipReason.UnsupportedEventPayload)]
+    [InlineData("Threads", SocialEventSkipReason.UnsupportedEventPayload)]
+    [InlineData("Facebook", SocialEventSkipReason.EmptyMessage)]
+    public async Task DonationReceivedEvent_InvalidReceiptDoesNotSend(string platform, SocialEventSkipReason expectedReason)
+    {
+        using var fixture = SocialJobFixture.Create(enableThreads: true);
+        BlockPeriodicReminders(fixture);
+        var eventId = fixture.InsertEvent(
+            EventType.DonationReceived,
+            "tx[donation-transaction] sats[0]",
+            DateTime.UtcNow,
+            xProcessed: 0,
+            threadsProcessed: 0,
+            facebookProcessed: 0);
+
+        await DonationJob(fixture, platform).Execute(TestJobExecutionContext.At(XDailyPostSlot()));
+
+        Assert.Empty(DonationRequests(fixture, platform));
+        Assert.Equal((1, expectedReason.ToString()), fixture.ReadPlatformState(eventId, platform));
+    }
+
     [Fact]
     public async Task CancelledSocialJobs_DoNotSendRequests()
     {
@@ -382,6 +484,32 @@ public sealed class SocialJobIntegrationTests
 
         Assert.Equal((1, null), fixture.ReadPlatformState(eventId, "Facebook"));
         Assert.Single(fixture.FacebookRequests);
+    }
+
+    private static IJob DonationJob(SocialJobFixture fixture, string platform) => platform switch
+    {
+        "X" => fixture.CreateXJob(),
+        "Threads" => fixture.CreateThreadsJob(),
+        "Facebook" => fixture.CreateFacebookJob(),
+        _ => throw new ArgumentOutOfRangeException(nameof(platform))
+    };
+
+    private static List<HttpRequestMessage> DonationRequests(SocialJobFixture fixture, string platform) => platform switch
+    {
+        "X" => fixture.XRequests,
+        "Threads" => fixture.ThreadsRequests,
+        "Facebook" => fixture.FacebookRequests,
+        _ => throw new ArgumentOutOfRangeException(nameof(platform))
+    };
+
+    private static void BlockPeriodicReminders(SocialJobFixture fixture)
+    {
+        foreach (var type in new[] { FillerType.HistoryDocument, FillerType.Ruleset, FillerType.GitHubRepository, FillerType.Donation })
+        {
+            fixture.XFillerLog.LogPost(DateTime.UtcNow, type, "test cooldown");
+            fixture.ThreadsFillerLog.LogPost(DateTime.UtcNow, type, "test cooldown");
+            fixture.FacebookFillerLog.LogPost(DateTime.UtcNow, type, "test cooldown");
+        }
     }
 
     private static DateTimeOffset XDailyPostSlot()

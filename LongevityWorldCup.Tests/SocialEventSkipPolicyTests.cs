@@ -12,7 +12,10 @@ public sealed class SocialEventSkipPolicyTests
 
         yield return new object[] { EventType.CustomEvent, "Title\n\nBody", now, 99, freshCutoff, true, false, SocialEventSkipReason.None };
         yield return new object[] { EventType.Joined, "slug[alice]", now, 99, freshCutoff, true, true, SocialEventSkipReason.UnsupportedEventType };
-        yield return new object[] { EventType.DonationReceived, "tx[abc] sats[1000]", now, 99, freshCutoff, true, true, SocialEventSkipReason.UnsupportedEventType };
+        yield return new object[] { EventType.DonationReceived, "tx[abc] sats[1000]", now, 8, freshCutoff, true, false, SocialEventSkipReason.None };
+        yield return new object[] { EventType.DonationReceived, "tx[abc] sats[1000]", now.AddYears(-1), 8, freshCutoff, true, false, SocialEventSkipReason.None };
+        yield return new object[] { EventType.DonationReceived, "tx[abc] sats[0]", now, 8, freshCutoff, true, true, SocialEventSkipReason.UnsupportedEventPayload };
+        yield return new object[] { EventType.DonationReceived, "sats[1000]", now, 8, freshCutoff, true, true, SocialEventSkipReason.UnsupportedEventPayload };
         yield return new object[] { EventType.NewRank, "slug[alice] rank[1]", now, 0, freshCutoff, true, false, SocialEventSkipReason.None };
         yield return new object[] { EventType.NewRank, "slug[alice] rank[4]", now, 99, freshCutoff, true, true, SocialEventSkipReason.UnsupportedEventPayload };
         yield return new object[] { EventType.NewRank, "slug[alice] rank[1]", now.AddDays(-8), 0, freshCutoff, true, true, SocialEventSkipReason.StalePrimaryEvent };
@@ -48,7 +51,7 @@ public sealed class SocialEventSkipPolicyTests
         yield return new object[] { EventType.BiologicalAgeImproved, true, SocialEventSkipReason.FacebookSupportsCustomEventsOnly };
         yield return new object[] { EventType.CrowdAgeTop10Change, true, SocialEventSkipReason.FacebookSupportsCustomEventsOnly };
         yield return new object[] { EventType.AgeImprovementTop10Change, true, SocialEventSkipReason.FacebookSupportsCustomEventsOnly };
-        yield return new object[] { EventType.DonationReceived, true, SocialEventSkipReason.FacebookSupportsCustomEventsOnly };
+        yield return new object[] { EventType.DonationReceived, false, SocialEventSkipReason.None };
     }
 
     [Theory]
@@ -90,7 +93,7 @@ public sealed class SocialEventSkipPolicyTests
     }
 
     [Fact]
-    public void Facebook_NonCustomEventsAreTerminalSkips()
+    public void Facebook_UnsupportedEventsAreTerminalSkips()
     {
         var skipped = SocialEventSkipPolicy.TryGetFacebookTerminalSkipReason(
             EventType.NewRank,

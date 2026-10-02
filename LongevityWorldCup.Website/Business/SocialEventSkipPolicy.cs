@@ -35,6 +35,14 @@ public static class SocialEventSkipPolicy
             return false;
         }
 
+        if (type == EventType.DonationReceived)
+        {
+            reason = DonationReceivedPost.TryGetAmountSatoshis(text, out _)
+                ? default
+                : SocialEventSkipReason.UnsupportedEventPayload;
+            return reason != default;
+        }
+
         if (priority <= EventDataService.XPriorityPrimaryMax && occurredAtUtc < freshCutoffUtc)
         {
             reason = SocialEventSkipReason.StalePrimaryEvent;
@@ -131,7 +139,7 @@ public static class SocialEventSkipPolicy
 
     public static bool TryGetFacebookTerminalSkipReason(EventType type, out SocialEventSkipReason reason)
     {
-        if (type == EventType.CustomEvent)
+        if (type is EventType.CustomEvent or EventType.DonationReceived)
         {
             reason = default;
             return false;

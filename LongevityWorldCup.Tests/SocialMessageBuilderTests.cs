@@ -11,6 +11,38 @@ namespace LongevityWorldCup.Tests;
 
 public sealed class SocialMessageBuilderTests
 {
+    [Theory]
+    [InlineData(1L, "0.00000001")]
+    [InlineData(8455L, "0.00008455")]
+    [InlineData(148699L, "0.00148699")]
+    [InlineData(196326L, "0.00196326")]
+    [InlineData(100000000L, "1")]
+    public void DonationReceivedBuilders_PreserveExactBitcoinAmount(long amountSatoshis, string expectedBtc)
+    {
+        var raw = $"tx[donation] sats[{amountSatoshis}]";
+        var expected =
+            $"Someone has donated {expectedBtc} BTC 🎉\n\n" +
+            "Thank you for helping fund the prize pool!\n\n" +
+            "https://longevityworldcup.com/#contribute";
+
+        Assert.Equal(expected, XMessageBuilder.ForEventText(EventType.DonationReceived, raw, SlugToName));
+        Assert.Equal(expected, ThreadsMessageBuilder.ForEventText(EventType.DonationReceived, raw, SlugToName));
+        Assert.True(expected.Length <= 280);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("sats[8455]")]
+    [InlineData("tx[] sats[8455]")]
+    [InlineData("tx[donation] sats[0]")]
+    [InlineData("tx[donation] sats[-1]")]
+    [InlineData("tx[donation] sats[invalid]")]
+    public void DonationReceivedBuilders_RejectInvalidReceipts(string raw)
+    {
+        Assert.Empty(XMessageBuilder.ForEventText(EventType.DonationReceived, raw, SlugToName));
+        Assert.Empty(ThreadsMessageBuilder.ForEventText(EventType.DonationReceived, raw, SlugToName));
+    }
+
     [Fact]
     public void RankEventBuilders_ReturnGoldenMessages()
     {

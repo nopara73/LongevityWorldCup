@@ -60,9 +60,15 @@ public class FacebookEventService
 
     public async Task<bool> TrySendEventAsync(EventType type, string rawText, string? eventId, bool visibleOnWebsite = true)
     {
+        if (type == EventType.DonationReceived)
+        {
+            var message = DonationReceivedPost.BuildText(rawText, visibleOnWebsite ? eventId : null);
+            return !string.IsNullOrWhiteSpace(message) && await TrySendAsync(message);
+        }
+
         if (type != EventType.CustomEvent || string.IsNullOrWhiteSpace(eventId))
         {
-            _log.LogWarning("Facebook event send skipped because only custom events with an event id are supported. Type: {EventType}, EventIdPresent: {HasEventId}", type, !string.IsNullOrWhiteSpace(eventId));
+            _log.LogWarning("Facebook event send skipped because the event type is unsupported or the custom event id is missing. Type: {EventType}, EventIdPresent: {HasEventId}", type, !string.IsNullOrWhiteSpace(eventId));
             return false;
         }
 
@@ -108,6 +114,9 @@ public class FacebookEventService
 
     public string? TryBuildMessage(EventType type, string rawText, string? eventId = null, bool visibleOnWebsite = true)
     {
+        if (type == EventType.DonationReceived)
+            return DonationReceivedPost.BuildText(rawText, visibleOnWebsite ? eventId : null);
+
         if (type != EventType.CustomEvent || string.IsNullOrWhiteSpace(eventId))
             return null;
 
