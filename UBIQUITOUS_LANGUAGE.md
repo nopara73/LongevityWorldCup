@@ -41,7 +41,7 @@ Application and Pro-upgrade payment detection is server-owned and survives a clo
 
 ## Donations
 
-- A **Donation received** Event acknowledges a Bitcoin transaction received by the public donation address after at least three confirmations. Preserve its transaction identity and exact BTC amount without identifying an anonymous donor. Public acknowledgments link to their receipt, keeping separate donations of the same amount distinct.
+- A **Donation received** Event acknowledges a Bitcoin transaction received by the public donation address after at least three confirmations. Preserve its transaction identity and exact BTC amount without identifying an anonymous donor. Public acknowledgments link to the contribute section on the homepage. Separate transactions remain separate acknowledgments, even when their amounts match.
 - Donation receipts are eligible for acknowledgments on X, Threads, Facebook, and Slack. Acknowledgments do not expire with athlete-highlight freshness or share the periodic fundraising-reminder cooldown. Failed sends remain pending; successful sends finish that platform's delivery. Repeated detection must not create another Event or replay a completed acknowledgment.
 - Previously skipped donations require a reviewed recovery decision; deploying support does not automatically replay historical receipts.
 

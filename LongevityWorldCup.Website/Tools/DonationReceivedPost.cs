@@ -20,9 +20,17 @@ internal static class DonationReceivedPost
             return null;
 
         var amountBtc = (amountSatoshis / 100_000_000m).ToString("0.########", CultureInfo.InvariantCulture);
-        var receiptUrl = string.IsNullOrWhiteSpace(eventId)
-            ? DonationReminderPost.Url
-            : CustomEventSocialComposer.BuildEventUrl(eventId);
-        return $"Someone has donated {amountBtc} BTC 🎉\n\nThank you for helping fund the prize pool!\n\n{receiptUrl}";
+        var contributeUrl = DonationReminderPost.Url;
+        if (!string.IsNullOrWhiteSpace(eventId))
+        {
+            // Keep the contribute destination while making separate same-amount donations
+            // distinct to social APIs that reject identical posts.
+            var uri = new UriBuilder(contributeUrl)
+            {
+                Query = $"utm_content=donation-{Uri.EscapeDataString(eventId)}"
+            };
+            contributeUrl = uri.Uri.AbsoluteUri;
+        }
+        return $"Someone has donated {amountBtc} BTC 🎉\n\nThank you for helping fund the prize pool!\n\n{contributeUrl}";
     }
 }
