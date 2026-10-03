@@ -8,6 +8,9 @@
         // One clock from first paint, including cards replaced during hydration.
         // No hidden base styles, extra requests, or waits for content readiness.
         (() => {
+            if (location.pathname === '/contribute' && !location.hash) {
+                history.replaceState(history.state, '', location.pathname + location.search + '#contribute');
+            }
             if (location.pathname !== '/' && location.pathname !== '/index.html') return;
             const query = new URLSearchParams(location.search);
             if (['athlete', 'filters', 'search', 'view'].some(key => query.has(key))) return;

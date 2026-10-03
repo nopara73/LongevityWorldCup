@@ -23,7 +23,7 @@ public sealed class SocialMessageBuilderTests
         var expected =
             $"Someone has donated {expectedBtc} BTC 🎉\n\n" +
             "Thank you for helping fund the prize pool!\n\n" +
-            "https://longevityworldcup.com/#contribute";
+            "https://longevityworldcup.com/contribute#contribute";
 
         Assert.Equal(expected, XMessageBuilder.ForEventText(EventType.DonationReceived, raw, SlugToName));
         Assert.Equal(expected, ThreadsMessageBuilder.ForEventText(EventType.DonationReceived, raw, SlugToName));

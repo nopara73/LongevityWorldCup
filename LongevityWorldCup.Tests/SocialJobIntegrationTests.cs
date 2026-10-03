@@ -28,7 +28,7 @@ public sealed class SocialJobIntegrationTests
         var receipt = Assert.Single(fixture.Events.GetPendingXEvents());
         Assert.Equal(8, receipt.XPriority);
         Assert.Equal(
-            $"Someone has donated 0.00008455 BTC 🎉\n\nThank you for helping fund the prize pool!\n\nhttps://longevityworldcup.com/?utm_content=donation-{receipt.Id}#contribute",
+            $"Someone has donated 0.00008455 BTC 🎉\n\nThank you for helping fund the prize pool!\n\nhttps://longevityworldcup.com/contribute?utm_content=donation-{receipt.Id}#contribute",
             fixture.FacebookEvents.TryBuildMessage(receipt.Type, receipt.Text, receipt.Id));
 
         await DonationJob(fixture, platform).Execute(TestJobExecutionContext.At(XDailyPostSlot()));
@@ -42,7 +42,7 @@ public sealed class SocialJobIntegrationTests
         Assert.Contains(bodies, body => WebUtility.UrlDecode(body)
             .Contains("Someone has donated 0.00008455 BTC", StringComparison.Ordinal));
         Assert.Contains(bodies, body => WebUtility.UrlDecode(body)
-            .Contains($"https://longevityworldcup.com/?utm_content=donation-{receipt.Id}#contribute", StringComparison.Ordinal));
+            .Contains($"https://longevityworldcup.com/contribute?utm_content=donation-{receipt.Id}#contribute", StringComparison.Ordinal));
         var requestCount = requests.Count;
 
         fixture.Events.CreateDonationReceivedEvents([donation]);
@@ -60,7 +60,7 @@ public sealed class SocialJobIntegrationTests
             .Where(request => request.Content is not null)
             .Select(request => request.Content!.ReadAsStringAsync()));
         Assert.Contains(secondBodies, body => WebUtility.UrlDecode(body)
-            .Contains($"https://longevityworldcup.com/?utm_content=donation-{secondReceipt.Id}#contribute", StringComparison.Ordinal));
+            .Contains($"https://longevityworldcup.com/contribute?utm_content=donation-{secondReceipt.Id}#contribute", StringComparison.Ordinal));
     }
 
     [Theory]

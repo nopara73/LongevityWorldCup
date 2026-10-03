@@ -12,6 +12,7 @@ public sealed class SitemapService(LeaderboardFactsService leaderboardFacts, Pub
     public static readonly IReadOnlyList<SitemapRoute> StaticRoutes =
     [
         new("/", "index.html", "daily", 1.0m),
+        new("/contribute", "index.html", "monthly", 0.6m),
         new("/leaderboard", "leaderboard/leaderboard.html", "daily", 0.9m),
         new("/longevitymaxxing", "longevitymaxxing/longevitymaxxing.html", "daily", 0.7m),
         new("/helstab-kihivas", "helstab-kihivas/helstab-kihivas.html", "daily", 0.7m),

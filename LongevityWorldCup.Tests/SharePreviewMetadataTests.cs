@@ -10,6 +10,39 @@ namespace LongevityWorldCup.Tests;
 public sealed class SharePreviewMetadataTests(TestWebApplicationFactory sharedFactory)
 {
     [Theory]
+    [InlineData("/contribute")]
+    [InlineData("/contribute?utm_content=donation-3d8a116d3fb8464ebf2e0173acc59acb")]
+    [InlineData("/?utm_content=donation-3d8a116d3fb8464ebf2e0173acc59acb")]
+    public async Task ContributeShares_UseTheCroppedSectionWithAccurateImageDimensions(string path)
+    {
+        using var client = sharedFactory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        using var response = await client.GetAsync(path);
+        var html = await response.Content.ReadAsStringAsync();
+
+        response.EnsureSuccessStatusCode();
+        Assert.Null(response.Headers.Location);
+        Assert.Contains("property=\"og:title\" content=\"Contribute | Longevity World Cup\"", html);
+        Assert.Contains("property=\"og:url\" content=\"https://longevityworldcup.com/contribute\"", html);
+        Assert.Contains("property=\"og:image\" content=\"https://longevityworldcup.com/assets/contribute-preview.png?v=", html);
+        Assert.Contains("name=\"twitter:image\" content=\"https://longevityworldcup.com/assets/contribute-preview.png?v=", html);
+        Assert.Contains("property=\"og:image:width\" content=\"985\"", html);
+        Assert.Contains("property=\"og:image:height\" content=\"538\"", html);
+        Assert.Contains("class=\"home-page\"", html);
+
+        using var asset = await client.GetAsync("/assets/contribute-preview.png");
+        asset.EnsureSuccessStatusCode();
+        Assert.Equal("image/png", asset.Content.Headers.ContentType?.MediaType);
+        using var image = SixLabors.ImageSharp.Image.Load(await asset.Content.ReadAsByteArrayAsync());
+        Assert.Equal(985, image.Width);
+        Assert.Equal(538, image.Height);
+
+        using var head = await client.SendAsync(new HttpRequestMessage(HttpMethod.Head, path));
+        head.EnsureSuccessStatusCode();
+        Assert.Null(head.Headers.Location);
+        Assert.Empty(await head.Content.ReadAsByteArrayAsync());
+    }
+
+    [Theory]
     [InlineData("/", "/og/page/home.png?v=")]
     [InlineData("/events", "/og/page/events.png?v=")]
     [InlineData("/media", "/og/page/media.png?v=")]

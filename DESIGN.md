@@ -4,6 +4,7 @@ Keep reusable product decisions here; omit implementation history and one-off po
 
 ## Visual System
 
+- Contribute shares preview the cropped Contribute section, including its prize pool, Bitcoin QR code, and address. Keep the preview as a versioned screenshot asset; the linked section shows the current pool. Use `/contribute` for section-specific social metadata because URL fragments are not sent to the server.
 - Make meaning clear through layout, grouping, affordances, and visual cues before adding labels or helper copy. Fix misunderstood visual patterns before explaining them with words. Follow the [product personality rules](AGENTS.md#product-personality): reducing clutter must preserve the established voice, humor, and user-approved wording.
 - Acquisition pages lead with the reason to participate, a direct entry action, and a compact track comparison. Keep benefits short; put eligibility and qualifications beside the relevant choice instead of repeating them in promotional copy. Keep disqualifying requirements visible; put full marker tables and application instructions behind native disclosures.
 - Use graphite chrome, cool neutral canvases, white task surfaces, and one teal action/data accent. Play, challenge, and athlete artwork may be expressive; controls and typography follow the shared system.

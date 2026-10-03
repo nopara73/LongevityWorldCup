@@ -428,7 +428,7 @@ public static class SlackMessageBuilder
         var btc = SatsToBtc(sats);
         var btcFormatted = btc.ToString("0.########", CultureInfo.InvariantCulture);
 
-        string donationUrl = "https://longevityworldcup.com/#contribute";
+        string donationUrl = DonationReminderPost.Url;
         string amountMd = $"<{donationUrl}|{btcFormatted} BTC>";
 
         const string Gap = "  ";

@@ -10,8 +10,11 @@ public sealed class HomepageContributionBrowserTests(
     BrowserTestAppFixture appFixture)
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
-    [Fact]
-    public async Task ContributeDeepLink_KeepsTheQrCodeAndAddressInThePreviewViewport()
+    [Theory]
+    [InlineData("/#contribute")]
+    [InlineData("/contribute")]
+    [InlineData("/contribute?utm_content=donation-example")]
+    public async Task ContributeDeepLink_KeepsTheQrCodeAndAddressInThePreviewViewport(string path)
     {
         const string donationAddress = "bc1qphwpd3mc9rts7vt4lrxxlxzs5jm3wh33w7hxz7";
         var app = App;
@@ -20,7 +23,7 @@ public sealed class HomepageContributionBrowserTests(
         var page = await context.NewPageAsync();
         await page.SetViewportSizeAsync(1194, 862);
 
-        await page.GotoAsync("/#contribute", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.GotoAsync(path, new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
         await page.WaitForFunctionAsync(
             """
             expectedAddress => document.getElementById('leaderboardStatus')?.textContent === 'Leaderboard loaded.'
@@ -67,6 +70,35 @@ public sealed class HomepageContributionBrowserTests(
         Assert.InRange(preview.QrBottom, 0, preview.ViewportHeight);
         Assert.InRange(preview.AddressTop, 0, preview.ViewportHeight);
         Assert.InRange(preview.AddressBottom, 0, preview.ViewportHeight);
+    }
+
+    [Theory]
+    [InlineData(900, 862)]
+    [InlineData(390, 844)]
+    [InlineData(844, 390)]
+    public async Task ContributeShareLink_PreservesTheSectionOnSmallerScreens(int width, int height)
+    {
+        await using var context = await NewContextAsync(Browser, App);
+        var page = await context.NewPageAsync();
+        await page.SetViewportSizeAsync(width, height);
+        await page.GotoAsync("/contribute", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.WaitForFunctionAsync(
+            """
+            () => document.getElementById('btcAddressLink')?.textContent.includes('bc1q')
+                && document.querySelector('.qr-code-img')?.complete
+                && document.querySelector('.qr-code-img')?.naturalWidth > 0
+            """);
+        await SettleLayoutAsync(page);
+
+        Assert.EndsWith("/contribute#contribute", page.Url);
+        var section = await page.Locator("#contribute").BoundingBoxAsync();
+        Assert.NotNull(section);
+        Assert.InRange(section!.X, 0, width);
+        Assert.InRange(section.X + section.Width, 0, width + 1);
+        Assert.InRange(section.Y, 0, 80);
+        await Assertions.Expect(page.Locator(".qr-code-img")).ToBeVisibleAsync();
+        await Assertions.Expect(page.Locator("#btcAddressLink")).ToHaveAttributeAsync("href", "https://mempool.space/address/bc1qphwpd3mc9rts7vt4lrxxlxzs5jm3wh33w7hxz7");
+        await Assertions.Expect(page.Locator("#bitcoinCopyButton")).ToBeEnabledAsync();
     }
 
 }

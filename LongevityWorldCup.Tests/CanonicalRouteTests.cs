@@ -33,6 +33,7 @@ public sealed class CanonicalRouteTests(TestWebApplicationFactory sharedFactory)
     [Theory]
     [InlineData("/Leaderboard?sort=rank", "/leaderboard?sort=rank")]
     [InlineData("/about/?ref=footer", "/about?ref=footer")]
+    [InlineData("/Contribute/?ref=donation", "/contribute?ref=donation")]
     public async Task CleanRouteVariants_RedirectWithoutLosingQuery(string path, string expectedLocation)
     {
         var factory = sharedFactory;

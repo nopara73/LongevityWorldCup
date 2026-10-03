@@ -27,6 +27,7 @@ namespace LongevityWorldCup.Website.Middleware
         internal static readonly IReadOnlyList<PageRoute> Pages =
         [
             new("/", "/index.html", "/index.html"),
+            new("/contribute", "/index.html"),
             new("/events", "/event-board/event-board.html", "/event-board", "/event-board/event-board", "/event-board/event-board.html"),
             new("/leaderboard", "/leaderboard/leaderboard.html", "/leaderboard/leaderboard", "/leaderboard/leaderboard.html"),
             new("/longevitymaxxing", "/longevitymaxxing/longevitymaxxing.html", "/longevitymaxxing/longevitymaxxing", "/longevitymaxxing/longevitymaxxing.html"),

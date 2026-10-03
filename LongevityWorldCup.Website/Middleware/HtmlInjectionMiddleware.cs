@@ -136,6 +136,8 @@ namespace LongevityWorldCup.Website.Middleware
                             .Replace("{{SEO_OG_DESCRIPTION}}", EncodeMeta(seo.OgDescription))
                             .Replace("{{SEO_OG_URL}}", EncodeMeta(seo.CanonicalUrl))
                             .Replace("{{SEO_OG_IMAGE}}", EncodeMeta(seo.OgImageUrl))
+                            .Replace("{{SEO_OG_IMAGE_WIDTH}}", seo.OgImageWidth.ToString(CultureInfo.InvariantCulture))
+                            .Replace("{{SEO_OG_IMAGE_HEIGHT}}", seo.OgImageHeight.ToString(CultureInfo.InvariantCulture))
                             .Replace("{{SEO_STRUCTURED_DATA}}", BuildStructuredDataJson(seo, context));
                         head = ApplyHeadAssets(head, path ?? string.Empty);
                     }
@@ -499,7 +501,7 @@ $@"<div id=""{AthleteDialogRuntimeId}""
         }
 
         private static bool IsHomepageRequest(HttpContext context)
-            => string.Equals(GetRequestCanonicalPath(context), "/", StringComparison.Ordinal)
+            => GetRequestCanonicalPath(context) is "/" or "/contribute"
                && !context.Request.Query.ContainsKey("athlete")
                && !context.Request.Query.ContainsKey("filters")
                && !context.Request.Query.ContainsKey("search")
@@ -794,6 +796,11 @@ $@"<script{scriptAttributes}>
         private SeoMeta GetSeoMeta(HttpContext context)
         {
             var requestPath = GetRequestCanonicalPath(context);
+            // Receipt links published before /contribute existed already carry this tag.
+            // Keep their contribution preview without changing ordinary homepage shares.
+            if (IsHomepageRequest(context) &&
+                context.Request.Query["utm_content"].ToString().StartsWith("donation-", StringComparison.Ordinal))
+                requestPath = "/contribute";
             var baseSeo = GetBaseSeoMeta(requestPath);
 
             // Only the empty calculator is a search destination. Query strings can contain
@@ -842,6 +849,18 @@ $@"<script{scriptAttributes}>
 
             return canonicalPath switch
             {
+                "/contribute" => new SeoMeta(
+                    canonicalPath,
+                    "90% of Bitcoin donations fund the prize pool for Longevity World Cup champions.",
+                    "index, follow",
+                    canonicalUrl,
+                    "Contribute | Longevity World Cup",
+                    "Contribute",
+                    noCardDescription,
+                    BuildOgImageUrl("/assets/contribute-preview.png"),
+                    985,
+                    538
+                ),
                 "/" => new SeoMeta(
                     canonicalPath,
                     "Reverse your biological age and climb the Longevity World Cup leaderboard. Compare pheno age and bortz age results in a global anti-aging competition.",
@@ -1751,7 +1770,9 @@ $@"<script{scriptAttributes}>
             string PageTitle,
             string OgTitle,
             string OgDescription,
-            string OgImageUrl
+            string OgImageUrl,
+            int OgImageWidth = 1200,
+            int OgImageHeight = 630
         );
 
         private sealed record LeaderboardViewSeo(string Title, string Description);
