@@ -100,12 +100,16 @@
         catch { storageWorks = false; element('storageWarning').hidden = false; }
         renderStreak();
     }
-    function syncSaved(): void {
-        if (!puzzle || !progress) return;
+    function syncSaved(): boolean {
+        if (!puzzle || !progress) return false;
         const latest = readSaved().games[puzzle.id];
         if (isProgress(latest, puzzle) && (latest.answers.length > progress.answers.length || latest.cursor > progress.cursor
             || (latest.started && !progress.started)
-            || (latest.cursor === progress.cursor && progress.deadlineUtc === null && latest.deadlineUtc !== null))) progress = latest;
+            || (latest.cursor === progress.cursor && progress.deadlineUtc === null && latest.deadlineUtc !== null))) {
+            progress = latest;
+            return true;
+        }
+        return false;
     }
     function now(): number { return Date.now() + clockOffset; }
     function dateLabel(value: string): string { return dayFormat.format(new Date(value + 'T00:00:00Z')); }
@@ -304,7 +308,10 @@
             clockOffset = Date.parse(response.serverNowUtc) - Date.now(); nextAt = Date.parse(response.nextPuzzleAtUtc);
             if (puzzle && progress?.started && puzzle.id !== response.puzzle.id) {
                 pending = response; element('dayChange').hidden = false; renderStreak();
-            } else if (puzzle?.id === response.puzzle.id) { syncSaved(); render(); }
+            } else if (puzzle?.id === response.puzzle.id) {
+                if (syncSaved()) render();
+                else { renderStreak(); tick(); }
+            }
             else acceptResponse(response);
         } catch {
             element('loadStatus').hidden = true;
@@ -338,7 +345,7 @@
             fallback.value = text; fallback.hidden = false; fallback.focus(); fallback.select(); shareStatus.textContent = 'Your score is ready to copy below.';
         });
     });
-    window.addEventListener('storage', event => { if (event.key === key) { syncSaved(); render(); } });
+    window.addEventListener('storage', event => { if (event.key === key) { if (syncSaved()) render(); else renderStreak(); } });
     window.addEventListener('focus', () => void loadToday());
     document.addEventListener('visibilitychange', () => { if (!document.hidden) { tick(); void loadToday(); } });
     window.setInterval(tick, 200);

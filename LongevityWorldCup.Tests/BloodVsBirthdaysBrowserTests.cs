@@ -17,6 +17,37 @@ public sealed class BloodVsBirthdaysBrowserTests(PlaywrightBrowserFixture browse
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
     [Fact]
+    public async Task BackgroundRefresh_PreservesFocusedChoiceAndProofDisclosure()
+    {
+        await using var context = await ContextAsync(1280, 900);
+        await StubAsync(context, () => PuzzleResponse("2026-10-04"));
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/blood-vs-birthdays");
+        await page.Locator("#startButton").ClickAsync();
+        await page.Locator("#timer").Filter(new LocatorFilterOptions { HasText = "s" }).WaitForAsync();
+        var choice = page.Locator(".game-choice").First;
+        await choice.FocusAsync();
+        await RefreshAsync();
+        Assert.True(await choice.EvaluateAsync<bool>("button => document.activeElement === button"));
+        await choice.PressAsync("Enter");
+        var proofs = page.Locator(".game-evidence-links details").First;
+        await proofs.Locator("summary").ClickAsync();
+        await proofs.Locator("a").First.FocusAsync();
+        await RefreshAsync();
+        Assert.True(await proofs.EvaluateAsync<bool>("details => details.open"));
+        Assert.True(await proofs.Locator("a").First.EvaluateAsync<bool>("link => document.activeElement === link"));
+
+        async Task RefreshAsync()
+        {
+            var fetch = page.WaitForResponseAsync(response => response.Url.EndsWith("/api/blood-vs-birthdays"));
+            await page.EvaluateAsync("window.dispatchEvent(new Event('focus'))");
+            await fetch;
+            // Wait for the API response's DOM work, not merely receipt of headers.
+            await page.EvaluateAsync("new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+        }
+    }
+
+    [Fact]
     public async Task FiveRounds_PersistRevealsAndScore_AndPlayWithKeyboardOnMobile()
     {
         await using var context = await ContextAsync(390, 844);
