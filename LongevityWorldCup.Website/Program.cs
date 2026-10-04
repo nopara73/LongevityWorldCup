@@ -255,6 +255,11 @@ namespace LongevityWorldCup.Website
             builder.Services.AddSingleton<LongevitymaxxingChallengeService>();
             builder.Services.AddSingleton<IBtcpayInvoiceClient, BtcpayInvoiceClient>();
             builder.Services.AddSingleton(TimeProvider.System);
+            builder.Services.AddSingleton(sp => new BloodVsBirthdaysService(
+                sp.GetRequiredService<IAthleteSnapshotProvider>(),
+                sp.GetRequiredService<TimeProvider>(),
+                Path.Combine(EnvironmentHelpers.GetDataDir(), "blood-vs-birthdays"),
+                sp.GetRequiredService<AssetVersionProvider>().AppendVersion));
             builder.Services.AddSingleton<ApplicationPaymentStore>();
             builder.Services.AddSingleton<IApplicationPaymentEmailSender, SmtpApplicationPaymentEmailSender>();
             builder.Services.AddSingleton<ApplicationPaymentReconciler>();

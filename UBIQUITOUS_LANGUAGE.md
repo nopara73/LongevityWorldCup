@@ -16,6 +16,12 @@
 
 Use lowercase pheno age, bortz age, crowd age, age reduction, and effective age reduction in prose; reserve `PhenoAge`, `BortzAge`, and `CrowdAge` for code, serialization, external names, or quoted legacy data. Keep clock, calculator, and result distinct.
 
+## Blood vs. Birthdays
+
+- **Blood vs. Birthdays** is a daily five-round guessing game: choose the athlete with the bigger age reduction in each pair. Every matchup uses the athlete's best eligible published bortz result and chronological age on that same blood-test date, never their current birthday age or another clock.
+- Compare unrounded age reductions; pair distinct athletes whose reductions differ by at least 0.3 years. Both athletes must have a favorable age reduction and public proof links. Reveals show both ages, the reduction, the test date, the athlete profile, and the available proofs.
+- One saved set serves each calendar day in Asia/Singapore. It stays fixed through athlete updates and deployments. A player's completed-day streak and score belong to their browser; they do not change competition ranks, badges, Crowd Age guesses, or Events.
+
 ## Crowd Age
 
 - **Crowd Count** counts accepted realistic guesses for the current image. Qualification requires at least 100 guesses; rank by `CrowdAge - chronologicalAge`, then higher Crowd Count, earlier date of birth, and name.

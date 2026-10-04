@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Blood vs. Birthdays | Longevity World Cup</title>
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="description" content="Five matchups. Real blood tests. Guess which longevity athlete has the bigger age reduction.">
+    <link rel="canonical" href="https://longevityworldcup.com/blood-vs-birthdays">
+    <link rel="icon" href="{{ASSET_FAVICON_ICO}}">
+    <link rel="preload" as="font" href="{{ASSET_ROBOTO_REGULAR}}" type="font/woff2" crossorigin>
+    <link rel="preload" as="font" href="{{ASSET_ROBOTO_BOLD}}" type="font/woff2" crossorigin>
+    <style>
+        @font-face { font-family: Roboto; src: url('{{ASSET_ROBOTO_REGULAR}}') format('woff2'); font-weight: 400; font-display: swap; }
+        @font-face { font-family: Roboto; src: url('{{ASSET_ROBOTO_BOLD}}') format('woff2'); font-weight: 700; font-display: swap; }
+    </style>
+    <!--AESTHETIC-SYSTEM-->
+    <link rel="stylesheet" href="{{ASSET_BLOOD_BIRTHDAYS_CSS}}">
+    <script src="{{ASSET_BLOOD_BIRTHDAYS_JS}}" defer></script>
+</head>
+<body class="blood-game">
+    <a class="skip-link" href="#gameMain">Skip to game</a>
+    <header class="game-masthead">
+        <a class="game-brand" href="/" aria-label="Longevity World Cup home">
+            <img src="{{ASSET_FAVICON_DARK_192}}" alt="" width="40" height="40">
+            <span>LONGEVITY<br>WORLD CUP</span>
+        </a>
+        <span class="game-masthead-label">The daily game</span>
+        <span id="streakDisplay" class="game-streak" aria-label="Personal streak">0 day streak</span>
+    </header>
+    <main id="gameMain" class="game-main" data-placeholder="{{ASSET_PLAY_ATHLETE_PLACEHOLDER_WEBP}}" tabindex="-1">
+        <header class="game-heading">
+            <p class="game-eyebrow"><span id="puzzleDate">Today's matchup</span><span class="game-edition">01 / THE BLOOD TEST</span></p>
+            <h1>Blood <span>vs.</span> Birthdays</h1>
+            <p class="game-dek">The birthday is on paper. The plot twist is in the blood.</p>
+        </header>
+
+        <div id="loadStatus" class="game-loading" role="status">Finding today's matchups…</div>
+        <div id="loadError" class="game-error" role="alert" hidden>
+            <p>Today's matchups aren't loading. Give them another shot.</p>
+            <button id="retryButton" class="game-button" type="button">Try again</button>
+        </div>
+        <p id="storageWarning" class="game-note" role="status" hidden>Your browser can't save progress. Keep this page open to finish the game.</p>
+        <div id="dayChange" class="game-day-change" hidden>
+            <p>A new day's game is ready. Your current matchups are still here.</p>
+            <button id="newDayButton" class="game-button game-button--quiet" type="button">Play today's game</button>
+        </div>
+
+        <section id="introPanel" class="game-intro" aria-labelledby="introTitle" hidden>
+            <div class="game-intro-copy">
+                <p class="game-eyebrow">FIVE ROUNDS. ONE DAILY SHOT.</p>
+                <h2 id="introTitle">Who beats their<br> birthday by more?</h2>
+                <p>Meet two longevity athletes. Pick the bigger age reduction. Then see the blood-test numbers that settle it.</p>
+                <label class="game-timer-option"><input id="timedMode" type="checkbox" checked> 10 seconds per round</label>
+                <p class="game-timer-hint">Switch it off to take your time.</p>
+                <button id="startButton" class="game-button game-button--start" type="button">Trust your instincts <span aria-hidden="true">→</span></button>
+            </div>
+            <div class="game-intro-art" aria-hidden="true">
+                <div class="game-art-card game-art-birthday">
+                    <span>THE BIRTHDAY</span>
+                    <svg viewBox="0 0 120 120" fill="none"><rect x="20" y="26" width="80" height="74" rx="8" stroke="currentColor" stroke-width="3"/><path d="M20 47h80M39 17v18M81 17v18" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><circle cx="43" cy="65" r="4" fill="currentColor"/><circle cx="60" cy="65" r="4" fill="currentColor"/><circle cx="77" cy="65" r="4" fill="currentColor"/><circle cx="43" cy="83" r="4" fill="currentColor"/><circle cx="60" cy="83" r="4" fill="currentColor"/></svg>
+                    <strong>Time keeps count.</strong>
+                </div>
+                <span class="game-art-vs">vs.</span>
+                <div class="game-art-card game-art-blood">
+                    <span>THE BLOOD TEST</span>
+                    <svg viewBox="0 0 120 120" fill="none"><path d="M60 15c-7 13-34 42-34 64a34 34 0 0 0 68 0c0-22-27-51-34-64Z" fill="currentColor" fill-opacity=".12" stroke="currentColor" stroke-width="3"/><path d="M43 81c0 10 7 17 17 17" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><path d="m45 65 10 10 21-23" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    <strong>Blood keeps receipts.</strong>
+                </div>
+            </div>
+        </section>
+
+        <section id="arena" class="game-arena" aria-labelledby="roundTitle" hidden>
+            <div class="game-round-top">
+                <ol id="roundProgress" class="game-progress" aria-label="Round progress"></ol>
+                <span id="roundScore" class="game-round-score">0 / 5</span>
+            </div>
+            <div class="game-question-row">
+                <h2 id="roundTitle" tabindex="-1">Who beats their birthday by more?</h2>
+                <span id="timer" class="game-clock" role="timer" aria-label="Time remaining"></span>
+            </div>
+            <div id="matchCards" class="game-match"></div>
+            <div id="answerPanel" class="game-answer" hidden>
+                <div><p id="answerHeading" class="game-answer-heading" role="status"></p><p id="answerDetail"></p></div>
+                <button id="nextButton" class="game-button" type="button">Next matchup <span aria-hidden="true">→</span></button>
+            </div>
+        </section>
+
+        <section id="resultsPanel" class="game-results" aria-labelledby="resultTitle" hidden>
+            <p class="game-eyebrow">TODAY'S VERDICT</p>
+            <h2 id="resultTitle" tabindex="-1">You've got blood instinct.</h2>
+            <p id="finalScore" class="game-final-score"></p>
+            <div id="resultTiles" class="game-result-tiles" aria-label="Results by round"></div>
+            <p id="resultMessage" class="game-result-message"></p>
+            <button id="shareButton" class="game-button" type="button">Copy score <span aria-hidden="true">↗</span></button>
+            <p id="shareStatus" class="game-share-status" role="status"></p>
+            <textarea id="shareFallback" class="game-share-fallback" aria-label="Score to copy" readonly hidden></textarea>
+            <p id="nextGameInfo" class="game-next-info"></p>
+            <details class="game-review"><summary>Review your matchups</summary><div id="reviewRounds"></div></details>
+        </section>
+
+        <footer class="game-footnote">
+            <p>Real athletes. Their best published <a href="/league/bortz">bortz age</a> results. Birthday ages are taken on the blood-test date.</p>
+            <p>New matchups at midnight Singapore time. Your score and streak stay in this browser.</p>
+        </footer>
+        <noscript><p class="game-note">This game needs JavaScript. You can still explore the <a href="/league/bortz">bortz age leaderboard</a>.</p></noscript>
+    </main>
+</body>
+</html>
