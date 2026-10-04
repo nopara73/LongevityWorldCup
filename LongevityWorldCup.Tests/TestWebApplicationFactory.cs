@@ -52,12 +52,6 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
                 serviceProvider.GetRequiredService<DeterministicExternalHttpClientFactory>());
             services.RemoveAll<DatabaseManager>();
             services.AddSingleton(_ => new DatabaseManager(dbPath: dbPath));
-            services.RemoveAll<BloodVsBirthdaysService>();
-            services.AddSingleton(serviceProvider => new BloodVsBirthdaysService(
-                serviceProvider.GetRequiredService<IAthleteSnapshotProvider>(),
-                serviceProvider.GetRequiredService<TimeProvider>(),
-                Path.Combine(_dbRoot, "blood-vs-birthdays"),
-                serviceProvider.GetRequiredService<LongevityWorldCup.Website.Tools.AssetVersionProvider>().AppendVersion));
             services.RemoveAll<ApplicationSubmissionRetryStore>();
             services.AddSingleton(serviceProvider => new ApplicationSubmissionRetryStore(
                 serviceProvider.GetRequiredService<IMemoryCache>(),

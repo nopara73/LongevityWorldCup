@@ -82,8 +82,7 @@ namespace LongevityWorldCup.Website.Middleware
                 ["/select-athlete"] = "Athlete Selection | Longevity World Cup",
                 ["/dashboard"] = "Athlete Dashboard | Longevity World Cup",
                 ["/edit-profile"] = "Edit Profile | Longevity World Cup",
-                ["/unsubscribe"] = "Unsubscribe | Longevity World Cup",
-                ["/blood-vs-birthdays"] = "Blood vs. Birthdays | Longevity World Cup"
+                ["/unsubscribe"] = "Unsubscribe | Longevity World Cup"
             };
 
         public async Task Invoke(HttpContext context)

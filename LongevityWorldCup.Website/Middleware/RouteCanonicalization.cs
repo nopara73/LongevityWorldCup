@@ -48,8 +48,7 @@ namespace LongevityWorldCup.Website.Middleware
             new("/edit-profile", "/play/edit-profile.html", "/play/edit-profile", "/play/edit-profile.html"),
             new("/unsubscribe", "/unsubscribe.html", "/unsubscribe.html"),
             new("/pheno-age", "/onboarding/pheno-age.html", "/onboarding/pheno-age", "/onboarding/pheno-age.html"),
-            new("/bortz-age", "/onboarding/bortz-age.html", "/onboarding/bortz-age", "/onboarding/bortz-age.html"),
-            new("/blood-vs-birthdays", "/games/blood-vs-birthdays.html", "/games/blood-vs-birthdays.html")
+            new("/bortz-age", "/onboarding/bortz-age.html", "/onboarding/bortz-age", "/onboarding/bortz-age.html")
         ];
 
         private static readonly IReadOnlyDictionary<string, PageRoute> PageByPath = Pages
