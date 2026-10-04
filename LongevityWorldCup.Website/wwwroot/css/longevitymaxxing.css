@@ -959,7 +959,10 @@
     background: var(--lmx-accent-soft);
 }
 
-.lmx-mention-option strong {
+.lmx-mention-option strong,
+.lmx-note .lmx-mention-option strong {
+    display: inline;
+    margin: 0;
     border-radius: 4px;
     background: transparent;
     color: var(--lmx-accent);
