@@ -352,3 +352,5 @@
     window.setInterval(() => { if (now() >= nextAt) void loadToday(); }, 30000);
     void loadToday();
 })();
+
+export {};

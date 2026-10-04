@@ -4,6 +4,8 @@ The game is reachable at `/blood-vs-birthdays`. Its initial release is an unanno
 
 `GET /api/blood-vs-birthdays` returns today's five matchups, the server's UTC time, and the next Singapore-midnight boundary. It uses `no-store`. Athlete scores come from the existing `PhenoStatsCalculator` and only eligible, non-future bortz results with public proofs enter the set. See the glossary for the scoring rule.
 
+The page loads the self-contained `blood-vs-birthdays` ES module through the normal versioned asset placeholder. Keep the source's module marker and the HTML script's `type="module"` together; do not convert the generated output into a classic script.
+
 The service writes one atomic JSON snapshot per Singapore calendar day to the application data directory's `blood-vs-birthdays/yyyy-MM-dd.json`. On production this is `/var/www/.longevityworldcup/blood-vs-birthdays/`, outside the release tree. Preserve it during deploys and backups. Existing snapshots are authoritative through source edits and restarts; corrupt or incompatible files return a recoverable 503 rather than silently replacing players' questions. The current schema version is 1.
 
 Browser storage under `lwc.blood-vs-birthdays.v1` holds answers, the chosen timer mode, absolute timer deadlines, and completed dates. Keep at most 90 daily entries. Reloading preserves the current reveal or unfinished round; a timed round's deadline continues through reloads. Storage failures show an in-page notice and allow the open game to finish. A new day's response offers an explicit switch while an older game is open, preserving that game's answers.
