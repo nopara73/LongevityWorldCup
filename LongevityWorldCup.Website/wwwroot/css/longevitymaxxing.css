@@ -2519,11 +2519,13 @@ body.lmx-checkin-dialog-open {
 }
 
 #lmxSignupStatus:empty,
-#lmxResendStatus:empty {
+#lmxResendStatus:empty,
+#lmxEmailActionStatus:empty {
     display: none;
 }
 
-#lmxResendStatus {
+#lmxResendStatus,
+#lmxEmailActionStatus {
     min-width: 0;
     overflow-wrap: anywhere;
 }

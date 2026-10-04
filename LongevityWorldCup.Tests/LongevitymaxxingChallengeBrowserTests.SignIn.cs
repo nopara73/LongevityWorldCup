@@ -210,12 +210,38 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         });
         var page = await context.NewPageAsync();
         await page.GotoAsync($"/longevitymaxxing?stop=browser-stop&scope={scope}");
-        await Assertions.Expect(page.Locator("#lmxResendStatus")).ToHaveTextAsync(notice);
+        await Assertions.Expect(page.Locator("#lmxEmailActionStatus")).ToHaveTextAsync(notice);
+        await Assertions.Expect(page.Locator("#lmxEmailActionStatus")).ToBeVisibleAsync();
         await page.Locator("#lmxResendEmail").FillAsync("reader@example.test");
-        await Assertions.Expect(page.Locator("#lmxResendStatus")).ToHaveTextAsync(notice);
+        await Assertions.Expect(page.Locator("#lmxEmailActionStatus")).ToHaveTextAsync(notice);
         await Assertions.Expect(page.Locator("#lmxResendEmail")).ToBeFocusedAsync();
         if (endpoint is null) Assert.Empty(stops);
         else Assert.Equal($"/api/longevitymaxxing/{endpoint}", Assert.Single(stops));
+    }
+
+    [Theory]
+    [InlineData(390)]
+    [InlineData(1280)]
+    public async Task RetiredCallEmailLinkShowsNoticeForSignedInParticipant(int width)
+    {
+        await using var context = await SignInContextAsync(width);
+        await context.RouteAsync("**/api/longevitymaxxing/participant", route => FulfillJsonAsync(route, JsonSerializer.Serialize(BuildParticipantState())));
+        var stops = new ConcurrentQueue<string>();
+        await context.RouteAsync("**/api/longevitymaxxing/stop-*", route =>
+        {
+            stops.Enqueue(new Uri(route.Request.Url).AbsolutePath);
+            return FulfillJsonAsync(route, "{}");
+        });
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/longevitymaxxing?token=browser-token");
+        await Assertions.Expect(page.Locator("#lmxParticipantPanel")).ToBeVisibleAsync();
+        await page.GotoAsync("/longevitymaxxing?stop=browser-stop&scope=community-call");
+        await Assertions.Expect(page.Locator("#lmxEmailActionStatus")).ToHaveTextAsync("This email preference link has been retired. Your Challenge emails are unchanged.");
+        await Assertions.Expect(page.Locator("#lmxEmailActionStatus")).ToBeVisibleAsync();
+        await Assertions.Expect(page.Locator(".lmx-habit-summary")).ToBeVisibleAsync();
+        await Assertions.Expect(page.Locator("#lmxParticipantPanel[role=dialog]")).ToHaveCountAsync(0);
+        Assert.Empty(stops);
+        Assert.True(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth <= innerWidth"));
     }
 
     [Theory]

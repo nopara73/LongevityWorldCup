@@ -1152,7 +1152,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
 
         resendEmailInput.addEventListener("input", () => {
             retryEmail = "";
-            // The same status also hosts reminder opt-out and access-loading notices.
+            // The same status also hosts access-loading notices.
             if (feedback && status.textContent === feedback) setStatus("lmxResendStatus", "", false);
             feedback = "";
             renderAction();
@@ -1265,16 +1265,17 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         if (params.has("stop")) {
             const scope = params.get("scope");
             accessTab = "signin";
+            checkInDialogDismissed = true;
             if (scope) {
                 // Retired scoped stop links are deliberately harmless and leave the daily setting unchanged.
                 setStatus(
-                    "lmxResendStatus",
+                    "lmxEmailActionStatus",
                     "This email preference link has been retired. Your Challenge emails are unchanged.",
                     false);
             } else {
                 await postJson(`${API}/stop-emails`, { token: params.get("stop") || "" });
                 setStatus(
-                    "lmxResendStatus",
+                    "lmxEmailActionStatus",
                     "Challenge reminder emails stopped.",
                     false);
             }
