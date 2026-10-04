@@ -30,7 +30,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
         await page.RouteAsync("**/api/longevitymaxxing/state",
             route => FulfillJsonAsync(route, JsonSerializer.Serialize(BuildPublicState())));
         await page.RouteAsync("**/api/longevitymaxxing/participant",
-            route => FulfillJsonAsync(route, JsonSerializer.Serialize(BuildParticipantState(timeZoneId: participantTimeZone, includeUpcomingCall: true))));
+            route => FulfillJsonAsync(route, JsonSerializer.Serialize(BuildParticipantState(timeZoneId: participantTimeZone, noEligibleDays: true))));
         await page.GotoAsync("/longevitymaxxing?token=browser-token");
         await Assertions.Expect(page.Locator(".lmx-habit-summary")).ToBeVisibleAsync();
         await Assertions.Expect(page.Locator(".lmx-dashboard-scroll")).ToBeHiddenAsync();
@@ -66,7 +66,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
         await page.RouteAsync("**/api/longevitymaxxing/state",
             route => FulfillJsonAsync(route, JsonSerializer.Serialize(BuildPublicState())));
         await page.RouteAsync("**/api/longevitymaxxing/participant",
-            route => FulfillJsonAsync(route, JsonSerializer.Serialize(BuildParticipantState(includeUpcomingCall: true))));
+            route => FulfillJsonAsync(route, JsonSerializer.Serialize(BuildParticipantState(noEligibleDays: true))));
         await page.GotoAsync("/longevitymaxxing?token=browser-token");
         await page.Locator(".lmx-habit-history > summary").ClickAsync();
         var history = page.Locator(".lmx-dashboard-scroll");
@@ -306,7 +306,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
                 route => FulfillJsonAsync(route, JsonSerializer.Serialize(BuildPublicState())));
             await participantPage.RouteAsync(
                 "**/api/longevitymaxxing/participant",
-                route => FulfillJsonAsync(route, JsonSerializer.Serialize(BuildParticipantState(includeUpcomingCall: true))));
+                route => FulfillJsonAsync(route, JsonSerializer.Serialize(BuildParticipantState(noEligibleDays: true))));
             await participantPage.GotoAsync(
                 "/longevitymaxxing",
                 new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
@@ -609,32 +609,23 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
         Assert.All(cellAndDotColors, colors => Assert.All(colors.Skip(1), dotColor => Assert.Equal(colors[0], dotColor)));
     }
 
-    [Fact]
-    public async Task CommunityCallIcon_RendersWithoutExternalIconFont()
+    [Theory]
+    [InlineData(390)]
+    [InlineData(1280)]
+    public async Task ChallengePagesHaveNoCallControls(int width)
     {
-        var app = App;
-        var browser = Browser;
-        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
-        {
-            BaseURL = app.BaseAddress.ToString(),
-            Locale = "en-US",
-            ViewportSize = new ViewportSize { Width = 390, Height = 844 }
-        });
-        await RouteChallengeResourcesAsync(context);
-        await context.AddInitScriptAsync("window.localStorage.setItem('lmxAccessToken', 'browser-token');");
-
+        await using var context = await Browser.NewContextAsync(new() { BaseURL = App.BaseAddress.ToString(), ViewportSize = new() { Width = width, Height = 844 } });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        await context.RouteAsync("**/api/longevitymaxxing/state", route => FulfillJsonAsync(route, JsonSerializer.Serialize(BuildPublicState())));
+        await context.RouteAsync("**/api/longevitymaxxing/participant", route => FulfillJsonAsync(route, JsonSerializer.Serialize(BuildParticipantState(noEligibleDays: true))));
         var page = await context.NewPageAsync();
-        await page.RouteAsync("**/api/longevitymaxxing/state", route => FulfillJsonAsync(route, JsonSerializer.Serialize(BuildPublicState())));
-        await page.RouteAsync("**/api/longevitymaxxing/participant", route => FulfillJsonAsync(route, JsonSerializer.Serialize(BuildParticipantState(includeUpcomingCall: true))));
-
-        await page.GotoAsync("/longevitymaxxing", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-        var icon = page.Locator(".lmx-call-title-icon");
-        await icon.WaitForAsync();
-
-        Assert.Equal("svg", await icon.EvaluateAsync<string>("element => element.tagName.toLowerCase()"));
-        Assert.Equal("0 0 640 512", await icon.GetAttributeAsync("viewBox"));
-        var size = await icon.EvaluateAsync<double[]>("element => { const rect = element.getBoundingClientRect(); return [rect.width, rect.height]; }");
-        Assert.True(size[0] >= 16 && size[1] >= 12, $"Community call icon rendered at {size[0]}x{size[1]} pixels.");
+        await page.GotoAsync("/longevitymaxxing");
+        await Assertions.Expect(page.Locator("#lmxSignupForm")).ToBeVisibleAsync();
+        await Assertions.Expect(page.Locator(".lmx-call-list, .lmx-call-group, [data-call-countdown]")).ToHaveCountAsync(0);
+        await page.GotoAsync("/longevitymaxxing?token=browser-token");
+        await Assertions.Expect(page.Locator(".lmx-habit-summary")).ToBeVisibleAsync();
+        await Assertions.Expect(page.Locator(".lmx-call-list, .lmx-call-group, [data-call-countdown]")).ToHaveCountAsync(0);
+        await Assertions.Expect(page.GetByRole(AriaRole.Link, new() { Name = "Google Meet", Exact = true })).ToHaveCountAsync(0);
     }
 
     [Fact]
@@ -2014,7 +2005,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
 
     private static object BuildParticipantState(
         bool emptyGarden = false,
-        bool includeUpcomingCall = false,
+        bool noEligibleDays = false,
         bool includeMentionParticipants = false,
         bool includeDiscussionNotesWithMentionParticipants = false,
         string? eligibleDayDate = null,
@@ -2047,7 +2038,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
                 challengeInactive = false,
                 daysIn = 22
             },
-            eligibleDays = includeUpcomingCall
+            eligibleDays = noEligibleDays
                 ? Array.Empty<object>()
                 : includeMissedCatchUpDay
                     ? new object[]
@@ -2071,22 +2062,6 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
                     : BuildDiscussionNotes(discussionReplySnapshot))
                 .Concat(new[] { Note("p-private", "Private", 1, "2026-06-08", "Private participant-only remark.") })
                 .ToArray(),
-            calls = includeUpcomingCall
-                ? new object[]
-                {
-                    new
-                    {
-                        key = "community-call",
-                        label = "Community call",
-                        selectedSlot = new
-                        {
-                            id = "2099-01-01T08:30:00Z",
-                            startsAtUtc = "2099-01-01T08:30:00Z"
-                        },
-                        videoCallUrl = (string?)null
-                    }
-                }
-                : Array.Empty<object>(),
             garden = BuildGardenState(emptyGarden)
         };
 
@@ -2123,7 +2098,6 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
             signupOpen = true,
             startDate = "2026-06-08",
             signupClosesAtUtc = "2026-06-08T00:00:00Z",
-            callSelectionClosesAtUtc = "2026-06-06T18:00:00Z",
             endDate = "2026-06-21",
             durationDays = 14,
             dailyMaxScore = 11,
@@ -2208,7 +2182,6 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
                     }
                 }
                 : Array.Empty<object>(),
-            calls = Array.Empty<object>(),
             slackInviteUrl = "",
             slackRoomUrl = (string?)null
         };

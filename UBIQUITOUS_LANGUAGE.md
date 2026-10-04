@@ -69,7 +69,7 @@ Application and Pro-upgrade payment detection is server-owned and survives a clo
 - **Resting**: inactive leaderboard grouping; retain check-ins/discussions. Eligible catch-up check-ins can clear missed-day resting.
 - Avatars prioritize linked Longevity athlete pictures over challenge-only uploads and Gravatar fallbacks. Linked discussion avatars/names open the athlete profile.
 - **Habit garden**: persistent visualization, independent of scoring. Replay all saved answers in day order, including practice, from vitality `0`: Somewhat is neutral; Yes closes `2.5%` of remaining growth; No retains `65%` of vitality. Later Yes answers regrow; pending answers preview without replacing history.
-- Community-call announcements are social-only Custom Events queued about an hour before selected calls. Public call URLs are allowed; participant access/stop links are not. Call emails have a separate opt-out and require a local start time of 07:00–20:59; stopping them leaves daily emails enabled.
+- **Community calls retired**: Sunday 4 October 2026, 14:30–15:30 Asia/Singapore was the final scheduled Longevitymaxxing community call. The Challenge, check-ins, rankings, discussion, Slack, and ordinary Challenge emails continue. Preserve past calendar and published Event history; historical call scheduling and delivery records live in a private database archive. The application no longer schedules, displays, emails, or announces calls. Legacy scoped email-preference links are harmless notices and cannot change ordinary Challenge email preferences.
 
 ## Challenge Discussions
 

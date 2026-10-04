@@ -263,32 +263,12 @@
         totalPoints: number;
     }
 
-    interface CallSlot {
-        id: string;
-        startsAtUtc: string;
-    }
-
-    interface PublicCall {
-        key: string;
-        label: string;
-        candidateSlots: CallSlot[];
-        selectedSlot: CallSlot | null;
-    }
-
-    interface ParticipantCall {
-        key: string;
-        label: string;
-        selectedSlot: CallSlot | null;
-        videoCallUrl: string | null;
-    }
-
     interface PublicState {
         challengeName: string;
         phase: string;
         signupOpen: boolean;
         startDate: string;
         signupClosesAtUtc: string;
-        callSelectionClosesAtUtc: string;
         endDate: string;
         durationDays: number;
         dailyMaxScore: number;
@@ -298,7 +278,6 @@
         podium: PodiumRow[];
         notes: ParticipantNote[];
         systemDiscussionPosts?: DiscussionSystemPost[];
-        calls: PublicCall[];
         slackInviteUrl: string;
         slackRoomUrl: string | null;
     }
@@ -341,7 +320,6 @@
         participant: ParticipantSummary;
         eligibleDays: EligibleDay[];
         notes: ParticipantNote[];
-        calls: ParticipantCall[];
         garden: GardenState;
     }
 
@@ -816,7 +794,6 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     let timeZoneCountryCodes: Map<string, string[]> | null = null;
     let preferredTimeZoneIds: Map<string, string> | null = null;
     let regionDisplayNames: Intl.DisplayNames | null = null;
-    let callCountdownTimer: number | null = null;
     let quoteDialogLastFocus: HTMLElement | null = null;
     let notePhotoViewerItems: NotePhotoViewerItem[] = [];
     let notePhotoViewerIndex = 0;
@@ -920,7 +897,6 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         wireNotePhotoViewer();
         wireDiscussionRecovery();
         wireCheckInDialog();
-        startCallCountdownTimer();
         if (accessLoading) renderAccessLoading();
 
         try {
@@ -1034,7 +1010,6 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 profileTimeZoneDraft.error = "";
                 renderProfileTimeZoneControls();
             }
-            if (participantState) renderParticipantCalls(participantState.calls || [], participantState.public.callSelectionClosesAtUtc);
         });
     }
 
@@ -1290,22 +1265,17 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         if (params.has("stop")) {
             const scope = params.get("scope");
             accessTab = "signin";
-            if (scope && scope !== "community-call") {
+            if (scope) {
                 // Retired scoped stop links are deliberately harmless and leave the daily setting unchanged.
                 setStatus(
                     "lmxResendStatus",
-                    "Discussion activity follows your daily Challenge email setting.",
+                    "This email preference link has been retired. Your Challenge emails are unchanged.",
                     false);
             } else {
-                const stopEndpoint = scope === "community-call"
-                    ? `${API}/stop-community-call-emails` as const
-                    : `${API}/stop-emails` as const;
-                await postJson(stopEndpoint, { token: params.get("stop") || "" });
+                await postJson(`${API}/stop-emails`, { token: params.get("stop") || "" });
                 setStatus(
                     "lmxResendStatus",
-                    scope === "community-call"
-                        ? "Community call emails stopped."
-                        : "Challenge reminder emails stopped.",
+                    "Challenge reminder emails stopped.",
                     false);
             }
             shouldClean = true;
@@ -1725,7 +1695,6 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         toggle("lmxEditForm", hasParticipant && activeParticipantTab === "profile");
         toggle("lmxHomePanel", hasParticipant && activeParticipantTab === "home");
         toggle("lmxParticipantTools", hasParticipant && activeParticipantTab === "home");
-        toggle("lmxParticipantCalls", hasParticipant && activeParticipantTab === "home");
         renderParticipantTabs();
         if (!hasParticipant) {
             participantActiveTab = null;
@@ -1885,7 +1854,6 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         renderProfileIdentity(participant);
         renderProfileTimeZoneControls();
         renderProfilePictureControls(participant);
-        renderParticipantCalls(state.calls || [], state.public.callSelectionClosesAtUtc);
         renderCheckIns(state.eligibleDays || []);
         renderNotes(participantDiscussionThreads(state), true);
         renderParticipantTabs();
@@ -2115,94 +2083,6 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             renderProfilePictureControls(participantState?.participant || participant);
         } : null;
         if (image.getAttribute("src") !== source) image.src = source;
-    }
-
-    function renderParticipantCalls(calls: ParticipantCall[], callSelectionClosesAtUtc: string): void {
-        const container = document.getElementById("lmxParticipantCalls");
-        if (!container) return;
-        const visibleCalls = (calls || [])
-            .filter(call => !isParticipantCallDone(call))
-            .sort((a, b) => getCallStartsAtMs(a) - getCallStartsAtMs(b))
-            .slice(0, 1);
-        if (!visibleCalls.length) {
-            container.innerHTML = "";
-            updateCallCountdowns();
-            return;
-        }
-
-        container.innerHTML = visibleCalls.map(call => {
-            const timeZoneId = getParticipantTimeZone();
-            const when = call.selectedSlot ? formatCallWhen(call.selectedSlot.startsAtUtc, timeZoneId) : { primary: pendingCallTimeLabel(callSelectionClosesAtUtc, timeZoneId), secondary: "" };
-            const countdown = call.selectedSlot
-                ? callCountdownHtml(call.selectedSlot.startsAtUtc)
-                : "";
-            const link = call.videoCallUrl
-                ? `<a class="lmx-call-link" href="${escAttr(call.videoCallUrl)}" target="_blank" rel="noopener">Google Meet</a>`
-                : "";
-            return `<div class="lmx-call-group">
-                <div class="lmx-call-main">
-                    <div class="lmx-call-copy">
-                        <strong><svg class="lmx-call-title-icon" viewBox="0 0 640 512" aria-hidden="true" focusable="false"><path d="M72 88a56 56 0 1 1 112 0A56 56 0 1 1 72 88zM64 245.7C54 256.9 48 271.8 48 288s6 31.1 16 42.3l0-84.7zm144.4-49.3C178.7 222.7 160 261.2 160 304c0 34.3 12 65.8 32 90.5l0 21.5c0 17.7-14.3 32-32 32l-64 0c-17.7 0-32-14.3-32-32l0-26.8C26.2 371.2 0 332.7 0 288c0-61.9 50.1-112 112-112l32 0c24 0 46.2 7.5 64.4 20.3zM448 416l0-21.5c20-24.7 32-56.2 32-90.5c0-42.8-18.7-81.3-48.4-107.7C449.8 183.5 472 176 496 176l32 0c61.9 0 112 50.1 112 112c0 44.7-26.2 83.2-64 101.2l0 26.8c0 17.7-14.3 32-32 32l-64 0c-17.7 0-32-14.3-32-32zm8-328a56 56 0 1 1 112 0A56 56 0 1 1 456 88zM576 245.7l0 84.7c10-11.3 16-26.1 16-42.3s-6-31.1-16-42.3zM320 32a64 64 0 1 1 0 128 64 64 0 1 1 0-128zM240 304c0 16.2 6 31 16 42.3l0-84.7c-10 11.3-16 26.1-16 42.3zm144-42.3l0 84.7c10-11.3 16-26.1 16-42.3s-6-31.1-16-42.3zM448 304c0 44.7-26.2 83.2-64 101.2l0 42.8c0 17.7-14.3 32-32 32l-64 0c-17.7 0-32-14.3-32-32l0-42.8c-37.8-18-64-56.5-64-101.2c0-61.9 50.1-112 112-112l32 0c61.9 0 112 50.1 112 112z"></path></svg>Next community call</strong>
-                        <span class="lmx-call-when"><b>${esc(when.primary)}</b>${when.secondary ? `<small>${esc(when.secondary)}</small>` : ""}</span>
-                    </div>
-                </div>
-                <div class="lmx-call-side">
-                    ${countdown}
-                    ${link}
-                </div>
-            </div>`;
-        }).join("");
-        updateCallCountdowns();
-    }
-
-    function callCountdownHtml(startsAtUtc: string): string {
-        const countdown = formatCallCountdown(startsAtUtc);
-        if (!countdown.value) return "";
-        return `<span class="lmx-call-countdown" data-call-countdown data-call-starts-at="${escAttr(startsAtUtc)}">
-            <small>${esc(countdown.label)}</small>
-            <b>${esc(countdown.value)}</b>
-        </span>`;
-    }
-
-    function startCallCountdownTimer() {
-        if (callCountdownTimer) return;
-        callCountdownTimer = window.setInterval(updateCallCountdowns, 60000);
-    }
-
-    function updateCallCountdowns() {
-        document.querySelectorAll<HTMLElement>("[data-call-countdown]").forEach(element => {
-            const countdown = formatCallCountdown(element.dataset.callStartsAt || "");
-            element.classList.toggle("live", countdown.label === "Live now");
-            element.classList.toggle("lmx-hidden", !countdown.value);
-            const label = element.querySelector("small");
-            const value = element.querySelector("b");
-            if (label) label.textContent = countdown.label;
-            if (value) value.textContent = countdown.value;
-        });
-    }
-
-    function formatCallCountdown(startsAtUtc: string): { label: string; value: string } {
-        const startsAtMs = Date.parse(startsAtUtc);
-        if (!Number.isFinite(startsAtMs)) return { label: "", value: "" };
-        const remainingMinutes = Math.ceil((startsAtMs - Date.now()) / 60000);
-        if (remainingMinutes <= 0) return { label: "Live now", value: "Join" };
-        if (remainingMinutes < 60) return { label: "Starts in", value: `${remainingMinutes}m` };
-
-        const days = Math.floor(remainingMinutes / 1440);
-        const hours = Math.floor((remainingMinutes % 1440) / 60);
-        const minutes = remainingMinutes % 60;
-        if (days > 0) return { label: "Starts in", value: hours > 0 ? `${days}d ${hours}h` : `${days}d` };
-        return { label: "Starts in", value: minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h` };
-    }
-
-    function isParticipantCallDone(call: ParticipantCall): boolean {
-        const startsAtMs = getCallStartsAtMs(call);
-        return Number.isFinite(startsAtMs) && startsAtMs + CALL_ACTIVE_WINDOW_MS < Date.now();
-    }
-
-    function getCallStartsAtMs(call: ParticipantCall): number {
-        const startsAtMs = call && call.selectedSlot ? Date.parse(call.selectedSlot.startsAtUtc) : NaN;
-        return Number.isFinite(startsAtMs) ? startsAtMs : Number.MAX_SAFE_INTEGER;
     }
 
     function renderBoard(state: PublicState): void {
@@ -7920,33 +7800,15 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             typeof value.checkedInDays === "number" && typeof value.totalPoints === "number";
     }
 
-    function isCallSlot(value: unknown): value is CallSlot {
-        return hasProperties(value, "id", "startsAtUtc") &&
-            typeof value.id === "string" && typeof value.startsAtUtc === "string";
-    }
-
-    function isPublicCall(value: unknown): value is PublicCall {
-        return hasProperties(value, "key", "label", "candidateSlots", "selectedSlot") &&
-            typeof value.key === "string" && typeof value.label === "string" &&
-            isArrayOf(value.candidateSlots, isCallSlot) &&
-            (value.selectedSlot === null || isCallSlot(value.selectedSlot));
-    }
-
-    function isParticipantCall(value: unknown): value is ParticipantCall {
-        return hasProperties(value, "key", "label", "selectedSlot", "videoCallUrl") &&
-            typeof value.key === "string" && typeof value.label === "string" &&
-            (value.selectedSlot === null || isCallSlot(value.selectedSlot)) && isNullableString(value.videoCallUrl);
-    }
-
     function isPublicState(value: unknown): value is PublicState {
-        return hasProperties(value, "challengeName", "phase", "signupOpen", "startDate", "signupClosesAtUtc", "callSelectionClosesAtUtc", "endDate", "durationDays", "dailyMaxScore", "days", "leaderboard", "podium", "notes", "calls", "slackInviteUrl", "slackRoomUrl") &&
+        return hasProperties(value, "challengeName", "phase", "signupOpen", "startDate", "signupClosesAtUtc", "endDate", "durationDays", "dailyMaxScore", "days", "leaderboard", "podium", "notes", "slackInviteUrl", "slackRoomUrl") &&
             typeof value.challengeName === "string" && typeof value.phase === "string" &&
             typeof value.signupOpen === "boolean" && typeof value.startDate === "string" &&
-            typeof value.signupClosesAtUtc === "string" && typeof value.callSelectionClosesAtUtc === "string" &&
+            typeof value.signupClosesAtUtc === "string" &&
             typeof value.endDate === "string" && typeof value.durationDays === "number" &&
             typeof value.dailyMaxScore === "number" && isArrayOf(value.days, isDaySummary) &&
             isArrayOf(value.leaderboard, isLeaderboardRow) && isArrayOf(value.podium, isPodiumRow) &&
-            isArrayOf(value.notes, isParticipantNote) && isArrayOf(value.calls, isPublicCall) &&
+            isArrayOf(value.notes, isParticipantNote) &&
             (!hasProperties(value, "scoringWindow") || (hasProperties(value.scoringWindow, "startDay", "endDay", "nextClosesAtUtc") &&
                 typeof value.scoringWindow.startDay === "number" && Number.isInteger(value.scoringWindow.startDay) && value.scoringWindow.startDay >= 1 &&
                 typeof value.scoringWindow.endDay === "number" && Number.isInteger(value.scoringWindow.endDay) && value.scoringWindow.endDay >= 0 &&
@@ -7981,10 +7843,10 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     }
 
     function isParticipantState(value: unknown): value is ParticipantState {
-        return hasProperties(value, "public", "participant", "eligibleDays", "notes", "calls", "garden") &&
+        return hasProperties(value, "public", "participant", "eligibleDays", "notes", "garden") &&
             isPublicState(value.public) && isParticipantSummary(value.participant) &&
             isArrayOf(value.eligibleDays, isEligibleDay) && isArrayOf(value.notes, isParticipantNote) &&
-            isArrayOf(value.calls, isParticipantCall) && isGardenState(value.garden);
+            isGardenState(value.garden);
     }
 
     function isSignupResult(value: unknown): value is SignupResult {
@@ -8018,7 +7880,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         payload: object
     ): Promise<ParticipantState>;
     async function postJson(
-        url: `${typeof API}/stop-emails` | `${typeof API}/stop-community-call-emails`,
+        url: `${typeof API}/stop-emails`,
         payload: object
     ): Promise<unknown>;
     async function postJson(url: string, payload: object): Promise<unknown>;
@@ -8548,34 +8410,6 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const timeZone = normalizeDisplayTimeZone(timeZoneId);
         if (timeZone) options.timeZone = timeZone;
         return new Intl.DateTimeFormat("en-US", options).format(date);
-    }
-
-    function formatCallWhen(value: string, timeZoneId: string): { primary: string; secondary: string } {
-        const date = new Date(value);
-        if (Number.isNaN(date.getTime())) return { primary: value || "", secondary: "" };
-        const timeZone = normalizeDisplayTimeZone(timeZoneId);
-        const primaryOptions: Intl.DateTimeFormatOptions = {
-            weekday: "long",
-            hour: "numeric",
-            minute: "2-digit"
-        };
-        const secondaryOptions: Intl.DateTimeFormatOptions = {
-            month: "short",
-            day: "numeric",
-            timeZoneName: "short"
-        };
-        if (timeZone) {
-            primaryOptions.timeZone = timeZone;
-            secondaryOptions.timeZone = timeZone;
-        }
-        return {
-            primary: new Intl.DateTimeFormat("en-US", primaryOptions).format(date),
-            secondary: new Intl.DateTimeFormat("en-US", secondaryOptions).format(date)
-        };
-    }
-
-    function pendingCallTimeLabel(_callSelectionClosesAtUtc: string, _timeZoneId: string): string {
-        return "Meeting time pending.";
     }
 
     function getParticipantTimeZone(): string {

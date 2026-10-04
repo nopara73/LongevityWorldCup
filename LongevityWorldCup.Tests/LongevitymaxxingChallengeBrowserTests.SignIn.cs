@@ -196,8 +196,9 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
 
     [Theory]
     [InlineData("", "Challenge reminder emails stopped.", "stop-emails")]
-    [InlineData("community-call", "Community call emails stopped.", "stop-community-call-emails")]
-    [InlineData("discussion", "Discussion activity follows your daily Challenge email setting.", null)]
+    [InlineData("community-call", "This email preference link has been retired. Your Challenge emails are unchanged.", null)]
+    [InlineData("unknown-scope", "This email preference link has been retired. Your Challenge emails are unchanged.", null)]
+    [InlineData("discussion", "This email preference link has been retired. Your Challenge emails are unchanged.", null)]
     public async Task SignIn_EditingKeepsUnrelatedReminderNotices(string scope, string notice, string? endpoint)
     {
         await using var context = await SignInContextAsync();

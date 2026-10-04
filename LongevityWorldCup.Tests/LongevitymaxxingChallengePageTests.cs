@@ -81,8 +81,8 @@ public sealed class LongevitymaxxingChallengePageTests(TestWebApplicationFactory
         Assert.Contains("participantMentionTextHtml(noteText)", source);
         Assert.Contains("participantMentionTextHtml(reply.body)", source);
         Assert.Contains("wireMentionAutocomplete(textarea", source);
-        Assert.Contains("if (scope && scope !== \"community-call\")", source);
-        Assert.Contains("Discussion activity follows your daily Challenge email setting.", source);
+        Assert.Contains("if (scope)", source);
+        Assert.Contains("This email preference link has been retired. Your Challenge emails are unchanged.", source);
         Assert.Contains("mention.participant.athleteUrl", source);
         Assert.Contains("<a class=\"lmx-note-mention linked\"", source);
         Assert.Contains("<span class=\"lmx-note-mention\"", source);
@@ -359,7 +359,7 @@ public sealed class LongevitymaxxingChallengePageTests(TestWebApplicationFactory
     }
 
     [Fact]
-    public async Task LongevitymaxxingPublicState_DoesNotExposeParticipantOnlyMeetingLink()
+    public async Task LongevitymaxxingPublicState_OmitsRetiredCallFields()
     {
         var factory = sharedFactory;
         using var client = factory.CreateClient();
@@ -369,10 +369,6 @@ public sealed class LongevitymaxxingChallengePageTests(TestWebApplicationFactory
         Assert.Contains("\"challengeName\":\"Longevitymaxxing Challenge\"", json);
         Assert.Contains("\"startDate\":\"2026-06-08\"", json);
         Assert.Contains("\"signupClosesAtUtc\":\"2026-06-09T22:00:00.0000000+00:00\"", json);
-        Assert.Contains("\"callSelectionClosesAtUtc\":", json);
-        Assert.Contains("\"key\":\"community-", json);
-        Assert.Contains("\"label\":\"Community call\"", json);
-        Assert.Contains("T06:30:00.0000000+00:00", json);
         Assert.DoesNotContain("\"startsAtUtc\":\"2026-06-08T13:00:00.0000000+00:00\"", json);
         Assert.DoesNotContain("\"startsAtUtc\":\"2026-06-22T06:30:00.0000000+00:00\"", json);
         Assert.DoesNotContain("\"startsAtUtc\":\"2026-06-22T13:00:00.0000000+00:00\"", json);
@@ -380,10 +376,21 @@ public sealed class LongevitymaxxingChallengePageTests(TestWebApplicationFactory
         Assert.DoesNotContain("\"startsAtUtc\":\"2026-06-09T02:00:00.0000000+00:00\"", json);
         Assert.DoesNotContain("kem-kfpt-bhs", json);
         Assert.DoesNotContain("videoCallUrl", json);
+        Assert.DoesNotContain("\"calls\":", json);
+        Assert.DoesNotContain("callSelectionClosesAtUtc", json);
     }
 
     [Fact]
-    public async Task LongevitymaxxingPublicState_GeneratesWeeklySundayCommunityCallsForFutureCompetition()
+    public async Task RetiredCallEmailOptOutEndpoint_IsAbsent()
+    {
+        using var client = sharedFactory.CreateClient();
+        using var body = new StringContent("{\"token\":\"retired-link\"}", System.Text.Encoding.UTF8, "application/json");
+        using var response = await client.PostAsync("/api/longevitymaxxing/stop-community-call-emails", body);
+        Assert.Equal(System.Net.HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task LongevitymaxxingPublicState_OmitsCallsForFutureCompetition()
     {
         using var factory = CreateFactory(new Config
         {
@@ -398,10 +405,7 @@ public sealed class LongevitymaxxingChallengePageTests(TestWebApplicationFactory
         var json = await client.GetStringAsync("/api/longevitymaxxing/state");
 
         Assert.Contains("\"startDate\":\"2099-06-08\"", json);
-        Assert.Contains("\"startsAtUtc\":\"2099-06-07T06:30:00.0000000+00:00\"", json);
-        Assert.Contains("\"startsAtUtc\":\"2099-06-14T06:30:00.0000000+00:00\"", json);
-        Assert.Contains("\"startsAtUtc\":\"2099-06-21T06:30:00.0000000+00:00\"", json);
-        Assert.Contains("\"label\":\"Community call\"", json);
+        Assert.DoesNotContain("\"calls\":", json);
         Assert.DoesNotContain("T13:00:00.0000000+00:00", json);
         Assert.DoesNotContain("T16:00:00.0000000+00:00", json);
         Assert.DoesNotContain("\"startsAtUtc\":\"2026-06-08T06:30:00.0000000+00:00\"", json);
@@ -530,7 +534,7 @@ public sealed class LongevitymaxxingChallengePageTests(TestWebApplicationFactory
         Assert.Contains("function closeCheckInDialog(dismissed: boolean", javascript);
         Assert.Contains("function setCheckInDialogPageInert", javascript);
         Assert.Contains("toggle(\"lmxParticipantTools\", hasParticipant && activeParticipantTab === \"home\");", javascript);
-        Assert.Contains("toggle(\"lmxParticipantCalls\", hasParticipant && activeParticipantTab === \"home\");", javascript);
+        Assert.DoesNotContain("toggle(\"lmxParticipantCalls\", hasParticipant && activeParticipantTab === \"home\");", javascript);
         Assert.DoesNotContain("checkin-only", javascript);
         Assert.DoesNotContain(".lmx-hero.checkin-only", css);
         Assert.Contains("toggle(\"lmxBoardSection\", true);", javascript);
@@ -539,22 +543,22 @@ public sealed class LongevitymaxxingChallengePageTests(TestWebApplicationFactory
         Assert.Contains("if (isParticipantTabLocked(tab, participantState)) return;", javascript);
         Assert.Contains("button.toggleAttribute(\"disabled\", locked);", javascript);
         Assert.Contains("const availableTabs = PARTICIPANT_TABS.filter(tab => !isParticipantTabLocked(tab, currentParticipantState));", javascript);
-        Assert.Contains("Next community call", javascript);
-        Assert.Contains("<svg class=\"lmx-call-title-icon\"", javascript);
+        Assert.DoesNotContain("Next community call", javascript);
+        Assert.DoesNotContain("<svg class=\"lmx-call-title-icon\"", javascript);
         Assert.DoesNotContain("fa-users lmx-call-title-icon", javascript);
-        Assert.Contains("data-call-countdown", javascript);
-        Assert.Contains("function callCountdownHtml", javascript);
-        Assert.Contains("function formatCallCountdown", javascript);
-        Assert.Contains("Live now", javascript);
-        Assert.Contains("window.setInterval(updateCallCountdowns, 60000)", javascript);
-        Assert.Contains(".lmx-call-main", css);
-        Assert.Contains(".lmx-call-side", css);
-        Assert.Contains(".lmx-call-countdown", css);
-        Assert.Contains("function formatCallWhen", javascript);
-        Assert.Contains("class=\"lmx-call-when\"", javascript);
+        Assert.DoesNotContain("data-call-countdown", javascript);
+        Assert.DoesNotContain("function callCountdownHtml", javascript);
+        Assert.DoesNotContain("function formatCallCountdown", javascript);
+        Assert.DoesNotContain("Live now", javascript);
+        Assert.DoesNotContain("window.setInterval(updateCallCountdowns, 60000)", javascript);
+        Assert.DoesNotContain(".lmx-call-main", css);
+        Assert.DoesNotContain(".lmx-call-side", css);
+        Assert.DoesNotContain(".lmx-call-countdown", css);
+        Assert.DoesNotContain("function formatCallWhen", javascript);
+        Assert.DoesNotContain("class=\"lmx-call-when\"", javascript);
         Assert.Contains("#lmxParticipantTools", css);
         Assert.Contains(".lmx-tab:disabled", css);
-        Assert.Contains(".lmx-call-when small", css);
+        Assert.DoesNotContain(".lmx-call-when small", css);
         Assert.Contains("const leaderboardRows = splitLeaderboardRows(state);", javascript);
         Assert.Contains("const leaderboard = participant.challengeInactive ? (state.leaderboard || []) : leaderboardRows.active;", javascript);
         Assert.Contains("toggle(\"lmxTitlePanel\", true);", javascript);
@@ -782,7 +786,7 @@ public sealed class LongevitymaxxingChallengePageTests(TestWebApplicationFactory
         Assert.DoesNotContain("function getOpenCallVoteCalls", javascript);
         Assert.DoesNotContain("renderCallsForSignup", javascript);
         Assert.DoesNotContain("renderCallVoteControls", javascript);
-        Assert.Contains("lmx-call-list", await client.GetStringAsync("/longevitymaxxing"));
+        Assert.DoesNotContain("lmx-call-list", await client.GetStringAsync("/longevitymaxxing"));
         Assert.DoesNotContain("lmxEditCallField", javascript);
         Assert.DoesNotContain("id=\"lmxSignupCallField\"", await client.GetStringAsync("/longevitymaxxing"));
         Assert.Contains("Intl.DateTimeFormat().resolvedOptions().timeZone", javascript);
@@ -822,7 +826,6 @@ public sealed class LongevitymaxxingChallengePageTests(TestWebApplicationFactory
         Assert.Contains(".lmx-field .lmx-timezone-picker .lmx-timezone-search input[type=\"search\"]:focus", css);
         Assert.DoesNotContain("signupTimeZone.addEventListener(\"change\"", javascript);
         Assert.Contains("editTimeZone.addEventListener(\"change\"", javascript);
-        Assert.Contains("renderParticipantCalls(participantState.calls || [], participantState.public.callSelectionClosesAtUtc)", javascript);
         Assert.DoesNotContain("getCallDisplayTimeZone", javascript);
         Assert.Contains("options.timeZone = timeZone", javascript);
         Assert.Contains("initAthleteSelectors();", javascript);
@@ -899,14 +902,13 @@ public sealed class LongevitymaxxingChallengePageTests(TestWebApplicationFactory
         Assert.Contains("function renderRosterBoard", javascript);
         Assert.Contains("people signed up", javascript);
         Assert.DoesNotContain("email confirmed", javascript);
-        Assert.Contains("renderParticipantCalls(state.calls || [], state.public.callSelectionClosesAtUtc);", javascript);
-        Assert.Contains("function pendingCallTimeLabel", javascript);
-        Assert.Contains("Meeting time pending.", javascript);
+        Assert.DoesNotContain("function pendingCallTimeLabel", javascript);
+        Assert.DoesNotContain("Meeting time pending.", javascript);
         Assert.DoesNotContain("Availability closes on", javascript);
         Assert.DoesNotContain("Signup closes on", javascript);
-        Assert.Contains("class=\"lmx-call-link\"", javascript);
-        Assert.Contains(".lmx-call-link", css);
-        Assert.Contains(".lmx-call-link:focus-visible", css);
+        Assert.DoesNotContain("class=\"lmx-call-link\"", javascript);
+        Assert.DoesNotContain(".lmx-call-link", css);
+        Assert.DoesNotContain(".lmx-call-link:focus-visible", css);
         Assert.Contains("justify-content: center;", css);
         Assert.Contains(".lmx-checkin-switcher button:focus-visible", css);
         Assert.Contains(".lmx-answer-input:focus-visible + .lmx-answer-face", css);

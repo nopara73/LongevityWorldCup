@@ -2335,42 +2335,18 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
     }
 
     [Fact]
-    public async Task DailyReminderEmailIncludesUpdatedCallSchedule()
+    public async Task DailyReminderEmailKeepsCheckInAndStopLinksWithoutCalls()
     {
         using var fixture = TestChallengeFixture.Create();
-        await fixture.ConfirmParticipantAsync(
-            "daily-call@example.com",
-            "Daily Call Dana",
-            timeZoneId: "Europe/Budapest");
-
+        await fixture.ConfirmParticipantAsync("daily@example.com", "Daily Dana", timeZoneId: "Europe/Budapest");
         var reminder = Assert.Single(fixture.Service.GetDailyReminderCandidates(DateTimeOffset.Parse("2026-06-09T11:05:00Z")));
-        Assert.True(reminder.IncludeCallScheduleUpdate);
         var content = SmtpLongevitymaxxingEmailSender.BuildDailyReminderEmailContent(
-            reminder,
-            fixture.Service.BuildAccessUrl(reminder.AccessToken),
-            fixture.Service.BuildStopUrl(reminder.StopToken));
-
-        Assert.Contains("Updated call schedule:", content.TextBody);
-        Assert.DoesNotContain("- Kickoff:", content.TextBody);
-        Assert.DoesNotContain("- Midpoint:", content.TextBody);
-        Assert.DoesNotContain("- Finale:", content.TextBody);
-        Assert.Contains("- Community call: 2026-06-14 08:30 (Europe/Budapest)", content.TextBody);
-        Assert.Contains("- Community call: 2026-06-21 08:30 (Europe/Budapest)", content.TextBody);
-        Assert.Contains("Call link: https://meet.example.test", content.TextBody);
-        Assert.DoesNotContain("2026-06-07 06:30 UTC", content.TextBody);
-        Assert.DoesNotContain("- Kickoff: 2026-06-07 08:30", content.TextBody);
-        Assert.DoesNotContain("2026-06-22 15:00", content.TextBody);
-        Assert.Empty(content.Attachments);
-
-        fixture.Service.MarkCallScheduleUpdateNoticeSent(reminder.ParticipantId, DateTimeOffset.Parse("2026-06-09T11:06:00Z"));
-
-        var laterReminder = Assert.Single(fixture.Service.GetDailyReminderCandidates(DateTimeOffset.Parse("2026-06-09T11:07:00Z")));
-        Assert.False(laterReminder.IncludeCallScheduleUpdate);
-        var laterContent = SmtpLongevitymaxxingEmailSender.BuildDailyReminderEmailContent(
-            laterReminder,
-            fixture.Service.BuildAccessUrl(laterReminder.AccessToken),
-            fixture.Service.BuildStopUrl(laterReminder.StopToken));
-        Assert.DoesNotContain("Updated call schedule:", laterContent.TextBody);
+            reminder, fixture.Service.BuildAccessUrl(reminder.AccessToken), fixture.Service.BuildStopUrl(reminder.StopToken));
+        Assert.Contains("Day 1 practice check-in", content.TextBody);
+        Assert.Contains("utm_content=daily_reminder", content.TextBody);
+        Assert.Contains("Stop Challenge reminder emails:", content.TextBody);
+        Assert.DoesNotContain("call", content.TextBody, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("calendar", content.TextBody, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -2389,198 +2365,37 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
         Assert.Equal(access, ReadQueryToken(link.Url, "token"));
     }
 
-    [Fact]
-    public async Task WeeklyCommunityCallIsSelectedAndVideoLinkIsParticipantOnly()
-    {
-        using var fixture = TestChallengeFixture.Create(callSelectionClosesAtUtc: "2026-06-06T18:00:00Z");
-        var one = await fixture.ConfirmParticipantAsync("one@example.com", "One");
-        await fixture.ConfirmParticipantAsync("two@example.com", "Two");
-        await fixture.ConfirmParticipantAsync("three@example.com", "Three");
-
-        var beforeClose = fixture.Service.GetPublicState(DateTimeOffset.Parse("2026-06-06T17:59:00Z"));
-        Assert.Equal("community-2026-06-07-a", beforeClose.Calls.Single(c => c.Key == "community-2026-06-07").SelectedSlot?.Id);
-        Assert.Equal("2026-06-08T00:00:00.0000000+00:00", beforeClose.SignupClosesAtUtc);
-
-        var participantBeforeClose = fixture.Service.GetParticipantState(one, DateTimeOffset.Parse("2026-06-06T17:59:30Z"));
-        var communityCall = participantBeforeClose.Calls.Single(c => c.Key == "community-2026-06-07");
-        Assert.Equal("community-2026-06-07-a", communityCall.SelectedSlot?.Id);
-        Assert.Equal("https://meet.example.test", communityCall.VideoCallUrl);
-
-        fixture.Service.TrySelectCallSlots(DateTimeOffset.Parse("2026-06-06T18:01:00Z"));
-
-        var publicState = fixture.Service.GetPublicState(DateTimeOffset.Parse("2026-06-06T18:02:00Z"));
-        Assert.Equal("community-2026-06-07-a", publicState.Calls.Single(c => c.Key == "community-2026-06-07").SelectedSlot?.Id);
-
-        var participantState = fixture.Service.GetParticipantState(one, DateTimeOffset.Parse("2026-06-06T18:03:00Z"));
-        Assert.Equal("https://meet.example.test", participantState.Calls.Single(c => c.Key == "community-2026-06-07").VideoCallUrl);
-    }
-
-    [Fact]
-    public async Task CallReminderCandidatesCanSendSundayCommunityCall24HourReminderBeforeSignupCloses()
-    {
-        using var fixture = TestChallengeFixture.Create();
-        await fixture.ConfirmParticipantAsync(
-            "call@example.com",
-            "Call Casey",
-            timeZoneId: "Europe/Budapest");
-
-        var candidates = fixture.Service.GetCallReminderCandidates(DateTimeOffset.Parse("2026-06-06T06:35:00Z"));
-        var reminder = Assert.Single(candidates);
-        Assert.Equal("community-2026-06-07", reminder.CallKey);
-        Assert.Equal("Community call", reminder.CallLabel);
-        Assert.Equal("24h", reminder.ReminderKind);
-        Assert.Equal("2026-06-07T06:30:00.0000000+00:00", reminder.StartsAtUtc);
-        Assert.Equal("Europe/Budapest", reminder.TimeZoneId);
-        Assert.Equal(4, reminder.Calls.Count);
-
-        Assert.Empty(fixture.Service.GetChallengeStartCandidates(DateTimeOffset.Parse("2026-06-06T06:35:00Z")));
-
-        fixture.Service.MarkCallReminderSent(reminder.ParticipantId, reminder.CallKey, reminder.ReminderKind, DateTimeOffset.Parse("2026-06-06T06:36:00Z"));
-        Assert.Empty(fixture.Service.GetCallReminderCandidates(DateTimeOffset.Parse("2026-06-06T06:37:00Z")));
-    }
-
-    [Fact]
-    public async Task StoppingCommunityCallEmailsKeepsDailyChallengeRemindersEnabled()
-    {
-        using var fixture = TestChallengeFixture.Create();
-        await fixture.ConfirmParticipantAsync(
-            "call-opt-out@example.com",
-            "Call Opt Out",
-            timeZoneId: "Europe/Budapest");
-
-        var callReminder = Assert.Single(
-            fixture.Service.GetCallReminderCandidates(DateTimeOffset.Parse("2026-06-06T06:35:00Z")));
-
-        fixture.Service.StopCommunityCallEmails(
-            callReminder.StopToken,
-            DateTimeOffset.Parse("2026-06-06T06:36:00Z"));
-
-        Assert.Empty(fixture.Service.GetCallReminderCandidates(DateTimeOffset.Parse("2026-06-06T06:37:00Z")));
-        Assert.Single(fixture.Service.GetDailyReminderCandidates(DateTimeOffset.Parse("2026-06-09T08:05:00Z")));
-    }
-
-    [Fact]
-    public async Task CallReminderCandidatesExcludeCallsDuringParticipantLocalQuietHours()
-    {
-        using var fixture = TestChallengeFixture.Create();
-        await fixture.ConfirmParticipantAsync(
-            "quiet-hours@example.com",
-            "Quiet Hours",
-            timeZoneId: "America/New_York");
-        await fixture.ConfirmParticipantAsync(
-            "daytime@example.com",
-            "Daytime Dana",
-            timeZoneId: "Europe/Budapest");
-
-        var reminder = Assert.Single(
-            fixture.Service.GetCallReminderCandidates(DateTimeOffset.Parse("2026-06-06T06:35:00Z")));
-
-        Assert.Equal("Daytime Dana", reminder.DisplayName);
-        Assert.Equal("Europe/Budapest", reminder.TimeZoneId);
-    }
-
     [Theory]
-    [InlineData(0, 0, false)]
-    [InlineData(6, 59, false)]
-    [InlineData(7, 0, true)]
-    [InlineData(20, 59, true)]
-    [InlineData(21, 0, false)]
-    [InlineData(23, 59, false)]
-    public void CommunityCallReminderLocalTimeWindowIncludesSevenAndExcludesTwentyOne(
-        int hour,
-        int minute,
-        bool expected)
-    {
-        Assert.Equal(
-            expected,
-            LongevitymaxxingChallengeService.IsCommunityCallReminderLocalTimeAllowed(new TimeOnly(hour, minute)));
-    }
-
-    [Fact]
-    public void CallAnnouncementCandidatesUseOneHourWindowAndSendOncePerCall()
+    [InlineData("2026-10-03T06:35:00Z")]
+    [InlineData("2026-10-04T05:35:00Z")]
+    [InlineData("2026-10-10T06:35:00Z")]
+    [InlineData("2026-10-11T05:35:00Z")]
+    [InlineData("2026-11-01T06:35:00Z")]
+    [InlineData("2027-01-03T05:35:00Z")]
+    public async Task ReminderJobAtFormerCallTimesKeepsOrdinaryEmailsWithoutCallEvents(string timestamp)
     {
         using var fixture = TestChallengeFixture.Create();
-
-        Assert.Empty(fixture.Service.GetCallAnnouncementCandidates(DateTimeOffset.Parse("2026-06-07T05:29:59Z")));
-
-        var candidate = Assert.Single(fixture.Service.GetCallAnnouncementCandidates(DateTimeOffset.Parse("2026-06-07T05:35:00Z")));
-        Assert.Equal("community-2026-06-07", candidate.CallKey);
-        Assert.Equal("Community call", candidate.CallLabel);
-        Assert.Equal("1h", candidate.ReminderKind);
-        Assert.Equal("2026-06-07T06:30:00.0000000+00:00", candidate.StartsAtUtc);
-        Assert.Equal("https://meet.example.test", candidate.VideoCallUrl);
-
-        fixture.Service.MarkCallAnnouncementQueued(candidate.CallKey, candidate.ReminderKind, "event-1", DateTimeOffset.Parse("2026-06-07T05:36:00Z"));
-
-        Assert.Empty(fixture.Service.GetCallAnnouncementCandidates(DateTimeOffset.Parse("2026-06-07T05:37:00Z")));
-        Assert.Empty(fixture.Service.GetCallAnnouncementCandidates(DateTimeOffset.Parse("2026-06-07T06:30:00Z")));
-    }
-
-    [Fact]
-    public async Task ReminderJobQueuesHiddenSocialOnlyCallAnnouncementEvent()
-    {
-        using var fixture = TestChallengeFixture.Create();
+        var now = DateTimeOffset.Parse(timestamp);
+        await fixture.Service.SignupAsync(new LongevitymaxxingSignupRequest("retired@example.com", "Retired Rae", "UTC", null), now.AddMinutes(-10));
+        await fixture.Service.ConfirmAsync(ReadQueryToken(fixture.Email.Confirmations.Last().Url, "confirm"), now.AddMinutes(-9));
         using var events = CreateEventDataService(fixture);
-        var job = new LongevitymaxxingReminderJob(
-            fixture.Service,
-            events,
-            fixture.Email,
-            NullLogger<LongevitymaxxingReminderJob>.Instance);
-
-        await job.ExecuteAtAsync(DateTimeOffset.Parse("2026-06-07T05:35:00Z"));
-        await job.ExecuteAtAsync(DateTimeOffset.Parse("2026-06-07T05:36:00Z"));
-
-        var row = Assert.Single(ReadCustomEvents(fixture.Db));
-        Assert.Contains("Longevitymaxxing community call starts at 06:30 UTC", row.Text);
-        Assert.Contains("Participation is open. Join here:\nhttps://meet.example.test", row.Text);
-        Assert.DoesNotContain("token=", row.Text);
-        Assert.Equal(0, row.VisibleOnWebsite);
-        Assert.Equal(1, row.SlackProcessed);
-        Assert.Equal(0, row.XProcessed);
-        Assert.Equal(0, row.ThreadsProcessed);
-        Assert.Equal(0, row.FacebookProcessed);
-
-        var log = Assert.Single(ReadCallAnnouncementLogs(fixture.Db));
-        Assert.Equal("community-2026-06-07", log.CallKey);
-        Assert.Equal("1h", log.ReminderKind);
-        Assert.Equal(row.Id, log.EventId);
-    }
-
-    [Fact]
-    public async Task CallReminderEmailIncludesTimeLinkParticipantPageAndCalendarInvite()
-    {
-        using var fixture = TestChallengeFixture.Create();
-        await fixture.ConfirmParticipantAsync(
-            "call@example.com",
-            "Call Casey",
-            timeZoneId: "Europe/Budapest");
-
-        var reminder = Assert.Single(fixture.Service.GetCallReminderCandidates(DateTimeOffset.Parse("2026-06-06T06:35:00Z")));
-        var content = SmtpLongevitymaxxingEmailSender.BuildCallReminderEmailContent(
-            reminder,
-            fixture.Service.BuildAccessUrl(reminder.AccessToken),
-            fixture.Service.BuildCommunityCallStopUrl(reminder.StopToken));
-
-        Assert.Contains("Call link:\nhttps://meet.example.test", content.TextBody);
-        Assert.Contains("The Longevitymaxxing Community call starts", content.TextBody);
-        Assert.Contains("2026-06-07 08:30 (Europe/Budapest)", content.TextBody);
-        Assert.Equal("Longevitymaxxing Community call reminder", content.Subject);
-        Assert.Contains("Participant page:\nhttps://example.test/longevitymaxxing?", content.TextBody);
-        Assert.Contains("Stop community call emails: https://example.test/longevitymaxxing?stop=", content.TextBody);
-        Assert.Contains("&scope=community-call", content.TextBody);
-        Assert.DoesNotContain("Stop Challenge reminder emails:", content.TextBody);
-        Assert.DoesNotContain("2026-06-08 06:30 UTC", content.TextBody);
-        Assert.DoesNotContain("UTC+02:00", content.TextBody);
-        Assert.DoesNotContain("Full call schedule:", content.TextBody);
-        Assert.DoesNotContain("- Midpoint:", content.TextBody);
-        var attachment = Assert.Single(content.Attachments);
-        Assert.Equal("longevitymaxxing-community-call.ics", attachment.FileName);
-        Assert.Equal("text/calendar; charset=utf-8", attachment.ContentType);
-        Assert.Equal(1, CountOccurrences(attachment.Text, "BEGIN:VEVENT"));
-        Assert.Contains("SUMMARY:Longevitymaxxing Community call", attachment.Text);
-        Assert.Contains("DTSTART:20260607T063000Z", attachment.Text);
-        Assert.Contains("LOCATION:https://meet.example.test", attachment.Text);
-        Assert.Contains("Participant page: https://example.test/longevitymaxxing?", attachment.Text);
+        var job = new LongevitymaxxingReminderJob(fixture.Service, events, fixture.Email, NullLogger<LongevitymaxxingReminderJob>.Instance);
+        await job.ExecuteAtAsync(now);
+        await job.ExecuteAtAsync(now.AddMinutes(1));
+        Assert.Empty(ReadCustomEvents(fixture.Db));
+        var start = Assert.Single(fixture.Email.Starts);
+        var content = SmtpLongevitymaxxingEmailSender.BuildChallengeStartEmailContent(start,
+            fixture.Service.BuildAccessUrl(start.AccessToken), fixture.Service.BuildStopUrl(start.StopToken));
+        Assert.DoesNotContain("call", content.TextBody, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("calendar", content.TextBody, StringComparison.OrdinalIgnoreCase);
+        fixture.Db.Run(sqlite =>
+        {
+            using var command = sqlite.CreateCommand();
+            command.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name LIKE 'LongevitymaxxingCall%';";
+            Assert.Equal(0L, command.ExecuteScalar());
+            command.CommandText = "SELECT COUNT(*) FROM pragma_table_info('LongevitymaxxingParticipants') WHERE name='StoppedCommunityCallEmailsAtUtc';";
+            Assert.Equal(0L, command.ExecuteScalar());
+        });
     }
 
     [Fact]
@@ -2595,16 +2410,6 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
         var candidates = fixture.Service.GetChallengeStartCandidates(DateTimeOffset.Parse("2026-06-08T00:01:00Z"));
 
         Assert.Equal(2, candidates.Count);
-        Assert.All(candidates, candidate =>
-        {
-            Assert.Equal(4, candidate.Calls.Count);
-            Assert.All(candidate.Calls, call =>
-            {
-                Assert.NotNull(call.SelectedSlot);
-                Assert.Equal("https://meet.example.test", call.VideoCallUrl);
-            });
-        });
-        Assert.Equal("2026-06-14T06:30:00.0000000+00:00", candidates[0].Calls.First().SelectedSlot?.StartsAtUtc);
 
         fixture.Service.MarkChallengeStartSent(candidates[0].ParticipantId, DateTimeOffset.Parse("2026-06-08T00:02:00Z"));
 
@@ -2617,90 +2422,64 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
     }
 
     [Fact]
-    public async Task ChallengeStartEmailIncludesAllCallsLinksTimezoneAndCalendarInvite()
+    public async Task ChallengeStartEmailKeepsTimezoneAndParticipantLinksWithoutCalls()
     {
         using var fixture = TestChallengeFixture.Create();
-        await fixture.ConfirmParticipantAsync(
-            "start@example.com",
-            "Start Sam",
-            timeZoneId: "Europe/Budapest");
-
+        await fixture.ConfirmParticipantAsync("start@example.com", "Start Sam", timeZoneId: "Europe/Budapest");
         var start = Assert.Single(fixture.Service.GetChallengeStartCandidates(DateTimeOffset.Parse("2026-06-08T00:01:00Z")));
-        var content = SmtpLongevitymaxxingEmailSender.BuildChallengeStartEmailContent(
-            start,
-            fixture.Service.BuildAccessUrl(start.AccessToken),
-            fixture.Service.BuildStopUrl(start.StopToken));
-
+        var content = SmtpLongevitymaxxingEmailSender.BuildChallengeStartEmailContent(start,
+            fixture.Service.BuildAccessUrl(start.AccessToken), fixture.Service.BuildStopUrl(start.StopToken));
         Assert.Contains("Timezone: Europe/Budapest", content.TextBody);
-        Assert.Contains("Call link: https://meet.example.test", content.TextBody);
-        Assert.Contains("- Community call: 2026-06-14 08:30 (Europe/Budapest)", content.TextBody);
-        Assert.Contains("- Community call: 2026-06-21 08:30 (Europe/Budapest)", content.TextBody);
-        Assert.Contains("- Community call: 2026-06-28 08:30 (Europe/Budapest)", content.TextBody);
-        Assert.DoesNotContain("2026-06-08 06:30 UTC", content.TextBody);
-        Assert.DoesNotContain("2026-06-07 08:30", content.TextBody);
-        Assert.DoesNotContain("2026-06-22 15:00", content.TextBody);
-        Assert.DoesNotContain("UTC+02:00", content.TextBody);
-        Assert.DoesNotContain("- Kickoff:", content.TextBody);
-        Assert.DoesNotContain("- Midpoint:", content.TextBody);
-        Assert.DoesNotContain("- Finale:", content.TextBody);
-        Assert.Contains("A calendar invite with all selected calls is attached.", content.TextBody);
-
-        var attachment = Assert.Single(content.Attachments);
-        Assert.Equal("longevitymaxxing-calls.ics", attachment.FileName);
-        Assert.Equal(4, CountOccurrences(attachment.Text, "BEGIN:VEVENT"));
-        Assert.Contains("SUMMARY:Longevitymaxxing Community call", attachment.Text);
-        Assert.DoesNotContain("SUMMARY:Longevitymaxxing Community call call", attachment.Text);
+        Assert.Contains("first eligible check-in is practice", content.TextBody);
+        Assert.Contains("check-ins, leaderboard, and Slack:", content.TextBody);
+        Assert.Contains("utm_content=challenge_start", content.TextBody);
+        Assert.Contains("Stop Challenge reminder emails:", content.TextBody);
+        Assert.DoesNotContain("call", content.TextBody, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("calendar", content.TextBody, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
-    public async Task ChallengeStartEmailAfterOriginalFinaleIncludesNextWeeklyCommunityCalls()
+    public async Task ChallengeStartEmailAfterOriginalFinaleHasNoCalls()
     {
         using var fixture = TestChallengeFixture.Create();
         var signup = DateTimeOffset.Parse("2026-06-24T12:00:00Z");
         await fixture.Service.SignupAsync(
-            new LongevitymaxxingSignupRequest("post-calls-start@example.com", "Post Calls Pat", "UTC", null),
+            new LongevitymaxxingSignupRequest("late-start@example.com", "Late Pat", "UTC", null),
             signup);
         await fixture.Service.ConfirmAsync(
             ReadQueryToken(fixture.Email.Confirmations.Last().Url, "confirm"),
             signup.AddMinutes(1));
 
         var start = Assert.Single(fixture.Service.GetChallengeStartCandidates(signup.AddMinutes(2)));
-        Assert.NotEmpty(start.Calls);
 
         var content = SmtpLongevitymaxxingEmailSender.BuildChallengeStartEmailContent(
             start,
             fixture.Service.BuildAccessUrl(start.AccessToken),
             fixture.Service.BuildStopUrl(start.StopToken));
 
-        Assert.Contains("Calls:", content.TextBody);
-        Assert.Contains("- Community call: 2026-06-28 06:30 (UTC)", content.TextBody);
-        Assert.Contains("calendar invite", content.TextBody, StringComparison.OrdinalIgnoreCase);
-        Assert.Single(content.Attachments);
+        Assert.DoesNotContain("call", content.TextBody, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("calendar", content.TextBody, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
-    public async Task DailyReminderAfterOriginalFinaleIncludesNextWeeklyCommunityCalls()
+    public async Task DailyReminderAfterOriginalFinaleHasNoCalls()
     {
         using var fixture = TestChallengeFixture.Create();
         var signup = DateTimeOffset.Parse("2026-06-24T12:00:00Z");
         await fixture.Service.SignupAsync(
-            new LongevitymaxxingSignupRequest("post-calls-daily@example.com", "Post Calls Dana", "UTC", null),
+            new LongevitymaxxingSignupRequest("late-daily@example.com", "Late Dana", "UTC", null),
             signup);
         await fixture.Service.ConfirmAsync(
             ReadQueryToken(fixture.Email.Confirmations.Last().Url, "confirm"),
             signup.AddMinutes(1));
 
         var reminder = Assert.Single(fixture.Service.GetDailyReminderCandidates(DateTimeOffset.Parse("2026-06-25T08:05:00Z")));
-        Assert.NotEmpty(reminder.Calls);
-        Assert.True(reminder.IncludeCallScheduleUpdate);
 
         var content = SmtpLongevitymaxxingEmailSender.BuildDailyReminderEmailContent(
             reminder,
             fixture.Service.BuildAccessUrl(reminder.AccessToken),
             fixture.Service.BuildStopUrl(reminder.StopToken));
 
-        Assert.Contains("Updated call schedule:", content.TextBody);
-        Assert.Contains("- Community call: 2026-06-28 06:30 (UTC)", content.TextBody);
         Assert.Contains("Stop Challenge reminder emails:", content.TextBody);
         var checkInUrl = content.TextBody.Split('\n').Single(line => line.Contains("utm_content=daily_reminder", StringComparison.Ordinal));
         Assert.Equal(reminder.AccessToken, ReadQueryToken(checkInUrl, "token"));
@@ -2948,19 +2727,6 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
         return query[key].ToString();
     }
 
-    private static int CountOccurrences(string value, string pattern)
-    {
-        var count = 0;
-        var index = 0;
-        while ((index = value.IndexOf(pattern, index, StringComparison.Ordinal)) >= 0)
-        {
-            count++;
-            index += pattern.Length;
-        }
-
-        return count;
-    }
-
     private static void SubmitChallengeDays(
         TestChallengeFixture fixture,
         string accessToken,
@@ -3088,25 +2854,6 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
         });
     }
 
-    private static IReadOnlyList<(string CallKey, string ReminderKind, string EventId)> ReadCallAnnouncementLogs(DatabaseManager db)
-    {
-        return db.Run(sqlite =>
-        {
-            using var cmd = sqlite.CreateCommand();
-            cmd.CommandText =
-                """
-                SELECT CallKey, ReminderKind, EventId
-                FROM LongevitymaxxingCallAnnouncementLog
-                ORDER BY QueuedAtUtc ASC;
-                """;
-            using var reader = cmd.ExecuteReader();
-            var rows = new List<(string CallKey, string ReminderKind, string EventId)>();
-            while (reader.Read())
-                rows.Add((reader.GetString(0), reader.GetString(1), reader.GetString(2)));
-            return rows;
-        });
-    }
-
     private sealed class EmptyServiceProvider : IServiceProvider
     {
         public object? GetService(Type serviceType) => null;
@@ -3162,7 +2909,6 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
             string? profileJson = null,
             byte[]? profileImageResponse = null,
             string? signupClosesAtUtc = null,
-            string? callSelectionClosesAtUtc = null,
             ManualResetEventSlim? gravatarGate = null)
         {
             var root = Path.Combine(Path.GetTempPath(), "lwc-lmx-tests", Guid.NewGuid().ToString("N"));
@@ -3185,10 +2931,8 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
                     StartDate = "2026-06-08",
                     PublicBaseUrl = "https://example.test/ignored-path",
                     SignupClosesAtUtc = signupClosesAtUtc ?? "2026-06-08T00:00:00Z",
-                    CallSelectionClosesAtUtc = callSelectionClosesAtUtc,
                     DailyReminderHourLocal = 8,
                     SlackInviteUrl = "https://slack.example.test",
-                    VideoCallUrl = "https://meet.example.test"
                 }
             };
             var service = new LongevitymaxxingChallengeService(
@@ -3279,6 +3023,7 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
         public List<(string Email, string Url)> Confirmations { get; } = [];
         public List<(string Email, string Url)> AccessLinks { get; } = [];
         public List<LongevitymaxxingReminderCandidate> DailyReminders { get; } = [];
+        public List<LongevitymaxxingChallengeStartCandidate> Starts { get; } = [];
         public bool ThrowOnDailyReminder { get; set; }
 
         public Task SendConfirmationAsync(string email, string displayName, string confirmationUrl, CancellationToken ct = default)
@@ -3301,11 +3046,11 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
             return Task.CompletedTask;
         }
 
-        public Task SendCallReminderAsync(LongevitymaxxingCallReminderCandidate reminder, string challengeUrl, string stopUrl, CancellationToken ct = default)
-            => Task.CompletedTask;
-
         public Task SendChallengeStartAsync(LongevitymaxxingChallengeStartCandidate start, string challengeUrl, string stopUrl, CancellationToken ct = default)
-            => Task.CompletedTask;
+        {
+            Starts.Add(start);
+            return Task.CompletedTask;
+        }
     }
 
 

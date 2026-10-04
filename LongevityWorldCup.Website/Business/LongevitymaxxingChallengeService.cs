@@ -41,15 +41,6 @@ public sealed partial class LongevitymaxxingChallengeService
     private const int CheckInPhotoQuality = 82;
     private const string GravatarMissingCacheVersion = "v4";
     private const string GravatarUserAgent = "LongevityWorldCup/1.0 (+https://longevityworldcup.com)";
-    private const int CallScheduleUpdateNoticeDay = 0;
-    private const string CallScheduleUpdateReminderKind = "call-schedule-update-weekly-community-sunday";
-    private const string CallSocialAnnouncementReminderKind = "1h";
-    private const int CommunityCallGenerationPastDays = 7;
-    private const int CommunityCallGenerationFutureDays = 42;
-    private const int UpcomingCommunityCallDisplayCount = 4;
-    private static readonly TimeOnly WeeklyCommunityCallTimeUtc = new(6, 30);
-    private static readonly TimeOnly CommunityCallReminderLocalStartTime = new(7, 0);
-    private static readonly TimeOnly CommunityCallReminderLocalEndTime = new(21, 0);
     private static readonly TimeSpan GravatarMissingCacheDuration = TimeSpan.FromDays(1);
     private static readonly SemaphoreSlim ProfilePictureWarmupSlots = new(2);
     private static readonly EmailAddressAttribute EmailValidator = new();
@@ -89,8 +80,7 @@ public sealed partial class LongevitymaxxingChallengeService
     public LongevitymaxxingPublicState GetPublicState(DateTimeOffset? nowUtc = null)
     {
         var now = EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow);
-        var settings = BuildSettings(now);
-        TrySelectCallSlots(now);
+        var settings = BuildSettings();
         var participants = GetConfirmedParticipants();
         QueueProfilePictureWarmups(participants);
         var checkIns = GetCheckInsFor(participants.Select(p => p.Id).ToHashSet(StringComparer.Ordinal));
@@ -103,7 +93,6 @@ public sealed partial class LongevitymaxxingChallengeService
             true,
             settings.StartDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
             settings.SignupClosesAtUtc.ToString("o", CultureInfo.InvariantCulture),
-            settings.CallSelectionClosesAtUtc.ToString("o", CultureInfo.InvariantCulture),
             settings.EndDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
             settings.DurationDays,
             GetScoredPoints(settings.DurationDays, RawDailyMaxScore, settings.DurationDays, PracticeCheckInDay),
@@ -112,7 +101,6 @@ public sealed partial class LongevitymaxxingChallengeService
             BuildPodium(settings, leaderboard, now),
             GetParticipantNotes(publicOnly: true, now),
             GetSystemDiscussionPosts(now),
-            BuildPublicCalls(settings),
             settings.SlackInviteUrl,
             settings.SlackRoomUrl,
             GetLeaderboardScoringWindow(settings, now));
@@ -121,7 +109,7 @@ public sealed partial class LongevitymaxxingChallengeService
     public IReadOnlyList<LongevitymaxxingChallengeResultEventRow> GetFinalResultEventRows(DateTimeOffset? nowUtc = null)
     {
         var now = EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow);
-        var settings = BuildSettings(now);
+        var settings = BuildSettings();
         var finalResultsAvailableAtUtc = GetFinalResultsAvailableAtUtc(settings);
         if (now < finalResultsAvailableAtUtc)
             return [];
@@ -370,7 +358,7 @@ public sealed partial class LongevitymaxxingChallengeService
         var checkIns = GetCheckInsFor(new HashSet<string>(StringComparer.Ordinal) { participant.Id });
         checkIns.TryGetValue(participant.Id, out var byDay);
         byDay ??= [];
-        var settings = BuildSettings(now);
+        var settings = BuildSettings();
         var eligibleDays = BuildEligibleDays(settings, participant, checkIns, now);
         var participantSummary = ToParticipantSummary(
             settings,
@@ -383,7 +371,6 @@ public sealed partial class LongevitymaxxingChallengeService
             participantSummary,
             eligibleDays,
             GetParticipantNotes(publicOnly: false, now),
-            BuildParticipantCalls(settings),
             BuildGardenState(byDay));
     }
 
@@ -1539,7 +1526,7 @@ public sealed partial class LongevitymaxxingChallengeService
     private ValidatedCheckIn ValidateCheckIn(LongevitymaxxingCheckInRequest request, DateTimeOffset? nowUtc)
     {
         var now = EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow);
-        var settings = BuildSettings(now);
+        var settings = BuildSettings();
         var participant = RequireParticipantByAccessToken(request.AccessToken);
         var values = ValidateAnswers(request.Sleep, request.Exercise, request.Nutrition, request.Vices);
         var checkIns = GetCheckInsFor(new HashSet<string>(StringComparer.Ordinal) { participant.Id });
@@ -2105,28 +2092,6 @@ public sealed partial class LongevitymaxxingChallengeService
         });
     }
 
-    public void StopCommunityCallEmails(string token, DateTimeOffset? nowUtc = null)
-    {
-        var now = EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow);
-        var normalized = NormalizeToken(token);
-        _db.Run(sqlite =>
-        {
-            using var update = sqlite.CreateCommand();
-            update.CommandText =
-                """
-                UPDATE LongevitymaxxingParticipants
-                SET StoppedCommunityCallEmailsAtUtc = COALESCE(StoppedCommunityCallEmailsAtUtc, @stopped),
-                    UpdatedAtUtc = @updated
-                WHERE StopToken = @token OR AccessToken = @token;
-                """;
-            Add(update, "@stopped", now.ToString("o"));
-            Add(update, "@updated", now.ToString("o"));
-            Add(update, "@token", normalized);
-            if (update.ExecuteNonQuery() == 0)
-                throw new UnauthorizedAccessException("Invalid stop link.");
-        });
-    }
-
     private static bool StopParticipantEmails(SqliteConnection sqlite, string participantIdOrToken, DateTimeOffset now, bool tokenIsParticipantId)
     {
         using var update = sqlite.CreateCommand();
@@ -2189,12 +2154,7 @@ public sealed partial class LongevitymaxxingChallengeService
     public IReadOnlyList<LongevitymaxxingReminderCandidate> GetDailyReminderCandidates(DateTimeOffset? nowUtc = null)
     {
         var now = EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow);
-        var settings = BuildSettings(now);
-        TrySelectCallSlots(now);
-        var selectedCalls = BuildParticipantCalls(settings)
-            .Where(call => call.SelectedSlot is not null)
-            .ToList();
-        var calls = GetUpcomingParticipantCalls(selectedCalls, now);
+        var settings = BuildSettings();
         var participants = GetConfirmedParticipants()
             .Where(p => p.StoppedEmailsAtUtc is null)
             .Where(p => p.ChallengeInactiveAtUtc is null)
@@ -2237,8 +2197,6 @@ public sealed partial class LongevitymaxxingChallengeService
                 challengeDay.Value,
                 targetDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
                 CountsForScore(settings, participant, byDay, challengeDay.Value),
-                calls.Count > 0 && !WasCallScheduleUpdateNoticeSent(participant.Id),
-                calls,
                 GetPendingDiscussionDigest(participant.Id)));
         }
 
@@ -2345,7 +2303,7 @@ public sealed partial class LongevitymaxxingChallengeService
     public void ApplyDailyReminderStopRules(DateTimeOffset? nowUtc = null)
     {
         var now = EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow);
-        var settings = BuildSettings(now);
+        var settings = BuildSettings();
         ReactivateMissedDayInactiveParticipantsIfCaughtUp(settings, now);
         var participants = GetConfirmedParticipants()
             .Where(p => p.ChallengeInactiveAtUtc is null)
@@ -2383,7 +2341,7 @@ public sealed partial class LongevitymaxxingChallengeService
         if (participant.ChallengeInactiveAtUtc is null)
             return;
 
-        var settings = BuildSettings(now);
+        var settings = BuildSettings();
         var checkIns = GetCheckInsFor(new HashSet<string>(StringComparer.Ordinal) { participant.Id });
         checkIns.TryGetValue(participant.Id, out var byDay);
         byDay ??= [];
@@ -2470,26 +2428,15 @@ public sealed partial class LongevitymaxxingChallengeService
         });
     }
 
-    public void MarkCallScheduleUpdateNoticeSent(string participantId, DateTimeOffset? nowUtc = null)
-        => MarkReminderSent(participantId, CallScheduleUpdateNoticeDay, CallScheduleUpdateReminderKind, nowUtc);
-
     public IReadOnlyList<LongevitymaxxingChallengeStartCandidate> GetChallengeStartCandidates(DateTimeOffset? nowUtc = null)
     {
         var now = EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow);
-        var settings = BuildSettings(now);
+        var settings = BuildSettings();
         var challengeStartsAtUtc = new DateTimeOffset(settings.StartDate.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
         if (now < challengeStartsAtUtc)
             return [];
 
-        TrySelectCallSlots(now);
 
-        var selectedCalls = BuildParticipantCalls(settings)
-            .Where(call => call.SelectedSlot is not null)
-            .ToList();
-        var expectedCallCount = settings.Calls.Count(call => call.CandidateSlots.Count > 0);
-        if (selectedCalls.Count < expectedCallCount)
-            return [];
-        var calls = GetUpcomingParticipantCalls(selectedCalls, now);
 
         return GetConfirmedParticipants()
             .Where(participant => participant.StoppedEmailsAtUtc is null)
@@ -2501,8 +2448,7 @@ public sealed partial class LongevitymaxxingChallengeService
                 participant.DisplayName,
                 participant.TimeZoneId,
                 participant.AccessToken,
-                participant.StopToken,
-                calls))
+                participant.StopToken))
             .ToList();
     }
 
@@ -2524,183 +2470,6 @@ public sealed partial class LongevitymaxxingChallengeService
         });
     }
 
-    public IReadOnlyList<LongevitymaxxingCallReminderCandidate> GetCallReminderCandidates(DateTimeOffset? nowUtc = null)
-    {
-        var now = EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow);
-        var settings = BuildSettings(now);
-        TrySelectCallSlots(now);
-        var selectedCalls = BuildParticipantCalls(settings)
-            .Where(c => c.SelectedSlot is not null)
-            .ToList();
-        if (selectedCalls.Count == 0)
-            return [];
-        var upcomingCalls = GetUpcomingParticipantCalls(selectedCalls, now);
-
-        var participants = GetConfirmedParticipants()
-            .Where(p => p.StoppedEmailsAtUtc is null)
-            .Where(p => p.StoppedCommunityCallEmailsAtUtc is null)
-            .Where(p => p.ChallengeInactiveAtUtc is null)
-            .ToList();
-        var candidates = new List<LongevitymaxxingCallReminderCandidate>();
-
-        foreach (var call in selectedCalls)
-        {
-            if (!DateTimeOffset.TryParse(call.SelectedSlot!.StartsAtUtc, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var startsAt))
-                continue;
-
-            foreach (var (kind, lead) in new[] { ("24h", TimeSpan.FromHours(24)), ("1h", TimeSpan.FromHours(1)) })
-            {
-                var dueAt = startsAt.ToUniversalTime() - lead;
-                if (now < dueAt || now >= dueAt.AddHours(1))
-                    continue;
-
-                foreach (var participant in participants)
-                {
-                    if (!IsCommunityCallReminderLocalTimeAllowed(startsAt, participant.TimeZoneId))
-                        continue;
-                    if (WasCallReminderSent(participant.Id, call.Key, kind))
-                        continue;
-
-                    candidates.Add(new LongevitymaxxingCallReminderCandidate(
-                        participant.Id,
-                        participant.Email,
-                        participant.DisplayName,
-                        participant.TimeZoneId,
-                        participant.AccessToken,
-                        participant.StopToken,
-                        call.Key,
-                        call.Label,
-                        call.SelectedSlot.StartsAtUtc,
-                        kind,
-                        call.VideoCallUrl,
-                        upcomingCalls));
-                }
-            }
-        }
-
-        return candidates;
-    }
-
-    public void MarkCallReminderSent(string participantId, string callKey, string reminderKind, DateTimeOffset? nowUtc = null)
-    {
-        var now = EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow);
-        _db.Run(sqlite =>
-        {
-            using var insert = sqlite.CreateCommand();
-            insert.CommandText =
-                """
-                INSERT OR IGNORE INTO LongevitymaxxingCallReminderLog
-                (ParticipantId, CallKey, ReminderKind, SentAtUtc)
-                VALUES (@participantId, @callKey, @kind, @sent);
-                """;
-            Add(insert, "@participantId", participantId);
-            Add(insert, "@callKey", callKey);
-            Add(insert, "@kind", reminderKind);
-            Add(insert, "@sent", now.ToString("o"));
-            insert.ExecuteNonQuery();
-        });
-    }
-
-    public IReadOnlyList<LongevitymaxxingCallAnnouncementCandidate> GetCallAnnouncementCandidates(DateTimeOffset? nowUtc = null)
-    {
-        var now = EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow);
-        var settings = BuildSettings(now);
-        if (string.IsNullOrWhiteSpace(settings.VideoCallUrl))
-            return [];
-
-        TrySelectCallSlots(now);
-        var selectedCalls = BuildParticipantCalls(settings)
-            .Where(call => call.SelectedSlot is not null)
-            .ToList();
-        if (selectedCalls.Count == 0)
-            return [];
-
-        var candidates = new List<LongevitymaxxingCallAnnouncementCandidate>();
-        foreach (var call in selectedCalls)
-        {
-            if (!DateTimeOffset.TryParse(call.SelectedSlot!.StartsAtUtc, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var startsAt))
-                continue;
-
-            var dueAt = startsAt.ToUniversalTime() - TimeSpan.FromHours(1);
-            if (now < dueAt || now >= dueAt.AddHours(1))
-                continue;
-
-            if (WasCallAnnouncementQueued(call.Key, CallSocialAnnouncementReminderKind))
-                continue;
-
-            candidates.Add(new LongevitymaxxingCallAnnouncementCandidate(
-                call.Key,
-                call.Label,
-                call.SelectedSlot.StartsAtUtc,
-                CallSocialAnnouncementReminderKind,
-                settings.VideoCallUrl));
-        }
-
-        return candidates;
-    }
-
-    public void MarkCallAnnouncementQueued(string callKey, string reminderKind, string eventId, DateTimeOffset? nowUtc = null)
-    {
-        if (string.IsNullOrWhiteSpace(callKey))
-            throw new ArgumentNullException(nameof(callKey));
-        if (string.IsNullOrWhiteSpace(reminderKind))
-            throw new ArgumentNullException(nameof(reminderKind));
-        if (string.IsNullOrWhiteSpace(eventId))
-            throw new ArgumentNullException(nameof(eventId));
-
-        var now = EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow);
-        _db.Run(sqlite =>
-        {
-            using var insert = sqlite.CreateCommand();
-            insert.CommandText =
-                """
-                INSERT OR IGNORE INTO LongevitymaxxingCallAnnouncementLog
-                (CallKey, ReminderKind, EventId, QueuedAtUtc)
-                VALUES (@callKey, @kind, @eventId, @queued);
-                """;
-            Add(insert, "@callKey", callKey);
-            Add(insert, "@kind", reminderKind);
-            Add(insert, "@eventId", eventId);
-            Add(insert, "@queued", now.ToString("o"));
-            insert.ExecuteNonQuery();
-        });
-    }
-
-    public void TrySelectCallSlots(DateTimeOffset? nowUtc = null)
-    {
-        var now = EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow);
-        var settings = BuildSettings(now);
-        if (now < settings.CallSelectionClosesAtUtc)
-            return;
-
-        _db.Run(sqlite =>
-        {
-            foreach (var call in settings.Calls)
-            {
-                if (!string.IsNullOrWhiteSpace(call.SelectedSlotId) || call.CandidateSlots.Count == 0)
-                    continue;
-
-                if (GetSelectedSlotId(sqlite, call.Key) is not null)
-                    continue;
-
-                var selected = call.CandidateSlots
-                    .OrderBy(s => ParseDateTimeOffset(s.StartsAtUtc, DateTimeOffset.MaxValue))
-                    .First();
-
-                using var insert = sqlite.CreateCommand();
-                insert.CommandText =
-                    """
-                    INSERT INTO LongevitymaxxingCallSelections (CallKey, SlotId, SelectedAtUtc)
-                    VALUES (@callKey, @slotId, @selected);
-                    """;
-                Add(insert, "@callKey", call.Key);
-                Add(insert, "@slotId", selected.Id);
-                Add(insert, "@selected", now.ToString("o"));
-                insert.ExecuteNonQuery();
-            }
-        });
-    }
-
     private void EnsureTables()
     {
         _db.Run(sqlite =>
@@ -2719,7 +2488,6 @@ public sealed partial class LongevitymaxxingChallengeService
                     StopToken TEXT NOT NULL UNIQUE,
                     ConfirmedAtUtc TEXT NULL,
                     StoppedEmailsAtUtc TEXT NULL,
-                    StoppedCommunityCallEmailsAtUtc TEXT NULL,
                     ChallengeInactiveAtUtc TEXT NULL,
                     ChallengeInactiveReason TEXT NULL,
                     CreatedAtUtc TEXT NOT NULL,
@@ -2728,12 +2496,6 @@ public sealed partial class LongevitymaxxingChallengeService
 
                 CREATE UNIQUE INDEX IF NOT EXISTS IX_LongevitymaxxingParticipants_Email
                     ON LongevitymaxxingParticipants(Email);
-
-                CREATE TABLE IF NOT EXISTS LongevitymaxxingCallSelections (
-                    CallKey TEXT PRIMARY KEY,
-                    SlotId TEXT NOT NULL,
-                    SelectedAtUtc TEXT NOT NULL
-                );
 
                 CREATE TABLE IF NOT EXISTS LongevitymaxxingCheckIns (
                     ParticipantId TEXT NOT NULL,
@@ -2887,22 +2649,6 @@ public sealed partial class LongevitymaxxingChallengeService
                     PRIMARY KEY (ParticipantId, ChallengeDay, Kind)
                 );
 
-                CREATE TABLE IF NOT EXISTS LongevitymaxxingCallReminderLog (
-                    ParticipantId TEXT NOT NULL,
-                    CallKey TEXT NOT NULL,
-                    ReminderKind TEXT NOT NULL,
-                    SentAtUtc TEXT NOT NULL,
-                    PRIMARY KEY (ParticipantId, CallKey, ReminderKind)
-                );
-
-                CREATE TABLE IF NOT EXISTS LongevitymaxxingCallAnnouncementLog (
-                    CallKey TEXT NOT NULL,
-                    ReminderKind TEXT NOT NULL,
-                    EventId TEXT NOT NULL,
-                    QueuedAtUtc TEXT NOT NULL,
-                    PRIMARY KEY (CallKey, ReminderKind)
-                );
-
                 CREATE TABLE IF NOT EXISTS LongevitymaxxingChallengeStartEmailLog (
                     ParticipantId TEXT PRIMARY KEY,
                     SentAtUtc TEXT NOT NULL
@@ -2912,7 +2658,6 @@ public sealed partial class LongevitymaxxingChallengeService
 
             TryAddLongevitymaxxingParticipantsColumn(sqlite, "ChallengeInactiveAtUtc TEXT NULL");
             TryAddLongevitymaxxingParticipantsColumn(sqlite, "ChallengeInactiveReason TEXT NULL");
-            TryAddLongevitymaxxingParticipantsColumn(sqlite, "StoppedCommunityCallEmailsAtUtc TEXT NULL");
             TryAddLongevitymaxxingCheckInsColumn(sqlite, "DiscussionUpdatedAtUtc TEXT NULL");
             TryAddLongevitymaxxingDiscussionRepliesColumn(sqlite, "EditedAtUtc TEXT NULL");
             TryAddLongevitymaxxingDiscussionRepliesColumn(sqlite, "ReplyToId TEXT NULL");
@@ -3024,95 +2769,22 @@ public sealed partial class LongevitymaxxingChallengeService
         => ex.SqliteErrorCode == 1 &&
            ex.Message.Contains("duplicate column name", StringComparison.OrdinalIgnoreCase);
 
-    private ChallengeSettings BuildSettings(DateTimeOffset? nowUtc = null)
+    private ChallengeSettings BuildSettings()
     {
-        var now = EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow);
         var cfg = _config.LongevitymaxxingChallenge ?? new LongevitymaxxingChallengeConfig();
         var start = ParseDateOnly(cfg.StartDate, DateOnly.FromDateTime(DateTime.UtcNow.Date));
         var durationDays = cfg.DurationDays is >= 1 and <= 31 ? cfg.DurationDays : 14;
         var signupCloses = ParseDateTimeOffset(cfg.SignupClosesAtUtc, new DateTimeOffset(start.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero));
         var reminderHour = Math.Clamp(cfg.DailyReminderHourLocal, 0, 23);
-        var calls = BuildWeeklyCommunityCalls(start, now);
-        var callSelectionCloses = ParseDateTimeOffset(
-            cfg.CallSelectionClosesAtUtc,
-            GetDefaultCallSelectionClosesAtUtc(calls, signupCloses));
 
         return new ChallengeSettings(
             start,
             start.AddDays(durationDays - 1),
             durationDays,
             signupCloses.ToUniversalTime(),
-            callSelectionCloses.ToUniversalTime(),
             reminderHour,
             string.IsNullOrWhiteSpace(cfg.SlackInviteUrl) ? "" : cfg.SlackInviteUrl.Trim(),
-            string.IsNullOrWhiteSpace(cfg.SlackRoomUrl) ? null : cfg.SlackRoomUrl.Trim(),
-            string.IsNullOrWhiteSpace(cfg.VideoCallUrl) ? null : cfg.VideoCallUrl.Trim(),
-            calls);
-    }
-
-    private static IReadOnlyList<CallSettings> BuildWeeklyCommunityCalls(DateOnly start, DateTimeOffset now)
-    {
-        var firstCallDate = GetSundayOnOrBefore(start);
-        var today = DateOnly.FromDateTime(now.UtcDateTime);
-        var windowStart = today <= firstCallDate
-            ? firstCallDate
-            : GetSundayOnOrBefore(today.AddDays(-CommunityCallGenerationPastDays));
-        if (windowStart < firstCallDate)
-            windowStart = firstCallDate;
-
-        var windowEnd = today > start
-            ? today.AddDays(CommunityCallGenerationFutureDays)
-            : start.AddDays(CommunityCallGenerationFutureDays);
-        windowEnd = GetSundayOnOrAfter(windowEnd);
-
-        var calls = new List<CallSettings>();
-        for (var date = windowStart; date <= windowEnd; date = date.AddDays(7))
-            calls.Add(BuildWeeklyCommunityCall(date));
-
-        return calls;
-    }
-
-    private static DateOnly GetSundayOnOrBefore(DateOnly date)
-    {
-        var daysSinceSunday = (int)date.DayOfWeek;
-        return date.AddDays(-daysSinceSunday);
-    }
-
-    private static DateOnly GetSundayOnOrAfter(DateOnly date)
-    {
-        var daysUntilSunday = ((int)DayOfWeek.Sunday - (int)date.DayOfWeek + 7) % 7;
-        return date.AddDays(daysUntilSunday);
-    }
-
-    private static CallSettings BuildWeeklyCommunityCall(DateOnly date)
-    {
-        var key = $"community-{date:yyyy-MM-dd}";
-        var slot = new LongevitymaxxingCallSlot(
-            $"{key}-a",
-            new DateTimeOffset(date.ToDateTime(WeeklyCommunityCallTimeUtc), TimeSpan.Zero)
-                .ToString("o", CultureInfo.InvariantCulture));
-
-        return new CallSettings(key, "Community call", slot.Id, [slot]);
-    }
-
-    private static DateTimeOffset GetDefaultCallSelectionClosesAtUtc(
-        IReadOnlyList<CallSettings> calls,
-        DateTimeOffset signupClosesAtUtc)
-    {
-        var earliestCall = calls
-            .SelectMany(call => call.CandidateSlots)
-            .Select(slot => ParseDateTimeOffset(slot.StartsAtUtc, DateTimeOffset.MaxValue).ToUniversalTime())
-            .Where(startsAt => startsAt != DateTimeOffset.MaxValue)
-            .Order()
-            .FirstOrDefault();
-
-        if (earliestCall == default)
-            return signupClosesAtUtc;
-
-        var firstReminderDueAt = earliestCall - TimeSpan.FromHours(24);
-        return firstReminderDueAt < signupClosesAtUtc
-            ? firstReminderDueAt
-            : signupClosesAtUtc;
+            string.IsNullOrWhiteSpace(cfg.SlackRoomUrl) ? null : cfg.SlackRoomUrl.Trim());
     }
 
     private IReadOnlyList<LongevitymaxxingLeaderboardRow> BuildLeaderboard(
@@ -3914,76 +3586,6 @@ public sealed partial class LongevitymaxxingChallengeService
         return Math.Log2(Math.Max(0, replyCount) + 1d) - (4d * ageInDays);
     }
 
-    private IReadOnlyList<LongevitymaxxingParticipantCall> BuildParticipantCalls(ChallengeSettings settings)
-    {
-        return BuildPublicCalls(settings)
-            .Select(call => new LongevitymaxxingParticipantCall(
-                call.Key,
-                call.Label,
-                call.SelectedSlot,
-                settings.VideoCallUrl))
-            .ToList();
-    }
-
-    private static IReadOnlyList<LongevitymaxxingParticipantCall> GetUpcomingParticipantCalls(
-        IReadOnlyList<LongevitymaxxingParticipantCall> calls,
-        DateTimeOffset now)
-    {
-        return calls
-            .Where(call => !HasParticipantCallStarted(call, now))
-            .OrderBy(call => ParseDateTimeOffset(call.SelectedSlot?.StartsAtUtc, DateTimeOffset.MaxValue))
-            .Take(UpcomingCommunityCallDisplayCount)
-            .ToList();
-    }
-
-    private static bool HasParticipantCallStarted(LongevitymaxxingParticipantCall call, DateTimeOffset now)
-    {
-        if (call.SelectedSlot is null)
-            return false;
-
-        if (!DateTimeOffset.TryParse(
-            call.SelectedSlot.StartsAtUtc,
-            CultureInfo.InvariantCulture,
-            DateTimeStyles.AssumeUniversal,
-            out var startsAt))
-        {
-            return false;
-        }
-
-        return startsAt.ToUniversalTime() <= now;
-    }
-
-    private IReadOnlyList<LongevitymaxxingPublicCall> BuildPublicCalls(ChallengeSettings settings)
-    {
-        var dbSelections = GetSelectedSlots();
-        return settings.Calls.Select(call =>
-        {
-            var selectedSlotId = call.SelectedSlotId;
-            if (string.IsNullOrWhiteSpace(selectedSlotId))
-                dbSelections.TryGetValue(call.Key, out selectedSlotId);
-
-            var selected = string.IsNullOrWhiteSpace(selectedSlotId)
-                ? null
-                : call.CandidateSlots.FirstOrDefault(s => string.Equals(s.Id, selectedSlotId, StringComparison.OrdinalIgnoreCase));
-
-            return new LongevitymaxxingPublicCall(call.Key, call.Label, call.CandidateSlots, selected);
-        }).ToList();
-    }
-
-    private IReadOnlyDictionary<string, string> GetSelectedSlots()
-    {
-        return _db.Run(sqlite =>
-        {
-            using var cmd = sqlite.CreateCommand();
-            cmd.CommandText = "SELECT CallKey, SlotId FROM LongevitymaxxingCallSelections;";
-            var selected = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            using var reader = cmd.ExecuteReader();
-            while (reader.Read())
-                selected[reader.GetString(0)] = reader.GetString(1);
-            return selected;
-        });
-    }
-
     private static int GetVisibleDayCount(
         ChallengeSettings settings,
         IReadOnlyDictionary<string, Dictionary<int, CheckInRecord>> checkIns,
@@ -4031,7 +3633,7 @@ public sealed partial class LongevitymaxxingChallengeService
         cmd.CommandText =
             """
             SELECT Id, Email, DisplayName, TimeZoneId, AthleteSlug, AccessToken, ConfirmationToken, StopToken,
-                   ConfirmedAtUtc, StoppedEmailsAtUtc, StoppedCommunityCallEmailsAtUtc,
+                   ConfirmedAtUtc, StoppedEmailsAtUtc,
                    ChallengeInactiveAtUtc, ChallengeInactiveReason, CreatedAtUtc, UpdatedAtUtc
             FROM LongevitymaxxingParticipants
             WHERE ConfirmedAtUtc IS NOT NULL;
@@ -4185,7 +3787,7 @@ public sealed partial class LongevitymaxxingChallengeService
         cmd.CommandText =
             """
             SELECT Id, Email, DisplayName, TimeZoneId, AthleteSlug, AccessToken, ConfirmationToken, StopToken,
-                   ConfirmedAtUtc, StoppedEmailsAtUtc, StoppedCommunityCallEmailsAtUtc,
+                   ConfirmedAtUtc, StoppedEmailsAtUtc,
                    ChallengeInactiveAtUtc, ChallengeInactiveReason, CreatedAtUtc, UpdatedAtUtc
             FROM LongevitymaxxingParticipants
             WHERE Email = @email
@@ -4201,7 +3803,7 @@ public sealed partial class LongevitymaxxingChallengeService
         cmd.CommandText =
             """
             SELECT Id, Email, DisplayName, TimeZoneId, AthleteSlug, AccessToken, ConfirmationToken, StopToken,
-                   ConfirmedAtUtc, StoppedEmailsAtUtc, StoppedCommunityCallEmailsAtUtc,
+                   ConfirmedAtUtc, StoppedEmailsAtUtc,
                    ChallengeInactiveAtUtc, ChallengeInactiveReason, CreatedAtUtc, UpdatedAtUtc
             FROM LongevitymaxxingParticipants
             WHERE AccessToken = @token
@@ -4221,7 +3823,7 @@ public sealed partial class LongevitymaxxingChallengeService
         cmd.CommandText =
             """
             SELECT Id, Email, DisplayName, TimeZoneId, AthleteSlug, AccessToken, ConfirmationToken, StopToken,
-                   ConfirmedAtUtc, StoppedEmailsAtUtc, StoppedCommunityCallEmailsAtUtc,
+                   ConfirmedAtUtc, StoppedEmailsAtUtc,
                    ChallengeInactiveAtUtc, ChallengeInactiveReason, CreatedAtUtc, UpdatedAtUtc
             FROM LongevitymaxxingParticipants
             WHERE ConfirmationToken = @token
@@ -4249,21 +3851,12 @@ public sealed partial class LongevitymaxxingChallengeService
                 reader.IsDBNull(8) ? null : ParseNullableDateTimeOffset(reader.GetString(8)),
                 reader.IsDBNull(9) ? null : ParseNullableDateTimeOffset(reader.GetString(9)),
                 reader.IsDBNull(10) ? null : ParseNullableDateTimeOffset(reader.GetString(10)),
-                reader.IsDBNull(11) ? null : ParseNullableDateTimeOffset(reader.GetString(11)),
-                reader.IsDBNull(12) ? null : reader.GetString(12),
-                ParseNullableDateTimeOffset(reader.GetString(13))!.Value,
-                ParseNullableDateTimeOffset(reader.GetString(14))!.Value));
+                reader.IsDBNull(11) ? null : reader.GetString(11),
+                ParseNullableDateTimeOffset(reader.GetString(12))!.Value,
+                ParseNullableDateTimeOffset(reader.GetString(13))!.Value));
         }
 
         return rows;
-    }
-
-    private string? GetSelectedSlotId(SqliteConnection sqlite, string callKey)
-    {
-        using var cmd = sqlite.CreateCommand();
-        cmd.CommandText = "SELECT SlotId FROM LongevitymaxxingCallSelections WHERE CallKey = @callKey LIMIT 1;";
-        Add(cmd, "@callKey", callKey);
-        return cmd.ExecuteScalar() as string;
     }
 
     private bool WasReminderSent(string participantId, int challengeDay, string kind)
@@ -4280,44 +3873,6 @@ public sealed partial class LongevitymaxxingChallengeService
             Add(cmd, "@participantId", participantId);
             Add(cmd, "@day", challengeDay);
             Add(cmd, "@kind", kind);
-            return cmd.ExecuteScalar() is not null;
-        });
-    }
-
-    private bool WasCallScheduleUpdateNoticeSent(string participantId)
-        => WasReminderSent(participantId, CallScheduleUpdateNoticeDay, CallScheduleUpdateReminderKind);
-
-    private bool WasCallReminderSent(string participantId, string callKey, string reminderKind)
-    {
-        return _db.Run(sqlite =>
-        {
-            using var cmd = sqlite.CreateCommand();
-            cmd.CommandText =
-                """
-                SELECT 1 FROM LongevitymaxxingCallReminderLog
-                WHERE ParticipantId = @participantId AND CallKey = @callKey AND ReminderKind = @kind
-                LIMIT 1;
-                """;
-            Add(cmd, "@participantId", participantId);
-            Add(cmd, "@callKey", callKey);
-            Add(cmd, "@kind", reminderKind);
-            return cmd.ExecuteScalar() is not null;
-        });
-    }
-
-    private bool WasCallAnnouncementQueued(string callKey, string reminderKind)
-    {
-        return _db.Run(sqlite =>
-        {
-            using var cmd = sqlite.CreateCommand();
-            cmd.CommandText =
-                """
-                SELECT 1 FROM LongevitymaxxingCallAnnouncementLog
-                WHERE CallKey = @callKey AND ReminderKind = @kind
-                LIMIT 1;
-                """;
-            Add(cmd, "@callKey", callKey);
-            Add(cmd, "@kind", reminderKind);
             return cmd.ExecuteScalar() is not null;
         });
     }
@@ -4651,18 +4206,6 @@ public sealed partial class LongevitymaxxingChallengeService
 
         return TimeZoneInfo.Utc;
     }
-
-    private static bool IsCommunityCallReminderLocalTimeAllowed(
-        DateTimeOffset startsAt,
-        string timeZoneId)
-    {
-        var localStartsAt = TimeZoneInfo.ConvertTime(startsAt, ResolveTimeZone(timeZoneId));
-        return IsCommunityCallReminderLocalTimeAllowed(TimeOnly.FromDateTime(localStartsAt.DateTime));
-    }
-
-    internal static bool IsCommunityCallReminderLocalTimeAllowed(TimeOnly localStartsAt)
-        => localStartsAt >= CommunityCallReminderLocalStartTime &&
-           localStartsAt < CommunityCallReminderLocalEndTime;
 
     private static bool TryFindTimeZone(string timeZoneId, out TimeZoneInfo timeZone)
     {
@@ -5061,9 +4604,6 @@ public sealed partial class LongevitymaxxingChallengeService
     public string BuildStopUrl(string stopToken)
         => BuildChallengeUrl(("stop", stopToken));
 
-    public string BuildCommunityCallStopUrl(string stopToken)
-        => BuildChallengeUrl(("stop", stopToken), ("scope", "community-call"));
-
     public string GetPublicBaseUrl()
     {
         var configured = (_config.LongevitymaxxingChallenge ?? new LongevitymaxxingChallengeConfig()).PublicBaseUrl;
@@ -5128,18 +4668,9 @@ public sealed partial class LongevitymaxxingChallengeService
         DateOnly EndDate,
         int DurationDays,
         DateTimeOffset SignupClosesAtUtc,
-        DateTimeOffset CallSelectionClosesAtUtc,
         int DailyReminderHourLocal,
         string SlackInviteUrl,
-        string? SlackRoomUrl,
-        string? VideoCallUrl,
-        IReadOnlyList<CallSettings> Calls);
-
-    private sealed record CallSettings(
-        string Key,
-        string Label,
-        string? SelectedSlotId,
-        IReadOnlyList<LongevitymaxxingCallSlot> CandidateSlots);
+        string? SlackRoomUrl);
 
     private sealed record ParticipantRecord(
         string Id,
@@ -5152,7 +4683,6 @@ public sealed partial class LongevitymaxxingChallengeService
         string StopToken,
         DateTimeOffset? ConfirmedAtUtc,
         DateTimeOffset? StoppedEmailsAtUtc,
-        DateTimeOffset? StoppedCommunityCallEmailsAtUtc,
         DateTimeOffset? ChallengeInactiveAtUtc,
         string? ChallengeInactiveReason,
         DateTimeOffset CreatedAtUtc,

@@ -67,7 +67,6 @@ public sealed record LongevitymaxxingPublicState(
     bool SignupOpen,
     string StartDate,
     string SignupClosesAtUtc,
-    string CallSelectionClosesAtUtc,
     string EndDate,
     int DurationDays,
     int DailyMaxScore,
@@ -76,7 +75,6 @@ public sealed record LongevitymaxxingPublicState(
     IReadOnlyList<LongevitymaxxingPodiumRow> Podium,
     IReadOnlyList<LongevitymaxxingParticipantNote> Notes,
     IReadOnlyList<LongevitymaxxingDiscussionSystemPost> SystemDiscussionPosts,
-    IReadOnlyList<LongevitymaxxingPublicCall> Calls,
     string SlackInviteUrl,
     string? SlackRoomUrl,
     LongevitymaxxingScoringWindow ScoringWindow);
@@ -88,7 +86,6 @@ public sealed record LongevitymaxxingParticipantState(
     LongevitymaxxingParticipantSummary Participant,
     IReadOnlyList<LongevitymaxxingEligibleDay> EligibleDays,
     IReadOnlyList<LongevitymaxxingParticipantNote> Notes,
-    IReadOnlyList<LongevitymaxxingParticipantCall> Calls,
     LongevitymaxxingGardenState Garden);
 
 public sealed record LongevitymaxxingGardenState(
@@ -163,20 +160,6 @@ public sealed record LongevitymaxxingDayCell(
 
 public sealed record LongevitymaxxingPodiumRow(int Placement, string DisplayName, string? AthleteUrl, string? ProfileImageUrl, int CheckedInDays, int TotalPoints);
 
-public sealed record LongevitymaxxingPublicCall(
-    string Key,
-    string Label,
-    IReadOnlyList<LongevitymaxxingCallSlot> CandidateSlots,
-    LongevitymaxxingCallSlot? SelectedSlot);
-
-public sealed record LongevitymaxxingParticipantCall(
-    string Key,
-    string Label,
-    LongevitymaxxingCallSlot? SelectedSlot,
-    string? VideoCallUrl);
-
-public sealed record LongevitymaxxingCallSlot(string Id, string StartsAtUtc);
-
 public sealed record LongevitymaxxingEligibleDay(
     int ChallengeDay,
     string Date,
@@ -244,8 +227,6 @@ public sealed record LongevitymaxxingReminderCandidate(
     int ChallengeDay,
     string TargetDate,
     bool CountsForScore,
-    bool IncludeCallScheduleUpdate,
-    IReadOnlyList<LongevitymaxxingParticipantCall> Calls,
     LongevitymaxxingDiscussionDigest DiscussionDigest);
 
 public sealed record LongevitymaxxingDiscussionDigest(
@@ -274,35 +255,13 @@ public enum LongevitymaxxingDiscussionActivityKind
     Reply
 }
 
-public sealed record LongevitymaxxingCallReminderCandidate(
-    string ParticipantId,
-    string Email,
-    string DisplayName,
-    string TimeZoneId,
-    string AccessToken,
-    string StopToken,
-    string CallKey,
-    string CallLabel,
-    string StartsAtUtc,
-    string ReminderKind,
-    string? VideoCallUrl,
-    IReadOnlyList<LongevitymaxxingParticipantCall> Calls);
-
-public sealed record LongevitymaxxingCallAnnouncementCandidate(
-    string CallKey,
-    string CallLabel,
-    string StartsAtUtc,
-    string ReminderKind,
-    string VideoCallUrl);
-
 public sealed record LongevitymaxxingChallengeStartCandidate(
     string ParticipantId,
     string Email,
     string DisplayName,
     string TimeZoneId,
     string AccessToken,
-    string StopToken,
-    IReadOnlyList<LongevitymaxxingParticipantCall> Calls);
+    string StopToken);
 
 public sealed record LongevitymaxxingChallengeResultEventRow(
     string ParticipantId,

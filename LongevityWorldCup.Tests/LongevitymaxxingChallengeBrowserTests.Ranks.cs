@@ -47,7 +47,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         var day21 = rows[0]!["cells"]![20]!;
         day21["checkedIn"] = true;
         day21["score"] = 0;
-        var participant = JsonSerializer.SerializeToNode(BuildParticipantState(includeUpcomingCall: true))!.AsObject();
+        var participant = JsonSerializer.SerializeToNode(BuildParticipantState(noEligibleDays: true))!.AsObject();
         participant["participant"]!["id"] = "p2";
         participant["participant"]!["displayName"] = "Ari Able";
         participant["public"] = state.DeepClone();

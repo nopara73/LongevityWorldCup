@@ -39,7 +39,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
             row["checkedInDays"] = 14;
             row["currentStreak"] = 14;
         }
-        var participant = JsonSerializer.SerializeToNode(BuildParticipantState(includeUpcomingCall: true))!.AsObject();
+        var participant = JsonSerializer.SerializeToNode(BuildParticipantState(noEligibleDays: true))!.AsObject();
         participant["public"] = state.DeepClone();
         await context.RouteAsync("**/api/longevitymaxxing/state", route => FulfillJsonAsync(route, state.ToJsonString()));
         await context.RouteAsync("**/api/longevitymaxxing/participant", route => FulfillJsonAsync(route, participant.ToJsonString()));
