@@ -85,7 +85,7 @@
             if (!object(raw) || raw['version'] !== 1 || !object(raw['games']) || !Array.isArray(raw['completedDays'])) return emptySaved();
             const games: Record<string, Progress> = {};
             for (const [id, state] of Object.entries(raw['games'])) if (isProgress(state)) games[id] = state;
-            return { version: 1, games, completedDays: raw['completedDays'].filter(day).slice(-90) };
+            return { version: 1, games, completedDays: raw['completedDays'].filter(day) };
         } catch { return memory; }
     }
     function save(): void {
@@ -93,7 +93,7 @@
         const saved = readSaved();
         saved.games[puzzle.id] = { ...progress, answers: [...progress.answers] };
         if (progress.answers.length === 5 && !saved.completedDays.includes(puzzle.day)) saved.completedDays.push(puzzle.day);
-        saved.completedDays = [...new Set(saved.completedDays)].sort().slice(-90);
+        saved.completedDays = [...new Set(saved.completedDays)].sort();
         saved.games = Object.fromEntries(Object.entries(saved.games).sort((a, b) => a[1].day.localeCompare(b[1].day)).slice(-90));
         memory = saved;
         try { localStorage.setItem(key, JSON.stringify(saved)); }

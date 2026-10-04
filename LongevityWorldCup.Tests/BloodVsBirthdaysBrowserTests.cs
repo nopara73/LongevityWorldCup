@@ -17,6 +17,31 @@ public sealed class BloodVsBirthdaysBrowserTests(PlaywrightBrowserFixture browse
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
     [Fact]
+    public async Task CompletedDayStreak_ContinuesPastTheRetainedGameHistory()
+    {
+        await using var context = await ContextAsync(390, 844);
+        var response = PuzzleResponse("2026-10-04");
+        await StubAsync(context, () => response);
+        var completedDays = Enumerable.Range(1, 120).Select(i => new DateOnly(2026, 10, 4).AddDays(-i).ToString("yyyy-MM-dd")).ToArray();
+        var saved = JsonSerializer.Serialize(new { version = 1, games = new Dictionary<string, object>(), completedDays }, Json);
+        await context.AddInitScriptAsync($"localStorage.setItem('lwc.blood-vs-birthdays.v1', JSON.stringify({saved}));");
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/blood-vs-birthdays");
+        await page.Locator("#introPanel:not([hidden])").WaitForAsync();
+        Assert.Equal("120 days streak", await page.Locator("#streakDisplay").InnerTextAsync());
+        await page.Locator("#timedMode").UncheckAsync();
+        await page.Locator("#startButton").ClickAsync();
+        for (var i = 0; i < 5; i++)
+        {
+            await page.Locator($".game-choice[data-slug='{response.Puzzle.Rounds[i].WinnerSlug}']").ClickAsync();
+            await page.Locator("#answerPanel:not([hidden])").WaitForAsync();
+            await page.Locator("#nextButton").ClickAsync();
+        }
+        Assert.Equal("121 days streak", await page.Locator("#streakDisplay").InnerTextAsync());
+        Assert.Equal(121, await page.EvaluateAsync<int>("JSON.parse(localStorage.getItem('lwc.blood-vs-birthdays.v1')).completedDays.length"));
+    }
+
+    [Fact]
     public async Task BackgroundRefresh_PreservesFocusedChoiceAndProofDisclosure()
     {
         await using var context = await ContextAsync(1280, 900);
