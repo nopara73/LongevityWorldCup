@@ -3059,7 +3059,7 @@
 
         window.addEventListener('pageshow', event => {
             if (event.persisted && bioageFlow.shouldReloadBioageUpdate('bortz')) {
-                window.location.reload();
+                window.LwcInitialView.reload();
                 return;
             }
             applyBortzSubmittedBiomarkerPlaceholders();

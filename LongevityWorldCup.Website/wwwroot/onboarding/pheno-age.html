@@ -2468,7 +2468,7 @@
 
         window.addEventListener('pageshow', event => {
             if (event.persisted && bioageFlow.shouldReloadBioageUpdate('pheno')) {
-                window.location.reload();
+                window.LwcInitialView.reload();
                 return;
             }
             applyPhenoSubmittedBiomarkerPlaceholders();

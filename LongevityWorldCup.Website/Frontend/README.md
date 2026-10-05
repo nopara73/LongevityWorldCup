@@ -20,6 +20,10 @@ Challenge HTML starts with a neutral busy state before any script downloads. Res
 
 Stateful task pages load the versioned `initial-view` classic script and stylesheet in the head, call `prepare`, and mark their task container with `initial-view-main`. Initialize through `run` and call `complete` only after the actual panel, identity, fields, pricing, or filters agree. Keep inline Back navigation usable during loading. Initialization errors or the fifteen-second deadline show Retry while keeping incomplete defaults hidden; reload preserves saved browser data. Accepted submission recovery calls `hold` while its existing confirmation hands off to the next page.
 
+Cached calculator update returns use `initial-view.reload` to paint the loading state before navigation freezes the old document. Refresh existing controls as the view enters loading, and reveal the form only after its raw draft values and selected athlete are restored.
+
+Pending task content must hide immediately. Suppress its transitions while loading so a visibility transition cannot retain old headings or results.
+
 Calculator heads prepare this state through `LwcBioageFlow` for updates, saved drafts, shared values, and stored biomarker handoffs. Call `completeInitialView` after restoring the mode, step, and raw values, before resetting scroll or measuring the visible form. A fresh calculator without prefill stays immediately visible. Optional athlete/division directories enrich already-restored fields; they must not gate draft restoration or overwrite later edits. Play menus resolve the requested panel, returning-athlete action order, and discounts before revealing it. Review pages restore their result/edit/application source and contact address synchronously.
 
 Public document URLs are validated and canonicalized on the server before rendering. Keep frontend legacy-route and browser-history handling consistent with [CrawlAndUrlPolicy.md](../../LongevityWorldCup.Documentation/CrawlAndUrlPolicy.md).

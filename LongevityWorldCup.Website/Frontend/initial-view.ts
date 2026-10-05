@@ -3,6 +3,7 @@ interface InitialViewApi {
     complete(): void;
     hold(): void;
     fail(): void;
+    reload(): void;
     run(initialize: () => void | Promise<void>): void;
 }
 
@@ -21,6 +22,12 @@ interface Window {
 
     function prepare(): void {
         documentRoot.dataset.initialView = 'pending';
+        document.querySelectorAll<HTMLElement>('.initial-view-main').forEach(view => {
+            view.setAttribute('aria-busy', 'true');
+        });
+        // A cached view already has controls and computed styles. Refresh them
+        // before a reload freezes that document while its replacement loads.
+        window.LwcFlowActionDock?.refreshNow?.();
         hold();
         // A missing script or stalled module must not leave an indefinite blank
         // task. Keep its defaults hidden and offer a reload without losing data.
@@ -35,6 +42,14 @@ interface Window {
             view.querySelector('.initial-view-recovery')?.remove();
         });
         window.LwcFlowActionDock?.refreshNow?.();
+    }
+
+    function reload(): void {
+        prepare();
+        // Paint the loading state before navigation freezes a cached document.
+        window.requestAnimationFrame(() => {
+            window.requestAnimationFrame(() => window.location.reload());
+        });
     }
 
     function fail(): void {
@@ -79,5 +94,5 @@ interface Window {
         if (documentRoot.dataset.initialView === 'failed') fail();
     }, { once: true });
 
-    window.LwcInitialView = { prepare, complete, hold, fail, run };
+    window.LwcInitialView = { prepare, complete, hold, fail, reload, run };
 })();

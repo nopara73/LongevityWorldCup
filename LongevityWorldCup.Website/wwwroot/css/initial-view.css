@@ -8,6 +8,8 @@ html[data-initial-view] .initial-view-main {
 html[data-initial-view] .initial-view-main > :not(.initial-view-recovery),
 html[data-initial-view] .initial-view-main > :not(.initial-view-recovery) * {
     visibility: hidden;
+    /* Visibility transitions otherwise keep old content painted until they end. */
+    transition: none !important;
 }
 
 html[data-initial-view="pending"] .initial-view-main::before {
