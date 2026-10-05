@@ -17,6 +17,80 @@
     box-sizing: border-box;
 }
 
+#phenoAgeForm,
+#bortzAgeForm {
+    container: bioage-form / inline-size;
+}
+
+.bioageform .lwc-wizard-nav {
+    display: flex;
+    justify-content: center;
+    gap: 0;
+    margin: -0.25rem 0 0.25rem;
+    user-select: none;
+}
+
+.bioageform .lwc-dot {
+    width: 44px;
+    height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    border-radius: 50%;
+    border: 0;
+    background: transparent;
+}
+
+.bioageform .lwc-dot::before {
+    content: "";
+    width: 8px;
+    height: 8px;
+    box-sizing: border-box;
+    border-radius: 999px;
+    border: 0;
+    background: var(--lwc-border-strong, #71808d);
+    transition: background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), width var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .bioageform .lwc-dot {
+        cursor: pointer;
+    }
+
+    .bioageform .lwc-dot:not(.lwc-dot--on):hover::before {
+        background: var(--lwc-muted, #526373);
+    }
+}
+
+.bioageform .lwc-dot.lwc-dot--on {
+    cursor: default;
+    pointer-events: none;
+}
+
+/* Only the pill marks the current step, rather than the shared disabled surface. */
+html body .bioageform .lwc-wizard-nav .lwc-dot[aria-disabled="true"] {
+    border: 0;
+    background: transparent;
+}
+
+.bioageform .lwc-dot.lwc-dot--on::before {
+    width: 24px;
+    background: var(--lwc-accent, #087685);
+}
+
+.bioageform .lwc-dot:focus-visible {
+    outline: 3px solid var(--lwc-accent-bright, #19c3d1);
+    outline-offset: -6px;
+    box-shadow: none;
+}
+
+@media (forced-colors: active) {
+    .bioageform .lwc-dot::before {
+        border: 2px solid CanvasText;
+    }
+}
+
 .bioage-result-value-stack {
     --bioage-result-reveal-color: var(--lwc-accent, #087685);
     --bioage-result-halo-color: rgba(8, 118, 133, 0.28);
@@ -648,7 +722,7 @@
 @media (max-width: 360px) {
     .bioageform #lwc-step-1.lwc-step--active #dobFieldset {
         grid-template-columns: minmax(0, 1fr) minmax(0, 1.75fr) minmax(0, 1fr);
-        padding-inline: var(--lwc-space-2);
+        padding-inline: 0;
     }
 }
 
@@ -656,6 +730,14 @@
     .bioageform {
         margin: 0.8rem auto;
         padding: 0.75rem;
+    }
+
+    .bioageform .lwc-wizard-nav {
+        margin: -0.35rem 0 0.05rem;
+    }
+
+    .bioageform .lwc-dot {
+        height: 34px;
     }
 }
 
@@ -756,6 +838,25 @@
     .bioageform #lwc-step-1 > .lwc-step-actions {
         grid-column: 1 / -1;
         margin-top: 0.2rem;
+    }
+}
+
+/* Reflow relative to the form's available width, including enlarged text. */
+@container bioage-form (max-width: 38rem) {
+    .bioageform #lwc-step-1.lwc-step--active {
+        display: block;
+    }
+}
+
+@container bioage-form (max-width: 15rem) {
+    .bioageform #lwc-step-1.lwc-step--active #dobFieldset {
+        display: block;
+        padding-inline: 0;
+    }
+
+    .bioageform #dobFieldset label span {
+        display: inline;
+        white-space: normal;
     }
 }
 

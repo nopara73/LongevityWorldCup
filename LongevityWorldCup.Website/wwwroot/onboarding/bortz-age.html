@@ -769,73 +769,6 @@
                 transform: none;
             }
 
-        .lwc-wizard-nav {
-            display: flex;
-            justify-content: center;
-            gap: 0;
-            margin: -0.25rem 0 0.25rem 0;
-            user-select: none;
-        }
-
-        .lwc-dot {
-            width: 44px;
-            height: 44px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            box-sizing: border-box;
-            border-radius: 50%;
-            border: 0;
-            background: transparent;
-            transition: background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
-        }
-
-        .lwc-dot::before {
-            content: "";
-            width: 8px;
-            height: 8px;
-            box-sizing: border-box;
-            border-radius: 999px;
-            border: 0;
-            background: var(--lwc-border-strong, #71808d);
-            opacity: 0.5;
-            transition: background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), opacity var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), width var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
-        }
-
-        @media (hover: hover) and (pointer: fine) {
-            .lwc-dot {
-                cursor: pointer;
-            }
-
-            .lwc-dot:not(.lwc-dot--on):hover::before {
-                opacity: 1;
-            }
-        }
-
-        .lwc-dot.lwc-dot--on {
-            cursor: default;
-            pointer-events: none;
-        }
-
-        /* The current step is aria-disabled; the pill alone marks it, not the shared disabled surface. */
-        html body .lwc-wizard-nav .lwc-dot[aria-disabled="true"] {
-            border: 0;
-            background: transparent;
-        }
-
-        .lwc-dot.lwc-dot--on::before {
-            width: 24px;
-            background: var(--lwc-accent, #087685);
-            opacity: 1;
-        }
-
-        .lwc-dot:focus-visible {
-            outline: 3px solid var(--lwc-accent-bright, #19c3d1);
-            outline-offset: -6px;
-            box-shadow: none;
-        }
-
-
         .lwc-step-actions {
             display: flex;
             gap: .75rem;
@@ -890,13 +823,6 @@
                 line-height: 1.4;
             }
 
-            .lwc-wizard-nav {
-                margin: -0.35rem 0 0.05rem;
-            }
-
-            .lwc-dot {
-                height: 34px;
-            }
         }
     </style>
 </head>
