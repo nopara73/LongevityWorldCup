@@ -11,6 +11,33 @@ public sealed class ProfileValidationBrowserTests(
     BrowserTestAppFixture appFixture)
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
+    [Fact]
+    public async Task RestoredInvalidDraft_FocusAloneStaysQuietAndSubmissionStillValidates()
+    {
+        await using var context = await CreateContextAsync(390);
+        var requests = 0;
+        await context.RouteAsync("**/api/application/application", route =>
+        {
+            requests++;
+            return route.FulfillAsync(new() { Status = 422, Body = "Unexpected submission" });
+        });
+        var page = await OpenEditorAsync(context);
+        var link = page.Locator("#personalLinkInput");
+        await link.FillAsync("not a link");
+        await page.ReloadAsync();
+        await page.WaitForFunctionAsync("() => document.querySelector('#personalLinkInput')?.value === 'not a link'");
+        await link.FocusAsync();
+        await page.Locator("#mediaContactInput").ClickAsync();
+        await Assertions.Expect(page.Locator(".profile-field-error:visible")).ToHaveCountAsync(0);
+        await page.Locator("#submitButton").ClickAsync();
+        await Assertions.Expect(link).ToBeFocusedAsync();
+        await Assertions.Expect(link).ToHaveAttributeAsync("aria-invalid", "true");
+        Assert.Equal(0, requests);
+        await link.FillAsync("still typing");
+        await Assertions.Expect(link).ToHaveAttributeAsync("aria-invalid", "false");
+        await Assertions.Expect(page.Locator(".profile-field-error:visible")).ToHaveCountAsync(0);
+    }
+
     [Theory]
     [InlineData(390, false)]
     [InlineData(320, true)]

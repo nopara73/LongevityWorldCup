@@ -38,7 +38,9 @@ Shared homepage, leaderboard, profile, highlights, header/footer, and progress c
 
 Shared CSS lives in `wwwroot/css`. The .NET page generator also builds `css/athlete-dialog` variants from leaderboard, Guess My Age, and age-visualization CSS, using the existing `@scope (#athleteDialogRuntime)` boundary. These generated files are ignored and recreated during normal and Node-free builds. Keep the source of each rule in the shared stylesheet. Header font-face rules remain inline so font URLs retain content versions matching their preloads. See [Page weight](../../LongevityWorldCup.Documentation/PageWeight.md).
 
-Keep these classic scripts free of imports/exports: `flow-action-dock`, `bioage-flow`, `custom-event-markup`, `longevitymaxxing`, `site-statistics-tracking`, `site-statistics`.
+Keep these classic scripts free of imports/exports: `flow-action-dock`, `bioage-flow`, `field-validation`, `custom-event-markup`, `longevitymaxxing`, `site-statistics-tracking`, `site-statistics`.
+
+Application, profile, calculator, and internal designer pages load the versioned `field-validation` classic script before binding editable fields. `LwcFieldValidation` separates silent readiness checks from visible feedback: only an edited field's blur or an explicit validation action may show its error. New edits clear obsolete feedback. `refresh()` rechecks late constraints only after an edited field has been blurred, keeping untouched, focused, restored, and hidden fields quiet. Pending blur feedback waits for pointer gestures to finish and is canceled by refocusing, restoring a value, or leaving the step. Use `validity.valid` for silent native checks; `checkValidity()` dispatches `invalid` events and can trigger visible feedback.
 
 The head partial defines `navigateToFlowDestination` synchronously so inline Back handlers work before the asynchronous modules finish. Application Next starts disabled until initialization binds stage validation.
 
