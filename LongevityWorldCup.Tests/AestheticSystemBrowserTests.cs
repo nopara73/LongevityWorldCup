@@ -1121,6 +1121,82 @@ public sealed class AestheticSystemBrowserTests(
         IPage page,
         ResponsiveContainerCondition[] conditions)
     {
+        foreach (var source in conditions.GroupBy(condition => condition.Source))
+        {
+            switch (source.Key)
+            {
+                case "css/longevitymaxxing.css":
+                    await AssertChallengeContainerBoundariesAsync(page, source.ToArray());
+                    break;
+                case "css/bioageform.css":
+                    foreach (var route in new[] { "/pheno-age", "/bortz-age" })
+                    {
+                        await AssertCalculatorContainerBoundariesAsync(page, route, source.ToArray());
+                    }
+                    break;
+                default:
+                    Assert.Fail($"Add a rendered container-boundary probe for {source.Key}.");
+                    break;
+            }
+        }
+    }
+
+    private static async Task AssertCalculatorContainerBoundariesAsync(
+        IPage page,
+        string route,
+        ResponsiveContainerCondition[] conditions)
+    {
+        await NavigateAndSettleAsync(page, route);
+        var rootFontSize = await page.EvaluateAsync<double>(
+            "() => parseFloat(getComputedStyle(document.documentElement).fontSize)");
+
+        foreach (var condition in conditions)
+        {
+            Assert.Equal("bioage-form", condition.Name);
+            Assert.Equal("max", condition.Bound);
+            var selector = condition.Value switch
+            {
+                38 => "#lwc-step-1",
+                15 => "#dobFieldset",
+                _ => throw new InvalidOperationException(
+                    $"Add a rendered calculator probe for {condition.Value}{condition.Unit}.")
+            };
+            var thresholdPixels = condition.Unit == "rem"
+                ? condition.Value * rootFontSize
+                : condition.Value;
+
+            foreach (var delta in new[] { -1, 0, 1, 0, -1 })
+            {
+                var inlineSize = thresholdPixels + delta;
+                var diagnostics = await page.EvaluateAsync<ContainerQueryDiagnostics>(
+                    """
+                    async argument => {
+                        const form = document.querySelector('form.bioageform');
+                        form.style.boxSizing = 'content-box';
+                        form.style.inlineSize = `${argument.InlineSize}px`;
+                        form.style.maxInlineSize = 'none';
+                        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                        return {
+                            ContainerWidth: parseFloat(getComputedStyle(form).width),
+                            IsCompact: getComputedStyle(form.querySelector(argument.Selector)).display === 'block',
+                            HorizontalOverflow: Math.max(0, form.scrollWidth - form.clientWidth)
+                        };
+                    }
+                    """,
+                    new { InlineSize = inlineSize, Selector = selector });
+                Assert.Equal(inlineSize, diagnostics.ContainerWidth, 1);
+                Assert.True(diagnostics.IsCompact == (inlineSize <= thresholdPixels),
+                    $"{route} {selector} did not cross its {condition.Value}{condition.Unit} boundary at {inlineSize}px.");
+                Assert.True(diagnostics.HorizontalOverflow <= 1,
+                    $"{route} overflowed by {diagnostics.HorizontalOverflow}px at {inlineSize}px.");
+            }
+        }
+    }
+
+    private static async Task AssertChallengeContainerBoundariesAsync(
+        IPage page,
+        ResponsiveContainerCondition[] conditions)
+    {
         Assert.All(
             conditions,
             condition => Assert.Contains("longevitymaxxing", condition.Source, StringComparison.OrdinalIgnoreCase));
