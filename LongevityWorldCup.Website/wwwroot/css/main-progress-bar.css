@@ -7,11 +7,11 @@
     padding: 0 0 var(--lwc-space-5, 1.5rem);
 }
 
-.progress-bar {
+.progress-container .progress-bar {
     display: none; /* The connectors between steps carry progress. */
 }
 
-.stages {
+.progress-container .stages {
     display: flex;
     justify-content: center;
     align-items: center;
@@ -20,16 +20,18 @@
     counter-reset: lwc-stage;
 }
 
-.stage {
+.progress-container .stage {
     position: relative;
     text-align: center;
     z-index: 2;
     min-width: 80px; /* enough room for each label so Test / Calculate / Submit don't overlap */
     flex: 0 0 auto;
+    /* Completed checks still count toward the following numbered steps. */
+    counter-increment: lwc-stage;
 }
 
 /* Connector to the next step, drawn from this step's dot center. */
-.stage:not(:last-child)::after {
+.progress-container .stage:not(:last-child)::after {
     content: "";
     position: absolute;
     top: 12px;
@@ -41,11 +43,11 @@
     z-index: 1;
 }
 
-.stage.completed:not(:last-child)::after {
+.progress-container .stage.completed:not(:last-child)::after {
     background: var(--lwc-accent, var(--primary-color));
 }
 
-.stage-dot {
+.progress-container .stage-dot {
     width: 26px;
     height: 26px;
     display: flex;
@@ -66,29 +68,28 @@
     z-index: 2;
 }
 
-.stage-dot::before {
-    counter-increment: lwc-stage;
+.progress-container .stage-dot::before {
     content: counter(lwc-stage);
 }
 
-.stage.completed .stage-dot {
+.progress-container .stage.completed .stage-dot {
     border-color: var(--lwc-accent, var(--primary-color));
     background: var(--lwc-accent-soft, #dff5f7);
     color: var(--lwc-accent, var(--primary-color));
 }
 
-.stage.completed .stage-dot::before {
+.progress-container .stage.completed .stage-dot::before {
     content: "\2713";
 }
 
-.stage.active .stage-dot {
+.progress-container .stage.active .stage-dot {
     border-color: var(--lwc-accent, var(--primary-color));
     background: var(--lwc-accent, var(--primary-color));
     color: var(--lwc-on-accent, #ffffff);
 }
 
 /* In-page: all three labels visible (full journey) */
-.stage-label {
+.progress-container .stage-label {
     position: absolute;
     top: 32px;
     left: 50%;
@@ -106,12 +107,12 @@
     transition: color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
 }
 
-.stage.active .stage-label {
+.progress-container .stage.active .stage-label {
     color: var(--lwc-ink, var(--dark-text-color));
     font-weight: 700;
 }
 
-.stage.completed .stage-label {
+.progress-container .stage.completed .stage-label {
     color: var(--lwc-muted, #526373);
 }
 
@@ -120,20 +121,20 @@
         width: calc(100% - 20px);
     }
 
-    .stages {
+    .progress-container .stages {
         justify-content: space-between;
     }
 
-    .stage {
+    .progress-container .stage {
         flex: 1 1 0;
         min-width: 0;
     }
 
-    .stage-label {
+    .progress-container .stage-label {
         font-size: 12px;
     }
 
-    .stage:not(:last-child)::after {
+    .progress-container .stage:not(:last-child)::after {
         display: none;
     }
 }
