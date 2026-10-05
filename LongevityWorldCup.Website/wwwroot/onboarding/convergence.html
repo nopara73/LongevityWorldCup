@@ -3,6 +3,7 @@
 <head>
     <title>Longevity World Cup - Convergence</title>
     <!--HEAD-->
+    <script src="{{ASSET_FIELD_VALIDATION_JS}}"></script>
     <script src="{{ASSET_SITE_STATISTICS_TRACKING_JS}}" defer></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
     <link rel="stylesheet" href="{{ASSET_BIOAGEFORM_CSS}}">
@@ -565,9 +566,10 @@
 
                 <!-- Division Field -->
                 <label for="division">Division <span class="field-requirement">(required)</span></label>
-                <select id="division" name="division" required aria-required="true">
+                <select id="division" name="division" required aria-required="true" aria-describedby="divisionError">
                     <!-- Options will be populated dynamically -->
                 </select>
+                <span id="divisionError" class="error-message" aria-live="polite"></span>
 
                 <!-- Flag Field with Autocomplete -->
                 <label for="flag">Flag <span class="field-requirement">(required)</span></label>
@@ -644,14 +646,16 @@
 
                 <!-- Link to Personal Page (Optional) -->
                 <label for="personalLink">Link (optional)</label>
-                <input type="text" id="personalLink" name="personalLink" inputmode="url" autocomplete="url" autocapitalize="none" spellcheck="false" placeholder="yourwebsite.com">
+                <input type="text" id="personalLink" name="personalLink" aria-describedby="personalLinkError" inputmode="url" autocomplete="url" autocapitalize="none" spellcheck="false" placeholder="yourwebsite.com">
+                <span id="personalLinkError" class="error-message" aria-live="polite"></span>
                 <p class="convergence-helper-text">
                     Provide a link to your personal page, social media profile, or any other online presence you wish to advertise.
                 </p>
 
                 <!-- Media Contact (Required) -->
                 <label for="mediaContact">Media contact (required)</label>
-                <input type="text" id="mediaContact" name="mediaContact" required aria-required="true" inputmode="email" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="media@example.com or @handle">
+                <input type="text" id="mediaContact" name="mediaContact" required aria-required="true" aria-describedby="mediaContactError" inputmode="email" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="media@example.com or @handle">
+                <span id="mediaContactError" class="error-message" aria-live="polite"></span>
 
                 <p class="convergence-helper-text">
                     <span class="smaller-text">
@@ -666,15 +670,17 @@
                     <strong>Congratulations!</strong> All that's left to do is to provide an email where we can reach you about your application.
                 </div>
                 <label for="accountEmail">Email address <span class="field-requirement">(required)</span></label>
-                <input type="text" id="accountEmail" name="accountEmail" required aria-required="true" inputmode="email" autocomplete="email" autocapitalize="none" spellcheck="false" placeholder="pizza_lover@hungry.com">
+                <input type="text" id="accountEmail" name="accountEmail" required aria-required="true" aria-describedby="accountEmailError" inputmode="email" autocomplete="email" autocapitalize="none" spellcheck="false" placeholder="pizza_lover@hungry.com">
+                <span id="accountEmailError" class="error-message" aria-live="polite"></span>
             </fieldset>
 
             <!-- WHY Field (Initially Hidden) -->
             <fieldset id="whyField" style="display: none; position: relative;">
                 <legend>Motivation</legend>
                 <label for="why">What drives you forward? <span class="field-requirement">(required)</span></label>
-                <textarea id="why" name="why" rows="5" required aria-required="true" minlength="30" maxlength="250" placeholder="Share your motivation here..."></textarea>
+                <textarea id="why" name="why" rows="5" required aria-required="true" aria-describedby="whyError whyCharCounter" minlength="30" maxlength="250" placeholder="Share your motivation here..."></textarea>
                 <div id="whyCharCounter" class="char-counter">0/250</div>
+                <span id="whyError" class="error-message" aria-live="polite"></span>
             </fieldset>
 
             <p id="applicationDraftStatus" role="status" hidden></p>
@@ -943,7 +949,7 @@
             const input = document.createElement('input');
             input.type = 'email';
             input.value = trimmed;
-            return input.checkValidity();
+            return input.validity.valid;
         }
 
         function normalizeContactEmail(value) {
@@ -988,7 +994,7 @@
             const input = document.createElement('input');
             input.type = 'url';
             input.value = trimmed;
-            return input.checkValidity();
+            return input.validity.valid;
         }
 
         function normalizeOptionalUrl(value) {
@@ -1072,6 +1078,7 @@
                     valid: false,
                     stage: 1,
                     inputId: 'division',
+                    errorId: 'divisionError',
                     error: 'Please select a division.'
                 };
             }
@@ -1084,8 +1091,7 @@
             goToStage(validationResult.stage);
 
             if (validationResult.errorId) {
-                const errorElement = document.getElementById(validationResult.errorId);
-                if (errorElement) errorElement.textContent = validationResult.error;
+                setApplicationFieldError(document.getElementById(validationResult.inputId), validationResult.error);
             }
 
             const input = document.getElementById(validationResult.inputId);
@@ -1538,46 +1544,9 @@
                     // Add event listeners for validation
                     const nameInput = document.getElementById('name');
                     const flagInput = document.getElementById('flag');
-                    const divisionSelect = document.getElementById('division');
 
                     addStageListenerOnce(nameInput, 'input', checkFormValidityStage1, 'stage1ValidityListener');
                     addStageListenerOnce(flagInput, 'input', checkFormValidityStage1, 'stage1ValidityListener');
-
-                    addStageListenerOnce(nameInput, 'blur', validateStage1Inputs, 'stage1ValidateOnBlur');
-                    addStageListenerOnce(flagInput, 'blur', validateStage1Inputs, 'stage1ValidateOnBlur');
-
-                    addStageListenerOnce(divisionSelect, 'click', validateStage1Inputs, 'stage1ValidateOnClick');
-
-                    function validateStage1Inputs() {
-                        const nameValue = nameInput.value.trim();
-                        const nameValidationResult = validateName(nameValue);
-                        const nameError = document.getElementById('nameError');
-
-                        if (!nameValidationResult.valid) {
-                            nameError.textContent = nameValidationResult.error;
-                        } else {
-                            nameError.textContent = '';
-                        }
-
-                        const divisionSelected = divisionSelect && divisionSelect.value.trim() !== '';
-
-                        // Only validate flag if it's not focused
-                        if (document.activeElement === flagInput) {
-                            const flagError = document.getElementById('flagError');
-                            flagError.textContent = '';
-                        }
-                        else {
-                            const flagValue = flagInput.value.trim();
-                            const flagValidationResult = validateFlag(flagValue);
-                            const flagError = document.getElementById('flagError');
-
-                            if (!flagValidationResult.valid) {
-                                flagError.textContent = flagValidationResult.error;
-                            } else {
-                                flagError.textContent = '';
-                            }
-                        }
-                    }
 
                     // Run checkFormValidityStage1 initially
                     checkFormValidityStage1();
@@ -1792,6 +1761,7 @@
         }
 
         let existingAthleteNames;
+        const applicationFieldValidation = new Map();
         // Flag Autocomplete Implementation
         document.addEventListener('DOMContentLoaded', async function () {
             await waitForPageModules();
@@ -1813,6 +1783,7 @@
             }
 
             // Initialize the first stage
+            initializeApplicationFieldValidation();
             goToStage(currentStage);
             applyFakeDataIfNeeded();
 
@@ -1829,6 +1800,7 @@
                     existingAthleteNames = Array.isArray(athletes)
                         ? athletes.flatMap(getExistingAthleteNameCandidates)
                         : [];
+                    applicationFieldValidation.get('name')?.refresh();
                     checkFormValidityStage1();
                 });
 
@@ -2251,19 +2223,41 @@
             const flagValid = flagValidationResult.valid;
             const divisionSelected = divisionSelect && divisionSelect.value.trim() !== '';
 
-            if (nameValid) {
-                document.getElementById('nameError').textContent = '';
-            }
-
-            if (flagValid) {
-                document.getElementById('flagError').textContent = '';
-            }
-
             if (nameValid && flagValid && divisionSelected) {
                 nextButton.disabled = false;
             } else {
                 nextButton.disabled = true;
             }
+        }
+
+        function setApplicationFieldError(input, message) {
+            input.setAttribute('aria-invalid', message ? 'true' : 'false');
+            document.getElementById(input.id + 'Error').textContent = message;
+        }
+
+        function initializeApplicationFieldValidation() {
+            const fields = [
+                ['name', validateName],
+                ['flag', validateFlag],
+                ['division', value => ({ valid: !!value.trim(), error: 'Please select a division.' })],
+                ['why', value => ({ valid: value.length >= 30 && value.length <= 250,
+                    error: 'Motivation must be between 30 and 250 characters long.' })],
+                ['personalLink', value => ({ valid: isOptionalUrl(value),
+                    error: 'Enter a valid website address, such as example.com.' })],
+                ['mediaContact', value => ({ valid: !!value.trim(), error: 'Enter a media contact.' })],
+                ['accountEmail', value => ({ valid: !!normalizeContactEmail(value), error: 'Please enter a valid email address.' })]
+            ];
+            fields.forEach(([id, validate]) => {
+                const input = document.getElementById(id);
+                applicationFieldValidation.set(id, window.LwcFieldValidation.bind(input, {
+                    validate: () => {
+                        const result = validate(input.value);
+                        setApplicationFieldError(input, result.valid ? '' : result.error);
+                        return result.valid;
+                    },
+                    clear: () => setApplicationFieldError(input, '')
+                }));
+            });
         }
 
         function checkFormValidityStage2() {
@@ -2288,7 +2282,7 @@
             // Color the counter based on character count
             if (charCount < 30) {
                 charCounter.textContent = charCount + '/30';
-                charCounter.style.color = 'red';
+                charCounter.style.color = 'var(--lwc-muted)';
             } else if (charCount <= 250) {
                 charCounter.textContent = charCount + '/250';
                 charCounter.style.color = 'green';
@@ -2323,9 +2317,6 @@
 
             if (!isOptionalUrl(personalLinkValue)) {
                 isValid = false;
-                personalLinkInput.setCustomValidity('Please enter a valid URL.');
-            } else {
-                personalLinkInput.setCustomValidity('');
             }
 
             if (isValid) {

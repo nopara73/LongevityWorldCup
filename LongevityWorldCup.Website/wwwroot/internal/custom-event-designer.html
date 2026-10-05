@@ -4,6 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Social Post Manager</title>
+    <script src="{{ASSET_FIELD_VALIDATION_JS}}"></script>
     <style>
         @font-face {
             font-family: "Poppins";
@@ -997,6 +998,8 @@
         const webpagePreviewSurface = document.getElementById("webpagePreviewSurface");
         const commandOutput = document.getElementById("commandOutput");
         const commandValidationHint = document.getElementById("commandValidationHint");
+        let titleValidationRevealed = false;
+        let destinationValidationRevealed = false;
         const copyCommandBtn = document.getElementById("copyCommandBtn");
         const copyState = document.getElementById("copyState");
         const insertBoldBtn = document.getElementById("insertBoldBtn");
@@ -2307,10 +2310,11 @@
 
             webpagePreviewBlock.style.display = sendWebpage.checked ? "" : "none";
             webpagePreviewSurface.hidden = !sendWebpage.checked;
-            commandValidationHint.hidden = hasTitle;
+            commandValidationHint.hidden = !titleValidationRevealed || hasTitle;
             copyCommandBtn.disabled = !hasTitle;
             postEventBtn.disabled = !hasTitle || !hasDestination;
-            postValidationHint.hidden = hasTitle && hasDestination;
+            postValidationHint.hidden = (!titleValidationRevealed || hasTitle)
+                && (!destinationValidationRevealed || hasDestination);
 
             document.getElementById("eventTitlePreview").innerHTML = renderWebpageMarkup(normalizeNewlines(titleRaw).replace(/\n+/g, " ").trim());
             document.getElementById("eventContentPreview").innerHTML = contentRaw ? renderWebpageMarkupWithBreaks(contentRaw) : "";
@@ -2358,6 +2362,8 @@
         async function postEvent() {
             const payload = buildEventPayload();
             if (!payload.title || !hasSelectedDestination(payload)) {
+                titleValidationRevealed = true;
+                destinationValidationRevealed = true;
                 setDirectPostStatus("Title and at least one destination are required before queueing.", "error");
                 update();
                 return;
@@ -2500,6 +2506,19 @@
             copyPreviewText(button, previewCopyPayloads.get(copyKey) || "");
         });
 
+        window.LwcFieldValidation.bind(titleInput, {
+            validate: () => {
+                titleValidationRevealed = true;
+                update();
+                return !!titleInput.value.trim();
+            },
+            clear: () => {
+                titleValidationRevealed = false;
+                commandValidationHint.hidden = true;
+                postValidationHint.hidden = !destinationValidationRevealed || hasSelectedDestination(buildEventPayload());
+            }
+        });
+
         [titleInput, contentInput, sendWebpage, sendSlack, sendX, sendThreads, sendFacebook].forEach(el => {
             el.addEventListener("input", event => {
                 if (event.target === titleInput || event.target === contentInput) {
@@ -2509,6 +2528,7 @@
                 update();
             });
             el.addEventListener("change", () => {
+                if (el.type === "checkbox") destinationValidationRevealed = true;
                 clearCleanupCommand();
                 update();
             });

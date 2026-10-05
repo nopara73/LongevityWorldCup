@@ -1227,7 +1227,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const input = document.createElement("input");
         input.type = "email";
         input.value = String(value || "");
-        return input.checkValidity();
+        return input.validity.valid;
     }
 
     function normalizeEmailValue(value: string): string {
