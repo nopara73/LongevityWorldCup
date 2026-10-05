@@ -278,7 +278,7 @@ public sealed class LongevitymaxxingChallengePageTests(TestWebApplicationFactory
         Assert.DoesNotContain("LWC athlete profile <span>optional</span>", html);
         Assert.Contains("lmx-athlete-selector", html);
         Assert.Contains("lmx-athlete-picker", html);
-        Assert.Contains("<input id=\"lmxSignupAthlete\" name=\"athleteLink\" autocomplete=\"off\" autocapitalize=\"none\" spellcheck=\"false\" placeholder=\"Search athlete name\">", html);
+        Assert.Contains("<input id=\"lmxSignupAthlete\" type=\"search\" name=\"athlete-search\" autocomplete=\"off\" autocapitalize=\"none\" spellcheck=\"false\" placeholder=\"Search athlete name\">", html);
         Assert.Contains("lmxSignupAthleteClear", html);
         Assert.DoesNotContain("lmxEditAthleteSelected", html);
         Assert.DoesNotContain("Choose this only if the participant is already listed as a Longevity athlete.", html);
