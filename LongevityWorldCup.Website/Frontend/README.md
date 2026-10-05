@@ -16,6 +16,10 @@ Keep strict null, unchecked-index, exact-optional-property, and erasable-syntax 
 
 ## Loading
 
+Challenge HTML starts with a neutral busy state before any script downloads. Resolve private token, confirmation, or saved-session access before revealing its view; participant responses already include public state and must not wait for a separate public request. Release initial busy state only after panels and the focused check-in dialog agree, and expose recovery controls when resolution fails. Athlete dialogs show Guess My Age only in an active, loaded game; a skipped game cannot play an exit animation during profile loading or hydration.
+
+Calculator heads prepare initial view state through `LwcBioageFlow` when an update or valid saved draft exists. Reveal the task after synchronous DOM-ready handlers restore its mode, step, and raw values; a fresh calculator stays immediately visible.
+
 Public document URLs are validated and canonicalized on the server before rendering. Keep frontend legacy-route and browser-history handling consistent with [CrawlAndUrlPolicy.md](../../LongevityWorldCup.Documentation/CrawlAndUrlPolicy.md).
 
 `HtmlInjectionMiddleware` dynamically imports these ES modules (an empty emitted export is allowed): `misc`, `flags`, `leagueIcons`, `pheno-age`, `bortz-age`, `badges`, `age-visualization`, `play-athlete-flow`, `proof-helpers`, `pro-discounts`, `play-menu`, `bioage-rank-preview`.

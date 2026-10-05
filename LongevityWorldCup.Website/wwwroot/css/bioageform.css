@@ -1,4 +1,30 @@
-/* Add these styles inside your <style> tag */
+/* Updates and saved drafts must restore before the new-applicant form paints. */
+html[data-bioage-initial-view="pending"] .lwc-steps-shell {
+    visibility: hidden;
+}
+
+html[data-bioage-initial-view="pending"] :is(.phenoage-main, .bioage-main)::before {
+    content: "";
+    display: block;
+    width: 1.5rem;
+    height: 1.5rem;
+    margin: 2rem auto -3.5rem;
+    border: 2px solid var(--lwc-border, #cdd5dd);
+    border-top-color: var(--lwc-accent, #007f8b);
+    border-radius: 50%;
+    animation: bioage-initial-loading 1s linear infinite;
+}
+
+@keyframes bioage-initial-loading {
+    to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html[data-bioage-initial-view="pending"] :is(.phenoage-main, .bioage-main)::before {
+        animation: none;
+    }
+}
+
 .bioageform {
     width: min(100%, 600px);
     max-width: calc(100vw - 2rem);

@@ -128,6 +128,7 @@ interface LwcBioageFlowApi {
     isUpdateMode: (search?: string) => boolean;
     isValidSelectedAthlete: (value: unknown) => value is BioageSelectedAthlete;
     navigateBack: (isUpdate: boolean) => void;
+    prepareInitialView: (clock: BioageClock) => void;
     readBiomarkerValue: (entry: unknown, fieldNames: string | readonly string[]) => number | null;
     readSelectedAthlete: (getItem?: BioageStorageGetter) => unknown;
     redirectMissingSelectedAthlete: (removeItem?: BioageStorageRemover) => void;
@@ -1173,6 +1174,16 @@ interface Window {
         return new URLSearchParams(search || window.location.search).get('update') === '1';
     }
 
+    function prepareInitialView(clock: BioageClock): void {
+        if (!isUpdateMode() && !readBioageDraft(clock)) return;
+        // Runs in the head, before a default form can paint. All synchronous
+        // DOMContentLoaded handlers restore the actual mode and draft together.
+        document.documentElement.dataset.bioageInitialView = 'pending';
+        document.addEventListener('DOMContentLoaded', () => {
+            queueMicrotask(() => delete document.documentElement.dataset.bioageInitialView);
+        }, { once: true });
+    }
+
     function getBackDestination(isUpdate: boolean): '/dashboard' | '/join' {
         return isUpdate ? '/dashboard' : '/join';
     }
@@ -1778,6 +1789,7 @@ interface Window {
         isUpdateMode,
         isValidSelectedAthlete,
         navigateBack,
+        prepareInitialView,
         readBiomarkerValue,
         readSelectedAthlete,
         redirectMissingSelectedAthlete,

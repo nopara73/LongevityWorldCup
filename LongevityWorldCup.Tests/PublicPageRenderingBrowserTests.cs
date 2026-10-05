@@ -9,6 +9,38 @@ public sealed class PublicPageRenderingBrowserTests(PlaywrightBrowserFixture bro
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Theory]
+    [InlineData(1280)]
+    [InlineData(390)]
+    public async Task DirectProfile_NeverPaintsTheGuessGameDuringHydration(int width)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = 844 },
+            ReducedMotion = ReducedMotion.NoPreference
+        });
+        await context.AddInitScriptAsync("""
+            window.paintedGuessGame = false;
+            function observeFrame() {
+                const modal = document.getElementById('detailsModal');
+                const game = document.getElementById('guessAgeContainer');
+                if (modal?.checkVisibility() && game?.checkVisibility({ checkOpacity: true }))
+                    window.paintedGuessGame = true;
+                requestAnimationFrame(observeFrame);
+            }
+            requestAnimationFrame(observeFrame);
+            """);
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/athlete/michael-lustgarten");
+        await page.WaitForFunctionAsync("() => !document.querySelector('#detailsModal .modal-content').hasAttribute('data-server-rendered-profile') && document.querySelector('#modalProfilePic').hasAttribute('data-full-src')");
+        await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+        Assert.False(await page.EvaluateAsync<bool>("window.paintedGuessGame"),
+            "Opening a profile must never paint the game, including its exit animation.");
+        await Assertions.Expect(page.Locator("#guessAgeContainer")).ToBeHiddenAsync();
+        await Assertions.Expect(page.Locator("#athleteBio")).ToBeVisibleAsync();
+        await CaptureProfile(page, $"profile-no-game-flash-{width}");
+    }
+
+    [Theory]
     [InlineData("/")]
     [InlineData("/?filters=amateur")]
     [InlineData("/?view=pheno")]

@@ -24,6 +24,56 @@ public sealed class BioageUpdateDraftBrowserTests(PlaywrightBrowserFixture brows
         """;
 
     [Theory]
+    [InlineData("pheno", 390, true)]
+    [InlineData("bortz", 1280, true)]
+    [InlineData("pheno", 1280, false)]
+    [InlineData("bortz", 390, false)]
+    public async Task InitialCalculator_RestoresTheTaskBeforeShowingDefaultContent(string clock, int width, bool update)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = 844 }
+        });
+        var page = await context.NewPageAsync();
+        if (update) await SelectAthleteAsync(page);
+        else
+        {
+            await page.GotoAsync($"/{clock}-age?fake=1");
+            await WaitForEntryAsync(page);
+            await page.Locator("#lwcToStep2Btn").ClickAsync();
+            await Assertions.Expect(page.Locator("#lwc-step-2")).ToBeVisibleAsync();
+        }
+        var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        // A deferred script holds DOM-ready initialization while the full form
+        // has been parsed, exposing any incorrect first-paint defaults.
+        await context.RouteAsync("**/js/site-statistics-tracking.js*", async route =>
+        {
+            started.TrySetResult();
+            await release.Task;
+            await route.ContinueAsync();
+        });
+        try
+        {
+            await page.GotoAsync($"/{clock}-age" + (update ? "?update=1" : ""), new() { WaitUntil = WaitUntilState.Commit });
+            await started.Task.WaitAsync(TimeSpan.FromSeconds(20));
+            await page.WaitForSelectorAsync("#lwcStepsShell", new() { State = WaitForSelectorState.Attached });
+            await Assertions.Expect(page.Locator("#lwcStepsShell")).ToBeHiddenAsync();
+            await Assertions.Expect(page.Locator("#dobFieldset")).ToBeHiddenAsync();
+            var screenshots = Path.Combine(FindRepositoryRoot(), ".artifacts", "initial-views");
+            Directory.CreateDirectory(screenshots);
+            await page.ScreenshotAsync(new() { Path = Path.Combine(screenshots, $"calculator-{clock}-{width}-{update}-loading.png") });
+            release.TrySetResult();
+            await WaitForEntryAsync(page);
+            await Assertions.Expect(page.Locator("#lwc-step-2")).ToBeVisibleAsync();
+            await Assertions.Expect(page.Locator("#lwcStepsShell")).ToBeVisibleAsync();
+            if (update) await Assertions.Expect(page.Locator("#mainPageTitleH2")).ToHaveTextAsync("Draft Test Athlete");
+            await page.ScreenshotAsync(new() { Path = Path.Combine(screenshots, $"calculator-{clock}-{width}-{update}-ready.png") });
+        }
+        finally { release.TrySetResult(); }
+    }
+
+    [Theory]
     [InlineData("pheno", 390)]
     [InlineData("pheno", 1280)]
     [InlineData("bortz", 390)]

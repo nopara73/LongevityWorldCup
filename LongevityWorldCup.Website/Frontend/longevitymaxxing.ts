@@ -906,7 +906,20 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             await navigateDiscussion(window.location.hash);
         } catch (err) {
             setStatus("lmxSignupStatus", messageOf(err), true);
-            if (!publicState) await refreshPublicOnly();
+            if (!publicState) {
+                try {
+                    await refreshPublicOnly();
+                } catch (fallbackError) {
+                    setStatus("lmxSignupStatus", messageOf(fallbackError), true);
+                }
+            }
+        } finally {
+            const page = document.querySelector<HTMLElement>(".lmx-page");
+            if (page?.getAttribute("aria-busy") === "true") {
+                accessLoading = false;
+                renderPanels(publicState || {});
+                page.setAttribute("aria-busy", "false");
+            }
         }
     }
 
@@ -1294,10 +1307,6 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             return;
         }
 
-        if (!publicState) {
-            await refreshPublicOnly({ keepParticipant: !!accessToken });
-        }
-
         if (accessToken) {
             accessLoading = true;
             renderAccessLoading();
@@ -1317,8 +1326,6 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                     setStatus("lmxResendStatus", "Your private console did not load yet. Refresh to try again.", true);
                     accessLoading = false;
                     accessTab = "signin";
-                    renderAll();
-                    return;
                 }
             }
         }
@@ -1406,6 +1413,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         }
 
         syncCheckInDialog();
+
+        document.querySelector(".lmx-page")?.setAttribute("aria-busy", "false");
 
         scrollBoardToLatestDay();
     }

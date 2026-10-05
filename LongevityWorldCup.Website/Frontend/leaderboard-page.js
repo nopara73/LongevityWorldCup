@@ -2556,7 +2556,7 @@ function resetModalForLoading(athleteSlug) {
     }
     delete modalContent.dataset.serverRenderedProfile;
 
-    modalContent.classList.remove('has-load-error');
+    modalContent.classList.remove('has-load-error', 'guess-mode', 'gma-fast', 'gma-result-ready');
     modalContent.classList.add('is-loading');
     modalContent.dataset.athleteSlug = athleteSlug;
     delete modalContent.dataset.profileImageId;
