@@ -525,8 +525,9 @@
  .search-container{ position:relative; max-width:250px; width:100%; min-height:44px; margin-right:.5rem; }
  #athleteSearch{
      width:100%; min-height:44px; padding:.55rem 5.4rem .55rem 1rem; border:2px solid var(--lwc-border-strong, #71808d); border-radius:8px; font-family:inherit; font-size:1rem; color:var(--dark-text-color);
-     transition:border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease); outline:none; box-sizing:border-box;
+     transition:border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease); outline:none; box-sizing:border-box; appearance:none;
  }
+ #athleteSearch::-webkit-search-cancel-button{ display:none; }
  #athleteSearch::placeholder{ color:var(--lwc-muted, #56666f); opacity:1; }
  #athleteSearch:not(:placeholder-shown){ border-color:var(--primary-color); }
  #athleteSearch:focus{
