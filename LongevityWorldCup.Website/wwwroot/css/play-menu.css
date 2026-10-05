@@ -738,6 +738,7 @@ html.play-panel-transitioning .play-hub-panel--entering {
 }
 
     .play-autocomplete-container input {
+        appearance: none;
         width: 100%;
         min-height: 44px;
         padding: 0.65rem 1rem;
