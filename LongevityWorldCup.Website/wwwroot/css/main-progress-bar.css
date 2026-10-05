@@ -1,22 +1,23 @@
-/* In-page progress: compact dots, no bar, all three labels (full journey) */
+/* In-page progress: numbered, connected steps with all three labels (full journey) */
 .progress-container {
     width: calc(100% - 30px);
     max-width: 800px;
-    margin: 40px auto;
+    margin: var(--lwc-space-5, 1.5rem) auto var(--lwc-space-4, 1rem);
     position: relative;
-    padding: 20px 0 28px;
+    padding: 0 0 var(--lwc-space-5, 1.5rem);
 }
 
 .progress-bar {
-    display: none; /* Bar removed for cleaner look */
+    display: none; /* The connectors between steps carry progress. */
 }
 
 .stages {
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 12px;
+    gap: 0;
     position: relative;
+    counter-reset: lwc-stage;
 }
 
 .stage {
@@ -24,34 +25,72 @@
     text-align: center;
     z-index: 2;
     min-width: 80px; /* enough room for each label so Test / Calculate / Submit don't overlap */
+    flex: 0 0 auto;
+}
+
+/* Connector to the next step, drawn from this step's dot center. */
+.stage:not(:last-child)::after {
+    content: "";
+    position: absolute;
+    top: 12px;
+    left: calc(50% + 18px);
+    width: calc(100% - 36px);
+    height: 2px;
+    border-radius: 1px;
+    background: var(--lwc-border, #d7e0e6);
+    z-index: 1;
+}
+
+.stage.completed:not(:last-child)::after {
+    background: var(--lwc-accent, var(--primary-color));
 }
 
 .stage-dot {
-    width: 14px;
-    height: 14px;
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
     background: var(--lwc-surface, var(--card-bg));
     border: 2px solid var(--lwc-border-strong, #71808d);
     border-radius: 50%;
     margin: 0 auto;
-    transition: background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+    color: var(--lwc-muted, #526373);
+    font-family: 'Roboto', system-ui, sans-serif;
+    font-size: 0.75rem;
+    font-weight: 700;
+    line-height: 1;
+    transition: background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
     position: relative;
     z-index: 2;
 }
 
+.stage-dot::before {
+    counter-increment: lwc-stage;
+    content: counter(lwc-stage);
+}
+
 .stage.completed .stage-dot {
-    border-color: var(--lwc-muted, #526373);
-    background: var(--lwc-muted, #526373);
+    border-color: var(--lwc-accent, var(--primary-color));
+    background: var(--lwc-accent-soft, #dff5f7);
+    color: var(--lwc-accent, var(--primary-color));
+}
+
+.stage.completed .stage-dot::before {
+    content: "\2713";
 }
 
 .stage.active .stage-dot {
     border-color: var(--lwc-accent, var(--primary-color));
     background: var(--lwc-accent, var(--primary-color));
+    color: var(--lwc-on-accent, #ffffff);
 }
 
 /* In-page: all three labels visible (full journey) */
 .stage-label {
     position: absolute;
-    top: 24px;
+    top: 32px;
     left: 50%;
     transform: translateX(-50%);
     width: max-content;
@@ -61,19 +100,15 @@
     text-align: center;
     color: var(--lwc-muted, #526373);
     font-family: 'Roboto', system-ui, sans-serif;
-    font-size: 14px;
-    font-weight: bold;
+    font-size: var(--lwc-type-sm, 0.875rem);
+    font-weight: 400;
+    line-height: 1.2;
     transition: color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
 }
 
 .stage.active .stage-label {
     color: var(--lwc-ink, var(--dark-text-color));
-    line-height: 1;
-    padding: 0.3rem 0.55rem;
-    border: 1px solid var(--lwc-border, rgba(45, 55, 72, 0.2));
-    border-radius: var(--lwc-radius-sm, 6px);
-    background: var(--lwc-surface, #ffffff);
-    box-shadow: none;
+    font-weight: 700;
 }
 
 .stage.completed .stage-label {
@@ -87,7 +122,6 @@
 
     .stages {
         justify-content: space-between;
-        gap: 6px;
     }
 
     .stage {
@@ -99,8 +133,8 @@
         font-size: 12px;
     }
 
-    .stage.active .stage-label {
-        padding: 0.25rem 0.42rem;
+    .stage:not(:last-child)::after {
+        display: none;
     }
 }
 
@@ -150,8 +184,10 @@
 }
 
 #site-sticky-progress .sticky-dot.active {
-    border-color: #fff;
-    background: #fff;
+    width: 20px;
+    border-radius: 999px;
+    border-color: var(--lwc-accent-bright, #19c3d1);
+    background: var(--lwc-accent-bright, #19c3d1);
 }
 
 #site-sticky-progress .sticky-stage-label {
@@ -160,10 +196,9 @@
     font-weight: bold;
     color: var(--light-text-color);
     line-height: 1;
-    padding: 0.3rem 0.55rem;
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    border-radius: var(--lwc-radius-sm, 6px);
-    background: rgba(255, 255, 255, 0.08);
+    padding: 0;
+    border: 0;
+    background: none;
 }
 
 html.sticky-progress-visible #mainProgressBar {
