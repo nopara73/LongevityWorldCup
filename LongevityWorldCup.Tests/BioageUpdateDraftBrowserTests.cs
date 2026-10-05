@@ -269,6 +269,8 @@ public sealed class BioageUpdateDraftBrowserTests(PlaywrightBrowserFixture brows
         await FillMarkerAsync(page, "wbc", "5.2");
         await page.Locator("#calculateBioageButton").ClickAsync();
         await Assertions.Expect(page.Locator($"#{clock}AgeResult.show")).ToBeVisibleAsync();
+        await page.EvaluateAsync("() => window.LwcFlowActionDock.refreshNow()");
+        await Assertions.Expect(page.Locator("#continueButton").Locator("xpath=..")).ToHaveClassAsync(new System.Text.RegularExpressions.Regex(@"\bflow-action-stack--docked\b"));
         var requested = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         await context.RouteAsync($"**/{clock}-age?update=1", async route =>
@@ -295,7 +297,8 @@ public sealed class BioageUpdateDraftBrowserTests(PlaywrightBrowserFixture brows
                         state: document.documentElement.dataset.initialView || null,
                         resultPainted: isPainted(document.getElementById(`${clock}AgeResult`)),
                         inputPainted: isPainted(document.getElementById('blood-draw-date')),
-                        titlePainted: isPainted(document.getElementById('mainPageTitleH2'))
+                        titlePainted: isPainted(document.getElementById('mainPageTitleH2')),
+                        nextPainted: isPainted(document.getElementById('continueButton'))
                     };
                 }
                 """, clock));
@@ -307,6 +310,7 @@ public sealed class BioageUpdateDraftBrowserTests(PlaywrightBrowserFixture brows
             Assert.False(paint.GetProperty("resultPainted").GetBoolean(), paint.ToString());
             Assert.False(paint.GetProperty("inputPainted").GetBoolean(), paint.ToString());
             Assert.False(paint.GetProperty("titlePainted").GetBoolean(), paint.ToString());
+            Assert.False(paint.GetProperty("nextPainted").GetBoolean(), paint.ToString());
             Assert.Equal("pending", paint.GetProperty("state").GetString());
         }
         finally

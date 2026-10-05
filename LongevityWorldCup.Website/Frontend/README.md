@@ -24,6 +24,8 @@ Cached calculator update returns use `initial-view.reload` to paint the loading 
 
 Pending task content must hide immediately. Suppress its transitions while loading so a visibility transition cannot retain old headings or results.
 
+Docked task actions follow their source view's loading state. When that view enters loading, return the actions to it so only permitted navigation remains available. Placeholders are normally invisible even when their source is ready; preserve their existing layout checks outside the loading state.
+
 Calculator heads prepare this state through `LwcBioageFlow` for updates, saved drafts, shared values, and stored biomarker handoffs. Call `completeInitialView` after restoring the mode, step, and raw values, before resetting scroll or measuring the visible form. A fresh calculator without prefill stays immediately visible. Optional athlete/division directories enrich already-restored fields; they must not gate draft restoration or overwrite later edits. Play menus resolve the requested panel, returning-athlete action order, and discounts before revealing it. Review pages restore their result/edit/application source and contact address synchronously.
 
 Public document URLs are validated and canonicalized on the server before rendering. Keep frontend legacy-route and browser-history handling consistent with [CrawlAndUrlPolicy.md](../../LongevityWorldCup.Documentation/CrawlAndUrlPolicy.md).
