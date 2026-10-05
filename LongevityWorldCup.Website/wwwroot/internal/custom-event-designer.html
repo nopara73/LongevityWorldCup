@@ -4,6 +4,9 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Social Post Manager</title>
+    <link rel="stylesheet" href="{{ASSET_INITIAL_VIEW_CSS}}">
+    <script src="{{ASSET_INITIAL_VIEW_JS}}"></script>
+    <script>window.LwcInitialView.prepare();</script>
     <script src="{{ASSET_FIELD_VALIDATION_JS}}"></script>
     <style>
         @font-face {
@@ -861,7 +864,7 @@
     </style>
 </head>
 <body>
-    <div class="page">
+    <div class="page initial-view-main">
         <div class="panel">
             <h1>Social Post Manager</h1>
 
@@ -2558,6 +2561,10 @@
         updateSecretHashControls();
         window.addEventListener("resize", update);
 
+        loadSendToSettings();
+        update();
+        window.LwcInitialView.complete();
+
         fetch("/api/data/athletes", { headers: { accept: "application/json" } })
             .then(response => response.ok ? response.json() : Promise.reject(response.status))
             .then(athletes => {
@@ -2568,7 +2575,6 @@
             })
             .finally(() => {
                 window.CustomEventMarkup.setMentionResolver(resolveMentionDisplayName);
-                loadSendToSettings();
                 update();
             });
     </script>

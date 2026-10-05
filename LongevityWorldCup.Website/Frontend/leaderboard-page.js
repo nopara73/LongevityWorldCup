@@ -1866,8 +1866,13 @@ function setLeaderboardLoadingState(includePodium, maxAthletes) {
     const podium = document.querySelector('.podium');
     if (podium) {
         if (includePodium) {
-            podium.style.display = 'flex';
-            if (podium.dataset.serverRendered !== 'true') podium.innerHTML = buildPodiumSkeletonHtml();
+            if (podium.dataset.serverRendered !== 'true') {
+                const params = new URLSearchParams(window.location.search);
+                const hasIncomingSelection = !!(params.get('search')?.trim() || params.get('filters')?.trim())
+                    || ['bortz', 'pheno', 'improvement', 'pheno-improvement', 'bortz-improvement', 'crowd'].includes(params.get('view')?.toLowerCase());
+                podium.style.display = hasIncomingSelection ? 'none' : 'flex';
+                podium.innerHTML = buildPodiumSkeletonHtml();
+            }
             podium.setAttribute('aria-busy', 'true');
         } else {
             podium.style.display = 'none';
@@ -2432,13 +2437,13 @@ let currentAthleteModalRequestId = 0;
 let athleteShareState = null;
 const chartJsSrc = 'https://cdn.jsdelivr.net/npm/chart.js';
 
-// Direct profile links arrive with the existing dialog already populated.
+// Direct profile/game links arrive with the requested dialog already open.
 // Make closing/back navigation available while the data request is pending.
-const initialServerProfile = modal.querySelector('[data-server-rendered-profile]');
-if (initialServerProfile) {
-    initialServerProfile.classList.add('is-loading');
+const initialServerDialog = modal.querySelector('[data-server-rendered-profile], [data-server-rendered-loading]');
+if (initialServerDialog) {
+    initialServerDialog.classList.add('is-loading');
     lockBodyScroll();
-    history.replaceState({ ...history.state, modal: 'details', athlete: initialServerProfile.dataset.athleteSlug }, '', window.location.href);
+    history.replaceState({ ...history.state, modal: 'details', athlete: initialServerDialog.dataset.athleteSlug }, '', window.location.href);
 }
 
 window.ensureChartJs = window.ensureChartJs || function () {
@@ -3806,11 +3811,7 @@ function updateLeaderboardTitles(state) {
         collapsedTitle.textContent = fullRailText;
         collapsedTitle.title = presentation.accessibleLabel;
         collapsedTitle.setAttribute('aria-label', presentation.accessibleLabel);
-        collapsedTitle.style.opacity = '0';
-        requestAnimationFrame(() => {
-            syncCollapsedTitleHeight();
-            collapsedTitle.style.opacity = '1';
-        });
+        requestAnimationFrame(syncCollapsedTitleHeight);
     }
 
     if (pageDocument.querySelector('[data-leaderboard-page="full"]')) {
@@ -5024,6 +5025,7 @@ function fetchFullAthleteData(athleteNameText, athleteData, options) {
                 console.error('Modal content element not found');
                 return;
             }
+            modalContent.removeAttribute('data-server-rendered-loading');
             modalContent.classList.remove('is-loading');
 
             modalContent.dataset.athleteSlug = athleteSlug;

@@ -415,36 +415,47 @@ $@"<div id=""{AthleteDialogRuntimeId}""
                 var path = GetRequestCanonicalPath(context);
                 var asOf = DateTime.UtcNow.Date;
                 var snapshot = new PublicLeaderboardSnapshot(athleteSnapshots.GetAthletesSnapshot(), asOf);
-                if (ShouldRenderLeaderboardRows(context))
+                var selection = IsLeaderboardDocument(path)
+                    ? snapshot.Select(IsAthleteRoute(path) ? "/" : path, context.Request.Query)
+                    : null;
+                // Search rows need the client badge index, but the requested
+                // ranking and query are already known before any script runs.
+                if (selection is not null)
                 {
-                    var hasProfile = TryResolveAthleteSlug(context, path, out _);
-                    var selection = hasProfile ? snapshot.Select("/", QueryCollection.Empty) : snapshot.Select(path, context.Request.Query);
+                    html = PublicProfileHtmlRenderer.SetContent(html, "leaderboardMetricHeader", selection.MetricLabel);
+                    html = Regex.Replace(html, "(<div class=\"collapsed-title\"[^>]*>).*?(</div>)",
+                        match => match.Groups[1].Value + System.Net.WebUtility.HtmlEncode(selection.RailTitle.ToUpperInvariant()) + match.Groups[2].Value, RegexOptions.Singleline);
+                    html = html.Replace("value=\"ultimate\" checked", "value=\"ultimate\"", StringComparison.Ordinal)
+                        .Replace($"value=\"{selection.View}\" aria-label=", $"value=\"{selection.View}\" checked aria-label=", StringComparison.Ordinal)
+                        .Replace($"name=\"agingClockView\" value=\"{selection.View}\"", $"name=\"agingClockView\" value=\"{selection.View}\" checked", StringComparison.Ordinal)
+                        .Replace("id=\"athleteSearch\"", $"id=\"athleteSearch\" value=\"{System.Net.WebUtility.HtmlEncode(context.Request.Query["search"].ToString())}\"", StringComparison.Ordinal);
+                }
+                if (selection is not null && ShouldRenderLeaderboardRows(context))
+                {
                     var table = selection.Snapshot;
-                    if (path == "/" || IsAthleteRoute(path))
+                    if (path is "/" or "/contribute" || IsAthleteRoute(path))
                     {
                         var visible = table.Rows.Take(10).ToList();
                         var podium = snapshot.Select("/", QueryCollection.Empty).Snapshot;
                         html = Regex.Replace(html, "<!--LEADERBOARD-PODIUM-START-->.*?<!--LEADERBOARD-PODIUM-END-->",
                             _ => "<!--LEADERBOARD-PODIUM-START-->" + LeaderboardHtmlRenderer.RenderPodium(podium, visible.Select(r => r.Slug).ToHashSet()) + "<!--LEADERBOARD-PODIUM-END-->", RegexOptions.Singleline);
-                        html = html.Replace("class=\"podium\" aria-busy=\"true\" style=\"display:none;\"", "class=\"podium\" data-server-rendered=\"true\" aria-busy=\"false\" style=\"display:flex;\"", StringComparison.Ordinal);
+                        var podiumDisplay = selection.IsDefault ? "flex" : "none";
+                        html = html.Replace("class=\"podium\" aria-busy=\"true\" style=\"display:none;\"", $"class=\"podium\" data-server-rendered=\"true\" aria-busy=\"false\" style=\"display:{podiumDisplay};\"", StringComparison.Ordinal);
                         table = new LeaderboardSnapshot(selection.IsDefault ? visible.Skip(3).ToList() : visible);
                     }
                     html = ReplaceLeaderboardRows(html, LeaderboardHtmlRenderer.RenderRows(table, selection.MetricLabel, selection.View == "ultimate"));
-                    html = PublicProfileHtmlRenderer.SetContent(html, "leaderboardMetricHeader", selection.MetricLabel);
-                    html = Regex.Replace(html, "(<div class=\"collapsed-title\"[^>]*>).*?(</div>)",
-                        match => match.Groups[1].Value + System.Net.WebUtility.HtmlEncode(selection.RailTitle.ToUpperInvariant()) + match.Groups[2].Value, RegexOptions.Singleline);
-                    html = html.Replace("value=\"ultimate\" checked", "value=\"ultimate\"", StringComparison.Ordinal)
-                        .Replace($"value=\"{selection.View}\" aria-label=", $"value=\"{selection.View}\" checked aria-label=", StringComparison.Ordinal);
                     // Keep the existing "loaded" signal reserved for the fully
                     // initialized controls, even though the rows are readable now.
                     html = PublicProfileHtmlRenderer.SetContent(html, "leaderboardStatus", "Leaderboard available.");
                 }
 
-                if (TryResolveAthleteSlug(context, path, out var slug) && context.Request.Query["guessmyage"].FirstOrDefault() != "1")
+                if (TryResolveAthleteSlug(context, path, out var slug))
                 {
                     var athlete = snapshot.Athletes.FirstOrDefault(a => a.Row.RouteSlug.Equals(slug.Replace('_', '-'), StringComparison.OrdinalIgnoreCase));
                     if (athlete is not null)
-                        html = PublicProfileHtmlRenderer.Render(html, snapshot, athlete, asOf);
+                        html = context.Request.Query["guessmyage"].FirstOrDefault() == "1"
+                            ? PublicProfileHtmlRenderer.RenderLoading(html, athlete.Row.RouteSlug)
+                            : PublicProfileHtmlRenderer.Render(html, snapshot, athlete, asOf);
                 }
                 return html;
             }
@@ -475,14 +486,18 @@ $@"<div id=""{AthleteDialogRuntimeId}""
                 StringComparison.Ordinal);
         }
 
+        private static bool IsLeaderboardDocument(string path)
+            => path is "/" or "/contribute" || IsAthleteRoute(path)
+               || path.Equals("/leaderboard", StringComparison.OrdinalIgnoreCase)
+               || IsLeagueRoute(path) || IsFlagRoute(path);
+
         private static bool ShouldRenderLeaderboardRows(HttpContext context)
         {
             var canonicalPath = GetRequestCanonicalPath(context);
             // Search includes dynamically computed badge text. Preserve its
             // existing loading state until that complete search index is ready.
             // Tracking parameters have no bearing on the displayed content.
-            return (canonicalPath == "/" || IsAthleteRoute(canonicalPath) || string.Equals(canonicalPath, "/leaderboard", StringComparison.OrdinalIgnoreCase) ||
-                    IsLeagueRoute(canonicalPath) || IsFlagRoute(canonicalPath)) &&
+            return IsLeaderboardDocument(canonicalPath) &&
                    string.IsNullOrWhiteSpace(context.Request.Query["search"]);
         }
 

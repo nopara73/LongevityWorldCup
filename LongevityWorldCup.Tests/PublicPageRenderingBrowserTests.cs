@@ -42,6 +42,8 @@ public sealed class PublicPageRenderingBrowserTests(PlaywrightBrowserFixture bro
 
     [Theory]
     [InlineData("/")]
+    [InlineData("/contribute")]
+    [InlineData("/contribute?view=pheno")]
     [InlineData("/?filters=amateur")]
     [InlineData("/?view=pheno")]
     [InlineData("/?filters=women%27s,gen%2520x&view=pheno")]

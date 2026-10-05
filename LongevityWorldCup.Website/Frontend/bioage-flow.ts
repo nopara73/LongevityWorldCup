@@ -1180,16 +1180,19 @@ interface Window {
     }
 
     function prepareInitialView(clock: BioageClock): void {
-        if (!isUpdateMode() && !readBioageDraft(clock)) return;
-        // Runs in the head, before a default form can paint. The calculator
-        // releases this only after restoring the actual mode, step and draft.
-        document.documentElement.dataset.bioageInitialView = 'pending';
-        // An initialization error must still leave a usable form.
-        window.addEventListener('load', completeInitialView, { once: true });
+        const params = new URLSearchParams(window.location.search);
+        const prefillKeys = ['Year', 'Month', 'Day', 'Date', 'AlbGL', 'AlpUL', 'CreatUmolL', 'CrpMgL',
+            'GluMmolL', 'LymPc', 'McvFL', 'RdwPc', 'Wbc1000cellsuL', 'NeutrophilPc', 'MonocytePc',
+            'Rbc10e12L', 'MchPg', 'AltUL', 'GgtUL', 'UreaMmolL', 'CystatinCMgL', 'Hba1cMmolMol',
+            'CholesterolMmolL', 'ApoA1GL', 'ShbgNmolL', 'VitaminDNmolL'];
+        if (isUpdateMode() || readBioageDraft(clock) || params.get('fake') === '1'
+            || prefillKeys.some(key => params.has(key)) || getBrowserStorageItem('sessionStorage', 'biomarkerData')) {
+            window.LwcInitialView.prepare();
+        }
     }
 
     function completeInitialView(): void {
-        delete document.documentElement.dataset.bioageInitialView;
+        window.LwcInitialView.complete();
     }
 
     function getBackDestination(isUpdate: boolean): '/dashboard' | '/join' {

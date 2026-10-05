@@ -3,6 +3,8 @@
 <head>
     <title>Longevity World Cup - Bortz Age</title>
     <!--HEAD-->
+    <link rel="stylesheet" href="{{ASSET_INITIAL_VIEW_CSS}}">
+    <script src="{{ASSET_INITIAL_VIEW_JS}}"></script>
     <script>window.LwcBioageFlow.prepareInitialView('bortz');</script>
     <script src="{{ASSET_FIELD_VALIDATION_JS}}"></script>
     <script src="{{ASSET_SITE_STATISTICS_TRACKING_JS}}" defer></script>
@@ -830,7 +832,7 @@
 </head>
 <body class="play-flow-route">
     <!--HEADER-->
-    <main class="bioage-main">
+    <main class="bioage-main initial-view-main">
         <div class="lwc-steps-shell" id="lwcStepsShell">
             <!--MAIN-PROGRESS-BAR-->
             <h1 id="mainPageTitleH2" data-aos="fade" data-aos-duration="700" data-aos-delay="250">
@@ -2806,7 +2808,7 @@
         }
 
 
-        document.addEventListener('DOMContentLoaded', function () {
+        document.addEventListener('DOMContentLoaded', () => window.LwcInitialView.run(function () {
             // Step navigation buttons
             bioageFlow.syncBiomarkerExamplePlaceholders();
 
@@ -2954,7 +2956,7 @@
             }
             bioageFlow.completeInitialView();
             if (isUpdate && hasSelectedAthlete) bioageFlow.resetUpdateModeScroll();
-        });
+        }));
 
         function updateModeFormInitializerUnique() {
             if (!isUpdate) return;

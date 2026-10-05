@@ -1,0 +1,69 @@
+/* Resolve a task before exposing its default markup. Layout is retained so
+   restoration and action-dock measurements use the final available space. */
+html[data-initial-view] .initial-view-main {
+    position: relative;
+    min-height: 15rem;
+}
+
+html[data-initial-view] .initial-view-main > :not(.initial-view-recovery),
+html[data-initial-view] .initial-view-main > :not(.initial-view-recovery) * {
+    visibility: hidden;
+}
+
+html[data-initial-view="pending"] .initial-view-main::before {
+    content: "";
+    position: absolute;
+    top: 3rem;
+    left: calc(50% - 0.75rem);
+    width: 1.5rem;
+    height: 1.5rem;
+    box-sizing: border-box;
+    border: 2px solid var(--lwc-border, #cdd5dd);
+    border-top-color: var(--lwc-accent, #007f8b);
+    border-radius: 50%;
+    animation: initial-view-loading 1s linear infinite;
+}
+
+/* Inline return navigation is usable even before asynchronous modules arrive. */
+html[data-initial-view="pending"] .initial-view-main .back-button:not([disabled]),
+html[data-initial-view="pending"] .initial-view-main .back-button:not([disabled]) * {
+    visibility: visible;
+}
+
+html[data-initial-view="failed"] .initial-view-main > :not(.initial-view-recovery) {
+    display: none !important;
+}
+
+.initial-view-recovery {
+    width: min(100%, 24rem);
+    box-sizing: border-box;
+    margin: 2rem auto;
+    padding: 1.5rem;
+    border: 1px solid var(--lwc-border, #d7e0e6);
+    border-radius: var(--lwc-radius-md, 8px);
+    background: var(--lwc-surface, #ffffff);
+    color: var(--lwc-ink, #17212b);
+    text-align: center;
+    font: inherit;
+}
+
+.initial-view-recovery p { margin: 0 0 1rem; }
+.initial-view-recovery button {
+    min-height: 44px;
+    padding: 0.5rem 1.5rem;
+    border: 0;
+    border-radius: var(--lwc-radius-sm, 4px);
+    background: var(--lwc-accent, #087685);
+    color: var(--lwc-on-accent, #ffffff);
+    font: inherit;
+    cursor: pointer;
+}
+.initial-view-recovery button:focus-visible {
+    outline: 3px solid var(--lwc-accent, #087685);
+    outline-offset: 3px;
+}
+
+@keyframes initial-view-loading { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+    html[data-initial-view="pending"] .initial-view-main::before { animation: none; }
+}

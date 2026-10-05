@@ -271,7 +271,15 @@ public sealed class BioageUpdateDraftBrowserTests(PlaywrightBrowserFixture brows
         await page.WaitForFunctionAsync("key => sessionStorage.getItem(key)?.includes('5.2')", key);
         // A successful proof submission removes this key while the calculator is cached.
         // Exercise the actual return lifecycle, including resetting the visible form.
-        await page.EvaluateAsync("key => {sessionStorage.removeItem(key); window.dispatchEvent(new PageTransitionEvent('pageshow', {persisted:true}));}", key);
+        var reloadReady = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        EventHandler<IPage> onReloadReady = (_, _) => reloadReady.TrySetResult();
+        page.DOMContentLoaded += onReloadReady;
+        try
+        {
+            await page.EvaluateAsync("key => {sessionStorage.removeItem(key); window.dispatchEvent(new PageTransitionEvent('pageshow', {persisted:true}));}", key);
+            await reloadReady.Task.WaitAsync(TimeSpan.FromSeconds(20));
+        }
+        finally { page.DOMContentLoaded -= onReloadReady; }
         await Assertions.Expect(page.Locator("#wbc")).ToHaveValueAsync("");
         await Assertions.Expect(page.Locator("#blood-draw-date")).ToHaveValueAsync("");
         await WaitForEntryAsync(page);
@@ -295,7 +303,7 @@ public sealed class BioageUpdateDraftBrowserTests(PlaywrightBrowserFixture brows
         await Assertions.Expect(page.Locator("#lwc-step-2")).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("lwc-step--visible"));
     }
 
-    private static Task WaitForEntryAsync(IPage page) => page.WaitForFunctionAsync("() => document.documentElement.dataset.bioageInitialView !== 'pending' && document.querySelector('.bioageform')?.classList.contains('bioage-biomarker-entry-ready')");
+    private static Task WaitForEntryAsync(IPage page) => page.WaitForFunctionAsync("() => !document.documentElement.hasAttribute('data-initial-view') && document.querySelector('.bioageform')?.classList.contains('bioage-biomarker-entry-ready')");
 
     private static async Task FillMarkerAsync(IPage page, string id, string value, string? unit = null)
     {
