@@ -295,10 +295,12 @@ public sealed class BioageUpdateDraftBrowserTests(PlaywrightBrowserFixture brows
         await Assertions.Expect(page.Locator("#lwc-step-2")).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("lwc-step--visible"));
     }
 
-    private static Task WaitForEntryAsync(IPage page) => page.WaitForFunctionAsync("() => document.querySelector('.bioageform')?.classList.contains('bioage-biomarker-entry-ready')");
+    private static Task WaitForEntryAsync(IPage page) => page.WaitForFunctionAsync("() => document.documentElement.dataset.bioageInitialView !== 'pending' && document.querySelector('.bioageform')?.classList.contains('bioage-biomarker-entry-ready')");
 
     private static async Task FillMarkerAsync(IPage page, string id, string value, string? unit = null)
     {
+        // Restored documents can be parsed before their intended view is ready.
+        await Assertions.Expect(page.Locator("#lwcStepsShell")).ToBeVisibleAsync();
         var input = page.Locator($"#{id}");
         if (!await input.IsVisibleAsync()) await input.Locator("xpath=ancestor::*[contains(concat(' ',normalize-space(@class),' '),' biomarker-card ')]").Locator(".biomarker-card-header").ClickAsync();
         if (unit is not null) await page.Locator($"#{id}Unit").SelectOptionAsync(unit);

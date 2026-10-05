@@ -2943,7 +2943,6 @@
             if (isUpdate && hasSelectedAthlete) {
                 hideUpdateModeStepNavigation();
                 lwcSetStep(2, { focus: false });
-                bioageFlow.resetUpdateModeScroll();
             } else {
                 // Restore step 2 after refresh if user had navigated there and step 1 is valid
                 const restoredStep = biomarkerEntry.step === 2 && lwcValidateStep1(true);
@@ -2952,6 +2951,8 @@
                     lwcSetStep(1, { focus: false });
                 }
             }
+            bioageFlow.completeInitialView();
+            if (isUpdate && hasSelectedAthlete) bioageFlow.resetUpdateModeScroll();
         });
 
         function updateModeFormInitializerUnique() {

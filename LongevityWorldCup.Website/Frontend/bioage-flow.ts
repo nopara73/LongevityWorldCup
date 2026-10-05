@@ -129,6 +129,7 @@ interface LwcBioageFlowApi {
     isValidSelectedAthlete: (value: unknown) => value is BioageSelectedAthlete;
     navigateBack: (isUpdate: boolean) => void;
     prepareInitialView: (clock: BioageClock) => void;
+    completeInitialView: () => void;
     readBiomarkerValue: (entry: unknown, fieldNames: string | readonly string[]) => number | null;
     readSelectedAthlete: (getItem?: BioageStorageGetter) => unknown;
     redirectMissingSelectedAthlete: (removeItem?: BioageStorageRemover) => void;
@@ -1176,12 +1177,15 @@ interface Window {
 
     function prepareInitialView(clock: BioageClock): void {
         if (!isUpdateMode() && !readBioageDraft(clock)) return;
-        // Runs in the head, before a default form can paint. All synchronous
-        // DOMContentLoaded handlers restore the actual mode and draft together.
+        // Runs in the head, before a default form can paint. The calculator
+        // releases this only after restoring the actual mode, step and draft.
         document.documentElement.dataset.bioageInitialView = 'pending';
-        document.addEventListener('DOMContentLoaded', () => {
-            queueMicrotask(() => delete document.documentElement.dataset.bioageInitialView);
-        }, { once: true });
+        // An initialization error must still leave a usable form.
+        window.addEventListener('load', completeInitialView, { once: true });
+    }
+
+    function completeInitialView(): void {
+        delete document.documentElement.dataset.bioageInitialView;
     }
 
     function getBackDestination(isUpdate: boolean): '/dashboard' | '/join' {
@@ -1790,6 +1794,7 @@ interface Window {
         isValidSelectedAthlete,
         navigateBack,
         prepareInitialView,
+        completeInitialView,
         readBiomarkerValue,
         readSelectedAthlete,
         redirectMissingSelectedAthlete,

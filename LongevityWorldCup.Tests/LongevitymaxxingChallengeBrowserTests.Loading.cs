@@ -85,10 +85,11 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
     }
 
     [Theory]
-    [InlineData(401, true)]
-    [InlineData(503, true)]
-    [InlineData(503, false)]
-    public async Task InitialAccessFailure_ExposesRecoveryInsteadOfLeavingThePageLoading(int status, bool publicAvailable)
+    [InlineData(401, true, true)]
+    [InlineData(503, true, true)]
+    [InlineData(503, false, true)]
+    [InlineData(503, false, false)]
+    public async Task InitialAccessFailure_ExposesRecoveryInsteadOfLeavingThePageLoading(int status, bool publicAvailable, bool privateAccess)
     {
         await using var context = await Browser.NewContextAsync(new() { BaseURL = App.BaseAddress.ToString() });
         await RouteChallengeResourcesAsync(context);
@@ -102,10 +103,17 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
             Body = "{\"message\":\"Could not load participant.\"}"
         }));
         var page = await context.NewPageAsync();
-        await page.GotoAsync("/longevitymaxxing?token=browser-token");
+        await page.GotoAsync(privateAccess ? "/longevitymaxxing?token=browser-token" : "/longevitymaxxing");
         await Assertions.Expect(page.Locator("main")).ToHaveAttributeAsync("aria-busy", "false");
         await Assertions.Expect(page.Locator("#lmxAccessLoadingPanel")).ToBeHiddenAsync();
-        await Assertions.Expect(page.Locator("#lmxResendPanel")).ToBeVisibleAsync();
-        await Assertions.Expect(page.Locator("#lmxResendEmail")).ToBeEditableAsync();
+        var recovery = privateAccess ? "Resend" : "Signup";
+        await Assertions.Expect(page.Locator($"#lmx{recovery}Panel")).ToBeVisibleAsync();
+        await Assertions.Expect(page.Locator($"#lmx{recovery}Email")).ToBeEditableAsync();
+        if (!publicAvailable)
+        {
+            foreach (var id in new[] { "lmxHeroMode", "lmxHeroHighlights", "lmxHabitGrid", "lmxQuestionPreview", "lmxBoardSection", "lmxNotesPanel" })
+                await Assertions.Expect(page.Locator($"#{id}")).ToBeHiddenAsync();
+            await Assertions.Expect(page.Locator($"#lmx{recovery}Status")).Not.ToBeEmptyAsync();
+        }
     }
 }
