@@ -362,6 +362,7 @@ public sealed class LeaderboardSelectionBrowserTests(PlaywrightBrowserFixture br
         Assert.True(await page.Locator(".leaderboard-selection-chip").Last.EvaluateAsync<bool>("e=>e===document.activeElement"));
 
         await page.ReloadAsync();
+        await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
         await Assertions.Expect(page.Locator(".leaderboard-selection-chip")).ToHaveCountAsync(2);
         Assert.True(await page.Locator("#view-pheno").IsCheckedAsync());
         await page.GetByRole(AriaRole.Button, new() { Name = "Remove Pheno age filter", Exact = true }).ClickAsync();
