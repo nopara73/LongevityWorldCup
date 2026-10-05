@@ -47,8 +47,9 @@ public sealed class LeaderboardRouteShellTests(TestWebApplicationFactory sharedF
     {
         using var client = sharedFactory.CreateClient();
         var html = await client.GetStringAsync(path);
-        Assert.Contains("<h2 id=\"athleteName\"></h2>", html);
+        Assert.Contains("data-server-rendered-loading=\"true\"", html);
+        Assert.Contains("<h2 id=\"athleteName\">Loading...</h2>", html);
         Assert.Contains("<span id=\"chronologicalAge\"></span>", html);
-        Assert.DoesNotContain("data-server-rendered-profile=\"michael-lustgarten\"", html);
+        Assert.DoesNotContain("data-server-rendered-profile=", html);
     }
 }

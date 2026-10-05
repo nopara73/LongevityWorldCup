@@ -1538,6 +1538,7 @@ public sealed class AestheticSystemBrowserTests(
     internal static async Task NavigateAndSettleAsync(IPage page, string path)
     {
         await page.GotoAsync(path, new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.WaitForFunctionAsync("() => !document.documentElement.hasAttribute('data-initial-view')");
         await page.EvaluateAsync("() => document.fonts?.ready || Promise.resolve()");
     }
 
