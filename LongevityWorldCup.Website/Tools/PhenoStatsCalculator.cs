@@ -15,6 +15,9 @@ public static class PhenoStatsCalculator
         public double? LowestBortzAge { get; init; }
         public DateTime? LowestPhenoAgeDateUtc { get; init; }
         public DateTime? LowestBortzAgeDateUtc { get; init; }
+        public int? LowestPhenoPanelIndex { get; init; }
+        public int? LowestBortzPanelIndex { get; init; }
+        public double[]? LowestPhenoValues { get; init; }
         public double? AgeReduction { get; init; }
         public double? BortzAgeReduction { get; init; }
         public double? PhenoPaceOfAging { get; init; }
@@ -85,6 +88,8 @@ public static class PhenoStatsCalculator
 
         double? bestAlb = null, bestCreat = null, bestGlu = null, bestCrp = null, bestWbc = null, bestLym = null, bestMcv = null, bestRdw = null, bestAlp = null;
         double[]? bestBortzValues = null;
+        double[]? lowestPhenoValues = null;
+        int? lowestPhenoPanelIndex = null, lowestBortzPanelIndex = null;
 
         if (o["Biomarkers"] is JsonArray biomArr)
         {
@@ -116,6 +121,7 @@ public static class PhenoStatsCalculator
                             lowestBortzDateUtc = entryDate;
                             chronoAtLowestBortz = ageAtEntry;
                             bestBortzValues = bortzInput;
+                            lowestBortzPanelIndex = currentIndex;
                         }
                     }
                 }
@@ -146,6 +152,8 @@ public static class PhenoStatsCalculator
                             lowestPheno = ph;
                             lowestPhenoDateUtc = entryDate;
                             chronoAtLowest = ageAtEntry;
+                            lowestPhenoPanelIndex = currentIndex;
+                            lowestPhenoValues = [ageAtEntry, alb, creat, glu, Math.Log(crpMgL / 10.0), wbc, lym, mcv, rdw, alp];
                         }
 
                         if (!bestAlb.HasValue || alb > bestAlb.Value) bestAlb = alb;
@@ -262,6 +270,9 @@ public static class PhenoStatsCalculator
             LowestBortzAge = double.IsInfinity(lowestBortz) ? null : lowestBortz,
             LowestPhenoAgeDateUtc = lowestPhenoDateUtc,
             LowestBortzAgeDateUtc = lowestBortzDateUtc,
+            LowestPhenoPanelIndex = lowestPhenoPanelIndex,
+            LowestBortzPanelIndex = lowestBortzPanelIndex,
+            LowestPhenoValues = lowestPhenoValues,
             AgeReduction = ageReduction,
             BortzAgeReduction = bortzAgeReduction,
             PhenoPaceOfAging = phenoPaceOfAging,

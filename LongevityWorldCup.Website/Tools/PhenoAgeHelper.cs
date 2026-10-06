@@ -21,7 +21,7 @@ namespace LongevityWorldCup.Website.Tools
             new("ap","Alkaline phosphatase",0.0019)
         };
 
-        private static double ApplyCap(double value, Biomarker bm) =>
+        public static double ApplyCap(double value, Biomarker bm) =>
             bm.Mode switch
             {
                 CapMode.Floor => Math.Max(value, bm.Cap!.Value),
@@ -99,6 +99,11 @@ namespace LongevityWorldCup.Website.Tools
         }
 
         public static double CalculatePhenoAge(double[] markerValues)
+            => Trace(markerValues).Age;
+
+        public readonly record struct CalculationTrace(double WeightedSum, double LinearPredictor, double MortalityScore, double UnflooredAge, double Age);
+
+        public static CalculationTrace Trace(double[] markerValues)
         {
             var ageScore = markerValues[0] * Biomarkers[0].Coeff;
 
@@ -118,7 +123,7 @@ namespace LongevityWorldCup.Website.Tools
             var mortalityScore = 1 - Math.Exp(-Math.Exp(rollingTotal) * (Math.Exp(gamma * tmonths) - 1) / gamma);
 
             var phenoAge = 141.50225 + Math.Log(-0.00553 * Math.Log(1 - mortalityScore)) / 0.090165;
-            return Math.Max(0, phenoAge);
+            return new(totalScore, rollingTotal, mortalityScore, phenoAge, Math.Max(0, phenoAge));
         }
 
         private const double ScalingFactor = 1 / 0.090165;

@@ -37,6 +37,7 @@ namespace LongevityWorldCup.Website.Middleware
             new("/history", "/misc-pages/history.html", "/misc-pages/history", "/misc-pages/history.html"),
             new("/rejuvenation-olympics", "/misc-pages/rejuvenation-olympics.html", "/misc-pages/rejuvenation-olympics.html"),
             new("/ruleset", "/misc-pages/ruleset.html", "/rules", "/misc-pages/ruleset", "/misc-pages/ruleset.html"),
+            new("/score-xray", "/score-xray/index.html", "/score-xray/index.html"),
             new("/privacy", "/privacy-policy.html", "/privacy-policy", "/privacy-policy.html"),
             new("/play", "/play/menu.html", "/play/menu", "/play/menu.html"),
             new("/join", "/play/menu.html", "/start", "/onboarding/join-game", "/onboarding/join-game.html"),
