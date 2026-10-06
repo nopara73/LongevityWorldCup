@@ -60,9 +60,9 @@ public sealed class AthleteReturnNavigationBrowserTests(
     {
         await using var context = await CreateContextAsync();
         var page = await context.NewPageAsync();
-        await page.GotoAsync("/about");
+        await NavigateToDocumentAsync(page, "/about");
         var previousLength = await page.EvaluateAsync<int>("history.length");
-        await page.GotoAsync(path);
+        await NavigateToDocumentAsync(page, path);
         await WaitForProfileAsync(page, Michael);
         Assert.Equal(previousLength + 1, await page.EvaluateAsync<int>("history.length"));
         await page.Locator("#closeAthleteDetailsModal").ClickAsync();
@@ -155,6 +155,53 @@ public sealed class AthleteReturnNavigationBrowserTests(
         Assert.Equal("/about", new Uri(page.Url).AbsolutePath);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Navigation_ReadinessDoesNotWaitForTheHeaderImage(bool directProfile)
+    {
+        await using var context = await CreateContextAsync();
+        var requested = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await context.RouteAsync("**/assets/favicon-128x128.png*", async route =>
+        {
+            if (new Uri(route.Request.Frame.Url).AbsolutePath != "/about")
+            {
+                requested.TrySetResult();
+                await release.Task;
+            }
+            await route.ContinueAsync();
+        });
+
+        try
+        {
+            IPage page;
+            if (directProfile)
+            {
+                page = await context.NewPageAsync();
+                await NavigateToDocumentAsync(page, "/about");
+                await NavigateToDocumentAsync(page, $"/athlete/{Michael}");
+                await WaitForProfileAsync(page, Michael);
+            }
+            else
+            {
+                page = await OpenLeaderboardAsync(context);
+                await OpenMichaelAsync(page);
+            }
+
+            await requested.Task.WaitAsync(TimeSpan.FromSeconds(10));
+            Assert.False(release.Task.IsCompleted);
+            Assert.Equal("interactive", await page.EvaluateAsync<string>("document.readyState"));
+            await page.Locator("#closeAthleteDetailsModal").ClickAsync();
+            await Assertions.Expect(page.Locator("#detailsModal")).ToBeHiddenAsync();
+            Assert.Equal(directProfile ? "/" : FilteredPath, new Uri(page.Url).PathAndQuery);
+        }
+        finally
+        {
+            release.TrySetResult();
+        }
+    }
+
     private async Task<IBrowserContext> CreateContextAsync(int width = 390)
     {
         var context = await Browser.NewContextAsync(new()
@@ -171,12 +218,15 @@ public sealed class AthleteReturnNavigationBrowserTests(
     private static async Task<IPage> OpenLeaderboardAsync(IBrowserContext context)
     {
         var page = await context.NewPageAsync();
-        await page.GotoAsync("/about");
-        await page.GotoAsync(FilteredPath);
+        await NavigateToDocumentAsync(page, "/about");
+        await NavigateToDocumentAsync(page, FilteredPath);
         await page.WaitForFunctionAsync("() => document.getElementById('leaderboardStatus')?.textContent === 'Leaderboard loaded.'");
         await Assertions.Expect(page.Locator(".leaderboard tbody .athlete-name:visible")).ToHaveCountAsync(2);
         return page;
     }
+
+    private static Task<IResponse?> NavigateToDocumentAsync(IPage page, string path)
+        => page.GotoAsync(path, new() { WaitUntil = WaitUntilState.DOMContentLoaded });
 
     private static async Task OpenMichaelAsync(IPage page)
     {
