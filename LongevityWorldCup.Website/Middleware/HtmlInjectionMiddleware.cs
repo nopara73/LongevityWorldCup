@@ -83,8 +83,7 @@ namespace LongevityWorldCup.Website.Middleware
                 ["/select-athlete"] = "Athlete Selection | Longevity World Cup",
                 ["/dashboard"] = "Athlete Dashboard | Longevity World Cup",
                 ["/edit-profile"] = "Edit Profile | Longevity World Cup",
-                ["/unsubscribe"] = "Unsubscribe | Longevity World Cup",
-                ["/score-xray"] = "Score X-Ray | Longevity World Cup"
+                ["/unsubscribe"] = "Unsubscribe | Longevity World Cup"
             };
 
         public async Task Invoke(HttpContext context)
@@ -210,7 +209,6 @@ namespace LongevityWorldCup.Website.Middleware
                     // Write the modified content to the response
                     context.Response.ContentType = "text/html";
                     context.Response.Headers["X-Robots-Tag"] = seo.Robots;
-                    if (seo.CanonicalPath == "/score-xray") context.Response.Headers.CacheControl = "no-store";
                     context.Response.ContentLength = Encoding.UTF8.GetByteCount(bodyContent);
                     if (!HttpMethods.IsHead(context.Request.Method))
                         await context.Response.WriteAsync(bodyContent, context.RequestAborted);
