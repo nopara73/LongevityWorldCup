@@ -93,6 +93,48 @@ public sealed class ScoreXrayBrowserTests(PlaywrightBrowserFixture browserFixtur
     }
 
     [Fact]
+    public async Task SlowEvidenceRequest_OffersRetryAndAnOldResponseCannotReplaceTheNewPage()
+    {
+        await using var context = await ContextAsync();
+        var firstStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var releaseFirst = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var firstFinished = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var calls = 0;
+        await context.RouteAsync("**/athletes/**/proof_1.webp?*", async route =>
+        {
+            if (Interlocked.Increment(ref calls) == 1)
+            {
+                firstStarted.TrySetResult();
+                await releaseFirst.Task;
+                try { await route.AbortAsync(); }
+                catch (PlaywrightException) { }
+                finally { firstFinished.TrySetResult(); }
+            }
+            else await route.FulfillAsync(new RouteFulfillOptions { ContentType = "image/png", BodyBytes = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jT1sAAAAASUVORK5CYII=") });
+        });
+        var page = await context.NewPageAsync();
+        try
+        {
+            await page.GotoAsync("/score-xray?athlete=michael_lustgarten&clock=pheno&step=1");
+            await Assertions.Expect(page.Locator("#workspace")).ToBeVisibleAsync();
+            await page.Clock.InstallAsync();
+            await page.Locator("#openProofs").ClickAsync();
+            await firstStarted.Task.WaitAsync(TimeSpan.FromSeconds(10));
+            await page.Clock.FastForwardAsync(15001);
+            await Assertions.Expect(page.Locator("#proofStatus")).ToContainTextAsync("taking longer than expected");
+            await page.Locator("#retryProof").ClickAsync();
+            await Assertions.Expect(page.Locator("#proofImage")).ToBeVisibleAsync();
+            releaseFirst.TrySetResult();
+            await firstFinished.Task.WaitAsync(TimeSpan.FromSeconds(10));
+            await Assertions.Expect(page.Locator("#proofStatus")).ToHaveTextAsync("");
+            await Assertions.Expect(page.Locator("#retryProof")).ToBeHiddenAsync();
+            await Assertions.Expect(page.Locator("#proofImage")).ToBeVisibleAsync();
+            Assert.Equal(2, Volatile.Read(ref calls));
+        }
+        finally { releaseFirst.TrySetResult(); }
+    }
+
+    [Fact]
     public async Task FailedDataAndEvidenceRequests_CanRecoverWithoutLosingTheRequestedView()
     {
         await using var context = await ContextAsync();

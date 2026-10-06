@@ -28,7 +28,7 @@
     const pipeline = el("pipeline");
     const playButton = el<HTMLButtonElement>("playWalkthrough");
     const proofDialog = el<HTMLDialogElement>("proofDialog");
-    const proofImage = el<HTMLImageElement>("proofImage");
+    let proofImage = el<HTMLImageElement>("proofImage");
     const title = (id: ClockId): string => id === "pheno" ? "Pheno" : "Bortz";
     const stages = ["Dated panel", "Model inputs", "Scoring limits", "The clock", "Age reduction", "Leaderboard"];
     const escape = (value: string): string => value.replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
@@ -60,6 +60,7 @@
     let activeResult = -1;
     let proofIndex = 0;
     let proofSequence = 0;
+    let proofTimer: number | null = null;
     let copyBusy = false;
     const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
 
@@ -302,10 +303,11 @@
         } finally { copyBusy = false; button.removeAttribute("aria-busy"); }
     }
 
-    function showProof(index: number): void {
+    function showProof(index: number, retry = false): void {
         if (!data || !proofDialog.open) return;
         proofIndex = Math.max(0, Math.min(data.proofs.length - 1, index));
         const attempt = ++proofSequence;
+        clearProofTimer();
         const source = asset(data.proofs[proofIndex]!);
         el("proofPosition").textContent = `Page ${proofIndex + 1} of ${data.proofs.length}`;
         el<HTMLButtonElement>("previousProof").disabled = proofIndex === 0;
@@ -314,9 +316,10 @@
         proofImage.hidden = true;
         el("proofStatus").textContent = "Loading the published evidence page…";
         el("proofPages").innerHTML = data.proofs.map((_, i) => `<button type="button" data-proof="${i}"${i === proofIndex ? ' aria-current="page"' : ""}>${i + 1}</button>`).join("");
-        const fail = (): void => {
+        const fail = (message = "This evidence page couldn’t be loaded. Retry or open the original below."): void => {
             if (attempt !== proofSequence) return;
-            el("proofStatus").textContent = "This evidence page couldn’t be loaded. Retry or open the original below.";
+            clearProofTimer();
+            el("proofStatus").textContent = message;
             el("retryProof").hidden = !source;
         };
         const original = el<HTMLAnchorElement>("originalProof");
@@ -324,15 +327,30 @@
         if (!source) { fail(); return; }
         original.href = source;
         const image = new Image();
+        image.id = "proofImage";
+        image.alt = `Published evidence for ${data.athlete.name}, page ${proofIndex + 1}`;
+        image.hidden = true;
+        proofImage.replaceWith(image);
+        proofImage = image;
         image.onload = () => {
             if (attempt !== proofSequence || !proofDialog.open) return;
-            proofImage.src = source;
-            proofImage.alt = `Published evidence for ${data!.athlete.name}, page ${proofIndex + 1}`;
-            proofImage.hidden = false;
+            clearProofTimer();
+            image.hidden = false;
             el("proofStatus").textContent = "";
+            el("retryProof").hidden = true;
         };
-        image.onerror = fail;
-        image.src = source;
+        image.onerror = () => fail();
+        proofTimer = window.setTimeout(() => fail("This evidence page is taking longer than expected. Retry or open the original below."), 15000);
+        // A manual retry needs its own request rather than joining a stalled image load.
+        // Keep the content version and original evidence link intact.
+        const imageUrl = new URL(source);
+        if (retry) imageUrl.searchParams.set("xray_retry", `${Date.now()}-${attempt}`);
+        image.src = imageUrl.href;
+    }
+
+    function clearProofTimer(): void {
+        if (proofTimer !== null) window.clearTimeout(proofTimer);
+        proofTimer = null;
     }
 
     search.disabled = true;
@@ -389,10 +407,10 @@
     });
     el("openProofs").addEventListener("click", () => { stopPlay(); proofDialog.showModal(); showProof(0); });
     el("closeProofs").addEventListener("click", () => proofDialog.close());
-    proofDialog.addEventListener("close", () => { proofSequence++; });
+    proofDialog.addEventListener("close", () => { proofSequence++; clearProofTimer(); proofImage.removeAttribute("src"); });
     el("previousProof").addEventListener("click", () => showProof(proofIndex - 1));
     el("nextProof").addEventListener("click", () => showProof(proofIndex + 1));
-    el("retryProof").addEventListener("click", () => showProof(proofIndex));
+    el("retryProof").addEventListener("click", () => showProof(proofIndex, true));
     el("proofPages").addEventListener("click", event => { const button = (event.target as Element).closest<HTMLElement>("[data-proof]"); if (button) showProof(Number(button.dataset["proof"])); });
     window.addEventListener("popstate", () => {
         const view = readView();
