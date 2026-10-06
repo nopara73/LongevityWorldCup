@@ -4772,6 +4772,21 @@ a.lmx-note-mention:focus-visible {
     display: none !important;
 }
 
+/* Keep the first paint neutral until the public or private view is resolved. */
+.lmx-page[aria-busy="true"] #lmxTitlePanel > :not(.lmx-title-row),
+.lmx-page[aria-busy="true"] #lmxAccessTabs,
+.lmx-page[aria-busy="true"] #lmxSignupPanel,
+.lmx-page[aria-busy="true"] #lmxResendPanel,
+.lmx-page[aria-busy="true"] #lmxParticipantPanel,
+.lmx-page[aria-busy="true"] #lmxBoardSection,
+.lmx-page[aria-busy="true"] #lmxNotesPanel {
+    display: none !important;
+}
+
+.lmx-page[aria-busy="true"] #lmxAccessLoadingPanel {
+    display: grid !important;
+}
+
 @media (max-width: 1080px) {
     .lmx-hero {
         grid-template-columns: 1fr;

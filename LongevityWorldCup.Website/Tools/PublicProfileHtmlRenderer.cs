@@ -7,6 +7,14 @@ namespace LongevityWorldCup.Website.Tools;
 /// <summary>Fills the existing dialog; its client controller enhances these same elements.</summary>
 public static class PublicProfileHtmlRenderer
 {
+    public static string RenderLoading(string html, string slug)
+    {
+        html = html.Replace("id=\"detailsModal\" class=\"modal\"", "id=\"detailsModal\" class=\"modal\" style=\"display: block;\"", StringComparison.Ordinal);
+        html = html.Replace("<div class=\"modal-content\">", $"<div class=\"modal-content is-loading\" data-server-rendered-loading=\"true\" data-athlete-slug=\"{Encode(slug)}\">", StringComparison.Ordinal);
+        html = SetContent(html, "athleteName", "Loading...");
+        return SetContent(html, "stickyAthleteName", "Loading...");
+    }
+
     public static string Render(string html, PublicLeaderboardSnapshot snapshot, PublicAthlete athlete, DateTime today)
     {
         var row = athlete.Row;

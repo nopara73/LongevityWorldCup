@@ -436,7 +436,7 @@
         ["Error rate", []]
     ];
 
-    document.addEventListener("DOMContentLoaded", init);
+    document.addEventListener("DOMContentLoaded", () => window.LwcInitialView.run(init));
 
     function isLegacyTab(value: string): value is LegacyTab {
         return Object.prototype.hasOwnProperty.call(legacyTabs, value);
@@ -461,8 +461,9 @@
 
     function init(): void {
         wireControls();
-        renderTabs();
         readUrlState();
+        renderTabs();
+        window.LwcInitialView.complete();
         loadDashboard();
     }
 

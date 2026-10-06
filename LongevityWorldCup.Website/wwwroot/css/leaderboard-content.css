@@ -951,6 +951,25 @@
      background:rgba(255,255,255,.08);
  }
  #athleteLoadError[hidden]{ display:none; }
+ #detailsModal .modal-content[data-server-rendered-loading].is-loading > :not(#closeAthleteDetailsModal):not(#modalStickyHeader) {
+     visibility:hidden;
+ }
+ #detailsModal .modal-content[data-server-rendered-loading].is-loading::after {
+     content:"";
+     position:absolute;
+     top:4rem;
+     left:calc(50% - .75rem);
+     width:1.5rem;
+     height:1.5rem;
+     border:2px solid var(--athlete-modal-border);
+     border-top-color:var(--athlete-modal-text);
+     border-radius:50%;
+     animation:athlete-initial-loading 1s linear infinite;
+ }
+ @keyframes athlete-initial-loading { to { transform:rotate(360deg); } }
+ @media (prefers-reduced-motion:reduce) {
+     #detailsModal .modal-content[data-server-rendered-loading].is-loading::after { animation:none; }
+ }
  #athleteLoadError p{ margin:0 0 .65rem; }
  .modal-content{
      background:#fefefe; margin:1% auto; padding:20px; border:none; width:80%; height:88%; max-width:900px;

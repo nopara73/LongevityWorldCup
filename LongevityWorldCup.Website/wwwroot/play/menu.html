@@ -3,6 +3,9 @@
 <head>
     <title>Longevity World Cup - Menu</title>
     <!--HEAD-->
+    <link rel="stylesheet" href="{{ASSET_INITIAL_VIEW_CSS}}">
+    <script src="{{ASSET_INITIAL_VIEW_JS}}"></script>
+    <script>window.LwcInitialView.prepare();</script>
     <script src="{{ASSET_SITE_STATISTICS_TRACKING_JS}}" defer></script>
     <script>
         document.documentElement.dataset.playEntry = ({
@@ -26,7 +29,7 @@
          fetchpriority="high"
          decoding="async"
          aria-hidden="true">
-    <main class="play-hub-main">
+    <main class="play-hub-main initial-view-main">
         <section id="playStartPanel" class="play-hub-panel play-start-panel">
             <h1 class="visually-hidden">Game menu</h1>
             <div class="play-menu-hero">

@@ -3,6 +3,9 @@
 <head>
     <title>Longevity World Cup - Application review</title>
     <!--HEAD-->
+    <link rel="stylesheet" href="{{ASSET_INITIAL_VIEW_CSS}}">
+    <script src="{{ASSET_INITIAL_VIEW_JS}}"></script>
+    <script>window.LwcInitialView.prepare();</script>
     <script src="{{ASSET_SITE_STATISTICS_TRACKING_JS}}" defer></script>
     <style>
         /* Hide the join-game button in the header */
@@ -244,7 +247,7 @@
 </head>
 <body class="play-flow-route">
     <!--HEADER-->
-    <main>
+    <main class="initial-view-main">
         <section class="application-review-panel">
             <h1 id="appReviewTitle" class="application-review-title" data-aos="fade" data-aos-duration="700" data-aos-delay="200">
                 <span id="appReviewText">Application review</span> <i class="fas fa-rocket" aria-hidden="true"></i>
@@ -258,7 +261,7 @@
             </div>
             <p class="application-review-copy primary" data-aos="fade" data-aos-duration="700" data-aos-delay="300">
                 We're reviewing <span id="whatAreWeReviewing">your application</span>, which may take a day or two. Afterwards we'll contact you at <span id="contactEmailPlaceholder" class="application-review-highlight">
-                    [insert contact email address here]
+                    the email address you provided with your application
                 </span>
             </p>
             <p class="application-review-copy contact" data-aos="fade" data-aos-duration="700" data-aos-delay="350">
@@ -407,7 +410,7 @@
         const isEditRequest = reviewSource === "edit-profile";
         removeSessionItem("came-from");
 
-        document.addEventListener('DOMContentLoaded', function () {
+        function initializeReviewCopy() {
             if (isNewResultsUploaded) {
                 document.getElementById("appReviewText").textContent = "Result review";
                 document.getElementById("whatAreWeReviewing").textContent = "your new results";
@@ -417,8 +420,9 @@
                 document.getElementById("whatAreWeReviewing").textContent = "your edit request";
             }
 
-            checkPendingPayment();
-        });
+        }
+        initializeReviewCopy();
+        document.addEventListener('DOMContentLoaded', checkPendingPayment);
 
         // Retrieve the contact email
         const contactEmail = readStoredContactEmail();
@@ -434,6 +438,7 @@
 
         // mark that they’ve submitted an application
         setLocalItem('hasApplication', 'true');
+        window.LwcInitialView.complete();
 
         function checkPendingPayment() {
             const pending = pendingPaymentInvoice;
