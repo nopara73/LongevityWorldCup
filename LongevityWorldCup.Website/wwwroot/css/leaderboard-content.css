@@ -970,7 +970,10 @@
  @media (prefers-reduced-motion:reduce) {
      #detailsModal .modal-content[data-server-rendered-loading].is-loading::after { animation:none; }
  }
- #athleteLoadError p{ margin:0 0 .65rem; }
+ #detailsModal #athleteLoadError p{
+     margin:0 0 .65rem;
+     color:var(--athlete-modal-text);
+ }
  .modal-content{
      background:#fefefe; margin:1% auto; padding:20px; border:none; width:80%; height:88%; max-width:900px;
      border-radius:15px; box-shadow:0 4px 6px rgba(0,0,0,.1); overflow-y:auto; max-height:90vh; animation:fadeIn var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
@@ -1433,7 +1436,8 @@
      color: var(--athlete-modal-link);
  }
  #detailsModal .athlete-links a,
- #detailsModal .athlete-links button{
+ #detailsModal .athlete-links button,
+ #detailsModal #retryAthleteLoad{
      min-height: 44px;
      padding: .55rem 1rem;
      border: 1px solid var(--athlete-modal-border);
@@ -1549,6 +1553,8 @@
  #detailsModal .athlete-links button:focus-visible,
  #detailsModal .modal-link:hover,
  #detailsModal .modal-link:focus-visible,
+ #detailsModal #retryAthleteLoad:hover,
+ #detailsModal #retryAthleteLoad:focus-visible,
  #detailsModal .league-link:hover,
  #detailsModal .league-link:focus-visible{
      color: #fff;
@@ -1556,6 +1562,9 @@
      text-shadow: none;
      background: rgba(246,244,237,.15);
      border-color: rgba(246,244,237,.72);
+ }
+ #detailsModal #retryAthleteLoad:focus-visible{
+     box-shadow:var(--athlete-modal-focus);
  }
  #detailsModal .modal-rank-icon{
      display:inline-flex;
