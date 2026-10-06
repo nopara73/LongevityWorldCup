@@ -37,16 +37,20 @@ public sealed class NostrIdentityTests
     }
 
     [Fact]
-    public async Task UnconfiguredIdentity_IsExplicitlyUnavailableAndStillAllowsClientOrigins()
+    public async Task UnconfiguredIdentity_ReturnsAnEmptyUncachedMappingAndAllowsClientOrigins()
     {
         await using var factory = Factory(new Config());
         using var client = factory.CreateClient();
         using var request = new HttpRequestMessage(HttpMethod.Get, "/.well-known/nostr.json?name=_");
         request.Headers.Add("Origin", "https://nostr-client.example");
         using var response = await client.SendAsync(request);
-        Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal("*", Assert.Single(response.Headers.GetValues("Access-Control-Allow-Origin")));
         Assert.Equal("application/json", response.Content.Headers.ContentType!.MediaType);
+        Assert.True(response.Headers.CacheControl!.NoStore);
+        var payload = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Empty(payload.GetProperty("names").EnumerateObject());
+        Assert.Empty(payload.GetProperty("relays").EnumerateObject());
     }
 
     [Fact]
