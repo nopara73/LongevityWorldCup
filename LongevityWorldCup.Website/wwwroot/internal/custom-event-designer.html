@@ -899,7 +899,6 @@
                     <label class="check"><input id="sendX" type="checkbox" checked /><span>X</span></label>
                     <label class="check"><input id="sendThreads" type="checkbox" /><span>Threads</span></label>
                     <label class="check"><input id="sendFacebook" type="checkbox" /><span>Facebook</span></label>
-                    <label class="check"><input id="sendBluesky" type="checkbox" /><span>Bluesky</span></label>
                 </div>
             </div>
 
@@ -975,7 +974,7 @@
 
     <script src="{{ASSET_CUSTOM_EVENT_MARKUP_JS}}"></script>
     <script>
-        const LIMITS = { x: 280, threads: 500, bluesky: 300 };
+        const LIMITS = { x: 280, threads: 500 };
         const SECRET_HASH_ALGORITHM = "pbkdf2-sha256";
         const SECRET_HASH_ITERATIONS = 210000;
         const SECRET_HASH_SALT_BYTES = 16;
@@ -988,7 +987,6 @@
         const sendX = document.getElementById("sendX");
         const sendThreads = document.getElementById("sendThreads");
         const sendFacebook = document.getElementById("sendFacebook");
-        const sendBluesky = document.getElementById("sendBluesky");
         const designerSecretInput = document.getElementById("designerSecretInput");
         const generateSecretHashBtn = document.getElementById("generateSecretHashBtn");
         const copySecretHashBtn = document.getElementById("copySecretHashBtn");
@@ -1028,20 +1026,17 @@
             { key: "slack", label: "Slack", checkbox: sendSlack, fixedMode: "slack" },
             { key: "x", label: "X", checkbox: sendX, limit: LIMITS.x },
             { key: "threads", label: "Threads", checkbox: sendThreads, limit: LIMITS.threads },
-            { key: "facebook", label: "Facebook", checkbox: sendFacebook, limit: 63206 },
-            { key: "bluesky", label: "Bluesky", checkbox: sendBluesky, limit: LIMITS.bluesky }
+            { key: "facebook", label: "Facebook", checkbox: sendFacebook, limit: 63206 }
         ];
         const PLATFORM_PREVIEW_META = {
             slack: { name: "Longevity World Cup", handle: "#highlights", avatar: "LW", label: "Slack" },
             x: { name: "Longevity World Cup", handle: "@longevitywc", avatar: "LW", label: "X" },
             threads: { name: "Longevity World Cup", handle: "@longevityworldcup", avatar: "LW", label: "Threads" },
-            facebook: { name: "Longevity World Cup", handle: "Facebook Page", avatar: "LW", label: "Facebook" },
-            bluesky: { name: "Longevity World Cup", handle: "Bluesky", avatar: "LW", label: "Bluesky" }
+            facebook: { name: "Longevity World Cup", handle: "Facebook Page", avatar: "LW", label: "Facebook" }
         };
 
         function renderPlatformAvatar(platformKey, sizeClass = "x-avatar") {
             const logos = {
-                bluesky: `<span aria-hidden="true" style="font-size:26px">🦋</span>`,
                 x: `
                     <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                         <path fill="#ffffff" d="M18.9 2H22l-6.77 7.74L23.2 22h-6.26l-4.9-7.42L5.55 22H2.44l7.24-8.27L1.8 2h6.42l4.43 6.74L18.9 2Z"/>
@@ -1408,7 +1403,7 @@
                 });
         }
 
-        function renderOgCard(url, includeImage = true) {
+        function renderOgCard(url) {
             if (!url) {
                 return "";
             }
@@ -1432,7 +1427,7 @@
 
             return `
                 <div class="og-card">
-                    ${includeImage ? `<div class="og-card-media">${mediaHtml}</div>` : ""}
+                    <div class="og-card-media">${mediaHtml}</div>
                     <div class="og-card-body">
                         <div class="og-card-domain">${escapeHtml(data.domain || getUrlDomain(url))}</div>
                         <div class="og-card-title">${escapeHtml(data.title || getUrlDomain(url))}</div>
@@ -1848,24 +1843,14 @@
             return contentRaw ? `${titleRaw}\n\n${contentRaw}` : titleRaw;
         }
 
-        const blueskySegmenter = new Intl.Segmenter("en", { granularity: "grapheme" });
-        function postLength(text, platformKey) {
-            return platformKey === "bluesky" ? Array.from(blueskySegmenter.segment(text)).length : text.length;
-        }
-        function truncateBluesky(text, limit) {
-            const parts = Array.from(blueskySegmenter.segment(text), part => part.segment);
-            return parts.length <= limit ? text : `${parts.slice(0, Math.max(0, limit - 1)).join("").trimEnd()}…`;
-        }
-
-        function buildImageCaption(titleText, eventUrl, maxLength, platformKey) {
+        function buildImageCaption(titleText, eventUrl, maxLength) {
             const normalizedTitle = collapseWhitespace(titleText);
-            if (!eventUrl) return platformKey === "bluesky" ? truncateBluesky(normalizedTitle, maxLength) : normalizedTitle;
-            const reserved = postLength(eventUrl, platformKey) + 2;
+            if (!eventUrl) return normalizedTitle;
+            const reserved = eventUrl.length + 2;
             const maxTitleLength = Math.max(0, maxLength - reserved);
             let finalTitle = normalizedTitle;
-            if (postLength(finalTitle, platformKey) > maxTitleLength) {
-                finalTitle = maxTitleLength <= 1 ? "" : platformKey === "bluesky"
-                    ? truncateBluesky(finalTitle, maxTitleLength) : `${finalTitle.slice(0, maxTitleLength - 1).trimEnd()}…`;
+            if (finalTitle.length > maxTitleLength) {
+                finalTitle = maxTitleLength <= 1 ? "" : `${finalTitle.slice(0, maxTitleLength - 1).trimEnd()}…`;
             }
             return finalTitle ? `${finalTitle}\n\n${eventUrl}` : eventUrl;
         }
@@ -1880,18 +1865,18 @@
             const hasHyperlinks = containsHyperlink(rawText);
             const textWithoutUrl = buildTextPost(titleText, bodyText, null);
 
-            if ((!hasHyperlinks || !eventUrl) && textWithoutUrl && postLength(textWithoutUrl, platformKey) <= maxLength) {
+            if ((!hasHyperlinks || !eventUrl) && textWithoutUrl && textWithoutUrl.length <= maxLength) {
                 return { mode: "text", postText: textWithoutUrl };
             }
 
             const textWithUrl = buildTextPost(titleText, bodyText, eventUrl);
-            if (textWithUrl && postLength(textWithUrl, platformKey) <= maxLength) {
+            if (textWithUrl && textWithUrl.length <= maxLength) {
                 return { mode: "text", postText: textWithUrl };
             }
 
             return {
                 mode: "image",
-                postText: buildImageCaption(titleText, hasHyperlinks ? eventUrl : "", maxLength, platformKey)
+                postText: buildImageCaption(titleText, hasHyperlinks ? eventUrl : "", maxLength)
             };
         }
 
@@ -1908,8 +1893,8 @@
                 return plan.postText;
             }
 
-            if (platformKey === "x" || platformKey === "threads" || platformKey === "facebook" || platformKey === "bluesky") {
-                const fallbackLimit = LIMITS[platformKey] ?? 63206;
+            if (platformKey === "x" || platformKey === "threads" || platformKey === "facebook") {
+                const fallbackLimit = platformKey === "x" ? LIMITS.x : (platformKey === "threads" ? LIMITS.threads : 63206);
                 const fallbackPlan = buildPlan(titleRaw, contentRaw, fallbackLimit, platformKey, includeEventUrl);
                 return fallbackPlan.postText || "";
             }
@@ -2026,8 +2011,7 @@
                 sendToSlack: sendSlack.checked,
                 sendToX: sendX.checked,
                 sendToThreads: sendThreads.checked,
-                sendToFacebook: sendFacebook.checked,
-                sendToBluesky: sendBluesky.checked
+                sendToFacebook: sendFacebook.checked
             };
         }
 
@@ -2037,8 +2021,7 @@
                 payload.sendToSlack ||
                 payload.sendToX ||
                 payload.sendToThreads ||
-                payload.sendToFacebook ||
-                payload.sendToBluesky
+                payload.sendToFacebook
             );
         }
 
@@ -2078,7 +2061,6 @@
                 if (typeof data.sendX === "boolean") sendX.checked = data.sendX;
                 if (typeof data.sendThreads === "boolean") sendThreads.checked = data.sendThreads;
                 if (typeof data.sendFacebook === "boolean") sendFacebook.checked = data.sendFacebook;
-                if (typeof data.sendBluesky === "boolean") sendBluesky.checked = data.sendBluesky;
             } catch {
             }
         }
@@ -2090,8 +2072,7 @@
                     sendSlack: sendSlack.checked,
                     sendX: sendX.checked,
                     sendThreads: sendThreads.checked,
-                    sendFacebook: sendFacebook.checked,
-                    sendBluesky: sendBluesky.checked
+                    sendFacebook: sendFacebook.checked
                 }));
             } catch {
             }
@@ -2199,7 +2180,7 @@
         function renderTextPreviewCard(platformKey, postText, clickableMentions, rawCopyText, ogPreviewUrl) {
             const meta = PLATFORM_PREVIEW_META[platformKey] || PLATFORM_PREVIEW_META.x;
             const copyKey = registerPreviewCopyText(rawCopyText);
-            const ogCardHtml = renderOgCard(ogPreviewUrl, platformKey !== "bluesky");
+            const ogCardHtml = renderOgCard(ogPreviewUrl);
             const visibleText = platformKey === "x"
                 ? getXPreviewVisibleText(postText)
                 : postText;
@@ -2541,7 +2522,7 @@
             }
         });
 
-        [titleInput, contentInput, sendWebpage, sendSlack, sendX, sendThreads, sendFacebook, sendBluesky].forEach(el => {
+        [titleInput, contentInput, sendWebpage, sendSlack, sendX, sendThreads, sendFacebook].forEach(el => {
             el.addEventListener("input", event => {
                 if (event.target === titleInput || event.target === contentInput) {
                     updateMentionSuggestions(event.target);

@@ -204,7 +204,7 @@ if not isinstance(content, str):
     sys.exit(1)
 
 flags = []
-for key in ("sendToWebpage", "sendToSlack", "sendToX", "sendToThreads", "sendToFacebook", "sendToBluesky"):
+for key in ("sendToWebpage", "sendToSlack", "sendToX", "sendToThreads", "sendToFacebook"):
     flags.append("1" if bool(data.get(key)) else "0")
 
 if not any(flag == "1" for flag in flags):
@@ -217,7 +217,7 @@ for value in (title, content, *flags):
 PY
   )
 
-if [[ "${#payload_fields[@]}" -lt 8 ]]; then
+if [[ "${#payload_fields[@]}" -lt 7 ]]; then
   echo "Invalid payload fields" >&2
   exit 1
 fi
@@ -229,7 +229,6 @@ send_slack="${payload_fields[3]}"
 send_x="${payload_fields[4]}"
 send_threads="${payload_fields[5]}"
 send_facebook="${payload_fields[6]}"
-send_bluesky="${payload_fields[7]}"
 }
 
 render() {
@@ -265,7 +264,6 @@ selected_platforms() {
   [[ "$send_x" == "1" ]] && items+=("X")
   [[ "$send_threads" == "1" ]] && items+=("Threads")
   [[ "$send_facebook" == "1" ]] && items+=("Facebook")
-  [[ "$send_bluesky" == "1" ]] && items+=("Bluesky")
 
   local joined=""
   for item in "${items[@]}"; do
@@ -311,15 +309,6 @@ x_processed="$([[ "$send_x" == "1" ]] && echo 0 || echo 1)"
 threads_processed="$([[ "$send_threads" == "1" ]] && echo 0 || echo 1)"
 facebook_processed="$([[ "$send_facebook" == "1" ]] && echo 0 || echo 1)"
 visible_on_website="$([[ "$send_webpage" == "1" ]] && echo 1 || echo 0)"
-bluesky_status="$([[ "$send_bluesky" == "1" ]] && echo pending || echo skipped)"
-bluesky_reason="$([[ "$send_bluesky" == "1" ]] && echo NULL || echo \"'TargetNotSelected'\")"
-bluesky_sql=""
-if [[ "$(as_svc sqlite3 "$db_path" "SELECT 1 FROM sqlite_master WHERE type='table' AND name='SocialDeliveries';")" == "1" ]]; then
-  bluesky_sql="INSERT INTO SocialDeliveries (EventId, Platform, Status, LastErrorCode, UpdatedAtUtc) VALUES ('$id', 'bluesky', '$bluesky_status', $bluesky_reason, strftime('%Y-%m-%dT%H:%M:%fZ','now'));"
-elif [[ "$send_bluesky" == "1" ]]; then
-  echo "Bluesky delivery storage is missing; start the current application to initialize it." >&2
-  exit 1
-fi
 
 precheck_writeability
 
@@ -332,7 +321,7 @@ err=""
 attempt=0
 delay_ms="$sqlite_retry_initial_ms"
 while :; do
-  out="$(as_svc sqlite3 -cmd ".timeout $sqlite_timeout_ms" "$db_path" "BEGIN IMMEDIATE; INSERT INTO Events (Id, Type, Text, OccurredAt, Relevance, VisibleOnWebsite, SlackProcessed, XProcessed, ThreadsProcessed, FacebookProcessed) VALUES ('$id', 6, '$txt', strftime('%Y-%m-%dT%H:%M:%fZ','now'), 15, $visible_on_website, $slack_processed, $x_processed, $threads_processed, $facebook_processed); $bluesky_sql COMMIT;" 2>&1)"
+  out="$(as_svc sqlite3 -cmd ".timeout $sqlite_timeout_ms" "$db_path" "BEGIN IMMEDIATE; INSERT INTO Events (Id, Type, Text, OccurredAt, Relevance, VisibleOnWebsite, SlackProcessed, XProcessed, ThreadsProcessed, FacebookProcessed) VALUES ('$id', 6, '$txt', strftime('%Y-%m-%dT%H:%M:%fZ','now'), 15, $visible_on_website, $slack_processed, $x_processed, $threads_processed, $facebook_processed); COMMIT;" 2>&1)"
   rc=$?
   if [[ $rc -eq 0 ]]; then
     echo "Inserted $id into $db_path"

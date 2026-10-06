@@ -55,9 +55,6 @@ namespace LongevityWorldCup.Website
         public string? FacebookPageId { get; set; }
         public string? FacebookUserAccessToken { get; set; }
         public string? FacebookPageAccessToken { get; set; }
-        public string BlueskyServiceUrl { get; set; } = "https://bsky.social";
-        public string? BlueskyIdentifier { get; set; }
-        public string? BlueskyAppPassword { get; set; }
         public string? CustomEventDesignerSecretHash { get; set; }
         public LongevitymaxxingChallengeConfig? LongevitymaxxingChallenge { get; set; }
 

@@ -20,18 +20,6 @@ internal static class ScheduledJobs
         var facebookDailyPostKey = new JobKey("FacebookDailyPostJob");
         var longevitymaxxingReminderKey = new JobKey("LongevitymaxxingReminderJob");
         var crowdAgeAnnouncementKey = new JobKey("CrowdAgeAnnouncementJob");
-        var blueskyDailyKey = new JobKey("BlueskyDailyPostJob");
-        var blueskyCustomKey = new JobKey("BlueskyCustomPostJob");
-
-        scheduler.AddJob<BlueskyDailyPostJob>(o => o.WithIdentity(blueskyDailyKey));
-        scheduler.AddTrigger(t => t.ForJob(blueskyDailyKey)
-            .WithIdentity("BlueskyDailyPostTrigger")
-            .WithSchedule(CronScheduleBuilder.Create("0 4 15 * * ?").InTimeZone(TimeZoneInfo.Utc)));
-        scheduler.AddJob<BlueskyCustomPostJob>(o => o.WithIdentity(blueskyCustomKey));
-        scheduler.AddTrigger(t => t.ForJob(blueskyCustomKey)
-            .WithIdentity("BlueskyCustomPostTrigger")
-            .StartNow()
-            .WithSimpleSchedule(x => x.WithInterval(TimeSpan.FromMinutes(1)).RepeatForever()));
 
         scheduler.AddJob<CrowdAgeAnnouncementJob>(o => o.WithIdentity(crowdAgeAnnouncementKey));
         scheduler.AddTrigger(t => t.ForJob(crowdAgeAnnouncementKey)
