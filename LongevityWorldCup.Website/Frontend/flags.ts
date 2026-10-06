@@ -182,12 +182,14 @@
         let list: HTMLDivElement | null = null;
         let currentFocus = -1;
         let wantsSuggestions = false;
+        const geometryObserver = new ResizeObserver(positionList);
         input.setAttribute("role", "combobox");
         input.setAttribute("aria-autocomplete", "list");
         input.setAttribute("aria-controls", listId);
         input.setAttribute("aria-expanded", "false");
 
         function close(): void {
+            geometryObserver.disconnect();
             list?.remove();
             list = null;
             currentFocus = -1;
@@ -225,6 +227,7 @@
             const inputTop = inputBox.top - parentBox.top - parent.clientTop + parent.scrollTop;
             list.style.top = openAbove ? "auto" : inputTop + inputBox.height + gap + "px";
             list.style.bottom = openAbove ? parent.clientHeight - inputTop + gap + "px" : "auto";
+            if (currentFocus >= 0) setActive(currentFocus);
         }
 
         function setActive(index: number, scroll = true): void {
@@ -282,6 +285,12 @@
             input.parentElement.appendChild(list);
             input.setAttribute("aria-expanded", "true");
             positionList();
+            // Docking and font/layout changes can move the available space without a viewport event.
+            geometryObserver.observe(input, { box: "border-box" });
+            geometryObserver.observe(input.parentElement, { box: "border-box" });
+            document.querySelectorAll("[data-flow-dock]").forEach(dock => {
+                geometryObserver.observe(dock, { box: "border-box" });
+            });
         }
 
         function open(): void {
