@@ -146,13 +146,13 @@ public sealed class AutocompleteInteractionBrowserTests(
         await input.FillAsync("United");
         var list = page.Locator("#" + id + "-autocomplete-list");
         await list.WaitForAsync();
-        await AssertPopupFitsAsync(page, list);
+        await AssertPopupFitsAsync(list);
 
         // The viewport changes while the popup is open, as it does around a mobile keyboard.
         await page.SetViewportSizeAsync(320, 440);
         await input.ScrollIntoViewIfNeededAsync();
         await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
-        await AssertPopupFitsAsync(page, list);
+        await AssertPopupFitsAsync(list);
         await list.GetByRole(AriaRole.Option, new() { Name = "United Kingdom" }).TapAsync();
         Assert.Equal("United Kingdom", await input.InputValueAsync());
         Assert.Equal("false", await input.GetAttributeAsync("aria-expanded"));
@@ -160,21 +160,76 @@ public sealed class AutocompleteInteractionBrowserTests(
         Assert.False(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth > innerWidth"));
     }
 
-    private static async Task AssertPopupFitsAsync(IPage page, ILocator list)
+    [Theory]
+    [InlineData("/apply", "flag")]
+    [InlineData("/edit-profile", "flagDisplayInput")]
+    public async Task FlagPopup_RefitsWhenActionsDockWithoutResizingTheViewport(string path, string id)
     {
-        var bounds = await list.BoundingBoxAsync();
-        Assert.NotNull(bounds);
-        var limits = await page.EvaluateAsync<double[]>("""
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = 320, Height = 640 },
+            ReducedMotion = ReducedMotion.Reduce,
+            IsMobile = true,
+            HasTouch = true
+        });
+        var page = await PrepareAsync(context, path);
+        await page.WaitForFunctionAsync("() => !!window.LwcFlowActionDock && !document.documentElement.hasAttribute('data-initial-view')");
+        await page.EvaluateAsync("""
             () => {
+                document.querySelectorAll('[data-flow-dock]').forEach(actions => actions.dataset.flowDock = 'off');
+                window.LwcFlowActionDock.refreshNow();
+            }
+            """);
+        var input = page.Locator("#" + id);
+        await input.FillAsync("United");
+        var list = page.Locator("#" + id + "-autocomplete-list");
+        await list.WaitForAsync();
+        await input.EvaluateAsync("""
+            input => new Promise(resolve => {
+                const popup = document.getElementById(input.id + '-autocomplete-list');
+                const viewport = visualViewport;
+                const bottom = (viewport?.offsetTop ?? 0) + (viewport?.height ?? innerHeight);
+                const wantedBottom = bottom - popup.getBoundingClientRect().height - 24;
+                window.scrollBy({top: input.getBoundingClientRect().bottom - wantedBottom, behavior:'instant'});
+                requestAnimationFrame(() => requestAnimationFrame(resolve));
+            })
+            """);
+        await AssertPopupFitsAsync(list);
+        await page.EvaluateAsync("""
+            () => new Promise((resolve, reject) => {
+                const actions = Array.from(document.querySelectorAll('[data-flow-dock]'))
+                    .find(element => element.getBoundingClientRect().height > 0);
+                if (!actions) { reject(new Error('No visible action stack')); return; }
+                const resized = new ResizeObserver(() => requestAnimationFrame(() => {
+                    resized.disconnect();
+                    resolve();
+                }));
+                resized.observe(actions, {box:'border-box'});
+                document.querySelectorAll('[data-flow-dock]').forEach(element => element.dataset.flowDock = 'always');
+                window.LwcFlowActionDock.refreshNow();
+            })
+            """);
+        await Assertions.Expect(page.Locator(".flow-action-stack--docked")).ToBeVisibleAsync();
+        await AssertPopupFitsAsync(list);
+        await list.GetByRole(AriaRole.Option, new() { Name = "United Kingdom" }).TapAsync();
+        Assert.Equal("United Kingdom", await input.InputValueAsync());
+        Assert.Equal("false", await input.GetAttributeAsync("aria-expanded"));
+    }
+
+    private static async Task AssertPopupFitsAsync(ILocator list)
+    {
+        var geometry = await list.EvaluateAsync<double[]>("""
+            popup => {
+                const bounds = popup.getBoundingClientRect();
                 const viewport = visualViewport;
                 const top = viewport?.offsetTop ?? 0;
                 const bottom = top + (viewport?.height ?? innerHeight);
                 const dock = document.querySelector('.flow-action-stack--docked')?.getBoundingClientRect();
-                return [top, dock && dock.height > 0 && dock.top > top ? Math.min(bottom, dock.top) : bottom];
+                return [bounds.top, bounds.bottom, top, dock && dock.height > 0 && dock.top > top ? Math.min(bottom, dock.top) : bottom];
             }
             """);
-        Assert.True(bounds.Y >= limits[0] && bounds.Y + bounds.Height <= limits[1],
-            $"Flag suggestions overlap the viewport edge or action bar: {bounds.Y}–{bounds.Y + bounds.Height}; available {limits[0]}–{limits[1]}.");
+        Assert.True(geometry[0] >= geometry[2] && geometry[1] <= geometry[3],
+            $"Flag suggestions overlap the viewport edge or action bar: {geometry[0]}–{geometry[1]}; available {geometry[2]}–{geometry[3]}.");
     }
 
     [Theory]
