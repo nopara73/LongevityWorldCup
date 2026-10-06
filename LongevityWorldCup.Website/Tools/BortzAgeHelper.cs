@@ -43,7 +43,7 @@ namespace LongevityWorldCup.Website.Tools
             new("apoa1", "Apolipoprotein A1 (ApoA1)", 1.5238771, -0.185139395, Cap: 1.82, CapMode: CapMode.Ceiling),
         };
 
-        private static double ApplyCap(double value, BortzFeature f) =>
+        public static double ApplyCap(double value, BortzFeature f) =>
             f.CapMode switch
             {
                 CapMode.Floor => Math.Max(value, f.Cap!.Value),
