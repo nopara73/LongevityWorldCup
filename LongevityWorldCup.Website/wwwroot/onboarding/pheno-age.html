@@ -3,6 +3,9 @@
 <head>
     <title>Longevity World Cup - Pheno Age</title>
     <!--HEAD-->
+    <link rel="stylesheet" href="{{ASSET_INITIAL_VIEW_CSS}}">
+    <script src="{{ASSET_INITIAL_VIEW_JS}}"></script>
+    <script>window.LwcBioageFlow.prepareInitialView('pheno');</script>
     <script src="{{ASSET_FIELD_VALIDATION_JS}}"></script>
     <script src="{{ASSET_SITE_STATISTICS_TRACKING_JS}}" defer></script>
     <link rel="preload" href="{{ASSET_BIOAGEFORM_CSS}}" as="style">
@@ -819,7 +822,7 @@
 </head>
 <body class="play-flow-route">
     <!--HEADER-->
-    <main class="phenoage-main">
+    <main class="phenoage-main initial-view-main">
         <div class="lwc-steps-shell" id="lwcStepsShell">
             <!--MAIN-PROGRESS-BAR-->
             <h1 id="mainPageTitleH2" data-aos="fade" data-aos-duration="700" data-aos-delay="250">
@@ -2255,7 +2258,7 @@
         }
 
 
-        document.addEventListener('DOMContentLoaded', function () {
+        document.addEventListener('DOMContentLoaded', () => window.LwcInitialView.run(function () {
             // Step navigation buttons
             bioageFlow.syncBiomarkerExamplePlaceholders();
 
@@ -2390,7 +2393,6 @@
             if (isUpdate && hasSelectedAthlete) {
                 hideUpdateModeStepNavigation();
                 lwcSetStep(2, { focus: false });
-                bioageFlow.resetUpdateModeScroll();
             } else {
                 // Restore step 2 after refresh if user had navigated there and step 1 is valid.
                 const restoredStep = biomarkerEntry.step === 2 && lwcValidateStep1(true);
@@ -2399,7 +2401,9 @@
                     lwcSetStep(1, { focus: false });
                 }
             }
-        });
+            bioageFlow.completeInitialView();
+            if (isUpdate && hasSelectedAthlete) bioageFlow.resetUpdateModeScroll();
+        }));
 
         function updateModeFormInitializerUnique() {
             if (!isUpdate) return;
@@ -2464,7 +2468,7 @@
 
         window.addEventListener('pageshow', event => {
             if (event.persisted && bioageFlow.shouldReloadBioageUpdate('pheno')) {
-                window.location.reload();
+                window.LwcInitialView.reload();
                 return;
             }
             applyPhenoSubmittedBiomarkerPlaceholders();

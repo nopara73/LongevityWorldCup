@@ -905,8 +905,22 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             scrollBoardToLatestDay();
             await navigateDiscussion(window.location.hash);
         } catch (err) {
-            setStatus("lmxSignupStatus", messageOf(err), true);
-            if (!publicState) await refreshPublicOnly();
+            const statusId = accessTab === "signin" ? "lmxResendStatus" : "lmxSignupStatus";
+            setStatus(statusId, messageOf(err), true);
+            if (!publicState) {
+                try {
+                    await refreshPublicOnly();
+                } catch (fallbackError) {
+                    setStatus(statusId, messageOf(fallbackError), true);
+                }
+            }
+        } finally {
+            const page = document.querySelector<HTMLElement>(".lmx-page");
+            if (page?.getAttribute("aria-busy") === "true") {
+                accessLoading = false;
+                renderPanels(publicState || {});
+                page.setAttribute("aria-busy", "false");
+            }
         }
     }
 
@@ -1294,10 +1308,6 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             return;
         }
 
-        if (!publicState) {
-            await refreshPublicOnly({ keepParticipant: !!accessToken });
-        }
-
         if (accessToken) {
             accessLoading = true;
             renderAccessLoading();
@@ -1317,8 +1327,6 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                     setStatus("lmxResendStatus", "Your private console did not load yet. Refresh to try again.", true);
                     accessLoading = false;
                     accessTab = "signin";
-                    renderAll();
-                    return;
                 }
             }
         }
@@ -1406,6 +1414,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         }
 
         syncCheckInDialog();
+
+        document.querySelector(".lmx-page")?.setAttribute("aria-busy", "false");
 
         scrollBoardToLatestDay();
     }
@@ -1672,10 +1682,11 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     function renderPanels(state: Partial<PublicState>): void {
         const currentParticipantState = participantState;
         const hasParticipant = currentParticipantState !== null;
+        const hasPublicState = !!state.phase;
         const isAccessLoading = accessLoading && !hasParticipant;
         const pendingCheckInDays = currentParticipantState ? getPendingCheckInDays(currentParticipantState) : [];
         const activeParticipantTab = currentParticipantState ? ensureParticipantTab(currentParticipantState) : null;
-        const dashboardMode = hasParticipant || !isPreStartSignup(state);
+        const dashboardMode = hasParticipant || (hasPublicState && !isPreStartSignup(state));
 
         toggle("lmxTitlePanel", true);
         toggle("lmxAccessTabs", !hasParticipant && !isAccessLoading);
@@ -1686,11 +1697,11 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         toggle("lmxNotesPanel", dashboardMode);
         toggle("lmxSignupIntro", !signupSubmitted);
         toggle("lmxSignupDonePanel", signupSubmitted);
-        toggle("lmxHabitHeading", !hasParticipant);
-        toggle("lmxHabitGrid", !hasParticipant);
-        toggle("lmxQuestionPreview", !hasParticipant || pendingCheckInDays.length > 0);
+        toggle("lmxHabitHeading", hasPublicState && !hasParticipant);
+        toggle("lmxHabitGrid", hasPublicState && !hasParticipant);
+        toggle("lmxQuestionPreview", hasPublicState && (!hasParticipant || pendingCheckInDays.length > 0));
         toggle("lmxTrack", hasParticipant && dashboardMode);
-        toggle("lmxBoardSection", true);
+        toggle("lmxBoardSection", hasPublicState);
         toggle("lmxParticipantTabs", hasParticipant);
         toggle("lmxCheckinPanel", hasParticipant && activeParticipantTab === "checkin");
         toggle("lmxEditForm", hasParticipant && activeParticipantTab === "profile");
@@ -1703,6 +1714,10 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             participantNotice = null;
         }
         renderAccessTabs();
+        if (!hasPublicState) {
+            for (const id of ["lmxHeroStatus", "lmxHeroMode", "lmxHeroCopy", "lmxHeroHighlights", "lmxLifeStrip"])
+                toggle(id, false);
+        }
         const slackInvite = optionalElement("lmxSlackInviteLink", HTMLAnchorElement);
         if (slackInvite) {
             slackInvite.href = state.slackInviteUrl || "#";

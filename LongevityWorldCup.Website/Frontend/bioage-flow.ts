@@ -127,6 +127,8 @@ interface LwcBioageFlowApi {
     isUpdateMode: (search?: string) => boolean;
     isValidSelectedAthlete: (value: unknown) => value is BioageSelectedAthlete;
     navigateBack: (isUpdate: boolean) => void;
+    prepareInitialView: (clock: BioageClock) => void;
+    completeInitialView: () => void;
     readBiomarkerValue: (entry: unknown, fieldNames: string | readonly string[]) => number | null;
     readSelectedAthlete: (getItem?: BioageStorageGetter) => unknown;
     redirectMissingSelectedAthlete: (removeItem?: BioageStorageRemover) => void;
@@ -1177,6 +1179,22 @@ interface Window {
         return new URLSearchParams(search || window.location.search).get('update') === '1';
     }
 
+    function prepareInitialView(clock: BioageClock): void {
+        const params = new URLSearchParams(window.location.search);
+        const prefillKeys = ['Year', 'Month', 'Day', 'Date', 'AlbGL', 'AlpUL', 'CreatUmolL', 'CrpMgL',
+            'GluMmolL', 'LymPc', 'McvFL', 'RdwPc', 'Wbc1000cellsuL', 'NeutrophilPc', 'MonocytePc',
+            'Rbc10e12L', 'MchPg', 'AltUL', 'GgtUL', 'UreaMmolL', 'CystatinCMgL', 'Hba1cMmolMol',
+            'CholesterolMmolL', 'ApoA1GL', 'ShbgNmolL', 'VitaminDNmolL'];
+        if (isUpdateMode() || readBioageDraft(clock) || params.get('fake') === '1'
+            || prefillKeys.some(key => params.has(key)) || getBrowserStorageItem('sessionStorage', 'biomarkerData')) {
+            window.LwcInitialView.prepare();
+        }
+    }
+
+    function completeInitialView(): void {
+        window.LwcInitialView.complete();
+    }
+
     function getBackDestination(isUpdate: boolean): '/dashboard' | '/join' {
         return isUpdate ? '/dashboard' : '/join';
     }
@@ -1782,6 +1800,8 @@ interface Window {
         isUpdateMode,
         isValidSelectedAthlete,
         navigateBack,
+        prepareInitialView,
+        completeInitialView,
         readBiomarkerValue,
         readSelectedAthlete,
         redirectMissingSelectedAthlete,

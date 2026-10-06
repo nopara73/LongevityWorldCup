@@ -3,6 +3,9 @@
 <head>
     <title>Longevity World Cup - Convergence</title>
     <!--HEAD-->
+    <link rel="stylesheet" href="{{ASSET_INITIAL_VIEW_CSS}}">
+    <script src="{{ASSET_INITIAL_VIEW_JS}}"></script>
+    <script>window.LwcInitialView.prepare();</script>
     <script src="{{ASSET_FIELD_VALIDATION_JS}}"></script>
     <script src="{{ASSET_SITE_STATISTICS_TRACKING_JS}}" defer></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
@@ -519,7 +522,7 @@
 </head>
 <body class="play-flow-route" data-convergence-stage="1">
     <!--HEADER-->
-    <main class="convergence-main">
+    <main class="convergence-main initial-view-main">
         <!--MAIN-PROGRESS-BAR-->
         <h1 tabindex="-1" data-aos="fade" data-aos-duration="700" data-aos-delay="400">1. Enter the arena</h1>
         <form id="descriptionForm" class="bioageform" data-aos="fade" data-aos-duration="700" data-aos-delay="450">
@@ -1346,6 +1349,7 @@
         }
 
         function finishFullApplicationSubmission(submitResult, submissionContext) {
+            window.LwcInitialView.hold();
             const checkoutLink = getCheckoutLink(submitResult);
             const invoiceId = getInvoiceId(submitResult);
             const paymentRequired = isPaymentRequired(submitResult);
@@ -1763,7 +1767,7 @@
         let existingAthleteNames;
         const applicationFieldValidation = new Map();
         // Flag Autocomplete Implementation
-        document.addEventListener('DOMContentLoaded', async function () {
+        document.addEventListener('DOMContentLoaded', () => window.LwcInitialView.run(async function () {
             await waitForPageModules();
 
             const pendingSubmission = window.getPendingApplicationSubmission('full-application');
@@ -1823,8 +1827,9 @@
             const fallbackDivisions = ["Men's", "Women's", "Open"];
             function populateDivisionSelect(divisions) {
                 const divisionSelect = document.getElementById('division');
-                const availableDivisions = Array.isArray(divisions) && divisions.length ? divisions : fallbackDivisions;
+                const availableDivisions = [...(Array.isArray(divisions) && divisions.length ? divisions : fallbackDivisions)];
                 const selectedDivision = divisionSelect.value || applicationDraftDivision;
+                if (selectedDivision && !availableDivisions.includes(selectedDivision)) availableDivisions.unshift(selectedDivision);
 
                 // Clear existing options (if any)
                 divisionSelect.innerHTML = '';
@@ -1847,17 +1852,17 @@
                 if (availableDivisions.includes(selectedDivision)) divisionSelect.value = selectedDivision;
                 applicationDraftDivision = '';
 
-                if (currentStage === 1) {
-                    divisionSelect.addEventListener('change', checkFormValidityStage1);
-                    checkFormValidityStage1(); // Check validity in case other fields are already filled
-                }
-
-                applyFakeDataIfNeeded();
-
-                document.getElementById('division').addEventListener('change', function () {
-                    document.getElementById('flag').focus();
-                });
+                if (currentStage === 1) checkFormValidityStage1();
             }
+
+            // Restore a known division immediately; the optional directory may
+            // enrich choices later without showing an empty saved field.
+            populateDivisionSelect(fallbackDivisions);
+            applyFakeDataIfNeeded();
+            document.getElementById('division').addEventListener('change', () => {
+                checkFormValidityStage1();
+                document.getElementById('flag').focus();
+            });
 
             // Fetch divisions and populate the division select element
             fetch('/api/data/divisions')
@@ -1878,7 +1883,8 @@
                     document.getElementById('nextButton').click();
                 }
             });
-        });
+            window.LwcInitialView.complete();
+        }));
 
         // "Next" Button Click Event Handler
         document.getElementById('nextButton').addEventListener('click', async function (event) {

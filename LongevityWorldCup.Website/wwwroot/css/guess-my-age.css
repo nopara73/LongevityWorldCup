@@ -596,6 +596,11 @@
 }
 
 /* Exit is a measured max-height animation: auto -> 0 would only hard-cut. */
+#detailsModal .modal-content:not(.guess-mode) #guessAgeContainer,
+#detailsModal .modal-content.is-loading #guessAgeContainer {
+    display: none;
+}
+
 #detailsModal .modal-content #guessAgeContainer.gma-done {
     overflow: hidden;
     animation: gma-card-exit var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease) both !important;

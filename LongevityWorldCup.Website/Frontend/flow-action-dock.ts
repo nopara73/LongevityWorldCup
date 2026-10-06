@@ -316,6 +316,9 @@ interface FlowActionDockApi {
 
     function shouldDock(element: HTMLElement, state: DockState): boolean {
         if (!conditionMatches(element)) return false;
+        // Portaled controls still belong to their source task while it loads.
+        const origin = state.docked ? state.placeholder : element;
+        if (document.documentElement.hasAttribute('data-initial-view') && origin.closest('.initial-view-main')) return false;
         if (state.docked ? !hasLayoutBox(state.placeholder) : !isVisible(element)) return false;
         if (isKeyboardOpen) return false;
 

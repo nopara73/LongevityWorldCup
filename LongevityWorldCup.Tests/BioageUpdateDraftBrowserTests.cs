@@ -24,6 +24,56 @@ public sealed class BioageUpdateDraftBrowserTests(PlaywrightBrowserFixture brows
         """;
 
     [Theory]
+    [InlineData("pheno", 390, true)]
+    [InlineData("bortz", 1280, true)]
+    [InlineData("pheno", 1280, false)]
+    [InlineData("bortz", 390, false)]
+    public async Task InitialCalculator_RestoresTheTaskBeforeShowingDefaultContent(string clock, int width, bool update)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = 844 }
+        });
+        var page = await context.NewPageAsync();
+        if (update) await SelectAthleteAsync(page);
+        else
+        {
+            await page.GotoAsync($"/{clock}-age?fake=1");
+            await WaitForEntryAsync(page);
+            await page.Locator("#lwcToStep2Btn").ClickAsync();
+            await Assertions.Expect(page.Locator("#lwc-step-2")).ToBeVisibleAsync();
+        }
+        var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        // A deferred script holds DOM-ready initialization while the full form
+        // has been parsed, exposing any incorrect first-paint defaults.
+        await context.RouteAsync("**/js/site-statistics-tracking.js*", async route =>
+        {
+            started.TrySetResult();
+            await release.Task;
+            await route.ContinueAsync();
+        });
+        try
+        {
+            await page.GotoAsync($"/{clock}-age" + (update ? "?update=1" : ""), new() { WaitUntil = WaitUntilState.Commit });
+            await started.Task.WaitAsync(TimeSpan.FromSeconds(20));
+            await page.WaitForSelectorAsync("#lwcStepsShell", new() { State = WaitForSelectorState.Attached });
+            await Assertions.Expect(page.Locator("#lwcStepsShell")).ToBeHiddenAsync();
+            await Assertions.Expect(page.Locator("#dobFieldset")).ToBeHiddenAsync();
+            var screenshots = Path.Combine(FindRepositoryRoot(), ".artifacts", "initial-views");
+            Directory.CreateDirectory(screenshots);
+            await page.ScreenshotAsync(new() { Path = Path.Combine(screenshots, $"calculator-{clock}-{width}-{update}-loading.png") });
+            release.TrySetResult();
+            await WaitForEntryAsync(page);
+            await Assertions.Expect(page.Locator("#lwc-step-2")).ToBeVisibleAsync();
+            await Assertions.Expect(page.Locator("#lwcStepsShell")).ToBeVisibleAsync();
+            if (update) await Assertions.Expect(page.Locator("#mainPageTitleH2")).ToHaveTextAsync("Draft Test Athlete");
+            await page.ScreenshotAsync(new() { Path = Path.Combine(screenshots, $"calculator-{clock}-{width}-{update}-ready.png") });
+        }
+        finally { release.TrySetResult(); }
+    }
+
+    [Theory]
     [InlineData("pheno", 390)]
     [InlineData("pheno", 1280)]
     [InlineData("bortz", 390)]
@@ -58,7 +108,7 @@ public sealed class BioageUpdateDraftBrowserTests(PlaywrightBrowserFixture brows
         await AssertRawDraftAsync(page);
         await Assertions.Expect(page.Locator("#albumin")).ToHaveValueAsync("");
         // Cached-page lifecycle must not refill converted handoff values into raw inputs.
-        await page.EvaluateAsync("() => window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true }))");
+        await RunCachedReturnAsync(page, () => page.EvaluateAsync("() => window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true }))"));
         await AssertRawDraftAsync(page);
         await FillMarkerAsync(page, "wbc", "");
         await page.ReloadAsync();
@@ -193,7 +243,7 @@ public sealed class BioageUpdateDraftBrowserTests(PlaywrightBrowserFixture brows
         await Assertions.Expect(page.Locator("#albumin")).ToHaveValueAsync("45");
 
         // Keep the calculated DOM alive, as the browser back/forward cache does.
-        await page.EvaluateAsync("() => { window.dispatchEvent(new PageTransitionEvent('pagehide', {persisted:true})); window.dispatchEvent(new PageTransitionEvent('pageshow', {persisted:true})); }");
+        await RunCachedReturnAsync(page, () => page.EvaluateAsync("() => { window.dispatchEvent(new PageTransitionEvent('pagehide', {persisted:true})); window.dispatchEvent(new PageTransitionEvent('pageshow', {persisted:true})); }"));
         await Assertions.Expect(page.Locator("#albumin")).ToHaveValueAsync("");
         await WaitForEntryAsync(page);
         await Assertions.Expect(page.Locator("#wbc")).ToHaveValueAsync("5.2");
@@ -204,6 +254,72 @@ public sealed class BioageUpdateDraftBrowserTests(PlaywrightBrowserFixture brows
         await Assertions.Expect(page.Locator("#albumin")).ToHaveValueAsync("");
         await FillMarkerAsync(page, "wbc", "");
         await Assertions.Expect(page.Locator("#calculateBioageButton")).ToBeDisabledAsync();
+    }
+
+    [Theory]
+    [InlineData("pheno")]
+    [InlineData("bortz")]
+    public async Task CachedReturn_DoesNotPaintTheOldResultWhileTheRestoredDocumentIsLoading(string clock)
+    {
+        await using var context = await NewContextAsync(Browser, App, new() { ViewportSize = new() { Width = 390, Height = 844 }, ReducedMotion = ReducedMotion.Reduce });
+        var page = await context.NewPageAsync();
+        await SelectAthleteAsync(page);
+        await OpenCalculatorAsync(page, clock);
+        await page.Locator("#blood-draw-date").FillAsync("2026-09-01");
+        await FillMarkerAsync(page, "wbc", "5.2");
+        await page.Locator("#calculateBioageButton").ClickAsync();
+        await Assertions.Expect(page.Locator($"#{clock}AgeResult.show")).ToBeVisibleAsync();
+        await page.EvaluateAsync("() => window.LwcFlowActionDock.refreshNow()");
+        await Assertions.Expect(page.Locator("#continueButton").Locator("xpath=..")).ToHaveClassAsync(new System.Text.RegularExpressions.Regex(@"\bflow-action-stack--docked\b"));
+        var requested = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await context.RouteAsync($"**/{clock}-age?update=1", async route =>
+        {
+            requested.TrySetResult();
+            await release.Task;
+            await route.ContinueAsync();
+        });
+        var capturedPaint = new TaskCompletionSource<JsonElement>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var returning = RunCachedReturnAsync(page, async () =>
+        {
+            // Reload freezes the cached document before its replacement arrives.
+            // Capture its computed view in the same task as the return event;
+            // locator assertions would wait for the held navigation to finish.
+            capturedPaint.TrySetResult(await page.EvaluateAsync<JsonElement>("""
+                clock => {
+                    window.dispatchEvent(new PageTransitionEvent('pageshow', {persisted:true}));
+                    const isPainted = element => {
+                        const rect = element.getBoundingClientRect();
+                        const style = getComputedStyle(element);
+                        return rect.width > 0 && rect.height > 0 && style.display !== 'none' && style.visibility !== 'hidden';
+                    };
+                    return {
+                        state: document.documentElement.dataset.initialView || null,
+                        resultPainted: isPainted(document.getElementById(`${clock}AgeResult`)),
+                        inputPainted: isPainted(document.getElementById('blood-draw-date')),
+                        titlePainted: isPainted(document.getElementById('mainPageTitleH2')),
+                        nextPainted: isPainted(document.getElementById('continueButton'))
+                    };
+                }
+                """, clock));
+        });
+        try
+        {
+            await requested.Task.WaitAsync(TimeSpan.FromSeconds(20));
+            var paint = await capturedPaint.Task.WaitAsync(TimeSpan.FromSeconds(20));
+            Assert.False(paint.GetProperty("resultPainted").GetBoolean(), paint.ToString());
+            Assert.False(paint.GetProperty("inputPainted").GetBoolean(), paint.ToString());
+            Assert.False(paint.GetProperty("titlePainted").GetBoolean(), paint.ToString());
+            Assert.False(paint.GetProperty("nextPainted").GetBoolean(), paint.ToString());
+            Assert.Equal("pending", paint.GetProperty("state").GetString());
+        }
+        finally
+        {
+            release.TrySetResult();
+            await returning;
+        }
+        await Assertions.Expect(page.Locator("#wbc")).ToHaveValueAsync("5.2");
+        await Assertions.Expect(page.Locator("#albumin")).ToHaveValueAsync("");
     }
 
     [Theory]
@@ -221,7 +337,7 @@ public sealed class BioageUpdateDraftBrowserTests(PlaywrightBrowserFixture brows
         await page.WaitForFunctionAsync("key => sessionStorage.getItem(key)?.includes('5.2')", key);
         // A successful proof submission removes this key while the calculator is cached.
         // Exercise the actual return lifecycle, including resetting the visible form.
-        await page.EvaluateAsync("key => {sessionStorage.removeItem(key); window.dispatchEvent(new PageTransitionEvent('pageshow', {persisted:true}));}", key);
+        await RunCachedReturnAsync(page, () => page.EvaluateAsync("key => {sessionStorage.removeItem(key); window.dispatchEvent(new PageTransitionEvent('pageshow', {persisted:true}));}", key));
         await Assertions.Expect(page.Locator("#wbc")).ToHaveValueAsync("");
         await Assertions.Expect(page.Locator("#blood-draw-date")).ToHaveValueAsync("");
         await WaitForEntryAsync(page);
@@ -245,12 +361,32 @@ public sealed class BioageUpdateDraftBrowserTests(PlaywrightBrowserFixture brows
         await Assertions.Expect(page.Locator("#lwc-step-2")).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("lwc-step--visible"));
     }
 
-    private static Task WaitForEntryAsync(IPage page) => page.WaitForFunctionAsync("() => document.querySelector('.bioageform')?.classList.contains('bioage-biomarker-entry-ready')");
+    private static Task WaitForEntryAsync(IPage page) => page.WaitForFunctionAsync("() => !document.documentElement.hasAttribute('data-initial-view') && document.querySelector('.bioageform')?.classList.contains('bioage-biomarker-entry-ready')");
+
+    private static async Task RunCachedReturnAsync(IPage page, Func<Task> returnToCachedPage)
+    {
+        var reloadReady = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        EventHandler<IPage> onReloadReady = (_, _) => reloadReady.TrySetResult();
+        page.DOMContentLoaded += onReloadReady;
+        try
+        {
+            await returnToCachedPage();
+            await reloadReady.Task.WaitAsync(TimeSpan.FromSeconds(20));
+            await WaitForEntryAsync(page);
+        }
+        finally { page.DOMContentLoaded -= onReloadReady; }
+    }
 
     private static async Task FillMarkerAsync(IPage page, string id, string value, string? unit = null)
     {
+        // Restored documents can be parsed before their intended view is ready.
+        await Assertions.Expect(page.Locator("#lwcStepsShell")).ToBeVisibleAsync();
         var input = page.Locator($"#{id}");
-        if (!await input.IsVisibleAsync()) await input.Locator("xpath=ancestor::*[contains(concat(' ',normalize-space(@class),' '),' biomarker-card ')]").Locator(".biomarker-card-header").ClickAsync();
+        var header = input.Locator("xpath=ancestor::*[contains(concat(' ',normalize-space(@class),' '),' biomarker-card ')]").Locator(".biomarker-card-header");
+        // Mobile cards stay expanded and their headers are deliberately not
+        // buttons. Wait for restoration instead of attempting to toggle them.
+        if (!await input.IsVisibleAsync() && await header.GetAttributeAsync("role") == "button") await header.ClickAsync();
+        await Assertions.Expect(input).ToBeVisibleAsync();
         if (unit is not null) await page.Locator($"#{id}Unit").SelectOptionAsync(unit);
         await input.FillAsync(value);
     }

@@ -390,6 +390,8 @@ public sealed class AestheticSystemBrowserTests(
         await Task.WhenAll(
             NavigateAndSettleAsync(challengePage, "/longevitymaxxing"),
             NavigateAndSettleAsync(applyPage, "/apply"));
+        await Assertions.Expect(challengePage.Locator(".lmx-page")).ToHaveAttributeAsync("aria-busy", "false");
+        await Assertions.Expect(challengePage.Locator("#lmxSignupPanel")).ToBeVisibleAsync();
 
         foreach (var deficiency in new[] { "protanopia", "deuteranopia", "tritanopia", "achromatopsia" })
         {
@@ -1536,6 +1538,7 @@ public sealed class AestheticSystemBrowserTests(
     internal static async Task NavigateAndSettleAsync(IPage page, string path)
     {
         await page.GotoAsync(path, new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.WaitForFunctionAsync("() => !document.documentElement.hasAttribute('data-initial-view')");
         await page.EvaluateAsync("() => document.fonts?.ready || Promise.resolve()");
     }
 
