@@ -32,7 +32,7 @@ public sealed class MastodonAnnouncementService(
             string ResolveName(string slug) => names.TryGetValue(slug, out var name) && !string.IsNullOrWhiteSpace(name)
                 ? name : CultureInfo.InvariantCulture.TextInfo.ToTitleCase(slug.Replace('_', ' ').Replace('-', ' '));
 
-            foreach (var pending in deliveries.GetPending(customOnly, now))
+            foreach (var pending in deliveries.GetPending(SocialDeliveryStore.Mastodon, customOnly, now))
             {
                 ct.ThrowIfCancellationRequested();
                 var item = pending.Event;
@@ -40,13 +40,13 @@ public sealed class MastodonAnnouncementService(
                 {
                     // The server forgets idempotency keys after an hour. Keep an uncertain outcome
                     // for operator review rather than risk publishing it again after that window.
-                    deliveries.RequireReview(item.Id, now);
+                    deliveries.RequireReview(SocialDeliveryStore.Mastodon, item.Id, now);
                     log.LogWarning("Mastodon event {EventId} needs review because its posting outcome is unconfirmed", item.Id);
                     continue;
                 }
                 if (pending.HiddenForMissingAthlete)
                 {
-                    deliveries.Skip(item.Id, "MissingAthlete", now);
+                    deliveries.Skip(SocialDeliveryStore.Mastodon, item.Id, "MissingAthlete", now);
                     continue;
                 }
                 string? subject = item.Type is EventType.NewRank or EventType.BadgeAward or EventType.CrowdAgeTop10Change or EventType.AgeImprovementTop10Change
@@ -56,10 +56,10 @@ public sealed class MastodonAnnouncementService(
                     if (SocialEventSkipPolicy.TryGetXOrThreadsTerminalSkipReason(item.Type, item.Text, item.OccurredAtUtc, pending.Priority,
                         now.UtcDateTime.AddDays(-7), athletes.HasSingleGlobalPlaceOneBadgeHolder, out var reason))
                     {
-                        deliveries.Skip(item.Id, reason.ToString(), now);
+                        deliveries.Skip(SocialDeliveryStore.Mastodon, item.Id, reason.ToString(), now);
                         continue;
                     }
-                    if (subject is not null && deliveries.IsSubjectOnCooldown(subject, now)) continue;
+                    if (subject is not null && deliveries.IsSubjectOnCooldown(SocialDeliveryStore.Mastodon, subject, now)) continue;
                 }
 
                 var postStarted = false;
@@ -73,17 +73,17 @@ public sealed class MastodonAnnouncementService(
                         var request = await BuildRequestAsync(item, ResolveName, ct);
                         if (request is null)
                         {
-                            deliveries.Skip(item.Id, SocialEventSkipReason.EmptyMessage.ToString(), now);
+                            deliveries.Skip(SocialDeliveryStore.Mastodon, item.Id, SocialEventSkipReason.EmptyMessage.ToString(), now);
                             continue;
                         }
-                        (key, json) = deliveries.Prepare(item.Id, JsonSerializer.Serialize(request), subject, time.GetUtcNow());
+                        (key, json) = deliveries.Prepare(SocialDeliveryStore.Mastodon, item.Id, JsonSerializer.Serialize(request), subject, time.GetUtcNow());
                     }
                     var prepared = JsonSerializer.Deserialize<MastodonPostRequest>(json)
                         ?? throw new InvalidOperationException("The saved Mastodon request is invalid.");
-                    deliveries.BeginAttempt(item.Id, time.GetUtcNow());
+                    deliveries.BeginAttempt(SocialDeliveryStore.Mastodon, item.Id, time.GetUtcNow());
                     postStarted = true;
                     var receipt = await api.PublishAsync(key!, prepared, ct);
-                    deliveries.Complete(item.Id, receipt, time.GetUtcNow());
+                    deliveries.Complete(SocialDeliveryStore.Mastodon, item.Id, receipt, time.GetUtcNow());
                     log.LogInformation("Mastodon delivered event {EventId}: {PostUrl}", item.Id, receipt.Url);
                     return;
                 }
@@ -93,7 +93,7 @@ public sealed class MastodonAnnouncementService(
                     var code = error?.Code ?? ex.GetType().Name;
                     var delay = TimeSpan.FromMinutes(Math.Min(10, Math.Pow(2, Math.Min(pending.Attempts + 1, 4))));
                     if (error?.RetryAfter is { } retry && retry > delay) delay = retry;
-                    deliveries.Fail(item.Id, code, delay,
+                    deliveries.Fail(SocialDeliveryStore.Mastodon, item.Id, code, delay,
                         clearFirstAttempt: pending.FirstAttemptAtUtc is null && (error is not null ? !error.OutcomeUnknown : !postStarted), time.GetUtcNow());
                     log.LogWarning("Mastodon event {EventId} remains pending after {ErrorCode}; retry {Attempt}", item.Id, code, pending.Attempts + 1);
                     return;

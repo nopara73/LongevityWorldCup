@@ -293,6 +293,15 @@ Deletion is scoped to `wwwroot/athletes/` and the generated-only `wwwroot/js/` d
 
 Social API token refreshes first try to persist updated token state in `config.json`. If the service account can read but not write that file, the app writes the runtime token fields to `/var/www/.longevityworldcup/runtime-config.json` instead. On startup, that sidecar is applied only when it is newer than `config.json`, so a fresh manual edit to `config.json` takes precedence. Delete or update the sidecar when intentionally resetting social tokens.
 
+Mastodon and Nostr runtime settings also belong in the protected production `config.json`;
+see [MastodonApiSetup.md](MastodonApiSetup.md) and [NostrApiSetup.md](NostrApiSetup.md).
+Before an unrelated manual config edit, preserve any newer X, Threads, and Facebook token
+fields from the sidecar so the fresh base file does not discard their latest refresh state.
+The Nostr signing key is a permanent account credential: never copy it into checkout files,
+deployment artifacts, command arguments, or logs. Obtain an explicit server-only exception
+when the owner has reserved secret storage to themselves. The service verifies the derived
+public identity before sending; profile discovery exposes only its public key and relays.
+
 ## Scheduled Jobs
 
 IndexNow uses a separate hosted worker and an explicit Production opt-in. Its key and delivery ledger live beside the SQLite database in `indexnow-state.json`, outside the release tree. Preserve and back up that file; do not regenerate it during deployment. See [IndexNow.md](IndexNow.md) for enabling, retries, key verification and status inspection.

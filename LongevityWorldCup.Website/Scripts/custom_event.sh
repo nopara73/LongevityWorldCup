@@ -204,7 +204,7 @@ if not isinstance(content, str):
     sys.exit(1)
 
 flags = []
-for key in ("sendToWebpage", "sendToSlack", "sendToX", "sendToThreads", "sendToFacebook", "sendToMastodon"):
+for key in ("sendToWebpage", "sendToSlack", "sendToX", "sendToThreads", "sendToFacebook", "sendToMastodon", "sendToNostr"):
     flags.append("1" if bool(data.get(key)) else "0")
 
 if not any(flag == "1" for flag in flags):
@@ -217,7 +217,7 @@ for value in (title, content, *flags):
 PY
   )
 
-if [[ "${#payload_fields[@]}" -lt 8 ]]; then
+if [[ "${#payload_fields[@]}" -lt 9 ]]; then
   echo "Invalid payload fields" >&2
   exit 1
 fi
@@ -230,6 +230,7 @@ send_x="${payload_fields[4]}"
 send_threads="${payload_fields[5]}"
 send_facebook="${payload_fields[6]}"
 send_mastodon="${payload_fields[7]}"
+send_nostr="${payload_fields[8]}"
 }
 
 render() {
@@ -266,6 +267,7 @@ selected_platforms() {
   [[ "$send_threads" == "1" ]] && items+=("Threads")
   [[ "$send_facebook" == "1" ]] && items+=("Facebook")
   [[ "$send_mastodon" == "1" ]] && items+=("Mastodon")
+  [[ "$send_nostr" == "1" ]] && items+=("Nostr")
 
   local joined=""
   for item in "${items[@]}"; do
@@ -311,13 +313,21 @@ x_processed="$([[ "$send_x" == "1" ]] && echo 0 || echo 1)"
 threads_processed="$([[ "$send_threads" == "1" ]] && echo 0 || echo 1)"
 facebook_processed="$([[ "$send_facebook" == "1" ]] && echo 0 || echo 1)"
 visible_on_website="$([[ "$send_webpage" == "1" ]] && echo 1 || echo 0)"
-mastodon_status="$([[ "$send_mastodon" == "1" ]] && echo pending || echo skipped)"
-mastodon_reason="$([[ "$send_mastodon" == "1" ]] && echo NULL || echo \"'TargetNotSelected'\")"
-mastodon_sql=""
+social_sql=""
 if [[ "$(as_svc sqlite3 "$db_path" "SELECT 1 FROM sqlite_master WHERE type='table' AND name='SocialDeliveries';")" == "1" ]]; then
-  mastodon_sql="INSERT INTO SocialDeliveries (EventId, Platform, Status, LastErrorCode, UpdatedAtUtc) VALUES ('$id', 'mastodon', '$mastodon_status', $mastodon_reason, strftime('%Y-%m-%dT%H:%M:%fZ','now'));"
-elif [[ "$send_mastodon" == "1" ]]; then
-  echo "Mastodon delivery storage is missing; start the current application to initialize it." >&2
+  for platform in mastodon nostr; do
+    selected_var="send_${platform}"
+    if [[ "${!selected_var}" == "1" ]]; then
+      delivery_status="pending"
+      delivery_reason="NULL"
+    else
+      delivery_status="skipped"
+      delivery_reason="'TargetNotSelected'"
+    fi
+    social_sql+="INSERT INTO SocialDeliveries (EventId, Platform, Status, LastErrorCode, UpdatedAtUtc) VALUES ('$id', '$platform', '$delivery_status', $delivery_reason, strftime('%Y-%m-%dT%H:%M:%fZ','now'));"
+  done
+elif [[ "$send_mastodon" == "1" || "$send_nostr" == "1" ]]; then
+  echo "Social delivery storage is missing; start the current application to initialize it." >&2
   exit 1
 fi
 
@@ -332,7 +342,7 @@ err=""
 attempt=0
 delay_ms="$sqlite_retry_initial_ms"
 while :; do
-  out="$(as_svc sqlite3 -cmd ".timeout $sqlite_timeout_ms" "$db_path" "BEGIN IMMEDIATE; INSERT INTO Events (Id, Type, Text, OccurredAt, Relevance, VisibleOnWebsite, SlackProcessed, XProcessed, ThreadsProcessed, FacebookProcessed) VALUES ('$id', 6, '$txt', strftime('%Y-%m-%dT%H:%M:%fZ','now'), 15, $visible_on_website, $slack_processed, $x_processed, $threads_processed, $facebook_processed); $mastodon_sql COMMIT;" 2>&1)"
+  out="$(as_svc sqlite3 -cmd ".timeout $sqlite_timeout_ms" "$db_path" "BEGIN IMMEDIATE; INSERT INTO Events (Id, Type, Text, OccurredAt, Relevance, VisibleOnWebsite, SlackProcessed, XProcessed, ThreadsProcessed, FacebookProcessed) VALUES ('$id', 6, '$txt', strftime('%Y-%m-%dT%H:%M:%fZ','now'), 15, $visible_on_website, $slack_processed, $x_processed, $threads_processed, $facebook_processed); $social_sql COMMIT;" 2>&1)"
   rc=$?
   if [[ $rc -eq 0 ]]; then
     echo "Inserted $id into $db_path"

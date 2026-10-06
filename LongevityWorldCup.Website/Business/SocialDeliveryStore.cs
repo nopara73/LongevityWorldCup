@@ -8,12 +8,15 @@ namespace LongevityWorldCup.Website.Business;
 internal sealed record PendingSocialDelivery(EventItem Event, int Priority, int Attempts, string? RecordKey,
     string? RecordJson, DateTimeOffset? FirstAttemptAtUtc, bool HiddenForMissingAthlete);
 
+internal sealed record SocialPostReceipt(string Id, string Url);
+
 public sealed class SocialDeliveryStore(DatabaseManager db)
 {
     internal const string Mastodon = "mastodon";
+    internal const string Nostr = "nostr";
     private static string Timestamp(DateTimeOffset value) => value.UtcDateTime.ToString("o");
 
-    internal static void InitializeMastodon(DatabaseManager db) => db.Run(sqlite =>
+    internal static void InitializeChannel(DatabaseManager db, string platform) => db.Run(sqlite =>
     {
         using var tx = sqlite.BeginTransaction();
         using var cmd = sqlite.CreateCommand();
@@ -46,13 +49,13 @@ public sealed class SocialDeliveryStore(DatabaseManager db)
             WHERE NOT EXISTS (SELECT 1 FROM SocialDeliveryChannels WHERE Platform = @platform);
             INSERT OR IGNORE INTO SocialDeliveryChannels (Platform, IntroducedAtUtc) VALUES (@platform, @now);
             """;
-        cmd.Parameters.AddWithValue("@platform", Mastodon);
+        cmd.Parameters.AddWithValue("@platform", platform);
         cmd.Parameters.AddWithValue("@now", Timestamp(DateTimeOffset.UtcNow));
         cmd.ExecuteNonQuery();
         tx.Commit();
     });
 
-    internal static void SelectCustomEventTarget(SqliteConnection sqlite, SqliteTransaction tx, string id, bool selected)
+    internal static void SelectCustomEventTarget(SqliteConnection sqlite, SqliteTransaction tx, string id, bool selected, string platform)
     {
         using var cmd = sqlite.CreateCommand();
         cmd.Transaction = tx;
@@ -61,14 +64,14 @@ public sealed class SocialDeliveryStore(DatabaseManager db)
             VALUES (@id, @platform, @status, @reason, @now);
             """;
         cmd.Parameters.AddWithValue("@id", id);
-        cmd.Parameters.AddWithValue("@platform", Mastodon);
+        cmd.Parameters.AddWithValue("@platform", platform);
         cmd.Parameters.AddWithValue("@status", selected ? "pending" : "skipped");
         cmd.Parameters.AddWithValue("@reason", selected ? DBNull.Value : "TargetNotSelected");
         cmd.Parameters.AddWithValue("@now", Timestamp(DateTimeOffset.UtcNow));
         cmd.ExecuteNonQuery();
     }
 
-    internal IReadOnlyList<PendingSocialDelivery> GetPending(bool customOnly, DateTimeOffset now) => db.Run(sqlite =>
+    internal IReadOnlyList<PendingSocialDelivery> GetPending(string platform, bool customOnly, DateTimeOffset now) => db.Run(sqlite =>
     {
         using var cmd = sqlite.CreateCommand();
         cmd.CommandText = """
@@ -83,7 +86,7 @@ public sealed class SocialDeliveryStore(DatabaseManager db)
               AND (@customOnly = 0 OR e.Type = @custom OR d.RecordJson IS NOT NULL)
             ORDER BY e.OccurredAt DESC;
             """;
-        cmd.Parameters.AddWithValue("@platform", Mastodon);
+        cmd.Parameters.AddWithValue("@platform", platform);
         cmd.Parameters.AddWithValue("@now", Timestamp(now));
         cmd.Parameters.AddWithValue("@customOnly", customOnly ? 1 : 0);
         cmd.Parameters.AddWithValue("@custom", (int)EventType.CustomEvent);
@@ -100,7 +103,7 @@ public sealed class SocialDeliveryStore(DatabaseManager db)
         return pending.OrderBy(x => x.RecordJson is null).ThenBy(x => x.Priority).ThenByDescending(x => x.Event.OccurredAtUtc).ToArray();
     });
 
-    internal (string Key, string Json) Prepare(string id, string json, string? subject, DateTimeOffset now) => db.Run(sqlite =>
+    internal (string Key, string Json) Prepare(string platform, string id, string json, string? subject, DateTimeOffset now) => db.Run(sqlite =>
     {
         using var cmd = sqlite.CreateCommand();
         cmd.CommandText = """
@@ -111,8 +114,8 @@ public sealed class SocialDeliveryStore(DatabaseManager db)
             WHERE SocialDeliveries.Status = 'pending' AND SocialDeliveries.RecordJson IS NULL;
             """;
         cmd.Parameters.AddWithValue("@id", id);
-        cmd.Parameters.AddWithValue("@platform", Mastodon);
-        cmd.Parameters.AddWithValue("@key", "lwc-" + Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(Mastodon + ":" + id))));
+        cmd.Parameters.AddWithValue("@platform", platform);
+        cmd.Parameters.AddWithValue("@key", "lwc-" + Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(platform + ":" + id))));
         cmd.Parameters.AddWithValue("@json", json);
         cmd.Parameters.AddWithValue("@hash", Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(json))));
         cmd.Parameters.AddWithValue("@subject", (object?)subject ?? DBNull.Value);
@@ -121,27 +124,27 @@ public sealed class SocialDeliveryStore(DatabaseManager db)
         cmd.CommandText = "SELECT RecordKey, RecordJson FROM SocialDeliveries WHERE EventId = @id AND Platform = @platform;";
         using var reader = cmd.ExecuteReader();
         if (!reader.Read() || reader.IsDBNull(0) || reader.IsDBNull(1))
-            throw new InvalidOperationException("The Mastodon delivery was not prepared.");
+            throw new InvalidOperationException("The social delivery was not prepared.");
         return (reader.GetString(0), reader.GetString(1));
     });
 
-    internal void BeginAttempt(string id, DateTimeOffset now) => db.Run(sqlite =>
+    internal void BeginAttempt(string platform, string id, DateTimeOffset now) => db.Run(sqlite =>
     {
         using var cmd = sqlite.CreateCommand();
         cmd.CommandText = "UPDATE SocialDeliveries SET FirstAttemptAtUtc = COALESCE(FirstAttemptAtUtc, @now) WHERE EventId = @id AND Platform = @platform AND Status = 'pending';";
         cmd.Parameters.AddWithValue("@id", id);
-        cmd.Parameters.AddWithValue("@platform", Mastodon);
+        cmd.Parameters.AddWithValue("@platform", platform);
         cmd.Parameters.AddWithValue("@now", Timestamp(now));
         cmd.ExecuteNonQuery();
     });
 
-    internal void Complete(string id, MastodonPostReceipt receipt, DateTimeOffset now) => Update(id, "sent", null, receipt, null, false, now);
-    internal void Skip(string id, string reason, DateTimeOffset now) => Update(id, "skipped", reason, null, null, false, now);
-    internal void RequireReview(string id, DateTimeOffset now) => Update(id, "review", "UnconfirmedPost", null, null, false, now);
-    internal void Fail(string id, string code, TimeSpan retryDelay, bool clearFirstAttempt, DateTimeOffset now) =>
-        Update(id, "pending", code, null, now.Add(retryDelay), clearFirstAttempt, now);
+    internal void Complete(string platform, string id, SocialPostReceipt receipt, DateTimeOffset now) => Update(platform, id, "sent", null, receipt, null, false, now);
+    internal void Skip(string platform, string id, string reason, DateTimeOffset now) => Update(platform, id, "skipped", reason, null, null, false, now);
+    internal void RequireReview(string platform, string id, DateTimeOffset now) => Update(platform, id, "review", "UnconfirmedPost", null, null, false, now);
+    internal void Fail(string platform, string id, string code, TimeSpan retryDelay, bool clearFirstAttempt, DateTimeOffset now) =>
+        Update(platform, id, "pending", code, null, now.Add(retryDelay), clearFirstAttempt, now);
 
-    private void Update(string id, string status, string? reason, MastodonPostReceipt? receipt, DateTimeOffset? retryAt,
+    private void Update(string platform, string id, string status, string? reason, SocialPostReceipt? receipt, DateTimeOffset? retryAt,
         bool clearFirstAttempt, DateTimeOffset now) => db.Run(sqlite =>
     {
         using var cmd = sqlite.CreateCommand();
@@ -155,7 +158,7 @@ public sealed class SocialDeliveryStore(DatabaseManager db)
                 UpdatedAtUtc = @now;
             """;
         cmd.Parameters.AddWithValue("@id", id);
-        cmd.Parameters.AddWithValue("@platform", Mastodon);
+        cmd.Parameters.AddWithValue("@platform", platform);
         cmd.Parameters.AddWithValue("@status", status);
         cmd.Parameters.AddWithValue("@reason", (object?)reason ?? DBNull.Value);
         cmd.Parameters.AddWithValue("@uri", (object?)receipt?.Url ?? DBNull.Value);
@@ -167,11 +170,11 @@ public sealed class SocialDeliveryStore(DatabaseManager db)
         cmd.ExecuteNonQuery();
     });
 
-    internal bool IsSubjectOnCooldown(string subject, DateTimeOffset now) => db.Run(sqlite =>
+    internal bool IsSubjectOnCooldown(string platform, string subject, DateTimeOffset now) => db.Run(sqlite =>
     {
         using var cmd = sqlite.CreateCommand();
         cmd.CommandText = "SELECT EXISTS(SELECT 1 FROM SocialDeliveries WHERE Platform = @platform AND Status = 'sent' AND SubjectSlug = @subject AND UpdatedAtUtc >= @since);";
-        cmd.Parameters.AddWithValue("@platform", Mastodon);
+        cmd.Parameters.AddWithValue("@platform", platform);
         cmd.Parameters.AddWithValue("@subject", subject);
         cmd.Parameters.AddWithValue("@since", Timestamp(now.AddDays(-2)));
         return Convert.ToInt32(cmd.ExecuteScalar()) != 0;

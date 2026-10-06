@@ -900,6 +900,7 @@
                     <label class="check"><input id="sendThreads" type="checkbox" /><span>Threads</span></label>
                     <label class="check"><input id="sendFacebook" type="checkbox" /><span>Facebook</span></label>
                     <label class="check"><input id="sendMastodon" type="checkbox" /><span>Mastodon</span></label>
+                    <label class="check"><input id="sendNostr" type="checkbox" /><span>Nostr</span></label>
                 </div>
             </div>
 
@@ -975,7 +976,7 @@
 
     <script src="{{ASSET_CUSTOM_EVENT_MARKUP_JS}}"></script>
     <script>
-        const LIMITS = { x: 280, threads: 500, mastodon: 500 };
+        const LIMITS = { x: 280, threads: 500, mastodon: 500, nostr: 16000 };
         const SECRET_HASH_ALGORITHM = "pbkdf2-sha256";
         const SECRET_HASH_ITERATIONS = 210000;
         const SECRET_HASH_SALT_BYTES = 16;
@@ -989,6 +990,7 @@
         const sendThreads = document.getElementById("sendThreads");
         const sendFacebook = document.getElementById("sendFacebook");
         const sendMastodon = document.getElementById("sendMastodon");
+        const sendNostr = document.getElementById("sendNostr");
         const designerSecretInput = document.getElementById("designerSecretInput");
         const generateSecretHashBtn = document.getElementById("generateSecretHashBtn");
         const copySecretHashBtn = document.getElementById("copySecretHashBtn");
@@ -1029,18 +1031,21 @@
             { key: "x", label: "X", checkbox: sendX, limit: LIMITS.x },
             { key: "threads", label: "Threads", checkbox: sendThreads, limit: LIMITS.threads },
             { key: "facebook", label: "Facebook", checkbox: sendFacebook, limit: 63206 },
-            { key: "mastodon", label: "Mastodon", checkbox: sendMastodon, limit: LIMITS.mastodon }
+            { key: "mastodon", label: "Mastodon", checkbox: sendMastodon, limit: LIMITS.mastodon },
+            { key: "nostr", label: "Nostr", checkbox: sendNostr, limit: LIMITS.nostr }
         ];
         const PLATFORM_PREVIEW_META = {
             slack: { name: "Longevity World Cup", handle: "#highlights", avatar: "LW", label: "Slack" },
             x: { name: "Longevity World Cup", handle: "@longevitywc", avatar: "LW", label: "X" },
             threads: { name: "Longevity World Cup", handle: "@longevityworldcup", avatar: "LW", label: "Threads" },
             facebook: { name: "Longevity World Cup", handle: "Facebook Page", avatar: "LW", label: "Facebook" },
-            mastodon: { name: "Longevity World Cup", handle: "@longevityworldcup@mastodon.social", avatar: "LW", label: "Mastodon" }
+            mastodon: { name: "Longevity World Cup", handle: "@longevityworldcup@mastodon.social", avatar: "LW", label: "Mastodon" },
+            nostr: { name: "Longevity World Cup", handle: "longevityworldcup.com", avatar: "LW", label: "Nostr" }
         };
 
         function renderPlatformAvatar(platformKey, sizeClass = "x-avatar") {
             const logos = {
+                nostr: `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="1" y="1" width="22" height="22" rx="6" fill="#8b5cf6"/><path fill="white" d="M6 18V6h3l6 8V6h3v12h-3l-6-8v8Z"/></svg>`,
                 mastodon: `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="1" y="1" width="22" height="22" rx="6" fill="#6364ff"/><path fill="white" d="M5 7h3l4 5 4-5h3v11h-3v-7l-4 5-4-5v7H5Z"/></svg>`,
                 x: `
                     <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -1923,7 +1928,7 @@
                 return plan.postText;
             }
 
-            if (platformKey === "x" || platformKey === "threads" || platformKey === "facebook" || platformKey === "mastodon") {
+            if (platformKey === "x" || platformKey === "threads" || platformKey === "facebook" || platformKey === "mastodon" || platformKey === "nostr") {
                 const fallbackLimit = LIMITS[platformKey] ?? 63206;
                 const fallbackPlan = buildPlan(titleRaw, contentRaw, fallbackLimit, platformKey, includeEventUrl);
                 return fallbackPlan.postText || "";
@@ -2042,7 +2047,8 @@
                 sendToX: sendX.checked,
                 sendToThreads: sendThreads.checked,
                 sendToFacebook: sendFacebook.checked,
-                sendToMastodon: sendMastodon.checked
+                sendToMastodon: sendMastodon.checked,
+                sendToNostr: sendNostr.checked
             };
         }
 
@@ -2053,7 +2059,8 @@
                 payload.sendToX ||
                 payload.sendToThreads ||
                 payload.sendToFacebook ||
-                payload.sendToMastodon
+                payload.sendToMastodon ||
+                payload.sendToNostr
             );
         }
 
@@ -2094,6 +2101,7 @@
                 if (typeof data.sendThreads === "boolean") sendThreads.checked = data.sendThreads;
                 if (typeof data.sendFacebook === "boolean") sendFacebook.checked = data.sendFacebook;
                 if (typeof data.sendMastodon === "boolean") sendMastodon.checked = data.sendMastodon;
+                if (typeof data.sendNostr === "boolean") sendNostr.checked = data.sendNostr;
             } catch {
             }
         }
@@ -2106,7 +2114,8 @@
                     sendX: sendX.checked,
                     sendThreads: sendThreads.checked,
                     sendFacebook: sendFacebook.checked,
-                    sendMastodon: sendMastodon.checked
+                    sendMastodon: sendMastodon.checked,
+                    sendNostr: sendNostr.checked
                 }));
             } catch {
             }
@@ -2556,7 +2565,7 @@
             }
         });
 
-        [titleInput, contentInput, sendWebpage, sendSlack, sendX, sendThreads, sendFacebook, sendMastodon].forEach(el => {
+        [titleInput, contentInput, sendWebpage, sendSlack, sendX, sendThreads, sendFacebook, sendMastodon, sendNostr].forEach(el => {
             el.addEventListener("input", event => {
                 if (event.target === titleInput || event.target === contentInput) {
                     updateMentionSuggestions(event.target);

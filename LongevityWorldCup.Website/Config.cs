@@ -58,6 +58,9 @@ namespace LongevityWorldCup.Website
         public string MastodonServerUrl { get; set; } = "https://mastodon.social";
         public string? MastodonAccountId { get; set; }
         public string? MastodonAccessToken { get; set; }
+        public string? NostrPrivateKeyHex { get; set; }
+        public string? NostrPublicKeyHex { get; set; }
+        public string[] NostrRelayUrls { get; set; } = ["wss://relay.damus.io", "wss://relay.primal.net", "wss://nostr.mom"];
         public string? CustomEventDesignerSecretHash { get; set; }
         public LongevitymaxxingChallengeConfig? LongevitymaxxingChallenge { get; set; }
 

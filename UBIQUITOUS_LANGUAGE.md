@@ -42,12 +42,13 @@ Application and Pro-upgrade payment detection is server-owned and survives a clo
 ## Donations
 
 - A **Donation received** Event acknowledges a Bitcoin transaction received by the public donation address after at least three confirmations. Preserve its transaction identity and exact BTC amount without identifying an anonymous donor. Public acknowledgments use the shareable `/contribute` URL, which opens the contribute section on the homepage and previews that section. Separate transactions remain separate acknowledgments, even when their amounts match.
-- Donation receipts are eligible for acknowledgments on X, Threads, Facebook, Mastodon, and Slack. Acknowledgments do not expire with athlete-highlight freshness or share the periodic fundraising-reminder cooldown. Failed sends remain pending; successful sends finish that platform's delivery. Repeated detection must not create another Event or replay a completed acknowledgment.
+- Donation receipts are eligible for acknowledgments on X, Threads, Facebook, Mastodon, Nostr, and Slack. Acknowledgments do not expire with athlete-highlight freshness or share the periodic fundraising-reminder cooldown. Failed sends remain pending; successful sends finish that platform's delivery. Repeated detection must not create another Event or replay a completed acknowledgment.
 - Previously skipped donations require a reviewed recovery decision; deploying support does not automatically replay historical receipts.
 
 ## Events and Improvement
 
 - Mastodon delivery starts with new Events when the channel is introduced; existing Events are silently baselined. A Custom Event's explicit Mastodon destination is independent of its website visibility and other destinations. Preserve established event copy, athlete names, and image alt text; do not borrow handles from another social platform. Keep an unconfirmed publication for review once safe duplicate prevention expires.
+- Nostr follows the same introduction, eligibility, independent destination, and subject cooldown rules. Retry the original signed Event without changing its identity; two separate relays must acknowledge and return that Event before delivery is complete. Preserve human names, wording, and image alt text.
 
 - The public Event API exposes all website-visible Events, including profile-only accepted results, while excluding hidden and social-only Events. It is historical data, not the curated shared-highlight selection or the private social delivery queue. Its payload and date contract is documented in the public OpenAPI `listEvents` operation.
 

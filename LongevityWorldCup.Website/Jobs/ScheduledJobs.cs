@@ -22,6 +22,18 @@ internal static class ScheduledJobs
         var crowdAgeAnnouncementKey = new JobKey("CrowdAgeAnnouncementJob");
         var mastodonDailyKey = new JobKey("MastodonDailyPostJob");
         var mastodonCustomKey = new JobKey("MastodonCustomPostJob");
+        var nostrDailyKey = new JobKey("NostrDailyPostJob");
+        var nostrCustomKey = new JobKey("NostrCustomPostJob");
+
+        scheduler.AddJob<NostrDailyPostJob>(o => o.WithIdentity(nostrDailyKey));
+        scheduler.AddTrigger(t => t.ForJob(nostrDailyKey)
+            .WithIdentity("NostrDailyPostTrigger")
+            .WithSchedule(CronScheduleBuilder.Create("0 6 15 * * ?").InTimeZone(TimeZoneInfo.Utc)));
+        scheduler.AddJob<NostrCustomPostJob>(o => o.WithIdentity(nostrCustomKey));
+        scheduler.AddTrigger(t => t.ForJob(nostrCustomKey)
+            .WithIdentity("NostrCustomPostTrigger")
+            .StartNow()
+            .WithSimpleSchedule(x => x.WithInterval(TimeSpan.FromMinutes(1)).RepeatForever()));
 
         scheduler.AddJob<MastodonDailyPostJob>(o => o.WithIdentity(mastodonDailyKey));
         scheduler.AddTrigger(t => t.ForJob(mastodonDailyKey)

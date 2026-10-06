@@ -253,6 +253,9 @@ namespace LongevityWorldCup.Website
             builder.Services.AddSingleton<MastodonApiClient>();
             builder.Services.AddSingleton<SocialDeliveryStore>();
             builder.Services.AddSingleton<MastodonAnnouncementService>();
+            builder.Services.AddSingleton<INostrRelayTransport, NostrRelayTransport>();
+            builder.Services.AddSingleton<NostrRelayClient>();
+            builder.Services.AddSingleton<NostrAnnouncementService>();
             builder.Services.AddSingleton<XFillerPostLogService>();
             builder.Services.AddSingleton<ThreadsFillerPostLogService>();
             builder.Services.AddSingleton<FacebookFillerPostLogService>();
@@ -336,7 +339,8 @@ namespace LongevityWorldCup.Website
             static bool IsPublicApiRequest(HttpContext context) =>
                 context.Request.Path.StartsWithSegments(PublicApiPathPrefix) ||
                 context.Request.Path.Equals("/api/events", StringComparison.OrdinalIgnoreCase) ||
-                context.Request.Path.Equals("/api/events/", StringComparison.OrdinalIgnoreCase);
+                context.Request.Path.Equals("/api/events/", StringComparison.OrdinalIgnoreCase) ||
+                context.Request.Path.Equals("/.well-known/nostr.json", StringComparison.OrdinalIgnoreCase);
 
             app.UseWhen(
                 IsPublicApiRequest,
@@ -514,6 +518,9 @@ namespace LongevityWorldCup.Website
                 MastodonServerUrl = "https://mastodon.social",
                 MastodonAccountId = "",
                 MastodonAccessToken = "",
+                NostrPrivateKeyHex = "",
+                NostrPublicKeyHex = "",
+                NostrRelayUrls = new[] { "wss://relay.damus.io", "wss://relay.primal.net", "wss://nostr.mom" },
                 CustomEventDesignerSecretHash = "",
                 LongevitymaxxingChallenge = new LongevitymaxxingChallengeConfig()
             };

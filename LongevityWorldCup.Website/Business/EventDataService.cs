@@ -43,7 +43,8 @@ public sealed record CustomEventDeliveryTargets(
     bool SendToX,
     bool SendToThreads,
     bool SendToFacebook,
-    bool SendToMastodon = false)
+    bool SendToMastodon = false,
+    bool SendToNostr = false)
 {
     public CustomEventStorageFlags ToStorageFlags() => new(
         VisibleOnWebsite: SendToWebpage ? 1 : 0,
@@ -260,7 +261,8 @@ public sealed partial class EventDataService : IDisposable
         });
 
         InitializeCrowdAgeAnnouncements();
-        SocialDeliveryStore.InitializeMastodon(_db);
+        SocialDeliveryStore.InitializeChannel(_db, SocialDeliveryStore.Mastodon);
+        SocialDeliveryStore.InitializeChannel(_db, SocialDeliveryStore.Nostr);
 
         if (_enableEventDispatch)
         {
@@ -1902,7 +1904,9 @@ public sealed partial class EventDataService : IDisposable
             created = 1;
 
             SocialDeliveryStore.SelectCustomEventTarget(sqlite, tx, eventId,
-                deliveryTargets?.SendToMastodon ?? true);
+                deliveryTargets?.SendToMastodon ?? true, SocialDeliveryStore.Mastodon);
+            SocialDeliveryStore.SelectCustomEventTarget(sqlite, tx, eventId,
+                deliveryTargets?.SendToNostr ?? true, SocialDeliveryStore.Nostr);
 
             tx.Commit();
         });

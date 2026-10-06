@@ -39,6 +39,7 @@
   <ItemGroup>
     <PackageReference Include="Google.Apis.Auth" Version="1.77.0" />
     <PackageReference Include="MailKit" Version="4.18.1" />
+    <PackageReference Include="NBitcoin.Secp256k1" Version="4.0.1" />
     <PackageReference Include="Microsoft.Data.Sqlite.Core" Version="10.0.12" />
     <PackageReference Include="Quartz" Version="4.3.0" />
     <PackageReference Include="SixLabors.ImageSharp" Version="3.1.12" />

@@ -1,5 +1,6 @@
 using System.Net;
 using System.Reflection;
+using System.Text.Json;
 using LongevityWorldCup.Website;
 using LongevityWorldCup.Website.Business;
 using LongevityWorldCup.Website.Jobs;
@@ -15,6 +16,107 @@ namespace LongevityWorldCup.Tests;
 
 public sealed class SocialJobIntegrationTests
 {
+    [Fact]
+    public async Task NostrCustomOnly_PreservesLongTextHumanNamesAndIndependentDestinations()
+    {
+        using var fixture = SocialJobFixture.Create(seedLeaderboardAssets: true);
+        var clock = new MastodonClock(DateTimeOffset.UtcNow);
+        var transport = new NostrRelayTests.RecordingRelays();
+        var client = new NostrRelayClient(NostrRelayTests.Configured(), transport);
+        var id = fixture.Events.CreateCustomEvent("A sport for time 🏆", "[mention](benjamin_garden) " + new string('x', 600),
+            deliveryTargets: new(false, false, false, false, false, false, true));
+        await NostrService(fixture, client, clock).DispatchAsync(true);
+        Assert.Equal(2, transport.Writes.Count);
+        Assert.All(transport.Writes, write =>
+        {
+            Assert.Equal(1, write.Item.Kind);
+            Assert.Contains(fixture.Athletes.GetAthletesForX().Single(a => a.Slug == "benjamin_garden").Name, write.Item.Content);
+            Assert.Contains(new string('x', 600), write.Item.Content);
+            Assert.DoesNotContain("[mention]", write.Item.Content);
+            Assert.DoesNotContain("@", write.Item.Content);
+        });
+        Assert.Empty(fixture.XRequests);
+        Assert.Empty(fixture.ThreadsRequests);
+        Assert.Empty(fixture.FacebookRequests);
+        var store = new SocialDeliveryStore(fixture.Database);
+        Assert.Empty(store.GetPending(SocialDeliveryStore.Nostr, true, clock.Current));
+        Assert.Empty(store.GetPending(SocialDeliveryStore.Mastodon, true, clock.Current));
+        Assert.Equal((1, null), fixture.ReadPlatformState(id, "X"));
+    }
+
+    [Fact]
+    public async Task NostrLostRelayReply_RestartAndLaterRetryReuseTheExactSignedEvent()
+    {
+        using var fixture = SocialJobFixture.Create();
+        var clock = new MastodonClock(DateTimeOffset.UtcNow);
+        var transport = new NostrRelayTests.RecordingRelays { FailSecond = true };
+        var client = new NostrRelayClient(NostrRelayTests.Configured(), transport);
+        var id = fixture.Events.CreateCustomEvent("Original announcement", "Keep this content", deliveryTargets: new(false, false, false, false, false, true, true));
+        await NostrService(fixture, client, clock).DispatchAsync(true);
+        var original = JsonSerializer.Serialize(transport.Writes[0].Item);
+        Assert.Equal(2, transport.Writes.Count);
+        fixture.Database.Run(sqlite =>
+        {
+            using var command = sqlite.CreateCommand();
+            command.CommandText = "UPDATE Events SET Text = 'Changed after publishing' WHERE Id = @id";
+            command.Parameters.AddWithValue("@id", id);
+            command.ExecuteNonQuery();
+        });
+        clock.Current = clock.Current.AddDays(2);
+        transport.FailSecond = false;
+        await NostrService(fixture, client, clock).DispatchAsync(true);
+        Assert.Equal(4, transport.Writes.Count);
+        Assert.All(transport.Writes, write => Assert.Equal(original, JsonSerializer.Serialize(write.Item)));
+        var store = new SocialDeliveryStore(fixture.Database);
+        Assert.Empty(store.GetPending(SocialDeliveryStore.Nostr, true, clock.Current));
+        Assert.Equal(id, Assert.Single(store.GetPending(SocialDeliveryStore.Mastodon, true, clock.Current)).Event.Id);
+        Assert.DoesNotContain(NostrProtocolTests.TestPrivateKey, original);
+    }
+
+    [Fact]
+    public async Task NostrDailyAndCustomJobs_ShareTheirDispatchGate()
+    {
+        using var fixture = SocialJobFixture.Create();
+        var clock = new MastodonClock(DateTimeOffset.UtcNow);
+        var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var transport = new NostrRelayTests.RecordingRelays
+        {
+            BeforeReceipt = async ct => { started.TrySetResult(); await release.Task.WaitAsync(ct); }
+        };
+        fixture.Events.CreateCustomEvent("One announcement", "", deliveryTargets: new(false, false, false, false, false, false, true));
+        var service = NostrService(fixture, new NostrRelayClient(NostrRelayTests.Configured(), transport), clock);
+        var first = service.DispatchAsync(false);
+        await started.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        await service.DispatchAsync(true);
+        release.SetResult();
+        await first;
+        Assert.Equal(2, transport.Writes.Count);
+    }
+
+    [Fact]
+    public async Task NostrDelayedDonation_IsAcknowledgedOnceWithoutCompletingOtherChannels()
+    {
+        using var fixture = SocialJobFixture.Create();
+        var clock = new MastodonClock(DateTimeOffset.UtcNow);
+        var transport = new NostrRelayTests.RecordingRelays();
+        var service = NostrService(fixture, new NostrRelayClient(NostrRelayTests.Configured(), transport), clock);
+        var donation = ("nostr-donation", DateTime.UtcNow.AddDays(-30), 8455L);
+        fixture.Events.CreateDonationReceivedEvents([donation]);
+        var receipt = Assert.Single(fixture.Events.GetPendingXEvents());
+        await service.DispatchAsync(false);
+        fixture.Events.CreateDonationReceivedEvents([donation]);
+        await service.DispatchAsync(false);
+        Assert.Equal(2, transport.Writes.Count);
+        Assert.All(transport.Writes, write => Assert.Contains("0.00008455 BTC", write.Item.Content));
+        Assert.Equal((0, null), fixture.ReadPlatformState(receipt.Id, "X"));
+    }
+
+    private static NostrAnnouncementService NostrService(SocialJobFixture fixture, NostrRelayClient client, TimeProvider clock) => new(
+        fixture.Events, new SocialDeliveryStore(fixture.Database), client, fixture.ThreadsEvents, fixture.Athletes,
+        new CustomEventImageService(fixture.Env, NullLogger<CustomEventImageService>.Instance), fixture.MilestoneMemes,
+        clock, NullLogger<NostrAnnouncementService>.Instance);
+
     [Fact]
     public async Task MastodonDonation_DelayedReceiptPublishesOnceAndOtherChannelsRemainPending()
     {
@@ -38,7 +140,7 @@ public sealed class SocialJobIntegrationTests
         Assert.Contains("0.00008455 BTC", text);
         Assert.Contains("utm_content=donation-" + receipt.Id, text);
         Assert.Equal((0, null), fixture.ReadPlatformState(receipt.Id, "X"));
-        Assert.Empty(new SocialDeliveryStore(fixture.Database).GetPending(false, clock.GetUtcNow()));
+        Assert.Empty(new SocialDeliveryStore(fixture.Database).GetPending(SocialDeliveryStore.Mastodon, false, clock.GetUtcNow()));
     }
 
     [Fact]
@@ -103,7 +205,7 @@ public sealed class SocialJobIntegrationTests
             Assert.Equal(2, writes.Count);
             Assert.Equal(writes[0], writes[1]);
         }
-        Assert.Empty(new SocialDeliveryStore(fixture.Database).GetPending(true, clock.Current));
+        Assert.Empty(new SocialDeliveryStore(fixture.Database).GetPending(SocialDeliveryStore.Mastodon, true, clock.Current));
         Assert.Equal(review ? "review" : "sent", fixture.Database.Run(sqlite =>
         {
             using var cmd = sqlite.CreateCommand();
@@ -150,7 +252,7 @@ public sealed class SocialJobIntegrationTests
         var id = fixture.Events.CreateCustomEvent("Ready when configured", "", deliveryTargets: new(false, false, false, false, false, true));
         await MastodonService(fixture, api, clock).DispatchAsync(true);
         Assert.Empty(requests);
-        Assert.Equal(id, Assert.Single(new SocialDeliveryStore(fixture.Database).GetPending(true, clock.Current)).Event.Id);
+        Assert.Equal(id, Assert.Single(new SocialDeliveryStore(fixture.Database).GetPending(SocialDeliveryStore.Mastodon, true, clock.Current)).Event.Id);
     }
 
     private static MastodonAnnouncementService MastodonService(SocialJobFixture fixture, MastodonApiClient api, TimeProvider clock) => new(

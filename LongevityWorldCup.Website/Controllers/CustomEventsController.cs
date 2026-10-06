@@ -28,7 +28,8 @@ public sealed class CustomEventsController(EventDataService events, Config confi
         bool SendToX,
         bool SendToThreads,
         bool SendToFacebook,
-        bool SendToMastodon = false);
+        bool SendToMastodon = false,
+        bool SendToNostr = false);
 
     [HttpPost]
     [RequestSizeLimit(MaxRequestBytes)]
@@ -72,7 +73,8 @@ public sealed class CustomEventsController(EventDataService events, Config confi
             request.SendToX,
             request.SendToThreads,
             request.SendToFacebook,
-            request.SendToMastodon);
+            request.SendToMastodon,
+            request.SendToNostr);
         var selectedTargets = GetSelectedTargets(targets);
         if (selectedTargets.Count == 0)
             return BadRequest("Select at least one destination.");
@@ -105,6 +107,7 @@ public sealed class CustomEventsController(EventDataService events, Config confi
         if (targets.SendToThreads) selected.Add("threads");
         if (targets.SendToFacebook) selected.Add("facebook");
         if (targets.SendToMastodon) selected.Add("mastodon");
+        if (targets.SendToNostr) selected.Add("nostr");
         return selected;
     }
 }

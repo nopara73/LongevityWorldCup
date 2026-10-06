@@ -119,28 +119,31 @@ public sealed class MastodonIntegrationTests
         {
             CreateEvents(db);
             InsertEvent(db, "old");
-            SocialDeliveryStore.InitializeMastodon(db);
+            SocialDeliveryStore.InitializeChannel(db, SocialDeliveryStore.Mastodon);
             var store = new SocialDeliveryStore(db);
-            Assert.Empty(store.GetPending(false, Now));
+            Assert.Empty(store.GetPending(SocialDeliveryStore.Mastodon, false, Now));
             InsertEvent(db, "new");
-            var prepared = store.Prepare("new", "{\"Text\":\"hello\"}", "athlete", Now);
+            var prepared = store.Prepare(SocialDeliveryStore.Mastodon, "new", "{\"Text\":\"hello\"}", "athlete", Now);
             key = prepared.Key;
-            Assert.Equal(prepared, store.Prepare("new", "changed", "other-athlete", Now));
-            store.BeginAttempt("new", Now);
-            store.Fail("new", "NetworkError", TimeSpan.FromMinutes(2), false, Now);
-            Assert.Empty(store.GetPending(false, Now));
+            Assert.Equal(prepared, store.Prepare(SocialDeliveryStore.Mastodon, "new", "changed", "other-athlete", Now));
+            store.BeginAttempt(SocialDeliveryStore.Mastodon, "new", Now);
+            store.Fail(SocialDeliveryStore.Mastodon, "new", "NetworkError", TimeSpan.FromMinutes(2), false, Now);
+            Assert.Empty(store.GetPending(SocialDeliveryStore.Mastodon, false, Now));
         }
         using (var db = new DatabaseManager(dbPath: path))
         {
-            SocialDeliveryStore.InitializeMastodon(db);
+            SocialDeliveryStore.InitializeChannel(db, SocialDeliveryStore.Mastodon);
             var store = new SocialDeliveryStore(db);
-            var pending = Assert.Single(store.GetPending(true, Now.AddMinutes(3)));
+            var pending = Assert.Single(store.GetPending(SocialDeliveryStore.Mastodon, true, Now.AddMinutes(3)));
             Assert.Equal(key, pending.RecordKey);
             Assert.Equal(Now, pending.FirstAttemptAtUtc);
             Assert.Equal(1, pending.Attempts);
-            store.Complete("new", new("post-1", "https://mastodon.social/@user/post-1"), Now.AddMinutes(3));
-            Assert.Empty(store.GetPending(false, Now.AddDays(1)));
-            Assert.True(store.IsSubjectOnCooldown("athlete", Now.AddDays(1)));
+            SocialDeliveryStore.InitializeChannel(db, SocialDeliveryStore.Nostr);
+            Assert.Empty(store.GetPending(SocialDeliveryStore.Nostr, false, Now.AddMinutes(3)));
+            Assert.Equal(key, Assert.Single(store.GetPending(SocialDeliveryStore.Mastodon, true, Now.AddMinutes(3))).RecordKey);
+            store.Complete(SocialDeliveryStore.Mastodon, "new", new("post-1", "https://mastodon.social/@user/post-1"), Now.AddMinutes(3));
+            Assert.Empty(store.GetPending(SocialDeliveryStore.Mastodon, false, Now.AddDays(1)));
+            Assert.True(store.IsSubjectOnCooldown(SocialDeliveryStore.Mastodon, "athlete", Now.AddDays(1)));
         }
         Directory.Delete(root, true);
     }
@@ -152,20 +155,20 @@ public sealed class MastodonIntegrationTests
         using (var db = new DatabaseManager(dbPath: Path.Combine(root, "test.db")))
         {
             CreateEvents(db);
-            SocialDeliveryStore.InitializeMastodon(db);
+            SocialDeliveryStore.InitializeChannel(db, SocialDeliveryStore.Mastodon);
             InsertEvent(db, "selected", EventType.CustomEvent);
             InsertEvent(db, "excluded", EventType.CustomEvent);
             db.Run(sqlite =>
             {
                 using var tx = sqlite.BeginTransaction();
-                SocialDeliveryStore.SelectCustomEventTarget(sqlite, tx, "selected", true);
-                SocialDeliveryStore.SelectCustomEventTarget(sqlite, tx, "excluded", false);
+                SocialDeliveryStore.SelectCustomEventTarget(sqlite, tx, "selected", true, SocialDeliveryStore.Mastodon);
+                SocialDeliveryStore.SelectCustomEventTarget(sqlite, tx, "excluded", false, SocialDeliveryStore.Mastodon);
                 tx.Commit();
             });
             var store = new SocialDeliveryStore(db);
-            Assert.Equal("selected", Assert.Single(store.GetPending(true, Now)).Event.Id);
-            store.RequireReview("selected", Now);
-            Assert.Empty(store.GetPending(true, Now.AddDays(1)));
+            Assert.Equal("selected", Assert.Single(store.GetPending(SocialDeliveryStore.Mastodon, true, Now)).Event.Id);
+            store.RequireReview(SocialDeliveryStore.Mastodon, "selected", Now);
+            Assert.Empty(store.GetPending(SocialDeliveryStore.Mastodon, true, Now.AddDays(1)));
         }
         Directory.Delete(root, true);
     }
@@ -198,8 +201,8 @@ public sealed class MastodonIntegrationTests
                     """;
                 cmd.ExecuteNonQuery();
             });
-            SocialDeliveryStore.InitializeMastodon(db);
-            Assert.Equal("explicit", Assert.Single(new SocialDeliveryStore(db).GetPending(false, Now)).Event.Id);
+            SocialDeliveryStore.InitializeChannel(db, SocialDeliveryStore.Mastodon);
+            Assert.Equal("explicit", Assert.Single(new SocialDeliveryStore(db).GetPending(SocialDeliveryStore.Mastodon, false, Now)).Event.Id);
             Assert.Equal("original-receipt", db.Run(sqlite =>
             {
                 using var cmd = sqlite.CreateCommand();

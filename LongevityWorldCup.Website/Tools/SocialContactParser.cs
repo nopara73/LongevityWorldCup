@@ -5,7 +5,8 @@ public enum SocialPlatform
     X,
     Threads,
     Facebook,
-    Mastodon
+    Mastodon,
+    Nostr
 }
 
 public static class SocialContactParser

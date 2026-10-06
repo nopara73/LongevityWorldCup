@@ -6,7 +6,6 @@ using LongevityWorldCup.Website.Tools;
 namespace LongevityWorldCup.Website.Business;
 
 internal sealed record MastodonPostRequest(string Text, string? MediaId = null);
-internal sealed record MastodonPostReceipt(string Id, string Url);
 
 public sealed class MastodonApiException(string code, bool outcomeUnknown = false, TimeSpan? retryAfter = null) : Exception(code)
 {
@@ -67,7 +66,7 @@ public sealed class MastodonApiClient(Config config, IHttpClientFactory clients,
         return id;
     }
 
-    internal async Task<MastodonPostReceipt> PublishAsync(string key, MastodonPostRequest post, CancellationToken ct)
+    internal async Task<SocialPostReceipt> PublishAsync(string key, MastodonPostRequest post, CancellationToken ct)
     {
         await VerifyAccountAsync(ct);
         if (string.IsNullOrWhiteSpace(post.Text) || MastodonPost.Count(post.Text) > MastodonPost.MaxCharacters)

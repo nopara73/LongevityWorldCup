@@ -37,12 +37,14 @@ Behavior:
 
 - if `Webpage` is enabled, the post is stored in the DB and also appears on the public event feed
 - if `Webpage` is disabled, the post is still stored in the DB, but it stays hidden from the public website
-- hidden website posts can still be queued for Slack / X / Threads / Facebook
+- hidden website posts can still be queued for Slack / X / Threads / Facebook / Mastodon / Nostr
 - when `Webpage` is disabled, social post generation does not include a public event URL
 - selected social destinations are queued by setting their `Processed` column to `0`
 - unselected social destinations are stored as already processed by setting their `Processed` column to `1`
+- Mastodon and Nostr use independent `SocialDeliveries` rows instead of the legacy `Processed` columns; their designer checkboxes and exported `sendToMastodon` / `sendToNostr` flags select those destinations explicitly
 - the designer/API response reports `queuedTargets`; it also returns `selectedTargets` for backwards compatibility with older callers
 - a queued social target is not confirmation that the platform accepted the post; platform send success is only known after dispatch completes and the corresponding `Processed` column becomes `1` without a skip reason
+- For Mastodon and Nostr, delivery is complete only when the independent row becomes `sent` with its remote receipt; Nostr requires matching signed readback from two relays
 - if dispatch cannot or should not send a queued target, the platform-specific skip reason column records why, for example `PlatformNotConfigured`, `EmptyMessage`, or a terminal platform policy reason
 
 ## Safe live-test checklist
@@ -54,7 +56,7 @@ Use the smallest possible blast radius for the first live test.
 3. Restart the website with `sudo systemctl restart longevityworldcup.service`.
 4. Open `/internal/custom-event-designer.html`.
 5. Use a harmless title such as `Test event - delete me`.
-6. Select `Webpage` only and clear Slack, X, Threads, and Facebook.
+6. Select `Webpage` only and clear Slack, X, Threads, Facebook, Mastodon, and Nostr.
 7. Click `Queue Event`.
 8. Confirm the response shows an event id.
 9. Confirm the event appears on the public event feed.
