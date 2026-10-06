@@ -13,6 +13,7 @@ public sealed class FrontendTypeScriptBuildTests
         "custom-event-markup",
         "field-validation",
         "flow-action-dock",
+        "initial-view",
         "longevitymaxxing",
         "score-xray",
         "site-statistics",

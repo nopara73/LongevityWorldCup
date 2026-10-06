@@ -9,7 +9,41 @@ public sealed class PublicPageRenderingBrowserTests(PlaywrightBrowserFixture bro
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Theory]
+    [InlineData(1280)]
+    [InlineData(390)]
+    public async Task DirectProfile_NeverPaintsTheGuessGameDuringHydration(int width)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = 844 },
+            ReducedMotion = ReducedMotion.NoPreference
+        });
+        await context.AddInitScriptAsync("""
+            window.paintedGuessGame = false;
+            function observeFrame() {
+                const modal = document.getElementById('detailsModal');
+                const game = document.getElementById('guessAgeContainer');
+                if (modal?.checkVisibility() && game?.checkVisibility({ checkOpacity: true }))
+                    window.paintedGuessGame = true;
+                requestAnimationFrame(observeFrame);
+            }
+            requestAnimationFrame(observeFrame);
+            """);
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/athlete/michael-lustgarten");
+        await page.WaitForFunctionAsync("() => !document.querySelector('#detailsModal .modal-content').hasAttribute('data-server-rendered-profile') && document.querySelector('#modalProfilePic').hasAttribute('data-full-src')");
+        await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+        Assert.False(await page.EvaluateAsync<bool>("window.paintedGuessGame"),
+            "Opening a profile must never paint the game, including its exit animation.");
+        await Assertions.Expect(page.Locator("#guessAgeContainer")).ToBeHiddenAsync();
+        await Assertions.Expect(page.Locator("#athleteBio")).ToBeVisibleAsync();
+        await CaptureProfile(page, $"profile-no-game-flash-{width}");
+    }
+
+    [Theory]
     [InlineData("/")]
+    [InlineData("/contribute")]
+    [InlineData("/contribute?view=pheno")]
     [InlineData("/?filters=amateur")]
     [InlineData("/?view=pheno")]
     [InlineData("/?filters=women%27s,gen%2520x&view=pheno")]
@@ -144,6 +178,34 @@ public sealed class PublicPageRenderingBrowserTests(PlaywrightBrowserFixture bro
         await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard could not load.");
         Assert.True(await page.Locator(".server-rendered-leaderboard-row").CountAsync() > 10);
         await Assertions.Expect(page.Locator(".leaderboard-retry-button")).ToBeVisibleAsync();
+    }
+
+    [Theory]
+    [InlineData("/athlete/michael-lustgarten?guessmyage=1", 390)]
+    [InlineData("/?athlete=michael-lustgarten&guessmyage=1", 1280)]
+    public async Task DirectGuessFailure_OffersRetryAndRecoversTheRequestedGame(string path, int width)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = 844 }, ReducedMotion = ReducedMotion.Reduce
+        });
+        var offline = true;
+        await context.RouteAsync("**/api/data/athletes", route => offline ? route.AbortAsync() : route.ContinueAsync());
+        var page = await context.NewPageAsync();
+        await page.GotoAsync(path);
+        await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard could not load.");
+        await Assertions.Expect(page.Locator("#detailsModal")).ToBeVisibleAsync();
+        await Assertions.Expect(page.Locator("#athleteLoadError")).ToBeVisibleAsync();
+        await Assertions.Expect(page.Locator("#retryAthleteLoad")).ToBeVisibleAsync();
+        await Assertions.Expect(page.Locator("#guessAgeContainer")).ToBeHiddenAsync();
+        await Assertions.Expect(page.Locator("#athleteBio")).ToBeEmptyAsync();
+
+        offline = false;
+        await page.Locator("#retryAthleteLoad").ClickAsync();
+        await Assertions.Expect(page.Locator("#guessAgeContainer")).ToBeVisibleAsync();
+        await Assertions.Expect(page.Locator("#athleteLoadError")).ToBeHiddenAsync();
+        await Assertions.Expect(page.Locator("#detailsModal")).ToBeVisibleAsync();
+        Assert.Null(await page.Locator("#detailsModal .modal-content").GetAttributeAsync("data-server-rendered-loading"));
     }
 
     private static Task<string[]> ReadRows(IPage page) => page.Locator(".leaderboard table tbody tr[data-athlete-name]:visible").EvaluateAllAsync<string[]>(

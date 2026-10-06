@@ -260,6 +260,7 @@
         document.documentElement.classList.add('play-route-ready');
         document.body.classList.remove('play-route-hydrating');
         document.body.removeAttribute('aria-busy');
+        window.LwcInitialView.complete();
         window.LwcFlowActionDock?.refreshNow?.();
     }
 
@@ -666,6 +667,7 @@
             showPanelForCurrentUrl();
         }).catch(error => {
             console.error('Unable to initialize athlete flow:', error);
+            window.LwcInitialView.fail();
         });
     }
 

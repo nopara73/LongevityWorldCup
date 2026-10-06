@@ -36,6 +36,8 @@ public static partial class HtmlAssetPlaceholders
         ["{{ASSET_FLAG_ICONS_CSS}}"] = "/vendor/flag-icons/css/flag-icons.min.css",
         ["{{ASSET_FLOW_CONTROLS_CSS}}"] = "/css/flow-controls.css",
         ["{{ASSET_FIELD_VALIDATION_JS}}"] = "/js/field-validation.js",
+        ["{{ASSET_INITIAL_VIEW_JS}}"] = "/js/initial-view.js",
+        ["{{ASSET_INITIAL_VIEW_CSS}}"] = "/css/initial-view.css",
         ["{{ASSET_FONT_AWESOME_CSS}}"] = "/vendor/font-awesome/6.7.2/css/all.min.css",
         ["{{ASSET_HD_LOGO_THUMB_SM}}"] = "/assets/HdLogo_thumb_sm.png",
         ["{{ASSET_HEADSHOT_JPEG}}"] = "/assets/content-images/headshot.jpg",

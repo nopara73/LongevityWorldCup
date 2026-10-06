@@ -4,6 +4,9 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Site Statistics Dashboard</title>
+    <link rel="stylesheet" href="{{ASSET_INITIAL_VIEW_CSS}}">
+    <script src="{{ASSET_INITIAL_VIEW_JS}}"></script>
+    <script>window.LwcInitialView.prepare();</script>
     <style>
         @font-face {
             font-family: "Poppins";
@@ -21,7 +24,7 @@
     <script src="{{ASSET_SITE_STATISTICS_JS}}" defer></script>
 </head>
 <body>
-    <main class="stats-page">
+    <main class="stats-page initial-view-main">
         <header class="stats-header">
             <div class="stats-title">
                 <span class="stats-kicker">internal / public-safe</span>

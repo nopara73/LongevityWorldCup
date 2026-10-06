@@ -3,6 +3,9 @@
 <head>
     <title>Longevity World Cup - Edit Profile</title>
     <!--HEAD-->
+    <link rel="stylesheet" href="{{ASSET_INITIAL_VIEW_CSS}}">
+    <script src="{{ASSET_INITIAL_VIEW_JS}}"></script>
+    <script>window.LwcInitialView.prepare();</script>
     <script src="{{ASSET_FIELD_VALIDATION_JS}}"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
     <style>
@@ -655,7 +658,7 @@
 </head>
 <body class="play-flow-route">
     <!--HEADER-->
-    <main class="edit-profile-main">
+    <main class="edit-profile-main initial-view-main">
         <h1 id="character-title" class="edit-profile-title" data-aos="fade" data-aos-duration="700" data-aos-delay="250">Edit athlete profile</h1>
         <div class="edit-profile-visual" data-aos="fade" data-aos-duration="700" data-aos-delay="300">
             <picture>
@@ -945,6 +948,7 @@
         });
 
         function finishEditProfileSubmission(submissionContext) {
+            window.LwcInitialView.hold();
             profileEditorReady = false;
             const reviewContactEmail = normalizeContactEmail(submissionContext.accountEmail);
             if (reviewContactEmail) {
@@ -967,7 +971,8 @@
 
         setSubmitChangeRequestButton();
 
-        document.addEventListener('DOMContentLoaded', async function () {
+        document.addEventListener('DOMContentLoaded', () => window.LwcInitialView.run(async function () {
+            await window.modulesReady;
             const pendingSubmission = window.getPendingApplicationSubmission('edit-request');
             if (pendingSubmission && pendingSubmission.applicantName === originalAthlete.Name) {
                 showLoading();
@@ -1285,8 +1290,8 @@
             initializeProfileDraftControls();
             profileEditorReady = true;
             updateSubmitButtonState();
-
-        });
+            if (isValidSelectedAthlete(originalAthlete)) window.LwcInitialView.complete();
+        }));
 
         function restoreProfilePicToOriginal() {
             const imgEl = document.querySelector('.illustration');

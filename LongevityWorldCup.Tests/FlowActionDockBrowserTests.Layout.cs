@@ -128,6 +128,7 @@ public sealed class FlowActionDockLayoutBrowserTests(
                 {
                     await page.GotoAsync(route, new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
                     await page.WaitForFunctionAsync("() => window.LwcFlowActionDock");
+                    await page.WaitForFunctionAsync("() => !document.documentElement.hasAttribute('data-initial-view')");
                     if (route == "/select-athlete")
                     {
                         await page.WaitForFunctionAsync(
@@ -282,6 +283,7 @@ public sealed class FlowActionDockLayoutBrowserTests(
 
         await page.GotoAsync("/join", new PageGotoOptions { WaitUntil = WaitUntilState.Commit });
         await page.WaitForFunctionAsync("() => window.LwcFlowActionDock");
+        await Assertions.Expect(page.Locator("#joinStartAmateurBtn")).ToBeVisibleAsync();
 
         var grouping = await page.EvaluateAsync<JoinTrackActionGrouping>(
             """
