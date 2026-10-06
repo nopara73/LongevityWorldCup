@@ -190,7 +190,8 @@ public sealed class FlowActionDockResultBrowserTests(
         {
             BaseURL = app.BaseAddress.ToString(),
             Locale = "en-US",
-            ViewportSize = new ViewportSize { Width = 1280, Height = 720 }
+            // The compact first step fits inline at 720px; constrain height to exercise the portal.
+            ViewportSize = new ViewportSize { Width = 1280, Height = 650 }
         });
         await BrowserTestApp.RouteExternalResourcesAsync(context);
         var page = await context.NewPageAsync();

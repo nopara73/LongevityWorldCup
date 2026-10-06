@@ -3,6 +3,7 @@
 <head>
     <title>Longevity World Cup - Edit Profile</title>
     <!--HEAD-->
+    <script src="{{ASSET_FIELD_VALIDATION_JS}}"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
     <style>
         /* Hide the join-game button in the header */
@@ -788,7 +789,7 @@
     <!--FOOTER-->
     <script>
         let isEditProfileSubmitting = false;
-        const pendingProfileFieldValidation = new Map();
+        const profileFieldValidation = new Map();
         let profileEditorReady = false;
         let resetProfileDraftSnapshot = null;
         let hasUnsavedProfileDraft = false;
@@ -841,7 +842,7 @@
             const emailInput = document.createElement('input');
             emailInput.type = 'email';
             emailInput.value = contactEmail;
-            return emailInput.checkValidity() ? contactEmail : null;
+            return emailInput.validity.valid ? contactEmail : null;
         }
 
         function readStoredContactEmail() {
@@ -1090,35 +1091,15 @@
                 [mediaContactInput, validateMediaContact],
                 [whyDisplayInput, validateWhyDisplay]
             ];
-            let profilePointerDown = false;
-            document.addEventListener('pointerdown', event => {
-                if (event.isPrimary) profilePointerDown = true;
-            }, true);
-            const finishProfilePointer = event => {
-                if (event.isPrimary === false) return;
-                profilePointerDown = false;
-                // An error row must not move a click target between pointerdown
-                // and click. Commit blur feedback after the gesture finishes.
-                setTimeout(() => {
-                    if (profilePointerDown || !pendingProfileFieldValidation.size) return;
-                    const pending = [...pendingProfileFieldValidation];
-                    pendingProfileFieldValidation.clear();
-                    pending.forEach(([input, validate]) => validate(input.value));
-                    const focused = document.activeElement;
-                    if (profileFields.some(([input]) => input === focused)) keepEditedControlClearOfDock(focused);
-                }, 0);
-            };
-            document.addEventListener('pointerup', finishProfilePointer, true);
-            document.addEventListener('pointercancel', finishProfilePointer, true);
-            window.addEventListener('blur', finishProfilePointer);
             profileFields.forEach(([input, validate]) => {
-                input.addEventListener('blur', () => {
-                    if (profilePointerDown) pendingProfileFieldValidation.set(input, validate);
-                    else validate(input.value);
-                });
-                input.addEventListener('input', () => {
-                    if (input.getAttribute('aria-invalid') === 'true') validate(input.value);
-                });
+                profileFieldValidation.set(input, window.LwcFieldValidation.bind(input, {
+                    validate: () => validate(input.value),
+                    clear: () => setProfileFieldError(input.id, ''),
+                    onFeedback: () => {
+                        const focused = document.activeElement;
+                        if (profileFields.some(([field]) => field === focused)) keepEditedControlClearOfDock(focused);
+                    }
+                }));
             });
 
             [flagInput, personalLinkInput, mediaContactInput].forEach(input => {
@@ -1141,8 +1122,7 @@
             submitButton.addEventListener('click', async function () {
                 if (isEditProfileSubmitting || submitButton.disabled) return;
 
-                pendingProfileFieldValidation.clear();
-                const invalidFields = profileFields.filter(([input, validate]) => !validate(input.value));
+                const invalidFields = profileFields.filter(([input]) => !profileFieldValidation.get(input).validate());
                 if (invalidFields.length) {
                     const firstInvalidInput = invalidFields[0][0];
                     firstInvalidInput.focus();
@@ -1696,7 +1676,7 @@
         }
 
         function applyProfileDraftValues(values) {
-            pendingProfileFieldValidation.clear();
+            profileFieldValidation.forEach(controller => controller.reset());
             getProfileEditFields().forEach(field => {
                 if (field.key === 'ProfilePic') document.querySelector('.illustration').src = values[field.key].value;
                 else document.getElementById(field.id).value = values[field.key].value;
@@ -1708,7 +1688,7 @@
         function initializeProfileDraftControls() {
             document.getElementById('resetProfileDraftButton').addEventListener('click', () => {
                 if (isEditProfileSubmitting) return;
-                pendingProfileFieldValidation.forEach((validate, input) => validate(input.value));
+                profileFieldValidation.forEach(controller => controller.flush());
                 resetProfileDraftSnapshot = Object.fromEntries(getProfileEditFields().map(field => [field.key, {
                     value: readProfileField(field), error: document.getElementById(field.id + 'Error')?.textContent || ''
                 }]));
@@ -1741,7 +1721,7 @@
         }
 
         function restoreProfileFieldFeedback(input, restoreButton) {
-            pendingProfileFieldValidation.delete(input);
+            profileFieldValidation.get(input)?.reset();
             setProfileFieldError(input.id, '');
             if (document.activeElement === restoreButton) input.focus({ preventScroll: true });
             restoreButton.style.display = 'none';
@@ -1769,7 +1749,7 @@
             const input = document.createElement('input');
             input.type = 'url';
             input.value = v;
-            return input.checkValidity();
+            return input.validity.valid;
         }
 
         function normalizeOptionalUrl(value) {

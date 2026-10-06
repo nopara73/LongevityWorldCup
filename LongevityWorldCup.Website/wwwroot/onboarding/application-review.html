@@ -324,7 +324,7 @@
             const emailInput = document.createElement('input');
             emailInput.type = 'email';
             emailInput.value = contactEmail;
-            return emailInput.checkValidity() ? contactEmail : null;
+            return emailInput.validity.valid ? contactEmail : null;
         }
 
         function parsePendingPaymentInvoice(value, clearMalformedInvoice) {

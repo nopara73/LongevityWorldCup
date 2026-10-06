@@ -92,7 +92,6 @@ interface BioageBiomarkerEntryController {
     restoring: boolean;
     saveTimer: number;
     step: 1 | 2;
-    visitedInputs: Set<HTMLInputElement>;
 }
 
 interface LwcBioageFlowApi {
@@ -837,7 +836,11 @@ interface Window {
 
     function setBiomarkerError(input: HTMLInputElement, visible: boolean): void {
         const error = getOrCreateBiomarkerError(input);
-        error.hidden = !visible;
+        if (error.hidden !== !visible) {
+            error.hidden = !visible;
+            const card = input.closest<HTMLElement>('.biomarker-card');
+            if (card?.classList.contains('active')) setBiomarkerCardExpanded(card, true);
+        }
         input.setAttribute('aria-invalid', visible ? 'true' : 'false');
     }
 
@@ -1025,19 +1028,21 @@ interface Window {
             getOrCreateBiomarkerError(input);
 
             input.addEventListener('focus', () => {
-                controller.visitedInputs.add(input);
                 expandBiomarkerCard(input);
                 ensureBiomarkerVisible(input);
             });
-            input.addEventListener('input', recordDraftInput);
-            input.addEventListener('blur', () => {
-                if (controller.visitedInputs.has(input)
-                    && !isCompleteBiomarkerInput(input)
-                    && !(controller.isUpdate && input.value.trim() === '')) {
-                    setBiomarkerError(input, true);
-                }
-                scheduleBioageDraftSave(controller);
+            window.LwcFieldValidation.bind(input, {
+                validate: () => {
+                    const valid = isCompleteBiomarkerInput(input)
+                        || (controller.isUpdate && input.value.trim() === '' && !input.validity.badInput);
+                    setBiomarkerError(input, !valid);
+                    return valid;
+                },
+                clear: () => setBiomarkerError(input, false),
+                isRestoring: () => controller.restoring
             });
+            input.addEventListener('input', recordDraftInput);
+            input.addEventListener('blur', () => scheduleBioageDraftSave(controller));
             input.addEventListener('keydown', event => {
                 if (!bioageMobileMedia.matches) return;
                 if (event.key === 'Tab' && !event.shiftKey) {
@@ -1135,8 +1140,7 @@ interface Window {
             progress,
             restoring: false,
             saveTimer: 0,
-            step: 1,
-            visitedInputs: new Set()
+            step: 1
         };
 
         options.form.classList.add('bioage-biomarker-entry-ready');
