@@ -28,12 +28,35 @@ public sealed class SocialContactPreviewBrowserTests(
             "https://mobile.twitter.com/alice", "www.threads.com/alice", "@alice"
         };
         foreach (var contact in contacts)
-        foreach (var platform in new[] { SocialPlatform.X, SocialPlatform.Threads })
+        foreach (var platform in new[] { SocialPlatform.X, SocialPlatform.Threads, SocialPlatform.Mastodon })
         {
             var actual = await page.EvaluateAsync<string>(
                 "args => extractMentionHandle(args.contact, args.platform)",
                 new { contact, platform = platform.ToString().ToLowerInvariant() });
             Assert.Equal(SocialContactParser.TryBuildMention(contact, platform) ?? "", actual);
         }
+    }
+
+    [Fact]
+    public async Task MastodonPreview_UsesEmojiAndLinkCapacityAndRetainsItsDestinationOnMobile()
+    {
+        await using var context = await Browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = App.BaseAddress.ToString(), ViewportSize = new() { Width = 390, Height = 844 }
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/internal/custom-event-designer.html");
+        await page.Locator("#sendMastodon").CheckAsync();
+        await page.Locator("#titleInput").FillAsync(new string('x', 500));
+        await page.Locator("#contentInput").FillAsync(new string('x', 550));
+        var caption = await page.EvaluateAsync<string>("() => buildPlan(titleInput.value, contentInput.value, LIMITS.mastodon, 'mastodon', false).postText");
+        Assert.Equal(500, MastodonPost.Count(caption));
+        Assert.Equal("text", await page.EvaluateAsync<string>("() => buildPlan('👩‍🔬'.repeat(500), '', LIMITS.mastodon, 'mastodon', false).mode"));
+        Assert.Equal(26, await page.EvaluateAsync<int>("() => postLength('🏆 https://longevityworldcup.com/' + 'x'.repeat(500) + '.', 'mastodon')"));
+        Assert.True(await page.EvaluateAsync<bool>("() => buildEventPayload().sendToMastodon"));
+        await page.ReloadAsync();
+        Assert.True(await page.Locator("#sendMastodon").IsCheckedAsync());
+        Assert.True(await page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= innerWidth"));
     }
 }

@@ -248,6 +248,11 @@ namespace LongevityWorldCup.Website
             builder.Services.AddHttpClient<FacebookApiClient>();
             builder.Services.AddSingleton<ThreadsEventService>();
             builder.Services.AddSingleton<FacebookEventService>();
+            builder.Services.AddHttpClient(nameof(MastodonApiClient), client => client.Timeout = TimeSpan.FromSeconds(30))
+                .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
+            builder.Services.AddSingleton<MastodonApiClient>();
+            builder.Services.AddSingleton<SocialDeliveryStore>();
+            builder.Services.AddSingleton<MastodonAnnouncementService>();
             builder.Services.AddSingleton<XFillerPostLogService>();
             builder.Services.AddSingleton<ThreadsFillerPostLogService>();
             builder.Services.AddSingleton<FacebookFillerPostLogService>();
@@ -506,6 +511,9 @@ namespace LongevityWorldCup.Website
                 FacebookPageId = "",
                 FacebookUserAccessToken = "",
                 FacebookPageAccessToken = "",
+                MastodonServerUrl = "https://mastodon.social",
+                MastodonAccountId = "",
+                MastodonAccessToken = "",
                 CustomEventDesignerSecretHash = "",
                 LongevitymaxxingChallenge = new LongevitymaxxingChallengeConfig()
             };

@@ -64,6 +64,7 @@ public sealed class CustomEventPreviewController(
         {
             "threads" => SocialPlatform.Threads,
             "facebook" => SocialPlatform.Facebook,
+            "mastodon" => SocialPlatform.Mastodon,
             _ => SocialPlatform.X
         };
     }

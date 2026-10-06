@@ -15,6 +15,155 @@ namespace LongevityWorldCup.Tests;
 
 public sealed class SocialJobIntegrationTests
 {
+    [Fact]
+    public async Task MastodonDonation_DelayedReceiptPublishesOnceAndOtherChannelsRemainPending()
+    {
+        using var fixture = SocialJobFixture.Create();
+        var writes = new List<string>();
+        var clock = new MastodonClock(DateTimeOffset.UtcNow);
+        var api = MastodonIntegrationTests.Client(async request =>
+        {
+            if (request.Method == HttpMethod.Get) return MastodonIntegrationTests.Json("""{"id":"account-1"}""");
+            writes.Add(WebUtility.UrlDecode(await request.Content!.ReadAsStringAsync()));
+            return MastodonIntegrationTests.Receipt();
+        }, clock);
+        var service = MastodonService(fixture, api, clock);
+        var donation = ("mastodon-donation", DateTime.UtcNow.AddDays(-30), 8455L);
+        fixture.Events.CreateDonationReceivedEvents([donation]);
+        var receipt = Assert.Single(fixture.Events.GetPendingXEvents());
+        await service.DispatchAsync(false);
+        fixture.Events.CreateDonationReceivedEvents([donation]);
+        await service.DispatchAsync(false);
+        var text = Assert.Single(writes);
+        Assert.Contains("0.00008455 BTC", text);
+        Assert.Contains("utm_content=donation-" + receipt.Id, text);
+        Assert.Equal((0, null), fixture.ReadPlatformState(receipt.Id, "X"));
+        Assert.Empty(new SocialDeliveryStore(fixture.Database).GetPending(false, clock.GetUtcNow()));
+    }
+
+    [Fact]
+    public async Task MastodonCustomImage_UsesHumanNamesAndAltTextForTheSelectedDestination()
+    {
+        using var fixture = SocialJobFixture.Create(seedLeaderboardAssets: true);
+        var clock = new MastodonClock(DateTimeOffset.UtcNow);
+        string? alt = null;
+        string? posted = null;
+        var api = MastodonIntegrationTests.Client(async request =>
+        {
+            if (request.Method == HttpMethod.Get) return MastodonIntegrationTests.Json("""{"id":"account-1"}""");
+            if (request.RequestUri!.AbsolutePath == "/api/v2/media")
+            {
+                var parts = Assert.IsType<MultipartFormDataContent>(request.Content);
+                alt = await parts.Single(part => part.Headers.ContentDisposition!.Name!.Trim('"') == "description").ReadAsStringAsync();
+                return MastodonIntegrationTests.Json("""{"id":"media-1","url":"https://files.mastodon.social/image.png"}""");
+            }
+            posted = WebUtility.UrlDecode(await request.Content!.ReadAsStringAsync());
+            return MastodonIntegrationTests.Receipt();
+        }, clock);
+        fixture.Events.CreateCustomEvent("A long announcement", "[mention](benjamin_garden) " + new string('x', 550),
+            deliveryTargets: new(false, false, false, false, false, true));
+        await MastodonService(fixture, api, clock).DispatchAsync(true);
+        Assert.Contains(fixture.Athletes.GetAthletesForX().Single(a => a.Slug == "benjamin_garden").Name, alt);
+        Assert.Contains("media_ids[]=media-1", posted);
+        Assert.Contains("status=A long announcement", posted);
+        Assert.Empty(fixture.XRequests);
+        Assert.Empty(fixture.ThreadsRequests);
+        Assert.Empty(fixture.FacebookRequests);
+    }
+
+    [Theory]
+    [InlineData(3, false)]
+    [InlineData(46, true)]
+    public async Task MastodonLostReply_ReusesThePreparedRequestOrRequiresReviewAfterTheRetryWindow(int elapsedMinutes, bool review)
+    {
+        using var fixture = SocialJobFixture.Create();
+        var clock = new MastodonClock(DateTimeOffset.UtcNow);
+        var writes = new List<(string Key, string Body)>();
+        var api = MastodonIntegrationTests.Client(async request =>
+        {
+            if (request.Method == HttpMethod.Get) return MastodonIntegrationTests.Json("""{"id":"account-1"}""");
+            writes.Add((Assert.Single(request.Headers.GetValues("Idempotency-Key")), await request.Content!.ReadAsStringAsync()));
+            if (writes.Count == 1) throw new HttpRequestException("Response lost after the server created the post");
+            return MastodonIntegrationTests.Receipt();
+        }, clock);
+        var id = fixture.Events.CreateCustomEvent("Original announcement", "Keep this content", deliveryTargets: new(false, false, false, false, false, true));
+        await MastodonService(fixture, api, clock).DispatchAsync(true);
+        fixture.Database.Run(sqlite =>
+        {
+            using var cmd = sqlite.CreateCommand();
+            cmd.CommandText = "UPDATE Events SET Text = 'Changed after publishing' WHERE Id = @id";
+            cmd.Parameters.AddWithValue("@id", id);
+            cmd.ExecuteNonQuery();
+        });
+        clock.Current = clock.Current.AddMinutes(elapsedMinutes);
+        await MastodonService(fixture, api, clock).DispatchAsync(true);
+        if (review) Assert.Single(writes);
+        else
+        {
+            Assert.Equal(2, writes.Count);
+            Assert.Equal(writes[0], writes[1]);
+        }
+        Assert.Empty(new SocialDeliveryStore(fixture.Database).GetPending(true, clock.Current));
+        Assert.Equal(review ? "review" : "sent", fixture.Database.Run(sqlite =>
+        {
+            using var cmd = sqlite.CreateCommand();
+            cmd.CommandText = "SELECT Status FROM SocialDeliveries WHERE Platform = 'mastodon' AND EventId = @id";
+            cmd.Parameters.AddWithValue("@id", id);
+            return (string)cmd.ExecuteScalar()!;
+        }));
+    }
+
+    [Fact]
+    public async Task MastodonDailyAndCustomJobs_CannotPublishTheSameEventConcurrently()
+    {
+        using var fixture = SocialJobFixture.Create();
+        var clock = new MastodonClock(DateTimeOffset.UtcNow);
+        var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var writes = 0;
+        var api = MastodonIntegrationTests.Client(async request =>
+        {
+            if (request.Method == HttpMethod.Get) return MastodonIntegrationTests.Json("""{"id":"account-1"}""");
+            writes++;
+            started.SetResult();
+            await release.Task;
+            return MastodonIntegrationTests.Receipt();
+        }, clock);
+        fixture.Events.CreateCustomEvent("One announcement", "", deliveryTargets: new(false, false, false, false, false, true));
+        var service = MastodonService(fixture, api, clock);
+        var first = service.DispatchAsync(false);
+        await started.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        await service.DispatchAsync(true);
+        release.SetResult();
+        await first;
+        Assert.Equal(1, writes);
+    }
+
+    [Fact]
+    public async Task UnconfiguredMastodon_LeavesSelectedAnnouncementsPending()
+    {
+        using var fixture = SocialJobFixture.Create();
+        var clock = new MastodonClock(DateTimeOffset.UtcNow);
+        var requests = new List<HttpRequestMessage>();
+        var api = new MastodonApiClient(new Config(), new TestHttpClientFactory(new HttpClient(new RecordingHttpHandler(
+            _ => throw new InvalidOperationException("An unconfigured channel must not make requests"), requests))), clock);
+        var id = fixture.Events.CreateCustomEvent("Ready when configured", "", deliveryTargets: new(false, false, false, false, false, true));
+        await MastodonService(fixture, api, clock).DispatchAsync(true);
+        Assert.Empty(requests);
+        Assert.Equal(id, Assert.Single(new SocialDeliveryStore(fixture.Database).GetPending(true, clock.Current)).Event.Id);
+    }
+
+    private static MastodonAnnouncementService MastodonService(SocialJobFixture fixture, MastodonApiClient api, TimeProvider clock) => new(
+        fixture.Events, new SocialDeliveryStore(fixture.Database), api, fixture.ThreadsEvents, fixture.Athletes,
+        new CustomEventImageService(fixture.Env, NullLogger<CustomEventImageService>.Instance), fixture.MilestoneMemes,
+        clock, NullLogger<MastodonAnnouncementService>.Instance);
+
+    private sealed class MastodonClock(DateTimeOffset now) : TimeProvider
+    {
+        public DateTimeOffset Current { get; set; } = now;
+        public override DateTimeOffset GetUtcNow() => Current;
+    }
+
     [Theory]
     [InlineData("X")]
     [InlineData("Threads")]

@@ -33,6 +33,7 @@ public sealed class ScheduledJobConfigurationTests
             ("XDailyPostTrigger_2000", "XDailyPostJob", new(2030, 2, 1, 20, 0, 0, TimeSpan.Zero)),
             ("ThreadsDailyPostTrigger", "ThreadsDailyPostJob", new(2030, 2, 1, 14, 0, 0, TimeSpan.Zero)),
             ("FacebookDailyPostTrigger", "FacebookDailyPostJob", new(2030, 2, 1, 15, 2, 0, TimeSpan.Zero)),
+            ("MastodonDailyPostTrigger", "MastodonDailyPostJob", new(2030, 2, 1, 15, 4, 0, TimeSpan.Zero)),
             ("LongevitymaxxingReminderTrigger", "LongevitymaxxingReminderJob", new(2030, 2, 1, 0, 0, 0, TimeSpan.Zero))
         ];
 
@@ -59,6 +60,11 @@ public sealed class ScheduledJobConfigurationTests
         Assert.Equal(TimeSpan.FromMinutes(1), announcements.RepeatInterval);
         Assert.Equal(-1, announcements.RepeatCount);
         Assert.NotNull(await scheduler.GetJobDetail(announcements.JobKey));
+        var mastodon = Assert.IsAssignableFrom<ISimpleTrigger>(await scheduler.GetTrigger(new TriggerKey("MastodonCustomPostTrigger")));
+        Assert.Equal(new JobKey("MastodonCustomPostJob"), mastodon.JobKey);
+        Assert.Equal(TimeSpan.FromMinutes(1), mastodon.RepeatInterval);
+        Assert.Equal(-1, mastodon.RepeatCount);
+        Assert.NotNull(await scheduler.GetJobDetail(mastodon.JobKey));
     }
 
     [Fact]

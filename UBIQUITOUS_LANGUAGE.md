@@ -12,7 +12,7 @@
 - Albumin is capped at 54 g/L after unit conversion in both biological-age calculations and domain contributions. Preserve original stored/displayed lab values; higher values confer no scoring benefit.
 - **Proof**: evidence for an athlete, profile, or result. **Profile picture**: public display image.
 - **RO participant entry**: a fresh LWC application, not a transfer of a Rejuvenation Olympics score or rank. DunedinPACE alone cannot qualify for pheno age or bortz age. LWC entry requires a complete same-date panel: 9 markers for Amateur, 22 for the Pro form (the 21 bortz model markers plus WBC). The RO guide offers a manual marker check through the existing contact email, separate from application and approval.
-- **Event**: persisted public/social output; **Custom Event**: admin-created. **Badge**: computed award. **Social post**: copy for X, Threads, Facebook, Slack, or future integrations.
+- **Event**: persisted public/social output; **Custom Event**: admin-created. **Badge**: computed award. **Social post**: copy for X, Threads, Facebook, Mastodon, Slack, or future integrations.
 
 Use lowercase pheno age, bortz age, crowd age, age reduction, and effective age reduction in prose; reserve `PhenoAge`, `BortzAge`, and `CrowdAge` for code, serialization, external names, or quoted legacy data. Keep clock, calculator, and result distinct.
 
@@ -42,10 +42,12 @@ Application and Pro-upgrade payment detection is server-owned and survives a clo
 ## Donations
 
 - A **Donation received** Event acknowledges a Bitcoin transaction received by the public donation address after at least three confirmations. Preserve its transaction identity and exact BTC amount without identifying an anonymous donor. Public acknowledgments use the shareable `/contribute` URL, which opens the contribute section on the homepage and previews that section. Separate transactions remain separate acknowledgments, even when their amounts match.
-- Donation receipts are eligible for acknowledgments on X, Threads, Facebook, and Slack. Acknowledgments do not expire with athlete-highlight freshness or share the periodic fundraising-reminder cooldown. Failed sends remain pending; successful sends finish that platform's delivery. Repeated detection must not create another Event or replay a completed acknowledgment.
+- Donation receipts are eligible for acknowledgments on X, Threads, Facebook, Mastodon, and Slack. Acknowledgments do not expire with athlete-highlight freshness or share the periodic fundraising-reminder cooldown. Failed sends remain pending; successful sends finish that platform's delivery. Repeated detection must not create another Event or replay a completed acknowledgment.
 - Previously skipped donations require a reviewed recovery decision; deploying support does not automatically replay historical receipts.
 
 ## Events and Improvement
+
+- Mastodon delivery starts with new Events when the channel is introduced; existing Events are silently baselined. A Custom Event's explicit Mastodon destination is independent of its website visibility and other destinations. Preserve established event copy, athlete names, and image alt text; do not borrow handles from another social platform. Keep an unconfirmed publication for review once safe duplicate prevention expires.
 
 - The public Event API exposes all website-visible Events, including profile-only accepted results, while excluding hidden and social-only Events. It is historical data, not the curated shared-highlight selection or the private social delivery queue. Its payload and date contract is documented in the public OpenAPI `listEvents` operation.
 

@@ -899,6 +899,7 @@
                     <label class="check"><input id="sendX" type="checkbox" checked /><span>X</span></label>
                     <label class="check"><input id="sendThreads" type="checkbox" /><span>Threads</span></label>
                     <label class="check"><input id="sendFacebook" type="checkbox" /><span>Facebook</span></label>
+                    <label class="check"><input id="sendMastodon" type="checkbox" /><span>Mastodon</span></label>
                 </div>
             </div>
 
@@ -974,7 +975,7 @@
 
     <script src="{{ASSET_CUSTOM_EVENT_MARKUP_JS}}"></script>
     <script>
-        const LIMITS = { x: 280, threads: 500 };
+        const LIMITS = { x: 280, threads: 500, mastodon: 500 };
         const SECRET_HASH_ALGORITHM = "pbkdf2-sha256";
         const SECRET_HASH_ITERATIONS = 210000;
         const SECRET_HASH_SALT_BYTES = 16;
@@ -987,6 +988,7 @@
         const sendX = document.getElementById("sendX");
         const sendThreads = document.getElementById("sendThreads");
         const sendFacebook = document.getElementById("sendFacebook");
+        const sendMastodon = document.getElementById("sendMastodon");
         const designerSecretInput = document.getElementById("designerSecretInput");
         const generateSecretHashBtn = document.getElementById("generateSecretHashBtn");
         const copySecretHashBtn = document.getElementById("copySecretHashBtn");
@@ -1026,17 +1028,20 @@
             { key: "slack", label: "Slack", checkbox: sendSlack, fixedMode: "slack" },
             { key: "x", label: "X", checkbox: sendX, limit: LIMITS.x },
             { key: "threads", label: "Threads", checkbox: sendThreads, limit: LIMITS.threads },
-            { key: "facebook", label: "Facebook", checkbox: sendFacebook, limit: 63206 }
+            { key: "facebook", label: "Facebook", checkbox: sendFacebook, limit: 63206 },
+            { key: "mastodon", label: "Mastodon", checkbox: sendMastodon, limit: LIMITS.mastodon }
         ];
         const PLATFORM_PREVIEW_META = {
             slack: { name: "Longevity World Cup", handle: "#highlights", avatar: "LW", label: "Slack" },
             x: { name: "Longevity World Cup", handle: "@longevitywc", avatar: "LW", label: "X" },
             threads: { name: "Longevity World Cup", handle: "@longevityworldcup", avatar: "LW", label: "Threads" },
-            facebook: { name: "Longevity World Cup", handle: "Facebook Page", avatar: "LW", label: "Facebook" }
+            facebook: { name: "Longevity World Cup", handle: "Facebook Page", avatar: "LW", label: "Facebook" },
+            mastodon: { name: "Longevity World Cup", handle: "@longevityworldcup@mastodon.social", avatar: "LW", label: "Mastodon" }
         };
 
         function renderPlatformAvatar(platformKey, sizeClass = "x-avatar") {
             const logos = {
+                mastodon: `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="1" y="1" width="22" height="22" rx="6" fill="#6364ff"/><path fill="white" d="M5 7h3l4 5 4-5h3v11h-3v-7l-4 5-4-5v7H5Z"/></svg>`,
                 x: `
                     <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                         <path fill="#ffffff" d="M18.9 2H22l-6.77 7.74L23.2 22h-6.26l-4.9-7.42L5.55 22H2.44l7.24-8.27L1.8 2h6.42l4.43 6.74L18.9 2Z"/>
@@ -1843,14 +1848,39 @@
             return contentRaw ? `${titleRaw}\n\n${contentRaw}` : titleRaw;
         }
 
-        function buildImageCaption(titleText, eventUrl, maxLength) {
+        const mastodonSegmenter = new Intl.Segmenter("en", { granularity: "grapheme" });
+        function postLength(text, platformKey) {
+            if (platformKey !== "mastodon") return text.length;
+            const countable = text.replace(/https?:\/\/[^\s<>"']+/gi, match => {
+                let url = match.replace(/[.,!?;:\]}]+$/, "");
+                while (url.endsWith(")") && (url.match(/\)/g) || []).length > (url.match(/\(/g) || []).length) url = url.slice(0, -1);
+                try { if (!new URL(url).hostname.includes(".")) return match; } catch { return match; }
+                return "x".repeat(23) + match.slice(url.length);
+            });
+            return Array.from(mastodonSegmenter.segment(countable)).length;
+        }
+        function truncateMastodon(text, limit) {
+            const parts = Array.from(mastodonSegmenter.segment(text), part => part.segment);
+            if (postLength(text, "mastodon") <= limit) return text;
+            if (limit <= 0) return "";
+            let low = 0, high = parts.length;
+            while (low < high) {
+                const mid = Math.floor((low + high + 1) / 2);
+                if (postLength(parts.slice(0, mid).join("").trimEnd() + "…", "mastodon") <= limit) low = mid;
+                else high = mid - 1;
+            }
+            return parts.slice(0, low).join("").trimEnd() + "…";
+        }
+
+        function buildImageCaption(titleText, eventUrl, maxLength, platformKey) {
             const normalizedTitle = collapseWhitespace(titleText);
-            if (!eventUrl) return normalizedTitle;
-            const reserved = eventUrl.length + 2;
+            if (!eventUrl) return platformKey === "mastodon" ? truncateMastodon(normalizedTitle, maxLength) : normalizedTitle;
+            const reserved = postLength(eventUrl, platformKey) + 2;
             const maxTitleLength = Math.max(0, maxLength - reserved);
             let finalTitle = normalizedTitle;
-            if (finalTitle.length > maxTitleLength) {
-                finalTitle = maxTitleLength <= 1 ? "" : `${finalTitle.slice(0, maxTitleLength - 1).trimEnd()}…`;
+            if (postLength(finalTitle, platformKey) > maxTitleLength) {
+                finalTitle = maxTitleLength <= 1 ? "" : platformKey === "mastodon"
+                    ? truncateMastodon(finalTitle, maxTitleLength) : `${finalTitle.slice(0, maxTitleLength - 1).trimEnd()}…`;
             }
             return finalTitle ? `${finalTitle}\n\n${eventUrl}` : eventUrl;
         }
@@ -1865,18 +1895,18 @@
             const hasHyperlinks = containsHyperlink(rawText);
             const textWithoutUrl = buildTextPost(titleText, bodyText, null);
 
-            if ((!hasHyperlinks || !eventUrl) && textWithoutUrl && textWithoutUrl.length <= maxLength) {
+            if ((!hasHyperlinks || !eventUrl) && textWithoutUrl && postLength(textWithoutUrl, platformKey) <= maxLength) {
                 return { mode: "text", postText: textWithoutUrl };
             }
 
             const textWithUrl = buildTextPost(titleText, bodyText, eventUrl);
-            if (textWithUrl && textWithUrl.length <= maxLength) {
+            if (textWithUrl && postLength(textWithUrl, platformKey) <= maxLength) {
                 return { mode: "text", postText: textWithUrl };
             }
 
             return {
                 mode: "image",
-                postText: buildImageCaption(titleText, hasHyperlinks ? eventUrl : "", maxLength)
+                postText: buildImageCaption(titleText, hasHyperlinks ? eventUrl : "", maxLength, platformKey)
             };
         }
 
@@ -1893,8 +1923,8 @@
                 return plan.postText;
             }
 
-            if (platformKey === "x" || platformKey === "threads" || platformKey === "facebook") {
-                const fallbackLimit = platformKey === "x" ? LIMITS.x : (platformKey === "threads" ? LIMITS.threads : 63206);
+            if (platformKey === "x" || platformKey === "threads" || platformKey === "facebook" || platformKey === "mastodon") {
+                const fallbackLimit = LIMITS[platformKey] ?? 63206;
                 const fallbackPlan = buildPlan(titleRaw, contentRaw, fallbackLimit, platformKey, includeEventUrl);
                 return fallbackPlan.postText || "";
             }
@@ -2011,7 +2041,8 @@
                 sendToSlack: sendSlack.checked,
                 sendToX: sendX.checked,
                 sendToThreads: sendThreads.checked,
-                sendToFacebook: sendFacebook.checked
+                sendToFacebook: sendFacebook.checked,
+                sendToMastodon: sendMastodon.checked
             };
         }
 
@@ -2021,7 +2052,8 @@
                 payload.sendToSlack ||
                 payload.sendToX ||
                 payload.sendToThreads ||
-                payload.sendToFacebook
+                payload.sendToFacebook ||
+                payload.sendToMastodon
             );
         }
 
@@ -2061,6 +2093,7 @@
                 if (typeof data.sendX === "boolean") sendX.checked = data.sendX;
                 if (typeof data.sendThreads === "boolean") sendThreads.checked = data.sendThreads;
                 if (typeof data.sendFacebook === "boolean") sendFacebook.checked = data.sendFacebook;
+                if (typeof data.sendMastodon === "boolean") sendMastodon.checked = data.sendMastodon;
             } catch {
             }
         }
@@ -2072,7 +2105,8 @@
                     sendSlack: sendSlack.checked,
                     sendX: sendX.checked,
                     sendThreads: sendThreads.checked,
-                    sendFacebook: sendFacebook.checked
+                    sendFacebook: sendFacebook.checked,
+                    sendMastodon: sendMastodon.checked
                 }));
             } catch {
             }
@@ -2522,7 +2556,7 @@
             }
         });
 
-        [titleInput, contentInput, sendWebpage, sendSlack, sendX, sendThreads, sendFacebook].forEach(el => {
+        [titleInput, contentInput, sendWebpage, sendSlack, sendX, sendThreads, sendFacebook, sendMastodon].forEach(el => {
             el.addEventListener("input", event => {
                 if (event.target === titleInput || event.target === contentInput) {
                     updateMentionSuggestions(event.target);
