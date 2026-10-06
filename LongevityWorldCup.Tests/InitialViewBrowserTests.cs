@@ -260,6 +260,12 @@ public sealed class InitialViewBrowserTests(PlaywrightBrowserFixture browserFixt
     [InlineData("/leaderboard?search=Michael&view=pheno", "pheno", "Michael", "PHENO AGE LEAGUE")]
     [InlineData("/league/bortz?search=Michael", "bortz", "Michael", "BORTZ AGE LEAGUE")]
     [InlineData("/contribute?search=Michael&view=pheno", "pheno", "Michael", "PHENO AGE LEAGUE")]
+    [InlineData("/leaderboard?search=Michael%2520Lustgarten&view=pheno", "pheno", "Michael Lustgarten", "PHENO AGE LEAGUE")]
+    [InlineData("/league/bortz?search=Jos%25C3%25A9", "bortz", "José", "BORTZ AGE LEAGUE")]
+    [InlineData("/contribute?search=50%25&view=pheno", "pheno", "50%", "PHENO AGE LEAGUE")]
+    [InlineData("/leaderboard?search=%25E0%25A4%25A&view=pheno", "pheno", "%E0%A4%A", "PHENO AGE LEAGUE")]
+    [InlineData("/leaderboard?search=%2541%25C3%2528&view=pheno", "pheno", "%41%C3%28", "PHENO AGE LEAGUE")]
+    [InlineData("/leaderboard?search=A%252BB%2526%2522&view=pheno", "pheno", "A+B&\"", "PHENO AGE LEAGUE")]
     public async Task SearchLinks_NeverPaintDefaultRankingOrAnEmptyQuery(string path, string view, string query, string rail)
     {
         await using var context = await NewContextAsync(Browser, App, new() { JavaScriptEnabled = false });
@@ -269,6 +275,13 @@ public sealed class InitialViewBrowserTests(PlaywrightBrowserFixture browserFixt
         await Assertions.Expect(page.Locator("#athleteSearch")).ToHaveValueAsync(query);
         await Assertions.Expect(page.Locator(".collapsed-title")).ToHaveTextAsync(rail);
         await Assertions.Expect(page.Locator(".leaderboard table tbody")).ToHaveAttributeAsync("aria-busy", "true");
+
+        await using var interactiveContext = await NewContextAsync(Browser, App, new() { ReducedMotion = ReducedMotion.Reduce });
+        var interactivePage = await interactiveContext.NewPageAsync();
+        await interactivePage.GotoAsync(path);
+        await Assertions.Expect(interactivePage.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+        await Assertions.Expect(interactivePage.Locator("#athleteSearch")).ToHaveValueAsync(query);
+        await Assertions.Expect(interactivePage.Locator("#view-" + view)).ToBeCheckedAsync();
     }
 
     [Fact]
@@ -399,6 +412,58 @@ public sealed class InitialViewBrowserTests(PlaywrightBrowserFixture browserFixt
         {
             release.TrySetResult();
             releaseModule.TrySetResult();
+        }
+    }
+
+    [Fact]
+    public async Task ExpiredHeadGate_MountsRecoveryWhileAFooterScriptStillBlocksDocumentLoad()
+    {
+        await using var context = await NewContextAsync(Browser, App, new() { ReducedMotion = ReducedMotion.Reduce });
+        await context.AddInitScriptAsync(SeedTask);
+        await context.AddInitScriptAsync("""
+            window.initialViewDocumentLoaded = false;
+            document.addEventListener('DOMContentLoaded', () => window.initialViewDocumentLoaded = true, { once: true });
+            """);
+        var releaseHead = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var releaseFooter = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var headRequested = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var footerRequested = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await context.RouteAsync("**/js/field-validation.js*", async route =>
+        {
+            headRequested.TrySetResult();
+            await releaseHead.Task;
+            await route.ContinueAsync();
+        });
+        await context.RouteAsync("**/js/site-footer.js*", async route =>
+        {
+            footerRequested.TrySetResult();
+            await releaseFooter.Task;
+            await route.ContinueAsync();
+        });
+        var page = await context.NewPageAsync();
+        await page.Clock.InstallAsync();
+        try
+        {
+            await page.GotoAsync("/edit-profile", new() { WaitUntil = WaitUntilState.Commit });
+            await headRequested.Task.WaitAsync(TimeSpan.FromSeconds(20));
+            await Assertions.Expect(page.Locator("html")).ToHaveAttributeAsync("data-initial-view", "pending");
+            await page.Clock.FastForwardAsync(15000);
+            await Assertions.Expect(page.Locator("html")).ToHaveAttributeAsync("data-initial-view", "failed");
+            releaseHead.TrySetResult();
+            await footerRequested.Task.WaitAsync(TimeSpan.FromSeconds(20));
+            await Assertions.Expect(page.Locator(".initial-view-main")).ToBeAttachedAsync();
+            Assert.False(await page.EvaluateAsync<bool>("window.initialViewDocumentLoaded"));
+            await Assertions.Expect(page.Locator(".initial-view-recovery")).ToBeVisibleAsync();
+            await Assertions.Expect(page.Locator(".initial-view-recovery")).ToHaveCountAsync(1);
+            await Assertions.Expect(page.Locator("#whyDisplayInput")).ToBeHiddenAsync();
+            releaseFooter.TrySetResult();
+            await Assertions.Expect(page.Locator("#whyDisplayInput")).ToBeVisibleAsync();
+            await Assertions.Expect(page.Locator(".initial-view-recovery")).ToHaveCountAsync(0);
+        }
+        finally
+        {
+            releaseHead.TrySetResult();
+            releaseFooter.TrySetResult();
         }
     }
 

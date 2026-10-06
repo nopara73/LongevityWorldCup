@@ -180,6 +180,34 @@ public sealed class PublicPageRenderingBrowserTests(PlaywrightBrowserFixture bro
         await Assertions.Expect(page.Locator(".leaderboard-retry-button")).ToBeVisibleAsync();
     }
 
+    [Theory]
+    [InlineData("/athlete/michael-lustgarten?guessmyage=1", 390)]
+    [InlineData("/?athlete=michael-lustgarten&guessmyage=1", 1280)]
+    public async Task DirectGuessFailure_OffersRetryAndRecoversTheRequestedGame(string path, int width)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = 844 }, ReducedMotion = ReducedMotion.Reduce
+        });
+        var offline = true;
+        await context.RouteAsync("**/api/data/athletes", route => offline ? route.AbortAsync() : route.ContinueAsync());
+        var page = await context.NewPageAsync();
+        await page.GotoAsync(path);
+        await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard could not load.");
+        await Assertions.Expect(page.Locator("#detailsModal")).ToBeVisibleAsync();
+        await Assertions.Expect(page.Locator("#athleteLoadError")).ToBeVisibleAsync();
+        await Assertions.Expect(page.Locator("#retryAthleteLoad")).ToBeVisibleAsync();
+        await Assertions.Expect(page.Locator("#guessAgeContainer")).ToBeHiddenAsync();
+        await Assertions.Expect(page.Locator("#athleteBio")).ToBeEmptyAsync();
+
+        offline = false;
+        await page.Locator("#retryAthleteLoad").ClickAsync();
+        await Assertions.Expect(page.Locator("#guessAgeContainer")).ToBeVisibleAsync();
+        await Assertions.Expect(page.Locator("#athleteLoadError")).ToBeHiddenAsync();
+        await Assertions.Expect(page.Locator("#detailsModal")).ToBeVisibleAsync();
+        Assert.Null(await page.Locator("#detailsModal .modal-content").GetAttributeAsync("data-server-rendered-loading"));
+    }
+
     private static Task<string[]> ReadRows(IPage page) => page.Locator(".leaderboard table tbody tr[data-athlete-name]:visible").EvaluateAllAsync<string[]>(
         "rows => rows.map(row => [row.id, row.dataset.athleteName, row.querySelector('.rank').textContent, row.querySelector('.age-reduction').textContent].join('|'))");
 

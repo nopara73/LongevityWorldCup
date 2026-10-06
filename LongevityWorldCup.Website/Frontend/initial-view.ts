@@ -14,10 +14,13 @@ interface Window {
 (function () {
     const documentRoot = document.documentElement;
     let deadline = 0;
+    let recoveryObserver: MutationObserver | null = null;
 
     function hold(): void {
         window.clearTimeout(deadline);
         deadline = 0;
+        recoveryObserver?.disconnect();
+        recoveryObserver = null;
     }
 
     function prepare(): void {
@@ -56,7 +59,16 @@ interface Window {
         hold();
         if (documentRoot.dataset.initialView !== 'pending' && documentRoot.dataset.initialView !== 'failed') return;
         documentRoot.dataset.initialView = 'failed';
-        document.querySelectorAll<HTMLElement>('.initial-view-main').forEach(view => {
+        const views = document.querySelectorAll<HTMLElement>('.initial-view-main');
+        if (!views.length) {
+            // The head can time out before parsing reaches the task. Mount
+            // recovery when it arrives, even if later scripts still block DCL.
+            recoveryObserver = new MutationObserver(() => {
+                if (document.querySelector('.initial-view-main')) fail();
+            });
+            recoveryObserver.observe(documentRoot, { childList: true, subtree: true });
+        }
+        views.forEach(view => {
             view.setAttribute('aria-busy', 'false');
             if (view.querySelector('.initial-view-recovery')) return;
             const recovery = document.createElement('section');

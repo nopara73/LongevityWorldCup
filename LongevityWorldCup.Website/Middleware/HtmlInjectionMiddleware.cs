@@ -31,6 +31,7 @@ namespace LongevityWorldCup.Website.Middleware
         private const string LeaderboardStylesStartMarker = "<!--LEADERBOARD-STYLES-START-->";
         private const string LeaderboardStylesEndMarker = "<!--LEADERBOARD-STYLES-END-->";
         private const string AthleteDialogRuntimeId = "athleteDialogRuntime";
+        private static readonly UTF8Encoding SharedSearchUtf8 = new(false, true);
         private static readonly IReadOnlyList<string> AthleteDialogModulePaths =
         [
             "/js/misc.js",
@@ -428,7 +429,7 @@ $@"<div id=""{AthleteDialogRuntimeId}""
                     html = html.Replace("value=\"ultimate\" checked", "value=\"ultimate\"", StringComparison.Ordinal)
                         .Replace($"value=\"{selection.View}\" aria-label=", $"value=\"{selection.View}\" checked aria-label=", StringComparison.Ordinal)
                         .Replace($"name=\"agingClockView\" value=\"{selection.View}\"", $"name=\"agingClockView\" value=\"{selection.View}\" checked", StringComparison.Ordinal)
-                        .Replace("id=\"athleteSearch\"", $"id=\"athleteSearch\" value=\"{System.Net.WebUtility.HtmlEncode(context.Request.Query["search"].ToString())}\"", StringComparison.Ordinal);
+                        .Replace("id=\"athleteSearch\"", $"id=\"athleteSearch\" value=\"{System.Net.WebUtility.HtmlEncode(DecodeSharedSearchQuery(context.Request.Query["search"].ToString()))}\"", StringComparison.Ordinal);
                 }
                 if (selection is not null && ShouldRenderLeaderboardRows(context))
                 {
@@ -463,6 +464,23 @@ $@"<div id=""{AthleteDialogRuntimeId}""
             {
                 _logger.LogWarning(ex, "Falling back to client rendering after public page rendering failed.");
                 return html;
+            }
+        }
+
+        private static string DecodeSharedSearchQuery(string query)
+        {
+            // Match the client's extra decodeURIComponent layer, including its
+            // whole-query fallback for malformed escapes or invalid UTF-8.
+            if (Regex.IsMatch(query, @"%(?![0-9a-fA-F]{2})")) return query;
+            try
+            {
+                foreach (Match sequence in Regex.Matches(query, @"(?:%[0-9a-fA-F]{2})+"))
+                    SharedSearchUtf8.GetCharCount(Convert.FromHexString(sequence.Value.Replace("%", "", StringComparison.Ordinal)));
+                return Uri.UnescapeDataString(query);
+            }
+            catch (DecoderFallbackException)
+            {
+                return query;
             }
         }
 

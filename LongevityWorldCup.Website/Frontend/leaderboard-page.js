@@ -1767,9 +1767,9 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity) {
                 podium.innerHTML = '';
                 podium.setAttribute('aria-busy', 'false');
             }
-            const serverProfile = document.querySelector('[data-server-rendered-profile]');
-            if (serverProfile && modal.style.display === 'block') {
-                handleAthleteModalLoadFailure(serverProfile, serverProfile.dataset.athleteSlug, { historyMode: 'replace' }, error);
+            const serverDialog = getServerRenderedAthleteDialog();
+            if (serverDialog && modal.style.display === 'block') {
+                handleAthleteModalLoadFailure(serverDialog, serverDialog.dataset.athleteSlug, { historyMode: 'replace' }, error);
             }
             console.error('Error fetching athletes:', error);
         });
@@ -2439,7 +2439,11 @@ const chartJsSrc = 'https://cdn.jsdelivr.net/npm/chart.js';
 
 // Direct profile/game links arrive with the requested dialog already open.
 // Make closing/back navigation available while the data request is pending.
-const initialServerDialog = modal.querySelector('[data-server-rendered-profile], [data-server-rendered-loading]');
+function getServerRenderedAthleteDialog() {
+    return modal.querySelector('[data-server-rendered-profile], [data-server-rendered-loading]');
+}
+
+const initialServerDialog = getServerRenderedAthleteDialog();
 if (initialServerDialog) {
     initialServerDialog.classList.add('is-loading');
     lockBodyScroll();
