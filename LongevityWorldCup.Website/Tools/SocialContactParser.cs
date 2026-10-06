@@ -4,7 +4,8 @@ public enum SocialPlatform
 {
     X,
     Threads,
-    Facebook
+    Facebook,
+    Bluesky
 }
 
 public static class SocialContactParser

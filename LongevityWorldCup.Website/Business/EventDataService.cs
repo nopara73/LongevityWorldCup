@@ -42,7 +42,8 @@ public sealed record CustomEventDeliveryTargets(
     bool SendToSlack,
     bool SendToX,
     bool SendToThreads,
-    bool SendToFacebook)
+    bool SendToFacebook,
+    bool SendToBluesky = false)
 {
     public CustomEventStorageFlags ToStorageFlags() => new(
         VisibleOnWebsite: SendToWebpage ? 1 : 0,
@@ -259,6 +260,7 @@ public sealed partial class EventDataService : IDisposable
         });
 
         InitializeCrowdAgeAnnouncements();
+        SocialDeliveryStore.InitializeBluesky(_db);
 
         if (_enableEventDispatch)
         {
@@ -657,7 +659,7 @@ public sealed partial class EventDataService : IDisposable
         return withPriority;
     }
 
-    private static int GetXPriority(EventType type, string text)
+    internal static int GetXPriority(EventType type, string text)
     {
         if (type == EventType.NewRank)
         {
@@ -1898,6 +1900,9 @@ public sealed partial class EventDataService : IDisposable
 
             insertCmd.ExecuteNonQuery();
             created = 1;
+
+            SocialDeliveryStore.SelectCustomEventTarget(sqlite, tx, eventId,
+                deliveryTargets?.SendToBluesky ?? true);
 
             tx.Commit();
         });

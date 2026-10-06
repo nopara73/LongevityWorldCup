@@ -36,4 +36,27 @@ public sealed class SocialContactPreviewBrowserTests(
             Assert.Equal(SocialContactParser.TryBuildMention(contact, platform) ?? "", actual);
         }
     }
+
+    [Fact]
+    public async Task BlueskyPreview_UsesGraphemeCapacityAndRetainsItsSelectedDestination()
+    {
+        await using var context = await Browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = App.BaseAddress.ToString(), ViewportSize = new() { Width = 390, Height = 844 }
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/internal/custom-event-designer.html");
+        await page.Locator("#sendBluesky").CheckAsync();
+        await page.Locator("#titleInput").FillAsync(new string('x', 500));
+        await page.Locator("#contentInput").FillAsync("");
+        var longTitle = await page.EvaluateAsync<string>("() => buildPlan(titleInput.value, '', LIMITS.bluesky, 'bluesky', false).postText");
+        Assert.True(longTitle.Length <= 300);
+        var mode = await page.EvaluateAsync<string>("() => buildPlan('🦋'.repeat(300), '', LIMITS.bluesky, 'bluesky', false).mode");
+        Assert.Equal("text", mode);
+        Assert.True(await page.EvaluateAsync<bool>("() => buildEventPayload().sendToBluesky"));
+        await page.ReloadAsync();
+        Assert.True(await page.Locator("#sendBluesky").IsCheckedAsync());
+        Assert.True(await page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= innerWidth"));
+    }
 }

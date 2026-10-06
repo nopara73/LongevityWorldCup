@@ -248,6 +248,10 @@ namespace LongevityWorldCup.Website
             builder.Services.AddHttpClient<FacebookApiClient>();
             builder.Services.AddSingleton<ThreadsEventService>();
             builder.Services.AddSingleton<FacebookEventService>();
+            builder.Services.AddHttpClient(nameof(BlueskyApiClient), client => client.Timeout = TimeSpan.FromSeconds(30));
+            builder.Services.AddSingleton<BlueskyApiClient>();
+            builder.Services.AddSingleton<SocialDeliveryStore>();
+            builder.Services.AddSingleton<BlueskyAnnouncementService>();
             builder.Services.AddSingleton<XFillerPostLogService>();
             builder.Services.AddSingleton<ThreadsFillerPostLogService>();
             builder.Services.AddSingleton<FacebookFillerPostLogService>();
@@ -506,6 +510,9 @@ namespace LongevityWorldCup.Website
                 FacebookPageId = "",
                 FacebookUserAccessToken = "",
                 FacebookPageAccessToken = "",
+                BlueskyServiceUrl = "https://bsky.social",
+                BlueskyIdentifier = "",
+                BlueskyAppPassword = "",
                 CustomEventDesignerSecretHash = "",
                 LongevitymaxxingChallenge = new LongevitymaxxingChallengeConfig()
             };

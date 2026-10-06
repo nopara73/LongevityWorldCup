@@ -1,5 +1,6 @@
 using System.Net;
 using System.Reflection;
+using System.Text.Json.Nodes;
 using LongevityWorldCup.Website;
 using LongevityWorldCup.Website.Business;
 using LongevityWorldCup.Website.Jobs;
@@ -15,6 +16,98 @@ namespace LongevityWorldCup.Tests;
 
 public sealed class SocialJobIntegrationTests
 {
+    [Fact]
+    public async Task BlueskyDonation_FailedSendRetriesAndCompletesExactlyOnce()
+    {
+        using var fixture = SocialJobFixture.Create();
+        var time = new AnnouncementTimeProvider(DateTimeOffset.UtcNow);
+        var succeeds = false;
+        var writes = new List<JsonObject>();
+        var service = fixture.CreateBlueskyService(time, request =>
+        {
+            if (!request.RequestUri!.AbsolutePath.EndsWith("createRecord")) return BlueskyReadResponse(request);
+            var body = JsonNode.Parse(request.Content!.ReadAsStringAsync().GetAwaiter().GetResult())!.AsObject();
+            writes.Add(body);
+            return succeeds ? BlueskyWriteResponse(body) : new(HttpStatusCode.ServiceUnavailable)
+                { Content = new StringContent("""{"error":"UpstreamError"}""") };
+        });
+        var donation = ("bluesky-donation", DateTime.UtcNow, 8455L);
+        fixture.Events.CreateDonationReceivedEvents([donation]);
+
+        await service.DispatchAsync(false);
+        var pending = Assert.Single(new SocialDeliveryStore(fixture.Database).GetPending(false, time.GetUtcNow().AddMinutes(3)));
+        Assert.Equal(1, pending.Attempts);
+        Assert.Contains("0.00008455 BTC", writes[0]["record"]!["text"]!.GetValue<string>());
+        Assert.Contains("contribute", writes[0]["record"]!["embed"]!["external"]!["uri"]!.GetValue<string>());
+        succeeds = true;
+        time.Advance(TimeSpan.FromMinutes(3));
+        await service.DispatchAsync(false);
+        Assert.Equal(writes[0]["rkey"]!.GetValue<string>(), writes[1]["rkey"]!.GetValue<string>());
+        Assert.True(JsonNode.DeepEquals(writes[0]["record"], writes[1]["record"]));
+        fixture.Events.CreateDonationReceivedEvents([donation]);
+        await service.DispatchAsync(false);
+        Assert.Equal(2, writes.Count);
+        Assert.Empty(new SocialDeliveryStore(fixture.Database).GetPending(false, time.GetUtcNow()));
+    }
+
+    [Fact]
+    public async Task BlueskyCustomImage_PostsSelectedDestinationWithAltTextAndSkipsAcceptedResults()
+    {
+        using var fixture = SocialJobFixture.Create(seedLeaderboardAssets: true);
+        var records = new List<JsonObject>();
+        var uploads = 0;
+        var service = fixture.CreateBlueskyService(TimeProvider.System, request =>
+        {
+            if (request.RequestUri!.AbsolutePath.EndsWith("uploadBlob"))
+            {
+                uploads++;
+                Assert.Equal("image/png", request.Content!.Headers.ContentType!.MediaType);
+                return new(HttpStatusCode.OK) { Content = new StringContent("""{"blob":{"$type":"blob","ref":{"$link":"bafy-image"},"mimeType":"image/png","size":100}}""") };
+            }
+            if (!request.RequestUri.AbsolutePath.EndsWith("createRecord")) return BlueskyReadResponse(request);
+            var body = JsonNode.Parse(request.Content!.ReadAsStringAsync().GetAwaiter().GetResult())!.AsObject();
+            records.Add(body["record"]!.AsObject());
+            return BlueskyWriteResponse(body);
+        });
+        fixture.Events.CreateCustomEvent("Not selected", "No Bluesky post", deliveryTargets: new(false, false, false, false, false));
+        var content = string.Join(" ", Enumerable.Repeat("Still getting younger.", 30));
+        fixture.Events.CreateCustomEvent("A community update", content, deliveryTargets: new(false, false, false, false, false, true));
+        var accepted = fixture.InsertEvent(EventType.TestResultAccepted, "slug[nopara73] testDate[2026-10-06]", DateTime.UtcNow, 1, 1, 1);
+
+        await service.DispatchAsync(true);
+        await service.DispatchAsync(false);
+
+        Assert.Equal(1, uploads);
+        var record = Assert.Single(records);
+        Assert.Equal("app.bsky.embed.images", record["embed"]!["$type"]!.GetValue<string>());
+        Assert.Contains(content, record["embed"]!["images"]![0]!["alt"]!.GetValue<string>());
+        Assert.DoesNotContain("events?event=", record["text"]!.GetValue<string>());
+        Assert.Empty(new SocialDeliveryStore(fixture.Database).GetPending(false, DateTimeOffset.UtcNow));
+        Assert.Equal((1, null), fixture.ReadPlatformState(accepted, "X"));
+    }
+
+    private static HttpResponseMessage BlueskyReadResponse(HttpRequestMessage request) => new(
+        request.RequestUri!.AbsolutePath.EndsWith("createSession") ? HttpStatusCode.OK : HttpStatusCode.BadRequest)
+    {
+        Content = new StringContent(request.RequestUri!.AbsolutePath.EndsWith("createSession")
+            ? """{"accessJwt":"test-access","refreshJwt":"test-refresh","did":"did:plc:lwc-test"}"""
+            : """{"error":"RecordNotFound"}""")
+    };
+
+    private static HttpResponseMessage BlueskyWriteResponse(JsonObject body) => new(HttpStatusCode.OK)
+    {
+        Content = new StringContent(new JsonObject
+        {
+            ["uri"] = $"at://did:plc:lwc-test/app.bsky.feed.post/{body["rkey"]!.GetValue<string>()}", ["cid"] = "bafy-post"
+        }.ToJsonString())
+    };
+
+    private sealed class AnnouncementTimeProvider(DateTimeOffset now) : TimeProvider
+    {
+        private DateTimeOffset _now = now;
+        public override DateTimeOffset GetUtcNow() => _now;
+        public void Advance(TimeSpan duration) => _now += duration;
+    }
     [Theory]
     [InlineData("X")]
     [InlineData("Threads")]
@@ -707,6 +800,17 @@ public sealed class SocialJobIntegrationTests
         public ThreadsDailyPostJob CreateThreadsJob() => new(NullLogger<ThreadsDailyPostJob>.Instance, Events, ThreadsEvents, Athletes, ThreadsFillerLog, MilestoneMemes);
 
         public FacebookDailyPostJob CreateFacebookJob() => new(NullLogger<FacebookDailyPostJob>.Instance, Events, Athletes, FacebookEvents, FacebookFillerLog);
+
+        public BlueskyAnnouncementService CreateBlueskyService(TimeProvider time, Func<HttpRequestMessage, HttpResponseMessage> response)
+        {
+            var factory = new TestHttpClientFactory(new HttpClient(new RecordingHttpHandler(response, [])));
+            var api = new BlueskyApiClient(factory, new Config { BlueskyIdentifier = "lwc-test.bsky.social", BlueskyAppPassword = "test-password" });
+            var images = new CustomEventImageService(Env, NullLogger<CustomEventImageService>.Instance);
+            var youtube = new YouTubePreviewService(factory, NullLogger<YouTubePreviewService>.Instance);
+            var links = new CustomEventLinkPreviewService(factory, NullLogger<CustomEventLinkPreviewService>.Instance, youtube);
+            return new BlueskyAnnouncementService(Events, new SocialDeliveryStore(Database), api, ThreadsEvents, Athletes,
+                images, links, MilestoneMemes, time, NullLogger<BlueskyAnnouncementService>.Instance);
+        }
 
         public string InsertEvent(
             EventType type,

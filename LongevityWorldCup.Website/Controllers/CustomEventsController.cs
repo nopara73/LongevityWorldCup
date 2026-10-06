@@ -27,7 +27,8 @@ public sealed class CustomEventsController(EventDataService events, Config confi
         bool SendToSlack,
         bool SendToX,
         bool SendToThreads,
-        bool SendToFacebook);
+        bool SendToFacebook,
+        bool SendToBluesky = false);
 
     [HttpPost]
     [RequestSizeLimit(MaxRequestBytes)]
@@ -70,7 +71,8 @@ public sealed class CustomEventsController(EventDataService events, Config confi
             request.SendToSlack,
             request.SendToX,
             request.SendToThreads,
-            request.SendToFacebook);
+            request.SendToFacebook,
+            request.SendToBluesky);
         var selectedTargets = GetSelectedTargets(targets);
         if (selectedTargets.Count == 0)
             return BadRequest("Select at least one destination.");
@@ -102,6 +104,7 @@ public sealed class CustomEventsController(EventDataService events, Config confi
         if (targets.SendToX) selected.Add("x");
         if (targets.SendToThreads) selected.Add("threads");
         if (targets.SendToFacebook) selected.Add("facebook");
+        if (targets.SendToBluesky) selected.Add("bluesky");
         return selected;
     }
 }

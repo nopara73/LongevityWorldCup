@@ -64,6 +64,7 @@ public sealed class CustomEventPreviewController(
         {
             "threads" => SocialPlatform.Threads,
             "facebook" => SocialPlatform.Facebook,
+            "bluesky" => SocialPlatform.Bluesky,
             _ => SocialPlatform.X
         };
     }
