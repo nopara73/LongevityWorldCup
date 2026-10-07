@@ -313,20 +313,22 @@
         <!-- Minimal Newsletter Subscription Section -->
         <section id="newsletter" class="section-container newsletter-section" aria-labelledby="newsletter-title" data-aos="fade" data-aos-duration="700" data-aos-delay="450">
             <h2 id="newsletter-title"><i class="fas fa-calendar-alt"></i> Yearly newsletter</h2>
-            <p>
-                <span class="smaller-text">
-                    Want to know who wins? Get last year’s winner and next year’s competition announcements — no spam, just the essentials.
-                </span>
-            </p>
+            <div class="newsletter-panel">
+                <p>
+                    <span class="smaller-text">
+                        Want to know who wins? Get last year’s winner and next year’s competition announcements — no spam, just the essentials.
+                    </span>
+                </p>
 
-            <form id="newsletter-form" novalidate>
-                <label for="emailInput" class="shared-email-label">Email address</label>
-                <input type="email" id="emailInput" class="shared-email-input" placeholder="athlete@example.com" autocomplete="email" autocapitalize="none" spellcheck="false" aria-describedby="newsletterStatus" required>
-                <button type="submit" class="enhanced-subscribe-btn shared-email-button" aria-describedby="newsletterStatus">
-                    <i class="fas fa-paper-plane" aria-hidden="true"></i> Subscribe
-                </button>
-            </form>
-            <p id="newsletterStatus" role="status" aria-live="polite" aria-atomic="true"></p>
+                <form id="newsletter-form" novalidate>
+                    <label for="emailInput" class="shared-email-label">Email address</label>
+                    <input type="email" id="emailInput" class="shared-email-input" placeholder="athlete@example.com" autocomplete="email" autocapitalize="none" spellcheck="false" aria-describedby="newsletterStatus" required>
+                    <button type="submit" class="enhanced-subscribe-btn shared-email-button" aria-describedby="newsletterStatus">
+                        <i class="fas fa-paper-plane" aria-hidden="true"></i> Subscribe
+                    </button>
+                </form>
+                <p id="newsletterStatus" role="status" aria-live="polite" aria-atomic="true"></p>
+            </div>
         </section>
     </main>
     <!--FOOTER-->
