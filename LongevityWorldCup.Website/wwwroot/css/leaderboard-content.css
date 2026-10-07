@@ -2742,6 +2742,38 @@
          padding:.55rem .7rem;
          justify-content:flex-start;
      }
+
+     /* Phones: the actions share one row as equal tiles, icon above label. */
+     @media (max-width: 480px) {
+         #detailsModal .athlete-links{
+             position:relative;
+             display:grid;
+             grid-auto-flow:column;
+             grid-auto-columns:minmax(0, 1fr);
+             align-items:stretch;
+             gap:.45rem;
+         }
+         #detailsModal .athlete-share-wrapper{
+             position:static;
+             display:flex;
+             min-width:0;
+         }
+         #detailsModal .athlete-links > a,
+         #detailsModal .athlete-share-wrapper > #shareAthleteProfile{
+             flex-direction:column;
+             justify-content:center;
+             min-width:0;
+             gap:.35rem;
+             padding:.6rem .25rem;
+             font-size:.8rem;
+             text-align:center;
+         }
+         #detailsModal .athlete-links > a > i,
+         #detailsModal .athlete-share-wrapper > button > i{
+             flex:0 0 auto;
+             font-size:1.1rem;
+         }
+     }
      #detailsModal .age-visualization{
          margin-top:1.25rem;
      }
