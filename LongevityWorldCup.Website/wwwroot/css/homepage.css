@@ -387,12 +387,17 @@ button:hover {
 }
 
 /* The newsletter intro, form and status share one panel, like the Contribute panel above it. */
+.newsletter-section {
+    container: newsletter-section / inline-size;
+}
+
 .newsletter-panel {
     display: grid;
-    gap: var(--lwc-space-4) var(--lwc-space-5);
+    grid-template-columns: minmax(0, 1fr);
+    column-gap: var(--lwc-space-5);
     max-width: 44rem;
     margin: var(--lwc-space-4) auto 0;
-    padding: var(--lwc-space-4);
+    padding: min(var(--lwc-space-4), 16px);
     border: 1px solid var(--lwc-border, #d7e0e6);
     border-radius: var(--lwc-radius-lg, 12px);
     background: var(--lwc-surface, #fff);
@@ -403,7 +408,7 @@ button:hover {
 
 .newsletter-section .newsletter-panel > p:first-child {
     max-width: none;
-    margin: 0;
+    margin: 0 0 var(--lwc-space-4);
 }
 
 .newsletter-section .newsletter-panel > p:first-child > .smaller-text {
@@ -412,30 +417,32 @@ button:hover {
 }
 
 .newsletter-panel #newsletter-form {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr));
     width: 100%;
     max-width: none;
     margin: 0;
 }
 
 .newsletter-panel #newsletterStatus {
+    grid-column: 1 / -1;
     max-width: none;
     margin: 0;
 }
 
-/* Stays rendered so the live region keeps announcing; the negative margin cancels its empty grid row. */
-.newsletter-panel #newsletterStatus:empty {
-    margin-top: calc(-1 * var(--lwc-space-4));
+/* Keep the live region rendered; only a populated status needs space above it. */
+.newsletter-panel #newsletterStatus:not(:empty) {
+    margin-top: var(--lwc-space-4);
 }
 
-@media (min-width: 700px) {
+@container newsletter-section (min-width: 34em) {
     .newsletter-panel {
         grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr);
         align-items: center;
-        padding: var(--lwc-space-5);
+        padding: min(var(--lwc-space-5), 24px);
     }
 
-    .newsletter-panel #newsletterStatus {
-        grid-column: 1 / -1;
+    .newsletter-section .newsletter-panel > p:first-child {
+        margin: 0;
     }
 }
 
