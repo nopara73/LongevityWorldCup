@@ -46,6 +46,14 @@ public static class CustomEventMarkup
         return links.Count == 1 ? links[0] : null;
     }
 
+    public static IReadOnlyList<string> GetHyperlinks(string? text)
+    {
+        var links = new List<string>();
+        if (!string.IsNullOrEmpty(text))
+            CollectHyperlinks(text, 0, text.Length, links, int.MaxValue);
+        return links;
+    }
+
     public static IReadOnlyList<CustomEventSegment> ParseSegments(string? text, bool keepHyperlinkLabels, Func<string, string>? mentionResolver = null)
     {
         var output = new List<CustomEventSegment>();
@@ -110,7 +118,7 @@ public static class CustomEventMarkup
         return false;
     }
 
-    private static void CollectHyperlinks(string text, int start, int length, List<string> links)
+    private static void CollectHyperlinks(string text, int start, int length, List<string> links, int maxCount = 2)
     {
         var end = start + length;
         var i = start;
@@ -143,12 +151,12 @@ public static class CustomEventMarkup
             var key = label.Trim().ToLowerInvariant();
             if (key == "bold" || key == "strong")
             {
-                CollectHyperlinks(inner, 0, inner.Length, links);
+                CollectHyperlinks(inner, 0, inner.Length, links, maxCount);
             }
             else if (IsSafeHttpUrl(inner))
             {
                 links.Add(inner.Trim());
-                if (links.Count > 1)
+                if (links.Count >= maxCount)
                     return;
             }
 

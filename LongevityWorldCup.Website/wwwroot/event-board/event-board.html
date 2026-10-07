@@ -8,6 +8,32 @@
             display: none !important;
         }
 
+        .event-board-heading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--lwc-space-3, 12px);
+            margin-bottom: var(--lwc-space-4, 16px);
+        }
+
+        .event-board-heading h1 { margin: 0; }
+
+        .event-feed-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--lwc-space-2, 8px);
+            min-height: 44px;
+            padding: 0 var(--lwc-space-2, 8px);
+            border-radius: var(--lwc-radius-md, 8px);
+            color: var(--secondary-color, #087685);
+            font-size: var(--lwc-type-sm, .875rem);
+            text-decoration: none;
+        }
+
+        .event-feed-link:hover { background: var(--lwc-surface-muted, #eef2f5); }
+        .event-feed-link:focus-visible { outline: 2px solid currentColor; outline-offset: -2px; }
+
         .event-board-page .events-board thead {
             display: none;
         }
@@ -109,7 +135,12 @@
 <body>
 <!--HEADER-->
 <main class="event-board-page">
-    <h1 id="eventBoardTitle">Highlights</h1>
+    <div class="event-board-heading">
+        <h1 id="eventBoardTitle">Highlights</h1>
+        <a class="event-feed-link" href="/feeds/events.rss" aria-label="Subscribe to Highlights via RSS" title="Subscribe via RSS">
+            <i class="fas fa-rss" aria-hidden="true"></i><span>RSS</span>
+        </a>
+    </div>
     <!--EVENT-BOARD-CONTENT-->
     <div class="options-container" data-aos="fade" data-aos-duration="700" data-aos-delay="700">
         <button class="option-button back-button" onclick="window.goBackOrHome()">
