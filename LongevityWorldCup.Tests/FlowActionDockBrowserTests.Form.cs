@@ -452,6 +452,7 @@ public sealed class FlowActionDockFormBrowserTests(
 
         await page.GotoAsync("/play", new PageGotoOptions { WaitUntil = WaitUntilState.Commit });
         await page.WaitForFunctionAsync("() => window.LwcFlowActionDock");
+        await page.WaitForFunctionAsync("() => document.documentElement.classList.contains('play-route-ready')");
         await page.WaitForFunctionAsync(
             "selector => !document.querySelector(selector)?.classList.contains('flow-action-stack--docked')",
             ".play-menu-actions");
