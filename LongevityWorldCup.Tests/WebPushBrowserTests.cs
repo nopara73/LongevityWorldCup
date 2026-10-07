@@ -68,6 +68,58 @@ public sealed class WebPushBrowserTests
         Assert.Equal("no-cache", worker.Headers.CacheControl!.ToString());
     }
 
+    [Theory]
+    [InlineData(75000, true)]
+    [InlineData(125000, false)]
+    public async Task Bell_WaitsForSlowNativeRegistrationAndRemovesSubscriptionsAfterItsDeadline(int delay, bool enabled)
+    {
+        await using var app = await BrowserTestApp.StartAsync();
+        Configure(app);
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await playwright.Chromium.LaunchAsync(new() { Headless = true });
+        await using var context = await browser.NewContextAsync();
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        var subscription = JsonSerializer.Serialize(WebPushTests.Subscription(), new JsonSerializerOptions(JsonSerializerDefaults.Web));
+        await context.AddInitScriptAsync("""
+            window.testUnsubscribeCount = 0;
+            window.testSubscribeStarted = false;
+            Object.defineProperty(Notification, 'permission', { get: () => 'granted' });
+            Notification.requestPermission = async () => 'granted';
+            const documentSubscription = {
+                toJSON: () => (SUBSCRIPTION),
+                unsubscribe: async () => { window.testUnsubscribeCount++; return true; }
+            };
+            PushManager.prototype.getSubscription = async () => null;
+            PushManager.prototype.subscribe = () => {
+                window.testSubscribeStarted = true;
+                return new Promise(resolve => setTimeout(() => resolve(documentSubscription), DELAY));
+            };
+            """.Replace("SUBSCRIPTION", subscription).Replace("DELAY", delay.ToString()));
+        var page = await context.NewPageAsync();
+        await page.Clock.InstallAsync();
+        await page.GotoAsync(app.BaseAddress + "events");
+        var bell = page.Locator("#webPushToggle");
+        await Assertions.Expect(bell).ToBeVisibleAsync();
+        await bell.ClickAsync();
+        await page.WaitForFunctionAsync("window.testSubscribeStarted");
+        await Assertions.Expect(bell).ToBeDisabledAsync();
+        await Assertions.Expect(bell.Locator(".fa-spinner.fa-spin")).ToBeVisibleAsync();
+        await page.Clock.FastForwardAsync(delay);
+        await Assertions.Expect(bell).ToHaveAttributeAsync("aria-pressed", enabled ? "true" : "false");
+        await Assertions.Expect(bell).ToBeEnabledAsync();
+        if (enabled)
+        {
+            Assert.Equal(0, await page.EvaluateAsync<int>("window.testUnsubscribeCount"));
+            await bell.ClickAsync();
+            await Assertions.Expect(bell).ToHaveAttributeAsync("aria-pressed", "false");
+        }
+        else
+        {
+            await Assertions.Expect(page.Locator("#webPushStatus")).ToHaveTextAsync("Notifications could not connect. Try again.");
+        }
+        await page.WaitForFunctionAsync("window.testUnsubscribeCount === 1");
+    }
+
     [Fact]
     public async Task Designer_OffersIndependentUncheckedPushDestinationWithNotificationPreview()
     {
