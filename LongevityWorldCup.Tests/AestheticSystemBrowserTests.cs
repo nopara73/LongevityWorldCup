@@ -275,7 +275,7 @@ public sealed class AestheticSystemBrowserTests(
                     Icons: icons,
                     VectorIcons: vectorIcons,
                     FooterIconCount: icons.filter(icon => icon.IsFooterIcon).length + vectorIcons.length,
-                    FooterPlatforms: [...document.querySelectorAll('.footer-column:last-child .footer-link')]
+                    FooterPlatforms: [...document.querySelectorAll('.footer-follow-links .footer-link')]
                         .map(link => link.textContent.trim()),
                     LocalResources: resources.filter(name => new URL(name).origin === location.origin),
                     ExternalResources: resources.filter(name => new URL(name).origin !== location.origin)
@@ -287,8 +287,8 @@ public sealed class AestheticSystemBrowserTests(
         Assert.True(diagnostics.BrandFaceLoaded, "The self-hosted brand Font Awesome face did not load.");
         var iconCount = diagnostics.Icons.Length + diagnostics.VectorIcons.Length;
         Assert.True(iconCount >= 34, $"Expected at least 34 visible Challenge/footer icons, found {iconCount}.");
-        Assert.Equal(12, diagnostics.FooterIconCount);
-        Assert.Equal(["X", "Nostr", "Reddit", "Threads", "YouTube", "Instagram"], diagnostics.FooterPlatforms);
+        Assert.Equal(15, diagnostics.FooterIconCount);
+        Assert.Equal(["X", "Nostr", "Reddit", "Threads", "YouTube", "Mastodon", "Instagram"], diagnostics.FooterPlatforms);
         Assert.Contains(diagnostics.VectorIcons, icon => icon.Label == "Nostr");
         Assert.All(diagnostics.VectorIcons, icon =>
         {

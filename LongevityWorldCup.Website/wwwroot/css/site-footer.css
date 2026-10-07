@@ -78,6 +78,29 @@
     align-items: flex-start;
 }
 
+.footer-follow-links {
+    display: contents;
+}
+
+.footer-subscriptions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.4rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    width: 100%;
+}
+
+.footer-icon-link {
+    width: 2.75rem;
+    justify-content: center;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.footer-link.footer-icon-link :is(i, svg) {
+    margin-right: 0;
+}
+
 /* The icons and link names identify each group; the titles stay for assistive technology. */
 .footer-column-title {
     position: absolute;
@@ -109,6 +132,15 @@
     .footer-column + .footer-column {
         padding-left: 3rem;
         border-left: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    /* Both groups stay balanced: subscription icons use the final Explore row. */
+    .footer-subscriptions {
+        align-self: center;
+        width: auto;
+        margin: 0;
+        padding: 0;
+        border: 0;
     }
 }
 

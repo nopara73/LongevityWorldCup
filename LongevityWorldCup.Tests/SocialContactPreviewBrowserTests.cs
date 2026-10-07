@@ -180,18 +180,21 @@ public sealed class SocialContactPreviewBrowserTests(
         var labels = await link.Locator("..").Locator("a").AllTextContentsAsync();
         var lengths = labels.Select(label => label.Trim().Length).ToArray();
         Assert.Equal(lengths.Order().ToArray(), lengths);
-        Assert.Equal(["X", "Nostr", "Reddit", "Threads", "YouTube", "Instagram"], labels.Select(label => label.Trim()));
+        Assert.Equal(["X", "Nostr", "Reddit", "Threads", "YouTube", "Mastodon", "Instagram"], labels.Select(label => label.Trim()));
         Assert.Equal(0, await page.Locator(".footer a[href*='bsky.app']").CountAsync());
         Assert.Equal("true", await link.Locator("svg").GetAttributeAsync("aria-hidden"));
         var box = Assert.IsType<LocatorBoundingBoxResult>(await link.BoundingBoxAsync());
         Assert.True(box.Height >= 44);
         Assert.True(box.X >= 0 && box.X + box.Width <= width);
         Assert.True(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth <= innerWidth"));
+        Assert.Equal("/feeds/events.rss", await page.GetByRole(AriaRole.Link, new PageGetByRoleOptions { Name = "Subscribe to Longevity World Cup via RSS", Exact = true }).GetAttributeAsync("href"));
+        Assert.Equal("/events#eventBoardTitle", await page.GetByRole(AriaRole.Link, new PageGetByRoleOptions { Name = "Get browser notifications on Highlights", Exact = true }).GetAttributeAsync("href"));
         var captures = Environment.GetEnvironmentVariable("LWC_BLUESKY_SCREENSHOT_DIRECTORY");
         if (!string.IsNullOrWhiteSpace(captures))
         {
             Directory.CreateDirectory(captures);
-            await page.ScreenshotAsync(new PageScreenshotOptions { Path = Path.Combine(captures, $"footer-{width}.png") });
+            await page.Locator(".footer .footer-link").Last.ScrollIntoViewIfNeededAsync();
+            await page.ScreenshotAsync(new PageScreenshotOptions { Path = Path.Combine(captures, $"footer-{width}.png"), Animations = ScreenshotAnimations.Disabled });
         }
     }
 }
