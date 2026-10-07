@@ -1309,7 +1309,8 @@ textarea:focus-visible {
         border: 1px solid ButtonText;
     }
 }
-/* Always reserve space so scrollIntoView/anchor links are not covered by the sticky bar (works on load and when sticky is visible) */
+/* Match the sticky link's 2.75rem height plus its header's vertical padding,
+   including when readers enlarge the text. Reserve it before the bar appears. */
 html {
-    scroll-padding-top: 52px;
+    scroll-padding-top: 3.25rem;
 }
