@@ -503,6 +503,27 @@
  }
  .filter-section input[type="checkbox"]:focus-visible{ outline:2px solid var(--secondary-color); outline-offset:2px; }
 
+ /* Filter rows read as one aligned list: icon column, name, count at the right edge. */
+ .filter-section label,
+ .filter-section label.is-zero-count:not(.active),
+ .filter-section label.is-zero-count:not(.active):hover{
+     background:transparent; border-color:transparent; border-style:solid;
+ }
+ .filter-section .filter-label-copy{ display:flex; align-items:center; flex:1 1 auto; gap:.5rem; }
+ .filter-section .filter-label-copy .filter-icon{ flex:0 0 1.4rem; width:1.4rem; font-size:.9em; }
+ .filter-section .filter-label-copy .lwc-flag-icon{ margin-right:0; }
+ /* The parentheses are separators for the inline form; right-aligned counts do not need them. */
+ .filter-section .filter-count-group{ margin-left:auto; padding-left:.5rem; font-size:0; }
+ .filter-section .filter-count{ font-size:.875rem; }
+
+ .sidebar-filter-list{ container:league-filters / inline-size; }
+ /* Let labels and counts flow together when enlarged text outgrows the aligned columns. */
+ @container league-filters (max-width:10em){
+     .filter-section .filter-label-copy{ display:block; }
+     .filter-section .filter-label-copy .filter-icon{ width:auto; margin-right:.35em; }
+     .filter-section .filter-count-group{ margin-left:0; padding-left:0; font-size:.875rem; }
+ }
+
  /* =========================
     5) Search & toolbar (search + view badges on one line on desktop)
     ========================= */

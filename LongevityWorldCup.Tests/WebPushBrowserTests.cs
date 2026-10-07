@@ -101,7 +101,7 @@ public sealed class WebPushBrowserTests
         var bell = page.Locator("#webPushToggle");
         await Assertions.Expect(bell).ToBeVisibleAsync();
         await bell.ClickAsync();
-        await page.WaitForFunctionAsync("window.testSubscribeStarted");
+        await page.WaitForFunctionAsync("() => window.testSubscribeStarted");
         await Assertions.Expect(bell).ToBeDisabledAsync();
         await Assertions.Expect(bell.Locator(".fa-spinner.fa-spin")).ToBeVisibleAsync();
         await page.Clock.FastForwardAsync(delay);
@@ -117,7 +117,7 @@ public sealed class WebPushBrowserTests
         {
             await Assertions.Expect(page.Locator("#webPushStatus")).ToHaveTextAsync("Notifications could not connect. Try again.");
         }
-        await page.WaitForFunctionAsync("window.testUnsubscribeCount === 1");
+        await page.WaitForFunctionAsync("() => window.testUnsubscribeCount === 1");
     }
 
     [Fact]
