@@ -24,13 +24,16 @@ public sealed class EventFeedBrowserTests(PlaywrightBrowserFixture browserFixtur
         }));
         var page = await context.NewPageAsync();
         await page.SetViewportSizeAsync(width, height);
-        await page.GotoAsync("/events", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.GotoAsync("/events", new() { WaitUntil = WaitUntilState.Load });
         await page.Locator("#webPushToggle").WaitForAsync(new() { State = WaitForSelectorState.Visible });
         await page.EvaluateAsync("percent => document.documentElement.style.fontSize = `${percent}%`", textPercent);
         await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
         await page.Locator(".event-board-heading").EvaluateAsync("heading => heading.scrollIntoView({ behavior: 'instant', block: 'start' })");
         await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
         var titleBox = Assert.IsType<LocatorBoundingBoxResult>(await page.Locator("#eventBoardTitle").BoundingBoxAsync());
+        var textLeft = await page.Locator("#eventBoardTitle").EvaluateAsync<double>(
+            "title => { const range = document.createRange(); range.selectNodeContents(title); return range.getClientRects()[0].left; }");
+        Assert.True(Math.Abs(textLeft - titleBox.X) <= 1, "Highlights text must align with the board's leading edge.");
         Assert.True(titleBox.Y >= 0, "Highlights must remain inside the viewport.");
         if (await page.Locator("#site-sticky-header").BoundingBoxAsync() is { } headerBox)
         {
