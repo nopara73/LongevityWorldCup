@@ -1703,3 +1703,145 @@ main > .main-container .leaderboard {
         font-size: 0.8rem;
     }
 }
+
+/* Season card: the year as a competition mark, placings tinted like the podium */
+.archive-section {
+    --archive-gold-surface: #fff9db;
+    --archive-silver-surface: #e9eef2;
+    --archive-bronze-surface: #f3e8da;
+}
+
+@media (prefers-color-scheme: dark) {
+    .archive-section {
+        --archive-gold-surface: #3a3320;
+        --archive-silver-surface: #29333d;
+        --archive-bronze-surface: #382e26;
+    }
+}
+
+@media (min-width: 601px) {
+    .archive-table-wrapper {
+        max-width: 62rem;
+        margin-inline: auto;
+    }
+
+    /* Each placing carries its own label, so the header row stays for assistive technology only. */
+    .archive-table thead {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+    }
+
+    .archive-table td {
+        padding: 1.1rem 1.25rem;
+        text-align: left;
+    }
+
+    .archive-table td:nth-child(1) {
+        width: 1%;
+        min-width: 0;
+        padding-right: 0.5rem;
+        color: var(--lwc-ink, #17212b);
+        font-family: Orbitron, Roboto, sans-serif;
+        font-size: 1.5rem;
+        font-weight: 700;
+        text-align: center;
+        white-space: nowrap;
+    }
+
+    .archive-table td:nth-child(2) {
+        width: 1%;
+        min-width: 0;
+        padding-left: 0.5rem;
+        font-size: var(--lwc-type-sm, 0.875rem);
+        white-space: nowrap;
+    }
+
+    .archive-table td:nth-child(n + 3) {
+        width: 30%;
+        border-left: 1px solid var(--lwc-surface, #fff);
+        vertical-align: top;
+    }
+
+    .archive-table td:nth-child(3) { background: var(--archive-gold-surface); }
+    .archive-table td:nth-child(4) { background: var(--archive-silver-surface); }
+    .archive-table td:nth-child(5) { background: var(--archive-bronze-surface); }
+
+    .archive-table td:nth-child(n + 3)::before {
+        display: block;
+        margin-bottom: 0.3rem;
+        color: var(--lwc-muted, #52606d);
+        font-size: var(--lwc-type-xs, 0.75rem);
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        line-height: 1.2;
+        text-transform: uppercase;
+    }
+
+    .archive-table td:nth-child(3)::before { content: "1st"; content: "1st" / ""; }
+    .archive-table td:nth-child(4)::before { content: "2nd"; content: "2nd" / ""; }
+    .archive-table td:nth-child(5)::before { content: "3rd"; content: "3rd" / ""; }
+
+    .archive-table td:nth-child(n + 3) a {
+        color: var(--lwc-ink, #17212b);
+        font-size: 1.05rem;
+        font-weight: 700;
+    }
+}
+
+@media (min-width: 601px) and (max-width: 768px) {
+    .archive-table td {
+        padding: 1rem 0.75rem;
+    }
+
+    .archive-table td:nth-child(1) {
+        padding-right: 0.25rem;
+        font-size: 1.2rem;
+    }
+
+    .archive-table td:nth-child(2) {
+        padding-left: 0.25rem;
+    }
+
+    .archive-table td:nth-child(n + 3) a {
+        font-size: 1rem;
+    }
+}
+
+@media (max-width: 600px) {
+    .archive-mobile-card-year {
+        font-family: Orbitron, Roboto, sans-serif;
+        font-size: 1.15rem;
+        font-weight: 700;
+    }
+
+    .archive-mobile-card-winners {
+        gap: 0.4rem;
+    }
+
+    .archive-mobile-card-winner {
+        grid-template-columns: 2.25rem minmax(0, 1fr);
+        padding: 0.3rem 0.65rem;
+        border-radius: var(--lwc-radius-md, 8px);
+    }
+
+    .archive-mobile-card-winner:nth-child(1) { background: var(--archive-gold-surface); }
+    .archive-mobile-card-winner:nth-child(2) { background: var(--archive-silver-surface); }
+    .archive-mobile-card-winner:nth-child(3) { background: var(--archive-bronze-surface); }
+
+    .archive-mobile-card-place {
+        color: var(--lwc-muted, #52606d);
+        font-size: var(--lwc-type-xs, 0.75rem);
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+    }
+
+    .archive-mobile-card-winner-name a {
+        color: var(--lwc-ink, #17212b);
+        font-weight: 700;
+    }
+}
