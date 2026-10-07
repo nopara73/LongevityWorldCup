@@ -275,6 +275,8 @@ Probe a missing document, athlete, league, and flag through public HTTPS with GE
 
 ### Reverse proxy CORS ownership
 
+The application processes `X-Forwarded-Proto` and `X-Forwarded-For` from one trusted loopback proxy before HTTPS, origin checks and request limits. Keep nginx's `Host`, `X-Forwarded-Proto $scheme` and `X-Forwarded-For $proxy_add_x_forwarded_for` directives on every proxy location. Host rewriting is not enabled, and headers from non-loopback senders are ignored. This makes same-origin requests and IP-based limits use the public request rather than the internal HTTP hop.
+
 ASP.NET Core owns the route-specific CORS policies. The nginx reverse-proxy location must pass those response headers through unchanged: do not add `Access-Control-Allow-*` or `Access-Control-Expose-Headers` directives at the proxy layer, and do not intercept `OPTIONS` requests. Adding CORS headers in both layers produces duplicate values that browsers reject; applying wildcard headers in nginx also bypasses the application's restricted policy for non-public routes.
 
 The automatic deployment probes production after each release. It requires exactly one wildcard `Access-Control-Allow-Origin` header on public API GET and preflight responses (including `/api/events`), validates the requested preflight method and header, and rejects an arbitrary-origin CORS header on `/health`.

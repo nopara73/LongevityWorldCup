@@ -8,9 +8,13 @@ using LongevityWorldCup.Website.Business;
 using LongevityWorldCup.Website.Tools;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.TestHost;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using Xunit;
 
 namespace LongevityWorldCup.Tests;
@@ -90,6 +94,62 @@ public sealed class WebPushTests
         Assert.Equal(HttpStatusCode.Conflict, (await client.PostAsJsonAsync("/api/web-push/subscribe", Subscription(subscription.Endpoint))).StatusCode);
         Assert.Equal(HttpStatusCode.NoContent, (await client.PostAsJsonAsync("/api/web-push/unsubscribe", subscription)).StatusCode);
         Assert.Equal(0L, Count(factory.Services.GetRequiredService<DatabaseManager>(), "WebPushSubscriptions"));
+    }
+
+    [Fact]
+    public async Task SubscriberApi_AcceptsPublicHttpsOriginBehindLoopbackProxyAndRejectsCrossSiteRequests()
+    {
+        await using var app = await BrowserTestApp.StartAsync();
+        var runtime = app.Services.GetRequiredService<Config>();
+        var signing = Configured();
+        runtime.WebPushVapidSubject = signing.WebPushVapidSubject;
+        runtime.WebPushVapidPublicKey = signing.WebPushVapidPublicKey;
+        runtime.WebPushVapidPrivateKey = signing.WebPushVapidPrivateKey;
+        using var client = app.CreateClient();
+        client.DefaultRequestHeaders.Host = "longevityworldcup.com";
+        client.DefaultRequestHeaders.Add("X-Forwarded-Proto", "https");
+        client.DefaultRequestHeaders.Add("X-Forwarded-For", "198.51.100.17");
+        client.DefaultRequestHeaders.Add("Origin", "https://longevityworldcup.com");
+        client.DefaultRequestHeaders.Add("Sec-Fetch-Site", "same-origin");
+        client.DefaultRequestHeaders.Add("X-LWC-Push", "1");
+        var subscription = Subscription();
+        using var accepted = await client.PostAsJsonAsync("/api/web-push/subscribe", subscription);
+        Assert.Equal(HttpStatusCode.NoContent, accepted.StatusCode);
+        Assert.Equal(1L, Count(app.Services.GetRequiredService<DatabaseManager>(), "WebPushSubscriptions"));
+        client.DefaultRequestHeaders.Remove("Origin");
+        client.DefaultRequestHeaders.Add("Origin", "https://unrelated.example");
+        using var crossSite = await client.PostAsJsonAsync("/api/web-push/subscribe", Subscription());
+        Assert.Equal(HttpStatusCode.BadRequest, crossSite.StatusCode);
+        Assert.Equal("Open the website to manage notifications.", await crossSite.Content.ReadAsStringAsync());
+        client.DefaultRequestHeaders.Remove("Origin");
+        client.DefaultRequestHeaders.Add("Origin", "https://longevityworldcup.com");
+        using var removed = await client.PostAsJsonAsync("/api/web-push/unsubscribe", subscription);
+        Assert.Equal(HttpStatusCode.NoContent, removed.StatusCode);
+        Assert.Equal(0L, Count(app.Services.GetRequiredService<DatabaseManager>(), "WebPushSubscriptions"));
+    }
+
+    [Theory]
+    [InlineData("127.0.0.1", true)]
+    [InlineData("::1", true)]
+    [InlineData("203.0.113.44", false)]
+    public async Task ProxyHeaders_TrustOneLoopbackHopAndPreserveHost(string remote, bool trusted)
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+        var options = factory.Services.GetRequiredService<IOptions<ForwardedHeadersOptions>>();
+        var context = new DefaultHttpContext();
+        context.Connection.RemoteIpAddress = IPAddress.Parse(remote);
+        context.Request.Scheme = "http";
+        context.Request.Host = new("longevityworldcup.com");
+        context.Request.Headers["X-Forwarded-Proto"] = "https";
+        context.Request.Headers["X-Forwarded-For"] = "192.0.2.1, 198.51.100.17";
+        context.Request.Headers["X-Forwarded-Host"] = "unrelated.example";
+        var middleware = new ForwardedHeadersMiddleware(_ => Task.CompletedTask, NullLoggerFactory.Instance, options);
+        await middleware.Invoke(context);
+        Assert.Equal(trusted ? "https" : "http", context.Request.Scheme);
+        Assert.Equal(trusted ? IPAddress.Parse("198.51.100.17") : IPAddress.Parse(remote), context.Connection.RemoteIpAddress);
+        Assert.Equal("longevityworldcup.com", context.Request.Host.Value);
+        Assert.Equal(1, options.Value.ForwardLimit);
     }
 
     [Fact]
