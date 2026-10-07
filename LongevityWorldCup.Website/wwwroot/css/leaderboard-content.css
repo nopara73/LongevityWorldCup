@@ -2567,7 +2567,6 @@
      @media (max-width: 480px) {
          .leaderboard {
              --portrait-size: 40px;
-             container: leaderboard / inline-size;
          }
 
          .leaderboard table {
@@ -2594,6 +2593,8 @@
 
          .leaderboard table tbody {
              display: block;
+             /* Keep query containment away from the fixed phone filter drawer. */
+             container: leaderboard / inline-size;
          }
 
          .leaderboard table tbody tr:not(.no-results):not(.tier-separator) {
