@@ -2600,11 +2600,11 @@
 
          .leaderboard table tbody tr:not(.no-results):not(.tier-separator) {
              display: grid;
-             grid-template-columns: 1.9rem minmax(0, 1fr) auto;
+             grid-template-columns: 2.25rem minmax(0, 1fr) auto;
              grid-template-areas: "rank athlete score";
              align-items: center;
              column-gap: 0.6rem;
-             padding: 0.4rem 0.8rem 0.4rem 0.6rem;
+             padding: 0.4rem 0.5rem 0.4rem 0.4rem;
              border-bottom: 1px solid var(--lwc-border, #d7e0e6);
          }
 
@@ -2629,6 +2629,8 @@
 
          .leaderboard table td.rank-td {
              grid-area: rank;
+             /* Extra room so the rank-change arrow left of the portrait clears a three-digit rank. */
+             margin-right: 0.5rem;
              display: flex;
              align-items: center;
              justify-content: center;
@@ -2644,7 +2646,7 @@
 
          .leaderboard table tbody tr td.athlete-td {
              grid-area: athlete;
-             gap: 0.4rem;
+             gap: 0.3rem;
              min-width: 0;
          }
 
