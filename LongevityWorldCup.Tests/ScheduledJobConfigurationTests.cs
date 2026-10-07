@@ -37,6 +37,7 @@ public sealed class ScheduledJobConfigurationTests
             ("NostrDailyPostTrigger", "NostrDailyPostJob", new(2030, 2, 1, 15, 6, 0, TimeSpan.Zero)),
             ("RedditDailyPostTrigger", "RedditDailyPostJob", new(2030, 2, 1, 15, 8, 0, TimeSpan.Zero)),
             ("BlueskyDailyPostTrigger", "BlueskyDailyPostJob", new(2030, 2, 1, 15, 10, 0, TimeSpan.Zero)),
+            ("InstagramDailyPostTrigger", "InstagramDailyPostJob", new(2030, 2, 1, 15, 12, 0, TimeSpan.Zero)),
             ("LongevitymaxxingReminderTrigger", "LongevitymaxxingReminderJob", new(2030, 2, 1, 0, 0, 0, TimeSpan.Zero))
         ];
 
@@ -83,6 +84,11 @@ public sealed class ScheduledJobConfigurationTests
         Assert.Equal(TimeSpan.FromMinutes(1), push.RepeatInterval);
         Assert.Equal(-1, push.RepeatCount);
         Assert.NotNull(await scheduler.GetJobDetail(push.JobKey));
+        var instagram = Assert.IsAssignableFrom<ISimpleTrigger>(await scheduler.GetTrigger(new TriggerKey("InstagramCustomPostTrigger")));
+        Assert.Equal(new JobKey("InstagramCustomPostJob"), instagram.JobKey);
+        Assert.Equal(TimeSpan.FromMinutes(1), instagram.RepeatInterval);
+        Assert.Equal(-1, instagram.RepeatCount);
+        Assert.NotNull(await scheduler.GetJobDetail(instagram.JobKey));
     }
 
     [Fact]

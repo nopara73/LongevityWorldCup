@@ -67,6 +67,7 @@ public sealed class CustomEventPreviewController(
             "mastodon" => SocialPlatform.Mastodon,
             "nostr" => SocialPlatform.Nostr,
             "bluesky" => SocialPlatform.Bluesky,
+            "instagram" => SocialPlatform.Instagram,
             _ => SocialPlatform.X
         };
     }

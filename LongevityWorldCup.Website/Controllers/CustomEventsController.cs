@@ -33,7 +33,8 @@ public sealed class CustomEventsController(EventDataService events, Config confi
         bool SendToNostr = false,
         bool SendToReddit = false,
         bool SendToBluesky = false,
-        bool SendToWebPush = false);
+        bool SendToWebPush = false,
+        bool SendToInstagram = false);
 
     [HttpPost]
     [RequestSizeLimit(MaxRequestBytes)]
@@ -81,7 +82,8 @@ public sealed class CustomEventsController(EventDataService events, Config confi
             request.SendToNostr,
             request.SendToReddit,
             request.SendToBluesky,
-            request.SendToWebPush);
+            request.SendToWebPush,
+            request.SendToInstagram);
         var selectedTargets = GetSelectedTargets(targets);
         if (selectedTargets.Count == 0)
             return BadRequest("Select at least one destination.");
@@ -89,6 +91,8 @@ public sealed class CustomEventsController(EventDataService events, Config confi
             return StatusCode(StatusCodes.Status503ServiceUnavailable, "Reddit announcements are not active yet.");
         if (targets.SendToWebPush && webPush?.IsConfigured != true)
             return StatusCode(StatusCodes.Status503ServiceUnavailable, "Website notifications are not configured.");
+        if (targets.SendToInstagram && (string.IsNullOrWhiteSpace(_config.InstagramAccountId) || string.IsNullOrWhiteSpace(_config.InstagramAccessToken)))
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, "Instagram announcements are not configured.");
 
         var eventId = _events.CreateCustomEvent(
             titleRaw: title,
@@ -122,6 +126,7 @@ public sealed class CustomEventsController(EventDataService events, Config confi
         if (targets.SendToReddit) selected.Add("reddit");
         if (targets.SendToBluesky) selected.Add("bluesky");
         if (targets.SendToWebPush) selected.Add("webpush");
+        if (targets.SendToInstagram) selected.Add("instagram");
         return selected;
     }
 }
