@@ -1600,7 +1600,7 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity) {
                 const portraitLink = athleteCell.querySelector('.athlete-profile-link');
                 portraitLink.href = getAthleteProfileHref(athlete);
                 portraitLink.setAttribute('aria-label', `View stats of ${athlete.displayName}`);
-                athleteNameSpan.innerHTML = formatAthleteNameForMobile(athlete.displayName);
+                athleteNameSpan.innerHTML = `<span class="athlete-name-content">${formatAthleteNameForMobile(athlete.displayName)}</span>`;
                 athleteNameSpan.title = `View stats of ${athlete.displayName}`;
 
                 window.setBadges(athlete, athleteCell);
