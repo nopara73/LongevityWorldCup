@@ -204,7 +204,7 @@ if not isinstance(content, str):
     sys.exit(1)
 
 flags = []
-for key in ("sendToWebpage", "sendToSlack", "sendToX", "sendToThreads", "sendToFacebook", "sendToMastodon", "sendToNostr"):
+for key in ("sendToWebpage", "sendToSlack", "sendToX", "sendToThreads", "sendToFacebook", "sendToMastodon", "sendToNostr", "sendToReddit"):
     flags.append("1" if bool(data.get(key)) else "0")
 
 if not any(flag == "1" for flag in flags):
@@ -217,7 +217,7 @@ for value in (title, content, *flags):
 PY
   )
 
-if [[ "${#payload_fields[@]}" -lt 9 ]]; then
+if [[ "${#payload_fields[@]}" -lt 10 ]]; then
   echo "Invalid payload fields" >&2
   exit 1
 fi
@@ -231,6 +231,7 @@ send_threads="${payload_fields[5]}"
 send_facebook="${payload_fields[6]}"
 send_mastodon="${payload_fields[7]}"
 send_nostr="${payload_fields[8]}"
+send_reddit="${payload_fields[9]}"
 }
 
 render() {
@@ -268,6 +269,7 @@ selected_platforms() {
   [[ "$send_facebook" == "1" ]] && items+=("Facebook")
   [[ "$send_mastodon" == "1" ]] && items+=("Mastodon")
   [[ "$send_nostr" == "1" ]] && items+=("Nostr")
+  [[ "$send_reddit" == "1" ]] && items+=("Reddit")
 
   local joined=""
   for item in "${items[@]}"; do
@@ -315,7 +317,11 @@ facebook_processed="$([[ "$send_facebook" == "1" ]] && echo 0 || echo 1)"
 visible_on_website="$([[ "$send_webpage" == "1" ]] && echo 1 || echo 0)"
 social_sql=""
 if [[ "$(as_svc sqlite3 "$db_path" "SELECT 1 FROM sqlite_master WHERE type='table' AND name='SocialDeliveries';")" == "1" ]]; then
-  for platform in mastodon nostr; do
+  if [[ "$send_reddit" == "1" && "$(as_svc sqlite3 "$db_path" "SELECT EXISTS(SELECT 1 FROM SocialDeliveryChannels WHERE Platform='reddit');")" != "1" ]]; then
+    echo "Reddit announcements are not active yet." >&2
+    exit 1
+  fi
+  for platform in mastodon nostr reddit; do
     selected_var="send_${platform}"
     if [[ "${!selected_var}" == "1" ]]; then
       delivery_status="pending"
@@ -326,7 +332,7 @@ if [[ "$(as_svc sqlite3 "$db_path" "SELECT 1 FROM sqlite_master WHERE type='tabl
     fi
     social_sql+="INSERT INTO SocialDeliveries (EventId, Platform, Status, LastErrorCode, UpdatedAtUtc) VALUES ('$id', '$platform', '$delivery_status', $delivery_reason, strftime('%Y-%m-%dT%H:%M:%fZ','now'));"
   done
-elif [[ "$send_mastodon" == "1" || "$send_nostr" == "1" ]]; then
+elif [[ "$send_mastodon" == "1" || "$send_nostr" == "1" || "$send_reddit" == "1" ]]; then
   echo "Social delivery storage is missing; start the current application to initialize it." >&2
   exit 1
 fi

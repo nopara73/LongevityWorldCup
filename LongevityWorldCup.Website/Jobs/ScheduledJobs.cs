@@ -24,6 +24,12 @@ internal static class ScheduledJobs
         var mastodonCustomKey = new JobKey("MastodonCustomPostJob");
         var nostrDailyKey = new JobKey("NostrDailyPostJob");
         var nostrCustomKey = new JobKey("NostrCustomPostJob");
+        var redditDailyKey = new JobKey("RedditDailyPostJob");
+
+        scheduler.AddJob<RedditDailyPostJob>(o => o.WithIdentity(redditDailyKey));
+        scheduler.AddTrigger(t => t.ForJob(redditDailyKey)
+            .WithIdentity("RedditDailyPostTrigger")
+            .WithSchedule(CronScheduleBuilder.Create("0 8 15 * * ?").InTimeZone(TimeZoneInfo.Utc)));
 
         scheduler.AddJob<NostrDailyPostJob>(o => o.WithIdentity(nostrDailyKey));
         scheduler.AddTrigger(t => t.ForJob(nostrDailyKey)

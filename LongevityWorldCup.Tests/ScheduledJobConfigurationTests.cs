@@ -35,6 +35,7 @@ public sealed class ScheduledJobConfigurationTests
             ("FacebookDailyPostTrigger", "FacebookDailyPostJob", new(2030, 2, 1, 15, 2, 0, TimeSpan.Zero)),
             ("MastodonDailyPostTrigger", "MastodonDailyPostJob", new(2030, 2, 1, 15, 4, 0, TimeSpan.Zero)),
             ("NostrDailyPostTrigger", "NostrDailyPostJob", new(2030, 2, 1, 15, 6, 0, TimeSpan.Zero)),
+            ("RedditDailyPostTrigger", "RedditDailyPostJob", new(2030, 2, 1, 15, 8, 0, TimeSpan.Zero)),
             ("LongevitymaxxingReminderTrigger", "LongevitymaxxingReminderJob", new(2030, 2, 1, 0, 0, 0, TimeSpan.Zero))
         ];
 

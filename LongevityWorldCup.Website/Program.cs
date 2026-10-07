@@ -256,6 +256,8 @@ namespace LongevityWorldCup.Website
             builder.Services.AddSingleton<INostrRelayTransport, NostrRelayTransport>();
             builder.Services.AddSingleton<NostrRelayClient>();
             builder.Services.AddSingleton<NostrAnnouncementService>();
+            builder.Services.AddSingleton<RedditDeliveryStore>();
+            builder.Services.AddSingleton<RedditAnnouncementService>();
             builder.Services.AddSingleton<XFillerPostLogService>();
             builder.Services.AddSingleton<ThreadsFillerPostLogService>();
             builder.Services.AddSingleton<FacebookFillerPostLogService>();
@@ -521,6 +523,8 @@ namespace LongevityWorldCup.Website
                 NostrPrivateKeyHex = "",
                 NostrPublicKeyHex = "",
                 NostrRelayUrls = new[] { "wss://relay.damus.io", "wss://relay.primal.net", "wss://nostr.mom" },
+                RedditEnabled = false,
+                RedditBridgeSecretHash = "",
                 CustomEventDesignerSecretHash = "",
                 LongevitymaxxingChallenge = new LongevitymaxxingChallengeConfig()
             };

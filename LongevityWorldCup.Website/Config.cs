@@ -61,6 +61,8 @@ namespace LongevityWorldCup.Website
         public string? NostrPrivateKeyHex { get; set; }
         public string? NostrPublicKeyHex { get; set; }
         public string[] NostrRelayUrls { get; set; } = ["wss://relay.damus.io", "wss://relay.primal.net", "wss://nostr.mom"];
+        public bool RedditEnabled { get; set; }
+        public string? RedditBridgeSecretHash { get; set; }
         public string? CustomEventDesignerSecretHash { get; set; }
         public LongevitymaxxingChallengeConfig? LongevitymaxxingChallenge { get; set; }
 

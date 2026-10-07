@@ -1,0 +1,30 @@
+{
+  "$schema": "https://developers.reddit.com/schema/config-file.v1.json",
+  "name": "longevityworldcup",
+  "server": {},
+  "permissions": {
+    "reddit": { "enable": true, "scope": "user" },
+    "redis": true,
+    "http": {
+      "enable": true,
+      "domains": ["longevityworldcup.com"]
+    }
+  },
+  "settings": {
+    "global": {
+      "lwcBridgeSecret": {
+        "type": "string",
+        "label": "LWC Reddit bridge secret",
+        "isSecret": true
+      }
+    }
+  },
+  "scheduler": {
+    "tasks": {
+      "lwc-announcements": {
+        "endpoint": "/internal/scheduler/announcements",
+        "cron": "* * * * *"
+      }
+    }
+  }
+}

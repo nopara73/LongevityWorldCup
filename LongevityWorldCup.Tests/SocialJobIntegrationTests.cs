@@ -770,7 +770,7 @@ public sealed class SocialJobIntegrationTests
         return new DateTimeOffset(day.Year, day.Month, day.Day, slots[Math.Abs(day.DayNumber) % slots.Length], 0, 0, TimeSpan.Zero);
     }
 
-    private sealed class SocialJobFixture : IDisposable
+    internal sealed class SocialJobFixture : IDisposable
     {
         private readonly string _root;
 
@@ -1119,7 +1119,7 @@ public sealed class SocialJobIntegrationTests
         public HttpClient CreateClient(string name) => client;
     }
 
-    private sealed class TestWebHostEnvironment(string root) : IWebHostEnvironment
+    internal sealed class TestWebHostEnvironment(string root) : IWebHostEnvironment
     {
         public string ApplicationName { get; set; } = "LongevityWorldCup.Tests";
         public IFileProvider WebRootFileProvider { get; set; } = new PhysicalFileProvider(root);

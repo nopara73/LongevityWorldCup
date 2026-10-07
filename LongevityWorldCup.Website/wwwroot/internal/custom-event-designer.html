@@ -901,6 +901,7 @@
                     <label class="check"><input id="sendFacebook" type="checkbox" /><span>Facebook</span></label>
                     <label class="check"><input id="sendMastodon" type="checkbox" /><span>Mastodon</span></label>
                     <label class="check"><input id="sendNostr" type="checkbox" /><span>Nostr</span></label>
+                    <label class="check"><input id="sendReddit" type="checkbox" /><span>Reddit</span></label>
                 </div>
             </div>
 
@@ -976,7 +977,7 @@
 
     <script src="{{ASSET_CUSTOM_EVENT_MARKUP_JS}}"></script>
     <script>
-        const LIMITS = { x: 280, threads: 500, mastodon: 500, nostr: 16000 };
+        const LIMITS = { x: 280, threads: 500, mastodon: 500, nostr: 16000, reddit: 40000 };
         const SECRET_HASH_ALGORITHM = "pbkdf2-sha256";
         const SECRET_HASH_ITERATIONS = 210000;
         const SECRET_HASH_SALT_BYTES = 16;
@@ -991,6 +992,7 @@
         const sendFacebook = document.getElementById("sendFacebook");
         const sendMastodon = document.getElementById("sendMastodon");
         const sendNostr = document.getElementById("sendNostr");
+        const sendReddit = document.getElementById("sendReddit");
         const designerSecretInput = document.getElementById("designerSecretInput");
         const generateSecretHashBtn = document.getElementById("generateSecretHashBtn");
         const copySecretHashBtn = document.getElementById("copySecretHashBtn");
@@ -1032,7 +1034,8 @@
             { key: "threads", label: "Threads", checkbox: sendThreads, limit: LIMITS.threads },
             { key: "facebook", label: "Facebook", checkbox: sendFacebook, limit: 63206 },
             { key: "mastodon", label: "Mastodon", checkbox: sendMastodon, limit: LIMITS.mastodon },
-            { key: "nostr", label: "Nostr", checkbox: sendNostr, limit: LIMITS.nostr }
+            { key: "nostr", label: "Nostr", checkbox: sendNostr, limit: LIMITS.nostr },
+            { key: "reddit", label: "Reddit", checkbox: sendReddit, limit: LIMITS.reddit }
         ];
         const PLATFORM_PREVIEW_META = {
             slack: { name: "Longevity World Cup", handle: "#highlights", avatar: "LW", label: "Slack" },
@@ -1040,11 +1043,13 @@
             threads: { name: "Longevity World Cup", handle: "@longevityworldcup", avatar: "LW", label: "Threads" },
             facebook: { name: "Longevity World Cup", handle: "Facebook Page", avatar: "LW", label: "Facebook" },
             mastodon: { name: "Longevity World Cup", handle: "@longevityworldcup@mastodon.social", avatar: "LW", label: "Mastodon" },
-            nostr: { name: "Longevity World Cup", handle: "longevityworldcup.com", avatar: "LW", label: "Nostr" }
+            nostr: { name: "Longevity World Cup", handle: "longevityworldcup.com", avatar: "LW", label: "Nostr" },
+            reddit: { name: "Longevity World Cup", handle: "r/LongevityWorldCup", avatar: "LW", label: "Reddit" }
         };
 
         function renderPlatformAvatar(platformKey, sizeClass = "x-avatar") {
             const logos = {
+                reddit: `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="11" fill="#ff4500"/><path d="m12 9 1-4 4 1" fill="none" stroke="white" stroke-width="1.4"/><circle cx="18" cy="6" r="1.5" fill="white"/><ellipse cx="12" cy="14" rx="7" ry="5" fill="white"/><circle cx="9" cy="13" r="1" fill="#ff4500"/><circle cx="15" cy="13" r="1" fill="#ff4500"/><path d="M9 16q3 2 6 0" fill="none" stroke="#ff4500" stroke-width="1.2" stroke-linecap="round"/></svg>`,
                 nostr: `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="1" y="1" width="22" height="22" rx="6" fill="#8b5cf6"/><path fill="white" d="M6 18V6h3l6 8V6h3v12h-3l-6-8v8Z"/></svg>`,
                 mastodon: `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="1" y="1" width="22" height="22" rx="6" fill="#6364ff"/><path fill="white" d="M5 7h3l4 5 4-5h3v11h-3v-7l-4 5-4-5v7H5Z"/></svg>`,
                 x: `
@@ -1900,6 +1905,14 @@
             const hasHyperlinks = containsHyperlink(rawText);
             const textWithoutUrl = buildTextPost(titleText, bodyText, null);
 
+            if (platformKey === "reddit") {
+                let postText = buildTextPost(titleText, bodyText, hasHyperlinks ? eventUrl : null);
+                if (includeEventUrl && !postText.includes("https://longevityworldcup.com/")) {
+                    postText += `\n\n${buildPreviewEventUrl(titleRaw, contentRaw)}`;
+                }
+                return { mode: "text", postText };
+            }
+
             if ((!hasHyperlinks || !eventUrl) && textWithoutUrl && postLength(textWithoutUrl, platformKey) <= maxLength) {
                 return { mode: "text", postText: textWithoutUrl };
             }
@@ -1928,7 +1941,7 @@
                 return plan.postText;
             }
 
-            if (platformKey === "x" || platformKey === "threads" || platformKey === "facebook" || platformKey === "mastodon" || platformKey === "nostr") {
+            if (platformKey === "x" || platformKey === "threads" || platformKey === "facebook" || platformKey === "mastodon" || platformKey === "nostr" || platformKey === "reddit") {
                 const fallbackLimit = LIMITS[platformKey] ?? 63206;
                 const fallbackPlan = buildPlan(titleRaw, contentRaw, fallbackLimit, platformKey, includeEventUrl);
                 return fallbackPlan.postText || "";
@@ -2048,7 +2061,8 @@
                 sendToThreads: sendThreads.checked,
                 sendToFacebook: sendFacebook.checked,
                 sendToMastodon: sendMastodon.checked,
-                sendToNostr: sendNostr.checked
+                sendToNostr: sendNostr.checked,
+                sendToReddit: sendReddit.checked
             };
         }
 
@@ -2060,7 +2074,8 @@
                 payload.sendToThreads ||
                 payload.sendToFacebook ||
                 payload.sendToMastodon ||
-                payload.sendToNostr
+                payload.sendToNostr ||
+                payload.sendToReddit
             );
         }
 
@@ -2102,6 +2117,7 @@
                 if (typeof data.sendFacebook === "boolean") sendFacebook.checked = data.sendFacebook;
                 if (typeof data.sendMastodon === "boolean") sendMastodon.checked = data.sendMastodon;
                 if (typeof data.sendNostr === "boolean") sendNostr.checked = data.sendNostr;
+                if (typeof data.sendReddit === "boolean") sendReddit.checked = data.sendReddit;
             } catch {
             }
         }
@@ -2115,7 +2131,8 @@
                     sendThreads: sendThreads.checked,
                     sendFacebook: sendFacebook.checked,
                     sendMastodon: sendMastodon.checked,
-                    sendNostr: sendNostr.checked
+                    sendNostr: sendNostr.checked,
+                    sendReddit: sendReddit.checked
                 }));
             } catch {
             }
@@ -2244,7 +2261,7 @@
                                 </div>
                                 <div class="x-text">${formatPlainPostTextToHtml(visibleText, clickableMentions)}</div>
                                 ${ogCardHtml}
-                                <div class="x-actions"><span>Reply</span><span>Repost</span><span>Like</span><span>View</span></div>
+                                <div class="x-actions">${platformKey === "reddit" ? '<span>↑</span><span>↓</span><span>Comment</span><span>Share</span>' : '<span>Reply</span><span>Repost</span><span>Like</span><span>View</span>'}</div>
                             </div>
                         </div>
                     </div>    
@@ -2565,7 +2582,7 @@
             }
         });
 
-        [titleInput, contentInput, sendWebpage, sendSlack, sendX, sendThreads, sendFacebook, sendMastodon, sendNostr].forEach(el => {
+        [titleInput, contentInput, sendWebpage, sendSlack, sendX, sendThreads, sendFacebook, sendMastodon, sendNostr, sendReddit].forEach(el => {
             el.addEventListener("input", event => {
                 if (event.target === titleInput || event.target === contentInput) {
                     updateMentionSuggestions(event.target);

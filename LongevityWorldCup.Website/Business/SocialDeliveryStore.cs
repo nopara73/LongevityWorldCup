@@ -14,9 +14,10 @@ public sealed class SocialDeliveryStore(DatabaseManager db)
 {
     internal const string Mastodon = "mastodon";
     internal const string Nostr = "nostr";
+    internal const string Reddit = "reddit";
     private static string Timestamp(DateTimeOffset value) => value.UtcDateTime.ToString("o");
 
-    internal static void InitializeChannel(DatabaseManager db, string platform) => db.Run(sqlite =>
+    internal static void InitializeChannel(DatabaseManager db, string platform, bool baselineSelectedTargets = false) => db.Run(sqlite =>
     {
         using var tx = sqlite.BeginTransaction();
         using var cmd = sqlite.CreateCommand();
@@ -46,10 +47,14 @@ public sealed class SocialDeliveryStore(DatabaseManager db)
         cmd.CommandText = """
             INSERT OR IGNORE INTO SocialDeliveries (EventId, Platform, Status, LastErrorCode, UpdatedAtUtc)
             SELECT Id, @platform, 'skipped', 'ChannelIntroduced', @now FROM Events
-            WHERE NOT EXISTS (SELECT 1 FROM SocialDeliveryChannels WHERE Platform = @platform);
+            WHERE NOT EXISTS (SELECT 1 FROM SocialDeliveryChannels WHERE Platform = @platform)
+            ON CONFLICT(EventId, Platform) DO UPDATE SET
+                Status = 'skipped', LastErrorCode = 'ChannelIntroduced', UpdatedAtUtc = @now
+            WHERE @baselineSelected = 1 AND SocialDeliveries.Status = 'pending';
             INSERT OR IGNORE INTO SocialDeliveryChannels (Platform, IntroducedAtUtc) VALUES (@platform, @now);
             """;
         cmd.Parameters.AddWithValue("@platform", platform);
+        cmd.Parameters.AddWithValue("@baselineSelected", baselineSelectedTargets ? 1 : 0);
         cmd.Parameters.AddWithValue("@now", Timestamp(DateTimeOffset.UtcNow));
         cmd.ExecuteNonQuery();
         tx.Commit();

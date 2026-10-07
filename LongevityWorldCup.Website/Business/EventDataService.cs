@@ -44,7 +44,8 @@ public sealed record CustomEventDeliveryTargets(
     bool SendToThreads,
     bool SendToFacebook,
     bool SendToMastodon = false,
-    bool SendToNostr = false)
+    bool SendToNostr = false,
+    bool SendToReddit = false)
 {
     public CustomEventStorageFlags ToStorageFlags() => new(
         VisibleOnWebsite: SendToWebpage ? 1 : 0,
@@ -1907,6 +1908,8 @@ public sealed partial class EventDataService : IDisposable
                 deliveryTargets?.SendToMastodon ?? true, SocialDeliveryStore.Mastodon);
             SocialDeliveryStore.SelectCustomEventTarget(sqlite, tx, eventId,
                 deliveryTargets?.SendToNostr ?? true, SocialDeliveryStore.Nostr);
+            SocialDeliveryStore.SelectCustomEventTarget(sqlite, tx, eventId,
+                deliveryTargets?.SendToReddit ?? true, SocialDeliveryStore.Reddit);
 
             tx.Commit();
         });

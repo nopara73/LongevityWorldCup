@@ -8,7 +8,8 @@ namespace LongevityWorldCup.Website.Controllers;
 [ApiController]
 [Route("api/custom-events")]
 [RequestTimeout(PublicRequestTimeoutPolicies.PublicWork)]
-public sealed class CustomEventsController(EventDataService events, Config config, ILogger<CustomEventsController> log) : ControllerBase
+public sealed class CustomEventsController(EventDataService events, Config config, ILogger<CustomEventsController> log,
+    RedditDeliveryStore? reddit = null) : ControllerBase
 {
     private const int MaxRequestBytes = 16 * 1024;
     private const int MaxSecretLength = 1024;
@@ -29,7 +30,8 @@ public sealed class CustomEventsController(EventDataService events, Config confi
         bool SendToThreads,
         bool SendToFacebook,
         bool SendToMastodon = false,
-        bool SendToNostr = false);
+        bool SendToNostr = false,
+        bool SendToReddit = false);
 
     [HttpPost]
     [RequestSizeLimit(MaxRequestBytes)]
@@ -74,10 +76,13 @@ public sealed class CustomEventsController(EventDataService events, Config confi
             request.SendToThreads,
             request.SendToFacebook,
             request.SendToMastodon,
-            request.SendToNostr);
+            request.SendToNostr,
+            request.SendToReddit);
         var selectedTargets = GetSelectedTargets(targets);
         if (selectedTargets.Count == 0)
             return BadRequest("Select at least one destination.");
+        if (targets.SendToReddit && (!_config.RedditEnabled || reddit?.IsActive != true))
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, "Reddit announcements are not active yet.");
 
         var eventId = _events.CreateCustomEvent(
             titleRaw: title,
@@ -108,6 +113,7 @@ public sealed class CustomEventsController(EventDataService events, Config confi
         if (targets.SendToFacebook) selected.Add("facebook");
         if (targets.SendToMastodon) selected.Add("mastodon");
         if (targets.SendToNostr) selected.Add("nostr");
+        if (targets.SendToReddit) selected.Add("reddit");
         return selected;
     }
 }
