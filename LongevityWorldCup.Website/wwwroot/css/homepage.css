@@ -1609,8 +1609,8 @@ main > .main-container .leaderboard {
 
     .archive-mobile-card-winner-content {
         min-width: 0;
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) auto;
+        display: flex;
+        flex-wrap: wrap;
         align-items: center;
         gap: 0.5rem;
     }
@@ -1618,13 +1618,15 @@ main > .main-container .leaderboard {
     .archive-mobile-card-winner-name {
         display: block;
         min-width: 0;
+        flex: 1 1 min-content;
+        overflow-wrap: break-word;
         margin-bottom: 0;
         text-align: left;
     }
 
     .archive-mobile-card-winner-name a {
-        display: inline-flex;
-        align-items: center;
+        display: inline-block;
+        max-width: 100%;
         min-height: 2rem;
         border-radius: 999px;
         box-sizing: border-box;
@@ -1640,7 +1642,10 @@ main > .main-container .leaderboard {
         font-weight: 600;
         font-size: 0.85rem;
         display: block;
-        white-space: nowrap;
+        flex: 0 1 auto;
+        min-width: 0;
+        white-space: normal;
+        margin-inline-start: auto;
         text-align: right;
     }
 
@@ -1706,7 +1711,7 @@ main > .main-container .leaderboard {
 .archive-section {
     --archive-gold-surface: #fff9db;
     --archive-silver-surface: #e9eef2;
-    --archive-bronze-surface: #f3e8da;
+    --archive-bronze-surface: #f8eddf;
 }
 
 @media (prefers-color-scheme: dark) {
