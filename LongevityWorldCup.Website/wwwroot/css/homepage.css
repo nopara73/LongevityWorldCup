@@ -1160,6 +1160,7 @@ button:hover {
     }
 
     .lwc-merch-grid {
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 4rem), 1fr));
         gap: 0.45rem;
     }
 
