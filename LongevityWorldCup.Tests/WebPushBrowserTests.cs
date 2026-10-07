@@ -52,7 +52,12 @@ public sealed class WebPushBrowserTests
         var bounds = await bell.BoundingBoxAsync();
         Assert.True(bounds!.Width >= 44 && bounds.Height >= 44);
         Assert.False(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth > window.innerWidth"));
-        Assert.Equal(["X", "Nostr", "Reddit", "Threads", "YouTube", "Instagram"], await page.Locator(".footer-column:last-child .footer-link").AllTextContentsAsync().ContinueWith(t => t.Result.Select(s => s.Trim()).ToArray()));
+        Assert.Equal(["X", "Nostr", "Reddit", "Threads", "YouTube", "Mastodon", "Instagram"], await page.Locator(".footer-follow-links .footer-link").AllTextContentsAsync().ContinueWith(t => t.Result.Select(s => s.Trim()).ToArray()));
+        var footerShortcut = page.GetByRole(AriaRole.Link, new PageGetByRoleOptions { Name = "Get browser notifications on Highlights", Exact = true });
+        Assert.Null(await footerShortcut.GetAttributeAsync("aria-current"));
+        await footerShortcut.ClickAsync();
+        await Assertions.Expect(page.Locator("#eventBoardTitle")).ToBeInViewportAsync();
+        Assert.Equal(0, await page.EvaluateAsync<int>("window.pushPermissionRequests"));
         await bell.ClickAsync();
         await Assertions.Expect(bell).ToHaveAttributeAsync("aria-pressed", "true");
         Assert.Equal(1, await page.EvaluateAsync<int>("window.pushPermissionRequests"));

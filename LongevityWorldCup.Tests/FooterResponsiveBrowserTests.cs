@@ -26,7 +26,7 @@ public sealed class FooterResponsiveBrowserTests(
         await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
 
         var links = page.Locator(".footer .footer-link");
-        Assert.Equal(12, await links.CountAsync());
+        Assert.Equal(15, await links.CountAsync());
         var problems = await links.EvaluateAllAsync<string[]>(
             """
             links => links.flatMap(link => {

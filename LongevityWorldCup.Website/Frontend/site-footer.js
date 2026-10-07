@@ -1,6 +1,7 @@
 (() => {
     const currentPath = window.location.pathname.replace(/\/$/, '') || '/';
     document.querySelectorAll('.footer-link[href^="/"]').forEach(link => {
+        if (link.hash) return;
         const linkPath = new URL(link.href, window.location.origin).pathname.replace(/\/$/, '') || '/';
         if (linkPath === currentPath) {
             link.setAttribute('aria-current', 'page');
