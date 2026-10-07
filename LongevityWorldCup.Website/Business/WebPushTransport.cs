@@ -15,6 +15,7 @@ internal sealed record WebPushResult(HttpStatusCode Status, TimeSpan? RetryAfter
 public sealed class WebPushTransport(Config config, IHttpClientFactory http)
 {
     internal const string RateLimitPolicy = "web-push";
+    internal const int MaxPayloadBytes = 3840; // Encrypted body stays below the push service's 4096-byte minimum.
 
     public bool IsConfigured
     {
@@ -66,7 +67,7 @@ public sealed class WebPushTransport(Config config, IHttpClientFactory http)
     {
         if (!IsValid(subscription)) throw new ArgumentException("Invalid push subscription.");
         var bytes = Encoding.UTF8.GetBytes(payload);
-        if (bytes.Length > 3000) throw new ArgumentException("Push payload exceeds its byte budget.");
+        if (bytes.Length > MaxPayloadBytes) throw new ArgumentException("Push payload exceeds its byte budget.");
         using var ephemeral = ECDiffieHellman.Create(ECCurve.NamedCurves.nistP256);
         var body = Encrypt(bytes, Decode(subscription.Keys.P256dh), Decode(subscription.Keys.Auth),
             ephemeral, RandomNumberGenerator.GetBytes(16));

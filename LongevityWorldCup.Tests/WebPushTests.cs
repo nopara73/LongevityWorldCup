@@ -185,12 +185,17 @@ public sealed class WebPushTests
         File.WriteAllBytes(Path.Combine(assetFolder, "favicon-192x192.png"), [1, 2, 3]);
         var raw = "🏆" + new string('\u0301', 1600) + "\n\n" + string.Concat(Enumerable.Repeat("🏃🏽‍♀️", 500));
         var payload = WebPushAnnouncementService.BuildPayload(new("abc", raw, true, "", null), new(fixture.Env));
-        Assert.True(Encoding.UTF8.GetByteCount(payload) <= 3000);
+        Assert.True(Encoding.UTF8.GetByteCount(payload) <= WebPushTransport.MaxPayloadBytes);
         using var parsed = JsonDocument.Parse(payload);
         Assert.Equal("…", parsed.RootElement.GetProperty("title").GetString());
         Assert.Equal("/events?event=abc", parsed.RootElement.GetProperty("url").GetString());
         Assert.Contains("?v=", parsed.RootElement.GetProperty("icon").GetString());
         Assert.DoesNotContain("\ufffd", payload);
+        // JSON escapes control characters; a text byte budget alone must not reject an otherwise valid notification.
+        var escaped = new string('\u0001', 99) + "a" + new string('\u0301', 150)
+            + "\n\n" + new string('\u0001', 199) + "b" + new string('\u0301', 500);
+        var escapedPayload = WebPushAnnouncementService.BuildPayload(new("abc", escaped, true, "", null), new(fixture.Env));
+        Assert.True(Encoding.UTF8.GetByteCount(escapedPayload) <= WebPushTransport.MaxPayloadBytes);
     }
 
     internal static Config Configured()

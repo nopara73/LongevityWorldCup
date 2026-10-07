@@ -104,18 +104,22 @@ public sealed class WebPushBrowserTests
         var result = await page.EvaluateAsync<JsonElement>("""
             async source => {
                 const handlers = {}, shown = [], opened = [], waits = [];
+                let draftNavigated = false;
                 const scope = {
                     location: { origin: location.origin },
                     addEventListener: (type, callback) => { handlers[type] = callback; },
                     registration: { showNotification: async (title, options) => shown.push({ title, ...options }) },
-                    clients: { matchAll: async () => [], openWindow: async url => opened.push(url) }
+                    clients: {
+                        matchAll: async () => [{ url: location.origin + '/internal/custom-event-designer.html', navigate: async () => { draftNavigated = true; }, focus: async () => {} }],
+                        openWindow: async url => opened.push(url)
+                    }
                 };
                 new Function('self', source)(scope);
                 const push = () => handlers.push({ data: { json: () => ({ id: 'same-event', title: 'A sport for time', body: 'Hello', url: 'https://unrelated.example/' }) }, waitUntil: p => waits.push(p) });
                 push(); push(); await Promise.all(waits);
                 handlers.notificationclick({ notification: { close() {}, data: { url: 'https://unrelated.example/' } }, waitUntil: p => waits.push(p) });
                 await Promise.all(waits);
-                return { shown, opened };
+                return { shown, opened, draftNavigated };
             }
             """, source);
         Assert.Equal(2, result.GetProperty("shown").GetArrayLength());
@@ -126,6 +130,7 @@ public sealed class WebPushBrowserTests
             Assert.Equal(new Uri(app.BaseAddress, "events").ToString(), item.GetProperty("data").GetProperty("url").GetString());
         });
         Assert.Equal(new Uri(app.BaseAddress, "events").ToString(), result.GetProperty("opened")[0].GetString());
+        Assert.False(result.GetProperty("draftNavigated").GetBoolean());
     }
 
     private static void Configure(BrowserTestApp app)

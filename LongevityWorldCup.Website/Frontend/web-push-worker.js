@@ -28,7 +28,9 @@ self.addEventListener('notificationclick', event => {
             ? candidate.href : new URL('/events', self.location.origin).href;
         const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
         for (const client of windows) {
-            if (new URL(client.url).origin !== self.location.origin) continue;
+            const current = new URL(client.url);
+            // Reuse Highlights only; other pages may contain an unsaved application or admin draft.
+            if (current.origin !== self.location.origin || current.pathname !== '/events') continue;
             await client.navigate(url);
             await client.focus();
             return;
