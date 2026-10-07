@@ -12,6 +12,7 @@ The Custom Event API rejects a selected Reddit destination while the bridge is d
 - `RedditBridgeSecretHash` contains a dedicated `SecretHashVerifier` PBKDF2-SHA256 verification hash. Do not reuse the Custom Event Designer secret or store the plaintext bridge key in website configuration.
 - Devvit's encrypted global setting `lwcBridgeSecret` holds the matching plaintext key. Keep it out of source, public app settings, URLs, and logs. The operator's approved private backup is `A:\Integrations\reddit.txt`.
 - Devvit requires approval for the exact HTTP fetch hostname `longevityworldcup.com`, plus app Terms and Privacy Policy links. Review these prerequisites before activation.
+- The app policies are published at `https://longevityworldcup.com/reddit-terms.html` and `https://longevityworldcup.com/reddit-privacy.html`; save both URLs in the app's developer settings.
 - Build and test `LongevityWorldCup.Reddit` with `npm ci` and `npm test`, then upload the app. The app has no sample-post installation trigger, custom post UI, or public mutation route. Install it only in the intended subreddit and configure the encrypted key. Installation alone cannot post while the key is missing or the LWC bridge is disabled.
 - Enable the bridge only after the app and domain permissions are ready. Its first authenticated `POST /api/reddit/next` activates the channel and establishes the historical baseline. Confirm the installed version, saved scheduler job, authentication, and persisted delivery state before reporting it active.
 

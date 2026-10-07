@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Reddit app privacy policy | Longevity World Cup</title>
+    <meta name="description" content="{{SEO_DESCRIPTION}}">
+    <meta name="robots" content="{{SEO_ROBOTS}}">
+    <link rel="canonical" href="{{SEO_CANONICAL_URL}}">
+    <style>
+        :root {
+            color-scheme: light dark;
+            --bg: var(--lwc-canvas, #f4f6f7);
+            --panel: var(--lwc-surface, #ffffff);
+            --text: var(--lwc-ink, #17212b);
+            --muted: var(--lwc-muted, #536471);
+            --line: var(--lwc-border, #c7d0d7);
+            --accent: var(--lwc-accent, #087685);
+            --accent-soft: var(--lwc-accent-soft, #e4f4f5);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            max-width: 100%;
+            overflow-x: clip;
+            font-family: var(--lwc-font-body, Inter, "Segoe UI", Arial, sans-serif);
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        .wrap {
+            width: min(820px, calc(100% - 32px));
+            margin: 32px auto 64px;
+        }
+
+        .card {
+            min-width: 0;
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: var(--lwc-radius-md, 6px);
+            padding: 32px;
+            box-shadow: var(--lwc-shadow-sm, 0 1px 2px rgba(23, 33, 43, 0.1));
+        }
+
+        h1 {
+            margin: 0 0 8px;
+            font-family: var(--lwc-font-display, Inter, "Segoe UI", Arial, sans-serif);
+            font-size: clamp(2rem, 5vw, 2.4rem);
+            line-height: 1.15;
+            overflow-wrap: anywhere;
+        }
+
+        h2 {
+            margin: 34px 0 10px;
+            padding-top: 22px;
+            border-top: 1px solid rgba(168, 176, 191, 0.18);
+            font-size: 20px;
+            line-height: 1.25;
+        }
+
+        h2:first-of-type {
+            border-top: 0;
+            padding-top: 0;
+        }
+
+        p, li {
+            color: var(--muted);
+            font-size: 16px;
+            max-width: 68ch;
+            min-width: 0;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+        }
+
+        p {
+            margin: 0 0 16px;
+        }
+
+        .lead {
+            margin: 0 0 24px;
+            color: var(--text);
+            max-width: 64ch;
+        }
+
+        .meta {
+            display: inline-block;
+            margin-bottom: 20px;
+            padding: 8px 12px;
+            border: 1px solid var(--line);
+            border-radius: var(--lwc-radius-sm, 4px);
+            background: var(--accent-soft);
+            color: var(--accent);
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        a {
+            color: var(--accent);
+            overflow-wrap: anywhere;
+        }
+
+        ul {
+            margin: 0 0 18px;
+            padding-left: 20px;
+        }
+
+        li + li {
+            margin-top: 4px;
+        }
+
+        @media (max-width: 520px) {
+            .wrap {
+                width: min(100% - 16px, 820px);
+                margin-top: 20px;
+            }
+
+            .card {
+                border-radius: var(--lwc-radius-md, 6px);
+                padding: 22px 20px 28px;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            .meta {
+                margin-bottom: 16px;
+            }
+
+            h2 {
+                margin-top: 28px;
+            }
+        }
+    </style>
+    <!--AESTHETIC-SYSTEM-->
+</head>
+<body>
+    <main class="wrap">
+        <article class="card">
+            <div class="meta">Longevity World Cup</div>
+            <h1>Reddit app privacy policy</h1>
+            <p class="lead">The app receives announcements selected for Reddit from the Longevity World Cup server. These can include athlete names, announcement text, and relevant links. It sends each selected post's title and text to Reddit.</p>
+
+            <p>The app stores announcement identifiers, delivery status, submission markers, and Reddit post identifiers to prevent duplicate posts and confirm delivery. These records are retained while the integration operates. Its bridge credential is used only to authenticate the connection between the app and the Longevity World Cup server; it is configured as an encrypted Devvit secret, with private operator backups.</p>
+
+            <p>The app does not request Reddit users' private messages, email addresses, browsing histories, or private profile information. Reddit and Longevity World Cup process their respective service requests. Content published on Reddit remains subject to Reddit's own policies and controls.</p>
+
+            <p>For questions or requests concerning data controlled by Longevity World Cup, contact <a href="mailto:hi@longevityworldcup.com">hi@longevityworldcup.com</a>. Removing the app stops future publishing; it does not automatically remove existing Reddit posts.</p>
+        </article>
+    </main>
+</body>
+</html>
