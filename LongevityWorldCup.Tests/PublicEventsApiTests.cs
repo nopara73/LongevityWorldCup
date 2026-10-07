@@ -19,7 +19,9 @@ public sealed class PublicEventsApiTests
         database.Run(sqlite =>
         {
             using var command = sqlite.CreateCommand();
-            command.CommandText = "DELETE FROM Events;";
+            // Preserve startup Event IDs for deduplication: the queued athlete
+            // rescan deliberately recreates milestones if their rows are deleted.
+            command.CommandText = "UPDATE Events SET VisibleOnWebsite = 0;";
             command.ExecuteNonQuery();
         });
         events.ReloadIntoCache();
