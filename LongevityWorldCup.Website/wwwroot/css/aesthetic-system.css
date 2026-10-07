@@ -933,7 +933,7 @@ html body .leaderboard .athlete-name {
     display: inline-grid;
     place-items: center;
     width: 2rem;
-    height: 2rem;
+    aspect-ratio: 1;
     border-radius: 50%;
     color: #17212b;
     box-shadow: inset 0 0 0 2px rgba(23, 33, 43, 0.14);
@@ -946,7 +946,6 @@ html body .leaderboard .athlete-name {
 @media (max-width: 480px) {
     .leaderboard tbody .rank[data-place] {
         width: 1.75rem;
-        height: 1.75rem;
     }
 }
 
