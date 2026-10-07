@@ -13,6 +13,59 @@ public sealed class HomepageNewsletterBrowserTests(
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Theory]
+    [InlineData(1280, 100, 6)]
+    [InlineData(769, 100, 6)]
+    [InlineData(769, 200, 6)]
+    [InlineData(700, 200, 6)]
+    [InlineData(390, 200, 6)]
+    [InlineData(320, 200, 4)]
+    public async Task NewsletterPanel_LeavesRoomToReadAnAddressWithEnlargedText(int width, int textPercent, int minimumTextEm)
+    {
+        await using var context = await HomepageChromeRegressionBrowserTests.NewContextAsync(Browser, App, ReducedMotion.Reduce);
+        var page = await context.NewPageAsync();
+        await page.SetViewportSizeAsync(width, 900);
+        await page.GotoAsync("/", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.EvaluateAsync("percent => document.documentElement.style.fontSize = `${percent}%`", textPercent);
+        await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
+        var input = page.Locator("#emailInput");
+        await input.FillAsync("visible@example.test");
+        var contentWidthInEm = await input.EvaluateAsync<double>(
+            """
+            input => {
+                const style = getComputedStyle(input);
+                return (input.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight))
+                    / parseFloat(style.fontSize);
+            }
+            """);
+        Assert.True(contentWidthInEm >= minimumTextEm, $"The email field has only {contentWidthInEm:F2}em of usable text space.");
+        var field = Assert.IsType<LocatorBoundingBoxResult>(await input.BoundingBoxAsync());
+        var button = page.Locator("#newsletter-form button[type='submit']");
+        var action = Assert.IsType<LocatorBoundingBoxResult>(await button.BoundingBoxAsync());
+        Assert.False(field.X < action.X + action.Width && action.X < field.X + field.Width
+            && field.Y < action.Y + action.Height && action.Y < field.Y + field.Height,
+            "Subscribe must not overlap the email field.");
+        foreach (var control in new[] { input, button })
+        {
+            var box = Assert.IsType<LocatorBoundingBoxResult>(await control.BoundingBoxAsync());
+            Assert.True(box.Height >= 44 && box.Width >= 44 && box.X >= 0 && box.X + box.Width <= width + 1);
+            await control.FocusAsync();
+            Assert.True(await control.EvaluateAsync<bool>("element => document.activeElement === element"));
+        }
+        Assert.True(await button.EvaluateAsync<bool>(
+            """
+            button => {
+                const box = button.getBoundingClientRect();
+                const range = document.createRange();
+                range.selectNodeContents(button);
+                return [...range.getClientRects()].every(rect => rect.left >= box.left - 1 && rect.right <= box.right + 1);
+            }
+            """), "The Subscribe icon and label must fit inside the button.");
+        Assert.Equal("status", await page.Locator("#newsletterStatus").GetAttributeAsync("role"));
+        Assert.Equal("polite", await page.Locator("#newsletterStatus").GetAttributeAsync("aria-live"));
+        Assert.NotEqual("none", await page.Locator("#newsletterStatus").EvaluateAsync<string>("element => getComputedStyle(element).display"));
+    }
+
+    [Theory]
     [InlineData(200, "Subscription successful.", false)]
     [InlineData(400, "This email is already subscribed.", false)]
     [InlineData(503, "Unavailable.", true)]
