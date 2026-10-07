@@ -14,6 +14,7 @@ using System.Globalization;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Http.Timeouts;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using LongevityWorldCup.Website.Business.IndexNow;
 
@@ -36,6 +37,12 @@ namespace LongevityWorldCup.Website
             InitializeDefaultConfig(); // Ensure default config file is created
 
             var builder = WebApplication.CreateBuilder(args);
+            // Trust the single loopback nginx hop for the public scheme and client IP.
+            builder.Services.Configure<ForwardedHeadersOptions>(options =>
+            {
+                options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+                options.ForwardLimit = 1;
+            });
             var enableBrotliCompression = !builder.Environment.IsDevelopment();
             var enableScheduledJobs = builder.Configuration.GetValue("EnableScheduledJobs", !builder.Environment.IsDevelopment());
             var enableStartupBadgeRefresh = builder.Configuration.GetValue("EnableStartupBadgeRefresh", !builder.Environment.IsDevelopment());
@@ -340,6 +347,7 @@ namespace LongevityWorldCup.Website
             var assetVersionProvider = app.Services.GetRequiredService<AssetVersionProvider>();
 
             // Configure the HTTP request pipeline.
+            app.UseForwardedHeaders();
             if (!app.Environment.IsDevelopment())
             {
                 app.UseExceptionHandler("/Home/Error");

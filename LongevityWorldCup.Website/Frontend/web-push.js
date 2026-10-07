@@ -12,13 +12,14 @@
     function render(message = '') {
         const blocked = Notification.permission === 'denied';
         button.setAttribute('aria-pressed', subscription ? 'true' : 'false');
-        const label = blocked ? 'Notifications blocked — allow them in browser settings'
+        const label = busy ? 'Updating announcement notifications'
+            : blocked ? 'Notifications blocked — allow them in browser settings'
             : subscription ? 'Turn off announcement notifications' : 'Get announcement notifications';
         button.setAttribute('aria-label', label);
         button.title = label;
         button.disabled = busy || blocked;
         button.setAttribute('aria-busy', busy ? 'true' : 'false');
-        button.querySelector('i').className = blocked ? 'fas fa-bell-slash' : 'fas fa-bell';
+        button.querySelector('i').className = busy ? 'fas fa-spinner fa-spin' : blocked ? 'fas fa-bell-slash' : 'fas fa-bell';
         if (status) status.textContent = message;
     }
 
@@ -67,7 +68,7 @@
                 try {
                     candidate = await Promise.race([
                         pending,
-                        new Promise((_, reject) => setTimeout(() => reject(new Error('Notifications could not connect. Try again.')), 20000))
+                        new Promise((_, reject) => setTimeout(() => reject(new Error('Notifications could not connect. Try again.')), 120000))
                     ]);
                 } catch (error) {
                     pending.then(late => late.unsubscribe()).catch(() => {});
