@@ -2462,8 +2462,15 @@
          vertical-align: baseline;
      }
 
-     /* Where there is room, label and value share a row; long values wrap under themselves. */
-     @media (min-width: 375px) {
+     .athlete-info {
+         container-type: inline-size;
+         container-name: athlete-stats;
+     }
+     .athlete-info-table .unit {
+         white-space: normal;
+     }
+     /* Use the card's available width and text size, including in scoped dialogs. */
+     @container athlete-stats (min-width: 16em) {
          .athlete-info-table tr {
              display: grid;
              grid-template-columns: fit-content(52%) minmax(0, 1fr);
