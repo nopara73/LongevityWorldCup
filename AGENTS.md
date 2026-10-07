@@ -1,47 +1,12 @@
 # LongevityWorldCup Agent Notes
 
-## Product Personality
-
-- Preserve the product's personality across the UI, emails, notifications, and social copy. Humor, warmth, wordplay, informal phrasing, distinctive punctuation, established names, and playful visuals are intentional product features.
-- Requests for cleanup, brevity, consistency, or less clutter do not authorize removing that personality or rewriting neighboring copy. Fix the specific problem while preserving the established voice. When in doubt, keep the existing wording.
-- User-approved wording is authoritative. Keep "Questions, concerns, or signs of aging? Reply to this email." and "Update profile request..." exactly unless the user explicitly asks to change them.
-- Apply visual simplicity and concise-copy guidance within these rules; do not use those guidelines to flatten the product's voice.
-
-## Required Reading
-
-- UI and product-copy changes: [DESIGN.md](DESIGN.md).
-- Domain, ranking, onboarding, calculator, badge, Event, social-posting, or competition-copy changes: [UBIQUITOUS_LANGUAGE.md](UBIQUITOUS_LANGUAGE.md).
-- Production changes over SSH: [ServerDeployment.md](LongevityWorldCup.Documentation/ServerDeployment.md).
-
-Do not add to or rewrite `AGENTS.md`, `CLAUDE.md`, `DESIGN.md`, or `UBIQUITOUS_LANGUAGE.md` unless the user explicitly requests instruction or documentation changes. Keep routine implementation detail in source and tests.
-
-## Implementation
-
-- Fix the underlying invariant, inspect its other implementations, and refactor within that scope when structure causes or conceals bugs. Review both backend and frontend ranking logic when either changes.
-- Put temporary agent outputs in ignored `.artifacts/`; keep disposable files out of tracked folders unless requested.
-- A request for PR screenshots means attach review evidence to the PR. Keep captures in ignored `.artifacts/`; do not force-add them or commit them to the repository.
-- Do not merge ImageSharp v4+ or ImageSharp.Drawing v3+ until the project adopts their licensing path or removes those direct dependencies. Current-major patch/minor upgrades require passing CI and dependency review.
-- Frontend source is `LongevityWorldCup.Website/Frontend`; generated `wwwroot/js` is ignored and must never be committed. Normal builds compile it. Reserve `BuildFrontend=false` for the documented Node-free publish using the exact CI-built artifact. See [Frontend/README.md](LongevityWorldCup.Website/Frontend/README.md) for loading contracts.
-- Injected HTML and partials use placeholders through `HtmlInjectionMiddleware` and `AssetVersionProvider.AppendVersion(...)`. Preserve versioning for scripts, CSS, assets, favicon, manifest, shared logo, and bioage onboarding/rank previews. A raw URL exception needs a verified cache rationale. Check every calling page, modal, iframe, and embedded context. The data service must also version athlete profile/proof URLs.
-
-## Repository Publication
-
-- Usual workspace: verify changes, commit intended files or hunks, push normally to the configured remote's `master`, and verify the remote contains the commit. No PR unless requested.
-- User-selected separate checkout or worktree: use a task branch, commit and push it, open a PR targeting `master` or the requested base, and verify both. Do not merge or push directly to `master` without explicit instructions.
-- Preserve concurrent edits and coordinate shared publication. Never stage unrelated work, reset or stash another agent's edits, switch a shared checkout, or force-push. Reconcile concurrent `master` updates in an isolated checkout. Explicit local-only instructions override these defaults; preserve work and report verification or publication failures.
-
-## Browser Checks
-
-Use the repo's `Microsoft.Playwright` setup in `LongevityWorldCup.Tests`, or the Codex browser. Do not add `package.json` or install Node tooling solely for smoke tests unless requested. Verify any separate Playwright runtime and its browser binaries first.
-
-If Chromium is missing after building tests:
-
-```powershell
-pwsh LongevityWorldCup.Tests\bin\Debug\net10.0\playwright.ps1 install chromium
-```
-
-## Production
-
-- Try `ssh lwc-server` before asking the user to run server checks. Prefer read-only inspection; make only required production changes and follow the deployment doc's paths and preservation rules.
-- Maintain Threads tokens during the daily job even without postable content. When replacing `ThreadsAccessToken`, synchronize `ThreadsAccessTokenExpiresAtUtc` and `ThreadsAccessTokenLastRefreshAttemptAtUtc`; expired tokens cannot be recovered in code.
-- Manual social-token resets must account for `/var/www/.longevityworldcup/runtime-config.json`; update or remove the sidecar when it would override the intended config.
+- Stay within the user's requested scope. Use [DESIGN.md](DESIGN.md) for visual principles and [UBIQUITOUS_LANGUAGE.md](UBIQUITOUS_LANGUAGE.md) for domain terms; consult source and tests for detailed behavior.
+- Preserve the product's humor, personality, established names, and user-approved wording. Keep "Questions, concerns, or signs of aging? Reply to this email." and "Update profile request..." exactly unless asked to change them. Cleanup does not authorize rewriting neighboring copy.
+- Add or rewrite agent instructions, design guidance, or the glossary only when the user explicitly requests documentation changes. Keep routine implementation detail in source and tests.
+- Fix the underlying issue and check affected backend/frontend paths. Use existing tests and browser tools; verify desktop and mobile UI when affected.
+- Frontend source is `LongevityWorldCup.Website/Frontend`; never commit generated `wwwroot/js`. Read [Frontend/README.md](LongevityWorldCup.Website/Frontend/README.md) for loading or publishing changes. Keep temporary outputs and review screenshots in ignored `.artifacts/`.
+- Do not adopt ImageSharp v4+ or ImageSharp.Drawing v3+ until the project adopts their licensing path or removes those dependencies.
+- Usual workspace: verify changes, commit intended files or hunks, push normally to the configured remote's `master`, and verify the remote contains the commit. No PR unless requested; explicit local-only instructions win.
+- User-selected separate checkout/worktree: use a task branch, commit and push it, open a PR to `master` or the requested base, and verify both. Do not merge or push directly to `master` without explicit instructions.
+- Preserve concurrent work and coordinate shared publication. Never stage unrelated edits, reset or stash another agent's work, switch a shared checkout, or force-push. Reconcile concurrent `master` updates in an isolated checkout.
+- Before production SSH changes, read [ServerDeployment.md](LongevityWorldCup.Documentation/ServerDeployment.md) and use `ssh lwc-server`. Keep social-token expiry/refresh metadata and runtime sidecars consistent. Verify the deployed commit, `/health`, and affected behavior before claiming production success.
