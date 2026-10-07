@@ -864,6 +864,7 @@
      display:inline-flex; align-items:center; min-height:44px; padding:.5rem .45rem; white-space:pre-wrap; overflow-wrap:normal; word-break:normal; hyphens:none; border-radius:8px;
      border:0; background:transparent; font:inherit; appearance:none; -webkit-appearance:none; box-sizing:border-box;
  }
+ .athlete-name-content{ min-width:0; }
  .athlete-name:hover{
      color:var(--secondary-color); background-color:rgba(8,118,133,.08); box-shadow:inset 0 0 0 1px rgba(8,118,133,.12);
  }
