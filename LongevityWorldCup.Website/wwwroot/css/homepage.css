@@ -569,8 +569,9 @@ button:hover {
 }
 
 .btc-status-topline {
-    display: grid;
-    grid-template-columns: 1fr auto;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
     align-items: center;
     gap: 0.75rem;
 }
@@ -590,7 +591,8 @@ button:hover {
     font-weight: 600;
     line-height: 1.2;
     text-align: right;
-    white-space: nowrap;
+    margin-left: auto;
+    max-width: 100%;
 }
 
 .btc-status-value {
@@ -598,7 +600,7 @@ button:hover {
     font-size: clamp(1.75rem, 5vw, 2.25rem);
     line-height: 1.1;
     text-align: left;
-    white-space: nowrap;
+    overflow-wrap: anywhere;
 }
 
 .btc-status-track {
@@ -702,6 +704,7 @@ button:hover {
     grid-area: qr;
     justify-self: center;
     display: flex;
+    align-items: center;
     line-height: 0;
 }
 
