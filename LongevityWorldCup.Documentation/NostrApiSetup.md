@@ -37,6 +37,20 @@ relay URLs. `/.well-known/nostr.json?name=_` and `?name=longevityworldcup` expos
 public identity and relay list, allow cross-origin clients, and return directly without a
 redirect. Verify this endpoint before relying on the website identifier in a client.
 
+The official profile is
+`https://primal.net/p/npub1dgxhzvhhca4hrpzmakc2n8hpvmawtvlacdy80r4wsaghf4h5486sg8tqtl`.
+The shared footer and Organization structured data link to this profile. The profile's
+`banner` uses the immutable public asset
+`/assets/social/nostr-cover-cc4ad84f0b88a4d6.png`.
+
+Account launch notes require approved wording. Preserve the signed public event before
+publishing so a lost response can be retried without creating another introduction.
+Profile updates must merge the latest signature-verified metadata; follow-list updates
+must preserve existing kind-3 tags and append new public identities without duplicates.
+Check recent authored posts and profile identity before selecting community follows.
+Sign these updates on the server using the existing key, and verify relay readback just
+as for announcements. The launch records contain only public signed events.
+
 The daily job selects at most one eligible Event at **15:06 UTC**. The minute queue handles
 selected Custom Events and retries of prepared announcements. Athlete eligibility,
 seven-day freshness, and two-day subject cooldown match the existing announcement rules;
@@ -66,6 +80,8 @@ independent queues, concurrent jobs, and immutable retries.
 
 Official references: [event protocol](https://github.com/nostr-protocol/nips/blob/master/01.md),
 [domain identity](https://github.com/nostr-protocol/nips/blob/master/05.md),
+[follow lists](https://github.com/nostr-protocol/nips/blob/master/02.md),
+[profile fields](https://github.com/nostr-protocol/nips/blob/master/24.md),
 [relay information](https://github.com/nostr-protocol/nips/blob/master/11.md),
 [identifiers](https://github.com/nostr-protocol/nips/blob/master/19.md),
 [relay lists](https://github.com/nostr-protocol/nips/blob/master/65.md),

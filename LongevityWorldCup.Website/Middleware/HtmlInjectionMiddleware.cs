@@ -591,7 +591,7 @@ $@"<div id=""{AthleteDialogRuntimeId}""
                 .Replace("Listen to Immortal Combat podcast on YouTube", "Immortal Combat podcast a YouTube-on")
                 .Replace("Follow Longevity World Cup on X", "Hosszúéletesítési Világbajnokság az X-en")
                 .Replace("Join the Longevity World Cup subreddit", "Hosszúéletesítési Világbajnokság subreddit")
-                .Replace("Follow the Longevity World Cup on TikTok", "Hosszúéletesítési Világbajnokság a TikTokon")
+                .Replace("Follow Longevity World Cup on Nostr", "Hosszúéletesítési Világbajnokság a Nostron")
                 .Replace("Follow Longevity World Cup on Threads", "Hosszúéletesítési Világbajnokság a Threadsen")
                 .Replace("Visit Longevity World Cup on YouTube", "Hosszúéletesítési Világbajnokság a YouTube-on")
                 .Replace("Follow the Longevity World Cup on Instagram", "Hosszúéletesítési Világbajnokság az Instagramon")
@@ -1429,7 +1429,7 @@ $@"<script{scriptAttributes}>
                     "https://www.youtube.com/@longevityworldcup",
                     "https://www.instagram.com/LongevityWorldCup/",
                     "https://www.threads.com/@longevityworldcup",
-                    "https://www.tiktok.com/@nopara73"
+                    "https://primal.net/p/npub1dgxhzvhhca4hrpzmakc2n8hpvmawtvlacdy80r4wsaghf4h5486sg8tqtl"
                 },
                 ["knowsAbout"] = new[]
                 {

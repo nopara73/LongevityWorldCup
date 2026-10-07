@@ -45,11 +45,16 @@
         border-inline-start: 3px solid var(--primary-color-bright);
     }
 
-    .footer-link i {
+    .footer-link :is(i, svg) {
         width: 1.25rem;
+        flex-shrink: 0;
         margin-right: 0.75rem;
         text-align: center;
         font-size: 1.125rem;
+    }
+
+    .footer-link svg {
+        height: 1.125rem;
     }
 
 .footer-container {
@@ -114,7 +119,7 @@
         font-size: 0.9rem;
     }
 
-    .footer-link i {
+    .footer-link :is(i, svg) {
         width: 1.1rem;
         margin-right: 0.55rem;
     }
