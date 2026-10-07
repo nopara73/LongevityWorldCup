@@ -179,7 +179,7 @@ public sealed class AestheticSystemBrowserTests(
     }
 
     [Fact]
-    public async Task SelfHostedFontAwesome_RendersEveryVisibleChallengeAndFooterIconWithoutExternalNetwork()
+    public async Task SelfHostedIcons_RenderEveryVisibleChallengeAndFooterIconWithoutExternalNetwork()
     {
         var app = App;
         var browser = Browser;
@@ -198,7 +198,7 @@ public sealed class AestheticSystemBrowserTests(
         await page.Locator(".footer .footer-link i").First.WaitForAsync();
         await page.WaitForFunctionAsync(
             """
-            () => [...document.querySelectorAll('.lmx-page i.fa, .lmx-page i.fas, .lmx-page i.fab, .lmx-page i.fa-solid, .lmx-page i.fa-brands, .footer i.fa, .footer i.fas, .footer i.fab, .footer i.fa-solid, .footer i.fa-brands')]
+            () => [...document.querySelectorAll('.lmx-page i.fa, .lmx-page i.fas, .lmx-page i.fab, .lmx-page i.fa-solid, .lmx-page i.fa-brands, .footer i.fa, .footer i.fas, .footer i.fab, .footer i.fa-solid, .footer i.fa-brands, .footer .footer-link svg')]
                 .filter(element => {
                     const style = getComputedStyle(element);
                     const rect = element.getBoundingClientRect();
@@ -248,6 +248,24 @@ public sealed class AestheticSystemBrowserTests(
                             IsFooterIcon: Boolean(element.closest('.footer'))
                         };
                     });
+                const vectorIcons = [...document.querySelectorAll('.footer .footer-link svg')]
+                    .filter(isVisible)
+                    .map(element => ({
+                        Label: element.closest('a')?.textContent?.trim(),
+                        Width: element.getBoundingClientRect().width,
+                        Height: element.getBoundingClientRect().height,
+                        HasPaintedShape: [...element.querySelectorAll('path, circle, ellipse, rect, line, polyline, polygon, use')]
+                            .some(shape => {
+                                const style = getComputedStyle(shape);
+                                const bounds = shape.getBBox();
+                                const hasPaint = (color, opacity) => Number(opacity) > 0
+                                    && !['none', 'transparent', 'rgba(0, 0, 0, 0)'].includes(color);
+                                return Number(style.opacity) > 0
+                                    && style.visibility !== 'hidden'
+                                    && (bounds.width > 0 || bounds.height > 0)
+                                    && (hasPaint(style.fill, style.fillOpacity) || hasPaint(style.stroke, style.strokeOpacity));
+                            })
+                    }));
                 const resources = performance.getEntriesByType('resource')
                     .map(entry => entry.name)
                     .filter(name => name.includes('font-awesome'));
@@ -255,7 +273,10 @@ public sealed class AestheticSystemBrowserTests(
                     SolidFaceLoaded: document.fonts.check('900 16px "Font Awesome 6 Free"'),
                     BrandFaceLoaded: document.fonts.check('400 16px "Font Awesome 6 Brands"'),
                     Icons: icons,
-                    FooterIconCount: icons.filter(icon => icon.IsFooterIcon).length,
+                    VectorIcons: vectorIcons,
+                    FooterIconCount: icons.filter(icon => icon.IsFooterIcon).length + vectorIcons.length,
+                    FooterPlatforms: [...document.querySelectorAll('.footer-column:last-child .footer-link')]
+                        .map(link => link.textContent.trim()),
                     LocalResources: resources.filter(name => new URL(name).origin === location.origin),
                     ExternalResources: resources.filter(name => new URL(name).origin !== location.origin)
                 };
@@ -264,10 +285,16 @@ public sealed class AestheticSystemBrowserTests(
 
         Assert.True(diagnostics.SolidFaceLoaded, "The self-hosted solid Font Awesome face did not load.");
         Assert.True(diagnostics.BrandFaceLoaded, "The self-hosted brand Font Awesome face did not load.");
-        Assert.True(
-            diagnostics.Icons.Length >= 34,
-            $"Expected at least 34 visible Challenge/footer icons, found {diagnostics.Icons.Length}.");
+        var iconCount = diagnostics.Icons.Length + diagnostics.VectorIcons.Length;
+        Assert.True(iconCount >= 34, $"Expected at least 34 visible Challenge/footer icons, found {iconCount}.");
         Assert.Equal(12, diagnostics.FooterIconCount);
+        Assert.Equal(["X", "Nostr", "Reddit", "Threads", "YouTube", "Instagram"], diagnostics.FooterPlatforms);
+        Assert.Contains(diagnostics.VectorIcons, icon => icon.Label == "Nostr");
+        Assert.All(diagnostics.VectorIcons, icon =>
+        {
+            Assert.True(icon.Width > 0 && icon.Height > 0, $"{icon.Label} has no rendered geometry.");
+            Assert.True(icon.HasPaintedShape, $"{icon.Label} has no visible vector artwork.");
+        });
         Assert.All(diagnostics.Icons, icon =>
         {
             Assert.DoesNotContain(icon.Content, new[] { "", "none", "normal", "\"\"" });
@@ -1702,7 +1729,9 @@ public sealed class AestheticSystemBrowserTests(
         public bool SolidFaceLoaded { get; set; }
         public bool BrandFaceLoaded { get; set; }
         public IconGlyphDiagnostics[] Icons { get; set; } = [];
+        public VectorIconDiagnostics[] VectorIcons { get; set; } = [];
         public int FooterIconCount { get; set; }
+        public string[] FooterPlatforms { get; set; } = [];
         public string[] LocalResources { get; set; } = [];
         public string[] ExternalResources { get; set; } = [];
     }
@@ -1715,6 +1744,14 @@ public sealed class AestheticSystemBrowserTests(
         public double Width { get; set; }
         public double Height { get; set; }
         public bool IsFooterIcon { get; set; }
+    }
+
+    internal sealed class VectorIconDiagnostics
+    {
+        public string Label { get; set; } = "";
+        public double Width { get; set; }
+        public double Height { get; set; }
+        public bool HasPaintedShape { get; set; }
     }
 
     internal sealed class MotionDiagnostics
