@@ -28,7 +28,7 @@ public sealed class SocialContactPreviewBrowserTests(
             "https://mobile.twitter.com/alice", "www.threads.com/alice", "@alice"
         };
         foreach (var contact in contacts)
-        foreach (var platform in new[] { SocialPlatform.X, SocialPlatform.Threads, SocialPlatform.Mastodon, SocialPlatform.Nostr })
+        foreach (var platform in new[] { SocialPlatform.X, SocialPlatform.Threads, SocialPlatform.Mastodon, SocialPlatform.Nostr, SocialPlatform.Instagram })
         {
             var actual = await page.EvaluateAsync<string>(
                 "args => extractMentionHandle(args.contact, args.platform)",
@@ -110,6 +110,53 @@ public sealed class SocialContactPreviewBrowserTests(
         Assert.True(await page.EvaluateAsync<bool>("() => buildEventPayload().sendToBluesky"));
         await page.ReloadAsync();
         Assert.True(await page.Locator("#sendBluesky").IsCheckedAsync());
+        Assert.True(await page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= innerWidth"));
+    }
+
+    [Theory]
+    [InlineData(1280)]
+    [InlineData(390)]
+    public async Task InstagramPreview_AlwaysShowsAnImageAndRetainsAnIndependentDestination(int width)
+    {
+        await using var context = await Browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = App.BaseAddress.ToString(), ViewportSize = new() { Width = width, Height = 844 }
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/internal/custom-event-designer.html");
+        foreach (var id in new[] { "sendWebpage", "sendSlack", "sendX", "sendThreads", "sendFacebook", "sendMastodon", "sendNostr", "sendReddit", "sendBluesky", "sendWebPush" })
+            await page.Locator("#" + id).UncheckAsync();
+        await page.Locator("#sendInstagram").CheckAsync();
+        await page.Locator("#titleInput").FillAsync("[strong](A sport for time) 🏆");
+        await page.Locator("#contentInput").FillAsync("Follow [mention](benjamin_garden) in the Longevity World Cup.");
+        Assert.True(await page.EvaluateAsync<bool>("() => hasSelectedDestination(buildEventPayload()) && buildEventPayload().sendToInstagram"));
+        var preview = page.Locator(".instagram-post");
+        await preview.WaitForAsync();
+        var image = await preview.Locator(".instagram-media").BoundingBoxAsync();
+        var caption = await preview.Locator(".instagram-caption").BoundingBoxAsync();
+        Assert.NotNull(image);
+        Assert.NotNull(caption);
+        Assert.True(image.Y + image.Height <= caption.Y);
+        Assert.InRange(Math.Abs(image.Width / image.Height - 1200d / 675), 0, .01);
+        Assert.Equal("image", await page.EvaluateAsync<string>("() => buildPlan('A short update', '', LIMITS.instagram, 'instagram', false).mode"));
+        var emojiTitle = string.Concat(Enumerable.Repeat("👩‍🔬", 500));
+        var clipped = await page.EvaluateAsync<string>("title => buildPlan(title, '', LIMITS.instagram, 'instagram', false).postText", emojiTitle);
+        Assert.Equal(InstagramPost.Truncate(emojiTitle, 2200), clipped);
+        var oversizedLink = "[More](https://example.com/" + new string('a', 2300) + ")";
+        Assert.Equal("Read the update", await page.EvaluateAsync<string>(
+            "body => buildPlan('Read the update', body, LIMITS.instagram, 'instagram', false).postText", oversizedLink));
+        Assert.DoesNotContain("[mention]", await preview.InnerTextAsync());
+        Assert.DoesNotContain("@benjamin", await preview.InnerTextAsync());
+        var captures = Environment.GetEnvironmentVariable("LWC_INSTAGRAM_SCREENSHOT_DIRECTORY");
+        if (!string.IsNullOrWhiteSpace(captures))
+        {
+            Directory.CreateDirectory(captures);
+            await preview.ScreenshotAsync(new LocatorScreenshotOptions { Path = Path.Combine(captures, $"instagram-preview-{width}.png") });
+        }
+        await page.ReloadAsync();
+        Assert.True(await page.Locator("#sendInstagram").IsCheckedAsync());
+        Assert.False(await page.Locator("#sendThreads").IsCheckedAsync());
         Assert.True(await page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= innerWidth"));
     }
 

@@ -276,6 +276,14 @@ namespace LongevityWorldCup.Website
             builder.Services.AddSingleton<WebPushStore>();
             builder.Services.AddSingleton<WebPushAnnouncementService>();
             builder.Services.AddSingleton<MastodonAnnouncementService>();
+            builder.Services.AddHttpClient(nameof(InstagramApiClient), client => client.Timeout = TimeSpan.FromSeconds(30))
+                .RemoveAllLoggers()
+                .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false, UseCookies = false });
+            builder.Services.AddSingleton<InstagramApiClient>();
+            builder.Services.AddSingleton<InstagramPublishingStore>();
+            builder.Services.AddSingleton<InstagramPublisher>();
+            builder.Services.AddSingleton<InstagramImageService>();
+            builder.Services.AddSingleton<InstagramAnnouncementService>();
             builder.Services.AddSingleton<INostrRelayTransport, NostrRelayTransport>();
             builder.Services.AddSingleton<NostrRelayClient>();
             builder.Services.AddSingleton<NostrAnnouncementService>();
