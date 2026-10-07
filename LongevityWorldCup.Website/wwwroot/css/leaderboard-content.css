@@ -2460,6 +2460,26 @@
          display: inline;
          vertical-align: baseline;
      }
+
+     /* Where there is room, label and value share a row; long values wrap under themselves. */
+     @media (min-width: 375px) {
+         .athlete-info-table tr {
+             display: grid;
+             grid-template-columns: fit-content(52%) minmax(0, 1fr);
+             column-gap: 0.75rem;
+             align-items: baseline;
+         }
+         .athlete-info-table tr.athlete-info-divider-row td {
+             grid-column: 1 / -1;
+         }
+         .athlete-info-table th,
+         .athlete-info-table td {
+             width: auto;
+         }
+         .athlete-info-table td {
+             text-align: right;
+         }
+     }
      /* Pace/age rows: allow wrapping on mobile instead of nowrap */
      #bortzPaceOfAgingContainer td,
      #paceOfAgingContainer td,
