@@ -13,7 +13,7 @@
 - Domain, ranking, onboarding, calculator, badge, Event, social-posting, or competition-copy changes: [UBIQUITOUS_LANGUAGE.md](UBIQUITOUS_LANGUAGE.md).
 - Production changes over SSH: [ServerDeployment.md](LongevityWorldCup.Documentation/ServerDeployment.md).
 
-Update the relevant guidance when behavior changes. Keep domain rules in the glossary and implementation detail in source, tests, or focused docs.
+Do not add to or rewrite `AGENTS.md`, `CLAUDE.md`, `DESIGN.md`, or `UBIQUITOUS_LANGUAGE.md` unless the user explicitly requests instruction or documentation changes. Keep routine implementation detail in source and tests.
 
 ## Implementation
 
@@ -23,6 +23,12 @@ Update the relevant guidance when behavior changes. Keep domain rules in the glo
 - Do not merge ImageSharp v4+ or ImageSharp.Drawing v3+ until the project adopts their licensing path or removes those direct dependencies. Current-major patch/minor upgrades require passing CI and dependency review.
 - Frontend source is `LongevityWorldCup.Website/Frontend`; generated `wwwroot/js` is ignored and must never be committed. Normal builds compile it. Reserve `BuildFrontend=false` for the documented Node-free publish using the exact CI-built artifact. See [Frontend/README.md](LongevityWorldCup.Website/Frontend/README.md) for loading contracts.
 - Injected HTML and partials use placeholders through `HtmlInjectionMiddleware` and `AssetVersionProvider.AppendVersion(...)`. Preserve versioning for scripts, CSS, assets, favicon, manifest, shared logo, and bioage onboarding/rank previews. A raw URL exception needs a verified cache rationale. Check every calling page, modal, iframe, and embedded context. The data service must also version athlete profile/proof URLs.
+
+## Repository Publication
+
+- Usual workspace: verify changes, commit intended files or hunks, push normally to the configured remote's `master`, and verify the remote contains the commit. No PR unless requested.
+- User-selected separate checkout or worktree: use a task branch, commit and push it, open a PR targeting `master` or the requested base, and verify both. Do not merge or push directly to `master` without explicit instructions.
+- Preserve concurrent edits and coordinate shared publication. Never stage unrelated work, reset or stash another agent's edits, switch a shared checkout, or force-push. Reconcile concurrent `master` updates in an isolated checkout. Explicit local-only instructions override these defaults; preserve work and report verification or publication failures.
 
 ## Browser Checks
 

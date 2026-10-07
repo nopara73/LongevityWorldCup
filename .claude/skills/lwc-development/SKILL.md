@@ -5,7 +5,7 @@ description: Develop, debug, review, and test Longevity World Cup's .NET 10 ASP.
 
 # Longevity World Cup development
 
-Follow `CLAUDE.md` and its imported `AGENTS.md`. Read the required design, domain, and deployment documents when the task touches those areas. Treat source and existing tests as the authority for implementation details.
+Follow `AGENTS.md`, which `CLAUDE.md` imports. Read the required design, domain, and deployment documents when the task touches those areas. Treat source and existing tests as the authority for implementation details.
 
 ## Orient before changing code
 
@@ -65,4 +65,4 @@ Do not add npm packages or a separate Playwright project solely for smoke tests.
 
 ## Finish the authorized task
 
-Review the final diff, generated/untracked outputs, relevant documentation, and checks. Follow the Git publication rules in `CLAUDE.md`, preserving other agents' changes. Report what changed, what passed, the verified remote commit or PR, and any concrete limitation. Distinguish local verification, GitHub publication, CI, and deployed production behavior.
+Review the final diff, generated/untracked outputs, relevant documentation, and checks. Follow the Git publication rules in `AGENTS.md`, preserving other agents' changes. Report what changed, what passed, the verified remote commit or PR, and any concrete limitation. Distinguish local verification, GitHub publication, CI, and deployed production behavior.
