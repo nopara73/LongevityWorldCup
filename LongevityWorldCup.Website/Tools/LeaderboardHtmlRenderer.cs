@@ -70,7 +70,12 @@ public static class LeaderboardHtmlRenderer
             .Append("\" data-athlete-name=\"")
             .Append(EncodeAttribute(row.AthleteName ?? row.DisplayName))
             .AppendLine("\">");
-        sb.Append("                    <td data-label=\"Rank\" class=\"rank-td\"><span class=\"rank\">")
+        sb.Append("                    <td data-label=\"Rank\" class=\"rank-td\"><span class=\"rank\"");
+        if (row.Rank is >= 1 and <= 3)
+        {
+            sb.Append(" data-place=\"").Append(rank).Append('"');
+        }
+        sb.Append('>')
             .Append(rank)
             .AppendLine("</span></td>");
         sb.AppendLine("                    <td data-label=\"Athlete\" class=\"athlete-td\">");

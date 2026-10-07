@@ -1580,7 +1580,7 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity) {
                 row.setAttribute('data-tier', tier);
                 row.setAttribute('data-rank', athlete.rank);
 
-                row.querySelector('.rank').textContent = athlete.rank;
+                setDisplayedRank(row.querySelector('.rank'), athlete.rank);
                 const athleteCell = row.querySelector('.athlete-td');
                 const portraitImg = athleteCell.querySelector('img.portrait');
                 portraitImg.src = getAthletePortraitUrl(athlete);
@@ -3518,7 +3518,7 @@ function performFilter({ updateUrl = true } = {}) {
             // Update the rank cell
             const rankCell = row.querySelector('td[data-label="Rank"] .rank');
             if (rankCell) {
-                rankCell.textContent = entriesByAthlete.get(athlete).rank;
+                setDisplayedRank(rankCell, entriesByAthlete.get(athlete).rank);
             }
 
             const ageReductionCell = row.querySelector('.age-reduction');
@@ -4195,6 +4195,17 @@ function escapeHtml(text) {
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;');
+}
+
+// Shows a rank and marks the top three places of the current view for their medal styling.
+function setDisplayedRank(rankElement, rank) {
+    rankElement.textContent = rank;
+    const place = Number(rank);
+    if (place >= 1 && place <= 3) {
+        rankElement.dataset.place = String(place);
+    } else {
+        delete rankElement.dataset.place;
+    }
 }
 
 function renderFilterIcon(iconClass) {
