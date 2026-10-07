@@ -50,6 +50,11 @@ AppData
 !.codex/skills/**
 .codex-temp-build/
 
+# Claude machine-specific configuration
+/.claude/settings.local.json
+/.claude/worktrees/
+/CLAUDE.local.md
+
 # Local review artifacts
 /.artifacts/
 /.codex-remote-attachments/

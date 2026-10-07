@@ -1,0 +1,28 @@
+{
+  "version": "0.0.1",
+  "autoVerify": true,
+  "configurations": [
+    {
+      "name": "Longevity World Cup",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": [
+        "run",
+        "--project",
+        "LongevityWorldCup.Website.csproj",
+        "--no-launch-profile",
+        "--urls",
+        "http://127.0.0.1:5297"
+      ],
+      "cwd": "LongevityWorldCup.Website",
+      "port": 5297,
+      "autoPort": false,
+      "url": "http://127.0.0.1:5297",
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "EnableScheduledJobs": "false",
+        "EnableStartupBadgeRefresh": "false",
+        "EnableApplicationPaymentReconciliation": "false"
+      }
+    }
+  ]
+}
