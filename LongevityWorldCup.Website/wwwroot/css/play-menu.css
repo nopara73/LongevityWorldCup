@@ -1241,6 +1241,22 @@ html.play-panel-transitioning .play-hub-panel--entering {
     }
 }
 
+/* Phones: size both track titles so "Professional athlete" stays on one line beside the ribbon. */
+@media (max-width: 600px) {
+    .play-join-card .track-name {
+        font-size: 1.6rem;
+    }
+
+    .play-join-card .track-label {
+        font-size: 0.95rem;
+        white-space: nowrap;
+    }
+
+    .play-join-card--pro h2 {
+        padding-right: 3.9rem;
+    }
+}
+
 @media (min-width: 601px) and (max-width: 900px) {
     .play-join-cards {
         gap: 1rem;
