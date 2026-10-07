@@ -386,6 +386,59 @@ button:hover {
     border-inline-start-color: var(--lwc-danger);
 }
 
+/* The newsletter intro, form and status share one panel, like the Contribute panel above it. */
+.newsletter-panel {
+    display: grid;
+    gap: var(--lwc-space-4) var(--lwc-space-5);
+    max-width: 44rem;
+    margin: var(--lwc-space-4) auto 0;
+    padding: var(--lwc-space-4);
+    border: 1px solid var(--lwc-border, #d7e0e6);
+    border-radius: var(--lwc-radius-lg, 12px);
+    background: var(--lwc-surface, #fff);
+    box-shadow: var(--lwc-shadow-sm, 0 1px 2px rgba(15, 23, 42, 0.08));
+    box-sizing: border-box;
+    text-align: left;
+}
+
+.newsletter-section .newsletter-panel > p:first-child {
+    max-width: none;
+    margin: 0;
+}
+
+.newsletter-section .newsletter-panel > p:first-child > .smaller-text {
+    display: block;
+    line-height: 1.5;
+}
+
+.newsletter-panel #newsletter-form {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+}
+
+.newsletter-panel #newsletterStatus {
+    max-width: none;
+    margin: 0;
+}
+
+/* Stays rendered so the live region keeps announcing; the negative margin cancels its empty grid row. */
+.newsletter-panel #newsletterStatus:empty {
+    margin-top: calc(-1 * var(--lwc-space-4));
+}
+
+@media (min-width: 700px) {
+    .newsletter-panel {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr);
+        align-items: center;
+        padding: var(--lwc-space-5);
+    }
+
+    .newsletter-panel #newsletterStatus {
+        grid-column: 1 / -1;
+    }
+}
+
 /* Styles for the copy button */
 .copy-btn {
     background: none;
