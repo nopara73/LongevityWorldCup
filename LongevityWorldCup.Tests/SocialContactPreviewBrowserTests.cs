@@ -152,7 +152,10 @@ public sealed class SocialContactPreviewBrowserTests(
         if (!string.IsNullOrWhiteSpace(captures))
         {
             Directory.CreateDirectory(captures);
-            await preview.ScreenshotAsync(new LocatorScreenshotOptions { Path = Path.Combine(captures, $"instagram-preview-{width}.png") });
+            await preview.ScreenshotAsync(new LocatorScreenshotOptions
+            {
+                Path = Path.Combine(captures, $"instagram-preview-{width}.png"), Animations = ScreenshotAnimations.Disabled
+            });
         }
         await page.ReloadAsync();
         Assert.True(await page.Locator("#sendInstagram").IsCheckedAsync());
