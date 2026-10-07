@@ -924,7 +924,29 @@ html body .leaderboard .athlete-name {
     text-decoration-color: var(--lwc-border-strong);
 }
 
-.leaderboard .rank { color: var(--lwc-muted); font-size: var(--lwc-type-body); }
+.leaderboard .rank { color: var(--lwc-muted); font-family: Orbitron, Roboto, sans-serif; font-size: var(--lwc-type-sm); font-weight: 700; }
+
+/* The top three carry medal discs; the number stays inside, so place never depends on colour alone. */
+.leaderboard tbody .rank[data-place] {
+    display: inline-grid;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    color: #17212b;
+    box-shadow: inset 0 0 0 2px rgba(23, 33, 43, 0.14);
+}
+
+.leaderboard tbody .rank[data-place="1"] { background: #f5c542; }
+.leaderboard tbody .rank[data-place="2"] { background: #c9d2da; }
+.leaderboard tbody .rank[data-place="3"] { background: #dba06d; }
+
+@media (max-width: 480px) {
+    .leaderboard tbody .rank[data-place] {
+        width: 1.75rem;
+        height: 1.75rem;
+    }
+}
 
 .leaderboard .personal-link-icon,
 .leaderboard .media-contact {
