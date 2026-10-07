@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Net;
+using System.Reflection;
 using System.Text;
 using System.Text.Json.Nodes;
 using System.Xml.Linq;
@@ -131,7 +132,9 @@ public sealed class EventSyndicationTests
         database.Run(sqlite =>
         {
             using var command = sqlite.CreateCommand();
-            command.CommandText = "DELETE FROM Events;";
+            // Keep the startup rows that the athlete rescan uses to deduplicate
+            // milestones while isolating the public feed from seeded history.
+            command.CommandText = "UPDATE Events SET VisibleOnWebsite = 0;";
             command.ExecuteNonQuery();
         });
         events.ReloadIntoCache();
@@ -141,6 +144,7 @@ public sealed class EventSyndicationTests
 
         Insert("public:id &é", "A real announcement\n\nPublic details.", true);
         Insert("hidden", "Private details", false);
+        var deliveryStates = ReadDeliveryStates();
         using var response = await client.GetAsync(path);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal(mediaType, response.Content.Headers.ContentType?.MediaType);
@@ -151,6 +155,11 @@ public sealed class EventSyndicationTests
         var body = await response.Content.ReadAsStringAsync();
         Assert.Single(Entries(XDocument.Parse(body), atom));
         var tag = response.Headers.ETag!;
+        // Reproduce a queued athlete rescan between polling requests instead of
+        // depending on whether the startup debounce expires during this test.
+        var athletes = factory.Services.GetRequiredService<AthleteDataService>();
+        var reload = typeof(AthleteDataService).GetMethod("ReloadFromSourceAsync", BindingFlags.Instance | BindingFlags.NonPublic)!;
+        await (Task)reload.Invoke(athletes, [CancellationToken.None])!;
         using var repeat = await client.GetAsync(path);
         Assert.Equal(tag, repeat.Headers.ETag);
         Assert.Equal(body, await repeat.Content.ReadAsStringAsync());
@@ -179,11 +188,17 @@ public sealed class EventSyndicationTests
         using var removed = await client.GetAsync(path);
         Assert.Empty(Entries(XDocument.Parse(await removed.Content.ReadAsStringAsync()), atom));
         Assert.Equal(empty.Headers.ETag, removed.Headers.ETag);
-        database.Run(sqlite =>
+        Assert.Equal(deliveryStates, ReadDeliveryStates());
+
+        (string Id, long Slack, long X, long Threads, long Facebook)[] ReadDeliveryStates() => database.Run(sqlite =>
         {
             using var command = sqlite.CreateCommand();
-            command.CommandText = "SELECT count(*) FROM Events WHERE SlackProcessed != 1 OR XProcessed != 1 OR ThreadsProcessed != 1 OR FacebookProcessed != 1;";
-            Assert.Equal(0L, command.ExecuteScalar());
+            command.CommandText = "SELECT Id, SlackProcessed, XProcessed, ThreadsProcessed, FacebookProcessed FROM Events ORDER BY Id;";
+            using var reader = command.ExecuteReader();
+            var states = new List<(string, long, long, long, long)>();
+            while (reader.Read())
+                states.Add((reader.GetString(0), reader.GetInt64(1), reader.GetInt64(2), reader.GetInt64(3), reader.GetInt64(4)));
+            return states.ToArray();
         });
 
         void Insert(string id, string text, bool visible) => database.Run(sqlite =>
