@@ -287,9 +287,10 @@ public sealed class AestheticSystemBrowserTests(
         Assert.True(diagnostics.BrandFaceLoaded, "The self-hosted brand Font Awesome face did not load.");
         var iconCount = diagnostics.Icons.Length + diagnostics.VectorIcons.Length;
         Assert.True(iconCount >= 34, $"Expected at least 34 visible Challenge/footer icons, found {iconCount}.");
-        Assert.Equal(12, diagnostics.FooterIconCount);
-        Assert.Equal(["X", "Nostr", "Reddit", "Threads", "YouTube", "Instagram"], diagnostics.FooterPlatforms);
+        Assert.Equal(13, diagnostics.FooterIconCount);
+        Assert.Equal(["X", "Nostr", "Reddit", "Threads", "YouTube", "Bluesky", "Instagram"], diagnostics.FooterPlatforms);
         Assert.Contains(diagnostics.VectorIcons, icon => icon.Label == "Nostr");
+        Assert.Contains(diagnostics.VectorIcons, icon => icon.Label == "Bluesky");
         Assert.All(diagnostics.VectorIcons, icon =>
         {
             Assert.True(icon.Width > 0 && icon.Height > 0, $"{icon.Label} has no rendered geometry.");
