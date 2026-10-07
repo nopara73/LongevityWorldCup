@@ -19,6 +19,7 @@ public sealed class EventFeedBrowserTests(PlaywrightBrowserFixture browserFixtur
             Locale = "en-US",
             ReducedMotion = ReducedMotion.Reduce
         });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
         var page = await context.NewPageAsync();
         await page.GotoAsync("/events", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
         var rss = page.GetByRole(AriaRole.Link, new PageGetByRoleOptions { Name = "Subscribe to Highlights via RSS" });
