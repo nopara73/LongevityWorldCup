@@ -10,6 +10,7 @@
 
         .event-board-heading {
             display: flex;
+            flex-wrap: wrap;
             align-items: center;
             gap: var(--lwc-space-3, 12px);
             margin: 0 auto var(--lwc-space-4, 16px);
@@ -18,7 +19,16 @@
             box-sizing: border-box;
         }
 
-        .event-board-heading h1 { margin: 0; line-height: 1.1; }
+        .event-board-heading h1 { flex: 1 1 max-content; min-width: 0; margin: 0; line-height: 1.1; }
+
+        .event-board-actions {
+            display: flex;
+            align-items: center;
+            flex: 0 0 auto;
+            max-width: 100%;
+            gap: var(--lwc-space-3, 12px);
+            margin-left: auto;
+        }
 
         .event-feed-link {
             display: inline-flex;
@@ -26,10 +36,10 @@
             justify-content: center;
             gap: var(--lwc-space-2, 8px);
             min-height: 44px;
-            margin-left: auto;
+            flex-shrink: 0;
             padding: 0 var(--lwc-space-4, 16px);
             border: 1px solid var(--lwc-border, #b7c7cd);
-            border-radius: var(--lwc-radius-pill, 999px);
+            border-radius: var(--lwc-radius-md, 8px);
             background: var(--lwc-surface, #fff);
             color: var(--secondary-color, #087685);
             font-size: var(--lwc-type-sm, .875rem);
@@ -42,6 +52,7 @@
 
         .event-push-toggle {
             display: inline-flex;
+            flex-shrink: 0;
             align-items: center;
             justify-content: center;
             width: 44px;
@@ -169,12 +180,14 @@
 <main class="event-board-page">
     <div class="event-board-heading">
         <h1 id="eventBoardTitle">Highlights</h1>
+            <div class="event-board-actions">
         <a class="event-feed-link" href="/feeds/events.rss" aria-label="Subscribe to Highlights via RSS" title="Subscribe via RSS">
             <i class="fas fa-rss" aria-hidden="true"></i><span>RSS</span>
         </a>
         <button id="webPushToggle" class="event-push-toggle" type="button" aria-label="Get announcement notifications" aria-pressed="false" hidden>
             <i class="fas fa-bell" aria-hidden="true"></i>
         </button>
+            </div>
     </div>
     <p id="webPushStatus" class="event-push-status" role="status" aria-live="polite"></p>
     <script src="{{ASSET_WEB_PUSH_JS}}" data-worker-url="{{ASSET_WEB_PUSH_WORKER_JS}}"></script>

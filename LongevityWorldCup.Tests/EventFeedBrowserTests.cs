@@ -8,6 +8,54 @@ public sealed class EventFeedBrowserTests(PlaywrightBrowserFixture browserFixtur
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Theory]
+    [InlineData(320, 100)]
+    [InlineData(320, 200)]
+    [InlineData(390, 200)]
+    public async Task HighlightSubscriptions_RemainUsableWhenNotificationsAreAvailable(int width, int textPercent)
+    {
+        await using var context = await HomepageChromeRegressionBrowserTests.NewContextAsync(Browser, App, ReducedMotion.Reduce);
+        await context.RouteAsync("**/api/web-push/configuration", route => route.FulfillAsync(new()
+        {
+            ContentType = "application/json",
+            Body = "{\"publicKey\":\"test-public-key\"}"
+        }));
+        var page = await context.NewPageAsync();
+        await page.SetViewportSizeAsync(width, 850);
+        await page.GotoAsync("/events", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.Locator("#webPushToggle").WaitForAsync(new() { State = WaitForSelectorState.Visible });
+        await page.EvaluateAsync("percent => document.documentElement.style.fontSize = `${percent}%`", textPercent);
+        await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
+
+        foreach (var selector in new[] { ".event-feed-link", "#webPushToggle" })
+        {
+            var control = page.Locator(selector);
+            var box = Assert.IsType<LocatorBoundingBoxResult>(await control.BoundingBoxAsync());
+            Assert.True(box.Width >= 44 && box.Height >= 44, $"{selector} is smaller than a 44px target.");
+            Assert.True(box.X >= 0 && box.X + box.Width <= width, $"{selector} is clipped.");
+            if (await control.IsEnabledAsync())
+            {
+                await control.FocusAsync();
+                Assert.True(await control.EvaluateAsync<bool>("element => document.activeElement === element"));
+            }
+        }
+        Assert.True(await page.Locator("#eventBoardTitle").EvaluateAsync<bool>(
+            """
+            title => {
+                const range = document.createRange();
+                range.selectNodeContents(title);
+                return [...range.getClientRects()].every(rect => rect.left >= 0 && rect.right <= innerWidth);
+            }
+            """));
+        if (textPercent == 100)
+        {
+            Assert.True(await page.Locator("#eventBoardTitle").EvaluateAsync<bool>(
+                "title => title.getBoundingClientRect().height <= parseFloat(getComputedStyle(title).lineHeight) + 1"),
+                "Highlights should remain a whole word at normal text size.");
+        }
+        Assert.True(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth <= innerWidth"));
+    }
+
+    [Theory]
     [InlineData(1280)]
     [InlineData(360)]
     public async Task Highlights_ExposeFeedsWithAccessibleSubscribeLinkAndNoOverflow(int width)
