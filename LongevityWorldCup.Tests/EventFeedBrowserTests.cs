@@ -21,14 +21,16 @@ public sealed class EventFeedBrowserTests(PlaywrightBrowserFixture browserFixtur
         });
         await BrowserTestApp.RouteExternalResourcesAsync(context);
         var page = await context.NewPageAsync();
-        await page.GotoAsync("/events", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.GotoAsync("/events", new PageGotoOptions { WaitUntil = WaitUntilState.Load });
         var rss = page.GetByRole(AriaRole.Link, new PageGetByRoleOptions { Name = "Subscribe to Highlights via RSS" });
         await rss.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Visible });
         await page.Locator("#events-root[aria-busy='false']").WaitForAsync();
+        await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
         Assert.Equal("/feeds/events.rss", await rss.GetAttributeAsync("href"));
         Assert.Equal(1, await rss.Locator(".fa-rss").CountAsync());
         await page.Locator(".event-board-heading").EvaluateAsync("heading => heading.scrollIntoView({ behavior: 'instant', block: 'start' })");
         await rss.FocusAsync();
+        await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
         Assert.True(await rss.EvaluateAsync<bool>("link => link === document.activeElement"));
         var box = Assert.IsType<LocatorBoundingBoxResult>(await rss.BoundingBoxAsync());
         Assert.True(box.Width >= 44 && box.Height >= 44);
