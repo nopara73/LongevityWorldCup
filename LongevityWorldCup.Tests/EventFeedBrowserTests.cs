@@ -8,10 +8,13 @@ public sealed class EventFeedBrowserTests(PlaywrightBrowserFixture browserFixtur
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Theory]
-    [InlineData(320, 100)]
-    [InlineData(320, 200)]
-    [InlineData(390, 200)]
-    public async Task HighlightSubscriptions_RemainUsableWhenNotificationsAreAvailable(int width, int textPercent)
+    [InlineData(320, 850, 100)]
+    [InlineData(320, 850, 200)]
+    [InlineData(390, 850, 200)]
+    [InlineData(844, 390, 200)]
+    [InlineData(1280, 900, 100)]
+    [InlineData(1280, 900, 200)]
+    public async Task HighlightSubscriptions_RemainUsableWhenNotificationsAreAvailable(int width, int height, int textPercent)
     {
         await using var context = await HomepageChromeRegressionBrowserTests.NewContextAsync(Browser, App, ReducedMotion.Reduce);
         await context.RouteAsync("**/api/web-push/configuration", route => route.FulfillAsync(new()
@@ -20,11 +23,20 @@ public sealed class EventFeedBrowserTests(PlaywrightBrowserFixture browserFixtur
             Body = "{\"publicKey\":\"test-public-key\"}"
         }));
         var page = await context.NewPageAsync();
-        await page.SetViewportSizeAsync(width, 850);
+        await page.SetViewportSizeAsync(width, height);
         await page.GotoAsync("/events", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
         await page.Locator("#webPushToggle").WaitForAsync(new() { State = WaitForSelectorState.Visible });
         await page.EvaluateAsync("percent => document.documentElement.style.fontSize = `${percent}%`", textPercent);
         await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
+        await page.Locator(".event-board-heading").EvaluateAsync("heading => heading.scrollIntoView({ behavior: 'instant', block: 'start' })");
+        await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
+        var titleBox = Assert.IsType<LocatorBoundingBoxResult>(await page.Locator("#eventBoardTitle").BoundingBoxAsync());
+        Assert.True(titleBox.Y >= 0, "Highlights must remain inside the viewport.");
+        if (await page.Locator("#site-sticky-header").BoundingBoxAsync() is { } headerBox)
+        {
+            Assert.True(titleBox.Y >= headerBox.Y + headerBox.Height - 1,
+                $"Highlights starts at {titleBox.Y}px beneath a header ending at {headerBox.Y + headerBox.Height}px.");
+        }
 
         foreach (var selector in new[] { ".event-feed-link", "#webPushToggle" })
         {
