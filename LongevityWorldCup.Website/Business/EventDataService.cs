@@ -46,7 +46,8 @@ public sealed record CustomEventDeliveryTargets(
     bool SendToMastodon = false,
     bool SendToNostr = false,
     bool SendToReddit = false,
-    bool SendToBluesky = false)
+    bool SendToBluesky = false,
+    bool SendToWebPush = false)
 {
     public CustomEventStorageFlags ToStorageFlags() => new(
         VisibleOnWebsite: SendToWebpage ? 1 : 0,
@@ -266,6 +267,7 @@ public sealed partial class EventDataService : IDisposable
         SocialDeliveryStore.InitializeChannel(_db, SocialDeliveryStore.Mastodon);
         SocialDeliveryStore.InitializeChannel(_db, SocialDeliveryStore.Nostr);
         SocialDeliveryStore.InitializeChannel(_db, SocialDeliveryStore.Bluesky);
+        SocialDeliveryStore.InitializeChannel(_db, SocialDeliveryStore.WebPush);
 
         if (_enableEventDispatch)
         {
@@ -1914,6 +1916,8 @@ public sealed partial class EventDataService : IDisposable
                 deliveryTargets?.SendToReddit ?? true, SocialDeliveryStore.Reddit);
             SocialDeliveryStore.SelectCustomEventTarget(sqlite, tx, eventId,
                 deliveryTargets?.SendToBluesky ?? true, SocialDeliveryStore.Bluesky);
+            SocialDeliveryStore.SelectCustomEventTarget(sqlite, tx, eventId,
+                deliveryTargets?.SendToWebPush ?? false, SocialDeliveryStore.WebPush);
 
             tx.Commit();
         });

@@ -903,6 +903,7 @@
                     <label class="check"><input id="sendNostr" type="checkbox" /><span>Nostr</span></label>
                     <label class="check"><input id="sendReddit" type="checkbox" /><span>Reddit</span></label>
                     <label class="check"><input id="sendBluesky" type="checkbox" /><span>Bluesky</span></label>
+                    <label class="check"><input id="sendWebPush" type="checkbox" /><span>Website push</span></label>
                 </div>
             </div>
 
@@ -995,6 +996,7 @@
         const sendNostr = document.getElementById("sendNostr");
         const sendReddit = document.getElementById("sendReddit");
         const sendBluesky = document.getElementById("sendBluesky");
+        const sendWebPush = document.getElementById("sendWebPush");
         const designerSecretInput = document.getElementById("designerSecretInput");
         const generateSecretHashBtn = document.getElementById("generateSecretHashBtn");
         const copySecretHashBtn = document.getElementById("copySecretHashBtn");
@@ -2082,7 +2084,8 @@
                 sendToMastodon: sendMastodon.checked,
                 sendToNostr: sendNostr.checked,
                 sendToReddit: sendReddit.checked,
-                sendToBluesky: sendBluesky.checked
+                sendToBluesky: sendBluesky.checked,
+                sendToWebPush: sendWebPush.checked
             };
         }
 
@@ -2096,7 +2099,8 @@
                 payload.sendToMastodon ||
                 payload.sendToNostr ||
                 payload.sendToReddit ||
-                payload.sendToBluesky
+                payload.sendToBluesky ||
+                payload.sendToWebPush
             );
         }
 
@@ -2140,6 +2144,7 @@
                 if (typeof data.sendNostr === "boolean") sendNostr.checked = data.sendNostr;
                 if (typeof data.sendReddit === "boolean") sendReddit.checked = data.sendReddit;
                 if (typeof data.sendBluesky === "boolean") sendBluesky.checked = data.sendBluesky;
+                if (typeof data.sendWebPush === "boolean") sendWebPush.checked = data.sendWebPush;
             } catch {
             }
         }
@@ -2155,7 +2160,8 @@
                     sendMastodon: sendMastodon.checked,
                     sendNostr: sendNostr.checked,
                     sendReddit: sendReddit.checked,
-                    sendBluesky: sendBluesky.checked
+                    sendBluesky: sendBluesky.checked,
+                    sendWebPush: sendWebPush.checked
                 }));
             } catch {
             }
@@ -2382,6 +2388,33 @@
             return renderTextPreviewCard(plan.key, plan.postText || fallbackTextPost, clickableMentions, rawCopyText, ogPreviewUrl);
         }
 
+        function pushPreviewText(raw, maxCharacters, maxBytes) {
+            const text = plainTextWithLabels(raw).trim();
+            const parts = Array.from(mastodonSegmenter.segment(text), part => part.segment);
+            if (parts.length <= maxCharacters && new TextEncoder().encode(text).length <= maxBytes) return text;
+            let clipped = "";
+            for (const part of parts.slice(0, maxCharacters - 1)) {
+                if (new TextEncoder().encode(clipped + part + "…").length > maxBytes) break;
+                clipped += part;
+            }
+            return clipped + "…";
+        }
+
+        function renderPushPreview(titleRaw, contentRaw) {
+            if (!sendWebPush.checked) return "";
+            return `<div class="panel preview-block" id="webPushPreview">
+                <div class="preview-title"><h2>Website push Preview</h2></div>
+                <div class="push-preview" style="max-width:440px;display:flex;align-items:start;gap:14px;padding:16px;border:1px solid var(--lwc-border,#b7c7cd);border-radius:14px;">
+                    <i class="fas fa-bell" aria-hidden="true" style="color:var(--secondary-color,#087685);font-size:22px;margin-top:4px;"></i>
+                    <div style="min-width:0;overflow-wrap:anywhere;">
+                        <div style="font-size:12px;opacity:.7;margin-bottom:6px;">longevityworldcup.com</div>
+                        <strong class="push-preview-title">${escapeHtml(pushPreviewText(titleRaw, 100, 512))}</strong>
+                        <p class="push-preview-body" style="white-space:pre-wrap;margin:6px 0 0;">${escapeHtml(pushPreviewText(contentRaw, 200, 1400))}</p>
+                    </div>
+                </div>
+            </div>`;
+        }
+
         function update() {
             saveSendToSettings();
 
@@ -2434,7 +2467,7 @@
                     buildPlatformRawText(plan.key, plan, titleRaw, contentRaw, sendWebpage.checked),
                     getOgPreviewUrl(plan.key, plan)
                 )
-            ).join("");
+            ).join("") + renderPushPreview(titleRaw, contentRaw);
 
             if (hasTitle) {
                 const payloadJsonText = JSON.stringify(payload);
@@ -2605,7 +2638,7 @@
             }
         });
 
-        [titleInput, contentInput, sendWebpage, sendSlack, sendX, sendThreads, sendFacebook, sendMastodon, sendNostr, sendReddit, sendBluesky].forEach(el => {
+        [titleInput, contentInput, sendWebpage, sendSlack, sendX, sendThreads, sendFacebook, sendMastodon, sendNostr, sendReddit, sendBluesky, sendWebPush].forEach(el => {
             el.addEventListener("input", event => {
                 if (event.target === titleInput || event.target === contentInput) {
                     updateMentionSuggestions(event.target);

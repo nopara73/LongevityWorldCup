@@ -1,6 +1,7 @@
 {
   "$schema": "https://developers.reddit.com/schema/config-file.v1.json",
   "name": "longevityworldcup",
+  "dev": { "subreddit": "LongevityWorldCup" },
   "server": {},
   "permissions": {
     "reddit": { "enable": true, "scope": "user" },

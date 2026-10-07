@@ -58,6 +58,9 @@ namespace LongevityWorldCup.Website
         public string BlueskyServiceUrl { get; set; } = "https://bsky.social";
         public string? BlueskyIdentifier { get; set; }
         public string? BlueskyAppPassword { get; set; }
+        public string? WebPushVapidSubject { get; set; }
+        public string? WebPushVapidPublicKey { get; set; }
+        public string? WebPushVapidPrivateKey { get; set; }
         public string MastodonServerUrl { get; set; } = "https://mastodon.social";
         public string? MastodonAccountId { get; set; }
         public string? MastodonAccessToken { get; set; }

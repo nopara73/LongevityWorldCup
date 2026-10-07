@@ -78,6 +78,11 @@ public sealed class ScheduledJobConfigurationTests
         Assert.Equal(TimeSpan.FromMinutes(1), bluesky.RepeatInterval);
         Assert.Equal(-1, bluesky.RepeatCount);
         Assert.NotNull(await scheduler.GetJobDetail(bluesky.JobKey));
+        var push = Assert.IsAssignableFrom<ISimpleTrigger>(await scheduler.GetTrigger(new TriggerKey("WebPushPostTrigger")));
+        Assert.Equal(new JobKey("WebPushPostJob"), push.JobKey);
+        Assert.Equal(TimeSpan.FromMinutes(1), push.RepeatInterval);
+        Assert.Equal(-1, push.RepeatCount);
+        Assert.NotNull(await scheduler.GetJobDetail(push.JobKey));
     }
 
     [Fact]

@@ -34,6 +34,28 @@
         .event-feed-link:hover { background: var(--lwc-surface-muted, #eef2f5); }
         .event-feed-link:focus-visible { outline: 2px solid currentColor; outline-offset: -2px; }
 
+        .event-push-toggle {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 44px;
+            height: 44px;
+            padding: 0;
+            border: 1px solid var(--lwc-border, #b7c7cd);
+            border-radius: 50%;
+            background: transparent;
+            color: var(--secondary-color, #087685);
+            font: inherit;
+            cursor: pointer;
+        }
+        .event-push-toggle[hidden] { display: none; }
+        .event-push-toggle[aria-pressed="true"] { background: var(--secondary-color, #087685); color: #fff; border-color: transparent; }
+        .event-push-toggle:hover { box-shadow: 0 0 0 3px var(--lwc-surface-muted, #eef2f5); }
+        .event-push-toggle:focus-visible { outline: 2px solid var(--secondary-color, #087685); outline-offset: 3px; }
+        .event-push-toggle:disabled { opacity: .55; cursor: default; }
+        .event-push-status { font-size: var(--lwc-type-sm, .875rem); text-align: center; max-width: 32rem; margin: 0 auto 12px; }
+        .event-push-status:empty { display: none; }
+
         .event-board-page .events-board thead {
             display: none;
         }
@@ -140,7 +162,12 @@
         <a class="event-feed-link" href="/feeds/events.rss" aria-label="Subscribe to Highlights via RSS" title="Subscribe via RSS">
             <i class="fas fa-rss" aria-hidden="true"></i><span>RSS</span>
         </a>
+        <button id="webPushToggle" class="event-push-toggle" type="button" aria-label="Get announcement notifications" aria-pressed="false" hidden>
+            <i class="fas fa-bell" aria-hidden="true"></i>
+        </button>
     </div>
+    <p id="webPushStatus" class="event-push-status" role="status" aria-live="polite"></p>
+    <script src="{{ASSET_WEB_PUSH_JS}}" data-worker-url="{{ASSET_WEB_PUSH_WORKER_JS}}"></script>
     <!--EVENT-BOARD-CONTENT-->
     <div class="options-container" data-aos="fade" data-aos-duration="700" data-aos-delay="700">
         <button class="option-button back-button" onclick="window.goBackOrHome()">

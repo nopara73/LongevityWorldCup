@@ -1004,6 +1004,26 @@ $@"<script{scriptAttributes}>
                     noCardDescription,
                     defaultOgImage
                 ),
+                "/reddit-terms.html" => new SeoMeta(
+                    canonicalPath,
+                    "Terms for the longevityworldcup Reddit app and its announcement workflow.",
+                    "index, follow",
+                    canonicalUrl,
+                    "Reddit App Terms | Longevity World Cup",
+                    "Reddit App Terms",
+                    noCardDescription,
+                    defaultOgImage
+                ),
+                "/reddit-privacy.html" => new SeoMeta(
+                    canonicalPath,
+                    "Privacy policy for the longevityworldcup Reddit app and its announcement delivery records.",
+                    "index, follow",
+                    canonicalUrl,
+                    "Reddit App Privacy Policy | Longevity World Cup",
+                    "Reddit App Privacy Policy",
+                    noCardDescription,
+                    defaultOgImage
+                ),
                 _ => new SeoMeta(
                     canonicalPath,
                     "Longevity World Cup member page.",
