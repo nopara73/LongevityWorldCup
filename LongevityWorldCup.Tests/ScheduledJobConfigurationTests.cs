@@ -36,6 +36,7 @@ public sealed class ScheduledJobConfigurationTests
             ("MastodonDailyPostTrigger", "MastodonDailyPostJob", new(2030, 2, 1, 15, 4, 0, TimeSpan.Zero)),
             ("NostrDailyPostTrigger", "NostrDailyPostJob", new(2030, 2, 1, 15, 6, 0, TimeSpan.Zero)),
             ("RedditDailyPostTrigger", "RedditDailyPostJob", new(2030, 2, 1, 15, 8, 0, TimeSpan.Zero)),
+            ("BlueskyDailyPostTrigger", "BlueskyDailyPostJob", new(2030, 2, 1, 15, 10, 0, TimeSpan.Zero)),
             ("LongevitymaxxingReminderTrigger", "LongevitymaxxingReminderJob", new(2030, 2, 1, 0, 0, 0, TimeSpan.Zero))
         ];
 
@@ -72,6 +73,11 @@ public sealed class ScheduledJobConfigurationTests
         Assert.Equal(TimeSpan.FromMinutes(1), nostr.RepeatInterval);
         Assert.Equal(-1, nostr.RepeatCount);
         Assert.NotNull(await scheduler.GetJobDetail(nostr.JobKey));
+        var bluesky = Assert.IsAssignableFrom<ISimpleTrigger>(await scheduler.GetTrigger(new TriggerKey("BlueskyCustomPostTrigger")));
+        Assert.Equal(new JobKey("BlueskyCustomPostJob"), bluesky.JobKey);
+        Assert.Equal(TimeSpan.FromMinutes(1), bluesky.RepeatInterval);
+        Assert.Equal(-1, bluesky.RepeatCount);
+        Assert.NotNull(await scheduler.GetJobDetail(bluesky.JobKey));
     }
 
     [Fact]

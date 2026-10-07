@@ -902,6 +902,7 @@
                     <label class="check"><input id="sendMastodon" type="checkbox" /><span>Mastodon</span></label>
                     <label class="check"><input id="sendNostr" type="checkbox" /><span>Nostr</span></label>
                     <label class="check"><input id="sendReddit" type="checkbox" /><span>Reddit</span></label>
+                    <label class="check"><input id="sendBluesky" type="checkbox" /><span>Bluesky</span></label>
                 </div>
             </div>
 
@@ -977,7 +978,7 @@
 
     <script src="{{ASSET_CUSTOM_EVENT_MARKUP_JS}}"></script>
     <script>
-        const LIMITS = { x: 280, threads: 500, mastodon: 500, nostr: 16000, reddit: 40000 };
+        const LIMITS = { x: 280, threads: 500, mastodon: 500, nostr: 16000, reddit: 40000, bluesky: 300 };
         const SECRET_HASH_ALGORITHM = "pbkdf2-sha256";
         const SECRET_HASH_ITERATIONS = 210000;
         const SECRET_HASH_SALT_BYTES = 16;
@@ -993,6 +994,7 @@
         const sendMastodon = document.getElementById("sendMastodon");
         const sendNostr = document.getElementById("sendNostr");
         const sendReddit = document.getElementById("sendReddit");
+        const sendBluesky = document.getElementById("sendBluesky");
         const designerSecretInput = document.getElementById("designerSecretInput");
         const generateSecretHashBtn = document.getElementById("generateSecretHashBtn");
         const copySecretHashBtn = document.getElementById("copySecretHashBtn");
@@ -1035,7 +1037,8 @@
             { key: "facebook", label: "Facebook", checkbox: sendFacebook, limit: 63206 },
             { key: "mastodon", label: "Mastodon", checkbox: sendMastodon, limit: LIMITS.mastodon },
             { key: "nostr", label: "Nostr", checkbox: sendNostr, limit: LIMITS.nostr },
-            { key: "reddit", label: "Reddit", checkbox: sendReddit, limit: LIMITS.reddit }
+            { key: "reddit", label: "Reddit", checkbox: sendReddit, limit: LIMITS.reddit },
+            { key: "bluesky", label: "Bluesky", checkbox: sendBluesky, limit: LIMITS.bluesky }
         ];
         const PLATFORM_PREVIEW_META = {
             slack: { name: "Longevity World Cup", handle: "#highlights", avatar: "LW", label: "Slack" },
@@ -1044,11 +1047,13 @@
             facebook: { name: "Longevity World Cup", handle: "Facebook Page", avatar: "LW", label: "Facebook" },
             mastodon: { name: "Longevity World Cup", handle: "@longevityworldcup@mastodon.social", avatar: "LW", label: "Mastodon" },
             nostr: { name: "Longevity World Cup", handle: "longevityworldcup.com", avatar: "LW", label: "Nostr" },
-            reddit: { name: "Longevity World Cup", handle: "r/LongevityWorldCup", avatar: "LW", label: "Reddit" }
+            reddit: { name: "Longevity World Cup", handle: "r/LongevityWorldCup", avatar: "LW", label: "Reddit" },
+            bluesky: { name: "Longevity World Cup", handle: "@longevityworldcup.bsky.social", avatar: "LW", label: "Bluesky" }
         };
 
         function renderPlatformAvatar(platformKey, sizeClass = "x-avatar") {
             const logos = {
+                bluesky: `<svg viewBox="0 0 600 530" aria-hidden="true" focusable="false"><path fill="#1185fe" d="M135.72 44.03C202.22 93.86 273.74 194.89 300 249.11c26.26-54.22 97.78-155.25 164.28-205.08C512.26 8.07 590-19.75 590 68.77c0 17.68-10.14 148.46-16.08 169.71-20.65 73.82-95.92 92.65-162.87 81.25 117.03 19.93 146.81 85.95 82.49 151.97C371.39 597.09 317.98 440.24 304.28 400.05c-2.51-7.37-3.68-10.82-4.28-7.89-.6-2.93-1.77.52-4.28 7.89-13.7 40.19-67.11 197.04-189.26 71.65-64.32-66.02-34.54-132.04 82.49-151.97-66.95 11.4-142.22-7.43-162.87-81.25C20.14 217.23 10 86.45 10 68.77 10-19.75 87.74 8.07 135.72 44.03Z"/></svg>`,
                 reddit: `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="11" fill="#ff4500"/><path d="m12 9 1-4 4 1" fill="none" stroke="white" stroke-width="1.4"/><circle cx="18" cy="6" r="1.5" fill="white"/><ellipse cx="12" cy="14" rx="7" ry="5" fill="white"/><circle cx="9" cy="13" r="1" fill="#ff4500"/><circle cx="15" cy="13" r="1" fill="#ff4500"/><path d="M9 16q3 2 6 0" fill="none" stroke="#ff4500" stroke-width="1.2" stroke-linecap="round"/></svg>`,
                 nostr: `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="1" y="1" width="22" height="22" rx="6" fill="#8b5cf6"/><path fill="white" d="M6 18V6h3l6 8V6h3v12h-3l-6-8v8Z"/></svg>`,
                 mastodon: `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="1" y="1" width="22" height="22" rx="6" fill="#6364ff"/><path fill="white" d="M5 7h3l4 5 4-5h3v11h-3v-7l-4 5-4-5v7H5Z"/></svg>`,
@@ -1418,7 +1423,7 @@
                 });
         }
 
-        function renderOgCard(url) {
+        function renderOgCard(url, includeImage = true) {
             if (!url) {
                 return "";
             }
@@ -1442,7 +1447,7 @@
 
             return `
                 <div class="og-card">
-                    <div class="og-card-media">${mediaHtml}</div>
+                    ${includeImage ? `<div class="og-card-media">${mediaHtml}</div>` : ""}
                     <div class="og-card-body">
                         <div class="og-card-domain">${escapeHtml(data.domain || getUrlDomain(url))}</div>
                         <div class="og-card-title">${escapeHtml(data.title || getUrlDomain(url))}</div>
@@ -1860,6 +1865,7 @@
 
         const mastodonSegmenter = new Intl.Segmenter("en", { granularity: "grapheme" });
         function postLength(text, platformKey) {
+            if (platformKey === "bluesky") return Math.max(Array.from(mastodonSegmenter.segment(text)).length, Math.ceil(new TextEncoder().encode(text).length / 10));
             if (platformKey !== "mastodon") return text.length;
             const countable = text.replace(/https?:\/\/[^\s<>"']+/gi, match => {
                 let url = match.replace(/[.,!?;:\]}]+$/, "");
@@ -1882,15 +1888,28 @@
             return parts.slice(0, low).join("").trimEnd() + "…";
         }
 
+        function truncateBluesky(text, limit) {
+            if (postLength(text, "bluesky") <= limit) return text;
+            if (limit <= 0) return "";
+            const parts = Array.from(mastodonSegmenter.segment(text), part => part.segment);
+            let low = 0, high = Math.min(parts.length, limit - 1);
+            while (low < high) {
+                const mid = Math.floor((low + high + 1) / 2);
+                if (postLength(parts.slice(0, mid).join("").trimEnd() + "…", "bluesky") <= limit) low = mid;
+                else high = mid - 1;
+            }
+            return parts.slice(0, low).join("").trimEnd() + "…";
+        }
+
         function buildImageCaption(titleText, eventUrl, maxLength, platformKey) {
             const normalizedTitle = collapseWhitespace(titleText);
-            if (!eventUrl) return platformKey === "mastodon" ? truncateMastodon(normalizedTitle, maxLength) : normalizedTitle;
+            if (!eventUrl) return platformKey === "mastodon" ? truncateMastodon(normalizedTitle, maxLength) : platformKey === "bluesky" ? truncateBluesky(normalizedTitle, maxLength) : normalizedTitle;
             const reserved = postLength(eventUrl, platformKey) + 2;
             const maxTitleLength = Math.max(0, maxLength - reserved);
             let finalTitle = normalizedTitle;
             if (postLength(finalTitle, platformKey) > maxTitleLength) {
                 finalTitle = maxTitleLength <= 1 ? "" : platformKey === "mastodon"
-                    ? truncateMastodon(finalTitle, maxTitleLength) : `${finalTitle.slice(0, maxTitleLength - 1).trimEnd()}…`;
+                    ? truncateMastodon(finalTitle, maxTitleLength) : platformKey === "bluesky" ? truncateBluesky(finalTitle, maxTitleLength) : `${finalTitle.slice(0, maxTitleLength - 1).trimEnd()}…`;
             }
             return finalTitle ? `${finalTitle}\n\n${eventUrl}` : eventUrl;
         }
@@ -1941,7 +1960,7 @@
                 return plan.postText;
             }
 
-            if (platformKey === "x" || platformKey === "threads" || platformKey === "facebook" || platformKey === "mastodon" || platformKey === "nostr" || platformKey === "reddit") {
+            if (platformKey === "x" || platformKey === "threads" || platformKey === "facebook" || platformKey === "mastodon" || platformKey === "nostr" || platformKey === "reddit" || platformKey === "bluesky") {
                 const fallbackLimit = LIMITS[platformKey] ?? 63206;
                 const fallbackPlan = buildPlan(titleRaw, contentRaw, fallbackLimit, platformKey, includeEventUrl);
                 return fallbackPlan.postText || "";
@@ -2062,7 +2081,8 @@
                 sendToFacebook: sendFacebook.checked,
                 sendToMastodon: sendMastodon.checked,
                 sendToNostr: sendNostr.checked,
-                sendToReddit: sendReddit.checked
+                sendToReddit: sendReddit.checked,
+                sendToBluesky: sendBluesky.checked
             };
         }
 
@@ -2075,7 +2095,8 @@
                 payload.sendToFacebook ||
                 payload.sendToMastodon ||
                 payload.sendToNostr ||
-                payload.sendToReddit
+                payload.sendToReddit ||
+                payload.sendToBluesky
             );
         }
 
@@ -2118,6 +2139,7 @@
                 if (typeof data.sendMastodon === "boolean") sendMastodon.checked = data.sendMastodon;
                 if (typeof data.sendNostr === "boolean") sendNostr.checked = data.sendNostr;
                 if (typeof data.sendReddit === "boolean") sendReddit.checked = data.sendReddit;
+                if (typeof data.sendBluesky === "boolean") sendBluesky.checked = data.sendBluesky;
             } catch {
             }
         }
@@ -2132,7 +2154,8 @@
                     sendFacebook: sendFacebook.checked,
                     sendMastodon: sendMastodon.checked,
                     sendNostr: sendNostr.checked,
-                    sendReddit: sendReddit.checked
+                    sendReddit: sendReddit.checked,
+                    sendBluesky: sendBluesky.checked
                 }));
             } catch {
             }
@@ -2240,7 +2263,7 @@
         function renderTextPreviewCard(platformKey, postText, clickableMentions, rawCopyText, ogPreviewUrl) {
             const meta = PLATFORM_PREVIEW_META[platformKey] || PLATFORM_PREVIEW_META.x;
             const copyKey = registerPreviewCopyText(rawCopyText);
-            const ogCardHtml = renderOgCard(ogPreviewUrl);
+            const ogCardHtml = renderOgCard(ogPreviewUrl, platformKey !== "bluesky");
             const visibleText = platformKey === "x"
                 ? getXPreviewVisibleText(postText)
                 : postText;
@@ -2582,7 +2605,7 @@
             }
         });
 
-        [titleInput, contentInput, sendWebpage, sendSlack, sendX, sendThreads, sendFacebook, sendMastodon, sendNostr, sendReddit].forEach(el => {
+        [titleInput, contentInput, sendWebpage, sendSlack, sendX, sendThreads, sendFacebook, sendMastodon, sendNostr, sendReddit, sendBluesky].forEach(el => {
             el.addEventListener("input", event => {
                 if (event.target === titleInput || event.target === contentInput) {
                     updateMentionSuggestions(event.target);

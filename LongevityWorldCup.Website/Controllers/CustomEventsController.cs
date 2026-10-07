@@ -31,7 +31,8 @@ public sealed class CustomEventsController(EventDataService events, Config confi
         bool SendToFacebook,
         bool SendToMastodon = false,
         bool SendToNostr = false,
-        bool SendToReddit = false);
+        bool SendToReddit = false,
+        bool SendToBluesky = false);
 
     [HttpPost]
     [RequestSizeLimit(MaxRequestBytes)]
@@ -77,7 +78,8 @@ public sealed class CustomEventsController(EventDataService events, Config confi
             request.SendToFacebook,
             request.SendToMastodon,
             request.SendToNostr,
-            request.SendToReddit);
+            request.SendToReddit,
+            request.SendToBluesky);
         var selectedTargets = GetSelectedTargets(targets);
         if (selectedTargets.Count == 0)
             return BadRequest("Select at least one destination.");
@@ -114,6 +116,7 @@ public sealed class CustomEventsController(EventDataService events, Config confi
         if (targets.SendToMastodon) selected.Add("mastodon");
         if (targets.SendToNostr) selected.Add("nostr");
         if (targets.SendToReddit) selected.Add("reddit");
+        if (targets.SendToBluesky) selected.Add("bluesky");
         return selected;
     }
 }

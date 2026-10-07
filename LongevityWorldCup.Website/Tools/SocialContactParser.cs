@@ -6,7 +6,8 @@ public enum SocialPlatform
     Threads,
     Facebook,
     Mastodon,
-    Nostr
+    Nostr,
+    Bluesky
 }
 
 public static class SocialContactParser

@@ -251,6 +251,10 @@ namespace LongevityWorldCup.Website
             builder.Services.AddHttpClient(nameof(MastodonApiClient), client => client.Timeout = TimeSpan.FromSeconds(30))
                 .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
             builder.Services.AddSingleton<MastodonApiClient>();
+            builder.Services.AddHttpClient(nameof(BlueskyApiClient), client => client.Timeout = TimeSpan.FromSeconds(30))
+                .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
+            builder.Services.AddSingleton<BlueskyApiClient>();
+            builder.Services.AddSingleton<BlueskyAnnouncementService>();
             builder.Services.AddSingleton<SocialDeliveryStore>();
             builder.Services.AddSingleton<MastodonAnnouncementService>();
             builder.Services.AddSingleton<INostrRelayTransport, NostrRelayTransport>();
@@ -517,6 +521,9 @@ namespace LongevityWorldCup.Website
                 FacebookPageId = "",
                 FacebookUserAccessToken = "",
                 FacebookPageAccessToken = "",
+                BlueskyServiceUrl = "https://bsky.social",
+                BlueskyIdentifier = "",
+                BlueskyAppPassword = "",
                 MastodonServerUrl = "https://mastodon.social",
                 MastodonAccountId = "",
                 MastodonAccessToken = "",

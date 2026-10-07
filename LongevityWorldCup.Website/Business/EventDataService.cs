@@ -45,7 +45,8 @@ public sealed record CustomEventDeliveryTargets(
     bool SendToFacebook,
     bool SendToMastodon = false,
     bool SendToNostr = false,
-    bool SendToReddit = false)
+    bool SendToReddit = false,
+    bool SendToBluesky = false)
 {
     public CustomEventStorageFlags ToStorageFlags() => new(
         VisibleOnWebsite: SendToWebpage ? 1 : 0,
@@ -264,6 +265,7 @@ public sealed partial class EventDataService : IDisposable
         InitializeCrowdAgeAnnouncements();
         SocialDeliveryStore.InitializeChannel(_db, SocialDeliveryStore.Mastodon);
         SocialDeliveryStore.InitializeChannel(_db, SocialDeliveryStore.Nostr);
+        SocialDeliveryStore.InitializeChannel(_db, SocialDeliveryStore.Bluesky);
 
         if (_enableEventDispatch)
         {
@@ -1910,6 +1912,8 @@ public sealed partial class EventDataService : IDisposable
                 deliveryTargets?.SendToNostr ?? true, SocialDeliveryStore.Nostr);
             SocialDeliveryStore.SelectCustomEventTarget(sqlite, tx, eventId,
                 deliveryTargets?.SendToReddit ?? true, SocialDeliveryStore.Reddit);
+            SocialDeliveryStore.SelectCustomEventTarget(sqlite, tx, eventId,
+                deliveryTargets?.SendToBluesky ?? true, SocialDeliveryStore.Bluesky);
 
             tx.Commit();
         });

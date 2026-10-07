@@ -25,6 +25,18 @@ internal static class ScheduledJobs
         var nostrDailyKey = new JobKey("NostrDailyPostJob");
         var nostrCustomKey = new JobKey("NostrCustomPostJob");
         var redditDailyKey = new JobKey("RedditDailyPostJob");
+        var blueskyDailyKey = new JobKey("BlueskyDailyPostJob");
+        var blueskyCustomKey = new JobKey("BlueskyCustomPostJob");
+
+        scheduler.AddJob<BlueskyDailyPostJob>(o => o.WithIdentity(blueskyDailyKey));
+        scheduler.AddTrigger(t => t.ForJob(blueskyDailyKey)
+            .WithIdentity("BlueskyDailyPostTrigger")
+            .WithSchedule(CronScheduleBuilder.Create("0 10 15 * * ?").InTimeZone(TimeZoneInfo.Utc)));
+        scheduler.AddJob<BlueskyCustomPostJob>(o => o.WithIdentity(blueskyCustomKey));
+        scheduler.AddTrigger(t => t.ForJob(blueskyCustomKey)
+            .WithIdentity("BlueskyCustomPostTrigger")
+            .StartNow()
+            .WithSimpleSchedule(x => x.WithInterval(TimeSpan.FromMinutes(1)).RepeatForever()));
 
         scheduler.AddJob<RedditDailyPostJob>(o => o.WithIdentity(redditDailyKey));
         scheduler.AddTrigger(t => t.ForJob(redditDailyKey)

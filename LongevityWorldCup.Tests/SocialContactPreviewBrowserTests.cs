@@ -86,4 +86,61 @@ public sealed class SocialContactPreviewBrowserTests(
         Assert.False(await page.Locator("#sendMastodon").IsCheckedAsync());
         Assert.True(await page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= innerWidth"));
     }
+    [Fact]
+    public async Task BlueskyPreview_UsesGraphemeCapacityAndRetainsItsSelectedDestination()
+    {
+        await using var context = await Browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = App.BaseAddress.ToString(), ViewportSize = new() { Width = 390, Height = 844 }
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/internal/custom-event-designer.html");
+        await page.Locator("#sendBluesky").CheckAsync();
+        await page.Locator("#titleInput").FillAsync(new string('x', 500));
+        await page.Locator("#contentInput").FillAsync("");
+        var longTitle = await page.EvaluateAsync<string>("() => buildPlan(titleInput.value, '', LIMITS.bluesky, 'bluesky', false).postText");
+        Assert.True(longTitle.Length <= 300);
+        var mode = await page.EvaluateAsync<string>("() => buildPlan('🦋'.repeat(300), '', LIMITS.bluesky, 'bluesky', false).mode");
+        Assert.Equal("text", mode);
+        var combined = "a" + new string('\u0301', 1600);
+        var byteLimited = await page.EvaluateAsync<string>("title => buildPlan(title, '', LIMITS.bluesky, 'bluesky', false).postText", combined);
+        Assert.True(BlueskyPost.Fits(byteLimited));
+        Assert.Equal("image", await page.EvaluateAsync<string>("title => buildPlan(title, '', LIMITS.bluesky, 'bluesky', false).mode", combined));
+        Assert.True(await page.EvaluateAsync<bool>("() => buildEventPayload().sendToBluesky"));
+        await page.ReloadAsync();
+        Assert.True(await page.Locator("#sendBluesky").IsCheckedAsync());
+        Assert.True(await page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= innerWidth"));
+    }
+
+    [Theory]
+    [InlineData(1280)]
+    [InlineData(360)]
+    public async Task FollowLinks_KeepIncreasingLabelLengthsAndAnAccessibleBlueskyIcon(int width)
+    {
+        await using var context = await Browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = App.BaseAddress.ToString(), ViewportSize = new() { Width = width, Height = 850 }
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/events");
+        var link = page.GetByRole(AriaRole.Link, new PageGetByRoleOptions { Name = "Follow Longevity World Cup on Bluesky", Exact = true });
+        await link.ScrollIntoViewIfNeededAsync();
+        var labels = await link.Locator("..").Locator("a").AllTextContentsAsync();
+        var lengths = labels.Select(label => label.Trim().Length).ToArray();
+        Assert.Equal(lengths.Order().ToArray(), lengths);
+        Assert.Equal("https://bsky.app/profile/longevityworldcup.bsky.social", await link.GetAttributeAsync("href"));
+        Assert.Equal("true", await link.Locator("svg").GetAttributeAsync("aria-hidden"));
+        var box = Assert.IsType<LocatorBoundingBoxResult>(await link.BoundingBoxAsync());
+        Assert.True(box.Height >= 44);
+        Assert.True(box.X >= 0 && box.X + box.Width <= width);
+        Assert.True(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth <= innerWidth"));
+        var captures = Environment.GetEnvironmentVariable("LWC_BLUESKY_SCREENSHOT_DIRECTORY");
+        if (!string.IsNullOrWhiteSpace(captures))
+        {
+            Directory.CreateDirectory(captures);
+            await page.ScreenshotAsync(new PageScreenshotOptions { Path = Path.Combine(captures, $"footer-{width}.png") });
+        }
+    }
 }

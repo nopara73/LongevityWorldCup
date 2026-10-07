@@ -12,6 +12,7 @@ internal sealed record SocialPostReceipt(string Id, string Url);
 
 public sealed class SocialDeliveryStore(DatabaseManager db)
 {
+    internal const string Bluesky = "bluesky";
     internal const string Mastodon = "mastodon";
     internal const string Nostr = "nostr";
     internal const string Reddit = "reddit";
@@ -108,7 +109,7 @@ public sealed class SocialDeliveryStore(DatabaseManager db)
         return pending.OrderBy(x => x.RecordJson is null).ThenBy(x => x.Priority).ThenByDescending(x => x.Event.OccurredAtUtc).ToArray();
     });
 
-    internal (string Key, string Json) Prepare(string platform, string id, string json, string? subject, DateTimeOffset now) => db.Run(sqlite =>
+    internal (string Key, string Json) Prepare(string platform, string id, string json, string? subject, DateTimeOffset now, string? recordKey = null) => db.Run(sqlite =>
     {
         using var cmd = sqlite.CreateCommand();
         cmd.CommandText = """
@@ -120,7 +121,7 @@ public sealed class SocialDeliveryStore(DatabaseManager db)
             """;
         cmd.Parameters.AddWithValue("@id", id);
         cmd.Parameters.AddWithValue("@platform", platform);
-        cmd.Parameters.AddWithValue("@key", "lwc-" + Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(platform + ":" + id))));
+        cmd.Parameters.AddWithValue("@key", recordKey ?? "lwc-" + Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(platform + ":" + id))));
         cmd.Parameters.AddWithValue("@json", json);
         cmd.Parameters.AddWithValue("@hash", Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(json))));
         cmd.Parameters.AddWithValue("@subject", (object?)subject ?? DBNull.Value);
