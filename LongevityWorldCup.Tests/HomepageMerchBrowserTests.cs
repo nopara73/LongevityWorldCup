@@ -48,6 +48,8 @@ public sealed class HomepageMerchBrowserTests(PlaywrightBrowserFixture browserFi
                 var dot = carousel.Locator(".lwc-merch-mobile-dot").Nth(index);
                 await dot.FocusAsync();
                 await dot.PressAsync("Enter");
+                Assert.True(await cards.Nth(index).EvaluateAsync<bool>("card => document.activeElement === card"),
+                    "Keyboard selection must move focus to the chosen product so Enter can open it.");
                 await Assertions.Expect(dot).ToHaveAttributeAsync("aria-pressed", "true");
                 var dotBox = Assert.IsType<LocatorBoundingBoxResult>(await dot.BoundingBoxAsync());
                 Assert.True(dotBox.Width >= 44 && dotBox.Height >= 44, "Product selectors must retain usable touch targets.");

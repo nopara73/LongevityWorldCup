@@ -281,8 +281,11 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     dots.forEach((dot, dotIndex) => {
-        dot.addEventListener('click', function () {
+        dot.addEventListener('click', function (event) {
             setActiveSlide(dotIndex);
+            if (event.detail === 0) {
+                slides[activeIndex].focus();
+            }
         });
     });
 
