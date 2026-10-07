@@ -9,7 +9,7 @@ namespace LongevityWorldCup.Website.Controllers;
 [Route("api/custom-events")]
 [RequestTimeout(PublicRequestTimeoutPolicies.PublicWork)]
 public sealed class CustomEventsController(EventDataService events, Config config, ILogger<CustomEventsController> log,
-    RedditDeliveryStore? reddit = null) : ControllerBase
+    RedditDeliveryStore? reddit = null, WebPushTransport? webPush = null) : ControllerBase
 {
     private const int MaxRequestBytes = 16 * 1024;
     private const int MaxSecretLength = 1024;
@@ -32,7 +32,8 @@ public sealed class CustomEventsController(EventDataService events, Config confi
         bool SendToMastodon = false,
         bool SendToNostr = false,
         bool SendToReddit = false,
-        bool SendToBluesky = false);
+        bool SendToBluesky = false,
+        bool SendToWebPush = false);
 
     [HttpPost]
     [RequestSizeLimit(MaxRequestBytes)]
@@ -79,12 +80,15 @@ public sealed class CustomEventsController(EventDataService events, Config confi
             request.SendToMastodon,
             request.SendToNostr,
             request.SendToReddit,
-            request.SendToBluesky);
+            request.SendToBluesky,
+            request.SendToWebPush);
         var selectedTargets = GetSelectedTargets(targets);
         if (selectedTargets.Count == 0)
             return BadRequest("Select at least one destination.");
         if (targets.SendToReddit && (!_config.RedditEnabled || reddit?.IsActive != true))
             return StatusCode(StatusCodes.Status503ServiceUnavailable, "Reddit announcements are not active yet.");
+        if (targets.SendToWebPush && webPush?.IsConfigured != true)
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, "Website notifications are not configured.");
 
         var eventId = _events.CreateCustomEvent(
             titleRaw: title,
@@ -117,6 +121,7 @@ public sealed class CustomEventsController(EventDataService events, Config confi
         if (targets.SendToNostr) selected.Add("nostr");
         if (targets.SendToReddit) selected.Add("reddit");
         if (targets.SendToBluesky) selected.Add("bluesky");
+        if (targets.SendToWebPush) selected.Add("webpush");
         return selected;
     }
 }

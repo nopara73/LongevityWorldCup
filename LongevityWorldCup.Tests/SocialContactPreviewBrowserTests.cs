@@ -116,7 +116,7 @@ public sealed class SocialContactPreviewBrowserTests(
     [Theory]
     [InlineData(1280)]
     [InlineData(360)]
-    public async Task FollowLinks_KeepIncreasingLabelLengthsAndAnAccessibleBlueskyIcon(int width)
+    public async Task FollowLinks_KeepIncreasingLabelLengthsAndAccessibleIcons(int width)
     {
         await using var context = await Browser.NewContextAsync(new BrowserNewContextOptions
         {
@@ -125,12 +125,13 @@ public sealed class SocialContactPreviewBrowserTests(
         await BrowserTestApp.RouteExternalResourcesAsync(context);
         var page = await context.NewPageAsync();
         await page.GotoAsync("/events");
-        var link = page.GetByRole(AriaRole.Link, new PageGetByRoleOptions { Name = "Follow Longevity World Cup on Bluesky", Exact = true });
+        var link = page.GetByRole(AriaRole.Link, new PageGetByRoleOptions { Name = "Follow Longevity World Cup on Nostr", Exact = true });
         await link.ScrollIntoViewIfNeededAsync();
         var labels = await link.Locator("..").Locator("a").AllTextContentsAsync();
         var lengths = labels.Select(label => label.Trim().Length).ToArray();
         Assert.Equal(lengths.Order().ToArray(), lengths);
-        Assert.Equal("https://bsky.app/profile/longevityworldcup.bsky.social", await link.GetAttributeAsync("href"));
+        Assert.Equal(["X", "Nostr", "Reddit", "Threads", "YouTube", "Instagram"], labels.Select(label => label.Trim()));
+        Assert.Equal(0, await page.Locator(".footer a[href*='bsky.app']").CountAsync());
         Assert.Equal("true", await link.Locator("svg").GetAttributeAsync("aria-hidden"));
         var box = Assert.IsType<LocatorBoundingBoxResult>(await link.BoundingBoxAsync());
         Assert.True(box.Height >= 44);

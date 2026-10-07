@@ -84,6 +84,8 @@ public static partial class HtmlAssetPlaceholders
         ["{{ASSET_AGE_VISUALIZATION_CSS}}"] = "/css/age-visualization.css",
         ["{{ASSET_EVENT_BOARD_CSS}}"] = "/css/event-board.css",
         ["{{ASSET_EVENTS_PAGE_JS}}"] = "/js/events-page.js",
+        ["{{ASSET_WEB_PUSH_JS}}"] = "/js/web-push.js",
+        ["{{ASSET_WEB_PUSH_WORKER_JS}}"] = "/js/web-push-worker.js",
         ["{{ASSET_MAIN_PROGRESS_BAR_CSS}}"] = "/css/main-progress-bar.css",
         ["{{ASSET_MAIN_PROGRESS_BAR_JS}}"] = "/js/main-progress-bar.js",
         ["{{ASSET_SUB_PROGRESS_BAR_CSS}}"] = "/css/sub-progress-bar.css",

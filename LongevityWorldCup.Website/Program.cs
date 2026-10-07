@@ -121,6 +121,12 @@ namespace LongevityWorldCup.Website
             builder.Services.AddRateLimiter(options =>
             {
                 options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+                options.AddPolicy(WebPushTransport.RateLimitPolicy, context =>
+                    !HttpMethods.IsPost(context.Request.Method) ? RateLimitPartition.GetNoLimiter("web-push-read") :
+                    RateLimitPartition.GetFixedWindowLimiter(ClientIdentifier.From(context), _ => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = 10, Window = TimeSpan.FromMinutes(1), QueueLimit = 0
+                    }));
                 options.AddPolicy(YouTubePreviewService.RateLimitPolicy, context =>
                     RateLimitPartition.GetFixedWindowLimiter(ClientIdentifier.From(context), _ => new FixedWindowRateLimiterOptions
                     {
@@ -256,6 +262,12 @@ namespace LongevityWorldCup.Website
             builder.Services.AddSingleton<BlueskyApiClient>();
             builder.Services.AddSingleton<BlueskyAnnouncementService>();
             builder.Services.AddSingleton<SocialDeliveryStore>();
+            builder.Services.AddHttpClient(nameof(WebPushTransport), client => client.Timeout = TimeSpan.FromSeconds(15))
+                .RemoveAllLoggers()
+                .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false, UseCookies = false });
+            builder.Services.AddSingleton<WebPushTransport>();
+            builder.Services.AddSingleton<WebPushStore>();
+            builder.Services.AddSingleton<WebPushAnnouncementService>();
             builder.Services.AddSingleton<MastodonAnnouncementService>();
             builder.Services.AddSingleton<INostrRelayTransport, NostrRelayTransport>();
             builder.Services.AddSingleton<NostrRelayClient>();
@@ -434,6 +446,12 @@ namespace LongevityWorldCup.Website
                     var request = ctx.Context.Request;
                     var hasVersion = request.Query.ContainsKey("v");
                     var path = request.Path.Value ?? "";
+                    if (path == "/js/web-push-worker.js")
+                    {
+                        ctx.Context.Response.Headers["Service-Worker-Allowed"] = "/";
+                        ctx.Context.Response.Headers.CacheControl = "no-cache";
+                        return;
+                    }
                     var isGeneratedOrAthleteImage = path.StartsWith("/athletes/", StringComparison.OrdinalIgnoreCase)
                         || path.StartsWith("/generated/", StringComparison.OrdinalIgnoreCase);
 
@@ -524,6 +542,9 @@ namespace LongevityWorldCup.Website
                 BlueskyServiceUrl = "https://bsky.social",
                 BlueskyIdentifier = "",
                 BlueskyAppPassword = "",
+                WebPushVapidSubject = "",
+                WebPushVapidPublicKey = "",
+                WebPushVapidPrivateKey = "",
                 MastodonServerUrl = "https://mastodon.social",
                 MastodonAccountId = "",
                 MastodonAccessToken = "",

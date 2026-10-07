@@ -27,6 +27,13 @@ internal static class ScheduledJobs
         var redditDailyKey = new JobKey("RedditDailyPostJob");
         var blueskyDailyKey = new JobKey("BlueskyDailyPostJob");
         var blueskyCustomKey = new JobKey("BlueskyCustomPostJob");
+        var webPushKey = new JobKey("WebPushPostJob");
+
+        scheduler.AddJob<WebPushPostJob>(o => o.WithIdentity(webPushKey));
+        scheduler.AddTrigger(t => t.ForJob(webPushKey)
+            .WithIdentity("WebPushPostTrigger")
+            .StartNow()
+            .WithSimpleSchedule(x => x.WithInterval(TimeSpan.FromMinutes(1)).RepeatForever()));
 
         scheduler.AddJob<BlueskyDailyPostJob>(o => o.WithIdentity(blueskyDailyKey));
         scheduler.AddTrigger(t => t.ForJob(blueskyDailyKey)
