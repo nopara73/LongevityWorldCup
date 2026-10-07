@@ -47,3 +47,5 @@ Pushing a commit proves publication to GitHub. Claim production success only aft
 Keep credentials, private athlete data, local configuration, and operational databases out of commits and logs. Do not send external messages, submit real applications, change live data, or manage accounts merely as a development check; follow the user's authorization for the actual task.
 
 Machine-specific permissions, paths, and plugin enablement belong in ignored `.claude/settings.local.json`. Shared guidance and preview configuration belong in the repository.
+
+The local `lwc-csharp` plugin in `.claude/plugins` passes `--solution LongevityWorldCup.sln` to the installed `csharp-ls` server. Keep that explicit target: automatic discovery can select unrelated solutions from old `.artifacts/` checkouts. Enable this plugin for the project instead of enabling a second C# LSP provider. The initial solution load can take longer than one minute on this workspace; its request timeout allows that initialization.

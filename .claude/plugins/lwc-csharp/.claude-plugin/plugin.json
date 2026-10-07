@@ -1,0 +1,19 @@
+{
+  "name": "lwc-csharp",
+  "version": "1.0.0",
+  "description": "Load LongevityWorldCup.sln explicitly, excluding old solutions in ignored artifact checkouts.",
+  "author": {
+    "name": "Longevity World Cup"
+  },
+  "lspServers": {
+    "csharp-ls": {
+      "command": "csharp-ls",
+      "args": ["--solution", "LongevityWorldCup.sln"],
+      "extensionToLanguage": {
+        ".cs": "csharp"
+      },
+      "startupTimeout": 180000,
+      "requestTimeout": 180000
+    }
+  }
+}

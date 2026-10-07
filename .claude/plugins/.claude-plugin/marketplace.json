@@ -1,0 +1,13 @@
+{
+  "name": "lwc-development-tools",
+  "owner": {
+    "name": "Longevity World Cup"
+  },
+  "plugins": [
+    {
+      "name": "lwc-csharp",
+      "source": "./lwc-csharp",
+      "description": "C# navigation for the root Longevity World Cup solution."
+    }
+  ]
+}
