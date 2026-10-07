@@ -392,6 +392,66 @@ button:hover {
     border-inline-start-color: var(--lwc-danger);
 }
 
+/* The newsletter intro, form and status share one panel, like the Contribute panel above it. */
+.newsletter-section {
+    container: newsletter-section / inline-size;
+}
+
+.newsletter-panel {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    column-gap: var(--lwc-space-5);
+    max-width: 44rem;
+    margin: var(--lwc-space-4) auto 0;
+    padding: min(var(--lwc-space-4), 16px);
+    border: 1px solid var(--lwc-border, #d7e0e6);
+    border-radius: var(--lwc-radius-lg, 12px);
+    background: var(--lwc-surface, #fff);
+    box-shadow: var(--lwc-shadow-sm, 0 1px 2px rgba(15, 23, 42, 0.08));
+    box-sizing: border-box;
+    text-align: left;
+}
+
+.newsletter-section .newsletter-panel > p:first-child {
+    max-width: none;
+    margin: 0 0 var(--lwc-space-4);
+}
+
+.newsletter-section .newsletter-panel > p:first-child > .smaller-text {
+    display: block;
+    line-height: 1.5;
+}
+
+.newsletter-panel #newsletter-form {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr));
+    width: 100%;
+    max-width: none;
+    margin: 0;
+}
+
+.newsletter-panel #newsletterStatus {
+    grid-column: 1 / -1;
+    max-width: none;
+    margin: 0;
+}
+
+/* Keep the live region rendered; only a populated status needs space above it. */
+.newsletter-panel #newsletterStatus:not(:empty) {
+    margin-top: var(--lwc-space-4);
+}
+
+@container newsletter-section (min-width: 34em) {
+    .newsletter-panel {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr);
+        align-items: center;
+        padding: min(var(--lwc-space-5), 24px);
+    }
+
+    .newsletter-section .newsletter-panel > p:first-child {
+        margin: 0;
+    }
+}
+
 /* Styles for the copy button */
 .copy-btn {
     background: none;

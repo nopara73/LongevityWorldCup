@@ -55,6 +55,10 @@ namespace LongevityWorldCup.Website
         public string? FacebookPageId { get; set; }
         public string? FacebookUserAccessToken { get; set; }
         public string? FacebookPageAccessToken { get; set; }
+        public string? InstagramAccountId { get; set; }
+        public string? InstagramAccessToken { get; set; }
+        public string? InstagramAccessTokenExpiresAtUtc { get; set; }
+        public string? InstagramAccessTokenLastRefreshAttemptAtUtc { get; set; }
         public string BlueskyServiceUrl { get; set; } = "https://bsky.social";
         public string? BlueskyIdentifier { get; set; }
         public string? BlueskyAppPassword { get; set; }
@@ -165,6 +169,9 @@ namespace LongevityWorldCup.Website
             ThreadsAccessTokenLastRefreshAttemptAtUtc = runtimeConfig.ThreadsAccessTokenLastRefreshAttemptAtUtc ?? ThreadsAccessTokenLastRefreshAttemptAtUtc;
             FacebookUserAccessToken = runtimeConfig.FacebookUserAccessToken ?? FacebookUserAccessToken;
             FacebookPageAccessToken = runtimeConfig.FacebookPageAccessToken ?? FacebookPageAccessToken;
+            InstagramAccessToken = runtimeConfig.InstagramAccessToken ?? InstagramAccessToken;
+            InstagramAccessTokenExpiresAtUtc = runtimeConfig.InstagramAccessTokenExpiresAtUtc ?? InstagramAccessTokenExpiresAtUtc;
+            InstagramAccessTokenLastRefreshAttemptAtUtc = runtimeConfig.InstagramAccessTokenLastRefreshAttemptAtUtc ?? InstagramAccessTokenLastRefreshAttemptAtUtc;
         }
 
         private static string GetDefaultRuntimeConfigFilePath()
@@ -181,6 +188,9 @@ namespace LongevityWorldCup.Website
             public string? ThreadsAccessTokenLastRefreshAttemptAtUtc { get; set; }
             public string? FacebookUserAccessToken { get; set; }
             public string? FacebookPageAccessToken { get; set; }
+            public string? InstagramAccessToken { get; set; }
+            public string? InstagramAccessTokenExpiresAtUtc { get; set; }
+            public string? InstagramAccessTokenLastRefreshAttemptAtUtc { get; set; }
 
             public static RuntimeConfig From(Config config)
             {
@@ -192,7 +202,10 @@ namespace LongevityWorldCup.Website
                     ThreadsAccessTokenExpiresAtUtc = config.ThreadsAccessTokenExpiresAtUtc,
                     ThreadsAccessTokenLastRefreshAttemptAtUtc = config.ThreadsAccessTokenLastRefreshAttemptAtUtc,
                     FacebookUserAccessToken = config.FacebookUserAccessToken,
-                    FacebookPageAccessToken = config.FacebookPageAccessToken
+                    FacebookPageAccessToken = config.FacebookPageAccessToken,
+                    InstagramAccessToken = config.InstagramAccessToken,
+                    InstagramAccessTokenExpiresAtUtc = config.InstagramAccessTokenExpiresAtUtc,
+                    InstagramAccessTokenLastRefreshAttemptAtUtc = config.InstagramAccessTokenLastRefreshAttemptAtUtc
                 };
             }
         }

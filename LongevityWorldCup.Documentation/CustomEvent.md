@@ -42,6 +42,7 @@ Behavior:
 - selected social destinations are queued by setting their `Processed` column to `0`
 - unselected social destinations are stored as already processed by setting their `Processed` column to `1`
 - Mastodon and Nostr use independent `SocialDeliveries` rows instead of the legacy `Processed` columns; their designer checkboxes and exported `sendToMastodon` / `sendToNostr` flags select those destinations explicitly
+- Instagram uses its own `SocialDeliveries` row, checkbox, and `sendToInstagram` payload flag. It always publishes a JPEG with a caption; its preview places the image before the caption. A direct queue request requires configured account credentials. See [InstagramApiSetup.md](InstagramApiSetup.md) for token maintenance and uncertain-delivery handling.
 - the designer/API response reports `queuedTargets`; it also returns `selectedTargets` for backwards compatibility with older callers
 - a queued social target is not confirmation that the platform accepted the post; platform send success is only known after dispatch completes and the corresponding `Processed` column becomes `1` without a skip reason
 - For Mastodon and Nostr, delivery is complete only when the independent row becomes `sent` with its remote receipt; Nostr requires matching signed readback from two relays

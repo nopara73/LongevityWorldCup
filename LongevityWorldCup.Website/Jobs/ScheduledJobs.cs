@@ -28,6 +28,18 @@ internal static class ScheduledJobs
         var blueskyDailyKey = new JobKey("BlueskyDailyPostJob");
         var blueskyCustomKey = new JobKey("BlueskyCustomPostJob");
         var webPushKey = new JobKey("WebPushPostJob");
+        var instagramDailyKey = new JobKey("InstagramDailyPostJob");
+        var instagramCustomKey = new JobKey("InstagramCustomPostJob");
+
+        scheduler.AddJob<InstagramDailyPostJob>(o => o.WithIdentity(instagramDailyKey));
+        scheduler.AddTrigger(t => t.ForJob(instagramDailyKey)
+            .WithIdentity("InstagramDailyPostTrigger")
+            .WithSchedule(CronScheduleBuilder.Create("0 12 15 * * ?").InTimeZone(TimeZoneInfo.Utc)));
+        scheduler.AddJob<InstagramCustomPostJob>(o => o.WithIdentity(instagramCustomKey));
+        scheduler.AddTrigger(t => t.ForJob(instagramCustomKey)
+            .WithIdentity("InstagramCustomPostTrigger")
+            .StartNow()
+            .WithSimpleSchedule(x => x.WithInterval(TimeSpan.FromMinutes(1)).RepeatForever()));
 
         scheduler.AddJob<WebPushPostJob>(o => o.WithIdentity(webPushKey));
         scheduler.AddTrigger(t => t.ForJob(webPushKey)
