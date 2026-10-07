@@ -2787,8 +2787,7 @@
          #detailsModal .athlete-links{
              position:relative;
              display:grid;
-             grid-auto-flow:column;
-             grid-auto-columns:minmax(0, 1fr);
+             grid-template-columns:repeat(auto-fit, minmax(min(100%, 4.5rem), 1fr));
              align-items:stretch;
              gap:.45rem;
          }
@@ -2800,6 +2799,7 @@
          #detailsModal .athlete-links > a,
          #detailsModal .athlete-share-wrapper > #shareAthleteProfile{
              flex-direction:column;
+             align-items:stretch;
              justify-content:center;
              min-width:0;
              gap:.35rem;
@@ -2810,6 +2810,7 @@
          #detailsModal .athlete-links > a > i,
          #detailsModal .athlete-share-wrapper > button > i{
              flex:0 0 auto;
+             align-self:center;
              font-size:1.1rem;
          }
      }
