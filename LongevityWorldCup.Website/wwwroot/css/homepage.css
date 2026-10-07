@@ -1252,6 +1252,20 @@ button:hover {
     box-shadow: 0 4px 10px rgba(0, 188, 212, 0.22);
 }
 
+@media (forced-colors: active) {
+    .lwc-merch-mobile-dot::before {
+        forced-color-adjust: none;
+        background: Canvas;
+        border: 1px solid ButtonText;
+    }
+
+    .lwc-merch-mobile-dot.is-active::before {
+        background: Highlight;
+        border-color: Highlight;
+        box-shadow: none;
+    }
+}
+
 .lwc-merch-mobile-dot:hover {
     background: rgba(0, 188, 212, 0.08);
 }

@@ -116,6 +116,36 @@ public sealed class HomepageMerchBrowserTests(PlaywrightBrowserFixture browserFi
             Assert.True(await cards.Nth(index).EvaluateAsync<bool>("card => document.activeElement === card"));
         }
     }
+    [Fact]
+    public async Task Swag_ForcedColorsKeepsEveryProductSelectorVisible()
+    {
+        await using var context = await HomepageChromeRegressionBrowserTests.NewContextAsync(Browser, App, ReducedMotion.Reduce);
+        var page = await context.NewPageAsync();
+        await page.SetViewportSizeAsync(390, 850);
+        await page.EmulateMediaAsync(new() { ForcedColors = ForcedColors.Active });
+        await page.GotoAsync("/", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        var dots = page.Locator(".lwc-merch-mobile-dot");
+        await dots.First.ScrollIntoViewIfNeededAsync();
+        await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
+        var visible = new byte[3][];
+        for (var index = 0; index < visible.Length; index++)
+        {
+            visible[index] = await dots.Nth(index).ScreenshotAsync();
+        }
+        var suppression = await page.AddStyleTagAsync(new() { Content = ".lwc-merch-mobile-dot::before { visibility: hidden !important; }" });
+        for (var index = 0; index < visible.Length; index++)
+        {
+            var empty = await dots.Nth(index).ScreenshotAsync();
+            Assert.False(visible[index].SequenceEqual(empty), "Every selector must have a visible mark in forced colors.");
+        }
+        await suppression.EvaluateAsync("style => style.remove()");
+        await dots.Nth(1).FocusAsync();
+        await dots.Nth(1).PressAsync("Space");
+        await Assertions.Expect(dots.Nth(1)).ToHaveAttributeAsync("aria-pressed", "true");
+        var selected = await dots.Nth(1).ScreenshotAsync();
+        Assert.False(visible[1].SequenceEqual(selected), "The selected product must remain visually distinguishable in forced colors.");
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
