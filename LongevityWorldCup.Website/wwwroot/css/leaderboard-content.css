@@ -516,6 +516,14 @@
  .filter-section .filter-count-group{ margin-left:auto; padding-left:.5rem; font-size:0; }
  .filter-section .filter-count{ font-size:.875rem; }
 
+ .sidebar-filter-list{ container:league-filters / inline-size; }
+ /* Let labels and counts flow together when enlarged text outgrows the aligned columns. */
+ @container league-filters (max-width:10em){
+     .filter-section .filter-label-copy{ display:block; }
+     .filter-section .filter-label-copy .filter-icon{ width:auto; margin-right:.35em; }
+     .filter-section .filter-count-group{ margin-left:0; padding-left:0; font-size:.875rem; }
+ }
+
  /* =========================
     5) Search & toolbar (search + view badges on one line on desktop)
     ========================= */
