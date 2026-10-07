@@ -332,29 +332,31 @@
                         90% of Bitcoin&nbsp;donations fund the <strong>prize&nbsp;pool</strong> for Longevity&nbsp;World&nbsp;Cup champions:
                     </span>
                 </p>
-                <div class="btc-status">
-                    <div class="btc-status-topline">
-                        <div class="btc-status-title">Prize pool</div>
-                        <div class="btc-status-goal"><span id="goal-btc">0.01</span> BTC goal</div>
+                <div class="contribute-panel">
+                    <div class="btc-status">
+                        <div class="btc-status-topline">
+                            <div class="btc-status-title">Prize pool</div>
+                            <div class="btc-status-goal"><span id="goal-btc">0.01</span> BTC goal</div>
+                        </div>
+                        <div class="btc-status-value"><span id="current-btc">0.0021</span> BTC</div>
+                        <div class="btc-status-track" role="progressbar" aria-label="Bitcoin prize pool progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="21">
+                            <span class="btc-status-fill"></span>
+                        </div>
                     </div>
-                    <div class="btc-status-value"><span id="current-btc">0.0021</span> BTC</div>
-                    <div class="btc-status-track" role="progressbar" aria-label="Bitcoin prize pool progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="21">
-                        <span class="btc-status-fill"></span>
+                    <div class="qr-code-container" data-aos="fade" data-aos-duration="700" data-aos-delay="400">
+                        <img src="{{ASSET_DONATION_QR}}" alt="Donate with Bitcoin QR code" class="qr-code-img" width="165" height="165" loading="lazy" fetchpriority="low" decoding="async">
                     </div>
-                </div>
-                <div class="qr-code-container" data-aos="fade" data-aos-duration="700" data-aos-delay="400">
-                    <img src="{{ASSET_DONATION_QR}}" alt="Donate with Bitcoin QR code" class="qr-code-img" width="165" height="165" loading="lazy" fetchpriority="low" decoding="async">
-                </div>
-                <div class="btc-address">
-                    <a id="btcAddressLink" href="#" target="_blank" rel="noopener" title="View Bitcoin donations" aria-label="View the Bitcoin donation address on mempool.space">
-                        <!-- Bitcoin address will be inserted here by JavaScript -->
-                    </a>
-                    <span id="copiedText" aria-live="polite" style="display: none;">
-                        Copied <i class="fas fa-check" style="color: green;"></i>
-                    </span>
-                    <button type="button" id="bitcoinCopyButton" class="copy-btn" onclick="copyBitcoinAddress()" title="Copy Bitcoin address" aria-label="Copy Bitcoin donation address" disabled aria-disabled="true">
-                        <i class="fas fa-copy"></i>
-                    </button>
+                    <div class="btc-address">
+                        <a id="btcAddressLink" href="#" target="_blank" rel="noopener" title="View Bitcoin donations" aria-label="View the Bitcoin donation address on mempool.space">
+                            <!-- Bitcoin address will be inserted here by JavaScript -->
+                        </a>
+                        <span id="copiedText" aria-live="polite" style="display: none;">
+                            Copied <i class="fas fa-check" style="color: green;"></i>
+                        </span>
+                        <button type="button" id="bitcoinCopyButton" class="copy-btn" onclick="copyBitcoinAddress()" title="Copy Bitcoin address" aria-label="Copy Bitcoin donation address" disabled aria-disabled="true">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
         </section>

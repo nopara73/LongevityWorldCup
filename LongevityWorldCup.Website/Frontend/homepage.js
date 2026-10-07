@@ -369,13 +369,11 @@ function adjustBitcoinAddressDisplay() {
     if (!btcAddressLink) return;
     const fullAddress = bitcoinDonationAddress;
     if (!fullAddress) return;
-    const container = btcAddressLink.parentElement;
-
     // Reset to full address initially
     btcAddressLink.textContent = fullAddress;
 
     // Measure overflow
-    if (btcAddressLink.scrollWidth > container.offsetWidth) {
+    if (btcAddressLink.scrollWidth > btcAddressLink.clientWidth) {
         // Truncate and add ellipsis if the address overflows
         const truncatedAddress = `${fullAddress.slice(0, 6)}...${fullAddress.slice(-6)}`;
         btcAddressLink.textContent = truncatedAddress;
