@@ -2817,6 +2817,7 @@
  @media (max-width: 932px) and (max-height: 480px) and (orientation: landscape){
      #leaderboardTitle{
          margin:.35rem 0 .65rem;
+         padding-top:.5rem;
          font-size:1.75rem;
          line-height:1.05;
          letter-spacing:.06em;
