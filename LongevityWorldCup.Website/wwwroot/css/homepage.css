@@ -201,6 +201,12 @@ button:hover {
         color: var(--lwc-ink, #2d3748);
     }
 
+    /* Small intro copy sets its own line height; inline it inherits the paragraph's, which is sized for larger text. */
+    .section-container p > .smaller-text {
+        display: block;
+        line-height: 1.5;
+    }
+
 .homepage-faq-section {
     max-width: 1250px;
     text-align: left;
