@@ -79,6 +79,26 @@ public sealed class RedditIntegrationTests
     }
 
     [Fact]
+    public async Task LostBeginBeforeServerMarker_RequiresReviewWithoutBlockingTheQueue()
+    {
+        using var fixture = Fixture.Create();
+        var clock = new Clock(DateTimeOffset.UtcNow);
+        var service = Service(fixture, clock);
+        await service.GetNextAsync();
+        fixture.Events.CreateCustomEvent("Unconfirmed start", "", deliveryTargets: RedditOnly);
+        var first = Assert.IsType<RedditDeliveryPayload>(await service.GetNextAsync());
+        var store = new RedditDeliveryStore(fixture.Database);
+        // The app persisted its own start marker, but its begin request never
+        // committed on the server. Retain the delivery for review and move on.
+        Assert.True(store.RequireReview(first.DeliveryId, clock.GetUtcNow().AddMinutes(46)));
+        Assert.Equal(RedditBeginResult.NotPending, store.Begin(first.DeliveryId, clock.GetUtcNow()));
+        Assert.False(store.Complete(first.DeliveryId, "t3_unstarted", clock.GetUtcNow()));
+        Assert.Equal("review", store.Find(first.DeliveryId)!.Status);
+        var nextId = fixture.Events.CreateCustomEvent("Next announcement", "", deliveryTargets: RedditOnly);
+        Assert.Equal(nextId, Assert.IsType<RedditDeliveryPayload>(await service.GetNextAsync()).EventId);
+    }
+
+    [Fact]
     public async Task DailyQuota_SurvivesRestartAndDonationFreshnessDoesNotExpireAcknowledgments()
     {
         using var fixture = Fixture.Create();
@@ -195,6 +215,14 @@ public sealed class RedditIntegrationTests
         await Service(fixture, clock, config).GetNextAsync();
         Assert.IsType<OkObjectResult>(controller.Create(request));
         Assert.Equal(EventType.CustomEvent, Assert.Single(new SocialDeliveryStore(fixture.Database).GetPending(SocialDeliveryStore.Reddit, true, clock.GetUtcNow())).Event.Type);
+    }
+
+    [Fact]
+    public void OversizedCustomText_IsRejectedInsteadOfDroppingTheBodyForAnImageCaption()
+    {
+        var item = new EventItem("event-oversized", EventType.CustomEvent,
+            "Keep the whole announcement\n\n" + new string('x', RedditPost.MaxTextLength), DateTime.UtcNow, 10, true);
+        Assert.Null(RedditPost.Build(item, "", slug => slug));
     }
 
     [Fact]

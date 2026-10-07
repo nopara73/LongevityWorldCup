@@ -19,6 +19,7 @@ public static partial class RedditPost
         {
             var plan = CustomEventSocialComposer.BuildPlan(item.Id, item.Text, MaxTextLength, resolveName,
                 includeEventUrl: item.VisibleOnWebsite);
+            if (plan.Mode != CustomEventPostMode.Text) return null;
             title = plan.TitleText;
             text = plan.PostText;
         }

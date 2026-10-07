@@ -99,4 +99,8 @@ test("a lost begin response cannot lead to a Reddit submission on retry", async 
   await assert.rejects(poll(f.deps));
   assert.equal(await poll(f.deps), "in-flight");
   assert.equal(f.counts().submissions, 0);
+  f.deps.now = () => 1_000_000 + 46 * 60 * 1000;
+  assert.equal(await poll(f.deps), "review");
+  assert.equal(f.counts().reviews, 1);
+  assert.equal(f.counts().submissions, 0);
 });

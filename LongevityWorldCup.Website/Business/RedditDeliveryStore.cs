@@ -97,7 +97,7 @@ public sealed class RedditDeliveryStore(DatabaseManager db)
         cmd.CommandText = """
             UPDATE SocialDeliveries SET Status = 'review', LastErrorCode = 'UnconfirmedPost', UpdatedAtUtc = @now
             WHERE Platform = 'reddit' AND RecordKey = @key AND RecordJson IS NOT NULL
-                AND FirstAttemptAtUtc IS NOT NULL AND Status IN ('pending', 'review');
+                AND Status IN ('pending', 'review');
             """;
         cmd.Parameters.AddWithValue("@key", key);
         cmd.Parameters.AddWithValue("@now", now.UtcDateTime.ToString("o"));
