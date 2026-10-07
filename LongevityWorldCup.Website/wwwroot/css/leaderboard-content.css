@@ -2565,7 +2565,10 @@
      }
 
      @media (max-width: 480px) {
-         .leaderboard { --portrait-size: 40px; }
+         .leaderboard {
+             --portrait-size: 40px;
+             container: leaderboard / inline-size;
+         }
 
          .leaderboard table {
              border-spacing: 0;
@@ -2580,6 +2583,9 @@
              font-size: .95rem;
              font-weight: 700;
              line-height: 1.2;
+             min-width: 0;
+             overflow-wrap: anywhere;
+             word-break: normal;
          }
 
          .leaderboard table thead {
@@ -2659,7 +2665,8 @@
              letter-spacing: 0.05em;
              line-height: 1.1;
              text-transform: uppercase;
-             white-space: nowrap;
+             max-width: 100%;
+             white-space: normal;
          }
 
          .leaderboard table td.age-reduction-td .age-reduction {
@@ -2667,12 +2674,28 @@
              font-size: var(--lwc-type-body, 1rem);
              font-weight: 700;
              line-height: 1.1;
+             max-width: 100%;
              white-space: nowrap;
          }
 
          .athlete-name {
              padding-left: 0.25rem;
              padding-right: 0.25rem;
+         }
+
+         /* Reflow relative to the reader's text size when three columns no longer fit. */
+         @container leaderboard (max-width: 17em) {
+             .leaderboard table tbody tr:not(.no-results):not(.tier-separator) {
+                 grid-template-columns: 1.9rem minmax(0, 1fr);
+                 grid-template-areas:
+                     "rank athlete"
+                     "rank score";
+                 row-gap: 0.2rem;
+             }
+
+             .leaderboard table td.age-reduction-td .age-reduction {
+                 white-space: normal;
+             }
          }
      }
 
