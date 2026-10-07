@@ -64,6 +64,30 @@ public sealed class SocialImageRenderingTests(TestWebApplicationFactory sharedFa
     }
 
     [Fact]
+    public async Task InstagramImages_AreImmutableJpegsWithinThePublishingLimits()
+    {
+        var images = sharedFactory.Services.GetRequiredService<InstagramImageService>();
+        var environment = sharedFactory.Services.GetRequiredService<Microsoft.AspNetCore.Hosting.IWebHostEnvironment>();
+        const string announcement = "[strong](A sport for time) 🏆\n\nLongevity World Cup announcements now have an image and a caption.";
+        var url = await images.RenderAsync(announcement, null, null);
+        Assert.Equal(url, await images.RenderAsync(announcement, null, null));
+        Assert.Matches(@"^https://longevityworldcup\.com/generated/instagram/[a-f0-9]{64}\.jpg$", url);
+        var path = Path.Combine(environment.WebRootPath, "generated", "instagram", Path.GetFileName(new Uri(url).LocalPath));
+        var bytes = await File.ReadAllBytesAsync(path);
+        Assert.InRange(bytes.Length, 1, 8_000_000);
+        Assert.Equal("JPEG", Image.DetectFormat(bytes).Name);
+        using var image = Image.Load(bytes);
+        Assert.InRange(image.Width, 320, 1440);
+        Assert.InRange((double)image.Width / image.Height, .8, 1.91);
+        var captures = Environment.GetEnvironmentVariable("LWC_INSTAGRAM_SCREENSHOT_DIRECTORY");
+        if (!string.IsNullOrWhiteSpace(captures))
+        {
+            Directory.CreateDirectory(captures);
+            File.Copy(path, Path.Combine(captures, "announcement-card.jpg"), overwrite: true);
+        }
+    }
+
+    [Fact]
     public async Task AthleteLeagueAndPageSharePreviewImages_RenderAsPngCanvases()
     {
         var factory = sharedFactory;

@@ -255,7 +255,8 @@
 
 .lmx-life-strip {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    /* Four across while the labels still fit (about 30.5rem), otherwise two by two instead of overlapping. */
+    grid-template-columns: repeat(auto-fit, minmax(max(7.25rem, min(50% - 0.45rem, (30.5rem - 100%) * 999)), 1fr));
     align-items: center;
     gap: 0.45rem;
     margin-top: 0.9rem;

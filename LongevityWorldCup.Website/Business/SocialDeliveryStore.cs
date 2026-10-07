@@ -15,6 +15,7 @@ public sealed class SocialDeliveryStore(DatabaseManager db)
     internal const string Bluesky = "bluesky";
     internal const string WebPush = "webpush";
     internal const string Mastodon = "mastodon";
+    internal const string Instagram = "instagram";
     internal const string Nostr = "nostr";
     internal const string Reddit = "reddit";
     private static string Timestamp(DateTimeOffset value) => value.UtcDateTime.ToString("o");

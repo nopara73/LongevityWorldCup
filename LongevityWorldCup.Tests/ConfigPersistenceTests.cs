@@ -51,7 +51,10 @@ public sealed class ConfigPersistenceTests
             ThreadsAccessTokenExpiresAtUtc = "2026-07-01T00:00:00.0000000Z",
             ThreadsAccessTokenLastRefreshAttemptAtUtc = "2026-06-03T12:00:00.0000000Z",
             FacebookUserAccessToken = "new-facebook-user",
-            FacebookPageAccessToken = "new-facebook-page"
+            FacebookPageAccessToken = "new-facebook-page",
+            InstagramAccessToken = "new-instagram",
+            InstagramAccessTokenExpiresAtUtc = "2026-12-01T00:00:00Z",
+            InstagramAccessTokenLastRefreshAttemptAtUtc = "2026-10-03T12:00:00Z"
         });
 
         File.SetLastWriteTimeUtc(configPath, DateTime.UtcNow.AddMinutes(-10));
@@ -67,6 +70,9 @@ public sealed class ConfigPersistenceTests
         Assert.Equal("2026-06-03T12:00:00.0000000Z", config.ThreadsAccessTokenLastRefreshAttemptAtUtc);
         Assert.Equal("new-facebook-user", config.FacebookUserAccessToken);
         Assert.Equal("new-facebook-page", config.FacebookPageAccessToken);
+        Assert.Equal("new-instagram", config.InstagramAccessToken);
+        Assert.Equal("2026-12-01T00:00:00Z", config.InstagramAccessTokenExpiresAtUtc);
+        Assert.Equal("2026-10-03T12:00:00Z", config.InstagramAccessTokenLastRefreshAttemptAtUtc);
     }
 
     [Fact]
@@ -142,7 +148,10 @@ public sealed class ConfigPersistenceTests
                 ThreadsAccessTokenExpiresAtUtc = "2026-07-01T00:00:00.0000000Z",
                 ThreadsAccessTokenLastRefreshAttemptAtUtc = "2026-06-03T12:00:00.0000000Z",
                 FacebookUserAccessToken = "saved-facebook-user",
-                FacebookPageAccessToken = "saved-facebook-page"
+                FacebookPageAccessToken = "saved-facebook-page",
+                InstagramAccessToken = "saved-instagram",
+                InstagramAccessTokenExpiresAtUtc = "2026-12-01T00:00:00Z",
+                InstagramAccessTokenLastRefreshAttemptAtUtc = "2026-10-03T12:00:00Z"
             }.UseFilePathsForTesting(configPath, runtimeConfigPath);
 
             await config.SaveAsync();
@@ -162,6 +171,9 @@ public sealed class ConfigPersistenceTests
         Assert.Equal("2026-06-03T12:00:00.0000000Z", root.GetProperty("ThreadsAccessTokenLastRefreshAttemptAtUtc").GetString());
         Assert.Equal("saved-facebook-user", root.GetProperty("FacebookUserAccessToken").GetString());
         Assert.Equal("saved-facebook-page", root.GetProperty("FacebookPageAccessToken").GetString());
+        Assert.Equal("saved-instagram", root.GetProperty("InstagramAccessToken").GetString());
+        Assert.Equal("2026-12-01T00:00:00Z", root.GetProperty("InstagramAccessTokenExpiresAtUtc").GetString());
+        Assert.Equal("2026-10-03T12:00:00Z", root.GetProperty("InstagramAccessTokenLastRefreshAttemptAtUtc").GetString());
     }
 
     private static async Task WriteConfigAsync(string path, Config config)

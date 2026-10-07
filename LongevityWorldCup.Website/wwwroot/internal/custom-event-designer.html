@@ -293,6 +293,7 @@
             flex-direction: column;
             align-items: flex-start;
             gap: 16px;
+            min-width: 0;
         }
 
         .preview-warning {
@@ -466,6 +467,28 @@
             font-size: 14px;
             font-weight: 700;
         }
+
+        .instagram-post {
+            width: 560px;
+            max-width: 100%;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,.12);
+            border-radius: 12px;
+            background: #151b23;
+        }
+
+        .instagram-head {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px;
+        }
+
+        .instagram-menu { margin-left: auto; letter-spacing: 2px; }
+        .instagram-media { overflow: hidden; }
+        .instagram-actions { display: flex; gap: 14px; padding: 12px 14px 6px; }
+        .instagram-actions svg { width: 23px; height: 23px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linejoin: round; }
+        .instagram-caption { padding: 8px 14px 16px; font-size: 14px; line-height: 1.45; overflow-wrap: anywhere; }
 
         .x-post {
             display: inline-flex;
@@ -904,6 +927,7 @@
                     <label class="check"><input id="sendReddit" type="checkbox" /><span>Reddit</span></label>
                     <label class="check"><input id="sendBluesky" type="checkbox" /><span>Bluesky</span></label>
                     <label class="check"><input id="sendWebPush" type="checkbox" /><span>Website push</span></label>
+                    <label class="check"><input id="sendInstagram" type="checkbox" /><span>Instagram</span></label>
                 </div>
             </div>
 
@@ -979,7 +1003,7 @@
 
     <script src="{{ASSET_CUSTOM_EVENT_MARKUP_JS}}"></script>
     <script>
-        const LIMITS = { x: 280, threads: 500, mastodon: 500, nostr: 16000, reddit: 40000, bluesky: 300 };
+        const LIMITS = { x: 280, threads: 500, mastodon: 500, nostr: 16000, reddit: 40000, bluesky: 300, instagram: 2200 };
         const SECRET_HASH_ALGORITHM = "pbkdf2-sha256";
         const SECRET_HASH_ITERATIONS = 210000;
         const SECRET_HASH_SALT_BYTES = 16;
@@ -997,6 +1021,7 @@
         const sendReddit = document.getElementById("sendReddit");
         const sendBluesky = document.getElementById("sendBluesky");
         const sendWebPush = document.getElementById("sendWebPush");
+        const sendInstagram = document.getElementById("sendInstagram");
         const designerSecretInput = document.getElementById("designerSecretInput");
         const generateSecretHashBtn = document.getElementById("generateSecretHashBtn");
         const copySecretHashBtn = document.getElementById("copySecretHashBtn");
@@ -1040,7 +1065,8 @@
             { key: "mastodon", label: "Mastodon", checkbox: sendMastodon, limit: LIMITS.mastodon },
             { key: "nostr", label: "Nostr", checkbox: sendNostr, limit: LIMITS.nostr },
             { key: "reddit", label: "Reddit", checkbox: sendReddit, limit: LIMITS.reddit },
-            { key: "bluesky", label: "Bluesky", checkbox: sendBluesky, limit: LIMITS.bluesky }
+            { key: "bluesky", label: "Bluesky", checkbox: sendBluesky, limit: LIMITS.bluesky },
+            { key: "instagram", label: "Instagram", checkbox: sendInstagram, limit: LIMITS.instagram }
         ];
         const PLATFORM_PREVIEW_META = {
             slack: { name: "Longevity World Cup", handle: "#highlights", avatar: "LW", label: "Slack" },
@@ -1050,11 +1076,13 @@
             mastodon: { name: "Longevity World Cup", handle: "@longevityworldcup@mastodon.social", avatar: "LW", label: "Mastodon" },
             nostr: { name: "Longevity World Cup", handle: "longevityworldcup.com", avatar: "LW", label: "Nostr" },
             reddit: { name: "Longevity World Cup", handle: "r/LongevityWorldCup", avatar: "LW", label: "Reddit" },
-            bluesky: { name: "Longevity World Cup", handle: "@longevityworldcup.bsky.social", avatar: "LW", label: "Bluesky" }
+            bluesky: { name: "Longevity World Cup", handle: "@longevityworldcup.bsky.social", avatar: "LW", label: "Bluesky" },
+            instagram: { name: "Longevity World Cup", handle: "@longevityworldcup", avatar: "LW", label: "Instagram" }
         };
 
         function renderPlatformAvatar(platformKey, sizeClass = "x-avatar") {
             const logos = {
+                instagram: `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="3" width="18" height="18" rx="5" fill="none" stroke="#e879b5" stroke-width="2"/><circle cx="12" cy="12" r="4" fill="none" stroke="#e879b5" stroke-width="2"/><circle cx="17.5" cy="6.5" r="1.2" fill="#e879b5"/></svg>`,
                 bluesky: `<svg viewBox="0 0 600 530" aria-hidden="true" focusable="false"><path fill="#1185fe" d="M135.72 44.03C202.22 93.86 273.74 194.89 300 249.11c26.26-54.22 97.78-155.25 164.28-205.08C512.26 8.07 590-19.75 590 68.77c0 17.68-10.14 148.46-16.08 169.71-20.65 73.82-95.92 92.65-162.87 81.25 117.03 19.93 146.81 85.95 82.49 151.97C371.39 597.09 317.98 440.24 304.28 400.05c-2.51-7.37-3.68-10.82-4.28-7.89-.6-2.93-1.77.52-4.28 7.89-13.7 40.19-67.11 197.04-189.26 71.65-64.32-66.02-34.54-132.04 82.49-151.97-66.95 11.4-142.22-7.43-162.87-81.25C20.14 217.23 10 86.45 10 68.77 10-19.75 87.74 8.07 135.72 44.03Z"/></svg>`,
                 reddit: `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="11" fill="#ff4500"/><path d="m12 9 1-4 4 1" fill="none" stroke="white" stroke-width="1.4"/><circle cx="18" cy="6" r="1.5" fill="white"/><ellipse cx="12" cy="14" rx="7" ry="5" fill="white"/><circle cx="9" cy="13" r="1" fill="#ff4500"/><circle cx="15" cy="13" r="1" fill="#ff4500"/><path d="M9 16q3 2 6 0" fill="none" stroke="#ff4500" stroke-width="1.2" stroke-linecap="round"/></svg>`,
                 nostr: `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="1" y="1" width="22" height="22" rx="6" fill="#8b5cf6"/><path fill="white" d="M6 18V6h3l6 8V6h3v12h-3l-6-8v8Z"/></svg>`,
@@ -1903,15 +1931,26 @@
             return parts.slice(0, low).join("").trimEnd() + "…";
         }
 
+        function truncateInstagram(text, limit) {
+            if (text.length <= limit) return text;
+            if (limit <= 0) return "";
+            let clipped = "";
+            for (const { segment } of mastodonSegmenter.segment(text)) {
+                if (clipped.length + segment.length > limit - 1) break;
+                clipped += segment;
+            }
+            return clipped.trimEnd() + "…";
+        }
+
         function buildImageCaption(titleText, eventUrl, maxLength, platformKey) {
             const normalizedTitle = collapseWhitespace(titleText);
-            if (!eventUrl) return platformKey === "mastodon" ? truncateMastodon(normalizedTitle, maxLength) : platformKey === "bluesky" ? truncateBluesky(normalizedTitle, maxLength) : normalizedTitle;
+            if (!eventUrl) return platformKey === "mastodon" ? truncateMastodon(normalizedTitle, maxLength) : platformKey === "bluesky" ? truncateBluesky(normalizedTitle, maxLength) : platformKey === "instagram" ? truncateInstagram(normalizedTitle, maxLength) : normalizedTitle;
             const reserved = postLength(eventUrl, platformKey) + 2;
             const maxTitleLength = Math.max(0, maxLength - reserved);
             let finalTitle = normalizedTitle;
             if (postLength(finalTitle, platformKey) > maxTitleLength) {
                 finalTitle = maxTitleLength <= 1 ? "" : platformKey === "mastodon"
-                    ? truncateMastodon(finalTitle, maxTitleLength) : platformKey === "bluesky" ? truncateBluesky(finalTitle, maxTitleLength) : `${finalTitle.slice(0, maxTitleLength - 1).trimEnd()}…`;
+                    ? truncateMastodon(finalTitle, maxTitleLength) : platformKey === "bluesky" ? truncateBluesky(finalTitle, maxTitleLength) : platformKey === "instagram" ? truncateInstagram(finalTitle, maxTitleLength) : `${finalTitle.slice(0, maxTitleLength - 1).trimEnd()}…`;
             }
             return finalTitle ? `${finalTitle}\n\n${eventUrl}` : eventUrl;
         }
@@ -1935,17 +1974,19 @@
             }
 
             if ((!hasHyperlinks || !eventUrl) && textWithoutUrl && postLength(textWithoutUrl, platformKey) <= maxLength) {
-                return { mode: "text", postText: textWithoutUrl };
+                return { mode: platformKey === "instagram" ? "image" : "text", postText: textWithoutUrl };
             }
 
             const textWithUrl = buildTextPost(titleText, bodyText, eventUrl);
             if (textWithUrl && postLength(textWithUrl, platformKey) <= maxLength) {
-                return { mode: "text", postText: textWithUrl };
+                return { mode: platformKey === "instagram" ? "image" : "text", postText: textWithUrl };
             }
 
+            const imageCaption = buildImageCaption(titleText, hasHyperlinks ? eventUrl : "", maxLength, platformKey);
             return {
                 mode: "image",
-                postText: buildImageCaption(titleText, hasHyperlinks ? eventUrl : "", maxLength, platformKey)
+                postText: platformKey === "instagram" && imageCaption.length > maxLength
+                    ? truncateInstagram(titleText || bodyText, maxLength) : imageCaption
             };
         }
 
@@ -1962,7 +2003,7 @@
                 return plan.postText;
             }
 
-            if (platformKey === "x" || platformKey === "threads" || platformKey === "facebook" || platformKey === "mastodon" || platformKey === "nostr" || platformKey === "reddit" || platformKey === "bluesky") {
+            if (platformKey === "x" || platformKey === "threads" || platformKey === "facebook" || platformKey === "mastodon" || platformKey === "nostr" || platformKey === "reddit" || platformKey === "bluesky" || platformKey === "instagram") {
                 const fallbackLimit = LIMITS[platformKey] ?? 63206;
                 const fallbackPlan = buildPlan(titleRaw, contentRaw, fallbackLimit, platformKey, includeEventUrl);
                 return fallbackPlan.postText || "";
@@ -2085,7 +2126,8 @@
                 sendToNostr: sendNostr.checked,
                 sendToReddit: sendReddit.checked,
                 sendToBluesky: sendBluesky.checked,
-                sendToWebPush: sendWebPush.checked
+                sendToWebPush: sendWebPush.checked,
+                sendToInstagram: sendInstagram.checked
             };
         }
 
@@ -2100,7 +2142,8 @@
                 payload.sendToNostr ||
                 payload.sendToReddit ||
                 payload.sendToBluesky ||
-                payload.sendToWebPush
+                payload.sendToWebPush ||
+                payload.sendToInstagram
             );
         }
 
@@ -2145,6 +2188,7 @@
                 if (typeof data.sendReddit === "boolean") sendReddit.checked = data.sendReddit;
                 if (typeof data.sendBluesky === "boolean") sendBluesky.checked = data.sendBluesky;
                 if (typeof data.sendWebPush === "boolean") sendWebPush.checked = data.sendWebPush;
+                if (typeof data.sendInstagram === "boolean") sendInstagram.checked = data.sendInstagram;
             } catch {
             }
         }
@@ -2161,7 +2205,8 @@
                     sendNostr: sendNostr.checked,
                     sendReddit: sendReddit.checked,
                     sendBluesky: sendBluesky.checked,
-                    sendWebPush: sendWebPush.checked
+                    sendWebPush: sendWebPush.checked,
+                    sendInstagram: sendInstagram.checked
                 }));
             } catch {
             }
@@ -2350,6 +2395,27 @@
                 ? `<div class="custom-event-image-frame"><img alt="Generated custom event preview" src="${escapeHtml(previewImageUrl)}"></div>`
                 : renderImageFallbackHtml(layout, scale, frameHeight);
 
+            if (platformKey === "instagram") {
+                return `<div class="panel preview-block">
+                    <div class="preview-title" style="margin-bottom:8px;">
+                        <h2>Instagram Preview</h2>
+                        <button type="button" class="preview-copy-btn" data-copy-key="${escapeHtml(copyKey)}">Copy Text</button>
+                    </div>
+                    <div class="instagram-post">
+                        <div class="instagram-head">${renderPlatformAvatar("instagram")}
+                            <span class="x-name">longevityworldcup</span><span class="instagram-menu" aria-hidden="true">•••</span>
+                        </div>
+                        <div class="instagram-media">${imageHtml}</div>
+                        <div class="instagram-actions" aria-hidden="true">
+                            <svg viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z"/></svg>
+                            <svg viewBox="0 0 24 24"><path d="M21 11.5A9.5 9.5 0 1 1 5 4.4a9.5 9.5 0 0 1 16 7.1Z"/><path d="m19 18 2 3-6-1"/></svg>
+                            <svg viewBox="0 0 24 24"><path d="m22 2-8 20-4-8-8-4 20-8ZM10 14 22 2"/></svg>
+                        </div>
+                        <div class="instagram-caption"><strong>longevityworldcup</strong> ${escapeHtml(postText).replace(/\n/g, "<br>")}</div>
+                    </div>
+                </div>`;
+            }
+
             return `
                 <div class="panel preview-block">
                     <div class="preview-title" style="margin-bottom:8px;">
@@ -2468,6 +2534,14 @@
                     getOgPreviewUrl(plan.key, plan)
                 )
             ).join("") + renderPushPreview(titleRaw, contentRaw);
+
+            // The fallback canvas keeps the same framing as the generated image,
+            // including when the preview is narrower than the desktop card.
+            socialPreviewList.querySelectorAll(".image-stage-frame").forEach(frame => {
+                const width = frame.getBoundingClientRect().width;
+                frame.style.height = `${width * 675 / 1200}px`;
+                frame.querySelector(".image-stage").style.transform = `scale(${width / 1200})`;
+            });
 
             if (hasTitle) {
                 const payloadJsonText = JSON.stringify(payload);
@@ -2638,7 +2712,7 @@
             }
         });
 
-        [titleInput, contentInput, sendWebpage, sendSlack, sendX, sendThreads, sendFacebook, sendMastodon, sendNostr, sendReddit, sendBluesky, sendWebPush].forEach(el => {
+        [titleInput, contentInput, sendWebpage, sendSlack, sendX, sendThreads, sendFacebook, sendMastodon, sendNostr, sendReddit, sendBluesky, sendWebPush, sendInstagram].forEach(el => {
             el.addEventListener("input", event => {
                 if (event.target === titleInput || event.target === contentInput) {
                     updateMentionSuggestions(event.target);
