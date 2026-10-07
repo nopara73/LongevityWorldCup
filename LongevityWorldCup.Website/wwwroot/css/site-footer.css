@@ -90,17 +90,18 @@
     white-space: nowrap;
 }
 
-/* Wide screens: both groups span the content width, three links per row. */
+/* Wide screens: groups span the content width; links reflow when text needs more room. */
 @media (min-width: 1100px) {
     .footer-container {
-        grid-template-columns: repeat(2, max-content);
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         column-gap: 3rem;
         justify-content: space-between;
     }
 
     .footer-column {
         display: grid;
-        grid-template-columns: repeat(3, minmax(9rem, max-content));
+        min-width: 0;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 8.5rem), 1fr));
         column-gap: 0.75rem;
         row-gap: 0.05rem;
     }
