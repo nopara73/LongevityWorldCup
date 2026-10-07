@@ -189,6 +189,89 @@ public sealed class HomepageChromeRegressionBrowserTests(
         }
     }
 
+    [Theory]
+    [InlineData(390, false)]
+    [InlineData(1280, false)]
+    [InlineData(390, true)]
+    [InlineData(1280, true)]
+    public async Task HallOfFame_ScoresHaveReadableContrastOnEveryPlacing(int width, bool dark)
+    {
+        await using var context = await NewContextAsync(Browser, App, ReducedMotion.Reduce);
+        var page = await context.NewPageAsync();
+        await page.SetViewportSizeAsync(width, 900);
+        await page.EmulateMediaAsync(new PageEmulateMediaOptions
+        {
+            ColorScheme = dark ? ColorScheme.Dark : ColorScheme.Light
+        });
+        await page.GotoAsync("/", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await SettleLayoutAsync(page);
+
+        var scores = page.Locator(width <= 600
+            ? ".archive-mobile-card-age-reduction"
+            : ".archive-table .age-reduction");
+        Assert.Equal(3, await scores.CountAsync());
+        foreach (var score in await scores.AllAsync())
+        {
+            var ratio = await score.EvaluateAsync<double>(
+                """
+                element => {
+                    const luminance = value => {
+                        const [r, g, b] = value.match(/[\d.]+/g).slice(0, 3).map(Number).map(channel => {
+                            const normalized = channel / 255;
+                            return normalized <= 0.04045
+                                ? normalized / 12.92
+                                : Math.pow((normalized + 0.055) / 1.055, 2.4);
+                        });
+                        return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+                    };
+                    const placing = element.closest('td, .archive-mobile-card-winner');
+                    const foreground = luminance(getComputedStyle(element).color);
+                    const background = luminance(getComputedStyle(placing).backgroundColor);
+                    return (Math.max(foreground, background) + 0.05)
+                        / (Math.min(foreground, background) + 0.05);
+                }
+                """);
+            Assert.True(ratio >= 4.5, $"Score contrast was {ratio:F4}:1 at {width}px (dark: {dark}).");
+        }
+    }
+
+    [Theory]
+    [InlineData(320, 100)]
+    [InlineData(390, 100)]
+    [InlineData(320, 200)]
+    [InlineData(390, 200)]
+    [InlineData(480, 200)]
+    [InlineData(520, 200)]
+    [InlineData(600, 200)]
+    public async Task HallOfFame_MobileNamesAndScoresStaySeparateAndInsideTheirPlacing(int width, int textPercent)
+    {
+        await using var context = await NewContextAsync(Browser, App, ReducedMotion.Reduce);
+        var page = await context.NewPageAsync();
+        await page.SetViewportSizeAsync(width, 900);
+        await page.GotoAsync("/", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.EvaluateAsync("percent => document.documentElement.style.fontSize = `${percent}%`", textPercent);
+        await SettleLayoutAsync(page);
+
+        var problems = await page.Locator(".archive-mobile-card-winners").EvaluateAsync<string[]>(
+            """
+            element => [...element.children].flatMap(placing => {
+                const link = placing.querySelector('a');
+                const range = document.createRange();
+                range.selectNodeContents(link);
+                const nameRects = [...range.getClientRects()];
+                const score = placing.querySelector('.archive-mobile-card-age-reduction').getBoundingClientRect();
+                const bounds = placing.getBoundingClientRect();
+                const intersects = nameRects.some(rect => rect.left < score.right - 1
+                    && rect.right > score.left + 1 && rect.top < score.bottom - 1 && rect.bottom > score.top + 1);
+                const overflows = [...nameRects, score].some(rect => rect.left < bounds.left - 1
+                    || rect.right > bounds.right + 1 || rect.top < bounds.top - 1 || rect.bottom > bounds.bottom + 1);
+                return [intersects ? `${link.textContent}: overlap` : null,
+                    overflows ? `${link.textContent}: overflow` : null].filter(Boolean);
+            })
+            """);
+        Assert.True(problems.Length == 0, $"At {width}px / {textPercent}%: {string.Join(", ", problems)}");
+    }
+
     internal const string MeasureFilledActionScript =
         """
         element => {
