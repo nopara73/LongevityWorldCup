@@ -440,6 +440,13 @@ button:hover {
     letter-spacing: 0.005em;
 }
 
+.contribute-content > p {
+    width: fit-content;
+    max-width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+}
+
 .contribute-section strong {
     font-weight: 600;
     color: var(--lwc-ink, #2d3748);
@@ -534,17 +541,30 @@ button:hover {
             box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
         }
 
+.contribute-panel {
+    display: grid;
+    grid-template-areas:
+        "status"
+        "qr"
+        "address";
+    gap: var(--lwc-space-4, 1rem);
+    max-width: 44rem;
+    margin: var(--lwc-space-4, 1rem) auto 0;
+    padding: var(--lwc-space-4, 1rem);
+    border: 1px solid var(--lwc-border, #d7e0e6);
+    border-radius: var(--lwc-radius-lg, 12px);
+    background: var(--lwc-surface, #fff);
+    box-shadow: var(--lwc-shadow-sm, 0 1px 2px rgba(15, 23, 42, 0.08));
+    box-sizing: border-box;
+}
+
 .btc-status {
+    grid-area: status;
     font-size: 1rem;
     font-weight: 700;
-    margin: 0.85rem auto 1rem;
     display: grid;
-    gap: 0.45rem;
-    width: min(100%, 340px);
-    padding: 0.85rem 1rem;
-    border-radius: 14px;
-    background: var(--lwc-surface-muted, rgba(248, 250, 252, 0.88));
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85), 0 2px 8px rgba(15, 23, 42, 0.06);
+    gap: 0.5rem;
+    min-width: 0;
     color: var(--lwc-ink, #334155);
 }
 
@@ -557,9 +577,11 @@ button:hover {
 
 .btc-status-title {
     color: var(--lwc-muted, #475569);
-    font-size: 0.95rem;
+    font-size: var(--lwc-type-xs, 0.75rem);
+    letter-spacing: 0.06em;
     line-height: 1.2;
     text-align: left;
+    text-transform: uppercase;
 }
 
 .btc-status-goal {
@@ -573,15 +595,15 @@ button:hover {
 
 .btc-status-value {
     color: var(--lwc-ink, #334155);
-    font-size: 1.35rem;
-    line-height: 1.15;
+    font-size: clamp(1.75rem, 5vw, 2.25rem);
+    line-height: 1.1;
     text-align: left;
     white-space: nowrap;
 }
 
 .btc-status-track {
     width: 100%;
-    height: 0.35rem;
+    height: 0.5rem;
     overflow: hidden;
     border-radius: 999px;
     background: rgba(148, 163, 184, 0.22);
@@ -593,44 +615,45 @@ button:hover {
     width: 21%;
     height: 100%;
     border-radius: inherit;
-    background: linear-gradient(90deg, rgba(247, 147, 26, 0.85), rgba(255, 193, 7, 0.55));
+    background: linear-gradient(90deg, #f7931a, #ffc107);
     transition: width var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
 }
 
 /* BTC address text */
 .btc-address {
-    font-size: 1rem;
+    grid-area: address;
+    font-size: var(--lwc-type-sm, 0.875rem);
     color: var(--primary-color);
     font-weight: bold;
     display: flex;
-    justify-content: center;
+    justify-content: space-between;
     align-items: center;
     flex-wrap: nowrap;
+    gap: var(--lwc-space-1, 0.25rem);
     overflow: hidden; /* Ensures content doesn't overflow visually */
     white-space: nowrap; /* Prevent wrapping */
-    max-width: 500px; /* Prevent it from stretching too large */
-    margin: 1rem auto; /* Center horizontally */
-    background-color: rgba(211, 211, 211, 0.15); /* Light Gray */
-    padding: 0.5rem 1rem;
-    border-radius: 25px;
+    min-width: 0;
+    min-height: 2.75rem;
+    padding: 0 0 0 var(--lwc-space-3, 0.75rem);
+    border: 1px solid var(--lwc-border, #d7e0e6);
+    border-radius: var(--lwc-radius-md, 8px);
+    background: var(--lwc-surface-muted, #eef2f5);
+    box-sizing: border-box;
 }
 
     .btc-address a,
     .btc-address span {
-        font-size: 1rem;
+        font-size: inherit;
         color: var(--primary-color);
-        margin: 0.5rem;
+        margin: 0;
         word-break: break-all;
     }
 
     .btc-address a {
-        display: inline-flex;
-        align-items: center;
-        min-height: 2rem;
-        padding: 0 0.2rem;
-        margin-top: 0.25rem;
-        margin-bottom: 0.25rem;
-        border-radius: 999px;
+        display: block;
+        flex: 0 1 auto;
+        padding: 0.25rem 0.2rem;
+        border-radius: var(--lwc-radius-sm, 4px);
         box-sizing: border-box;
         min-width: 0;
         overflow: hidden;
@@ -646,7 +669,7 @@ button:hover {
 .copy-btn {
     color: var(--primary-color);
     font-size: 1.5rem;
-    margin-left: 0.5rem;
+    margin-left: auto;
     width: 2.75rem;
     height: 2.75rem;
     min-width: 2.75rem;
@@ -676,62 +699,42 @@ button:hover {
 }
 
 .qr-code-container {
-    text-align: center;
-    margin: 1rem auto;
+    grid-area: qr;
+    justify-self: center;
+    display: flex;
+    line-height: 0;
 }
 
 .qr-code-img {
-    max-width: 200px;
-    width: 100%;
+    width: 165px;
+    max-width: 100%;
     height: auto;
-    border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--lwc-border, #d7e0e6);
+    border-radius: var(--lwc-radius-md, 8px);
+}
+
+@media (min-width: 640px) {
+    .contribute-panel {
+        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-areas:
+            "status qr"
+            "address qr";
+        column-gap: var(--lwc-space-5, 1.5rem);
+        padding: var(--lwc-space-5, 1.5rem);
+    }
+
+    .btc-status {
+        align-self: start;
+    }
+
+    .btc-address {
+        align-self: end;
+    }
 }
 
 @media (min-width: 900px) {
     .contribute-section {
         padding: 2.25rem 3rem 2.35rem;
-    }
-
-    .contribute-content {
-        display: grid;
-        grid-template-columns: minmax(280px, 360px) minmax(190px, 220px);
-        justify-content: center;
-        align-items: center;
-        column-gap: clamp(2rem, 5vw, 4rem);
-        row-gap: 1.15rem;
-    }
-
-        .contribute-content h2,
-        .contribute-content p,
-        .contribute-content .btc-address {
-            grid-column: 1 / -1;
-            margin-left: auto;
-            margin-right: auto;
-        }
-
-        .contribute-content h2 {
-            margin-bottom: 0;
-        }
-
-        .contribute-content p {
-            margin-bottom: 0;
-            max-width: 64rem;
-        }
-
-    .btc-status {
-        width: 100%;
-        margin: 0;
-    }
-
-    .qr-code-container {
-        margin: 0;
-    }
-
-    .btc-address {
-        margin-top: 0.25rem;
-        margin-bottom: 0;
-        width: min(100%, 540px);
     }
 }
 
@@ -756,14 +759,6 @@ button:hover {
             margin-bottom: 1.25rem;
         }
 
-    .btc-status {
-        font-size: 1.1rem;
-        margin: 0.75rem auto 0.9rem;
-        min-width: min(100%, 260px);
-        padding: 0.65rem 0.85rem;
-    }
-
-
     .section-container {
         padding: 1.5rem;
     }
@@ -787,7 +782,7 @@ button:hover {
             width: 2.75rem;
             height: 2.75rem;
             min-width: 2.75rem;
-            margin-left: 0.35rem;
+            margin-left: auto;
             padding: 0;
         }
 
