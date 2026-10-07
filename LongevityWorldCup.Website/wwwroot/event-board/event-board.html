@@ -154,10 +154,10 @@
     history.replaceState({}, '', '/events' + (window.location.search || '') + (window.location.hash || ''));
 
     function initEventBoard() {
-        const titleEl = document.getElementById('eventBoardTitle');
-        if (titleEl && titleEl.scrollIntoView) {
+        const headingEl = document.querySelector('.event-board-heading');
+        if (headingEl && headingEl.scrollIntoView) {
             setTimeout(() => {
-                titleEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                headingEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }, 500);
         }
         if (typeof window.loadEventsTable === 'function') {

@@ -27,11 +27,18 @@ public sealed class EventFeedBrowserTests(PlaywrightBrowserFixture browserFixtur
         await page.Locator("#events-root[aria-busy='false']").WaitForAsync();
         Assert.Equal("/feeds/events.rss", await rss.GetAttributeAsync("href"));
         Assert.Equal(1, await rss.Locator(".fa-rss").CountAsync());
+        await page.Locator(".event-board-heading").EvaluateAsync("heading => heading.scrollIntoView({ behavior: 'instant', block: 'start' })");
         await rss.FocusAsync();
         Assert.True(await rss.EvaluateAsync<bool>("link => link === document.activeElement"));
         var box = Assert.IsType<LocatorBoundingBoxResult>(await rss.BoundingBoxAsync());
         Assert.True(box.Width >= 44 && box.Height >= 44);
         Assert.True(box.X >= 0 && box.X + box.Width <= width);
+        var stickyHeader = page.Locator("#site-sticky-header");
+        if (await stickyHeader.GetAttributeAsync("aria-hidden") == "false")
+        {
+            var headerBox = Assert.IsType<LocatorBoundingBoxResult>(await stickyHeader.BoundingBoxAsync());
+            Assert.True(box.Y >= headerBox.Y + headerBox.Height - 1, "The sticky header must not cover the subscription link.");
+        }
         Assert.True(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth <= window.innerWidth"));
         Assert.Equal("https://longevityworldcup.com/feeds/events.rss", await page.Locator("head link[rel=alternate][type='application/rss+xml']").GetAttributeAsync("href"));
         Assert.Equal("https://longevityworldcup.com/feeds/events.atom", await page.Locator("head link[rel=alternate][type='application/atom+xml']").GetAttributeAsync("href"));
