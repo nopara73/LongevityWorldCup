@@ -47,7 +47,8 @@ public sealed record CustomEventDeliveryTargets(
     bool SendToNostr = false,
     bool SendToReddit = false,
     bool SendToBluesky = false,
-    bool SendToWebPush = false)
+    bool SendToWebPush = false,
+    bool SendToInstagram = false)
 {
     public CustomEventStorageFlags ToStorageFlags() => new(
         VisibleOnWebsite: SendToWebpage ? 1 : 0,
@@ -268,6 +269,7 @@ public sealed partial class EventDataService : IDisposable
         SocialDeliveryStore.InitializeChannel(_db, SocialDeliveryStore.Nostr);
         SocialDeliveryStore.InitializeChannel(_db, SocialDeliveryStore.Bluesky);
         SocialDeliveryStore.InitializeChannel(_db, SocialDeliveryStore.WebPush);
+        SocialDeliveryStore.InitializeChannel(_db, SocialDeliveryStore.Instagram);
 
         if (_enableEventDispatch)
         {
@@ -1918,6 +1920,8 @@ public sealed partial class EventDataService : IDisposable
                 deliveryTargets?.SendToBluesky ?? true, SocialDeliveryStore.Bluesky);
             SocialDeliveryStore.SelectCustomEventTarget(sqlite, tx, eventId,
                 deliveryTargets?.SendToWebPush ?? false, SocialDeliveryStore.WebPush);
+            SocialDeliveryStore.SelectCustomEventTarget(sqlite, tx, eventId,
+                deliveryTargets?.SendToInstagram ?? true, SocialDeliveryStore.Instagram);
 
             tx.Commit();
         });

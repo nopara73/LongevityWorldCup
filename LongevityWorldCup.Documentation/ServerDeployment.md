@@ -297,7 +297,12 @@ Social API token refreshes first try to persist updated token state in `config.j
 
 Mastodon and Nostr runtime settings also belong in the protected production `config.json`;
 see [MastodonApiSetup.md](MastodonApiSetup.md) and [NostrApiSetup.md](NostrApiSetup.md).
-Before an unrelated manual config edit, preserve any newer X, Threads, and Facebook token
+Instagram's account ID and long-lived token also belong in this protected config;
+see [InstagramApiSetup.md](InstagramApiSetup.md). Preserve its token, expiry, and
+last refresh attempt alongside the other rotating fields when applying a newer
+base config. Retain `InstagramPublishing` and `SocialDeliveries` with the database
+and `wwwroot/generated/instagram/` with the generated assets across releases.
+Before an unrelated manual config edit, preserve any newer X, Threads, Facebook, and Instagram token
 fields from the sidecar so the fresh base file does not discard their latest refresh state.
 The Nostr signing key is a permanent account credential: never copy it into checkout files,
 deployment artifacts, command arguments, or logs. Obtain an explicit server-only exception
@@ -482,7 +487,7 @@ After first run, config file is created:
 sudo nano /var/www/LongevityWorldCup/publish/config.json
 ```
 
-The app may also create `/var/www/.longevityworldcup/runtime-config.json` for rotated X, Threads, and Facebook tokens when `publish/config.json` is read-only to `www-data`.
+The app may also create `/var/www/.longevityworldcup/runtime-config.json` for rotated X, Threads, Facebook, and Instagram tokens when `publish/config.json` is read-only to `www-data`.
 
 Make sure to publish the app at the unisable google website if it's a new setup. Otherwise refresh token expires in 7 days: https://console.cloud.google.com/auth/audience  
 Publish before generating refresh token!

@@ -790,6 +790,8 @@ label {
 /* Ranking is comparison-heavy: keep the table quiet, aligned, and numeric. */
 main[data-leaderboard-page="full"] > h1 {
     margin-block: 0 var(--lwc-space-5);
+    /* The page scrolls this title to the sticky header; the padding keeps it clear of it. */
+    padding-top: var(--lwc-space-5);
     font-size: clamp(1.6rem, 3vw, 2rem);
     text-align: left;
 }
