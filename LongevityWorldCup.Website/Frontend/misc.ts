@@ -675,9 +675,17 @@ window.calculateCompletedYearsAtDate = function (birthDate, atDate) {
     return years;
 }
 
+function setAthleteNameHtml(element: Element, html: string): void {
+    // Keep text and highlights in one inline formatting context inside the flex link.
+    const content = document.createElement('span');
+    content.className = 'athlete-name-content';
+    content.innerHTML = html;
+    element.replaceChildren(content);
+}
+
 window.removeAllHighlights = function () {
     document.querySelectorAll('.athlete-name').forEach(element => {
-        element.innerHTML = escapeHTML(element.textContent);
+        setAthleteNameHtml(element, escapeHTML(element.textContent));
     });
 }
 
@@ -762,7 +770,7 @@ window.highlightText = function (element, searchTerms) {
     // Append any remaining text
     highlightedHTML += escapeHTML(originalText.slice(currentIndex));
 
-    element.innerHTML = highlightedHTML;
+    setAthleteNameHtml(element, highlightedHTML);
 }
 
 window.goBackOrHome = function () {
