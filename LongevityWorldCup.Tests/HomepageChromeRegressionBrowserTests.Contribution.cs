@@ -65,7 +65,9 @@ public sealed class HomepageContributionBrowserTests(
             """);
 
         Assert.Equal("#contribute", preview.Hash);
-        Assert.InRange(preview.SectionTop, 0, 80);
+        // Contribute shares the page's last row with the newsletter, so the document can end
+        // before the section reaches the top; it must still open in the upper half of the preview.
+        Assert.InRange(preview.SectionTop, 0, preview.ViewportHeight / 2);
         Assert.InRange(preview.QrTop, 0, preview.ViewportHeight);
         Assert.InRange(preview.QrBottom, 0, preview.ViewportHeight);
         Assert.InRange(preview.AddressTop, 0, preview.ViewportHeight);

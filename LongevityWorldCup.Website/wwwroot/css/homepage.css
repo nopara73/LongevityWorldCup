@@ -978,10 +978,8 @@ button:hover {
 }
 
 .lwc-countdown-header-row {
-    background:
-        linear-gradient(rgba(0, 188, 212, 0.12), rgba(0, 188, 212, 0.12)),
-        var(--events-header-bg, var(--card-bg));
-    color: var(--primary-color);
+    background: var(--events-header-bg, var(--card-bg));
+    color: var(--events-header-ink, var(--primary-color));
     padding: 15px 20px;
     display: flex;
     align-items: center;
@@ -1595,12 +1593,6 @@ main > .main-container .leaderboard {
         padding-top: 0.72rem;
         padding-bottom: 0.72rem;
     }
-
-    .archive-section > p {
-        margin-top: 0.9rem !important;
-        margin-bottom: 0 !important;
-        line-height: 1.35;
-    }
 }
 
 /* Responsive Design */
@@ -1766,11 +1758,6 @@ main > .main-container .leaderboard {
     .archive-section h2 {
         font-size: 1.3rem;
         margin-bottom: 1rem;
-    }
-
-    .archive-section > p {
-        margin: 1.05rem 0 0 !important;
-        line-height: 1.35;
     }
 }
 

@@ -289,8 +289,11 @@ public sealed class LeaderboardPodiumBrowserTests(
 
         Assert.True(cardBottoms.Max() - cardBottoms.Min() <= 1,
             $"Podium cards stopped sharing a baseline {context}.");
-        Assert.InRange(first.CardHeight - second.CardHeight, 17, 19);
-        Assert.InRange(second.CardHeight - third.CardHeight, 15, 17);
+        // Each placing stands on a visibly higher step than the one below it.
+        Assert.True(first.CardHeight - second.CardHeight >= 16,
+            $"First place no longer stands clearly above second {context}.");
+        Assert.True(second.CardHeight - third.CardHeight >= 16,
+            $"Second place no longer stands clearly above third {context}.");
     }
 
     private sealed class PodiumLayout

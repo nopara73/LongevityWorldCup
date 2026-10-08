@@ -27,6 +27,17 @@
     --lwc-warning-soft: #fff4d6;
     --lwc-danger: #b4233b;
     --lwc-danger-soft: #fdecef;
+    /* Arena: the dark side of the site (header, stage, athlete dialog, footer). */
+    --lwc-arena: #101820;
+    --lwc-arena-ink: rgba(255, 255, 255, 0.94);
+    --lwc-arena-muted: rgba(255, 255, 255, 0.68);
+    --lwc-arena-panel: rgba(255, 255, 255, 0.045);
+    --lwc-arena-line: rgba(246, 244, 237, 0.16);
+    --lwc-arena-link: rgba(213, 224, 221, 0.92);
+    /* Placings: the same three metals on the podium, rank chips and Hall of fame. */
+    --lwc-gold: #f5c542;
+    --lwc-silver: #c9d2da;
+    --lwc-bronze: #dba06d;
     --lwc-space-1: 0.25rem;
     --lwc-space-2: 0.5rem;
     --lwc-space-3: 0.75rem;
@@ -801,10 +812,60 @@ main[data-leaderboard-page="full"] > h1 {
     padding-inline: 0;
 }
 
-body.home-page .game-description {
+/* The homepage opens on a stage: header, tagline and podium share the header's
+   graphite edge to edge, so the page reads dark arena, light boards, dark footer.
+   The stage exists only while the podium is shown; searching or filtering the
+   homepage returns the tagline and Highlights to the light canvas. */
+html:has(main.homepage-main) {
+    overflow-x: clip;
+}
+
+main.homepage-main .game-description {
     margin-bottom: var(--lwc-space-5);
     color: var(--lwc-muted);
     font-size: var(--lwc-type-sm);
+}
+
+main.homepage-main:has(.podium:not([style*="none"])) {
+    margin-top: 0;
+}
+
+main.homepage-main:has(.podium:not([style*="none"])) .game-description,
+main.homepage-main[data-homepage-visit-layout="repeat"]:has(.podium:not([style*="none"])) > .lwc-highlights-countdown-wrapper {
+    position: relative;
+    z-index: 0;
+}
+
+main.homepage-main:has(.podium:not([style*="none"])) .game-description::before,
+main.homepage-main[data-homepage-visit-layout="repeat"]:has(.podium:not([style*="none"])) > .lwc-highlights-countdown-wrapper::before {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    top: -1px;
+    bottom: -1px;
+    left: calc(50% - 50vw);
+    right: calc(50% - 50vw);
+    background: var(--lwc-arena);
+    pointer-events: none;
+}
+
+main.homepage-main:has(.podium:not([style*="none"])) .game-description {
+    max-width: none;
+    margin: 0;
+    padding-block: 0 var(--lwc-space-2);
+    color: var(--lwc-arena-muted);
+}
+
+main.homepage-main:has(.podium:not([style*="none"])) .game-description a:hover,
+main.homepage-main:has(.podium:not([style*="none"])) .game-description a:focus-visible {
+    color: #fff;
+}
+
+/* Returning visitors get Highlights before the podium; it joins the stage so
+   the floor stays in one piece. */
+main.homepage-main[data-homepage-visit-layout="repeat"]:has(.podium:not([style*="none"])) > .lwc-highlights-countdown-wrapper {
+    margin-block: 0;
+    padding-block: var(--lwc-space-4) var(--lwc-space-2);
 }
 
 .leaderboard-toolbar {
@@ -871,8 +932,8 @@ html body .leaderboard-view-switcher .view-badge {
 
 html body .leaderboard table th {
     padding: var(--lwc-space-2) var(--lwc-space-4);
-    background: var(--lwc-surface-muted);
-    color: var(--lwc-muted);
+    background: var(--lwc-surface-accent);
+    color: var(--lwc-accent-hover);
     font-size: var(--lwc-type-sm);
     letter-spacing: 0;
     text-transform: none;
@@ -939,9 +1000,9 @@ html body .leaderboard .athlete-name {
     box-shadow: inset 0 0 0 2px rgba(23, 33, 43, 0.14);
 }
 
-.leaderboard tbody .rank[data-place="1"] { background: #f5c542; }
-.leaderboard tbody .rank[data-place="2"] { background: #c9d2da; }
-.leaderboard tbody .rank[data-place="3"] { background: #dba06d; }
+.leaderboard tbody .rank[data-place="1"] { background: var(--lwc-gold); }
+.leaderboard tbody .rank[data-place="2"] { background: var(--lwc-silver); }
+.leaderboard tbody .rank[data-place="3"] { background: var(--lwc-bronze); }
 
 @media (max-width: 480px) {
     .leaderboard tbody .rank[data-place] {
@@ -1346,4 +1407,245 @@ html body .leaderboard .athlete-name {
         transition-delay: 0ms !important;
         transition-duration: 1ms !important;
     }
+}
+
+/* Homepage panels: Hall of fame, FAQ, Contribute and the newsletter are the
+   same board as Highlights and Swag: one card, one slim head strip, the grid's
+   width. Each closes on its own centred link row, like the board's
+   "View all athletes". */
+main.homepage-main .section-container {
+    display: flex;
+    flex-direction: column;
+    max-width: none;
+    margin: var(--lwc-space-5) 0;
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid var(--lwc-border);
+    border-radius: var(--lwc-radius-lg);
+    background: var(--lwc-surface);
+    box-shadow: var(--lwc-shadow-sm);
+    text-align: left;
+}
+
+main.homepage-main .homepage-panel-pair {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--lwc-space-5);
+    margin: var(--lwc-space-5) 0;
+}
+
+main.homepage-main .homepage-panel-pair > .section-container {
+    margin: 0;
+}
+
+main.homepage-main .section-container h2,
+main.homepage-main .events-board thead th,
+main.homepage-main .lwc-countdown-header-row {
+    padding-block: 6px;
+}
+
+main.homepage-main .section-container h2 {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    box-sizing: content-box;
+    min-height: 44px;
+    margin: 0;
+    padding-inline: 20px;
+    border-bottom: 1px solid var(--lwc-border);
+    background: var(--lwc-surface-accent);
+    color: var(--lwc-accent-hover);
+    font-size: 0.85rem;
+    font-weight: 800;
+    letter-spacing: 1px;
+    line-height: 1.15;
+    text-align: left;
+    text-transform: uppercase;
+}
+
+/* Highlights and Swag title their strips with words alone. */
+main.homepage-main .section-container h2 i {
+    display: none;
+}
+
+main.homepage-main .section-container .homepage-section-footer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0 var(--lwc-space-5);
+    margin: 0;
+    padding: var(--lwc-space-1) 20px;
+    border-top: 1px solid var(--lwc-border);
+    font-size: var(--lwc-type-sm);
+    line-height: 1.2;
+    text-align: center;
+}
+
+main.homepage-main .section-container .homepage-section-footer a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4em;
+    min-height: 44px;
+    color: var(--lwc-accent);
+    font-size: inherit;
+}
+
+main.homepage-main .archive-table-wrapper,
+main.homepage-main .archive-mobile-card {
+    max-width: none;
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+main.homepage-main .homepage-faq-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0;
+    max-width: none;
+    margin: 0;
+    padding: 20px 0;
+}
+
+main.homepage-main .homepage-faq-item {
+    padding: 0 20px;
+    border-top: 0;
+    border-left: 1px solid var(--lwc-border);
+}
+
+main.homepage-main .homepage-faq-item:first-child {
+    border-left: 0;
+}
+
+/* Paired panels share a row height; the shorter one centres its content. */
+main.homepage-main .contribute-content {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    max-width: none;
+    margin: 0;
+}
+
+main.homepage-main .contribute-content > p {
+    width: auto;
+    margin: 0;
+    padding: 20px 20px 0;
+    text-align: left;
+}
+
+main.homepage-main .contribute-panel,
+main.homepage-main .newsletter-panel {
+    flex: 1 1 auto;
+    align-content: center;
+    max-width: none;
+    margin: 0;
+    padding: 20px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
+main.homepage-main .newsletter-panel {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: var(--lwc-space-4);
+}
+
+main.homepage-main .newsletter-section .newsletter-panel > p:first-child {
+    margin: 0;
+}
+
+main.homepage-main .newsletter-panel #newsletter-form {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+}
+
+main.homepage-main .lwc-merch-body {
+    justify-content: center;
+}
+
+@media (max-width: 991px) {
+    main.homepage-main .homepage-panel-pair {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    main.homepage-main .homepage-faq-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        row-gap: 20px;
+    }
+
+    main.homepage-main .homepage-faq-item:nth-child(odd) {
+        border-left: 0;
+    }
+}
+
+@media (max-width: 600px) {
+    main.homepage-main .section-container h2,
+    main.homepage-main .events-board thead th,
+    main.homepage-main .lwc-countdown-header-row {
+        padding-block: 4px;
+    }
+
+    main.homepage-main .section-container h2 {
+        padding-inline: 14px;
+    }
+
+    main.homepage-main .section-container h2,
+    main.homepage-main .lwc-countdown-header-row {
+        font-size: 0.82rem;
+    }
+
+    main.homepage-main .contribute-content > p,
+    main.homepage-main .contribute-panel,
+    main.homepage-main .newsletter-panel,
+    main.homepage-main .section-container .homepage-section-footer {
+        padding-inline: 14px;
+    }
+
+    main.homepage-main .homepage-faq-grid {
+        grid-template-columns: minmax(0, 1fr);
+        row-gap: 0;
+        padding: 0;
+    }
+
+    main.homepage-main .homepage-faq-item {
+        padding: 14px;
+        border-left: 0;
+        border-top: 1px solid var(--lwc-border);
+    }
+
+    main.homepage-main .homepage-faq-item:first-child {
+        border-top: 0;
+    }
+}
+
+/* Returning visitors get Highlights and Swag before the podium, on the stage.
+   There the two boards wear the arena palette of the athlete dialog's own
+   Highlights list instead of floating on it as light cards. */
+main.homepage-main[data-homepage-visit-layout="repeat"]:has(.podium:not([style*="none"])) > .lwc-highlights-countdown-wrapper .events-board {
+    --card-bg: var(--lwc-arena-panel);
+    --dark-text-color: var(--lwc-arena-ink);
+    --events-text: var(--lwc-arena-ink);
+    --events-muted: var(--lwc-arena-muted);
+    --events-border: var(--lwc-arena-line);
+    --events-hover-bg: rgba(246, 244, 237, 0.07);
+    --events-header-bg: transparent;
+    --events-header-ink: var(--lwc-arena-link);
+    --events-header-action: var(--lwc-arena-link);
+    --details-bg: rgba(246, 244, 237, 0.06);
+    --zebra-even: transparent;
+    --zebra-odd: transparent;
+    --primary-color: var(--lwc-arena-link);
+    --secondary-color: var(--primary-color-bright, #19c3d1);
+    --lwc-accent: var(--lwc-arena-link);
+    --lwc-accent-hover: #fff;
+    --lwc-ink: var(--lwc-arena-ink);
+    --lwc-muted: var(--lwc-arena-muted);
+    --lwc-border: var(--lwc-arena-line);
+    --lwc-surface: rgba(246, 244, 237, 0.09);
+    --lwc-surface-muted: var(--lwc-arena-panel);
+    background: var(--lwc-arena-panel);
+    border-color: var(--lwc-arena-line);
+    box-shadow: none;
+    color: var(--lwc-arena-ink);
 }
