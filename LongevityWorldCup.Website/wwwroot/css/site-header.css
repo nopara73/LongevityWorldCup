@@ -1125,7 +1125,7 @@ textarea:focus-visible {
     flex-direction: row;
     justify-content: space-between;
     gap: var(--space-5);
-    background: var(--background-color);
+    background: linear-gradient(120deg, #0b1117 0%, #2d3942 100%);
     box-shadow: none;
 }
 

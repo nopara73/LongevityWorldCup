@@ -130,10 +130,6 @@
      border-radius:999px;
  }
 
- .podium .skeleton-shimmer{
-     background-image:linear-gradient(90deg, rgba(255,255,255,.07) 25%, rgba(255,255,255,.16) 50%, rgba(255,255,255,.07) 75%);
- }
-
  .podium-skeleton-item .podium-skeleton-portrait{
      width:var(--podium-portrait-size);
      height:var(--podium-portrait-size);
@@ -145,8 +141,8 @@
      align-self:stretch;
      min-height:var(--podium-step);
      margin-top:calc(var(--lwc-space-4) + 2.2rem);
-     border-top:3px solid var(--podium-line);
-     background:var(--podium-panel);
+     border-top:3px solid var(--lwc-border, #d7e0e6);
+     background:var(--lwc-surface-muted, #eef2f5);
  }
 
  .podium-skeleton-item .name-row{
@@ -676,7 +672,7 @@
  /* PODIUM portrait (bounded even if not wrapped) */
  .podium-item .podium-portrait{
      width:var(--podium-portrait-size); height:var(--podium-portrait-size); aspect-ratio:1 / 1; border-radius:50%; object-fit:cover;
-     border:3px solid var(--podium-metal); box-shadow:0 12px 30px rgba(0,0,0,.38); margin:0 0 1.6rem; cursor:pointer; transition:transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease); will-change:transform;
+     border:3px solid var(--podium-metal); box-shadow:var(--lwc-shadow-md, 0 10px 28px rgba(15,23,42,.1)); margin:0 0 1.6rem; cursor:pointer; transition:transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease); will-change:transform;
      flex:0 0 auto; box-sizing:border-box; /* include border in the height */
  }
  .podium-item .podium-portrait:hover{ transform: scale(1.04); }
@@ -834,55 +830,51 @@
  }
 
  /* =========================
-    7) Podium stage
-    The top three stand on the header's graphite, in the athlete dialog's dark
-    palette, so opening a profile from here stays in the same room.
+    7) Podium
+    The top three stand on a stepped plinth as wide as the board below it.
     ========================= */
  .podium{
-     --podium-stage:var(--lwc-arena, #101820);
-     --podium-ink:var(--lwc-arena-ink, rgba(255,255,255,.94));
-     --podium-muted:var(--lwc-arena-muted, rgba(255,255,255,.68));
-     --podium-panel:var(--lwc-arena-panel, rgba(255,255,255,.045));
-     --podium-line:var(--lwc-arena-line, rgba(246,244,237,.16));
-     position:relative; z-index:0; display:flex; justify-content:center; align-items:stretch; gap:0;
-     margin:0 0 var(--lwc-space-6); padding:var(--lwc-space-5) 0 0;
+     --podium-gold-surface:#fff9db;
+     --podium-silver-surface:#e9eef2;
+     --podium-bronze-surface:#f3e8da;
+     display:flex; justify-content:center; align-items:stretch; gap:0;
+     margin:0 0 var(--lwc-space-6); padding:0;
  }
- /* The plinth spans the page grid, so it lines up with the header above and the
-    board below. Behind it a full-bleed floor ends on the footer's teal edge. */
- .podium::before{
-     content:''; position:absolute; z-index:-1; top:-1px; bottom:0; left:calc(50% - 50vw); right:calc(50% - 50vw);
-     background:var(--podium-stage);
-     border-bottom:3px solid var(--primary-color);
-     pointer-events:none;
+ @media (prefers-color-scheme:dark){
+     .podium{
+         --podium-gold-surface:#3a3320;
+         --podium-silver-surface:#29333d;
+         --podium-bronze-surface:#382e26;
+     }
  }
  .podium-item{
      --podium-portrait-size:120px;
      --podium-step:76px;
      position:relative; display:flex; flex-direction:column; align-items:center; justify-content:flex-start;
      width:calc(100% / 3); max-width:384px; margin:0; padding:0; box-sizing:border-box;
-     text-align:center; color:var(--podium-ink); cursor:pointer;
+     text-align:center; cursor:pointer;
      transition:opacity var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease), transform var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
  }
  .podium-item.blurred{ filter: blur(5px); pointer-events:none; }
  /* Each placing starts lower than the one above it and all three share a floor,
     so the steps keep their order however long a name wraps. */
- .podium-item.first{ --podium-metal:var(--lwc-gold, #f5c542); --podium-portrait-size:160px; --podium-step:124px; order:2; }
- .podium-item.second{ --podium-metal:var(--lwc-silver, #c9d2da); --podium-portrait-size:132px; --podium-step:98px; order:1; margin-top:66px; }
- .podium-item.third{ --podium-metal:var(--lwc-bronze, #dba06d); --podium-portrait-size:120px; order:3; margin-top:108px; }
+ .podium-item.first{ --podium-metal:var(--lwc-gold, #f5c542); --podium-surface:var(--podium-gold-surface); --podium-portrait-size:160px; --podium-step:124px; order:2; }
+ .podium-item.second{ --podium-metal:var(--lwc-silver, #c9d2da); --podium-surface:var(--podium-silver-surface); --podium-portrait-size:132px; --podium-step:98px; order:1; margin-top:66px; }
+ .podium-item.third{ --podium-metal:var(--lwc-bronze, #dba06d); --podium-surface:var(--podium-bronze-surface); --podium-portrait-size:120px; order:3; margin-top:108px; }
 
  /* The prize is the step each athlete stands on; it fills down to the floor. */
  .podium-item-lower{
      position:relative; align-self:stretch; flex:1 0 auto; min-height:var(--podium-step); margin-top:var(--lwc-space-4); padding:var(--lwc-space-3) var(--lwc-space-2) 0; box-sizing:border-box;
      display:flex; flex-direction:column; align-items:center; justify-content:flex-start;
-     border-top:3px solid var(--podium-metal); background:var(--podium-panel); box-shadow:inset 0 0 0 1px var(--podium-line); color:var(--podium-muted); text-decoration:none; cursor:pointer;
-     transition:background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+     border-top:3px solid var(--podium-metal); background:var(--podium-surface); color:var(--lwc-ink, #17212b); text-decoration:none; cursor:pointer;
+     transition:filter var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
  }
  .podium-item-lower:hover,
- .podium-item-lower:focus-visible{ background:rgba(246,244,237,.09); }
+ .podium-item-lower:focus-visible{ filter:brightness(.96); }
  .podium-item.first .podium-item-lower{ border-radius:var(--radius-md, 8px) var(--radius-md, 8px) 0 0; }
  .podium-item.second .podium-item-lower{ border-radius:var(--radius-md, 8px) 0 0 0; }
  .podium-item.third .podium-item-lower{ border-radius:0 var(--radius-md, 8px) 0 0; }
- .prize-money{ font-weight:bold; font-size:1.55rem; line-height:1.2; color:var(--podium-ink); font-variant-numeric:tabular-nums; }
+ .prize-money{ font-weight:bold; font-size:1.55rem; line-height:1.2; color:var(--lwc-success, #1f7a38); font-variant-numeric:tabular-nums; }
  .podium-item.first .prize-money{ font-size:1.9rem; }
  .btc-amount{ order:1; margin-top:.15rem; font-weight:normal; font-size:.72rem; color:inherit; line-height:1.2; }
 
@@ -890,19 +882,14 @@
  .podium-rank{
      position:absolute; top:calc(var(--podium-portrait-size) - 18px); left:50%; z-index:2; width:32px; height:32px; margin-left:-16px; padding:0;
      display:flex; justify-content:center; align-items:center; box-sizing:border-box;
-     border-radius:50%; background:var(--podium-metal); box-shadow:0 0 0 3px var(--podium-stage); font-size:.85rem;
+     border-radius:50%; background:var(--podium-metal); box-shadow:0 0 0 3px var(--lwc-canvas, #f3f5f7); font-size:.85rem;
  }
  .podium-rank i{ color:#17212b !important; }
 
- .podium .athlete-name{ color:var(--podium-ink); text-decoration-color:transparent; }
- .podium .athlete-name:hover,
- .podium .athlete-name:focus-visible{ color:#fff; background-color:rgba(255,255,255,.08); box-shadow:none; text-decoration-color:currentColor; }
- .podium-score{ color:var(--podium-muted); font-size:var(--lwc-type-sm); }
- .podium-score .age-reduction{ display:block; color:var(--primary-color-bright, #19c3d1); font-size:1.5rem; line-height:1.2; text-align:center; font-variant-numeric:tabular-nums; }
+ .podium .athlete-name{ color:var(--lwc-ink); text-decoration-color:var(--lwc-border-strong); }
+ .podium-score{ color:var(--lwc-muted); font-size:var(--lwc-type-sm); }
+ .podium-score .age-reduction{ display:block; color:var(--lwc-accent); font-size:1.5rem; line-height:1.2; text-align:center; font-variant-numeric:tabular-nums; }
  .podium-item.first .podium-score .age-reduction{ font-size:1.9rem; }
- .podium .personal-link-icon{ color:var(--podium-muted); }
- .podium .personal-link-icon:hover,
- .podium .personal-link-icon:focus-visible{ color:#fff; background-color:rgba(255,255,255,.1); }
 
  /* =========================
     8) Table row bits
@@ -2362,11 +2349,11 @@
      .filter-section label{ min-height:44px; padding:.52rem .65rem; }
      .content{ margin-left:0; }
 
-     /* Phones: the stage keeps its floor, the three become dialog-style cards. */
-     .podium{ flex-wrap:wrap; align-items:stretch; gap:var(--lwc-space-3); width:100%; margin:0 0 var(--lwc-space-5); padding:var(--lwc-space-3) 0 var(--lwc-space-5); }
+     /* Phones: the three become cards, champion first. */
+     .podium{ flex-wrap:wrap; align-items:stretch; gap:var(--lwc-space-3); width:100%; margin:0 0 var(--lwc-space-5); padding:0; }
      .podium-item{
          width:calc((100% - var(--lwc-space-3)) / 2); max-width:none; padding:var(--lwc-space-3) var(--lwc-space-2) 0; overflow:hidden;
-         border:1px solid var(--podium-line); border-radius:var(--lwc-radius-lg); background:var(--podium-panel);
+         border:1px solid var(--lwc-border); border-radius:var(--lwc-radius-lg); background:var(--lwc-surface); box-shadow:var(--lwc-shadow-sm);
      }
      .podium-item.first{ --podium-portrait-size:104px; order:1; width:100%; max-width:440px; }
      .podium-item.second{ --podium-portrait-size:clamp(72px, 22vw, 84px); order:2; margin-top:0; }
@@ -2375,12 +2362,12 @@
      .podium-item .rank-change{ margin:0 0 1.2rem; }
      .podium-item .name-row{ justify-content:center; }
      .podium .athlete-name{ font-size:var(--lwc-type-body); }
-     .podium-rank{ top:calc(var(--lwc-space-3) + var(--podium-portrait-size) - 16px); width:28px; height:28px; margin-left:-14px; font-size:.75rem; }
+     .podium-rank{ top:calc(var(--lwc-space-3) + var(--podium-portrait-size) - 16px); width:28px; height:28px; margin-left:-14px; font-size:.75rem; box-shadow:0 0 0 3px var(--lwc-surface, #fff); }
      .podium-link-row{ flex-wrap:wrap; max-width:100%; gap:0; }
      .podium-score{ margin-bottom:var(--lwc-space-2); }
      .podium-score .age-reduction{ font-size:1.25rem; }
      .podium-item .podium-item-lower,
-     .podium-item.first .podium-item-lower{ flex:0 0 auto; min-height:0; margin:auto calc(-1 * var(--lwc-space-2)) 0; padding:var(--lwc-space-2) var(--lwc-space-2) var(--lwc-space-3); border-radius:0; background:rgba(0,0,0,.2); box-shadow:none; }
+     .podium-item.first .podium-item-lower{ flex:0 0 auto; min-height:0; margin:auto calc(-1 * var(--lwc-space-2)) 0; padding:var(--lwc-space-2) var(--lwc-space-2) var(--lwc-space-3); border-radius:0; }
      .podium .prize-money,
      .podium-item.first .prize-money{ font-size:1.25rem; }
      .podium .btc-amount{ font-size:.7rem; }
