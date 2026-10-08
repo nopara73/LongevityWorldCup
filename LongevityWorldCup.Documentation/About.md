@@ -42,7 +42,7 @@ Bitcoin donations fund the prize pool. The donation split and payout timing are 
 
 Longevity World Cup is a free and open-source project built with its community.
 
-I am Adam Ficsor, and online I publish as nopara73. I started the competition after a year of long-form conversations with longevity athletes and researchers.
+I am [Ádám Ficsór](https://adamficsor.com/), and online I publish as nopara73. I started the competition after a year of long-form conversations with longevity athletes and researchers.
 
 But the project is not just me. Klaus Townsend created the [Longevity World Cup merch store](https://merch.longevityworldcup.com/). Michael Lustgarten, PhD, the 2025 champion, created the [US blood panel](https://www.ultalabtests.com/partners/conqueragingordietrying/test/conquer-aging-or-die-trying-bortz-biological-age-panel) linked from the bortz age flow, covering the biomarkers for both bortz age and pheno age. Athletes, developers, donors, guests, and contributors keep pushing the sport forward.
 

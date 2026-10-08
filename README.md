@@ -5,6 +5,8 @@ Longevity World Cup is an open competition where longevity athletes rank by impr
 
 For more context, read the [project story](LongevityWorldCup.Documentation/About.md), the [competition rules](LongevityWorldCup.Documentation/Ruleset.md), and the [history of longevity as a sport](LongevityWorldCup.Documentation/LongevitySportHistory.md).
 
+Created by [Ádám Ficsór (nopara73)](https://adamficsor.com/) and built with the community.
+
 ## Website
 
 https://www.longevityworldcup.com/
