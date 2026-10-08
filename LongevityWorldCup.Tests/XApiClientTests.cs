@@ -1,4 +1,7 @@
 using System.Net;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.FileProviders;
@@ -11,6 +14,77 @@ namespace LongevityWorldCup.Tests;
 
 public sealed class XApiClientTests
 {
+    [Theory]
+    [InlineData(null)]
+    [InlineData("expired-access")]
+    public async Task OAuth1PostsWithoutDependingOnAnOAuth2Token(string? oauth2Token)
+    {
+        var config = OAuth1Config();
+        config.XAccessToken = oauth2Token;
+        var requestCount = 0;
+        var handler = new StubHandler(async request =>
+        {
+            requestCount++;
+            Assert.Equal("/2/tweets", request.RequestUri?.AbsolutePath);
+            AssertOAuth1Signature(request);
+            using var body = JsonDocument.Parse(await request.Content!.ReadAsStringAsync());
+            Assert.Equal("Keep the original caption", body.RootElement.GetProperty("text").GetString());
+            Assert.Equal("media-1", body.RootElement.GetProperty("media").GetProperty("media_ids")[0].GetString());
+            Assert.Equal("parent-1", body.RootElement.GetProperty("reply").GetProperty("in_reply_to_tweet_id").GetString());
+            return new HttpResponseMessage(HttpStatusCode.Created)
+            {
+                Content = new StringContent("""{"data":{"id":"tweet-1"}}""")
+            };
+        });
+        var client = CreateClient(config, handler);
+
+        Assert.True(client.IsConfigured);
+        Assert.Equal("tweet-1", await client.SendTweetAsync("Keep the original caption", ["media-1"], "parent-1"));
+        Assert.Equal(1, requestCount);
+    }
+
+    [Fact]
+    public async Task OAuth1MediaUploadDoesNotRequireAnOAuth2Token()
+    {
+        var handler = new StubHandler(request =>
+        {
+            Assert.Equal("/1.1/media/upload.json", request.RequestUri?.AbsolutePath);
+            AssertOAuth1Signature(request);
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("""{"media_id_string":"media-1"}""")
+            });
+        });
+        var client = CreateClient(OAuth1Config(), handler);
+        using var content = new MemoryStream([1, 2, 3]);
+
+        Assert.Equal("media-1", await client.UploadMediaAsync(content, "image/png"));
+    }
+
+    [Fact]
+    public async Task RejectedOAuth1PostDoesNotRefreshTheSeparateOAuth2Account()
+    {
+        var config = OAuth1Config();
+        config.XAccessToken = "old-access";
+        config.XRefreshToken = "old-refresh";
+        config.XApiKey = "client-id";
+        config.XApiSecret = "client-secret";
+        var requestCount = 0;
+        var handler = new StubHandler(request =>
+        {
+            requestCount++;
+            Assert.Equal("/2/tweets", request.RequestUri?.AbsolutePath);
+            AssertOAuth1Signature(request);
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.Unauthorized)
+            {
+                Content = new StringContent("""{"title":"Unauthorized","status":401}""")
+            });
+        });
+
+        await Assert.ThrowsAsync<HttpRequestException>(() => CreateClient(config, handler).SendTweetAsync("Original post"));
+        Assert.Equal(1, requestCount);
+    }
+
     [Fact]
     public async Task ConcurrentClientsShareOneTokenRefresh()
     {
@@ -59,6 +133,46 @@ public sealed class XApiClientTests
         {
             Directory.Delete(root, recursive: true);
         }
+    }
+
+    private static Config OAuth1Config() => new()
+    {
+        XConsumerKey = "consumer-key",
+        XConsumerSecret = "consumer-secret",
+        XUserAccessToken = "user-token",
+        XUserAccessTokenSecret = "user-secret"
+    };
+
+    private static XApiClient CreateClient(Config config, HttpMessageHandler handler) => new(
+        new HttpClient(handler),
+        config,
+        new ProductionEnvironment(Path.GetTempPath()),
+        NullLogger<XApiClient>.Instance,
+        CreatePreviewService());
+
+    private static void AssertOAuth1Signature(HttpRequestMessage request)
+    {
+        Assert.Equal("OAuth", request.Headers.Authorization?.Scheme);
+        var parameters = request.Headers.Authorization!.Parameter!.Split(", ")
+            .Select(pair => pair.Split('=', 2))
+            .ToDictionary(pair => pair[0], pair => Uri.UnescapeDataString(pair[1].Trim('"')));
+        Assert.Equal("consumer-key", parameters["oauth_consumer_key"]);
+        Assert.Equal("user-token", parameters["oauth_token"]);
+        Assert.Equal("HMAC-SHA1", parameters["oauth_signature_method"]);
+        Assert.False(string.IsNullOrWhiteSpace(parameters["oauth_nonce"]));
+        Assert.True(long.TryParse(parameters["oauth_timestamp"], out _));
+
+        var signedParameters = string.Join("&", parameters.Where(pair => pair.Key != "oauth_signature")
+            .OrderBy(pair => pair.Key, StringComparer.Ordinal)
+            .Select(pair => $"{Uri.EscapeDataString(pair.Key)}={Uri.EscapeDataString(pair.Value)}"));
+        var signatureBase = $"POST&{Uri.EscapeDataString(request.RequestUri!.AbsoluteUri)}&{Uri.EscapeDataString(signedParameters)}";
+        using var hmac = new HMACSHA1(Encoding.ASCII.GetBytes("consumer-secret&user-secret"));
+        Assert.Equal(Convert.ToBase64String(hmac.ComputeHash(Encoding.ASCII.GetBytes(signatureBase))), parameters["oauth_signature"]);
+    }
+
+    private sealed class StubHandler(Func<HttpRequestMessage, Task<HttpResponseMessage>> respond) : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) => respond(request);
     }
 
     private static XDevPreviewService CreatePreviewService()

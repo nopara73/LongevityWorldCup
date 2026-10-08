@@ -831,6 +831,75 @@ public sealed class SocialJobIntegrationTests
         Assert.Single(fixture.FacebookRequests);
     }
 
+    [Theory]
+    [InlineData("X")]
+    [InlineData("Threads")]
+    [InlineData("Facebook")]
+    public void ImmediateCustomDispatch_ExhaustedDeliveryIsHeldUntilThisDestinationIsReset(string platform)
+    {
+        var repaired = false;
+        using var fixture = SocialJobFixture.Create(enableThreads: true, responseOverride: request =>
+            new HttpResponseMessage(repaired ? HttpStatusCode.OK : HttpStatusCode.BadRequest)
+            {
+                Content = new StringContent(!repaired
+                    ? """{"error":{"message":"Rejected"}}"""
+                    : request.RequestUri?.AbsolutePath == "/2/tweets"
+                        ? """{"data":{"id":"tweet-1"}}"""
+                        : """{"id":"post-1","status":"FINISHED"}""")
+            });
+        var eventId = fixture.InsertEvent(EventType.CustomEvent, "Original announcement\n\nKeep this exact copy.", DateTime.UtcNow,
+            xProcessed: platform == "X" ? 0 : 1,
+            threadsProcessed: platform == "Threads" ? 0 : 1,
+            facebookProcessed: platform == "Facebook" ? 0 : 1);
+
+        for (var attempt = 1; attempt <= 3; attempt++)
+        {
+            fixture.ProcessPendingImmediateCustomEvents();
+            Assert.Equal(attempt < 3 ? (0, null) : (3, SocialEventSkipReason.DeliveryRetriesExhausted.ToString()),
+                fixture.ReadPlatformState(eventId, platform));
+        }
+        var failedRequestCount = DonationRequests(fixture, platform).Count;
+        fixture.ProcessPendingImmediateCustomEvents();
+        Assert.Equal(failedRequestCount, DonationRequests(fixture, platform).Count);
+        foreach (var other in new[] { "X", "Threads", "Facebook" }.Where(other => other != platform))
+            Assert.Empty(DonationRequests(fixture, other));
+
+        repaired = true;
+        fixture.Database.Run(sqlite =>
+        {
+            using var command = sqlite.CreateCommand();
+            command.CommandText = $"UPDATE Events SET {platform}Processed = 0 WHERE Id = @id;";
+            command.Parameters.AddWithValue("@id", eventId);
+            Assert.Equal(1, command.ExecuteNonQuery());
+        });
+        fixture.ProcessPendingImmediateCustomEvents();
+        Assert.Equal((1, null), fixture.ReadPlatformState(eventId, platform));
+        var sentRequestCount = DonationRequests(fixture, platform).Count;
+        Assert.True(sentRequestCount > failedRequestCount);
+        fixture.ProcessPendingImmediateCustomEvents();
+        Assert.Equal(sentRequestCount, DonationRequests(fixture, platform).Count);
+        foreach (var other in new[] { "X", "Threads", "Facebook" }.Where(other => other != platform))
+            Assert.Empty(DonationRequests(fixture, other));
+    }
+
+    [Fact]
+    public void ImmediateCustomDispatch_PermanentMediaFailureIsHeldWithoutClaimingSuccess()
+    {
+        using var fixture = SocialJobFixture.Create(seedLeaderboardAssets: true, responseOverride: _ =>
+            new HttpResponseMessage(HttpStatusCode.Forbidden)
+            {
+                Content = new StringContent("""{"error":"Media permission rejected"}""")
+            });
+        var eventId = fixture.InsertEvent(EventType.CustomEvent, "Image announcement\n\n" + new string('a', 300), DateTime.UtcNow,
+            xProcessed: 0);
+
+        fixture.ProcessPendingImmediateCustomEvents();
+        Assert.Equal((3, SocialEventSkipReason.PermanentDeliveryFailure.ToString()), fixture.ReadPlatformState(eventId, "X"));
+        Assert.Equal("/1.1/media/upload.json", Assert.Single(fixture.XRequests).RequestUri?.AbsolutePath);
+        fixture.ProcessPendingImmediateCustomEvents();
+        Assert.Single(fixture.XRequests);
+    }
+
     private static IJob DonationJob(SocialJobFixture fixture, string platform) => platform switch
     {
         "X" => fixture.CreateXJob(),

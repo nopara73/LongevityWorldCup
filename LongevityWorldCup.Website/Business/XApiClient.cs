@@ -38,7 +38,7 @@ public class XApiClient
         _preview = preview;
     }
 
-    public bool IsConfigured => _env.IsDevelopment() || !string.IsNullOrWhiteSpace(GetAccessToken());
+    public bool IsConfigured => _env.IsDevelopment() || GetOAuth1Credentials() is not null || !string.IsNullOrWhiteSpace(GetAccessToken());
 
     public async Task SendAsync(string text, IReadOnlyList<string>? mediaIds = null)
     {
@@ -59,14 +59,7 @@ public class XApiClient
             return new XMediaUploadResult(mediaId, null);
         }
 
-        var token = GetAccessToken();
-        if (string.IsNullOrWhiteSpace(token))
-        {
-            _log.LogInformation("X credentials not configured. Would have uploaded media with contentType {ContentType}", contentType);
-            return new XMediaUploadResult(null, new XApiFailure(false, null, "X credentials not configured", null, null, null));
-        }
-
-        var oauth1 = GetOAuth1MediaCredentials();
+        var oauth1 = GetOAuth1Credentials();
         if (oauth1 is null)
         {
             _log.LogError(
@@ -145,8 +138,11 @@ public class XApiClient
         if (_env.IsDevelopment())
             return await _preview.WriteTweetPreviewAsync(text, mediaIds, inReplyToTweetId, openPreviewInBrowser);
 
+        // Use the same authorized user context for uploads and posts. It does not
+        // depend on the separate, expiring OAuth 2.0 token pair.
+        var oauth1 = GetOAuth1Credentials();
         var token = GetAccessToken();
-        if (string.IsNullOrWhiteSpace(token))
+        if (oauth1 is null && string.IsNullOrWhiteSpace(token))
         {
             if (mediaIds is { Count: > 0 })
                 _log.LogInformation("X credentials not configured. Would have posted: {Content} with mediaIds: {MediaIds}", text, string.Join(", ", mediaIds));
@@ -172,7 +168,20 @@ public class XApiClient
         for (var attempt = 1; attempt <= maxAttempts; attempt++)
         {
             using var req = new HttpRequestMessage(HttpMethod.Post, TweetsEndpoint);
-            req.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+            if (oauth1 is { } credentials)
+            {
+                req.Headers.TryAddWithoutValidation("Authorization", BuildOAuth1AuthorizationHeader(
+                    HttpMethod.Post,
+                    TweetsEndpoint,
+                    credentials.ConsumerKey,
+                    credentials.ConsumerSecret,
+                    credentials.AccessToken,
+                    credentials.AccessTokenSecret));
+            }
+            else
+            {
+                req.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+            }
             req.Content = new StringContent(payload, Encoding.UTF8, "application/json");
 
             var res = await _http.SendAsync(req);
@@ -194,7 +203,7 @@ public class XApiClient
                 return null;
             }
 
-            if (res.StatusCode == HttpStatusCode.Unauthorized)
+            if (oauth1 is null && res.StatusCode == HttpStatusCode.Unauthorized)
             {
                 var refreshed = await TryRefreshTokenAsync(token);
                 if (refreshed)
@@ -286,7 +295,7 @@ public class XApiClient
 
             if (!res.IsSuccessStatusCode)
             {
-                _log.LogError("X token refresh failed: {StatusCode} {Response}", res.StatusCode, json);
+                _log.LogError("X token refresh failed: {StatusCode}", res.StatusCode);
                 return false;
             }
 
@@ -294,16 +303,16 @@ public class XApiClient
             string? newRefresh = null;
             try
             {
-                var doc = JsonDocument.Parse(json);
+                using var doc = JsonDocument.Parse(json);
                 var root = doc.RootElement;
                 if (root.TryGetProperty("access_token", out var at))
                     newAccess = at.GetString();
                 if (root.TryGetProperty("refresh_token", out var rt))
                     newRefresh = rt.GetString();
             }
-            catch (Exception ex)
+            catch (JsonException)
             {
-                _log.LogError(ex, "X token refresh response parse failed: {Json}", json);
+                _log.LogError("X token refresh response was not valid JSON.");
                 return false;
             }
 
@@ -335,7 +344,7 @@ public class XApiClient
         }
     }
 
-    private (string ConsumerKey, string ConsumerSecret, string AccessToken, string AccessTokenSecret)? GetOAuth1MediaCredentials()
+    private (string ConsumerKey, string ConsumerSecret, string AccessToken, string AccessTokenSecret)? GetOAuth1Credentials()
     {
         var consumerKey = _config.XConsumerKey?.Trim();
         var consumerSecret = _config.XConsumerSecret?.Trim();

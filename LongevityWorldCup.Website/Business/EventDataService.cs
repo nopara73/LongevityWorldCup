@@ -101,6 +101,7 @@ public sealed partial class EventDataService : IDisposable
     private const double DefaultRelevanceCrowdAgeTop10Change = 8d;
     private const double DefaultRelevanceAgeImprovementTop10Change = 10d;
     private const int MaxCustomEventRetries = 3;
+    private const int FailedCustomEventState = 3;
     private const int MinimumActiveAthleteSlugCountForEventCleanup = 10;
     private static readonly TimeSpan AmateurAgeReductionGraduationCleanupWindow = TimeSpan.FromHours(2);
 
@@ -396,27 +397,7 @@ public sealed partial class EventDataService : IDisposable
         var claimed = ClaimPendingCustomEvents(processedColumn);
         foreach (var (id, rawText, visibleOnWebsite) in claimed)
         {
-            // Check if we've exceeded max retries for this event/platform
             var retryKey = $"{id}:{processedColumn}";
-            int attemptCount = 0;
-            lock (_retryCountLock)
-            {
-                if (_customEventRetryCount.TryGetValue(retryKey, out var count))
-                {
-                    attemptCount = count;
-                }
-            }
-
-            if (attemptCount >= MaxCustomEventRetries)
-            {
-                _log.LogWarning("Custom event {EventId} exceeded max retries ({Attempts}/{Max}) for platform {Platform}. Marking as processed.", id, attemptCount, MaxCustomEventRetries, processedColumn);
-                FinalizeClaimedCustomEvent(processedColumn, id, succeeded: true);
-                lock (_retryCountLock)
-                {
-                    _customEventRetryCount.Remove(retryKey);
-                }
-                continue;
-            }
 
             _log.LogInformation(
                 "Immediate custom event dispatch started for platform column {ProcessedColumn}, event {EventId}, visibleOnWebsite {VisibleOnWebsite}, textLength {TextLength}",
@@ -463,7 +444,7 @@ public sealed partial class EventDataService : IDisposable
             }
             else if (terminalFailure)
             {
-                FinalizeClaimedCustomEvent(processedColumn, id, succeeded: true);
+                MarkClaimedCustomEventFailed(processedColumn, id, SocialEventSkipReason.PermanentDeliveryFailure);
                 lock (_retryCountLock)
                 {
                     _customEventRetryCount.Remove(retryKey);
@@ -471,16 +452,19 @@ public sealed partial class EventDataService : IDisposable
             }
             else
             {
-                // Increment retry count and reset to unprocessed for retry
+                int attemptCount;
                 lock (_retryCountLock)
                 {
-                    if (!_customEventRetryCount.TryGetValue(retryKey, out var count))
-                    {
-                        count = 0;
-                    }
-                    _customEventRetryCount[retryKey] = count + 1;
+                    _customEventRetryCount.TryGetValue(retryKey, out var count);
+                    attemptCount = count + 1;
+                    _customEventRetryCount[retryKey] = attemptCount;
+                    if (attemptCount >= MaxCustomEventRetries)
+                        _customEventRetryCount.Remove(retryKey);
                 }
-                FinalizeClaimedCustomEvent(processedColumn, id, succeeded: false);
+                if (attemptCount >= MaxCustomEventRetries)
+                    MarkClaimedCustomEventFailed(processedColumn, id, SocialEventSkipReason.DeliveryRetriesExhausted);
+                else
+                    FinalizeClaimedCustomEvent(processedColumn, id, succeeded: false);
             }
         }
     }
@@ -561,6 +545,24 @@ public sealed partial class EventDataService : IDisposable
             cmd.Parameters.AddWithValue("@reason", reason.ToString());
             cmd.ExecuteNonQuery();
         });
+    }
+
+    private void MarkClaimedCustomEventFailed(string processedColumn, string id, SocialEventSkipReason reason)
+    {
+        var skipReasonColumn = GetSkipReasonColumn(processedColumn)
+            ?? throw new ArgumentException("Unsupported platform column.", nameof(processedColumn));
+        _db.Run(sqlite =>
+        {
+            using var cmd = sqlite.CreateCommand();
+            // Keep failed delivery distinct from completed (1) and claimed (2).
+            // State 3 is held until an operator resets this destination for retry.
+            cmd.CommandText = $"UPDATE Events SET {processedColumn} = @state, {skipReasonColumn} = @reason WHERE Id = @id AND {processedColumn} = 2;";
+            cmd.Parameters.AddWithValue("@state", FailedCustomEventState);
+            cmd.Parameters.AddWithValue("@id", id);
+            cmd.Parameters.AddWithValue("@reason", reason.ToString());
+            cmd.ExecuteNonQuery();
+        });
+        _log.LogError("Custom event {EventId} delivery failed for {Platform}: {Reason}. Held for repair.", id, processedColumn, reason);
     }
 
     private void FinalizeClaimedCustomEvent(string processedColumn, string id, bool succeeded)

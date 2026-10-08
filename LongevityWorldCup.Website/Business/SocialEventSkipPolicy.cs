@@ -15,7 +15,9 @@ public enum SocialEventSkipReason
     TiedBestImprovementBadge,
     StalePrimaryEvent,
     EmptyMessage,
-    FacebookSupportsCustomEventsOnly
+    FacebookSupportsCustomEventsOnly,
+    DeliveryRetriesExhausted,
+    PermanentDeliveryFailure
 }
 
 public static class SocialEventSkipPolicy
