@@ -250,6 +250,50 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 
+(function initializeMerchCarousel() {
+    const merchCarousel = document.getElementById('lwc-merch-mobile-carousel');
+    if (!merchCarousel) {
+        return;
+    }
+
+    const slides = Array.from(merchCarousel.querySelectorAll('.lwc-merch-mobile-slide'));
+    const dots = Array.from(merchCarousel.querySelectorAll('.lwc-merch-mobile-dot'));
+    if (slides.length <= 1) {
+        return;
+    }
+
+    let activeIndex = 0;
+
+    function setActiveSlide(index) {
+        activeIndex = (index + slides.length) % slides.length;
+
+        slides.forEach((slide, slideIndex) => {
+            const isActive = slideIndex === activeIndex;
+            slide.classList.toggle('is-active', isActive);
+            slide.setAttribute('aria-hidden', String(!isActive));
+            slide.tabIndex = isActive ? 0 : -1;
+        });
+
+        dots.forEach((dot, dotIndex) => {
+            dot.classList.toggle('is-active', dotIndex === activeIndex);
+            dot.setAttribute('aria-pressed', String(dotIndex === activeIndex));
+        });
+    }
+
+    dots.forEach((dot, dotIndex) => {
+        dot.addEventListener('click', function (event) {
+            setActiveSlide(dotIndex);
+            if (event.detail === 0) {
+                slides[activeIndex].focus();
+            }
+        });
+    });
+
+    setActiveSlide(0);
+    merchCarousel.hidden = false;
+    merchCarousel.parentElement.classList.add('has-merch-carousel');
+})();
+
 
 function setNewsletterStatus(message, isError = false) {
     newsletterStatus.textContent = message;

@@ -402,11 +402,13 @@ html body #lmxAccessTabs .lmx-tab[aria-selected="true"] {
 
 .events-board,
 .lwc-countdown-box,
-.lwc-merch-item {
+.lwc-merch-item,
+.lwc-merch-mobile-slide {
     border-radius: var(--lwc-radius-lg);
 }
 
-.lwc-merch-item {
+.lwc-merch-item,
+.lwc-merch-mobile-slide {
     border: 1px solid var(--lwc-border);
     box-shadow: none;
 }
@@ -435,7 +437,7 @@ input[type="reset"],
 /* The Play entry is the site's primary conversion action and owns a bounded
    invitation treatment in the shared header. Do not flatten its gradient or
    elevation with the ordinary control reset. */
-button:not(.close):not(.copy-btn):not(.badge-class):not(.join-game),
+button:not(.close):not(.copy-btn):not(.lwc-merch-mobile-dot):not(.badge-class):not(.join-game),
 .option-button,
 .dialog-button,
 .rankings-btn,
@@ -1229,7 +1231,8 @@ html body .leaderboard .athlete-name {
     html body .bioage-form-container,
     html body .sidebar,
     html body .filter-section,
-    html body .lwc-merch-item {
+    html body .lwc-merch-item,
+    html body .lwc-merch-mobile-slide {
         border-color: var(--lwc-border);
         background: var(--lwc-surface);
         color: var(--lwc-ink);
