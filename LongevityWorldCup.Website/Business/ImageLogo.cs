@@ -1,3 +1,4 @@
+using LongevityWorldCup.Website.Tools;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -8,7 +9,7 @@ internal static class ImageLogo
     internal static async Task<Image<Rgba32>> LoadMarkAsync(string logoPath, CancellationToken ct = default)
     {
         await using var logoStream = File.OpenRead(logoPath);
-        var logo = await Image.LoadAsync<Rgba32>(logoStream, ct);
+        var logo = await ImageInput.LoadAsync<Rgba32>(logoStream, ct);
         logo.ProcessPixelRows(accessor =>
         {
             for (var y = 0; y < accessor.Height; y++)

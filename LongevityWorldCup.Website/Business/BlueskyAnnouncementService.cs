@@ -138,7 +138,7 @@ public sealed class BlueskyAnnouncementService(
         {
             if (media.Length > 2_000_000)
             {
-                using var image = Image.Load(media);
+                using var image = ImageInput.Load(media);
                 using var jpeg = new MemoryStream();
                 await image.SaveAsJpegAsync(jpeg, new JpegEncoder { Quality = 80 }, ct);
                 media = jpeg.ToArray();

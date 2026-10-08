@@ -692,7 +692,7 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
                 pendingThumbPath = Path.Combine(
                     _profileThumbDir,
                     $".{thumbFileName}.{Guid.NewGuid():N}.tmp");
-                using var image = Image.Load(sourceImagePath);
+                using var image = ImageInput.Load(sourceImagePath);
                 cancellationToken.ThrowIfCancellationRequested();
                 image.Mutate(ctx => ctx
                     .AutoOrient()

@@ -1,3 +1,4 @@
+using LongevityWorldCup.Website.Tools;
 using System.ComponentModel.DataAnnotations;
 using System.Collections.Concurrent;
 using System.Diagnostics;
@@ -42,7 +43,6 @@ public sealed partial class LongevitymaxxingChallengeService
     private const string GravatarMissingCacheVersion = "v4";
     private const string GravatarUserAgent = "LongevityWorldCup/1.0 (+https://longevityworldcup.com)";
     private static readonly TimeSpan GravatarMissingCacheDuration = TimeSpan.FromDays(1);
-    private static readonly SemaphoreSlim ProfilePictureWarmupSlots = new(2);
     private static readonly EmailAddressAttribute EmailValidator = new();
     private static readonly string[] CategoryNames = ["Sleep", "Exercise", "Nutrition", "Vices"];
 
@@ -55,6 +55,7 @@ public sealed partial class LongevitymaxxingChallengeService
     private readonly IAthleteSnapshotProvider? _athletes;
     private readonly SiteStatisticsService? _statistics;
     private readonly ConcurrentDictionary<string, byte> _profilePictureWarmups = new(StringComparer.Ordinal);
+    private readonly SemaphoreSlim _profilePictureWarmupSlots = new(2);
 
     public LongevitymaxxingChallengeService(
         DatabaseManager db,
@@ -470,7 +471,7 @@ public sealed partial class LongevitymaxxingChallengeService
         try
         {
             await using var input = profilePicture.OpenReadStream();
-            using var image = await Image.LoadAsync(input, ct).ConfigureAwait(false);
+            using var image = await ImageInput.LoadAsync(input, ct).ConfigureAwait(false);
             image.Mutate(ctx => ctx
                 .AutoOrient()
                 .Resize(new ResizeOptions
@@ -2048,7 +2049,7 @@ public sealed partial class LongevitymaxxingChallengeService
         try
         {
             await using var input = photo.OpenReadStream();
-            using var image = await Image.LoadAsync(input, ct).ConfigureAwait(false);
+            using var image = await ImageInput.LoadAsync(input, ct).ConfigureAwait(false);
             image.Mutate(ctx => ctx
                 .AutoOrient()
                 .Resize(new ResizeOptions
@@ -4320,7 +4321,7 @@ public sealed partial class LongevitymaxxingChallengeService
 
             _ = Task.Run(async () =>
             {
-                await ProfilePictureWarmupSlots.WaitAsync().ConfigureAwait(false);
+                await _profilePictureWarmupSlots.WaitAsync().ConfigureAwait(false);
                 try
                 {
                     _ = TryBuildGravatarProfilePictureUrl(participant);
@@ -4331,7 +4332,7 @@ public sealed partial class LongevitymaxxingChallengeService
                 }
                 finally
                 {
-                    ProfilePictureWarmupSlots.Release();
+                    _profilePictureWarmupSlots.Release();
                     _profilePictureWarmups.TryRemove(participant.Id, out _);
                 }
             });
@@ -4406,7 +4407,7 @@ public sealed partial class LongevitymaxxingChallengeService
             try
             {
                 using var input = new MemoryStream(avatar.Bytes);
-                using var image = Image.Load(input);
+                using var image = ImageInput.Load(input);
                 image.Mutate(ctx => ctx
                     .AutoOrient()
                     .Resize(new ResizeOptions

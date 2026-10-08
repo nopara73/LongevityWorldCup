@@ -15,6 +15,25 @@ namespace LongevityWorldCup.Tests;
 
 public class ApplicationImageOptimizationTests
 {
+    [Theory]
+    [InlineData("OptimizeProfileImage")]
+    [InlineData("OptimizeProofImage")]
+    public void TiffDisguisedAsJpegIsRejectedIncludingOriginalBytePassthrough(string methodName)
+    {
+        var controller = CreateController();
+        var method = typeof(ApplicationController).GetMethod(methodName, BindingFlags.Instance | BindingFlags.NonPublic);
+        Assert.NotNull(method);
+        var imageData = (TiffTestFiles.Classic, "image/jpeg", "jpg");
+        object?[] arguments = methodName == "OptimizeProofImage"
+            ? [imageData, "test-submission", 1]
+            : [imageData, "test-submission"];
+
+        var result = method!.Invoke(controller, arguments);
+
+        Assert.NotNull(result);
+        Assert.False((bool)result!.GetType().GetProperty("Success")!.GetValue(result)!);
+    }
+
     [Fact]
     public void BoundedProofPngPassesThroughWithoutReencoding()
     {

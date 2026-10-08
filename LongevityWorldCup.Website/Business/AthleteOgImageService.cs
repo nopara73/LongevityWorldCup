@@ -258,7 +258,7 @@ public sealed class AthleteOgImageService
         try
         {
             await using var profileStream = File.OpenRead(profilePath);
-            using var profile = await Image.LoadAsync<Rgba32>(profileStream, ct);
+            using var profile = await ImageInput.LoadAsync<Rgba32>(profileStream, ct);
             profile.Mutate(ctx => ctx.AutoOrient().Resize(new ResizeOptions
             {
                 Size = new Size(PortraitSize, PortraitSize),

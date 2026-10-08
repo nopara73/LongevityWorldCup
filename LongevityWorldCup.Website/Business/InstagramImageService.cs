@@ -1,3 +1,4 @@
+using LongevityWorldCup.Website.Tools;
 using System.Security.Cryptography;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Jpeg;
@@ -13,7 +14,7 @@ public sealed class InstagramImageService(IWebHostEnvironment environment, Custo
             ? new MemoryStream(await File.ReadAllBytesAsync(memePath, ct))
             : await cards.RenderToStreamAsync(rawText, resolveName, ct)
                 ?? throw new InvalidOperationException("Instagram announcement image rendering is unavailable.");
-        using var image = await Image.LoadAsync(stream, ct);
+        using var image = await ImageInput.LoadAsync(stream, ct);
         var ratio = (double)image.Width / image.Height;
         if (image.Width is < 320 or > 1440 || ratio is < 0.8 or > 1.91)
             image.Mutate(x => x.Resize(new ResizeOptions

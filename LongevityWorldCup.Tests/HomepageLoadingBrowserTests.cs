@@ -80,7 +80,10 @@ public sealed class HomepageLoadingBrowserTests(
             })();
             """.Replace("TARGET", System.Text.Json.JsonSerializer.Serialize(target)));
         var page = await context.NewPageAsync();
-        await page.Clock.InstallAsync();
+        var pausedTime = DateTime.UtcNow;
+        await page.Clock.InstallAsync(new() { TimeDate = pausedTime.AddHours(-1) });
+        // Module loading must not consume the request timeout before the test advances time.
+        await page.Clock.PauseAtAsync(pausedTime);
         await page.GotoAsync("/", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
         await page.EvaluateAsync("() => window.modulesReady");
         await page.WaitForFunctionAsync("path => window.publicDataAttempts[path] === 1", target);
@@ -159,6 +162,77 @@ public sealed class HomepageLoadingBrowserTests(
         await Assertions.Expect(page.Locator(".podium-item.first .athlete-name")).ToBeFocusedAsync();
         Assert.True(await page.EvaluateAsync<bool>("window.originalPodiumCard === document.querySelector('.podium-item.first')"));
         Assert.Equal(1, totalRequests);
+    }
+
+    [Theory]
+    [InlineData(1440)]
+    [InlineData(390)]
+    public async Task Podium_LoadingPlaceholdersReserveVisiblePrizeSteps(int width)
+    {
+        await using var context = await NewContextAsync(width);
+        await context.AddInitScriptAsync(
+            """
+            document.addEventListener('DOMContentLoaded', () => {
+                // Exercise the client-rendered loading state, even when SSR is available.
+                const podium = document.querySelector('.podium');
+                podium.replaceChildren();
+                delete podium.dataset.serverRendered;
+            });
+            """);
+        var releaseAthletes = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await context.RouteAsync("**/api/data/athletes", async route =>
+        {
+            await releaseAthletes.Task;
+            await route.ContinueAsync();
+        });
+        var page = await context.NewPageAsync();
+        double[] stepHeights = [];
+        try
+        {
+            await page.GotoAsync("/", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+            await Assertions.Expect(page.Locator(".podium-skeleton-item")).ToHaveCountAsync(3);
+            await Assertions.Expect(page.Locator(".podium-skeleton-item .podium-item-lower")).ToHaveCountAsync(3);
+            foreach (var step in await page.Locator(".podium-skeleton-item .podium-item-lower").AllAsync())
+            {
+                await Assertions.Expect(step).ToBeVisibleAsync();
+                var bounds = await step.BoundingBoxAsync();
+                Assert.NotNull(bounds);
+                Assert.True(bounds.Height >= 40, "Loading prize steps must reserve visible space.");
+            }
+            stepHeights = await page.EvaluateAsync<double[]>(
+                """
+                () => ['first', 'second', 'third'].map(rank =>
+                    document.querySelector(`.podium-skeleton-item.${rank} .podium-item-lower`)
+                        .getBoundingClientRect().height)
+                """);
+            var geometry = await page.EvaluateAsync<double[]>(
+                """
+                () => ['first', 'second', 'third'].map(rank =>
+                    document.querySelector(`.podium-skeleton-item.${rank} .podium-item-lower`)
+                        .getBoundingClientRect().top)
+                """);
+            if (width > 768)
+            {
+                Assert.True(geometry[0] < geometry[1] && geometry[1] < geometry[2]);
+            }
+            else
+            {
+                Assert.True(geometry[0] < geometry[1] && geometry[0] < geometry[2]);
+            }
+        }
+        finally
+        {
+            releaseAthletes.TrySetResult();
+        }
+        await ExpectHomepageLoadedAsync(page);
+        Assert.Equal(0, await page.Locator(".podium-skeleton-item").CountAsync());
+        var ranks = new[] { "first", "second", "third" };
+        for (var index = 0; index < ranks.Length; index++)
+        {
+            var bounds = await page.Locator($".podium-item.{ranks[index]} .podium-item-lower").BoundingBoxAsync();
+            Assert.NotNull(bounds);
+            Assert.InRange(Math.Abs(bounds.Height - stepHeights[index]), 0, 1);
+        }
     }
 
     [Theory]

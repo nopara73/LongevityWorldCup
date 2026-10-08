@@ -1778,29 +1778,27 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity) {
 };
 
 function buildPodiumSkeletonHtml() {
-    return `
-        <div class="podium-item podium-skeleton-item second" aria-hidden="true">
+    return ['second', 'first', 'third'].map(rank => `
+        <div class="podium-item podium-skeleton-item ${rank}" aria-hidden="true">
             <div class="podium-skeleton-portrait skeleton-shimmer"></div>
             <div class="name-row">
-                <span class="athlete-name skeleton-shimmer"></span>
+                <span class="athlete-name skeleton-shimmer">&nbsp;</span>
             </div>
-            <div class="podium-skeleton-line skeleton-shimmer"></div>
-        </div>
-        <div class="podium-item podium-skeleton-item first" aria-hidden="true">
-            <div class="podium-skeleton-portrait skeleton-shimmer"></div>
-            <div class="name-row">
-                <span class="athlete-name skeleton-shimmer"></span>
+            <div class="podium-link-row">
+                <span class="podium-skeleton-link skeleton-shimmer"></span>
+                <span class="podium-skeleton-link skeleton-shimmer"></span>
+                <span class="podium-skeleton-link skeleton-shimmer"></span>
             </div>
-            <div class="podium-skeleton-line skeleton-shimmer"></div>
-        </div>
-        <div class="podium-item podium-skeleton-item third" aria-hidden="true">
-            <div class="podium-skeleton-portrait skeleton-shimmer"></div>
-            <div class="name-row">
-                <span class="athlete-name skeleton-shimmer"></span>
+            <div class="podium-score">
+                <span class="age-reduction skeleton-shimmer">&nbsp;</span>
+                <span class="podium-skeleton-caption skeleton-shimmer">&nbsp;</span>
             </div>
-            <div class="podium-skeleton-line skeleton-shimmer"></div>
+            <div class="podium-item-lower podium-skeleton-prize">
+                <div class="btc-amount">&nbsp;</div>
+                <div class="prize-money">&nbsp;</div>
+            </div>
         </div>
-    `;
+    `).join('');
 }
 
 function buildLeaderboardSkeletonRows(count) {

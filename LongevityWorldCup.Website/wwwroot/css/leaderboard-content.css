@@ -133,24 +133,41 @@
  .podium-skeleton-item .podium-skeleton-portrait{
      width:var(--podium-portrait-size);
      height:var(--podium-portrait-size);
-     margin:1.5rem auto .75rem;
+     margin:0 auto 1.6rem;
  }
 
  .podium-skeleton-item .name-row{
      width:100%;
  }
 
- .podium-skeleton-item .athlete-name{
+ .podium .podium-skeleton-item .athlete-name{
      display:block;
      width:75%;
-     height:18px;
      margin:0 auto;
+     color:transparent;
+     text-decoration:none;
+     cursor:default;
  }
 
- .podium-skeleton-item .podium-skeleton-line{
-     height:14px;
+ .podium-skeleton-link{
+     width:44px;
+     height:44px;
+ }
+
+ .podium-skeleton-item .age-reduction{
      width:66%;
-     margin:.6rem auto 0;
+     margin-inline:auto;
+ }
+
+ .podium-skeleton-caption{
+     display:block;
+     width:4em;
+     margin-inline:auto;
+ }
+
+ .podium-skeleton-prize{
+     border-top-color:var(--lwc-border);
+     background:var(--lwc-surface-muted);
  }
 
  .leaderboard table tbody.loading-skeleton tr{
@@ -396,6 +413,16 @@
  }
  .sidebar:hover .collapsed-title, .sidebar.expanded .collapsed-title{ display:none; }
  .sidebar-heading{ display:flex; align-items:center; gap:var(--lwc-space-2); width:100%; border-bottom:1px solid var(--lwc-border); }
+ /* The rail's heading is the first cell of the board's head: same tint, same
+    height, no gap, collapsed or open. */
+ @media (min-width: 769px){
+     .leaderboard{ --leaderboard-head-height:70px; }
+     .leaderboard .sidebar{ margin-right:0; }
+     .leaderboard .sidebar-heading{ box-sizing:border-box; min-height:var(--leaderboard-head-height); background:var(--lwc-surface-accent, var(--surface-accent)); }
+     .leaderboard table thead th{ height:var(--leaderboard-head-height); box-sizing:border-box; }
+     .sidebar:hover:not(.button-collapsed):not([aria-hidden="true"]) .sidebar-heading,
+     .sidebar.expanded .sidebar-heading{ align-self:stretch; width:auto; margin:-1rem -1rem 0; padding-inline:1rem; }
+ }
  .sidebar:hover .sidebar-title, .sidebar.expanded .sidebar-title{ width:auto; }
  .sidebar:hover:not(.button-collapsed):not([aria-hidden="true"]) .sidebar-title,
  .sidebar.expanded .sidebar-title{ position:static; justify-content:flex-start; }
@@ -653,17 +680,18 @@
  /* PODIUM portrait (bounded even if not wrapped) */
  .podium-item .podium-portrait{
      width:var(--podium-portrait-size); height:var(--podium-portrait-size); aspect-ratio:1 / 1; border-radius:50%; object-fit:cover;
-     border:3px solid var(--secondary-color); margin:.68rem 0 .55rem; cursor:pointer; transition:transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease); will-change:transform;
+     border:3px solid var(--podium-metal); box-shadow:var(--lwc-shadow-md, 0 10px 28px rgba(15,23,42,.1)); margin:0 0 1.6rem; cursor:pointer; transition:transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease); will-change:transform;
      flex:0 0 auto; box-sizing:border-box; /* include border in the height */
  }
- .podium-item .podium-portrait:hover{ transform: scale(1.1); }
+ .podium-item .podium-portrait:hover{ transform: scale(1.04); }
 
  /* When wrapped on podium: wrapper defines circle, img fills it */
- .podium-item .rank-change{ display:block; width:var(--podium-portrait-size); height:var(--podium-portrait-size); margin:.68rem 0 .55rem; flex:0 0 auto; }
+ .podium-item .rank-change{ display:block; width:var(--podium-portrait-size); height:var(--podium-portrait-size); margin:0 0 1.6rem; flex:0 0 auto; }
  .podium-item .rank-change img.podium-portrait{
      width:100%; height:100%; border-radius:50%; object-fit:cover; transition:transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease); box-sizing:border-box;
  }
- .podium-item .rank-change img.podium-portrait:hover{ transform: scale(1.1); }
+ .podium-item .rank-change img.podium-portrait{ margin:0; }
+ .podium-item .rank-change img.podium-portrait:hover{ transform: scale(1.04); }
 
  .podium .name-row {
      display: flex;
@@ -810,13 +838,15 @@
  }
 
  /* =========================
-    7) Podium cards
+    7) Podium
+    The top three stand on a stepped plinth as wide as the board below it.
     ========================= */
  .podium{
      --podium-gold-surface:#fff9db;
      --podium-silver-surface:#e9eef2;
      --podium-bronze-surface:#f3e8da;
-     display:flex; justify-content:center; align-items:stretch; gap:var(--lwc-space-4); margin-bottom:var(--lwc-space-6);
+     display:flex; justify-content:center; align-items:stretch; gap:0;
+     margin:0 0 var(--lwc-space-6); padding:0;
  }
  @media (prefers-color-scheme:dark){
      .podium{
@@ -826,44 +856,52 @@
      }
  }
  .podium-item{
-     --podium-prize-panel-height: 82px;
-     --podium-portrait-size: 112px;
-     position:relative; text-align:center; padding:var(--lwc-space-5) var(--lwc-space-4) calc(var(--podium-prize-panel-height) + var(--lwc-space-4)); background:var(--card-bg); border-radius:var(--lwc-radius-lg);
-     margin:0; display:flex; flex-direction:column; align-items:center;
-     justify-content:flex-start; width:272px; max-width:calc((100% - 2 * var(--lwc-space-4)) / 3); min-height:230px; box-sizing:border-box; transition:opacity var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease), transform var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease); cursor:pointer;
- }
- .podium .podium-item:hover,
- .podium .podium-item:focus-within{
-     border-color:var(--lwc-border-strong, #71808d);
-     box-shadow:var(--shadow-sm, 0 1px 2px rgba(15,23,42,.08));
+     --podium-portrait-size:120px;
+     --podium-step:4.75rem;
+     position:relative; display:flex; flex-direction:column; align-items:center; justify-content:flex-start;
+     width:calc(100% / 3); max-width:384px; margin:0; padding:0; box-sizing:border-box;
+     text-align:center; cursor:pointer;
+     transition:opacity var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease), transform var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
  }
  .podium-item.blurred{ filter: blur(5px); pointer-events:none; }
- .podium-item.first{ --podium-portrait-size: 144px; order:2; min-height:358px; margin-top:0; }
- .podium-item.second{ --podium-portrait-size: 126px; order:1; min-height:340px; margin-top:18px; }
- .podium-item.third{ --podium-portrait-size: 110px; order:3; min-height:324px; margin-top:34px; }
+ /* Each placing starts lower than the one above it and all three share a floor,
+    so the steps keep their order however long a name wraps. */
+ .podium-item.first{ --podium-metal:var(--lwc-gold, #f5c542); --podium-surface:var(--podium-gold-surface); --podium-portrait-size:160px; --podium-step:7.75rem; order:2; }
+ .podium-item.second{ --podium-metal:var(--lwc-silver, #c9d2da); --podium-surface:var(--podium-silver-surface); --podium-portrait-size:132px; --podium-step:6.125rem; order:1; margin-top:66px; }
+ .podium-item.third{ --podium-metal:var(--lwc-bronze, #dba06d); --podium-surface:var(--podium-bronze-surface); --podium-portrait-size:120px; order:3; margin-top:108px; }
 
+ /* Prize steps stay on the shared floor, even when a different name wraps. */
  .podium-item-lower{
-     position:absolute; bottom:0; width:100%; min-height:var(--podium-prize-panel-height); padding:10px 0; border-radius:0 0 var(--radius-lg, 12px) var(--radius-lg, 12px);
-     display:flex; flex-direction:column; align-items:center; clip-path:polygon(0 0, 100% 0, 100% 100%, 0% 100%);
-     transition:clip-path var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease); pointer-events:auto; cursor:pointer; color:var(--lwc-ink, #17212b); text-decoration:none;
-     box-sizing:border-box;
+     position:relative; align-self:stretch; flex:0 0 auto; min-height:var(--podium-step); margin-top:auto; padding:var(--lwc-space-3) var(--lwc-space-2) 0; box-sizing:border-box;
+     display:flex; flex-direction:column; align-items:center; justify-content:flex-start;
+     border-top:3px solid var(--podium-metal); background:var(--podium-surface); color:var(--lwc-ink, #17212b); text-decoration:none; cursor:pointer;
+     transition:filter var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
  }
- .podium-item-lower:hover{ clip-path:polygon(0 0, 100% 0, 100% 100%, 0% 100%); }
- .podium-item.first .podium-item-lower{ background:var(--podium-gold-surface); }
- .podium-item.second .podium-item-lower{ background:var(--podium-silver-surface); }
- .podium-item.third .podium-item-lower{ background:var(--podium-bronze-surface); }
- .prize-money{ font-weight:bold; font-size:1.55rem; color:var(--lwc-success, #1f7a38); margin-top:1px; font-variant-numeric:tabular-nums; }
- .btc-amount{ margin-top:.62rem; font-weight:normal; font-size:.72rem; color:inherit; line-height:1.2; }
+ .podium-item-lower:hover,
+ .podium-item-lower:focus-visible{ filter:brightness(.96); }
+ .podium-item-lower:focus-visible{ outline:3px solid var(--lwc-accent); outline-offset:-5px; }
+ @media (forced-colors:active){
+     .podium-item-lower:focus-visible{ outline-offset:-5px !important; }
+ }
+ .podium-item.first .podium-item-lower{ border-radius:var(--radius-md, 8px) var(--radius-md, 8px) 0 0; }
+ .podium-item.second .podium-item-lower{ border-radius:var(--radius-md, 8px) 0 0 0; }
+ .podium-item.third .podium-item-lower{ border-radius:0 var(--radius-md, 8px) 0 0; }
+ .prize-money{ max-width:100%; overflow-wrap:anywhere; font-weight:bold; font-size:1.55rem; line-height:1.2; color:var(--lwc-success, #1f7a38); font-variant-numeric:tabular-nums; }
+ .podium-item.first .prize-money{ font-size:1.9rem; }
+ .btc-amount{ order:1; margin-top:.15rem; font-weight:normal; font-size:.72rem; color:inherit; line-height:1.2; }
 
+ /* The placing icon sits in the leaderboard's rank chip, worn as a medal. */
  .podium-rank{
-     position:absolute; top:var(--lwc-space-2); left:var(--lwc-space-2); background:transparent; color:var(--lwc-ink, #17212b);
-     padding:0; border-radius:50%; width:44px; height:44px; display:flex; justify-content:center; align-items:center;
-     font-size:1.5rem;
+     position:absolute; top:calc(var(--podium-portrait-size) - 18px); left:50%; z-index:2; width:32px; height:32px; margin-left:-16px; padding:0;
+     display:flex; justify-content:center; align-items:center; box-sizing:border-box;
+     border-radius:50%; background:var(--podium-metal); box-shadow:0 0 0 3px var(--lwc-canvas, #f3f5f7); font-size:.85rem;
  }
+ .podium-rank i{ color:#17212b !important; }
 
- .podium .athlete-name { color:var(--lwc-ink); text-decoration-color:var(--lwc-border-strong); }
- .podium-score { color:var(--lwc-muted); font-size:var(--lwc-type-sm); }
- .podium-score .age-reduction { color:var(--lwc-accent); font-size:var(--lwc-type-body); }
+ .podium .athlete-name{ color:var(--lwc-ink); text-decoration-color:var(--lwc-border-strong); }
+ .podium-score{ margin-bottom:var(--lwc-space-4); color:var(--lwc-muted); font-size:var(--lwc-type-sm); }
+ .podium-score .age-reduction{ display:block; color:var(--lwc-accent); font-size:1.5rem; line-height:1.2; text-align:center; font-variant-numeric:tabular-nums; }
+ .podium-item.first .podium-score .age-reduction{ font-size:1.9rem; }
 
  /* =========================
     8) Table row bits
@@ -893,7 +931,8 @@
      color:var(--secondary-color); background-color:rgba(8,118,133,.08); outline:3px solid rgba(0,188,212,.38); outline-offset:2px;
  }
  .athlete-profile-link:focus-visible{ outline:3px solid var(--primary-color); outline-offset:3px; border-radius:8px; }
- .podium .athlete-name{ font-size:1.1rem; font-weight:700; padding-bottom:.2rem; }
+ .podium .athlete-name{ font-size:1.2rem; font-weight:700; min-height:0; padding-block:.3rem; }
+ .podium-item.first .athlete-name{ font-size:1.4rem; }
 
  .media-contact{
      color:var(--lwc-accent, #087685); text-decoration:none; transition:color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease); font-size:1.5rem; padding:.5rem; margin:10px 0;
@@ -2221,6 +2260,9 @@
      .leaderboard table .media-contact-td{
          display:none;
      }
+     /* Age reduction is now the last column; keep it off the board's edge. */
+     .leaderboard table th:nth-child(4),
+     .leaderboard table .age-reduction-td{ padding-right:var(--lwc-space-4, 1rem); }
      .leaderboard table td .badge-section{ display:none; }
  }
 
@@ -2319,38 +2361,47 @@
      .filter-section label{ min-height:44px; padding:.52rem .65rem; }
      .content{ margin-left:0; }
 
-     .podium{
-         display:flex; flex-direction:row; justify-content:center; align-items:stretch; gap:var(--lwc-space-3); margin:0 0 var(--lwc-space-5); padding:0; flex-wrap:wrap; width:100%;
+     /* Phones: the three become cards, champion first. */
+     .podium{ flex-wrap:wrap; align-items:stretch; gap:var(--lwc-space-3); width:100%; margin:0 0 var(--lwc-space-5); padding:0; }
+     .podium-item{
+         width:calc((100% - var(--lwc-space-3)) / 2); max-width:none; padding:var(--lwc-space-3) var(--lwc-space-2) 0; overflow:hidden;
+         border:1px solid var(--lwc-border); border-radius:var(--lwc-radius-lg); background:var(--lwc-surface); box-shadow:var(--lwc-shadow-sm);
      }
-     .podium .athlete-name{ font-size:var(--lwc-type-body); }
-     .podium-item{ --podium-prize-panel-height:72px; width:calc((100% - var(--lwc-space-3)) / 2); max-width:none; padding:var(--lwc-space-3) var(--lwc-space-2) calc(var(--podium-prize-panel-height) + var(--lwc-space-3)); }
-     .podium-item.first{ --podium-portrait-size:100px; order:1; width:100%; max-width:440px; height:auto; min-height:0; }
-     .podium-item.second{ --podium-portrait-size:72px; order:2; height:auto; min-height:0; }
-     .podium-item.third{ --podium-portrait-size:72px; order:3; height:auto; min-height:0; }
-     .podium-item.first,
-     .podium-item.second,
-     .podium-item.third{ margin-top:0; }
+     .podium-item.first{ --podium-portrait-size:104px; order:1; width:100%; max-width:440px; }
+     .podium-item.second{ --podium-portrait-size:clamp(72px, 22vw, 84px); order:2; margin-top:0; }
+     .podium-item.third{ --podium-portrait-size:clamp(72px, 22vw, 84px); order:3; margin-top:0; }
      .podium-item .podium-portrait,
-     .podium-item .rank-change{ margin:var(--lwc-space-2) 0; }
+     .podium-item .rank-change,
+     .podium-skeleton-item .podium-skeleton-portrait{ margin:0 auto 1.2rem; }
      .podium-item .name-row{ justify-content:center; }
-     .podium-item-lower{ padding:8px 0; }
-     .podium-rank{ top:0; left:0; font-size:1.2rem; }
+     .podium .athlete-name{ font-size:var(--lwc-type-body); }
+     .podium-rank{ top:calc(var(--lwc-space-3) + var(--podium-portrait-size) - 16px); width:28px; height:28px; margin-left:-14px; font-size:.75rem; box-shadow:0 0 0 3px var(--lwc-surface, #fff); }
      .podium-link-row{ flex-wrap:wrap; max-width:100%; gap:0; }
-     .podium .btc-amount{ margin-top:var(--lwc-space-1); font-size:.7rem; }
-     .podium .prize-money{ font-size:1.25rem; }
-     .podium-item.first:not(.podium-skeleton-item){
-         display:grid; grid-template-columns:100px minmax(0, max-content); grid-template-areas:"portrait name" "portrait score" "portrait links";
-         justify-content:center; column-gap:var(--lwc-space-3); row-gap:0;
-         padding:var(--lwc-space-4) var(--lwc-space-3) calc(var(--podium-prize-panel-height) + var(--lwc-space-3)); text-align:left;
+     .podium-score{ margin-bottom:var(--lwc-space-2); }
+     .podium-score .age-reduction{ font-size:1.25rem; }
+     .podium-item .podium-item-lower,
+     .podium-item.first .podium-item-lower{ flex:0 0 auto; min-height:0; margin:auto calc(-1 * var(--lwc-space-2)) 0; padding:var(--lwc-space-2) var(--lwc-space-2) var(--lwc-space-3); border-radius:0; }
+     .podium .prize-money,
+     .podium-item.first .prize-money{ font-size:1.25rem; }
+     .podium .btc-amount{ font-size:.7rem; }
+     .podium-item.first{
+         display:grid; grid-template-columns:var(--podium-portrait-size) minmax(0, 1fr); grid-template-areas:"portrait name" "portrait score" "portrait links" "prize prize";
+         column-gap:var(--lwc-space-4); row-gap:0; align-content:start; padding:var(--lwc-space-4) var(--lwc-space-4) 0; text-align:left;
      }
-     .podium-item.first > .athlete-profile-link{ grid-area:portrait; }
+     .podium-item.first > .athlete-profile-link,
+     .podium-item.first > .podium-skeleton-portrait{ grid-area:portrait; align-self:start; }
      .podium-item.first .podium-portrait,
-     .podium-item.first .rank-change{ margin:0; }
+     .podium-item.first .rank-change,
+     .podium-item.first .podium-skeleton-portrait{ margin:0; }
+     .podium-item.first .podium-rank{ top:calc(var(--lwc-space-4) + var(--podium-portrait-size) - 16px); left:calc(var(--lwc-space-4) + var(--podium-portrait-size) / 2); }
      .podium-item.first > .name-row{ grid-area:name; justify-content:flex-start; }
-     .podium-item.first .athlete-name{ padding-inline:0; }
+     .podium-item.first .athlete-name{ padding-inline:0; font-size:1.25rem; }
      .podium-item.first > .podium-link-row{ grid-area:links; justify-self:start; justify-content:flex-start; }
-     .podium-item.first > .podium-score{ grid-area:score; justify-self:start; }
-     .podium-item.first > .podium-item-lower{ left:0; }
+     .podium-item.first > .podium-score{ grid-area:score; justify-self:start; margin-bottom:0; }
+     .podium-item.first .podium-score .age-reduction{ font-size:1.6rem; text-align:left; }
+     .podium-item.first > .podium-item-lower{ grid-area:prize; margin:var(--lwc-space-4) calc(-1 * var(--lwc-space-4)) 0; flex-direction:row; flex-wrap:wrap; justify-content:center; align-items:baseline; gap:var(--lwc-space-2); }
+     .podium-item.first .btc-amount{ margin-top:0; }
+     .podium-skeleton-item.first .age-reduction{ margin-inline:0; }
 
      .leaderboard table{ width:100%; table-layout:auto; }
      .leaderboard table th:last-child,
@@ -3269,18 +3320,6 @@
  .sponsor-coming-soon:hover,
  .leaderboard-metric-link:hover {
      color: var(--primary-color-hover);
- }
-
- .podium-item {
-     border: 1px solid var(--border-color);
-     border-radius: var(--radius-lg, 12px);
-     background: var(--card-bg);
-     box-shadow: none;
- }
-
- .podium-item:hover {
-     box-shadow: none;
-     transform: none;
  }
 
  .leaderboard .age-reduction,

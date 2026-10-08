@@ -63,7 +63,8 @@ public sealed class PublicPageRenderingBrowserTests(PlaywrightBrowserFixture bro
     {
         await using var staticContext = await NewContextAsync(Browser, App, new() { JavaScriptEnabled = false });
         var staticPage = await staticContext.NewPageAsync();
-        await staticPage.GotoAsync(path);
+        await staticPage.GotoAsync(path, new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await WaitForLocalStylesheetsAsync(staticPage);
         var initial = await ReadRows(staticPage);
         await Assertions.Expect(staticPage.Locator(".leaderboard table tbody")).ToHaveAttributeAsync("data-server-rendered", "true");
         if (!path.Contains("crowd")) Assert.NotEmpty(initial);
@@ -71,8 +72,9 @@ public sealed class PublicPageRenderingBrowserTests(PlaywrightBrowserFixture bro
         await using var context = await NewContextAsync(Browser, App, new() { ReducedMotion = ReducedMotion.Reduce });
         await context.AddInitScriptAsync("localStorage.setItem('gmaSkipAll','true')");
         var page = await context.NewPageAsync();
-        await page.GotoAsync(path);
+        await page.GotoAsync(path, new() { WaitUntil = WaitUntilState.DOMContentLoaded });
         await page.WaitForFunctionAsync("() => !document.querySelector('.leaderboard table tbody').hasAttribute('data-server-rendered') && document.getElementById('leaderboardStatus').textContent === 'Leaderboard loaded.'");
+        await WaitForLocalStylesheetsAsync(page);
         Assert.Equal(initial, await ReadRows(page));
         if (path == "/")
         {
@@ -210,6 +212,13 @@ public sealed class PublicPageRenderingBrowserTests(PlaywrightBrowserFixture bro
 
     private static Task<string[]> ReadRows(IPage page) => page.Locator(".leaderboard table tbody tr[data-athlete-name]:visible").EvaluateAllAsync<string[]>(
         "rows => rows.map(row => [row.id, row.dataset.athleteName, row.querySelector('.rank').textContent, row.querySelector('.age-reduction').textContent].join('|'))");
+
+    private static Task WaitForLocalStylesheetsAsync(IPage page) => page.WaitForFunctionAsync(
+        """
+        () => [...document.querySelectorAll('link[rel="stylesheet"]')]
+            .filter(link => new URL(link.href).origin === location.origin)
+            .every(link => link.sheet !== null)
+        """);
 
     private static Task<string[]> ReadPodiumScoreStyles(IPage page) => page.Locator(".podium .age-reduction").EvaluateAllAsync<string[]>(
         "scores => scores.map(score => { const value = getComputedStyle(score); const label = getComputedStyle(score.parentElement); return [value.fontSize, value.color, label.fontSize, label.color].join('|'); })");
