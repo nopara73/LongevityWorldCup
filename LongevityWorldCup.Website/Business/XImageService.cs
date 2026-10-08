@@ -389,7 +389,7 @@ public class XImageService
     {
         try
         {
-            using var profile = await Image.LoadAsync<Rgba32>(path);
+            using var profile = await ImageInput.LoadAsync<Rgba32>(path);
             profile.Mutate(ctx => ctx.AutoOrient().Resize(new ResizeOptions
             {
                 Size = new Size(size, size),
@@ -428,7 +428,7 @@ public class XImageService
     {
         try
         {
-            using var profile = await Image.LoadAsync<Rgba32>(path);
+            using var profile = await ImageInput.LoadAsync<Rgba32>(path);
             profile.Mutate(ctx => ctx.AutoOrient().Resize(new ResizeOptions
             {
                 Size = new Size(width, height),

@@ -1,3 +1,4 @@
+using LongevityWorldCup.Website.Tools;
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
@@ -363,7 +364,7 @@ public sealed class LeagueOgImageService
     private async Task DrawProfilePortraitAsync(Image<Rgba32> image, string profilePath, LeaderboardRow row, CancellationToken ct)
     {
         await using var profileStream = File.OpenRead(profilePath);
-        using var profile = await Image.LoadAsync<Rgba32>(profileStream, ct);
+        using var profile = await ImageInput.LoadAsync<Rgba32>(profileStream, ct);
         var size = row.PortraitSize;
         profile.Mutate(ctx => ctx.AutoOrient().Resize(new ResizeOptions
         {

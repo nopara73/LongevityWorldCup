@@ -141,6 +141,7 @@ public sealed class LeaderboardPodiumBrowserTests(
             var layouts = await MeasurePodiumAsync(page);
             Assert.Equal(3, layouts.Length);
             AssertPodiumContentDoesNotOverlapPrizePanel(layouts, viewport);
+            AssertMedalsFollowPortraits(layouts, $"at {viewport.Width}x{viewport.Height}");
 
             var first = Assert.Single(layouts, layout => layout.Rank == "first");
             var second = Assert.Single(layouts, layout => layout.Rank == "second");
@@ -198,6 +199,7 @@ public sealed class LeaderboardPodiumBrowserTests(
         await SettleLayoutAsync(page, javaScriptEnabled);
         AssertPodiumContentDoesNotOverlapPrizePanel(
             await MeasurePodiumAsync(page), new ViewportSize { Width = 320, Height = 700 });
+        AssertMedalsFollowPortraits(await MeasurePodiumAsync(page), "with a wrapped champion name on mobile");
         Assert.InRange(await page.EvaluateAsync<int>("document.documentElement.scrollWidth"), 0, 320);
     }
 
@@ -212,6 +214,61 @@ public sealed class LeaderboardPodiumBrowserTests(
         else
         {
             await page.WaitForLoadStateAsync(LoadState.Load);
+        }
+    }
+
+    [Theory]
+    [InlineData(ForcedColors.None)]
+    [InlineData(ForcedColors.Active)]
+    public async Task MobilePrizeLinks_KeepLargeAmountsAndKeyboardFocusInsideTheirCards(ForcedColors forcedColors)
+    {
+        await using var context = await Browser.NewContextAsync(new()
+        {
+            BaseURL = App.BaseAddress.ToString(),
+            Locale = "en-US",
+            ForcedColors = forcedColors,
+            ReducedMotion = ReducedMotion.Reduce,
+            ViewportSize = new() { Width = 320, Height = 844 }
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+        await page.EvaluateAsync(
+            """
+            () => {
+                document.documentElement.style.fontSize = '32px';
+                document.querySelectorAll('.podium-item-lower').forEach(panel => {
+                    panel.querySelector('.prize-money').textContent = '$27000.00';
+                    panel.querySelector('.btc-amount').textContent = '(0.54000000 BTC)';
+                });
+            }
+            """);
+        await SettleLayoutAsync(page, true);
+        foreach (var panel in await page.Locator(".podium-item-lower").AllAsync())
+        {
+            Assert.True(await panel.EvaluateAsync<bool>(
+                """
+                panel => {
+                    const box = panel.getBoundingClientRect();
+                    return [...panel.children].every(child => {
+                        const range = document.createRange();
+                        range.selectNodeContents(child);
+                        return [...range.getClientRects()].every(rect =>
+                            rect.left >= box.left - 1 && rect.right <= box.right + 1);
+                    });
+                }
+                """), "Prize amounts must wrap inside their card rather than be clipped.");
+            await panel.FocusAsync();
+            Assert.True(await panel.EvaluateAsync<bool>(
+                """
+                panel => {
+                    const style = getComputedStyle(panel);
+                    return panel.matches(':focus-visible') && style.outlineStyle !== 'none'
+                        && parseFloat(style.outlineWidth) >= 2
+                        && parseFloat(style.outlineOffset) <= -parseFloat(style.outlineWidth);
+                }
+                """), "The focus ring must remain inside the clipped mobile card.");
         }
     }
 
@@ -240,6 +297,8 @@ public sealed class LeaderboardPodiumBrowserTests(
                 const cardRect = card.getBoundingClientRect();
                 const panelRect = panel.getBoundingClientRect();
                 const metricRect = metric.getBoundingClientRect();
+                const portraitRect = card.querySelector('.podium-portrait').getBoundingClientRect();
+                const medalRect = card.querySelector('.podium-rank').getBoundingClientRect();
                 const contentBottom = Math.max(...[...card.children]
                     .filter(child => !child.matches('.podium-rank, .podium-item-lower'))
                     .map(child => child.getBoundingClientRect().bottom));
@@ -256,7 +315,11 @@ public sealed class LeaderboardPodiumBrowserTests(
                     MetricLeft: metricRect.left,
                     NameLeft: card.querySelector('.athlete-name').getBoundingClientRect().left,
                     LinkRowLeft: card.querySelector('.podium-link-row').getBoundingClientRect().left,
-                    PrizePanelTop: panelRect.top
+                    PrizePanelTop: panelRect.top,
+                    PortraitBottom: portraitRect.bottom,
+                    PortraitCenterX: (portraitRect.left + portraitRect.right) / 2,
+                    MedalCenterX: (medalRect.left + medalRect.right) / 2,
+                    MedalCenterY: (medalRect.top + medalRect.bottom) / 2
                 };
             })
             """);
@@ -294,6 +357,20 @@ public sealed class LeaderboardPodiumBrowserTests(
             $"First place no longer stands clearly above second {context}.");
         Assert.True(second.CardHeight - third.CardHeight >= 16,
             $"Second place no longer stands clearly above third {context}.");
+        Assert.True(second.PrizePanelTop - first.PrizePanelTop >= 16,
+            $"The gold prize step is not clearly above silver {context}.");
+        Assert.True(third.PrizePanelTop - second.PrizePanelTop >= 16,
+            $"The silver prize step is not clearly above bronze {context}.");
+    }
+
+    private static void AssertMedalsFollowPortraits(IEnumerable<PodiumLayout> layouts, string context)
+    {
+        foreach (var layout in layouts)
+        {
+            Assert.InRange(Math.Abs(layout.MedalCenterX - layout.PortraitCenterX), 0, 1);
+            Assert.True(Math.Abs(layout.MedalCenterY - layout.PortraitBottom) <= 6,
+                $"The {layout.Rank}-place medal moved away from its portrait {context}.");
+        }
     }
 
     private sealed class PodiumLayout
@@ -311,5 +388,9 @@ public sealed class LeaderboardPodiumBrowserTests(
         public double NameLeft { get; set; }
         public double LinkRowLeft { get; set; }
         public double PrizePanelTop { get; set; }
+        public double PortraitBottom { get; set; }
+        public double PortraitCenterX { get; set; }
+        public double MedalCenterX { get; set; }
+        public double MedalCenterY { get; set; }
     }
 }

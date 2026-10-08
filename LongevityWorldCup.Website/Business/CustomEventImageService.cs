@@ -132,7 +132,7 @@ public sealed class CustomEventImageService
         var segments = CustomEventMarkup.ParseSegments(contentSource, keepHyperlinkLabels: true, mentionResolver);
         var layout = FindBestLayout(segments);
 
-        var image = await Image.LoadAsync<Rgba32>(_templatePath, ct);
+        var image = await ImageInput.LoadAsync<Rgba32>(_templatePath, ct);
         if (image.Width != CanvasWidth || image.Height != CanvasHeight)
             image.Mutate(ctx => ctx.Resize(CanvasWidth, CanvasHeight));
 

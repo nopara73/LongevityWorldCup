@@ -1,0 +1,16 @@
+<Project>
+  <ItemGroup>
+    <!-- ImageSharp 3.1.12 is retained until the project adopts the v4 licensing path.
+         All image reads use Tools/ImageInput.cs, whose configuration excludes TIFF.
+         There are no TIFF encoders or HistogramEqualization calls in this application. -->
+    <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-j3p4-wp97-rph4" />
+    <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-j9gm-c75j-xc9q" />
+    <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-jjfr-hcj7-qf5w" />
+    <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-wmxv-xphr-5c9g" />
+    <!-- In v3 the ICC CLUT bug requires IccProfile.Entries, which the application
+         never accesses. Loading, cloning and encoding preserve the raw ICC bytes.
+         Reassess these specific exceptions when changing ImageSharp or image processing.
+         NuGet audit stays enabled for every other advisory and dependency. -->
+    <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-gwg2-r3hj-4w44" />
+  </ItemGroup>
+</Project>

@@ -2445,7 +2445,7 @@ namespace LongevityWorldCup.Website.Controllers
 
                 // Load the image from bytes
                 using var inputStream = new MemoryStream(imageData.bytes);
-                using var image = SixLabors.ImageSharp.Image.Load(inputStream);
+                using var image = ImageInput.Load(inputStream);
 
                 var webpEncoder = webpQuality.HasValue
                     ? new WebpEncoder
@@ -2525,7 +2525,7 @@ namespace LongevityWorldCup.Website.Controllers
             try
             {
                 using var inputStream = new MemoryStream(imageData.bytes);
-                var imageInfo = SixLabors.ImageSharp.Image.Identify(inputStream);
+                var imageInfo = ImageInput.Identify(inputStream);
                 if (imageInfo is null
                     || imageInfo.Width > maxDimension
                     || imageInfo.Height > maxDimension

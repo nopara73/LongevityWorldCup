@@ -34,6 +34,11 @@ public sealed class HomepageContributionBrowserTests(
             """,
             donationAddress);
         await SettleLayoutAsync(page);
+        var newsletter = await page.Locator("#newsletter").BoundingBoxAsync();
+        var contribute = await page.Locator("#contribute").BoundingBoxAsync();
+        Assert.NotNull(newsletter);
+        Assert.NotNull(contribute);
+        Assert.InRange(Math.Abs(newsletter!.Y - contribute!.Y), 0, 1);
         // Model any late async homepage content that grows above the fragment target.
         await page.EvaluateAsync(
             """
@@ -41,10 +46,14 @@ public sealed class HomepageContributionBrowserTests(
                 const simulatedLateContent = document.createElement('div');
                 simulatedLateContent.id = 'simulated-late-homepage-content';
                 simulatedLateContent.style.height = '520px';
-                document.getElementById('contribute').before(simulatedLateContent);
+                document.querySelector('.homepage-panel-pair').before(simulatedLateContent);
             }
             """);
         await SettleLayoutAsync(page);
+
+        // ResizeObserver queues its alignment after layout; allow that behavior to finish.
+        await page.WaitForFunctionAsync(
+            "() => document.getElementById('contribute').getBoundingClientRect().top <= innerHeight / 2");
 
         var preview = await page.EvaluateAsync<ContributePreviewDiagnostics>(
             """

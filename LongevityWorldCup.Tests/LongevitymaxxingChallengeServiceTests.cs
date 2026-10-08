@@ -1537,6 +1537,42 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
         Assert.Equal("Edited note.", Assert.Single(edited.Public.Notes).Note);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task TiffDisguisedAsJpegCannotPublishChallengePhotos(bool checkIn)
+    {
+        using var fixture = TestChallengeFixture.Create();
+        var access = await fixture.ConfirmParticipantAsync(
+            "tiff@example.com", "Photo Pat", nowUtc: DateTimeOffset.Parse("2026-06-19T12:00:00Z"));
+        using var stream = new MemoryStream(TiffTestFiles.Classic);
+        var file = new FormFile(stream, 0, stream.Length, checkIn ? "notePhotos" : "profilePicture", "photo.jpg")
+        {
+            Headers = new HeaderDictionary(),
+            ContentType = "image/jpeg"
+        };
+
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+        {
+            if (checkIn)
+                await fixture.Service.SubmitCheckInAsync(
+                    new LongevitymaxxingCheckInRequest(access, 12, 2, 2, 2, 2, "Photo note."),
+                    [file], DateTimeOffset.Parse("2026-06-20T08:00:00Z"));
+            else
+                await fixture.Service.UploadParticipantProfilePictureAsync(access, file);
+        });
+
+        Assert.Contains("format is not supported", error.Message);
+        var state = fixture.Service.GetParticipantState(access);
+        Assert.Null(state.Participant.ProfileImageUrl);
+        Assert.Empty(state.Notes);
+        var imageDirectory = Path.Combine(fixture.ContentRoot, "generated", "longevitymaxxing",
+            checkIn ? "check-in-photos" : "profile-pictures");
+        Assert.DoesNotContain(Directory.EnumerateFiles(imageDirectory, "*", SearchOption.AllDirectories),
+            path => path.EndsWith(".webp", StringComparison.OrdinalIgnoreCase)
+                || path.EndsWith(".tmp", StringComparison.OrdinalIgnoreCase));
+    }
+
     [Fact]
     public async Task PublicNotesOnlyExposeCheckInsAfterPublicNotesCutoff()
     {
@@ -1574,25 +1610,31 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
         using var gravatar = CreatePngStream();
         using var gravatarGate = new ManualResetEventSlim(false);
         using var fixture = TestChallengeFixture.Create(gravatarResponse: gravatar.ToArray(), gravatarGate: gravatarGate);
-        var access = await fixture.ConfirmParticipantAsync("gravatar@example.com", "Gravatar Gail");
+        try
+        {
+            var access = await fixture.ConfirmParticipantAsync("gravatar@example.com", "Gravatar Gail");
+            var state = fixture.Service.GetParticipantState(access);
 
-        var state = fixture.Service.GetParticipantState(access);
+            Assert.Null(state.Participant.ProfileImageUrl);
+            var row = Assert.Single(state.Public.Leaderboard);
+            Assert.Equal(state.Participant.ProfileImageUrl, row.ProfileImageUrl);
 
-        Assert.Null(state.Participant.ProfileImageUrl);
-        var row = Assert.Single(state.Public.Leaderboard);
-        Assert.Equal(state.Participant.ProfileImageUrl, row.ProfileImageUrl);
+            Assert.True(await WaitUntilAsync(() => fixture.Http.Requests.Count > 0, TimeSpan.FromSeconds(8)));
+            gravatarGate.Set();
+            Assert.True(await WaitUntilAsync(() =>
+                fixture.Service.GetParticipantState(access).Participant.ProfileImageUrl is not null,
+                TimeSpan.FromSeconds(8)));
+            var cached = fixture.Service.GetParticipantState(access);
 
-        Assert.True(await WaitUntilAsync(() => fixture.Http.Requests.Count > 0, TimeSpan.FromSeconds(8)));
-        gravatarGate.Set();
-        Assert.True(await WaitUntilAsync(() =>
-            fixture.Service.GetParticipantState(access).Participant.ProfileImageUrl is not null,
-            TimeSpan.FromSeconds(8)));
-        var cached = fixture.Service.GetParticipantState(access);
-
-        Assert.Contains(".gravatar.webp?v=", cached.Participant.ProfileImageUrl);
-        Assert.DoesNotContain("gravatar.com", cached.Participant.ProfileImageUrl);
-        Assert.Equal(cached.Participant.ProfileImageUrl, cached.Public.Leaderboard.Single().ProfileImageUrl);
-        Assert.Single(fixture.Http.Requests);
+            Assert.Contains(".gravatar.webp?v=", cached.Participant.ProfileImageUrl);
+            Assert.DoesNotContain("gravatar.com", cached.Participant.ProfileImageUrl);
+            Assert.Equal(cached.Participant.ProfileImageUrl, cached.Public.Leaderboard.Single().ProfileImageUrl);
+            Assert.Single(fixture.Http.Requests);
+        }
+        finally
+        {
+            gravatarGate.Set();
+        }
     }
 
     [Fact]
@@ -1601,23 +1643,29 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
         using var gravatar = CreatePngStream();
         using var gravatarGate = new ManualResetEventSlim(false);
         using var fixture = TestChallengeFixture.Create(gravatarResponse: gravatar.ToArray(), gravatarGate: gravatarGate);
-        fixture.InsertConfirmedParticipant("uncached@example.com", "Uncached Uma");
+        try
+        {
+            fixture.InsertConfirmedParticipant("uncached@example.com", "Uncached Uma");
+            var state = fixture.Service.GetPublicState(DateTimeOffset.Parse("2026-06-09T09:00:00Z"));
 
-        var state = fixture.Service.GetPublicState(DateTimeOffset.Parse("2026-06-09T09:00:00Z"));
+            var row = Assert.Single(state.Leaderboard);
+            Assert.Equal("Uncached Uma", row.DisplayName);
+            Assert.Null(row.ProfileImageUrl);
 
-        var row = Assert.Single(state.Leaderboard);
-        Assert.Equal("Uncached Uma", row.DisplayName);
-        Assert.Null(row.ProfileImageUrl);
+            Assert.True(await WaitUntilAsync(() => fixture.Http.Requests.Count > 0, TimeSpan.FromSeconds(8)));
+            gravatarGate.Set();
+            Assert.True(await WaitUntilAsync(() =>
+                fixture.Service.GetPublicState(DateTimeOffset.Parse("2026-06-09T09:00:01Z")).Leaderboard.Single().ProfileImageUrl is not null,
+                TimeSpan.FromSeconds(8)));
 
-        Assert.True(await WaitUntilAsync(() => fixture.Http.Requests.Count > 0, TimeSpan.FromSeconds(8)));
-        gravatarGate.Set();
-        Assert.True(await WaitUntilAsync(() =>
-            fixture.Service.GetPublicState(DateTimeOffset.Parse("2026-06-09T09:00:01Z")).Leaderboard.Single().ProfileImageUrl is not null,
-            TimeSpan.FromSeconds(8)));
-
-        var warmed = fixture.Service.GetPublicState(DateTimeOffset.Parse("2026-06-09T09:00:02Z")).Leaderboard.Single();
-        Assert.Contains(".gravatar.webp?v=", warmed.ProfileImageUrl);
-        Assert.Single(fixture.Http.Requests);
+            var warmed = fixture.Service.GetPublicState(DateTimeOffset.Parse("2026-06-09T09:00:02Z")).Leaderboard.Single();
+            Assert.Contains(".gravatar.webp?v=", warmed.ProfileImageUrl);
+            Assert.Single(fixture.Http.Requests);
+        }
+        finally
+        {
+            gravatarGate.Set();
+        }
     }
 
     [Fact]
@@ -1640,6 +1688,37 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
         Assert.Contains(fixture.Http.Requests, uri => uri.AbsoluteUri == "https://gravatar.com/molnard.json");
         Assert.Contains(fixture.Http.Requests, uri => uri.AbsoluteUri == "https://0.gravatar.com/avatar/profile-hash?s=512&r=pg");
         Assert.All(fixture.Http.UserAgents, userAgent => Assert.Contains("LongevityWorldCup/1.0", userAgent));
+    }
+
+    [Fact]
+    public async Task GravatarWarmupSlotsDoNotBlockAnIndependentServiceInstance()
+    {
+        using var gravatar = CreatePngStream();
+        using var gate = new ManualResetEventSlim(false);
+        using var blocked = TestChallengeFixture.Create(gravatarGate: gate);
+        var now = DateTimeOffset.Parse("2026-06-09T09:00:00Z");
+        blocked.InsertConfirmedParticipant("blocked-one@example.com", "Blocked One");
+        blocked.InsertConfirmedParticipant("blocked-two@example.com", "Blocked Two");
+        try
+        {
+            blocked.Service.GetPublicState(now);
+            Assert.True(await WaitUntilAsync(() => blocked.Http.Requests.Count == 2, TimeSpan.FromSeconds(8)));
+
+            using var independent = TestChallengeFixture.Create(gravatarResponse: gravatar.ToArray());
+            var access = await independent.ConfirmParticipantAsync("independent@example.com", "Independent Ida");
+            Assert.True(await WaitUntilAsync(() =>
+                independent.Service.GetParticipantState(access).Participant.ProfileImageUrl is not null,
+                TimeSpan.FromSeconds(8)), "An independent cache must not wait behind another service's downloads.");
+            Assert.False(gate.IsSet);
+        }
+        finally
+        {
+            gate.Set();
+            // Let both writes finish before deleting their fixture's cache directory.
+            Assert.True(await WaitUntilAsync(() => Directory.EnumerateFiles(
+                blocked.ContentRoot, "*.missing", SearchOption.AllDirectories).Count() == 2,
+                TimeSpan.FromSeconds(8)));
+        }
     }
 
     [Fact]
@@ -1668,21 +1747,28 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
         using var gravatar = CreatePngStream();
         using var gravatarGate = new ManualResetEventSlim(false);
         using var fixture = TestChallengeFixture.Create(gravatarResponse: gravatar.ToArray(), gravatarGate: gravatarGate);
-        var access = await fixture.ConfirmParticipantAsync("priority@example.com", "Priority Pat");
-        Assert.True(await WaitUntilAsync(() => fixture.Http.Requests.Count > 0, TimeSpan.FromSeconds(8)));
-        gravatarGate.Set();
-        Assert.True(await WaitUntilAsync(() =>
-            fixture.Service.GetParticipantState(access).Participant.ProfileImageUrl is not null,
-            TimeSpan.FromSeconds(8)));
-        fixture.Http.Requests.Clear();
-        using var upload = CreatePngStream();
-        var file = CreatePngFormFile(upload);
+        try
+        {
+            var access = await fixture.ConfirmParticipantAsync("priority@example.com", "Priority Pat");
+            Assert.True(await WaitUntilAsync(() => fixture.Http.Requests.Count > 0, TimeSpan.FromSeconds(8)));
+            gravatarGate.Set();
+            Assert.True(await WaitUntilAsync(() =>
+                fixture.Service.GetParticipantState(access).Participant.ProfileImageUrl is not null,
+                TimeSpan.FromSeconds(8)));
+            fixture.Http.Requests.Clear();
+            using var upload = CreatePngStream();
+            var file = CreatePngFormFile(upload);
 
-        var state = await fixture.Service.UploadParticipantProfilePictureAsync(access, file);
+            var state = await fixture.Service.UploadParticipantProfilePictureAsync(access, file);
 
-        Assert.NotNull(state.Participant.ProfileImageUrl);
-        Assert.DoesNotContain(".gravatar.webp", state.Participant.ProfileImageUrl);
-        Assert.Empty(fixture.Http.Requests);
+            Assert.NotNull(state.Participant.ProfileImageUrl);
+            Assert.DoesNotContain(".gravatar.webp", state.Participant.ProfileImageUrl);
+            Assert.Empty(fixture.Http.Requests);
+        }
+        finally
+        {
+            gravatarGate.Set();
+        }
     }
 
     [Fact]
