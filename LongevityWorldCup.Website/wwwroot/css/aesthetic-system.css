@@ -1344,3 +1344,291 @@ html body .leaderboard .athlete-name {
         transition-duration: 1ms !important;
     }
 }
+
+/* ===== Arena: the homepage header, tagline and podium share one graphite stage ===== */
+html:has(body.home-page) {
+    overflow-x: clip;
+}
+
+body.home-page header[role="banner"] {
+    background: #0d141b;
+    box-shadow: none;
+}
+
+body.home-page main {
+    margin-top: 0;
+}
+
+body.home-page .game-description,
+body.home-page main[data-homepage-visit-layout="repeat"] > .lwc-highlights-countdown-wrapper {
+    position: relative;
+    z-index: 0;
+}
+
+body.home-page .game-description {
+    max-width: none;
+    margin: 0;
+    padding: 0 0 var(--lwc-space-2);
+    color: #93a4b1;
+}
+
+body.home-page .game-description::before,
+body.home-page main[data-homepage-visit-layout="repeat"] > .lwc-highlights-countdown-wrapper::before {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    top: -1px;
+    bottom: -1px;
+    left: calc(50% - 50vw);
+    right: calc(50% - 50vw);
+    background: #0d141b;
+    pointer-events: none;
+}
+
+body.home-page .game-description a {
+    color: inherit;
+}
+
+body.home-page .game-description a:hover,
+body.home-page .game-description a:focus-visible {
+    color: #fff;
+}
+
+/* Returning visitors get Highlights first; keep it on the stage so the floor stays unbroken. */
+body.home-page main[data-homepage-visit-layout="repeat"] > .lwc-highlights-countdown-wrapper {
+    margin-block: 0;
+    padding-block: var(--lwc-space-4) var(--lwc-space-5);
+}
+
+/* ===== Homepage sections: one stack of full-width panels instead of ruled, centred islands ===== */
+html body.home-page main > .section-container {
+    max-width: 1152px;
+    margin: var(--lwc-space-5) auto;
+    padding: var(--lwc-space-5) var(--lwc-space-5) var(--lwc-space-5);
+    border: 1px solid var(--lwc-border);
+    border-radius: 14px;
+    background: var(--lwc-surface);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06), 0 16px 36px -22px rgba(15, 23, 42, 0.2);
+    box-sizing: border-box;
+    text-align: left;
+    overflow: hidden;
+}
+
+html body.home-page main > .section-container h2 {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: var(--lwc-space-3);
+    margin: 0 0 var(--lwc-space-4);
+    font-size: 1.35rem;
+    line-height: 1.2;
+    text-align: left;
+}
+
+html body.home-page main > .section-container h2 > i {
+    display: grid;
+    place-items: center;
+    flex: 0 0 2.25rem;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 10px;
+    background: var(--lwc-accent-soft);
+    color: var(--lwc-accent);
+    font-size: 1rem;
+}
+
+html body.home-page main > .section-container .homepage-section-footer {
+    justify-content: flex-start;
+    margin: var(--lwc-space-4) 0 0;
+    text-align: left;
+}
+
+html body.home-page .homepage-faq-grid {
+    max-width: none;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+    gap: var(--lwc-space-3);
+}
+
+html body.home-page .homepage-faq-item {
+    padding: var(--lwc-space-4);
+    border: 0;
+    border-radius: 10px;
+    background: var(--lwc-canvas);
+}
+
+html body.home-page .homepage-faq-item p {
+    font-size: 0.95rem;
+}
+
+/* Contribute keeps the stage's graphite so the prize pool reads as part of the competition. */
+html body.home-page main > .contribute-section {
+    border-color: #16222c;
+    background:
+        radial-gradient(30rem 16rem at 100% 0%, rgba(247, 147, 26, 0.16), transparent 70%),
+        linear-gradient(180deg, #0d141b, #16222c);
+    color: #f4f7f9;
+}
+
+html body.home-page .contribute-content {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    max-width: none;
+    margin: 0;
+}
+
+html body.home-page .contribute-section h2 {
+    color: #fff;
+}
+
+html body.home-page main > .contribute-section h2 > i {
+    background: rgba(247, 147, 26, 0.18);
+    color: #f7931a;
+}
+
+html body.home-page .contribute-content > p {
+    width: auto;
+    margin: 0 0 var(--lwc-space-4);
+    color: #b9c6d0;
+    text-align: left;
+}
+
+html body.home-page .contribute-section strong {
+    color: #fff;
+}
+
+html body.home-page .contribute-panel {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
+html body.home-page .btc-status,
+html body.home-page .btc-status-value {
+    color: #fff;
+}
+
+html body.home-page .btc-status-value {
+    font-family: 'Orbitron', 'Roboto', sans-serif;
+    font-size: clamp(1.9rem, 5vw, 2.75rem);
+}
+
+html body.home-page .btc-status-title,
+html body.home-page .btc-status-goal {
+    color: #93a4b1;
+}
+
+html body.home-page .btc-status-track {
+    height: 0.625rem;
+    background: rgba(255, 255, 255, 0.12);
+}
+
+html body.home-page .btc-address {
+    border-color: rgba(255, 255, 255, 0.14);
+    background: rgba(255, 255, 255, 0.06);
+}
+
+html body.home-page .btc-address a,
+html body.home-page .btc-address span,
+html body.home-page .contribute-section .copy-btn {
+    color: #7fdbe4;
+}
+
+html body.home-page .btc-address a:hover,
+html body.home-page .btc-address a:focus-visible {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+}
+
+html body.home-page .qr-code-img {
+    padding: 6px;
+    border: 0;
+    border-radius: 12px;
+    background: #fff;
+    box-sizing: border-box;
+}
+
+html body.home-page .newsletter-panel {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
+@media (min-width: 900px) {
+    html body.home-page main > .section-container {
+        padding: var(--lwc-space-6);
+    }
+
+    html body.home-page .newsletter-panel {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        column-gap: var(--lwc-space-6);
+    }
+}
+
+@media (max-width: 600px) {
+    html body.home-page main > .section-container {
+        margin-block: var(--lwc-space-4);
+        padding: var(--lwc-space-4);
+    }
+}
+
+html body.home-page .archive-table-wrapper,
+html body.home-page .archive-mobile-card {
+    max-width: none;
+    margin-inline: 0;
+}
+
+html body.home-page .contribute-content > p {
+    color: #c9d4dc;
+}
+
+html body.home-page .newsletter-panel #newsletter-form {
+    width: 100%;
+    max-width: none;
+    justify-self: stretch;
+}
+
+/* Highlights and Swag share the board's graphite head. */
+html body.home-page .lwc-highlights-countdown-wrapper .events-board {
+    border-radius: 14px;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06), 0 16px 36px -22px rgba(15, 23, 42, 0.2);
+}
+
+html body.home-page .lwc-highlights-countdown-wrapper #eventsTable thead th,
+html body.home-page .lwc-highlights-countdown-wrapper .lwc-countdown-header-row {
+    background: #16222c;
+    border-bottom-color: #16222c;
+    color: #fff;
+}
+
+html body.home-page .lwc-highlights-countdown-wrapper .header-bar,
+html body.home-page .lwc-highlights-countdown-wrapper .header-bar > span,
+html body.home-page .lwc-highlights-countdown-wrapper .lwc-countdown-title {
+    color: #fff;
+}
+
+html body.home-page .lwc-highlights-countdown-wrapper .header-bar .view-all,
+html body.home-page .lwc-highlights-countdown-wrapper .lwc-merch-header-link {
+    color: #7fdbe4;
+}
+
+html body.home-page .lwc-highlights-countdown-wrapper .header-bar .view-all:hover,
+html body.home-page .lwc-highlights-countdown-wrapper .lwc-merch-header-link:hover,
+html body.home-page .lwc-highlights-countdown-wrapper .lwc-countdown-title:hover {
+    color: #fff;
+}
+
+html body.home-page .contribute-content > p .smaller-text {
+    color: inherit;
+}
+
+@media (min-width: 900px) {
+    html body.home-page .newsletter-panel #newsletter-form {
+        grid-template-columns: minmax(0, 1fr) auto;
+    }
+}
