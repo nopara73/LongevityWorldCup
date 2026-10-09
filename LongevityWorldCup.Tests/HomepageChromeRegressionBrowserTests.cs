@@ -190,9 +190,15 @@ public sealed class HomepageChromeRegressionBrowserTests(
     }
 
     [Theory]
+    [InlineData(320, false)]
     [InlineData(390, false)]
+    [InlineData(600, false)]
+    [InlineData(768, false)]
     [InlineData(1280, false)]
+    [InlineData(320, true)]
     [InlineData(390, true)]
+    [InlineData(600, true)]
+    [InlineData(768, true)]
     [InlineData(1280, true)]
     public async Task HallOfFame_ScoresHaveReadableContrastOnEveryPlacing(int width, bool dark)
     {
@@ -231,23 +237,33 @@ public sealed class HomepageChromeRegressionBrowserTests(
                         / (Math.min(foreground, background) + 0.05);
                 }
                 """);
-            Assert.True(ratio >= 4.5, $"Score contrast was {ratio:F4}:1 at {width}px (dark: {dark}).");
+            var minimumContrast = dark ? 7 : 4.5;
+            Assert.True(ratio >= minimumContrast, $"Score contrast was {ratio:F4}:1 at {width}px (dark: {dark}); expected at least {minimumContrast}:1.");
         }
     }
 
     [Theory]
-    [InlineData(320, 100)]
-    [InlineData(390, 100)]
-    [InlineData(320, 200)]
-    [InlineData(390, 200)]
-    [InlineData(480, 200)]
-    [InlineData(520, 200)]
-    [InlineData(600, 200)]
-    public async Task HallOfFame_MobileNamesAndScoresStaySeparateAndInsideTheirPlacing(int width, int textPercent)
+    [InlineData(320, 100, false)]
+    [InlineData(390, 100, false)]
+    [InlineData(320, 200, false)]
+    [InlineData(390, 200, false)]
+    [InlineData(480, 200, false)]
+    [InlineData(520, 200, false)]
+    [InlineData(600, 200, false)]
+    [InlineData(320, 100, true)]
+    [InlineData(390, 100, true)]
+    [InlineData(320, 200, true)]
+    [InlineData(390, 200, true)]
+    [InlineData(600, 200, true)]
+    public async Task HallOfFame_MobileNamesAndScoresStaySeparateAndInsideTheirPlacing(int width, int textPercent, bool dark)
     {
         await using var context = await NewContextAsync(Browser, App, ReducedMotion.Reduce);
         var page = await context.NewPageAsync();
         await page.SetViewportSizeAsync(width, 900);
+        await page.EmulateMediaAsync(new PageEmulateMediaOptions
+        {
+            ColorScheme = dark ? ColorScheme.Dark : ColorScheme.Light
+        });
         await page.GotoAsync("/", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
         await page.EvaluateAsync("percent => document.documentElement.style.fontSize = `${percent}%`", textPercent);
         await SettleLayoutAsync(page);
@@ -269,7 +285,7 @@ public sealed class HomepageChromeRegressionBrowserTests(
                     overflows ? `${link.textContent}: overflow` : null].filter(Boolean);
             })
             """);
-        Assert.True(problems.Length == 0, $"At {width}px / {textPercent}%: {string.Join(", ", problems)}");
+        Assert.True(problems.Length == 0, $"At {width}px / {textPercent}% (dark: {dark}): {string.Join(", ", problems)}");
     }
 
     internal const string MeasureFilledActionScript =

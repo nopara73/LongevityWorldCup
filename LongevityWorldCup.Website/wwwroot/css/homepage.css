@@ -1550,7 +1550,7 @@ main > .main-container .leaderboard {
 
 /* Age reduction Styling */
 .archive-table .age-reduction {
-    color: var(--lwc-success, #1f7a38);
+    color: var(--archive-score, var(--lwc-success, #1f7a38));
     font-weight: 600;
     font-size: 0.9rem;
     display: block;
@@ -1728,7 +1728,7 @@ main > .main-container .leaderboard {
     }
 
     .archive-mobile-card-age-reduction {
-        color: var(--lwc-success, #1f7a38);
+        color: var(--archive-score, var(--lwc-success, #1f7a38));
         font-weight: 600;
         font-size: 0.85rem;
         display: block;
@@ -1804,6 +1804,7 @@ main > .main-container .leaderboard {
         --archive-gold-surface: #3a3320;
         --archive-silver-surface: #29333d;
         --archive-bronze-surface: #382e26;
+        --archive-score: #97e5a7;
     }
 }
 
@@ -1916,9 +1917,9 @@ main > .main-container .leaderboard {
         border-radius: var(--lwc-radius-md, 8px);
     }
 
-    .archive-mobile-card-winner:nth-child(1) { background: var(--archive-gold-surface); }
-    .archive-mobile-card-winner:nth-child(2) { background: var(--archive-silver-surface); }
-    .archive-mobile-card-winner:nth-child(3) { background: var(--archive-bronze-surface); }
+    .archive-mobile-card-winner:nth-child(1) { background: var(--archive-gold-surface); --archive-metal: var(--lwc-gold); }
+    .archive-mobile-card-winner:nth-child(2) { background: var(--archive-silver-surface); --archive-metal: var(--lwc-silver); }
+    .archive-mobile-card-winner:nth-child(3) { background: var(--archive-bronze-surface); --archive-metal: var(--lwc-bronze); }
 
     .archive-mobile-card-place {
         color: var(--lwc-muted, #52606d);
@@ -1931,5 +1932,16 @@ main > .main-container .leaderboard {
     .archive-mobile-card-winner-name a {
         color: var(--lwc-ink, #17212b);
         font-weight: 700;
+    }
+}
+
+@media (prefers-color-scheme: dark) {
+    .archive-table td:nth-child(n + 3)::before,
+    .archive-mobile-card-place {
+        color: var(--lwc-ink);
+    }
+
+    .archive-mobile-card-winner {
+        border-inline-start: 3px solid var(--archive-metal);
     }
 }
