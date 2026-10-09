@@ -14,6 +14,9 @@ const fixtureSet = JSON.parse(readFileSync(new URL('artifacts/fixtures.json', im
 const research = JSON.parse(readFileSync(new URL('artifacts/results.json', import.meta.url)));
 assert.equal(createHash('sha256').update(modelBytes).digest('hex'), research.modelSha256, 'Published model bytes must match the research checksum');
 assert.equal(createHash('sha256').update(readFileSync(new URL('analysis-plan.md', import.meta.url))).digest('hex'), research.run.config.planSha256, 'Frozen plan bytes must match the research checksum');
+assert.equal(createHash('sha256').update(readFileSync(new URL('transport-plan.md', import.meta.url))).digest('hex'), research.transport.planSha256, 'Additional diagnostic plan must match the research checksum');
+assert.equal(research.transport.primaryRetuned, false);
+assert.equal(research.transport.fiveYearEvaluatorParity, true);
 assert.equal(bundle.modelVersion, research.modelVersion);
 assert.equal(bundle.modelVersion, fixtureSet.modelVersion);
 function near(actual, expected, tolerance = 1e-10) { assert.ok(Math.abs(actual - expected) < tolerance, `${actual} != ${expected}`); }

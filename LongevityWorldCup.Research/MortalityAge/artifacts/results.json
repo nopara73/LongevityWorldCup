@@ -10532,6 +10532,893 @@
       "limitation": "Exploratory, approximate p values; penalized, survey weighted, no design or multiple testing correction. Not a test of the integrated likelihood."
     }
   },
+  "transport": {
+    "planSha256": "003551b5ad9b28f57538f7409698ae07521ceb4a2adda4bffdd70c424ed3e110",
+    "modelInputsSha256": "456df5c948e2ad51fca4908bfbe26e4bf2d2aad0c89cc79eb037b5c71fbbe143",
+    "primaryRetuned": false,
+    "diagnostics": {
+      "2015": {
+        "full": {
+          "n": 2604,
+          "deaths": 16,
+          "horizonYears": 2,
+          "horizonDeaths": 8,
+          "medianFollowupYears": 4.0,
+          "minimumCensoredFollowupYears": 2.8333333333333335,
+          "weightedObservedRisk": 0.003638054232527943,
+          "weightedExpectedRisk": 0.003256649159437863,
+          "observedExpected": 1.1171158004492923,
+          "ipcwBrier": 0.0036208603050105815,
+          "unweightedHarrellC": 0.6768718974972061,
+          "calibrationSlope": null,
+          "effectiveWeightN": 1557.3771349665262,
+          "bySex": {
+            "0": {
+              "n": 1328,
+              "deaths": 8,
+              "horizonDeaths": 2,
+              "weightedObservedRisk": 0.0022360058991568454,
+              "weightedExpectedRisk": 0.002310350026112738,
+              "observedExpected": 0.9678212711859165
+            },
+            "1": {
+              "n": 1276,
+              "deaths": 8,
+              "horizonDeaths": 6,
+              "weightedObservedRisk": 0.004970493564799727,
+              "weightedExpectedRisk": 0.004155966362223172,
+              "observedExpected": 1.1959898448602544
+            }
+          },
+          "status": "diagnostic-only",
+          "calibrationRange": {
+            "replicates": 128,
+            "intervalPercentiles": [
+              10,
+              90
+            ],
+            "observedExpected80": [
+              0.6689732823194693,
+              1.5252214676259477
+            ],
+            "bySexObservedExpected80": {
+              "0": [
+                0.13560278890451827,
+                1.7429190659530343
+              ],
+              "1": [
+                0.6337520217584706,
+                1.7513194232507245
+              ]
+            },
+            "conditionalOn": "Frozen models and measurement distributions; survey PSUs resampled within strata"
+          },
+          "ageSexBenchmark": {
+            "n": 2604,
+            "deaths": 16,
+            "horizonYears": 2,
+            "horizonDeaths": 8,
+            "medianFollowupYears": 4.0,
+            "minimumCensoredFollowupYears": 2.8333333333333335,
+            "weightedObservedRisk": 0.003638054232527943,
+            "weightedExpectedRisk": 0.002220771024213834,
+            "observedExpected": 1.6381942095159656,
+            "ipcwBrier": 0.003620455560492999,
+            "unweightedHarrellC": 0.681809912415209,
+            "calibrationSlope": null,
+            "effectiveWeightN": 1557.3771349665262,
+            "bySex": {
+              "0": {
+                "n": 1328,
+                "deaths": 8,
+                "horizonDeaths": 2,
+                "weightedObservedRisk": 0.0022360058991568454,
+                "weightedExpectedRisk": 0.0013408783968754197,
+                "observedExpected": 1.667567994508149
+              },
+              "1": {
+                "n": 1276,
+                "deaths": 8,
+                "horizonDeaths": 6,
+                "weightedObservedRisk": 0.004970493564799727,
+                "weightedExpectedRisk": 0.0030569786762159063,
+                "observedExpected": 1.6259497010795225
+              }
+            }
+          },
+          "commonCoreBenchmark": {
+            "n": 2604,
+            "deaths": 16,
+            "horizonYears": 2,
+            "horizonDeaths": 8,
+            "medianFollowupYears": 4.0,
+            "minimumCensoredFollowupYears": 2.8333333333333335,
+            "weightedObservedRisk": 0.003638054232527943,
+            "weightedExpectedRisk": 0.002275937767123125,
+            "observedExpected": 1.5984858132244042,
+            "ipcwBrier": 0.003617506863462889,
+            "unweightedHarrellC": 0.6956103646334174,
+            "calibrationSlope": null,
+            "effectiveWeightN": 1557.3771349665262,
+            "bySex": {
+              "0": {
+                "n": 1328,
+                "deaths": 8,
+                "horizonDeaths": 2,
+                "weightedObservedRisk": 0.0022360058991568454,
+                "weightedExpectedRisk": 0.001390535968474224,
+                "observedExpected": 1.6080173040114307
+              },
+              "1": {
+                "n": 1276,
+                "deaths": 8,
+                "horizonDeaths": 6,
+                "weightedObservedRisk": 0.004970493564799727,
+                "weightedExpectedRisk": 0.0031173810706841307,
+                "observedExpected": 1.594445289843541
+              }
+            }
+          }
+        },
+        "core": {
+          "n": 4716,
+          "deaths": 130,
+          "horizonYears": 2,
+          "horizonDeaths": 68,
+          "medianFollowupYears": 3.9166666666666665,
+          "minimumCensoredFollowupYears": 2.8333333333333335,
+          "weightedObservedRisk": 0.011707534430127398,
+          "weightedExpectedRisk": 0.011277078088535068,
+          "observedExpected": 1.038170910781398,
+          "ipcwBrier": 0.011383033740505123,
+          "unweightedHarrellC": 0.8267898930547557,
+          "calibrationSlope": 0.8341444738779346,
+          "effectiveWeightN": 2445.202169160288,
+          "bySex": {
+            "0": {
+              "n": 2393,
+              "deaths": 43,
+              "horizonDeaths": 19,
+              "weightedObservedRisk": 0.00959799815466622,
+              "weightedExpectedRisk": 0.008343111829346467,
+              "observedExpected": 1.1504098651663466
+            },
+            "1": {
+              "n": 2323,
+              "deaths": 87,
+              "horizonDeaths": 49,
+              "weightedObservedRisk": 0.013854033474634542,
+              "weightedExpectedRisk": 0.014262452573544483,
+              "observedExpected": 0.9713640345653088
+            }
+          },
+          "status": "diagnostic-only",
+          "calibrationRange": {
+            "replicates": 128,
+            "intervalPercentiles": [
+              10,
+              90
+            ],
+            "observedExpected80": [
+              0.8324166661003491,
+              1.2571701144785141
+            ],
+            "bySexObservedExpected80": {
+              "0": [
+                0.9481100170303782,
+                1.3797395409258884
+              ],
+              "1": [
+                0.7415000594106808,
+                1.194460913988488
+              ]
+            },
+            "conditionalOn": "Frozen models and measurement distributions; survey PSUs resampled within strata"
+          },
+          "ageSexBenchmark": {
+            "n": 4716,
+            "deaths": 130,
+            "horizonYears": 2,
+            "horizonDeaths": 68,
+            "medianFollowupYears": 3.9166666666666665,
+            "minimumCensoredFollowupYears": 2.8333333333333335,
+            "weightedObservedRisk": 0.011707534430127398,
+            "weightedExpectedRisk": 0.01101217038983333,
+            "observedExpected": 1.06314504913001,
+            "ipcwBrier": 0.011420058189132987,
+            "unweightedHarrellC": 0.8189785890809416,
+            "calibrationSlope": 0.7833259383503687,
+            "effectiveWeightN": 2445.202169160288,
+            "bySex": {
+              "0": {
+                "n": 2393,
+                "deaths": 43,
+                "horizonDeaths": 19,
+                "weightedObservedRisk": 0.00959799815466622,
+                "weightedExpectedRisk": 0.008150337600738806,
+                "observedExpected": 1.177619704218901
+              },
+              "1": {
+                "n": 2323,
+                "deaths": 87,
+                "horizonDeaths": 49,
+                "weightedObservedRisk": 0.013854033474634542,
+                "weightedExpectedRisk": 0.013924147500057119,
+                "observedExpected": 0.9949645732047661
+              }
+            }
+          },
+          "commonCoreBenchmark": {
+            "n": 4716,
+            "deaths": 130,
+            "horizonYears": 2,
+            "horizonDeaths": 68,
+            "medianFollowupYears": 3.9166666666666665,
+            "minimumCensoredFollowupYears": 2.8333333333333335,
+            "weightedObservedRisk": 0.011707534430127398,
+            "weightedExpectedRisk": 0.011277078088535068,
+            "observedExpected": 1.038170910781398,
+            "ipcwBrier": 0.011383033740505123,
+            "unweightedHarrellC": 0.8267898930547557,
+            "calibrationSlope": 0.8341444738779346,
+            "effectiveWeightN": 2445.202169160288,
+            "bySex": {
+              "0": {
+                "n": 2393,
+                "deaths": 43,
+                "horizonDeaths": 19,
+                "weightedObservedRisk": 0.00959799815466622,
+                "weightedExpectedRisk": 0.008343111829346467,
+                "observedExpected": 1.1504098651663466
+              },
+              "1": {
+                "n": 2323,
+                "deaths": 87,
+                "horizonDeaths": 49,
+                "weightedObservedRisk": 0.013854033474634542,
+                "weightedExpectedRisk": 0.014262452573544483,
+                "observedExpected": 0.9713640345653088
+              }
+            }
+          }
+        },
+        "blood": {
+          "status": "unavailable",
+          "n": 0
+        },
+        "lipid": {
+          "n": 2085,
+          "deaths": 56,
+          "horizonYears": 2,
+          "horizonDeaths": 31,
+          "medianFollowupYears": 3.9166666666666665,
+          "minimumCensoredFollowupYears": 2.8333333333333335,
+          "weightedObservedRisk": 0.010451252045531323,
+          "weightedExpectedRisk": 0.01181650150047444,
+          "observedExpected": 0.8844624650630899,
+          "ipcwBrier": 0.009968345380181041,
+          "unweightedHarrellC": 0.8056374266760111,
+          "calibrationSlope": 0.8345247804012094,
+          "effectiveWeightN": 1116.2008639586593,
+          "bySex": {
+            "0": {
+              "n": 1043,
+              "deaths": 17,
+              "horizonDeaths": 8,
+              "weightedObservedRisk": 0.00909059002383883,
+              "weightedExpectedRisk": 0.007544756105319086,
+              "observedExpected": 1.2048885208403124
+            },
+            "1": {
+              "n": 1042,
+              "deaths": 39,
+              "horizonDeaths": 23,
+              "weightedObservedRisk": 0.01181223875216153,
+              "weightedExpectedRisk": 0.016089266231339123,
+              "observedExpected": 0.7341688913788573
+            }
+          },
+          "status": "diagnostic-only",
+          "calibrationRange": {
+            "replicates": 128,
+            "intervalPercentiles": [
+              10,
+              90
+            ],
+            "observedExpected80": [
+              0.664728986306971,
+              1.0667682752759753
+            ],
+            "bySexObservedExpected80": {
+              "0": [
+                0.845602645385156,
+                1.5848065509406113
+              ],
+              "1": [
+                0.5665327461801621,
+                0.8795280824996774
+              ]
+            },
+            "conditionalOn": "Frozen models and measurement distributions; survey PSUs resampled within strata"
+          },
+          "ageSexBenchmark": {
+            "n": 2085,
+            "deaths": 56,
+            "horizonYears": 2,
+            "horizonDeaths": 31,
+            "medianFollowupYears": 3.9166666666666665,
+            "minimumCensoredFollowupYears": 2.8333333333333335,
+            "weightedObservedRisk": 0.010451252045531323,
+            "weightedExpectedRisk": 0.01086877619745396,
+            "observedExpected": 0.9615849894838719,
+            "ipcwBrier": 0.010204233677565767,
+            "unweightedHarrellC": 0.7922734996783825,
+            "calibrationSlope": 0.780506840836961,
+            "effectiveWeightN": 1116.2008639586593,
+            "bySex": {
+              "0": {
+                "n": 1043,
+                "deaths": 17,
+                "horizonDeaths": 8,
+                "weightedObservedRisk": 0.00909059002383883,
+                "weightedExpectedRisk": 0.007885382510347353,
+                "observedExpected": 1.15284071659301
+              },
+              "1": {
+                "n": 1042,
+                "deaths": 39,
+                "horizonDeaths": 23,
+                "weightedObservedRisk": 0.01181223875216153,
+                "weightedExpectedRisk": 0.01385288179021948,
+                "observedExpected": 0.8526918031236865
+              }
+            }
+          },
+          "commonCoreBenchmark": {
+            "n": 2085,
+            "deaths": 56,
+            "horizonYears": 2,
+            "horizonDeaths": 31,
+            "medianFollowupYears": 3.9166666666666665,
+            "minimumCensoredFollowupYears": 2.8333333333333335,
+            "weightedObservedRisk": 0.010451252045531323,
+            "weightedExpectedRisk": 0.011300282136591866,
+            "observedExpected": 0.9248664696334202,
+            "ipcwBrier": 0.010228093485052105,
+            "unweightedHarrellC": 0.7958160923954263,
+            "calibrationSlope": 0.8063125392683386,
+            "effectiveWeightN": 1116.2008639586593,
+            "bySex": {
+              "0": {
+                "n": 1043,
+                "deaths": 17,
+                "horizonDeaths": 8,
+                "weightedObservedRisk": 0.00909059002383883,
+                "weightedExpectedRisk": 0.008169537507049228,
+                "observedExpected": 1.1127423083613797
+              },
+              "1": {
+                "n": 1042,
+                "deaths": 39,
+                "horizonDeaths": 23,
+                "weightedObservedRisk": 0.01181223875216153,
+                "weightedExpectedRisk": 0.014431773833083134,
+                "observedExpected": 0.8184883499964066
+              }
+            }
+          }
+        },
+        "strength": {
+          "status": "unavailable",
+          "n": 0
+        },
+        "fitness": {
+          "status": "unavailable",
+          "n": 0
+        }
+      },
+      "2003": {
+        "full": {
+          "n": 2381,
+          "deaths": 89,
+          "horizonYears": 10,
+          "horizonDeaths": 44,
+          "medianFollowupYears": 16.0,
+          "minimumCensoredFollowupYears": 14.75,
+          "weightedObservedRisk": 0.015586601220165641,
+          "weightedExpectedRisk": 0.019988048348138023,
+          "observedExpected": 0.7797960535560543,
+          "ipcwBrier": 0.01571284150364652,
+          "unweightedHarrellC": 0.7005883366565738,
+          "calibrationSlope": 0.7117420233286347,
+          "effectiveWeightN": 1601.4780551019135,
+          "bySex": {
+            "0": {
+              "n": 1132,
+              "deaths": 36,
+              "horizonDeaths": 15,
+              "weightedObservedRisk": 0.010882440470643906,
+              "weightedExpectedRisk": 0.014863269985691176,
+              "observedExpected": 0.7321700057336237
+            },
+            "1": {
+              "n": 1249,
+              "deaths": 53,
+              "horizonDeaths": 29,
+              "weightedObservedRisk": 0.020023830162108625,
+              "weightedExpectedRisk": 0.024822027474638617,
+              "observedExpected": 0.8066959954245297
+            }
+          },
+          "status": "diagnostic-only",
+          "calibrationRange": {
+            "replicates": 128,
+            "intervalPercentiles": [
+              10,
+              90
+            ],
+            "observedExpected80": [
+              0.6573551026878639,
+              0.9110337737508976
+            ],
+            "bySexObservedExpected80": {
+              "0": [
+                0.5835224278933768,
+                0.864285474763436
+              ],
+              "1": [
+                0.643912277584647,
+                0.9834295747637587
+              ]
+            },
+            "conditionalOn": "Frozen models and measurement distributions; survey PSUs resampled within strata"
+          },
+          "ageSexBenchmark": {
+            "n": 2381,
+            "deaths": 89,
+            "horizonYears": 10,
+            "horizonDeaths": 44,
+            "medianFollowupYears": 16.0,
+            "minimumCensoredFollowupYears": 14.75,
+            "weightedObservedRisk": 0.015586601220165641,
+            "weightedExpectedRisk": 0.017510637576160677,
+            "observedExpected": 0.8901218560645412,
+            "ipcwBrier": 0.015317467271962641,
+            "unweightedHarrellC": 0.676444378800187,
+            "calibrationSlope": 0.55564472049302,
+            "effectiveWeightN": 1601.4780551019135,
+            "bySex": {
+              "0": {
+                "n": 1132,
+                "deaths": 36,
+                "horizonDeaths": 15,
+                "weightedObservedRisk": 0.010882440470643906,
+                "weightedExpectedRisk": 0.01165914142113404,
+                "observedExpected": 0.9333826632309099
+              },
+              "1": {
+                "n": 1249,
+                "deaths": 53,
+                "horizonDeaths": 29,
+                "weightedObservedRisk": 0.020023830162108625,
+                "weightedExpectedRisk": 0.02303009778920528,
+                "observedExpected": 0.8694635318263494
+              }
+            }
+          },
+          "commonCoreBenchmark": {
+            "n": 2381,
+            "deaths": 89,
+            "horizonYears": 10,
+            "horizonDeaths": 44,
+            "medianFollowupYears": 16.0,
+            "minimumCensoredFollowupYears": 14.75,
+            "weightedObservedRisk": 0.015586601220165641,
+            "weightedExpectedRisk": 0.01710873042570374,
+            "observedExpected": 0.9110320188778421,
+            "ipcwBrier": 0.015387694305173834,
+            "unweightedHarrellC": 0.6852866602663515,
+            "calibrationSlope": 0.594272832363147,
+            "effectiveWeightN": 1601.4780551019135,
+            "bySex": {
+              "0": {
+                "n": 1132,
+                "deaths": 36,
+                "horizonDeaths": 15,
+                "weightedObservedRisk": 0.010882440470643906,
+                "weightedExpectedRisk": 0.011379044319519051,
+                "observedExpected": 0.9563580354438644
+              },
+              "1": {
+                "n": 1249,
+                "deaths": 53,
+                "horizonDeaths": 29,
+                "weightedObservedRisk": 0.020023830162108625,
+                "weightedExpectedRisk": 0.022513292551093512,
+                "observedExpected": 0.8894225541050872
+              }
+            }
+          }
+        },
+        "core": {
+          "n": 4006,
+          "deaths": 726,
+          "horizonYears": 10,
+          "horizonDeaths": 373,
+          "medianFollowupYears": 15.833333333333334,
+          "minimumCensoredFollowupYears": 14.75,
+          "weightedObservedRisk": 0.06668107844883286,
+          "weightedExpectedRisk": 0.06650373830178856,
+          "observedExpected": 1.002666619224314,
+          "ipcwBrier": 0.05257132433307804,
+          "unweightedHarrellC": 0.8392841669735502,
+          "calibrationSlope": 0.9765518974942314,
+          "effectiveWeightN": 2631.4495831225568,
+          "bySex": {
+            "0": {
+              "n": 1927,
+              "deaths": 290,
+              "horizonDeaths": 132,
+              "weightedObservedRisk": 0.05164884785492618,
+              "weightedExpectedRisk": 0.054251138975060884,
+              "observedExpected": 0.9520325071639332
+            },
+            "1": {
+              "n": 2079,
+              "deaths": 436,
+              "horizonDeaths": 241,
+              "weightedObservedRisk": 0.08153642892180102,
+              "weightedExpectedRisk": 0.07861216466381923,
+              "observedExpected": 1.0371986227638845
+            }
+          },
+          "status": "diagnostic-only",
+          "calibrationRange": {
+            "replicates": 128,
+            "intervalPercentiles": [
+              10,
+              90
+            ],
+            "observedExpected80": [
+              0.9442096019825184,
+              1.06166596151998
+            ],
+            "bySexObservedExpected80": {
+              "0": [
+                0.8872488405933849,
+                1.020844604016676
+              ],
+              "1": [
+                0.9692251970449066,
+                1.1026342087329164
+              ]
+            },
+            "conditionalOn": "Frozen models and measurement distributions; survey PSUs resampled within strata"
+          },
+          "ageSexBenchmark": {
+            "n": 4006,
+            "deaths": 726,
+            "horizonYears": 10,
+            "horizonDeaths": 373,
+            "medianFollowupYears": 15.833333333333334,
+            "minimumCensoredFollowupYears": 14.75,
+            "weightedObservedRisk": 0.06668107844883286,
+            "weightedExpectedRisk": 0.06690394100837131,
+            "observedExpected": 0.9966689173136967,
+            "ipcwBrier": 0.05354238469655279,
+            "unweightedHarrellC": 0.8337175180493964,
+            "calibrationSlope": 0.9685041010819321,
+            "effectiveWeightN": 2631.4495831225568,
+            "bySex": {
+              "0": {
+                "n": 1927,
+                "deaths": 290,
+                "horizonDeaths": 132,
+                "weightedObservedRisk": 0.05164884785492618,
+                "weightedExpectedRisk": 0.05465009670783948,
+                "observedExpected": 0.9450824603484596
+              },
+              "1": {
+                "n": 2079,
+                "deaths": 436,
+                "horizonDeaths": 241,
+                "weightedObservedRisk": 0.08153642892180102,
+                "weightedExpectedRisk": 0.07901359769494198,
+                "observedExpected": 1.0319290767723204
+              }
+            }
+          },
+          "commonCoreBenchmark": {
+            "n": 4006,
+            "deaths": 726,
+            "horizonYears": 10,
+            "horizonDeaths": 373,
+            "medianFollowupYears": 15.833333333333334,
+            "minimumCensoredFollowupYears": 14.75,
+            "weightedObservedRisk": 0.06668107844883286,
+            "weightedExpectedRisk": 0.06650373830178856,
+            "observedExpected": 1.002666619224314,
+            "ipcwBrier": 0.05257132433307804,
+            "unweightedHarrellC": 0.8392841669735502,
+            "calibrationSlope": 0.9765518974942314,
+            "effectiveWeightN": 2631.4495831225568,
+            "bySex": {
+              "0": {
+                "n": 1927,
+                "deaths": 290,
+                "horizonDeaths": 132,
+                "weightedObservedRisk": 0.05164884785492618,
+                "weightedExpectedRisk": 0.054251138975060884,
+                "observedExpected": 0.9520325071639332
+              },
+              "1": {
+                "n": 2079,
+                "deaths": 436,
+                "horizonDeaths": 241,
+                "weightedObservedRisk": 0.08153642892180102,
+                "weightedExpectedRisk": 0.07861216466381923,
+                "observedExpected": 1.0371986227638845
+              }
+            }
+          }
+        },
+        "blood": {
+          "n": 3762,
+          "deaths": 682,
+          "horizonYears": 10,
+          "horizonDeaths": 349,
+          "medianFollowupYears": 15.833333333333334,
+          "minimumCensoredFollowupYears": 14.75,
+          "weightedObservedRisk": 0.06580757423531491,
+          "weightedExpectedRisk": 0.06570446293047535,
+          "observedExpected": 1.0015693196510664,
+          "ipcwBrier": 0.04948495883083711,
+          "unweightedHarrellC": 0.8524179569646698,
+          "calibrationSlope": 1.0178596616984612,
+          "effectiveWeightN": 2513.3771418338442,
+          "bySex": {
+            "0": {
+              "n": 1807,
+              "deaths": 268,
+              "horizonDeaths": 119,
+              "weightedObservedRisk": 0.049832503951373175,
+              "weightedExpectedRisk": 0.05192089987389216,
+              "observedExpected": 0.9597773550229026
+            },
+            "1": {
+              "n": 1955,
+              "deaths": 414,
+              "horizonDeaths": 230,
+              "weightedObservedRisk": 0.08180335258944549,
+              "weightedExpectedRisk": 0.07950589326314282,
+              "observedExpected": 1.0288967173628085
+            }
+          },
+          "status": "diagnostic-only",
+          "calibrationRange": {
+            "replicates": 128,
+            "intervalPercentiles": [
+              10,
+              90
+            ],
+            "observedExpected80": [
+              0.9414926642728311,
+              1.0631055188037417
+            ],
+            "bySexObservedExpected80": {
+              "0": [
+                0.880457254992349,
+                1.0529663947439445
+              ],
+              "1": [
+                0.9555833029765541,
+                1.0881873923913594
+              ]
+            },
+            "conditionalOn": "Frozen models and measurement distributions; survey PSUs resampled within strata"
+          },
+          "ageSexBenchmark": {
+            "n": 3762,
+            "deaths": 682,
+            "horizonYears": 10,
+            "horizonDeaths": 349,
+            "medianFollowupYears": 15.833333333333334,
+            "minimumCensoredFollowupYears": 14.75,
+            "weightedObservedRisk": 0.06580757423531491,
+            "weightedExpectedRisk": 0.0667185084280677,
+            "observedExpected": 0.9863466043499023,
+            "ipcwBrier": 0.053070280741442794,
+            "unweightedHarrellC": 0.8354148907840411,
+            "calibrationSlope": 0.9638745392855127,
+            "effectiveWeightN": 2513.3771418338442,
+            "bySex": {
+              "0": {
+                "n": 1807,
+                "deaths": 268,
+                "horizonDeaths": 119,
+                "weightedObservedRisk": 0.049832503951373175,
+                "weightedExpectedRisk": 0.05436311418994691,
+                "observedExpected": 0.9166602151829714
+              },
+              "1": {
+                "n": 1955,
+                "deaths": 414,
+                "horizonDeaths": 230,
+                "weightedObservedRisk": 0.08180335258944549,
+                "weightedExpectedRisk": 0.07908991864399306,
+                "observedExpected": 1.0343082151552891
+              }
+            }
+          },
+          "commonCoreBenchmark": {
+            "n": 3762,
+            "deaths": 682,
+            "horizonYears": 10,
+            "horizonDeaths": 349,
+            "medianFollowupYears": 15.833333333333334,
+            "minimumCensoredFollowupYears": 14.75,
+            "weightedObservedRisk": 0.06580757423531491,
+            "weightedExpectedRisk": 0.06624554555219743,
+            "observedExpected": 0.993388667672192,
+            "ipcwBrier": 0.05208469569831404,
+            "unweightedHarrellC": 0.8409938127993408,
+            "calibrationSlope": 0.9732234273457367,
+            "effectiveWeightN": 2513.3771418338442,
+            "bySex": {
+              "0": {
+                "n": 1807,
+                "deaths": 268,
+                "horizonDeaths": 119,
+                "weightedObservedRisk": 0.049832503951373175,
+                "weightedExpectedRisk": 0.05363053759268048,
+                "observedExpected": 0.9291815109116925
+              },
+              "1": {
+                "n": 1955,
+                "deaths": 414,
+                "horizonDeaths": 230,
+                "weightedObservedRisk": 0.08180335258944549,
+                "weightedExpectedRisk": 0.07887690602006744,
+                "observedExpected": 1.0371014371257603
+              }
+            }
+          }
+        },
+        "lipid": {
+          "status": "unavailable",
+          "n": 0
+        },
+        "strength": {
+          "status": "unavailable",
+          "n": 0
+        },
+        "fitness": {
+          "n": 1325,
+          "deaths": 25,
+          "horizonYears": 10,
+          "horizonDeaths": 9,
+          "medianFollowupYears": 16.0,
+          "minimumCensoredFollowupYears": 14.833333333333334,
+          "weightedObservedRisk": 0.004813473512854216,
+          "weightedExpectedRisk": 0.014017964446930419,
+          "observedExpected": 0.34337892146018717,
+          "ipcwBrier": 0.005042671360581195,
+          "unweightedHarrellC": 0.6135313943327924,
+          "calibrationSlope": null,
+          "effectiveWeightN": 884.3846136461361,
+          "bySex": {
+            "0": {
+              "n": 604,
+              "deaths": 7,
+              "horizonDeaths": 0,
+              "weightedObservedRisk": 0.0,
+              "weightedExpectedRisk": 0.005680490356031207,
+              "observedExpected": 0.0
+            },
+            "1": {
+              "n": 721,
+              "deaths": 18,
+              "horizonDeaths": 9,
+              "weightedObservedRisk": 0.009026818442176898,
+              "weightedExpectedRisk": 0.021315948759181854,
+              "observedExpected": 0.42347720686317525
+            }
+          },
+          "status": "diagnostic-only",
+          "calibrationRange": {
+            "replicates": 128,
+            "intervalPercentiles": [
+              10,
+              90
+            ],
+            "observedExpected80": [
+              0.24180708646227925,
+              0.43841706966825267
+            ],
+            "bySexObservedExpected80": {
+              "0": [
+                0.0,
+                0.0
+              ],
+              "1": [
+                0.3036117569653213,
+                0.5390671553941205
+              ]
+            },
+            "conditionalOn": "Frozen models and measurement distributions; survey PSUs resampled within strata"
+          },
+          "ageSexBenchmark": {
+            "n": 1325,
+            "deaths": 25,
+            "horizonYears": 10,
+            "horizonDeaths": 9,
+            "medianFollowupYears": 16.0,
+            "minimumCensoredFollowupYears": 14.833333333333334,
+            "weightedObservedRisk": 0.004813473512854216,
+            "weightedExpectedRisk": 0.015132341788590138,
+            "observedExpected": 0.3180917785298505,
+            "ipcwBrier": 0.004935691724429749,
+            "unweightedHarrellC": 0.6151853701160904,
+            "calibrationSlope": null,
+            "effectiveWeightN": 884.3846136461361,
+            "bySex": {
+              "0": {
+                "n": 604,
+                "deaths": 7,
+                "horizonDeaths": 0,
+                "weightedObservedRisk": 0.0,
+                "weightedExpectedRisk": 0.009878843808868902,
+                "observedExpected": 0.0
+              },
+              "1": {
+                "n": 721,
+                "deaths": 18,
+                "horizonDeaths": 9,
+                "weightedObservedRisk": 0.009026818442176898,
+                "weightedExpectedRisk": 0.019730850332358836,
+                "observedExpected": 0.4574976896648395
+              }
+            }
+          },
+          "commonCoreBenchmark": {
+            "n": 1325,
+            "deaths": 25,
+            "horizonYears": 10,
+            "horizonDeaths": 9,
+            "medianFollowupYears": 16.0,
+            "minimumCensoredFollowupYears": 14.833333333333334,
+            "weightedObservedRisk": 0.004813473512854216,
+            "weightedExpectedRisk": 0.014304221788379659,
+            "observedExpected": 0.33650719235663307,
+            "ipcwBrier": 0.004932665159899532,
+            "unweightedHarrellC": 0.6243290475596055,
+            "calibrationSlope": null,
+            "effectiveWeightN": 884.3846136461361,
+            "bySex": {
+              "0": {
+                "n": 604,
+                "deaths": 7,
+                "horizonDeaths": 0,
+                "weightedObservedRisk": 0.0,
+                "weightedExpectedRisk": 0.009513762356813123,
+                "observedExpected": 0.0
+              },
+              "1": {
+                "n": 721,
+                "deaths": 18,
+                "horizonDeaths": 9,
+                "weightedObservedRisk": 0.009026818442176898,
+                "weightedExpectedRisk": 0.01849742195894582,
+                "observedExpected": 0.4880041371284879
+              }
+            }
+          }
+        }
+      }
+    },
+    "fiveYearEvaluatorParity": true,
+    "completedUtc": "2026-10-09T15:24:26.420998+00:00"
+  },
   "environment": {
     "python": "3.14.7",
     "packages": {

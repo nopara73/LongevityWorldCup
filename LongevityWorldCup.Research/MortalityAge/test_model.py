@@ -4,9 +4,22 @@ import numpy as np
 import pandas as pd
 from scipy.optimize._numdiff import approx_derivative
 from model import Fit, FEATURES, CORE, likelihood, gompertz_integral, predict_risk, reference_age, cubic, weighted_km, survey_weights, learn_distributions
+from transport import evaluate_horizon
 
 
 class ModelChecks(unittest.TestCase):
+    def test_diagnostic_horizon_has_known_event_and_censoring_errors(self):
+        frame = pd.DataFrame(dict(time=[12., 18., 36.], event=[1, 0, 0], male=[0, 1, 0]))
+        # By two years: one death in three, censoring survival 1/2. The
+        # censored middle record contributes zero; IPCW error is (.9²+.3²/.5)/3.
+        result = evaluate_horizon(frame, np.array([.1, .2, .3]), np.ones(3), 2)
+        self.assertAlmostEqual(result['weightedObservedRisk'], 1/3)
+        self.assertAlmostEqual(result['observedExpected'], 5/3)
+        self.assertAlmostEqual(result['ipcwBrier'], .33)
+        self.assertEqual(result['horizonDeaths'], 1)
+        self.assertIsNone(result['calibrationSlope'])
+        self.assertEqual(result['bySex']['1']['horizonDeaths'], 0)
+
     def test_combined_cycle_weights_match_cdc_six_year_formula(self):
         frame = pd.DataFrame(dict(cycle=[1999, 2001, 2003], WTMEC4YR=[100., 100., np.nan],
             WTMEC2YR=[500., 500., 200.], WTSSCB4Y=[10., 20., np.nan],

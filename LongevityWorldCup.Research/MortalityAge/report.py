@@ -153,7 +153,7 @@ def main():
 
     page('2. Data, overlap and frozen split')
     p('Public NHANES 1999-2016 is linked by SEQN to the 2019 public-use mortality files, using PERMTH_EXM and MORTSTAT. All causes are included. Public follow-up can be perturbed for confidentiality; mortality status is preserved. Restricted newer linkage was not accessed. [1-2]')
-    p('Development cycles: 1999, 2001, 2005, 2007, 2011. Temporal evaluation: 2003, 2009, 2013. The 2015 cycle is reserved for assay/short-follow-up sensitivity. The plan was saved after availability counts and before fitting or prediction performance. A deterministic respondent hash separates internal 80% development fitting from 20% model selection.')
+    p('Development cycles: 1999, 2001, 2005, 2007, 2011. Temporal evaluation: 2003, 2009, 2013. The 2015 cycle is a separate two-year assay/short-follow-up sensitivity. The plan was saved after availability counts and before fitting or prediction performance. A deterministic respondent hash separates internal 80% development fitting from 20% model selection.')
     p('Review corrected combined-cycle weight scaling and latent residual subsample weights after the initial temporal results were inspected. All fits and diagnostics were regenerated with unchanged predefined choices. This is re-evaluation on the same temporal split, not a new untouched validation sample.', 'Small')
     rows = [['Cycle', 'Core N / D', 'CRP+cys N / D', 'ApoB+CRP N / D', 'ApoB+grip N / D', 'CRP+cys+VO2 N / D']]
     for r in R['overlap']:
@@ -244,6 +244,34 @@ def main():
     p('The 32 training bootstraps are conditional on fixed nuisance distributions, knots, model selection and reference; their 80% age/curve ranges are not comprehensive prediction intervals. Structural sensitivity spans are separate, finite scenario comparisons, not confidence intervals. Regularization may conceal weakly identified components. One must not infer that each domain is independently measured biological aging.')
     p('The proposed all-domain clock hypothesis remains unestablished. Additional joint measurements, mortality events, sex-specific evaluation, measurement-method calibration and independent cohort validation are required before clinical or intervention interpretation. Accessible public NHANES overlaps cannot supply the absent exercise/grip joint information. HRS health access and UK Biobank would require separately authorized access; neither dataset was used. [19-20]')
 
+    page('7.1 Later assays and longer follow-up')
+    transport = R['transport']
+    p('Two-year later-assay and ten-year temporal diagnostics were specified in transport-plan.md after primary results were inspected and before these endpoint results were calculated. Horizons were selected from administrative follow-up coverage. All models, measurement distributions and release decisions remain frozen. These are diagnostic sensitivities, not new confirmatory validation.')
+    for cycle, horizon, title in [('2015', 2, '2015-2016: newer hs-CRP assay, two-year endpoint'), ('2003', 10, '2003-2004: ten-year endpoint')]:
+        p(title, 'Sub')
+        rows = [['Model', 'N', f'D≤{horizon}y', 'O/E (80% PSU range)', 'Slope', f'Brier {horizon}y']]
+        for label, ev in transport['diagnostics'][cycle].items():
+            if ev['status'] == 'unavailable':
+                continue
+            rows.append([LABELS[label], f'{ev["n"]:,}', ev['horizonDeaths'],
+                f'{ev["observedExpected"]:.2f} ({interval(ev["calibrationRange"]["observedExpected80"])})',
+                fmt(ev['calibrationSlope'],2), fmt(ev['ipcwBrier'],6)])
+        table(rows, [139,53,55,130,50,70], True, compact=True)
+    p('The later cycle has at least 2.83 years of observed administrative follow-up, so it supports the two-year check and is not presented as five-year validation. Its population, calendar period and selection also differ; the comparison cannot isolate the assay effect. The 2003 cycle has at least 14.75 years of administrative follow-up. Its ten-year results reuse an already inspected temporal cohort.')
+    rows = [['Same-row full marginal comparison', 'Age/sex Brier', 'Core Brier', 'Full Brier']]
+    for cycle in ['2015', '2003']:
+        ev = transport['diagnostics'][cycle]['full']
+        rows.append([f'{cycle}, {ev["horizonYears"]} years', fmt(ev['ageSexBenchmark']['ipcwBrier'],6),
+            fmt(ev['commonCoreBenchmark']['ipcwBrier'],6), fmt(ev['ipcwBrier'],6)])
+    table(rows, [194,101,101,101], True, compact=True)
+    p('The full marginal Brier error is not lower than either benchmark in these additional checks. Only eight two-year deaths occur in the later under-50 cohort; the ten-year full marginal O/E is below one. These findings limit prediction reliability and do not establish unseen joint-panel validity. Fitness remains numerically withheld.')
+    rows = [['Full marginal sex coverage', 'Female N / D≤h', 'Male N / D≤h']]
+    for cycle in ['2015', '2003']:
+        ev = transport['diagnostics'][cycle]['full']
+        rows.append([f'{cycle}, {ev["horizonYears"]} years']+[f'{ev["bySex"][s]["n"]:,} / {ev["bySex"][s]["horizonDeaths"]}' for s in ['0','1']])
+    table(rows, [257,120,120], True, compact=True)
+    p('Ranges use 128 conditional PSU bootstraps with fixed models. Sparse sex strata cannot establish calibration. Exact sex-specific calibration, concordance over available follow-up, follow-up counts and same-row benchmarks are in the saved artifacts. The new evaluator agrees with the original five-year evaluator and an analytical censoring example. Diagnostic plan SHA-256: '+transport['planSha256'], 'Small')
+
     page('8. From risk to age, and supported inputs')
     ref = FULL['reference']
     p('Reference risk is fit in the complete-core development population aged 18-79. The same five-year endpoint and sex are used on both sides. Matching cumulative hazard rather than rounded probabilities gives a stable closed-form age:')
@@ -272,10 +300,10 @@ def main():
     p('All digits, nonlinear centers/scales, panel coefficients, conditional covariance matrices, failed specifications and numerical fixtures are saved in the repository artifacts. The downloadable browser JSON contains the exact evaluated equation. The report’s rounded tables are descriptive; calculations use the full stored precision.', 'Small')
 
     page('10. Reproduction and provenance')
-    p('Source: <link href="https://github.com/nopara73/LongevityWorldCup/tree/master/LongevityWorldCup.Research/MortalityAge" color="#087685">LongevityWorldCup.Research/MortalityAge</link>. Run prepare.py, train.py, diagnostics.py, ph-diagnostics.py, export.py, report.py in that order in the pinned environment. Run test_model.py and verify-browser.mjs for independent numerical and unit parity. Raw downloads, respondent data and intermediate outputs remain in ignored .artifacts/mortality-age.')
+    p('Source: <link href="https://github.com/nopara73/LongevityWorldCup/tree/master/LongevityWorldCup.Research/MortalityAge" color="#087685">LongevityWorldCup.Research/MortalityAge</link>. Run prepare.py, train.py, diagnostics.py, ph-diagnostics.py, transport.py, export.py, report.py in that order in the pinned environment. Run test_model.py and verify-browser.mjs for independent numerical and unit parity. Raw downloads, respondent data and intermediate outputs remain in ignored .artifacts/mortality-age.')
     p(f'Model version: <b>{escape(R["modelVersion"])}</b><br/>Frozen plan SHA-256: {R["run"]["config"]["planSha256"]}<br/>Browser model SHA-256: {R["modelSha256"]}', 'Small')
     manifest = json.loads((ARCHIVE/'downloads.json').read_text())
-    p(f'{len(manifest)} original public files are recorded with URL, retrieval UTC, byte size, SHA-256, row count and columns in artifacts/downloads.json. Joins are one-to-one on SEQN with duplicate checks. SAS file signatures and mortality-file content are verified. Analysis completion UTC: {R["run"]["completedUtc"]}. Monte Carlo seed: {R["run"]["config"]["seed"]}.')
+    p(f'{len(manifest)} original public files are recorded with URL, retrieval UTC, byte size, SHA-256, row count and columns in artifacts/downloads.json. Joins are one-to-one on SEQN with duplicate checks. SAS file signatures and mortality-file content are verified. Primary fit completion UTC: {R["run"]["completedUtc"]}. Additional diagnostic completion UTC: {R["transport"]["completedUtc"]}. Monte Carlo seed: {R["run"]["config"]["seed"]}.')
     table([['Runtime / package', 'Version'], ['Python', R['environment']['python']]] + list(R['environment']['packages'].items()), [257,240], True)
     p('Verification includes analytic likelihood gradients against independent finite differences, exponential-limit calculations, observed-row/quadrature equivalence, right-censored risk sets, sex-specific age roundtrips, spline tails and Python/browser fixtures. Website checks cover unit conversions, sex-dependent functions, unsupported inputs, loading recovery, editing and restoration, mobile/desktop behavior, PDF bytes and exclusion from discovery. Code verification does not constitute scientific validation.')
     p('This report distinguishes actual temporal performance from scientific identification. The model has no complete-panel external validation, no causal adjustment or competing-risk interpretation, and no calibrated smartwatch conversion. Medication, smoking, disease, ethnicity and socioeconomic conditions are not separately included in the requested panel. Repeated measurements and longitudinal biological change were not modelled. Those limitations are material, not resolved by producing an age number.')
