@@ -248,7 +248,7 @@ public sealed class HomepageChromeRegressionBrowserTests(
     [InlineData(600)]
     [InlineData(768)]
     [InlineData(1280)]
-    public async Task HallOfFame_DarkModeGoldAndSilverHaveDistinctBrightness(int width)
+    public async Task HallOfFame_DarkMedalSurfacesStayMutedAndDistinct(int width)
     {
         await using var context = await NewContextAsync(Browser, App, ReducedMotion.Reduce);
         var page = await context.NewPageAsync();
@@ -257,7 +257,7 @@ public sealed class HomepageChromeRegressionBrowserTests(
         await page.GotoAsync("/", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
         await SettleLayoutAsync(page);
 
-        var contrast = await page.EvaluateAsync<double>(
+        var luminances = await page.EvaluateAsync<double[]>(
             """
             width => {
                 const luminance = color => {
@@ -272,14 +272,17 @@ public sealed class HomepageChromeRegressionBrowserTests(
                 const selector = width <= 600
                     ? '.archive-mobile-card-winner'
                     : '.archive-table tbody td:nth-child(n + 3)';
-                const [gold, silver] = [...document.querySelectorAll(selector)]
+                return [...document.querySelectorAll(selector)]
                     .map(element => luminance(getComputedStyle(element).backgroundColor));
-                return (Math.max(gold, silver) + 0.05) / (Math.min(gold, silver) + 0.05);
             }
             """, width);
 
-        // Medal recognition should also survive difficulty distinguishing hues.
-        Assert.True(contrast >= 3, $"Gold/silver background contrast was {contrast:F4}:1 at {width}px; expected at least 3:1.");
+        Assert.Equal(3, luminances.Length);
+        // These are dark surfaces with readable labels and medal edges, not full-color medal badges.
+        Assert.All(luminances, luminance => Assert.InRange(luminance, 0, 0.15));
+        var contrast = (Math.Max(luminances[0], luminances[1]) + 0.05)
+            / (Math.Min(luminances[0], luminances[1]) + 0.05);
+        Assert.True(contrast >= 1.4, $"Gold/silver background contrast was {contrast:F4}:1 at {width}px; expected a visible brightness difference of at least 1.4:1.");
     }
 
     [Theory]

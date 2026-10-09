@@ -1801,10 +1801,10 @@ main > .main-container .leaderboard {
 
 @media (prefers-color-scheme: dark) {
     .archive-section {
-        --archive-gold-surface: var(--lwc-gold);
-        --archive-silver-surface: #45515c;
-        --archive-bronze-surface: #6c3b1f;
-        --archive-score: #dcffe5;
+        --archive-gold-surface: #574a2e;
+        --archive-silver-surface: #23313e;
+        --archive-bronze-surface: #402d26;
+        --archive-score: #d6f0de;
     }
 }
 
@@ -1855,9 +1855,9 @@ main > .main-container .leaderboard {
         vertical-align: top;
     }
 
-    .archive-table td:nth-child(3) { background: var(--archive-gold-surface); }
-    .archive-table td:nth-child(4) { background: var(--archive-silver-surface); }
-    .archive-table td:nth-child(5) { background: var(--archive-bronze-surface); }
+    .archive-table td:nth-child(3) { background: var(--archive-gold-surface); --archive-metal: var(--lwc-gold); }
+    .archive-table td:nth-child(4) { background: var(--archive-silver-surface); --archive-metal: var(--lwc-silver); }
+    .archive-table td:nth-child(5) { background: var(--archive-bronze-surface); --archive-metal: var(--lwc-bronze); }
 
     .archive-table td:nth-child(n + 3)::before {
         display: block;
@@ -1936,32 +1936,30 @@ main > .main-container .leaderboard {
 }
 
 @media (prefers-color-scheme: dark) {
-    .archive-table td:nth-child(3),
-    .archive-mobile-card-winner:nth-child(1) {
-        --archive-placing-ink: #17212b;
-        --archive-score: #10351b;
-        --archive-placing-hover: #064a53;
+    .archive-table td:nth-child(n + 3)::before,
+    .archive-mobile-card-place {
+        color: var(--archive-metal);
     }
 
-    .archive-table td:nth-child(n + 3)::before,
     .archive-table td:nth-child(n + 3) a,
-    .archive-mobile-card-place,
     .archive-mobile-card-winner-name a {
-        color: var(--archive-placing-ink, var(--lwc-ink));
+        color: var(--lwc-ink);
+        text-decoration-color: color-mix(in srgb, currentColor 35%, transparent);
     }
 
     .archive-table td:nth-child(n + 3) a:hover,
     .archive-mobile-card-winner-name a:hover {
-        color: var(--archive-placing-hover, var(--lwc-accent-hover));
+        color: var(--lwc-accent-hover);
+        text-decoration-color: currentColor;
     }
 
     .archive-table td:nth-child(n + 3) a:focus-visible,
     .archive-mobile-card-winner-name a:focus-visible {
-        outline: 2px solid var(--archive-placing-hover, var(--lwc-accent-hover));
+        outline: 2px solid var(--lwc-accent-hover);
         outline-offset: 2px;
     }
 
     .archive-mobile-card-winner {
-        border-inline-start: 3px solid var(--archive-metal);
+        border-inline-start: 2px solid var(--archive-metal);
     }
 }
