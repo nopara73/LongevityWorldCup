@@ -57,12 +57,14 @@
         if (age === null || !Number.isFinite(risk)) return { supported: false, reason: 'The equivalent age is outside the supported 18–79 reference.' };
         const result = { supported: true, age, risk5: risk, status: model.status, features: [...model.features] };
         if (model.bootstrap?.length) {
-            const ages = model.bootstrap.map(b => ageFromHazard(cumulativeHazard(inputs, model, b.coefficients, b.gamma), inputs.male, model.reference)).filter(Number.isFinite);
-            if (ages.length >= model.bootstrap.length * 0.8) result.samplingRange80 = [quantile(ages, 0.1), quantile(ages, 0.9)];
+            const ages = model.bootstrap.map(b => ageFromHazard(cumulativeHazard(inputs, model, b.coefficients, b.gamma), inputs.male, model.reference));
+            if (ages.every(Number.isFinite)) result.samplingRange80 = [quantile(ages, 0.1), quantile(ages, 0.9)];
+            else result.samplingRangeUnsupported = true;
         }
         if (model.dependence?.length) {
-            const ages = [age, ...model.dependence.map(b => ageFromHazard(cumulativeHazard(inputs, model, b.coefficients, b.gamma), inputs.male, model.reference))].filter(Number.isFinite);
-            result.dependenceRange = [Math.min(...ages), Math.max(...ages)];
+            const ages = [age, ...model.dependence.map(b => ageFromHazard(cumulativeHazard(inputs, model, b.coefficients, b.gamma), inputs.male, model.reference))];
+            if (ages.every(Number.isFinite)) result.dependenceRange = [Math.min(...ages), Math.max(...ages)];
+            else result.dependenceRangeUnsupported = true;
         }
         return result;
     }

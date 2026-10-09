@@ -3,6 +3,7 @@ import os
 os.environ.setdefault('OPENBLAS_NUM_THREADS', '2')
 os.environ.setdefault('OMP_NUM_THREADS', '2')
 from pathlib import Path
+import hashlib
 import json
 import warnings
 import numpy as np
@@ -70,12 +71,21 @@ def main():
     warnings.filterwarnings('ignore', category=StatisticalWarning)
     from train import evaluate
     full, panels, config = read('full-model.json'), read('panel-models.json'), read('frozen-config.json')
+    # Completed sections are reusable only for the same data, fits and code.
+    # A corrected training run must never inherit stale calibration results.
+    source = Path(__file__).parent
+    provenance = dict(full=full, panels=panels, config=config,
+        code={name: hashlib.sha256((source/name).read_bytes()).hexdigest()
+              for name in ['model.py', 'train.py', 'diagnostics.py']},
+        dataSha256=hashlib.sha256((ROOT/'harmonized.csv').read_bytes()).hexdigest())
+    input_hash = hashlib.sha256(json.dumps(provenance, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
     data = pd.read_csv(ROOT / 'harmonized.csv').dropna(subset=CORE)
     data = data[survey_weights(data) > 0].reset_index(drop=True)
     dev = data[data.cycle.isin(config['development'])].reset_index(drop=True)
     hold = data[data.cycle.isin(config['evaluation'])].reset_index(drop=True)
-    diagnostics = (read('diagnostics.json') if (OUT/'diagnostics.json').exists() else
-        dict(postFreezeDiagnosticOnly=True, modelRetuned=False, calibration={}, landmark={}))
+    saved = read('diagnostics.json') if (OUT/'diagnostics.json').exists() else None
+    diagnostics = (saved if saved and saved.get('inputSha256') == input_hash else
+        dict(inputSha256=input_hash, postFreezeDiagnosticOnly=True, modelRetuned=False, calibration={}, landmark={}))
     for label, model in [('full', full), *panels.items()]:
         if label in diagnostics['calibration'] and (label == 'full' or label in diagnostics['landmark']):
             print(f'Using completed diagnostic: {label}', flush=True)

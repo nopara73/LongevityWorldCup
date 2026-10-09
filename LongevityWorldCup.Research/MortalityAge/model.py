@@ -43,9 +43,11 @@ def weighted_quantile(x, weights, probabilities):
 
 def survey_weights(frame, marker=None):
     early = frame.cycle.isin([1999, 2001]).to_numpy()
-    mec = np.where(early, frame.WTMEC4YR.to_numpy() / 2, frame.WTMEC2YR.to_numpy())
+    # CDC combined-cycle formula: 2/K * four-year weights versus 1/K *
+    # two-year weights. The common K cancels in all normalized estimators.
+    mec = np.where(early, 2 * frame.WTMEC4YR.to_numpy(), frame.WTMEC2YR.to_numpy())
     if marker == 'cystatin':
-        special = np.where(early, frame.WTSSCB4Y.to_numpy() / 2, frame.WTSSCB2Y.to_numpy())
+        special = np.where(early, 2 * frame.WTSSCB4Y.to_numpy(), frame.WTSSCB2Y.to_numpy())
         mec = np.where(np.isfinite(special) & (special > 0), special, 0)
     elif marker == 'apob':
         special = frame.WTSAF2YR.to_numpy()
@@ -239,7 +241,11 @@ def learn_distributions(frame, curves):
                 ok = (frame.male.to_numpy() == sex) & np.isfinite(residuals[:, j]) & np.isfinite(residuals[:, k])
                 pairs[str(sex)][FEATURES[4+j]+'|'+FEATURES[4+k]] = int(ok.sum())
                 if ok.sum() >= 50:
-                    w = survey_weights(frame)[ok]
+                    # Both diagonal variances and paired covariances must use
+                    # the subsample weight that covers their measured markers.
+                    pair = [FEATURES[4+j], FEATURES[4+k]]
+                    marker = 'cystatin' if 'cystatin' in pair else 'apob' if 'apob' in pair else None
+                    w = survey_weights(frame, marker)[ok]
                     rj, rk = residuals[ok, j], residuals[ok, k]
                     cov[j, k] = cov[k, j] = np.average((rj-np.average(rj, weights=w))*(rk-np.average(rk, weights=w)), weights=w)
         cov, shrink = positive_covariance(cov)

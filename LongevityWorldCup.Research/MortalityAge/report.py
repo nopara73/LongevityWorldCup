@@ -154,6 +154,7 @@ def main():
     page('2. Data, overlap and frozen split')
     p('Public NHANES 1999-2016 is linked by SEQN to the 2019 public-use mortality files, using PERMTH_EXM and MORTSTAT. All causes are included. Public follow-up can be perturbed for confidentiality; mortality status is preserved. Restricted newer linkage was not accessed. [1-2]')
     p('Development cycles: 1999, 2001, 2005, 2007, 2011. Temporal evaluation: 2003, 2009, 2013. The 2015 cycle is reserved for assay/short-follow-up sensitivity. The plan was saved after availability counts and before fitting or prediction performance. A deterministic respondent hash separates internal 80% development fitting from 20% model selection.')
+    p('Review corrected combined-cycle weight scaling and latent residual subsample weights after the initial temporal results were inspected. All fits and diagnostics were regenerated with unchanged predefined choices. This is re-evaluation on the same temporal split, not a new untouched validation sample.', 'Small')
     rows = [['Cycle', 'Core N / D', 'CRP+cys N / D', 'ApoB+CRP N / D', 'ApoB+grip N / D', 'CRP+cys+VO2 N / D']]
     for r in R['overlap']:
         rows.append([f'{r["cycle"]}-{str(r["cycle"]+1)[-2:]}']+[f'{r[k+"_n"]:,} / {r[k+"_deaths"]}' for k in ['core','blood','lipid_inflammation','strength','fitness']])
@@ -188,7 +189,7 @@ def main():
         if pair.split('|')[0] != pair.split('|')[1]:
             rows.append([pair.replace('|',' + '), n, pairs['1'][pair]])
     table(rows, [257,120,120], True)
-    p('Conditional means use dedicated ApoB fasting weights or revised cystatin weights where available, otherwise MEC weights. Observed-panel survival uses the panel-specific weights. Early four-year weights are halved before pooling with two-year cycles. The full outcome model and residual covariance use MEC weights; no single published joint subsample weight covers the eight domains. Fitness noncompletion is not corrected by an official fitness response weight. These departures limit population calibration. [3,18]')
+    p('Conditional means and residual covariances use dedicated ApoB fasting weights or revised cystatin weights for the involved subsample markers, otherwise MEC weights. Observed-panel survival uses the panel-specific weights. Per CDC guidance, early four-year weight numerators are twice the two-year numerators; a common normalization cancels. The full outcome model uses MEC weights; no published joint subsample weight covers all eight domains. Fitness noncompletion lacks an official fitness response weight. These limitations affect population calibration. [3,18,21]')
     p('The primary integral uses 32 deterministic antithetic Gaussian draws; 64-draw refitting checks numerical sensitivity. Residual covariance matrices are shrunk toward their diagonal only if needed for positive definiteness. Unknown pair correlations are changed to −0.3, +0.3 and +0.6, then refit. PSD shrinkage changes the attained correlations; all matrices and shrinkage are saved.')
 
     page('5. Temporal evaluation and its limits')
@@ -222,7 +223,7 @@ def main():
         if i == 2:
             p('ApoB has an inverse adjusted association in this experiment. This is not evidence that raising ApoB improves health. Selection, illness, confounding and the integration assumptions can affect this association.', 'Small')
         if i == 3:
-            p('The fitness contribution is weak and does not show the expected protective ordering in this fit. Sparse outcomes and selective exercise eligibility make a biological interpretation unjustified. Shrunk sex deviations do not establish equivalence between sexes.', 'Small')
+            p('The fitness contribution is weakly protective over the displayed support in this corrected fit. Sparse outcomes and selective exercise eligibility make a biological interpretation unjustified. Shrunk sex deviations do not establish equivalence between sexes.', 'Small')
 
     page('7. Sensitivity, uncertainty and failed hypotheses')
     profiles = R['sensitivity']['exampleProfiles']
@@ -250,6 +251,7 @@ def main():
     table([['Reference parameter', 'Value']] + [[k, f'{v:.12g}'] for k,v in ref['coefficients'].items()]
           + [[f'gamma_{s}', f'{g:.12g}'] for s,g in enumerate(ref['gamma'])], [257,240], True)
     p('The reference is monotone because its age coefficients are positive. Inversion is allowed only over ages 18-79. The full fitness integration accepts chronological ages 18-49; nonfitness panels accept 18-79. Inputs outside sex-specific weighted 1st-99th development percentiles return unsupported, not a capped measurement or clipped age. These marginal ranges do not certify support for every joint combination.')
+    p('The calculator withholds a sampling or dependence range if any included refit exceeds reference-age support, rather than silently dropping its tail.', 'Small')
     rows = [['Input', 'Female support', 'Male support', 'Unit']]
     for f in FEATURES:
         c = FULL['curves'][f]
@@ -299,7 +301,8 @@ def main():
         ('White and Royston: missing covariates in Cox models', 'https://pmc.ncbi.nlm.nih.gov/articles/PMC2998703/'),
         ('NHANES analytic guidelines', 'https://wwwn.cdc.gov/Nchs/Nhanes/analyticguidelines.aspx'),
         ('HRS sensitive health data access', 'https://hrsdata.isr.umich.edu/data-products/sensitive-health'),
-        ('UK Biobank access procedures', 'https://www.ukbiobank.ac.uk/access-procedures/')]
+        ('UK Biobank access procedures', 'https://www.ukbiobank.ac.uk/access-procedures/'),
+        ('CDC NHANES combined-cycle and subsample weighting tutorial', 'https://wwwn.cdc.gov/nchs/nhanes/tutorials/weighting.aspx')]
     for i, (title, url) in enumerate(refs, 1):
         p(f'[{i}] {escape(title)}<br/><link href="{escape(url, quote=True)}" color="#087685">{escape(url)}</link>', 'Small')
     PUBLIC.mkdir(parents=True, exist_ok=True)

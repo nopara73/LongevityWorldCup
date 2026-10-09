@@ -115,6 +115,7 @@
             } catch { /* Private browsing may deny storage. Calculation still works. */ }
         }
         function showStep(value, focus = true) {
+            hasResult = false;
             step = value;
             form.hidden = false;
             $('mortalityAgeResult').hidden = true;
@@ -209,6 +210,7 @@
             $('result-risk').textContent = result.supported ? `Estimated five-year mortality: ${(result.risk5*100).toFixed(2)}%.` : '';
             if (result.samplingRange80) $('result-risk').textContent += ` Conditional sampling range (80%): ${result.samplingRange80.map(a => a.toFixed(1)).join('–')} years.`;
             if (result.dependenceRange) $('result-risk').textContent += ` Tested dependence scenarios: ${result.dependenceRange.map(a => a.toFixed(1)).join('–')} years.`;
+            if (result.samplingRangeUnsupported || result.dependenceRangeUnsupported) $('result-risk').textContent += ' Some uncertainty estimates exceed the supported age reference; their range is unavailable.';
             $('panel-results').replaceChildren();
             $('panel-results').parentElement.open = !result.supported;
             for (const [label, model] of Object.entries(bundle.panels)) {

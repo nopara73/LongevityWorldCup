@@ -70,6 +70,11 @@ public sealed class MortalityAgeBrowserTests(PlaywrightBrowserFixture browserFix
         await Assertions.Expect(page.Locator("#panel-results")).ToContainTextAsync("Unsupported");
         await page.Locator("#edit-button").ClickAsync();
         await Assertions.Expect(page.Locator("#mortalityAgeForm")).ToBeVisibleAsync();
+        // Reviewing the measurements without changing a value still permits
+        // recalculation; the completed-result guard must not discard it.
+        await page.Locator("#calculate-button").ClickAsync();
+        await Assertions.Expect(page.Locator("#mortalityAgeResult")).ToBeVisibleAsync();
+        await page.Locator("#edit-button").ClickAsync();
         await page.ReloadAsync();
         await Assertions.Expect(page.Locator("#lwc-step-2")).ToBeVisibleAsync();
         await Assertions.Expect(page.Locator("#sex")).ToHaveValueAsync(sex);

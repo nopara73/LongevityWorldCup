@@ -19,6 +19,12 @@ def read(name):
     return json.loads((RESULTS / name).read_text())
 
 
+def write_json(path, value):
+    # Match the repository's LF bytes on every platform so provenance hashes
+    # describe the published artifact, including when exporting on Windows.
+    path.write_text(json.dumps(value, indent=2, allow_nan=False), encoding='utf-8', newline='\n')
+
+
 def stripped_model(model):
     keep = ['coefficients', 'gamma', 'features', 'curves', 'smooth', 'ridge', 'ageRange',
             'horizonYears', 'reference', 'status', 'development']
@@ -61,24 +67,29 @@ def main():
     bundle['modelVersion'] = 'mortality-age-0.1-' + digest[:12]
     PUBLIC.mkdir(parents=True, exist_ok=True)
     ARCHIVE.mkdir(exist_ok=True)
-    (PUBLIC / 'mortality-age-model.json').write_text(json.dumps(bundle, indent=2, allow_nan=False))
+    write_json(PUBLIC / 'mortality-age-model.json', bundle)
     # Independent Python expectations for browser parity, including sex functions.
     fixtures = []
     for profile in sensitivity['exampleProfiles']:
         for label, model in [('full', full), *panels.items()]:
             fixtures.append(dict(model=label, inputs=profile['inputs'], expected=numerical_prediction(profile['inputs'], model)))
-    (ARCHIVE / 'fixtures.json').write_text(json.dumps(dict(modelVersion=bundle['modelVersion'], fixtures=fixtures), indent=2, allow_nan=False))
+    write_json(ARCHIVE / 'fixtures.json', dict(modelVersion=bundle['modelVersion'], fixtures=fixtures))
     manifest = json.loads((ROOT / 'downloads.json').read_text())
-    (ARCHIVE / 'downloads.json').write_text(json.dumps(manifest, indent=2))
+    write_json(ARCHIVE / 'downloads.json', manifest)
     overlap = json.loads((ROOT / 'overlap.json').read_text())
     aggregate = dict(run=run, fullResults=read('full-results.json'), panelResults=read('panel-results.json'),
                      fullModel=full, panelModels=panels, selection=read('selection.json'),
                      sensitivity=sensitivity, bootstrap=bootstrap, landmark=read('landmark.json'), overlap=overlap,
                      diagnostics=read('diagnostics.json'), proportionalEffects=read('ph-diagnostics.json'),
                      environment=dict(python=platform.python_version(), packages={n: importlib.metadata.version(n)
-                         for n in ['numpy', 'scipy', 'pandas', 'lifelines', 'matplotlib', 'reportlab', 'pypdf']}),
+                         for n in ['numpy', 'scipy', 'pandas', 'lifelines', 'matplotlib', 'reportlab']}),
+                     implementationCorrection=dict(priorCommit='954d0ad6cfd1393610de3f615be102f425330873',
+                         changes=['Correct early four-year weight numerator from 0.5 to 2 relative to two-year weights',
+                                  'Use applicable subsample weights for latent residual variances and covariances'],
+                         predefinedModelChoicesChanged=False, previousTemporalResultsInspected=True,
+                         evaluationStatus='Same predefined temporal split re-evaluated after implementation correction; not a new untouched validation sample'),
                      modelVersion=bundle['modelVersion'], modelSha256=hashlib.sha256((PUBLIC/'mortality-age-model.json').read_bytes()).hexdigest())
-    (ARCHIVE / 'results.json').write_text(json.dumps(aggregate, indent=2, allow_nan=False))
+    write_json(ARCHIVE / 'results.json', aggregate)
     print(json.dumps(dict(modelVersion=bundle['modelVersion'], exported=str(PUBLIC),
                          bootstrapConverged=len(public_full['bootstrap']), fitnessNumericWithheld=True)), flush=True)
 

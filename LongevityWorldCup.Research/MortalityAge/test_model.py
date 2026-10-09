@@ -1,11 +1,45 @@
 """Numerical checks for the new likelihood and age conversion."""
 import unittest
 import numpy as np
+import pandas as pd
 from scipy.optimize._numdiff import approx_derivative
-from model import Fit, likelihood, gompertz_integral, predict_risk, reference_age, cubic, weighted_km
+from model import Fit, FEATURES, CORE, likelihood, gompertz_integral, predict_risk, reference_age, cubic, weighted_km, survey_weights, learn_distributions
 
 
 class ModelChecks(unittest.TestCase):
+    def test_combined_cycle_weights_match_cdc_six_year_formula(self):
+        frame = pd.DataFrame(dict(cycle=[1999, 2001, 2003], WTMEC4YR=[100., 100., np.nan],
+            WTMEC2YR=[500., 500., 200.], WTSSCB4Y=[10., 20., np.nan],
+            WTSSCB2Y=[np.nan, np.nan, 90.], WTSAF2YR=[30., 40., 50.]))
+        # Dividing the returned numerators by three reproduces the CDC's
+        # 2/3 * WTMEC4YR and 1/3 * WTMEC2YR, including subsample weights.
+        np.testing.assert_allclose(survey_weights(frame)/3, [200/3, 200/3, 200/3])
+        np.testing.assert_allclose(survey_weights(frame, 'cystatin')/3, [20/3, 40/3, 30])
+        np.testing.assert_allclose(survey_weights(frame, 'apob'), [30, 40, 50])
+
+    def test_latent_variances_respect_subsample_selection_weights(self):
+        # Synthetic separate ApoB and cystatin subsamples. Their transformed
+        # values are 0, 1, 2 with unequal inclusion weights: weighted variance
+        # is 0.41, while the full MEC sample's variance is 2/3.
+        pattern = np.tile([0., 1., 2.], 80)
+        apob_sample = np.tile(np.r_[np.ones(60, dtype=bool), np.zeros(60, dtype=bool)], 2)
+        frame = pd.DataFrame({f: np.ones(240) for f in CORE})
+        frame['age'], frame['male'] = 35., np.repeat([0, 1], 120)
+        frame['cycle'] = np.where(apob_sample, 2005, 2003)
+        frame['WTMEC4YR'], frame['WTMEC2YR'] = np.nan, 1.
+        frame['WTSSCB4Y'] = np.nan
+        frame['WTSAF2YR'] = np.where(apob_sample, np.tile([1., 1., 8.], 80), np.nan)
+        frame['WTSSCB2Y'] = np.where(~apob_sample, np.tile([8., 1., 1.], 80), np.nan)
+        for f in FEATURES[4:]: frame[f] = np.exp(pattern)
+        frame.loc[~apob_sample, 'apob'] = np.nan
+        frame.loc[apob_sample, 'cystatin'] = np.nan
+        curves = {f: dict(center=0., scale=1.) for f in FEATURES}
+        fitted = learn_distributions(frame, curves)
+        for sex in ['0', '1']:
+            covariance = np.array(fitted['covariance'][sex])
+            np.testing.assert_allclose(np.diag(covariance), [.41, 2/3, .41, 2/3, 2/3], atol=1e-12)
+            self.assertEqual(fitted['observedPairs'][sex]['apob|cystatin'], 0)
+
     def test_weighted_km_preserves_risk_set_with_censoring_and_ties(self):
         survival = weighted_km(np.array([1, 2, 3, 4, 4]), np.array([1, 0, 1, 0, 0]), np.ones(5), np.array([0, 1, 2, 3, 5]))
         np.testing.assert_allclose(survival, [1, .8, .8, .8*2/3, .8*2/3], atol=1e-12)
