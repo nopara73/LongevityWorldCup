@@ -1,0 +1,7 @@
+numpy==2.4.3
+scipy==1.17.1
+pandas==2.3.3
+lifelines==0.30.3
+matplotlib==3.11.2
+reportlab==4.4.10
+pypdf==6.9.1
