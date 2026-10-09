@@ -298,7 +298,7 @@ public sealed class HomepageChromeRegressionBrowserTests(
     [InlineData(320, 200, true)]
     [InlineData(390, 200, true)]
     [InlineData(600, 200, true)]
-    public async Task HallOfFame_MobileNamesAndScoresStaySeparateAndInsideTheirPlacing(int width, int textPercent, bool dark)
+    public async Task HallOfFame_MobilePlacingsAlignWithNamesWithoutOverlapOrOverflow(int width, int textPercent, bool dark)
     {
         await using var context = await NewContextAsync(Browser, App, ReducedMotion.Reduce);
         var page = await context.NewPageAsync();
@@ -315,17 +315,30 @@ public sealed class HomepageChromeRegressionBrowserTests(
             """
             element => [...element.children].flatMap(placing => {
                 const link = placing.querySelector('a');
-                const range = document.createRange();
-                range.selectNodeContents(link);
-                const nameRects = [...range.getClientRects()];
-                const score = placing.querySelector('.archive-mobile-card-age-reduction').getBoundingClientRect();
+                const textRects = element => {
+                    const range = document.createRange();
+                    range.selectNodeContents(element);
+                    return [...range.getClientRects()].filter(rect => rect.width > 0 && rect.height > 0);
+                };
+                const nameRects = textRects(link);
+                const labelRects = textRects(placing.querySelector('.archive-mobile-card-place'));
+                const scoreElement = placing.querySelector('.archive-mobile-card-age-reduction');
+                const scoreRects = textRects(scoreElement);
+                const score = scoreElement.getBoundingClientRect();
+                const name = link.getBoundingClientRect();
                 const bounds = placing.getBoundingClientRect();
                 const intersects = nameRects.some(rect => rect.left < score.right - 1
                     && rect.right > score.left + 1 && rect.top < score.bottom - 1 && rect.bottom > score.top + 1);
-                const overflows = [...nameRects, score].some(rect => rect.left < bounds.left - 1
+                const overflows = [...labelRects, ...nameRects, score].some(rect => rect.left < bounds.left - 1
                     || rect.right > bounds.right + 1 || rect.top < bounds.top - 1 || rect.bottom > bounds.bottom + 1);
+                // Font sizes differ slightly; compare the first text line within a two-pixel tolerance.
+                const labelAligned = Math.abs(labelRects[0].bottom - nameRects[0].bottom) <= 2;
+                const sameRow = score.top < name.bottom - 1 && score.bottom > name.top + 1;
+                const scoreAligned = !sameRow || Math.abs(scoreRects[0].bottom - nameRects[0].bottom) <= 2;
                 return [intersects ? `${link.textContent}: overlap` : null,
-                    overflows ? `${link.textContent}: overflow` : null].filter(Boolean);
+                    overflows ? `${link.textContent}: overflow` : null,
+                    !labelAligned ? `${link.textContent}: placing label is off the name's first baseline` : null,
+                    !scoreAligned ? `${link.textContent}: score is off the name's first baseline` : null].filter(Boolean);
             })
             """);
         Assert.True(problems.Length == 0, $"At {width}px / {textPercent}% (dark: {dark}): {string.Join(", ", problems)}");

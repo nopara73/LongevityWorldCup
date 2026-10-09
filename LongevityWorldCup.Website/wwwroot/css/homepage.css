@@ -1683,7 +1683,7 @@ main > .main-container .leaderboard {
     .archive-mobile-card-winner {
         display: grid;
         grid-template-columns: 2rem minmax(0, 1fr);
-        align-items: center;
+        align-items: baseline;
         gap: 0.5rem;
         min-height: 2rem;
     }
@@ -1701,7 +1701,7 @@ main > .main-container .leaderboard {
         min-width: 0;
         display: flex;
         flex-wrap: wrap;
-        align-items: center;
+        align-items: baseline;
         gap: 0.5rem;
     }
 
@@ -1715,7 +1715,9 @@ main > .main-container .leaderboard {
     }
 
     .archive-mobile-card-winner-name a {
-        display: inline-block;
+        display: flex;
+        align-items: center;
+        overflow-wrap: anywhere;
         max-width: 100%;
         min-height: 2rem;
         border-radius: 999px;
