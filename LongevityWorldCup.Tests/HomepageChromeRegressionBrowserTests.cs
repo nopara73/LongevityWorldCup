@@ -243,6 +243,46 @@ public sealed class HomepageChromeRegressionBrowserTests(
     }
 
     [Theory]
+    [InlineData(320)]
+    [InlineData(390)]
+    [InlineData(600)]
+    [InlineData(768)]
+    [InlineData(1280)]
+    public async Task HallOfFame_DarkModeGoldAndSilverHaveDistinctBrightness(int width)
+    {
+        await using var context = await NewContextAsync(Browser, App, ReducedMotion.Reduce);
+        var page = await context.NewPageAsync();
+        await page.SetViewportSizeAsync(width, 900);
+        await page.EmulateMediaAsync(new PageEmulateMediaOptions { ColorScheme = ColorScheme.Dark });
+        await page.GotoAsync("/", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await SettleLayoutAsync(page);
+
+        var contrast = await page.EvaluateAsync<double>(
+            """
+            width => {
+                const luminance = color => {
+                    const [r, g, b] = color.match(/[\d.]+/g).slice(0, 3).map(Number).map(channel => {
+                        const normalized = channel / 255;
+                        return normalized <= 0.04045
+                            ? normalized / 12.92
+                            : Math.pow((normalized + 0.055) / 1.055, 2.4);
+                    });
+                    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+                };
+                const selector = width <= 600
+                    ? '.archive-mobile-card-winner'
+                    : '.archive-table tbody td:nth-child(n + 3)';
+                const [gold, silver] = [...document.querySelectorAll(selector)]
+                    .map(element => luminance(getComputedStyle(element).backgroundColor));
+                return (Math.max(gold, silver) + 0.05) / (Math.min(gold, silver) + 0.05);
+            }
+            """, width);
+
+        // Medal recognition should also survive difficulty distinguishing hues.
+        Assert.True(contrast >= 3, $"Gold/silver background contrast was {contrast:F4}:1 at {width}px; expected at least 3:1.");
+    }
+
+    [Theory]
     [InlineData(320, 100, false)]
     [InlineData(390, 100, false)]
     [InlineData(320, 200, false)]

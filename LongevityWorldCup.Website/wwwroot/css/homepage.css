@@ -1801,10 +1801,10 @@ main > .main-container .leaderboard {
 
 @media (prefers-color-scheme: dark) {
     .archive-section {
-        --archive-gold-surface: #3a3320;
-        --archive-silver-surface: #29333d;
-        --archive-bronze-surface: #382e26;
-        --archive-score: #97e5a7;
+        --archive-gold-surface: var(--lwc-gold);
+        --archive-silver-surface: #45515c;
+        --archive-bronze-surface: #6c3b1f;
+        --archive-score: #dcffe5;
     }
 }
 
@@ -1936,9 +1936,29 @@ main > .main-container .leaderboard {
 }
 
 @media (prefers-color-scheme: dark) {
+    .archive-table td:nth-child(3),
+    .archive-mobile-card-winner:nth-child(1) {
+        --archive-placing-ink: #17212b;
+        --archive-score: #10351b;
+        --archive-placing-hover: #064a53;
+    }
+
     .archive-table td:nth-child(n + 3)::before,
-    .archive-mobile-card-place {
-        color: var(--lwc-ink);
+    .archive-table td:nth-child(n + 3) a,
+    .archive-mobile-card-place,
+    .archive-mobile-card-winner-name a {
+        color: var(--archive-placing-ink, var(--lwc-ink));
+    }
+
+    .archive-table td:nth-child(n + 3) a:hover,
+    .archive-mobile-card-winner-name a:hover {
+        color: var(--archive-placing-hover, var(--lwc-accent-hover));
+    }
+
+    .archive-table td:nth-child(n + 3) a:focus-visible,
+    .archive-mobile-card-winner-name a:focus-visible {
+        outline: 2px solid var(--archive-placing-hover, var(--lwc-accent-hover));
+        outline-offset: 2px;
     }
 
     .archive-mobile-card-winner {
