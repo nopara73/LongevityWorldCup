@@ -6,14 +6,14 @@ using SixLabors.ImageSharp.Processing;
 
 namespace LongevityWorldCup.Website.Business;
 
-public sealed class InstagramImageService(IWebHostEnvironment environment, CustomEventImageService cards)
+public sealed class InstagramImageService(IWebHostEnvironment environment, InstagramAnnouncementImageService cards)
 {
     public async Task<string> RenderAsync(string rawText, Func<string, string>? resolveName, string? memePath, CancellationToken ct = default)
+        => await RenderAsync(InstagramVisual.ForCustom(rawText, resolveName), memePath, ct);
+
+    internal async Task<string> RenderAsync(InstagramVisual visual, string? memePath, CancellationToken ct = default)
     {
-        using var stream = memePath is not null
-            ? new MemoryStream(await File.ReadAllBytesAsync(memePath, ct))
-            : await cards.RenderToStreamAsync(rawText, resolveName, ct)
-                ?? throw new InvalidOperationException("Instagram announcement image rendering is unavailable.");
+        using var stream = await cards.RenderAsync(visual, ct, memePath);
         using var image = await ImageInput.LoadAsync(stream, ct);
         var ratio = (double)image.Width / image.Height;
         if (image.Width is < 320 or > 1440 || ratio is < 0.8 or > 1.91)

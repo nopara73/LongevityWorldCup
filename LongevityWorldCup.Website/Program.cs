@@ -283,6 +283,7 @@ namespace LongevityWorldCup.Website
             builder.Services.AddSingleton<InstagramPublishingStore>();
             builder.Services.AddSingleton<InstagramPublisher>();
             builder.Services.AddSingleton<InstagramImageService>();
+            builder.Services.AddSingleton<InstagramAnnouncementImageService>();
             builder.Services.AddSingleton<InstagramAnnouncementService>();
             builder.Services.AddSingleton<INostrRelayTransport, NostrRelayTransport>();
             builder.Services.AddSingleton<NostrRelayClient>();

@@ -2384,7 +2384,7 @@
 
         function renderImagePreviewCard(platformKey, postText, titleRaw, contentRaw, clickableMentions, rawCopyText) {
             const meta = PLATFORM_PREVIEW_META[platformKey] || PLATFORM_PREVIEW_META.x;
-            const layout = getImagePreviewLayout(contentRaw, platformKey);
+            const layout = getImagePreviewLayout([titleRaw, contentRaw].filter(Boolean).join("\n\n"), platformKey);
             const frameWidth = 560;
             const scale = frameWidth / 1200;
             const frameHeight = 675 * scale;
@@ -2392,8 +2392,10 @@
             const previewKey = buildImagePreviewKey(platformKey, titleRaw, contentRaw);
             const previewImageUrl = imagePreviewCache.get(previewKey);
             const imageHtml = previewImageUrl
-                ? `<div class="custom-event-image-frame"><img alt="Generated custom event preview" src="${escapeHtml(previewImageUrl)}"></div>`
-                : renderImageFallbackHtml(layout, scale, frameHeight);
+                ? `<div class="custom-event-image-frame"${platformKey === "instagram" ? ' style="aspect-ratio:4/5;"' : ""}><img alt="Generated custom event preview" src="${escapeHtml(previewImageUrl)}"></div>`
+                : platformKey === "instagram"
+                    ? `<div class="custom-event-image-frame" style="aspect-ratio:4/5;display:grid;place-items:center;"><span>${imagePreviewCache.has(previewKey) ? "Image preview unavailable" : "Rendering image…"}</span></div>`
+                    : renderImageFallbackHtml(layout, scale, frameHeight);
 
             if (platformKey === "instagram") {
                 return `<div class="panel preview-block">

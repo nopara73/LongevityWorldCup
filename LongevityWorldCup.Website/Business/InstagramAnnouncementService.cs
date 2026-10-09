@@ -101,14 +101,14 @@ public sealed class InstagramAnnouncementService(
     private async Task<InstagramPostRequest?> BuildRequestAsync(EventItem item, Func<string, string> resolveName, CancellationToken ct)
     {
         string caption;
-        string imageText;
+        InstagramVisual visual;
         string alt;
         string? meme = null;
         if (item.Type == EventType.CustomEvent)
         {
             var plan = InstagramPost.BuildPlan(item.Id, item.Text, resolveName, item.VisibleOnWebsite);
             caption = plan.PostText;
-            imageText = item.Text;
+            visual = InstagramVisual.ForCustom(item.Text, resolveName);
             alt = plan.TitleText + "\n\n" + plan.BodyText;
         }
         else
@@ -116,12 +116,13 @@ public sealed class InstagramAnnouncementService(
             var text = messages.TryBuildMessage(item.Type, item.Text, item.Id, item.VisibleOnWebsite) ?? "";
             if (string.IsNullOrWhiteSpace(text)) return null;
             caption = InstagramPost.Truncate(text, InstagramPost.MaxCaptionLength);
-            imageText = alt = text;
+            alt = text;
+            visual = InstagramVisual.ForEvent(item.Type, item.Text, text);
             if (item.Type == EventType.AthleteCountMilestone && EventHelpers.TryExtractAthleteCount(item.Text, out var count)
                 && memes.TryGetMeme(count, out var media)) meme = media.FullPath;
         }
         if (string.IsNullOrWhiteSpace(caption)) return null;
-        var imageUrl = await images.RenderAsync(imageText, resolveName, meme, ct);
+        var imageUrl = await images.RenderAsync(visual, meme, ct);
         return new(caption, imageUrl, InstagramPost.Truncate(alt, InstagramPost.MaxAltTextLength));
     }
 }

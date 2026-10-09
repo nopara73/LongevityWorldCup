@@ -127,9 +127,14 @@ public sealed class CustomEventImageService
     {
         ct.ThrowIfCancellationRequested();
 
-        var (_, contentRaw) = CustomEventMarkup.SplitTitleAndContent(rawText);
-        var contentSource = string.IsNullOrWhiteSpace(contentRaw) ? rawText : contentRaw;
-        var segments = CustomEventMarkup.ParseSegments(contentSource, keepHyperlinkLabels: true, mentionResolver);
+        var (titleRaw, contentRaw) = CustomEventMarkup.SplitTitleAndContent(rawText);
+        var segments = CustomEventMarkup.ParseSegments(titleRaw, keepHyperlinkLabels: true, mentionResolver)
+            .Select(x => x with { Style = x.Style == CustomEventTextStyle.Strong ? x.Style : CustomEventTextStyle.Bold }).ToList();
+        if (!string.IsNullOrWhiteSpace(contentRaw))
+        {
+            segments.Add(new CustomEventSegment("\n\n", CustomEventTextStyle.Regular));
+            segments.AddRange(CustomEventMarkup.ParseSegments(contentRaw, keepHyperlinkLabels: true, mentionResolver));
+        }
         var layout = FindBestLayout(segments);
 
         var image = await ImageInput.LoadAsync<Rgba32>(_templatePath, ct);

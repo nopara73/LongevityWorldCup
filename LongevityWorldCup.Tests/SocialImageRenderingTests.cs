@@ -1,6 +1,9 @@
 using LongevityWorldCup.Website;
 using LongevityWorldCup.Website.Business;
+using LongevityWorldCup.Website.Tools;
+using System.Net.Http.Json;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging.Abstractions;
 using SixLabors.ImageSharp;
 using Xunit;
 
@@ -77,6 +80,8 @@ public sealed class SocialImageRenderingTests(TestWebApplicationFactory sharedFa
         Assert.InRange(bytes.Length, 1, 8_000_000);
         Assert.Equal("JPEG", Image.DetectFormat(bytes).Name);
         using var image = Image.Load(bytes);
+        Assert.Equal(1080, image.Width);
+        Assert.Equal(1350, image.Height);
         Assert.InRange(image.Width, 320, 1440);
         Assert.InRange((double)image.Width / image.Height, .8, 1.91);
         var captures = Environment.GetEnvironmentVariable("LWC_INSTAGRAM_SCREENSHOT_DIRECTORY");
@@ -85,6 +90,151 @@ public sealed class SocialImageRenderingTests(TestWebApplicationFactory sharedFa
             Directory.CreateDirectory(captures);
             File.Copy(path, Path.Combine(captures, "announcement-card.jpg"), overwrite: true);
         }
+    }
+
+    [Theory]
+    [InlineData("mastodon", "LWC is now on [Mastodon](https://mastodon.social/@longevityworldcup)")]
+    [InlineData("bluesky", "LWC is now on [Bluesky](https://bsky.app/profile/longevityworldcup.bsky.social)")]
+    [InlineData("instagram", "LWC announcements are now on [Instagram](https://www.instagram.com/longevityworldcup/)")]
+    [InlineData("rss", "Follow LWC by [RSS](https://longevityworldcup.com/feeds/events.rss)")]
+    [InlineData("browser", "LWC announcements, straight to your [browser](https://longevityworldcup.com/events) 🔔")]
+    [InlineData("reddit", "LWC announcements are now on [Reddit](https://www.reddit.com/r/LongevityWorldCup/)")]
+    public async Task InstagramLaunchImages_RenderTheirPlatformMark(string name, string announcement)
+    {
+        var images = sharedFactory.Services.GetRequiredService<InstagramImageService>();
+        var url = await images.RenderAsync(announcement, null, null);
+        var path = InstagramImagePath(url);
+        using var image = Image.Load<SixLabors.ImageSharp.PixelFormats.Rgba32>(path);
+        var visibleMarkPixels = 0;
+        for (var y = 255; y < 555; y++)
+            for (var x = 390; x < 690; x++)
+                if (image[x, y].R > 220 && image[x, y].G > 220 && image[x, y].B > 220) visibleMarkPixels++;
+        Assert.True(visibleMarkPixels > 3000, "The platform mark must be present on the image itself.");
+        CaptureInstagram(path, name);
+    }
+
+    [Fact]
+    public async Task AnnouncementImages_ChangeWhenOnlyTheHeadlineChanges()
+    {
+        const string body = "\n\nThe same supporting detail.";
+        var instagram = sharedFactory.Services.GetRequiredService<InstagramImageService>();
+        var first = await instagram.RenderAsync("The season begins" + body, null, null);
+        var second = await instagram.RenderAsync("The season ends" + body, null, null);
+        Assert.NotEqual(first, second);
+        CaptureInstagram(InstagramImagePath(first), "season");
+
+        var cards = sharedFactory.Services.GetRequiredService<CustomEventImageService>();
+        using var cardA = await cards.RenderToStreamAsync("The season begins" + body);
+        using var cardB = await cards.RenderToStreamAsync("The season ends" + body);
+        Assert.NotEqual(cardA!.ToArray(), cardB!.ToArray());
+    }
+
+    [Fact]
+    public async Task InstagramAthleteImage_KeepsTheEventAndAthleteTogether()
+    {
+        var images = sharedFactory.Services.GetRequiredService<InstagramImageService>();
+        var visual = LongevityWorldCup.Website.Tools.InstagramVisual.ForEvent(EventType.NewRank,
+            "slug[ron_lugbill] rank[1] prev[alice_smith]", "Ron Lugbill is now 1st in the Ultimate League.");
+        var url = await images.RenderAsync(visual, null);
+        CaptureInstagram(InstagramImagePath(url), "athlete");
+        using var image = Image.Load<SixLabors.ImageSharp.PixelFormats.Rgba32>(InstagramImagePath(url));
+        Assert.Equal(1350, image.Height);
+        var portraitColors = new HashSet<SixLabors.ImageSharp.PixelFormats.Rgba32>();
+        for (var y = 240; y < 580; y += 10)
+            for (var x = 370; x < 710; x += 10) portraitColors.Add(image[x, y]);
+        Assert.True(portraitColors.Count > 100, "The athlete's actual photo must be present.");
+    }
+
+    private string InstagramImagePath(string url) => Path.Combine(
+        sharedFactory.Services.GetRequiredService<Microsoft.AspNetCore.Hosting.IWebHostEnvironment>().WebRootPath,
+        "generated", "instagram", Path.GetFileName(new Uri(url).LocalPath));
+
+    [Fact]
+    public async Task InstagramPreview_UsesThePortraitRendererWithoutPublishingAnEvent()
+    {
+        using var client = sharedFactory.CreateClient();
+        using var response = await client.PostAsJsonAsync("/api/custom-event-preview/image", new
+        {
+            title = "LWC is now on [Mastodon](https://mastodon.social/@longevityworldcup)", content = "", platform = "instagram"
+        });
+        response.EnsureSuccessStatusCode();
+        Assert.Equal("image/png", response.Content.Headers.ContentType?.MediaType);
+        using var image = Image.Load(await response.Content.ReadAsByteArrayAsync());
+        Assert.Equal(1080, image.Width);
+        Assert.Equal(1350, image.Height);
+    }
+
+    [Fact]
+    public async Task InstagramMilestoneImage_RetainsTheMemeAndAddsItsAnnouncementContext()
+    {
+        var images = sharedFactory.Services.GetRequiredService<InstagramImageService>();
+        var memes = sharedFactory.Services.GetRequiredService<AthleteCountMilestoneMemeService>();
+        Assert.True(memes.TryGetMeme(777, out var meme));
+        var first = await images.RenderAsync("777 athletes now compete in LWC", null, meme.FullPath);
+        var second = await images.RenderAsync("888 athletes now compete in LWC", null, meme.FullPath);
+        Assert.NotEqual(first, second); // A meme alone loses which milestone happened.
+        using var image = Image.Load<SixLabors.ImageSharp.PixelFormats.Rgba32>(InstagramImagePath(first));
+        Assert.True(HeroColorCount(image) > 100);
+        CaptureInstagram(InstagramImagePath(first), "milestone");
+    }
+
+    [Fact]
+    public async Task InstagramPodcastImage_UsesEpisodeArtworkAndRetainsItsHeadlineWhenArtworkIsMissing()
+    {
+        var env = sharedFactory.Services.GetRequiredService<Microsoft.AspNetCore.Hosting.IWebHostEnvironment>();
+        var athletes = sharedFactory.Services.GetRequiredService<AthleteDataService>();
+        var artwork = File.ReadAllBytes(Path.Combine(env.WebRootPath, "athletes", "ron_lugbill", "ron_lugbill.jpeg"));
+        var http = new ThumbnailFactory(artwork);
+        var cards = new InstagramAnnouncementImageService(env, athletes, http, NullLogger<InstagramAnnouncementImageService>.Instance);
+        var visual = InstagramVisual.ForCustom("Ron Lugbill on Immortal Combat\n\n[Watch](https://www.youtube.com/watch?v=kOWAsyQCtH4)");
+        using var rendered = await cards.RenderAsync(visual);
+        using var image = Image.Load<SixLabors.ImageSharp.PixelFormats.Rgba32>(rendered);
+        Assert.True(HeroColorCount(image) > 100);
+        Assert.Equal("https://i.ytimg.com/vi/kOWAsyQCtH4/hqdefault.jpg", Assert.Single(http.Requests).AbsoluteUri);
+
+        http.Artwork = null;
+        using var fallback = await cards.RenderAsync(visual);
+        using var withoutArtwork = Image.Load<SixLabors.ImageSharp.PixelFormats.Rgba32>(fallback);
+        Assert.Equal(1350, withoutArtwork.Height);
+        Assert.NotEqual(rendered.ToArray(), fallback.ToArray());
+    }
+
+    private static int HeroColorCount(Image<SixLabors.ImageSharp.PixelFormats.Rgba32> image)
+    {
+        var colors = new HashSet<SixLabors.ImageSharp.PixelFormats.Rgba32>();
+        for (var y = 240; y < 580; y += 10)
+            for (var x = 370; x < 710; x += 10) colors.Add(image[x, y]);
+        return colors.Count;
+    }
+
+    [Fact]
+    public async Task InstagramImage_OmitsAnUnsupportedDecorativeEmojiInsteadOfDrawingAMissingGlyph()
+    {
+        var images = sharedFactory.Services.GetRequiredService<InstagramImageService>();
+        var plain = await images.RenderAsync("A sport for time", null, null);
+        var decorated = await images.RenderAsync("A sport for time 🏆", null, null);
+        Assert.Equal(plain, decorated);
+    }
+
+    private sealed class ThumbnailFactory(byte[] artwork) : HttpMessageHandler, IHttpClientFactory
+    {
+        internal byte[]? Artwork { get; set; } = artwork;
+        internal List<Uri> Requests { get; } = [];
+        public HttpClient CreateClient(string name) => new(this, disposeHandler: false);
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
+        {
+            Requests.Add(request.RequestUri!);
+            return Task.FromResult(Artwork is null ? new HttpResponseMessage(System.Net.HttpStatusCode.NotFound)
+                : new HttpResponseMessage(System.Net.HttpStatusCode.OK) { Content = new ByteArrayContent(Artwork) });
+        }
+    }
+
+    private static void CaptureInstagram(string path, string name)
+    {
+        var captures = Environment.GetEnvironmentVariable("LWC_INSTAGRAM_SCREENSHOT_DIRECTORY");
+        if (string.IsNullOrWhiteSpace(captures)) return;
+        Directory.CreateDirectory(captures);
+        File.Copy(path, Path.Combine(captures, name + ".jpg"), overwrite: true);
     }
 
     [Fact]

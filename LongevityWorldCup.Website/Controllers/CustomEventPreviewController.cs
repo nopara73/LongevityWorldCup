@@ -13,7 +13,8 @@ namespace LongevityWorldCup.Website.Controllers;
 public sealed class CustomEventPreviewController(
     CustomEventImageService images,
     AthleteDataService athletes,
-    CustomEventLinkPreviewService links) : ControllerBase
+    CustomEventLinkPreviewService links,
+    InstagramAnnouncementImageService instagramImages) : ControllerBase
 {
     private readonly CustomEventImageService _images = images;
     private readonly AthleteDataService _athletes = athletes;
@@ -29,14 +30,16 @@ public sealed class CustomEventPreviewController(
         if (string.IsNullOrWhiteSpace(title) && string.IsNullOrWhiteSpace(content))
             return BadRequest("Title or content is required.");
 
-        if (!_images.IsConfigured)
+        var platform = ParsePlatform(request.Platform);
+        if (platform == SocialPlatform.Instagram ? !instagramImages.IsConfigured : !_images.IsConfigured)
             return StatusCode(StatusCodes.Status503ServiceUnavailable, "Custom event image rendering is not configured.");
 
         var rawText = string.IsNullOrWhiteSpace(content)
             ? title
             : $"{title}\n\n{content}";
-        var platform = ParsePlatform(request.Platform);
-        var stream = await _images.RenderToStreamAsync(rawText, slug => ResolveMention(slug, platform), ct);
+        var stream = platform == SocialPlatform.Instagram
+            ? await instagramImages.RenderAsync(InstagramVisual.ForCustom(rawText, slug => ResolveMention(slug, platform)), ct)
+            : await _images.RenderToStreamAsync(rawText, slug => ResolveMention(slug, platform), ct);
         if (stream is null)
             return StatusCode(StatusCodes.Status500InternalServerError, "Custom event image preview could not be rendered.");
 

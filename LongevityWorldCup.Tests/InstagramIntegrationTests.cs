@@ -300,7 +300,8 @@ public sealed class InstagramIntegrationTests
     private static InstagramAnnouncementService Service(SocialJobIntegrationTests.SocialJobFixture fixture, InstagramApiClient api, TimeProvider clock)
     {
         var deliveries = new SocialDeliveryStore(fixture.Database);
-        var images = new InstagramImageService(fixture.Env, new CustomEventImageService(fixture.Env, NullLogger<CustomEventImageService>.Instance));
+        var images = new InstagramImageService(fixture.Env, new InstagramAnnouncementImageService(fixture.Env, fixture.Athletes,
+            new Factory(new Handler(_ => Task.FromResult(Json("{}", HttpStatusCode.NotFound)))), NullLogger<InstagramAnnouncementImageService>.Instance));
         return new(fixture.Events, deliveries, api, new InstagramPublisher(api, new InstagramPublishingStore(fixture.Database), deliveries, clock),
             fixture.ThreadsEvents, fixture.Athletes, images, fixture.MilestoneMemes, clock, NullLogger<InstagramAnnouncementService>.Instance);
     }
