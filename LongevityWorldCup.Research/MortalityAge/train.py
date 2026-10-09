@@ -15,7 +15,7 @@ from lifelines import KaplanMeierFitter, CoxPHFitter
 from lifelines.utils import concordance_index
 from model import (FEATURES, CORE, PANELS, Fit, survey_weights, transform, learn_curves,
                    design, fit_survival, likelihood, predict_risk, learn_distributions,
-                   integration_values, dependency_scenario, reference_age)
+                   integration_values, dependency_scenario, reference_age, reference_design)
 
 REPO = Path(__file__).resolve().parents[2]
 ROOT = REPO / '.artifacts' / 'mortality-age'
@@ -28,7 +28,10 @@ CONFIG = dict(seed=91237, development=[1999, 2001, 2005, 2007, 2011],
                             + [dict(smooth=True, ridge=r) for r in [0.001, 0.003]],
               dependenceCorrelations=[-0.3, 0.3, 0.6],
               supportQuantiles=[0.01, 0.99], bootstrapPercentiles=[10, 90])
-PLAN_HASH = hashlib.sha256((Path(__file__).parent / 'analysis-plan.md').read_bytes()).hexdigest()
+CONFIG.update(planFile='age-free-plan.md', chronologicalAgeInRisk=False,
+              chronologicalAgeInMissingInputDistribution=False,
+              evaluationReuse='Previously inspected cycles; exploratory diagnostic reuse')
+PLAN_HASH = hashlib.sha256((Path(__file__).parent / CONFIG['planFile']).read_bytes()).hexdigest()
 CONFIG['planSha256'] = PLAN_HASH
 
 
@@ -131,7 +134,7 @@ def evaluate(frame, risk, weights, benchmark_risk=None):
 
 
 def benchmark(frame, reference):
-    x, _, _ = observed_design(frame, [], {}, False)
+    x, _, _ = reference_design(frame)
     return predict_risk(reference, x, frame.male.to_numpy())
 
 
@@ -146,13 +149,14 @@ def example_inputs(frame, features, curves):
             median = float(subset[f].median())
             vals[f] = float(min(max(median, lo), hi))
         # Use measured medians only to illustrate an artificial profile, not an observed person.
-        result.append(dict(age=40., male=float(s), **vals))
+        result.append(dict(male=float(s), **vals))
     return result
 
 
 def model_export(fit, names, features, curves, smooth, ridge, age_max, reference):
     return dict(**fit.json(names), features=features, curves=curves, smooth=smooth,
-                ridge=ridge, ageRange=[18, age_max], horizonYears=5,
+                ridge=ridge, trainingAgeRange=[18, age_max], horizonYears=5,
+                riskInputs=['male', *features], requiresChronologicalAge=False,
                 reference=reference.json(['intercept', 'male', 'age_female', 'age_male']))
 
 
@@ -162,16 +166,17 @@ def full_design(frame, curves, distributions, smooth, draws=32):
 
 
 def main():
+    save('run.json', dict(status='running', config=CONFIG))
     (OUT / 'frozen-config.json').write_text(json.dumps(CONFIG, indent=2))
     all_data = pd.read_csv(ROOT / 'harmonized.csv')
     data = all_data.dropna(subset=CORE).copy()
     data = data[survey_weights(data) > 0].reset_index(drop=True)
     development = data[data.cycle.isin(CONFIG['development'])].reset_index(drop=True)
     holdout = data[data.cycle.isin(CONFIG['evaluation'])].reset_index(drop=True)
-    say(f'Development {count(development)}; holdout allocation frozen, not yet evaluated')
+    say(f'Development {count(development)}; previously inspected temporal cycles retained for diagnostic reuse')
     weights = survey_weights(development)
-    xr, names, penalty = observed_design(development, [], {}, False)
-    reference = fit_survival(xr, development, weights, penalty, 0)
+    xr, names, penalty = reference_design(development)
+    reference = fit_survival(xr, development, weights, penalty, 0, age_columns=(2, 3))
     if not reference.converged:
         raise RuntimeError('Age/sex reference did not converge')
     say(f'Reference fit {reference.json(names)}')
@@ -261,7 +266,7 @@ def main():
     for label, exported in panel_models.items():
         features, cs, sm = exported['features'], exported['curves'], exported['smooth']
         test = holdout.dropna(subset=features).copy()
-        test = test[(test.age >= exported['ageRange'][0]) & (test.age <= exported['ageRange'][1])]
+        test = test[(test.age >= exported['trainingAgeRange'][0]) & (test.age <= exported['trainingAgeRange'][1])]
         marker = 'cystatin' if label in ['blood', 'fitness'] else 'apob' if label in ['lipid', 'strength'] else None
         test = test[survey_weights(test, marker) > 0].reset_index(drop=True)
         fitted = Fit(np.array(list(exported['coefficients'].values())), np.array(exported['gamma']), True, '', 0, 0)
@@ -326,10 +331,9 @@ def main():
             conditionalOn='Fixed curves, conditional measurement distributions, selected model and age reference'))
         say(f'Cluster bootstrap {replicate+1}/{CONFIG["bootstrapReplicates"]}, converged={fit.converged}')
 
-    # Correct two-year survivor landmark: start the clock anew at age+2, conditional on survival.
+    # Correct two-year survivor landmark: new follow-up origin, no age in prediction.
     landmark = young[young.time > 24].copy().reset_index(drop=True)
     landmark['time'] -= 24
-    landmark['age'] += 2
     lx, ln, lp = full_design(landmark, curves, distributions, smooth)
     fitted = fit_survival(lx, landmark, survey_weights(landmark), lp, ridge, theta)
     lr = predict_risk(fitted, ex, examples.male.to_numpy())
@@ -355,7 +359,7 @@ def main():
                 age=[clean_number(a) for a in aa])
     save('curves.json', grid_results)
     save('fixtures.json', dict(profiles=profiles, curves=grid_results))
-    save('run.json', dict(completedUtc=datetime.now(timezone.utc).isoformat(), config=CONFIG,
+    save('run.json', dict(status='complete', completedUtc=datetime.now(timezone.utc).isoformat(), config=CONFIG,
         name='Mortality age', fullPanelStatus='exploratory; no observed joint validation',
         panelModels=list(panel_models), fullFit=full.json(names)))
     say('Training, sensitivity analysis, and evaluation completed')

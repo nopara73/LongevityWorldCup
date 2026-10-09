@@ -25,9 +25,7 @@ public sealed class MortalityAgeBrowserTests(PlaywrightBrowserFixture browserFix
         page.Request += (_, request) => { if (request.PostData?.Contains("sbp", StringComparison.Ordinal) == true) healthRequests.Add(request.Url); };
         await page.GotoAsync("/mortality-age");
         await Assertions.Expect(page.Locator("#continue-button")).ToBeDisabledAsync();
-        await page.Locator("#dob-year").SelectOptionAsync("1986");
-        await page.Locator("#dob-month").SelectOptionAsync("1");
-        await page.Locator("#dob-day").SelectOptionAsync("1");
+        Assert.Equal(0, await page.Locator("[id^='dob-'], #yearsText").CountAsync());
         await page.Locator("#measurement-date").FillAsync("2026-01-01");
         await page.Locator("#sex").SelectOptionAsync(sex);
         await page.Locator("#continue-button").PressAsync("Enter");
@@ -75,10 +73,27 @@ public sealed class MortalityAgeBrowserTests(PlaywrightBrowserFixture browserFix
         await page.Locator("#calculate-button").ClickAsync();
         await Assertions.Expect(page.Locator("#mortalityAgeResult")).ToBeVisibleAsync();
         await page.Locator("#edit-button").ClickAsync();
+        // An old saved draft keeps its measurements and discards birth date,
+        // age and unknown fields when migrated to the age-free calculator.
+        await page.EvaluateAsync("""
+            () => {
+                const draft = JSON.parse(localStorage.getItem('lwc-mortality-age-draft-v2'));
+                Object.assign(draft.values, {'dob-year': '1986', 'dob-month': '1', 'dob-day': '1', age: '40', birthday: '1986-01-01'});
+                localStorage.setItem('lwc-mortality-age-draft-v1', JSON.stringify(draft));
+                localStorage.removeItem('lwc-mortality-age-draft-v2');
+            }
+            """);
         await page.ReloadAsync();
         await Assertions.Expect(page.Locator("#lwc-step-2")).ToBeVisibleAsync();
         await Assertions.Expect(page.Locator("#sex")).ToHaveValueAsync(sex);
         await Assertions.Expect(page.Locator("#apob")).ToHaveValueAsync(profile["apob"].ToString(System.Globalization.CultureInfo.InvariantCulture));
+        Assert.True(await page.EvaluateAsync<bool>("""
+            () => {
+                const draft = JSON.parse(localStorage.getItem('lwc-mortality-age-draft-v2'));
+                return localStorage.getItem('lwc-mortality-age-draft-v1') === null &&
+                    draft.step === 2 && !Object.keys(draft.values).some(key => key.startsWith('dob-') || key === 'age' || key === 'birthday');
+            }
+            """));
         await page.Locator("#vo2").Locator("xpath=ancestor::div[contains(@class,'biomarker-card') and not(contains(@class,'biomarker-card-content'))][1]/button").ClickAsync();
         await page.Locator("#vo2-method").SelectOptionAsync("other");
         await page.Locator("#calculate-button").ClickAsync();
@@ -96,7 +111,6 @@ public sealed class MortalityAgeBrowserTests(PlaywrightBrowserFixture browserFix
         await context.RouteAsync("**/research/mortality-age-model.json*", route => route.FulfillAsync(new RouteFulfillOptions { Status = 503, Body = "Unavailable" }));
         var page = await context.NewPageAsync();
         await page.GotoAsync("/mortality-age");
-        await page.Locator("#dob-year").SelectOptionAsync("1986");
         await page.Locator("#sex").SelectOptionAsync("0");
         await page.Locator("#continue-button").ClickAsync();
         await Assertions.Expect(page.Locator("#retry-model")).ToBeVisibleAsync();

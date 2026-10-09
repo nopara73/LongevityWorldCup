@@ -2,7 +2,8 @@
     'use strict';
     const modelUrl = document.currentScript.dataset.modelUrl;
     window.LwcInitialView.run(() => {
-        const storageKey = 'lwc-mortality-age-draft-v1';
+        const storageKey = 'lwc-mortality-age-draft-v2';
+        const legacyStorageKey = 'lwc-mortality-age-draft-v1';
         const $ = id => document.getElementById(id);
         const form = $('mortalityAgeForm');
         const evaluator = window.LwcMortalityAgeModel;
@@ -22,17 +23,6 @@
         const controllers = new Map();
         const today = new Date();
         const localDate = date => `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
-        for (let year = today.getFullYear() - 18; year >= today.getFullYear() - 100; year--) $('dob-year').add(new Option(String(year), String(year)));
-        for (let month = 1; month <= 12; month++) $('dob-month').add(new Option(new Date(2000, month-1).toLocaleString(undefined, { month: 'long' }), String(month)));
-        $('dob-month').value = '12';
-        function syncDays() {
-            const previous = $('dob-day').value || '31';
-            const count = new Date(Number($('dob-year').value) || 2000, Number($('dob-month').value), 0).getDate();
-            $('dob-day').replaceChildren();
-            for (let day = 1; day <= count; day++) $('dob-day').add(new Option(String(day), String(day)));
-            $('dob-day').value = String(Math.min(Number(previous), count));
-        }
-        syncDays();
         $('measurement-date').value = localDate(today);
         $('measurement-date').max = localDate(today);
         const cards = $('measurement-cards');
@@ -85,21 +75,8 @@
             });
             fieldset.append(card);
         }
-        function age() {
-            const year = Number($('dob-year').value);
-            const month = Number($('dob-month').value);
-            const day = Number($('dob-day').value);
-            const draw = $('measurement-date').value;
-            if (!year || !draw || month < 1 || month > 12 || day < 1 || day > 31) return NaN;
-            const birth = Date.UTC(year, month-1, day);
-            if (new Date(birth).getUTCMonth() !== month-1) return NaN;
-            const measured = Date.parse(draw+'T00:00:00Z');
-            return (measured-birth)/86400000/365.2425;
-        }
         function firstStepValid() {
-            const years = age();
-            $('dob-year').setCustomValidity(Number.isFinite(years) && (years < 18 || years >= 80) ? 'This research calculator supports ages 18–79 at measurement.' : '');
-            return ['dob-year', 'measurement-date', 'sex'].every(id => $(id).validity.valid && $(id).value !== '') && age() >= 18 && age() < 80;
+            return ['measurement-date', 'sex'].every(id => $(id).validity.valid && $(id).value !== '');
         }
         function ready() {
             $('continue-button').disabled = !firstStepValid();
@@ -112,6 +89,8 @@
                 const draft = { step, values: {} };
                 form.querySelectorAll('input, select').forEach(input => draft.values[input.id] = input.type === 'checkbox' ? input.checked : input.value);
                 localStorage.setItem(storageKey, JSON.stringify(draft));
+                // Remove birth-date data only after the replacement draft is saved.
+                localStorage.removeItem(legacyStorageKey);
             } catch { /* Private browsing may deny storage. Calculation still works. */ }
         }
         function showStep(value, focus = true) {
@@ -126,7 +105,7 @@
                 $(`lwcDot${s}`).setAttribute('aria-current', s === value ? 'step' : 'false');
             }
             controllers.forEach(c => c.reset());
-            if (focus) (value === 1 ? $('dob-year') : $('sbp').closest('.biomarker-card').querySelector('button')).focus({ preventScroll: true });
+            if (focus) (value === 1 ? $('sex') : $('sbp').closest('.biomarker-card').querySelector('button')).focus({ preventScroll: true });
             saveDraft();
         }
         form.querySelectorAll('input, select').forEach(input => {
@@ -147,8 +126,6 @@
             });
             controllers.set(input.id, controller);
         });
-        $('dob-year').addEventListener('change', syncDays);
-        $('dob-month').addEventListener('change', syncDays);
         form.addEventListener('input', () => { hasResult = false; ready(); saveDraft(); });
         form.addEventListener('change', () => { hasResult = false; ready(); saveDraft(); });
         $('continue-button').addEventListener('click', () => { if (firstStepValid()) showStep(2); });
@@ -157,14 +134,11 @@
         $('lwcDot2').addEventListener('click', () => { if (firstStepValid()) showStep(2); });
         $('edit-button').addEventListener('click', () => showStep(2));
         try {
-            const draft = JSON.parse(localStorage.getItem(storageKey) || 'null');
+            const draft = JSON.parse(localStorage.getItem(storageKey) || localStorage.getItem(legacyStorageKey) || 'null');
             if (draft && draft.values && typeof draft.values === 'object') {
                 restoring = true;
-                for (const id of ['dob-year', 'dob-month']) {
-                    const value = draft.values[id];
-                    if (typeof value === 'string' && Array.from($(id).options).some(o => o.value === value)) $(id).value = value;
-                }
-                syncDays();
+                // Only fields still present in this form are restored or saved.
+                // Legacy date-of-birth fields never enter the new draft or model.
                 form.querySelectorAll('input, select').forEach(input => {
                     const value = draft.values[input.id];
                     if (input.type === 'checkbox' && typeof value === 'boolean') input.checked = value;
@@ -182,7 +156,7 @@
                 const response = await fetch(modelUrl, { signal: abort.signal, cache: 'no-cache' });
                 if (!response.ok) throw new Error('Model unavailable');
                 const loaded = await response.json();
-                if (loaded.schemaVersion !== 1 || loaded.full?.status !== 'experimental-integration' || !loaded.panels || !loaded.modelVersion) throw new Error('Unsupported model');
+                if (loaded.schemaVersion !== 2 || loaded.requiresChronologicalAge !== false || loaded.full?.status !== 'experimental-integration' || !loaded.panels || !loaded.modelVersion) throw new Error('Unsupported model');
                 bundle = loaded;
                 $('model-status').textContent = 'Eight domains · sex-dependent curves · five-year mortality';
             } catch {
@@ -194,7 +168,7 @@
         form.addEventListener('submit', async event => {
             event.preventDefault();
             if ($('calculate-button').disabled || hasResult) return;
-            const inputs = { age: age(), male: Number($('sex').value) };
+            const inputs = { male: Number($('sex').value) };
             for (const field of fields) inputs[field.id] = evaluator.convert(field.id, Number($(field.id).value), $(`${field.id}-unit`).value, $(`${field.id}-limit`)?.checked);
             if (inputs.sbp <= inputs.dbp) {
                 const error = $('sbp-error'); error.textContent = 'Systolic pressure must be higher than diastolic pressure.'; error.hidden = false;
@@ -225,7 +199,6 @@
             document.body.classList.add('bioage-result-ready');
             hasResult = true;
             if (result.supported) {
-                $('yearsText').textContent = `${Math.abs(result.age-inputs.age).toFixed(1)} years ${result.age < inputs.age ? 'below' : 'above'} your chronological age`;
                 window.LwcBioageFlow.announceBioageResult($('mortalityAgeResult'), `Experimental mortality-equivalent age: ${result.age.toFixed(1)} years. The full panel has not been jointly validated.`);
                 $('animatedAge').textContent = result.age.toFixed(1);
                 window.LwcBioageFlow.animateBioageResult($('mortalityAgeResult'), result.age);

@@ -3,12 +3,58 @@ import unittest
 import numpy as np
 import pandas as pd
 from scipy.optimize._numdiff import approx_derivative
-from model import Fit, FEATURES, CORE, likelihood, gompertz_integral, predict_risk, reference_age, cubic, weighted_km, survey_weights, learn_distributions
+from model import (Fit, FEATURES, CORE, likelihood, gompertz_integral, predict_risk,
+                   reference_age, reference_design, cubic, weighted_km, survey_weights,
+                   learn_curves, learn_distributions, conditional_predictors,
+                   integration_values, design, fit_survival)
 from transport import evaluate_horizon
 from uncertainty import paired_brier_improvement, interval
 
 
 class ModelChecks(unittest.TestCase):
+    def test_risk_and_missing_measurements_do_not_use_personal_age(self):
+        rng = np.random.default_rng(914)
+        n = 360
+        frame = pd.DataFrame({f: rng.lognormal(0, .6, n) for f in FEATURES})
+        frame['male'] = np.arange(n) % 2
+        frame['age'] = rng.integers(18, 80, n)
+        frame['cycle'] = 2005
+        for weight in ['WTMEC2YR', 'WTSAF2YR', 'WTSSCB2Y']:
+            frame[weight] = rng.uniform(1, 2, n)
+        frame['WTMEC4YR'], frame['WTSSCB4Y'] = np.nan, np.nan
+        for feature in FEATURES[4:]:
+            frame.loc[rng.random(n) < .15, feature] = np.nan
+        curves = learn_curves(frame, FEATURES)
+        distributions = learn_distributions(frame, curves)
+        values = integration_values(frame, curves, distributions)
+        original, names, penalty = design(frame, values, FEATURES, curves, True)
+        self.assertEqual(names[:2], ['intercept', 'male'])
+        self.assertFalse(any('age' in name for name in names))
+        for alternative in [frame.assign(age=79-frame.age), frame.drop(columns='age')]:
+            np.testing.assert_array_equal(conditional_predictors(frame, curves), conditional_predictors(alternative, curves))
+            self.assertEqual(distributions, learn_distributions(alternative, curves))
+            np.testing.assert_array_equal(values, integration_values(alternative, curves, distributions))
+            changed, other_names, other_penalty = design(alternative, values, FEATURES, curves, True)
+            np.testing.assert_array_equal(original, changed)
+            self.assertEqual(names, other_names)
+            np.testing.assert_array_equal(penalty, other_penalty)
+        self.assertTrue(all(len(coef) == 10 for coef in distributions['regressions'].values()))
+
+    def test_first_biomarker_coefficients_are_not_constrained_as_age(self):
+        # The former age columns occupied positions 2 and 3. Those positions now
+        # contain biomarkers and must be allowed to have protective associations.
+        rng = np.random.default_rng(917)
+        n = 5000
+        male = rng.integers(0, 2, n)
+        x = np.column_stack([np.ones(n), male, rng.normal(size=n), rng.normal(size=n)])[:, None, :]
+        rate = np.exp(x[:, 0] @ np.array([-3., .3, -.9, .3]))
+        death_time = rng.exponential(1/rate)
+        frame = pd.DataFrame(dict(male=male, time=np.minimum(death_time, 10)*12, event=(death_time <= 10).astype(int)))
+        fitted = fit_survival(x, frame, np.ones(n), np.array([0, .05, 1, 8]), .0001, fixed_gamma=0)
+        self.assertTrue(fitted.converged)
+        self.assertLess(fitted.coefficients[2], -.6)
+        self.assertGreater(fitted.coefficients[3], .1)
+
     def test_paired_error_uses_same_censoring_weights_and_keeps_sign(self):
         frame = pd.DataFrame(dict(time=[12., 18., 36.], event=[1, 0, 0], male=[0, 1, 0]))
         # Main error .33; benchmark error (.8²+.4²/.5)/3 = .32.
@@ -97,7 +143,8 @@ class ModelChecks(unittest.TestCase):
     def test_risk_age_reference_roundtrip_for_both_sexes(self):
         ages = np.array([18., 40., 60., 78., 18., 40., 60., 78.])
         male = np.array([0, 0, 0, 0, 1, 1, 1, 1])
-        x = np.column_stack([np.ones(8), male, (ages-45)/10*(1-male), (ages-45)/10*male])[:, None, :]
+        x, names, _ = reference_design(pd.DataFrame(dict(age=ages, male=male)))
+        self.assertEqual(names, ['intercept', 'male', 'age_female', 'age_male'])
         fit = Fit(np.array([-6.5, .4, .8, .7]), np.array([.1, .08]), True, '', 0, 0)
         risk = predict_risk(fit, x, male)
         np.testing.assert_allclose(reference_age(risk, male, fit), ages, atol=1e-10)

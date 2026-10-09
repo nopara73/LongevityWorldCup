@@ -22,7 +22,7 @@
     }
     function cumulativeHazard(inputs, model, coefficients = model.coefficients, gamma = model.gamma) {
         const s = inputs.male;
-        let eta = coefficients.intercept + coefficients.male * s + coefficients[s === 1 ? 'age_male' : 'age_female'] * (inputs.age - 45) / 10;
+        let eta = coefficients.intercept + coefficients.male * s;
         for (const f of model.features) eta += contribution(inputs[f], s, f, model, coefficients);
         return Math.exp(eta) * integral(gamma[s], 5);
     }
@@ -38,11 +38,11 @@
         return sorted[i] + (sorted[Math.min(i + 1, sorted.length - 1)] - sorted[i]) * (position - i);
     }
     function calculate(inputs, model) {
+        if (model.requiresChronologicalAge !== false || 'age_female' in model.coefficients || 'age_male' in model.coefficients) {
+            return { supported: false, reason: 'The age-free research model is unavailable. Reload and try again.' };
+        }
         if (model.releaseStatus === 'withheld') return { supported: false, reason: model.releaseReason };
         if (![0, 1].includes(inputs.male)) return { supported: false, reason: 'Select female or male sex.' };
-        if (!Number.isFinite(inputs.age) || inputs.age < model.ageRange[0] || Math.floor(inputs.age) > model.ageRange[1]) {
-            return { supported: false, reason: `This model supports ages ${model.ageRange[0]}–${model.ageRange[1]}.` };
-        }
         const problems = [];
         for (const feature of model.features) {
             const value = inputs[feature];

@@ -1,6 +1,7 @@
 """Generate the substantive report from saved results, with no hand-entered results."""
 from pathlib import Path
 import json
+from datetime import datetime
 from html import escape
 import numpy as np
 import matplotlib
@@ -22,6 +23,8 @@ PUBLIC = REPO / 'LongevityWorldCup.Website' / 'wwwroot' / 'research'
 TEMP.mkdir(parents=True, exist_ok=True)
 R = json.loads((ARCHIVE / 'results.json').read_text())
 FULL = R['fullModel']
+COMPLETED = datetime.fromisoformat(R['run']['completedUtc'])
+REPORT_DATE = f'{COMPLETED.day} {COMPLETED:%B %Y}'
 NAMES = dict(sbp='Systolic BP', dbp='Diastolic BP', whr='Waist / height', hba1c='HbA1c', apob='ApoB',
              crp='hs-CRP', cystatin='Cystatin C', grip='Single-hand grip', vo2='Estimated VO2max')
 UNITS = dict(sbp='mmHg', dbp='mmHg', whr='ratio', hba1c='%', apob='mg/dL', crp='mg/L', cystatin='mg/L', grip='kg', vo2='mL/kg/min')
@@ -116,7 +119,7 @@ def footer(canvas, doc):
     width, _ = A4
     canvas.setStrokeColor(colors.HexColor('#d7dfe5')); canvas.line(48, 39, width-48, 39)
     canvas.setFont(FONT, 7.5); canvas.setFillColor(MUTED)
-    canvas.drawString(48, 26, 'Mortality age | Research experiment | 9 October 2026')
+    canvas.drawString(48, 26, f'Mortality age | Age-free research experiment | {REPORT_DATE}')
     canvas.drawRightString(width-48, 26, str(doc.page))
     canvas.restoreState()
 
@@ -126,12 +129,19 @@ def main():
     blood = R['panelResults']['blood']['temporalEvaluation']
     fitness = R['panelResults']['fitness']['temporalEvaluation']
     p('Mortality age', 'TitleResearch')
-    p('A reproducible, sex-dependent, multi-cohort mortality-equivalent age experiment', 'Sub')
-    p('Version 0.1 · 9 October 2026 · Longevity World Cup', 'Small')
-    p('<b>Finding:</b> NHANES can support several jointly measured mortality models, but these public cohorts do not establish a validated clock using all eight requested measurement domains. No respondent has the complete panel. The fitness panel failed a sparse five-year temporal calibration test. The complete-panel equation is published as an unvalidated integration experiment, with its assumptions exposed.')
+    p('A reproducible, age-free, sex-dependent, multi-cohort mortality-equivalent age experiment', 'Sub')
+    p(f'Version 0.2 · {REPORT_DATE} · Longevity World Cup', 'Small')
+    p('<b>Revision:</b> Chronological age is absent from every measurement-to-risk equation and every missing-measurement regression. All models and sensitivities have been refit. The calculator requires sex and measurements; it neither requests birth date nor substitutes a default or inferred personal age. A separate, fixed historical age reference converts risk into years.')
+    p('<b>Finding:</b> NHANES supports several jointly measured mortality models, but these public cohorts do not establish a validated clock using all eight requested domains. No respondent has the complete panel. The complete-panel equation remains an unvalidated integration experiment. Previously inspected temporal cohorts are reused for exploratory diagnostics.')
     p(f'The development integration includes {R["fullResults"]["development"]["n"]:,} people aged 18-49 and {R["fullResults"]["development"]["deaths"]} deaths over available follow-up. Marginal temporal evaluation includes {full_eval["n"]:,} people, {full_eval["deaths"]} total deaths, and {full_eval["fiveYearDeaths"]} deaths within five years. Missing measurements are integrated out during this evaluation; this is <b>not validation of a jointly observed eight-domain prediction</b>.')
     p(f'In marginal temporal evaluation, the full experiment has observed/expected five-year mortality {full_eval["observedExpected"]:.2f} and unweighted Harrell C {full_eval["unweightedHarrellC"]:.3f}. The observed inflammation/kidney panel has observed/expected {blood["observedExpected"]:.2f}, slope {blood["fiveYearCalibrationSlope"]:.2f} and C {blood["unweightedHarrellC"]:.3f}. Its broader age range prevents interpreting this as a head-to-head comparison.')
-    p('The paired survey-bootstrap ranges for the full marginal prediction-error improvement include zero against both age/sex and common-core benchmarks. These data do not establish a reliable error reduction, even before considering absent complete-panel validation.')
+    gains = R['validationUncertainty']['models']['full']['pairedBrierImprovement']
+    comparisons = []
+    for key, label in [('ageSex', 'age/sex'), ('commonCore', 'age-free common core')]:
+        ci = gains[key]['range80']
+        conclusion = 'includes zero' if ci[0] <= 0 <= ci[1] else 'favors full integration' if ci[0] > 0 else 'favors the benchmark'
+        comparisons.append(f'{label}: {conclusion}')
+    p('Conditional paired survey-bootstrap error comparisons are ' + '; '.join(comparisons) + '. These are marginal comparisons in reused cohorts; even a positive result cannot establish complete-panel validity.')
     p(f'The fitness panel has only {fitness["fiveYearDeaths"]} five-year deaths in its temporal test, with observed/expected {fitness["observedExpected"]:.2f}. Its numeric panel age is withheld in the calculator. Other panel estimates and any full integration result remain experimental, not clinical validation.')
     p('The displayed age matches modeled five-year all-cause mortality to a historical sex-specific age reference. It measures an association in selected survey populations. It does not estimate pace of aging, life expectancy, treatment benefit, or years gained.')
     p('Calculator: <link href="https://longevityworldcup.com/mortality-age" color="#087685">longevityworldcup.com/mortality-age</link><br/>Frozen model: <link href="https://longevityworldcup.com/research/mortality-age-model.json" color="#087685">mortality-age-model.json</link>', 'Small')
@@ -140,7 +150,7 @@ def main():
     rows = [['Domain', 'Definition and canonical unit']]
     definitions = [
         ('Circulation', 'Mean nonzero readings 1-3 of resting clinic systolic and diastolic BP, mmHg. Both enter the joint equation. Not 24-hour blood pressure. [4]'),
-        ('Fitness', 'CVDESVO2, exercise-based treadmill estimate, mL/kg/min. Do not substitute CVDVOMAX, the non-exercise protocol-assignment estimate. Eligibility excluded many people with health conditions; ages 12-49 were tested. Adult calculator range: 18-49. [5-7]'),
+        ('Fitness', 'CVDESVO2, exercise-based treadmill estimate, mL/kg/min. Do not substitute CVDVOMAX, the non-exercise protocol-assignment estimate. Eligibility excluded many people with health conditions; ages 12-49 were tested. Adult research population: 18-49; removing the age input does not validate use in older people. [5-7]'),
         ('Strength', 'Highest MGX trial from either hand with effort code 1 (maximal). Unit kg. Not MGDCGSZ, which adds best readings from both hands. [8-9]'),
         ('Body composition', 'Measured waist cm / standing height cm. The same unit is required in numerator and denominator. [10]'),
         ('Lipids', 'LBXAPB ApoB, mg/dL, from the morning fasting subsample. [11-12]'),
@@ -154,8 +164,8 @@ def main():
 
     page('2. Data, overlap and frozen split')
     p('Public NHANES 1999-2016 is linked by SEQN to the 2019 public-use mortality files, using PERMTH_EXM and MORTSTAT. All causes are included. Public follow-up can be perturbed for confidentiality; mortality status is preserved. Restricted newer linkage was not accessed. [1-2]')
-    p('Development cycles: 1999, 2001, 2005, 2007, 2011. Temporal evaluation: 2003, 2009, 2013. The 2015 cycle is a separate two-year assay/short-follow-up sensitivity. The plan was saved after availability counts and before fitting or prediction performance. A deterministic respondent hash separates internal 80% development fitting from 20% model selection.')
-    p('Review corrected combined-cycle weight scaling and latent residual subsample weights after the initial temporal results were inspected. All fits and diagnostics were regenerated with unchanged predefined choices. This is re-evaluation on the same temporal split, not a new untouched validation sample.', 'Small')
+    p('Development cycles: 1999, 2001, 2005, 2007, 2011. Temporal diagnostics: 2003, 2009, 2013. The 2015 cycle supplies a separate two-year assay/short-follow-up sensitivity. A deterministic respondent hash separates internal 80% development fitting from 20% model selection. The original analysis-plan.md preceded version 0.1 fitting; age-free-plan.md was saved before version 0.2 refitting.')
+    p('Version 0.1 review corrected combined-cycle scaling and latent residual subsample weights. Version 0.2 removes chronological age from risk and missing-input distributions, refitting with the same cycles, weights, internal candidate grid and seeds. All these temporal cohorts/endpoints were previously inspected. This is exploratory diagnostic reuse, not fresh independent validation; no model is retuned from these diagnostics.', 'Small')
     rows = [['Cycle', 'Core N / D', 'CRP+cys N / D', 'ApoB+CRP N / D', 'ApoB+grip N / D', 'CRP+cys+VO2 N / D']]
     for r in R['overlap']:
         rows.append([f'{r["cycle"]}-{str(r["cycle"]+1)[-2:]}']+[f'{r[k+"_n"]:,} / {r[k+"_deaths"]}' for k in ['core','blood','lipid_inflammation','strength','fitness']])
@@ -170,19 +180,20 @@ def main():
 
     page('3. Survival model and sex-dependent components')
     p('Follow-up t is in years; d is death status. Sex s is 0 for female and 1 for male. For observed inputs, the sex-specific Gompertz model is:')
-    p('η(x,a,s) = α + δs + b<sub>age,s</sub>(a − 45)/10 + Σ<sub>j</sub> f<sub>j</sub>(x<sub>j</sub>,s)<br/>h(t|x,a,s) = exp(η) exp(γ<sub>s</sub>t)<br/>H(t|x,a,s) = exp(η) A(γ<sub>s</sub>,t), where A(γ,t) = (exp(γt) − 1)/γ<br/>P(death by 5 years) = 1 − exp[−H(5)]', 'Equation')
+    p('η(x,s) = α + δs + Σ<sub>j</sub> f<sub>j</sub>(x<sub>j</sub>,s)<br/>h(t|x,s) = exp(η) exp(γ<sub>s</sub>t)<br/>H(t|x,s) = exp(η) A(γ<sub>s</sub>,t), where A(γ,t) = (exp(γt) − 1)/γ<br/>P(death by 5 years) = 1 − exp[−H(5)]', 'Equation')
+    p('Chronological age, birth date, age group and inferred personal age are not predictors. Research age determines cohort eligibility and diagnostic subgroup comparisons only. Thus biomarker associations can include differences related to chronological age; removing the age predictor does not establish a causal or uniquely biological-aging effect.')
     p('Log transformations are used for ApoB, CRP, cystatin C, grip and fitness to model positive measurements. Other measurements use their raw scale. Development-weighted 10th/50th/90th percentiles are the three restricted-cubic-spline knots. z is centered/scaled transformed input; q is centered/scaled spline basis. The component is:')
     p('f<sub>j</sub>(x,s) = β<sub>j</sub> z<sub>j</sub>(x) + θ<sub>j</sub> q<sub>j</sub>(x) + ψ<sub>j</sub> z<sub>j</sub>(x)(s − 0.5)', 'Equation')
     p('This is f(VO2max, sex), f(grip, sex), and equivalent sex-dependent functions for the other markers. Shared nonlinear curvature plus sex-specific slope deviations borrow information. Separate unrestricted male/female nonlinear fits would consume more information than the young-event counts support. No biomarker is capped to a preferred clinical value, and U/J shapes are not forced.')
     p('Three knots k1 &lt; k2 &lt; k3 define q before centering/scaling: [(u−k1)<sub>+</sub>³ − (u−k2)<sub>+</sub>³(k3−k1)/(k3−k2) + (u−k3)<sub>+</sub>³(k2−k1)/(k3−k2)]/(k3−k1)². Its tails are linear mathematically; the calculator refuses values beyond declared empirical support instead of extrapolating those tails.', 'Small')
-    p('The weighted negative mean log-likelihood uses ridge shrinkage. Relative penalties are 1 for main linear terms, 4 for nonlinear terms, 8 for sex deviations, 0.05 for sex, 0.02 for age slopes and zero for intercept. The internal grid is linear/log λ = 0.0003, 0.001, 0.003 and smooth λ = 0.001, 0.003. The smooth λ = 0.003 candidate wins by internal marginal survival loss and is refit on development only.')
+    p(f'The weighted negative mean log-likelihood uses ridge shrinkage. Relative penalties are 1 for main linear terms, 4 for nonlinear terms, 8 for sex deviations, 0.05 for sex and zero for intercept. The internal grid is linear/log λ = 0.0003, 0.001, 0.003 and smooth λ = 0.001, 0.003. The selected {"smooth" if FULL["smooth"] else "linear/log"} model with λ = {FULL["ridge"]} wins by internal marginal survival loss and is refit on development only.')
     table([['Candidate', 'Internal loss', 'Converged']] + [[('Smooth' if r['smooth'] else 'Linear/log')+f', λ={r["ridge"]}', fmt(r['validationLoss'],6), r['fit']['converged']] for r in R['selection']], [265, 116, 116], True)
-    p('Numerical age slopes are constrained positive for reference inversion; follow-up slopes are bounded −0.1 to 0.2 per year. These are optimizer constraints, not biomarker clipping. Survey weights are normalized by sum in the likelihood. The fit includes full right-censored follow-up; its five-year output depends on the time form and proportional-effects assumption.')
+    p('Biomarker coefficients are unconstrained in sign. Positive age slopes exist only in the separate historical reference, for inversion. Follow-up slopes are bounded −0.1 to 0.2 per year. These are optimizer constraints, not biomarker clipping. Survey weights are normalized by sum in the likelihood. The fit includes full right-censored follow-up; its five-year output depends on the time form and proportional-effects assumption.')
 
     page('4. What combining cohorts assumes')
     p('Adding adjusted marginal hazard ratios would double count shared information and would not recover a joint model. Here each original participant contributes a survival likelihood marginalized over their unobserved measurements:')
-    p('L<sub>i</sub> = E<sub>Xmissing | Xobserved, age, sex, core</sub> { h(t<sub>i</sub>|X)<sup>d<sub>i</sub></sup> exp[−H(t<sub>i</sub>|X)] }', 'Equation')
-    p('Conditional measurement means are ridge regressions on age, age², sex, age×sex, the four common-core measurements and their sex interactions. Residuals for the five occasionally measured inputs are approximated by sex-specific multivariate Gaussian distributions on standardized transformed scales. Observed values remain fixed during integration. The draws are quadrature, not fabricated observed participants.')
+    p('L<sub>i</sub> = E<sub>Xmissing | Xobserved, sex, core</sub> { h(t<sub>i</sub>|X,s)<sup>d<sub>i</sub></sup> exp[−H(t<sub>i</sub>|X,s)] }', 'Equation')
+    p('Conditional measurement means are ridge regressions on sex, the four common-core measurements and their sex interactions: ten predictors including the intercept. Age, age² and age×sex have been removed. Residuals for the five occasionally measured inputs are approximated by sex-specific multivariate Gaussian distributions on standardized transformed scales. Observed values remain fixed during integration. The draws are quadrature, not fabricated observed participants.')
     p('Genuinely observed residual pair covariance is retained. A pair with fewer than 50 jointly measured records in a sex is assigned zero residual covariance in the primary model. Unobserved relationships cannot be inferred merely because datasets share the common core. The zero-residual-dependence choice and the transport of conditional distributions/outcome relationships across cycles and fitness exclusions are assumptions. [16-17]')
     pairs = FULL['distributions']['observedPairs']
     rows = [['Pair', 'Female N', 'Male N']]
@@ -207,14 +218,14 @@ def main():
         ['Age/sex', fmt(base['observedExpected'],2), fmt(base['unweightedHarrellC']), fmt(base['ipcwBrier5y'],6)],
         ['Observed common core', fmt(core_young['observedExpected'],2), fmt(core_young['unweightedHarrellC']), fmt(core_young['ipcwBrier5y'],6)],
         ['Full marginal integration', fmt(full_eval['observedExpected'],2), fmt(full_eval['unweightedHarrellC']), fmt(full_eval['ipcwBrier5y'],6)]], [228,75,75,119], True)
-    p(f'The full marginal Brier improvement over age/sex is {full_eval["brierImprovement"]:.6f}, small in absolute terms. These predictions integrate missing measurements. Even good marginal calibration would not prove that the unseen joint eight-domain equation is correct. There is no external cohort validation.')
+    p(f'The full marginal Brier improvement over the age/sex research benchmark is {full_eval["brierImprovement"]:+.6f}; positive favors integration. Personal age enters the benchmark only, not the clock prediction. These predictions integrate missing measurements. Even good marginal calibration would not prove that the unseen joint eight-domain equation is correct. There is no external cohort validation.')
     rows = [['Full marginal test', 'N', 'Deaths ≤5y', 'O/E (80% PSU range)']]
     for s, label in [('0','Female'),('1','Male')]:
         ev = full_eval['bySex'][s]
         ci = R['diagnostics']['calibration']['full']['bySexObservedExpected80'][s]
         rows.append([label, ev['n'], ev['fiveYearDeaths'], f'{ev["observedExpected"]:.2f} ({interval(ci)})'])
     table(rows, [160,75,92,170], True)
-    p('The fitness panel substantially overpredicts the sparse test outcomes. With four five-year deaths it cannot supply reliable calibration or elaborate sex-specific fitness curves. The release decision to withhold that panel is a post-evaluation usability decision; the frozen model and all failure metrics remain available. The full model is not promoted to a validated clock by partial-panel results.')
+    p(f'The fitness panel has only {fitness["fiveYearDeaths"]} five-year deaths and O/E {fitness["observedExpected"]:.2f}; it cannot supply reliable calibration or elaborate sex-specific fitness curves. The version 0.1 decision to withhold its numeric age is retained. The frozen model and all diagnostic metrics remain available. Partial-panel results do not establish a validated full clock.')
 
     for i, fs in enumerate([FEATURES[:3], FEATURES[3:6], FEATURES[6:]], 1):
         page(f'6.{i} Sex-dependent curves and conditional uncertainty')
@@ -222,9 +233,9 @@ def main():
         story.append(Image(str(path), width=497, height=544))
         p('Each curve is the log-hazard contribution relative to that sex’s development median profile, holding other inputs fixed. Shading is the 10th-90th percentile of 32 survey-cluster refits with fixed knots, conditional distributions, selected specification and age reference. It omits nuisance-estimation and unobserved-dependence uncertainty. Limits are development-weighted 1st-99th input percentiles by sex, not clinical normal ranges.', 'Small')
         if i == 2:
-            p('ApoB has an inverse adjusted association in this experiment. This is not evidence that raising ApoB improves health. Selection, illness, confounding and the integration assumptions can affect this association.', 'Small')
+            p('These are jointly fitted age-free associations. Inverse, flat or nonmonotone portions cannot be interpreted as benefits from changing a marker. Selection, illness, chronological-age differences, confounding and integration assumptions can affect the fitted shape.', 'Small')
         if i == 3:
-            p('The fitness contribution is weakly protective over the displayed support in this corrected fit. Sparse outcomes and selective exercise eligibility make a biological interpretation unjustified. Shrunk sex deviations do not establish equivalence between sexes.', 'Small')
+            p('Sparse outcomes and selective exercise eligibility limit interpretation of fitness and strength. Shrunk sex deviations do not establish equivalence between sexes. The age-free refit can change each curve because age is no longer adjusted out.', 'Small')
 
     page('7. Sensitivity, uncertainty and failed hypotheses')
     profiles = R['sensitivity']['exampleProfiles']
@@ -235,19 +246,19 @@ def main():
     rows.append(['64-draw integration']+[fmt(a,2) for a in R['sensitivity']['moreDraws']['exampleAge']])
     rows.append(['Exponential baseline + matched reference']+[fmt(a,2) for a in R['diagnostics']['timeForm']['exampleAge']])
     table(rows, [257,120,120], True)
-    p('Examples have chronological age 40 and development medians for each sex. They are artificial profiles, not two jointly observed people. The exponential sensitivity refits both outcome model and age reference with a constant baseline hazard. It demonstrates time-form dependence; it does not establish the proportional-effects assumption.')
+    p('Examples use sex-specific development medians and contain no chronological age. They are artificial profiles, not two jointly observed people. The exponential sensitivity refits both the age-free outcome model and historical age reference with constant baseline hazards. It demonstrates time-form dependence; it does not establish the proportional-effects assumption.')
     ph = R['proportionalEffects']
     smallest = {label: min(result['results'].items(), key=lambda r: r[1]['p']) for label,result in ph.items()}
     p('Exploratory sex-stratified Cox diagnostics using the observed core/blood spline bases found ranked-time associations in scaled Schoenfeld residuals. The smallest approximate p values are ' + '; '.join(f'{label}: {name}, p={result["p"]:.2g}' for label,(name,result) in smallest.items()) + '. This raises concern about constant covariate effects over follow-up. These penalized, survey-weighted diagnostics have no survey-design or multiple-testing correction and are not a formal test of the integrated likelihood.', 'Small')
     sweep = R['diagnostics']['profileSweep']
-    p(f'One-at-a-time sweeps across sex, ages 20/30/40/49 and nine values per input produced {sweep["n"]} artificial profiles. The median tested dependence age span is {sweep["medianDependenceAgeSpan"]:.2f} years; the maximum is {sweep["maxDependenceAgeSpan"]:.2f} years. {sweep["unsupportedPrimary"]} primary profiles lie outside the reference-age support. This is not a simultaneous joint-tail stress test and does not exhaust unidentified relationships.')
-    p('Observed-panel two-year landmark fits restart follow-up among people surviving past two years, subtract 24 months and advance age by two years. Baseline measurements remain two years old. This handles the time origin correctly but does not remove survivor selection or reverse causality. The separate integrated landmark artifact is exploratory and also changes conditional missing-input assumptions; it is not treated as a validation result.')
+    p(f'One-at-a-time sweeps across sex and nine supported values per input produced {sweep["n"]} age-free artificial profiles. The median tested dependence age span is {sweep["medianDependenceAgeSpan"]:.2f} years; the maximum is {sweep["maxDependenceAgeSpan"]:.2f} years. {sweep["unsupportedPrimary"]} primary profiles lie outside the reference-age support. This is not a simultaneous joint-tail stress test and does not exhaust unidentified relationships.')
+    p('Two-year landmark fits restart follow-up among people surviving past two years and subtract 24 months. No personal age enters these refits or missing-measurement draws. Baseline measurements remain two years old. The corrected time origin does not remove survivor selection or reverse causality. Integrated and observed-panel landmark artifacts are exploratory sensitivities.')
     p('The 32 training bootstraps are conditional on fixed nuisance distributions, knots, model selection and reference; their 80% age/curve ranges are not comprehensive prediction intervals. Structural sensitivity spans are separate, finite scenario comparisons, not confidence intervals. Regularization may conceal weakly identified components. One must not infer that each domain is independently measured biological aging.')
     p('The proposed all-domain clock hypothesis remains unestablished. Additional joint measurements, mortality events, sex-specific evaluation, measurement-method calibration and independent cohort validation are required before clinical or intervention interpretation. Accessible public NHANES overlaps cannot supply the absent exercise/grip joint information. HRS health access and UK Biobank would require separately authorized access; neither dataset was used. [19-20]')
 
     page('7.1 Later assays and longer follow-up')
     transport = R['transport']
-    p('Two-year later-assay and ten-year temporal diagnostics were specified in transport-plan.md after primary results were inspected and before these endpoint results were calculated. Horizons were selected from administrative follow-up coverage. All models, measurement distributions and release decisions remain frozen. These are diagnostic sensitivities, not new confirmatory validation.')
+    p('The two-year later-assay and ten-year temporal diagnostics were introduced by transport-plan.md in version 0.1. Version 0.2 recomputes these previously inspected endpoints under age-free-plan.md; this is diagnostic reuse. Horizons follow administrative coverage. Predictors, measurement distributions and release decisions remain fixed during evaluation. These are not new confirmatory validation.')
     for cycle, horizon, title in [('2015', 2, '2015-2016: newer hs-CRP assay, two-year endpoint'), ('2003', 10, '2003-2004: ten-year endpoint')]:
         p(title, 'Sub')
         rows = [['Model', 'N', f'D≤{horizon}y', 'O/E (80% PSU range)', 'Slope', f'Brier {horizon}y']]
@@ -265,7 +276,7 @@ def main():
         rows.append([f'{cycle}, {ev["horizonYears"]} years', fmt(ev['ageSexBenchmark']['ipcwBrier'],6),
             fmt(ev['commonCoreBenchmark']['ipcwBrier'],6), fmt(ev['ipcwBrier'],6)])
     table(rows, [194,101,101,101], True, compact=True)
-    p('The full marginal Brier error is not lower than either benchmark in these additional checks. Only eight two-year deaths occur in the later under-50 cohort; the ten-year full marginal O/E is below one. These findings limit prediction reliability and do not establish unseen joint-panel validity. Fitness remains numerically withheld.')
+    p('The table compares frozen predictions on identical rows and weights. The later under-50 cohort has ' + str(transport['diagnostics']['2015']['full']['horizonDeaths']) + ' deaths by two years. These sparse, reused endpoints cannot establish unseen joint-panel validity, regardless of the direction of the point-error comparisons. Fitness remains numerically withheld.')
     rows = [['Full marginal sex coverage', 'Female N / D≤h', 'Male N / D≤h']]
     for cycle in ['2015', '2003']:
         ev = transport['diagnostics'][cycle]['full']
@@ -275,7 +286,7 @@ def main():
 
     page('7.2 Validation uncertainty and paired errors')
     uncertainty = R['validationUncertainty']
-    p('These ranges quantify validation-sample uncertainty conditional on the frozen predictors, preprocessing, missing-input distributions, model selection and reference. uncertainty-plan.md was specified after the point results were inspected and before calculating the ranges. No predictor is refit or chosen from these results. Training uncertainty and transport uncertainty remain separate and are not resolved by these intervals.')
+    p('These ranges quantify evaluation-sample uncertainty conditional on the frozen predictors, preprocessing, missing-input distributions, model selection and reference. Version 0.1 introduced uncertainty-plan.md; the age-free revision repeats the diagnostics under age-free-plan.md in the same previously inspected cohorts. No predictor is refit or chosen from these results. The intervals do not resolve training or transport uncertainty.')
     rows = [['Five-year model', 'C (80% range)', 'Slope (80% range)', 'Brier (80% range)']]
     for label, ev in uncertainty['models'].items():
         cells = [LABELS[label]]
@@ -285,15 +296,26 @@ def main():
         rows.append(cells)
     table(rows, [145,115,115,122], True)
     p('The same survey PSU-within-stratum resampling supplies 128 replicates. Weighted Brier/recalibration estimates use the original survey weights multiplied by PSU multiplicities. Unweighted concordance repeats whole sampled PSU rows with their integer multiplicities. Repeated rows are bootstrap copies, not newly observed people. C remains a measure over available follow-up, not a five-year AUC.')
-    p('An interval requires at least 80% finite replicates. All reported Brier and C ranges use 128/128 replicates. All estimable slope ranges use 128/128 except strength (127/128); that slope range is conditional on estimability. The fitness slope is unavailable because its original cohort has fewer than 30 five-year deaths. The artifacts retain estimable counts; unavailable estimates are not invented.')
+    counts = '; '.join(f'{LABELS[label]}: ' + ', '.join(f'{metric} {result["estimableReplicates"]}/{result["totalReplicates"]}' for metric, result in ev['ranges'].items()) for label, ev in uncertainty['models'].items())
+    p('An interval requires at least 80% finite replicates. Counts are ' + counts + '. Slopes are unavailable below 30 five-year deaths or when too few replicates are estimable. The artifacts retain every estimable count; unavailable estimates are not invented.', 'Small')
     gains = uncertainty['models']['full']['pairedBrierImprovement']
     rows = [['Full marginal comparison', 'Brier improvement', '80% paired PSU range']]
     for key,label in [('ageSex','Versus age/sex'), ('commonCore','Versus observed common core')]:
         gain = gains[key]
         rows.append([label, f'{gain["point"]:+.6f}', ' to '.join(f'{v:+.6f}' for v in gain['range80'])])
     table(rows, [257,120,120], True)
-    p('Improvement is benchmark Brier error minus full-model Brier error on the exact same under-50 rows, weights and paired PSU resamples. Positive values favor full integration. Both ranges span zero; the data do not establish a reliable prediction-error benefit over either benchmark. This is marginal missing-input evaluation and cannot establish the unobserved full joint prediction.')
+    p('Improvement is benchmark Brier error minus full-model Brier error on the same under-50 rows, weights and paired PSU resamples. Positive values favor full integration. Whether a range spans zero is shown explicitly. These are conditional marginal diagnostics in reused cohorts and cannot establish the unobserved full joint prediction.')
     p('Point metrics agree with the original five-year evaluator; the paired-error implementation also passes an analytical censoring calculation. Additional diagnostic plan SHA-256: '+uncertainty['planSha256'], 'Small')
+
+    page('7.3 Research age-stratum diagnostics')
+    p('Chronological age is used here only to audit the recorded research population. Predictions and missing-measurement draws were calculated before forming these groups, without age. These reused temporal subgroups do not change the fitted equation or certify individual support.')
+    rows = [['Age-free model', 'Recorded age', 'N', 'D≤5y', 'O/E', 'C']]
+    for label, groups in R['diagnostics']['byTrainingAge'].items():
+        for group, ev in groups.items():
+            rows.append([LABELS[label], group, f'{ev["n"]:,}', ev['fiveYearDeaths'],
+                         fmt(ev['observedExpected'],2), fmt(ev['unweightedHarrellC'])])
+    table(rows, [171,85,67,53,57,64], True, compact=True)
+    p('O/E is observed/expected five-year risk; C is unweighted concordance over available follow-up. Sparse groups can show unstable ratios or unavailable discrimination. This table reports point diagnostics, not formal subgroup validation. Full and fitness data have no 50+ research participants; removing age from the calculator does not supply that evidence.', 'Small')
 
     page('8. From risk to age, and supported inputs')
     ref = FULL['reference']
@@ -301,7 +323,7 @@ def main():
     p('Age<sub>eq</sub> = 45 + 10 { log H<sub>model</sub>(5) − log A(γ<sub>ref,s</sub>,5) − α<sub>ref</sub> − δ<sub>ref</sub>s } / b<sub>ref,age,s</sub>', 'Equation')
     table([['Reference parameter', 'Value']] + [[k, f'{v:.12g}'] for k,v in ref['coefficients'].items()]
           + [[f'gamma_{s}', f'{g:.12g}'] for s,g in enumerate(ref['gamma'])], [257,240], True)
-    p('The reference is monotone because its age coefficients are positive. Inversion is allowed only over ages 18-79. The full fitness integration accepts chronological ages 18-49; nonfitness panels accept 18-79. Inputs outside sex-specific weighted 1st-99th development percentiles return unsupported, not a capped measurement or clipped age. These marginal ranges do not certify support for every joint combination.')
+    p('The reference is monotone because its age coefficients are positive. It is a fixed risk-to-years ruler: the input risk and sex determine equivalent age; the user\'s chronological age is never used. Inversion is allowed only over reference ages 18-79. The full/fitness research population is 18-49 and other panels are 18-79. The age-free calculator cannot enforce a personal age gate, and does not validate wider population use. Inputs outside sex-specific weighted 1st-99th development percentiles return unsupported rather than capped measurements or clipped output. Marginal ranges do not certify every joint combination.')
     p('The calculator withholds a sampling or dependence range if any included refit exceeds reference-age support, rather than silently dropping its tail.', 'Small')
     rows = [['Input', 'Female support', 'Male support', 'Unit']]
     for f in FEATURES:
@@ -313,7 +335,7 @@ def main():
     page('9. Frozen equation coefficients')
     table([['Component', 'Linear β', 'Spline θ', 'Sex slope ψ']] + [[NAMES[f], f'{FULL["coefficients"][f+"_linear"]:.9g}', f'{FULL["coefficients"][f+"_nonlinear"]:.9g}', f'{FULL["coefficients"][f+"_sex"]:.9g}'] for f in FEATURES], [185,104,104,104], True, compact=True)
     p('The component sex slope multiplies z(x)(s−0.5), not raw x. Coefficients require the exact transformations, knots, centers/scales and baseline. A component taken from another panel cannot be swapped into this full equation while retaining its interpretation: each panel is fitted jointly and calibrated against the reference.')
-    table([['Full-model baseline', 'Value']] + [[k, f'{FULL["coefficients"][k]:.12g}'] for k in ['intercept','male','age_female','age_male']]
+    table([['Age-free full-model baseline', 'Value']] + [[k, f'{FULL["coefficients"][k]:.12g}'] for k in ['intercept','male']]
           + [[f'gamma_{s}', f'{g:.12g}'] for s,g in enumerate(FULL['gamma'])], [257,240], True, compact=True)
     rows = [['Input', 'Transformed knots', 'Center / scale']]
     for f in FEATURES:
@@ -328,7 +350,7 @@ def main():
     manifest = json.loads((ARCHIVE/'downloads.json').read_text())
     p(f'{len(manifest)} original public files are recorded with URL, retrieval UTC, byte size, SHA-256, row count and columns in artifacts/downloads.json. Joins are one-to-one on SEQN with duplicate checks. SAS file signatures and mortality-file content are verified. Primary fit completion UTC: {R["run"]["completedUtc"]}. Cycle/horizon completion UTC: {R["transport"]["completedUtc"]}. Validation uncertainty completion UTC: {R["validationUncertainty"]["completedUtc"]}. Monte Carlo seed: {R["run"]["config"]["seed"]}.')
     table([['Runtime / package', 'Version'], ['Python', R['environment']['python']]] + list(R['environment']['packages'].items()), [257,240], True)
-    p('Verification includes analytic likelihood gradients against independent finite differences, exponential-limit calculations, observed-row/quadrature equivalence, right-censored risk sets, sex-specific age roundtrips, spline tails and Python/browser fixtures. Website checks cover unit conversions, sex-dependent functions, unsupported inputs, loading recovery, editing and restoration, mobile/desktop behavior, PDF bytes and exclusion from discovery. Code verification does not constitute scientific validation.')
+    p('Verification includes invariance after changing or deleting personal age in risk design and missing-measurement calculations, unconstrained biomarker-coefficient fitting, likelihood gradients against finite differences, exponential limits, observed-row/quadrature equivalence, right-censored risk sets, historical-reference roundtrips, spline tails and Python/browser fixtures. Every panel, bootstrap and dependence refit is checked for absent age predictors and age-invariant outputs. Website checks cover unit conversions, sex-dependent functions, unsupported inputs, loading recovery, editing, birth-date draft removal, mobile/desktop behavior, PDF bytes and discovery exclusion. Code verification is not scientific validation.')
     p('This report distinguishes actual temporal performance from scientific identification. The model has no complete-panel external validation, no causal adjustment or competing-risk interpretation, and no calibrated smartwatch conversion. Medication, smoking, disease, ethnicity and socioeconomic conditions are not separately included in the requested panel. Repeated measurements and longitudinal biological change were not modelled. Those limitations are material, not resolved by producing an age number.')
 
     page('11. Primary sources')
