@@ -1,0 +1,9 @@
+# Mortality age: validation uncertainty diagnostic
+
+Specified after the primary and additional horizon point results were inspected, before calculating these uncertainty ranges. This adds the uncertainty requested in the execution specification without selecting or changing any fitted model, measurement distribution, support limit, reference or release decision. It is conditional diagnostic uncertainty, not a new confirmatory analysis.
+
+For each frozen model's original five-year temporal evaluation, resample 128 survey PSUs within strata using seed 91258. Use the exact original eligible rows and marker-specific survey weights. Keep the predictor, preprocessing and missing-input integration fixed. Calculate 10th-90th percentile ranges for IPCW Brier error, unweighted Harrell concordance over available follow-up, and five-year Cox recalibration slope. Concordance uses integer PSU row multiplicities; weighted metrics multiply their original survey weights by those multiplicities. Resampling repetitions are bootstrap copies, not new observed participants.
+
+Recalibration slopes remain unavailable if the original cohort has fewer than 30 horizon deaths. For an interval, require at least 80% of replicates to return a finite estimate, record the number estimable, and retain failed/sparse replicates as unavailable rather than inventing values. These ranges omit training/model-selection/nuisance-distribution and transport uncertainty.
+
+For the full marginal five-year model, calculate paired Brier differences against the fixed age/sex and common-core benchmarks using the same PSU resamples, rows and weights. Positive improvement means benchmark error minus full-model error. Report the interval even if it spans zero or is unfavorable. Verify all point metrics against the original five-year evaluator and verify the paired calculation with a known event/censoring example.
