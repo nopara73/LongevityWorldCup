@@ -762,7 +762,7 @@ public sealed class SocialJobIntegrationTests
                     : "{}")
             });
 
-        // A long title selects image mode while keeping the rendered body small.
+        // A long title selects image mode; the rendered headline stays bounded.
         var sent = imagePost
             ? await fixture.FacebookEvents.TrySendEventAsync(
                 EventType.CustomEvent,

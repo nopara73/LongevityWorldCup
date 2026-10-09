@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.RegularExpressions;
 using LongevityWorldCup.Website.Tools;
 using SixLabors.Fonts;
@@ -15,6 +16,7 @@ public sealed class CustomEventImageService
     private const string SiteBaseUrl = "https://longevityworldcup.com";
     private const int CanvasWidth = 1200;
     private const int CanvasHeight = 675;
+    private const int MaxTitleTextElements = 240;
     private const int CardMinWidth = 900;
     private const int CardMinHeight = 330;
     private const int CardMaxWidth = 1120;
@@ -128,8 +130,8 @@ public sealed class CustomEventImageService
         ct.ThrowIfCancellationRequested();
 
         var (titleRaw, contentRaw) = CustomEventMarkup.SplitTitleAndContent(rawText);
-        var segments = CustomEventMarkup.ParseSegments(titleRaw, keepHyperlinkLabels: true, mentionResolver)
-            .Select(x => x with { Style = x.Style == CustomEventTextStyle.Strong ? x.Style : CustomEventTextStyle.Bold }).ToList();
+        var segments = LimitTitle(CustomEventMarkup.ParseSegments(titleRaw, keepHyperlinkLabels: true, mentionResolver)
+            .Select(x => x with { Style = x.Style == CustomEventTextStyle.Strong ? x.Style : CustomEventTextStyle.Bold }));
         if (!string.IsNullOrWhiteSpace(contentRaw))
         {
             segments.Add(new CustomEventSegment("\n\n", CustomEventTextStyle.Regular));
@@ -143,6 +145,27 @@ public sealed class CustomEventImageService
 
         DrawCard(image, layout);
         return image;
+    }
+
+    // Captions retain the complete title. Bound only the image headline before
+    // font measurement so oversized platform-boundary inputs stay inexpensive.
+    private static List<CustomEventSegment> LimitTitle(IEnumerable<CustomEventSegment> segments)
+    {
+        var result = new List<CustomEventSegment>();
+        var remaining = MaxTitleTextElements;
+        foreach (var segment in segments)
+        {
+            var starts = StringInfo.ParseCombiningCharacters(segment.Text);
+            if (starts.Length <= remaining)
+            {
+                result.Add(segment);
+                remaining -= starts.Length;
+                continue;
+            }
+            result.Add(segment with { Text = segment.Text[..starts[remaining]] + "…" });
+            break;
+        }
+        return result;
     }
 
     private LayoutResult FindBestLayout(IReadOnlyList<CustomEventSegment> segments)
