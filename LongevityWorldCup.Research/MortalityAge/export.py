@@ -82,6 +82,7 @@ def main():
                      sensitivity=sensitivity, bootstrap=bootstrap, landmark=read('landmark.json'), overlap=overlap,
                      diagnostics=read('diagnostics.json'), proportionalEffects=read('ph-diagnostics.json'),
                      transport=read('transport.json'),
+                     validationUncertainty=read('uncertainty.json'),
                      environment=dict(python=platform.python_version(), packages={n: importlib.metadata.version(n)
                          for n in ['numpy', 'scipy', 'pandas', 'lifelines', 'matplotlib', 'reportlab']}),
                      implementationCorrection=dict(priorCommit='954d0ad6cfd1393610de3f615be102f425330873',

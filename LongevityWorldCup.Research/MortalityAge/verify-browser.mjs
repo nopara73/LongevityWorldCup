@@ -17,6 +17,9 @@ assert.equal(createHash('sha256').update(readFileSync(new URL('analysis-plan.md'
 assert.equal(createHash('sha256').update(readFileSync(new URL('transport-plan.md', import.meta.url))).digest('hex'), research.transport.planSha256, 'Additional diagnostic plan must match the research checksum');
 assert.equal(research.transport.primaryRetuned, false);
 assert.equal(research.transport.fiveYearEvaluatorParity, true);
+assert.equal(createHash('sha256').update(readFileSync(new URL('uncertainty-plan.md', import.meta.url))).digest('hex'), research.validationUncertainty.planSha256, 'Validation uncertainty plan must match the research checksum');
+assert.equal(research.validationUncertainty.primaryRetuned, false);
+for (const validation of Object.values(research.validationUncertainty.models)) assert.equal(validation.evaluatorParity, true);
 assert.equal(bundle.modelVersion, research.modelVersion);
 assert.equal(bundle.modelVersion, fixtureSet.modelVersion);
 function near(actual, expected, tolerance = 1e-10) { assert.ok(Math.abs(actual - expected) < tolerance, `${actual} != ${expected}`); }

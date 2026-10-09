@@ -11419,6 +11419,253 @@
     "fiveYearEvaluatorParity": true,
     "completedUtc": "2026-10-09T15:24:26.420998+00:00"
   },
+  "validationUncertainty": {
+    "planSha256": "02066336509f7f4d7905964c7d6bb6f8286fc2be91c0f206e11b9c81b42eed15",
+    "primaryRetuned": false,
+    "replicates": 128,
+    "seed": 91258,
+    "intervalPercentiles": [
+      10,
+      90
+    ],
+    "models": {
+      "full": {
+        "n": 8182,
+        "horizonDeaths": 78,
+        "point": {
+          "brier": 0.009319883417839585,
+          "concordance": 0.6910533061565158,
+          "slope": 0.7387518534370444
+        },
+        "ranges": {
+          "brier": {
+            "estimableReplicates": 128,
+            "totalReplicates": 128,
+            "range80": [
+              0.008177534372700766,
+              0.01047092842225512
+            ]
+          },
+          "concordance": {
+            "estimableReplicates": 128,
+            "totalReplicates": 128,
+            "range80": [
+              0.6710833762492237,
+              0.7100362197766814
+            ]
+          },
+          "slope": {
+            "estimableReplicates": 128,
+            "totalReplicates": 128,
+            "range80": [
+              0.5936657282708465,
+              0.8627297533738415
+            ]
+          }
+        },
+        "evaluatorParity": true,
+        "pairedBrierImprovement": {
+          "ageSex": {
+            "point": 5.245257135918191e-06,
+            "estimableReplicates": 128,
+            "totalReplicates": 128,
+            "range80": [
+              -4.2303295114321535e-05,
+              5.3392479080920496e-05
+            ]
+          },
+          "commonCore": {
+            "point": -8.964097499895067e-06,
+            "estimableReplicates": 128,
+            "totalReplicates": 128,
+            "range80": [
+              -4.689881172392436e-05,
+              2.8600613950170197e-05
+            ]
+          }
+        }
+      },
+      "core": {
+        "n": 14152,
+        "horizonDeaths": 495,
+        "point": {
+          "brier": 0.026399599110662364,
+          "concordance": 0.8144814174645785,
+          "slope": 0.7916372076307975
+        },
+        "ranges": {
+          "brier": {
+            "estimableReplicates": 128,
+            "totalReplicates": 128,
+            "range80": [
+              0.025152454250814405,
+              0.02780448504136593
+            ]
+          },
+          "concordance": {
+            "estimableReplicates": 128,
+            "totalReplicates": 128,
+            "range80": [
+              0.8103841164048737,
+              0.8202623757156838
+            ]
+          },
+          "slope": {
+            "estimableReplicates": 128,
+            "totalReplicates": 128,
+            "range80": [
+              0.7543666846059477,
+              0.8412452380039116
+            ]
+          }
+        },
+        "evaluatorParity": true
+      },
+      "blood": {
+        "n": 3762,
+        "horizonDeaths": 156,
+        "point": {
+          "brier": 0.0237550656973389,
+          "concordance": 0.8518621047888837,
+          "slope": 1.0417972335240613
+        },
+        "ranges": {
+          "brier": {
+            "estimableReplicates": 128,
+            "totalReplicates": 128,
+            "range80": [
+              0.02138728453186074,
+              0.02589834119174244
+            ]
+          },
+          "concordance": {
+            "estimableReplicates": 128,
+            "totalReplicates": 128,
+            "range80": [
+              0.8460162858558105,
+              0.8566773661848697
+            ]
+          },
+          "slope": {
+            "estimableReplicates": 128,
+            "totalReplicates": 128,
+            "range80": [
+              0.9572569079269064,
+              1.1257439949295152
+            ]
+          }
+        },
+        "evaluatorParity": true
+      },
+      "lipid": {
+        "n": 2503,
+        "horizonDeaths": 79,
+        "point": {
+          "brier": 0.023712982498084418,
+          "concordance": 0.8315258166491043,
+          "slope": 0.8103928441905495
+        },
+        "ranges": {
+          "brier": {
+            "estimableReplicates": 128,
+            "totalReplicates": 128,
+            "range80": [
+              0.02105310459647511,
+              0.025665135891996524
+            ]
+          },
+          "concordance": {
+            "estimableReplicates": 128,
+            "totalReplicates": 128,
+            "range80": [
+              0.8230138195127987,
+              0.8400199353901928
+            ]
+          },
+          "slope": {
+            "estimableReplicates": 128,
+            "totalReplicates": 128,
+            "range80": [
+              0.6557786975916627,
+              0.9579955887541142
+            ]
+          }
+        },
+        "evaluatorParity": true
+      },
+      "strength": {
+        "n": 2234,
+        "horizonDeaths": 64,
+        "point": {
+          "brier": 0.022837260777456726,
+          "concordance": 0.7936583840650346,
+          "slope": 0.7236832910888262
+        },
+        "ranges": {
+          "brier": {
+            "estimableReplicates": 128,
+            "totalReplicates": 128,
+            "range80": [
+              0.019618586527387974,
+              0.025879590985144106
+            ]
+          },
+          "concordance": {
+            "estimableReplicates": 128,
+            "totalReplicates": 128,
+            "range80": [
+              0.772560649878029,
+              0.8178711253638707
+            ]
+          },
+          "slope": {
+            "estimableReplicates": 127,
+            "totalReplicates": 128,
+            "range80": [
+              0.6476679190414749,
+              0.8140239371445959
+            ]
+          }
+        },
+        "evaluatorParity": true
+      },
+      "fitness": {
+        "n": 1325,
+        "horizonDeaths": 4,
+        "point": {
+          "brier": 0.0012383957757995574,
+          "concordance": 0.6120022469104981,
+          "slope": null
+        },
+        "ranges": {
+          "brier": {
+            "estimableReplicates": 128,
+            "totalReplicates": 128,
+            "range80": [
+              0.0006280615544386864,
+              0.001965105250583766
+            ]
+          },
+          "concordance": {
+            "estimableReplicates": 128,
+            "totalReplicates": 128,
+            "range80": [
+              0.5749259451402371,
+              0.6649851910198403
+            ]
+          },
+          "slope": {
+            "estimableReplicates": 0,
+            "totalReplicates": 128,
+            "range80": null
+          }
+        },
+        "evaluatorParity": true
+      }
+    },
+    "conditionalOn": "Frozen models, curves, measurement distributions, selection and reference; survey PSUs resampled within strata",
+    "completedUtc": "2026-10-09T15:40:16.397810+00:00"
+  },
   "environment": {
     "python": "3.14.7",
     "packages": {

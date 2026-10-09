@@ -5,9 +5,19 @@ import pandas as pd
 from scipy.optimize._numdiff import approx_derivative
 from model import Fit, FEATURES, CORE, likelihood, gompertz_integral, predict_risk, reference_age, cubic, weighted_km, survey_weights, learn_distributions
 from transport import evaluate_horizon
+from uncertainty import paired_brier_improvement, interval
 
 
 class ModelChecks(unittest.TestCase):
+    def test_paired_error_uses_same_censoring_weights_and_keeps_sign(self):
+        frame = pd.DataFrame(dict(time=[12., 18., 36.], event=[1, 0, 0], male=[0, 1, 0]))
+        # Main error .33; benchmark error (.8²+.4²/.5)/3 = .32.
+        gain = paired_brier_improvement(frame, [.1, .2, .3], [.2, .3, .4], np.ones(3), 2)
+        self.assertAlmostEqual(gain, -.01)
+        self.assertAlmostEqual(paired_brier_improvement(frame, [.1, .2, .3], [.1, .2, .3], np.ones(3), 2), 0)
+        self.assertIsNone(interval([1., None, None, None], 4)['range80'])
+        self.assertEqual(interval([1., 2., 3., None], 4)['estimableReplicates'], 3)
+
     def test_diagnostic_horizon_has_known_event_and_censoring_errors(self):
         frame = pd.DataFrame(dict(time=[12., 18., 36.], event=[1, 0, 0], male=[0, 1, 0]))
         # By two years: one death in three, censoring survival 1/2. The
