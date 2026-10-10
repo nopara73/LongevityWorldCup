@@ -382,8 +382,10 @@ Must appear before any other script that attaches DOMContentLoaded listeners.
         const host = window.location.hostname.toLowerCase();
         const localHost = host === 'localhost' || host.endsWith('.localhost') ||
             /^127(?:\.\d{1,3}){3}$/.test(host) || host === '[::1]';
+        // Private pages opt out before this shared bootstrap runs.
+        const privatePage = window.LwcDisableGoogleAnalytics === true;
         // Local previews and controlled browser checks are not audience traffic.
-        if (localHost || navigator.webdriver) {
+        if (localHost || navigator.webdriver || privatePage) {
             window['ga-disable-G-PSSCLBW37H'] = true;
             return;
         }
