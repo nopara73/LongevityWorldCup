@@ -1,0 +1,28 @@
+{
+  "Name": "Bertalan Eged",
+  "DisplayName": null,
+  "MediaContact": "bertalan.eged@gmail.com",
+  "DateOfBirth": {
+    "Year": 1966,
+    "Month": 3,
+    "Day": 30
+  },
+  "Biomarkers": [
+    {
+      "Date": "2026-06-16",
+      "AlbGL": 46,
+      "CreatUmolL": 97,
+      "GluMmolL": 5.2,
+      "CrpMgL": 0.45,
+      "LymPc": 28.8,
+      "McvFL": 89,
+      "RdwPc": 12.9,
+      "AlpUL": 53,
+      "Wbc1000cellsuL": 7.1
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Hungary",
+  "Why": "I like to improve my health for a better life",
+  "PersonalLink": null
+}
