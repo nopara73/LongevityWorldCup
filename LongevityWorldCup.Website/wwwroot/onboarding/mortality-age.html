@@ -5,7 +5,7 @@
     <!--HEAD-->
     <link rel="stylesheet" href="{{ASSET_INITIAL_VIEW_CSS}}">
     <script src="{{ASSET_INITIAL_VIEW_JS}}"></script>
-    <script>try { if (localStorage.getItem('lwc-mortality-age-draft-v2') || localStorage.getItem('lwc-mortality-age-draft-v1')) window.LwcInitialView.prepare(); } catch { }</script>
+    <script>try { if (window.location.hash || localStorage.getItem('lwc-mortality-age-draft-v2') || localStorage.getItem('lwc-mortality-age-draft-v1')) window.LwcInitialView.prepare(); } catch { }</script>
     <link rel="stylesheet" href="{{ASSET_BIOAGEFORM_CSS}}">
     <link rel="stylesheet" href="{{ASSET_MORTALITY_AGE_CSS}}">
     <script src="{{ASSET_FIELD_VALIDATION_JS}}"></script>

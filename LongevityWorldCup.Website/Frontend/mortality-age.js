@@ -26,6 +26,13 @@
         $('measurement-date').value = localDate(today);
         $('measurement-date').max = localDate(today);
         const cards = $('measurement-cards');
+        function setMeasurementOpen(id, open) {
+            const card = $(id).closest('.biomarker-card');
+            card.querySelector('.biomarker-card-content').hidden = !open;
+            card.classList.toggle('active', open);
+            card.querySelector('button').setAttribute('aria-expanded', String(open));
+            card.querySelector('.toggle-icon').textContent = open ? '−' : '+';
+        }
         let fieldset;
         for (const spec of fields) {
             if (spec.icon) {
@@ -67,10 +74,7 @@
             }
             card.querySelector('button').addEventListener('click', () => {
                 const open = content.hidden;
-                content.hidden = !open;
-                card.classList.toggle('active', open);
-                card.querySelector('button').setAttribute('aria-expanded', String(open));
-                card.querySelector('.toggle-icon').textContent = open ? '−' : '+';
+                setMeasurementOpen(spec.id, open);
                 if (open) $(spec.id).focus({ preventScroll: true });
             });
             fieldset.append(card);
@@ -133,8 +137,44 @@
         $('lwcDot1').addEventListener('click', () => showStep(1));
         $('lwcDot2').addEventListener('click', () => { if (firstStepValid()) showStep(2); });
         $('edit-button').addEventListener('click', () => showStep(2));
+        function restoreSharedValues() {
+            // Fragments stay in the browser; measurement values never enter an HTTP URL.
+            const params = new URLSearchParams(window.location.hash.slice(1));
+            const hasPrefill = fields.some(field => params.has(field.id)) ||
+                ['sex', 'measurement-date', 'vo2-method'].some(id => params.has(id));
+            if (!hasPrefill) return false;
+            restoring = true;
+            // A new link replaces the whole profile, including units and flags.
+            // Missing measurements must not inherit the previous person's values.
+            form.reset();
+            $('measurement-date').value = localDate(today);
+            for (const field of fields) {
+                setMeasurementOpen(field.id, false);
+                const value = params.get(field.id);
+                if (value !== null && value.trim() !== '' && Number.isFinite(Number(value)) && Number(value) > 0) {
+                    $(field.id).value = value;
+                    if ($(field.id).value) setMeasurementOpen(field.id, true);
+                }
+                const unit = params.get(`${field.id}-unit`);
+                if (field.units.includes(unit)) $(`${field.id}-unit`).value = unit;
+                if (field.limit) $(`${field.id}-limit`).checked = params.get(`${field.id}-limit`) === '1';
+            }
+            for (const id of ['sex', 'vo2-method']) {
+                const value = params.get(id);
+                if (value !== null && Array.from($(id).options).some(option => option.value === value)) $(id).value = value;
+            }
+            if (params.has('measurement-date')) $('measurement-date').value = params.get('measurement-date');
+            restoring = false;
+            // Consume the link once, so refreshing preserves subsequent edits in the draft.
+            history.replaceState(history.state, '', window.location.pathname + window.location.search);
+            showStep(firstStepValid() ? 2 : 1, false);
+            ready();
+            return true;
+        }
         try {
-            const draft = JSON.parse(localStorage.getItem(storageKey) || localStorage.getItem(legacyStorageKey) || 'null');
+            // A shared profile is self-contained: never mix it with a saved profile or its units.
+            const shared = restoreSharedValues();
+            const draft = shared ? null : JSON.parse(localStorage.getItem(storageKey) || localStorage.getItem(legacyStorageKey) || 'null');
             if (draft && draft.values && typeof draft.values === 'object') {
                 restoring = true;
                 // Only fields still present in this form are restored or saved.
@@ -148,6 +188,8 @@
                 showStep(draft.step === 2 && firstStepValid() ? 2 : 1, false);
             }
         } catch { restoring = false; }
+        // Opening another fragment link may reuse the current document.
+        window.addEventListener('hashchange', restoreSharedValues);
         async function loadModel() {
             bundle = null; ready(); $('retry-model').hidden = true; $('model-status').textContent = 'Loading the research model…';
             const abort = new AbortController();
