@@ -21,14 +21,23 @@ public sealed class SiteStatisticsTrackingBrowserTests(
     [InlineData("https://longevityworldcup.com/", true, false)]
     [InlineData("https://longevityworldcup.com/", false, true)]
     [InlineData("https://www.longevityworldcup.com/", false, true)]
+    [InlineData("https://longevityworldcup.com/mortality-age", false, false)]
+    [InlineData("https://www.longevityworldcup.com/mortality-age#sex=1&sbp=115&apob=90", false, false)]
     [InlineData("http://lwc7tszawiykmkjoq4u2yxramezkwbdys2wxr2fmf6sdr6ug5t36ckqd.onion/", false, true)]
     [InlineData("https://longevityworldcup.com/longevitymaxxing?token=private-access-token&utm_source=longevityworldcup&utm_medium=email&utm_campaign=longevitymaxxing&utm_content=daily_reminder", false, true, true)]
-    public async Task GoogleAnalyticsSkipsLocalAndAutomatedVisits(string url, bool automated, bool shouldLoad, bool emailCampaign = false)
+    public async Task GoogleAnalyticsSkipsLocalAutomatedAndPrivateVisits(string url, bool automated, bool shouldLoad, bool emailCampaign = false)
     {
         using var client = App.CreateClient();
-        var html = await client.GetStringAsync("/");
+        var pagePath = new Uri(url).AbsolutePath;
+        var html = await client.GetStringAsync(pagePath == "/mortality-age" ? pagePath : "/");
+        var privacyScript = Regex.Match(html, "<script id=\"pageAnalyticsPrivacy\">(?<code>[\\s\\S]*?)</script>").Groups["code"].Value;
         var script = Regex.Match(html, "<script id=\"googleAnalytics\">(?<code>[\\s\\S]*?)</script>").Groups["code"].Value;
         Assert.NotEmpty(script);
+        if (pagePath == "/mortality-age")
+        {
+            Assert.NotEmpty(privacyScript);
+            Assert.True(html.IndexOf("id=\"pageAnalyticsPrivacy\"", StringComparison.Ordinal) < html.IndexOf("id=\"googleAnalytics\"", StringComparison.Ordinal));
+        }
 
         await using var context = await Browser.NewContextAsync();
         await context.AddInitScriptAsync($"Object.defineProperty(navigator, 'webdriver', {{ get: () => {automated.ToString().ToLowerInvariant()} }});");
@@ -41,7 +50,7 @@ public sealed class SiteStatisticsTrackingBrowserTests(
             {
                 ContentType = route.Request.ResourceType == "document" ? "text/html" : "application/javascript",
                 Body = route.Request.ResourceType == "document"
-                    ? $"<!doctype html><html><head><script>{script}</script><script>history.replaceState({{}}, '', location.pathname);</script></head><body></body></html>"
+                    ? $"<!doctype html><html><head><script>{privacyScript}</script><script>{script}</script><script>history.replaceState({{}}, '', location.pathname);</script></head><body></body></html>"
                     : ""
             });
         });
