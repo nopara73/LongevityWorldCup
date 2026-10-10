@@ -13,19 +13,37 @@ const bundle = JSON.parse(modelBytes);
 const fixtureSet = JSON.parse(readFileSync(new URL('artifacts/fixtures.json', import.meta.url)));
 const research = JSON.parse(readFileSync(new URL('artifacts/results.json', import.meta.url)));
 assert.equal(createHash('sha256').update(modelBytes).digest('hex'), research.modelSha256, 'Published model bytes must match the research checksum');
-assert.equal(createHash('sha256').update(readFileSync(new URL('analysis-plan.md', import.meta.url))).digest('hex'), research.run.config.planSha256, 'Frozen plan bytes must match the research checksum');
-assert.equal(createHash('sha256').update(readFileSync(new URL('transport-plan.md', import.meta.url))).digest('hex'), research.transport.planSha256, 'Additional diagnostic plan must match the research checksum');
+const planHash = createHash('sha256').update(readFileSync(new URL(research.run.config.planFile, import.meta.url))).digest('hex');
+assert.equal(planHash, research.run.config.planSha256, 'Age-free plan bytes must match the research checksum');
+assert.equal(planHash, research.transport.planSha256, 'Additional diagnostics must follow the age-free plan');
 assert.equal(research.transport.primaryRetuned, false);
 assert.equal(research.transport.fiveYearEvaluatorParity, true);
-assert.equal(createHash('sha256').update(readFileSync(new URL('uncertainty-plan.md', import.meta.url))).digest('hex'), research.validationUncertainty.planSha256, 'Validation uncertainty plan must match the research checksum');
+assert.equal(planHash, research.validationUncertainty.planSha256, 'Validation uncertainty must follow the age-free plan');
 assert.equal(research.validationUncertainty.primaryRetuned, false);
 for (const validation of Object.values(research.validationUncertainty.models)) assert.equal(validation.evaluatorParity, true);
 assert.equal(bundle.modelVersion, research.modelVersion);
 assert.equal(bundle.modelVersion, fixtureSet.modelVersion);
+assert.equal(bundle.schemaVersion, 2);
+assert.equal(bundle.requiresChronologicalAge, false);
+assert.equal(research.run.config.chronologicalAgeInRisk, false);
+assert.equal(research.run.config.chronologicalAgeInMissingInputDistribution, false);
 function near(actual, expected, tolerance = 1e-10) { assert.ok(Math.abs(actual - expected) < tolerance, `${actual} != ${expected}`); }
 for (const fixture of fixtureSet.fixtures) {
     const model = fixture.model === 'full' ? bundle.full : bundle.panels[fixture.model];
+    assert.equal(model.requiresChronologicalAge, false);
+    assert.equal(Object.keys(model.coefficients).some(key => key.includes('age')), false);
+    assert.deepEqual(model.riskInputs, ['male', ...model.features]);
+    assert.equal('age' in fixture.inputs, false);
     const hazard = api.cumulativeHazard(fixture.inputs, model);
+    for (const age of [18, 40, 79, NaN]) {
+        const alternative = { ...fixture.inputs, age };
+        assert.equal(api.cumulativeHazard(alternative, model), hazard);
+        assert.deepEqual(api.calculate(alternative, model), api.calculate(fixture.inputs, model));
+        for (const refit of [...(model.bootstrap ?? []), ...(model.dependence ?? [])]) {
+            assert.equal(Object.keys(refit.coefficients).some(key => key.includes('age')), false);
+            assert.equal(api.cumulativeHazard(alternative, model, refit.coefficients, refit.gamma), api.cumulativeHazard(fixture.inputs, model, refit.coefficients, refit.gamma));
+        }
+    }
     const age = api.ageFromHazard(hazard, fixture.inputs.male, model.reference);
     near(-Math.expm1(-hazard), fixture.expected.risk5);
     if (fixture.expected.age === null) assert.equal(age, null);
@@ -51,7 +69,9 @@ assert.equal(boundaryRanges.samplingRangeUnsupported, true);
 assert.equal(boundaryRanges.dependenceRange, undefined);
 assert.equal(boundaryRanges.dependenceRangeUnsupported, true);
 assert.equal(api.calculate({ ...profile, male: undefined }, bundle.full).supported, false);
-assert.equal(api.calculate({ ...profile, age: 60 }, bundle.full).supported, false);
+assert.equal(api.calculate({ ...profile, age: 60 }, bundle.full).supported, true);
+assert.equal(api.calculate(profile, { ...bundle.full, requiresChronologicalAge: true }).supported, false);
+assert.equal(api.calculate(profile, { ...bundle.full, coefficients: { ...bundle.full.coefficients, age_male: .5 } }).supported, false);
 assert.equal(api.calculate({ ...profile, crp: 0 }, bundle.full).supported, false);
 assert.equal(api.calculate({ ...profile, apob: 1000 }, bundle.full).supported, false);
 assert.equal(api.calculate(profile, bundle.panels.fitness).supported, false);
@@ -62,4 +82,4 @@ for (const f of bundle.full.features) {
     const c = bundle.full.curves[f];
     near(male-female, bundle.full.coefficients[`${f}_sex`] * ((c.log ? Math.log(value) : value) - c.center) / c.scale);
 }
-console.log(`Verified ${fixtureSet.fixtures.length} Python/browser fixtures, provenance checksums, units, sex-dependent functions and unsupported results (${bundle.modelVersion}).`);
+console.log(`Verified ${fixtureSet.fixtures.length} Python/browser fixtures, age invariance in every panel/refit, provenance checksums, units, sex-dependent functions and unsupported results (${bundle.modelVersion}).`);

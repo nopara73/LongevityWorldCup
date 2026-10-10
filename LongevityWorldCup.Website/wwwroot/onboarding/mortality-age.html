@@ -5,7 +5,7 @@
     <!--HEAD-->
     <link rel="stylesheet" href="{{ASSET_INITIAL_VIEW_CSS}}">
     <script src="{{ASSET_INITIAL_VIEW_JS}}"></script>
-    <script>try { if (localStorage.getItem('lwc-mortality-age-draft-v1')) window.LwcInitialView.prepare(); } catch { }</script>
+    <script>try { if (localStorage.getItem('lwc-mortality-age-draft-v2') || localStorage.getItem('lwc-mortality-age-draft-v1')) window.LwcInitialView.prepare(); } catch { }</script>
     <link rel="stylesheet" href="{{ASSET_BIOAGEFORM_CSS}}">
     <link rel="stylesheet" href="{{ASSET_MORTALITY_AGE_CSS}}">
     <script src="{{ASSET_FIELD_VALIDATION_JS}}"></script>
@@ -21,20 +21,11 @@
             <p class="clock-intro">Experimental mortality-equivalent age · <a href="/research/mortality-age.pdf" target="_blank" rel="noopener">Read the research</a></p>
             <form id="mortalityAgeForm" class="bioageform" novalidate>
                 <div class="lwc-wizard-nav" aria-label="Calculator steps">
-                    <button type="button" class="lwc-dot lwc-dot--on" id="lwcDot1" aria-label="Your age and sex" aria-current="step"></button>
+                    <button type="button" class="lwc-dot lwc-dot--on" id="lwcDot1" aria-label="Sex and measurement date" aria-current="step"></button>
                     <button type="button" class="lwc-dot" id="lwcDot2" aria-label="Your measurements" disabled></button>
                 </div>
                 <section id="lwc-step-1" class="lwc-step lwc-step--active" aria-labelledby="step1Title">
-                    <h2 id="step1Title" class="visually-hidden">Your age, sex and measurement date</h2>
-                    <fieldset id="dobFieldset">
-                        <legend>Date of birth:</legend>
-                        <label for="dob-year">Year (required)</label>
-                        <select id="dob-year" required><option value="">Year</option></select>
-                        <label for="dob-month" id="dob-month-label">Month</label>
-                        <select id="dob-month"></select>
-                        <label for="dob-day" id="dob-day-label">Day</label>
-                        <select id="dob-day"></select>
-                    </fieldset>
+                    <h2 id="step1Title" class="visually-hidden">Sex and measurement date</h2>
                     <fieldset>
                         <legend>Measurement date:</legend>
                         <input type="date" id="measurement-date" required aria-label="Measurement date">
@@ -70,7 +61,6 @@
                             <span class="bioage-result-halo" aria-hidden="true"></span>
                         </span>
                     </div>
-                    <div id="yearsText" data-bioage-result-difference></div>
                     <span class="visually-hidden" data-bioage-result-announcement role="status" aria-live="polite" aria-atomic="true"></span>
                 </div>
                 <p id="unsupported-result" role="status" hidden></p>

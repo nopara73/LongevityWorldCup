@@ -23,6 +23,9 @@ public sealed class MortalityAgeTests(TestWebApplicationFactory factory)
         Assert.Contains("/research/mortality-age.pdf", html);
         Assert.Contains("Experimental full-panel estimate", html);
         Assert.Contains("id=\"sex\" required", html);
+        Assert.DoesNotContain("dob-", html);
+        Assert.DoesNotContain("Date of birth", html);
+        Assert.DoesNotContain("yearsText", html);
         Assert.DoesNotContain("{{ASSET_", html);
         Assert.DoesNotContain("bioage-rank-preview.js", html);
         foreach (var resource in new[] { "/sitemap.xml", "/llms.txt", "/llms-full.txt", "/ai/index.md", "/.well-known/agent-card.json", "/" })
@@ -41,12 +44,23 @@ public sealed class MortalityAgeTests(TestWebApplicationFactory factory)
         Assert.Equal(HttpStatusCode.OK, modelResponse.StatusCode);
         Assert.Equal("noindex, nofollow", Assert.Single(modelResponse.Headers.GetValues("X-Robots-Tag")));
         Assert.False(model.RootElement.GetProperty("fullJointValidation").GetBoolean());
+        Assert.Equal(2, model.RootElement.GetProperty("schemaVersion").GetInt32());
+        Assert.False(model.RootElement.GetProperty("requiresChronologicalAge").GetBoolean());
         Assert.Equal("withheld", model.RootElement.GetProperty("panels").GetProperty("fitness").GetProperty("releaseStatus").GetString());
         var full = model.RootElement.GetProperty("full");
         Assert.Equal(9, full.GetProperty("features").GetArrayLength());
         var coefficients = full.GetProperty("coefficients");
         foreach (var feature in full.GetProperty("features").EnumerateArray())
             Assert.True(coefficients.TryGetProperty(feature.GetString() + "_sex", out _));
+        var models = model.RootElement.GetProperty("panels").EnumerateObject().Select(panel => panel.Value).Prepend(full);
+        foreach (var riskModel in models)
+        {
+            Assert.False(riskModel.GetProperty("requiresChronologicalAge").GetBoolean());
+            Assert.DoesNotContain(riskModel.GetProperty("coefficients").EnumerateObject(), coefficient => coefficient.Name.Contains("age", StringComparison.OrdinalIgnoreCase));
+            Assert.DoesNotContain(riskModel.GetProperty("riskInputs").EnumerateArray(), input => input.GetString() == "age");
+            Assert.Equal(2, riskModel.GetProperty("trainingAgeRange").GetArrayLength());
+            Assert.True(riskModel.GetProperty("reference").GetProperty("coefficients").TryGetProperty("age_female", out _));
+        }
         using var pdfResponse = await client.GetAsync("/research/mortality-age.pdf");
         var pdf = await pdfResponse.Content.ReadAsByteArrayAsync();
         Assert.Equal(HttpStatusCode.OK, pdfResponse.StatusCode);

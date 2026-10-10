@@ -101,10 +101,9 @@ def design(frame, values, features, curves, smooth):
     """values: n x quadrature_draws x features, already on the transformed scale."""
     n, draws, _ = values.shape
     male = np.broadcast_to(frame.male.to_numpy()[:, None], (n, draws))
-    age = np.broadcast_to((frame.age.to_numpy()[:, None] - 45) / 10, (n, draws))
-    columns = [np.ones((n, draws)), male, age*(1-male), age*male]
-    names = ['intercept', 'male', 'age_female', 'age_male']
-    penalty = [0, 0.05, 0.02, 0.02]
+    columns = [np.ones((n, draws)), male]
+    names = ['intercept', 'male']
+    penalty = [0, 0.05]
     for j, feature in enumerate(features):
         spec = curves[feature]
         z = (values[:, :, j]-spec['center']) / spec['scale']
@@ -121,6 +120,14 @@ def design(frame, values, features, curves, smooth):
         names += [feature + '_sex']
         penalty += [8]
     return np.stack(columns, axis=-1), names, np.asarray(penalty)
+
+
+def reference_design(frame):
+    """Historical risk-to-years ruler and research benchmark, never a user risk model."""
+    male = frame.male.to_numpy()
+    age = (frame.age.to_numpy() - 45) / 10
+    values = np.column_stack([np.ones(len(frame)), male, age*(1-male), age*male])[:, None, :]
+    return values, ['intercept', 'male', 'age_female', 'age_male'], np.array([0, .05, .02, .02])
 
 
 def gompertz_integral(gamma, time):
@@ -171,16 +178,22 @@ def likelihood(theta, x, time, event, male, weights, penalties, ridge):
     return objective, np.r_[gradient_beta, gradient_gamma]
 
 
-def fit_survival(x, frame, weights, penalties, ridge=0.001, initial=None, maxiter=300, fixed_gamma=None):
+def fit_survival(x, frame, weights, penalties, ridge=0.001, initial=None, maxiter=300, fixed_gamma=None, age_columns=()):
     p = x.shape[-1]
     time, event, male = frame.time.to_numpy()/12, frame.event.to_numpy(), frame.male.to_numpy()
     if initial is None:
         initial = np.zeros(p+2)
         initial[0] = np.log(max(np.average(event, weights=weights)/np.average(time, weights=weights), 1e-5))
-        initial[2:4] = 0.8
+        for col in age_columns:
+            initial[col] = 0.8
         initial[p:] = 0.06
     gamma_bounds = [(-0.1, 0.2)]*2 if fixed_gamma is None else [(fixed_gamma, fixed_gamma)]*2
-    bounds = [(-15, 0), (-3, 3), (0.01, 4), (0.01, 4)] + [(None, None)]*(p-4) + gamma_bounds
+    bounds = [(-15, 0), (-3, 3)] + [(None, None)]*(p-2)
+    for col in age_columns:
+        if not 2 <= col < p:
+            raise ValueError('Invalid reference age column')
+        bounds[col] = (0.01, 4)
+    bounds += gamma_bounds
     result = minimize(likelihood, initial, args=(x, time, event, male, weights, penalties, ridge),
                       method='L-BFGS-B', jac=True, bounds=bounds,
                       options=dict(maxiter=maxiter, ftol=1e-10, gtol=2e-6, maxls=40))
@@ -196,9 +209,8 @@ def predict_risk(fit, x, male, horizon=5):
 
 
 def conditional_predictors(frame, curves):
-    age = (frame.age.to_numpy()-35)/10
     male = frame.male.to_numpy()
-    columns = [np.ones(len(frame)), age, age**2, male, age*male]
+    columns = [np.ones(len(frame)), male]
     for feature in CORE:
         spec = curves[feature]
         z = (transform(feature, frame[feature])-spec['center'])/spec['scale']

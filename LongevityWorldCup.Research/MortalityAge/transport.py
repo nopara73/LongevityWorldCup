@@ -12,7 +12,7 @@ import pandas as pd
 from lifelines import CoxPHFitter
 from lifelines.exceptions import StatisticalWarning
 from lifelines.utils import concordance_index
-from model import CORE, design, survey_weights, predict_risk, weighted_km
+from model import CORE, reference_design, survey_weights, predict_risk, weighted_km
 from diagnostics import as_fit, dx, cluster_multipliers
 
 ROOT = Path(__file__).resolve().parents[2] / '.artifacts' / 'mortality-age'
@@ -90,8 +90,11 @@ def main():
     from train import evaluate
     full = json.loads((OUT/'full-model.json').read_text())
     panels = json.loads((OUT/'panel-models.json').read_text())
+    config = json.loads((OUT/'frozen-config.json').read_text())
     source = Path(__file__).parent
-    results = dict(planSha256=hashlib.sha256((source/'transport-plan.md').read_bytes()).hexdigest(),
+    results = dict(planFile=config['planFile'],
+        planSha256=hashlib.sha256((source/config['planFile']).read_bytes()).hexdigest(),
+        evaluationReuse=config['evaluationReuse'],
         modelInputsSha256=hashlib.sha256(json.dumps(dict(full=full, panels=panels), sort_keys=True, separators=(',', ':')).encode()).hexdigest(),
         primaryRetuned=False, diagnostics={})
     data = pd.read_csv(ROOT/'harmonized.csv').dropna(subset=CORE)
@@ -101,7 +104,7 @@ def main():
             frame = data[data.cycle == cycle]
             if label != 'full':
                 frame = frame.dropna(subset=model['features'])
-            frame = frame[frame.age <= model['ageRange'][1]].reset_index(drop=True)
+            frame = frame[frame.age <= model['trainingAgeRange'][1]].reset_index(drop=True)
             marker = 'cystatin' if label in ['blood', 'fitness'] else 'apob' if label in ['lipid', 'strength'] else None
             frame = frame[survey_weights(frame, marker) > 0].reset_index(drop=True)
             if frame.empty:
@@ -114,7 +117,7 @@ def main():
             result['status'] = 'diagnostic-only'
             result['calibrationRange'] = calibration_ranges(frame, risk, weights, horizon)
             # Compare both benchmarks on exactly the same observed rows/weights.
-            xr, _, _ = design(frame, np.empty((len(frame), 1, 0)), [], {}, False)
+            xr, _, _ = reference_design(frame)
             reference_risk = predict_risk(as_fit(model['reference']), xr, frame.male.to_numpy(), horizon)
             cx, _, _ = dx(frame, panels['core'])
             core_risk = predict_risk(as_fit(panels['core']), cx, frame.male.to_numpy(), horizon)

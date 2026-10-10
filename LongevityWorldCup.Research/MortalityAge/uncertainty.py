@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 from lifelines.exceptions import StatisticalWarning
 from lifelines.utils import concordance_index
-from model import CORE, design, survey_weights, predict_risk, weighted_km
+from model import CORE, reference_design, survey_weights, predict_risk, weighted_km
 from diagnostics import as_fit, dx, cluster_multipliers
 from transport import evaluate_horizon
 
@@ -53,14 +53,16 @@ def main():
     panels = json.loads((OUT/'panel-models.json').read_text())
     config = json.loads((OUT/'frozen-config.json').read_text())
     source = Path(__file__).parent
-    result = dict(planSha256=hashlib.sha256((source/'uncertainty-plan.md').read_bytes()).hexdigest(),
+    result = dict(planFile=config['planFile'],
+        planSha256=hashlib.sha256((source/config['planFile']).read_bytes()).hexdigest(),
+        evaluationReuse=config['evaluationReuse'],
         primaryRetuned=False, replicates=128, seed=91258, intervalPercentiles=[10, 90], models={},
         conditionalOn='Frozen models, curves, measurement distributions, selection and reference; survey PSUs resampled within strata')
     data = pd.read_csv(ROOT/'harmonized.csv').dropna(subset=CORE)
     holdout = data[data.cycle.isin(config['evaluation'])]
     for label, model in [('full', full), *panels.items()]:
         frame = holdout if label == 'full' else holdout.dropna(subset=model['features'])
-        frame = frame[frame.age <= model['ageRange'][1]].reset_index(drop=True)
+        frame = frame[frame.age <= model['trainingAgeRange'][1]].reset_index(drop=True)
         marker = 'cystatin' if label in ['blood', 'fitness'] else 'apob' if label in ['lipid', 'strength'] else None
         frame = frame[survey_weights(frame, marker) > 0].reset_index(drop=True)
         weights = survey_weights(frame, marker)
@@ -73,7 +75,7 @@ def main():
         metrics = dict(brier=[], concordance=[], slope=[])
         benchmarks, improvements = {}, {}
         if label == 'full':
-            xr, _, _ = design(frame, np.empty((len(frame), 1, 0)), [], {}, False)
+            xr, _, _ = reference_design(frame)
             benchmarks['ageSex'] = predict_risk(as_fit(model['reference']), xr, frame.male.to_numpy())
             cx, _, _ = dx(frame, panels['core'])
             benchmarks['commonCore'] = predict_risk(as_fit(panels['core']), cx, frame.male.to_numpy())
