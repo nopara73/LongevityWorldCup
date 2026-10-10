@@ -101,7 +101,7 @@ interface LwcBioageFlowApi {
     ) => void;
     animateBioageResult: (
         resultElement: HTMLElement | null,
-        finalAge: number,
+        finalAge: number | string,
         animationOptions?: BioageResultAnimationOptions
     ) => void;
     bindBiomarkerComparison: (inputId: string, getState: BioageBiomarkerComparisonGetter) => void;
@@ -1447,7 +1447,7 @@ interface Window {
 
     function animateBioageResult(
         resultElement: HTMLElement | null,
-        finalAge: number,
+        finalAge: number | string,
         animationOptions: BioageResultAnimationOptions = {}
     ): void {
         if (!resultElement) return;
@@ -1459,6 +1459,12 @@ interface Window {
         if (!container || !visualValue) return;
 
         syncBioageResultRevealTone(resultElement, container);
+        if (typeof finalAge === 'string') {
+            visualValue.textContent = finalAge;
+            container.dataset.bioageRevealState = 'complete';
+            setBioageResultStage(resultElement, 'rank');
+            return;
+        }
         if (!Number.isFinite(finalAge)) {
             visualValue.textContent = '';
             container.dataset.bioageRevealState = 'idle';

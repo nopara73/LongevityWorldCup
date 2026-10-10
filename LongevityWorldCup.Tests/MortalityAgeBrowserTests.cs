@@ -257,6 +257,50 @@ public sealed class MortalityAgeBrowserTests(PlaywrightBrowserFixture browserFix
         Assert.False(await page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth > innerWidth"));
     }
 
+    [Theory]
+    [InlineData(1280, 900, false)]
+    [InlineData(390, 844, true)]
+    public async Task ReferenceBoundaries_DisplayLabelsAndPreserveMortalityRisk(int width, int height, bool reducedMotion)
+    {
+        await using var context = await Browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = App.BaseAddress.ToString(), ViewportSize = new ViewportSize { Width = width, Height = height },
+            ReducedMotion = reducedMotion ? ReducedMotion.Reduce : ReducedMotion.NoPreference
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        var page = await context.NewPageAsync();
+        var errors = new List<string>();
+        page.PageError += (_, message) => errors.Add(message);
+        // Synthetic profiles exercise both reference boundaries with the published model.
+        var profiles = new[]
+        {
+            (Fragment: "sex=1&sbp=95&dbp=43&vo2=80&grip=70&whr=0.48&apob=150&hba1c=4.4&cystatin=0.55&crp=0.1", Label: "<18", Spoken: "below 18", Risk: "0.07", File: "low"),
+            (Fragment: "sex=1&sbp=115&dbp=75&vo2=44&grip=45&whr=0.5&apob=90&hba1c=5.3&cystatin=0.8&crp=1", Label: "36.4", Spoken: "36.4", Risk: "0.85", File: "within"),
+            (Fragment: "sex=1&sbp=156&dbp=100&vo2=30&grip=31&whr=0.4&apob=45&hba1c=9.4&cystatin=1.14&crp=25", Label: ">79", Spoken: "above 79", Risk: "63.33", File: "high")
+        };
+        foreach (var (fragment, label, spoken, risk, file) in profiles)
+        {
+            await page.GotoAsync("/mortality-age#" + fragment);
+            await Assertions.Expect(page.Locator("#calculate-button")).ToBeEnabledAsync();
+            await page.Locator("#calculate-button").ClickAsync();
+            await Assertions.Expect(page.Locator("#validAgeInput")).ToBeVisibleAsync();
+            await Assertions.Expect(page.Locator("#unsupported-result")).ToBeHiddenAsync();
+            await Assertions.Expect(page.Locator("#animatedAge")).ToHaveTextAsync(label);
+            await Assertions.Expect(page.Locator("[data-bioage-result-visual]")).ToHaveTextAsync(label);
+            await Assertions.Expect(page.Locator("[data-bioage-result-announcement]")).ToContainTextAsync(spoken + " years");
+            await Assertions.Expect(page.Locator("#result-risk")).ToContainTextAsync("Estimated five-year mortality: " + risk + "%.");
+            await page.Locator("summary").ClickAsync();
+            if (file == "low") await Assertions.Expect(page.Locator("#panel-results dd").Nth(1)).ToHaveTextAsync("<18 years");
+            await Assertions.Expect(page.Locator("#panel-results dd").Last).ToHaveTextAsync("Unsupported");
+            Assert.False(await page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth > innerWidth"));
+            await page.ScreenshotAsync(new PageScreenshotOptions
+            {
+                Path = Path.Combine(FindArtifactDirectory(), $"boundary-{file}-{width}.png"), FullPage = true
+            });
+        }
+        Assert.Empty(errors);
+    }
+
     private static string FindArtifactDirectory()
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
