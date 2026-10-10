@@ -26,9 +26,12 @@
         for (const f of model.features) eta += contribution(inputs[f], s, f, model, coefficients);
         return Math.exp(eta) * integral(gamma[s], 5);
     }
-    function ageFromHazard(hazard, male, reference) {
+    function invertReferenceHazard(hazard, male, reference) {
         const b = reference.coefficients;
-        const age = 45 + 10 * (Math.log(hazard) - Math.log(integral(reference.gamma[male], 5)) - b.intercept - b.male * male) / b[male === 1 ? 'age_male' : 'age_female'];
+        return 45 + 10 * (Math.log(hazard) - Math.log(integral(reference.gamma[male], 5)) - b.intercept - b.male * male) / b[male === 1 ? 'age_male' : 'age_female'];
+    }
+    function ageFromHazard(hazard, male, reference) {
+        const age = invertReferenceHazard(hazard, male, reference);
         return Number.isFinite(age) && age >= 18 && age <= 79 ? age : null;
     }
     function quantile(values, probability) {
@@ -53,9 +56,12 @@
         if (problems.length) return { supported: false, reason: problems.join('; ') + '.' };
         const hazard = cumulativeHazard(inputs, model);
         const risk = -Math.expm1(-hazard);
+        const referenceAge = invertReferenceHazard(hazard, inputs.male, model.reference);
+        if (!Number.isFinite(referenceAge) || !Number.isFinite(risk)) return { supported: false, reason: 'The mortality-equivalent age could not be calculated.' };
         const age = ageFromHazard(hazard, inputs.male, model.reference);
-        if (age === null || !Number.isFinite(risk)) return { supported: false, reason: 'The equivalent age is outside the supported 18–79 reference.' };
         const result = { supported: true, age, risk5: risk, status: model.status, features: [...model.features] };
+        // Outside the reference, return only its boundary, never an extrapolated exact age.
+        if (age === null) result.ageBoundary = referenceAge < 18 ? '<18' : '>79';
         if (model.bootstrap?.length) {
             const ages = model.bootstrap.map(b => ageFromHazard(cumulativeHazard(inputs, model, b.coefficients, b.gamma), inputs.male, model.reference));
             if (ages.every(Number.isFinite)) result.samplingRange80 = [quantile(ages, 0.1), quantile(ages, 0.9)];

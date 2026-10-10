@@ -59,6 +59,29 @@ near(api.convert('sbp', 16, 'kPa'), 120.009869232);
 near(api.convert('crp', .2, 'mg/L', true), .2 / Math.sqrt(2));
 assert.ok(Number.isNaN(api.convert('vo2', 3, 'unsupported')));
 const profile = fixtureSet.fixtures.find(f => f.model === 'full').inputs;
+// Boundary labels preserve the mortality score and never expose an exact extrapolated age.
+for (const male of [0, 1]) {
+    const sexProfile = fixtureSet.fixtures.find(f => f.model === 'full' && f.inputs.male === male).inputs;
+    const original = api.calculate(sexProfile, bundle.full);
+    for (const [target, boundary] of [[17.999, '<18'], [40, undefined], [79.001, '>79']]) {
+        const reference = structuredClone(bundle.full.reference);
+        const coefficients = reference.coefficients;
+        const hazard = api.cumulativeHazard(sexProfile, bundle.full);
+        const gamma = reference.gamma[male];
+        const baseline = Math.expm1(gamma * 5) / gamma;
+        coefficients.intercept = Math.log(hazard / baseline) - coefficients.male * male
+            - coefficients[male === 1 ? 'age_male' : 'age_female'] * (target - 45) / 10;
+        const result = api.calculate(sexProfile, { ...bundle.full, reference });
+        assert.equal(result.supported, true);
+        assert.equal(result.risk5, original.risk5);
+        assert.equal(result.ageBoundary, boundary);
+        if (boundary) assert.equal(result.age, null);
+        else near(result.age, target);
+    }
+}
+const simpleReference = { coefficients: { intercept: 0, male: 0, age_male: 1, age_female: 1 }, gamma: [0, 0] };
+for (const age of [18, 79]) near(api.ageFromHazard(5 * Math.exp((age - 45) / 10), 1, simpleReference), age);
+assert.equal(api.calculate(profile, { ...bundle.full, coefficients: { ...bundle.full.coefficients, intercept: Infinity } }).supported, false);
 // An out-of-reference refit cannot be dropped to make a narrower range.
 const outside = { coefficients: { ...bundle.full.coefficients, intercept: 0 }, gamma: bundle.full.gamma };
 const boundaryRanges = api.calculate({ ...profile }, { ...bundle.full,
@@ -82,4 +105,4 @@ for (const f of bundle.full.features) {
     const c = bundle.full.curves[f];
     near(male-female, bundle.full.coefficients[`${f}_sex`] * ((c.log ? Math.log(value) : value) - c.center) / c.scale);
 }
-console.log(`Verified ${fixtureSet.fixtures.length} Python/browser fixtures, age invariance in every panel/refit, provenance checksums, units, sex-dependent functions and unsupported results (${bundle.modelVersion}).`);
+console.log(`Verified ${fixtureSet.fixtures.length} Python/browser fixtures, age invariance in every panel/refit, provenance checksums, units, sex-dependent functions, reference boundaries and unsupported results (${bundle.modelVersion}).`);

@@ -20,6 +20,7 @@
             { id: 'crp', label: 'High-sensitivity C-reactive protein (hs-CRP)', group: 'Inflammation', icon: 'temperature-half', units: ['mg/L', 'mg/dL'], example: 1, limit: true }
         ];
         const panelNames = { core: 'BP · waist · HbA1c', blood: 'Core · hs-CRP · cystatin C', lipid: 'Core · ApoB · hs-CRP', strength: 'Core · ApoB · grip', fitness: 'Core · hs-CRP · cystatin C · VO₂max' };
+        const formatAge = result => result.ageBoundary ?? result.age.toFixed(1);
         const controllers = new Map();
         const today = new Date();
         const localDate = date => `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
@@ -233,7 +234,7 @@
                 const panel = label === 'fitness' && !methodSupported ? { supported: false } : evaluator.calculate(inputs, model);
                 const row = document.createElement('div'); row.className = 'panel-row';
                 const term = document.createElement('dt'); term.textContent = panelNames[label];
-                const value = document.createElement('dd'); value.textContent = panel.supported ? `${panel.age.toFixed(1)} years` : 'Unsupported';
+                const value = document.createElement('dd'); value.textContent = panel.supported ? `${formatAge(panel)} years` : 'Unsupported';
                 if (!panel.supported && panel.reason) value.title = panel.reason;
                 row.append(term, value); $('panel-results').append(row);
             }
@@ -241,9 +242,10 @@
             document.body.classList.add('bioage-result-ready');
             hasResult = true;
             if (result.supported) {
-                window.LwcBioageFlow.announceBioageResult($('mortalityAgeResult'), `Experimental mortality-equivalent age: ${result.age.toFixed(1)} years. The full panel has not been jointly validated.`);
-                $('animatedAge').textContent = result.age.toFixed(1);
-                window.LwcBioageFlow.animateBioageResult($('mortalityAgeResult'), result.age);
+                const ageDescription = result.ageBoundary === '<18' ? 'below 18' : result.ageBoundary === '>79' ? 'above 79' : formatAge(result);
+                window.LwcBioageFlow.announceBioageResult($('mortalityAgeResult'), `Experimental mortality-equivalent age: ${ageDescription} years. The full panel has not been jointly validated.`);
+                $('animatedAge').textContent = formatAge(result);
+                window.LwcBioageFlow.animateBioageResult($('mortalityAgeResult'), result.ageBoundary ?? result.age);
             }
             $('mortalityAgeResult').scrollIntoView({ block: 'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
             $('edit-button').focus({ preventScroll: true });
