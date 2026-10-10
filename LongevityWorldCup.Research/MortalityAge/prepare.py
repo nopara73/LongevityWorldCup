@@ -8,6 +8,7 @@ import time
 from datetime import datetime, timezone
 import pandas as pd
 import numpy as np
+from assays import harmonize_apob
 
 ROOT = Path(__file__).resolve().parents[2] / '.artifacts' / 'mortality-age'
 DATA = ROOT / 'data'
@@ -103,7 +104,8 @@ for year, names in CYCLES.items():
     out['dbp'] = merged[[f'BPXDI{i}' for i in range(1,4)]].replace(0,np.nan).mean(axis=1)
     out['whr'] = merged['BMXWAIST'] / merged['BMXHT']
     out['hba1c'] = merged['LBXGH']
-    out['apob'] = merged['LBXAPB'] if 'LBXAPB' in merged else np.nan
+    out['apob_raw'] = merged['LBXAPB'] if 'LBXAPB' in merged else np.nan
+    out['apob'] = harmonize_apob(out['apob_raw'], year)
     out['crp'] = merged['LBXCRP']*10 if 'LBXCRP' in merged else merged['LBXHSCRP'] if 'LBXHSCRP' in merged else np.nan
     out['cystatin'] = merged['SSCYST'] if 'SSCYST' in merged else np.nan
     out['vo2'] = merged['CVDESVO2'] if 'CVDESVO2' in merged else np.nan
@@ -124,4 +126,10 @@ for year, names in CYCLES.items():
     all_rows.append(out)
 pd.concat(all_rows).reset_index().to_csv(ROOT / 'harmonized.csv', index=False)
 (ROOT / 'overlap.json').write_text(json.dumps(summary, indent=2))
+(ROOT / 'apob-assays.json').write_text(json.dumps({
+    'input': 'Raw LBXAPB in mg/dL', 'target': '2007-2008 BN ProSpec scale',
+    '2005-2006Factor': .923, 'otherCyclesFactor': 1.,
+    'source': 'https://wwwn.cdc.gov/Nchs/Data/Nhanes/Public/2007/DataFiles/APOB_E.htm',
+    'note': 'Previously exported fits require refitting and validation before replacement.'
+}, indent=2))
 print(json.dumps(summary, indent=2), flush=True)
