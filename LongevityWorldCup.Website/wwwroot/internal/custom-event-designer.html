@@ -1955,12 +1955,22 @@
             return finalTitle ? `${finalTitle}\n\n${eventUrl}` : eventUrl;
         }
 
+        function hasLinkedArtwork(url) {
+            try {
+                const link = new URL(url);
+                return link.protocol === "https:" && !link.port && !link.username && !link.password
+                    && (link.hostname === "longevityworldcup.com" || link.hostname === "www.longevityworldcup.com")
+                    && link.pathname.replace(/\/+$/, "") === "/rejuvenation-olympics";
+            } catch { return false; }
+        }
+
         function buildPlan(titleRaw, contentRaw, maxLength, platformKey, includeEventUrl) {
             const rawText = contentRaw ? `${titleRaw}\n\n${contentRaw}` : titleRaw;
             const mentionResolver = slug => resolveMentionSlug(slug, platformKey);
             const titleText = collapseWhitespace(plainTextWithLabels(titleRaw, mentionResolver));
             const bodyText = plainTextWithLabels(contentRaw, mentionResolver);
             const singleHyperlink = getSingleHyperlink(rawText);
+            const shortPostMode = platformKey === "instagram" || hasLinkedArtwork(singleHyperlink) ? "image" : "text";
             const eventUrl = singleHyperlink || (includeEventUrl ? buildPreviewEventUrl(titleRaw, contentRaw) : "");
             const hasHyperlinks = containsHyperlink(rawText);
             const textWithoutUrl = buildTextPost(titleText, bodyText, null);
@@ -1974,12 +1984,12 @@
             }
 
             if ((!hasHyperlinks || !eventUrl) && textWithoutUrl && postLength(textWithoutUrl, platformKey) <= maxLength) {
-                return { mode: platformKey === "instagram" ? "image" : "text", postText: textWithoutUrl };
+                return { mode: shortPostMode, postText: textWithoutUrl };
             }
 
             const textWithUrl = buildTextPost(titleText, bodyText, eventUrl);
             if (textWithUrl && postLength(textWithUrl, platformKey) <= maxLength) {
-                return { mode: platformKey === "instagram" ? "image" : "text", postText: textWithUrl };
+                return { mode: shortPostMode, postText: textWithUrl };
             }
 
             const imageCaption = buildImageCaption(titleText, hasHyperlinks ? eventUrl : "", maxLength, platformKey);
