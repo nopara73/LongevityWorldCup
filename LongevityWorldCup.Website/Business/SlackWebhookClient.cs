@@ -16,7 +16,7 @@ public class SlackWebhookClient
         _log = log;
     }
 
-    public async Task SendAsync(string text)
+    public async Task SendAsync(string text, string? imageUrl = null, string? altText = null)
     {
         if (string.IsNullOrWhiteSpace(_webhookUrl))
         {
@@ -24,7 +24,16 @@ public class SlackWebhookClient
             return;
         }
 
-        var payload = JsonSerializer.Serialize(new { text });
+        object body = imageUrl is null ? new { text } : new
+        {
+            text,
+            blocks = new object[]
+            {
+                new { type = "section", text = new { type = "mrkdwn", text } },
+                new { type = "image", image_url = imageUrl, alt_text = altText ?? "Longevity World Cup announcement" }
+            }
+        };
+        var payload = JsonSerializer.Serialize(body);
         using var req = new HttpRequestMessage(HttpMethod.Post, _webhookUrl);
         req.Content = new StringContent(payload, Encoding.UTF8, "application/json");
         var res = await _http.SendAsync(req);

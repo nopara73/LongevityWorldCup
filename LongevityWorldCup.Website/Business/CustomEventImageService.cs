@@ -69,7 +69,7 @@ public sealed class CustomEventImageService
         File.Exists(_regularFontPath) &&
         File.Exists(_boldFontPath);
 
-    public async Task<(string FullPath, string PublicUrl)?> RenderAsync(string eventId, string rawText, Func<string, string>? mentionResolver = null, CancellationToken ct = default)
+    public async Task<(string FullPath, string PublicUrl)?> RenderAsync(string eventId, string rawText, Func<string, string>? mentionResolver = null, CancellationToken ct = default, bool useLinkedArtwork = false)
     {
         if (string.IsNullOrWhiteSpace(eventId) || !IsConfigured)
             return null;
@@ -83,7 +83,7 @@ public sealed class CustomEventImageService
             var fileName = $"{SanitizeFileName(eventId)}.png";
             var outputPath = IOPath.Combine(_outputDir, fileName);
 
-            using (var image = await BuildImageAsync(rawText, mentionResolver, ct))
+            using (var image = await BuildImageAsync(rawText, mentionResolver, ct, useLinkedArtwork))
                 await image.SaveAsPngAsync(outputPath, ct);
 
             return (outputPath, $"{SiteBaseUrl}/generated/custom-events/{Uri.EscapeDataString(fileName)}");
@@ -99,7 +99,7 @@ public sealed class CustomEventImageService
         }
     }
 
-    public async Task<MemoryStream?> RenderToStreamAsync(string rawText, Func<string, string>? mentionResolver = null, CancellationToken ct = default)
+    public async Task<MemoryStream?> RenderToStreamAsync(string rawText, Func<string, string>? mentionResolver = null, CancellationToken ct = default, bool useLinkedArtwork = false)
     {
         if (!IsConfigured)
             return null;
@@ -108,7 +108,7 @@ public sealed class CustomEventImageService
         try
         {
             EnsureFontsLoaded();
-            using var image = await BuildImageAsync(rawText, mentionResolver, ct);
+            using var image = await BuildImageAsync(rawText, mentionResolver, ct, useLinkedArtwork);
             var stream = new MemoryStream();
             await image.SaveAsPngAsync(stream, ct);
             stream.Position = 0;
@@ -125,9 +125,19 @@ public sealed class CustomEventImageService
         }
     }
 
-    private async Task<Image<Rgba32>> BuildImageAsync(string rawText, Func<string, string>? mentionResolver, CancellationToken ct)
+    private async Task<Image<Rgba32>> BuildImageAsync(string rawText, Func<string, string>? mentionResolver, CancellationToken ct, bool useLinkedArtwork)
     {
         ct.ThrowIfCancellationRequested();
+        if (useLinkedArtwork && CustomEventArtwork.ForLinkedPage(rawText) is { } artwork)
+        {
+            var original = await ImageInput.LoadAsync<Rgba32>(artwork.FullPath(_env.WebRootPath), ct);
+            // Keep the whole wide banner inside the standard social canvas.
+            original.Mutate(x => x.Resize(new ResizeOptions
+            {
+                Size = new Size(CanvasWidth, CanvasHeight), Mode = ResizeMode.Pad, PadColor = Color.ParseHex("#101c22")
+            }));
+            return original;
+        }
 
         var (titleRaw, contentRaw) = CustomEventMarkup.SplitTitleAndContent(rawText);
         var segments = LimitTitle(CustomEventMarkup.ParseSegments(titleRaw, keepHyperlinkLabels: true, mentionResolver)

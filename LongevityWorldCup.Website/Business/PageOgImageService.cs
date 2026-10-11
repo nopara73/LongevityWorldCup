@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
+using LongevityWorldCup.Website.Tools;
 using IOPath = System.IO.Path;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
@@ -241,6 +242,16 @@ public sealed class PageOgImageService
 
     private async Task RenderImageAsync(PageOgPayload payload, string outputPath, CancellationToken ct)
     {
+        if (CustomEventArtwork.ForUrl("https://longevityworldcup.com/" + payload.Slug) is { } artwork)
+        {
+            using var original = await ImageInput.LoadAsync<Rgba32>(artwork.FullPath(_env.WebRootPath), ct);
+            original.Mutate(x => x.Resize(new ResizeOptions
+            {
+                Size = new Size(CanvasWidth, CanvasHeight), Mode = ResizeMode.Pad, PadColor = Color.ParseHex("#101c22")
+            }));
+            await original.SaveAsPngAsync(outputPath, ct);
+            return;
+        }
         using var image = new Image<Rgba32>(CanvasWidth, CanvasHeight);
         DrawBackground(image, Color.ParseHex("#" + payload.AccentHex));
 
@@ -429,6 +440,11 @@ public sealed class PageOgImageService
             boldFontTicks.ToString(CultureInfo.InvariantCulture),
             regularFontTicks.ToString(CultureInfo.InvariantCulture));
 
+        if (CustomEventArtwork.ForUrl("https://longevityworldcup.com/" + definition.Slug) is { } artwork)
+        {
+            var path = artwork.FullPath(_env.WebRootPath);
+            raw += "|linked-artwork-v1|" + (File.Exists(path) ? File.GetLastWriteTimeUtc(path).Ticks : 0L).ToString(CultureInfo.InvariantCulture);
+        }
         var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(raw));
         return Convert.ToHexString(bytes).ToLowerInvariant()[..12];
     }

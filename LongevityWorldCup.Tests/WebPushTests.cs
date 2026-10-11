@@ -258,6 +258,20 @@ public sealed class WebPushTests
         Assert.True(Encoding.UTF8.GetByteCount(escapedPayload) <= WebPushTransport.MaxPayloadBytes);
     }
 
+    [Fact]
+    public void LinkedPagePayload_OpensTheLandingPageAndIncludesItsArtwork()
+    {
+        using var fixture = SocialJobIntegrationTests.SocialJobFixture.Create();
+        var folder = Path.Combine(fixture.Env.WebRootPath, "assets", "social");
+        Directory.CreateDirectory(folder);
+        File.WriteAllBytes(Path.Combine(folder, "rejuvenation-olympics.png"), [1, 2, 3]);
+        const string raw = "[Coming from the Rejuvenation Olympics?](https://longevityworldcup.com/rejuvenation-olympics)\n\nRejuvenation Olympics is closing. Longevity World Cup is your chance to keep competing.";
+        using var payload = JsonDocument.Parse(WebPushAnnouncementService.BuildPayload(new("campaign", raw, true, "", null), new(fixture.Env)));
+        Assert.Equal("/rejuvenation-olympics", payload.RootElement.GetProperty("url").GetString());
+        Assert.StartsWith("/assets/social/rejuvenation-olympics.png?v=", payload.RootElement.GetProperty("image").GetString());
+        Assert.Equal("Rejuvenation Olympics is closing. Longevity World Cup is your chance to keep competing.", payload.RootElement.GetProperty("body").GetString());
+    }
+
     internal static Config Configured()
     {
         using var key = ECDsa.Create(ECCurve.NamedCurves.nistP256);

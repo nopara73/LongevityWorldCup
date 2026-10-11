@@ -11,6 +11,23 @@ namespace LongevityWorldCup.Tests;
 public sealed class SlackWebhookClientTests
 {
     [Fact]
+    public async Task SendAsync_AttachesAnImageBlockWithoutLosingTheClickableLink()
+    {
+        var handler = new RecordingHandler(_ => new HttpResponseMessage(HttpStatusCode.OK));
+        var client = new SlackWebhookClient(new HttpClient(handler),
+            new Config { SlackWebhookUrl = "https://hooks.slack.example.test/services/test" },
+            NullLogger<SlackWebhookClient>.Instance);
+        const string text = "<https://longevityworldcup.com/rejuvenation-olympics|Coming from the Rejuvenation Olympics?>";
+        await client.SendAsync(text, "https://longevityworldcup.com/assets/social/rejuvenation-olympics.png", "RO × LWC artwork");
+        using var payload = JsonDocument.Parse(Assert.Single(handler.Requests).Body);
+        Assert.Equal(text, payload.RootElement.GetProperty("text").GetString());
+        var blocks = payload.RootElement.GetProperty("blocks");
+        Assert.Equal(text, blocks[0].GetProperty("text").GetProperty("text").GetString());
+        Assert.Equal("image", blocks[1].GetProperty("type").GetString());
+        Assert.Equal("https://longevityworldcup.com/assets/social/rejuvenation-olympics.png", blocks[1].GetProperty("image_url").GetString());
+    }
+
+    [Fact]
     public async Task SendAsync_PostsJsonPayloadToConfiguredWebhook()
     {
         var handler = new RecordingHandler(_ => new HttpResponseMessage(HttpStatusCode.OK));

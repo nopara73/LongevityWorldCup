@@ -176,7 +176,12 @@ public sealed class WebPushBrowserTests
                 push(); push(); await Promise.all(waits);
                 handlers.notificationclick({ notification: { close() {}, data: { url: 'https://unrelated.example/' } }, waitUntil: p => waits.push(p) });
                 await Promise.all(waits);
-                return { shown, opened, draftNavigated };
+                const result = { shown: [...shown], opened: [...opened], draftNavigated };
+                handlers.push({ data: { json: () => ({ id: 'campaign', title: 'Coming from the Rejuvenation Olympics?', url: '/rejuvenation-olympics', image: '/assets/social/rejuvenation-olympics.png' }) }, waitUntil: p => waits.push(p) });
+                await Promise.all(waits);
+                handlers.notificationclick({ notification: { close() {}, data: shown.at(-1).data }, waitUntil: p => waits.push(p) });
+                await Promise.all(waits);
+                return { ...result, campaign: shown.at(-1), campaignOpened: opened.at(-1) };
             }
             """, source);
         Assert.Equal(2, result.GetProperty("shown").GetArrayLength());
@@ -188,6 +193,8 @@ public sealed class WebPushBrowserTests
         });
         Assert.Equal(new Uri(app.BaseAddress, "events").ToString(), result.GetProperty("opened")[0].GetString());
         Assert.False(result.GetProperty("draftNavigated").GetBoolean());
+        Assert.Equal(new Uri(app.BaseAddress, "rejuvenation-olympics").ToString(), result.GetProperty("campaignOpened").GetString());
+        Assert.Equal(new Uri(app.BaseAddress, "assets/social/rejuvenation-olympics.png").ToString(), result.GetProperty("campaign").GetProperty("image").GetString());
     }
 
     private static void Configure(BrowserTestApp app)

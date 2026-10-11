@@ -5,7 +5,8 @@ namespace LongevityWorldCup.Website.Tools;
 public enum CustomEventPostMode
 {
     Text,
-    Image
+    Image,
+    Artwork
 }
 
 public sealed record CustomEventSocialPlan(
@@ -39,18 +40,19 @@ public static class CustomEventSocialComposer
         var singleHyperlink = CustomEventMarkup.GetSingleHyperlink(rawText);
         var eventUrl = singleHyperlink ?? (includeEventUrl ? BuildEventUrl(eventId) : string.Empty);
         var hasHyperlinks = CustomEventMarkup.ContainsHyperlink(rawText);
+        var textMode = CustomEventArtwork.ForLinkedPage(rawText) is null ? CustomEventPostMode.Text : CustomEventPostMode.Artwork;
 
         var textPostWithoutEventUrl = BuildTextPost(titleText, bodyText, eventUrl: null);
         if (!hasHyperlinks || string.IsNullOrWhiteSpace(eventUrl))
         {
             if (!string.IsNullOrWhiteSpace(textPostWithoutEventUrl) && textLength(textPostWithoutEventUrl) <= maxTextLength)
-                return new CustomEventSocialPlan(CustomEventPostMode.Text, titleText, bodyText, eventUrl, textPostWithoutEventUrl);
+                return new CustomEventSocialPlan(textMode, titleText, bodyText, eventUrl, textPostWithoutEventUrl);
         }
 
         var textPostWithEventUrl = BuildTextPost(titleText, bodyText, eventUrl);
         if (!string.IsNullOrWhiteSpace(textPostWithEventUrl) && textLength(textPostWithEventUrl) <= maxTextLength)
         {
-            return new CustomEventSocialPlan(CustomEventPostMode.Text, titleText, bodyText, eventUrl, textPostWithEventUrl);
+            return new CustomEventSocialPlan(textMode, titleText, bodyText, eventUrl, textPostWithEventUrl);
         }
 
         var imageCaption = BuildImageCaption(titleText, hasHyperlinks ? eventUrl : string.Empty, maxTextLength, textLength, truncate);

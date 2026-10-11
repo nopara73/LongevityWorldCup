@@ -73,6 +73,8 @@ internal static class EventSyndication
                 var html = "<p>" + WebUtility.HtmlEncode(plain).Replace("\n", "<br />", StringComparison.Ordinal) + "</p>";
                 if (item.Type is EventType.CustomEvent or EventType.General)
                 {
+                    if (item.Type == EventType.CustomEvent && CustomEventArtwork.ForLinkedPage(item.Text) is { } artwork)
+                        html += $"<p><img src=\"{WebUtility.HtmlEncode(artwork.PublicUrl)}\" alt=\"{WebUtility.HtmlEncode(artwork.AltText)}\" /></p>";
                     foreach (var link in CustomEventMarkup.GetHyperlinks(item.Text).Distinct(StringComparer.Ordinal))
                     {
                         var encoded = WebUtility.HtmlEncode(XmlText(link));

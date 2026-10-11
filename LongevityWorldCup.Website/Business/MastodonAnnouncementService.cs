@@ -115,12 +115,12 @@ public sealed class MastodonAnnouncementService(
                 includeEventUrl: item.VisibleOnWebsite, textLength: MastodonPost.Count, truncate: MastodonPost.Truncate);
             text = plan.PostText;
             if (string.IsNullOrWhiteSpace(text)) return null;
-            if (plan.Mode == CustomEventPostMode.Image)
+            if (plan.Mode != CustomEventPostMode.Text)
             {
-                using var stream = await images.RenderToStreamAsync(item.Text, resolveName, ct)
+                using var stream = await images.RenderToStreamAsync(item.Text, resolveName, ct, useLinkedArtwork: plan.Mode == CustomEventPostMode.Artwork)
                     ?? throw new InvalidOperationException("Custom event image rendering is unavailable.");
                 media = stream.ToArray();
-                alt = plan.TitleText + "\n\n" + plan.BodyText;
+                alt = plan.Mode == CustomEventPostMode.Artwork ? CustomEventArtwork.ForLinkedPage(item.Text)!.AltText : plan.TitleText + "\n\n" + plan.BodyText;
             }
         }
         else

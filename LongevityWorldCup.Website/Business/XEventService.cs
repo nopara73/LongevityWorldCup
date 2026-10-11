@@ -176,7 +176,7 @@ public class XEventService
             return false;
         }
 
-        using var imageStream = await _customEventImages.RenderToStreamAsync(rawText, ResolveMention);
+        using var imageStream = await _customEventImages.RenderToStreamAsync(rawText, ResolveMention, useLinkedArtwork: plan.Mode == CustomEventPostMode.Artwork);
         if (imageStream is null)
         {
             _log.LogWarning("X custom event image render returned no stream for event {EventId}.", eventId);

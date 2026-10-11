@@ -54,7 +54,8 @@ public sealed class SlackEventService : IDisposable
         try
         {
             var text = BuildMessage(type, rawText);
-            if (!string.IsNullOrWhiteSpace(text)) await _slack.SendAsync(text);
+            var artwork = type == EventType.CustomEvent ? CustomEventArtwork.ForLinkedPage(rawText) : null;
+            if (!string.IsNullOrWhiteSpace(text)) await _slack.SendAsync(text, artwork?.PublicUrl, artwork?.AltText);
         }
         catch (Exception ex)
         {

@@ -37,9 +37,16 @@ public sealed class CustomEventPreviewController(
         var rawText = string.IsNullOrWhiteSpace(content)
             ? title
             : $"{title}\n\n{content}";
+        var plan = CustomEventSocialComposer.BuildPlan("preview", rawText, platform switch
+        {
+            SocialPlatform.X => 280,
+            SocialPlatform.Bluesky => 300,
+            SocialPlatform.Facebook => 63206,
+            _ => 500
+        });
         var stream = platform == SocialPlatform.Instagram
             ? await instagramImages.RenderAsync(InstagramVisual.ForCustom(rawText, slug => ResolveMention(slug, platform)), ct)
-            : await _images.RenderToStreamAsync(rawText, slug => ResolveMention(slug, platform), ct);
+            : await _images.RenderToStreamAsync(rawText, slug => ResolveMention(slug, platform), ct, useLinkedArtwork: plan.Mode == CustomEventPostMode.Artwork);
         if (stream is null)
             return StatusCode(StatusCodes.Status500InternalServerError, "Custom event image preview could not be rendered.");
 

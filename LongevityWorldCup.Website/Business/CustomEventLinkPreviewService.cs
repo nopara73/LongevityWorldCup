@@ -1,4 +1,5 @@
 using System.Text.Json;
+using LongevityWorldCup.Website.Tools;
 
 namespace LongevityWorldCup.Website.Business;
 
@@ -22,7 +23,12 @@ public sealed class CustomEventLinkPreviewService(IHttpClientFactory httpClientF
         var videoId = YouTubePreviewService.TryGetVideoId(normalizedUrl);
         if (videoId is not null && await youtube.FetchAsync(videoId, ct) is { } preview)
             return new(normalizedUrl, "YouTube", preview.Title, preview.AuthorName, preview.ThumbnailUrl);
-        return await TryFetchMicrolinkAsync(normalizedUrl, ct);
+        var pagePreview = await TryFetchMicrolinkAsync(normalizedUrl, ct);
+        if (CustomEventArtwork.ForUrl(normalizedUrl) is { } artwork)
+            return pagePreview is null
+                ? new(normalizedUrl, "Longevity World Cup", "Coming from the Rejuvenation Olympics?", "Keep competing at Longevity World Cup.", artwork.PublicUrl)
+                : pagePreview with { Image = artwork.PublicUrl };
+        return pagePreview;
     }
 
     private async Task<CustomEventLinkPreview?> TryFetchMicrolinkAsync(string url, CancellationToken ct)

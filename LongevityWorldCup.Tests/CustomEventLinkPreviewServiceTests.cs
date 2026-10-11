@@ -9,6 +9,18 @@ namespace LongevityWorldCup.Tests;
 public sealed class CustomEventLinkPreviewServiceTests
 {
     [Fact]
+    public async Task LinkedPagePreview_KeepsTheOriginalArtworkWhenTheMetadataProviderFails()
+    {
+        var handler = new RoutingHandler(_ => new HttpResponseMessage(HttpStatusCode.BadGateway));
+        var (service, youtube) = CreateService(handler);
+        using var cleanup = youtube;
+        var preview = await service.FetchAsync("https://longevityworldcup.com/rejuvenation-olympics");
+        Assert.NotNull(preview);
+        Assert.Equal("https://longevityworldcup.com/rejuvenation-olympics", preview.Url);
+        Assert.Equal("https://longevityworldcup.com/assets/social/rejuvenation-olympics.png", preview.Image);
+    }
+
+    [Fact]
     public async Task FetchAsync_UsesMicrolinkMetadataForGenericExternalUrl()
     {
         var handler = new RoutingHandler(request =>

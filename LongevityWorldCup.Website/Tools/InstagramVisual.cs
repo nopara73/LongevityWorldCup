@@ -5,7 +5,7 @@ namespace LongevityWorldCup.Website.Tools;
 
 internal sealed record InstagramVisual(
     string Headline, string Details, string? Platform, string? Address, string? VideoId,
-    IReadOnlyList<string> AthleteSlugs)
+    IReadOnlyList<string> AthleteSlugs, CustomEventArtwork? Artwork = null)
 {
     internal static InstagramVisual ForCustom(string rawText, Func<string, string>? resolveName = null)
     {
@@ -14,9 +14,10 @@ internal sealed record InstagramVisual(
         var details = Plain(body, resolveName);
         var link = CustomEventMarkup.GetSingleHyperlink(rawText);
         var platform = FindPlatform(headline, link);
+        var artwork = CustomEventArtwork.ForLinkedPage(rawText);
         var slugs = Regex.Matches(rawText, @"\[mention\]\(([^()]*)\)", RegexOptions.IgnoreCase)
             .Select(x => x.Groups[1].Value.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).Take(2).ToArray();
-        return new(headline, details, platform, AddressFor(platform, link), FindVideoId(rawText), slugs);
+        return new(headline, details, platform, AddressFor(platform, link) ?? (artwork is null ? null : "longevityworldcup.com/rejuvenation-olympics"), FindVideoId(rawText), slugs, artwork);
     }
 
     internal static InstagramVisual ForEvent(EventType type, string rawText, string message)

@@ -185,7 +185,7 @@ public class ThreadsEventService
             return false;
         }
 
-        var imageAsset = await _customEventImages.RenderAsync(eventId, rawText, ResolveMention);
+        var imageAsset = await _customEventImages.RenderAsync(eventId, rawText, ResolveMention, useLinkedArtwork: plan.Mode == CustomEventPostMode.Artwork);
         if (imageAsset is null)
         {
             _log.LogWarning("Threads custom event image render returned no asset for event {EventId}.", eventId);

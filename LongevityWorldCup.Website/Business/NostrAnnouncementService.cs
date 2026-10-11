@@ -103,13 +103,13 @@ public sealed class NostrAnnouncementService(
                 includeEventUrl: item.VisibleOnWebsite);
             text = plan.PostText;
             if (string.IsNullOrWhiteSpace(text)) return null;
-            if (plan.Mode == CustomEventPostMode.Image)
+            if (plan.Mode != CustomEventPostMode.Text)
             {
-                alt = plan.TitleText + "\n\n" + plan.BodyText;
+                alt = plan.Mode == CustomEventPostMode.Artwork ? CustomEventArtwork.ForLinkedPage(item.Text)!.AltText : plan.TitleText + "\n\n" + plan.BodyText;
                 // A public image already referenced by a signed note must not change when
                 // another platform renders the same Event using different mention handles.
                 var imageKey = "nostr-" + item.Id + "-" + Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(alt)))[..16];
-                var image = await images.RenderAsync(imageKey, item.Text, resolveName, ct)
+                var image = await images.RenderAsync(imageKey, item.Text, resolveName, ct, useLinkedArtwork: plan.Mode == CustomEventPostMode.Artwork)
                     ?? throw new InvalidOperationException("NostrImageUnavailable");
                 imageUrl = image.PublicUrl;
             }

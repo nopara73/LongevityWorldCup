@@ -40,6 +40,7 @@ public sealed class InstagramAnnouncementImageService(
         await _gate.WaitAsync(ct);
         try
         {
+            artworkPath ??= visual.Artwork?.FullPath(environment.WebRootPath);
             _bold ??= _fonts.Add(Asset("fonts", "Poppins-Bold.ttf"));
             _regular ??= _fonts.Add(Asset("fonts", "Poppins-Regular.ttf"));
             using var image = new Image<Rgba32>(Width, Height, Ink);
@@ -98,6 +99,12 @@ public sealed class InstagramAnnouncementImageService(
                 image.Mutate(x => x.DrawText(address, font, Teal, new PointF(80, Height - 140)));
             }
             image.Mutate(x => x.DrawText("longevityworldcup.com", _regular.Value.CreateFont(26), Muted, new PointF(80, Height - 70)));
+            if (visual.Artwork?.QrAssetPath is { } qrAsset)
+            {
+                using var qr = await ImageInput.LoadAsync<Rgba32>(IOPath.Combine(environment.WebRootPath, qrAsset), ct);
+                qr.Mutate(x => x.Resize(164, 164, KnownResamplers.NearestNeighbor));
+                image.Mutate(x => x.DrawImage(qr, new Point(Width - 244, Height - 206), 1f));
+            }
             var stream = new MemoryStream();
             await image.SaveAsPngAsync(stream, ct);
             stream.Position = 0;

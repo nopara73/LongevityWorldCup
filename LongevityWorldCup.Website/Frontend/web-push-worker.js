@@ -2,17 +2,34 @@
 self.addEventListener('install', event => event.waitUntil(self.skipWaiting()));
 self.addEventListener('activate', event => event.waitUntil(self.clients.claim()));
 
+function notificationDestination(value) {
+    try {
+        const destination = new URL(value || '/events', self.location.origin);
+        if (destination.origin === self.location.origin && ['/events', '/rejuvenation-olympics'].includes(destination.pathname))
+            return destination.href;
+    } catch {}
+    return new URL('/events', self.location.origin).href;
+}
+
+function notificationImage(value) {
+    if (typeof value !== 'string') return undefined;
+    try {
+        const image = new URL(value, self.location.origin);
+        if (image.origin === self.location.origin && image.pathname.startsWith('/assets/social/')) return image.href;
+    } catch {}
+    return undefined;
+}
+
 self.addEventListener('push', event => {
     event.waitUntil((async () => {
         let payload;
         try { payload = event.data?.json(); } catch { payload = null; }
         if (!payload || typeof payload.id !== 'string' || typeof payload.title !== 'string') return;
-        const destination = new URL(payload.url || '/events', self.location.origin);
-        const url = destination.origin === self.location.origin && destination.pathname === '/events'
-            ? destination.href : new URL('/events', self.location.origin).href;
+        const url = notificationDestination(payload.url);
         await self.registration.showNotification(payload.title, {
             body: typeof payload.body === 'string' ? payload.body : '',
             icon: payload.icon,
+            image: notificationImage(payload.image),
             tag: 'lwc-' + payload.id,
             renotify: false,
             data: { url }
@@ -23,9 +40,7 @@ self.addEventListener('push', event => {
 self.addEventListener('notificationclick', event => {
     event.notification.close();
     event.waitUntil((async () => {
-        const candidate = new URL(event.notification.data?.url || '/events', self.location.origin);
-        const url = candidate.origin === self.location.origin && candidate.pathname === '/events'
-            ? candidate.href : new URL('/events', self.location.origin).href;
+        const url = notificationDestination(event.notification.data?.url);
         const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
         for (const client of windows) {
             const current = new URL(client.url);

@@ -103,12 +103,12 @@ public sealed class BlueskyAnnouncementService(
                 includeEventUrl: e.VisibleOnWebsite, textLength: BlueskyPost.Count, truncate: BlueskyPost.Truncate);
             if (string.IsNullOrWhiteSpace(plan.PostText)) return null;
             record = BlueskyPost.CreateRecord(plan.PostText, now);
-            if (plan.Mode == CustomEventPostMode.Image)
+            if (plan.Mode != CustomEventPostMode.Text)
             {
-                using var stream = await images.RenderToStreamAsync(e.Text, resolveName, ct)
+                using var stream = await images.RenderToStreamAsync(e.Text, resolveName, ct, useLinkedArtwork: plan.Mode == CustomEventPostMode.Artwork)
                     ?? throw new InvalidOperationException("Custom event image rendering is unavailable.");
                 media = stream.ToArray();
-                alt = plan.TitleText + "\n\n" + plan.BodyText;
+                alt = plan.Mode == CustomEventPostMode.Artwork ? CustomEventArtwork.ForLinkedPage(e.Text)!.AltText : plan.TitleText + "\n\n" + plan.BodyText;
             }
         }
         else
@@ -145,10 +145,15 @@ public sealed class BlueskyAnnouncementService(
                 contentType = "image/jpeg";
             }
             var blob = await api.UploadImageAsync(media, contentType, ct);
+            var dimensions = Image.Identify(media);
             record["embed"] = new JsonObject
             {
                 ["$type"] = "app.bsky.embed.images",
-                ["images"] = new JsonArray(new JsonObject { ["image"] = blob, ["alt"] = alt ?? "Longevity World Cup announcement" })
+                ["images"] = new JsonArray(new JsonObject
+                {
+                    ["image"] = blob, ["alt"] = alt ?? "Longevity World Cup announcement",
+                    ["aspectRatio"] = new JsonObject { ["width"] = dimensions.Width, ["height"] = dimensions.Height }
+                })
             };
         }
         else if (record["facets"] is JsonArray facets && facets.LastOrDefault()?["features"]?[0]?["uri"]?.GetValue<string>() is { } link)

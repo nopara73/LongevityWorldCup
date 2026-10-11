@@ -67,10 +67,13 @@ public sealed class WebPushAnnouncementService(EventDataService events, WebPushS
         var (titleRaw, contentRaw) = CustomEventMarkup.SplitTitleAndContent(announcement.Text);
         var title = Clamp(CustomEventMarkup.ToPlainText(titleRaw).Trim(), 100, 512);
         var body = Clamp(CustomEventMarkup.ToPlainText(contentRaw).Trim(), 200, 1400);
+        var artwork = CustomEventArtwork.ForLinkedPage(announcement.Text);
         return JsonSerializer.Serialize(new
         {
             id = announcement.Id, title, body,
-            url = announcement.VisibleOnWebsite ? $"/events?event={announcement.Id}" : "/events",
+            url = artwork is not null ? new Uri(CustomEventMarkup.GetSingleHyperlink(announcement.Text)!).AbsolutePath
+                : announcement.VisibleOnWebsite ? $"/events?event={announcement.Id}" : "/events",
+            image = artwork is null ? null : assets.AppendVersion("/" + artwork.AssetPath),
             icon = assets.AppendVersion("/assets/favicon-192x192.png")
         }, new JsonSerializerOptions { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
     }
