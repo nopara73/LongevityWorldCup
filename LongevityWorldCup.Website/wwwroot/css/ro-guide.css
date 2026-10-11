@@ -19,7 +19,7 @@
     background: var(--lwc-accent);
 }
 
-.ro-guide :is(h1, p) {
+.ro-guide :is(h1, h2, h3, p) {
     margin: 0;
     text-align: left;
 }
@@ -61,6 +61,99 @@
 .ro-guide a:focus-visible {
     outline: 3px solid var(--lwc-accent);
     outline-offset: 5px;
+}
+
+.ro-timeline {
+    margin-top: var(--lwc-space-6);
+    padding: var(--lwc-space-5);
+    border: 1px solid var(--lwc-border);
+    border-radius: var(--lwc-radius-md);
+    background: var(--lwc-surface-muted);
+}
+
+.ro-timeline-heading {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--lwc-space-2) var(--lwc-space-4);
+    margin-bottom: var(--lwc-space-5);
+}
+
+.ro-timeline h2 {
+    font-size: 1.125rem;
+    line-height: 1.4;
+}
+
+.ro-timeline-heading a {
+    font-size: var(--lwc-type-xs);
+}
+
+.ro-milestones {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--lwc-space-5);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.ro-milestones li {
+    position: relative;
+    padding-top: var(--lwc-space-5);
+}
+
+.ro-milestones li::before {
+    content: '';
+    position: absolute;
+    z-index: 1;
+    top: 0;
+    left: 0;
+    width: 14px;
+    height: 14px;
+    border: 2px solid var(--lwc-accent);
+    border-radius: 50%;
+    background: var(--lwc-surface-muted);
+}
+
+.ro-milestones li:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    top: 6px;
+    left: 14px;
+    right: calc(-1 * var(--lwc-space-5));
+    height: 2px;
+    background: var(--lwc-border-strong);
+}
+
+.ro-milestones time {
+    display: block;
+    color: var(--lwc-accent);
+    font-size: 1.125rem;
+    font-weight: 700;
+    line-height: 1.4;
+}
+
+.ro-milestones h3 {
+    margin-top: var(--lwc-space-2);
+    font-size: var(--lwc-type-body);
+    line-height: 1.4;
+}
+
+.ro-milestones p {
+    margin-top: var(--lwc-space-2);
+    color: var(--lwc-muted);
+    font-size: var(--lwc-type-sm);
+    line-height: 1.6;
+}
+
+.ro-timeline .ro-timeline-note {
+    margin-top: var(--lwc-space-5);
+    padding-top: var(--lwc-space-4);
+    border-top: 1px solid var(--lwc-border);
+    color: var(--lwc-muted);
+    font-size: var(--lwc-type-sm);
+    line-height: 1.6;
 }
 
 .ro-actions {
@@ -111,6 +204,32 @@
 
     .ro-essay > p.ro-lead {
         font-size: 1.125rem;
+    }
+
+    .ro-timeline {
+        padding: var(--lwc-space-4);
+    }
+
+    .ro-milestones {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .ro-milestones li {
+        padding-top: 0;
+        padding-left: var(--lwc-space-6);
+    }
+
+    .ro-milestones li::before {
+        top: 5px;
+    }
+
+    .ro-milestones li:not(:last-child)::after {
+        top: 19px;
+        bottom: calc(-1 * var(--lwc-space-5) - 5px);
+        left: 6px;
+        right: auto;
+        width: 2px;
+        height: auto;
     }
 
     .ro-actions {
