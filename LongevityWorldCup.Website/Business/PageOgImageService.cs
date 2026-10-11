@@ -72,7 +72,7 @@ public sealed class PageOgImageService
                 ["Pro before Amateur", "Valid submissions", "Prize pool"]),
             ["rejuvenation-olympics"] = new(
                 "rejuvenation-olympics",
-                "Coming from Rejuvenation Olympics?",
+                "Coming from the Rejuvenation Olympics?",
                 "Keep competing.",
                 "Put your biological age on the leaderboard.",
                 "19C3D1",

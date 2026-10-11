@@ -29,7 +29,11 @@ public sealed class RejuvenationOlympicsBrowserTests(
         var page = await context.NewPageAsync();
         var response = await page.GotoAsync("/rejuvenation-olympics");
         Assert.True(response!.Ok);
-        await Assertions.Expect(page.Locator("h1")).ToHaveTextAsync("Rejuvenation Olympics is closing.");
+        await Assertions.Expect(page.Locator("h1")).ToHaveTextAsync("Coming from the Rejuvenation Olympics?");
+        await Assertions.Expect(page.Locator(".ro-lead")).ToHaveTextAsync(
+            "Rejuvenation Olympics is closing. Its final leaderboard will freeze on 15 April 2027. " +
+            "If you competed there, Longevity World Cup is your chance to keep competing.");
+        Assert.Equal("Coming from the Rejuvenation Olympics? | Longevity World Cup", await page.TitleAsync());
         await Assertions.Expect(page.Locator("main")).ToContainTextAsync("Longevity World Cup is your chance to keep competing.");
         await Assertions.Expect(page.Locator("main")).ToContainTextAsync("DunedinPACE alone won’t qualify.");
         await Assertions.Expect(page.Locator(".ro-lead time")).ToHaveAttributeAsync("datetime", "2027-04-15");

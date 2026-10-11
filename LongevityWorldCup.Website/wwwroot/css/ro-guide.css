@@ -107,6 +107,7 @@
     font-size: clamp(2rem, 4.5vw, 3rem);
     line-height: 1.1;
     letter-spacing: -0.035em;
+    text-wrap: balance;
 }
 
 .ro-essay > p:not(.ro-eyebrow) {

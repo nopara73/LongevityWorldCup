@@ -994,8 +994,8 @@ $@"<script{scriptAttributes}>
                     "Rejuvenation Olympics is closing. Keep competing at Longevity World Cup with blood-test rankings, progress tracking and Bitcoin prizes for Pro athletes.",
                     "index, follow",
                     canonicalUrl,
-                    "Rejuvenation Olympics is closing | Longevity World Cup",
-                    "Rejuvenation Olympics is closing | Longevity World Cup",
+                    "Coming from the Rejuvenation Olympics? | Longevity World Cup",
+                    "Coming from the Rejuvenation Olympics? | Longevity World Cup",
                     "Keep competing at Longevity World Cup. Submit your bloodwork, compare your biological age and track your progress.",
                     BuildPageOgImageUrl("rejuvenation-olympics", defaultOgImage)
                 ),
@@ -1808,7 +1808,7 @@ $@"<script{scriptAttributes}>
                 "/about" => "About",
                 "/history" => "History",
                 "/ruleset" => "Ruleset",
-                "/rejuvenation-olympics" => "Coming from Rejuvenation Olympics?",
+                "/rejuvenation-olympics" => "Coming from the Rejuvenation Olympics?",
                 _ when canonicalPath.StartsWith("/league/", StringComparison.OrdinalIgnoreCase) => "Leaderboard",
                 _ when canonicalPath.StartsWith("/flag/", StringComparison.OrdinalIgnoreCase) => "Leaderboard",
                 _ => "Page"
