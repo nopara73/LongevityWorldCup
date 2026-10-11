@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Mortality Age Calculator | Longevity World Cup</title>
+    <script id="pageAnalyticsPrivacy">window.LwcDisableGoogleAnalytics = true;</script>
+    <!--HEAD-->
+    <link rel="stylesheet" href="{{ASSET_INITIAL_VIEW_CSS}}">
+    <script src="{{ASSET_INITIAL_VIEW_JS}}"></script>
+    <script>try { if (window.location.hash || localStorage.getItem('lwc-mortality-age-draft-v2') || localStorage.getItem('lwc-mortality-age-draft-v1')) window.LwcInitialView.prepare(); } catch { }</script>
+    <link rel="stylesheet" href="{{ASSET_BIOAGEFORM_CSS}}">
+    <link rel="stylesheet" href="{{ASSET_MORTALITY_AGE_CSS}}">
+    <script src="{{ASSET_FIELD_VALIDATION_JS}}"></script>
+    <script src="{{ASSET_MORTALITY_AGE_MODEL_JS}}" defer></script>
+    <script src="{{ASSET_MORTALITY_AGE_JS}}" data-model-url="{{ASSET_MORTALITY_AGE_MODEL_JSON}}" defer></script>
+</head>
+<body class="play-flow-route">
+    <!--HEADER-->
+    <main class="mortality-main initial-view-main">
+        <div class="lwc-steps-shell">
+            <h1 id="mainPageTitleH2">Mortality age</h1>
+            <p class="clock-intro"><span class="research-badge">Research experiment</span></p>
+            <p class="clock-intro">Experimental mortality-equivalent age · <a href="/research/mortality-age.pdf" target="_blank" rel="noopener">Read the research</a></p>
+            <form id="mortalityAgeForm" class="bioageform" novalidate>
+                <div class="lwc-wizard-nav" aria-label="Calculator steps">
+                    <button type="button" class="lwc-dot lwc-dot--on" id="lwcDot1" aria-label="Sex and measurement date" aria-current="step"></button>
+                    <button type="button" class="lwc-dot" id="lwcDot2" aria-label="Your measurements" disabled></button>
+                </div>
+                <section id="lwc-step-1" class="lwc-step lwc-step--active" aria-labelledby="step1Title">
+                    <h2 id="step1Title" class="visually-hidden">Sex and measurement date</h2>
+                    <fieldset>
+                        <legend>Measurement date:</legend>
+                        <input type="date" id="measurement-date" required aria-label="Measurement date">
+                    </fieldset>
+                    <fieldset>
+                        <legend>Sex:</legend>
+                        <select id="sex" required aria-label="Sex"><option value="">Select sex</option><option value="0">Female</option><option value="1">Male</option></select>
+                    </fieldset>
+                    <p class="measurement-note">Inputs stay in this browser. Use measurements from the same period.</p>
+                    <div class="lwc-step-actions flow-action-stack" data-flow-dock="auto">
+                        <button type="button" id="continue-button" class="option-button green flow-action" disabled><span class="flow-action__label">Continue</span><i class="fas fa-arrow-right" aria-hidden="true"></i></button>
+                        <a href="/" class="option-button back-button flow-action flow-action--secondary flow-action--icon-left"><i class="fas fa-arrow-left" aria-hidden="true"></i><span class="flow-action__label">Back</span></a>
+                    </div>
+                </section>
+                <section id="lwc-step-2" class="lwc-step" aria-labelledby="step2Title">
+                    <h2 id="step2Title" class="visually-hidden">Enter eight measurement domains</h2>
+                    <div id="measurement-cards"></div>
+                    <p id="model-status" class="clock-status" role="status">Loading the research model…</p>
+                    <button type="button" id="retry-model" class="option-button" hidden>Retry</button>
+                    <div class="lwc-step-actions flow-action-stack" data-flow-dock="auto">
+                        <button type="submit" id="calculate-button" class="option-button green flow-action bioage-calculate-button" disabled><span class="flow-action__label">Calculate age</span><i class="fas fa-arrow-right" aria-hidden="true"></i></button>
+                        <button type="button" id="back-button" class="option-button back-button flow-action flow-action--secondary flow-action--icon-left"><i class="fas fa-arrow-left" aria-hidden="true"></i><span class="flow-action__label">Back</span></button>
+                    </div>
+                </section>
+            </form>
+            <section id="mortalityAgeResult" class="bioageform" aria-label="Mortality age result" hidden>
+                <div id="validAgeInput">
+                    <div data-bioage-result-context>Experimental full-panel estimate</div>
+                    <div class="bio-age-number-container">
+                        <span class="bioage-result-value-stack">
+                            <span id="animatedAge">0</span>
+                            <span class="bioage-result-visual" data-bioage-result-visual aria-hidden="true">0.0</span>
+                            <span class="bioage-result-halo" aria-hidden="true"></span>
+                        </span>
+                    </div>
+                    <span class="visually-hidden" data-bioage-result-announcement role="status" aria-live="polite" aria-atomic="true"></span>
+                </div>
+                <p id="unsupported-result" role="status" hidden></p>
+                <p id="result-risk" class="result-subtitle"></p>
+                <p class="result-subtitle">The full eight-domain combination has no joint validation cohort. Changes in this estimate do not establish health improvements.</p>
+                <details class="panel-results"><summary>Observed measurement panels</summary><dl id="panel-results"></dl></details>
+                <div class="flow-action-stack result-actions">
+                    <a href="/research/mortality-age.pdf" target="_blank" rel="noopener" class="option-button green flow-action"><span class="flow-action__label">Research PDF</span><i class="fas fa-file-pdf" aria-hidden="true"></i></a>
+                    <button type="button" id="edit-button" class="option-button back-button flow-action flow-action--secondary flow-action--icon-left" aria-label="Edit measurements"><i class="fas fa-arrow-left" aria-hidden="true"></i><span class="flow-action__label">Back</span></button>
+                </div>
+            </section>
+            <noscript><p class="clock-status">Enable JavaScript to calculate. The <a href="/research/mortality-age.pdf">research PDF</a> is available without it.</p></noscript>
+        </div>
+    </main>
+    <!--FOOTER-->
+</body>
+</html>

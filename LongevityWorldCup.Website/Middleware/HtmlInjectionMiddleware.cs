@@ -83,7 +83,8 @@ namespace LongevityWorldCup.Website.Middleware
                 ["/select-athlete"] = "Athlete Selection | Longevity World Cup",
                 ["/dashboard"] = "Athlete Dashboard | Longevity World Cup",
                 ["/edit-profile"] = "Edit Profile | Longevity World Cup",
-                ["/unsubscribe"] = "Unsubscribe | Longevity World Cup"
+                ["/unsubscribe"] = "Unsubscribe | Longevity World Cup",
+                ["/mortality-age"] = "Mortality Age Calculator | Longevity World Cup"
             };
 
         public async Task Invoke(HttpContext context)
@@ -791,6 +792,10 @@ $@"<script{scriptAttributes}>
                         "/js/bioage-rank-preview.js",
                         "/js/pro-discounts.js"
                     ],
+                    BlockingScriptPaths: ["/js/flow-action-dock.js", "/js/bioage-flow.js"]),
+                "/onboarding/mortality-age.html" => new HeadAssetConfig(
+                    IncludeValidator: false,
+                    ModulePaths: ["/js/misc.js"],
                     BlockingScriptPaths: ["/js/flow-action-dock.js", "/js/bioage-flow.js"]),
                 "/onboarding/convergence.html" => new HeadAssetConfig(
                     IncludeValidator: true,

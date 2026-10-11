@@ -463,6 +463,8 @@ namespace LongevityWorldCup.Website
                     var request = ctx.Context.Request;
                     var hasVersion = request.Query.ContainsKey("v");
                     var path = request.Path.Value ?? "";
+                    if (path.StartsWith("/research/mortality-age", StringComparison.OrdinalIgnoreCase))
+                        ctx.Context.Response.Headers["X-Robots-Tag"] = "noindex, nofollow";
                     if (path == "/js/web-push-worker.js")
                     {
                         ctx.Context.Response.Headers["Service-Worker-Allowed"] = "/";

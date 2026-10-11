@@ -7,8 +7,9 @@
     "npm": ">=11 <12"
   },
   "scripts": {
-    "build": "node -e \"require('node:fs').rmSync('wwwroot/js',{recursive:true,force:true})\" && tsc --project tsconfig.json && node Scripts/copy-classic-scripts.mjs && npm run verify:outputs",
-    "check": "tsc --project tsconfig.json --noEmit",
+    "build": "node -e \"require('node:fs').rmSync('wwwroot/js',{recursive:true,force:true})\" && tsc --project tsconfig.json && node Scripts/copy-classic-scripts.mjs && npm run verify:outputs && npm run verify:mortality-model",
+    "check": "tsc --project tsconfig.json --noEmit && npm run verify:mortality-model",
+    "verify:mortality-model": "node ../LongevityWorldCup.Research/MortalityAge/verify-browser.mjs",
     "verify:outputs": "node Scripts/verify-frontend-outputs.mjs"
   },
   "devDependencies": {
