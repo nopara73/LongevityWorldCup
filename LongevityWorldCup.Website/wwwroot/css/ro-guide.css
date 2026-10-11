@@ -24,6 +24,75 @@
     text-align: left;
 }
 
+.ro-artwork {
+    --ro-poster-accent: #5bd5dd;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    aspect-ratio: 2.5;
+    margin-bottom: var(--lwc-space-6);
+    overflow: hidden;
+    isolation: isolate;
+    border-radius: var(--lwc-radius-lg);
+    background: #101c22;
+    color: #f3f7f8;
+}
+
+.ro-artwork .ro-artwork-mark {
+    z-index: 1;
+    align-self: center;
+    padding-left: var(--lwc-space-6);
+    font-family: 'Orbitron', sans-serif;
+    font-size: clamp(1.125rem, 3.75vw, 2.25rem);
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.ro-artwork-mark span {
+    color: var(--ro-poster-accent);
+}
+
+.ro-arena {
+    position: relative;
+    display: grid;
+    place-items: center;
+    min-width: 0;
+}
+
+.ro-lanes {
+    position: absolute;
+    inset: -8% -4% auto;
+    width: 108%;
+    max-width: none;
+    height: 116%;
+    stroke: #36525c;
+    stroke-width: 1;
+}
+
+.ro-lanes .ro-racing-line {
+    stroke: var(--ro-poster-accent);
+    stroke-width: 5;
+}
+
+.ro-phoenix {
+    position: relative;
+    width: 68%;
+    height: auto;
+    opacity: 0.93;
+    transform: rotate(-9deg);
+}
+
+.ro-sport-mark {
+    position: absolute;
+    right: var(--lwc-space-5);
+    bottom: var(--lwc-space-4);
+    font-family: 'Orbitron', sans-serif;
+    font-size: clamp(0.5rem, 1.75vw, 0.75rem);
+    font-weight: 700;
+    line-height: 1.4;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
 .ro-guide .ro-eyebrow {
     margin-bottom: var(--lwc-space-4);
     color: var(--lwc-accent);
@@ -196,6 +265,15 @@
 @media (max-width: 600px) {
     .ro-guide {
         padding-inline: var(--lwc-space-5);
+    }
+
+    .ro-artwork .ro-artwork-mark {
+        padding-left: var(--lwc-space-4);
+    }
+
+    .ro-sport-mark {
+        right: var(--lwc-space-3);
+        bottom: var(--lwc-space-3);
     }
 
     .ro-essay > p:not(.ro-eyebrow) {

@@ -33,6 +33,12 @@ public sealed class RejuvenationOlympicsBrowserTests(
         await Assertions.Expect(page.Locator("main")).ToContainTextAsync("Longevity World Cup is your chance to keep competing.");
         await Assertions.Expect(page.Locator("main")).ToContainTextAsync("DunedinPACE alone won’t qualify.");
         await Assertions.Expect(page.Locator(".ro-lead time")).ToHaveAttributeAsync("datetime", "2027-04-15");
+        await Assertions.Expect(page.GetByRole(AriaRole.Heading, new()
+            { Name = "Rejuvenation Olympics closing timeline", Level = 2, Exact = true }))
+            .ToHaveTextAsync("Rejuvenation Olympics closing timeline");
+        Assert.Contains("?v=", await page.Locator(".ro-phoenix").GetAttributeAsync("src"));
+        Assert.True(await page.Locator(".ro-phoenix").EvaluateAsync<bool>(
+            "image => image.complete && image.naturalWidth === 512 && image.naturalHeight === 512"));
         var milestones = page.Locator(".ro-milestones li");
         await Assertions.Expect(milestones).ToHaveCountAsync(3);
         var deadlines = new[] { "2026-10-30", "2027-03-30", "2027-04-15" };
