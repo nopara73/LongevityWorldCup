@@ -94,6 +94,8 @@ The reviewer scans every `*.zip` in the athletes directory, extracts/merges fold
 
 ## JSON and Proofs
 
+Before redacting an existing athlete's new proofs, check their prior privacy requests, private ledger, and published censored proofs. Carry forward the same user-approved stricter privacy scope unless explicitly changed; never revert to the ordinary defaults below. An approved athlete-specific exception may hide DOB, provider metadata, or non-required clinical rows while retaining exact competition evidence. Record what remains visible and what is masked in the private ledger for future submissions. Legacy redactions alone do not establish a new privacy preference; without an explicit approved exception, retain all clinical content as required below.
+
 Parse `athlete.json`; compare email audit fields and visible proofs. Check identity/profile metadata (name/display name, division, flag, personal link, media contact, Why), plausible DOB/test chronology, numeric biomarkers in expected units, profile-image filename matching the folder key, and present `proof_*.ext` evidence for results. Append new records without replacing unrelated history.
 
 A plausible-year December 31 DOB is an allowed privacy placeholder; never replace it with the exact DOB on a proof. Full applications require DOB. Use these sources when uncertain:

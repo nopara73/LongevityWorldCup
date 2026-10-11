@@ -1,0 +1,48 @@
+/* The same form, cards, actions and reveal used by the established clocks. */
+#mortalityAgeForm { container: bioage-form / inline-size; }
+.join-game { display: none !important; }
+.mortality-main { padding-bottom: 2rem; }
+.lwc-steps-shell { width: calc(100vw - 2rem); max-width: 780px; margin: 0 auto; }
+.clock-intro { text-align: center; margin: .5rem auto 0; color: var(--lwc-muted); }
+.clock-intro a, .research-link { color: var(--lwc-accent); }
+.research-badge { display: inline-block; padding: .2rem .6rem; border: 1px solid var(--lwc-border); border-radius: 99px; font-size: .75rem; font-weight: 600; }
+.lwc-step { display: none; width: 100%; }
+.lwc-step--active { display: block; }
+.lwc-step-actions { display: flex; gap: .75rem; justify-content: center; margin-top: 1rem; }
+.bioageform button.bioage-calculate-button { width: 100%; max-width: 408px; margin: 0; }
+.bioageform [hidden], .mortality-main [hidden] { display: none !important; }
+.bioageform select { padding-right: 2.25rem; }
+.biomarker-card { border: 1px solid var(--lwc-border); border-radius: 10px; margin: .75rem 0 0; overflow: hidden; }
+.biomarker-card-header { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: .5rem; padding: .85rem 1rem; border: 0; border-radius: 0; margin: 0; background: var(--lwc-surface-muted, #f8fafc); color: var(--lwc-ink); font: inherit; font-weight: 600; text-align: left; cursor: pointer; }
+.biomarker-card-header:hover { background: var(--lwc-surface-muted, #f1f5f9); }
+.biomarker-card.active .biomarker-card-header { background: var(--lwc-accent-soft, #f8feff); }
+.biomarker-card-header:focus-visible { outline: 3px solid var(--lwc-accent-bright); outline-offset: -3px; }
+.toggle-icon { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 26px; width: 26px; height: 26px; border-radius: 99px; background: var(--lwc-accent-soft); color: var(--lwc-ink); }
+.biomarker-card.active .toggle-icon { background: var(--lwc-accent); color: #fff; }
+.biomarker-card-content { padding: .75rem 1rem; border-top: 1px solid var(--lwc-border); background: var(--lwc-surface-muted, #fbfdff); }
+.biomarker-card-content > .input-group:first-of-type { margin-top: 0; }
+.measurement-note { margin: .5rem 0 0; font-size: .8rem; line-height: 1.45; color: var(--lwc-muted); }
+.limit-label { display: flex !important; align-items: center; gap: .5rem; font-size: .8rem !important; }
+.limit-label input { width: auto !important; min-height: 20px !important; margin: 0 !important; }
+.field-error { margin: .4rem 0 0; color: var(--lwc-danger, #b4233b); font-size: .8rem; }
+.clock-status { margin: .75rem 0; text-align: center; font-size: .85rem; color: var(--lwc-muted); }
+#mortalityAgeResult { max-width: 580px; box-shadow: none; text-align: center; }
+.bio-age-number-container { display: flex; justify-content: center; align-items: center; min-height: 140px; margin: 1.5rem 0; }
+#animatedAge { font-family: Roboto, sans-serif; font-size: 6.5rem; font-weight: 800; line-height: 1; color: var(--lwc-accent); }
+[data-bioage-result-context] { font-size: .8rem; font-weight: 600; color: var(--lwc-muted); text-transform: uppercase; letter-spacing: .08em; }
+.result-subtitle { max-width: 30rem; font-size: .85rem; color: var(--lwc-muted); line-height: 1.5; }
+.panel-results { width: 100%; margin-top: 1rem; font-size: .9rem; text-align: left; }
+.panel-results summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; color: var(--lwc-accent); }
+.panel-results dl { margin: .5rem 0; }
+.panel-row { display: flex; justify-content: space-between; gap: 1rem; padding: .6rem 0; border-top: 1px solid var(--lwc-border); }
+.panel-row dt { min-width: 0; }
+.panel-row dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.result-actions { margin: 1.25rem auto 0; }
+.result-actions .option-button { width: 100%; margin: 0; }
+.mortality-main a.option-button { text-decoration: none; }
+@media (max-width: 600px) { #animatedAge { font-size: 5rem; } .bio-age-number-container { min-height: 110px; } }
+@media (min-width: 960px) and (min-height: 640px) {
+    #mortalityAgeForm { width: min(100%, 760px); margin: 1.25rem auto; padding: var(--lwc-space-5, 1.5rem) var(--lwc-space-6, 2rem); }
+    #mortalityAgeForm #lwc-step-1 > .measurement-note { grid-column: 1 / -1; }
+}
+@media (prefers-reduced-motion: reduce) { .mortality-main * { scroll-behavior: auto; } }
