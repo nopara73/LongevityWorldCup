@@ -74,13 +74,13 @@ a.badge-class:focus-visible,.badge-class.badge-clickable:focus-visible,.badge-cl
 #detailsModal .modal-badge-strip{
     width:min(100%, var(--athlete-modal-section-width, 680px));
     box-sizing:border-box;
-    background:linear-gradient(180deg, rgba(246,244,237,.105), rgba(246,244,237,.05));
-    border:1px solid var(--athlete-modal-cream-border,rgba(246,244,237,.52));
-    border-radius:22px;
+    background:var(--athlete-modal-card,#17212b);
+    border:1px solid var(--athlete-modal-border,#42515e);
+    border-radius:var(--lwc-radius-lg,12px);
     padding:.85rem 1rem;
     margin-top:.75rem;
     margin-bottom:1.15rem;
-    box-shadow:0 18px 44px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.1);
+    box-shadow:none;
 }
 #detailsModal .modal-badge-strip:empty{
     display:none;

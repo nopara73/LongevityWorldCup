@@ -953,6 +953,23 @@ html body .leaderboard .athlete-name {
     }
 }
 
+/* Wide rows have room for the two competition numbers to lead: rank and score. */
+@media (min-width: 769px) {
+    .leaderboard tbody .rank:not([data-place]):not(.skeleton-shimmer) {
+        color: var(--lwc-ink);
+        font-size: var(--lwc-type-body);
+    }
+
+    .leaderboard tbody .age-reduction:not(.skeleton-shimmer) {
+        font-size: 1.125rem;
+    }
+}
+
+/* The row under the pointer or keyboard is marked on its leading edge as well as by its tint. */
+.leaderboard table tbody tr:not(.no-results):not(.tier-separator):not(.leaderboard-skeleton-row):is(:hover, :focus-within) > td:first-child {
+    box-shadow: inset 3px 0 0 var(--lwc-accent);
+}
+
 .leaderboard .personal-link-icon,
 .leaderboard .media-contact {
     display: inline-flex;

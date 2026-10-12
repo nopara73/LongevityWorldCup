@@ -1007,9 +1007,9 @@
      box-sizing:border-box;
      margin:.5rem auto 0;
      padding:.8rem;
-     border:1px solid var(--athlete-modal-cream-border);
+     border:1px solid var(--athlete-modal-border-strong);
      border-radius:var(--lwc-radius-md, 8px);
-     background:rgba(255,255,255,.08);
+     background:var(--athlete-modal-card);
  }
  #athleteLoadError[hidden]{ display:none; }
  #detailsModal .modal-content[data-server-rendered-loading].is-loading > :not(#closeAthleteDetailsModal):not(#modalStickyHeader) {
@@ -1041,22 +1041,27 @@
      -webkit-overflow-scrolling:touch; scroll-behavior:smooth; overscroll-behavior:contain;
      position:relative;
  }
+ /* The dialog is always dark: it wears the dark theme's graphite surfaces,
+    borders and teal accent, so it matches the site's panels in either theme. */
  #detailsModal{
-     --athlete-modal-surface: var(--background-color, linear-gradient(120deg, #000000, #555555));
-     --athlete-modal-card: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.035));
-     --athlete-modal-card-strong: linear-gradient(180deg, rgba(255,255,255,.09), rgba(255,255,255,.045));
-     --athlete-modal-card-hover: rgba(255,255,255,.16);
-     --athlete-modal-text: rgba(255,255,255,.94);
-     --athlete-modal-cream: rgba(246,244,237,.92);
-     --athlete-modal-cream-soft: rgba(246,244,237,.18);
-     --athlete-modal-cream-border: rgba(246,244,237,.52);
-     --athlete-modal-link: rgba(246,244,237,.9);
-     --athlete-modal-muted: rgba(255,255,255,.68);
-     --athlete-modal-subtle: rgba(255,255,255,.48);
-     --athlete-modal-border: rgba(246,244,237,.34);
-     --athlete-modal-border-strong: rgba(246,244,237,.48);
-     --athlete-modal-shadow: 0 22px 60px rgba(0,0,0,.48);
-     --athlete-modal-focus: 0 0 0 3px rgba(246,244,237,.28);
+     --athlete-modal-surface: #101820;
+     --athlete-modal-card: #17212b;
+     --athlete-modal-card-strong: #1c2933;
+     --athlete-modal-card-hover: #253641;
+     --athlete-modal-head: #18353c;
+     --athlete-modal-head-text: #a9edf0;
+     --athlete-modal-text: #e6edf3;
+     --athlete-modal-cream: #e6edf3;
+     --athlete-modal-cream-soft: rgba(123,221,227,.16);
+     --athlete-modal-cream-border: #6d7d8b;
+     --athlete-modal-accent: #7bdde3;
+     --athlete-modal-link: #7bdde3;
+     --athlete-modal-muted: #b8c5cf;
+     --athlete-modal-subtle: #91a3b2;
+     --athlete-modal-border: #42515e;
+     --athlete-modal-border-strong: #6d7d8b;
+     --athlete-modal-shadow: 0 12px 30px rgba(0,0,0,.42);
+     --athlete-modal-focus: 0 0 0 3px rgba(123,221,227,.5);
      --athlete-modal-chart-grid: rgba(255,255,255,.16);
      --athlete-modal-chart-bortz: rgba(154,232,178,.96);
      --athlete-modal-chart-pheno: rgba(135,229,229,.96);
@@ -1074,7 +1079,7 @@
      background-clip: padding-box;
      color: var(--athlete-modal-text);
      border: 1px solid var(--athlete-modal-border);
-     box-shadow: var(--athlete-modal-shadow), inset 0 0 0 1px rgba(246,244,237,.08);
+     box-shadow: var(--athlete-modal-shadow);
      isolation: isolate;
  }
  #detailsModal .modal-content::before{
@@ -1084,11 +1089,7 @@
      pointer-events:none;
      border-radius:14px;
      z-index:0;
-     background:
-         radial-gradient(circle at 50% 0%, rgba(246,244,237,.11), transparent 32%),
-         radial-gradient(circle at 72% 8%, rgba(181,226,226,.06), transparent 26%),
-         linear-gradient(180deg, rgba(255,255,255,.065), transparent 18%);
-     opacity:.64;
+     background: radial-gradient(60% 20rem at 50% 0%, rgba(123,221,227,.14), transparent 100%);
  }
  #detailsModal .modal-content > *{
      position:relative;
@@ -1172,17 +1173,15 @@
      padding: 1.25rem 1.25rem .85rem;
      z-index: 30;
      isolation: isolate;
-     background: linear-gradient(180deg, rgba(17,19,19,.96), rgba(9,10,10,.92));
+     background: var(--athlete-modal-surface);
      color: var(--athlete-modal-text);
      border-bottom: 1px solid var(--athlete-modal-border);
-     box-shadow: 0 12px 28px rgba(0,0,0,.22), inset 0 -1px 0 rgba(246,244,237,.06);
-     backdrop-filter: blur(14px);
-     -webkit-backdrop-filter: blur(14px);
+     box-shadow: 0 8px 20px rgba(0,0,0,.28);
  }
  #detailsModal .modal-sticky-header.visible::before{
      top: -80px;
      height: 80px;
-     background: linear-gradient(180deg, rgba(4,5,5,.98), rgba(17,19,19,.96));
+     background: var(--athlete-modal-surface);
  }
  #detailsModal .modal-sticky-header .sticky-athlete-name{
      color: var(--athlete-modal-text);
@@ -1208,9 +1207,9 @@
      display:inline-flex;
      align-items:center;
      justify-content:center;
-     color: rgba(255,255,255,.78);
-     background: rgba(255,255,255,.08);
-     border: 1px solid var(--athlete-modal-border);
+     color: var(--athlete-modal-text);
+     background: var(--athlete-modal-card);
+     border: 1px solid var(--athlete-modal-border-strong);
  }
  #detailsModal .modal-sticky-header .sticky-close-btn{
      position:static;
@@ -1221,9 +1220,9 @@
  #detailsModal #closeAthleteDetailsModal:hover,
  #detailsModal #closeAthleteDetailsModal:focus-visible{
      color: #fff;
-     background: rgba(246,244,237,.16);
-     border-color: rgba(246,244,237,.56);
-     box-shadow: 0 0 0 3px rgba(246,244,237,.18), 0 10px 22px rgba(0,0,0,.26);
+     background: var(--athlete-modal-card-hover);
+     border-color: var(--athlete-modal-accent);
+     box-shadow: var(--athlete-modal-focus);
      outline: none;
  }
  .athlete-profile{ display:flex; flex-direction:column; align-items:center; text-align:center; }
@@ -1257,21 +1256,23 @@
      z-index: 2;
  }
  #detailsModal #athlete-profile .portrait-wrapper{
-     filter: drop-shadow(0 18px 28px rgba(0,0,0,.42));
+     filter: drop-shadow(0 12px 22px rgba(0,0,0,.4));
  }
+ /* The same teal ring every leaderboard portrait wears. */
  #detailsModal #modalProfilePic{
-     border: 3px solid rgba(246,244,237,.62);
-     box-shadow: inset 0 0 0 1px rgba(255,255,255,.16), 0 12px 30px rgba(0,0,0,.38);
+     border: 3px solid var(--athlete-modal-accent);
+     box-shadow: 0 0 0 6px rgba(123,221,227,.12);
  }
  #detailsModal #athleteName{
      color: var(--athlete-modal-text);
      margin-bottom: .25rem;
-     text-shadow: 0 2px 16px rgba(0,0,0,.45);
+     text-shadow: none;
  }
  #detailsModal #athleteRankings{
      display:flex;
+     gap:var(--lwc-space-3);
      width:min(100%, var(--athlete-modal-section-width));
-     margin:var(--lwc-space-3) auto var(--lwc-space-2);
+     margin:var(--lwc-space-4) auto var(--lwc-space-2);
  }
  #detailsModal #athleteRankings[hidden]{ display:none; }
  #detailsModal [data-profile-pending][hidden]{ display:none; }
@@ -1285,22 +1286,30 @@
      gap:var(--lwc-space-1);
      min-width:0;
      min-height:44px;
-     padding:var(--lwc-space-2);
+     padding:var(--lwc-space-3) var(--lwc-space-2);
+     border:1px solid var(--athlete-modal-border-strong);
+     border-radius:var(--lwc-radius-lg);
+     background:var(--athlete-modal-card);
      color:var(--athlete-modal-muted);
      font-size:var(--lwc-type-sm);
      text-decoration:none;
  }
- #detailsModal #athleteRankings a + a{ border-left:1px solid var(--athlete-modal-border); }
+ /* Ranks are competition marks: the leaderboard's Orbitron numerals, enlarged. */
  #detailsModal #athleteRankings strong{
      color:var(--athlete-modal-link);
-     font-size:var(--lwc-type-h3);
+     font-family:Orbitron, Roboto, sans-serif;
+     font-size:1.5rem;
+     font-variant-numeric:tabular-nums;
      line-height:1.2;
      text-decoration:underline;
-     text-underline-offset:.18em;
+     text-decoration-thickness:1px;
+     text-decoration-color:var(--athlete-modal-border-strong);
+     text-underline-offset:.3em;
  }
  #detailsModal #athleteRankings a:hover,
  #detailsModal #athleteRankings a:focus-visible{
      background:var(--athlete-modal-card-hover);
+     border-color:var(--athlete-modal-accent);
  }
  #detailsModal #athleteRankings a:focus-visible{
      outline:2px solid var(--athlete-modal-link);
@@ -1313,10 +1322,10 @@
      margin: 1rem auto 1.45rem;
      padding: .9rem 1.1rem;
      box-sizing: border-box;
-     background: rgba(246,244,237,.065);
-     border: 1px solid rgba(246,244,237,.18);
-     border-radius: 18px;
-     box-shadow: inset 0 1px 0 rgba(255,255,255,.055), 0 12px 28px rgba(0,0,0,.16);
+     background: var(--athlete-modal-card);
+     border: 1px solid var(--athlete-modal-border);
+     border-radius: var(--lwc-radius-lg);
+     box-shadow: none;
      font-weight: 400;
      letter-spacing: normal;
      overflow-wrap:anywhere;
@@ -1399,8 +1408,8 @@
  #detailsModal .events-embed{
      background: var(--athlete-modal-card);
      border: 1px solid var(--athlete-modal-border);
-     border-radius: 22px;
-     box-shadow: 0 16px 42px rgba(0,0,0,.26), inset 0 1px 0 rgba(255,255,255,.06);
+     border-radius: var(--lwc-radius-lg);
+     box-shadow: none;
  }
  #detailsModal .athlete-info{
      padding: 1.1rem 1.25rem;
@@ -1433,7 +1442,7 @@
  }
  #detailsModal .athlete-info-table tr:not(:first-child):not(.athlete-info-divider-row) th,
  #detailsModal .athlete-info-table tr:not(:first-child):not(.athlete-info-divider-row) td{
-     border-top: 1px solid rgba(246,244,237,.085);
+     border-top: 1px solid rgba(66,81,94,.6);
  }
  #detailsModal .athlete-info-table tr.athlete-info-group-first th,
  #detailsModal .athlete-info-table tr.athlete-info-group-first td{
@@ -1483,11 +1492,10 @@
      gap: .65rem;
      width: min(100%, var(--athlete-modal-section-width));
      margin: 1rem auto 1.35rem;
-     padding: .6rem;
+     padding: 0;
      box-sizing: border-box;
-     background: rgba(246,244,237,.055);
-     border: 1px solid rgba(246,244,237,.16);
-     border-radius: var(--lwc-radius-lg);
+     background: none;
+     border: 0;
      box-shadow: none;
  }
  #detailsModal .athlete-links a,
@@ -1501,7 +1509,7 @@
  #detailsModal #retryAthleteLoad{
      min-height: 44px;
      padding: .55rem 1rem;
-     border: 1px solid var(--athlete-modal-border);
+     border: 1px solid var(--athlete-modal-border-strong);
      border-radius: var(--lwc-radius-md);
      background: var(--athlete-modal-card);
      box-shadow: none;
@@ -1539,7 +1547,7 @@
      border:1px solid var(--athlete-modal-border-strong);
      border-radius:var(--lwc-radius-lg);
      background:var(--athlete-modal-card);
-     box-shadow:0 20px 42px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,255,255,.06);
+     box-shadow:var(--athlete-modal-shadow);
  }
  #detailsModal .athlete-share-menu.is-above{
      top:auto;
@@ -1567,7 +1575,7 @@
  #detailsModal .athlete-share-menu button:hover,
  #detailsModal .athlete-share-menu button:focus-visible{
      color:#fff;
-     background:rgba(246,244,237,.12);
+     background:var(--athlete-modal-card-hover);
      outline:none;
      box-shadow:var(--athlete-modal-focus);
  }
@@ -1621,8 +1629,8 @@
      color: #fff;
      outline: none;
      text-shadow: none;
-     background: rgba(246,244,237,.15);
-     border-color: rgba(246,244,237,.72);
+     background: var(--athlete-modal-card-hover);
+     border-color: var(--athlete-modal-accent);
  }
  #detailsModal #retryAthleteLoad:focus-visible{
      box-shadow:var(--athlete-modal-focus);
@@ -1662,8 +1670,7 @@
  }
  .modal-scroll-progress.visible{ opacity:1; }
  #detailsModal .modal-scroll-progress{
-     background: linear-gradient(90deg, rgba(246,244,237,.45), rgba(246,244,237,.9));
-     box-shadow: 0 0 16px rgba(246,244,237,.22);
+     background: var(--athlete-modal-accent);
      position:absolute;
      z-index:70;
  }
@@ -1707,15 +1714,21 @@
  }
  #detailsModal .biomarkers-section h3,
  #detailsModal .proofs-section h3{
-     margin:0 0 .85rem;
-     padding:0 0 .7rem;
-     color:var(--athlete-modal-link);
-     border-bottom:1px solid rgba(246,244,237,.16);
+     display:flex;
+     align-items:center;
+     box-sizing:border-box;
+     min-height:57px;
+     margin:-1rem -1rem 1rem;
+     padding:6px 1rem;
+     color:var(--athlete-modal-head-text);
+     background:var(--athlete-modal-head);
+     border-bottom:1px solid var(--athlete-modal-border);
      text-align:left;
      text-transform:uppercase;
      font-size:.85rem;
      font-weight:800;
-     letter-spacing:.06em;
+     letter-spacing:1px;
+     line-height:1.15;
  }
  #detailsModal .biomarkers-section{
      overflow:hidden;
@@ -1759,8 +1772,8 @@
      width:100%;
      min-height:44px;
      color:var(--athlete-modal-text);
-     background:var(--athlete-modal-card);
-     border:1px solid var(--athlete-modal-border);
+     background:var(--athlete-modal-surface);
+     border:1px solid var(--athlete-modal-border-strong);
      border-radius:var(--lwc-radius-md);
      padding:.65rem 2.35rem .65rem 1.05rem;
      box-shadow:none;
@@ -1769,8 +1782,8 @@
      line-height:1.15;
  }
  #detailsModal .biomarker-chart-controls option{
-     color:#f6f4ed;
-     background:#202323;
+     color:#e6edf3;
+     background:#17212b;
      font-weight:500;
  }
  #detailsModal .biomarker-chart-controls option:checked{
@@ -1785,10 +1798,9 @@
      display:block;
      max-height:360px;
      margin-top:.15rem;
-     border:1px solid rgba(246,244,237,.09);
-     border-radius:16px;
-     background:var(--athlete-modal-chart-panel);
-     box-shadow:inset 0 1px 0 rgba(255,255,255,.035), 0 10px 24px rgba(0,0,0,.15);
+     border:1px solid var(--athlete-modal-border);
+     border-radius:var(--lwc-radius-md);
+     background:var(--athlete-modal-surface);
      box-sizing:border-box;
  }
  #detailsModal .proofs-section{
@@ -1818,14 +1830,19 @@
      align-items:center;
      justify-content:space-between;
      gap:var(--lwc-space-3);
-     min-height:44px;
-     margin-bottom:var(--lwc-space-3);
+     box-sizing:border-box;
+     min-height:57px;
+     margin:-1rem -1rem 1rem;
+     padding:6px 1rem;
+     background:var(--athlete-modal-head);
      border-bottom:1px solid var(--athlete-modal-border);
  }
  #detailsModal .proofs-heading h3{
+     min-height:0;
      margin:0;
      padding:0;
      border:0;
+     background:none;
  }
  #detailsModal .proofs-toggle{
      min-height:44px;
@@ -1861,10 +1878,10 @@
      min-height:0;
      aspect-ratio:auto;
      box-sizing:border-box;
-     background:var(--athlete-modal-card-strong);
+     background:var(--athlete-modal-surface);
      border: 1px solid var(--athlete-modal-border);
      border-radius:var(--lwc-radius-md);
-     box-shadow:var(--lwc-shadow-sm);
+     box-shadow:none;
  }
  #detailsModal .proof-item img{
      width:100%;
@@ -2481,7 +2498,7 @@
          padding: 0.18rem 0;
      }
      #detailsModal .athlete-info-table tr:not(:first-child):not(.athlete-info-divider-row) {
-         border-top: 1px solid rgba(246,244,237,.085);
+         border-top: 1px solid rgba(66,81,94,.6);
          margin-top: 0.08rem;
          padding-top: 0.45rem;
      }
@@ -2848,15 +2865,12 @@
      #detailsModal #athleteBio{
          margin:.75rem auto 1rem;
          padding:.85rem 1rem;
-         border-radius:16px;
          text-wrap:balance;
      }
      #detailsModal .athlete-links{
          width:calc(100% - 1.5rem);
          max-width:calc(100% - 1.5rem);
          margin:.85rem auto 1rem;
-         padding:.55rem;
-         border-radius:18px;
          gap:.55rem;
      }
      #detailsModal .athlete-share-wrapper{
@@ -3346,13 +3360,7 @@
  }
 
  #detailsModal .modal-content {
-     --athlete-modal-surface: #101820;
-     --athlete-modal-card: #17212b;
-     --athlete-modal-card-strong: #1c2933;
-     --athlete-modal-card-hover: #253641;
-     --athlete-modal-muted: #b8c5cf;
-     --athlete-modal-accent: #7bdde3;
-     border: 1px solid #42515e;
+     border: 1px solid var(--athlete-modal-border);
      border-radius: var(--radius-lg, 12px);
      background: var(--athlete-modal-surface);
      box-shadow: var(--shadow-md, 0 10px 28px rgba(0,0,0,.3));
