@@ -272,6 +272,22 @@ public sealed class WebPushTests
         Assert.Equal("Rejuvenation Olympics is closing. Longevity World Cup is your chance to keep competing.", payload.RootElement.GetProperty("body").GetString());
     }
 
+    [Theory]
+    [InlineData(true, "/events?event=story")]
+    [InlineData(false, "/events")]
+    public void ExternalStoryPayload_UsesTheEventDestinationAndIncludesTheHeader(bool visible, string destination)
+    {
+        using var fixture = SocialJobIntegrationTests.SocialJobFixture.Create();
+        var folder = Path.Combine(fixture.Env.WebRootPath, "assets", "social");
+        Directory.CreateDirectory(folder);
+        File.WriteAllBytes(Path.Combine(folder, "crossfit-vs-hyrox.png"), [1, 2, 3]);
+        const string raw = "CrossFit vs HYROX\n\nWhat can Longevity World Cup learn from their growth?\n\n[Read the story](https://nopara73.medium.com/crossfit-vs-hyrox-4d151061c611)";
+        using var payload = JsonDocument.Parse(WebPushAnnouncementService.BuildPayload(new("story", raw, visible, "", null), new(fixture.Env)));
+        Assert.Equal(destination, payload.RootElement.GetProperty("url").GetString());
+        Assert.StartsWith("/assets/social/crossfit-vs-hyrox.png?v=", payload.RootElement.GetProperty("image").GetString());
+        Assert.Equal("CrossFit vs HYROX", payload.RootElement.GetProperty("title").GetString());
+    }
+
     internal static Config Configured()
     {
         using var key = ECDsa.Create(ECCurve.NamedCurves.nistP256);

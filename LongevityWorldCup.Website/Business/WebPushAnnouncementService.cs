@@ -71,7 +71,8 @@ public sealed class WebPushAnnouncementService(EventDataService events, WebPushS
         return JsonSerializer.Serialize(new
         {
             id = announcement.Id, title, body,
-            url = artwork is not null ? new Uri(CustomEventMarkup.GetSingleHyperlink(announcement.Text)!).AbsolutePath
+            url = artwork is not null && Uri.TryCreate(CustomEventMarkup.GetSingleHyperlink(announcement.Text), UriKind.Absolute, out var linkedPage)
+                && linkedPage.Host is "longevityworldcup.com" or "www.longevityworldcup.com" ? linkedPage.AbsolutePath
                 : announcement.VisibleOnWebsite ? $"/events?event={announcement.Id}" : "/events",
             image = artwork is null ? null : assets.AppendVersion("/" + artwork.AssetPath),
             icon = assets.AppendVersion("/assets/favicon-192x192.png")
