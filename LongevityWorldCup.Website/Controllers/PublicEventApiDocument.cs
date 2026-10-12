@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 using LongevityWorldCup.Website.Business;
 
@@ -49,7 +50,21 @@ public sealed class PublicEventApiDocument
     public PublicEventArtworkDocument? Artwork { get; init; }
 }
 
-public sealed record PublicEventArtworkDocument(
-    [property: JsonPropertyName("ImageUrl")] string ImageUrl,
-    [property: JsonPropertyName("AltText")] string AltText,
-    [property: JsonPropertyName("LinkUrl")] string LinkUrl);
+/// <summary>Attached public artwork and its destination. All three fields are present when Artwork is included.</summary>
+public sealed class PublicEventArtworkDocument
+{
+    /// <summary>Absolute HTTPS URL of the attached image.</summary>
+    [Required]
+    [JsonPropertyName("ImageUrl")]
+    public required string ImageUrl { get; init; }
+
+    /// <summary>Plain-text image description for accessible rendering.</summary>
+    [Required]
+    [JsonPropertyName("AltText")]
+    public required string AltText { get; init; }
+
+    /// <summary>Original HTTPS destination linked by the announcement, which may be outside Longevity World Cup.</summary>
+    [Required]
+    [JsonPropertyName("LinkUrl")]
+    public required string LinkUrl { get; init; }
+}

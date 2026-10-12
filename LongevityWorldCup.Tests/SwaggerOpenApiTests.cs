@@ -200,6 +200,7 @@ public sealed class SwaggerOpenApiTests(TestWebApplicationFactory sharedFactory)
         Assert.Contains("older publication dates remain unknown", description);
         Assert.Contains("[mention](athlete_slug)", description);
         Assert.Contains("biological minus chronological age; lower is better", description);
+        Assert.Contains("omitted when no artwork is configured", description);
 
         var media = operation.GetProperty("responses").GetProperty("200").GetProperty("content").GetProperty("application/json");
         Assert.Equal("array", media.GetProperty("schema").GetProperty("type").GetString());
@@ -217,10 +218,24 @@ public sealed class SwaggerOpenApiTests(TestWebApplicationFactory sharedFactory)
         Assert.Equal("number", properties.GetProperty("Relevance").GetProperty("type").GetString());
         Assert.Equal("boolean", properties.GetProperty("VisibleOnWebsite").GetProperty("type").GetString());
         AssertSchemaReferences(properties.GetProperty("Type"), "EventType");
+        AssertSchemaReferences(properties.GetProperty("Artwork"), "PublicEventArtworkDocument");
         foreach (var field in fields)
         {
             var fieldSchema = field == "Type" ? schemas.GetProperty("EventType") : properties.GetProperty(field);
             Assert.False(string.IsNullOrWhiteSpace(fieldSchema.GetProperty("description").GetString()));
+        }
+
+        var artworkSchema = schemas.GetProperty("PublicEventArtworkDocument");
+        var artworkProperties = artworkSchema.GetProperty("properties");
+        string[] artworkFields = ["ImageUrl", "AltText", "LinkUrl"];
+        Assert.Equal(artworkFields.Order(), artworkProperties.EnumerateObject().Select(p => p.Name).Order());
+        Assert.Equal(artworkFields.Order(), artworkSchema.GetProperty("required").EnumerateArray().Select(p => p.GetString()!).Order());
+        foreach (var field in artworkFields)
+        {
+            var fieldSchema = artworkProperties.GetProperty(field);
+            Assert.Equal("string", fieldSchema.GetProperty("type").GetString());
+            Assert.False(string.IsNullOrWhiteSpace(fieldSchema.GetProperty("description").GetString()));
+            Assert.False(fieldSchema.TryGetProperty("nullable", out var nullable) && nullable.GetBoolean());
         }
 
         var typeSchema = schemas.GetProperty("EventType");
@@ -238,10 +253,19 @@ public sealed class SwaggerOpenApiTests(TestWebApplicationFactory sharedFactory)
         }
         foreach (var example in examples)
         {
-            Assert.Equal(fields.Order(), example.EnumerateObject().Select(p => p.Name).Order());
+            var expectedFields = example.GetProperty("Type").GetInt32() == (int)EventType.CustomEvent
+                ? fields.Append("Artwork") : fields;
+            Assert.Equal(expectedFields.Order(), example.EnumerateObject().Select(p => p.Name).Order());
             Assert.True(example.GetProperty("VisibleOnWebsite").GetBoolean());
             Assert.Equal(DateTimeKind.Utc, example.GetProperty("OccurredAt").GetDateTime().Kind);
         }
+
+        var artworkExample = examples.Single(e => e.GetProperty("Type").GetInt32() == (int)EventType.CustomEvent)
+            .GetProperty("Artwork");
+        Assert.Equal(artworkFields.Order(), artworkExample.EnumerateObject().Select(p => p.Name).Order());
+        Assert.Equal("https://longevityworldcup.com/assets/social/crossfit-vs-hyrox.png", artworkExample.GetProperty("ImageUrl").GetString());
+        Assert.Equal("https://nopara73.medium.com/crossfit-vs-hyrox-4d151061c611", artworkExample.GetProperty("LinkUrl").GetString());
+        Assert.False(string.IsNullOrWhiteSpace(artworkExample.GetProperty("AltText").GetString()));
     }
 
     [Fact]
