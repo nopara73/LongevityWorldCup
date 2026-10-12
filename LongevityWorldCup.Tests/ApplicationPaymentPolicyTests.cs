@@ -30,6 +30,7 @@ public sealed class ApplicationPaymentPolicyTests
 
         Assert.True(decision.Success);
         Assert.Equal("pro-upgrade", decision.PricingKind);
+        Assert.True(decision.IsPro);
         Assert.True(decision.PaymentRequired);
         Assert.NotNull(decision.PaymentOffer);
         Assert.Equal("go-pro-upgrade", decision.PaymentOffer.Source);
@@ -109,6 +110,7 @@ public sealed class ApplicationPaymentPolicyTests
             athletesSnapshot: null);
 
         Assert.Equal("pro-entry", decision.PricingKind);
+        Assert.True(decision.IsPro);
         Assert.Equal(20m, decision.PaymentOffer!.AmountUsd);
         Assert.Equal(DiscountCodes.MightyKlaus, decision.PaymentOffer.DiscountCode);
         Assert.Equal(DiscountCodes.MightyKlausPercent, decision.PaymentOffer.DiscountPercent);
@@ -140,6 +142,7 @@ public sealed class ApplicationPaymentPolicyTests
             athletesSnapshot: null);
 
         Assert.Equal("amateur-entry", decision.PricingKind);
+        Assert.False(decision.IsPro);
         Assert.True(decision.PaymentRequired);
         Assert.Equal(10m, decision.PaymentOffer!.AmountUsd);
     }
@@ -174,6 +177,7 @@ public sealed class ApplicationPaymentPolicyTests
 
         Assert.True(decision.Success);
         Assert.Equal("pro-result-update", decision.PricingKind);
+        Assert.True(decision.IsPro);
         Assert.False(decision.PaymentRequired);
         Assert.Null(decision.PaymentOffer);
     }
@@ -197,6 +201,57 @@ public sealed class ApplicationPaymentPolicyTests
         Assert.False(decision.Success);
         Assert.Equal("existing_athlete_not_found", decision.ErrorCode);
         Assert.Null(decision.PaymentOffer);
+    }
+
+    [Theory]
+    [InlineData(true, true, false)]
+    [InlineData(false, true, false)]
+    [InlineData(true, false, true)]
+    [InlineData(false, false, true)]
+    [InlineData(true, false, false)]
+    [InlineData(false, false, false)]
+    public void ExistingAthleteUpdates_DeriveProTrackFromStoredResults(
+        bool isResultSubmissionOnly, bool hasStoredBortzPanel, bool hasSnapshotBortzResult)
+    {
+        var applicant = new ApplicantData
+        {
+            Name = "Existing Athlete",
+            ChronoPhenoDifference = isResultSubmissionOnly ? "-1.0" : null,
+            Biomarkers = isResultSubmissionOnly ? [CompletePhenoBiomarkers()] : null,
+            PaymentOffer = new PaymentOfferData { OfferType = "pro", AmountUsd = 100m }
+        };
+        var fields = ExistingAthleteFields(null,
+            [hasStoredBortzPanel ? CompleteBortzBiomarkers() : CompletePhenoBiomarkers()]);
+
+        var decision = ApplicationPaymentPolicy.Evaluate(applicant, isResultSubmissionOnly, !isResultSubmissionOnly,
+            fields, "existing_athlete", AthleteSnapshot("existing_athlete", lowestBortzAge: hasSnapshotBortzResult ? 35.4 : null));
+
+        Assert.True(decision.Success);
+        Assert.Equal(hasStoredBortzPanel || hasSnapshotBortzResult, decision.IsPro);
+        Assert.False(decision.PaymentRequired);
+        Assert.Null(decision.PaymentOffer);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ProEntryWithFreePass_RemainsProWithoutPayment(bool isUpgrade)
+    {
+        var applicant = new ApplicantData
+        {
+            Name = "Invited Pro",
+            FreePass = "invitation-token",
+            ChronoBortzDifference = "-1.0",
+            Biomarkers = [CompleteBortzBiomarkers()]
+        };
+        var fields = isUpgrade ? ExistingAthleteFields(null, [CompletePhenoBiomarkers()]) : new Dictionary<string, string?>();
+
+        var decision = ApplicationPaymentPolicy.Evaluate(applicant, isUpgrade, false, fields, "invited_pro", null);
+
+        Assert.True(decision.Success);
+        Assert.True(decision.IsPro);
+        Assert.False(decision.PaymentRequired);
+        Assert.Equal(isUpgrade ? "pro-upgrade" : "pro-entry", decision.PricingKind);
     }
 
     [Fact]

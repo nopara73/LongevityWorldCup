@@ -9,7 +9,8 @@ internal sealed record ApplicationPaymentDecision(
     PaymentOfferData? PaymentOffer,
     string PricingKind,
     string? ErrorCode = null,
-    string? ErrorMessage = null)
+    string? ErrorMessage = null,
+    bool IsPro = false)
 {
     public bool Success => ErrorCode is null;
     public bool PaymentRequired => PaymentOffer?.AmountUsd > 0m;
@@ -51,11 +52,12 @@ internal static partial class ApplicationPaymentPolicy
                     "The selected longevity athlete could not be found. Return to the dashboard and select the athlete again.");
             }
 
-            if (isEditSubmissionOnly)
-                return new ApplicationPaymentDecision(null, "profile-update");
-
             var existingAthlete = FindExistingAthlete(athletesSnapshot, athleteFolderKey, applicantData.Name);
             var existingAthleteIsPro = ExistingAthleteHasBortz(existingAthleteFields, existingAthlete);
+
+            if (isEditSubmissionOnly)
+                return new ApplicationPaymentDecision(null, "profile-update", IsPro: existingAthleteIsPro);
+
             var submittedBortzResult = !string.IsNullOrWhiteSpace(applicantData.ChronoBortzDifference);
 
             if (!existingAthleteIsPro && submittedBortzResult)
@@ -69,7 +71,8 @@ internal static partial class ApplicationPaymentPolicy
 
             return new ApplicationPaymentDecision(
                 null,
-                existingAthleteIsPro ? "pro-result-update" : "amateur-result-update");
+                existingAthleteIsPro ? "pro-result-update" : "amateur-result-update",
+                IsPro: existingAthleteIsPro);
         }
 
         return string.IsNullOrWhiteSpace(applicantData.ChronoBortzDifference)
@@ -155,7 +158,8 @@ internal static partial class ApplicationPaymentPolicy
                 DiscountPercent = discountCode is null ? null : DiscountCodes.MightyKlausPercent,
                 PerfectGuessDiscount = hasPerfectGuessDiscount
             },
-            isUpgrade ? "pro-upgrade" : "pro-entry");
+            isUpgrade ? "pro-upgrade" : "pro-entry",
+            IsPro: true);
     }
 
     private static bool HasFreePass(ApplicantData applicantData)
