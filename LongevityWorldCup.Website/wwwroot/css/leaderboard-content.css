@@ -1168,6 +1168,8 @@
  }
  #detailsModal .modal-sticky-header{
      top: -20px;
+     left: auto;
+     right: auto;
      margin: -20px -20px 1.25rem -20px;
      padding: 1.25rem 1.25rem .85rem;
      z-index: 30;
@@ -1267,36 +1269,47 @@
      color: var(--athlete-modal-text);
      margin-bottom: .25rem;
      text-shadow: 0 2px 16px rgba(0,0,0,.45);
+     max-width:100%;
+     overflow-wrap:anywhere;
  }
  #detailsModal #athleteRankings{
      display:flex;
+     flex-wrap:wrap;
+     gap:var(--lwc-space-3);
      width:min(100%, var(--athlete-modal-section-width));
-     margin:var(--lwc-space-3) auto var(--lwc-space-2);
+     margin:var(--lwc-space-4) auto var(--lwc-space-2);
  }
  #detailsModal #athleteRankings[hidden]{ display:none; }
  #detailsModal [data-profile-pending][hidden]{ display:none; }
  #detailsModal [data-server-rendered-profile] #guessAgeContainer{ display:none; }
  #detailsModal #athleteRankings a{
      display:flex;
-     flex:1 1 0;
+     flex:1 1 8rem;
      flex-direction:column;
      align-items:center;
      justify-content:space-between;
      gap:var(--lwc-space-1);
      min-width:0;
      min-height:44px;
-     padding:var(--lwc-space-2);
+     padding:var(--lwc-space-3) var(--lwc-space-2);
+     box-sizing:border-box;
+     border:1px solid var(--athlete-modal-border-strong);
+     border-radius:var(--lwc-radius-lg);
+     background:rgba(246,244,237,.065);
      color:var(--athlete-modal-muted);
      font-size:var(--lwc-type-sm);
      text-decoration:none;
  }
- #detailsModal #athleteRankings a + a{ border-left:1px solid var(--athlete-modal-border); }
  #detailsModal #athleteRankings strong{
      color:var(--athlete-modal-link);
-     font-size:var(--lwc-type-h3);
+     font-family:Orbitron, Roboto, sans-serif;
+     font-size:1.5rem;
+     font-variant-numeric:tabular-nums;
      line-height:1.2;
      text-decoration:underline;
-     text-underline-offset:.18em;
+     text-decoration-thickness:1px;
+     text-decoration-color:var(--athlete-modal-cream-border);
+     text-underline-offset:.3em;
  }
  #detailsModal #athleteRankings a:hover,
  #detailsModal #athleteRankings a:focus-visible{
@@ -1315,7 +1328,7 @@
      box-sizing: border-box;
      background: rgba(246,244,237,.065);
      border: 1px solid rgba(246,244,237,.18);
-     border-radius: 18px;
+     border-radius: var(--lwc-radius-lg);
      box-shadow: inset 0 1px 0 rgba(255,255,255,.055), 0 12px 28px rgba(0,0,0,.16);
      font-weight: 400;
      letter-spacing: normal;
@@ -1399,7 +1412,7 @@
  #detailsModal .events-embed{
      background: var(--athlete-modal-card);
      border: 1px solid var(--athlete-modal-border);
-     border-radius: 22px;
+     border-radius: var(--lwc-radius-lg);
      box-shadow: 0 16px 42px rgba(0,0,0,.26), inset 0 1px 0 rgba(255,255,255,.06);
  }
  #detailsModal .athlete-info{
@@ -1450,7 +1463,7 @@
  .athlete-info-divider {
      display: block;
      height: 1px;
-     min-width: 12rem;
+     min-width: 0;
      max-width: 100%;
      background: var(--border-color, rgba(0,0,0,.14));
      border: 0;
@@ -1483,11 +1496,10 @@
      gap: .65rem;
      width: min(100%, var(--athlete-modal-section-width));
      margin: 1rem auto 1.35rem;
-     padding: .6rem;
+     padding: 0;
      box-sizing: border-box;
-     background: rgba(246,244,237,.055);
-     border: 1px solid rgba(246,244,237,.16);
-     border-radius: var(--lwc-radius-lg);
+     background: none;
+     border: 0;
      box-shadow: none;
  }
  #detailsModal .athlete-links a,
@@ -1707,15 +1719,21 @@
  }
  #detailsModal .biomarkers-section h3,
  #detailsModal .proofs-section h3{
-     margin:0 0 .85rem;
-     padding:0 0 .7rem;
+     display:flex;
+     align-items:center;
+     box-sizing:border-box;
+     min-height:57px;
+     margin:-1rem -1rem 1rem;
+     padding:6px 1rem;
      color:var(--athlete-modal-link);
+     background:rgba(246,244,237,.06);
      border-bottom:1px solid rgba(246,244,237,.16);
      text-align:left;
      text-transform:uppercase;
      font-size:.85rem;
      font-weight:800;
-     letter-spacing:.06em;
+     letter-spacing:1px;
+     line-height:1.15;
  }
  #detailsModal .biomarkers-section{
      overflow:hidden;
@@ -1818,14 +1836,19 @@
      align-items:center;
      justify-content:space-between;
      gap:var(--lwc-space-3);
-     min-height:44px;
-     margin-bottom:var(--lwc-space-3);
+     box-sizing:border-box;
+     min-height:57px;
+     margin:-1rem -1rem 1rem;
+     padding:6px 1rem;
+     background:rgba(246,244,237,.06);
      border-bottom:1px solid var(--athlete-modal-border);
  }
  #detailsModal .proofs-heading h3{
+     min-height:0;
      margin:0;
      padding:0;
      border:0;
+     background:none;
  }
  #detailsModal .proofs-toggle{
      min-height:44px;
@@ -2848,15 +2871,12 @@
      #detailsModal #athleteBio{
          margin:.75rem auto 1rem;
          padding:.85rem 1rem;
-         border-radius:16px;
          text-wrap:balance;
      }
      #detailsModal .athlete-links{
          width:calc(100% - 1.5rem);
          max-width:calc(100% - 1.5rem);
          margin:.85rem auto 1rem;
-         padding:.55rem;
-         border-radius:18px;
          gap:.55rem;
      }
      #detailsModal .athlete-share-wrapper{
@@ -2940,7 +2960,8 @@
      }
 
      /* Sticky header adjustments for mobile */
-     .modal-sticky-header{
+     #detailsModal .modal-sticky-header{
+         top:-15px;
          margin:-15px -15px 1rem -15px; padding:0.75rem 1rem;
      }
      .modal-sticky-header.visible::before{

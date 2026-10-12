@@ -162,7 +162,7 @@
     padding: .95rem 1rem 1.05rem;
     background: linear-gradient(180deg, rgba(255,255,255,.09), rgba(255,255,255,.045));
     border-color: var(--athlete-modal-border, rgba(255,255,255,.16));
-    border-radius: 22px;
+    border-radius: var(--lwc-radius-lg, 12px);
     box-shadow: 0 16px 42px rgba(0,0,0,.26), inset 0 1px 0 rgba(255,255,255,.06);
     color: var(--athlete-modal-text, rgba(255,255,255,.94));
 }
@@ -174,6 +174,23 @@
     background: linear-gradient(180deg, rgba(246,244,237,.1), rgba(246,244,237,.055));
     border-color: var(--athlete-modal-cream-border, rgba(246,244,237,.52));
     box-shadow: inset 0 1px 0 rgba(255,255,255,.1), 0 12px 26px rgba(0,0,0,.22);
+}
+#detailsModal .age-radar-summary {
+    gap: 0 var(--lwc-space-3, .75rem);
+    padding: var(--lwc-space-3, .75rem) var(--lwc-space-2, .5rem);
+}
+#detailsModal .age-radar-summary .age-diff {
+    font-size: clamp(1.35rem, 8vw, 2rem);
+    font-weight: 700;
+    letter-spacing: 0;
+    line-height: 1.15;
+}
+#detailsModal .age-radar-summary > span,
+#detailsModal .age-radar-fallback > span {
+    min-width: 0;
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
 }
 #detailsModal .age-radar-summary .age-diff,
 #detailsModal .age-radar-fallback .age-diff {
