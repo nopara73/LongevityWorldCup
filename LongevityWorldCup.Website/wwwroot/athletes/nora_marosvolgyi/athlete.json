@@ -1,0 +1,28 @@
+{
+  "Name": "Nóra Marosvölgyi",
+  "DisplayName": null,
+  "MediaContact": "marosvolgyinora@gmail.com",
+  "DateOfBirth": {
+    "Year": 2001,
+    "Month": 7,
+    "Day": 13
+  },
+  "Biomarkers": [
+    {
+      "Date": "2026-10-07",
+      "AlbGL": 44,
+      "CreatUmolL": 79,
+      "GluMmolL": 4.3,
+      "CrpMgL": 0.2,
+      "LymPc": 52.3,
+      "McvFL": 89,
+      "RdwPc": 12.3,
+      "AlpUL": 50,
+      "Wbc1000cellsuL": 5.3
+    }
+  ],
+  "Division": "Women's",
+  "Flag": "Hungary",
+  "Why": "Why not max out this life thing?",
+  "PersonalLink": null
+}
