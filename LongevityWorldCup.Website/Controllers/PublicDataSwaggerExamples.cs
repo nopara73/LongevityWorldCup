@@ -37,6 +37,11 @@ public sealed class PublicDataSwaggerExamples : IOperationFilter
                     are in years, `rank`/`place`/`prevPlace` are one-based, and `sats` is integer satoshis (100,000,000 per BTC).
                     `Relevance` is an editorial weight, not a competition score or sorting key for this feed.
 
+                    **Artwork:** a CustomEvent can include an optional `Artwork` object with `ImageUrl`, `AltText`, and
+                    `LinkUrl`. It is omitted when no artwork is configured. `ImageUrl` is the attached image;
+                    `LinkUrl` is the announcement's original destination and can point outside Longevity World Cup.
+                    Use `AltText` as the image description. Artwork is separate from the stored `Text` payload.
+
                     | Type | Name | Meaning and Text payload |
                     | --- | --- | --- |
                     | 0 | General | General announcement; free text. |
@@ -70,7 +75,7 @@ public sealed class PublicDataSwaggerExamples : IOperationFilter
                       {"Id":"example-pro","Type":9,"Text":"slug[example_athlete]","OccurredAt":"2026-01-14T12:00:00Z","Relevance":9,"VisibleOnWebsite":true},
                       {"Id":"longevitymaxxing-result-example","Type":8,"Text":"challenge[longevitymaxxing] pid[example] name[Example Athlete] place[1] checkedIn[14] points[104] days[14] slug[example_athlete] completed[1]","OccurredAt":"2026-01-13T12:00:00Z","Relevance":9,"VisibleOnWebsite":true},
                       {"Id":"example-season","Type":7,"Text":"slug[example_athlete] season[2025] place[2] clock[pheno] ageDiff[-7.30]","OccurredAt":"2026-01-01T00:00:00Z","Relevance":2,"VisibleOnWebsite":true},
-                      {"Id":"example-custom","Type":6,"Text":"A new year, a younger you!\n\nWelcome [bold](longevity athletes). [See the leaderboard](https://longevityworldcup.com/leaderboard)","OccurredAt":"2025-12-31T12:00:00Z","Relevance":15,"VisibleOnWebsite":true},
+                      {"Id":"example-custom","Type":6,"Text":"CrossFit vs HYROX\n\nWhat can Longevity World Cup learn from their growth?\n\n[Read the story](https://nopara73.medium.com/crossfit-vs-hyrox-4d151061c611)","OccurredAt":"2025-12-31T12:00:00Z","Relevance":15,"VisibleOnWebsite":true,"Artwork":{"ImageUrl":"https://longevityworldcup.com/assets/social/crossfit-vs-hyrox.png","AltText":"CrossFit's red line falls as HYROX's yellow line rises behind a flexing Longevity World Cup athlete.","LinkUrl":"https://nopara73.medium.com/crossfit-vs-hyrox-4d151061c611"}},
                       {"Id":"example-badge","Type":5,"Text":"slug[example_athlete] badge[PhenoAge Best Improvement] cat[Global] val[] place[1] solo[1]","OccurredAt":"2025-12-30T12:00:00Z","Relevance":8,"VisibleOnWebsite":true},
                       {"Id":"example-milestone","Type":4,"Text":"athletes[250]","OccurredAt":"2025-12-29T12:00:00Z","Relevance":8,"VisibleOnWebsite":true},
                       {"Id":"example-donation","Type":3,"Text":"tx[0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef] sats[100000]","OccurredAt":"2025-12-28T12:00:00Z","Relevance":9,"VisibleOnWebsite":true},

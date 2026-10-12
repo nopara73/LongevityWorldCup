@@ -9,6 +9,27 @@ namespace LongevityWorldCup.Tests;
 
 public sealed class PublicEventsApiTests
 {
+    [Theory]
+    [InlineData("https://longevityworldcup.com/rejuvenation-olympics", "rejuvenation-olympics.png")]
+    [InlineData("https://nopara73.medium.com/crossfit-vs-hyrox-4d151061c611", "crossfit-vs-hyrox.png")]
+    public async Task Feed_ArtworkIncludesAccessibleImageAndOriginalDestinationOnlyWhenConfigured(string url, string image)
+    {
+        await using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+        var events = factory.Services.GetRequiredService<EventDataService>();
+        var attachedId = events.CreateCustomEvent("Artwork contract", $"[Read the story]({url})");
+        var ordinaryId = events.CreateCustomEvent("Ordinary announcement", "No attached artwork.");
+        using var document = JsonDocument.Parse(await client.GetStringAsync("/api/events"));
+        var records = document.RootElement.EnumerateArray().ToArray();
+        var attached = records.Single(e => e.GetProperty("Id").GetString() == attachedId);
+        var artwork = attached.GetProperty("Artwork");
+        Assert.Equal(["AltText", "ImageUrl", "LinkUrl"], artwork.EnumerateObject().Select(p => p.Name).Order());
+        Assert.Equal($"https://longevityworldcup.com/assets/social/{image}", artwork.GetProperty("ImageUrl").GetString());
+        Assert.Equal(url, artwork.GetProperty("LinkUrl").GetString());
+        Assert.False(string.IsNullOrWhiteSpace(artwork.GetProperty("AltText").GetString()));
+        Assert.False(records.Single(e => e.GetProperty("Id").GetString() == ordinaryId).TryGetProperty("Artwork", out _));
+    }
+
     [Fact]
     public async Task Feed_ReturnsCompleteVisibleHistoryWithDocumentedWireContract()
     {
