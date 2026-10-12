@@ -8,15 +8,26 @@ namespace LongevityWorldCup.Website.Business;
 
 public record EventItem(string Id, EventType Type, string Text, DateTime OccurredAtUtc, double Relevance, bool VisibleOnWebsite)
 {
-    public JsonObject ToJson() => new()
+    public JsonObject ToJson()
     {
-        ["Id"] = Id,
-        ["Type"] = (int)Type,
-        ["Text"] = Text,
-        ["OccurredAt"] = OccurredAtUtc.ToString("o"),
-        ["Relevance"] = Relevance,
-        ["VisibleOnWebsite"] = VisibleOnWebsite
-    };
+        var json = new JsonObject
+        {
+            ["Id"] = Id,
+            ["Type"] = (int)Type,
+            ["Text"] = Text,
+            ["OccurredAt"] = OccurredAtUtc.ToString("o"),
+            ["Relevance"] = Relevance,
+            ["VisibleOnWebsite"] = VisibleOnWebsite
+        };
+        if (Type == EventType.CustomEvent && CustomEventArtwork.ForLinkedPage(Text) is { } artwork)
+            json["Artwork"] = new JsonObject
+            {
+                ["ImageUrl"] = artwork.PublicUrl,
+                ["AltText"] = artwork.AltText,
+                ["LinkUrl"] = CustomEventMarkup.GetSingleHyperlink(Text)
+            };
+        return json;
+    }
 }
 
 public enum EventType

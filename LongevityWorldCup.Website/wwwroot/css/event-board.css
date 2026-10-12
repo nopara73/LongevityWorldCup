@@ -679,6 +679,19 @@
     white-space:nowrap;
 }
 
+.custom-event-artwork{
+    display:block;
+    width:100%;
+    max-width:720px;
+    margin:0 0 16px;
+}
+.custom-event-artwork img{
+    display:block;
+    width:100%;
+    height:auto;
+    border-radius:12px;
+}
+
 .custom-event-expander,
 .custom-event-expander:focus,
 .custom-event-expander:active{

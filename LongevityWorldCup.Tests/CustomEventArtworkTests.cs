@@ -14,6 +14,53 @@ public sealed class CustomEventArtworkTests(TestWebApplicationFactory factory)
     private const string Url = "https://longevityworldcup.com/rejuvenation-olympics";
     private const string Body = "Rejuvenation Olympics is closing. Longevity World Cup is your chance to keep competing.";
     private const string Raw = "[Coming from the Rejuvenation Olympics?](" + Url + ")\n\n" + Body;
+    private const string StoryUrl = "https://nopara73.medium.com/crossfit-vs-hyrox-4d151061c611";
+    private const string StoryRaw = "CrossFit vs HYROX\n\nWhat can Longevity World Cup learn from their growth?\n\n[Read the story](" + StoryUrl + ")";
+
+    [Theory]
+    [InlineData(280)]
+    [InlineData(300)]
+    [InlineData(500)]
+    public void StoryAnnouncement_AttachesHeaderAndKeepsTheApprovedCopyAndMediumDestination(int limit)
+    {
+        var plan = CustomEventSocialComposer.BuildPlan("story", StoryRaw, limit);
+        Assert.Equal(CustomEventPostMode.Artwork, plan.Mode);
+        Assert.Equal(StoryUrl, plan.EventUrl);
+        Assert.Contains("CrossFit vs HYROX", plan.PostText);
+        Assert.Contains("What can Longevity World Cup learn from their growth?", plan.PostText);
+        Assert.Contains(StoryUrl, plan.PostText);
+        var visual = InstagramVisual.ForCustom(StoryRaw);
+        Assert.Equal("assets/social/crossfit-vs-hyrox.png", visual.Artwork?.AssetPath);
+        Assert.Equal("nopara73.medium.com/crossfit-vs-hyrox-4d151061c611", visual.Address);
+        Assert.DoesNotContain("rejuvenation", visual.Address!);
+    }
+
+    [Theory]
+    [InlineData("https://nopara73.medium.com/crossfit-vs-hyrox-4d151061c611?postPublishedType=initial", true)]
+    [InlineData("https://nopara73.medium.com/crossfit-vs-hyrox-other", false)]
+    [InlineData("https://evil.example/crossfit-vs-hyrox-4d151061c611", false)]
+    [InlineData("https://nopara73.medium.com.evil.example/crossfit-vs-hyrox-4d151061c611", false)]
+    [InlineData("https://user@nopara73.medium.com/crossfit-vs-hyrox-4d151061c611", false)]
+    [InlineData("http://nopara73.medium.com/crossfit-vs-hyrox-4d151061c611", false)]
+    [InlineData("https://nopara73.medium.com:444/crossfit-vs-hyrox-4d151061c611", false)]
+    public void StoryArtwork_RequiresTheExactHttpsArticle(string url, bool selected)
+        => Assert.Equal(selected, CustomEventArtwork.ForUrl(url) is not null);
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void StoryFeed_ContainsHeaderAndArticleLink(bool atom)
+    {
+        var item = new EventItem("story", EventType.CustomEvent, StoryRaw, new DateTime(2026, 10, 12, 6, 0, 0, DateTimeKind.Utc), 15, true);
+        var xml = System.Xml.Linq.XDocument.Parse(EventSyndication.Build([item], [], atom));
+        var html = atom ? xml.Descendants(System.Xml.Linq.XName.Get("content", "http://www.w3.org/2005/Atom")).Single().Value
+            : xml.Descendants("item").Single().Element("description")!.Value;
+        Assert.Contains("src=\"https://longevityworldcup.com/assets/social/crossfit-vs-hyrox.png\"", html);
+        Assert.Contains("href=\"" + StoryUrl + "\"", html);
+        var artwork = item.ToJson()["Artwork"]!.AsObject();
+        Assert.Equal("https://longevityworldcup.com/assets/social/crossfit-vs-hyrox.png", artwork["ImageUrl"]!.GetValue<string>());
+        Assert.Equal(StoryUrl, artwork["LinkUrl"]!.GetValue<string>());
+    }
 
     [Theory]
     [InlineData(280)]

@@ -17,7 +17,9 @@ internal sealed record InstagramVisual(
         var artwork = CustomEventArtwork.ForLinkedPage(rawText);
         var slugs = Regex.Matches(rawText, @"\[mention\]\(([^()]*)\)", RegexOptions.IgnoreCase)
             .Select(x => x.Groups[1].Value.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).Take(2).ToArray();
-        return new(headline, details, platform, AddressFor(platform, link) ?? (artwork is null ? null : "longevityworldcup.com/rejuvenation-olympics"), FindVideoId(rawText), slugs, artwork);
+        var artworkAddress = artwork is not null && Uri.TryCreate(link, UriKind.Absolute, out var destination)
+            ? destination.Host.Replace("www.", "") + destination.AbsolutePath.TrimEnd('/') : null;
+        return new(headline, details, platform, AddressFor(platform, link) ?? artworkAddress, FindVideoId(rawText), slugs, artwork);
     }
 
     internal static InstagramVisual ForEvent(EventType type, string rawText, string message)

@@ -86,6 +86,6 @@ public sealed class PublicEventsApiTests
         using var swagger = JsonDocument.Parse(await client.GetStringAsync("/swagger/v1/swagger.json"));
         var documentedFields = swagger.RootElement.GetProperty("components").GetProperty("schemas")
             .GetProperty("PublicEventApiDocument").GetProperty("properties").EnumerateObject().Select(p => p.Name);
-        Assert.Equal(fields.Order(), documentedFields.Order());
+        Assert.Equal(fields.Append("Artwork").Order(), documentedFields.Order());
     }
 }
