@@ -181,8 +181,8 @@ public sealed class SocialContactPreviewBrowserTests(
         var labels = await link.Locator("..").Locator("a").AllTextContentsAsync();
         var lengths = labels.Select(label => label.Trim().Length).ToArray();
         Assert.Equal(lengths.Order().ToArray(), lengths);
-        Assert.Equal(["X", "Nostr", "Reddit", "Threads", "YouTube", "Mastodon", "Instagram"], labels.Select(label => label.Trim()));
-        Assert.Equal(0, await page.Locator(".footer a[href*='bsky.app']").CountAsync());
+        Assert.Equal(["X", "Nostr", "Reddit", "Bluesky", "Threads", "YouTube", "Mastodon", "Instagram"], labels.Select(label => label.Trim()));
+        Assert.Equal("https://bsky.app/profile/longevityworldcup.bsky.social", await page.GetByRole(AriaRole.Link, new PageGetByRoleOptions { Name = "Follow Longevity World Cup on Bluesky", Exact = true }).GetAttributeAsync("href"));
         Assert.Equal("true", await link.Locator("svg").GetAttributeAsync("aria-hidden"));
         var box = Assert.IsType<LocatorBoundingBoxResult>(await link.BoundingBoxAsync());
         Assert.True(box.Height >= 44);

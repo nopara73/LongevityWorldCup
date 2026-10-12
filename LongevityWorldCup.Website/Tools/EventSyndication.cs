@@ -15,7 +15,7 @@ internal static class EventSyndication
     private const string Origin = "https://longevityworldcup.com";
     private const string AtomNamespace = "http://www.w3.org/2005/Atom";
     private const string Title = "Longevity World Cup — Highlights";
-    private const string Description = "A sport for time. Athlete milestones, leaderboard moves, and competition updates.";
+    private const string Description = "Athlete milestones, leaderboard moves, and competition updates from Longevity World Cup.";
     // An empty feed keeps the date its definition was introduced, never the request clock.
     private static readonly DateTime IntroducedAtUtc = new(2026, 10, 7, 0, 0, 0, DateTimeKind.Utc);
 
