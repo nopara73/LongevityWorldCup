@@ -209,7 +209,7 @@ public sealed class SwaggerOpenApiTests(TestWebApplicationFactory sharedFactory)
         var eventSchema = schemas.GetProperty("PublicEventApiDocument");
         var properties = eventSchema.GetProperty("properties");
         string[] fields = ["Id", "Type", "Text", "OccurredAt", "Relevance", "VisibleOnWebsite"];
-        Assert.Equal(fields.Order(), properties.EnumerateObject().Select(p => p.Name).Order());
+        Assert.Equal(fields.Append("Artwork").Order(), properties.EnumerateObject().Select(p => p.Name).Order());
         Assert.Equal(fields.Order(), eventSchema.GetProperty("required").EnumerateArray().Select(p => p.GetString()!).Order());
         Assert.Equal("string", properties.GetProperty("Id").GetProperty("type").GetString());
         Assert.Equal("string", properties.GetProperty("Text").GetProperty("type").GetString());
