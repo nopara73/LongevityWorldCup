@@ -9,6 +9,21 @@ namespace LongevityWorldCup.Tests;
 public sealed class CustomEventLinkPreviewServiceTests
 {
     [Fact]
+    public async Task StoryPreview_KeepsTheProvidedHeaderAndCopyWhenMediumMetadataIsUnavailable()
+    {
+        var handler = new RoutingHandler(_ => new HttpResponseMessage(HttpStatusCode.BadGateway));
+        var (service, youtube) = CreateService(handler);
+        using var cleanup = youtube;
+        var preview = await service.FetchAsync("https://nopara73.medium.com/crossfit-vs-hyrox-4d151061c611");
+        Assert.NotNull(preview);
+        Assert.Equal("CrossFit vs HYROX", preview.Title);
+        Assert.Equal("What can Longevity World Cup learn from their growth?", preview.Description);
+        Assert.Equal("nopara73.medium.com", preview.Domain);
+        Assert.Equal("https://longevityworldcup.com/assets/social/crossfit-vs-hyrox.png", preview.Image);
+        Assert.DoesNotContain("Rejuvenation", preview.Title);
+    }
+
+    [Fact]
     public async Task LinkedPagePreview_KeepsTheOriginalArtworkWhenTheMetadataProviderFails()
     {
         var handler = new RoutingHandler(_ => new HttpResponseMessage(HttpStatusCode.BadGateway));

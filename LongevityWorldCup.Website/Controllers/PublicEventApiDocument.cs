@@ -42,4 +42,14 @@ public sealed class PublicEventApiDocument
     /// </summary>
     [JsonPropertyName("VisibleOnWebsite")]
     public required bool VisibleOnWebsite { get; init; }
+
+    /// <summary>Optional attached artwork for a CustomEvent, omitted when no artwork is configured.</summary>
+    [JsonPropertyName("Artwork")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public PublicEventArtworkDocument? Artwork { get; init; }
 }
+
+public sealed record PublicEventArtworkDocument(
+    [property: JsonPropertyName("ImageUrl")] string ImageUrl,
+    [property: JsonPropertyName("AltText")] string AltText,
+    [property: JsonPropertyName("LinkUrl")] string LinkUrl);

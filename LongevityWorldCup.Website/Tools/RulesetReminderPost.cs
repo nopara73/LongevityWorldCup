@@ -23,9 +23,7 @@ public static class RulesetReminderPost
         "How the Ultimate League works:",
         "What the competition measures:",
         "The rules of longevity as a sport:",
-        "How results become rankings:",
-        "The heart of a game lies within its rules",
-        "Great play emerges from clear constraints"
+        "How results become rankings:"
     ];
     public static IReadOnlyList<string> LeadLines => LeadLineOptions;
 

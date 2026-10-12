@@ -26,7 +26,8 @@ public sealed class CustomEventLinkPreviewService(IHttpClientFactory httpClientF
         var pagePreview = await TryFetchMicrolinkAsync(normalizedUrl, ct);
         if (CustomEventArtwork.ForUrl(normalizedUrl) is { } artwork)
             return pagePreview is null
-                ? new(normalizedUrl, "Longevity World Cup", "Coming from the Rejuvenation Olympics?", "Keep competing at Longevity World Cup.", artwork.PublicUrl)
+                ? new(normalizedUrl, GetDomain(normalizedUrl) is "longevityworldcup.com" ? "Longevity World Cup" : GetDomain(normalizedUrl),
+                    artwork.PreviewTitle ?? GetDomain(normalizedUrl), artwork.PreviewDescription ?? "", artwork.PublicUrl)
                 : pagePreview with { Image = artwork.PublicUrl };
         return pagePreview;
     }

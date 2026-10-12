@@ -526,6 +526,7 @@ const eventsPageAssets = document.currentScript.dataset;
             const text=String(e[map["text"]]??"");
             const occurredAt=e[map["occurredat"]]??e[map["occurredAt"]]??e["OccurredAt"]??null;
             const relevance=Number(e[map["relevance"]]??e["Relevance"]??0);
+            const artwork=e[map["artwork"]]??null;
 
             const slugTokens=extractSlugs(text).map(s=>slugifyLocal(normalizeLinkId(s)));
             const primarySlug=slugTokens[0]||null;
@@ -574,7 +575,7 @@ const eventsPageAssets = document.currentScript.dataset;
             const eventImprovement = extractFloatToken(text, "improvement");
             const eventAgeReduction = extractFloatToken(text, "ageReduction");
 
-            return { id, type, text, occurredAt, relevance, slugs: slugTokens, primarySlug, prevSlug, prevSlugs, isSolo, badgeBurstKey, rank, sats, milestoneCount, badgeLabel, leagueCategory, leagueValue, place, resultDate, seasonId, clockId, ageDiff, challengeKey, challengeDisplayName, checkedInDays, totalPoints, challengeDays, challengeCompleted, bioAgeFrom, bioAgeTo, previousPlace, eventCrowdAge, eventCrowdCount, eventImprovement, eventAgeReduction };
+            return { id, type, text, occurredAt, relevance, artwork, slugs: slugTokens, primarySlug, prevSlug, prevSlugs, isSolo, badgeBurstKey, rank, sats, milestoneCount, badgeLabel, leagueCategory, leagueValue, place, resultDate, seasonId, clockId, ageDiff, challengeKey, challengeDisplayName, checkedInDays, totalPoints, challengeDays, challengeCompleted, bioAgeFrom, bioAgeTo, previousPlace, eventCrowdAge, eventCrowdCount, eventImprovement, eventAgeReduction };
         });
     }
 
@@ -1166,7 +1167,7 @@ const eventsPageAssets = document.currentScript.dataset;
             } else if (r.type === EVENT_TYPE.CustomEvent) {
                 const parts = splitCustomEventText(r.text);
                 const titleSingle = normalizeNewlines(parts.title).replace(/\n+/g, " ").trim();
-                const hasDetails = String(parts.content || "").trim().length > 0;
+                const hasDetails = String(parts.content || "").trim().length > 0 || isSafeHttpUrl(r.artwork?.ImageUrl);
 
                 msgHtml = `<span class="custom-event-title">${renderCustomMarkup(titleSingle)}${
                     hasDetails
@@ -1211,7 +1212,7 @@ const eventsPageAssets = document.currentScript.dataset;
 
                 const parts = splitCustomEventText(r.text);
                 const contentTrim = String(parts.content || "").trim();
-                const hasDetails = contentTrim.length > 0;
+                const hasDetails = contentTrim.length > 0 || isSafeHttpUrl(r.artwork?.ImageUrl);
 
                 if (!hasDetails) {
                     tr.classList.add("custom-event-no-details");
@@ -1219,12 +1220,14 @@ const eventsPageAssets = document.currentScript.dataset;
                 }
 
                 const contentHtml = renderCustomMarkupWithBreaks(contentTrim);
+                const artworkHtml = isSafeHttpUrl(r.artwork?.ImageUrl) && isSafeHttpUrl(r.artwork?.LinkUrl)
+                    ? `<a class="custom-event-artwork" href="${esc(r.artwork.LinkUrl)}" target="_top" rel="noopener"><img src="${esc(r.artwork.ImageUrl)}" alt="${esc(r.artwork.AltText || '')}" loading="lazy" decoding="async"></a>` : "";
 
                 const detailsTr = document.createElement("tr");
                 detailsTr.className = "details-row custom-event-details";
                 if (r.id) detailsTr.dataset.eventId = String(r.id);
                 detailsTr.innerHTML =
-                    `<td colspan="3" class="details-cell"><div id="custom-event-details-${idx}" class="custom-event-content">${contentHtml}</div></td>`;
+                    `<td colspan="3" class="details-cell"><div id="custom-event-details-${idx}" class="custom-event-content">${artworkHtml}${contentHtml}</div></td>`;
 
                 const btn = tr.querySelector(".custom-event-expander");
 

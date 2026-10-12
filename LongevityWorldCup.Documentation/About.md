@@ -2,7 +2,7 @@
 
 I grew up wanting to play football at the highest level. Like most sports, football gives you a brutal bargain: if you are lucky, you get a few good years, and then age starts pushing you out.
 
-Longevity World Cup exists for the opposite reason. It is a sport for time. Instead of asking how fast you can run at twenty, it asks how much biological age you can take back at forty, fifty, sixty, or beyond.
+Longevity World Cup exists for the opposite reason. Instead of asking how fast you can run at twenty, it asks how much biological age you can take back at forty, fifty, sixty, or beyond.
 
 ![The silhouette of Michael Lustgarten, PhD, inaugural Longevity World Cup champion](../LongevityWorldCup.Website/wwwroot/assets/content-images/headshot.jpg)
 

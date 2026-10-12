@@ -1,4 +1,5 @@
 using System.Text.Json;
+using LongevityWorldCup.Website.Business;
 using Microsoft.Playwright;
 using Xunit;
 
@@ -10,6 +11,41 @@ public sealed class EventBoardBrowserTests(
     BrowserTestAppFixture appFixture)
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
+    [Theory]
+    [InlineData(1280)]
+    [InlineData(390)]
+    public async Task StoryEvent_ShowsTheFullLinkedHeaderOnDesktopAndMobile(int width)
+    {
+        await using var context = await Browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = App.BaseAddress.ToString(),
+            ViewportSize = new ViewportSize { Width = width, Height = 900 }
+        });
+        const string article = "https://nopara73.medium.com/crossfit-vs-hyrox-4d151061c611";
+        var item = new EventItem("crossfit-hyrox-story", EventType.CustomEvent,
+            "CrossFit vs HYROX\n\nWhat can Longevity World Cup learn from their growth?\n\n[Read the story](" + article + ")",
+            DateTime.UtcNow, 15, true);
+        var eventJson = item.ToJson();
+        eventJson["Artwork"]!["ImageUrl"] = new Uri(App.BaseAddress, "/assets/social/crossfit-vs-hyrox.png").ToString();
+        await RouteEventBoardDependenciesAsync(context, "[" + eventJson.ToJsonString() + "]");
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/events?event=crossfit-hyrox-story", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        var image = page.Locator(".custom-event-artwork img");
+        await image.WaitForAsync(new() { State = WaitForSelectorState.Visible });
+        await page.WaitForFunctionAsync("() => document.querySelector('.custom-event-artwork img')?.naturalWidth > 0");
+        Assert.Equal(article, await image.Locator("..").GetAttributeAsync("href"));
+        var bounds = Assert.IsType<LocatorBoundingBoxResult>(await image.BoundingBoxAsync());
+        Assert.InRange(bounds.Width, 100, Math.Min(width, 720));
+        Assert.InRange(bounds.Width / bounds.Height, 1.76f, 1.79f);
+        Assert.True(await page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= innerWidth"));
+        Assert.Contains("What can Longevity World Cup learn from their growth?", await page.Locator(".custom-event-content").InnerTextAsync());
+        if (Environment.GetEnvironmentVariable("LWC_STORY_CAPTURE_DIR") is { Length: > 0 } capture)
+        {
+            Directory.CreateDirectory(capture);
+            await page.ScreenshotAsync(new() { Path = Path.Combine(capture, $"event-{width}.png"), FullPage = true });
+        }
+    }
+
     [Fact]
     public async Task CustomEventRowChrome_TogglesDetailsWithoutStealingInteractiveClicks()
     {
