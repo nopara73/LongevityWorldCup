@@ -1222,11 +1222,11 @@
     margin-top: 0;
     margin-bottom: 0;
     box-sizing: border-box;
-    background: var(--athlete-modal-card, #17212b);
+    background: linear-gradient(145deg, rgba(255,255,255,.11), rgba(255,255,255,.055));
     color: var(--athlete-modal-text, rgba(255,255,255,.94));
-    border: 1px solid var(--athlete-modal-border, #42515e);
+    border: 1px solid var(--athlete-modal-cream-border, rgba(246,244,237,.52));
     border-radius: var(--lwc-radius-lg, 12px);
-    box-shadow: var(--athlete-modal-shadow, 0 12px 30px rgba(0,0,0,.42));
+    box-shadow: 0 1.15rem 2.65rem rgba(0,0,0,.38), 0 0 0 1px rgba(255,255,255,.08) inset;
     padding: 1.65rem 2rem 2rem;
 }
 #detailsModal .gma-avatar {
