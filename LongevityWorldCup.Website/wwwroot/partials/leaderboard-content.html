@@ -33,6 +33,7 @@
 <!--LEADERBOARD-PODIUM-END-->
         </div>
 
+        <div class="leaderboard-controls">
         <div class="leaderboard-toolbar">
             <div class="leaderboard-view-switcher" role="radiogroup" aria-labelledby="leaderboardViewLabel">
                 <span class="view-switcher-label" id="leaderboardViewLabel">Ranking</span>
@@ -64,14 +65,15 @@
             </div>
         </div>
 
+        <div class="leaderboard-controls-status">
         <div class="ranking-explanation" id="rankingExplanation" aria-live="polite"></div>
         <section class="leaderboard-selection-summary" id="leaderboardSelectionSummary" aria-label="Current leaderboard selection" hidden>
-            <div class="leaderboard-selection-heading">
-                <span id="leaderboardResultCount" role="status" aria-live="polite" aria-atomic="true"></span>
-                <button type="button" id="clearLeaderboardSelection" class="leaderboard-clear-all" hidden>Clear all</button>
-            </div>
+            <span id="leaderboardResultCount" role="status" aria-live="polite" aria-atomic="true"></span>
             <div class="leaderboard-selection-chips" id="leaderboardSelectionChips"></div>
+            <button type="button" id="clearLeaderboardSelection" class="leaderboard-clear-all" hidden>Clear all</button>
         </section>
+        </div>
+        </div>
 
         <div class="leaderboard">
             <div class="sidebar" id="leaderboardFilters">
