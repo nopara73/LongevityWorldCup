@@ -3502,6 +3502,40 @@
  .sidebar-show-results:focus-visible { outline: 3px solid var(--lwc-accent); outline-offset: 2px; }
  .sidebar-filter-list { display: contents; }
  .sidebar-results { display: none; }
+
+ /* Filter groups: each title stays in view while its choices scroll past, so a
+    long list always says which group it is; a dot marks groups with a choice
+    made, besides the title colour. */
+ .sidebar-filter-list .filter-section { margin-bottom: 0; padding-bottom: var(--lwc-space-3); }
+ .sidebar-filter-list .filter-section:first-child { border-top: 0; }
+ .sidebar-filter-list .filter-section h3 {
+     position: sticky; top: 0; z-index: 1; margin: 0; padding: var(--lwc-space-3) 0 var(--lwc-space-2);
+     background: var(--lwc-surface);
+ }
+ .sidebar-filter-list .filter-section.has-active-filter h3::before {
+     content: ''; flex: 0 0 auto; width: .5rem; height: .5rem; border-radius: 50%; background: currentColor;
+ }
+ .sidebar-filter-list .filter-section ul { gap: 2px; }
+
+ /* Wide screens: the open panel keeps a steady width and its own height. Its
+    heading, with Clear filters and Close, stays put while the groups scroll
+    beneath it, and a board with one or two results no longer squeezes it. */
+ @media (min-width: 933px), (min-width: 769px) and (min-height: 481px) {
+     .sidebar:hover:not(.button-collapsed):not([aria-hidden="true"]),
+     .sidebar.expanded {
+         display: flex; flex-direction: column; align-items: stretch; width: min(19rem, 40%); padding: 0; overflow: hidden;
+         scrollbar-gutter: auto;
+         max-height: calc(100vh - var(--leaderboard-sidebar-sticky-top) - 1rem);
+     }
+     .sidebar:hover:not(.button-collapsed):not([aria-hidden="true"]) .sidebar-heading,
+     .sidebar.expanded .sidebar-heading { flex: 0 0 auto; margin: 0; }
+     .sidebar:hover:not(.button-collapsed):not([aria-hidden="true"]) .sidebar-filter-list,
+     .sidebar.expanded .sidebar-filter-list {
+         display: block; flex: 1 1 auto; min-height: 0; padding: 0 var(--lwc-space-4) var(--lwc-space-4);
+         overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable;
+         scrollbar-width: thin; scrollbar-color: rgba(0,188,212,.55) transparent;
+     }
+ }
  .sidebar-toggle.has-active-state::after { content: attr(data-filter-count); display: grid; place-items: center; width: 18px; height: 18px; top: -7px; right: -7px; background: var(--lwc-accent); color: var(--lwc-on-accent); font: 700 11px Roboto, sans-serif; border: 2px solid var(--lwc-surface); box-sizing: content-box; }
  @media (max-width: 768px), (max-width: 932px) and (max-height: 480px) and (orientation: landscape) {
      .sidebar,
