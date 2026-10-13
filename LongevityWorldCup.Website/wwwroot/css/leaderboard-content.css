@@ -3416,6 +3416,7 @@
  .leaderboard-controls .leaderboard-toolbar {
      margin: 0;
      padding: var(--lwc-space-3) var(--lwc-space-4);
+     flex-wrap: wrap;
  }
  .leaderboard-controls-status {
      display: flex; flex-wrap: wrap; align-items: center; gap: var(--lwc-space-1) var(--lwc-space-5);
@@ -3425,7 +3426,21 @@
      border-radius: 0 0 var(--lwc-radius-lg) var(--lwc-radius-lg);
      background: var(--lwc-surface-muted);
  }
- .leaderboard-controls .sidebar-toggle { flex-shrink: 0; }
+ /* Let enlarged controls wrap instead of squeezing the search text away. */
+ .leaderboard-controls .leaderboard-view-switcher { min-width: 0; max-width: 100%; }
+ .leaderboard-controls .view-switcher-chips { flex-wrap: wrap; min-width: 0; max-width: 100%; }
+ .leaderboard-controls .search-wrapper { flex-wrap: wrap; min-width: 0; max-width: 100%; gap: .45rem; }
+ .leaderboard-controls .search-container { flex: 1 1 10rem; min-width: 0; }
+ .leaderboard-controls #athleteSearch { padding-inline-start: .5rem; }
+ .leaderboard-controls #athleteSearch:placeholder-shown { padding-right: 2.55rem; }
+ .leaderboard-controls .sidebar-toggle {
+     flex-shrink: 0; width: max(44px, 2.75rem); height: max(44px, 2.75rem); padding: 0; box-sizing: border-box;
+ }
+ /* The magnifier is useful for an empty field; once typing, give its space
+    to the query and keep a single, reachable clear action at the end. */
+ .leaderboard-controls #athleteSearch:not(:placeholder-shown) { padding-right: 3.25rem; }
+ .leaderboard-controls #athleteSearch:not(:placeholder-shown) ~ .search-icon { display: none; }
+ .leaderboard-controls .clear-icon { right: .25rem; }
  .leaderboard-controls .ranking-explanation { flex: 1 1 24rem; min-width: 0; margin: 0; }
  .leaderboard-controls .leaderboard-selection-summary {
      display: flex; flex: 0 1 auto; flex-wrap: wrap; align-items: center; gap: var(--lwc-space-2);
