@@ -3503,6 +3503,13 @@
  .sidebar-filter-list { display: contents; }
  .sidebar-results { display: none; }
 
+ /* Let enlarged headings wrap before they collide with Clear and Close. */
+ .sidebar-heading { flex-wrap: wrap; }
+ .sidebar-heading .sidebar-title { flex: 1 0 auto; max-width: 100%; }
+ .sidebar-heading-actions { display: none; align-items: center; gap: var(--lwc-space-2); flex: 0 0 auto; margin-inline-start: auto; }
+ .sidebar:hover:not(.button-collapsed):not([aria-hidden="true"]) .sidebar-heading-actions,
+ .sidebar.expanded .sidebar-heading-actions { display: flex; }
+
  /* Filter groups: each title stays in view while its choices scroll past, so a
     long list always says which group it is; a dot marks groups with a choice
     made, besides the title colour. */
@@ -3516,24 +3523,43 @@
      content: ''; flex: 0 0 auto; width: .5rem; height: .5rem; border-radius: 50%; background: currentColor;
  }
  .sidebar-filter-list .filter-section ul { gap: 2px; }
+ .sidebar-filter-list { scroll-padding-block-start: 3rem; }
+ .sidebar-filter-list input { scroll-margin-block-start: 3rem; }
 
- /* Wide screens: the open panel keeps a steady width and its own height. Its
+ /* Wide screens: the explicitly opened panel keeps a steady width and its own height.
+    Hover retains the compact preview so passing the rail cannot move the footer. Its
     heading, with Clear filters and Close, stays put while the groups scroll
     beneath it, and a board with one or two results no longer squeezes it. */
  @media (min-width: 933px), (min-width: 769px) and (min-height: 481px) {
-     .sidebar:hover:not(.button-collapsed):not([aria-hidden="true"]),
-     .sidebar.expanded {
-         display: flex; flex-direction: column; align-items: stretch; width: min(19rem, 40%); padding: 0; overflow: hidden;
+     .leaderboard { container: leaderboard-results / inline-size; flex-wrap: wrap; }
+     .leaderboard > table { flex-basis: 0; min-width: 0; }
+     .sidebar.expanded:not(.button-collapsed):not([aria-hidden="true"]) {
+         display: flex; flex-direction: column; align-items: stretch; width: min(19rem, 336px, 40%); padding: 0; overflow: hidden;
          scrollbar-gutter: auto;
          max-height: calc(100vh - var(--leaderboard-sidebar-sticky-top) - 1rem);
      }
-     .sidebar:hover:not(.button-collapsed):not([aria-hidden="true"]) .sidebar-heading,
-     .sidebar.expanded .sidebar-heading { flex: 0 0 auto; margin: 0; }
-     .sidebar:hover:not(.button-collapsed):not([aria-hidden="true"]) .sidebar-filter-list,
-     .sidebar.expanded .sidebar-filter-list {
-         display: block; flex: 1 1 auto; min-height: 0; padding: 0 var(--lwc-space-4) var(--lwc-space-4);
+     .sidebar.expanded:not(.button-collapsed):not([aria-hidden="true"]) .sidebar-heading { flex: 0 0 auto; margin: 0; padding-inline: min(1rem, 16px); }
+     .sidebar.expanded:not(.button-collapsed):not([aria-hidden="true"]) .sidebar-filter-list {
+         display: block; flex: 1 1 auto; min-height: 0; width: 100%; box-sizing: border-box; padding: 0 min(var(--lwc-space-4), 16px) var(--lwc-space-4);
          overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable;
          scrollbar-width: thin; scrollbar-color: rgba(0,188,212,.55) transparent;
+     }
+     /* Reflow against text size as well as pixels: enlarged results need the
+        full board width instead of being squeezed alongside the filters. */
+     @container leaderboard-results (max-width: 45rem) {
+         .sidebar.expanded:not(.button-collapsed):not([aria-hidden="true"]) { flex-basis: 100%; width: 100%; position: relative; top: auto; max-height: 55vh; }
+         .sidebar.expanded ~ table { flex-basis: 100%; }
+         /* The narrow/text-enlarged layout opens with the button. A transient
+            hover cannot take width from the results and change their height. */
+         .sidebar:hover:not(.expanded):not(.button-collapsed):not([aria-hidden="true"]) {
+             position: relative; top: auto; width: 50px; padding: 0; align-items: center;
+             height: max(var(--leaderboard-table-height), var(--leaderboard-title-height, 0px));
+             min-height: max(var(--leaderboard-table-height), var(--leaderboard-title-height, 0px));
+             max-height: max(var(--leaderboard-table-height), var(--leaderboard-title-height, 0px)); overflow: hidden;
+         }
+         .sidebar:hover:not(.expanded):not(.button-collapsed):not([aria-hidden="true"]) .sidebar-heading { width: 100%; margin: 0; padding-inline: 0; }
+         .sidebar:hover:not(.expanded):not(.button-collapsed):not([aria-hidden="true"]) :is(.sidebar-title-text, .sidebar-heading-actions, .filter-section) { display: none; }
+         .sidebar:hover:not(.expanded):not(.button-collapsed):not([aria-hidden="true"]) .collapsed-title { display: block; }
      }
  }
  .sidebar-toggle.has-active-state::after { content: attr(data-filter-count); display: grid; place-items: center; width: 18px; height: 18px; top: -7px; right: -7px; background: var(--lwc-accent); color: var(--lwc-on-accent); font: 700 11px Roboto, sans-serif; border: 2px solid var(--lwc-surface); box-sizing: content-box; }
@@ -3541,6 +3567,7 @@
      .sidebar,
      .sidebar:hover:not(.button-collapsed):not([aria-hidden="true"]),
      .sidebar.expanded { display: flex; flex-direction: column; align-items: stretch; overflow: hidden; padding: var(--lwc-space-4) var(--lwc-space-4) 0; }
+     .sidebar.expanded { padding-inline: min(var(--lwc-space-4), 16px); }
      .sidebar-heading { position: static; flex: 0 0 auto; }
      .sidebar-filter-list { display: block; flex: 1 1 auto; min-height: 0; padding-block: var(--lwc-space-2) var(--lwc-space-4); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
      .sidebar.expanded::after { display: none; }
