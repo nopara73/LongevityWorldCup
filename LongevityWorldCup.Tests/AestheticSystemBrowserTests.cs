@@ -1180,9 +1180,22 @@ public sealed class AestheticSystemBrowserTests(
         IPage page,
         ResponsiveContainerCondition[] conditions)
     {
+        await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.Reduce });
         await NavigateAndSettleAsync(page, "/leaderboard?filters=open,baby%20boomers");
         await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
-        await page.Locator(".sidebar-toggle").ClickAsync();
+        // Probe the rendered component without hydration or scroll handlers changing its state.
+        await page.EvaluateAsync("""
+            () => {
+                const board = document.querySelector('.leaderboard');
+                const probe = board.cloneNode(true);
+                probe.id = 'responsive-leaderboard-probe';
+                const panel = probe.querySelector('.sidebar');
+                panel.classList.add('expanded');
+                panel.classList.remove('button-collapsed', 'partially-expanded');
+                panel.setAttribute('aria-hidden', 'false');
+                board.parentElement.append(probe);
+            }
+            """);
         var rootFontSize = await page.EvaluateAsync<double>(
             "() => parseFloat(getComputedStyle(document.documentElement).fontSize)");
 
@@ -1201,10 +1214,14 @@ public sealed class AestheticSystemBrowserTests(
                 var diagnostics = await page.EvaluateAsync<ContainerQueryDiagnostics>(
                     """
                     async width => {
-                        const board = document.querySelector('.leaderboard');
+                        const board = document.querySelector('#responsive-leaderboard-probe');
                         board.style.boxSizing = 'content-box';
                         board.style.inlineSize = `${width}px`;
                         board.style.maxInlineSize = 'none';
+                        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                        await Promise.all(board.getAnimations({ subtree: true })
+                            .filter(animation => Number.isFinite(animation.effect.getComputedTiming().endTime))
+                            .map(animation => animation.finished.catch(() => {})));
                         await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
                         const panel = board.querySelector('.sidebar');
                         const table = board.querySelector(':scope > table');
@@ -1219,11 +1236,13 @@ public sealed class AestheticSystemBrowserTests(
                     inlineSize);
                 Assert.Equal(inlineSize, diagnostics.ContainerWidth, 1);
                 Assert.True(diagnostics.IsCompact == (inlineSize <= thresholdPixels),
-                    $"Leaderboard filters did not cross their {condition.Value}{condition.Unit} boundary at {inlineSize}px.");
+                    $"Leaderboard filters did not cross their {condition.Value}{condition.Unit} boundary at {inlineSize}px. " +
+                    $"Compact={diagnostics.IsCompact}, width={diagnostics.ContainerWidth}, overflow={diagnostics.HorizontalOverflow}.");
                 Assert.True(diagnostics.HorizontalOverflow <= 1,
                     $"Leaderboard overflowed by {diagnostics.HorizontalOverflow}px at {inlineSize}px.");
             }
         }
+        await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.NoPreference });
     }
 
     private static async Task AssertCalculatorContainerBoundariesAsync(
