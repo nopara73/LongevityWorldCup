@@ -21,6 +21,8 @@ public sealed class FlagLeaderboardBrowserTests(PlaywrightBrowserFixture browser
         var initial = await plain.NewPageAsync();
         await initial.GotoAsync(path);
         var expected = await initial.Locator(".flag-team summary").AllTextContentsAsync();
+        var expectedHeadings = await initial.Locator(".flag-section-heading").AllTextContentsAsync();
+        await Assertions.Expect(initial.Locator(".flag-team-name small")).ToHaveCountAsync(0);
         Assert.True(await initial.Locator("#group-flags").IsCheckedAsync());
         await Assertions.Expect(initial.Locator(".leaderboard > table")).ToBeHiddenAsync();
         if (expected.Count > 0)
@@ -38,6 +40,8 @@ public sealed class FlagLeaderboardBrowserTests(PlaywrightBrowserFixture browser
         var actual = await page.Locator(".flag-team summary").AllTextContentsAsync();
         static string Normalize(string value) => System.Text.RegularExpressions.Regex.Replace(value, @"\s+", "").Replace("⌄", "");
         Assert.Equal(expected.Select(Normalize), actual.Select(Normalize));
+        Assert.Equal(expectedHeadings, await page.Locator(".flag-section-heading").AllTextContentsAsync());
+        await Assertions.Expect(page.Locator(".flag-team-name small")).ToHaveCountAsync(0);
         Assert.Empty(errors);
         var subjects = await page.EvaluateAsync<string[]>("() => JSON.parse(document.getElementById('pageStructuredData').textContent)['@graph'].find(x => x['@type'] === 'ItemList').itemListElement.map(x => x.item.name)");
         Assert.Equal(await page.Locator(".flag-team").EvaluateAllAsync<string[]>("rows => rows.map(row => row.dataset.flag)"), subjects);
@@ -73,6 +77,9 @@ public sealed class FlagLeaderboardBrowserTests(PlaywrightBrowserFixture browser
         await page.Keyboard.PressAsync("Enter");
         await Assertions.Expect(team.Locator(".flag-team-athletes")).ToBeVisibleAsync();
         Assert.Equal(3, await team.Locator(".flag-athlete-link").CountAsync());
+        var total = await team.Locator(".flag-team-score").EvaluateAsync<double>("cell => parseFloat(cell.firstChild.textContent)");
+        var displayedAthleteTotal = await team.Locator(".flag-athlete-metric").EvaluateAllAsync<double>("cells => cells.reduce((sum, cell) => sum + parseFloat(cell.firstChild.textContent), 0)");
+        Assert.InRange(Math.Abs(total - displayedAthleteTotal), 0, .150001);
         await team.Locator(".flag-athlete-link").First.ClickAsync();
         await Assertions.Expect(page.Locator("#detailsModal")).ToBeVisibleAsync();
         await page.Keyboard.PressAsync("Escape");
@@ -162,5 +169,70 @@ public sealed class FlagLeaderboardBrowserTests(PlaywrightBrowserFixture browser
         await Assertions.Expect(page.Locator(".flag-team-rank")).ToHaveTextAsync("1");
         await page.Locator(".flag-team summary").ClickAsync();
         await Assertions.Expect(page.Locator(".flag-athlete-link")).ToHaveCountAsync(3);
+    }
+
+    [Theory]
+    [InlineData(1280, 16)]
+    [InlineData(976, 16)]
+    [InlineData(976, 20)]
+    [InlineData(800, 16)]
+    [InlineData(390, 16)]
+    [InlineData(390, 32)]
+    public async Task OpenFilters_KeepFlagNamesAndScoresReadableAcrossClocks(int width, int rootFontSize)
+    {
+        await using var context = await NewContextAsync(Browser, App, new() { ViewportSize = new() { Width = width, Height = 1100 }, ReducedMotion = ReducedMotion.Reduce });
+        await context.RouteAsync("**/api/data/athletes", async route =>
+        {
+            var response = await route.FetchAsync();
+            var athletes = JsonNode.Parse(await response.TextAsync())!.AsArray();
+            foreach (var athlete in athletes.OfType<JsonObject>())
+            {
+                athlete["CrowdAge"] = 30;
+                athlete["CrowdCount"] = 150;
+            }
+            await route.FulfillAsync(new() { ContentType = "application/json", Body = athletes.ToJsonString() });
+        });
+        var page = await context.NewPageAsync();
+        foreach (var view in new[] { "ultimate", "pheno", "bortz", "crowd" })
+        {
+            await page.GotoAsync($"/leaderboard?group=flags&filters=women%27s&view={view}");
+            await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+            await page.EvaluateAsync("size => document.documentElement.style.fontSize = size + 'px'", rootFontSize);
+            await page.Locator(".sidebar-toggle").ClickAsync();
+            await Assertions.Expect(page.Locator(".sidebar")).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("expanded"));
+            await page.EvaluateAsync("() => document.fonts.ready");
+            await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+            var failures = await page.EvaluateAsync<string[]>(
+                """
+                () => {
+                    const failures = [];
+                    if (document.documentElement.scrollWidth > innerWidth) failures.push('Page overflows.');
+                    for (const summary of document.querySelectorAll('.flag-team summary')) {
+                        const name = summary.querySelector('.flag-team-name');
+                        const text = name.lastElementChild;
+                        const score = summary.querySelector('.flag-team-score');
+                        const rowBox = summary.getBoundingClientRect();
+                        const nameBox = name.getBoundingClientRect();
+                        const scoreBox = score.getBoundingClientRect();
+                        const fontSize = parseFloat(getComputedStyle(text).fontSize);
+                        if (text.textContent.length > 7 && text.getBoundingClientRect().width < fontSize * 3)
+                            failures.push(`${text.textContent}: name is squeezed into a narrow column.`);
+                        if (nameBox.left < scoreBox.right - 1 && nameBox.right > scoreBox.left + 1
+                            && nameBox.top < scoreBox.bottom - 1 && nameBox.bottom > scoreBox.top + 1)
+                            failures.push(`${text.textContent}: name overlaps the score.`);
+                        if (scoreBox.right > rowBox.right + 1 || score.scrollWidth > score.clientWidth + 1)
+                            failures.push(`${text.textContent}: score leaves its row.`);
+                    }
+                    return failures;
+                }
+                """);
+            Assert.True(failures.Length == 0, $"{view}, {width}px, {rootFontSize}px text: {string.Join("; ", failures)}");
+            var output = Environment.GetEnvironmentVariable("LWC_FLAG_SCREENSHOTS");
+            if (!string.IsNullOrEmpty(output) && width == 976 && view == "pheno")
+            {
+                await page.Locator(".leaderboard-controls").ScrollIntoViewIfNeededAsync();
+                await page.ScreenshotAsync(new() { Path = Path.Combine(output, $"flags-filters-{width}-{rootFontSize}.png") });
+            }
+        }
     }
 }

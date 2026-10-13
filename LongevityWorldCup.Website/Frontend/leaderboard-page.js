@@ -3356,7 +3356,7 @@ function buildFlagTeams(entries, view) {
         const candidates = (view === 'ultimate' ? ['bortz', 'pheno'] : [view]).map(clock => {
             const [metric, eligible, compare] = definitions[clock];
             const top = group.entries.map(entry => entry.athlete).filter(eligible).sort(compare).slice(0, 3);
-            return { ...group, view: clock, top, values: top.map(metric), score: top.reduce((sum, athlete) => sum + metric(athlete), 0) / top.length };
+            return { ...group, view: clock, top, values: top.map(metric), score: top.reduce((sum, athlete) => sum + metric(athlete), 0) };
         });
         return candidates.sort((a, b) => b.top.length - a.top.length || (a.view === 'bortz' ? -1 : 1))[0];
     }).filter(team => team.top.length > 0).sort((a, b) =>
@@ -3372,20 +3372,24 @@ function buildFlagTeams(entries, view) {
     return teams;
 }
 
-function renderFlagTeams(teams) {
+function renderFlagTeams(teams, view) {
     const container = document.getElementById('flagLeaderboard');
     const open = new Set([...container.querySelectorAll('details[open]')].map(element => element.id));
     const labels = { bortz: 'Bortz Age', pheno: 'Pheno Age', crowd: 'Crowd Age', improvement: 'Pheno Improvement', 'bortz-improvement': 'Bortz Improvement' };
     const signed = (number, decimals) => `${number > 0 ? '+' : ''}${number.toFixed(decimals)}`;
+    let previousSection = '';
     container.innerHTML = teams.map(team => {
         const id = `flag-team-${team.key}`;
         const icon = getFlagIconCode(team.flag);
-        return `<details class="flag-team" id="${escapeHtml(id)}" data-clock="${team.view}" data-flag="${escapeHtml(team.flag)}" ${open.has(id) ? 'open' : ''}>
-            <summary><span class="flag-team-rank" aria-label="${team.rank ? `Rank ${team.rank}` : 'Unranked'}">${team.rank || '—'}</span>
-            <span class="flag-team-name"><span class="flag-team-icon" aria-hidden="true">${icon ? `<span class="fi fi-${icon}"></span>` : '<i class="fas fa-flag"></i>'}</span><span>${escapeHtml(team.flag)}<small>${labels[team.view]}</small></span></span>
+        const section = team.rank ? view === 'ultimate' ? labels[team.view] : '' : 'Incomplete teams';
+        const heading = section && section !== previousSection ? `<h3 class="flag-section-heading">${section}</h3>` : '';
+        previousSection = section;
+        return `${heading}<details class="flag-team" id="${escapeHtml(id)}" data-clock="${team.view}" data-flag="${escapeHtml(team.flag)}" ${open.has(id) ? 'open' : ''}>
+            <summary title="${labels[team.view]}"><span class="flag-team-rank" aria-label="${team.rank ? `Rank ${team.rank}` : 'Unranked'}">${team.rank || '—'}</span>
+            <span class="flag-team-name"><span class="flag-team-icon" aria-hidden="true">${icon ? `<span class="fi fi-${icon}"></span>` : '<i class="fas fa-flag"></i>'}</span><span>${escapeHtml(team.flag)}</span></span>
             <span class="flag-team-portraits" aria-hidden="true">${team.top.map(a => `<img src="${escapeHtml(getAthletePortraitUrl(a))}" alt="" loading="lazy">`).join('')}</span>
-            <span class="flag-team-score">${team.rank ? signed(team.score, 2) : `${team.top.length}/3`}<small>${team.rank ? 'years avg.' : 'to qualify'}</small></span><span class="flag-team-chevron" aria-hidden="true">⌄</span></summary>
-            <ol class="flag-team-athletes" aria-label="Top athletes for ${escapeHtml(team.flag)}">${team.top.map((a, index) => `<li><a class="flag-athlete-link" href="${escapeHtml(getAthleteProfileHref(a))}"><span class="flag-athlete-rank" title="Rank within this team">${index + 1}</span><img src="${escapeHtml(getAthletePortraitUrl(a))}" alt="" loading="lazy"><span class="flag-athlete-name">${escapeHtml(a.displayName)}<small>${hasBortzRankData(a) ? 'Pro' : 'Amateur'}</small></span><span class="flag-athlete-metric">${signed(team.values[index], 1)}<small>years</small></span></a></li>`).join('')}</ol></details>`;
+            <span class="flag-team-score">${team.rank ? signed(team.score, 2) : `${team.top.length}/3`}<small>${team.rank ? 'years total' : 'to qualify'}</small></span><span class="flag-team-chevron" aria-hidden="true">⌄</span></summary>
+            <ol class="flag-team-athletes" aria-label="Top ${labels[team.view]} athletes for ${escapeHtml(team.flag)}">${team.top.map((a, index) => `<li><a class="flag-athlete-link" href="${escapeHtml(getAthleteProfileHref(a))}"><span class="flag-athlete-rank" title="Rank within this team">${index + 1}</span><img src="${escapeHtml(getAthletePortraitUrl(a))}" alt="" loading="lazy"><span class="flag-athlete-name">${escapeHtml(a.displayName)}<small>${hasBortzRankData(a) ? 'Pro' : 'Amateur'}</small></span><span class="flag-athlete-metric">${signed(team.values[index], 1)}<small>years</small></span></a></li>`).join('')}</ol></details>`;
     }).join('') || '<p class="flag-empty">No flags match this leaderboard.</p>';
     container.querySelectorAll('.flag-team').forEach((element, index) => {
         element.addEventListener('toggle', scheduleLeaderboardTableHeightSync);
@@ -3575,7 +3579,7 @@ function performFilter({ updateUrl = true } = {}) {
         const matchingTeams = teams.filter(team => uniqueSearchTerms.every(term =>
             window.normalizeString(team.flag).includes(term) ||
             team.entries.some(entry => searchTextByAthlete.get(entry.athlete).includes(term))));
-        renderFlagTeams(matchingTeams.slice(0, maxAthletesGlobal));
+        renderFlagTeams(matchingTeams.slice(0, maxAthletesGlobal), currentLeaderboardView);
         updateViewAllAthletesButton(matchingTeams.length);
         updateFilterCounts(selectedState, getMatchingEntries, entries);
         updateLeaderboardTitles(selectedState);
@@ -3822,8 +3826,8 @@ function updateRankingExplanation(currentLeaderboardView, byFlag = getSelectedLe
 
     const html = byFlag
         ? (currentLeaderboardView === 'ultimate'
-            ? 'Top-three average age reduction. Complete Bortz teams rank first, then complete Pheno teams, then incomplete teams. Clocks are scored separately.'
-            : 'Top-three average. Lower wins; three eligible athletes qualify a flag.')
+            ? 'Top-three cumulative age reduction. Complete Bortz teams rank first, then complete Pheno teams, then incomplete teams. Clocks are scored separately.'
+            : 'Top-three cumulative years. Lower wins; three eligible athletes qualify a flag.')
         : explanations[currentLeaderboardView] || '';
     explanation.innerHTML = html;
     explanation.classList.toggle('is-visible', html.length > 0);

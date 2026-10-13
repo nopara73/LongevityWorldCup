@@ -20,7 +20,7 @@ public sealed class FlagLeaderboardTests
         var teams = FlagLeaderboard.Build(athletes, "ultimate");
         Assert.Equal(["Hungary", "United States", "Germany"], teams.Select(t => t.Flag.Name));
         Assert.Equal(["bortz", "pheno", "bortz"], teams.Select(t => t.View));
-        Assert.Equal([-8d, -21d, -99d], teams.Select(t => t.Score));
+        Assert.Equal([-24d, -63d, -198d], teams.Select(t => t.Score));
         Assert.Equal([1, 2, (int?)null], teams.Select(t => t.Rank));
         Assert.Equal(["b1", "b2", "b3"], teams[0].Athletes.Select(a => a.Slug));
         Assert.Equal(4, teams[0].TotalAthletes);
@@ -34,7 +34,7 @@ public sealed class FlagLeaderboardTests
             Athlete("missing", "Hungary", null, -100), Athlete("third", "Hungary", -15)
         ], "pheno");
         var team = Assert.Single(teams);
-        Assert.Equal(-10, team.Score);
+        Assert.Equal(-30, team.Score);
         Assert.Equal(["third", "amateur", "pro"], team.Athletes.Select(a => a.Slug));
         Assert.Equal([-15d, -10d, -5d], team.Athletes.Select(a => a.EffectiveAgeReductionYears));
     }
@@ -50,11 +50,11 @@ public sealed class FlagLeaderboardTests
         ], "crowd");
         var team = Assert.Single(teams);
         Assert.Equal(["first", "tied_more", "tied_less"], team.Athletes.Select(a => a.Slug));
-        Assert.Equal(-32d / 3, team.Score);
+        Assert.Equal(-32d, team.Score);
     }
 
     [Fact]
-    public void TiesShareCompetitionRanks_UsingUnroundedAverages()
+    public void TiesShareCompetitionRanks_UsingUnroundedTotals()
     {
         var teams = FlagLeaderboard.Build(new[] { "Hungary", "Germany", "France" }
             .SelectMany((flag, index) => Enumerable.Range(1, 3).Select(n => Athlete(flag + n, flag, index == 2 ? -9.999 : -10))), "pheno");
@@ -85,6 +85,24 @@ public sealed class FlagLeaderboardTests
         Assert.Contains("1/3", html);
         Assert.Contains("Unranked", html);
         Assert.DoesNotContain("<script>", html);
+    }
+
+    [Fact]
+    public void UltimateRenderer_LabelsClockSectionsOnce_AndKeepsFlagNamesPlain()
+    {
+        var teams = FlagLeaderboard.Build([
+            Athlete("b1", "Hungary", -10, -9), Athlete("b2", "Hungary", -10, -8), Athlete("b3", "Hungary", -10, -7),
+            Athlete("p1", "France", -10), Athlete("p2", "France", -11), Athlete("p3", "France", -12),
+            Athlete("i1", "Germany", -10)
+        ], "ultimate");
+        var html = FlagLeaderboardHtmlRenderer.Render(teams, separateClocks: true);
+        var headings = System.Text.RegularExpressions.Regex.Matches(html, "<h3 class=\"flag-section-heading\">(.*?)</h3>")
+            .Select(match => match.Groups[1].Value);
+        Assert.Equal(["Bortz Age", "Pheno Age", "Incomplete teams"], headings);
+        Assert.Contains("<span>Hungary</span>", html);
+        Assert.DoesNotContain("<span>Hungary<small>", html);
+        Assert.Contains("years total", html);
+        Assert.DoesNotContain("avg.", html);
     }
 
     private static PublicAthlete Athlete(string name, string flag, double? pheno, double? bortz = null, double crowd = -10, int count = 100)

@@ -6,8 +6,8 @@ public sealed record FlagLeaderboardTeam(FlagRouteInfo Flag, IReadOnlyList<Leade
 public static class FlagLeaderboard
 {
     public static string Explanation(string view) => view == "ultimate"
-        ? "Top-three average age reduction. Complete Bortz teams rank first, then complete Pheno teams, then incomplete teams. Clocks are scored separately."
-        : "Top-three average. Lower wins; three eligible athletes qualify a flag.";
+        ? "Top-three cumulative age reduction. Complete Bortz teams rank first, then complete Pheno teams, then incomplete teams. Clocks are scored separately."
+        : "Top-three cumulative years. Lower wins; three eligible athletes qualify a flag.";
 
     public static string Label(string view) => view switch
     {
@@ -34,7 +34,7 @@ public static class FlagLeaderboard
                         .ThenBy(athlete => athlete.Stats.Name, StringComparer.Ordinal)
                         .Take(3).Select(athlete => athlete.Row with { EffectiveAgeReductionYears = athlete.Metric(clock) }).ToArray();
                     return new FlagLeaderboardTeam(group.First().Flag!, top, members.Length, clock,
-                        top.Length > 0 ? top.Average(row => row.EffectiveAgeReductionYears!.Value) : 0, null);
+                        top.Sum(row => row.EffectiveAgeReductionYears!.Value), null);
                 }).OrderByDescending(team => team.Athletes.Count).ThenBy(team => team.View == "bortz" ? 0 : 1).First();
             })
             .Where(team => team.Athletes.Count > 0)

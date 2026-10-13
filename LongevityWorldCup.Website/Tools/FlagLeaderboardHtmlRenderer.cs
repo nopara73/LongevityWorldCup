@@ -6,19 +6,24 @@ namespace LongevityWorldCup.Website.Tools;
 
 public static class FlagLeaderboardHtmlRenderer
 {
-    public static string Render(IEnumerable<FlagLeaderboardTeam> teams)
+    public static string Render(IEnumerable<FlagLeaderboardTeam> teams, bool separateClocks = false)
     {
         var html = new StringBuilder();
+        var previousSection = "";
         foreach (var team in teams)
         {
+            var section = team.Rank.HasValue ? separateClocks ? FlagLeaderboard.Label(team.View) : "" : "Incomplete teams";
+            if (section.Length > 0 && section != previousSection)
+                html.Append($"<h3 class=\"flag-section-heading\">{section}</h3>");
+            previousSection = section;
             var rank = team.Rank?.ToString() ?? "—";
             html.Append($"<details class=\"flag-team\" id=\"flag-team-{team.Flag.Slug}\" data-clock=\"{team.View}\" data-flag=\"{Encode(team.Flag.Name)}\">")
-                .Append($"<summary><span class=\"flag-team-rank\" aria-label=\"{(team.Rank.HasValue ? "Rank " + rank : "Unranked")}\">{rank}</span>")
-                .Append($"<span class=\"flag-team-name\"><span class=\"flag-team-icon\" aria-hidden=\"true\">{Icon(team.Flag.Name)}</span><span>{Encode(team.Flag.Name)}<small>{FlagLeaderboard.Label(team.View)}</small></span></span>")
+                .Append($"<summary title=\"{FlagLeaderboard.Label(team.View)}\"><span class=\"flag-team-rank\" aria-label=\"{(team.Rank.HasValue ? "Rank " + rank : "Unranked")}\">{rank}</span>")
+                .Append($"<span class=\"flag-team-name\"><span class=\"flag-team-icon\" aria-hidden=\"true\">{Icon(team.Flag.Name)}</span><span>{Encode(team.Flag.Name)}</span></span>")
                 .Append("<span class=\"flag-team-portraits\" aria-hidden=\"true\">");
             foreach (var athlete in team.Athletes)
                 html.Append($"<img src=\"{Encode(athlete.LeaderboardThumbnailUrl)}\" alt=\"\" loading=\"lazy\">");
-            html.Append($"</span><span class=\"flag-team-score\">{(team.Rank.HasValue ? PublicHtmlFormat.Signed(team.Score, 2) : team.Athletes.Count + "/3")}<small>{(team.Rank.HasValue ? "years avg." : "to qualify")}</small></span><span class=\"flag-team-chevron\" aria-hidden=\"true\">⌄</span></summary><ol class=\"flag-team-athletes\" aria-label=\"Top athletes for {Encode(team.Flag.Name)}\">");
+            html.Append($"</span><span class=\"flag-team-score\">{(team.Rank.HasValue ? PublicHtmlFormat.Signed(team.Score, 2) : team.Athletes.Count + "/3")}<small>{(team.Rank.HasValue ? "years total" : "to qualify")}</small></span><span class=\"flag-team-chevron\" aria-hidden=\"true\">⌄</span></summary><ol class=\"flag-team-athletes\" aria-label=\"Top {FlagLeaderboard.Label(team.View)} athletes for {Encode(team.Flag.Name)}\">");
             var place = 0;
             foreach (var athlete in team.Athletes)
             {
