@@ -424,9 +424,17 @@ $@"<div id=""{AthleteDialogRuntimeId}""
                 // ranking and query are already known before any script runs.
                 if (selection is not null)
                 {
+                    if (selection.ByFlag)
+                    {
+                        html = html.Replace("id=\"group-flags\"", "id=\"group-flags\" checked", StringComparison.Ordinal);
+                        html = html.Replace("class=\"leaderboard\"", "class=\"leaderboard leaderboard--flags\"", StringComparison.Ordinal);
+                        html = html.Replace("<!--FLAG-LEADERBOARD-->", "<!--FLAG-LEADERBOARD--><p class=\"flag-empty\">Loading flags...</p>", StringComparison.Ordinal);
+                        html = PublicProfileHtmlRenderer.SetContent(html, "rankingExplanation", FlagLeaderboard.Explanation(selection.View))
+                            .Replace("class=\"ranking-explanation\"", "class=\"ranking-explanation is-visible\"", StringComparison.Ordinal);
+                    }
                     html = PublicProfileHtmlRenderer.SetContent(html, "leaderboardMetricHeader", selection.MetricLabel);
                     html = Regex.Replace(html, "(<div class=\"collapsed-title\"[^>]*>).*?(</div>)",
-                        match => match.Groups[1].Value + System.Net.WebUtility.HtmlEncode(selection.RailTitle.ToUpperInvariant()) + match.Groups[2].Value, RegexOptions.Singleline);
+                        match => match.Groups[1].Value + System.Net.WebUtility.HtmlEncode(selection.ByFlag ? "BY FLAG" : selection.RailTitle.ToUpperInvariant()) + match.Groups[2].Value, RegexOptions.Singleline);
                     html = html.Replace("value=\"ultimate\" checked", "value=\"ultimate\"", StringComparison.Ordinal)
                         .Replace($"value=\"{selection.View}\" aria-label=", $"value=\"{selection.View}\" checked aria-label=", StringComparison.Ordinal)
                         .Replace($"name=\"agingClockView\" value=\"{selection.View}\"", $"name=\"agingClockView\" value=\"{selection.View}\" checked", StringComparison.Ordinal)
@@ -435,6 +443,12 @@ $@"<div id=""{AthleteDialogRuntimeId}""
                 if (selection is not null && ShouldRenderLeaderboardRows(context))
                 {
                     var table = selection.Snapshot;
+                    if (selection.ByFlag)
+                    {
+                        var teams = selection.FlagTeams;
+                        var isPreview = path is "/" or "/contribute" || IsAthleteRoute(path);
+                        html = html.Replace("<!--FLAG-LEADERBOARD--><p class=\"flag-empty\">Loading flags...</p>", FlagLeaderboardHtmlRenderer.Render(isPreview ? teams.Take(10) : teams), StringComparison.Ordinal);
+                    }
                     if (path is "/" or "/contribute" || IsAthleteRoute(path))
                     {
                         var visible = table.Rows.Take(10).ToList();
@@ -539,7 +553,8 @@ $@"<div id=""{AthleteDialogRuntimeId}""
                && !context.Request.Query.ContainsKey("athlete")
                && !context.Request.Query.ContainsKey("filters")
                && !context.Request.Query.ContainsKey("search")
-               && !context.Request.Query.ContainsKey("view");
+               && !context.Request.Query.ContainsKey("view")
+               && !context.Request.Query.ContainsKey("group");
 
         private static bool ShouldUseHungarianChrome(HttpContext context)
             => IsHungarianPage(GetRequestCanonicalPath(context));

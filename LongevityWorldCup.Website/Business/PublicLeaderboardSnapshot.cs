@@ -92,7 +92,12 @@ public sealed class PublicLeaderboardSnapshot
             else if (tracks.Length == 1) railTitle = tracks[0].Equals("professional", StringComparison.OrdinalIgnoreCase) ? "Pro League" : "Amateur League";
         }
         var isDefault = view == "ultimate" && divisions.Count == 0 && generations.Count == 0 && exclusive.Count == 0 && flags.Count == 0 && tracks.Length != 1;
-        return new PublicLeaderboardSelection(view!, new LeaderboardSnapshot(rows), railTitle, isDefault);
+        var byFlag = string.Equals(query["group"].FirstOrDefault(), "flags", StringComparison.OrdinalIgnoreCase);
+        return new PublicLeaderboardSelection(view!, new LeaderboardSnapshot(rows), railTitle, isDefault && !byFlag)
+        {
+            ByFlag = byFlag,
+            FlagTeams = byFlag ? FlagLeaderboard.Build(cohort, view!) : []
+        };
     }
 
     public IReadOnlyList<PublicAthlete> Order(string view)
@@ -170,5 +175,7 @@ public sealed record PublicAthlete(LeaderboardSnapshotRow Row, PhenoStatsCalcula
 
 public sealed record PublicLeaderboardSelection(string View, LeaderboardSnapshot Snapshot, string RailTitle, bool IsDefault)
 {
+    public bool ByFlag { get; init; }
+    public IReadOnlyList<FlagLeaderboardTeam> FlagTeams { get; init; } = [];
     public string MetricLabel => View switch { "improvement" => "Improvement", "bortz-improvement" => "Bortz improvement", _ => "Age reduction" };
 }
