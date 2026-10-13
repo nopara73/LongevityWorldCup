@@ -911,6 +911,7 @@ public sealed class AestheticSystemBrowserTests(
             var relativePath = Path.GetRelativePath(webRoot, path).Replace('\\', '/');
             if (relativePath.StartsWith("internal/", StringComparison.OrdinalIgnoreCase)
                 || relativePath.Contains("swagger", StringComparison.OrdinalIgnoreCase)
+                || relativePath.StartsWith("css/athlete-dialog/", StringComparison.OrdinalIgnoreCase)
                 || relativePath.StartsWith("vendor/", StringComparison.OrdinalIgnoreCase)
                 || relativePath.StartsWith("lib/", StringComparison.OrdinalIgnoreCase)
                 || relativePath.Contains("/vendor/", StringComparison.OrdinalIgnoreCase)
@@ -1019,8 +1020,10 @@ public sealed class AestheticSystemBrowserTests(
             }
 
             var relativePath = Path.GetRelativePath(webRoot, path).Replace('\\', '/');
+            // Scoped dialog CSS is generated from the authored styles, not a separate source.
             if (relativePath.StartsWith("internal/", StringComparison.OrdinalIgnoreCase)
                 || relativePath.Contains("swagger", StringComparison.OrdinalIgnoreCase)
+                || relativePath.StartsWith("css/athlete-dialog/", StringComparison.OrdinalIgnoreCase)
                 || relativePath.StartsWith("vendor/", StringComparison.OrdinalIgnoreCase)
                 || relativePath.Contains("/vendor/", StringComparison.OrdinalIgnoreCase)
                 || relativePath.EndsWith(".min.css", StringComparison.OrdinalIgnoreCase))
@@ -1163,9 +1166,62 @@ public sealed class AestheticSystemBrowserTests(
                         await AssertCalculatorContainerBoundariesAsync(page, route, source.ToArray());
                     }
                     break;
+                case "css/leaderboard-content.css":
+                    await AssertLeaderboardContainerBoundariesAsync(page, source.ToArray());
+                    break;
                 default:
                     Assert.Fail($"Add a rendered container-boundary probe for {source.Key}.");
                     break;
+            }
+        }
+    }
+
+    private static async Task AssertLeaderboardContainerBoundariesAsync(
+        IPage page,
+        ResponsiveContainerCondition[] conditions)
+    {
+        await NavigateAndSettleAsync(page, "/leaderboard?filters=open,baby%20boomers");
+        await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+        await page.Locator(".sidebar-toggle").ClickAsync();
+        var rootFontSize = await page.EvaluateAsync<double>(
+            "() => parseFloat(getComputedStyle(document.documentElement).fontSize)");
+
+        foreach (var condition in conditions)
+        {
+            Assert.Equal("leaderboard-results", condition.Name);
+            Assert.Equal("max", condition.Bound);
+            Assert.Equal(45, condition.Value);
+            var thresholdPixels = condition.Unit == "rem"
+                ? condition.Value * rootFontSize
+                : condition.Value;
+
+            foreach (var delta in new[] { -1, 0, 1, 0, -1 })
+            {
+                var inlineSize = thresholdPixels + delta;
+                var diagnostics = await page.EvaluateAsync<ContainerQueryDiagnostics>(
+                    """
+                    async width => {
+                        const board = document.querySelector('.leaderboard');
+                        board.style.boxSizing = 'content-box';
+                        board.style.inlineSize = `${width}px`;
+                        board.style.maxInlineSize = 'none';
+                        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                        const panel = board.querySelector('.sidebar');
+                        const table = board.querySelector(':scope > table');
+                        return {
+                            ContainerWidth: parseFloat(getComputedStyle(board).width),
+                            IsCompact: getComputedStyle(panel).flexBasis === '100%'
+                                && table.getBoundingClientRect().top >= panel.getBoundingClientRect().bottom - 1,
+                            HorizontalOverflow: Math.max(0, board.scrollWidth - board.clientWidth)
+                        };
+                    }
+                    """,
+                    inlineSize);
+                Assert.Equal(inlineSize, diagnostics.ContainerWidth, 1);
+                Assert.True(diagnostics.IsCompact == (inlineSize <= thresholdPixels),
+                    $"Leaderboard filters did not cross their {condition.Value}{condition.Unit} boundary at {inlineSize}px.");
+                Assert.True(diagnostics.HorizontalOverflow <= 1,
+                    $"Leaderboard overflowed by {diagnostics.HorizontalOverflow}px at {inlineSize}px.");
             }
         }
     }

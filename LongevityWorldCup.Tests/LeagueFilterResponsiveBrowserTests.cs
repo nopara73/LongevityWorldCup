@@ -10,6 +10,96 @@ public sealed class LeagueFilterResponsiveBrowserTests(
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Theory]
+    [InlineData(false, 100)]
+    [InlineData(true, 100)]
+    [InlineData(false, 200)]
+    [InlineData(true, 200)]
+    public async Task ShortBoard_HoverDoesNotMoveTheFooter(bool dark, int textPercent)
+    {
+        await using var context = await HomepageChromeRegressionBrowserTests.NewContextAsync(Browser, App, ReducedMotion.Reduce);
+        var page = await context.NewPageAsync();
+        await page.SetViewportSizeAsync(1440, 900);
+        await page.EmulateMediaAsync(new() { ColorScheme = dark ? ColorScheme.Dark : ColorScheme.Light });
+        await page.GotoAsync("/leaderboard?filters=open,baby%20boomers", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+        await page.EvaluateAsync("percent => document.documentElement.style.fontSize = `${percent}%`", textPercent);
+        await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
+        var count = await page.Locator("#leaderboardResultCount").InnerTextAsync();
+        var before = await page.Locator("footer").EvaluateAsync<double>("element => element.getBoundingClientRect().top + scrollY");
+        await page.Locator(".sidebar").HoverAsync();
+        await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
+        var during = await page.Locator("footer").EvaluateAsync<double>("element => element.getBoundingClientRect().top + scrollY");
+        Assert.InRange(Math.Abs(during - before), 0, 1);
+        await page.Mouse.MoveAsync(0, 0);
+        await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
+        var after = await page.Locator("footer").EvaluateAsync<double>("element => element.getBoundingClientRect().top + scrollY");
+        Assert.InRange(Math.Abs(after - before), 0, 1);
+        await Assertions.Expect(page.Locator("#leaderboardResultCount")).ToHaveTextAsync(count);
+    }
+
+    [Theory]
+    [InlineData(320, false)]
+    [InlineData(320, true)]
+    [InlineData(390, false)]
+    [InlineData(390, true)]
+    [InlineData(820, false)]
+    [InlineData(820, true)]
+    [InlineData(1440, false)]
+    [InlineData(1440, true)]
+    public async Task FilterPanel_KeepsHeadingActionsAndScoresReadableWithEnlargedText(int width, bool dark)
+    {
+        await using var context = await HomepageChromeRegressionBrowserTests.NewContextAsync(Browser, App, ReducedMotion.Reduce);
+        var page = await context.NewPageAsync();
+        await page.SetViewportSizeAsync(width, 900);
+        await page.EmulateMediaAsync(new() { ColorScheme = dark ? ColorScheme.Dark : ColorScheme.Light });
+        await page.GotoAsync("/leaderboard?filters=open,baby%20boomers", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+        await page.EvaluateAsync("document.documentElement.style.fontSize = '200%'");
+        await page.Locator(".sidebar-toggle").ClickAsync();
+        await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
+        var problems = await page.EvaluateAsync<string[]>("""
+            () => {
+                const issues = [], panel = document.querySelector('.sidebar');
+                const title = panel.querySelector('.sidebar-title-text').getBoundingClientRect();
+                for (const button of panel.querySelectorAll('.sidebar-heading button')) {
+                    const box = button.getBoundingClientRect();
+                    if (title.left < box.right && title.right > box.left && title.top < box.bottom && title.bottom > box.top)
+                        issues.push('Heading overlaps ' + button.id);
+                    if (box.width < 44 || box.height < 44) issues.push('Small heading action');
+                }
+                const list = panel.querySelector('.sidebar-filter-list');
+                if (list.clientWidth < panel.clientWidth / 2 || list.scrollWidth > list.clientWidth + 1)
+                    issues.push('Filter list is squeezed or overflows');
+                for (const header of document.querySelectorAll('.leaderboard > table th')) {
+                    if (!header.getBoundingClientRect().width) continue;
+                    const style = getComputedStyle(header), canvas = document.createElement('canvas').getContext('2d');
+                    canvas.font = [style.fontStyle, style.fontWeight, style.fontSize, style.fontFamily].join(' ');
+                    const word = header.textContent.trim().split(/\s+/)[0];
+                    if (canvas.measureText(word).width > header.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight) + 1)
+                        issues.push('Header word is broken: ' + word);
+                }
+                const score = [...document.querySelectorAll('.leaderboard tbody .age-reduction')].find(e => e.getBoundingClientRect().height > 0);
+                if (score) {
+                    const walker = document.createTreeWalker(score, NodeFilter.SHOW_TEXT);
+                    while (walker.nextNode()) {
+                        const text = walker.currentNode, match = /[-−]?\d+(?:\.\d+)?/.exec(text.textContent);
+                        if (!match) continue;
+                        const range = document.createRange();
+                        range.setStart(text, match.index); range.setEnd(text, match.index + match[0].length);
+                        if (new Set([...range.getClientRects()].map(r => Math.round(r.top))).size > 1)
+                            issues.push('Score number breaks across lines');
+                    }
+                }
+                if (document.documentElement.scrollWidth > innerWidth + 1) issues.push('Page overflow');
+                return issues;
+            }
+            """);
+        Assert.True(problems.Length == 0, $"{width}px / 200% / {(dark ? "dark" : "light")}: {string.Join(", ", problems)}");
+        await page.Locator("#clearSidebarFiltersBtn").ClickAsync();
+        await Assertions.Expect(page.Locator(".sidebar input:checked")).ToHaveCountAsync(0);
+    }
+
+    [Theory]
     [InlineData(320, false)]
     [InlineData(320, true)]
     [InlineData(390, false)]
