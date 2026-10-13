@@ -1,4 +1,4 @@
 interface:
   display_name: "Process Athlete Submissions"
   short_description: "Review LWC athlete submission emails"
-  default_prompt: "Use $process-athlete-applications to process all unprocessed Longevity World Cup athlete submissions while preserving each current submission's unread state and exact Gmail thread for drafts and replies."
+  default_prompt: "Use $process-athlete-applications to review unprocessed LWC submissions and proofs before payment requests, prepare exact-thread replies, and apply the skill's approved-send read-state rule."

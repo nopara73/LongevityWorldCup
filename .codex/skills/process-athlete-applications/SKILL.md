@@ -9,13 +9,13 @@ description: Review LWC athlete application, result, and profile-update emails; 
 
 - Read `UBIQUITOUS_LANGUAGE.md`. Use Gmail connector tools for discovery, history, metadata, and draft scaffolds; discover unloaded tools before browser workarounds. Use the Codex in-app Browser for send-as selection and the bundled raw Gmail helper for ZIPs.
 - Record the current submission's Gmail `thread_id` as `expectedThreadId`. Saved-draft, send-result, and sent-message thread IDs must each equal it exactly. Recipient, subject, and `SENT` labels are insufficient. Never fall back to Compose, an unthreaded draft, or historical correspondence as the reply destination. Stop on missing/mismatched thread IDs; after a send, report the incident without claiming success or retrying without fresh approval.
-- Keep every current submission message `UNREAD`. Verify at selection, after draft saving, before approval stops, and after sending/finalization. Restore missing `UNREAD` immediately and verify it; this is the only permitted label mutation. Never archive, trash, remove labels, or change related-history unread state.
+- Keep new or unapproved current submission messages `UNREAD` through review and approval. After an explicitly approved reply is sent and its exact thread is verified, mark only its automated LWC submission notice read if the reply is not answering an athlete-authored message. Actual athlete correspondence, uncertain message types, and failed/unverified sends stay `UNREAD`; verify/restore that state. Preserve previously approved read states of unchanged automated notices, including ledger-only reassessments. These are the only permitted label mutations; never archive, trash, remove other labels, or change related-history unread state.
 - Never send, commit, or push without explicit approval of the prepared summary and draft. Preserve unrelated work and stage only accepted changes.
 - Keep temporary outputs and the private ledger in `.artifacts/`. Before any approval stop or blocked new-application handoff, move its untracked athlete folder to `.artifacts/pending-athlete-reviews/{folder_key}/` and verify it is absent from `wwwroot/athletes/`. Existing tracked athlete folders stay in place.
 
 ## Discover the Queue
 
-Default to all unread, unprocessed submission candidates. Finish discovery before processing: page every query family through `next_page_token`, union message/thread IDs, and group by athlete/folder key. Then work candidates individually. `next` selects the newest eligible unread thread with a ZIP or payment/audit pair; an explicit athlete/thread/message/folder target overrides ledger skips and permits historical inspection.
+Default to all unread, unprocessed submission candidates, plus the latest ledger cases needing a proof-first backfill or payment-only reassessment below, even if their automated notice is now read. Finish discovery before processing: page every query family through `next_page_token`, union message/thread IDs, and group by athlete/folder key. Then work candidates individually. `next` selects the newest eligible unread thread with a ZIP or payment/audit pair; an explicit athlete/thread/message/folder target overrides ledger skips and permits historical inspection.
 
 Search `is:unread -in:spam -in:trash` with each family:
 
@@ -26,11 +26,13 @@ Search `is:unread -in:spam -in:trash` with each family:
 
 Personal threads may omit every LWC sender/domain. Use ZIP folder-key names, audit text, names, profile slugs/URLs, contact addresses, handles, sites, invoice/submission IDs, and alternate spellings as signals. Read enough of every unique candidate to capture name, folder key/profile URL, submission type, message/thread IDs and timestamp, attachment filename, payment due/confirmation, and biomarker/proof counts. Keep distinct identities in scope; report ambiguity.
 
-No matching unread messages means no unprocessed athletes; do not fall back to read messages. Read history only for discovered candidates or explicitly named historical work. If one candidate requires human direction, continue the other candidates within the requested scope.
+No matching unread messages and no eligible ledger reassessments means no unprocessed athletes; do not otherwise fall back to read messages. Read history only for discovered/ledger candidates or explicitly named historical work. If one candidate requires human direction, continue the other candidates within the requested scope.
 
 ## Ledger and Related History
 
-Before heavy work, check `.artifacts/lwc-submission-processing-ledger.jsonl`; never commit it. Skip only general next/all candidates whose thread and latest message ID/date prove unchanged since review. A prior payment-blocked or payment-unverified entry is an exception: reassess its payment evidence under the reasonable-confidence rule below before deciding to skip, even when Gmail is unchanged, because payment can arrive without a new email. Make a focused read-only provider check when existing evidence is insufficient. Continue when payment is reasonably supported, preserving any independent security or proof blockers. Other unchanged reviewed submissions retain the normal skip rule. Missing, malformed, or ambiguous entries require inspection. New messages, ZIPs, payment/context emails, or an explicit named request require reprocessing. Report skips briefly and continue.
+Before heavy work, check `.artifacts/lwc-submission-processing-ledger.jsonl`; never commit it. Use the latest entry per athlete/thread. Skip only general next/all candidates whose thread and latest message ID/date prove unchanged since review. Missing, malformed, or ambiguous entries require inspection. New messages, ZIPs, payment/context emails, or an explicit named request require reprocessing. Report skips briefly and continue.
+
+Prior payment-blocked/unverified cases need one complete proof review if that was previously skipped. Once proofs otherwise support acceptance, reassess payment under the reasonable-confidence rule even when Gmail is unchanged or the automated notice is read: payment can arrive without email. Use a focused read-only provider check when needed. If confirmed proof blockers remain, defer payment requests/rechecks until new evidence or user direction; unchanged pending proof/security requests retain the normal skip rule. Record proof-review completeness, proof blockers, payment deferral, and any approved read-state change.
 
 For each full review summary, record one JSON object before stopping:
 
@@ -70,9 +72,7 @@ Hi {firstName}, for security reasons can you confirm you've submitted {the new r
 
 ## Prepare Files
 
-Enter only after any existing-athlete security gate is satisfied. For payment, use reasonable confidence, not certainty: the user accepts occasional unpaid applicants slipping through rather than wrongly blocking honest ones. A credible receipt or payment confirmation, including an applicant's confirmation with consistent supporting context, or a provider payment reasonably matching the applicant and amount/time is sufficient. Exact invoice/order/submission-ID linkage and corroboration from both BTCPay and Stripe are helpful, not mandatory. Missing Gmail confirmation, imperfect metadata, or a different payer email alone must not block review. Stop checking once reasonably satisfied and continue without a payment-chasing draft. Record the evidence and any inferred match without presenting it as provider-confirmed. Apply the Payments policy in `UBIQUITOUS_LANGUAGE.md`, including qualifying partial payments.
-
-When existing evidence is insufficient, make a focused read-only BTCPay check, using Stripe or server records only as needed. If reasonably confident the fee remains unpaid, stop with a payment-support draft before ZIP/file processing. If access fails, prominently report the failed check and missing access, but proceed when other credible evidence reasonably supports payment. Seek a concise human decision only for substantive contradictory evidence or when no reasonable basis for accepting payment remains after the focused check; do not pursue exhaustive fraud checks or demand more proof merely to eliminate residual doubt. Payment review does not authorize historical notification replay, refunds, changes to provider payment states, or external replies.
+Enter only after any existing-athlete security gate is satisfied. Review the complete application and every proof before requesting payment, even when the audit says unpaid. Unpaid status does not block private ZIP/file/proof review; it still blocks acceptance unless payment is reasonably supported or explicitly waived. Resolve confirmed evidence/eligibility blockers first and ask the applicant to hold off paying while those remain.
 
 Download ZIPs only through the bundled helper, never Gmail `read_attachment`, Chrome, Computer Use, web attachment controls/URLs, or browser fetch/XHR/downloads. Unsupported ZIP responses and oversized MIME output are expected connector limitations, not fallback authorization. Diagnose/fix the helper path; if still blocked, report it. Manual download requires the user to choose that fallback.
 
@@ -127,7 +127,13 @@ Bortz age requires one record containing:
 
 `MonocytePc` and `NeutrophilPc` are stored percentages; the site derives counts from WBC.
 
-Block and draft a specific reply for missing/irreconcilable evidence, mixed tests, unsafe redaction, unpaid fees, wrong/unexpected folders, unverifiable ownership, or unresolved history contradictions. Missing required history/ledger/security checks must be resolved before continuing; named submissions may bypass ledger skips. If processing occurred before security confirmation, report it and stop. Keep uncertain secondary findings in the human summary.
+Block and draft a specific reply for missing/irreconcilable evidence, mixed tests, unsafe redaction, wrong/unexpected folders, unverifiable ownership, or unresolved history contradictions. Defer payment requests until the proof/data review otherwise supports acceptance. Missing required history/ledger/security checks must be resolved before continuing; named submissions may bypass ledger skips. If processing occurred before security confirmation, report it and stop. Keep uncertain secondary findings in the human summary.
+
+## Review Payment After Proofs
+
+Only after the proof/data review otherwise supports acceptance, assess payment with reasonable confidence, not certainty: the user accepts occasional unpaid applicants slipping through rather than wrongly blocking honest ones. A credible receipt or payment confirmation, including an applicant's confirmation with consistent supporting context, or a provider payment reasonably matching the applicant and amount/time is sufficient. Exact invoice/order/submission-ID linkage and corroboration from both BTCPay and Stripe are helpful, not mandatory. Missing Gmail confirmation, imperfect metadata, or a different payer email alone must not block acceptance when payment is reasonably supported. Stop checking once reasonably satisfied and continue without a payment-chasing draft. Record evidence and inferred matches honestly. Apply the Payments policy in `UBIQUITOUS_LANGUAGE.md`, including qualifying partial payments.
+
+When existing evidence is insufficient, make a focused read-only BTCPay check, using Stripe or server records only as needed. If reasonably confident the fee remains unpaid, prepare a contextual payment-support draft after the completed review, not instead of it. If access fails, prominently report the failed check and missing access, but proceed when other credible evidence reasonably supports payment. Seek a concise human decision only for substantive contradictions or when no reasonable basis for accepting payment remains; do not pursue exhaustive fraud checks merely to eliminate residual doubt. Payment review does not authorize notification replay, refunds, provider-state changes, or unapproved replies.
 
 ## Choose and Save the Draft Sender
 
@@ -144,7 +150,7 @@ For ordinary/full-application replies, prefer requester `Reply-To` or `Account e
 3. Open that exact draft from Gmail Drafts in the Codex in-app Browser under `adam.ficsor73@gmail.com`. Identify the displayed account email, not a fixed `/u/0` or `/u/1`; do not open the source Inbox message or create a browser replacement draft.
 4. Expand headers, select `From`, and confirm recipient/subject/body. Save and close without sending.
 5. Verify `From` and exact thread ID using `list_drafts` or underlying message metadata. Stop if the profile/send-as route is unavailable, sender is wrong, or thread identity cannot be proved; do not present an incorrect draft as ready.
-6. Verify/restore every current submission's `UNREAD` and report both expected and saved draft thread IDs.
+6. Verify each current submission's read state under the Operating Invariants, restoring `UNREAD` where required, and report both expected and saved draft thread IDs.
 
 ## Reply Content
 
@@ -152,7 +158,7 @@ Continue the latest direct exchange in a warm, concise human voice. Match demons
 
 Language priority: explicit user/athlete instruction; otherwise a clearly non-English `Why` field; otherwise latest direct exchange; otherwise English. Localize the entire reply, retaining names, URLs, biomarker labels, and exact values. Lab-report language alone does not establish preference.
 
-For paid new applications blocked by missing evidence, introduce Adam on first contact, ask only about the confirmed blocker, and offer a refund if the evidence may not exist. Typical blockers need just the missing markers, same-draw requirement, requested safe proof, or outstanding payment explained.
+For new applications blocked by missing evidence, introduce Adam on first contact and ask only about the confirmed blocker. If unpaid, tell them to hold off paying until the evidence can be verified; if already paid and the evidence may not exist, offer a refund. Request only the missing markers, same-draw evidence, or safe proof needed, not a premature payment.
 
 Every accepted full-application welcome briefly introduces Adam as LWC's founder, even after requested corrections. Include acceptance, the new profile link, and an invitation to report corrections. Acknowledge the actual preceding exchange without repeating an earlier greeting.
 
@@ -205,5 +211,5 @@ For either email branch:
 
 1. Re-read the current submission anchor and approved draft. Require its thread ID to equal `expectedThreadId`; recheck `From`, recipient, subject, and body before sending.
 2. Send and verify both send-result and sent-message thread IDs against `expectedThreadId`. On mismatch, report the incident and stop without retrying or claiming success.
-3. Verify/restore all current submissions' `UNREAD`. Report expected, saved-draft, send-result, and sent-message thread IDs, sender, send status, and unread/restorations.
+3. Apply the Operating Invariants read-state rule: only a verified, explicitly approved send that is not answering athlete-authored mail permits marking its exact automated submission notice read. Otherwise verify/restore current submissions' `UNREAD`. Report all four thread IDs, sender, send status, and verified read/unread state or restorations.
 4. For accepted changes, append the finalized ledger entry and report commit, pushed branch, and profile URL. For security-only sending, confirm no repository/ledger change and that processing remains pending athlete confirmation.
