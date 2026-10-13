@@ -1299,6 +1299,7 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity) {
                     bortzAgeReduction: bortzAgeReduction,
                     bortzAgeReductionPercent: bortzAgeReductionPercent,
                     lowestPhenoAge: lowestPhenoAge,
+                    hasPhenoRankData: Number.isFinite(lowestPhenoAge) && valuesForLowestPhenoAge != null,
                     chronoAtLowestPhenoAge: chronoAtLowestPhenoAge,
                     ageReduction: ageReduction,
                     ageReductionPercent: ageReductionPercent,
@@ -3347,7 +3348,7 @@ function buildFlagTeams(entries, view) {
     });
     const definitions = {
         bortz: [a => a.bortzAgeReduction, a => Number.isFinite(a.bortzAgeReduction), window.compareAthleteRank],
-        pheno: [a => a.ageReduction, a => a.submissionCount > 0 && Number.isFinite(a.ageReduction), window.compareAthleteRankPhenoOnly],
+        pheno: [a => a.ageReduction, a => a.hasPhenoRankData && Number.isFinite(a.ageReduction), window.compareAthleteRankPhenoOnly],
         crowd: [a => a.crowdAgeReduction, a => a.crowdCount >= 100 && Number.isFinite(a.crowdAgeReduction), window.compareAthleteRankCrowdAge],
         improvement: [a => a.phenoAgeImprovement, a => Number.isFinite(a.phenoAgeImprovement), window.compareAthleteRankPhenoImprovement],
         'bortz-improvement': [a => a.bortzAgeImprovement, a => Number.isFinite(a.bortzAgeImprovement), window.compareAthleteRankBortzImprovement]
@@ -3355,8 +3356,9 @@ function buildFlagTeams(entries, view) {
     const teams = [...groups.values()].map(group => {
         const candidates = (view === 'ultimate' ? ['bortz', 'pheno'] : [view]).map(clock => {
             const [metric, eligible, compare] = definitions[clock];
-            const top = group.entries.map(entry => entry.athlete).filter(eligible).sort(compare).slice(0, 3);
-            return { ...group, view: clock, top, values: top.map(metric), score: top.reduce((sum, athlete) => sum + metric(athlete), 0) };
+            const eligibleEntries = group.entries.filter(entry => eligible(entry.athlete));
+            const top = eligibleEntries.map(entry => entry.athlete).sort(compare).slice(0, 3);
+            return { ...group, eligibleEntries, view: clock, top, values: top.map(metric), score: top.reduce((sum, athlete) => sum + metric(athlete), 0) };
         });
         return candidates.sort((a, b) => b.top.length - a.top.length || (a.view === 'bortz' ? -1 : 1))[0];
     }).filter(team => team.top.length > 0).sort((a, b) =>
@@ -3374,11 +3376,17 @@ function buildFlagTeams(entries, view) {
 
 function renderFlagTeams(teams, view) {
     const container = document.getElementById('flagLeaderboard');
+    const focused = document.activeElement;
+    const focusedTeam = focused?.closest?.('.flag-team');
+    const focusedHref = focused?.closest?.('.flag-athlete-link')?.getAttribute('href');
+    const existingTeams = new Map([...container.querySelectorAll('.flag-team')].map(element => [element.id, element]));
+    const existingHeadings = new Map([...container.querySelectorAll('.flag-section-heading')].map(element => [element.textContent, element]));
     const open = new Set([...container.querySelectorAll('details[open]')].map(element => element.id));
     const labels = { bortz: 'Bortz Age', pheno: 'Pheno Age', crowd: 'Crowd Age', improvement: 'Pheno Improvement', 'bortz-improvement': 'Bortz Improvement' };
     const signed = (number, decimals) => `${number > 0 ? '+' : ''}${number.toFixed(decimals)}`;
     let previousSection = '';
-    container.innerHTML = teams.map(team => {
+    const template = document.createElement('template');
+    template.innerHTML = teams.map(team => {
         const id = `flag-team-${team.key}`;
         const icon = getFlagIconCode(team.flag);
         const section = team.rank ? view === 'ultimate' ? labels[team.view] : '' : 'Incomplete teams';
@@ -3391,6 +3399,43 @@ function renderFlagTeams(teams, view) {
             <span class="flag-team-score">${team.rank ? signed(team.score, 2) : `${team.top.length}/3`}<small>${team.rank ? 'years total' : 'to qualify'}</small></span><span class="flag-team-chevron" aria-hidden="true">⌄</span></summary>
             <ol class="flag-team-athletes" aria-label="Top ${labels[team.view]} athletes for ${escapeHtml(team.flag)}">${team.top.map((a, index) => `<li><a class="flag-athlete-link" href="${escapeHtml(getAthleteProfileHref(a))}"><span class="flag-athlete-rank" title="Rank within this team">${index + 1}</span><img src="${escapeHtml(getAthletePortraitUrl(a))}" alt="" loading="lazy"><span class="flag-athlete-name">${escapeHtml(a.displayName)}<small>${hasBortzRankData(a) ? 'Pro' : 'Amateur'}</small></span><span class="flag-athlete-metric">${signed(team.values[index], 1)}<small>years</small></span></a></li>`).join('')}</ol></details>`;
     }).join('') || '<p class="flag-empty">No flags match this leaderboard.</p>';
+    const nextChildren = [...template.content.children].map(incoming => {
+        if (incoming.classList.contains('flag-section-heading')) {
+            return existingHeadings.get(incoming.textContent) || incoming;
+        }
+        const existing = existingTeams.get(incoming.id);
+        if (!existing) {
+            incoming._flagMarkup = incoming.innerHTML;
+            return incoming;
+        }
+        // Keep the disclosure and summary themselves stable during hydration,
+        // retries and filtering. Unchanged cards also retain portrait fallbacks.
+        const nextMarkup = incoming.innerHTML;
+        if (existing._flagMarkup !== nextMarkup) {
+            for (const selector of ['summary', '.flag-team-athletes']) {
+                const currentPart = existing.querySelector(selector);
+                const nextPart = incoming.querySelector(selector);
+                for (const attribute of nextPart.attributes) currentPart.setAttribute(attribute.name, attribute.value);
+                currentPart.replaceChildren(...nextPart.childNodes);
+            }
+            existing._flagMarkup = nextMarkup;
+        }
+        existing.dataset.clock = incoming.dataset.clock;
+        existing.dataset.flag = incoming.dataset.flag;
+        return existing;
+    });
+    nextChildren.forEach((element, index) => {
+        if (container.children[index] !== element) container.insertBefore(element, container.children[index] || null);
+    });
+    while (container.children.length > nextChildren.length) container.lastElementChild.remove();
+    if (focusedTeam && document.activeElement !== focused) {
+        const retained = existingTeams.get(focusedTeam.id);
+        const matchingLink = retained?.isConnected && focusedHref
+            ? [...retained.querySelectorAll('.flag-athlete-link')].find(link => link.getAttribute('href') === focusedHref)
+            : null;
+        const focusTarget = focused.isConnected ? focused : matchingLink || (retained?.isConnected ? retained.querySelector('summary') : document.getElementById('athleteSearch'));
+        focusTarget?.focus({ preventScroll: true });
+    }
     container.querySelectorAll('.flag-team').forEach((element, index) => {
         element.addEventListener('toggle', scheduleLeaderboardTableHeightSync);
         const team = teams[index];
@@ -3526,6 +3571,7 @@ function performFilter({ updateUrl = true } = {}) {
 
     const searchTextByAthlete = new Map(athleteResults.map(athlete => [athlete, [
         athlete.name,
+        athlete.displayName,
         athleteBadgeTextByName.get(athlete.name) || '',
         athlete.mediaContact || '',
         `${athlete.flag || ''} ${athlete.canonicalFlag || ''}`,
@@ -3574,14 +3620,22 @@ function performFilter({ updateUrl = true } = {}) {
     };
 
     if (selectedState.byFlag) {
-        const entries = getMatchingEntries(selectedState, false);
-        const teams = buildFlagTeams(entries, currentLeaderboardView);
-        const matchingTeams = teams.filter(team => uniqueSearchTerms.every(term =>
-            window.normalizeString(team.flag).includes(term) ||
-            team.entries.some(entry => searchTextByAthlete.get(entry.athlete).includes(term))));
+        const matchingTeamsByState = new Map();
+        const getMatchingFlagTeams = state => {
+            const key = JSON.stringify(state);
+            if (!matchingTeamsByState.has(key)) {
+                const teams = buildFlagTeams(getMatchingEntries(state, false), state.view);
+                matchingTeamsByState.set(key, teams.filter(team => uniqueSearchTerms.every(term =>
+                    window.normalizeString(team.flag.toLowerCase()).includes(term) ||
+                    team.entries.some(entry => searchTextByAthlete.get(entry.athlete).includes(term)))));
+            }
+            return matchingTeamsByState.get(key);
+        };
+        const getMatchingFlagEntries = state => getMatchingFlagTeams(state).flatMap(team => team.eligibleEntries);
+        const matchingTeams = getMatchingFlagTeams(selectedState);
         renderFlagTeams(matchingTeams.slice(0, maxAthletesGlobal), currentLeaderboardView);
         updateViewAllAthletesButton(matchingTeams.length);
-        updateFilterCounts(selectedState, getMatchingEntries, entries);
+        updateFilterCounts(selectedState, getMatchingFlagEntries, getMatchingFlagEntries(selectedState));
         updateLeaderboardTitles(selectedState);
         document.querySelector('.podium')?.style.setProperty('display', 'none');
         updateLeaderboardStructuredData(matchingTeams.slice(0, maxAthletesGlobal));

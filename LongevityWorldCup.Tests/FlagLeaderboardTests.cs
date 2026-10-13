@@ -85,6 +85,7 @@ public sealed class FlagLeaderboardTests
         Assert.Contains("1/3", html);
         Assert.Contains("Unranked", html);
         Assert.DoesNotContain("<script>", html);
+        Assert.DoesNotContain("src=\"\"", html);
     }
 
     [Fact]

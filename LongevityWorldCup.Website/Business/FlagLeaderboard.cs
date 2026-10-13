@@ -26,12 +26,7 @@ public static class FlagLeaderboard
                 var clocks = view == "ultimate" ? new[] { "bortz", "pheno" } : [view];
                 return clocks.Select(clock =>
                 {
-                    var top = members.Where(athlete => Eligible(athlete, clock))
-                        .OrderBy(athlete => athlete.Metric(clock))
-                        .ThenByDescending(athlete => clock == "crowd" ? athlete.Stats.CrowdCount : 0)
-                        .ThenBy(athlete => clock == "improvement" ? athlete.Stats.AgeReduction : clock == "bortz-improvement" ? athlete.Stats.BortzAgeReduction : 0)
-                        .ThenBy(athlete => athlete.Stats.DobUtc)
-                        .ThenBy(athlete => athlete.Stats.Name, StringComparer.Ordinal)
+                    var top = Order(members.Where(athlete => Eligible(athlete, clock)), clock)
                         .Take(3).Select(athlete => athlete.Row with { EffectiveAgeReductionYears = athlete.Metric(clock) }).ToArray();
                     return new FlagLeaderboardTeam(group.First().Flag!, top, members.Length, clock,
                         top.Sum(row => row.EffectiveAgeReductionYears!.Value), null);
@@ -60,4 +55,26 @@ public static class FlagLeaderboard
         "crowd" => athlete.Stats.CrowdCount >= 100,
         _ => true
     };
+
+    private static IEnumerable<PublicAthlete> Order(IEnumerable<PublicAthlete> eligible, string view)
+    {
+        var candidates = eligible.ToArray();
+        var bySlug = candidates.ToDictionary(athlete => athlete.Row.Slug, StringComparer.Ordinal);
+        IEnumerable<string> order = view switch
+        {
+            "crowd" => CompetitionRanking.SortByCrowdAgeRules(candidates.Select(athlete => new CrowdAgeRankCandidate(
+                athlete.Row.Slug, athlete.Stats.Name, athlete.Stats.CrowdAge!.Value, athlete.Metric(view)!.Value,
+                athlete.Stats.CrowdCount, athlete.Stats.DobUtc!.Value))).Select(athlete => athlete.Slug),
+            "improvement" => CompetitionRanking.SortByPhenoAgeImprovementRules(candidates.Select(athlete => new PhenoAgeImprovementRankCandidate(
+                athlete.Row.Slug, athlete.Stats.Name, athlete.Metric(view)!.Value, athlete.Stats.AgeReduction ?? 0,
+                athlete.Stats.DobUtc!.Value))).Select(athlete => athlete.Slug),
+            "bortz-improvement" => CompetitionRanking.SortByBortzAgeImprovementRules(candidates.Select(athlete => new BortzAgeImprovementRankCandidate(
+                athlete.Row.Slug, athlete.Stats.Name, athlete.Metric(view)!.Value, athlete.Stats.BortzAgeReduction ?? 0,
+                athlete.Stats.DobUtc!.Value))).Select(athlete => athlete.Slug),
+            _ => CompetitionRanking.SortByCompetitionRules(candidates.Select(athlete => new CompetitionRankCandidate(
+                athlete.Row.Slug, athlete.Stats.Name, false, athlete.Metric(view)!.Value,
+                athlete.Stats.DobUtc!.Value))).Select(athlete => athlete.Slug)
+        };
+        return order.Select(slug => bySlug[slug]);
+    }
 }

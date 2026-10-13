@@ -22,14 +22,14 @@ public static class FlagLeaderboardHtmlRenderer
                 .Append($"<span class=\"flag-team-name\"><span class=\"flag-team-icon\" aria-hidden=\"true\">{Icon(team.Flag.Name)}</span><span>{Encode(team.Flag.Name)}</span></span>")
                 .Append("<span class=\"flag-team-portraits\" aria-hidden=\"true\">");
             foreach (var athlete in team.Athletes)
-                html.Append($"<img src=\"{Encode(athlete.LeaderboardThumbnailUrl)}\" alt=\"\" loading=\"lazy\">");
+                html.Append($"<img src=\"{Portrait(athlete)}\" alt=\"\" loading=\"lazy\">");
             html.Append($"</span><span class=\"flag-team-score\">{(team.Rank.HasValue ? PublicHtmlFormat.Signed(team.Score, 2) : team.Athletes.Count + "/3")}<small>{(team.Rank.HasValue ? "years total" : "to qualify")}</small></span><span class=\"flag-team-chevron\" aria-hidden=\"true\">⌄</span></summary><ol class=\"flag-team-athletes\" aria-label=\"Top {FlagLeaderboard.Label(team.View)} athletes for {Encode(team.Flag.Name)}\">");
             var place = 0;
             foreach (var athlete in team.Athletes)
             {
                 place++;
                 html.Append($"<li><a class=\"flag-athlete-link\" href=\"{Encode(athlete.AthletePath)}\"><span class=\"flag-athlete-rank\" title=\"Rank within this team\">{place}</span>")
-                    .Append($"<img src=\"{Encode(athlete.LeaderboardThumbnailUrl)}\" alt=\"\" loading=\"lazy\"><span class=\"flag-athlete-name\">{Encode(athlete.DisplayName)}<small>{athlete.Track}</small></span>")
+                    .Append($"<img src=\"{Portrait(athlete)}\" alt=\"\" loading=\"lazy\"><span class=\"flag-athlete-name\">{Encode(athlete.DisplayName)}<small>{athlete.Track}</small></span>")
                     .Append($"<span class=\"flag-athlete-metric\">{PublicHtmlFormat.Signed(athlete.EffectiveAgeReductionYears, 1)}<small>years</small></span></a></li>");
             }
             html.Append("</ol></details>");
@@ -86,6 +86,9 @@ public static class FlagLeaderboardHtmlRenderer
 
     private static string Icon(string name) => IconCodes.TryGetValue(name, out var code)
         ? $"<span class=\"fi fi-{code}\"></span>" : "<i class=\"fas fa-flag\"></i>";
+
+    private static string Portrait(LeaderboardSnapshotRow athlete) => string.IsNullOrWhiteSpace(athlete.LeaderboardThumbnailUrl)
+        ? "{{ASSET_HD_LOGO_THUMB_SM}}" : Encode(athlete.LeaderboardThumbnailUrl);
 
     private static string Encode(string? value) => WebUtility.HtmlEncode(value ?? "");
 }

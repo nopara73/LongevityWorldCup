@@ -14,6 +14,8 @@ public sealed class FlagLeaderboardBrowserTests(PlaywrightBrowserFixture browser
     [InlineData("/league/pheno?group=flags")]
     [InlineData("/league/bortz?group=flags")]
     [InlineData("/league/crowd?group=flags")]
+    [InlineData("/league/improvement?group=flags")]
+    [InlineData("/league/bortz-improvement?group=flags")]
     [InlineData("/leaderboard?group=flags&filters=women%27s")]
     public async Task InitialHtmlAndHydration_ShowTheSameTeamsAndScores(string path)
     {
