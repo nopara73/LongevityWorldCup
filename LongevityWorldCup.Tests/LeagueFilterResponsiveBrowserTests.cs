@@ -10,6 +10,35 @@ public sealed class LeagueFilterResponsiveBrowserTests(
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public async Task FullBoard_HeadersKeepWholeWordsWithEnlargedText(bool dark, bool filtersOpen)
+    {
+        await using var context = await HomepageChromeRegressionBrowserTests.NewContextAsync(Browser, App, ReducedMotion.Reduce);
+        var page = await context.NewPageAsync();
+        await page.SetViewportSizeAsync(1440, 900);
+        await page.EmulateMediaAsync(new() { ColorScheme = dark ? ColorScheme.Dark : ColorScheme.Light });
+        await page.GotoAsync("/leaderboard", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+        await page.EvaluateAsync("document.documentElement.style.fontSize = '200%'");
+        if (filtersOpen) await page.Locator(".sidebar-toggle").ClickAsync();
+        await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
+        var brokenWords = await page.Locator(".leaderboard thead th").EvaluateAllAsync<string[]>(
+            """
+            headers => headers.filter(header => header.getBoundingClientRect().width > 0).flatMap(header => {
+                const style = getComputedStyle(header), canvas = document.createElement('canvas').getContext('2d');
+                canvas.font = [style.fontStyle, style.fontWeight, style.fontSize, style.fontFamily].join(' ');
+                const word = header.textContent.trim().split(/\s+/)[0];
+                const available = header.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+                return canvas.measureText(word).width > available + 1 ? [word] : [];
+            })
+            """);
+        Assert.Empty(brokenWords);
+    }
+
+    [Theory]
     [InlineData(false, 100)]
     [InlineData(true, 100)]
     [InlineData(false, 200)]
