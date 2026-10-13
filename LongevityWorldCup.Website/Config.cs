@@ -26,9 +26,6 @@ namespace LongevityWorldCup.Website
         private string ConfigFilePath => _configFilePath ?? DefaultConfigFilePath;
         private string RuntimeConfigFilePath => _runtimeConfigFilePath ?? GetDefaultRuntimeConfigFilePath();
 
-        public string? GmailClientId { get; set; }
-        public string? GmailClientSecret { get; set; }
-        public string? GmailRefreshToken { get; set; }
         public string? SlackWebhookUrl { get; set; }
         public string? SlackErrorWebhookUrl { get; set; }
         public string? BTCPayBaseUrl { get; set; }
@@ -75,6 +72,17 @@ namespace LongevityWorldCup.Website
         public string? RedditBridgeSecretHash { get; set; }
         public string? CustomEventDesignerSecretHash { get; set; }
         public LongevitymaxxingChallengeConfig? LongevitymaxxingChallenge { get; set; }
+
+        internal string GetSmtpPassword()
+        {
+            var password = Environment.GetEnvironmentVariable("LWC_SMTP_PASSWORD");
+            if (string.IsNullOrWhiteSpace(password))
+                password = SmtpPassword;
+
+            return !string.IsNullOrWhiteSpace(password)
+                ? password.Trim()
+                : throw new InvalidOperationException("SmtpPassword or LWC_SMTP_PASSWORD must be configured.");
+        }
 
         // Load configuration from the file
         public static async Task<Config> LoadAsync()

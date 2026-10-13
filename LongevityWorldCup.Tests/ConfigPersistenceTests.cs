@@ -20,7 +20,8 @@ public sealed class ConfigPersistenceTests
 
         var config = await Config.LoadAsync(configPath, Path.Combine(temp.Path, "runtime-config.json"));
         Assert.Equal("hi@longevityworldcup.com", config.EmailFrom);
-        Assert.Equal("smtp.gmail.com", config.SmtpServer);
+        Assert.Equal("smtp.resend.com", config.SmtpServer);
+        Assert.Equal("resend", config.SmtpUser);
         Assert.NotNull(config.LongevitymaxxingChallenge);
         Assert.Empty(Directory.EnumerateFiles(temp.Path, "*.tmp"));
     }

@@ -538,9 +538,9 @@ namespace LongevityWorldCup.Website
             {
                 EmailFrom = "hi@longevityworldcup.com",
                 EmailTo = "longevityworldcup@gmail.com",
-                SmtpServer = "smtp.gmail.com",
+                SmtpServer = "smtp.resend.com",
                 SmtpPort = 587,
-                SmtpUser = "longevityworldcup@gmail.com",
+                SmtpUser = "resend",
                 SmtpPassword = "",
                 SlackWebhookUrl = "",
                 SlackErrorWebhookUrl = "",

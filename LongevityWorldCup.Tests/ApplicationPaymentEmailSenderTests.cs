@@ -11,8 +11,33 @@ using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
+[Collection("SMTP environment")]
 public sealed class ApplicationPaymentEmailSenderTests
 {
+    [Fact]
+    public async Task MissingPassword_DoesNotConnectOrRecordDispatchIntent()
+    {
+        var originalPassword = Environment.GetEnvironmentVariable("LWC_SMTP_PASSWORD");
+        try
+        {
+            Environment.SetEnvironmentVariable("LWC_SMTP_PASSWORD", null);
+            var config = Config();
+            config.SmtpPassword = null;
+            var smtp = new FakeSmtpClient();
+            var marked = false;
+            var error = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                Sender(smtp).SendAsync(config, Payment(), () => marked = true, CancellationToken.None));
+            Assert.Equal("SmtpPassword or LWC_SMTP_PASSWORD must be configured.", error.Message);
+            Assert.False(marked);
+            Assert.Equal(0, smtp.ConnectCalls);
+            Assert.Equal(0, smtp.SendCalls);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("LWC_SMTP_PASSWORD", originalPassword);
+        }
+    }
+
     [Fact]
     public async Task DisconnectFailureAfterAcknowledgement_DoesNotCauseRetry()
     {
@@ -76,10 +101,14 @@ public sealed class ApplicationPaymentEmailSenderTests
         public Exception? ConnectFailure;
         public Exception? SendFailure;
         public Exception? DisconnectFailure;
+        public int ConnectCalls;
         public int SendCalls;
 
         public override Task ConnectAsync(string host, int port, SecureSocketOptions options, CancellationToken cancellationToken = default)
-            => ConnectFailure is null ? Task.CompletedTask : Task.FromException(ConnectFailure);
+        {
+            ConnectCalls++;
+            return ConnectFailure is null ? Task.CompletedTask : Task.FromException(ConnectFailure);
+        }
 
         public override Task AuthenticateAsync(Encoding encoding, ICredentials credentials, CancellationToken cancellationToken = default)
             => Task.CompletedTask;

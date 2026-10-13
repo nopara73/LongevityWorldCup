@@ -489,12 +489,11 @@ sudo nano /var/www/LongevityWorldCup/publish/config.json
 
 The app may also create `/var/www/.longevityworldcup/runtime-config.json` for rotated X, Threads, Facebook, and Instagram tokens when `publish/config.json` is read-only to `www-data`.
 
-Make sure to publish the app at the unisable google website if it's a new setup. Otherwise refresh token expires in 7 days: https://console.cloud.google.com/auth/audience  
-Publish before generating refresh token!
-
-Copy google SMTP credentials into the config file:
-- Find the client ID and secret at https://console.cloud.google.com/apis/credentials
-- Generate refresh token at https://developers.google.com/oauthplayground/
+Configure email delivery through Resend with `SmtpServer: "smtp.resend.com"`,
+`SmtpPort: 587`, and `SmtpUser: "resend"`. Set the Resend API key as `SmtpPassword`
+in the protected config file or as the service's `LWC_SMTP_PASSWORD` environment
+variable, which takes precedence. All email senders use STARTTLS and require a
+password before connecting. Gmail OAuth credentials are no longer used.
 
 ### Integrations
 #### Slack
@@ -519,7 +518,7 @@ Add BTCPay entries to `config.json`:
 ```
 
 Notes:
-- Keep `BTCPayGreenfieldApiKey` secret, same handling as SMTP/Google secrets.
+- Keep `BTCPayGreenfieldApiKey` secret, same handling as SMTP secrets.
 - Required API key permissions: `btcpay.store.cancreateinvoice`, `btcpay.store.canviewinvoices`.
 - Public-host checkout redirects use `https://longevityworldcup.com/review`, including behind the HTTP reverse proxy. Local/onion origins and result/profile review parameters are preserved. Existing invoices using `/onboarding/application-review.html` remain supported by a permanent redirect.
 

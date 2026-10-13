@@ -22,22 +22,13 @@ public sealed class SmtpApplicationPaymentEmailSender(ILogger<SmtpApplicationPay
 
     public async Task SendAsync(Config config, ApplicationPayment payment, Action beforeSend, CancellationToken ct)
     {
+        var user = Required(config.SmtpUser);
+        var password = config.GetSmtpPassword();
         using var message = BuildMessage(config, payment);
         using var client = _createClient();
         client.Timeout = checked((int)PublicRequestTimeoutPolicies.ApplicationExternalDependencyTimeout.TotalMilliseconds);
         await client.ConnectAsync(Required(config.SmtpServer), config.SmtpPort, SecureSocketOptions.StartTls, ct);
-        var user = Required(config.SmtpUser);
-        var password = Environment.GetEnvironmentVariable("LWC_SMTP_PASSWORD");
-        if (string.IsNullOrWhiteSpace(password)) password = config.SmtpPassword;
-        if (!string.IsNullOrWhiteSpace(password))
-            await client.AuthenticateAsync(user, password.Trim(), ct);
-        else
-        {
-            var token = await GmailAuth.GetAccessTokenAsync(config, ct);
-            client.AuthenticationMechanisms.Remove("LOGIN");
-            client.AuthenticationMechanisms.Remove("PLAIN");
-            await client.AuthenticateAsync(new SaslMechanismOAuth2(user, token), ct);
-        }
+        await client.AuthenticateAsync(user, password, ct);
 
         ct.ThrowIfCancellationRequested();
         beforeSend();

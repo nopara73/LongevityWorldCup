@@ -20,7 +20,7 @@ public sealed class SmtpDiscountSignupReportEmailSender : IDiscountSignupReportE
         var smtpServer = RequireConfiguredValue(config.SmtpServer, nameof(config.SmtpServer));
         var smtpUser = RequireConfiguredValue(config.SmtpUser, nameof(config.SmtpUser));
         var smtpPort = RequireConfiguredPort(config.SmtpPort);
-        var smtpPassword = GetConfiguredSecret(config.SmtpPassword, "LWC_SMTP_PASSWORD");
+        var smtpPassword = config.GetSmtpPassword();
         var recipients = RequireConfiguredRecipients(recipientEmails);
 
         var message = new MimeMessage();
@@ -35,18 +35,7 @@ public sealed class SmtpDiscountSignupReportEmailSender : IDiscountSignupReportE
         using var client = new SmtpClient();
         await client.ConnectAsync(smtpServer, smtpPort, SecureSocketOptions.StartTls, ct).ConfigureAwait(false);
 
-        if (!string.IsNullOrWhiteSpace(smtpPassword))
-        {
-            await client.AuthenticateAsync(smtpUser, smtpPassword, ct).ConfigureAwait(false);
-        }
-        else
-        {
-            var accessToken = await GmailAuth.GetAccessTokenAsync(config).ConfigureAwait(false);
-            client.AuthenticationMechanisms.Remove("LOGIN");
-            client.AuthenticationMechanisms.Remove("PLAIN");
-            var oauth2 = new SaslMechanismOAuth2(smtpUser, accessToken);
-            await client.AuthenticateAsync(oauth2, ct).ConfigureAwait(false);
-        }
+        await client.AuthenticateAsync(smtpUser, smtpPassword, ct).ConfigureAwait(false);
 
         await client.SendAsync(message, ct).ConfigureAwait(false);
         await client.DisconnectAsync(true, ct).ConfigureAwait(false);
@@ -66,15 +55,6 @@ public sealed class SmtpDiscountSignupReportEmailSender : IDiscountSignupReportE
             throw new InvalidOperationException($"{nameof(Config.SmtpPort)} must be configured with a positive port.");
 
         return value;
-    }
-
-    private static string? GetConfiguredSecret(string? configValue, string environmentVariableName)
-    {
-        var environmentValue = Environment.GetEnvironmentVariable(environmentVariableName);
-        if (!string.IsNullOrWhiteSpace(environmentValue))
-            return environmentValue.Trim();
-
-        return string.IsNullOrWhiteSpace(configValue) ? null : configValue.Trim();
     }
 
     private static IReadOnlyList<string> RequireConfiguredRecipients(IReadOnlyList<string>? recipientEmails)

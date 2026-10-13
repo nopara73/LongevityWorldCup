@@ -181,7 +181,7 @@ public sealed class SmtpLongevitymaxxingEmailSender(Config config, ILogger<SmtpL
         var smtpServer = RequireConfiguredValue(_config.SmtpServer, nameof(_config.SmtpServer));
         var smtpUser = RequireConfiguredValue(_config.SmtpUser, nameof(_config.SmtpUser));
         var smtpPort = RequireConfiguredPort(_config.SmtpPort);
-        var smtpPassword = GetConfiguredSecret(_config.SmtpPassword, "LWC_SMTP_PASSWORD");
+        var smtpPassword = _config.GetSmtpPassword();
 
         var message = new MimeMessage();
         message.From.Add(new MailboxAddress("Longevity World Cup", RequireConfiguredValue(_config.EmailFrom, nameof(_config.EmailFrom))));
@@ -222,18 +222,6 @@ public sealed class SmtpLongevitymaxxingEmailSender(Config config, ILogger<SmtpL
         if (value <= 0)
             throw new InvalidOperationException($"{nameof(Config.SmtpPort)} is not configured.");
         return value;
-    }
-
-    private static string GetConfiguredSecret(string? configValue, string environmentVariableName)
-    {
-        var envValue = Environment.GetEnvironmentVariable(environmentVariableName);
-        if (!string.IsNullOrWhiteSpace(envValue))
-            return envValue;
-
-        if (!string.IsNullOrWhiteSpace(configValue))
-            return configValue.Trim();
-
-        throw new InvalidOperationException($"{environmentVariableName} is not configured.");
     }
 }
 
