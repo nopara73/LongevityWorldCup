@@ -53,6 +53,41 @@ public sealed class AthleteReturnNavigationBrowserTests(
     }
 
     [Theory]
+    [InlineData(390, "name", false)]
+    [InlineData(1280, "name", true)]
+    [InlineData(390, "portrait", true)]
+    [InlineData(1280, "portrait", false)]
+    [InlineData(390, "row", false)]
+    [InlineData(1280, "row", true)]
+    public async Task Close_RestoresThePointerOpener(int width, string source, bool stickyClose)
+    {
+        await using var context = await CreateContextAsync(width);
+        var page = await OpenLeaderboardAsync(context);
+        var name = page.Locator(".leaderboard tbody .athlete-name").Filter(new() { HasText = "Michael Lustgarten" }).First;
+        var row = name.Locator("xpath=ancestor::tr");
+        var opener = source == "portrait" ? row.Locator(".athlete-profile-link") : name;
+        if (source == "row")
+            await row.Locator("td").First.ClickAsync();
+        else if (source == "portrait")
+            await row.Locator(".portrait").ClickAsync();
+        else
+            await opener.ClickAsync();
+        await WaitForProfileAsync(page, Michael);
+        if (stickyClose)
+        {
+            await page.Locator("#detailsModal .modal-content").EvaluateAsync("element => element.scrollTop = element.scrollHeight");
+            await page.Locator("#stickyCloseBtn").ClickAsync();
+        }
+        else
+        {
+            await page.Locator("#closeAthleteDetailsModal").ClickAsync();
+        }
+        await Assertions.Expect(page.Locator("#detailsModal")).ToBeHiddenAsync();
+        await Assertions.Expect(opener).ToBeFocusedAsync();
+        Assert.Equal(FilteredPath, new Uri(page.Url).PathAndQuery);
+    }
+
+    [Theory]
     [InlineData("/athlete/michael-lustgarten?source=return-test#profile", "/?source=return-test#profile")]
     [InlineData("/athlete/michael-lustgarten", "/")]
     [InlineData("/?athlete=michael-lustgarten&source=return-test#profile", "/?source=return-test#profile")]

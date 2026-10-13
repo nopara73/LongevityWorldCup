@@ -4333,8 +4333,11 @@ function handleAthleteNameClick(event) {
         return;
     }
 
-    // Fetch the full athlete JSON data
-    fetchFullAthleteData(athleteNameText, athleteData);
+    // Return to the activated control, or the name link for a row/card click.
+    const returnFocusTo = event.target.closest('a.athlete-name, a.athlete-profile-link')
+        || athleteRow.querySelector('a.athlete-name')
+        || athleteRow.querySelector('a.athlete-profile-link');
+    fetchFullAthleteData(athleteNameText, athleteData, { returnFocusTo });
 }
 
 function getAthleteRow(element) {
