@@ -10,15 +10,23 @@ public sealed class LeagueFilterResponsiveBrowserTests(
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Theory]
-    [InlineData(false, false)]
-    [InlineData(true, false)]
-    [InlineData(false, true)]
-    [InlineData(true, true)]
-    public async Task FullBoard_HeadersKeepWholeWordsWithEnlargedText(bool dark, bool filtersOpen)
+    [InlineData(320, false, false)]
+    [InlineData(320, true, false)]
+    [InlineData(320, false, true)]
+    [InlineData(320, true, true)]
+    [InlineData(390, false, false)]
+    [InlineData(390, true, false)]
+    [InlineData(390, false, true)]
+    [InlineData(390, true, true)]
+    [InlineData(1440, false, false)]
+    [InlineData(1440, true, false)]
+    [InlineData(1440, false, true)]
+    [InlineData(1440, true, true)]
+    public async Task FullBoard_HeadersKeepWholeWordsWithEnlargedText(int width, bool dark, bool filtersOpen)
     {
         await using var context = await HomepageChromeRegressionBrowserTests.NewContextAsync(Browser, App, ReducedMotion.Reduce);
         var page = await context.NewPageAsync();
-        await page.SetViewportSizeAsync(1440, 900);
+        await page.SetViewportSizeAsync(width, 900);
         await page.EmulateMediaAsync(new() { ColorScheme = dark ? ColorScheme.Dark : ColorScheme.Light });
         await page.GotoAsync("/leaderboard", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
         await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
@@ -28,11 +36,17 @@ public sealed class LeagueFilterResponsiveBrowserTests(
         var brokenWords = await page.Locator(".leaderboard thead th").EvaluateAllAsync<string[]>(
             """
             headers => headers.filter(header => header.getBoundingClientRect().width > 0).flatMap(header => {
-                const style = getComputedStyle(header), canvas = document.createElement('canvas').getContext('2d');
-                canvas.font = [style.fontStyle, style.fontWeight, style.fontSize, style.fontFamily].join(' ');
-                const word = header.textContent.trim().split(/\s+/)[0];
-                const available = header.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
-                return canvas.measureText(word).width > available + 1 ? [word] : [];
+                const broken = [], walker = document.createTreeWalker(header, NodeFilter.SHOW_TEXT);
+                while (walker.nextNode()) {
+                    const text = walker.currentNode;
+                    for (const word of text.textContent.matchAll(/\p{L}+/gu)) {
+                        const range = document.createRange();
+                        range.setStart(text, word.index); range.setEnd(text, word.index + word[0].length);
+                        const lines = new Set([...range.getClientRects()].filter(rect => rect.height > 0).map(rect => Math.round(rect.top)));
+                        if (lines.size > 1) broken.push(word[0]);
+                    }
+                }
+                return broken;
             })
             """);
         Assert.Empty(brokenWords);

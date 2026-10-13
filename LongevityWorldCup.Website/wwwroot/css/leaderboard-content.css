@@ -2728,10 +2728,10 @@
              display: block;
          }
 
-         /* With enlarged text the score's head wraps before "Athlete" loses room for its word. */
+         /* Wrap whole heading items when text grows beyond the available row width. */
          .leaderboard table thead tr {
-             display: grid;
-             grid-template-columns: minmax(min-content, 2.25rem) minmax(min-content, 1fr) minmax(0, auto);
+             display: flex;
+             flex-wrap: wrap;
              align-items: center;
              column-gap: 0.6rem;
              min-height: 44px;
@@ -2758,15 +2758,17 @@
 
          .leaderboard table thead tr > th:nth-child(1),
          .leaderboard table thead tr > th:nth-child(2) { overflow-wrap: normal; }
-         .leaderboard table thead tr > th:nth-child(1) { text-align: center; }
-         .leaderboard table thead tr > th:nth-child(4) { text-align: right; }
+         .leaderboard table thead tr > th:nth-child(1) { flex: 0 0 2.25rem; text-align: center; }
+         .leaderboard table thead tr > th:nth-child(2) { flex: 1 0 min-content; }
+         .leaderboard table thead tr > th:nth-child(4) { flex: 0 1 auto; min-width: min-content; margin-inline-start: auto; text-align: right; overflow-wrap: normal; }
 
          .leaderboard table thead tr > th:nth-child(4) a {
              display: inline-flex;
              align-items: center;
              justify-content: flex-end;
              min-height: 44px;
-             max-width: none;
+             max-width: 100%;
+             overflow-wrap: normal;
              text-align: right;
          }
 
@@ -3630,7 +3632,8 @@
         full board width instead of being squeezed alongside the filters. */
      @container leaderboard-results (max-width: 45rem) {
          /* Enlarged text needs room for whole header words, rather than doubled gutters. */
-         .leaderboard table th:not(:first-child) { padding-inline: min(var(--lwc-space-4), 8px); }
+         .leaderboard table th:not(:first-child) { padding-inline: min(var(--lwc-space-4), 4px); }
+         .leaderboard table th a { padding-inline: 0; }
          .sidebar.expanded:not(.button-collapsed):not([aria-hidden="true"]) { flex-basis: 100%; width: 100%; position: relative; top: auto; max-height: 55vh; }
          .sidebar.expanded ~ table { flex-basis: 100%; }
          /* The narrow/text-enlarged layout opens with the button. A transient
