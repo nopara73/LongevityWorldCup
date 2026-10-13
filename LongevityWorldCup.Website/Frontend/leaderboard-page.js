@@ -5621,7 +5621,9 @@ function renderBiomarkerChartControls(chart) {
     });
 
     controls.appendChild(select);
-    section.insertBefore(controls, canvas);
+    const heading = section.querySelector('.biomarkers-heading');
+    if (heading) heading.appendChild(controls);
+    else section.insertBefore(controls, canvas);
 }
 
 // Biomarker key order matches bortz-age.html card order (WBC, Lymphocytes, Neutrophils, …)
