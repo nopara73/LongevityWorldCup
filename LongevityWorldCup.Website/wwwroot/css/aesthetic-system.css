@@ -851,7 +851,7 @@ html body .leaderboard-view-switcher .view-badge {
 .leaderboard-view-switcher input:checked + .view-badge {
     background: var(--lwc-surface);
     color: var(--lwc-accent-hover);
-    box-shadow: inset 0 -3px 0 var(--lwc-accent);
+    box-shadow: inset 0 -3px 0 var(--lwc-accent), 0 0 0 1px var(--lwc-accent);
 }
 
 .ranking-explanation {
@@ -987,9 +987,6 @@ html body .leaderboard .athlete-name {
 }
 
 .leaderboard .media-contact i { width: auto; height: auto; font-size: 1.2rem; line-height: 1; }
-
-.leaderboard-selection-heading { min-height: 32px; }
-.leaderboard-selection-heading:has(button:not([hidden])) { min-height: 44px; }
 
 .leaderboard table thead,
 .archive-table thead {
