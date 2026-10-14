@@ -36,6 +36,8 @@ jobs:
           printf '%s\n' "$tracked"
           exit 1
         fi
+    - name: Verify retired static asset cleanup
+      run: sh LongevityWorldCup.Website/Scripts/test-sync-owned-web-assets.sh
     - name: Setup .NET
       uses: actions/setup-dotnet@v6
       with:

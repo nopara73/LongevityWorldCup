@@ -214,6 +214,8 @@ jobs:
               "$publish_output/wwwroot/athletes"/ /var/www/LongevityWorldCup/publish/wwwroot/athletes/
             sudo rsync -a --checksum --delete --no-owner --no-group \
               "$publish_output/wwwroot/js"/ /var/www/LongevityWorldCup/publish/wwwroot/js/
+            sudo sh "$deploy_source/LongevityWorldCup.Website/Scripts/sync-owned-web-assets.sh" \
+              "$publish_output/wwwroot" "$publish_root/wwwroot"
             sudo_frontend_manifest "$publish_root/wwwroot/js" > "$live_manifest"
             if ! cmp -s "$published_manifest" "$live_manifest"; then
               echo "Live frontend assets differ from the verified published assets." >&2
