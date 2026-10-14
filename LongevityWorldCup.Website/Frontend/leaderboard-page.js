@@ -3947,7 +3947,8 @@ function buildLeaderboardPresentation(state) {
         let cohortLabel = [getGenerationLeagueLabel(state.generations), getDivisionLeagueLabel(state.divisions)].filter(Boolean).join(' ');
         if (state.exclusiveLeagues.length > 0) cohortLabel = state.exclusiveLeagues.length === 1 ? state.exclusiveLeagues[0] : 'Exclusive Leagues';
         else if (!cohortLabel && state.leagueTracks.length === 1) cohortLabel = getLeagueTrackLabel(state.leagueTracks[0]);
-        const railText = [cohortLabel, viewPresentation.railText.replace(/ League$/, ''), 'by Flag'].filter(Boolean).join(' ');
+        const clockLabel = state.view === 'ultimate' && cohortLabel ? '' : viewPresentation.railText.replace(/ League$/, '');
+        const railText = [cohortLabel, clockLabel, 'Flag League'].filter(Boolean).join(' ');
         return { railText, documentTitle: railText, accessibleLabel: railText };
     }
     if (state.view !== 'ultimate') {

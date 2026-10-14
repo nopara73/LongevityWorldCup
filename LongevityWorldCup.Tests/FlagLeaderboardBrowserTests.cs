@@ -10,16 +10,17 @@ public sealed class FlagLeaderboardBrowserTests(PlaywrightBrowserFixture browser
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Theory]
-    [InlineData("/leaderboard?group=flags", "Ultimate by Flag")]
-    [InlineData("/league/pheno?group=flags", "Pheno Age by Flag")]
-    [InlineData("/league/bortz?group=flags", "Bortz Age by Flag")]
-    [InlineData("/league/crowd?group=flags", "Crowd Age by Flag")]
-    [InlineData("/league/improvement?group=flags", "Pheno Improvement by Flag")]
-    [InlineData("/league/bortz-improvement?group=flags", "Bortz Improvement by Flag")]
-    [InlineData("/leaderboard?group=flags&filters=women%27s", "Women's Ultimate by Flag")]
-    [InlineData("/leaderboard?group=flags&view=pheno&filters=gen%2520x", "Gen X Pheno Age by Flag")]
-    [InlineData("/flag/hungary?group=flags", "Ultimate by Flag")]
-    [InlineData("/leaderboard?group=flags&view=pheno&filters=hungary", "Pheno Age by Flag")]
+    [InlineData("/leaderboard?group=flags", "Ultimate Flag League")]
+    [InlineData("/league/pheno?group=flags", "Pheno Age Flag League")]
+    [InlineData("/league/bortz?group=flags", "Bortz Age Flag League")]
+    [InlineData("/league/crowd?group=flags", "Crowd Age Flag League")]
+    [InlineData("/league/improvement?group=flags", "Pheno Improvement Flag League")]
+    [InlineData("/league/bortz-improvement?group=flags", "Bortz Improvement Flag League")]
+    [InlineData("/leaderboard?group=flags&filters=women%27s", "Women's Flag League")]
+    [InlineData("/leaderboard?group=flags&view=pheno&filters=gen%2520x", "Gen X Pheno Age Flag League")]
+    [InlineData("/flag/hungary?group=flags", "Ultimate Flag League")]
+    [InlineData("/leaderboard?group=flags&view=pheno&filters=hungary", "Pheno Age Flag League")]
+    [InlineData("/league/amateur?group=flags", "Amateur Flag League")]
     public async Task InitialHtmlAndHydration_ShowTheSameTeamsAndScores(string path, string title)
     {
         await using var plain = await NewContextAsync(Browser, App, new() { JavaScriptEnabled = false });
@@ -74,7 +75,7 @@ public sealed class FlagLeaderboardBrowserTests(PlaywrightBrowserFixture browser
         await page.Locator("label[for=group-flags]").ClickAsync();
         await Assertions.Expect(page.Locator(".flag-team").First).ToBeVisibleAsync();
         await page.Locator("label[for=view-pheno]").ClickAsync();
-        await Assertions.Expect(page.Locator(".collapsed-title")).ToHaveTextAsync("PHENO AGE BY FLAG");
+        await Assertions.Expect(page.Locator(".collapsed-title")).ToHaveTextAsync("PHENO AGE FLAG LEAGUE");
         await page.Locator(".sidebar-toggle").ClickAsync();
         await Assertions.Expect(page.Locator("#flag-filter-section")).ToBeHiddenAsync();
         await page.Locator(".sidebar-close").ClickAsync();
@@ -101,10 +102,10 @@ public sealed class FlagLeaderboardBrowserTests(PlaywrightBrowserFixture browser
         await Assertions.Expect(page.Locator("#detailsModal")).ToBeVisibleAsync();
         await page.Keyboard.PressAsync("Escape");
         await Assertions.Expect(page.Locator("#detailsModal")).ToBeHiddenAsync();
-        Assert.Equal("Pheno Age by Flag | Longevity World Cup", await page.TitleAsync());
+        Assert.Equal("Pheno Age Flag League | Longevity World Cup", await page.TitleAsync());
         await page.ReloadAsync();
         await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
-        await Assertions.Expect(page.Locator(".collapsed-title")).ToHaveTextAsync("PHENO AGE BY FLAG");
+        await Assertions.Expect(page.Locator(".collapsed-title")).ToHaveTextAsync("PHENO AGE FLAG LEAGUE");
         await Assertions.Expect(page.Locator(".flag-team")).ToHaveCountAsync(1);
         await Assertions.Expect(page.Locator(".flag-team-score")).ToHaveTextAsync(score!);
         await page.Locator("#athleteSearch").FillAsync("");
