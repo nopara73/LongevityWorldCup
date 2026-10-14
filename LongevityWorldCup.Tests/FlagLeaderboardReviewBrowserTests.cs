@@ -43,7 +43,7 @@ public sealed class FlagLeaderboardReviewBrowserTests(PlaywrightBrowserFixture b
         await flag.CheckAsync();
         await page.Locator(".sidebar-close").ClickAsync();
         await page.Locator("label[for=group-flags]").ClickAsync();
-        await Assertions.Expect(page.Locator(".collapsed-title")).ToHaveTextAsync("GEN X PHENO AGE FLAG LEAGUE");
+        await Assertions.Expect(page.Locator(".collapsed-title")).ToHaveTextAsync("GEN X PHENO AGE BY FLAG");
         await Assertions.Expect(page.Locator("input[name=flag]:checked")).ToHaveCountAsync(0);
         await Assertions.Expect(page.Locator("input[name=flag]:enabled")).ToHaveCountAsync(0);
         await Assertions.Expect(page.GetByRole(AriaRole.Button, new() { Name = $"Remove {selectedFlag} filter", Exact = true })).ToHaveCountAsync(0);
@@ -51,7 +51,7 @@ public sealed class FlagLeaderboardReviewBrowserTests(PlaywrightBrowserFixture b
         await Assertions.Expect(page.Locator("input[name=generation]:checked")).ToHaveValueAsync("Gen X");
         await page.ReloadAsync();
         await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
-        await Assertions.Expect(page.Locator(".collapsed-title")).ToHaveTextAsync("GEN X PHENO AGE FLAG LEAGUE");
+        await Assertions.Expect(page.Locator(".collapsed-title")).ToHaveTextAsync("GEN X PHENO AGE BY FLAG");
         var count = await page.Locator(".flag-team").CountAsync();
         Assert.True(count > 1);
         await Assertions.Expect(page.Locator("label[data-aging-clock-view=pheno] .filter-count")).ToHaveTextAsync(count.ToString());

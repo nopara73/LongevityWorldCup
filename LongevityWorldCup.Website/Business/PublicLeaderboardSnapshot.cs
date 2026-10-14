@@ -101,7 +101,7 @@ public sealed class PublicLeaderboardSnapshot
             else if (cohortLabel.Length == 0 && tracks.Length == 1)
                 cohortLabel = tracks[0].Equals("professional", StringComparison.OrdinalIgnoreCase) ? "Pro" : "Amateur";
             var clockLabel = view == "ultimate" && cohortLabel.Length > 0 ? "" : FlagLeaderboard.Label(view!);
-            railTitle = string.Join(' ', new[] { cohortLabel, clockLabel, "Flag League" }.Where(s => s.Length > 0));
+            railTitle = string.Join(' ', new[] { cohortLabel, clockLabel, view == "ultimate" ? "Flag League" : "by Flag" }.Where(s => s.Length > 0));
         }
         return new PublicLeaderboardSelection(view!, new LeaderboardSnapshot(rows), railTitle, isDefault && !byFlag)
         {
