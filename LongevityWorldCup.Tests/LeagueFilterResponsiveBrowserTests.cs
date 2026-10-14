@@ -68,17 +68,36 @@ public sealed class LeagueFilterResponsiveBrowserTests(
         await page.EvaluateAsync("percent => document.documentElement.style.fontSize = `${percent}%`", textPercent);
         await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
         var count = await page.Locator("#leaderboardResultCount").InnerTextAsync();
-        var before = await page.Locator("footer").EvaluateAsync<double>("element => element.getBoundingClientRect().top + scrollY");
+        var before = await ReadStableFooterTopAsync(page);
         await page.Locator(".sidebar").HoverAsync();
         await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
-        var during = await page.Locator("footer").EvaluateAsync<double>("element => element.getBoundingClientRect().top + scrollY");
+        var during = await ReadStableFooterTopAsync(page);
         Assert.InRange(Math.Abs(during - before), 0, 1);
         await page.Mouse.MoveAsync(0, 0);
         await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
-        var after = await page.Locator("footer").EvaluateAsync<double>("element => element.getBoundingClientRect().top + scrollY");
+        var after = await ReadStableFooterTopAsync(page);
         Assert.InRange(Math.Abs(after - before), 0, 1);
         await Assertions.Expect(page.Locator("#leaderboardResultCount")).ToHaveTextAsync(count);
     }
+
+    private static Task<double> ReadStableFooterTopAsync(IPage page) =>
+        page.Locator("footer").EvaluateAsync<double>("""
+            element => new Promise((resolve, reject) => {
+                // Text reflow feeds the rail's ResizeObserver height sync. Measure
+                // its settled geometry, retaining the one-pixel hover assertion.
+                const started = performance.now();
+                let previous = NaN, stableFrames = 0;
+                function sample() {
+                    const top = element.getBoundingClientRect().top + scrollY;
+                    stableFrames = Math.abs(top - previous) < .01 ? stableFrames + 1 : 0;
+                    previous = top;
+                    if (stableFrames >= 4) return resolve(top);
+                    if (performance.now() - started > 5000) return reject(new Error('Footer layout did not settle'));
+                    requestAnimationFrame(sample);
+                }
+                requestAnimationFrame(sample);
+            })
+            """);
 
     [Theory]
     [InlineData(320, false)]

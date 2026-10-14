@@ -174,11 +174,6 @@
             display: block;
             width: 100%;
             height: 100%;
-            object-fit: cover;
-            object-position: 50% 25%;
-        }
-
-        .media-file-thumb.is-artwork img {
             object-fit: contain;
             object-position: center;
         }
@@ -448,7 +443,7 @@
                         let preview = original;
                         try {
                             const bitmap = await createImageBitmap(original);
-                            const scale = Math.min(1, 520 / bitmap.width);
+                            const scale = Math.min(1, 520 / bitmap.width, 520 / bitmap.height);
                             const canvas = document.createElement('canvas');
                             canvas.width = Math.max(1, Math.round(bitmap.width * scale));
                             canvas.height = Math.max(1, Math.round(bitmap.height * scale));
@@ -485,7 +480,7 @@
 
                     if (isPicture) {
                         const thumb = document.createElement('span');
-                        thumb.className = folder && !/logo/i.test(path) ? 'media-file-thumb' : 'media-file-thumb is-artwork';
+                        thumb.className = 'media-file-thumb';
                         const image = document.createElement('img');
                         image.alt = '';
                         image.decoding = 'async';
