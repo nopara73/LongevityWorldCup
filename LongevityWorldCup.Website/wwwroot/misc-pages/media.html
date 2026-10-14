@@ -83,24 +83,99 @@
             text-align: center;
         }
 
+        /* The kit reads as its own folders: one group per folder, documents as
+           rows, pictures as tiles that show what the download is. */
+        .media-kit-group + .media-kit-group {
+            margin-top: var(--lwc-space-5);
+            padding-top: var(--lwc-space-4);
+            border-top: 1px solid var(--lwc-border);
+        }
+
+        .media-kit-group-title {
+            margin: 0 0 var(--lwc-space-3);
+            color: var(--lwc-accent-hover);
+            font-size: 0.85rem;
+            font-weight: 800;
+            letter-spacing: 1px;
+            line-height: 1.15;
+            text-align: left;
+            text-transform: uppercase;
+        }
+
         .media-kit-file-list {
             display: grid;
+            grid-template-columns: minmax(0, 1fr);
             gap: 0.5rem;
             list-style: none;
             padding: 0;
             margin: 0;
         }
 
+        .media-kit-file-list + .media-kit-file-list {
+            margin-top: var(--lwc-space-3);
+        }
+
+        /* Tile and row widths follow the text size, so enlarged text gets fewer
+           columns and a button that drops under its name, never a squeezed name. */
+        .media-kit-tiles {
+            grid-template-columns: repeat(auto-fill, minmax(min(100%, 13rem), 1fr));
+            gap: var(--lwc-space-3);
+        }
+
         .media-file-row {
             box-sizing: border-box;
-            display: grid;
-            grid-template-columns: minmax(0, 1fr) auto;
-            gap: var(--lwc-space-3);
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--lwc-space-2) var(--lwc-space-3);
             align-items: center;
-            padding: 0.65rem 0.75rem;
+            padding: 0.5rem 0.5rem 0.5rem 0.75rem;
             border: 1px solid var(--lwc-border);
             border-radius: var(--lwc-radius-md);
             background: var(--lwc-surface-muted);
+        }
+
+        .media-file-icon {
+            width: 1.25rem;
+            color: var(--lwc-accent);
+            font-size: 1.1rem;
+            text-align: center;
+        }
+
+        .media-file-row > .media-file-name {
+            flex: 1 1 6rem;
+        }
+
+        .media-file-row > .media-file-button {
+            max-width: 100%;
+            margin-inline-start: auto;
+            white-space: normal;
+            overflow-wrap: anywhere;
+        }
+
+        .media-file-tile {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr);
+            grid-template-rows: auto 1fr auto;
+            gap: var(--lwc-space-2);
+            align-items: start;
+            padding: var(--lwc-space-2);
+        }
+
+        /* A fixed light well: logos and photos keep their own colours in either theme. */
+        .media-file-thumb {
+            display: block;
+            aspect-ratio: 4 / 3;
+            overflow: hidden;
+            border-radius: var(--lwc-radius-sm);
+            background: var(--lwc-silver, #c9d2da);
+        }
+
+        .media-file-thumb img {
+            display: block;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            object-position: center;
         }
 
         .media-file-name {
@@ -108,7 +183,19 @@
             color: var(--lwc-ink);
             overflow-wrap: break-word;
             word-break: normal;
-            line-height: 1.5;
+            line-height: 1.4;
+        }
+
+        .media-file-tile .media-file-name {
+            padding-inline: var(--lwc-space-1);
+            font-size: var(--lwc-type-sm);
+        }
+
+        .media-file-tile .media-file-button {
+            width: 100%;
+            min-width: 0;
+            white-space: normal;
+            overflow-wrap: anywhere;
         }
 
         .media-file-button {
@@ -169,10 +256,9 @@
                 text-align: center;
             }
 
-            .media-file-row {
-                grid-template-columns: 1fr;
-                gap: 0.55rem;
-                align-items: stretch;
+            .media-kit-tiles {
+                grid-template-columns: repeat(auto-fill, minmax(min(100%, 7.25rem), 1fr));
+                gap: var(--lwc-space-2);
             }
 
             .media-file-name {
@@ -182,12 +268,10 @@
             }
 
             .media-file-button {
-                width: 100%;
                 min-width: 0;
                 min-height: 44px;
                 padding: 0 0.65rem;
                 border-radius: 10px;
-                justify-self: stretch;
                 font-size: 0.85rem;
             }
 
@@ -206,18 +290,10 @@
                 text-align: center;
             }
 
-            .media-file-row {
-                grid-template-columns: 1fr;
-                gap: 0.55rem;
-                align-items: stretch;
-            }
-
             .media-file-button {
-                width: 100%;
                 min-width: 0;
                 min-height: 44px;
                 font-size: 0.85rem;
-                justify-self: stretch;
             }
 
             .media-file-button::before {
@@ -276,7 +352,7 @@
             <!-- Live file list extracted from ZIP (auto-load) -->
             <div id="zipPreview" class="media-kit-preview">
                 <div id="loading" class="media-kit-loading">Loading…</div>
-                <ul id="fileList" class="media-kit-file-list"></ul>
+                <div id="fileList" class="media-kit-groups"></div>
                 <div id="fallback" class="media-kit-fallback" style="display:none;">
                     Failed to preview. Use the ZIP link above.
                 </div>
@@ -303,9 +379,11 @@
         const fallbackEl = document.getElementById('fallback');
 
         function appendFileName(target, path) {
-            for (const part of path.split(/([/_-])/)) {
+            for (const part of path.split(/([/_.-])/)) {
                 if (!part) continue;
 
+                // A long name wraps after a separator, or before its extension.
+                if (part === ".") target.appendChild(document.createElement("wbr"));
                 target.appendChild(document.createTextNode(part));
                 if (part === "/" || part === "_" || part === "-") {
                     target.appendChild(document.createElement("wbr"));
@@ -333,13 +411,93 @@
                 zip.forEach((path, file) => { if (!file.dir) files.push(path); });
                 files.sort();
 
+                // One group per folder inside the kit; files at its top level come first.
+                const groups = new Map();
                 for (const path of files) {
+                    const parts = path.split('/');
+                    const folder = parts.length > 2 ? parts.slice(1, -1).join('/') : '';
+                    if (!groups.has(folder)) groups.set(folder, []);
+                    groups.get(folder).push(path);
+                }
+
+                const imageTypes = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp', gif: 'image/gif' };
+                const extensionOf = path => path.slice(path.lastIndexOf('.') + 1).toLowerCase();
+                const thumbnails = 'IntersectionObserver' in window
+                    ? new IntersectionObserver((entries, observer) => {
+                        for (const entry of entries) {
+                            if (!entry.isIntersecting) continue;
+                            observer.unobserve(entry.target);
+                            showThumbnail(entry.target);
+                        }
+                    }, { rootMargin: '600px 0px' })
+                    : null;
+
+                // Thumbnails come from the ZIP already in memory, as each tile nears the viewport.
+                // Each is scaled down to tile size first, so a page of tiles does not hold
+                // twenty full-size pictures decoded at once.
+                async function showThumbnail(image) {
+                    const path = image.dataset.path;
+                    try {
+                        const bytes = await zip.file(path).async('arraybuffer');
+                        const original = new Blob([bytes], { type: imageTypes[extensionOf(path)] });
+                        let preview = original;
+                        try {
+                            const bitmap = await createImageBitmap(original);
+                            const scale = Math.min(1, 520 / bitmap.width, 520 / bitmap.height);
+                            const canvas = document.createElement('canvas');
+                            canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+                            canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+                            canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+                            bitmap.close();
+                            preview = await new Promise(resolve => canvas.toBlob(blob => resolve(blob || original), 'image/png'));
+                        } catch (_) {
+                            preview = original;
+                        }
+                        image.src = URL.createObjectURL(preview);
+                    } catch (_) {
+                        image.remove();
+                    }
+                }
+
+                for (const [folder, paths] of groups) {
+                    const group = document.createElement('section');
+                    group.className = 'media-kit-group';
+                    if (folder) {
+                        const title = document.createElement('h2');
+                        title.className = 'media-kit-group-title';
+                        title.textContent = folder;
+                        group.appendChild(title);
+                    }
+                    const documents = document.createElement('ul');
+                    documents.className = 'media-kit-file-list';
+                    const pictures = document.createElement('ul');
+                    pictures.className = 'media-kit-file-list media-kit-tiles';
+
+                for (const path of paths) {
+                    const isPicture = extensionOf(path) in imageTypes;
                     const li = document.createElement('li');
-                    li.className = 'media-file-row';
+                    li.className = isPicture ? 'media-file-row media-file-tile' : 'media-file-row';
+
+                    if (isPicture) {
+                        const thumb = document.createElement('span');
+                        thumb.className = 'media-file-thumb';
+                        const image = document.createElement('img');
+                        image.alt = '';
+                        image.decoding = 'async';
+                        image.dataset.path = path;
+                        thumb.appendChild(image);
+                        li.appendChild(thumb);
+                        if (thumbnails) thumbnails.observe(image); else showThumbnail(image);
+                    } else {
+                        const icon = document.createElement('i');
+                        icon.className = extensionOf(path) === 'pdf' ? 'fas fa-file-pdf media-file-icon' : 'fas fa-file-lines media-file-icon';
+                        icon.setAttribute('aria-hidden', 'true');
+                        li.appendChild(icon);
+                    }
 
                     const name = document.createElement('span');
                     name.className = 'media-file-name';
-                    appendFileName(name, path);
+                    appendFileName(name, path.split('/').pop());
 
                     const btn = document.createElement('button');
                     btn.textContent = 'Download';
@@ -360,7 +518,12 @@
 
                     li.appendChild(name);
                     li.appendChild(btn);
-                    listEl.appendChild(li);
+                    (isPicture ? pictures : documents).appendChild(li);
+                }
+
+                    if (documents.children.length) group.appendChild(documents);
+                    if (pictures.children.length) group.appendChild(pictures);
+                    listEl.appendChild(group);
                 }
             } catch (e) {
                 console.error(e);
