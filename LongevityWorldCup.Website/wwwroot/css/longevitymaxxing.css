@@ -3561,7 +3561,7 @@ a.lmx-note-mention:focus-visible {
 }
 
 .lmx-inactive-toggle {
-    min-height: 2rem;
+    min-height: 44px;
     padding: 0 0.15rem;
     border: 0;
     background: transparent;
@@ -3709,10 +3709,8 @@ a.lmx-note-mention:focus-visible {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    border-radius: 0 7px 7px 0;
-    box-shadow:
-        var(--lmx-sticky-gap-cover) 0 0 var(--lmx-row-surface),
-        0.55rem 0 0.75rem -0.82rem rgba(15, 23, 42, 0.55);
+    border-radius: 0;
+    box-shadow: var(--lmx-sticky-gap-cover) 0 0 var(--lmx-row-surface);
 }
 
 .lmx-board-row.header > .lmx-name,
@@ -3726,9 +3724,7 @@ a.lmx-note-mention:focus-visible {
 }
 
 .lmx-board-row.header > .lmx-number {
-    box-shadow:
-        var(--lmx-sticky-gap-cover) 0 0 var(--lmx-surface-muted),
-        0.55rem 0 0.75rem -0.82rem rgba(15, 23, 42, 0.55);
+    box-shadow: var(--lmx-sticky-gap-cover) 0 0 var(--lmx-surface-muted);
 }
 
 .lmx-board-row:not(.header):nth-child(even) > .lmx-name,
@@ -3741,9 +3737,7 @@ a.lmx-note-mention:focus-visible {
 }
 
 .lmx-board-row:not(.header):nth-child(even) > .lmx-number {
-    box-shadow:
-        var(--lmx-sticky-gap-cover) 0 0 var(--lmx-row-surface),
-        0.55rem 0 0.75rem -0.82rem rgba(15, 23, 42, 0.55);
+    box-shadow: var(--lmx-sticky-gap-cover) 0 0 var(--lmx-row-surface);
 }
 
 .lmx-board-row.lmx-roster-row > .lmx-name {
@@ -4843,7 +4837,7 @@ a.lmx-note-mention:focus-visible {
     }
 
     .lmx-inactive-toggle {
-        min-height: 2.5rem;
+        min-height: max(44px, 2.5rem);
     }
 
     .lmx-board-wrap {
@@ -4852,7 +4846,7 @@ a.lmx-note-mention:focus-visible {
 
     .lmx-week-pager {
         display: grid;
-        grid-template-columns: minmax(4.75rem, auto) minmax(0, 1fr) minmax(4.75rem, auto);
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 0.35rem;
         align-items: stretch;
         margin: 0.7rem 0.55rem 0;
@@ -4863,14 +4857,16 @@ a.lmx-note-mention:focus-visible {
     }
 
     .lmx-week-pager button {
+        min-width: 0;
         min-height: 2.75rem;
-        padding: 0 0.65rem;
+        padding: 0.25rem 0.35rem;
         border: 1px solid var(--lmx-border);
         border-radius: var(--lwc-radius-md);
         background: var(--lmx-surface);
         color: var(--lmx-ink);
         box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
         display: inline-flex;
+        flex-wrap: wrap;
         align-items: center;
         justify-content: center;
         gap: 0.42rem;
@@ -4901,6 +4897,8 @@ a.lmx-note-mention:focus-visible {
     }
 
     .lmx-week-label {
+        grid-column: 1 / -1;
+        grid-row: 1;
         min-width: 0;
         display: inline-flex;
         align-items: center;
@@ -5280,7 +5278,8 @@ a.lmx-note-mention:focus-visible {
     }
 
     .lmx-board .lmx-board-row:not(.header):not(.lmx-roster-row):not(.lmx-empty-row) > .lmx-name {
-        flex: 1 1 9.5rem;
+        /* Let the actual name choose when the score wraps, before shrinking its label. */
+        flex: 1 1 max-content;
         min-width: 0;
     }
 

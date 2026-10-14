@@ -2458,8 +2458,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     function emptyBoardRow(days: DaySummary[], hiddenInactiveCount: number): string {
         const hasHiddenInactive = hiddenInactiveCount > 0 && !showInactiveLeaderboard;
         const message = hasHiddenInactive ? "No active participants" : "No one has joined yet";
-        return `<div class="lmx-board-row lmx-empty-row" role="row" data-day-count="${escAttr(days.length)}">
-            <div class="lmx-name" role="cell">
+        return `<div class="lmx-board-row lmx-empty-row" role="row">
+            <div class="lmx-name" role="cell" aria-colspan="${escAttr(days.length + 2)}">
                 <span class="lmx-empty-name">${esc(message)}</span>
             </div>
         </div>`;
@@ -2468,8 +2468,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     function emptyRosterRow(days: DaySummary[], hiddenInactiveCount: number): string {
         const hasHiddenInactive = hiddenInactiveCount > 0 && !showInactiveLeaderboard;
         const message = hasHiddenInactive ? "No active participants" : "No one has joined yet";
-        return `<div class="lmx-board-row lmx-roster-row lmx-empty-row" role="row" data-day-count="${escAttr(days.length)}">
-            <div class="lmx-name" role="cell">
+        return `<div class="lmx-board-row lmx-roster-row lmx-empty-row" role="row">
+            <div class="lmx-name" role="cell" aria-colspan="${escAttr(days.length + 1)}">
                 <span class="lmx-empty-name">${esc(message)}</span>
             </div>
         </div>`;
