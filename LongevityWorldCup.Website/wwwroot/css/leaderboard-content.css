@@ -919,6 +919,10 @@
      min-width:0;
  }
  .athlete-td .badge-section{ flex:0 0 auto; flex-wrap:nowrap; }
+ .athlete-identity{ display:flex; align-items:center; flex-wrap:wrap; gap:0 .125rem; min-width:0; }
+ .athlete-identity .athlete-name{ min-width:0; max-width:100%; }
+ .athlete-name-links{ display:inline-flex; align-items:center; flex:0 0 auto; gap:.125rem; }
+ .athlete-name-links:empty{ display:none; }
 
  .athlete-name{
      color:var(--primary-color); text-decoration:underline; text-decoration-thickness:.08em; text-underline-offset:.18em; text-align:left; cursor:pointer;
@@ -2298,7 +2302,7 @@
      /* Age reduction is now the last column; keep it off the board's edge. */
      .leaderboard table th:nth-child(4),
      .leaderboard table .age-reduction-td{ padding-right:var(--lwc-space-4, 1rem); }
-     .leaderboard table td .badge-section{ display:none; }
+     .leaderboard table td :is(.badge-section, .athlete-name-links){ display:none; }
  }
 
  @media (max-width: 768px), (max-width: 932px) and (max-height: 480px) and (orientation: landscape){
@@ -2447,7 +2451,7 @@
      .leaderboard table .media-contact-td{ display:none; }
      .leaderboard table th:nth-child(4),
      .leaderboard table td:nth-child(4){ padding-right:0.5rem; }
-     .leaderboard table td .badge-section{ display:none; }
+     .leaderboard table td :is(.badge-section, .athlete-name-links){ display:none; }
      .leaderboard table th{
          font-size:.66rem;
          line-height:1.05;
@@ -3579,7 +3583,7 @@
      .leaderboard table thead th:nth-child(4) { width: 9.5rem; }
      .leaderboard table thead th:nth-child(5) { width: 8rem; }
      .leaderboard table tbody tr:not(.no-results):not(.tier-separator) .athlete-td {
-         display: grid; grid-template-columns: var(--portrait-size) minmax(min-content, 14.5rem) minmax(min-content, 1fr);
+         display: grid; grid-template-columns: var(--portrait-size) minmax(min-content, 18.5rem) minmax(min-content, 1fr);
          align-items: center; justify-items: start; column-gap: var(--lwc-space-3);
      }
      /* Wide enough for the fullest badge row (badges are sized in pixels), so

@@ -46,7 +46,9 @@ public sealed class AthleteDialogLinkBrowserTests(
         if (path == "/")
         {
             await page.WaitForSelectorAsync(".podium-podcast-link");
-            var links = await page.Locator(".podium-personal-link, .podium-podcast-link, .leaderboard .badge-section a").AllAsync();
+            await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+            await Assertions.Expect(page.Locator(".leaderboard .badge-section :is(.badge-personal, .badge-podcast)")).ToHaveCountAsync(0);
+            var links = await page.Locator(".podium-personal-link, .podium-podcast-link, .leaderboard .athlete-name-links a").AllAsync();
             Assert.NotEmpty(links);
             foreach (var rendered in links)
                 Assert.Equal(expectedHref, await rendered.GetAttributeAsync("href"));
@@ -54,6 +56,50 @@ public sealed class AthleteDialogLinkBrowserTests(
         await page.EvaluateAsync("slug => window.openAthleteModalBySlug(slug)", MichaelSlug);
         await WaitForOpenAthleteDialogAsync(page, MichaelSlug);
         Assert.Equal(expectedHref, await page.Locator("#personalLink").GetAttributeAsync("href"));
+    }
+
+    [Fact]
+    public async Task NameLinks_StaySearchableWithoutUsingAchievementSlots()
+    {
+        await using var context = await NewContextAsync(Browser, App, width: 1440, height: 900);
+        await context.AddInitScriptAsync("localStorage.setItem('gmaSkipAll', 'true');");
+        await context.RouteAsync("**/api/data/athletes", async route =>
+        {
+            var response = await route.FetchAsync();
+            var athletes = JsonNode.Parse(await response.TextAsync())!.AsArray();
+            var michael = athletes.OfType<JsonObject>().Single(athlete =>
+                athlete["AthleteSlug"]!.GetValue<string>() == "michael_lustgarten");
+            michael["PersonalLink"] = "https://example.com/personal";
+            michael["PodcastLink"] = "https://example.com/podcast";
+            michael["Badges"] = new JsonArray(new[]
+            {
+                "Podcast", "First applicants", "Pregnancy", "Host", "Perfect application", "≥2 submissions"
+            }.Select(label => (JsonNode)new JsonObject { ["BadgeLabel"] = label }).ToArray());
+            await route.FulfillAsync(new() { ContentType = "application/json", Body = athletes.ToJsonString() });
+        });
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/leaderboard", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+        var row = page.Locator(".leaderboard tbody tr[data-athlete-name]")
+            .Filter(new() { Has = page.Locator(".athlete-name", new() { HasText = "Michael Lustgarten" }) });
+        await Assertions.Expect(row.Locator(".athlete-identity .athlete-name-links a")).ToHaveCountAsync(2);
+        await Assertions.Expect(row.Locator(".badge-section > .badge-class")).ToHaveCountAsync(4);
+        await Assertions.Expect(row.Locator(".badge-overflow-count")).ToHaveTextAsync("+2");
+        await Assertions.Expect(row.Locator(".badge-section :is(.badge-personal, .badge-podcast)")).ToHaveCountAsync(0);
+        foreach (var link in await row.Locator(".athlete-name-links a").AllAsync())
+        {
+            Assert.Equal("_blank", await link.GetAttributeAsync("target"));
+            Assert.Contains("noopener", await link.GetAttributeAsync("rel"));
+            await link.FocusAsync();
+            Assert.True(await link.EvaluateAsync<bool>("link => document.activeElement === link"));
+        }
+        await page.Locator("#athleteSearch").FillAsync("podcast");
+        await Assertions.Expect(row).ToBeVisibleAsync();
+        await page.Locator(".clear-icon").ClickAsync();
+        await row.Locator(".athlete-name").FocusAsync();
+        await page.Keyboard.PressAsync("Enter");
+        await WaitForOpenAthleteDialogAsync(page, MichaelSlug);
+        await Assertions.Expect(page.Locator("#modalBadgeStrip .badge-podcast")).ToHaveCountAsync(1);
     }
 
     [Theory]

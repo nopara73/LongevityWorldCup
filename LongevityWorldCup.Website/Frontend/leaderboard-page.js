@@ -3422,7 +3422,7 @@ function performFilter({ updateUrl = true } = {}) {
         const athleteName = row.getAttribute('data-athlete-name');
         if (!athleteName) return;
 
-        const badgeSearchText = Array.from(row.querySelectorAll('.badge-section .badge-class'))
+        const badgeSearchText = Array.from(row.querySelectorAll('.badge-section .badge-class, .athlete-name-links .badge-class'))
             .map(badge => {
                 const title = badge.getAttribute('title') || '';
                 const ariaLabel = badge.getAttribute('aria-label') || '';
