@@ -44,9 +44,9 @@
     }
 
     function normalizeFlagKey(flag: unknown): string {
-        return normalizeText(flag)
+        return String(flag || "").normalize("NFD").replace(/\p{Mn}/gu, "").toLowerCase()
             .replace(/[._-]+/g, " ")
-            .replace(/[^a-z0-9\s]/g, " ")
+            .replace(/[^\p{L}\p{Nd}\s]/gu, " ")
             .replace(/\s+/g, " ")
             .trim();
     }
@@ -62,8 +62,8 @@
     }
 
     function getFlagRouteSlug(flag: unknown): string {
-        return normalizeText(getCanonicalFlagName(flag))
-            .replace(/[^a-z0-9]+/g, "-")
+        return getCanonicalFlagName(flag).normalize("NFD").replace(/\p{Mn}/gu, "").toLowerCase()
+            .replace(/[^\p{L}\p{Nd}]+/gu, "-")
             .replace(/^-+|-+$/g, "");
     }
 
@@ -157,7 +157,7 @@
     function matchesFlagOption(option: FlagOption, query: unknown): boolean {
         const normalizedQuery = normalizeFlagKey(query);
         if (!normalizedQuery) return true;
-        return new RegExp(`\\b${escapeRegExp(normalizedQuery)}`).test(normalizeFlagKey(option.name));
+        return new RegExp(`(?:^|\\s)${escapeRegExp(normalizedQuery)}`).test(normalizeFlagKey(option.name));
     }
 
     function renderHighlightedFlagName(name: unknown, query: unknown): string {
@@ -165,9 +165,10 @@
         const trimmedQuery = String(query || "").trim();
         if (!trimmedQuery) return escapeHtml(text);
 
-        const pattern = new RegExp(`\\b${escapeRegExp(trimmedQuery.toLowerCase())}`);
-        const match = text.toLowerCase().search(pattern);
-        if (match < 0) return escapeHtml(text);
+        const pattern = new RegExp(`(^|[^\\p{L}\\p{Nd}])${escapeRegExp(trimmedQuery.toLowerCase())}`, "u");
+        const found = pattern.exec(text.toLowerCase());
+        if (!found) return escapeHtml(text);
+        const match = found.index + (found[1] || "").length;
 
         return `${escapeHtml(text.slice(0, match))}<strong>${escapeHtml(text.slice(match, match + trimmedQuery.length))}</strong>${escapeHtml(text.slice(match + trimmedQuery.length))}`;
     }
