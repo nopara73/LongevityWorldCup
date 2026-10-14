@@ -1199,7 +1199,7 @@ public sealed class AestheticSystemBrowserTests(
         var rootFontSize = await page.EvaluateAsync<double>(
             "() => parseFloat(getComputedStyle(document.documentElement).fontSize)");
 
-        foreach (var condition in conditions)
+        foreach (var condition in conditions.Where(condition => condition.Name != "flag-results"))
         {
             Assert.Equal("leaderboard-results", condition.Name);
             Assert.Equal("max", condition.Bound);
@@ -1242,7 +1242,77 @@ public sealed class AestheticSystemBrowserTests(
                     $"Leaderboard overflowed by {diagnostics.HorizontalOverflow}px at {inlineSize}px.");
             }
         }
+        await AssertFlagContainerBoundariesAsync(page, conditions.Where(condition => condition.Name == "flag-results").ToArray());
         await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.NoPreference });
+    }
+
+    private static async Task AssertFlagContainerBoundariesAsync(
+        IPage page,
+        ResponsiveContainerCondition[] conditions)
+    {
+        if (conditions.Length == 0) return;
+        await NavigateAndSettleAsync(page, "/league/pheno?group=flags");
+        await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+        // Isolate a real rendered flag list from filtering and viewport handlers.
+        await page.EvaluateAsync("""
+            () => {
+                const board = document.querySelector('.leaderboard');
+                const probe = board.cloneNode(true);
+                probe.id = 'responsive-flag-probe';
+                probe.querySelector('.sidebar').remove();
+                probe.querySelector('table').remove();
+                probe.style.display = 'block';
+                board.parentElement.append(probe);
+            }
+            """);
+        var rootFontSize = await page.EvaluateAsync<double>(
+            "() => parseFloat(getComputedStyle(document.documentElement).fontSize)");
+
+        foreach (var condition in conditions)
+        {
+            Assert.Equal("max", condition.Bound);
+            Assert.Equal("rem", condition.Unit);
+            Assert.Contains(condition.Value, new double[] { 42, 28, 22 });
+            var thresholdPixels = condition.Value * rootFontSize;
+            foreach (var delta in new[] { -1, 0, 1, 0, -1 })
+            {
+                var inlineSize = thresholdPixels + delta;
+                var diagnostics = await page.EvaluateAsync<ContainerQueryDiagnostics>(
+                    """
+                    async argument => {
+                        const list = document.querySelector('#responsive-flag-probe .flag-leaderboard');
+                        list.style.boxSizing = 'content-box';
+                        list.style.inlineSize = `${argument.InlineSize}px`;
+                        list.style.maxInlineSize = 'none';
+                        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                        await Promise.all(list.getAnimations({ subtree: true })
+                            .filter(animation => Number.isFinite(animation.effect.getComputedTiming().endTime))
+                            .map(animation => animation.finished.catch(() => {})));
+                        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                        const team = list.querySelector('.flag-team');
+                        const name = team.querySelector('.flag-team-name').getBoundingClientRect();
+                        const score = team.querySelector('.flag-team-score').getBoundingClientRect();
+                        const rootFontSize = parseFloat(getComputedStyle(document.documentElement).fontSize);
+                        const compact = argument.Boundary === 42
+                            ? getComputedStyle(team.querySelector('.flag-team-portraits')).display === 'none'
+                            : argument.Boundary === 28
+                                ? Math.abs(team.querySelector('.flag-team-icon').getBoundingClientRect().width - 1.75 * rootFontSize) < .1
+                                : score.top >= name.bottom;
+                        return {
+                            ContainerWidth: parseFloat(getComputedStyle(list).width),
+                            IsCompact: compact,
+                            HorizontalOverflow: Math.max(0, list.scrollWidth - list.clientWidth)
+                        };
+                    }
+                    """, new { InlineSize = inlineSize, Boundary = condition.Value });
+                Assert.Equal(inlineSize, diagnostics.ContainerWidth, 1);
+                Assert.True(diagnostics.IsCompact == (inlineSize <= thresholdPixels),
+                    $"Flag results did not cross their {condition.Value}rem boundary at {inlineSize}px. " +
+                    $"Compact={diagnostics.IsCompact}, width={diagnostics.ContainerWidth}.");
+                Assert.True(diagnostics.HorizontalOverflow <= 1,
+                    $"Flag results overflowed by {diagnostics.HorizontalOverflow}px at {inlineSize}px.");
+            }
+        }
     }
 
     private static async Task AssertCalculatorContainerBoundariesAsync(

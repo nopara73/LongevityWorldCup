@@ -1299,6 +1299,7 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity) {
                     bortzAgeReduction: bortzAgeReduction,
                     bortzAgeReductionPercent: bortzAgeReductionPercent,
                     lowestPhenoAge: lowestPhenoAge,
+                    hasPhenoRankData: Number.isFinite(lowestPhenoAge) && valuesForLowestPhenoAge != null,
                     chronoAtLowestPhenoAge: chronoAtLowestPhenoAge,
                     ageReduction: ageReduction,
                     ageReductionPercent: ageReductionPercent,
@@ -1699,11 +1700,13 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity) {
                     searchOrFilterApplied = true;
                 }
 
+                document.getElementById('group-flags').checked = new URLSearchParams(window.location.search).get('group')?.toLowerCase() === 'flags';
+                syncFlagFilters(document.getElementById('group-flags').checked);
                 const rawViewParam = new URLSearchParams(window.location.search).get('view') || leagueRouteState.view;
                 const viewParam = rawViewParam && rawViewParam.toLowerCase() === 'pheno-improvement'
                     ? 'improvement'
                     : rawViewParam;
-                if (viewParam && (viewParam.toLowerCase() === 'bortz' || viewParam.toLowerCase() === 'pheno' || viewParam.toLowerCase() === 'improvement' || viewParam.toLowerCase() === 'bortz-improvement' || viewParam.toLowerCase() === 'crowd')) {
+                if (viewParam && ['bortz', 'pheno', 'improvement', 'bortz-improvement', 'crowd'].includes(viewParam.toLowerCase())) {
                     const viewId = 'view-' + viewParam.toLowerCase();
                     const viewRadio = document.getElementById(viewId);
                     if (viewRadio) {
@@ -1718,9 +1721,13 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity) {
                 if (searchOrFilterApplied) {
                     toggleClearIcon();
 
-                    // Even here scroll to the search when filter applied because the table kinda starts there conceptually
+                    // Position an untouched incoming selection at its controls,
+                    // preserving scrolling or filter interaction during loading.
+                    const incomingScrollY = window.scrollY;
                     setTimeout(() => {
-                        if (canAutoScroll()) {
+                        const filtersPanel = document.querySelector('.sidebar');
+                        if (canAutoScroll() && window.scrollY === incomingScrollY &&
+                            !filtersPanel?.matches(':hover, .expanded') && document.activeElement !== searchInput) {
                             searchInput.scrollIntoView({ behavior: 'smooth', block: 'start' });
                         }
                     }, 1000);
@@ -1850,6 +1857,13 @@ function renderLeaderboardLoadError(tableBody) {
     });
 
     recovery.append(message, retryButton);
+    const flags = document.getElementById('flagLeaderboard');
+    if (getSelectedLeaderboardState().byFlag && flags) {
+        flags.querySelector('.leaderboard-recovery')?.remove();
+        flags.querySelector('.flag-empty')?.remove();
+        flags.appendChild(recovery);
+        return;
+    }
     cell.appendChild(recovery);
     row.appendChild(cell);
     if (hasServerRenderedLeaderboardRows(tableBody)) {
@@ -1867,6 +1881,7 @@ function setLeaderboardLoadingState(includePodium, maxAthletes) {
             if (podium.dataset.serverRendered !== 'true') {
                 const params = new URLSearchParams(window.location.search);
                 const hasIncomingSelection = !!(params.get('search')?.trim() || params.get('filters')?.trim())
+                    || params.get('group')?.toLowerCase() === 'flags'
                     || ['bortz', 'pheno', 'improvement', 'pheno-improvement', 'bortz-improvement', 'crowd'].includes(params.get('view')?.toLowerCase());
                 podium.style.display = hasIncomingSelection ? 'none' : 'flex';
                 podium.innerHTML = buildPodiumSkeletonHtml();
@@ -2976,7 +2991,7 @@ function clearSearch() {
     performFilter(); // Reapply filters without search terms
 
     if (podium) {
-        podium.style.display = includePodiumGlobal ? 'flex' : 'none';
+        podium.style.display = includePodiumGlobal && !getSelectedLeaderboardState().byFlag ? 'flex' : 'none';
     }
 
     const url = new URL(window.location.href);
@@ -3007,7 +3022,7 @@ function hasActiveLeaderboardState() {
 function hasActiveLeaderboardFilterState() {
     const state = getSelectedLeaderboardState();
     return state.divisions.length > 0 || state.flags.length > 0 || state.generations.length > 0
-        || state.exclusiveLeagues.length > 0 || state.leagueTracks.length === 1 || state.view !== 'ultimate';
+        || state.exclusiveLeagues.length > 0 || state.leagueTracks.length === 1 || state.view !== 'ultimate' || state.byFlag;
 }
 
 function syncAgingClockFilters(currentLeaderboardView) {
@@ -3015,6 +3030,16 @@ function syncAgingClockFilters(currentLeaderboardView) {
         const isActive = input.value === currentLeaderboardView;
         input.checked = isActive;
         input.closest('label')?.classList.toggle('active', isActive);
+    });
+}
+
+function syncFlagFilters(byFlag) {
+    const section = document.getElementById('flag-filter-section');
+    if (!section) return;
+    section.hidden = byFlag;
+    section.querySelectorAll('input[name="flag"]').forEach(input => {
+        if (byFlag) input.checked = false;
+        input.disabled = byFlag;
     });
 }
 
@@ -3083,7 +3108,8 @@ function updateLeaderboardSelectionSummary(count) {
     const summary = document.getElementById('leaderboardSelectionSummary');
     if (!summary || !Number.isFinite(count)) return;
     summary.hidden = false;
-    const resultLabel = `${count} ${count === 1 ? 'athlete' : 'athletes'}`;
+    const isFlags = getSelectedLeaderboardState().byFlag;
+    const resultLabel = `${count} ${isFlags ? (count === 1 ? 'flag' : 'flags') : (count === 1 ? 'athlete' : 'athletes')}`;
     document.getElementById('leaderboardResultCount').textContent = resultLabel;
     const showResults = document.getElementById('showLeaderboardResults');
     if (showResults) showResults.textContent = `Show ${resultLabel}`;
@@ -3091,8 +3117,10 @@ function updateLeaderboardSelectionSummary(count) {
     const choices = [];
     const state = getSelectedLeaderboardState();
     const viewLabels = { bortz: 'Bortz age', pheno: 'Pheno age', improvement: 'Pheno improvement', 'bortz-improvement': 'Bortz improvement', crowd: 'Crowd age' };
+    if (state.byFlag) choices.push({ label: 'By Flag', remove: () => { document.getElementById('group-flags').checked = false; } });
     if (state.view !== 'ultimate') choices.push({ label: viewLabels[state.view], remove: () => { document.getElementById('view-ultimate').checked = true; } });
     for (const name of ['leagueTrack', 'division', 'generation', 'exclusiveLeague', 'flag']) {
+        if (name === 'flag' && state.byFlag) continue;
         if (name === 'leagueTrack' && state.leagueTracks.length !== 1) continue;
         document.querySelectorAll(`input[name="${name}"]:checked`).forEach(input => {
             const label = name === 'leagueTrack' ? getLeagueTrackLabel(input.value) : input.value;
@@ -3154,6 +3182,7 @@ function clearSidebarFilters() {
         input.checked = false;
     });
 
+    document.getElementById('group-flags').checked = false;
     const ultimateView = document.getElementById('view-ultimate');
     if (ultimateView) {
         ultimateView.checked = true;
@@ -3175,10 +3204,12 @@ function showAllAthletes() {
 
 function getSelectedLeaderboardState() {
     const viewRadio = document.querySelector('input[name="leaderboardView"]:checked');
+    const byFlag = document.getElementById('group-flags')?.checked || false;
     return {
+        byFlag,
         divisions: Array.from(document.querySelectorAll('input[name="division"]:checked'))
             .map(checkbox => checkbox.value),
-        flags: Array.from(document.querySelectorAll('input[name="flag"]:checked'))
+        flags: byFlag ? [] : Array.from(document.querySelectorAll('input[name="flag"]:checked'))
             .map(checkbox => getCanonicalFlagName(checkbox.value)),
         generations: Array.from(document.querySelectorAll('input[name="generation"]:checked'))
             .map(checkbox => checkbox.value),
@@ -3228,6 +3259,8 @@ function buildLeaderboardNavigationUrl(state, searchQuery = document.getElementB
         url.searchParams.set('filters', serializeFiltersParam(filters));
     }
 
+    if (state.byFlag) url.searchParams.set('group', 'flags');
+    else url.searchParams.delete('group');
     const currentLeaderboardView = state.view;
     const canonicalLeagueSlug = selectedFlags.length === 0 && filters.length === 1
         ? getCanonicalLeagueSlugForFilter(filters[0])
@@ -3290,6 +3323,7 @@ function updateLeaderboardStructuredData(entries) {
             if (search) query.push('search=' + encode(search));
             if (state.view !== 'ultimate') query.push('view=' + state.view);
         }
+        if (state.byFlag) query.push('group=flags');
         const url = siteUrl + selectedUrl.pathname + (query.length ? '?' + query.join('&') : '');
         const id = url + '#ranking';
         const list = {
@@ -3297,7 +3331,11 @@ function updateLeaderboardStructuredData(entries) {
             name: pageDocument.getElementById('leaderboardTitle')?.textContent.trim() || 'Longevity World Cup rankings',
             itemListOrder: 'https://schema.org/ItemListOrderAscending',
             numberOfItems: entries.length,
-            itemListElement: entries.map(({ athlete, rank }) => {
+            itemListElement: entries.map(({ athlete, rank, flag }, index) => {
+                if (flag) return {
+                    '@type': 'ListItem', position: index + 1,
+                    item: { '@type': 'Thing', name: flag, url: url + '#flag-team-' + getFlagRouteSlug(flag) }
+                };
                 const athleteUrl = siteUrl + '/athlete/' + encodeURIComponent(athlete.athleteSlug.replaceAll('_', '-').toLowerCase());
                 return {
                     '@type': 'ListItem', position: rank,
@@ -3317,8 +3355,115 @@ function updateLeaderboardStructuredData(entries) {
     }
 }
 
+function buildFlagTeams(entries, view) {
+    const groups = new Map();
+    entries.forEach(entry => {
+        const key = getFlagRouteSlug(entry.athlete.flag);
+        if (!key) return;
+        if (!groups.has(key)) groups.set(key, { key, flag: getCanonicalFlagName(entry.athlete.flag), entries: [] });
+        groups.get(key).entries.push(entry);
+    });
+    const definitions = {
+        bortz: [a => a.bortzAgeReduction, a => Number.isFinite(a.bortzAgeReduction), window.compareAthleteRank],
+        pheno: [a => a.ageReduction, a => a.hasPhenoRankData && Number.isFinite(a.ageReduction), window.compareAthleteRankPhenoOnly],
+        crowd: [a => a.crowdAgeReduction, a => a.crowdCount >= 100 && Number.isFinite(a.crowdAgeReduction), window.compareAthleteRankCrowdAge],
+        improvement: [a => a.phenoAgeImprovement, a => Number.isFinite(a.phenoAgeImprovement), window.compareAthleteRankPhenoImprovement],
+        'bortz-improvement': [a => a.bortzAgeImprovement, a => Number.isFinite(a.bortzAgeImprovement), window.compareAthleteRankBortzImprovement]
+    };
+    const teams = [...groups.values()].map(group => {
+        const candidates = (view === 'ultimate' ? ['bortz', 'pheno'] : [view]).map(clock => {
+            const [metric, eligible, compare] = definitions[clock];
+            const eligibleEntries = group.entries.filter(entry => eligible(entry.athlete));
+            const top = eligibleEntries.map(entry => entry.athlete).sort(compare).slice(0, 3);
+            return { ...group, eligibleEntries, view: clock, top, values: top.map(metric), score: top.reduce((sum, athlete) => sum + metric(athlete), 0) };
+        });
+        return candidates.sort((a, b) => b.top.length - a.top.length || (a.view === 'bortz' ? -1 : 1))[0];
+    }).filter(team => team.top.length > 0).sort((a, b) =>
+        b.top.length - a.top.length ||
+        (view === 'ultimate' ? Number(b.view === 'bortz') - Number(a.view === 'bortz') : 0) ||
+        a.score - b.score || (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
+    let rank = null;
+    teams.forEach((team, index) => {
+        if (team.top.length < 3) { team.rank = null; return; }
+        if (!index || teams[index - 1].view !== team.view || teams[index - 1].score !== team.score) rank = index + 1;
+        team.rank = rank;
+    });
+    return teams;
+}
+
+function renderFlagTeams(teams, view) {
+    const container = document.getElementById('flagLeaderboard');
+    const focused = document.activeElement;
+    const focusedTeam = focused?.closest?.('.flag-team');
+    const focusedHref = focused?.closest?.('.flag-athlete-link')?.getAttribute('href');
+    const existingTeams = new Map([...container.querySelectorAll('.flag-team')].map(element => [element.id, element]));
+    const existingHeadings = new Map([...container.querySelectorAll('.flag-section-heading')].map(element => [element.textContent, element]));
+    const open = new Set([...container.querySelectorAll('details[open]')].map(element => element.id));
+    const labels = { bortz: 'Bortz Age', pheno: 'Pheno Age', crowd: 'Crowd Age', improvement: 'Pheno Improvement', 'bortz-improvement': 'Bortz Improvement' };
+    const signed = (number, decimals) => `${number > 0 ? '+' : ''}${number.toFixed(decimals)}`;
+    let previousSection = '';
+    const template = document.createElement('template');
+    template.innerHTML = teams.map(team => {
+        const id = `flag-team-${team.key}`;
+        const icon = getFlagIconCode(team.flag);
+        const section = team.rank ? view === 'ultimate' ? labels[team.view] : '' : 'Incomplete teams';
+        const heading = section && section !== previousSection ? `<h3 class="flag-section-heading">${section}</h3>` : '';
+        previousSection = section;
+        return `${heading}<details class="flag-team" id="${escapeHtml(id)}" data-clock="${team.view}" data-flag="${escapeHtml(team.flag)}" ${open.has(id) ? 'open' : ''}>
+            <summary title="${labels[team.view]}"><span class="flag-team-rank" aria-label="${team.rank ? `Rank ${team.rank}` : 'Unranked'}">${team.rank || '—'}</span>
+            <span class="flag-team-name"><span class="flag-team-icon" aria-hidden="true">${icon ? `<span class="fi fi-${icon}"></span>` : '<i class="fas fa-flag"></i>'}</span><span>${escapeHtml(team.flag)}</span></span>
+            <span class="flag-team-portraits" aria-hidden="true">${team.top.map(a => `<img src="${escapeHtml(getAthletePortraitUrl(a))}" alt="" loading="lazy">`).join('')}</span>
+            <span class="flag-team-score">${team.rank ? signed(team.score, 2) : `${team.top.length}/3`}<small>${team.rank ? 'years total' : 'to qualify'}</small></span><span class="flag-team-chevron" aria-hidden="true">⌄</span></summary>
+            <ol class="flag-team-athletes" aria-label="Top ${labels[team.view]} athletes for ${escapeHtml(team.flag)}">${team.top.map((a, index) => `<li><a class="flag-athlete-link" href="${escapeHtml(getAthleteProfileHref(a))}"><span class="flag-athlete-rank" title="Rank within this team">${index + 1}</span><img src="${escapeHtml(getAthletePortraitUrl(a))}" alt="" loading="lazy"><span class="flag-athlete-name">${escapeHtml(a.displayName)}<small>${hasBortzRankData(a) ? 'Pro' : 'Amateur'}</small></span><span class="flag-athlete-metric">${signed(team.values[index], 1)}<small>years</small></span></a></li>`).join('')}</ol></details>`;
+    }).join('') || '<p class="flag-empty">No flags match this leaderboard.</p>';
+    const nextChildren = [...template.content.children].map(incoming => {
+        if (incoming.classList.contains('flag-section-heading')) {
+            return existingHeadings.get(incoming.textContent) || incoming;
+        }
+        const existing = existingTeams.get(incoming.id);
+        if (!existing) {
+            incoming._flagMarkup = incoming.innerHTML;
+            return incoming;
+        }
+        // Keep the disclosure and summary themselves stable during hydration,
+        // retries and filtering. Unchanged cards also retain portrait fallbacks.
+        const nextMarkup = incoming.innerHTML;
+        if (existing._flagMarkup !== nextMarkup) {
+            for (const selector of ['summary', '.flag-team-athletes']) {
+                const currentPart = existing.querySelector(selector);
+                const nextPart = incoming.querySelector(selector);
+                for (const attribute of nextPart.attributes) currentPart.setAttribute(attribute.name, attribute.value);
+                currentPart.replaceChildren(...nextPart.childNodes);
+            }
+            existing._flagMarkup = nextMarkup;
+        }
+        existing.dataset.clock = incoming.dataset.clock;
+        existing.dataset.flag = incoming.dataset.flag;
+        return existing;
+    });
+    nextChildren.forEach((element, index) => {
+        if (container.children[index] !== element) container.insertBefore(element, container.children[index] || null);
+    });
+    while (container.children.length > nextChildren.length) container.lastElementChild.remove();
+    if (focusedTeam && document.activeElement !== focused) {
+        const retained = existingTeams.get(focusedTeam.id);
+        const matchingLink = retained?.isConnected && focusedHref
+            ? [...retained.querySelectorAll('.flag-athlete-link')].find(link => link.getAttribute('href') === focusedHref)
+            : null;
+        const focusTarget = focused.isConnected ? focused : matchingLink || (retained?.isConnected ? retained.querySelector('summary') : document.getElementById('athleteSearch'));
+        focusTarget?.focus({ preventScroll: true });
+    }
+    container.querySelectorAll('.flag-team').forEach((element, index) => {
+        element.addEventListener('toggle', scheduleLeaderboardTableHeightSync);
+        const team = teams[index];
+        element.querySelectorAll('.flag-team-portraits img').forEach((img, i) => wirePortraitFallback(img, team.top[i]));
+        element.querySelectorAll('.flag-athlete-link img').forEach((img, i) => wirePortraitFallback(img, team.top[i]));
+    });
+}
+
 function performFilter({ updateUrl = true } = {}) {
     const selectedState = getSelectedLeaderboardState();
+    syncFlagFilters(selectedState.byFlag);
     const selectedDivisions = selectedState.divisions.map(value => value.toLowerCase());
     const selectedFlags = selectedState.flags.map(getFlagFilterKey);
     const selectedGenerations = selectedState.generations.map(value => value.toLowerCase());
@@ -3328,9 +3473,17 @@ function performFilter({ updateUrl = true } = {}) {
 
     // Get leaderboard view (ultimate | bortz | pheno | improvement | bortz-improvement | crowd)
     const currentLeaderboardView = selectedState.view;
+    if (document.querySelector('.leaderboard--flags') && !selectedState.byFlag) {
+        document.querySelector('.podium')?.style.setProperty('display', includePodiumGlobal && !hasActiveLeaderboardState() ? 'flex' : 'none');
+    }
+    document.querySelector('.leaderboard')?.classList.toggle('leaderboard--flags', selectedState.byFlag);
+    const searchInput = document.getElementById('athleteSearch');
+    searchInput.placeholder = selectedState.byFlag ? 'Search flags or athletes' : 'Search athletes';
+    searchInput.setAttribute('aria-label', searchInput.placeholder);
+    document.querySelector('label[for="athleteSearch"]').textContent = searchInput.placeholder;
     syncAgingClockFilters(currentLeaderboardView);
     updateActiveFilterSections();
-    updateRankingExplanation(currentLeaderboardView);
+    updateRankingExplanation(currentLeaderboardView, selectedState.byFlag);
 
     const hasBortz = (a) => a.bortzAgeReduction != null && Number.isFinite(a.bortzAgeReduction);
     const hasCrowdAge = (a) => a.crowdCount >= CROWD_AGE_LEADERBOARD_MINIMUM_GUESS_COUNT && Number.isFinite(a.crowdAgeReduction);
@@ -3437,13 +3590,14 @@ function performFilter({ updateUrl = true } = {}) {
 
     const searchTextByAthlete = new Map(athleteResults.map(athlete => [athlete, [
         athlete.name,
+        athlete.displayName,
         athleteBadgeTextByName.get(athlete.name) || '',
         athlete.mediaContact || '',
         `${athlete.flag || ''} ${athlete.canonicalFlag || ''}`,
         athlete.why || ''
     ].map(text => window.normalizeString(text.toLowerCase())).join(' ')]));
 
-    const getMatchingEntries = (state) => {
+    const getMatchingEntries = (state, applySearch = true) => {
         const divisions = state.divisions.map(value => value.toLowerCase());
         const flags = state.flags.map(getFlagFilterKey);
         const generations = state.generations.map(value => value.toLowerCase());
@@ -3466,7 +3620,7 @@ function performFilter({ updateUrl = true } = {}) {
             rank: filtersUsed ? index + 1 : athlete.rank,
             metric: formatMetricForView(cohort, athlete, index, state.view)
         })).filter(entry => {
-            if (showAll) return true;
+            if (showAll || !applySearch) return true;
             const { athlete, rank, metric } = entry;
             const value = getMetricValueForView(athlete, state.view);
             const percent = state.view === 'pheno'
@@ -3483,6 +3637,30 @@ function performFilter({ updateUrl = true } = {}) {
             return uniqueSearchTerms.every(term => searchTextByAthlete.get(athlete).includes(term) || metricText.includes(term) || String(rank).includes(term));
         });
     };
+
+    if (selectedState.byFlag) {
+        const matchingTeamsByState = new Map();
+        const getMatchingFlagTeams = state => {
+            const key = JSON.stringify(state);
+            if (!matchingTeamsByState.has(key)) {
+                const teams = buildFlagTeams(getMatchingEntries(state, false), state.view);
+                matchingTeamsByState.set(key, teams.filter(team => uniqueSearchTerms.every(term =>
+                    window.normalizeString(team.flag.toLowerCase()).includes(term) ||
+                    team.entries.some(entry => searchTextByAthlete.get(entry.athlete).includes(term)))));
+            }
+            return matchingTeamsByState.get(key);
+        };
+        const getMatchingFlagEntries = state => getMatchingFlagTeams(state).flatMap(team => team.eligibleEntries);
+        const matchingTeams = getMatchingFlagTeams(selectedState);
+        renderFlagTeams(matchingTeams.slice(0, maxAthletesGlobal), currentLeaderboardView);
+        updateViewAllAthletesButton(matchingTeams.length);
+        updateFilterCounts(selectedState, getMatchingFlagEntries, getMatchingFlagEntries(selectedState));
+        updateLeaderboardTitles(selectedState);
+        document.querySelector('.podium')?.style.setProperty('display', 'none');
+        updateLeaderboardStructuredData(matchingTeams.slice(0, maxAthletesGlobal));
+        finishLeaderboardFilter(selectedState, query, updateUrl);
+        return;
+    }
 
     const matchingEntries = getMatchingEntries(selectedState);
     const entriesByAthlete = new Map(matchingEntries.map(entry => [entry.athlete, entry]));
@@ -3632,6 +3810,16 @@ function performFilter({ updateUrl = true } = {}) {
         AOS.refresh();
     }
 
+    finishLeaderboardFilter(selectedState, query, updateUrl);
+}
+
+function finishLeaderboardFilter(selectedState, query, updateUrl) {
+    const currentLeaderboardView = selectedState.view;
+    const selectedDivisions = selectedState.divisions.map(value => value.toLowerCase());
+    const selectedGenerations = selectedState.generations.map(value => value.toLowerCase());
+    const selectedExclusiveLeagues = selectedState.exclusiveLeagues.map(value => value.toLowerCase());
+    const selectedLeagueTracks = selectedState.leagueTracks;
+    const leagueTrackFilterActive = selectedLeagueTracks.length === 1;
     updateLeaderboardStateIndicator();
     scheduleLeaderboardTableHeightSync();
     renderedLeaderboardSelection = getLeaderboardSelectionKey();
@@ -3652,8 +3840,7 @@ function performFilter({ updateUrl = true } = {}) {
         url.searchParams.set('search', encodeURIComponent(query));
     }
 
-    const selectedFlagKeys = Array.from(document.querySelectorAll('input[name="flag"]:checked'))
-        .map(checkbox => getFlagFilterKey(checkbox.value));
+    const selectedFlagKeys = selectedState.flags.map(getFlagFilterKey);
     const filters = [
         ...selectedDivisions,
         ...selectedFlagKeys,
@@ -3664,8 +3851,8 @@ function performFilter({ updateUrl = true } = {}) {
     const canonicalLeagueSlug = filters.length === 1 && selectedFlagKeys.length === 0
         ? getCanonicalLeagueSlugForFilter(filters[0])
         : null;
-    const cleanSearch = ([...url.searchParams].length === 0)
-        || ([...url.searchParams].length === 1 && (url.searchParams.has('filters') || url.searchParams.has('view')));
+    const routeParams = [...url.searchParams.keys()].filter(key => key !== 'group');
+    const cleanSearch = routeParams.length === 0 || (routeParams.length === 1 && (url.searchParams.has('filters') || url.searchParams.has('view')));
     if (filters.length === 1 && selectedFlagKeys.length === 1 && cleanSearch && currentLeaderboardView === 'ultimate') {
         url.searchParams.delete('filters');
         url.pathname = `/flag/${getFlagRouteSlug(selectedState.flags[0])}`;
@@ -3690,11 +3877,13 @@ function performFilter({ updateUrl = true } = {}) {
         url.searchParams.set('view', currentLeaderboardView);
     }
 
+    if (selectedState.byFlag) url.searchParams.set('group', 'flags');
+    else url.searchParams.delete('group');
     history.replaceState(history.state || {}, "", url.toString());
     updateFullLeaderboardLink();
 }
 
-function updateRankingExplanation(currentLeaderboardView) {
+function updateRankingExplanation(currentLeaderboardView, byFlag = getSelectedLeaderboardState().byFlag) {
     const explanation = document.getElementById('rankingExplanation');
     if (!explanation) return;
 
@@ -3707,7 +3896,11 @@ function updateRankingExplanation(currentLeaderboardView) {
         crowd: '<strong>Crowd age</strong> is a visual age estimate from visitors. Athletes qualify once they reach 100 accepted guesses.'
     };
 
-    const html = explanations[currentLeaderboardView] || '';
+    const html = byFlag
+        ? (currentLeaderboardView === 'ultimate'
+            ? 'Top-three total age reduction. Complete Bortz teams first, then complete Pheno teams.'
+            : 'Top-three total years. Lower wins.')
+        : explanations[currentLeaderboardView] || '';
     explanation.innerHTML = html;
     explanation.classList.toggle('is-visible', html.length > 0);
 }
@@ -3754,6 +3947,14 @@ function getDivisionLeagueLabel(divisions) {
 
 function buildLeaderboardPresentation(state) {
     const viewPresentation = leaderboardViewPresentations[state.view] || leaderboardViewPresentations.ultimate;
+    if (state.byFlag) {
+        let cohortLabel = [getGenerationLeagueLabel(state.generations), getDivisionLeagueLabel(state.divisions)].filter(Boolean).join(' ');
+        if (state.exclusiveLeagues.length > 0) cohortLabel = state.exclusiveLeagues.length === 1 ? state.exclusiveLeagues[0] : 'Exclusive Leagues';
+        else if (!cohortLabel && state.leagueTracks.length === 1) cohortLabel = getLeagueTrackLabel(state.leagueTracks[0]);
+        const clockLabel = state.view === 'ultimate' && cohortLabel ? '' : viewPresentation.railText.replace(/ League$/, '');
+        const railText = [cohortLabel, clockLabel, state.view === 'ultimate' ? 'Flag League' : 'by Flag'].filter(Boolean).join(' ');
+        return { railText, documentTitle: railText, accessibleLabel: railText };
+    }
     if (state.view !== 'ultimate') {
         return { ...viewPresentation, accessibleLabel: viewPresentation.documentTitle };
     }
@@ -3837,18 +4038,23 @@ function updateFilterCounts(state, getMatchingEntries, currentEntries) {
     document.querySelectorAll('.filter-section label').forEach(label => {
         const input = label.querySelector('input[type="checkbox"]');
         if (!input) return;
+        if (state.byFlag && input.name === 'flag') return;
         const isView = input.name === 'agingClockView';
         const field = fields[input.name];
         if (!isView && !field) return;
 
-        // Counts describe this option's members after adding it to its OR group,
+        // Counts use the result unit (athletes or flags) after adding this option to its OR group,
         // or switching clocks, with all other selections and the search preserved.
         const candidateState = isView
             ? { ...state, view: input.value }
             : { ...state, [field[0]]: [...state[field[0]], input.value] };
         const entries = input.checked ? currentEntries : getMatchingEntries(candidateState);
         const value = input.name === 'flag' ? getFlagFilterKey(input.value) : input.value.toLowerCase();
-        const count = isView ? entries.length : entries.filter(entry => field[1](entry.athlete).toLowerCase() === value).length;
+        const members = isView ? entries : entries.filter(entry => field[1](entry.athlete).toLowerCase() === value);
+        const count = state.byFlag ? new Set(members.map(entry => entry.athlete.flagFilterKey)).size : members.length;
+        const countLabel = `${count} ${state.byFlag ? (count === 1 ? 'flag' : 'flags') : (count === 1 ? 'athlete' : 'athletes')}`;
+        label.querySelector('.filter-count')?.setAttribute('aria-label', countLabel);
+        label.querySelector('.filter-count')?.setAttribute('title', countLabel);
         // Combining leagues can change a matching athlete's rank even when the
         // added option has no matching members of its own. Do not enable empty
         // options that leave both the matching athletes and their scores unchanged.
@@ -3986,6 +4192,8 @@ document.addEventListener('click', function (event) {
     event.preventDefault();
     showAllAthletes();
 });
+
+document.getElementById('group-flags')?.addEventListener('change', () => performFilter());
 
 document.querySelectorAll('input[name="leaderboardView"]').forEach(radio => {
     radio.addEventListener('change', function () {
@@ -6123,12 +6331,13 @@ function syncLeaderboardTableHeight() {
     leaderboardTableHeightFrame = 0;
 
     const leaderboard = document.querySelector('.leaderboard');
-    const table = document.querySelector('.leaderboard > table');
+    const table = document.querySelector('.leaderboard--flags > .flag-leaderboard') || document.querySelector('.leaderboard > table');
     if (!leaderboard || !table) return;
 
     if (isMobileDrawerViewport()) {
         leaderboard.style.removeProperty('--leaderboard-table-height');
         leaderboard.style.removeProperty('--leaderboard-title-height');
+        leaderboard.style.removeProperty('--leaderboard-sidebar-viewport-top');
         return;
     }
 
@@ -6137,6 +6346,9 @@ function syncLeaderboardTableHeight() {
         leaderboard.style.setProperty('--leaderboard-table-height', `${Math.ceil(tableHeight)}px`);
         syncCollapsedTitleHeight();
     }
+    // A newly opened panel may start below its sticky position. Size its scroll
+    // area to the space actually on screen, then refit as the page scrolls.
+    leaderboard.style.setProperty('--leaderboard-sidebar-viewport-top', `${Math.max(0, Math.ceil(sidebar.getBoundingClientRect().top))}px`);
 }
 
 function installLeaderboardTableHeightObserver() {
@@ -6146,6 +6358,8 @@ function installLeaderboardTableHeightObserver() {
     if ('ResizeObserver' in window) {
         leaderboardTableResizeObserver = new ResizeObserver(scheduleLeaderboardTableHeightSync);
         leaderboardTableResizeObserver.observe(table);
+        const flags = document.getElementById('flagLeaderboard');
+        if (flags) leaderboardTableResizeObserver.observe(flags);
         const title = document.querySelector('.collapsed-title');
         if (title) leaderboardTableResizeObserver.observe(title);
     }
@@ -6314,7 +6528,7 @@ function openSidebar(options = {}) {
                     sidebarClose.focus({ preventScroll: true });
                 }
             }
-            window.scrollTo(drawerScrollX, drawerScrollY);
+            window.scrollTo({ left: drawerScrollX, top: drawerScrollY, behavior: 'instant' });
         });
     }
 
@@ -6365,6 +6579,8 @@ function closeSidebar(options = {}) {
 if (hasLeaderboardSidebar) {
     syncSidebarDrawerBackdrop();
     installLeaderboardTableHeightObserver();
+    sidebar.addEventListener('mouseenter', scheduleLeaderboardTableHeightSync);
+    window.addEventListener('scroll', scheduleLeaderboardTableHeightSync, { passive: true });
     window.addEventListener('resize', () => {
         syncSidebarDrawerBackdrop();
         scheduleLeaderboardTableHeightSync();

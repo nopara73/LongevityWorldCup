@@ -50,6 +50,10 @@
                     <input type="radio" name="leaderboardView" id="view-bortz-improvement" value="bortz-improvement" aria-label="Bortz Improvement ranking" tabindex="-1" aria-hidden="true">
                 </div>
             </div>
+            <div class="leaderboard-group-switcher">
+                <input type="checkbox" id="group-flags" aria-label="By Flag" value="flags">
+                <label for="group-flags" class="view-badge"><i class="fas fa-flag" aria-hidden="true"></i> By Flag</label>
+            </div>
             <div class="search-wrapper">
                 <div class="search-container" data-aos="fade" data-aos-duration="700" data-aos-delay="700">
                     <label for="athleteSearch" class="visually-hidden">Search athletes</label>
@@ -152,6 +156,7 @@
                 <div class="sidebar-results"><button type="button" class="sidebar-show-results" id="showLeaderboardResults">Show results</button></div>
             </div>
             <div id="leaderboardStatus" class="leaderboard-status" role="status" aria-live="polite" aria-atomic="true">Loading leaderboard...</div>
+            <div id="flagLeaderboard" class="flag-leaderboard" aria-label="Flag rankings"><!--FLAG-LEADERBOARD--></div>
             <table>
                 <thead>
                 <tr>

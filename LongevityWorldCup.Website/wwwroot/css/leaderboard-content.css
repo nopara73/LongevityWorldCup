@@ -1,3 +1,78 @@
+/* Flag teams share the selected clock and the leaderboard's filter rail. */
+.leaderboard-group-switcher { flex: 0 0 auto; }
+.leaderboard-group-switcher input { position: absolute; width: 1px; height: 1px; clip-path: inset(50%); overflow: hidden; }
+.leaderboard-group-switcher .view-badge { display: flex; align-items: center; gap: .5rem; min-height: 44px; padding: .65rem .9rem; border: 1px solid var(--border-color); border-radius: 9px; cursor: pointer; box-sizing: border-box; white-space: nowrap; color: var(--lwc-muted, #526373); }
+.leaderboard-group-switcher input:checked + label { color: var(--primary-color); background: var(--lwc-accent-soft, #e7f5f6); border-color: var(--primary-color); box-shadow: inset 0 -3px var(--primary-color); }
+.leaderboard-group-switcher input:focus-visible + label { outline: 3px solid var(--primary-color); outline-offset: 3px; }
+.flag-leaderboard { display: none; flex: 1 1 0; min-width: 0; container: flag-results / inline-size; }
+.leaderboard--flags > .flag-leaderboard { display: block; }
+.leaderboard--flags > table { display: none !important; }
+.flag-section-heading { margin: 0; padding: .65rem 1.5rem; color: var(--lwc-muted, #526373); background: var(--lwc-surface-muted); font: 600 .75rem Roboto, sans-serif; text-transform: uppercase; letter-spacing: .04em; border-bottom: 1px solid var(--border-color); }
+.flag-team { border-bottom: 1px solid var(--border-color); color: var(--dark-text-color); }
+.flag-team:last-child { border-bottom: 0; }
+.flag-team summary { display: grid; grid-template-columns: 3rem minmax(0, 1fr) auto 6.5rem 1rem; align-items: center; gap: 1rem; min-height: 100px; padding: 1rem 1.5rem; cursor: pointer; list-style: none; box-sizing: border-box; }
+.flag-team summary::-webkit-details-marker { display: none; }
+.flag-team summary:hover, .flag-team[open] summary { background: var(--lwc-accent-soft, rgba(8,118,133,.06)); }
+.flag-team summary:focus-visible, .flag-athlete-link:focus-visible { outline: 3px solid var(--primary-color); outline-offset: -3px; border-radius: 6px; }
+.flag-team-rank { font-family: Orbitron, sans-serif; font-size: 1.4rem; font-weight: 700; text-align: center; color: var(--primary-color); font-variant-numeric: tabular-nums; }
+.flag-team-name { display: flex; align-items: center; gap: 1rem; min-width: 0; font-size: 1.12rem; font-weight: 700; overflow-wrap: anywhere; }
+.flag-team-icon { flex: 0 0 2.4rem; width: 2.4rem; font-size: 1.8rem; color: var(--primary-color); text-align: center; }
+.flag-team-icon .fi { width: 1.33em; border-radius: 3px; box-shadow: 0 0 0 1px rgba(100,116,139,.16); }
+.flag-team small { display: block; margin-top: .3rem; font-size: .75rem; font-weight: 400; color: var(--lwc-muted, #526373); font-family: Roboto, sans-serif; line-height: 1.3; }
+.flag-team-portraits { display: flex; padding-left: .6rem; }
+.flag-team-portraits img { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; border: 2px solid var(--card-bg); margin-left: -.6rem; background: var(--card-bg); }
+.flag-team-score { text-align: right; font-size: 1.35rem; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--primary-color); }
+.flag-team-chevron { color: var(--lwc-muted, #526373); font-size: 1.5rem; line-height: 1; transition: transform 140ms; }
+.flag-team[open] .flag-team-chevron { transform: rotate(180deg); }
+.flag-team-athletes { list-style: none; margin: 0; padding: .25rem 1.5rem .75rem 5.5rem; }
+.flag-team-athletes li + li { border-top: 1px solid var(--border-color); }
+.flag-athlete-link { display: grid; grid-template-columns: 1.25rem 40px minmax(0, 1fr) auto; align-items: center; gap: .75rem; padding: .85rem .5rem; color: inherit; text-decoration: none; min-height: 66px; border-radius: 6px; }
+.flag-athlete-link:hover { background: var(--lwc-accent-soft, rgba(8,118,133,.06)); }
+.flag-athlete-link img { width: 40px; height: 40px; object-fit: cover; border-radius: 50%; }
+.flag-athlete-rank { color: var(--lwc-muted, #526373); font-size: .85rem; font-variant-numeric: tabular-nums; }
+.flag-athlete-name { font-weight: 600; overflow-wrap: anywhere; }
+.flag-athlete-metric { font-variant-numeric: tabular-nums; text-align: right; font-weight: 600; }
+.flag-empty { padding: 2rem; text-align: center; color: var(--lwc-muted, #526373); }
+@media (max-width: 768px) {
+    .leaderboard-controls .leaderboard-toolbar { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
+    .leaderboard-controls .leaderboard-view-switcher { display: contents; }
+    .leaderboard-controls .view-switcher-label { grid-column: 1; grid-row: 1; align-self: center; }
+    .leaderboard-controls .leaderboard-group-switcher { grid-column: 2; grid-row: 1; }
+    .leaderboard-controls .view-switcher-chips { grid-column: 1 / -1; grid-row: 2; }
+    .leaderboard-controls .search-wrapper { grid-column: 1 / -1; grid-row: 3; width: 100%; }
+    .flag-team summary { grid-template-columns: 1.5rem minmax(0, 1fr) auto .8rem; gap: .65rem; padding: 1rem .75rem; min-height: 88px; }
+    .flag-team-name { gap: .6rem; font-size: 1rem; }
+    .flag-team-rank { font-size: 1.05rem; }
+    .flag-team-icon { flex-basis: 1.75rem; width: 1.75rem; font-size: 1.3rem; }
+    .flag-team-portraits { display: none; }
+    .flag-team-score { font-size: 1.15rem; }
+    .flag-team-athletes { padding: .25rem .75rem .5rem 1.75rem; }
+    .flag-athlete-link { grid-template-columns: 1rem 32px minmax(0, 1fr) auto; gap: .5rem; font-size: .9rem; }
+    .flag-athlete-link img { width: 32px; height: 32px; }
+}
+@container leaderboard-results (max-width: 45rem) {
+    .sidebar.expanded ~ .flag-leaderboard { flex-basis: 100%; }
+}
+@container flag-results (max-width: 42rem) {
+    .flag-team-portraits { display: none; }
+    .flag-team summary { grid-template-columns: 2rem minmax(0, 1fr) auto 1rem; gap: .75rem; padding: 1rem; }
+}
+@container flag-results (max-width: 28rem) {
+    .flag-team summary { grid-template-columns: 1.5rem minmax(0, 1fr) auto .8rem; gap: .65rem; padding: 1rem .75rem; }
+    .flag-team-athletes { padding-left: 1.75rem; }
+    .flag-team-icon { flex-basis: 1.75rem; width: 1.75rem; font-size: 1.3rem; }
+}
+@container flag-results (max-width: 22rem) {
+    .flag-team summary { grid-template-columns: 24px minmax(0, 1fr) 16px; grid-template-areas: "rank name chevron" ". score score"; gap: .5rem; padding: 1rem 12px; }
+    .flag-team-rank { grid-area: rank; }
+    .flag-team-name { grid-area: name; }
+    .flag-team-icon { flex-basis: 28px; width: 28px; font-size: 24px; }
+    .flag-team-score { grid-area: score; text-align: left; }
+    .flag-team-score small { display: inline; margin-left: .4rem; }
+    .flag-team-chevron { grid-area: chevron; }
+}
+@media (prefers-reduced-motion: reduce) { .flag-team-chevron { transition: none; } }
+
 /* =========================
 1) Design tokens
 ========================= */
@@ -95,6 +170,7 @@
  .leaderboard{
      --leaderboard-table-height: calc(100vh - 2rem);
      --leaderboard-sidebar-sticky-top: 4rem;
+     --leaderboard-sidebar-viewport-height: max(0px, min(calc(100dvh - var(--leaderboard-sidebar-sticky-top) - 1rem), calc(100dvh - var(--leaderboard-sidebar-viewport-top, 0px) - 1rem)));
      display:flex; align-items:flex-start; background-color:var(--card-bg);
      min-height:max(var(--leaderboard-table-height), var(--leaderboard-title-height, 0px));
      border-radius:15px; box-shadow:0 10px 30px rgba(0,0,0,.1); overflow:clip; flex-grow:1;
@@ -475,6 +551,7 @@
  .sidebar:hover:not([aria-hidden="true"]) ~ .content, .sidebar.expanded ~ .content{ margin-left:200px; }
 
  .filter-section{ margin-bottom:1.5rem; width:100%; }
+ #flag-filter-section[hidden], .leaderboard--flags #flag-filter-section{ display:none !important; }
  .filter-section h3{
      display:flex; align-items:center; gap:var(--lwc-space-2); margin-bottom:var(--lwc-space-2); color:var(--lwc-ink); font-size:var(--lwc-type-body);
      transition:color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
@@ -3614,20 +3691,21 @@
  .sidebar-filter-list { scroll-padding-block-start: 3rem; }
  .sidebar-filter-list input { scroll-margin-block-start: 3rem; }
 
- /* Wide screens: the explicitly opened panel keeps a steady width and its own height.
-    Hover retains the compact preview so passing the rail cannot move the footer. Its
-    heading, with Clear filters and Close, stays put while the groups scroll
-    beneath it, and a board with one or two results no longer squeezes it. */
+ /* Desktop panels use one scrollable filter list for both hover and button opening.
+    Keep the heading fixed and cap the panel at the visible viewport space. */
  @media (min-width: 933px), (min-width: 769px) and (min-height: 481px) {
      .leaderboard { container: leaderboard-results / inline-size; flex-wrap: wrap; }
      .leaderboard > table { flex-basis: 0; min-width: 0; }
-     .sidebar.expanded:not(.button-collapsed):not([aria-hidden="true"]) {
+     .sidebar:is(:hover, .expanded):not(.button-collapsed):not([aria-hidden="true"]) {
          display: flex; flex-direction: column; align-items: stretch; width: min(19rem, 336px, 40%); padding: 0; overflow: hidden;
          scrollbar-gutter: auto;
-         max-height: calc(100vh - var(--leaderboard-sidebar-sticky-top) - 1rem);
+         max-height: var(--leaderboard-sidebar-viewport-height);
      }
-     .sidebar.expanded:not(.button-collapsed):not([aria-hidden="true"]) .sidebar-heading { flex: 0 0 auto; margin: 0; padding-inline: min(1rem, 16px); }
-     .sidebar.expanded:not(.button-collapsed):not([aria-hidden="true"]) .sidebar-filter-list {
+     .sidebar:hover:not(.expanded):not(.button-collapsed):not([aria-hidden="true"]) {
+         max-height: min(var(--leaderboard-sidebar-viewport-height), max(var(--leaderboard-table-height), var(--leaderboard-title-height, 0px)));
+     }
+     .sidebar:is(:hover, .expanded):not(.button-collapsed):not([aria-hidden="true"]) .sidebar-heading { flex: 0 0 auto; margin: 0; padding-inline: min(1rem, 16px); }
+     .sidebar:is(:hover, .expanded):not(.button-collapsed):not([aria-hidden="true"]) .sidebar-filter-list {
          display: block; flex: 1 1 auto; min-height: 0; width: 100%; box-sizing: border-box; padding: 0 min(var(--lwc-space-4), 16px) var(--lwc-space-4);
          overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable;
          scrollbar-width: thin; scrollbar-color: rgba(0,188,212,.55) transparent;
@@ -3638,7 +3716,7 @@
          /* Enlarged text needs room for whole header words, rather than doubled gutters. */
          .leaderboard table th:not(:first-child) { padding-inline: min(var(--lwc-space-4), 4px); }
          .leaderboard table th a { padding-inline: 0; }
-         .sidebar.expanded:not(.button-collapsed):not([aria-hidden="true"]) { flex-basis: 100%; width: 100%; position: relative; top: auto; max-height: 55vh; }
+         .sidebar.expanded:not(.button-collapsed):not([aria-hidden="true"]) { flex-basis: 100%; width: 100%; position: relative; top: auto; max-height: min(55dvh, var(--leaderboard-sidebar-viewport-height)); }
          .sidebar.expanded ~ table { flex-basis: 100%; }
          /* The narrow/text-enlarged layout opens with the button. A transient
             hover cannot take width from the results and change their height. */
