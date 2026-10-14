@@ -917,6 +917,23 @@ html body .bioageform .lwc-wizard-nav .lwc-dot[aria-disabled="true"] {
 }
 
 @container bioage-form (max-width: 15rem) {
+    /* Keep enlarged names and their status marks inside a narrow card. */
+    .bioageform.bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card-header {
+        padding-inline: 8px;
+        gap: 8px;
+        overflow-wrap: anywhere;
+    }
+
+    .bioageform.bioage-biomarker-entry-ready #lwc-step-2 .toggle-icon {
+        flex-basis: min(1.35rem, 24px);
+        width: min(1.35rem, 24px);
+        height: min(1.35rem, 24px);
+    }
+
+    .bioageform.bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card--complete .toggle-icon::before {
+        font-size: min(0.78rem, 18px);
+    }
+
     .bioageform #lwc-step-1.lwc-step--active #dobFieldset {
         display: block;
         padding-inline: 0;

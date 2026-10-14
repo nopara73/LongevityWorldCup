@@ -16,6 +16,8 @@ public sealed class BioageBiomarkerSheetBrowserTests(
     [InlineData("/pheno-age", 1440, 900, 200)]
     [InlineData("/pheno-age", 768, 1024, 100)]
     [InlineData("/bortz-age", 390, 844, 100)]
+    [InlineData("/pheno-age", 320, 844, 200)]
+    [InlineData("/bortz-age", 320, 844, 200)]
     public async Task BiomarkerSheet_KeepsEveryValueOpenAndTypableInOrder(string path, int width, int height, int textPercent)
     {
         await using var context = await Browser.NewContextAsync(new BrowserNewContextOptions
@@ -33,6 +35,7 @@ public sealed class BioageBiomarkerSheetBrowserTests(
         await page.GotoAsync(path);
         await FillBioageStepOneAsync(page, DateTime.UtcNow.Date.AddDays(-9).ToString("yyyy-MM-dd"));
         await page.EvaluateAsync("percent => document.documentElement.style.fontSize = `${percent}%`", textPercent);
+        await page.EvaluateAsync("() => document.fonts.ready");
 
         var problems = await page.EvaluateAsync<string[]>(
             """
@@ -43,9 +46,13 @@ public sealed class BioageBiomarkerSheetBrowserTests(
                     const name = header.childNodes[0].textContent.trim();
                     const input = card.querySelector('input[type="number"]');
                     const nameRect = (() => { const r = document.createRange(); r.selectNodeContents(header.childNodes[0]); return r.getBoundingClientRect(); })();
+                    const headerRect = header.getBoundingClientRect();
+                    const markerRect = header.querySelector('.toggle-icon').getBoundingClientRect();
                     const inputRect = input.getBoundingClientRect();
                     if (inputRect.height < 40 || inputRect.width < 60) issues.push(`${name}: value field is collapsed`);
                     if (nameRect.width < 20) issues.push(`${name}: name is squeezed away`);
+                    if (nameRect.left < headerRect.left - 1 || nameRect.right > headerRect.right + 1) issues.push(`${name}: name is clipped`);
+                    if (markerRect.left < headerRect.left - 1 || markerRect.right > headerRect.right + 1) issues.push(`${name}: completion marker is clipped`);
                     if (header.getAttribute('role') === 'button' || header.hasAttribute('aria-expanded')) issues.push(`${name}: header still acts as a toggle`);
                 }
                 if (document.documentElement.scrollWidth > innerWidth + 1) issues.push('page overflows');
