@@ -756,10 +756,14 @@ window.setBadges = function (athlete, athleteCell) {
     if (!badgeContainer) return;
 
     const items: RenderedBadgeItem[] = [];
+    const nameLinks: RenderedBadgeItem[] = [];
+    const nameLinksContainer = athleteCell?.classList?.contains('athlete-td')
+        ? athleteCell.querySelector<HTMLElement>('.athlete-name-links')
+        : null;
 
     const href = window.normalizeWebUrl(String(athlete.personalLink || athlete.PersonalLink || ''));
     if (href) {
-        items.push({
+        (nameLinksContainer ? nameLinks : items).push({
             order: 0,
             searchText: 'Personal page',
             html: `<a class="badge-class badge-family-utility badge-personal badge-clickable" href="${escapeAttr(href)}" target="_blank" rel="noopener" aria-label="Open personal page"
@@ -773,7 +777,15 @@ window.setBadges = function (athlete, athleteCell) {
         Array.isArray(athlete.Badges) ? athlete.Badges :
             Array.isArray(athlete.badges) ? athlete.badges : [];
 
-    serverBadges.forEach(b => items.push(buildServerBadgeHtml(b, athlete)));
+    serverBadges.forEach(b => {
+        const item = buildServerBadgeHtml(b, athlete);
+        const isNameLink = nameLinksContainer && getLabel(b) === 'Podcast' && pickClickUrl(b, athlete);
+        (isNameLink ? nameLinks : items).push(item);
+    });
+
+    if (nameLinksContainer) {
+        nameLinksContainer.innerHTML = nameLinks.sort((a, b) => a.order - b.order).map(item => item.html).join('');
+    }
 
     try {
         const slug = getAthleteProfileSlug(athlete);

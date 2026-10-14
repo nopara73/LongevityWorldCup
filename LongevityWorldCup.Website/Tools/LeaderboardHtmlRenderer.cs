@@ -91,11 +91,12 @@ public static class LeaderboardHtmlRenderer
                 .Append(EncodeAttribute($"{row.DisplayName} portrait"))
                 .AppendLine("\" class=\"portrait\" loading=\"lazy\"></a>");
         }
-        sb.Append("                        <a class=\"athlete-name\" href=\"")
+        sb.Append("                        <div class=\"athlete-identity\"><a class=\"athlete-name\" href=\"")
             .Append(athletePath)
             .Append("\">")
             .Append(displayName)
-            .AppendLine("</a>");
+            .AppendLine("</a><span class=\"athlete-name-links\"></span></div>");
+        sb.AppendLine("                        <div class=\"badge-section\"></div>");
         sb.AppendLine("                    </td>");
         sb.AppendLine("                    <td data-label=\"Sponsor\" class=\"sponsor-td\"></td>");
         sb.Append("                    <td data-label=\"").Append(EncodeAttribute(metricLabel)).Append("\" class=\"age-reduction-td\"><span class=\"age-reduction\">")

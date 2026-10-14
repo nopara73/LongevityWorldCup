@@ -858,7 +858,10 @@
      width:var(--portrait-size);
      min-width:var(--portrait-size);
  }
+ /* Block-level, so a rank-change ring adds no line gap and movers keep the
+    height of every other row. */
  .leaderboard .athlete-td .portrait-wrapper .rank-change{
+     display:block;
      width:var(--portrait-size);
      min-width:var(--portrait-size);
  }
@@ -993,6 +996,10 @@
      min-width:0;
  }
  .athlete-td .badge-section{ flex:0 0 auto; flex-wrap:nowrap; }
+ .athlete-identity{ display:flex; align-items:center; flex-wrap:wrap; gap:0 .125rem; min-width:0; }
+ .athlete-identity .athlete-name{ min-width:0; max-width:100%; }
+ .athlete-name-links{ display:inline-flex; align-items:center; flex:0 0 auto; gap:.125rem; }
+ .athlete-name-links:empty{ display:none; }
 
  .athlete-name{
      color:var(--primary-color); text-decoration:underline; text-decoration-thickness:.08em; text-underline-offset:.18em; text-align:left; cursor:pointer;
@@ -2372,7 +2379,7 @@
      /* Age reduction is now the last column; keep it off the board's edge. */
      .leaderboard table th:nth-child(4),
      .leaderboard table .age-reduction-td{ padding-right:var(--lwc-space-4, 1rem); }
-     .leaderboard table td .badge-section{ display:none; }
+     .leaderboard table td :is(.badge-section, .athlete-name-links){ display:none; }
  }
 
  @media (max-width: 768px), (max-width: 932px) and (max-height: 480px) and (orientation: landscape){
@@ -2521,7 +2528,7 @@
      .leaderboard table .media-contact-td{ display:none; }
      .leaderboard table th:nth-child(4),
      .leaderboard table td:nth-child(4){ padding-right:0.5rem; }
-     .leaderboard table td .badge-section{ display:none; }
+     .leaderboard table td :is(.badge-section, .athlete-name-links){ display:none; }
      .leaderboard table th{
          font-size:.66rem;
          line-height:1.05;
@@ -2796,8 +2803,54 @@
              word-break: normal;
          }
 
+         /* One column head names the score for every row, in place of a label
+            repeated under each one. It uses the rows' own three columns. */
          .leaderboard table thead {
-             display: none;
+             display: block;
+         }
+
+         /* Wrap whole heading items when text grows beyond the available row width. */
+         .leaderboard table thead tr {
+             display: flex;
+             flex-wrap: wrap;
+             align-items: center;
+             column-gap: 0.6rem;
+             min-height: 44px;
+             padding: 0 0.5rem 0 0.4rem;
+             border-bottom: 1px solid var(--lwc-border, #d7e0e6);
+             background: var(--lwc-surface-accent, var(--surface-accent));
+         }
+
+         .leaderboard table thead tr > th:nth-child(n) {
+             display: block;
+             width: auto;
+             min-width: 0;
+             height: auto;
+             padding: 0;
+             border: 0;
+             background: none;
+             font-size: var(--lwc-type-xs, .75rem);
+             letter-spacing: 0;
+             line-height: 1.2;
+         }
+
+         .leaderboard table thead tr > th.sponsor-th:nth-child(n),
+         .leaderboard table thead tr > th.media-contact-th:nth-child(n) { display: none; }
+
+         .leaderboard table thead tr > th:nth-child(1),
+         .leaderboard table thead tr > th:nth-child(2) { overflow-wrap: normal; }
+         .leaderboard table thead tr > th:nth-child(1) { flex: 0 0 2.25rem; text-align: center; }
+         .leaderboard table thead tr > th:nth-child(2) { flex: 1 0 min-content; }
+         .leaderboard table thead tr > th:nth-child(4) { flex: 0 1 auto; min-width: min-content; margin-inline-start: auto; text-align: right; overflow-wrap: normal; }
+
+         .leaderboard table thead tr > th:nth-child(4) a {
+             display: inline-flex;
+             align-items: center;
+             justify-content: flex-end;
+             min-height: 44px;
+             max-width: 100%;
+             overflow-wrap: normal;
+             text-align: right;
          }
 
          .leaderboard table tbody {
@@ -2852,6 +2905,16 @@
              font-weight: 700;
          }
 
+         .leaderboard table td.rank-td .rank:not([data-place]):not(.skeleton-shimmer) {
+             color: var(--lwc-ink);
+         }
+
+         /* The Amateur track's edge bar takes its width out of the row's own
+            padding, so rank, portrait and name line up with the rows above. */
+         .leaderboard table tbody tr.tier-amateur:not(.no-results):not(.tier-separator) {
+             padding-left: calc(0.4rem - 4px);
+         }
+
          .leaderboard table tbody tr td.athlete-td {
              grid-area: athlete;
              gap: 0.3rem;
@@ -2870,7 +2933,7 @@
          }
 
          .leaderboard table td.age-reduction-td::before {
-             content: attr(data-label);
+             content: none;
              color: var(--lwc-muted, #52606d);
              font-size: .6875rem;
              font-weight: 700;
@@ -2907,6 +2970,11 @@
 
              .leaderboard table td.age-reduction-td .age-reduction {
                  white-space: normal;
+             }
+
+             /* Stacked under the name, the score is no longer beneath its column head. */
+             .leaderboard table td.age-reduction-td::before {
+                 content: attr(data-label);
              }
          }
      }
@@ -3580,6 +3648,26 @@
  .sidebar-filter-list { display: contents; }
  .sidebar-results { display: none; }
 
+ /* Results rows. Outside the phone grid, rows are a little closer together. */
+ .leaderboard table tbody tr:not(.no-results):not(.tier-separator) > td { padding-block: var(--lwc-space-2); }
+ /* Wide tables read in columns: the athlete column takes the spare width, and
+    inside it every name starts at one edge and every row's badges at another. */
+ @media (min-width: 769px) {
+     /* The four narrow columns ask only for what they hold; when the table
+        narrows, the athlete column gives way before a score or a head wraps. */
+     .leaderboard table thead th:nth-child(1) { width: 4.75rem; }
+     .leaderboard table thead th:nth-child(3) { width: 7rem; }
+     .leaderboard table thead th:nth-child(4) { width: 9.5rem; }
+     .leaderboard table thead th:nth-child(5) { width: 8rem; }
+     .leaderboard table tbody tr:not(.no-results):not(.tier-separator) .athlete-td {
+         display: grid; grid-template-columns: var(--portrait-size) minmax(min-content, 18.5rem) minmax(min-content, 1fr);
+         align-items: center; justify-items: start; column-gap: var(--lwc-space-3);
+     }
+     /* Wide enough for the fullest badge row (badges are sized in pixels), so
+        the badge edge holds even when a narrow table shortens the name column. */
+     .leaderboard table tbody .athlete-td .badge-section { min-width: 144px; }
+ }
+
  /* Let enlarged headings wrap before they collide with Clear and Close. */
  .sidebar-heading { flex-wrap: wrap; }
  .sidebar-heading .sidebar-title { flex: 1 0 auto; max-width: 100%; }
@@ -3625,6 +3713,9 @@
      /* Reflow against text size as well as pixels: enlarged results need the
         full board width instead of being squeezed alongside the filters. */
      @container leaderboard-results (max-width: 45rem) {
+         /* Enlarged text needs room for whole header words, rather than doubled gutters. */
+         .leaderboard table th:not(:first-child) { padding-inline: min(var(--lwc-space-4), 4px); }
+         .leaderboard table th a { padding-inline: 0; }
          .sidebar.expanded:not(.button-collapsed):not([aria-hidden="true"]) { flex-basis: 100%; width: 100%; position: relative; top: auto; max-height: min(55dvh, var(--leaderboard-sidebar-viewport-height)); }
          .sidebar.expanded ~ table { flex-basis: 100%; }
          /* The narrow/text-enlarged layout opens with the button. A transient
