@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text;
 using System.Text.RegularExpressions;
 using Markdig;
 using Markdig.Extensions.AutoIdentifiers;
@@ -43,6 +44,7 @@ foreach (var page in pages)
     var title = ExtractTitle(markdown);
     var documentHtml = AddTableCellLabels(OpenAbsoluteLinksInNewTabs(RewriteWebsiteAssetImageSources(Markdown.ToHtml(markdown, pipeline))));
     var contentsHtml = BuildContentsNav(documentHtml, page.SourceUrl);
+    documentHtml = BuildTimeline(documentHtml);
     var pageHtml = NormalizeGeneratedHtml(RenderPage(title, documentHtml, contentsHtml, page));
 
     Directory.CreateDirectory(Path.GetDirectoryName(page.Output)!);
@@ -76,8 +78,13 @@ static string BuildContentsNav(string documentHtml, string sourceUrl)
         {
             var id = WebUtility.HtmlEncode(match.Groups["id"].Value);
             var level = WebUtility.HtmlEncode(match.Groups["level"].Value);
-            var text = WebUtility.HtmlEncode(StripTags(WebUtility.HtmlDecode(match.Groups["text"].Value)));
-            return $"            <a class=\"documentation-nav-level-{level}\" href=\"#{id}\">{text}</a>";
+            var plainText = StripTags(WebUtility.HtmlDecode(match.Groups["text"].Value));
+            if (level == "3" && TrySplitTimelineHeading(plainText, out var date, out var separator, out var title))
+            {
+                return $"            <a class=\"documentation-nav-level-3 documentation-nav-timeline\" href=\"#{id}\">{TimelineLabelHtml("documentation-nav-entry", date, separator, title)}</a>";
+            }
+
+            return $"            <a class=\"documentation-nav-level-{level}\" href=\"#{id}\">{WebUtility.HtmlEncode(plainText)}</a>";
         })
         .ToList();
 
@@ -108,6 +115,82 @@ static string BuildContentsNav(string documentHtml, string sourceUrl)
             </div>
         </nav>
 """;
+}
+
+// A level-3 heading that starts with a year ("2026 January 15 - Season ended") is a
+// timeline entry. Its date and title are set apart; the separator stays in the text so
+// the heading reads, copies and links exactly as written.
+static bool TrySplitTimelineHeading(string text, out string date, out string separator, out string title)
+{
+    var match = Regex.Match(text, "^(?<date>\\d{4}\\b[^-–]*?)(?<separator>\\s+[-–]\\s+)(?<title>\\S.*)$", RegexOptions.Singleline);
+    date = match.Groups["date"].Value.Trim();
+    separator = match.Groups["separator"].Value;
+    title = match.Groups["title"].Value.Trim();
+    return match.Success;
+}
+
+static string TimelineLabelHtml(string block, string date, string separator, string title)
+{
+    return $"<span class=\"{block}-date\">{WebUtility.HtmlEncode(date)}</span>"
+        + $"<span class=\"documentation-timeline-separator\">{WebUtility.HtmlEncode(separator)}</span>"
+        + $"<span class=\"{block}-title\">{WebUtility.HtmlEncode(title)}</span>";
+}
+
+// Each dated entry, with everything up to the next heading, becomes one section, and a
+// run of them becomes one timeline. Pages without dated headings are left untouched.
+static string BuildTimeline(string documentHtml)
+{
+    var headings = Regex.Matches(documentHtml, "<h(?<level>[23]) id=\"(?<id>[^\"]+)\">(?<text>.*?)</h[23]>", RegexOptions.IgnoreCase | RegexOptions.Singleline);
+    if (headings.Count == 0)
+    {
+        return documentHtml;
+    }
+
+    var output = new StringBuilder();
+    var position = 0;
+    var inTimeline = false;
+    for (var i = 0; i < headings.Count; i++)
+    {
+        var heading = headings[i];
+        var end = i + 1 < headings.Count ? headings[i + 1].Index : documentHtml.Length;
+        output.Append(documentHtml, position, heading.Index - position);
+
+        var text = StripTags(WebUtility.HtmlDecode(heading.Groups["text"].Value));
+        if (heading.Groups["level"].Value == "3" && !heading.Groups["text"].Value.Contains('<') && TrySplitTimelineHeading(text, out var date, out var separator, out var title))
+        {
+            if (!inTimeline)
+            {
+                output.Append("<div class=\"documentation-timeline\">\n");
+                inTimeline = true;
+            }
+
+            var announced = date.Contains("announced", StringComparison.OrdinalIgnoreCase) ? " is-announced" : string.Empty;
+            output.Append($"<section class=\"documentation-timeline-entry{announced}\">\n");
+            output.Append($"<h3 id=\"{heading.Groups["id"].Value}\" class=\"documentation-timeline-heading\">{TimelineLabelHtml("documentation-timeline", date, separator, title)}</h3>");
+            output.Append(documentHtml, heading.Index + heading.Length, end - heading.Index - heading.Length);
+            output.Append("</section>\n");
+        }
+        else
+        {
+            if (inTimeline)
+            {
+                output.Append("</div>\n");
+                inTimeline = false;
+            }
+
+            output.Append(documentHtml, heading.Index, end - heading.Index);
+        }
+
+        position = end;
+    }
+
+    if (inTimeline)
+    {
+        output.Append("</div>\n");
+    }
+
+    output.Append(documentHtml, position, documentHtml.Length - position);
+    return output.ToString();
 }
 
 static string StripTags(string value)
@@ -642,6 +725,114 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
         .documentation-nav a:focus-visible {
             outline: 2px solid var(--lwc-accent);
             outline-offset: -2px;
+        }
+
+        /* Dated entries read as a timeline: a rail with one marker per entry, the
+           date as a small line above a short title. Announced entries are hollow. */
+        .documentation-timeline {
+            position: relative;
+            margin: 1.6rem 0 0;
+            padding-left: 1.9rem;
+        }
+
+        .documentation-timeline::before {
+            content: "";
+            position: absolute;
+            top: 0.55rem;
+            bottom: 0.35rem;
+            left: 0.4rem;
+            width: 2px;
+            border-radius: 1px;
+            background: var(--lwc-border, #d7e0e6);
+        }
+
+        .documentation-timeline-entry {
+            position: relative;
+        }
+
+        .documentation-timeline-entry + .documentation-timeline-entry {
+            margin-top: 2.1rem;
+        }
+
+        .documentation-timeline-entry::before {
+            content: "";
+            position: absolute;
+            top: 0.42rem;
+            left: calc(-1.9rem + 0.4rem + 1px - 0.4rem);
+            box-sizing: border-box;
+            width: 0.8rem;
+            height: 0.8rem;
+            border: 2px solid var(--lwc-accent, var(--primary-color));
+            border-radius: 50%;
+            background: var(--lwc-accent, var(--primary-color));
+            box-shadow: 0 0 0 4px var(--lwc-surface, #ffffff);
+        }
+
+        .documentation-timeline-entry.is-announced::before {
+            background: var(--lwc-surface, #ffffff);
+        }
+
+        .documentation-document .documentation-timeline-heading {
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+            margin: 0 0 0.65rem;
+        }
+
+        .documentation-timeline-date,
+        .documentation-nav-entry-date {
+            color: var(--lwc-accent, var(--primary-color));
+            font-size: var(--lwc-type-sm, 0.875rem);
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+            line-height: 1.3;
+        }
+
+        .documentation-timeline-separator {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+            clip-path: inset(50%);
+            white-space: nowrap;
+        }
+
+        .documentation-nav a.documentation-nav-timeline {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            justify-content: center;
+            gap: 0.05rem;
+        }
+
+        .documentation-nav-entry-date {
+            font-size: var(--lwc-type-xs, 0.75rem);
+        }
+
+        .documentation-nav a.is-active .documentation-nav-entry-date {
+            color: inherit;
+        }
+
+        /* Phones: the rail keeps a fixed narrow gutter, so enlarged text keeps its width. */
+        @media (max-width: 600px) {
+            .documentation-timeline {
+                padding-left: 22px;
+            }
+
+            .documentation-timeline::before {
+                left: 5px;
+            }
+
+            .documentation-timeline-entry::before {
+                left: -22px;
+                width: 12px;
+                height: 12px;
+                box-shadow: 0 0 0 3px var(--lwc-surface, #ffffff);
+            }
+
+            .documentation-timeline-entry + .documentation-timeline-entry {
+                margin-top: 1.75rem;
+            }
         }
         @media (max-width: 600px) {
             .documentation-document {

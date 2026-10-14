@@ -45,6 +45,8 @@
     <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="2.1.7" />
     <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="3.0.5" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="10.3.0" />
+    <!-- Override MimeKit's vulnerable transitive minimum until it adopts the security patch. -->
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.13" />
   </ItemGroup>
 
   <Target Name="GenerateDocumentationPages" BeforeTargets="BeforeBuild">
