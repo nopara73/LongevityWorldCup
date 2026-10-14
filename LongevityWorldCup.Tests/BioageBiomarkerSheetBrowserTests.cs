@@ -64,7 +64,31 @@ public sealed class BioageBiomarkerSheetBrowserTests(
         }
         await page.Keyboard.PressAsync("Tab");
         await Assertions.Expect(page.Locator("#lwc-step-2 .biomarker-card").Nth(1).Locator("input[type=number]")).ToBeFocusedAsync();
+        await AssertPlainBiomarkerHeadersAsync(page);
+
+        // Focus, validation, and draft restoration must not revive accordion semantics.
+        await page.Locator("#wbc").FillAsync("6.54");
+        await page.Locator("#wbc").FillAsync("");
+        await page.Keyboard.PressAsync("Tab");
+        await Assertions.Expect(page.Locator("#wbc-entry-error")).ToBeVisibleAsync();
+        await AssertPlainBiomarkerHeadersAsync(page);
+        await page.Locator("#wbc").FillAsync("6.54");
+        await page.Keyboard.PressAsync("Tab");
+        await Assertions.Expect(page.Locator("#wbc-entry-error")).ToBeHiddenAsync();
+        await AssertPlainBiomarkerHeadersAsync(page);
+        await page.ReloadAsync();
+        await Assertions.Expect(page.Locator("#wbc")).ToHaveValueAsync("6.54");
+        await Assertions.Expect(page.Locator("#wbc")).ToBeVisibleAsync();
+        await AssertPlainBiomarkerHeadersAsync(page);
         Assert.Empty(errors);
+    }
+
+    private static async Task AssertPlainBiomarkerHeadersAsync(IPage page)
+    {
+        await Assertions.Expect(page.Locator(".biomarker-card-header[aria-expanded], .biomarker-card-header[role=button], .biomarker-card-header[tabindex]"))
+            .ToHaveCountAsync(0);
+        await Assertions.Expect(page.Locator(".biomarker-card-content[style*='max-height']"))
+            .ToHaveCountAsync(0);
     }
 
     [Theory]

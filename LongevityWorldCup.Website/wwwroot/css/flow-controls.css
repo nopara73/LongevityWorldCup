@@ -321,7 +321,8 @@ body.flow-input-keyboard-open::after {
     .flow-action-stack.flow-action-stack--docked .flow-action {
         min-height: 48px;
         padding-block: 0.55rem;
-        padding-inline: 2.4rem;
+        /* Reserve the icon's space on its own side, leaving room for enlarged captions. */
+        padding-inline: 1rem 2.8rem;
         font-size: 0.95rem;
     }
 

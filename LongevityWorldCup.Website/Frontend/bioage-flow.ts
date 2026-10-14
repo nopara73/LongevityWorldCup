@@ -777,26 +777,11 @@ interface Window {
             ?.querySelector<HTMLInputElement>('input[type="number"]') || null;
     }
 
-    function setBiomarkerCardExpanded(card: HTMLElement, expanded: boolean): void {
-        const header = card.querySelector<HTMLElement>('.biomarker-card-header');
-        const icon = header?.querySelector<HTMLElement>('.toggle-icon');
-        const content = card.querySelector<HTMLElement>('.biomarker-card-content');
-
-        card.classList.toggle('active', expanded);
-        header?.setAttribute('aria-expanded', expanded ? 'true' : 'false');
-        if (icon) icon.textContent = expanded ? '−' : '+';
-        if (content) {
-            content.style.maxHeight = expanded ? `${content.scrollHeight}px` : '0';
-            content.style.paddingTop = expanded ? '0.75rem' : '0';
-            content.style.paddingBottom = expanded ? '0.75rem' : '0';
-        }
-    }
-
     function expandBiomarkerCard(field: string | Element | null | undefined): void {
         const input = getBiomarkerInput(field);
-        const card = input?.closest<HTMLElement>('.biomarker-card');
-        if (!card || card.classList.contains('active')) return;
-        setBiomarkerCardExpanded(card, true);
+        // Keep the existing restoration API, but the sheet's size and visibility
+        // belong to CSS. Focus and errors must never revive accordion controls.
+        input?.closest<HTMLElement>('.biomarker-card')?.classList.add('active');
     }
 
     function getBiomarkerLabel(input: HTMLInputElement): string {
@@ -840,8 +825,6 @@ interface Window {
         const error = getOrCreateBiomarkerError(input);
         if (error.hidden !== !visible) {
             error.hidden = !visible;
-            const card = input.closest<HTMLElement>('.biomarker-card');
-            if (card?.classList.contains('active')) setBiomarkerCardExpanded(card, true);
         }
         input.setAttribute('aria-invalid', visible ? 'true' : 'false');
     }
