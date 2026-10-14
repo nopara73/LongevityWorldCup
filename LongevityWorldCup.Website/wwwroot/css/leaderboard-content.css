@@ -550,6 +550,7 @@
  .sidebar:hover:not([aria-hidden="true"]) ~ .content, .sidebar.expanded ~ .content{ margin-left:200px; }
 
  .filter-section{ margin-bottom:1.5rem; width:100%; }
+ #flag-filter-section[hidden], .leaderboard--flags #flag-filter-section{ display:none !important; }
  .filter-section h3{
      display:flex; align-items:center; gap:var(--lwc-space-2); margin-bottom:var(--lwc-space-2); color:var(--lwc-ink); font-size:var(--lwc-type-body);
      transition:color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);

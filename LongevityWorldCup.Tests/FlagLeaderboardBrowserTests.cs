@@ -10,14 +10,17 @@ public sealed class FlagLeaderboardBrowserTests(PlaywrightBrowserFixture browser
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Theory]
-    [InlineData("/leaderboard?group=flags")]
-    [InlineData("/league/pheno?group=flags")]
-    [InlineData("/league/bortz?group=flags")]
-    [InlineData("/league/crowd?group=flags")]
-    [InlineData("/league/improvement?group=flags")]
-    [InlineData("/league/bortz-improvement?group=flags")]
-    [InlineData("/leaderboard?group=flags&filters=women%27s")]
-    public async Task InitialHtmlAndHydration_ShowTheSameTeamsAndScores(string path)
+    [InlineData("/leaderboard?group=flags", "Ultimate by Flag")]
+    [InlineData("/league/pheno?group=flags", "Pheno Age by Flag")]
+    [InlineData("/league/bortz?group=flags", "Bortz Age by Flag")]
+    [InlineData("/league/crowd?group=flags", "Crowd Age by Flag")]
+    [InlineData("/league/improvement?group=flags", "Pheno Improvement by Flag")]
+    [InlineData("/league/bortz-improvement?group=flags", "Bortz Improvement by Flag")]
+    [InlineData("/leaderboard?group=flags&filters=women%27s", "Women's Ultimate by Flag")]
+    [InlineData("/leaderboard?group=flags&view=pheno&filters=gen%2520x", "Gen X Pheno Age by Flag")]
+    [InlineData("/flag/hungary?group=flags", "Ultimate by Flag")]
+    [InlineData("/leaderboard?group=flags&view=pheno&filters=hungary", "Pheno Age by Flag")]
+    public async Task InitialHtmlAndHydration_ShowTheSameTeamsAndScores(string path, string title)
     {
         await using var plain = await NewContextAsync(Browser, App, new() { JavaScriptEnabled = false });
         var initial = await plain.NewPageAsync();
@@ -26,6 +29,12 @@ public sealed class FlagLeaderboardBrowserTests(PlaywrightBrowserFixture browser
         var expectedHeadings = await initial.Locator(".flag-section-heading").AllTextContentsAsync();
         await Assertions.Expect(initial.Locator(".flag-team-name small")).ToHaveCountAsync(0);
         Assert.True(await initial.Locator("#group-flags").IsCheckedAsync());
+        await Assertions.Expect(initial.Locator(".collapsed-title")).ToHaveTextAsync(title.ToUpperInvariant());
+        await Assertions.Expect(initial.Locator(".collapsed-title")).ToHaveAttributeAsync("aria-label", title);
+        Assert.Equal($"{title} | Longevity World Cup", await initial.TitleAsync());
+        await Assertions.Expect(initial.Locator("#flag-filter-section")).ToHaveAttributeAsync("hidden", "");
+        await Assertions.Expect(initial.Locator("#athleteSearch")).ToHaveAttributeAsync("placeholder", "Search flags or athletes");
+        if (path.Contains("hungary")) Assert.True(expected.Count > 1, "An old flag selection must not restrict the competition.");
         await Assertions.Expect(initial.Locator(".leaderboard > table")).ToBeHiddenAsync();
         if (expected.Count > 0)
         {
@@ -39,6 +48,8 @@ public sealed class FlagLeaderboardBrowserTests(PlaywrightBrowserFixture browser
         page.PageError += (_, error) => errors.Add(error);
         await page.GotoAsync(path);
         await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+        await Assertions.Expect(page.Locator(".collapsed-title")).ToHaveTextAsync(title.ToUpperInvariant());
+        Assert.Equal($"{title} | Longevity World Cup", await page.TitleAsync());
         var actual = await page.Locator(".flag-team summary").AllTextContentsAsync();
         static string Normalize(string value) => System.Text.RegularExpressions.Regex.Replace(value, @"\s+", "").Replace("⌄", "");
         Assert.Equal(expected.Select(Normalize), actual.Select(Normalize));
@@ -63,6 +74,10 @@ public sealed class FlagLeaderboardBrowserTests(PlaywrightBrowserFixture browser
         await page.Locator("label[for=group-flags]").ClickAsync();
         await Assertions.Expect(page.Locator(".flag-team").First).ToBeVisibleAsync();
         await page.Locator("label[for=view-pheno]").ClickAsync();
+        await Assertions.Expect(page.Locator(".collapsed-title")).ToHaveTextAsync("PHENO AGE BY FLAG");
+        await page.Locator(".sidebar-toggle").ClickAsync();
+        await Assertions.Expect(page.Locator("#flag-filter-section")).ToBeHiddenAsync();
+        await page.Locator(".sidebar-close").ClickAsync();
         Assert.True(await page.Locator("#group-flags").IsCheckedAsync());
         Assert.Contains("group=flags", page.Url);
         Assert.All(await page.Locator(".flag-team").EvaluateAllAsync<string[]>("rows => rows.map(row => row.dataset.clock)"), clock => Assert.Equal("pheno", clock));
@@ -86,8 +101,10 @@ public sealed class FlagLeaderboardBrowserTests(PlaywrightBrowserFixture browser
         await Assertions.Expect(page.Locator("#detailsModal")).ToBeVisibleAsync();
         await page.Keyboard.PressAsync("Escape");
         await Assertions.Expect(page.Locator("#detailsModal")).ToBeHiddenAsync();
+        Assert.Equal("Pheno Age by Flag | Longevity World Cup", await page.TitleAsync());
         await page.ReloadAsync();
         await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+        await Assertions.Expect(page.Locator(".collapsed-title")).ToHaveTextAsync("PHENO AGE BY FLAG");
         await Assertions.Expect(page.Locator(".flag-team")).ToHaveCountAsync(1);
         await Assertions.Expect(page.Locator(".flag-team-score")).ToHaveTextAsync(score!);
         await page.Locator("#athleteSearch").FillAsync("");
@@ -108,6 +125,9 @@ public sealed class FlagLeaderboardBrowserTests(PlaywrightBrowserFixture browser
         await Assertions.Expect(page.Locator(".leaderboard > table")).ToBeVisibleAsync();
         Assert.True(await page.Locator("#view-pheno").IsCheckedAsync());
         Assert.DoesNotContain("group=flags", page.Url);
+        await Assertions.Expect(page.Locator(".collapsed-title")).ToHaveTextAsync("PHENO AGE LEAGUE");
+        await page.Locator(".sidebar-toggle").ClickAsync();
+        await Assertions.Expect(page.Locator("#flag-filter-section")).ToBeVisibleAsync();
     }
 
     [Fact]

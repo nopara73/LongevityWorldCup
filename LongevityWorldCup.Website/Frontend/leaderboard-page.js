@@ -1701,6 +1701,7 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity) {
                 }
 
                 document.getElementById('group-flags').checked = new URLSearchParams(window.location.search).get('group')?.toLowerCase() === 'flags';
+                syncFlagFilters(document.getElementById('group-flags').checked);
                 const rawViewParam = new URLSearchParams(window.location.search).get('view') || leagueRouteState.view;
                 const viewParam = rawViewParam && rawViewParam.toLowerCase() === 'pheno-improvement'
                     ? 'improvement'
@@ -3028,6 +3029,16 @@ function syncAgingClockFilters(currentLeaderboardView) {
     });
 }
 
+function syncFlagFilters(byFlag) {
+    const section = document.getElementById('flag-filter-section');
+    if (!section) return;
+    section.hidden = byFlag;
+    section.querySelectorAll('input[name="flag"]').forEach(input => {
+        if (byFlag) input.checked = false;
+        input.disabled = byFlag;
+    });
+}
+
 function updateActiveFilterSections() {
     document.querySelectorAll('.filter-section input[type="checkbox"]').forEach(input => {
         input.closest('label')?.classList.toggle('active', input.checked);
@@ -3105,6 +3116,7 @@ function updateLeaderboardSelectionSummary(count) {
     if (state.byFlag) choices.push({ label: 'By Flag', remove: () => { document.getElementById('group-flags').checked = false; } });
     if (state.view !== 'ultimate') choices.push({ label: viewLabels[state.view], remove: () => { document.getElementById('view-ultimate').checked = true; } });
     for (const name of ['leagueTrack', 'division', 'generation', 'exclusiveLeague', 'flag']) {
+        if (name === 'flag' && state.byFlag) continue;
         if (name === 'leagueTrack' && state.leagueTracks.length !== 1) continue;
         document.querySelectorAll(`input[name="${name}"]:checked`).forEach(input => {
             const label = name === 'leagueTrack' ? getLeagueTrackLabel(input.value) : input.value;
@@ -3188,11 +3200,12 @@ function showAllAthletes() {
 
 function getSelectedLeaderboardState() {
     const viewRadio = document.querySelector('input[name="leaderboardView"]:checked');
+    const byFlag = document.getElementById('group-flags')?.checked || false;
     return {
-        byFlag: document.getElementById('group-flags')?.checked || false,
+        byFlag,
         divisions: Array.from(document.querySelectorAll('input[name="division"]:checked'))
             .map(checkbox => checkbox.value),
-        flags: Array.from(document.querySelectorAll('input[name="flag"]:checked'))
+        flags: byFlag ? [] : Array.from(document.querySelectorAll('input[name="flag"]:checked'))
             .map(checkbox => getCanonicalFlagName(checkbox.value)),
         generations: Array.from(document.querySelectorAll('input[name="generation"]:checked'))
             .map(checkbox => checkbox.value),
@@ -3446,6 +3459,7 @@ function renderFlagTeams(teams, view) {
 
 function performFilter({ updateUrl = true } = {}) {
     const selectedState = getSelectedLeaderboardState();
+    syncFlagFilters(selectedState.byFlag);
     const selectedDivisions = selectedState.divisions.map(value => value.toLowerCase());
     const selectedFlags = selectedState.flags.map(getFlagFilterKey);
     const selectedGenerations = selectedState.generations.map(value => value.toLowerCase());
@@ -3462,6 +3476,7 @@ function performFilter({ updateUrl = true } = {}) {
     const searchInput = document.getElementById('athleteSearch');
     searchInput.placeholder = selectedState.byFlag ? 'Search flags or athletes' : 'Search athletes';
     searchInput.setAttribute('aria-label', searchInput.placeholder);
+    document.querySelector('label[for="athleteSearch"]').textContent = searchInput.placeholder;
     syncAgingClockFilters(currentLeaderboardView);
     updateActiveFilterSections();
     updateRankingExplanation(currentLeaderboardView, selectedState.byFlag);
@@ -3821,8 +3836,7 @@ function finishLeaderboardFilter(selectedState, query, updateUrl) {
         url.searchParams.set('search', encodeURIComponent(query));
     }
 
-    const selectedFlagKeys = Array.from(document.querySelectorAll('input[name="flag"]:checked'))
-        .map(checkbox => getFlagFilterKey(checkbox.value));
+    const selectedFlagKeys = selectedState.flags.map(getFlagFilterKey);
     const filters = [
         ...selectedDivisions,
         ...selectedFlagKeys,
@@ -3929,7 +3943,13 @@ function getDivisionLeagueLabel(divisions) {
 
 function buildLeaderboardPresentation(state) {
     const viewPresentation = leaderboardViewPresentations[state.view] || leaderboardViewPresentations.ultimate;
-    if (state.byFlag) return { railText: 'By Flag', documentTitle: `${viewPresentation.documentTitle} by Flag`, accessibleLabel: `${viewPresentation.documentTitle} by Flag` };
+    if (state.byFlag) {
+        let cohortLabel = [getGenerationLeagueLabel(state.generations), getDivisionLeagueLabel(state.divisions)].filter(Boolean).join(' ');
+        if (state.exclusiveLeagues.length > 0) cohortLabel = state.exclusiveLeagues.length === 1 ? state.exclusiveLeagues[0] : 'Exclusive Leagues';
+        else if (!cohortLabel && state.leagueTracks.length === 1) cohortLabel = getLeagueTrackLabel(state.leagueTracks[0]);
+        const railText = [cohortLabel, viewPresentation.railText.replace(/ League$/, ''), 'by Flag'].filter(Boolean).join(' ');
+        return { railText, documentTitle: railText, accessibleLabel: railText };
+    }
     if (state.view !== 'ultimate') {
         return { ...viewPresentation, accessibleLabel: viewPresentation.documentTitle };
     }
@@ -4013,18 +4033,23 @@ function updateFilterCounts(state, getMatchingEntries, currentEntries) {
     document.querySelectorAll('.filter-section label').forEach(label => {
         const input = label.querySelector('input[type="checkbox"]');
         if (!input) return;
+        if (state.byFlag && input.name === 'flag') return;
         const isView = input.name === 'agingClockView';
         const field = fields[input.name];
         if (!isView && !field) return;
 
-        // Counts describe this option's members after adding it to its OR group,
+        // Counts use the result unit (athletes or flags) after adding this option to its OR group,
         // or switching clocks, with all other selections and the search preserved.
         const candidateState = isView
             ? { ...state, view: input.value }
             : { ...state, [field[0]]: [...state[field[0]], input.value] };
         const entries = input.checked ? currentEntries : getMatchingEntries(candidateState);
         const value = input.name === 'flag' ? getFlagFilterKey(input.value) : input.value.toLowerCase();
-        const count = isView ? entries.length : entries.filter(entry => field[1](entry.athlete).toLowerCase() === value).length;
+        const members = isView ? entries : entries.filter(entry => field[1](entry.athlete).toLowerCase() === value);
+        const count = state.byFlag ? new Set(members.map(entry => entry.athlete.flagFilterKey)).size : members.length;
+        const countLabel = `${count} ${state.byFlag ? (count === 1 ? 'flag' : 'flags') : (count === 1 ? 'athlete' : 'athletes')}`;
+        label.querySelector('.filter-count')?.setAttribute('aria-label', countLabel);
+        label.querySelector('.filter-count')?.setAttribute('title', countLabel);
         // Combining leagues can change a matching athlete's rank even when the
         // added option has no matching members of its own. Do not enable empty
         // options that leave both the matching athletes and their scores unchanged.

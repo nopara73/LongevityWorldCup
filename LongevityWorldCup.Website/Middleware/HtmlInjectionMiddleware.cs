@@ -126,6 +126,14 @@ namespace LongevityWorldCup.Website.Middleware
                     var ageVisualization = await ReadPartialAsync("age-visualization.html",
                         bodyContent.Contains("<!--AGE-VISUALIZATION-->", StringComparison.Ordinal) || leaderboardContent.Contains("<!--AGE-VISUALIZATION-->", StringComparison.Ordinal));
                     var seo = GetSeoMeta(context);
+                    var leaderboardPath = GetRequestCanonicalPath(context);
+                    if ((leaderboardPath == "/leaderboard" || IsLeagueRoute(leaderboardPath) || IsFlagRoute(leaderboardPath)) &&
+                        string.Equals(context.Request.Query["group"].FirstOrDefault(), "flags", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var selection = new PublicLeaderboardSnapshot(athleteSnapshots.GetAthletesSnapshot(), DateTime.UtcNow.Date)
+                            .Select(leaderboardPath, context.Request.Query);
+                        seo = seo with { PageTitle = $"{selection.RailTitle} | Longevity World Cup" };
+                    }
 
                     if (usesSharedHead)
                     {
@@ -428,13 +436,19 @@ $@"<div id=""{AthleteDialogRuntimeId}""
                     {
                         html = html.Replace("id=\"group-flags\"", "id=\"group-flags\" checked", StringComparison.Ordinal);
                         html = html.Replace("class=\"leaderboard\"", "class=\"leaderboard leaderboard--flags\"", StringComparison.Ordinal);
+                        html = html.Replace("id=\"flag-filter-section\"", "id=\"flag-filter-section\" hidden", StringComparison.Ordinal)
+                            .Replace("placeholder=\"Search athletes\"", "placeholder=\"Search flags or athletes\"", StringComparison.Ordinal)
+                            .Replace("aria-label=\"Search athletes\"", "aria-label=\"Search flags or athletes\"", StringComparison.Ordinal)
+                            .Replace(">Search athletes</label>", ">Search flags or athletes</label>", StringComparison.Ordinal);
                         html = html.Replace("<!--FLAG-LEADERBOARD-->", "<!--FLAG-LEADERBOARD--><p class=\"flag-empty\">Loading flags...</p>", StringComparison.Ordinal);
                         html = PublicProfileHtmlRenderer.SetContent(html, "rankingExplanation", FlagLeaderboard.Explanation(selection.View))
                             .Replace("class=\"ranking-explanation\"", "class=\"ranking-explanation is-visible\"", StringComparison.Ordinal);
                     }
                     html = PublicProfileHtmlRenderer.SetContent(html, "leaderboardMetricHeader", selection.MetricLabel);
                     html = Regex.Replace(html, "(<div class=\"collapsed-title\"[^>]*>).*?(</div>)",
-                        match => match.Groups[1].Value + System.Net.WebUtility.HtmlEncode(selection.ByFlag ? "BY FLAG" : selection.RailTitle.ToUpperInvariant()) + match.Groups[2].Value, RegexOptions.Singleline);
+                        match => match.Groups[1].Value.TrimEnd('>') +
+                            $" title=\"{System.Net.WebUtility.HtmlEncode(selection.RailTitle)}\" aria-label=\"{System.Net.WebUtility.HtmlEncode(selection.RailTitle)}\">" +
+                            System.Net.WebUtility.HtmlEncode(selection.RailTitle.ToUpperInvariant()) + match.Groups[2].Value, RegexOptions.Singleline);
                     html = html.Replace("value=\"ultimate\" checked", "value=\"ultimate\"", StringComparison.Ordinal)
                         .Replace($"value=\"{selection.View}\" aria-label=", $"value=\"{selection.View}\" checked aria-label=", StringComparison.Ordinal)
                         .Replace($"name=\"agingClockView\" value=\"{selection.View}\"", $"name=\"agingClockView\" value=\"{selection.View}\" checked", StringComparison.Ordinal)
