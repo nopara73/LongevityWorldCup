@@ -173,6 +173,120 @@
                 line-height: 1.15;
             }
         }
+
+        /* The page reads as a timeline: every row keeps its date beside the
+           portrait (beneath the message on phones), so the date belongs to
+           its event instead of sitting at the far edge or disappearing. */
+        .event-board-page .events-board {
+            --event-date-column: 5.5rem;
+            --event-avatar-inset: 0px;
+            --event-message-start: calc(var(--event-date-column) + var(--event-avatar-column));
+        }
+
+        .event-board-page .events-board table,
+        .event-board-page .events-board tbody {
+            display: block;
+            width: 100%;
+        }
+
+        .event-board-page .events-board colgroup {
+            display: none;
+        }
+
+        .event-board-page .events-board tbody tr.main-row,
+        .event-board-page .events-board tbody tr.events-skeleton-row {
+            display: grid;
+            grid-template-columns: var(--event-date-column) var(--event-avatar-column) minmax(0, 1fr);
+            grid-template-areas: "date avatar message";
+            align-items: center;
+            height: auto;
+            min-height: 48px;
+        }
+
+        .event-board-page .events-board tbody tr.main-row > td,
+        .event-board-page .events-board tbody tr.events-skeleton-row > td {
+            display: block;
+            box-sizing: border-box;
+            width: auto;
+            min-width: 0;
+            height: auto;
+        }
+
+        .event-board-page .events-board tbody tr > td.col-avatar { grid-area: avatar; }
+        .event-board-page .events-board tbody tr > td.event-message { grid-area: message; padding-right: var(--lwc-space-4, 16px); }
+
+        .event-board-page .events-board tbody tr > td.col-date {
+            grid-area: date;
+            width: auto;
+            padding: 0 var(--lwc-space-3, 12px) 0 var(--lwc-space-4, 16px);
+            font-variant-numeric: tabular-nums;
+            text-align: left;
+            white-space: normal;
+            overflow-wrap: anywhere;
+        }
+
+        /* An announcement's chevron belongs to its title, not the board's far edge. */
+        .event-board-page .events-board table tbody tr.custom-event-row:not(.custom-event-no-details) td.event-message .event-message-cell {
+            padding-right: 0;
+        }
+
+        .event-board-page .events-board table tbody tr.custom-event-row:not(.custom-event-no-details) .custom-event-expander {
+            position: relative;
+            inset: auto;
+            margin: -10px 0 -10px var(--lwc-space-1, 4px);
+            vertical-align: middle;
+        }
+
+        /* Opened details start where the message text starts. */
+        .event-board-page .events-board tbody tr.custom-event-details,
+        .event-board-page .events-board tbody tr.custom-event-row.is-open + tr.custom-event-details {
+            display: block;
+        }
+
+        .event-board-page .events-board tbody tr.custom-event-details > td.details-cell {
+            display: block;
+            /* Closed, the row has no height; opened, the content brings its own spacing. */
+            padding: 0 var(--lwc-space-4, 16px) 0 var(--event-message-start);
+        }
+
+        .event-board-page .events-board tbody tr.events-empty-row,
+        .event-board-page .events-board tbody tr.events-empty-row > td {
+            display: block;
+        }
+
+        @media (max-width: 600px) {
+            .event-board-page .events-board {
+                --event-date-column: 0px;
+                --event-avatar-inset: 12px;
+            }
+
+            .event-board-page .events-board tbody tr.main-row,
+            .event-board-page .events-board tbody tr.events-skeleton-row {
+                grid-template-columns: var(--event-avatar-column) minmax(0, 1fr);
+                grid-template-areas:
+                    "avatar message"
+                    "avatar date";
+                padding-block: var(--lwc-space-2, 8px);
+            }
+
+            .event-board-page .events-board tbody tr.main-row > td.event-message .event-message-cell {
+                min-height: 0;
+                padding-block: 0;
+            }
+
+            .event-board-page .events-board tbody tr > td.col-date,
+            .event-board-page .events-board:not(.athlete-scroll) tbody tr > td.col-date {
+                display: block;
+                width: auto;
+                padding: 2px var(--lwc-space-3, 12px) 0 0;
+                font-size: var(--lwc-type-xs, .75rem);
+                line-height: 1.3;
+            }
+
+            .event-board-page .events-board tbody tr > td.col-date:empty {
+                display: none;
+            }
+        }
     </style>
 </head>
 <body>
