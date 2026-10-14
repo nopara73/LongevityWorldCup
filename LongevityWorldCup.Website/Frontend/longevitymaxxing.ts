@@ -2454,27 +2454,24 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         }
     }
 
+    // An empty board is one message across the board, not a row of blank day boxes.
     function emptyBoardRow(days: DaySummary[], hiddenInactiveCount: number): string {
         const hasHiddenInactive = hiddenInactiveCount > 0 && !showInactiveLeaderboard;
         const message = hasHiddenInactive ? "No active participants" : "No one has joined yet";
-        const scoreLabel = hasHiddenInactive ? "No active score" : "No score yet";
-        return `<div class="lmx-board-row" role="row">
+        return `<div class="lmx-board-row lmx-empty-row" role="row" data-day-count="${escAttr(days.length)}">
             <div class="lmx-name" role="cell">
                 <span class="lmx-empty-name">${esc(message)}</span>
             </div>
-            <div class="lmx-number lmx-empty-score" role="cell" data-label="Score" aria-label="${escAttr(scoreLabel)}">-</div>
-            <div class="lmx-cell-strip" role="cell" aria-label="Daily scores">${days.map(day => `<div class="lmx-cell empty" data-day="${escAttr(day.challengeDay)}"></div>`).join("")}</div>
         </div>`;
     }
 
     function emptyRosterRow(days: DaySummary[], hiddenInactiveCount: number): string {
         const hasHiddenInactive = hiddenInactiveCount > 0 && !showInactiveLeaderboard;
         const message = hasHiddenInactive ? "No active participants" : "No one has joined yet";
-        return `<div class="lmx-board-row lmx-roster-row" role="row">
+        return `<div class="lmx-board-row lmx-roster-row lmx-empty-row" role="row" data-day-count="${escAttr(days.length)}">
             <div class="lmx-name" role="cell">
                 <span class="lmx-empty-name">${esc(message)}</span>
             </div>
-            <div class="lmx-cell-strip" role="cell" aria-label="Challenge days">${days.map(day => `<div class="lmx-cell empty" data-day="${escAttr(day.challengeDay)}"></div>`).join("")}</div>
         </div>`;
     }
 

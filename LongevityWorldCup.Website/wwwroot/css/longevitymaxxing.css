@@ -5228,3 +5228,92 @@ a.lmx-note-mention:focus-visible {
 #lmxEditStatus:empty {
     display: none;
 }
+
+/* Leaderboard: an empty board is one message, not a row of blank days. */
+.lmx-board .lmx-board-row.lmx-empty-row {
+    --lmx-row-surface: var(--lmx-surface);
+    grid-template-columns: minmax(0, 1fr);
+    min-height: 3.25rem;
+    background: var(--lmx-row-surface);
+}
+
+.lmx-board .lmx-board-row.lmx-empty-row > .lmx-name {
+    width: max-content;
+    background: transparent;
+    box-shadow: none;
+}
+
+.lmx-board .lmx-board-row.lmx-empty-row .lmx-empty-name {
+    color: var(--lmx-muted);
+    font-weight: 700;
+}
+
+/* Wide boards: days scrolling under the frozen Participant and Score columns
+   fade out at their edge instead of showing a sliver of a cut-off day. */
+.lmx-board-row > .lmx-number::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: calc(100% + var(--lmx-sticky-gap-cover));
+    width: 1.1rem;
+    pointer-events: none;
+    background: linear-gradient(to right, var(--lmx-row-surface) 70%, transparent);
+}
+
+.lmx-board-row.header > .lmx-number::after {
+    background: linear-gradient(to right, var(--lmx-surface-muted) 70%, transparent);
+}
+
+@media (max-width: 760px) {
+    .lmx-board-row > .lmx-number::after {
+        content: none;
+    }
+
+    /* Phones: rank, athlete and score read on one line and the days follow.
+       The score wraps under the name only when enlarged text needs the room. */
+    .lmx-board .lmx-board-row:not(.header):not(.lmx-roster-row):not(.lmx-empty-row) {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.45rem 0.75rem;
+    }
+
+    .lmx-board .lmx-board-row:not(.header):not(.lmx-roster-row):not(.lmx-empty-row) > .lmx-name {
+        flex: 1 1 9.5rem;
+        min-width: 0;
+    }
+
+    .lmx-board .lmx-board-row:not(.header):not(.lmx-roster-row):not(.lmx-empty-row) > .lmx-cell-strip {
+        flex: 1 1 100%;
+    }
+
+    .lmx-board .lmx-board-row:not(.lmx-roster-row) > .lmx-number {
+        flex: 0 0 auto;
+        margin-left: auto;
+        align-self: center;
+        justify-items: end;
+        min-height: 0;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        box-shadow: none;
+        font-size: 1.15rem;
+        line-height: 1.1;
+        text-align: right;
+    }
+
+    .lmx-board .lmx-board-row:not(.lmx-roster-row) > .lmx-number::before {
+        font-size: 0.6rem;
+    }
+
+    .lmx-board .lmx-board-row.lmx-empty-row,
+    .lmx-board .lmx-board-row.lmx-roster-row.lmx-empty-row {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .lmx-board .lmx-board-row.lmx-empty-row > .lmx-name {
+        grid-column: 1 / -1;
+        width: auto;
+    }
+}
