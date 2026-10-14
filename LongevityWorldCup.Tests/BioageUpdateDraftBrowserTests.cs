@@ -382,10 +382,8 @@ public sealed class BioageUpdateDraftBrowserTests(PlaywrightBrowserFixture brows
         // Restored documents can be parsed before their intended view is ready.
         await Assertions.Expect(page.Locator("#lwcStepsShell")).ToBeVisibleAsync();
         var input = page.Locator($"#{id}");
-        var header = input.Locator("xpath=ancestor::*[contains(concat(' ',normalize-space(@class),' '),' biomarker-card ')]").Locator(".biomarker-card-header");
-        // Mobile cards stay expanded and their headers are deliberately not
-        // buttons. Wait for restoration instead of attempting to toggle them.
-        if (!await input.IsVisibleAsync() && await header.GetAttributeAsync("role") == "button") await header.ClickAsync();
+        // Cards stay expanded and their headers are deliberately not buttons.
+        // Wait for restoration instead of attempting to toggle them.
         await Assertions.Expect(input).ToBeVisibleAsync();
         if (unit is not null) await page.Locator($"#{id}Unit").SelectOptionAsync(unit);
         await input.FillAsync(value);

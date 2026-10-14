@@ -888,28 +888,18 @@ interface Window {
         input.setAttribute('aria-describedby', Array.from(describedBy).join(' '));
     }
 
+    // Every biomarker stays open, so headers are plain labels with a completion dot.
     function syncBiomarkerHeaderSemantics(controller: BioageBiomarkerEntryController): void {
-        const isMobile = bioageMobileMedia.matches;
         controller.form.querySelectorAll<HTMLElement>('.biomarker-card-header').forEach(header => {
-            const card = header.closest<HTMLElement>('.biomarker-card');
             const icon = header.querySelector<HTMLElement>('.toggle-icon');
             header.style.pointerEvents = '';
             header.style.cursor = '';
             header.removeAttribute('aria-disabled');
+            header.removeAttribute('role');
+            header.removeAttribute('tabindex');
+            header.removeAttribute('aria-expanded');
             icon?.setAttribute('aria-hidden', 'true');
-
-            if (isMobile) {
-                header.removeAttribute('role');
-                header.removeAttribute('tabindex');
-                header.removeAttribute('aria-expanded');
-                if (icon) icon.textContent = '';
-                return;
-            }
-
-            header.setAttribute('role', 'button');
-            header.tabIndex = 0;
-            header.setAttribute('aria-expanded', card?.classList.contains('active') ? 'true' : 'false');
-            if (icon) icon.textContent = card?.classList.contains('active') ? '−' : '+';
+            if (icon) icon.textContent = '';
         });
     }
 
@@ -1001,23 +991,6 @@ interface Window {
     }
 
     function bindBiomarkerEntry(controller: BioageBiomarkerEntryController): void {
-        controller.form.querySelectorAll<HTMLElement>('.biomarker-card-header').forEach(header => {
-            if (header.dataset.bioageEntryBound === 'true') return;
-            header.dataset.bioageEntryBound = 'true';
-
-            const toggle = () => {
-                if (bioageMobileMedia.matches) return;
-                const card = header.closest<HTMLElement>('.biomarker-card');
-                if (card) setBiomarkerCardExpanded(card, !card.classList.contains('active'));
-            };
-            header.addEventListener('click', toggle);
-            header.addEventListener('keydown', event => {
-                if (event.key !== 'Enter' && event.key !== ' ') return;
-                event.preventDefault();
-                toggle();
-            });
-        });
-
         const recordDraftInput = (event: Event) => {
             if (!controller.restoring) clearStoredBiomarkerHandoff();
             captureBioageDraftEdit(controller, event.target);

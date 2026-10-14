@@ -177,6 +177,73 @@ public sealed class FlowActionDockResultBrowserTests(
     }
 
     [Theory]
+    [InlineData("/pheno-age", 1440, 900, 100)]
+    [InlineData("/bortz-age", 1440, 900, 100)]
+    [InlineData("/pheno-age", 390, 844, 100)]
+    [InlineData("/pheno-age", 390, 844, 200)]
+    public async Task BioageStepTwoDock_KeepsTheDisabledCalculateInItsSlot(string path, int width, int height, int textPercent)
+    {
+        await using var context = await Browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = App.BaseAddress.ToString(),
+            Locale = "en-US",
+            ViewportSize = new ViewportSize { Width = width, Height = height },
+            IsMobile = width < 600,
+            HasTouch = width < 600
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        var page = await context.NewPageAsync();
+        var errors = CapturePageErrors(page);
+
+        await page.GotoAsync(path);
+        await FillBioageStepOneAsync(page, DateTime.UtcNow.Date.AddDays(-9).ToString("yyyy-MM-dd"));
+        await page.EvaluateAsync("percent => document.documentElement.style.fontSize = `${percent}%`", textPercent);
+        await ExpectActionStackDockedInViewportAsync(page, "#lwcStepTwoActions");
+        await Assertions.Expect(page.Locator("#calculateBioageButton")).ToBeDisabledAsync();
+        await page.EvaluateAsync("() => window.LwcFlowActionDock.refreshNow()");
+
+        var layout = await page.Locator("#lwcStepTwoActions").EvaluateAsync<DockedActionHierarchy>(
+            """
+            element => {
+                const primary = element.querySelector('#calculateBioageButton').getBoundingClientRect();
+                const back = element.querySelector('.back-button').getBoundingClientRect();
+                return {
+                    PrimaryLeft: primary.left,
+                    PrimaryRight: primary.right,
+                    PrimaryWidth: primary.width,
+                    PrimaryCenter: primary.left + primary.width / 2,
+                    BackLeft: back.left,
+                    BackRight: back.right,
+                    BackWidth: back.width,
+                    ViewportCenter: window.innerWidth / 2
+                };
+            }
+            """);
+        var labelLines = await page.Locator("#calculateBioageButton .flow-action__label").EvaluateAsync<int>(
+            """
+            label => {
+                const range = document.createRange();
+                range.selectNodeContents(label);
+                return new Set([...range.getClientRects()].map(rect => Math.round(rect.top))).size;
+            }
+            """);
+
+        var scenario = $"{path} @ {width}px / {textPercent}%";
+        Assert.True(labelLines <= 1, $"{scenario}: Calculate wraps onto {labelLines} lines.");
+        if (width >= 960)
+        {
+            Assert.True(layout.BackRight < layout.PrimaryLeft, $"{scenario}: Back should sit left of Calculate. {layout}");
+            Assert.True(Math.Abs(layout.PrimaryCenter - layout.ViewportCenter) <= 16,
+                $"{scenario}: disabled Calculate should stay centered. {layout}");
+        }
+        else if (textPercent == 100)
+        {
+            Assert.True(layout.BackRight < layout.PrimaryLeft, $"{scenario}: Back should share Calculate's row. {layout}");
+        }
+        Assert.Empty(errors);
+    }
+
+    [Theory]
     [InlineData("/pheno-age", "#phenoAgeForm", "#lwcStepOneActions")]
     [InlineData("/bortz-age", "#bortzAgeForm", "#lwcStepOneActions")]
     public async Task DesktopBioageStepActions_PortalWithoutRewritingTransformedForm(

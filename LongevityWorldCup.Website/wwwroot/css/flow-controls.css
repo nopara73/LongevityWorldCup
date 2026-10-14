@@ -137,25 +137,26 @@ body.play-flow-route > main {
     padding-right: 1.25rem;
 }
 
+/* Back sits beside the primary action; enlarged text wraps the primary onto its own line above. */
 .flow-action-stack.flow-action-stack--docked.flow-action-stack--back-primary-action {
-    display: grid;
-    grid-template-columns: minmax(5.5rem, 6.25rem) minmax(0, 1fr);
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap-reverse;
     align-items: stretch;
     gap: 0.55rem;
 }
 
 .flow-action-stack.flow-action-stack--docked.flow-action-stack--back-primary-action > .flow-action:not(.back-button) {
-    grid-column: 2;
-    grid-row: 1;
-    width: 100%;
+    flex: 1 1 10rem;
+    width: auto;
     max-width: none;
 }
 
 .flow-action-stack.flow-action-stack--docked.flow-action-stack--back-primary-action > .back-button.flow-action--icon-left {
-    grid-column: 1;
-    grid-row: 1;
-    width: 100%;
-    max-width: none;
+    flex: 1 0 5.5rem;
+    order: -1;
+    width: auto;
+    max-width: 6.25rem;
     margin: 0;
     padding-right: 0.65rem;
     padding-left: 2rem;
