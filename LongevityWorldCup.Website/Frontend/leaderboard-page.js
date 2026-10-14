@@ -3898,8 +3898,8 @@ function updateRankingExplanation(currentLeaderboardView, byFlag = getSelectedLe
 
     const html = byFlag
         ? (currentLeaderboardView === 'ultimate'
-            ? 'Top-three cumulative age reduction. Complete Bortz teams rank first, then complete Pheno teams, then incomplete teams. Clocks are scored separately.'
-            : 'Top-three cumulative years. Lower wins; three eligible athletes qualify a flag.')
+            ? 'Top-three total age reduction. Complete Bortz teams first, then complete Pheno teams.'
+            : 'Top-three total years. Lower wins.')
         : explanations[currentLeaderboardView] || '';
     explanation.innerHTML = html;
     explanation.classList.toggle('is-visible', html.length > 0);

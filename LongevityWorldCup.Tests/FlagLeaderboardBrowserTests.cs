@@ -28,6 +28,7 @@ public sealed class FlagLeaderboardBrowserTests(PlaywrightBrowserFixture browser
         await initial.GotoAsync(path);
         var expected = await initial.Locator(".flag-team summary").AllTextContentsAsync();
         var expectedHeadings = await initial.Locator(".flag-section-heading").AllTextContentsAsync();
+        var explanation = await initial.Locator("#rankingExplanation").TextContentAsync();
         await Assertions.Expect(initial.Locator(".flag-team-name small")).ToHaveCountAsync(0);
         Assert.True(await initial.Locator("#group-flags").IsCheckedAsync());
         await Assertions.Expect(initial.Locator(".collapsed-title")).ToHaveTextAsync(title.ToUpperInvariant());
@@ -50,6 +51,7 @@ public sealed class FlagLeaderboardBrowserTests(PlaywrightBrowserFixture browser
         await page.GotoAsync(path);
         await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
         await Assertions.Expect(page.Locator(".collapsed-title")).ToHaveTextAsync(title.ToUpperInvariant());
+        await Assertions.Expect(page.Locator("#rankingExplanation")).ToHaveTextAsync(explanation!);
         Assert.Equal($"{title} | Longevity World Cup", await page.TitleAsync());
         var actual = await page.Locator(".flag-team summary").AllTextContentsAsync();
         static string Normalize(string value) => System.Text.RegularExpressions.Regex.Replace(value, @"\s+", "").Replace("⌄", "");

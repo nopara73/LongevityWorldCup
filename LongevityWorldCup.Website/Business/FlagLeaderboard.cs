@@ -6,8 +6,8 @@ public sealed record FlagLeaderboardTeam(FlagRouteInfo Flag, IReadOnlyList<Leade
 public static class FlagLeaderboard
 {
     public static string Explanation(string view) => view == "ultimate"
-        ? "Top-three cumulative age reduction. Complete Bortz teams rank first, then complete Pheno teams, then incomplete teams. Clocks are scored separately."
-        : "Top-three cumulative years. Lower wins; three eligible athletes qualify a flag.";
+        ? "Top-three total age reduction. Complete Bortz teams first, then complete Pheno teams."
+        : "Top-three total years. Lower wins.";
 
     public static string Label(string view) => view switch
     {
