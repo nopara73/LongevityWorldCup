@@ -31,6 +31,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await Assertions.Expect(rows.First).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("\\blmx-empty-row\\b"));
         await Assertions.Expect(rows.First).ToHaveTextAsync("No one has joined yet");
         Assert.Equal(0, await rows.First.Locator(".lmx-cell, .lmx-number").CountAsync());
+        Assert.Equal("3", await rows.First.GetByRole(AriaRole.Cell).GetAttributeAsync("aria-colspan"));
         var message = Assert.IsType<LocatorBoundingBoxResult>(await rows.First.Locator(".lmx-empty-name").BoundingBoxAsync());
         Assert.True(message.Width > 0 && message.Height > 0);
         Assert.True(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth <= window.innerWidth"));

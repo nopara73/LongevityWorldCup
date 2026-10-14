@@ -2459,7 +2459,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const hasHiddenInactive = hiddenInactiveCount > 0 && !showInactiveLeaderboard;
         const message = hasHiddenInactive ? "No active participants" : "No one has joined yet";
         return `<div class="lmx-board-row lmx-empty-row" role="row">
-            <div class="lmx-name" role="cell" aria-colspan="${escAttr(days.length + 2)}">
+            <div class="lmx-name" role="cell" aria-colspan="3">
                 <span class="lmx-empty-name">${esc(message)}</span>
             </div>
         </div>`;
@@ -2469,7 +2469,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const hasHiddenInactive = hiddenInactiveCount > 0 && !showInactiveLeaderboard;
         const message = hasHiddenInactive ? "No active participants" : "No one has joined yet";
         return `<div class="lmx-board-row lmx-roster-row lmx-empty-row" role="row">
-            <div class="lmx-name" role="cell" aria-colspan="${escAttr(days.length + 1)}">
+            <div class="lmx-name" role="cell" aria-colspan="2">
                 <span class="lmx-empty-name">${esc(message)}</span>
             </div>
         </div>`;
