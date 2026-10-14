@@ -445,6 +445,114 @@
             outline: 2px solid var(--lwc-accent);
             outline-offset: -2px;
         }
+
+        /* Dated entries read as a timeline: a rail with one marker per entry, the
+           date as a small line above a short title. Announced entries are hollow. */
+        .documentation-timeline {
+            position: relative;
+            margin: 1.6rem 0 0;
+            padding-left: 1.9rem;
+        }
+
+        .documentation-timeline::before {
+            content: "";
+            position: absolute;
+            top: 0.55rem;
+            bottom: 0.35rem;
+            left: 0.4rem;
+            width: 2px;
+            border-radius: 1px;
+            background: var(--lwc-border, #d7e0e6);
+        }
+
+        .documentation-timeline-entry {
+            position: relative;
+        }
+
+        .documentation-timeline-entry + .documentation-timeline-entry {
+            margin-top: 2.1rem;
+        }
+
+        .documentation-timeline-entry::before {
+            content: "";
+            position: absolute;
+            top: 0.42rem;
+            left: calc(-1.9rem + 0.4rem + 1px - 0.4rem);
+            box-sizing: border-box;
+            width: 0.8rem;
+            height: 0.8rem;
+            border: 2px solid var(--lwc-accent, var(--primary-color));
+            border-radius: 50%;
+            background: var(--lwc-accent, var(--primary-color));
+            box-shadow: 0 0 0 4px var(--lwc-surface, #ffffff);
+        }
+
+        .documentation-timeline-entry.is-announced::before {
+            background: var(--lwc-surface, #ffffff);
+        }
+
+        .documentation-document .documentation-timeline-heading {
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+            margin: 0 0 0.65rem;
+        }
+
+        .documentation-timeline-date,
+        .documentation-nav-entry-date {
+            color: var(--lwc-accent, var(--primary-color));
+            font-size: var(--lwc-type-sm, 0.875rem);
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+            line-height: 1.3;
+        }
+
+        .documentation-timeline-separator {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+            clip-path: inset(50%);
+            white-space: nowrap;
+        }
+
+        .documentation-nav a.documentation-nav-timeline {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            justify-content: center;
+            gap: 0.05rem;
+        }
+
+        .documentation-nav-entry-date {
+            font-size: var(--lwc-type-xs, 0.75rem);
+        }
+
+        .documentation-nav a.is-active .documentation-nav-entry-date {
+            color: inherit;
+        }
+
+        /* Phones: the rail keeps a fixed narrow gutter, so enlarged text keeps its width. */
+        @media (max-width: 600px) {
+            .documentation-timeline {
+                padding-left: 22px;
+            }
+
+            .documentation-timeline::before {
+                left: 5px;
+            }
+
+            .documentation-timeline-entry::before {
+                left: -22px;
+                width: 12px;
+                height: 12px;
+                box-shadow: 0 0 0 3px var(--lwc-surface, #ffffff);
+            }
+
+            .documentation-timeline-entry + .documentation-timeline-entry {
+                margin-top: 1.75rem;
+            }
+        }
         @media (max-width: 600px) {
             .documentation-document {
                 font-size: var(--lwc-type-body);
@@ -466,17 +574,17 @@
             <div class="documentation-nav-links" id="documentation-nav-links">
                 <div class="documentation-nav-title">Contents</div>
             <a class="documentation-nav-level-2" href="#timeline">Timeline</a>
-            <a class="documentation-nav-level-3" href="#2018---zolman-leaderboards">2018 - Zolman leaderboards</a>
-            <a class="documentation-nav-level-3" href="#2023---rejuvenation-olympics">2023 - Rejuvenation Olympics</a>
-            <a class="documentation-nav-level-3" href="#2024---immortal-combat-podcast">2024 - Immortal Combat Podcast</a>
-            <a class="documentation-nav-level-3" href="#2024---rejuvenation-olympics-20">2024 - Rejuvenation Olympics 2.0</a>
-            <a class="documentation-nav-level-3" href="#2025-january---longevity-world-cup">2025 January - Longevity World Cup</a>
-            <a class="documentation-nav-level-3" href="#2025-march---dr-oliver-zolmans-departure">2025 March - Dr. Oliver Zolman&#39;s departure</a>
-            <a class="documentation-nav-level-3" href="#2026-january-1--first-place-finishes-across-major-longevity-leaderboards">2026 January 1 – First place finishes across major longevity leaderboards</a>
-            <a class="documentation-nav-level-3" href="#2026-january-15---longevity-world-cup-season-2025-ended">2026 January 15 - Longevity World Cup season 2025 ended</a>
-            <a class="documentation-nav-level-3" href="#2026-february---longevity-world-cup-season-2026-started">2026 February - Longevity World Cup season 2026 started</a>
-            <a class="documentation-nav-level-3" href="#2026-november-announced---super-age-games">2026 November (announced) - Super Age Games</a>
-            <a class="documentation-nav-level-3" href="#2027-announced---younger-contest">2027 (announced) - Younger Contest</a>
+            <a class="documentation-nav-level-3 documentation-nav-timeline" href="#2018---zolman-leaderboards"><span class="documentation-nav-entry-date">2018</span><span class="documentation-timeline-separator"> - </span><span class="documentation-nav-entry-title">Zolman leaderboards</span></a>
+            <a class="documentation-nav-level-3 documentation-nav-timeline" href="#2023---rejuvenation-olympics"><span class="documentation-nav-entry-date">2023</span><span class="documentation-timeline-separator"> - </span><span class="documentation-nav-entry-title">Rejuvenation Olympics</span></a>
+            <a class="documentation-nav-level-3 documentation-nav-timeline" href="#2024---immortal-combat-podcast"><span class="documentation-nav-entry-date">2024</span><span class="documentation-timeline-separator"> - </span><span class="documentation-nav-entry-title">Immortal Combat Podcast</span></a>
+            <a class="documentation-nav-level-3 documentation-nav-timeline" href="#2024---rejuvenation-olympics-20"><span class="documentation-nav-entry-date">2024</span><span class="documentation-timeline-separator"> - </span><span class="documentation-nav-entry-title">Rejuvenation Olympics 2.0</span></a>
+            <a class="documentation-nav-level-3 documentation-nav-timeline" href="#2025-january---longevity-world-cup"><span class="documentation-nav-entry-date">2025 January</span><span class="documentation-timeline-separator"> - </span><span class="documentation-nav-entry-title">Longevity World Cup</span></a>
+            <a class="documentation-nav-level-3 documentation-nav-timeline" href="#2025-march---dr-oliver-zolmans-departure"><span class="documentation-nav-entry-date">2025 March</span><span class="documentation-timeline-separator"> - </span><span class="documentation-nav-entry-title">Dr. Oliver Zolman&#39;s departure</span></a>
+            <a class="documentation-nav-level-3 documentation-nav-timeline" href="#2026-january-1--first-place-finishes-across-major-longevity-leaderboards"><span class="documentation-nav-entry-date">2026 January 1</span><span class="documentation-timeline-separator"> – </span><span class="documentation-nav-entry-title">First place finishes across major longevity leaderboards</span></a>
+            <a class="documentation-nav-level-3 documentation-nav-timeline" href="#2026-january-15---longevity-world-cup-season-2025-ended"><span class="documentation-nav-entry-date">2026 January 15</span><span class="documentation-timeline-separator"> - </span><span class="documentation-nav-entry-title">Longevity World Cup season 2025 ended</span></a>
+            <a class="documentation-nav-level-3 documentation-nav-timeline" href="#2026-february---longevity-world-cup-season-2026-started"><span class="documentation-nav-entry-date">2026 February</span><span class="documentation-timeline-separator"> - </span><span class="documentation-nav-entry-title">Longevity World Cup season 2026 started</span></a>
+            <a class="documentation-nav-level-3 documentation-nav-timeline" href="#2026-november-announced---super-age-games"><span class="documentation-nav-entry-date">2026 November (announced)</span><span class="documentation-timeline-separator"> - </span><span class="documentation-nav-entry-title">Super Age Games</span></a>
+            <a class="documentation-nav-level-3 documentation-nav-timeline" href="#2027-announced---younger-contest"><span class="documentation-nav-entry-date">2027 (announced)</span><span class="documentation-timeline-separator"> - </span><span class="documentation-nav-entry-title">Younger Contest</span></a>
             <a class="documentation-nav-level-2" href="#special-mentions">Special mentions</a>
             <a class="documentation-nav-level-2" href="#where-to-go-next">Where to go next</a>
                 <a class="documentation-source-link" href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/LongevitySportHistory.md" target="_blank" rel="noopener">Source Markdown</a>
@@ -486,30 +594,46 @@
 <h1 id="history-of-longevity-as-a-sport">History of longevity as a sport</h1>
 <p>The longevity sport industry is an emerging field where participants compete to reverse biological aging and optimize health, turning longevity into a <a href="https://nopara73.medium.com/longevity-game-9a79a8645bd9" target="_blank" rel="noopener noreferrer">measurable and dynamic competition.</a></p>
 <h2 id="timeline">Timeline</h2>
-<h3 id="2018---zolman-leaderboards">2018 - Zolman leaderboards</h3>
+<div class="documentation-timeline">
+<section class="documentation-timeline-entry">
+<h3 id="2018---zolman-leaderboards" class="documentation-timeline-heading"><span class="documentation-timeline-date">2018</span><span class="documentation-timeline-separator"> - </span><span class="documentation-timeline-title">Zolman leaderboards</span></h3>
 <p><a href="https://www.youtube.com/watch?v=iRmZoCt3BWA" target="_blank" rel="noopener noreferrer">Dr. Oliver Zolman</a>, a medical doctor, healthcare consultant, and founder of 20one Consulting, created the first longevity leaderboards where both people and animals competed with each other for better biological aging clocks. Participants were required to publicly share biomarker evidence, adhering to a 15-point statistical algorithm known as the Zolman Biological Age Marker (Z-BAM) criteria. These leaderboards were carefully verified by third parties to prevent data manipulation and maintain scientific credibility.</p>
 <p><img src="https://github.com/user-attachments/assets/1b22448f-438d-49cb-a409-0869b301c6e9" alt="Zolman leaderboards" /></p>
 <p>Today, his <a href="https://www.oliverzolman.com/leaderboards" target="_blank" rel="noopener noreferrer">leaderboards</a> are &quot;Undergoing update&quot;.</p>
-<h3 id="2023---rejuvenation-olympics">2023 - Rejuvenation Olympics</h3>
+</section>
+<section class="documentation-timeline-entry">
+<h3 id="2023---rejuvenation-olympics" class="documentation-timeline-heading"><span class="documentation-timeline-date">2023</span><span class="documentation-timeline-separator"> - </span><span class="documentation-timeline-title">Rejuvenation Olympics</span></h3>
 <p>Dr. Zolman, who was at the time also the Chief Scientist for <a href="https://en.wikipedia.org/wiki/Bryan_Johnson" target="_blank" rel="noopener noreferrer">Bryan Johnson</a>—today's most prominent longevity athlete—and Bryan Johnson teamed up with <a href="https://www.trudiagnostic.com/" target="_blank" rel="noopener noreferrer">TruDiagnostic</a>, a company that sells epigenetic aging tests, to create the <a href="https://www.rejuvenationolympics.com/" target="_blank" rel="noopener noreferrer">Rejuvenation Olympics</a>. In this competition, people competed with each other to achieve better <a href="https://elifesciences.org/articles/73420" target="_blank" rel="noopener noreferrer">DunedinPACE</a> scores, which aim to measure a person's pace of aging. Two leaderboards were launched: a relative one and an absolute one.</p>
 <p>In the relative leaderboard, scores were given based on how much someone improved from their baseline, while in the absolute leaderboard, the absolute pace of aging reversal compared to chronological age was counted.</p>
 <p><img src="https://github.com/user-attachments/assets/4112a04d-9e84-486a-9231-53929aba1820" alt="Relative Leaderboard" /></p>
 <p><img src="https://github.com/user-attachments/assets/d5382e05-b497-4368-9fa3-e7a1c546c417" alt="Absolute Leaderboard" /></p>
 <p>These leaderboards gave rise to pioneer longevity athletes like <a href="https://www.youtube.com/watch?v=fEq9_vKD74M" target="_blank" rel="noopener noreferrer">Julie Gibson Clark</a> and <a href="https://www.youtube.com/watch?v=b3D1k1-w9K4" target="_blank" rel="noopener noreferrer">Dave Pascoe</a>.</p>
-<h3 id="2024---immortal-combat-podcast">2024 - Immortal Combat Podcast</h3>
+</section>
+<section class="documentation-timeline-entry">
+<h3 id="2024---immortal-combat-podcast" class="documentation-timeline-heading"><span class="documentation-timeline-date">2024</span><span class="documentation-timeline-separator"> - </span><span class="documentation-timeline-title">Immortal Combat Podcast</span></h3>
 <p><a href="https://www.youtube.com/user/nopara73" target="_blank" rel="noopener noreferrer">nopara73</a>, a software developer, privacy researcher, and Bitcoin pioneer, made a sudden career change and started a series of interviews with longevity athletes called <a href="https://www.youtube.com/playlist?list=PL4nqc85w185sO4i7eR3oUO_lMmlJ2K1cL" target="_blank" rel="noopener noreferrer">The Immortal Combat</a>.</p>
-<h3 id="2024---rejuvenation-olympics-20">2024 - Rejuvenation Olympics 2.0</h3>
+</section>
+<section class="documentation-timeline-entry">
+<h3 id="2024---rejuvenation-olympics-20" class="documentation-timeline-heading"><span class="documentation-timeline-date">2024</span><span class="documentation-timeline-separator"> - </span><span class="documentation-timeline-title">Rejuvenation Olympics 2.0</span></h3>
 <p>TruDiagnostic launched the second version of the Rejuvenation Olympics. Major changes include the number of athletes now being unlimited, instead of being limited to 20 as previously. It now focuses on absolute pace of aging (DunedinPACE) instead of comparing improvements to baseline or factoring in chronological age.</p>
 <p><img src="https://github.com/user-attachments/assets/06784db5-bac3-4cc4-bfc5-ef3376917c62" alt="Rejuvenation Olympics 2.0" /></p>
-<h3 id="2025-january---longevity-world-cup">2025 January - Longevity World Cup</h3>
+</section>
+<section class="documentation-timeline-entry">
+<h3 id="2025-january---longevity-world-cup" class="documentation-timeline-heading"><span class="documentation-timeline-date">2025 January</span><span class="documentation-timeline-separator"> - </span><span class="documentation-timeline-title">Longevity World Cup</span></h3>
 <p>nopara73 launched the <a href="https://www.longevityworldcup.com/" target="_blank" rel="noopener noreferrer">Longevity World Cup</a> using <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf" target="_blank" rel="noopener noreferrer">pheno age</a>, a biological aging clock which can be acquired through regular blood tests. In this competition, absolute age reversal relative to chronological age is counted. This competition introduced the concept of prize money and various leagues based on gender and age groups.</p>
 <p><img src="https://github.com/user-attachments/assets/1c498779-62c2-458a-918c-37fd7aa00515" alt="Longevity World Cup" /></p>
-<h3 id="2025-march---dr-oliver-zolmans-departure">2025 March - Dr. Oliver Zolman's departure</h3>
+</section>
+<section class="documentation-timeline-entry">
+<h3 id="2025-march---dr-oliver-zolmans-departure" class="documentation-timeline-heading"><span class="documentation-timeline-date">2025 March</span><span class="documentation-timeline-separator"> - </span><span class="documentation-timeline-title">Dr. Oliver Zolman&#39;s departure</span></h3>
 <p>In a private exchange, Dr. Zolman revealed his departure from the Rejuvenation Olympics. He attributed his choice to step away to concerns over the leaderboard's scientific integrity, stating, &quot;Bryan and TruDiagnostic made the leaderboards unscientific and clinically meaningless.&quot;</p>
-<h3 id="2026-january-1--first-place-finishes-across-major-longevity-leaderboards">2026 January 1 – First place finishes across major longevity leaderboards</h3>
+</section>
+<section class="documentation-timeline-entry">
+<h3 id="2026-january-1--first-place-finishes-across-major-longevity-leaderboards" class="documentation-timeline-heading"><span class="documentation-timeline-date">2026 January 1</span><span class="documentation-timeline-separator"> – </span><span class="documentation-timeline-title">First place finishes across major longevity leaderboards</span></h3>
 <p>On January 1, 2026, Bryan Johnson secured first place on the Rejuvenation Olympics leaderboard, while Michael Lustgarten, PhD ranked first on the Longevity World Cup leaderboard. This marked the first time different longevity competitions, using distinct biological aging clocks, simultaneously crowned clear category leaders—highlighting both the fragmentation and maturation of longevity as a competitive sport.</p>
 <p><img src="https://github.com/user-attachments/assets/407dba3f-777e-4048-b69f-2e524d90aedd" alt="610955655_17863402740557255_5447801270218589289_n" /></p>
-<h3 id="2026-january-15---longevity-world-cup-season-2025-ended">2026 January 15 - Longevity World Cup season 2025 ended</h3>
+</section>
+<section class="documentation-timeline-entry">
+<h3 id="2026-january-15---longevity-world-cup-season-2025-ended" class="documentation-timeline-heading"><span class="documentation-timeline-date">2026 January 15</span><span class="documentation-timeline-separator"> - </span><span class="documentation-timeline-title">Longevity World Cup season 2025 ended</span></h3>
 <p>The inaugural Longevity World Cup concluded. The top 20 athletes by age reduction are listed below:</p>
 <table>
 <thead>
@@ -622,7 +746,9 @@
 </tr>
 </tbody>
 </table>
-<h3 id="2026-february---longevity-world-cup-season-2026-started">2026 February - Longevity World Cup season 2026 started</h3>
+</section>
+<section class="documentation-timeline-entry">
+<h3 id="2026-february---longevity-world-cup-season-2026-started" class="documentation-timeline-heading"><span class="documentation-timeline-date">2026 February</span><span class="documentation-timeline-separator"> - </span><span class="documentation-timeline-title">Longevity World Cup season 2026 started</span></h3>
 <p>Season 2 of the Longevity World Cup was released with major competition-format upgrades:</p>
 <ul>
 <li>The competition introduced <strong>two tracks</strong>: <strong>Amateur</strong> and <strong>Professional</strong>.</li>
@@ -630,10 +756,16 @@
 <li>Athlete pages and the leaderboard began surfacing new derived performance views like pace of aging / pace rank.</li>
 <li>Entry evolved from an early “low-friction” model toward explicit pricing.</li>
 </ul>
-<h3 id="2026-november-announced---super-age-games">2026 November (announced) - Super Age Games</h3>
+</section>
+<section class="documentation-timeline-entry is-announced">
+<h3 id="2026-november-announced---super-age-games" class="documentation-timeline-heading"><span class="documentation-timeline-date">2026 November (announced)</span><span class="documentation-timeline-separator"> - </span><span class="documentation-timeline-title">Super Age Games</span></h3>
 <p>The <a href="https://games.superage.com/" target="_blank" rel="noopener noreferrer">Super Age Games</a> announced an in-person longevity fitness competition for November 7, 2026 in New York City. Its format emphasizes functional healthspan markers, with eight trials spanning grip strength, aerobic capacity, agility, balance, functional strength, endurance under load, cognitive capacity under physical stress, and relational capacity.</p>
-<h3 id="2027-announced---younger-contest">2027 (announced) - Younger Contest</h3>
+</section>
+<section class="documentation-timeline-entry is-announced">
+<h3 id="2027-announced---younger-contest" class="documentation-timeline-heading"><span class="documentation-timeline-date">2027 (announced)</span><span class="documentation-timeline-separator"> - </span><span class="documentation-timeline-title">Younger Contest</span></h3>
 <p><a href="https://luma.com/829lvr59" target="_blank" rel="noopener noreferrer">Younger Contest 2027</a>, hosted by NeuroAge Therapeutics, frames longevity competition as a six-month attempt to become biologically younger across brain, body, and face. Its composite Younger Score combines biological age markers, brain age, face age, functional measures like VO2 max and grip strength, and optional ultra testing such as MRI, DEXA, and expanded biomarkers.</p>
+</section>
+</div>
 <h2 id="special-mentions">Special mentions</h2>
 <p>Similar competitions are also emerging, such as <a href="https://www.xprize.org/domains/health" target="_blank" rel="noopener noreferrer">XPRIZE Health</a>, the now-offline VO2 Max Leaderboard by JoinZero, Favies (previously Goaly), and various fitness tracker-specific gamified leaderboards.</p>
 <h2 id="where-to-go-next">Where to go next</h2>
