@@ -1721,9 +1721,13 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity) {
                 if (searchOrFilterApplied) {
                     toggleClearIcon();
 
-                    // Even here scroll to the search when filter applied because the table kinda starts there conceptually
+                    // Position an untouched incoming selection at its controls,
+                    // preserving scrolling or filter interaction during loading.
+                    const incomingScrollY = window.scrollY;
                     setTimeout(() => {
-                        if (canAutoScroll()) {
+                        const filtersPanel = document.querySelector('.sidebar');
+                        if (canAutoScroll() && window.scrollY === incomingScrollY &&
+                            !filtersPanel?.matches(':hover, .expanded') && document.activeElement !== searchInput) {
                             searchInput.scrollIntoView({ behavior: 'smooth', block: 'start' });
                         }
                     }, 1000);
@@ -6333,6 +6337,7 @@ function syncLeaderboardTableHeight() {
     if (isMobileDrawerViewport()) {
         leaderboard.style.removeProperty('--leaderboard-table-height');
         leaderboard.style.removeProperty('--leaderboard-title-height');
+        leaderboard.style.removeProperty('--leaderboard-sidebar-viewport-top');
         return;
     }
 
@@ -6341,6 +6346,9 @@ function syncLeaderboardTableHeight() {
         leaderboard.style.setProperty('--leaderboard-table-height', `${Math.ceil(tableHeight)}px`);
         syncCollapsedTitleHeight();
     }
+    // A newly opened panel may start below its sticky position. Size its scroll
+    // area to the space actually on screen, then refit as the page scrolls.
+    leaderboard.style.setProperty('--leaderboard-sidebar-viewport-top', `${Math.max(0, Math.ceil(sidebar.getBoundingClientRect().top))}px`);
 }
 
 function installLeaderboardTableHeightObserver() {
@@ -6520,7 +6528,7 @@ function openSidebar(options = {}) {
                     sidebarClose.focus({ preventScroll: true });
                 }
             }
-            window.scrollTo(drawerScrollX, drawerScrollY);
+            window.scrollTo({ left: drawerScrollX, top: drawerScrollY, behavior: 'instant' });
         });
     }
 
@@ -6571,6 +6579,8 @@ function closeSidebar(options = {}) {
 if (hasLeaderboardSidebar) {
     syncSidebarDrawerBackdrop();
     installLeaderboardTableHeightObserver();
+    sidebar.addEventListener('mouseenter', scheduleLeaderboardTableHeightSync);
+    window.addEventListener('scroll', scheduleLeaderboardTableHeightSync, { passive: true });
     window.addEventListener('resize', () => {
         syncSidebarDrawerBackdrop();
         scheduleLeaderboardTableHeightSync();

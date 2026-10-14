@@ -170,6 +170,7 @@
  .leaderboard{
      --leaderboard-table-height: calc(100vh - 2rem);
      --leaderboard-sidebar-sticky-top: 4rem;
+     --leaderboard-sidebar-viewport-height: max(0px, min(calc(100dvh - var(--leaderboard-sidebar-sticky-top) - 1rem), calc(100dvh - var(--leaderboard-sidebar-viewport-top, 0px) - 1rem)));
      display:flex; align-items:flex-start; background-color:var(--card-bg);
      min-height:max(var(--leaderboard-table-height), var(--leaderboard-title-height, 0px));
      border-radius:15px; box-shadow:0 10px 30px rgba(0,0,0,.1); overflow:clip; flex-grow:1;
@@ -3602,20 +3603,21 @@
  .sidebar-filter-list { scroll-padding-block-start: 3rem; }
  .sidebar-filter-list input { scroll-margin-block-start: 3rem; }
 
- /* Wide screens: the explicitly opened panel keeps a steady width and its own height.
-    Hover retains the compact preview so passing the rail cannot move the footer. Its
-    heading, with Clear filters and Close, stays put while the groups scroll
-    beneath it, and a board with one or two results no longer squeezes it. */
+ /* Desktop panels use one scrollable filter list for both hover and button opening.
+    Keep the heading fixed and cap the panel at the visible viewport space. */
  @media (min-width: 933px), (min-width: 769px) and (min-height: 481px) {
      .leaderboard { container: leaderboard-results / inline-size; flex-wrap: wrap; }
      .leaderboard > table { flex-basis: 0; min-width: 0; }
-     .sidebar.expanded:not(.button-collapsed):not([aria-hidden="true"]) {
+     .sidebar:is(:hover, .expanded):not(.button-collapsed):not([aria-hidden="true"]) {
          display: flex; flex-direction: column; align-items: stretch; width: min(19rem, 336px, 40%); padding: 0; overflow: hidden;
          scrollbar-gutter: auto;
-         max-height: calc(100vh - var(--leaderboard-sidebar-sticky-top) - 1rem);
+         max-height: var(--leaderboard-sidebar-viewport-height);
      }
-     .sidebar.expanded:not(.button-collapsed):not([aria-hidden="true"]) .sidebar-heading { flex: 0 0 auto; margin: 0; padding-inline: min(1rem, 16px); }
-     .sidebar.expanded:not(.button-collapsed):not([aria-hidden="true"]) .sidebar-filter-list {
+     .sidebar:hover:not(.expanded):not(.button-collapsed):not([aria-hidden="true"]) {
+         max-height: min(var(--leaderboard-sidebar-viewport-height), max(var(--leaderboard-table-height), var(--leaderboard-title-height, 0px)));
+     }
+     .sidebar:is(:hover, .expanded):not(.button-collapsed):not([aria-hidden="true"]) .sidebar-heading { flex: 0 0 auto; margin: 0; padding-inline: min(1rem, 16px); }
+     .sidebar:is(:hover, .expanded):not(.button-collapsed):not([aria-hidden="true"]) .sidebar-filter-list {
          display: block; flex: 1 1 auto; min-height: 0; width: 100%; box-sizing: border-box; padding: 0 min(var(--lwc-space-4), 16px) var(--lwc-space-4);
          overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable;
          scrollbar-width: thin; scrollbar-color: rgba(0,188,212,.55) transparent;
@@ -3623,7 +3625,7 @@
      /* Reflow against text size as well as pixels: enlarged results need the
         full board width instead of being squeezed alongside the filters. */
      @container leaderboard-results (max-width: 45rem) {
-         .sidebar.expanded:not(.button-collapsed):not([aria-hidden="true"]) { flex-basis: 100%; width: 100%; position: relative; top: auto; max-height: 55vh; }
+         .sidebar.expanded:not(.button-collapsed):not([aria-hidden="true"]) { flex-basis: 100%; width: 100%; position: relative; top: auto; max-height: min(55dvh, var(--leaderboard-sidebar-viewport-height)); }
          .sidebar.expanded ~ table { flex-basis: 100%; }
          /* The narrow/text-enlarged layout opens with the button. A transient
             hover cannot take width from the results and change their height. */
