@@ -488,7 +488,8 @@
      -webkit-background-clip:text; -webkit-text-fill-color:transparent; text-shadow:none; border-radius:5px;
  }
  .sidebar:hover .collapsed-title, .sidebar.expanded .collapsed-title{ display:none; }
- .sidebar-heading{ display:flex; align-items:center; gap:var(--lwc-space-2); width:100%; border-bottom:1px solid var(--lwc-border); }
+ /* The measured rail heading must keep its natural height before and during hover. */
+ .sidebar-heading{ display:flex; flex:0 0 auto; align-items:center; gap:var(--lwc-space-2); width:100%; border-bottom:1px solid var(--lwc-border); }
  /* The rail's heading is the first cell of the board's head: same tint, same
     height, no gap, collapsed or open. */
  @media (min-width: 769px){

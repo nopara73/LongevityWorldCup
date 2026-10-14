@@ -68,6 +68,15 @@ public sealed class LeagueFilterResponsiveBrowserTests(
         await page.EvaluateAsync("percent => document.documentElement.style.fontSize = `${percent}%`", textPercent);
         await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
         var count = await page.Locator("#leaderboardResultCount").InnerTextAsync();
+        var headingFits = await page.Locator(".sidebar-heading").EvaluateAsync<bool>(
+            """
+            heading => {
+                const style = getComputedStyle(heading);
+                const naturalHeight = heading.scrollHeight + parseFloat(style.borderTopWidth) + parseFloat(style.borderBottomWidth);
+                return heading.getBoundingClientRect().height >= naturalHeight - 1;
+            }
+            """);
+        Assert.True(headingFits, "The collapsed rail must not shrink its heading before measuring the title height.");
         var before = await ReadStableFooterTopAsync(page);
         await page.Locator(".sidebar").HoverAsync();
         await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);

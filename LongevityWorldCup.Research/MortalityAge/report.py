@@ -19,7 +19,6 @@ from model import FEATURES, transform, cubic
 REPO = Path(__file__).resolve().parents[2]
 ARCHIVE = Path(__file__).parent / 'artifacts'
 TEMP = REPO / '.artifacts' / 'mortality-age' / 'report'
-PUBLIC = REPO / 'LongevityWorldCup.Website' / 'wwwroot' / 'research'
 TEMP.mkdir(parents=True, exist_ok=True)
 R = json.loads((ARCHIVE / 'results.json').read_text())
 FULL = R['fullModel']
@@ -145,7 +144,7 @@ def main():
     p('Conditional paired survey-bootstrap error comparisons are ' + '; '.join(comparisons) + '. These are marginal comparisons in reused cohorts; even a positive result cannot establish complete-panel validity.')
     p(f'The fitness panel has only {fitness["fiveYearDeaths"]} five-year deaths in its temporal test, with observed/expected {fitness["observedExpected"]:.2f}. Its numeric panel age is withheld in the calculator. Other panel estimates and any full integration result remain experimental, not clinical validation.')
     p('The displayed age matches modeled five-year all-cause mortality to a historical sex-specific age reference. It measures an association in selected survey populations. It does not estimate pace of aging, life expectancy, treatment benefit, or years gained.')
-    p('Calculator: <link href="https://longevityworldcup.com/mortality-age" color="#087685">longevityworldcup.com/mortality-age</link><br/>Frozen model: <link href="https://longevityworldcup.com/research/mortality-age-model.json" color="#087685">mortality-age-model.json</link>', 'Small')
+    p('Archived research: <link href="https://github.com/nopara73/LongevityWorldCup/tree/master/LongevityWorldCup.Research/MortalityAge/artifacts" color="#087685">Frozen model and report</link>. The website calculator has been retired.', 'Small')
 
     page('1. Measurements and populations')
     rows = [['Domain', 'Definition and canonical unit']]
@@ -380,8 +379,8 @@ def main():
         ('CDC NHANES combined-cycle and subsample weighting tutorial', 'https://wwwn.cdc.gov/nchs/nhanes/tutorials/weighting.aspx')]
     for i, (title, url) in enumerate(refs, 1):
         p(f'[{i}] {escape(title)}<br/><link href="{escape(url, quote=True)}" color="#087685">{escape(url)}</link>', 'Small')
-    PUBLIC.mkdir(parents=True, exist_ok=True)
-    output = PUBLIC/'mortality-age.pdf'
+    ARCHIVE.mkdir(parents=True, exist_ok=True)
+    output = ARCHIVE/'mortality-age.pdf'
     doc = SimpleDocTemplate(str(output), pagesize=A4, leftMargin=48, rightMargin=48, topMargin=48, bottomMargin=54,
         title='Mortality age: multi-cohort research experiment', author='Longevity World Cup', subject='Sex-dependent all-cause mortality models and identification limits')
     doc.build(story, onFirstPage=footer, onLaterPages=footer)
