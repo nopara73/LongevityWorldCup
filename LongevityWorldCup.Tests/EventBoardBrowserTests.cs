@@ -111,23 +111,29 @@ public sealed class EventBoardBrowserTests(
     }
 
     [Theory]
-    [InlineData(1440, 100)]
-    [InlineData(820, 100)]
-    [InlineData(390, 100)]
-    [InlineData(320, 100)]
-    [InlineData(390, 200)]
-    public async Task HighlightsPage_KeepsEachDateBesideItsEventAndTheChevronBesideItsTitle(int width, int textPercent)
+    [InlineData(1440, 100, "en-US")]
+    [InlineData(820, 100, "en-US")]
+    [InlineData(390, 100, "en-US")]
+    [InlineData(320, 100, "en-US")]
+    [InlineData(390, 200, "en-US")]
+    [InlineData(601, 100, "hu-HU")]
+    [InlineData(1440, 200, "de-DE")]
+    [InlineData(320, 200, "ja-JP")]
+    public async Task HighlightsPage_KeepsEachDateBesideItsEventAndTheChevronBesideItsTitle(int width, int textPercent, string locale)
     {
         await using var context = await Browser.NewContextAsync(new BrowserNewContextOptions
         {
             BaseURL = App.BaseAddress.ToString(),
-            Locale = "en-US",
+            Locale = locale,
             ViewportSize = new ViewportSize { Width = width, Height = 900 }
         });
+        var currentYear = DateTime.UtcNow.Year;
+        var historicalYear = currentYear - 1;
         var eventsBody = JsonSerializer.Serialize(new object[]
         {
-            new { Id = "timeline-announcement", Type = 6, Text = "Season update\n\nThe full announcement is here.", OccurredAt = new DateTimeOffset(2026, 9, 26, 8, 0, 0, TimeSpan.Zero), Relevance = 10 },
-            new { Id = "timeline-short", Type = 6, Text = "Short note", OccurredAt = new DateTimeOffset(2026, 9, 15, 8, 0, 0, TimeSpan.Zero), Relevance = 10 }
+            new { Id = "timeline-announcement", Type = 6, Text = "Season update\n\nThe full announcement is here.", OccurredAt = new DateTimeOffset(currentYear, 9, 26, 8, 0, 0, TimeSpan.Zero), Relevance = 10 },
+            new { Id = "timeline-short", Type = 6, Text = "Short note", OccurredAt = new DateTimeOffset(currentYear, 9, 15, 8, 0, 0, TimeSpan.Zero), Relevance = 10 },
+            new { Id = "timeline-historical", Type = 6, Text = "Historical note", OccurredAt = new DateTimeOffset(historicalYear, 9, 26, 8, 0, 0, TimeSpan.Zero), Relevance = 10 }
         });
         await RouteEventBoardDependenciesAsync(context, eventsBody);
         var page = await context.NewPageAsync();
@@ -135,6 +141,7 @@ public sealed class EventBoardBrowserTests(
         await page.Locator("tr[data-event-id='timeline-short']").WaitForAsync(new() { State = WaitForSelectorState.Visible });
         await page.EvaluateAsync("percent => document.documentElement.style.fontSize = `${percent}%`", textPercent);
         await page.EvaluateAsync("() => document.fonts.ready");
+        Assert.Contains(historicalYear.ToString(), await page.Locator("tr.main-row[data-event-id='timeline-historical'] .col-date").InnerTextAsync());
 
         var problems = await page.EvaluateAsync<string[]>(
             """
@@ -151,6 +158,14 @@ public sealed class EventBoardBrowserTests(
                         issues.push(`${id}: date hidden`);
                     if (dateBox.left < board.left - 1 || dateBox.right > board.right + 1)
                         issues.push(`${id}: date leaves the board`);
+                    const dateStyle = getComputedStyle(date);
+                    const dateRange = document.createRange();
+                    dateRange.selectNodeContents(date);
+                    for (const line of dateRange.getClientRects()) {
+                        if (line.width > 0 && (line.left < dateBox.left + parseFloat(dateStyle.paddingLeft) - 1
+                            || line.right > dateBox.right - parseFloat(dateStyle.paddingRight) + 1))
+                            issues.push(`${id}: date text escapes its column`);
+                    }
                     // Wide: the date leads the row, right beside the portrait. Narrow: it sits under the message.
                     const besideMessage = dateBox.right <= textBox.left + 1 && textBox.left - dateBox.right < 120;
                     const underMessage = dateBox.top >= textBox.bottom - 1 && Math.abs(dateBox.left - textBox.left) <= 1;
@@ -197,6 +212,10 @@ public sealed class EventBoardBrowserTests(
             """);
         Assert.InRange(Math.Abs(alignment[0] - alignment[1]), 0, 1);
         Assert.InRange(Math.Abs(alignment[2] - alignment[3]), 0, 1);
+        await page.Keyboard.PressAsync("Enter");
+        Assert.False(await row.EvaluateAsync<bool>("element => element.classList.contains('is-open')"));
+        await page.WaitForFunctionAsync(
+            "() => document.querySelector('tr.main-row[data-event-id=\"timeline-announcement\"]').nextElementSibling.getBoundingClientRect().height <= 1");
     }
 
     private static async Task AssertExpanderIsContainedAndCenteredAsync(
