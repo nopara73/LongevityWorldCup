@@ -10,6 +10,8 @@ public sealed class FrontendTypeScriptBuildTests
     private static readonly string[] ClassicScripts =
     [
         "bioage-flow",
+        "biomarker-explorer-data",
+        "biomarker-explorer",
         "custom-event-markup",
         "field-validation",
         "flow-action-dock",

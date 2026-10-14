@@ -1,5 +1,6 @@
 <!--LEADERBOARD-STYLES-START-->
 <link rel="stylesheet" href="{{ASSET_LEADERBOARD_CONTENT_CSS}}">
+<link rel="stylesheet" href="{{ASSET_BIOMARKER_EXPLORER_CSS}}">
 <!--LEADERBOARD-STYLES-END-->
 
 <div id="athleteDialogRuntime"
@@ -440,9 +441,9 @@
 <template id="athleteModalDeferredSectionsTemplate">
     <div class="biomarkers-section" id="athlete-biomarkers">
         <div class="biomarkers-heading">
-            <h3>Biomarkers over time</h3>
+            <h3>Biomarkers</h3>
         </div>
-        <canvas id="biomarkerChart" style="width: 100%; height: 300px;"></canvas>
+        <p class="be-loading" role="status">Loading recorded measurements…</p>
     </div>
 
     <div class="proofs-section" id="athlete-proofs">
@@ -487,6 +488,6 @@
 </div>
 
 <!--LEADERBOARD-RUNTIME-SCRIPTS-START-->
-<script src="{{ASSET_LEADERBOARD_PAGE_JS}}" data-default-profile-pic="{{ASSET_HD_LOGO_THUMB_SM}}"></script>
+<script src="{{ASSET_LEADERBOARD_PAGE_JS}}" data-default-profile-pic="{{ASSET_HD_LOGO_THUMB_SM}}" data-biomarker-data-src="{{ASSET_BIOMARKER_EXPLORER_DATA_JS}}" data-biomarker-explorer-src="{{ASSET_BIOMARKER_EXPLORER_JS}}" data-pheno-model-src="{{ASSET_PHENO_AGE_JS}}" data-bortz-model-src="{{ASSET_BORTZ_AGE_JS}}"></script>
 
 <script src="{{ASSET_LEADERBOARD_EMBED_LISTENER_JS}}"></script>

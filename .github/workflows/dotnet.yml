@@ -53,7 +53,9 @@ jobs:
       run: npm ci --ignore-scripts --no-audit --no-fund
     - name: Type-check and build frontend
       working-directory: LongevityWorldCup.Website
-      run: npm run build
+      run: |
+        npm run check
+        npm run build
     - name: Verify generated frontend assets stay untracked
       shell: bash
       run: |
