@@ -1,0 +1,28 @@
+{
+  "Name": "Nora K",
+  "DisplayName": null,
+  "MediaContact": "norakaszanyi@gmail.com",
+  "DateOfBirth": {
+    "Year": 1994,
+    "Month": 3,
+    "Day": 1
+  },
+  "Biomarkers": [
+    {
+      "Date": "2026-07-30",
+      "AlbGL": 40,
+      "CreatUmolL": 84,
+      "GluMmolL": 5.1,
+      "CrpMgL": 3.2,
+      "LymPc": 27.5,
+      "McvFL": 90,
+      "RdwPc": 13.2,
+      "AlpUL": 25,
+      "Wbc1000cellsuL": 6.6
+    }
+  ],
+  "Division": "Women's",
+  "Flag": "Hungary",
+  "Why": "My goal is to build sustainable habits that help me live longer, healthier, and better. I want to understand my body, optimize my well-being, and invest in a future where I feel energetic, strong, and mentally balanced.",
+  "PersonalLink": null
+}
