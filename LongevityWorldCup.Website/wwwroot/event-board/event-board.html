@@ -321,7 +321,8 @@
         const headingEl = document.querySelector('.event-board-heading');
         if (headingEl && headingEl.scrollIntoView) {
             setTimeout(() => {
-                headingEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                const behavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth';
+                headingEl.scrollIntoView({ behavior, block: 'start' });
             }, 500);
         }
         if (typeof window.loadEventsTable === 'function') {
