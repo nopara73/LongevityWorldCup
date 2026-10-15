@@ -2027,7 +2027,7 @@
      #detailsModal .biomarker-overview-table thead th{ font-size:.75rem; }
      #detailsModal .biomarker-overview-table thead .biomarker-history-unit{ font-size:inherit; }
      #detailsModal .biomarker-overview-table th,
-     #detailsModal .biomarker-overview-table td{ padding:.8rem .2rem; }
+     #detailsModal .biomarker-overview-table td{ padding:.8rem .15rem; }
      #detailsModal .biomarker-overview-history svg{ min-width:30px; }
      #detailsModal .biomarker-overview-arrow{ margin-left:0; font-size:1rem; }
  }
