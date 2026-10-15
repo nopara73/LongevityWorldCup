@@ -2550,6 +2550,7 @@ function resetModalForLoading(athleteSlug) {
 
     const modalContent = document.querySelector('.modal-content');
     if (!modalContent) return null;
+    modalContent.inert = false;
 
     if (modalContent.dataset.serverRenderedProfile === athleteSlug) {
         modalContent.classList.add('is-loading');
@@ -2888,63 +2889,57 @@ function requestCloseAthleteModal() {
     closeModal({ fromHistory: true });
 }
 
+function finishAfterTransition(element, property, complete) {
+    const transition = element.getAnimations().find(animation => animation.transitionProperty === property);
+    const remaining = transition
+        ? Math.max(0, transition.effect.getComputedTiming().endTime - (transition.currentTime || 0))
+        : 0;
+    return window.setTimeout(complete, Math.ceil(remaining));
+}
+
 function closeModal(options) {
     if (!options?.fromHistory) return requestCloseAthleteModal();
     const modalContent = document.querySelector('.modal-content');
     if (!modalContent) return;
     modal._historyClosePending = false;
 
-    if (modalContent.classList.contains('gma-result-ready')) {
-        modalContent.classList.remove('guess-mode', 'gma-fast', 'gma-result-ready');
-    }
-
     currentAthleteModalRequestId++;
     const returnFocusElement = athleteDialogReturnFocusElement;
     athleteDialogReturnFocusElement = null;
 
-    resetAthleteShareState();
-
-    const athleteSlug = modalContent.dataset.athleteSlug;
-
-    // Don't store scroll position - always start from top when reopening
-
-    // Hide sticky header
-    const stickyHeader = document.getElementById('modalStickyHeader');
-    if (stickyHeader) {
-        stickyHeader.classList.remove('visible');
-    }
-
-    // Remove scroll listener to prevent memory leaks
-    if (modalContent._scrollProgressListener) {
-        modalContent.removeEventListener('scroll', modalContent._scrollProgressListener);
-        modalContent._scrollProgressListener = null;
-    }
-    disposeBiomarkerHistory();
-    if (typeof window.destroyAgeRadarChart === 'function') {
-        window.destroyAgeRadarChart();
-    }
-
+    // Keep the card and the page behind it still until their shared fade ends.
+    modalContent.inert = true;
     modal.classList.add('fade-out');
-    restoreBodyScroll();
     if (modal._closeTimer) {
         clearTimeout(modal._closeTimer);
     }
-    modal._closeTimer = setTimeout(() => {
+    modal._closeTimer = finishAfterTransition(modal, 'opacity', () => {
         modal._closeTimer = 0;
+        if (!modal.classList.contains('fade-out')) return;
         modal.style.display = "none";
         modal.classList.remove('fade-out');
+        modalContent.inert = false;
+        restoreBodyScroll();
         restoreAthleteHistoryScroll();
 
-        // Reset scroll position for next open
-        if (modalContent) {
-            modalContent.scrollTop = 0;
+        if (modalContent.classList.contains('gma-result-ready')) {
+            modalContent.classList.remove('guess-mode', 'gma-fast', 'gma-result-ready');
         }
+        resetAthleteShareState();
+        document.getElementById('modalStickyHeader')?.classList.remove('visible');
+        if (modalContent._scrollProgressListener) {
+            modalContent.removeEventListener('scroll', modalContent._scrollProgressListener);
+            modalContent._scrollProgressListener = null;
+        }
+        disposeBiomarkerHistory();
+        if (typeof window.destroyAgeRadarChart === 'function') window.destroyAgeRadarChart();
+        modalContent.scrollTop = 0;
 
         resetPageTitle();
         if (returnFocusElement?.isConnected) {
             returnFocusElement.focus({ preventScroll: true });
         }
-    }, 400);
+    });
 }
 
 function debounceFilterAthletes() {
@@ -6265,6 +6260,7 @@ const hasLeaderboardSidebar = !!(sidebar && sidebarToggle && sidebarClose);
 const mobileDrawerMediaQuery = window.matchMedia('(max-width: 768px), (max-width: 932px) and (max-height: 480px) and (orientation: landscape)');
 let leaderboardTableHeightFrame = 0;
 let leaderboardTableResizeObserver = null;
+let sidebarDrawerCloseTimer = 0;
 
 function isMobileDrawerViewport() {
     return mobileDrawerMediaQuery.matches;
@@ -6393,7 +6389,21 @@ function syncSidebarDrawerBackdrop() {
     if (!hasLeaderboardSidebar) return;
     const isMobileDrawer = isMobileDrawerViewport();
     const isOpenMobileDrawer = isMobileDrawer && sidebar.classList.contains('expanded');
-    document.body.classList.toggle('sidebar-drawer-open', isOpenMobileDrawer);
+    clearTimeout(sidebarDrawerCloseTimer);
+    sidebarDrawerCloseTimer = 0;
+    sidebar.inert = isMobileDrawer && !isOpenMobileDrawer;
+    if (isOpenMobileDrawer) {
+        document.body.classList.add('sidebar-drawer-open');
+        document.body.classList.remove('sidebar-drawer-closing');
+    } else if (isMobileDrawer && document.body.classList.contains('sidebar-drawer-open')) {
+        document.body.classList.add('sidebar-drawer-closing');
+        sidebarDrawerCloseTimer = finishAfterTransition(sidebar, 'transform', () => {
+            sidebarDrawerCloseTimer = 0;
+            document.body.classList.remove('sidebar-drawer-open', 'sidebar-drawer-closing');
+        });
+    } else {
+        document.body.classList.remove('sidebar-drawer-open', 'sidebar-drawer-closing');
+    }
     sidebar.setAttribute('aria-hidden', isMobileDrawer && !isOpenMobileDrawer ? 'true' : 'false');
 }
 
@@ -6436,7 +6446,7 @@ function pinActiveDesktopSidebar() {
     if (!hasActiveLeaderboardFilterState()) return;
     if (sidebar.classList.contains('expanded')) return;
 
-    openSidebar({ skipScroll: true });
+    openSidebar();
 }
 
 function openSidebar(options = {}) {
@@ -6472,14 +6482,6 @@ function openSidebar(options = {}) {
                 }
             }
             window.scrollTo({ left: drawerScrollX, top: drawerScrollY, behavior: 'instant' });
-        });
-    }
-
-    // Scroll to the leaderboard table
-    if (!isMobileDrawer && !options.skipScroll && canAutoScroll()) {
-        document.querySelector('.search-wrapper .sidebar-toggle').scrollIntoView({
-            behavior: 'smooth',
-            block: 'start',
         });
     }
 }

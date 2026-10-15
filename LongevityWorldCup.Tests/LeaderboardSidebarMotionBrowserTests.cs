@@ -112,4 +112,93 @@ public sealed class LeaderboardSidebarMotionBrowserTests(
         await Assertions.Expect(page.Locator("#view-pheno")).ToBeCheckedAsync();
         Assert.False(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth > innerWidth"));
     }
+
+    [Theory]
+    [InlineData(390, 844)]
+    [InlineData(844, 390)]
+    public async Task MobileClose_PreservesTheDrawerUntilItsExitAndCanBeReversed(int width, int height)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = height }, ReducedMotion = ReducedMotion.NoPreference
+        });
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/leaderboard?filters=women%27s");
+        await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+        await page.Locator(".sidebar-toggle").ClickAsync();
+        await page.Locator(".sidebar").EvaluateAsync("e => Promise.all(e.getAnimations().map(a => a.finished))");
+        Assert.Equal("1", await page.EvaluateAsync<string>("getComputedStyle(document.body, '::before').opacity"));
+        var issues = await page.EvaluateAsync<string[]>("""
+            () => {
+                const rail = document.querySelector('.sidebar'), issues = [];
+                const list = rail.querySelector('.sidebar-filter-list');
+                const before = list.getBoundingClientRect().height;
+                document.querySelector('.sidebar-close').click();
+                if (getComputedStyle(rail.querySelector('.filter-section')).display === 'none') issues.push('Filters vanish');
+                if (getComputedStyle(rail.querySelector('.sidebar-heading-actions')).display === 'none') issues.push('Heading actions vanish');
+                if (Math.abs(list.getBoundingClientRect().height - before) > 1) issues.push(`List height changes from ${before} to ${list.getBoundingClientRect().height}`);
+                if (!rail.inert) issues.push('Closing drawer remains interactive');
+                if (!document.body.classList.contains('sidebar-drawer-open')) issues.push('Scroll unlocks before the exit');
+                document.querySelector('.sidebar-toggle').click();
+                return issues;
+            }
+            """);
+        Assert.Empty(issues);
+        await page.Locator(".sidebar").EvaluateAsync("e => Promise.all(e.getAnimations().map(a => a.finished))");
+        Assert.True(await page.EvaluateAsync<bool>("document.body.classList.contains('sidebar-drawer-open') && !document.body.classList.contains('sidebar-drawer-closing')"));
+        await page.Locator(".sidebar-close").ClickAsync();
+        await page.WaitForFunctionAsync("() => !document.body.classList.contains('sidebar-drawer-open')");
+        await Assertions.Expect(page.Locator(".sidebar")).ToBeHiddenAsync();
+    }
+
+    [Fact]
+    public async Task DesktopOpening_DoesNotMoveThePage()
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = 1280, Height = 844 }, ReducedMotion = ReducedMotion.NoPreference
+        });
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/leaderboard");
+        await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+        await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
+        var before = await page.EvaluateAsync<double>("() => { const top = document.querySelector('.sidebar-toggle').getBoundingClientRect().top + scrollY; window.scrollTo({top:Math.max(0, top - 200), behavior:'instant'}); return scrollY; }");
+        await page.Locator(".sidebar-toggle").ClickAsync();
+        await page.Locator(".sidebar").EvaluateAsync("e => Promise.all(e.getAnimations().map(a => a.finished))");
+        Assert.InRange(Math.Abs(await page.EvaluateAsync<double>("scrollY") - before), 0, 1);
+    }
+
+    [Theory]
+    [InlineData(390)]
+    [InlineData(1280)]
+    public async Task AthleteClose_FadesTheCardAndBackdropWithoutMovingThePage(int width)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = 844 }, ReducedMotion = ReducedMotion.NoPreference
+        });
+        await context.AddInitScriptAsync("localStorage.setItem('gmaSkipAll', 'true')");
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/leaderboard");
+        await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+        await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
+        var before = await page.EvaluateAsync<double>("document.querySelector('.leaderboard').getBoundingClientRect().left");
+        await page.Locator(".leaderboard .athlete-name").First.ClickAsync();
+        await page.WaitForFunctionAsync("() => document.querySelector('#detailsModal .modal-content:not(.is-loading):not(.guess-mode)')");
+        var opening = await page.EvaluateAsync<double>("document.querySelector('.leaderboard').getBoundingClientRect().left");
+        Assert.InRange(Math.Abs(opening - before), 0, 1);
+        var closing = await page.EvaluateAsync<bool>("""
+            () => {
+                closeModal({fromHistory:true});
+                const modal = document.getElementById('detailsModal');
+                return getComputedStyle(modal.querySelector('.modal-content')).visibility === 'visible'
+                    && document.body.style.position === 'fixed';
+            }
+            """);
+        Assert.True(closing, "The card and locked background must remain in place during the fade.");
+        await Assertions.Expect(page.Locator("#detailsModal")).ToBeHiddenAsync();
+        var after = await page.EvaluateAsync<double>("document.querySelector('.leaderboard').getBoundingClientRect().left");
+        Assert.InRange(Math.Abs(after - before), 0, 1);
+        Assert.Equal("", await page.EvaluateAsync<string>("document.body.style.position"));
+    }
 }
