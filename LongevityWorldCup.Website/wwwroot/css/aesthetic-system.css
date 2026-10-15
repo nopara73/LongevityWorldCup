@@ -618,7 +618,7 @@ html body #proofImageContainer {
 }
 html body #proofImageContainer[hidden] { display: none !important; }
 .proof-review-heading { margin: 0 0 var(--lwc-space-3); font-size: var(--lwc-type-body); }
-.proof-page-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 128px), 1fr)); gap: var(--lwc-space-3); }
+.proof-page-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 8rem), 1fr)); gap: var(--lwc-space-3); }
 .proof-page-card { display: flex; flex-direction: column; min-width: 0; padding: var(--lwc-space-2); border: 1px solid var(--lwc-border); border-radius: var(--lwc-radius-md); background: var(--lwc-surface); }
 .proof-page-preview,
 .proof-page-remove,
