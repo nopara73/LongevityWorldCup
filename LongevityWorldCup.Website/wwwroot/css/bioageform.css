@@ -731,14 +731,20 @@ html body .bioageform .lwc-wizard-nav .lwc-dot[aria-disabled="true"] {
 }
 
 .bioageform .blood-draw-date-control {
-    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.bioageform .blood-draw-date-control input {
+    grid-area: 1 / 1;
+    margin: 0;
 }
 
 .bioageform .blood-draw-relative-label {
-    position: absolute;
-    inset-inline: 0.75rem 2.75rem;
-    top: calc(50% + 0.25rem);
-    transform: translateY(-50%);
+    grid-area: 1 / 1;
+    align-self: center;
+    justify-self: start;
+    margin-inline: calc(0.75rem + 1px) 2.75rem;
     color: var(--lwc-ink, #243447);
     font-size: 1rem;
     line-height: 1.5;

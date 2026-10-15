@@ -40,6 +40,7 @@ public sealed class BioageBloodDrawDateBrowserTests(
         await Assertions.Expect(date).ToBeVisibleAsync();
         await Assertions.Expect(relativeLabel).ToHaveTextAsync("Today");
         await Assertions.Expect(relativeLabel).ToBeVisibleAsync();
+        await AssertRelativeLabelCenteredAsync(page);
         await date.FocusAsync();
         await Assertions.Expect(relativeLabel).ToBeHiddenAsync();
         Assert.NotEqual("rgba(0, 0, 0, 0)", await date.EvaluateAsync<string>("input => getComputedStyle(input).color"));
@@ -48,6 +49,7 @@ public sealed class BioageBloodDrawDateBrowserTests(
         await Assertions.Expect(date).ToHaveValueAsync(yesterday);
         await Assertions.Expect(relativeLabel).ToHaveTextAsync("Yesterday");
         await Assertions.Expect(relativeLabel).ToBeVisibleAsync();
+        await AssertRelativeLabelCenteredAsync(page);
         await page.ReloadAsync();
         await Assertions.Expect(date).ToHaveValueAsync(yesterday);
         await Assertions.Expect(relativeLabel).ToHaveTextAsync("Yesterday");
@@ -73,6 +75,19 @@ public sealed class BioageBloodDrawDateBrowserTests(
         await Assertions.Expect(relativeLabel).ToBeVisibleAsync();
         Assert.True(await date.EvaluateAsync<bool>("input => input.validity.valid"));
         Assert.True(await page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= innerWidth + 1"));
+    }
+
+    private static async Task AssertRelativeLabelCenteredAsync(IPage page)
+    {
+        var offset = await page.Locator(".blood-draw-relative-label").EvaluateAsync<double>(
+            """
+            label => {
+                const field = document.querySelector('#blood-draw-date').getBoundingClientRect();
+                const text = label.getBoundingClientRect();
+                return text.top + text.height / 2 - field.top - field.height / 2;
+            }
+            """);
+        Assert.InRange(offset, -0.5, 0.5);
     }
 
     [Theory]
