@@ -1326,8 +1326,46 @@ public sealed class AestheticSystemBrowserTests(
 
         foreach (var condition in conditions)
         {
+            if (condition.Name == "bioage-entry")
+            {
+                Assert.Equal("max", condition.Bound);
+                Assert.Equal(18.5, condition.Value);
+                Assert.Equal("rem", condition.Unit);
+                await NavigateAndSettleAsync(page, route);
+                await FlowActionDockBrowserTests.FillBioageStepOneAsync(
+                    page, DateTime.UtcNow.Date.AddDays(-9).ToString("yyyy-MM-dd"));
+                var entryThreshold = condition.Value * rootFontSize;
+                foreach (var delta in new[] { -1, 0, 1, 0, -1 })
+                {
+                    var inlineSize = entryThreshold + delta;
+                    var diagnostics = await page.EvaluateAsync<ContainerQueryDiagnostics>(
+                        """
+                        async width => {
+                            const entry = document.querySelector('#wbc').closest('.biomarker-card-content');
+                            entry.style.boxSizing = 'content-box';
+                            entry.style.inlineSize = `${width}px`;
+                            entry.style.maxInlineSize = 'none';
+                            await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                            return {
+                                ContainerWidth: parseFloat(getComputedStyle(entry).width),
+                                IsCompact: getComputedStyle(entry.querySelector('.input-group')).gridTemplateColumns.split(' ').length === 1,
+                                HorizontalOverflow: Math.max(0, entry.scrollWidth - entry.clientWidth)
+                            };
+                        }
+                        """, inlineSize);
+                    Assert.Equal(inlineSize, diagnostics.ContainerWidth, 1);
+                    Assert.Equal(inlineSize <= entryThreshold, diagnostics.IsCompact);
+                    Assert.True(diagnostics.HorizontalOverflow <= 1,
+                        $"{route} biomarker entry overflowed at {inlineSize}px.");
+                }
+                // The following probes exercise the date step, including after reload.
+                await page.Locator("#lwcToStep1Btn").ClickAsync();
+                continue;
+            }
+
             Assert.Equal("bioage-form", condition.Name);
             Assert.Equal("max", condition.Bound);
+            await NavigateAndSettleAsync(page, route);
             var selector = condition.Value switch
             {
                 38 => "#lwc-step-1",
