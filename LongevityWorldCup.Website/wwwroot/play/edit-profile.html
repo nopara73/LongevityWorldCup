@@ -146,7 +146,7 @@
         #divisionDisplaySelect {
             width: 100%;
             min-height: 44px;
-            padding: 0.65rem 2.25rem 0.65rem 0.85rem;
+            padding: 0.65rem min(2.25rem, 36px) 0.65rem min(0.85rem, 13.6px);
             border: 1px solid var(--lwc-border-strong, #71808d);
             border-radius: 8px;
             font-size: 1rem;
@@ -157,7 +157,7 @@
             color: var(--lwc-ink, #17212b);
             background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364758b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
             background-repeat: no-repeat;
-            background-position: right 0.85rem center;
+            background-position: right min(0.85rem, 13.6px) center;
             background-size: 12px 12px;
             appearance: none;
             box-sizing: border-box;
@@ -391,6 +391,7 @@
         @media (max-width: 600px) {
             .edit-profile-main {
                 padding: 2rem 1.35rem 2.75rem;
+                padding-inline: min(1.35rem, 20px);
             }
 
             .edit-profile-title {
@@ -662,6 +663,7 @@
             align-items: stretch;
             gap: 0.75rem;
             width: min(100%, 408px);
+            max-width: 408px;
             margin: 0 auto 1.25rem;
         }
 
@@ -673,6 +675,7 @@
             flex-direction: row;
             flex-wrap: wrap;
             align-items: center;
+            justify-content: flex-end;
             gap: 0.65rem;
             width: 100%;
             max-width: none;
@@ -680,10 +683,10 @@
         }
 
         #changeProfilePicWrapper > .option-button:not(.icon-only) {
-            flex: 1 1 0;
+            flex: 1 1 12em;
             width: auto;
             min-width: 0;
-            padding-inline: 1rem 2.75rem;
+            padding-inline: min(1rem, 16px) min(2.75rem, 44px);
         }
 
         #changeProfilePicWrapper > #takeProfileSelfieButton,
@@ -702,7 +705,7 @@
             align-items: stretch;
             gap: var(--lwc-space-4, 1rem);
             width: min(100%, 460px);
-            padding: var(--lwc-space-5, 1.5rem);
+            padding: min(var(--lwc-space-5, 1.5rem), 24px);
             border: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.16));
             border-radius: var(--lwc-radius-lg, 12px);
             background: var(--lwc-surface, #fff);
@@ -722,7 +725,7 @@
 
         @media (max-width: 600px) {
             #editOptionsGroup {
-                padding: var(--lwc-space-4, 1rem);
+                padding: min(var(--lwc-space-4, 1rem), 16px);
             }
         }
 

@@ -97,11 +97,70 @@ public sealed class EditProfileLayoutBrowserTests(
         await ExpectNoHorizontalOverflowAsync(page);
     }
 
+    [Theory]
+    [InlineData(320, 640, false)]
+    [InlineData(320, 640, true)]
+    [InlineData(390, 844, true)]
+    [InlineData(768, 1024, false)]
+    [InlineData(844, 390, true)]
+    [InlineData(1440, 900, true)]
+    public async Task EnlargedText_WithRestoreControls_KeepsWordsAndSelectedDivisionReadable(int width, int height, bool dark)
+    {
+        await using var context = await CreateContextAsync(width, height, dark);
+        var page = await OpenEditorAsync(context);
+        await page.EvaluateAsync("() => { document.documentElement.style.fontSize = '200%'; }");
+        await page.Locator("#divisionDisplaySelect").SelectOptionAsync("Women's");
+        await page.Locator("#whyDisplayInput").FillAsync("An unfinished motivation draft.");
+        // The shared test host stubs the external cropper. Exercise the real post-crop
+        // display state here; the crop and restore interaction is checked separately.
+        await page.EvaluateAsync("() => { document.getElementById('restoreProfilePicButton').style.display = 'inline-flex'; }");
+        await Assertions.Expect(page.Locator("#submitButton")).ToBeEnabledAsync();
+
+        var issues = await page.EvaluateAsync<string[]>(
+            """
+            () => {
+                const issues = [];
+                const selectors = '#changeProfilePicWrapper .flow-action__label, .edit-profile-actions .flow-action__label, .edit-profile-title';
+                for (const label of document.querySelectorAll(selectors)) {
+                    const box = label.getBoundingClientRect();
+                    if (!box.width || !box.height) continue;
+                    const walker = document.createTreeWalker(label, NodeFilter.SHOW_TEXT);
+                    let text;
+                    while (text = walker.nextNode()) {
+                        for (const word of text.textContent.matchAll(/\S+/g)) {
+                            const range = document.createRange();
+                            range.setStart(text, word.index);
+                            range.setEnd(text, word.index + word[0].length);
+                            const rects = [...range.getClientRects()];
+                            if (new Set(rects.map(rect => Math.round(rect.top))).size > 1)
+                                issues.push(`Split word: ${word[0]}`);
+                            if (rects.some(rect => rect.left < box.left - 1 || rect.right > box.right + 1))
+                                issues.push(`Clipped word: ${word[0]}`);
+                        }
+                    }
+                }
+                const select = document.getElementById('divisionDisplaySelect');
+                const style = getComputedStyle(select);
+                const canvas = document.createElement('canvas').getContext('2d');
+                canvas.font = style.font;
+                const text = select.selectedOptions[0].textContent;
+                const room = select.getBoundingClientRect().width - parseFloat(style.paddingLeft)
+                    - parseFloat(style.paddingRight) - parseFloat(style.borderLeftWidth) - parseFloat(style.borderRightWidth);
+                if (canvas.measureText(text).width > room + 1) issues.push(`Clipped division: ${text}`);
+                return issues;
+            }
+            """);
+        Assert.True(issues.Length == 0, $"{width}x{height}, 200% text: {string.Join(", ", issues)}");
+        await ExpectNoHorizontalOverflowAsync(page);
+    }
+
     private async Task<IBrowserContext> CreateContextAsync(int width, int height, bool dark = false)
     {
         var context = await NewContextAsync(Browser, App, new()
         {
             ViewportSize = new() { Width = width, Height = height },
+            HasTouch = width < 960 || height < 480,
+            IsMobile = width < 600 || height < 480,
             ColorScheme = dark ? ColorScheme.Dark : ColorScheme.Light,
             ReducedMotion = ReducedMotion.Reduce
         });
