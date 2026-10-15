@@ -14,7 +14,7 @@ public sealed class BiomarkerExplorerBrowserTests(
 {
     private static readonly string Root = FindRepoRoot();
     private static readonly string ChartScript = File.ReadAllText(Path.Combine(
-        Root, "LongevityWorldCup.Website", "node_modules", "chart.js", "dist", "chart.umd.min.js"));
+        AppContext.BaseDirectory, "Fixtures", "chart.umd.min.js"));
 
     private async Task<IBrowserContext> NewContextAsync(int width = 1280, bool dark = true, bool touch = false, Action<JsonArray>? changeSnapshot = null)
     {

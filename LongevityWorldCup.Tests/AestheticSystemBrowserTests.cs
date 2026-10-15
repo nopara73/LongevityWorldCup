@@ -1169,11 +1169,66 @@ public sealed class AestheticSystemBrowserTests(
                 case "css/leaderboard-content.css":
                     await AssertLeaderboardContainerBoundariesAsync(page, source.ToArray());
                     break;
+                case "css/biomarker-explorer.css":
+                    await AssertBiomarkerExplorerContainerBoundariesAsync(page, source.ToArray());
+                    break;
                 default:
                     Assert.Fail($"Add a rendered container-boundary probe for {source.Key}.");
                     break;
             }
         }
+    }
+
+    private static async Task AssertBiomarkerExplorerContainerBoundariesAsync(
+        IPage page,
+        ResponsiveContainerCondition[] conditions)
+    {
+        await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.Reduce });
+        await NavigateAndSettleAsync(page, "/athlete/michael-lustgarten");
+        await page.Locator("#athlete-biomarkers[data-explorer-ready='true'] .be-test-result").First.WaitForAsync();
+        var rootFontSize = await page.EvaluateAsync<double>(
+            "() => parseFloat(getComputedStyle(document.documentElement).fontSize)");
+
+        foreach (var condition in conditions)
+        {
+            Assert.Equal("max", condition.Bound);
+            Assert.True(condition is { Value: 480, Unit: "px" } or { Value: 16 or 10, Unit: "rem" },
+                $"Add a rendered biomarker explorer probe for {condition.Value}{condition.Unit}.");
+            var threshold = condition.Value * (condition.Unit == "rem" ? rootFontSize : 1);
+            foreach (var delta in new[] { -1, 0, 1, 0, -1 })
+            {
+                var width = threshold + delta;
+                var diagnostics = await page.EvaluateAsync<ContainerQueryDiagnostics>(
+                    """
+                    async argument => {
+                        const explorer = document.querySelector('#athlete-biomarkers');
+                        explorer.style.boxSizing = 'content-box';
+                        explorer.style.inlineSize = `${argument.Width}px`;
+                        explorer.style.maxInlineSize = 'none';
+                        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                        const row = explorer.querySelector('.be-test-result');
+                        const name = row.querySelector('.be-test-result-name').getBoundingClientRect();
+                        const value = row.querySelector('.be-test-result-value').getBoundingClientRect();
+                        const history = row.querySelector('.be-mini-history');
+                        const compact = argument.Value === 480
+                            ? Math.abs(history.getBoundingClientRect().width - 52) <= .1
+                            : argument.Value === 16
+                                ? getComputedStyle(history).display === 'none'
+                                : value.top >= name.bottom - 1;
+                        return {
+                            ContainerWidth: parseFloat(getComputedStyle(explorer).width),
+                            IsCompact: compact,
+                            HorizontalOverflow: Math.max(0, explorer.scrollWidth - explorer.clientWidth)
+                        };
+                    }
+                    """, new { Width = width, condition.Value });
+                Assert.Equal(width, diagnostics.ContainerWidth, 1);
+                Assert.Equal(width <= threshold, diagnostics.IsCompact);
+                Assert.True(diagnostics.HorizontalOverflow <= 1,
+                    $"Biomarker explorer overflowed at {width}px for its {condition.Value}{condition.Unit} boundary.");
+            }
+        }
+        await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.NoPreference });
     }
 
     private static async Task AssertLeaderboardContainerBoundariesAsync(
