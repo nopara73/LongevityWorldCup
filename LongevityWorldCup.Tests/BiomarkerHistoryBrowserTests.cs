@@ -82,9 +82,10 @@ public sealed class BiomarkerHistoryBrowserTests(
         await Expect(focusedButton).ToHaveAttributeAsync("aria-expanded", "true");
         await focusedButton.PressAsync("Enter");
         await Expect(focusedButton).ToHaveAttributeAsync("aria-expanded", "false");
+        await Expect(focusedButton).ToBeFocusedAsync();
         await Expect(page.Locator("#detailsModal")).ToBeVisibleAsync();
         Assert.True(await focusedButton.EvaluateAsync<bool>("el => getComputedStyle(el).outlineStyle === 'none' && getComputedStyle(el).boxShadow === 'none'"));
-        Assert.True(await Row(page, "HbA1c (mmol/mol)").EvaluateAsync<bool>("el => getComputedStyle(el).backgroundColor !== 'rgba(0, 0, 0, 0)'"));
+        await Expect(Row(page, "HbA1c (mmol/mol)")).Not.ToHaveCSSAsync("background-color", "rgba(0, 0, 0, 0)");
     }
 
     [Theory]
