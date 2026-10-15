@@ -494,6 +494,7 @@ function wirePortraitFallback(img, athlete) {
 
 function initializeAthletePortraitMotion() {
     const podium = document.querySelector('.podium');
+    const leaderboard = document.querySelector('.leaderboard table tbody');
     const profile = document.getElementById('modalProfilePic');
     const profileModal = document.getElementById('detailsModal');
     const profileContent = profileModal?.querySelector('.modal-content');
@@ -507,6 +508,26 @@ function initializeAthletePortraitMotion() {
         {
             portrait: /^\/generated\/(?:thumbs|profiles)\/athletes\/valerie_orsoni(?:_thumb_(?:sm|md))?_e280d5d1d7278450a5d37ba7e16eee54719d0acb125f54c18b0b9a9a43c41976\.webp$/,
             clip: '/assets/athlete-motion/valerie-orsoni-double-blink-ac418cfd20b2'
+        },
+        {
+            portrait: /^\/generated\/(?:thumbs|profiles)\/athletes\/anna_buky(?:_thumb_(?:sm|md))?_f36cf66df3a3f67ef88c000c32c0ae4093a7c174aaae81bbb2c0691c178fc1ec\.webp$/,
+            clip: '/assets/athlete-motion/anna-buky-brow-a23ae4dbcd12'
+        },
+        {
+            portrait: /^\/generated\/(?:thumbs|profiles)\/athletes\/martin_helstab(?:_thumb_(?:sm|md))?_03fd37f6337cd4f2d8ecdfa1b824bb970ed8c83be1eeaf29db078d25e02a7966\.webp$/,
+            clip: '/assets/athlete-motion/martin-helstab-breath-14f6a65f37ae'
+        },
+        {
+            portrait: /^\/generated\/(?:thumbs|profiles)\/athletes\/wen_z(?:_thumb_(?:sm|md))?_9d0f884164da2166825661b263042d63bbebda217511f97a72eec8887853590d\.webp$/,
+            clip: '/assets/athlete-motion/wen-z-hair-bfadd735074b'
+        },
+        {
+            portrait: /^\/generated\/(?:thumbs|profiles)\/athletes\/tibor_konkoly(?:_thumb_(?:sm|md))?_d563d8ade182b2286dbbeb6519e54f88e48ad04c40a3111649c4b598b605e501\.webp$/,
+            clip: '/assets/athlete-motion/tibor-konkoly-water-long-6c4b157156e0'
+        },
+        {
+            portrait: /^\/generated\/(?:thumbs|profiles)\/athletes\/charlotte_wong(?:_thumb_(?:sm|md))?_708c527def914308e9da42eaac2cde572770f4fe5c06fbb162b1c250c34b3391\.webp$/,
+            clip: '/assets/athlete-motion/charlotte-wong-flex-eb91ac025e86'
         }
     ];
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -547,9 +568,19 @@ function initializeAthletePortraitMotion() {
         video.playsInline = true;
         video.disablePictureInPicture = true;
         video.preload = 'auto';
+        // Table portraits can sit inside a rank-change wrapper and have different
+        // margins at each breakpoint. Follow the image's untransformed content box.
+        const sizeOverlay = () => {
+            video.style.left = `${img.offsetLeft + img.clientLeft}px`;
+            video.style.top = `${img.offsetTop + img.clientTop}px`;
+            video.style.width = `${img.clientWidth}px`;
+            video.style.height = `${img.clientHeight}px`;
+        };
+        const rowResize = leaderboard?.contains(img) ? new ResizeObserver(sizeOverlay) : null;
         const stop = () => {
             if (active.get(img)?.stop !== stop) return;
             active.delete(img);
+            rowResize?.disconnect();
             video.pause();
             video.remove();
             wrapper.classList.remove('portrait-motion');
@@ -571,6 +602,10 @@ function initializeAthletePortraitMotion() {
         }
         wrapper.classList.add('portrait-motion');
         img.after(video);
+        if (rowResize) {
+            sizeOverlay();
+            rowResize.observe(img);
+        }
         video.play().catch(stop);
         return true;
     }
@@ -582,6 +617,7 @@ function initializeAthletePortraitMotion() {
             if (event.pointerType !== 'touch') play(img);
         });
         img.addEventListener('focus', () => play(img));
+        img.closest('a')?.addEventListener('focus', () => play(img));
     }
 
     const visiblePortraits = window.IntersectionObserver && new IntersectionObserver(entries => {
@@ -605,6 +641,7 @@ function initializeAthletePortraitMotion() {
         // Initial hydration replaces the server-rendered cards. Wait for its final
         // portraits so a replacement cannot consume the gesture before it is seen.
         if (athleteResultsReady) {
+            leaderboard?.querySelectorAll('img.portrait').forEach(wire);
             podium?.querySelectorAll('img.podium-portrait').forEach(img => {
                 wire(img);
                 const motion = motionFor(img);
@@ -630,6 +667,7 @@ function initializeAthletePortraitMotion() {
 
     const updates = new MutationObserver(scan);
     if (podium) updates.observe(podium, { childList: true, subtree: true, attributes: true, attributeFilter: ['src'] });
+    if (leaderboard) updates.observe(leaderboard, { childList: true, subtree: true, attributes: true, attributeFilter: ['src'] });
     if (profile) {
         updates.observe(profile, { attributes: true, attributeFilter: ['src'] });
         updates.observe(profileModal, { attributes: true, attributeFilter: ['class', 'style'] });
