@@ -206,7 +206,6 @@
     pointer-events: none;
 }
 .age-result-current time { white-space: nowrap; }
-.age-result-age { white-space: nowrap; color: var(--athlete-modal-muted, #b4bdc4); }
 .age-result-picker svg {
     width: 18px;
     height: 18px;

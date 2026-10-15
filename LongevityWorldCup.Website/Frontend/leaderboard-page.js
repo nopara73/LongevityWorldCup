@@ -3490,10 +3490,13 @@ function renderFlagTeams(teams, view) {
     template.innerHTML = teams.map(team => {
         const id = `flag-team-${team.key}`;
         const icon = getFlagIconCode(team.flag);
-        const section = team.rank ? view === 'ultimate' ? labels[team.view] : '' : 'Incomplete teams';
-        const heading = section && section !== previousSection ? `<h3 class="flag-section-heading">${section}</h3>` : '';
+        const section = team.rank ? view === 'ultimate' ? team.view : '' : 'incomplete';
+        const isAmateur = section === 'pheno';
+        const heading = isAmateur && previousSection === 'bortz'
+            ? '<h3 class="flag-section-heading tier-separator tier-separator-cell" aria-label="Start of Amateur track (Pheno Age) section"><span class="tier-separator-label">Amateur track |<a href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/pheno-age.pdf" target="_blank" rel="noopener" class="tier-separator-link">Pheno Age</a></span></h3>'
+            : section === 'incomplete' && section !== previousSection ? '<h3 class="flag-section-heading">Incomplete teams</h3>' : '';
         previousSection = section;
-        return `${heading}<details class="flag-team" id="${escapeHtml(id)}" data-clock="${team.view}" data-flag="${escapeHtml(team.flag)}" ${open.has(id) ? 'open' : ''}>
+        return `${heading}<details class="flag-team${isAmateur ? ' tier-amateur' : ''}" id="${escapeHtml(id)}" data-clock="${team.view}" data-flag="${escapeHtml(team.flag)}" ${open.has(id) ? 'open' : ''}>
             <summary title="${labels[team.view]}"><span class="flag-team-rank" aria-label="${team.rank ? `Rank ${team.rank}` : 'Unranked'}">${team.rank || '—'}</span>
             <span class="flag-team-name"><span class="flag-team-icon" aria-hidden="true">${icon ? `<span class="fi fi-${icon}"></span>` : '<i class="fas fa-flag"></i>'}</span><span>${escapeHtml(team.flag)}</span></span>
             <span class="flag-team-portraits" aria-hidden="true">${team.top.map(a => `<img src="${escapeHtml(getAthletePortraitUrl(a))}" alt="" loading="lazy">`).join('')}</span>
@@ -3521,6 +3524,7 @@ function renderFlagTeams(teams, view) {
             }
             existing._flagMarkup = nextMarkup;
         }
+        existing.className = incoming.className;
         existing.dataset.clock = incoming.dataset.clock;
         existing.dataset.flag = incoming.dataset.flag;
         return existing;

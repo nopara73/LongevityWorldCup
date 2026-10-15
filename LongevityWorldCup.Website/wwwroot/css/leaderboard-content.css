@@ -9,6 +9,8 @@
 .leaderboard--flags > table { display: none !important; }
 .flag-section-heading { margin: 0; padding: .65rem 1.5rem; color: var(--lwc-muted, #526373); background: var(--lwc-surface-muted); font: 600 .75rem Roboto, sans-serif; text-transform: uppercase; letter-spacing: .04em; border-bottom: 1px solid var(--border-color); }
 .flag-team { border-bottom: 1px solid var(--border-color); color: var(--dark-text-color); }
+.flag-team.tier-amateur { background: var(--tier-amateur-bg); }
+.flag-team.tier-amateur:nth-child(even) { background: var(--tier-amateur-bg-even); }
 .flag-team:last-child { border-bottom: 0; }
 .flag-team summary { display: grid; grid-template-columns: 3rem minmax(0, 1fr) auto 6.5rem 1rem; align-items: center; gap: 1rem; min-height: 100px; padding: 1rem 1.5rem; cursor: pointer; list-style: none; box-sizing: border-box; }
 .flag-team summary::-webkit-details-marker { display: none; }
@@ -350,7 +352,8 @@
  }
  .leaderboard table tbody tr.tier-separator .tier-separator-link{ pointer-events: auto; }
  .leaderboard table tbody tr.tier-separator:hover{ transform: none; box-shadow: none; }
- .leaderboard table tbody tr.tier-separator .tier-separator-cell{
+ .leaderboard table tbody tr.tier-separator .tier-separator-cell,
+ .flag-section-heading.tier-separator-cell{
      padding: 0.5rem 1rem;
      text-align: left;
      font-size: 0.8rem;
@@ -361,7 +364,7 @@
      border-top: 1px solid rgba(0, 0, 0, 0.06);
      border-bottom: 1px solid rgba(0, 0, 0, 0.06);
  }
- .tier-separator-label{ display: inline-flex; align-items: center; gap: 0.35rem; }
+ .tier-separator-label{ display: inline-flex; align-items: center; gap: 0.35rem; flex-wrap: wrap; }
  .tier-separator-cell .tier-separator-link{
      display: inline-flex;
      align-items: center;
@@ -3463,11 +3466,13 @@
      transform: none;
  }
 
- .leaderboard table tbody tr.tier-separator {
+ .leaderboard table tbody tr.tier-separator,
+ .flag-section-heading.tier-separator {
      background: var(--surface-muted);
  }
 
- .leaderboard table tbody tr.tier-separator .tier-separator-cell {
+ .leaderboard table tbody tr.tier-separator .tier-separator-cell,
+ .flag-section-heading.tier-separator-cell {
      border-color: var(--border-color);
      color: var(--primary-color);
      font-weight: 700;
@@ -3844,20 +3849,21 @@
  /* The desktop rail keeps its footprint. A full-width panel slides over the
     results, so opening never squeezes its controls or reflows every table row. */
  @media (min-width: 933px), (min-width: 769px) and (min-height: 481px) {
-     .leaderboard { container: leaderboard-results / inline-size; flex-wrap: wrap; }
+     .leaderboard { container: leaderboard-results / inline-size; flex-wrap: wrap; overflow: visible; }
+     .leaderboard > :is(table, .flag-leaderboard) { border-radius: 0 var(--radius-lg, 12px) var(--radius-lg, 12px) 0; overflow: clip; }
      .leaderboard > table { flex-basis: 0; min-width: 0; }
      .sidebar { --leaderboard-sidebar-open-width: min(19rem, 336px, 40cqi); --sidebar-motion-duration: 180ms; box-sizing: border-box; z-index: 3; }
      .sidebar,
      .sidebar:is(:hover, .expanded):not(.button-collapsed):not([aria-hidden="true"]) {
          display: grid; grid-template-columns: 50px; grid-template-rows: minmax(0, 1fr); position: relative; top: auto;
          width: 50px; padding: 0; overflow: visible; scrollbar-gutter: auto; transition: none;
-         /* Reserve the panel's space before hover or button opening, so short
-            results cannot squeeze the filters or make the footer jump. */
-         height: max(var(--leaderboard-table-height), var(--leaderboard-title-height, 0px), var(--leaderboard-sidebar-viewport-height));
-         min-height: max(var(--leaderboard-table-height), var(--leaderboard-title-height, 0px), var(--leaderboard-sidebar-viewport-height)); max-height: none;
+         /* The rail follows the results; the panel can overlay past a short
+            card without reserving empty space or moving the footer. */
+         height: max(var(--leaderboard-table-height), var(--leaderboard-title-height, 0px));
+         min-height: max(var(--leaderboard-table-height), var(--leaderboard-title-height, 0px)); max-height: none;
          background: transparent; box-shadow: none;
      }
-     .sidebar-rail { display: flex; flex-direction: column; align-items: center; grid-area: 1 / 1; align-self: stretch; min-height: 0; background: var(--card-bg); transition: opacity var(--sidebar-motion-duration) var(--lwc-ease, ease); }
+     .sidebar-rail { display: flex; flex-direction: column; align-items: center; grid-area: 1 / 1; align-self: stretch; min-height: 0; background: var(--card-bg); border-radius: inherit; overflow: clip; transition: opacity var(--sidebar-motion-duration) var(--lwc-ease, ease); }
      .sidebar-rail-icon { display: grid; place-items: center; position: relative; flex: 0 0 var(--leaderboard-head-height); width: 50px; box-sizing: border-box; border-bottom: 1px solid var(--lwc-border); background: var(--lwc-surface-accent, var(--surface-accent)); color: var(--primary-color); font-size: 2rem; }
      .sidebar.has-active-state .sidebar-rail-icon::after { content: ''; position: absolute; top: 1rem; right: 3px; width: 10px; height: 10px; border-radius: 50%; background: var(--secondary-color); border: 2px solid var(--card-bg); }
      .sidebar .collapsed-title { display: block; }
@@ -3889,7 +3895,7 @@
      /* Reflow against text size as well as pixels: enlarged results need the
         full board width instead of being squeezed alongside the filters. */
      @container leaderboard-results (max-width: 45rem) {
-         .sidebar { --leaderboard-sidebar-open-width: 100cqi; height: max(var(--leaderboard-table-height), var(--leaderboard-title-height, 0px)); min-height: max(var(--leaderboard-table-height), var(--leaderboard-title-height, 0px)); }
+         .sidebar { --leaderboard-sidebar-open-width: 100cqi; }
          .sidebar-panel { transition: none; }
          /* Enlarged text needs room for whole header words, rather than doubled gutters. */
          .leaderboard table th:not(:first-child) { padding-inline: min(var(--lwc-space-4), 4px); }
