@@ -1,6 +1,5 @@
 using System.Globalization;
 using System.Net.Http.Json;
-using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using LongevityWorldCup.Website.Tools;
@@ -308,8 +307,7 @@ public sealed class BiomarkerHistoryBrowserTests(
         await Expect(retry).ToHaveCountAsync(0);
     }
 
-    private static string ChartScriptPath([CallerFilePath] string sourcePath = "") =>
-        Path.GetFullPath(Path.Combine(Path.GetDirectoryName(sourcePath)!, "..", "LongevityWorldCup.Website", "node_modules", "chart.js", "dist", "chart.umd.js"));
+    private static string ChartScriptPath() => Path.Combine(AppContext.BaseDirectory, "Fixtures", "chart.umd.js");
 
     private static async Task WaitForChartAsync(IPage page) => await page.WaitForFunctionAsync("""
         () => { const canvas = document.querySelector('.result-detail-row:not([hidden]) canvas'); return canvas && window.Chart?.getChart(canvas); }
