@@ -13,7 +13,7 @@ public sealed class LeaderboardSidebarMotionBrowserTests(
     [Theory]
     [InlineData("/leaderboard", false)]
     [InlineData("/leaderboard?group=flags", true)]
-    public async Task Expansion_RevealsFiltersWithoutResizingTheirContents(string path, bool dark)
+    public async Task Expansion_RevealsWholeControlsAfterTheRailFitsThem(string path, bool dark)
     {
         await using var context = await NewContextAsync(Browser, App, new()
         {
@@ -41,14 +41,36 @@ public sealed class LeaderboardSidebarMotionBrowserTests(
                 rail.getBoundingClientRect();
                 const transition = rail.getAnimations().find(a => a.transitionProperty === 'width');
                 if (!transition) throw new Error('Expected a sidebar width transition');
-                transition.pause();
                 const duration = transition.effect.getTiming().duration;
+                const animations = rail.getAnimations({subtree:true})
+                    .filter(a => a === transition || a.animationName === 'sidebar-panel-reveal');
+                animations.forEach(a => a.pause());
                 const measure = () => [rail, rail.querySelector('.sidebar-heading'), rail.querySelector('.sidebar-filter-list'), rail.querySelector('.filter-section label')]
                     .map(element => element.getBoundingClientRect().width);
-                transition.currentTime = duration / 3;
+                animations.forEach(a => { a.currentTime = duration / 3; });
                 const during = measure();
-                transition.finish();
-                return [...during, ...measure()];
+                const list = rail.querySelector('.sidebar-filter-list');
+                const controlsVisible = () => list.checkVisibility({opacityProperty:true, visibilityProperty:true});
+                if (controlsVisible())
+                    throw new Error('Partially opened rail exposes cropped filter controls');
+                animations.forEach(a => { a.currentTime = duration * 0.95; });
+                if (controlsVisible())
+                    throw new Error('Filters appear before the rail finishes widening');
+                animations.forEach(a => a.finish());
+                const after = measure();
+                if (!controlsVisible()) throw new Error('Fully opened filters remain hidden');
+
+                document.querySelector('.sidebar-close').click();
+                rail.getBoundingClientRect();
+                const closing = rail.getAnimations().find(a => a.transitionProperty === 'width');
+                closing.pause();
+                closing.currentTime = duration / 3;
+                if (rail.querySelector('.filter-section').checkVisibility({opacityProperty:true, visibilityProperty:true}))
+                    throw new Error('Closing rail exposes filter controls');
+                document.querySelector('.sidebar-toggle').click();
+                if (controlsVisible()) throw new Error('Rapid reopening exposes cropped filter controls');
+                rail.getAnimations({subtree:true}).forEach(a => a.finish());
+                return [...during, ...after];
             }
             """);
         Assert.True(widths[0] > collapsedWidth + 1 && widths[0] < widths[4] - 1,
