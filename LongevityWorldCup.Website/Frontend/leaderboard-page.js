@@ -492,18 +492,20 @@ function wirePortraitFallback(img, athlete) {
     };
 }
 
-function initializePodiumPortraitWink() {
+function initializeAthletePortraitWinks() {
     const podium = document.querySelector('.podium');
-    if (!podium || !window.IntersectionObserver) return;
+    const profile = document.getElementById('modalProfilePic');
+    const profileModal = document.getElementById('detailsModal');
+    const profileContent = profileModal?.querySelector('.modal-content');
 
     // This clip belongs to this exact photograph, not to future profile updates.
     const approvedPortrait = /^\/generated\/(?:thumbs|profiles)\/athletes\/benjamin_garden(?:_thumb_(?:sm|md))?_6683dd38d8317bb5a68b3053ca8dae7c53aad86cd1c6df1c1662e16fcbe83345\.webp$/;
     const clip = '/assets/athlete-motion/benjamin-garden-wink-f9f888014d01';
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const watched = new WeakSet();
-    let played = false;
-    let activePortrait = null;
-    let stopPlayback = null;
+    const wired = new WeakSet();
+    const active = new Map();
+    let podiumPlayed = false;
+    let profilePlayed = false;
 
     function matchesPortrait(img) {
         try {
@@ -515,15 +517,18 @@ function initializePodiumPortraitWink() {
     }
 
     function play(img) {
-        if (played || reducedMotion.matches || !img.isConnected || !matchesPortrait(img)) return;
-        const anchor = img.closest('a');
-        if (!anchor || !img.naturalWidth) return;
+        if (active.has(img) || reducedMotion.matches || !img.isConnected || !matchesPortrait(img)) return false;
+        const wrapper = img.parentElement;
+        if (!wrapper || !img.naturalWidth || !img.checkVisibility()) return false;
 
-        played = true;
-        visiblePortraits.disconnect();
-        activePortrait = img;
+        if (podium?.contains(img)) {
+            podiumPlayed = true;
+            visiblePortraits?.disconnect();
+        }
+        if (img === profile) profilePlayed = true;
+
         const video = document.createElement('video');
-        video.className = 'podium-portrait-wink';
+        video.className = 'athlete-portrait-wink';
         video.setAttribute('aria-hidden', 'true');
         video.tabIndex = -1;
         video.muted = true;
@@ -532,16 +537,13 @@ function initializePodiumPortraitWink() {
         video.disablePictureInPicture = true;
         video.preload = 'auto';
         const stop = () => {
+            if (active.get(img) !== stop) return;
+            active.delete(img);
             video.pause();
             video.remove();
-            anchor.classList.remove('podium-portrait-motion');
-            reducedMotion.removeEventListener('change', onMotionChange);
-            updates.disconnect();
-            activePortrait = null;
-            stopPlayback = null;
+            wrapper.classList.remove('portrait-motion');
         };
-        const onMotionChange = () => { if (reducedMotion.matches) stop(); };
-        stopPlayback = stop;
+        active.set(img, stop);
         video.addEventListener('playing', () => video.classList.add('is-playing'), { once: true });
         video.addEventListener('ended', stop, { once: true });
         video.addEventListener('error', stop, { once: true });
@@ -556,39 +558,74 @@ function initializePodiumPortraitWink() {
             }, { once: true });
             video.appendChild(source);
         }
-        reducedMotion.addEventListener('change', onMotionChange);
-        anchor.classList.add('podium-portrait-motion');
+        wrapper.classList.add('portrait-motion');
         img.after(video);
         video.play().catch(stop);
+        return true;
     }
 
-    const visiblePortraits = new IntersectionObserver(entries => {
+    function wire(img) {
+        if (wired.has(img) || !matchesPortrait(img)) return;
+        wired.add(img);
+        img.addEventListener('pointerenter', event => {
+            if (event.pointerType !== 'touch') play(img);
+        });
+        img.addEventListener('focus', () => play(img));
+    }
+
+    const visiblePortraits = window.IntersectionObserver && new IntersectionObserver(entries => {
         for (const entry of entries) {
             if (!entry.isIntersecting || entry.intersectionRatio < .5) continue;
             visiblePortraits.unobserve(entry.target);
             const img = entry.target;
-            if (img.complete) play(img);
-            else img.addEventListener('load', () => play(img), { once: true });
+            const start = () => {
+                if (podiumPlayed) return;
+                play(img);
+            };
+            if (img.complete) start();
+            else img.addEventListener('load', start, { once: true });
         }
     }, { threshold: .5 });
 
     function scan() {
-        if (played) {
-            if (activePortrait && (!activePortrait.isConnected || !matchesPortrait(activePortrait))) stopPlayback();
-            return;
+        for (const [img, stop] of active) {
+            if (!img.isConnected || !matchesPortrait(img)) stop();
         }
         // Initial hydration replaces the server-rendered cards. Wait for its final
         // portraits so a replacement cannot consume the wink before it is seen.
-        if (!athleteResultsReady || reducedMotion.matches) return;
-        podium.querySelectorAll('img.podium-portrait').forEach(img => {
-            if (watched.has(img) || !matchesPortrait(img)) return;
-            watched.add(img);
-            visiblePortraits.observe(img);
-        });
+        if (athleteResultsReady) {
+            podium?.querySelectorAll('img.podium-portrait').forEach(img => {
+                wire(img);
+                if (!podiumPlayed && !reducedMotion.matches && matchesPortrait(img)) visiblePortraits?.observe(img);
+            });
+        }
+
+        if (!profile) return;
+        const profileOpen = profileModal.style.display === 'block'
+            && !profileModal.classList.contains('fade-out')
+            && !profileContent.inert
+            && !profileContent.classList.contains('is-loading')
+            && matchesPortrait(profile);
+        if (!profileOpen) {
+            profilePlayed = false;
+            active.get(profile)?.();
+            return;
+        }
+        wire(profile);
+        if (!profilePlayed && profile.complete && play(profile)) profilePlayed = true;
     }
 
     const updates = new MutationObserver(scan);
-    updates.observe(podium, { childList: true, subtree: true, attributes: true, attributeFilter: ['src'] });
+    if (podium) updates.observe(podium, { childList: true, subtree: true, attributes: true, attributeFilter: ['src'] });
+    if (profile) {
+        updates.observe(profile, { attributes: true, attributeFilter: ['src'] });
+        updates.observe(profileModal, { attributes: true, attributeFilter: ['class', 'style'] });
+        updates.observe(profileContent, { attributes: true, attributeFilter: ['class', 'inert'] });
+        profile.addEventListener('load', scan);
+    }
+    reducedMotion.addEventListener('change', () => {
+        if (reducedMotion.matches) for (const stop of active.values()) stop();
+    });
     scan();
 }
 
@@ -2046,7 +2083,7 @@ addClickListenerToImages('#modalProfilePic', function () {
 }, img => `Enlarge ${img.alt || 'athlete profile picture'}`);
 addClickListenerToImages('.portrait, .podium-portrait', handleAthleteNameClick);
 
-initializePodiumPortraitWink();
+initializeAthletePortraitWinks();
 
 // Function to attach click event listener to all athlete-name elements
 function isPlainLinkActivation(event) {

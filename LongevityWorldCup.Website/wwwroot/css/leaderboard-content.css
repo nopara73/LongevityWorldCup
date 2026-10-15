@@ -765,17 +765,21 @@
  }
  .podium-item .podium-portrait:hover{ transform: scale(1.04); }
 
- .podium-portrait-motion{ position:relative; }
- .podium-item .podium-portrait-wink{
+ .portrait-motion{ position:relative; }
+ .athlete-portrait-wink{
      position:absolute; top:3px; left:3px;
-     width:calc(var(--podium-portrait-size) - 6px); height:calc(var(--podium-portrait-size) - 6px);
      border-radius:50%; object-fit:cover; pointer-events:none; opacity:0; z-index:1;
      transition:transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
  }
- .podium-item .podium-portrait-wink.is-playing{ opacity:1; }
- .podium-item .podium-portrait:hover ~ .podium-portrait-wink{ transform:scale(1.04); }
+ .podium-item .athlete-portrait-wink{
+     width:calc(var(--podium-portrait-size) - 6px); height:calc(var(--podium-portrait-size) - 6px);
+ }
+ .athlete-portrait-wink.is-playing{ opacity:1; }
+ .podium-item .podium-portrait:hover ~ .athlete-portrait-wink{ transform:scale(1.04); }
+ #athlete-profile .athlete-portrait-wink{ width:calc(100% - 6px); height:calc(100% - 6px); }
+ #athlete-profile .portrait-wrapper:hover .athlete-portrait-wink{ transform:scale(1.05); }
  @media (prefers-reduced-motion:reduce){
-     .podium-item .podium-portrait-wink{ display:none; }
+     .athlete-portrait-wink{ display:none; }
  }
 
  /* When wrapped on podium: wrapper defines circle, img fills it */

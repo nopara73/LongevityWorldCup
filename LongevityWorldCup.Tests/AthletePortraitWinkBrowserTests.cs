@@ -6,7 +6,7 @@ using Xunit;
 namespace LongevityWorldCup.Tests;
 
 [Collection(BrowserTestCollections.WorkloadD)]
-public sealed class PodiumPortraitWinkBrowserTests(
+public sealed class AthletePortraitWinkBrowserTests(
     PlaywrightBrowserFixture browserFixture,
     BrowserTestAppFixture appFixture)
     : BrowserIntegrationTest(browserFixture, appFixture)
@@ -24,16 +24,16 @@ public sealed class PodiumPortraitWinkBrowserTests(
         await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.NoPreference });
         await InsertPortraitAsync(page);
         await page.WaitForFunctionAsync("() => window.winkStarts === 1");
-        Assert.Equal("none", await page.Locator("video.podium-portrait-wink")
+        Assert.Equal("none", await page.Locator("video.athlete-portrait-wink")
             .EvaluateAsync<string>("video => getComputedStyle(video).pointerEvents"));
-        await Assertions.Expect(page.Locator("video.podium-portrait-wink")).ToHaveCountAsync(0);
+        await Assertions.Expect(page.Locator("video.athlete-portrait-wink")).ToHaveCountAsync(0);
         await Assertions.Expect(page.Locator("#winkFixture")).ToBeVisibleAsync();
         Assert.Equal(1, await page.EvaluateAsync<int>("window.winkEnds"));
         Assert.True(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth <= innerWidth"));
 
         // Filters and hydration may replace a portrait. That must not replay the wink.
         await InsertPortraitAsync(page);
-        await Assertions.Expect(page.Locator("video.podium-portrait-wink")).ToHaveCountAsync(0);
+        await Assertions.Expect(page.Locator("video.athlete-portrait-wink")).ToHaveCountAsync(0);
         Assert.Equal(1, await page.EvaluateAsync<int>("window.winkStarts"));
         Assert.EndsWith("/athlete/benjamin-garden", await page.Locator("#winkFixture").EvaluateAsync<string>("img => img.closest('a').href"));
     }
@@ -57,7 +57,7 @@ public sealed class PodiumPortraitWinkBrowserTests(
         await InsertPortraitAsync(page,
             scenario == "different-photo" ? new string('0', 64) : ApprovedPhoto,
             scenario == "outside-podium");
-        await Assertions.Expect(page.Locator("video.podium-portrait-wink")).ToHaveCountAsync(0);
+        await Assertions.Expect(page.Locator("video.athlete-portrait-wink")).ToHaveCountAsync(0);
         Assert.Equal(0, Volatile.Read(ref requests));
         await Assertions.Expect(page.Locator("#winkFixture")).ToBeVisibleAsync();
     }
@@ -76,7 +76,7 @@ public sealed class PodiumPortraitWinkBrowserTests(
         await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.NoPreference });
         await InsertPortraitAsync(page);
         await requested.Task.WaitAsync(TimeSpan.FromSeconds(15));
-        await Assertions.Expect(page.Locator("video.podium-portrait-wink")).ToHaveCountAsync(0);
+        await Assertions.Expect(page.Locator("video.athlete-portrait-wink")).ToHaveCountAsync(0);
         await Assertions.Expect(page.Locator("#winkFixture")).ToBeVisibleAsync();
         Assert.Equal(0, await page.EvaluateAsync<int>("window.winkStarts"));
     }
@@ -96,8 +96,80 @@ public sealed class PodiumPortraitWinkBrowserTests(
         else
             await page.Locator("#winkFixture").EvaluateAsync("img => img.src = img.src.replace(PHOTO, '0'.repeat(64))"
                 .Replace("PHOTO", System.Text.Json.JsonSerializer.Serialize(ApprovedPhoto)));
-        await Assertions.Expect(page.Locator("video.podium-portrait-wink")).ToHaveCountAsync(0);
+        await Assertions.Expect(page.Locator("video.athlete-portrait-wink")).ToHaveCountAsync(0);
         await Assertions.Expect(page.Locator("#winkFixture")).ToBeVisibleAsync();
+    }
+
+    [Fact]
+    public async Task Hover_ReplaysOncePerPointerEntry_AfterTheOpeningWink()
+    {
+        await using var context = await NewContextAsync();
+        var page = await LoadAsync(context);
+        await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.NoPreference });
+        await InsertPortraitAsync(page);
+        await page.WaitForFunctionAsync("() => window.winkEnds === 1");
+
+        await page.Locator("#winkFixture").HoverAsync();
+        await page.WaitForFunctionAsync("() => window.winkStarts === 2");
+        await page.WaitForFunctionAsync("() => window.winkEnds === 2");
+        await page.Locator("#winkFixture").HoverAsync(new() { Position = new() { X = 30, Y = 30 } });
+        Assert.Equal(2, await page.EvaluateAsync<int>("window.winkStarts"));
+
+        await page.Mouse.MoveAsync(0, 0);
+        await page.Locator("#winkFixture").HoverAsync();
+        await page.WaitForFunctionAsync("() => window.winkStarts === 3");
+    }
+
+    [Theory]
+    [InlineData(true, 1440)]
+    [InlineData(true, 390)]
+    [InlineData(false, 1440)]
+    [InlineData(false, 390)]
+    public async Task ProfileOpeningAndHover_PlayTheWink(bool direct, int width)
+    {
+        await using var context = await NewContextAsync(width);
+        await context.AddInitScriptAsync("localStorage.setItem('gmaSkipAll', 'true')");
+        IPage page;
+        if (direct)
+        {
+            page = await context.NewPageAsync();
+            await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.NoPreference });
+            await page.GotoAsync("/athlete/benjamin-garden", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        }
+        else
+        {
+            page = await LoadAsync(context);
+            await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.NoPreference });
+            await page.Locator("a.athlete-name[href='/athlete/benjamin-garden']").First.ClickAsync();
+        }
+
+        await page.WaitForFunctionAsync("() => window.profileWinkStarts === 1");
+        Assert.True(await page.Locator("#athlete-profile video.athlete-portrait-wink").EvaluateAsync<bool>("video => { const image = video.previousElementSibling.getBoundingClientRect(); const clip = video.getBoundingClientRect(); return Math.abs(clip.x - image.x - 3) < 1 && Math.abs(clip.y - image.y - 3) < 1 && Math.abs(clip.width - image.width + 6) < 1 && Math.abs(clip.height - image.height + 6) < 1; }"));
+        await page.WaitForFunctionAsync("() => window.profileWinkEnds === 1");
+        await Assertions.Expect(page.Locator("#modalProfilePic")).ToBeVisibleAsync();
+        await page.Locator("#modalProfilePic").HoverAsync();
+        await page.WaitForFunctionAsync("() => window.profileWinkStarts === 2");
+        await page.Locator("#closeAthleteDetailsModal").ClickAsync();
+        await Assertions.Expect(page.Locator("#athlete-profile video.athlete-portrait-wink")).ToHaveCountAsync(0);
+
+        if (!direct)
+        {
+            await Assertions.Expect(page.Locator("#detailsModal")).ToBeHiddenAsync();
+            await page.Locator("a.athlete-name[href='/athlete/benjamin-garden']").First.ClickAsync();
+            await page.WaitForFunctionAsync("() => window.profileWinkStarts === 3");
+        }
+    }
+
+    [Fact]
+    public async Task ReducedMotion_ProfileOpeningAndHover_KeepTheStillPhoto()
+    {
+        await using var context = await NewContextAsync();
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/athlete/benjamin-garden", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.WaitForFunctionAsync("() => document.querySelector('#modalProfilePic').hasAttribute('data-full-src') && !document.querySelector('#detailsModal .modal-content').classList.contains('is-loading')");
+        await page.Locator("#modalProfilePic").HoverAsync();
+        await Assertions.Expect(page.Locator("video.athlete-portrait-wink")).ToHaveCountAsync(0);
+        Assert.Equal(0, await page.EvaluateAsync<int>("window.profileWinkStarts"));
     }
 
     private async Task<IBrowserContext> NewContextAsync(int width = 1440)
@@ -116,15 +188,19 @@ public sealed class PodiumPortraitWinkBrowserTests(
         await context.AddInitScriptAsync("""
             window.winkStarts = 0;
             window.winkEnds = 0;
+            window.profileWinkStarts = 0;
+            window.profileWinkEnds = 0;
             const started = new WeakSet();
             for (const [event, key] of [['playing', 'winkStarts'], ['ended', 'winkEnds']]) {
                 document.addEventListener(event, e => {
-                    if (!e.target.matches?.('video.podium-portrait-wink')) return;
+                    if (!e.target.matches?.('video.athlete-portrait-wink')) return;
                     if (event === 'playing') {
                         if (started.has(e.target)) return;
                         started.add(e.target);
                     }
                     window[key]++;
+                    if (e.target.previousElementSibling?.id === 'modalProfilePic')
+                        window[event === 'playing' ? 'profileWinkStarts' : 'profileWinkEnds']++;
                 }, true);
             }
             """);
