@@ -9,6 +9,50 @@ public sealed class LeaderboardSidebarScrollBrowserTests(PlaywrightBrowserFixtur
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Theory]
+    [InlineData("/", 1982, 1360)]
+    [InlineData("/", 1280, 900)]
+    [InlineData("/?group=flags", 1982, 1360)]
+    [InlineData("/leaderboard?search=Valerie", 1280, 900)]
+    [InlineData("/leaderboard?search=NoMatchingAthleteForSidebarHeight", 1280, 900)]
+    [InlineData("/leaderboard?group=flags&search=Valerie", 1280, 900)]
+    [InlineData("/league/silent-generation", 1280, 900)]
+    public async Task ClosedSidebar_DoesNotReserveSpaceForTheHiddenFilterPanel(string path, int width, int height)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = height }, ReducedMotion = ReducedMotion.Reduce
+        });
+        var page = await context.NewPageAsync();
+        await page.GotoAsync(path);
+        await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+        await page.EvaluateAsync("() => document.fonts.ready");
+
+        for (var cycle = 0; cycle < 2; cycle++)
+        {
+            await page.EvaluateAsync("() => scrollBy({ top: 350, behavior: 'instant' })");
+            await WaitForLayoutAsync(page);
+            var geometry = await page.EvaluateAsync<double[]>("""
+                () => {
+                    const board = document.querySelector('.leaderboard');
+                    const results = board.classList.contains('leaderboard--flags') ? board.querySelector('.flag-leaderboard') : board.querySelector('table');
+                    const resultHeight = results.getBoundingClientRect().height;
+                    const titleHeight = board.querySelector('.sidebar-heading').getBoundingClientRect().height + board.querySelector('.collapsed-title').scrollHeight;
+                    return [board.getBoundingClientRect().height, Math.max(resultHeight, titleHeight)];
+                }
+                """);
+            Assert.InRange(geometry[0], geometry[1], geometry[1] + 2);
+
+            await page.Locator(".sidebar-toggle").ClickAsync();
+            await WaitForLayoutAsync(page);
+            Assert.InRange(Math.Abs((await page.Locator(".leaderboard").BoundingBoxAsync())!.Height - geometry[0]), 0, 1);
+            await page.Locator(".sidebar-close").ClickAsync();
+            await page.Mouse.MoveAsync(0, 0);
+            await WaitForLayoutAsync(page);
+            Assert.InRange(Math.Abs((await page.Locator(".leaderboard").BoundingBoxAsync())!.Height - geometry[0]), 0, 1);
+        }
+    }
+
+    [Theory]
     [InlineData("/leaderboard?search=Valerie", 16, false)]
     [InlineData("/leaderboard?search=Valerie", 16, true)]
     [InlineData("/leaderboard?search=NoMatchingAthleteForSidebarHeight", 16, false)]
@@ -42,13 +86,11 @@ public sealed class LeaderboardSidebarScrollBrowserTests(PlaywrightBrowserFixtur
                 const box = panel.getBoundingClientRect();
                 const results = document.querySelector('.leaderboard--flags > .flag-leaderboard') || document.querySelector('.leaderboard > table');
                 const available = innerHeight - Math.max(box.top, parseFloat(getComputedStyle(panel).top)) - parseFloat(getComputedStyle(document.documentElement).fontSize);
-                return [box.height, available, results.getBoundingClientRect().height,
-                    box.bottom, panel.closest('.leaderboard').getBoundingClientRect().bottom];
+                return [box.height, available, results.getBoundingClientRect().height];
             }
             """);
         Assert.True(geometry[2] + 80 < geometry[1], "This regression requires results shorter than the usable sidebar space.");
         Assert.InRange(geometry[0], geometry[1] - 2, geometry[1] + 2);
-        Assert.True(geometry[3] <= geometry[4] + 1, "The board must contain the taller filter panel instead of clipping it.");
 
         var list = page.Locator(".sidebar-filter-list");
         var box = (await list.BoundingBoxAsync())!;
@@ -61,6 +103,8 @@ public sealed class LeaderboardSidebarScrollBrowserTests(PlaywrightBrowserFixtur
         Assert.InRange(Math.Abs((await page.Locator(".sidebar-heading").BoundingBoxAsync())!.Y - heading.Y), 0, 1);
         var last = (await list.Locator("label:visible").Last.BoundingBoxAsync())!;
         Assert.InRange(last.Y, box.Y - 1, box.Y + box.Height - last.Height + 1);
+        Assert.True(await list.Locator("label:visible").Last.EvaluateAsync<bool>("label => { const box = label.getBoundingClientRect(); return label.contains(document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2)); }"),
+            "The last filter must receive pointer input even when its panel extends past the short results card.");
 
         var output = Environment.GetEnvironmentVariable("LWC_SIDEBAR_SCREENSHOTS");
         if (!string.IsNullOrEmpty(output))

@@ -454,7 +454,6 @@
         var later = laterElement instanceof HTMLButtonElement ? laterElement : null;
         var current = document.getElementById('ageResultCurrent');
         var resultDate = document.getElementById('ageResultDate');
-        var resultAge = document.getElementById('ageResultAge');
         var chevron = picker?.querySelector<SVGElement>('.age-result-chevron');
 
         function showReading(index: number): void {
@@ -471,7 +470,6 @@
                 resultDate.textContent = reading.date ? resultDateFormat.format(new Date(reading.date)) : '';
                 resultDate.setAttribute('datetime', reading.date?.slice(0, 10) || '');
             }
-            if (resultAge) resultAge.textContent = reading.bio.toFixed(1) + ' years';
             if (canvas) {
                 canvas.dataset.clock = useBortz ? 'bortz' : 'pheno';
                 canvas.dataset.resultDate = reading.date || '';

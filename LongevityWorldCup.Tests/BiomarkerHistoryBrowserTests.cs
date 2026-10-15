@@ -439,6 +439,9 @@ public sealed class BiomarkerHistoryBrowserTests(
                 await Expect(page.Locator("#ageRadarChart")).ToHaveAttributeAsync("data-result-date", panels[i].Date);
                 await Expect(page.Locator("#ageResultDate")).ToHaveAttributeAsync("datetime", panels[i].Date);
                 await Expect(page.Locator("#ageRadarCenterBio")).ToHaveTextAsync($"biological age: {expected[i].ToString("F1", CultureInfo.InvariantCulture)}");
+                var dateLabel = DateTime.ParseExact(panels[i].Date, "yyyy-MM-dd", CultureInfo.InvariantCulture).ToString("d MMM yyyy", CultureInfo.InvariantCulture);
+                await Expect(page.Locator("#ageResultCurrent")).ToHaveTextAsync(dateLabel);
+                await Expect(select.Locator("option").Nth(i)).ToHaveTextAsync($"{dateLabel} · {expected[i].ToString("F1", CultureInfo.InvariantCulture)} years");
                 var chart = await page.EvaluateAsync<JsonElement>("""
                     () => { const chart = Chart.getChart(document.getElementById('ageRadarChart'));
                         return { id: chart.id, shape: chart.data.datasets[0].data, contributors: chart._radarTooltipContributors.flat() }; }
