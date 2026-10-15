@@ -98,6 +98,8 @@ Before redacting an existing athlete's new proofs, check their prior privacy req
 
 Parse `athlete.json`; compare email audit fields and visible proofs. Check identity/profile metadata (name/display name, division, flag, personal link, media contact, Why), plausible DOB/test chronology, numeric biomarkers in expected units, profile-image filename matching the folder key, and present `proof_*.ext` evidence for results. Append new records without replacing unrelated history.
 
+Before approval/publication, review `Name` and `DisplayName` casing. Correct accidental all-caps personal names in the canonical JSON fields, using natural casing supported by the application and human correspondence; do not merely hide the problem with CSS or a display-name override. Preserve deliberate handles/acronyms, already-correct casing, diacritics, initials, apostrophes, hyphens, and name particles. Never blindly title-case every name or invent spelling/accents. Keep folder keys, profile slugs, asset filenames, contact addresses, source proofs, and quoted correspondence unchanged. Record the before/after name in the private review and approval summary; after publication verify that the profile, roster, and highlights resolve the corrected name.
+
 A plausible-year December 31 DOB is an allowed privacy placeholder; never replace it with the exact DOB on a proof. Full applications require DOB. Use these sources when uncertain:
 
 - `LongevityWorldCup.Website/Business/ApplicantData.cs`: submitted fields.
