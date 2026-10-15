@@ -8,6 +8,60 @@ namespace LongevityWorldCup.Tests;
 public sealed class LeaderboardSidebarScrollBrowserTests(PlaywrightBrowserFixture browserFixture, BrowserTestAppFixture appFixture)
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
+    [Theory]
+    [InlineData("/leaderboard?search=Valerie", 16)]
+    [InlineData("/leaderboard?search=NoMatchingAthleteForSidebarHeight", 16)]
+    [InlineData("/leaderboard?group=flags&search=Valerie", 20)]
+    public async Task ShortResults_OpenPanelKeepsItsOwnHeight(string path, int fontSize)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = 1280, Height = 900 },
+            ReducedMotion = ReducedMotion.NoPreference
+        });
+        var page = await context.NewPageAsync();
+        await page.GotoAsync(path);
+        await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+        await page.EvaluateAsync("size => document.documentElement.style.fontSize = size + 'px'", fontSize);
+        await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
+        await page.Locator(".sidebar-toggle").ClickAsync();
+        await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
+
+        var geometry = await page.EvaluateAsync<double[]>("""
+            () => {
+                const panel = document.querySelector('.sidebar-panel');
+                const box = panel.getBoundingClientRect();
+                const results = document.querySelector('.leaderboard--flags > .flag-leaderboard') || document.querySelector('.leaderboard > table');
+                const available = innerHeight - Math.max(box.top, parseFloat(getComputedStyle(panel).top)) - parseFloat(getComputedStyle(document.documentElement).fontSize);
+                return [box.height, available, results.getBoundingClientRect().height,
+                    box.bottom, panel.closest('.leaderboard').getBoundingClientRect().bottom];
+            }
+            """);
+        Assert.True(geometry[2] + 80 < geometry[1], "This regression requires results shorter than the usable sidebar space.");
+        Assert.InRange(geometry[0], geometry[1] - 2, geometry[1] + 2);
+        Assert.True(geometry[3] <= geometry[4] + 1, "The board must contain the taller filter panel instead of clipping it.");
+
+        var list = page.Locator(".sidebar-filter-list");
+        var box = (await list.BoundingBoxAsync())!;
+        var pageScroll = await page.EvaluateAsync<double>("scrollY");
+        var heading = (await page.Locator(".sidebar-heading").BoundingBoxAsync())!;
+        await page.Mouse.MoveAsync(box.X + box.Width / 2, box.Y + Math.Min(80, box.Height / 2));
+        await page.WheelAndWaitForInputAsync(0, 100000);
+        await page.WaitForFunctionAsync("() => { const e = document.querySelector('.sidebar-filter-list'); return e.scrollTop > 0 && e.scrollHeight - e.clientHeight - e.scrollTop <= 1; }");
+        Assert.InRange(Math.Abs(pageScroll - await page.EvaluateAsync<double>("scrollY")), 0, 1);
+        Assert.InRange(Math.Abs((await page.Locator(".sidebar-heading").BoundingBoxAsync())!.Y - heading.Y), 0, 1);
+        var last = (await list.Locator("label:visible").Last.BoundingBoxAsync())!;
+        Assert.InRange(last.Y, box.Y - 1, box.Y + box.Height - last.Height + 1);
+
+        var output = Environment.GetEnvironmentVariable("LWC_SIDEBAR_SCREENSHOTS");
+        if (!string.IsNullOrEmpty(output))
+        {
+            Directory.CreateDirectory(output);
+            var name = path.Contains("group=flags") ? "flags" : path.Contains("NoMatching") ? "empty" : "one";
+            await page.ScreenshotAsync(new() { Path = Path.Combine(output, $"sidebar-short-{name}.png") });
+        }
+    }
+
     [Fact]
     public async Task IncomingClockView_DoesNotInterruptEarlySidebarScrolling()
     {

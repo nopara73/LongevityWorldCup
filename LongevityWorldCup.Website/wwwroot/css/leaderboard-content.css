@@ -3867,6 +3867,10 @@
          opacity: 0; transform: translateX(-8px); visibility: hidden; pointer-events: none;
          transition: opacity var(--sidebar-motion-duration) var(--lwc-ease, ease), transform var(--sidebar-motion-duration) var(--lwc-ease, ease), visibility 0s linear var(--sidebar-motion-duration);
      }
+     /* An explicitly opened panel keeps its own scroll area even for short or
+        empty results. Give its rail room so the board cannot clip it. */
+     .sidebar.expanded:not(.button-collapsed):not([aria-hidden="true"]) { height: max(var(--leaderboard-table-height), var(--leaderboard-title-height, 0px), var(--leaderboard-sidebar-viewport-height)); }
+     .sidebar.expanded .sidebar-panel { max-height: var(--leaderboard-sidebar-viewport-height); }
      .sidebar:is(:hover, .expanded):not(.button-collapsed):not([aria-hidden="true"]) .sidebar-panel { --sidebar-panel-open: 1; opacity: 1; transform: none; visibility: visible; pointer-events: auto; transition-delay: 0s; }
      .sidebar:is(:hover, .expanded):not(.button-collapsed):not([aria-hidden="true"]) .sidebar-rail { opacity: 0; }
      .sidebar .sidebar-heading,
