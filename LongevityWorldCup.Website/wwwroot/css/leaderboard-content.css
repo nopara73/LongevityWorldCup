@@ -3851,8 +3851,10 @@
      .sidebar:is(:hover, .expanded):not(.button-collapsed):not([aria-hidden="true"]) {
          display: grid; grid-template-columns: 50px; grid-template-rows: minmax(0, 1fr); position: relative; top: auto;
          width: 50px; padding: 0; overflow: visible; scrollbar-gutter: auto; transition: none;
-         height: max(var(--leaderboard-table-height), var(--leaderboard-title-height, 0px));
-         min-height: max(var(--leaderboard-table-height), var(--leaderboard-title-height, 0px)); max-height: none;
+         /* Reserve the panel's space before hover or button opening, so short
+            results cannot squeeze the filters or make the footer jump. */
+         height: max(var(--leaderboard-table-height), var(--leaderboard-title-height, 0px), var(--leaderboard-sidebar-viewport-height));
+         min-height: max(var(--leaderboard-table-height), var(--leaderboard-title-height, 0px), var(--leaderboard-sidebar-viewport-height)); max-height: none;
          background: transparent; box-shadow: none;
      }
      .sidebar-rail { display: flex; flex-direction: column; align-items: center; grid-area: 1 / 1; align-self: stretch; min-height: 0; background: var(--card-bg); transition: opacity var(--sidebar-motion-duration) var(--lwc-ease, ease); }
@@ -3862,15 +3864,11 @@
      .sidebar-panel {
          --sidebar-panel-open: 0; display: flex; flex-direction: column; grid-area: 1 / 1; align-self: start;
          position: sticky; top: var(--leaderboard-sidebar-sticky-top); width: var(--leaderboard-sidebar-open-width);
-         min-height: 0; max-height: min(var(--leaderboard-sidebar-viewport-height), max(var(--leaderboard-table-height), var(--leaderboard-title-height, 0px))); box-sizing: border-box; overflow: hidden;
+         min-height: 0; max-height: var(--leaderboard-sidebar-viewport-height); box-sizing: border-box; overflow: hidden;
          border: 1px solid var(--lwc-border); border-radius: 0 12px 12px 0; background: var(--card-bg); box-shadow: 8px 4px 24px rgba(15,23,42,.12);
          opacity: 0; transform: translateX(-8px); visibility: hidden; pointer-events: none;
          transition: opacity var(--sidebar-motion-duration) var(--lwc-ease, ease), transform var(--sidebar-motion-duration) var(--lwc-ease, ease), visibility 0s linear var(--sidebar-motion-duration);
      }
-     /* An explicitly opened panel keeps its own scroll area even for short or
-        empty results. Give its rail room so the board cannot clip it. */
-     .sidebar.expanded:not(.button-collapsed):not([aria-hidden="true"]) { height: max(var(--leaderboard-table-height), var(--leaderboard-title-height, 0px), var(--leaderboard-sidebar-viewport-height)); }
-     .sidebar.expanded .sidebar-panel { max-height: var(--leaderboard-sidebar-viewport-height); }
      .sidebar:is(:hover, .expanded):not(.button-collapsed):not([aria-hidden="true"]) .sidebar-panel { --sidebar-panel-open: 1; opacity: 1; transform: none; visibility: visible; pointer-events: auto; transition-delay: 0s; }
      .sidebar:is(:hover, .expanded):not(.button-collapsed):not([aria-hidden="true"]) .sidebar-rail { opacity: 0; }
      .sidebar .sidebar-heading,
@@ -3891,7 +3889,7 @@
      /* Reflow against text size as well as pixels: enlarged results need the
         full board width instead of being squeezed alongside the filters. */
      @container leaderboard-results (max-width: 45rem) {
-         .sidebar { --leaderboard-sidebar-open-width: 100cqi; }
+         .sidebar { --leaderboard-sidebar-open-width: 100cqi; height: max(var(--leaderboard-table-height), var(--leaderboard-title-height, 0px)); min-height: max(var(--leaderboard-table-height), var(--leaderboard-title-height, 0px)); }
          .sidebar-panel { transition: none; }
          /* Enlarged text needs room for whole header words, rather than doubled gutters. */
          .leaderboard table th:not(:first-child) { padding-inline: min(var(--lwc-space-4), 4px); }

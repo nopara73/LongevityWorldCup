@@ -9,10 +9,15 @@ public sealed class LeaderboardSidebarScrollBrowserTests(PlaywrightBrowserFixtur
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Theory]
-    [InlineData("/leaderboard?search=Valerie", 16)]
-    [InlineData("/leaderboard?search=NoMatchingAthleteForSidebarHeight", 16)]
-    [InlineData("/leaderboard?group=flags&search=Valerie", 20)]
-    public async Task ShortResults_OpenPanelKeepsItsOwnHeight(string path, int fontSize)
+    [InlineData("/leaderboard?search=Valerie", 16, false)]
+    [InlineData("/leaderboard?search=Valerie", 16, true)]
+    [InlineData("/leaderboard?search=NoMatchingAthleteForSidebarHeight", 16, false)]
+    [InlineData("/leaderboard?search=NoMatchingAthleteForSidebarHeight", 16, true)]
+    [InlineData("/leaderboard?group=flags&search=Valerie", 20, false)]
+    [InlineData("/leaderboard?group=flags&search=Valerie", 20, true)]
+    [InlineData("/league/silent-generation", 20, false)]
+    [InlineData("/league/silent-generation", 20, true)]
+    public async Task ShortResults_OpenPanelKeepsItsOwnHeight(string path, int fontSize, bool hover)
     {
         await using var context = await NewContextAsync(Browser, App, new()
         {
@@ -24,8 +29,12 @@ public sealed class LeaderboardSidebarScrollBrowserTests(PlaywrightBrowserFixtur
         await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
         await page.EvaluateAsync("size => document.documentElement.style.fontSize = size + 'px'", fontSize);
         await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
-        await page.Locator(".sidebar-toggle").ClickAsync();
+        if (hover)
+            await page.Locator(".sidebar").HoverAsync(new() { Position = new() { X = 20, Y = 20 } });
+        else
+            await page.Locator(".sidebar-toggle").ClickAsync();
         await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
+        Assert.Equal(!hover, await page.Locator(".sidebar").EvaluateAsync<bool>("e => e.classList.contains('expanded')"));
 
         var geometry = await page.EvaluateAsync<double[]>("""
             () => {
@@ -57,8 +66,8 @@ public sealed class LeaderboardSidebarScrollBrowserTests(PlaywrightBrowserFixtur
         if (!string.IsNullOrEmpty(output))
         {
             Directory.CreateDirectory(output);
-            var name = path.Contains("group=flags") ? "flags" : path.Contains("NoMatching") ? "empty" : "one";
-            await page.ScreenshotAsync(new() { Path = Path.Combine(output, $"sidebar-short-{name}.png") });
+            var name = path.Contains("silent-generation") ? "silent-generation" : path.Contains("group=flags") ? "flags" : path.Contains("NoMatching") ? "empty" : "one";
+            await page.ScreenshotAsync(new() { Path = Path.Combine(output, $"sidebar-short-{name}-{(hover ? "hover" : "button")}.png") });
         }
     }
 

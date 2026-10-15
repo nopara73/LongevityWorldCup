@@ -1120,7 +1120,15 @@ public sealed class FlowActionDockBrowserTests(
 
     internal static async Task ExpectActionStackInViewportAsync(IPage page, string selector)
     {
-        await page.WaitForFunctionAsync("() => window.LwcFlowActionDock");
+        // The controller exists while the source task is still loading, when
+        // docking is deliberately disabled. Measure its ready view instead.
+        await page.WaitForFunctionAsync("() => window.LwcFlowActionDock && !document.documentElement.hasAttribute('data-initial-view')");
+        await page.WaitForFunctionAsync("""
+            selector => {
+                const stack = document.querySelector(selector);
+                return stack && !stack.classList.contains('flow-action-stack--dock-entering');
+            }
+            """, selector);
         var rect = await ReadElementRectAsync(page, selector);
 
         Assert.True(rect.Left >= -1, $"{selector} overflows left: {rect.Left}");

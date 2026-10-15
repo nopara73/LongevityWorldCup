@@ -32,13 +32,12 @@
         readonly data: RadarData;
         readonly bio: number;
         readonly chrono: number;
+        readonly date: string | null;
     }
 
     interface ClockState {
-        readonly hasPheno: boolean;
-        readonly hasBortz: boolean;
-        readonly pheno: ClockPayload | null;
-        readonly bortz: ClockPayload | null;
+        readonly readings: readonly ClockPayload[];
+        selectedIndex: number;
     }
 
     interface RadarTooltipItem {
@@ -363,13 +362,57 @@
         radarChartInstance.update('active');
     }
 
-    var currentClockState: ClockState = { hasPheno: false, hasBortz: false, pheno: null, bortz: null };
+    var resultDateFormat = new Intl.DateTimeFormat('en-GB', {
+        day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC'
+    });
+
+    function buildClockState(
+        bortz: boolean,
+        athleteData: AgeVisualizationAthlete | null | undefined,
+        results: readonly AgeVisualizationAthlete[],
+        history: AgeVisualizationHistory | undefined
+    ): ClockState {
+        var readings: ClockPayload[] = [];
+        var radarData = bortz ? getBortzRadarData : getPhenoRadarData;
+        if (history) {
+            var entries = (bortz ? history.bortz : history.pheno).slice()
+                .filter(function (entry) {
+                    return Number.isFinite(Date.parse(entry.date)) && Number.isFinite(entry.bio)
+                        && Number.isFinite(entry.chrono) && entry.values.length >= (bortz ? 22 : 10)
+                        && entry.values.every(Number.isFinite);
+                }).sort(function (a, b) { return Date.parse(a.date) - Date.parse(b.date); });
+            entries.forEach(function (entry) {
+                // Every domain and the age summary must describe this same blood draw.
+                var values = bortz ? { bestBortzValues: entry.values } : { bestBiomarkerValues: entry.values };
+                var data = radarData(values, results, entry.chrono);
+                if (data) readings.push({ data: data, bio: entry.bio, chrono: entry.chrono, date: entry.date });
+            });
+        } else {
+            var bio = bortz ? athleteData?.lowestBortzAge : athleteData?.lowestPhenoAge;
+            var chrono = bortz ? athleteData?.chronoAtLowestBortzAge : athleteData?.chronoAtLowestPhenoAge;
+            if (typeof bio === 'number' && Number.isFinite(bio) && typeof chrono === 'number' && Number.isFinite(chrono)) {
+                var data = radarData(athleteData, results, chrono);
+                if (data) readings.push({ data: data, bio: bio, chrono: chrono, date: null });
+            }
+        }
+        var selectedIndex = 0;
+        readings.forEach(function (reading, index) {
+            if (reading.bio < (readings[selectedIndex]?.bio ?? Infinity)) selectedIndex = index;
+        });
+        return { readings: readings, selectedIndex: selectedIndex };
+    }
+
+    function resultLabel(reading: ClockPayload): string {
+        var date = reading.date ? resultDateFormat.format(new Date(reading.date)) + ' · ' : '';
+        return date + reading.bio.toFixed(1) + ' years';
+    }
 
     function generateAgeVisualization(
         bioAge: number,
         chronoAge: number,
         athleteData: AgeVisualizationAthlete | null | undefined,
-        athleteResults: readonly AgeVisualizationAthlete[] | null | undefined
+        athleteResults: readonly AgeVisualizationAthlete[] | null | undefined,
+        history?: AgeVisualizationHistory
     ): void {
         var wrapper = document.getElementById('ageRadarWrapper');
         var fallback = document.getElementById('ageRadarFallback');
@@ -388,50 +431,110 @@
             return;
         }
 
+        destroyRadarChart();
         var results: readonly AgeVisualizationAthlete[] = Array.isArray(athleteResults) ? athleteResults : [];
-        var hasPheno = Boolean(athleteData?.bestBiomarkerValues?.length
-            && results.some(function (a: AgeVisualizationAthlete) { return Boolean(a.bestBiomarkerValues?.length); }));
-        var hasBortz = Boolean(athleteData?.bestBortzValues?.length
-            && results.some(function (a: AgeVisualizationAthlete) { return Boolean(a.bestBortzValues?.length); }));
+        var pheno = buildClockState(false, athleteData, results, history);
+        var bortz = buildClockState(true, athleteData, results, history);
+        var hasPheno = pheno.readings.length > 0;
+        var hasBortz = bortz.readings.length > 0;
         var bothClocks = hasPheno && hasBortz;
+        var useBortz = hasBortz;
+        var visualization = document.getElementById('ageVisualization');
+        if (visualization) visualization.hidden = !hasPheno && !hasBortz;
+        if (switchEl) switchEl.classList.toggle('visible', hasPheno || hasBortz);
+        if (tabPheno) tabPheno.hidden = !hasPheno;
+        if (tabBortz) tabBortz.hidden = !hasBortz;
 
-        if (switchEl) {
-            if (bothClocks) {
-                switchEl.classList.add('visible');
-                if (tabBortz) {
-                    tabBortz.setAttribute('aria-selected', 'true');
-                    tabBortz.tabIndex = 0;
-                }
-                if (tabPheno) {
-                    tabPheno.setAttribute('aria-selected', 'false');
-                    tabPheno.tabIndex = -1;
-                }
-            } else {
-                switchEl.classList.remove('visible');
+        var picker = document.getElementById('ageResultPicker');
+        var selectElement = document.getElementById('ageResultSelect');
+        var select = selectElement instanceof HTMLSelectElement ? selectElement : null;
+        var earlierElement = document.getElementById('ageResultEarlier');
+        var earlier = earlierElement instanceof HTMLButtonElement ? earlierElement : null;
+        var laterElement = document.getElementById('ageResultLater');
+        var later = laterElement instanceof HTMLButtonElement ? laterElement : null;
+        var current = document.getElementById('ageResultCurrent');
+        var resultDate = document.getElementById('ageResultDate');
+        var resultAge = document.getElementById('ageResultAge');
+        var chevron = picker?.querySelector<SVGElement>('.age-result-chevron');
+
+        function showReading(index: number): void {
+            var state = useBortz ? bortz : pheno;
+            var reading = state.readings[index];
+            if (!reading) return;
+            state.selectedIndex = index;
+            applyRadarData(reading.data);
+            updateCenterAndFallback(reading.bio, reading.chrono, useBortz);
+            if (select) select.value = String(index);
+            if (earlier) earlier.disabled = index === 0;
+            if (later) later.disabled = index === state.readings.length - 1;
+            if (resultDate) {
+                resultDate.textContent = reading.date ? resultDateFormat.format(new Date(reading.date)) : '';
+                resultDate.setAttribute('datetime', reading.date?.slice(0, 10) || '');
+            }
+            if (resultAge) resultAge.textContent = reading.bio.toFixed(1) + ' years';
+            if (canvas) {
+                canvas.dataset.clock = useBortz ? 'bortz' : 'pheno';
+                canvas.dataset.resultDate = reading.date || '';
+                canvas.setAttribute('aria-label', (useBortz ? 'Bortz Age' : 'Pheno Age') + ': '
+                    + resultLabel(reading) + '. Domain percentiles.');
             }
         }
 
-        var phenoData = hasPheno ? getPhenoRadarData(athleteData, results, athleteData?.chronoAtLowestPhenoAge ?? NaN) : null;
-        var bortzData = hasBortz ? getBortzRadarData(athleteData, results, athleteData?.chronoAtLowestBortzAge ?? NaN) : null;
-        var phenoBio = typeof athleteData?.lowestPhenoAge === 'number' && Number.isFinite(athleteData.lowestPhenoAge) ? athleteData.lowestPhenoAge : null;
-        var phenoChrono = typeof athleteData?.chronoAtLowestPhenoAge === 'number' && Number.isFinite(athleteData.chronoAtLowestPhenoAge) ? athleteData.chronoAtLowestPhenoAge : null;
-        var bortzBio = typeof athleteData?.lowestBortzAge === 'number' && Number.isFinite(athleteData.lowestBortzAge) ? athleteData.lowestBortzAge : null;
-        var bortzChrono = typeof athleteData?.chronoAtLowestBortzAge === 'number' && Number.isFinite(athleteData.chronoAtLowestBortzAge) ? athleteData.chronoAtLowestBortzAge : null;
+        function selectClock(isBortz: boolean): void {
+            var state = isBortz ? bortz : pheno;
+            var reading = state.readings[state.selectedIndex];
+            if (!reading) return;
+            useBortz = isBortz;
+            var clockName = isBortz ? 'Bortz Age' : 'Pheno Age';
+            if (tabPheno) {
+                tabPheno.setAttribute('aria-selected', isBortz ? 'false' : 'true');
+                tabPheno.tabIndex = isBortz ? -1 : 0;
+            }
+            if (tabBortz) {
+                tabBortz.setAttribute('aria-selected', isBortz ? 'true' : 'false');
+                tabBortz.tabIndex = isBortz ? 0 : -1;
+            }
+            var multiple = state.readings.length > 1;
+            if (picker) {
+                picker.hidden = !reading.date;
+                picker.dataset.multiple = String(multiple);
+            }
+            if (select) {
+                select.hidden = !multiple;
+                select.setAttribute('aria-label', clockName + ' result');
+                select.replaceChildren(...state.readings.map(function (entry, index) {
+                    var option = document.createElement('option');
+                    option.value = String(index);
+                    option.textContent = resultLabel(entry);
+                    return option;
+                }));
+            }
+            if (earlier) earlier.hidden = !multiple;
+            if (later) later.hidden = !multiple;
+            if (chevron) chevron.style.display = multiple ? '' : 'none';
+            if (current) current.setAttribute('aria-hidden', multiple ? 'true' : 'false');
+            showReading(state.selectedIndex);
+        }
 
-        currentClockState = {
-            hasPheno: hasPheno,
-            hasBortz: hasBortz,
-            pheno: (phenoData && phenoBio != null && phenoChrono != null) ? { data: phenoData, bio: phenoBio, chrono: phenoChrono } : null,
-            bortz: (bortzData && bortzBio != null && bortzChrono != null) ? { data: bortzData, bio: bortzBio, chrono: bortzChrono } : null
-        };
+        if (select) select.onchange = function () { showReading(Number(select?.value)); };
+        if (earlier) earlier.onclick = function () { showReading((useBortz ? bortz : pheno).selectedIndex - 1); };
+        if (later) later.onclick = function () { showReading((useBortz ? bortz : pheno).selectedIndex + 1); };
+        if (tabPheno) tabPheno.onclick = function () { selectClock(false); };
+        if (tabBortz) tabBortz.onclick = function () { selectClock(true); };
+        function handleClockKey(event: KeyboardEvent): void {
+            if (!bothClocks) return;
+            if (event.key === 'ArrowLeft' || event.key === 'ArrowRight' || event.key === 'Home' || event.key === 'End') {
+                event.preventDefault();
+                var nextBortz = event.key === 'Home' || (event.key !== 'End' && !useBortz);
+                selectClock(nextBortz);
+                (nextBortz ? tabBortz : tabPheno)?.focus();
+            }
+        }
+        if (tabPheno) tabPheno.onkeydown = handleClockKey;
+        if (tabBortz) tabBortz.onkeydown = handleClockKey;
+        selectClock(useBortz);
 
-        var useBortz = hasBortz && !hasPheno ? true : (bothClocks ? true : !!hasBortz);
-        var data = useBortz ? (bortzData || phenoData) : (phenoData || bortzData);
-        var showBio = useBortz ? bortzBio : phenoBio;
-        var showChrono = useBortz ? bortzChrono : phenoChrono;
-        if (showBio == null) showBio = bioAge;
-        if (showChrono == null) showChrono = chronoAge;
-        updateCenterAndFallback(showBio, showChrono, useBortz);
+        var data = (useBortz ? bortz : pheno).readings[(useBortz ? bortz : pheno).selectedIndex]?.data;
 
         var centerEl = document.getElementById('ageRadarCenter');
         var ChartConstructor = window.Chart;
@@ -439,7 +542,7 @@
             destroyRadarChart();
             wrapper.style.display = 'none';
             if (centerEl) centerEl.style.display = 'none';
-            fallback.style.display = 'flex';
+            fallback.style.display = data ? 'flex' : 'none';
             fallback.style.flexDirection = 'column';
             fallback.style.alignItems = 'center';
             fallback.style.justifyContent = 'center';
@@ -585,40 +688,6 @@
         if ('ResizeObserver' in window) {
             radarResizeObserver = new ResizeObserver(scheduleRadarResize);
             radarResizeObserver.observe(wrapper);
-        }
-
-        function selectClock(bortz: boolean): void {
-            var payload = bortz ? currentClockState.bortz : currentClockState.pheno;
-            if (!payload) return;
-            applyRadarData(payload.data);
-            updateCenterAndFallback(payload.bio, payload.chrono, bortz);
-            if (tabPheno) {
-                tabPheno.setAttribute('aria-selected', bortz ? 'false' : 'true');
-                tabPheno.tabIndex = bortz ? -1 : 0;
-            }
-            if (tabBortz) {
-                tabBortz.setAttribute('aria-selected', bortz ? 'true' : 'false');
-                tabBortz.tabIndex = bortz ? 0 : -1;
-            }
-        }
-
-        if (bothClocks && tabPheno && tabBortz) {
-            tabPheno.onclick = function () { selectClock(false); };
-            tabBortz.onclick = function () { selectClock(true); };
-            function handleKey(e: KeyboardEvent, isPheno: boolean): void {
-                if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    selectClock(!isPheno);
-                } else if (e.key === 'ArrowLeft') {
-                    e.preventDefault();
-                    selectClock(true);
-                } else if (e.key === 'ArrowRight') {
-                    e.preventDefault();
-                    selectClock(false);
-                }
-            }
-            tabPheno.onkeydown = function (e) { handleKey(e, true); };
-            tabBortz.onkeydown = function (e) { handleKey(e, false); };
         }
     }
 

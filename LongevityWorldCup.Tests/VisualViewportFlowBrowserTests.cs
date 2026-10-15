@@ -26,8 +26,7 @@ public sealed class VisualViewportFlowBrowserTests(
         var page = await context.NewPageAsync();
         await page.GotoAsync("/play", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
         await page.WaitForFunctionAsync("() => window.LwcFlowActionDock");
-        // The controller is installed before saved task state resolves. Probe
-        // docking only once the source view is ready to expose its actions.
+        // Let the source task finish restoring before adding viewport probes.
         await page.WaitForFunctionAsync("() => !document.documentElement.hasAttribute('data-initial-view')");
 
         var candidateDocked = await page.EvaluateAsync<bool>(
@@ -136,6 +135,7 @@ public sealed class VisualViewportFlowBrowserTests(
         var page = await context.NewPageAsync();
         await page.GotoAsync("/pheno-age", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
         await page.WaitForFunctionAsync("() => window.LwcFlowActionDock && window.LwcBioageFlow");
+        await page.WaitForFunctionAsync("() => !document.documentElement.hasAttribute('data-initial-view')");
 
         var reveal = await page.EvaluateAsync<VisualViewportRevealResult>(
             """
