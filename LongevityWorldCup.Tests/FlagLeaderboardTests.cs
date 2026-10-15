@@ -89,7 +89,7 @@ public sealed class FlagLeaderboardTests
     }
 
     [Fact]
-    public void UltimateRenderer_LabelsClockSectionsOnce_AndKeepsFlagNamesPlain()
+    public void UltimateRenderer_SeparatesAmateurTrack_AndKeepsFlagNamesPlain()
     {
         var teams = FlagLeaderboard.Build([
             Athlete("b1", "Hungary", -10, -9), Athlete("b2", "Hungary", -10, -8), Athlete("b3", "Hungary", -10, -7),
@@ -97,9 +97,9 @@ public sealed class FlagLeaderboardTests
             Athlete("i1", "Germany", -10)
         ], "ultimate");
         var html = FlagLeaderboardHtmlRenderer.Render(teams, separateClocks: true);
-        var headings = System.Text.RegularExpressions.Regex.Matches(html, "<h3 class=\"flag-section-heading\">(.*?)</h3>")
-            .Select(match => match.Groups[1].Value);
-        Assert.Equal(["Bortz Age", "Pheno Age", "Incomplete teams"], headings);
+        var headings = System.Text.RegularExpressions.Regex.Matches(html, "<h3 class=\"flag-section-heading[^\"]*\"[^>]*>(.*?)</h3>")
+            .Select(match => System.Text.RegularExpressions.Regex.Replace(match.Groups[1].Value, "<[^>]+>", ""));
+        Assert.Equal(["Amateur track |Pheno Age", "Incomplete teams"], headings);
         Assert.Contains("<span>Hungary</span>", html);
         Assert.DoesNotContain("<span>Hungary<small>", html);
         Assert.Contains("years total", html);

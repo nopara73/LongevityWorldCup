@@ -255,6 +255,18 @@ interface AgeVisualizationAthlete {
     readonly lowestBortzAge?: number;
 }
 
+interface AgeVisualizationReading {
+    readonly date: string;
+    readonly bio: number;
+    readonly chrono: number;
+    readonly values: readonly number[];
+}
+
+interface AgeVisualizationHistory {
+    readonly pheno: readonly AgeVisualizationReading[];
+    readonly bortz: readonly AgeVisualizationReading[];
+}
+
 interface RadarData {
     readonly labels: string[];
     readonly values: number[];
@@ -469,7 +481,8 @@ interface Window {
         bioAge: number,
         chronoAge: number,
         athleteData: AgeVisualizationAthlete | null | undefined,
-        athleteResults: readonly AgeVisualizationAthlete[] | null | undefined
+        athleteResults: readonly AgeVisualizationAthlete[] | null | undefined,
+        history?: AgeVisualizationHistory
     ): void;
     generateAgeVisualizationInternal?(
         visualizationContainer: HTMLElement,

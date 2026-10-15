@@ -1169,9 +1169,49 @@ public sealed class AestheticSystemBrowserTests(
                 case "css/leaderboard-content.css":
                     await AssertLeaderboardContainerBoundariesAsync(page, source.ToArray());
                     break;
+                case "css/play-menu.css":
+                    await AssertJoinContainerBoundariesAsync(page, source.ToArray());
+                    break;
                 default:
                     Assert.Fail($"Add a rendered container-boundary probe for {source.Key}.");
                     break;
+            }
+        }
+    }
+
+    private static async Task AssertJoinContainerBoundariesAsync(IPage page, ResponsiveContainerCondition[] conditions)
+    {
+        await NavigateAndSettleAsync(page, "/join");
+        await page.WaitForFunctionAsync("() => !document.getElementById('joinGoProButton')?.disabled");
+        var rootFontSize = await page.EvaluateAsync<double>("() => parseFloat(getComputedStyle(document.documentElement).fontSize)");
+        foreach (var condition in conditions)
+        {
+            Assert.Equal("play-track", condition.Name);
+            Assert.Equal("max", condition.Bound);
+            Assert.Equal(18, condition.Value);
+            Assert.Equal("rem", condition.Unit);
+            var threshold = condition.Value * rootFontSize;
+            foreach (var delta in new[] { -1, 0, 1, 0, -1 })
+            {
+                var width = threshold + delta;
+                var diagnostics = await page.EvaluateAsync<ContainerQueryDiagnostics>(
+                    """
+                    async width => {
+                        const card = document.querySelector('.play-join-card--pro');
+                        card.style.boxSizing = 'content-box';
+                        card.style.inlineSize = `${width}px`;
+                        card.style.maxInlineSize = 'none';
+                        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                        return {
+                            ContainerWidth: parseFloat(getComputedStyle(card).width),
+                            IsCompact: getComputedStyle(card.querySelector('.play-join-ribbon')).position === 'static',
+                            HorizontalOverflow: Math.max(0, card.scrollWidth - card.clientWidth)
+                        };
+                    }
+                    """, width);
+                Assert.Equal(width, diagnostics.ContainerWidth, 1);
+                Assert.Equal(width <= threshold, diagnostics.IsCompact);
+                Assert.True(diagnostics.HorizontalOverflow <= 1, $"Join card overflowed at {width}px.");
             }
         }
     }

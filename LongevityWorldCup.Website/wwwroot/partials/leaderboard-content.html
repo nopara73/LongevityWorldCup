@@ -81,8 +81,13 @@
 
         <div class="leaderboard">
             <div class="sidebar" id="leaderboardFilters">
+                <div class="sidebar-rail" aria-hidden="true">
+                    <div class="sidebar-rail-icon"><i class="fa fa-trophy"></i></div>
+                    <div class="collapsed-title">ULTIMATE LEAGUE</div>
+                </div>
+                <div class="sidebar-panel" inert>
                 <div class="sidebar-heading">
-                <h2 class="sidebar-title" data-aos="fade" data-aos-duration="700" data-aos-delay="200">
+                <h2 class="sidebar-title">
                     <span class="sidebar-icon"><i class="fa fa-trophy"></i></span>
                     <span class="sidebar-title-text">Leagues</span>
                 </h2>
@@ -94,7 +99,6 @@
                 <button class="sidebar-close" aria-label="Hide league filters" title="Hide league filters"><i class="fa fa-times"></i></button>
                 </div>
                 </div>
-                <div class="collapsed-title" data-aos="fade" data-aos-duration="700" data-aos-delay="200">ULTIMATE LEAGUE</div>
                 <div class="sidebar-filter-list">
                 <div class="filter-section" id="aging-clock-filter-section">
                     <h3>Aging clocks</h3>
@@ -135,7 +139,7 @@
                     <h3>Tracks</h3>
                     <ul></ul> <!-- This will be populated dynamically -->
                 </div>
-                <div class="filter-section" id="division-filter-section" data-aos="fade" data-aos-duration="700" data-aos-delay="200">
+                <div class="filter-section" id="division-filter-section">
                     <h3>Divisions</h3>
                     <ul></ul> <!-- This will be populated dynamically -->
                 </div>
@@ -154,6 +158,7 @@
                 </div>
                 </div>
                 <div class="sidebar-results"><button type="button" class="sidebar-show-results" id="showLeaderboardResults">Show results</button></div>
+                </div>
             </div>
             <div id="leaderboardStatus" class="leaderboard-status" role="status" aria-live="polite" aria-atomic="true">Loading leaderboard...</div>
             <div id="flagLeaderboard" class="flag-leaderboard" aria-label="Flag rankings"><!--FLAG-LEADERBOARD--></div>
