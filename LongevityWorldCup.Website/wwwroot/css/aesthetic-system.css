@@ -681,7 +681,7 @@ body.proof-review-open { overflow: hidden; }
     .proof-review-zoom { grid-column: 1 / -1; margin-left: 0 !important; }
 }
 @media (max-width: 360px) {
-    .proof-page-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 6rem), 1fr)); }
+    .proof-page-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 7rem), 1fr)); }
     .proof-page-preview img { height: 128px; }
 }
 
