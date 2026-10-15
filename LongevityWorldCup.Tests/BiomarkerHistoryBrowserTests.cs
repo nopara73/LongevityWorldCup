@@ -288,7 +288,7 @@ public sealed class BiomarkerHistoryBrowserTests(
             Assert.True(tooltip.GetProperty("fits").GetBoolean());
             Assert.False(tooltip.GetProperty("focused").GetBoolean());
         }
-        await SaveReviewScreenshotAsync(page.Locator(".result-detail-row:not([hidden]) .result-detail"), $"alt-scatter-{width}.png");
+        await SaveReviewScreenshotAsync(page.Locator(".result-detail-row:not([hidden]) .result-detail"), $"alt-scatter-{width}.png", Row(page, "ALT (U/L)"));
         if (!touch)
         {
             await page.Mouse.MoveAsync(0, 0);
@@ -390,13 +390,14 @@ public sealed class BiomarkerHistoryBrowserTests(
         await SaveReviewScreenshotAsync(page.Locator("#athlete-biomarkers"), $"clock-history-{width}-{count}-{direct}.png");
     }
 
-    private static async Task SaveReviewScreenshotAsync(ILocator section, string name)
+    private static async Task SaveReviewScreenshotAsync(ILocator section, string name, ILocator? summaryRow = null)
     {
         var directory = Environment.GetEnvironmentVariable("LWC_UI_ARTIFACT_DIR");
         if (string.IsNullOrWhiteSpace(directory)) return;
         Directory.CreateDirectory(directory);
-        await section.GetByRole(AriaRole.Heading).First.ScrollIntoViewIfNeededAsync();
-        var bounds = (await section.BoundingBoxAsync())!;
+        if (summaryRow is null) await section.GetByRole(AriaRole.Heading).First.ScrollIntoViewIfNeededAsync();
+        else await summaryRow.GetByRole(AriaRole.Button).ScrollIntoViewIfNeededAsync();
+        var bounds = (await (summaryRow ?? section).BoundingBoxAsync())!;
         var viewport = section.Page.ViewportSize!;
         var left = Math.Max(0, bounds.X);
         var top = Math.Max(0, bounds.Y);

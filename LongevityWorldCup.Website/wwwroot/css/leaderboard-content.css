@@ -1828,9 +1828,10 @@
      content:none;
      display:none;
  }
- #detailsModal #biomarkerResultList{ max-width:100%; overflow-x:auto; }
+ #detailsModal #biomarkerResultList{ --result-content-inset:var(--lwc-space-3, .75rem); max-width:100%; overflow-x:auto; }
  #detailsModal .biomarker-overview-range{
      margin:0 0 .3rem;
+     padding-inline:var(--result-content-inset);
      color:var(--athlete-modal-muted);
      font-size:.8rem;
      font-variant-numeric:tabular-nums;
@@ -1853,7 +1854,7 @@
  #detailsModal .biomarker-overview-table > thead > tr > th:first-child,
  #detailsModal .biomarker-overview-table > tbody > .result-summary > th:first-child{
      width:36%;
-     padding-left:0;
+     padding-left:var(--result-content-inset);
      text-align:left;
  }
  #detailsModal .biomarker-overview-table > thead > tr > th:last-child,
@@ -1995,7 +1996,7 @@
      width:100%;
      min-width:0;
      contain:inline-size;
-     padding:1rem .6rem;
+     padding:1rem var(--result-content-inset);
      margin:0 0 .65rem;
      border-bottom:1px solid var(--athlete-modal-border);
      background:var(--athlete-modal-chart-panel);
@@ -2037,7 +2038,7 @@
  #detailsModal .biomarkers-section [hidden]{ display:none !important; }
  @media (max-width:400px){
      #detailsModal .result-clock .biomarker-overview-current{ font-size:1.1rem; }
-     #detailsModal .result-detail{ padding:.8rem .2rem; }
+     #detailsModal .result-detail{ padding-block:.8rem; }
      #detailsModal .result-plot{ height:260px; }
  }
  @media (max-width:360px){
@@ -3866,6 +3867,10 @@
          opacity: 0; transform: translateX(-8px); visibility: hidden; pointer-events: none;
          transition: opacity var(--sidebar-motion-duration) var(--lwc-ease, ease), transform var(--sidebar-motion-duration) var(--lwc-ease, ease), visibility 0s linear var(--sidebar-motion-duration);
      }
+     /* An explicitly opened panel keeps its own scroll area even for short or
+        empty results. Give its rail room so the board cannot clip it. */
+     .sidebar.expanded:not(.button-collapsed):not([aria-hidden="true"]) { height: max(var(--leaderboard-table-height), var(--leaderboard-title-height, 0px), var(--leaderboard-sidebar-viewport-height)); }
+     .sidebar.expanded .sidebar-panel { max-height: var(--leaderboard-sidebar-viewport-height); }
      .sidebar:is(:hover, .expanded):not(.button-collapsed):not([aria-hidden="true"]) .sidebar-panel { --sidebar-panel-open: 1; opacity: 1; transform: none; visibility: visible; pointer-events: auto; transition-delay: 0s; }
      .sidebar:is(:hover, .expanded):not(.button-collapsed):not([aria-hidden="true"]) .sidebar-rail { opacity: 0; }
      .sidebar .sidebar-heading,
