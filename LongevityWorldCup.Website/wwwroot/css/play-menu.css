@@ -364,28 +364,30 @@ html.play-panel-transitioning .play-hub-panel--entering {
     max-width: 1100px;
 }
 
+/* A lead line under the title, not a boxed notice. */
 .play-join-intro {
-    width: min(100%, 760px);
-    margin: 0 auto 1.25rem;
-    padding: 0.85rem 1rem;
-    border-radius: 8px;
-    border: 1px solid var(--lwc-border, #d7e0e6);
-    background: var(--lwc-surface-muted, #f8f9fa);
+    width: min(100%, 48rem);
+    margin: 0 auto 1.5rem;
+    padding: 0;
     color: var(--lwc-ink, #17212b);
-    font-size: 0.95rem;
+    font-size: 1.05rem;
+    line-height: 1.5;
     text-align: center;
+    text-wrap: balance;
     box-sizing: border-box;
 }
 
+/* Side by side while both cards have room; enlarged text stacks them instead of splitting words. */
 .play-join-cards {
     width: 100%;
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
     gap: 1.5rem;
-    align-items: start;
+    align-items: stretch;
 }
 
 .play-join-card {
+    container: play-track / inline-size;
     position: relative;
     display: flex;
     flex-direction: column;
@@ -408,7 +410,7 @@ html.play-panel-transitioning .play-hub-panel--entering {
 
 .play-join-ribbon-slot {
     grid-row: 1;
-    position: relative;
+    position: static;
     width: 100%;
     height: 0;
     min-height: 0;
@@ -417,8 +419,8 @@ html.play-panel-transitioning .play-hub-panel--entering {
 
 .play-join-ribbon {
     position: absolute;
-    top: -1.5rem;
-    right: -1.5rem;
+    top: 0;
+    right: 0;
     overflow: hidden;
     width: 128px;
     height: 128px;
@@ -479,22 +481,26 @@ html.play-panel-transitioning .play-hub-panel--entering {
     color: var(--lwc-muted, #526373);
 }
 
+/* Label and value share a row; a value drops under its label when enlarged text leaves no room. */
 .play-join-meta {
-    display: grid;
-    grid-template-columns: minmax(7em, auto) 1fr;
+    display: flex;
+    flex-wrap: wrap;
     gap: 0.45rem 1rem;
     align-items: baseline;
-    margin: 0;
+    margin: 0 0 1.25rem;
     padding: 0;
     color: var(--lwc-muted, #526373);
 }
 
 .play-join-meta dt {
+    flex: 0 0 7.5em;
     font-weight: 700;
     color: var(--lwc-muted, #526373);
 }
 
 .play-join-meta dd {
+    flex: 1 1 calc(100% - 7.5em - 1rem);
+    min-width: 5.5em;
     margin: 0;
     color: var(--lwc-ink, #1e293b);
     font-variant-numeric: tabular-nums;
@@ -505,7 +511,7 @@ html.play-panel-transitioning .play-hub-panel--entering {
     flex-direction: column;
     align-items: flex-start;
     gap: 0.35rem;
-    min-width: 0;
+    min-width: min(100%, 10rem);
 }
 
 .play-join-card--pro .play-join-details {
@@ -519,20 +525,19 @@ html.play-panel-transitioning .play-hub-panel--entering {
     flex-direction: column;
 }
 
+/* Biomarkers sit just above the card's action, so both cards line up row for row. */
 .play-join-biomarkers {
-    margin-top: 0.75rem;
-    padding: 0.72rem 0.9rem 0.85rem;
-    border-radius: var(--lwc-radius-md);
-    border: 1px solid var(--lwc-border, #e2e8f0);
-    border-left: 3px solid var(--lwc-muted, #526373);
-    background: var(--lwc-surface-muted, #f8fafc);
+    margin-top: auto;
+    padding: 0;
+    border: 0;
+    border-block: 1px solid var(--lwc-border, #e2e8f0);
+    border-radius: 0;
+    background: transparent;
     box-shadow: none;
 }
 
 .play-join-card--pro .play-join-biomarkers {
-    border-color: var(--lwc-border);
-    border-left-color: var(--lwc-success);
-    background: var(--lwc-surface-muted);
+    border-color: color-mix(in srgb, var(--lwc-success, #2e7d32) 35%, transparent);
 }
 
 .play-join-biomarkers details {
@@ -544,15 +549,26 @@ html.play-panel-transitioning .play-hub-panel--entering {
     align-items: center;
     justify-content: space-between;
     gap: 0.75rem;
-    min-height: 44px;
+    min-height: 48px;
+    padding-block: 0.35rem;
+    border-radius: 6px;
     cursor: pointer;
     list-style: none;
-    font-size: var(--lwc-type-sm);
+    font-size: 1rem;
     font-weight: 700;
     text-transform: none;
     letter-spacing: 0;
-    color: var(--lwc-muted, #526373);
-    line-height: 1.5;
+    color: var(--lwc-ink, #17212b);
+    line-height: 1.4;
+}
+
+.play-join-biomarkers summary:hover {
+    color: var(--lwc-accent-hover, #0f6d7a);
+}
+
+.play-join-biomarkers summary:focus-visible {
+    outline: 3px solid var(--lwc-accent, #087685);
+    outline-offset: 2px;
 }
 
 .play-join-card--pro .play-join-biomarkers summary {
@@ -568,7 +584,7 @@ html.play-panel-transitioning .play-hub-panel--entering {
     flex: 0 0 auto;
     width: 0.55rem;
     height: 0.55rem;
-    margin-right: 0.15rem;
+    margin-right: 0.35rem;
     border-right: 2px solid currentColor;
     border-bottom: 2px solid currentColor;
     transform: rotate(45deg);
@@ -576,19 +592,26 @@ html.play-panel-transitioning .play-hub-panel--entering {
 }
 
 .play-join-biomarkers details[open] summary {
-    margin-bottom: 0.55rem;
+    margin-bottom: 0.25rem;
 }
 
 .play-join-biomarkers details[open] summary::after {
     transform: rotate(-135deg);
 }
 
+/* Two columns once the card is wide enough, so 22 biomarkers stay short. */
 .play-join-biomarkers ul {
     margin: 0;
-    padding-left: 1.1rem;
+    padding: 0 0 0.85rem 1.1rem;
+    columns: 2 13rem;
+    column-gap: 2rem;
     font-size: var(--lwc-type-sm);
     line-height: 1.5;
     color: var(--lwc-ink, #334155);
+}
+
+.play-join-biomarkers li {
+    break-inside: avoid;
 }
 
 .play-join-card--pro .play-join-biomarkers ul {
@@ -598,8 +621,7 @@ html.play-panel-transitioning .play-hub-panel--entering {
 .play-join-card-actions {
     width: 100%;
     max-width: none;
-    margin-top: auto;
-    padding-top: 1rem;
+    padding-top: 1.25rem;
 }
 
 .play-join-card-actions .flow-action {
@@ -650,6 +672,25 @@ html.play-panel-transitioning .play-hub-panel--entering {
     font-size: 0.95rem;
 }
 
+.play-join-actions #joinTrackBackBtn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    padding-inline: 0.65rem;
+}
+
+.play-join-actions #joinTrackBackBtn > i {
+    position: static;
+    width: auto;
+    transform: none;
+}
+
+.play-join-actions #joinTrackBackBtn .flow-action__label {
+    width: auto;
+    margin: 0;
+}
+
 @media (min-width: 960px) and (max-height: 820px) {
     .play-join-panel {
         padding-top: 1.25rem;
@@ -660,8 +701,7 @@ html.play-panel-transitioning .play-hub-panel--entering {
     }
 
     .play-join-intro {
-        margin-bottom: 0.85rem;
-        padding-block: 0.65rem;
+        margin-bottom: 1rem;
     }
 
     .play-join-card {
@@ -678,11 +718,7 @@ html.play-panel-transitioning .play-hub-panel--entering {
 
     .play-join-meta {
         gap: 0.32rem 0.85rem;
-    }
-
-    .play-join-biomarkers {
-        margin-top: 0.55rem;
-        padding: 0.55rem 0.75rem 0.65rem;
+        margin-bottom: 0.9rem;
     }
 
     .play-join-card-actions {
@@ -1105,7 +1141,7 @@ html.play-panel-transitioning .play-hub-panel--entering {
     }
 
     .play-join-card {
-        padding: 1.35rem;
+        padding: 1.35rem min(1.35rem, 22px);
     }
 
     .play-join-card-actions {
@@ -1176,7 +1212,6 @@ html.play-panel-transitioning .play-hub-panel--entering {
     }
 
     .play-join-meta {
-        grid-template-columns: minmax(6.5em, auto) 1fr;
         gap: 0.4rem 0.8rem;
     }
 
@@ -1279,8 +1314,6 @@ html.play-panel-transitioning .play-hub-panel--entering {
     }
 
     .play-join-ribbon {
-        top: -1.25rem;
-        right: -1.25rem;
         width: 108px;
         height: 108px;
     }
@@ -1437,8 +1470,7 @@ html.play-panel-transitioning .play-hub-panel--entering {
     }
 
     .play-join-intro {
-        margin-bottom: 0.85rem;
-        padding-block: 0.65rem;
+        margin-bottom: 1rem;
     }
 
     .play-join-card {
@@ -1453,9 +1485,8 @@ html.play-panel-transitioning .play-hub-panel--entering {
         margin-bottom: 0.7rem;
     }
 
-    .play-join-biomarkers {
-        margin-top: 0.55rem;
-        padding: 0.55rem 0.75rem 0.65rem;
+    .play-join-meta {
+        margin-bottom: 0.9rem;
     }
 
     .play-join-biomarkers summary {
@@ -1585,8 +1616,12 @@ html.play-panel-transitioning .play-hub-panel--entering {
     }
 
     .play-join-meta {
-        grid-template-columns: 1fr;
         gap: 0.15rem;
+    }
+
+    .play-join-meta dt,
+    .play-join-meta dd {
+        flex-basis: 100%;
     }
 
     .play-athlete-visual,
@@ -1645,6 +1680,82 @@ html.play-panel-transitioning .play-hub-panel--entering {
 
     html.play-panel-transitioning .play-hub-panel--entering {
         animation: none;
+    }
+}
+
+/* Keep enlarged phone text from spending its available width on gutters. */
+@media (max-width: 600px) {
+    .play-hub-main:has(.play-join-panel:not([hidden])) {
+        padding-inline: min(1.35rem, 22px);
+    }
+}
+
+/* The corner ribbon becomes a badge when text no longer fits beside it. */
+@container play-track (max-width: 18rem) {
+    .play-join-card h2 {
+        padding-right: 0;
+    }
+
+    .play-join-card .track-name {
+        font-size: min(1.6rem, 15cqi);
+        white-space: nowrap;
+    }
+
+    .play-join-ribbon-slot {
+        height: auto;
+        margin-bottom: 0.75rem;
+    }
+
+    .play-join-ribbon {
+        position: static;
+        display: inline-block;
+        width: auto;
+        height: auto;
+        border-radius: 4px;
+    }
+
+    .play-join-ribbon > span {
+        position: static;
+        width: auto;
+        padding: 0.3em 0.6em;
+        font-size: 0.75rem;
+        transform: none;
+        box-shadow: none;
+    }
+}
+
+.play-join-card .pro-discount-line {
+    flex-wrap: wrap;
+}
+
+.play-join-card .pro-discount-text {
+    flex: 1 1 6em;
+}
+
+/* Intrinsic action widths keep words readable when enlarged text needs more rows. */
+@media (max-width: 600px), (min-width: 640px) and (max-width: 932px) and (max-height: 480px) and (orientation: landscape) {
+    .play-join-actions.flow-action-stack--docked {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+
+    .play-join-actions.flow-action-stack--docked .flow-action {
+        flex: 1 1 max-content;
+        width: auto;
+        margin-inline: 0;
+        padding-inline: min(0.65rem, 12px);
+        overflow-wrap: normal;
+    }
+
+    .play-join-actions.flow-action-stack--docked #joinTrackBackBtn {
+        flex: 0 0 auto;
+        width: auto;
+        order: -1;
+    }
+
+    .play-join-actions.flow-action-stack--docked #joinTrackBackBtn .flow-action__label {
+        margin: 0;
     }
 }
 
