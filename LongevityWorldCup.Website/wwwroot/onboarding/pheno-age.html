@@ -246,10 +246,6 @@
                 min-width: 0 !important;
             }
 
-            .biomarker-card-content .input-group input.bioage-input-has-comparison {
-                padding-right: 7.8rem;
-            }
-
         .bioage-input-comparison-chip {
             position: static;
             align-self: flex-end;
@@ -305,10 +301,6 @@
             }
 
         @media (max-width: 420px) {
-            .biomarker-card-content .input-group input.bioage-input-has-comparison {
-                padding-right: 6.6rem;
-            }
-
             .bioage-input-comparison-chip {
                 max-width: 100%;
                 font-size: 0.68rem;
@@ -741,7 +733,7 @@
         /* --- LWC 2-step wizard --- */
         .lwc-steps-shell {
             position: relative;
-            width: calc(100vw - 2rem);
+            width: calc(100vw - min(2rem, 32px));
             max-width: 780px;
             margin: 0 auto;
             box-sizing: border-box;
@@ -906,9 +898,9 @@
                     <fieldset>
                         <legend><i class="fas fa-virus category-icon" aria-hidden="true"></i>Immune</legend>
                         <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">
+                            <div class="biomarker-card-header">
                                 White blood cell count (WBC)
-                                <span class="toggle-icon">+</span>
+                                <span class="toggle-icon" aria-hidden="true"></span>
                             </div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
@@ -923,9 +915,9 @@
                         </div>
 
                         <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">
+                            <div class="biomarker-card-header">
                                 Lymphocytes
-                                <span class="toggle-icon">+</span>
+                                <span class="toggle-icon" aria-hidden="true"></span>
                             </div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
@@ -941,9 +933,9 @@
                         </div>
 
                         <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">
+                            <div class="biomarker-card-header">
                                 Mean corpuscular volume (MCV)
-                                <span class="toggle-icon">+</span>
+                                <span class="toggle-icon" aria-hidden="true"></span>
                             </div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
@@ -957,9 +949,9 @@
                         </div>
 
                         <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">
+                            <div class="biomarker-card-header">
                                 Red cell distribution width (RDW, RDW-CV)
-                                <span class="toggle-icon">+</span>
+                                <span class="toggle-icon" aria-hidden="true"></span>
                             </div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
@@ -976,9 +968,9 @@
                     <fieldset>
                         <legend><i class="fas fa-droplet category-icon" aria-hidden="true"></i>Liver</legend>
                         <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">
+                            <div class="biomarker-card-header">
                                 Albumin
-                                <span class="toggle-icon">+</span>
+                                <span class="toggle-icon" aria-hidden="true"></span>
                             </div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
@@ -993,9 +985,9 @@
                         </div>
 
                         <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">
+                            <div class="biomarker-card-header">
                                 Alkaline phosphatase (ALP)
-                                <span class="toggle-icon">+</span>
+                                <span class="toggle-icon" aria-hidden="true"></span>
                             </div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
@@ -1013,9 +1005,9 @@
                     <fieldset>
                         <legend><i class="fas fa-toilet category-icon" aria-hidden="true"></i>Kidney</legend>
                         <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">
+                            <div class="biomarker-card-header">
                                 Creatinine
-                                <span class="toggle-icon">+</span>
+                                <span class="toggle-icon" aria-hidden="true"></span>
                             </div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
@@ -1033,9 +1025,9 @@
                     <fieldset>
                         <legend><i class="fas fa-fire category-icon" aria-hidden="true"></i>Metabolism</legend>
                         <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">
+                            <div class="biomarker-card-header">
                                 Glucose
-                                <span class="toggle-icon">+</span>
+                                <span class="toggle-icon" aria-hidden="true"></span>
                             </div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
@@ -1053,9 +1045,9 @@
                     <fieldset>
                         <legend><i class="fas fa-temperature-three-quarters category-icon" aria-hidden="true"></i>Inflammation</legend>
                         <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">
+                            <div class="biomarker-card-header">
                                 C-reactive protein (CRP)
-                                <span class="toggle-icon">+</span>
+                                <span class="toggle-icon" aria-hidden="true"></span>
                             </div>
                             <div class="biomarker-card-content">
                                 <div class="crp-container">
@@ -2183,12 +2175,7 @@
                     active.classList.add('lwc-step--visible');
                     active.style.pointerEvents = 'auto';
 
-                    // ensure any pre-expanded biomarker cards get correct heights
-                    // once the step is actually visible (covers fake=1 prefill case)
                     if (step === 2) {
-                        recalcOpenBiomarkerHeightsLwc();
-                        // run again on next tick to catch late layout/ fonts
-                        setTimeout(recalcOpenBiomarkerHeightsLwc, 60);
                         if (shouldFocus && window.matchMedia(
                             '(max-width: 760px), (max-width: 1024px) and (max-height: 600px) and (orientation: landscape)'
                         ).matches) {
@@ -2221,21 +2208,6 @@
             }
         }
 
-
-        function recalcOpenBiomarkerHeightsLwc() {
-            document
-                .querySelectorAll('.biomarker-card.active .biomarker-card-content')
-                .forEach(content => {
-                    // remove any inline maxHeight to measure natural size
-                    content.style.maxHeight = 'none';
-                    const full = content.scrollHeight;
-                    // re-apply the correct height so transition rules remain intact
-                    content.style.maxHeight = full + 'px';
-                    // make sure vertical padding is present for visible cards
-                    content.style.paddingTop = '0.75rem';
-                    content.style.paddingBottom = '0.75rem';
-                });
-        }
 
         function lwcValidateStep1(silent) {
             // validate DOB year + blood draw date (reuse existing validation)
@@ -2425,17 +2397,9 @@
                 document.getElementById(bioId).value = '';
             });
 
-            // collapse every card
+            // Clear the previous entry's highlight; fields stay open in the sheet.
             document.querySelectorAll('.biomarker-card.active').forEach(card => {
-                const hdr = card.querySelector('.biomarker-card-header');
-                const icn = hdr.querySelector('.toggle-icon');
-                const cnt = card.querySelector('.biomarker-card-content');
                 card.classList.remove('active');
-                hdr.setAttribute('aria-expanded', 'false');
-                icn.style.display = '';
-                cnt.style.maxHeight = '0';
-                cnt.style.paddingTop = '0';
-                cnt.style.paddingBottom = '0';
             });
 
             // cos this shitty function wiped it all

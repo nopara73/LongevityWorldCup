@@ -184,12 +184,8 @@ public sealed class FormValidationBrowserTests(
         await Assertions.Expect(page.Locator(".bioage-biomarker-error:visible")).ToHaveCountAsync(0);
         await page.EvaluateAsync("id => window.LwcBioageFlow.expandBiomarkerCard(id)", secondInputId);
         await second.FocusAsync();
-        // Desktop cards collapse behind their headers; mobile entry keeps
-        // the inputs directly accessible and its headers are noninteractive.
-        if (width > 768)
-            await page.Locator(".biomarker-card:has(#wbc) .biomarker-card-header").ClickAsync();
-        else
-            await first.ClickAsync();
+        // Every width keeps the inputs open; their headers are noninteractive.
+        await first.ClickAsync();
         await Assertions.Expect(page.Locator(".bioage-biomarker-error:visible")).ToHaveCountAsync(0);
     }
 

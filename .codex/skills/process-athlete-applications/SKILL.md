@@ -154,7 +154,7 @@ For ordinary/full-application replies, prefer requester `Reply-To` or `Account e
 
 ## Reply Content
 
-Continue the latest direct exchange in a warm, concise human voice. Match demonstrated sender style from actual correspondence (brevity, punctuation, emoji, headings, calls to action). Avoid stacked prose praise; repeated completion emoji may fit established style. Greet only in the first direct human reply in a thread. Acknowledge relevant supplied proof/corrections, not unrelated side topics.
+Continue the latest direct exchange in a warm, concise human voice. The conversation and user-approved wording take precedence over a generic welcome template. Match demonstrated sender style from actual correspondence (brevity, punctuation, emoji, headings, calls to action). Avoid stacked prose praise; repeated completion emoji may fit established style. Greet only in the first direct human reply in a thread. Acknowledge relevant supplied proof/corrections, not unrelated side topics. Before saving, compare the reply with the latest inbound and prior human replies, including related threads; remove repeated introductions, already-covered requests, and unrelated promotional copy.
 
 Do not use em dashes in newly written replies. Use periods or commas instead; preserve original quoted correspondence unchanged.
 
@@ -162,9 +162,11 @@ Language priority: explicit user/athlete instruction; otherwise a clearly non-En
 
 For new applications blocked by missing evidence, introduce Adam on first contact and ask only about the confirmed blocker. If unpaid, tell them to hold off paying until the evidence can be verified; if already paid and the evidence may not exist, offer a refund. Request only the missing markers, same-draw evidence, or safe proof needed, not a premature payment.
 
-Every accepted full-application welcome briefly introduces Adam as LWC's founder, even after requested corrections. Include acceptance, the new profile link, and an invitation to report corrections. Acknowledge the actual preceding exchange without repeating an earlier greeting.
+An introduction belongs only on first direct human contact when needed, not automatically at acceptance. Never repeat Adam's name/founder introduction after requested corrections or when prior correspondence has already introduced him. Do not restart a welcome script because the application has become acceptable.
 
-When review substantively corrects athlete-submitted information, include `Changes I made during the review:` with one short bullet per substantive change, showing submitted versus stored values/units where relevant. Place it before a new profile link; for existing-athlete updates it may be the entire substantive body. Never mention tiny unit-conversion or rounding differences in athlete emails (for example, 71.99 → 72 U/L or 35.39 → 35.4 U/L); record them only in the private review/ledger. Omit the section when no substantive corrections occurred. Exclude routine processing, redaction, filenames, internal details, and normal result additions; never invent changes.
+For accepted applications, lead with a brief, warm confirmation suited to the preceding exchange, then the new profile link. Follow with substantive review changes when relevant. Invite corrections only when useful; do not pad the reply with branding or generic praise.
+
+When review substantively corrects athlete-submitted information, include `Changes I made during the review:` with one short bullet per substantive change, showing submitted versus stored values/units where relevant. Place it after the warm confirmation and any useful profile link, not as an abrupt standalone opening. Never mention tiny unit-conversion or rounding differences in athlete emails (for example, 71.99 → 72 U/L or 35.39 → 35.4 U/L); record them only in the private review/ledger. Omit the section when no substantive corrections occurred. Exclude routine processing, redaction, filenames, internal details, and normal result additions; never invent changes.
 
 Existing-athlete replies normally omit repeated greeting, generic profile-updated text, unchanged/known URL, founder introduction, Slack invitation, signature, and unnecessary calls to action. Include links only for new/changed profiles, when requested, or when useful to resolve the request. With no correction/action, a brief sender-appropriate completion line is sufficient.
 
@@ -178,13 +180,7 @@ Changes I made during the review:
 - Your MCV was submitted as 84.7 fL, but the proof shows 86.7 fL, so I stored 86.7 fL.
 ```
 
-Include the following only in the first accepted full-application welcome if history shows it has not already been sent, unless explicitly requested elsewhere:
-
-```text
-Want to hang out with other longevity athletes? Join the #longevity-world-cup room on the TumbleBit Slack!
-```
-
-In Gmail rich text, hyperlink only `TumbleBit Slack` to `https://join.slack.com/t/tumblebit/shared_invite/zt-2wzmjg6tg-PRup8nbL7GxViJzofNoBFQ`. Keep it last, with no visible raw URL or following signature. Remove sentences adding neither information/action nor demonstrated human voice.
+Do not automatically append Slack/community invitations or other promotional copy to acceptance replies. Include a community invitation only when the user explicitly asks or it directly answers the athlete's question. Remove sentences adding neither relevant information/action nor demonstrated human voice.
 
 ## Approval Summary
 

@@ -175,8 +175,9 @@ interface FlowActionDockApi {
             if (label) label.dataset.flowDockLabel = action.dataset.flowDockLabel;
         });
         const backAction = visibleActions.find(isBackAction);
+        // A primary action keeps its slot while disabled (shown as secondary), so the dock does not jump.
         const primaryAction = visibleActions.find(action =>
-            action !== backAction && !action.classList.contains('flow-action--secondary'));
+            action !== backAction && (action.matches(':disabled') || !action.classList.contains('flow-action--secondary')));
 
         element.classList.toggle(singleBackActionClass, visibleActions.length === 1 && isBackAction(visibleActions[0]));
         element.classList.toggle(backPrimaryActionClass, visibleActions.length === 2 && !!backAction && !!primaryAction);

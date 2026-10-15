@@ -998,7 +998,7 @@ public sealed class BioageFlowBrowserTests(
         var input = page.Locator(inputSelector);
         var card = input.Locator("xpath=ancestor::*[contains(concat(' ', normalize-space(@class), ' '), ' biomarker-card ')]");
         if (!await card.EvaluateAsync<bool>("element => element.classList.contains('active')"))
-            await card.Locator(".biomarker-card-header").ClickAsync();
+            await input.FocusAsync();
         await page.WaitForFunctionAsync(
             "selector => document.querySelector(selector)?.closest('.biomarker-card')?.classList.contains('active') === true",
             inputSelector);

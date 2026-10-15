@@ -8,6 +8,26 @@ public sealed class EventFeedBrowserTests(PlaywrightBrowserFixture browserFixtur
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Theory]
+    [InlineData(360)]
+    [InlineData(1280)]
+    public async Task InitialHeadingScroll_RespectsReducedMotion(int width)
+    {
+        await using var context = await HomepageChromeRegressionBrowserTests.NewContextAsync(Browser, App, ReducedMotion.Reduce);
+        var page = await context.NewPageAsync();
+        await page.SetViewportSizeAsync(width, 850);
+        await page.Clock.InstallAsync(new() { Time = "2026-10-15T10:00:00Z" });
+        await page.Clock.PauseAtAsync("2026-10-15T10:00:01Z");
+        await page.GotoAsync("/events", new() { WaitUntil = WaitUntilState.Load });
+        await page.EvaluateAsync("() => document.fonts.ready");
+
+        await page.Clock.RunForAsync(500);
+
+        var offset = await page.Locator(".event-board-heading").EvaluateAsync<double>(
+            "heading => Math.abs(heading.getBoundingClientRect().top - parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop))");
+        Assert.InRange(offset, 0, 1);
+    }
+
+    [Theory]
     [InlineData(320, 850, 100)]
     [InlineData(320, 850, 200)]
     [InlineData(390, 850, 200)]
