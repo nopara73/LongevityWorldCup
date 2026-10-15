@@ -107,6 +107,51 @@ public sealed class AutocompleteInteractionBrowserTests(
     }
 
     [Theory]
+    [InlineData(1440, 900)]
+    [InlineData(390, 844)]
+    public async Task ApplyFlagSuggestions_RemainClickableBeyondTheStageCard(int width, int height)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = height },
+            ReducedMotion = ReducedMotion.Reduce,
+            IsMobile = width < 600,
+            HasTouch = width < 600
+        });
+        var page = await PrepareAsync(context, "/apply");
+        await page.EvaluateAsync("async () => { await document.fonts.ready; window.LwcFlowActionDock?.refreshNow(); await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))); }");
+        var input = page.Locator("#flag");
+        await input.FillAsync("");
+        await input.FocusAsync();
+        var list = page.Locator("#flag-autocomplete-list");
+        await list.WaitForAsync();
+        await AssertPopupFitsAsync(list);
+
+        // Bounds alone still pass when an ancestor clips the popup's painted, clickable area.
+        var obscuredOptions = await list.EvaluateAsync<string[]>(
+            """
+            popup => {
+                const bounds = popup.getBoundingClientRect();
+                return Array.from(popup.children).filter(option => {
+                    const rect = option.getBoundingClientRect();
+                    const top = Math.max(rect.top, bounds.top + popup.clientTop);
+                    const bottom = Math.min(rect.bottom, bounds.bottom - 4);
+                    if (bottom - top < 8) return false;
+                    const hit = document.elementFromPoint(rect.left + rect.width / 2, (top + bottom) / 2);
+                    return !hit || !option.contains(hit);
+                }).map(option => option.textContent.trim());
+            }
+            """);
+        Assert.Empty(obscuredOptions);
+
+        var option = list.GetByRole(AriaRole.Option).Nth(3);
+        var selectedFlag = await option.InnerTextAsync();
+        await option.ClickAsync();
+        Assert.Equal(selectedFlag, await input.InputValueAsync());
+        Assert.Equal("false", await input.GetAttributeAsync("aria-expanded"));
+    }
+
+    [Theory]
     [InlineData("/apply", "flag")]
     [InlineData("/edit-profile", "flagDisplayInput")]
     public async Task FreeformFlags_AllowEmptyResultsAndArrowKeysWithoutErrors(string path, string id)
