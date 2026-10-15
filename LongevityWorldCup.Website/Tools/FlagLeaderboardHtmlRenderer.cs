@@ -12,12 +12,15 @@ public static class FlagLeaderboardHtmlRenderer
         var previousSection = "";
         foreach (var team in teams)
         {
-            var section = team.Rank.HasValue ? separateClocks ? FlagLeaderboard.Label(team.View) : "" : "Incomplete teams";
-            if (section.Length > 0 && section != previousSection)
-                html.Append($"<h3 class=\"flag-section-heading\">{section}</h3>");
+            var section = team.Rank.HasValue ? separateClocks ? team.View : "" : "incomplete";
+            var isAmateur = section == "pheno";
+            if (isAmateur && previousSection == "bortz")
+                html.Append("<h3 class=\"flag-section-heading tier-separator tier-separator-cell\" aria-label=\"Start of Amateur track (Pheno Age) section\"><span class=\"tier-separator-label\">Amateur track |<a href=\"https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/pheno-age.pdf\" target=\"_blank\" rel=\"noopener\" class=\"tier-separator-link\">Pheno Age</a></span></h3>");
+            else if (section == "incomplete" && section != previousSection)
+                html.Append("<h3 class=\"flag-section-heading\">Incomplete teams</h3>");
             previousSection = section;
             var rank = team.Rank?.ToString() ?? "—";
-            html.Append($"<details class=\"flag-team\" id=\"flag-team-{team.Flag.Slug}\" data-clock=\"{team.View}\" data-flag=\"{Encode(team.Flag.Name)}\">")
+            html.Append($"<details class=\"flag-team{(isAmateur ? " tier-amateur" : "")}\" id=\"flag-team-{team.Flag.Slug}\" data-clock=\"{team.View}\" data-flag=\"{Encode(team.Flag.Name)}\">")
                 .Append($"<summary title=\"{FlagLeaderboard.Label(team.View)}\"><span class=\"flag-team-rank\" aria-label=\"{(team.Rank.HasValue ? "Rank " + rank : "Unranked")}\">{rank}</span>")
                 .Append($"<span class=\"flag-team-name\"><span class=\"flag-team-icon\" aria-hidden=\"true\">{Icon(team.Flag.Name)}</span><span>{Encode(team.Flag.Name)}</span></span>")
                 .Append("<span class=\"flag-team-portraits\" aria-hidden=\"true\">");
