@@ -18,68 +18,191 @@ public sealed class BiomarkerHistoryBrowserTests(
     [Theory]
     [InlineData(1280, false, 100)]
     [InlineData(390, true, 100)]
-    [InlineData(320, false, 100)]
+    [InlineData(320, true, 100)]
     [InlineData(320, true, 200)]
-    public async Task Table_PreservesRawValuesUnitsAndClockResults_WithoutAChartDependency(int width, bool dark, int textPercent)
+    public async Task UnifiedResults_PutBothClocksFirstAndPreserveRawDatedMeasurements(int width, bool dark, int textPercent)
     {
         await using var context = await NewContextAsync(width, dark);
         var athlete = await HistoryAthleteAsync("Benjamin Garden", 66, partial: true);
         await context.AddInitScriptAsync($"window.getSharedAthletes = async () => ([{athlete.ToJsonString()}]);");
         var page = await context.NewPageAsync();
         await page.GotoAsync("/athlete/benjamin-garden", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
-        await Expect(page.Locator("#biomarkerTableTab")).ToBeEnabledAsync();
-        await page.Locator("#biomarkerTableTab").ClickAsync();
-        var table = page.Locator(".biomarker-history-table");
-        await Expect(table).ToBeVisibleAsync();
-        if (textPercent != 100)
-            await page.AddStyleTagAsync(new() { Content = $"html {{ font-size:{textPercent}% !important; }}" });
-        await Expect(table.Locator("tbody tr")).ToHaveCountAsync(2);
-        await Expect(table.Locator("time").Nth(0)).ToHaveAttributeAsync("datetime", "2026-01-01");
-        await Expect(table.Locator("time").Nth(1)).ToHaveAttributeAsync("datetime", "2026-02-01");
-
-        var complete = table.Locator("tbody tr").First;
+        await Expect(Row(page, "bortz").GetByRole(AriaRole.Button)).ToBeEnabledAsync();
+        var section = page.Locator("#athlete-biomarkers");
+        await Expect(section.GetByRole(AriaRole.Heading)).ToHaveTextAsync("Results over time");
+        Assert.Equal(0, await section.GetByRole(AriaRole.Tab).CountAsync());
+        Assert.Equal(0, await section.Locator("select, canvas").CountAsync());
+        var rows = section.Locator(".result-summary");
+        await Expect(rows.Nth(0)).ToHaveAttributeAsync("data-measure", "bortz");
+        await Expect(rows.Nth(1)).ToHaveAttributeAsync("data-measure", "pheno");
         var pheno = PhenoAgeHelper.CalculatePhenoAge(AlbuminCapTestData.PhenoValues(66));
         var bortz = BortzAgeHelper.CalculateBortzAgeFromRaw(AlbuminCapTestData.Age, AlbuminCapTestData.BortzValues(66));
-        await Expect(complete.Locator("td").Nth(0)).ToHaveTextAsync(pheno.ToString("F1", CultureInfo.InvariantCulture));
-        await Expect(complete.Locator("td").Nth(1)).ToHaveTextAsync(bortz.ToString("F1", CultureInfo.InvariantCulture));
-        var partial = table.Locator("tbody tr").Nth(1);
-        await Expect(partial.Locator("td").Nth(0)).ToHaveAttributeAsync("aria-label", "Not available");
-        await Expect(partial.Locator("td").Nth(1)).ToHaveAttributeAsync("aria-label", "Not available");
-
-        // Check the original lab result, including albumin above the scoring cap,
-        // rather than deriving the displayed values back from normalized chart points.
-        foreach (var (label, unit, value) in new[]
+        await Expect(Row(page, "pheno").Locator(".biomarker-overview-current")).ToHaveTextAsync(pheno.ToString("F1", CultureInfo.InvariantCulture));
+        await Expect(Row(page, "bortz").Locator(".biomarker-overview-current")).ToHaveTextAsync(bortz.ToString("F1", CultureInfo.InvariantCulture));
+        await Expect(Row(page, "bortz").Locator("time")).ToHaveAttributeAsync("datetime", "2026-01-01");
+        if (textPercent != 100)
+            await page.AddStyleTagAsync(new() { Content = $"html {{ font-size:{textPercent}% !important; }}" });
+        if (textPercent == 100)
+            Assert.True(await page.Locator("#biomarkerResultList").EvaluateAsync<bool>("el => el.scrollWidth <= el.clientWidth + 1"));
+        foreach (var (name, unit, value) in new[]
         {
-            ("Albumin", "g/L", "66"), ("Creatinine", "µmol/L", "88.4"),
-            ("Glucose", "mmol/L", "5.05"), ("CRP", "mg/L", "0.8"),
-            ("Lymphocytes", "%", "25.5"), ("RBC", "10¹²/L", "4.7"),
-            ("Vitamin D", "nmol/L", "85"), ("HbA1c", "mmol/mol", "34")
+            ("Albumin", "g/L", "66"), ("Creatinine", "µmol/L", "88.4"), ("Glucose", "mmol/L", "5.05"),
+            ("CRP", "mg/L", "0.8"), ("RBC", "10¹²/L", "4.7"), ("Vitamin D", "nmol/L", "85"), ("HbA1c", "mmol/mol", "34")
         })
         {
-            await page.Locator("#biomarkerOverlaySelect").SelectOptionAsync($"{label} ({unit})");
-            await Expect(table.Locator("thead th").Last).ToHaveTextAsync(label + unit);
-            await Expect(complete.Locator("td").Last).ToHaveTextAsync(value);
-            await Expect(partial.Locator("td").Last).ToHaveTextAsync(label == "CRP" ? "0" : "—");
+            var button = Row(page, $"{name} ({unit})").GetByRole(AriaRole.Button);
+            await button.ClickAsync();
+            await Expect(button).ToHaveAttributeAsync("aria-expanded", "true");
+            await Expect(section.Locator(".result-detail-row:not([hidden])")).ToHaveCountAsync(1);
+            var table = section.Locator(".result-detail-row:not([hidden]) .biomarker-history-table");
+            await Expect(table.GetByRole(AriaRole.Columnheader).Last).ToHaveTextAsync($"{name} ({unit})");
+            await Expect(table.Locator("tbody tr")).ToHaveCountAsync(2);
+            await Expect(table.Locator("time").First).ToHaveAttributeAsync("datetime", "2026-01-01");
+            await Expect(table.Locator("tbody td").First).ToHaveTextAsync(value);
+            await Expect(table.Locator("tbody td").Last).ToHaveTextAsync(name == "CRP" ? "0" : "—");
+            Assert.True(await table.Locator("tbody td").First.EvaluateAsync<bool>("""
+                el => { const range = document.createRange(); range.selectNodeContents(el); return range.getClientRects().length === 1; }
+                """));
         }
+        if (textPercent == 100)
+            Assert.True(await page.Locator("#biomarkerResultList").EvaluateAsync<bool>("el => el.scrollWidth <= el.clientWidth + 1"));
+        Assert.True(await page.Locator("#detailsModal .modal-content").EvaluateAsync<bool>("el => el.scrollWidth <= el.clientWidth + 1"));
+        await page.Locator(".result-detail-row:not([hidden]) .result-plot svg").PressAsync("Escape");
+        await Expect(Row(page, "HbA1c (mmol/mol)").GetByRole(AriaRole.Button)).ToBeFocusedAsync();
+        await Expect(section.Locator(".result-detail-row:not([hidden])")).ToHaveCountAsync(0);
+        await Expect(page.Locator("#detailsModal")).ToBeVisibleAsync();
+    }
 
-        await page.Locator("#biomarkerOverlaySelect").SelectOptionAsync("Creatinine (µmol/L)");
-        await Expect(table.Locator("caption")).ToContainTextAsync("Benjamin Garden");
-        Assert.Equal(2, await table.Locator("tbody th[scope='row']").CountAsync());
-        Assert.Equal(4, await table.Locator("thead th[scope='col']").CountAsync());
-        Assert.True(await complete.Locator("td").EvaluateAllAsync<bool>("""
-            cells => cells.every(cell => {
-                const range = document.createRange();
-                range.selectNodeContents(cell);
-                return range.getClientRects().length === 1;
-            })
-            """));
-        Assert.True(await table.EvaluateAsync<bool>("element => element.scrollWidth <= element.clientWidth + 1"));
-        Assert.True(await page.Locator("#detailsModal .modal-content").EvaluateAsync<bool>("element => element.scrollWidth <= element.clientWidth + 1"));
-        await Expect(page.Locator("#biomarkerChartTab")).ToBeDisabledAsync();
+    [Theory]
+    [InlineData("pheno", "UTC")]
+    [InlineData("pheno", "America/Los_Angeles")]
+    [InlineData("pheno", "Asia/Singapore")]
+    [InlineData("bortz", "UTC")]
+    [InlineData("bortz", "America/Los_Angeles")]
+    [InlineData("bortz", "Asia/Singapore")]
+    public async Task ClockComparison_UsesCompleteSameClockPanelsAndHighlightsThisAthlete(string clock, string timezone)
+    {
+        await using var context = await NewContextAsync(1280, true, timezone);
+        var first = await HistoryAthleteAsync("Benjamin Garden", 66, partial: true);
+        var second = await HistoryAthleteAsync("Valerie Orsoni", 43, partial: false);
+        await context.AddInitScriptAsync($"window.getSharedAthletes = async () => ({new JsonArray(first, second).ToJsonString()});");
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/athlete/benjamin-garden", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await Row(page, clock).GetByRole(AriaRole.Button).ClickAsync();
+        var svg = page.Locator($".result-plot svg[data-clock='{clock}']");
+        await Expect(svg).ToBeVisibleAsync();
+        await Expect(svg.Locator(".result-plot-point")).ToHaveCountAsync(2);
+        await Expect(svg.Locator(".result-plot-point.is-athlete")).ToHaveCountAsync(1);
+        await Expect(svg.Locator(".result-plot-equal")).ToHaveCountAsync(1);
+        var point = svg.Locator(".result-plot-point.is-athlete");
+        Assert.Equal(AlbuminCapTestData.Age, double.Parse((await point.GetAttributeAsync("data-age"))!, CultureInfo.InvariantCulture), 8);
+        var expected = clock == "pheno" ? PhenoAgeHelper.CalculatePhenoAge(AlbuminCapTestData.PhenoValues(66))
+            : BortzAgeHelper.CalculateBortzAgeFromRaw(AlbuminCapTestData.Age, AlbuminCapTestData.BortzValues(66));
+        Assert.Equal(expected, double.Parse((await point.GetAttributeAsync("data-value"))!, CultureInfo.InvariantCulture), 6);
+        await Expect(page.Locator(clock == "pheno" ? "#lowestPhenoAge" : "#lowestBortzAge"))
+            .ToHaveTextAsync(expected.ToString("F1", CultureInfo.InvariantCulture));
+        await Expect(point).ToHaveAttributeAsync("data-date", "2026-01-01");
+        await Expect(svg.Locator("text")).ToContainTextAsync(["Chronological age (years)"]);
+        await Expect(page.Locator(".result-field-count")).ToHaveTextAsync("2 results · 2 athletes");
+        await svg.Locator(".result-plot-point:not(.is-athlete)").ClickAsync();
+        await Expect(page.Locator(".result-plot-readout")).ToContainTextAsync("Valerie Orsoni");
+        await svg.PressAsync("Home");
+        await Expect(page.Locator(".result-plot-readout")).ToContainTextAsync("Benjamin Garden");
+        await page.SetViewportSizeAsync(390, 844);
+        await page.WaitForFunctionAsync("""
+            () => { const svg = document.querySelector('.result-plot svg'); return svg && Math.abs(svg.viewBox.baseVal.width - svg.parentElement.clientWidth) < 1; }
+            """);
+        Assert.True(await page.Locator("#biomarkerResultList").EvaluateAsync<bool>("el => el.scrollWidth <= el.clientWidth + 1"));
+        Assert.True(await page.Locator("#detailsModal .modal-content").EvaluateAsync<bool>("el => el.scrollWidth <= el.clientWidth + 1"));
+        var table = page.Locator(".result-detail-row:not([hidden]) .biomarker-history-table");
+        await Expect(table.Locator("tbody td").Last).ToHaveAttributeAsync("aria-label", "Not available");
     }
 
     [Fact]
-    public async Task SwitchingAthletes_ReplacesHistoryAndKeepsTheSelectedMarker()
+    public async Task LatestRecordedValues_KeepTheirDatesAndLeaveMissingMeasurementsAsGaps()
+    {
+        await using var context = await NewContextAsync(390, true);
+        var athlete = await HistoryAthleteAsync("Benjamin Garden", 66, partial: true);
+        athlete["Biomarkers"]!.AsArray().Add(new JsonObject
+        {
+            ["Date"] = "2026-03-01", ["AlbGL"] = 63, ["CreatUmolL"] = 94.66, ["CrpMgL"] = 0.2, ["Wbc1000cellsuL"] = 0
+        });
+        await context.AddInitScriptAsync($"window.getSharedAthletes = async () => ([{athlete.ToJsonString()}]);");
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/athlete/benjamin-garden", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        var albumin = Row(page, "Albumin (g/L)");
+        await Expect(albumin.Locator(".biomarker-overview-current")).ToHaveTextAsync("63");
+        await Expect(albumin.Locator(".biomarker-overview-result .biomarker-history-unit")).ToHaveTextAsync("66");
+        await Expect(albumin.Locator(".biomarker-overview-change span").First).ToHaveTextAsync("-3");
+        await Expect(Row(page, "Creatinine (µmol/L)").Locator(".biomarker-overview-change span").First).ToHaveTextAsync("+6.26");
+        await Expect(Row(page, "CRP (mg/L)").Locator(".biomarker-overview-change span").First).ToHaveTextAsync("-0.6");
+        await Expect(Row(page, "WBC (10^3 cells/µL)").Locator(".biomarker-overview-current")).ToHaveTextAsync("0");
+        await Expect(Row(page, "Glucose (mmol/L)").Locator("time")).ToHaveAttributeAsync("datetime", "2026-01-01");
+        Assert.Equal(0, await albumin.Locator("svg line").CountAsync());
+        await albumin.GetByRole(AriaRole.Button).ClickAsync();
+        await Expect(page.Locator(".result-plot svg .result-plot-point")).ToHaveCountAsync(2);
+        Assert.Equal(0, await page.Locator(".result-plot-trend").CountAsync());
+        await Expect(page.Locator(".result-detail-row:not([hidden]) .biomarker-history-table tbody td").Nth(1)).ToHaveTextAsync("—");
+    }
+
+    [Fact]
+    public async Task IncompleteClockPanel_RemainsUnavailableInsteadOfGeneratingAResult()
+    {
+        await using var context = await NewContextAsync(390, true);
+        var athlete = await HistoryAthleteAsync("Benjamin Garden", 66, partial: false);
+        athlete["Biomarkers"]![0]!.AsObject().Remove("CystatinCMgL");
+        await context.AddInitScriptAsync($"window.getSharedAthletes = async () => ([{athlete.ToJsonString()}]);");
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/athlete/benjamin-garden", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await Expect(Row(page, "bortz").GetByRole(AriaRole.Button)).ToBeDisabledAsync();
+        await Expect(Row(page, "bortz").Locator(".biomarker-overview-current")).ToHaveTextAsync("—");
+        await Row(page, "pheno").GetByRole(AriaRole.Button).ClickAsync();
+        await Expect(page.Locator(".result-plot-point")).ToHaveCountAsync(1);
+        await Expect(page.Locator(".result-field-count")).ToHaveTextAsync("1 result · 1 athlete");
+    }
+
+    [Fact]
+    public async Task ClockChange_EqualsTheDifferenceBetweenDisplayedReadouts()
+    {
+        await using var context = await NewContextAsync(390, true);
+        var athlete = await HistoryAthleteAsync("Benjamin Garden", 66, partial: false);
+        var next = athlete["Biomarkers"]![0]!.DeepClone().AsObject();
+        next["Date"] = "2026-08-03";
+        next["AlbGL"] = 42;
+        athlete["Biomarkers"]!.AsArray().Add(next);
+        await context.AddInitScriptAsync($"window.getSharedAthletes = async () => ([{athlete.ToJsonString()}]);");
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/athlete/benjamin-garden", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        foreach (var clock in new[] { "bortz", "pheno" })
+        {
+            var row = Row(page, clock);
+            await Expect(row.GetByRole(AriaRole.Button)).ToBeEnabledAsync();
+            var current = decimal.Parse(await row.Locator(".biomarker-overview-current").InnerTextAsync(), CultureInfo.InvariantCulture);
+            var baseline = decimal.Parse(await row.Locator(".biomarker-overview-result .biomarker-history-unit").InnerTextAsync(), CultureInfo.InvariantCulture);
+            var change = decimal.Parse(await row.Locator(".biomarker-overview-change span").First.InnerTextAsync(), CultureInfo.InvariantCulture);
+            Assert.Equal(current - baseline, change);
+        }
+    }
+
+    [Fact]
+    public async Task SingleMeasurement_DoesNotInventABaselineOrChange()
+    {
+        await using var context = await NewContextAsync(390, false);
+        var athlete = await HistoryAthleteAsync("Benjamin Garden", 66, partial: false);
+        await context.AddInitScriptAsync($"window.getSharedAthletes = async () => ([{athlete.ToJsonString()}]);");
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/athlete/benjamin-garden", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        var row = Row(page, "Albumin (g/L)");
+        await Expect(row.Locator(".biomarker-overview-current")).ToHaveTextAsync("66");
+        await Expect(row.Locator(".biomarker-overview-result .biomarker-history-unit")).ToHaveTextAsync("—");
+        await Expect(row.Locator(".biomarker-overview-change span").First).ToHaveTextAsync("—");
+        await row.GetByRole(AriaRole.Button).ClickAsync();
+        await Expect(page.Locator(".result-plot-point")).ToHaveCountAsync(1);
+        Assert.True(await page.Locator(".result-plot-point").EvaluateAsync<bool>("el => Number.isFinite(Number(el.getAttribute('cx'))) && Number.isFinite(Number(el.getAttribute('cy')))"));
+    }
+
+    [Fact]
+    public async Task SwitchingAthletes_ClearsExpandedHistoryAndReplacesValues()
     {
         await using var context = await NewContextAsync(390, true);
         var first = await HistoryAthleteAsync("Benjamin Garden", 66, partial: true);
@@ -88,110 +211,31 @@ public sealed class BiomarkerHistoryBrowserTests(
         var page = await context.NewPageAsync();
         await page.GotoAsync("/leaderboard", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
         await page.GetByRole(AriaRole.Link, new() { Name = "View stats of Benjamin Garden", Exact = true }).First.ClickAsync();
-        await Expect(page.Locator("#biomarkerTableTab")).ToBeEnabledAsync();
-        await page.Locator("#biomarkerTableTab").ClickAsync();
-        await page.Locator("#biomarkerOverlaySelect").SelectOptionAsync("Albumin (g/L)");
-        await Expect(page.Locator(".biomarker-history-table tbody tr")).ToHaveCountAsync(2);
+        await Row(page, "Albumin (g/L)").GetByRole(AriaRole.Button).ClickAsync();
+        await Expect(page.Locator(".result-detail-row:not([hidden]) .biomarker-history-table tbody tr")).ToHaveCountAsync(2);
         await page.Locator("#closeAthleteDetailsModal").ClickAsync();
         await Expect(page.Locator("#detailsModal")).ToBeHiddenAsync();
         await page.GetByRole(AriaRole.Link, new() { Name = "View stats of Valerie Orsoni", Exact = true }).First.ClickAsync();
-        await Expect(page.Locator(".biomarker-history-table caption")).ToContainTextAsync("Valerie Orsoni");
-        await Expect(page.Locator("#biomarkerTablePanel")).ToBeVisibleAsync();
-        await Expect(page.Locator(".biomarker-history-table tbody tr")).ToHaveCountAsync(1);
-        await Expect(page.Locator(".biomarker-history-table tbody td").Last).ToHaveTextAsync("43");
-        await Expect(page.Locator("#biomarkerOverlaySelect")).ToHaveValueAsync("Albumin (g/L)");
+        await Expect(page.Locator(".biomarker-overview-table caption")).ToContainTextAsync("Valerie Orsoni");
+        await Expect(page.Locator("#athlete-biomarkers [aria-expanded=true]")).ToHaveCountAsync(0);
+        await Row(page, "Albumin (g/L)").GetByRole(AriaRole.Button).ClickAsync();
+        var table = page.Locator(".result-detail-row:not([hidden]) .biomarker-history-table");
+        await Expect(table.Locator("caption")).ToContainTextAsync("Valerie Orsoni");
+        await Expect(table.Locator("tbody tr")).ToHaveCountAsync(1);
+        await Expect(table.Locator("tbody td")).ToHaveTextAsync("43");
     }
 
-    [Theory]
-    [InlineData(1280, 100)]
-    [InlineData(390, 100)]
-    [InlineData(320, 100)]
-    [InlineData(320, 200)]
-    public async Task Overview_IsTheDefaultAndComparesActualBaselineAndLatestTests(int width, int textPercent)
-    {
-        await using var context = await NewContextAsync(width, true);
-        var athlete = await HistoryAthleteAsync("Benjamin Garden", 66, partial: true);
-        athlete["Biomarkers"]!.AsArray().Add(new JsonObject
-        {
-            ["Date"] = "2026-03-01", ["AlbGL"] = 63, ["CreatUmolL"] = 94.66,
-            ["CrpMgL"] = 0.2, ["Wbc1000cellsuL"] = 0
-        });
-        await context.AddInitScriptAsync($"window.getSharedAthletes = async () => ([{athlete.ToJsonString()}]);");
-        var page = await context.NewPageAsync();
-        await page.GotoAsync("/athlete/benjamin-garden", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
-        await Expect(page.Locator("#biomarkerOverviewTab")).ToBeEnabledAsync();
-        await Expect(page.Locator("#biomarkerOverviewTab")).ToHaveAttributeAsync("aria-selected", "true");
-        await Expect(page.Locator("#biomarkerOverviewPanel")).ToBeVisibleAsync();
-        await Expect(page.Locator(".biomarker-chart-controls")).ToBeHiddenAsync();
-        await Expect(page.Locator("#biomarkerChartPanel")).ToBeHiddenAsync();
-        if (textPercent != 100)
-            await page.AddStyleTagAsync(new() { Content = $"html {{ font-size:{textPercent}% !important; }}" });
-        await Expect(page.Locator(".biomarker-overview-range")).ToHaveTextAsync("1 Jan 2026 → 1 Mar 2026");
-        var albumin = page.Locator(".biomarker-overview-table tr[data-marker='Albumin (g/L)']");
-        await Expect(albumin.Locator(".biomarker-overview-current")).ToHaveTextAsync("63");
-        await Expect(albumin.Locator(".biomarker-overview-result .biomarker-history-unit")).ToHaveTextAsync("66");
-        await Expect(albumin.Locator(".biomarker-overview-change span").First).ToHaveTextAsync("-3");
-        // A missing middle test leaves a visible gap rather than inventing a connecting trend.
-        Assert.Equal(2, await albumin.Locator("svg circle").CountAsync());
-        Assert.Equal(0, await albumin.Locator("svg line").CountAsync());
-        var creatinine = page.Locator("tr[data-marker='Creatinine (µmol/L)']");
-        await Expect(creatinine.Locator(".biomarker-overview-change span").First).ToHaveTextAsync("+6.26");
-        var crp = page.Locator("tr[data-marker='CRP (mg/L)']");
-        await Expect(crp.Locator(".biomarker-overview-change span").First).ToHaveTextAsync("-0.6");
-        await Expect(crp.Locator("svg")).ToHaveAttributeAsync("aria-label", "CRP (mg/L) history: 1 Jan 2026: 0.8; 1 Feb 2026: 0; 1 Mar 2026: 0.2");
-        Assert.Equal(2, await crp.Locator("svg line").CountAsync());
-        var glucose = page.Locator("tr[data-marker='Glucose (mmol/L)']");
-        await Expect(glucose.Locator(".biomarker-overview-current")).ToHaveTextAsync("—");
-        await Expect(glucose.Locator(".biomarker-overview-change span").First).ToHaveTextAsync("—");
-        await Expect(page.Locator("tr[data-marker='WBC (10^3 cells/µL)'] .biomarker-overview-current")).ToHaveTextAsync("0");
-        if (textPercent == 100)
-            Assert.True(await page.Locator("#biomarkerOverviewPanel").EvaluateAsync<bool>("element => element.scrollWidth <= element.clientWidth + 1"));
-        Assert.True(await page.Locator("#detailsModal .modal-content").EvaluateAsync<bool>("element => element.scrollWidth <= element.clientWidth + 1"));
-        Assert.True(await albumin.Locator(".biomarker-overview-current").EvaluateAsync<bool>("""
-            element => {
-                const range = document.createRange();
-                range.selectNodeContents(element);
-                return range.getClientRects().length === 1;
-            }
-            """));
-        await albumin.GetByRole(AriaRole.Button).ClickAsync();
-        await Expect(page.Locator("#biomarkerTablePanel")).ToBeVisibleAsync();
-        await Expect(page.Locator("#biomarkerOverlaySelect")).ToHaveValueAsync("Albumin (g/L)");
-        await Expect(page.Locator(".biomarker-history-table tbody tr")).ToHaveCountAsync(3);
-    }
+    private static ILocator Row(IPage page, string key) => page.Locator($"#athlete-biomarkers tr[data-measure='{key}']");
 
-    [Fact]
-    public async Task Overview_SingleTestDoesNotInventAChange_AndTabsWorkWithoutChartJs()
-    {
-        await using var context = await NewContextAsync(390, false);
-        var athlete = await HistoryAthleteAsync("Benjamin Garden", 66, partial: false);
-        await context.AddInitScriptAsync($"window.getSharedAthletes = async () => ([{athlete.ToJsonString()}]);");
-        var page = await context.NewPageAsync();
-        await page.GotoAsync("/athlete/benjamin-garden", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
-        await Expect(page.Locator("#biomarkerOverviewTab")).ToBeEnabledAsync();
-        var row = page.Locator("tr[data-marker='Albumin (g/L)']");
-        await Expect(row.Locator(".biomarker-overview-current")).ToHaveTextAsync("66");
-        await Expect(row.Locator(".biomarker-overview-result .biomarker-history-unit")).ToHaveTextAsync("—");
-        await Expect(row.Locator(".biomarker-overview-change span").First).ToHaveTextAsync("—");
-        Assert.Equal(1, await row.Locator("svg circle").CountAsync());
-        await page.Locator("#biomarkerOverviewTab").PressAsync("ArrowRight");
-        await Expect(page.Locator("#biomarkerTableTab")).ToBeFocusedAsync();
-        await Expect(page.Locator("#biomarkerTablePanel")).ToBeVisibleAsync();
-        await page.Locator("#biomarkerTableTab").PressAsync("Home");
-        await Expect(page.Locator("#biomarkerOverviewTab")).ToBeFocusedAsync();
-        await Expect(page.Locator("#biomarkerOverviewPanel")).ToBeVisibleAsync();
-    }
-
-    private async Task<IBrowserContext> NewContextAsync(int width, bool dark)
+    private async Task<IBrowserContext> NewContextAsync(int width, bool dark, string timezone = "UTC")
     {
         var context = await Browser.NewContextAsync(new()
         {
             BaseURL = App.BaseAddress.ToString(), ViewportSize = new() { Width = width, Height = 900 },
-            ColorScheme = dark ? ColorScheme.Dark : ColorScheme.Light,
-            Locale = "en-GB", TimezoneId = "UTC", ReducedMotion = ReducedMotion.Reduce
+            ColorScheme = dark ? ColorScheme.Dark : ColorScheme.Light, Locale = "en-GB", TimezoneId = timezone, ReducedMotion = ReducedMotion.Reduce
         });
         await BrowserTestApp.RouteExternalResourcesAsync(context);
-        await context.AddInitScriptAsync("localStorage.setItem('gmaSkipAll', 'true'); localStorage.setItem('biomarkerVisibilityState', '{broken');");
+        await context.AddInitScriptAsync("localStorage.setItem('gmaSkipAll', 'true');");
         return context;
     }
 

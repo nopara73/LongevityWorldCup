@@ -440,38 +440,20 @@
 <template id="athleteModalDeferredSectionsTemplate">
     <div class="biomarkers-section" id="athlete-biomarkers">
         <div class="biomarkers-heading">
-            <h3>Biomarkers over time</h3>
-            <div class="biomarker-chart-controls" hidden>
-                <select id="biomarkerOverlaySelect" aria-label="Compare biomarker"></select>
-            </div>
+            <h3>Results over time</h3>
         </div>
-        <div class="biomarker-history-tabs" role="tablist" aria-label="Biomarker history view">
-            <button type="button" role="tab" id="biomarkerOverviewTab" aria-controls="biomarkerOverviewPanel" aria-selected="true" disabled>Overview</button>
-            <button type="button" role="tab" id="biomarkerChartTab" aria-controls="biomarkerChartPanel" aria-selected="false" tabindex="-1" disabled>Chart</button>
-            <button type="button" role="tab" id="biomarkerTableTab" aria-controls="biomarkerTablePanel" aria-selected="false" tabindex="-1" disabled>Table</button>
-        </div>
-        <div id="biomarkerOverviewPanel" role="tabpanel" aria-labelledby="biomarkerOverviewTab" tabindex="0">
+        <div id="biomarkerResultList">
             <p class="biomarker-overview-range"></p>
             <table class="biomarker-overview-table">
                 <caption></caption>
                 <thead>
                     <tr>
-                        <th scope="col">Biomarker</th>
+                        <th scope="col">Result</th>
                         <th scope="col" class="biomarker-overview-history">History</th>
-                        <th scope="col">Result<span class="biomarker-history-unit">Baseline</span></th>
+                        <th scope="col">Latest<span class="biomarker-history-unit">Baseline</span></th>
                         <th scope="col">Change</th>
                     </tr>
                 </thead>
-                <tbody></tbody>
-            </table>
-        </div>
-        <div id="biomarkerChartPanel" role="tabpanel" aria-labelledby="biomarkerChartTab" hidden>
-            <canvas id="biomarkerChart" role="img" aria-label="Biological ages and biomarkers over time. Exact dates and values are available in Table." style="width: 100%; height: 300px;"></canvas>
-        </div>
-        <div id="biomarkerTablePanel" role="tabpanel" aria-labelledby="biomarkerTableTab" tabindex="0" hidden>
-            <table class="biomarker-history-table">
-                <caption></caption>
-                <thead></thead>
                 <tbody></tbody>
             </table>
         </div>
