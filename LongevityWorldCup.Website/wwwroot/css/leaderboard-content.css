@@ -3783,6 +3783,11 @@
  .sidebar-filter-list { scroll-padding-block-start: 3rem; }
  .sidebar-filter-list input { scroll-margin-block-start: 3rem; }
 
+ @keyframes sidebar-panel-reveal {
+     from { opacity: 0; visibility: hidden; }
+     to { opacity: 1; visibility: visible; }
+ }
+
  /* Desktop panels use one scrollable filter list for both hover and button opening.
     Keep the heading fixed and cap the panel at the visible viewport space. */
  @media (min-width: 933px), (min-width: 769px) and (min-height: 481px) {
@@ -3806,10 +3811,18 @@
          overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable;
          scrollbar-width: thin; scrollbar-color: rgba(0,188,212,.55) transparent;
      }
+     /* Keep controls out of the narrowing rail. Reveal them only once the
+        width transition has made room for the fully laid-out panel. */
+     @media (prefers-reduced-motion: no-preference) {
+         .sidebar:is(:hover, .expanded):not(.button-collapsed):not([aria-hidden="true"]) :is(.sidebar-title-text, .sidebar-heading-actions, .sidebar-filter-list) {
+             animation: sidebar-panel-reveal var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease) var(--lwc-duration-normal, 220ms) both;
+         }
+     }
      /* Reflow against text size as well as pixels: enlarged results need the
         full board width instead of being squeezed alongside the filters. */
      @container leaderboard-results (max-width: 45rem) {
          .sidebar { --leaderboard-sidebar-open-width: 100cqi; transition: none; }
+         .sidebar:is(:hover, .expanded):not(.button-collapsed):not([aria-hidden="true"]) :is(.sidebar-title-text, .sidebar-heading-actions, .sidebar-filter-list) { animation: none; }
          /* Enlarged text needs room for whole header words, rather than doubled gutters. */
          .leaderboard table th:not(:first-child) { padding-inline: min(var(--lwc-space-4), 4px); }
          .leaderboard table th a { padding-inline: 0; }

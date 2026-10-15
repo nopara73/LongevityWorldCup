@@ -5758,20 +5758,21 @@ function renderBiomarkerHistory(history, athletes) {
         { key: 'bortz', name: 'Bortz Age', unit: 'years', clock: 'bortz', values: history.bortzAges },
         { key: 'pheno', name: 'Pheno Age', unit: 'years', clock: 'pheno', values: history.phenoAges },
         ...Object.keys(history.biomarkersRaw)
-            .filter(label => history.biomarkersRaw[label].some(isBiomarkerHistoryValue))
             .sort((a, b) => a.localeCompare(b))
             .map(label => {
                 const split = label.lastIndexOf(' (');
                 return { key: label, name: label.slice(0, split), unit: label.slice(split + 2, -1), values: history.biomarkersRaw[label] };
             })
-    ];
+    ].filter(measure => measure.values.some(isBiomarkerHistoryValue));
+    const firstBiomarkerIndex = measures.findIndex(measure => !measure.clock);
     const rows = document.createDocumentFragment();
     measures.forEach((measure, measureIndex) => {
         const measuredIndices = measure.values.flatMap((value, index) => isBiomarkerHistoryValue(value) ? [index] : []);
         const latestIndex = measuredIndices.at(-1);
         const latest = measure.values[latestIndex];
         const row = document.createElement('tr');
-        row.className = 'result-summary' + (measure.clock ? ' result-clock' : measureIndex === 2 ? ' result-first-biomarker' : '');
+        row.className = 'result-summary' + (measure.clock ? ' result-clock'
+            : measureIndex === firstBiomarkerIndex && firstBiomarkerIndex > 0 ? ' result-first-biomarker' : '');
         row.dataset.measure = measure.key;
         const accent = measure.clock === 'bortz' ? 'var(--athlete-modal-chart-bortz)' : 'var(--athlete-modal-chart-pheno)';
         row.style.setProperty('--result-accent', accent);
