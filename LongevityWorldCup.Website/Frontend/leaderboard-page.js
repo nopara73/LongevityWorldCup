@@ -2972,6 +2972,7 @@ window.addEventListener('click', function (event) {
 });
 
 function requestCloseAthleteModal() {
+    if (modal.classList.contains('fade-out')) return;
     if (modal.style.display !== 'block' || modal._historyClosePending) return;
     if (isGuessMyAgeDismissBlocked(modal.querySelector('.modal-content'))) return;
     const depth = history.state?.athleteDialogDepth;
@@ -3001,6 +3002,7 @@ function finishAfterTransition(element, property, complete) {
 
 function closeModal(options) {
     if (!options?.fromHistory) return requestCloseAthleteModal();
+    if (modal.classList.contains('fade-out')) return;
     const modalContent = document.querySelector('.modal-content');
     if (!modalContent) return;
     modal._historyClosePending = false;
