@@ -382,13 +382,25 @@ public sealed class BioageUpdateDraftBrowserTests(PlaywrightBrowserFixture brows
         // Restored documents can be parsed before their intended view is ready.
         await Assertions.Expect(page.Locator("#lwcStepsShell")).ToBeVisibleAsync();
         var input = page.Locator($"#{id}");
-        var header = input.Locator("xpath=ancestor::*[contains(concat(' ',normalize-space(@class),' '),' biomarker-card ')]").Locator(".biomarker-card-header");
-        // Mobile cards stay expanded and their headers are deliberately not
-        // buttons. Wait for restoration instead of attempting to toggle them.
-        if (!await input.IsVisibleAsync() && await header.GetAttributeAsync("role") == "button") await header.ClickAsync();
+        // Cards stay expanded and their headers are deliberately not buttons.
+        // Wait for restoration instead of attempting to toggle them.
         await Assertions.Expect(input).ToBeVisibleAsync();
         if (unit is not null) await page.Locator($"#{id}Unit").SelectOptionAsync(unit);
         await input.FillAsync(value);
+        if (value.Length > 0)
+        {
+            await page.EvaluateAsync("() => document.fonts.ready");
+            Assert.True(await input.EvaluateAsync<bool>(
+                """
+                input => {
+                    const style = getComputedStyle(input);
+                    const ctx = document.createElement('canvas').getContext('2d');
+                    ctx.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+                    const available = input.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+                    return ctx.measureText(input.value).width <= available + 1;
+                }
+                """), $"{id}: the edited value is clipped beside its comparison chip.");
+        }
     }
 
     private static async Task AssertRawDraftAsync(IPage page)
