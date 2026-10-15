@@ -1284,7 +1284,7 @@ const eventsPageAssets = document.currentScript.dataset;
             const targetRow = tbody.querySelector(`tr.main-row[data-event-id="${window.CSS.escape(requestedEventId)}"]`);
             if (targetRow) {
                 if (targetRow.classList.contains("custom-event-row") && !targetRow.classList.contains("is-open")) {
-                    targetRow._setCustomEventExpanded(true);
+                    targetRow._setCustomEventExpanded?.(true);
                 }
 
                 requestAnimationFrame(() => {

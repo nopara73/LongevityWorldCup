@@ -151,7 +151,7 @@ public sealed class UiInteractionBrowserTests(
             window.uiScrollRequests = [];
             const original = Element.prototype.scrollIntoView;
             Element.prototype.scrollIntoView = function(options) {
-                if (this.id === 'rank-4' || this.dataset.eventId === 'motion-event')
+                if (this.id === 'rank-4' || this.dataset.eventId?.startsWith('motion-'))
                     window.uiScrollRequests.push(options.behavior);
                 return original.call(this, options);
             };
@@ -162,15 +162,18 @@ public sealed class UiInteractionBrowserTests(
             Body = JsonSerializer.Serialize(new[] { new {
                 Id = "motion-event", Type = 6, Text = "Motion test\n\n[Read more](https://example.test/story)",
                 OccurredAt = DateTimeOffset.UtcNow, Relevance = 10
+            }, new {
+                Id = "motion-note", Type = 6, Text = "A short announcement without extra details.",
+                OccurredAt = DateTimeOffset.UtcNow, Relevance = 10
             } })
         }));
         var page = await context.NewPageAsync();
-        foreach (var path in new[] { "/leaderboard#rank-4", "/events?event=motion-event" })
+        foreach (var path in new[] { "/leaderboard#rank-4", "/events?event=motion-event", "/events?event=motion-note" })
         {
             await page.GotoAsync(path, new() { WaitUntil = WaitUntilState.DOMContentLoaded });
             await page.WaitForFunctionAsync("() => window.uiScrollRequests.length > 0");
             Assert.Equal(reduced ? "instant" : "smooth", await page.EvaluateAsync<string>("window.uiScrollRequests[0]"));
-            if (path.Contains("events"))
+            if (path.EndsWith("event=motion-event", StringComparison.Ordinal))
             {
                 await Assertions.Expect(page.Locator(".custom-event-expander")).ToHaveAttributeAsync("aria-expanded", "true");
                 Assert.False(await page.Locator(".custom-event-content").EvaluateAsync<bool>("e => e.inert"));
