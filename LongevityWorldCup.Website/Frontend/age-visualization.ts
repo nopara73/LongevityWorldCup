@@ -330,18 +330,14 @@
         var diff = bioAge - chronoAge;
         var diffText = (diff > 0 ? '+' : '') + diff.toFixed(1) + ' years';
         var label = diff < 0 ? 'age reduction' : 'age acceleration';
-        var bioText = 'biological age: ' + (Number.isFinite(bioAge) ? bioAge.toFixed(1) : '—');
 
         var centerVal = document.getElementById('ageRadarCenterValue');
         var centerLbl = document.getElementById('ageRadarCenterLabel');
-        var centerBio = document.getElementById('ageRadarCenterBio');
         var centerEl = document.getElementById('ageRadarCenter');
         var fallbackVal = document.getElementById('ageRadarFallbackValue');
         var fallbackLbl = document.getElementById('ageRadarFallbackLabel');
-        var fallbackBio = document.getElementById('ageRadarFallbackBio');
         if (centerVal) centerVal.textContent = diffText;
         if (centerLbl) centerLbl.textContent = label;
-        if (centerBio) centerBio.textContent = bioText;
         if (centerEl) {
             centerEl.classList.remove('positive', 'negative');
             if (diff < 0) centerEl.classList.add('positive');
@@ -350,7 +346,6 @@
         }
         if (fallbackVal) fallbackVal.textContent = diffText;
         if (fallbackLbl) fallbackLbl.textContent = label;
-        if (fallbackBio) fallbackBio.textContent = bioText;
     }
 
     function applyRadarData(data: RadarData | null): void {

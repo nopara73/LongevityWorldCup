@@ -50,15 +50,6 @@
     color: var(--primary-color, #00bcd4);
     white-space: nowrap;
 }
-.age-radar-summary .age-bio-age {
-    flex-basis: 100%;
-    font-size: 0.7rem;
-    font-weight: 500;
-    font-variant-numeric: tabular-nums;
-    color: var(--muted-color, #64748b);
-    white-space: nowrap;
-    margin-top: 0.25rem;
-}
 .age-radar-fallback {
     width: 160px;
     height: 160px;
@@ -86,14 +77,6 @@
     letter-spacing: 0.03em;
     margin-top: 0.2rem;
     color: var(--primary-color, #00bcd4);
-    white-space: nowrap;
-}
-.age-radar-fallback .age-bio-age {
-    font-size: 0.65rem;
-    font-weight: 500;
-    font-variant-numeric: tabular-nums;
-    margin-top: 0.25rem;
-    color: rgba(0, 0, 0, 0.65);
     white-space: nowrap;
 }
 .age-radar-summary.positive .age-diff,
@@ -293,8 +276,6 @@
     font-weight: 400;
     letter-spacing: normal;
 }
-#detailsModal .age-radar-summary .age-bio-age,
-#detailsModal .age-radar-fallback .age-bio-age,
 #detailsModal .age-radar-caption {
     color: var(--athlete-modal-muted, rgba(255,255,255,.68));
     font-size: var(--lwc-type-sm, .875rem);
