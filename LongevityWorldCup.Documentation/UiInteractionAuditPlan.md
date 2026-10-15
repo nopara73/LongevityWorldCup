@@ -9,7 +9,7 @@ Task branch: `codex/sitewide-ui-plan`.
 Initial source audit baseline: `8f6eb6c651e962f2f0bb9aaabd6f9838ab417713`.
 The branch was subsequently fast-forwarded to `d622f5bfa7e05ed070eb1d62f3c7ea0baba88999`.
 
-Implementation reconciliation also includes `700c537f` (result comparisons), `f77eadef` (scroll-lock width correction), and `2ef6228d16b535d339aad21e36ca39c53ab35a95` (continuous sidebar panel motion). Those master changes were merged normally and retained. The PR adds no separate sidebar redesign.
+Implementation reconciliation also includes `700c537f` (result comparisons), `f77eadef` (scroll-lock width correction), `2ef6228d16b535d339aad21e36ca39c53ab35a95` (continuous sidebar panel motion), `6aedb9fd` (result insets), and `614a3d62a9a20c2368052a2d20abe14ecc97f0cb` (viewport height for short/empty sidebar results). Those master changes were merged normally and retained. The PR adds no separate sidebar redesign.
 
 The originating chat independently fixed the screenshot-specific leaderboard sidebar clipping in `d622f5bf` (Hide clipped sidebar controls). It reported 43 passing focused motion/responsive tests. That result is a handoff report, not a test run performed by this audit. Do not duplicate or undo that fix. Preserve `8dc723d2` and `125e0f2e` motion work and `8f6eb6c6` unavailable-clock behavior. Fetch latest master again before implementation and inspect intervening changes.
 
