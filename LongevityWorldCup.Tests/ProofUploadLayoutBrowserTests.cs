@@ -16,7 +16,11 @@ public sealed class ProofUploadLayoutBrowserTests(
             Name: 'Browser Test Athlete', DisplayName: 'Browser Test Athlete', Biomarkers: []
         }));
         window.sessionStorage.setItem('biomarkerData', JSON.stringify({
-            Biomarkers: [{ Date: '2026-06-19', AlbGL: 45, GluMmolL: 5.1, CrpMgL: 1.35 }]
+            Biomarkers: [{ Date: '2026-06-19', AlbGL: 45, GluMmolL: 5.1, CrpMgL: 1.35,
+                AlpUL: 60, AltUL: 20, ApoA1GL: 1.6, CholesterolMmolL: 4.5, CreatUmolL: 75,
+                CystatinCMgL: 0.8, GgtUL: 29, Hba1cMmolMol: 35.5, LymPc: 28.6, MchPg: 31.8,
+                McvFL: 92, MonocytePc: 7.2, NeutrophilPc: 64.2, Rbc10e12L: 4.5, RdwPc: 13.4,
+                ShbgNmolL: 45.6, UreaMmolL: 5.4, VitaminDNmolL: 50, Wbc1000cellsuL: 6.54 }]
         }));
         """;
 
@@ -46,6 +50,80 @@ public sealed class ProofUploadLayoutBrowserTests(
         foreach (var (left, right, top, bottom) in new[] { (layout[0], layout[0], layout[2], layout[3]), (layout[8], layout[9], layout[10], layout[11]) })
             Assert.True(left >= layout[4] && right <= layout[5] && top >= layout[6] && bottom <= layout[7], $"{scenario}: the intro content should sit inside its card.");
         Assert.InRange(layout[12], 80, 104);
+        await ExpectNoHorizontalOverflowAsync(page);
+    }
+
+    [Theory]
+    [InlineData(false, 320)]
+    [InlineData(false, 390)]
+    [InlineData(false, 1440)]
+    [InlineData(true, 320)]
+    [InlineData(true, 390)]
+    [InlineData(true, 1440)]
+    public async Task EnlargedText_KeepsProofActionsAndInstructionsReadableInBothFlows(bool onboarding, int width)
+    {
+        await using var context = await CreateContextAsync(width, 900, dark: true);
+        var page = onboarding
+            ? await ProofReviewBrowserTests.PrepareAsync(context, onboarding: true)
+            : await OpenAsync(context);
+        await page.EvaluateAsync("document.documentElement.style.fontSize = '200%'");
+        // Fake onboarding starts with a tiny sample proof; use the real upload controls for these pages.
+        while (await page.Locator(".proof-page-remove").CountAsync() > 0)
+            await page.Locator(".proof-page-remove").First.ClickAsync();
+        await page.Locator("#proofPicInput").SetInputFilesAsync(await CreateProofImagesAsync(context, 3));
+        await page.WaitForFunctionAsync("() => !document.getElementById('proofPicInput').disabled && document.querySelectorAll('.proof-page-card').length === 3");
+
+        var issues = await page.EvaluateAsync<string[]>(
+            """
+            () => {
+                const issues = [];
+                for (const element of document.querySelectorAll('.proof-page-preview span, .proof-page-remove, .proof-undo, .proof-upload-intro p')) {
+                    const bounds = element.getBoundingClientRect();
+                    const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+                    let text;
+                    while (text = walker.nextNode()) for (const word of text.textContent.matchAll(/\S+/g)) {
+                        const range = document.createRange();
+                        range.setStart(text, word.index);
+                        range.setEnd(text, word.index + word[0].length);
+                        const rects = [...range.getClientRects()];
+                        if (new Set(rects.map(rect => Math.round(rect.top))).size > 1)
+                            issues.push(`Split word: ${word[0]}`);
+                        if (rects.some(rect => rect.left < bounds.left - 1 || rect.right > bounds.right + 1))
+                            issues.push(`Clipped word: ${word[0]}`);
+                    }
+                }
+                return issues;
+            }
+            """);
+        Assert.Empty(issues);
+        await ExpectNoHorizontalOverflowAsync(page);
+    }
+
+    [Theory]
+    [InlineData(1280, 720, 100)]
+    [InlineData(1440, 900, 200)]
+    [InlineData(844, 390, 200)]
+    public async Task LongTracker_UsesThePageScrollAndKeepsItsLastCheckboxReachable(int width, int height, int textPercent)
+    {
+        await using var context = await CreateContextAsync(width, height);
+        var page = await OpenAsync(context);
+        await page.EvaluateAsync("percent => document.documentElement.style.fontSize = percent + '%'", textPercent);
+        await page.Locator("#proofPicInput").SetInputFilesAsync(await CreateProofImagesAsync(context, 3));
+        await page.WaitForFunctionAsync("() => !document.getElementById('proofPicInput').disabled && document.querySelectorAll('.proof-page-card').length === 3");
+
+        var tracker = page.Locator("#biomarker-checklist");
+        Assert.True(await tracker.EvaluateAsync<bool>("element => element.scrollHeight <= element.clientHeight + 1"),
+            "The tracker should grow with its content rather than add an inner scrollbar.");
+        var checkboxes = tracker.Locator("input");
+        Assert.True(await checkboxes.CountAsync() > 20, "Exercise the complete Bortz tracker.");
+        await checkboxes.Nth(await checkboxes.CountAsync() - 2).FocusAsync();
+        await page.Keyboard.PressAsync("Tab");
+        await Assertions.Expect(checkboxes.Last).ToBeFocusedAsync();
+        await page.Keyboard.PressAsync("Space");
+        await Assertions.Expect(checkboxes.Last).ToBeCheckedAsync();
+        await checkboxes.Last.ScrollIntoViewIfNeededAsync();
+        var last = (await checkboxes.Last.BoundingBoxAsync())!;
+        Assert.InRange(last.Y, 0, height - last.Height);
         await ExpectNoHorizontalOverflowAsync(page);
     }
 

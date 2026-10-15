@@ -539,18 +539,27 @@
                 flex-direction: column;
                 align-items: stretch;
                 gap: 0.85rem;
-                padding: 1rem;
+                padding: min(1rem, 16px);
             }
 
             .proof-upload-intro .proof-upload-visual {
                 align-self: center;
             }
+
+            .proof-upload-main {
+                padding-inline: min(1.35rem, 22px);
+            }
         }
 
-        /* Desktop: proofs and their tracker side by side, the tracker kept in view while reviewing pages. */
+        /* Keep every tracker item in the page's scroll flow, including short windows and enlarged text. */
         @media (min-width: 960px) {
             body.proof-upload-has-proofs .proof-upload-main {
                 max-width: 1080px;
+            }
+
+            body.proof-upload-has-proofs .proof-upload-primary-action {
+                align-self: flex-start;
+                margin-inline: 0;
             }
 
             /* Wraps the tracker below the pages when enlarged text leaves no room beside them. */
@@ -569,15 +578,15 @@
                 margin: 0;
             }
 
+            body.proof-upload-has-proofs .proof-upload-workspace .proof-page-grid {
+                grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr));
+            }
+
             body.proof-upload-has-proofs .proof-upload-workspace #biomarker-checklist {
-                position: sticky;
-                top: 1rem;
                 flex: 1 0 17rem;
                 width: auto;
                 max-width: 20rem;
-                max-height: calc(100dvh - var(--flow-action-dock-height, 72px) - 2rem);
                 margin: 0;
-                overflow-y: auto;
             }
         }
 
@@ -586,6 +595,12 @@
             .proof-upload-intro,
             .proof-upload-intro-copy {
                 display: contents;
+            }
+
+            .proof-upload-workspace {
+                display: block;
+                grid-column: 1 / -1;
+                width: 100%;
             }
         }
     </style>
