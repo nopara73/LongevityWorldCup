@@ -65,4 +65,69 @@ public sealed class ApplyStageLayoutBrowserTests(
             Assert.True(Math.Abs(layout[17] - stageOneTitleTop) <= 1, $"{scenario}: the title moved between stages ({stageOneTitleTop} -> {layout[17]}).");
         await ExpectNoHorizontalOverflowAsync(page);
     }
+
+    [Theory]
+    [InlineData(320, 640)]
+    [InlineData(390, 844)]
+    [InlineData(1440, 900)]
+    public async Task UploadStages_KeepThePortraitSquareAndButtonWordsWholeWithEnlargedText(int width, int height)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = height },
+            ReducedMotion = ReducedMotion.Reduce,
+            IsMobile = width < 600,
+            HasTouch = width < 600
+        });
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/apply?fake=1");
+        await page.WaitForFunctionAsync("() => !document.getElementById('nextButton').disabled");
+        await page.EvaluateAsync("async () => { await document.fonts.ready; document.documentElement.style.fontSize = '200%'; }");
+
+        for (var stage = 2; stage <= 5; stage++)
+        {
+            await page.Locator("#nextButton").ClickAsync();
+            await page.WaitForFunctionAsync("stage => document.body.dataset.convergenceStage === String(stage)", stage);
+            if (stage < 4) continue;
+            await page.EvaluateAsync("async () => { window.LwcFlowActionDock?.refreshNow(); await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))); }");
+
+            if (stage == 4)
+            {
+                var portrait = await page.Locator("#profileImage").BoundingBoxAsync();
+                Assert.NotNull(portrait);
+                Assert.True(Math.Abs(portrait.Width - portrait.Height) <= 1,
+                    $"{width}px / 200%: the portrait is distorted ({portrait.Width} x {portrait.Height}).");
+            }
+
+            var buttonIssues = await page.EvaluateAsync<string[]>(
+                """
+                () => {
+                    const issues = [];
+                    for (const button of document.querySelectorAll('.convergence-upload-action .flow-action')) {
+                        if (!button.getBoundingClientRect().width) continue;
+                        const label = button.querySelector('.flow-action__label');
+                        const icon = button.querySelector('i')?.getBoundingClientRect();
+                        const walker = document.createTreeWalker(label, NodeFilter.SHOW_TEXT);
+                        let node;
+                        while (node = walker.nextNode()) {
+                            for (const word of node.textContent.matchAll(/\S+/g)) {
+                                const range = document.createRange();
+                                range.setStart(node, word.index);
+                                range.setEnd(node, word.index + word[0].length);
+                                const rects = Array.from(range.getClientRects());
+                                if (new Set(rects.map(rect => Math.round(rect.top))).size > 1)
+                                    issues.push('Split word: ' + word[0]);
+                                if (icon && rects.some(rect => Math.min(rect.right, icon.right) - Math.max(rect.left, icon.left) > 1
+                                    && Math.min(rect.bottom, icon.bottom) - Math.max(rect.top, icon.top) > 1))
+                                    issues.push('Icon overlaps: ' + word[0]);
+                            }
+                        }
+                    }
+                    return issues;
+                }
+                """);
+            Assert.Empty(buttonIssues);
+            await ExpectNoHorizontalOverflowAsync(page);
+        }
+    }
 }

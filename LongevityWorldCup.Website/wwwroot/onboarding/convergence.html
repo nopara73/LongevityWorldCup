@@ -520,11 +520,10 @@
 
         /* Each stage is one card: a banner illustration, a slim stage track, the story, then the task. */
         .convergence-stage-layout {
-            --convergence-card-pad: var(--lwc-space-5, 1.5rem);
+            --convergence-card-pad: min(var(--lwc-space-5, 1.5rem), 24px);
             width: min(100%, 600px);
             max-width: calc(100vw - 2rem);
             margin: 2rem auto;
-            overflow: hidden;
             border: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.16));
             border-radius: var(--lwc-radius-lg, 12px);
             background: var(--lwc-surface, #fff);
@@ -569,16 +568,22 @@
             max-height: none;
             margin: 0;
             border: 0;
-            border-radius: 0;
+            border-radius: calc(var(--lwc-radius-lg, 12px) - 1px) calc(var(--lwc-radius-lg, 12px) - 1px) 0 0;
             object-fit: cover;
             object-position: center 35%;
         }
 
+        body[data-convergence-stage="3"] #descriptionForm #illustrationImage.illustration,
+        body[data-convergence-stage="4"] #descriptionForm #illustrationImage.illustration {
+            object-position: center top;
+        }
+
         #descriptionForm #profileImage.illustration {
             display: block;
-            width: auto;
-            height: 12.5rem;
-            max-width: calc(100% - 2 * var(--convergence-card-pad));
+            width: min(200px, calc(100% - 2 * var(--convergence-card-pad)));
+            height: auto;
+            max-width: none;
+            max-height: none;
             margin: var(--convergence-card-pad) auto 0;
             aspect-ratio: 1;
             object-fit: cover;
@@ -599,6 +604,30 @@
 
         #descriptionForm .convergence-stage-copy {
             margin-top: 1.1rem;
+            padding: min(0.95rem, 16px) min(1rem, 16px);
+        }
+
+        .convergence-stage-layout .convergence-helper-text {
+            padding: min(0.8rem, 16px) min(0.9rem, 16px);
+        }
+
+        .convergence-upload-action .option-button.flow-action {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: min(0.75rem, 12px);
+            padding-inline: min(1.25rem, 20px);
+        }
+
+        .convergence-upload-action .flow-action__label {
+            text-align: left;
+            overflow-wrap: normal;
+        }
+
+        .convergence-upload-action .option-button.flow-action > i {
+            position: static;
+            width: min(1.25rem, 24px);
+            font-size: min(1.12rem, 24px);
+            transform: none;
         }
 
         /* A hairline separates the story from the task below it. */
@@ -615,7 +644,7 @@
 
         @media (max-width: 600px) {
             .convergence-stage-layout {
-                --convergence-card-pad: var(--lwc-space-4, 1rem);
+                --convergence-card-pad: min(var(--lwc-space-4, 1rem), 16px);
                 max-width: calc(100vw - 1.5rem);
                 margin-block: var(--lwc-space-2, 0.5rem);
             }
