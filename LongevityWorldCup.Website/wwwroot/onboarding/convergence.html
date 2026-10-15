@@ -573,7 +573,10 @@
             object-position: center 35%;
         }
 
-        body[data-convergence-stage="3"] #descriptionForm #illustrationImage.illustration,
+        body[data-convergence-stage="3"] #descriptionForm #illustrationImage.illustration {
+            object-position: center bottom;
+        }
+
         body[data-convergence-stage="4"] #descriptionForm #illustrationImage.illustration {
             object-position: center top;
         }
@@ -587,7 +590,9 @@
             margin: var(--convergence-card-pad) auto 0;
             aspect-ratio: 1;
             object-fit: cover;
+            border: 0;
             border-radius: var(--lwc-radius-md, 8px);
+            box-shadow: none;
         }
 
         #descriptionForm #onboardingProofSymbol {
