@@ -441,8 +441,24 @@
     <div class="biomarkers-section" id="athlete-biomarkers">
         <div class="biomarkers-heading">
             <h3>Biomarkers over time</h3>
+            <div class="biomarker-chart-controls" hidden>
+                <select id="biomarkerOverlaySelect" aria-label="Compare biomarker"></select>
+            </div>
         </div>
-        <canvas id="biomarkerChart" style="width: 100%; height: 300px;"></canvas>
+        <div class="biomarker-history-tabs" role="tablist" aria-label="Biomarker history view">
+            <button type="button" role="tab" id="biomarkerChartTab" aria-controls="biomarkerChartPanel" aria-selected="true" disabled>Chart</button>
+            <button type="button" role="tab" id="biomarkerTableTab" aria-controls="biomarkerTablePanel" aria-selected="false" tabindex="-1" disabled>Table</button>
+        </div>
+        <div id="biomarkerChartPanel" role="tabpanel" aria-labelledby="biomarkerChartTab">
+            <canvas id="biomarkerChart" role="img" aria-label="Biological ages and biomarkers over time. Exact dates and values are available in Table." style="width: 100%; height: 300px;"></canvas>
+        </div>
+        <div id="biomarkerTablePanel" role="tabpanel" aria-labelledby="biomarkerTableTab" tabindex="0" hidden>
+            <table class="biomarker-history-table">
+                <caption></caption>
+                <thead></thead>
+                <tbody></tbody>
+            </table>
+        </div>
     </div>
 
     <div class="proofs-section" id="athlete-proofs">

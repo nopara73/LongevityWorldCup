@@ -1832,6 +1832,104 @@
      content:none;
      display:none;
  }
+ #detailsModal .biomarker-history-tabs{
+     display:flex;
+     width:max-content;
+     max-width:100%;
+     margin:0 0 .8rem auto;
+     gap:3px;
+     padding:3px;
+     border:1px solid var(--athlete-modal-border);
+     border-radius:var(--lwc-radius-md);
+ }
+ #detailsModal .biomarker-history-tabs button{
+     min-height:38px;
+     padding:.4rem .8rem;
+     color:var(--athlete-modal-muted);
+     background:transparent;
+     border:0;
+     border-radius:calc(var(--lwc-radius-md) - 3px);
+     font:inherit;
+     font-size:.85rem;
+     font-weight:600;
+     cursor:pointer;
+ }
+ #detailsModal .biomarker-history-tabs button[aria-selected="true"]{
+     color:var(--athlete-modal-text);
+     background:rgba(123,221,227,.14);
+ }
+ #detailsModal .biomarker-history-tabs button:focus-visible{
+     outline:2px solid var(--athlete-modal-link);
+     outline-offset:2px;
+ }
+ #detailsModal .biomarker-history-tabs button:disabled{
+     cursor:default;
+     opacity:.55;
+ }
+ #detailsModal #biomarkerTablePanel{
+     max-width:100%;
+     overflow-x:auto;
+ }
+ #detailsModal .biomarker-history-table{
+     width:100%;
+     border-collapse:collapse;
+     color:var(--athlete-modal-text);
+     font-size:.88rem;
+     font-variant-numeric:tabular-nums;
+ }
+ #detailsModal .biomarker-history-table caption{
+     position:absolute;
+     width:1px;
+     height:1px;
+     overflow:hidden;
+     clip-path:inset(50%);
+ }
+ #detailsModal .biomarker-history-table th,
+ #detailsModal .biomarker-history-table td{
+     padding:1rem .35rem;
+     border-bottom:1px solid var(--athlete-modal-border);
+     text-align:right;
+     vertical-align:middle;
+     overflow-wrap:normal;
+ }
+ #detailsModal .biomarker-history-table td,
+ #detailsModal .biomarker-history-table time{
+     white-space:nowrap;
+ }
+ #detailsModal .biomarker-history-table thead th{
+     color:var(--athlete-modal-muted);
+     font-size:.8rem;
+     font-weight:400;
+     line-height:1.4;
+ }
+ #detailsModal .biomarker-history-table th:first-child{
+     width:29%;
+     padding-left:0;
+     text-align:left;
+     font-weight:400;
+ }
+ #detailsModal .biomarker-history-table th:last-child,
+ #detailsModal .biomarker-history-table td:last-child{
+     padding-right:0;
+ }
+ #detailsModal .biomarker-history-table tbody tr:last-child > *{
+     border-bottom:0;
+ }
+ #detailsModal .biomarker-history-unit,
+ #detailsModal .biomarker-history-year{
+     display:block;
+     color:var(--athlete-modal-muted);
+     font-size:.8rem;
+     font-weight:400;
+ }
+ #detailsModal .biomarker-history-empty{
+     text-align:center;
+     color:var(--athlete-modal-muted);
+ }
+ #detailsModal .biomarkers-section [hidden]{ display:none !important; }
+ @media (pointer:coarse){
+     #detailsModal .biomarker-history-tabs button{ min-height:44px; }
+ }
  /* The picker sits in the section head, opposite the title, as Proofs' toggle does.
     It takes the next line when the head is too narrow to hold both. */
  #detailsModal .biomarker-chart-controls{
