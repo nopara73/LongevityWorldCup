@@ -1,4 +1,5 @@
 using Microsoft.Playwright;
+using System.Text.Json;
 using Xunit;
 using static LongevityWorldCup.Tests.AestheticSystemBrowserTests;
 
@@ -6,6 +7,107 @@ namespace LongevityWorldCup.Tests;
 
 public sealed partial class LongevitymaxxingChallengeBrowserTests
 {
+    [Fact]
+    public async Task DiscussionReplies_ResizePreservesTheFocusedActionAndUnpublishedEdit()
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = 1280, Height = 900 }
+        });
+        var page = await OpenDiscussionWorkspaceAsync(context, ConversationWorkspaceState());
+        var reply = DiscussionThread(page, "p7", 5).Locator("[data-discussion-reply-id='r6']");
+        await reply.Locator("[data-discussion-reply-edit]").ClickAsync();
+        var draft = reply.Locator("textarea");
+        await draft.FillAsync("Keep this unfinished reply edit.");
+        var copy = reply.Locator("[data-discussion-copy-link]");
+        await copy.FocusAsync();
+        await copy.EvaluateAsync("button => window.responsiveReplyCopy = button");
+        foreach (var width in new[] { 480, 481, 320, 1280 })
+        {
+            await page.SetViewportSizeAsync(width, 900);
+            await page.WaitForFunctionAsync("""
+                () => {
+                    const actions = window.responsiveReplyCopy?.parentElement;
+                    return actions && (actions.parentElement.matches('[data-discussion-reply-id]') === (innerWidth <= 480));
+                }
+                """);
+            await Assertions.Expect(copy).ToBeFocusedAsync();
+            Assert.True(await copy.EvaluateAsync<bool>("button => button === window.responsiveReplyCopy"));
+            await Assertions.Expect(draft).ToHaveValueAsync("Keep this unfinished reply edit.");
+        }
+    }
+
+    [Theory]
+    [InlineData(390, ColorScheme.Dark)]
+    [InlineData(1280, ColorScheme.Light)]
+    public async Task DiscussionReplies_KeyboardOrderFollowsTheVisibleContentAcrossResize(int initialWidth, ColorScheme theme)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = initialWidth, Height = 900 }, ColorScheme = theme
+        });
+        var state = ConversationWorkspaceState();
+        foreach (var notes in new[] { state["notes"]!, state["public"]!["notes"]! })
+        {
+            var replies = notes.AsArray()[0]!["replies"]!.AsArray();
+            var owned = replies.Single(reply => reply!["id"]!.GetValue<string>() == "r6")!;
+            owned["body"] = "@Ari Able This photo helped.";
+            owned["images"] = JsonSerializer.SerializeToNode(new[] { CheckInImage("/assets/content-images/play-athlete-placeholder.jpg") });
+        }
+        var page = await OpenDiscussionWorkspaceAsync(context, state);
+        var reply = DiscussionThread(page, "p7", 5).Locator("[data-discussion-reply-id='r6']");
+        var mention = reply.Locator("[data-discussion-reply-body] a");
+        var photo = reply.Locator(".lmx-reply-photos button");
+        var actions = reply.Locator(".lmx-discussion-reply-footer");
+        await Assertions.Expect(mention).ToBeVisibleAsync();
+        await Assertions.Expect(photo).ToBeVisibleAsync();
+
+        foreach (var width in new[] { initialWidth, initialWidth <= 480 ? 1280 : 390, initialWidth })
+        {
+            await page.SetViewportSizeAsync(width, 900);
+            await Assertions.Expect(actions).ToBeVisibleAsync();
+            await page.WaitForFunctionAsync("""
+                () => {
+                    const reply = document.querySelector('#lmxNotes [data-discussion-reply-id="r6"]');
+                    const actions = reply?.querySelector('.lmx-discussion-reply-footer');
+                    const photos = reply?.querySelector('.lmx-reply-photos');
+                    return actions && photos && !!(photos.compareDocumentPosition(actions) & Node.DOCUMENT_POSITION_FOLLOWING) === (innerWidth <= 480);
+                }
+                """);
+            Assert.True(await reply.EvaluateAsync<bool>("""
+                reply => {
+                    const actions = reply.querySelector('.lmx-discussion-reply-footer');
+                    const photos = reply.querySelector('.lmx-reply-photos');
+                    const followsPhotos = !!(photos.compareDocumentPosition(actions) & Node.DOCUMENT_POSITION_FOLLOWING);
+                    return followsPhotos === (innerWidth <= 480);
+                }
+                """), $"{width}px: action reading order must match their visible placement.");
+            if (width <= 480)
+            {
+                Assert.True(await reply.EvaluateAsync<bool>("reply => reply.querySelector('.lmx-discussion-reply-footer').getBoundingClientRect().top >= reply.querySelector('.lmx-reply-photos').getBoundingClientRect().bottom - 1"));
+                await mention.FocusAsync();
+                await page.Keyboard.PressAsync("Tab");
+                await Assertions.Expect(photo).ToBeFocusedAsync();
+                await page.Keyboard.PressAsync("Tab");
+                await Assertions.Expect(reply.Locator("[data-discussion-reply-to]")).ToBeFocusedAsync();
+            }
+            else
+            {
+                await reply.Locator("[data-discussion-reply-delete]").FocusAsync();
+                await page.Keyboard.PressAsync("Tab");
+                await Assertions.Expect(mention).ToBeFocusedAsync();
+                await page.Keyboard.PressAsync("Tab");
+                await Assertions.Expect(photo).ToBeFocusedAsync();
+            }
+            var capture = Environment.GetEnvironmentVariable("LWC_CONVERSATION_CAPTURE_DIR");
+            if (!string.IsNullOrEmpty(capture))
+            {
+                Directory.CreateDirectory(capture);
+                await reply.ScreenshotAsync(new() { Path = Path.Combine(capture, $"reply-focus-{initialWidth}-{width}.png") });
+            }
+        }
+    }
+
     [Theory]
     [InlineData(1440, ColorScheme.Light)]
     [InlineData(390, ColorScheme.Dark)]
@@ -34,7 +136,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
                     const context = reply.querySelector('.lmx-discussion-context-link');
                     const body = reply.querySelector('[data-discussion-reply-body]').getBoundingClientRect();
                     const box = reply.getBoundingClientRect();
-                    if (!meta || !meta.contains(actions)) { issues.push(`${id}: actions are not on the name row`); continue; }
+                    if (!meta) { issues.push(`${id}: name row is missing`); continue; }
                     if (context && !meta.contains(context)) issues.push(`${id}: reply context is not on the name row`);
                     if (link.right > box.right + 1) issues.push(`${id}: copy link overflows the reply`);
                     const byline = reply.querySelector('.lmx-discussion-reply-byline').getBoundingClientRect();
@@ -42,8 +144,11 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
                     // Phones put several actions under the text; a lone link stays on the name row.
                     const actionsBelow = innerWidth <= 480 && actions.children.length > 1;
                     if (actionsBelow) {
+                        if (actions.parentElement !== reply || !(reply.querySelector('[data-discussion-reply-body]').compareDocumentPosition(actions) & Node.DOCUMENT_POSITION_FOLLOWING))
+                            issues.push(`${id}: phone action reading order should follow the text`);
                         if (link.top < body.bottom - 1) issues.push(`${id}: phone actions should follow the text`);
                     } else {
+                        if (!meta.contains(actions)) issues.push(`${id}: actions are not on the name row`);
                         if (wide && link.top > name.bottom) issues.push(`${id}: copy link starts below the name`);
                         if (link.top >= body.top) issues.push(`${id}: actions sit below the text`);
                     }

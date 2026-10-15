@@ -5356,24 +5356,7 @@ a.lmx-note-mention:focus-visible {
 
 /* Narrow replies with several actions keep them under the text, where there is room for all of them. */
 @media (max-width: 480px) {
-    .lmx-discussion-reply-item:has(.lmx-discussion-reply-footer > :nth-child(2)) {
-        display: flex;
-        flex-direction: column;
-    }
-
-    .lmx-discussion-reply-item:has(.lmx-discussion-reply-footer > :nth-child(2)) > .lmx-discussion-reply-meta {
-        display: contents;
-    }
-
-    .lmx-discussion-reply-item:has(.lmx-discussion-reply-footer > :nth-child(2)) .lmx-discussion-reply-byline {
-        position: relative;
-        flex: none;
-        min-height: 2rem;
-        padding-left: var(--lmx-discussion-indent);
-    }
-
-    .lmx-discussion-reply-item:has(.lmx-discussion-reply-footer > :nth-child(2)) .lmx-discussion-reply-footer {
-        order: 1;
+    .lmx-discussion-reply-item > .lmx-discussion-reply-footer {
         justify-content: flex-start;
         margin-left: 0;
     }
