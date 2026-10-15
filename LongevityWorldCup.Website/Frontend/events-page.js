@@ -1227,12 +1227,16 @@ const eventsPageAssets = document.currentScript.dataset;
                 detailsTr.className = "details-row custom-event-details";
                 if (r.id) detailsTr.dataset.eventId = String(r.id);
                 detailsTr.innerHTML =
-                    `<td colspan="3" class="details-cell"><div id="custom-event-details-${idx}" class="custom-event-content">${artworkHtml}${contentHtml}</div></td>`;
+                    `<td colspan="3" class="details-cell"><div id="custom-event-details-${idx}" class="custom-event-content" inert aria-hidden="true"><div class="custom-event-body">${artworkHtml}${contentHtml}</div></div></td>`;
 
                 const btn = tr.querySelector(".custom-event-expander");
 
-                const toggleOpen = () => {
-                    const open = tr.classList.toggle("is-open");
+                const setExpanded = open => {
+                    const panel = detailsTr.querySelector('.custom-event-content');
+                    if (!open && panel.contains(document.activeElement)) btn?.focus({ preventScroll: true });
+                    panel.inert = !open;
+                    panel.setAttribute('aria-hidden', String(!open));
+                    tr.classList.toggle("is-open", open);
                     if (btn) {
                         btn.setAttribute("aria-expanded", open ? "true" : "false");
                         btn.setAttribute("title", open ? "Hide details" : "Show details");
@@ -1240,6 +1244,8 @@ const eventsPageAssets = document.currentScript.dataset;
                     }
                     applyZebraStriping(tbody);
                 };
+                tr._setCustomEventExpanded = setExpanded;
+                const toggleOpen = () => setExpanded(!tr.classList.contains('is-open'));
 
                 if (btn) {
                     btn.addEventListener("click", (ev) => {
@@ -1278,18 +1284,11 @@ const eventsPageAssets = document.currentScript.dataset;
             const targetRow = tbody.querySelector(`tr.main-row[data-event-id="${window.CSS.escape(requestedEventId)}"]`);
             if (targetRow) {
                 if (targetRow.classList.contains("custom-event-row") && !targetRow.classList.contains("is-open")) {
-                    targetRow.classList.add("is-open");
-                    const btn = targetRow.querySelector(".custom-event-expander");
-                    if (btn) {
-                        btn.setAttribute("aria-expanded", "true");
-                        btn.setAttribute("title", "Hide details");
-                        btn.setAttribute("aria-label", "Hide details");
-                    }
-                    applyZebraStriping(tbody);
+                    targetRow._setCustomEventExpanded(true);
                 }
 
                 requestAnimationFrame(() => {
-                    targetRow.scrollIntoView({ behavior: "smooth", block: "center" });
+                    targetRow.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: "center" });
                 });
             }
         }

@@ -4265,6 +4265,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
 
         updateNotePhotoViewer(initialIndex);
         dialog.hidden = false;
+        dialog.inert = false;
         dialog.setAttribute("aria-hidden", "false");
         document.body.classList.add("lmx-photo-viewer-open");
         if (!wasOpen) setNotePhotoViewerPageInert(dialog, true);
@@ -4406,6 +4407,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const returnFocusTo = notePhotoViewerItems[notePhotoViewerIndex]?.trigger;
         dialog.classList.remove("show");
         dialog.setAttribute("aria-hidden", "true");
+        dialog.inert = true;
         setNotePhotoViewerPageInert(dialog, false);
         if (returnFocusTo?.isConnected) returnFocusTo.focus({ preventScroll: true });
 
