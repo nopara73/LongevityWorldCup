@@ -1,0 +1,28 @@
+{
+  "Name": "Melian Attila",
+  "DisplayName": null,
+  "MediaContact": "foterapartman2@gmail.com",
+  "DateOfBirth": {
+    "Year": 1974,
+    "Month": 5,
+    "Day": 26
+  },
+  "Biomarkers": [
+    {
+      "Date": "2026-01-14",
+      "AlbGL": 45.7,
+      "CreatUmolL": 101,
+      "GluMmolL": 4.33,
+      "CrpMgL": 1.04,
+      "LymPc": 36.6,
+      "McvFL": 89.9,
+      "RdwPc": 14.4,
+      "AlpUL": 58,
+      "Wbc1000cellsuL": 5.24
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Magyarország",
+  "Why": "Szervi fiatalító program folytatása!",
+  "PersonalLink": null
+}
