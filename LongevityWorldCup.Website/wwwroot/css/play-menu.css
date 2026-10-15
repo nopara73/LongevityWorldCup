@@ -410,7 +410,7 @@ html.play-panel-transitioning .play-hub-panel--entering {
 
 .play-join-ribbon-slot {
     grid-row: 1;
-    position: relative;
+    position: static;
     width: 100%;
     height: 0;
     min-height: 0;
@@ -419,8 +419,8 @@ html.play-panel-transitioning .play-hub-panel--entering {
 
 .play-join-ribbon {
     position: absolute;
-    top: -1.5rem;
-    right: -1.5rem;
+    top: 0;
+    right: 0;
     overflow: hidden;
     width: 128px;
     height: 128px;
@@ -1314,8 +1314,6 @@ html.play-panel-transitioning .play-hub-panel--entering {
     }
 
     .play-join-ribbon {
-        top: -1.25rem;
-        right: -1.25rem;
         width: 108px;
         height: 108px;
     }
