@@ -1016,8 +1016,8 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity) {
                     const firstSubmission = completeBiomarkerSets[0];
                     const lastSubmission  = completeBiomarkerSets[completeBiomarkerSets.length - 1];
 
-                    const ageAtFirst = window.calculateAgeAtDate(dob, new Date(firstSubmission.Date));
-                    const ageAtLast  = window.calculateAgeAtDate(dob, new Date(lastSubmission.Date));
+                    const ageAtFirst = window.calculateAgeAtDate(dob, getBiomarkerTestDate(firstSubmission.Date));
+                    const ageAtLast  = window.calculateAgeAtDate(dob, getBiomarkerTestDate(lastSubmission.Date));
 
                     const firstSubmissionValues = [
                         ageAtFirst,
@@ -1053,7 +1053,7 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity) {
 
                 if (completeBiomarkerSets.length >= 2) {
                     const phenoSubmissionAges = completeBiomarkerSets.map((submission, index) => {
-                        const submittedAt = new Date(submission.Date);
+                        const submittedAt = getBiomarkerTestDate(submission.Date);
                         const ageAtSubmission = window.calculateAgeAtDate(dob, submittedAt);
                         const values = [
                             ageAtSubmission,
@@ -1113,7 +1113,7 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity) {
                 let valuesForLowestPhenoAge = null;
 
                 athlete.Biomarkers.forEach(entry => {
-                    const entryDate = new Date(entry.Date);
+                    const entryDate = getBiomarkerTestDate(entry.Date);
                     const ageAtEntry = window.calculateAgeAtDate(dob, entryDate);
 
                     const candidateValues = [
@@ -1148,7 +1148,7 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity) {
                 if (!Number.isFinite(lowestPhenoAge)) {
                     if (completeBiomarkerSets.length > 0) {
                         const last = completeBiomarkerSets[completeBiomarkerSets.length - 1];
-                        const ageAtLast = window.calculateAgeAtDate(dob, new Date(last.Date));
+                        const ageAtLast = window.calculateAgeAtDate(dob, getBiomarkerTestDate(last.Date));
                         valuesForLowestPhenoAge = [
                             ageAtLast,
                             last.AlbGL,
@@ -1185,7 +1185,7 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity) {
                     let chronoAtBortzMin = null;
                     const completeBortzBiomarkerSets = athlete.Biomarkers.filter(isCompleteBortzBiomarkerSet);
                     const buildBortzValues = (entry) => {
-                        const entryDate = new Date(entry.Date);
+                        const entryDate = getBiomarkerTestDate(entry.Date);
                         const ageAtEntry = window.calculateAgeAtDate(dob, entryDate);
                         const wbc = entry.Wbc1000cellsuL;
                         const monoCount = wbc * entry.MonocytePc / 100;
@@ -2448,7 +2448,7 @@ let savedBodyScrollRestoration = null;
 let savedBodyBackground = '';
 let currentAthleteModalRequestId = 0;
 let athleteShareState = null;
-const chartJsSrc = 'https://cdn.jsdelivr.net/npm/chart.js';
+const chartJsSrc = 'https://cdn.jsdelivr.net/npm/chart.js@4.5.1';
 
 // Direct profile/game links arrive with the requested dialog already open.
 // Make closing/back navigation available while the data request is pending.
@@ -2535,22 +2535,6 @@ function resetAthleteEventsFrame(athleteSlug) {
     return freshFrame;
 }
 
-function scheduleBiomarkerChartResize() {
-    if (window.biomarkerChartResizeFrame) return;
-    const requestFrame = window.requestAnimationFrame || function(callback) { return window.setTimeout(callback, 0); };
-    window.biomarkerChartResizeFrame = requestFrame(function() {
-        window.biomarkerChartResizeFrame = 0;
-        if (window.biomarkerChartInstance) window.biomarkerChartInstance.resize();
-    });
-}
-
-function cancelBiomarkerChartResize() {
-    if (!window.biomarkerChartResizeFrame) return;
-    if (window.cancelAnimationFrame) window.cancelAnimationFrame(window.biomarkerChartResizeFrame);
-    else window.clearTimeout(window.biomarkerChartResizeFrame);
-    window.biomarkerChartResizeFrame = 0;
-}
-
 function resetModalForLoading(athleteSlug) {
     ensureAthleteModalDeferredSections();
     resetAthleteShareState();
@@ -2625,21 +2609,13 @@ function resetModalForLoading(athleteSlug) {
         resetAthleteEventsFrame(athleteSlug);
     }
 
-    if (window.biomarkerChartInstance) {
-        window.biomarkerChartInstance.destroy();
-        window.biomarkerChartInstance = null;
-    }
-    cancelBiomarkerChartResize();
+    disposeBiomarkerHistory();
     const historySection = document.getElementById('athlete-biomarkers');
     if (historySection) {
         historySection._biomarkerHistory = null;
-        historySection.querySelectorAll('.biomarker-history-tabs button').forEach(button => { button.disabled = true; });
-        historySection.querySelectorAll('.biomarker-history-table thead, .biomarker-history-table tbody').forEach(element => element.replaceChildren());
         historySection.querySelector('.biomarker-overview-table tbody')?.replaceChildren();
-        const historyRange = historySection.querySelector('.biomarker-overview-range');
-        if (historyRange) historyRange.textContent = '';
-        const markerControls = historySection.querySelector('.biomarker-chart-controls');
-        if (markerControls) markerControls.hidden = true;
+        const range = historySection.querySelector('.biomarker-overview-range');
+        if (range) range.textContent = '';
     }
     if (typeof window.destroyAgeRadarChart === 'function') {
         window.destroyAgeRadarChart();
@@ -2943,11 +2919,7 @@ function closeModal(options) {
         modalContent.removeEventListener('scroll', modalContent._scrollProgressListener);
         modalContent._scrollProgressListener = null;
     }
-    if (window.biomarkerChartResizeObserver) {
-        window.biomarkerChartResizeObserver.disconnect();
-        window.biomarkerChartResizeObserver = null;
-    }
-    cancelBiomarkerChartResize();
+    disposeBiomarkerHistory();
     if (typeof window.destroyAgeRadarChart === 'function') {
         window.destroyAgeRadarChart();
     }
@@ -5193,7 +5165,7 @@ function fetchFullAthleteData(athleteNameText, athleteData, options) {
 
             updatePageTitleForAthlete((fullAthleteData.DisplayName && fullAthleteData.DisplayName.trim()) ? fullAthleteData.DisplayName.trim() : fullAthleteData.Name, rankSummary.ultimateRank);
 
-            // Age visualization (radar + center) and biomarker chart are created after modal is shown so canvases have layout dimensions.
+            // The age visualization waits until its canvas is visible.
             const bioAge = (athleteData.lowestBortzAge != null && Number.isFinite(athleteData.lowestBortzAge))
                 ? athleteData.lowestBortzAge
                 : athleteData.lowestPhenoAge;
@@ -5223,41 +5195,15 @@ function fetchFullAthleteData(athleteNameText, athleteData, options) {
                 history.pushState({ modal: 'details', athlete: athleteSlug, athleteDialogDepth: depth }, '', `/athlete/${athleteSlug}`);
             }
 
-            // Biomarker chart is created after modal is shown (see below) so the canvas has layout dimensions.
-
-            // Populate proofs gallery after deferred modal sections are available.
             populateProofsGallery(fullAthleteData);
             const biomarkerHistory = buildBiomarkerHistory(fullAthleteData);
-            renderBiomarkerHistory(biomarkerHistory, fullAthleteData.Name);
+            renderBiomarkerHistory(biomarkerHistory, athletes);
 
-            // Create biomarker chart after modal is visible so the canvas has non-zero dimensions (fixes chart sizing when created while modal was hidden).
             requestAnimationFrame(function() {
                 if (requestId !== currentAthleteModalRequestId) return;
-
-                window.ensureChartJs().then(function(chartLoaded) {
+                window.ensureChartJs().then(function() {
                     if (requestId !== currentAthleteModalRequestId) return;
-
                     generateAgeVisualization(bioAge, chronoAge, athleteData, athleteResults);
-                    if (chartLoaded) {
-                        generateBiomarkerChart(biomarkerHistory);
-                    } else if (document.getElementById('athlete-biomarkers')?.dataset.historyView === 'chart') {
-                        setBiomarkerHistoryView(biomarkerHistory, 'overview');
-                    }
-
-                    // Force Chart.js to re-measure after layout; hover triggers this internally, so do it explicitly (second rAF + ResizeObserver fallback).
-                    requestAnimationFrame(function() {
-                        if (requestId !== currentAthleteModalRequestId) return;
-                        scheduleBiomarkerChartResize();
-                    });
-
-                    var chartContainer = document.getElementById('athlete-biomarkers');
-                    if (chartContainer && window.biomarkerChartInstance) {
-                        if (window.biomarkerChartResizeObserver) window.biomarkerChartResizeObserver.disconnect();
-                        if ('ResizeObserver' in window) {
-                            window.biomarkerChartResizeObserver = new ResizeObserver(scheduleBiomarkerChartResize);
-                            window.biomarkerChartResizeObserver.observe(chartContainer);
-                        }
-                    }
                 });
             });
             if (!modalContent) {
@@ -5669,6 +5615,13 @@ function populateModal(fullAthleteData, athleteData, rankSummary) {
 
 }
 
+function getBiomarkerTestDate(value) {
+    // Lab dates are calendar dates; ISO midnight must not become the
+    // previous day for visitors in timezones west of UTC.
+    const date = new Date(value);
+    return new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+}
+
 function buildBiomarkerHistory(fullAthleteData) {
     const biomarkerData = (Array.isArray(fullAthleteData.Biomarkers) ? fullAthleteData.Biomarkers : [])
         .slice().sort((a, b) => new Date(a?.Date) - new Date(b?.Date));
@@ -5685,11 +5638,13 @@ function buildBiomarkerHistory(fullAthleteData) {
     const labels = chartData.map(entry => entry.Date);
     const phenoAges = [];
     const bortzAges = [];
+    const chronologicalAges = [];
     const biomarkersRaw = initializeBiomarkersRaw();
 
     chartData.forEach(entry => {
-        const entryDate = new Date(entry.Date);
+        const entryDate = getBiomarkerTestDate(entry.Date);
         const chronoAgeAtEntry = window.calculateAgeAtDate(dob, entryDate);
+        chronologicalAges.push(chronoAgeAtEntry);
 
         // Push in same order as bortz-age.html (WBC, Lymphocytes, Neutrophils, …)
         biomarkersRaw['WBC (10^3 cells/µL)'].push(entry.Wbc1000cellsuL != null ? entry.Wbc1000cellsuL : null);
@@ -5719,7 +5674,7 @@ function buildBiomarkerHistory(fullAthleteData) {
         if (isCompleteBiomarkerSet(entry)) {
             const biomarkerValues = prepareBiomarkerValues(entry, chronoAgeAtEntry);
             const computed = window.PhenoAge.calculatePhenoAge(biomarkerValues);
-            if (Number.isFinite(computed)) phenoAge = computed.toFixed(1);
+            if (Number.isFinite(computed)) phenoAge = computed;
         }
         phenoAges.push(phenoAge);
 
@@ -5754,337 +5709,377 @@ function buildBiomarkerHistory(fullAthleteData) {
                 entry.ApoA1GL
             ];
             const computed = window.BortzAge.calculateBortzAge(chronoAgeAtEntry, bortzValues);
-            if (Number.isFinite(computed)) bortzAge = computed.toFixed(1);
+            if (Number.isFinite(computed)) bortzAge = computed;
         }
         bortzAges.push(bortzAge);
     });
 
-    return { labels, phenoAges, bortzAges, biomarkersRaw, chart: null, selectedMarker: '' };
+    return { labels, phenoAges, bortzAges, chronologicalAges, biomarkersRaw,
+        athleteKey: normalizeAthleteSlugForLookup(fullAthleteData.AthleteSlug || fullAthleteData.Name),
+        athleteName: fullAthleteData.DisplayName || fullAthleteData.Name };
+
 }
 
-function generateBiomarkerChart(history) {
-    if (history.labels.length === 0) return;
-    const biomarkerChartCtx = document.getElementById('biomarkerChart').getContext('2d');
-    const { labels, phenoAges, bortzAges, biomarkersRaw } = history;
-    const biomarkersZScores = calculateBiomarkerZScores(biomarkersRaw);
-    const datasets = prepareBiomarkerDatasets(labels, phenoAges, bortzAges, biomarkersRaw, biomarkersZScores);
+const biomarkerHistoryDateFormat = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
 
-    if (window.biomarkerChartInstance) {
-        window.biomarkerChartInstance.destroy();
-    }
-
-    window.biomarkerChartInstance = new Chart(biomarkerChartCtx, {
-        type: 'line',
-        data: {
-            labels: labels,
-            datasets: datasets
-        },
-        options: getBiomarkerChartOptions()
-    });
-    history.chart = window.biomarkerChartInstance;
-    document.getElementById('biomarkerChartTab').disabled = false;
-    updateBiomarkerHistorySelection(history);
-}
-
-function renderBiomarkerHistory(history, athleteName) {
-    const section = document.getElementById('athlete-biomarkers');
-    if (!section) return;
-    section._biomarkerHistory = history;
-    const controls = section.querySelector('.biomarker-chart-controls');
-    const select = document.getElementById('biomarkerOverlaySelect');
-    select.replaceChildren();
-    const markerLabels = Object.keys(history.biomarkersRaw)
-        .filter(label => history.biomarkersRaw[label].some(isBiomarkerHistoryValue))
-        .sort((a, b) => a.localeCompare(b));
-    history.markerLabels = markerLabels;
-    history.athleteName = athleteName || 'Athlete';
-
-    const none = document.createElement('option');
-    none.value = '';
-    none.textContent = 'Select a biomarker';
-    select.appendChild(none);
-
-    markerLabels.forEach(label => {
-        const option = document.createElement('option');
-        option.value = label;
-        option.textContent = label;
-        select.appendChild(option);
-    });
-    history.selectedMarker = markerLabels.includes(section.dataset.selectedBiomarker) ? section.dataset.selectedBiomarker : '';
-    select.value = history.selectedMarker;
-    controls.hidden = markerLabels.length === 0;
-
-    select.onchange = function () {
-        history.selectedMarker = select.value;
-        section.dataset.selectedBiomarker = select.value;
-        updateBiomarkerHistorySelection(history);
-    };
-    const chartTab = document.getElementById('biomarkerChartTab');
-    const overviewTab = document.getElementById('biomarkerOverviewTab');
-    const tableTab = document.getElementById('biomarkerTableTab');
-    chartTab.disabled = true;
-    overviewTab.disabled = false;
-    tableTab.disabled = false;
-    const tabs = [overviewTab, chartTab, tableTab];
-    tabs.forEach(tab => {
-        tab.onclick = () => setBiomarkerHistoryView(history, tab === overviewTab ? 'overview' : tab === tableTab ? 'table' : 'chart');
-        tab.onkeydown = event => {
-            if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
-            const available = tabs.filter(item => !item.disabled);
-            const index = available.indexOf(tab);
-            const target = event.key === 'Home' ? available[0] : event.key === 'End' ? available.at(-1)
-                : available[(index + (event.key === 'ArrowRight' ? 1 : available.length - 1)) % available.length];
-            event.preventDefault();
-            target.click();
-            target.focus();
-        };
-    });
-    renderBiomarkerOverview(history);
-    setBiomarkerHistoryView(history, section.dataset.historyView || 'overview');
-}
-
-function setBiomarkerHistoryView(history, view) {
-    const section = document.getElementById('athlete-biomarkers');
-    if (!section || section._biomarkerHistory !== history) return;
-    if (!['overview', 'chart', 'table'].includes(view)) view = 'overview';
-    section.dataset.historyView = view;
-    section.querySelector('.biomarker-chart-controls').hidden = view === 'overview' || !history.markerLabels.length;
-    ['Overview', 'Chart', 'Table'].forEach(name => {
-        const active = name.toLowerCase() === view;
-        document.getElementById(`biomarker${name}Panel`).hidden = !active;
-        const tab = document.getElementById(`biomarker${name}Tab`);
-        tab.setAttribute('aria-selected', String(active));
-        tab.tabIndex = active ? 0 : -1;
-    });
-    if (view === 'table' && !history.selectedMarker && history.markerLabels.length) {
-        history.selectedMarker = history.markerLabels[0];
-        document.getElementById('biomarkerOverlaySelect').value = history.selectedMarker;
-        section.dataset.selectedBiomarker = history.selectedMarker;
-    }
-    updateBiomarkerHistorySelection(history);
-    if (view === 'chart' && history.chart) {
-        history.chart.resize();
-        history.chart.update('none');
-    }
+function formatResultDate(date) {
+    return biomarkerHistoryDateFormat.format(new Date(date));
 }
 
 function isBiomarkerHistoryValue(value) {
     return value != null && value !== '' && Number.isFinite(Number(value));
 }
 
-function renderBiomarkerOverview(history) {
-    const panel = document.getElementById('biomarkerOverviewPanel');
-    const table = panel.querySelector('table');
-    const dateFormat = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+function formatResultValue(value, measure) {
+    return isBiomarkerHistoryValue(value) ? (measure.clock ? Number(value).toFixed(1) : String(value)) : '—';
+}
+
+function resultUnit(text) {
+    const span = document.createElement('span');
+    span.className = 'biomarker-history-unit';
+    span.textContent = text;
+    return span;
+}
+
+function disposeBiomarkerHistory() {
+    const history = document.getElementById('athlete-biomarkers')?._biomarkerHistory;
+    history?.expanded?.chart?.destroy();
+    if (history) history.expanded = null;
+}
+
+function renderBiomarkerHistory(history, athletes) {
+    const section = document.getElementById('athlete-biomarkers');
+    if (!section) return;
+    disposeBiomarkerHistory();
+    section._biomarkerHistory = history;
+    history.sourceAthletes = athletes;
+    const table = section.querySelector('.biomarker-overview-table');
+    table.caption.textContent = `${history.athleteName}'s clock results and biomarker history. The latest available value is shown for each result. Missing readings are dashes. Expand a result to inspect its dated measurements.`;
     const firstDate = history.labels[0];
-    const lastIndex = history.labels.length - 1;
-    const lastDate = history.labels[lastIndex];
-    const dateText = iso => dateFormat.format(new Date(iso));
-    panel.querySelector('.biomarker-overview-range').textContent = firstDate
-        ? (lastIndex ? `${dateText(firstDate)} → ${dateText(lastDate)}` : dateText(firstDate)) : '';
-    table.caption.textContent = `${history.athleteName}'s biomarkers. ` + (firstDate
-        ? (lastIndex ? `Baseline: ${dateText(firstDate)}. Latest test: ${dateText(lastDate)}. Changes are latest minus baseline. `
-            : `Test date: ${dateText(firstDate)}. `) : '')
-        + 'Missing results are shown as a dash. Select a biomarker for its dated results.';
+    const lastDate = history.labels.at(-1);
+    section.querySelector('.biomarker-overview-range').textContent = firstDate
+        ? (firstDate === lastDate ? formatResultDate(firstDate) : `${formatResultDate(firstDate)} → ${formatResultDate(lastDate)}`) : '';
+    const measures = [
+        { key: 'bortz', name: 'Bortz Age', unit: 'years', clock: 'bortz', values: history.bortzAges },
+        { key: 'pheno', name: 'Pheno Age', unit: 'years', clock: 'pheno', values: history.phenoAges },
+        ...Object.keys(history.biomarkersRaw)
+            .filter(label => history.biomarkersRaw[label].some(isBiomarkerHistoryValue))
+            .sort((a, b) => a.localeCompare(b))
+            .map(label => {
+                const split = label.lastIndexOf(' (');
+                return { key: label, name: label.slice(0, split), unit: label.slice(split + 2, -1), values: history.biomarkersRaw[label] };
+            })
+    ];
     const rows = document.createDocumentFragment();
-    history.markerLabels.forEach(label => {
-        const values = history.biomarkersRaw[label];
-        const split = label.lastIndexOf(' (');
-        const name = label.slice(0, split);
-        const unit = label.slice(split + 2, -1);
-        const latest = values[lastIndex];
-        const baseline = lastIndex > 0 ? values[0] : null;
+    measures.forEach((measure, measureIndex) => {
+        const measuredIndices = measure.values.flatMap((value, index) => isBiomarkerHistoryValue(value) ? [index] : []);
+        const latestIndex = measuredIndices.at(-1);
+        const latest = measure.values[latestIndex];
         const row = document.createElement('tr');
-        row.dataset.marker = label;
+        row.className = 'result-summary' + (measure.clock ? ' result-clock' : measureIndex === 2 ? ' result-first-biomarker' : '');
+        row.dataset.measure = measure.key;
+        const accent = measure.clock === 'bortz' ? 'var(--athlete-modal-chart-bortz)' : 'var(--athlete-modal-chart-pheno)';
+        row.style.setProperty('--result-accent', accent);
+        const detail = document.createElement('tr');
+        detail.id = `biomarkerResultDetail-${measureIndex}`;
+        detail.className = 'result-detail-row';
+        detail.hidden = true;
+        detail.style.setProperty('--result-accent', accent);
         const heading = document.createElement('th');
         heading.scope = 'row';
         const button = document.createElement('button');
         button.type = 'button';
-        button.title = `View ${name}'s dated results`;
-        button.textContent = name;
-        const unitLabel = document.createElement('span');
-        unitLabel.className = 'biomarker-history-unit';
-        unitLabel.textContent = unit;
-        button.appendChild(unitLabel);
+        button.textContent = measure.name;
+        button.appendChild(resultUnit(measure.unit));
+        button.setAttribute('aria-expanded', 'false');
+        button.setAttribute('aria-controls', detail.id);
+        button.title = measure.clock ? `Compare ${measure.name} across LWC` : `View ${measure.name}'s dated results`;
+        button.disabled = latestIndex == null;
+        if (latestIndex != null && history.labels[latestIndex] !== lastDate) {
+            const time = document.createElement('time');
+            time.className = 'result-measurement-date';
+            time.dateTime = history.labels[latestIndex];
+            time.textContent = formatResultDate(history.labels[latestIndex]);
+            button.appendChild(time);
+        }
+        button.onclick = () => toggleResultDetail(history, measure, row, detail, button);
+        button.onkeydown = event => {
+            if (event.key !== 'Escape' || history.expanded?.button !== button) return;
+            event.preventDefault();
+            event.stopPropagation();
+            toggleResultDetail(history, measure, row, detail, button);
+        };
+        row.onclick = event => {
+            if (button.disabled || button.contains(event.target) || !window.getSelection().isCollapsed) return;
+            button.focus({ preventScroll: true });
+            button.click();
+        };
         heading.appendChild(button);
-        row.appendChild(heading);
         const sparkline = document.createElement('td');
         sparkline.className = 'biomarker-overview-history';
-        sparkline.appendChild(createBiomarkerSparkline(history.labels, values, label, dateText));
-        row.appendChild(sparkline);
+        sparkline.setAttribute('aria-hidden', 'true');
+        if (latestIndex != null) sparkline.appendChild(createBiomarkerSparkline(history.labels, measure.values));
+        else sparkline.textContent = '—';
         const result = document.createElement('td');
         result.className = 'biomarker-overview-result';
         const current = document.createElement('span');
         current.className = 'biomarker-overview-current';
-        current.textContent = isBiomarkerHistoryValue(latest) ? String(latest) : '—';
-        const start = document.createElement('span');
-        start.className = 'biomarker-history-unit';
-        start.textContent = isBiomarkerHistoryValue(baseline) ? String(baseline) : '—';
-        result.append(current, start);
-        row.appendChild(result);
-        const change = document.createElement('td');
-        change.className = 'biomarker-overview-change';
-        const delta = isBiomarkerHistoryValue(latest) && isBiomarkerHistoryValue(baseline)
-            ? Number((Number(latest) - Number(baseline)).toPrecision(12)) : null;
-        const changeValue = document.createElement('span');
-        changeValue.textContent = delta == null ? '—' : `${delta > 0 ? '+' : ''}${delta}`;
+        current.textContent = formatResultValue(latest, measure);
         const arrow = document.createElement('span');
         arrow.className = 'biomarker-overview-arrow';
-        arrow.textContent = '›';
         arrow.setAttribute('aria-hidden', 'true');
-        change.append(changeValue, arrow);
-        row.appendChild(change);
-        row.onclick = event => {
-            if (!event.target.closest('button, .biomarker-overview-history, .biomarker-overview-arrow')) return;
-            history.selectedMarker = label;
-            const section = document.getElementById('athlete-biomarkers');
-            section.dataset.selectedBiomarker = label;
-            document.getElementById('biomarkerOverlaySelect').value = label;
-            setBiomarkerHistoryView(history, 'table');
-            document.getElementById('biomarkerTableTab').focus();
-        };
-        rows.appendChild(row);
+        result.append(current, arrow);
+        row.append(heading, sparkline, result);
+        rows.append(row, detail);
     });
-    if (!history.markerLabels.length) {
-        const row = document.createElement('tr');
-        const cell = document.createElement('td');
-        cell.colSpan = 4;
-        cell.className = 'biomarker-history-empty';
-        cell.textContent = 'No test results available.';
-        row.appendChild(cell);
-        rows.appendChild(row);
-    }
     table.tBodies[0].replaceChildren(rows);
 }
 
-function createBiomarkerSparkline(labels, values, label, dateText) {
-    const ns = 'http://www.w3.org/2000/svg';
-    const svg = document.createElementNS(ns, 'svg');
+function toggleResultDetail(history, measure, row, detail, button) {
+    const previous = history.expanded;
+    if (previous) {
+        previous.chart?.destroy();
+        previous.detail.hidden = true;
+        previous.button.setAttribute('aria-expanded', 'false');
+        previous.row.classList.remove('is-expanded');
+        history.expanded = null;
+    }
+    if (previous?.detail === detail) return;
+    detail.hidden = false;
+    button.setAttribute('aria-expanded', 'true');
+    row.classList.add('is-expanded');
+    const cell = document.createElement('td');
+    cell.colSpan = 3;
+    const body = document.createElement('div');
+    body.className = 'result-detail';
+    const title = document.createElement('h4');
+    title.textContent = measure.clock ? `${measure.name} across LWC` : `${measure.name} over time`;
+    body.appendChild(title);
+    const points = measure.clock ? getClockComparisonPoints(history, measure.clock) : history.labels.flatMap((date, index) =>
+        isBiomarkerHistoryValue(measure.values[index])
+            ? [{ date, x: Date.parse(date), y: Number(measure.values[index]), name: history.athleteName, isAthlete: true, index }] : []);
+    if (measure.clock) {
+        const legend = document.createElement('p');
+        legend.className = 'result-plot-legend';
+        const own = document.createElement('span');
+        own.className = 'result-legend-athlete';
+        own.textContent = history.athleteName;
+        const others = document.createElement('span');
+        others.className = 'result-legend-others';
+        others.textContent = 'Other athletes';
+        const equal = document.createElement('span');
+        equal.className = 'result-legend-equal';
+        equal.textContent = 'Same age';
+        legend.append(own, others, equal);
+        body.appendChild(legend);
+        const count = document.createElement('p');
+        count.className = 'result-field-count';
+        const athleteCount = new Set(points.map(point => point.athleteKey)).size;
+        count.textContent = `${points.length} result${points.length === 1 ? '' : 's'} · ${athleteCount} athlete${athleteCount === 1 ? '' : 's'}`;
+        body.appendChild(count);
+    }
+    const plot = document.createElement('div');
+    plot.className = 'result-plot';
+    body.append(plot, createResultHistoryTable(history, measure));
+    cell.appendChild(body);
+    detail.replaceChildren(cell);
+    const state = { history, measure, row, detail, button, plot, points, chart: null };
+    history.expanded = state;
+    drawResultPlot(state);
+    body.onkeydown = event => {
+        if (event.key !== 'Escape') return;
+        event.stopPropagation();
+        event.preventDefault();
+        toggleResultDetail(history, measure, row, detail, button);
+        button.focus({ preventScroll: true });
+    };
+}
+
+function createResultHistoryTable(history, measure) {
+    const table = document.createElement('table');
+    table.className = 'biomarker-history-table';
+    const caption = table.createCaption();
+    caption.textContent = `${history.athleteName}'s ${measure.name} history in ${measure.unit}. Missing results are shown as a dash.`;
+    const heading = table.createTHead().insertRow();
+    ['Test date', `${measure.name} (${measure.unit})`].forEach(text => {
+        const cell = document.createElement('th');
+        cell.scope = 'col';
+        cell.textContent = text;
+        heading.appendChild(cell);
+    });
+    const body = table.createTBody();
+    history.labels.forEach((date, index) => {
+        const row = body.insertRow();
+        const cell = document.createElement('th');
+        cell.scope = 'row';
+        const time = document.createElement('time');
+        time.dateTime = date;
+        time.textContent = formatResultDate(date);
+        cell.appendChild(time);
+        row.appendChild(cell);
+        const result = row.insertCell();
+        result.textContent = formatResultValue(measure.values[index], measure);
+        if (!isBiomarkerHistoryValue(measure.values[index])) result.setAttribute('aria-label', 'Not available');
+    });
+    return table;
+}
+
+function getClockComparisonPoints(history, clock) {
+    if (!history.clockComparisons) {
+        history.clockComparisons = { bortz: [], pheno: [] };
+        history.sourceAthletes.forEach(athlete => {
+            const data = buildBiomarkerHistory(athlete);
+            ['bortz', 'pheno'].forEach(name => {
+                data.labels.forEach((date, index) => {
+                    const value = (name === 'bortz' ? data.bortzAges : data.phenoAges)[index];
+                    if (!isBiomarkerHistoryValue(value) || !Number.isFinite(data.chronologicalAges[index])) return;
+                    history.clockComparisons[name].push({ date, x: data.chronologicalAges[index], y: Number(value),
+                        name: data.athleteName, athleteKey: data.athleteKey, isAthlete: data.athleteKey === history.athleteKey, index });
+                });
+            });
+        });
+        Object.values(history.clockComparisons).forEach(points => points.sort((a, b) => a.x - b.x || a.date.localeCompare(b.date)));
+    }
+    return history.clockComparisons[clock];
+}
+
+function historySvgNode(parent, tag, attributes, text) {
+    const node = document.createElementNS('http://www.w3.org/2000/svg', tag);
+    Object.entries(attributes).forEach(([key, value]) => node.setAttribute(key, String(value)));
+    if (text != null) node.textContent = text;
+    parent.appendChild(node);
+    return node;
+}
+
+function createBiomarkerSparkline(labels, values) {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     svg.setAttribute('viewBox', '0 0 120 40');
-    svg.setAttribute('role', 'img');
-    svg.setAttribute('aria-label', `${label} history: ` + labels.map((date, i) =>
-        `${dateText(date)}: ${isBiomarkerHistoryValue(values[i]) ? values[i] : 'not available'}`).join('; '));
     const measured = values.filter(isBiomarkerHistoryValue).map(Number);
     const min = Math.min(...measured);
     const max = Math.max(...measured);
     const start = Date.parse(labels[0]);
     const duration = Date.parse(labels.at(-1)) - start;
-    const lines = document.createElementNS(ns, 'g');
-    svg.appendChild(lines);
+    const latest = values.findLastIndex(isBiomarkerHistoryValue);
+    const lines = historySvgNode(svg, 'g', {});
     let previous = null;
     values.forEach((value, index) => {
         if (!isBiomarkerHistoryValue(value)) { previous = null; return; }
         const x = duration ? 8 + (Date.parse(labels[index]) - start) / duration * 104 : 60;
         const y = min === max ? 20 : 32 - (Number(value) - min) / (max - min) * 24;
-        if (previous) {
-            const line = document.createElementNS(ns, 'line');
-            line.setAttribute('x1', previous.x);
-            line.setAttribute('y1', previous.y);
-            line.setAttribute('x2', x);
-            line.setAttribute('y2', y);
-            lines.appendChild(line);
-        }
-        const dot = document.createElementNS(ns, 'circle');
-        dot.setAttribute('cx', x);
-        dot.setAttribute('cy', y);
-        dot.setAttribute('r', index === labels.length - 1 ? '4' : '2.5');
-        dot.setAttribute('class', index === labels.length - 1 ? 'is-latest' : index === 0 ? 'is-baseline' : '');
-        svg.appendChild(dot);
+        if (previous) historySvgNode(lines, 'line', { x1: previous.x, y1: previous.y, x2: x, y2: y });
+        historySvgNode(svg, 'circle', { cx: x, cy: y, r: index === latest ? 4 : 2.5,
+            class: index === latest ? 'is-latest' : index === 0 ? 'is-baseline' : '' });
         previous = { x, y };
     });
     return svg;
 }
 
-function readBiomarkerVisibilityState() {
-    try {
-        const state = JSON.parse(localStorage.getItem('biomarkerVisibilityState') || '{}');
-        return state && typeof state === 'object' && !Array.isArray(state) ? state : {};
-    } catch {
-        return {};
-    }
-}
-
-function updateBiomarkerHistorySelection(history) {
-    renderBiomarkerHistoryTable(history);
-    const chart = history.chart;
-    if (!chart) return;
-    const state = {};
-    chart.data.datasets.forEach((dataset, index) => {
-        if (dataset.yAxisID !== 'y2') return;
-        const visible = dataset.label === history.selectedMarker;
-        chart.setDatasetVisibility(index, visible);
-        state[dataset.label] = !visible;
-    });
-    if (chart.options.scales?.y2) chart.options.scales.y2.display = !!history.selectedMarker;
-    try { localStorage.setItem('biomarkerVisibilityState', JSON.stringify(state)); } catch { /* Display does not depend on storage access. */ }
-    chart.update('none');
-}
-
-function renderBiomarkerHistoryTable(history) {
-    const table = document.querySelector('#athlete-biomarkers .biomarker-history-table');
-    if (!table) return;
-    table.caption.textContent = `${history.athleteName}'s biomarker history. Missing results are shown as a dash.`;
-    const heading = document.createElement('tr');
-    const appendHeading = (label, unit) => {
-        const th = document.createElement('th');
-        th.scope = 'col';
-        th.textContent = label;
-        if (unit) {
-            const span = document.createElement('span');
-            span.className = 'biomarker-history-unit';
-            span.textContent = unit;
-            th.appendChild(span);
+function drawResultPlot(state) {
+    const { history, measure, plot, points } = state;
+    const canvas = document.createElement('canvas');
+    canvas.setAttribute('role', 'img');
+    canvas.setAttribute('aria-label', measure.clock
+        ? `${measure.name} across LWC: chronological age at the test versus biological age, in years. Highlighted points are ${history.athleteName}'s results. The dashed line is equal biological and chronological age. Exact dated results are in the table below.`
+        : `${history.athleteName}'s ${measure.name} over time in ${measure.unit}. Exact dated results are in the table below.`);
+    canvas.dataset.clock = measure.clock || '';
+    plot.replaceChildren(canvas);
+    plot.setAttribute('aria-busy', 'true');
+    window.ensureChartJs().then(loaded => {
+        if (history.expanded !== state) return;
+        plot.removeAttribute('aria-busy');
+        if (!loaded) {
+            const retry = document.createElement('button');
+            retry.type = 'button';
+            retry.textContent = 'Retry chart';
+            retry.onclick = () => drawResultPlot(state);
+            plot.replaceChildren(retry);
+            return;
         }
-        heading.appendChild(th);
-    };
-    appendHeading('Test date');
-    appendHeading('Pheno Age', 'years');
-    appendHeading('Bortz Age', 'years');
-    if (history.selectedMarker) {
-        const split = history.selectedMarker.lastIndexOf(' (');
-        appendHeading(history.selectedMarker.slice(0, split), history.selectedMarker.slice(split + 2, -1));
-    }
-    table.tHead.replaceChildren(heading);
-    const rows = document.createDocumentFragment();
-    const dateFormat = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
-    history.labels.forEach((isoDate, index) => {
-        const row = document.createElement('tr');
-        const dateHeading = document.createElement('th');
-        dateHeading.scope = 'row';
-        const time = document.createElement('time');
-        time.dateTime = isoDate;
-        const date = new Date(isoDate);
-        time.appendChild(document.createTextNode(dateFormat.format(date)));
-        const year = document.createElement('span');
-        year.className = 'biomarker-history-year';
-        year.textContent = String(date.getUTCFullYear());
-        time.appendChild(year);
-        dateHeading.appendChild(time);
-        row.appendChild(dateHeading);
-        const values = [history.phenoAges[index], history.bortzAges[index]];
-        if (history.selectedMarker) values.push(history.biomarkersRaw[history.selectedMarker][index]);
-        values.forEach(value => {
-            const cell = document.createElement('td');
-            if (isBiomarkerHistoryValue(value)) cell.textContent = String(value);
-            else {
-                cell.textContent = '—';
-                cell.setAttribute('aria-label', 'Not available');
+        const style = getComputedStyle(plot);
+        const color = token => style.getPropertyValue(token).trim();
+        const accent = color(measure.clock === 'bortz' ? '--athlete-modal-chart-bortz' : '--athlete-modal-chart-pheno');
+        const tooltip = color('--athlete-modal-chart-tooltip');
+        const muted = color('--athlete-modal-muted');
+        const ink = color('--athlete-modal-text');
+        const own = points.filter(point => point.isAthlete);
+        const latestDate = own.reduce((date, point) => point.date > date ? point.date : date, '');
+        const ownStyle = {
+            borderColor: accent, borderWidth: 2, pointBorderColor: accent, pointBorderWidth: 2,
+            pointBackgroundColor: context => context.raw?.date === latestDate ? accent : tooltip,
+            pointRadius: context => context.raw?.date === latestDate ? 5.5 : 4,
+            pointHoverRadius: 7, pointHoverBorderColor: ink, pointHitRadius: 12, clip: false
+        };
+        const datasets = measure.clock ? [
+            { label: history.athleteName, data: own, ...ownStyle, order: 0 },
+            { label: 'Other athletes', data: points.filter(point => !point.isAthlete),
+                pointBackgroundColor: color('--athlete-modal-subtle'), pointBorderWidth: 0, pointRadius: 2.5, pointHoverRadius: 5,
+                pointHoverBorderWidth: 2, pointHoverBorderColor: ink, pointHitRadius: 8, order: 1 }
+        ] : [{ label: measure.name, data: history.labels.map((date, index) => ({ date, x: Date.parse(date),
+            y: isBiomarkerHistoryValue(measure.values[index]) ? Number(measure.values[index]) : null })),
+            ...ownStyle, spanGaps: false, tension: 0, fill: false }];
+        let comparisonBounds;
+        if (measure.clock) {
+            const ages = points.map(point => point.x);
+            const low = Math.max(0, Math.floor(Math.min(...ages) / 10) * 10);
+            const high = Math.max(low + 10, Math.ceil(Math.max(...ages) / 10) * 10);
+            comparisonBounds = { x: { min: low, max: high }, y: {
+                min: Math.floor(Math.min(low, ...points.map(point => point.y)) / 10) * 10,
+                max: Math.ceil(Math.max(high, ...points.map(point => point.y)) / 10) * 10
+            } };
+            datasets.push({ label: 'Same age', type: 'line', data: [{ x: low, y: low }, { x: high, y: high }],
+                borderColor: muted, borderWidth: 1, borderDash: [4, 5], pointRadius: 0, pointHitRadius: 0, order: 2 });
+        }
+        const compact = () => plot.clientWidth < 360;
+        const historyStart = points[0].x;
+        const historyEnd = points.at(-1).x;
+        const singleDate = historyStart === historyEnd;
+        const dateTick = value => new Intl.DateTimeFormat('en-GB', {
+            year: 'numeric', timeZone: 'UTC',
+            ...(historyEnd - historyStart > 86400000 * 365.25 * 2 ? {} : { month: 'short', ...(compact() ? {} : { day: 'numeric' }) })
+        }).format(new Date(Number(value)));
+        const axis = { type: 'linear', border: { display: false },
+            grid: { color: color('--athlete-modal-chart-grid'), drawTicks: false },
+            ticks: { color: muted, padding: 8, font: { family: 'Roboto', size: 11 }, maxRotation: 0 },
+            title: { display: true, color: muted, font: { family: 'Roboto', size: 11 } } };
+        const titleLines = text => {
+            const limit = compact() ? 24 : 38;
+            return String(text).match(new RegExp(`.{1,${limit}}(?:\\s|$)|.{1,${limit}}`, 'g'))?.map(line => line.trim()) || [];
+        };
+        state.chart = new window.Chart(canvas, {
+            type: measure.clock ? 'scatter' : 'line', data: { datasets },
+            options: {
+                responsive: true, maintainAspectRatio: false, animation: false,
+                interaction: { mode: 'nearest', axis: measure.clock ? 'xy' : 'x', intersect: false },
+                layout: { padding: { top: 10, right: 10 } },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { enabled: true, position: 'nearest', displayColors: false,
+                        backgroundColor: tooltip, titleColor: ink, bodyColor: ink, borderColor: accent, borderWidth: 1,
+                        padding: 10, cornerRadius: 6, caretPadding: 7, titleFont: { family: 'Roboto', size: 12, weight: '600' },
+                        bodyFont: { family: 'Roboto', size: 12 },
+                        filter: item => item.dataset.label !== 'Same age',
+                        callbacks: {
+                            title: items => items.length ? titleLines(measure.clock ? items[0].raw.name : formatResultDate(items[0].raw.date)) : '',
+                            beforeBody: items => measure.clock && items.length ? formatResultDate(items[0].raw.date) : '',
+                            label: item => measure.clock
+                                ? [`${measure.name}: ${Number(item.raw.y).toFixed(1)} years`, `Chronological age: ${Number(item.raw.x).toFixed(1)}`]
+                                : `${measure.name}: ${item.raw.y} ${measure.unit}`
+                        }
+                    }
+                },
+                scales: {
+                    x: { ...axis, grid: { display: false },
+                        ...(measure.clock ? comparisonBounds.x : { min: historyStart - (singleDate ? 86400000 : 0), max: historyEnd + (singleDate ? 86400000 : 0) }),
+                        title: { ...axis.title, text: measure.clock ? 'Chronological age (years)' : 'Test date' },
+                        ticks: { ...axis.ticks, maxTicksLimit: compact() ? 3 : 5, ...(measure.clock ? {} : { callback: dateTick }) } },
+                    y: { ...axis, ...(measure.clock ? comparisonBounds.y : { grace: '8%' }), ticks: { ...axis.ticks, maxTicksLimit: 6 },
+                        title: { ...axis.title, text: measure.clock ? `${measure.name} (years)` : measure.unit } }
+                }
             }
-            row.appendChild(cell);
         });
-        rows.appendChild(row);
     });
-    if (!history.labels.length) {
-        const row = document.createElement('tr');
-        const cell = document.createElement('td');
-        cell.colSpan = heading.children.length;
-        cell.className = 'biomarker-history-empty';
-        cell.textContent = 'No test results available.';
-        row.appendChild(cell);
-        rows.appendChild(row);
-    }
-    table.tBodies[0].replaceChildren(rows);
 }
+
 
 // Biomarker key order matches bortz-age.html card order (WBC, Lymphocytes, Neutrophils, …)
 function initializeBiomarkersRaw() {
@@ -6114,28 +6109,6 @@ function initializeBiomarkersRaw() {
     };
 }
 
-function collectBiomarkerValues(entry, biomarkersRaw) {
-    function pushOrInherit(key, newValue) {
-        // Retrieve the last known value if available
-        const lastValue = biomarkersRaw[key].length > 0 ? biomarkersRaw[key][biomarkersRaw[key].length - 1] : undefined;
-        // Use newValue if provided; otherwise, inherit lastValue
-        const valueToUse = newValue != null ? newValue : lastValue;
-        // Update the persistent storage
-        biomarkersRaw[key].push(valueToUse);
-        // Return the value used so we can update the entry
-        return valueToUse;
-    }
-    entry.Wbc1000cellsuL = pushOrInherit('WBC (10^3 cells/µL)', entry.Wbc1000cellsuL);
-    entry.LymPc = pushOrInherit('Lymphocytes (%)', entry.LymPc);
-    entry.McvFL = pushOrInherit('MCV (fL)', entry.McvFL);
-    entry.RdwPc = pushOrInherit('RDW (%)', entry.RdwPc);
-    entry.AlbGL = pushOrInherit('Albumin (g/L)', entry.AlbGL);
-    entry.AlpUL = pushOrInherit('ALP (U/L)', entry.AlpUL);
-    entry.CreatUmolL = pushOrInherit('Creatinine (µmol/L)', entry.CreatUmolL);
-    entry.GluMmolL = pushOrInherit('Glucose (mmol/L)', entry.GluMmolL);
-    entry.CrpMgL = pushOrInherit('CRP (mg/L)', entry.CrpMgL);
-}
-
 function prepareBiomarkerValues(entry, chronoAgeAtEntry) {
     return [
         chronoAgeAtEntry,
@@ -6149,271 +6122,6 @@ function prepareBiomarkerValues(entry, chronoAgeAtEntry) {
         entry.RdwPc,
         entry.AlpUL
     ];
-}
-
-function calculateBiomarkerZScores(biomarkersRaw) {
-    const biomarkersZScores = {};
-    for (const [key, values] of Object.entries(biomarkersRaw)) {
-        const hasNulls = values.some(v => v == null);
-        if (hasNulls) {
-            const valid = values.filter(v => v != null && Number.isFinite(v));
-            const n = valid.length;
-            if (n === 0) {
-                biomarkersZScores[key] = values.map(() => null);
-            } else {
-                const mean = valid.reduce((sum, val) => sum + val, 0) / n;
-                const variance = valid.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / n;
-                const stdDev = Math.sqrt(variance);
-                biomarkersZScores[key] = values.map(val =>
-                    val == null || !Number.isFinite(val) ? null : (stdDev === 0 ? 0 : ((val - mean) / stdDev).toFixed(2))
-                );
-            }
-        } else {
-            const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
-            const variance = values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length;
-            const stdDev = Math.sqrt(variance);
-            biomarkersZScores[key] = stdDev === 0
-                ? values.map(() => 0)
-                : values.map(val => ((val - mean) / stdDev).toFixed(2));
-        }
-    }
-    return biomarkersZScores;
-}
-
-function getAthleteModalCssVar(name, fallback) {
-    const modal = document.getElementById('detailsModal');
-    const value = modal ? window.getComputedStyle(modal).getPropertyValue(name).trim() : '';
-    return value || fallback;
-}
-
-function prepareBiomarkerDatasets(labels, phenoAges, bortzAges, biomarkersRaw, biomarkersZScores) {
-    const hasBortzAge = bortzAges.some(v => v != null && Number.isFinite(Number(v)));
-    const bortzColor = getAthleteModalCssVar('--athlete-modal-chart-bortz', 'rgba(154,232,178,.96)');
-    const phenoColor = getAthleteModalCssVar('--athlete-modal-chart-pheno', 'rgba(135,229,229,.96)');
-    const biomarkerOverlayColor = getAthleteModalCssVar('--athlete-modal-chart-biomarker', 'rgba(255,125,125,.96)');
-    const pointBorderColor = 'rgba(8,10,10,.94)';
-    const pointHitRadius = window.matchMedia && window.matchMedia('(pointer: coarse)').matches ? 18 : 8;
-    const datasets = [];
-    if (hasBortzAge) {
-        datasets.push({
-            label: 'Bortz Age',
-            data: bortzAges,
-            borderColor: bortzColor,
-            backgroundColor: 'rgba(154,232,178,.14)',
-            pointBackgroundColor: bortzColor,
-            pointBorderColor: pointBorderColor,
-            pointBorderWidth: 2,
-            pointRadius: 5,
-            pointHoverRadius: 7,
-            pointHitRadius: pointHitRadius,
-            fill: false,
-            tension: 0.1,
-            borderWidth: 3,
-            yAxisID: 'y1',
-            spanGaps: true
-        });
-    }
-    datasets.push({
-        label: 'Pheno Age',
-        data: phenoAges,
-        borderColor: phenoColor,
-        backgroundColor: 'rgba(135,229,229,.14)',
-        pointBackgroundColor: phenoColor,
-        pointBorderColor: pointBorderColor,
-        pointBorderWidth: 2,
-        pointRadius: 5,
-        pointHoverRadius: 7,
-        pointHitRadius: pointHitRadius,
-        fill: false,
-        tension: 0.1,
-        borderWidth: 3,
-        yAxisID: 'y1'
-    });
-
-    for (const [key, zScores] of Object.entries(biomarkersZScores)) {
-        const actualValues = biomarkersRaw[key];
-        const hasAtLeastOneValue = actualValues.some(v => v != null && Number.isFinite(v));
-        if (!hasAtLeastOneValue) continue;
-
-        const dataPoints = zScores.map((zScore, index) => ({
-            x: labels[index],
-            y: zScore,
-            actualValue: actualValues[index]
-        }));
-
-        // Retrieve saved visibility state from localStorage
-        const savedState = readBiomarkerVisibilityState();
-        const isHidden = Object.prototype.hasOwnProperty.call(savedState, key) ? savedState[key] : true;
-
-        datasets.push({
-            label: key,
-            data: dataPoints,
-            borderColor: biomarkerOverlayColor,
-            backgroundColor: 'rgba(255,125,125,.16)',
-            pointBackgroundColor: biomarkerOverlayColor,
-            pointBorderColor: pointBorderColor,
-            pointBorderWidth: 2,
-            pointRadius: 5,
-            pointHoverRadius: 7,
-            pointHitRadius: pointHitRadius,
-            fill: false,
-            tension: 0.1,
-            borderWidth: 3,
-            yAxisID: 'y2',
-            hidden: isHidden,
-            spanGaps: true
-        });
-    }
-    return datasets;
-}
-
-function getBiomarkerChartOptions() {
-    const chartTextColor = getAthleteModalCssVar('--athlete-modal-text', '#333');
-    const chartMutedColor = getAthleteModalCssVar('--athlete-modal-muted', '#666');
-    const chartGridColor = getAthleteModalCssVar('--athlete-modal-chart-grid', 'rgba(0,0,0,0.08)');
-    return {
-        responsive: true,
-        maintainAspectRatio: true,
-        aspectRatio: window.innerWidth < 768 ? 1.05 : 1.6,
-        layout: {
-            padding: {
-                left: window.innerWidth < 768 ? 4 : 12,
-                right: window.innerWidth < 768 ? 4 : 12,
-                top: 4
-            }
-        },
-        interaction: {
-            mode: 'index',
-            intersect: false
-        },
-        stacked: false,
-        plugins: {
-            tooltip: {
-                backgroundColor: 'rgba(5,7,7,.94)',
-                titleColor: 'rgba(255,255,255,.96)',
-                bodyColor: 'rgba(255,255,255,.9)',
-                borderColor: 'rgba(246,244,237,.34)',
-                borderWidth: 1,
-                cornerRadius: 6,
-                padding: 10,
-                displayColors: true,
-                callbacks: {
-                    label: function (context) {
-                        const label = context.dataset.label || '';
-                        const yValue = context.parsed.y;
-                        const actualValue = context.raw && context.raw.actualValue;
-                        if (label === 'Pheno Age' || label === 'Bortz Age') {
-                            return yValue != null ? `${label}: ${yValue}` : `${label}: N/A`;
-                        }
-                        const formattedValue = actualValue !== undefined && actualValue != null && !isNaN(actualValue)
-                            ? (actualValue % 1 !== 0 ? actualValue.toFixed(2) : actualValue.toString())
-                            : 'N/A';
-                        return `${label}: ${formattedValue}`;
-                    }
-                }
-            },
-            legend: {
-                position: 'bottom',
-                labels: {
-                    color: chartMutedColor,
-                    boxWidth: 9,
-                    boxHeight: 9,
-                    padding: 14,
-                    usePointStyle: true,
-                    font: {
-                        size: window.innerWidth < 768 ? 10 : 12,
-                        weight: '600'
-                    },
-                    filter: function (legendItem, chartData) {
-                        const dataset = chartData.datasets[legendItem.datasetIndex];
-                        return dataset && dataset.yAxisID === 'y1';
-                    }
-                },
-                onHover: function (event) {
-                    event.native.target.style.cursor = 'pointer';
-                },
-                onLeave: function (event) {
-                    event.native.target.style.cursor = 'default';
-                },
-                onClick: function (e, legendItem, legend) {
-                    // Execute the default onClick handler
-                    Chart.defaults.plugins.legend.onClick.call(this, e, legendItem, legend);
-                    // Get the chart instance and dataset metadata
-                    const ci = legend.chart;
-                    const index = legendItem.datasetIndex;
-                    const meta = ci.getDatasetMeta(index);
-
-                    // Store the biomarker's new visibility status
-                    // Retrieve the stored state; if none exists, start with an empty object
-                    const state = readBiomarkerVisibilityState();
-
-                    // Update the state with the new key-value pair
-                    state[meta.label] = meta.hidden;
-
-                    // Save it back to localStorage as a JSON string
-                    try { localStorage.setItem('biomarkerVisibilityState', JSON.stringify(state)); } catch { /* Storage is optional. */ }
-                }
-            }
-        },
-        scales: {
-            y1: {
-                type: 'linear',
-                display: true,
-                position: 'left',
-                title: {
-                    display: true,
-                    text: 'Age (years)',
-                    color: chartTextColor,
-                    font: {
-                        size: window.innerWidth < 768 ? 10 : 14 // Adjust font size for mobile
-                    }
-                },
-                ticks: {
-                    color: chartMutedColor
-                },
-                grid: {
-                    drawOnChartArea: true,
-                    color: chartGridColor
-                }
-            },
-            y2: {
-                type: 'linear',
-                display: true,
-                position: 'right',
-                title: {
-                    display: true,
-                    text: 'Biomarkers (Z-scores)',
-                    color: chartTextColor,
-                    font: {
-                        size: window.innerWidth < 768 ? 10 : 14
-                    }
-                },
-                ticks: {
-                    color: chartMutedColor
-                },
-                grid: {
-                    drawOnChartArea: false,
-                    color: chartGridColor
-                }
-            },
-            x: {
-                title: {
-                    display: true,
-                    text: 'Date',
-                    color: chartTextColor,
-                    font: {
-                        size: window.innerWidth < 768 ? 10 : 14
-                    }
-                },
-                ticks: {
-                    color: chartMutedColor
-                },
-                grid: {
-                    color: chartGridColor
-                }
-            }
-        }
-    };
 }
 
 function populateProofsGallery(fullAthleteData) {
@@ -6611,13 +6319,9 @@ sidebarToggle?.addEventListener('click', (event) => {
     toggleSidebar({ focusDrawerClose: event.detail === 0 });
 });
 
-sidebarToggle?.addEventListener('mouseenter', () => {
-    if (sidebar.classList.contains('expanded')) return;
-    sidebar.classList.add('partially-expanded');
-});
-
-sidebarToggle?.addEventListener('mouseleave', () => {
-    sidebar.classList.remove('partially-expanded');
+sidebar?.addEventListener('mouseleave', () => {
+    // An explicit close wins over hover until the pointer leaves the rail.
+    sidebar.classList.remove('button-collapsed');
 });
 
 sidebarClose?.addEventListener('click', (event) => {
@@ -6742,8 +6446,7 @@ function openSidebar(options = {}) {
     const drawerScrollY = window.scrollY;
 
     scheduleLeaderboardTableHeightSync();
-    sidebar.classList.remove('partially-expanded');
-    sidebar.classList.remove('collapsed');
+    sidebar.classList.remove('button-collapsed', 'collapsed');
 
     if (!sidebar.classList.contains('expanded')) {
         sidebar.classList.add('expanded');
@@ -6786,7 +6489,6 @@ function closeSidebar(options = {}) {
     sidebar.classList.remove('expanded');
     sidebar.setAttribute('aria-hidden', 'true');
     sidebarToggle.classList.remove('active');
-    sidebar.classList.remove('partially-expanded');
     if (!sidebar.classList.contains('button-collapsed')) {
         sidebar.classList.add('button-collapsed');
     }
@@ -6810,10 +6512,6 @@ function closeSidebar(options = {}) {
             }
         });
     }
-
-    setTimeout(() => {
-        sidebar.classList.remove('button-collapsed');
-    }, 50);
 }
 
 if (hasLeaderboardSidebar) {
