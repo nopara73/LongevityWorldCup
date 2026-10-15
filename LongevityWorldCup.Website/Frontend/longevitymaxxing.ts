@@ -1068,9 +1068,12 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             const parent = belowContent ? reply : meta;
             if (actions.parentElement === parent) return;
             const focused = document.activeElement;
-            const restoreFocus = focused instanceof HTMLElement && actions.contains(focused);
+            const feedback = reply.querySelector<HTMLElement>(":scope > .lmx-discussion-copy-feedback");
+            const feedbackFocused = !!feedback && focused instanceof HTMLElement && feedback.contains(focused);
+            const restoreFocus = focused instanceof HTMLElement && (actions.contains(focused) || feedbackFocused);
             parent.insertBefore(actions, belowContent ? editor : null);
-            if (restoreFocus) focused.focus({ preventScroll: true });
+            if (feedback) placeDiscussionCopyFeedback(reply, feedback);
+            if (restoreFocus) focused.focus({ preventScroll: !feedbackFocused });
         });
     }
 
@@ -3986,6 +3989,12 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             <i class="fas fa-link" aria-hidden="true"></i></button>`;
     }
 
+    function placeDiscussionCopyFeedback(scope: HTMLElement, feedback: HTMLElement): void {
+        const anchor = scope.querySelector(":scope > .lmx-discussion-reply-footer")
+            || scope.querySelector(":scope > .lmx-discussion-reply-meta, :scope > .lmx-discussion-post-header");
+        if (anchor && anchor.nextElementSibling !== feedback) anchor.after(feedback);
+    }
+
     async function copyDiscussionLink(button: HTMLButtonElement): Promise<void> {
         if (button.getAttribute("aria-busy") === "true") return;
         const url = new URL(button.dataset.discussionCopyLink || "/longevitymaxxing", window.location.origin).href;
@@ -3996,7 +4005,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             feedback = document.createElement("div");
             feedback.className = "lmx-discussion-copy-feedback";
             feedback.setAttribute("role", "status");
-            scope.querySelector(".lmx-discussion-reply-meta, .lmx-discussion-post-header")?.after(feedback);
+            placeDiscussionCopyFeedback(scope, feedback);
         }
         feedback.replaceChildren();
         feedback.classList.remove("error");
@@ -4028,7 +4037,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             input.setAttribute("aria-label", "Public discussion link");
             input.addEventListener("focus", () => input.select());
             feedback.append(input);
-            if (document.activeElement === button) input.focus({ preventScroll: true });
+            if (document.activeElement === button) input.focus();
         } finally {
             button.removeAttribute("aria-busy");
         }

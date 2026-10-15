@@ -7,6 +7,52 @@ namespace LongevityWorldCup.Tests;
 
 public sealed partial class LongevitymaxxingChallengeBrowserTests
 {
+    [Theory]
+    [InlineData(390, ColorScheme.Dark)]
+    [InlineData(1280, ColorScheme.Light)]
+    public async Task DiscussionReplies_CopyFallbackFollowsResponsiveActions(int initialWidth, ColorScheme theme)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = initialWidth, Height = 900 }, ColorScheme = theme
+        });
+        await context.AddInitScriptAsync("""
+            Object.defineProperty(navigator, 'clipboard', { value: { writeText: async () => { throw new Error('Denied'); } } });
+            """);
+        var state = ConversationWorkspaceState();
+        foreach (var notes in new[] { state["notes"]!, state["public"]!["notes"]! })
+        {
+            var reply = notes.AsArray()[0]!["replies"]!.AsArray().Single(reply => reply!["id"]!.GetValue<string>() == "r6")!;
+            reply["body"] = string.Join(" ", Enumerable.Repeat("A longer reply about training and recovery.", 40));
+        }
+        var page = await OpenDiscussionWorkspaceAsync(context, state);
+        var item = DiscussionThread(page, "p7", 5).Locator("[data-discussion-reply-id='r6']");
+        await item.Locator("[data-discussion-copy-link]").ClickAsync();
+        var fallback = item.Locator(":scope > .lmx-discussion-copy-feedback input");
+        await Assertions.Expect(fallback).ToBeFocusedAsync();
+        foreach (var width in new[] { initialWidth, initialWidth <= 480 ? 1280 : 390, initialWidth })
+        {
+            await page.SetViewportSizeAsync(width, 900);
+            await page.WaitForFunctionAsync("""
+                () => {
+                    const item = document.querySelector('#lmxNotes [data-discussion-reply-id="r6"]');
+                    const actions = item?.querySelector('.lmx-discussion-reply-footer');
+                    return actions && (actions.parentElement === item) === (innerWidth <= 480);
+                }
+                """);
+            Assert.True(await fallback.EvaluateAsync<bool>("""
+                input => {
+                    const feedback = input.parentElement;
+                    const anchor = feedback.previousElementSibling;
+                    return anchor.matches(innerWidth <= 480 ? '.lmx-discussion-reply-footer' : '.lmx-discussion-reply-meta');
+                }
+                """), $"{width}px: the selectable link must follow the copy action's row.");
+            await Assertions.Expect(fallback).ToBeFocusedAsync();
+            await Assertions.Expect(fallback).ToBeInViewportAsync();
+            Assert.True(await fallback.EvaluateAsync<bool>("input => input.selectionStart === 0 && input.selectionEnd === input.value.length"));
+        }
+    }
+
     [Fact]
     public async Task DiscussionReplies_ResizePreservesTheFocusedActionAndUnpublishedEdit()
     {
