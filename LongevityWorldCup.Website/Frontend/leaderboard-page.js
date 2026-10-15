@@ -6384,6 +6384,7 @@ window.addEventListener('popstate', function (event) {
 });
 
 const sidebar = document.querySelector('.sidebar');
+const sidebarPanel = sidebar?.querySelector('.sidebar-panel');
 const sidebarToggle = document.querySelector('.sidebar-toggle');
 const sidebarClose = document.querySelector('.sidebar-close');
 const hasLeaderboardSidebar = !!(sidebar && sidebarToggle && sidebarClose);
@@ -6396,6 +6397,15 @@ function isMobileDrawerViewport() {
     return mobileDrawerMediaQuery.matches;
 }
 
+function syncSidebarPanelInteractivity() {
+    if (!sidebarPanel) return;
+    const open = isMobileDrawerViewport()
+        ? sidebar.classList.contains('expanded')
+        : getComputedStyle(sidebarPanel).getPropertyValue('--sidebar-panel-open').trim() === '1';
+    sidebarPanel.inert = !open;
+    sidebarPanel.setAttribute('aria-hidden', open ? 'false' : 'true');
+}
+
 function scheduleLeaderboardTableHeightSync() {
     if (leaderboardTableHeightFrame) return;
     leaderboardTableHeightFrame = requestAnimationFrame(syncLeaderboardTableHeight);
@@ -6403,6 +6413,7 @@ function scheduleLeaderboardTableHeightSync() {
 
 function syncLeaderboardTableHeight() {
     leaderboardTableHeightFrame = 0;
+    syncSidebarPanelInteractivity();
 
     const leaderboard = document.querySelector('.leaderboard');
     const table = document.querySelector('.leaderboard--flags > .flag-leaderboard') || document.querySelector('.leaderboard > table');
@@ -6434,6 +6445,7 @@ function installLeaderboardTableHeightObserver() {
         leaderboardTableResizeObserver.observe(table);
         const flags = document.getElementById('flagLeaderboard');
         if (flags) leaderboardTableResizeObserver.observe(flags);
+        if (sidebarPanel) leaderboardTableResizeObserver.observe(sidebarPanel);
         const title = document.querySelector('.collapsed-title');
         if (title) leaderboardTableResizeObserver.observe(title);
     }
@@ -6448,6 +6460,7 @@ sidebarToggle?.addEventListener('click', (event) => {
 sidebar?.addEventListener('mouseleave', () => {
     // An explicit close wins over hover until the pointer leaves the rail.
     sidebar.classList.remove('button-collapsed');
+    syncSidebarPanelInteractivity();
 });
 
 sidebarClose?.addEventListener('click', (event) => {
@@ -6540,6 +6553,7 @@ function syncSidebarDrawerBackdrop() {
         document.body.style.removeProperty('--sidebar-body-width');
     }
     sidebar.setAttribute('aria-hidden', isMobileDrawer && !isOpenMobileDrawer ? 'true' : 'false');
+    syncSidebarPanelInteractivity();
 }
 
 function getSidebarFocusableControls() {
@@ -6654,7 +6668,10 @@ function closeSidebar(options = {}) {
 if (hasLeaderboardSidebar) {
     syncSidebarDrawerBackdrop();
     installLeaderboardTableHeightObserver();
-    sidebar.addEventListener('mouseenter', scheduleLeaderboardTableHeightSync);
+    sidebar.addEventListener('mouseenter', () => {
+        syncSidebarPanelInteractivity();
+        scheduleLeaderboardTableHeightSync();
+    });
     window.addEventListener('scroll', scheduleLeaderboardTableHeightSync, { passive: true });
     window.addEventListener('resize', () => {
         syncSidebarDrawerBackdrop();
