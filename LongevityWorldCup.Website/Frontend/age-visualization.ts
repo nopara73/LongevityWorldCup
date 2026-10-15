@@ -330,14 +330,18 @@
         var diff = bioAge - chronoAge;
         var diffText = (diff > 0 ? '+' : '') + diff.toFixed(1) + ' years';
         var label = diff < 0 ? 'age reduction' : 'age acceleration';
+        var bioText = 'biological age: ' + (Number.isFinite(bioAge) ? bioAge.toFixed(1) : '—');
 
         var centerVal = document.getElementById('ageRadarCenterValue');
         var centerLbl = document.getElementById('ageRadarCenterLabel');
+        var centerBio = document.getElementById('ageRadarCenterBio');
         var centerEl = document.getElementById('ageRadarCenter');
         var fallbackVal = document.getElementById('ageRadarFallbackValue');
         var fallbackLbl = document.getElementById('ageRadarFallbackLabel');
+        var fallbackBio = document.getElementById('ageRadarFallbackBio');
         if (centerVal) centerVal.textContent = diffText;
         if (centerLbl) centerLbl.textContent = label;
+        if (centerBio) centerBio.textContent = bioText;
         if (centerEl) {
             centerEl.classList.remove('positive', 'negative');
             if (diff < 0) centerEl.classList.add('positive');
@@ -346,6 +350,7 @@
         }
         if (fallbackVal) fallbackVal.textContent = diffText;
         if (fallbackLbl) fallbackLbl.textContent = label;
+        if (fallbackBio) fallbackBio.textContent = bioText;
     }
 
     function applyRadarData(data: RadarData | null): void {
@@ -449,7 +454,6 @@
         var later = laterElement instanceof HTMLButtonElement ? laterElement : null;
         var current = document.getElementById('ageResultCurrent');
         var resultDate = document.getElementById('ageResultDate');
-        var resultAge = document.getElementById('ageResultAge');
         var chevron = picker?.querySelector<SVGElement>('.age-result-chevron');
 
         function showReading(index: number): void {
@@ -466,7 +470,6 @@
                 resultDate.textContent = reading.date ? resultDateFormat.format(new Date(reading.date)) : '';
                 resultDate.setAttribute('datetime', reading.date?.slice(0, 10) || '');
             }
-            if (resultAge) resultAge.textContent = reading.bio.toFixed(1) + ' years';
             if (canvas) {
                 canvas.dataset.clock = useBortz ? 'bortz' : 'pheno';
                 canvas.dataset.resultDate = reading.date || '';

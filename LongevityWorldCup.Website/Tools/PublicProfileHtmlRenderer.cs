@@ -77,6 +77,7 @@ public static class PublicProfileHtmlRenderer
         {
             html = SetContent(html, prefix + "Value", PublicHtmlFormat.Signed(effectiveReduction) + " years");
             html = SetContent(html, prefix + "Label", effectiveReduction < 0 ? "age reduction" : "age acceleration");
+            html = SetContent(html, prefix + "Bio", "biological age: " + PublicHtmlFormat.Fixed(stats.LowestBortzAge ?? stats.LowestPhenoAge));
         }
         if (athlete.IsPro)
         {

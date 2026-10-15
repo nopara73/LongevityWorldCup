@@ -438,7 +438,10 @@ public sealed class BiomarkerHistoryBrowserTests(
                 await select.SelectOptionAsync(i.ToString(CultureInfo.InvariantCulture));
                 await Expect(page.Locator("#ageRadarChart")).ToHaveAttributeAsync("data-result-date", panels[i].Date);
                 await Expect(page.Locator("#ageResultDate")).ToHaveAttributeAsync("datetime", panels[i].Date);
-                await Expect(page.Locator("#ageResultAge")).ToHaveTextAsync($"{expected[i].ToString("F1", CultureInfo.InvariantCulture)} years");
+                await Expect(page.Locator("#ageRadarCenterBio")).ToHaveTextAsync($"biological age: {expected[i].ToString("F1", CultureInfo.InvariantCulture)}");
+                var dateLabel = DateTime.ParseExact(panels[i].Date, "yyyy-MM-dd", CultureInfo.InvariantCulture).ToString("d MMM yyyy", CultureInfo.InvariantCulture);
+                await Expect(page.Locator("#ageResultCurrent")).ToHaveTextAsync(dateLabel);
+                await Expect(select.Locator("option").Nth(i)).ToHaveTextAsync($"{dateLabel} · {expected[i].ToString("F1", CultureInfo.InvariantCulture)} years");
                 var chart = await page.EvaluateAsync<JsonElement>("""
                     () => { const chart = Chart.getChart(document.getElementById('ageRadarChart'));
                         return { id: chart.id, shape: chart.data.datasets[0].data, contributors: chart._radarTooltipContributors.flat() }; }
@@ -540,10 +543,10 @@ public sealed class BiomarkerHistoryBrowserTests(
         await Expect(page.Locator("#ageRadarChart")).ToBeHiddenAsync();
         await page.Locator("#ageResultSelect").SelectOptionAsync("1");
         await Expect(page.Locator("#ageResultDate")).ToHaveTextAsync("1 Jan 2026");
-        await Expect(page.Locator("#ageResultAge")).ToHaveTextAsync($"{BortzAgeHelper.CalculateBortzAgeFromRaw(AlbuminCapTestData.Age, AlbuminCapTestData.BortzValues(44)).ToString("F1", CultureInfo.InvariantCulture)} years");
+        await Expect(page.Locator("#ageRadarFallbackBio")).ToHaveTextAsync($"biological age: {BortzAgeHelper.CalculateBortzAgeFromRaw(AlbuminCapTestData.Age, AlbuminCapTestData.BortzValues(44)).ToString("F1", CultureInfo.InvariantCulture)}");
         await page.Locator("#ageTabPheno").ClickAsync();
         await page.Locator("#ageResultSelect").SelectOptionAsync("1");
-        await Expect(page.Locator("#ageResultAge")).ToHaveTextAsync($"{PhenoAgeHelper.CalculatePhenoAge(AlbuminCapTestData.PhenoValues(44)).ToString("F1", CultureInfo.InvariantCulture)} years");
+        await Expect(page.Locator("#ageRadarFallbackBio")).ToHaveTextAsync($"biological age: {PhenoAgeHelper.CalculatePhenoAge(AlbuminCapTestData.PhenoValues(44)).ToString("F1", CultureInfo.InvariantCulture)}");
     }
 
     private static async Task SaveReviewScreenshotAsync(ILocator section, string name, ILocator? summaryRow = null)
