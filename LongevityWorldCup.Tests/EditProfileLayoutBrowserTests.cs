@@ -136,6 +136,10 @@ public sealed class EditProfileLayoutBrowserTests(
                                 issues.push(`Split word: ${word[0]}`);
                             if (rects.some(rect => rect.left < box.left - 1 || rect.right > box.right + 1))
                                 issues.push(`Clipped word: ${word[0]}`);
+                            const icon = label.closest('button')?.querySelector(':scope > i')?.getBoundingClientRect();
+                            if (icon && rects.some(rect => rect.left < icon.right - 1 && rect.right > icon.left + 1
+                                && rect.top < icon.bottom - 1 && rect.bottom > icon.top + 1))
+                                issues.push(`Icon overlaps word: ${word[0]}`);
                         }
                     }
                 }
