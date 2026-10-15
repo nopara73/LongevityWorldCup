@@ -2723,9 +2723,17 @@ function resetModalForLoading(athleteSlug) {
 }
 
 // Improved body scroll lock for iOS
+function getLockedBodyWidth(previousWidth) {
+    // Compensate only for scrollbar space actually released by the lock.
+    // Reserving a root gutter also shrinks fixed overlays and action docks.
+    const releasedWidth = Math.max(0, window.innerWidth - previousWidth);
+    return `calc(100% - ${releasedWidth}px)`;
+}
+
 function lockBodyScroll() {
     if (document.body.classList.contains('no-scroll')) return;
 
+    const bodyWidth = document.body.clientWidth;
     savedBodyScroll = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
     if ('scrollRestoration' in history) {
         savedBodyScrollRestoration ??= history.scrollRestoration;
@@ -2737,7 +2745,7 @@ function lockBodyScroll() {
     const scrollY = savedBodyScroll;
     document.body.style.position = 'fixed';
     document.body.style.top = `-${scrollY}px`;
-    document.body.style.width = '100%';
+    document.body.style.width = getLockedBodyWidth(bodyWidth);
     savedBodyBackground = document.body.style.backgroundColor;
     document.body.style.backgroundColor = getComputedStyle(document.body).backgroundColor || getComputedStyle(document.documentElement).backgroundColor;
 }
@@ -6513,16 +6521,21 @@ function syncSidebarDrawerBackdrop() {
     sidebarDrawerCloseTimer = 0;
     sidebar.inert = isMobileDrawer && !isOpenMobileDrawer;
     if (isOpenMobileDrawer) {
+        const wasOpen = document.body.classList.contains('sidebar-drawer-open');
+        const bodyWidth = document.body.clientWidth;
         document.body.classList.add('sidebar-drawer-open');
+        if (!wasOpen) document.body.style.setProperty('--sidebar-body-width', getLockedBodyWidth(bodyWidth));
         document.body.classList.remove('sidebar-drawer-closing');
     } else if (isMobileDrawer && document.body.classList.contains('sidebar-drawer-open')) {
         document.body.classList.add('sidebar-drawer-closing');
         sidebarDrawerCloseTimer = finishAfterTransition(sidebar, 'transform', () => {
             sidebarDrawerCloseTimer = 0;
             document.body.classList.remove('sidebar-drawer-open', 'sidebar-drawer-closing');
+            document.body.style.removeProperty('--sidebar-body-width');
         });
     } else {
         document.body.classList.remove('sidebar-drawer-open', 'sidebar-drawer-closing');
+        document.body.style.removeProperty('--sidebar-body-width');
     }
     sidebar.setAttribute('aria-hidden', isMobileDrawer && !isOpenMobileDrawer ? 'true' : 'false');
 }
