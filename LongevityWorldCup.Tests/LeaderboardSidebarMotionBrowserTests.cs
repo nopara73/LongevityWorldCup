@@ -223,4 +223,77 @@ public sealed class LeaderboardSidebarMotionBrowserTests(
         Assert.InRange(Math.Abs(after - before), 0, 1);
         Assert.Equal("", await page.EvaluateAsync<string>("document.body.style.position"));
     }
+
+    [Theory]
+    [InlineData(390, 844, false)]
+    [InlineData(1280, 844, false)]
+    [InlineData(390, 844, true)]
+    [InlineData(844, 390, true)]
+    public async Task ScrollLocks_PreserveBackgroundWidthAndLeaveOverlaysTheFullViewport(int width, int height, bool drawer)
+    {
+        // Headless Chromium normally hides native scrollbars. Exercise the real
+        // scrollbar layout as well as the default browser used by other cases.
+        await using var scrollBrowser = await Browser.BrowserType.LaunchAsync(new()
+        {
+            Headless = true, IgnoreDefaultArgs = ["--hide-scrollbars"]
+        });
+        await using var context = await NewContextAsync(scrollBrowser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = height }, ReducedMotion = ReducedMotion.Reduce
+        });
+        await context.AddInitScriptAsync("localStorage.setItem('gmaSkipAll', 'true')");
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/leaderboard", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+        // A custom classic scrollbar also exercises compensation on machines
+        // whose default scrollbar normally overlays the page.
+        await page.AddStyleTagAsync(new() { Content = "html::-webkit-scrollbar { width:18px; }" });
+        await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
+        var before = await page.EvaluateAsync<double[]>("""
+            [document.body.clientWidth, document.querySelector('.leaderboard').getBoundingClientRect().left,
+                innerWidth - document.documentElement.clientWidth]
+            """);
+        Assert.InRange(before[2], 17, 19);
+
+        for (var cycle = 0; cycle < 2; cycle++)
+        {
+            if (drawer)
+            {
+                await page.Locator(".sidebar-toggle").ClickAsync();
+                await page.WaitForFunctionAsync("document.body.classList.contains('sidebar-drawer-open')");
+            }
+            else
+            {
+                await page.Locator(".leaderboard .athlete-name").First.ClickAsync();
+                await page.WaitForFunctionAsync("document.querySelector('#detailsModal .modal-content:not(.is-loading):not(.guess-mode)')");
+            }
+
+            // Native scrollbar visibility can update after the class mutation.
+            await page.WaitForFunctionAsync("document.documentElement.clientWidth === innerWidth");
+            var locked = await page.EvaluateAsync<double[]>("""
+                drawer => [document.body.clientWidth, document.querySelector('.leaderboard').getBoundingClientRect().left,
+                    drawer ? parseFloat(getComputedStyle(document.body, '::before').width)
+                        : document.getElementById('detailsModal').getBoundingClientRect().width,
+                    innerWidth, document.documentElement.clientWidth, document.documentElement.scrollWidth]
+                """, drawer);
+            Assert.InRange(Math.Abs(locked[0] - before[0]), 0, 1);
+            Assert.InRange(Math.Abs(locked[1] - before[1]), 0, 1);
+            Assert.InRange(Math.Abs(locked[2] - locked[3]), 0, 1);
+            Assert.InRange(Math.Abs(locked[4] - locked[3]), 0, 1);
+            Assert.True(locked[5] <= locked[3] + 1);
+
+            var directory = Environment.GetEnvironmentVariable("LWC_SCROLL_LOCK_CAPTURE_DIR");
+            if (cycle == 0 && !string.IsNullOrEmpty(directory))
+            {
+                Directory.CreateDirectory(directory);
+                await page.ScreenshotAsync(new() { Path = Path.Combine(directory, $"{width}-{height}-{(drawer ? "drawer" : "athlete")}.png") });
+            }
+
+            await page.Locator(drawer ? ".sidebar-close" : "#closeAthleteDetailsModal").ClickAsync();
+            await page.WaitForFunctionAsync("!document.body.classList.contains('sidebar-drawer-open') && !document.body.classList.contains('no-scroll')");
+            await page.WaitForFunctionAsync("gap => Math.abs(innerWidth - document.documentElement.clientWidth - gap) < 1", before[2]);
+            Assert.InRange(Math.Abs(await page.EvaluateAsync<double>("document.body.clientWidth") - before[0]), 0, 1);
+            Assert.InRange(Math.Abs(await page.EvaluateAsync<double>("document.querySelector('.leaderboard').getBoundingClientRect().left") - before[1]), 0, 1);
+        }
+    }
 }

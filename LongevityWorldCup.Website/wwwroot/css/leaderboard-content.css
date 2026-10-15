@@ -2548,8 +2548,10 @@
          margin-left:auto;
          margin-right:auto;
      }
+     html:has(body.sidebar-drawer-open){ overflow:hidden; }
      body.sidebar-drawer-open{
          overflow:hidden;
+         width:var(--sidebar-body-width, 100%);
      }
      body:has(:where(#leaderboardFilters))::before{
          content:''; position:fixed; inset:0; z-index:1000; background:rgba(0,0,0,.38);

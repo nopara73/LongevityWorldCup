@@ -123,6 +123,10 @@ public sealed class HomepageArrivalBrowserTests(
         {
             await page.GotoAsync("/", new() { WaitUntil = WaitUntilState.Commit });
             await parserBlocked.Task.WaitAsync(TimeSpan.FromSeconds(30));
+            // The preload scanner can request a script before the parser gets
+            // there. Wait for the seventh target, immediately before that script.
+            await Assertions.Expect(page.Locator("#events-root-index")).ToBeAttachedAsync();
+            Assert.Equal(0, await page.Locator("#lwc-countdown-box").CountAsync());
             await page.WaitForFunctionAsync("() => typeof window.releaseOpeningFrame === 'function'");
             await page.EvaluateAsync("window.releaseOpeningFrame()");
             await page.WaitForFunctionAsync("() => !document.documentElement.classList.contains('homepage-arriving')");

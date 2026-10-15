@@ -2425,14 +2425,16 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
     {
         using var fixture = TestChallengeFixture.Create();
         await fixture.ConfirmParticipantAsync("daily@example.com", "Daily Dana", timeZoneId: "Europe/Budapest");
-        var reminder = Assert.Single(fixture.Service.GetDailyReminderCandidates(DateTimeOffset.Parse("2026-06-09T11:05:00Z")));
+        var reminder = Assert.Single(fixture.Service.GetDailyReminderCandidates(DateTimeOffset.Parse("2026-06-09T11:05:00Z")))
+            with { AccessToken = "opaque_cALL_access_token", StopToken = "opaque_caLenDaR_stop_token" };
         var content = SmtpLongevitymaxxingEmailSender.BuildDailyReminderEmailContent(
             reminder, fixture.Service.BuildAccessUrl(reminder.AccessToken), fixture.Service.BuildStopUrl(reminder.StopToken));
         Assert.Contains("Day 1 practice check-in", content.TextBody);
         Assert.Contains("utm_content=daily_reminder", content.TextBody);
         Assert.Contains("Stop Challenge reminder emails:", content.TextBody);
-        Assert.DoesNotContain("call", content.TextBody, StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain("calendar", content.TextBody, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(fixture.Service.BuildAccessUrl(reminder.AccessToken), content.TextBody);
+        Assert.Contains(fixture.Service.BuildStopUrl(reminder.StopToken), content.TextBody);
+        AssertNoRetiredCallCopy(content.TextBody, reminder.AccessToken, reminder.StopToken);
     }
 
     [Fact]
@@ -2472,8 +2474,7 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
         var start = Assert.Single(fixture.Email.Starts);
         var content = SmtpLongevitymaxxingEmailSender.BuildChallengeStartEmailContent(start,
             fixture.Service.BuildAccessUrl(start.AccessToken), fixture.Service.BuildStopUrl(start.StopToken));
-        Assert.DoesNotContain("call", content.TextBody, StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain("calendar", content.TextBody, StringComparison.OrdinalIgnoreCase);
+        AssertNoRetiredCallCopy(content.TextBody, start.AccessToken, start.StopToken);
         fixture.Db.Run(sqlite =>
         {
             using var command = sqlite.CreateCommand();
@@ -2512,7 +2513,8 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
     {
         using var fixture = TestChallengeFixture.Create();
         await fixture.ConfirmParticipantAsync("start@example.com", "Start Sam", timeZoneId: "Europe/Budapest");
-        var start = Assert.Single(fixture.Service.GetChallengeStartCandidates(DateTimeOffset.Parse("2026-06-08T00:01:00Z")));
+        var start = Assert.Single(fixture.Service.GetChallengeStartCandidates(DateTimeOffset.Parse("2026-06-08T00:01:00Z")))
+            with { AccessToken = "opaque_cALL_access_token", StopToken = "opaque_caLenDaR_stop_token" };
         var content = SmtpLongevitymaxxingEmailSender.BuildChallengeStartEmailContent(start,
             fixture.Service.BuildAccessUrl(start.AccessToken), fixture.Service.BuildStopUrl(start.StopToken));
         Assert.Contains("Timezone: Europe/Budapest", content.TextBody);
@@ -2520,8 +2522,9 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
         Assert.Contains("check-ins, leaderboard, and Slack:", content.TextBody);
         Assert.Contains("utm_content=challenge_start", content.TextBody);
         Assert.Contains("Stop Challenge reminder emails:", content.TextBody);
-        Assert.DoesNotContain("call", content.TextBody, StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain("calendar", content.TextBody, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(fixture.Service.BuildAccessUrl(start.AccessToken), content.TextBody);
+        Assert.Contains(fixture.Service.BuildStopUrl(start.StopToken), content.TextBody);
+        AssertNoRetiredCallCopy(content.TextBody, start.AccessToken, start.StopToken);
     }
 
     [Fact]
@@ -2543,8 +2546,7 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
             fixture.Service.BuildAccessUrl(start.AccessToken),
             fixture.Service.BuildStopUrl(start.StopToken));
 
-        Assert.DoesNotContain("call", content.TextBody, StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain("calendar", content.TextBody, StringComparison.OrdinalIgnoreCase);
+        AssertNoRetiredCallCopy(content.TextBody, start.AccessToken, start.StopToken);
     }
 
     [Fact]
@@ -2559,7 +2561,8 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
             ReadQueryToken(fixture.Email.Confirmations.Last().Url, "confirm"),
             signup.AddMinutes(1));
 
-        var reminder = Assert.Single(fixture.Service.GetDailyReminderCandidates(DateTimeOffset.Parse("2026-06-25T08:05:00Z")));
+        var reminder = Assert.Single(fixture.Service.GetDailyReminderCandidates(DateTimeOffset.Parse("2026-06-25T08:05:00Z")))
+            with { StopToken = "opaque_utm__stop_token" };
 
         var content = SmtpLongevitymaxxingEmailSender.BuildDailyReminderEmailContent(
             reminder,
@@ -2573,7 +2576,10 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
         Assert.Equal("email", ReadQueryToken(checkInUrl, "utm_medium"));
         Assert.Equal("longevitymaxxing", ReadQueryToken(checkInUrl, "utm_campaign"));
         var stopLine = content.TextBody.Split('\n').Single(line => line.StartsWith("Stop Challenge reminder emails:", StringComparison.Ordinal));
-        Assert.DoesNotContain("utm_", stopLine);
+        var stopUri = new Uri(stopLine["Stop Challenge reminder emails:".Length..].Trim());
+        Assert.Contains(fixture.Service.BuildStopUrl(reminder.StopToken), stopLine);
+        Assert.DoesNotContain(Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(stopUri.Query).Keys,
+            key => key.StartsWith("utm_", StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]
@@ -2804,6 +2810,16 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
             columns.CommandText = "SELECT COUNT(*) FROM pragma_table_info('LongevitymaxxingParticipants') WHERE name = 'CommitmentAmountUsd';";
             Assert.Equal(0L, (long)columns.ExecuteScalar()!);
         });
+    }
+
+    private static void AssertNoRetiredCallCopy(string textBody, string accessToken, string stopToken)
+    {
+        // Opaque URL tokens can randomly contain these strings. Keep checking
+        // the visible copy, routes, and query names without inspecting token data.
+        var copy = textBody.Replace(accessToken, "[access token]", StringComparison.Ordinal)
+            .Replace(stopToken, "[stop token]", StringComparison.Ordinal);
+        Assert.DoesNotContain("call", copy, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("calendar", copy, StringComparison.OrdinalIgnoreCase);
     }
 
     private static string ReadQueryToken(string url, string key)
