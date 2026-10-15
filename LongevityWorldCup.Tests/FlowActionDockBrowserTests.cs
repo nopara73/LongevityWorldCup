@@ -428,7 +428,8 @@ public sealed class FlowActionDockBrowserTests(
             $"{scenario}: review joke artwork escapes the viewport horizontally: {visualRect.Left}-{visualRect.Right}px in {viewportWidth}px.");
         Assert.True(visualRect.Top >= 0 && visualRect.Bottom <= viewportHeight,
             $"{scenario}: review joke artwork escapes the viewport vertically: {visualRect.Top}-{visualRect.Bottom}px in {viewportHeight}px.");
-        Assert.True(visualRect.Bottom <= primaryCopyRect.Top,
+        // Wide screens set the artwork beside the message; narrow ones stack it above.
+        Assert.True(visualRect.Bottom <= primaryCopyRect.Top || visualRect.Right <= primaryCopyRect.Left,
             $"{scenario}: review joke artwork overlaps the primary message: artwork bottom {visualRect.Bottom}px, copy top {primaryCopyRect.Top}px.");
         Assert.True(primaryCopyRect.Bottom <= actionRect.Top - 8,
             $"{scenario}: review primary message is too close to the Home action: copy bottom {primaryCopyRect.Bottom}px, action top {actionRect.Top}px.");
