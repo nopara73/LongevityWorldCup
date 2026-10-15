@@ -404,7 +404,7 @@
     ========================= */
  .sidebar{
      position:relative; width:50px; height:max(var(--leaderboard-table-height), var(--leaderboard-title-height, 0px)); min-height:max(var(--leaderboard-table-height), var(--leaderboard-title-height, 0px)); max-height:max(var(--leaderboard-table-height), var(--leaderboard-title-height, 0px)); padding:0; background:var(--card-bg); border-radius:15px; box-shadow:0 10px 30px rgba(0,0,0,.1);
-     margin-right:.2rem; display:flex; flex-direction:column; align-items:center; transition:width var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease), padding var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
+     margin-right:.2rem; display:flex; flex-direction:column; align-items:center; transition:width var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
      overflow:hidden; flex-shrink:0;
  }
  /* Closing a mobile drawer must also suppress hover during its slide-out. */
@@ -422,9 +422,8 @@
  .sidebar:hover:not(.button-collapsed):not([aria-hidden="true"])::-webkit-scrollbar-thumb:hover,
  .sidebar.expanded::-webkit-scrollbar-thumb:hover{ background:rgba(0,188,212,.68); }
  .sidebar .filter-section{ display:none; }
- .sidebar:hover .filter-section, .sidebar.expanded .filter-section{ display:block; }
+ .sidebar:hover:not(.button-collapsed):not([aria-hidden="true"]) .filter-section, .sidebar.expanded .filter-section{ display:block; }
 
- .sidebar.partially-expanded{ width:80px; }
  .sidebar-toggle{
      background:var(--card-bg); border:2px solid var(--primary-color); border-radius:50%; width:44px; height:44px;
      display:flex; align-items:center; justify-content:center; cursor:pointer; transition:background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease); margin-right:1rem; position:relative;
@@ -487,7 +486,7 @@
      background:linear-gradient(45deg, var(--primary-color), var(--secondary-color)); background-size:200%;
      -webkit-background-clip:text; -webkit-text-fill-color:transparent; text-shadow:none; border-radius:5px;
  }
- .sidebar:hover .collapsed-title, .sidebar.expanded .collapsed-title{ display:none; }
+ .sidebar:hover:not(.button-collapsed):not([aria-hidden="true"]) .collapsed-title, .sidebar.expanded .collapsed-title{ display:none; }
  /* The measured rail heading must keep its natural height before and during hover. */
  .sidebar-heading{ display:flex; flex:0 0 auto; align-items:center; gap:var(--lwc-space-2); width:100%; border-bottom:1px solid var(--lwc-border); }
  /* The rail's heading is the first cell of the board's head: same tint, same
@@ -519,7 +518,7 @@
      background:var(--secondary-color); border:2px solid var(--card-bg); box-shadow:0 1px 4px rgba(0,0,0,.2);
  }
  .sidebar .sidebar-title .sidebar-title-text{ display:none; margin-left:var(--lwc-space-2); font-size:1.5rem; }
- .sidebar:hover .sidebar-title .sidebar-title-text,
+ .sidebar:hover:not(.button-collapsed):not([aria-hidden="true"]) .sidebar-title .sidebar-title-text,
  .sidebar.expanded .sidebar-title .sidebar-title-text{ display:inline-block; }
  .clear-sidebar-filters{
      display:none; align-items:center; justify-content:center; flex:0 0 44px; width:44px; height:44px; margin:0; padding:0;
@@ -540,7 +539,7 @@
  .clear-sidebar-filters:active{
      color:var(--primary-color); background:rgba(0,188,212,.08); border-color:rgba(0,188,212,.24); outline:none;
  }
- .sidebar.has-active-state:hover .clear-sidebar-filters,
+ .sidebar.has-active-state:hover:not(.button-collapsed):not([aria-hidden="true"]) .clear-sidebar-filters,
  .sidebar.has-active-state.expanded .clear-sidebar-filters{
      display:inline-flex; visibility:visible; pointer-events:auto; color:var(--secondary-color); background:var(--lwc-accent-soft); border-color:var(--lwc-border);
  }
@@ -3804,23 +3803,28 @@
  @media (min-width: 933px), (min-width: 769px) and (min-height: 481px) {
      .leaderboard { container: leaderboard-results / inline-size; flex-wrap: wrap; }
      .leaderboard > table { flex-basis: 0; min-width: 0; }
+     .sidebar { --leaderboard-sidebar-open-width: min(19rem, 336px, 40cqi); box-sizing: border-box; }
      .sidebar:is(:hover, .expanded):not(.button-collapsed):not([aria-hidden="true"]) {
-         display: flex; flex-direction: column; align-items: stretch; width: min(19rem, 336px, 40%); padding: 0; overflow: hidden;
+         display: flex; flex-direction: column; align-items: flex-start; width: var(--leaderboard-sidebar-open-width); padding: 0; overflow: hidden;
          scrollbar-gutter: auto;
          max-height: var(--leaderboard-sidebar-viewport-height);
      }
      .sidebar:hover:not(.expanded):not(.button-collapsed):not([aria-hidden="true"]) {
          max-height: min(var(--leaderboard-sidebar-viewport-height), max(var(--leaderboard-table-height), var(--leaderboard-title-height, 0px)));
      }
-     .sidebar:is(:hover, .expanded):not(.button-collapsed):not([aria-hidden="true"]) .sidebar-heading { flex: 0 0 auto; margin: 0; padding-inline: min(1rem, 16px); }
+     /* Reveal a fully laid-out panel instead of squeezing its text and controls
+        through every intermediate rail width. Both children use the board's
+        container width, so their size stays fixed throughout the transition. */
+     .sidebar:is(:hover, .expanded):not(.button-collapsed):not([aria-hidden="true"]) .sidebar-heading { flex: 0 0 auto; width: calc(var(--leaderboard-sidebar-open-width) - 1px); margin: 0; padding-inline: min(1rem, 16px); }
      .sidebar:is(:hover, .expanded):not(.button-collapsed):not([aria-hidden="true"]) .sidebar-filter-list {
-         display: block; flex: 1 1 auto; min-height: 0; width: 100%; box-sizing: border-box; padding: 0 min(var(--lwc-space-4), 16px) var(--lwc-space-4);
+         display: block; flex: 1 1 auto; min-height: 0; width: calc(var(--leaderboard-sidebar-open-width) - 1px); box-sizing: border-box; padding: 0 min(var(--lwc-space-4), 16px) var(--lwc-space-4);
          overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable;
          scrollbar-width: thin; scrollbar-color: rgba(0,188,212,.55) transparent;
      }
      /* Reflow against text size as well as pixels: enlarged results need the
         full board width instead of being squeezed alongside the filters. */
      @container leaderboard-results (max-width: 45rem) {
+         .sidebar { --leaderboard-sidebar-open-width: 100cqi; transition: none; }
          /* Enlarged text needs room for whole header words, rather than doubled gutters. */
          .leaderboard table th:not(:first-child) { padding-inline: min(var(--lwc-space-4), 4px); }
          .leaderboard table th a { padding-inline: 0; }

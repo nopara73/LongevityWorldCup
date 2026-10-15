@@ -6343,13 +6343,9 @@ sidebarToggle?.addEventListener('click', (event) => {
     toggleSidebar({ focusDrawerClose: event.detail === 0 });
 });
 
-sidebarToggle?.addEventListener('mouseenter', () => {
-    if (sidebar.classList.contains('expanded')) return;
-    sidebar.classList.add('partially-expanded');
-});
-
-sidebarToggle?.addEventListener('mouseleave', () => {
-    sidebar.classList.remove('partially-expanded');
+sidebar?.addEventListener('mouseleave', () => {
+    // An explicit close wins over hover until the pointer leaves the rail.
+    sidebar.classList.remove('button-collapsed');
 });
 
 sidebarClose?.addEventListener('click', (event) => {
@@ -6474,8 +6470,7 @@ function openSidebar(options = {}) {
     const drawerScrollY = window.scrollY;
 
     scheduleLeaderboardTableHeightSync();
-    sidebar.classList.remove('partially-expanded');
-    sidebar.classList.remove('collapsed');
+    sidebar.classList.remove('button-collapsed', 'collapsed');
 
     if (!sidebar.classList.contains('expanded')) {
         sidebar.classList.add('expanded');
@@ -6518,7 +6513,6 @@ function closeSidebar(options = {}) {
     sidebar.classList.remove('expanded');
     sidebar.setAttribute('aria-hidden', 'true');
     sidebarToggle.classList.remove('active');
-    sidebar.classList.remove('partially-expanded');
     if (!sidebar.classList.contains('button-collapsed')) {
         sidebar.classList.add('button-collapsed');
     }
@@ -6542,10 +6536,6 @@ function closeSidebar(options = {}) {
             }
         });
     }
-
-    setTimeout(() => {
-        sidebar.classList.remove('button-collapsed');
-    }, 50);
 }
 
 if (hasLeaderboardSidebar) {
