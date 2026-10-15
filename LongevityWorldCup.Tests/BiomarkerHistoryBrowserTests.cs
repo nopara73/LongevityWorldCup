@@ -172,23 +172,31 @@ public sealed class BiomarkerHistoryBrowserTests(
         await Expect(page.Locator(".result-detail-row:not([hidden]) .biomarker-history-table tbody td").Nth(1)).ToHaveTextAsync("—");
     }
 
-    [Fact]
-    public async Task IncompleteClockPanel_RemainsUnavailableInsteadOfGeneratingAResult()
+    [Theory]
+    [InlineData(true, 1280)]
+    [InlineData(true, 390)]
+    [InlineData(false, 390)]
+    public async Task IncompleteClockPanels_OmitUnavailableClocksAndKeepMeasuredResults(bool hasPheno, int width)
     {
-        await using var context = await NewContextAsync(390, true);
+        await using var context = await NewContextAsync(width, true);
         var athlete = await HistoryAthleteAsync("Benjamin Garden", 66, partial: false);
         athlete["Biomarkers"]![0]!.AsObject().Remove("CystatinCMgL");
+        if (!hasPheno) athlete["Biomarkers"]![0]!.AsObject().Remove("GluMmolL");
         await context.AddInitScriptAsync($"window.getSharedAthletes = async () => ([{athlete.ToJsonString()}]);");
         var page = await context.NewPageAsync();
         await page.GotoAsync("/athlete/benjamin-garden", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
-        await Expect(Row(page, "bortz").GetByRole(AriaRole.Button)).ToBeDisabledAsync();
-        await Expect(Row(page, "bortz").Locator(".biomarker-overview-current")).ToHaveTextAsync("—");
-        await Row(page, "bortz").Locator(".biomarker-overview-result").ClickAsync();
-        await Expect(page.Locator(".result-detail-row:not([hidden])")).ToHaveCountAsync(0);
-        await Row(page, "pheno").GetByRole(AriaRole.Button).ClickAsync();
+        var section = page.Locator("#athlete-biomarkers");
+        await Expect(Row(page, "bortz")).ToHaveCountAsync(0);
+        await Expect(Row(page, "pheno")).ToHaveCountAsync(hasPheno ? 1 : 0);
+        await Expect(section.Locator(".result-summary").First).ToHaveAttributeAsync("data-measure", hasPheno ? "pheno" : "Albumin (g/L)");
+        await Expect(Row(page, "Albumin (g/L)").Locator(".biomarker-overview-current")).ToHaveTextAsync("66");
+        await Expect(section.Locator(".result-first-biomarker")).ToHaveCountAsync(hasPheno ? 1 : 0);
+        if (hasPheno)
+            await Expect(section.Locator(".result-first-biomarker")).ToHaveAttributeAsync("data-measure", "Albumin (g/L)");
+        await Row(page, hasPheno ? "pheno" : "Albumin (g/L)").GetByRole(AriaRole.Button).ClickAsync();
         await WaitForChartAsync(page);
         Assert.Equal(1, await page.EvaluateAsync<int>("Chart.getChart(document.querySelector('.result-detail-row:not([hidden]) canvas')).data.datasets[0].data.length"));
-        await Expect(page.Locator(".result-field-count")).ToHaveTextAsync("1 result · 1 athlete");
+        if (hasPheno) await Expect(page.Locator(".result-field-count")).ToHaveTextAsync("1 result · 1 athlete");
     }
 
     [Fact]
