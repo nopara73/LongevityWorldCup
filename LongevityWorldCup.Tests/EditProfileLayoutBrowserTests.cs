@@ -116,6 +116,16 @@ public sealed class EditProfileLayoutBrowserTests(
         await page.EvaluateAsync("() => { document.getElementById('restoreProfilePicButton').style.display = 'inline-flex'; }");
         await Assertions.Expect(page.Locator("#submitButton")).ToBeEnabledAsync();
 
+        // Text scaling and revealing the primary action schedule the dock's next layout frame.
+        // Measure the completed layout, rather than the intermediate single-Back arrangement.
+        await page.EvaluateAsync("""
+            async () => {
+                await document.fonts.ready;
+                window.LwcFlowActionDock.refreshNow();
+                await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+            }
+            """);
+
         var issues = await page.EvaluateAsync<string[]>(
             """
             () => {

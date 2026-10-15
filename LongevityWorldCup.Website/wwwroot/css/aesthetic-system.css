@@ -618,7 +618,7 @@ html body #proofImageContainer {
 }
 html body #proofImageContainer[hidden] { display: none !important; }
 .proof-review-heading { margin: 0 0 var(--lwc-space-3); font-size: var(--lwc-type-body); }
-.proof-page-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 128px), 1fr)); gap: var(--lwc-space-3); }
+.proof-page-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 8rem), 1fr)); gap: var(--lwc-space-3); }
 .proof-page-card { display: flex; flex-direction: column; min-width: 0; padding: var(--lwc-space-2); border: 1px solid var(--lwc-border); border-radius: var(--lwc-radius-md); background: var(--lwc-surface); }
 .proof-page-preview,
 .proof-page-remove,
@@ -648,7 +648,7 @@ html body #proofImageContainer[hidden] { display: none !important; }
 .proof-page-remove:hover { background: var(--lwc-danger-soft); }
 .proof-review-feedback { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--lwc-space-3); margin-top: var(--lwc-space-3); padding: var(--lwc-space-3); background: var(--lwc-surface-muted); border-radius: var(--lwc-radius-md); }
 html body #proofImageContainer .proof-upload-notice { flex: 1 1 150px; margin: 0; padding: 0; border: 0; background: transparent; color: var(--lwc-ink); font-size: var(--lwc-type-sm); font-weight: 400; }
-.proof-undo { color: var(--lwc-accent); font-size: var(--lwc-type-sm); }
+.proof-undo { max-width: 100%; padding-inline: min(var(--lwc-space-3), 12px); color: var(--lwc-accent); font-size: var(--lwc-type-sm); }
 .proof-preparation { display: grid; gap: var(--lwc-space-2); margin-bottom: var(--lwc-space-3); padding: var(--lwc-space-3); border-radius: var(--lwc-radius-md); background: var(--lwc-surface-muted); overflow-wrap: anywhere; }
 .proof-preparation progress { width: 100%; height: 6px; accent-color: var(--lwc-accent); }
 body.proof-review-open { overflow: hidden; }
@@ -681,7 +681,7 @@ body.proof-review-open { overflow: hidden; }
     .proof-review-zoom { grid-column: 1 / -1; margin-left: 0 !important; }
 }
 @media (max-width: 360px) {
-    .proof-page-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .proof-page-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 7rem), 1fr)); }
     .proof-page-preview img { height: 128px; }
 }
 
