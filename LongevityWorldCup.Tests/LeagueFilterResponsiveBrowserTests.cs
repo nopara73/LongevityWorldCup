@@ -185,6 +185,7 @@ public sealed class LeagueFilterResponsiveBrowserTests(
         await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
         await page.WaitForFunctionAsync("() => [...document.querySelectorAll('link[rel=stylesheet]')].every(link => link.sheet)");
         await page.EvaluateAsync("document.documentElement.style.fontSize = '200%'");
+        await page.EvaluateAsync("async () => { await document.fonts.ready; await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))); }");
         await page.Locator("#athleteSearch").FillAsync("Michael");
         await Assertions.Expect(page.Locator(".clear-icon")).ToBeVisibleAsync();
 
@@ -208,6 +209,10 @@ public sealed class LeagueFilterResponsiveBrowserTests(
                 const field = input.getBoundingClientRect();
                 if (clear.left < field.left || clear.right > field.right)
                     problems.push('Clear search escapes the field');
+                if (clear.top < field.top || clear.bottom > field.bottom)
+                    problems.push('Clear search escapes the field vertically');
+                if (clear.width < 44 || clear.height < 44)
+                    problems.push('Clear search target is too small');
                 if (document.documentElement.scrollWidth > innerWidth + 1)
                     problems.push('Page overflows horizontally');
                 return problems;

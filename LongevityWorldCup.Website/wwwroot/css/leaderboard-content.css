@@ -3763,7 +3763,7 @@
  .leaderboard-controls .leaderboard-view-switcher { min-width: 0; max-width: 100%; }
  .leaderboard-controls .view-switcher-chips { flex-wrap: wrap; min-width: 0; max-width: 100%; }
  .leaderboard-controls .search-wrapper { flex-wrap: wrap; min-width: 0; max-width: 100%; gap: .45rem; }
- .leaderboard-controls .search-container { flex: 1 1 10rem; min-width: 0; }
+ .leaderboard-controls .search-container { --search-clear-size: max(44px, 1.5rem); flex: 1 1 10rem; min-width: 0; }
  .leaderboard-controls #athleteSearch { padding-inline-start: .5rem; }
  .leaderboard-controls #athleteSearch:placeholder-shown { padding-right: 2.55rem; }
  .leaderboard-controls .sidebar-toggle {
@@ -3771,9 +3771,9 @@
  }
  /* The magnifier is useful for an empty field; once typing, give its space
     to the query and keep a single, reachable clear action at the end. */
- .leaderboard-controls #athleteSearch:not(:placeholder-shown) { padding-right: 3.25rem; }
+ .leaderboard-controls #athleteSearch:not(:placeholder-shown) { padding-right: calc(var(--search-clear-size) + .5rem); }
  .leaderboard-controls #athleteSearch:not(:placeholder-shown) ~ .search-icon { display: none; }
- .leaderboard-controls .clear-icon { right: .25rem; }
+ .leaderboard-controls .clear-icon { right: .25rem; width: var(--search-clear-size); height: var(--search-clear-size); }
  .leaderboard-controls .ranking-explanation { flex: 1 1 24rem; min-width: 0; margin: 0; }
  .leaderboard-controls .leaderboard-selection-summary {
      display: flex; flex: 0 1 auto; flex-wrap: wrap; align-items: center; gap: var(--lwc-space-2);
