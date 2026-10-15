@@ -492,6 +492,106 @@ function wirePortraitFallback(img, athlete) {
     };
 }
 
+function initializePodiumPortraitWink() {
+    const podium = document.querySelector('.podium');
+    if (!podium || !window.IntersectionObserver) return;
+
+    // This clip belongs to this exact photograph, not to future profile updates.
+    const approvedPortrait = /^\/generated\/(?:thumbs|profiles)\/athletes\/benjamin_garden(?:_thumb_(?:sm|md))?_6683dd38d8317bb5a68b3053ca8dae7c53aad86cd1c6df1c1662e16fcbe83345\.webp$/;
+    const clip = '/assets/athlete-motion/benjamin-garden-wink-f9f888014d01';
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const watched = new WeakSet();
+    let played = false;
+    let activePortrait = null;
+    let stopPlayback = null;
+
+    function matchesPortrait(img) {
+        try {
+            const url = new URL(img.src, window.location.href);
+            return url.origin === window.location.origin && approvedPortrait.test(url.pathname);
+        } catch (_) {
+            return false;
+        }
+    }
+
+    function play(img) {
+        if (played || reducedMotion.matches || !img.isConnected || !matchesPortrait(img)) return;
+        const anchor = img.closest('a');
+        if (!anchor || !img.naturalWidth) return;
+
+        played = true;
+        visiblePortraits.disconnect();
+        activePortrait = img;
+        const video = document.createElement('video');
+        video.className = 'podium-portrait-wink';
+        video.setAttribute('aria-hidden', 'true');
+        video.tabIndex = -1;
+        video.muted = true;
+        video.defaultMuted = true;
+        video.playsInline = true;
+        video.disablePictureInPicture = true;
+        video.preload = 'auto';
+        const stop = () => {
+            video.pause();
+            video.remove();
+            anchor.classList.remove('podium-portrait-motion');
+            reducedMotion.removeEventListener('change', onMotionChange);
+            updates.disconnect();
+            activePortrait = null;
+            stopPlayback = null;
+        };
+        const onMotionChange = () => { if (reducedMotion.matches) stop(); };
+        stopPlayback = stop;
+        video.addEventListener('playing', () => video.classList.add('is-playing'), { once: true });
+        video.addEventListener('ended', stop, { once: true });
+        video.addEventListener('error', stop, { once: true });
+        for (const [extension, type] of [['webm', 'video/webm'], ['mp4', 'video/mp4']]) {
+            const source = document.createElement('source');
+            source.src = `${clip}.${extension}`;
+            source.type = type;
+            // Source failures do not bubble to the video element. The final
+            // fallback failing must also remove the overlay.
+            source.addEventListener('error', () => {
+                if (source === video.lastElementChild) stop();
+            }, { once: true });
+            video.appendChild(source);
+        }
+        reducedMotion.addEventListener('change', onMotionChange);
+        anchor.classList.add('podium-portrait-motion');
+        img.after(video);
+        video.play().catch(stop);
+    }
+
+    const visiblePortraits = new IntersectionObserver(entries => {
+        for (const entry of entries) {
+            if (!entry.isIntersecting || entry.intersectionRatio < .5) continue;
+            visiblePortraits.unobserve(entry.target);
+            const img = entry.target;
+            if (img.complete) play(img);
+            else img.addEventListener('load', () => play(img), { once: true });
+        }
+    }, { threshold: .5 });
+
+    function scan() {
+        if (played) {
+            if (activePortrait && (!activePortrait.isConnected || !matchesPortrait(activePortrait))) stopPlayback();
+            return;
+        }
+        // Initial hydration replaces the server-rendered cards. Wait for its final
+        // portraits so a replacement cannot consume the wink before it is seen.
+        if (!athleteResultsReady || reducedMotion.matches) return;
+        podium.querySelectorAll('img.podium-portrait').forEach(img => {
+            if (watched.has(img) || !matchesPortrait(img)) return;
+            watched.add(img);
+            visiblePortraits.observe(img);
+        });
+    }
+
+    const updates = new MutationObserver(scan);
+    updates.observe(podium, { childList: true, subtree: true, attributes: true, attributeFilter: ['src'] });
+    scan();
+}
+
 function markAthleteSkippedForGuessMyAge(athlete) {
     if (!athlete) {
         return;
@@ -1945,6 +2045,8 @@ addClickListenerToImages('#modalProfilePic', function () {
     openEnlargedView(this);
 }, img => `Enlarge ${img.alt || 'athlete profile picture'}`);
 addClickListenerToImages('.portrait, .podium-portrait', handleAthleteNameClick);
+
+initializePodiumPortraitWink();
 
 // Function to attach click event listener to all athlete-name elements
 function isPlainLinkActivation(event) {

@@ -765,6 +765,19 @@
  }
  .podium-item .podium-portrait:hover{ transform: scale(1.04); }
 
+ .podium-portrait-motion{ position:relative; }
+ .podium-item .podium-portrait-wink{
+     position:absolute; top:3px; left:3px;
+     width:calc(var(--podium-portrait-size) - 6px); height:calc(var(--podium-portrait-size) - 6px);
+     border-radius:50%; object-fit:cover; pointer-events:none; opacity:0; z-index:1;
+     transition:transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+ }
+ .podium-item .podium-portrait-wink.is-playing{ opacity:1; }
+ .podium-item .podium-portrait:hover ~ .podium-portrait-wink{ transform:scale(1.04); }
+ @media (prefers-reduced-motion:reduce){
+     .podium-item .podium-portrait-wink{ display:none; }
+ }
+
  /* When wrapped on podium: wrapper defines circle, img fills it */
  .podium-item .rank-change{ display:block; width:var(--podium-portrait-size); height:var(--podium-portrait-size); margin:0 0 1.6rem; flex:0 0 auto; }
  .podium-item .rank-change img.podium-portrait{
