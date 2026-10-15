@@ -18,6 +18,8 @@ public sealed class BioageBiomarkerSheetBrowserTests(
     [InlineData("/bortz-age", 390, 844, 100)]
     [InlineData("/pheno-age", 320, 844, 200)]
     [InlineData("/bortz-age", 320, 844, 200)]
+    [InlineData("/bortz-age", 320, 844, 100)]
+    [InlineData("/bortz-age", 768, 1024, 200)]
     public async Task BiomarkerSheet_KeepsEveryValueOpenAndTypableInOrder(string path, int width, int height, int textPercent)
     {
         await using var context = await Browser.NewContextAsync(new BrowserNewContextOptions
@@ -62,7 +64,11 @@ public sealed class BioageBiomarkerSheetBrowserTests(
                     if (markerRect.left < headerRect.left - 1 || markerRect.right > headerRect.right + 1) issues.push(`${name}: completion marker is clipped`);
                     if (!fits(input, input.value || input.placeholder)) issues.push(`${name}: value text is clipped`);
                     const unit = card.querySelector('select');
-                    if (unit.getBoundingClientRect().width && !fits(unit, unit.selectedOptions[0].textContent.trim())) issues.push(`${name}: selected unit is clipped`);
+                    if (unit.getBoundingClientRect().width) {
+                        for (const option of unit.options) {
+                            if (!fits(unit, option.textContent.trim())) issues.push(`${name}: unit ${option.textContent.trim()} is clipped`);
+                        }
+                    }
                     const fixedUnit = card.querySelector('.bioage-fixed-unit');
                     if (fixedUnit && !fits(fixedUnit, fixedUnit.textContent.trim())) issues.push(`${name}: fixed unit is clipped`);
                     if (header.getAttribute('role') === 'button' || header.hasAttribute('aria-expanded')) issues.push(`${name}: header still acts as a toggle`);

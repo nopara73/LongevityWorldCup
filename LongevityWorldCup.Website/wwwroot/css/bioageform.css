@@ -626,6 +626,7 @@ html body .bioageform .lwc-wizard-nav .lwc-dot[aria-disabled="true"] {
 }
 
 .bioageform.bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card-content {
+    container: bioage-entry / inline-size;
     max-height: none !important;
     overflow: visible !important;
     padding: 0.55rem 0.65rem 0.65rem !important;
@@ -635,7 +636,7 @@ html body .bioageform .lwc-wizard-nav .lwc-dot[aria-disabled="true"] {
 
 .bioageform.bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card-content .input-group {
     display: grid;
-    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     align-items: stretch;
     gap: var(--lwc-space-2);
 }
@@ -694,6 +695,13 @@ html body .bioageform .lwc-wizard-nav .lwc-dot[aria-disabled="true"] {
 
 .bioage-fixed-unit {
     display: none;
+}
+
+/* Each value and unit gets at least nine rem before the pair stacks. */
+@container bioage-entry (max-width: 18.5rem) {
+    .bioageform.bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card-content .input-group {
+        grid-template-columns: minmax(0, 1fr);
+    }
 }
 
 .bioage-biomarker-progress {
@@ -950,8 +958,9 @@ html body .bioageform .lwc-wizard-nav .lwc-dot[aria-disabled="true"] {
     }
 
     .bioageform.bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card-content .input-group select {
-        padding-inline: 8px 26px;
-        background-position: right 8px center;
+        padding-inline: 6px 20px;
+        background-position: right 6px center;
+        background-size: 12px;
     }
 
     .bioageform #lwc-step-1.lwc-step--active #dobFieldset {

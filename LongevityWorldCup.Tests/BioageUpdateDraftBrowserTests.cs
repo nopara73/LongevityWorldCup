@@ -387,6 +387,20 @@ public sealed class BioageUpdateDraftBrowserTests(PlaywrightBrowserFixture brows
         await Assertions.Expect(input).ToBeVisibleAsync();
         if (unit is not null) await page.Locator($"#{id}Unit").SelectOptionAsync(unit);
         await input.FillAsync(value);
+        if (value.Length > 0)
+        {
+            await page.EvaluateAsync("() => document.fonts.ready");
+            Assert.True(await input.EvaluateAsync<bool>(
+                """
+                input => {
+                    const style = getComputedStyle(input);
+                    const ctx = document.createElement('canvas').getContext('2d');
+                    ctx.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+                    const available = input.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+                    return ctx.measureText(input.value).width <= available + 1;
+                }
+                """), $"{id}: the edited value is clipped beside its comparison chip.");
+        }
     }
 
     private static async Task AssertRawDraftAsync(IPage page)

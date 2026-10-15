@@ -246,10 +246,6 @@
                 min-width: 0 !important;
             }
 
-            .biomarker-card-content .input-group input.bioage-input-has-comparison {
-                padding-right: 7.8rem;
-            }
-
         .bioage-input-comparison-chip {
             position: static;
             align-self: flex-end;
@@ -305,10 +301,6 @@
             }
 
         @media (max-width: 420px) {
-            .biomarker-card-content .input-group input.bioage-input-has-comparison {
-                padding-right: 6.6rem;
-            }
-
             .bioage-input-comparison-chip {
                 max-width: 100%;
                 font-size: 0.68rem;
@@ -741,7 +733,7 @@
         /* --- LWC 2-step wizard --- */
         .lwc-steps-shell {
             position: relative;
-            width: calc(100vw - 2rem);
+            width: calc(100vw - min(2rem, 32px));
             max-width: 780px;
             margin: 0 auto;
             box-sizing: border-box;

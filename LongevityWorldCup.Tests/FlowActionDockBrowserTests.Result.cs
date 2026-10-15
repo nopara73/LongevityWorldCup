@@ -183,6 +183,8 @@ public sealed class FlowActionDockResultBrowserTests(
     [InlineData("/pheno-age", 390, 844, 200)]
     [InlineData("/pheno-age", 320, 844, 200)]
     [InlineData("/bortz-age", 320, 844, 200)]
+    [InlineData("/pheno-age", 960, 900, 200)]
+    [InlineData("/bortz-age", 1024, 768, 200)]
     public async Task BioageStepTwoDock_KeepsTheDisabledCalculateInItsSlot(string path, int width, int height, int textPercent)
     {
         await using var context = await Browser.NewContextAsync(new BrowserNewContextOptions
@@ -242,6 +244,8 @@ public sealed class FlowActionDockResultBrowserTests(
 
         var scenario = $"{path} @ {width}px / {textPercent}%";
         Assert.True(labelFits, $"{scenario}: the visible Calculate caption does not fit on one line.");
+        Assert.True(layout.BackLeft >= 0 && layout.PrimaryRight <= width + 1,
+            $"{scenario}: docked commands extend outside the viewport. {layout}");
         if (width >= 960)
         {
             Assert.True(layout.BackRight < layout.PrimaryLeft, $"{scenario}: Back should sit left of Calculate. {layout}");

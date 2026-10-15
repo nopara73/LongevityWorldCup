@@ -372,7 +372,7 @@ body.flow-input-keyboard-open::after {
 
     .flow-action-stack.flow-action-stack--docked.flow-action-stack--back-primary-action {
         display: grid;
-        grid-template-columns: minmax(8.75rem, 11rem) minmax(16rem, 19rem) minmax(8.75rem, 11rem);
+        grid-template-columns: minmax(0, 11rem) minmax(0, 19rem) minmax(0, 11rem);
         justify-content: center;
         gap: 0.75rem;
     }
