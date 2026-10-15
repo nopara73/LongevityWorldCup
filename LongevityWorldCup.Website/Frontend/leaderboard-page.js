@@ -2446,6 +2446,7 @@ let ageChart;
 let savedBodyScroll = 0;
 let savedBodyScrollRestoration = null;
 let savedBodyBackground = '';
+let savedBodyWidth = '';
 let currentAthleteModalRequestId = 0;
 let athleteShareState = null;
 const chartJsSrc = 'https://cdn.jsdelivr.net/npm/chart.js@4.5.1';
@@ -2634,6 +2635,9 @@ function resetModalForLoading(athleteSlug) {
 function lockBodyScroll() {
     if (document.body.classList.contains('no-scroll')) return;
 
+    // Preserve the page width when locking removes a classic scrollbar.
+    const scrollbarWidth = Math.max(0, window.innerWidth - document.documentElement.getBoundingClientRect().width);
+    savedBodyWidth = document.body.style.width;
     savedBodyScroll = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
     if ('scrollRestoration' in history) {
         savedBodyScrollRestoration ??= history.scrollRestoration;
@@ -2645,7 +2649,7 @@ function lockBodyScroll() {
     const scrollY = savedBodyScroll;
     document.body.style.position = 'fixed';
     document.body.style.top = `-${scrollY}px`;
-    document.body.style.width = '100%';
+    document.body.style.width = scrollbarWidth > 0 ? `calc(100% - ${scrollbarWidth}px)` : '100%';
     savedBodyBackground = document.body.style.backgroundColor;
     document.body.style.backgroundColor = getComputedStyle(document.body).backgroundColor || getComputedStyle(document.documentElement).backgroundColor;
 }
@@ -2662,7 +2666,7 @@ function restoreBodyScroll() {
     document.body.classList.remove('no-scroll');
     document.body.style.position = '';
     document.body.style.top = '';
-    document.body.style.width = '';
+    document.body.style.width = savedBodyWidth;
     document.body.style.backgroundColor = savedBodyBackground;
 
     // Restore scroll position

@@ -191,9 +191,10 @@ public sealed class LeaderboardSidebarMotionBrowserTests(
     }
 
     [Theory]
-    [InlineData(390)]
-    [InlineData(1280)]
-    public async Task AthleteClose_FadesTheCardAndBackdropWithoutMovingThePage(int width)
+    [InlineData(390, false)]
+    [InlineData(1280, false)]
+    [InlineData(1280, true)]
+    public async Task AthleteClose_FadesTheCardAndBackdropWithoutMovingThePage(int width, bool withScrollbarGutter)
     {
         await using var context = await NewContextAsync(Browser, App, new()
         {
@@ -203,6 +204,12 @@ public sealed class LeaderboardSidebarMotionBrowserTests(
         var page = await context.NewPageAsync();
         await page.GotoAsync("/leaderboard");
         await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+        if (withScrollbarGutter)
+        {
+            // Exercise scrollbar disappearance even when headless Chromium hides native scrollbars.
+            await page.AddStyleTagAsync(new() { Content = "html { scrollbar-gutter: stable; } html:has(body.no-scroll) { scrollbar-gutter: auto; }" });
+            Assert.True(await page.EvaluateAsync<double>("innerWidth - document.documentElement.getBoundingClientRect().width") > 0);
+        }
         await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
         var before = await page.EvaluateAsync<double>("document.querySelector('.leaderboard').getBoundingClientRect().left");
         await page.Locator(".leaderboard .athlete-name").First.ClickAsync();
