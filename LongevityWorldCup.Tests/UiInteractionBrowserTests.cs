@@ -92,6 +92,16 @@ public sealed class UiInteractionBrowserTests(
         var toggle = page.Locator(".custom-event-expander").First;
         await toggle.WaitForAsync();
         await page.EvaluateAsync("p => document.documentElement.style.fontSize = p + '%'", textPercent);
+        if (path == "/events")
+        {
+            await page.EvaluateAsync("() => document.fonts.ready");
+            Assert.Equal(1, await page.Locator("#eventBoardTitle").EvaluateAsync<int>("""
+                heading => {
+                    const range = document.createRange(); range.selectNodeContents(heading);
+                    return new Set([...range.getClientRects()].map(rect => Math.round(rect.top))).size;
+                }
+                """));
+        }
         await toggle.FocusAsync();
         await page.Keyboard.PressAsync("Tab");
         Assert.False(await page.EvaluateAsync<bool>("!!document.activeElement.closest('.custom-event-content')"));
