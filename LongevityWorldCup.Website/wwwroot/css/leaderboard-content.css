@@ -1834,6 +1834,7 @@
  }
  #detailsModal .biomarker-history-tabs{
      display:flex;
+     flex-wrap:wrap;
      width:max-content;
      max-width:100%;
      margin:0 0 .8rem auto;
@@ -1866,7 +1867,8 @@
      cursor:default;
      opacity:.55;
  }
- #detailsModal #biomarkerTablePanel{
+ #detailsModal #biomarkerTablePanel,
+ #detailsModal #biomarkerOverviewPanel{
      max-width:100%;
      overflow-x:auto;
  }
@@ -1877,7 +1879,8 @@
      font-size:.88rem;
      font-variant-numeric:tabular-nums;
  }
- #detailsModal .biomarker-history-table caption{
+ #detailsModal .biomarker-history-table caption,
+ #detailsModal .biomarker-overview-table caption{
      position:absolute;
      width:1px;
      height:1px;
@@ -1925,6 +1928,108 @@
  #detailsModal .biomarker-history-empty{
      text-align:center;
      color:var(--athlete-modal-muted);
+ }
+ #detailsModal .biomarker-overview-range{
+     margin:0 0 .3rem;
+     color:var(--athlete-modal-muted);
+     font-size:.8rem;
+     font-variant-numeric:tabular-nums;
+ }
+ #detailsModal .biomarker-overview-table{
+     width:100%;
+     border-collapse:collapse;
+     color:var(--athlete-modal-text);
+     font-size:.9rem;
+     font-variant-numeric:tabular-nums;
+     overflow-wrap:normal;
+ }
+ #detailsModal .biomarker-overview-table th,
+ #detailsModal .biomarker-overview-table td{
+     padding:.9rem .3rem;
+     border-bottom:1px solid var(--athlete-modal-border);
+     text-align:right;
+     vertical-align:middle;
+     overflow-wrap:normal;
+ }
+ #detailsModal .biomarker-overview-table th:first-child{
+     width:36%;
+     padding-left:0;
+     text-align:left;
+ }
+ #detailsModal .biomarker-overview-table th:last-child,
+ #detailsModal .biomarker-overview-table td:last-child{ padding-right:0; }
+ #detailsModal .biomarker-overview-table thead th{
+     color:var(--athlete-modal-muted);
+     font-size:.8rem;
+     font-weight:400;
+ }
+ #detailsModal .biomarker-overview-table thead .biomarker-overview-history{ text-align:center; }
+ #detailsModal .biomarker-overview-table button{
+     display:block;
+     min-height:44px;
+     padding:0;
+     border:0;
+     background:none;
+     color:inherit;
+     font:inherit;
+     font-weight:500;
+     text-align:left;
+     line-height:1.5;
+     cursor:pointer;
+ }
+ #detailsModal .biomarker-overview-table button:focus-visible{
+     outline:2px solid var(--athlete-modal-link);
+     outline-offset:4px;
+     border-radius:2px;
+ }
+ #detailsModal .biomarker-overview-table tbody tr:hover{
+     background:rgba(123,221,227,.045);
+ }
+ #detailsModal .biomarker-overview-table tbody tr:last-child > *{ border-bottom:0; }
+ #detailsModal .biomarker-overview-table .biomarker-overview-history{ width:26%; }
+ #detailsModal td.biomarker-overview-history{ cursor:pointer; }
+ #detailsModal .biomarker-overview-history svg{
+     display:block;
+     width:100%;
+     min-width:40px;
+     max-width:120px;
+     height:40px;
+     margin:auto;
+ }
+ #detailsModal .biomarker-overview-history line{
+     stroke:var(--athlete-modal-muted);
+     stroke-width:1.5;
+     opacity:.55;
+ }
+ #detailsModal .biomarker-overview-history circle{ fill:var(--athlete-modal-text); }
+ #detailsModal .biomarker-overview-history .is-latest{ fill:var(--athlete-modal-chart-pheno); }
+ #detailsModal .biomarker-overview-history .is-baseline{
+     fill:none;
+     stroke:var(--athlete-modal-muted);
+     stroke-width:1.5;
+ }
+ #detailsModal .biomarker-overview-result,
+ #detailsModal .biomarker-overview-change{ white-space:nowrap; }
+ #detailsModal .biomarker-overview-table .biomarker-history-unit{ white-space:nowrap; }
+ #detailsModal .biomarker-overview-current{
+     display:block;
+     font-size:1.1rem;
+     font-weight:500;
+ }
+ #detailsModal .biomarker-overview-arrow{
+     margin-left:.4rem;
+     color:var(--athlete-modal-muted);
+     font-size:1.2rem;
+     cursor:pointer;
+ }
+ @media (max-width:360px){
+     #detailsModal .biomarker-overview-table{ font-size:.8rem; }
+     #detailsModal .biomarker-overview-table thead th{ font-size:.75rem; }
+     #detailsModal .biomarker-overview-table thead .biomarker-history-unit{ font-size:inherit; }
+     #detailsModal .biomarker-overview-table th,
+     #detailsModal .biomarker-overview-table td{ padding:.8rem .2rem; }
+     #detailsModal .biomarker-overview-history svg{ min-width:30px; }
+     #detailsModal .biomarker-overview-arrow{ margin-left:0; font-size:1rem; }
  }
  #detailsModal .biomarkers-section [hidden]{ display:none !important; }
  @media (pointer:coarse){
