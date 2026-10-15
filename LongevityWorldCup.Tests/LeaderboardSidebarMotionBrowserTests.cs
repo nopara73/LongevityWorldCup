@@ -32,15 +32,15 @@ public sealed class LeaderboardSidebarMotionBrowserTests(
                 const results = document.querySelector('.leaderboard--flags > .flag-leaderboard') || document.querySelector('.leaderboard > table');
                 const issues = [], geometry = () => {
                     const box = results.getBoundingClientRect();
-                    return [box.left, box.top, box.width, box.height];
+                    return [box.left, box.top, box.width, box.height, rail.parentElement.getBoundingClientRect().height];
                 };
                 const before = geometry(), labelWidth = panel.querySelector('label').getBoundingClientRect().width;
                 const inspect = () => {
                     if (geometry().some((value, index) => Math.abs(value - before[index]) > 1))
-                        issues.push('Opening or closing changes result geometry');
+                        issues.push('Opening or closing changes result or card geometry');
                     const box = panel.getBoundingClientRect();
-                    if (box.bottom > Math.min(innerHeight, rail.parentElement.getBoundingClientRect().bottom) + 1)
-                        issues.push('Panel is clipped by the viewport or short result board');
+                    if (box.bottom > innerHeight + 1)
+                        issues.push('Panel is clipped by the viewport');
                     if (box.width < 250 || Math.abs(panel.querySelector('label').getBoundingClientRect().width - labelWidth) > 1)
                         issues.push('Filter content is resized');
                     for (const child of panel.querySelectorAll('.sidebar-heading, .sidebar-filter-list')) {
