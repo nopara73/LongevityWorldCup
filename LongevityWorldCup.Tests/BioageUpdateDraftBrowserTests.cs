@@ -339,7 +339,7 @@ public sealed class BioageUpdateDraftBrowserTests(PlaywrightBrowserFixture brows
         // Exercise the actual return lifecycle, including resetting the visible form.
         await RunCachedReturnAsync(page, () => page.EvaluateAsync("key => {sessionStorage.removeItem(key); window.dispatchEvent(new PageTransitionEvent('pageshow', {persisted:true}));}", key));
         await Assertions.Expect(page.Locator("#wbc")).ToHaveValueAsync("");
-        await Assertions.Expect(page.Locator("[data-blood-draw-offset=\"0\"]")).ToHaveAttributeAsync("aria-pressed", "true");
+        await Assertions.Expect(page.Locator(".blood-draw-relative-label")).ToHaveTextAsync("Today");
         await WaitForEntryAsync(page);
         await Assertions.Expect(page.Locator("#calculateBioageButton")).ToBeDisabledAsync();
         await FillMarkerAsync(page, "wbc", "7.3");

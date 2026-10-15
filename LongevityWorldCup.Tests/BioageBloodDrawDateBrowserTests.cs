@@ -35,24 +35,29 @@ public sealed class BioageBloodDrawDateBrowserTests(
         await page.WaitForSelectorAsync(".bioage-biomarker-entry-ready");
 
         var date = page.Locator("#blood-draw-date");
-        var todayButton = page.GetByRole(AriaRole.Button, new() { Name = "Today", Exact = true });
-        var yesterdayButton = page.GetByRole(AriaRole.Button, new() { Name = "Yesterday", Exact = true });
+        var relativeLabel = page.Locator(".blood-draw-relative-label");
         await Assertions.Expect(date).ToHaveValueAsync(today);
-        await Assertions.Expect(date).ToBeHiddenAsync();
-        await Assertions.Expect(todayButton).ToHaveAttributeAsync("aria-pressed", "true");
-        await yesterdayButton.ClickAsync();
+        await Assertions.Expect(date).ToBeVisibleAsync();
+        await Assertions.Expect(relativeLabel).ToHaveTextAsync("Today");
+        await Assertions.Expect(relativeLabel).ToBeVisibleAsync();
+        await date.FocusAsync();
+        await Assertions.Expect(relativeLabel).ToBeHiddenAsync();
+        Assert.NotEqual("rgba(0, 0, 0, 0)", await date.EvaluateAsync<string>("input => getComputedStyle(input).color"));
+        await FlowActionDockBrowserTests.FillBloodDrawDateAsync(page, yesterday);
+        await page.Locator("#dob-year").FocusAsync();
         await Assertions.Expect(date).ToHaveValueAsync(yesterday);
-        await Assertions.Expect(yesterdayButton).ToHaveAttributeAsync("aria-pressed", "true");
+        await Assertions.Expect(relativeLabel).ToHaveTextAsync("Yesterday");
+        await Assertions.Expect(relativeLabel).ToBeVisibleAsync();
         await page.ReloadAsync();
         await Assertions.Expect(date).ToHaveValueAsync(yesterday);
-        await Assertions.Expect(yesterdayButton).ToHaveAttributeAsync("aria-pressed", "true");
+        await Assertions.Expect(relativeLabel).ToHaveTextAsync("Yesterday");
+        await Assertions.Expect(relativeLabel).ToBeVisibleAsync();
 
         await FlowActionDockBrowserTests.FillBloodDrawDateAsync(page, "2026-01-02");
         await page.ReloadAsync();
         await Assertions.Expect(date).ToHaveValueAsync("2026-01-02");
         await Assertions.Expect(date).ToBeVisibleAsync();
-        await Assertions.Expect(todayButton).ToHaveAttributeAsync("aria-pressed", "false");
-        await Assertions.Expect(yesterdayButton).ToHaveAttributeAsync("aria-pressed", "false");
+        await Assertions.Expect(relativeLabel).ToBeHiddenAsync();
 
         await FlowActionDockBrowserTests.FillBloodDrawDateAsync(page, "");
         await page.ReloadAsync();
@@ -61,9 +66,11 @@ public sealed class BioageBloodDrawDateBrowserTests(
 
         await date.FillAsync(DateOnly.Parse(today, CultureInfo.InvariantCulture).AddDays(1).ToString("yyyy-MM-dd"));
         Assert.True(await date.EvaluateAsync<bool>("input => input.validity.rangeOverflow"));
-        await todayButton.ClickAsync();
+        await FlowActionDockBrowserTests.FillBloodDrawDateAsync(page, today);
+        await page.Locator("#dob-year").FocusAsync();
         await Assertions.Expect(date).ToHaveValueAsync(today);
-        await Assertions.Expect(date).ToBeHiddenAsync();
+        await Assertions.Expect(relativeLabel).ToHaveTextAsync("Today");
+        await Assertions.Expect(relativeLabel).ToBeVisibleAsync();
         Assert.True(await date.EvaluateAsync<bool>("input => input.validity.valid"));
         Assert.True(await page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= innerWidth + 1"));
     }
@@ -105,8 +112,7 @@ public sealed class BioageBloodDrawDateBrowserTests(
         }
         else
         {
-            await Assertions.Expect(page.GetByRole(AriaRole.Button, new() { Name = "Today", Exact = true }))
-                .ToHaveAttributeAsync("aria-pressed", "true");
+            await Assertions.Expect(page.Locator(".blood-draw-relative-label")).ToHaveTextAsync("Today");
         }
         await Assertions.Expect(page.Locator("#crp-negative")).ToHaveCountAsync(0);
         await page.Locator("#lwcToStep2Btn").ClickAsync();

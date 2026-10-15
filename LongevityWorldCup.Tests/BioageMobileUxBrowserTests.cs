@@ -228,7 +228,6 @@ public sealed class BioageMobileUxBrowserTests(
             "#lwc-step-2 .biomarker-card input[type=\"number\"][required]").CountAsync());
 
         var bloodDrawDate = page.Locator("#blood-draw-date");
-        await page.GetByRole(AriaRole.Button, new() { Name = "Choose another blood draw date" }).ClickAsync();
         await bloodDrawDate.FillAsync("");
         await bloodDrawDate.PressAsync("Escape");
         Assert.True(await bloodDrawDate.IsVisibleAsync());
@@ -395,8 +394,7 @@ public sealed class BioageMobileUxBrowserTests(
             "() => document.querySelector('.bioageform')?.classList.contains('bioage-biomarker-entry-ready')");
 
         var bloodDrawDate = page.Locator("#blood-draw-date");
-        await Assertions.Expect(page.GetByRole(AriaRole.Button, new() { Name = "Today", Exact = true }))
-            .ToHaveAttributeAsync("aria-pressed", "true");
+        await Assertions.Expect(page.Locator(".blood-draw-relative-label")).ToHaveTextAsync("Today");
 
         var submittedDate = DateTime.UtcNow.Date.AddDays(-9).ToString("yyyy-MM-dd");
         await page.Locator("#dob-year").SelectOptionAsync("1980");

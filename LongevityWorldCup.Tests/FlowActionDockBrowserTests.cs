@@ -1208,8 +1208,6 @@ public sealed class FlowActionDockBrowserTests(
     internal static async Task FillBloodDrawDateAsync(IPage page, string value)
     {
         var input = page.Locator("#blood-draw-date");
-        if (!await input.IsVisibleAsync())
-            await page.GetByRole(AriaRole.Button, new() { Name = "Choose another blood draw date" }).ClickAsync();
         await input.FillAsync(value);
         await input.PressAsync("Escape");
     }

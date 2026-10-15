@@ -643,7 +643,7 @@ interface Window {
 
             const field: BioageDraftField = { value: control.value };
             if (control.id === 'blood-draw-date') {
-                field.customDate = form.querySelector('[data-blood-draw-custom]')?.getAttribute('aria-expanded') === 'true';
+                field.customDate = control.value === '';
             }
             if (control instanceof HTMLInputElement && control.type === 'checkbox') {
                 field.checked = control.checked;
@@ -1057,30 +1057,23 @@ interface Window {
 
     function initializeBloodDrawDate(form: HTMLFormElement, defaultToToday: boolean): void {
         const input = form.querySelector<HTMLInputElement>('#blood-draw-date');
-        const picker = input?.closest<HTMLElement>('.input-group');
-        const shortcuts = Array.from(form.querySelectorAll<HTMLButtonElement>('[data-blood-draw-offset]'));
-        const calendar = form.querySelector<HTMLButtonElement>('[data-blood-draw-custom]');
-        if (!input || !picker || !calendar) return;
+        const control = input?.closest<HTMLElement>('.blood-draw-date-control');
+        const label = control?.querySelector<HTMLElement>('.blood-draw-relative-label');
+        if (!input || !control || !label) return;
 
         const localDate = (daysAgo: number) => {
             const date = new Date();
             date.setDate(date.getDate() - daysAgo);
             return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
         };
-        const isRecentDate = () => input.value === localDate(0) || input.value === localDate(1);
         if (!input.value && defaultToToday) input.value = localDate(0);
-        let customDateVisible = !isRecentDate();
 
         const sync = () => {
             input.max = localDate(0);
-            picker.hidden = !customDateVisible && isRecentDate();
-            shortcuts.forEach(button => {
-                const selected = picker.hidden && input.value === localDate(Number(button.dataset.bloodDrawOffset));
-                button.setAttribute('aria-pressed', String(selected));
-            });
-            calendar.setAttribute('aria-pressed', String(!picker.hidden));
-            calendar.setAttribute('aria-expanded', String(!picker.hidden));
-            getFlowActionDock()?.refresh?.();
+            label.textContent = input.value === localDate(0) ? 'Today'
+                : input.value === localDate(1) ? 'Yesterday' : '';
+            label.hidden = !label.textContent;
+            control.classList.toggle('has-relative-date', !!label.textContent);
         };
         const openPicker = () => {
             if (typeof input.showPicker === 'function' && !input.disabled) {
@@ -1088,26 +1081,10 @@ interface Window {
             }
         };
 
-        shortcuts.forEach(button => button.addEventListener('click', () => {
-            input.value = localDate(Number(button.dataset.bloodDrawOffset));
-            customDateVisible = false;
-            sync();
-            input.dispatchEvent(new Event('input', { bubbles: true }));
-            input.dispatchEvent(new Event('change', { bubbles: true }));
-        }));
-        calendar.addEventListener('click', () => {
-            customDateVisible = true;
-            sync();
-            input.focus({ preventScroll: true });
-            openPicker();
-        });
         input.addEventListener('input', sync);
         input.addEventListener('change', sync);
         input.addEventListener('click', openPicker);
-        window.addEventListener('pageshow', () => {
-            customDateVisible = !isRecentDate();
-            sync();
-        });
+        window.addEventListener('pageshow', sync);
         document.addEventListener('visibilitychange', () => {
             if (!document.hidden) sync();
         });

@@ -31,7 +31,7 @@ public sealed class BioageKeyboardViewportBrowserTests(
             WaitUntil = WaitUntilState.DOMContentLoaded
         });
         await page.WaitForFunctionAsync("() => window.LwcFlowActionDock");
-        await page.GetByRole(AriaRole.Button, new() { Name = "Choose another blood draw date" }).ClickAsync();
+        await page.Locator("#blood-draw-date").FocusAsync();
         await page.EvaluateAsync("() => window.LwcFlowActionDock.refreshNow()");
 
         var state = await page.EvaluateAsync<WindowedViewportState>(

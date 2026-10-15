@@ -790,17 +790,9 @@
                     <!-- Blood Draw Details -->
                     <fieldset>
                         <legend>Blood draw date:</legend>
-                        <div class="blood-draw-date-control">
-                            <div class="blood-draw-date-shortcuts" role="group" aria-label="Blood draw date">
-                                <button type="button" data-blood-draw-offset="0" aria-pressed="false">Today</button>
-                                <button type="button" data-blood-draw-offset="1" aria-pressed="false">Yesterday</button>
-                                <button type="button" data-blood-draw-custom aria-label="Choose another blood draw date" aria-controls="blood-draw-date" aria-expanded="true" aria-pressed="false">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/></svg>
-                                </button>
-                            </div>
-                            <div class="input-group lwc-date-flex">
-                                <input type="date" id="blood-draw-date" name="blood-draw-date" required aria-required="true" aria-label="Blood draw date" max="" onchange="calculateResultIfResultAlreadyCalculated()" autocomplete="off">
-                            </div>
+                        <div class="input-group lwc-date-flex blood-draw-date-control">
+                            <input type="date" id="blood-draw-date" name="blood-draw-date" required aria-required="true" aria-label="Blood draw date" max="" onchange="calculateResultIfResultAlreadyCalculated()" autocomplete="off">
+                            <span class="blood-draw-relative-label" aria-hidden="true" hidden></span>
                         </div>
                     </fieldset>
                     <div id="lwcStepOneActions" class="lwc-step-actions flow-action-stack" data-flow-dock="auto" data-flow-dock-when="body:not(.bioage-result-ready)">
