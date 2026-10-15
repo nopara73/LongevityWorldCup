@@ -1,0 +1,295 @@
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Playwright;
+using Xunit;
+
+namespace LongevityWorldCup.Tests;
+
+[Collection(BrowserTestCollections.WorkloadD)]
+public sealed class AthletePortraitMotionBrowserTests(
+    PlaywrightBrowserFixture browserFixture,
+    BrowserTestAppFixture appFixture)
+    : BrowserIntegrationTest(browserFixture, appFixture)
+{
+    private const string ApprovedPhoto = "6683dd38d8317bb5a68b3053ca8dae7c53aad86cd1c6df1c1662e16fcbe83345";
+    private const string ValeriePhoto = "e280d5d1d7278450a5d37ba7e16eee54719d0acb125f54c18b0b9a9a43c41976";
+    private const string Clip = "**/assets/athlete-motion/*";
+
+    private static string Photo(string slug) => slug == "valerie-orsoni" ? ValeriePhoto : ApprovedPhoto;
+
+    [Theory]
+    [InlineData(1440, "benjamin-garden")]
+    [InlineData(390, "benjamin-garden")]
+    [InlineData(1440, "valerie-orsoni")]
+    [InlineData(390, "valerie-orsoni")]
+    public async Task ApprovedPortrait_PlaysOnceThenReturnsToItsOriginalImage(int width, string slug)
+    {
+        await using var context = await NewContextAsync(width);
+        var page = await LoadAsync(context);
+        await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.NoPreference });
+        await InsertPortraitAsync(page, slug: slug);
+        await page.WaitForFunctionAsync("() => window.motionStarts === 1");
+        Assert.Equal("none", await page.Locator("video.athlete-portrait-motion")
+            .EvaluateAsync<string>("video => getComputedStyle(video).pointerEvents"));
+        await Assertions.Expect(page.Locator("video.athlete-portrait-motion")).ToHaveCountAsync(0);
+        await Assertions.Expect(page.Locator("#motionFixture")).ToBeVisibleAsync();
+        Assert.Equal(1, await page.EvaluateAsync<int>("window.motionEnds"));
+        Assert.True(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth <= innerWidth"));
+
+        // Filters and hydration may replace a portrait. That must not replay its gesture.
+        await InsertPortraitAsync(page, slug: slug);
+        await Assertions.Expect(page.Locator("video.athlete-portrait-motion")).ToHaveCountAsync(0);
+        Assert.Equal(1, await page.EvaluateAsync<int>("window.motionStarts"));
+        Assert.EndsWith($"/athlete/{slug}", await page.Locator("#motionFixture").EvaluateAsync<string>("img => img.closest('a').href"));
+    }
+
+    [Theory]
+    [InlineData("reduced-motion", "benjamin-garden")]
+    [InlineData("different-photo", "benjamin-garden")]
+    [InlineData("outside-podium", "benjamin-garden")]
+    [InlineData("reduced-motion", "valerie-orsoni")]
+    [InlineData("different-photo", "valerie-orsoni")]
+    [InlineData("outside-podium", "valerie-orsoni")]
+    public async Task OtherContexts_KeepTheirStaticPortraitAndDoNotDownloadTheClip(string scenario, string slug)
+    {
+        await using var context = await NewContextAsync();
+        var requests = 0;
+        context.Request += (_, request) =>
+        {
+            if (request.Url.Contains("/assets/athlete-motion/", StringComparison.Ordinal))
+                Interlocked.Increment(ref requests);
+        };
+        var page = await LoadAsync(context);
+        if (scenario != "reduced-motion")
+            await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.NoPreference });
+        await InsertPortraitAsync(page,
+            scenario == "different-photo" ? new string('0', 64) : Photo(slug),
+            scenario == "outside-podium", slug);
+        await Assertions.Expect(page.Locator("video.athlete-portrait-motion")).ToHaveCountAsync(0);
+        Assert.Equal(0, Volatile.Read(ref requests));
+        await Assertions.Expect(page.Locator("#motionFixture")).ToBeVisibleAsync();
+    }
+
+    [Theory]
+    [InlineData("benjamin-garden")]
+    [InlineData("valerie-orsoni")]
+    public async Task FailedPlayback_LeavesTheOriginalPortraitVisible(string slug)
+    {
+        await using var context = await NewContextAsync();
+        var requested = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await context.RouteAsync(Clip, async route =>
+        {
+            requested.TrySetResult();
+            await route.AbortAsync();
+        });
+        var page = await LoadAsync(context);
+        await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.NoPreference });
+        await InsertPortraitAsync(page, slug: slug);
+        await requested.Task.WaitAsync(TimeSpan.FromSeconds(15));
+        await Assertions.Expect(page.Locator("video.athlete-portrait-motion")).ToHaveCountAsync(0);
+        await Assertions.Expect(page.Locator("#motionFixture")).ToBeVisibleAsync();
+        Assert.Equal(0, await page.EvaluateAsync<int>("window.motionStarts"));
+    }
+
+    [Theory]
+    [InlineData("reduced-motion", "benjamin-garden")]
+    [InlineData("different-photo", "benjamin-garden")]
+    [InlineData("reduced-motion", "valerie-orsoni")]
+    [InlineData("different-photo", "valerie-orsoni")]
+    public async Task ChangingMotionPreferenceOrPhoto_StopsTheActiveMotion(string scenario, string slug)
+    {
+        await using var context = await NewContextAsync();
+        var page = await LoadAsync(context);
+        await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.NoPreference });
+        await InsertPortraitAsync(page, slug: slug);
+        await page.WaitForFunctionAsync("() => window.motionStarts === 1");
+        if (scenario == "reduced-motion")
+            await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.Reduce });
+        else
+            await page.Locator("#motionFixture").EvaluateAsync("img => img.src = img.src.replace(PHOTO, '0'.repeat(64))"
+                .Replace("PHOTO", System.Text.Json.JsonSerializer.Serialize(Photo(slug))));
+        await Assertions.Expect(page.Locator("video.athlete-portrait-motion")).ToHaveCountAsync(0);
+        await Assertions.Expect(page.Locator("#motionFixture")).ToBeVisibleAsync();
+    }
+
+    [Theory]
+    [InlineData("benjamin-garden")]
+    [InlineData("valerie-orsoni")]
+    public async Task Hover_ReplaysOncePerPointerEntry_AfterTheOpeningMotion(string slug)
+    {
+        await using var context = await NewContextAsync();
+        var page = await LoadAsync(context);
+        await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.NoPreference });
+        await InsertPortraitAsync(page, slug: slug);
+        await page.WaitForFunctionAsync("() => window.motionEnds === 1");
+
+        await page.Locator("#motionFixture").HoverAsync();
+        await page.WaitForFunctionAsync("() => window.motionStarts === 2");
+        await page.WaitForFunctionAsync("() => window.motionEnds === 2");
+        await page.Locator("#motionFixture").HoverAsync(new() { Position = new() { X = 30, Y = 30 } });
+        Assert.Equal(2, await page.EvaluateAsync<int>("window.motionStarts"));
+
+        await page.Mouse.MoveAsync(0, 0);
+        await page.Locator("#motionFixture").HoverAsync();
+        await page.WaitForFunctionAsync("() => window.motionStarts === 3");
+    }
+
+    [Theory]
+    [InlineData(true, 1440, "benjamin-garden")]
+    [InlineData(true, 390, "benjamin-garden")]
+    [InlineData(false, 1440, "benjamin-garden")]
+    [InlineData(false, 390, "benjamin-garden")]
+    [InlineData(true, 1440, "valerie-orsoni")]
+    [InlineData(true, 390, "valerie-orsoni")]
+    [InlineData(false, 1440, "valerie-orsoni")]
+    [InlineData(false, 390, "valerie-orsoni")]
+    public async Task ProfileOpeningAndHover_PlayTheMotion(bool direct, int width, string slug)
+    {
+        await using var context = await NewContextAsync(width);
+        await context.AddInitScriptAsync("localStorage.setItem('gmaSkipAll', 'true')");
+        IPage page;
+        if (direct)
+        {
+            page = await context.NewPageAsync();
+            await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.NoPreference });
+            await page.GotoAsync($"/athlete/{slug}", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        }
+        else
+        {
+            page = await LoadAsync(context);
+            await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.NoPreference });
+            await page.Locator($"a.athlete-name[href='/athlete/{slug}']").First.ClickAsync();
+        }
+
+        await page.WaitForFunctionAsync("() => window.profileMotionStarts === 1");
+        Assert.Contains($"/assets/athlete-motion/{slug}-", await page.Locator("#athlete-profile video.athlete-portrait-motion").EvaluateAsync<string>("video => video.currentSrc"));
+        Assert.True(await page.Locator("#athlete-profile video.athlete-portrait-motion").EvaluateAsync<bool>("video => { const image = video.previousElementSibling.getBoundingClientRect(); const clip = video.getBoundingClientRect(); return Math.abs(clip.x - image.x - 3) < 1 && Math.abs(clip.y - image.y - 3) < 1 && Math.abs(clip.width - image.width + 6) < 1 && Math.abs(clip.height - image.height + 6) < 1; }"));
+        await page.WaitForFunctionAsync("() => window.profileMotionEnds === 1");
+        await Assertions.Expect(page.Locator("#modalProfilePic")).ToBeVisibleAsync();
+        await page.Locator("#modalProfilePic").HoverAsync();
+        await page.WaitForFunctionAsync("() => window.profileMotionStarts === 2");
+        await page.Locator("#closeAthleteDetailsModal").ClickAsync();
+        await Assertions.Expect(page.Locator("#athlete-profile video.athlete-portrait-motion")).ToHaveCountAsync(0);
+
+        if (!direct)
+        {
+            await Assertions.Expect(page.Locator("#detailsModal")).ToBeHiddenAsync();
+            await page.Locator($"a.athlete-name[href='/athlete/{slug}']").First.ClickAsync();
+            await page.WaitForFunctionAsync("() => window.profileMotionStarts === 3");
+        }
+    }
+
+    [Theory]
+    [InlineData("benjamin-garden")]
+    [InlineData("valerie-orsoni")]
+    public async Task ReducedMotion_ProfileOpeningAndHover_KeepTheStillPhoto(string slug)
+    {
+        await using var context = await NewContextAsync();
+        var page = await context.NewPageAsync();
+        await page.GotoAsync($"/athlete/{slug}", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.WaitForFunctionAsync("() => document.querySelector('#modalProfilePic').hasAttribute('data-full-src') && !document.querySelector('#detailsModal .modal-content').classList.contains('is-loading')");
+        await page.Locator("#modalProfilePic").HoverAsync();
+        await Assertions.Expect(page.Locator("video.athlete-portrait-motion")).ToHaveCountAsync(0);
+        Assert.Equal(0, await page.EvaluateAsync<int>("window.profileMotionStarts"));
+    }
+
+    [Fact]
+    public async Task TwoApprovedPodiumPortraits_EachPlayTheirOwnClip()
+    {
+        await using var context = await NewContextAsync();
+        var page = await LoadAsync(context);
+        await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.NoPreference });
+        await page.EvaluateAsync("""
+            ({benjamin, valerie}) => {
+                const podium = document.querySelector('.podium');
+                podium.style.display = 'flex';
+                podium.innerHTML = `<div class="podium-item first"><a><img class="podium-portrait" src="/generated/thumbs/athletes/benjamin_garden_thumb_md_${benjamin}.webp"></a></div><div class="podium-item second"><a><img class="podium-portrait" src="/generated/thumbs/athletes/valerie_orsoni_thumb_md_${valerie}.webp"></a></div>`;
+            }
+            """, new { benjamin = ApprovedPhoto, valerie = ValeriePhoto });
+        await page.WaitForFunctionAsync("() => window.motionStarts === 2");
+        var sources = await page.Locator("video.athlete-portrait-motion").EvaluateAllAsync<string[]>("videos => videos.map(v => v.currentSrc)");
+        Assert.Contains(sources, src => src.Contains("benjamin-garden-wink-", StringComparison.Ordinal));
+        Assert.Contains(sources, src => src.Contains("valerie-orsoni-double-blink-", StringComparison.Ordinal));
+        await page.WaitForFunctionAsync("() => window.motionEnds === 2");
+    }
+
+    [Fact]
+    public async Task ChangingBetweenApprovedProfilePhotos_ReplacesTheActiveClip()
+    {
+        await using var context = await NewContextAsync();
+        await context.AddInitScriptAsync("localStorage.setItem('gmaSkipAll', 'true')");
+        var page = await context.NewPageAsync();
+        await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.NoPreference });
+        await page.GotoAsync("/athlete/benjamin-garden", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.WaitForFunctionAsync("() => window.profileMotionStarts === 1");
+        await page.Locator("#modalProfilePic").EvaluateAsync("(img, src) => img.src = src",
+            $"/generated/profiles/athletes/valerie_orsoni_{ValeriePhoto}.webp");
+        await page.WaitForFunctionAsync("() => window.profileMotionStarts === 2");
+        var overlay = page.Locator("#athlete-profile video.athlete-portrait-motion");
+        await Assertions.Expect(overlay).ToHaveCountAsync(1);
+        Assert.Contains("valerie-orsoni-double-blink-", await overlay.EvaluateAsync<string>("video => video.currentSrc"));
+    }
+
+    private async Task<IBrowserContext> NewContextAsync(int width = 1440)
+    {
+        var context = await Browser.NewContextAsync(new()
+        {
+            BaseURL = App.BaseAddress.ToString(),
+            ViewportSize = new() { Width = width, Height = 900 },
+            ReducedMotion = ReducedMotion.Reduce
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        var root = App.Services.GetRequiredService<IWebHostEnvironment>().WebRootPath;
+        foreach (var fileSlug in new[] { "benjamin_garden", "valerie_orsoni" })
+        {
+            var photo = await File.ReadAllBytesAsync(Path.Combine(root, "athletes", fileSlug, $"{fileSlug}.webp"));
+            await context.RouteAsync($"**/generated/thumbs/athletes/{fileSlug}_thumb_md_*.webp*", route =>
+                route.FulfillAsync(new() { ContentType = "image/webp", BodyBytes = photo }));
+        }
+        await context.AddInitScriptAsync("""
+            window.motionStarts = 0;
+            window.motionEnds = 0;
+            window.profileMotionStarts = 0;
+            window.profileMotionEnds = 0;
+            const started = new WeakSet();
+            for (const [event, key] of [['playing', 'motionStarts'], ['ended', 'motionEnds']]) {
+                document.addEventListener(event, e => {
+                    if (!e.target.matches?.('video.athlete-portrait-motion')) return;
+                    if (event === 'playing') {
+                        if (started.has(e.target)) return;
+                        started.add(e.target);
+                    }
+                    window[key]++;
+                    if (e.target.previousElementSibling?.id === 'modalProfilePic')
+                        window[event === 'playing' ? 'profileMotionStarts' : 'profileMotionEnds']++;
+                }, true);
+            }
+            """);
+        return context;
+    }
+
+    private static async Task<IPage> LoadAsync(IBrowserContext context)
+    {
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+        return page;
+    }
+
+    private static async Task InsertPortraitAsync(IPage page, string? photo = null, bool outsidePodium = false, string slug = "benjamin-garden")
+    {
+        await page.EvaluateAsync("""
+            ({photo, outsidePodium, slug, fileSlug}) => {
+                const podium = document.querySelector('.podium');
+                podium.replaceChildren();
+                podium.style.display = 'flex';
+                const card = document.createElement('div');
+                card.className = 'podium-item first';
+                card.innerHTML = `<a class="athlete-profile-link" href="/athlete/${slug}"><img id="motionFixture" class="podium-portrait" src="/generated/thumbs/athletes/${fileSlug}_thumb_md_${photo}.webp" alt="Athlete portrait"></a>`;
+                (outsidePodium ? document.body : podium).appendChild(card);
+            }
+            """, new { photo = photo ?? Photo(slug), outsidePodium, slug, fileSlug = slug.Replace('-', '_') });
+        await page.WaitForFunctionAsync("() => document.querySelector('#motionFixture')?.naturalWidth > 0");
+        await page.Locator("#motionFixture").ScrollIntoViewIfNeededAsync();
+    }
+}
