@@ -490,17 +490,134 @@
             text-align: left;
             line-height: 1.5;
         }
+
+        /* One intro card: the proof symbol beside what to upload and who will see it. */
+        .proof-upload-intro {
+            display: flex;
+            align-items: flex-start;
+            gap: 1.1rem;
+            width: min(100%, 560px);
+            margin: 0 auto 1.35rem;
+            padding: 1rem 1.25rem;
+            border: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.16));
+            border-radius: var(--lwc-radius-lg, 12px);
+            background: var(--lwc-surface, #fff);
+            box-shadow: var(--lwc-shadow-sm, 0 1px 2px rgba(15, 23, 42, 0.08));
+            box-sizing: border-box;
+        }
+
+        .proof-upload-intro .proof-upload-visual {
+            flex: 0 0 auto;
+            margin: 0;
+        }
+
+        .proof-upload-intro-copy {
+            flex: 1 1 auto;
+            min-width: 0;
+        }
+
+        .proof-upload-intro .proof-upload-copy,
+        .proof-upload-intro .proof-upload-copy.smaller-text {
+            width: auto;
+            max-width: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .proof-upload-intro .proof-upload-copy.smaller-text {
+            margin-top: 0.75rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.12));
+        }
+
+        .proof-upload-workspace {
+            display: contents;
+        }
+
+        @media (max-width: 600px) {
+            .proof-upload-intro {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 0.85rem;
+                padding: min(1rem, 16px);
+            }
+
+            .proof-upload-intro .proof-upload-visual {
+                align-self: center;
+            }
+
+            .proof-upload-main {
+                padding-inline: min(1.35rem, 22px);
+            }
+        }
+
+        /* Keep every tracker item in the page's scroll flow, including short windows and enlarged text. */
+        @media (min-width: 960px) {
+            body.proof-upload-has-proofs .proof-upload-main {
+                max-width: 1080px;
+            }
+
+            body.proof-upload-has-proofs .proof-upload-primary-action {
+                align-self: flex-start;
+                margin-inline: 0;
+            }
+
+            /* Wraps the tracker below the pages when enlarged text leaves no room beside them. */
+            body.proof-upload-has-proofs .proof-upload-workspace {
+                display: flex;
+                flex-wrap: wrap;
+                align-items: flex-start;
+                gap: 1.5rem;
+                width: 100%;
+                margin-top: var(--lwc-space-5, 1.5rem);
+            }
+
+            body.proof-upload-has-proofs .proof-upload-workspace #proofImageContainer {
+                flex: 1 1 32rem;
+                width: auto;
+                margin: 0;
+            }
+
+            body.proof-upload-has-proofs .proof-upload-workspace .proof-page-grid {
+                grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr));
+            }
+
+            body.proof-upload-has-proofs .proof-upload-workspace #biomarker-checklist {
+                flex: 1 0 17rem;
+                width: auto;
+                max-width: 20rem;
+                margin: 0;
+            }
+        }
+
+        /* Landscape phones keep their existing compact grid. */
+        @media (min-width: 640px) and (max-width: 932px) and (max-height: 480px) and (orientation: landscape) {
+            .proof-upload-intro,
+            .proof-upload-intro-copy {
+                display: contents;
+            }
+
+            .proof-upload-workspace {
+                display: block;
+                grid-column: 1 / -1;
+                width: 100%;
+            }
+        }
     </style>
 </head>
 <body class="play-flow-route">
     <!--HEADER-->
     <main class="proof-upload-main initial-view-main">
         <h1 id="character-title" class="proof-upload-title" data-aos="fade" data-aos-duration="700" data-aos-delay="250">Upload proofs and results</h1>
-        <div class="proof-upload-visual" data-aos="fade" data-aos-duration="700" data-aos-delay="300">
-            <div class="proof-upload-symbol" aria-hidden="true"><i class="fas fa-file-medical"></i></div>
+        <div class="proof-upload-intro">
+            <div class="proof-upload-visual" data-aos="fade" data-aos-duration="700" data-aos-delay="300">
+                <div class="proof-upload-symbol" aria-hidden="true"><i class="fas fa-file-medical"></i></div>
+            </div>
+            <div class="proof-upload-intro-copy">
+                <p id="mainProofInstructions" class="proof-upload-copy" data-aos="fade" data-aos-duration="700" data-aos-delay="350"></p>
+                <p id="subProofInstructions" class="proof-upload-copy smaller-text" data-aos="fade" data-aos-duration="700" data-aos-delay="400"></p>
+            </div>
         </div>
-        <p id="mainProofInstructions" class="proof-upload-copy" data-aos="fade" data-aos-duration="700" data-aos-delay="350"></p>
-        <p id="subProofInstructions" class="proof-upload-copy smaller-text" data-aos="fade" data-aos-duration="700" data-aos-delay="400"></p>
 
         <div class="options-container proof-upload-primary-action flow-action-stack" data-aos="fade" data-aos-duration="700" data-aos-delay="450">
             <input type="file" id="proofPicInput" accept="image/*,application/pdf,.heic,.heif,.pdf" style="display: none;" multiple>
@@ -514,9 +631,11 @@
             </button>
         </div>
 
-        <fieldset id="proofImageContainer"></fieldset>
+        <div class="proof-upload-workspace">
+            <fieldset id="proofImageContainer"></fieldset>
 
-        <div id="biomarker-checklist"></div>
+            <div id="biomarker-checklist"></div>
+        </div>
 
         <div class="options-container proof-upload-final-actions flow-action-stack flow-action-stack--hide-disabled-primary" data-flow-dock="auto" data-flow-dock-when="body.proof-upload-has-proofs" data-aos="fade" data-aos-duration="700" data-aos-delay="450">
             <button id="submitButton" type="submit" class="option-button green flow-action"><span class="flow-action__label">Submit new results</span><i class="fa fa-rocket" aria-hidden="true"></i></button>

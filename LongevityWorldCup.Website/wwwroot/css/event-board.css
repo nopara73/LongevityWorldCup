@@ -763,24 +763,27 @@
 }
 
 .custom-event-content{
+    display:grid;
+    grid-template-rows:0fr;
     padding:0;
     line-height:1.45;
-    max-height:0;
     opacity:0;
-    overflow:hidden;
-    will-change:max-height,opacity,padding;
+    visibility:hidden;
     transition:
-            max-height var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease),
+            grid-template-rows var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease),
             padding var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease),
-            opacity var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+            opacity var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease),
+            visibility 0s var(--lwc-duration-normal, 220ms);
 }
+.custom-event-body{min-height:0;overflow:hidden}
 
 .events-board tbody tr.custom-event-row.is-open + tr.custom-event-details .custom-event-content{
     padding:10px 0;
-    max-height:1400px;
+    grid-template-rows:1fr;
     opacity:1;
+    visibility:visible;
     transition:
-            max-height var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease),
+            grid-template-rows var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease),
             padding var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease),
             opacity var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
 }

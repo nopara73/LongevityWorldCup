@@ -1743,7 +1743,7 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity) {
                     const target = document.querySelector(hash);
                     if (target?.getClientRects().length) {
                         ScrollGuard.setAnchorTarget(target);
-                        ScrollGuard.trustedScrollIntoView(target, { behavior: 'smooth', block: 'start' });
+                        ScrollGuard.trustedScrollIntoView(target, { behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'start' });
                         ScrollGuard.block(1600);
                     }
                 }
@@ -2248,6 +2248,7 @@ function openEnlargedView(imgElement, options) {
     updateEnlargedImage(viewer, initialIndex);
 
     viewer.hidden = false;
+    viewer.inert = false;
     viewer.setAttribute('aria-hidden', 'false');
     modalContent.inert = true;
     ownerDialog.classList.add('image-viewer-open');
@@ -2398,6 +2399,7 @@ function closeEnlargedView(enlargedElem) {
     }
     enlargedElem.classList.remove('show');
     enlargedElem.setAttribute('aria-hidden', 'true');
+    enlargedElem.inert = true;
 
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     enlargedElem._closeTimer = setTimeout(() => {
@@ -2449,6 +2451,94 @@ let savedBodyBackground = '';
 let currentAthleteModalRequestId = 0;
 let athleteShareState = null;
 const chartJsSrc = 'https://cdn.jsdelivr.net/npm/chart.js@4.5.1';
+const athleteModalIsolation = new Map();
+const athleteModalFrames = new WeakSet();
+const athleteModalIsolationObserver = new MutationObserver(isolateAthleteModalBackground);
+
+function isolateAthleteModalBackground() {
+    // The dialog is embedded in page content. Isolate sibling branches,
+    // never an ancestor that would also disable the dialog.
+    for (let branch = modal; branch?.parentElement; branch = branch.parentElement) {
+        if (branch === document.body) break;
+        for (const sibling of branch.parentElement.children) {
+            if (sibling === branch || !(sibling instanceof HTMLElement)) continue;
+            if (!athleteModalIsolation.has(sibling)) athleteModalIsolation.set(sibling, sibling.inert);
+            sibling.inert = true;
+        }
+    }
+}
+
+function activateAthleteModal() {
+    isolateAthleteModalBackground();
+    for (let ancestor = modal.parentElement; ancestor; ancestor = ancestor.parentElement) {
+        athleteModalIsolationObserver.observe(ancestor, { childList: true });
+        if (ancestor === document.body) break;
+    }
+    modal.querySelectorAll('iframe').forEach(bindAthleteModalFrame);
+    if (!modal.contains(document.activeElement)) closeBtn.focus({ preventScroll: true });
+}
+
+function rememberAthleteModalOpener(options) {
+    const candidate = options?.returnFocusTo instanceof HTMLElement ? options.returnFocusTo : pageDocument.activeElement;
+    if (candidate instanceof HTMLElement && candidate !== pageDocument.body
+        && !modal.contains(candidate) && !candidate.closest('[hidden], [inert]')) {
+        athleteDialogReturnFocusElement = candidate;
+    }
+}
+
+function releaseAthleteModal() {
+    athleteModalIsolationObserver.disconnect();
+    athleteModalIsolation.forEach((wasInert, element) => { element.inert = wasInert; });
+    athleteModalIsolation.clear();
+}
+
+function getAthleteModalFocusables(root = modal) {
+    return Array.from(root.querySelectorAll('a[href], button, input, select, textarea, iframe, [tabindex]'))
+        .filter(element => element.tabIndex >= 0 && !element.disabled && !element.closest('[inert], [hidden], [aria-hidden="true"]')
+            && element.getClientRects().length && getComputedStyle(element).visibility === 'visible')
+        .flatMap(element => {
+            if (element.tagName !== 'IFRAME') return [element];
+            try {
+                const controls = element.contentDocument && getAthleteModalFocusables(element.contentDocument);
+                // An empty same-origin frame has no keyboard destination.
+                return controls ?? [element];
+            } catch { return [element]; }
+        });
+}
+
+function containAthleteModalFocus(event) {
+    if (event.key !== 'Tab' || event.defaultPrevented || modal.style.display !== 'block') return;
+    if (modal.querySelector('#athleteImageViewer[aria-hidden="false"], #athleteShareMenu:not([hidden])')) return;
+    const controls = getAthleteModalFocusables();
+    const active = event.target.ownerDocument.activeElement;
+    const first = controls[0];
+    const last = controls[controls.length - 1];
+    if (!first) {
+        event.preventDefault();
+        modal.focus({ preventScroll: true });
+    } else if (!controls.includes(active) || (event.shiftKey ? active === first : active === last)) {
+        event.preventDefault();
+        (event.shiftKey ? last : first).focus();
+    }
+}
+
+function bindAthleteModalFrame(frame) {
+    try {
+        const frameDocument = frame.contentDocument;
+        if (!frameDocument || athleteModalFrames.has(frameDocument)) return;
+        athleteModalFrames.add(frameDocument);
+        frameDocument.addEventListener('keydown', containAthleteModalFocus);
+    } catch { /* External frames retain their native keyboard handling. */ }
+}
+modal.addEventListener('load', event => {
+    if (!(event.target instanceof HTMLIFrameElement)) return;
+    bindAthleteModalFrame(event.target);
+    // A navigating frame can discard its focused document. Keep entry focus
+    // inside the open profile rather than leaving it on the page body.
+    if (modal.style.display === 'block' && !modal.classList.contains('fade-out')
+        && pageDocument.activeElement === pageDocument.body) closeBtn.focus({ preventScroll: true });
+}, true);
+document.addEventListener('keydown', containAthleteModalFocus);
 
 // Direct profile/game links arrive with the requested dialog already open.
 // Make closing/back navigation available while the data request is pending.
@@ -2460,6 +2550,7 @@ const initialServerDialog = getServerRenderedAthleteDialog();
 if (initialServerDialog) {
     initialServerDialog.classList.add('is-loading');
     lockBodyScroll();
+    activateAthleteModal();
     history.replaceState({ ...history.state, modal: 'details', athlete: initialServerDialog.dataset.athleteSlug }, '', window.location.href);
 }
 
@@ -2559,6 +2650,7 @@ function resetModalForLoading(athleteSlug) {
         const loadError = document.getElementById('athleteLoadError');
         if (loadError) loadError.hidden = true;
         lockBodyScroll();
+        activateAthleteModal();
         return modalContent;
     }
     delete modalContent.dataset.serverRenderedProfile;
@@ -2626,6 +2718,7 @@ function resetModalForLoading(athleteSlug) {
         modal.style.display = "block";
     }
     lockBodyScroll();
+    activateAthleteModal();
 
     return modalContent;
 }
@@ -2808,6 +2901,8 @@ function setupModalKeyboardNavigation() {
 
         const modalContent = document.querySelector('.modal-content');
         if (!modalContent) return;
+        if (event.defaultPrevented || modal.querySelector('#athleteImageViewer[aria-hidden="false"], #athleteShareMenu:not([hidden])')) return;
+        if (event.target.closest('input, textarea, select, [contenteditable="true"]')) return;
         if (modalContent.classList.contains('guess-mode')) return;
 
         // Home key - scroll to top
@@ -2878,6 +2973,7 @@ window.addEventListener('click', function (event) {
 });
 
 function requestCloseAthleteModal() {
+    if (modal.classList.contains('fade-out')) return;
     if (modal.style.display !== 'block' || modal._historyClosePending) return;
     if (isGuessMyAgeDismissBlocked(modal.querySelector('.modal-content'))) return;
     const depth = history.state?.athleteDialogDepth;
@@ -2907,13 +3003,13 @@ function finishAfterTransition(element, property, complete) {
 
 function closeModal(options) {
     if (!options?.fromHistory) return requestCloseAthleteModal();
+    if (modal.classList.contains('fade-out')) return;
     const modalContent = document.querySelector('.modal-content');
     if (!modalContent) return;
     modal._historyClosePending = false;
 
     currentAthleteModalRequestId++;
     const returnFocusElement = athleteDialogReturnFocusElement;
-    athleteDialogReturnFocusElement = null;
 
     // Keep the card and the page behind it still until their shared fade ends.
     modalContent.inert = true;
@@ -2924,9 +3020,11 @@ function closeModal(options) {
     modal._closeTimer = finishAfterTransition(modal, 'opacity', () => {
         modal._closeTimer = 0;
         if (!modal.classList.contains('fade-out')) return;
+        athleteDialogReturnFocusElement = null;
         modal.style.display = "none";
         modal.classList.remove('fade-out');
         modalContent.inert = false;
+        releaseAthleteModal();
         restoreBodyScroll();
         restoreAthleteHistoryScroll();
 
@@ -2944,9 +3042,9 @@ function closeModal(options) {
         modalContent.scrollTop = 0;
 
         resetPageTitle();
-        if (returnFocusElement?.isConnected) {
-            returnFocusElement.focus({ preventScroll: true });
-        }
+        const focusTarget = returnFocusElement?.isConnected && !returnFocusElement.closest('[inert], [hidden]')
+            && returnFocusElement.getClientRects().length ? returnFocusElement : pageDocument.querySelector('a.header-link');
+        focusTarget?.focus({ preventScroll: true });
     });
 }
 
@@ -4603,6 +4701,7 @@ function navigateToAthleteFallback(fallbackUrl) {
     currentAthleteModalRequestId++;
     modal.style.display = 'none';
     modal.classList.remove('fade-out');
+    releaseAthleteModal();
     restoreBodyScroll();
     restoreAthleteHistoryScroll();
     window.location.assign(fallbackUrl);
@@ -4611,12 +4710,10 @@ function navigateToAthleteFallback(fallbackUrl) {
 window.openAthleteModalBySlug = function (athleteSlug, options) {
     const normalizedSlug = normalizeAthleteSlugForLookup(athleteSlug);
     if (!normalizedSlug) return false;
+    rememberAthleteModalOpener(options);
 
     const athleteData = findAthleteDataBySlug(normalizedSlug);
     if (athleteData) {
-        if (options?.returnFocusTo instanceof HTMLElement) {
-            athleteDialogReturnFocusElement = options.returnFocusTo;
-        }
         fetchFullAthleteData(athleteData.name, athleteData, options);
         return true;
     }
@@ -4627,9 +4724,6 @@ window.openAthleteModalBySlug = function (athleteSlug, options) {
         return false;
     }
 
-    if (options?.returnFocusTo instanceof HTMLElement) {
-        athleteDialogReturnFocusElement = options.returnFocusTo;
-    }
     const requestId = ++currentAthleteModalRequestId;
     const modalContent = resetModalForLoading(normalizedSlug);
 
@@ -5103,10 +5197,7 @@ function handleAthleteModalLoadFailure(modalContent, athleteSlug, options, error
 
 function fetchFullAthleteData(athleteNameText, athleteData, options) {
     window.initializeSharedPageData();
-    athleteDialogReturnFocusElement =
-        options?.returnFocusTo instanceof HTMLElement
-            ? options.returnFocusTo
-            : null;
+    rememberAthleteModalOpener(options);
 
     const athleteSlug = normalizeAthleteSlugForLookup(
         athleteData?.athleteSlug || athleteNameText);
