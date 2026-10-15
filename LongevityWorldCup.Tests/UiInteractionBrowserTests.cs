@@ -254,6 +254,23 @@ public sealed class UiInteractionBrowserTests(
         await Assertions.Expect(opener).ToBeFocusedAsync();
     }
 
+    [Fact]
+    public async Task Profile_ReopeningBeforeTheFadeFinishesKeepsTheOriginalOpener()
+    {
+        await using var context = await NewContextAsync(1280, 900, false);
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/leaderboard?search=michael");
+        await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+        var opener = page.Locator(".leaderboard tbody .athlete-name").Filter(new() { HasText = "Michael Lustgarten" }).First;
+        await opener.PressAsync("Enter");
+        await page.WaitForFunctionAsync("() => !document.querySelector('.modal-content').classList.contains('is-loading')");
+        await page.EvaluateAsync("() => { closeModal({ fromHistory: true }); window.openAthleteModalBySlug('michael-lustgarten', { suppressGuessMyAge: true }); }");
+        await page.WaitForFunctionAsync("() => !document.querySelector('.modal-content').classList.contains('is-loading')");
+        await page.EvaluateAsync("closeModal({ fromHistory: true })");
+        await Assertions.Expect(page.Locator("#detailsModal")).ToBeHiddenAsync();
+        await Assertions.Expect(opener).ToBeFocusedAsync();
+    }
+
     [Theory]
     [InlineData("/about")]
     [InlineData("/history")]

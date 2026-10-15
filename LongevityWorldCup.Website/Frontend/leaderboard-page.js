@@ -3009,7 +3009,6 @@ function closeModal(options) {
 
     currentAthleteModalRequestId++;
     const returnFocusElement = athleteDialogReturnFocusElement;
-    athleteDialogReturnFocusElement = null;
 
     // Keep the card and the page behind it still until their shared fade ends.
     modalContent.inert = true;
@@ -3020,6 +3019,7 @@ function closeModal(options) {
     modal._closeTimer = finishAfterTransition(modal, 'opacity', () => {
         modal._closeTimer = 0;
         if (!modal.classList.contains('fade-out')) return;
+        athleteDialogReturnFocusElement = null;
         modal.style.display = "none";
         modal.classList.remove('fade-out');
         modalContent.inert = false;
