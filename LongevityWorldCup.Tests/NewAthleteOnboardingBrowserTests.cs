@@ -650,7 +650,7 @@ public sealed partial class NewAthleteOnboardingBrowserTests(
         await page.WaitForFunctionAsync(
             "() => Array.from(document.querySelector('#dob-day')?.options || []).some(option => option.value === '20')");
         await page.Locator("#dob-day").SelectOptionAsync("20");
-        await page.Locator("#blood-draw-date").FillAsync(bloodDrawDate);
+        await FlowActionDockBrowserTests.FillBloodDrawDateAsync(page, bloodDrawDate);
         await page.Locator("#lwcToStep2Btn").ClickAsync();
         await page.WaitForFunctionAsync(
             "() => document.querySelector('#lwc-step-2')?.classList.contains('lwc-step--visible')");

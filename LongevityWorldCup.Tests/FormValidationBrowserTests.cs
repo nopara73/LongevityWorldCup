@@ -160,7 +160,7 @@ public sealed class FormValidationBrowserTests(
         await page.GotoAsync(path);
         await page.WaitForFunctionAsync("() => document.querySelector('.bioage-biomarker-entry-ready')");
         await page.Locator("#dob-year").SelectOptionAsync("1980");
-        await page.Locator("#blood-draw-date").FillAsync(DateTime.UtcNow.AddDays(-9).ToString("yyyy-MM-dd"));
+        await FlowActionDockBrowserTests.FillBloodDrawDateAsync(page, DateTime.UtcNow.AddDays(-9).ToString("yyyy-MM-dd"));
         await page.Locator("#lwcToStep2Btn").ClickAsync();
         await Assertions.Expect(page.Locator("#lwc-step-2")).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("lwc-step--visible"));
         await page.EvaluateAsync("id => window.LwcBioageFlow.expandBiomarkerCard(id)", secondInputId);

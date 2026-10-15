@@ -180,7 +180,7 @@ public sealed class FlowActionDockBrowserTests(
         await page.WaitForFunctionAsync(
             "() => Array.from(document.querySelector('#dob-day')?.options || []).some(option => option.value === '20')");
         await page.Locator("#dob-day").SelectOptionAsync("20");
-        await page.Locator("#blood-draw-date").FillAsync(DateTime.UtcNow.Date.AddDays(-9).ToString("yyyy-MM-dd"));
+        await FlowActionDockBrowserTests.FillBloodDrawDateAsync(page, DateTime.UtcNow.Date.AddDays(-9).ToString("yyyy-MM-dd"));
 
         var continueButton = page.Locator("#lwcToStep2Btn");
         await continueButton.ScrollIntoViewIfNeededAsync();
@@ -1205,6 +1205,15 @@ public sealed class FlowActionDockBrowserTests(
             "element => element.classList.contains('flow-action-stack--docked')");
     }
 
+    internal static async Task FillBloodDrawDateAsync(IPage page, string value)
+    {
+        var input = page.Locator("#blood-draw-date");
+        if (!await input.IsVisibleAsync())
+            await page.GetByRole(AriaRole.Button, new() { Name = "Choose another blood draw date" }).ClickAsync();
+        await input.FillAsync(value);
+        await input.PressAsync("Escape");
+    }
+
     internal static async Task FillBioageStepOneAsync(IPage page, string bloodDrawDate)
     {
         await page.Locator("#dob-year").SelectOptionAsync("1980");
@@ -1212,7 +1221,7 @@ public sealed class FlowActionDockBrowserTests(
         await page.WaitForFunctionAsync(
             "() => Array.from(document.querySelector('#dob-day')?.options || []).some(option => option.value === '20')");
         await page.Locator("#dob-day").SelectOptionAsync("20");
-        await page.Locator("#blood-draw-date").FillAsync(bloodDrawDate);
+        await FlowActionDockBrowserTests.FillBloodDrawDateAsync(page, bloodDrawDate);
         await page.Locator("#lwcToStep2Btn").ClickAsync();
         await page.WaitForFunctionAsync(
             "() => document.querySelector('#lwc-step-2')?.classList.contains('lwc-step--visible')");

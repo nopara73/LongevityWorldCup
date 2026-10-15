@@ -136,9 +136,9 @@ public sealed class BioageBiomarkerSheetBrowserTests(
                 document.querySelector('label[for="dob-year"]').getBoundingClientRect().top,
                 document.querySelector('#lwc-step-1 > fieldset:nth-of-type(2) > legend').getBoundingClientRect().top,
                 document.querySelector('#dob-year').getBoundingClientRect().top,
-                document.querySelector('#blood-draw-date').getBoundingClientRect().top,
+                document.querySelector('.blood-draw-date-shortcuts').getBoundingClientRect().top,
                 document.querySelector('#dob-year').getBoundingClientRect().bottom,
-                document.querySelector('#blood-draw-date').getBoundingClientRect().bottom
+                document.querySelector('.blood-draw-date-shortcuts').getBoundingClientRect().bottom
             ]
             """);
         Assert.InRange(rows[1] - rows[0], -1, 1);

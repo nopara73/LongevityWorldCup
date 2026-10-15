@@ -65,6 +65,7 @@ interface BioageBiomarkerEntryResult {
 
 interface BioageDraftField {
     checked?: boolean;
+    customDate?: boolean;
     selectedIndex?: number;
     value: string;
 }
@@ -641,6 +642,9 @@ interface Window {
             if (!control.id || (isUpdate && control.id.startsWith('dob-'))) return;
 
             const field: BioageDraftField = { value: control.value };
+            if (control.id === 'blood-draw-date') {
+                field.customDate = form.querySelector('[data-blood-draw-custom]')?.getAttribute('aria-expanded') === 'true';
+            }
             if (control instanceof HTMLInputElement && control.type === 'checkbox') {
                 field.checked = control.checked;
             }
@@ -735,6 +739,7 @@ interface Window {
         const draft = readBioageDraft(controller.clock, controller.athleteName);
         if (!draft) return false;
 
+        controller.draftFields = draft.fields;
         controller.hasPersistedDraft = true;
         controller.restoring = true;
         try {
@@ -759,10 +764,6 @@ interface Window {
                 });
             }
 
-            const negativeCrp = controller.form.querySelector<HTMLInputElement>('#crp-negative');
-            if (negativeCrp?.checked) {
-                negativeCrp.dispatchEvent(new Event('change', { bubbles: true }));
-            }
             controller.step = draft.step;
             return true;
         } finally {
@@ -1054,6 +1055,65 @@ interface Window {
         window.addEventListener('pagehide', () => saveBioageDraft(controller));
     }
 
+    function initializeBloodDrawDate(form: HTMLFormElement, defaultToToday: boolean): void {
+        const input = form.querySelector<HTMLInputElement>('#blood-draw-date');
+        const picker = input?.closest<HTMLElement>('.input-group');
+        const shortcuts = Array.from(form.querySelectorAll<HTMLButtonElement>('[data-blood-draw-offset]'));
+        const calendar = form.querySelector<HTMLButtonElement>('[data-blood-draw-custom]');
+        if (!input || !picker || !calendar) return;
+
+        const localDate = (daysAgo: number) => {
+            const date = new Date();
+            date.setDate(date.getDate() - daysAgo);
+            return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+        };
+        const isRecentDate = () => input.value === localDate(0) || input.value === localDate(1);
+        if (!input.value && defaultToToday) input.value = localDate(0);
+        let customDateVisible = !isRecentDate();
+
+        const sync = () => {
+            input.max = localDate(0);
+            picker.hidden = !customDateVisible && isRecentDate();
+            shortcuts.forEach(button => {
+                const selected = picker.hidden && input.value === localDate(Number(button.dataset.bloodDrawOffset));
+                button.setAttribute('aria-pressed', String(selected));
+            });
+            calendar.setAttribute('aria-pressed', String(!picker.hidden));
+            calendar.setAttribute('aria-expanded', String(!picker.hidden));
+            getFlowActionDock()?.refresh?.();
+        };
+        const openPicker = () => {
+            if (typeof input.showPicker === 'function' && !input.disabled) {
+                try { input.showPicker(); } catch (_) { }
+            }
+        };
+
+        shortcuts.forEach(button => button.addEventListener('click', () => {
+            input.value = localDate(Number(button.dataset.bloodDrawOffset));
+            customDateVisible = false;
+            sync();
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+            input.dispatchEvent(new Event('change', { bubbles: true }));
+        }));
+        calendar.addEventListener('click', () => {
+            customDateVisible = true;
+            sync();
+            input.focus({ preventScroll: true });
+            openPicker();
+        });
+        input.addEventListener('input', sync);
+        input.addEventListener('change', sync);
+        input.addEventListener('click', openPicker);
+        window.addEventListener('pageshow', () => {
+            customDateVisible = !isRecentDate();
+            sync();
+        });
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) sync();
+        });
+        sync();
+    }
+
     function initializeBiomarkerEntry(options: BioageBiomarkerEntryOptions): BioageBiomarkerEntryResult {
         const existing = biomarkerEntryControllers.get(options.clock);
         if (existing?.form === options.form) {
@@ -1107,6 +1167,7 @@ interface Window {
         syncBiomarkerHeaderSemantics(controller);
 
         const restoredDraft = options.restoreDraft !== false && restoreBioageDraft(controller);
+        initializeBloodDrawDate(controller.form, !restoredDraft || controller.draftFields['blood-draw-date']?.customDate !== true);
         controller.draftFields = serializeDraftFields(controller.form, controller.isUpdate);
         syncBiomarkerExamplePlaceholders(options.form);
         syncBiomarkerCompletion(controller);

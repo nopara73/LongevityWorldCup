@@ -521,93 +521,6 @@
             }
         }
 
-        .crp-container {
-            display: flex;
-            flex-direction: column;
-            gap: 0.75rem;
-            margin-bottom: 0;
-        }
-
-        .label-toggle-group {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 0.85rem;
-            padding: 0.65rem 0.75rem;
-            border: 1px solid var(--lwc-border, rgba(148, 163, 184, 0.24));
-            border-radius: 8px;
-            background: var(--lwc-surface, #fff);
-        }
-
-            .label-toggle-group label {
-                font-size: 1rem;
-                color: var(--lwc-ink, #333);
-            }
-
-        .negative-toggle {
-            display: flex;
-            align-items: center;
-            flex: 0 0 auto;
-            min-height: 44px;
-        }
-
-        .toggle-label {
-            position: relative;
-            display: inline-block;
-            width: 52px;
-            height: 44px;
-            margin-right: 0rem;
-        }
-
-            .toggle-label input {
-                opacity: 0;
-                width: 0;
-                height: 0;
-            }
-
-        .slider {
-            position: absolute;
-            cursor: pointer;
-            top: 6px;
-            left: 0;
-            right: 0;
-            bottom: 6px;
-            background-color: var(--lwc-border-strong, #71808d);
-            transition: background-color var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
-            border-radius: 999px;
-        }
-
-            .slider:before {
-                position: absolute;
-                content: "";
-                height: 24px;
-                width: 24px;
-                left: 4px;
-                bottom: 4px;
-                background-color: var(--lwc-surface, white);
-            transition: background-color var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease), transform var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
-                border-radius: 50%;
-            }
-
-        .toggle-label input:focus-visible + .slider {
-            box-shadow: 0 0 0 3px rgba(0, 188, 212, 0.18);
-        }
-
-        .toggle-label input:checked + .slider {
-            background-color: var(--lwc-danger, #b4233b);
-        }
-
-            .toggle-label input:checked + .slider:before {
-                transform: translateX(20px);
-            }
-
-        .bioageform-toggle-text {
-            font-size: 1rem;
-            color: var(--lwc-ink, #2d3748);
-            font-weight: 600;
-            line-height: 1.3;
-        }
-
         /* Mini-card container */
         .biomarker-card {
             border: 1px solid var(--lwc-border, rgba(148, 163, 184, 0.32));
@@ -881,14 +794,23 @@
                             <option value="" disabled selected>Select day</option>
                         </select>
 
-                        <p class="privacy-note" id="privacyNote">Privacy: keep December 31 to hide month/day; it may make you appear younger and slightly disadvantage you.</p>
+                        <p class="privacy-note" id="privacyNote">Your privacy matters. Consider leaving your birthday at December 31 at the cost of making you appear younger and giving you a slight disadvantage in the competition.</p>
                     </fieldset>
 
                     <!-- Blood Draw Details -->
                     <fieldset>
                         <legend>Blood draw date:</legend>
-                        <div class="input-group lwc-date-flex">
-                            <input type="date" id="blood-draw-date" name="blood-draw-date" required aria-required="true" aria-label="Blood draw date" max="" onchange="calculateResultIfResultAlreadyCalculated()" autocomplete="off">
+                        <div class="blood-draw-date-control">
+                            <div class="blood-draw-date-shortcuts" role="group" aria-label="Blood draw date">
+                                <button type="button" data-blood-draw-offset="0" aria-pressed="false">Today</button>
+                                <button type="button" data-blood-draw-offset="1" aria-pressed="false">Yesterday</button>
+                                <button type="button" data-blood-draw-custom aria-label="Choose another blood draw date" aria-controls="blood-draw-date" aria-expanded="true" aria-pressed="false">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/></svg>
+                                </button>
+                            </div>
+                            <div class="input-group lwc-date-flex">
+                                <input type="date" id="blood-draw-date" name="blood-draw-date" required aria-required="true" aria-label="Blood draw date" max="" onchange="calculateResultIfResultAlreadyCalculated()" autocomplete="off">
+                            </div>
                         </div>
                     </fieldset>
                     <div id="lwcStepOneActions" class="lwc-step-actions flow-action-stack" data-flow-dock="auto" data-flow-dock-when="body:not(.bioage-result-ready)">
@@ -1195,24 +1117,13 @@
                         <div class="biomarker-card">
                             <div class="biomarker-card-header">C-reactive protein (CRP) <span class="toggle-icon" aria-hidden="true"></span></div>
                             <div class="biomarker-card-content">
-                                <div class="crp-container">
-                                    <div class="label-toggle-group">
-                                        <span class="bioageform-toggle-text">Set if negative:</span>
-                                        <div class="negative-toggle">
-                                            <label for="crp-negative" class="toggle-label">
-                                                <input type="checkbox" id="crp-negative" aria-label="Set CRP as below the detection limit" onchange="toggleCRPInput()">
-                                                <span class="slider"></span>
-                                            </label>
-                                        </div>
-                                    </div>
-                                    <div class="input-group">
-                                        <input type="number" id="crp" name="crp" step="any" required aria-required="true" aria-label="C-reactive protein (CRP)" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
-                                        <label for="crpUnit" class="visually-hidden">CRP unit</label>
-                                        <select id="crpUnit" aria-label="CRP unit" onchange="calculateResultIfResultAlreadyCalculated()">
-                                            <option value="1">mg/L</option>
-                                            <option value="0.1">mg/dL</option>
-                                        </select>
-                                    </div>
+                                <div class="input-group">
+                                    <input type="number" id="crp" name="crp" step="any" required aria-required="true" aria-label="C-reactive protein (CRP)" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
+                                    <label for="crpUnit" class="visually-hidden">CRP unit</label>
+                                    <select id="crpUnit" aria-label="CRP unit" onchange="calculateResultIfResultAlreadyCalculated()">
+                                        <option value="1">mg/L</option>
+                                        <option value="0.1">mg/dL</option>
+                                    </select>
                                 </div>
                             </div>
                         </div>
@@ -1689,25 +1600,6 @@
                     removeLocalItem(BORTZ_LAB_GEO_CACHE_KEY);
                 }
             };
-        }
-
-        if (bloodDrawDateInput) {
-            const todayLocal = new Date();
-            todayLocal.setHours(0, 0, 0, 0);
-            const y = todayLocal.getFullYear();
-            const m = String(todayLocal.getMonth() + 1).padStart(2, '0');
-            const d = String(todayLocal.getDate()).padStart(2, '0');
-            const todayStr = `${y}-${m}-${d}`;
-            bloodDrawDateInput.max = todayStr;
-
-            // Open the native picker on focus/click (only when supported)
-            const lwcOpenDatePickerGuarded = () => {
-                if (typeof bloodDrawDateInput.showPicker === 'function' && !bloodDrawDateInput.disabled) {
-                    try { bloodDrawDateInput.showPicker(); } catch (_) { /* ignore */ }
-                }
-            };
-            bloodDrawDateInput.addEventListener('focus', lwcOpenDatePickerGuarded);
-            bloodDrawDateInput.addEventListener('click', lwcOpenDatePickerGuarded);
         }
 
         function overwriteBortzFormFromUrlParams() {
@@ -2894,8 +2786,6 @@
                 const el = document.getElementById(fieldId);
                 if (el) el.dispatchEvent(new Event('input'));
             });
-            // Also honor CRP-negative checkbox state
-            document.getElementById('crp-negative').dispatchEvent(new Event('change'));
 
             updateModeFormInitializerUnique();
             applyBortzSubmittedBiomarkerPlaceholders();
@@ -3286,26 +3176,6 @@
 
         document.getElementById('dob-year').addEventListener('change', updateDays);
         document.getElementById('dob-month').addEventListener('change', updateDays);
-
-        function toggleCRPInput() {
-            const crpInput = document.getElementById('crp');
-            const crpUnit = document.getElementById('crpUnit');
-            const crpNegativeCheckbox = document.getElementById('crp-negative');
-
-            if (crpNegativeCheckbox.checked) {
-                crpInput.value = 1; // 1 mg/L (below detection)
-                crpUnit.value = 1; // mg/L
-                crpInput.disabled = true; // Disable input field
-                crpUnit.disabled = true; // Disable unit selector
-                touchedBiomarkers.add('crp');
-            } else {
-                crpInput.disabled = false; // Enable input field
-                crpUnit.disabled = false; // Enable unit selector
-            }
-
-            bioageFlow.updateBiomarkerExamplePlaceholder(crpUnit);
-            calculateResultIfResultAlreadyCalculated();
-        }
 
         // Hide month/day & privacy note when age < 18
         function checkMinor() {

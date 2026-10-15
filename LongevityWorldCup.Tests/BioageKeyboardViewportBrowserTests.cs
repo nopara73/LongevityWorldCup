@@ -31,7 +31,7 @@ public sealed class BioageKeyboardViewportBrowserTests(
             WaitUntil = WaitUntilState.DOMContentLoaded
         });
         await page.WaitForFunctionAsync("() => window.LwcFlowActionDock");
-        await page.Locator("#blood-draw-date").FocusAsync();
+        await page.GetByRole(AriaRole.Button, new() { Name = "Choose another blood draw date" }).ClickAsync();
         await page.EvaluateAsync("() => window.LwcFlowActionDock.refreshNow()");
 
         var state = await page.EvaluateAsync<WindowedViewportState>(
@@ -121,8 +121,7 @@ public sealed class BioageKeyboardViewportBrowserTests(
         await page.WaitForFunctionAsync(
             "() => Array.from(document.querySelector('#dob-day')?.options || []).some(option => option.value === '20')");
         await page.Locator("#dob-day").SelectOptionAsync("20");
-        await page.Locator("#blood-draw-date")
-            .FillAsync(DateTime.UtcNow.Date.AddDays(-9).ToString("yyyy-MM-dd"));
+        await FlowActionDockBrowserTests.FillBloodDrawDateAsync(page, DateTime.UtcNow.Date.AddDays(-9).ToString("yyyy-MM-dd"));
         await page.Locator("#lwcToStep2Btn").ClickAsync();
         await page.WaitForFunctionAsync(
             "() => document.querySelector('#lwc-step-2')?.classList.contains('lwc-step--visible')");
