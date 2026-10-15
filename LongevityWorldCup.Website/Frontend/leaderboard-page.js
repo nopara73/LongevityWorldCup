@@ -2448,7 +2448,7 @@ let savedBodyScrollRestoration = null;
 let savedBodyBackground = '';
 let currentAthleteModalRequestId = 0;
 let athleteShareState = null;
-const chartJsSrc = 'https://cdn.jsdelivr.net/npm/chart.js';
+const chartJsSrc = 'https://cdn.jsdelivr.net/npm/chart.js@4.5.1';
 
 // Direct profile/game links arrive with the requested dialog already open.
 // Make closing/back navigation available while the data request is pending.
@@ -5743,7 +5743,8 @@ function resultUnit(text) {
 
 function disposeBiomarkerHistory() {
     const history = document.getElementById('athlete-biomarkers')?._biomarkerHistory;
-    history?.expanded?.observer?.disconnect();
+    history?.expanded?.chart?.destroy();
+    if (history) history.expanded = null;
 }
 
 function renderBiomarkerHistory(history, athletes) {
@@ -5753,7 +5754,7 @@ function renderBiomarkerHistory(history, athletes) {
     section._biomarkerHistory = history;
     history.sourceAthletes = athletes;
     const table = section.querySelector('.biomarker-overview-table');
-    table.caption.textContent = `${history.athleteName}'s clock results and biomarker history. Latest available and first recorded values are shown for each result. Missing readings are dashes. Expand a result to inspect its dated measurements.`;
+    table.caption.textContent = `${history.athleteName}'s clock results and biomarker history. The latest available value is shown for each result. Missing readings are dashes. Expand a result to inspect its dated measurements.`;
     const firstDate = history.labels[0];
     const lastDate = history.labels.at(-1);
     section.querySelector('.biomarker-overview-range').textContent = firstDate
@@ -5773,9 +5774,7 @@ function renderBiomarkerHistory(history, athletes) {
     measures.forEach((measure, measureIndex) => {
         const measuredIndices = measure.values.flatMap((value, index) => isBiomarkerHistoryValue(value) ? [index] : []);
         const latestIndex = measuredIndices.at(-1);
-        const firstIndex = measuredIndices.length > 1 ? measuredIndices[0] : undefined;
         const latest = measure.values[latestIndex];
-        const baseline = measure.values[firstIndex];
         const row = document.createElement('tr');
         row.className = 'result-summary' + (measure.clock ? ' result-clock' : measureIndex === 2 ? ' result-first-biomarker' : '');
         row.dataset.measure = measure.key;
@@ -5804,35 +5803,33 @@ function renderBiomarkerHistory(history, athletes) {
             button.appendChild(time);
         }
         button.onclick = () => toggleResultDetail(history, measure, row, detail, button);
+        button.onkeydown = event => {
+            if (event.key !== 'Escape' || history.expanded?.button !== button) return;
+            event.preventDefault();
+            event.stopPropagation();
+            toggleResultDetail(history, measure, row, detail, button);
+        };
+        row.onclick = event => {
+            if (button.disabled || button.contains(event.target) || !window.getSelection().isCollapsed) return;
+            button.focus({ preventScroll: true });
+            button.click();
+        };
         heading.appendChild(button);
         const sparkline = document.createElement('td');
         sparkline.className = 'biomarker-overview-history';
         sparkline.setAttribute('aria-hidden', 'true');
         if (latestIndex != null) sparkline.appendChild(createBiomarkerSparkline(history.labels, measure.values));
         else sparkline.textContent = '—';
-        sparkline.onclick = () => button.click();
         const result = document.createElement('td');
         result.className = 'biomarker-overview-result';
         const current = document.createElement('span');
         current.className = 'biomarker-overview-current';
         current.textContent = formatResultValue(latest, measure);
-        result.append(current, resultUnit(formatResultValue(baseline, measure)));
-        const change = document.createElement('td');
-        change.className = 'biomarker-overview-change';
-        const changeValue = document.createElement('span');
-        // Match the precision of the visible readouts. The original model outputs
-        // remain unchanged for plotting and competition calculations.
-        const delta = latestIndex != null && firstIndex != null
-            ? measure.clock ? Number(formatResultValue(latest, measure)) - Number(formatResultValue(baseline, measure))
-                : Number(latest) - Number(baseline) : null;
-        const rounded = delta == null ? null : measure.clock ? Number(delta.toFixed(1)) : Number(delta.toPrecision(12));
-        changeValue.textContent = rounded == null ? '—' : `${rounded > 0 ? '+' : ''}${rounded}`;
         const arrow = document.createElement('span');
         arrow.className = 'biomarker-overview-arrow';
         arrow.setAttribute('aria-hidden', 'true');
-        arrow.onclick = () => button.click();
-        change.append(changeValue, arrow);
-        row.append(heading, sparkline, result, change);
+        result.append(current, arrow);
+        row.append(heading, sparkline, result);
         rows.append(row, detail);
     });
     table.tBodies[0].replaceChildren(rows);
@@ -5841,7 +5838,7 @@ function renderBiomarkerHistory(history, athletes) {
 function toggleResultDetail(history, measure, row, detail, button) {
     const previous = history.expanded;
     if (previous) {
-        previous.observer?.disconnect();
+        previous.chart?.destroy();
         previous.detail.hidden = true;
         previous.button.setAttribute('aria-expanded', 'false');
         previous.row.classList.remove('is-expanded');
@@ -5852,7 +5849,7 @@ function toggleResultDetail(history, measure, row, detail, button) {
     button.setAttribute('aria-expanded', 'true');
     row.classList.add('is-expanded');
     const cell = document.createElement('td');
-    cell.colSpan = 4;
+    cell.colSpan = 3;
     const body = document.createElement('div');
     body.className = 'result-detail';
     const title = document.createElement('h4');
@@ -5883,25 +5880,12 @@ function toggleResultDetail(history, measure, row, detail, button) {
     }
     const plot = document.createElement('div');
     plot.className = 'result-plot';
-    const readout = document.createElement('output');
-    readout.className = 'result-plot-readout';
-    readout.id = `${detail.id}-readout`;
-    readout.setAttribute('aria-live', 'polite');
-    body.append(plot, readout, createResultHistoryTable(history, measure));
+    body.append(plot, createResultHistoryTable(history, measure));
     cell.appendChild(body);
     detail.replaceChildren(cell);
-    const state = { history, measure, row, detail, button, plot, readout, points, active: null, observer: null };
+    const state = { history, measure, row, detail, button, plot, points, chart: null };
     history.expanded = state;
     drawResultPlot(state);
-    if (window.ResizeObserver) {
-        let width = plot.clientWidth;
-        state.observer = new ResizeObserver(() => {
-            if (history.expanded !== state || width === plot.clientWidth) return;
-            width = plot.clientWidth;
-            drawResultPlot(state);
-        });
-        state.observer.observe(plot);
-    }
     body.onkeydown = event => {
         if (event.key !== 'Escape') return;
         event.stopPropagation();
@@ -5990,120 +5974,112 @@ function createBiomarkerSparkline(labels, values) {
     return svg;
 }
 
-function resultAxis(values) {
-    const low = Math.min(...values);
-    const high = Math.max(...values);
-    const padding = high === low ? Math.max(Math.abs(low) * .08, .01) : (high - low) * .06;
-    const target = (high - low + padding * 2) / 4;
-    const power = 10 ** Math.floor(Math.log10(target));
-    const fraction = target / power;
-    const step = (fraction < 1.5 ? 1 : fraction < 3 ? 2 : fraction < 7 ? 5 : 10) * power;
-    let min = Math.floor((low - padding) / step) * step;
-    if (low >= 0) min = Math.max(0, min);
-    const max = Math.ceil((high + padding) / step) * step;
-    const ticks = [];
-    for (let value = min; value <= max + step / 2; value += step) ticks.push(Number(value.toPrecision(12)));
-    return { min, max, ticks };
+function drawResultPlot(state) {
+    const { history, measure, plot, points } = state;
+    const canvas = document.createElement('canvas');
+    canvas.setAttribute('role', 'img');
+    canvas.setAttribute('aria-label', measure.clock
+        ? `${measure.name} across LWC: chronological age at the test versus biological age, in years. Highlighted points are ${history.athleteName}'s results. The dashed line is equal biological and chronological age. Exact dated results are in the table below.`
+        : `${history.athleteName}'s ${measure.name} over time in ${measure.unit}. Exact dated results are in the table below.`);
+    canvas.dataset.clock = measure.clock || '';
+    plot.replaceChildren(canvas);
+    plot.setAttribute('aria-busy', 'true');
+    window.ensureChartJs().then(loaded => {
+        if (history.expanded !== state) return;
+        plot.removeAttribute('aria-busy');
+        if (!loaded) {
+            const retry = document.createElement('button');
+            retry.type = 'button';
+            retry.textContent = 'Retry chart';
+            retry.onclick = () => drawResultPlot(state);
+            plot.replaceChildren(retry);
+            return;
+        }
+        const style = getComputedStyle(plot);
+        const color = token => style.getPropertyValue(token).trim();
+        const accent = color(measure.clock === 'bortz' ? '--athlete-modal-chart-bortz' : '--athlete-modal-chart-pheno');
+        const tooltip = color('--athlete-modal-chart-tooltip');
+        const muted = color('--athlete-modal-muted');
+        const ink = color('--athlete-modal-text');
+        const own = points.filter(point => point.isAthlete);
+        const latestDate = own.reduce((date, point) => point.date > date ? point.date : date, '');
+        const ownStyle = {
+            borderColor: accent, borderWidth: 2, pointBorderColor: accent, pointBorderWidth: 2,
+            pointBackgroundColor: context => context.raw?.date === latestDate ? accent : tooltip,
+            pointRadius: context => context.raw?.date === latestDate ? 5.5 : 4,
+            pointHoverRadius: 7, pointHoverBorderColor: ink, pointHitRadius: 12, clip: false
+        };
+        const datasets = measure.clock ? [
+            { label: history.athleteName, data: own, ...ownStyle, order: 0 },
+            { label: 'Other athletes', data: points.filter(point => !point.isAthlete),
+                pointBackgroundColor: color('--athlete-modal-subtle'), pointBorderWidth: 0, pointRadius: 2.5, pointHoverRadius: 5,
+                pointHoverBorderWidth: 2, pointHoverBorderColor: ink, pointHitRadius: 8, order: 1 }
+        ] : [{ label: measure.name, data: history.labels.map((date, index) => ({ date, x: Date.parse(date),
+            y: isBiomarkerHistoryValue(measure.values[index]) ? Number(measure.values[index]) : null })),
+            ...ownStyle, spanGaps: false, tension: 0, fill: false }];
+        let comparisonBounds;
+        if (measure.clock) {
+            const ages = points.map(point => point.x);
+            const low = Math.max(0, Math.floor(Math.min(...ages) / 10) * 10);
+            const high = Math.max(low + 10, Math.ceil(Math.max(...ages) / 10) * 10);
+            comparisonBounds = { x: { min: low, max: high }, y: {
+                min: Math.floor(Math.min(low, ...points.map(point => point.y)) / 10) * 10,
+                max: Math.ceil(Math.max(high, ...points.map(point => point.y)) / 10) * 10
+            } };
+            datasets.push({ label: 'Same age', type: 'line', data: [{ x: low, y: low }, { x: high, y: high }],
+                borderColor: muted, borderWidth: 1, borderDash: [4, 5], pointRadius: 0, pointHitRadius: 0, order: 2 });
+        }
+        const compact = () => plot.clientWidth < 360;
+        const historyStart = points[0].x;
+        const historyEnd = points.at(-1).x;
+        const singleDate = historyStart === historyEnd;
+        const dateTick = value => new Intl.DateTimeFormat('en-GB', {
+            year: 'numeric', timeZone: 'UTC',
+            ...(historyEnd - historyStart > 86400000 * 365.25 * 2 ? {} : { month: 'short', ...(compact() ? {} : { day: 'numeric' }) })
+        }).format(new Date(Number(value)));
+        const axis = { type: 'linear', border: { display: false },
+            grid: { color: color('--athlete-modal-chart-grid'), drawTicks: false },
+            ticks: { color: muted, padding: 8, font: { family: 'Roboto', size: 11 }, maxRotation: 0 },
+            title: { display: true, color: muted, font: { family: 'Roboto', size: 11 } } };
+        const titleLines = text => {
+            const limit = compact() ? 24 : 38;
+            return String(text).match(new RegExp(`.{1,${limit}}(?:\\s|$)|.{1,${limit}}`, 'g'))?.map(line => line.trim()) || [];
+        };
+        state.chart = new window.Chart(canvas, {
+            type: measure.clock ? 'scatter' : 'line', data: { datasets },
+            options: {
+                responsive: true, maintainAspectRatio: false, animation: false,
+                interaction: { mode: 'nearest', axis: measure.clock ? 'xy' : 'x', intersect: false },
+                layout: { padding: { top: 10, right: 10 } },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { enabled: true, position: 'nearest', displayColors: false,
+                        backgroundColor: tooltip, titleColor: ink, bodyColor: ink, borderColor: accent, borderWidth: 1,
+                        padding: 10, cornerRadius: 6, caretPadding: 7, titleFont: { family: 'Roboto', size: 12, weight: '600' },
+                        bodyFont: { family: 'Roboto', size: 12 },
+                        filter: item => item.dataset.label !== 'Same age',
+                        callbacks: {
+                            title: items => items.length ? titleLines(measure.clock ? items[0].raw.name : formatResultDate(items[0].raw.date)) : '',
+                            beforeBody: items => measure.clock && items.length ? formatResultDate(items[0].raw.date) : '',
+                            label: item => measure.clock
+                                ? [`${measure.name}: ${Number(item.raw.y).toFixed(1)} years`, `Chronological age: ${Number(item.raw.x).toFixed(1)}`]
+                                : `${measure.name}: ${item.raw.y} ${measure.unit}`
+                        }
+                    }
+                },
+                scales: {
+                    x: { ...axis, grid: { display: false },
+                        ...(measure.clock ? comparisonBounds.x : { min: historyStart - (singleDate ? 86400000 : 0), max: historyEnd + (singleDate ? 86400000 : 0) }),
+                        title: { ...axis.title, text: measure.clock ? 'Chronological age (years)' : 'Test date' },
+                        ticks: { ...axis.ticks, maxTicksLimit: compact() ? 3 : 5, ...(measure.clock ? {} : { callback: dateTick }) } },
+                    y: { ...axis, ...(measure.clock ? comparisonBounds.y : { grace: '8%' }), ticks: { ...axis.ticks, maxTicksLimit: 6 },
+                        title: { ...axis.title, text: measure.clock ? `${measure.name} (years)` : measure.unit } }
+                }
+            }
+        });
+    });
 }
 
-function drawResultPlot(state) {
-    const { history, measure, plot, points, readout } = state;
-    const width = Math.max(200, plot.clientWidth);
-    const height = Math.max(245, Math.min(345, width * .6));
-    const box = { left: 46, right: width - 12, top: 14, bottom: height - 46 };
-    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
-    svg.setAttribute('role', 'img');
-    svg.setAttribute('tabindex', '0');
-    svg.setAttribute('aria-describedby', readout.id);
-    svg.setAttribute('aria-label', measure.clock
-        ? `${measure.name} across LWC: chronological age at the test versus biological age, in years. Highlighted points are ${history.athleteName}'s results. The dashed line is equal biological and chronological age. Use left and right arrow keys to explore results.`
-        : `${history.athleteName}'s ${measure.name} over time in ${measure.unit}. Use left and right arrow keys to explore measurements.`);
-    svg.dataset.clock = measure.clock || '';
-    plot.replaceChildren(svg);
-    if (!points.length) return;
-    const xAxis = measure.clock ? resultAxis(points.map(point => point.x)) : {
-        min: points[0].x, max: points.at(-1).x, ticks: points.length === 1 ? [points[0].x] : [points[0].x, points.at(-1).x]
-    };
-    const yAxis = resultAxis(points.flatMap(point => measure.clock ? [point.y, point.x] : [point.y]));
-    const x = value => xAxis.max === xAxis.min ? (box.left + box.right) / 2
-        : box.left + (value - xAxis.min) / (xAxis.max - xAxis.min) * (box.right - box.left);
-    const y = value => box.bottom - (value - yAxis.min) / (yAxis.max - yAxis.min) * (box.bottom - box.top);
-    const number = value => new Intl.NumberFormat('en-GB', { maximumSignificantDigits: 4, useGrouping: false }).format(value);
-    yAxis.ticks.forEach(value => {
-        historySvgNode(svg, 'line', { x1: box.left, y1: y(value), x2: box.right, y2: y(value), class: 'result-plot-grid' });
-        historySvgNode(svg, 'text', { x: box.left - 8, y: y(value) + 4, 'text-anchor': 'end' }, number(value));
-    });
-    xAxis.ticks.forEach((value, index) => {
-        historySvgNode(svg, 'text', { x: x(value), y: box.bottom + 19,
-            'text-anchor': measure.clock || xAxis.ticks.length === 1 ? 'middle' : index === 0 ? 'start' : 'end' },
-        measure.clock ? number(value) : formatResultDate(value));
-    });
-    historySvgNode(svg, 'text', { x: (box.left + box.right) / 2, y: height - 4, 'text-anchor': 'middle', class: 'result-plot-axis-title' },
-        measure.clock ? 'Chronological age (years)' : 'Test date');
-    const middleY = (box.top + box.bottom) / 2;
-    historySvgNode(svg, 'text', { x: 12, y: middleY, transform: `rotate(-90 12 ${middleY})`, 'text-anchor': 'middle', class: 'result-plot-axis-title' },
-        measure.clock ? `${measure.name} (years)` : measure.unit);
-    if (measure.clock) {
-        const start = Math.max(xAxis.min, yAxis.min);
-        const end = Math.min(xAxis.max, yAxis.max);
-        if (start <= end) historySvgNode(svg, 'line', { x1: x(start), y1: y(start), x2: x(end), y2: y(end), class: 'result-plot-equal' });
-    } else {
-        points.forEach((point, index) => {
-            const previous = points[index - 1];
-            if (previous && point.index === previous.index + 1) historySvgNode(svg, 'line', {
-                x1: x(previous.x), y1: y(previous.y), x2: x(point.x), y2: y(point.y), class: 'result-plot-trend'
-            });
-        });
-    }
-    const own = points.filter(point => point.isAthlete);
-    const latestDate = own.reduce((date, point) => point.date > date ? point.date : date, '');
-    const dots = [];
-    [...points.filter(point => !point.isAthlete), ...own].forEach(point => {
-        const index = points.indexOf(point);
-        const latest = point.isAthlete && point.date === latestDate;
-        const radius = point.isAthlete ? (measure.clock ? (latest ? 5.5 : 7) : (latest ? 6 : 4.5)) : (width < 360 ? 2.7 : 3.2);
-        const dot = historySvgNode(svg, 'circle', { cx: x(point.x), cy: y(point.y), r: radius,
-            class: `result-plot-point${point.isAthlete ? ' is-athlete' : ''}${latest ? ' is-latest' : ''}`,
-            'data-athlete': point.athleteKey || history.athleteKey, 'data-date': point.date, 'data-value': point.y, 'data-age': measure.clock ? point.x : '' });
-        historySvgNode(dot, 'title', {}, `${point.name} · ${formatResultDate(point.date)} · ${formatResultValue(point.y, measure)} ${measure.unit}`);
-        dots[index] = dot;
-        dot.onpointerenter = () => activate(index);
-        dot.onclick = () => activate(index);
-    });
-    function activate(index) {
-        state.active = index;
-        dots.forEach((dot, i) => dot.classList.toggle('is-active', i === index));
-        const point = points[index];
-        const text = `${point.name} · ${formatResultDate(point.date)}\n` + (measure.clock
-            ? `Chronological age ${point.x.toFixed(1)} · ${measure.name} ${point.y.toFixed(1)}`
-            : `${point.y} ${measure.unit}`);
-        if (readout.textContent !== text) readout.textContent = text;
-    }
-    svg.onkeydown = event => {
-        if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
-        event.preventDefault();
-        event.stopPropagation();
-        activate(event.key === 'Home' ? 0 : event.key === 'End' ? points.length - 1
-            : (state.active + (event.key === 'ArrowRight' ? 1 : points.length - 1)) % points.length);
-    };
-    // A tap anywhere in the plot picks the nearest result, so small dots
-    // do not require precise finger input on a phone.
-    svg.onclick = event => {
-        const bounds = svg.getBoundingClientRect();
-        const px = (event.clientX - bounds.left) / bounds.width * width;
-        const py = (event.clientY - bounds.top) / bounds.height * height;
-        if (px < box.left || px > box.right || py < box.top || py > box.bottom) return;
-        let nearest = 0;
-        let distance = Infinity;
-        points.forEach((point, index) => {
-            const squared = (x(point.x) - px) ** 2 + (y(point.y) - py) ** 2;
-            if (squared < distance) { distance = squared; nearest = index; }
-        });
-        activate(nearest);
-    };
-    activate(state.active ?? points.findLastIndex(point => point.isAthlete && point.date === latestDate));
-}
 
 // Biomarker key order matches bortz-age.html card order (WBC, Lymphocytes, Neutrophils, …)
 function initializeBiomarkersRaw() {

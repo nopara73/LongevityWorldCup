@@ -1146,6 +1146,7 @@
      --athlete-modal-chart-pheno: rgba(135,229,229,.96);
      --athlete-modal-chart-biomarker: rgba(255,125,125,.96);
      --athlete-modal-chart-panel: rgba(8,10,10,.28);
+     --athlete-modal-chart-tooltip: #102028;
      --athlete-modal-section-width: 640px;
  }
  #detailsModal.modal{
@@ -1860,7 +1861,7 @@
      text-align:left;
  }
  #detailsModal .biomarker-overview-table > thead > tr > th:last-child,
- #detailsModal .biomarker-overview-table > tbody > .result-summary > td:last-child{ padding-right:0; }
+ #detailsModal .biomarker-overview-table > tbody > .result-summary > td:last-child{ padding-right:1.2rem; }
  #detailsModal .biomarker-overview-table > thead > tr > th{
      color:var(--athlete-modal-muted);
      font-size:.8rem;
@@ -1881,17 +1882,17 @@
      cursor:pointer;
  }
  #detailsModal .result-summary button:disabled{ cursor:default; opacity:.6; }
- #detailsModal .result-summary button:focus-visible,
- #detailsModal .result-plot svg:focus-visible{
+ #detailsModal .result-summary button:focus-visible{
      outline:2px solid var(--result-accent, var(--athlete-modal-chart-pheno));
      outline-offset:4px;
      border-radius:2px;
  }
- #detailsModal .result-summary:hover,
+ #detailsModal .result-summary:has(button:enabled){ cursor:pointer; }
+ #detailsModal .result-summary:has(button:enabled):hover,
+ #detailsModal .result-summary:has(button:focus-visible),
  #detailsModal .result-summary.is-expanded{ background:rgba(123,221,227,.045); }
  #detailsModal .result-summary.result-first-biomarker > *{ border-top:2px solid var(--athlete-modal-border); }
  #detailsModal .biomarker-overview-history{ width:26%; }
- #detailsModal td.biomarker-overview-history{ cursor:pointer; }
  #detailsModal .biomarker-overview-history svg{
      display:block;
      width:100%;
@@ -1912,8 +1913,7 @@
      stroke:var(--athlete-modal-muted);
      stroke-width:1.5;
  }
- #detailsModal .biomarker-overview-result,
- #detailsModal .biomarker-overview-change{ white-space:nowrap; }
+ #detailsModal .biomarker-overview-result{ position:relative; white-space:nowrap; }
  #detailsModal .biomarker-history-unit,
  #detailsModal .result-measurement-date{
      display:block;
@@ -1931,15 +1931,18 @@
      box-sizing:border-box;
      width:.4rem;
      height:.4rem;
-     margin:0 .1rem .1rem .5rem;
+     position:absolute;
+     right:.15rem;
+     top:50%;
+     margin:-.2rem 0 0;
      border-top:1px solid currentColor;
      border-right:1px solid currentColor;
      color:var(--athlete-modal-muted);
      vertical-align:middle;
      transform:rotate(45deg);
-     cursor:pointer;
  }
  #detailsModal .is-expanded .biomarker-overview-arrow{ transform:rotate(135deg); }
+ #detailsModal .result-summary:has(button:disabled) .biomarker-overview-arrow{ visibility:hidden; }
  #detailsModal .result-detail-row > td{ padding:0; border:0; }
  #detailsModal .result-detail{
      box-sizing:border-box;
@@ -1973,26 +1976,9 @@
  #detailsModal .result-legend-others::before{ background:var(--athlete-modal-muted); opacity:.5; }
  #detailsModal .result-plot-legend .result-legend-equal::before{ width:12px; height:0; border-top:1px dashed var(--athlete-modal-muted); border-radius:0; }
  #detailsModal .result-field-count{ margin:.3rem 0 .2rem; color:var(--athlete-modal-muted); font-size:.75rem; }
- #detailsModal .result-plot{ width:100%; min-width:0; contain:inline-size; }
- #detailsModal .result-plot svg{ display:block; width:100%; height:auto; max-width:100%; overflow:visible; }
- #detailsModal .result-plot text{ fill:var(--athlete-modal-muted); font:11px Roboto,sans-serif; }
- #detailsModal .result-plot-grid{ stroke:var(--athlete-modal-border); stroke-opacity:.35; }
- #detailsModal .result-plot-equal{ stroke:var(--athlete-modal-muted); stroke-width:1; stroke-dasharray:4 5; }
- #detailsModal .result-plot-trend{ stroke:var(--result-accent); stroke-width:2; }
- #detailsModal .result-plot-point{ fill:var(--athlete-modal-muted); fill-opacity:.4; cursor:crosshair; }
- #detailsModal .result-plot-point.is-athlete{ fill:var(--athlete-modal-chart-panel); fill-opacity:1; stroke:var(--result-accent); stroke-width:2; }
- #detailsModal .result-plot-point.is-latest{ fill:var(--result-accent); }
- #detailsModal .result-plot-point.is-active{ stroke:var(--athlete-modal-text); stroke-width:2; }
- #detailsModal .result-plot-readout{
-     display:block;
-     min-height:3em;
-     margin:.4rem 0 .8rem;
-     color:var(--athlete-modal-text);
-     font-size:.8rem;
-     font-variant-numeric:tabular-nums;
-     line-height:1.5;
-     white-space:pre-line;
- }
+ #detailsModal .result-plot{ position:relative; width:100%; height:320px; min-width:0; margin:.5rem 0 1rem; contain:inline-size; user-select:none; }
+ #detailsModal .result-plot canvas{ display:block; max-width:100%; cursor:crosshair; touch-action:pan-y; }
+ #detailsModal .result-plot[aria-busy="true"]{ opacity:.5; }
  #detailsModal .biomarker-history-table{ width:100%; border-collapse:collapse; font-size:.85rem; }
  #detailsModal .biomarker-history-table caption,
  #detailsModal .biomarker-overview-table caption{ position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
@@ -2006,6 +1992,7 @@
  @media (max-width:400px){
      #detailsModal .result-clock .biomarker-overview-current{ font-size:1.1rem; }
      #detailsModal .result-detail{ padding:.8rem .2rem; }
+     #detailsModal .result-plot{ height:260px; }
  }
  @media (max-width:360px){
      #detailsModal .biomarker-overview-table{ font-size:.8rem; }
@@ -2014,7 +2001,6 @@
      #detailsModal .biomarker-overview-table > thead > tr > th,
      #detailsModal .biomarker-overview-table > tbody > .result-summary > :is(th,td){ padding:.8rem .15rem; }
      #detailsModal .biomarker-overview-history svg{ min-width:30px; }
-     #detailsModal .biomarker-overview-arrow{ margin-left:0; }
  }
  #detailsModal .proofs-section{
      margin-top:1.5rem;
