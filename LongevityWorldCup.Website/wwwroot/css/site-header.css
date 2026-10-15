@@ -60,6 +60,10 @@
     letter-spacing: 0;
 }
 
+html {
+    scrollbar-gutter: stable;
+}
+
 body {
     font-family: 'Roboto', sans-serif;
     margin: 0;

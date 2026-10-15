@@ -310,7 +310,7 @@ public sealed class BiomarkerHistoryBrowserTests(
 
     private static string ChartScriptPath()
     {
-        var path = Path.Combine(AppContext.BaseDirectory, "TestAssets", "chart.umd.js");
+        var path = Path.Combine(AppContext.BaseDirectory, "Fixtures", "chart.umd.js");
         if (!File.Exists(path))
             throw new FileNotFoundException("Build the browser test assets after restoring frontend dependencies.", path);
         return path;

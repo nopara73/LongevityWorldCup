@@ -27,11 +27,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- CI removes node_modules to verify Node-free publishing before running tests. -->
-    <None Include="..\LongevityWorldCup.Website\node_modules\chart.js\dist\chart.umd.js"
-          Link="TestAssets\chart.umd.js"
-          CopyToOutputDirectory="PreserveNewest"
-          CopyToPublishDirectory="Never" />
+    <!-- The Node-free publish check removes node_modules before browser tests. -->
+    <Content Include="..\LongevityWorldCup.Website\node_modules\chart.js\dist\chart.umd.js"
+             Link="Fixtures\chart.umd.js"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="Never" />
   </ItemGroup>
 
 </Project>

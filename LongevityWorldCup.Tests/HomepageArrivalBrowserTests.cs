@@ -17,6 +17,7 @@ public sealed class HomepageArrivalBrowserTests(
     {
         await using var context = await NewContextAsync(width);
         await context.AddInitScriptAsync($"localStorage.setItem('lwcHomepageVisitCount:v1', '{visits}');");
+        await HoldOpeningFrameAsync(context);
         await context.AddInitScriptAsync("""
             window.arrivalStarts = [];
             window.hiddenPodiumFrames = 0;
@@ -83,6 +84,62 @@ public sealed class HomepageArrivalBrowserTests(
         await page.Locator(".podium").ScrollIntoViewIfNeededAsync();
         Assert.Equal(startCount, await page.EvaluateAsync<int>("arrivalStarts.length"));
         await CaptureAsync(page, $"{width}-{visits}-hydrated");
+    }
+
+    [Theory]
+    [InlineData(1440)]
+    [InlineData(390)]
+    public async Task LateParsedContent_RemainsVisibleWithoutRestartingTheEntrance(int width)
+    {
+        await using var context = await NewContextAsync(width);
+        await HoldOpeningFrameAsync(context);
+        await context.AddInitScriptAsync("""
+            window.arrivalTargets = [];
+            const animate = Element.prototype.animate;
+            Element.prototype.animate = function(...args) {
+                const animation = animate.apply(this, args);
+                queueMicrotask(() => {
+                    if (animation.id === 'homepage-arrival')
+                        window.arrivalTargets.push(this.id || this.className);
+                });
+                return animation;
+            };
+            """);
+        var parserBlocked = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var releasePage = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await context.RouteAsync("**/js/custom-event-markup.js*", async route =>
+        {
+            parserBlocked.TrySetResult();
+            await releasePage.Task;
+            await route.ContinueAsync();
+        });
+        await context.RouteAsync("**/api/data/athletes", async route =>
+        {
+            await releasePage.Task;
+            await route.ContinueAsync();
+        });
+        var page = await context.NewPageAsync();
+        try
+        {
+            await page.GotoAsync("/", new() { WaitUntil = WaitUntilState.Commit });
+            await parserBlocked.Task.WaitAsync(TimeSpan.FromSeconds(30));
+            await page.WaitForFunctionAsync("() => typeof window.releaseOpeningFrame === 'function'");
+            await page.EvaluateAsync("window.releaseOpeningFrame()");
+            await page.WaitForFunctionAsync("() => !document.documentElement.classList.contains('homepage-arriving')");
+            Assert.Equal(7, await page.EvaluateAsync<int>("arrivalTargets.length"));
+            Assert.Equal(0, await page.Locator("#lwc-countdown-box").CountAsync());
+        }
+        finally
+        {
+            releasePage.TrySetResult();
+        }
+
+        await page.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
+        await Assertions.Expect(page.Locator("#lwc-countdown-box")).ToBeVisibleAsync();
+        Assert.Equal("1", await page.Locator("#lwc-countdown-box").EvaluateAsync<string>("el => getComputedStyle(el).opacity"));
+        Assert.Equal(7, await page.EvaluateAsync<int>("arrivalTargets.length"));
+        Assert.Equal(0, await page.EvaluateAsync<int>("document.getAnimations().filter(a => a.id === 'homepage-arrival').length"));
+        await CaptureAsync(page, $"{width}-late-parsed");
     }
 
     [Theory]
@@ -179,6 +236,31 @@ public sealed class HomepageArrivalBrowserTests(
         await BrowserTestApp.RouteExternalResourcesAsync(context);
         return context;
     }
+
+    private static Task HoldOpeningFrameAsync(IBrowserContext context) => context.AddInitScriptAsync("""
+        // Make static-content availability explicit. Parser-blocking scripts may
+        // otherwise consume the bounded entrance before its eighth target exists.
+        // The late-parser test releases this frame while the final target is absent.
+        const requestFrame = window.requestAnimationFrame.bind(window);
+        let holdOpeningFrame = true;
+        window.requestAnimationFrame = callback => {
+            if (!holdOpeningFrame || !document.documentElement.classList.contains('homepage-arriving'))
+                return requestFrame(callback);
+            holdOpeningFrame = false;
+            return requestFrame(() => {
+                let held = callback;
+                window.releaseOpeningFrame = () => {
+                    if (!held) return;
+                    const next = held;
+                    held = null;
+                    requestFrame(next);
+                };
+                if (document.readyState === 'loading')
+                    document.addEventListener('DOMContentLoaded', window.releaseOpeningFrame, { once: true });
+                else window.releaseOpeningFrame();
+            });
+        };
+        """);
 
     private static async Task CaptureAsync(IPage page, string name)
     {
