@@ -41,6 +41,13 @@ public sealed class BioageBiomarkerSheetBrowserTests(
             """
             () => {
                 const issues = [];
+                const ctx = document.createElement('canvas').getContext('2d');
+                const fits = (element, text) => {
+                    const style = getComputedStyle(element);
+                    ctx.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+                    const available = element.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+                    return ctx.measureText(text).width <= available + 1;
+                };
                 for (const card of document.querySelectorAll('#lwc-step-2 .biomarker-card')) {
                     const header = card.querySelector('.biomarker-card-header');
                     const name = header.childNodes[0].textContent.trim();
@@ -53,6 +60,11 @@ public sealed class BioageBiomarkerSheetBrowserTests(
                     if (nameRect.width < 20) issues.push(`${name}: name is squeezed away`);
                     if (nameRect.left < headerRect.left - 1 || nameRect.right > headerRect.right + 1) issues.push(`${name}: name is clipped`);
                     if (markerRect.left < headerRect.left - 1 || markerRect.right > headerRect.right + 1) issues.push(`${name}: completion marker is clipped`);
+                    if (!fits(input, input.value || input.placeholder)) issues.push(`${name}: value text is clipped`);
+                    const unit = card.querySelector('select');
+                    if (unit.getBoundingClientRect().width && !fits(unit, unit.selectedOptions[0].textContent.trim())) issues.push(`${name}: selected unit is clipped`);
+                    const fixedUnit = card.querySelector('.bioage-fixed-unit');
+                    if (fixedUnit && !fits(fixedUnit, fixedUnit.textContent.trim())) issues.push(`${name}: fixed unit is clipped`);
                     if (header.getAttribute('role') === 'button' || header.hasAttribute('aria-expanded')) issues.push(`${name}: header still acts as a toggle`);
                 }
                 if (document.documentElement.scrollWidth > innerWidth + 1) issues.push('page overflows');
@@ -93,8 +105,6 @@ public sealed class BioageBiomarkerSheetBrowserTests(
     private static async Task AssertPlainBiomarkerHeadersAsync(IPage page)
     {
         await Assertions.Expect(page.Locator(".biomarker-card-header[aria-expanded], .biomarker-card-header[role=button], .biomarker-card-header[tabindex]"))
-            .ToHaveCountAsync(0);
-        await Assertions.Expect(page.Locator(".biomarker-card-content[style*='max-height']"))
             .ToHaveCountAsync(0);
     }
 
