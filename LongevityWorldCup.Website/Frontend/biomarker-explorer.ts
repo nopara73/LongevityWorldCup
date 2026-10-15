@@ -739,11 +739,11 @@
         }
 
         private renderClockExplanation(before: BiomarkerExplorerRecord, after: BiomarkerExplorerRecord): void {
-            let html = '<p>These are terms in the LWC calculation of biological minus chronological age. They describe the model’s arithmetic, not causal effects on health. Chronological age is an input to both clocks.</p>';
+            let html = '<p>These are terms in the LWC calculation of age reduction: chronological age at test minus computed biological age. They describe the model’s arithmetic, not causal effects on health. Chronological age is an input to both clocks.</p>';
             for (const clock of ['pheno', 'bortz'] as const) {
                 const rows = this.data.clockChange(before, after, clock);
                 if (!rows) { html += `<p>${clock}: both tests need complete eligible panels (${clock === 'pheno' ? '9' : '22'} measured inputs). Missing values are not filled.</p>`; continue; }
-                html += `<div class="be-table-scroll" tabindex="0" role="region" aria-label="${clock} clock change terms"><table class="be-table"><caption>${clock} · ${signed(rows.reduce((sum, row) => sum + row.change, 0))} computed years</caption><thead><tr><th scope="col">Term</th><th scope="col">Before</th><th scope="col">After</th><th scope="col">Change in computed years</th></tr></thead><tbody>${rows.map(row => `<tr><th scope="row">${escape(row.label)}${row.capped ? '<small>LWC scoring cap applied; measured values retained</small>' : ''}${row.transformed ? '<small>Log transformation in the model</small>' : ''}</th><td>${formatted(row.a)} ${escape(row.unit)}</td><td>${formatted(row.b)} ${escape(row.unit)}</td><td>${signed(row.change)}</td></tr>`).join('')}</tbody></table></div>`;
+                html += `<div class="be-table-scroll" tabindex="0" role="region" aria-label="${clock} clock change terms"><table class="be-table"><caption>${clock} · ${signed(-rows.reduce((sum, row) => sum + row.change, 0))} years of computed age reduction</caption><thead><tr><th scope="col">Term</th><th scope="col">Before</th><th scope="col">After</th><th scope="col">Change in age reduction (years)</th></tr></thead><tbody>${rows.map(row => `<tr><th scope="row">${escape(row.label)}${row.capped ? '<small>LWC scoring cap applied; measured values retained</small>' : ''}${row.transformed ? '<small>Log transformation in the model</small>' : ''}</th><td>${formatted(row.a)} ${escape(row.unit)}</td><td>${formatted(row.b)} ${escape(row.unit)}</td><td>${signed(-row.change)}</td></tr>`).join('')}</tbody></table></div>`;
             }
             this.element('.be-clock-explanation').innerHTML = html;
         }

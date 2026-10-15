@@ -157,6 +157,7 @@ public sealed class BiomarkerExplorerBrowserTests(
         await page.Locator(".be-clock-details summary").ClickAsync();
         await Assertions.Expect(page.Locator(".be-clock-explanation")).ToContainTextAsync("Chronological age term");
         await Assertions.Expect(page.Locator(".be-clock-explanation")).ToContainTextAsync("not causal effects");
+        await Assertions.Expect(page.Locator(".be-clock-explanation caption").First).ToContainTextAsync("-3.01 years of computed age reduction");
         await page.Locator(".be-data summary").ClickAsync();
         var download = await page.RunAndWaitForDownloadAsync(() => page.GetByRole(AriaRole.Button, new() { Name = "Download CSV", Exact = true }).ClickAsync());
         var path = await download.PathAsync(); Assert.NotNull(path);
