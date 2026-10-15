@@ -1,6 +1,5 @@
 using System.Globalization;
 using System.Net.Http.Json;
-using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using LongevityWorldCup.Website.Tools;
@@ -291,8 +290,9 @@ public sealed class BiomarkerHistoryBrowserTests(
     {
         await using var context = await NewContextAsync(390, true);
         var allowChart = false;
+        var chartScript = ChartScriptPath();
         await context.RouteAsync("https://cdn.jsdelivr.net/npm/chart.js@4.5.1", route => allowChart
-            ? route.FulfillAsync(new() { ContentType = "application/javascript", Path = ChartScriptPath() })
+            ? route.FulfillAsync(new() { ContentType = "application/javascript", Path = chartScript })
             : route.AbortAsync());
         var athlete = await HistoryAthleteAsync("Benjamin Garden", 44, partial: false);
         await context.AddInitScriptAsync($"window.getSharedAthletes = async () => ([{athlete.ToJsonString()}]);");
@@ -308,8 +308,13 @@ public sealed class BiomarkerHistoryBrowserTests(
         await Expect(retry).ToHaveCountAsync(0);
     }
 
-    private static string ChartScriptPath([CallerFilePath] string sourcePath = "") =>
-        Path.GetFullPath(Path.Combine(Path.GetDirectoryName(sourcePath)!, "..", "LongevityWorldCup.Website", "node_modules", "chart.js", "dist", "chart.umd.js"));
+    private static string ChartScriptPath()
+    {
+        var path = Path.Combine(AppContext.BaseDirectory, "TestAssets", "chart.umd.js");
+        if (!File.Exists(path))
+            throw new FileNotFoundException("Build the browser test assets after restoring frontend dependencies.", path);
+        return path;
+    }
 
     private static async Task WaitForChartAsync(IPage page) => await page.WaitForFunctionAsync("""
         () => { const canvas = document.querySelector('.result-detail-row:not([hidden]) canvas'); return canvas && window.Chart?.getChart(canvas); }
@@ -338,9 +343,10 @@ public sealed class BiomarkerHistoryBrowserTests(
             HasTouch = touch, IsMobile = touch
         });
         await BrowserTestApp.RouteExternalResourcesAsync(context);
+        var chartScript = ChartScriptPath();
         await context.RouteAsync("https://cdn.jsdelivr.net/npm/chart.js@4.5.1", route => route.FulfillAsync(new()
         {
-            ContentType = "application/javascript", Path = ChartScriptPath()
+            ContentType = "application/javascript", Path = chartScript
         }));
         await context.AddInitScriptAsync("localStorage.setItem('gmaSkipAll', 'true');");
         return context;

@@ -26,4 +26,12 @@
     <ProjectReference Include="..\LongevityWorldCup.ApplicationReviewer\LongevityWorldCup.ApplicationReviewer.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- CI removes node_modules to verify Node-free publishing before running tests. -->
+    <None Include="..\LongevityWorldCup.Website\node_modules\chart.js\dist\chart.umd.js"
+          Link="TestAssets\chart.umd.js"
+          CopyToOutputDirectory="PreserveNewest"
+          CopyToPublishDirectory="Never" />
+  </ItemGroup>
+
 </Project>
