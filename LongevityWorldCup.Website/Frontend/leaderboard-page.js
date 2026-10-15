@@ -2446,7 +2446,6 @@ let ageChart;
 let savedBodyScroll = 0;
 let savedBodyScrollRestoration = null;
 let savedBodyBackground = '';
-let savedBodyWidth = '';
 let currentAthleteModalRequestId = 0;
 let athleteShareState = null;
 const chartJsSrc = 'https://cdn.jsdelivr.net/npm/chart.js@4.5.1';
@@ -2632,12 +2631,17 @@ function resetModalForLoading(athleteSlug) {
 }
 
 // Improved body scroll lock for iOS
+function getLockedBodyWidth(previousWidth) {
+    // Compensate only for scrollbar space actually released by the lock.
+    // Reserving a root gutter also shrinks fixed overlays and action docks.
+    const releasedWidth = Math.max(0, window.innerWidth - previousWidth);
+    return `calc(100% - ${releasedWidth}px)`;
+}
+
 function lockBodyScroll() {
     if (document.body.classList.contains('no-scroll')) return;
 
-    // Preserve the page width when locking removes a classic scrollbar.
-    const scrollbarWidth = Math.max(0, window.innerWidth - document.documentElement.getBoundingClientRect().width);
-    savedBodyWidth = document.body.style.width;
+    const bodyWidth = document.body.clientWidth;
     savedBodyScroll = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
     if ('scrollRestoration' in history) {
         savedBodyScrollRestoration ??= history.scrollRestoration;
@@ -2649,7 +2653,7 @@ function lockBodyScroll() {
     const scrollY = savedBodyScroll;
     document.body.style.position = 'fixed';
     document.body.style.top = `-${scrollY}px`;
-    document.body.style.width = scrollbarWidth > 0 ? `calc(100% - ${scrollbarWidth}px)` : '100%';
+    document.body.style.width = getLockedBodyWidth(bodyWidth);
     savedBodyBackground = document.body.style.backgroundColor;
     document.body.style.backgroundColor = getComputedStyle(document.body).backgroundColor || getComputedStyle(document.documentElement).backgroundColor;
 }
@@ -2666,7 +2670,7 @@ function restoreBodyScroll() {
     document.body.classList.remove('no-scroll');
     document.body.style.position = '';
     document.body.style.top = '';
-    document.body.style.width = savedBodyWidth;
+    document.body.style.width = '';
     document.body.style.backgroundColor = savedBodyBackground;
 
     // Restore scroll position
@@ -5743,6 +5747,7 @@ function resultUnit(text) {
 function disposeBiomarkerHistory() {
     const history = document.getElementById('athlete-biomarkers')?._biomarkerHistory;
     history?.expanded?.chart?.destroy();
+    history?.clockHistoryObserver?.disconnect();
     if (history) history.expanded = null;
 }
 
@@ -5793,7 +5798,7 @@ function renderBiomarkerHistory(history, athletes) {
         button.appendChild(resultUnit(measure.unit));
         button.setAttribute('aria-expanded', 'false');
         button.setAttribute('aria-controls', detail.id);
-        button.title = measure.clock ? `Compare ${measure.name} across LWC` : `View ${measure.name}'s dated results`;
+        button.title = `Compare ${measure.name} across LWC`;
         button.disabled = latestIndex == null;
         if (latestIndex != null && history.labels[latestIndex] !== lastDate) {
             const time = document.createElement('time');
@@ -5817,9 +5822,12 @@ function renderBiomarkerHistory(history, athletes) {
         heading.appendChild(button);
         const sparkline = document.createElement('td');
         sparkline.className = 'biomarker-overview-history';
-        sparkline.setAttribute('aria-hidden', 'true');
-        if (latestIndex != null) sparkline.appendChild(createBiomarkerSparkline(history.labels, measure.values));
-        else sparkline.textContent = '—';
+        if (measure.clock && measuredIndices.length > 1) {
+            sparkline.appendChild(createClockHistory(history, measure, measuredIndices));
+        } else {
+            sparkline.setAttribute('aria-hidden', 'true');
+            sparkline.appendChild(createBiomarkerSparkline(history.labels, measure.values));
+        }
         const result = document.createElement('td');
         result.className = 'biomarker-overview-result';
         const current = document.createElement('span');
@@ -5833,6 +5841,45 @@ function renderBiomarkerHistory(history, athletes) {
         rows.append(row, detail);
     });
     table.tBodies[0].replaceChildren(rows);
+    const strips = table.querySelectorAll('.clock-history-scroll');
+    if (strips.length) {
+        history.clockHistoryObserver = new ResizeObserver(entries => entries.forEach(({ target }) =>
+            updateClockHistoryOverflow(target.classList.contains('clock-history-scroll') ? target : target.parentElement)));
+        strips.forEach(strip => {
+            strip.onscroll = () => updateClockHistoryOverflow(strip);
+            history.clockHistoryObserver.observe(strip);
+            history.clockHistoryObserver.observe(strip.firstElementChild);
+        });
+    }
+}
+
+function updateClockHistoryOverflow(strip) {
+    const overflow = strip.scrollWidth - strip.clientWidth;
+    strip.style.setProperty('--clock-history-left-fade', overflow + strip.scrollLeft > 1 ? '8px' : '0px');
+    strip.style.setProperty('--clock-history-right-fade', strip.scrollLeft < -1 ? '8px' : '0px');
+    strip.tabIndex = overflow > 1 ? 0 : -1;
+}
+
+function createClockHistory(history, measure, indices) {
+    const strip = document.createElement('div');
+    strip.className = 'clock-history-scroll';
+    strip.setAttribute('role', 'group');
+    strip.setAttribute('aria-label', `${measure.name} history, oldest to newest`);
+    const track = document.createElement('div');
+    track.className = 'clock-history-track';
+    track.setAttribute('role', 'list');
+    indices.forEach((index, position) => {
+        const reading = document.createElement('span');
+        reading.className = 'clock-history-reading' + (position === indices.length - 1 ? ' is-latest' : '');
+        reading.setAttribute('role', 'listitem');
+        reading.dataset.date = history.labels[index];
+        reading.title = formatResultDate(history.labels[index]);
+        reading.textContent = formatResultValue(measure.values[index], measure);
+        reading.setAttribute('aria-label', `${reading.title}: ${reading.textContent} years`);
+        track.appendChild(reading);
+    });
+    strip.appendChild(track);
+    return strip;
 }
 
 function toggleResultDetail(history, measure, row, detail, button) {
@@ -5853,31 +5900,30 @@ function toggleResultDetail(history, measure, row, detail, button) {
     const body = document.createElement('div');
     body.className = 'result-detail';
     const title = document.createElement('h4');
-    title.textContent = measure.clock ? `${measure.name} across LWC` : `${measure.name} over time`;
+    title.textContent = `${measure.name} across LWC`;
     body.appendChild(title);
-    const points = measure.clock ? getClockComparisonPoints(history, measure.clock) : history.labels.flatMap((date, index) =>
-        isBiomarkerHistoryValue(measure.values[index])
-            ? [{ date, x: Date.parse(date), y: Number(measure.values[index]), name: history.athleteName, isAthlete: true, index }] : []);
+    const points = getResultComparisonPoints(history, measure);
+    const legend = document.createElement('p');
+    legend.className = 'result-plot-legend';
+    const own = document.createElement('span');
+    own.className = 'result-legend-athlete';
+    own.textContent = history.athleteName;
+    const others = document.createElement('span');
+    others.className = 'result-legend-others';
+    others.textContent = 'Other athletes';
+    legend.append(own, others);
     if (measure.clock) {
-        const legend = document.createElement('p');
-        legend.className = 'result-plot-legend';
-        const own = document.createElement('span');
-        own.className = 'result-legend-athlete';
-        own.textContent = history.athleteName;
-        const others = document.createElement('span');
-        others.className = 'result-legend-others';
-        others.textContent = 'Other athletes';
         const equal = document.createElement('span');
         equal.className = 'result-legend-equal';
         equal.textContent = 'Same age';
-        legend.append(own, others, equal);
-        body.appendChild(legend);
-        const count = document.createElement('p');
-        count.className = 'result-field-count';
-        const athleteCount = new Set(points.map(point => point.athleteKey)).size;
-        count.textContent = `${points.length} result${points.length === 1 ? '' : 's'} · ${athleteCount} athlete${athleteCount === 1 ? '' : 's'}`;
-        body.appendChild(count);
+        legend.appendChild(equal);
     }
+    body.appendChild(legend);
+    const count = document.createElement('p');
+    count.className = 'result-field-count';
+    const athleteCount = new Set(points.map(point => point.athleteKey)).size;
+    count.textContent = `${points.length} result${points.length === 1 ? '' : 's'} · ${athleteCount} athlete${athleteCount === 1 ? '' : 's'}`;
+    body.appendChild(count);
     const plot = document.createElement('div');
     plot.className = 'result-plot';
     body.append(plot, createResultHistoryTable(history, measure));
@@ -5924,23 +5970,20 @@ function createResultHistoryTable(history, measure) {
     return table;
 }
 
-function getClockComparisonPoints(history, clock) {
-    if (!history.clockComparisons) {
-        history.clockComparisons = { bortz: [], pheno: [] };
-        history.sourceAthletes.forEach(athlete => {
-            const data = buildBiomarkerHistory(athlete);
-            ['bortz', 'pheno'].forEach(name => {
-                data.labels.forEach((date, index) => {
-                    const value = (name === 'bortz' ? data.bortzAges : data.phenoAges)[index];
-                    if (!isBiomarkerHistoryValue(value) || !Number.isFinite(data.chronologicalAges[index])) return;
-                    history.clockComparisons[name].push({ date, x: data.chronologicalAges[index], y: Number(value),
-                        name: data.athleteName, athleteKey: data.athleteKey, isAthlete: data.athleteKey === history.athleteKey, index });
-                });
-            });
+function getResultComparisonPoints(history, measure) {
+    history.comparisonHistories ||= history.sourceAthletes.map(buildBiomarkerHistory);
+    const points = [];
+    history.comparisonHistories.forEach(data => {
+        const values = measure.clock === 'bortz' ? data.bortzAges
+            : measure.clock === 'pheno' ? data.phenoAges : data.biomarkersRaw[measure.key];
+        data.labels.forEach((date, index) => {
+            const value = values[index];
+            if (!isBiomarkerHistoryValue(value) || !Number.isFinite(data.chronologicalAges[index])) return;
+            points.push({ date, x: data.chronologicalAges[index], y: Number(value),
+                name: data.athleteName, athleteKey: data.athleteKey, isAthlete: data.athleteKey === history.athleteKey, index });
         });
-        Object.values(history.clockComparisons).forEach(points => points.sort((a, b) => a.x - b.x || a.date.localeCompare(b.date)));
-    }
-    return history.clockComparisons[clock];
+    });
+    return points.sort((a, b) => a.x - b.x || a.date.localeCompare(b.date));
 }
 
 function historySvgNode(parent, tag, attributes, text) {
@@ -5980,7 +6023,7 @@ function drawResultPlot(state) {
     canvas.setAttribute('role', 'img');
     canvas.setAttribute('aria-label', measure.clock
         ? `${measure.name} across LWC: chronological age at the test versus biological age, in years. Highlighted points are ${history.athleteName}'s results. The dashed line is equal biological and chronological age. Exact dated results are in the table below.`
-        : `${history.athleteName}'s ${measure.name} over time in ${measure.unit}. Exact dated results are in the table below.`);
+        : `${measure.name} across LWC: chronological age at the test in years versus ${measure.name} in ${measure.unit}. Highlighted points are ${history.athleteName}'s results. Exact dated results are in the table below.`);
     canvas.dataset.clock = measure.clock || '';
     plot.replaceChildren(canvas);
     plot.setAttribute('aria-busy', 'true');
@@ -6009,34 +6052,25 @@ function drawResultPlot(state) {
             pointRadius: context => context.raw?.date === latestDate ? 5.5 : 4,
             pointHoverRadius: 7, pointHoverBorderColor: ink, pointHitRadius: 12, clip: false
         };
-        const datasets = measure.clock ? [
+        const datasets = [
             { label: history.athleteName, data: own, ...ownStyle, order: 0 },
             { label: 'Other athletes', data: points.filter(point => !point.isAthlete),
                 pointBackgroundColor: color('--athlete-modal-subtle'), pointBorderWidth: 0, pointRadius: 2.5, pointHoverRadius: 5,
                 pointHoverBorderWidth: 2, pointHoverBorderColor: ink, pointHitRadius: 8, order: 1 }
-        ] : [{ label: measure.name, data: history.labels.map((date, index) => ({ date, x: Date.parse(date),
-            y: isBiomarkerHistoryValue(measure.values[index]) ? Number(measure.values[index]) : null })),
-            ...ownStyle, spanGaps: false, tension: 0, fill: false }];
-        let comparisonBounds;
+        ];
+        const ages = points.map(point => point.x);
+        const low = Math.max(0, Math.floor(Math.min(...ages) / 10) * 10);
+        const high = Math.max(low + 10, Math.ceil(Math.max(...ages) / 10) * 10);
+        let clockBounds;
         if (measure.clock) {
-            const ages = points.map(point => point.x);
-            const low = Math.max(0, Math.floor(Math.min(...ages) / 10) * 10);
-            const high = Math.max(low + 10, Math.ceil(Math.max(...ages) / 10) * 10);
-            comparisonBounds = { x: { min: low, max: high }, y: {
+            clockBounds = {
                 min: Math.floor(Math.min(low, ...points.map(point => point.y)) / 10) * 10,
                 max: Math.ceil(Math.max(high, ...points.map(point => point.y)) / 10) * 10
-            } };
+            };
             datasets.push({ label: 'Same age', type: 'line', data: [{ x: low, y: low }, { x: high, y: high }],
                 borderColor: muted, borderWidth: 1, borderDash: [4, 5], pointRadius: 0, pointHitRadius: 0, order: 2 });
         }
         const compact = () => plot.clientWidth < 360;
-        const historyStart = points[0].x;
-        const historyEnd = points.at(-1).x;
-        const singleDate = historyStart === historyEnd;
-        const dateTick = value => new Intl.DateTimeFormat('en-GB', {
-            year: 'numeric', timeZone: 'UTC',
-            ...(historyEnd - historyStart > 86400000 * 365.25 * 2 ? {} : { month: 'short', ...(compact() ? {} : { day: 'numeric' }) })
-        }).format(new Date(Number(value)));
         const axis = { type: 'linear', border: { display: false },
             grid: { color: color('--athlete-modal-chart-grid'), drawTicks: false },
             ticks: { color: muted, padding: 8, font: { family: 'Roboto', size: 11 }, maxRotation: 0 },
@@ -6046,10 +6080,10 @@ function drawResultPlot(state) {
             return String(text).match(new RegExp(`.{1,${limit}}(?:\\s|$)|.{1,${limit}}`, 'g'))?.map(line => line.trim()) || [];
         };
         state.chart = new window.Chart(canvas, {
-            type: measure.clock ? 'scatter' : 'line', data: { datasets },
+            type: 'scatter', data: { datasets },
             options: {
                 responsive: true, maintainAspectRatio: false, animation: false,
-                interaction: { mode: 'nearest', axis: measure.clock ? 'xy' : 'x', intersect: false },
+                interaction: { mode: 'nearest', axis: 'xy', intersect: false },
                 layout: { padding: { top: 10, right: 10 } },
                 plugins: {
                     legend: { display: false },
@@ -6059,21 +6093,22 @@ function drawResultPlot(state) {
                         bodyFont: { family: 'Roboto', size: 12 },
                         filter: item => item.dataset.label !== 'Same age',
                         callbacks: {
-                            title: items => items.length ? titleLines(measure.clock ? items[0].raw.name : formatResultDate(items[0].raw.date)) : '',
-                            beforeBody: items => measure.clock && items.length ? formatResultDate(items[0].raw.date) : '',
-                            label: item => measure.clock
-                                ? [`${measure.name}: ${Number(item.raw.y).toFixed(1)} years`, `Chronological age: ${Number(item.raw.x).toFixed(1)}`]
-                                : `${measure.name}: ${item.raw.y} ${measure.unit}`
+                            title: items => items.length ? titleLines(items[0].raw.name) : '',
+                            beforeBody: items => items.length ? formatResultDate(items[0].raw.date) : '',
+                            label: item => [
+                                ...titleLines(`${measure.name}: ${formatResultValue(item.raw.y, measure)} ${measure.unit}`),
+                                ...titleLines(`Chronological age: ${Number(item.raw.x).toFixed(1)} years`)
+                            ]
                         }
                     }
                 },
                 scales: {
                     x: { ...axis, grid: { display: false },
-                        ...(measure.clock ? comparisonBounds.x : { min: historyStart - (singleDate ? 86400000 : 0), max: historyEnd + (singleDate ? 86400000 : 0) }),
-                        title: { ...axis.title, text: measure.clock ? 'Chronological age (years)' : 'Test date' },
-                        ticks: { ...axis.ticks, maxTicksLimit: compact() ? 3 : 5, ...(measure.clock ? {} : { callback: dateTick }) } },
-                    y: { ...axis, ...(measure.clock ? comparisonBounds.y : { grace: '8%' }), ticks: { ...axis.ticks, maxTicksLimit: 6 },
-                        title: { ...axis.title, text: measure.clock ? `${measure.name} (years)` : measure.unit } }
+                        min: low, max: high,
+                        title: { ...axis.title, text: 'Chronological age (years)' },
+                        ticks: { ...axis.ticks, maxTicksLimit: compact() ? 3 : 5 } },
+                    y: { ...axis, ...(measure.clock ? clockBounds : { grace: '8%' }), ticks: { ...axis.ticks, maxTicksLimit: 6 },
+                        title: { ...axis.title, text: `${measure.name} (${measure.unit})` } }
                 }
             }
         });
@@ -6259,6 +6294,7 @@ window.addEventListener('popstate', function (event) {
 });
 
 const sidebar = document.querySelector('.sidebar');
+const sidebarPanel = sidebar?.querySelector('.sidebar-panel');
 const sidebarToggle = document.querySelector('.sidebar-toggle');
 const sidebarClose = document.querySelector('.sidebar-close');
 const hasLeaderboardSidebar = !!(sidebar && sidebarToggle && sidebarClose);
@@ -6271,6 +6307,15 @@ function isMobileDrawerViewport() {
     return mobileDrawerMediaQuery.matches;
 }
 
+function syncSidebarPanelInteractivity() {
+    if (!sidebarPanel) return;
+    const open = isMobileDrawerViewport()
+        ? sidebar.classList.contains('expanded')
+        : getComputedStyle(sidebarPanel).getPropertyValue('--sidebar-panel-open').trim() === '1';
+    sidebarPanel.inert = !open;
+    sidebarPanel.setAttribute('aria-hidden', open ? 'false' : 'true');
+}
+
 function scheduleLeaderboardTableHeightSync() {
     if (leaderboardTableHeightFrame) return;
     leaderboardTableHeightFrame = requestAnimationFrame(syncLeaderboardTableHeight);
@@ -6278,6 +6323,7 @@ function scheduleLeaderboardTableHeightSync() {
 
 function syncLeaderboardTableHeight() {
     leaderboardTableHeightFrame = 0;
+    syncSidebarPanelInteractivity();
 
     const leaderboard = document.querySelector('.leaderboard');
     const table = document.querySelector('.leaderboard--flags > .flag-leaderboard') || document.querySelector('.leaderboard > table');
@@ -6309,6 +6355,7 @@ function installLeaderboardTableHeightObserver() {
         leaderboardTableResizeObserver.observe(table);
         const flags = document.getElementById('flagLeaderboard');
         if (flags) leaderboardTableResizeObserver.observe(flags);
+        if (sidebarPanel) leaderboardTableResizeObserver.observe(sidebarPanel);
         const title = document.querySelector('.collapsed-title');
         if (title) leaderboardTableResizeObserver.observe(title);
     }
@@ -6323,6 +6370,7 @@ sidebarToggle?.addEventListener('click', (event) => {
 sidebar?.addEventListener('mouseleave', () => {
     // An explicit close wins over hover until the pointer leaves the rail.
     sidebar.classList.remove('button-collapsed');
+    syncSidebarPanelInteractivity();
 });
 
 sidebarClose?.addEventListener('click', (event) => {
@@ -6398,18 +6446,24 @@ function syncSidebarDrawerBackdrop() {
     sidebarDrawerCloseTimer = 0;
     sidebar.inert = isMobileDrawer && !isOpenMobileDrawer;
     if (isOpenMobileDrawer) {
+        const wasOpen = document.body.classList.contains('sidebar-drawer-open');
+        const bodyWidth = document.body.clientWidth;
         document.body.classList.add('sidebar-drawer-open');
+        if (!wasOpen) document.body.style.setProperty('--sidebar-body-width', getLockedBodyWidth(bodyWidth));
         document.body.classList.remove('sidebar-drawer-closing');
     } else if (isMobileDrawer && document.body.classList.contains('sidebar-drawer-open')) {
         document.body.classList.add('sidebar-drawer-closing');
         sidebarDrawerCloseTimer = finishAfterTransition(sidebar, 'transform', () => {
             sidebarDrawerCloseTimer = 0;
             document.body.classList.remove('sidebar-drawer-open', 'sidebar-drawer-closing');
+            document.body.style.removeProperty('--sidebar-body-width');
         });
     } else {
         document.body.classList.remove('sidebar-drawer-open', 'sidebar-drawer-closing');
+        document.body.style.removeProperty('--sidebar-body-width');
     }
     sidebar.setAttribute('aria-hidden', isMobileDrawer && !isOpenMobileDrawer ? 'true' : 'false');
+    syncSidebarPanelInteractivity();
 }
 
 function getSidebarFocusableControls() {
@@ -6524,7 +6578,10 @@ function closeSidebar(options = {}) {
 if (hasLeaderboardSidebar) {
     syncSidebarDrawerBackdrop();
     installLeaderboardTableHeightObserver();
-    sidebar.addEventListener('mouseenter', scheduleLeaderboardTableHeightSync);
+    sidebar.addEventListener('mouseenter', () => {
+        syncSidebarPanelInteractivity();
+        scheduleLeaderboardTableHeightSync();
+    });
     window.addEventListener('scroll', scheduleLeaderboardTableHeightSync, { passive: true });
     window.addEventListener('resize', () => {
         syncSidebarDrawerBackdrop();

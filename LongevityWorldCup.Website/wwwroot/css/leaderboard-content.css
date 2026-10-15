@@ -1828,9 +1828,10 @@
      content:none;
      display:none;
  }
- #detailsModal #biomarkerResultList{ max-width:100%; overflow-x:auto; }
+ #detailsModal #biomarkerResultList{ --result-content-inset:var(--lwc-space-3, .75rem); max-width:100%; overflow-x:auto; }
  #detailsModal .biomarker-overview-range{
      margin:0 0 .3rem;
+     padding-inline:var(--result-content-inset);
      color:var(--athlete-modal-muted);
      font-size:.8rem;
      font-variant-numeric:tabular-nums;
@@ -1853,7 +1854,7 @@
  #detailsModal .biomarker-overview-table > thead > tr > th:first-child,
  #detailsModal .biomarker-overview-table > tbody > .result-summary > th:first-child{
      width:36%;
-     padding-left:0;
+     padding-left:var(--result-content-inset);
      text-align:left;
  }
  #detailsModal .biomarker-overview-table > thead > tr > th:last-child,
@@ -1870,6 +1871,8 @@
      padding:0;
      border:0;
      background:none;
+     outline:none;
+     box-shadow:none;
      color:inherit;
      font:inherit;
      font-weight:500;
@@ -1878,17 +1881,65 @@
      cursor:pointer;
  }
  #detailsModal .result-summary button:disabled{ cursor:default; opacity:.6; }
- #detailsModal .result-summary button:focus-visible{
-     outline:2px solid var(--result-accent, var(--athlete-modal-chart-pheno));
-     outline-offset:4px;
-     border-radius:2px;
- }
  #detailsModal .result-summary:has(button:enabled){ cursor:pointer; }
  #detailsModal .result-summary:has(button:enabled):hover,
  #detailsModal .result-summary:has(button:focus-visible),
+ #detailsModal .result-summary:has(.clock-history-scroll:focus-visible),
  #detailsModal .result-summary.is-expanded{ background:rgba(123,221,227,.045); }
  #detailsModal .result-summary.result-first-biomarker > *{ border-top:2px solid var(--athlete-modal-border); }
  #detailsModal .biomarker-overview-history{ width:26%; }
+ #detailsModal .clock-history-scroll{
+     width:100%;
+     min-width:0;
+     contain:inline-size;
+     overflow-x:auto;
+     direction:rtl; /* Start at the newest reading; the track keeps chronological order. */
+     padding:.3rem 0;
+     outline:none;
+     scrollbar-width:thin;
+     scrollbar-color:var(--athlete-modal-border) transparent;
+     mask-image:linear-gradient(to right, transparent, #000 var(--clock-history-left-fade, 0px),
+         #000 calc(100% - var(--clock-history-right-fade, 0px)), transparent);
+ }
+ #detailsModal .clock-history-track{
+     --clock-history-gap:.6rem;
+     display:grid;
+     direction:ltr;
+     grid-auto-flow:column;
+     grid-auto-columns:minmax(max-content, 1fr);
+     gap:var(--clock-history-gap);
+     width:max-content;
+     min-width:100%;
+ }
+ #detailsModal .clock-history-reading{
+     position:relative;
+     display:flex;
+     flex-direction:column;
+     align-items:center;
+     gap:.45rem;
+     color:var(--athlete-modal-muted);
+     font-size:.75rem;
+     line-height:1.25;
+     white-space:nowrap;
+ }
+ #detailsModal .clock-history-reading::before{
+     content:'';
+     box-sizing:border-box;
+     width:7px;
+     height:7px;
+     border:1px solid currentColor;
+     border-radius:50%;
+ }
+ #detailsModal .clock-history-reading:not(:last-child)::after{
+     content:'';
+     position:absolute;
+     top:3px;
+     left:calc(50% + 5px);
+     width:calc(100% + var(--clock-history-gap) - 10px);
+     border-top:1px solid var(--athlete-modal-border);
+ }
+ #detailsModal .clock-history-reading.is-latest{ color:var(--result-accent); font-weight:700; }
+ #detailsModal .clock-history-reading.is-latest::before{ background:currentColor; }
  #detailsModal .biomarker-overview-history svg{
      display:block;
      width:100%;
@@ -1945,7 +1996,7 @@
      width:100%;
      min-width:0;
      contain:inline-size;
-     padding:1rem .6rem;
+     padding:1rem var(--result-content-inset);
      margin:0 0 .65rem;
      border-bottom:1px solid var(--athlete-modal-border);
      background:var(--athlete-modal-chart-panel);
@@ -1987,10 +2038,12 @@
  #detailsModal .biomarkers-section [hidden]{ display:none !important; }
  @media (max-width:400px){
      #detailsModal .result-clock .biomarker-overview-current{ font-size:1.1rem; }
-     #detailsModal .result-detail{ padding:.8rem .2rem; }
+     #detailsModal .result-detail{ padding-block:.8rem; }
      #detailsModal .result-plot{ height:260px; }
  }
  @media (max-width:360px){
+     #detailsModal .biomarker-overview-history{ width:30%; }
+     #detailsModal .clock-history-track{ --clock-history-gap:.3rem; }
      #detailsModal .biomarker-overview-table{ font-size:.8rem; }
      #detailsModal .biomarker-overview-table > thead > tr > th{ font-size:.75rem; }
      #detailsModal .biomarker-overview-table > thead .biomarker-history-unit{ font-size:inherit; }
@@ -2496,8 +2549,10 @@
          margin-left:auto;
          margin-right:auto;
      }
+     html:has(body.sidebar-drawer-open){ overflow:hidden; }
      body.sidebar-drawer-open{
          overflow:hidden;
+         width:var(--sidebar-body-width, 100%);
      }
      body:has(:where(#leaderboardFilters))::before{
          content:''; position:fixed; inset:0; z-index:1000; background:rgba(0,0,0,.38);
@@ -3783,50 +3838,63 @@
  .sidebar-filter-list { scroll-padding-block-start: 3rem; }
  .sidebar-filter-list input { scroll-margin-block-start: 3rem; }
 
- @keyframes sidebar-panel-reveal {
-     from { opacity: 0; visibility: hidden; }
-     to { opacity: 1; visibility: visible; }
- }
+ .sidebar-rail { display: none; }
+ .sidebar-panel { display: contents; }
 
- /* Desktop panels use one scrollable filter list for both hover and button opening.
-    Keep the heading fixed and cap the panel at the visible viewport space. */
+ /* The desktop rail keeps its footprint. A full-width panel slides over the
+    results, so opening never squeezes its controls or reflows every table row. */
  @media (min-width: 933px), (min-width: 769px) and (min-height: 481px) {
      .leaderboard { container: leaderboard-results / inline-size; flex-wrap: wrap; }
      .leaderboard > table { flex-basis: 0; min-width: 0; }
-     .sidebar { --leaderboard-sidebar-open-width: min(19rem, 336px, 40cqi); box-sizing: border-box; }
+     .sidebar { --leaderboard-sidebar-open-width: min(19rem, 336px, 40cqi); --sidebar-motion-duration: 180ms; box-sizing: border-box; z-index: 3; }
+     .sidebar,
      .sidebar:is(:hover, .expanded):not(.button-collapsed):not([aria-hidden="true"]) {
-         display: flex; flex-direction: column; align-items: flex-start; width: var(--leaderboard-sidebar-open-width); padding: 0; overflow: hidden;
-         scrollbar-gutter: auto;
-         max-height: var(--leaderboard-sidebar-viewport-height);
+         display: grid; grid-template-columns: 50px; grid-template-rows: minmax(0, 1fr); position: relative; top: auto;
+         width: 50px; padding: 0; overflow: visible; scrollbar-gutter: auto; transition: none;
+         height: max(var(--leaderboard-table-height), var(--leaderboard-title-height, 0px));
+         min-height: max(var(--leaderboard-table-height), var(--leaderboard-title-height, 0px)); max-height: none;
+         background: transparent; box-shadow: none;
      }
-     .sidebar:hover:not(.expanded):not(.button-collapsed):not([aria-hidden="true"]) {
-         max-height: min(var(--leaderboard-sidebar-viewport-height), max(var(--leaderboard-table-height), var(--leaderboard-title-height, 0px)));
+     .sidebar-rail { display: flex; flex-direction: column; align-items: center; grid-area: 1 / 1; align-self: stretch; min-height: 0; background: var(--card-bg); transition: opacity var(--sidebar-motion-duration) var(--lwc-ease, ease); }
+     .sidebar-rail-icon { display: grid; place-items: center; position: relative; flex: 0 0 var(--leaderboard-head-height); width: 50px; box-sizing: border-box; border-bottom: 1px solid var(--lwc-border); background: var(--lwc-surface-accent, var(--surface-accent)); color: var(--primary-color); font-size: 2rem; }
+     .sidebar.has-active-state .sidebar-rail-icon::after { content: ''; position: absolute; top: 1rem; right: 3px; width: 10px; height: 10px; border-radius: 50%; background: var(--secondary-color); border: 2px solid var(--card-bg); }
+     .sidebar .collapsed-title { display: block; }
+     .sidebar-panel {
+         --sidebar-panel-open: 0; display: flex; flex-direction: column; grid-area: 1 / 1; align-self: start;
+         position: sticky; top: var(--leaderboard-sidebar-sticky-top); width: var(--leaderboard-sidebar-open-width);
+         min-height: 0; max-height: min(var(--leaderboard-sidebar-viewport-height), max(var(--leaderboard-table-height), var(--leaderboard-title-height, 0px))); box-sizing: border-box; overflow: hidden;
+         border: 1px solid var(--lwc-border); border-radius: 0 12px 12px 0; background: var(--card-bg); box-shadow: 8px 4px 24px rgba(15,23,42,.12);
+         opacity: 0; transform: translateX(-8px); visibility: hidden; pointer-events: none;
+         transition: opacity var(--sidebar-motion-duration) var(--lwc-ease, ease), transform var(--sidebar-motion-duration) var(--lwc-ease, ease), visibility 0s linear var(--sidebar-motion-duration);
      }
-     /* Reveal a fully laid-out panel instead of squeezing its text and controls
-        through every intermediate rail width. Both children use the board's
-        container width, so their size stays fixed throughout the transition. */
-     .sidebar:is(:hover, .expanded):not(.button-collapsed):not([aria-hidden="true"]) .sidebar-heading { flex: 0 0 auto; width: calc(var(--leaderboard-sidebar-open-width) - 1px); margin: 0; padding-inline: min(1rem, 16px); }
-     .sidebar:is(:hover, .expanded):not(.button-collapsed):not([aria-hidden="true"]) .sidebar-filter-list {
-         display: block; flex: 1 1 auto; min-height: 0; width: calc(var(--leaderboard-sidebar-open-width) - 1px); box-sizing: border-box; padding: 0 min(var(--lwc-space-4), 16px) var(--lwc-space-4);
+     .sidebar:is(:hover, .expanded):not(.button-collapsed):not([aria-hidden="true"]) .sidebar-panel { --sidebar-panel-open: 1; opacity: 1; transform: none; visibility: visible; pointer-events: auto; transition-delay: 0s; }
+     .sidebar:is(:hover, .expanded):not(.button-collapsed):not([aria-hidden="true"]) .sidebar-rail { opacity: 0; }
+     .sidebar .sidebar-heading,
+     .sidebar:is(:hover, .expanded):not(.button-collapsed):not([aria-hidden="true"]) .sidebar-heading { flex: 0 0 auto; width: 100%; margin: 0; padding-inline: min(1rem, 16px); }
+     .sidebar .sidebar-title { justify-content: flex-start; }
+     .sidebar .sidebar-title .sidebar-title-text { display: inline-block; }
+     .sidebar .sidebar-heading-actions { display: flex; }
+     .sidebar .sidebar-close, .sidebar .clear-sidebar-filters { display: inline-flex; }
+     .sidebar .filter-section { display: block; }
+     .sidebar .sidebar-filter-list {
+         display: block; flex: 1 1 auto; min-height: 0; width: 100%; box-sizing: border-box; padding: 0 min(var(--lwc-space-4), 16px) var(--lwc-space-4);
          overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable;
          scrollbar-width: thin; scrollbar-color: rgba(0,188,212,.55) transparent;
      }
-     /* Keep controls out of the narrowing rail. Reveal them only once the
-        width transition has made room for the fully laid-out panel. */
-     @media (prefers-reduced-motion: no-preference) {
-         .sidebar:is(:hover, .expanded):not(.button-collapsed):not([aria-hidden="true"]) :is(.sidebar-title-text, .sidebar-heading-actions, .sidebar-filter-list) {
-             animation: sidebar-panel-reveal var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease) var(--lwc-duration-normal, 220ms) both;
-         }
+     @media (prefers-reduced-motion: reduce) {
+         .sidebar-panel, .sidebar-rail { transition: none; }
      }
      /* Reflow against text size as well as pixels: enlarged results need the
         full board width instead of being squeezed alongside the filters. */
      @container leaderboard-results (max-width: 45rem) {
-         .sidebar { --leaderboard-sidebar-open-width: 100cqi; transition: none; }
-         .sidebar:is(:hover, .expanded):not(.button-collapsed):not([aria-hidden="true"]) :is(.sidebar-title-text, .sidebar-heading-actions, .sidebar-filter-list) { animation: none; }
+         .sidebar { --leaderboard-sidebar-open-width: 100cqi; }
+         .sidebar-panel { transition: none; }
          /* Enlarged text needs room for whole header words, rather than doubled gutters. */
          .leaderboard table th:not(:first-child) { padding-inline: min(var(--lwc-space-4), 4px); }
          .leaderboard table th a { padding-inline: 0; }
-         .sidebar.expanded:not(.button-collapsed):not([aria-hidden="true"]) { flex-basis: 100%; width: 100%; position: relative; top: auto; max-height: min(55dvh, var(--leaderboard-sidebar-viewport-height)); }
+         .sidebar.expanded:not(.button-collapsed):not([aria-hidden="true"]) { flex-basis: 100%; width: 100%; grid-template-columns: minmax(0, 1fr); height: auto; min-height: 0; max-height: min(55dvh, var(--leaderboard-sidebar-viewport-height)); }
+         .sidebar.expanded .sidebar-panel { position: static; max-height: min(55dvh, var(--leaderboard-sidebar-viewport-height)); border: 0; border-radius: 0; box-shadow: none; }
+         .sidebar.expanded .sidebar-rail { display: none; }
          .sidebar.expanded ~ table { flex-basis: 100%; }
          /* The narrow/text-enlarged layout opens with the button. A transient
             hover cannot take width from the results and change their height. */
@@ -3836,9 +3904,8 @@
              min-height: max(var(--leaderboard-table-height), var(--leaderboard-title-height, 0px));
              max-height: max(var(--leaderboard-table-height), var(--leaderboard-title-height, 0px)); overflow: hidden;
          }
-         .sidebar:hover:not(.expanded):not(.button-collapsed):not([aria-hidden="true"]) .sidebar-heading { width: 100%; margin: 0; padding-inline: 0; }
-         .sidebar:hover:not(.expanded):not(.button-collapsed):not([aria-hidden="true"]) :is(.sidebar-title-text, .sidebar-heading-actions, .filter-section) { display: none; }
-         .sidebar:hover:not(.expanded):not(.button-collapsed):not([aria-hidden="true"]) .collapsed-title { display: block; }
+         .sidebar:hover:not(.expanded):not(.button-collapsed):not([aria-hidden="true"]) .sidebar-panel { --sidebar-panel-open: 0; opacity: 0; transform: translateX(-8px); visibility: hidden; pointer-events: none; }
+         .sidebar:hover:not(.expanded):not(.button-collapsed):not([aria-hidden="true"]) .sidebar-rail { opacity: 1; }
      }
  }
  .sidebar-toggle.has-active-state::after { content: attr(data-filter-count); display: grid; place-items: center; width: 18px; height: 18px; top: -7px; right: -7px; background: var(--lwc-accent); color: var(--lwc-on-accent); font: 700 11px Roboto, sans-serif; border: 2px solid var(--lwc-surface); box-sizing: content-box; }
@@ -3847,6 +3914,7 @@
      .sidebar:hover:not(.button-collapsed):not([aria-hidden="true"]),
      .sidebar.expanded { display: flex; flex-direction: column; align-items: stretch; overflow: hidden; padding: var(--lwc-space-4) var(--lwc-space-4) 0; }
      .sidebar.expanded { padding-inline: min(var(--lwc-space-4), 16px); }
+     .sidebar-panel { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; width: 100%; }
      .sidebar .sidebar-heading,
      .sidebar:hover:not(.button-collapsed):not([aria-hidden="true"]) .sidebar-heading,
      .sidebar.expanded .sidebar-heading { position:static; flex:0 0 auto; width:100%; margin:0; padding-inline:0; }

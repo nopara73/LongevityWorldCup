@@ -13,7 +13,8 @@ public sealed class LeaderboardSidebarMotionBrowserTests(
     [Theory]
     [InlineData("/leaderboard", false)]
     [InlineData("/leaderboard?group=flags", true)]
-    public async Task Expansion_RevealsWholeControlsAfterTheRailFitsThem(string path, bool dark)
+    [InlineData("/leaderboard?search=Valerie", false)]
+    public async Task DesktopPanel_SlidesAndFadesWithoutResizingTheResults(string path, bool dark)
     {
         await using var context = await NewContextAsync(Browser, App, new()
         {
@@ -25,63 +26,79 @@ public sealed class LeaderboardSidebarMotionBrowserTests(
         await page.GotoAsync(path);
         await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
         await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
-
-        var rail = page.Locator(".sidebar");
-        var collapsedWidth = (await rail.BoundingBoxAsync())!.Width;
-        await page.Locator(".sidebar-toggle").HoverAsync();
-        await rail.EvaluateAsync("e => Promise.all(e.getAnimations().map(animation => animation.finished))");
-        Assert.InRange(Math.Abs((await rail.BoundingBoxAsync())!.Width - collapsedWidth), 0, 1);
-
-        // Start and pause in one browser operation so even a busy runner inspects
-        // the actual intermediate layout instead of missing a short transition.
-        var widths = await page.EvaluateAsync<double[]>("""
+        var issues = await page.EvaluateAsync<string[]>("""
             () => {
-                const rail = document.querySelector('.sidebar');
+                const rail = document.querySelector('.sidebar'), panel = rail.querySelector('.sidebar-panel');
+                const results = document.querySelector('.leaderboard--flags > .flag-leaderboard') || document.querySelector('.leaderboard > table');
+                const issues = [], geometry = () => {
+                    const box = results.getBoundingClientRect();
+                    return [box.left, box.top, box.width, box.height];
+                };
+                const before = geometry(), labelWidth = panel.querySelector('label').getBoundingClientRect().width;
+                const inspect = () => {
+                    if (geometry().some((value, index) => Math.abs(value - before[index]) > 1))
+                        issues.push('Opening or closing changes result geometry');
+                    const box = panel.getBoundingClientRect();
+                    if (box.bottom > Math.min(innerHeight, rail.parentElement.getBoundingClientRect().bottom) + 1)
+                        issues.push('Panel is clipped by the viewport or short result board');
+                    if (box.width < 250 || Math.abs(panel.querySelector('label').getBoundingClientRect().width - labelWidth) > 1)
+                        issues.push('Filter content is resized');
+                    for (const child of panel.querySelectorAll('.sidebar-heading, .sidebar-filter-list')) {
+                        const bounds = child.getBoundingClientRect();
+                        if (bounds.left < box.left - 1 || bounds.right > box.right + 1 || child.scrollWidth > child.clientWidth + 1)
+                            issues.push('Panel contents are clipped');
+                    }
+                };
+                const motion = () => {
+                    panel.getBoundingClientRect();
+                    const animations = panel.getAnimations().filter(a => ['opacity', 'transform'].includes(a.transitionProperty));
+                    if (animations.length !== 2) throw new Error('Expected one concurrent slide and fade');
+                    if (animations.some(a => a.effect.getTiming().delay !== 0 || a.effect.getTiming().duration > 200))
+                        issues.push('Panel motion has a delay or a long separate stage');
+                    return animations;
+                };
+                const seek = (animations, progress) => animations.forEach(a => {
+                    a.pause(); a.currentTime = a.effect.getTiming().duration * progress;
+                });
+                if (!panel.inert) issues.push('Closed panel remains interactive');
                 document.querySelector('.sidebar-toggle').click();
-                rail.getBoundingClientRect();
-                const transition = rail.getAnimations().find(a => a.transitionProperty === 'width');
-                if (!transition) throw new Error('Expected a sidebar width transition');
-                const duration = transition.effect.getTiming().duration;
-                const animations = rail.getAnimations({subtree:true})
-                    .filter(a => a === transition || a.animationName === 'sidebar-panel-reveal');
-                animations.forEach(a => a.pause());
-                const measure = () => [rail, rail.querySelector('.sidebar-heading'), rail.querySelector('.sidebar-filter-list'), rail.querySelector('.filter-section label')]
-                    .map(element => element.getBoundingClientRect().width);
-                animations.forEach(a => { a.currentTime = duration / 3; });
-                const during = measure();
-                const list = rail.querySelector('.sidebar-filter-list');
-                const controlsVisible = () => list.checkVisibility({opacityProperty:true, visibilityProperty:true});
-                if (controlsVisible())
-                    throw new Error('Partially opened rail exposes cropped filter controls');
-                animations.forEach(a => { a.currentTime = duration * 0.95; });
-                if (controlsVisible())
-                    throw new Error('Filters appear before the rail finishes widening');
-                animations.forEach(a => a.finish());
-                const after = measure();
-                if (!controlsVisible()) throw new Error('Fully opened filters remain hidden');
-
+                const opening = motion();
+                seek(opening, 0.2);
+                const early = Number(getComputedStyle(panel).opacity);
+                if (!(early > 0 && early < 1) || panel.inert) issues.push('Opening panel does not appear immediately');
+                inspect();
+                seek(opening, 0.8);
+                if (Number(getComputedStyle(panel).opacity) <= early) issues.push('Panel reveal is not continuous');
+                inspect();
+                opening.forEach(a => a.finish());
                 document.querySelector('.sidebar-close').click();
-                rail.getBoundingClientRect();
-                const closing = rail.getAnimations().find(a => a.transitionProperty === 'width');
-                closing.pause();
-                closing.currentTime = duration / 3;
-                if (rail.querySelector('.filter-section').checkVisibility({opacityProperty:true, visibilityProperty:true}))
-                    throw new Error('Closing rail exposes filter controls');
+                const closing = motion();
+                seek(closing, 0.5);
+                inspect();
+                if (!panel.inert || getComputedStyle(panel).visibility !== 'visible')
+                    issues.push('Closing panel loses its visual contents or remains interactive');
+                const opacity = Number(getComputedStyle(panel).opacity);
                 document.querySelector('.sidebar-toggle').click();
-                if (controlsVisible()) throw new Error('Rapid reopening exposes cropped filter controls');
+                if (Math.abs(Number(getComputedStyle(panel).opacity) - opacity) > 0.02 || panel.inert)
+                    issues.push('Reopening jumps instead of reversing the current motion');
+                const reopening = motion();
+                seek(reopening, 0.5);
+                inspect();
                 rail.getAnimations({subtree:true}).forEach(a => a.finish());
-                return [...during, ...after];
+                if (getComputedStyle(panel).visibility !== 'visible' || Number(getComputedStyle(panel).opacity) !== 1)
+                    issues.push('A stale close hides the reopened panel');
+                return issues;
             }
             """);
-        Assert.True(widths[0] > collapsedWidth + 1 && widths[0] < widths[4] - 1,
-            $"Expected an intermediate rail width, got {widths[0]} between {collapsedWidth} and {widths[4]}.");
-        for (var index = 1; index <= 3; index++)
-            Assert.InRange(Math.Abs(widths[index] - widths[index + 4]), 0, 1);
-        Assert.InRange(Math.Abs(widths[1] - widths[4]), 0, 2);
-        Assert.True(widths[3] > 200, "The filter labels must retain their full readable width during expansion.");
+        Assert.Empty(issues);
         Assert.False(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth > innerWidth"));
+        var output = Environment.GetEnvironmentVariable("LWC_SIDEBAR_SCREENSHOTS");
+        if (!string.IsNullOrEmpty(output))
+        {
+            Directory.CreateDirectory(output);
+            await page.ScreenshotAsync(new() { Path = Path.Combine(output, dark ? "smooth-panel-flags.png" : "smooth-panel-desktop.png") });
+        }
     }
-
     [Fact]
     public async Task Close_UnderThePointerStaysClosedUntilThePointerLeaves()
     {
@@ -128,7 +145,7 @@ public sealed class LeaderboardSidebarMotionBrowserTests(
         await page.Locator(".sidebar-toggle").ClickAsync();
         await Assertions.Expect(page.Locator(".filter-section").First).ToBeVisibleAsync();
         Assert.True(await page.Locator(".sidebar").EvaluateAsync<bool>(
-            "e => e.getAnimations().every(a => a.effect.getTiming().duration <= 1)"));
+            "e => e.getAnimations({subtree:true}).every(a => a.effect.getTiming().duration <= 1)"));
         var pheno = page.Locator(".sidebar input[name=agingClockView][value=pheno]");
         await pheno.CheckAsync();
         await Assertions.Expect(page.Locator("#view-pheno")).ToBeCheckedAsync();
@@ -191,10 +208,9 @@ public sealed class LeaderboardSidebarMotionBrowserTests(
     }
 
     [Theory]
-    [InlineData(390, false)]
-    [InlineData(1280, false)]
-    [InlineData(1280, true)]
-    public async Task AthleteClose_FadesTheCardAndBackdropWithoutMovingThePage(int width, bool withScrollbarGutter)
+    [InlineData(390)]
+    [InlineData(1280)]
+    public async Task AthleteClose_FadesTheCardAndBackdropWithoutMovingThePage(int width)
     {
         await using var context = await NewContextAsync(Browser, App, new()
         {
@@ -204,12 +220,6 @@ public sealed class LeaderboardSidebarMotionBrowserTests(
         var page = await context.NewPageAsync();
         await page.GotoAsync("/leaderboard");
         await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
-        if (withScrollbarGutter)
-        {
-            // Exercise scrollbar disappearance even when headless Chromium hides native scrollbars.
-            await page.AddStyleTagAsync(new() { Content = "html { scrollbar-gutter: stable; } html:has(body.no-scroll) { scrollbar-gutter: auto; }" });
-            Assert.True(await page.EvaluateAsync<double>("innerWidth - document.documentElement.getBoundingClientRect().width") > 0);
-        }
         await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
         var before = await page.EvaluateAsync<double>("document.querySelector('.leaderboard').getBoundingClientRect().left");
         await page.Locator(".leaderboard .athlete-name").First.ClickAsync();
@@ -229,5 +239,78 @@ public sealed class LeaderboardSidebarMotionBrowserTests(
         var after = await page.EvaluateAsync<double>("document.querySelector('.leaderboard').getBoundingClientRect().left");
         Assert.InRange(Math.Abs(after - before), 0, 1);
         Assert.Equal("", await page.EvaluateAsync<string>("document.body.style.position"));
+    }
+
+    [Theory]
+    [InlineData(390, 844, false)]
+    [InlineData(1280, 844, false)]
+    [InlineData(390, 844, true)]
+    [InlineData(844, 390, true)]
+    public async Task ScrollLocks_PreserveBackgroundWidthAndLeaveOverlaysTheFullViewport(int width, int height, bool drawer)
+    {
+        // Headless Chromium normally hides native scrollbars. Exercise the real
+        // scrollbar layout as well as the default browser used by other cases.
+        await using var scrollBrowser = await Browser.BrowserType.LaunchAsync(new()
+        {
+            Headless = true, IgnoreDefaultArgs = ["--hide-scrollbars"]
+        });
+        await using var context = await NewContextAsync(scrollBrowser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = height }, ReducedMotion = ReducedMotion.Reduce
+        });
+        await context.AddInitScriptAsync("localStorage.setItem('gmaSkipAll', 'true')");
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/leaderboard", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+        // A custom classic scrollbar also exercises compensation on machines
+        // whose default scrollbar normally overlays the page.
+        await page.AddStyleTagAsync(new() { Content = "html::-webkit-scrollbar { width:18px; }" });
+        await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
+        var before = await page.EvaluateAsync<double[]>("""
+            [document.body.clientWidth, document.querySelector('.leaderboard').getBoundingClientRect().left,
+                innerWidth - document.documentElement.clientWidth]
+            """);
+        Assert.InRange(before[2], 17, 19);
+
+        for (var cycle = 0; cycle < 2; cycle++)
+        {
+            if (drawer)
+            {
+                await page.Locator(".sidebar-toggle").ClickAsync();
+                await page.WaitForFunctionAsync("document.body.classList.contains('sidebar-drawer-open')");
+            }
+            else
+            {
+                await page.Locator(".leaderboard .athlete-name").First.ClickAsync();
+                await page.WaitForFunctionAsync("document.querySelector('#detailsModal .modal-content:not(.is-loading):not(.guess-mode)')");
+            }
+
+            // Native scrollbar visibility can update after the class mutation.
+            await page.WaitForFunctionAsync("document.documentElement.clientWidth === innerWidth");
+            var locked = await page.EvaluateAsync<double[]>("""
+                drawer => [document.body.clientWidth, document.querySelector('.leaderboard').getBoundingClientRect().left,
+                    drawer ? parseFloat(getComputedStyle(document.body, '::before').width)
+                        : document.getElementById('detailsModal').getBoundingClientRect().width,
+                    innerWidth, document.documentElement.clientWidth, document.documentElement.scrollWidth]
+                """, drawer);
+            Assert.InRange(Math.Abs(locked[0] - before[0]), 0, 1);
+            Assert.InRange(Math.Abs(locked[1] - before[1]), 0, 1);
+            Assert.InRange(Math.Abs(locked[2] - locked[3]), 0, 1);
+            Assert.InRange(Math.Abs(locked[4] - locked[3]), 0, 1);
+            Assert.True(locked[5] <= locked[3] + 1);
+
+            var directory = Environment.GetEnvironmentVariable("LWC_SCROLL_LOCK_CAPTURE_DIR");
+            if (cycle == 0 && !string.IsNullOrEmpty(directory))
+            {
+                Directory.CreateDirectory(directory);
+                await page.ScreenshotAsync(new() { Path = Path.Combine(directory, $"{width}-{height}-{(drawer ? "drawer" : "athlete")}.png") });
+            }
+
+            await page.Locator(drawer ? ".sidebar-close" : "#closeAthleteDetailsModal").ClickAsync();
+            await page.WaitForFunctionAsync("!document.body.classList.contains('sidebar-drawer-open') && !document.body.classList.contains('no-scroll')");
+            await page.WaitForFunctionAsync("gap => Math.abs(innerWidth - document.documentElement.clientWidth - gap) < 1", before[2]);
+            Assert.InRange(Math.Abs(await page.EvaluateAsync<double>("document.body.clientWidth") - before[0]), 0, 1);
+            Assert.InRange(Math.Abs(await page.EvaluateAsync<double>("document.querySelector('.leaderboard').getBoundingClientRect().left") - before[1]), 0, 1);
+        }
     }
 }

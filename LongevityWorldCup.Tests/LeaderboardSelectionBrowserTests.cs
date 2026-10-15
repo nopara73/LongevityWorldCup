@@ -260,7 +260,8 @@ public sealed class LeaderboardSelectionBrowserTests(PlaywrightBrowserFixture br
         var pheno = page.Locator("label[data-aging-clock-view=pheno]");
         var bortz = page.Locator("label[data-aging-clock-view=bortz]");
         await Assertions.Expect(pheno.Locator(".filter-count")).ToHaveTextAsync((await Rows(page).CountAsync()).ToString());
-        Assert.True(int.Parse(await bortz.Locator(".filter-count").InnerTextAsync()) > 0);
+        // These counts are initialized even while their sidebar is collapsed.
+        Assert.True(int.Parse((await bortz.Locator(".filter-count").TextContentAsync())!) > 0);
         if (!profileLink) Assert.Equal(path, new Uri(page.Url).PathAndQuery + new Uri(page.Url).Fragment);
     }
 
@@ -325,11 +326,8 @@ public sealed class LeaderboardSelectionBrowserTests(PlaywrightBrowserFixture br
         var options = page.Locator($"input[name={group}]");
         var first = options.Nth(0);
         var second = options.Nth(1);
-        // The rail reveals its controls after the width transition finishes.
-        await Assertions.Expect(first).ToBeVisibleAsync();
-        await Assertions.Expect(second).ToBeVisibleAsync();
-        var firstCount = int.Parse(await first.Locator("..").Locator(".filter-count").InnerTextAsync());
-        var secondCount = int.Parse(await second.Locator("..").Locator(".filter-count").InnerTextAsync());
+        var firstCount = await ReadVisibleFilterCountAsync(first.Locator("..").Locator(".filter-count"));
+        var secondCount = await ReadVisibleFilterCountAsync(second.Locator("..").Locator(".filter-count"));
         await first.CheckAsync();
         await Assertions.Expect(Rows(page)).ToHaveCountAsync(firstCount);
         await Assertions.Expect(second).ToBeEnabledAsync();
@@ -459,6 +457,14 @@ public sealed class LeaderboardSelectionBrowserTests(PlaywrightBrowserFixture br
     }
 
     private static ILocator Rows(IPage page) => page.Locator(".leaderboard tbody tr[data-athlete-name]:visible");
+
+    private static async Task<int> ReadVisibleFilterCountAsync(ILocator count)
+    {
+        // The opening panel intentionally hides controls until its rail fits.
+        // InnerText is empty during that reveal, even after the toggle was clicked.
+        await Assertions.Expect(count).ToBeVisibleAsync();
+        return int.Parse(await count.InnerTextAsync());
+    }
 
     private static async Task OpenFilteredAsync(IPage page)
     {
