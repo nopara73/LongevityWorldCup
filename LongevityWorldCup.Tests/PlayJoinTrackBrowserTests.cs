@@ -81,6 +81,10 @@ public sealed class PlayJoinTrackBrowserTests(
 
     [Theory]
     [InlineData(1440, 900)]
+    [InlineData(1024, 768)]
+    [InlineData(768, 1024)]
+    [InlineData(601, 900)]
+    [InlineData(844, 390)]
     [InlineData(390, 844)]
     [InlineData(320, 640)]
     public async Task EnlargedText_KeepsTrackNamesAndDetailsWhole(int width, int height)
@@ -94,31 +98,35 @@ public sealed class PlayJoinTrackBrowserTests(
             HasTouch = width < 600
         });
         await BrowserTestApp.RouteExternalResourcesAsync(context);
+        await context.AddInitScriptAsync(ReturningAmateur);
         var page = await context.NewPageAsync();
         await page.GotoAsync("/join");
-        await page.WaitForSelectorAsync(".play-join-title");
+        await page.WaitForFunctionAsync("() => !document.getElementById('joinMobileGoProButton')?.disabled && !document.getElementById('joinGoProButton')?.disabled");
+        await Assertions.Expect(page.Locator("#joinProDiscountNote")).ToBeVisibleAsync();
         await page.EvaluateAsync("() => { document.documentElement.style.fontSize = '200%'; }");
+        await page.EvaluateAsync("() => document.fonts.ready");
         await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+        await page.EvaluateAsync("() => window.LwcFlowActionDock?.refreshNow?.()");
 
-        // Phones keep room for the prize ribbon beside the track name, so only their values are checked.
-        var selector = width >= 600 ? ".play-join-card .track-name, .play-join-meta dd" : ".play-join-meta dd";
+        const string selector = ".play-join-card .track-name, .play-join-meta dt, .play-join-meta dd, .play-join-actions .flow-action__label";
         var splitWords = await page.EvaluateAsync<string[]>(
             """
             selector => {
                 const split = [];
                 for (const node of document.querySelectorAll(selector)) {
-                    for (const word of node.textContent.trim().split(/\s+/)) {
-                        const walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT);
-                        let text;
-                        while ((text = walker.nextNode())) {
-                            const index = text.textContent.indexOf(word);
-                            if (index < 0) continue;
+                    const bounds = node.getBoundingClientRect();
+                    if (!bounds.width || !bounds.height) continue;
+                    const walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT);
+                    let text;
+                    while ((text = walker.nextNode())) {
+                        for (const match of text.textContent.matchAll(/\S+/g)) {
                             const range = document.createRange();
-                            range.setStart(text, index);
-                            range.setEnd(text, index + word.length);
+                            range.setStart(text, match.index);
+                            range.setEnd(text, match.index + match[0].length);
                             const lines = new Set([...range.getClientRects()].map(rect => Math.round(rect.top))).size;
-                            if (lines > 1) split.push(word);
-                            break;
+                            if (lines > 1) split.push(match[0]);
+                            if ([...range.getClientRects()].some(rect => rect.left < bounds.left - 1 || rect.right > bounds.right + 1))
+                                split.push(`${match[0]} (clipped)`);
                         }
                     }
                 }
@@ -126,6 +134,8 @@ public sealed class PlayJoinTrackBrowserTests(
             }
             """, selector);
         Assert.True(splitWords.Length == 0, $"{width}px at 200%: words split across lines: {string.Join(", ", splitWords)}");
+        var dockHeight = await page.Locator(".play-join-actions").EvaluateAsync<double>("element => element.getBoundingClientRect().height");
+        Assert.True(dockHeight <= Math.Min(280, height / 2d), $"The join actions occupy {dockHeight}px of the {height}px viewport.");
         await ExpectNoHorizontalOverflowAsync(page);
     }
 

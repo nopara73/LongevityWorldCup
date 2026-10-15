@@ -387,6 +387,7 @@ html.play-panel-transitioning .play-hub-panel--entering {
 }
 
 .play-join-card {
+    container: play-track / inline-size;
     position: relative;
     display: flex;
     flex-direction: column;
@@ -510,7 +511,7 @@ html.play-panel-transitioning .play-hub-panel--entering {
     flex-direction: column;
     align-items: flex-start;
     gap: 0.35rem;
-    min-width: 0;
+    min-width: min(100%, 10rem);
 }
 
 .play-join-card--pro .play-join-details {
@@ -669,6 +670,25 @@ html.play-panel-transitioning .play-hub-panel--entering {
     padding-block: 0.55rem;
     padding-inline: 2.7rem;
     font-size: 0.95rem;
+}
+
+.play-join-actions #joinTrackBackBtn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    padding-inline: 0.65rem;
+}
+
+.play-join-actions #joinTrackBackBtn > i {
+    position: static;
+    width: auto;
+    transform: none;
+}
+
+.play-join-actions #joinTrackBackBtn .flow-action__label {
+    width: auto;
+    margin: 0;
 }
 
 @media (min-width: 960px) and (max-height: 820px) {
@@ -1121,7 +1141,7 @@ html.play-panel-transitioning .play-hub-panel--entering {
     }
 
     .play-join-card {
-        padding: 1.35rem;
+        padding: 1.35rem min(1.35rem, 22px);
     }
 
     .play-join-card-actions {
@@ -1662,6 +1682,82 @@ html.play-panel-transitioning .play-hub-panel--entering {
 
     html.play-panel-transitioning .play-hub-panel--entering {
         animation: none;
+    }
+}
+
+/* Keep enlarged phone text from spending its available width on gutters. */
+@media (max-width: 600px) {
+    .play-hub-main:has(.play-join-panel:not([hidden])) {
+        padding-inline: min(1.35rem, 22px);
+    }
+}
+
+/* The corner ribbon becomes a badge when text no longer fits beside it. */
+@container play-track (max-width: 18rem) {
+    .play-join-card h2 {
+        padding-right: 0;
+    }
+
+    .play-join-card .track-name {
+        font-size: min(1.6rem, 15cqi);
+        white-space: nowrap;
+    }
+
+    .play-join-ribbon-slot {
+        height: auto;
+        margin-bottom: 0.75rem;
+    }
+
+    .play-join-ribbon {
+        position: static;
+        display: inline-block;
+        width: auto;
+        height: auto;
+        border-radius: 4px;
+    }
+
+    .play-join-ribbon > span {
+        position: static;
+        width: auto;
+        padding: 0.3em 0.6em;
+        font-size: 0.75rem;
+        transform: none;
+        box-shadow: none;
+    }
+}
+
+.play-join-card .pro-discount-line {
+    flex-wrap: wrap;
+}
+
+.play-join-card .pro-discount-text {
+    flex: 1 1 6em;
+}
+
+/* Intrinsic action widths keep words readable when enlarged text needs more rows. */
+@media (max-width: 600px), (min-width: 640px) and (max-width: 932px) and (max-height: 480px) and (orientation: landscape) {
+    .play-join-actions.flow-action-stack--docked {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+
+    .play-join-actions.flow-action-stack--docked .flow-action {
+        flex: 1 1 max-content;
+        width: auto;
+        margin-inline: 0;
+        padding-inline: min(0.65rem, 12px);
+        overflow-wrap: normal;
+    }
+
+    .play-join-actions.flow-action-stack--docked #joinTrackBackBtn {
+        flex: 0 0 auto;
+        width: auto;
+        order: -1;
+    }
+
+    .play-join-actions.flow-action-stack--docked #joinTrackBackBtn .flow-action__label {
+        margin: 0;
     }
 }
 
