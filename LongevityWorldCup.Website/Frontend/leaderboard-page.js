@@ -2500,7 +2500,8 @@ function getAthleteModalFocusables(root = modal) {
             if (element.tagName !== 'IFRAME') return [element];
             try {
                 const controls = element.contentDocument && getAthleteModalFocusables(element.contentDocument);
-                return controls?.length ? controls : [element];
+                // An empty same-origin frame has no keyboard destination.
+                return controls ?? [element];
             } catch { return [element]; }
         });
 }
@@ -2517,7 +2518,7 @@ function containAthleteModalFocus(event) {
         modal.focus({ preventScroll: true });
     } else if (!controls.includes(active) || (event.shiftKey ? active === first : active === last)) {
         event.preventDefault();
-        (event.shiftKey ? last : first).focus({ preventScroll: true });
+        (event.shiftKey ? last : first).focus();
     }
 }
 

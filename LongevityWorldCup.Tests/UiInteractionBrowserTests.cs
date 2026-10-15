@@ -45,6 +45,7 @@ public sealed class UiInteractionBrowserTests(
             release.TrySetResult();
             await Assertions.Expect(page.Locator("#detailsModal .modal-content")).Not.ToHaveClassAsync(new System.Text.RegularExpressions.Regex("is-loading"));
             Assert.True(await page.EvaluateAsync<bool>("!!document.activeElement.closest('#detailsModal')"));
+            await CaptureAsync(page, $"profile-{width}");
 
             var frame = page.FrameLocator("#events-frame");
             var frameLinks = frame.Locator("a[href]:visible");
@@ -52,6 +53,7 @@ public sealed class UiInteractionBrowserTests(
             await page.Locator("#closeAthleteDetailsModal").FocusAsync();
             await page.Keyboard.PressAsync("Shift+Tab");
             Assert.True(await page.EvaluateAsync<bool>("!!document.activeElement.closest('#detailsModal')"));
+            await WaitForVisibleFocusAsync(page);
             await page.Keyboard.PressAsync("Tab");
             Assert.True(await page.EvaluateAsync<bool>("document.activeElement.matches('#closeAthleteDetailsModal, #stickyCloseBtn')"),
                 await FocusDiagnosticsAsync(page));
@@ -60,13 +62,39 @@ public sealed class UiInteractionBrowserTests(
             await page.Keyboard.PressAsync("Tab");
             Assert.True(await page.EvaluateAsync<bool>("document.activeElement.matches('#closeAthleteDetailsModal, #stickyCloseBtn')"),
                 await FocusDiagnosticsAsync(page));
+            await WaitForVisibleFocusAsync(page);
             await page.Locator("#closeAthleteDetailsModal").FocusAsync();
-            await CaptureAsync(page, $"profile-{width}");
             await page.Keyboard.PressAsync("Escape");
             await Assertions.Expect(page.Locator("#detailsModal")).ToBeHiddenAsync();
             Assert.False(await page.Locator("header").EvaluateAsync<bool>("e => e.inert"));
             Assert.False(await page.Locator("body").EvaluateAsync<bool>("e => e.classList.contains('no-scroll')"));
             Assert.True(await page.EvaluateAsync<bool>("document.activeElement.matches('a.header-link')"), await FocusDiagnosticsAsync(page));
+        }
+        finally { release.TrySetResult(); }
+    }
+
+    [Theory]
+    [InlineData(1440)]
+    [InlineData(390)]
+    public async Task Profile_ReverseTabRevealsItsTargetWhileEventFrameIsPending(int width)
+    {
+        await using var context = await NewContextAsync(width, 900);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await context.RouteAsync("**/event-board-embed.html**", async route =>
+        {
+            await release.Task;
+            await route.ContinueAsync();
+        });
+        var page = await context.NewPageAsync();
+        try
+        {
+            await page.GotoAsync("/athlete/michael-lustgarten", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+            await Assertions.Expect(page.Locator("#detailsModal .modal-content")).Not.ToHaveClassAsync(new System.Text.RegularExpressions.Regex("is-loading"));
+            await page.Locator("#closeAthleteDetailsModal").FocusAsync();
+            await page.Keyboard.PressAsync("Shift+Tab");
+            Assert.True(await page.EvaluateAsync<bool>("!!document.activeElement.closest('#detailsModal') && document.activeElement.tagName !== 'IFRAME'"),
+                await FocusDiagnosticsAsync(page));
+            await WaitForVisibleFocusAsync(page);
         }
         finally { release.TrySetResult(); }
     }
@@ -313,6 +341,22 @@ public sealed class UiInteractionBrowserTests(
         await Assertions.Expect(page.Locator("#dob-year")).ToBeFocusedAsync();
         Assert.False(await page.Locator("body").EvaluateAsync<bool>("e => e.classList.contains('no-scroll')"));
     }
+
+    private static Task WaitForVisibleFocusAsync(IPage page) => page.WaitForFunctionAsync("""
+        () => {
+            let element = document.activeElement;
+            const frame = element.tagName === 'IFRAME' ? element : null;
+            let rect = element.getBoundingClientRect();
+            if (frame) {
+                element = frame.contentDocument.activeElement;
+                const child = element.getBoundingClientRect();
+                rect = { left: rect.left + child.left, top: rect.top + child.top, width: child.width, height: child.height };
+            }
+            if (!rect.width || !rect.height) return false;
+            const hit = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
+            return frame ? hit === frame : !!hit && element.contains(hit);
+        }
+        """, options: new() { Timeout = 5000 });
 
     private static Task<string> FocusDiagnosticsAsync(IPage page) => page.EvaluateAsync<string>("""
         () => JSON.stringify({ active:document.activeElement.outerHTML.slice(0,200),
