@@ -383,11 +383,6 @@
         }
 
         body[data-convergence-stage="1"] #descriptionForm {
-            padding: 0;
-            border-bottom: 0;
-        }
-
-        body[data-convergence-stage="1"] #descriptionForm > :not(.convergence-visual) {
             display: none !important;
         }
 
@@ -578,10 +573,6 @@
             object-position: center 35%;
         }
 
-        body[data-convergence-stage="3"] #descriptionForm #illustrationImage.illustration {
-            object-position: center bottom;
-        }
-
         body[data-convergence-stage="4"] #descriptionForm #illustrationImage.illustration {
             object-position: center top;
         }
@@ -675,9 +666,9 @@
             <form id="descriptionForm" class="bioageform" data-aos="fade" data-aos-duration="700" data-aos-delay="450">
                 <div class="convergence-visual">
                     <picture id="illustrationPicture" style="display:''">
-                        <source type="image/webp" srcset="../assets/content-images/enter-arena-banner.webp">
-                        <source type="image/jpeg" srcset="../assets/content-images/enter-arena-banner.jpg">
-                        <img id="illustrationImage" src="../assets/content-images/enter-arena-banner.jpg" alt="Footballers entering a stadium" class="illustration" width="2172" height="724" loading="lazy" decoding="async">
+                        <source type="image/webp" srcset="../assets/content-images/enter-arena.webp">
+                        <source type="image/jpeg" srcset="../assets/content-images/enter-arena.jpg">
+                        <img id="illustrationImage" src="../assets/content-images/enter-arena.jpg" alt="Longevity World Cup logo" class="illustration" width="1024" height="768" loading="lazy" decoding="async">
                     </picture>
                     <div id="onboardingProofSymbol" class="proof-upload-symbol" aria-hidden="true" hidden><i class="fas fa-file-medical"></i></div>
                     <img style="display:none" id="profileImage" src="" alt="Profile picture" class="illustration" loading="lazy">
@@ -1683,8 +1674,8 @@
                 case 1:
                     // Stage 1: Enter the Arena
                     document.querySelector('h1').innerHTML = "1. Enter the arena";
-                    updateIllustration("enter-arena-banner", "jpg", webpSource, jpegSource, illustrationImage);
-                    illustrationImage.alt = "Footballers entering a stadium";
+                    updateIllustration("enter-arena", "jpg", webpSource, jpegSource, illustrationImage);
+                    illustrationImage.alt = "Longevity World Cup logo";
                     illustrationImage.loading = "lazy";
                     document.getElementById('personalDetails').style.display = '';
                     nextButton.innerHTML = '<span class="flow-action__label">Next</span><i class="fas fa-arrow-right" aria-hidden="true"></i>';
@@ -1727,8 +1718,8 @@
                 case 3:
                     // Stage 3: The price of glory
                     document.querySelector('h1').innerHTML = "3. The price of glory";
-                    updateIllustration("cr7v2", "jpg", webpSource, jpegSource, illustrationImage);
-                    illustrationImage.alt = "Cristiano Ronaldo";
+                    updateIllustration("privacy-banner", "jpg", webpSource, jpegSource, illustrationImage);
+                    illustrationImage.alt = "Footballers entering a stadium";
                     illustrationImage.loading = "lazy";
                     document.getElementById('privacyText').style.display = '';
                     document.getElementById('privacyDetails').style.display = '';
