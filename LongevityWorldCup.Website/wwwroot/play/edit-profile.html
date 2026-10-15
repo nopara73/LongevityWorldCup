@@ -146,7 +146,7 @@
         #divisionDisplaySelect {
             width: 100%;
             min-height: 44px;
-            padding: 0.65rem 2.25rem 0.65rem 0.85rem;
+            padding: 0.65rem min(2.25rem, 36px) 0.65rem min(0.85rem, 13.6px);
             border: 1px solid var(--lwc-border-strong, #71808d);
             border-radius: 8px;
             font-size: 1rem;
@@ -157,7 +157,7 @@
             color: var(--lwc-ink, #17212b);
             background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364758b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
             background-repeat: no-repeat;
-            background-position: right 0.85rem center;
+            background-position: right min(0.85rem, 13.6px) center;
             background-size: 12px 12px;
             appearance: none;
             box-sizing: border-box;
@@ -391,6 +391,7 @@
         @media (max-width: 600px) {
             .edit-profile-main {
                 padding: 2rem 1.35rem 2.75rem;
+                padding-inline: min(1.35rem, 20px);
             }
 
             .edit-profile-title {
@@ -654,20 +655,164 @@
         .profile-draft button:hover { color: var(--lwc-ink); }
         .profile-draft button:focus-visible { outline: 2px solid var(--lwc-accent); outline-offset: 2px; }
         .profile-draft[hidden], .profile-draft [hidden] { display: none; }
+
+        /* The portrait column: picture with its own actions directly beneath it. */
+        .edit-profile-portrait {
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 0.75rem;
+            width: min(100%, 408px);
+            max-width: 408px;
+            margin: 0 auto 1.25rem;
+        }
+
+        .edit-profile-portrait .edit-profile-visual {
+            margin: 0 auto;
+        }
+
+        #changeProfilePicWrapper {
+            flex-direction: row;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 0.65rem;
+            width: 100%;
+            max-width: none;
+            margin: 0;
+        }
+
+        #changeProfilePicWrapper > .option-button:not(.icon-only) {
+            flex: 1 1 12em;
+            width: auto;
+            min-width: 0;
+            padding-inline: min(1rem, 16px) min(2.75rem, 52px);
+        }
+
+        #changeProfilePicWrapper > .flow-action > i {
+            right: min(1.35rem, 20px);
+            width: min(1.25rem, 24px);
+            font-size: min(1em, 24px);
+        }
+
+        #changeProfilePicWrapper > #takeProfileSelfieButton,
+        #changeProfilePicWrapper > .upload-choice-divider {
+            flex-basis: 100%;
+        }
+
+        #changeProfilePicWrapper > #restoreProfilePicButton {
+            flex: 0 0 44px;
+            width: 44px;
+            max-width: 44px;
+        }
+
+        /* The fields sit together in one card, like the application's athlete details. */
+        #editOptionsGroup {
+            align-items: stretch;
+            gap: var(--lwc-space-4, 1rem);
+            width: min(100%, 460px);
+            padding: min(var(--lwc-space-5, 1.5rem), 24px);
+            border: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.16));
+            border-radius: var(--lwc-radius-lg, 12px);
+            background: var(--lwc-surface, #fff);
+            box-shadow: var(--lwc-shadow-sm, 0 1px 2px rgba(15, 23, 42, 0.08));
+            box-sizing: border-box;
+        }
+
+        #editOptionsGroup .inline-option-group {
+            width: 100%;
+            max-width: none;
+        }
+
+        .profile-draft {
+            width: min(100%, 460px);
+            max-width: 460px;
+        }
+
+        @media (max-width: 600px) {
+            #editOptionsGroup {
+                padding: min(var(--lwc-space-4, 1rem), 16px);
+            }
+        }
+
+        /* Wider screens: portrait beside the card; enlarged text wraps the card below instead. */
+        @media (min-width: 720px) {
+            .edit-profile-main {
+                display: flex;
+                flex-direction: row;
+                flex-wrap: wrap;
+                align-items: flex-start;
+                justify-content: center;
+                gap: 0.85rem 2rem;
+                max-width: 920px;
+            }
+
+            .edit-profile-title,
+            .edit-profile-actions {
+                flex: 0 0 100%;
+            }
+
+            .edit-profile-actions {
+                max-width: 408px;
+            }
+
+            .edit-profile-portrait {
+                flex: 0 1 20rem;
+                min-width: 12.5rem;
+                margin: 0;
+            }
+
+            .edit-profile-portrait .edit-profile-visual,
+            .edit-profile-portrait .edit-profile-visual .illustration {
+                width: 100%;
+            }
+
+            #editOptionsGroup {
+                flex: 1 1 22rem;
+                width: auto;
+                max-width: 28.75rem;
+            }
+
+            .profile-draft {
+                flex: 0 0 100%;
+                max-width: calc(20rem + 2rem + 28.75rem);
+            }
+        }
+
+        /* Short desktops keep the whole form and its actions in the first screen. */
+        @media (min-width: 960px) and (max-height: 780px) {
+            .edit-profile-main {
+                row-gap: 0.5rem;
+            }
+
+            #editOptionsGroup {
+                gap: var(--lwc-space-2, 0.5rem);
+                padding: 0.75rem var(--lwc-space-4, 1rem);
+            }
+
+            .edit-profile-actions {
+                margin-top: 0.5rem;
+            }
+
+            .edit-profile-portrait .edit-profile-visual,
+            .edit-profile-portrait .edit-profile-visual .illustration {
+                width: min(100%, 260px);
+            }
+        }
     </style>
 </head>
 <body class="play-flow-route">
     <!--HEADER-->
     <main class="edit-profile-main initial-view-main">
         <h1 id="character-title" class="edit-profile-title" data-aos="fade" data-aos-duration="700" data-aos-delay="250">Edit athlete profile</h1>
-        <div class="edit-profile-visual" data-aos="fade" data-aos-duration="700" data-aos-delay="300">
-            <picture>
-                <source srcset="{{ASSET_PLAY_ATHLETE_PLACEHOLDER_WEBP}}" type="image/webp">
-                <source srcset="{{ASSET_PLAY_ATHLETE_PLACEHOLDER_JPEG}}" type="image/jpeg">
-                <img src="{{ASSET_PLAY_ATHLETE_PLACEHOLDER_JPEG}}" alt="Headshot" class="illustration" width="1024" height="1024" loading="lazy" decoding="async">
-            </picture>
-        </div>
-        <div id="editOptionsGroup" data-aos="fade" data-aos-duration="700" data-aos-delay="350">
+        <div class="edit-profile-portrait">
+            <div class="edit-profile-visual" data-aos="fade" data-aos-duration="700" data-aos-delay="300">
+                <picture>
+                    <source srcset="{{ASSET_PLAY_ATHLETE_PLACEHOLDER_WEBP}}" type="image/webp">
+                    <source srcset="{{ASSET_PLAY_ATHLETE_PLACEHOLDER_JPEG}}" type="image/jpeg">
+                    <img src="{{ASSET_PLAY_ATHLETE_PLACEHOLDER_JPEG}}" alt="Headshot" class="illustration" width="1024" height="1024" loading="lazy" decoding="async">
+                </picture>
+            </div>
             <div id="changeProfilePicWrapper" class="options-container flow-action-stack flow-action-stack--flush">
                 <button type="button" id="takeProfileSelfieButton" class="option-button grey flow-action flow-action--secondary">
                     <span class="flow-action__label">Take selfie</span><i class="fa fa-camera" aria-hidden="true"></i>
@@ -682,6 +827,8 @@
                     <i class="fas fa-undo" aria-hidden="true"></i>
                 </button>
             </div>
+        </div>
+        <div id="editOptionsGroup" data-aos="fade" data-aos-duration="700" data-aos-delay="350">
             <div class="niceInputFieldDisplayWrapper options-container inline-option-group">
                 <label for="divisionDisplaySelect" class="field-label">Division</label>
                 <select id="divisionDisplaySelect"></select>
