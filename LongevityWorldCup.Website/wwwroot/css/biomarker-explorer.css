@@ -12,6 +12,8 @@
     --be-muted: var(--athlete-modal-muted, #b8c5cf);
     --be-text: var(--athlete-modal-text, #f6f4ed);
     --be-panel: var(--athlete-modal-chart-panel, #111c26);
+    --be-result-columns: minmax(0, 1.5fr) minmax(48px, .9fr) minmax(0, 4.5rem) minmax(0, 4rem) 16px;
+    scroll-margin-top: 80px;
 }
 #athlete-biomarkers.biomarker-explorer *,
 #athlete-biomarkers.biomarker-explorer *::before,
@@ -19,16 +21,19 @@
 #athlete-biomarkers.biomarker-explorer [hidden] { display: none !important; }
 #athlete-biomarkers .be-heading {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
     gap: .75rem;
-    margin: -1rem -1rem 1rem;
+    margin: -16px -16px 1rem;
     padding: .35rem .75rem .35rem 1rem;
     border-bottom: 1px solid var(--be-border);
     background: rgba(246,244,237,.035);
 }
 #detailsModal #athlete-biomarkers .be-heading h3 {
     min-height: 0;
+    min-width: 0;
+    overflow-wrap: anywhere;
     margin: 0;
     padding: 0;
     border: 0;
@@ -82,11 +87,10 @@
 #athlete-biomarkers .be-tabs {
     display: grid;
     grid-template-columns: repeat(3, minmax(0,1fr));
-    padding: 4px;
-    gap: 4px;
-    background: var(--be-panel);
-    border: 1px solid var(--be-border);
-    border-radius: 11px;
+    padding: 0;
+    gap: .4rem;
+    background: transparent;
+    border-bottom: 1px solid var(--be-border);
 }
 #athlete-biomarkers.biomarker-explorer .be-tabs button {
     border-color: transparent;
@@ -95,14 +99,14 @@
     font-weight: 600;
     padding: .55rem .4rem;
     overflow-wrap: anywhere;
+    border-radius: 0;
 }
 #athlete-biomarkers.biomarker-explorer .be-tabs button[aria-selected="true"] {
     color: var(--be-text);
-    border-color: rgba(123,221,227,.35);
-    background: rgba(123,221,227,.1);
+    border-color: transparent;
+    background: transparent;
     box-shadow: inset 0 -2px 0 var(--be-accent);
 }
-#athlete-biomarkers .be-question { margin: 1rem 0 .8rem; color: var(--be-text); font-size: .95rem; line-height: 1.45; }
 #athlete-biomarkers .be-picker-row,
 #athlete-biomarkers .be-record-controls {
     display: flex;
@@ -278,39 +282,109 @@
 #athlete-biomarkers .be-driver-track { height: 14px; position: relative; }
 #athlete-biomarkers .be-driver-track::before { content: ''; width: 1px; background: var(--be-muted); opacity: .5; position: absolute; left: 50%; top: -3px; bottom: -3px; }
 #athlete-biomarkers .be-driver-track i { display: block; position: absolute; height: 8px; top: 3px; background: var(--be-accent); opacity: .8; border-radius: 2px; }
-#athlete-biomarkers .be-results-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .3rem .85rem; padding-bottom: .75rem; }
-#athlete-biomarkers.biomarker-explorer .be-result { display: grid; grid-template-columns: minmax(0,1fr) 4rem 3.6rem; gap: .4rem; background: transparent; border: 0; border-bottom: 1px solid var(--be-border); border-radius: 0; padding: .65rem .2rem; text-align: left; min-height: 54px; }
-#athlete-biomarkers .be-result-name { font-size: .82rem; }
-#athlete-biomarkers .be-result-value { font-size: 1rem; font-variant-numeric: tabular-nums; text-align: right; }
-#athlete-biomarkers .be-result-change { font-size: .8rem; color: var(--be-muted); font-variant-numeric: tabular-nums; text-align: right; }
-#athlete-biomarkers .be-result small { display: block; font-size: .65rem; color: var(--be-muted); line-height: 1.5; }
-#athlete-biomarkers .be-measured-count { color: var(--be-accent); }
+
+#athlete-biomarkers .be-test-count { color: var(--be-muted); font-size: .75rem; font-variant-numeric: tabular-nums; }
+#athlete-biomarkers .be-record-controls { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .8rem; margin: .25rem 0 1.2rem; }
+#athlete-biomarkers .be-record-controls:has(.be-compare-control[hidden]) { grid-template-columns: minmax(0,1fr); }
+#athlete-biomarkers .be-record-controls .be-compare-control { margin: 0; }
+#athlete-biomarkers .be-overview-clocks { display: flex; flex-wrap: wrap; gap: .5rem; margin: 0 0 1.2rem; }
+#athlete-biomarkers.biomarker-explorer .be-overview-clock { flex: 1 1 12rem; display: flex; justify-content: start; gap: .6rem; padding: .65rem .8rem; border-color: var(--be-border); background: var(--be-panel); text-align: left; }
+#athlete-biomarkers .be-overview-clock > span { flex: 1; font-size: .85rem; }
+#athlete-biomarkers .be-overview-clock small { font-size: .68rem; font-weight: 400; color: var(--be-muted); }
+#athlete-biomarkers .be-overview-clock > span small { margin-left: .35rem; }
+#athlete-biomarkers .be-overview-clock strong { font-size: 1rem; font-weight: 500; font-variant-numeric: tabular-nums; }
+#athlete-biomarkers .be-overview-clock > svg { width: 14px; height: 14px; flex-basis: 14px; color: var(--be-muted); }
+#athlete-biomarkers .be-results-heading,
+#athlete-biomarkers.biomarker-explorer .be-test-result { display: grid; grid-template-columns: var(--be-result-columns); gap: .65rem; align-items: center; }
+#athlete-biomarkers .be-results-heading { padding: 0 .2rem .65rem; color: var(--be-muted); border-bottom: 1px solid var(--be-border); font-size: .7rem; line-height: 1.5; }
+#athlete-biomarkers .be-results-heading > :nth-child(2) { text-align: center; }
+#athlete-biomarkers .be-results-heading > :is(:nth-child(3),:nth-child(4)) { text-align: right; }
+#athlete-biomarkers .be-baseline-label { display: block; font-size: .65rem; font-weight: 400; opacity: .8; }
+#athlete-biomarkers.biomarker-explorer .be-test-result { width: 100%; min-height: 68px; padding: .7rem .2rem; border: 0; border-bottom: 1px solid var(--be-border); border-radius: 0; background: transparent; text-align: left; }
+#athlete-biomarkers.biomarker-explorer .be-test-result:hover { background: rgba(123,221,227,.045); border-color: var(--be-border); }
+#athlete-biomarkers .be-test-result > span { min-width: 0; }
+#athlete-biomarkers .be-test-result-name { font-size: .9rem; line-height: 1.4; overflow-wrap: anywhere; }
+#athlete-biomarkers .be-test-result-name small { display: block; font-size: .7rem; line-height: 1.5; color: var(--be-muted); }
+#athlete-biomarkers .be-test-result-value { text-align: right; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+#athlete-biomarkers .be-test-result-value strong { display: block; font-size: 1.12rem; line-height: 1.4; font-weight: 500; }
+#athlete-biomarkers .be-test-result-value small { display: block; font-size: .74rem; line-height: 1.5; color: var(--be-muted); }
+#athlete-biomarkers .be-test-result-delta { text-align: right; color: var(--be-muted); font-size: .84rem; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+#athlete-biomarkers .be-result-chevron { color: var(--be-muted); opacity: .65; }
+#athlete-biomarkers .be-result-chevron > svg { display: block; width: 14px; height: 14px; }
+#athlete-biomarkers .be-mini-history { display: block; width: 100%; max-width: 132px; justify-self: center; pointer-events: none; text-align: center; }
+#athlete-biomarkers .be-mini-history .be-sparkline { display: block; width: 100%; height: 34px; overflow: visible; }
+#athlete-biomarkers .be-sparkline path { fill: none; stroke: var(--be-muted); stroke-width: 1.2; opacity: .5; vector-effect: non-scaling-stroke; }
+#athlete-biomarkers .be-sparkline circle { fill: var(--be-panel); stroke: var(--be-muted); stroke-width: 1.3; }
+#athlete-biomarkers .be-sparkline .be-spark-selected { fill: var(--be-accent); stroke: var(--be-accent); }
+#athlete-biomarkers .be-sparkline .be-spark-baseline { fill: var(--be-text); stroke: var(--be-text); }
+#athlete-biomarkers .be-no-history { color: var(--be-muted); }
+#athlete-biomarkers .be-overview-footer { display: flex; align-items: center; justify-content: space-between; gap: .5rem 1rem; flex-wrap: wrap; margin: .8rem 0 -.2rem; }
+#athlete-biomarkers .be-history-span { color: var(--be-muted); font-size: .7rem; line-height: 1.5; }
+#athlete-biomarkers.biomarker-explorer .be-overview-footer button,
+#athlete-biomarkers.biomarker-explorer .be-detail-heading button { border-color: transparent; background: transparent; color: var(--be-muted); padding-inline: .2rem; font-size: .8rem; }
+#athlete-biomarkers .be-detail-heading { display: flex; align-items: center; justify-content: space-between; width: 100%; gap: .5rem; }
+#athlete-biomarkers .be-detail-heading > button:first-child { color: var(--be-text); }
+#athlete-biomarkers .be-detail .be-clock-tile > strong { font-size: 1.5rem; }
+#athlete-biomarkers .be-detail .be-history-focus { margin-top: 1.1rem; }
+#athlete-biomarkers .be-detail .be-figure { padding: 1rem .5rem .5rem; background: transparent; border: 0; }
+#athlete-biomarkers .be-detail .be-chart-wrap { height: 220px; }
+#athlete-biomarkers .be-detail .be-clock-figure .be-chart-wrap { height: 230px; }
+#athlete-biomarkers[data-detail-open="true"] .be-heading { padding-block: 0; }
+#athlete-biomarkers[data-detail-open="true"] .be-record-controls { margin-bottom: .6rem; }
+#athlete-biomarkers .be-detail .be-tabs { margin-bottom: .8rem; }
+#athlete-biomarkers .be-readout-main { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem 1.25rem; }
+#athlete-biomarkers .be-readout-main .be-measurement { margin: 0; gap: .4rem; }
+#athlete-biomarkers .be-readout-main .be-measurement > strong { font-size: 1.8rem; }
+#athlete-biomarkers .be-readout-main .be-difference { display: flex; flex-direction: column; align-items: start; gap: .05rem; border: 0; margin: 0; padding: 0; }
+#athlete-biomarkers .be-readout-main .be-difference > strong { font-size: .83rem; }
+#athlete-biomarkers .be-readout-main .be-difference > span { font-size: .7rem; }
+#athlete-biomarkers .be-detail .be-readout { margin: .65rem 0 0; padding: 0; }
+#athlete-biomarkers .be-detail .be-figure[data-primary-history="true"] { padding-top: .5rem; }
+#athlete-biomarkers .be-figure[data-primary-history="true"] > figcaption { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+#athlete-biomarkers[data-active-view="time"] .be-picker-row .be-control > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
 @container (max-width: 480px) {
+    #athlete-biomarkers .be-results-heading,
+    #athlete-biomarkers.biomarker-explorer .be-test-result { --be-result-columns: minmax(0,1fr) 52px minmax(0,3.6rem) minmax(0,3.2rem) 12px; }
+    #athlete-biomarkers .be-results-heading,
+    #athlete-biomarkers.biomarker-explorer .be-test-result { gap: .4rem; }
+    #athlete-biomarkers .be-test-result-name { font-size: .84rem; }
+    #athlete-biomarkers .be-test-result-value strong { font-size: 1.05rem; }
+    #athlete-biomarkers .be-test-result-delta { font-size: .78rem; }
     #athlete-biomarkers .be-date-range { grid-template-columns: minmax(0,1fr); }
     #athlete-biomarkers .be-date-range button { justify-self: start; }
     #athlete-biomarkers .be-advanced-grid { grid-template-columns: minmax(0,1fr); }
     #athlete-biomarkers .be-picker-row .be-secondary { flex-basis: 100%; }
-    #athlete-biomarkers .be-record-controls .be-compare-toggle { flex: 0 0 auto; }
     #athlete-biomarkers .be-tools { gap: .25rem; }
     #athlete-biomarkers .be-tools .be-tool-spacer { display: none; }
     #athlete-biomarkers .be-figure:is([data-plot="context"], [data-plot="relationships"]) .be-chart-wrap { height: 285px; }
     #athlete-biomarkers .be-chart-wrap { height: 220px; }
     #athlete-biomarkers .be-clock-figure .be-chart-wrap { height: 190px; }
     #athlete-biomarkers .be-lane-picker { flex-basis: 100%; max-width: none; }
-    #athlete-biomarkers .be-results-grid { grid-template-columns: minmax(0,1fr); }
     #athlete-biomarkers .be-driver { grid-template-columns: minmax(0,1fr) 18% 4rem; }
     #athlete-biomarkers.biomarker-explorer .be-tabs button { overflow-wrap: anywhere; font-size: .78rem; padding-inline: .2rem; }
-    #athlete-biomarkers .be-driver > span:first-child,
-    #athlete-biomarkers .be-result > span { min-width: 0; overflow-wrap: anywhere; }
-    #athlete-biomarkers .be-result { grid-template-columns: minmax(0,1fr) minmax(0,4rem) minmax(0,3.6rem); }
+    #athlete-biomarkers .be-driver > span:first-child { min-width: 0; overflow-wrap: anywhere; }
     #athlete-biomarkers .be-clock-tile > strong { font-size: 1.65rem; }
+}
+@container (max-width: 16rem) {
+    #athlete-biomarkers .be-results-heading,
+    #athlete-biomarkers.biomarker-explorer .be-test-result { --be-result-columns: minmax(0,1fr) minmax(0,3.6rem) minmax(0,3rem) 12px; }
+    #athlete-biomarkers .be-test-result .be-mini-history,
+    #athlete-biomarkers .be-results-heading > :nth-child(2) { display: none; }
+    #athlete-biomarkers .be-record-controls { grid-template-columns: minmax(0,1fr); }
 }
 @media (prefers-reduced-motion: reduce) {
     #athlete-biomarkers.biomarker-explorer * { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }
 @container (max-width: 10rem) {
-    #athlete-biomarkers.biomarker-explorer .be-driver,
-    #athlete-biomarkers.biomarker-explorer .be-result { grid-template-columns: minmax(0,1fr); gap: .2rem; }
+    #athlete-biomarkers.biomarker-explorer .be-test-result { grid-template-columns: minmax(0,1fr) minmax(0,1fr) 12px; row-gap: .35rem; }
+    #athlete-biomarkers .be-test-result-name { grid-column: 1 / 3; }
+    #athlete-biomarkers .be-test-result-value { grid-column: 1; text-align: left; }
+    #athlete-biomarkers .be-test-result-delta { grid-column: 2; }
+    #athlete-biomarkers .be-result-chevron { grid-column: 3; grid-row: 1 / 3; }
+    #athlete-biomarkers .be-results-heading { grid-template-columns: minmax(0,1fr) minmax(0,1fr) 12px; }
+    #athlete-biomarkers .be-results-heading > :first-child { display: none; }
+    #athlete-biomarkers .be-results-heading > :nth-child(3) { text-align: left; }
+    #athlete-biomarkers.biomarker-explorer .be-driver { grid-template-columns: minmax(0,1fr); gap: .2rem; }
     #athlete-biomarkers .be-driver > strong { text-align: left; }
-    #athlete-biomarkers .be-result > span { text-align: left; }
 }

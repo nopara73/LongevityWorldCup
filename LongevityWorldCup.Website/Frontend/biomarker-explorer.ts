@@ -126,6 +126,8 @@
         private compact = false;
         private timeMetric: 'pheno' | 'bortz' | 'marker' = 'pheno';
         private cumulative = false;
+        private detailOpen = false;
+        private automaticComparison = true;
 
         constructor(root: HTMLElement, raw: unknown, field: readonly unknown[], data: BiomarkerExplorerDataApi) {
             this.root = root;
@@ -151,7 +153,6 @@
             this.populateControls();
             this.bind();
             this.render();
-            if (this.athlete.records.length <= 1) this.element<HTMLDetailsElement>('.be-measured').open = true;
             this.root.dataset.explorerReady = 'true';
             this.resizeObserver = new ResizeObserver(() => this.resize());
             this.resizeObserver.observe(this.root);
@@ -166,9 +167,15 @@
         }
 
         private template(): string {
-            return `<div class="be-heading"><h3>Biomarkers</h3><button type="button" class="be-icon" data-action="reset" title="Reset exploration" aria-label="Reset exploration">${icon('reset')}</button></div>
-                <div class="be-record-controls"><label class="be-control"><span>Blood test</span><select id="be-date" aria-label="Selected recorded test"></select></label><button type="button" data-action="compare-tests" class="be-compare-toggle" aria-label="Compare tests" aria-pressed="false">Compare</button></div>
-                <label class="be-control be-compare-control" hidden><span>Compared with</span><select id="be-compare" aria-label="Baseline recorded test"></select></label>
+            return `<div class="be-heading"><h3>Biomarkers</h3><div class="be-detail-heading" hidden><button type="button" data-action="all-results">${icon('left')} All results</button><button type="button" class="be-icon" data-action="reset" title="Reset exploration" aria-label="Reset exploration">${icon('reset')}</button></div><span class="be-test-count"></span></div>
+                <div class="be-record-controls"><label class="be-control"><span>Blood test</span><select id="be-date" aria-label="Selected recorded test"></select></label><label class="be-control be-compare-control"><span>Compared with</span><select id="be-compare" aria-label="Baseline recorded test"></select></label></div>
+                <section class="be-overview" aria-label="Blood test results">
+                    <div class="be-overview-clocks" aria-label="Computed biological ages"></div>
+                    <div class="be-results-heading" aria-hidden="true"><span>Biomarker</span><span>History</span><span>Result<small class="be-baseline-label">Baseline</small></span><span>Change</span><span></span></div>
+                    <div class="be-test-results" role="list"></div>
+                    <div class="be-overview-footer"><span class="be-history-span"></span><button type="button" data-action="export" aria-label="Download blood test CSV">${icon('download')} CSV</button></div>
+                </section>
+                <section class="be-detail" aria-label="Biomarker detail" hidden>
                 <div class="be-clock-summary" role="group" aria-label="Computed clock results"></div>
                 <div class="be-tabs" role="tablist" aria-label="Biomarker exploration">
                     <button type="button" role="tab" id="be-tab-time" data-view="time" aria-controls="be-panel">History</button>
@@ -176,19 +183,16 @@
                     <button type="button" role="tab" id="be-tab-relationships" data-view="relationships" aria-controls="be-panel">Compare markers</button>
                 </div>
                 <div id="be-panel" role="tabpanel" aria-labelledby="be-tab-time">
-                    <p class="be-question"></p>
-                    <div class="be-history-focus" role="group" aria-label="History chart"><button type="button" data-action="clock-history">Clock results</button><button type="button" data-action="marker-history">Measured biomarkers</button></div>
                     <div class="be-picker-row"><label class="be-control"><span>Biomarker</span><select id="be-marker" aria-label="Biomarker"></select></label>
                         <label class="be-control be-secondary" hidden><span>Compare with</span><select id="be-secondary" aria-label="Relationship y-axis biomarker"></select></label>
-                        <button type="button" class="be-icon be-add" data-action="add-marker" aria-label="Add a biomarker lane" title="Add a biomarker lane">${icon('plus')}</button>
                     </div>
                     <div class="be-mode" role="group" aria-label="Relationship observations" hidden><button type="button" data-action="field-mode">Across athletes</button><button type="button" data-action="own-mode">This athlete</button></div>
                     <div class="be-readout" aria-live="off"></div><div class="be-preview" hidden></div>
                     <div class="be-plot-area"><div class="be-plots"></div><p class="be-source"></p></div>
                     <div class="be-chart-recovery" hidden><p>Graphs are unavailable. All recorded values are available below.</p><button type="button" data-action="retry-charts">Retry graphs</button></div>
                     <div class="be-change-drivers"></div>
-                    <details class="be-details be-measured"><summary>Measured results <span class="be-measured-count"></span></summary><div class="be-results-grid"></div></details>
                     <details class="be-details be-plot-options"><summary>Plot options</summary>
+                    <div class="be-history-focus" role="group" aria-label="History chart"><button type="button" data-action="clock-history">Clock results</button><button type="button" data-action="marker-history">Measured biomarkers</button><button type="button" class="be-icon be-add" data-action="add-marker" aria-label="Add a biomarker lane" title="Add a biomarker lane">${icon('plus')}</button></div>
                     <div class="be-tools" role="group" aria-label="Plot controls">
                         <button type="button" class="be-icon" data-action="previous" aria-label="Previous recorded test">${icon('left')}</button><button type="button" class="be-icon" data-action="next" aria-label="Next recorded test">${icon('right')}</button>
                         <button type="button" data-action="inspect" aria-pressed="true">Inspect</button><button type="button" data-action="select" aria-pressed="false">${icon('select')} Select</button><button type="button" data-action="pan" aria-pressed="false">${icon('pan')} Pan</button>
@@ -211,7 +215,7 @@
                     <details class="be-details be-data"><summary>Data &amp; export <span class="be-data-count"></span></summary><div class="be-data-actions"><button type="button" data-action="export">${icon('download')} Download CSV</button><span class="be-table-caption"></span></div><div class="be-table-scroll" tabindex="0" role="region" aria-label="Observation data table"><table class="be-table"><caption class="visually-hidden">Recorded values and computed clock results</caption><thead></thead><tbody></tbody></table></div><div class="be-pagination"><button type="button" data-action="table-previous">Previous page</button><span></span><button type="button" data-action="table-next">Next page</button></div></details>
                     <details class="be-details be-reading"><summary>How to read this</summary><div class="be-reading-content"></div></details>
                     <span class="visually-hidden be-announcement" role="status" aria-live="polite" aria-atomic="true"></span>
-                </div>`;
+                </div></section>`;
         }
 
         private populateControls(): void {
@@ -228,7 +232,7 @@
                 return `<option value="${escape(record.id)}">${escape(label)}</option>`;
             }).join('');
             this.element<HTMLSelectElement>('#be-date').innerHTML = recordOptions;
-            this.element<HTMLSelectElement>('#be-compare').innerHTML = recordOptions;
+            this.element<HTMLSelectElement>('#be-compare').innerHTML = '<option value="">No comparison</option>' + recordOptions;
             this.element<HTMLSelectElement>('#be-division').innerHTML = '<option value="">All divisions</option>' + [...new Set(this.cohort.records.map(record => record.division).filter(Boolean))].sort().map(division => `<option>${escape(division)}</option>`).join('');
         }
 
@@ -237,16 +241,15 @@
             this.root.addEventListener('click', event => {
                 const target = event.target instanceof Element ? event.target.closest<HTMLElement>('[data-action], [data-view], [data-record], [data-marker-remove], [data-marker]') : null;
                 if (!target || !this.root.contains(target)) return;
-                if (target.dataset.view) { this.view = target.dataset.view as View; this.interaction = 'inspect'; this.previewId = ''; this.tablePage = 0; this.render(); return; }
+                if (target.dataset.view) { this.view = target.dataset.view as View; this.interaction = 'inspect'; this.previewId = ''; this.tablePage = 0; this.render(); this.root.scrollIntoView({ block: 'start', behavior: 'auto' }); return; }
                 if (target.dataset.record) { this.pickRecord(target.dataset.record); return; }
                 if (target.dataset.marker) {
                     if (!this.data.markers.some(marker => marker.key === target.dataset.marker)) return;
-                    this.marker = target.dataset.marker; this.view = 'time'; this.timeMetric = 'marker'; this.logX = false;
+                    this.marker = target.dataset.marker; this.view = 'time'; this.timeMetric = 'marker'; this.logX = false; this.detailOpen = true;
                     this.extraMarkers = this.extraMarkers.filter(key => key !== this.marker);
                     this.contextBounds = null; this.relationshipBounds = null; this.brushedIds.clear();
                     if (this.secondary === this.marker) this.secondary = this.data.markers.find(marker => marker.key !== this.marker)?.key ?? '';
-                    this.render(); this.element('.be-history-focus').scrollIntoView({ block: 'nearest', behavior: 'auto' });
-                    this.element<HTMLSelectElement>('#be-marker').focus({ preventScroll: true }); return;
+                    this.render(); this.focusDetail(); return;
                 }
                 if (target.dataset.markerRemove) { this.extraMarkers = this.extraMarkers.filter(key => key !== target.dataset.markerRemove); this.render(); this.element<HTMLButtonElement>('[data-action="add-marker"]').focus({ preventScroll: true }); return; }
                 this.action(target.dataset.action ?? '');
@@ -267,7 +270,9 @@
                         if (target.id === 'be-secondary') { this.secondary = target.value; this.logY = false; this.relationshipBounds = null; this.brushedIds.clear(); break; }
                         this.marker = target.value; this.logX = false; this.contextBounds = null; this.relationshipBounds = null; this.brushedIds.clear(); this.extraMarkers = this.extraMarkers.filter(key => key !== this.marker); if (this.secondary === this.marker) this.secondary = this.data.markers.find(marker => marker.key !== this.marker)?.key ?? ''; break;
                     case 'be-date': this.pickRecord(target.value); return;
-                    case 'be-compare': this.comparisonId = target.value; break;
+                    case 'be-compare':
+                        if (target.value && !this.athlete.records.some(record => record.id === target.value && record.id !== this.selectedId)) { target.value = this.comparisonId; return; }
+                        this.comparisonId = target.value; this.automaticComparison = false; break;
                     case 'be-from': case 'be-to': this.setDateRange(); return;
                     case 'be-age-min': case 'be-age-max': this.setAgeRange(); return;
                     case 'be-division': this.division = target.value; this.contextBounds = null; this.relationshipBounds = null; this.brushedIds.clear(); break;
@@ -287,7 +292,7 @@
                     event.preventDefault();
                     const views: readonly View[] = ['time', 'context', 'relationships'];
                     const index = event.key === 'Home' ? 0 : event.key === 'End' ? 2 : (views.indexOf(this.view) + (event.key === 'ArrowRight' ? 1 : 2)) % 3;
-                    this.view = views[index] ?? 'time'; this.interaction = 'inspect'; this.render(); this.element<HTMLButtonElement>(`[data-view="${this.view}"]`).focus();
+                    this.view = views[index] ?? 'time'; this.interaction = 'inspect'; this.render(); this.element<HTMLButtonElement>(`[data-view="${this.view}"]`).focus({ preventScroll: true }); this.root.scrollIntoView({ block: 'start', behavior: 'auto' });
                 }
             }, { signal });
             this.element<HTMLDetailsElement>('.be-data').addEventListener('toggle', () => { if (this.element<HTMLDetailsElement>('.be-data').open) this.renderTable(); }, { signal });
@@ -304,6 +309,14 @@
         private action(action: string): void {
             switch (action) {
                 case 'reset': this.reset(); return;
+                case 'all-results': {
+                    const marker = this.timeMetric;
+                    this.detailOpen = false; this.previewId = ''; this.render();
+                    const target = this.root.querySelector<HTMLButtonElement>(marker === 'marker' ? `.be-test-result[data-marker="${this.marker}"]` : `[data-action="open-${marker}"]`) ?? this.root.querySelector<HTMLButtonElement>('.be-test-result') ?? this.element<HTMLSelectElement>('#be-date');
+                    target.focus();
+                    return;
+                }
+                case 'open-pheno': case 'open-bortz': this.detailOpen = true; this.view = 'time'; this.timeMetric = action === 'open-pheno' ? 'pheno' : 'bortz'; this.render(); this.focusDetail(); return;
                 case 'inspect': case 'select': case 'pan': this.interaction = action; break;
                 case 'zoom-in': this.zoom(0.65); return;
                 case 'zoom-out': this.zoom(1.55); return;
@@ -313,10 +326,6 @@
                 case 'own-mode': this.fieldMode = false; this.relationshipBounds = null; this.previewId = ''; this.brushedIds.clear(); this.statistics = false; break;
                 case 'previous': this.moveRecord(-1); return;
                 case 'next': this.moveRecord(1); return;
-                case 'compare-tests': {
-                    const index = this.athlete.records.findIndex(record => record.id === this.selectedId);
-                    this.comparisonId = this.comparisonId ? '' : this.athlete.records[index > 0 ? index - 1 : 1]?.id ?? ''; break;
-                }
                 case 'focus-pheno': case 'focus-bortz': this.timeMetric = action === 'focus-pheno' ? 'pheno' : 'bortz'; this.view = 'time'; this.interaction = 'inspect'; break;
                 case 'clock-history': this.timeMetric = this.athlete.records.some(record => record.pheno !== null) ? 'pheno' : 'bortz'; break;
                 case 'marker-history': this.timeMetric = 'marker'; break;
@@ -342,11 +351,17 @@
             this.render();
         }
 
+        private focusDetail(): void {
+            this.element<HTMLButtonElement>('[data-action="all-results"]').focus({ preventScroll: true });
+            this.root.scrollIntoView({ block: 'start', behavior: 'auto' });
+        }
+
         private reset(): void {
             const latest = this.athlete.records.at(-1);
             this.marker = latest && finite(latest.values.AlbGL) ? 'AlbGL' : this.data.markers.find(marker => latest && finite(latest.values[marker.key]))?.key ?? 'AlbGL';
             this.secondary = 'RdwPc'; if (this.marker === this.secondary) this.secondary = 'AlbGL';
             this.selectedId = latest?.id ?? ''; this.comparisonId = this.athlete.records.at(-2)?.id ?? ''; this.previewId = ''; this.extraMarkers = [];
+            this.automaticComparison = true; this.view = 'time'; this.detailOpen = false;
             this.timeMetric = latest && latest.pheno !== null ? 'pheno' : latest && latest.bortz !== null ? 'bortz' : 'marker'; this.cumulative = false;
             this.range = [...this.defaultRange]; this.ageMin = null; this.ageMax = null; this.division = ''; this.fieldMode = false;
             this.logX = false; this.logY = false; this.standardized = false; this.colorAge = false; this.statistics = false;
@@ -354,7 +369,7 @@
             this.selectedReference = null; this.brushedIds.clear(); this.contextBounds = null; this.relationshipBounds = null;
             this.interaction = 'inspect'; this.tablePage = 0;
             this.element<HTMLInputElement>('#be-age-min').value = ''; this.element<HTMLInputElement>('#be-age-max').value = '';
-            this.render(); this.announce('Exploration reset. Latest recorded test selected.');
+            this.render(); this.element<HTMLSelectElement>('#be-date').focus({ preventScroll: true }); this.root.scrollIntoView({ block: 'start', behavior: 'auto' }); this.announce('Exploration reset. Latest recorded test selected.');
         }
 
         private pickRecord(id: string): void {
@@ -362,6 +377,7 @@
             if (!record) return;
             if (record.athleteId !== this.athlete.id) { this.previewId = id; this.renderReadout(); this.announce(`Previewing ${record.athleteName}, ${dateLabel(record.day)}.`); return; }
             this.previewId = ''; this.selectedId = id;
+            if (this.automaticComparison) this.comparisonId = this.athlete.records[this.athlete.records.indexOf(record) - 1]?.id ?? '';
             if (record.day < this.range[0] || record.day > this.range[1]) this.range = this.clampRange([record.day - (this.range[1] - this.range[0]) / 2, record.day + (this.range[1] - this.range[0]) / 2]);
             if (this.comparisonId === id) this.comparisonId = '';
             this.render(); this.announce(`${dateLabel(record.day)} selected. ${this.markerInfo().label} ${formatted(record.values[this.marker])} ${this.markerInfo().unit}.`);
@@ -407,19 +423,24 @@
             const focusedPlot = this.plots.find(plot => plot.canvas === document.activeElement)?.key;
             const focusedAction = document.activeElement instanceof HTMLElement && this.root.contains(document.activeElement) ? document.activeElement.dataset.action : undefined;
             const focusedExtra = document.activeElement instanceof HTMLElement && this.root.contains(document.activeElement) ? document.activeElement.dataset.extraIndex : undefined;
+            const focusedMarker = document.activeElement instanceof HTMLElement && this.root.contains(document.activeElement) ? document.activeElement.dataset.marker : undefined;
             this.colorCache.clear(); this.compact = this.root.clientWidth < 440;
             this.root.dataset.activeView = this.view;
             this.root.dataset.selectedRecord = this.selectedId;
             this.root.dataset.primaryMarker = this.marker;
+            this.root.dataset.detailOpen = String(this.detailOpen);
+            this.element('.be-overview').hidden = this.detailOpen;
+            this.element('.be-detail').hidden = !this.detailOpen;
+            this.element('.be-heading h3').hidden = this.detailOpen;
+            this.element('.be-detail-heading').hidden = !this.detailOpen;
+            this.element('.be-test-count').hidden = this.detailOpen;
+            this.element('.be-record-controls').hidden = !this.athlete.records.length;
             this.element('#be-panel').setAttribute('aria-labelledby', `be-tab-${this.view}`);
             this.root.querySelectorAll<HTMLButtonElement>('[data-view]').forEach(tab => { const selected = tab.dataset.view === this.view; tab.setAttribute('aria-selected', String(selected)); tab.tabIndex = selected ? 0 : -1; });
-            this.element('.be-question').textContent = this.view === 'time' ? '' : this.view === 'context' ? 'Compare this measured value with other LWC athletes.' : this.fieldMode ? 'Two measured values from each other athlete’s latest panel.' : 'Two measured values from this athlete’s dated blood tests.';
-            this.element('.be-question').hidden = this.view === 'time';
             this.element('.be-history-focus').hidden = this.view !== 'time';
             this.element('[data-action="clock-history"]').setAttribute('aria-pressed', String(this.timeMetric !== 'marker'));
             this.element('[data-action="marker-history"]').setAttribute('aria-pressed', String(this.timeMetric === 'marker'));
             this.element('.be-picker-row').hidden = this.view === 'time' && this.timeMetric !== 'marker';
-            this.element('.be-measured').hidden = this.view !== 'time';
             this.element('.be-cumulative-control').hidden = this.view !== 'context';
             this.element<HTMLInputElement>('#be-cumulative').checked = this.cumulative;
             this.element<HTMLSelectElement>('#be-marker').value = this.marker;
@@ -442,10 +463,7 @@
             const index = this.athlete.records.findIndex(record => record.id === this.selectedId);
             this.element<HTMLButtonElement>('[data-action="previous"]').disabled = index <= 0;
             this.element<HTMLButtonElement>('[data-action="next"]').disabled = index < 0 || index >= this.athlete.records.length - 1;
-            this.element<HTMLButtonElement>('[data-action="compare-tests"]').disabled = this.athlete.records.length < 2;
-            this.element('[data-action="compare-tests"]').setAttribute('aria-pressed', String(!!this.comparisonId));
-            this.element('.be-compare-control').hidden = !this.comparisonId || this.view !== 'time';
-            this.element('[data-action="compare-tests"]').hidden = this.view !== 'time';
+            this.element('.be-compare-control').hidden = this.athlete.records.length < 2 || this.detailOpen && this.view !== 'time';
             this.element<HTMLSelectElement>('#be-division').value = this.division;
             const canStandardize = [this.marker, ...this.extraMarkers].every(key => this.data.standardization(this.athlete.records.map(record => record.values[key] ?? NaN)) !== null);
             if (!canStandardize || !this.extraMarkers.length) this.standardized = false;
@@ -462,6 +480,7 @@
             this.element<HTMLInputElement>('#be-statistics').checked = this.statistics;
             this.element('.be-scale-explanation').textContent = this.standardized && this.view === 'time' ? 'Each lane uses this athlete’s full observed history: mean 0, sample SD 1. The basis stays fixed when you move the date window. Raw values remain in the readout and data table; assay history is not recorded.' : this.logX || this.logY ? 'Log spacing represents equal fold changes. Nonpositive values stay in the data table. Scaling does not change the clock calculation.' : this.view === 'time' ? 'Personal pattern comparison needs two lanes, each with at least five values and nonzero spread. It describes observed variation, not population variation.' : 'Values retain their recorded canonical units. No population standardization is applied.';
             this.renderNavigator();
+            this.renderOverview();
             this.renderResults();
             this.renderCharts();
             this.renderReadout();
@@ -475,7 +494,46 @@
             this.element('[data-action="inspect"]').textContent = this.interaction === 'inspect' ? 'Inspect' : 'Done';
             if (focusedPlot) this.plots.find(plot => plot.key === focusedPlot)?.canvas.focus({ preventScroll: true });
             else if (focusedExtra !== undefined) this.root.querySelector<HTMLSelectElement>(`select[data-extra-index="${CSS.escape(focusedExtra)}"]`)?.focus({ preventScroll: true });
-            else if (focusedAction) this.root.querySelector<HTMLElement>(`[data-action="${CSS.escape(focusedAction)}"]`)?.focus({ preventScroll: true });
+            else if (focusedMarker) [...this.root.querySelectorAll<HTMLElement>(`[data-marker="${CSS.escape(focusedMarker)}"]`)].find(element => element.getClientRects().length)?.focus({ preventScroll: true });
+            else if (focusedAction) [...this.root.querySelectorAll<HTMLElement>(`[data-action="${CSS.escape(focusedAction)}"]`)].find(element => element.getClientRects().length)?.focus({ preventScroll: true });
+        }
+
+        private renderOverview(): void {
+            const record = this.selected(); const before = this.allRecords.get(this.comparisonId);
+            const records = this.athlete.records;
+            const markers = this.data.markers.filter(marker => records.some(item => finite(item.values[marker.key])));
+            this.element('.be-test-count').textContent = `${records.length} ${records.length === 1 ? 'test' : 'tests'}`;
+            this.element('.be-results-heading').hidden = !markers.length;
+            this.element('.be-baseline-label').hidden = !before;
+            this.element('.be-test-results').innerHTML = markers.map(marker => {
+                const value = record?.values[marker.key]; const previous = before?.values[marker.key];
+                const delta = finite(value) && finite(previous) ? value - previous : null;
+                const comparison = delta === null ? 'No paired comparison' : `${signed(delta)} ${marker.unit} from ${formatted(previous)} on ${dateLabel(before!.day)}`;
+                const label = `${marker.label}: ${formatted(value)} ${marker.unit}${record ? ` on ${dateLabel(record.day)}` : ''}. ${comparison}. See recorded history.`;
+                return `<div role="listitem"><button type="button" class="be-test-result" data-marker="${marker.key}" aria-label="${escape(label)}"><span class="be-test-result-name">${escape(marker.label)}<small>${escape(marker.unit)}</small></span><span class="be-mini-history">${this.sparkline(item => item.values[marker.key] ?? null)}</span><span class="be-test-result-value"><strong>${formatted(value)}</strong>${before ? `<small title="${escape(dateLabel(before.day))}">${formatted(previous)}</small>` : ''}</span><span class="be-test-result-delta">${delta === null ? '—' : signed(Math.abs(delta) < 1e-10 ? 0 : delta)}</span><span class="be-result-chevron">${icon('right')}</span></button></div>`;
+            }).join('') || '<p class="be-empty">No measured biomarkers have been recorded.</p>';
+            this.element('.be-overview-clocks').innerHTML = (['pheno', 'bortz'] as const).filter(clock => records.some(item => item[clock] !== null)).map(clock => `<button type="button" data-action="open-${clock}" class="be-overview-clock" aria-label="See ${clock} clock history"><span>${clock} age <small>computed</small></span><strong>${formatted(record?.[clock], 1)} <small>y</small></strong>${icon('right')}</button>`).join('');
+            this.element('.be-overview-clocks').hidden = !this.element('.be-overview-clocks').childElementCount;
+            this.element('.be-history-span').textContent = records.length > 1 ? `${dateLabel(records[0]!.day)} – ${dateLabel(records.at(-1)!.day)}` : records[0] ? dateLabel(records[0].day) : '';
+            this.element<HTMLButtonElement>('[aria-label="Download blood test CSV"]').disabled = !records.length;
+        }
+
+        private sparkline(value: (record: BiomarkerExplorerRecord) => number | null): string {
+            const points = this.data.series(this.athlete.records, value);
+            const values = points.map(point => point.y).filter(finite);
+            if (!values.length) return '<span class="be-no-history">—</span>';
+            const min = Math.min(...values); const max = Math.max(...values);
+            const firstDay = this.athlete.records[0]!.day; const lastDay = this.athlete.records.at(-1)!.day;
+            const x = (day: number): number => firstDay === lastDay ? 50 : 6 + (day - firstDay) / (lastDay - firstDay) * 88;
+            const y = (measurement: number): number => max === min ? 16 : 27 - (measurement - min) / (max - min) * 22;
+            let path = ''; let connected = false;
+            for (const point of points) {
+                if (!finite(point.y)) { connected = false; continue; }
+                path += `${connected ? 'L' : 'M'}${x(point.x).toFixed(2)},${y(point.y).toFixed(2)}`; connected = true;
+            }
+            const observed = points.filter(point => finite(point.y) && point.recordId);
+            const dots = observed.filter((point, index) => observed.length <= 24 || index === 0 || index === observed.length - 1 || point.recordId === this.selectedId || point.recordId === this.comparisonId).map(point => `<circle cx="${x(point.x).toFixed(2)}" cy="${y(point.y!).toFixed(2)}" r="${point.recordId === this.selectedId ? 3.5 : 2.4}" data-observation="${escape(point.recordId)}" class="${point.recordId === this.selectedId ? 'be-spark-selected' : point.recordId === this.comparisonId ? 'be-spark-baseline' : ''}"/>`).join('');
+            return `<svg class="be-sparkline" viewBox="0 0 100 32" aria-hidden="true"><path d="${path}"/>${dots}</svg>`;
         }
 
         private renderResults(): void {
@@ -484,17 +542,10 @@
             summary.hidden = this.view !== 'time' || this.timeMetric === 'marker';
             this.element<HTMLButtonElement>('[data-action="clock-history"]').disabled = !this.athlete.records.some(item => item.pheno !== null || item.bortz !== null);
             summary.innerHTML = (['pheno', 'bortz'] as const).filter(clock => this.athlete.records.some(item => item[clock] !== null)).map(clock => {
-                const reduction = record && record[clock] !== null && record.age !== null ? record.age - record[clock] : null;
-                const prior = before && before[clock] !== null && before.age !== null ? before.age - before[clock] : null;
+                const reduction = record && record[clock] !== null && record.age !== null ? record[clock] - record.age : null;
+                const prior = before && before[clock] !== null && before.age !== null ? before[clock] - before.age : null;
                 const delta = reduction !== null && prior !== null ? reduction - prior : null;
                 return `<button type="button" class="be-clock-tile" data-action="focus-${clock}" aria-pressed="${this.view === 'time' && this.timeMetric === clock}"><span>${clock}</span><strong>${formatted(reduction, 1)}<small> y</small></strong><span>computed age reduction</span><small>${delta !== null ? `${signed(delta)} y vs ${escape(dateLabel(before!.day))}` : reduction === null ? 'Incomplete eligible panel' : `Biological age ${formatted(record?.[clock], 1)} y`}</small></button>`;
-            }).join('');
-            const measured = this.data.markers.filter(marker => record && finite(record.values[marker.key]));
-            this.element('.be-measured-count').textContent = `(${measured.length})`;
-            this.element('.be-results-grid').innerHTML = this.data.markers.filter(marker => this.athlete.records.some(item => finite(item.values[marker.key]))).map(marker => {
-                const value = record?.values[marker.key]; const baseline = before?.values[marker.key];
-                const delta = finite(value) && finite(baseline) ? value - baseline : null;
-                return `<button type="button" class="be-result" data-marker="${marker.key}" aria-label="See ${escape(marker.label)} history"><span class="be-result-name">${escape(marker.label)}<small>${escape(marker.domain)}</small></span><span class="be-result-value">${formatted(value)}<small>${escape(marker.unit)}</small></span><span class="be-result-change">${delta === null ? '—' : signed(delta)}<small>${delta === null ? 'no comparison' : 'change'}</small></span></button>`;
             }).join('');
             const drivers = this.element('.be-change-drivers');
             drivers.hidden = this.view !== 'time' || this.timeMetric === 'marker' || !record || !before;
@@ -505,12 +556,13 @@
             const shown = ordered.slice(0, 5);
             if (ordered.length > 5) shown.push({ key: 'other', label: `${ordered.length - 5} other model terms`, change: ordered.slice(5).reduce((sum, row) => sum + row.change, 0), a: 0, b: 0, unit: '', capped: false, transformed: false });
             const largest = Math.max(.001, ...ordered.map(row => Math.abs(row.change)));
-            drivers.innerHTML = `<div class="be-drivers-heading"><strong>What changed in ${clock}?</strong><span>${escape(dateLabel(before.day))} → ${escape(dateLabel(record.day))}</span></div><p class="be-driver-caption">Changes in the calculated age reduction, in years</p><div class="be-driver-list">${shown.map(row => `<${this.data.markers.some(marker => marker.key === row.key) ? 'button type="button" data-marker="' + row.key + '"' : 'div'} class="be-driver"><span>${escape(row.label)}<small>${row.key === 'other' ? 'See the complete clock breakdown' : `${formatted(row.a)} → ${formatted(row.b)} ${escape(row.unit)}${row.capped ? ' · scoring cap' : ''}`}</small></span><span class="be-driver-track"><i style="width:${Math.min(48, Math.abs(row.change) / largest * 48)}%;${row.change <= 0 ? 'left:50%' : 'right:50%'}"></i></span><strong>${signed(-row.change)} y</strong></${this.data.markers.some(marker => marker.key === row.key) ? 'button' : 'div'}>`).join('') || '<p class="be-offscale">The calculated age reduction is unchanged.</p>'}</div><p class="be-driver-note">Model arithmetic; a change in the score does not establish a health effect.</p>`;
+            drivers.innerHTML = `<div class="be-drivers-heading"><strong>What changed in ${clock}?</strong><span>${escape(dateLabel(before.day))} → ${escape(dateLabel(record.day))}</span></div><p class="be-driver-caption">Changes in the calculated age reduction, in years</p><div class="be-driver-list">${shown.map(row => `<${this.data.markers.some(marker => marker.key === row.key) ? 'button type="button" data-marker="' + row.key + '"' : 'div'} class="be-driver"><span>${escape(row.label)}<small>${row.key === 'other' ? 'See the complete clock breakdown' : `${formatted(row.a)} → ${formatted(row.b)} ${escape(row.unit)}${row.capped ? ' · scoring cap' : ''}`}</small></span><span class="be-driver-track"><i style="width:${Math.min(48, Math.abs(row.change) / largest * 48)}%;${row.change >= 0 ? 'left:50%' : 'right:50%'}"></i></span><strong>${signed(row.change)} y</strong></${this.data.markers.some(marker => marker.key === row.key) ? 'button' : 'div'}>`).join('') || '<p class="be-offscale">The calculated age reduction is unchanged.</p>'}</div><p class="be-driver-note">Model arithmetic; a change in the score does not establish a health effect.</p>`;
         }
 
         private renderCharts(): void {
             this.destroyCharts();
             const container = this.element('.be-plots'); container.replaceChildren();
+            if (!this.detailOpen) return;
             const selected = this.selected();
             const marker = this.markerInfo();
             const reference = this.reference();
@@ -523,7 +575,7 @@
                 for (const clock of ['pheno', 'bortz'] as const) {
                     if (this.timeMetric !== clock) continue;
                     if (!visible.some(record => record[clock] !== null)) continue;
-                    const points = this.data.series(this.athlete.records, record => record[clock] !== null && record.age !== null ? record.age - record[clock] : null);
+                    const points = this.data.series(this.athlete.records, record => record[clock] !== null && record.age !== null ? record[clock] - record.age : null);
                     clockPoints.push(...points);
                     clocks.push({ ...this.dataset(clock === 'pheno' ? 'pheno age' : 'bortz age', points, clock === 'pheno' ? this.color('--athlete-modal-chart-pheno', '#87e5e5') : this.color('--athlete-modal-chart-bortz', '#9ae8b2'), 'rectRot'), hidden: clock === 'pheno' ? !this.phenoVisible : !this.bortzVisible });
                 }
@@ -632,6 +684,7 @@
         private createPlot(key: string, title: string, yTitle: string, datasets: readonly Record<string, unknown>[], points: readonly Point[], xLog: boolean, yLog: boolean, time: boolean): Plot {
             const figure = document.createElement('figure'); figure.className = 'be-figure' + (key === 'clocks' ? ' be-clock-figure' : '');
             figure.dataset.plot = key;
+            figure.dataset.primaryHistory = String(this.view === 'time' && this.timeMetric === 'marker' && key === this.marker);
             figure.dataset.chartStatus = typeof window.Chart === 'function' ? 'ready' : 'unavailable';
             const measured = key !== 'clocks' && key !== 'relationships' ? this.selected()?.values[key === 'context' ? this.marker : key] : undefined;
             const clockKey = key === 'clocks' ? `<span class="be-clock-key">${datasets.map(dataset => `<button type="button" data-action="toggle-${dataset.label === 'pheno age' ? 'pheno' : 'bortz'}" aria-pressed="${!dataset.hidden}" aria-label="Show ${escape(dataset.label)} observations"><span class="${dataset.label === 'pheno age' ? 'be-pheno-dot' : 'be-bortz-dot'}">◇</span>${dataset.label === 'pheno age' ? 'pheno' : 'bortz'}</button>`).join('')}</span>` : '';
@@ -718,32 +771,33 @@
             if (!record) { this.element('.be-readout').innerHTML = '<p>No recorded test is available.</p>'; return; }
             const value = record.values[this.marker];
             const sameDate = this.athlete.records.filter(item => item.day === record.day).length;
-            let html = `<div class="be-readout-label">${record.id === this.athlete.records.at(-1)?.id ? 'Latest submitted test' : 'Selected test'} · ${escape(dateLabel(record.day))}${record.age !== null ? ` · age at test ${formatted(record.age, 1)}` : ''}${sameDate > 1 ? ` · ${sameDate} panels on this date` : ''}</div><div class="be-measurement"><strong>${formatted(value)}</strong><span>${escape(marker.unit)}<small>${escape(marker.label)} · measured</small></span></div>`;
+            let html = `<div class="be-readout-main"><div class="be-measurement"><strong>${formatted(value)}</strong><span>${escape(marker.unit)}</span></div>`;
+            if (before && this.view === 'time') {
+                const a = before.values[this.marker]; const delta = finite(a) && finite(value) ? value - a : null;
+                html += `<div class="be-difference"><strong>${delta === null ? 'No paired value' : `${signed(delta)} ${escape(marker.unit)}`}</strong><span>from ${formatted(a)} ${escape(marker.unit)}</span></div>`;
+            }
+            html += '</div>';
+            if (sameDate > 1) html += `<div class="be-readout-label">${sameDate} separate panels on ${escape(dateLabel(record.day))}</div>`;
             if (this.view === 'relationships') html += `<div class="be-second-value">${escape(this.markerInfo(this.secondary).label)} <strong>${formatted(record.values[this.secondary])}</strong> ${escape(this.markerInfo(this.secondary).unit)} · measured in this same panel</div>`;
             if (this.view === 'context') {
                 const values = this.reference().map(item => item.values[this.marker]).filter(finite);
                 if (finite(value) && values.length) { const count = this.data.counts(values, value); html += `<div class="be-counts"><span><strong>${count.lower}</strong> lower</span><span><strong>${count.equal}</strong> equal</span><span><strong>${count.higher}</strong> higher</span></div><p class="be-context-position">${formatted(count.atOrBelow, 1)}% of these ${values.length} panels are at or below this value.</p>`; }
                 else html += '<p>This selected panel does not contain the marker, or the reference set is empty.</p>';
             }
-            if (before && this.view === 'time') {
-                const a = before.values[this.marker]; const delta = finite(a) && finite(value) ? value - a : null;
-                const days = record.day - before.day;
-                html += `<div class="be-difference"><span>${escape(dateLabel(before.day))} → ${escape(dateLabel(record.day))}</span><strong>${delta === null ? 'Missing measurement' : `${signed(delta)} ${escape(marker.unit)}`}</strong><span>${Math.abs(days)} days apart${days < 0 ? ' · comparing an earlier test with the baseline' : ''}</span></div>`;
-            }
             this.element('.be-readout').innerHTML = html;
-            this.element('.be-clock-details').hidden = !before || this.view !== 'time';
-            if (before) this.renderClockExplanation(before, record);
+            this.element('.be-clock-details').hidden = !before || this.view !== 'time' || this.timeMetric === 'marker';
+            if (before && this.timeMetric !== 'marker') this.renderClockExplanation(before, record);
             const preview = this.allRecords.get(this.previewId);
             const previewElement = this.element('.be-preview'); previewElement.hidden = !preview;
             if (preview) previewElement.innerHTML = `<div><strong>${escape(preview.athleteName)}</strong> · ${escape(dateLabel(preview.day))}${preview.age !== null ? ` · age at test ${formatted(preview.age, 1)}` : ''}<p>${escape(marker.label)} ${formatted(preview.values[this.marker])} ${escape(marker.unit)}${this.view === 'relationships' ? ` · ${escape(this.markerInfo(this.secondary).label)} ${formatted(preview.values[this.secondary])} ${escape(this.markerInfo(this.secondary).unit)}` : ''}</p></div><button type="button" data-action="close-preview">Close preview</button>`;
         }
 
         private renderClockExplanation(before: BiomarkerExplorerRecord, after: BiomarkerExplorerRecord): void {
-            let html = '<p>These are terms in the LWC calculation of age reduction: chronological age at test minus computed biological age. They describe the model’s arithmetic, not causal effects on health. Chronological age is an input to both clocks.</p>';
+            let html = '<p>Age reduction uses the same convention as the leaderboard: computed biological age minus chronological age at test. Negative values mean a younger calculated age. These terms explain the model’s arithmetic, not causal effects on health. Chronological age is an input to both clocks.</p>';
             for (const clock of ['pheno', 'bortz'] as const) {
                 const rows = this.data.clockChange(before, after, clock);
                 if (!rows) { html += `<p>${clock}: both tests need complete eligible panels (${clock === 'pheno' ? '9' : '22'} measured inputs). Missing values are not filled.</p>`; continue; }
-                html += `<div class="be-table-scroll" tabindex="0" role="region" aria-label="${clock} clock change terms"><table class="be-table"><caption>${clock} · ${signed(-rows.reduce((sum, row) => sum + row.change, 0))} years of computed age reduction</caption><thead><tr><th scope="col">Term</th><th scope="col">Before</th><th scope="col">After</th><th scope="col">Change in age reduction (years)</th></tr></thead><tbody>${rows.map(row => `<tr><th scope="row">${escape(row.label)}${row.capped ? '<small>LWC scoring cap applied; measured values retained</small>' : ''}${row.transformed ? '<small>Log transformation in the model</small>' : ''}</th><td>${formatted(row.a)} ${escape(row.unit)}</td><td>${formatted(row.b)} ${escape(row.unit)}</td><td>${signed(-row.change)}</td></tr>`).join('')}</tbody></table></div>`;
+                html += `<div class="be-table-scroll" tabindex="0" role="region" aria-label="${clock} clock change terms"><table class="be-table"><caption>${clock} · ${signed(rows.reduce((sum, row) => sum + row.change, 0))} years of computed age reduction</caption><thead><tr><th scope="col">Term</th><th scope="col">Before</th><th scope="col">After</th><th scope="col">Change in age reduction (years)</th></tr></thead><tbody>${rows.map(row => `<tr><th scope="row">${escape(row.label)}${row.capped ? '<small>LWC scoring cap applied; measured values retained</small>' : ''}${row.transformed ? '<small>Log transformation in the model</small>' : ''}</th><td>${formatted(row.a)} ${escape(row.unit)}</td><td>${formatted(row.b)} ${escape(row.unit)}</td><td>${signed(row.change)}</td></tr>`).join('')}</tbody></table></div>`;
             }
             this.element('.be-clock-explanation').innerHTML = html;
         }
@@ -797,7 +851,7 @@
         }
 
         private renderReading(): void {
-            let text = this.view === 'time' ? '<p>Filled dots are measured biomarkers; outlined diamonds are computed clocks. Dates use proportional calendar spacing. Connectors only link adjacent recorded tests, never across missing measurements or intervals over 180 days. They are guides between observations, not measurements between tests.</p><p>Age reduction is chronological age at test minus computed biological age. It is the competition score, depends on age as a model input, and does not demonstrate successful aging reversal. The contribution bars explain the exact score arithmetic between two submitted tests.</p>' : this.view === 'context' ? '<p>Each dot is one other athlete’s latest submitted value. Vertical stacking keeps equal or nearby values visible; it has no biological meaning. The outlined marker is the selected athlete’s result, excluded from the reference count. The optional cumulative view counts the share of recorded panels at or below each value; no normal curve is fitted.</p><p>The comparison source is the selected LWC field, one latest submitted panel per other athlete. These participants are not a general-population norm. A competition percentile is different from a laboratory reference range, clinical target or modeled mortality optimum.</p>' : '<p>Each point contains two measured markers from one submitted dated record. Pairing tolerance is zero days; neither values on different dates nor repeated tests are pooled as independent people. Same-date records do not provide an exact specimen time.</p><p>Across-athlete patterns and this athlete’s repeated tests answer different questions. Date coloring and the linked timeline help expose shared time trends; age filters explore the field without claiming statistical adjustment. Sparse personal histories have no fitted curves or correlation scores.</p>';
+            let text = this.view === 'time' ? '<p>Filled dots are measured biomarkers; outlined diamonds are computed clocks. Dates use proportional calendar spacing. Connectors only link adjacent recorded tests, never across missing measurements or intervals over 180 days. They are guides between observations, not measurements between tests.</p><p>Age reduction is computed biological age minus chronological age at test, matching the leaderboard. Negative values mean a younger calculated age. It is the competition score, depends on age as a model input, and does not demonstrate successful aging reversal. The contribution bars explain the exact score arithmetic between two submitted tests.</p>' : this.view === 'context' ? '<p>Each dot is one other athlete’s latest submitted value. Vertical stacking keeps equal or nearby values visible; it has no biological meaning. The outlined marker is the selected athlete’s result, excluded from the reference count. The optional cumulative view counts the share of recorded panels at or below each value; no normal curve is fitted.</p><p>The comparison source is the selected LWC field, one latest submitted panel per other athlete. These participants are not a general-population norm. A competition percentile is different from a laboratory reference range, clinical target or modeled mortality optimum.</p>' : '<p>Each point contains two measured markers from one submitted dated record. Pairing tolerance is zero days; neither values on different dates nor repeated tests are pooled as independent people. Same-date records do not provide an exact specimen time.</p><p>Across-athlete patterns and this athlete’s repeated tests answer different questions. Date coloring and the linked timeline help expose shared time trends; age filters explore the field without claiming statistical adjustment. Sparse personal histories have no fitted curves or correlation scores.</p>';
             text += `<p>Source: <a href="/api/data/athletes" target="_blank" rel="noopener">public LWC athlete snapshot</a>, retrieved ${escape(this.snapshotDate)} UTC. Units are the stored canonical units. Original report units, assay identifiers, censoring qualifiers, laboratory ranges and measurement uncertainty are not recorded in this contract. Source proofs are available in this athlete’s Proofs section; there is no automatic panel-to-proof mapping.</p>`;
             if (this.cohort.ambiguous) text += `<p>${this.cohort.ambiguous} other athlete${this.cohort.ambiguous === 1 ? ' has' : 's have'} multiple panels on the latest date and ${this.cohort.ambiguous === 1 ? 'is' : 'are'} excluded from the reference until the panel is resolved.</p>`;
             if (this.athlete.invalidDates) text += `<p>${this.athlete.invalidDates} record${this.athlete.invalidDates === 1 ? ' has an invalid date and is' : 's have invalid dates and are'} excluded from dated analysis.</p>`;
@@ -827,15 +881,39 @@
         }
 
         private exportCsv(): void {
-            const records = this.tableRecords();
-            const headers = ['Athlete', 'Panel ID', 'Test date', 'Chronological age at test (years)', ...this.data.markers.map(marker => `${marker.label} (${marker.unit}) - measured canonical value`), 'pheno age (years) - computed', 'bortz age (years) - computed', 'pheno biological minus chronological age (years) - computed', 'bortz biological minus chronological age (years) - computed', 'pheno age reduction (years) - computed', 'bortz age reduction (years) - computed', 'Analysis view', 'History metric', 'X marker', 'Y marker', 'Pinned test date', 'Baseline test date', 'Reference source', 'Reference panel count', 'Reference age at test filter (years)', 'Reference competition division', 'Snapshot retrieval date (UTC)', 'Pairing tolerance (days)', 'Clock parameter fingerprint', 'pheno model asset version', 'bortz model asset version', 'Chronological age calculation', 'Original units / assay / uncertainty metadata'];
+            const overview = !this.detailOpen;
+            const personal = overview || this.view === 'time' || this.view === 'relationships' && !this.fieldMode;
+            const records = overview ? this.athlete.records : this.tableRecords();
+            const view = overview ? 'Blood test results' : this.view === 'relationships' ? this.fieldMode ? 'relationships across athletes' : 'relationships within athlete' : this.view;
+            const reference = overview ? 'This athlete - all recorded tests' : personal ? 'This athlete - recorded tests in selected date window' : this.referenceCaption(records);
+            const headers = [
+                'Athlete', 'Panel ID', 'Test date', 'Chronological age at test (years)',
+                ...this.data.markers.map(marker => `${marker.label} (${marker.unit}) - measured canonical value`),
+                'pheno age (years) - computed', 'bortz age (years) - computed',
+                'pheno age reduction (biological minus chronological years) - computed', 'bortz age reduction (biological minus chronological years) - computed',
+                'Analysis view', 'History metric', 'X marker', 'Y marker', 'Pinned test date', 'Baseline test date',
+                'Reference source', 'Reference panel count', 'Reference age at test filter (years)', 'Reference competition division',
+                'Snapshot retrieval date (UTC)', 'Pairing tolerance (days)', 'Clock parameter fingerprint', 'pheno model asset version', 'bortz model asset version',
+                'Chronological age calculation', 'Original units / assay / uncertainty metadata'
+            ];
             const definition = JSON.stringify({ pheno: window.PhenoAge?.biomarkers, phenoScale: 0.090165, bortz: window.BortzAge?.features, clampBiologicalAgeAtZero: true });
             let hash = 2166136261; for (let index = 0; index < definition.length; index++) hash = Math.imul(hash ^ definition.charCodeAt(index), 16777619);
             const fingerprint = (hash >>> 0).toString(16).padStart(8, '0');
             const csv = (value: string | number | null | undefined): string => { let text = value === null || value === undefined ? '' : String(value); if (typeof value === 'string' && /^[=+\-@\t\r]/.test(text)) text = "'" + text; return '"' + text.replace(/"/g, '""') + '"'; };
-            const rows = records.map(record => [record.athleteName, record.id, record.date, record.age, ...this.data.markers.map(marker => record.values[marker.key]), record.pheno, record.bortz, record.pheno !== null && record.age !== null ? record.pheno - record.age : null, record.bortz !== null && record.age !== null ? record.bortz - record.age : null, record.pheno !== null && record.age !== null ? record.age - record.pheno : null, record.bortz !== null && record.age !== null ? record.age - record.bortz : null, this.view === 'relationships' ? this.fieldMode ? 'relationships across athletes' : 'relationships within athlete' : this.view, this.view === 'time' ? this.timeMetric : null, this.marker, this.view === 'relationships' ? this.secondary : null, this.selected()?.date, this.allRecords.get(this.comparisonId)?.date, this.view === 'time' || !this.fieldMode && this.view === 'relationships' ? 'This athlete - recorded tests in selected date window' : this.referenceCaption(records), this.view === 'time' || !this.fieldMode && this.view === 'relationships' ? null : records.length, `${this.ageMin ?? 'Any'} to ${this.ageMax ?? 'Any'}`, this.division || 'All divisions', this.snapshotDate, 0, fingerprint, this.root.dataset.phenoModelSrc ?? 'Unavailable', this.root.dataset.bortzModelSrc ?? 'Unavailable', 'UTC calendar days since birth / 365.2425', 'Not available in public contract']);
+            const rows = records.map(record => [
+                record.athleteName, record.id, record.date, record.age, ...this.data.markers.map(marker => record.values[marker.key]),
+                record.pheno, record.bortz,
+                record.pheno !== null && record.age !== null ? record.pheno - record.age : null,
+                record.bortz !== null && record.age !== null ? record.bortz - record.age : null,
+                view, !overview && this.view === 'time' ? this.timeMetric : null, overview ? null : this.marker,
+                !overview && this.view === 'relationships' ? this.secondary : null, this.selected()?.date, this.allRecords.get(this.comparisonId)?.date,
+                reference, personal ? null : records.length, personal ? 'Not applied' : `${this.ageMin ?? 'Any'} to ${this.ageMax ?? 'Any'}`,
+                personal ? 'Not applied' : this.division || 'All divisions', this.snapshotDate, 0, fingerprint,
+                this.root.dataset.phenoModelSrc ?? 'Unavailable', this.root.dataset.bortzModelSrc ?? 'Unavailable',
+                'UTC calendar days since birth / 365.2425', 'Not available in public contract'
+            ]);
             const blob = new Blob(['\ufeff' + [headers, ...rows].map(row => row.map(csv).join(',')).join('\r\n')], { type: 'text/csv;charset=utf-8' });
-            const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = `${this.athlete.id.replace(/[^a-z0-9_-]/gi, '_')}-${this.view}-${this.snapshotDate}.csv`; link.click();
+            const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = `${this.athlete.id.replace(/[^a-z0-9_-]/gi, '_')}-${overview ? 'results' : this.view}-${this.snapshotDate}.csv`; link.click();
             setTimeout(() => URL.revokeObjectURL(url), 1000); this.announce(`Exported ${records.length} records with raw canonical values and separately labeled computed clocks.`);
         }
 
@@ -962,7 +1040,7 @@
             if (this.view === 'time') this.timeProbe = xValue;
             const line = plot.figure.querySelector<HTMLElement>('.be-probe'); if (!line) return;
             const clockValue = record && this.timeMetric !== 'marker' ? record[this.timeMetric] : null;
-            const clockReduction = record?.age !== null && record?.age !== undefined && clockValue !== null ? record.age - clockValue : null;
+            const clockReduction = record?.age !== null && record?.age !== undefined && clockValue !== null ? clockValue - record.age : null;
             if (plot.key === 'context') {
                 const values = this.reference().map(item => item.values[this.marker]).filter(finite);
                 const count = this.data.counts(values, xValue);
