@@ -123,15 +123,20 @@
     display: flex;
 }
 .age-clock-switch [role="tablist"] {
-    display: inline-flex;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 6.5rem), 1fr));
+    width: 14rem;
+    max-width: 100%;
+    box-sizing: border-box;
     background: rgba(0,0,0,0.06);
     border-radius: 999px;
     padding: 4px;
     gap: 2px;
 }
 .age-clock-switch [role="tab"] {
+    min-width: 0;
     min-height: 44px;
-    padding: 0.6rem 1.1rem;
+    padding: 0.6rem 0.5rem;
     border: none;
     border-radius: 999px;
     box-sizing: border-box;
@@ -141,6 +146,9 @@
     color: var(--dark-text-color, #1a1a1a);
     background: transparent;
     cursor: pointer;
+    overflow-wrap: normal;
+    word-break: normal;
+    white-space: normal;
     transition: background var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
 }
 .age-clock-switch [role="tab"]:hover {
@@ -155,6 +163,88 @@
 .age-clock-switch [role="tab"]:focus-visible {
     outline: 2px solid var(--primary-color, #00bcd4);
     outline-offset: 2px;
+}
+.age-visualization[hidden],
+.age-clock-switch [hidden],
+.age-result-picker[hidden],
+.age-result-picker [hidden] { display: none !important; }
+.age-result-picker {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: .25rem;
+    width: min(100%, 360px);
+    margin: -.25rem auto .5rem;
+    font-size: var(--lwc-type-sm, .875rem);
+    font-variant-numeric: tabular-nums;
+}
+.age-result-choice { position: relative; flex: 1; min-width: 0; }
+.age-result-choice select {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+    font: inherit;
+    color-scheme: dark;
+}
+.age-result-current {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: center;
+    gap: .15rem .6rem;
+    min-height: 44px;
+    box-sizing: border-box;
+    padding: .65rem 1.8rem .65rem .75rem;
+    border: 1px solid var(--athlete-modal-border, rgba(255,255,255,.16));
+    border-radius: var(--lwc-radius-sm, 8px);
+    color: var(--athlete-modal-text, #fff);
+    background: var(--athlete-modal-surface, #17212b);
+    pointer-events: none;
+}
+.age-result-current time { white-space: nowrap; }
+.age-result-age { white-space: nowrap; color: var(--athlete-modal-muted, #b4bdc4); }
+.age-result-picker svg {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+.age-result-chevron {
+    position: absolute;
+    right: .45rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--athlete-modal-muted, #b4bdc4);
+}
+.age-result-step {
+    display: grid;
+    place-items: center;
+    flex: 0 0 44px;
+    min-height: 44px;
+    padding: 0;
+    border: 0;
+    border-radius: var(--lwc-radius-sm, 8px);
+    background: transparent;
+    color: var(--athlete-modal-text, #fff);
+    cursor: pointer;
+}
+.age-result-step:disabled { opacity: .25; cursor: default; }
+.age-result-choice:has(select:hover) .age-result-current,
+.age-result-choice:focus-within .age-result-current,
+.age-result-step:not(:disabled):hover,
+.age-result-step:focus-visible { background: var(--athlete-modal-card-hover, #26343d); }
+.age-result-choice:focus-within .age-result-current { border-color: var(--athlete-modal-accent, #7bdde3); }
+.age-result-step:focus-visible { outline: none; box-shadow: inset 0 -2px var(--athlete-modal-accent, #7bdde3); }
+.age-result-picker[data-multiple="false"] .age-result-current { padding-inline: .75rem; border-color: transparent; background: none; }
+@media (max-width: 480px) {
+    .age-result-step:not([hidden]) { display: none; }
 }
 #detailsModal .age-visualization {
     width: min(100%, var(--athlete-modal-section-width, 640px));
@@ -251,8 +341,9 @@
 }
 @media (max-width: 768px) {
     #detailsModal .age-visualization {
-        width: calc(100% - 1.5rem) !important;
-        max-width: calc(100% - 1.5rem) !important;
+        width: calc(100% - min(1.5rem, 24px)) !important;
+        max-width: calc(100% - min(1.5rem, 24px)) !important;
+        padding-inline: min(1rem, 16px);
         margin-left: auto;
         margin-right: auto;
     }

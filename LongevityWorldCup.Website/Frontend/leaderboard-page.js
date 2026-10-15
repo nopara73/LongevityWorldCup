@@ -5206,7 +5206,7 @@ function fetchFullAthleteData(athleteNameText, athleteData, options) {
                 if (requestId !== currentAthleteModalRequestId) return;
                 window.ensureChartJs().then(function() {
                     if (requestId !== currentAthleteModalRequestId) return;
-                    generateAgeVisualization(bioAge, chronoAge, athleteData, athleteResults);
+                    generateAgeVisualization(bioAge, chronoAge, athleteData, athleteResults, biomarkerHistory.clockResults);
                 });
             });
             if (!modalContent) {
@@ -5643,6 +5643,7 @@ function buildBiomarkerHistory(fullAthleteData) {
     const bortzAges = [];
     const chronologicalAges = [];
     const biomarkersRaw = initializeBiomarkersRaw();
+    const clockResults = { pheno: [], bortz: [] };
 
     chartData.forEach(entry => {
         const entryDate = getBiomarkerTestDate(entry.Date);
@@ -5677,7 +5678,10 @@ function buildBiomarkerHistory(fullAthleteData) {
         if (isCompleteBiomarkerSet(entry)) {
             const biomarkerValues = prepareBiomarkerValues(entry, chronoAgeAtEntry);
             const computed = window.PhenoAge.calculatePhenoAge(biomarkerValues);
-            if (Number.isFinite(computed)) phenoAge = computed;
+            if (Number.isFinite(computed)) {
+                phenoAge = computed;
+                clockResults.pheno.push({ date: entry.Date, bio: computed, chrono: chronoAgeAtEntry, values: biomarkerValues });
+            }
         }
         phenoAges.push(phenoAge);
 
@@ -5712,12 +5716,15 @@ function buildBiomarkerHistory(fullAthleteData) {
                 entry.ApoA1GL
             ];
             const computed = window.BortzAge.calculateBortzAge(chronoAgeAtEntry, bortzValues);
-            if (Number.isFinite(computed)) bortzAge = computed;
+            if (Number.isFinite(computed)) {
+                bortzAge = computed;
+                clockResults.bortz.push({ date: entry.Date, bio: computed, chrono: chronoAgeAtEntry, values: bortzValues });
+            }
         }
         bortzAges.push(bortzAge);
     });
 
-    return { labels, phenoAges, bortzAges, chronologicalAges, biomarkersRaw,
+    return { labels, phenoAges, bortzAges, chronologicalAges, biomarkersRaw, clockResults,
         athleteKey: normalizeAthleteSlugForLookup(fullAthleteData.AthleteSlug || fullAthleteData.Name),
         athleteName: fullAthleteData.DisplayName || fullAthleteData.Name };
 

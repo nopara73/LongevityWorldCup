@@ -390,6 +390,162 @@ public sealed class BiomarkerHistoryBrowserTests(
         await SaveReviewScreenshotAsync(page.Locator("#athlete-biomarkers"), $"clock-history-{width}-{count}-{direct}.png");
     }
 
+    [Theory]
+    [InlineData(1280, true, 100, "UTC")]
+    [InlineData(390, false, 100, "America/Los_Angeles")]
+    [InlineData(320, true, 200, "America/Los_Angeles")]
+    public async Task RadarHistory_SelectsOneCompleteBloodDrawAndRemembersEachClock(int width, bool direct, int textPercent, string timezone)
+    {
+        await using var context = await NewContextAsync(width, true, timezone);
+        var athlete = await HistoryAthleteAsync("Benjamin Garden", 44, partial: false);
+        (string Date, double Albumin)[] panels = [("2025-01-01", 50), ("2025-06-01", 38), ("2026-01-01", 44), ("2026-02-01", 45)];
+        var markers = new JsonArray(panels.Select(panel =>
+        {
+            var marker = JsonSerializer.SerializeToNode(AlbuminCapTestData.Marker(panel.Albumin))!.AsObject();
+            marker["Date"] = panel.Date;
+            return (JsonNode)marker;
+        }).ToArray());
+        // This panel supports Pheno only; the later partial panel supports neither clock.
+        markers[3]!.AsObject().Remove("CystatinCMgL");
+        markers.Add(new JsonObject { ["Date"] = "2026-03-01", ["CreatUmolL"] = 80 });
+        athlete["Biomarkers"] = markers;
+        var peer = await HistoryAthleteAsync("Valerie Orsoni", 44, partial: false);
+        await context.AddInitScriptAsync($"window.getSharedAthletes = async () => ({new JsonArray(athlete, peer).ToJsonString()});");
+        var page = await context.NewPageAsync();
+        await page.GotoAsync(direct ? "/athlete/benjamin-garden" : "/leaderboard", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        if (!direct) await page.GetByRole(AriaRole.Link, new() { Name = "View stats of Benjamin Garden", Exact = true }).First.ClickAsync();
+        await page.WaitForFunctionAsync("() => window.Chart?.getChart(document.getElementById('ageRadarChart'))");
+        if (textPercent != 100) await page.AddStyleTagAsync(new() { Content = $"html {{ font-size:{textPercent}% !important; }}" });
+        var select = page.Locator("#ageResultSelect");
+        var chartId = await page.EvaluateAsync<int>("() => Chart.getChart(document.getElementById('ageRadarChart')).id");
+        foreach (var clock in new[] { "bortz", "pheno" })
+        {
+            await page.Locator(clock == "bortz" ? "#ageTabBortz" : "#ageTabPheno").ClickAsync();
+            var count = clock == "bortz" ? 3 : 4;
+            await Expect(select.Locator("option")).ToHaveCountAsync(count);
+            var expected = panels.Take(count).Select(panel =>
+            {
+                var date = DateTime.ParseExact(panel.Date, "yyyy-MM-dd", CultureInfo.InvariantCulture);
+                var age = (date - new DateTime(1980, 1, 1)).TotalDays / 365.2425;
+                var values = clock == "bortz" ? AlbuminCapTestData.BortzValues(panel.Albumin) : AlbuminCapTestData.PhenoValues(panel.Albumin);
+                values[0] = age;
+                return clock == "bortz" ? BortzAgeHelper.CalculateBortzAgeFromRaw(age, values) : PhenoAgeHelper.CalculatePhenoAge(values);
+            }).ToArray();
+            await Expect(select).ToHaveValueAsync(Array.IndexOf(expected, expected.Min()).ToString(CultureInfo.InvariantCulture));
+            string? firstShape = null;
+            for (var i = 0; i < count; i++)
+            {
+                await select.SelectOptionAsync(i.ToString(CultureInfo.InvariantCulture));
+                await Expect(page.Locator("#ageRadarChart")).ToHaveAttributeAsync("data-result-date", panels[i].Date);
+                await Expect(page.Locator("#ageResultDate")).ToHaveAttributeAsync("datetime", panels[i].Date);
+                await Expect(page.Locator("#ageRadarCenterBio")).ToHaveTextAsync($"biological age: {expected[i].ToString("F1", CultureInfo.InvariantCulture)}");
+                var chart = await page.EvaluateAsync<JsonElement>("""
+                    () => { const chart = Chart.getChart(document.getElementById('ageRadarChart'));
+                        return { id: chart.id, shape: chart.data.datasets[0].data, contributors: chart._radarTooltipContributors.flat() }; }
+                    """);
+                Assert.Equal(chartId, chart.GetProperty("id").GetInt32());
+                Assert.Contains($"Albumin: {panels[i].Albumin} g/L", chart.GetProperty("contributors").EnumerateArray().Select(item => item.GetString()));
+                if (i == 0) firstShape = chart.GetProperty("shape").GetRawText();
+                if (i == 1) Assert.NotEqual(firstShape, chart.GetProperty("shape").GetRawText());
+            }
+            await select.SelectOptionAsync("1");
+        }
+        await page.Locator("#ageTabPheno").PressAsync("ArrowLeft");
+        await Expect(page.Locator("#ageTabBortz")).ToBeFocusedAsync();
+        await Expect(select).ToHaveValueAsync("1");
+        if (width > 480)
+        {
+            await page.Locator("#ageResultEarlier").ClickAsync();
+            await Expect(select).ToHaveValueAsync("0");
+            await Expect(page.Locator("#ageResultEarlier")).ToBeDisabledAsync();
+            await page.Locator("#ageResultLater").ClickAsync();
+            await Expect(select).ToHaveValueAsync("1");
+        }
+        await page.Locator("#ageTabBortz").PressAsync("ArrowRight");
+        await Expect(page.Locator("#ageTabPheno")).ToBeFocusedAsync();
+        await Expect(select).ToHaveValueAsync("1");
+        Assert.True(await page.Locator("#ageResultCurrent").EvaluateAsync<bool>("""
+            el => { const bounds = el.getBoundingClientRect(); const range = document.createRange(); range.selectNodeContents(el);
+                return el.scrollWidth <= el.clientWidth + 1 && [...range.getClientRects()].every(rect => rect.left >= bounds.left - 1 && rect.right <= bounds.right + 1); }
+            """));
+        Assert.True(await page.Locator("#detailsModal .modal-content").EvaluateAsync<bool>("el => el.scrollWidth <= el.clientWidth + 1"));
+        Assert.True(await page.Locator("#ageClockSwitch [role='tab']").EvaluateAllAsync<bool>("""
+            tabs => tabs.every(tab => { const range = document.createRange(); range.selectNodeContents(tab);
+                return [...range.getClientRects()].length <= 2; })
+            """));
+        var directory = Environment.GetEnvironmentVariable("LWC_UI_ARTIFACT_DIR");
+        if (!string.IsNullOrWhiteSpace(directory))
+        {
+            Directory.CreateDirectory(directory);
+            await page.Locator("#ageTabPheno").EvaluateAsync("el => el.blur()");
+            var radar = page.Locator("#ageVisualization");
+            await radar.EvaluateAsync("""
+                el => { const scroller = el.closest('.modal-content'); scroller.scrollTo({
+                    top: scroller.scrollTop + el.getBoundingClientRect().top - scroller.getBoundingClientRect().top - 80,
+                    behavior: 'instant' }); }
+                """);
+            await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
+            var bounds = (await radar.BoundingBoxAsync())!;
+            var top = Math.Max(0, bounds.Y);
+            await page.ScreenshotAsync(new() { Path = Path.Combine(directory, $"radar-history-{width}-{textPercent}.png"),
+                Clip = new() { X = Math.Max(0, bounds.X), Y = top, Width = bounds.Width, Height = Math.Min(bounds.Height, page.ViewportSize!.Height - top) } });
+        }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task RadarHistory_DoesNotOfferMissingClocksOrSingleResultControls(bool noClock)
+    {
+        await using var context = await NewContextAsync(390, true);
+        var athlete = await HistoryAthleteAsync("Benjamin Garden", 44, partial: false);
+        var marker = athlete["Biomarkers"]![0]!.AsObject();
+        marker.Remove("CystatinCMgL");
+        if (noClock) marker.Remove("GluMmolL");
+        await context.AddInitScriptAsync($"window.getSharedAthletes = async () => ([{athlete.ToJsonString()}]);");
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/athlete/benjamin-garden", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await Expect(Row(page, "Albumin (g/L)").GetByRole(AriaRole.Button)).ToBeEnabledAsync();
+        if (noClock) await Expect(page.Locator("#ageVisualization")).ToBeHiddenAsync();
+        else
+        {
+            await page.WaitForFunctionAsync("() => window.Chart?.getChart(document.getElementById('ageRadarChart'))");
+            await Expect(page.Locator("#ageRadarChart")).ToHaveAttributeAsync("data-clock", "pheno");
+            await Expect(page.Locator("#ageResultDate")).ToHaveTextAsync("1 Jan 2026");
+            await Expect(page.Locator("#ageResultSelect")).ToBeHiddenAsync();
+            await Expect(page.Locator("#ageResultEarlier")).ToBeHiddenAsync();
+            await Expect(page.Locator("#ageResultLater")).ToBeHiddenAsync();
+        }
+        if (noClock) await Expect(page.Locator("#ageClockSwitch")).ToBeHiddenAsync();
+        else
+        {
+            await Expect(page.Locator("#ageTabBortz")).ToBeHiddenAsync();
+            await Expect(page.Locator("#ageTabPheno")).ToBeVisibleAsync();
+        }
+    }
+
+    [Fact]
+    public async Task RadarHistory_DateSelectionStillWorksWithoutTheChartLibrary()
+    {
+        await using var context = await NewContextAsync(390, true);
+        await context.RouteAsync("https://cdn.jsdelivr.net/npm/chart.js@4.5.1", route => route.FulfillAsync(new() { ContentType = "application/javascript", Body = "" }));
+        var athlete = await HistoryAthleteAsync("Benjamin Garden", 44, partial: false);
+        var earlier = JsonSerializer.SerializeToNode(AlbuminCapTestData.Marker(50))!.AsObject();
+        earlier["Date"] = "2025-01-01";
+        athlete["Biomarkers"]!.AsArray().Insert(0, earlier);
+        await context.AddInitScriptAsync($"window.getSharedAthletes = async () => ([{athlete.ToJsonString()}]);");
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/athlete/benjamin-garden", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await Expect(page.Locator("#ageRadarFallback")).ToBeVisibleAsync();
+        await Expect(page.Locator("#ageRadarChart")).ToBeHiddenAsync();
+        await page.Locator("#ageResultSelect").SelectOptionAsync("1");
+        await Expect(page.Locator("#ageResultDate")).ToHaveTextAsync("1 Jan 2026");
+        await Expect(page.Locator("#ageRadarFallbackBio")).ToHaveTextAsync($"biological age: {BortzAgeHelper.CalculateBortzAgeFromRaw(AlbuminCapTestData.Age, AlbuminCapTestData.BortzValues(44)).ToString("F1", CultureInfo.InvariantCulture)}");
+        await page.Locator("#ageTabPheno").ClickAsync();
+        await page.Locator("#ageResultSelect").SelectOptionAsync("1");
+        await Expect(page.Locator("#ageRadarFallbackBio")).ToHaveTextAsync($"biological age: {PhenoAgeHelper.CalculatePhenoAge(AlbuminCapTestData.PhenoValues(44)).ToString("F1", CultureInfo.InvariantCulture)}");
+    }
+
     private static async Task SaveReviewScreenshotAsync(ILocator section, string name, ILocator? summaryRow = null)
     {
         var directory = Environment.GetEnvironmentVariable("LWC_UI_ARTIFACT_DIR");
