@@ -518,29 +518,110 @@
             }
         }
 
-        /* Desktop stages with a story: the story beside the task, so the task starts in the first screen.
-           Enlarged text wraps the task below the story instead of squeezing both. */
-        @media (min-width: 960px) {
-            body:not([data-convergence-stage="1"]):not([data-convergence-stage="7"]) .convergence-stage-layout {
-                display: flex;
-                flex-wrap: wrap;
-                align-items: flex-start;
-                justify-content: center;
-                gap: 1.5rem;
+        /* Each stage is one card: a banner illustration, a slim stage track, the story, then the task. */
+        .convergence-stage-layout {
+            --convergence-card-pad: var(--lwc-space-5, 1.5rem);
+            width: min(100%, 600px);
+            max-width: calc(100vw - 2rem);
+            margin: 2rem auto;
+            overflow: hidden;
+            border: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.16));
+            border-radius: var(--lwc-radius-lg, 12px);
+            background: var(--lwc-surface, #fff);
+            box-shadow: var(--lwc-shadow-sm, 0 1px 2px rgba(15, 23, 42, 0.08));
+            box-sizing: border-box;
+        }
+
+        body[data-convergence-stage="1"].flow-action-dock-active .convergence-stage-layout {
+            margin-top: 0.75rem;
+        }
+
+        .convergence-stage-layout > .bioageform {
+            width: 100%;
+            max-width: none;
+            margin: 0;
+            border: 0;
+            border-radius: 0;
+            background: transparent;
+            box-shadow: none;
+        }
+
+        .convergence-stage-layout > #descriptionForm {
+            align-items: stretch;
+            padding: 0;
+        }
+
+        #descriptionForm > :not(.convergence-visual) {
+            width: auto;
+            max-width: none;
+            margin-inline: var(--convergence-card-pad);
+        }
+
+        #descriptionForm .convergence-visual {
+            line-height: 0;
+        }
+
+        #descriptionForm #illustrationImage.illustration {
+            display: block;
+            width: 100%;
+            max-width: none;
+            height: clamp(120px, min(26vw, 22vh), 224px);
+            max-height: none;
+            margin: 0;
+            border: 0;
+            border-radius: 0;
+            object-fit: cover;
+            object-position: center 35%;
+        }
+
+        #descriptionForm #profileImage.illustration {
+            display: block;
+            width: auto;
+            height: 12.5rem;
+            max-width: calc(100% - 2 * var(--convergence-card-pad));
+            margin: var(--convergence-card-pad) auto 0;
+            aspect-ratio: 1;
+            object-fit: cover;
+            border-radius: var(--lwc-radius-md, 8px);
+        }
+
+        #descriptionForm #onboardingProofSymbol {
+            margin: var(--convergence-card-pad) auto 0;
+        }
+
+        #descriptionForm .sub-progress-container {
+            margin-top: 1.1rem;
+            margin-bottom: 0;
+            padding: 0;
+            border: 0;
+            background: transparent;
+        }
+
+        #descriptionForm .convergence-stage-copy {
+            margin-top: 1.1rem;
+        }
+
+        /* A hairline separates the story from the task below it. */
+        .convergence-stage-layout > #descriptionForm {
+            padding-bottom: var(--convergence-card-pad);
+            border-bottom: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.12));
+        }
+
+        body:not([data-convergence-stage="1"]):not([data-convergence-stage="7"]) .convergence-stage-layout > #inputForm > fieldset {
+            margin-top: 0;
+            padding-top: 0;
+            border-top: 0;
+        }
+
+        @media (max-width: 600px) {
+            .convergence-stage-layout {
+                --convergence-card-pad: var(--lwc-space-4, 1rem);
+                max-width: calc(100vw - 1.5rem);
+                margin-block: var(--lwc-space-2, 0.5rem);
             }
 
-            body:not([data-convergence-stage="1"]):not([data-convergence-stage="7"]) #descriptionForm {
-                position: sticky;
-                top: 1rem;
-                flex: 1 1 22rem;
-                max-width: 26rem;
-                margin: 0;
-            }
-
-            body:not([data-convergence-stage="1"]):not([data-convergence-stage="7"]) #inputForm {
-                flex: 1 1 30rem;
-                max-width: 36rem;
-                margin: 0;
+            .convergence-stage-layout > .bioageform:not(#descriptionForm) {
+                padding: var(--convergence-card-pad);
             }
         }
 
