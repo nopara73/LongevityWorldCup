@@ -325,6 +325,9 @@ public sealed class LeaderboardSelectionBrowserTests(PlaywrightBrowserFixture br
         var options = page.Locator($"input[name={group}]");
         var first = options.Nth(0);
         var second = options.Nth(1);
+        // The rail reveals its controls after the width transition finishes.
+        await Assertions.Expect(first).ToBeVisibleAsync();
+        await Assertions.Expect(second).ToBeVisibleAsync();
         var firstCount = int.Parse(await first.Locator("..").Locator(".filter-count").InnerTextAsync());
         var secondCount = int.Parse(await second.Locator("..").Locator(".filter-count").InnerTextAsync());
         await first.CheckAsync();
