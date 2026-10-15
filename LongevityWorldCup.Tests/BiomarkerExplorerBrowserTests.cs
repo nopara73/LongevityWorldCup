@@ -365,6 +365,36 @@ public sealed class BiomarkerExplorerBrowserTests(
     }
 
     [Fact]
+    public async Task MarkerControlsRejectUnknownDomValuesWithoutCreatingMarkupOrLosingTheLane()
+    {
+        await using var context = await NewContextAsync();
+        var page = await context.NewPageAsync();
+        await OpenAsync(page, "michael-lustgarten");
+        await page.GetByRole(AriaRole.Button, new() { Name = "Measured biomarkers", Exact = true }).ClickAsync();
+        await page.GetByRole(AriaRole.Button, new() { Name = "Add a biomarker lane", Exact = true }).ClickAsync();
+        var original = await page.GetByLabel("Additional biomarker 1", new() { Exact = true }).InputValueAsync();
+        await page.GetByLabel("Additional biomarker 1", new() { Exact = true }).FocusAsync();
+        foreach (var selector in new[] { "#be-marker", "select[data-extra-index='0']" })
+        {
+            await page.Locator(selector).EvaluateAsync("""
+                select => {
+                    const value = '\"><img data-explorer-injection src=x onerror="window.explorerInjection=true">';
+                    select.append(new Option('Unrecognized marker', value)); select.value = value;
+                    select.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+                """);
+        }
+        await Assertions.Expect(page.Locator("#be-marker")).ToHaveValueAsync("AlbGL");
+        await Assertions.Expect(page.GetByLabel("Additional biomarker 1", new() { Exact = true })).ToHaveValueAsync(original);
+        Assert.Equal(0, await page.Locator("[data-explorer-injection]").CountAsync());
+        Assert.False(await page.EvaluateAsync<bool>("() => window.explorerInjection === true"));
+        Assert.Equal(2, await page.Locator("#athlete-biomarkers canvas").CountAsync());
+        Assert.True(await page.EvaluateAsync<bool>("() => document.activeElement?.dataset.extraIndex === '0'"));
+        await page.GetByRole(AriaRole.Button, new() { Name = "Remove ALP lane", Exact = true }).ClickAsync();
+        Assert.True(await page.EvaluateAsync<bool>("() => document.activeElement?.dataset.action === 'add-marker'"));
+    }
+
+    [Fact]
     public async Task DenseHistoriesKeepEveryObservationAndUseOneFixedPersonalBasisWhileZooming()
     {
         await using var context = await NewContextAsync(changeSnapshot: snapshot =>

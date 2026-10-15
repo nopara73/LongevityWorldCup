@@ -240,6 +240,7 @@
                 if (target.dataset.view) { this.view = target.dataset.view as View; this.interaction = 'inspect'; this.previewId = ''; this.tablePage = 0; this.render(); return; }
                 if (target.dataset.record) { this.pickRecord(target.dataset.record); return; }
                 if (target.dataset.marker) {
+                    if (!this.data.markers.some(marker => marker.key === target.dataset.marker)) return;
                     this.marker = target.dataset.marker; this.view = 'time'; this.timeMetric = 'marker'; this.logX = false;
                     this.extraMarkers = this.extraMarkers.filter(key => key !== this.marker);
                     this.contextBounds = null; this.relationshipBounds = null; this.brushedIds.clear();
@@ -247,7 +248,7 @@
                     this.render(); this.element('.be-history-focus').scrollIntoView({ block: 'nearest', behavior: 'auto' });
                     this.element<HTMLSelectElement>('#be-marker').focus({ preventScroll: true }); return;
                 }
-                if (target.dataset.markerRemove) { this.extraMarkers = this.extraMarkers.filter(key => key !== target.dataset.markerRemove); this.render(); return; }
+                if (target.dataset.markerRemove) { this.extraMarkers = this.extraMarkers.filter(key => key !== target.dataset.markerRemove); this.render(); this.element<HTMLButtonElement>('[data-action="add-marker"]').focus({ preventScroll: true }); return; }
                 this.action(target.dataset.action ?? '');
             }, { signal });
             this.root.addEventListener('change', event => {
@@ -255,12 +256,16 @@
                 if (!(target instanceof HTMLInputElement || target instanceof HTMLSelectElement)) return;
                 if (target.dataset.extraIndex !== undefined) {
                     const index = Number(target.dataset.extraIndex);
-                    if (Number.isInteger(index) && index >= 0 && index < this.extraMarkers.length && target.value !== this.marker && !this.extraMarkers.some((key, item) => item !== index && key === target.value)) this.extraMarkers[index] = target.value;
+                    if (Number.isInteger(index) && index >= 0 && index < this.extraMarkers.length && this.data.markers.some(marker => marker.key === target.value) && target.value !== this.marker && !this.extraMarkers.some((key, item) => item !== index && key === target.value)) this.extraMarkers[index] = target.value;
                     this.render(); return;
                 }
                 switch (target.id) {
-                    case 'be-marker': this.marker = target.value; this.logX = false; this.contextBounds = null; this.relationshipBounds = null; this.brushedIds.clear(); this.extraMarkers = this.extraMarkers.filter(key => key !== this.marker); if (this.secondary === this.marker) this.secondary = this.data.markers.find(marker => marker.key !== this.marker)?.key ?? ''; break;
-                    case 'be-secondary': this.secondary = target.value; this.logY = false; this.relationshipBounds = null; this.brushedIds.clear(); break;
+                    case 'be-marker': case 'be-secondary':
+                        if (!this.data.markers.some(marker => marker.key === target.value) || target.id === 'be-secondary' && target.value === this.marker) {
+                            target.value = target.id === 'be-marker' ? this.marker : this.secondary; return;
+                        }
+                        if (target.id === 'be-secondary') { this.secondary = target.value; this.logY = false; this.relationshipBounds = null; this.brushedIds.clear(); break; }
+                        this.marker = target.value; this.logX = false; this.contextBounds = null; this.relationshipBounds = null; this.brushedIds.clear(); this.extraMarkers = this.extraMarkers.filter(key => key !== this.marker); if (this.secondary === this.marker) this.secondary = this.data.markers.find(marker => marker.key !== this.marker)?.key ?? ''; break;
                     case 'be-date': this.pickRecord(target.value); return;
                     case 'be-compare': this.comparisonId = target.value; break;
                     case 'be-from': case 'be-to': this.setDateRange(); return;
@@ -401,6 +406,7 @@
             if (this.view === 'relationships' && this.brushedIds.size && !this.brushIsPersonal) this.fieldMode = true;
             const focusedPlot = this.plots.find(plot => plot.canvas === document.activeElement)?.key;
             const focusedAction = document.activeElement instanceof HTMLElement && this.root.contains(document.activeElement) ? document.activeElement.dataset.action : undefined;
+            const focusedExtra = document.activeElement instanceof HTMLElement && this.root.contains(document.activeElement) ? document.activeElement.dataset.extraIndex : undefined;
             this.colorCache.clear(); this.compact = this.root.clientWidth < 440;
             this.root.dataset.activeView = this.view;
             this.root.dataset.selectedRecord = this.selectedId;
@@ -468,6 +474,7 @@
             this.element('.be-gesture').textContent = this.interaction === 'select' ? 'Drag a region to select its records. Numeric bounds below offer the same selection.' : this.interaction === 'pan' ? 'Drag to move the plot.' : this.view === 'time' ? 'Select a recorded point to see that test. Dates are spaced by the actual time between tests.' : 'Select a point to see its measured values.';
             this.element('[data-action="inspect"]').textContent = this.interaction === 'inspect' ? 'Inspect' : 'Done';
             if (focusedPlot) this.plots.find(plot => plot.key === focusedPlot)?.canvas.focus({ preventScroll: true });
+            else if (focusedExtra !== undefined) this.root.querySelector<HTMLSelectElement>(`select[data-extra-index="${CSS.escape(focusedExtra)}"]`)?.focus({ preventScroll: true });
             else if (focusedAction) this.root.querySelector<HTMLElement>(`[data-action="${CSS.escape(focusedAction)}"]`)?.focus({ preventScroll: true });
         }
 
@@ -535,8 +542,19 @@
                     if (points.filter(point => point.recordId && finite(point.y) && point.x >= this.range[0] && point.x <= this.range[1]).length < 2) { container.insertAdjacentHTML('beforeend', `<p class="be-single-test">${escape(info.label)} has fewer than two measured values in this period. The recorded result is shown above.</p>`); continue; }
                     const plot = this.createPlot(key, `${info.label} · ${basis ? 'personal SD' : info.unit}`, basis ? 'SD from this athlete’s observed mean' : info.unit, [dataset], points, false, this.logX && !basis, true);
                     if (key !== this.marker) {
-                        const options = this.data.markers.filter(item => this.athlete.records.some(record => finite(record.values[item.key]))).map(item => `<option value="${item.key}"${item.key === key ? ' selected' : ''}${item.key === this.marker || this.extraMarkers.some(extra => extra !== key && extra === item.key) ? ' disabled' : ''}>${escape(item.label)} (${escape(item.unit)})</option>`).join('');
-                        plot.figure.querySelector('.be-figure-heading')?.insertAdjacentHTML('beforeend', `<label class="be-lane-picker"><span class="visually-hidden">Additional biomarker</span><select data-extra-index="${this.extraMarkers.indexOf(key)}" aria-label="Additional biomarker ${this.extraMarkers.indexOf(key) + 1}">${options}</select></label><button type="button" class="be-icon" data-marker-remove="${key}" aria-label="Remove ${escape(info.label)} lane">${icon('minus')}</button>`);
+                        const index = this.extraMarkers.indexOf(key);
+                        const label = document.createElement('label'); label.className = 'be-lane-picker';
+                        const caption = document.createElement('span'); caption.className = 'visually-hidden'; caption.textContent = 'Additional biomarker';
+                        const select = document.createElement('select'); select.dataset.extraIndex = String(index); select.setAttribute('aria-label', `Additional biomarker ${index + 1}`);
+                        for (const item of this.data.markers.filter(item => this.athlete.records.some(record => finite(record.values[item.key])))) {
+                            const option = new Option(`${item.label} (${item.unit})`, item.key, false, item.key === key);
+                            option.disabled = item.key === this.marker || this.extraMarkers.some(extra => extra !== key && extra === item.key);
+                            select.append(option);
+                        }
+                        label.append(caption, select);
+                        const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'be-icon'; remove.dataset.markerRemove = key;
+                        remove.setAttribute('aria-label', `Remove ${info.label} lane`); remove.innerHTML = icon('minus');
+                        plot.figure.querySelector('.be-figure-heading')?.append(label, remove);
                     }
                     const offscale = this.logX && !basis ? visible.filter(record => finite(record.values[key]) && (record.values[key] ?? 0) <= 0).length : 0;
                     if (offscale) plot.figure.insertAdjacentHTML('beforeend', `<p class="be-offscale">${offscale} nonpositive value${offscale === 1 ? '' : 's'} available in the data table.</p>`);
