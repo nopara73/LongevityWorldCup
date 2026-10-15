@@ -5316,3 +5316,65 @@ a.lmx-note-mention:focus-visible {
         width: auto;
     }
 }
+
+/* Replies keep their context and actions on the name row, so the text follows the name directly. */
+.lmx-discussion-reply-meta .lmx-discussion-author-avatar {
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.lmx-discussion-reply-meta .lmx-discussion-context-link {
+    margin-top: 0;
+    gap: var(--lwc-space-1);
+    font-size: var(--lwc-type-sm);
+}
+
+.lmx-discussion-reply-meta {
+    flex-wrap: wrap;
+}
+
+/* Name, time and reply context wrap among themselves; the actions stay at the row's end. */
+.lmx-discussion-reply-byline {
+    display: flex;
+    flex: 1 1 10rem;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0 0.45rem;
+    min-width: 0;
+}
+
+.lmx-discussion-reply-meta .lmx-discussion-reply-footer {
+    flex: 0 1 auto;
+    justify-content: flex-end;
+    min-width: 0;
+    margin-left: auto;
+}
+
+.lmx-discussion-reply-item p {
+    margin-top: 0.15rem;
+}
+
+/* Narrow replies with several actions keep them under the text, where there is room for all of them. */
+@media (max-width: 480px) {
+    .lmx-discussion-reply-item:has(.lmx-discussion-reply-footer > :nth-child(2)) {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .lmx-discussion-reply-item:has(.lmx-discussion-reply-footer > :nth-child(2)) > .lmx-discussion-reply-meta {
+        display: contents;
+    }
+
+    .lmx-discussion-reply-item:has(.lmx-discussion-reply-footer > :nth-child(2)) .lmx-discussion-reply-byline {
+        position: relative;
+        flex: none;
+        min-height: 2rem;
+        padding-left: var(--lmx-discussion-indent);
+    }
+
+    .lmx-discussion-reply-item:has(.lmx-discussion-reply-footer > :nth-child(2)) .lmx-discussion-reply-footer {
+        order: 1;
+        justify-content: flex-start;
+        margin-left: 0;
+    }
+}

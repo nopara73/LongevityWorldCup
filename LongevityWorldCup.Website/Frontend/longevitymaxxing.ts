@@ -3938,19 +3938,22 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 <button type="button" data-discussion-reply-delete aria-label="Delete reply">Delete</button>
             </span>`
             : "";
+        // The reply's context and actions share its meta row, so the text follows the name directly.
         return `<article class="lmx-discussion-reply-item" tabindex="-1" data-discussion-reply-id="${escAttr(reply.id)}">
             <div class="lmx-discussion-reply-meta">
-                ${discussionAuthorHtml(reply.participantId, reply.displayName)}
-                ${author}
-                <span class="lmx-discussion-reply-time">${when}${edited}</span>
+                <div class="lmx-discussion-reply-byline">
+                    ${discussionAuthorHtml(reply.participantId, reply.displayName)}
+                    ${author}
+                    <span class="lmx-discussion-reply-time">${when}${edited}</span>
+                    ${reply.replyToId ? reply.replyTo
+                        ? `<a class="lmx-discussion-context-link" data-discussion-link href="${escAttr(`${discussionPermalink(note)}/reply/${encodeURIComponent(reply.replyToId)}`)}"
+                            title="${escAttr(reply.replyTo.body)}"><i class="fas fa-reply" aria-hidden="true"></i><span>${esc(reply.replyTo.displayName)}</span></a>`
+                        : '<span class="lmx-discussion-context-link unavailable"><i class="fas fa-reply" aria-hidden="true"></i>Original reply unavailable</span>' : ""}
+                </div>
+                <div class="lmx-discussion-reply-footer">${replyAction}${discussionCopyLinkHtml(permalink, "reply")}${ownerActions}</div>
             </div>
-            ${reply.replyToId ? reply.replyTo
-                ? `<a class="lmx-discussion-context-link" data-discussion-link href="${escAttr(`${discussionPermalink(note)}/reply/${encodeURIComponent(reply.replyToId)}`)}"
-                    title="${escAttr(reply.replyTo.body)}"><i class="fas fa-reply" aria-hidden="true"></i><span>${esc(reply.replyTo.displayName)}</span></a>`
-                : '<span class="lmx-discussion-context-link unavailable"><i class="fas fa-reply" aria-hidden="true"></i>Original reply unavailable</span>' : ""}
             <p data-discussion-reply-body>${participantMentionTextHtml(reply.body)}</p>
             ${(reply.images || []).length ? `<div class="lmx-note-photo-grid lmx-reply-photos">${reply.images!.map((image, index) => notePhotoHtml(image, `reply:${reply.id}:${index}`)).join("")}</div>` : ""}
-            <div class="lmx-discussion-reply-footer">${replyAction}${discussionCopyLinkHtml(permalink, "reply")}${ownerActions}</div>
             <div class="lmx-discussion-reply-editor-slot" data-discussion-reply-editor-slot hidden></div>
             <div class="lmx-discussion-reply-status" role="status" aria-live="polite"></div>
         </article>`;
@@ -3972,7 +3975,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             feedback = document.createElement("div");
             feedback.className = "lmx-discussion-copy-feedback";
             feedback.setAttribute("role", "status");
-            scope.querySelector(".lmx-discussion-reply-footer, .lmx-discussion-post-header")?.after(feedback);
+            scope.querySelector(".lmx-discussion-reply-meta, .lmx-discussion-post-header")?.after(feedback);
         }
         feedback.replaceChildren();
         feedback.classList.remove("error");
