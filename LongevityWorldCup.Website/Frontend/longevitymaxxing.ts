@@ -2135,6 +2135,19 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
 
     function renderBoard(state: PublicState): void {
         const board = requiredElement("lmxBoard", HTMLElement);
+        const leaderboardRows = splitLeaderboardRows(state);
+        const boardWrap = board.closest(".lmx-board-wrap");
+        const wasEmpty = boardWrap?.classList.contains("lmx-board-wrap--empty") ?? false;
+        const isEmpty = leaderboardRows.visible.length === 0;
+        // Apply the same empty layout to both the signup roster and scored board.
+        boardWrap?.classList.toggle("lmx-board-wrap--empty", isEmpty);
+        if (wasEmpty && !isEmpty) {
+            // Collapsing the board clamps scrollLeft to zero, losing any prior
+            // manual position. Restored history should open at the latest day.
+            const scroller = board.closest(".lmx-board-scroll");
+            if (scroller) autoScrollPositions.delete(scroller);
+            scrollBoardToLatestDay();
+        }
         const dayWindow = leaderboardDayWindow(state);
         updateLeaderboardPager(dayWindow);
         if (isPreStartSignup(state)) {
@@ -2149,7 +2162,6 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         setBoardDayColumns(board, dayCount, false);
         updateInactiveToggle(state);
         const dayHeaders = visibleDays.map(day => `<div class="lmx-cell${reportingDayClasses(day.challengeDay, state)}" title="${escAttr(`Day ${day.challengeDay}${reportingDayTitle(day.challengeDay, state)}`)}">${day.challengeDay}</div>`).join("");
-        const leaderboardRows = splitLeaderboardRows(state);
         const rows = leaderboardRows.visible.map((row, index) => {
             const name = row.athleteUrl
                 ? `<a href="${escAttr(row.athleteUrl)}">${esc(row.displayName)}</a>`
@@ -2187,8 +2199,6 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             <div class="lmx-number lmx-sticky-heading" role="columnheader">Score</div>
             <div class="lmx-cell-strip lmx-header-days" role="presentation">${dayHeaders}</div>
         </div>${rows || emptyBoardRow(visibleDays, leaderboardRows.inactive.length)}`;
-        // With nobody to show, the day columns and their pager have nothing to label.
-        board.closest(".lmx-board-wrap")?.classList.toggle("lmx-board-wrap--empty", !rows);
     }
 
     function practiceDayCellHtml(cell: DayCell, state: PublicState): string {
