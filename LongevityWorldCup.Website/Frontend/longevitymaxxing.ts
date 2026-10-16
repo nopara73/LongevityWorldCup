@@ -935,6 +935,17 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const editTimeZone = requiredSelect("lmxEditTimeZone");
         const inactiveToggle = optionalElement("lmxInactiveToggle", HTMLButtonElement);
         wireEmailValidityReset(signupEmailInput);
+        // The completion rail is silent and uses the same normalization as submission.
+        // These text inputs deliberately accept copied email formats before validation.
+        const refreshSignupCompletion = () => {
+            const email = normalizeEmailValue(signupEmailInput.value);
+            signupEmailInput.dataset.complete = String(!!email && isEmailAddress(email));
+            const name = requiredInput("lmxSignupName");
+            name.dataset.complete = String(!!name.value.trim());
+        };
+        signupForm.addEventListener("input", refreshSignupCompletion);
+        signupForm.addEventListener("reset", () => queueMicrotask(refreshSignupCompletion));
+        refreshSignupCompletion();
         wireSignInForm();
 
         signupForm.addEventListener("submit", async event => {
@@ -2669,6 +2680,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             <h3><span data-check-in-day-label>${esc(checkInDayLabel(day))}</span> <span class="lmx-phase">${esc(formatCheckInDate(day.date))}</span></h3>
             ${practice ? `<div class="lmx-practice-note"><strong>Practice check-in.</strong><span>Counts for checked-in days and streak, not points.</span></div>` : ""}
             <div class="lmx-checkin-entry">
+            <div class="lmx-checkin-fields">
             ${questions}
             <div class="lmx-field lmx-mention-field">
                 <div class="lmx-checkin-note-head">
@@ -2690,6 +2702,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 ${savedImageHtml}
                 <div class="lmx-note-photo-grid pending" data-photo-previews></div>
                 <div class="lmx-photo-feedback" data-photo-feedback role="status" aria-live="polite"></div>
+            </div>
             </div>
             <div class="lmx-checkin-actions">
                 <div class="lmx-checkin-save-row">

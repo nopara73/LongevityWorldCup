@@ -947,24 +947,24 @@
     top: calc(50% - var(--lmx-step-size) / 2);
 }
 
-#lmxSignupForm > .lmx-field:has(#lmxSignupEmail:valid)::before,
-#lmxSignupForm > .lmx-identity-field:has(#lmxSignupName:enabled:valid)::before,
-#lmxSignupForm > .lmx-identity-field:has(#lmxSignupAthleteSelected:not(.lmx-hidden))::before,
+#lmxSignupForm > .lmx-field:has(#lmxSignupEmail[data-complete="true"]:valid)::before,
+#lmxSignupForm > .lmx-identity-field:has(#lmxSignupName[data-complete="true"]:enabled:valid)::before,
+#lmxSignupForm > .lmx-identity-field:has(#lmxSignupAthleteField:not(.lmx-hidden) #lmxSignupAthleteSelected:not(.lmx-hidden))::before,
 #lmxSignupForm > .lmx-field:has(#lmxSignupTimeZone:valid)::before,
-#lmxSignupForm:has(#lmxSignupEmail:valid):has(#lmxSignupTimeZone:valid):is(:has(#lmxSignupName:enabled:valid), :has(#lmxSignupAthleteSelected:not(.lmx-hidden))) > button[type="submit"]::before {
+#lmxSignupForm:has(#lmxSignupEmail[data-complete="true"]:valid):has(#lmxSignupTimeZone:valid):is(:has(#lmxSignupName[data-complete="true"]:enabled:valid), :has(#lmxSignupAthleteField:not(.lmx-hidden) #lmxSignupAthleteSelected:not(.lmx-hidden))) > button[type="submit"]::before {
     content: '\2713';
     border-color: var(--lmx-accent);
     background: var(--lmx-accent);
 }
 
-#lmxSignupForm > .lmx-field:has(#lmxSignupEmail:valid)::after,
-#lmxSignupForm > .lmx-identity-field:has(#lmxSignupName:enabled:valid)::after,
-#lmxSignupForm > .lmx-identity-field:has(#lmxSignupAthleteSelected:not(.lmx-hidden))::after,
+#lmxSignupForm > .lmx-field:has(#lmxSignupEmail[data-complete="true"]:valid)::after,
+#lmxSignupForm > .lmx-identity-field:has(#lmxSignupName[data-complete="true"]:enabled:valid)::after,
+#lmxSignupForm > .lmx-identity-field:has(#lmxSignupAthleteField:not(.lmx-hidden) #lmxSignupAthleteSelected:not(.lmx-hidden))::after,
 #lmxSignupForm > .lmx-field:has(#lmxSignupTimeZone:valid)::after {
     background: var(--lmx-accent);
 }
 
-#lmxSignupForm > :is(.lmx-field, .lmx-identity-field):has([aria-invalid="true"])::before {
+#lmxSignupForm > :is(.lmx-field, .lmx-identity-field):has([aria-invalid="true"], :user-invalid)::before {
     border-color: var(--lmx-danger);
 }
 
@@ -4207,11 +4207,25 @@ a.lmx-note-mention:focus-visible {
 .lmx-checkin-entry {
     min-width: 0;
     container: lmx-checkin / inline-size;
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100dvh - 6rem);
+}
+
+/* Reserve the Save row's space so it never paints over remarks or photos. */
+.lmx-checkin-fields {
+    min-height: 0;
+    overflow-y: auto;
+    scroll-padding-block: var(--lwc-space-2);
+}
+
+.lmx-checkin-dialog-panel .lmx-checkin-entry {
+    max-height: calc(100dvh - 8rem);
 }
 
 .lmx-checkin-actions {
-    position: sticky;
-    bottom: 0;
+    flex: 0 0 auto;
+    position: relative;
     z-index: 2;
     margin: var(--lwc-space-2) -1rem 0;
     padding: var(--lwc-space-2) 1rem;
@@ -4567,9 +4581,9 @@ a.lmx-note-mention:focus-visible {
     min-height: 44px;
     display: grid;
     grid-template-columns:
-        minmax(2.75rem, 0.64fr)
-        minmax(2.75rem, 0.82fr)
-        minmax(2.75rem, 1fr);
+        minmax(44px, 0.64fr)
+        minmax(44px, 0.82fr)
+        minmax(44px, 1fr);
     gap: 0.35rem;
     align-self: stretch;
 }
@@ -4658,7 +4672,8 @@ a.lmx-note-mention:focus-visible {
 /* Size the shared check-in by its form width, including the narrow desktop sidebar. */
 @container lmx-checkin (max-width: 28rem) {
     .lmx-question {
-        grid-template-columns: 3rem minmax(0, 1fr);
+        grid-template-columns: min(3rem, 16%) minmax(0, 1fr);
+        column-gap: min(var(--lwc-space-2), 2cqw);
         grid-template-areas:
             "plant label"
             "plant answers";

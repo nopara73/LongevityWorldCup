@@ -50,5 +50,43 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         Assert.Equal(new[] { true, true, true, true }, await form.EvaluateAsync<bool[]>(markers));
         await page.Locator("#lmxSignupName").FillAsync("");
         Assert.Equal(new[] { true, false, true, false }, await form.EvaluateAsync<bool[]>(markers));
+        await page.Locator("#lmxSignupName").FillAsync("   ");
+        Assert.Equal(new[] { true, false, true, false }, await form.EvaluateAsync<bool[]>(markers));
+        await page.Locator("#lmxSignupName").FillAsync("Step Tester");
+        await page.Locator("#lmxSignupEmail").FillAsync("not-an-email");
+        Assert.Equal(new[] { false, true, true, false }, await form.EvaluateAsync<bool[]>(markers));
+        await page.Locator("#lmxSignupEmail").FillAsync("Step Tester <steps@example.test>");
+        Assert.Equal(new[] { true, true, true, true }, await form.EvaluateAsync<bool[]>(markers));
+    }
+
+    [Fact]
+    public async Task Signup_StepMarkersFollowTheActiveIdentityAfterSwitchingModes()
+    {
+        await using var context = await SignInContextAsync();
+        await context.RouteAsync("**/api/data/athletes", route => FulfillJsonAsync(route,
+            """[{"DisplayName":"Browser Champion","Name":"Browser Champion","AthleteSlug":"browser_champion","ProfilePicLeaderboardThumb":""}]"""));
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/longevitymaxxing");
+        await Assertions.Expect(page.Locator("[data-timezone-picker][data-select-id='lmxSignupTimeZone']")).ToHaveAttributeAsync("data-wired", "true");
+        var form = page.Locator("#lmxSignupForm");
+        const string markers = """
+            form => [...form.querySelectorAll(':scope > :is(.lmx-field, .lmx-identity-field, button[type=submit])')]
+                .map(step => getComputedStyle(step, '::before').content !== '""')
+            """;
+        await page.Locator("#lmxSignupEmail").FillAsync("steps@example.test");
+        await page.Locator("label:has(input[name='lmxSignupIdentity'][value='athlete'])").ClickAsync();
+        Assert.Equal(new[] { true, false, true, false }, await form.EvaluateAsync<bool[]>(markers));
+        await page.Locator("#lmxSignupAthlete").FillAsync("Browser");
+        await page.Locator(".lmx-athlete-option").Filter(new() { HasText = "Browser Champion" }).ClickAsync();
+        Assert.Equal(new[] { true, true, true, true }, await form.EvaluateAsync<bool[]>(markers));
+
+        await page.Locator("label:has(input[name='lmxSignupIdentity'][value='participant'])").ClickAsync();
+        await Assertions.Expect(page.Locator("#lmxSignupName")).ToBeEnabledAsync();
+        Assert.Equal(new[] { true, false, true, false }, await form.EvaluateAsync<bool[]>(markers));
+        await page.Locator("#lmxSignupName").FillAsync("New participant");
+        Assert.Equal(new[] { true, true, true, true }, await form.EvaluateAsync<bool[]>(markers));
+        await page.Locator("#lmxSignupName").FillAsync("");
+        await page.Locator("label:has(input[name='lmxSignupIdentity'][value='athlete'])").ClickAsync();
+        Assert.Equal(new[] { true, true, true, true }, await form.EvaluateAsync<bool[]>(markers));
     }
 }
