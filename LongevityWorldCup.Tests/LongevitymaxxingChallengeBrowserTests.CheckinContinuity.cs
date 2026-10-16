@@ -51,6 +51,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await form.Locator("button[type='submit']").TapAsync();
         await Assertions.Expect(dialog).ToHaveCountAsync(0);
         Assert.Equal(1, submissions);
+        await Assertions.Expect(page.Locator("#lmxQuoteDialog")).ToBeHiddenAsync();
         Assert.False(await page.Locator("main").EvaluateAsync<bool>("main => main.inert"));
         await Assertions.Expect(page.Locator("#lmxProfileTab")).ToBeEnabledAsync();
         await Assertions.Expect(page.Locator("#lmxHomeTab")).ToBeEnabledAsync();
@@ -206,13 +207,16 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
             requests++;
             entered.TrySetResult();
             await release.Task.WaitAsync(TimeSpan.FromSeconds(30));
-            state["eligibleDays"]![0]!["existing"] = SavedCheckIn("Submitted day.", 2);
+            var saved = SavedCheckIn("Submitted day.", 2);
+            saved["sleep"] = 1;
+            state["eligibleDays"]![0]!["existing"] = saved;
             await FulfillJsonAsync(route, state.ToJsonString());
         });
         var form = page.Locator(".lmx-checkin-card");
         var note = form.Locator("textarea").First;
         float noteTop = 0;
         await AnswerAllHabitsAsync(form);
+        await AnswerHabitAsync(form, "sleep", "somewhat");
         await form.Locator("textarea").First.FillAsync("Submitted day.");
         try {
             await form.Locator("button[type='submit']").ClickAsync();
@@ -230,6 +234,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         } finally { release.TrySetResult(); }
         await Assertions.Expect(page.Locator(".lmx-checkin-switcher button[data-day='17'] em")).ToHaveTextAsync("Saved");
         Assert.Equal(1, requests);
+        await Assertions.Expect(page.Locator("#lmxQuoteDialog")).ToBeHiddenAsync();
         Assert.Equal("21", await form.GetAttributeAsync("data-day"));
         Assert.Equal("Still writing this day.", await form.Locator("textarea").First.InputValueAsync());
         Assert.True(await form.Locator("[data-key='sleep'] input[value='2']").IsCheckedAsync());

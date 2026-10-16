@@ -326,8 +326,6 @@ public sealed class LongevitymaxxingChallengePageTests(TestWebApplicationFactory
         Assert.Contains("if (values.every(item => item.value === 2)) return null;", javascript);
         Assert.Contains("const soleWorst = worst[0];", javascript);
         Assert.Contains("return worst.length === 1 && soleWorst ? soleWorst.key : \"mindset\";", javascript);
-        Assert.Contains("const quoteBucket = selectQuoteBucket(draft);", javascript);
-        Assert.Contains("if (quoteBucket && stillOnSubmittedDay && participantActiveTab === \"checkin\") void showRandomCheckInQuote(quoteBucket);", javascript);
         Assert.Contains("showCheckInQuoteDialog(quote, null, token);", javascript);
         Assert.Contains("updateCheckInQuoteDialogRank(quote, computeQuoteAthleteBestRank(athlete), token);", javascript);
         Assert.Contains("dialog.dataset.quoteToken !== token", javascript);
