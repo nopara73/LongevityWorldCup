@@ -12,10 +12,13 @@ public sealed class UnsubscribeLayoutBrowserTests(
 {
     [Theory]
     [InlineData(1440, 900, 100)]
+    [InlineData(1440, 900, 200)]
     [InlineData(820, 1180, 100)]
     [InlineData(390, 844, 100)]
     [InlineData(390, 844, 200)]
     [InlineData(320, 640, 100)]
+    [InlineData(320, 640, 200)]
+    [InlineData(560, 800, 200)]
     public async Task Unsubscribe_FillsTheScreenAndKeepsTheCardWhole(int width, int height, int textPercent)
     {
         await using var context = await NewContextAsync(Browser, App, new()
@@ -28,6 +31,7 @@ public sealed class UnsubscribeLayoutBrowserTests(
         var page = await context.NewPageAsync();
         await page.GotoAsync("/unsubscribe");
         await Assertions.Expect(page.Locator("#unsubscribe-button")).ToBeVisibleAsync();
+        var originalTitleSize = await page.Locator(".unsubscribe-panel h1").EvaluateAsync<double>("title => parseFloat(getComputedStyle(title).fontSize)");
         await page.EvaluateAsync("async percent => { document.documentElement.style.fontSize = `${percent}%`; await document.fonts.ready; await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))); }", textPercent);
 
         var layout = await page.EvaluateAsync<double[]>(
@@ -44,13 +48,17 @@ public sealed class UnsubscribeLayoutBrowserTests(
                 const button = document.getElementById('unsubscribe-button').getBoundingClientRect();
                 return [Math.max(innerHeight, doc.scrollHeight) - (footer.bottom + scrollY), panel.left, panel.right,
                     title.getBoundingClientRect().right, title.scrollWidth - title.clientWidth, titleLines,
-                    input.top, button.top, button.left, input.right];
+                    input.top, button.top, button.left, input.right, parseFloat(getComputedStyle(title).fontSize),
+                    Math.min(...Array.from(titleRange.getClientRects()).map(rect => rect.left)),
+                    Math.max(...Array.from(titleRange.getClientRects()).map(rect => rect.right))];
             }
             """);
         var scenario = $"{width}x{height} / {textPercent}%";
         Assert.True(Math.Abs(layout[0]) <= 1, $"{scenario}: the footer stops {layout[0]}px above the bottom of the page.");
         Assert.True(layout[3] <= layout[2] + 1 && layout[4] <= 1, $"{scenario}: the title spills out of the card.");
-        Assert.True(layout[5] == 1, $"{scenario}: the title breaks across {layout[5]} lines.");
+        Assert.True(layout[10] >= originalTitleSize * textPercent / 100 - 0.1,
+            $"{scenario}: the title should respect enlarged text ({originalTitleSize}px became {layout[10]}px).");
+        Assert.True(layout[11] >= layout[1] && layout[12] <= layout[2], $"{scenario}: heading text is clipped outside the card.");
         if (width >= 560 && textPercent == 100)
             Assert.True(Math.Abs(layout[6] - layout[7]) <= 1 && layout[8] >= layout[9], $"{scenario}: the email field and button should share one row.");
         Assert.True(layout[1] >= 0 && layout[2] <= width, $"{scenario}: the card escapes the viewport ({layout[1]}-{layout[2]}px).");
