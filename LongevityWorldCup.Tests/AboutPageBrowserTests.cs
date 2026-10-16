@@ -22,7 +22,17 @@ public sealed class AboutPageBrowserTests(
         var page = await context.NewPageAsync();
         await NavigateAndSettleAsync(page, "/about");
         await page.Locator(".documentation-nav a[href='#how-it-works']").ClickAsync();
-        await page.WaitForFunctionAsync("() => document.querySelector('.documentation-nav a.is-active')?.getAttribute('href') === '#how-it-works'");
+        // The active class changes before the shared border-color transition has painted.
+        await page.WaitForFunctionAsync(
+            """
+            () => {
+                if (document.querySelector('.documentation-nav a.is-active')?.getAttribute('href') !== '#how-it-works')
+                    return false;
+                const accent = getComputedStyle(document.querySelector('.documentation-source-link')).color;
+                return [...document.querySelectorAll('.documentation-nav a.documentation-nav-level-2')]
+                    .every((link, index) => (getComputedStyle(link).borderLeftColor === accent) === (index < 3));
+            }
+            """, null, new() { Timeout = 5000 });
 
         var rail = await page.EvaluateAsync<string[]>(
             """
