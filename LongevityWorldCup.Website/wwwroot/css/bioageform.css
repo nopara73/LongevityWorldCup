@@ -1523,6 +1523,13 @@ html body .bioageform .lwc-wizard-nav .lwc-dot[aria-disabled="true"] {
 }
 
 /* Result scoreboard: the age and the reduction read as one result, aligned with the form card. */
+@media (max-width: 600px) {
+    body .phenoage-main,
+    body .bioage-main {
+        padding-inline: min(1rem, 16px);
+    }
+}
+
 body .lwc-steps-shell {
     max-width: min(100%, 780px);
 }
