@@ -44,7 +44,9 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
     [InlineData(390, 844, true, false)]
     [InlineData(320, 844, false, true)]
     [InlineData(390, 844, true, true)]
+    [InlineData(820, 844, false, true)]
     [InlineData(820, 1180, false, true)]
+    [InlineData(1440, 844, true, true)]
     [InlineData(1440, 900, true, true)]
     [InlineData(844, 390, true, true)]
     public async Task CheckIn_ReflowsWithLargeTextAndKeepsFieldsAboveSave(int width, int height, bool direct, bool largeText)
