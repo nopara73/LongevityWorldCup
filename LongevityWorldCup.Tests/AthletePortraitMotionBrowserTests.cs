@@ -15,7 +15,21 @@ public sealed class AthletePortraitMotionBrowserTests(
     private const string ValeriePhoto = "e280d5d1d7278450a5d37ba7e16eee54719d0acb125f54c18b0b9a9a43c41976";
     private const string Clip = "**/assets/athlete-motion/*";
 
-    private static string Photo(string slug) => slug == "valerie-orsoni" ? ValeriePhoto : ApprovedPhoto;
+    private static string Photo(string slug) => slug switch
+    {
+        "valerie-orsoni" => ValeriePhoto,
+        "anna-buky" => "f36cf66df3a3f67ef88c000c32c0ae4093a7c174aaae81bbb2c0691c178fc1ec",
+        "martin-helstab" => "03fd37f6337cd4f2d8ecdfa1b824bb970ed8c83be1eeaf29db078d25e02a7966",
+        "wen-z" => "9d0f884164da2166825661b263042d63bbebda217511f97a72eec8887853590d",
+        "tibor-konkoly" => "d563d8ade182b2286dbbeb6519e54f88e48ad04c40a3111649c4b598b605e501",
+        "charlotte-wong" => "708c527def914308e9da42eaac2cde572770f4fe5c06fbb162b1c250c34b3391",
+        "slamovits-tibor" => "f1ed3c0f28481d62d0df3f463a5077dacad31c9927894f9fe6ef8dbc87d85b78",
+        "qolars" => "da84f1750d8a7b55779f34832c9990de28d12638ad0a2c6fa6102b33061e87f7",
+        "markus-mattiasson" => "405a0d4169a2aab78e2a7a0fd4569cc92633f0b202a0f37a7abb2ef431662593",
+        "inka-land" => "89251966a304b5b721333bd3a3c02d456f76a230e6549bdbb34c210a60814cca",
+        "tamas-toth" => "613ab3be683feb657f8b3e3a6db17ecac97211f90f3d18b16f91bf50735c8781",
+        _ => ApprovedPhoto
+    };
 
     [Theory]
     [InlineData(1440, "benjamin-garden")]
@@ -143,10 +157,33 @@ public sealed class AthletePortraitMotionBrowserTests(
     [InlineData(true, 390, "valerie-orsoni")]
     [InlineData(false, 1440, "valerie-orsoni")]
     [InlineData(false, 390, "valerie-orsoni")]
+    [InlineData(true, 1440, "anna-buky")]
+    [InlineData(false, 390, "anna-buky")]
+    [InlineData(true, 1440, "martin-helstab")]
+    [InlineData(false, 390, "martin-helstab")]
+    [InlineData(true, 1440, "wen-z")]
+    [InlineData(false, 390, "wen-z")]
+    [InlineData(true, 1440, "tibor-konkoly")]
+    [InlineData(false, 390, "tibor-konkoly")]
+    [InlineData(true, 1440, "charlotte-wong")]
+    [InlineData(false, 390, "charlotte-wong")]
+    [InlineData(true, 1440, "slamovits-tibor")]
+    [InlineData(false, 390, "slamovits-tibor")]
+    [InlineData(true, 1440, "qolars")]
+    [InlineData(false, 390, "qolars")]
+    [InlineData(true, 1440, "markus-mattiasson")]
+    [InlineData(false, 390, "markus-mattiasson")]
+    [InlineData(true, 1440, "inka-land")]
+    [InlineData(false, 390, "inka-land")]
+    [InlineData(true, 1440, "tamas-toth")]
+    [InlineData(false, 390, "tamas-toth")]
     public async Task ProfileOpeningAndHover_PlayTheMotion(bool direct, int width, string slug)
     {
         await using var context = await NewContextAsync(width);
         await context.AddInitScriptAsync("localStorage.setItem('gmaSkipAll', 'true')");
+        // Hold the short first playback while inspecting it; a busy machine must
+        // not turn an already completed gesture into a missing-element failure.
+        await context.AddInitScriptAsync("window.holdProfileMotion = true");
         IPage page;
         if (direct)
         {
@@ -156,14 +193,17 @@ public sealed class AthletePortraitMotionBrowserTests(
         }
         else
         {
-            page = await LoadAsync(context);
+            page = await LoadAsync(context, "/leaderboard");
             await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.NoPreference });
             await page.Locator($"a.athlete-name[href='/athlete/{slug}']").First.ClickAsync();
         }
 
         await page.WaitForFunctionAsync("() => window.profileMotionStarts === 1");
         Assert.Contains($"/assets/athlete-motion/{slug}-", await page.Locator("#athlete-profile video.athlete-portrait-motion").EvaluateAsync<string>("video => video.currentSrc"));
+        if (slug == "tibor-konkoly")
+            Assert.InRange(await page.Locator("#athlete-profile video.athlete-portrait-motion").EvaluateAsync<double>("video => video.duration"), 11.95, 12.05);
         Assert.True(await page.Locator("#athlete-profile video.athlete-portrait-motion").EvaluateAsync<bool>("video => { const image = video.previousElementSibling.getBoundingClientRect(); const clip = video.getBoundingClientRect(); return Math.abs(clip.x - image.x - 3) < 1 && Math.abs(clip.y - image.y - 3) < 1 && Math.abs(clip.width - image.width + 6) < 1 && Math.abs(clip.height - image.height + 6) < 1; }"));
+        await page.Locator("#athlete-profile video.athlete-portrait-motion").EvaluateAsync("video => { window.holdProfileMotion = false; return video.play(); }");
         await page.WaitForFunctionAsync("() => window.profileMotionEnds === 1");
         await Assertions.Expect(page.Locator("#modalProfilePic")).ToBeVisibleAsync();
         await page.Locator("#modalProfilePic").HoverAsync();
@@ -230,6 +270,73 @@ public sealed class AthletePortraitMotionBrowserTests(
         Assert.Contains("valerie-orsoni-double-blink-", await overlay.EvaluateAsync<string>("video => video.currentSrc"));
     }
 
+    [Theory]
+    [InlineData(1440)]
+    [InlineData(390)]
+    public async Task ApprovedTablePortraits_ReplayOnHover_AndKeepTheirLinksAndAlignment(int width)
+    {
+        await using var context = await NewContextAsync(width);
+        await context.AddInitScriptAsync("window.holdTableMotion = true");
+        var page = await LoadAsync(context, "/leaderboard");
+        await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.NoPreference });
+        foreach (var slug in new[] { "anna-buky", "martin-helstab", "wen-z", "tibor-konkoly", "charlotte-wong", "slamovits-tibor", "qolars", "markus-mattiasson", "inka-land", "tamas-toth" })
+        {
+            var image = page.Locator($".leaderboard a[href='/athlete/{slug}'] img.portrait").First;
+            await image.HoverAsync();
+            var overlay = image.Locator("..").Locator("video.athlete-portrait-motion");
+            await Assertions.Expect(overlay).ToHaveClassAsync("athlete-portrait-motion is-playing");
+            Assert.Contains($"/assets/athlete-motion/{slug}-", await overlay.EvaluateAsync<string>("video => video.currentSrc"));
+            // Loading a cached clip can beat the portrait's hover transition.
+            // Measure both layers at their final scale, retaining one-pixel alignment.
+            var alignment = await overlay.EvaluateAsync<double[]>("""
+                async video => {
+                    const photo = video.previousElementSibling;
+                    await Promise.all([photo, video].flatMap(element => element.getAnimations()).map(animation => animation.finished.catch(() => {})));
+                    const image = photo.getBoundingClientRect(), clip = video.getBoundingClientRect();
+                    return [Math.abs((clip.x + clip.width / 2) - (image.x + image.width / 2)),
+                        Math.abs((clip.y + clip.height / 2) - (image.y + image.height / 2)),
+                        Math.abs(clip.width - (image.width - 6 * 1.1))];
+                }
+                """);
+            Assert.True(alignment.All(delta => delta < 1), $"{slug} at {width}px: alignment deltas {string.Join(", ", alignment)}");
+            Assert.EndsWith($"/athlete/{slug}", await image.EvaluateAsync<string>("img => img.closest('a').href"));
+            // A profile update invalidates the active clip immediately, even in a row.
+            await image.EvaluateAsync("img => img.src = img.src.replace(/[a-f0-9]{64}/g, '0'.repeat(64))");
+            await Assertions.Expect(overlay).ToHaveCountAsync(0);
+        }
+        Assert.True(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth <= innerWidth"));
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task HoverBeforePortraitLoads_PlaysOnlyIfThePointerRemains(bool remainHovered)
+    {
+        await using var context = await NewContextAsync();
+        await context.AddInitScriptAsync("window.holdTableMotion = true");
+        var pendingPhoto = new TaskCompletionSource<IRoute>(TaskCreationOptions.RunContinuationsAsynchronously);
+        await context.RouteAsync("**/generated/thumbs/athletes/anna_buky_*.webp*", route =>
+        {
+            pendingPhoto.TrySetResult(route);
+            return Task.CompletedTask;
+        });
+        var page = await LoadAsync(context, "/leaderboard");
+        await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.NoPreference });
+        var image = page.Locator(".leaderboard a[href='/athlete/anna-buky'] img.portrait").First;
+        await image.HoverAsync();
+        Assert.Equal(0, await image.EvaluateAsync<int>("img => img.naturalWidth"));
+        if (!remainHovered) await page.Mouse.MoveAsync(0, 0);
+        var root = App.Services.GetRequiredService<IWebHostEnvironment>().WebRootPath;
+        var photo = await File.ReadAllBytesAsync(Path.Combine(root, "athletes", "anna_buky", "anna_buky.webp"));
+        await (await pendingPhoto.Task.WaitAsync(TimeSpan.FromSeconds(15))).FulfillAsync(new() { ContentType = "image/webp", BodyBytes = photo });
+        await page.WaitForFunctionAsync("() => document.querySelector(\".leaderboard a[href='/athlete/anna-buky'] img.portrait\").naturalWidth > 0");
+        var overlay = image.Locator("..").Locator("video.athlete-portrait-motion");
+        if (remainHovered)
+            await Assertions.Expect(overlay).ToHaveClassAsync("athlete-portrait-motion is-playing");
+        else
+            await Assertions.Expect(overlay).ToHaveCountAsync(0);
+    }
+
     private async Task<IBrowserContext> NewContextAsync(int width = 1440)
     {
         var context = await Browser.NewContextAsync(new()
@@ -240,11 +347,19 @@ public sealed class AthletePortraitMotionBrowserTests(
         });
         await BrowserTestApp.RouteExternalResourcesAsync(context);
         var root = App.Services.GetRequiredService<IWebHostEnvironment>().WebRootPath;
-        foreach (var fileSlug in new[] { "benjamin_garden", "valerie_orsoni" })
+        foreach (var fileSlug in new[] { "benjamin_garden", "valerie_orsoni", "anna_buky", "martin_helstab", "wen_z", "tibor_konkoly", "charlotte_wong", "slamovits_tibor", "qolars", "markus_mattiasson", "inka_land", "tamas_toth" })
         {
-            var photo = await File.ReadAllBytesAsync(Path.Combine(root, "athletes", fileSlug, $"{fileSlug}.webp"));
+            var path = Directory.EnumerateFiles(Path.Combine(root, "athletes", fileSlug), $"{fileSlug}.*")
+                .Single(path => Path.GetExtension(path).ToLowerInvariant() is ".webp" or ".jpg" or ".jpeg" or ".png");
+            var photo = await File.ReadAllBytesAsync(path);
+            var type = Path.GetExtension(path).ToLowerInvariant() switch
+            {
+                ".png" => "image/png",
+                ".jpg" or ".jpeg" => "image/jpeg",
+                _ => "image/webp"
+            };
             await context.RouteAsync($"**/generated/thumbs/athletes/{fileSlug}_thumb_md_*.webp*", route =>
-                route.FulfillAsync(new() { ContentType = "image/webp", BodyBytes = photo }));
+                route.FulfillAsync(new() { ContentType = type, BodyBytes = photo }));
         }
         await context.AddInitScriptAsync("""
             window.motionStarts = 0;
@@ -262,16 +377,18 @@ public sealed class AthletePortraitMotionBrowserTests(
                     window[key]++;
                     if (e.target.previousElementSibling?.id === 'modalProfilePic')
                         window[event === 'playing' ? 'profileMotionStarts' : 'profileMotionEnds']++;
+                    if (event === 'playing' && ((window.holdProfileMotion && e.target.previousElementSibling?.id === 'modalProfilePic')
+                        || (window.holdTableMotion && e.target.closest('.leaderboard')))) queueMicrotask(() => e.target.pause());
                 }, true);
             }
             """);
         return context;
     }
 
-    private static async Task<IPage> LoadAsync(IBrowserContext context)
+    private static async Task<IPage> LoadAsync(IBrowserContext context, string path = "/")
     {
         var page = await context.NewPageAsync();
-        await page.GotoAsync("/", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.GotoAsync(path, new() { WaitUntil = WaitUntilState.DOMContentLoaded });
         await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
         return page;
     }

@@ -586,6 +586,7 @@
     const NOTE_PHOTO_MAX_DIMENSION = 1600;
     const LEADERBOARD_SCORING_WINDOW_DAYS = 14;
     const MOBILE_LEADERBOARD_QUERY = "(max-width: 760px)";
+    const MOBILE_DISCUSSION_ACTIONS_QUERY = "(max-width: 480px)";
     const QUESTIONS: readonly ChallengeQuestion[] = [
         { key: "sleep", icon: "fa-moon", title: "Sleep", text: "Did you set yourself up for good sleep last night?" },
         { key: "exercise", icon: "fa-dumbbell", title: "Exercise", text: "Did you challenge or intentionally rest your body yesterday?" },
@@ -1054,6 +1055,26 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     function wireDiscussionPager(): void {
         optionalElement("lmxNotesNewer", HTMLButtonElement)?.addEventListener("click", () => changeDiscussionPage(-1));
         optionalElement("lmxNotesOlder", HTMLButtonElement)?.addEventListener("click", () => changeDiscussionPage(1));
+        window.matchMedia(MOBILE_DISCUSSION_ACTIONS_QUERY).addEventListener("change", syncDiscussionReplyActionOrder);
+    }
+
+    function syncDiscussionReplyActionOrder(): void {
+        const belowContent = window.matchMedia(MOBILE_DISCUSSION_ACTIONS_QUERY).matches;
+        document.querySelectorAll<HTMLElement>("[data-discussion-reply-id]").forEach(reply => {
+            const actions = reply.querySelector<HTMLElement>(".lmx-discussion-reply-footer");
+            const meta = reply.querySelector<HTMLElement>(":scope > .lmx-discussion-reply-meta");
+            const editor = reply.querySelector<HTMLElement>(":scope > [data-discussion-reply-editor-slot]");
+            if (!actions || actions.children.length < 2 || !meta || !editor) return;
+            const parent = belowContent ? reply : meta;
+            if (actions.parentElement === parent) return;
+            const focused = document.activeElement;
+            const feedback = reply.querySelector<HTMLElement>(":scope > .lmx-discussion-copy-feedback");
+            const feedbackFocused = !!feedback && focused instanceof HTMLElement && feedback.contains(focused);
+            const restoreFocus = focused instanceof HTMLElement && (actions.contains(focused) || feedbackFocused);
+            parent.insertBefore(actions, belowContent ? editor : null);
+            if (feedback) placeDiscussionCopyFeedback(reply, feedback);
+            if (restoreFocus) focused.focus({ preventScroll: !feedbackFocused });
+        });
     }
 
     function changeDiscussionPage(delta: number): void {
@@ -3938,19 +3959,25 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 <button type="button" data-discussion-reply-delete aria-label="Delete reply">Delete</button>
             </span>`
             : "";
+        const actions = `<div class="lmx-discussion-reply-footer">${replyAction}${discussionCopyLinkHtml(permalink, "reply")}${ownerActions}</div>`;
+        const actionsBelow = window.matchMedia(MOBILE_DISCUSSION_ACTIONS_QUERY).matches && !!(replyAction || ownerActions);
+        // Keep DOM and keyboard order aligned with the actions' responsive placement.
         return `<article class="lmx-discussion-reply-item" tabindex="-1" data-discussion-reply-id="${escAttr(reply.id)}">
             <div class="lmx-discussion-reply-meta">
-                ${discussionAuthorHtml(reply.participantId, reply.displayName)}
-                ${author}
-                <span class="lmx-discussion-reply-time">${when}${edited}</span>
+                <div class="lmx-discussion-reply-byline">
+                    ${discussionAuthorHtml(reply.participantId, reply.displayName)}
+                    ${author}
+                    <span class="lmx-discussion-reply-time">${when}${edited}</span>
+                    ${reply.replyToId ? reply.replyTo
+                        ? `<a class="lmx-discussion-context-link" data-discussion-link href="${escAttr(`${discussionPermalink(note)}/reply/${encodeURIComponent(reply.replyToId)}`)}"
+                            title="${escAttr(reply.replyTo.body)}"><i class="fas fa-reply" aria-hidden="true"></i><span>${esc(reply.replyTo.displayName)}</span></a>`
+                        : '<span class="lmx-discussion-context-link unavailable"><i class="fas fa-reply" aria-hidden="true"></i>Original reply unavailable</span>' : ""}
+                </div>
+                ${actionsBelow ? "" : actions}
             </div>
-            ${reply.replyToId ? reply.replyTo
-                ? `<a class="lmx-discussion-context-link" data-discussion-link href="${escAttr(`${discussionPermalink(note)}/reply/${encodeURIComponent(reply.replyToId)}`)}"
-                    title="${escAttr(reply.replyTo.body)}"><i class="fas fa-reply" aria-hidden="true"></i><span>${esc(reply.replyTo.displayName)}</span></a>`
-                : '<span class="lmx-discussion-context-link unavailable"><i class="fas fa-reply" aria-hidden="true"></i>Original reply unavailable</span>' : ""}
             <p data-discussion-reply-body>${participantMentionTextHtml(reply.body)}</p>
             ${(reply.images || []).length ? `<div class="lmx-note-photo-grid lmx-reply-photos">${reply.images!.map((image, index) => notePhotoHtml(image, `reply:${reply.id}:${index}`)).join("")}</div>` : ""}
-            <div class="lmx-discussion-reply-footer">${replyAction}${discussionCopyLinkHtml(permalink, "reply")}${ownerActions}</div>
+            ${actionsBelow ? actions : ""}
             <div class="lmx-discussion-reply-editor-slot" data-discussion-reply-editor-slot hidden></div>
             <div class="lmx-discussion-reply-status" role="status" aria-live="polite"></div>
         </article>`;
@@ -3960,6 +3987,12 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         return `<button class="lmx-discussion-quiet-action lmx-discussion-copy-link" type="button"
             data-discussion-copy-link="${escAttr(permalink)}" aria-label="Copy link to this ${kind}" title="Copy link">
             <i class="fas fa-link" aria-hidden="true"></i></button>`;
+    }
+
+    function placeDiscussionCopyFeedback(scope: HTMLElement, feedback: HTMLElement): void {
+        const anchor = scope.querySelector(":scope > .lmx-discussion-reply-footer")
+            || scope.querySelector(":scope > .lmx-discussion-reply-meta, :scope > .lmx-discussion-post-header");
+        if (anchor && anchor.nextElementSibling !== feedback) anchor.after(feedback);
     }
 
     async function copyDiscussionLink(button: HTMLButtonElement): Promise<void> {
@@ -3972,7 +4005,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             feedback = document.createElement("div");
             feedback.className = "lmx-discussion-copy-feedback";
             feedback.setAttribute("role", "status");
-            scope.querySelector(".lmx-discussion-reply-footer, .lmx-discussion-post-header")?.after(feedback);
+            placeDiscussionCopyFeedback(scope, feedback);
         }
         feedback.replaceChildren();
         feedback.classList.remove("error");
@@ -4004,7 +4037,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             input.setAttribute("aria-label", "Public discussion link");
             input.addEventListener("focus", () => input.select());
             feedback.append(input);
-            if (document.activeElement === button) input.focus({ preventScroll: true });
+            if (document.activeElement === button) input.focus();
         } finally {
             button.removeAttribute("aria-busy");
         }

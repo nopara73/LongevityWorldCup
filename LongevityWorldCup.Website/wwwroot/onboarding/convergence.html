@@ -518,6 +518,143 @@
             }
         }
 
+        /* Each stage is one card: a banner illustration, a slim stage track, the story, then the task. */
+        .convergence-stage-layout {
+            --convergence-card-pad: min(var(--lwc-space-5, 1.5rem), 24px);
+            width: min(100%, 600px);
+            max-width: calc(100vw - 2rem);
+            margin: 2rem auto;
+            border: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.16));
+            border-radius: var(--lwc-radius-lg, 12px);
+            background: var(--lwc-surface, #fff);
+            box-shadow: var(--lwc-shadow-sm, 0 1px 2px rgba(15, 23, 42, 0.08));
+            box-sizing: border-box;
+        }
+
+        body[data-convergence-stage="1"].flow-action-dock-active .convergence-stage-layout {
+            margin-top: 0.75rem;
+        }
+
+        .convergence-stage-layout > .bioageform {
+            width: 100%;
+            max-width: none;
+            margin: 0;
+            border: 0;
+            border-radius: 0;
+            background: transparent;
+            box-shadow: none;
+        }
+
+        .convergence-stage-layout > #descriptionForm {
+            align-items: stretch;
+            padding: 0;
+        }
+
+        #descriptionForm > :not(.convergence-visual) {
+            width: auto;
+            max-width: none;
+            margin-inline: var(--convergence-card-pad);
+        }
+
+        #descriptionForm .convergence-visual {
+            line-height: 0;
+        }
+
+        #descriptionForm #illustrationImage.illustration {
+            display: block;
+            width: 100%;
+            max-width: none;
+            height: clamp(120px, min(26vw, 22vh), 224px);
+            max-height: none;
+            margin: 0;
+            border: 0;
+            border-radius: calc(var(--lwc-radius-lg, 12px) - 1px) calc(var(--lwc-radius-lg, 12px) - 1px) 0 0;
+            object-fit: cover;
+            object-position: center 35%;
+        }
+
+        body[data-convergence-stage="4"] #descriptionForm #illustrationImage.illustration {
+            object-position: center top;
+        }
+
+        #descriptionForm #profileImage.illustration {
+            display: block;
+            width: min(200px, calc(100% - 2 * var(--convergence-card-pad)));
+            height: auto;
+            max-width: none;
+            max-height: none;
+            margin: var(--convergence-card-pad) auto 0;
+            aspect-ratio: 1;
+            object-fit: cover;
+            border: 0;
+            border-radius: var(--lwc-radius-md, 8px);
+            box-shadow: none;
+        }
+
+        #descriptionForm #onboardingProofSymbol {
+            margin: var(--convergence-card-pad) auto 0;
+        }
+
+        #descriptionForm .sub-progress-container {
+            margin-top: 1.1rem;
+            margin-bottom: 0;
+            padding: 0;
+            border: 0;
+            background: transparent;
+        }
+
+        #descriptionForm .convergence-stage-copy {
+            margin-top: 1.1rem;
+            padding: min(0.95rem, 16px) min(1rem, 16px);
+        }
+
+        .convergence-stage-layout .convergence-helper-text {
+            padding: min(0.8rem, 16px) min(0.9rem, 16px);
+        }
+
+        .convergence-upload-action .option-button.flow-action {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: min(0.75rem, 12px);
+            padding-inline: min(1.25rem, 20px);
+        }
+
+        .convergence-upload-action .flow-action__label {
+            text-align: left;
+            overflow-wrap: normal;
+        }
+
+        .convergence-upload-action .option-button.flow-action > i {
+            position: static;
+            width: min(1.25rem, 24px);
+            font-size: min(1.12rem, 24px);
+            transform: none;
+        }
+
+        /* A hairline separates the story from the task below it. */
+        .convergence-stage-layout > #descriptionForm {
+            padding-bottom: var(--convergence-card-pad);
+            border-bottom: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.12));
+        }
+
+        body:not([data-convergence-stage="1"]):not([data-convergence-stage="7"]) .convergence-stage-layout > #inputForm > fieldset {
+            margin-top: 0;
+            padding-top: 0;
+            border-top: 0;
+        }
+
+        @media (max-width: 600px) {
+            .convergence-stage-layout {
+                --convergence-card-pad: min(var(--lwc-space-4, 1rem), 16px);
+                max-width: calc(100vw - 1.5rem);
+                margin-block: var(--lwc-space-2, 0.5rem);
+            }
+
+            .convergence-stage-layout > .bioageform:not(#descriptionForm) {
+                padding: var(--convergence-card-pad);
+            }
+        }
+
     </style>
 </head>
 <body class="play-flow-route" data-convergence-stage="1">
@@ -525,177 +662,179 @@
     <main class="convergence-main initial-view-main">
         <!--MAIN-PROGRESS-BAR-->
         <h1 tabindex="-1" data-aos="fade" data-aos-duration="700" data-aos-delay="400">1. Enter the arena</h1>
-        <form id="descriptionForm" class="bioageform" data-aos="fade" data-aos-duration="700" data-aos-delay="450">
-            <div class="convergence-visual">
-                <picture id="illustrationPicture" style="display:''">
-                    <source type="image/webp" srcset="../assets/content-images/enter-arena.webp">
-                    <source type="image/jpeg" srcset="../assets/content-images/enter-arena.jpg">
-                    <img id="illustrationImage" src="../assets/content-images/enter-arena.jpg" alt="Longevity World Cup logo" class="illustration" width="1024" height="768" loading="lazy" decoding="async">
-                </picture>
-                <div id="onboardingProofSymbol" class="proof-upload-symbol" aria-hidden="true" hidden><i class="fas fa-file-medical"></i></div>
-                <img style="display:none" id="profileImage" src="" alt="Profile picture" class="illustration" loading="lazy">
-            </div>
-            <!--SUB-PROGRESS-BAR-->
-            <div id="privacyText" class="convergence-stage-copy" style="display:none">
-                <p><strong>Privacy is your ability to selectively reveal yourself to the world.</strong></p>
-                <p>
-                    Cristiano Ronaldo is one of the greatest football players of all time. Put yourself into his boots. You must work hard, of course, but your job doesn't end with honing your skills. You also need to display them in front of millions of people. <em>There’s no sport without spectators.</em>
-                </p>
-                <p>
-                    So, does he lack privacy? <strong>No</strong>, he made a decision to selectively reveal himself to the world.
-                </p>
-            </div>
-
-            <div id="profilePicText" class="convergence-stage-copy" style="display:none">
-                <p>Next, provide your profile picture. Smiling is optional!</p>
-            </div>
-
-            <div id="proofText" class="convergence-stage-copy" style="display:none">
-                <p id="mainProofInstructions"></p>
-                <span id="subProofInstructions" class="smaller-text"></span>
-            </div>
-
-            <div id="finalDetailsText" style="display:none"></div>
-        </form>
-
-        <form id="inputForm" class="bioageform" data-aos="fade" data-aos-duration="700" data-aos-delay="500">
-            <fieldset id="personalDetails">
-                <legend>Athlete details</legend>
-
-                <!-- Name Field -->
-                <label for="name">Name <span class="field-requirement">(required)</span></label>
-                <input type="text" id="name" name="name" required aria-required="true" aria-describedby="nameError" minlength="3" maxlength="100" autocomplete="name" autocapitalize="none" spellcheck="false" placeholder="Name or cyber alias">
-                <span id="nameError" class="error-message" aria-live="polite"></span>
-
-                <!-- Division Field -->
-                <label for="division">Division <span class="field-requirement">(required)</span></label>
-                <select id="division" name="division" required aria-required="true" aria-describedby="divisionError">
-                    <!-- Options will be populated dynamically -->
-                </select>
-                <span id="divisionError" class="error-message" aria-live="polite"></span>
-
-                <!-- Flag Field with Autocomplete -->
-                <label for="flag">Flag <span class="field-requirement">(required)</span></label>
-                <div class="autocomplete-container">
-                    <input type="text" id="flag" name="flag" required aria-required="true" aria-describedby="flagError" minlength="3" maxlength="100" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Cyberspace" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="flag-autocomplete-list">
-                    <span id="flagError" class="error-message" aria-live="polite"></span>
+        <div class="convergence-stage-layout">
+            <form id="descriptionForm" class="bioageform" data-aos="fade" data-aos-duration="700" data-aos-delay="450">
+                <div class="convergence-visual">
+                    <picture id="illustrationPicture" style="display:''">
+                        <source type="image/webp" srcset="../assets/content-images/enter-arena.webp">
+                        <source type="image/jpeg" srcset="../assets/content-images/enter-arena.jpg">
+                        <img id="illustrationImage" src="../assets/content-images/enter-arena.jpg" alt="Longevity World Cup logo" class="illustration" width="1024" height="768" loading="lazy" decoding="async">
+                    </picture>
+                    <div id="onboardingProofSymbol" class="proof-upload-symbol" aria-hidden="true" hidden><i class="fas fa-file-medical"></i></div>
+                    <img style="display:none" id="profileImage" src="" alt="Profile picture" class="illustration" loading="lazy">
                 </div>
-            </fieldset>
-            <fieldset id="privacyDetails">
-                <legend>Visibility choice</legend>
-                <p>
-                    <strong>It's now your turn to make that decision.</strong>
-                </p>
-                <p>
-                    <span class="smaller-text">
-                        Top-ranked longevity athletes will occasionally be asked to give an interview before their results are posted. Declining means no spot on the leaderboard. By proceeding, you agree to this.
-                    </span>
-                </p>
-            </fieldset>
-            <fieldset id="profileUploadSection">
-                <legend>Profile photo</legend>
-                <div id="uploadPart" style="display:block">
-                    <p><strong>Upload a clear headshot:</strong></p>
-                    <ol class="smaller-text convergence-upload-guidance">
-                        <li>It must be you.</li>
-                        <li>Face the camera directly.</li>
-                        <li>Include head and shoulders.</li>
-                    </ol>
+                <!--SUB-PROGRESS-BAR-->
+                <div id="privacyText" class="convergence-stage-copy" style="display:none">
+                    <p><strong>Privacy is your ability to selectively reveal yourself to the world.</strong></p>
+                    <p>
+                        Cristiano Ronaldo is one of the greatest football players of all time. Put yourself into his boots. You must work hard, of course, but your job doesn't end with honing your skills. You also need to display them in front of millions of people. <em>There’s no sport without spectators.</em>
+                    </p>
+                    <p>
+                        So, does he lack privacy? <strong>No</strong>, he made a decision to selectively reveal himself to the world.
+                    </p>
+                </div>
+    
+                <div id="profilePicText" class="convergence-stage-copy" style="display:none">
+                    <p>Next, provide your profile picture. Smiling is optional!</p>
+                </div>
+    
+                <div id="proofText" class="convergence-stage-copy" style="display:none">
+                    <p id="mainProofInstructions"></p>
+                    <span id="subProofInstructions" class="smaller-text"></span>
+                </div>
+    
+                <div id="finalDetailsText" style="display:none"></div>
+            </form>
+    
+            <form id="inputForm" class="bioageform" data-aos="fade" data-aos-duration="700" data-aos-delay="500">
+                <fieldset id="personalDetails">
+                    <legend>Athlete details</legend>
+    
+                    <!-- Name Field -->
+                    <label for="name">Name <span class="field-requirement">(required)</span></label>
+                    <input type="text" id="name" name="name" required aria-required="true" aria-describedby="nameError" minlength="3" maxlength="100" autocomplete="name" autocapitalize="none" spellcheck="false" placeholder="Name or cyber alias">
+                    <span id="nameError" class="error-message" aria-live="polite"></span>
+    
+                    <!-- Division Field -->
+                    <label for="division">Division <span class="field-requirement">(required)</span></label>
+                    <select id="division" name="division" required aria-required="true" aria-describedby="divisionError">
+                        <!-- Options will be populated dynamically -->
+                    </select>
+                    <span id="divisionError" class="error-message" aria-live="polite"></span>
+    
+                    <!-- Flag Field with Autocomplete -->
+                    <label for="flag">Flag <span class="field-requirement">(required)</span></label>
+                    <div class="autocomplete-container">
+                        <input type="text" id="flag" name="flag" required aria-required="true" aria-describedby="flagError" minlength="3" maxlength="100" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Cyberspace" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="flag-autocomplete-list">
+                        <span id="flagError" class="error-message" aria-live="polite"></span>
+                    </div>
+                </fieldset>
+                <fieldset id="privacyDetails">
+                    <legend>Visibility choice</legend>
+                    <p>
+                        <strong>It's now your turn to make that decision.</strong>
+                    </p>
+                    <p>
+                        <span class="smaller-text">
+                            Top-ranked longevity athletes will occasionally be asked to give an interview before their results are posted. Declining means no spot on the leaderboard. By proceeding, you agree to this.
+                        </span>
+                    </p>
+                </fieldset>
+                <fieldset id="profileUploadSection">
+                    <legend>Profile photo</legend>
+                    <div id="uploadPart" style="display:block">
+                        <p><strong>Upload a clear headshot:</strong></p>
+                        <ol class="smaller-text convergence-upload-guidance">
+                            <li>It must be you.</li>
+                            <li>Face the camera directly.</li>
+                            <li>Include head and shoulders.</li>
+                        </ol>
+                        <div class="convergence-upload-action flow-action-stack">
+                            <input type="file" id="profilePicInput" accept="image/*,.heic,.heif" style="display: none;">
+                            <input type="file" id="profileCameraInput" accept="image/*,.heic,.heif" capture="user" style="display: none;">
+                            <button type="button" id="takeProfileSelfieButton" class="option-button grey flow-action flow-action--secondary">
+                                <span class="flow-action__label">Take selfie</span><i class="fa fa-camera" aria-hidden="true"></i>
+                            </button>
+                            <span class="upload-choice-divider" aria-hidden="true">or</span>
+                            <button type="button" id="uploadButton" class="option-button grey flow-action flow-action--secondary">
+                                <span class="flow-action__label">Upload profile picture</span><i class="fa fa-image" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="croppingPart" style="display:none">
+                        <div class="convergence-crop-preview">
+                            <img id="cropperImage" src="" alt="Selected profile image preview for cropping">
+                        </div>
+                        <div class="convergence-upload-action flow-action-stack">
+                            <button type="button" id="cropButton" class="option-button flow-action">
+                                <span class="flow-action__label">Crop and save</span>
+                            </button>
+                            <button type="button" id="cancelProfileCropButton" class="option-button grey flow-action flow-action--secondary">
+                                <span class="flow-action__label">Cancel</span>
+                            </button>
+                        </div>
+                    </div>
+                </fieldset>
+                <fieldset id="proofUploadSection">
+                    <legend>Proof upload</legend>
                     <div class="convergence-upload-action flow-action-stack">
-                        <input type="file" id="profilePicInput" accept="image/*,.heic,.heif" style="display: none;">
-                        <input type="file" id="profileCameraInput" accept="image/*,.heic,.heif" capture="user" style="display: none;">
-                        <button type="button" id="takeProfileSelfieButton" class="option-button grey flow-action flow-action--secondary">
-                            <span class="flow-action__label">Take selfie</span><i class="fa fa-camera" aria-hidden="true"></i>
+                        <input type="file" id="proofPicInput" accept="image/*,application/pdf,.heic,.heif,.pdf" style="display: none;" multiple>
+                        <input type="file" id="proofCameraInput" accept="image/*,.heic,.heif" capture="environment" style="display: none;">
+                        <button type="button" id="takeProofPhotoButton" class="option-button grey flow-action flow-action--secondary camera-capture-action">
+                            <span class="flow-action__label">Take proof photo</span><i class="fa fa-camera" aria-hidden="true"></i>
                         </button>
                         <span class="upload-choice-divider" aria-hidden="true">or</span>
-                        <button type="button" id="uploadButton" class="option-button grey flow-action flow-action--secondary">
-                            <span class="flow-action__label">Upload profile picture</span><i class="fa fa-image" aria-hidden="true"></i>
+                        <button type="button" id="uploadProofButton" class="option-button grey flow-action flow-action--secondary">
+                            <span class="flow-action__label">Upload proofs</span><i class="fa fa-file-upload" aria-hidden="true"></i>
                         </button>
                     </div>
-                </div>
-                <div id="croppingPart" style="display:none">
-                    <div class="convergence-crop-preview">
-                        <img id="cropperImage" src="" alt="Selected profile image preview for cropping">
+                    <!-- Proof Image Container -->
+                    <div id="proofImageContainer"></div>
+                    <div id="biomarker-checklist"></div>
+                </fieldset>
+                <fieldset id="finalDetails">
+                    <legend>Public profile</legend>
+    
+                    <!-- Link to Personal Page (Optional) -->
+                    <label for="personalLink">Link (optional)</label>
+                    <input type="text" id="personalLink" name="personalLink" aria-describedby="personalLinkError" inputmode="url" autocomplete="url" autocapitalize="none" spellcheck="false" placeholder="yourwebsite.com">
+                    <span id="personalLinkError" class="error-message" aria-live="polite"></span>
+                    <p class="convergence-helper-text">
+                        Provide a link to your personal page, social media profile, or any other online presence you wish to advertise.
+                    </p>
+    
+                    <!-- Media Contact (Required) -->
+                    <label for="mediaContact">Media contact (required)</label>
+                    <input type="text" id="mediaContact" name="mediaContact" required aria-required="true" aria-describedby="mediaContactError" inputmode="email" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="media@example.com or @handle">
+                    <span id="mediaContactError" class="error-message" aria-live="polite"></span>
+    
+                    <p class="convergence-helper-text">
+                        <span class="smaller-text">
+                            Please provide a media contact email. Be cautious about using your personal email address. It is recommended to create a dedicated email (e.g.: <a href="https://protonmail.com" target="_blank" rel="noopener">ProtonMail</a>) or use a social media account like Instagram or Twitter if your messages are open to the public.
+                        </span>
+                    </p>
+                </fieldset>
+                <fieldset id="applyDetails">
+                    <!-- Email Field -->
+                    <legend>Contact email</legend>
+                    <div id="congratsText" class="convergence-application-copy" style="display:none">
+                        <strong>Congratulations!</strong> All that's left to do is to provide an email where we can reach you about your application.
                     </div>
-                    <div class="convergence-upload-action flow-action-stack">
-                        <button type="button" id="cropButton" class="option-button flow-action">
-                            <span class="flow-action__label">Crop and save</span>
-                        </button>
-                        <button type="button" id="cancelProfileCropButton" class="option-button grey flow-action flow-action--secondary">
-                            <span class="flow-action__label">Cancel</span>
-                        </button>
-                    </div>
-                </div>
-            </fieldset>
-            <fieldset id="proofUploadSection">
-                <legend>Proof upload</legend>
-                <div class="convergence-upload-action flow-action-stack">
-                    <input type="file" id="proofPicInput" accept="image/*,application/pdf,.heic,.heif,.pdf" style="display: none;" multiple>
-                    <input type="file" id="proofCameraInput" accept="image/*,.heic,.heif" capture="environment" style="display: none;">
-                    <button type="button" id="takeProofPhotoButton" class="option-button grey flow-action flow-action--secondary camera-capture-action">
-                        <span class="flow-action__label">Take proof photo</span><i class="fa fa-camera" aria-hidden="true"></i>
+                    <label for="accountEmail">Email address <span class="field-requirement">(required)</span></label>
+                    <input type="text" id="accountEmail" name="accountEmail" required aria-required="true" aria-describedby="accountEmailError" inputmode="email" autocomplete="email" autocapitalize="none" spellcheck="false" placeholder="pizza_lover@hungry.com">
+                    <span id="accountEmailError" class="error-message" aria-live="polite"></span>
+                </fieldset>
+    
+                <!-- WHY Field (Initially Hidden) -->
+                <fieldset id="whyField" style="display: none; position: relative;">
+                    <legend>Motivation</legend>
+                    <label for="why">What drives you forward? <span class="field-requirement">(required)</span></label>
+                    <textarea id="why" name="why" rows="5" required aria-required="true" aria-describedby="whyError whyCharCounter" minlength="30" maxlength="250" placeholder="Share your motivation here..."></textarea>
+                    <div id="whyCharCounter" class="char-counter">0/250</div>
+                    <span id="whyError" class="error-message" aria-live="polite"></span>
+                </fieldset>
+    
+                <p id="applicationDraftStatus" role="status" hidden></p>
+                <div class="options-container convergence-actions flow-action-stack" data-flow-dock="auto">
+                    <button type="button" class="option-button green flow-action" id="nextButton" aria-label="Proceed to the next stage" disabled>
+                        <span class="flow-action__label">Next</span><i class="fas fa-arrow-right" aria-hidden="true"></i>
                     </button>
-                    <span class="upload-choice-divider" aria-hidden="true">or</span>
-                    <button type="button" id="uploadProofButton" class="option-button grey flow-action flow-action--secondary">
-                        <span class="flow-action__label">Upload proofs</span><i class="fa fa-file-upload" aria-hidden="true"></i>
+                    <button type="button" class="option-button back-button flow-action flow-action--secondary flow-action--icon-left" id="backButton">
+                        <i class="fas fa-arrow-left" aria-hidden="true"></i><span class="flow-action__label">Back</span>
                     </button>
                 </div>
-                <!-- Proof Image Container -->
-                <div id="proofImageContainer"></div>
-                <div id="biomarker-checklist"></div>
-            </fieldset>
-            <fieldset id="finalDetails">
-                <legend>Public profile</legend>
-
-                <!-- Link to Personal Page (Optional) -->
-                <label for="personalLink">Link (optional)</label>
-                <input type="text" id="personalLink" name="personalLink" aria-describedby="personalLinkError" inputmode="url" autocomplete="url" autocapitalize="none" spellcheck="false" placeholder="yourwebsite.com">
-                <span id="personalLinkError" class="error-message" aria-live="polite"></span>
-                <p class="convergence-helper-text">
-                    Provide a link to your personal page, social media profile, or any other online presence you wish to advertise.
-                </p>
-
-                <!-- Media Contact (Required) -->
-                <label for="mediaContact">Media contact (required)</label>
-                <input type="text" id="mediaContact" name="mediaContact" required aria-required="true" aria-describedby="mediaContactError" inputmode="email" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="media@example.com or @handle">
-                <span id="mediaContactError" class="error-message" aria-live="polite"></span>
-
-                <p class="convergence-helper-text">
-                    <span class="smaller-text">
-                        Please provide a media contact email. Be cautious about using your personal email address. It is recommended to create a dedicated email (e.g.: <a href="https://protonmail.com" target="_blank" rel="noopener">ProtonMail</a>) or use a social media account like Instagram or Twitter if your messages are open to the public.
-                    </span>
-                </p>
-            </fieldset>
-            <fieldset id="applyDetails">
-                <!-- Email Field -->
-                <legend>Contact email</legend>
-                <div id="congratsText" class="convergence-application-copy" style="display:none">
-                    <strong>Congratulations!</strong> All that's left to do is to provide an email where we can reach you about your application.
-                </div>
-                <label for="accountEmail">Email address <span class="field-requirement">(required)</span></label>
-                <input type="text" id="accountEmail" name="accountEmail" required aria-required="true" aria-describedby="accountEmailError" inputmode="email" autocomplete="email" autocapitalize="none" spellcheck="false" placeholder="pizza_lover@hungry.com">
-                <span id="accountEmailError" class="error-message" aria-live="polite"></span>
-            </fieldset>
-
-            <!-- WHY Field (Initially Hidden) -->
-            <fieldset id="whyField" style="display: none; position: relative;">
-                <legend>Motivation</legend>
-                <label for="why">What drives you forward? <span class="field-requirement">(required)</span></label>
-                <textarea id="why" name="why" rows="5" required aria-required="true" aria-describedby="whyError whyCharCounter" minlength="30" maxlength="250" placeholder="Share your motivation here..."></textarea>
-                <div id="whyCharCounter" class="char-counter">0/250</div>
-                <span id="whyError" class="error-message" aria-live="polite"></span>
-            </fieldset>
-
-            <p id="applicationDraftStatus" role="status" hidden></p>
-            <div class="options-container convergence-actions flow-action-stack" data-flow-dock="auto">
-                <button type="button" class="option-button green flow-action" id="nextButton" aria-label="Proceed to the next stage" disabled>
-                    <span class="flow-action__label">Next</span><i class="fas fa-arrow-right" aria-hidden="true"></i>
-                </button>
-                <button type="button" class="option-button back-button flow-action flow-action--secondary flow-action--icon-left" id="backButton">
-                    <i class="fas fa-arrow-left" aria-hidden="true"></i><span class="flow-action__label">Back</span>
-                </button>
-            </div>
-        </form>
+            </form>
+        </div>
     </main>
     <!--FOOTER-->
     <!-- JavaScript -->
@@ -1558,8 +1697,8 @@
                 case 2:
                     // Stage 2: Finding Your Why
                     document.querySelector('h1').innerHTML = "2. Finding your why";
-                    updateIllustration("why", "jpg", webpSource, jpegSource, illustrationImage);
-                    illustrationImage.alt = "Eye";
+                    updateIllustration("why-banner", "jpg", webpSource, jpegSource, illustrationImage);
+                    illustrationImage.alt = "Boxer celebrating in the rain";
                     illustrationImage.loading = "lazy";
                     document.getElementById('whyField').style.display = 'block';
                     nextButton.innerHTML = '<span class="flow-action__label">Next</span><i class="fas fa-arrow-right" aria-hidden="true"></i>';
@@ -1579,8 +1718,8 @@
                 case 3:
                     // Stage 3: The price of glory
                     document.querySelector('h1').innerHTML = "3. The price of glory";
-                    updateIllustration("cr7v2", "jpg", webpSource, jpegSource, illustrationImage);
-                    illustrationImage.alt = "Cristiano Ronaldo";
+                    updateIllustration("privacy-banner", "jpg", webpSource, jpegSource, illustrationImage);
+                    illustrationImage.alt = "Footballers entering a stadium";
                     illustrationImage.loading = "lazy";
                     document.getElementById('privacyText').style.display = '';
                     document.getElementById('privacyDetails').style.display = '';
@@ -1654,7 +1793,7 @@
                 case 6:
                     // Stage 6: Final Details
                     document.querySelector('h1').innerHTML = "5. Final details";
-                    updateIllustration("finishv2", "jpg", webpSource, jpegSource, illustrationImage);
+                    updateIllustration("finish-banner", "jpg", webpSource, jpegSource, illustrationImage);
                     illustrationImage.alt = "Finish line";
                     illustrationImage.loading = "lazy";
                     document.getElementById('finalDetailsText').style.display = '';
