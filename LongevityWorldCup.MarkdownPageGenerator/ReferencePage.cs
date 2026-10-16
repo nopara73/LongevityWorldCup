@@ -459,7 +459,7 @@ internal static partial class ReferencePage
     <script>
         document.addEventListener("DOMContentLoaded", () => {
             const faq = document.querySelector(".ruleset-faq");
-            if (!faq) {
+            if (!faq || faq.classList.contains("is-enhanced")) {
                 return;
             }
 
@@ -504,7 +504,7 @@ internal static partial class ReferencePage
                 } catch {
                     return;
                 }
-                const question = id && document.getElementById(id);
+                const question = id ? document.getElementById(id) : null;
                 const item = question?.closest(".ruleset-faq-item");
                 if (!item || question.tagName !== "H4") {
                     return;
