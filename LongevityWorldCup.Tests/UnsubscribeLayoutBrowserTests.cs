@@ -34,6 +34,20 @@ public sealed class UnsubscribeLayoutBrowserTests(
         var originalTitleSize = await page.Locator(".unsubscribe-panel h1").EvaluateAsync<double>("title => parseFloat(getComputedStyle(title).fontSize)");
         await page.EvaluateAsync("async percent => { document.documentElement.style.fontSize = `${percent}%`; await document.fonts.ready; await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))); }", textPercent);
 
+        // Enlarging the root starts a reflow; two animation frames need not expose its final computed type.
+        try
+        {
+            await page.WaitForFunctionAsync(
+                "minimum => parseFloat(getComputedStyle(document.querySelector('.unsubscribe-panel h1')).fontSize) >= minimum",
+                originalTitleSize * textPercent / 100 - 0.1, new() { Timeout = 5_000 });
+        }
+        catch (System.TimeoutException)
+        {
+            var diagnostics = await page.EvaluateAsync<string>(
+                "() => JSON.stringify({rootFont: getComputedStyle(document.documentElement).fontSize, inlineRoot: document.documentElement.style.fontSize, titleFont: getComputedStyle(document.querySelector('.unsubscribe-panel h1')).fontSize, viewport: [innerWidth, innerHeight]})");
+            throw new Xunit.Sdk.XunitException($"{width}x{height} / {textPercent}%: enlarged type did not settle: {diagnostics}");
+        }
+
         var layout = await page.EvaluateAsync<double[]>(
             """
             () => {
