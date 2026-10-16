@@ -1511,3 +1511,43 @@ html body .bioageform .lwc-wizard-nav .lwc-dot[aria-disabled="true"] {
     border-radius: var(--lwc-radius-sm);
     text-decoration: underline;
 }
+
+/* Result scoreboard: the age and the reduction read as one result, aligned with the form card. */
+body #phenoAgeResult.show,
+body #bortzAgeResult.show {
+    width: min(100%, 760px);
+    max-width: calc(100vw - 2rem);
+    padding: clamp(1.25rem, 3vw, 2rem);
+}
+
+body #validAgeInput > div:first-child {
+    margin-bottom: 0.35rem;
+    letter-spacing: 0.08em;
+}
+
+body #validAgeInput .bio-age-number-container {
+    min-height: 0;
+    margin: 0;
+    padding: 0.25rem 0 0;
+}
+
+body #validAgeInput #animatedAge {
+    font-size: clamp(4.5rem, 3rem + 6vw, 7.5rem);
+}
+
+body #validAgeInput #yearsText {
+    display: table;
+    margin: 0.75rem auto 0;
+    padding: 0.45rem 1.1rem;
+    border: 1px solid var(--lwc-border, rgba(148, 163, 184, 0.32));
+    border-radius: var(--lwc-radius-pill, 999px);
+    background: var(--lwc-surface-muted, #eef2f5);
+    color: var(--lwc-ink, #17212b);
+    font-size: clamp(1.1rem, 0.95rem + 0.6vw, 1.45rem);
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+body #validAgeInput + * {
+    margin-top: 1.25rem;
+}
