@@ -1360,12 +1360,58 @@ public sealed class AestheticSystemBrowserTests(
         string route,
         ResponsiveContainerCondition[] conditions)
     {
+        // Previous probes save drafts on pagehide. Reset only calculator fixture
+        // drafts as the new document starts, before it chooses its initial step.
+        await page.AddInitScriptAsync("for (const storage of [localStorage, sessionStorage]) for (const key of Object.keys(storage)) if (key.startsWith('bioageDraft:')) storage.removeItem(key);");
         await NavigateAndSettleAsync(page, route);
         var rootFontSize = await page.EvaluateAsync<double>(
             "() => parseFloat(getComputedStyle(document.documentElement).fontSize)");
 
         foreach (var condition in conditions)
         {
+            if (condition.Name == "bioage-rank")
+            {
+                Assert.Equal("max", condition.Bound);
+                Assert.Equal("rem", condition.Unit);
+                Assert.Contains(condition.Value, new double[] { 18, 24 });
+                await NavigateAndSettleAsync(page, route);
+                await FlowActionDockBrowserTests.FillBioageStepOneAsync(
+                    page, DateTime.UtcNow.Date.AddDays(-9).ToString("yyyy-MM-dd"));
+                if (route == "/bortz-age") await FlowActionDockBrowserTests.FillBortzBiomarkersAsync(page);
+                else await FlowActionDockBrowserTests.FillPhenoBiomarkersAsync(page);
+                await page.Locator(".bioage-calculate-button").ClickAsync();
+                await page.Locator(".bioage-rank-summary").WaitForAsync();
+                var rankThreshold = condition.Value * rootFontSize;
+                foreach (var delta in new[] { -1, 0, 1, 0, -1 })
+                {
+                    var inlineSize = rankThreshold + delta;
+                    var diagnostics = await page.EvaluateAsync<ContainerQueryDiagnostics>(
+                        """
+                        async argument => {
+                            const rank = document.querySelector('[data-bioage-result-rank]');
+                            rank.style.boxSizing = 'content-box';
+                            rank.style.inlineSize = `${argument.InlineSize}px`;
+                            rank.style.maxInlineSize = 'none';
+                            await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                            const summary = getComputedStyle(rank.querySelector('.bioage-rank-summary'));
+                            const name = getComputedStyle(rank.querySelector('.bioage-rank-row-name'));
+                            return {
+                                ContainerWidth: parseFloat(getComputedStyle(rank).width),
+                                IsCompact: argument.Boundary === 24
+                                    ? summary.gridTemplateColumns.split(' ').length === 1
+                                    : name.gridColumnStart === '1' && name.gridColumnEnd === '-1',
+                                HorizontalOverflow: Math.max(0, rank.scrollWidth - rank.clientWidth)
+                            };
+                        }
+                        """, new { InlineSize = inlineSize, Boundary = condition.Value });
+                    Assert.Equal(inlineSize, diagnostics.ContainerWidth, 1);
+                    Assert.Equal(inlineSize <= rankThreshold, diagnostics.IsCompact);
+                    Assert.True(diagnostics.HorizontalOverflow <= 1,
+                        $"{route} rank preview overflowed at {inlineSize}px.");
+                }
+                continue;
+            }
+
             if (condition.Name == "bioage-entry")
             {
                 Assert.Equal("max", condition.Bound);
