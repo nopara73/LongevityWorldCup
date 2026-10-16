@@ -332,6 +332,69 @@
             color: var(--lwc-ink);
             text-align: left;
         }
+
+        /* Gallery tiles: the picture is the card, the name is its caption,
+           and download is a round control on the picture's corner. */
+        .media-kit-panel {
+            max-width: 1040px;
+        }
+
+        @media (min-width: 601px) {
+            .media-kit-tiles {
+                grid-template-columns: repeat(auto-fill, minmax(min(100%, 11rem), 1fr));
+            }
+        }
+
+        .media-file-tile {
+            position: relative;
+            grid-template-rows: auto auto;
+            gap: 0;
+            padding: 0;
+            overflow: hidden;
+            background: var(--lwc-surface);
+            transition: border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+        }
+
+        .media-file-tile:hover,
+        .media-file-tile:focus-within {
+            border-color: var(--lwc-accent);
+            box-shadow: var(--lwc-shadow-sm);
+        }
+
+        .media-file-tile .media-file-thumb {
+            border-radius: 0;
+        }
+
+        .media-file-tile .media-file-name {
+            padding: 0.55rem 0.7rem 0.65rem;
+            border-top: 1px solid var(--lwc-border);
+        }
+
+        .media-file-tile .media-file-button {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            width: 44px;
+            height: 44px;
+            min-height: 44px;
+            padding: 0;
+            border-radius: var(--lwc-radius-pill, 999px);
+            border-color: transparent;
+            background: var(--lwc-surface);
+            box-shadow: 0 1px 4px rgba(15, 23, 42, 0.28);
+            font-size: 0;
+            color: var(--lwc-accent);
+        }
+
+        .media-file-tile .media-file-button::before {
+            font-size: 1rem;
+        }
+
+        .media-file-tile .media-file-button:hover,
+        .media-file-tile .media-file-button:focus-visible {
+            background: var(--lwc-accent);
+            color: var(--lwc-on-accent, #ffffff);
+        }
     </style>
 </head>
 <body>

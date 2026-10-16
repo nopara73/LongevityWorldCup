@@ -63,6 +63,52 @@ public sealed class MediaKitBrowserTests(PlaywrightBrowserFixture browserFixture
         await Assertions.Expect(page.Locator("a[href$='MediaKit.zip']").First).ToBeVisibleAsync();
     }
 
+    [Theory]
+    [InlineData(1440, 900)]
+    [InlineData(390, 844)]
+    public async Task PictureTiles_ShowThePictureAsTheCardWithDownloadOnItsCorner(int width, int height)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = height },
+            ReducedMotion = ReducedMotion.Reduce,
+            IsMobile = width < 600,
+            HasTouch = width < 600
+        });
+        await InstallKitFixtureAsync(context);
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/media", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await Assertions.Expect(page.Locator("#fileList .media-file-tile .media-file-button").First).ToBeVisibleAsync();
+
+        var problems = await page.EvaluateAsync<string[]>(
+            """
+            () => {
+                const issues = [];
+                for (const tile of document.querySelectorAll('#fileList .media-file-tile')) {
+                    const name = tile.querySelector('.media-file-name').textContent.trim();
+                    const box = tile.getBoundingClientRect();
+                    const thumb = tile.querySelector('.media-file-thumb').getBoundingClientRect();
+                    const button = tile.querySelector('.media-file-button');
+                    const buttonBox = button.getBoundingClientRect();
+                    const caption = tile.querySelector('.media-file-name').getBoundingClientRect();
+                    if (Math.abs(thumb.left - box.left) > 2 || Math.abs(thumb.right - box.right) > 2 || Math.abs(thumb.top - box.top) > 2)
+                        issues.push(`${name}: the picture should fill the card edge to edge`);
+                    if (buttonBox.top < thumb.top - 1 || buttonBox.bottom > thumb.bottom + 1 || buttonBox.right > thumb.right + 1)
+                        issues.push(`${name}: download should sit on the picture's corner`);
+                    if (buttonBox.width < 43 || buttonBox.height < 43)
+                        issues.push(`${name}: download target is ${Math.round(buttonBox.width)}x${Math.round(buttonBox.height)}`);
+                    if (!button.getAttribute('aria-label')?.startsWith('Download '))
+                        issues.push(`${name}: download lost its accessible name`);
+                    if (box.bottom - caption.bottom > 2)
+                        issues.push(`${name}: the caption should close the card`);
+                }
+                return issues;
+            }
+            """);
+        Assert.True(problems.Length == 0, $"{width}x{height}: {string.Join("; ", problems.Take(6))}");
+        Assert.True(await page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= innerWidth + 1"));
+    }
+
     private static async Task InstallKitFixtureAsync(IBrowserContext context)
     {
         await context.RouteAsync("**/MediaKit.zip", route => route.FulfillAsync(new() { Body = "fixture archive" }));
