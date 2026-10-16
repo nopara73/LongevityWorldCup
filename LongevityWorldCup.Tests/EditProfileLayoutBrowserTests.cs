@@ -195,9 +195,11 @@ public sealed class EditProfileLayoutBrowserTests(
     {
         var page = await context.NewPageAsync();
         await page.GotoAsync("/edit-profile");
+        // Restored field values precede the editor's final controls and reveal.
         await page.WaitForFunctionAsync("""
             () => window.modulesReady && document.querySelector('#divisionDisplaySelect')?.value === "Men's"
                 && document.querySelector('#mediaContactInput')?.value === 'press@example.com'
+                && !document.documentElement.hasAttribute('data-initial-view')
             """);
         await page.EvaluateAsync("async()=>{await window.modulesReady;await document.fonts.ready}");
         await page.WaitForFunctionAsync("() => document.querySelector('.edit-profile-visual .illustration')?.complete");

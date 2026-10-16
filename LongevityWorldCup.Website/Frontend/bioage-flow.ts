@@ -47,6 +47,8 @@ interface BioageResultAnimationState {
     detailTimers: number[];
     frame: number;
     generation: number;
+    rankRevealCleanup: (() => void) | null;
+    revealScrollTop: number | null;
     settleTimer: number;
     startTimer: number;
 }
@@ -1332,6 +1334,8 @@ interface Window {
             detailTimers: [],
             frame: 0,
             generation: 0,
+            rankRevealCleanup: null,
+            revealScrollTop: null,
             settleTimer: 0,
             startTimer: 0
         };
@@ -1346,6 +1350,8 @@ interface Window {
     function clearBioageResultAnimation(resultElement: HTMLElement): BioageResultAnimationState {
         const state = getBioageResultAnimationState(resultElement);
         state.generation += 1;
+        state.rankRevealCleanup?.();
+        state.revealScrollTop = null;
         if (state.frame) {
             window.cancelAnimationFrame(state.frame);
             state.frame = 0;
@@ -1466,6 +1472,7 @@ interface Window {
         }
 
         const finalText = formatBioageResultVisualValue(finalAge);
+        container.style.setProperty('--bioage-result-characters', String(finalText.length));
         setBioageResultStage(resultElement, 'age');
         if (animationOptions.instant || prefersReducedBioageResultMotion()) {
             visualValue.textContent = finalText;
@@ -1656,7 +1663,10 @@ interface Window {
     function getBioageResultRevealScrollTop(resultElement: HTMLElement): number {
         const rect = resultElement.getBoundingClientRect();
         const viewportBounds = getBioageResultViewportBounds();
-        const targetTop = rect.height >= viewportBounds.height
+        // Align a pending rank near the top rather than centring its temporary
+        // loading state. Later reader movement must retain its own position.
+        const rankPending = resultElement.querySelector('[data-bioage-result-rank][aria-busy="true"]');
+        const targetTop = rankPending || rect.height >= viewportBounds.height
             ? viewportBounds.top
             : viewportBounds.top + ((viewportBounds.height - rect.height) / 2);
 
@@ -1671,13 +1681,50 @@ interface Window {
 
         getFlowActionDock()?.refreshNow?.();
 
-        if (isBioageResultComfortablyVisible(resultElement)) return;
+        const state = getBioageResultAnimationState(resultElement);
+        if (state.revealScrollTop !== null && Math.abs(window.scrollY - state.revealScrollTop) > 2) return;
+        const rankPending = resultElement.querySelector('[data-bioage-result-rank][aria-busy="true"]');
+        if (!rankPending && isBioageResultComfortablyVisible(resultElement)) return;
 
         const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const targetScrollTop = getBioageResultRevealScrollTop(resultElement);
+        const maxScrollTop = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight) - window.innerHeight;
+        // Large-text forms can require several screens of travel. Avoid racing
+        // that long smooth scroll with the result animation's bounded start.
+        const longScroll = Math.abs(targetScrollTop - window.scrollY) > window.innerHeight;
+        const instant = prefersReducedMotion || revealOptions.instant || longScroll;
         window.scrollTo({
-            top: getBioageResultRevealScrollTop(resultElement),
-            behavior: prefersReducedMotion || revealOptions.instant ? 'auto' : 'smooth',
+            top: targetScrollTop,
+            behavior: instant ? 'instant' : 'smooth',
         });
+        if (instant) state.revealScrollTop = window.scrollY;
+
+        // The loading card can leave too little document below it to reach the
+        // target yet. Finish that initial scroll once, when rank loading ends,
+        // only if the reader has not moved or interacted in the meantime.
+        if (rankPending && targetScrollTop > maxScrollTop + 2) {
+            state.rankRevealCleanup?.();
+            const generation = state.generation;
+            const expectedScroll = Math.max(0, maxScrollTop);
+            const inputEvents = ['pointerdown', 'touchstart', 'wheel', 'keydown'] as const;
+            const cleanup = (): void => {
+                observer.disconnect();
+                inputEvents.forEach(event => window.removeEventListener(event, cleanup));
+                state.rankRevealCleanup = null;
+            };
+            const observer = new MutationObserver(() => {
+                if (rankPending.getAttribute('aria-busy') === 'true') return;
+                cleanup();
+                window.setTimeout(() => {
+                    if (state.generation !== generation || getShownBioageResultElement() !== resultElement) return;
+                    if (Math.abs(window.scrollY - expectedScroll) > 2) return;
+                    revealBioageResult(resultElement, { instant: true });
+                }, prefersReducedMotion ? 0 : BIOAGE_RESULT_SCROLL_SETTLE_MS);
+            });
+            state.rankRevealCleanup = cleanup;
+            inputEvents.forEach(event => window.addEventListener(event, cleanup, { passive: true, once: true }));
+            observer.observe(rankPending, { attributes: true, attributeFilter: ['aria-busy'] });
+        }
 
         window.setTimeout(
             () => getFlowActionDock()?.refresh?.(),
