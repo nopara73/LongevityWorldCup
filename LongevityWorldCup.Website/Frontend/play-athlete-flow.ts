@@ -187,6 +187,19 @@ function persistSelectedAthlete(athlete: PlayAthlete | null): boolean {
     return true;
 }
 
+function createAthleteOptionThumb(athlete: PlayAthlete): HTMLImageElement {
+    const thumb = document.createElement("img");
+    thumb.className = "athlete-option-thumb";
+    thumb.alt = "";
+    thumb.width = 40;
+    thumb.height = 40;
+    thumb.loading = "lazy";
+    thumb.decoding = "async";
+    thumb.addEventListener("error", () => setDefaultAthleteImageSource(thumb), { once: true });
+    thumb.src = athlete.ProfilePicLeaderboardThumb || athlete.ProfilePicThumb || athlete.ProfilePic || getDefaultHeadshotJpeg();
+    return thumb;
+}
+
 function createDefaultAthletePicture(): HTMLPictureElement {
     const picture = document.createElement("picture");
     const webpSource = document.createElement("source");
@@ -546,6 +559,7 @@ function createAthleteSelectionController(
 
     function closeAllLists(): void {
         document.getElementById(autocompleteListId)?.remove();
+        input.closest(".play-athlete-panel")?.classList.remove("athlete-search-open");
         currentFocus = -1;
         input.setAttribute("aria-expanded", "false");
         input.removeAttribute("aria-activedescendant");
@@ -660,7 +674,10 @@ function createAthleteSelectionController(
                 item.id = `${autocompleteListId}-option-${count}`;
                 item.setAttribute("role", "option");
                 item.setAttribute("aria-selected", "false");
-                appendHighlightedText(item, displayName, terms);
+                const name = document.createElement("span");
+                name.className = "athlete-option-name";
+                appendHighlightedText(name, displayName, terms);
+                item.append(createAthleteOptionThumb(athlete), name);
                 item.dataset.value = athlete.Name;
                 if (typeof athlete.ProfilePic === "string") {
                     item.dataset.profilePic = athlete.ProfilePic;
@@ -690,6 +707,7 @@ function createAthleteSelectionController(
         }
 
         input.setAttribute("aria-expanded", "true");
+        input.closest(".play-athlete-panel")?.classList.add("athlete-search-open");
         return count > 0;
     }
 
