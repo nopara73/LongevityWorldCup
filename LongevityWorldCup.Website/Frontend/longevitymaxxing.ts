@@ -7399,9 +7399,11 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         input.setAttribute("aria-controls", listId);
         let currentFocus = -1;
         let pointerGesture = false;
+        let closeAfterPointerGesture = false;
         const finishPointerGesture = () => requestAnimationFrame(() => {
             pointerGesture = false;
-            if (container && !container.contains(document.activeElement)) closeList();
+            if (closeAfterPointerGesture && container && !container.contains(document.activeElement)) closeList();
+            closeAfterPointerGesture = false;
         });
         document.addEventListener("pointerdown", () => { pointerGesture = true; }, true);
         document.addEventListener("pointerup", finishPointerGesture, true);
@@ -7493,7 +7495,10 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         });
         container?.addEventListener("focusout", event => {
             // Closing this in-flow list on pointer blur moves the next control before its click lands.
-            if (!pointerGesture && event.relatedTarget instanceof Node && !container.contains(event.relatedTarget)) closeList();
+            if (event.relatedTarget instanceof Node && !container.contains(event.relatedTarget)) {
+                if (pointerGesture) closeAfterPointerGesture = true;
+                else closeList();
+            }
         });
 
         container?.addEventListener("keydown", event => {
