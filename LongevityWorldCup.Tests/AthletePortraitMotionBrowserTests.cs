@@ -79,6 +79,7 @@ public sealed class AthletePortraitMotionBrowserTests(
         await InsertPortraitAsync(page,
             scenario == "different-photo" ? new string('0', 64) : Photo(slug),
             scenario == "outside-podium", slug);
+        await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
         await Assertions.Expect(page.Locator("video.athlete-portrait-motion")).ToHaveCountAsync(0);
         Assert.Equal(0, Volatile.Read(ref requests));
         await Assertions.Expect(page.Locator("#motionFixture")).ToBeVisibleAsync();
@@ -390,6 +391,10 @@ public sealed class AthletePortraitMotionBrowserTests(
         var page = await context.NewPageAsync();
         await page.GotoAsync(path, new() { WaitUntil = WaitUntilState.DOMContentLoaded });
         await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+        // Homepage cases supply their own portraits. Clear real athletes while
+        // reduced motion is still on, before a test enables playback.
+        if (path == "/")
+            await page.Locator(".podium").EvaluateAsync("podium => podium.replaceChildren()");
         return page;
     }
 
