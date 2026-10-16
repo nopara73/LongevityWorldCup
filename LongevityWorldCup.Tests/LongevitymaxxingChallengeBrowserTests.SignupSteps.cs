@@ -8,6 +8,56 @@ namespace LongevityWorldCup.Tests;
 public sealed partial class LongevitymaxxingChallengeBrowserTests
 {
     [Theory]
+    [InlineData(320)]
+    [InlineData(390)]
+    public async Task Signup_ChoicesStayReadableWithEnlargedText(int width)
+    {
+        await using var context = await SignInContextAsync(width);
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/longevitymaxxing");
+        await Assertions.Expect(page.Locator("[data-timezone-picker][data-select-id='lmxSignupTimeZone']")).ToHaveAttributeAsync("data-wired", "true");
+        await page.AddStyleTagAsync(new() { Content = "html { font-size: 200% !important; }" });
+        var labels = page.Locator("#lmxSignupForm .lmx-identity-options label");
+        await Assertions.Expect(labels).ToHaveCountAsync(2);
+        var fits = await labels.EvaluateAllAsync<bool[]>("""
+            labels => labels.map(label => {
+                const text = label.querySelector('span');
+                if (!text) return false;
+                const range = document.createRange();
+                range.selectNodeContents(text);
+                const lines = [...range.getClientRects()].filter(rect => rect.width > 0 && rect.height > 0);
+                const bounds = label.getBoundingClientRect();
+                return lines.length === 1 && bounds.width >= 44 && bounds.height >= 44
+                    && lines[0].left >= bounds.left && lines[0].right <= bounds.right
+                    && lines[0].top >= bounds.top && lines[0].bottom <= bounds.bottom;
+            })
+            """);
+        Assert.All(fits, fit => Assert.True(fit));
+        Assert.True(await page.Locator("#lmxSignupForm .lmx-identity-options")
+            .EvaluateAsync<bool>("track => track.scrollWidth <= track.clientWidth + 1"));
+        var tabs = page.Locator("#lmxAccessTabs .lmx-tab");
+        await Assertions.Expect(tabs).ToHaveCountAsync(2);
+        var tabsFit = await tabs.EvaluateAllAsync<bool[]>("""
+            tabs => tabs.map(tab => {
+                const text = [...tab.childNodes].find(node => node.nodeType === Node.TEXT_NODE && node.textContent.trim());
+                const range = document.createRange();
+                range.selectNodeContents(text);
+                const label = range.getBoundingClientRect();
+                const icon = tab.querySelector('i').getBoundingClientRect();
+                const bounds = tab.getBoundingClientRect();
+                return bounds.width >= 44 && bounds.height >= 44
+                    && icon.left >= bounds.left && icon.right <= label.left
+                    && label.right <= bounds.right;
+            })
+            """);
+        Assert.All(tabsFit, fit => Assert.True(fit));
+        await page.Locator("#lmxSignupTab").FocusAsync();
+        await page.Keyboard.PressAsync("ArrowDown");
+        await Assertions.Expect(page.Locator("#lmxSigninTab")).ToBeFocusedAsync();
+        await Assertions.Expect(page.Locator("#lmxSigninTab")).ToHaveAttributeAsync("aria-selected", "true");
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public async Task Signup_TimeZoneOpensWhenLeavingAthleteSearchWithAPointer(bool touch)

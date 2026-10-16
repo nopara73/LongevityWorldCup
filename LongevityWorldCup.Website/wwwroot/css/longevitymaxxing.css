@@ -827,7 +827,7 @@
 .lmx-identity-options {
     clear: both;
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 6rem), 1fr));
     gap: 0.28rem;
     padding: 0.28rem;
     border: 1px solid var(--lmx-border);
@@ -836,17 +836,19 @@
 }
 
 .lmx-identity-options label {
+    min-width: 0;
     min-height: 44px;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 0.45rem;
-    padding: 0 0.65rem;
+    padding: 0 0.35rem;
     border: 0;
     border-radius: 7px;
     background: transparent;
     color: var(--lmx-muted);
     font-weight: 850;
+    white-space: nowrap;
     cursor: pointer;
     transition: background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
 }
@@ -879,7 +881,7 @@
     content: '';
     width: 0.8rem;
     height: 0.8rem;
-    flex: 0 0 0.8rem;
+    flex: 0 1 0.8rem;
 }
 
 .lmx-identity-options label:has(input:checked)::before {
@@ -890,7 +892,7 @@
 .lmx-identity-options label::after {
     content: '';
     width: 0.8rem;
-    flex: 0 0 0.8rem;
+    flex: 0 1 0.8rem;
 }
 
 .lmx-identity-options label:focus-within {
@@ -1983,7 +1985,13 @@
 }
 
 .lmx-access-tabs {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.lmx-access-tabs .lmx-tab {
+    flex: 1 1 0;
+    min-width: max-content;
 }
 
 .lmx-tab {
