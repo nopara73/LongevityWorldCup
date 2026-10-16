@@ -62,6 +62,21 @@ public sealed class LeaderboardOrderingBrowserTests(PlaywrightBrowserFixture bro
     }
 
     [Fact]
+    public async Task SingleFieldOrder_HasOneValueColumnInServerHtmlAndAfterHydration()
+    {
+        foreach (var javaScriptEnabled in new[] { false, true })
+        {
+            await using var context = await NewContextAsync(Browser, App, new() { JavaScriptEnabled = javaScriptEnabled });
+            var page = await context.NewPageAsync();
+            await page.GotoAsync("/leaderboard?sort=pheno");
+            if (javaScriptEnabled) await Loaded(page);
+            await Assertions.Expect(page.Locator("th.leaderboard-order-column")).ToHaveCountAsync(1);
+            await Assertions.Expect(Rows(page).First.Locator(".leaderboard-order-value")).ToHaveCountAsync(1);
+            await Assertions.Expect(page.Locator("th[data-order-key=age], td[data-order-key=age]")).ToHaveCountAsync(0);
+        }
+    }
+
+    [Fact]
     public async Task ServerAndHydration_AgreeOnOrderRanksMetricsAndTwoValueColumns()
     {
         await using var serverContext = await NewContextAsync(Browser, App, new() { JavaScriptEnabled = false });
@@ -108,11 +123,16 @@ public sealed class LeaderboardOrderingBrowserTests(PlaywrightBrowserFixture bro
         await Assertions.Expect(page.Locator("#leaderboardOrderPrimary")).ToBeFocusedAsync();
         await page.Locator("#leaderboardOrderSecondary").SelectOptionAsync("");
         await Assertions.Expect(page.Locator("th.leaderboard-order-column")).ToHaveCountAsync(1);
+        await Assertions.Expect(Rows(page).First.Locator(".leaderboard-order-value")).ToHaveCountAsync(1);
+        await Assertions.Expect(page.Locator("th[data-order-key=age], td[data-order-key=age]")).ToHaveCountAsync(0);
+        await Assertions.Expect(page.Locator("#leaderboardThenDirection")).ToBeDisabledAsync();
+        Assert.DoesNotContain("then=", page.Url);
         await page.Keyboard.PressAsync("Escape");
         await Assertions.Expect(toggle).ToBeFocusedAsync();
         await Assertions.Expect(page.Locator("#leaderboardOrderPanel")).ToBeHiddenAsync();
         await page.Locator("th[data-order-key=rank] button").ClickAsync();
         await Assertions.Expect(page.Locator("th.leaderboard-order-column")).ToHaveCountAsync(0);
+        await Assertions.Expect(page.Locator("td.leaderboard-order-value")).ToHaveCountAsync(0);
         Assert.DoesNotContain("sort=", page.Url);
         await Assertions.Expect(Rows(page).First.Locator(".rank")).ToHaveTextAsync("1");
     }
@@ -151,6 +171,8 @@ public sealed class LeaderboardOrderingBrowserTests(PlaywrightBrowserFixture bro
 
     [Theory]
     [InlineData(1440, 1000, false)]
+    [InlineData(1024, 900, false)]
+    [InlineData(768, 1000, false)]
     [InlineData(390, 844, true)]
     [InlineData(320, 720, false)]
     public async Task ResponsiveComposerAndValues_FitAndHaveKeyboardAccess(int width, int height, bool dark)
@@ -184,6 +206,13 @@ public sealed class LeaderboardOrderingBrowserTests(PlaywrightBrowserFixture bro
         await Assertions.Expect(page.Locator(".sidebar-toggle")).ToBeFocusedAsync();
         await page.Locator("#leaderboardTitle").ClickAsync();
         if (!string.IsNullOrWhiteSpace(screenshots)) await page.ScreenshotAsync(new() { Path = Path.Combine(screenshots, $"ordering-{width}-table.png") });
+        await toggle.ClickAsync();
+        await page.Locator("#leaderboardOrderSecondary").SelectOptionAsync("");
+        await Assertions.Expect(page.Locator("th.leaderboard-order-column")).ToHaveCountAsync(1);
+        await Assertions.Expect(Rows(page).First.Locator(".leaderboard-order-value")).ToHaveCountAsync(1);
+        await page.Keyboard.PressAsync("Escape");
+        await page.Locator("#leaderboardTitle").ClickAsync();
+        if (!string.IsNullOrWhiteSpace(screenshots)) await page.ScreenshotAsync(new() { Path = Path.Combine(screenshots, $"ordering-{width}-single.png") });
         await page.EvaluateAsync("document.documentElement.style.fontSize='200%'");
         await toggle.ClickAsync();
         Assert.False(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth>innerWidth"));

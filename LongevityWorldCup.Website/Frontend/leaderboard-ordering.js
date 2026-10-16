@@ -3,7 +3,7 @@
     const byId = id => document.getElementById(id);
     let catalog = { fields: [], asOf: new Date().toISOString().slice(0, 10) };
     try { catalog = JSON.parse(byId('leaderboardOrderCatalog')?.textContent || '{}'); } catch { /* Dialog-only embeds do not have sorting controls. */ }
-    const fields = new Map((catalog.fields || []).map(field => [field.key, field]));
+    const fields = new Map((catalog.fields || []).map(field => [field.key, { unit: '', decimals: 1, direction: 'asc', kind: 'number', ...field }]));
     const toggle = byId('leaderboardOrderToggle');
     const panel = byId('leaderboardOrderPanel');
     const primary = byId('leaderboardOrderPrimary');
@@ -117,11 +117,11 @@
     }
     function positionPanel() {
         if (!panel || panel.hidden) return;
-        panel.style.removeProperty('--order-panel-shift');
         const bounds = panel.getBoundingClientRect();
         const width = document.documentElement.clientWidth;
-        const shift = bounds.left < 12 ? 12 - bounds.left : bounds.right > width - 12 ? width - 12 - bounds.right : 0;
-        panel.style.setProperty('--order-panel-shift', `${shift}px`);
+        const correction = bounds.left < 12 ? 12 - bounds.left : bounds.right > width - 12 ? width - 12 - bounds.right : 0;
+        const shift = parseFloat(panel.style.getPropertyValue('--order-panel-shift')) || 0;
+        if (correction) panel.style.setProperty('--order-panel-shift', `${shift + correction}px`);
     }
     function sync(state = current, byFlag = false, metricLabel = 'Age reduction') {
         if (!toggle || !fields.size) return;
@@ -153,6 +153,7 @@
         leaderboard?.classList.toggle('leaderboard--ordered', active);
         const display = byFlag ? defaults() : current;
         const selectedColumns = columns(display);
+        if (leaderboard) leaderboard.dataset.orderColumns = selectedColumns.length;
         const keys = selectedColumns.map(field => field.key);
         document.querySelectorAll('th.leaderboard-order-column, td.leaderboard-order-value').forEach(cell => { if (!keys.includes(cell.dataset.orderKey)) cell.remove(); });
         const metricHeader = document.querySelector('th[data-order-key="metric"]');
@@ -163,8 +164,10 @@
                 header = document.createElement('th');
                 header.scope = 'col'; header.dataset.orderKey = field.key; header.className = 'leaderboard-order-column';
                 const button = document.createElement('button'); button.type = 'button'; button.className = 'leaderboard-column-order';
-                const label = document.createElement('span'); label.textContent = field.label; button.append(label);
-                if (field.unit) { const unit = document.createElement('small'); unit.textContent = field.unit; button.append(unit); }
+                const heading = document.createElement('span'); heading.className = 'order-heading';
+                const label = document.createElement('span'); label.className = 'order-heading-label'; label.textContent = field.label; heading.append(label);
+                if (field.unit) { const unit = document.createElement('small'); unit.textContent = field.unit; heading.append(unit); }
+                button.append(heading);
                 const indicator = document.createElement('span'); indicator.className = 'order-indicator'; indicator.setAttribute('aria-hidden', 'true'); button.append(indicator);
                 header.append(button);
             }
@@ -208,7 +211,30 @@
         if (status) status.textContent = current.sort === 'rank' ? 'Official ranking restored.' : `Ordered by ${labelFor(current.sort, byId('leaderboardMetricHeader')?.textContent)}, ${current.direction === 'asc' ? 'ascending' : 'descending'}${current.then ? `, then by ${labelFor(current.then, byId('leaderboardMetricHeader')?.textContent)}, ${current.thenDirection === 'asc' ? 'ascending' : 'descending'}` : ''}.`;
     }
     if (toggle && panel && fields.size) {
-        toggle.addEventListener('click', () => { if (!panel.hidden) close(); else { panel.hidden = false; toggle.setAttribute('aria-expanded', 'true'); primary.focus(); positionPanel(); } });
+        // One shared catalog avoids shipping the same choices three times in every page.
+        for (const [select, selected, isSecondary] of [[primary, current.sort, false], [secondary, current.then || '', true]]) {
+            select.replaceChildren();
+            if (isSecondary) { const none = document.createElement('option'); none.value = ''; none.textContent = 'None'; select.append(none); }
+            let group;
+            for (const field of fields.values()) {
+                if (isSecondary && field.key === 'rank') continue;
+                if (group?.label !== field.group) { group = document.createElement('optgroup'); group.label = field.group; select.append(group); }
+                const option = document.createElement('option'); option.value = field.key;
+                option.textContent = labelFor(field.key, byId('leaderboardMetricHeader')?.textContent || 'Age reduction') + (field.unit === '%' ? ' (%)' : '');
+                group.append(option);
+            }
+            select.value = selected;
+        }
+        toggle.addEventListener('click', () => {
+            if (!panel.hidden) close();
+            else {
+                panel.style.removeProperty('--order-panel-shift');
+                panel.hidden = false;
+                toggle.setAttribute('aria-expanded', 'true');
+                positionPanel();
+                primary.focus({ preventScroll: true });
+            }
+        });
         new ResizeObserver(positionPanel).observe(panel);
         window.addEventListener('resize', positionPanel);
         primary.addEventListener('change', () => commit({ ...current, sort: primary.value, direction: fields.get(primary.value)?.direction }));

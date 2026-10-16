@@ -62,7 +62,7 @@ public static class LeaderboardHtmlRenderer
             ? row.LeaderboardThumbnailUrl
             : null;
 
-        sb.Append("                <tr id=\"rank-")
+        sb.Append("<tr id=\"rank-")
             .Append(row.AnchorRank ?? row.Rank)
             .Append("\" class=\"tier-")
             .Append(tier)
@@ -71,7 +71,7 @@ public static class LeaderboardHtmlRenderer
             .Append("\" data-athlete-name=\"")
             .Append(EncodeAttribute(row.AthleteName ?? row.DisplayName))
             .AppendLine("\">");
-        sb.Append("                    <td data-label=\"Rank\" class=\"rank-td\"><span class=\"rank\"");
+        sb.Append("<td data-label=\"Rank\" class=\"rank-td\"><span class=\"rank\"");
         if (row.Rank is >= 1 and <= 3)
         {
             sb.Append(" data-place=\"").Append(rank).Append('"');
@@ -79,10 +79,10 @@ public static class LeaderboardHtmlRenderer
         sb.Append('>')
             .Append(rank)
             .AppendLine("</span></td>");
-        sb.AppendLine("                    <td data-label=\"Athlete\" class=\"athlete-td\">");
+        sb.AppendLine("<td data-label=\"Athlete\" class=\"athlete-td\">");
         if (!string.IsNullOrWhiteSpace(thumbnail))
         {
-            sb.Append("                        <a class=\"portrait-wrapper athlete-profile-link\" href=\"")
+            sb.Append("<a class=\"portrait-wrapper athlete-profile-link\" href=\"")
                 .Append(athletePath)
                 .Append("\" aria-label=\"")
                 .Append(EncodeAttribute($"View stats of {row.DisplayName}"))
@@ -92,22 +92,22 @@ public static class LeaderboardHtmlRenderer
                 .Append(EncodeAttribute($"{row.DisplayName} portrait"))
                 .AppendLine("\" class=\"portrait\" loading=\"lazy\"></a>");
         }
-        sb.Append("                        <div class=\"athlete-identity\"><a class=\"athlete-name\" href=\"")
+        sb.Append("<div class=\"athlete-identity\"><a class=\"athlete-name\" href=\"")
             .Append(athletePath)
             .Append("\">")
             .Append(displayName)
             .AppendLine("</a><span class=\"athlete-name-links\"></span></div>");
-        sb.AppendLine("                        <div class=\"badge-section\"></div>");
-        sb.AppendLine("                    </td>");
-        sb.AppendLine("                    <td data-label=\"Sponsor\" class=\"sponsor-td\"></td>");
-        sb.Append("                    <td data-label=\"").Append(EncodeAttribute(metricLabel)).Append("\" class=\"age-reduction-td\"><span class=\"age-reduction\">")
+        sb.AppendLine("<div class=\"badge-section\"></div>");
+        sb.AppendLine("</td>");
+        sb.AppendLine("<td data-label=\"Sponsor\" class=\"sponsor-td\"></td>");
+        sb.Append("<td data-label=\"").Append(EncodeAttribute(metricLabel)).Append("\" class=\"age-reduction-td\"><span class=\"age-reduction\">")
             .Append(ageReduction)
             .AppendLine("</span></td>");
         foreach (var field in ordering.Columns) sb.AppendLine(LeaderboardOrderingHtmlRenderer.Cell(row, field));
-        sb.Append("                    <td data-label=\"Media contact\" class=\"media-contact-td\">")
+        sb.Append("<td data-label=\"Media contact\" class=\"media-contact-td\">")
             .Append(RenderMediaContact(row))
             .AppendLine("</td>");
-        sb.AppendLine("                </tr>");
+        sb.AppendLine("</tr>");
     }
 
     private static string RenderMediaContact(LeaderboardSnapshotRow row)
