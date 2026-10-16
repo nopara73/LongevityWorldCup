@@ -1229,23 +1229,23 @@ html.play-panel-transitioning .play-hub-panel--entering {
     }
 
     @supports selector(:has(*)) {
-        .play-athlete-panel:has(#playAthleteInput:focus) {
+        .play-athlete-panel:has(:where(#playAthleteInput):focus) {
             padding-top: 1.25rem;
         }
 
-        .play-athlete-panel:has(#playAthleteInput:focus) .play-athlete-title {
+        .play-athlete-panel:has(:where(#playAthleteInput):focus) .play-athlete-title {
             margin-bottom: 0.6rem;
         }
 
-        .play-athlete-panel:has(#playAthleteInput:focus) .play-athlete-visual {
+        .play-athlete-panel:has(:where(#playAthleteInput):focus) .play-athlete-visual {
             margin-bottom: 0.7rem;
         }
 
-        .play-athlete-panel:has(#playAthleteInput:focus) .athlete-picture-frame {
+        .play-athlete-panel:has(:where(#playAthleteInput):focus) .athlete-picture-frame {
             width: min(100%, 360px);
         }
 
-        .play-athlete-panel:has(#playAthleteInput:focus) .play-autocomplete-wrapper {
+        .play-athlete-panel:has(:where(#playAthleteInput):focus) .play-autocomplete-wrapper {
             margin-bottom: 0.7rem;
         }
 
@@ -1780,8 +1780,8 @@ html.play-panel-transitioning .play-hub-panel--entering {
 
 .autocomplete-items .athlete-option-thumb {
     flex: none;
-    width: 2.5rem;
-    height: 2.5rem;
+    width: 40px;
+    height: 40px;
     border-radius: var(--lwc-radius-pill, 999px);
     border: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.14));
     background: var(--lwc-surface-muted, #eef2f5);
@@ -1796,6 +1796,8 @@ html.play-panel-transitioning .play-hub-panel--entering {
 
 .autocomplete-items {
     max-height: min(17.5rem, 42vh);
+    /* Popup fitting reads its preferred size before applying the viewport limit. */
+    transition: none;
 }
 
 .play-athlete-panel.athlete-search-open .play-autocomplete-wrapper {
@@ -1811,7 +1813,7 @@ html.play-panel-transitioning .play-hub-panel--entering {
 }
 
 .play-athlete-panel.athlete-search-open .athlete-picture-frame {
-    width: min(100%, 8.5rem) !important;
+    width: min(100%, 136px);
     border-radius: var(--lwc-radius-pill, 999px);
 }
 
@@ -1825,6 +1827,12 @@ html.play-panel-transitioning .play-hub-panel--entering {
     }
 
     .play-athlete-panel.athlete-search-open .athlete-picture-frame {
-        width: min(100%, 6rem) !important;
+        width: min(100%, 96px);
+    }
+}
+
+@media (max-height: 480px) {
+    .play-athlete-panel.athlete-search-open .play-athlete-visual {
+        display: none;
     }
 }
