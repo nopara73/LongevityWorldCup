@@ -78,6 +78,9 @@ public sealed class LeaderboardSidebarScrollBrowserTests(PlaywrightBrowserFixtur
         else
             await page.Locator(".sidebar-toggle").ClickAsync();
         await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
+        await page.Locator(".sidebar-panel").EvaluateAsync(
+            "async panel => { await Promise.all(panel.getAnimations().map(animation => animation.finished.catch(() => {}))); }");
+        await WaitForLayoutAsync(page);
         Assert.Equal(!hover, await page.Locator(".sidebar").EvaluateAsync<bool>("e => e.classList.contains('expanded')"));
 
         var geometry = await page.EvaluateAsync<double[]>("""
