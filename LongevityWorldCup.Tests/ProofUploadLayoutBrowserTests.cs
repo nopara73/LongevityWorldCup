@@ -137,8 +137,48 @@ public sealed class ProofUploadLayoutBrowserTests(
         var page = await OpenAsync(context);
         await page.Locator("#proofPicInput").SetInputFilesAsync(await CreateProofImagesAsync(context, 3));
         await page.WaitForFunctionAsync(
-            "() => document.body.classList.contains('proof-upload-has-proofs') && document.querySelectorAll('#proofImageContainer img').length === 3");
-        await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+            """
+            () => !document.documentElement.hasAttribute('data-initial-view')
+                && document.body.classList.contains('proof-upload-has-proofs')
+                && !document.getElementById('proofPicInput').disabled
+                && !document.querySelector('#proofImageContainer .proof-preparation')
+                && document.querySelectorAll('#proofImageContainer img').length === 3
+            """);
+        await page.EvaluateAsync(
+            "() => Promise.all([...document.querySelectorAll('#proofImageContainer img')].map(image => image.decode()))");
+        await page.EvaluateAsync("async () => { await document.fonts.ready; window.LwcFlowActionDock?.refreshNow(); }");
+        // File elements appear while the upload workspace is still being laid out.
+        // Wait for the same geometry asserted below, rather than assuming two frames settle it.
+        try
+        {
+            await page.WaitForFunctionAsync(
+                """
+                beside => {
+                    const proofs = document.getElementById('proofImageContainer').getBoundingClientRect();
+                    const tracker = document.getElementById('biomarker-checklist').getBoundingClientRect();
+                    return proofs.width > 0 && tracker.width > 0 && (beside
+                        ? tracker.left >= proofs.right && Math.abs(tracker.top - proofs.top) <= 2 && tracker.width >= 260
+                        : tracker.top >= proofs.bottom);
+                }
+                """, besideExpected, new() { Timeout = 5_000 });
+        }
+        catch (System.TimeoutException)
+        {
+            var diagnostics = await page.EvaluateAsync<string>(
+                """
+                () => JSON.stringify({
+                    viewport: [innerWidth, innerHeight],
+                    rootFont: getComputedStyle(document.documentElement).fontSize,
+                    classes: document.body.className,
+                    inputDisabled: document.getElementById('proofPicInput').disabled,
+                    workspaceDisplay: getComputedStyle(document.querySelector('.proof-upload-workspace')).display,
+                    main: document.querySelector('.proof-upload-main').getBoundingClientRect(),
+                    proofs: document.getElementById('proofImageContainer').getBoundingClientRect(),
+                    tracker: document.getElementById('biomarker-checklist').getBoundingClientRect()
+                })
+                """);
+            throw new Xunit.Sdk.XunitException($"{width}x{height}: the completed proof layout did not settle: {diagnostics}");
+        }
 
         var layout = await page.EvaluateAsync<double[]>(
             """

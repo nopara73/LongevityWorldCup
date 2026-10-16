@@ -20,6 +20,7 @@ fi
 # protected from deletion, including uploads and runtime-generated assets.
 rsync -a --checksum --delete --no-owner --no-group \
   --include='/css/***' \
+  --include='/helstab-kihivas/***' \
   --include='/onboarding/***' \
   --include='/research/***' \
   --exclude='*' \

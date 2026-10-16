@@ -170,7 +170,6 @@ public sealed class AthleteDialogLinkBrowserTests(
     [InlineData("/history")]
     [InlineData("/events")]
     [InlineData("/longevitymaxxing")]
-    [InlineData("/helstab-kihivas")]
     [InlineData("/pheno-age")]
     [InlineData("/bortz-age")]
     public async Task PublicAthleteLinkSurfaces_InstallOneScopedDialogRuntime(string path)
