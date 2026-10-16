@@ -1229,23 +1229,23 @@ html.play-panel-transitioning .play-hub-panel--entering {
     }
 
     @supports selector(:has(*)) {
-        .play-athlete-panel:has(#playAthleteInput:focus) {
+        .play-athlete-panel:has(:where(#playAthleteInput):focus) {
             padding-top: 1.25rem;
         }
 
-        .play-athlete-panel:has(#playAthleteInput:focus) .play-athlete-title {
+        .play-athlete-panel:has(:where(#playAthleteInput):focus) .play-athlete-title {
             margin-bottom: 0.6rem;
         }
 
-        .play-athlete-panel:has(#playAthleteInput:focus) .play-athlete-visual {
+        .play-athlete-panel:has(:where(#playAthleteInput):focus) .play-athlete-visual {
             margin-bottom: 0.7rem;
         }
 
-        .play-athlete-panel:has(#playAthleteInput:focus) .athlete-picture-frame {
+        .play-athlete-panel:has(:where(#playAthleteInput):focus) .athlete-picture-frame {
             width: min(100%, 360px);
         }
 
-        .play-athlete-panel:has(#playAthleteInput:focus) .play-autocomplete-wrapper {
+        .play-athlete-panel:has(:where(#playAthleteInput):focus) .play-autocomplete-wrapper {
             margin-bottom: 0.7rem;
         }
 
@@ -1767,4 +1767,72 @@ html.play-panel-transitioning .play-hub-panel--entering {
     outline: 3px solid var(--lwc-accent);
     outline-offset: 3px;
     border-radius: var(--lwc-radius-sm);
+}
+
+/* Athlete search: show who each match is, and let the results own the screen while they are open. */
+.autocomplete-items div {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-height: 52px;
+    padding: 0.4rem 0.6rem;
+}
+
+.autocomplete-items .athlete-option-thumb {
+    flex: none;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--lwc-radius-pill, 999px);
+    border: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.14));
+    background: var(--lwc-surface-muted, #eef2f5);
+    object-fit: cover;
+    object-position: center 20%;
+}
+
+.autocomplete-items .athlete-option-name {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.autocomplete-items {
+    max-height: min(17.5rem, 42vh);
+    /* Popup fitting reads its preferred size before applying the viewport limit. */
+    transition: none;
+}
+
+.play-athlete-panel.athlete-search-open .play-autocomplete-wrapper {
+    margin-bottom: calc(1.2rem + min(17.5rem, 42vh));
+}
+
+.play-athlete-panel.athlete-search-open .play-athlete-title {
+    margin-bottom: 0.6rem;
+}
+
+.play-athlete-panel.athlete-search-open .play-athlete-visual {
+    margin-bottom: 0.75rem;
+}
+
+.play-athlete-panel.athlete-search-open .athlete-picture-frame {
+    width: min(100%, 136px);
+    border-radius: var(--lwc-radius-pill, 999px);
+}
+
+@media (max-height: 700px) {
+    .autocomplete-items {
+        max-height: min(17.5rem, 33vh);
+    }
+
+    .play-athlete-panel.athlete-search-open .play-autocomplete-wrapper {
+        margin-bottom: calc(1rem + min(17.5rem, 33vh));
+    }
+
+    .play-athlete-panel.athlete-search-open .athlete-picture-frame {
+        width: min(100%, 96px);
+    }
+}
+
+@media (max-height: 480px) {
+    .play-athlete-panel.athlete-search-open .play-athlete-visual {
+        display: none;
+    }
 }
