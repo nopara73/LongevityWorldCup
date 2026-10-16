@@ -1909,3 +1909,41 @@ html.play-panel-transitioning .play-hub-panel--entering {
         padding: 0.55rem 0.6rem;
     }
 }
+
+/* Play start: the emblem sits on a running track. Lanes are drawn as a mask
+   so they take the site's teal, centred on the watermark's own position. */
+body.play-start-active .play-start-panel::after {
+    --play-track-size: min(86vw, 38dvh, 560px);
+    content: "";
+    position: fixed;
+    top: min(
+        55dvh,
+        calc(100dvh - var(--flow-action-dock-height, 132px) - (var(--play-track-size) / 2) - 1.25rem)
+    );
+    left: 50%;
+    width: min(calc(var(--play-track-size) * 1.6), 96vw);
+    aspect-ratio: 220 / 132;
+    z-index: -1;
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+    background: linear-gradient(90deg, rgba(91, 213, 221, 0) 0%, rgba(91, 213, 221, 0.55) 22%, rgba(91, 213, 221, 0.55) 78%, rgba(91, 213, 221, 0) 100%);
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 220 132' fill='none' stroke='%23000' stroke-width='1.2'%3E%3Crect x='1' y='1' width='218' height='130' rx='65'/%3E%3Crect x='11' y='11' width='198' height='110' rx='55'/%3E%3Crect x='21' y='21' width='178' height='90' rx='45'/%3E%3Crect x='31' y='31' width='158' height='70' rx='35'/%3E%3Cpath d='M110 101v30' stroke-width='2.4'/%3E%3C/svg%3E") center / contain no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 220 132' fill='none' stroke='%23000' stroke-width='1.2'%3E%3Crect x='1' y='1' width='218' height='130' rx='65'/%3E%3Crect x='11' y='11' width='198' height='110' rx='55'/%3E%3Crect x='21' y='21' width='178' height='90' rx='45'/%3E%3Crect x='31' y='31' width='158' height='70' rx='35'/%3E%3Cpath d='M110 101v30' stroke-width='2.4'/%3E%3C/svg%3E") center / contain no-repeat;
+    opacity: 0.55;
+}
+
+@media (max-width: 768px) {
+    body.play-start-active .play-start-panel::after {
+        opacity: 0.42;
+    }
+}
+
+@media (min-width: 769px) {
+    body.play-start-active .play-start-panel::after {
+        --play-track-size: min(38dvh, 29vmin, 560px);
+        top: min(
+            51dvh,
+            calc(100dvh - var(--flow-action-dock-height, 132px) - (var(--play-track-size) / 2) - 1.25rem)
+        );
+    }
+}
