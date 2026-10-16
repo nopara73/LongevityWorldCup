@@ -348,12 +348,12 @@ public sealed class FlowActionDockResultBrowserTests(
 
     [Theory]
     [InlineData(390, 844, 245, false)]
-    [InlineData(390, 844, 220, true)]
+    [InlineData(390, 740, 220, true)]
     [InlineData(1366, 768, 68, false)]
-    [InlineData(1366, 768, 68, true)]
+    [InlineData(1366, 640, 68, true)]
     [InlineData(1280, 720, 68, false)]
-    [InlineData(1280, 720, 68, true)]
-    public async Task DashboardActions_DockAsCompactCommandGridWhenTheyWouldOverflow(
+    [InlineData(1280, 600, 68, true)]
+    public async Task DashboardActions_DockAsCompactCommandsWhenTheyWouldOverflow(
         int viewportWidth,
         int viewportHeight,
         double maxDockHeight,
@@ -361,6 +361,8 @@ public sealed class FlowActionDockResultBrowserTests(
     {
         var app = App;
         var browser = Browser;
+        // The captioned Pro card fits at common heights. These shorter Pro
+        // viewports exercise actual overflow; fitting layouts have separate coverage.
         await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
             BaseURL = app.BaseAddress.ToString(),
@@ -638,7 +640,7 @@ public sealed class FlowActionDockResultBrowserTests(
         {
             BaseURL = app.BaseAddress.ToString(),
             Locale = "en-US",
-            ViewportSize = new ViewportSize { Width = 390, Height = 844 }
+            ViewportSize = new ViewportSize { Width = 390, Height = 740 }
         });
         await BrowserTestApp.RouteExternalResourcesAsync(context);
         await context.AddInitScriptAsync(FlowAuditStateScript);
@@ -653,7 +655,7 @@ public sealed class FlowActionDockResultBrowserTests(
         await page.Locator("#playDashboardBackBtn > i").EvaluateAsync(
             "icon => { icon.textContent = '\u2190'; icon.style.fontSize = '16px'; }");
 
-        await page.SetViewportSizeAndWaitForLayoutAsync(1366, 768);
+        await page.SetViewportSizeAndWaitForLayoutAsync(1366, 640);
         await page.WaitForFunctionAsync(
             """
             () => {

@@ -14,9 +14,12 @@ public sealed class DashboardAthleteCardBrowserTests(
     [InlineData(1440, 900, true, 1)]
     [InlineData(1440, 900, false, 1)]
     [InlineData(390, 844, false, 1)]
+    [InlineData(390, 844, true, 1)]
     [InlineData(320, 640, false, 1)]
     [InlineData(844, 390, false, 1)]
     [InlineData(1280, 600, true, 1)]
+    [InlineData(1280, 720, true, 1)]
+    [InlineData(1366, 768, true, 1)]
     [InlineData(820, 1180, true, 1)]
     [InlineData(1440, 900, false, 2)]
     [InlineData(820, 1180, true, 2)]
@@ -66,7 +69,7 @@ public sealed class DashboardAthleteCardBrowserTests(
                 const label = back.getBoundingClientRect();
                 const iconOverlap = Math.max(0, Math.min(icon.right, label.right) - Math.max(icon.left, label.left));
                 return [title.left, title.right, title.top, title.bottom, picture.left, picture.right, picture.top, picture.bottom,
-                    actionsBox.top, actions.classList.contains('flow-action-stack--docked') ? 1 : 0, backLines, iconOverlap];
+                    actionsBox.top, actions.classList.contains('flow-action-stack--docked') ? 1 : 0, backLines, iconOverlap, actionsBox.bottom];
             }
             """);
         var scenario = $"{width}x{height}, {textScale * 100}% text, {(isPro ? "pro" : "amateur")}";
@@ -75,6 +78,14 @@ public sealed class DashboardAthleteCardBrowserTests(
         Assert.True(Math.Abs(layout[3] - layout[7]) <= 2, $"{scenario}: the caption should rest on the portrait's bottom edge.");
         if (layout[9] == 1)
             Assert.True(layout[7] <= layout[8] + 1, $"{scenario}: the docked actions cover the portrait ({layout[7]} > {layout[8]}).");
+        if (isPro && textScale == 1 && ((width == 390 && height == 844)
+            || (width == 1280 && height == 720) || (width == 1366 && height == 768)))
+        {
+            Assert.True(layout[9] == 0, $"{scenario}: fitting Pro actions should stay inline.");
+            Assert.True(layout[12] <= height - 12, $"{scenario}: inline actions exceed the viewport.");
+            var minPictureWidth = width < 600 ? 300 : height <= 740 ? 310 : 340;
+            Assert.InRange(layout[5] - layout[4], minPictureWidth, 408);
+        }
         // Phone docks show an icon. An inline fallback at 200% text may use two
         // whole words on separate lines; all other visible back labels fit one.
         var maxBackLines = textScale == 2 && width < 600 && layout[9] == 0 ? 2 : 1;
