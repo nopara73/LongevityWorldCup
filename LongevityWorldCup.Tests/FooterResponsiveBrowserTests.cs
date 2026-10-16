@@ -15,6 +15,9 @@ public sealed class FooterResponsiveBrowserTests(
     [InlineData("/", 1280, 150)]
     [InlineData("/", 1440, 200)]
     [InlineData("/history", 1100, 125)]
+    [InlineData("/ruleset", 320, 100)]
+    [InlineData("/ruleset", 320, 200)]
+    [InlineData("/ruleset", 390, 200)]
     [InlineData("/events", 1100, 125)]
     public async Task SharedFooter_ContainsEveryLinkWhenDesktopTextIsEnlarged(string path, int width, int textPercent)
     {

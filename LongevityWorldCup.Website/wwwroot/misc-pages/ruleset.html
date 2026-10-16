@@ -786,6 +786,363 @@
             }
         }
     </style>
+    <style>
+        .documentation-document .ruleset-lede {
+            margin-bottom: 0;
+            color: var(--lwc-ink);
+            font-size: clamp(1.12rem, 1.6vw, 1.28rem);
+            line-height: 1.55;
+        }
+
+        .documentation-document {
+            counter-reset: ruleset-rule;
+        }
+
+        .ruleset-section {
+            margin-top: clamp(2.2rem, 4vw, 3rem);
+        }
+
+        .documentation-document .ruleset-section > h2 {
+            margin-top: 0;
+        }
+
+        /* Rules are numbered like a rulebook; the number sits in a solid accent tile. */
+        .documentation-document .ruleset-rule > h2 {
+            display: flex;
+            align-items: center;
+            gap: 0.85rem;
+            counter-increment: ruleset-rule;
+        }
+
+        .documentation-document .ruleset-rule > h2::before {
+            content: counter(ruleset-rule);
+            display: inline-grid;
+            flex: 0 0 auto;
+            place-items: center;
+            width: 2.6rem;
+            height: 2.6rem;
+            border-radius: var(--lwc-radius-md);
+            background: var(--lwc-accent);
+            color: var(--lwc-on-accent);
+            font-family: Orbitron, Roboto, sans-serif;
+            font-size: 1rem;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            line-height: 1;
+        }
+
+        .documentation-nav {
+            counter-reset: ruleset-nav-rule;
+        }
+
+        .documentation-nav a.documentation-nav-rule {
+            gap: 0.55rem;
+            counter-increment: ruleset-nav-rule;
+        }
+
+        .documentation-nav a.documentation-nav-rule::before {
+            content: counter(ruleset-nav-rule);
+            flex: 0 0 auto;
+            min-width: 1rem;
+            color: var(--lwc-accent);
+            font-family: Orbitron, Roboto, sans-serif;
+            font-size: var(--lwc-type-xs);
+            font-weight: 700;
+        }
+
+        .documentation-nav a.documentation-nav-rule.is-active::before {
+            color: inherit;
+        }
+
+        /* Each rule is a clause with a square accent marker; sub-clauses hang off a rail. */
+        .documentation-document .ruleset-rule ul {
+            padding-left: 0;
+            list-style: none;
+        }
+
+        .documentation-document .ruleset-rule li {
+            position: relative;
+            margin: 0.7rem 0;
+            padding-left: 1.55rem;
+        }
+
+        .documentation-document .ruleset-rule li::before {
+            content: "";
+            position: absolute;
+            top: 0.62em;
+            left: 0.2rem;
+            width: 0.5rem;
+            height: 0.5rem;
+            border-radius: 2px;
+            background: var(--lwc-accent);
+        }
+
+        .documentation-document .ruleset-rule li ul {
+            margin: 0.55rem 0 0.2rem;
+            padding: 0.1rem 0 0.1rem 0.95rem;
+            border-left: 2px solid var(--lwc-border);
+        }
+
+        .documentation-document .ruleset-rule li li {
+            margin: 0.5rem 0;
+            padding-left: 1.2rem;
+        }
+
+        .documentation-document .ruleset-rule li li::before {
+            top: 0.68em;
+            left: 0.1rem;
+            width: 0.42rem;
+            height: 0.42rem;
+            border: 2px solid var(--lwc-accent);
+            background: transparent;
+            box-sizing: border-box;
+        }
+
+        /* FAQ: every group is a card of questions; answers open in place. */
+        .ruleset-faq-group {
+            margin: 1.4rem 0 0;
+            border: 1px solid var(--lwc-border);
+            border-radius: var(--lwc-radius-lg);
+            background: var(--lwc-surface);
+            box-shadow: var(--lwc-shadow-sm);
+            overflow: hidden;
+        }
+
+        .documentation-document .ruleset-faq-group > h3 {
+            margin: 0;
+            padding: 0.9rem 1.15rem;
+            border-bottom: 1px solid var(--lwc-border);
+            background: var(--lwc-surface-muted);
+            font-size: clamp(1.12rem, 2vw, 1.3rem);
+        }
+
+        .ruleset-faq-item {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            align-items: start;
+            column-gap: 0.5rem;
+            border-top: 1px solid var(--lwc-border);
+        }
+
+        .ruleset-faq-group > h3 + .ruleset-faq-item {
+            border-top: 0;
+        }
+
+        .documentation-document .ruleset-faq-item > h4 {
+            grid-column: 1;
+            margin: 0;
+            padding: 0.85rem 0 0.85rem 1.15rem;
+            font-size: 1.04rem;
+            line-height: 1.4;
+        }
+
+        .ruleset-faq-answer {
+            grid-column: 1 / -1;
+            padding: 0 1.15rem 0.35rem;
+        }
+
+        .ruleset-faq-answer[hidden] {
+            padding-top: 0;
+            padding-bottom: 0;
+        }
+
+        .ruleset-faq-answer > :last-child {
+            margin-bottom: 0.85rem;
+        }
+
+        .documentation-document .ruleset-faq-answer img {
+            margin: 1rem auto 1.2rem;
+        }
+
+        .ruleset-faq-toggle {
+            display: none;
+        }
+
+        .ruleset-faq.is-enhanced .ruleset-faq-item > h4 {
+            cursor: pointer;
+        }
+
+        .ruleset-faq.is-enhanced .ruleset-faq-toggle {
+            box-sizing: border-box;
+            display: inline-grid;
+            grid-column: 2;
+            grid-row: 1;
+            place-items: center;
+            width: 2.75rem;
+            height: 2.75rem;
+            margin: 0.35rem 0.55rem 0.35rem 0;
+            padding: 0;
+            border: 1px solid transparent;
+            border-radius: var(--lwc-radius-pill);
+            background: transparent;
+            color: var(--lwc-accent);
+            font: inherit;
+            cursor: pointer;
+        }
+
+        .ruleset-faq-toggle::before {
+            content: "";
+            width: 0.6rem;
+            height: 0.6rem;
+            margin-top: -0.3rem;
+            border-right: 2.5px solid currentColor;
+            border-bottom: 2.5px solid currentColor;
+            transform: rotate(45deg);
+            transition: transform var(--lwc-duration-normal) var(--lwc-ease), margin var(--lwc-duration-normal) var(--lwc-ease);
+        }
+
+        .ruleset-faq-item.is-open .ruleset-faq-toggle::before {
+            margin-top: 0.3rem;
+            transform: rotate(-135deg);
+        }
+
+        .ruleset-faq-item:hover,
+        .ruleset-faq-item:focus-within {
+            background: color-mix(in srgb, var(--lwc-accent-soft) 45%, transparent);
+        }
+
+        .ruleset-faq-item.is-open {
+            background: transparent;
+            box-shadow: inset 3px 0 0 var(--lwc-accent);
+        }
+
+        .ruleset-faq-item:hover .ruleset-faq-toggle,
+        .ruleset-faq-toggle:focus-visible {
+            border-color: var(--lwc-accent);
+            background: var(--lwc-accent-soft);
+        }
+
+        .ruleset-faq-toggle:focus-visible {
+            outline: 3px solid var(--lwc-accent-bright);
+            outline-offset: 1px;
+        }
+
+        .ruleset-faq-item.is-open > h4 {
+            color: var(--lwc-accent-hover);
+        }
+
+        /* Lists of lab names read as a grid of chips. */
+        .documentation-document .ruleset-term-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(min(100%, 14rem), 1fr));
+            gap: 0.45rem;
+            padding: 0;
+            list-style: none;
+        }
+
+        .documentation-document .ruleset-term-list li {
+            margin: 0;
+            padding: 0.45rem 0.7rem;
+            border: 1px solid var(--lwc-border);
+            border-left: 3px solid var(--lwc-accent);
+            border-radius: var(--lwc-radius-sm);
+            background: var(--lwc-surface-muted);
+            font-size: var(--lwc-type-sm);
+            line-height: 1.4;
+        }
+
+        /* The closing links are tiles. */
+        .documentation-document .ruleset-next ul {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+            gap: 0.75rem;
+            padding: 0;
+            list-style: none;
+        }
+
+        .documentation-document .ruleset-next li {
+            margin: 0;
+            padding: 0;
+        }
+
+        .documentation-document .ruleset-next a {
+            box-sizing: border-box;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            height: 100%;
+            min-height: 3.5rem;
+            padding: 0.85rem 1rem;
+            border: 1px solid var(--lwc-border);
+            border-radius: var(--lwc-radius-lg);
+            background: var(--lwc-surface-muted);
+            line-height: 1.35;
+            text-decoration: none;
+            transition: border-color var(--lwc-duration-fast) var(--lwc-ease), background var(--lwc-duration-fast) var(--lwc-ease);
+        }
+
+        .documentation-document .ruleset-next a::after {
+            content: "\2192" / "";
+            flex: 0 0 auto;
+            font-size: 1.15rem;
+            transition: transform var(--lwc-duration-fast) var(--lwc-ease);
+        }
+
+        .documentation-document .ruleset-next a:hover,
+        .documentation-document .ruleset-next a:focus-visible {
+            border-color: var(--lwc-accent);
+            background: var(--lwc-accent-soft);
+        }
+
+        .documentation-document .ruleset-next a:focus-visible {
+            outline: 3px solid var(--lwc-accent-bright);
+            outline-offset: 2px;
+        }
+
+        .documentation-document .ruleset-next a:hover::after {
+            transform: translateX(3px);
+        }
+
+        @media (max-width: 600px) {
+            .documentation-document.ruleset-document {
+                padding: min(1.1rem, 18px);
+            }
+
+            .documentation-document .ruleset-rule > h2 {
+                gap: 0.7rem;
+            }
+
+            .documentation-document .ruleset-rule > h2::before {
+                width: 2.25rem;
+                height: 2.25rem;
+                font-size: 0.9rem;
+            }
+
+            .ruleset-faq-group {
+                margin-right: -0.35rem;
+                margin-left: -0.35rem;
+            }
+
+            .documentation-document .ruleset-faq-group > h3 {
+                padding: 0.8rem 0.9rem;
+            }
+
+            .documentation-document .ruleset-faq-item > h4 {
+                padding-left: 0.9rem;
+                font-size: 1rem;
+            }
+
+            .ruleset-faq-answer {
+                padding-right: 0.9rem;
+                padding-left: 0.9rem;
+            }
+
+            .ruleset-faq.is-enhanced .ruleset-faq-toggle {
+                margin-right: 0.3rem;
+                max-width: 56px;
+                max-height: 56px;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .ruleset-faq-toggle::before,
+            .documentation-document .ruleset-next a,
+            .documentation-document .ruleset-next a::after {
+                transition: none;
+            }
+        }
+    </style>
 </head>
 <body>
     <!--HEADER-->
@@ -796,10 +1153,10 @@
             </button>
             <div class="documentation-nav-links" id="documentation-nav-links">
                 <div class="documentation-nav-title">Contents</div>
-            <a class="documentation-nav-level-2" href="#seasons--schedule">Seasons &amp; schedule</a>
-            <a class="documentation-nav-level-2" href="#tracks">Tracks</a>
-            <a class="documentation-nav-level-2" href="#point-system-ranking">Point system (ranking)</a>
-            <a class="documentation-nav-level-2" href="#prizes-and-payouts">Prizes and payouts</a>
+            <a class="documentation-nav-level-2 documentation-nav-rule" href="#seasons--schedule">Seasons &amp; schedule</a>
+            <a class="documentation-nav-level-2 documentation-nav-rule" href="#tracks">Tracks</a>
+            <a class="documentation-nav-level-2 documentation-nav-rule" href="#point-system-ranking">Point system (ranking)</a>
+            <a class="documentation-nav-level-2 documentation-nav-rule" href="#prizes-and-payouts">Prizes and payouts</a>
             <a class="documentation-nav-level-2" href="#faq">FAQ</a>
             <a class="documentation-nav-level-3" href="#general-questions">General questions</a>
             <a class="documentation-nav-level-3" href="#about-aging-clocks-and-testing">About aging clocks and testing</a>
@@ -809,9 +1166,10 @@
                 <a class="documentation-source-link" href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/Ruleset.md" target="_blank" rel="noopener">Source Markdown</a>
             </div>
         </nav>
-        <article class="documentation-document">
+        <article class="documentation-document ruleset-document">
 <h1 id="ruleset">Ruleset</h1>
-<p>The Longevity World Cup is a competition between longevity athletes. The goal is to improve the results of biological aging clocks.</p>
+<p class="ruleset-lede">The Longevity World Cup is a competition between longevity athletes. The goal is to improve the results of biological aging clocks.</p>
+<section class="ruleset-section ruleset-rule">
 <h2 id="seasons--schedule">Seasons &amp; schedule</h2>
 <ul>
 <li>A <strong>Season</strong> is the yearly competition window for <strong>seasonal clocks</strong> (for example the Season 2026 <a href="https://www.nature.com/articles/s42003-023-05456-z" target="_blank" rel="noopener noreferrer">bortz age</a> competition).</li>
@@ -819,12 +1177,16 @@
 <li>Some clocks may run as <strong>all-time competitions</strong> instead of seasonal competitions. <strong>The all-time competition currently uses <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf" target="_blank" rel="noopener noreferrer">pheno age</a></strong>.</li>
 </ul>
 <p><img src="https://github.com/user-attachments/assets/337ab8a6-935b-4986-8e63-28aa6f494582" alt="Season duration defines the competition cycle, while test validity defines test acceptance" /></p>
+</section>
+<section class="ruleset-section ruleset-rule">
 <h2 id="tracks">Tracks</h2>
 <p>The Longevity World Cup has multiple tracks: <strong>Amateur</strong> and <strong>Professional</strong>. These use different clocks and rules.</p>
 <ul>
 <li><strong>Amateur</strong>: designed for accessibility. In Season 2026 this track is centered around <strong><a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf" target="_blank" rel="noopener noreferrer">pheno age</a> (all-time)</strong> submissions.</li>
 <li><strong>Pro</strong>: the flagship <strong>seasonal</strong> competition. In Season 2026 this track uses <strong><a href="https://www.nature.com/articles/s42003-023-05456-z" target="_blank" rel="noopener noreferrer">bortz age</a></strong> as its seasonal clock and includes prize money.</li>
 </ul>
+</section>
+<section class="ruleset-section ruleset-rule">
 <h2 id="point-system-ranking">Point system (ranking)</h2>
 <ul>
 <li>What counts is <strong>biological age reduction</strong>: the more your biological age is below your chronological age, the higher you rank.</li>
@@ -838,6 +1200,8 @@
 <li>The competition also uses <strong>leagues</strong> (for example generation-based or other category-based rankings). You can rank globally and still compete within your generation league.</li>
 </ul>
 <p><img src="https://github.com/user-attachments/assets/968fc0b2-3389-40a3-93e9-4a415f565b11" alt="Multiple submissions may improve ranking at higher cost, while one strategic submission is cheaper but may miss the optimum" /></p>
+</section>
+<section class="ruleset-section ruleset-rule">
 <h2 id="prizes-and-payouts">Prizes and payouts</h2>
 <ul>
 <li>Prize money is awarded to the top three athletes in the Ultimate League.</li>
@@ -846,23 +1210,50 @@
 <li>Payouts are made in Bitcoin in mid-January. If you need a Bitcoin wallet, we'll help you set one up. We recommend <a href="https://blockstream.com/green/" target="_blank" rel="noopener noreferrer">Green Wallet</a> for mobile or <a href="https://wasabiwallet.io/" target="_blank" rel="noopener noreferrer">Wasabi Wallet</a> for desktop. Fun fact: Wasabi Wallet and the Longevity World Cup share the same creator.</li>
 </ul>
 <p><img src="https://github.com/user-attachments/assets/9a41f400-92a1-496d-8553-b727186580b2" alt="Prize money timeline from Bitcoin donations through allocation, funding, costs, wallet setup, and January payouts" /></p>
+</section>
+<section class="ruleset-section ruleset-faq">
 <h2 id="faq">FAQ</h2>
+<div class="ruleset-faq-group">
 <h3 id="general-questions">General questions</h3>
+<div class="ruleset-faq-item">
 <h4 id="who-can-participate-in-the-longevity-world-cup">Who can participate in the Longevity World Cup?</h4>
+<div class="ruleset-faq-answer" id="who-can-participate-in-the-longevity-world-cup-answer">
 <p>Anyone interested in longevity and capable of submitting valid test results can participate.</p>
+</div>
+</div>
+<div class="ruleset-faq-item">
 <h4 id="how-do-i-register-for-the-competition">How do I register for the competition?</h4>
+<div class="ruleset-faq-answer" id="how-do-i-register-for-the-competition-answer">
 <p>Apply through the <a href="https://www.longevityworldcup.com/" target="_blank" rel="noopener noreferrer">Longevity World Cup website</a>.</p>
 <p><img src="https://github.com/user-attachments/assets/38c545e9-13e5-4ba2-b2e0-d52bbf149207" alt="Registration process: visit the website, then follow the instructions" /></p>
 <p>Need help with your application? Watch <a href="https://www.youtube.com/watch?v=0mCIbqgfqq8" target="_blank" rel="noopener noreferrer">this seven-minute video tutorial</a> or <a href="https://www.youtube.com/shorts/yhMFZMPAoKQ" target="_blank" rel="noopener noreferrer">this one-minute video tutorial</a>.</p>
+</div>
+</div>
+<div class="ruleset-faq-item">
 <h4 id="can-i-withdraw-from-the-competition">Can I withdraw from the competition?</h4>
+<div class="ruleset-faq-answer" id="can-i-withdraw-from-the-competition-answer">
 <p>Yes. Email <code>hi@longevityworldcup.com</code>.</p>
+</div>
+</div>
+</div>
+<div class="ruleset-faq-group">
 <h3 id="about-aging-clocks-and-testing">About aging clocks and testing</h3>
+<div class="ruleset-faq-item">
 <h4 id="what-is-pheno-age">What is <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf" target="_blank" rel="noopener noreferrer">pheno age</a>?</h4>
+<div class="ruleset-faq-answer" id="what-is-pheno-age-answer">
 <p><a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf" target="_blank" rel="noopener noreferrer">Pheno age</a> is based on clinical biomarkers like glucose and CRP. It reflects physiological aging, not just years lived, and helps assess health and disease risk.</p>
+</div>
+</div>
+<div class="ruleset-faq-item">
 <h4 id="what-is-bortz-age">What is <a href="https://www.nature.com/articles/s42003-023-05456-z" target="_blank" rel="noopener noreferrer">bortz age</a>?</h4>
+<div class="ruleset-faq-answer" id="what-is-bortz-age-answer">
 <p><a href="https://www.nature.com/articles/s42003-023-05456-z" target="_blank" rel="noopener noreferrer">Bortz age</a> is based on blood biomarkers such as Cystatin C, HbA1c, and ApoA1. It reflects physiological aging, not just years lived, and helps assess health and disease risk.</p>
+</div>
+</div>
+<div class="ruleset-faq-item">
 <h4 id="from-which-biomarkers-can-i-calculate-my-pheno-age">From which biomarkers can I calculate my <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf" target="_blank" rel="noopener noreferrer">pheno age</a>?</h4>
-<ul>
+<div class="ruleset-faq-answer" id="from-which-biomarkers-can-i-calculate-my-pheno-age-answer">
+<ul class="ruleset-term-list">
 <li>Albumin (Serum Albumin)</li>
 <li>Creatinine (Serum Creatinine)</li>
 <li>Glucose (Blood Sugar)</li>
@@ -874,8 +1265,12 @@
 <li>White Blood Cell Count (WBC Count, Leukocyte Count)</li>
 </ul>
 <p><img src="https://github.com/user-attachments/assets/4770485d-440c-4ce6-be6a-b547798696c3" alt="Biomarkers used in pheno age calculation and their common laboratory names" /></p>
+</div>
+</div>
+<div class="ruleset-faq-item">
 <h4 id="from-which-biomarkers-can-i-calculate-my-bortz-age">From which biomarkers can I calculate my <a href="https://www.nature.com/articles/s42003-023-05456-z" target="_blank" rel="noopener noreferrer">bortz age</a>?</h4>
-<ul>
+<div class="ruleset-faq-answer" id="from-which-biomarkers-can-i-calculate-my-bortz-age-answer">
+<ul class="ruleset-term-list">
 <li>Albumin</li>
 <li>Alkaline Phosphatase (ALP)</li>
 <li>Urea</li>
@@ -898,25 +1293,63 @@
 <li>Mean Corpuscular Hemoglobin (MCH)</li>
 <li>Apolipoprotein A1 (ApoA1)</li>
 </ul>
+</div>
+</div>
+<div class="ruleset-faq-item">
 <h4 id="can-i-use-any-laboratory-for-my-tests">Can I use any laboratory for my tests?</h4>
+<div class="ruleset-faq-answer" id="can-i-use-any-laboratory-for-my-tests-answer">
 <p>Yes, as long as the lab provides the biomarkers required for that clock.</p>
+</div>
+</div>
+<div class="ruleset-faq-item">
 <h4 id="why-does-my-pheno-age-result-differ-from-other-calculators">Why does my <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf" target="_blank" rel="noopener noreferrer">pheno age</a> result differ from other calculators?</h4>
+<div class="ruleset-faq-answer" id="why-does-my-pheno-age-result-differ-from-other-calculators-answer">
 <p>The Longevity World Cup pheno age calculator is built for biological realism. Many online pheno age calculators use an <a href="https://github.com/ajsteele/bioage/issues/3" target="_blank" rel="noopener noreferrer">incorrect constant in the formula</a>, which originated from a typo in an update by the authors of pheno age. Even calculators with the correct constant can reward pheno age-optimizing hacks that reduce mortality risk in the model but increase real-world mortality risk. For example, pushing alkaline phosphatase or RDW to the extremes can lower your pheno age score even though real-world data shows U- or J-shaped mortality curves for those biomarkers. The Longevity World Cup calculator corrects this by enforcing biologically justified cutoffs, avoiding strategies that make the calculated age look better while your actual risk gets worse. See <a href="https://github.com/nopara73/LongevityWorldCup/issues/136" target="_blank" rel="noopener noreferrer">pheno age calculation bug disclosure: Missing U-shaped curves for biomarkers</a>.</p>
+</div>
+</div>
+<div class="ruleset-faq-item">
 <h4 id="why-does-my-bortz-age-result-differ-from-other-calculators">Why does my <a href="https://www.nature.com/articles/s42003-023-05456-z" target="_blank" rel="noopener noreferrer">bortz age</a> result differ from other calculators?</h4>
+<div class="ruleset-faq-answer" id="why-does-my-bortz-age-result-differ-from-other-calculators-answer">
 <p>The Longevity World Cup bortz age calculator is built for biological realism. Other calculators can reward bortz age-optimizing hacks that reduce mortality risk in the model but increase real-world mortality risk. For example, pushing alkaline phosphatase or RDW to the extremes can lower your bortz age even though real-world data shows U- or J-shaped mortality curves for those biomarkers. The Longevity World Cup calculator corrects this by enforcing biologically justified cutoffs, avoiding strategies that make the calculated age look better while your actual risk gets worse. See <a href="https://github.com/nopara73/LongevityWorldCup/issues/136" target="_blank" rel="noopener noreferrer">pheno age and bortz age calculation bug disclosure: Missing U-shaped curves for biomarkers</a>.</p>
+</div>
+</div>
+</div>
+<div class="ruleset-faq-group">
 <h3 id="competition-mechanics">Competition mechanics</h3>
+<div class="ruleset-faq-item">
 <h4 id="what-happens-if-my-results-arrive-late">What happens if my results arrive late?</h4>
+<div class="ruleset-faq-answer" id="what-happens-if-my-results-arrive-late-answer">
 <p>Each season closes in mid-January, giving your lab enough time to process a test from December 31.</p>
+</div>
+</div>
+<div class="ruleset-faq-item">
 <h4 id="what-if-theres-a-tie">What if there's a tie?</h4>
+<div class="ruleset-faq-answer" id="what-if-theres-a-tie-answer">
 <p>Ties break by older chronological age, then username alphabetically.</p>
 <p><img src="https://github.com/user-attachments/assets/a13ec2f2-346e-4024-aba5-dd32e807a34e" alt="Ranking flow: compare pheno age, then break ties by older chronological age and, if still tied, username alphabetically" /></p>
+</div>
+</div>
+<div class="ruleset-faq-item">
 <h4 id="how-is-my-score-calculated-if-i-submit-multiple-results">How is my score calculated if I submit multiple results?</h4>
+<div class="ruleset-faq-answer" id="how-is-my-score-calculated-if-i-submit-multiple-results-answer">
 <p>If you submit multiple test results, the <strong>best</strong> result is used for your season standing for the relevant clock. This encourages incremental updates and fair comparisons between strategic and transparent participants.</p>
+</div>
+</div>
+<div class="ruleset-faq-item">
 <h4 id="how-are-lab-detection-limits-handled-in-the-competition">How are lab detection limits handled in the competition?</h4>
+<div class="ruleset-faq-answer" id="how-are-lab-detection-limits-handled-in-the-competition-answer">
 <p>When your lab reports a biomarker value below the detection limit, that limit is used in the calculation. This keeps comparisons fair for other participants. This most often affects CRP; when the limit is unknown, we default to 1 mg/L.</p>
+</div>
+</div>
+<div class="ruleset-faq-item">
 <h4 id="how-can-i-cheat">How can I cheat?</h4>
+<div class="ruleset-faq-answer" id="how-can-i-cheat-answer">
 <p>You can't.</p>
+</div>
+</div>
+<div class="ruleset-faq-item">
 <h4 id="how-does-the-longevity-world-cup-compare-to-the-rejuvenation-olympics">How does the Longevity World Cup compare to the Rejuvenation Olympics?</h4>
+<div class="ruleset-faq-answer" id="how-does-the-longevity-world-cup-compare-to-the-rejuvenation-olympics-answer">
 <p>Coming from RO? See <a href="https://longevityworldcup.com/rejuvenation-olympics" target="_blank" rel="noopener noreferrer">the closing timetable and LWC bloodwork checklist</a>, including how to have your existing report checked before applying.</p>
 <ul>
 <li><strong>Focus</strong>: Longevity World Cup emphasizes <strong>absolute age reversal</strong>, while Rejuvenation Olympics measures the <strong>pace of aging</strong> regardless of chronological age.</li>
@@ -925,22 +1358,46 @@
 <li><strong>Leagues</strong>: Longevity World Cup includes <strong>leagues</strong> for generational and other category-based rankings.</li>
 <li><strong>Testing</strong>: Longevity World Cup uses traditional blood-test-based biological age calculations; Rejuvenation Olympics uses the TruDiagnostic home test kit.</li>
 </ul>
+</div>
+</div>
+</div>
+<div class="ruleset-faq-group">
 <h3 id="practical-matters">Practical matters</h3>
+<div class="ruleset-faq-item">
 <h4 id="how-much-can-i-edit-my-profile-picture">How much can I edit my profile picture?</h4>
+<div class="ruleset-faq-answer" id="how-much-can-i-edit-my-profile-picture-answer">
 <p>Your profile picture must show you facing the camera, but you can edit it freely, including as a drawing or AI-generated version. Choose a picture that represents you well and works for age estimation from a photo.</p>
 <p><img src="https://github.com/user-attachments/assets/613afebb-4ec7-4b0d-a961-8a09e26391ab" alt="Profile picture compliance balances editing freedom with use of a personal image" /></p>
+</div>
+</div>
+<div class="ruleset-faq-item">
 <h4 id="im-already-an-athlete-how-can-i-make-changes">I'm already an athlete. How can I make changes?</h4>
+<div class="ruleset-faq-answer" id="im-already-an-athlete-how-can-i-make-changes-answer">
 <p>Through the <a href="https://www.longevityworldcup.com/select-athlete" target="_blank" rel="noopener noreferrer">Athlete Dashboard</a> or by sending us an email to <code>hi@longevityworldcup.com</code>.</p>
+</div>
+</div>
+<div class="ruleset-faq-item">
 <h4 id="what-will-sponsorships-include">What will sponsorships include?</h4>
+<div class="ruleset-faq-answer" id="what-will-sponsorships-include-answer">
 <p>Sponsorships are planned for future seasons. Future packages will let companies sponsor athletes for website visibility.</p>
+</div>
+</div>
+<div class="ruleset-faq-item">
 <h4 id="what-if-bitcoins-value-changes-significantly">What if Bitcoin's value changes significantly?</h4>
+<div class="ruleset-faq-answer" id="what-if-bitcoins-value-changes-significantly-answer">
 <p><a href="https://old.reddit.com/r/Bitcoin/comments/w1di0k/please_understand_what_1_btc_1_btc_really_means/" target="_blank" rel="noopener noreferrer">1 BTC = 1 BTC</a></p>
+</div>
+</div>
+</div>
+</section>
+<section class="ruleset-section ruleset-next">
 <h2 id="where-to-go-next">Where to go next</h2>
 <ul>
 <li><a href="/about">About Longevity World Cup</a></li>
 <li><a href="/history">History of Longevity as a Sport</a></li>
 <li><a href="/leaderboard">Leaderboard</a></li>
 </ul>
+</section>
 
         </article>
     </main>
@@ -1115,6 +1572,77 @@
             if (window.location.hash) {
                 window.requestAnimationFrame(synchronizeNavigationFromHash);
             }
+        });
+    </script>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const faq = document.querySelector(".ruleset-faq");
+            if (!faq || faq.classList.contains("is-enhanced")) {
+                return;
+            }
+
+            const items = Array.from(faq.querySelectorAll(".ruleset-faq-item"));
+            // Browsers without hidden-until-found support keep the answers readable
+            // and searchable instead of treating the value as ordinary hidden.
+            if (!("onbeforematch" in document.body)) {
+                return;
+            }
+            const setOpen = (item, open) => {
+                const answer = item.querySelector(".ruleset-faq-answer");
+                if (!open && answer.contains(document.activeElement)) {
+                    item.querySelector(".ruleset-faq-toggle")?.focus({ preventScroll: true });
+                }
+                item.classList.toggle("is-open", open);
+                item.querySelector(".ruleset-faq-toggle")?.setAttribute("aria-expanded", String(open));
+                if (open) {
+                    answer.removeAttribute("hidden");
+                } else {
+                    answer.setAttribute("hidden", "until-found");
+                }
+            };
+
+            items.forEach(item => {
+                const question = item.querySelector("h4");
+                const answer = item.querySelector(".ruleset-faq-answer");
+                const toggle = document.createElement("button");
+                toggle.type = "button";
+                toggle.className = "ruleset-faq-toggle";
+                toggle.setAttribute("aria-controls", answer.id);
+                toggle.setAttribute("aria-labelledby", question.id);
+                question.after(toggle);
+                toggle.addEventListener("click", () => setOpen(item, !item.classList.contains("is-open")));
+                question.addEventListener("click", event => {
+                    if (!event.target.closest("a") && !window.getSelection()?.toString()) {
+                        toggle.focus({ preventScroll: true });
+                        setOpen(item, !item.classList.contains("is-open"));
+                    }
+                });
+                // Find in page reveals a collapsed answer.
+                answer.addEventListener("beforematch", () => setOpen(item, true));
+                setOpen(item, false);
+            });
+            faq.classList.add("is-enhanced");
+
+            // A link to a question opens its answer and lands on it.
+            const openFromHash = () => {
+                let id;
+                try {
+                    id = decodeURIComponent(window.location.hash.slice(1));
+                } catch {
+                    return;
+                }
+                const target = id ? document.getElementById(id) : null;
+                const item = target?.closest(".ruleset-faq-item");
+                if (!item) {
+                    return;
+                }
+                setOpen(item, true);
+                const stickyHeader = document.getElementById("site-sticky-header");
+                const offset = ((stickyHeader && stickyHeader.offsetHeight) || 52) + 18;
+                window.scrollTo({ top: target.getBoundingClientRect().top + window.scrollY - offset, behavior: "instant" });
+            };
+            window.addEventListener("hashchange", openFromHash);
+            openFromHash();
         });
     </script>
 </body>

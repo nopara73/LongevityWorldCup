@@ -27,12 +27,21 @@ public sealed class GuessMyAgeReducedMotionBrowserTests(
             ViewportSize = new ViewportSize { Width = 390, Height = 844 }
         });
         await BrowserTestApp.RouteExternalResourcesAsync(context);
-        await context.RouteAsync("**/api/Guess/athlete-age**", route => route.FulfillAsync(new RouteFulfillOptions
+        var requestStarted = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var releaseResponse = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var responseDelivered = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        await context.RouteAsync("**/api/Guess/athlete-age**", async route =>
         {
-            Status = 200,
-            ContentType = "application/json",
-            Body = """{"crowdAge":100,"crowdCount":12,"actualAge":41,"guessAccepted":true}"""
-        }));
+            requestStarted.TrySetResult(route.Request.Url);
+            await releaseResponse.Task;
+            await route.FulfillAsync(new RouteFulfillOptions
+            {
+                Status = 200,
+                ContentType = "application/json",
+                Body = """{"crowdAge":100,"crowdCount":12,"actualAge":41,"guessAccepted":true}"""
+            });
+            responseDelivered.TrySetResult(true);
+        });
 
         var page = await context.NewPageAsync();
         await page.Clock.InstallAsync();
@@ -49,14 +58,29 @@ public sealed class GuessMyAgeReducedMotionBrowserTests(
                 modalContent.dataset.athleteSlug = 'reduced-motion-history-test';
                 modalContent.dataset.profileImageId = imageId;
                 modalContent.classList.add('guess-mode');
-                const range = document.getElementById('gmaRange');
-                range.value = '54';
-                range.dispatchEvent(new Event('input', { bubbles: true }));
             }
             """,
             ProfileImageA);
+        // Entering guess mode resets the slider in a MutationObserver.
+        await page.WaitForFunctionAsync("() => document.getElementById('gmaRange')?.disabled === false");
+        await page.Locator("#gmaRange").EvaluateAsync(
+            "range => { range.value = '54'; range.dispatchEvent(new Event('input', { bubbles: true })); }");
 
         await page.Locator("#guessAgeContainer .gma-btn--primary").ClickAsync();
+        try
+        {
+            var submittedUrl = await requestStarted.Task.WaitAsync(TimeSpan.FromSeconds(10));
+            Assert.Contains("ageGuess=54", submittedUrl, StringComparison.Ordinal);
+            // Freeze before the response can start the 1.2-second banner timer.
+            // Slow assertion round trips must not consume its virtual dwell time.
+            await PauseClockAsync(page);
+        }
+        finally
+        {
+            releaseResponse.TrySetResult(true);
+        }
+        await responseDelivered.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        await page.Clock.RunForAsync(50);
         await page.WaitForFunctionAsync(
             "() => document.getElementById('gmaRealBubble')?.classList.contains('is-settled') === true");
 
@@ -70,7 +94,6 @@ public sealed class GuessMyAgeReducedMotionBrowserTests(
         Assert.Equal(0, await page.Locator(".gma-reaction").CountAsync());
         Assert.Equal(0, await page.Locator(".gma-celebration-spark").CountAsync());
         await page.GetByText("You beat the crowd!", new PageGetByTextOptions { Exact = true }).WaitForAsync();
-        await PauseClockAsync(page);
         await page.Clock.RunForAsync(1800);
         Assert.True(await page.Locator("#detailsModal .modal-content").EvaluateAsync<bool>(
             "element => element.classList.contains('guess-mode')"));

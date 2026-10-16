@@ -1471,7 +1471,7 @@ public sealed class AestheticSystemBrowserTests(
                     var inlineSize = thresholdPixels + delta;
                     var diagnostics = await page.EvaluateAsync<ContainerQueryDiagnostics>(
                         """
-                        async width => {
+                        async argument => {
                             let entry = document.getElementById('responsive-checkin-probe');
                             if (!entry) {
                                 entry = document.createElement('div');
@@ -1484,16 +1484,18 @@ public sealed class AestheticSystemBrowserTests(
                                     </div></div>`;
                                 document.querySelector('main').append(entry);
                             }
-                            entry.style.inlineSize = `${width}px`;
+                            entry.style.inlineSize = `${argument.InlineSize}px`;
                             await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
                             const question = entry.querySelector('.lmx-question');
                             return {
                                 ContainerWidth: parseFloat(getComputedStyle(entry).width),
-                                IsCompact: getComputedStyle(question).gridTemplateColumns.split(' ').length === 1,
+                                IsCompact: argument.Boundary === 28
+                                    ? getComputedStyle(question).gridTemplateColumns.split(' ').length === 2
+                                    : getComputedStyle(question).gridTemplateAreas.startsWith('"label label"'),
                                 HorizontalOverflow: Math.max(0, entry.scrollWidth - entry.clientWidth)
                             };
                         }
-                        """, inlineSize);
+                        """, new { InlineSize = inlineSize, Boundary = condition.Value });
                     Assert.Equal(inlineSize, diagnostics.ContainerWidth, 1);
                     Assert.Equal(inlineSize <= thresholdPixels, diagnostics.IsCompact);
                     Assert.True(diagnostics.HorizontalOverflow <= 1);

@@ -187,6 +187,20 @@ function persistSelectedAthlete(athlete: PlayAthlete | null): boolean {
     return true;
 }
 
+function createAthleteOptionThumb(athlete: PlayAthlete): HTMLImageElement {
+    const thumb = document.createElement("img");
+    thumb.className = "athlete-option-thumb";
+    thumb.alt = "";
+    thumb.width = 40;
+    thumb.height = 40;
+    thumb.loading = "lazy";
+    thumb.decoding = "async";
+    const inspectLoadedImage = watchAthleteImageLoad(thumb, () => {});
+    thumb.src = athlete.ProfilePicLeaderboardThumb || athlete.ProfilePicThumb || athlete.ProfilePic || getDefaultHeadshotJpeg();
+    if (thumb.complete) inspectLoadedImage();
+    return thumb;
+}
+
 function createDefaultAthletePicture(): HTMLPictureElement {
     const picture = document.createElement("picture");
     const webpSource = document.createElement("source");
@@ -537,6 +551,7 @@ function createAthleteSelectionController(
     let athleteLoadPromise: Promise<PlayAthlete[]> | null = null;
     let isBound = false;
     let hasUserEditedInput = false;
+    const geometryObserver = new ResizeObserver(positionAthleteMatches);
 
     const autocompleteListId = `${input.id}-autocomplete-list`;
     input.setAttribute("role", "combobox");
@@ -545,10 +560,46 @@ function createAthleteSelectionController(
     input.setAttribute("aria-expanded", "false");
 
     function closeAllLists(): void {
+        geometryObserver.disconnect();
         document.getElementById(autocompleteListId)?.remove();
+        input.closest(".play-athlete-panel")?.classList.remove("athlete-search-open");
         currentFocus = -1;
         input.setAttribute("aria-expanded", "false");
         input.removeAttribute("aria-activedescendant");
+    }
+
+    function positionAthleteMatches(): void {
+        const list = document.getElementById(autocompleteListId);
+        const parent = input.parentElement;
+        if (!list || !parent) return;
+
+        const viewport = window.visualViewport;
+        const gap = 8;
+        const visibleTop = (viewport?.offsetTop ?? 0) + gap;
+        let visibleBottom = (viewport?.offsetTop ?? 0) + (viewport?.height ?? innerHeight) - gap;
+        const dock = document.querySelector(".flow-action-stack--docked")?.getBoundingClientRect();
+        if (dock && dock.height > 0 && dock.bottom > visibleTop && dock.top < visibleBottom) {
+            visibleBottom = dock.top - gap;
+        }
+
+        let inputBox = input.getBoundingClientRect();
+        if (document.activeElement === input && inputBox.bottom > visibleBottom) {
+            window.scrollBy({ top: inputBox.bottom - visibleBottom + gap, behavior: "instant" });
+            inputBox = input.getBoundingClientRect();
+        }
+        const headerBottom = document.querySelector("header")?.getBoundingClientRect().bottom ?? 0;
+        const listTop = Math.max(visibleTop, headerBottom + gap);
+        const parentBox = parent.getBoundingClientRect();
+        list.style.maxHeight = "";
+        const preferredHeight = list.getBoundingClientRect().height;
+        const above = Math.max(0, inputBox.top - listTop - gap);
+        const below = Math.max(0, visibleBottom - inputBox.bottom - gap);
+        const openAbove = below < preferredHeight && above > below;
+        list.style.maxHeight = Math.min(preferredHeight, openAbove ? above : below) + "px";
+        const inputTop = inputBox.top - parentBox.top - parent.clientTop + parent.scrollTop;
+        list.style.top = openAbove ? "auto" : inputTop + inputBox.height + gap + "px";
+        list.style.bottom = openAbove ? parent.clientHeight - inputTop + gap + "px" : "auto";
+        list.querySelector<HTMLElement>('[aria-selected="true"]')?.scrollIntoView({ block: "nearest" });
     }
 
     function addActive(items: HTMLCollectionOf<HTMLDivElement> | null): void {
@@ -611,6 +662,7 @@ function createAthleteSelectionController(
         athlete: PlayAthlete,
         selectionOptions: AthleteSelectionRenderOptions = {}
     ): void {
+        closeAllLists();
         renderSelectedAthletePreview(athlete, selectionOptions.transition === undefined ? { transition: true } : selectionOptions);
         if (typeof options.onAthleteSelected === "function") {
             options.onAthleteSelected(athlete, api);
@@ -660,7 +712,10 @@ function createAthleteSelectionController(
                 item.id = `${autocompleteListId}-option-${count}`;
                 item.setAttribute("role", "option");
                 item.setAttribute("aria-selected", "false");
-                appendHighlightedText(item, displayName, terms);
+                const name = document.createElement("span");
+                name.className = "athlete-option-name";
+                appendHighlightedText(name, displayName, terms);
+                item.append(createAthleteOptionThumb(athlete), name);
                 item.dataset.value = athlete.Name;
                 if (typeof athlete.ProfilePic === "string") {
                     item.dataset.profilePic = athlete.ProfilePic;
@@ -690,10 +745,26 @@ function createAthleteSelectionController(
         }
 
         input.setAttribute("aria-expanded", "true");
+        input.closest(".play-athlete-panel")?.classList.add("athlete-search-open");
+        geometryObserver.observe(input);
+        geometryObserver.observe(input.parentElement || input);
+        const panel = input.closest(".play-athlete-panel");
+        if (panel) geometryObserver.observe(panel);
+        const visual = panel?.querySelector(".play-athlete-visual");
+        if (visual) geometryObserver.observe(visual);
+        document.querySelectorAll(".flow-action-stack, .flow-action-dock-placeholder").forEach(element => {
+            geometryObserver.observe(element);
+        });
+        positionAthleteMatches();
         return count > 0;
     }
 
+    function parentForMatches(): Element {
+        return input.parentElement || input;
+    }
+
     function renderAthleteLoadError(): void {
+        closeAllLists();
         clearSearchFeedback();
         errorElement.replaceChildren();
         errorElement.setAttribute("role", "alert");
@@ -821,6 +892,12 @@ function createAthleteSelectionController(
                 && event.target.closest(autocompleteRootSelector)) return;
             closeAllLists();
         });
+        window.addEventListener("resize", positionAthleteMatches);
+        window.addEventListener("scroll", event => {
+            if (event.target !== document.getElementById(autocompleteListId)) positionAthleteMatches();
+        }, true);
+        window.visualViewport?.addEventListener("resize", positionAthleteMatches);
+        window.visualViewport?.addEventListener("scroll", positionAthleteMatches);
 
         return api;
     }

@@ -326,8 +326,6 @@ public sealed class LongevitymaxxingChallengePageTests(TestWebApplicationFactory
         Assert.Contains("if (values.every(item => item.value === 2)) return null;", javascript);
         Assert.Contains("const soleWorst = worst[0];", javascript);
         Assert.Contains("return worst.length === 1 && soleWorst ? soleWorst.key : \"mindset\";", javascript);
-        Assert.Contains("const quoteBucket = selectQuoteBucket(draft);", javascript);
-        Assert.Contains("if (quoteBucket && stillOnSubmittedDay && participantActiveTab === \"checkin\") void showRandomCheckInQuote(quoteBucket);", javascript);
         Assert.Contains("showCheckInQuoteDialog(quote, null, token);", javascript);
         Assert.Contains("updateCheckInQuoteDialogRank(quote, computeQuoteAthleteBestRank(athlete), token);", javascript);
         Assert.Contains("dialog.dataset.quoteToken !== token", javascript);
@@ -994,7 +992,7 @@ public sealed class LongevitymaxxingChallengePageTests(TestWebApplicationFactory
         Assert.Contains("@media (max-width: 360px)", css);
         Assert.DoesNotContain(".lmx-life-strip span:last-child", css);
         Assert.Contains(".lmx-question-preview-label i", css);
-        Assert.Contains(".lmx-athlete-search input:focus", css);
+        Assert.Contains(".lmx-athlete-search input[type=\"search\"]:focus", css);
         Assert.Contains("cell.countsForScore === false", javascript);
         Assert.Contains(".lmx-cell.practice", css);
         Assert.Contains(".lmx-practice-note", css);
