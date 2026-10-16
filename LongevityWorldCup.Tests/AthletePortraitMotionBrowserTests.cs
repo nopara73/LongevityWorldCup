@@ -23,6 +23,11 @@ public sealed class AthletePortraitMotionBrowserTests(
         "wen-z" => "9d0f884164da2166825661b263042d63bbebda217511f97a72eec8887853590d",
         "tibor-konkoly" => "d563d8ade182b2286dbbeb6519e54f88e48ad04c40a3111649c4b598b605e501",
         "charlotte-wong" => "708c527def914308e9da42eaac2cde572770f4fe5c06fbb162b1c250c34b3391",
+        "slamovits-tibor" => "f1ed3c0f28481d62d0df3f463a5077dacad31c9927894f9fe6ef8dbc87d85b78",
+        "qolars" => "da84f1750d8a7b55779f34832c9990de28d12638ad0a2c6fa6102b33061e87f7",
+        "markus-mattiasson" => "405a0d4169a2aab78e2a7a0fd4569cc92633f0b202a0f37a7abb2ef431662593",
+        "inka-land" => "89251966a304b5b721333bd3a3c02d456f76a230e6549bdbb34c210a60814cca",
+        "tamas-toth" => "613ab3be683feb657f8b3e3a6db17ecac97211f90f3d18b16f91bf50735c8781",
         _ => ApprovedPhoto
     };
 
@@ -162,6 +167,16 @@ public sealed class AthletePortraitMotionBrowserTests(
     [InlineData(false, 390, "tibor-konkoly")]
     [InlineData(true, 1440, "charlotte-wong")]
     [InlineData(false, 390, "charlotte-wong")]
+    [InlineData(true, 1440, "slamovits-tibor")]
+    [InlineData(false, 390, "slamovits-tibor")]
+    [InlineData(true, 1440, "qolars")]
+    [InlineData(false, 390, "qolars")]
+    [InlineData(true, 1440, "markus-mattiasson")]
+    [InlineData(false, 390, "markus-mattiasson")]
+    [InlineData(true, 1440, "inka-land")]
+    [InlineData(false, 390, "inka-land")]
+    [InlineData(true, 1440, "tamas-toth")]
+    [InlineData(false, 390, "tamas-toth")]
     public async Task ProfileOpeningAndHover_PlayTheMotion(bool direct, int width, string slug)
     {
         await using var context = await NewContextAsync(width);
@@ -264,7 +279,7 @@ public sealed class AthletePortraitMotionBrowserTests(
         await context.AddInitScriptAsync("window.holdTableMotion = true");
         var page = await LoadAsync(context, "/leaderboard");
         await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.NoPreference });
-        foreach (var slug in new[] { "anna-buky", "martin-helstab", "wen-z", "tibor-konkoly", "charlotte-wong" })
+        foreach (var slug in new[] { "anna-buky", "martin-helstab", "wen-z", "tibor-konkoly", "charlotte-wong", "slamovits-tibor", "qolars", "markus-mattiasson", "inka-land", "tamas-toth" })
         {
             var image = page.Locator($".leaderboard a[href='/athlete/{slug}'] img.portrait").First;
             await image.HoverAsync();
@@ -280,6 +295,36 @@ public sealed class AthletePortraitMotionBrowserTests(
         Assert.True(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth <= innerWidth"));
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task HoverBeforePortraitLoads_PlaysOnlyIfThePointerRemains(bool remainHovered)
+    {
+        await using var context = await NewContextAsync();
+        await context.AddInitScriptAsync("window.holdTableMotion = true");
+        var pendingPhoto = new TaskCompletionSource<IRoute>(TaskCreationOptions.RunContinuationsAsynchronously);
+        await context.RouteAsync("**/generated/thumbs/athletes/anna_buky_*.webp*", route =>
+        {
+            pendingPhoto.TrySetResult(route);
+            return Task.CompletedTask;
+        });
+        var page = await LoadAsync(context, "/leaderboard");
+        await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.NoPreference });
+        var image = page.Locator(".leaderboard a[href='/athlete/anna-buky'] img.portrait").First;
+        await image.HoverAsync();
+        Assert.Equal(0, await image.EvaluateAsync<int>("img => img.naturalWidth"));
+        if (!remainHovered) await page.Mouse.MoveAsync(0, 0);
+        var root = App.Services.GetRequiredService<IWebHostEnvironment>().WebRootPath;
+        var photo = await File.ReadAllBytesAsync(Path.Combine(root, "athletes", "anna_buky", "anna_buky.webp"));
+        await (await pendingPhoto.Task.WaitAsync(TimeSpan.FromSeconds(15))).FulfillAsync(new() { ContentType = "image/webp", BodyBytes = photo });
+        await page.WaitForFunctionAsync("() => document.querySelector(\".leaderboard a[href='/athlete/anna-buky'] img.portrait\").naturalWidth > 0");
+        var overlay = image.Locator("..").Locator("video.athlete-portrait-motion");
+        if (remainHovered)
+            await Assertions.Expect(overlay).ToHaveClassAsync("athlete-portrait-motion is-playing");
+        else
+            await Assertions.Expect(overlay).ToHaveCountAsync(0);
+    }
+
     private async Task<IBrowserContext> NewContextAsync(int width = 1440)
     {
         var context = await Browser.NewContextAsync(new()
@@ -290,11 +335,19 @@ public sealed class AthletePortraitMotionBrowserTests(
         });
         await BrowserTestApp.RouteExternalResourcesAsync(context);
         var root = App.Services.GetRequiredService<IWebHostEnvironment>().WebRootPath;
-        foreach (var fileSlug in new[] { "benjamin_garden", "valerie_orsoni", "anna_buky", "martin_helstab", "wen_z", "tibor_konkoly", "charlotte_wong" })
+        foreach (var fileSlug in new[] { "benjamin_garden", "valerie_orsoni", "anna_buky", "martin_helstab", "wen_z", "tibor_konkoly", "charlotte_wong", "slamovits_tibor", "qolars", "markus_mattiasson", "inka_land", "tamas_toth" })
         {
-            var photo = await File.ReadAllBytesAsync(Path.Combine(root, "athletes", fileSlug, $"{fileSlug}.webp"));
+            var path = Directory.EnumerateFiles(Path.Combine(root, "athletes", fileSlug), $"{fileSlug}.*")
+                .Single(path => Path.GetExtension(path).ToLowerInvariant() is ".webp" or ".jpg" or ".jpeg" or ".png");
+            var photo = await File.ReadAllBytesAsync(path);
+            var type = Path.GetExtension(path).ToLowerInvariant() switch
+            {
+                ".png" => "image/png",
+                ".jpg" or ".jpeg" => "image/jpeg",
+                _ => "image/webp"
+            };
             await context.RouteAsync($"**/generated/thumbs/athletes/{fileSlug}_thumb_md_*.webp*", route =>
-                route.FulfillAsync(new() { ContentType = "image/webp", BodyBytes = photo }));
+                route.FulfillAsync(new() { ContentType = type, BodyBytes = photo }));
         }
         await context.AddInitScriptAsync("""
             window.motionStarts = 0;

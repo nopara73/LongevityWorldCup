@@ -528,6 +528,26 @@ function initializeAthletePortraitMotion() {
         {
             portrait: /^\/generated\/(?:thumbs|profiles)\/athletes\/charlotte_wong(?:_thumb_(?:sm|md))?_708c527def914308e9da42eaac2cde572770f4fe5c06fbb162b1c250c34b3391\.webp$/,
             clip: '/assets/athlete-motion/charlotte-wong-flex-eb91ac025e86'
+        },
+        {
+            portrait: /^\/generated\/(?:thumbs|profiles)\/athletes\/slamovits_tibor(?:_thumb_(?:sm|md))?_f1ed3c0f28481d62d0df3f463a5077dacad31c9927894f9fe6ef8dbc87d85b78\.webp$/,
+            clip: '/assets/athlete-motion/slamovits-tibor-finger-tap-3f339e3278ca'
+        },
+        {
+            portrait: /^\/generated\/(?:thumbs|profiles)\/athletes\/qolars(?:_thumb_(?:sm|md))?_da84f1750d8a7b55779f34832c9990de28d12638ad0a2c6fa6102b33061e87f7\.webp$/,
+            clip: '/assets/athlete-motion/qolars-lamp-glow-c5a88f188dd6'
+        },
+        {
+            portrait: /^\/generated\/(?:thumbs|profiles)\/athletes\/markus_mattiasson(?:_thumb_(?:sm|md))?_405a0d4169a2aab78e2a7a0fd4569cc92633f0b202a0f37a7abb2ef431662593\.webp$/,
+            clip: '/assets/athlete-motion/markus-mattiasson-towel-sway-f3cafa2c6744'
+        },
+        {
+            portrait: /^\/generated\/(?:thumbs|profiles)\/athletes\/inka_land(?:_thumb_(?:sm|md))?_89251966a304b5b721333bd3a3c02d456f76a230e6549bdbb34c210a60814cca\.webp$/,
+            clip: '/assets/athlete-motion/inka-land-earring-swing-bd59700f80ce'
+        },
+        {
+            portrait: /^\/generated\/(?:thumbs|profiles)\/athletes\/tamas_toth(?:_thumb_(?:sm|md))?_613ab3be683feb657f8b3e3a6db17ecac97211f90f3d18b16f91bf50735c8781\.webp$/,
+            clip: '/assets/athlete-motion/tamas-toth-racket-settle-4aad19063da3'
         }
     ];
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -613,11 +633,20 @@ function initializeAthletePortraitMotion() {
     function wire(img) {
         if (wired.has(img) || !motionFor(img)) return;
         wired.add(img);
+        let pointerInside = false;
+        const link = img.closest('a');
         img.addEventListener('pointerenter', event => {
-            if (event.pointerType !== 'touch') play(img);
+            pointerInside = event.pointerType !== 'touch';
+            if (pointerInside) play(img);
         });
+        img.addEventListener('pointerleave', () => { pointerInside = false; });
         img.addEventListener('focus', () => play(img));
-        img.closest('a')?.addEventListener('focus', () => play(img));
+        link?.addEventListener('focus', () => play(img));
+        // Lazy table photos may finish loading after the first pointer entry.
+        // Replay then only if that interaction is still active.
+        img.addEventListener('load', () => {
+            if (pointerInside || document.activeElement === img || (link && document.activeElement === link)) play(img);
+        });
     }
 
     const visiblePortraits = window.IntersectionObserver && new IntersectionObserver(entries => {

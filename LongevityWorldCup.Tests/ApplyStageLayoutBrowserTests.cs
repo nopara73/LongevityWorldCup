@@ -36,6 +36,9 @@ public sealed class ApplyStageLayoutBrowserTests(
         await page.Locator("#nextButton").ClickAsync();
         await page.WaitForFunctionAsync("() => document.body.dataset.convergenceStage === '2'");
         await page.EvaluateAsync("async () => { document.documentElement.style.scrollBehavior = 'auto'; window.scrollTo(0, 0); await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))); }");
+        // Stage focus and docking can still change scroll/layout after those frames.
+        // Observe the completed stage before taking one geometry snapshot.
+        await page.WaitForFunctionAsync("() => Math.abs(document.getElementById('inputForm').getBoundingClientRect().top - document.getElementById('descriptionForm').getBoundingClientRect().bottom) <= 1");
 
         var layout = await page.EvaluateAsync<double[]>(
             """
