@@ -347,6 +347,7 @@
 
         .media-file-tile {
             position: relative;
+            align-self: start;
             grid-template-rows: auto auto;
             gap: 0;
             padding: 0;
@@ -378,6 +379,7 @@
             height: 44px;
             min-height: 44px;
             padding: 0;
+            gap: 0;
             border-radius: var(--lwc-radius-pill, 999px);
             border-color: transparent;
             background: var(--lwc-surface);
@@ -394,6 +396,10 @@
         .media-file-tile .media-file-button:focus-visible {
             background: var(--lwc-accent);
             color: var(--lwc-on-accent, #ffffff);
+        }
+
+        .media-file-button[data-download-failed]::before {
+            content: "\f01e";
         }
     </style>
 </head>
@@ -419,6 +425,7 @@
                 <div id="fallback" class="media-kit-fallback" style="display:none;">
                     Failed to preview. Use the ZIP link above.
                 </div>
+                <div id="downloadStatus" class="visually-hidden" role="status"></div>
             </div>
 
             <p class="media-kit-contact">
@@ -567,16 +574,29 @@
                     btn.setAttribute('aria-label', `Download ${path.split('/').pop()}`);
                     btn.className = 'media-file-button';
                     btn.addEventListener('click', async () => {
-                        const file = zip.file(path);
-                        const blob = await file.async('blob');
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = path.split('/').pop();
-                        document.body.appendChild(a);
-                        a.click();
-                        a.remove();
-                        URL.revokeObjectURL(url);
+                        const status = document.getElementById('downloadStatus');
+                        try {
+                            const file = zip.file(path);
+                            const blob = await file.async('blob');
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = path.split('/').pop();
+                            document.body.appendChild(a);
+                            a.click();
+                            a.remove();
+                            URL.revokeObjectURL(url);
+                            btn.removeAttribute('data-download-failed');
+                            btn.removeAttribute('aria-description');
+                            btn.removeAttribute('title');
+                            status.textContent = '';
+                        } catch (_) {
+                            const message = `${path.split('/').pop()}: Download failed. Try again or use the ZIP link above.`;
+                            btn.setAttribute('data-download-failed', '');
+                            btn.setAttribute('aria-description', message);
+                            btn.title = message;
+                            status.textContent = message;
+                        }
                     });
 
                     li.appendChild(name);
