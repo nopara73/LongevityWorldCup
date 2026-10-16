@@ -11,55 +11,214 @@ public sealed class SiteHeaderEnlargedTextBrowserTests(
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Theory]
-    [InlineData("/about", 390, 200)]
-    [InlineData("/events", 390, 200)]
-    [InlineData("/ruleset", 320, 200)]
-    [InlineData("/", 390, 200)]
-    [InlineData("/about", 390, 100)]
-    public async Task Header_KeepsTheBrandAndPlayWordsWholeWithEnlargedText(string path, int width, int textPercent)
+    [InlineData("/", 320, 640)]
+    [InlineData("/", 390, 844)]
+    [InlineData("/", 639, 844)]
+    [InlineData("/", 640, 844)]
+    [InlineData("/", 641, 844)]
+    [InlineData("/", 768, 1024)]
+    [InlineData("/", 844, 390)]
+    [InlineData("/", 1440, 900)]
+    [InlineData("/about", 320, 640)]
+    [InlineData("/about", 390, 844)]
+    [InlineData("/about", 639, 844)]
+    [InlineData("/about", 640, 844)]
+    [InlineData("/about", 641, 844)]
+    [InlineData("/about", 768, 1024)]
+    [InlineData("/about", 844, 390)]
+    [InlineData("/about", 1440, 900)]
+    [InlineData("/ruleset", 320, 640)]
+    [InlineData("/ruleset", 390, 844)]
+    [InlineData("/events", 390, 844)]
+    [InlineData("/events", 768, 1024)]
+    public async Task Header_KeepsCompleteTextAndSeparateTargetsAtNormalAndDoubleTextSize(
+        string path, int width, int height)
     {
-        await using var context = await NewContextAsync(Browser, App, new()
+        foreach (var theme in new[] { ColorScheme.Light, ColorScheme.Dark })
         {
-            ViewportSize = new() { Width = width, Height = 844 },
-            ReducedMotion = ReducedMotion.Reduce,
-            IsMobile = true,
-            HasTouch = true
-        });
-        var page = await context.NewPageAsync();
-        await page.GotoAsync(path);
-        await Assertions.Expect(page.Locator("header[role=banner] .bannertext")).ToBeVisibleAsync();
-        await page.EvaluateAsync("async percent => { document.documentElement.style.fontSize = `${percent}%`; await document.fonts.ready; await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))); }", textPercent);
+            await using var context = await NewHeaderContextAsync(width, height, theme);
+            var page = await context.NewPageAsync();
+            await NavigateAndSettleAsync(page, path);
+            Assert.True(await page.EvaluateAsync<bool>("document.fonts.check('700 20px Roboto')"));
+            await AssertHeaderFitsAsync(page, sticky: false);
 
-        var problems = await page.EvaluateAsync<string[]>(
+            await DoubleTextAsync(page);
+            await AssertHeaderFitsAsync(page, sticky: false);
+            await page.EvaluateAsync("window.scrollTo(0, 600)");
+            await Assertions.Expect(page.Locator("#site-sticky-header")).ToHaveAttributeAsync("aria-hidden", "false");
+            await AssertHeaderFitsAsync(page, sticky: true);
+            Assert.True(await page.EvaluateAsync<bool>(
+                "parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop) >= document.querySelector('#site-sticky-header').getBoundingClientRect().height - 1"));
+        }
+    }
+
+    [Theory]
+    [InlineData(320)]
+    [InlineData(390)]
+    public async Task Header_AlsoReflowsWithDoubleRootSizeAndKeepsAnchorDestinationsVisible(int width)
+    {
+        await using var context = await NewHeaderContextAsync(width, 844, ColorScheme.Light);
+        var page = await context.NewPageAsync();
+        await NavigateAndSettleAsync(page, "/about");
+        await page.EvaluateAsync("document.documentElement.style.fontSize = '200%'");
+        await WaitForLayoutAsync(page);
+        await AssertHeaderFitsAsync(page, sticky: false);
+        await page.Locator(".documentation-nav-toggle").ClickAsync();
+        var link = page.Locator(".documentation-nav a[href^='#']").Last;
+        var hash = await link.GetAttributeAsync("href");
+        await link.ClickAsync();
+        await Assertions.Expect(page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex($"{System.Text.RegularExpressions.Regex.Escape(hash!)}$"));
+        await AssertHeaderFitsAsync(page, sticky: true);
+        Assert.True(await page.EvaluateAsync<bool>(
+            "() => document.getElementById(decodeURIComponent(location.hash.slice(1))).getBoundingClientRect().top >= document.querySelector('#site-sticky-header').getBoundingClientRect().bottom - 1"));
+    }
+
+    [Fact]
+    public async Task Header_EnlargedPrimaryPlayTargetCanBeTappedWithoutStickyInterception()
+    {
+        await using var context = await NewHeaderContextAsync(390, 844, ColorScheme.Dark);
+        var page = await context.NewPageAsync();
+        await NavigateAndSettleAsync(page, "/about");
+        await DoubleTextAsync(page);
+        await Assertions.Expect(page.Locator("#site-sticky-header")).ToHaveAttributeAsync("aria-hidden", "true");
+        await page.Locator("header .join-game:not(.scrolled-button)").TapAsync();
+        await page.WaitForURLAsync("**/play", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await Assertions.Expect(page.Locator(".play-menu-wordmark")).ToHaveTextAsync("JUST TRACK IT");
+    }
+
+    [Fact]
+    public async Task Header_ResizingEnlargedTextRefitsTheVisibleStickyBarWithoutAnotherScroll()
+    {
+        await using var context = await NewHeaderContextAsync(390, 844, ColorScheme.Dark);
+        var page = await context.NewPageAsync();
+        await NavigateAndSettleAsync(page, "/about");
+        await DoubleTextAsync(page);
+        await page.EvaluateAsync("window.scrollTo(0, 600)");
+        await Assertions.Expect(page.Locator("#site-sticky-header")).ToHaveAttributeAsync("aria-hidden", "false");
+        foreach (var size in new[] { (320, 844), (844, 390), (390, 844) })
+        {
+            await page.SetViewportSizeAsync(size.Item1, size.Item2);
+            await AssertHeaderFitsAsync(page, sticky: true);
+            Assert.True(await page.EvaluateAsync<bool>(
+                "parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop) >= document.querySelector('#site-sticky-header').getBoundingClientRect().height - 1"));
+        }
+    }
+
+    [Fact]
+    public async Task Header_GlyphProbeDetectsClippingWithoutDocumentOverflow()
+    {
+        await using var context = await NewHeaderContextAsync(390, 844, ColorScheme.Light);
+        var page = await context.NewPageAsync();
+        await NavigateAndSettleAsync(page, "/about");
+        await AssertHeaderFitsAsync(page, sticky: false);
+        await page.Locator("header .bannertext").EvaluateAsync(
+            "element => { element.style.setProperty('min-width', '0'); element.style.maxWidth = '20px'; element.style.overflow = 'hidden'; element.style.whiteSpace = 'nowrap'; }");
+        Assert.True(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth <= innerWidth"));
+        var problems = await HeaderProblemsAsync(page, sticky: false);
+        Assert.Contains(problems, problem => problem.Contains("clipped Longevity", StringComparison.Ordinal));
+    }
+
+    private Task<IBrowserContext> NewHeaderContextAsync(int width, int height, ColorScheme theme)
+        => NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = height },
+            ColorScheme = theme,
+            ReducedMotion = ReducedMotion.Reduce,
+            IsMobile = width < 933,
+            HasTouch = width < 933
+        });
+
+    private static async Task DoubleTextAsync(IPage page)
+    {
+        // Root percentages alone leave vw/px/clamp text short of 200%. Freeze
+        // computed sizes before changing any inheritance, then double every
+        // body element's text while preserving the CSS viewport and root size.
+        var ratios = await page.EvaluateAsync<double[]>(
             """
-            () => {
+            async () => {
+                const elements = [document.body, ...document.body.querySelectorAll('*')]
+                    .filter(element => element instanceof HTMLElement);
+                const sizes = elements.map(element => [element, parseFloat(getComputedStyle(element).fontSize)]);
+                const targets = [...document.querySelectorAll('header .bannertext, header .join-game strong, header .join-game-middle, .site-sticky-header-title')];
+                const before = targets.map(element => parseFloat(getComputedStyle(element).fontSize));
+                for (const [element, size] of sizes) element.style.setProperty('font-size', `${size * 2}px`, 'important');
+                for (let i = 0; i < 4; i++) await new Promise(requestAnimationFrame);
+                return targets.map((element, index) => parseFloat(getComputedStyle(element).fontSize) / before[index]);
+            }
+            """);
+        Assert.NotEmpty(ratios);
+        Assert.All(ratios, ratio => Assert.InRange(ratio, 1.999, 2.001));
+        await WaitForLayoutAsync(page);
+    }
+
+    private static Task WaitForLayoutAsync(IPage page)
+        => page.EvaluateAsync("async () => { await document.fonts.ready; for (let i = 0; i < 4; i++) await new Promise(requestAnimationFrame); }");
+
+    private static async Task AssertHeaderFitsAsync(IPage page, bool sticky)
+    {
+        await WaitForLayoutAsync(page);
+        var problems = await HeaderProblemsAsync(page, sticky);
+        Assert.True(problems.Length == 0, $"{page.Url} {(sticky ? "sticky" : "main")} header: {string.Join("; ", problems)}");
+    }
+
+    private static Task<string[]> HeaderProblemsAsync(IPage page, bool sticky)
+        => page.EvaluateAsync<string[]>(
+            """
+            sticky => {
                 const issues = [];
-                const brand = document.querySelector('header[role=banner] .bannertext');
-                if (brand.scrollWidth > brand.clientWidth + 1)
-                    issues.push(`brand is cut off (${brand.scrollWidth}/${brand.clientWidth})`);
-                const brandBox = brand.getBoundingClientRect();
-                const header = document.querySelector('header[role=banner]').getBoundingClientRect();
-                if (brandBox.bottom > header.bottom + 1) issues.push('brand spills out of the header');
-                const play = document.querySelector('header[role=banner] .join-game:not(.scrolled-button)');
-                const roots = [brand];
-                if (play && play.getBoundingClientRect().width) roots.push(play);
-                for (const root of roots) {
+                const brand = document.querySelector(sticky ? '.site-sticky-header-title' : 'header[role=banner] .bannertext');
+                const action = document.querySelector(sticky ? '.scrolled-button' : 'header[role=banner] .join-game:not(.scrolled-button)');
+                const container = document.querySelector(sticky ? '#site-sticky-header' : 'header[role=banner]');
+                const visible = element => element && element.getBoundingClientRect().width > 0 && getComputedStyle(element).display !== 'none';
+                if (brand.textContent.replace(/\s+/g, ' ').trim() !== 'Longevity World Cup') issues.push('brand wording changed');
+                for (const root of [brand, action].filter(visible)) {
                     const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
                     let node;
                     while (node = walker.nextNode()) {
-                        for (const word of node.textContent.matchAll(/[^\s ]+/g)) {
+                        if (!visible(node.parentElement)) continue;
+                        for (const word of node.textContent.matchAll(/[^\s\u00a0]+/g)) {
                             const range = document.createRange();
                             range.setStart(node, word.index);
                             range.setEnd(node, word.index + word[0].length);
-                            const rects = Array.from(range.getClientRects()).filter(rect => rect.width > 0);
-                            if (new Set(rects.map(rect => Math.round(rect.top))).size > 1) issues.push(`split word: ${word[0]}`);
+                            const rects = [...range.getClientRects()].filter(rect => rect.width > 0);
+                            if (new Set(rects.map(rect => Math.round(rect.top))).size > 1) issues.push(`split word ${word[0]}`);
+                            for (const rect of rects) {
+                                const outer = container.getBoundingClientRect();
+                                if (rect.left < -1 || rect.right > innerWidth + 1 || rect.top < outer.top - 2 || rect.bottom > outer.bottom + 2)
+                                    issues.push(`uncontained ${word[0]}`);
+                                for (let ancestor = node.parentElement; ancestor && ancestor !== container.parentElement; ancestor = ancestor.parentElement) {
+                                    // A fixed action escapes the main banner's overflow clip.
+                                    if (sticky && ancestor.matches('header[role=banner]')) break;
+                                    const style = getComputedStyle(ancestor), bounds = ancestor.getBoundingClientRect();
+                                    if (/hidden|clip|auto|scroll/.test(style.overflowX) && (rect.left < bounds.left - 1 || rect.right > bounds.right + 1))
+                                        issues.push(`clipped ${word[0]} by ${ancestor.className || ancestor.tagName}`);
+                                    if (/hidden|clip|auto|scroll/.test(style.overflowY) && (rect.top < bounds.top - 2 || rect.bottom > bounds.bottom + 2))
+                                        issues.push(`clipped ${word[0]} vertically`);
+                                }
+                            }
                         }
                     }
                 }
-                return issues;
+                if (visible(action)) {
+                    const a = action.getBoundingClientRect(), b = brand.getBoundingClientRect();
+                    if (a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top) issues.push('brand/Play overlap');
+                    if (a.width < 44 || a.height < 44) issues.push('Play target below 44px');
+                    if (action.getAttribute('href') !== '/play') issues.push('Play destination changed');
+                    const style = getComputedStyle(action), halo = getComputedStyle(action, '::before');
+                    if (halo.content !== 'none' && halo.position === 'absolute') {
+                        const containingBox = style.position === 'static' ? container.getBoundingClientRect() : a;
+                        if (containingBox.left + parseFloat(halo.left) < a.left - 8 || containingBox.right - parseFloat(halo.right) > a.right + 8)
+                            issues.push('Play halo detached from its target');
+                    }
+                }
+                const link = brand.closest('a'), bounds = link.getBoundingClientRect();
+                if (bounds.width < 44 || bounds.height < 44 || link.getAttribute('href') !== '/') issues.push('brand target changed');
+                for (const target of [link, action].filter(visible)) {
+                    const rect = target.getBoundingClientRect();
+                    const hit = document.elementFromPoint((rect.left + rect.right) / 2, (rect.top + rect.bottom) / 2);
+                    if (!hit || !target.contains(hit)) issues.push('header target obscured');
+                }
+                return [...new Set(issues)];
             }
-            """);
-        Assert.True(problems.Length == 0, $"{path} {width}px {textPercent}%: {string.Join("; ", problems)}");
-        Assert.True(await page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= innerWidth"));
-    }
+            """, sticky);
 }

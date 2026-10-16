@@ -1312,27 +1312,23 @@ textarea:focus-visible {
 /* Match the sticky link's 2.75rem height plus its header's vertical padding,
    including when readers enlarge the text. Reserve it before the bar appears. */
 html {
-    scroll-padding-top: 3.25rem;
+    scroll-padding-top: max(3.25rem, var(--site-sticky-height, 0px));
 }
 
-/* Enlarged text on phones: the brand wraps onto a second line instead of
-   being cut to "Longevi…", and the Play button wraps between its words,
-   never inside one. */
-@media (max-width: 640px) {
+/* Let text, rather than a reserved button width, determine compact rows. */
+@media (max-width: 932px) {
     header[role="banner"] .bannertext {
         overflow: visible;
         text-overflow: clip;
         white-space: normal;
         overflow-wrap: normal;
         word-break: normal;
-        line-height: 1.08;
+        min-width: min-content;
     }
 
     header[role="banner"] .join-game {
         flex-wrap: wrap;
         justify-content: center;
-        column-gap: 0.3em;
-        row-gap: 0.1em;
         overflow-wrap: normal;
         word-break: normal;
     }
@@ -1341,5 +1337,61 @@ html {
         white-space: nowrap;
         overflow-wrap: normal;
         word-break: keep-all;
+    }
+
+    :where(body:not(.home-page)) header[role="banner"] {
+        flex-wrap: wrap;
+        justify-content: space-between;
+    }
+
+    :where(body:not(.home-page)) header[role="banner"] .header-link {
+        flex: 1 1 min-content;
+        min-width: min-content;
+        max-width: none;
+    }
+
+    :where(body:not(.home-page)) header[role="banner"] .join-game:not(.scrolled-button) {
+        position: relative;
+        right: auto;
+        flex: 0 0 auto;
+        margin-left: auto;
+    }
+}
+
+.site-sticky-header {
+    box-sizing: border-box;
+    min-height: calc(var(--site-sticky-action-height, 2.75rem) + 0.5rem);
+    padding-right: max(1rem, var(--site-sticky-action-space, 0px));
+}
+
+.site-sticky-header-link {
+    min-width: min-content;
+}
+
+.site-sticky-header-link:focus-visible,
+.scrolled-button:focus-visible {
+    outline-offset: -3px;
+}
+
+.site-sticky-header-title {
+    white-space: normal;
+    line-height: 1.1;
+    overflow: visible;
+    text-overflow: clip;
+    min-width: min-content;
+}
+
+.site-sticky-header.is-stacked {
+    padding-right: max(0.75rem, env(safe-area-inset-right, 0px));
+    padding-bottom: calc(var(--site-sticky-action-height) + 0.75rem);
+}
+
+:root .documentation-nav {
+    --documentation-nav-offset: max(4.25rem, calc(var(--site-sticky-height, 0px) + 1rem));
+}
+
+@media (min-width: 769px) {
+    .site-sticky-header {
+        padding-left: max(1rem, var(--site-sticky-action-space, 0px));
     }
 }

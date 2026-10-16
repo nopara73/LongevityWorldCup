@@ -2,6 +2,8 @@ const scrolledJoinButton = document.querySelector('.scrolled-button');
 const joinGameBtn = document.querySelector('.join-game');
 let lastKnownScrollPosition = 0;
 let ticking = false;
+let measuredStickyHeight = 0;
+let lastStickyActionAvailable = null;
 
 window.addEventListener('scroll', function () {
     lastKnownScrollPosition = window.scrollY;
@@ -17,29 +19,79 @@ window.addEventListener('scroll', function () {
 });
 handleScroll(window.scrollY);
 
-function handleScroll(scrollPos) {
+// Text and loaded fonts can change both headers without a scroll event.
+const headerResizeObserver = new ResizeObserver(() => {
+    if (!ticking) {
+        ticking = true;
+        requestAnimationFrame(() => {
+            handleScroll(window.scrollY, true);
+            ticking = false;
+        });
+    }
+});
+for (const element of [document.querySelector('header[role="banner"]'),
+    document.querySelector('header[role="banner"] .header-link'),
+    document.getElementById('site-sticky-header'), joinGameBtn, scrolledJoinButton]) {
+    if (element) headerResizeObserver.observe(element);
+}
+window.addEventListener('resize', () => handleScroll(window.scrollY, true));
+
+function handleScroll(scrollPos, remeasure = false) {
     const compactLandscape = window.matchMedia('(max-width: 932px) and (max-height: 480px) and (orientation: landscape)').matches;
     const mainJoinButtonVisible = joinGameBtn && window.getComputedStyle(joinGameBtn).display !== 'none';
     const mainHeader = document.querySelector('header[role="banner"]');
     const stickyHeader = document.getElementById('site-sticky-header');
-    /* Show when scroll header would completely cover the main header: main header is entirely under the sticky bar. Sticky height when visible; fallback 52 if not yet measured. */
-    const stickyHeight = (stickyHeader && stickyHeader.offsetHeight) || 52;
-    const threshold = mainHeader ? Math.max(0, mainHeader.offsetHeight - stickyHeight) : -1;
-    const willBeVisible = mainHeader && stickyHeader ? scrollPos >= threshold : false;
-    if (scrolledJoinButton && willBeVisible && (mainJoinButtonVisible || compactLandscape)) {
-        scrolledJoinButton.style.display = 'inline-flex';
-    } else if (scrolledJoinButton) {
-        scrolledJoinButton.style.display = 'none';
-    }
-    if (mainHeader && stickyHeader) {
-        if (willBeVisible) {
-            stickyHeader.classList.add('visible');
-            stickyHeader.setAttribute('aria-hidden', 'false');
-        } else {
-            stickyHeader.classList.remove('visible');
-            stickyHeader.setAttribute('aria-hidden', 'true');
+    if (!mainHeader || !stickyHeader) return;
+    const actionAvailable = Boolean(mainJoinButtonVisible || compactLandscape);
+
+    // Measure the complete bar before it appears, so the first anchor jump
+    // and keyboard scroll reserve the same space as subsequent ones.
+    // Cache this geometry between layout changes, keeping scrolling cheap.
+    if (remeasure || !measuredStickyHeight || lastStickyActionAvailable !== actionAvailable) {
+        const visibility = stickyHeader.style.visibility;
+        const actionVisibility = scrolledJoinButton?.style.visibility;
+        stickyHeader.style.visibility = 'hidden';
+        stickyHeader.classList.add('visible');
+        if (scrolledJoinButton) {
+            scrolledJoinButton.style.visibility = 'hidden';
+            scrolledJoinButton.style.display = actionAvailable ? 'inline-flex' : 'none';
         }
+        measuredStickyHeight = fitStickyHeader(stickyHeader);
+        lastStickyActionAvailable = actionAvailable;
+        stickyHeader.style.visibility = visibility;
+        if (scrolledJoinButton) scrolledJoinButton.style.visibility = actionVisibility;
     }
+    // A bar taller than the original banner must wait until that banner leaves
+    // the viewport; otherwise enlarged text can cover the primary links at 0.
+    const threshold = mainHeader.offsetHeight > measuredStickyHeight
+        ? mainHeader.offsetHeight - measuredStickyHeight
+        : mainHeader.offsetHeight;
+    const willBeVisible = scrollPos >= threshold;
+    stickyHeader.classList.toggle('visible', willBeVisible);
+    stickyHeader.setAttribute('aria-hidden', String(!willBeVisible));
+    if (scrolledJoinButton) {
+        scrolledJoinButton.style.display = willBeVisible && actionAvailable ? 'inline-flex' : 'none';
+    }
+}
+
+function fitStickyHeader(stickyHeader) {
+    const action = scrolledJoinButton?.getBoundingClientRect();
+    const hasAction = action && action.width > 0;
+    const right = hasAction ? innerWidth - action.right : 0;
+    stickyHeader.style.setProperty('--site-sticky-action-space', hasAction ? `${action.width + right + 8}px` : '0px');
+    stickyHeader.style.setProperty('--site-sticky-action-height', hasAction ? `${action.height}px` : '0px');
+    stickyHeader.classList.remove('is-stacked');
+    const style = getComputedStyle(stickyHeader);
+    const link = stickyHeader.querySelector('.site-sticky-header-link');
+    const available = stickyHeader.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+    const stacked = hasAction && link && link.getBoundingClientRect().width > available + 1;
+    stickyHeader.classList.toggle('is-stacked', Boolean(stacked));
+    const height = stickyHeader.getBoundingClientRect().height;
+    if (hasAction) {
+        scrolledJoinButton.style.top = `${stacked ? height - action.height - 4 : (height - action.height) / 2}px`;
+    }
+    document.documentElement.style.setProperty('--site-sticky-height', `${height}px`);
+    return height;
 }
 
 const customAlertDialog = document.getElementById('custom-alert');
