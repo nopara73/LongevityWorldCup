@@ -7398,6 +7398,14 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         input.setAttribute("aria-haspopup", "listbox");
         input.setAttribute("aria-controls", listId);
         let currentFocus = -1;
+        let pointerGesture = false;
+        const finishPointerGesture = () => requestAnimationFrame(() => {
+            pointerGesture = false;
+            if (container && !container.contains(document.activeElement)) closeList();
+        });
+        document.addEventListener("pointerdown", () => { pointerGesture = true; }, true);
+        document.addEventListener("pointerup", finishPointerGesture, true);
+        document.addEventListener("pointercancel", finishPointerGesture, true);
         const selected = document.getElementById(`${input.id}Selected`);
         const clearButton = document.getElementById(`${input.id}Clear`);
         const selector: AthleteSelectorController = {
@@ -7484,7 +7492,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             if (!input.dataset.athleteSlug) renderSuggestions(true);
         });
         container?.addEventListener("focusout", event => {
-            if (event.relatedTarget instanceof Node && !container.contains(event.relatedTarget)) closeList();
+            // Closing this in-flow list on pointer blur moves the next control before its click lands.
+            if (!pointerGesture && event.relatedTarget instanceof Node && !container.contains(event.relatedTarget)) closeList();
         });
 
         container?.addEventListener("keydown", event => {

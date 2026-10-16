@@ -4115,8 +4115,9 @@ a.lmx-note-mention:focus-visible {
 .lmx-checkin-switcher button {
     min-width: 0;
     min-height: 54px;
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
+    display: flex;
+    flex-wrap: wrap;
+    align-content: start;
     gap: 0 0.3rem;
     align-items: center;
     text-align: left;
@@ -4135,12 +4136,15 @@ a.lmx-note-mention:focus-visible {
 }
 
 .lmx-checkin-switcher strong {
+    flex: 1 0 auto;
+    max-width: 100%;
     font-weight: 900;
 }
 
 .lmx-checkin-switcher span {
-    grid-column: 1 / -1;
-    grid-row: 2;
+    flex: 0 0 100%;
+    min-width: 0;
+    order: 2;
     color: var(--lmx-muted);
     font-size: var(--lwc-type-sm);
     font-weight: 400;
@@ -4148,8 +4152,10 @@ a.lmx-note-mention:focus-visible {
 }
 
 .lmx-checkin-switcher em {
-    grid-row: 1;
-    grid-column: 2;
+    flex: 0 0 auto;
+    max-width: 100%;
+    margin-left: auto;
+    order: 1;
     padding: 0 0.4rem;
     border-radius: 999px;
     background: var(--lmx-surface);
@@ -4209,7 +4215,7 @@ a.lmx-note-mention:focus-visible {
     container: lmx-checkin / inline-size;
     display: flex;
     flex-direction: column;
-    max-height: calc(100dvh - 6rem);
+    max-height: max(264px, calc(100dvh - 8rem));
 }
 
 /* Reserve the Save row's space so it never paints over remarks or photos. */
@@ -4217,10 +4223,6 @@ a.lmx-note-mention:focus-visible {
     min-height: 0;
     overflow-y: auto;
     scroll-padding-block: var(--lwc-space-2);
-}
-
-.lmx-checkin-dialog-panel .lmx-checkin-entry {
-    max-height: calc(100dvh - 8rem);
 }
 
 .lmx-checkin-actions {

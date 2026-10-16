@@ -1,10 +1,43 @@
 using Microsoft.Playwright;
+using System.Text.Json;
 using Xunit;
+using static LongevityWorldCup.Tests.AestheticSystemBrowserTests;
 
 namespace LongevityWorldCup.Tests;
 
 public sealed partial class LongevitymaxxingChallengeBrowserTests
 {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Signup_TimeZoneOpensWhenLeavingAthleteSearchWithAPointer(bool touch)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = 390, Height = 844 },
+            HasTouch = touch,
+            ReducedMotion = ReducedMotion.Reduce
+        });
+        await context.RouteAsync("**/api/longevitymaxxing/state", route => FulfillJsonAsync(route, JsonSerializer.Serialize(BuildPublicState())));
+        await context.RouteAsync("**/api/data/athletes", route => FulfillJsonAsync(route,
+            """[{"DisplayName":"Browser Champion","Name":"Browser Champion","AthleteSlug":"browser_champion","ProfilePicLeaderboardThumb":""}]"""));
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/longevitymaxxing");
+        await Assertions.Expect(page.Locator("[data-timezone-picker][data-select-id='lmxSignupTimeZone']")).ToHaveAttributeAsync("data-wired", "true");
+        await page.Locator("label:has(input[name='lmxSignupIdentity'][value='athlete'])").ClickAsync();
+        await page.Locator("#lmxSignupAthlete").FocusAsync();
+        await Assertions.Expect(page.Locator(".lmx-athlete-option")).ToBeVisibleAsync();
+        var button = page.Locator("#lmxSignupTimeZoneButton");
+        if (touch) await button.TapAsync();
+        else await button.ClickAsync();
+        var search = page.Locator("#lmxSignupTimeZoneSearch");
+        await Assertions.Expect(search).ToBeVisibleAsync();
+        await Assertions.Expect(search).ToBeFocusedAsync();
+        await search.FillAsync("Tokyo");
+        await page.Locator(".lmx-timezone-option").Filter(new() { HasText = "Tokyo" }).First.ClickAsync();
+        await Assertions.Expect(page.Locator("#lmxSignupTimeZone")).ToHaveValueAsync("Asia/Tokyo");
+    }
+
     [Theory]
     [InlineData(390, false)]
     [InlineData(1440, true)]
