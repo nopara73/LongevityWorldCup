@@ -1314,3 +1314,32 @@ textarea:focus-visible {
 html {
     scroll-padding-top: 3.25rem;
 }
+
+/* Enlarged text on phones: the brand wraps onto a second line instead of
+   being cut to "Longevi…", and the Play button wraps between its words,
+   never inside one. */
+@media (max-width: 640px) {
+    header[role="banner"] .bannertext {
+        overflow: visible;
+        text-overflow: clip;
+        white-space: normal;
+        overflow-wrap: normal;
+        word-break: normal;
+        line-height: 1.08;
+    }
+
+    header[role="banner"] .join-game {
+        flex-wrap: wrap;
+        justify-content: center;
+        column-gap: 0.3em;
+        row-gap: 0.1em;
+        overflow-wrap: normal;
+        word-break: normal;
+    }
+
+    header[role="banner"] .join-game > * {
+        white-space: nowrap;
+        overflow-wrap: normal;
+        word-break: keep-all;
+    }
+}
