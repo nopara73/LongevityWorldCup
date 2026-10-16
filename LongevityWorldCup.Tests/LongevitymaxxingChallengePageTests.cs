@@ -994,7 +994,7 @@ public sealed class LongevitymaxxingChallengePageTests(TestWebApplicationFactory
         Assert.Contains("@media (max-width: 360px)", css);
         Assert.DoesNotContain(".lmx-life-strip span:last-child", css);
         Assert.Contains(".lmx-question-preview-label i", css);
-        Assert.Contains(".lmx-athlete-search input:focus", css);
+        Assert.Contains(".lmx-athlete-search input[type=\"search\"]:focus", css);
         Assert.Contains("cell.countsForScore === false", javascript);
         Assert.Contains(".lmx-cell.practice", css);
         Assert.Contains(".lmx-practice-note", css);

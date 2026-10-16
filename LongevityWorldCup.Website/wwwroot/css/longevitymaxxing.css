@@ -804,26 +804,35 @@
 }
 
 .lmx-identity-field {
+    min-width: 0;
     margin: 0;
-    padding: 0.65rem;
+    padding: 0;
     display: grid;
     gap: 0.6rem;
-    border: 1px solid var(--lmx-border);
-    border-radius: 8px;
-    background: var(--lmx-surface-muted);
+    border: 0;
 }
 
 .lmx-identity-field legend {
-    padding: 0 0.2rem;
+    float: left;
+    width: 100%;
+    margin-bottom: 0.3rem;
+    padding: 0;
     color: var(--lmx-ink);
-    font-size: 0.9rem;
-    font-weight: 850;
+    font-size: var(--lwc-type-sm);
+    font-weight: 700;
+    line-height: 1.375rem;
 }
 
+/* The yes/no answer shares the access tabs' inset track. */
 .lmx-identity-options {
+    clear: both;
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.4rem;
+    gap: 0.28rem;
+    padding: 0.28rem;
+    border: 1px solid var(--lmx-border);
+    border-radius: 8px;
+    background: var(--lmx-surface-muted);
 }
 
 .lmx-identity-options label {
@@ -833,13 +842,18 @@
     justify-content: center;
     gap: 0.45rem;
     padding: 0 0.65rem;
-    border: 1px solid var(--lmx-border-strong);
-    border-radius: 8px;
-    background: var(--lmx-surface);
-    color: var(--lmx-ink);
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--lmx-muted);
     font-weight: 850;
     cursor: pointer;
-    transition: background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+    transition: background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+}
+
+.lmx-identity-options label:hover {
+    color: var(--lmx-ink);
+    background: var(--lmx-surface);
 }
 
 .lmx-identity-options input {
@@ -856,9 +870,9 @@
 }
 
 .lmx-identity-options label:has(input:checked) {
-    border-color: var(--lmx-ink);
     background: var(--lmx-inverse-surface);
-    color: #ffffff;
+    color: var(--lmx-on-inverse);
+    box-shadow: 0 1px 4px rgba(15, 23, 42, 0.16);
 }
 
 .lmx-identity-options label::before {
@@ -880,8 +894,82 @@
 }
 
 .lmx-identity-options label:focus-within {
-    outline: 3px solid rgba(0, 188, 212, 0.24);
+    outline: 3px solid rgba(0, 188, 212, 0.32);
     outline-offset: 2px;
+}
+
+/* Sign-up steps hang from one rail; each marker fills once its step is answered. */
+#lmxSignupForm {
+    --lmx-step-size: 1.375rem;
+    --lmx-step-gutter: 2.15rem;
+    gap: 1.1rem;
+    padding-left: var(--lmx-step-gutter);
+}
+
+#lmxSignupForm > :is(.lmx-field, .lmx-identity-field, button[type="submit"]) {
+    position: relative;
+}
+
+#lmxSignupForm > :is(.lmx-field, .lmx-identity-field, button[type="submit"])::before {
+    content: '';
+    position: absolute;
+    z-index: 1;
+    top: 0;
+    left: calc(-1 * var(--lmx-step-gutter));
+    width: var(--lmx-step-size);
+    height: var(--lmx-step-size);
+    box-sizing: border-box;
+    display: grid;
+    place-items: center;
+    border: 2px solid var(--lmx-border-strong);
+    border-radius: 999px;
+    background: var(--lmx-surface);
+    color: var(--lwc-on-accent, #ffffff);
+    font-size: 0.75rem;
+    font-weight: 900;
+    line-height: 1;
+    transition: background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+}
+
+#lmxSignupForm > :is(.lmx-field, .lmx-identity-field)::after {
+    content: '';
+    position: absolute;
+    top: calc(var(--lmx-step-size) + 0.3rem);
+    bottom: -0.8rem;
+    left: calc(var(--lmx-step-size) / 2 - 1px - var(--lmx-step-gutter));
+    width: 2px;
+    border-radius: 2px;
+    background: var(--lmx-border);
+    transition: background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+}
+
+#lmxSignupForm > button[type="submit"]::before {
+    top: calc(50% - var(--lmx-step-size) / 2);
+}
+
+#lmxSignupForm > .lmx-field:has(#lmxSignupEmail:valid)::before,
+#lmxSignupForm > .lmx-identity-field:has(#lmxSignupName:enabled:valid)::before,
+#lmxSignupForm > .lmx-identity-field:has(#lmxSignupAthleteSelected:not(.lmx-hidden))::before,
+#lmxSignupForm > .lmx-field:has(#lmxSignupTimeZone:valid)::before,
+#lmxSignupForm:has(#lmxSignupEmail:valid):has(#lmxSignupTimeZone:valid):is(:has(#lmxSignupName:enabled:valid), :has(#lmxSignupAthleteSelected:not(.lmx-hidden))) > button[type="submit"]::before {
+    content: '\2713';
+    border-color: var(--lmx-accent);
+    background: var(--lmx-accent);
+}
+
+#lmxSignupForm > .lmx-field:has(#lmxSignupEmail:valid)::after,
+#lmxSignupForm > .lmx-identity-field:has(#lmxSignupName:enabled:valid)::after,
+#lmxSignupForm > .lmx-identity-field:has(#lmxSignupAthleteSelected:not(.lmx-hidden))::after,
+#lmxSignupForm > .lmx-field:has(#lmxSignupTimeZone:valid)::after {
+    background: var(--lmx-accent);
+}
+
+#lmxSignupForm > :is(.lmx-field, .lmx-identity-field):has([aria-invalid="true"])::before {
+    border-color: var(--lmx-danger);
+}
+
+#lmxSignupForm > .lmx-field > :is(label, .lmx-label) {
+    line-height: 1.375rem;
 }
 
 .lmx-field label,
@@ -1383,12 +1471,14 @@
     font-size: 0.9rem;
 }
 
-.lmx-athlete-search input,
-.lmx-athlete-search input:focus {
+/* Outrank the site-wide input border and focus outline; the search shell owns both. */
+.lmx-field .lmx-athlete-picker .lmx-athlete-search input[type="search"],
+.lmx-field .lmx-athlete-picker .lmx-athlete-search input[type="search"]:focus {
     appearance: none;
     min-height: 44px;
     padding: 0;
     border: 0;
+    border-radius: 0;
     outline: 0;
     box-shadow: none;
     background: transparent;
@@ -2135,11 +2225,6 @@ body.lmx-checkin-dialog-open {
 .lmx-participant-actions.lmx-checkin-dialog-panel {
     align-content: start;
     gap: 0;
-}
-
-.lmx-checkin-dialog-panel .lmx-checkin-card {
-    padding: 0;
-    border: 0;
 }
 
 .lmx-checkin-dialog-panel .lmx-checkin-card > h3 {
@@ -4019,24 +4104,34 @@ a.lmx-note-mention:focus-visible {
 
 .lmx-checkin-switcher {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
-    gap: 0.45rem;
+    grid-template-columns: repeat(auto-fit, minmax(6.25rem, 1fr));
+    gap: 0.28rem;
+    padding: 0.28rem;
+    border: 1px solid var(--lmx-border);
+    border-radius: 8px;
+    background: var(--lmx-surface-muted);
 }
 
 .lmx-checkin-switcher button {
+    min-width: 0;
     min-height: 54px;
     display: grid;
-    grid-template-columns: 1fr auto;
-    gap: 0.1rem 0.45rem;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0 0.3rem;
     align-items: center;
     text-align: left;
-    padding: 0.55rem 0.65rem;
-    border: 1px solid var(--lmx-border-strong);
-    border-radius: 8px;
-    background: var(--lmx-surface-muted);
+    padding: 0.4rem 0.5rem;
+    border: 1px solid transparent;
+    border-radius: 7px;
+    background: transparent;
     color: var(--lmx-ink);
     font: inherit;
     cursor: pointer;
+    transition: background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+}
+
+.lmx-checkin-switcher button:hover:not([aria-pressed="true"]) {
+    background: var(--lmx-surface);
 }
 
 .lmx-checkin-switcher strong {
@@ -4055,9 +4150,10 @@ a.lmx-note-mention:focus-visible {
 .lmx-checkin-switcher em {
     grid-row: 1;
     grid-column: 2;
-    padding: 0.18rem 0.45rem;
+    padding: 0 0.4rem;
     border-radius: 999px;
-    background: var(--lmx-surface-muted);
+    background: var(--lmx-surface);
+    border: 1px solid var(--lmx-border);
     color: var(--lmx-ink);
     font-size: var(--lwc-type-xs);
     font-style: normal;
@@ -4070,6 +4166,7 @@ a.lmx-note-mention:focus-visible {
     background: var(--lmx-inverse-surface);
     border-color: var(--lmx-inverse-surface);
     color: var(--lmx-on-inverse);
+    box-shadow: 0 1px 4px rgba(15, 23, 42, 0.16);
 }
 
 .lmx-checkin-switcher button[aria-pressed="true"] span {
@@ -4093,10 +4190,7 @@ a.lmx-note-mention:focus-visible {
 }
 
 .lmx-checkin-card {
-    border: 1px solid var(--lmx-border);
-    border-radius: 8px;
-    padding: 0.8rem;
-    background: var(--lmx-surface);
+    min-width: 0;
 }
 
 .lmx-checkin-card h3 {
@@ -4119,8 +4213,8 @@ a.lmx-note-mention:focus-visible {
     position: sticky;
     bottom: 0;
     z-index: 2;
-    margin: var(--lwc-space-2) -0.8rem 0;
-    padding: var(--lwc-space-2) 0.8rem;
+    margin: var(--lwc-space-2) -1rem 0;
+    padding: var(--lwc-space-2) 1rem;
     border-top: 1px solid var(--lmx-border);
     background: var(--lmx-surface);
 }
@@ -4261,20 +4355,39 @@ a.lmx-note-mention:focus-visible {
     --lmx-habit-deep: var(--lmx-category-deep, var(--lmx-sleep-deep));
     --lmx-habit-soft: var(--lmx-category-soft, var(--lmx-sleep-soft));
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(12.25rem, 46%);
+    grid-template-columns: 3.25rem minmax(0, 1fr) minmax(12.25rem, 46%);
+    grid-template-areas: "plant label answers";
     align-items: center;
-    gap: var(--lwc-space-2);
-    margin: var(--lwc-space-1) 0;
-    padding: var(--lwc-space-1) var(--lwc-space-2);
+    gap: var(--lwc-space-1) var(--lwc-space-2);
+    margin: 0;
+    padding: var(--lwc-space-2) var(--lwc-space-2) var(--lwc-space-2) calc(var(--lwc-space-2) + 2px);
     border: 1px solid var(--lmx-border);
-    border-radius: var(--lwc-radius-lg);
+    border-top-width: 0;
+    border-radius: 0;
     background:
         radial-gradient(circle at 0 0, rgba(var(--lmx-habit-soft), 0.07), transparent 34%),
         var(--lmx-surface);
-    box-shadow: none;
+    box-shadow: inset 4px 0 0 rgba(var(--lmx-habit-soft), 0.22);
+    transition: box-shadow var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
+}
+
+.lmx-question:first-child {
+    border-top-width: 1px;
+    border-radius: var(--lwc-radius-lg) var(--lwc-radius-lg) 0 0;
+}
+
+.lmx-question:not(:has(+ .lmx-question)) {
+    margin-bottom: var(--lwc-space-3);
+    border-radius: 0 0 var(--lwc-radius-lg) var(--lwc-radius-lg);
+}
+
+.lmx-question:has(.lmx-answer-input:checked) {
+    box-shadow: inset 4px 0 0 var(--lmx-habit-accent);
 }
 
 .lmx-question-label {
+    grid-area: label;
+    min-width: 0;
     display: flex;
     align-items: center;
     gap: var(--lwc-space-2);
@@ -4314,22 +4427,22 @@ a.lmx-note-mention:focus-visible {
 }
 
 .lmx-growth-control {
-    display: grid;
-    grid-template-columns: 3rem minmax(0, 1fr);
-    gap: var(--lwc-space-1);
-    align-items: center;
-    padding: 0;
+    display: contents;
 }
 
 .lmx-plant {
     --lmx-plant-scale: 0.75;
     --lmx-plant-stem-width: 3;
+    grid-area: plant;
+    align-self: stretch;
     min-width: 0;
     min-height: 0;
     display: grid;
     place-items: center;
     margin: 0;
     padding: 0;
+    border-radius: var(--lwc-radius-md);
+    background: radial-gradient(ellipse at 50% 78%, rgba(var(--lmx-habit-soft), 0.14), transparent 68%);
 }
 
 .lmx-plant-visual {
@@ -4449,6 +4562,7 @@ a.lmx-note-mention:focus-visible {
 }
 
 .lmx-answer-options {
+    grid-area: answers;
     min-width: 0;
     min-height: 44px;
     display: grid;
@@ -4544,8 +4658,23 @@ a.lmx-note-mention:focus-visible {
 /* Size the shared check-in by its form width, including the narrow desktop sidebar. */
 @container lmx-checkin (max-width: 28rem) {
     .lmx-question {
-        grid-template-columns: minmax(0, 1fr);
-        gap: var(--lwc-space-1);
+        grid-template-columns: 3rem minmax(0, 1fr);
+        grid-template-areas:
+            "plant label"
+            "plant answers";
+    }
+}
+
+/* Phone widths keep the full question line above the plant and answers. */
+@container lmx-checkin (max-width: 22rem) {
+    .lmx-question {
+        grid-template-areas:
+            "label label"
+            "plant answers";
+    }
+
+    .lmx-plant {
+        align-self: center;
     }
 }
 
