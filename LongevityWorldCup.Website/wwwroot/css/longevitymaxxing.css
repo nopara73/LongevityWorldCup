@@ -4411,6 +4411,11 @@ a.lmx-note-mention:focus-visible {
     line-height: 1.3;
 }
 
+.lmx-question-label > span:last-child {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
 .lmx-question-label i,
 .lmx-question-icon {
     width: 1.5rem;
