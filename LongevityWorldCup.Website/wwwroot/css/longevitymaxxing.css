@@ -5589,7 +5589,7 @@ a.lmx-note-mention:focus-visible {
 .lmx-board-wrap--empty .lmx-board .lmx-board-row.lmx-empty-row > .lmx-name {
     width: auto;
     justify-self: center;
-    padding-inline: 1rem !important;
+    padding-inline: 0.25rem !important;
     text-align: center;
 }
 

@@ -191,6 +191,36 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         }
     }
 
+    [Theory]
+    [InlineData(ColorScheme.Light)]
+    [InlineData(ColorScheme.Dark)]
+    public async Task EmptyLeaderboard_EnlargedTextWrapsBetweenWords(ColorScheme theme)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = 320, Height = 844 }, ColorScheme = theme,
+            IsMobile = true, HasTouch = true
+        });
+        var state = LongLeaderboardState(resting: true);
+        await context.RouteAsync("**/api/longevitymaxxing/state", route => FulfillJsonAsync(route, state.ToJsonString()));
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/longevitymaxxing");
+        await Assertions.Expect(page.Locator("#lmxBoard .lmx-empty-name")).ToHaveTextAsync("No active participants");
+        await page.EvaluateAsync("document.documentElement.style.fontSize = '200%'");
+        await page.EvaluateAsync("() => document.fonts.ready");
+        var size = await page.Locator("#lmxBoard .lmx-empty-name").EvaluateAsync<double[]>("""
+            label => {
+                const font = getComputedStyle(label);
+                const canvas = document.createElement('canvas').getContext('2d');
+                canvas.font = `${font.fontWeight} ${font.fontSize} ${font.fontFamily}`;
+                const word = Math.max(...label.textContent.trim().split(/\s+/).map(w => canvas.measureText(w).width));
+                return [label.getBoundingClientRect().width, word];
+            }
+            """);
+        Assert.True(size[0] >= size[1] - 1, $"The empty label has {size[0]}px for its {size[1]}px longest word.");
+        Assert.True(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth <= innerWidth"));
+    }
+
     private static JsonObject LongLeaderboardState(bool resting, string phase = "active")
     {
         var state = JsonSerializer.SerializeToNode(BuildPublicState())!.AsObject();
