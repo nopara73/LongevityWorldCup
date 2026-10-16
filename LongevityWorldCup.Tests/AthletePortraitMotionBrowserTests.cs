@@ -286,7 +286,19 @@ public sealed class AthletePortraitMotionBrowserTests(
             var overlay = image.Locator("..").Locator("video.athlete-portrait-motion");
             await Assertions.Expect(overlay).ToHaveClassAsync("athlete-portrait-motion is-playing");
             Assert.Contains($"/assets/athlete-motion/{slug}-", await overlay.EvaluateAsync<string>("video => video.currentSrc"));
-            Assert.True(await overlay.EvaluateAsync<bool>("video => { const image = video.previousElementSibling.getBoundingClientRect(); const clip = video.getBoundingClientRect(); return Math.abs((clip.x + clip.width / 2) - (image.x + image.width / 2)) < 1 && Math.abs((clip.y + clip.height / 2) - (image.y + image.height / 2)) < 1 && Math.abs(clip.width - (image.width - 6 * 1.1)) < 1; }"));
+            // Loading a cached clip can beat the portrait's hover transition.
+            // Measure both layers at their final scale, retaining one-pixel alignment.
+            var alignment = await overlay.EvaluateAsync<double[]>("""
+                async video => {
+                    const photo = video.previousElementSibling;
+                    await Promise.all([photo, video].flatMap(element => element.getAnimations()).map(animation => animation.finished.catch(() => {})));
+                    const image = photo.getBoundingClientRect(), clip = video.getBoundingClientRect();
+                    return [Math.abs((clip.x + clip.width / 2) - (image.x + image.width / 2)),
+                        Math.abs((clip.y + clip.height / 2) - (image.y + image.height / 2)),
+                        Math.abs(clip.width - (image.width - 6 * 1.1))];
+                }
+                """);
+            Assert.True(alignment.All(delta => delta < 1), $"{slug} at {width}px: alignment deltas {string.Join(", ", alignment)}");
             Assert.EndsWith($"/athlete/{slug}", await image.EvaluateAsync<string>("img => img.closest('a').href"));
             // A profile update invalidates the active clip immediately, even in a row.
             await image.EvaluateAsync("img => img.src = img.src.replace(/[a-f0-9]{64}/g, '0'.repeat(64))");

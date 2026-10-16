@@ -6630,9 +6630,11 @@ function isMobileDrawerViewport() {
 
 function syncSidebarPanelInteractivity() {
     if (!sidebarPanel) return;
-    const open = isMobileDrawerViewport()
-        ? sidebar.classList.contains('expanded')
-        : getComputedStyle(sidebarPanel).getPropertyValue('--sidebar-panel-open').trim() === '1';
+    // An explicit opening is interactive immediately, including while enlarged
+    // text makes container queries refit the panel's computed layout.
+    const open = sidebar.classList.contains('expanded')
+        || (!isMobileDrawerViewport()
+            && getComputedStyle(sidebarPanel).getPropertyValue('--sidebar-panel-open').trim() === '1');
     sidebarPanel.inert = !open;
     sidebarPanel.setAttribute('aria-hidden', open ? 'false' : 'true');
 }
