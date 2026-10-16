@@ -1,6 +1,8 @@
 .bioageform {
-    width: min(100%, 600px);
-    max-width: calc(100vw - 2rem);
+    --bioage-card-width: 600px;
+    --bioage-card-max-width: calc(100vw - 2rem);
+    width: min(100%, var(--bioage-card-width));
+    max-width: var(--bioage-card-max-width);
     margin: 2rem auto;
     padding: var(--lwc-space-5, 1.5rem);
     border: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.16));
@@ -473,8 +475,10 @@ html body .bioageform .lwc-wizard-nav .lwc-dot[aria-disabled="true"] {
 /* Responsive adjustments */
 @media (max-width: 600px), (max-width: 1024px) and (max-height: 600px) and (orientation: landscape) {
     .bioageform {
+        --bioage-card-width: 100%;
+        --bioage-card-max-width: calc(100vw - 1.5rem);
         width: 100%;
-        max-width: calc(100vw - 1.5rem);
+        max-width: var(--bioage-card-max-width);
         margin: var(--lwc-space-2) auto;
         padding: var(--lwc-space-4, 1rem);
     }
@@ -786,9 +790,13 @@ html body .bioageform .lwc-wizard-nav .lwc-dot[aria-disabled="true"] {
 }
 
 @media (min-width: 960px) and (min-height: 640px) {
+    .bioageform {
+        --bioage-card-width: 760px;
+    }
+
     #phenoAgeForm,
     #bortzAgeForm {
-        width: min(100%, 760px);
+        width: min(100%, var(--bioage-card-width));
         margin: 1.25rem auto;
         padding: var(--lwc-space-5, 1.5rem) var(--lwc-space-6, 2rem);
     }
@@ -1111,6 +1119,7 @@ html body .bioageform .lwc-wizard-nav .lwc-dot[aria-disabled="true"] {
 }
 
 .bioage-rank-preview {
+    container: bioage-rank / inline-size;
     width: 100%;
     margin-top: 1rem;
     padding: 0.85rem 0.8rem;
@@ -1309,7 +1318,8 @@ html body .bioageform .lwc-wizard-nav .lwc-dot[aria-disabled="true"] {
 
 @media (max-width: 420px) {
     .bioageform {
-        max-width: calc(100vw - 1rem);
+        --bioage-card-max-width: calc(100vw - 1rem);
+        max-width: var(--bioage-card-max-width);
         padding: var(--lwc-space-4, 1rem);
     }
 
@@ -1513,16 +1523,33 @@ html body .bioageform .lwc-wizard-nav .lwc-dot[aria-disabled="true"] {
 }
 
 /* Result scoreboard: the age and the reduction read as one result, aligned with the form card. */
+body .lwc-steps-shell {
+    max-width: min(100%, 780px);
+}
+
+body #phenoAgeForm,
+body #bortzAgeForm,
 body #phenoAgeResult.show,
 body #bortzAgeResult.show {
-    width: min(100%, 760px);
-    max-width: calc(100vw - 2rem);
-    padding: clamp(1.25rem, 3vw, 2rem);
+    width: min(100%, var(--bioage-card-width));
+    max-width: min(var(--bioage-card-max-width), 780px);
+}
+
+body #phenoAgeResult.show,
+body #bortzAgeResult.show {
+    padding: clamp(1rem, 3vw, 2rem);
+}
+
+body #validAgeInput {
+    container-type: inline-size;
+    width: 100%;
+    min-width: 0;
 }
 
 body #validAgeInput > div:first-child {
     margin-bottom: 0.35rem;
     letter-spacing: 0.08em;
+    overflow-wrap: anywhere;
 }
 
 body #validAgeInput .bio-age-number-container {
@@ -1531,12 +1558,21 @@ body #validAgeInput .bio-age-number-container {
     padding: 0.25rem 0 0;
 }
 
-body #validAgeInput #animatedAge {
-    font-size: clamp(4.5rem, 3rem + 6vw, 7.5rem);
+body #validAgeInput .bioage-result-value-stack {
+    min-width: 0;
+    max-width: 100%;
+}
+
+body #validAgeInput #animatedAge,
+body #validAgeInput .bioage-result-visual {
+    font-size: min(clamp(4.5rem, 3rem + 6vw, 7.5rem), calc(150cqi / var(--bioage-result-characters, 6)));
 }
 
 body #validAgeInput #yearsText {
-    display: table;
+    display: block;
+    width: fit-content;
+    max-width: 100%;
+    box-sizing: border-box;
     margin: 0.75rem auto 0;
     padding: 0.45rem 1.1rem;
     border: 1px solid var(--lwc-border, rgba(148, 163, 184, 0.32));
@@ -1546,8 +1582,61 @@ body #validAgeInput #yearsText {
     font-size: clamp(1.1rem, 0.95rem + 0.6vw, 1.45rem);
     font-weight: 700;
     line-height: 1.2;
+    overflow-wrap: anywhere;
 }
 
 body #validAgeInput + * {
     margin-top: 1.25rem;
+}
+
+/* Reflow the rank content at its available width, including enlarged text. */
+@container bioage-rank (max-width: 24rem) {
+    .bioage-rank-summary {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .bioage-rank-number {
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    .bioage-rank-copy {
+        overflow-wrap: anywhere;
+    }
+
+    .bioage-rank-row {
+        grid-template-columns: auto 24px minmax(0, 1fr);
+    }
+
+    .bioage-rank-row-place,
+    .bioage-rank-row-avatar {
+        grid-row: 1 / span 2;
+    }
+
+    .bioage-rank-row-name,
+    .bioage-rank-row-score {
+        grid-column: 3;
+    }
+
+    .bioage-rank-row-score {
+        white-space: normal;
+        overflow-wrap: anywhere;
+        text-align: left;
+    }
+}
+
+@container bioage-rank (max-width: 18rem) {
+    .bioage-rank-row {
+        grid-template-columns: minmax(0, 1fr) 24px;
+    }
+
+    .bioage-rank-row-place,
+    .bioage-rank-row-avatar {
+        grid-row: 1;
+    }
+
+    .bioage-rank-row-name,
+    .bioage-rank-row-score {
+        grid-column: 1 / -1;
+    }
 }
