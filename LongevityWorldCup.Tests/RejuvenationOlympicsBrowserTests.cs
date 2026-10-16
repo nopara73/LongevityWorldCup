@@ -87,11 +87,17 @@ public sealed class RejuvenationOlympicsBrowserTests(
     }
 
     [Theory]
-    [InlineData(1440, 900)]
-    [InlineData(820, 1180)]
-    [InlineData(390, 844)]
-    [InlineData(320, 640)]
-    public async Task PosterTagline_StaysClearOfTheRacingLineAndIntroCard(int width, int height)
+    [InlineData(1440, 900, 100)]
+    [InlineData(820, 1180, 100)]
+    [InlineData(768, 900, 100)]
+    [InlineData(701, 900, 100)]
+    [InlineData(390, 844, 100)]
+    [InlineData(320, 640, 100)]
+    [InlineData(1440, 900, 200)]
+    [InlineData(820, 1180, 200)]
+    [InlineData(768, 900, 200)]
+    [InlineData(701, 900, 200)]
+    public async Task PosterTagline_StaysClearOfTheRacingLineAndIntroCard(int width, int height, int textPercent)
     {
         await using var context = await NewContextAsync(Browser, App, new()
         {
@@ -100,6 +106,13 @@ public sealed class RejuvenationOlympicsBrowserTests(
         var page = await context.NewPageAsync();
         await page.GotoAsync("/rejuvenation-olympics");
         await page.EvaluateAsync("document.fonts.ready");
+        if (textPercent != 100)
+        {
+            await page.AddStyleTagAsync(new() { Content = $"html {{ font-size: {textPercent}% !important; }}" });
+            await page.WaitForFunctionAsync(
+                "() => parseFloat(getComputedStyle(document.documentElement).fontSize) >= 32", null, new() { Timeout = 5000 });
+        }
+        await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
         var overlaps = await page.EvaluateAsync<string[]>(
             """
             () => {
@@ -116,6 +129,37 @@ public sealed class RejuvenationOlympicsBrowserTests(
             }
             """);
         Assert.Empty(overlaps);
+    }
+
+    [Theory]
+    [InlineData(390)]
+    [InlineData(320)]
+    public async Task PhoneTextEnlargement_ScalesTheHeadlineAndKeepsEntryActionsWithinTheColumn(int width)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = 844 },
+            ReducedMotion = ReducedMotion.Reduce
+        });
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/rejuvenation-olympics");
+        await page.EvaluateAsync("() => document.fonts.ready");
+        var originalSize = await page.Locator(".ro-guide h1").EvaluateAsync<double>(
+            "heading => parseFloat(getComputedStyle(heading).fontSize)");
+        await page.AddStyleTagAsync(new() { Content = "html { font-size: 200% !important; }" });
+        await page.WaitForFunctionAsync(
+            "size => parseFloat(getComputedStyle(document.querySelector('.ro-guide h1')).fontSize) >= size * 1.99",
+            originalSize, new() { Timeout = 5000 });
+        var overflowing = await page.EvaluateAsync<string[]>(
+            """
+            () => [...document.querySelectorAll('.ro-intro, .ro-intro h1, .ro-actions, .ro-actions a')]
+                .filter(element => {
+                    const bounds = element.getBoundingClientRect();
+                    return bounds.left < 0 || bounds.right > innerWidth + 1 || element.scrollWidth > element.clientWidth + 1;
+                })
+                .map(element => element.className || element.tagName)
+            """);
+        Assert.Empty(overflowing);
     }
 
     [Theory]

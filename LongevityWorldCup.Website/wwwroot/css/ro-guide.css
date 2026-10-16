@@ -24,6 +24,7 @@
     grid-template-columns: 1fr 1fr;
     grid-template-rows: 1fr auto;
     aspect-ratio: 2.35;
+    min-height: 16rem;
     overflow: hidden;
     isolation: isolate;
     border-radius: var(--lwc-radius-lg);
@@ -38,7 +39,7 @@
     grid-row: 1;
     align-self: center;
     padding-left: clamp(var(--lwc-space-5), 6vw, 4.5rem);
-    padding-bottom: var(--lwc-space-7);
+    transform: translateY(calc(-0.5 * var(--lwc-space-7)));
     font-family: 'Orbitron', sans-serif;
     font-size: clamp(1.5rem, 4.4vw, 3.25rem);
     font-weight: 700;
@@ -87,7 +88,7 @@
 .ro-sport-mark {
     position: absolute;
     left: calc(-100% + clamp(var(--lwc-space-5), 6vw, 4.5rem));
-    bottom: clamp(5rem, 9vw, 7rem);
+    top: calc(50% + var(--lwc-space-5));
     font-family: 'Orbitron', sans-serif;
     font-size: clamp(0.625rem, 1.4vw, 0.875rem);
     font-weight: 700;
@@ -133,6 +134,7 @@
     line-height: 1.05;
     letter-spacing: -0.035em;
     text-wrap: balance;
+    overflow-wrap: anywhere;
 }
 
 .ro-guide .ro-lead {
@@ -287,11 +289,15 @@
     justify-content: center;
     gap: var(--lwc-space-3);
     min-height: 56px;
+    min-width: 0;
+    max-width: 100%;
     padding: var(--lwc-space-3) var(--lwc-space-6);
     border-radius: var(--lwc-radius-md);
     font-size: 1.0625rem;
     font-weight: 700;
     text-decoration: none;
+    white-space: normal;
+    text-align: center;
     transition: background-color var(--lwc-duration-fast) var(--lwc-ease),
         border-color var(--lwc-duration-fast) var(--lwc-ease);
 }
@@ -330,12 +336,14 @@
         grid-template-columns: minmax(0, 1fr);
         grid-template-rows: auto minmax(0, 1fr);
         aspect-ratio: 1.15;
+        min-height: 0;
     }
 
     .ro-artwork .ro-artwork-mark {
         align-self: start;
         padding: var(--lwc-space-5) var(--lwc-space-5) 0;
-        font-size: clamp(1.375rem, 7vw, 2rem);
+        font-size: min(2rem, 7vw);
+        transform: none;
     }
 
     .ro-arena {
@@ -356,6 +364,7 @@
 
     .ro-sport-mark {
         left: var(--lwc-space-5);
+        top: auto;
         bottom: 22vw;
         font-size: min(0.625rem, 2.6vw);
     }
@@ -367,7 +376,7 @@
     }
 
     .ro-guide h1 {
-        font-size: min(2.25rem, 9.5vw);
+        font-size: 2.25rem;
     }
 
     .ro-essay > p {
