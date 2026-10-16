@@ -87,6 +87,38 @@ public sealed class RejuvenationOlympicsBrowserTests(
     }
 
     [Theory]
+    [InlineData(1440, 900)]
+    [InlineData(820, 1180)]
+    [InlineData(390, 844)]
+    [InlineData(320, 640)]
+    public async Task PosterTagline_StaysClearOfTheRacingLineAndIntroCard(int width, int height)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = height }
+        });
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/rejuvenation-olympics");
+        await page.EvaluateAsync("document.fonts.ready");
+        var overlaps = await page.EvaluateAsync<string[]>(
+            """
+            () => {
+                const box = selector => document.querySelector(selector)?.getBoundingClientRect();
+                const hits = (a, b) => !!b && a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+                const tagline = box('.ro-sport-mark');
+                const artwork = box('.ro-artwork');
+                return [
+                    hits(tagline, box('.ro-racing-line')) ? 'racing line' : '',
+                    hits(tagline, box('.ro-intro')) ? 'intro card' : '',
+                    hits(tagline, box('.ro-artwork-mark')) ? 'RO x LWC mark' : '',
+                    tagline.left < artwork.left || tagline.right > artwork.right || tagline.bottom > artwork.bottom ? 'poster edge' : ''
+                ].filter(Boolean);
+            }
+            """);
+        Assert.Empty(overlaps);
+    }
+
+    [Theory]
     [InlineData(1440)]
     [InlineData(390)]
     public async Task HomepageDiscoveryAndJoinCta_ReachTheNewAthleteTrackChoice(int width)
