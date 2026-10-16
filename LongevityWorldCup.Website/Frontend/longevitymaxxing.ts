@@ -7399,15 +7399,11 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         input.setAttribute("aria-controls", listId);
         let currentFocus = -1;
         let pointerGesture = false;
-        let closeAfterPointerGesture = false;
-        const finishPointerGesture = () => requestAnimationFrame(() => {
-            pointerGesture = false;
-            if (closeAfterPointerGesture && container && !container.contains(document.activeElement)) closeList();
-            closeAfterPointerGesture = false;
-        });
+        const finishPointerGesture = () => { pointerGesture = false; };
         document.addEventListener("pointerdown", () => { pointerGesture = true; }, true);
-        document.addEventListener("pointerup", finishPointerGesture, true);
         document.addEventListener("pointercancel", finishPointerGesture, true);
+        document.addEventListener("keydown", finishPointerGesture, true);
+        window.addEventListener("blur", finishPointerGesture);
         const selected = document.getElementById(`${input.id}Selected`);
         const clearButton = document.getElementById(`${input.id}Clear`);
         const selector: AthleteSelectorController = {
@@ -7495,10 +7491,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         });
         container?.addEventListener("focusout", event => {
             // Closing this in-flow list on pointer blur moves the next control before its click lands.
-            if (event.relatedTarget instanceof Node && !container.contains(event.relatedTarget)) {
-                if (pointerGesture) closeAfterPointerGesture = true;
-                else closeList();
-            }
+            if (!pointerGesture && event.relatedTarget instanceof Node && !container.contains(event.relatedTarget)) closeList();
         });
 
         container?.addEventListener("keydown", event => {
@@ -7534,8 +7527,10 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         });
 
         document.addEventListener("click", event => {
+            // Touch compatibility clicks can follow pointerup in a later frame; their target is fixed here.
+            finishPointerGesture();
             if (!container || !event.composedPath().includes(container)) closeList();
-        });
+        }, true);
 
         clearButton?.addEventListener("click", () => {
             selector.clear();

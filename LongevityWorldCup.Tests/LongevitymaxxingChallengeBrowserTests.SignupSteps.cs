@@ -78,6 +78,18 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await page.Locator("#lmxSignupAthlete").FocusAsync();
         await Assertions.Expect(page.Locator(".lmx-athlete-option")).ToBeVisibleAsync();
         var button = page.Locator("#lmxSignupTimeZoneButton");
+        Assert.True(await button.EvaluateAsync<bool>("""
+            async (button, touch) => {
+                const before = button.getBoundingClientRect();
+                const pointerType = touch ? 'touch' : 'mouse';
+                button.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerType }));
+                button.focus({ preventScroll: true });
+                button.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerType }));
+                await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                const after = button.getBoundingClientRect();
+                return before.top === after.top && before.left === after.left;
+            }
+            """, touch));
         if (touch) await button.TapAsync();
         else await button.ClickAsync();
         var search = page.Locator("#lmxSignupTimeZoneSearch");
