@@ -29,7 +29,8 @@ var pages = new[]
         Source: Path.Combine(repoRoot, "LongevityWorldCup.Documentation", "Ruleset.md"),
         Output: Path.Combine(websiteRoot, "wwwroot", "misc-pages", "ruleset.html"),
         CanonicalPath: "/ruleset",
-        SourceUrl: "https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/Ruleset.md")
+        SourceUrl: "https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/Ruleset.md",
+        Reference: true)
 };
 
 var pipeline = new MarkdownPipelineBuilder()
@@ -45,6 +46,12 @@ foreach (var page in pages)
     var documentHtml = AddTableCellLabels(OpenAbsoluteLinksInNewTabs(RewriteWebsiteAssetImageSources(Markdown.ToHtml(markdown, pipeline))));
     var contentsHtml = BuildContentsNav(documentHtml, page.SourceUrl);
     documentHtml = BuildTimeline(documentHtml);
+    if (page.Reference)
+    {
+        documentHtml = ReferencePage.BuildDocument(documentHtml);
+        contentsHtml = ReferencePage.BuildContents(contentsHtml, documentHtml);
+    }
+
     var pageHtml = NormalizeGeneratedHtml(RenderPage(title, documentHtml, contentsHtml, page));
 
     Directory.CreateDirectory(Path.GetDirectoryName(page.Output)!);
@@ -1067,13 +1074,13 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
                 line-height: 1.65;
             }
         }
-    </style>
+    </style>{{(page.Reference ? ReferencePage.Style : string.Empty)}}
 </head>
 <body>
     <!--HEADER-->
     <main class="documentation-page {{pageClass}}">
 {{contentsHtml}}
-        <article class="documentation-document">
+        <article class="documentation-document{{(page.Reference ? " ruleset-document" : string.Empty)}}">
 {{documentHtml}}
         </article>
     </main>
@@ -1249,10 +1256,10 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
                 window.requestAnimationFrame(synchronizeNavigationFromHash);
             }
         });
-    </script>
+    </script>{{(page.Reference ? ReferencePage.Script : string.Empty)}}
 </body>
 </html>
 """;
 }
 
-internal sealed record DocumentationPage(string Source, string Output, string CanonicalPath, string SourceUrl);
+internal sealed record DocumentationPage(string Source, string Output, string CanonicalPath, string SourceUrl, bool Reference = false);
