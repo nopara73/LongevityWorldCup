@@ -125,8 +125,10 @@ public sealed class LeagueFilterResponsiveBrowserTests(
         await page.EmulateMediaAsync(new() { ColorScheme = dark ? ColorScheme.Dark : ColorScheme.Light });
         await page.GotoAsync("/leaderboard?filters=open,baby%20boomers", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
         await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+        await page.WaitForFunctionAsync("() => [...document.querySelectorAll('link[rel=stylesheet]')].every(link => link.sheet)");
         await page.EvaluateAsync("document.documentElement.style.fontSize = '200%'");
         await page.Locator(".sidebar-toggle").ClickAsync();
+        await Assertions.Expect(page.Locator(".sidebar-panel")).Not.ToHaveAttributeAsync("inert", "");
         await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
         var problems = await page.EvaluateAsync<string[]>("""
             () => {
