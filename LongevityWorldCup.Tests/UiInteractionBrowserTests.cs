@@ -76,6 +76,41 @@ public sealed class UiInteractionBrowserTests(
     [Theory]
     [InlineData(1440)]
     [InlineData(390)]
+    public async Task Profile_ReverseTabKeepsNestedFocusVisibleWhenTheEmbedGrows(int width)
+    {
+        await using var context = await NewContextAsync(width, 900);
+        await context.AddInitScriptAsync("""
+            if (window === window.top) {
+                window.holdEmbedHeight = true;
+                window.pendingEmbedHeights = [];
+                window.addEventListener('message', event => {
+                    if (event.data?.type !== 'events-embed-height' || !window.holdEmbedHeight) return;
+                    event.stopImmediatePropagation();
+                    window.pendingEmbedHeights.push({ source: event.source, data: event.data });
+                }, true);
+            }
+            """);
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/athlete/michael-lustgarten", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await Assertions.Expect(page.Locator("#detailsModal .modal-content")).Not.ToHaveClassAsync(new System.Text.RegularExpressions.Regex("is-loading"));
+        await Assertions.Expect(page.FrameLocator("#events-frame").Locator("a[href]:visible").First).ToBeVisibleAsync();
+        await page.WaitForFunctionAsync("() => window.pendingEmbedHeights.some(message => message.source === document.getElementById('events-frame').contentWindow && message.data.h > 1)");
+        await page.Locator("#closeAthleteDetailsModal").FocusAsync();
+        await page.Keyboard.PressAsync("Shift+Tab");
+        await page.EvaluateAsync("""
+            () => {
+                window.holdEmbedHeight = false;
+                for (const message of window.pendingEmbedHeights) window.dispatchEvent(new MessageEvent('message', message));
+                window.pendingEmbedHeights = [];
+            }
+            """);
+        await page.WaitForFunctionAsync("() => document.getElementById('events-frame').clientHeight > 1");
+        await WaitForVisibleFocusAsync(page);
+    }
+
+    [Theory]
+    [InlineData(1440)]
+    [InlineData(390)]
     public async Task Profile_ReverseTabRevealsItsTargetWhileEventFrameIsPending(int width)
     {
         await using var context = await NewContextAsync(width, 900);
@@ -342,24 +377,39 @@ public sealed class UiInteractionBrowserTests(
         Assert.False(await page.Locator("body").EvaluateAsync<bool>("e => e.classList.contains('no-scroll')"));
     }
 
-    private static Task WaitForVisibleFocusAsync(IPage page) => page.WaitForFunctionAsync("""
-        () => {
-            let element = document.activeElement;
-            const frame = element.tagName === 'IFRAME' ? element : null;
-            let rect = element.getBoundingClientRect();
-            if (frame) {
-                element = frame.contentDocument.activeElement;
-                const child = element.getBoundingClientRect();
-                rect = { left: rect.left + child.left, top: rect.top + child.top, width: child.width, height: child.height };
-            }
-            if (!rect.width || !rect.height) return false;
-            const hit = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
-            return frame ? hit === frame : !!hit && element.contains(hit);
+    private static async Task WaitForVisibleFocusAsync(IPage page)
+    {
+        try
+        {
+            await page.WaitForFunctionAsync("""
+                () => {
+                    let element = document.activeElement;
+                    const frame = element.tagName === 'IFRAME' ? element : null;
+                    let rect = element.getBoundingClientRect();
+                    if (frame) {
+                        element = frame.contentDocument.activeElement;
+                        const child = element.getBoundingClientRect();
+                        rect = { left: rect.left + child.left, top: rect.top + child.top, width: child.width, height: child.height };
+                    }
+                    if (!rect.width || !rect.height) return false;
+                    const hit = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
+                    return frame ? hit === frame : !!hit && element.contains(hit);
+                }
+                """, options: new() { Timeout = 5000 });
         }
-        """, options: new() { Timeout = 5000 });
+        catch (TimeoutException)
+        {
+            await CaptureAsync(page, "focus-failure");
+            throw new Xunit.Sdk.XunitException(await FocusDiagnosticsAsync(page));
+        }
+    }
 
     private static Task<string> FocusDiagnosticsAsync(IPage page) => page.EvaluateAsync<string>("""
         () => JSON.stringify({ active:document.activeElement.outerHTML.slice(0,200),
+            activeRect:document.activeElement.getBoundingClientRect().toJSON(),
+            frameRect:document.querySelector('#events-frame')?.getBoundingClientRect().toJSON(),
+            childRect:document.querySelector('#events-frame')?.contentDocument?.activeElement?.getBoundingClientRect().toJSON(),
+            scrollers:[...document.querySelectorAll('#detailsModal, #detailsModal .modal-content')].map(e => ({id:e.id, className:e.className, top:e.scrollTop, height:e.clientHeight, total:e.scrollHeight})),
             frame:document.querySelector('#events-frame')?.contentDocument?.activeElement?.outerHTML.slice(0,200),
             controls:[...document.querySelectorAll('#detailsModal a[href], #detailsModal button')]
                 .filter(e => e.getClientRects().length && !e.closest('[hidden], [inert]'))

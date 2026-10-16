@@ -35,7 +35,16 @@ public sealed class ApplyStageLayoutBrowserTests(
 
         await page.Locator("#nextButton").ClickAsync();
         await page.WaitForFunctionAsync("() => document.body.dataset.convergenceStage === '2'");
-        await page.EvaluateAsync("async () => { document.documentElement.style.scrollBehavior = 'auto'; window.scrollTo(0, 0); await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))); }");
+        await page.EvaluateAsync("async () => { document.documentElement.style.scrollBehavior = 'auto'; window.scrollTo(0, 0); await document.fonts.ready; window.LwcFlowActionDock?.refreshNow(); }");
+        // Stage focus and docking can still change scroll/layout after the stage attribute changes.
+        // Observe the completed stage before taking one geometry snapshot.
+        await page.WaitForFunctionAsync("""
+            () => {
+                const story = document.getElementById('descriptionForm').getBoundingClientRect();
+                const task = document.getElementById('inputForm').getBoundingClientRect();
+                return story.height > 0 && task.height > 0 && Math.abs(task.top - story.bottom) <= 1;
+            }
+            """, options: new() { Timeout = 5_000 });
 
         var layout = await page.EvaluateAsync<double[]>(
             """
@@ -56,7 +65,7 @@ public sealed class ApplyStageLayoutBrowserTests(
         Assert.True(layout[18] >= 1, $"{scenario}: the stage card should draw one border around story and task.");
         foreach (var (left, right) in new[] { (layout[4], layout[5]), (layout[7], layout[8]), (layout[11], layout[12]) })
             Assert.True(Math.Abs(left - layout[0]) <= 2 && Math.Abs(right - layout[1]) <= 2, $"{scenario}: story, banner and task should span the one card.");
-        Assert.True(Math.Abs(layout[9] - layout[6]) <= 1, $"{scenario}: the task should follow the story inside the same card.");
+        Assert.True(Math.Abs(layout[9] - layout[6]) <= 1, $"{scenario}: the task should follow the story inside the same card (story bottom {layout[6]}, task top {layout[9]}).");
         Assert.True(Math.Abs(layout[13] - layout[2]) <= 2, $"{scenario}: the illustration should be the card's top banner.");
         Assert.True(layout[14] <= Math.Max(240, layout[16] * 0.32), $"{scenario}: the banner is too tall ({layout[14]}px).");
         if (textPercent == 100)
