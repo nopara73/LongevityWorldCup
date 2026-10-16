@@ -410,6 +410,10 @@ internal static partial class ReferencePage
         }
 
         @media (max-width: 600px) {
+            .documentation-document.ruleset-document {
+                padding: min(1.1rem, 18px);
+            }
+
             .documentation-document .ruleset-rule > h2 {
                 gap: 0.7rem;
             }
@@ -441,6 +445,8 @@ internal static partial class ReferencePage
 
             .ruleset-faq.is-enhanced .ruleset-faq-toggle {
                 margin-right: 0.3rem;
+                max-width: 56px;
+                max-height: 56px;
             }
         }
 
@@ -464,8 +470,16 @@ internal static partial class ReferencePage
             }
 
             const items = Array.from(faq.querySelectorAll(".ruleset-faq-item"));
+            // Browsers without hidden-until-found support keep the answers readable
+            // and searchable instead of treating the value as ordinary hidden.
+            if (!("onbeforematch" in document.body)) {
+                return;
+            }
             const setOpen = (item, open) => {
                 const answer = item.querySelector(".ruleset-faq-answer");
+                if (!open && answer.contains(document.activeElement)) {
+                    item.querySelector(".ruleset-faq-toggle")?.focus({ preventScroll: true });
+                }
                 item.classList.toggle("is-open", open);
                 item.querySelector(".ruleset-faq-toggle")?.setAttribute("aria-expanded", String(open));
                 if (open) {
@@ -487,6 +501,7 @@ internal static partial class ReferencePage
                 toggle.addEventListener("click", () => setOpen(item, !item.classList.contains("is-open")));
                 question.addEventListener("click", event => {
                     if (!event.target.closest("a") && !window.getSelection()?.toString()) {
+                        toggle.focus({ preventScroll: true });
                         setOpen(item, !item.classList.contains("is-open"));
                     }
                 });
@@ -504,15 +519,15 @@ internal static partial class ReferencePage
                 } catch {
                     return;
                 }
-                const question = id ? document.getElementById(id) : null;
-                const item = question?.closest(".ruleset-faq-item");
-                if (!item || question.tagName !== "H4") {
+                const target = id ? document.getElementById(id) : null;
+                const item = target?.closest(".ruleset-faq-item");
+                if (!item) {
                     return;
                 }
                 setOpen(item, true);
                 const stickyHeader = document.getElementById("site-sticky-header");
                 const offset = ((stickyHeader && stickyHeader.offsetHeight) || 52) + 18;
-                window.scrollTo({ top: question.getBoundingClientRect().top + window.scrollY - offset, behavior: "instant" });
+                window.scrollTo({ top: target.getBoundingClientRect().top + window.scrollY - offset, behavior: "instant" });
             };
             window.addEventListener("hashchange", openFromHash);
             openFromHash();

@@ -1080,7 +1080,7 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
     <!--HEADER-->
     <main class="documentation-page {{pageClass}}">
 {{contentsHtml}}
-        <article class="documentation-document">
+        <article class="documentation-document{{(page.Reference ? " ruleset-document" : string.Empty)}}">
 {{documentHtml}}
         </article>
     </main>
