@@ -4433,7 +4433,7 @@ function displayNoResults(tableRows, podiumItems, query) {
         const noResults = document.createElement('tr');
         noResults.classList.add('no-results');
         noResults.innerHTML = `
-            <td colspan="6">
+            <td colspan="${document.querySelectorAll('.leaderboard table thead th').length}">
                 <div class="no-results-empty-state">
                     <p>No athletes match this leaderboard.</p>
                     <button type="button" class="show-all-athletes-btn">Show all athletes</button>

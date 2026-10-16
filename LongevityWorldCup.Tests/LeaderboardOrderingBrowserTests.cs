@@ -51,6 +51,14 @@ public sealed class LeaderboardOrderingBrowserTests(PlaywrightBrowserFixture bro
             else Assert.Equal(value.Text, raw?.GetValue<string>());
             if (value.TestDate is not null) Assert.Equal(value.TestDate, item?["date"]?.GetValue<string>());
         }
+        Assert.True(await page.EvaluateAsync<bool>("""
+            () => {
+                const values = window.LwcLeaderboardOrder.values(
+                    { DateOfBirth: { Year: 1980, Month: 1, Day: 1 } },
+                    { crowdCount: 10, crowdAge: null, lowestBortzAge: null, chronoAtLowestBortzAge: 40 });
+                return values.crowd === null && values.crowdReduction === null && values.pace === null;
+            }
+            """));
     }
 
     [Fact]
@@ -136,6 +144,9 @@ public sealed class LeaderboardOrderingBrowserTests(PlaywrightBrowserFixture bro
         await Assertions.Expect(page.Locator("#leaderboardOrderToggle")).ToBeVisibleAsync();
         await Assertions.Expect(page.Locator("th[data-order-key=age]")).ToHaveAttributeAsync("aria-sort", "descending");
         await Assertions.Expect(page.Locator("th.leaderboard-order-column")).ToHaveCountAsync(2);
+        await page.Locator("#athleteSearch").FillAsync("no-athlete-matches-9081726354");
+        await Assertions.Expect(Rows(page)).ToHaveCountAsync(0);
+        await Assertions.Expect(page.Locator(".leaderboard .no-results td")).ToHaveAttributeAsync("colspan", "7");
     }
 
     [Theory]
