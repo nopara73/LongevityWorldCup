@@ -16,6 +16,12 @@ public sealed class NotFoundPageBrowserTests(
     [InlineData("/athletes/nobody-here/at-all", 1280, 720)]
     [InlineData("/athletes/nobody-here/at-all", 390, 844)]
     [InlineData("/no-such-page", 320, 640)]
+    [InlineData("/no-such-page", 560, 320)]
+    [InlineData("/athletes/nobody-here/at-all", 640, 360)]
+    [InlineData("/athletes/nobody-here/at-all", 667, 375)]
+    [InlineData("/no-such-page", 719, 375)]
+    [InlineData("/no-such-page", 720, 375)]
+    [InlineData("/no-such-page", 844, 390)]
     public async Task MissingPages_ShowHeroldAndHomeAsOneCardInTheFirstScreen(string path, int width, int height)
     {
         await using var context = await NewContextAsync(Browser, App, new()
@@ -28,7 +34,7 @@ public sealed class NotFoundPageBrowserTests(
         var page = await context.NewPageAsync();
         var response = await page.GotoAsync(path);
         Assert.Equal(404, response?.Status);
-        await page.WaitForFunctionAsync("() => document.querySelector('.not-found-visual img')?.complete");
+        await page.Locator(".not-found-visual img").EvaluateAsync("image => image.decode()");
         await page.EvaluateAsync("async () => { await document.fonts.ready; await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))); }");
 
         var layout = await page.EvaluateAsync<double[]>(
@@ -46,7 +52,7 @@ public sealed class NotFoundPageBrowserTests(
         foreach (var start in new[] { 5, 11 })
             Assert.True(layout[start] >= layout[1] - 1 && layout[start + 1] <= layout[2] + 1 && layout[start + 2] >= layout[3] - 1 && layout[start + 3] <= layout[4] + 1,
                 $"{scenario}: the photo and Home action should share the one card.");
-        if (width >= 720)
+        if (width >= 720 || width >= 560 && height <= 480)
             Assert.True(layout[6] <= layout[9] && layout[10] >= layout[7], $"{scenario}: the photo should sit beside the title.");
         else
             Assert.True(layout[8] <= layout[10], $"{scenario}: the photo should sit above the title.");
