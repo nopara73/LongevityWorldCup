@@ -36,7 +36,8 @@ public sealed class ApplyStageLayoutBrowserTests(
         await page.Locator("#nextButton").ClickAsync();
         await page.WaitForFunctionAsync("() => document.body.dataset.convergenceStage === '2'");
         await page.EvaluateAsync("async () => { document.documentElement.style.scrollBehavior = 'auto'; window.scrollTo(0, 0); await document.fonts.ready; window.LwcFlowActionDock?.refreshNow(); }");
-        // Stage changes can schedule font and dock layout after the stage attribute changes.
+        // Stage focus and docking can still change scroll/layout after the stage attribute changes.
+        // Observe the completed stage before taking one geometry snapshot.
         await page.WaitForFunctionAsync("""
             () => {
                 const story = document.getElementById('descriptionForm').getBoundingClientRect();

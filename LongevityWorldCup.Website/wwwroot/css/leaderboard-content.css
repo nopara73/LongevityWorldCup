@@ -776,6 +776,7 @@
  }
  .athlete-portrait-motion.is-playing{ opacity:1; }
  .podium-item .podium-portrait:hover ~ .athlete-portrait-motion{ transform:scale(1.04); }
+ .leaderboard .portrait:hover ~ .athlete-portrait-motion{ transform:scale(var(--portrait-hover-scale)); }
  #athlete-profile .athlete-portrait-motion{ width:calc(100% - 6px); height:calc(100% - 6px); }
  #athlete-profile .portrait-wrapper:hover .athlete-portrait-motion{ transform:scale(1.05); }
  @media (prefers-reduced-motion:reduce){
