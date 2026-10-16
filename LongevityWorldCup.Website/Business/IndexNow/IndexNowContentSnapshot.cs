@@ -104,7 +104,7 @@ public sealed class IndexNowContentSnapshot(
                 content = leaderboard.Rows.Select(row => new { row.Slug, row.DisplayName }).ToArray();
             else if (path == "/events")
                 content = sharedEvents;
-            else if (path is "/longevitymaxxing" or "/helstab-kihivas")
+            else if (path == "/longevitymaxxing")
                 content = challenge;
 
             var url = SiteBaseUrl + new PathString(path).ToUriComponent();

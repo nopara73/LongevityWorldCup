@@ -13,7 +13,7 @@ Content dependencies include:
 - Approved profile biography, result history/corrections, portrait identity, proof content, public badges, placements and profile highlights.
 - Leaderboard rows and the athletes in each league/flag cohort. Old and new cohorts are compared when membership changes. Crowd count changes are grouped into progressively larger increments; median changes remain detectable.
 - Website-visible published Events, including referenced athlete names and portraits. Accepted-test and season-result Events remain profile-only and do not create shared-announcement notifications. Social-only and future Events are excluded.
-- Public Longevitymaxxing/Helstab challenge state; no participant access or submission URLs are queued.
+- Public Longevitymaxxing Challenge state; no participant access or submission URLs are queued.
 - Published page templates, their nested partials, and relevant rendering/calculation/frontend source. `GenerateIndexNowContentManifest` writes content hashes into `indexnow-content.txt` for deployment without requiring source files or Node on the server. When adding a rendering dependency, add it to the appropriate manifest group and the page dependency mapping if needed.
 
 Hashes exclude file/build times, generated Markdown timestamps, proof cache-version timestamps, and private contact email fields. Changing a file's timestamp alone or restarting unchanged code does not resubmit its pages. A missing build manifest aborts the scan and retains the ledger. Removed URLs retain a tombstone and are submitted even when their response is 404/410; an unchanged tombstone is not resubmitted after acceptance.

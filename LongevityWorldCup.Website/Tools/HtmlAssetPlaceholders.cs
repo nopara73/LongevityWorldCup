@@ -40,7 +40,6 @@ public static partial class HtmlAssetPlaceholders
         ["{{ASSET_HD_LOGO_THUMB_SM}}"] = "/assets/HdLogo_thumb_sm.png",
         ["{{ASSET_HEADSHOT_JPEG}}"] = "/assets/content-images/headshot.jpg",
         ["{{ASSET_HEADSHOT_WEBP}}"] = "/assets/content-images/headshot.webp",
-        ["{{ASSET_HELSTAB_KIHIVAS_CSS}}"] = "/css/helstab-kihivas.css",
         ["{{ASSET_JUST_TRACK_IT_IMAGE}}"] = "/assets/content-images/JustTrackIt.jpg",
         ["{{ASSET_LEAGUE_ICONS_JS}}"] = "/js/leagueIcons.js",
         ["{{ASSET_LONGEVITYMAXXING_CSS}}"] = "/css/longevitymaxxing.css",
