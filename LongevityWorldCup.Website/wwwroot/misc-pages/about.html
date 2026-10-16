@@ -446,6 +446,229 @@
             outline-offset: -2px;
         }
 
+        /* About reads as a designed article: a cover with a lede and a full-width
+           silhouette, numbered chapters, a contents rail that fills as the reader
+           moves through them, and the closing links as destination tiles. */
+        .documentation-page-about .documentation-document {
+            --about-bleed: clamp(1.35rem, 3vw, 2.2rem);
+            counter-reset: about-chapter;
+            padding: var(--about-bleed);
+            border-radius: var(--lwc-radius-lg, 8px);
+            box-shadow: var(--lwc-shadow-sm, none);
+            overflow: hidden;
+        }
+
+        .documentation-page-about .documentation-document h1 {
+            margin-bottom: 1.4rem;
+            padding-bottom: 0;
+            border-bottom: 0;
+            font-size: clamp(2.3rem, 5vw, 3.35rem);
+            line-height: 1.06;
+        }
+
+        .documentation-page-about .documentation-document h1::after {
+            content: "";
+            display: block;
+            width: 3.5rem;
+            height: 4px;
+            margin-top: 1.1rem;
+            border-radius: 2px;
+            background: var(--lwc-accent, var(--primary-color));
+        }
+
+        .documentation-page-about .documentation-document h1 ~ p:not(:has(> img), :has(> img) ~ p) {
+            color: var(--lwc-ink, #233142);
+            font-size: clamp(1.12rem, 1.6vw, 1.26rem);
+            line-height: 1.6;
+        }
+
+        .documentation-page-about .documentation-document p:has(> img) {
+            margin: 2rem calc(-1 * var(--about-bleed)) 0;
+        }
+
+        .documentation-page-about .documentation-document p > img {
+            width: 100%;
+            max-width: none;
+            max-height: none;
+            aspect-ratio: 16 / 9;
+            margin: 0;
+            border: 0;
+            border-block: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.12));
+            border-radius: 0;
+            object-fit: cover;
+            object-position: 50% 8%;
+        }
+
+        .documentation-page-about .documentation-document p:has(> img) + p {
+            margin: 0.85rem 0 0;
+            padding-left: 0.85rem;
+            border-left: 3px solid var(--lwc-accent, var(--primary-color));
+            color: var(--lwc-muted, #506176);
+            font-size: var(--lwc-type-sm, 0.875rem);
+            line-height: 1.5;
+        }
+
+        .documentation-page-about .documentation-document h2 {
+            position: relative;
+            counter-increment: about-chapter;
+            margin-top: 3.4rem;
+            padding-top: 1.45rem;
+        }
+
+        .documentation-page-about .documentation-document h2::before {
+            content: counter(about-chapter, decimal-leading-zero);
+            position: absolute;
+            top: 0;
+            left: 0;
+            padding-right: 0.8rem;
+            transform: translateY(-50%);
+            background: var(--lwc-surface, #ffffff);
+            color: var(--lwc-accent, var(--primary-color));
+            font-variant-numeric: tabular-nums;
+            font-size: 0.95rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            line-height: 1;
+        }
+
+        .documentation-page-about #where-to-go-next + ul {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(min(100%, 13.5rem), 1fr));
+            gap: 0.75rem;
+            margin: 1.25rem 0 0;
+            padding: 0;
+            list-style: none;
+        }
+
+        .documentation-page-about #where-to-go-next + ul > li {
+            position: relative;
+            margin: 0;
+            padding: 1rem 1.1rem 1.05rem;
+            border: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.1));
+            border-radius: var(--lwc-radius-lg, 8px);
+            background: var(--lwc-surface-muted, #eef2f5);
+            color: var(--lwc-muted, #506176);
+            font-size: 0.97rem;
+            line-height: 1.5;
+            transition: border-color var(--lwc-duration-fast, 0.15s) var(--lwc-ease, ease),
+                box-shadow var(--lwc-duration-fast, 0.15s) var(--lwc-ease, ease);
+        }
+
+        .documentation-page-about #where-to-go-next + ul > li > a {
+            font-size: 1.06rem;
+            text-decoration: none;
+        }
+
+        .documentation-page-about #where-to-go-next + ul > li > a::after {
+            content: "";
+            position: absolute;
+            inset: -1px;
+            border-radius: inherit;
+        }
+
+        .documentation-page-about #where-to-go-next + ul > li:hover,
+        .documentation-page-about #where-to-go-next + ul > li:focus-within {
+            border-color: var(--lwc-accent, var(--primary-color));
+            box-shadow: var(--lwc-shadow-sm, none);
+        }
+
+        .documentation-page-about #where-to-go-next + ul > li > a:focus-visible {
+            outline: none;
+        }
+
+        .documentation-page-about #where-to-go-next + ul > li > a:focus-visible::after {
+            outline: 3px solid var(--lwc-accent-bright, #19c3d1);
+            outline-offset: 2px;
+        }
+
+        /* The contents become a numbered rail; it fills with the accent up to the
+           section being read. */
+        .documentation-page-about .documentation-nav {
+            border: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.1));
+            border-radius: var(--lwc-radius-lg, 8px);
+            counter-reset: about-contents;
+        }
+
+        .documentation-page-about .documentation-nav-links {
+            gap: 0;
+        }
+
+        .documentation-page-about .documentation-nav a.documentation-nav-level-2 {
+            counter-increment: about-contents;
+            gap: 0.6rem;
+            border-left: 3px solid var(--lwc-border, #d7e0e6);
+            border-radius: 0 var(--lwc-radius-sm) var(--lwc-radius-sm) 0;
+        }
+
+        .documentation-page-about .documentation-nav a.documentation-nav-level-2::before {
+            content: counter(about-contents, decimal-leading-zero);
+            flex: 0 0 auto;
+            min-width: 1.6rem;
+            color: var(--lwc-muted, #526373);
+            font-variant-numeric: tabular-nums;
+            font-size: var(--lwc-type-xs, 0.75rem);
+            font-weight: 700;
+            letter-spacing: 0.04em;
+        }
+
+        .documentation-page-about .documentation-nav a.documentation-nav-level-2:has(~ a.is-active),
+        .documentation-page-about .documentation-nav a.documentation-nav-level-2.is-active {
+            border-left-color: var(--lwc-accent, var(--primary-color));
+        }
+
+        .documentation-page-about .documentation-nav a.documentation-nav-level-2:has(~ a.is-active)::before,
+        .documentation-page-about .documentation-nav a.documentation-nav-level-2.is-active::before {
+            color: var(--lwc-accent-hover, #047888);
+        }
+
+        .documentation-page-about .documentation-nav a.documentation-nav-level-2.is-active {
+            box-shadow: none;
+        }
+
+        @media (max-width: 900px) {
+            .documentation-page-about .documentation-nav {
+                border-top: 3px solid var(--lwc-accent, var(--primary-color));
+                border-radius: 0 0 var(--lwc-radius-lg, 8px) var(--lwc-radius-lg, 8px);
+            }
+
+            .documentation-page-about .documentation-nav-links {
+                gap: 0.2rem;
+            }
+
+            .documentation-page-about .documentation-nav a.documentation-nav-level-2 {
+                border-radius: 0 var(--lwc-radius-sm) var(--lwc-radius-sm) 0;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .documentation-page-about .documentation-document {
+                --about-bleed: 1.1rem;
+            }
+
+            .documentation-page-about .documentation-document p > img {
+                aspect-ratio: 4 / 3;
+            }
+
+            .documentation-page-about #where-to-go-next + ul > li {
+                padding: 0.8rem 0.85rem 0.85rem;
+            }
+
+            .documentation-page-about #where-to-go-next + ul > li > a {
+                font-size: inherit;
+            }
+
+            .documentation-page-about .documentation-document h2 {
+                margin-top: 2.8rem;
+                padding-top: 1.3rem;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .documentation-page-about #where-to-go-next + ul > li {
+                transition: none;
+            }
+        }
+
         /* Dated entries read as a timeline: a rail with one marker per entry, the
            date as a small line above a short title. Announced entries are hollow. */
         .documentation-timeline {
@@ -566,7 +789,7 @@
 </head>
 <body>
     <!--HEADER-->
-    <main class="documentation-page">
+    <main class="documentation-page documentation-page-about">
         <nav class="documentation-nav" aria-label="Document navigation">
             <button type="button" class="documentation-nav-toggle" aria-expanded="false" aria-controls="documentation-nav-links">
                 <span>On this page</span><span class="documentation-nav-toggle-icon" aria-hidden="true">+</span>

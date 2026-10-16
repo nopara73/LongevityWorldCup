@@ -63,6 +63,7 @@ public sealed class PageOgImageServiceTests(TestWebApplicationFactory sharedFact
     [InlineData("")]
     [InlineData("missing")]
     [InlineData("view-unknown")]
+    [InlineData("helstab-kihivas")]
     public void TryGetCurrentPayload_RejectsUnknownPageSlug(string rawSlug)
     {
         var factory = sharedFactory;

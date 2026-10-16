@@ -1573,7 +1573,6 @@ public sealed class AestheticSystemBrowserTests(
         if (normalized.Contains("leaderboard") || normalized.Contains("guess-my-age") || normalized.Contains("badges")) return "/leaderboard";
         if (normalized.Contains("event-board")) return "/events";
         if (normalized.Contains("longevitymaxxing")) return "/longevitymaxxing";
-        if (normalized.Contains("helstab-kihivas")) return "/helstab-kihivas";
         if (normalized.Contains("play-menu")) return "/play";
         if (normalized.Contains("convergence")
             || normalized.Contains("play-athlete-flow")

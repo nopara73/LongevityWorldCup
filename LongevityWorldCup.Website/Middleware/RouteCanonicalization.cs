@@ -31,7 +31,6 @@ namespace LongevityWorldCup.Website.Middleware
             new("/events", "/event-board/event-board.html", "/event-board", "/event-board/event-board", "/event-board/event-board.html"),
             new("/leaderboard", "/leaderboard/leaderboard.html", "/leaderboard/leaderboard", "/leaderboard/leaderboard.html"),
             new("/longevitymaxxing", "/longevitymaxxing/longevitymaxxing.html", "/longevitymaxxing/longevitymaxxing", "/longevitymaxxing/longevitymaxxing.html"),
-            new("/helstab-kihivas", "/helstab-kihivas/helstab-kihivas.html", "/helstab-kihivas/helstab-kihivas", "/helstab-kihivas/helstab-kihivas.html"),
             new("/media", "/misc-pages/media.html", "/misc-pages/media", "/misc-pages/media.html"),
             new("/about", "/misc-pages/about.html", "/misc-pages/about", "/misc-pages/about.html"),
             new("/history", "/misc-pages/history.html", "/misc-pages/history", "/misc-pages/history.html"),
