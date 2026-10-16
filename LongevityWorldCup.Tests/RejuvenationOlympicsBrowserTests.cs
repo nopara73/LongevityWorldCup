@@ -121,6 +121,7 @@ public sealed class RejuvenationOlympicsBrowserTests(
                 const tagline = box('.ro-sport-mark');
                 const artwork = box('.ro-artwork');
                 return [
+                    artwork.left < 0 || artwork.right > innerWidth + 1 ? 'poster overflows viewport' : '',
                     hits(tagline, box('.ro-racing-line')) ? 'racing line' : '',
                     hits(tagline, box('.ro-intro')) ? 'intro card' : '',
                     hits(tagline, box('.ro-artwork-mark')) ? 'RO x LWC mark' : '',

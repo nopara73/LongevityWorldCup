@@ -21,8 +21,9 @@
 .ro-artwork {
     --ro-poster-accent: #5bd5dd;
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     grid-template-rows: 1fr auto;
+    width: 100%;
     aspect-ratio: 2.35;
     min-height: 16rem;
     overflow: hidden;
