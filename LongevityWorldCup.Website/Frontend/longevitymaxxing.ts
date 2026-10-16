@@ -4879,12 +4879,14 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             checkInResetUndo.delete(key);
             checkInSubmissions.delete(key);
             const stillOnSubmittedDay = selectedCheckInDay === payload.challengeDay;
+            // Rendering can automatically switch to Home after the last due check-in.
+            const stillViewingSubmittedDay = stillOnSubmittedDay && participantActiveTab === "checkin";
             acceptParticipantState(result);
             const nextMissing = getPendingCheckInDays(result)
                 .sort((a, b) => a.challengeDay - b.challengeDay)[0];
             if (stillOnSubmittedDay) selectedCheckInDay = nextMissing ? nextMissing.challengeDay : payload.challengeDay;
             renderAll();
-            if (quoteBucket && stillOnSubmittedDay && participantActiveTab === "checkin") void showRandomCheckInQuote(quoteBucket);
+            if (quoteBucket && stillViewingSubmittedDay) void showRandomCheckInQuote(quoteBucket);
         } catch (err) {
             if (accessToken === currentAccessToken) checkInErrors.set(key, messageOf(err));
         } finally {
