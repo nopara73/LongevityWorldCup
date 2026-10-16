@@ -815,7 +815,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
         var replyBox = await replyButtons.First.BoundingBoxAsync();
         Assert.NotNull(replyBox);
         Assert.True(replyBox.Width >= 44 && replyBox.Height >= 44, $"Expected at least a 44px discussion reply target; got {replyBox.Width}x{replyBox.Height}.");
-        var discussionInput = page.Locator(".lmx-checkin-entry > .lmx-field textarea[data-mention-input]").First;
+        var discussionInput = page.Locator(".lmx-checkin-card textarea[data-mention-input]").First;
         Assert.Equal("", await discussionInput.InputValueAsync());
         await discussionInput.FillAsync("Unsaved check-in discussion draft.");
         var unsavedExerciseNo = page.Locator(".lmx-checkin-card .lmx-question[data-key='exercise'] input[value='0']");
