@@ -5564,3 +5564,40 @@ a.lmx-note-mention:focus-visible {
         margin-left: 0;
     }
 }
+
+/* Nobody to rank: drop the day columns and their pager, and let the message
+   be the board instead of a header row of dates over a blank line. */
+.lmx-board-wrap--empty #lmxWeekPager,
+.lmx-board-wrap--empty .lmx-board .lmx-board-row.header {
+    display: none !important;
+}
+
+.lmx-board-wrap--empty .lmx-board-scroll {
+    overflow: visible;
+}
+
+.lmx-board-wrap--empty .lmx-board .lmx-board-row.lmx-empty-row {
+    display: grid;
+    place-items: center;
+    min-height: 7rem;
+    margin: 0.25rem 0 0.5rem;
+    border: 1px dashed var(--lmx-border, var(--lwc-border));
+    border-radius: var(--lwc-radius-md, 8px);
+    background: var(--lmx-surface-muted, var(--lwc-surface-muted));
+}
+
+.lmx-board-wrap--empty .lmx-board .lmx-board-row.lmx-empty-row > .lmx-name {
+    width: auto;
+    justify-self: center;
+    padding-inline: 1rem !important;
+    text-align: center;
+}
+
+.lmx-board-wrap--empty .lmx-board .lmx-board-row.lmx-empty-row .lmx-empty-name {
+    font-size: 1.05rem;
+}
+
+.lmx-board-wrap--empty .lmx-board {
+    width: auto !important;
+    min-width: 0 !important;
+}

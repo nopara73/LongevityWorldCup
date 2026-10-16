@@ -2187,6 +2187,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             <div class="lmx-number lmx-sticky-heading" role="columnheader">Score</div>
             <div class="lmx-cell-strip lmx-header-days" role="presentation">${dayHeaders}</div>
         </div>${rows || emptyBoardRow(visibleDays, leaderboardRows.inactive.length)}`;
+        // With nobody to show, the day columns and their pager have nothing to label.
+        board.closest(".lmx-board-wrap")?.classList.toggle("lmx-board-wrap--empty", !rows);
     }
 
     function practiceDayCellHtml(cell: DayCell, state: PublicState): string {
