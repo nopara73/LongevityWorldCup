@@ -1014,3 +1014,70 @@
         --events-header-action: #5bd5dd;
     }
 }
+
+/* Highlights page: milestones stand out from the stream of joins and badges. */
+.event-board-page .events-board tr.main-row:is(
+    [data-event-type-name="BiologicalAgeImproved"],
+    [data-event-type-name="AgeImprovementTop10Change"],
+    [data-event-type-name="CrowdAgeTop10Change"],
+    [data-event-type-name="NewRank"],
+    [data-event-type-name="BecamePro"],
+    [data-event-type-name="LongevitymaxxingChallengeResult"],
+    [data-event-type-name="AthleteCountMilestone"],
+    [data-event-type-name="DonationReceived"],
+    [data-event-type-name="SeasonFinalResult"],
+    [data-event-type-name="CustomEvent"]
+) > td {
+    background-color: var(--lwc-surface-accent, #e6f4f6);
+}
+
+.event-board-page .events-board tr.main-row:is(
+    [data-event-type-name="BiologicalAgeImproved"],
+    [data-event-type-name="AgeImprovementTop10Change"],
+    [data-event-type-name="CrowdAgeTop10Change"],
+    [data-event-type-name="NewRank"],
+    [data-event-type-name="BecamePro"],
+    [data-event-type-name="LongevitymaxxingChallengeResult"],
+    [data-event-type-name="AthleteCountMilestone"],
+    [data-event-type-name="DonationReceived"],
+    [data-event-type-name="SeasonFinalResult"],
+    [data-event-type-name="CustomEvent"]
+) > td.col-avatar {
+    box-shadow: inset 4px 0 0 var(--lwc-accent, #087685);
+}
+
+.event-board-page .events-board tr.main-row:is(
+    [data-event-type-name="BiologicalAgeImproved"],
+    [data-event-type-name="AgeImprovementTop10Change"],
+    [data-event-type-name="CrowdAgeTop10Change"],
+    [data-event-type-name="NewRank"],
+    [data-event-type-name="BecamePro"],
+    [data-event-type-name="LongevitymaxxingChallengeResult"],
+    [data-event-type-name="AthleteCountMilestone"],
+    [data-event-type-name="DonationReceived"],
+    [data-event-type-name="SeasonFinalResult"],
+    [data-event-type-name="CustomEvent"]
+) .event-message-cell {
+    padding-block: 0.7rem;
+    font-size: 1.06rem;
+    font-weight: 500;
+}
+
+.event-board-page .events-board tr.main-row:is(
+    [data-event-type-name="BiologicalAgeImproved"],
+    [data-event-type-name="AgeImprovementTop10Change"],
+    [data-event-type-name="CrowdAgeTop10Change"],
+    [data-event-type-name="NewRank"],
+    [data-event-type-name="BecamePro"],
+    [data-event-type-name="LongevitymaxxingChallengeResult"],
+    [data-event-type-name="SeasonFinalResult"]
+) :is(.avatar, .avatar-fallback) {
+    width: 34px;
+    height: 34px;
+    line-height: 34px;
+}
+
+.event-board-page .events-board tr.main-row:is([data-event-type-name="Joined"], [data-event-type-name="BadgeAward"]) .event-message-cell {
+    color: var(--lwc-muted, #52606d);
+    font-size: 0.95rem;
+}
