@@ -1575,3 +1575,33 @@ main.homepage-main .lwc-merch-body {
         border-top: 0;
     }
 }
+
+/* Enlarged text on phones: page titles shrink to fit their longest word
+   instead of breaking it letter by letter ("Longevitymaxxin / g"). Each cap
+   sits above the title's normal-size value, so it only bites when text is
+   enlarged. */
+@media (max-width: 600px) {
+    html body #about-longevity-world-cup {
+        font-size: min(2.3rem, 12vw);
+    }
+
+    html body #history-of-longevity-as-a-sport {
+        font-size: min(1.95rem, 11vw);
+    }
+
+    html body #ro-title {
+        font-size: min(2.25rem, 12.5vw);
+    }
+
+    html body #lmx-title {
+        font-size: min(2rem, 8.4vw);
+    }
+
+    html body .unsubscribe-panel h1 {
+        font-size: min(2rem, 12vw);
+    }
+
+    html body :is(#about-longevity-world-cup, #history-of-longevity-as-a-sport, #ro-title, #lmx-title, .unsubscribe-panel h1) {
+        overflow-wrap: break-word;
+    }
+}
