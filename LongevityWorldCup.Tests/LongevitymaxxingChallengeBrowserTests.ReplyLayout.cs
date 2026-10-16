@@ -8,6 +8,47 @@ namespace LongevityWorldCup.Tests;
 public sealed partial class LongevitymaxxingChallengeBrowserTests
 {
     [Theory]
+    [InlineData(320, ColorScheme.Light)]
+    [InlineData(320, ColorScheme.Dark)]
+    [InlineData(390, ColorScheme.Light)]
+    [InlineData(390, ColorScheme.Dark)]
+    public async Task DiscussionReplies_EnlargedTextKeepsNamesAndReplyPromptReadable(int width, ColorScheme theme)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = 844 }, ColorScheme = theme
+        });
+        var state = ConversationWorkspaceState();
+        foreach (var notes in new[] { state["notes"]!, state["public"]!["notes"]! })
+            notes.AsArray()[0]!["displayName"] = "Klaus Townsend";
+        var page = await OpenDiscussionWorkspaceAsync(context, state);
+        await page.EvaluateAsync("document.documentElement.style.fontSize = '200%'");
+        await page.EvaluateAsync("document.fonts.ready");
+        var thread = DiscussionThread(page, "p7", 5);
+        var fragments = await thread.EvaluateAsync<string[]>("""
+            thread => {
+                const broken = [];
+                const labels = thread.querySelectorAll('.lmx-discussion-author-identity strong, [data-discussion-quick-label], .lmx-discussion-reply-owner-actions button');
+                for (const label of labels) {
+                    if (!label.getClientRects().length) continue;
+                    const text = label.firstChild;
+                    if (text?.nodeType !== Node.TEXT_NODE) continue;
+                    for (const word of text.textContent.matchAll(/\S+/g)) {
+                        const range = document.createRange();
+                        range.setStart(text, word.index);
+                        range.setEnd(text, word.index + word[0].length);
+                        if (range.getClientRects().length > 1) broken.push(word[0]);
+                    }
+                }
+                return broken;
+            }
+            """);
+        Assert.Empty(fragments);
+        Assert.True(await thread.EvaluateAsync<bool>("thread => thread.scrollWidth <= thread.clientWidth"));
+        Assert.True(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth <= innerWidth"));
+    }
+
+    [Theory]
     [InlineData(390, ColorScheme.Dark)]
     [InlineData(1280, ColorScheme.Light)]
     public async Task DiscussionReplies_CopyFallbackFollowsResponsiveActions(int initialWidth, ColorScheme theme)
