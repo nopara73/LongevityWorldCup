@@ -935,6 +935,17 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const editTimeZone = requiredSelect("lmxEditTimeZone");
         const inactiveToggle = optionalElement("lmxInactiveToggle", HTMLButtonElement);
         wireEmailValidityReset(signupEmailInput);
+        // The completion rail is silent and uses the same normalization as submission.
+        // These text inputs deliberately accept copied email formats before validation.
+        const refreshSignupCompletion = () => {
+            const email = normalizeEmailValue(signupEmailInput.value);
+            signupEmailInput.dataset.complete = String(!!email && isEmailAddress(email));
+            const name = requiredInput("lmxSignupName");
+            name.dataset.complete = String(!!name.value.trim());
+        };
+        signupForm.addEventListener("input", refreshSignupCompletion);
+        signupForm.addEventListener("reset", () => queueMicrotask(refreshSignupCompletion));
+        refreshSignupCompletion();
         wireSignInForm();
 
         signupForm.addEventListener("submit", async event => {
@@ -2669,6 +2680,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             <h3><span data-check-in-day-label>${esc(checkInDayLabel(day))}</span> <span class="lmx-phase">${esc(formatCheckInDate(day.date))}</span></h3>
             ${practice ? `<div class="lmx-practice-note"><strong>Practice check-in.</strong><span>Counts for checked-in days and streak, not points.</span></div>` : ""}
             <div class="lmx-checkin-entry">
+            <div class="lmx-checkin-fields">
             ${questions}
             <div class="lmx-field lmx-mention-field">
                 <div class="lmx-checkin-note-head">
@@ -2690,6 +2702,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 ${savedImageHtml}
                 <div class="lmx-note-photo-grid pending" data-photo-previews></div>
                 <div class="lmx-photo-feedback" data-photo-feedback role="status" aria-live="polite"></div>
+            </div>
             </div>
             <div class="lmx-checkin-actions">
                 <div class="lmx-checkin-save-row">
@@ -7387,6 +7400,12 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         input.setAttribute("aria-haspopup", "listbox");
         input.setAttribute("aria-controls", listId);
         let currentFocus = -1;
+        let pointerGesture = false;
+        const finishPointerGesture = () => { pointerGesture = false; };
+        document.addEventListener("pointerdown", () => { pointerGesture = true; }, true);
+        document.addEventListener("pointercancel", finishPointerGesture, true);
+        document.addEventListener("keydown", finishPointerGesture, true);
+        window.addEventListener("blur", finishPointerGesture);
         const selected = document.getElementById(`${input.id}Selected`);
         const clearButton = document.getElementById(`${input.id}Clear`);
         const selector: AthleteSelectorController = {
@@ -7473,7 +7492,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             if (!input.dataset.athleteSlug) renderSuggestions(true);
         });
         container?.addEventListener("focusout", event => {
-            if (event.relatedTarget instanceof Node && !container.contains(event.relatedTarget)) closeList();
+            // Closing this in-flow list on pointer blur moves the next control before its click lands.
+            if (!pointerGesture && event.relatedTarget instanceof Node && !container.contains(event.relatedTarget)) closeList();
         });
 
         container?.addEventListener("keydown", event => {
@@ -7509,8 +7529,10 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         });
 
         document.addEventListener("click", event => {
+            // Touch compatibility clicks can follow pointerup in a later frame; their target is fixed here.
+            finishPointerGesture();
             if (!container || !event.composedPath().includes(container)) closeList();
-        });
+        }, true);
 
         clearButton?.addEventListener("click", () => {
             selector.clear();
