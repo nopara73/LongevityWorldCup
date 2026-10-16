@@ -114,6 +114,7 @@ public sealed class PlayAthleteSearchLayoutBrowserTests(
         var input = page.Locator("#playAthleteInput");
         await Assertions.Expect(input).ToBeEditableAsync();
         await input.FillAsync("a");
+        await page.GetByRole(AriaRole.Option).First.WaitForAsync();
         await input.PressAsync("ArrowDown");
         var active = await input.GetAttributeAsync("aria-activedescendant");
         await page.EvaluateAsync("() => document.documentElement.style.fontSize = '32px'");
