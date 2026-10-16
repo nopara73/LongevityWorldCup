@@ -2673,6 +2673,35 @@ const chartJsSrc = 'https://cdn.jsdelivr.net/npm/chart.js@4.5.1';
 const athleteModalIsolation = new Map();
 const athleteModalFrames = new WeakSet();
 const athleteModalIsolationObserver = new MutationObserver(isolateAthleteModalBackground);
+let athleteModalFocusRevealFrame = 0;
+const athleteModalFrameResizeObserver = typeof ResizeObserver === 'function' ? new ResizeObserver(entries => {
+    entries.forEach(entry => revealAthleteModalFrameFocus(entry.target));
+}) : null;
+
+function revealAthleteModalFrameFocus(frame) {
+    if (pageDocument.activeElement !== frame) return;
+    cancelAnimationFrame(athleteModalFocusRevealFrame);
+    athleteModalFocusRevealFrame = requestAnimationFrame(() => {
+        athleteModalFocusRevealFrame = requestAnimationFrame(() => {
+            athleteModalFocusRevealFrame = 0;
+            if (!frame.isConnected || modal.style.display !== 'block' || pageDocument.activeElement !== frame) return;
+            const focused = frame.contentDocument?.activeElement;
+            if (!focused || focused === frame.contentDocument.body) return;
+            focused.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'instant' });
+            const scroller = frame.closest('.modal-content');
+            if (!scroller) return;
+            const viewport = scroller.getBoundingClientRect();
+            const frameRect = frame.getBoundingClientRect();
+            const target = focused.getBoundingClientRect();
+            const header = scroller.querySelector('.modal-sticky-header.visible');
+            const top = Math.max(0, viewport.top) + (header ? header.getBoundingClientRect().height : 0) + 8;
+            const bottom = Math.min(innerHeight, viewport.bottom) - 8;
+            const delta = frameRect.top + target.bottom > bottom ? frameRect.top + target.bottom - bottom
+                : frameRect.top + target.top < top ? frameRect.top + target.top - top : 0;
+            if (delta) scroller.scrollTo({ top: scroller.scrollTop + delta, behavior: 'instant' });
+        });
+    });
+}
 
 function isolateAthleteModalBackground() {
     // The dialog is embedded in page content. Isolate sibling branches,
@@ -2707,6 +2736,9 @@ function rememberAthleteModalOpener(options) {
 
 function releaseAthleteModal() {
     athleteModalIsolationObserver.disconnect();
+    athleteModalFrameResizeObserver?.disconnect();
+    cancelAnimationFrame(athleteModalFocusRevealFrame);
+    athleteModalFocusRevealFrame = 0;
     athleteModalIsolation.forEach((wasInert, element) => { element.inert = wasInert; });
     athleteModalIsolation.clear();
 }
@@ -2742,11 +2774,13 @@ function containAthleteModalFocus(event) {
 }
 
 function bindAthleteModalFrame(frame) {
+    athleteModalFrameResizeObserver?.observe(frame);
     try {
         const frameDocument = frame.contentDocument;
         if (!frameDocument || athleteModalFrames.has(frameDocument)) return;
         athleteModalFrames.add(frameDocument);
         frameDocument.addEventListener('keydown', containAthleteModalFocus);
+        frameDocument.addEventListener('focusin', () => revealAthleteModalFrameFocus(frame));
     } catch { /* External frames retain their native keyboard handling. */ }
 }
 modal.addEventListener('load', event => {
@@ -2830,6 +2864,7 @@ function resetAthleteEventsFrame(athleteSlug) {
     if (!eventsFrame) return null;
 
     const freshFrame = eventsFrame.cloneNode(false);
+    athleteModalFrameResizeObserver?.unobserve(eventsFrame);
     freshFrame.removeAttribute('src');
     freshFrame.dataset.expectedAthlete = athleteSlug || '';
     freshFrame.style.height = '1px';
