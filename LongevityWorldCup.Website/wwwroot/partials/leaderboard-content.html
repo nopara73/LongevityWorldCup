@@ -1,5 +1,6 @@
 <!--LEADERBOARD-STYLES-START-->
 <link rel="stylesheet" href="{{ASSET_LEADERBOARD_CONTENT_CSS}}">
+<link rel="stylesheet" href="{{ASSET_LEADERBOARD_ORDERING_CSS}}">
 <!--LEADERBOARD-STYLES-END-->
 
 <div id="athleteDialogRuntime"
@@ -63,6 +64,23 @@
                         <i class="fa fa-times"></i>
                     </button>
                 </div>
+                <div class="leaderboard-order-tools">
+                    <button type="button" class="leaderboard-order-toggle" id="leaderboardOrderToggle" aria-label="Order athletes" title="Order athletes" aria-controls="leaderboardOrderPanel" aria-expanded="false" disabled>
+                        <i class="fa-solid fa-arrow-down-wide-short" aria-hidden="true"></i>
+                    </button>
+                    <div id="leaderboardOrderPanel" class="leaderboard-order-panel" role="group" aria-label="Order athletes" hidden>
+                        <div class="leaderboard-order-row">
+                            <label for="leaderboardOrderPrimary">Order by</label>
+                            <select id="leaderboardOrderPrimary"><!--ORDER-PRIMARY-START--><option value="rank">Official rank</option><!--ORDER-PRIMARY-END--></select>
+                            <button type="button" id="leaderboardOrderDirection" class="leaderboard-order-direction" aria-label="Reverse primary order" disabled><span aria-hidden="true">↑</span></button>
+                        </div>
+                        <div class="leaderboard-order-row">
+                            <label for="leaderboardOrderSecondary">Then by</label>
+                            <select id="leaderboardOrderSecondary" disabled><!--ORDER-SECONDARY-START--><option value="">None</option><!--ORDER-SECONDARY-END--></select>
+                            <button type="button" id="leaderboardThenDirection" class="leaderboard-order-direction" aria-label="Reverse secondary order" disabled><span aria-hidden="true">↑</span></button>
+                        </div>
+                    </div>
+                </div>
                 <button class="sidebar-toggle" aria-label="Show league filters" aria-controls="leaderboardFilters" aria-expanded="false" title="Show league filters" data-aos="fade" data-aos-duration="700" data-aos-delay="650">
                     <i class="fa fa-sliders-h"></i>
                 </button>
@@ -71,6 +89,7 @@
 
         <div class="leaderboard-controls-status">
         <div class="ranking-explanation" id="rankingExplanation" aria-live="polite"></div>
+        <span id="leaderboardOrderStatus" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></span>
         <section class="leaderboard-selection-summary" id="leaderboardSelectionSummary" aria-label="Current leaderboard selection" hidden>
             <span id="leaderboardResultCount" role="status" aria-live="polite" aria-atomic="true"></span>
             <div class="leaderboard-selection-chips" id="leaderboardSelectionChips"></div>
@@ -165,8 +184,8 @@
             <table>
                 <thead>
                 <tr>
-                    <th>Rank</th>
-                    <th>Athlete</th>
+                    <!--ORDER-RANK-HEADER-START--><th>Rank</th><!--ORDER-RANK-HEADER-END-->
+                    <!--ORDER-NAME-HEADER-START--><th>Athlete</th><!--ORDER-NAME-HEADER-END-->
                     <th class="sponsor-th">
                         Sponsor<br />
                         <a href="https://github.com/nopara73/LongevityWorldCup/issues/74" target="_blank" rel="noopener" class="sponsor-coming-soon">
@@ -175,11 +194,12 @@
                                 </span>
                         </a>
                     </th>
-                    <th>
+                    <!--ORDER-METRIC-HEADER-START--><th>
                         <a href="/ruleset#point-system-ranking" class="leaderboard-metric-link">
                             <span id="leaderboardMetricHeader">Age reduction</span>
                         </a>
-                    </th>
+                    </th><!--ORDER-METRIC-HEADER-END-->
+                    <!--ORDER-EXTRA-HEADERS-->
                     <th class="media-contact-th">Media contact</th>
                 </tr>
                 </thead>
@@ -505,6 +525,8 @@
 </div>
 
 <!--LEADERBOARD-RUNTIME-SCRIPTS-START-->
+<script type="application/json" id="leaderboardOrderCatalog"><!--ORDER-CATALOG--></script>
+<script src="{{ASSET_LEADERBOARD_ORDERING_JS}}"></script>
 <script src="{{ASSET_LEADERBOARD_PAGE_JS}}" data-default-profile-pic="{{ASSET_HD_LOGO_THUMB_SM}}"></script>
 
 <script src="{{ASSET_LEADERBOARD_EMBED_LISTENER_JS}}"></script>

@@ -29,6 +29,7 @@ public sealed record LeaderboardSnapshotRow(
     public int? AnchorRank { get; init; }
     public int MetricDecimals { get; init; } = 1;
     public string? AthleteName { get; init; }
+    public IReadOnlyDictionary<string, LeaderboardOrderValue> OrderValues { get; init; } = new Dictionary<string, LeaderboardOrderValue>();
 }
 
 public static class LeaderboardSnapshotBuilder

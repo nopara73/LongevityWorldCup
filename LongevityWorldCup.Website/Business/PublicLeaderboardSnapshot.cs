@@ -39,7 +39,11 @@ public sealed class PublicLeaderboardSnapshot
         }).ToArray());
         var rows = LeaderboardSnapshotBuilder.Build(rankedJson, athletes).Rows;
         var source = athletes.OfType<JsonObject>().ToDictionary(a => a["AthleteSlug"]!.GetValue<string>(), StringComparer.OrdinalIgnoreCase);
-        Athletes = rows.Select(row => new PublicAthlete(row, stats[row.Slug], source[row.Slug])).ToList();
+        Athletes = rows.Select(row =>
+        {
+            var athlete = new PublicAthlete(row, stats[row.Slug], source[row.Slug]);
+            return athlete with { Row = row with { OrderValues = LeaderboardOrdering.Values(athlete) } };
+        }).ToList();
     }
 
     public PublicLeaderboardSelection Select(string path, IQueryCollection query)
@@ -61,6 +65,7 @@ public sealed class PublicLeaderboardSnapshot
         var generations = MatchValues(filters, a => a.Row.Generation);
         var exclusive = MatchValues(filters, a => a.Row.ExclusiveLeague);
         var byFlag = string.Equals(query["group"].FirstOrDefault(), "flags", StringComparison.OrdinalIgnoreCase);
+        var ordering = LeaderboardOrderState.Parse(query);
         // Flag competitions compare the whole cohort, even on an old flag-filtered URL.
         HashSet<string> flags = byFlag ? [] : Athletes.Select(a => FlagKey(a.Row.Flag)).Where(key => key.Length > 0 && filters.Any(f => FlagKey(f) == key)).ToHashSet();
         var tracks = filters.Where(f => f.Equals("professional", StringComparison.OrdinalIgnoreCase) || f.Equals("amateur", StringComparison.OrdinalIgnoreCase)).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
@@ -103,8 +108,9 @@ public sealed class PublicLeaderboardSnapshot
             var clockLabel = view == "ultimate" && cohortLabel.Length > 0 ? "" : FlagLeaderboard.Label(view!);
             railTitle = string.Join(' ', new[] { cohortLabel, clockLabel, view == "ultimate" ? "Flag League" : "by Flag" }.Where(s => s.Length > 0));
         }
-        return new PublicLeaderboardSelection(view!, new LeaderboardSnapshot(rows), railTitle, isDefault && !byFlag)
+        return new PublicLeaderboardSelection(view!, new LeaderboardSnapshot(LeaderboardOrdering.Apply(rows, byFlag ? new() : ordering)), railTitle, isDefault && !byFlag && !ordering.IsCustom)
         {
+            Ordering = ordering,
             ByFlag = byFlag,
             FlagTeams = byFlag ? FlagLeaderboard.Build(cohort, view!) : []
         };
@@ -186,6 +192,8 @@ public sealed record PublicAthlete(LeaderboardSnapshotRow Row, PhenoStatsCalcula
 public sealed record PublicLeaderboardSelection(string View, LeaderboardSnapshot Snapshot, string RailTitle, bool IsDefault)
 {
     public bool ByFlag { get; init; }
+    public LeaderboardOrderState Ordering { get; init; } = new();
+    public LeaderboardOrderState DisplayOrdering => ByFlag ? new() : Ordering;
     public IReadOnlyList<FlagLeaderboardTeam> FlagTeams { get; init; } = [];
     public string MetricLabel => View switch { "improvement" => "Improvement", "bortz-improvement" => "Bortz improvement", _ => "Age reduction" };
 }

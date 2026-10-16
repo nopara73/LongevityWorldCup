@@ -1501,7 +1501,7 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity) {
                 const rawFlag = athlete.Flag || '';
                 const canonicalFlag = getCanonicalFlagName(rawFlag);
 
-                return {
+                const result = {
                     name: athlete.Name,
                     displayName: displayName,
                     athleteSlug: athlete.AthleteSlug,
@@ -1551,6 +1551,8 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity) {
                     isNew: !!athlete.IsNew,
                     Badges: athlete.Badges || [],
                 };
+                result.orderValues = window.LwcLeaderboardOrder.values(athlete, result);
+                return result;
             });
 
             const getDisplayAgeReductionValue = (athlete) =>
@@ -2097,7 +2099,7 @@ function setLeaderboardLoadingState(includePodium, maxAthletes) {
         if (includePodium) {
             if (podium.dataset.serverRendered !== 'true') {
                 const params = new URLSearchParams(window.location.search);
-                const hasIncomingSelection = !!(params.get('search')?.trim() || params.get('filters')?.trim())
+                const hasIncomingSelection = !!(params.get('search')?.trim() || params.get('filters')?.trim() || params.get('sort')?.trim())
                     || params.get('group')?.toLowerCase() === 'flags'
                     || ['bortz', 'pheno', 'improvement', 'pheno-improvement', 'bortz-improvement', 'crowd'].includes(params.get('view')?.toLowerCase());
                 podium.style.display = hasIncomingSelection ? 'none' : 'flex';
@@ -3329,7 +3331,7 @@ function clearSearch() {
     performFilter(); // Reapply filters without search terms
 
     if (podium) {
-        podium.style.display = includePodiumGlobal && !getSelectedLeaderboardState().byFlag ? 'flex' : 'none';
+        podium.style.display = includePodiumGlobal && !hasActiveLeaderboardState() ? 'flex' : 'none';
     }
 
     const url = new URL(window.location.href);
@@ -3354,7 +3356,7 @@ function debounce(func, delay) {
 function hasActiveLeaderboardState() {
     const searchInput = document.getElementById('athleteSearch');
     const hasSearch = !!(searchInput && searchInput.value.trim().length > 0);
-    return hasActiveLeaderboardFilterState() || hasSearch;
+    return hasActiveLeaderboardFilterState() || hasSearch || (!getSelectedLeaderboardState().byFlag && window.LwcLeaderboardOrder.getState().sort !== 'rank');
 }
 
 function hasActiveLeaderboardFilterState() {
@@ -3545,6 +3547,7 @@ function getSelectedLeaderboardState() {
     const byFlag = document.getElementById('group-flags')?.checked || false;
     return {
         byFlag,
+        ordering: window.LwcLeaderboardOrder.getState(),
         divisions: Array.from(document.querySelectorAll('input[name="division"]:checked'))
             .map(checkbox => checkbox.value),
         flags: byFlag ? [] : Array.from(document.querySelectorAll('input[name="flag"]:checked'))
@@ -3615,6 +3618,7 @@ function buildLeaderboardNavigationUrl(state, searchQuery = document.getElementB
         url.searchParams.set('view', currentLeaderboardView);
     }
 
+    window.LwcLeaderboardOrder.writeUrl(url, state.ordering || { sort: 'rank' });
     return `${url.pathname}${url.search}${url.hash}`;
 }
 
@@ -3662,7 +3666,9 @@ function updateLeaderboardStructuredData(entries) {
             if (state.view !== 'ultimate') query.push('view=' + state.view);
         }
         if (state.byFlag) query.push('group=flags');
-        const url = siteUrl + selectedUrl.pathname + (query.length ? '?' + query.join('&') : '');
+        const orderedUrl = new URL(siteUrl + selectedUrl.pathname + (query.length ? '?' + query.join('&') : ''));
+        window.LwcLeaderboardOrder.writeUrl(orderedUrl, state.ordering);
+        const url = orderedUrl.href;
         const id = url + '#ranking';
         const list = {
             '@type': 'ItemList', '@id': id, url,
@@ -3676,7 +3682,7 @@ function updateLeaderboardStructuredData(entries) {
                 };
                 const athleteUrl = siteUrl + '/athlete/' + encodeURIComponent(athlete.athleteSlug.replaceAll('_', '-').toLowerCase());
                 return {
-                    '@type': 'ListItem', position: rank,
+                    '@type': 'ListItem', position: state.ordering.sort === 'rank' ? rank : index + 1,
                     item: { '@type': 'Person', '@id': athleteUrl + '#person', url: athleteUrl, name: athlete.displayName }
                 };
             })
@@ -3885,6 +3891,8 @@ function performFilter({ updateUrl = true } = {}) {
     if (metricHeader) {
         metricHeader.textContent = metricLabel;
     }
+    window.LwcLeaderboardOrder.sync(selectedState.ordering, selectedState.byFlag, metricLabel);
+    document.querySelector('.podium')?.style.setProperty('display', includePodiumGlobal && !hasActiveLeaderboardState() ? 'flex' : 'none');
     document.querySelectorAll('.leaderboard table td.age-reduction-td').forEach(cell => {
         cell.setAttribute('data-label', metricLabel);
     });
@@ -3960,6 +3968,7 @@ function performFilter({ updateUrl = true } = {}) {
         return cohort.map((athlete, index) => ({
             athlete,
             rank: filtersUsed ? index + 1 : athlete.rank,
+            metricValue: getMetricValueForView(athlete, state.view),
             metric: formatMetricForView(cohort, athlete, index, state.view)
         })).filter(entry => {
             if (showAll || !applySearch) return true;
@@ -4004,7 +4013,8 @@ function performFilter({ updateUrl = true } = {}) {
         return;
     }
 
-    const matchingEntries = getMatchingEntries(selectedState);
+    const matchingEntries = window.LwcLeaderboardOrder.sort(getMatchingEntries(selectedState), selectedState.ordering);
+    window.LwcLeaderboardOrder.renderValues(matchingEntries, selectedState.ordering);
     const entriesByAthlete = new Map(matchingEntries.map(entry => [entry.athlete, entry]));
     const unslicedFilteredAthletes = matchingEntries.map(entry => entry.athlete);
     const filteredAthletes = unslicedFilteredAthletes.slice(0, maxAthletesGlobal);
@@ -4054,7 +4064,7 @@ function performFilter({ updateUrl = true } = {}) {
         }
     });
 
-    const hidePodiumRowsInTable = includePodiumGlobal && selectedDivisions.length === 0 && selectedFlags.length === 0 && selectedGenerations.length === 0 && selectedExclusiveLeagues.length === 0 &&
+    const hidePodiumRowsInTable = includePodiumGlobal && selectedState.ordering.sort === 'rank' && selectedDivisions.length === 0 && selectedFlags.length === 0 && selectedGenerations.length === 0 && selectedExclusiveLeagues.length === 0 &&
         !leagueTrackFilterActive && currentLeaderboardView === 'ultimate' && uniqueSearchTerms.length === 0;
     const tableVisibleAthletes = hidePodiumRowsInTable
         ? filteredAthletes.filter(athlete => athlete.rank > 3)
@@ -4067,7 +4077,7 @@ function performFilter({ updateUrl = true } = {}) {
     // Use tableVisibleAthletes order (not DOM order) so homepage podium rows do not keep the separator alive after their table rows are hidden.
     if (tierSeparatorRow) {
         let separatorShouldShow = false;
-        if (currentLeaderboardView === 'ultimate') {
+        if (currentLeaderboardView === 'ultimate' && selectedState.ordering.sort === 'rank') {
             const isPro = (a) => a.bortzAgeReduction != null && Number.isFinite(a.bortzAgeReduction);
             let sawPro = false;
             for (const a of tableVisibleAthletes) {
@@ -4174,7 +4184,7 @@ function finishLeaderboardFilter(selectedState, query, updateUrl) {
     }
 
     const url = new URL(window.location.href);
-    url.hash = ""; // <- this line removes #ABCD or any other fragment
+    window.LwcLeaderboardOrder.writeUrl(url, selectedState.ordering);
 
     if (query === "") {
         url.searchParams.delete('search');
@@ -4193,7 +4203,7 @@ function finishLeaderboardFilter(selectedState, query, updateUrl) {
     const canonicalLeagueSlug = filters.length === 1 && selectedFlagKeys.length === 0
         ? getCanonicalLeagueSlugForFilter(filters[0])
         : null;
-    const routeParams = [...url.searchParams.keys()].filter(key => key !== 'group');
+    const routeParams = [...url.searchParams.keys()].filter(key => !['group', 'sort', 'dir', 'then', 'thenDir'].includes(key));
     const cleanSearch = routeParams.length === 0 || (routeParams.length === 1 && (url.searchParams.has('filters') || url.searchParams.has('view')));
     if (filters.length === 1 && selectedFlagKeys.length === 1 && cleanSearch && currentLeaderboardView === 'ultimate') {
         url.searchParams.delete('filters');
@@ -4535,6 +4545,7 @@ document.addEventListener('click', function (event) {
     showAllAthletes();
 });
 
+window.LwcLeaderboardOrder.bind(() => performFilter({ updateUrl: false }));
 document.getElementById('group-flags')?.addEventListener('change', () => performFilter());
 
 document.querySelectorAll('input[name="leaderboardView"]').forEach(radio => {
@@ -6583,6 +6594,7 @@ function reconcileRestoredLeaderboard() {
     if (isAthleteDialogOnlyRuntime) return;
     window.clearTimeout(leaderboardHistoryRestoreTimer);
     leaderboardHistoryRestoreTimer = window.setTimeout(() => {
+        window.LwcLeaderboardOrder.restore();
         if (athleteResultsReady && renderedLeaderboardSelection !== getLeaderboardSelectionKey()) {
             performFilter({ updateUrl: false });
         } else if (athleteResultsReady) {

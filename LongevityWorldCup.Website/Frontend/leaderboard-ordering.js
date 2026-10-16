@@ -1,0 +1,232 @@
+// Presentation ordering is independent of the competition ranking arrays.
+(() => {
+    const byId = id => document.getElementById(id);
+    let catalog = { fields: [], asOf: new Date().toISOString().slice(0, 10) };
+    try { catalog = JSON.parse(byId('leaderboardOrderCatalog')?.textContent || '{}'); } catch { /* Dialog-only embeds do not have sorting controls. */ }
+    const fields = new Map((catalog.fields || []).map(field => [field.key, field]));
+    const toggle = byId('leaderboardOrderToggle');
+    const panel = byId('leaderboardOrderPanel');
+    const primary = byId('leaderboardOrderPrimary');
+    const secondary = byId('leaderboardOrderSecondary');
+    const primaryDirection = byId('leaderboardOrderDirection');
+    const secondaryDirection = byId('leaderboardThenDirection');
+    const defaults = () => ({ sort: 'rank', direction: 'asc', then: null, thenDirection: 'asc' });
+    const direction = (value, field) => value === 'asc' || value === 'desc' ? value : field.direction;
+    function normalize(value) {
+        const field = fields.get(value.sort);
+        if (!field || field.key === 'rank') return defaults();
+        const then = fields.get(value.then);
+        const distinct = then && then.key !== 'rank' && then.key !== field.key ? then : null;
+        return { sort: field.key, direction: direction(value.direction, field), then: distinct?.key || null,
+            thenDirection: distinct ? direction(value.thenDirection, distinct) : 'asc' };
+    }
+    function readUrl() {
+        const params = new URLSearchParams(location.search);
+        const first = name => [...params].find(([key]) => key.toLowerCase() === name.toLowerCase())?.[1];
+        return normalize({ sort: first('sort'), direction: first('dir'), then: first('then'), thenDirection: first('thenDir') });
+    }
+    let current = readUrl();
+    let onChange = () => {};
+    function writeUrl(url, state = current) {
+        for (const key of [...url.searchParams.keys()]) if (['sort', 'dir', 'then', 'thendir'].includes(key.toLowerCase())) url.searchParams.delete(key);
+        if (state.sort !== 'rank') {
+            url.searchParams.set('sort', state.sort);
+            if (state.direction !== fields.get(state.sort)?.direction) url.searchParams.set('dir', state.direction);
+            if (state.then) {
+                url.searchParams.set('then', state.then);
+                if (state.thenDirection !== fields.get(state.then)?.direction) url.searchParams.set('thenDir', state.thenDirection);
+            }
+        }
+        return url;
+    }
+    function explicitDate(value) {
+        if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}(?:$|T)/.test(value)) return null;
+        const date = value.slice(0, 10);
+        const parsed = new Date(date + 'T00:00:00Z');
+        return Number.isFinite(parsed.getTime()) && parsed.getUTCFullYear() > 0 && parsed.toISOString().slice(0, 10) === date
+            && (value.length === 10 || Number.isFinite(Date.parse(value))) ? date : null;
+    }
+    const number = value => typeof value === 'number' && Number.isFinite(value) ? value : null;
+    function values(source, athlete) {
+        const panels = Array.isArray(source.Biomarkers) ? source.Biomarkers.filter(panel => panel && typeof panel === 'object' && !Array.isArray(panel)) : [];
+        const dated = panels.map((panel, index) => ({ panel, index, date: explicitDate(panel.Date) }))
+            .filter(item => item.date).sort((a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : a.index - b.index);
+        const dob = source.DateOfBirth;
+        const age = dob ? (Date.parse(catalog.asOf + 'T00:00:00Z') - Date.UTC(dob.Year, dob.Month - 1, dob.Day)) / 86400000 / 365.2425 : null;
+        const hasPheno = athlete.submissionCount > 0;
+        const result = {
+            age: number(age), bortz: number(athlete.lowestBortzAge), pheno: hasPheno ? number(athlete.lowestPhenoAge) : null,
+            crowd: athlete.crowdCount > 0 ? number(athlete.crowdAge) : null,
+            bortzReduction: number(athlete.bortzAgeReduction), phenoReduction: hasPheno ? number(athlete.ageReduction) : null,
+            crowdReduction: athlete.crowdCount > 0 && number(age) !== null ? number(athlete.crowdAge - age) : null,
+            pace: athlete.chronoAtLowestBortzAge > 0 ? number(athlete.lowestBortzAge / athlete.chronoAtLowestBortzAge) : null,
+            phenoImprovement: number(athlete.phenoAgeImprovement), bortzImprovement: number(athlete.bortzAgeImprovement),
+            phenoPercent: hasPheno ? number(athlete.ageReductionPercent) : null,
+            firstTest: dated[0]?.date || null, lastTest: dated.at(-1)?.date || null,
+            tests: panels.length, crowdCount: number(athlete.crowdCount), name: athlete.displayName,
+            flag: athlete.canonicalFlag, track: Number.isFinite(athlete.bortzAgeReduction) ? 'Pro' : 'Amateur',
+            division: athlete.division, badges: Array.isArray(source.Badges) ? source.Badges.length : 0
+        };
+        for (const [key, sourceKey] of Object.entries({ albumin: 'AlbGL', glucose: 'GluMmolL', hba1c: 'Hba1cMmolMol', crp: 'CrpMgL', vitd: 'VitaminDNmolL', apoa1: 'ApoA1GL', creatinine: 'CreatUmolL' })) {
+            result[key] = null;
+            for (const item of dated) if (number(item.panel[sourceKey]) !== null) result[key] = { value: item.panel[sourceKey], date: item.date };
+        }
+        return result;
+    }
+    const rawValue = (entry, key) => key === 'rank' ? entry.rank : key === 'metric' ? entry.metricValue : entry.athlete.orderValues?.[key];
+    const unwrap = value => value && typeof value === 'object' ? value.value : value;
+    const missing = value => value == null || (typeof value === 'number' && !Number.isFinite(value)) || (typeof value === 'string' && !value.trim());
+    // Compare invariant, non-contextual lowercase keys as UTF-16, in the same order as C#.
+    const textKey = value => Array.from(String(value).trim()).map(char => {
+        const lower = char.toLowerCase();
+        return lower.length === char.length ? lower : char;
+    }).join('');
+    function compare(a, b, dir) {
+        a = unwrap(a); b = unwrap(b);
+        if (missing(a) || missing(b)) return Number(missing(a)) - Number(missing(b));
+        if (typeof a !== 'number' || typeof b !== 'number') { a = textKey(a); b = textKey(b); }
+        const result = a < b ? -1 : a > b ? 1 : 0;
+        return dir === 'desc' ? -result : result;
+    }
+    function sort(entries, state = current) {
+        if (state.sort === 'rank') return entries;
+        return [...entries].sort((a, b) => compare(rawValue(a, state.sort), rawValue(b, state.sort), state.direction)
+            || (state.then ? compare(rawValue(a, state.then), rawValue(b, state.then), state.thenDirection) : 0)
+            || a.rank - b.rank || compare(a.athlete.athleteSlug, b.athlete.athleteSlug, 'asc'));
+    }
+    const columns = state => (state.sort === 'rank' ? [] : [state.sort, state.then]).filter(key => key && !['rank', 'name', 'metric'].includes(key)).map(key => fields.get(key));
+    const labelFor = (key, metricLabel) => key === 'metric' ? metricLabel : fields.get(key)?.label || key;
+    function decorateHeader(header, state, metricLabel) {
+        const key = header.dataset.orderKey;
+        const level = state.sort !== 'rank' && state.sort === key ? 1 : state.then === key ? 2 : 0;
+        const dir = level === 2 ? state.thenDirection : state.direction;
+        header.removeAttribute('aria-sort');
+        header.dataset.orderLevel = level || '';
+        header.dataset.orderDirection = level ? dir : '';
+        if (level === 1) header.setAttribute('aria-sort', dir === 'asc' ? 'ascending' : 'descending');
+        header.querySelector('.order-indicator').textContent = level ? dir === 'asc' ? '↑' : '↓' : '';
+        const label = labelFor(key, metricLabel);
+        header.querySelector('button').setAttribute('aria-label', key === 'rank' ? 'Restore official ranking' : level
+            ? `${label}, ${level === 1 ? 'order by' : 'then by'}, ${dir === 'asc' ? 'ascending' : 'descending'}; reverse order` : `Order by ${label}`);
+    }
+    function close(restoreFocus = false) {
+        if (!panel || panel.hidden) return;
+        panel.hidden = true;
+        toggle.setAttribute('aria-expanded', 'false');
+        if (restoreFocus) toggle.focus();
+    }
+    function positionPanel() {
+        if (!panel || panel.hidden) return;
+        panel.style.removeProperty('--order-panel-shift');
+        const bounds = panel.getBoundingClientRect();
+        const width = document.documentElement.clientWidth;
+        const shift = bounds.left < 12 ? 12 - bounds.left : bounds.right > width - 12 ? width - 12 - bounds.right : 0;
+        panel.style.setProperty('--order-panel-shift', `${shift}px`);
+    }
+    function sync(state = current, byFlag = false, metricLabel = 'Age reduction') {
+        if (!toggle || !fields.size) return;
+        current = normalize(state);
+        toggle.disabled = false;
+        toggle.closest('.leaderboard-order-tools').hidden = byFlag;
+        if (byFlag) close();
+        const active = !byFlag && current.sort !== 'rank';
+        toggle.classList.toggle('is-active', active);
+        primary.value = current.sort;
+        secondary.value = current.then || '';
+        secondary.disabled = !active;
+        for (const [select, other] of [[primary, current.then], [secondary, current.sort]]) {
+            for (const option of select.options) { option.disabled = !!other && option.value === other; option.hidden = option.disabled; }
+            const metric = select.querySelector('option[value="metric"]');
+            if (metric) metric.textContent = metricLabel;
+        }
+        for (const [button, key, dir, enabled] of [[primaryDirection, current.sort, current.direction, active], [secondaryDirection, current.then, current.thenDirection, active && !!current.then]]) {
+            button.disabled = !enabled;
+            button.firstElementChild.textContent = dir === 'asc' ? '↑' : '↓';
+            const field = fields.get(key);
+            const ascending = field?.kind === 'text' ? 'A to Z' : field?.kind === 'date' ? 'oldest first' : 'lowest first';
+            const descending = field?.kind === 'text' ? 'Z to A' : field?.kind === 'date' ? 'newest first' : 'highest first';
+            const description = `${labelFor(key, metricLabel)}: ${dir === 'asc' ? ascending : descending}; switch to ${dir === 'asc' ? descending : ascending}`;
+            button.setAttribute('aria-label', description);
+            button.title = description;
+        }
+        const leaderboard = document.querySelector('.leaderboard');
+        leaderboard?.classList.toggle('leaderboard--ordered', active);
+        const display = byFlag ? defaults() : current;
+        const selectedColumns = columns(display);
+        const keys = selectedColumns.map(field => field.key);
+        document.querySelectorAll('th.leaderboard-order-column, td.leaderboard-order-value').forEach(cell => { if (!keys.includes(cell.dataset.orderKey)) cell.remove(); });
+        const metricHeader = document.querySelector('th[data-order-key="metric"]');
+        let previous = metricHeader;
+        for (const field of selectedColumns) {
+            let header = document.querySelector(`th[data-order-key="${field.key}"]`);
+            if (!header) {
+                header = document.createElement('th');
+                header.scope = 'col'; header.dataset.orderKey = field.key; header.className = 'leaderboard-order-column';
+                const button = document.createElement('button'); button.type = 'button'; button.className = 'leaderboard-column-order';
+                const label = document.createElement('span'); label.textContent = field.label; button.append(label);
+                if (field.unit) { const unit = document.createElement('small'); unit.textContent = field.unit; button.append(unit); }
+                const indicator = document.createElement('span'); indicator.className = 'order-indicator'; indicator.setAttribute('aria-hidden', 'true'); button.append(indicator);
+                header.append(button);
+            }
+            if (previous?.nextElementSibling !== header) previous?.after(header);
+            previous = header;
+        }
+        document.querySelectorAll('th[data-order-key]').forEach(header => decorateHeader(header, display, metricLabel));
+        positionPanel();
+    }
+    function renderValues(entries, state = current) {
+        const selected = columns(state);
+        for (const entry of entries) {
+            const row = document.querySelector(`.leaderboard tbody tr[data-athlete-name="${CSS.escape(entry.athlete.name)}"]`);
+            if (!row) continue;
+            let previous = row.querySelector('.age-reduction-td');
+            for (const field of selected) {
+                let cell = row.querySelector(`td[data-order-key="${field.key}"]`);
+                if (!cell) { cell = document.createElement('td'); cell.className = 'leaderboard-order-value'; cell.dataset.orderKey = field.key; }
+                cell.dataset.label = field.label + (field.unit ? ` (${field.unit})` : '');
+                const item = rawValue(entry, field.key);
+                const value = unwrap(item);
+                const text = missing(value) ? '—' : typeof value === 'number' ? value.toFixed(field.decimals) : String(value);
+                if (cell.textContent !== text || !cell.childNodes.length) {
+                    cell.replaceChildren();
+                    if (missing(value)) { const dash = document.createElement('span'); dash.className = 'order-missing'; dash.setAttribute('role', 'img'); dash.setAttribute('aria-label', 'Not available'); dash.textContent = '—'; cell.append(dash); }
+                    else cell.textContent = text;
+                }
+                if (item?.date) { cell.title = `${field.label}: ${text} ${field.unit}. Tested ${item.date}`; cell.setAttribute('aria-label', cell.title); }
+                else { cell.removeAttribute('title'); cell.removeAttribute('aria-label'); }
+                if (previous?.nextElementSibling !== cell) previous?.after(cell);
+                previous = cell;
+            }
+        }
+    }
+    function commit(next) {
+        current = normalize(next);
+        const url = writeUrl(new URL(location.href));
+        if (url.href !== location.href) history.pushState(history.state || {}, '', url);
+        onChange();
+        const status = byId('leaderboardOrderStatus');
+        if (status) status.textContent = current.sort === 'rank' ? 'Official ranking restored.' : `Ordered by ${labelFor(current.sort, byId('leaderboardMetricHeader')?.textContent)}, ${current.direction === 'asc' ? 'ascending' : 'descending'}${current.then ? `, then by ${labelFor(current.then, byId('leaderboardMetricHeader')?.textContent)}, ${current.thenDirection === 'asc' ? 'ascending' : 'descending'}` : ''}.`;
+    }
+    if (toggle && panel && fields.size) {
+        toggle.addEventListener('click', () => { if (!panel.hidden) close(); else { panel.hidden = false; toggle.setAttribute('aria-expanded', 'true'); primary.focus(); positionPanel(); } });
+        new ResizeObserver(positionPanel).observe(panel);
+        window.addEventListener('resize', positionPanel);
+        primary.addEventListener('change', () => commit({ ...current, sort: primary.value, direction: fields.get(primary.value)?.direction }));
+        secondary.addEventListener('change', () => commit({ ...current, then: secondary.value, thenDirection: fields.get(secondary.value)?.direction }));
+        primaryDirection.addEventListener('click', () => commit({ ...current, direction: current.direction === 'asc' ? 'desc' : 'asc' }));
+        secondaryDirection.addEventListener('click', () => commit({ ...current, thenDirection: current.thenDirection === 'asc' ? 'desc' : 'asc' }));
+        document.addEventListener('click', event => {
+            const header = event.target.closest('.leaderboard-column-order')?.closest('th[data-order-key]');
+            if (!header) return;
+            const key = header.dataset.orderKey;
+            if (key === 'rank') commit(defaults());
+            else if (key === current.sort) commit({ ...current, direction: current.direction === 'asc' ? 'desc' : 'asc' });
+            else if (key === current.then) commit({ ...current, thenDirection: current.thenDirection === 'asc' ? 'desc' : 'asc' });
+            else commit({ ...current, sort: key, direction: fields.get(key)?.direction });
+        });
+        document.addEventListener('pointerdown', event => { if (!toggle.parentElement.contains(event.target)) close(); });
+        document.addEventListener('keydown', event => { if (event.key === 'Escape' && !panel.hidden) { event.preventDefault(); event.stopImmediatePropagation(); close(true); } }, true);
+        toggle.parentElement.addEventListener('focusout', () => queueMicrotask(() => { if (!toggle.parentElement.contains(document.activeElement)) close(); }));
+    }
+    window.LwcLeaderboardOrder = { bind: callback => { onChange = callback; }, getState: () => ({ ...current }), restore: () => { current = readUrl(); }, writeUrl, values, sort, sync, renderValues };
+})();
