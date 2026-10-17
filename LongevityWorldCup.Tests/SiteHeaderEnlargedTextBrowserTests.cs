@@ -158,10 +158,24 @@ public sealed class SiteHeaderEnlargedTextBrowserTests(
 
     private static async Task NavigateHeaderAsync(IPage page, string path)
     {
+        // Highlights aligns its heading after a delay. Observe that real call:
+        // scrollIntoView can legitimately settle at zero because of scroll padding.
+        if (path == "/events")
+            await page.AddInitScriptAsync(
+                """
+                (() => {
+                    const scrollIntoView = Element.prototype.scrollIntoView;
+                    Element.prototype.scrollIntoView = function (...args) {
+                        const result = scrollIntoView.apply(this, args);
+                        if (this.matches('.event-board-heading')) window.__headerEventBoardScrollObserved = true;
+                        return result;
+                    };
+                })();
+                """);
         await NavigateAndSettleAsync(page, path);
         await page.EvaluateAsync("async () => { await window.modulesReady; await Promise.allSettled([window.getSharedAthletes?.(), window.getSharedEvents?.()]); }");
         if (path == "/events")
-            await page.WaitForFunctionAsync("() => window.scrollY > 0");
+            await page.WaitForFunctionAsync("() => window.__headerEventBoardScrollObserved === true");
         await WaitForLayoutAsync(page);
         await ScrollToTopAsync(page);
     }
