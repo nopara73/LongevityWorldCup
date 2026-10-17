@@ -13,10 +13,29 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
     public async Task Signup_ChoicesStayReadableWithEnlargedText(int width)
     {
         await using var context = await SignInContextAsync(width);
+        var releaseState = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await context.RouteAsync("**/api/longevitymaxxing/state", async route =>
+        {
+            await releaseState.Task;
+            await FulfillJsonAsync(route, JsonSerializer.Serialize(BuildPublicState()));
+        });
         var page = await context.NewPageAsync();
-        await page.GotoAsync("/longevitymaxxing");
-        await Assertions.Expect(page.Locator("[data-timezone-picker][data-select-id='lmxSignupTimeZone']")).ToHaveAttributeAsync("data-wired", "true");
+        try
+        {
+            await page.GotoAsync("/longevitymaxxing");
+            await Assertions.Expect(page.Locator("[data-timezone-picker][data-select-id='lmxSignupTimeZone']")).ToHaveAttributeAsync("data-wired", "true");
+            // Wiring precedes public-state loading. Geometry is meaningful only
+            // after that loading phase has revealed the actual signup form.
+            await Assertions.Expect(page.Locator(".lmx-page")).ToHaveAttributeAsync("aria-busy", "true");
+        }
+        finally
+        {
+            releaseState.TrySetResult();
+        }
+        await Assertions.Expect(page.Locator(".lmx-page")).ToHaveAttributeAsync("aria-busy", "false");
+        await Assertions.Expect(page.Locator("#lmxSignupForm")).ToBeVisibleAsync();
         await page.AddStyleTagAsync(new() { Content = "html { font-size: 200% !important; }" });
+        await page.EvaluateAsync("async () => { await document.fonts.ready; await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))); }");
         var labels = page.Locator("#lmxSignupForm .lmx-identity-options label");
         await Assertions.Expect(labels).ToHaveCountAsync(2);
         var fits = await labels.EvaluateAllAsync<bool[]>("""
