@@ -1,6 +1,6 @@
 /* In-page progress: numbered, connected steps with all three labels (full journey) */
 .progress-container {
-    width: calc(100% - 30px);
+    width: 100%;
     max-width: 800px;
     margin: var(--lwc-space-5, 1.5rem) auto var(--lwc-space-4, 1rem);
     position: relative;
@@ -16,7 +16,7 @@
     justify-content: center;
     align-items: flex-start;
     gap: 0;
-    width: min(100%, 15rem);
+    width: min(100%, 15em);
     margin-inline: auto;
     position: relative;
     counter-reset: lwc-stage;

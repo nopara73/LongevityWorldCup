@@ -248,7 +248,18 @@ public sealed class PlayAthleteSelectionCardBrowserTests(
         });
         if (useFallback)
             await context.AddInitScriptAsync("Element.prototype.moveBefore = undefined;");
+        await context.AddInitScriptAsync("""
+            window.selectionFocusTrace = [];
+            for (const kind of ['focusin', 'focusout']) document.addEventListener(kind, event => {
+                window.selectionFocusTrace.push({ kind, target: event.target?.id,
+                    active: document.activeElement?.id, time: performance.now() });
+            }, true);
+            """);
         var page = await context.NewPageAsync();
+        // Collections share Chromium and can open other tabs. Emulate document
+        // focus without assigning focus to any control, as the clipboard tests do.
+        var cdp = await context.NewCDPSessionAsync(page);
+        await cdp.SendAsync("Emulation.setFocusEmulationEnabled", new() { ["enabled"] = true });
         await NavigateAndSettleAsync(page, "/select-athlete");
         var input = page.Locator("#playAthleteInput");
         await Assertions.Expect(input).ToBeEditableAsync();
@@ -265,7 +276,26 @@ public sealed class PlayAthleteSelectionCardBrowserTests(
             await page.WaitForFunctionAsync("""
                 docked => document.querySelector('.play-athlete-actions').classList.contains('flow-action-stack--docked') === docked
                 """, height == 480);
-            await Assertions.Expect(confirm).ToBeFocusedAsync();
+            await cdp.SendAsync("Emulation.setFocusEmulationEnabled", new() { ["enabled"] = true });
+            try
+            {
+                await Assertions.Expect(confirm).ToBeFocusedAsync();
+            }
+            catch (PlaywrightException error)
+            {
+                var diagnostic = await page.EvaluateAsync<string>("""
+                    () => JSON.stringify({ url: location.href, viewport: [innerWidth, innerHeight],
+                        documentFocused: document.hasFocus(), active: document.activeElement?.outerHTML,
+                        trace: window.selectionFocusTrace,
+                        controls: [...document.querySelectorAll('.play-athlete-actions, .play-athlete-actions > button')].map(element => {
+                            const style = getComputedStyle(element);
+                            return { id: element.id, classes: element.className, disabled: element.disabled,
+                                display: style.display, visibility: style.visibility, opacity: style.opacity,
+                                rect: element.getBoundingClientRect().toJSON() };
+                        }) })
+                    """);
+                throw new Xunit.Sdk.XunitException($"Selection focus lost after resize to {height}px (fallback={useFallback}). {diagnostic}\n{error.Message}");
+            }
         }
     }
 }
