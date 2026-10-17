@@ -1240,7 +1240,7 @@ textarea:focus-visible {
     }
 
     header[role="banner"] .join-game:not(.scrolled-button) {
-        position: static;
+        position: relative;
         right: auto;
         display: inline-flex;
         flex: 0 0 auto;

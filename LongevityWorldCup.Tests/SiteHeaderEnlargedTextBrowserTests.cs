@@ -38,13 +38,15 @@ public sealed class SiteHeaderEnlargedTextBrowserTests(
         {
             await using var context = await NewHeaderContextAsync(width, height, theme);
             var page = await context.NewPageAsync();
-            await NavigateAndSettleAsync(page, path);
+            await NavigateHeaderAsync(page, path);
             Assert.True(await page.EvaluateAsync<bool>("document.fonts.check('700 20px Roboto')"));
             await AssertHeaderFitsAsync(page, sticky: false);
 
             await DoubleTextAsync(page);
+            await ScrollToTopAsync(page);
             await AssertHeaderFitsAsync(page, sticky: false);
-            await page.EvaluateAsync("window.scrollTo(0, 600)");
+            await page.Mouse.WheelAsync(0, 600);
+            await page.WaitForFunctionAsync("() => document.querySelector('header[role=banner]').getBoundingClientRect().bottom < 0");
             await Assertions.Expect(page.Locator("#site-sticky-header")).ToHaveAttributeAsync("aria-hidden", "false");
             await AssertHeaderFitsAsync(page, sticky: true);
             Assert.True(await page.EvaluateAsync<bool>(
@@ -153,6 +155,22 @@ public sealed class SiteHeaderEnlargedTextBrowserTests(
 
     private static Task WaitForLayoutAsync(IPage page)
         => page.EvaluateAsync("async () => { await document.fonts.ready; for (let i = 0; i < 4; i++) await new Promise(requestAnimationFrame); }");
+
+    private static async Task NavigateHeaderAsync(IPage page, string path)
+    {
+        await NavigateAndSettleAsync(page, path);
+        await page.EvaluateAsync("async () => { await window.modulesReady; await Promise.allSettled([window.getSharedAthletes?.(), window.getSharedEvents?.()]); }");
+        await WaitForLayoutAsync(page);
+        await ScrollToTopAsync(page);
+    }
+
+    private static async Task ScrollToTopAsync(IPage page)
+    {
+        // Highlights deliberately opens below its banner. Inspect the banner
+        // after a real wheel input, and avoid the homepage's programmatic guard.
+        await page.Mouse.WheelAsync(0, -10000);
+        await page.WaitForFunctionAsync("() => window.scrollY === 0");
+    }
 
     private static async Task AssertHeaderFitsAsync(IPage page, bool sticky)
     {
