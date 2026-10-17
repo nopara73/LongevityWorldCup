@@ -380,6 +380,7 @@ public sealed class BiomarkerHistoryBrowserTests(
             await Expect(readings.First).ToHaveAttributeAsync("data-date", "2010-01-01");
             await Expect(readings.Last).ToHaveAttributeAsync("data-date", $"{2009 + count}-01-01");
             await Expect(row.Locator(".clock-history-reading.is-latest")).ToHaveTextAsync(await row.Locator(".biomarker-overview-current").InnerTextAsync());
+            Assert.True(await row.Locator(".clock-history-scroll").EvaluateAsync<bool>("el => { const bounds = el.getBoundingClientRect(); return bounds.height >= 44 && bounds.width >= 44; }"));
             Assert.True(await row.Locator(".clock-history-scroll").EvaluateAsync<bool>("""
                 el => { const viewport = el.getBoundingClientRect(); const last = el.querySelector('.is-latest').getBoundingClientRect();
                     return last.left >= viewport.left - 1 && last.right <= viewport.right + 1; }
@@ -614,6 +615,148 @@ public sealed class BiomarkerHistoryBrowserTests(
         if (touch) await page.Touchscreen.TapAsync((float)position[0], (float)position[1]);
         else await page.Mouse.MoveAsync((float)position[0], (float)position[1]);
     }
+
+    [Theory]
+    [InlineData(1440, false)]
+    [InlineData(768, false)]
+    [InlineData(390, true)]
+    [InlineData(320, true)]
+    public async Task ResultsOverTime_KeepsShortBiomarkersCompactAndLetsLongLabelsWrap(int width, bool touch)
+    {
+        await using var context = await NewContextAsync(width, dark: true, touch: touch);
+        var athlete = await HistoryAthleteAsync("Benjamin Garden", 66, partial: true);
+        await context.AddInitScriptAsync($"window.getSharedAthletes = async () => ([{athlete.ToJsonString()}]);");
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/athlete/benjamin-garden", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await Expect(Row(page, "bortz").GetByRole(AriaRole.Button)).ToBeEnabledAsync();
+        await page.EvaluateAsync("() => document.fonts.ready");
+        await page.Locator("#athlete-biomarkers .result-summary:not(.result-clock)").First.ScrollIntoViewIfNeededAsync();
+
+        var problems = await page.EvaluateAsync<string[]>(
+            """
+            () => {
+                const problems = [];
+                const biomarkers = [...document.querySelectorAll('#athlete-biomarkers .result-summary:not(.result-clock)')];
+                const clock = document.querySelector('#athlete-biomarkers .result-summary.result-clock');
+                if (!biomarkers.length) return ['no biomarker rows'];
+                for (const row of biomarkers) {
+                    const button = row.querySelector('button');
+                    const range = document.createRange();
+                    range.selectNodeContents(button.firstChild);
+                    const name = range.getBoundingClientRect();
+                    const unit = row.querySelector('.biomarker-history-unit').getBoundingClientRect();
+                    const label = button.firstChild.textContent.trim();
+                    const bounds = button.getBoundingClientRect();
+                    if (bounds.height < 44 || bounds.width < 44) problems.push(`${label}: target below 44px`);
+                    range.selectNodeContents(button);
+                    const cell = button.closest('th').getBoundingClientRect();
+                    if ([...range.getClientRects()].some(rect => rect.width > 0 && (rect.left < cell.left - 1 || rect.right > cell.right + 1 || rect.top < bounds.top - 1 || rect.bottom > bounds.bottom + 1)))
+                        problems.push(`${label}: label escapes its target or cell`);
+                    // These short labels fit even at 320px. Character count alone cannot predict the width of other labels.
+                    if (['ALP', 'ALT', 'CRP'].includes(label)) {
+                        if (row.getBoundingClientRect().height > 56) problems.push(`${label}: short row lost its compact layout`);
+                        if (Math.abs(unit.bottom - name.bottom) > 4 || unit.left < name.right) problems.push(`${label}: unit is not beside its name`);
+                    }
+                }
+                const size = row => parseFloat(getComputedStyle(row.querySelector('.biomarker-overview-current')).fontSize);
+                if (size(clock) <= size(biomarkers[0])) problems.push('clocks no longer lead the biomarkers');
+                if (clock.getBoundingClientRect().height <= biomarkers[0].getBoundingClientRect().height) problems.push('clock rows lost their room');
+                return problems;
+            }
+            """);
+        Assert.True(problems.Length == 0, $"{width}px: {string.Join("; ", problems)}");
+    }
+
+    [Theory]
+    [InlineData(1440, true, true)]
+    [InlineData(768, false, false)]
+    [InlineData(390, true, false)]
+    [InlineData(390, false, true)]
+    [InlineData(320, true, true)]
+    [InlineData(320, false, false)]
+    public async Task ResultsOverTime_EnlargesRealTextAndKeepsEachRowsContentAssociated(int width, bool direct, bool dark)
+    {
+        await using var context = await NewContextAsync(width, dark, touch: width <= 390);
+        var athlete = await HistoryAthleteAsync("Benjamin Garden", 66, partial: true);
+        await context.AddInitScriptAsync($"window.getSharedAthletes = async () => ([{athlete.ToJsonString()}]);");
+        var page = await context.NewPageAsync();
+        await page.GotoAsync(direct ? "/athlete/benjamin-garden" : "/about", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        if (!direct)
+        {
+            await page.WaitForFunctionAsync("() => typeof window.openAthleteModalBySlug === 'function'");
+            await page.EvaluateAsync("() => window.openAthleteModalBySlug('benjamin-garden')");
+        }
+        await Expect(Row(page, "bortz").GetByRole(AriaRole.Button)).ToBeEnabledAsync();
+        await page.EvaluateAsync("() => document.fonts.ready");
+
+        var normal = await ResultTextMetricsAsync(page);
+        await page.AddStyleTagAsync(new() { Content = "html { font-size:200% !important; }" });
+        // Wait for actual layout and font growth, not merely a matching declaration.
+        await page.WaitForFunctionAsync("() => parseFloat(getComputedStyle(document.querySelector('#athlete-biomarkers .biomarker-overview-current')).fontSize) > 30");
+        var enlarged = await ResultTextMetricsAsync(page);
+        Assert.Equal(normal.Length, enlarged.Length);
+        for (var index = 0; index < normal.Length; index++)
+        {
+            Assert.Equal(normal[index].Key, enlarged[index].Key);
+            Assert.Equal(normal[index].Content, enlarged[index].Content);
+            Assert.True(enlarged[index].NameSize >= normal[index].NameSize * 1.9, enlarged[index].Key);
+            Assert.True(enlarged[index].UnitSize >= normal[index].UnitSize * 1.9, enlarged[index].Key);
+            Assert.True(enlarged[index].ValueSize >= normal[index].ValueSize * 1.9, enlarged[index].Key);
+        }
+        Assert.Contains(enlarged, row => row.Height > normal.Single(previous => previous.Key == row.Key).Height + 20);
+
+        var problems = await page.Locator("#athlete-biomarkers .result-summary").EvaluateAllAsync<string[]>("""
+            rows => rows.flatMap(row => {
+                const problems = [];
+                const button = row.querySelector('button');
+                const bounds = button.getBoundingClientRect();
+                if (bounds.width < 44 || bounds.height < 44) problems.push('target below 44px');
+                for (const element of [button, row.querySelector('.biomarker-overview-current'), row.querySelector('.biomarker-overview-history svg')].filter(Boolean)) {
+                    const cell = element.closest('th,td').getBoundingClientRect();
+                    const range = document.createRange();
+                    range.selectNodeContents(element);
+                    const rects = element.tagName.toLowerCase() === 'svg' ? [element.getBoundingClientRect()] : [...range.getClientRects()];
+                    if (rects.some(rect => rect.width > 0 && (rect.left < cell.left - 1 || rect.right > cell.right + 1 || rect.top < cell.top - 1 || rect.bottom > cell.bottom + 1)))
+                        problems.push('content escapes its own cell');
+                    if (element === button && rects.some(rect => rect.width > 0 && (rect.top < bounds.top - 1 || rect.bottom > bounds.bottom + 1)))
+                        problems.push('label clipped by its button');
+                }
+                return problems.map(problem => `${row.dataset.measure}: ${problem}`);
+            })
+            """);
+        Assert.True(problems.Length == 0, $"{width}px: {string.Join("; ", problems)}");
+        // The narrow enlarged table may pan horizontally, while the dialog itself stays within its viewport.
+        Assert.True(await page.Locator("#detailsModal .modal-content").EvaluateAsync<bool>("el => el.scrollWidth <= el.clientWidth + 1"));
+        var albumin = Row(page, "Albumin (g/L)").GetByRole(AriaRole.Button);
+        await albumin.PressAsync("Enter");
+        await Expect(albumin).ToHaveAttributeAsync("aria-expanded", "true");
+        await Expect(page.Locator(".result-detail-row:not([hidden]) .biomarker-history-table tbody td")).ToHaveTextAsync(["66", "—"]);
+        await albumin.PressAsync("Escape");
+        await Expect(albumin).ToBeFocusedAsync();
+        await Expect(albumin).ToHaveAttributeAsync("aria-expanded", "false");
+    }
+
+    private sealed class ResultTextMetrics
+    {
+        public string Key { get; set; } = "";
+        public string Content { get; set; } = "";
+        public double NameSize { get; set; }
+        public double UnitSize { get; set; }
+        public double ValueSize { get; set; }
+        public double Height { get; set; }
+    }
+
+    private static Task<ResultTextMetrics[]> ResultTextMetricsAsync(IPage page) =>
+        page.Locator("#athlete-biomarkers .result-summary").EvaluateAllAsync<ResultTextMetrics[]>("""
+            rows => rows.map(row => ({
+                Key: row.dataset.measure,
+                Content: row.textContent,
+                NameSize: parseFloat(getComputedStyle(row.querySelector('button')).fontSize),
+                UnitSize: parseFloat(getComputedStyle(row.querySelector('.biomarker-history-unit')).fontSize),
+                ValueSize: parseFloat(getComputedStyle(row.querySelector('.biomarker-overview-current')).fontSize),
+                Height: row.getBoundingClientRect().height
+            }))
+            """);
 
     private static ILocator Row(IPage page, string key) => page.Locator($"#athlete-biomarkers tr[data-measure='{key}']");
 
