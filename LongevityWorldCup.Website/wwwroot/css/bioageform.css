@@ -1647,13 +1647,8 @@ body #validAgeInput + * {
         grid-column: 1 / -1;
     }
 }
-.bioageform:has(#dobFieldset) {
-    container-name: bioage-dates;
-    container-type: inline-size;
-}
-
 /* Reflow the existing label/control pairs when enlarged text needs more room. */
-@container bioage-dates (max-width: 14em) {
+@container bioage-form (max-width: 14em) {
     .bioageform fieldset#dobFieldset > :is(label, select, #privacyNote) {
         grid-column: 1 / -1;
         grid-row: auto;

@@ -27,6 +27,8 @@ public sealed partial class NewAthleteOnboardingBrowserTests
             await page.Locator("#nextButton").ClickAsync();
             await Assertions.Expect(page.Locator("h1")).ToBeFocusedAsync();
             await page.Keyboard.PressAsync("Tab");
+            await Assertions.Expect(page.Locator("#backButton")).ToBeFocusedAsync();
+            await page.Keyboard.PressAsync("Tab");
             await Assertions.Expect(page.Locator("#nextButton")).ToBeFocusedAsync();
             await page.Keyboard.PressAsync("Enter");
             await Assertions.Expect(page.Locator("#uploadButton")).ToBeFocusedAsync();

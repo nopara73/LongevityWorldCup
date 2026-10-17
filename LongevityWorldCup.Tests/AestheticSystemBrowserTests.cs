@@ -1006,7 +1006,7 @@ public sealed class AestheticSystemBrowserTests(
         var repositoryRoot = FindRepositoryRoot();
         var webRoot = Path.Combine(repositoryRoot, "LongevityWorldCup.Website", "wwwroot");
         var containerPattern = new Regex(
-            """@container(?:\s+(?<name>[\w-]+))?\s*\(\s*(?<bound>min|max)-width\s*:\s*(?<value>\d+(?:\.\d+)?)(?<unit>rem|px)\s*\)""",
+            """@container(?:\s+(?<name>[\w-]+))?\s*\(\s*(?<bound>min|max)-width\s*:\s*(?<value>\d+(?:\.\d+)?)(?<unit>rem|em|px)\s*\)""",
             RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
         var conditions = new List<ResponsiveContainerCondition>();
 
@@ -1456,12 +1456,18 @@ public sealed class AestheticSystemBrowserTests(
             {
                 38 => "#lwc-step-1",
                 15 => "#dobFieldset",
+                14 when condition.Unit == "em" => "#dobFieldset",
                 _ => throw new InvalidOperationException(
                     $"Add a rendered calculator probe for {condition.Value}{condition.Unit}.")
             };
-            var thresholdPixels = condition.Unit == "rem"
-                ? condition.Value * rootFontSize
-                : condition.Value;
+            // Em queries use the container's font, not the root font. Give the
+            // date probe a distinct font size so a rem/em mix-up cannot pass.
+            var emDateProbe = condition.Unit == "em";
+            if (emDateProbe)
+                await page.Locator("form.bioageform").EvaluateAsync("form => form.style.fontSize = '20px'");
+            var containerFontSize = await page.Locator("form.bioageform").EvaluateAsync<double>("form => parseFloat(getComputedStyle(form).fontSize)");
+            var thresholdPixels = condition.Unit == "rem" ? condition.Value * rootFontSize
+                : emDateProbe ? condition.Value * containerFontSize : condition.Value;
 
             foreach (var delta in new[] { -1, 0, 1, 0, -1 })
             {
@@ -1476,12 +1482,14 @@ public sealed class AestheticSystemBrowserTests(
                         await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
                         return {
                             ContainerWidth: parseFloat(getComputedStyle(form).width),
-                            IsCompact: getComputedStyle(form.querySelector(argument.Selector)).display === 'block',
+                            IsCompact: argument.EmDateProbe
+                                ? form.querySelector('#dob-month-label').getBoundingClientRect().top >= form.querySelector('#dob-year').getBoundingClientRect().bottom
+                                : getComputedStyle(form.querySelector(argument.Selector)).display === 'block',
                             HorizontalOverflow: Math.max(0, form.scrollWidth - form.clientWidth)
                         };
                     }
                     """,
-                    new { InlineSize = inlineSize, Selector = selector });
+                    new { InlineSize = inlineSize, Selector = selector, EmDateProbe = emDateProbe });
                 Assert.Equal(inlineSize, diagnostics.ContainerWidth, 1);
                 Assert.True(diagnostics.IsCompact == (inlineSize <= thresholdPixels),
                     $"{route} {selector} did not cross its {condition.Value}{condition.Unit} boundary at {inlineSize}px.");
