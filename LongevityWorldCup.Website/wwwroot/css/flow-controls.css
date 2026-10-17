@@ -256,6 +256,44 @@ body.flow-input-keyboard-open::after {
     left: 1.35rem;
 }
 
+/* Inline desktop Back reads as one mark, like the join step's: the arrow sits
+   beside its label and the pair is centred, instead of the arrow stranded at
+   the button's far edge. */
+@media (min-width: 769px) {
+    .flow-action-stack:not(.flow-action-stack--docked) > .option-button.flow-action.back-button.flow-action--icon-left {
+        gap: 0.5em;
+        padding-inline: 1.35rem !important;
+    }
+
+    .flow-action-stack:not(.flow-action-stack--docked) > .option-button.flow-action.back-button.flow-action--icon-left > i,
+    .flow-action-stack:not(.flow-action-stack--docked) > .option-button.flow-action.back-button.flow-action--icon-left > .flow-action__icon {
+        position: static;
+        width: auto;
+        transform: none;
+        flex: none;
+    }
+
+    .flow-action-stack:not(.flow-action-stack--docked) > .option-button.flow-action.back-button.flow-action--icon-left .flow-action__label {
+        width: auto;
+        margin: 0;
+        /* Keep longer captions inside the control, including compact action rows. */
+        flex: 0 1 auto !important;
+        white-space: normal !important;
+    }
+
+    /* A lone Back is a compact control, not a full-width bar. */
+    .flow-action-stack:not(.flow-action-stack--docked) > .option-button.flow-action.back-button.flow-action--icon-left:only-child,
+    .flow-action-stack--single-back-action:not(.flow-action-stack--docked) > .option-button.flow-action.back-button.flow-action--icon-left {
+        /* Visible actions, rather than DOM child count, determine a lone Back.
+           These bounds also take precedence over the two-action row's sizing. */
+        flex: 0 1 auto !important;
+        width: min(100%, 11rem) !important;
+        max-width: 11rem !important;
+        margin-inline: auto !important;
+        align-self: center;
+    }
+}
+
 .option-button.flow-action.back-button,
 .option-button.flow-action.flow-action--secondary {
     background: var(--lwc-surface-muted, var(--surface-muted, #eef2f5));
