@@ -1,3 +1,4 @@
+using System.Text.Json.Nodes;
 using Microsoft.Playwright;
 using Xunit;
 using static LongevityWorldCup.Tests.AestheticSystemBrowserTests;
@@ -80,14 +81,14 @@ public sealed class HighlightsEnlargedTextBrowserTests(
         await context.RouteAsync("**/api/data/athletes", route => route.FulfillAsync(new()
         {
             ContentType = "application/json",
-            Body = """
+            Body = WithAthletePageFields("""
                 [
                   {"Key":"ranked-multiword","Name":"Nóra Marosvölgyi","CurrentPlacement":232},
                   {"Key":"ranked-long","Name":"Alexandertheexceptionallylongunbrokentokenforreflow","CurrentPlacement":75},
                   {"Key":"ranked-pro","Name":"Melian Attila","CurrentPlacement":224},
                   {"Key":"ranked-crowd","Name":"Bertalan Fazekas","CurrentPlacement":9}
                 ]
-                """
+                """)
         }));
         await context.RouteAsync("**/api/events", route => route.FulfillAsync(new()
         {
@@ -103,6 +104,9 @@ public sealed class HighlightsEnlargedTextBrowserTests(
                 """
         }));
         var page = await context.NewPageAsync();
+        var errors = new List<string>();
+        page.PageError += (_, error) => errors.Add(error);
+        page.Console += (_, message) => { if (message.Type == "error") errors.Add(message.Text); };
         await NavigateAndSettleAsync(page, path);
         var firstRow = page.Locator("tr.main-row[data-event-id='ranked-joined']");
         await Assertions.Expect(firstRow.Locator(".event-message .event-athlete-link")).ToHaveAccessibleNameAsync("Nóra Marosvölgyi");
@@ -152,7 +156,7 @@ public sealed class HighlightsEnlargedTextBrowserTests(
                                     }
                                 }
                                 // Fitting words stay whole; only an oversized token needs an emergency break.
-                                for (const word of node.textContent.matchAll(/[^\s]+/g)) {
+                                for (const word of node.textContent.matchAll(/[^\s\-\u00ad]+/g)) {
                                     range.setStart(node, word.index); range.setEnd(node, word.index + word[0].length);
                                     const rects = [...range.getClientRects()].filter(r => r.width > 0);
                                     const canvas = document.createElement('canvas').getContext('2d');
@@ -177,5 +181,25 @@ public sealed class HighlightsEnlargedTextBrowserTests(
         await Assertions.Expect(details.GetByRole(AriaRole.Link, new() { Name = "Read the rules" })).ToHaveAttributeAsync("href", "https://longevityworldcup.com/ruleset");
         await expander.TapAsync();
         await Assertions.Expect(expander).ToHaveAttributeAsync("aria-expanded", "false");
+        Assert.Empty(errors);
+    }
+
+    private static string WithAthletePageFields(string json)
+    {
+        // The homepage also renders the leaderboard; its required fields must
+        // be present so the ranked fixture cannot pass alongside a console error.
+        var athletes = JsonNode.Parse(json)!.AsArray();
+        foreach (var athlete in athletes)
+        {
+            athlete!["DateOfBirth"] = new JsonObject { ["Year"] = 1980, ["Month"] = 1, ["Day"] = 1 };
+            athlete["Biomarkers"] = new JsonArray();
+            athlete["Placements"] = new JsonArray();
+            athlete["Badges"] = new JsonArray();
+            athlete["Proofs"] = new JsonArray();
+            athlete["Division"] = "Women's";
+            athlete["Flag"] = "Hungary";
+            athlete["AthleteSlug"] = athlete["Key"]!.GetValue<string>();
+        }
+        return athletes.ToJsonString();
     }
 }
