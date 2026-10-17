@@ -1208,12 +1208,12 @@ public sealed class AestheticSystemBrowserTests(
                         section.style.maxInlineSize = 'none';
                         await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
                         return [parseFloat(getComputedStyle(section).width),
-                            getComputedStyle(section.querySelector('.newsletter-panel')).gridTemplateColumns.split(' ').length,
+                            getComputedStyle(section.querySelector('.newsletter-panel')).alignItems === 'center' ? 1 : 0,
                             Math.max(0, section.scrollWidth - section.clientWidth)];
                     }
                     """, width);
                 Assert.Equal(width, diagnostics[0], 1);
-                Assert.Equal(width >= threshold ? 2 : 1, diagnostics[1]);
+                Assert.Equal(width >= threshold ? 1 : 0, diagnostics[1]);
                 Assert.True(diagnostics[2] <= 1, $"Newsletter overflowed at {width}px.");
             }
         }
@@ -1401,7 +1401,7 @@ public sealed class AestheticSystemBrowserTests(
                     if (!source) throw new Error('Missing query container: ' + name);
                     const probe = source.cloneNode(true);
                     probe.id = 'responsive-em-probe';
-                    probe.style.cssText += ';box-sizing:content-box;max-inline-size:none;min-inline-size:0;font-size:20px;';
+                    probe.style.cssText += ';box-sizing:content-box;max-inline-size:none;min-inline-size:0;font-size:20px;flex:none;overflow:visible;scrollbar-gutter:auto;';
                     source.parentElement.append(probe);
                     return parseFloat(getComputedStyle(probe).fontSize);
                 }
@@ -1413,7 +1413,8 @@ public sealed class AestheticSystemBrowserTests(
                 var diagnostics = await page.EvaluateAsync<double[]>("""
                     async arg => {
                         const probe = document.getElementById('responsive-em-probe');
-                        probe.style.inlineSize = `${arg.Width}px`;
+                        probe.style.setProperty('width', `${arg.Width}px`, 'important');
+                        probe.style.setProperty('inline-size', `${arg.Width}px`, 'important');
                         await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
                         let applied;
                         if (arg.Name === 'league-filters') applied = getComputedStyle(probe.querySelector('.filter-label-copy')).display === 'block';
@@ -1429,7 +1430,8 @@ public sealed class AestheticSystemBrowserTests(
                         return [parseFloat(getComputedStyle(probe).width), applied ? 1 : 0];
                     }
                     """, new { Width = width, condition.Name, condition.Value });
-                Assert.Equal(width, diagnostics[0], 1);
+                Assert.True(Math.Abs(width - diagnostics[0]) <= .1,
+                    $"{condition.Name} probe width was {diagnostics[0]}px; expected {width}px.");
                 var expected = condition.Bound == "min" ? width >= threshold : width <= threshold;
                 Assert.True((diagnostics[1] == 1) == expected,
                     $"{condition.Name} did not cross {condition.Value}em at {width}px (applied={diagnostics[1]}).");
