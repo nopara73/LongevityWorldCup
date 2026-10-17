@@ -46,33 +46,45 @@ public sealed class PageTitleEnlargedTextBrowserTests(
     [InlineData("/unsubscribe", ".unsubscribe-panel h1", "Unsubscribe")]
     public async Task Titles_EnlargeAndReflowWithoutLosingWordingOrClippingGlyphs(string path, string titleSelector, string wording)
     {
-        await using var context = await NewContextAsync(Browser, App, new()
+        var widths = new[] { 160, 195, 320, 360, 390, 559, 560, 600, 601, 700, 701, 768, 820, 900, 901, 1024, 1440 };
+        var normalSizes = new Dictionary<int, double>();
+        // Keep each text setting fixed while resizing. Resetting the root after every
+        // resize can expose a stale enlarged clamp() value as the "normal" reference.
+        // A separate 100% document provides the baseline without weakening growth checks.
+        foreach (var percent in new[] { 100, 125, 150, 175, 200 })
         {
-            ViewportSize = new() { Width = 390, Height = 844 },
-            ReducedMotion = ReducedMotion.Reduce,
-            HasTouch = true
-        });
-        var page = await context.NewPageAsync();
-        await NavigateAndSettleAsync(page, path);
-        await Assertions.Expect(page.Locator(titleSelector)).ToHaveAccessibleNameAsync(wording);
-
-        // Resize the same document through both sides of the affected breakpoints.
-        // A width cap must not pass by suppressing text enlargement.
-        // 160/195 CSS pixels also cover the reflow of a 320/390px window at 200% browser zoom.
-        foreach (var width in new[] { 160, 195, 320, 360, 390, 559, 560, 600, 601, 700, 701, 768, 820, 900, 901, 1024, 1440 })
-        {
-            await page.SetViewportSizeAsync(width, width == 820 ? 390 : 844);
-            await SetTextSizeAsync(page, 100);
-            var normalSize = await page.Locator(titleSelector).EvaluateAsync<double>("title => parseFloat(getComputedStyle(title).fontSize)");
-            foreach (var percent in width < 320 ? new[] { 100 } : width is 320 or 390 ? new[] { 100, 125, 150, 175, 200 } : new[] { 100, 200 })
+            await using var context = await NewContextAsync(Browser, App, new()
             {
-                await SetTextSizeAsync(page, percent);
+                ViewportSize = new() { Width = 390, Height = 844 },
+                ReducedMotion = ReducedMotion.Reduce,
+                HasTouch = true
+            });
+            var page = await context.NewPageAsync();
+            await NavigateAndSettleAsync(page, path);
+            await SetTextSizeAsync(page, percent);
+            await Assertions.Expect(page.Locator(titleSelector)).ToBeVisibleAsync();
+            await Assertions.Expect(page.Locator(titleSelector)).ToHaveAccessibleNameAsync(wording);
+            // 160/195 CSS pixels model 320/390px windows at 200% full browser zoom.
+            var enlargedWidths = widths.Where(width => width >= 320).ToArray();
+            var scenarioWidths = percent == 100 ? widths
+                : percent == 200 ? enlargedWidths.Concat(enlargedWidths.Reverse().Skip(1)).ToArray()
+                : new[] { 320, 390 };
+            foreach (var width in scenarioWidths)
+            {
+                await page.SetViewportSizeAsync(width, width == 820 ? 390 : 844);
+                await page.WaitForFunctionAsync("width => innerWidth === width", width);
+                await page.EvaluateAsync("async () => { await document.fonts.ready; await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))); }");
                 var scenario = $"{path} at {width}px / {percent}% text";
                 var size = await page.Locator(titleSelector).EvaluateAsync<double>("title => parseFloat(getComputedStyle(title).fontSize)");
+                if (percent == 100) normalSizes[width] = size;
+                var normalSize = normalSizes[width];
                 // The existing fluid 320-360px LMX size can resolve to its rem minimum.
                 // It must nearly double; the other phone titles double exactly.
                 if (width <= 600)
-                    Assert.True(size >= normalSize * percent / 100 * 0.97, $"{scenario}: {normalSize}px only became {size}px.");
+                {
+                    var fluidTolerance = path == "/longevitymaxxing" && width <= 360 ? 0.97 : 1;
+                    Assert.True(size >= normalSize * percent / 100 * fluidTolerance - 0.1, $"{scenario}: {normalSize}px only became {size}px.");
+                }
                 else if (percent == 200)
                     Assert.True(size >= normalSize * 1.25, $"{scenario}: desktop title did not meaningfully enlarge ({normalSize}px to {size}px).");
 
