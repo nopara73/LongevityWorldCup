@@ -17,14 +17,16 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         var row = state["public"]!["leaderboard"]!.AsArray().Single(row => (string?)row!["participantId"] == "p1")!;
         row["totalPoints"] = 0;
         row["characterAllowance"] = new JsonObject { ["challengePoints"] = 0, ["ultimateLeagueAthletesBehind"] = 0, ["limit"] = 146 };
-        foreach (var day in state["eligibleDays"]!.AsArray()) day!["existing"] = SavedCheckIn(new string('n', 300));
         foreach (var collection in new[] { state["notes"]!.AsArray(), state["public"]!["notes"]!.AsArray() })
             collection.Single(post => (string?)post!["participantId"] == "p7")!["replies"]!.AsArray()
                 .Single(reply => (string?)reply!["id"] == "r6")!["body"] = new string('r', 300);
-        var page = await OpenDiscussionWorkspaceAsync(context, state, dialog: true);
+        var page = await OpenDiscussionWorkspaceAsync(context, state);
+        foreach (var day in state["eligibleDays"]!.AsArray()) day!["existing"] = SavedCheckIn(new string('n', 300));
+        await page.ReloadAsync();
+        await page.Locator("#lmxCheckinTab").ClickAsync();
         var form = page.Locator("#lmxCheckinList form");
         await Assertions.Expect(form.Locator("[data-note-character-count]")).ToHaveTextAsync("300/300");
-        await form.Locator(".lmx-question[data-key='nutrition'] .lmx-answer-input[value='1']").CheckAsync();
+        await form.Locator(".lmx-question[data-key='nutrition'] .lmx-answer-option[data-answer='yes']").ClickAsync();
         await Assertions.Expect(form.Locator("button[type='submit']")).ToBeEnabledAsync();
         await form.Locator("textarea[id^='lmx-note-']").FillAsync(new string('n', 301));
         await Assertions.Expect(form.Locator("[data-note-character-count]")).ToHaveTextAsync("1 over");
@@ -33,10 +35,10 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await thread.Locator("[data-discussion-reply-id='r6'] [data-discussion-reply-edit]").ClickAsync();
         await thread.Locator("textarea").FillAsync(new string('e', 300));
         await Assertions.Expect(thread.Locator("[data-reply-count]")).ToHaveTextAsync("300/300");
-        await Assertions.Expect(thread.Locator("[data-reply-submit]")).ToBeEnabledAsync();
+        await Assertions.Expect(thread.Locator("[data-reply-action='submit']")).ToBeEnabledAsync();
         await thread.Locator("textarea").FillAsync(new string('e', 301));
         await Assertions.Expect(thread.Locator("[data-reply-count]")).ToHaveTextAsync("1 over");
-        await Assertions.Expect(thread.Locator("[data-reply-submit]")).ToBeDisabledAsync();
+        await Assertions.Expect(thread.Locator("[data-reply-action='submit']")).ToBeDisabledAsync();
     }
 
     [Theory]
