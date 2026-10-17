@@ -438,6 +438,7 @@ public sealed class BiomarkerHistoryBrowserTests(
             for (var i = 0; i < count; i++)
             {
                 await select.SelectOptionAsync(i.ToString(CultureInfo.InvariantCulture));
+                await AssertRadarDrawingBoundsAsync(page);
                 await Expect(page.Locator("#ageRadarChart")).ToHaveAttributeAsync("data-result-date", panels[i].Date);
                 await Expect(page.Locator("#ageResultDate")).ToHaveAttributeAsync("datetime", panels[i].Date);
                 await Expect(page.Locator("#ageRadarCenterBio")).ToHaveTextAsync($"biological age: {expected[i].ToString("F1", CultureInfo.InvariantCulture)}");
@@ -790,6 +791,7 @@ public sealed class BiomarkerHistoryBrowserTests(
             Assert.True(layout[2] <= layout[1] * 0.75, $"{width}px: the radar well should be landscape, not a {layout[1]:F0}x{layout[2]:F0} square.");
         Assert.True(layout[3] >= layout[5] && layout[4] <= layout[6], $"{width}px: the radar should stay inside its card.");
         Assert.True(layout[7] <= layout[8], $"{width}px: the page scrolls sideways ({layout[7]} > {layout[8]}).");
+        await AssertRadarDrawingBoundsAsync(page);
     }
 
     [Theory]
@@ -821,6 +823,81 @@ public sealed class BiomarkerHistoryBrowserTests(
         Assert.True(layout[1] >= layout[3] && layout[2] <= layout[4], "The radar must remain inside its card.");
         Assert.True(layout[5] >= 50, "The bounded chart must still render a readable radar.");
         Assert.True(layout[6] <= layout[7], "The profile must not scroll sideways.");
+        await AssertRadarDrawingBoundsAsync(page);
+    }
+
+    [Fact]
+    public async Task ProfileRadar_HiddenOpenResizeClockSwitchAndReopenKeepFreshGeometry()
+    {
+        await using var context = await NewContextAsync(390, dark: true, touch: true);
+        var athlete = await HistoryAthleteAsync("Benjamin Garden", 44, partial: false);
+        var peer = await HistoryAthleteAsync("Valerie Orsoni", 44, partial: false);
+        await context.AddInitScriptAsync($"window.getSharedAthletes = async () => ({new JsonArray(athlete, peer).ToJsonString()});");
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/leaderboard", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await Expect(page.Locator("#detailsModal")).ToBeHiddenAsync();
+        var opener = page.GetByRole(AriaRole.Link, new() { Name = "View stats of Benjamin Garden", Exact = true }).First;
+        await opener.ClickAsync();
+        foreach (var (width, height) in new[] { (390, 844), (700, 400), (1440, 600), (320, 720) })
+        {
+            await page.SetViewportSizeAsync(width, height);
+            foreach (var clock in new[] { "#ageTabPheno", "#ageTabBortz" })
+            {
+                await page.Locator(clock).ClickAsync();
+                await AssertRadarDrawingBoundsAsync(page);
+            }
+        }
+        await page.Locator("#closeAthleteDetailsModal").ClickAsync();
+        await Expect(page.Locator("#detailsModal")).ToBeHiddenAsync();
+        await opener.ClickAsync();
+        await AssertRadarDrawingBoundsAsync(page);
+    }
+
+    private static async Task AssertRadarDrawingBoundsAsync(IPage page)
+    {
+        await page.EvaluateAsync("() => document.fonts.ready");
+        await page.WaitForFunctionAsync("""
+            () => {
+                const chart = window.Chart?.getChart(document.getElementById('ageRadarChart'));
+                if (!chart?.scales?.r?.drawingArea) return false;
+                const rect = chart.canvas.getBoundingClientRect();
+                return Math.abs(chart.width - rect.width) <= 1 && Math.abs(chart.height - rect.height) <= 1;
+            }
+            """);
+        var problems = await page.EvaluateAsync<string[]>("""
+            () => {
+                const chart = Chart.getChart(document.getElementById('ageRadarChart'));
+                const scale = chart.scales.r;
+                const problems = [];
+                const inside = (left, top, right, bottom) =>
+                    left >= -1 && top >= -1 && right <= chart.width + 1 && bottom <= chart.height + 1;
+                chart.data.labels.forEach((label, index) => {
+                    const box = scale.getPointLabelPosition(index);
+                    if (!inside(box.left, box.top, box.right, box.bottom)) problems.push(`${label}: label box clipped`);
+                    // Measure the current font's painted glyphs, not just the chart's fitting rectangle.
+                    const item = scale._pointLabelItems[index];
+                    const font = Chart.helpers.toFont(scale.options.pointLabels.setContext(scale.getPointLabelContext(index)).font);
+                    const ctx = chart.ctx;
+                    ctx.save();
+                    ctx.font = font.string;
+                    ctx.textAlign = item.textAlign;
+                    ctx.textBaseline = 'middle';
+                    const glyph = ctx.measureText(label);
+                    const baseline = item.y + font.lineHeight / 2;
+                    if (!inside(item.x - glyph.actualBoundingBoxLeft, baseline - glyph.actualBoundingBoxAscent,
+                        item.x + glyph.actualBoundingBoxRight, baseline + glyph.actualBoundingBoxDescent))
+                        problems.push(`${label}: painted glyphs clipped`);
+                    ctx.restore();
+                });
+                const ratio = chart.currentDevicePixelRatio;
+                if (Math.abs(chart.canvas.width - chart.width * ratio) > 1 ||
+                    Math.abs(chart.canvas.height - chart.height * ratio) > 1) problems.push('canvas backing resolution is stale');
+                if (scale.min !== 0 || scale.max !== 100 || scale.options.ticks.stepSize !== 20)
+                    problems.push('percentile scale changed');
+                return problems;
+            }
+            """);
+        Assert.True(problems.Length == 0, string.Join("; ", problems));
     }
 
     private async Task<IBrowserContext> NewContextAsync(int width, bool dark, string timezone = "UTC", bool touch = false)
