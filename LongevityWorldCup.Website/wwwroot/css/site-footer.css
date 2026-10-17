@@ -163,6 +163,13 @@
     .footer-follow-links {
         max-width: min(100%, calc(4 * 2.75rem + 3 * 0.4rem));
     }
+
+    .footer-subscriptions {
+        flex-basis: 100%;
+        justify-content: center;
+        padding-left: 0;
+        border-left: 0;
+    }
 }
 
 @media (hover: none) {
