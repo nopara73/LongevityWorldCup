@@ -77,7 +77,7 @@ public sealed class ProofUploadLayoutBrowserTests(
             """
             () => {
                 const issues = [];
-                for (const element of document.querySelectorAll('.proof-page-preview span, .proof-page-remove, .proof-undo, .proof-upload-intro p')) {
+                for (const element of document.querySelectorAll('.proof-page-remove, .proof-undo, .proof-upload-intro p')) {
                     const bounds = element.getBoundingClientRect();
                     const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
                     let text;
@@ -200,6 +200,44 @@ public sealed class ProofUploadLayoutBrowserTests(
             Assert.True(layout[6] >= layout[3], $"{scenario}: phones should keep the tracker below the proof pages.");
         }
         Assert.Contains("Albumin", await page.Locator("#biomarker-checklist").InnerTextAsync());
+        await ExpectNoHorizontalOverflowAsync(page);
+    }
+
+    [Theory]
+    [InlineData(1440, 900, false)]
+    [InlineData(390, 844, true)]
+    [InlineData(320, 640, false)]
+    public async Task UploadedPages_AreTilesWithARoundRemoveMarkOnTheirCorner(int width, int height, bool dark)
+    {
+        await using var context = await CreateContextAsync(width, height, dark);
+        var page = await OpenAsync(context);
+        await page.Locator("#proofPicInput").SetInputFilesAsync(await CreateProofImagesAsync(context, 3));
+        await page.WaitForFunctionAsync("() => !document.getElementById('proofPicInput').disabled && document.querySelectorAll('.proof-page-card').length === 3");
+
+        var tiles = await page.EvaluateAsync<double[][]>(
+            """
+            () => [...document.querySelectorAll('.proof-page-card')].map(card => {
+                const box = card.getBoundingClientRect();
+                const image = card.querySelector('.proof-page-preview img').getBoundingClientRect();
+                const caption = card.querySelector('.proof-page-caption').getBoundingClientRect();
+                const remove = card.querySelector('.proof-page-remove').getBoundingClientRect();
+                return [box.left, box.right, box.top, box.bottom, image.left, image.right, image.top, image.bottom,
+                    caption.top, caption.bottom, remove.left, remove.right, remove.top, remove.bottom];
+            })
+            """);
+        var scenario = $"{width}x{height}";
+        for (var index = 0; index < tiles.Length; index++)
+        {
+            var t = tiles[index];
+            var label = $"{scenario} page {index + 1}";
+            Assert.True(t[4] - t[0] <= 2 && t[1] - t[5] <= 2 && t[6] - t[2] <= 2, $"{label}: the page should fill its tile edge to edge.");
+            Assert.True(t[8] >= t[7] - 1 && t[9] <= t[3] + 1, $"{label}: the caption should sit below the page inside the tile.");
+            Assert.True(t[11] - t[10] >= 44 && t[13] - t[12] >= 44, $"{label}: the remove target should stay at least 44px.");
+            Assert.True(t[10] >= t[4] && t[11] <= t[5] + 1 && t[12] >= t[6] - 1 && t[13] <= t[7],
+                $"{label}: removing should be a mark on the page itself, not a bar below it.");
+            Assert.True(t[5] - t[11] <= 8 && t[12] - t[6] <= 8, $"{label}: the remove mark should sit on the page's top-right corner.");
+            await Assertions.Expect(page.Locator(".proof-page-remove").Nth(index)).ToHaveAccessibleNameAsync($"Remove proof page {index + 1}");
+        }
         await ExpectNoHorizontalOverflowAsync(page);
     }
 
