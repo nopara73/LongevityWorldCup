@@ -1,5 +1,6 @@
 <!--LEADERBOARD-STYLES-START-->
 <link rel="stylesheet" href="{{ASSET_LEADERBOARD_CONTENT_CSS}}">
+<link rel="stylesheet" href="{{ASSET_LEADERBOARD_ORDERING_CSS}}">
 <!--LEADERBOARD-STYLES-END-->
 
 <div id="athleteDialogRuntime"
@@ -63,14 +64,54 @@
                         <i class="fa fa-times"></i>
                     </button>
                 </div>
+                <div class="leaderboard-actions">
+                <div class="leaderboard-order-tools">
+                    <button type="button" class="leaderboard-order-toggle" id="leaderboardOrderToggle" aria-label="Order athletes" title="Order athletes" aria-controls="leaderboardOrderPanel" aria-expanded="false" disabled>
+                        <i class="fa-solid fa-arrow-down-wide-short" aria-hidden="true"></i>
+                    </button>
+                    <button type="button" class="leaderboard-order-reset" id="leaderboardOrderReset" hidden disabled aria-label="Clear ordering" title="Clear ordering">
+                        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m6 6 8 8m0-8-8 8" /></svg>
+                    </button>
+                    <div id="leaderboardOrderPanel" class="leaderboard-order-panel" role="group" aria-label="Order athletes" hidden>
+                        <button type="button" id="leaderboardOrderSwap" class="leaderboard-order-swap" aria-label="Swap order by and then by" title="Swap order by and then by" disabled>
+                            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M6 16V4m-3 3 3-3 3 3m5-3v12m-3-3 3 3 3-3" /></svg>
+                        </button>
+                        <div class="leaderboard-order-rows">
+                        <div class="leaderboard-order-row">
+                            <label for="leaderboardOrderPrimary">Order by</label>
+                            <div class="leaderboard-order-field">
+                                <span class="leaderboard-order-select">
+                                    <select id="leaderboardOrderPrimary"><!--ORDER-PRIMARY-START--><option value="rank">Official rank</option><!--ORDER-PRIMARY-END--></select>
+                                    <svg class="order-select-chevron" viewBox="0 0 20 20" aria-hidden="true"><path d="m6 8 4 4 4-4" /></svg>
+                                </span>
+                                <button type="button" id="leaderboardOrderDirection" class="leaderboard-order-direction" data-direction="asc" aria-label="Reverse primary order" disabled><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 4v12m-4-4 4 4 4-4" /></svg></button>
+                                <button type="button" id="leaderboardOrderPrimaryClear" class="leaderboard-order-clear" aria-label="Clear both ordering fields" title="Clear both ordering fields" disabled><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m6 6 8 8m0-8-8 8" /></svg></button>
+                            </div>
+                        </div>
+                        <div class="leaderboard-order-row">
+                            <label for="leaderboardOrderSecondary">Then by</label>
+                            <div class="leaderboard-order-field">
+                                <span class="leaderboard-order-select">
+                                    <select id="leaderboardOrderSecondary" disabled><!--ORDER-SECONDARY-START--><option value="">None</option><!--ORDER-SECONDARY-END--></select>
+                                    <svg class="order-select-chevron" viewBox="0 0 20 20" aria-hidden="true"><path d="m6 8 4 4 4-4" /></svg>
+                                </span>
+                                <button type="button" id="leaderboardThenDirection" class="leaderboard-order-direction" data-direction="asc" aria-label="Reverse secondary order" disabled><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 4v12m-4-4 4 4 4-4" /></svg></button>
+                                <button type="button" id="leaderboardOrderSecondaryClear" class="leaderboard-order-clear" aria-label="Clear then by" title="Clear then by" disabled><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m6 6 8 8m0-8-8 8" /></svg></button>
+                            </div>
+                        </div>
+                        </div>
+                    </div>
+                </div>
                 <button class="sidebar-toggle" aria-label="Show league filters" aria-controls="leaderboardFilters" aria-expanded="false" title="Show league filters" data-aos="fade" data-aos-duration="700" data-aos-delay="650">
                     <i class="fa fa-sliders-h"></i>
                 </button>
+                </div>
             </div>
         </div>
 
         <div class="leaderboard-controls-status">
         <div class="ranking-explanation" id="rankingExplanation" aria-live="polite"></div>
+        <span id="leaderboardOrderStatus" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></span>
         <section class="leaderboard-selection-summary" id="leaderboardSelectionSummary" aria-label="Current leaderboard selection" hidden>
             <span id="leaderboardResultCount" role="status" aria-live="polite" aria-atomic="true"></span>
             <div class="leaderboard-selection-chips" id="leaderboardSelectionChips"></div>
@@ -79,7 +120,7 @@
         </div>
         </div>
 
-        <div class="leaderboard">
+        <div class="leaderboard" id="athleteLeaderboard">
             <div class="sidebar" id="leaderboardFilters">
                 <div class="sidebar-rail" aria-hidden="true">
                     <div class="sidebar-rail-icon"><i class="fa fa-trophy"></i></div>
@@ -165,8 +206,8 @@
             <table>
                 <thead>
                 <tr>
-                    <th>Rank</th>
-                    <th>Athlete</th>
+                    <!--ORDER-RANK-HEADER-START--><th>Rank</th><!--ORDER-RANK-HEADER-END-->
+                    <!--ORDER-NAME-HEADER-START--><th>Athlete</th><!--ORDER-NAME-HEADER-END-->
                     <th class="sponsor-th">
                         Sponsor<br />
                         <a href="https://github.com/nopara73/LongevityWorldCup/issues/74" target="_blank" rel="noopener" class="sponsor-coming-soon">
@@ -175,11 +216,12 @@
                                 </span>
                         </a>
                     </th>
-                    <th>
+                    <!--ORDER-METRIC-HEADER-START--><th>
                         <a href="/ruleset#point-system-ranking" class="leaderboard-metric-link">
                             <span id="leaderboardMetricHeader">Age reduction</span>
                         </a>
-                    </th>
+                    </th><!--ORDER-METRIC-HEADER-END-->
+                    <!--ORDER-EXTRA-HEADERS-->
                     <th class="media-contact-th">Media contact</th>
                 </tr>
                 </thead>
@@ -505,6 +547,8 @@
 </div>
 
 <!--LEADERBOARD-RUNTIME-SCRIPTS-START-->
+<script type="application/json" id="leaderboardOrderCatalog"><!--ORDER-CATALOG--></script>
+<script src="{{ASSET_LEADERBOARD_ORDERING_JS}}"></script>
 <script src="{{ASSET_LEADERBOARD_PAGE_JS}}" data-default-profile-pic="{{ASSET_HD_LOGO_THUMB_SM}}"></script>
 
 <script src="{{ASSET_LEADERBOARD_EMBED_LISTENER_JS}}"></script>

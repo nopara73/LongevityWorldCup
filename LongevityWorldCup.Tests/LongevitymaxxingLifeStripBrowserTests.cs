@@ -51,7 +51,10 @@ public sealed class LongevitymaxxingLifeStripBrowserTests(
 
         foreach (var percent in new[] { 125, 150, 175, 200 })
         {
-            await page.EvaluateAsync("percent => document.documentElement.style.fontSize = percent + '%'", percent);
+            // Root percentages use the browser default, which need not equal the
+            // page's measured baseline. Enlarge the actual starting size instead.
+            await page.EvaluateAsync("size => document.documentElement.style.fontSize = size + 'px'", normal.RootFontSize * percent / 100);
+            await WaitForRootFontSizeAsync(page, normal.RootFontSize * percent / 100);
             await SettleAsync(page);
             var enlarged = await MeasureAsync(page);
             Assert.InRange(enlarged.RootFontSize, normal.RootFontSize * percent / 100 - 0.1, normal.RootFontSize * percent / 100 + 0.1);
@@ -62,8 +65,10 @@ public sealed class LongevitymaxxingLifeStripBrowserTests(
 
         // True 200% label size, independent of rem-based gaps, padding and thresholds.
         await page.EvaluateAsync("() => document.documentElement.style.removeProperty('font-size')");
+        await WaitForRootFontSizeAsync(page, normal.RootFontSize);
         await page.Locator("#lmxLifeStrip span").EvaluateAllAsync<object>(
             "(tiles, fontSize) => tiles.forEach(tile => tile.style.fontSize = fontSize + 'px')", normal.LabelFontSize * 2);
+        await WaitForLabelFontSizeAsync(page, normal.LabelFontSize * 2);
         await SettleAsync(page);
         var textOnly = await MeasureAsync(page);
         Assert.InRange(textOnly.LabelFontSize, normal.LabelFontSize * 2 - 0.1, normal.LabelFontSize * 2 + 0.1);
@@ -109,6 +114,7 @@ public sealed class LongevitymaxxingLifeStripBrowserTests(
         // Same viewport and container: only real text size changes the two-column decision.
         await page.Locator("#lmxLifeStrip span").EvaluateAllAsync<object>(
             "(tiles, fontSize) => tiles.forEach(tile => tile.style.fontSize = fontSize + 'px')", normal.LabelFontSize * 2);
+        await WaitForLabelFontSizeAsync(page, normal.LabelFontSize * 2);
         await SettleAsync(page);
         var enlarged = await MeasureAsync(page);
         AssertLayout(enlarged, "320px container, actual 200% text");
@@ -124,9 +130,33 @@ public sealed class LongevitymaxxingLifeStripBrowserTests(
         }
     }
 
+    // A fixed number of animation frames can still sample an intermediate font
+    // under load. Verify the requested text size before measuring its layout.
+    private static Task WaitForRootFontSizeAsync(IPage page, double size)
+        => page.WaitForFunctionAsync(
+            "size => Math.abs(parseFloat(getComputedStyle(document.documentElement).fontSize) - size) < 0.1", size);
+
+    private static Task WaitForLabelFontSizeAsync(IPage page, double size)
+        => page.WaitForFunctionAsync(
+            "size => [...document.querySelectorAll('#lmxLifeStrip span')].every(tile => Math.abs(parseFloat(getComputedStyle(tile).fontSize) - size) < 0.1)", size);
+
     private static async Task SettleAsync(IPage page)
     {
         await page.EvaluateAsync("() => document.fonts.ready");
+        // Reduced-motion CSS still gives every element a 1ms transition. Flush
+        // the new styles and await the root/strip transitions before measuring
+        // text resizing; two animation frames can stop at the transition start.
+        await page.EvaluateAsync("""
+            async () => {
+                getComputedStyle(document.documentElement).fontSize;
+                const strip = document.getElementById('lmxLifeStrip');
+                await Promise.all(document.getAnimations().filter(animation => {
+                    const target = animation.effect?.target;
+                    return animation.effect?.getTiming().iterations !== Infinity
+                        && (target === document.documentElement || strip.contains(target));
+                }).map(animation => animation.finished.catch(() => {})));
+            }
+            """);
         await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
     }
 

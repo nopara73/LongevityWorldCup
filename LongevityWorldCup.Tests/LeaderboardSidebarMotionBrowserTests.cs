@@ -277,16 +277,16 @@ public sealed class LeaderboardSidebarMotionBrowserTests(
             if (drawer)
             {
                 await page.Locator(".sidebar-toggle").ClickAsync();
-                await page.WaitForFunctionAsync("document.body.classList.contains('sidebar-drawer-open')");
+                await page.WaitForFunctionAsync("() => document.body.classList.contains('sidebar-drawer-open')");
             }
             else
             {
                 await page.Locator(".leaderboard .athlete-name").First.ClickAsync();
-                await page.WaitForFunctionAsync("document.querySelector('#detailsModal .modal-content:not(.is-loading):not(.guess-mode)')");
+                await page.WaitForFunctionAsync("() => document.querySelector('#detailsModal .modal-content:not(.is-loading):not(.guess-mode)')");
             }
 
             // Native scrollbar visibility can update after the class mutation.
-            await page.WaitForFunctionAsync("document.documentElement.clientWidth === innerWidth");
+            await page.WaitForFunctionAsync("() => document.documentElement.clientWidth === innerWidth");
             var locked = await page.EvaluateAsync<double[]>("""
                 drawer => [document.body.clientWidth, document.querySelector('.leaderboard').getBoundingClientRect().left,
                     drawer ? parseFloat(getComputedStyle(document.body, '::before').width)
@@ -307,7 +307,7 @@ public sealed class LeaderboardSidebarMotionBrowserTests(
             }
 
             await page.Locator(drawer ? ".sidebar-close" : "#closeAthleteDetailsModal").ClickAsync();
-            await page.WaitForFunctionAsync("!document.body.classList.contains('sidebar-drawer-open') && !document.body.classList.contains('no-scroll')");
+            await page.WaitForFunctionAsync("() => !document.body.classList.contains('sidebar-drawer-open') && !document.body.classList.contains('no-scroll')");
             await page.WaitForFunctionAsync("gap => Math.abs(innerWidth - document.documentElement.clientWidth - gap) < 1", before[2]);
             Assert.InRange(Math.Abs(await page.EvaluateAsync<double>("document.body.clientWidth") - before[0]), 0, 1);
             Assert.InRange(Math.Abs(await page.EvaluateAsync<double>("document.querySelector('.leaderboard').getBoundingClientRect().left") - before[1]), 0, 1);
