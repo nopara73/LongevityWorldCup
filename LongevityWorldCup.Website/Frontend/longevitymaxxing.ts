@@ -1154,12 +1154,15 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         if (discussionFeedRefreshing) return;
         discussionFeedRefreshing = true;
         const generation = discussionFeedGeneration;
+        const acceptedGeneration = stateAcceptanceGeneration;
         const token = accessToken;
         try {
             const notes = token
                 ? participantDiscussionThreads(await postJson(`${API}/participant`, { token }))
                 : publicDiscussionThreads(await getJson(`${API}/state`));
-            if (generation !== discussionFeedGeneration || token !== accessToken) return;
+            // A reply or check-in accepted while this request was pending is newer than its snapshot.
+            if (generation !== discussionFeedGeneration || acceptedGeneration !== stateAcceptanceGeneration ||
+                token !== accessToken || discussionMutation) return;
             queueDiscussionFeedUpdates(notes);
             updateDiscussionFeedControls();
         } catch { /* A background refresh must not interrupt reading or drafts. */ }
@@ -1255,8 +1258,15 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const button = requiredButton("lmxFeedOlder");
         const focused = document.activeElement === button;
         const firstNewIndex = discussionFeedVisible;
+        let userInterrupted = false;
         discussionFeedError = false;
         if (discussionFeedVisible >= discussionFeedOrder.length && discussionFeedHasHistory) {
+            const interactionListeners = new AbortController();
+            if (manual && focused) {
+                for (const event of ["wheel", "touchmove", "pointerdown", "keydown"])
+                    document.addEventListener(event, () => { userInterrupted = true; },
+                        { capture: true, passive: true, signal: interactionListeners.signal });
+            }
             discussionFeedLoading = true;
             updateDiscussionFeedControls();
             try {
@@ -1276,6 +1286,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             } catch {
                 if (generation === discussionFeedGeneration) discussionFeedError = true;
             } finally {
+                interactionListeners.abort();
                 if (generation === discussionFeedGeneration) discussionFeedLoading = false;
             }
         }
@@ -1283,7 +1294,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         discussionFeedVisible = Math.min(discussionFeedOrder.length, discussionFeedVisible + DISCUSSION_BATCH_SIZE);
         renderNotes(currentDiscussionNotes(), !!participantState);
         // Keyboard activation continues into the newly appended content. Automatic loads never take focus.
-        if (manual && focused && (document.activeElement === button || document.activeElement === document.body)) {
+        if (manual && focused && !userInterrupted &&
+            (document.activeElement === button || document.activeElement === document.body)) {
             const key = discussionFeedOrder[firstNewIndex];
             const next = Array.from(document.querySelectorAll<HTMLElement>("#lmxNotes article"))
                 .find(article => article.dataset.feedKey === key);
@@ -6774,6 +6786,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 const updated = await postJson(`${API}/discussion/replies/edit`, payload);
                 if (accessToken !== currentAccessToken || participantState?.participant.id !== draft.participantId) return;
                 replaceDiscussionReplyEverywhere(updated);
+                stateAcceptanceGeneration++;
             } else {
                 const payload: DiscussionReplyPayload = {
                     accessToken, postParticipantId: draft.postParticipantId, challengeDay: draft.challengeDay,

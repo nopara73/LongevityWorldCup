@@ -1,5 +1,6 @@
 using Microsoft.Playwright;
 using System.Globalization;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using Xunit;
 using static LongevityWorldCup.Tests.AestheticSystemBrowserTests;
@@ -160,6 +161,100 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await page.ReloadAsync();
         await Assertions.Expect(articles).ToHaveCountAsync(40);
         await page.WaitForFunctionAsync("expected => Math.abs(document.querySelectorAll('#lmxNotes > article')[32].getBoundingClientRect().top - expected) < 4", top);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task DiscussionFeed_DelayedRefreshCannotOfferAnOlderVersionOfYourPublishedReply(bool editing)
+    {
+        await using var context = await NewContextAsync(Browser, App, new());
+        var state = LargeDiscussionFeedState(35);
+        if (editing) {
+            foreach (var notes in new[] { state["notes"]!.AsArray(), state["public"]!["notes"]!.AsArray() }) {
+                notes[0]!["replies"]!.AsArray().Add(JsonSerializer.SerializeToNode(Reply(
+                    "owned-reply", "p1", "Browser Tester", "The original reply.", "2026-07-03T11:50:00Z")));
+                notes[0]!["replyCount"] = 1;
+            }
+        }
+        var page = await OpenDiscussionFeedAsync(context, state, automatic: false);
+        var staleState = state.ToJsonString();
+        var requested = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await page.RouteAsync("**/api/longevitymaxxing/participant", async route => {
+            requested.TrySetResult();
+            await release.Task;
+            await FulfillJsonAsync(route, staleState);
+        });
+        await page.RouteAsync("**/api/longevitymaxxing/discussion/replies", async route => {
+            var payload = JsonNode.Parse(route.Request.PostData!)!;
+            foreach (var notes in new[] { state["notes"]!.AsArray(), state["public"]!["notes"]!.AsArray() }) {
+                var thread = notes[0]!;
+                thread["replies"]!.AsArray().Add(JsonSerializer.SerializeToNode(Reply(
+                    (string)payload["replyId"]!, "p1", "Browser Tester", (string)payload["body"]!, "2026-07-03T12:01:01Z")));
+                thread["replyCount"] = 1;
+                thread["lastActivityAtUtc"] = "2026-07-03T12:01:01Z";
+            }
+            await FulfillJsonAsync(route, state.ToJsonString());
+        });
+        await page.RouteAsync("**/api/longevitymaxxing/discussion/replies/edit", async route => {
+            var payload = JsonNode.Parse(route.Request.PostData!)!;
+            await FulfillJsonAsync(route, JsonSerializer.Serialize(Reply("owned-reply", "p1", "Browser Tester",
+                (string)payload["body"]!, "2026-07-03T11:50:00Z", "2026-07-03T12:01:01Z")));
+        });
+        try {
+            await page.Clock.FastForwardAsync(61_000);
+            await requested.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            var thread = page.Locator("#lmxNotes > article").First;
+            await thread.Locator(editing ? "[data-discussion-reply-edit]" : "[data-discussion-quick-reply]").ClickAsync();
+            await thread.Locator("textarea").FillAsync("My reply is already published.");
+            await thread.Locator(editing ? "[data-reply-edit-submit]" : "[data-reply-submit]").ClickAsync();
+            await Assertions.Expect(thread.Locator("[data-discussion-reply-body]")).ToHaveTextAsync("My reply is already published.");
+            var response = page.WaitForResponseAsync(r => r.Url.EndsWith("/api/longevitymaxxing/participant", StringComparison.Ordinal));
+            release.TrySetResult();
+            await response;
+            await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+            await Assertions.Expect(page.Locator("#lmxFeedNew")).ToBeHiddenAsync();
+            await Assertions.Expect(thread.Locator("[data-discussion-reply-body]")).ToHaveTextAsync("My reply is already published.");
+        } finally { release.TrySetResult(); }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task DiscussionFeed_DelayedHistoryOnlyContinuesFocusWhileTheReaderWaits(bool readerMovesAway)
+    {
+        await using var context = await NewContextAsync(Browser, App, new());
+        var requested = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await context.RouteAsync("**/api/longevitymaxxing/discussion/feed", async route => {
+            requested.TrySetResult();
+            await release.Task;
+            var threads = new JsonArray(LargeDiscussionFeedState(102)["notes"]!.AsArray().Skip(100)
+                .Select(note => (JsonNode)new JsonObject { ["note"] = note!.DeepClone(), ["systemPost"] = null }).ToArray());
+            await FulfillJsonAsync(route, new JsonObject { ["threads"] = threads, ["nextCursor"] = null }.ToJsonString());
+        });
+        var page = await OpenDiscussionFeedAsync(context, LargeDiscussionFeedState(100), automatic: false);
+        var articles = page.Locator("#lmxNotes > article");
+        var older = page.Locator("#lmxFeedOlder");
+        try {
+            for (var expected = 20; expected <= 100; expected += 10) {
+                await older.ClickAsync();
+                await Assertions.Expect(articles).ToHaveCountAsync(expected);
+            }
+            await older.ClickAsync();
+            await requested.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            if (readerMovesAway) await page.Mouse.WheelAsync(0, -600);
+            await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+            var anchor = await articles.EvaluateAllAsync<string>("items => items.find(e => e.getBoundingClientRect().bottom > 60 && e.getBoundingClientRect().top < innerHeight).dataset.feedKey");
+            var reading = page.Locator($"#lmxNotes > article[data-feed-key='{anchor}']");
+            var top = await reading.EvaluateAsync<double>("e => e.getBoundingClientRect().top");
+            release.TrySetResult();
+            await Assertions.Expect(articles).ToHaveCountAsync(102);
+            if (readerMovesAway) await Assertions.Expect(articles.Nth(100)).Not.ToBeFocusedAsync();
+            else await Assertions.Expect(articles.Nth(100)).ToBeFocusedAsync();
+            Assert.InRange(Math.Abs(top - await reading.EvaluateAsync<double>("e => e.getBoundingClientRect().top")), 0, 4);
+        } finally { release.TrySetResult(); }
     }
 
     private static JsonObject LargeDiscussionFeedState(int count)
