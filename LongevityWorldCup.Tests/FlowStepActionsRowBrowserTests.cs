@@ -24,7 +24,7 @@ public sealed class FlowStepActionsRowBrowserTests(
             ReducedMotion = ReducedMotion.Reduce
         });
         var page = await context.NewPageAsync();
-        await NavigateAndSettleAsync(page, path);
+        await NavigateDockReadyAsync(page, path);
         await page.EvaluateAsync("() => window.LwcFlowActionDock?.refreshNow?.()");
 
         var layout = await page.EvaluateAsync<string[]>(
@@ -65,7 +65,7 @@ public sealed class FlowStepActionsRowBrowserTests(
             HasTouch = true
         });
         var page = await context.NewPageAsync();
-        await NavigateAndSettleAsync(page, path);
+        await NavigateDockReadyAsync(page, path);
         await page.EvaluateAsync("() => window.LwcFlowActionDock?.refreshNow?.()");
         await page.WaitForFunctionAsync("() => document.querySelector('.flow-action-stack--docked .back-button')");
         var sameRow = await page.EvaluateAsync<bool>(
@@ -94,7 +94,7 @@ public sealed class FlowStepActionsRowBrowserTests(
             ReducedMotion = ReducedMotion.Reduce
         });
         var page = await context.NewPageAsync();
-        await NavigateAndSettleAsync(page, path);
+        await NavigateDockReadyAsync(page, path);
         var stack = page.Locator(selector).First;
         await page.EvaluateAsync("() => window.LwcFlowActionDock.refreshNow()");
         await Assertions.Expect(stack).Not.ToHaveClassAsync(new System.Text.RegularExpressions.Regex("--docked"));
@@ -135,7 +135,7 @@ public sealed class FlowStepActionsRowBrowserTests(
             ReducedMotion = ReducedMotion.Reduce
         });
         var page = await context.NewPageAsync();
-        await NavigateAndSettleAsync(page, "/pheno-age");
+        await NavigateDockReadyAsync(page, "/pheno-age");
         await page.EvaluateAsync("""
             doubleText => {
                 const stack = document.getElementById('lwcStepOneActions');
@@ -184,7 +184,7 @@ public sealed class FlowStepActionsRowBrowserTests(
             ReducedMotion = ReducedMotion.Reduce
         });
         var page = await context.NewPageAsync();
-        await NavigateAndSettleAsync(page, path);
+        await NavigateDockReadyAsync(page, path);
         // Locate the ready task's pair rather than another hidden panel's actions.
         var primary = page.Locator("[data-flow-dock]:visible > .flow-action:not(.back-button)").First;
         var back = page.Locator("[data-flow-dock]:visible > .back-button").First;
@@ -195,5 +195,12 @@ public sealed class FlowStepActionsRowBrowserTests(
         await page.Keyboard.PressAsync("Tab");
         await Assertions.Expect(primary).Not.ToBeFocusedAsync();
         Assert.False(await primary.EvaluateAsync<bool>("b => b.getBoundingClientRect().width === 0"));
+    }
+
+    private static async Task NavigateDockReadyAsync(IPage page, string path)
+    {
+        await NavigateAndSettleAsync(page, path);
+        await page.WaitForFunctionAsync("() => window.LwcFlowActionDock && document.documentElement.classList.contains('flow-action-dock-ready')");
+        await page.EvaluateAsync("() => window.LwcFlowActionDock.refreshNow()");
     }
 }

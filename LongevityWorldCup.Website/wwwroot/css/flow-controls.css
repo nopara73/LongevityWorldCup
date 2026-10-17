@@ -266,7 +266,7 @@ body.flow-input-keyboard-open::after {
 .option-button.flow-action:disabled:hover {
     background: var(--lwc-surface-muted, #eef2f7) !important;
     border: 1px solid var(--lwc-border, rgba(100, 116, 139, 0.16));
-    border-style: dashed;
+    border-style: dashed !important;
     color: var(--lwc-muted, #526373);
     box-shadow: none !important;
     cursor: not-allowed;

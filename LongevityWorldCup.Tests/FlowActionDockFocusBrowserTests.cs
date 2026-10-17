@@ -23,6 +23,7 @@ public sealed class FlowActionDockFocusBrowserTests(
         if (fallback) await context.AddInitScriptAsync("Element.prototype.moveBefore = undefined; Element.prototype.checkVisibility = undefined");
         var page = await context.NewPageAsync();
         await NavigateAndSettleAsync(page, "/pheno-age");
+        await page.WaitForFunctionAsync("() => window.LwcFlowActionDock && document.documentElement.classList.contains('flow-action-dock-ready')");
         await page.EvaluateAsync("""
             () => {
                 const stack = document.getElementById('lwcStepOneActions');
@@ -69,6 +70,7 @@ public sealed class FlowActionDockFocusBrowserTests(
         await context.AddInitScriptAsync("Element.prototype.moveBefore = undefined");
         var page = await context.NewPageAsync();
         await NavigateAndSettleAsync(page, "/pheno-age");
+        await page.WaitForFunctionAsync("() => window.LwcFlowActionDock && document.documentElement.classList.contains('flow-action-dock-ready')");
         var result = await page.EvaluateAsync<string[]>("""
             mutation => {
                 const stack = document.getElementById('lwcStepOneActions');
