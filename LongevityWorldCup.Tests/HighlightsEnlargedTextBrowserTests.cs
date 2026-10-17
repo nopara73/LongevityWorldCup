@@ -97,7 +97,7 @@ public sealed class HighlightsEnlargedTextBrowserTests(
                 [
                   {"Id":"ranked-joined","Type":1,"Text":"slug[ranked-multiword]","OccurredAt":"2026-10-16T08:00:00Z","Relevance":10},
                   {"Id":"ranked-long","Type":9,"Text":"slug[ranked-long]","OccurredAt":"2026-10-15T08:00:00Z","Relevance":10},
-                  {"Id":"ranked-pro","Type":9,"Text":"slug[ranked-pro]","OccurredAt":"2026-10-14T08:00:00Z","Relevance":10},
+                  {"Id":"ranked-donation","Type":3,"Text":"sats[8455]","OccurredAt":"2026-10-14T08:00:00Z","Relevance":10},
                   {"Id":"ranked-crowd","Type":11,"Text":"slug[ranked-crowd] place[3] previousPlace[6] crowdAge[31.2] crowdCount[123]","OccurredAt":"2026-10-13T08:00:00Z","Relevance":10},
                   {"Id":"ranked-announcement","Type":6,"Text":"Season update\n\nThe full announcement remains available. [Read the rules](https://longevityworldcup.com/ruleset)","OccurredAt":"2026-10-12T08:00:00Z","Relevance":10}
                 ]
@@ -112,6 +112,7 @@ public sealed class HighlightsEnlargedTextBrowserTests(
         await Assertions.Expect(firstRow.Locator(".event-message .event-athlete-link")).ToHaveAccessibleNameAsync("Nóra Marosvölgyi");
         await Assertions.Expect(firstRow.Locator(".placement-link")).ToHaveAccessibleNameAsync("(#232)");
         Assert.EndsWith("#rank-232", await firstRow.Locator(".placement-link").GetAttributeAsync("href"));
+        await Assertions.Expect(page.Locator(".donation-amount")).ToHaveTextAsync("0.00008455 BTC");
         foreach (var percent in new[] { 100, 125, 150, 175, 200 })
         {
             await page.EvaluateAsync("percent => document.documentElement.style.fontSize = `${percent}%`", percent);
@@ -120,6 +121,7 @@ public sealed class HighlightsEnlargedTextBrowserTests(
             foreach (var width in new[] { 320, 390, 600, 601, 768, 844, 1440, 390 })
             {
                 await page.SetViewportSizeAsync(width, width == 844 ? 390 : 844);
+                await page.WaitForFunctionAsync("width => innerWidth === width", width);
                 await page.EvaluateAsync("async () => { await document.fonts.ready; await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))); }");
                 var problems = await page.EvaluateAsync<string[]>(
                     """
@@ -134,6 +136,13 @@ public sealed class HighlightsEnlargedTextBrowserTests(
                             const range = document.createRange(); range.selectNodeContents(heading);
                             if (new Set([...range.getClientRects()].filter(r => r.width > 0).map(r => Math.round(r.top))).size !== 1)
                                 issues.push('Highlights heading splits inside its word');
+                        }
+                        for (const date of document.querySelectorAll('tr.main-row .col-date')) {
+                            if (!date.getClientRects().length) continue;
+                            const box = date.getBoundingClientRect(), style = getComputedStyle(date);
+                            const range = document.createRange(); range.selectNodeContents(date);
+                            if ([...range.getClientRects()].some(r => r.width > 0 && (r.left < box.left + parseFloat(style.paddingLeft) - 1 || r.right > box.right - parseFloat(style.paddingRight) + 1)))
+                                issues.push(`${date.textContent} escapes its date column (${box.width}px with ${style.paddingLeft}/${style.paddingRight} padding)`);
                         }
                         for (const cell of cells) {
                             const box = cell.getBoundingClientRect();

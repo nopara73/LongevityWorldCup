@@ -906,13 +906,15 @@ button:hover {
         table-layout: fixed;
     }
 
-    #events-root-index .events-board col.events-col-date {
-        width: 76px;
+    #events-root-index .events-board col.events-col-date,
+    #events-root-index .events-board td.col-date {
+        width: max(76px, 4.75rem);
     }
 
     #events-root-index .events-board td.col-date {
-        width: 76px;
         padding-left: 8px;
+        white-space: normal;
+        overflow-wrap: break-word;
     }
 
     #events-root-index .events-board td.event-message {
@@ -1317,8 +1319,9 @@ button:hover {
         padding-right: 14px;
     }
 
-    #events-root-index .events-board col.events-col-date {
-        width: 58px;
+    #events-root-index .events-board col.events-col-date,
+    #events-root-index .events-board td.col-date {
+        width: max(58px, 3.625rem);
     }
 
     .lwc-countdown-body {

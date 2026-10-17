@@ -273,8 +273,7 @@
 .events-board.athlete-scroll td.event-message .event-message-cell .rank-badge,
 .events-board.athlete-scroll td.event-message .event-message-cell .badge-class,
 .events-board.athlete-scroll td.event-message .event-message-cell .badge-chip,
-.events-board.athlete-scroll td.event-message .event-message-cell .more-link,
-.events-board.athlete-scroll td.event-message .event-message-cell .donation-amount{
+.events-board.athlete-scroll td.event-message .event-message-cell .more-link{
     white-space:nowrap;
 }
 
@@ -510,8 +509,7 @@
 .events-board td.event-message .event-message-cell .rank-badge,
 .events-board td.event-message .event-message-cell .badge-class,
 .events-board td.event-message .event-message-cell .badge-chip,
-.events-board td.event-message .event-message-cell .more-link,
-.events-board td.event-message .event-message-cell .donation-amount{
+.events-board td.event-message .event-message-cell .more-link{
     white-space:nowrap;
 }
 
@@ -850,8 +848,7 @@
     .events-board:not(.athlete-scroll) td.event-message .event-message-cell .rank-badge,
     .events-board:not(.athlete-scroll) td.event-message .event-message-cell .badge-class,
     .events-board:not(.athlete-scroll) td.event-message .event-message-cell .badge-chip,
-    .events-board:not(.athlete-scroll) td.event-message .event-message-cell .more-link,
-    .events-board:not(.athlete-scroll) td.event-message .event-message-cell .donation-amount{
+    .events-board:not(.athlete-scroll) td.event-message .event-message-cell .more-link{
         white-space:nowrap;
     }
     .events-board:not(.athlete-scroll) .badge-with-from.show-from{
@@ -881,8 +878,7 @@
     .events-board.athlete-scroll td.event-message .event-message-cell .rank-badge,
     .events-board.athlete-scroll td.event-message .event-message-cell .badge-class,
     .events-board.athlete-scroll td.event-message .event-message-cell .badge-chip,
-    .events-board.athlete-scroll td.event-message .event-message-cell .more-link,
-    .events-board.athlete-scroll td.event-message .event-message-cell .donation-amount{
+    .events-board.athlete-scroll td.event-message .event-message-cell .more-link{
         white-space:nowrap;
     }
 }
