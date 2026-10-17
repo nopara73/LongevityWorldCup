@@ -270,7 +270,7 @@
             commit({ sort: current.then, direction: current.thenDirection, then: current.sort, thenDirection: current.direction });
         });
         primaryClear.addEventListener('click', () => {
-            commit(current.then ? { sort: current.then, direction: current.thenDirection } : defaults());
+            commit(defaults());
             primary.focus({ preventScroll: true });
         });
         secondaryClear.addEventListener('click', () => {

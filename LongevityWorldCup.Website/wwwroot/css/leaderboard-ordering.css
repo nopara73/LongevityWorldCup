@@ -92,12 +92,11 @@ th[data-order-direction="asc"] .order-heading-label, th[data-order-direction="de
 .order-indicator svg { display:block; width:1em; height:1em; fill:none; stroke:currentColor; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; }
 th[data-order-direction="asc"] .order-indicator svg { transform:rotate(180deg); }
 .order-indicator:empty { display:none; }
-.leaderboard-metric-heading { display:inline-flex; align-items:center; max-width:100%; vertical-align:middle; }
+.leaderboard-metric-heading { display:inline-flex; flex-wrap:nowrap; align-items:center; min-width:0; max-width:100%; vertical-align:middle; }
 #athleteLeaderboard .leaderboard-metric-heading > .leaderboard-column-order { min-width:0; max-width:none; }
 #athleteLeaderboard .leaderboard-metric-heading > .leaderboard-rules-link { display:inline-flex; flex:0 0 24px; width:24px; box-sizing:border-box; margin:0; padding:0; }
 .leaderboard table .leaderboard-rules-link { display:inline-flex; align-items:center; justify-content:center; width:24px; min-height:44px; color:var(--lwc-muted); margin:0; padding:0; font-size:.8em; vertical-align:middle; }
 .leaderboard table th[data-order-key="metric"] { white-space:nowrap; }
-.leaderboard table th[data-order-key="metric"] .leaderboard-column-order { max-width:calc(100% - 24px); }
 .leaderboard table th.leaderboard-order-column, .leaderboard table td.leaderboard-order-value { text-align:right; font-variant-numeric:tabular-nums; }
 .leaderboard--ordered > table { table-layout:auto; }
 #athleteLeaderboard.leaderboard--ordered { container:leaderboard-results / inline-size; }
@@ -131,31 +130,39 @@ th[data-order-direction="asc"] .order-indicator svg { transform:rotate(180deg); 
         border-radius:var(--lwc-radius-lg,12px); overflow:clip;
     }
     .leaderboard--ordered > table > thead, .leaderboard--ordered > table > tbody { display:block; width:100%; }
-    /* One scoped grid overrides the legacy mobile card rules for both headings and values. */
+    /* Headings and rows share tracks; selected fields take priority over context. */
+    #athleteLeaderboard.leaderboard--ordered > table > :is(thead,tbody) > tr {
+        --order-value-count:1; --order-metric-offset:0;
+        --order-tracks:2.75rem minmax(0,1.6fr) repeat(var(--order-value-count),minmax(5.5rem,1fr));
+        --order-name-column:2; --order-score-column:3; --order-first-column:calc(3 + var(--order-metric-offset));
+        --order-value-row:1; --order-value-gap:0; --order-column-gap:.75rem;
+    }
+    #athleteLeaderboard.leaderboard--ordered[data-order-columns="2"] > table > :is(thead,tbody) > tr,
+    #athleteLeaderboard.leaderboard--ordered[data-order-columns="1"]:has(th[data-order-key="metric"]:is([data-order-level="1"],[data-order-level="2"])) > table > :is(thead,tbody) > tr { --order-value-count:2; }
+    #athleteLeaderboard.leaderboard--ordered:has(th[data-order-key="metric"]:is([data-order-level="1"],[data-order-level="2"])) > table > :is(thead,tbody) > tr { --order-metric-offset:1; }
     #athleteLeaderboard.leaderboard--ordered > table > thead > tr,
     #athleteLeaderboard.leaderboard--ordered > table > tbody > tr[data-athlete-name] {
-        display:grid; grid-template-columns:2.25rem minmax(0,1fr) minmax(5.5rem,.72fr); grid-template-areas:none;
-        align-items:center; column-gap:.5rem; row-gap:0; padding:.5rem .75rem; box-sizing:border-box;
+        display:grid; grid-template-columns:var(--order-tracks); grid-template-areas:none;
+        align-items:center; column-gap:var(--order-column-gap); row-gap:var(--order-value-gap); padding:.5rem .75rem; box-sizing:border-box;
     }
     #athleteLeaderboard.leaderboard--ordered > table > thead > tr > th,
     #athleteLeaderboard.leaderboard--ordered > table > thead > tr > th[data-order-key] {
-        display:block; width:auto; min-width:0; height:auto; padding:0; margin:0; border:0; background:none; font-size:.75rem; text-align:left;
+        display:flex; align-items:center; width:auto; min-width:0; height:auto; padding:0; margin:0; border:0; background:none; font-size:.8rem; text-align:left;
     }
     #athleteLeaderboard.leaderboard--ordered > table > thead > tr > .sponsor-th,
     #athleteLeaderboard.leaderboard--ordered > table > thead > tr > .media-contact-th,
     #athleteLeaderboard.leaderboard--ordered > table > tbody > tr > .sponsor-td,
     #athleteLeaderboard.leaderboard--ordered > table > tbody > tr > .media-contact-td { display:none; }
-    #athleteLeaderboard.leaderboard--ordered > table > thead > tr > th[data-order-key="rank"] { grid-column:1; grid-row:1; text-align:center; }
-    #athleteLeaderboard.leaderboard--ordered > table > thead > tr > th[data-order-key="name"] { grid-column:2; grid-row:1; padding-left:calc(var(--portrait-size) + .5rem); }
-    #athleteLeaderboard.leaderboard--ordered > table > thead > tr > th[data-order-key="metric"] { grid-column:3; grid-row:1; text-align:right; }
+    #athleteLeaderboard.leaderboard--ordered > table > thead > tr > th[data-order-key="rank"] { grid-column:1; grid-row:1; justify-content:center; }
+    #athleteLeaderboard.leaderboard--ordered > table > thead > tr > th[data-order-key="name"] { grid-column:var(--order-name-column); grid-row:1; padding-left:calc(var(--portrait-size) + .5rem); }
+    #athleteLeaderboard.leaderboard--ordered > table > thead > tr > th[data-order-key="metric"] { grid-column:var(--order-score-column); grid-row:var(--order-value-row); justify-content:flex-end; text-align:right; }
     #athleteLeaderboard.leaderboard--ordered > table > thead > tr > th.leaderboard-order-column {
-        display:flex; grid-column:2; grid-row:2; align-self:stretch; padding-top:.5rem; text-align:left;
+        grid-column:var(--order-first-column); grid-row:var(--order-value-row); align-self:stretch; align-items:stretch; justify-content:flex-end; text-align:right;
     }
-    #athleteLeaderboard.leaderboard--ordered > table > thead > tr > th.leaderboard-order-column ~ th.leaderboard-order-column { grid-column:3; }
-    #athleteLeaderboard.leaderboard--ordered[data-order-columns="1"] > table > thead > tr > th.leaderboard-order-column { grid-column:2 / -1; }
-    .leaderboard--ordered > table > thead .leaderboard-column-order { min-height:44px; align-content:start; }
-    .leaderboard--ordered > table > thead .leaderboard-order-column .leaderboard-column-order { align-content:stretch; grid-template-rows:1fr auto; }
-    .leaderboard--ordered > table > thead .order-heading-label { align-self:start; }
+    #athleteLeaderboard.leaderboard--ordered > table > thead > tr > th.leaderboard-order-column ~ th.leaderboard-order-column { grid-column:calc(var(--order-first-column) + 1); }
+    .leaderboard--ordered > table > thead .leaderboard-column-order { min-height:44px; }
+    .leaderboard--ordered > table > thead .leaderboard-order-column .leaderboard-column-order { align-content:start; grid-template-rows:auto auto; }
+    .leaderboard--ordered > table > thead .leaderboard-order-column .order-heading-label { align-self:start; }
     .leaderboard--ordered > table > thead > tr > th[data-order-key="metric"] .leaderboard-column-order { min-height:44px; }
     #athleteLeaderboard.leaderboard--ordered > table > tbody > tr[data-athlete-name] { padding-block:.625rem; }
     #athleteLeaderboard.leaderboard--ordered > table > tbody > tr.tier-amateur[data-athlete-name] { padding-left:calc(.75rem - 4px); }
@@ -163,37 +170,48 @@ th[data-order-direction="asc"] .order-indicator svg { transform:rotate(180deg); 
         grid-area:auto; width:auto; min-width:0; margin:0; border:0; padding:0;
     }
     #athleteLeaderboard.leaderboard--ordered > table > tbody > tr[data-athlete-name] > .rank-td { grid-column:1; grid-row:1; justify-content:center; }
-    #athleteLeaderboard.leaderboard--ordered > table > tbody > tr[data-athlete-name] > .athlete-td { display:flex; grid-column:2; grid-row:1; gap:.5rem; }
+    #athleteLeaderboard.leaderboard--ordered > table > tbody > tr[data-athlete-name] > .athlete-td { display:flex; grid-column:var(--order-name-column); grid-row:1; gap:.5rem; }
     .leaderboard--ordered .athlete-td :is(.badge-section,.athlete-name-links) { display:none; }
-    #athleteLeaderboard.leaderboard--ordered > table > tbody > tr[data-athlete-name] > .age-reduction-td { grid-column:3; grid-row:1; text-align:right; align-items:flex-end; }
-    .leaderboard--ordered .athlete-name { font-size:.95rem; line-height:1.25; }
+    #athleteLeaderboard.leaderboard--ordered > table > tbody > tr[data-athlete-name] > .age-reduction-td { grid-column:var(--order-score-column); grid-row:var(--order-value-row); text-align:right; align-items:flex-end; }
+    #athleteLeaderboard.leaderboard--ordered:not([data-order-columns="0"]):not(:has(th[data-order-key="metric"]:is([data-order-level="1"],[data-order-level="2"]))) > table > thead > tr > th[data-order-key="metric"],
+    #athleteLeaderboard.leaderboard--ordered:not([data-order-columns="0"]):not(:has(th[data-order-key="metric"]:is([data-order-level="1"],[data-order-level="2"]))) > table > tbody > tr[data-athlete-name] > .age-reduction-td { display:none; }
+    #athleteLeaderboard.leaderboard--ordered .athlete-name { padding-inline:0; font-size:.95rem; line-height:1.25; }
     .leaderboard--ordered .athlete-td .rank-change :is(.new-bubble,.rank-arrow) {
         z-index:2; left:auto; right:-3px; top:auto; bottom:-3px; transform:none; width:14px; height:14px;
         border:2px solid var(--lwc-surface); border-radius:50%; font-size:8px; box-sizing:border-box;
     }
     .leaderboard--ordered table td.age-reduction-td::before { content:none; }
-    .leaderboard--ordered table .age-reduction { font-size:.95rem; white-space:nowrap; }
+    .leaderboard--ordered table .age-reduction { font-size:.95rem; white-space:normal; }
     #athleteLeaderboard.leaderboard--ordered > table > tbody > tr[data-athlete-name] > .leaderboard-order-value {
-        grid-column:2; grid-row:2; text-align:left; white-space:normal; padding:.4rem 0 0 1.05rem; font-size:.95rem; line-height:1.35;
+        grid-column:var(--order-first-column); grid-row:var(--order-value-row); text-align:right; white-space:normal; overflow-wrap:anywhere; font-size:.95rem; line-height:1.35;
     }
-    #athleteLeaderboard.leaderboard--ordered > table > tbody > tr[data-athlete-name] > .leaderboard-order-value ~ .leaderboard-order-value { grid-column:3; }
-    #athleteLeaderboard.leaderboard--ordered[data-order-columns="1"] > table > tbody > tr[data-athlete-name] > .leaderboard-order-value { grid-column:2 / -1; }
+    #athleteLeaderboard.leaderboard--ordered > table > tbody > tr[data-athlete-name] > .leaderboard-order-value ~ .leaderboard-order-value { grid-column:calc(var(--order-first-column) + 1); }
     .leaderboard--ordered > table > tbody > tr[data-athlete-name] > .leaderboard-order-value::before { content:none; }
+}
+@container ordered-board (max-width:32em) {
+    #athleteLeaderboard.leaderboard--ordered:where([data-order-columns="2"],[data-order-columns="1"]:has(th[data-order-key="metric"]:is([data-order-level="1"],[data-order-level="2"]))) > table > :is(thead,tbody) > tr {
+        --order-tracks:2.75rem minmax(0,1fr) minmax(0,1fr);
+        --order-name-column:2 / -1; --order-score-column:2; --order-first-column:calc(2 + var(--order-metric-offset));
+        --order-value-row:2; --order-value-gap:.35rem;
+    }
 }
 @container order-panel (max-width:18em) {
     .leaderboard-order-rows { grid-column:1 / -1; grid-row:1; }
     .leaderboard-order-swap { grid-column:1 / -1; grid-row:2; width:44px; justify-self:center; }
 }
 @container ordered-board (max-width:17em) {
-    #athleteLeaderboard.leaderboard--ordered > table > thead > tr > th[data-order-key="name"],
-    #athleteLeaderboard.leaderboard--ordered > table > tbody > tr[data-athlete-name] > .athlete-td { grid-column:2 / -1; }
-    #athleteLeaderboard.leaderboard--ordered > table > thead > tr > th[data-order-key="metric"],
-    #athleteLeaderboard.leaderboard--ordered > table > tbody > tr[data-athlete-name] > .age-reduction-td { grid-column:2 / -1; grid-row:2; text-align:left; align-items:flex-start; }
+    #athleteLeaderboard.leaderboard--ordered > table > :is(thead,tbody) > tr {
+        --order-tracks:2.25rem minmax(0,1fr); --order-name-column:2; --order-score-column:2;
+        --order-value-row:2; --order-value-gap:.35rem; --order-column-gap:.5rem;
+    }
     #athleteLeaderboard.leaderboard--ordered > table > thead > tr > th.leaderboard-order-column,
-    #athleteLeaderboard.leaderboard--ordered > table > tbody > tr[data-athlete-name] > .leaderboard-order-value { grid-column:2 / -1; grid-row:3; }
+    #athleteLeaderboard.leaderboard--ordered > table > tbody > tr[data-athlete-name] > .leaderboard-order-value { grid-column:2; grid-row:calc(2 + var(--order-metric-offset)); }
     #athleteLeaderboard.leaderboard--ordered > table > thead > tr > th.leaderboard-order-column ~ th.leaderboard-order-column,
-    #athleteLeaderboard.leaderboard--ordered > table > tbody > tr[data-athlete-name] > .leaderboard-order-value ~ .leaderboard-order-value { grid-column:2 / -1; grid-row:4; }
-    .leaderboard--ordered table td.age-reduction-td::before { content:none; }
+    #athleteLeaderboard.leaderboard--ordered > table > tbody > tr[data-athlete-name] > .leaderboard-order-value ~ .leaderboard-order-value { grid-column:2; grid-row:3; }
+    #athleteLeaderboard.leaderboard--ordered > table > thead > tr > th:is([data-order-level="1"],[data-order-level="2"]) .leaderboard-column-order { grid-template-columns:minmax(0,1fr); }
+    #athleteLeaderboard.leaderboard--ordered > table > thead > tr > th:is([data-order-level="1"],[data-order-level="2"]) .order-heading-label { grid-column:1; grid-row:2; min-height:0; }
+    #athleteLeaderboard.leaderboard--ordered > table > thead > tr > th:is([data-order-level="1"],[data-order-level="2"]) .order-indicator { grid-column:1; grid-row:1; justify-self:end; }
+    #athleteLeaderboard.leaderboard--ordered > table > thead > tr > th:is([data-order-level="1"],[data-order-level="2"]) small { grid-column:1; grid-row:3; }
 }
 @media (max-width:360px) {
     .leaderboard-order-panel { padding:min(.75rem,12px); }

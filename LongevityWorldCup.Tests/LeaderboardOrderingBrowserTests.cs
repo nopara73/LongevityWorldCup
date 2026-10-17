@@ -243,21 +243,20 @@ public sealed class LeaderboardOrderingBrowserTests(PlaywrightBrowserFixture bro
     [InlineData(1280)]
     [InlineData(390)]
     [InlineData(320)]
-    public async Task QuickClear_PromotesSecondaryOrRemovesOnlyItsOwnLevel(int width)
+    public async Task QuickClear_PrimaryClearsBothAndSecondaryClearsOnlyItself(int width)
     {
         await using var context = await NewContextAsync(Browser, App, new()
         {
             ViewportSize = new() { Width = width, Height = 900 }, ReducedMotion = ReducedMotion.Reduce
         });
         var page = await context.NewPageAsync();
-        await page.GotoAsync("/league/pheno?sort=bortz&dir=desc&then=age&thenDir=desc#rank-1");
+        await page.GotoAsync("/leaderboard?view=pheno&search=Wen&sort=bortz&dir=desc&then=age&thenDir=desc#rank-1");
         await Loaded(page);
-        await page.Locator("#athleteSearch").FillAsync("Wen");
         await page.Locator("#leaderboardOrderToggle").ClickAsync();
         var panel = page.Locator("#leaderboardOrderPanel");
         var primary = page.Locator("#leaderboardOrderPrimary");
         var secondary = page.Locator("#leaderboardOrderSecondary");
-        var primaryClear = page.GetByRole(AriaRole.Button, new() { Name = "Clear order by", Exact = true });
+        var primaryClear = page.GetByRole(AriaRole.Button, new() { Name = "Clear both ordering fields", Exact = true });
         var secondaryClear = page.GetByRole(AriaRole.Button, new() { Name = "Clear then by", Exact = true });
         var swap = page.Locator("#leaderboardOrderSwap");
         foreach (var button in new[] { primaryClear, secondaryClear })
@@ -265,29 +264,23 @@ public sealed class LeaderboardOrderingBrowserTests(PlaywrightBrowserFixture bro
             var target = (await button.BoundingBoxAsync())!;
             Assert.True(target.Width >= 44 && target.Height >= 44);
         }
-        await primaryClear.Locator("svg").ClickAsync();
+        await secondaryClear.Locator("svg").ClickAsync();
         await Assertions.Expect(panel).ToBeVisibleAsync();
-        await Assertions.Expect(primary).ToBeFocusedAsync();
-        await Assertions.Expect(primary).ToHaveValueAsync("age");
+        await Assertions.Expect(secondary).ToBeFocusedAsync();
+        await Assertions.Expect(primary).ToHaveValueAsync("bortz");
         await Assertions.Expect(secondary).ToHaveValueAsync("");
         await Assertions.Expect(swap).ToBeDisabledAsync();
         await Assertions.Expect(secondaryClear).ToBeDisabledAsync();
-        await Assertions.Expect(page.Locator("th[data-order-key=age]")).ToHaveAttributeAsync("aria-sort", "descending");
-        await Assertions.Expect(page.Locator("th[data-order-key=bortz], td[data-order-key=bortz]")).ToHaveCountAsync(0);
+        await Assertions.Expect(page.Locator("th[data-order-key=bortz]")).ToHaveAttributeAsync("aria-sort", "descending");
+        await Assertions.Expect(page.Locator("th[data-order-key=age], td[data-order-key=age]")).ToHaveCountAsync(0);
         await Assertions.Expect(page.Locator("th.leaderboard-order-column")).ToHaveCountAsync(1);
         await Assertions.Expect(page.Locator("#athleteSearch")).ToHaveValueAsync("Wen");
         Assert.Contains("view=pheno", page.Url);
         Assert.EndsWith("#rank-1", page.Url);
         Assert.DoesNotContain("then", page.Url);
 
-        await secondary.SelectOptionAsync("vitd");
-        await secondaryClear.ClickAsync();
-        await Assertions.Expect(panel).ToBeVisibleAsync();
-        await Assertions.Expect(secondary).ToBeFocusedAsync();
-        await Assertions.Expect(primary).ToHaveValueAsync("age");
-        await Assertions.Expect(page.Locator("th[data-order-key=age]")).ToHaveAttributeAsync("aria-sort", "descending");
-        await Assertions.Expect(page.Locator("th[data-order-key=vitd], td[data-order-key=vitd]")).ToHaveCountAsync(0);
-
+        await secondary.SelectOptionAsync("age");
+        await Assertions.Expect(page.Locator("th.leaderboard-order-column")).ToHaveCountAsync(2);
         await primaryClear.ClickAsync();
         await Assertions.Expect(panel).ToBeVisibleAsync();
         await Assertions.Expect(primary).ToBeFocusedAsync();
@@ -298,9 +291,94 @@ public sealed class LeaderboardOrderingBrowserTests(PlaywrightBrowserFixture bro
         await Assertions.Expect(swap).ToBeDisabledAsync();
         await Assertions.Expect(page.Locator("th.leaderboard-order-column, td.leaderboard-order-value")).ToHaveCountAsync(0);
         Assert.DoesNotContain("sort=", page.Url);
+        Assert.DoesNotContain("then=", page.Url);
+        Assert.Contains("search=Wen", page.Url);
+        Assert.Contains("view=pheno", page.Url);
         await page.Keyboard.PressAsync("Tab");
         await Assertions.Expect(page.Locator(".sidebar-toggle")).ToBeFocusedAsync();
         await Assertions.Expect(panel).ToBeHiddenAsync();
+    }
+
+    [Theory]
+    [InlineData(762, 100, false)]
+    [InlineData(762, 100, true)]
+    [InlineData(912, 100, true)]
+    [InlineData(1280, 100, true)]
+    [InlineData(390, 100, true)]
+    [InlineData(320, 100, true)]
+    [InlineData(390, 200, true)]
+    [InlineData(320, 200, true)]
+    public async Task SelectedValues_FitBesideAthletesAndTakePriorityOverTheContextScore(int width, int textPercent, bool javaScript)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = 900 }, JavaScriptEnabled = javaScript,
+            ReducedMotion = ReducedMotion.Reduce
+        });
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/leaderboard?sort=phenoPercent&dir=asc&then=bortzImprovement&thenDir=desc");
+        if (javaScript) await Loaded(page);
+        await page.EvaluateAsync("percent => document.documentElement.style.fontSize = `${percent}%`", textPercent);
+        // Disabled JavaScript cannot deliver the animation-frame callbacks used by the live-page helper.
+        if (javaScript) await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
+        var score = page.Locator("th[data-order-key=metric]");
+        if (width == 1280) await Assertions.Expect(score).ToBeVisibleAsync();
+        else await Assertions.Expect(score).ToBeHiddenAsync();
+        const string fitProbe = """
+            argument => {
+                const table = document.querySelector('#athleteLeaderboard > table');
+                const row = table.querySelector('tr[data-athlete-name]');
+                const athlete = row.querySelector('.athlete-td').getBoundingClientRect();
+                const values = [...row.querySelectorAll('.leaderboard-order-value')];
+                const problems = [];
+                if (document.documentElement.scrollWidth > document.documentElement.clientWidth) problems.push('Horizontal page overflow.');
+                if (getComputedStyle(row).display === 'grid') {
+                    const name = document.createRange(); name.selectNodeContents(row.querySelector('.athlete-name-content') || row.querySelector('.athlete-name'));
+                    const nameLeft = name.getBoundingClientRect().left;
+                    const headingLeft = table.querySelector('th[data-order-key="name"] .order-heading-label').getBoundingClientRect().left;
+                    if (Math.abs(nameLeft - headingLeft) > 1) problems.push(`Athlete name/heading alignment: ${nameLeft} / ${headingLeft}; portrait ${row.querySelector('.portrait-wrapper').getBoundingClientRect().width}; gap ${getComputedStyle(row.querySelector('.athlete-td')).gap}; padding ${getComputedStyle(row.querySelector('.athlete-name')).paddingInline}; cell left ${athlete.left} / ${table.querySelector('th[data-order-key="name"]').getBoundingClientRect().left}.`);
+                }
+                for (const element of [...table.querySelectorAll('thead th'), ...values, row.querySelector('.age-reduction-td')]) {
+                    const cell = element.getBoundingClientRect();
+                    if (!cell.width) continue;
+                    const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+                    while (walker.nextNode()) {
+                        const range = document.createRange(); range.selectNodeContents(walker.currentNode);
+                        for (const rect of range.getClientRects()) if (rect.width && (rect.left < cell.left - 1 || rect.right > cell.right + 1)) problems.push(`Clipped text: ${walker.currentNode.textContent}`);
+                    }
+                }
+                for (const cell of values) {
+                    const header = table.querySelector(`th[data-order-key="${cell.dataset.orderKey}"] .order-heading-label`);
+                    const value = document.createRange(); value.selectNodeContents(cell);
+                    if (Math.abs(value.getBoundingClientRect().right - header.getBoundingClientRect().right) > 1) problems.push(`Header/value alignment: ${cell.dataset.orderKey}`);
+                    if (argument.TextPercent === 100 && argument.Width >= 762 && argument.Width <= 912) {
+                        const box = cell.getBoundingClientRect();
+                        if (Math.abs((box.top + box.bottom - athlete.top - athlete.bottom) / 2) > 1) problems.push('Selected values should fit beside the athlete.');
+                    }
+                }
+                if (argument.TextPercent === 100 && argument.Width >= 762 && argument.Width <= 912 && row.getBoundingClientRect().height > 76) problems.push('The row still reserves space for stacked values.');
+                return problems;
+            }
+            """;
+        var fitProblems = await page.EvaluateAsync<string[]>(fitProbe, new { Width = width, TextPercent = textPercent });
+        var screenshots = Environment.GetEnvironmentVariable("LWC_ORDER_SCREENSHOTS");
+        if (javaScript && !string.IsNullOrWhiteSpace(screenshots))
+        {
+            Directory.CreateDirectory(screenshots);
+            await page.Locator("#athleteLeaderboard > table > thead").EvaluateAsync("element => element.scrollIntoView({ block:'start' })");
+            await page.ScreenshotAsync(new() { Path = Path.Combine(screenshots, $"ordering-fit-{width}-{textPercent}-{(javaScript ? "hydrated" : "server")}.png") });
+        }
+        Assert.True(fitProblems.Length == 0, string.Join("\n", fitProblems));
+        if (!javaScript) return;
+        // An explicitly selected competition score must never disappear with its context column.
+        await page.Locator("#leaderboardOrderToggle").ClickAsync();
+        await page.Locator("#leaderboardOrderPrimary").SelectOptionAsync("metric");
+        await Assertions.Expect(score).ToBeVisibleAsync();
+        await Assertions.Expect(Rows(page).First.Locator(".age-reduction-td")).ToBeVisibleAsync();
+        Assert.Empty(await page.EvaluateAsync<string[]>(fitProbe, new { Width = width, TextPercent = textPercent }));
+        await page.Locator("#leaderboardOrderPrimaryClear").ClickAsync();
+        await Assertions.Expect(page.Locator("th.leaderboard-order-column")).ToHaveCountAsync(0);
+        await Assertions.Expect(score).ToBeVisibleAsync();
     }
 
     [Theory]
@@ -342,7 +420,7 @@ public sealed class LeaderboardOrderingBrowserTests(PlaywrightBrowserFixture bro
                 const metric = document.querySelector('th[data-order-key="metric"]');
                 const help = metric.querySelector('.leaderboard-rules-link').getBoundingClientRect();
                 const score = metric.querySelector('button').getBoundingClientRect();
-                if (Math.abs((help.top + help.bottom - score.top - score.bottom) / 2) > 1 || help.left < score.right - 1) problems.push('The ranking help icon wrapped away from its heading.');
+                if (metric.getBoundingClientRect().width && (Math.abs((help.top + help.bottom - score.top - score.bottom) / 2) > 1 || help.left < score.right - 1)) problems.push('The ranking help icon wrapped away from its heading.');
                 if (innerWidth <= 768 && headers.length === 2 && textPercent === 100) {
                     const labels = headers.map(h => h.querySelector('.order-heading-label').getBoundingClientRect());
                     if (Math.abs(labels[0].top - labels[1].top) > 1) problems.push('Selected headings do not share a top edge.');
@@ -350,7 +428,7 @@ public sealed class LeaderboardOrderingBrowserTests(PlaywrightBrowserFixture bro
                     for (const header of headers) {
                         const cell = row.querySelector(`td[data-order-key="${header.dataset.orderKey}"]`);
                         const value = document.createRange(); value.selectNodeContents(cell);
-                        if (Math.abs(value.getBoundingClientRect().left - header.querySelector('.order-heading-label').getBoundingClientRect().left) > 1) problems.push(`Misaligned value: ${header.dataset.orderKey}`);
+                        if (Math.abs(value.getBoundingClientRect().right - header.querySelector('.order-heading-label').getBoundingClientRect().right) > 1) problems.push(`Misaligned value: ${header.dataset.orderKey}`);
                     }
                 }
                 return problems;
