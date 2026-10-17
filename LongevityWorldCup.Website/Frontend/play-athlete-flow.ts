@@ -599,7 +599,18 @@ function createAthleteSelectionController(
         const inputTop = inputBox.top - parentBox.top - parent.clientTop + parent.scrollTop;
         list.style.top = openAbove ? "auto" : inputTop + inputBox.height + gap + "px";
         list.style.bottom = openAbove ? parent.clientHeight - inputTop + gap + "px" : "auto";
-        list.querySelector<HTMLElement>('[aria-selected="true"]')?.scrollIntoView({ block: "nearest" });
+        keepActiveMatchVisible(list);
+    }
+
+    function keepActiveMatchVisible(list: HTMLElement): void {
+        const active = list.querySelector<HTMLElement>('[aria-selected="true"]');
+        if (!active) return;
+        const box = active.getBoundingClientRect();
+        const top = list.getBoundingClientRect().top + list.clientTop;
+        const bottom = top + list.clientHeight;
+        const offset = box.top < top ? box.top - top : Math.max(0, box.bottom - bottom);
+        // Reveal the option without scrolling the page or moving the action dock.
+        if (offset) list.scrollBy({ top: offset, behavior: "instant" });
     }
 
     function addActive(items: HTMLCollectionOf<HTMLDivElement> | null): void {
@@ -612,7 +623,8 @@ function createAthleteSelectionController(
         activeItem.classList.add("autocomplete-active");
         activeItem.setAttribute("aria-selected", "true");
         input.setAttribute("aria-activedescendant", activeItem.id);
-        activeItem.scrollIntoView({ block: "nearest" });
+        const list = activeItem.parentElement;
+        if (list) keepActiveMatchVisible(list);
     }
 
     function removeActive(items: HTMLCollectionOf<HTMLDivElement>): void {

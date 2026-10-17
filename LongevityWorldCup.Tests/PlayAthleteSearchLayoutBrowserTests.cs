@@ -80,20 +80,27 @@ public sealed class PlayAthleteSearchLayoutBrowserTests(
 
         var options = page.GetByRole(AriaRole.Option);
         var count = await options.CountAsync();
+        var pageScroll = await page.EvaluateAsync<double>("scrollY");
         for (var index = 0; index < count; index++)
         {
             await input.PressAsync("ArrowDown");
             var option = options.Nth(index);
             await Assertions.Expect(option).ToHaveAttributeAsync("aria-selected", "true");
-            Assert.True(await option.EvaluateAsync<bool>("""
-                option => {
+            var visibilityProblems = await option.EvaluateAsync<string[]>("""
+                (option, pageScroll) => {
                     const box = option.getBoundingClientRect();
                     const list = option.parentElement.getBoundingClientRect();
                     const actions = document.querySelector('.play-athlete-actions').getBoundingClientRect();
-                    return box.top >= list.top - 1 && box.bottom <= Math.min(list.bottom, actions.top, innerHeight) + 1
-                        && option.contains(document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2));
+                    const hit = document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2);
+                    const issues = [];
+                    if (box.top < list.top - 1 || box.bottom > Math.min(list.bottom, actions.top, innerHeight) + 1 || !option.contains(hit)) {
+                        issues.push(`Option ${box.top}..${box.bottom}, list ${list.top}..${list.bottom}, actions ${actions.top}..${actions.bottom}, hit ${hit?.className}.`);
+                    }
+                    if (Math.abs(scrollY - pageScroll) > 1) issues.push(`The page moved from ${pageScroll} to ${scrollY} while navigating suggestions.`);
+                    return issues;
                 }
-                """), $"Match {index + 1} must be reachable above the actions.");
+                """, pageScroll);
+            Assert.True(visibilityProblems.Length == 0, $"Match {index + 1} must be reachable above the actions. {string.Join(" ", visibilityProblems)}");
         }
         var selectedName = await options.Last.InnerTextAsync();
         await input.PressAsync("Enter");
