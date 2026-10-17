@@ -199,7 +199,8 @@ th[data-order-direction="asc"] .order-indicator svg { transform:rotate(180deg); 
     .leaderboard-order-rows { grid-column:1 / -1; grid-row:1; }
     .leaderboard-order-swap { grid-column:1 / -1; grid-row:2; width:44px; justify-self:center; }
 }
-@container ordered-board (max-width:17em) {
+/* Stack before the longest selected heading outgrows its sort button. */
+@container ordered-board (max-width:18.75em) {
     #athleteLeaderboard.leaderboard--ordered > table > :is(thead,tbody) > tr {
         --order-tracks:2.25rem minmax(0,1fr); --order-name-column:2; --order-score-column:2;
         --order-value-row:2; --order-value-gap:.35rem; --order-column-gap:.5rem;
