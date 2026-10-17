@@ -216,6 +216,8 @@ public sealed class LeaderboardProofViewerBrowserTests(
         await page.WaitForFunctionAsync("() => typeof populateProofsGallery === 'function'");
         await page.WaitForFunctionAsync(
             "() => document.querySelectorAll('.leaderboard tbody:not(.loading-skeleton) tr[data-athlete-name]').length > 0");
+        // Server-rendered rows can precede hydration. Finish route initialization before installing a synthetic athlete URL.
+        await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
         await page.EvaluateAsync(
             """
             () => {
