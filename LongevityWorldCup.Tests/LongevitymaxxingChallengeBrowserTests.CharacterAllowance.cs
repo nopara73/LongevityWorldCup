@@ -35,10 +35,10 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await thread.Locator("[data-discussion-reply-id='r6'] [data-discussion-reply-edit]").ClickAsync();
         await thread.Locator("textarea").FillAsync(new string('e', 300));
         await Assertions.Expect(thread.Locator("[data-reply-count]")).ToHaveTextAsync("300/300");
-        await Assertions.Expect(thread.Locator("[data-reply-submit]")).ToBeEnabledAsync();
+        await Assertions.Expect(thread.Locator("[data-reply-action='submit']")).ToBeEnabledAsync();
         await thread.Locator("textarea").FillAsync(new string('e', 301));
         await Assertions.Expect(thread.Locator("[data-reply-count]")).ToHaveTextAsync("1 over");
-        await Assertions.Expect(thread.Locator("[data-reply-submit]")).ToBeDisabledAsync();
+        await Assertions.Expect(thread.Locator("[data-reply-action='submit']")).ToBeDisabledAsync();
     }
 
     [Theory]
