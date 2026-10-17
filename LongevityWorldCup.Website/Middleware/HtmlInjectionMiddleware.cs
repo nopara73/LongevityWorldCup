@@ -423,6 +423,7 @@ $@"<div id=""{AthleteDialogRuntimeId}""
                 // ranking and query are already known before any script runs.
                 if (selection is not null)
                 {
+                    html = LeaderboardOrderingHtmlRenderer.Apply(html, selection, asOf);
                     if (selection.ByFlag)
                     {
                         html = html.Replace("id=\"group-flags\"", "id=\"group-flags\" checked", StringComparison.Ordinal);
@@ -464,7 +465,7 @@ $@"<div id=""{AthleteDialogRuntimeId}""
                         html = html.Replace("class=\"podium\" aria-busy=\"true\" style=\"display:none;\"", $"class=\"podium\" data-server-rendered=\"true\" aria-busy=\"false\" style=\"display:{podiumDisplay};\"", StringComparison.Ordinal);
                         table = new LeaderboardSnapshot(selection.IsDefault ? visible.Skip(3).ToList() : visible);
                     }
-                    html = ReplaceLeaderboardRows(html, LeaderboardHtmlRenderer.RenderRows(table, selection.MetricLabel, selection.View == "ultimate"));
+                    html = ReplaceLeaderboardRows(html, LeaderboardHtmlRenderer.RenderRows(table, selection.MetricLabel, selection.View == "ultimate", selection.DisplayOrdering));
                     // Keep the existing "loaded" signal reserved for the fully
                     // initialized controls, even though the rows are readable now.
                     html = PublicProfileHtmlRenderer.SetContent(html, "leaderboardStatus", "Leaderboard available.");
