@@ -350,6 +350,32 @@ public sealed class LeaderboardOrderingBrowserTests(PlaywrightBrowserFixture bro
         await Assertions.Expect(Rows(page).First.Locator("td[data-order-key=crowd]")).ToHaveTextAsync("25.0");
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task ImmediateFilterChanges_DoNotLetPendingSearchRewriteAnOpenedAthleteRoute(bool clearSearch)
+    {
+        await using var context = await NewContextAsync(Browser, App, new() { ReducedMotion = ReducedMotion.Reduce });
+        var page = await context.NewPageAsync();
+        await page.GotoAsync(Ordered);
+        await Loaded(page);
+        await page.Clock.InstallAsync(new() { Time = "2026-10-17T12:00:00Z" });
+        await page.Clock.PauseAtAsync("2026-10-17T12:00:01Z");
+        await page.Locator("#athleteSearch").FillAsync("Michael Lustgarten");
+        await page.Locator(clearSearch ? ".clear-icon" : "#leaderboardOrderReset").ClickAsync();
+        var row = Rows(page).Filter(new() { HasText = "Michael Lustgarten" });
+        await row.Locator(".athlete-name").FocusAsync();
+        await row.EvaluateAsync("row => window.pendingSearchFocusedRow = row");
+        await Assertions.Expect(row.Locator(".athlete-name")).ToBeFocusedAsync();
+        await page.Keyboard.PressAsync("Enter");
+        await page.Clock.RunForAsync(500);
+        Assert.True(await row.EvaluateAsync<bool>("row => row === window.pendingSearchFocusedRow"),
+            "A canceled search must not replace the rows again after the user has focused an athlete.");
+        Assert.Equal("/athlete/michael-lustgarten", new Uri(page.Url).AbsolutePath);
+        await Assertions.Expect(page.Locator("#detailsModal")).ToBeVisibleAsync();
+        await Assertions.Expect(page.Locator("#athleteSearch")).ToHaveValueAsync(clearSearch ? "" : "Michael Lustgarten");
+    }
+
     [Fact]
     public async Task OrderingChanges_UseAPendingSearchAndKeepEmptyResultsConsistent()
     {
