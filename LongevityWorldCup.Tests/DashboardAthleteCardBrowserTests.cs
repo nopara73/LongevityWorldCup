@@ -115,6 +115,56 @@ public sealed class DashboardAthleteCardBrowserTests(
     }
 
     [Theory]
+    [InlineData(1440, 900, false)]
+    [InlineData(1280, 720, true)]
+    [InlineData(1366, 768, false)]
+    public async Task DockedDashboard_IsOneCentredCommandGroup(int width, int height, bool dark)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = height },
+            ColorScheme = dark ? ColorScheme.Dark : ColorScheme.Light,
+            ReducedMotion = ReducedMotion.Reduce
+        });
+        // An amateur's discounts push the actions below the fold, so they dock.
+        await context.AddInitScriptAsync(
+            """
+            const athlete = {
+                Name: 'Browser Test Athlete', DisplayName: 'Browser Test Athlete', PersonalLink: 'https://example.test/browser-test-athlete',
+                DateOfBirth: { Year: 1980, Month: 5, Day: 20 }, Biomarkers: []
+            };
+            sessionStorage.setItem('selectedAthlete', JSON.stringify(athlete));
+            localStorage.setItem('selectedAthleteName', athlete.Name);
+            localStorage.setItem('hasApplication', 'true');
+            localStorage.setItem('gmaHasPerfectGuess', '1');
+            """);
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/dashboard", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.WaitForFunctionAsync(
+            "() => document.getElementById('athleteDashboardPanel')?.hidden === false && document.querySelectorAll('#athleteDashboardActions .flow-action').length >= 4");
+        await page.EvaluateAsync("async () => { await document.fonts.ready; window.LwcFlowActionDock?.refreshNow?.(); await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))); }");
+        await Assertions.Expect(page.Locator("#athleteDashboardActions")).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("flow-action-stack--docked"));
+
+        var layout = await page.EvaluateAsync<double[]>(
+            """
+            () => {
+                const actions = [...document.querySelectorAll('#athleteDashboardActions .flow-action')].filter(action => action.offsetParent);
+                const boxes = actions.map(action => action.getBoundingClientRect());
+                const left = Math.min(...boxes.map(box => box.left));
+                const right = Math.max(...boxes.map(box => box.right));
+                const gaps = boxes.map(box => box.left).sort((a, b) => a - b)
+                    .map((x, i, xs) => i === 0 ? 0 : x - boxes.find(box => box.left === xs[i - 1]).right).slice(1);
+                const back = document.getElementById('playDashboardBackBtn').getBoundingClientRect();
+                return [left, innerWidth - right, Math.max(...gaps), back.left === left ? 1 : 0];
+            }
+            """);
+        var scenario = $"{width}x{height}";
+        Assert.True(Math.Abs(layout[0] - layout[1]) <= 4, $"{scenario}: the docked actions should be centred ({layout[0]:F0}px left vs {layout[1]:F0}px right).");
+        Assert.True(layout[2] <= 24, $"{scenario}: the docked actions should read as one group, not leave a {layout[2]:F0}px gap.");
+        Assert.True(layout[3] == 1, $"{scenario}: Change athlete should lead the group.");
+    }
+
+    [Theory]
     [InlineData(390, 844)]
     [InlineData(320, 640)]
     public async Task Dashboard_NameSurvivesPhotoReplacementAndBrokenImages(int width, int height)
