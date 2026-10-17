@@ -1169,12 +1169,67 @@ public sealed class AestheticSystemBrowserTests(
                 case "css/leaderboard-content.css":
                     await AssertLeaderboardContainerBoundariesAsync(page, source.ToArray());
                     break;
+                case "css/leaderboard-ordering.css":
+                    await AssertOrderingContainerBoundariesAsync(page, source.ToArray());
+                    break;
                 case "css/play-menu.css":
                     await AssertJoinContainerBoundariesAsync(page, source.ToArray());
                     break;
                 default:
                     Assert.Fail($"Add a rendered container-boundary probe for {source.Key}.");
                     break;
+            }
+        }
+    }
+
+    private static async Task AssertOrderingContainerBoundariesAsync(IPage page, ResponsiveContainerCondition[] conditions)
+    {
+        foreach (var condition in conditions)
+        {
+            Assert.Equal("max", condition.Bound);
+            Assert.Equal("em", condition.Unit);
+            Assert.Contains(condition.Name, new[] { "order-panel", "ordered-board" });
+            var composer = condition.Name == "order-panel";
+            Assert.Equal(composer ? 18 : 17, condition.Value);
+            await page.SetViewportSizeAsync(composer ? 1280 : 390, 900);
+            await NavigateAndSettleAsync(page, "/leaderboard?sort=pheno&then=age");
+            await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+            if (composer) await page.Locator("#leaderboardOrderToggle").ClickAsync();
+            // Keep the real rendered markup and selectors, without live observers moving the probe.
+            var fontSize = await page.EvaluateAsync<double>("""
+                composer => {
+                    const original = document.querySelector(composer ? '#leaderboardOrderPanel' : '#athleteLeaderboard');
+                    const probe = original.cloneNode(true);
+                    original.replaceWith(probe);
+                    const container = composer ? probe : probe.querySelector(':scope > table');
+                    container.dataset.orderBoundaryProbe = '';
+                    return parseFloat(getComputedStyle(container).fontSize);
+                }
+                """, composer);
+            var threshold = condition.Value * fontSize;
+            foreach (var delta in new[] { -1, 0, 1, 0, -1 })
+            {
+                var width = threshold + delta;
+                var diagnostics = await page.EvaluateAsync<ContainerQueryDiagnostics>("""
+                    async argument => {
+                        const container = document.querySelector('[data-order-boundary-probe]');
+                        Object.assign(container.style, { boxSizing:'content-box', inlineSize:`${argument.Width}px`,
+                            width:`${argument.Width}px`, maxWidth:'none', maxInlineSize:'none', flex:'none' });
+                        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                        const first = container.querySelector(argument.Composer ? 'label' : 'tbody tr[data-athlete-name] .athlete-td');
+                        const second = container.querySelector(argument.Composer ? '.leaderboard-order-field' : 'tbody tr[data-athlete-name] .age-reduction-td');
+                        return {
+                            ContainerWidth: parseFloat(getComputedStyle(container).width),
+                            IsCompact: second.getBoundingClientRect().top >= first.getBoundingClientRect().bottom - 1,
+                            HorizontalOverflow: Math.max(0, container.scrollWidth - container.clientWidth)
+                        };
+                    }
+                    """, new { Width = width, Composer = composer });
+                Assert.Equal(width, diagnostics.ContainerWidth, 1);
+                Assert.True(diagnostics.IsCompact == (width <= threshold),
+                    $"Ordering {condition.Name} did not cross {condition.Value}em at {width}px.");
+                Assert.True(diagnostics.HorizontalOverflow <= 1,
+                    $"Ordering {condition.Name} overflowed by {diagnostics.HorizontalOverflow}px at {width}px.");
             }
         }
     }

@@ -117,11 +117,20 @@
     }
     function positionPanel() {
         if (!panel || panel.hidden) return;
-        const bounds = panel.getBoundingClientRect();
         const width = document.documentElement.clientWidth;
+        const height = document.documentElement.clientHeight;
+        // vw includes the page scrollbar; size against the actual usable viewport.
+        panel.style.maxWidth = `${Math.max(0, width - 24)}px`;
+        panel.style.maxHeight = `${Math.max(0, height - 24)}px`;
+        const bounds = panel.getBoundingClientRect();
         const correction = bounds.left < 12 ? 12 - bounds.left : bounds.right > width - 12 ? width - 12 - bounds.right : 0;
         const shift = parseFloat(panel.style.getPropertyValue('--order-panel-shift')) || 0;
         if (correction) panel.style.setProperty('--order-panel-shift', `${shift + correction}px`);
+        let verticalCorrection = bounds.top < 12 ? 12 - bounds.top : bounds.bottom > height - 12 ? height - 12 - bounds.bottom : 0;
+        const anchor = toggle.getBoundingClientRect();
+        if (bounds.bottom > height - 12 && anchor.top - bounds.height - 8 >= 12) verticalCorrection = anchor.top - 8 - bounds.bottom;
+        const verticalShift = parseFloat(panel.style.getPropertyValue('--order-panel-shift-y')) || 0;
+        if (verticalCorrection) panel.style.setProperty('--order-panel-shift-y', `${verticalShift + verticalCorrection}px`);
     }
     function sync(state = current, byFlag = false, metricLabel = 'Age reduction') {
         if (!toggle || !fields.size) return;
@@ -134,18 +143,19 @@
         primary.value = current.sort;
         secondary.value = current.then || '';
         secondary.disabled = !active;
-        for (const [select, other] of [[primary, current.then], [secondary, current.sort]]) {
-            for (const option of select.options) { option.disabled = !!other && option.value === other; option.hidden = option.disabled; }
+        for (const [select, other] of [[primary, null], [secondary, current.sort]]) {
+            for (const option of select.options) { option.disabled = !!other && option.value === other; option.hidden = false; }
             const metric = select.querySelector('option[value="metric"]');
             if (metric) metric.textContent = metricLabel;
         }
         for (const [button, key, dir, enabled] of [[primaryDirection, current.sort, current.direction, active], [secondaryDirection, current.then, current.thenDirection, active && !!current.then]]) {
             button.disabled = !enabled;
-            button.firstElementChild.textContent = dir === 'asc' ? '↑' : '↓';
+            button.dataset.direction = dir;
             const field = fields.get(key);
             const ascending = field?.kind === 'text' ? 'A to Z' : field?.kind === 'date' ? 'oldest first' : 'lowest first';
             const descending = field?.kind === 'text' ? 'Z to A' : field?.kind === 'date' ? 'newest first' : 'highest first';
-            const description = `${labelFor(key, metricLabel)}: ${dir === 'asc' ? ascending : descending}; switch to ${dir === 'asc' ? descending : ascending}`;
+            const description = enabled ? `${labelFor(key, metricLabel)}: ${dir === 'asc' ? ascending : descending}; switch to ${dir === 'asc' ? descending : ascending}`
+                : key === 'rank' ? 'Official ranking' : 'Select a secondary field to set its direction';
             button.setAttribute('aria-label', description);
             button.title = description;
         }
@@ -229,6 +239,7 @@
             if (!panel.hidden) close();
             else {
                 panel.style.removeProperty('--order-panel-shift');
+                panel.style.removeProperty('--order-panel-shift-y');
                 panel.hidden = false;
                 toggle.setAttribute('aria-expanded', 'true');
                 positionPanel();
@@ -252,7 +263,11 @@
         });
         document.addEventListener('pointerdown', event => { if (!toggle.parentElement.contains(event.target)) close(); });
         document.addEventListener('keydown', event => { if (event.key === 'Escape' && !panel.hidden) { event.preventDefault(); event.stopImmediatePropagation(); close(true); } }, true);
-        toggle.parentElement.addEventListener('focusout', () => queueMicrotask(() => { if (!toggle.parentElement.contains(document.activeElement)) close(); }));
+        toggle.parentElement.addEventListener('focusout', event => {
+            // Native select menus can temporarily leave activeElement at body.
+            // Only a real destination outside the composer is a focus departure.
+            if (event.relatedTarget instanceof Node && !toggle.parentElement.contains(event.relatedTarget)) close();
+        });
     }
     window.LwcLeaderboardOrder = { bind: callback => { onChange = callback; }, getState: () => ({ ...current }), restore: () => { current = readUrl(); }, writeUrl, values, sort, sync, renderValues };
 })();

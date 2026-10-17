@@ -71,13 +71,23 @@
                     <div id="leaderboardOrderPanel" class="leaderboard-order-panel" role="group" aria-label="Order athletes" hidden>
                         <div class="leaderboard-order-row">
                             <label for="leaderboardOrderPrimary">Order by</label>
-                            <select id="leaderboardOrderPrimary"><!--ORDER-PRIMARY-START--><option value="rank">Official rank</option><!--ORDER-PRIMARY-END--></select>
-                            <button type="button" id="leaderboardOrderDirection" class="leaderboard-order-direction" aria-label="Reverse primary order" disabled><span aria-hidden="true">↑</span></button>
+                            <div class="leaderboard-order-field">
+                                <span class="leaderboard-order-select">
+                                    <select id="leaderboardOrderPrimary"><!--ORDER-PRIMARY-START--><option value="rank">Official rank</option><!--ORDER-PRIMARY-END--></select>
+                                    <svg class="order-select-chevron" viewBox="0 0 20 20" aria-hidden="true"><path d="m6 8 4 4 4-4" /></svg>
+                                </span>
+                                <button type="button" id="leaderboardOrderDirection" class="leaderboard-order-direction" data-direction="asc" aria-label="Reverse primary order" disabled><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 4v12m-4-4 4 4 4-4" /></svg></button>
+                            </div>
                         </div>
                         <div class="leaderboard-order-row">
                             <label for="leaderboardOrderSecondary">Then by</label>
-                            <select id="leaderboardOrderSecondary" disabled><!--ORDER-SECONDARY-START--><option value="">None</option><!--ORDER-SECONDARY-END--></select>
-                            <button type="button" id="leaderboardThenDirection" class="leaderboard-order-direction" aria-label="Reverse secondary order" disabled><span aria-hidden="true">↑</span></button>
+                            <div class="leaderboard-order-field">
+                                <span class="leaderboard-order-select">
+                                    <select id="leaderboardOrderSecondary" disabled><!--ORDER-SECONDARY-START--><option value="">None</option><!--ORDER-SECONDARY-END--></select>
+                                    <svg class="order-select-chevron" viewBox="0 0 20 20" aria-hidden="true"><path d="m6 8 4 4 4-4" /></svg>
+                                </span>
+                                <button type="button" id="leaderboardThenDirection" class="leaderboard-order-direction" data-direction="asc" aria-label="Reverse secondary order" disabled><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 4v12m-4-4 4 4 4-4" /></svg></button>
+                            </div>
                         </div>
                     </div>
                 </div>

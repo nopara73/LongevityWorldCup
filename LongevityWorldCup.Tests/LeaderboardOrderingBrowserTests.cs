@@ -138,6 +138,61 @@ public sealed class LeaderboardOrderingBrowserTests(PlaywrightBrowserFixture bro
     }
 
     [Fact]
+    public async Task NativeSelectTransientFocusLoss_DoesNotDismissTheComposer()
+    {
+        await using var context = await NewContextAsync(Browser, App, new());
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/leaderboard?sort=vitd&dir=desc");
+        await Loaded(page);
+        var toggle = page.Locator("#leaderboardOrderToggle");
+        var panel = page.Locator("#leaderboardOrderPanel");
+        var secondary = page.Locator("#leaderboardOrderSecondary");
+        await toggle.ClickAsync();
+        await secondary.FocusAsync();
+        // Windows' native picker can briefly move focus to body without a related target.
+        await secondary.EvaluateAsync("element => element.blur()");
+        await Assertions.Expect(panel).ToBeVisibleAsync();
+        await secondary.FocusAsync();
+        await page.Keyboard.PressAsync("Tab");
+        await Assertions.Expect(page.Locator(".sidebar-toggle")).ToBeFocusedAsync();
+        await Assertions.Expect(panel).ToBeHiddenAsync();
+        await toggle.ClickAsync();
+        await page.Locator("#leaderboardTitle").ClickAsync();
+        await Assertions.Expect(panel).ToBeHiddenAsync();
+    }
+
+    [Theory]
+    [InlineData(1280, false)]
+    [InlineData(390, true)]
+    public async Task PointerAndTouch_CanChooseThenByAndPromoteItToPrimary(int width, bool touch)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = 900 }, HasTouch = touch, IsMobile = touch
+        });
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/leaderboard?sort=vitd&dir=desc");
+        await Loaded(page);
+        await page.Locator("#leaderboardOrderToggle").ClickAsync();
+        var panel = page.Locator("#leaderboardOrderPanel");
+        var secondary = page.Locator("#leaderboardOrderSecondary");
+        if (touch) await secondary.TapAsync(); else await secondary.ClickAsync();
+        await Assertions.Expect(panel).ToBeVisibleAsync();
+        await page.Keyboard.PressAsync("ArrowDown");
+        await page.Keyboard.PressAsync("Enter");
+        await Assertions.Expect(secondary).ToHaveValueAsync("age");
+        await Assertions.Expect(panel).ToBeVisibleAsync();
+        await Assertions.Expect(page.Locator("th.leaderboard-order-column")).ToHaveCountAsync(2);
+        await page.Locator("#leaderboardThenDirection").ClickAsync();
+        await Assertions.Expect(page.Locator("th[data-order-key=age]")).ToHaveAttributeAsync("data-order-direction", "desc");
+        // Selecting a current tie-breaker as the main field should not require clearing it first.
+        await page.Locator("#leaderboardOrderPrimary").SelectOptionAsync("age");
+        await Assertions.Expect(secondary).ToHaveValueAsync("");
+        await Assertions.Expect(page.Locator("th.leaderboard-order-column")).ToHaveCountAsync(1);
+        await Assertions.Expect(page.Locator("th[data-order-key=age]")).ToHaveAttributeAsync("aria-sort", "ascending");
+    }
+
+    [Fact]
     public async Task SearchCohortAndByFlag_PreserveOrderingAndSelectedLeagueRanks()
     {
         await using var context = await NewContextAsync(Browser, App, new());
@@ -173,6 +228,7 @@ public sealed class LeaderboardOrderingBrowserTests(PlaywrightBrowserFixture bro
     [InlineData(1440, 1000, false)]
     [InlineData(1024, 900, false)]
     [InlineData(768, 1000, false)]
+    [InlineData(844, 390, false)]
     [InlineData(390, 844, true)]
     [InlineData(320, 720, false)]
     public async Task ResponsiveComposerAndValues_FitAndHaveKeyboardAccess(int width, int height, bool dark)
@@ -192,6 +248,8 @@ public sealed class LeaderboardOrderingBrowserTests(PlaywrightBrowserFixture bro
         var bounds = (await panel.BoundingBoxAsync())!;
         Assert.InRange(bounds.X, 0, width);
         Assert.InRange(bounds.X + bounds.Width, 0, width + 1);
+        Assert.InRange(bounds.Y, 0, height);
+        Assert.InRange(bounds.Y + bounds.Height, 0, height + 1);
         Assert.False(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth>innerWidth"));
         await Assertions.Expect(Rows(page).First.Locator(".leaderboard-order-value")).ToHaveCountAsync(2);
         var screenshots = Environment.GetEnvironmentVariable("LWC_ORDER_SCREENSHOTS");
@@ -219,6 +277,8 @@ public sealed class LeaderboardOrderingBrowserTests(PlaywrightBrowserFixture bro
         bounds = (await panel.BoundingBoxAsync())!;
         Assert.InRange(bounds.X, 0, width);
         Assert.InRange(bounds.X + bounds.Width, 0, width + 1);
+        Assert.InRange(bounds.Y, 0, height);
+        Assert.InRange(bounds.Y + bounds.Height, 0, height + 1);
     }
 
     [Fact]
