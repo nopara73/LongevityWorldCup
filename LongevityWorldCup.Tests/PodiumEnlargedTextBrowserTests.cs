@@ -13,8 +13,21 @@ public sealed class PodiumEnlargedTextBrowserTests(
     [Theory]
     [InlineData(390, 844, 200, true)]
     [InlineData(320, 640, 200, true)]
+    [InlineData(505, 844, 200, true)]
+    [InlineData(520, 844, 200, true)]
+    [InlineData(544, 844, 200, true)]
+    [InlineData(545, 844, 200, true)]
+    [InlineData(576, 844, 200, true)]
+    [InlineData(577, 844, 200, false)]
+    [InlineData(390, 844, 150, true)]
+    [InlineData(390, 844, 175, true)]
+    [InlineData(320, 640, 125, true)]
+    [InlineData(390, 844, 125, false)]
     [InlineData(390, 844, 100, false)]
     [InlineData(320, 640, 100, false)]
+    [InlineData(768, 1024, 100, false)]
+    [InlineData(844, 390, 100, false)]
+    [InlineData(1440, 900, 100, false)]
     public async Task PhonePodium_StacksFullWidthCardsWithWholeWordsAtEnlargedText(int width, int height, int textPercent, bool stacked)
     {
         await using var context = await NewContextAsync(Browser, App, new()
@@ -26,12 +39,17 @@ public sealed class PodiumEnlargedTextBrowserTests(
         });
         var page = await context.NewPageAsync();
         await NavigateAndSettleAsync(page, "/");
+        await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
         await page.Locator(".podium-item.third .athlete-name").WaitForAsync();
+        var originalSizes = await MeasureFontSizesAsync(page);
         await page.AddStyleTagAsync(new() { Content = $"html {{ font-size: {textPercent}% !important; }}" });
         await page.WaitForFunctionAsync(
             "percent => parseFloat(getComputedStyle(document.documentElement).fontSize) >= 16 * percent / 100 - 0.5",
             textPercent);
         await page.EvaluateAsync("() => document.fonts.ready");
+        var enlargedSizes = await MeasureFontSizesAsync(page);
+        for (var i = 0; i < originalSizes.Length; i++)
+            Assert.InRange(enlargedSizes[i], originalSizes[i] * textPercent / 100 - 0.1, originalSizes[i] * textPercent / 100 + 0.1);
 
         var layout = await page.EvaluateAsync<string[]>(
             """
@@ -58,9 +76,18 @@ public sealed class PodiumEnlargedTextBrowserTests(
                         problems.push(`${text.className} leaves its card`);
                 }
                 const fullWidth = boxes.every(box => box.width >= podium.width - 2);
-                const portrait = cards[0].querySelector('.podium-portrait').getBoundingClientRect();
-                const name = cards[0].querySelector('.athlete-name').getBoundingClientRect();
-                const nameBelowPortrait = name.top >= portrait.bottom - 1;
+                const mobile = matchMedia('(max-width: 768px), (max-width: 932px) and (max-height: 480px) and (orientation: landscape)').matches;
+                const nameBelowPortrait = mobile && cards[0].querySelector('.athlete-name').getBoundingClientRect().top
+                    >= cards[0].querySelector('.podium-portrait').getBoundingClientRect().bottom - 1;
+                if (fullWidth && !(boxes[0].bottom <= boxes[1].top && boxes[1].bottom <= boxes[2].top))
+                    problems.push('stacked visual order is not first, second, third');
+                for (const card of cards) {
+                    const portrait = card.querySelector('.podium-portrait').getBoundingClientRect();
+                    const medal = card.querySelector('.podium-rank').getBoundingClientRect();
+                    if (Math.abs((medal.left + medal.right) / 2 - (portrait.left + portrait.right) / 2) > 1
+                        || medal.top >= portrait.bottom || medal.bottom <= portrait.bottom)
+                        problems.push('medal no longer follows its portrait');
+                }
                 return [String(fullWidth), String(nameBelowPortrait), ...problems];
             }
             """);
@@ -69,4 +96,109 @@ public sealed class PodiumEnlargedTextBrowserTests(
         Assert.True(layout[0] == stacked.ToString().ToLowerInvariant(), $"{scenario}: every card full width should be {stacked}.");
         Assert.True(layout[1] == stacked.ToString().ToLowerInvariant(), $"{scenario}: champion name under the portrait should be {stacked}.");
     }
+
+    [Theory]
+    [InlineData(320, ColorScheme.Light)]
+    [InlineData(390, ColorScheme.Dark)]
+    public async Task StackedPodium_LongNamesAndLatePrizesPreserveGlyphsAndKeyboardOrder(int width, ColorScheme theme)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = 844 },
+            ColorScheme = theme,
+            ReducedMotion = ReducedMotion.Reduce,
+            HasTouch = true
+        });
+        var releasePrize = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await context.RouteAsync("**/api/bitcoin/total-received", async route =>
+        {
+            await releasePrize.Task;
+            await route.FulfillAsync(new() { ContentType = "application/json", Body = """{"totalReceivedSatoshis":123456789}""" });
+        });
+        var page = await context.NewPageAsync();
+        try
+        {
+            await NavigateAndSettleAsync(page, "/");
+            await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+            await page.AddStyleTagAsync(new() { Content = "html { font-size: 200% !important; }" });
+            await page.EvaluateAsync(
+                """
+                () => {
+                    const names = ['Alexandria Cassandra von Hohenlohe', 'Alexandra Maria de la Cruz', 'Maximilian Alexander van der Meer'];
+                    document.querySelectorAll('.podium-item .athlete-name').forEach((name, i) => name.textContent = names[i]);
+                    window.podiumBeforePrize = [...document.querySelectorAll('.podium-item')];
+                }
+                """);
+            var links = page.Locator(".podium-item a[href]");
+            await links.First.FocusAsync();
+            for (var i = 0; i < await links.CountAsync(); i++)
+            {
+                await Assertions.Expect(links.Nth(i)).ToBeFocusedAsync();
+                await Assertions.Expect(links.Nth(i)).ToBeInViewportAsync();
+                Assert.True(await links.Nth(i).EvaluateAsync<bool>("link => getComputedStyle(link).outlineStyle !== 'none'"));
+                if (i == 0)
+                {
+                    releasePrize.TrySetResult();
+                    await Assertions.Expect(page.Locator(".podium-item-lower[aria-busy=true]")).ToHaveCountAsync(0);
+                    Assert.True(await page.EvaluateAsync<bool>("() => window.podiumBeforePrize.every((card, i) => card === document.querySelectorAll('.podium-item')[i])"));
+                    await Assertions.Expect(links.Nth(i)).ToBeFocusedAsync();
+                }
+                await page.Keyboard.PressAsync("Tab");
+            }
+            var issues = await page.EvaluateAsync<string[]>(
+                """
+                () => {
+                    const issues = [];
+                    for (const element of document.querySelectorAll('.podium-item :is(.athlete-name, .podium-score, .prize-money, .btc-amount)')) {
+                        const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+                        for (let node; (node = walker.nextNode());) {
+                            for (let i = 0; i < node.length; i++) {
+                                if (/\s/.test(node.data[i])) continue;
+                                const range = document.createRange(); range.setStart(node, i); range.setEnd(node, i + 1);
+                                for (const glyph of range.getClientRects()) {
+                                    if (!glyph.width) continue;
+                                    if (glyph.left < -1 || glyph.right > innerWidth + 1) issues.push('glyph leaves viewport');
+                                    for (let ancestor = node.parentElement; ancestor && ancestor !== document.body; ancestor = ancestor.parentElement) {
+                                        const style = getComputedStyle(ancestor), box = ancestor.getBoundingClientRect();
+                                        if (/hidden|clip/.test(style.overflowX) && (glyph.left < box.left - 1 || glyph.right > box.right + 1)) issues.push('glyph clipped horizontally');
+                                        if (/hidden|clip/.test(style.overflowY) && (glyph.top < box.top - 1 || glyph.bottom > box.bottom + 1)) issues.push('glyph clipped vertically');
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    return [...new Set(issues)];
+                }
+                """);
+            Assert.True(issues.Length == 0, string.Join("; ", issues));
+        }
+        finally { releasePrize.TrySetResult(); }
+    }
+
+    [Fact]
+    public async Task PodiumQuery_UsesAvailableContainerWidthAndItsFontSize()
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = 768, Height = 1024 },
+            ReducedMotion = ReducedMotion.Reduce
+        });
+        var page = await context.NewPageAsync();
+        await NavigateAndSettleAsync(page, "/");
+        await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+        foreach (var percent in new[] { 100, 125, 150, 175, 200 })
+        {
+            await page.EvaluateAsync("p => document.documentElement.style.fontSize = `${p}%`", percent);
+            foreach (var (em, stacked) in new[] { (16.01, false), (15.99, true), (16.01, false) })
+            {
+                await page.Locator(".podium").EvaluateAsync("(podium, em) => { podium.style.width = `${em}em`; podium.style.marginInline = 'auto'; }", em);
+                await page.EvaluateAsync("() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))");
+                var fullWidth = await page.EvaluateAsync<bool>("() => [...document.querySelectorAll('.podium-item')].every(card => Math.abs(card.getBoundingClientRect().width - document.querySelector('.podium').getBoundingClientRect().width) < 1)");
+                Assert.Equal(stacked, fullWidth);
+            }
+        }
+    }
+
+    private static Task<double[]> MeasureFontSizesAsync(IPage page)
+        => page.EvaluateAsync<double[]>("() => [...document.querySelectorAll('.podium-item :is(.athlete-name, .age-reduction, .prize-money)')].map(text => parseFloat(getComputedStyle(text).fontSize))");
 }
