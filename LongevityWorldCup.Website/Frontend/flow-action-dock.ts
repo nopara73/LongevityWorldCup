@@ -185,10 +185,6 @@ interface FlowActionDockApi {
         element.classList.toggle(backPrimaryActionClass, visibleActions.length === 2 && !!backAction && !!primaryAction);
     }
 
-    function clearActionLayoutState(element: HTMLElement): void {
-        element.classList.remove(singleBackActionClass, backPrimaryActionClass);
-    }
-
     function conditionMatches(element: HTMLElement): boolean {
         const requiredSelector = element.getAttribute('data-flow-dock-when');
         if (requiredSelector && !document.querySelector(requiredSelector)) return false;
@@ -319,7 +315,7 @@ interface FlowActionDockApi {
     function undockElement(element: HTMLElement, state: DockState): void {
         cancelDockEnter(element, state);
         element.classList.remove(dockClass);
-        clearActionLayoutState(element);
+        updateActionLayoutState(element);
         state.docked = false;
 
         if (state.placeholder.parentNode) {
@@ -393,6 +389,9 @@ interface FlowActionDockApi {
         let hasDockedElement = false;
 
         states.forEach((state, element) => {
+            // Inline controls need the same visible-action classification as
+            // the dock when a primary action is hidden, disabled or restored.
+            updateActionLayoutState(element);
             const docked = shouldDock(element, state);
             if (docked && !state.docked) dockElement(element, state);
             if (!docked && state.docked) undockElement(element, state);
