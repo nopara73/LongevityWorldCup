@@ -180,15 +180,14 @@ public sealed class EditProfileLayoutBrowserTests(
         const string name = "Vishwamithra Shashishekara";
         await using var context = await CreateContextAsync(width, height, dark, name);
         var page = await OpenEditorAsync(context);
+        // Compare explicit 100% and 200% controls after layout settles, rather
+        // than treating a document's first computed style as its baseline.
+        await page.EvaluateAsync("() => document.documentElement.style.fontSize = '100%'");
+        await SettleTextLayoutAsync(page);
+        var normalRootFont = await page.Locator("html").EvaluateAsync<double>("el => parseFloat(getComputedStyle(el).fontSize)");
         var normalFont = await page.Locator("#character-title").EvaluateAsync<double>("el => parseFloat(getComputedStyle(el).fontSize)");
         await page.EvaluateAsync("() => document.documentElement.style.fontSize = '200%'");
-        await page.EvaluateAsync("""
-            async () => {
-                await document.fonts.ready;
-                window.LwcFlowActionDock.refreshNow();
-                await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-            }
-            """);
+        await SettleTextLayoutAsync(page);
         await Assertions.Expect(page.GetByRole(AriaRole.Heading, new() { Name = name, Level = 1, Exact = true })).ToHaveCountAsync(1);
         var layout = await page.EvaluateAsync<double[]>("""
             () => {
@@ -200,15 +199,34 @@ public sealed class EditProfileLayoutBrowserTests(
                 return [caption.top - image.top, image.bottom - caption.bottom, caption.height / image.height,
                     parseFloat(getComputedStyle(title).fontSize),
                     text.every(r => r.left >= image.left - 1 && r.right <= image.right + 1
-                        && r.top >= image.top - 1 && r.bottom <= image.bottom + 1) ? 1 : 0];
+                        && r.top >= image.top - 1 && r.bottom <= image.bottom + 1) ? 1 : 0,
+                    parseFloat(getComputedStyle(document.documentElement).fontSize)];
             }
             """);
         Assert.True(layout[0] > 0, "Keep visible portrait space above the full name.");
         Assert.InRange(layout[1], -1, 1);
         Assert.InRange(layout[2], 0, 0.51);
-        Assert.True(layout[3] >= normalFont * 1.9, "The caption must really enlarge with the user's text setting.");
+        Assert.InRange(layout[5] / normalRootFont, 1.99, 2.01);
+        Assert.True(layout[3] >= normalFont * 1.9,
+            $"{width}x{height}: caption {normalFont}px → {layout[3]}px; root {normalRootFont}px → {layout[5]}px. The caption must really enlarge with the user's text setting.");
         Assert.Equal(1, layout[4]);
         await ExpectNoHorizontalOverflowAsync(page);
+    }
+
+    private static async Task SettleTextLayoutAsync(IPage page)
+    {
+        await page.WaitForFunctionAsync("() => [...document.querySelectorAll('link[rel=stylesheet]')].every(link => link.sheet !== null)");
+        await page.EvaluateAsync("""
+            async () => {
+                await document.fonts.ready;
+                document.body.getBoundingClientRect();
+                await Promise.all(document.getAnimations()
+                    .filter(animation => animation.effect?.getTiming().iterations !== Infinity)
+                    .map(animation => animation.finished.catch(() => {})));
+                window.LwcFlowActionDock.refreshNow();
+                await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+            }
+            """);
     }
 
     [Theory]
