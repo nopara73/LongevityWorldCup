@@ -143,6 +143,20 @@ public sealed class LongevitymaxxingLifeStripBrowserTests(
     private static async Task SettleAsync(IPage page)
     {
         await page.EvaluateAsync("() => document.fonts.ready");
+        // Reduced-motion CSS still gives every element a 1ms transition. Flush
+        // the new styles and await the root/strip transitions before measuring
+        // text resizing; two animation frames can stop at the transition start.
+        await page.EvaluateAsync("""
+            async () => {
+                getComputedStyle(document.documentElement).fontSize;
+                const strip = document.getElementById('lmxLifeStrip');
+                await Promise.all(document.getAnimations().filter(animation => {
+                    const target = animation.effect?.target;
+                    return animation.effect?.getTiming().iterations !== Infinity
+                        && (target === document.documentElement || strip.contains(target));
+                }).map(animation => animation.finished.catch(() => {})));
+            }
+            """);
         await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
     }
 

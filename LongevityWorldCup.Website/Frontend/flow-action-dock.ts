@@ -284,6 +284,23 @@ interface FlowActionDockApi {
         element.classList.remove(dockEnteringClass);
     }
 
+    function moveActionStack(element: HTMLElement, parent: Node, before: ChildNode | null): void {
+        const focused = document.activeElement;
+        const restoreFocus = focused instanceof HTMLElement && element.contains(focused);
+        // Moving a connected subtree with insertBefore/appendChild blurs its
+        // active button. Preserve state where supported, and restore focus in
+        // older engines without changing the reader's scroll position.
+        if ('moveBefore' in parent && typeof parent.moveBefore === 'function'
+            && element.isConnected && parent.isConnected) {
+            parent.moveBefore(element, before);
+        } else {
+            parent.insertBefore(element, before);
+        }
+        if (restoreFocus && document.activeElement !== focused) {
+            focused.focus({ preventScroll: true });
+        }
+    }
+
     function dockElement(element: HTMLElement, state: DockState): void {
         const rect = element.getBoundingClientRect();
         state.inlineHeight = rect.height || element.offsetHeight || state.inlineHeight;
@@ -291,7 +308,7 @@ interface FlowActionDockApi {
         setPlaceholderHeight(state, state.inlineHeight);
 
         ensureSubmitButtonFormOwnership(element);
-        document.body.appendChild(element);
+        moveActionStack(element, document.body, null);
         element.classList.add(dockClass);
         state.docked = true;
         updateActionLayoutState(element);
@@ -305,7 +322,7 @@ interface FlowActionDockApi {
         state.docked = false;
 
         if (state.placeholder.parentNode) {
-            state.placeholder.parentNode.insertBefore(element, state.placeholder.nextSibling);
+            moveActionStack(element, state.placeholder.parentNode, state.placeholder.nextSibling);
         }
         state.placeholder.hidden = true;
         state.placeholder.style.height = '';
