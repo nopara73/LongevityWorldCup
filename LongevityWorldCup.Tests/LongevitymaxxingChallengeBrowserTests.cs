@@ -2120,7 +2120,8 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
                     athleteUrl = (string?)null,
                     profileImageUrl = (string?)null,
                     checkedInDays = 21,
-                    totalPoints = 168,
+                    totalPoints = 94,
+                    characterAllowance = new { challengePoints = 94, ultimateLeagueAthletesBehind = 0, limit = 240 },
                     currentStreak = 21,
                     cells = Enumerable.Range(1, 22)
                         .Select(day => new

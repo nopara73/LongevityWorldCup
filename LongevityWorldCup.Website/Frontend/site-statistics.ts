@@ -2,6 +2,7 @@
     "use strict";
 
     const trafficOverviewTab = "Traffic Overview";
+    const defaultRange = "90d";
     const onboardingDiagnosticsTab = "Onboarding Diagnostics";
     const challengeDiagnosticsTab = "Challenge Diagnostics";
     const sourceQualityTab = "Source Quality";
@@ -492,7 +493,7 @@
             });
         }
         el("statsReset").addEventListener("click", () => {
-            el("statsRange").value = "7d";
+            el("statsRange").value = defaultRange;
             el("statsFlow").value = "all";
             el("statsDevice").value = "all";
             el("statsSource").value = "all";
@@ -534,7 +535,7 @@
         const url = new URL(window.location.href);
         const values: [key: string, value: string, defaultValue: string][] = [
             ["tab", state.tab, trafficOverviewTab],
-            ["range", el("statsRange").value, "7d"],
+            ["range", el("statsRange").value, defaultRange],
             ["flow", el("statsFlow").value, "all"],
             ["device", el("statsDevice").value, "all"],
             ["source", el("statsSource").value, "all"],
