@@ -91,14 +91,24 @@
             line-height: 1.15;
         }
 
+        /* The feed reads at a column's width, not the screen's: each event's
+           date, face and message stay together instead of trailing into empty
+           space across a 1080px card. */
         @media (min-width: 720px) {
             .event-board-heading,
             .event-board-page .events-board {
-                width: min(100% - 2rem, 1080px);
+                width: min(100% - 2rem, 860px);
             }
 
             .event-board-page .events-board {
                 flex-grow: 0;
+                --event-avatar-target: 44px;
+            }
+
+            .event-board-page .events-board .avatar,
+            .event-board-page .events-board .avatar-fallback {
+                width: 32px;
+                height: 32px;
             }
         }
 
