@@ -86,21 +86,20 @@ public sealed class PlayAthleteSearchLayoutBrowserTests(
             await input.PressAsync("ArrowDown");
             var option = options.Nth(index);
             await Assertions.Expect(option).ToHaveAttributeAsync("aria-selected", "true");
-            var visibilityProblems = await option.EvaluateAsync<string[]>("""
-                (option, pageScroll) => {
+            var navigationScroll = await page.EvaluateAsync<double>("scrollY");
+            Assert.True(Math.Abs(navigationScroll - pageScroll) <= 1,
+                $"Match {index + 1} moved the page from {pageScroll} to {navigationScroll}.");
+            // Popup sizing and dock callbacks can settle after keydown. Keep the
+            // geometry and hit test together while the page itself stays still.
+            await page.WaitForFunctionAsync("""
+                option => {
                     const box = option.getBoundingClientRect();
                     const list = option.parentElement.getBoundingClientRect();
                     const actions = document.querySelector('.play-athlete-actions').getBoundingClientRect();
-                    const hit = document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2);
-                    const issues = [];
-                    if (box.top < list.top - 1 || box.bottom > Math.min(list.bottom, actions.top, innerHeight) + 1 || !option.contains(hit)) {
-                        issues.push(`Option ${box.top}..${box.bottom}, list ${list.top}..${list.bottom}, actions ${actions.top}..${actions.bottom}, hit ${hit?.className}.`);
-                    }
-                    if (Math.abs(scrollY - pageScroll) > 1) issues.push(`The page moved from ${pageScroll} to ${scrollY} while navigating suggestions.`);
-                    return issues;
+                    return box.top >= list.top - 1 && box.bottom <= Math.min(list.bottom, actions.top, innerHeight) + 1
+                        && option.contains(document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2));
                 }
-                """, pageScroll);
-            Assert.True(visibilityProblems.Length == 0, $"Match {index + 1} must be reachable above the actions. {string.Join(" ", visibilityProblems)}");
+                """, await option.ElementHandleAsync());
         }
         var selectedName = await options.Last.InnerTextAsync();
         await input.PressAsync("Enter");
