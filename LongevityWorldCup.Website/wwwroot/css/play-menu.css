@@ -1378,10 +1378,13 @@ html.play-panel-transitioning .play-hub-panel--entering {
         box-shadow: none;
     }
 
+    /* The command bar is one centred group led by Change athlete; the generic
+       dock's auto margin would pin Back to the edge and leave a hole. */
     .play-dashboard-actions.flow-action-stack--docked #playDashboardBackBtn {
         flex-basis: max-content;
         max-width: none;
         width: auto;
+        margin-inline: 0;
         padding-right: 0.7rem;
         padding-left: 2.55rem;
         border-right: 1px solid rgba(96, 125, 139, 0.18);
