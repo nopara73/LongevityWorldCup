@@ -799,14 +799,81 @@
                 width: min(100%, 260px);
             }
         }
+
+        /* The portrait is the same player card as the dashboard and athlete
+           selection: the athlete's name is its caption, not a heading above. */
+        .edit-profile-portrait .edit-profile-visual {
+            position: relative;
+            display: grid;
+            overflow: hidden;
+            border-radius: 8px;
+            line-height: 0;
+        }
+
+        .edit-profile-portrait .edit-profile-visual > picture,
+        .edit-profile-portrait .edit-profile-visual > .edit-profile-title {
+            grid-area: 1 / 1;
+        }
+
+        .edit-profile-portrait .edit-profile-visual .illustration {
+            border-radius: 8px;
+        }
+
+        /* Phones size the card to the picture, so the caption never overhangs it. */
+        @media (max-width: 600px) {
+            .edit-profile-portrait .edit-profile-visual {
+                width: min(100%, clamp(184px, 50vw, 240px));
+                margin-inline: auto;
+            }
+
+            .edit-profile-portrait .edit-profile-visual .illustration {
+                width: 100%;
+            }
+        }
+
+        @media (min-width: 640px) and (max-width: 932px) and (max-height: 480px) and (orientation: landscape) {
+            .edit-profile-portrait .edit-profile-visual {
+                width: min(100%, 240px, 26dvh);
+                margin-inline: auto;
+            }
+
+            .edit-profile-portrait .edit-profile-visual .illustration {
+                width: 100%;
+            }
+        }
+
+        .edit-profile-portrait .edit-profile-visual > .edit-profile-title {
+            position: relative;
+            z-index: 2;
+            align-self: end;
+            margin: 0;
+            padding: 0.65rem 0.9rem;
+            border-radius: 0 0 8px 8px;
+            background: linear-gradient(to top, rgba(6, 12, 18, 0.94), rgba(6, 12, 18, 0.82));
+            color: #ffffff;
+            font-size: clamp(1.3rem, 1rem + 1vw, 1.85rem);
+            line-height: 1.1;
+            overflow-wrap: break-word;
+            text-align: center;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+            pointer-events: none;
+        }
+
+        .edit-profile-portrait .edit-profile-visual > .edit-profile-title::before {
+            content: "";
+            position: absolute;
+            inset: auto 0 100%;
+            height: 2rem;
+            background: linear-gradient(to top, rgba(6, 12, 18, 0.82), transparent);
+        }
     </style>
 </head>
 <body class="play-flow-route">
     <!--HEADER-->
     <main class="edit-profile-main initial-view-main">
-        <h1 id="character-title" class="edit-profile-title" data-aos="fade" data-aos-duration="700" data-aos-delay="250">Edit athlete profile</h1>
         <div class="edit-profile-portrait">
             <div class="edit-profile-visual" data-aos="fade" data-aos-duration="700" data-aos-delay="300">
+                <h1 id="character-title" class="edit-profile-title">Edit athlete profile</h1>
                 <picture>
                     <source srcset="{{ASSET_PLAY_ATHLETE_PLACEHOLDER_WEBP}}" type="image/webp">
                     <source srcset="{{ASSET_PLAY_ATHLETE_PLACEHOLDER_JPEG}}" type="image/jpeg">

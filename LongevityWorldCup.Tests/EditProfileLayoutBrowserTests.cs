@@ -191,6 +191,35 @@ public sealed class EditProfileLayoutBrowserTests(
         return context;
     }
 
+    [Theory]
+    [InlineData(1440, 900)]
+    [InlineData(1280, 720)]
+    [InlineData(768, 1024)]
+    [InlineData(390, 844)]
+    [InlineData(320, 640)]
+    public async Task Portrait_IsThePlayerCardCaptionedWithTheAthletesName(int width, int height)
+    {
+        await using var context = await CreateContextAsync(width, height);
+        var page = await OpenEditorAsync(context);
+        var layout = await page.EvaluateAsync<double[]>(
+            """
+            () => {
+                const title = document.getElementById('character-title').getBoundingClientRect();
+                const picture = document.querySelector('.edit-profile-visual .illustration').getBoundingClientRect();
+                const style = getComputedStyle(document.getElementById('character-title'));
+                return [title.top - picture.top, picture.bottom - title.bottom, title.left - picture.left, picture.right - title.right,
+                    style.color === 'rgb(255, 255, 255)' ? 1 : 0];
+            }
+            """);
+        var scenario = $"{width}x{height}";
+        Assert.True(layout[0] > 0, $"{scenario}: the name should sit on the portrait, not above it.");
+        Assert.InRange(layout[1], -1, 1);
+        Assert.InRange(layout[2], -1, 1);
+        Assert.InRange(layout[3], -1, 1);
+        Assert.Equal(1, layout[4]);
+        await ExpectNoHorizontalOverflowAsync(page);
+    }
+
     private static async Task<IPage> OpenEditorAsync(IBrowserContext context)
     {
         var page = await context.NewPageAsync();
