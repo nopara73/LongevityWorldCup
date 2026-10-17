@@ -380,6 +380,7 @@ public sealed class BiomarkerHistoryBrowserTests(
             await Expect(readings.First).ToHaveAttributeAsync("data-date", "2010-01-01");
             await Expect(readings.Last).ToHaveAttributeAsync("data-date", $"{2009 + count}-01-01");
             await Expect(row.Locator(".clock-history-reading.is-latest")).ToHaveTextAsync(await row.Locator(".biomarker-overview-current").InnerTextAsync());
+            Assert.True(await row.Locator(".clock-history-scroll").EvaluateAsync<bool>("el => el.getBoundingClientRect().height >= 44"));
             Assert.True(await row.Locator(".clock-history-scroll").EvaluateAsync<bool>("""
                 el => { const viewport = el.getBoundingClientRect(); const last = el.querySelector('.is-latest').getBoundingClientRect();
                     return last.left >= viewport.left - 1 && last.right <= viewport.right + 1; }

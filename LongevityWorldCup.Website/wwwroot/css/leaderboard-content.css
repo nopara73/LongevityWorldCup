@@ -1934,6 +1934,7 @@
  #detailsModal .clock-history-scroll{
      width:100%;
      min-width:0;
+     min-height:44px;
      contain:inline-size;
      overflow-x:auto;
      direction:rtl; /* Start at the newest reading; the track keeps chronological order. */
