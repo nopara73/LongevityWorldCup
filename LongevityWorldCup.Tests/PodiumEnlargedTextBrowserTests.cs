@@ -190,15 +190,32 @@ public sealed class PodiumEnlargedTextBrowserTests(
         var page = await context.NewPageAsync();
         await NavigateAndSettleAsync(page, "/");
         await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+        await Assertions.Expect(page.Locator(".podium-item")).ToHaveCountAsync(3);
         foreach (var percent in new[] { 100, 125, 150, 175, 200 })
         {
             await page.EvaluateAsync("p => document.documentElement.style.fontSize = `${p}%`", percent);
+            await page.EvaluateAsync("() => document.fonts.ready");
             foreach (var (em, stacked) in new[] { (16.01, false), (15.99, true), (16.01, false) })
             {
-                await page.Locator(".podium").EvaluateAsync("(podium, em) => { podium.style.width = `${em}em`; podium.style.marginInline = 'auto'; }", em);
-                await page.EvaluateAsync("() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))");
-                var fullWidth = await page.EvaluateAsync<bool>("() => [...document.querySelectorAll('.podium-item')].every(card => Math.abs(card.getBoundingClientRect().width - document.querySelector('.podium').getBoundingClientRect().width) < 1)");
-                Assert.Equal(stacked, fullWidth);
+                var widths = await page.Locator(".podium").EvaluateAsync<double[]>("""
+                    async (podium, em) => {
+                        podium.style.width = `${em}em`;
+                        podium.style.marginInline = 'auto';
+                        await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+                        await Promise.all(podium.getAnimations({ subtree: true })
+                            .filter(animation => Number.isFinite(animation.effect.getComputedTiming().endTime))
+                            .map(animation => animation.finished.catch(() => {})));
+                        await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+                        return [parseFloat(getComputedStyle(podium).fontSize), podium.getBoundingClientRect().width,
+                            ...[...podium.querySelectorAll('.podium-item')].map(card => card.getBoundingClientRect().width)];
+                    }
+                    """, em);
+                Assert.Equal(5, widths.Length);
+                Assert.True(Math.Abs(em * widths[0] - widths[1]) <= .1,
+                    $"Podium width was {widths[1]}px; expected {em * widths[0]}px at {percent}% text.");
+                var fullWidth = widths.Skip(2).All(width => Math.Abs(width - widths[1]) < 1);
+                Assert.True(stacked == fullWidth,
+                    $"Podium at {percent}% text and {em}em: container={widths[1]}, cards={string.Join(", ", widths.Skip(2))}.");
             }
         }
     }
