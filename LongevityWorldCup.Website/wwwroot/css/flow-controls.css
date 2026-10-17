@@ -147,7 +147,7 @@ body.play-flow-route > main {
 }
 
 .flow-action-stack.flow-action-stack--docked.flow-action-stack--back-primary-action > .flow-action:not(.back-button) {
-    flex: 1 1 10rem;
+    flex: 1 1 max-content;
     width: auto;
     max-width: none;
 }
@@ -442,7 +442,7 @@ body.flow-input-keyboard-open::after {
     }
 
     .flow-action-stack:not(.flow-action-stack--docked):not(.flow-action-stack--hide-disabled-primary):has(> .flow-action:first-child + .flow-action:last-child):has(> .back-button.flow-action--icon-left) > .flow-action:not(.back-button) {
-        flex: 1 1 12rem;
+        flex: 1 1 max-content;
         width: auto;
     }
 

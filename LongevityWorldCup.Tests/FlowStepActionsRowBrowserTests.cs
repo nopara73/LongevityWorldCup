@@ -236,6 +236,15 @@ public sealed class FlowStepActionsRowBrowserTests(
                 if (new Set(glyphs.map(r=>Math.round(r.top))).size !== 1) issues.push('Back splits across lines');
                 if (glyphs.some(r=>r.left < icon.right || r.right > box.right || r.top < box.top || r.bottom > box.bottom)) issues.push('Back label overlaps or clips');
                 if (box.left < 0 || box.right > innerWidth) issues.push('Back overflows the viewport');
+                for (const caption of stack.querySelectorAll('.flow-action__label')) {
+                    const walker = document.createTreeWalker(caption, NodeFilter.SHOW_TEXT);
+                    let node;
+                    while(node = walker.nextNode()) for(const word of node.textContent.matchAll(/\S+/g)) {
+                        const wordRange = document.createRange();
+                        wordRange.setStart(node, word.index); wordRange.setEnd(node, word.index + word[0].length);
+                        if(new Set([...wordRange.getClientRects()].map(r=>Math.round(r.top))).size > 1) issues.push('Split caption word: ' + word[0]);
+                    }
+                }
                 return issues;
             }
             """);
