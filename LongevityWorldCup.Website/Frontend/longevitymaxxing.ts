@@ -1236,6 +1236,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 for (const note of ordered) {
                     const key = discussionPermalink(note);
                     const previous = discussionFeedNotes.get(key);
+                    if (visible.has(key)) discussionFeedPending.delete(key);
                     if (!previous || (!visible.has(key) && discussionActivityTimestamp(note) > discussionActivityTimestamp(previous)))
                         discussionFeedPending.add(key);
                     discussionFeedNotes.set(key, note);
@@ -5248,6 +5249,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             if (saved && !String(saved.note || "").trim() && !saved.images.length) {
                 const postKey = discussionPermalink({ participantId: result.participant.id, challengeDay: payload.challengeDay, systemPostId: null });
                 discussionFeedNotes.delete(postKey);
+                discussionFeedUpdates.delete(postKey);
                 discussionFeedPending.delete(postKey);
                 discussionFeedOrder = discussionFeedOrder.filter(value => value !== postKey);
                 if (linkedDiscussionThread && discussionPermalink(linkedDiscussionThread) === postKey) linkedDiscussionThread = null;
@@ -6665,13 +6667,17 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             const result = await postJson(`${API}/discussion/replies/delete`, payload);
             if (accessToken !== currentAccessToken || participantState?.participant.id !== reply.participantId) return;
             reconcileDiscussionReplyReference(replyId, null);
-            if (linkedDiscussionThread && linkedDiscussionThread.participantId === thread.dataset.discussionPostParticipantId &&
-                linkedDiscussionThread.challengeDay === Number(thread.dataset.discussionPostChallengeDay)) {
-                const previousCount = reportedDiscussionReplyCount(linkedDiscussionThread);
-                linkedDiscussionThread.replies = (linkedDiscussionThread.replies || []).filter(candidate => candidate.id !== replyId);
-                linkedDiscussionThread.replyCount = Math.max(0, previousCount - 1);
-                linkedDiscussionThread.lastActivityAtUtc = linkedDiscussionThread.replies.reduce((latest, candidate) =>
-                    Date.parse(candidate.createdAtUtc) > Date.parse(latest) ? candidate.createdAtUtc : latest, linkedDiscussionThread.updatedAtUtc);
+            const postKey = discussionPermalink({ participantId: String(thread.dataset.discussionPostParticipantId || ""),
+                challengeDay: Number(thread.dataset.discussionPostChallengeDay), systemPostId: thread.dataset.discussionSystemPostId || null });
+            const cachedThreads = new Set([...discussionFeedNotes.values(), ...discussionFeedUpdates.values(),
+                ...(linkedDiscussionThread ? [linkedDiscussionThread] : [])]);
+            for (const note of cachedThreads) {
+                if (discussionPermalink(note) !== postKey) continue;
+                const previousCount = reportedDiscussionReplyCount(note);
+                note.replies = (note.replies || []).filter(candidate => candidate.id !== replyId);
+                note.replyCount = Math.max(0, previousCount - 1);
+                note.lastActivityAtUtc = note.replies.reduce((latest, candidate) =>
+                    Date.parse(candidate.createdAtUtc) > Date.parse(latest) ? candidate.createdAtUtc : latest, note.updatedAtUtc);
             }
             for (const [key, draft] of discussionDrafts) {
                 if (draft.editReplyId !== replyId) continue;
@@ -6735,6 +6741,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         });
         const collections = [
             Array.from(discussionFeedNotes.values()),
+            Array.from(discussionFeedUpdates.values()),
             participantState?.notes,
             participantState?.public?.notes,
             publicState?.notes,
@@ -6757,6 +6764,11 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         discussionDrafts.forEach(draft => {
             if (draft.replyToId === replyId) draft.replyTo = context;
         });
+        for (const [key, note] of discussionFeedUpdates) {
+            if (JSON.stringify(note) !== JSON.stringify(discussionFeedNotes.get(key))) continue;
+            discussionFeedUpdates.delete(key);
+            discussionFeedPending.delete(key);
+        }
     }
 
     async function submitDiscussionReply(draft: DiscussionDraft): Promise<void> {
@@ -6788,6 +6800,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 if (accessToken !== currentAccessToken || participantState?.participant.id !== draft.participantId) return;
                 replaceDiscussionReplyEverywhere(updated);
                 stateAcceptanceGeneration++;
+                // This edit is already in the feed, which may be newer than the last full state.
+                discussionFeedAcceptedGeneration = stateAcceptanceGeneration;
             } else {
                 const payload: DiscussionReplyPayload = {
                     accessToken, postParticipantId: draft.postParticipantId, challengeDay: draft.challengeDay,

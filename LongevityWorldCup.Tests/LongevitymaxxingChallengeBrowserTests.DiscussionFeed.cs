@@ -263,6 +263,148 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         } finally { release.TrySetResult(); }
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task DiscussionFeed_EditingReplyPreservesAcceptedAndPendingUpdates(bool acceptBeforeEditing)
+    {
+        await using var context = await NewContextAsync(Browser, App, new());
+        var state = LargeDiscussionFeedState(35);
+        foreach (var notes in new[] { state["notes"]!.AsArray(), state["public"]!["notes"]!.AsArray() }) {
+            notes[0]!["replies"]!.AsArray().Add(JsonSerializer.SerializeToNode(Reply(
+                "owned-reply", "p1", "Browser Tester", "The original reply.", "2026-07-03T11:50:00Z")));
+            notes[0]!["replyCount"] = 1;
+        }
+        var page = await OpenDiscussionFeedAsync(context, state, automatic: false);
+        foreach (var notes in new[] { state["notes"]!.AsArray(), state["public"]!["notes"]!.AsArray() })
+            notes[0]!["note"] = "A fresh post update from the feed.";
+        await page.Clock.FastForwardAsync(61_000);
+        await Assertions.Expect(page.Locator("#lmxFeedNew")).ToHaveTextAsync("New posts · 1");
+        if (acceptBeforeEditing) await page.Locator("#lmxFeedNew").ClickAsync();
+        await page.RouteAsync("**/api/longevitymaxxing/discussion/replies/edit", route => FulfillJsonAsync(route,
+            JsonSerializer.Serialize(Reply("owned-reply", "p1", "Browser Tester", "My edited reply.",
+                "2026-07-03T11:50:00Z", "2026-07-03T12:01:01Z"))));
+        var thread = page.Locator("#lmxNotes > article[data-discussion-post-participant-id='p2']");
+        await thread.Locator("[data-discussion-reply-edit]").ClickAsync();
+        await thread.Locator("textarea").FillAsync("My edited reply.");
+        await thread.Locator("[data-reply-edit-submit]").ClickAsync();
+        await Assertions.Expect(thread.Locator("[data-discussion-reply-body]")).ToHaveTextAsync("My edited reply.");
+        if (!acceptBeforeEditing) await page.Locator("#lmxFeedNew").ClickAsync();
+        await Assertions.Expect(thread.Locator(":scope > p").First).ToHaveTextAsync("A fresh post update from the feed.");
+        await Assertions.Expect(thread.Locator("[data-discussion-reply-body]")).ToHaveTextAsync("My edited reply.");
+    }
+
+    [Fact]
+    public async Task DiscussionFeed_DeletingAnOlderCachedReplyUpdatesTheThreadOutsideTheInitialState()
+    {
+        await using var context = await NewContextAsync(Browser, App, new());
+        var state = LargeDiscussionFeedState(100);
+        var history = LargeDiscussionFeedState(102)["notes"]!.AsArray().Skip(100).Select(note => note!.DeepClone()).ToArray();
+        foreach (var note in history) {
+            note["updatedAtUtc"] = "2026-07-01T10:00:00Z";
+            note["lastActivityAtUtc"] = "2026-07-01T10:00:00Z";
+            note["date"] = "2026-07-01";
+            note["challengeDay"] = 20;
+        }
+        history[0]["replies"]!.AsArray().Add(JsonSerializer.SerializeToNode(Reply(
+            "owned-older-reply", "p1", "Browser Tester", "An older reply to delete.", "2026-07-02T10:00:00Z")));
+        history[0]["replyCount"] = 1;
+        history[0]["lastActivityAtUtc"] = "2026-07-02T10:00:00Z";
+        await context.RouteAsync("**/api/longevitymaxxing/discussion/feed", route => FulfillJsonAsync(route,
+            new JsonObject { ["threads"] = new JsonArray(history.Select(note => (JsonNode)new JsonObject {
+                ["note"] = note.DeepClone(), ["systemPost"] = null }).ToArray()), ["nextCursor"] = null }.ToJsonString()));
+        var page = await OpenDiscussionFeedAsync(context, state, automatic: false);
+        var articles = page.Locator("#lmxNotes > article");
+        for (var expected = 20; expected <= 100; expected += 10) {
+            await page.Locator("#lmxFeedOlder").ClickAsync();
+            await Assertions.Expect(articles).ToHaveCountAsync(expected);
+        }
+        await page.Locator("#lmxFeedOlder").ClickAsync();
+        await Assertions.Expect(articles).ToHaveCountAsync(102);
+        await page.RouteAsync("**/api/longevitymaxxing/discussion/replies/delete", route => FulfillJsonAsync(route, state.ToJsonString()));
+        page.Dialog += async (_, dialog) => await dialog.AcceptAsync();
+        var older = page.Locator("#lmxNotes > article[data-discussion-post-participant-id='feed-100']");
+        await older.Locator("[data-discussion-reply-delete]").ClickAsync();
+        await Assertions.Expect(older.Locator("[data-discussion-reply-id]")).ToHaveCountAsync(0);
+        await Assertions.Expect(older.Locator(".lmx-discussion-count")).ToHaveTextAsync("0 replies");
+        await Assertions.Expect(articles).ToHaveCountAsync(102);
+    }
+
+    [Fact]
+    public async Task DiscussionFeed_DeletingReplyConsumesItsQueuedUpdate()
+    {
+        await using var context = await NewContextAsync(Browser, App, new());
+        var state = LargeDiscussionFeedState(35);
+        foreach (var notes in new[] { state["notes"]!.AsArray(), state["public"]!["notes"]!.AsArray() }) {
+            notes[0]!["replies"]!.AsArray().Add(JsonSerializer.SerializeToNode(Reply(
+                "owned-reply", "p1", "Browser Tester", "The original reply.", "2026-07-03T11:50:00Z")));
+            notes[0]!["replyCount"] = 1;
+        }
+        var page = await OpenDiscussionFeedAsync(context, state, automatic: false);
+        foreach (var notes in new[] { state["notes"]!.AsArray(), state["public"]!["notes"]!.AsArray() })
+            notes[0]!["replies"]![0]!["body"] = "A queued update to the reply.";
+        await page.Clock.FastForwardAsync(61_000);
+        await Assertions.Expect(page.Locator("#lmxFeedNew")).ToHaveTextAsync("New posts · 1");
+        await page.RouteAsync("**/api/longevitymaxxing/discussion/replies/delete", async route => {
+            foreach (var notes in new[] { state["notes"]!.AsArray(), state["public"]!["notes"]!.AsArray() }) {
+                notes[0]!["replies"] = new JsonArray();
+                notes[0]!["replyCount"] = 0;
+            }
+            await FulfillJsonAsync(route, state.ToJsonString());
+        });
+        page.Dialog += async (_, dialog) => await dialog.AcceptAsync();
+        var thread = page.Locator("#lmxNotes > article[data-discussion-post-participant-id='p2']");
+        await thread.Locator("[data-discussion-reply-delete]").ClickAsync();
+        await Assertions.Expect(thread.Locator("[data-discussion-reply-id]")).ToHaveCountAsync(0);
+        await Assertions.Expect(page.Locator("#lmxFeedNew")).ToBeHiddenAsync();
+    }
+
+    [Fact]
+    public async Task DiscussionFeed_RemovingOwnPostAlsoRemovesItsQueuedVersion()
+    {
+        await using var context = await NewContextAsync(Browser, App, new());
+        var state = LargeDiscussionFeedState(35);
+        var template = state["notes"]![0]!.DeepClone();
+        foreach (var day in state["eligibleDays"]!.AsArray()) {
+            day!["existing"] = SavedCheckIn("My published note.");
+            var own = template.DeepClone();
+            own["participantId"] = "p1";
+            own["displayName"] = "Browser Tester";
+            own["challengeDay"] = day["challengeDay"]!.DeepClone();
+            own["note"] = "My published note.";
+            foreach (var notes in new[] { state["notes"]!.AsArray(), state["public"]!["notes"]!.AsArray() })
+                notes.Insert(0, own.DeepClone());
+        }
+        var page = await OpenDiscussionFeedAsync(context, state, automatic: false);
+        var form = page.Locator(".lmx-checkin-card");
+        var selectedDay = int.Parse((await form.GetAttributeAsync("data-day"))!, CultureInfo.InvariantCulture);
+        foreach (var notes in new[] { state["notes"]!.AsArray(), state["public"]!["notes"]!.AsArray() }) {
+            notes.Single(note => (string?)note!["participantId"] == "p1" && (int?)note["challengeDay"] == selectedDay)!["note"] = "A queued version of my published note.";
+            var fresh = template.DeepClone();
+            fresh["participantId"] = "new-runner";
+            fresh["displayName"] = "New Runner";
+            fresh["lastActivityAtUtc"] = "2026-07-03T12:01:00Z";
+            notes.Insert(0, fresh);
+        }
+        await page.Clock.FastForwardAsync(61_000);
+        await Assertions.Expect(page.Locator("#lmxFeedNew")).ToHaveTextAsync("New posts · 2");
+        await page.RouteAsync("**/api/longevitymaxxing/check-in", async route => {
+            state["eligibleDays"]!.AsArray().Single(day => (int?)day!["challengeDay"] == selectedDay)!["existing"] = SavedCheckIn("");
+            foreach (var notes in new[] { state["notes"]!.AsArray(), state["public"]!["notes"]!.AsArray() })
+                notes.Remove(notes.Single(note => (string?)note!["participantId"] == "p1" && (int?)note["challengeDay"] == selectedDay));
+            await FulfillJsonAsync(route, state.ToJsonString());
+        });
+        var ownPost = page.Locator($"#lmxNotes > article[data-discussion-post-participant-id='p1'][data-discussion-post-challenge-day='{selectedDay}']");
+        await form.Locator("textarea").FillAsync("");
+        await form.Locator("button[type='submit']").ClickAsync();
+        await Assertions.Expect(ownPost).ToHaveCountAsync(0);
+        await page.Locator("#lmxQuoteDialogOk").ClickAsync();
+        await page.Locator("#lmxCheckinTab").ClickAsync();
+        await page.Locator("#lmxFeedNew").ClickAsync();
+        await Assertions.Expect(ownPost).ToHaveCountAsync(0);
+        await Assertions.Expect(page.Locator("#lmxNotes > article[data-discussion-post-participant-id='new-runner']")).ToBeVisibleAsync();
+    }
+
     private static JsonObject LargeDiscussionFeedState(int count)
     {
         var state = DiscussionWorkspaceState();
