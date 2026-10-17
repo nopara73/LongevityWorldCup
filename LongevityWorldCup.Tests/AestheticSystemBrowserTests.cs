@@ -1257,7 +1257,9 @@ public sealed class AestheticSystemBrowserTests(
         IPage page,
         ResponsiveContainerCondition[] conditions)
     {
+        await AssertFontRelativeLeaderboardBoundariesAsync(page, conditions.Where(condition => condition.Unit == "em").ToArray());
         await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.Reduce });
+        await page.SetViewportSizeAsync(1440, 1000);
         await NavigateAndSettleAsync(page, "/leaderboard?filters=open,baby%20boomers");
         await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
         // Probe the rendered component without hydration or scroll handlers changing its state.
@@ -1276,7 +1278,7 @@ public sealed class AestheticSystemBrowserTests(
         var rootFontSize = await page.EvaluateAsync<double>(
             "() => parseFloat(getComputedStyle(document.documentElement).fontSize)");
 
-        foreach (var condition in conditions.Where(condition => condition.Name != "flag-results"))
+        foreach (var condition in conditions.Where(condition => condition.Name != "flag-results" && condition.Unit != "em"))
         {
             Assert.Equal("leaderboard-results", condition.Name);
             Assert.Equal("max", condition.Bound);
@@ -1321,6 +1323,67 @@ public sealed class AestheticSystemBrowserTests(
         }
         await AssertFlagContainerBoundariesAsync(page, conditions.Where(condition => condition.Name == "flag-results").ToArray());
         await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.NoPreference });
+    }
+
+    private static async Task AssertFontRelativeLeaderboardBoundariesAsync(IPage page, ResponsiveContainerCondition[] conditions)
+    {
+        foreach (var condition in conditions)
+        {
+            Assert.Equal("em", condition.Unit);
+            Assert.Contains(condition.Name, new[] { "league-filters", "podium", "athlete-stats", "leaderboard" });
+            var desktop = condition.Name == "league-filters" || condition.Name == "podium" && condition.Value == 32;
+            await page.SetViewportSizeAsync(desktop ? 1440 : 390, desktop ? 1000 : 844);
+            await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.Reduce });
+            var route = condition.Name == "podium" ? "/"
+                : condition.Name == "athlete-stats" ? "/athlete/michael-lustgarten"
+                : "/leaderboard?filters=open,baby%20boomers";
+            await NavigateAndSettleAsync(page, route);
+            if (condition.Name is "league-filters" or "leaderboard")
+                await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+            if (condition.Name == "podium") await page.Locator(".podium-item.first").WaitForAsync();
+            // Clone the rendered component in its existing scope. Hydration and
+            // scrolling keep ownership of the original while this probe resizes.
+            var fontSize = await page.EvaluateAsync<double>("""
+                name => {
+                    const source = [...document.querySelectorAll('body *')].find(e => getComputedStyle(e).containerName.split(' ').includes(name));
+                    if (!source) throw new Error('Missing query container: ' + name);
+                    const probe = source.cloneNode(true);
+                    probe.id = 'responsive-em-probe';
+                    probe.style.cssText += ';box-sizing:content-box;max-inline-size:none;min-inline-size:0;font-size:20px;';
+                    source.parentElement.append(probe);
+                    return parseFloat(getComputedStyle(probe).fontSize);
+                }
+                """, condition.Name);
+            var threshold = condition.Value * fontSize;
+            foreach (var delta in new[] { -1, 0, 1, 0, -1 })
+            {
+                var width = threshold + delta;
+                var diagnostics = await page.EvaluateAsync<double[]>("""
+                    async arg => {
+                        const probe = document.getElementById('responsive-em-probe');
+                        probe.style.inlineSize = `${arg.Width}px`;
+                        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                        let applied;
+                        if (arg.Name === 'league-filters') applied = getComputedStyle(probe.querySelector('.filter-label-copy')).display === 'block';
+                        else if (arg.Name === 'athlete-stats') applied = getComputedStyle(probe.querySelector('.athlete-info-table tr')).display === 'grid';
+                        else if (arg.Name === 'leaderboard') {
+                            const row = probe.querySelector('tbody tr:not(.no-results):not(.tier-separator)');
+                            applied = row.querySelector('.athlete-identity').getBoundingClientRect().top >= row.querySelector('.portrait-wrapper').getBoundingClientRect().bottom - 1;
+                        } else if (arg.Value === 32) applied = Math.abs(probe.querySelector('.podium-item.first').getBoundingClientRect().width - probe.getBoundingClientRect().width) <= 2;
+                        else {
+                            const card = probe.querySelector('.podium-item.first');
+                            applied = card.querySelector('.name-row').getBoundingClientRect().top >= card.querySelector('.podium-portrait').getBoundingClientRect().bottom - 1;
+                        }
+                        return [parseFloat(getComputedStyle(probe).width), applied ? 1 : 0];
+                    }
+                    """, new { Width = width, condition.Name, condition.Value });
+                Assert.Equal(width, diagnostics[0], 1);
+                var expected = condition.Bound == "min" ? width >= threshold : width <= threshold;
+                Assert.True((diagnostics[1] == 1) == expected,
+                    $"{condition.Name} did not cross {condition.Value}em at {width}px (applied={diagnostics[1]}).");
+            }
+            await page.Locator("#responsive-em-probe").EvaluateAsync("probe => probe.remove()");
+        }
     }
 
     private static async Task AssertFlagContainerBoundariesAsync(
