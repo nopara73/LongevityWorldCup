@@ -1232,7 +1232,7 @@ public sealed class AestheticSystemBrowserTests(
             var composer = condition.Name == "order-panel";
             var results = condition.Name == "leaderboard-results";
             if (composer || results) Assert.Equal(composer ? 18 : 55, condition.Value);
-            else Assert.Contains(condition.Value, new[] { 10d, 17d, 32d });
+            else Assert.Contains(condition.Value, new[] { 10d, 18.75d, 32d });
             await page.SetViewportSizeAsync(composer ? 1280 : results ? 1440 : 390, 900);
             await NavigateAndSettleAsync(page, "/leaderboard?sort=pheno&then=age");
             await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
@@ -1272,13 +1272,30 @@ public sealed class AestheticSystemBrowserTests(
                         };
                     }
                     """, new { Width = width, Composer = composer, Results = results,
-                        DeepStack = !composer && !results && condition.Value == 17,
+                        DeepStack = !composer && !results && condition.Value == 18.75,
                         IdentityStack = !composer && !results && condition.Value == 10 });
                 Assert.Equal(width, diagnostics.ContainerWidth, 1);
                 Assert.True(diagnostics.IsCompact == (width <= threshold),
                     $"Ordering {condition.Name} did not cross {condition.Value}em at {width}px.");
                 Assert.True(diagnostics.HorizontalOverflow <= 1,
                     $"Ordering {condition.Name} overflowed by {diagnostics.HorizontalOverflow}px at {width}px.");
+                if (!composer && !results && condition.Value == 18.75)
+                {
+                    var clippedHeadings = await page.Locator("[data-order-boundary-probe]").EvaluateAsync<string[]>("""
+                        container => [...container.querySelectorAll('thead .leaderboard-column-order')].flatMap(button => {
+                            const box = button.getBoundingClientRect();
+                            if (!box.width) return [];
+                            return [...button.querySelectorAll('.order-heading-label, small')].flatMap(label => {
+                                const range = document.createRange(); range.selectNodeContents(label);
+                                return [...range.getClientRects()].some(text => text.width
+                                    && (text.left < box.left - 1 || text.right > box.right + 1))
+                                    ? [label.textContent.trim()] : [];
+                            });
+                        })
+                        """);
+                    Assert.True(clippedHeadings.Length == 0,
+                        $"Ordering headings clipped at {width}px: {string.Join(", ", clippedHeadings)}.");
+                }
             }
         }
     }
