@@ -304,19 +304,23 @@
         <section id="lmxNotesPanel" class="lmx-card lmx-hidden" aria-labelledby="lmxNotesTitle">
             <div class="lmx-notes-header">
                 <h2 id="lmxNotesTitle">Discussion</h2>
-                <nav id="lmxNotesPager" class="lmx-notes-pager lmx-hidden" aria-label="Discussion history" hidden>
-                    <button id="lmxNotesNewer" type="button" aria-label="Show previous discussion posts" aria-controls="lmxNotes" disabled>
-                        <i class="fas fa-chevron-left" aria-hidden="true"></i>
-                        <span>Previous</span>
-                    </button>
-                    <span id="lmxNotesDayLabel" class="lmx-notes-day-label" aria-live="polite"></span>
-                    <button id="lmxNotesOlder" type="button" aria-label="Show next discussion posts" aria-controls="lmxNotes" disabled>
-                        <span>Next</span>
-                        <i class="fas fa-chevron-right" aria-hidden="true"></i>
-                    </button>
-                </nav>
+            </div>
+            <div class="lmx-feed-updates">
+                <button id="lmxFeedNew" class="lmx-feed-button lmx-feed-new" type="button" aria-controls="lmxNotes" hidden>
+                    <i class="fas fa-arrow-up" aria-hidden="true"></i><span>New posts</span>
+                </button>
             </div>
             <div id="lmxNotes" class="lmx-notes"></div>
+            <div id="lmxFeedSentinel" class="lmx-feed-sentinel" aria-hidden="true"></div>
+            <div class="lmx-feed-footer">
+                <div id="lmxFeedCaughtUp" class="lmx-feed-caught-up" tabindex="-1" hidden>
+                    <i class="fas fa-circle-check" aria-hidden="true"></i><span>You’re caught up</span>
+                </div>
+                <button id="lmxFeedOlder" class="lmx-feed-button" type="button" aria-controls="lmxNotes" hidden>
+                    <span>Load older posts</span><i class="fas fa-chevron-down" aria-hidden="true"></i>
+                </button>
+                <p id="lmxFeedStatus" class="lmx-feed-status" role="status" aria-live="polite"></p>
+            </div>
         </section>
     </section>
 </main>
@@ -324,6 +328,7 @@
 <div id="lmxCheckinDialogBackdrop" class="lmx-checkin-dialog-backdrop" aria-hidden="true" hidden></div>
 
 <!--FOOTER-->
+<script src="{{ASSET_CUSTOM_EVENT_MARKUP_JS}}" defer></script>
 <script src="{{ASSET_LONGEVITYMAXXING_JS}}" defer></script>
 </body>
 </html>
