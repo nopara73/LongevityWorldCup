@@ -56,10 +56,24 @@ public sealed class LeaderboardNameWrapBrowserTests(
                     // Match across highlight spans/text nodes; otherwise a word split at a
                     // highlight boundary can pass despite being broken between letters.
                     const text = glyphs.map(glyph => glyph.char).join('');
+                    const athlete = name.closest('.athlete-td');
+                    const identity = name.closest('.athlete-identity');
+                    // A word wider than the complete fallback line must still wrap.
+                    // On wider tables the portrait keeps its column, so only the
+                    // identity is available; phone rows can use the entire cell.
+                    const available = innerWidth <= 480 && getComputedStyle(athlete).display !== 'contents'
+                        ? athlete.getBoundingClientRect().width
+                        : identity.getBoundingClientRect().width;
+                    const style = getComputedStyle(name);
+                    const canvas = document.createElement('canvas');
+                    const context = canvas.getContext('2d');
+                    context.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
                     for (const part of text.matchAll(/[^\s \-\u2010]+/gu)) {
                         const lines = new Set(glyphs.slice(part.index, part.index + part[0].length)
                             .filter(glyph => glyph.top !== null).map(glyph => glyph.top));
-                        if (lines.size > 1) broken.push(part[0]);
+                        const wordWidth = context.measureText(part[0]).width;
+                        const padding = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
+                        if (lines.size > 1 && wordWidth <= available - padding + 1) broken.push(part[0]);
                     }
                 }
                 return names.length ? broken : ['no names rendered'];
