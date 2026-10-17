@@ -11,6 +11,49 @@ public sealed class PlayAthleteSelectionCardBrowserTests(
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Theory]
+    [InlineData(1440, 900, false)]
+    [InlineData(390, 844, true)]
+    [InlineData(320, 640, false)]
+    public async Task Selection_SearchIsAMagnifierLedFieldAsTallAsTheActions(int width, int height, bool dark)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = height },
+            ColorScheme = dark ? ColorScheme.Dark : ColorScheme.Light,
+            ReducedMotion = ReducedMotion.Reduce,
+            IsMobile = width < 600,
+            HasTouch = width < 600
+        });
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/select-athlete");
+        var input = page.Locator("#playAthleteInput");
+        await Assertions.Expect(input).ToBeEditableAsync();
+        await page.WaitForFunctionAsync("() => !document.body.classList.contains('play-route-hydrating')");
+        await page.EvaluateAsync("() => document.fonts.ready");
+
+        var field = await page.EvaluateAsync<string[]>(
+            """
+            () => {
+                const input = document.getElementById('playAthleteInput');
+                const box = input.getBoundingClientRect();
+                const container = input.parentElement;
+                const icon = getComputedStyle(container, '::before');
+                const containerBox = container.getBoundingClientRect();
+                const iconCentre = containerBox.top + parseFloat(icon.top);
+                return [String(box.height), icon.content, String(Math.abs(iconCentre - (box.top + box.height / 2))),
+                    String(parseFloat(getComputedStyle(input).paddingLeft) - (parseFloat(icon.left) + parseFloat(icon.fontSize)))];
+            }
+            """);
+        var scenario = $"{width}x{height}";
+        Assert.True(double.Parse(field[0], System.Globalization.CultureInfo.InvariantCulture) >= 56,
+            $"{scenario}: the athlete search should be as tall as the actions, not a {field[0]}px line.");
+        Assert.True(field[1] == "\"\"", $"{scenario}: the athlete search should be led by the magnifier, not {field[1]}.");
+        Assert.True(double.Parse(field[2], System.Globalization.CultureInfo.InvariantCulture) <= 2, $"{scenario}: the magnifier should sit centred in the field.");
+        Assert.True(double.Parse(field[3], System.Globalization.CultureInfo.InvariantCulture) >= 4, $"{scenario}: typed names should start clear of the magnifier.");
+        await Assertions.Expect(input).ToHaveAccessibleNameAsync("Athlete name");
+    }
+
+    [Theory]
     [InlineData(1440, 900, false, 16)]
     [InlineData(390, 844, true, 16)]
     [InlineData(320, 640, false, 16)]
