@@ -1835,6 +1835,10 @@ public sealed class AestheticSystemBrowserTests(
     internal static async Task NavigateAndSettleAsync(IPage page, string path)
     {
         await page.GotoAsync(path, new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        // DOMContentLoaded does not wait for a stylesheet that follows the page's scripts.
+        // Measure the rendered design only after those styles and their fonts have loaded.
+        await page.WaitForFunctionAsync(
+            "() => [...document.querySelectorAll('link[rel=stylesheet]')].every(link => link.sheet !== null)");
         await page.WaitForFunctionAsync("() => !document.documentElement.hasAttribute('data-initial-view')");
         await page.EvaluateAsync("() => document.fonts?.ready || Promise.resolve()");
     }
