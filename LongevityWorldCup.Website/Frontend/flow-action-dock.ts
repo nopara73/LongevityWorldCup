@@ -48,6 +48,7 @@ interface FlowActionDockApi {
     let generatedFormId = 0;
     let keyboardClearFrame = 0;
     let focusedControlClearanceRequested = false;
+    let focusedControlLayoutSignature = '';
     let largestUnobscuredViewportHeight = 0;
     let lastLayoutViewportWidth = window.innerWidth;
     let isKeyboardOpen = false;
@@ -125,17 +126,14 @@ interface FlowActionDockApi {
         document.body.style.setProperty('--flow-input-keyboard-occlusion', occlusionValue);
     }
 
-    function keepFocusedControlInVisualViewport(): void {
+    function keepFocusedControlInVisualViewport(layoutResized: boolean): void {
+        if ((!isKeyboardOpen && !layoutResized) || !isKeyboardEditingControl(document.activeElement)) return;
         if (keyboardClearFrame) window.cancelAnimationFrame(keyboardClearFrame);
-        if (!isKeyboardEditingControl(document.activeElement)) {
-            keyboardClearFrame = 0;
-            return;
-        }
 
         keyboardClearFrame = window.requestAnimationFrame(() => {
             keyboardClearFrame = 0;
             const control = document.activeElement;
-            if (!isKeyboardEditingControl(control) || !isVisible(control)
+            if ((!isKeyboardOpen && !layoutResized) || !isKeyboardEditingControl(control) || !isVisible(control)
                 || control.closest('[hidden], [inert], [aria-hidden="true"]')) return;
 
             const viewport = getVisualViewportBounds();
@@ -380,7 +378,13 @@ interface FlowActionDockApi {
 
     function refresh(): void {
         refreshFrame = 0;
-        const shouldClearFocusedControl = focusedControlClearanceRequested;
+        // Step changes intentionally focus with preventScroll. Ordinary focus
+        // only opts into clearance when the viewport or text size really changed.
+        const viewport = getVisualViewportBounds();
+        const layoutSignature = `${window.innerWidth}|${window.innerHeight}|${viewport.height}|${getComputedStyle(document.documentElement).fontSize}`;
+        const layoutResized = focusedControlLayoutSignature !== '' && focusedControlLayoutSignature !== layoutSignature;
+        focusedControlLayoutSignature = layoutSignature;
+        const shouldClearFocusedControl = focusedControlClearanceRequested || layoutResized;
         focusedControlClearanceRequested = false;
         ensureRegisteredElements();
         syncKeyboardState();
@@ -414,7 +418,7 @@ interface FlowActionDockApi {
         const heightValue = hasDockedElement ? `${Math.ceil(dockedHeight)}px` : '0px';
         document.documentElement.style.setProperty('--flow-action-dock-height', heightValue);
         document.body.style.setProperty('--flow-action-dock-height', heightValue);
-        if (shouldClearFocusedControl) keepFocusedControlInVisualViewport();
+        if (shouldClearFocusedControl) keepFocusedControlInVisualViewport(layoutResized);
     }
 
     function scheduleRefresh(): void {
@@ -488,7 +492,7 @@ interface FlowActionDockApi {
     }
 
     function init(): void {
-        if ('ResizeObserver' in window) resizeObserver = new ResizeObserver(scheduleFocusedControlClearance);
+        if ('ResizeObserver' in window) resizeObserver = new ResizeObserver(scheduleRefresh);
         ensureRegisteredElements();
 
         registrationObserver = new MutationObserver(scheduleRefresh);
