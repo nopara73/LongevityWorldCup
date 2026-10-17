@@ -218,6 +218,7 @@ public sealed class FlowStepActionsRowBrowserTests(
         });
         var page = await context.NewPageAsync();
         await NavigateDockReadyAsync(page, path);
+        await page.WaitForFunctionAsync("() => document.querySelector('.flow-action-stack--docked .back-button')");
         var result = await page.EvaluateAsync<string[]>("""
             () => {
                 const stack = document.querySelector('.flow-action-stack--docked');
