@@ -254,10 +254,9 @@
 }
 
 .lmx-life-strip {
-    display: grid;
-    /* Four across while the labels still fit (about 30.5rem), otherwise two by two instead of overlapping. */
-    grid-template-columns: repeat(auto-fit, minmax(max(7.25rem, min(50% - 0.45rem, (30.5rem - 100%) * 999)), 1fr));
-    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
     gap: 0.45rem;
     margin-top: 0.9rem;
     padding: 0.65rem;
@@ -266,13 +265,24 @@
     border: 1px solid var(--lmx-border);
 }
 
+.lmx-life-pair {
+    /* Wrap pairs, then their tiles, using the actual label and icon widths. */
+    display: flex;
+    flex: 1 1 max-content;
+    flex-wrap: wrap;
+    gap: inherit;
+    min-width: 0;
+}
+
 .lmx-life-strip strong {
     margin-right: 0.2rem;
     color: var(--lmx-ink);
 }
 
 .lmx-life-strip span {
+    flex: 1 1 max-content;
     min-width: 0;
+    max-width: 100%;
     min-height: 2rem;
     padding: 0 0.4rem;
     border-radius: 8px;
@@ -285,7 +295,13 @@
     font-size: 0.75rem;
     font-weight: 800;
     color: var(--lmx-ink);
-    white-space: nowrap;
+    white-space: normal;
+    text-align: left;
+    text-wrap: balance;
+}
+
+.lmx-life-strip i {
+    flex-shrink: 0;
 }
 
 .lmx-life-strip em {
@@ -5250,9 +5266,8 @@ a.lmx-note-mention:focus-visible {
 }
 
 @media (max-width: 620px) {
-    /* Two by two while half the strip fits the longest label, one per row when enlarged text would make them overlap. */
-    .lmx-life-strip {
-        grid-template-columns: repeat(auto-fit, minmax(max(50% - 0.25rem, 5.6rem), 1fr));
+    .lmx-life-pair {
+        flex-basis: 100%;
     }
 }
 
@@ -5331,9 +5346,6 @@ a.lmx-note-mention:focus-visible {
     }
 
     .lmx-life-strip {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(max(50% - 0.2rem, 5.6rem), 1fr));
-        align-items: stretch;
         gap: 0.4rem;
         padding: 0.55rem;
     }
@@ -5343,9 +5355,6 @@ a.lmx-note-mention:focus-visible {
         padding-inline: min(0.55rem, 1.5vw);
         gap: 0.28rem;
         font-size: clamp(0.75rem, 3.2vw, 0.82rem);
-        white-space: normal;
-        text-align: left;
-        text-wrap: balance;
     }
 
     .lmx-question-preview {
@@ -5395,7 +5404,6 @@ a.lmx-note-mention:focus-visible {
     }
 
     .lmx-life-strip {
-        grid-template-columns: repeat(auto-fit, minmax(max(50% - 0.125rem, 5.6rem), 1fr));
         gap: 0.25rem;
         padding: 0.35rem;
     }
