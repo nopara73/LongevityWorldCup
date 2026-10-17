@@ -731,7 +731,15 @@ public sealed class BiomarkerHistoryBrowserTests(
         await Expect(albumin).ToHaveAttributeAsync("aria-expanded", "false");
     }
 
-    private sealed record ResultTextMetrics(string Key, string Content, double NameSize, double UnitSize, double ValueSize, double Height);
+    private sealed class ResultTextMetrics
+    {
+        public string Key { get; set; } = "";
+        public string Content { get; set; } = "";
+        public double NameSize { get; set; }
+        public double UnitSize { get; set; }
+        public double ValueSize { get; set; }
+        public double Height { get; set; }
+    }
 
     private static Task<ResultTextMetrics[]> ResultTextMetricsAsync(IPage page) =>
         page.Locator("#athlete-biomarkers .result-summary").EvaluateAllAsync<ResultTextMetrics[]>("""
