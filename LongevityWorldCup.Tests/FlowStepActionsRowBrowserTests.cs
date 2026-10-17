@@ -100,6 +100,7 @@ public sealed class FlowStepActionsRowBrowserTests(
         await Assertions.Expect(stack).Not.ToHaveClassAsync(new System.Text.RegularExpressions.Regex("--docked"));
         var back = stack.Locator(".back-button");
         await back.FocusAsync();
+        await Assertions.Expect(back).ToBeFocusedAsync();
 
         foreach (var height in new[] { 460, 1000 })
         {
@@ -201,6 +202,7 @@ public sealed class FlowStepActionsRowBrowserTests(
     {
         await NavigateAndSettleAsync(page, path);
         await page.WaitForFunctionAsync("() => window.LwcFlowActionDock && document.documentElement.classList.contains('flow-action-dock-ready')");
+        await page.Locator("[data-flow-dock]:visible").First.WaitForAsync();
         await page.EvaluateAsync("() => window.LwcFlowActionDock.refreshNow()");
     }
 
