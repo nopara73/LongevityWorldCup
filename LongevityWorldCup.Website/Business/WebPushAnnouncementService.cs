@@ -72,7 +72,7 @@ public sealed class WebPushAnnouncementService(EventDataService events, WebPushS
         {
             id = announcement.Id, title, body,
             url = artwork is not null && Uri.TryCreate(CustomEventMarkup.GetSingleHyperlink(announcement.Text), UriKind.Absolute, out var linkedPage)
-                && linkedPage.Host is "longevityworldcup.com" or "www.longevityworldcup.com" ? linkedPage.AbsolutePath
+                && linkedPage.Host is "longevityworldcup.com" or "www.longevityworldcup.com" ? linkedPage.PathAndQuery
                 : announcement.VisibleOnWebsite ? $"/events?event={announcement.Id}" : "/events",
             image = artwork is null ? null : assets.AppendVersion("/" + artwork.AssetPath),
             icon = assets.AppendVersion("/assets/favicon-192x192.png")

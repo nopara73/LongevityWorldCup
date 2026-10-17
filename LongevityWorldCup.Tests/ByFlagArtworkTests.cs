@@ -69,4 +69,14 @@ public sealed class ByFlagArtworkTests(TestWebApplicationFactory factory)
         Assert.Contains(Url, html);
         Assert.Equal(Url, item.ToJson()["Artwork"]!["LinkUrl"]!.GetValue<string>());
     }
+
+    [Fact]
+    public void BrowserPush_PreservesTheFlagGroupingInItsClickDestination()
+    {
+        var env = factory.Services.GetRequiredService<IWebHostEnvironment>();
+        using var payload = System.Text.Json.JsonDocument.Parse(WebPushAnnouncementService.BuildPayload(
+            new("flags", Title, true, "", null), new(env)));
+        Assert.Equal("/leaderboard?group=flags", payload.RootElement.GetProperty("url").GetString());
+        Assert.StartsWith("/assets/social/by-flag-20261017.png?v=", payload.RootElement.GetProperty("image").GetString());
+    }
 }
