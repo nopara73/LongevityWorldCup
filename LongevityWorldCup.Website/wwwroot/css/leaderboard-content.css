@@ -1461,10 +1461,11 @@
      letter-spacing: normal;
      overflow-wrap:anywhere;
      word-break:normal;
+     white-space:pre-wrap;
      text-wrap:balance;
  }
  #detailsModal #athleteBio:not(:empty):not([data-leading-quote])::before{
-     content: "\201C";
+     content: "\201C" / "";
      display: block;
      height: 1.6rem;
      color: var(--athlete-modal-accent, #7bdde3);
@@ -1473,7 +1474,8 @@
      line-height: 1;
      opacity: .8;
  }
- #detailsModal #athleteBio:empty{
+ #detailsModal #athleteBio:empty,
+ #detailsModal #athleteBio[hidden]{
      display: none;
  }
 

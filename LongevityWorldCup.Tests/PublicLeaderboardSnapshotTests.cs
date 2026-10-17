@@ -92,6 +92,21 @@ public sealed class PublicLeaderboardSnapshotTests
         Assert.Contains(System.Net.WebUtility.HtmlEncode(why), html);
     }
 
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData(" \t\r\n\u00a0\u0085\u2003")]
+    [InlineData("  Santé & 家族 — let's live!\nSecond line <script>alert('x')</script>  ")]
+    public void Profile_HidesOnlyAbsentWhyAndPreservesEncodedSource(string? why)
+    {
+        var source = Athlete("example", 1980);
+        if (why is not null) source["Why"] = why;
+        var snapshot = new PublicLeaderboardSnapshot(new JsonArray(source), Today);
+        var html = PublicProfileHtmlRenderer.Render("<p id=\"athleteBio\"></p>", snapshot, snapshot.Athletes[0], Today);
+        var attributes = string.IsNullOrWhiteSpace(why) ? " hidden" : "";
+        Assert.Equal($"<p id=\"athleteBio\"{attributes}>{System.Net.WebUtility.HtmlEncode(why ?? "")}</p>", html);
+    }
+
     private static JsonObject Athlete(string slug, int year, double crowdReduction = -10, int count = 100) => new()
     {
         ["AthleteSlug"] = slug,

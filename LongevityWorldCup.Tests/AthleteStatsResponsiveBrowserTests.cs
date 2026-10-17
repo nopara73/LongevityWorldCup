@@ -38,7 +38,7 @@ public sealed class AthleteStatsResponsiveBrowserTests(
         {
             await page.EvaluateAsync("() => window.openAthleteModalBySlug('michael-lustgarten')");
             await page.WaitForFunctionAsync("() => document.querySelector('#detailsModal .modal-content').dataset.athleteSlug === 'michael-lustgarten' && !document.querySelector('#detailsModal .modal-content').classList.contains('is-loading')");
-            Assert.Equal("\"“\"", await page.Locator("#athleteBio").EvaluateAsync<string>("bio => getComputedStyle(bio, '::before').content"));
+            Assert.Equal("\"“\" / \"\"", await page.Locator("#athleteBio").EvaluateAsync<string>("bio => getComputedStyle(bio, '::before').content"));
         }
     }
 
@@ -198,7 +198,7 @@ public sealed class AthleteStatsResponsiveBrowserTests(
         var scenario = $"{width}x{height}";
         Assert.True(quote[0] == "0px" && quote[1] == "rgba(0, 0, 0, 0)" && quote[2] == "none",
             $"{scenario}: the why should not be a bordered box (border {quote[0]}, background {quote[1]}, shadow {quote[2]}).");
-        Assert.True(quote[3] == "\"“\"", $"{scenario}: the why should open with a quotation mark, not {quote[3]}.");
+        Assert.True(quote[3] == "\"“\" / \"\"", $"{scenario}: the why should open with a decorative quotation mark, not {quote[3]}.");
         Assert.Equal("center", quote[4]);
         Assert.True(Math.Abs(int.Parse(quote[5])) <= 2 && quote[6] == "true", $"{scenario}: the quote should sit centred under the name (offset {quote[5]}, inside {quote[6]}).");
 

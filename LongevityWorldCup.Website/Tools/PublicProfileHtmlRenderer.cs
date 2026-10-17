@@ -26,6 +26,8 @@ public static class PublicProfileHtmlRenderer
         var why = athlete.Source["Why"]?.GetValue<string>() ?? "";
         html = SetContent(html, "athleteBio", Encode(why));
         var trimmedWhy = why.TrimStart();
+        if (trimmedWhy.Length == 0)
+            html = html.Replace("id=\"athleteBio\"", "id=\"athleteBio\" hidden", StringComparison.Ordinal);
         if (trimmedWhy.Length > 0 && "\"'“‘„«‹「『".Contains(trimmedWhy[0]))
             html = html.Replace("id=\"athleteBio\"", "id=\"athleteBio\" data-leading-quote", StringComparison.Ordinal);
         html = html.Replace("id=\"shareAthleteProfile\" type=\"button\"", "id=\"shareAthleteProfile\" type=\"button\" disabled", StringComparison.Ordinal);

@@ -2975,6 +2975,7 @@ function resetModalForLoading(athleteSlug) {
     const athleteBio = document.getElementById('athleteBio');
     if (athleteBio) {
         athleteBio.textContent = '';
+        athleteBio.hidden = true;
         athleteBio.removeAttribute('data-leading-quote');
     }
     const personalLinkElement = document.getElementById('personalLink');
@@ -5894,7 +5895,10 @@ function populateModal(fullAthleteData, athleteData, rankSummary) {
     const athleteBio = document.getElementById('athleteBio');
     const why = String(fullAthleteData.Why ?? '');
     athleteBio.textContent = why;
-    athleteBio.toggleAttribute('data-leading-quote', /^["'“‘„«‹「『]/u.test(why.trimStart()));
+    // Match .NET TrimStart without changing any athlete-authored characters.
+    const whyStart = why.replace(/^\p{White_Space}+/u, '');
+    athleteBio.hidden = whyStart.length === 0;
+    athleteBio.toggleAttribute('data-leading-quote', /^["'“‘„«‹「『]/u.test(whyStart));
 
     document.getElementById('athleteRank').innerHTML = renderBestRankLink(rankSummary && rankSummary.bestCandidate);
     document.getElementById('athleteDivision').innerHTML = `<a href="/league/${window.slugifyName(athleteData.division, true)}" class="league-link">${escapeHtml(athleteData.division)}</a>${getModalTitleRankMarkup(athleteData.ranks[athleteData.division])}`;
