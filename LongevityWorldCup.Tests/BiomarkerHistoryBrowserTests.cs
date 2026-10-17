@@ -792,6 +792,37 @@ public sealed class BiomarkerHistoryBrowserTests(
         Assert.True(layout[7] <= layout[8], $"{width}px: the page scrolls sideways ({layout[7]} > {layout[8]}).");
     }
 
+    [Theory]
+    [InlineData(700, 400, false)]
+    [InlineData(760, 480, true)]
+    [InlineData(844, 390, false)]
+    public async Task ProfileRadar_ShortLandscapeKeepsTheChartWithinOneScreen(int width, int height, bool dark)
+    {
+        await using var context = await NewContextAsync(width, dark, touch: true);
+        var athlete = await HistoryAthleteAsync("Benjamin Garden", 44, partial: false);
+        var peer = await HistoryAthleteAsync("Valerie Orsoni", 44, partial: false);
+        await context.AddInitScriptAsync($"window.getSharedAthletes = async () => ({new JsonArray(athlete, peer).ToJsonString()});");
+        var page = await context.NewPageAsync();
+        await page.SetViewportSizeAsync(width, height);
+        await page.GotoAsync("/athlete/benjamin-garden", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.WaitForFunctionAsync("() => window.Chart?.getChart(document.getElementById('ageRadarChart'))?.scales?.r?.drawingArea > 0");
+        var layout = await page.EvaluateAsync<double[]>(
+            """
+            () => {
+                const wrapper = document.getElementById('ageRadarWrapper').getBoundingClientRect();
+                const card = document.getElementById('ageVisualization').getBoundingClientRect();
+                const chart = Chart.getChart(document.getElementById('ageRadarChart'));
+                return [wrapper.height, wrapper.left, wrapper.right, card.left, card.right,
+                    chart.scales.r.drawingArea, document.documentElement.scrollWidth, innerWidth, innerHeight];
+            }
+            """);
+        Assert.True(layout[0] <= Math.Min(280, layout[8] * 0.7) + 1,
+            $"{width}x{height}: the radar is {layout[0]}px tall and takes over the short dialog.");
+        Assert.True(layout[1] >= layout[3] && layout[2] <= layout[4], "The radar must remain inside its card.");
+        Assert.True(layout[5] >= 50, "The bounded chart must still render a readable radar.");
+        Assert.True(layout[6] <= layout[7], "The profile must not scroll sideways.");
+    }
+
     private async Task<IBrowserContext> NewContextAsync(int width, bool dark, string timezone = "UTC", bool touch = false)
     {
         var context = await Browser.NewContextAsync(new()
