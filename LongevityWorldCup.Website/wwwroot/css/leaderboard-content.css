@@ -946,7 +946,8 @@
      --podium-gold-surface:#fff9db;
      --podium-silver-surface:#e9eef2;
      --podium-bronze-surface:#f3e8da;
-     display:flex; justify-content:center; align-items:stretch; gap:0;
+     display:flex; flex-wrap:wrap; justify-content:center; align-items:stretch; gap:0;
+     container:podium / inline-size;
      margin:0 0 var(--lwc-space-6); padding:0;
  }
  @media (prefers-color-scheme:dark){
@@ -1003,6 +1004,24 @@
  .podium-score{ margin-bottom:var(--lwc-space-4); color:var(--lwc-muted); font-size:var(--lwc-type-sm); }
  .podium-score .age-reduction{ display:block; color:var(--lwc-accent); font-size:1.5rem; line-height:1.2; text-align:center; font-variant-numeric:tabular-nums; }
  .podium-item.first .podium-score .age-reduction{ font-size:1.9rem; }
+
+ /* Enlarged text can also exhaust a narrow desktop's three columns. Keep the
+    same cards and font sizes, giving each placing a full row when needed. */
+ @media (min-width: 933px), (min-width: 769px) and (min-height: 481px){
+     @container podium (max-width: 32em){
+         .podium-item{
+             width:100%; max-width:none; margin:0 0 var(--lwc-space-3); padding:var(--lwc-space-3) var(--lwc-space-3) 0; overflow:hidden;
+             border:1px solid var(--lwc-border); border-radius:var(--lwc-radius-lg); background:var(--lwc-surface); box-shadow:var(--lwc-shadow-sm);
+         }
+         .podium-item.first{ order:1; }
+         .podium-item.second{ order:2; margin-top:0; }
+         .podium-item.third{ order:3; margin-top:0; }
+         .podium-item .podium-rank{ top:calc(var(--lwc-space-3) + var(--podium-portrait-size) - 18px); }
+         .podium-item:is(.first, .second, .third) > .podium-item-lower{
+             min-height:0; margin:auto calc(-1 * var(--lwc-space-3)) 0; padding:var(--lwc-space-3); border-radius:0;
+         }
+     }
+ }
 
  /* =========================
     8) Table row bits
@@ -2696,6 +2715,30 @@
      .podium-item.first > .podium-item-lower{ grid-area:prize; margin:var(--lwc-space-4) calc(-1 * var(--lwc-space-4)) 0; flex-direction:row; flex-wrap:wrap; justify-content:center; align-items:baseline; gap:var(--lwc-space-2); }
      .podium-item.first .btc-amount{ margin-top:0; }
      .podium-skeleton-item.first .age-reduction{ margin-inline:0; }
+
+     /* Enlarged text: each card gets the full width and the champion stacks like
+        the other two, so names wrap between words instead of letter by letter. */
+     @container podium (max-width: 16em) {
+         .podium-item,
+         .podium-item.second,
+         .podium-item.third{ width:100%; }
+         .podium-item.first{
+             max-width:none;
+             grid-template-columns:minmax(0, 1fr); grid-template-areas:"portrait" "name" "score" "links" "prize";
+             justify-items:center; padding:var(--lwc-space-3) var(--lwc-space-3) 0; text-align:center;
+         }
+         .podium-item.first > .athlete-profile-link,
+         .podium-item.first > .podium-skeleton-portrait{ align-self:center; }
+         .podium-item.first .podium-portrait,
+         .podium-item.first .rank-change,
+         .podium-item.first .podium-skeleton-portrait{ margin:0 auto 1.2rem; }
+         .podium-item.first .podium-rank{ top:calc(var(--lwc-space-3) + var(--podium-portrait-size) - 16px); left:50%; }
+         .podium-item.first > .name-row{ justify-content:center; }
+         .podium-item.first > :is(.podium-link-row, .podium-score){ justify-self:center; justify-content:center; }
+         .podium-item.first .podium-score .age-reduction{ text-align:center; }
+         .podium-item.first > .podium-item-lower{ justify-self:stretch; margin-inline:calc(-1 * var(--lwc-space-3)); }
+         .podium .name-row .athlete-name{ overflow-wrap:break-word; text-align:center; }
+     }
 
      .leaderboard table{ width:100%; table-layout:auto; }
      .leaderboard table th:last-child,
