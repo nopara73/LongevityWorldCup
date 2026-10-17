@@ -22,7 +22,7 @@ public sealed class FlowActionDockResultBrowserTests(
         {
             BaseURL = app.BaseAddress.ToString(),
             Locale = "en-US",
-            ViewportSize = new ViewportSize { Width = 1366, Height = 650 }
+            ViewportSize = new ViewportSize { Width = 1366, Height = 560 }
         });
         await BrowserTestApp.RouteExternalResourcesAsync(context);
         var page = await context.NewPageAsync();
@@ -35,6 +35,9 @@ public sealed class FlowActionDockResultBrowserTests(
         Assert.Equal(2, layout.Count);
         Assert.True(layout.MaxGap <= 24,
             $"{path}: docked bioage commands are split apart by {layout.MaxGap}px instead of staying grouped.");
+        await page.SetViewportSizeAsync(1366, 900);
+        await page.WaitForFunctionAsync("() => { window.LwcFlowActionDock.refreshNow(); return !document.getElementById('lwcStepOneActions').classList.contains('flow-action-stack--docked'); }");
+        await ExpectActionStackInViewportAsync(page, "#lwcStepOneActions");
         Assert.True(errors.Count == 0, $"{path}: {string.Join(" | ", errors)}");
     }
 
@@ -137,7 +140,7 @@ public sealed class FlowActionDockResultBrowserTests(
             Locale = "en-US",
             // Keep the desktop width while constraining height enough to exercise the dock.
             // At 768px the compact form and both actions now fit fully inline by design.
-            ViewportSize = new ViewportSize { Width = 1366, Height = 650 }
+            ViewportSize = new ViewportSize { Width = 1366, Height = 560 }
         });
         await BrowserTestApp.RouteExternalResourcesAsync(context);
 
@@ -173,6 +176,9 @@ public sealed class FlowActionDockResultBrowserTests(
             $"Back should be visibly secondary. Back width {layout.BackWidth}, primary width {layout.PrimaryWidth}.");
         Assert.True(Math.Abs(layout.PrimaryCenter - layout.ViewportCenter) <= 16,
             $"Primary action should stay centered. Primary center {layout.PrimaryCenter}, viewport center {layout.ViewportCenter}.");
+        await page.SetViewportSizeAsync(1366, 900);
+        await page.WaitForFunctionAsync("() => { window.LwcFlowActionDock.refreshNow(); return !document.getElementById('lwcStepOneActions').classList.contains('flow-action-stack--docked'); }");
+        await ExpectActionStackInViewportAsync(page, "#lwcStepOneActions");
         Assert.Empty(errors);
     }
 
@@ -274,7 +280,7 @@ public sealed class FlowActionDockResultBrowserTests(
             BaseURL = app.BaseAddress.ToString(),
             Locale = "en-US",
             // The compact first step fits inline at 720px; constrain height to exercise the portal.
-            ViewportSize = new ViewportSize { Width = 1280, Height = 650 }
+            ViewportSize = new ViewportSize { Width = 1280, Height = 560 }
         });
         await BrowserTestApp.RouteExternalResourcesAsync(context);
         var page = await context.NewPageAsync();
@@ -302,6 +308,10 @@ public sealed class FlowActionDockResultBrowserTests(
             $"{formSelector}|{actionSelector}");
         Assert.NotEqual("none", state.FormTransform);
         Assert.True(state.ActionsParentIsBody, path);
+        await page.SetViewportSizeAsync(1280, 1000);
+        await page.WaitForFunctionAsync("selector => { window.LwcFlowActionDock.refreshNow(); return !document.querySelector(selector).classList.contains('flow-action-stack--docked'); }", actionSelector);
+        Assert.True(await page.Locator(actionSelector).EvaluateAsync<bool>("s => !!s.closest('form')"));
+        Assert.NotEqual("none", await page.Locator(formSelector).EvaluateAsync<string>("f => getComputedStyle(f).transform"));
         Assert.True(errors.Count == 0, $"{path}: {string.Join(" | ", errors)}");
     }
 

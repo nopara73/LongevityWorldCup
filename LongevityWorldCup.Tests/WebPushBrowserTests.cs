@@ -43,7 +43,7 @@ public sealed class WebPushBrowserTests
             PushManager.prototype.subscribe = async () => { localStorage.setItem('testPushSubscribed', '1'); return documentSubscription; };
             """.Replace("SUBSCRIPTION", subscription));
         var page = await context.NewPageAsync();
-        await page.GotoAsync(app.BaseAddress + "events");
+        await page.GotoAsync(app.BaseAddress + "events", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
         var bell = page.Locator("#webPushToggle");
         await Assertions.Expect(bell).ToBeVisibleAsync();
         Assert.Equal("default", await page.EvaluateAsync<string>("Notification.permission"));
@@ -102,7 +102,7 @@ public sealed class WebPushBrowserTests
             """.Replace("SUBSCRIPTION", subscription).Replace("DELAY", delay.ToString()));
         var page = await context.NewPageAsync();
         await page.Clock.InstallAsync();
-        await page.GotoAsync(app.BaseAddress + "events");
+        await page.GotoAsync(app.BaseAddress + "events", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
         var bell = page.Locator("#webPushToggle");
         await Assertions.Expect(bell).ToBeVisibleAsync();
         await bell.ClickAsync();
@@ -134,7 +134,7 @@ public sealed class WebPushBrowserTests
         await using var context = await browser.NewContextAsync(new() { ViewportSize = new() { Width = 360, Height = 850 } });
         await BrowserTestApp.RouteExternalResourcesAsync(context);
         var page = await context.NewPageAsync();
-        await page.GotoAsync(app.BaseAddress + "internal/custom-event-designer.html");
+        await page.GotoAsync(app.BaseAddress + "internal/custom-event-designer.html", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
         var checkbox = page.Locator("#sendWebPush");
         await Assertions.Expect(checkbox).Not.ToBeCheckedAsync();
         await page.Locator("#titleInput").FillAsync("[bold](A sport for time) 🏆");
@@ -155,7 +155,7 @@ public sealed class WebPushBrowserTests
         using var playwright = await Playwright.CreateAsync();
         await using var browser = await playwright.Chromium.LaunchAsync(new() { Headless = true });
         var page = await browser.NewPageAsync(new() { BypassCSP = true });
-        await page.GotoAsync(app.BaseAddress + "events");
+        await page.GotoAsync(app.BaseAddress + "events", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
         using var client = app.CreateClient();
         var source = await client.GetStringAsync("/js/web-push-worker.js");
         var result = await page.EvaluateAsync<JsonElement>("""

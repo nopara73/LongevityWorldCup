@@ -240,7 +240,11 @@ public sealed class AestheticResponsiveMediaBrowserTests(
             ViewportSize = new() { Width = 1280, Height = 800 }
         });
         var page = await context.NewPageAsync();
-        await AssertResponsiveContainerBoundariesAsync(page, containerInventory);
+        // Ordering probes finish at a phone viewport. Run them first so the
+        // next component must restore its own baseline on every platform.
+        var orderingFirst = containerInventory.OrderBy(condition =>
+            condition.Source == "css/leaderboard-ordering.css" ? 0 : 1).ToArray();
+        await AssertResponsiveContainerBoundariesAsync(page, orderingFirst);
     }
 
     private sealed class ResponsiveViewportProbeResult

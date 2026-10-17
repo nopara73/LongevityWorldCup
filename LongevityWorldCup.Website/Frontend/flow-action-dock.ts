@@ -37,6 +37,7 @@ interface FlowActionDockApi {
     const singleBackActionClass = 'flow-action-stack--single-back-action';
     const backPrimaryActionClass = 'flow-action-stack--back-primary-action';
     const mobileMedia = window.matchMedia('(max-width: 760px)');
+    const desktopRowMedia = window.matchMedia('(min-width: 769px)');
     const keyboardMedia = window.matchMedia('(max-width: 760px), (pointer: coarse)');
     const reducedMotionMedia = window.matchMedia('(prefers-reduced-motion: reduce)');
     const states = new Map<HTMLElement, DockState>();
@@ -185,10 +186,6 @@ interface FlowActionDockApi {
         element.classList.toggle(backPrimaryActionClass, visibleActions.length === 2 && !!backAction && !!primaryAction);
     }
 
-    function clearActionLayoutState(element: HTMLElement): void {
-        element.classList.remove(singleBackActionClass, backPrimaryActionClass);
-    }
-
     function conditionMatches(element: HTMLElement): boolean {
         const requiredSelector = element.getAttribute('data-flow-dock-when');
         if (requiredSelector && !document.querySelector(requiredSelector)) return false;
@@ -267,7 +264,7 @@ interface FlowActionDockApi {
     }
 
     function beginDockEnter(element: HTMLElement, state: DockState): void {
-        if (!transitionsReady || reducedMotionMedia.matches) return;
+        if (!transitionsReady || reducedMotionMedia.matches || element.contains(document.activeElement)) return;
         element.classList.add(dockEnteringClass);
         state.enterFrame = window.requestAnimationFrame(() => {
             state.enterFrame = window.requestAnimationFrame(() => {
@@ -285,20 +282,63 @@ interface FlowActionDockApi {
         element.classList.remove(dockEnteringClass);
     }
 
-    function moveActionStack(element: HTMLElement, parent: Node, before: ChildNode | null): void {
+    function moveKeepingFocus(element: HTMLElement, move: () => void): void {
         const focused = document.activeElement;
-        const restoreFocus = focused instanceof HTMLElement && element.contains(focused);
-        // Moving a connected subtree with insertBefore/appendChild blurs its
-        // active button. Preserve state where supported, and restore focus in
-        // older engines without changing the reader's scroll position.
+        const hadFocus = focused instanceof HTMLElement && element.contains(focused);
+        let focusAssigned = false;
+        const trackFocus = (event: FocusEvent): void => {
+            if (event.target !== focused) focusAssigned = true;
+        };
+        if (hadFocus) document.addEventListener('focusin', trackFocus, true);
+        try {
+            move();
+        } finally {
+            document.removeEventListener('focusin', trackFocus, true);
+        }
+        // insertBefore blurs a moved subtree in older engines. Only recover
+        // focus lost by the move, after its final layout and loading state agree.
+        // A page handler's new focus always takes precedence.
+        if (hadFocus && !focusAssigned && document.activeElement !== focused
+            && (!document.activeElement || document.activeElement === document.body)
+            && element.contains(focused) && focused.isConnected && focused.tabIndex >= 0
+            && !focused.matches(':disabled, [aria-disabled="true"]')
+            && !focused.closest('[hidden], [inert], [aria-hidden="true"]')
+            && isFocusTargetVisible(focused)) {
+            focused.focus({ preventScroll: true });
+        }
+    }
+
+    function isFocusTargetVisible(element: HTMLElement): boolean {
+        if (!hasLayoutBox(element)) return false;
+        // The DOM-move fallback must also work in engines without checkVisibility.
+        for (let ancestor: HTMLElement | null = element; ancestor; ancestor = ancestor.parentElement) {
+            const style = window.getComputedStyle(ancestor);
+            if (style.display === 'none' || style.visibility === 'hidden' || style.visibility === 'collapse'
+                || Number(style.opacity) === 0 || style.contentVisibility === 'hidden') return false;
+        }
+        return true;
+    }
+
+    function moveElement(element: HTMLElement, parent: Node, before: ChildNode | null): void {
         if ('moveBefore' in parent && typeof parent.moveBefore === 'function'
             && element.isConnected && parent.isConnected) {
             parent.moveBefore(element, before);
         } else {
             parent.insertBefore(element, before);
         }
-        if (restoreFocus && document.activeElement !== focused) {
-            focused.focus({ preventScroll: true });
+    }
+
+    function syncActionOrder(element: HTMLElement, docked: boolean): void {
+        const actions = Array.from(element.children);
+        if (actions.length !== 2 || !actions.every(action => action.matches('.flow-action'))) return;
+        const back = actions.find(action => isBackAction(action as HTMLElement)) as HTMLElement | undefined;
+        const primary = actions.find(action => action !== back) as HTMLElement | undefined;
+        if (!back || !primary) return;
+        const backFirst = docked || (desktopRowMedia.matches
+            && !element.classList.contains('flow-action-stack--hide-disabled-primary'));
+        const first = backFirst ? back : primary;
+        if (element.firstElementChild !== first) {
+            moveKeepingFocus(element, () => moveElement(first, element, element.firstChild));
         }
     }
 
@@ -309,21 +349,28 @@ interface FlowActionDockApi {
         setPlaceholderHeight(state, state.inlineHeight);
 
         ensureSubmitButtonFormOwnership(element);
-        moveActionStack(element, document.body, null);
-        element.classList.add(dockClass);
-        state.docked = true;
-        updateActionLayoutState(element);
+        moveKeepingFocus(element, () => {
+            moveElement(element, document.body, null);
+            element.classList.add(dockClass);
+            state.docked = true;
+            syncActionOrder(element, true);
+            updateActionLayoutState(element);
+        });
         beginDockEnter(element, state);
     }
 
     function undockElement(element: HTMLElement, state: DockState): void {
         cancelDockEnter(element, state);
         element.classList.remove(dockClass);
-        clearActionLayoutState(element);
+        updateActionLayoutState(element);
         state.docked = false;
 
-        if (state.placeholder.parentNode) {
-            moveActionStack(element, state.placeholder.parentNode, state.placeholder.nextSibling);
+        const placeholderParent = state.placeholder.parentNode;
+        if (placeholderParent) {
+            moveKeepingFocus(element, () => {
+                moveElement(element, placeholderParent, state.placeholder.nextSibling);
+                syncActionOrder(element, false);
+            });
         }
         state.placeholder.hidden = true;
         state.placeholder.style.height = '';
@@ -393,6 +440,10 @@ interface FlowActionDockApi {
         let hasDockedElement = false;
 
         states.forEach((state, element) => {
+            // Inline controls need the same visible-action classification as
+            // the dock when a primary action is hidden, disabled or restored.
+            updateActionLayoutState(element);
+            syncActionOrder(element, state.docked);
             const docked = shouldDock(element, state);
             if (docked && !state.docked) dockElement(element, state);
             if (!docked && state.docked) undockElement(element, state);

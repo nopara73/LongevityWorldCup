@@ -31,7 +31,7 @@ public sealed class EventFeedBrowserTests(PlaywrightBrowserFixture browserFixtur
             """);
         var page = await context.NewPageAsync();
         await page.SetViewportSizeAsync(width, 850);
-        await page.GotoAsync("/events", new() { WaitUntil = WaitUntilState.Load });
+        await page.GotoAsync("/events", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
         await page.EvaluateAsync("() => document.fonts.ready");
 
         // Observe the real callback rather than sampling exactly at its timer boundary.
@@ -62,7 +62,7 @@ public sealed class EventFeedBrowserTests(PlaywrightBrowserFixture browserFixtur
         }));
         var page = await context.NewPageAsync();
         await page.SetViewportSizeAsync(width, height);
-        await page.GotoAsync("/events", new() { WaitUntil = WaitUntilState.Load });
+        await page.GotoAsync("/events", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
         await page.Locator("#webPushToggle").WaitForAsync(new() { State = WaitForSelectorState.Visible });
         await page.EvaluateAsync("percent => document.documentElement.style.fontSize = `${percent}%`", textPercent);
         await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
@@ -122,7 +122,7 @@ public sealed class EventFeedBrowserTests(PlaywrightBrowserFixture browserFixtur
         });
         await BrowserTestApp.RouteExternalResourcesAsync(context);
         var page = await context.NewPageAsync();
-        await page.GotoAsync("/events", new PageGotoOptions { WaitUntil = WaitUntilState.Load });
+        await page.GotoAsync("/events", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
         var rss = page.GetByRole(AriaRole.Link, new PageGetByRoleOptions { Name = "Subscribe to Highlights via RSS" });
         await rss.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Visible });
         await page.Locator("#events-root[aria-busy='false']").WaitForAsync();
