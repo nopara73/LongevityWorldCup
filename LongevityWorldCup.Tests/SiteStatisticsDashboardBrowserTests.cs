@@ -39,6 +39,52 @@ public sealed class SiteStatisticsDashboardBrowserTests(
     }
 
     [Fact]
+    public async Task Dashboard_DefaultUrlStaysCleanAndOnlyChangedFiltersRoundTrip()
+    {
+        await using var context = await Browser.NewContextAsync(new() { BaseURL = App.BaseAddress.ToString() });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        var page = await context.NewPageAsync();
+        await RoutePagedDashboardAsync(page, []);
+        await page.GotoAsync("/internal/site-statistics.html");
+        await page.Locator("#trafficDailyChart").WaitForAsync();
+        Assert.Equal("/internal/site-statistics.html", new Uri(page.Url).PathAndQuery);
+
+        await page.Locator("#statsRange").SelectOptionAsync("30d");
+        await page.Locator("#statsDevice").SelectOptionAsync("mobile");
+        await page.Locator("#statsSource").SelectOptionAsync("search");
+        await Assertions.Expect(page.Locator("#statsExport")).ToBeEnabledAsync();
+        Assert.Equal("?range=30d&device=mobile&source=search", new Uri(page.Url).Query);
+
+        await page.ReloadAsync();
+        await page.Locator("#trafficDailyChart").WaitForAsync();
+        await Assertions.Expect(page.Locator("#statsRange")).ToHaveValueAsync("30d");
+        await Assertions.Expect(page.Locator("#statsDevice")).ToHaveValueAsync("mobile");
+        await Assertions.Expect(page.Locator("#statsSource")).ToHaveValueAsync("search");
+        Assert.Equal("?range=30d&device=mobile&source=search", new Uri(page.Url).Query);
+
+        await page.Locator("#statsReset").ClickAsync();
+        await Assertions.Expect(page.Locator("#statsExport")).ToBeEnabledAsync();
+        Assert.Equal("/internal/site-statistics.html", new Uri(page.Url).PathAndQuery);
+    }
+
+    [Theory]
+    [InlineData("?tab=Traffic+Overview&range=7d&flow=all&device=all&source=all&selectedFlow=pheno", "")]
+    [InlineData("?tab=Traffic+Overview&range=7d&flow=all&device=all&source=all&selectedFlow=pheno&note=keep#measurement", "?note=keep#measurement")]
+    [InlineData("?range=invalid&flow=invalid&device=invalid&source=invalid&selectedFlow=pheno,", "")]
+    public async Task Dashboard_DefaultLinksNormalizeWithoutLosingOtherUrlState(string query, string expected)
+    {
+        await using var context = await Browser.NewContextAsync(new() { BaseURL = App.BaseAddress.ToString() });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        var page = await context.NewPageAsync();
+        await RoutePagedDashboardAsync(page, []);
+        await page.GotoAsync("/internal/site-statistics.html" + query);
+        await page.Locator("#trafficDailyChart").WaitForAsync();
+        var url = new Uri(page.Url);
+        Assert.Equal(expected, url.Query + url.Fragment);
+        await Assertions.Expect(page.Locator("#statsRange")).ToHaveValueAsync("7d");
+    }
+
+    [Fact]
     public async Task Dashboard_OverviewUsesCompleteOutcomesAndKeepsZeroAndPartialDatesReadable()
     {
         await using var context = await Browser.NewContextAsync(new()

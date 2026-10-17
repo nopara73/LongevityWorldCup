@@ -515,7 +515,7 @@
         if (requestedTab && isLegacyTab(requestedTab)) state.tab = legacyTabs[requestedTab];
         else if (requestedTab && isDashboardTab(requestedTab)) state.tab = requestedTab;
         const selectedFlow = params.get("selectedFlow");
-        if (selectedFlow) state.selectedFlow = selectedFlow;
+        if (selectedFlow && isFunnelFlow(selectedFlow)) state.selectedFlow = selectedFlow;
         for (const [id, key] of [["statsRange", "range"], ["statsFlow", "flow"], ["statsDevice", "device"], ["statsSource", "source"]] as const) {
             const value = params.get(key);
             if (id === "statsSource" && value && /^ai:[a-z]+$/.test(value)) {
@@ -523,7 +523,7 @@
                 option.dataset.aiProvider = "true";
                 el(id).add(option);
             }
-            if (value) el(id).value = value;
+            if (value && Array.from(el(id).options).some(option => option.value === value)) el(id).value = value;
         }
         state.flow = el("statsFlow").value;
         state.selectedEventName = params.get("event");
@@ -531,16 +531,24 @@
     }
 
     function updateUrl(): void {
-        const params = new URLSearchParams();
-        params.set("tab", state.tab);
-        params.set("range", el("statsRange").value);
-        params.set("flow", el("statsFlow").value);
-        params.set("device", el("statsDevice").value);
-        params.set("source", el("statsSource").value);
-        params.set("selectedFlow", state.selectedFlow);
-        if (state.selectedEventName) params.set("event", state.selectedEventName);
-        if (state.selectedSession) params.set("session", state.selectedSession);
-        history.replaceState({}, "", `${window.location.pathname}?${params.toString()}`);
+        const url = new URL(window.location.href);
+        const values: [key: string, value: string, defaultValue: string][] = [
+            ["tab", state.tab, trafficOverviewTab],
+            ["range", el("statsRange").value, "7d"],
+            ["flow", el("statsFlow").value, "all"],
+            ["device", el("statsDevice").value, "all"],
+            ["source", el("statsSource").value, "all"],
+            ["selectedFlow", state.selectedFlow, "pheno"],
+            ["event", state.selectedEventName || "", ""],
+            ["session", state.selectedSession || "", ""]
+        ];
+        values.forEach(([key, value, defaultValue]) => {
+            if (value === defaultValue) url.searchParams.delete(key);
+            else url.searchParams.set(key, value);
+        });
+        const target = `${url.pathname}${url.search}${url.hash}`;
+        if (target !== `${window.location.pathname}${window.location.search}${window.location.hash}`)
+            history.replaceState(history.state, "", target);
     }
 
     async function loadDashboard(): Promise<void> {
