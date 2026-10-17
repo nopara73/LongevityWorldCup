@@ -22,7 +22,7 @@ public sealed class FlowActionDockResultBrowserTests(
         {
             BaseURL = app.BaseAddress.ToString(),
             Locale = "en-US",
-            ViewportSize = new ViewportSize { Width = 1366, Height = 650 }
+            ViewportSize = new ViewportSize { Width = 1366, Height = 560 }
         });
         await BrowserTestApp.RouteExternalResourcesAsync(context);
         var page = await context.NewPageAsync();
@@ -137,7 +137,7 @@ public sealed class FlowActionDockResultBrowserTests(
             Locale = "en-US",
             // Keep the desktop width while constraining height enough to exercise the dock.
             // At 768px the compact form and both actions now fit fully inline by design.
-            ViewportSize = new ViewportSize { Width = 1366, Height = 650 }
+            ViewportSize = new ViewportSize { Width = 1366, Height = 560 }
         });
         await BrowserTestApp.RouteExternalResourcesAsync(context);
 
@@ -274,7 +274,7 @@ public sealed class FlowActionDockResultBrowserTests(
             BaseURL = app.BaseAddress.ToString(),
             Locale = "en-US",
             // The compact first step fits inline at 720px; constrain height to exercise the portal.
-            ViewportSize = new ViewportSize { Width = 1280, Height = 650 }
+            ViewportSize = new ViewportSize { Width = 1280, Height = 560 }
         });
         await BrowserTestApp.RouteExternalResourcesAsync(context);
         var page = await context.NewPageAsync();

@@ -365,8 +365,8 @@ public sealed class FlowActionDockLayoutBrowserTests(
     }
 
     [Theory]
-    [InlineData("/pheno-age", "#lwcStepOneActions", 650)]
-    [InlineData("/apply?fake=1", ".convergence-actions", 768)]
+    [InlineData("/pheno-age", "#lwcStepOneActions", 560)]
+    [InlineData("/apply?fake=1", ".convergence-actions", 640)]
     public async Task DesktopDocks_UseCompactCommandBarHeight(
         string path,
         string actionSelector,
@@ -417,7 +417,7 @@ public sealed class FlowActionDockLayoutBrowserTests(
             "element => element.getBoundingClientRect().height");
         Assert.True(inlineHeight > 0, "The inline action stack had no measurable height.");
 
-        await page.SetViewportSizeAsync(1366, 650);
+        await page.SetViewportSizeAsync(1366, 560);
         await ExpectActionStackDockedInViewportAsync(page, "#lwcStepOneActions");
         var samples = await page.EvaluateAsync<double[][]>(
             """
@@ -584,7 +584,11 @@ public sealed class FlowActionDockLayoutBrowserTests(
         var scenario = $"{viewportWidth}x{viewportHeight}";
         await page.GotoAsync("/apply?fake=1", new PageGotoOptions { WaitUntil = WaitUntilState.Commit });
         await page.WaitForFunctionAsync("() => document.body?.dataset.convergenceStage === '1'");
-        await ExpectActionStackDockedInViewportAsync(page, ".convergence-actions");
+        // Phones dock the actions; a 720px desktop now fits Back and Next inline in one row.
+        if (viewportWidth < 769)
+            await ExpectActionStackDockedInViewportAsync(page, ".convergence-actions");
+        else
+            await ExpectActionStackInViewportAsync(page, ".convergence-actions");
 
         var layout = await page.EvaluateAsync<ApplyFirstStageDetailsLayout>(
             """

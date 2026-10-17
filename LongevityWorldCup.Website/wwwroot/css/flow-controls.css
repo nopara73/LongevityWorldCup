@@ -419,3 +419,30 @@ body.flow-input-keyboard-open::after {
         transition: none;
     }
 }
+
+/* Desktop steps read like the phone dock: one row with a compact Back on the
+   left and the step's action filling the rest, instead of two stacked
+   full-width buttons with Back's arrow stranded at its far edge. Only stacks
+   holding exactly an action followed by Back take this shape. */
+@media (min-width: 769px) {
+    .flow-action-stack:not(.flow-action-stack--docked):not(.flow-action-stack--hide-disabled-primary):has(> .flow-action:not(.back-button):first-child + .back-button.flow-action--icon-left:last-child) {
+        flex-direction: row;
+        align-items: stretch;
+        gap: 0.75rem;
+    }
+
+    .flow-action-stack:not(.flow-action-stack--docked):not(.flow-action-stack--hide-disabled-primary):has(> .flow-action:not(.back-button):first-child + .back-button.flow-action--icon-left:last-child) > .flow-action:not(.back-button) {
+        flex: 1 1 auto;
+        width: auto;
+    }
+
+    .flow-action-stack:not(.flow-action-stack--docked):not(.flow-action-stack--hide-disabled-primary):has(> .flow-action:not(.back-button):first-child + .back-button.flow-action--icon-left:last-child) > .back-button.flow-action--icon-left {
+        flex: 0 0 auto;
+        order: -1;
+        width: auto;
+        min-width: 8.5rem;
+        max-width: none;
+        align-self: stretch;
+        padding-inline: 2.85rem 1.35rem;
+    }
+}

@@ -284,6 +284,20 @@ interface FlowActionDockApi {
         element.classList.remove(dockEnteringClass);
     }
 
+    // Moving a stack between the page and the dock must not drop the reader's focus.
+    function moveKeepingFocus(element: HTMLElement, move: () => void): void {
+        const focused = document.activeElement;
+        const hadFocus = focused instanceof HTMLElement && element.contains(focused);
+        move();
+        if (hadFocus && document.activeElement !== focused && element.contains(focused)) {
+            try {
+                focused.focus({ preventScroll: true });
+            } catch (_) {
+                focused.focus();
+            }
+        }
+    }
+
     function dockElement(element: HTMLElement, state: DockState): void {
         const rect = element.getBoundingClientRect();
         state.inlineHeight = rect.height || element.offsetHeight || state.inlineHeight;
@@ -291,7 +305,7 @@ interface FlowActionDockApi {
         setPlaceholderHeight(state, state.inlineHeight);
 
         ensureSubmitButtonFormOwnership(element);
-        document.body.appendChild(element);
+        moveKeepingFocus(element, () => document.body.appendChild(element));
         element.classList.add(dockClass);
         state.docked = true;
         updateActionLayoutState(element);
@@ -304,8 +318,9 @@ interface FlowActionDockApi {
         clearActionLayoutState(element);
         state.docked = false;
 
-        if (state.placeholder.parentNode) {
-            state.placeholder.parentNode.insertBefore(element, state.placeholder.nextSibling);
+        const placeholderParent = state.placeholder.parentNode;
+        if (placeholderParent) {
+            moveKeepingFocus(element, () => placeholderParent.insertBefore(element, state.placeholder.nextSibling));
         }
         state.placeholder.hidden = true;
         state.placeholder.style.height = '';
