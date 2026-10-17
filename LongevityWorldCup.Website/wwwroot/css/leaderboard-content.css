@@ -2697,6 +2697,30 @@
      .podium-item.first .btc-amount{ margin-top:0; }
      .podium-skeleton-item.first .age-reduction{ margin-inline:0; }
 
+     /* Enlarged text: each card gets the full width and the champion stacks like
+        the other two, so names wrap between words instead of letter by letter. */
+     .podium{ container:podium / inline-size; }
+     @container podium (max-width: 15em) {
+         .podium-item,
+         .podium-item.second,
+         .podium-item.third{ width:100%; }
+         .podium-item.first{
+             grid-template-columns:minmax(0, 1fr); grid-template-areas:"portrait" "name" "score" "links" "prize";
+             justify-items:center; padding:var(--lwc-space-3) var(--lwc-space-3) 0; text-align:center;
+         }
+         .podium-item.first > .athlete-profile-link,
+         .podium-item.first > .podium-skeleton-portrait{ align-self:center; }
+         .podium-item.first .podium-portrait,
+         .podium-item.first .rank-change,
+         .podium-item.first .podium-skeleton-portrait{ margin:0 auto 1.2rem; }
+         .podium-item.first .podium-rank{ top:calc(var(--lwc-space-3) + var(--podium-portrait-size) - 16px); left:50%; }
+         .podium-item.first > .name-row{ justify-content:center; }
+         .podium-item.first > :is(.podium-link-row, .podium-score){ justify-self:center; justify-content:center; }
+         .podium-item.first .podium-score .age-reduction{ text-align:center; }
+         .podium-item.first > .podium-item-lower{ justify-self:stretch; margin-inline:calc(-1 * var(--lwc-space-3)); }
+         .podium .name-row .athlete-name{ overflow-wrap:break-word; text-align:center; }
+     }
+
      .leaderboard table{ width:100%; table-layout:auto; }
      .leaderboard table th:last-child,
      .leaderboard table td:last-child{ padding-right:0.5rem; }
