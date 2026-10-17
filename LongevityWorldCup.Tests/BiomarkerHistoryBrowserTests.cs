@@ -393,6 +393,48 @@ public sealed class BiomarkerHistoryBrowserTests(
     }
 
     [Theory]
+    [InlineData(1440, false)]
+    [InlineData(390, true)]
+    [InlineData(320, false)]
+    public async Task RadarCard_OpensWithTheSameHeaderBandAsItsSiblingCards(int width, bool touch)
+    {
+        await using var context = await NewContextAsync(width, true, touch: touch);
+        var athlete = await HistoryAthleteAsync("Benjamin Garden", 44, partial: false);
+        var peer = await HistoryAthleteAsync("Valerie Orsoni", 44, partial: false);
+        await context.AddInitScriptAsync($"window.getSharedAthletes = async () => ({new JsonArray(athlete, peer).ToJsonString()});");
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/athlete/benjamin-garden", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.WaitForFunctionAsync("() => window.Chart?.getChart(document.getElementById('ageRadarChart')) && document.querySelector('#detailsModal .biomarkers-heading')");
+
+        var layout = await page.EvaluateAsync<double[]>(
+            """
+            () => {
+                const card = document.getElementById('ageVisualization').getBoundingClientRect();
+                const band = document.getElementById('ageClockSwitch');
+                const bandBox = band.getBoundingClientRect();
+                const sibling = document.querySelector('#detailsModal .biomarkers-heading');
+                const siblingStyle = getComputedStyle(sibling);
+                const bandStyle = getComputedStyle(band);
+                const tabs = [...band.querySelectorAll('[role="tab"]:not([hidden])')];
+                const tablist = getComputedStyle(band.querySelector('[role="tablist"]'));
+                const title = getComputedStyle(sibling.querySelector('h3'));
+                return [card.left, card.right, card.top, bandBox.left, bandBox.right, bandBox.top, bandBox.height,
+                    sibling.getBoundingClientRect().height,
+                    bandStyle.borderBottomWidth === siblingStyle.borderBottomWidth && bandStyle.backgroundColor === siblingStyle.backgroundColor ? 1 : 0,
+                    tablist.borderTopWidth === '0px' && tablist.backgroundColor === 'rgba(0, 0, 0, 0)' ? 1 : 0,
+                    tabs.length, tabs.every(tab => getComputedStyle(tab).textTransform === title.textTransform
+                        && getComputedStyle(tab).fontWeight === title.fontWeight) ? 1 : 0];
+            }
+            """);
+        Assert.True(Math.Abs(layout[3] - layout[0]) <= 2 && Math.Abs(layout[4] - layout[1]) <= 2 && Math.Abs(layout[5] - layout[2]) <= 2,
+            $"{width}px: the clock tabs should be the card's full-width header band, not a switch inset in it.");
+        Assert.True(Math.Abs(layout[6] - layout[7]) <= 2, $"{width}px: the radar band ({layout[6]:F0}px) should match the sibling cards' bands ({layout[7]:F0}px).");
+        Assert.True(layout[8] == 1, $"{width}px: the radar band should share the sibling bands' surface and hairline.");
+        Assert.True(layout[9] == 1, $"{width}px: the clock tabs should not sit in their own bordered box.");
+        Assert.True(layout[10] == 2 && layout[11] == 1, $"{width}px: both clock tabs should read as card titles.");
+    }
+
+    [Theory]
     [InlineData(1280, true, 100, "UTC")]
     [InlineData(390, false, 100, "America/Los_Angeles")]
     [InlineData(320, true, 200, "America/Los_Angeles")]
