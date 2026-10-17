@@ -12,6 +12,39 @@ public sealed class LeaderboardRouteBrowserTests(
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Theory]
+    [InlineData("/", "/", "ultimate")]
+    [InlineData("/leaderboard", "/leaderboard", "ultimate")]
+    [InlineData("/leaderboard?group=athletes&view=ultimate", "/leaderboard", "ultimate")]
+    [InlineData("/leaderboard?group=flags&view=ultimate", "/leaderboard?group=flags", "ultimate")]
+    [InlineData("/?view=ultimate&filters=&search=", "/", "ultimate")]
+    [InlineData("/leaderboard?view=ultimate&filters=&search=&utm_source=keep&utm_source=second#rank-37", "/leaderboard?utm_source=keep&utm_source=second#rank-37", "ultimate")]
+    [InlineData("/leaderboard?filters=amateur,professional&view=ultimate", "/leaderboard", "ultimate")]
+    [InlineData("/leaderboard?filters=amateur,professional,open&view=ultimate", "/leaderboard?filters=open", "ultimate")]
+    [InlineData("/league/pheno?view=pheno&filters=&search=&ref=keep#rank-37", "/league/pheno?ref=keep#rank-37", "pheno")]
+    [InlineData("/flag/hungary?view=ultimate&search=", "/flag/hungary", "ultimate")]
+    [InlineData("/league/pheno?view=ultimate", "/league/pheno?view=ultimate", "ultimate")]
+    [InlineData("/league/womens?filters=amateur,professional", "/league/womens?filters=amateur,professional", "ultimate")]
+    public async Task DefaultParameters_NormalizeWithoutChangingTheSelectedRanking(
+        string path, string expected, string view)
+    {
+        await using var context = await NewContextAsync(Browser, App);
+        var page = await context.NewPageAsync();
+        await page.SetViewportSizeAsync(390, 844);
+        await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.Reduce });
+        await page.GotoAsync(path);
+        await WaitForLeaderboardAsync(page);
+        Assert.Equal(expected, new Uri(page.Url).PathAndQuery + new Uri(page.Url).Fragment);
+        await Assertions.Expect(page.Locator($"#view-{view}")).ToBeCheckedAsync();
+        var count = await page.Locator(".leaderboard tbody tr[data-athlete-name]:visible").CountAsync();
+
+        await page.ReloadAsync();
+        await WaitForLeaderboardAsync(page);
+        Assert.Equal(expected, new Uri(page.Url).PathAndQuery + new Uri(page.Url).Fragment);
+        await Assertions.Expect(page.Locator($"#view-{view}")).ToBeCheckedAsync();
+        await Assertions.Expect(page.Locator(".leaderboard tbody tr[data-athlete-name]:visible")).ToHaveCountAsync(count);
+    }
+
+    [Theory]
     [InlineData("100%", false, 1)]
     [InlineData("%E0%A4%A", false, 0)]
     [InlineData("literal %20", true, 0)]
