@@ -377,7 +377,58 @@ public sealed partial class SiteStatisticsService : IHostedService
                 query,
                 "coalesce(nullif(s.FirstReferrerDomain, ''), nullif(e.ReferrerDomain, ''), 'direct')"),
             Devices: ReadTrafficBreakdown(sqlite, from, to, query, "coalesce(nullif(e.DeviceClass, ''), 'unknown')"),
-            Browsers: ReadTrafficBreakdown(sqlite, from, to, query, "coalesce(nullif(e.BrowserFamily, ''), 'unknown')"));
+            Browsers: ReadTrafficBreakdown(sqlite, from, to, query, "coalesce(nullif(e.BrowserFamily, ''), 'unknown')"),
+            Outcomes: ReadTrafficOutcomes(sqlite, from, to, query));
+    }
+
+    private static SiteStatisticsTrafficOutcomes ReadTrafficOutcomes(
+        SqliteConnection sqlite,
+        DateTimeOffset from,
+        DateTimeOffset to,
+        SiteStatisticsDashboardQuery query)
+    {
+        using var cmd = sqlite.CreateCommand();
+        cmd.CommandText =
+            $$"""
+            SELECT COUNT(*),
+                   COUNT(DISTINCT e.SessionHash),
+                   COALESCE(SUM(CASE WHEN e.EventName = 'calculator_result_generated' THEN 1 ELSE 0 END), 0),
+                   COALESCE(SUM(CASE WHEN e.EventName = 'challenge_signup_succeeded' THEN 1 ELSE 0 END), 0),
+                   COALESCE(SUM(CASE WHEN e.EventName = 'application_submit_succeeded' AND
+                       json_extract(CASE WHEN json_valid(e.MetadataJson) THEN e.MetadataJson ELSE '{}' END, '$.submissionKind') = 'full-application' THEN 1 ELSE 0 END), 0),
+                   COALESCE(SUM(CASE WHEN e.EventName = 'application_submit_succeeded' AND
+                       json_extract(CASE WHEN json_valid(e.MetadataJson) THEN e.MetadataJson ELSE '{}' END, '$.submissionKind') = 'result-upload' THEN 1 ELSE 0 END), 0),
+                   COALESCE(SUM(CASE WHEN e.EventName = 'application_submit_succeeded' AND
+                       json_extract(CASE WHEN json_valid(e.MetadataJson) THEN e.MetadataJson ELSE '{}' END, '$.submissionKind') = 'edit-request' THEN 1 ELSE 0 END), 0)
+            FROM SiteStatisticEvents e
+            LEFT JOIN SiteStatisticSessions s ON s.SessionHash = e.SessionHash
+            WHERE e.OccurredAtUtc >= @from
+              AND e.OccurredAtUtc < @to
+              AND (@flow = '' OR e.Flow = @flow)
+              AND (@device = '' OR e.DeviceClass = @device)
+              AND {{SourceFilterSql}}
+              AND e.EventName IN ({{SuccessActionEventNamesSql}});
+            """;
+        AddTrafficFilterParameters(cmd, from, to, query);
+
+        using var reader = cmd.ExecuteReader();
+        reader.Read();
+        var actions = reader.GetInt64(0);
+        var calculatorResults = reader.GetInt64(2);
+        var signups = reader.GetInt64(3);
+        var applications = reader.GetInt64(4);
+        var uploads = reader.GetInt64(5);
+        var edits = reader.GetInt64(6);
+        return new SiteStatisticsTrafficOutcomes(
+            Actions: actions,
+            // A session can have outcomes on multiple UTC dates. Count it once for the whole window.
+            Sessions: reader.GetInt64(1),
+            CalculatorResults: calculatorResults,
+            NewApplications: applications,
+            ChallengeSignups: signups,
+            ResultUploads: uploads,
+            ProfileEdits: edits,
+            UnknownSubmissions: actions - calculatorResults - signups - applications - uploads - edits);
     }
 
     private static SiteStatisticsTrafficTotals ReadTrafficTotals(
@@ -1747,7 +1798,18 @@ public sealed record SiteStatisticsTrafficSummary(
     IReadOnlyList<SiteStatisticsTrafficBreakdown> Sources,
     IReadOnlyList<SiteStatisticsTrafficBreakdown> Referrers,
     IReadOnlyList<SiteStatisticsTrafficBreakdown> Devices,
-    IReadOnlyList<SiteStatisticsTrafficBreakdown> Browsers);
+    IReadOnlyList<SiteStatisticsTrafficBreakdown> Browsers,
+    SiteStatisticsTrafficOutcomes Outcomes);
+
+public sealed record SiteStatisticsTrafficOutcomes(
+    long Actions,
+    long Sessions,
+    long CalculatorResults,
+    long NewApplications,
+    long ChallengeSignups,
+    long ResultUploads,
+    long ProfileEdits,
+    long UnknownSubmissions);
 
 public sealed record SiteStatisticsTrafficTotals(
     long Sessions,

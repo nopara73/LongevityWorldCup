@@ -17,7 +17,7 @@ public sealed class SiteStatisticsDashboardPageTests(TestWebApplicationFactory s
         Assert.Contains("/js/site-statistics.js?v=", html);
         Assert.Contains("trafficOverview", html);
         Assert.Contains("<span>Timeframe</span>", html);
-        Assert.Contains("<option value=\"90d\">90D</option>", html);
+        Assert.Contains("<option value=\"90d\">Last 90 days</option>", html);
         Assert.Contains("<option value=\"alltime\">All-time</option>", html);
         Assert.Contains("Decision Brief", html);
         Assert.Contains("Recommended Investigations", html);
@@ -29,6 +29,8 @@ public sealed class SiteStatisticsDashboardPageTests(TestWebApplicationFactory s
         Assert.DoesNotContain("{{ASSET_SITE_STATISTICS_CSS}}", html);
         Assert.DoesNotContain("{{ASSET_SITE_STATISTICS_JS}}", html);
         Assert.DoesNotContain("{{ASSET_POPPINS_REGULAR}}", html);
+        Assert.Contains("/assets/fonts/Roboto-Regular.woff2?v=", html);
+        Assert.Contains("statsWindow", html);
     }
 
     [Theory]
