@@ -26,7 +26,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await page.Locator("#lmxCheckinTab").ClickAsync();
         var form = page.Locator("#lmxCheckinList form");
         await Assertions.Expect(form.Locator("[data-note-character-count]")).ToHaveTextAsync("300/300");
-        await form.Locator(".lmx-question[data-key='nutrition'] .lmx-answer-input[value='2']").CheckAsync();
+        await form.Locator(".lmx-question[data-key='nutrition'] .lmx-answer-option[data-answer='yes']").ClickAsync();
         await Assertions.Expect(form.Locator("button[type='submit']")).ToBeEnabledAsync();
         await form.Locator("textarea[id^='lmx-note-']").FillAsync(new string('n', 301));
         await Assertions.Expect(form.Locator("[data-note-character-count]")).ToHaveTextAsync("1 over");
