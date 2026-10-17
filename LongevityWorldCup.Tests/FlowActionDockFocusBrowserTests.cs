@@ -20,7 +20,7 @@ public sealed class FlowActionDockFocusBrowserTests(
             ViewportSize = new() { Width = 1280, Height = 900 },
             ReducedMotion = ReducedMotion.NoPreference
         });
-        if (fallback) await context.AddInitScriptAsync("Element.prototype.moveBefore = undefined");
+        if (fallback) await context.AddInitScriptAsync("Element.prototype.moveBefore = undefined; Element.prototype.checkVisibility = undefined");
         var page = await context.NewPageAsync();
         await NavigateAndSettleAsync(page, "/pheno-age");
         await page.EvaluateAsync("""
@@ -41,7 +41,7 @@ public sealed class FlowActionDockFocusBrowserTests(
             Assert.Equal(mode == "always", await page.Locator("#lwcStepOneActions").EvaluateAsync<bool>("s => s.classList.contains('flow-action-stack--docked')"));
             await Assertions.Expect(back).ToBeFocusedAsync();
             Assert.InRange(await page.EvaluateAsync<double>("window.scrollY"), scroll - 1, scroll + 1);
-            Assert.True(await back.EvaluateAsync<bool>("b => b.checkVisibility({checkOpacity:true,checkVisibilityCSS:true})"));
+            Assert.True(await back.EvaluateAsync<bool>("b => b.getBoundingClientRect().height > 0 && !b.closest('.flow-action-stack--dock-entering')"));
         }
         await page.Keyboard.PressAsync("Enter");
         Assert.Equal(1, await page.EvaluateAsync<int>("window.testActivations"));
@@ -55,6 +55,8 @@ public sealed class FlowActionDockFocusBrowserTests(
     [InlineData("ariaDisabled")]
     [InlineData("hidden")]
     [InlineData("ancestorHidden")]
+    [InlineData("ancestorTransparent")]
+    [InlineData("ancestorContentHidden")]
     [InlineData("inert")]
     [InlineData("ariaHidden")]
     public async Task FallbackMove_DoesNotRestoreAnInappropriateOrSupersededTarget(string mutation)
@@ -92,6 +94,8 @@ public sealed class FlowActionDockFocusBrowserTests(
                     if (mutation === 'ariaDisabled') target.setAttribute('aria-disabled', 'true');
                     if (mutation === 'hidden') target.hidden = true;
                     if (mutation === 'ancestorHidden') stack.style.visibility = 'hidden';
+                    if (mutation === 'ancestorTransparent') stack.style.opacity = '0';
+                    if (mutation === 'ancestorContentHidden') stack.style.contentVisibility = 'hidden';
                     if (mutation === 'inert') stack.inert = true;
                     if (mutation === 'ariaHidden') stack.setAttribute('aria-hidden', 'true');
                     return result;

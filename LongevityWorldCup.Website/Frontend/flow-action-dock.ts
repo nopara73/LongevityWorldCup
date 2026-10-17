@@ -306,9 +306,20 @@ interface FlowActionDockApi {
             && element.contains(focused) && focused.isConnected && focused.tabIndex >= 0
             && !focused.matches(':disabled, [aria-disabled="true"]')
             && !focused.closest('[hidden], [inert], [aria-hidden="true"]')
-            && focused.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true })) {
+            && isFocusTargetVisible(focused)) {
             focused.focus({ preventScroll: true });
         }
+    }
+
+    function isFocusTargetVisible(element: HTMLElement): boolean {
+        if (!hasLayoutBox(element)) return false;
+        // The DOM-move fallback must also work in engines without checkVisibility.
+        for (let ancestor: HTMLElement | null = element; ancestor; ancestor = ancestor.parentElement) {
+            const style = window.getComputedStyle(ancestor);
+            if (style.display === 'none' || style.visibility === 'hidden' || style.visibility === 'collapse'
+                || Number(style.opacity) === 0 || style.contentVisibility === 'hidden') return false;
+        }
+        return true;
     }
 
     function moveElement(element: HTMLElement, parent: Node, before: ChildNode | null): void {
