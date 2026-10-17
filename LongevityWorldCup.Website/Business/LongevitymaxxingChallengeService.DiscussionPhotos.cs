@@ -16,7 +16,8 @@ public sealed partial class LongevitymaxxingChallengeService
         var files = (photos ?? []).ToList();
         if (files.Count > MaxCheckInPhotoCount || files.Any(file => file.Length <= 0 || file.Length > MaxCheckInPhotoUploadBytes))
             throw new InvalidOperationException($"Choose up to {MaxCheckInPhotoCount} standard phone photos.");
-        NormalizeDiscussionReply(request.Body, files.Count > 0);
+        // SaveDiscussionReply applies the current allowance after checking for an accepted replay.
+        NormalizeDiscussionReply(request.Body, int.MaxValue, files.Count > 0);
         NormalizeDiscussionReplyId(request.ReplyId);
         var now = EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow);
         var prepared = new List<PendingCheckInImage>();
