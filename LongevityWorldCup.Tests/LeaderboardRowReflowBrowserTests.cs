@@ -52,7 +52,12 @@ public sealed class LeaderboardRowReflowBrowserTests(
             "/league/improvement", "/league/bortz-improvement", "/league/crowd"
         })
         {
+            // The intercepted fixture fetches and rewrites the full directory.
+            // Start the client-render assertion after that response body arrives.
+            var athleteResponse = page.WaitForResponseAsync(response =>
+                response.Url.EndsWith("/api/data/athletes", StringComparison.Ordinal));
             await NavigateAndSettleAsync(page, path);
+            await (await athleteResponse).FinishedAsync();
             await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
             await page.EvaluateAsync("size => document.documentElement.style.fontSize = size + 'px'", rootFontSize);
             await page.WaitForFunctionAsync(
