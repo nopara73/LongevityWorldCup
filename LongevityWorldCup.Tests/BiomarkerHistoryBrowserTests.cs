@@ -615,6 +615,49 @@ public sealed class BiomarkerHistoryBrowserTests(
         else await page.Mouse.MoveAsync((float)position[0], (float)position[1]);
     }
 
+    [Theory]
+    [InlineData(1440, false)]
+    [InlineData(390, true)]
+    public async Task ResultsOverTime_ReadsAsCompactSingleLineBiomarkers(int width, bool touch)
+    {
+        await using var context = await NewContextAsync(width, dark: true, touch: touch);
+        var athlete = await HistoryAthleteAsync("Benjamin Garden", 66, partial: true);
+        await context.AddInitScriptAsync($"window.getSharedAthletes = async () => ([{athlete.ToJsonString()}]);");
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/athlete/benjamin-garden", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await Expect(Row(page, "bortz").GetByRole(AriaRole.Button)).ToBeEnabledAsync();
+        await page.Locator("#athlete-biomarkers .result-summary:not(.result-clock)").First.ScrollIntoViewIfNeededAsync();
+
+        var problems = await page.EvaluateAsync<string[]>(
+            """
+            () => {
+                const problems = [];
+                const biomarkers = [...document.querySelectorAll('#athlete-biomarkers .result-summary:not(.result-clock)')];
+                const clock = document.querySelector('#athlete-biomarkers .result-summary.result-clock');
+                if (!biomarkers.length) return ['no biomarker rows'];
+                for (const row of biomarkers) {
+                    const button = row.querySelector('button');
+                    const range = document.createRange();
+                    range.selectNodeContents(button.firstChild);
+                    const name = range.getBoundingClientRect();
+                    const unit = row.querySelector('.biomarker-history-unit').getBoundingClientRect();
+                    const label = button.firstChild.textContent.trim();
+                    // Short pairs share one line; a long name may wrap its unit onto a second line on phones.
+                    const shortPair = label.length + row.querySelector('.biomarker-history-unit').textContent.trim().length <= 12;
+                    const limit = shortPair ? 56 : 64;
+                    if (row.getBoundingClientRect().height > limit) problems.push(`${label}: row is ${Math.round(row.getBoundingClientRect().height)}px tall`);
+                    if (button.getBoundingClientRect().height < 44) problems.push(`${label}: target shorter than 44px`);
+                    if (shortPair && (Math.abs(unit.bottom - name.bottom) > 4 || unit.left < name.right)) problems.push(`${label}: unit is not beside its name`);
+                }
+                const size = row => parseFloat(getComputedStyle(row.querySelector('.biomarker-overview-current')).fontSize);
+                if (size(clock) <= size(biomarkers[0])) problems.push('clocks no longer lead the biomarkers');
+                if (clock.getBoundingClientRect().height <= biomarkers[0].getBoundingClientRect().height) problems.push('clock rows lost their room');
+                return problems;
+            }
+            """);
+        Assert.True(problems.Length == 0, $"{width}px: {string.Join("; ", problems)}");
+    }
+
     private static ILocator Row(IPage page, string key) => page.Locator($"#athlete-biomarkers tr[data-measure='{key}']");
 
     private async Task<IBrowserContext> NewContextAsync(int width, bool dark, string timezone = "UTC", bool touch = false)

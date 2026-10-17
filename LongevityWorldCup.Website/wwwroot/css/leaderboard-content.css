@@ -2094,6 +2094,40 @@
      #detailsModal .biomarker-overview-table > tbody > .result-summary > :is(th,td){ padding:.8rem .15rem; }
      #detailsModal .biomarker-overview-history svg{ min-width:30px; }
  }
+ /* Results over time reads as one scannable list: the two clocks lead with
+    room to breathe, and each biomarker is a single compact line with its
+    unit beside its name, its trend and its latest value. */
+ #detailsModal .biomarker-overview-table > tbody > .result-summary:not(.result-clock) > :is(th,td){
+     padding-block:.15rem;
+ }
+ #detailsModal .result-summary:not(.result-clock) button{
+     display:flex;
+     align-items:baseline;
+     flex-wrap:wrap;
+     justify-content:flex-start;
+     column-gap:.45rem;
+     align-content:center;
+     width:100%;
+     text-align:left;
+ }
+ #detailsModal .result-summary:not(.result-clock) .biomarker-history-unit{
+     display:inline;
+     font-size:.75rem;
+ }
+ #detailsModal .result-summary:not(.result-clock) .result-measurement-date{ flex-basis:100%; }
+ #detailsModal .result-summary:not(.result-clock) .biomarker-overview-history svg{ height:26px; }
+ #detailsModal .result-summary:not(.result-clock) .biomarker-overview-current{ font-size:1rem; }
+ /* Phones give the name the trend's spare width, so name and unit keep one line. */
+ @media (max-width:600px){
+     #detailsModal .biomarker-overview-table > thead > tr > th:first-child,
+     #detailsModal .biomarker-overview-table > tbody > .result-summary > th:first-child{ width:44%; }
+     #detailsModal .biomarker-overview-history{ width:24%; }
+ }
+ @media (max-width:360px){
+     #detailsModal .biomarker-overview-table > thead > tr > th:first-child,
+     #detailsModal .biomarker-overview-table > tbody > .result-summary > th:first-child{ width:40%; }
+     #detailsModal .biomarker-overview-history{ width:30%; }
+ }
  #detailsModal .proofs-section{
      margin-top:1.5rem;
      overflow:hidden;
