@@ -55,6 +55,22 @@ public sealed record LongevitymaxxingDiscussionThread(
     LongevitymaxxingParticipantNote? Note,
     LongevitymaxxingDiscussionSystemPost? SystemPost);
 
+public sealed record LongevitymaxxingDiscussionFeedCursor(
+    long RankedAtUnixMs,
+    double Score,
+    long ActivityAtUnixMs,
+    int ChallengeDay,
+    string ParticipantId,
+    string? SystemPostId);
+
+public sealed record LongevitymaxxingDiscussionFeedRequest(
+    string? AccessToken,
+    LongevitymaxxingDiscussionFeedCursor? Before = null);
+
+public sealed record LongevitymaxxingDiscussionFeedPage(
+    IReadOnlyList<LongevitymaxxingDiscussionThread> Threads,
+    LongevitymaxxingDiscussionFeedCursor? NextCursor);
+
 public sealed record LongevitymaxxingParticipantEditRequest(
     string AccessToken,
     string TimeZoneId,
@@ -217,7 +233,12 @@ public sealed record LongevitymaxxingDiscussionSystemPost(
     string OccurredAtUtc,
     string LastActivityAtUtc,
     int ReplyCount,
-    IReadOnlyList<LongevitymaxxingDiscussionReply> Replies);
+    IReadOnlyList<LongevitymaxxingDiscussionReply> Replies)
+{
+    public LongevitymaxxingDiscussionAnnouncement? Announcement { get; init; }
+}
+
+public sealed record LongevitymaxxingDiscussionAnnouncement(string EventId, string Title, string Content);
 
 public sealed record LongevitymaxxingCheckInImage(
     string Url,
