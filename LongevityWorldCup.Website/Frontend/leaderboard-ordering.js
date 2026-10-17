@@ -11,6 +11,9 @@
     const secondary = byId('leaderboardOrderSecondary');
     const primaryDirection = byId('leaderboardOrderDirection');
     const secondaryDirection = byId('leaderboardThenDirection');
+    const swap = byId('leaderboardOrderSwap');
+    const primaryClear = byId('leaderboardOrderPrimaryClear');
+    const secondaryClear = byId('leaderboardOrderSecondaryClear');
     const defaults = () => ({ sort: 'rank', direction: 'asc', then: null, thenDirection: 'asc' });
     const direction = (value, field) => value === 'asc' || value === 'desc' ? value : field.direction;
     function normalize(value) {
@@ -146,6 +149,9 @@
         primary.value = current.sort;
         secondary.value = current.then || '';
         secondary.disabled = !active;
+        swap.disabled = !active || !current.then;
+        primaryClear.disabled = !active;
+        secondaryClear.disabled = !active || !current.then;
         for (const [select, other] of [[primary, null], [secondary, current.sort]]) {
             for (const option of select.options) { option.disabled = !!other && option.value === other; option.hidden = false; }
             const metric = select.querySelector('option[value="metric"]');
@@ -260,6 +266,17 @@
         secondary.addEventListener('change', () => commit({ ...current, then: secondary.value, thenDirection: fields.get(secondary.value)?.direction }));
         primaryDirection.addEventListener('click', () => commit({ ...current, direction: current.direction === 'asc' ? 'desc' : 'asc' }));
         secondaryDirection.addEventListener('click', () => commit({ ...current, thenDirection: current.thenDirection === 'asc' ? 'desc' : 'asc' }));
+        swap.addEventListener('click', () => {
+            commit({ sort: current.then, direction: current.thenDirection, then: current.sort, thenDirection: current.direction });
+        });
+        primaryClear.addEventListener('click', () => {
+            commit(current.then ? { sort: current.then, direction: current.thenDirection } : defaults());
+            primary.focus({ preventScroll: true });
+        });
+        secondaryClear.addEventListener('click', () => {
+            commit({ ...current, then: null });
+            secondary.focus({ preventScroll: true });
+        });
         document.addEventListener('click', event => {
             const header = event.target.closest('.leaderboard-column-order')?.closest('th[data-order-key]');
             if (!header) return;

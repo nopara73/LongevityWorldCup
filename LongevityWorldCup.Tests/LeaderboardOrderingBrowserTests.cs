@@ -192,6 +192,118 @@ public sealed class LeaderboardOrderingBrowserTests(PlaywrightBrowserFixture bro
     }
 
     [Theory]
+    [InlineData(1280, false)]
+    [InlineData(390, true)]
+    [InlineData(320, true)]
+    public async Task SwapOrdering_KeepsDirectionsWithFieldsAndRestoresHistory(int width, bool touch)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = 900 }, HasTouch = touch, IsMobile = touch,
+            ReducedMotion = ReducedMotion.Reduce
+        });
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/leaderboard?sort=vitd&dir=desc&then=tests&thenDir=asc#rank-1");
+        await Loaded(page);
+        var original = await Snapshot(page);
+        await page.Locator("#leaderboardOrderToggle").ClickAsync();
+        var swap = page.GetByRole(AriaRole.Button, new() { Name = "Swap order by and then by", Exact = true });
+        var target = (await swap.BoundingBoxAsync())!;
+        Assert.True(target.Width >= 44 && target.Height >= 44);
+        if (touch) await swap.TapAsync();
+        else
+        {
+            await page.Keyboard.PressAsync("Shift+Tab");
+            await Assertions.Expect(swap).ToBeFocusedAsync();
+            await page.Keyboard.PressAsync("Enter");
+        }
+        await Assertions.Expect(page.Locator("#leaderboardOrderPanel")).ToBeVisibleAsync();
+        await Assertions.Expect(swap).ToBeFocusedAsync();
+        await Assertions.Expect(page.Locator("#leaderboardOrderPrimary")).ToHaveValueAsync("tests");
+        await Assertions.Expect(page.Locator("#leaderboardOrderSecondary")).ToHaveValueAsync("vitd");
+        await Assertions.Expect(page.Locator("th[data-order-key=tests]")).ToHaveAttributeAsync("aria-sort", "ascending");
+        await Assertions.Expect(page.Locator("th[data-order-key=vitd]")).ToHaveAttributeAsync("data-order-level", "2");
+        await Assertions.Expect(page.Locator("th[data-order-key=vitd]")).ToHaveAttributeAsync("data-order-direction", "desc");
+        Assert.EndsWith("#rank-1", page.Url);
+        var swapped = await Snapshot(page);
+        Assert.NotEqual(original, swapped);
+        // A shared swapped URL must render exactly the same rows and values before JavaScript.
+        await using var serverContext = await NewContextAsync(Browser, App, new() { JavaScriptEnabled = false });
+        var server = await serverContext.NewPageAsync();
+        await server.GotoAsync(page.Url);
+        Assert.Equal(swapped, await Snapshot(server));
+        await swap.ClickAsync();
+        Assert.Equal(original, await Snapshot(page));
+        await page.GoBackAsync();
+        await Assertions.Expect(page.Locator("#leaderboardOrderPrimary")).ToHaveValueAsync("tests");
+        Assert.Equal(swapped, await Snapshot(page));
+    }
+
+    [Theory]
+    [InlineData(1280)]
+    [InlineData(390)]
+    [InlineData(320)]
+    public async Task QuickClear_PromotesSecondaryOrRemovesOnlyItsOwnLevel(int width)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = 900 }, ReducedMotion = ReducedMotion.Reduce
+        });
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/league/pheno?sort=bortz&dir=desc&then=age&thenDir=desc#rank-1");
+        await Loaded(page);
+        await page.Locator("#athleteSearch").FillAsync("Wen");
+        await page.Locator("#leaderboardOrderToggle").ClickAsync();
+        var panel = page.Locator("#leaderboardOrderPanel");
+        var primary = page.Locator("#leaderboardOrderPrimary");
+        var secondary = page.Locator("#leaderboardOrderSecondary");
+        var primaryClear = page.GetByRole(AriaRole.Button, new() { Name = "Clear order by", Exact = true });
+        var secondaryClear = page.GetByRole(AriaRole.Button, new() { Name = "Clear then by", Exact = true });
+        var swap = page.Locator("#leaderboardOrderSwap");
+        foreach (var button in new[] { primaryClear, secondaryClear })
+        {
+            var target = (await button.BoundingBoxAsync())!;
+            Assert.True(target.Width >= 44 && target.Height >= 44);
+        }
+        await primaryClear.Locator("svg").ClickAsync();
+        await Assertions.Expect(panel).ToBeVisibleAsync();
+        await Assertions.Expect(primary).ToBeFocusedAsync();
+        await Assertions.Expect(primary).ToHaveValueAsync("age");
+        await Assertions.Expect(secondary).ToHaveValueAsync("");
+        await Assertions.Expect(swap).ToBeDisabledAsync();
+        await Assertions.Expect(secondaryClear).ToBeDisabledAsync();
+        await Assertions.Expect(page.Locator("th[data-order-key=age]")).ToHaveAttributeAsync("aria-sort", "descending");
+        await Assertions.Expect(page.Locator("th[data-order-key=bortz], td[data-order-key=bortz]")).ToHaveCountAsync(0);
+        await Assertions.Expect(page.Locator("th.leaderboard-order-column")).ToHaveCountAsync(1);
+        await Assertions.Expect(page.Locator("#athleteSearch")).ToHaveValueAsync("Wen");
+        Assert.Contains("view=pheno", page.Url);
+        Assert.EndsWith("#rank-1", page.Url);
+        Assert.DoesNotContain("then", page.Url);
+
+        await secondary.SelectOptionAsync("vitd");
+        await secondaryClear.ClickAsync();
+        await Assertions.Expect(panel).ToBeVisibleAsync();
+        await Assertions.Expect(secondary).ToBeFocusedAsync();
+        await Assertions.Expect(primary).ToHaveValueAsync("age");
+        await Assertions.Expect(page.Locator("th[data-order-key=age]")).ToHaveAttributeAsync("aria-sort", "descending");
+        await Assertions.Expect(page.Locator("th[data-order-key=vitd], td[data-order-key=vitd]")).ToHaveCountAsync(0);
+
+        await primaryClear.ClickAsync();
+        await Assertions.Expect(panel).ToBeVisibleAsync();
+        await Assertions.Expect(primary).ToBeFocusedAsync();
+        await Assertions.Expect(primary).ToHaveValueAsync("rank");
+        await Assertions.Expect(secondary).ToBeDisabledAsync();
+        await Assertions.Expect(primaryClear).ToBeDisabledAsync();
+        await Assertions.Expect(secondaryClear).ToBeDisabledAsync();
+        await Assertions.Expect(swap).ToBeDisabledAsync();
+        await Assertions.Expect(page.Locator("th.leaderboard-order-column, td.leaderboard-order-value")).ToHaveCountAsync(0);
+        Assert.DoesNotContain("sort=", page.Url);
+        await page.Keyboard.PressAsync("Tab");
+        await Assertions.Expect(page.Locator(".sidebar-toggle")).ToBeFocusedAsync();
+        await Assertions.Expect(panel).ToBeHiddenAsync();
+    }
+
+    [Theory]
     [InlineData(320, 100)]
     [InlineData(390, 100)]
     [InlineData(1024, 100)]

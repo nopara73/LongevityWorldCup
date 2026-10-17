@@ -1217,8 +1217,8 @@ public sealed class AestheticSystemBrowserTests(
                         Object.assign(container.style, { boxSizing:'content-box', inlineSize:`${argument.Width}px`,
                             width:`${argument.Width}px`, maxWidth:'none', maxInlineSize:'none', flex:'none' });
                         await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-                        const first = container.querySelector(argument.Composer ? 'label' : 'tbody tr[data-athlete-name] .athlete-td');
-                        const second = container.querySelector(argument.Composer ? '.leaderboard-order-field' : 'tbody tr[data-athlete-name] .age-reduction-td');
+                        const first = container.querySelector(argument.Composer ? '.leaderboard-order-rows' : 'tbody tr[data-athlete-name] .athlete-td');
+                        const second = container.querySelector(argument.Composer ? '.leaderboard-order-swap' : 'tbody tr[data-athlete-name] .age-reduction-td');
                         return {
                             ContainerWidth: parseFloat(getComputedStyle(container).width),
                             IsCompact: argument.Results ? getComputedStyle(container.querySelector('tbody tr[data-athlete-name]')).display === 'grid'

@@ -73,6 +73,10 @@
                         <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m6 6 8 8m0-8-8 8" /></svg>
                     </button>
                     <div id="leaderboardOrderPanel" class="leaderboard-order-panel" role="group" aria-label="Order athletes" hidden>
+                        <button type="button" id="leaderboardOrderSwap" class="leaderboard-order-swap" aria-label="Swap order by and then by" title="Swap order by and then by" disabled>
+                            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M6 16V4m-3 3 3-3 3 3m5-3v12m-3-3 3 3 3-3" /></svg>
+                        </button>
+                        <div class="leaderboard-order-rows">
                         <div class="leaderboard-order-row">
                             <label for="leaderboardOrderPrimary">Order by</label>
                             <div class="leaderboard-order-field">
@@ -81,6 +85,7 @@
                                     <svg class="order-select-chevron" viewBox="0 0 20 20" aria-hidden="true"><path d="m6 8 4 4 4-4" /></svg>
                                 </span>
                                 <button type="button" id="leaderboardOrderDirection" class="leaderboard-order-direction" data-direction="asc" aria-label="Reverse primary order" disabled><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 4v12m-4-4 4 4 4-4" /></svg></button>
+                                <button type="button" id="leaderboardOrderPrimaryClear" class="leaderboard-order-clear" aria-label="Clear order by" title="Clear order by" disabled><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m6 6 8 8m0-8-8 8" /></svg></button>
                             </div>
                         </div>
                         <div class="leaderboard-order-row">
@@ -91,7 +96,9 @@
                                     <svg class="order-select-chevron" viewBox="0 0 20 20" aria-hidden="true"><path d="m6 8 4 4 4-4" /></svg>
                                 </span>
                                 <button type="button" id="leaderboardThenDirection" class="leaderboard-order-direction" data-direction="asc" aria-label="Reverse secondary order" disabled><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 4v12m-4-4 4 4 4-4" /></svg></button>
+                                <button type="button" id="leaderboardOrderSecondaryClear" class="leaderboard-order-clear" aria-label="Clear then by" title="Clear then by" disabled><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m6 6 8 8m0-8-8 8" /></svg></button>
                             </div>
+                        </div>
                         </div>
                     </div>
                 </div>
