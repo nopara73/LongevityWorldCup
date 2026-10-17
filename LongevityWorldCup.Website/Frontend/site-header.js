@@ -21,6 +21,7 @@ handleScroll(window.scrollY);
 
 // Text and loaded fonts can change both headers without a scroll event.
 const headerResizeObserver = new ResizeObserver(() => {
+    measuredStickyHeight = 0;
     if (!ticking) {
         ticking = true;
         requestAnimationFrame(() => {
