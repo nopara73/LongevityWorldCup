@@ -77,15 +77,15 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
         var now = DateTimeOffset.Parse("2026-06-20T08:00:00Z");
         var state = fixture.Service.SubmitCheckIn(new(author, 12, 2, 2, 2, 2, "Original text."), now);
         var replyId = Guid.NewGuid().ToString("N");
-        var request = new LongevitymaxxingDiscussionReplyRequest(replier, state.Participant.Id, 12, new string('x', 241), replyId);
-        Assert.Contains("240", Assert.Throws<InvalidOperationException>(() => fixture.Service.SubmitDiscussionReply(request, now)).Message);
+        var request = new LongevitymaxxingDiscussionReplyRequest(replier, state.Participant.Id, 12, new string('x', 147), replyId);
+        Assert.Contains("146", Assert.Throws<InvalidOperationException>(() => fixture.Service.SubmitDiscussionReply(request, now)).Message);
         Assert.Equal(0, CountContextNotifications(fixture, replyId));
-        fixture.Service.SubmitDiscussionReply(request with { Body = new string('x', 240) }, now);
-        Assert.Throws<InvalidOperationException>(() => fixture.Service.EditDiscussionReply(new(replier, replyId, new string('y', 241)), now));
-        Assert.Throws<InvalidOperationException>(() => fixture.Service.SubmitCheckIn(new(author, 12, 2, 2, 2, 2, new string('z', 241)), now));
+        fixture.Service.SubmitDiscussionReply(request with { Body = new string('x', 146) }, now);
+        Assert.Throws<InvalidOperationException>(() => fixture.Service.EditDiscussionReply(new(replier, replyId, new string('y', 147)), now));
+        Assert.Throws<InvalidOperationException>(() => fixture.Service.SubmitCheckIn(new(author, 12, 2, 2, 2, 2, new string('z', 147)), now));
         var saved = fixture.Service.GetParticipantState(author, now).Notes.Single(note => note.ParticipantId == state.Participant.Id && note.ChallengeDay == 12);
         Assert.Equal("Original text.", saved.Note);
-        Assert.Equal(new string('x', 240), Assert.Single(saved.Replies).Body);
+        Assert.Equal(new string('x', 146), Assert.Single(saved.Replies).Body);
         Assert.Equal(1, CountContextNotifications(fixture, replyId));
     }
 

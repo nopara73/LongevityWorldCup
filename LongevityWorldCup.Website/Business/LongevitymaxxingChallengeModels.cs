@@ -146,6 +146,13 @@ public sealed record LongevitymaxxingLeaderboardRow(
 {
     public int Rank { get; init; }
     public bool HasFullMarks { get; init; }
+    public LongevitymaxxingCharacterAllowance CharacterAllowance { get; init; } = new(0, 0);
+}
+
+public sealed record LongevitymaxxingCharacterAllowance(int ChallengePoints, int UltimateLeagueAthletesBehind)
+{
+    public const int BaseCharacters = 146;
+    public int Limit => BaseCharacters + Math.Clamp(ChallengePoints, 0, 154) + Math.Max(0, UltimateLeagueAthletesBehind);
 }
 
 public sealed record LongevitymaxxingDayCell(
