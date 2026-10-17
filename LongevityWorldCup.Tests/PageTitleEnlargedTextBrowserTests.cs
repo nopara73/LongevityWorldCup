@@ -11,6 +11,28 @@ public sealed class PageTitleEnlargedTextBrowserTests(
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Theory]
+    [InlineData("/longevitymaxxing", "#lmx-title", 320, 28.8)]
+    [InlineData("/longevitymaxxing", "#lmx-title", 360, 29.6)]
+    [InlineData("/longevitymaxxing", "#lmx-title", 390, 32)]
+    [InlineData("/longevitymaxxing", "#lmx-title", 600, 32)]
+    [InlineData("/unsubscribe", ".unsubscribe-panel h1", 559, 32)]
+    [InlineData("/unsubscribe", ".unsubscribe-panel h1", 560, 41.6)]
+    [InlineData("/unsubscribe", ".unsubscribe-panel h1", 600, 41.6)]
+    [InlineData("/unsubscribe", ".unsubscribe-panel h1", 601, 41.6)]
+    public async Task NormalText_PreservesTheExistingTitleSizeAtPhoneBreakpoints(string path, string titleSelector, int width, double expectedSize)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = 844 },
+            ReducedMotion = ReducedMotion.Reduce
+        });
+        var page = await context.NewPageAsync();
+        await NavigateAndSettleAsync(page, path);
+        var size = await page.Locator(titleSelector).EvaluateAsync<double>("title => parseFloat(getComputedStyle(title).fontSize)");
+        Assert.InRange(Math.Abs(size - expectedSize), 0, 0.1);
+    }
+
+    [Theory]
     [InlineData("/about", "#about-longevity-world-cup", 390, 844, 200)]
     [InlineData("/about", "#about-longevity-world-cup", 320, 640, 200)]
     [InlineData("/history", "#history-of-longevity-as-a-sport", 320, 640, 200)]

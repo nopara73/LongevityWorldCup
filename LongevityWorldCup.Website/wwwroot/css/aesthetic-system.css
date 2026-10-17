@@ -1594,7 +1594,7 @@ main.homepage-main .lwc-merch-body {
     }
 
     html body #lmx-title {
-        font-size: min(2rem, 8.4vw);
+        font-size: min(2rem, 9vw);
     }
 
     html body .unsubscribe-panel h1 {
@@ -1603,5 +1603,17 @@ main.homepage-main .lwc-merch-body {
 
     html body :is(#about-longevity-world-cup, #history-of-longevity-as-a-sport, #ro-title, #lmx-title, .unsubscribe-panel h1) {
         overflow-wrap: break-word;
+    }
+}
+
+@media (max-width: 360px) {
+    html body #lmx-title {
+        font-size: min(clamp(1.58rem, 9vw, 1.85rem), 9vw);
+    }
+}
+
+@media (min-width: 560px) and (max-width: 600px) {
+    html body .unsubscribe-panel h1 {
+        font-size: min(2.6rem, 12vw);
     }
 }
