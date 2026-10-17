@@ -1155,6 +1155,9 @@ public sealed class AestheticSystemBrowserTests(
     {
         foreach (var source in conditions.GroupBy(condition => condition.Source))
         {
+            // Each component starts from the same desktop baseline. Other
+            // probes resize the page, and filesystem enumeration order varies.
+            await page.SetViewportSizeAsync(1280, 800);
             switch (source.Key)
             {
                 case "css/longevitymaxxing.css":
