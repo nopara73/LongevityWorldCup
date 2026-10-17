@@ -115,10 +115,17 @@
                 width: 32px;
                 height: 32px;
             }
+        }
 
+        /* Initials stay inside the fixed-size portrait when the surrounding text grows. */
+        .event-board-page .events-board .avatar-fallback {
+            font-size: min(.7rem, 11.2px);
+            white-space: nowrap;
+        }
+
+        @media (max-width: 600px), (min-width: 720px) {
             .event-board-page .events-board .avatar-fallback {
                 font-size: min(.7rem, 14px);
-                white-space: nowrap;
             }
         }
 

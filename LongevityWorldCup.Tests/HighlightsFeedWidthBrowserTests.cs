@@ -46,6 +46,9 @@ public sealed class HighlightsFeedWidthBrowserTests(
 
     [Theory]
     [InlineData(719, 100)]
+    [InlineData(719, 200)]
+    [InlineData(390, 100)]
+    [InlineData(390, 200)]
     [InlineData(720, 100)]
     [InlineData(820, 100)]
     [InlineData(720, 200)]
@@ -109,7 +112,7 @@ public sealed class HighlightsFeedWidthBrowserTests(
                     const box = target.getBoundingClientRect();
                     if (box.width < 44 || box.height < 44) issues.push(`${target.className} is smaller than 44px`);
                 }
-                const avatarSize = innerWidth >= 720 ? 32 : 24;
+                const avatarSize = innerWidth <= 600 || innerWidth >= 720 ? 32 : 24;
                 for (const avatar of document.querySelectorAll('.events-board .avatar, .events-board .avatar-fallback')) {
                     const box = avatar.getBoundingClientRect();
                     if (Math.abs(box.width - avatarSize) > 1 || Math.abs(box.height - avatarSize) > 1)
