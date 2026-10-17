@@ -137,34 +137,45 @@ body.play-flow-route > main {
     padding-right: 1.25rem;
 }
 
-/* Back sits beside the primary action; enlarged text wraps the primary onto its own line above. */
+/* Back and the primary action follow their DOM order, including when text wraps. */
 .flow-action-stack.flow-action-stack--docked.flow-action-stack--back-primary-action {
     display: flex;
     flex-direction: row;
-    flex-wrap: wrap-reverse;
+    flex-wrap: wrap;
     align-items: stretch;
     gap: 0.55rem;
 }
 
 .flow-action-stack.flow-action-stack--docked.flow-action-stack--back-primary-action > .flow-action:not(.back-button) {
-    flex: 1 1 10rem;
+    flex: 1 1 min-content;
+    overflow-wrap: break-word;
     width: auto;
     max-width: none;
 }
 
 .flow-action-stack.flow-action-stack--docked.flow-action-stack--back-primary-action > .back-button.flow-action--icon-left {
-    flex: 1 0 5.5rem;
+    flex: 0 0 auto;
     order: -1;
     width: auto;
-    max-width: 6.25rem;
+    min-width: 5.5rem;
+    max-width: 100%;
     margin: 0;
-    padding-right: 0.65rem;
-    padding-left: 2rem;
+    padding-inline: 0.85rem;
+    gap: 0.5em;
 }
 
 .flow-action-stack.flow-action-stack--docked.flow-action-stack--back-primary-action > .back-button.flow-action--icon-left .flow-action__icon,
 .flow-action-stack.flow-action-stack--docked.flow-action-stack--back-primary-action > .back-button.flow-action--icon-left > i {
-    left: 0.75rem;
+    position: static;
+    width: auto;
+    transform: none;
+    flex: none;
+}
+
+.flow-action-stack.flow-action-stack--docked.flow-action-stack--back-primary-action > .back-button .flow-action__label {
+    flex: none;
+    width: auto;
+    white-space: nowrap;
 }
 
 body.bioage-result-ready .lwc-step-actions {
@@ -304,6 +315,7 @@ body.flow-input-keyboard-open::after {
 .option-button.flow-action:disabled:hover {
     background: var(--lwc-surface-muted, #eef2f7) !important;
     border: 1px solid var(--lwc-border, rgba(100, 116, 139, 0.16));
+    border-style: dashed !important;
     color: var(--lwc-muted, #526373);
     box-shadow: none !important;
     cursor: not-allowed;
@@ -455,5 +467,45 @@ body.flow-input-keyboard-open::after {
 @media (prefers-reduced-motion: reduce) {
     .flow-action-stack.flow-action-stack--docked {
         transition: none;
+    }
+}
+
+/* Only two-action steps use the compact desktop row. The dock script keeps
+   their DOM order aligned with Back on the left. Long labels can wrap the row. */
+@media (min-width: 769px) {
+    .flow-action-stack:not(.flow-action-stack--docked):not(.flow-action-stack--hide-disabled-primary):has(> .flow-action:first-child + .flow-action:last-child):has(> .back-button.flow-action--icon-left) {
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: stretch;
+        gap: 0.75rem;
+    }
+
+    .flow-action-stack:not(.flow-action-stack--docked):not(.flow-action-stack--hide-disabled-primary):has(> .flow-action:first-child + .flow-action:last-child):has(> .back-button.flow-action--icon-left) > .flow-action:not(.back-button) {
+        flex: 1 1 min-content;
+        overflow-wrap: break-word;
+        width: auto;
+    }
+
+    .flow-action-stack:not(.flow-action-stack--docked):not(.flow-action-stack--hide-disabled-primary):has(> .flow-action:first-child + .flow-action:last-child):has(> .back-button.flow-action--icon-left) > .back-button.flow-action--icon-left {
+        flex: 0 0 auto;
+        width: auto;
+        min-width: min(100%, 8.5rem);
+        max-width: 100%;
+        align-self: stretch;
+        padding-inline: 1.15rem;
+        gap: 0.5em;
+    }
+
+    .flow-action-stack:not(.flow-action-stack--docked):not(.flow-action-stack--hide-disabled-primary):has(> .flow-action:first-child + .flow-action:last-child):has(> .back-button.flow-action--icon-left) > .back-button > i {
+        position: static;
+        width: auto;
+        transform: none;
+        flex: none;
+    }
+
+    .flow-action-stack:not(.flow-action-stack--docked):not(.flow-action-stack--hide-disabled-primary):has(> .flow-action:first-child + .flow-action:last-child):has(> .back-button.flow-action--icon-left) > .back-button .flow-action__label {
+        flex: none;
+        width: auto;
+        white-space: nowrap;
     }
 }

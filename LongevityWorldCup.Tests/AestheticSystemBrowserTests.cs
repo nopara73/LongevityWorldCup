@@ -1006,7 +1006,7 @@ public sealed class AestheticSystemBrowserTests(
         var repositoryRoot = FindRepositoryRoot();
         var webRoot = Path.Combine(repositoryRoot, "LongevityWorldCup.Website", "wwwroot");
         var containerPattern = new Regex(
-            """@container(?:\s+(?<name>[\w-]+))?\s*\(\s*(?<bound>min|max)-width\s*:\s*(?<value>\d+(?:\.\d+)?)(?<unit>rem|px)\s*\)""",
+            """@container(?:\s+(?<name>[\w-]+))?\s*\(\s*(?<bound>min|max)-width\s*:\s*(?<value>\d+(?:\.\d+)?)(?<unit>rem|em|px)\s*\)""",
             RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
         var conditions = new List<ResponsiveContainerCondition>();
 
@@ -1155,6 +1155,9 @@ public sealed class AestheticSystemBrowserTests(
     {
         foreach (var source in conditions.GroupBy(condition => condition.Source))
         {
+            // Each component starts from the same desktop baseline. Other
+            // probes resize the page, and filesystem enumeration order varies.
+            await page.SetViewportSizeAsync(1280, 800);
             switch (source.Key)
             {
                 case "css/longevitymaxxing.css":
@@ -1175,12 +1178,49 @@ public sealed class AestheticSystemBrowserTests(
                 case "css/play-menu.css":
                     await AssertJoinContainerBoundariesAsync(page, source.ToArray());
                     break;
+                case "css/homepage.css":
+                    await AssertNewsletterContainerBoundariesAsync(page, source.ToArray());
+                    break;
                 case "css/site-footer.css":
                     await AssertFooterContainerBoundariesAsync(page, source.ToArray());
                     break;
                 default:
                     Assert.Fail($"Add a rendered container-boundary probe for {source.Key}.");
                     break;
+            }
+        }
+    }
+
+    private static async Task AssertNewsletterContainerBoundariesAsync(IPage page, ResponsiveContainerCondition[] conditions)
+    {
+        await NavigateAndSettleAsync(page, "/");
+        foreach (var condition in conditions)
+        {
+            Assert.Equal("newsletter-section", condition.Name);
+            Assert.Equal("min", condition.Bound);
+            Assert.Equal("em", condition.Unit);
+            Assert.Equal(34, condition.Value);
+            await page.Locator(".newsletter-section").EvaluateAsync("section => section.style.fontSize = '20px'");
+            var fontSize = await page.Locator(".newsletter-section").EvaluateAsync<double>("section => parseFloat(getComputedStyle(section).fontSize)");
+            var threshold = condition.Value * fontSize;
+            foreach (var delta in new[] { -1, 0, 1, 0, -1 })
+            {
+                var width = threshold + delta;
+                var diagnostics = await page.EvaluateAsync<double[]>("""
+                    async width => {
+                        const section = document.querySelector('.newsletter-section');
+                        section.style.boxSizing = 'content-box';
+                        section.style.inlineSize = `${width}px`;
+                        section.style.maxInlineSize = 'none';
+                        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                        return [parseFloat(getComputedStyle(section).width),
+                            getComputedStyle(section.querySelector('.newsletter-panel')).alignItems === 'center' ? 1 : 0,
+                            Math.max(0, section.scrollWidth - section.clientWidth)];
+                    }
+                    """, width);
+                Assert.Equal(width, diagnostics[0], 1);
+                Assert.Equal(width >= threshold ? 1 : 0, diagnostics[1]);
+                Assert.True(diagnostics[2] <= 1, $"Newsletter overflowed at {width}px.");
             }
         }
     }
@@ -1195,7 +1235,7 @@ public sealed class AestheticSystemBrowserTests(
             var composer = condition.Name == "order-panel";
             var results = condition.Name == "leaderboard-results";
             if (composer || results) Assert.Equal(composer ? 18 : 55, condition.Value);
-            else Assert.Contains(condition.Value, new[] { 10d, 17d, 32d });
+            else Assert.Contains(condition.Value, new[] { 10d, 18.75d, 32d });
             await page.SetViewportSizeAsync(composer ? 1280 : results ? 1440 : 390, 900);
             await NavigateAndSettleAsync(page, "/leaderboard?sort=pheno&then=age");
             await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
@@ -1235,13 +1275,30 @@ public sealed class AestheticSystemBrowserTests(
                         };
                     }
                     """, new { Width = width, Composer = composer, Results = results,
-                        DeepStack = !composer && !results && condition.Value == 17,
+                        DeepStack = !composer && !results && condition.Value == 18.75,
                         IdentityStack = !composer && !results && condition.Value == 10 });
                 Assert.Equal(width, diagnostics.ContainerWidth, 1);
                 Assert.True(diagnostics.IsCompact == (width <= threshold),
                     $"Ordering {condition.Name} did not cross {condition.Value}em at {width}px.");
                 Assert.True(diagnostics.HorizontalOverflow <= 1,
                     $"Ordering {condition.Name} overflowed by {diagnostics.HorizontalOverflow}px at {width}px.");
+                if (!composer && !results && condition.Value == 18.75)
+                {
+                    var clippedHeadings = await page.Locator("[data-order-boundary-probe]").EvaluateAsync<string[]>("""
+                        container => [...container.querySelectorAll('thead .leaderboard-column-order')].flatMap(button => {
+                            const box = button.getBoundingClientRect();
+                            if (!box.width) return [];
+                            return [...button.querySelectorAll('.order-heading-label, small')].flatMap(label => {
+                                const range = document.createRange(); range.selectNodeContents(label);
+                                return [...range.getClientRects()].some(text => text.width
+                                    && (text.left < box.left - 1 || text.right > box.right + 1))
+                                    ? [label.textContent.trim()] : [];
+                            });
+                        })
+                        """);
+                    Assert.True(clippedHeadings.Length == 0,
+                        $"Ordering headings clipped at {width}px: {string.Join(", ", clippedHeadings)}.");
+                }
             }
         }
     }
@@ -1332,7 +1389,9 @@ public sealed class AestheticSystemBrowserTests(
         IPage page,
         ResponsiveContainerCondition[] conditions)
     {
+        await AssertFontRelativeLeaderboardBoundariesAsync(page, conditions.Where(condition => condition.Unit == "em").ToArray());
         await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.Reduce });
+        await page.SetViewportSizeAsync(1440, 1000);
         await NavigateAndSettleAsync(page, "/leaderboard?filters=open,baby%20boomers");
         await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
         // Probe the rendered component without hydration or scroll handlers changing its state.
@@ -1351,7 +1410,7 @@ public sealed class AestheticSystemBrowserTests(
         var rootFontSize = await page.EvaluateAsync<double>(
             "() => parseFloat(getComputedStyle(document.documentElement).fontSize)");
 
-        foreach (var condition in conditions.Where(condition => condition.Name != "flag-results"))
+        foreach (var condition in conditions.Where(condition => condition.Name != "flag-results" && condition.Unit != "em"))
         {
             Assert.Equal("leaderboard-results", condition.Name);
             Assert.Equal("max", condition.Bound);
@@ -1396,6 +1455,73 @@ public sealed class AestheticSystemBrowserTests(
         }
         await AssertFlagContainerBoundariesAsync(page, conditions.Where(condition => condition.Name == "flag-results").ToArray());
         await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.NoPreference });
+    }
+
+    private static async Task AssertFontRelativeLeaderboardBoundariesAsync(IPage page, ResponsiveContainerCondition[] conditions)
+    {
+        foreach (var condition in conditions)
+        {
+            Assert.Equal("em", condition.Unit);
+            Assert.Contains(condition.Name, new[] { "league-filters", "podium", "athlete-stats", "leaderboard" });
+            var desktop = condition.Name == "league-filters" || condition.Name == "podium" && condition.Value == 32;
+            await page.SetViewportSizeAsync(desktop ? 1440 : 390, desktop ? 1000 : 844);
+            await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.Reduce });
+            var route = condition.Name == "podium" ? "/"
+                : condition.Name == "athlete-stats" ? "/athlete/michael-lustgarten"
+                : "/leaderboard?filters=open,baby%20boomers";
+            await NavigateAndSettleAsync(page, route);
+            if (condition.Name is "league-filters" or "leaderboard")
+                await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+            if (condition.Name == "podium") await page.Locator(".podium-item.first").WaitForAsync();
+            // Clone the rendered component in its existing scope. Hydration and
+            // scrolling keep ownership of the original while this probe resizes.
+            var fontSize = await page.EvaluateAsync<double>("""
+                name => {
+                    const source = [...document.querySelectorAll('body *')].find(e => getComputedStyle(e).containerName.split(' ').includes(name));
+                    if (!source) throw new Error('Missing query container: ' + name);
+                    const probe = source.cloneNode(true);
+                    probe.id = 'responsive-em-probe';
+                    probe.style.cssText += ';box-sizing:content-box;max-inline-size:none;min-inline-size:0;font-size:20px;flex:none;overflow:visible;scrollbar-gutter:auto;';
+                    source.parentElement.append(probe);
+                    return parseFloat(getComputedStyle(probe).fontSize);
+                }
+                """, condition.Name);
+            var threshold = condition.Value * fontSize;
+            foreach (var delta in new[] { -1, 0, 1, 0, -1 })
+            {
+                var width = threshold + delta;
+                var diagnostics = await page.EvaluateAsync<double[]>("""
+                    async arg => {
+                        const probe = document.getElementById('responsive-em-probe');
+                        probe.style.setProperty('width', `${arg.Width}px`, 'important');
+                        probe.style.setProperty('inline-size', `${arg.Width}px`, 'important');
+                        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                        await Promise.all(probe.getAnimations({ subtree: true })
+                            .filter(animation => Number.isFinite(animation.effect.getComputedTiming().endTime))
+                            .map(animation => animation.finished.catch(() => {})));
+                        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                        let applied;
+                        if (arg.Name === 'league-filters') applied = getComputedStyle(probe.querySelector('.filter-label-copy')).display === 'block';
+                        else if (arg.Name === 'athlete-stats') applied = getComputedStyle(probe.querySelector('.athlete-info-table tr')).display === 'grid';
+                        else if (arg.Name === 'leaderboard') {
+                            const row = probe.querySelector('tbody tr:not(.no-results):not(.tier-separator)');
+                            applied = row.querySelector('.athlete-identity').getBoundingClientRect().top >= row.querySelector('.portrait-wrapper').getBoundingClientRect().bottom - 1;
+                        } else if (arg.Value === 32) applied = Math.abs(probe.querySelector('.podium-item.first').getBoundingClientRect().width - probe.getBoundingClientRect().width) <= 2;
+                        else {
+                            const card = probe.querySelector('.podium-item.first');
+                            applied = card.querySelector('.name-row').getBoundingClientRect().top >= card.querySelector('.podium-portrait').getBoundingClientRect().bottom - 1;
+                        }
+                        return [parseFloat(getComputedStyle(probe).width), applied ? 1 : 0];
+                    }
+                    """, new { Width = width, condition.Name, condition.Value });
+                Assert.True(Math.Abs(width - diagnostics[0]) <= .1,
+                    $"{condition.Name} probe width was {diagnostics[0]}px; expected {width}px.");
+                var expected = condition.Bound == "min" ? width >= threshold : width <= threshold;
+                Assert.True((diagnostics[1] == 1) == expected,
+                    $"{condition.Name} did not cross {condition.Value}em at {width}px (applied={diagnostics[1]}).");
+            }
+            await page.Locator("#responsive-em-probe").EvaluateAsync("probe => probe.remove()");
+        }
     }
 
     private static async Task AssertFlagContainerBoundariesAsync(
@@ -1568,12 +1694,18 @@ public sealed class AestheticSystemBrowserTests(
             {
                 38 => "#lwc-step-1",
                 15 => "#dobFieldset",
+                14 when condition.Unit == "em" => "#dobFieldset",
                 _ => throw new InvalidOperationException(
                     $"Add a rendered calculator probe for {condition.Value}{condition.Unit}.")
             };
-            var thresholdPixels = condition.Unit == "rem"
-                ? condition.Value * rootFontSize
-                : condition.Value;
+            // Em queries use the container's font, not the root font. Give the
+            // date probe a distinct font size so a rem/em mix-up cannot pass.
+            var emDateProbe = condition.Unit == "em";
+            if (emDateProbe)
+                await page.Locator("form.bioageform").EvaluateAsync("form => form.style.fontSize = '20px'");
+            var containerFontSize = await page.Locator("form.bioageform").EvaluateAsync<double>("form => parseFloat(getComputedStyle(form).fontSize)");
+            var thresholdPixels = condition.Unit == "rem" ? condition.Value * rootFontSize
+                : emDateProbe ? condition.Value * containerFontSize : condition.Value;
 
             foreach (var delta in new[] { -1, 0, 1, 0, -1 })
             {
@@ -1588,12 +1720,14 @@ public sealed class AestheticSystemBrowserTests(
                         await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
                         return {
                             ContainerWidth: parseFloat(getComputedStyle(form).width),
-                            IsCompact: getComputedStyle(form.querySelector(argument.Selector)).display === 'block',
+                            IsCompact: argument.EmDateProbe
+                                ? form.querySelector('#dob-month-label').getBoundingClientRect().top >= form.querySelector('#dob-year').getBoundingClientRect().bottom
+                                : getComputedStyle(form.querySelector(argument.Selector)).display === 'block',
                             HorizontalOverflow: Math.max(0, form.scrollWidth - form.clientWidth)
                         };
                     }
                     """,
-                    new { InlineSize = inlineSize, Selector = selector });
+                    new { InlineSize = inlineSize, Selector = selector, EmDateProbe = emDateProbe });
                 Assert.Equal(inlineSize, diagnostics.ContainerWidth, 1);
                 Assert.True(diagnostics.IsCompact == (inlineSize <= thresholdPixels),
                     $"{route} {selector} did not cross its {condition.Value}{condition.Unit} boundary at {inlineSize}px.");

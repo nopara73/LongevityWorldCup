@@ -440,8 +440,14 @@ class ProofReview {
                 if (event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom) dialog.close();
             });
             dialog.addEventListener('close', () => {
+                // Native close events are queued: the user may already have
+                // moved focus or reopened this same dialog before delivery.
+                if (dialog.open) return;
                 document.body.classList.remove('proof-review-open');
-                if (this.opener?.isConnected) this.opener.focus({ preventScroll: true });
+                const active = document.activeElement;
+                if (this.opener?.isConnected && (!active || active === document.body || dialog.contains(active))) {
+                    this.opener.focus({ preventScroll: true });
+                }
             });
             this.dialog = dialog;
             document.body.appendChild(dialog);
