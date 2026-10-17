@@ -193,14 +193,16 @@
         </section>
 
         <section id="athleteSelectionPanel" class="play-hub-panel play-athlete-panel" hidden>
-            <h1 id="athleteSelectionTitle" class="play-athlete-title">Athlete selection</h1>
             <div class="play-athlete-visual">
-                <div id="athleteSelectionPicture" class="athlete-picture-frame">
-                    <picture>
-                        <source srcset="{{ASSET_PLAY_ATHLETE_PLACEHOLDER_WEBP}}" type="image/webp">
-                        <source srcset="{{ASSET_PLAY_ATHLETE_PLACEHOLDER_JPEG}}" type="image/jpeg">
-                        <img src="{{ASSET_PLAY_ATHLETE_PLACEHOLDER_JPEG}}" alt="Headshot" class="illustration athlete-picture-placeholder" width="1024" height="1024" loading="eager" decoding="async">
-                    </picture>
+                <div class="play-athlete-card">
+                    <h1 id="athleteSelectionTitle" class="play-athlete-title">Athlete selection</h1>
+                    <div id="athleteSelectionPicture" class="athlete-picture-frame">
+                        <picture>
+                            <source srcset="{{ASSET_PLAY_ATHLETE_PLACEHOLDER_WEBP}}" type="image/webp">
+                            <source srcset="{{ASSET_PLAY_ATHLETE_PLACEHOLDER_JPEG}}" type="image/jpeg">
+                            <img src="{{ASSET_PLAY_ATHLETE_PLACEHOLDER_JPEG}}" alt="Headshot" class="illustration athlete-picture-placeholder" width="1024" height="1024" loading="eager" decoding="async">
+                        </picture>
+                    </div>
                 </div>
             </div>
             <div class="play-autocomplete-wrapper">
