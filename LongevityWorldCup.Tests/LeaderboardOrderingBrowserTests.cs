@@ -251,6 +251,36 @@ public sealed class LeaderboardOrderingBrowserTests(PlaywrightBrowserFixture bro
     }
 
     [Fact]
+    public async Task CrowdUpdate_InvalidatesTheMatchingCohortAndItsOrderingValues()
+    {
+        using var client = App.CreateClient();
+        var source = JsonNode.Parse(await client.GetStringAsync("/api/data/athletes"))!.AsArray();
+        var target = source.OfType<JsonObject>().First(athlete => athlete["DateOfBirth"] is not null
+            && (athlete["CrowdCount"]?.GetValue<int>() ?? 0) < 100);
+        var name = target["Name"]!.GetValue<string>();
+        var slug = target["AthleteSlug"]!.GetValue<string>();
+        await using var context = await NewContextAsync(Browser, App, new() { ReducedMotion = ReducedMotion.Reduce });
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/leaderboard?view=crowd&sort=crowdCount");
+        await Loaded(page);
+        var before = await Rows(page).CountAsync();
+        Assert.DoesNotContain(name, await Rows(page).EvaluateAllAsync<string[]>("rows=>rows.map(row=>row.dataset.athleteName)"));
+
+        // The real Guess My Age update changes a result in place, without
+        // replacing the directory. Crossing 100 guesses also changes eligibility.
+        await page.EvaluateAsync("slug=>window.updateAthleteCrowdAge(slug,25,100000)", slug);
+        var header = page.Locator("th[data-order-key=crowdCount] button");
+        await header.ClickAsync();
+        await header.ClickAsync();
+        await Assertions.Expect(Rows(page).First).ToHaveAttributeAsync("data-athlete-name", name);
+        await Assertions.Expect(Rows(page).First.Locator("td[data-order-key=crowdCount]")).ToHaveTextAsync("100000");
+        Assert.Equal(before + 1, await Rows(page).CountAsync());
+        await page.Locator("#leaderboardOrderToggle").ClickAsync();
+        await page.Locator("#leaderboardOrderSecondary").SelectOptionAsync("crowd");
+        await Assertions.Expect(Rows(page).First.Locator("td[data-order-key=crowd]")).ToHaveTextAsync("25.0");
+    }
+
+    [Fact]
     public async Task OrderingChanges_UseAPendingSearchAndKeepEmptyResultsConsistent()
     {
         await using var context = await NewContextAsync(Browser, App, new());

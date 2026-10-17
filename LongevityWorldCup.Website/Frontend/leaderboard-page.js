@@ -1848,7 +1848,7 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity) {
                 const portraitLink = athleteCell.querySelector('.athlete-profile-link');
                 portraitLink.href = getAthleteProfileHref(athlete);
                 portraitLink.setAttribute('aria-label', `View stats of ${athlete.displayName}`);
-                athleteNameSpan.innerHTML = `<span class="athlete-name-content">${formatAthleteNameForMobile(athlete.displayName)}</span>`;
+                athleteNameSpan.innerHTML = `<span class="athlete-name-content">${escapeHtml(athlete.displayName)}</span>`;
                 athleteNameSpan.title = `View stats of ${athlete.displayName}`;
 
                 window.setBadges(athlete, athleteCell);
@@ -4802,12 +4802,6 @@ function renderFilterIcon(iconClass) {
         : '';
 }
 
-function formatAthleteNameForMobile(name) {
-    const safeName = escapeHtml(name);
-    if (window.innerWidth >= 480) return safeName;
-    return safeName.replace(/([a-z])([A-Z](?=[a-z]))/g, '$1<br>$2');
-}
-
 function getModalRankText(rank) {
     const numericRank = Number(rank);
     return Number.isFinite(numericRank) && numericRank > 0 ? `#${numericRank}` : '';
@@ -7098,6 +7092,16 @@ function updateAthleteCrowdAge(athleteSlug, crowdAge, crowdCount) {
         athleteData.crowdAgeReduction = Number.isFinite(age)
             ? age - athleteData.chronologicalAge
             : null;
+        // Guess submissions update this object in place, including eligibility.
+        // Do not reuse the prior Crowd cohort or its displayed ordering values.
+        leaderboardOrderingSnapshot = null;
+        if (athleteData.orderValues) {
+            const values = athleteData.orderValues;
+            const hasCrowd = athleteData.crowdCount > 0 && Number.isFinite(age);
+            values.crowd = hasCrowd ? age : null;
+            values.crowdCount = athleteData.crowdCount;
+            values.crowdReduction = hasCrowd && Number.isFinite(values.age) ? age - values.age : null;
+        }
         assignBestRankCandidates(athleteResults);
     }
 
