@@ -190,7 +190,7 @@ public sealed class LongevitymaxxingChallengePageTests(TestWebApplicationFactory
 
         var html = await client.GetStringAsync("/longevitymaxxing");
 
-        Assert.Contains("<h1 id=\"lmx-title\">Longevitymaxxing</h1>", html);
+        Assert.Contains("<h1 id=\"lmx-title\" aria-label=\"Longevitymaxxing\"><span class=\"page-title-word\">Lon&shy;gev&shy;ity<wbr>maxx&shy;ing</span></h1>", html);
         Assert.Contains("Starts soon", html);
         Assert.Contains("id=\"lmxAccessTabs\" class=\"lmx-tabs lmx-access-tabs\" role=\"tablist\"", html);
         Assert.Contains("data-lmx-access-tab=\"signup\"", html);

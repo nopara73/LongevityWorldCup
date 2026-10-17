@@ -29,7 +29,8 @@ public sealed class RejuvenationOlympicsBrowserTests(
         var page = await context.NewPageAsync();
         var response = await page.GotoAsync("/rejuvenation-olympics");
         Assert.True(response!.Ok);
-        await Assertions.Expect(page.Locator("h1")).ToHaveTextAsync("Coming from the Rejuvenation Olympics?");
+        await Assertions.Expect(page.Locator("h1")).ToHaveAccessibleNameAsync("Coming from the Rejuvenation Olympics?");
+        Assert.Equal("Coming from the Rejuvenation Olympics?", (await page.Locator("h1").TextContentAsync())!.Replace("\u00ad", ""));
         await Assertions.Expect(page.Locator(".ro-lead")).ToHaveTextAsync(
             "Rejuvenation Olympics is closing. Its final leaderboard will freeze on 15 April 2027. " +
             "If you competed there, Longevity World Cup is your chance to keep competing.");
