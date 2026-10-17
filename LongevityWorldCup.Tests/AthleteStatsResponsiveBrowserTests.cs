@@ -126,4 +126,50 @@ public sealed class AthleteStatsResponsiveBrowserTests(
             """);
         Assert.True(problems.Length == 0, $"{path}, {width}px, dark={dark}, {textPercent}% text: {string.Join(", ", problems)}");
     }
+
+    [Theory]
+    [InlineData(1440, 900)]
+    [InlineData(390, 844)]
+    [InlineData(320, 640)]
+    public async Task AthleteWhy_ReadsAsAnOpenPullQuoteRatherThanAnotherBox(int width, int height)
+    {
+        await using var context = await AestheticSystemBrowserTests.NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = height },
+            ReducedMotion = ReducedMotion.Reduce,
+            IsMobile = width < 600,
+            HasTouch = width < 600
+        });
+        await context.AddInitScriptAsync("localStorage.setItem('gmaSkipAll', 'true');");
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/athlete/michael-lustgarten", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.WaitForFunctionAsync("""
+            () => document.querySelector('#detailsModal .modal-content')?.dataset.athleteSlug === 'michael-lustgarten'
+                && !document.querySelector('#detailsModal .modal-content').classList.contains('is-loading')
+            """);
+        // Exercise a realistic why regardless of the fixture's copy.
+        await page.EvaluateAsync("() => { document.getElementById('athleteBio').textContent = 'To extend my health span as long as possible, and to help others do the same.'; }");
+
+        var quote = await page.EvaluateAsync<string[]>(
+            """
+            () => {
+                const bio = document.getElementById('athleteBio');
+                const style = getComputedStyle(bio);
+                const mark = getComputedStyle(bio, '::before');
+                const box = bio.getBoundingClientRect();
+                const name = document.getElementById('athleteName').getBoundingClientRect();
+                return [style.borderTopWidth, style.backgroundColor, style.boxShadow, mark.content, style.textAlign,
+                    String(Math.round(box.left + box.width / 2 - (name.left + name.width / 2))), String(box.right <= innerWidth && box.left >= 0)];
+            }
+            """);
+        var scenario = $"{width}x{height}";
+        Assert.True(quote[0] == "0px" && quote[1] == "rgba(0, 0, 0, 0)" && quote[2] == "none",
+            $"{scenario}: the why should not be a bordered box (border {quote[0]}, background {quote[1]}, shadow {quote[2]}).");
+        Assert.True(quote[3] == "\"“\"", $"{scenario}: the why should open with a quotation mark, not {quote[3]}.");
+        Assert.Equal("center", quote[4]);
+        Assert.True(Math.Abs(int.Parse(quote[5])) <= 2 && quote[6] == "true", $"{scenario}: the quote should sit centred under the name (offset {quote[5]}, inside {quote[6]}).");
+
+        await page.EvaluateAsync("() => { document.getElementById('athleteBio').textContent = ''; }");
+        Assert.False(await page.Locator("#athleteBio").IsVisibleAsync(), $"{scenario}: an athlete without a why should not show a lone quotation mark.");
+    }
 }
