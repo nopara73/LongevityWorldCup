@@ -393,18 +393,27 @@ public sealed class BiomarkerHistoryBrowserTests(
     }
 
     [Theory]
-    [InlineData(1440, false)]
-    [InlineData(390, true)]
-    [InlineData(320, false)]
-    public async Task RadarCard_OpensWithTheSameHeaderBandAsItsSiblingCards(int width, bool touch)
+    [InlineData(1440, false, false, 100)]
+    [InlineData(768, true, false, 100)]
+    [InlineData(390, true, true, 100)]
+    [InlineData(320, false, false, 100)]
+    [InlineData(1440, true, false, 200)]
+    [InlineData(768, false, false, 200)]
+    [InlineData(390, false, true, 200)]
+    [InlineData(320, true, true, 200)]
+    public async Task RadarCard_OpensWithTheSameHeaderBandAsItsSiblingCards(int width, bool dark, bool touch, int textPercent)
     {
-        await using var context = await NewContextAsync(width, true, touch: touch);
+        await using var context = await NewContextAsync(width, dark, touch: touch);
         var athlete = await HistoryAthleteAsync("Benjamin Garden", 44, partial: false);
         var peer = await HistoryAthleteAsync("Valerie Orsoni", 44, partial: false);
         await context.AddInitScriptAsync($"window.getSharedAthletes = async () => ({new JsonArray(athlete, peer).ToJsonString()});");
         var page = await context.NewPageAsync();
         await page.GotoAsync("/athlete/benjamin-garden", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
         await page.WaitForFunctionAsync("() => window.Chart?.getChart(document.getElementById('ageRadarChart')) && document.querySelector('#detailsModal .biomarkers-heading')");
+        await page.EvaluateAsync("() => document.fonts.ready");
+        var normalTabFontSize = await page.Locator("#ageTabBortz").EvaluateAsync<double>("el => parseFloat(getComputedStyle(el).fontSize)");
+        if (textPercent != 100)
+            await page.AddStyleTagAsync(new() { Content = $"html {{ font-size:{textPercent}% !important; }}" });
 
         var layout = await page.EvaluateAsync<double[]>(
             """
@@ -428,10 +437,35 @@ public sealed class BiomarkerHistoryBrowserTests(
             """);
         Assert.True(Math.Abs(layout[3] - layout[0]) <= 2 && Math.Abs(layout[4] - layout[1]) <= 2 && Math.Abs(layout[5] - layout[2]) <= 2,
             $"{width}px: the clock tabs should be the card's full-width header band, not a switch inset in it.");
-        Assert.True(Math.Abs(layout[6] - layout[7]) <= 2, $"{width}px: the radar band ({layout[6]:F0}px) should match the sibling cards' bands ({layout[7]:F0}px).");
+        if (textPercent == 100)
+            Assert.True(Math.Abs(layout[6] - layout[7]) <= 2, $"{width}px: the radar band ({layout[6]:F0}px) should match the sibling cards' bands ({layout[7]:F0}px).");
         Assert.True(layout[8] == 1, $"{width}px: the radar band should share the sibling bands' surface and hairline.");
         Assert.True(layout[9] == 1, $"{width}px: the clock tabs should not sit in their own bordered box.");
         Assert.True(layout[10] == 2 && layout[11] == 1, $"{width}px: both clock tabs should read as card titles.");
+        var tabFontSize = await page.Locator("#ageTabBortz").EvaluateAsync<double>("el => parseFloat(getComputedStyle(el).fontSize)");
+        Assert.True(tabFontSize >= normalTabFontSize * textPercent / 100 - .1, "The rendered tab text must actually enlarge.");
+        var problems = await page.Locator("#ageClockSwitch [role='tab']:not([hidden])").EvaluateAllAsync<string[]>(
+            """
+            tabs => tabs.flatMap(tab => {
+                const bounds = tab.getBoundingClientRect();
+                const band = tab.closest('.age-clock-switch').getBoundingClientRect();
+                const range = document.createRange(); range.selectNodeContents(tab);
+                const problems = [];
+                if (bounds.width < 44 || bounds.height < 44) problems.push('target below 44px');
+                if (bounds.left < band.left || bounds.right > band.right || bounds.top < band.top || bounds.bottom > band.bottom)
+                    problems.push('target escapes header band');
+                if ([...range.getClientRects()].some(rect => rect.width > 0 &&
+                    (rect.left < bounds.left - 1 || rect.right > bounds.right + 1 || rect.top < bounds.top - 1 || rect.bottom > bounds.bottom + 1)))
+                    problems.push('label escapes target');
+                return problems.map(problem => `${tab.textContent}: ${problem}`);
+            })
+            """);
+        Assert.True(problems.Length == 0, $"{width}px at {textPercent}%: {string.Join("; ", problems)}");
+        Assert.True(await page.Locator("#detailsModal .modal-content").EvaluateAsync<bool>("el => el.scrollWidth <= el.clientWidth + 1"));
+        await page.Locator("#ageTabBortz").PressAsync("ArrowRight");
+        await Expect(page.Locator("#ageTabPheno")).ToBeFocusedAsync();
+        await Expect(page.Locator("#ageTabPheno")).ToHaveAttributeAsync("aria-selected", "true");
+        Assert.True(await page.Locator("#ageTabPheno").EvaluateAsync<bool>("el => getComputedStyle(el).outlineStyle !== 'none' && parseFloat(getComputedStyle(el).outlineWidth) >= 2"));
     }
 
     [Theory]
@@ -568,7 +602,15 @@ public sealed class BiomarkerHistoryBrowserTests(
         {
             await Expect(page.Locator("#ageTabBortz")).ToBeHiddenAsync();
             await Expect(page.Locator("#ageTabPheno")).ToBeVisibleAsync();
+            Assert.Equal("none", await page.Locator("#ageTabPheno").EvaluateAsync<string>("el => getComputedStyle(el).boxShadow"));
         }
+        Assert.True(await page.Locator("#ageClockSwitch [role='tab']").EvaluateAllAsync<bool>(
+            """
+            tabs => tabs.filter(tab => !tab.checkVisibility()).every(tab => {
+                tab.focus();
+                return document.activeElement !== tab;
+            })
+            """));
     }
 
     [Fact]
