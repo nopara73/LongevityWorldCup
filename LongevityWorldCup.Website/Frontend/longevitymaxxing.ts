@@ -136,13 +136,14 @@
         replyCount?: number;
         images: CheckInImage[];
         replies?: DiscussionReply[];
-        kind?: "check-in" | "participant-joined";
+        kind?: "check-in" | "participant-joined" | "announcement";
         systemPostId?: string | null;
+        announcement?: DiscussionAnnouncement | null;
     }
 
     interface DiscussionSystemPost {
         id: string;
-        kind: "participant-joined";
+        kind: "participant-joined" | "announcement";
         participantId: string;
         displayName: string;
         date: string;
@@ -150,6 +151,13 @@
         lastActivityAtUtc: string;
         replyCount: number;
         replies: DiscussionReply[];
+        announcement?: DiscussionAnnouncement | null;
+    }
+
+    interface DiscussionAnnouncement {
+        eventId: string;
+        title: string;
+        content: string;
     }
 
     interface DiscussionReply {
@@ -246,6 +254,7 @@
         profileImageUrl: string | null;
         checkedInDays: number;
         totalPoints: number;
+        characterAllowance?: { challengePoints: number; ultimateLeagueAthletesBehind: number; limit: number };
         currentStreak: number;
         cells: DayCell[];
         badges: string[];
@@ -344,13 +353,18 @@
         mobile: boolean;
     }
 
-    interface DiscussionPage {
-        notes: ParticipantNote[];
-        startIndex: number;
-        endIndex: number;
-        totalCount: number;
-        pageIndex: number;
-        pageCount: number;
+    interface DiscussionFeedCursor {
+        rankedAtUnixMs: number;
+        score: number;
+        activityAtUnixMs: number;
+        challengeDay: number;
+        participantId: string;
+        systemPostId: string | null;
+    }
+
+    interface DiscussionFeedPage {
+        threads: { note: ParticipantNote | null; systemPost: DiscussionSystemPost | null }[];
+        nextCursor: DiscussionFeedCursor | null;
     }
 
     interface DashboardCategory {
@@ -577,7 +591,9 @@
     ];
     const MAX_NOTE_PHOTOS = 4;
     const MAX_NOTE_MENTIONS = 5;
-    const DISCUSSION_PAGE_SIZE = 5;
+    const DISCUSSION_BATCH_SIZE = 10;
+    const DISCUSSION_AUTO_BATCHES = 3;
+    const DISCUSSION_FEED_STORAGE_KEY = "lmxDiscussionFeed";
     const DISCUSSION_THREAD_LIMIT = 100;
     const PLANT_LEAF_CAPACITY = 64;
     const PLANT_BUD_CAPACITY = 12;
@@ -775,7 +791,24 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     let boardScrollObservedElement: Element | null = null;
     let mobileLeaderboardMedia: MediaQueryList | null = null;
     let mobileLeaderboardPage = 0;
-    let discussionPageIndex = 0;
+    let discussionFeedOwner: string | null = null;
+    const discussionFeedNotes = new Map<string, ParticipantNote>();
+    const discussionFeedPending = new Set<string>();
+    const discussionFeedUpdates = new Map<string, ParticipantNote>();
+    const renderedDiscussionNotes = new WeakMap<HTMLElement, string>();
+    let discussionFeedOrder: string[] = [];
+    let discussionFeedVisible = DISCUSSION_BATCH_SIZE;
+    let discussionFeedAutoBatches = 1;
+    let discussionFeedRankedAt = Date.now();
+    let discussionFeedBefore: DiscussionFeedCursor | null = null;
+    let discussionFeedHasHistory = false;
+    let discussionFeedLoading = false;
+    let discussionFeedError = false;
+    let discussionFeedGeneration = 0;
+    let discussionFeedAcceptedGeneration = -1;
+    let discussionFeedRefreshing = false;
+    let discussionFeedObserver: IntersectionObserver | null = null;
+    let discussionFeedRestoredAnchor: { key: string; top: number } | null = null;
     let linkedDiscussionThread: ParticipantNote | null = null;
     let discussionNavigationGeneration = 0;
     let dashboardScrollObserver: ResizeObserver | null = null;
@@ -890,7 +923,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         renderQuestionPreview();
         wireForms();
         wireLeaderboardPager();
-        wireDiscussionPager();
+        wireDiscussionFeed();
         wireDiscussionNavigation();
         wireAccessTabs();
         initAthleteSelectors();
@@ -1063,12 +1096,6 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         renderBoard(state);
     }
 
-    function wireDiscussionPager(): void {
-        optionalElement("lmxNotesNewer", HTMLButtonElement)?.addEventListener("click", () => changeDiscussionPage(-1));
-        optionalElement("lmxNotesOlder", HTMLButtonElement)?.addEventListener("click", () => changeDiscussionPage(1));
-        window.matchMedia(MOBILE_DISCUSSION_ACTIONS_QUERY).addEventListener("change", syncDiscussionReplyActionOrder);
-    }
-
     function syncDiscussionReplyActionOrder(): void {
         const belowContent = window.matchMedia(MOBILE_DISCUSSION_ACTIONS_QUERY).matches;
         document.querySelectorAll<HTMLElement>("[data-discussion-reply-id]").forEach(reply => {
@@ -1088,14 +1115,265 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         });
     }
 
-    function changeDiscussionPage(delta: number): void {
-        const participantView = participantState !== null;
-        const notes = participantState
-            ? participantDiscussionThreads(participantState)
+    function wireDiscussionFeed(): void {
+        window.matchMedia(MOBILE_DISCUSSION_ACTIONS_QUERY).addEventListener("change", syncDiscussionReplyActionOrder);
+        requiredButton("lmxFeedOlder").addEventListener("click", () => void loadDiscussionFeed(true));
+        requiredButton("lmxFeedNew").addEventListener("click", () => {
+            const visible = new Set(discussionFeedOrder.slice(0, discussionFeedVisible));
+            discussionFeedUpdates.forEach((note, key) => discussionFeedNotes.set(key, note));
+            discussionFeedUpdates.clear();
+            discussionFeedOrder = discussionThreadsInHotOrder(Array.from(discussionFeedNotes.values()), false)
+                .map(discussionPermalink);
+            discussionFeedOrder.forEach((key, index) => {
+                if (visible.has(key)) discussionFeedVisible = Math.max(discussionFeedVisible, index + 1);
+            });
+            discussionFeedPending.clear();
+            renderNotes(currentDiscussionNotes(), !!participantState);
+            const first = document.querySelector<HTMLElement>("#lmxNotes article");
+            first?.focus({ preventScroll: true });
+            first?.scrollIntoView({ block: "start", behavior: "instant" });
+        });
+        const sentinel = document.getElementById("lmxFeedSentinel");
+        if (sentinel && typeof IntersectionObserver === "function") {
+            discussionFeedObserver = new IntersectionObserver(entries => {
+                if (entries.some(entry => entry.isIntersecting) && discussionFeedAutoBatches < DISCUSSION_AUTO_BATCHES &&
+                    !discussionFeedLoading && !discussionFeedError &&
+                    !Array.from(document.querySelectorAll("[aria-modal='true']")).some(dialog => dialog.getClientRects().length))
+                    void loadDiscussionFeed(false);
+            }, { rootMargin: "0px 0px 200px 0px" });
+        }
+        window.addEventListener("pagehide", saveDiscussionFeedPosition);
+        window.setInterval(() => {
+            if (!document.hidden && document.getElementById("lmxNotesPanel")?.getClientRects().length &&
+                !discussionMutation && !discussionFeedLoading)
+                void refreshDiscussionFeed();
+        }, 60_000);
+    }
+
+    async function refreshDiscussionFeed(): Promise<void> {
+        if (discussionFeedRefreshing) return;
+        discussionFeedRefreshing = true;
+        const generation = discussionFeedGeneration;
+        const acceptedGeneration = stateAcceptanceGeneration;
+        const token = accessToken;
+        try {
+            const notes = token
+                ? participantDiscussionThreads(await postJson(`${API}/participant`, { token }))
+                : publicDiscussionThreads(await getJson(`${API}/state`));
+            // A reply or check-in accepted while this request was pending is newer than its snapshot.
+            if (generation !== discussionFeedGeneration || acceptedGeneration !== stateAcceptanceGeneration ||
+                token !== accessToken || discussionMutation) return;
+            queueDiscussionFeedUpdates(notes);
+            updateDiscussionFeedControls();
+        } catch { /* A background refresh must not interrupt reading or drafts. */ }
+        finally { discussionFeedRefreshing = false; }
+    }
+
+    function queueDiscussionFeedUpdates(notes: ParticipantNote[]): void {
+        for (const note of discussionThreadsInHotOrder(notes)) {
+            const key = discussionPermalink(note);
+            const previous = discussionFeedUpdates.get(key) || discussionFeedNotes.get(key);
+            if (JSON.stringify(previous) === JSON.stringify(note)) continue;
+            discussionFeedUpdates.set(key, note);
+            discussionFeedPending.add(key);
+        }
+    }
+
+    function currentDiscussionNotes(): ParticipantNote[] {
+        return participantState ? participantDiscussionThreads(participantState)
             : publicState ? publicDiscussionThreads(publicState) : [];
-        const page = getDiscussionPage(notes);
-        discussionPageIndex = Math.max(0, Math.min(page.pageCount - 1, page.pageIndex + delta));
-        renderNotes(notes, participantView, false);
+    }
+
+    function discussionFeedPosition(note: ParticipantNote): DiscussionFeedCursor {
+        return {
+            rankedAtUnixMs: discussionFeedRankedAt,
+            score: Math.round(discussionHotScore(note, discussionFeedRankedAt) * 1e9) / 1e9,
+            activityAtUnixMs: discussionActivityTimestamp(note),
+            challengeDay: note.challengeDay,
+            participantId: note.participantId,
+            systemPostId: note.systemPostId || null
+        };
+    }
+
+    function syncDiscussionFeed(notes: ParticipantNote[]): void {
+        const owner = participantState?.participant.id || "public";
+        if (discussionFeedOwner !== owner) {
+            if (discussionFeedOwner !== null) linkedDiscussionThread = null;
+            discussionFeedOwner = owner;
+            discussionFeedGeneration++;
+            discussionFeedNotes.clear();
+            discussionFeedOrder = [];
+            discussionFeedPending.clear();
+            discussionFeedUpdates.clear();
+            discussionFeedAcceptedGeneration = -1;
+            discussionFeedVisible = DISCUSSION_BATCH_SIZE;
+            discussionFeedAutoBatches = 1;
+            discussionFeedRankedAt = Date.now();
+            discussionFeedBefore = null;
+            discussionFeedHasHistory = false;
+            discussionFeedLoading = false;
+            discussionFeedError = false;
+            restoreDiscussionFeedPosition(owner);
+            if (discussionFeedOrder.length) {
+                queueDiscussionFeedUpdates(notes);
+                discussionFeedAcceptedGeneration = stateAcceptanceGeneration;
+            }
+        }
+        if (discussionFeedAcceptedGeneration !== stateAcceptanceGeneration) {
+            discussionFeedAcceptedGeneration = stateAcceptanceGeneration;
+            const ordered = discussionThreadsInHotOrder(notes);
+            if (!discussionFeedOrder.length) {
+                for (const note of ordered) {
+                    const key = discussionPermalink(note);
+                    discussionFeedNotes.set(key, note);
+                    discussionFeedOrder.push(key);
+                }
+                const last = ordered.at(-1);
+                discussionFeedBefore = last ? discussionFeedPosition(last) : null;
+                discussionFeedHasHistory = ordered.length >= DISCUSSION_THREAD_LIMIT;
+            } else {
+                const visible = new Set(discussionFeedOrder.slice(0, discussionFeedVisible));
+                for (const note of ordered) {
+                    const key = discussionPermalink(note);
+                    const previous = discussionFeedNotes.get(key);
+                    if (visible.has(key)) discussionFeedPending.delete(key);
+                    if (!previous || (!visible.has(key) && discussionActivityTimestamp(note) > discussionActivityTimestamp(previous)))
+                        discussionFeedPending.add(key);
+                    discussionFeedNotes.set(key, note);
+                    discussionFeedUpdates.delete(key);
+                }
+            }
+        }
+        if (linkedDiscussionThread) {
+            const key = discussionPermalink(linkedDiscussionThread);
+            if (!discussionFeedNotes.has(key)) discussionFeedNotes.set(key, linkedDiscussionThread);
+            if (!discussionFeedOrder.includes(key)) discussionFeedOrder.push(key);
+        }
+    }
+
+    async function loadDiscussionFeed(manual: boolean): Promise<void> {
+        if (discussionFeedLoading || (!discussionFeedHasHistory && discussionFeedVisible >= discussionFeedOrder.length)) return;
+        if (manual) discussionFeedAutoBatches = DISCUSSION_AUTO_BATCHES;
+        else discussionFeedAutoBatches++;
+        const generation = discussionFeedGeneration;
+        const button = requiredButton("lmxFeedOlder");
+        const focused = document.activeElement === button;
+        const firstNewIndex = discussionFeedVisible;
+        let userInterrupted = false;
+        discussionFeedError = false;
+        if (discussionFeedVisible >= discussionFeedOrder.length && discussionFeedHasHistory) {
+            const interactionListeners = new AbortController();
+            if (manual && focused) {
+                for (const event of ["wheel", "touchmove", "pointerdown", "keydown"])
+                    document.addEventListener(event, () => { userInterrupted = true; },
+                        { capture: true, passive: true, signal: interactionListeners.signal });
+            }
+            discussionFeedLoading = true;
+            updateDiscussionFeedControls();
+            try {
+                const page = await postJson(`${API}/discussion/feed`, { accessToken, before: discussionFeedBefore });
+                if (generation !== discussionFeedGeneration) return;
+                if (page.nextCursor && JSON.stringify(page.nextCursor) === JSON.stringify(discussionFeedBefore))
+                    throw invalidApiResponse(`${API}/discussion/feed`);
+                for (const thread of page.threads) {
+                    const note = thread.note || (thread.systemPost ? systemDiscussionThread(thread.systemPost) : null);
+                    if (!note) continue;
+                    const key = discussionPermalink(note);
+                    discussionFeedNotes.set(key, note);
+                    if (!discussionFeedOrder.includes(key)) discussionFeedOrder.push(key);
+                }
+                discussionFeedBefore = page.nextCursor;
+                discussionFeedHasHistory = !!page.nextCursor;
+            } catch {
+                if (generation === discussionFeedGeneration) discussionFeedError = true;
+            } finally {
+                interactionListeners.abort();
+                if (generation === discussionFeedGeneration) discussionFeedLoading = false;
+            }
+        }
+        if (generation !== discussionFeedGeneration) return;
+        discussionFeedVisible = Math.min(discussionFeedOrder.length, discussionFeedVisible + DISCUSSION_BATCH_SIZE);
+        renderNotes(currentDiscussionNotes(), !!participantState);
+        // Keyboard activation continues into the newly appended content. Automatic loads never take focus.
+        if (manual && focused && !userInterrupted &&
+            (document.activeElement === button || document.activeElement === document.body)) {
+            const key = discussionFeedOrder[firstNewIndex];
+            const next = Array.from(document.querySelectorAll<HTMLElement>("#lmxNotes > article"))
+                .find(article => article.dataset.feedKey === key);
+            const fallback = button.hidden ? document.getElementById("lmxFeedCaughtUp") : button;
+            (next || fallback)?.focus({ preventScroll: true });
+        }
+    }
+
+    function updateDiscussionFeedControls(): void {
+        const remaining = discussionFeedVisible < discussionFeedOrder.length || discussionFeedHasHistory;
+        const older = requiredButton("lmxFeedOlder");
+        older.hidden = !remaining && !discussionFeedLoading;
+        older.disabled = discussionFeedLoading;
+        older.setAttribute("aria-busy", String(discussionFeedLoading));
+        older.querySelector("span")!.textContent = discussionFeedLoading ? "Loading…" : discussionFeedError ? "Retry loading posts" : "Load older posts";
+        older.querySelector("i")!.className = discussionFeedError ? "fas fa-rotate-right" : "fas fa-chevron-down";
+        const status = document.getElementById("lmxFeedStatus")!;
+        status.textContent = discussionFeedError ? "Couldn’t load older posts." : "";
+        document.getElementById("lmxFeedCaughtUp")!.hidden = remaining || discussionFeedLoading || !discussionFeedOrder.length;
+        const fresh = requiredButton("lmxFeedNew");
+        fresh.hidden = !discussionFeedPending.size;
+        fresh.querySelector("span")!.textContent = `New posts${discussionFeedPending.size ? ` · ${discussionFeedPending.size}` : ""}`;
+        const sentinel = document.getElementById("lmxFeedSentinel");
+        discussionFeedObserver?.disconnect();
+        if (sentinel && remaining && !discussionFeedLoading && !discussionFeedError && discussionFeedAutoBatches < DISCUSSION_AUTO_BATCHES)
+            discussionFeedObserver?.observe(sentinel);
+    }
+
+    function discussionFeedAnchor(): { key: string; top: number } | null {
+        const article = Array.from(document.querySelectorAll<HTMLElement>("#lmxNotes article[data-feed-key]"))
+            .find(element => element.getBoundingClientRect().bottom > 0 && element.getBoundingClientRect().top < innerHeight);
+        return article ? { key: article.dataset.feedKey!, top: article.getBoundingClientRect().top } : null;
+    }
+
+    function restoreDiscussionFeedAnchor(anchor: { key: string; top: number } | null): void {
+        if (!anchor) return;
+        const article = Array.from(document.querySelectorAll<HTMLElement>("#lmxNotes article[data-feed-key]"))
+            .find(element => element.dataset.feedKey === anchor.key);
+        if (article) window.scrollBy({ top: article.getBoundingClientRect().top - anchor.top, behavior: "instant" });
+    }
+
+    function saveDiscussionFeedPosition(): void {
+        if (!discussionFeedOwner || !discussionFeedOrder.length) return;
+        try {
+            sessionStorage.setItem(DISCUSSION_FEED_STORAGE_KEY, JSON.stringify({
+                owner: discussionFeedOwner, savedAt: Date.now(), notes: Array.from(discussionFeedNotes.values()),
+                order: discussionFeedOrder, visible: discussionFeedVisible, autoBatches: discussionFeedAutoBatches,
+                rankedAt: discussionFeedRankedAt, before: discussionFeedBefore, hasHistory: discussionFeedHasHistory,
+                pending: Array.from(discussionFeedPending), anchor: discussionFeedAnchor(),
+                updates: Array.from(discussionFeedUpdates.values())
+            }));
+        } catch { /* The live feed still works when session storage is unavailable. */ }
+    }
+
+    function restoreDiscussionFeedPosition(owner: string): void {
+        try {
+            const saved = JSON.parse(sessionStorage.getItem(DISCUSSION_FEED_STORAGE_KEY) || "null") as {
+                owner?: string; savedAt?: number; notes?: unknown[]; order?: string[]; visible?: number;
+                autoBatches?: number; rankedAt?: number; before?: DiscussionFeedCursor | null; hasHistory?: boolean;
+                pending?: string[]; updates?: unknown[]; anchor?: { key: string; top: number } | null;
+            } | null;
+            if (!saved || saved.owner !== owner || !saved.savedAt || Date.now() - saved.savedAt > 30 * 60_000 ||
+                !Array.isArray(saved.notes) || !Array.isArray(saved.order) || !saved.rankedAt) return;
+            for (const note of saved.notes.filter(isParticipantNote)) discussionFeedNotes.set(discussionPermalink(note), note);
+            if (Array.isArray(saved.updates))
+                for (const note of saved.updates.filter(isParticipantNote)) discussionFeedUpdates.set(discussionPermalink(note), note);
+            discussionFeedOrder = saved.order.filter(key => typeof key === "string" && discussionFeedNotes.has(key));
+            discussionFeedVisible = Math.max(DISCUSSION_BATCH_SIZE, Math.min(saved.visible || DISCUSSION_BATCH_SIZE, discussionFeedOrder.length));
+            discussionFeedAutoBatches = Math.max(1, Math.min(saved.autoBatches || 1, DISCUSSION_AUTO_BATCHES));
+            discussionFeedRankedAt = saved.rankedAt;
+            discussionFeedBefore = isDiscussionFeedCursor(saved.before) ? saved.before : null;
+            discussionFeedHasHistory = !!saved.hasHistory;
+            for (const key of saved.pending || [])
+                if (discussionFeedNotes.has(key) || discussionFeedUpdates.has(key)) discussionFeedPending.add(key);
+            if (saved.anchor && typeof saved.anchor.key === "string" && Number.isFinite(saved.anchor.top))
+                discussionFeedRestoredAnchor = saved.anchor;
+        } catch { /* Ignore an expired or incomplete bookmark. */ }
     }
 
     function wireAccessTabs() {
@@ -2642,6 +2920,25 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         </svg>`;
     }
 
+    function discussionCharacterLimit(originalBody = ""): number {
+        const row = publicState?.leaderboard.find(candidate => candidate.participantId === participantState?.participant.id);
+        const limit = row?.characterAllowance?.limit ?? 146 + Math.min(154, Math.max(0, row?.totalPoints || 0));
+        return Math.max(limit, originalBody.length);
+    }
+
+    function characterAllowanceDescription(characterLimit: number): string {
+        const row = publicState?.leaderboard.find(candidate => candidate.participantId === participantState?.participant.id);
+        const points = row?.characterAllowance?.challengePoints ?? Math.min(154, Math.max(0, row?.totalPoints || 0));
+        const behind = row?.characterAllowance?.ultimateLeagueAthletesBehind || 0;
+        const breakdown = `146 base + ${points} Challenge points + ${behind} athletes behind you in the Ultimate League`;
+        return characterLimit > discussionCharacterLimit()
+            ? `Saved text allowance: ${characterLimit} characters. ${breakdown}` : breakdown;
+    }
+
+    function checkInCharacterLimit(form: HTMLFormElement): number {
+        return discussionCharacterLimit(form.dataset.originalNote || "");
+    }
+
     function checkInCardHtml(day: EligibleDay): string {
         const existing: Partial<CheckInDraft> = day.existing || {};
         const draft = checkInDrafts.get(checkInDraftKey(day));
@@ -2697,7 +2994,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                     <span id="lmx-note-${day.challengeDay}-count" class="lmx-note-character-count" data-note-character-count></span>
                 </div>
                 </div>
-                <textarea id="lmx-note-${day.challengeDay}" data-character-limit="240" placeholder="Visible publicly" data-mention-input role="combobox" aria-autocomplete="list" aria-haspopup="listbox" aria-expanded="false" aria-controls="lmx-mentions-${day.challengeDay}" aria-describedby="lmx-note-${day.challengeDay}-count">${esc(draft ? draft.note : note)}</textarea>
+                <textarea id="lmx-note-${day.challengeDay}" data-character-limit="${discussionCharacterLimit(note)}" placeholder="Visible publicly" data-mention-input role="combobox" aria-autocomplete="list" aria-haspopup="listbox" aria-expanded="false" aria-controls="lmx-mentions-${day.challengeDay}" aria-describedby="lmx-note-${day.challengeDay}-count">${esc(draft ? draft.note : note)}</textarea>
                 <div id="lmx-mentions-${day.challengeDay}" class="lmx-mention-options" role="listbox" aria-label="Mention a participant" hidden></div>
             </div>
             <div class="lmx-field lmx-note-photo-field" data-photo-slots="${photoSlotsLeft}">
@@ -3066,6 +3363,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
 
     function discussionPageThreads(notes: ParticipantNote[]): ParticipantNote[] {
         const ordered = discussionThreadsInHotOrder(notes);
+        const keys = new Set(ordered.map(discussionPermalink));
+        for (const [key, note] of discussionFeedNotes) if (!keys.has(key)) ordered.push(note);
         if (linkedDiscussionThread && !ordered.some(note => discussionPermalink(note) === discussionPermalink(linkedDiscussionThread!)))
             ordered.push(linkedDiscussionThread);
         return ordered;
@@ -3184,9 +3483,12 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             }
             if (!thread) {
                 closeCheckInDialog(true, false);
-                const ordered = discussionPageThreads(notes);
-                discussionPageIndex = Math.max(0, Math.floor(ordered.findIndex(candidate => discussionPermalink(candidate) === discussionPermalink(note!)) / DISCUSSION_PAGE_SIZE));
-                renderNotes(notes, !!participantState, false);
+                syncDiscussionFeed(notes);
+                const key = discussionPermalink(note!);
+                if (!discussionFeedOrder.includes(key)) discussionFeedOrder.push(key);
+                discussionFeedNotes.set(key, note!);
+                discussionFeedVisible = Math.max(discussionFeedVisible, discussionFeedOrder.indexOf(key) + 1);
+                renderNotes(notes, !!participantState);
                 thread = Array.from(document.querySelectorAll<HTMLElement>("#lmxNotes article[data-discussion-post-participant-id]"))
                     .find(candidate => candidate.dataset.discussionSystemPostId === (note!.systemPostId || "") &&
                         candidate.dataset.discussionPostParticipantId === note!.participantId &&
@@ -3586,7 +3888,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     function systemDiscussionThread(post: DiscussionSystemPost): ParticipantNote {
         return {
             participantId: post.participantId,
-            displayName: post.displayName,
+            displayName: post.kind === "announcement" ? "Longevity World Cup" : post.displayName,
             challengeDay: 0,
             date: post.date,
             note: null,
@@ -3596,25 +3898,28 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             images: [],
             replies: post.replies,
             kind: post.kind,
-            systemPostId: post.id
+            systemPostId: post.id,
+            announcement: post.announcement || null
         };
     }
 
-    function discussionThreadsInHotOrder(notes: ParticipantNote[]): ParticipantNote[] {
+    function discussionThreadsInHotOrder(notes: ParticipantNote[], limited = true): ParticipantNote[] {
         const now = Date.now();
         return (Array.isArray(notes) ? notes : [])
             .filter(hasParticipantNoteContent)
             .slice()
             .sort((left, right) => {
-                const scoreOrder = discussionHotScore(right, now) - discussionHotScore(left, now);
+                const scoreOrder = Math.round(discussionHotScore(right, now) * 1e9) - Math.round(discussionHotScore(left, now) * 1e9);
                 if (scoreOrder) return scoreOrder;
                 const activityOrder = discussionActivityTimestamp(right) - discussionActivityTimestamp(left);
                 if (activityOrder) return activityOrder;
                 const dayOrder = right.challengeDay - left.challengeDay;
                 if (dayOrder) return dayOrder;
-                return left.participantId < right.participantId ? -1 : left.participantId > right.participantId ? 1 : 0;
+                const participantOrder = left.participantId < right.participantId ? -1 : left.participantId > right.participantId ? 1 : 0;
+                if (participantOrder) return participantOrder;
+                return (left.systemPostId || "").localeCompare(right.systemPostId || "");
             })
-            .slice(0, DISCUSSION_THREAD_LIMIT);
+            .slice(0, limited ? DISCUSSION_THREAD_LIMIT : undefined);
     }
 
     function discussionHotScore(note: ParticipantNote, now: number): number {
@@ -3632,7 +3937,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const replyLabel = `${replyCount} ${replyCount === 1 ? "reply" : "replies"}`;
         const permalink = discussionPermalink(note);
         const when = discussionTimeHtml(note.updatedAtUtc, permalink, note.kind === "participant-joined" ? "Joined" : "Post updated");
-        const day = note.kind === "participant-joined" ? ""
+        const day = note.systemPostId ? ""
             : `<span title="${escAttr(formatDateLabel(note.date))}">Day ${note.challengeDay}</span>`;
         const replies = replyCount || canReply
             ? `<a class="lmx-discussion-count" data-discussion-link href="${escAttr(`${permalink}/replies`)}"
@@ -3654,7 +3959,9 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             : "";
         return `<div class="lmx-discussion-post-header">
             <span class="lmx-discussion-post-author">
-                ${discussionAuthorHtml(note.participantId, note.displayName)}
+                ${note.kind === "announcement"
+                    ? `<span class="lmx-discussion-author-identity"><span class="lmx-discussion-author-avatar lmx-announcement-icon"><i class="fas fa-bullhorn" aria-hidden="true"></i></span><strong role="heading" aria-level="3">${esc(note.announcement?.title || "")}</strong></span>`
+                    : discussionAuthorHtml(note.participantId, note.displayName)}
                 <small>${context}</small>
             </span>
             <span class="lmx-discussion-post-actions">${discussionCopyLinkHtml(permalink, "post")}${reply}</span>
@@ -3664,7 +3971,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     function discussionRepliesHtml(note: ParticipantNote): string {
         const embeddedReplies = Array.isArray(note.replies) ? note.replies : [];
         const reportedReplyCount = reportedDiscussionReplyCount(note);
-        const cacheKey = discussionThreadKey(note.participantId, note.challengeDay);
+        const cacheKey = discussionThreadKey(note.participantId, note.challengeDay, note.systemPostId);
         const cacheEntry = discussionReplyCache.get(cacheKey);
         let replies = embeddedReplies;
         let totalCount = reportedReplyCount;
@@ -3720,7 +4027,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         if (!replies) return;
         const items = Array.from(replies.querySelectorAll<HTMLElement>(".lmx-discussion-reply-list > [data-discussion-reply-id]"));
         const earlierItems = items.slice(0, -3);
-        const key = discussionThreadKey(String(article.dataset.discussionPostParticipantId || ""), Number(article.dataset.discussionPostChallengeDay));
+        const key = discussionThreadKey(String(article.dataset.discussionPostParticipantId || ""), Number(article.dataset.discussionPostChallengeDay), article.dataset.discussionSystemPostId);
         const editingEarlier = earlierItems.some(item => item.querySelector("[data-discussion-draft]"));
         // Never conceal an active editor, including one restored by a background refresh.
         if (editingEarlier) collapsedDiscussionThreads.delete(key);
@@ -3738,10 +4045,11 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     }
 
     function setDiscussionHistoryExpanded(article: HTMLElement, expanded: boolean): void {
-        const key = discussionThreadKey(String(article.dataset.discussionPostParticipantId || ""), Number(article.dataset.discussionPostChallengeDay));
+        const key = discussionThreadKey(String(article.dataset.discussionPostParticipantId || ""), Number(article.dataset.discussionPostChallengeDay), article.dataset.discussionSystemPostId);
         const siblings = Array.from(document.querySelectorAll<HTMLElement>("article[data-discussion-post-participant-id]"))
             .filter(candidate => candidate.dataset.discussionPostParticipantId === article.dataset.discussionPostParticipantId &&
-                candidate.dataset.discussionPostChallengeDay === article.dataset.discussionPostChallengeDay);
+                candidate.dataset.discussionPostChallengeDay === article.dataset.discussionPostChallengeDay &&
+                candidate.dataset.discussionSystemPostId === article.dataset.discussionSystemPostId);
         if (!expanded && siblings.some(candidate => Array.from(candidate.querySelectorAll<HTMLElement>(".lmx-discussion-reply-list > [data-discussion-reply-id]"))
             .slice(0, -3).some(item => item.querySelector("[data-discussion-draft]")))) return;
         if (expanded) collapsedDiscussionThreads.delete(key);
@@ -3773,13 +4081,13 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         return `View ${remaining} earlier ${remaining === 1 ? "reply" : "replies"}`;
     }
 
-    function discussionThreadKey(postParticipantId: string, challengeDay: number): string {
-        return JSON.stringify([postParticipantId, challengeDay]);
+    function discussionThreadKey(postParticipantId: string, challengeDay: number, systemPostId?: string | null): string {
+        return JSON.stringify(systemPostId ? ["system", systemPostId] : [postParticipantId, challengeDay]);
     }
 
     function effectiveDiscussionReplyCount(note: ParticipantNote): number {
         const reportedCount = reportedDiscussionReplyCount(note);
-        const cached = discussionReplyCache.get(discussionThreadKey(note.participantId, note.challengeDay));
+        const cached = discussionReplyCache.get(discussionThreadKey(note.participantId, note.challengeDay, note.systemPostId));
         return cached
             ? Math.max(reportedCount, cached.latestKnownReplyCount, cached.byId.size)
             : reportedCount;
@@ -3795,7 +4103,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     ): void {
         const authoritativeSnapshots = new Map<string, { replyCount: number; replies: DiscussionReply[] }>();
         noteCollections.forEach(collection => (collection || []).forEach(note => {
-            const key = discussionThreadKey(note.participantId, note.challengeDay);
+            const key = discussionThreadKey(note.participantId, note.challengeDay, note.systemPostId);
             const snapshot = {
                 replyCount: reportedDiscussionReplyCount(note),
                 replies: Array.isArray(note.replies) ? note.replies : []
@@ -3883,7 +4191,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         payload: DiscussionReplyPagePayload,
         replies: DiscussionReply[]
     ): void {
-        const key = discussionThreadKey(payload.postParticipantId, payload.challengeDay);
+        const key = discussionThreadKey(payload.postParticipantId, payload.challengeDay, payload.systemPostId);
         let entry = discussionReplyCache.get(key);
         if (entry) {
             const cachedReplies = mergeDiscussionReplies(entry.byId, []);
@@ -3918,6 +4226,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         replyCount: number;
     } {
         const noteCollections = [
+            Array.from(discussionFeedNotes.values()),
             participantState?.notes,
             participantState?.public?.notes,
             publicState?.notes,
@@ -3926,7 +4235,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             linkedDiscussionThread ? [linkedDiscussionThread] : []
         ];
         const notes = noteCollections.flatMap(collection => (collection || [])
-            .filter(note => note.participantId === payload.postParticipantId && note.challengeDay === payload.challengeDay));
+            .filter(note => discussionThreadKey(note.participantId, note.challengeDay, note.systemPostId) ===
+                discussionThreadKey(payload.postParticipantId, payload.challengeDay, payload.systemPostId)));
         const cursorMatches = notes.filter(note => {
             const earliest = Array.isArray(note.replies) ? note.replies[0] : null;
             return !!earliest &&
@@ -4114,12 +4424,19 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     }
 
     function hasParticipantNoteContent(note: ParticipantNote): boolean {
-        return note?.kind === "participant-joined" ||
+        return note?.kind === "participant-joined" || (note?.kind === "announcement" && !!note.announcement) ||
             !!String(note?.note || "").trim() ||
             (Array.isArray(note?.images) && note.images.length > 0);
     }
 
     function discussionOpeningPostHtml(note: ParticipantNote): string {
+        if (note.kind === "announcement" && note.announcement) {
+            const markup = window.CustomEventMarkup;
+            const content = String(note.announcement.content || "").split(/\n\s*\n/)
+                .filter(paragraph => !/^\s*\[[^\]]+\]\(https:\/\/longevityworldcup\.com\/longevitymaxxing\/?\)\s*$/i.test(paragraph))
+                .map(paragraph => `<p>${markup ? markup.renderMarkupWithBreaks(paragraph) : esc(paragraph)}</p>`).join("");
+            return `<div class="lmx-announcement-content">${content}</div>`;
+        }
         if (note.kind === "participant-joined")
             return `<p>Joined the Longevitymaxxing Challenge.</p>`;
         const noteText = String(note.note || "").trim();
@@ -4890,7 +5207,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             form.querySelector<HTMLInputElement>(".lmx-question:not(:has(.lmx-answer-input:checked)) .lmx-answer-input")?.focus();
             return;
         }
-        if (draft.note.length > 240) {
+        if (draft.note.length > checkInCharacterLimit(form)) {
             updateCheckInSaveState(form);
             form.querySelector<HTMLTextAreaElement>("textarea")?.focus();
             return;
@@ -4929,6 +5246,15 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             // Rendering can automatically switch to Home after the last due check-in.
             const stillViewingSubmittedDay = stillOnSubmittedDay && participantActiveTab === "checkin";
             acceptParticipantState(result);
+            const saved = result.eligibleDays.find(day => day.challengeDay === payload.challengeDay)?.existing;
+            if (saved && !String(saved.note || "").trim() && !saved.images.length) {
+                const postKey = discussionPermalink({ participantId: result.participant.id, challengeDay: payload.challengeDay, systemPostId: null });
+                discussionFeedNotes.delete(postKey);
+                discussionFeedUpdates.delete(postKey);
+                discussionFeedPending.delete(postKey);
+                discussionFeedOrder = discussionFeedOrder.filter(value => value !== postKey);
+                if (linkedDiscussionThread && discussionPermalink(linkedDiscussionThread) === postKey) linkedDiscussionThread = null;
+            }
             const nextMissing = getPendingCheckInDays(result)
                 .sort((a, b) => a.challengeDay - b.challengeDay)[0];
             if (stillOnSubmittedDay) selectedCheckInDay = nextMissing ? nextMissing.challengeDay : payload.challengeDay;
@@ -5033,12 +5359,16 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const savingThisDay = checkInSaving?.key === key;
         const note = form.querySelector<HTMLTextAreaElement>("textarea");
         const noteLength = draft.note.length;
+        const characterLimit = checkInCharacterLimit(form);
         if (note) {
-            const over = Math.max(0, noteLength - 240);
+            const over = Math.max(0, noteLength - characterLimit);
+            note.dataset.characterLimit = String(characterLimit);
             note.setCustomValidity(over ? `Remove ${over} characters before saving.` : "");
             note.setAttribute("aria-invalid", String(over > 0));
             const count = form.querySelector<HTMLElement>("[data-note-character-count]")!;
-            count.textContent = over ? `${over} over` : `${noteLength}/240`;
+            count.textContent = over ? `${over} over` : `${noteLength}/${characterLimit}`;
+            count.title = characterAllowanceDescription(characterLimit);
+            count.setAttribute("aria-label", over ? `${over} characters over the limit` : `${noteLength} of ${characterLimit} characters`);
             count.classList.toggle("over-limit", over > 0);
         }
         if (changed) {
@@ -5049,7 +5379,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const slots = Number(form.querySelector<HTMLElement>(".lmx-note-photo-field")?.dataset.photoSlots || MAX_NOTE_PHOTOS);
         form.querySelectorAll<HTMLInputElement | HTMLButtonElement>("[data-photo-button], [data-note-photos]").forEach(control => { control.disabled = savingThisDay || getPendingNotePhotos(form).length >= slots; });
         if (button) {
-            button.disabled = !!checkInSaving || !complete || (!changed && !checkInErrors.has(key)) || noteLength > 240;
+            button.disabled = !!checkInSaving || !complete || (!changed && !checkInErrors.has(key)) || noteLength > characterLimit;
             button.toggleAttribute("aria-busy", savingThisDay);
             if (savingThisDay) button.setAttribute("aria-busy", "true");
             button.innerHTML = savingThisDay
@@ -5362,31 +5692,38 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         return `${clean || "profile-picture"}.${extension}`;
     }
 
-    function renderNotes(notes: ParticipantNote[], participantView: boolean, keepActiveThread = true): void {
+    function renderNotes(notes: ParticipantNote[], participantView: boolean): void {
         const container = document.getElementById("lmxNotes");
         if (!container) return;
         if (linkedDiscussionThread) linkedDiscussionThread = notes.find(note =>
             discussionPermalink(note) === discussionPermalink(linkedDiscussionThread!)) || linkedDiscussionThread;
         const restoreDraftFocus = preserveDiscussionDraftFocus(container);
-        const draft = activeDiscussionDraft?.surface === "notes" ? discussionDrafts.get(activeDiscussionDraft.key) : null;
-        if (keepActiveThread && draft && container.querySelector("[data-discussion-draft]")) {
-            const index = discussionThreadsInHotOrder(notes).findIndex(note => isDiscussionDraftThread(note, draft));
-            if (index >= 0) discussionPageIndex = Math.floor(index / DISCUSSION_PAGE_SIZE);
-        }
-        const page = getDiscussionPage(notes);
-        updateDiscussionPager(page);
-        if (!page.totalCount) {
+        const anchor = discussionFeedAnchor();
+        syncDiscussionFeed(notes);
+        if (!discussionFeedOrder.length) {
             container.innerHTML = `<div class="lmx-note"><strong>No discussion yet.</strong></div>`;
+            updateDiscussionFeedControls();
             return;
         }
 
         const canReply = participantView && !!participantState;
-        container.innerHTML = page.notes.map(note => {
-            const images = Array.isArray(note.images) ? note.images : [];
-            const imageHtml = images.length
-                ? `<div class="lmx-note-photo-grid">${images.map((image, index) => notePhotoHtml(image, `${note.participantId}-${note.challengeDay}-${index}`)).join("")}</div>`
-                : "";
-            return `<article class="lmx-note" tabindex="-1"
+        const existing = new Map(Array.from(container.querySelectorAll<HTMLElement>("article[data-feed-key]"))
+            .map(article => [article.dataset.feedKey!, article]));
+        container.querySelector(":scope > div")?.remove();
+        let previous: HTMLElement | null = null;
+        for (const key of discussionFeedOrder.slice(0, discussionFeedVisible)) {
+            const note = discussionFeedNotes.get(key);
+            if (!note) continue;
+            let article = existing.get(key);
+            existing.delete(key);
+            const signature = JSON.stringify([note, canReply, discussionFeedOwner, discussionCharacterLimit()]);
+            if (!article || renderedDiscussionNotes.get(article) !== signature) {
+                const images = Array.isArray(note.images) ? note.images : [];
+                const imageHtml = images.length
+                    ? `<div class="lmx-note-photo-grid">${images.map((image, index) => notePhotoHtml(image, `${note.participantId}-${note.challengeDay}-${index}`)).join("")}</div>`
+                    : "";
+                const template = document.createElement("template");
+                template.innerHTML = `<article class="lmx-note${note.kind === "announcement" ? " lmx-announcement" : ""}" tabindex="-1" data-feed-key="${escAttr(key)}"
                 data-discussion-post-participant-id="${escAttr(note.participantId)}"
                 data-discussion-post-challenge-day="${escAttr(note.challengeDay)}"
                 data-discussion-system-post-id="${escAttr(note.systemPostId || "")}">
@@ -5397,9 +5734,27 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 ${discussionQuickReplyHtml(note, canReply)}
                 <div class="lmx-discussion-reply-slot"></div>
             </article>`;
-        }).join("");
+                const replacement = template.content.firstElementChild as HTMLElement;
+                article?.replaceWith(replacement);
+                article = replacement;
+                renderedDiscussionNotes.set(article, signature);
+            }
+            if (article.previousElementSibling !== previous || article.parentElement !== container) {
+                if (previous) previous.after(article);
+                else container.prepend(article);
+            }
+            previous = article;
+        }
+        existing.forEach(article => article.remove());
         wireDiscussionControls(container);
+        updateDiscussionFeedControls();
+        restoreDiscussionFeedAnchor(anchor);
         restoreDraftFocus();
+        if (discussionFeedRestoredAnchor && !window.location.hash.startsWith("#discussion/")) {
+            const bookmark = discussionFeedRestoredAnchor;
+            discussionFeedRestoredAnchor = null;
+            requestAnimationFrame(() => restoreDiscussionFeedAnchor(bookmark));
+        }
     }
 
     function wireDiscussionControls(root: ParentNode): void {
@@ -5520,7 +5875,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
 
     async function updateDiscussionReplyPages(payload: DiscussionReplyPagePayload, page: DiscussionReplyPage): Promise<void> {
         const snapshot = currentDiscussionReplySnapshot(payload);
-        const cached = discussionReplyCache.get(discussionThreadKey(payload.postParticipantId, payload.challengeDay));
+        const cached = discussionReplyCache.get(discussionThreadKey(payload.postParticipantId, payload.challengeDay, payload.systemPostId));
         const latestKnownReplyCount = Math.max(
             snapshot.replyCount,
             cached?.latestKnownReplyCount || 0,
@@ -5537,7 +5892,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         document.querySelectorAll<HTMLElement>("article[data-discussion-post-participant-id][data-discussion-post-challenge-day]")
             .forEach(article => {
                 if (article.dataset.discussionPostParticipantId !== payload.postParticipantId ||
-                    Number(article.dataset.discussionPostChallengeDay) !== payload.challengeDay) return;
+                    Number(article.dataset.discussionPostChallengeDay) !== payload.challengeDay ||
+                    (article.dataset.discussionSystemPostId || null) !== payload.systemPostId) return;
                 const replies = article.querySelector<HTMLElement>("[data-discussion-replies]");
                 const list = replies?.querySelector<HTMLElement>(".lmx-discussion-reply-list");
                 if (!replies || !list) return;
@@ -5903,7 +6259,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
 
     function discussionDraftCanSubmit(draft: DiscussionDraft): boolean {
         const hasPhotos = !!draft.photos?.length || !!(draft.editReplyId && findDiscussionReply(draft.editReplyId)?.images?.length);
-        return !draft.needsPhotos && draft.body.length <= 240 && (!!draft.body.trim() || hasPhotos) &&
+        return !draft.needsPhotos && draft.body.length <= discussionCharacterLimit(draft.originalBody) && (!!draft.body.trim() || hasPhotos) &&
             (draft.body.trim() !== draft.originalBody || !!draft.photos?.length);
     }
 
@@ -5978,7 +6334,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             else if (!mentioned.has(reply.participantId)) {
                 const prefix = `@${recipient.displayName} `;
                 if (mentioned.size >= MAX_NOTE_MENTIONS) draft.notice = "Five-participant mention limit reached. Your draft is unchanged.";
-                else if (draft.body.length + prefix.length > 240) draft.notice = "Make room in your draft to add this @mention.";
+                else if (draft.body.length + prefix.length > discussionCharacterLimit(draft.originalBody)) draft.notice = "Make room in your draft to add this @mention.";
                 else {
                     draft.body = prefix + draft.body;
                     draft.selectionStart += prefix.length;
@@ -6077,7 +6433,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             </div>
             <div class="lmx-discussion-context" data-discussion-compose-context hidden></div>
             <div class="lmx-mention-field">
-                <textarea id="${inputId}" data-character-limit="240" rows="3" placeholder="Write a reply or mention @Name"
+                <textarea id="${inputId}" data-character-limit="${discussionCharacterLimit(draft.originalBody)}" rows="3" placeholder="Write a reply or mention @Name"
                     data-mention-input role="combobox" aria-autocomplete="list" aria-haspopup="listbox"
                     aria-expanded="false" aria-controls="${inputId}-mentions" aria-describedby="${inputId}-count"></textarea>
                 <div id="${inputId}-mentions" class="lmx-mention-options" role="listbox" aria-label="Mention a participant" hidden></div>
@@ -6257,12 +6613,15 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             }
             const count = composer.querySelector<HTMLElement>("[data-reply-count]")!;
             const length = draft.body.length;
-            const over = Math.max(0, length - 240);
-            count.textContent = over ? `${over} over` : `${length}/240`;
-            count.setAttribute("aria-label", over ? `${over} characters over the limit` : `${length} of 240 characters`);
+            const characterLimit = discussionCharacterLimit(draft.originalBody);
+            const over = Math.max(0, length - characterLimit);
+            textarea.dataset.characterLimit = String(characterLimit);
+            count.textContent = over ? `${over} over` : `${length}/${characterLimit}`;
+            count.title = characterAllowanceDescription(characterLimit);
+            count.setAttribute("aria-label", over ? `${over} characters over the limit` : `${length} of ${characterLimit} characters`);
             count.classList.toggle("over-limit", over > 0);
             textarea.setAttribute("aria-invalid", String(over > 0));
-            count.classList.toggle("at-limit", draft.body.length >= 240);
+            count.classList.toggle("at-limit", draft.body.length >= characterLimit);
             const hint = composer.querySelector<HTMLElement>("[data-draft-hint]")!;
             hint.textContent = pending ? (draft.editReplyId ? "Saving your edit…" : "Posting your reply…")
                 : draft.photos?.length ? "Photos kept while this page is open" : discussionDraftStorageFailed ? "" : "Draft saved in this tab";
@@ -6309,13 +6668,17 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             const result = await postJson(`${API}/discussion/replies/delete`, payload);
             if (accessToken !== currentAccessToken || participantState?.participant.id !== reply.participantId) return;
             reconcileDiscussionReplyReference(replyId, null);
-            if (linkedDiscussionThread && linkedDiscussionThread.participantId === thread.dataset.discussionPostParticipantId &&
-                linkedDiscussionThread.challengeDay === Number(thread.dataset.discussionPostChallengeDay)) {
-                const previousCount = reportedDiscussionReplyCount(linkedDiscussionThread);
-                linkedDiscussionThread.replies = (linkedDiscussionThread.replies || []).filter(candidate => candidate.id !== replyId);
-                linkedDiscussionThread.replyCount = Math.max(0, previousCount - 1);
-                linkedDiscussionThread.lastActivityAtUtc = linkedDiscussionThread.replies.reduce((latest, candidate) =>
-                    Date.parse(candidate.createdAtUtc) > Date.parse(latest) ? candidate.createdAtUtc : latest, linkedDiscussionThread.updatedAtUtc);
+            const postKey = discussionPermalink({ participantId: String(thread.dataset.discussionPostParticipantId || ""),
+                challengeDay: Number(thread.dataset.discussionPostChallengeDay), systemPostId: thread.dataset.discussionSystemPostId || null });
+            const cachedThreads = new Set([...discussionFeedNotes.values(), ...discussionFeedUpdates.values(),
+                ...(linkedDiscussionThread ? [linkedDiscussionThread] : [])]);
+            for (const note of cachedThreads) {
+                if (discussionPermalink(note) !== postKey) continue;
+                const previousCount = reportedDiscussionReplyCount(note);
+                note.replies = (note.replies || []).filter(candidate => candidate.id !== replyId);
+                note.replyCount = Math.max(0, previousCount - 1);
+                note.lastActivityAtUtc = note.replies.reduce((latest, candidate) =>
+                    Date.parse(candidate.createdAtUtc) > Date.parse(latest) ? candidate.createdAtUtc : latest, note.updatedAtUtc);
             }
             for (const [key, draft] of discussionDrafts) {
                 if (draft.editReplyId !== replyId) continue;
@@ -6324,7 +6687,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             }
             const cacheKey = discussionThreadKey(
                 String(thread.dataset.discussionPostParticipantId || ""),
-                Number(thread.dataset.discussionPostChallengeDay));
+                Number(thread.dataset.discussionPostChallengeDay), thread.dataset.discussionSystemPostId);
             discussionReplyCache.delete(cacheKey);
             acceptParticipantState(result);
             renderParticipantDiscussion(result);
@@ -6349,6 +6712,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             if (cached) return cached;
         }
         const collections = [
+            Array.from(discussionFeedNotes.values()),
             participantState?.notes,
             participantState?.public?.notes,
             publicState?.notes,
@@ -6377,6 +6741,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             cache.byId.forEach((reply, id) => cache.byId.set(id, reconcile(reply)));
         });
         const collections = [
+            Array.from(discussionFeedNotes.values()),
+            Array.from(discussionFeedUpdates.values()),
             participantState?.notes,
             participantState?.public?.notes,
             publicState?.notes,
@@ -6399,6 +6765,11 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         discussionDrafts.forEach(draft => {
             if (draft.replyToId === replyId) draft.replyTo = context;
         });
+        for (const [key, note] of discussionFeedUpdates) {
+            if (JSON.stringify(note) !== JSON.stringify(discussionFeedNotes.get(key))) continue;
+            discussionFeedUpdates.delete(key);
+            discussionFeedPending.delete(key);
+        }
     }
 
     async function submitDiscussionReply(draft: DiscussionDraft): Promise<void> {
@@ -6429,6 +6800,9 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 const updated = await postJson(`${API}/discussion/replies/edit`, payload);
                 if (accessToken !== currentAccessToken || participantState?.participant.id !== draft.participantId) return;
                 replaceDiscussionReplyEverywhere(updated);
+                stateAcceptanceGeneration++;
+                // This edit is already in the feed, which may be newer than the last full state.
+                discussionFeedAcceptedGeneration = stateAcceptanceGeneration;
             } else {
                 const payload: DiscussionReplyPayload = {
                     accessToken, postParticipantId: draft.postParticipantId, challengeDay: draft.challengeDay,
@@ -6496,54 +6870,6 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     function renderParticipantDiscussion(state: ParticipantState): void {
         renderNotes(participantDiscussionThreads(state), true);
     }
-
-    function getDiscussionPage(notes: ParticipantNote[]): DiscussionPage {
-        const posts = discussionPageThreads(notes);
-        const pageCount = Math.max(1, Math.ceil(posts.length / DISCUSSION_PAGE_SIZE));
-        const pageIndex = Math.max(0, Math.min(pageCount - 1, discussionPageIndex));
-        discussionPageIndex = pageIndex;
-        const startIndex = pageIndex * DISCUSSION_PAGE_SIZE;
-        const endIndex = Math.min(startIndex + DISCUSSION_PAGE_SIZE, posts.length);
-
-        return {
-            notes: posts.slice(startIndex, endIndex),
-            startIndex,
-            endIndex,
-            totalCount: posts.length,
-            pageIndex,
-            pageCount
-        };
-    }
-
-    function updateDiscussionPager(page: DiscussionPage): void {
-        const pager = document.getElementById("lmxNotesPager");
-        const newerButton = optionalElement("lmxNotesNewer", HTMLButtonElement);
-        const olderButton = optionalElement("lmxNotesOlder", HTMLButtonElement);
-        const label = document.getElementById("lmxNotesDayLabel");
-        if (!pager || !newerButton || !olderButton || !label) return;
-
-        const visible = page.pageCount > 1;
-        pager.classList.toggle("lmx-hidden", !visible);
-        pager.toggleAttribute("hidden", !visible);
-
-        if (!page.totalCount) {
-            label.textContent = "";
-            label.removeAttribute("aria-label");
-        } else {
-            const first = page.startIndex + 1;
-            const last = page.endIndex;
-            label.textContent = first === last ? `${first} of ${page.totalCount}` : `${first}\u2013${last} of ${page.totalCount}`;
-            label.setAttribute(
-                "aria-label",
-                first === last
-                    ? `Discussion post ${first} of ${page.totalCount}`
-                    : `Discussion posts ${first} through ${last} of ${page.totalCount}`);
-        }
-
-        newerButton.disabled = !visible || page.pageIndex === 0;
-        olderButton.disabled = !visible || page.pageIndex >= page.pageCount - 1;
-    }
-
 
     function leaderboardRank(state: PublicState, row: LeaderboardRow): number {
         // Keep cached/older API responses consistent with the server's competition ranks.
@@ -7818,18 +8144,24 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             (!hasProperties(value, "lastActivityAtUtc") || typeof value.lastActivityAtUtc === "string") &&
             (!hasProperties(value, "replyCount") || (typeof value.replyCount === "number" && value.replyCount >= 0)) &&
             (!hasProperties(value, "replies") || isArrayOf(value.replies, isDiscussionReply)) &&
-            (!hasProperties(value, "kind") || value.kind === "check-in" || value.kind === "participant-joined") &&
+            (!hasProperties(value, "kind") || value.kind === "check-in" || value.kind === "participant-joined" || value.kind === "announcement") &&
             (!hasProperties(value, "systemPostId") || isNullableString(value.systemPostId));
     }
 
     function isDiscussionSystemPost(value: unknown): value is DiscussionSystemPost {
         return hasProperties(value, "id", "kind", "participantId", "displayName", "date", "occurredAtUtc", "lastActivityAtUtc", "replyCount", "replies") &&
-            typeof value.id === "string" && value.kind === "participant-joined" &&
+            typeof value.id === "string" && (value.kind === "participant-joined" || value.kind === "announcement" &&
+                hasProperties(value, "announcement") && isDiscussionAnnouncement(value.announcement)) &&
             typeof value.participantId === "string" && typeof value.displayName === "string" &&
             typeof value.date === "string" && typeof value.occurredAtUtc === "string" &&
             typeof value.lastActivityAtUtc === "string" &&
             typeof value.replyCount === "number" && value.replyCount >= 0 &&
             isArrayOf(value.replies, isDiscussionReply);
+    }
+
+    function isDiscussionAnnouncement(value: unknown): value is DiscussionAnnouncement {
+        return hasProperties(value, "eventId", "title", "content") &&
+            typeof value.eventId === "string" && typeof value.title === "string" && typeof value.content === "string";
     }
 
     function isDiscussionReply(value: unknown): value is DiscussionReply {
@@ -7852,6 +8184,24 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             typeof value.remainingEarlierReplyCount === "number" && value.remainingEarlierReplyCount >= 0 &&
             typeof value.hasEarlier === "boolean" &&
             isNullableString(value.nextBeforeCreatedAtUtc) && isNullableString(value.nextBeforeReplyId);
+    }
+
+    function isDiscussionFeedCursor(value: unknown): value is DiscussionFeedCursor {
+        return hasProperties(value, "rankedAtUnixMs", "score", "activityAtUnixMs", "challengeDay", "participantId", "systemPostId") &&
+            typeof value.rankedAtUnixMs === "number" && Number.isFinite(value.rankedAtUnixMs) &&
+            typeof value.score === "number" && Number.isFinite(value.score) &&
+            typeof value.activityAtUnixMs === "number" && Number.isFinite(value.activityAtUnixMs) &&
+            typeof value.challengeDay === "number" && Number.isInteger(value.challengeDay) && value.challengeDay >= 0 &&
+            typeof value.participantId === "string" && isNullableString(value.systemPostId);
+    }
+
+    function isDiscussionFeedPage(value: unknown): value is DiscussionFeedPage {
+        return hasProperties(value, "threads", "nextCursor") &&
+            Array.isArray(value.threads) && value.threads.length <= DISCUSSION_BATCH_SIZE &&
+            value.threads.every(thread => hasProperties(thread, "note", "systemPost") &&
+                ((thread.note === null && isDiscussionSystemPost(thread.systemPost)) ||
+                 (thread.systemPost === null && isParticipantNote(thread.note)))) &&
+            (value.nextCursor === null || isDiscussionFeedCursor(value.nextCursor));
     }
 
     function isLeaderboardRow(value: unknown): value is LeaderboardRow {
@@ -7948,6 +8298,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     async function postJson(url: `${typeof API}/signup` | `${typeof API}/resend`, payload: object): Promise<SignupResult>;
     async function postJson(url: `${typeof API}/confirm`, payload: object): Promise<AccessResult>;
     async function postJson(url: `${typeof API}/discussion/replies/page`, payload: object): Promise<DiscussionReplyPage>;
+    async function postJson(url: `${typeof API}/discussion/feed`, payload: object): Promise<DiscussionFeedPage>;
     async function postJson(url: `${typeof API}/discussion/replies/edit`, payload: object): Promise<DiscussionReply>;
     async function postJson(
         url: `${typeof API}/edit` | `${typeof API}/participant` | `${typeof API}/check-in` | `${typeof API}/discussion/replies` | `${typeof API}/discussion/replies/delete`,
@@ -7971,6 +8322,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         if ((url === `${API}/signup` || url === `${API}/resend`) && !isSignupResult(data)) throw invalidApiResponse(url);
         if (url === `${API}/confirm` && !isAccessResult(data)) throw invalidApiResponse(url);
         if (url === `${API}/discussion/replies/page` && !isDiscussionReplyPage(data)) throw invalidApiResponse(url);
+        if (url === `${API}/discussion/feed` && !isDiscussionFeedPage(data)) throw invalidApiResponse(url);
         if (url === `${API}/discussion/replies/edit` && !isDiscussionReply(data)) throw invalidApiResponse(url);
         if ((url === `${API}/edit` || url === `${API}/participant` || url === `${API}/check-in` || url === `${API}/discussion/replies` || url === `${API}/discussion/replies/delete`) && !isParticipantState(data)) {
             throw invalidApiResponse(url);

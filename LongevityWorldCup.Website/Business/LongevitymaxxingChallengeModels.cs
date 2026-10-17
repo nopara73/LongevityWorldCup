@@ -55,6 +55,22 @@ public sealed record LongevitymaxxingDiscussionThread(
     LongevitymaxxingParticipantNote? Note,
     LongevitymaxxingDiscussionSystemPost? SystemPost);
 
+public sealed record LongevitymaxxingDiscussionFeedCursor(
+    long RankedAtUnixMs,
+    double Score,
+    long ActivityAtUnixMs,
+    int ChallengeDay,
+    string ParticipantId,
+    string? SystemPostId);
+
+public sealed record LongevitymaxxingDiscussionFeedRequest(
+    string? AccessToken,
+    LongevitymaxxingDiscussionFeedCursor? Before = null);
+
+public sealed record LongevitymaxxingDiscussionFeedPage(
+    IReadOnlyList<LongevitymaxxingDiscussionThread> Threads,
+    LongevitymaxxingDiscussionFeedCursor? NextCursor);
+
 public sealed record LongevitymaxxingParticipantEditRequest(
     string AccessToken,
     string TimeZoneId,
@@ -146,6 +162,13 @@ public sealed record LongevitymaxxingLeaderboardRow(
 {
     public int Rank { get; init; }
     public bool HasFullMarks { get; init; }
+    public LongevitymaxxingCharacterAllowance CharacterAllowance { get; init; } = new(0, 0);
+}
+
+public sealed record LongevitymaxxingCharacterAllowance(int ChallengePoints, int UltimateLeagueAthletesBehind)
+{
+    public const int BaseCharacters = 146;
+    public int Limit => BaseCharacters + Math.Clamp(ChallengePoints, 0, 154) + Math.Max(0, UltimateLeagueAthletesBehind);
 }
 
 public sealed record LongevitymaxxingDayCell(
@@ -210,7 +233,12 @@ public sealed record LongevitymaxxingDiscussionSystemPost(
     string OccurredAtUtc,
     string LastActivityAtUtc,
     int ReplyCount,
-    IReadOnlyList<LongevitymaxxingDiscussionReply> Replies);
+    IReadOnlyList<LongevitymaxxingDiscussionReply> Replies)
+{
+    public LongevitymaxxingDiscussionAnnouncement? Announcement { get; init; }
+}
+
+public sealed record LongevitymaxxingDiscussionAnnouncement(string EventId, string Title, string Content);
 
 public sealed record LongevitymaxxingCheckInImage(
     string Url,

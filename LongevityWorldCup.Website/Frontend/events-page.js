@@ -780,6 +780,13 @@ const eventsPageAssets = document.currentScript.dataset;
         const shouldAppend = !!(options && options.preserveExistingRows && appendFromIndex > 0);
         if (!shouldAppend) {
             tbody.innerHTML = "";
+        } else {
+            // Responsive fitting may reduce the row count. Keep the shared prefix,
+            // including its open details and focus, and remove only the trailing rows.
+            [...tbody.querySelectorAll('tr.main-row')].slice(appendFromIndex).forEach(row => {
+                if (row.nextElementSibling?.classList.contains('details-row')) row.nextElementSibling.remove();
+                row.remove();
+            });
         }
 
         if (!Array.isArray(rows) || rows.length === 0){
@@ -1734,15 +1741,16 @@ const eventsPageAssets = document.currentScript.dataset;
             const existingHomepageRowCount = mode === "highlights"
                 ? document.querySelectorAll("#eventsTable tbody tr.main-row").length
                 : 0;
-            const canAppendHomepageRows = mode === "highlights"
+            const retainedHomepageRowCount = Math.min(previousHomepageRowIds.length, currentRowIds.length);
+            const canReuseHomepageRows = mode === "highlights"
                 && requestedPreserveExistingRows
-                && previousHomepageRowIds.length > 0
+                && retainedHomepageRowCount > 0
                 && previousHomepageRowIds.length === existingHomepageRowCount
-                && previousHomepageRowIds.every((id, idx) => currentRowIds[idx] === id);
+                && previousHomepageRowIds.slice(0, retainedHomepageRowCount).every((id, idx) => currentRowIds[idx] === id);
 
             renderRows(rows,athletesIndex,!!linkNames,{
-                preserveExistingRows: canAppendHomepageRows,
-                appendFromIndex: canAppendHomepageRows ? previousHomepageRowIds.length : 0
+                preserveExistingRows: canReuseHomepageRows,
+                appendFromIndex: canReuseHomepageRows ? retainedHomepageRowCount : 0
             });
             if(mode === "highlights"){
                 window.__homepageLastRenderIds = currentRowIds;

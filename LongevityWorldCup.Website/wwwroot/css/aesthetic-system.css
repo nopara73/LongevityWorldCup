@@ -1575,3 +1575,43 @@ main.homepage-main .lwc-merch-body {
         border-top: 0;
     }
 }
+
+/* Keep a title word together whenever it fits, and use only its discretionary
+   syllable breaks when it cannot. The font remains free to enlarge. */
+.page-title-word {
+    display: inline-block;
+    inline-size: max-content;
+    max-inline-size: 100%;
+    vertical-align: top;
+    hyphens: manual;
+    overflow-wrap: normal;
+    word-break: normal;
+}
+
+html body :is(#about-longevity-world-cup, #history-of-longevity-as-a-sport, #ro-title, #lmx-title, .unsubscribe-panel h1) {
+    min-inline-size: 0;
+    max-inline-size: 100%;
+    overflow-wrap: normal;
+    word-break: normal;
+}
+
+@media (max-width: 600px) {
+    html body .lmx-title-panel {
+        padding-inline: min(clamp(1rem, 3vw, 1.7rem), 5vw);
+    }
+
+    html body .documentation-page-about .documentation-document {
+        --about-bleed: min(1.1rem, 5.5vw);
+    }
+
+    html body .documentation-page-history .documentation-document {
+        padding-inline: min(1.1rem, 5.5vw);
+    }
+}
+
+/* Full browser zoom can reflow a 320px window to 160 CSS pixels. */
+@media (max-width: 280px) {
+    html body .unsubscribe-panel {
+        padding-inline: min(20px, 6.25vw);
+    }
+}
