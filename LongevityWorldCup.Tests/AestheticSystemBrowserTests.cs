@@ -1714,8 +1714,8 @@ public sealed class AestheticSystemBrowserTests(
              directory is not null;
              directory = directory.Parent)
         {
-            if (Directory.Exists(Path.Combine(directory.FullName, "LongevityWorldCup.Website"))
-                && Directory.Exists(Path.Combine(directory.FullName, "LongevityWorldCup.Tests")))
+            if (File.Exists(Path.Combine(directory.FullName, "LongevityWorldCup.Website", "LongevityWorldCup.Website.csproj"))
+                && File.Exists(Path.Combine(directory.FullName, "LongevityWorldCup.Tests", "LongevityWorldCup.Tests.csproj")))
             {
                 return directory.FullName;
             }
