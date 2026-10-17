@@ -90,13 +90,17 @@ public sealed class PlayAthleteSearchLayoutBrowserTests(
 
         var options = page.GetByRole(AriaRole.Option);
         var count = await options.CountAsync();
+        var pageScroll = await page.EvaluateAsync<double>("scrollY");
         for (var index = 0; index < count; index++)
         {
             await input.PressAsync("ArrowDown");
             var option = options.Nth(index);
             await Assertions.Expect(option).ToHaveAttributeAsync("aria-selected", "true");
-            // Native scrolling and the dock's scroll/resize callbacks settle after
-            // keydown. Poll the same geometry and hit test together at that boundary.
+            var navigationScroll = await page.EvaluateAsync<double>("scrollY");
+            Assert.True(Math.Abs(navigationScroll - pageScroll) <= 1,
+                $"Match {index + 1} moved the page from {pageScroll} to {navigationScroll}.");
+            // Popup sizing and dock callbacks can settle after keydown. Keep the
+            // geometry and hit test together while the page itself stays still.
             await page.WaitForFunctionAsync("""
                 option => {
                     const box = option.getBoundingClientRect();
