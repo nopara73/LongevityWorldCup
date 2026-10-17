@@ -1,6 +1,8 @@
 using Microsoft.Playwright;
 using System.Text.Json.Nodes;
 using LongevityWorldCup.Website.Business;
+using LongevityWorldCup.Website.Tools;
+using Microsoft.AspNetCore.Http;
 using Xunit;
 using static LongevityWorldCup.Tests.AestheticSystemBrowserTests;
 
@@ -12,6 +14,51 @@ public sealed class LeaderboardOrderingBrowserTests(PlaywrightBrowserFixture bro
 {
     private const string Ordered = "/leaderboard?sort=pheno&then=age&thenDir=desc";
     private static ILocator Rows(IPage page) => page.Locator(".leaderboard tbody tr[data-athlete-name]:visible");
+
+    [Theory]
+    [InlineData(1280)]
+    [InlineData(390)]
+    public async Task EveryPublicBiomarker_IsSelectableAtEitherLevelAndSortsItsActualValues(int width)
+    {
+        using var client = App.CreateClient();
+        var source = JsonNode.Parse(await client.GetStringAsync("/api/data/athletes"))!.AsArray();
+        var snapshot = new PublicLeaderboardSnapshot(source, DateTime.UtcNow.Date);
+        var fields = LeaderboardOrdering.Fields.Where(field => field.SourceKey is not null).ToArray();
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = 900 }, ReducedMotion = ReducedMotion.Reduce
+        });
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/leaderboard?sort=age");
+        await Loaded(page);
+        await page.Locator("#leaderboardOrderToggle").ClickAsync();
+        var primary = page.Locator("#leaderboardOrderPrimary");
+        var secondary = page.Locator("#leaderboardOrderSecondary");
+        var markerKeys = fields.Select(field => field.Key).ToArray();
+        foreach (var select in new[] { primary, secondary })
+            Assert.Equal(markerKeys, await select.Locator("optgroup[label=Biomarkers] option").EvaluateAllAsync<string[]>("options => options.map(option => option.value)"));
+
+        foreach (var field in fields)
+        {
+            await primary.SelectOptionAsync(field.Key);
+            foreach (var direction in new[] { "asc", "desc" })
+            {
+                if (direction == "desc") await page.Locator("#leaderboardOrderDirection").ClickAsync();
+                var expected = snapshot.Select("/leaderboard", new QueryString($"?sort={field.Key}&dir={direction}").ToQuery()).Snapshot.Rows;
+                Assert.Equal(expected.Select(row => row.AthleteName), await Rows(page).EvaluateAllAsync<string[]>("rows => rows.map(row => row.dataset.athleteName)"));
+                var row = Rows(page).First;
+                var cell = row.Locator($"td[data-order-key='{field.Key}']");
+                await Assertions.Expect(cell).ToHaveTextAsync(LeaderboardOrdering.Format(expected[0].OrderValues[field.Key], field));
+                await Assertions.Expect(page.Locator($"th[data-order-key='{field.Key}'] small")).ToHaveTextAsync(field.Unit);
+            }
+            await primary.SelectOptionAsync("age");
+            await secondary.SelectOptionAsync(field.Key);
+            await Assertions.Expect(page.Locator($"th[data-order-key='{field.Key}']")).ToHaveAttributeAsync("data-order-level", "2");
+            await Assertions.Expect(Rows(page).First.Locator($"td[data-order-key='{field.Key}']")).ToHaveCountAsync(1);
+            await page.Locator("#leaderboardOrderSecondaryClear").ClickAsync();
+        }
+        Assert.False(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth > innerWidth"));
+    }
 
     [Fact]
     public async Task EveryCatalogValue_MatchesThePublicServerCalculation()
@@ -62,6 +109,25 @@ public sealed class LeaderboardOrderingBrowserTests(PlaywrightBrowserFixture bro
     }
 
     [Fact]
+    public async Task SameMetricInYearsAndPercent_HasDistinctAccessibleNamesBeforeAndAfterHydration()
+    {
+        foreach (var javaScriptEnabled in new[] { false, true })
+        {
+            await using var context = await NewContextAsync(Browser, App, new() { JavaScriptEnabled = javaScriptEnabled });
+            var page = await context.NewPageAsync();
+            await page.GotoAsync("/leaderboard?sort=phenoReduction&then=phenoPercent");
+            if (javaScriptEnabled) await Loaded(page);
+            await Assertions.Expect(page.Locator("th[data-order-key=phenoReduction] button")).ToHaveAccessibleNameAsync("Pheno age reduction (years), order by, ascending; reverse order");
+            await Assertions.Expect(page.Locator("th[data-order-key=phenoPercent] button")).ToHaveAccessibleNameAsync("Pheno age reduction (%), then by, descending; reverse order");
+            if (!javaScriptEnabled) continue;
+            await page.Locator("#leaderboardOrderToggle").ClickAsync();
+            await Assertions.Expect(page.Locator("#leaderboardOrderDirection")).ToHaveAttributeAsync("aria-label", "Pheno age reduction (years): lowest first; switch to highest first");
+            await page.Locator("#leaderboardThenDirection").ClickAsync();
+            await Assertions.Expect(page.Locator("#leaderboardOrderStatus")).ToHaveTextAsync("Ordered by Pheno age reduction (years), ascending, then by Pheno age reduction (%), ascending.");
+        }
+    }
+
+    [Fact]
     public async Task SingleFieldOrder_HasOneValueColumnInServerHtmlAndAfterHydration()
     {
         foreach (var javaScriptEnabled in new[] { false, true })
@@ -76,22 +142,26 @@ public sealed class LeaderboardOrderingBrowserTests(PlaywrightBrowserFixture bro
         }
     }
 
-    [Fact]
-    public async Task ServerAndHydration_AgreeOnOrderRanksMetricsAndTwoValueColumns()
+    [Theory]
+    [InlineData(Ordered)]
+    [InlineData("/leaderboard?sort=wbc&then=neutrophils")]
+    [InlineData("/leaderboard?sort=cholesterol&dir=desc&then=cystatinC")]
+    public async Task ServerAndHydration_AgreeOnOrderRanksMetricsAndTwoValueColumns(string url)
     {
         await using var serverContext = await NewContextAsync(Browser, App, new() { JavaScriptEnabled = false });
         var server = await serverContext.NewPageAsync();
-        await server.GotoAsync(Ordered);
+        await server.GotoAsync(url);
         var expected = await Snapshot(server);
         Assert.True(expected.Length > 10);
         await using var context = await NewContextAsync(Browser, App, new() { ReducedMotion = ReducedMotion.Reduce });
         var page = await context.NewPageAsync();
-        await page.GotoAsync(Ordered);
+        await page.GotoAsync(url);
         await Loaded(page);
         Assert.Equal(expected, await Snapshot(page));
         await Assertions.Expect(page.Locator("th.leaderboard-order-column")).ToHaveCountAsync(2);
         await Assertions.Expect(page.Locator("th[aria-sort]")).ToHaveCountAsync(1);
-        await Assertions.Expect(page.Locator("th[data-order-key=pheno]")).ToHaveAttributeAsync("aria-sort", "ascending");
+        var ordering = LeaderboardOrderState.Parse(new QueryString(new Uri("https://localhost" + url).Query).ToQuery());
+        await Assertions.Expect(page.Locator($"th[data-order-key='{ordering.Sort}']")).ToHaveAttributeAsync("aria-sort", ordering.Direction == "asc" ? "ascending" : "descending");
         var structuredNames = await page.EvaluateAsync<string[]>("JSON.parse(document.querySelector('#pageStructuredData').textContent)['@graph'].find(x=>x['@type']==='ItemList').itemListElement.map(x=>x.item.name)");
         var visibleNames = await Rows(page).Locator(".athlete-name").AllTextContentsAsync();
         Assert.Equal(visibleNames, structuredNames);
@@ -714,6 +784,24 @@ public sealed class LeaderboardOrderingBrowserTests(PlaywrightBrowserFixture bro
         Assert.InRange(bounds.X + bounds.Width, 0, width + 1);
         Assert.InRange(bounds.Y, 0, height);
         Assert.InRange(bounds.Y + bounds.Height, 0, height + 1);
+    }
+
+    [Fact]
+    public async Task HomepageOrdering_NewlyVisibleAthletesKeepTheirSelectedLeagueRankAndScore()
+    {
+        await using var context = await NewContextAsync(Browser, App, new() { ReducedMotion = ReducedMotion.Reduce });
+        await using var serverContext = await NewContextAsync(Browser, App, new() { JavaScriptEnabled = false });
+        var page = await context.NewPageAsync();
+        var server = await serverContext.NewPageAsync();
+        await page.GotoAsync("/?view=pheno");
+        await Loaded(page);
+        foreach (var direction in new[] { "asc", "desc" })
+        {
+            await page.Locator("th[data-order-key=name] button").ClickAsync();
+            await Assertions.Expect(page.Locator("th[data-order-key=name]")).ToHaveAttributeAsync("data-order-direction", direction);
+            await server.GotoAsync(page.Url);
+            Assert.Equal(await Snapshot(server), await Snapshot(page));
+        }
     }
 
     [Fact]

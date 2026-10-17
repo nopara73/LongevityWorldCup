@@ -20,7 +20,7 @@ public static class LeaderboardOrderingHtmlRenderer
             // The browser expands defaults and builds both pickers from this one catalog.
             fields = LeaderboardOrdering.Fields.Select(field => new
             {
-                field.Key, field.Label, field.Group,
+                field.Key, field.Label, field.Group, field.SourceKey,
                 Unit = field.Unit.Length == 0 ? null : field.Unit,
                 Decimals = field.Decimals == 1 ? (int?)null : field.Decimals,
                 Direction = field.Direction == "asc" ? null : field.Direction,
@@ -45,9 +45,11 @@ public static class LeaderboardOrderingHtmlRenderer
     {
         var level = state.IsCustom && state.Sort == key ? 1 : state.Then == key ? 2 : 0;
         var direction = level == 2 ? state.ThenDirection : state.Direction;
+        var accessibleUnit = LeaderboardOrdering.Find(key)?.Unit ?? unit;
+        var accessibleLabel = label + (accessibleUnit.Length > 0 ? $" ({accessibleUnit})" : "");
         var action = key == "rank" ? "Restore official ranking" : level > 0
-            ? $"{label}, {(level == 1 ? "order by" : "then by")}, {(direction == "asc" ? "ascending" : "descending")}; reverse order"
-            : $"Order by {label}";
+            ? $"{accessibleLabel}, {(level == 1 ? "order by" : "then by")}, {(direction == "asc" ? "ascending" : "descending")}; reverse order"
+            : $"Order by {accessibleLabel}";
         var attributes = level > 0 ? $" data-order-level=\"{level}\" data-order-direction=\"{direction}\"" : "";
         if (level == 1) attributes += $" aria-sort=\"{(direction == "asc" ? "ascending" : "descending")}\"";
         var extra = key is not "rank" and not "name" and not "metric" ? " class=\"leaderboard-order-column\"" : "";

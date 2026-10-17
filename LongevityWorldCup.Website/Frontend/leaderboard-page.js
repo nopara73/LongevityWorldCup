@@ -4075,7 +4075,7 @@ function performFilter({ updateUrl = true, orderingOnly = false } = {}) {
     filteredAthletes.forEach(athlete => {
         const athleteName = athlete.name;
         const row = rowsByName.get(athleteName);
-        if (row && !orderingSnapshot) {
+        if (row) {
             // Update the rank cell
             const rankCell = row.querySelector('td[data-label="Rank"] .rank');
             if (rankCell) {

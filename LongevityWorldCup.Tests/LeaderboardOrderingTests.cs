@@ -8,6 +8,41 @@ namespace LongevityWorldCup.Tests;
 
 public sealed class LeaderboardOrderingTests
 {
+    [Fact]
+    public void BiomarkerCatalog_CoversEveryPublicBloodMarkerExactlyOnce()
+    {
+        var storedMarkers = typeof(BiomarkerData).GetProperties()
+            .Where(property => property.PropertyType == typeof(double?))
+            .Select(property => property.Name).Order(StringComparer.Ordinal).ToArray();
+        var fields = LeaderboardOrdering.Fields.Where(field => field.Group == "Biomarkers").ToArray();
+        Assert.Equal(storedMarkers, fields.Select(field => field.SourceKey).Order(StringComparer.Ordinal));
+        Assert.Equal(LeaderboardOrdering.Fields.Count, LeaderboardOrdering.Fields.Select(field => field.Key).Distinct().Count());
+        Assert.All(fields, field => Assert.False(string.IsNullOrWhiteSpace(field.Unit)));
+    }
+
+    [Fact]
+    public void EveryBloodMarker_UsesItsLatestDatedRawValueWithoutMixingPanels()
+    {
+        var source = Athlete("all-markers", 1980);
+        var older = new JsonObject { ["Date"] = "2024-01-01" };
+        var newer = new JsonObject { ["Date"] = "2025-01-01" };
+        var undated = new JsonObject();
+        var markers = typeof(BiomarkerData).GetProperties().Where(property => property.PropertyType == typeof(double?)).ToArray();
+        for (var index = 0; index < markers.Length; index++)
+        {
+            older[markers[index].Name] = 10d + index;
+            newer[markers[index].Name] = 100d + index;
+            undated[markers[index].Name] = 1000d + index;
+        }
+        source["Biomarkers"] = new JsonArray(newer, older, undated, new JsonObject { ["Date"] = "2026-01-01" });
+        var values = new PublicLeaderboardSnapshot(new JsonArray(source), new DateTime(2026, 2, 1)).Athletes.Single().Row.OrderValues;
+        foreach (var field in LeaderboardOrdering.Fields.Where(field => field.SourceKey is not null))
+            Assert.Equal(new(newer[field.SourceKey!]!.GetValue<double>(), TestDate: "2025-01-01"), values[field.Key]);
+        // Differential counts must remain stored percentages, not WBC-derived counts.
+        Assert.Equal(newer["MonocytePc"]!.GetValue<double>(), values["monocytes"].Number);
+        Assert.Equal(newer["NeutrophilPc"]!.GetValue<double>(), values["neutrophils"].Number);
+    }
+
     [Theory]
     [InlineData(double.NaN)]
     [InlineData(double.PositiveInfinity)]
@@ -67,6 +102,10 @@ public sealed class LeaderboardOrderingTests
         Assert.True(values["pheno"].IsMissing);
         Assert.True(values["bortz"].IsMissing);
         Assert.True(values["phenoReduction"].IsMissing);
+        Assert.True(values["phenoPercent"].IsMissing);
+        Assert.True(values["phenoPace"].IsMissing);
+        Assert.True(values["bortzPercent"].IsMissing);
+        Assert.True(values["pace"].IsMissing);
         Assert.True(values["crowd"].IsMissing);
         Assert.Equal(0, values["crowdCount"].Number);
     }

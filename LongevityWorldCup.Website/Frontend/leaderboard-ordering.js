@@ -65,14 +65,17 @@
             bortzReduction: number(athlete.bortzAgeReduction), phenoReduction: hasPheno ? number(athlete.ageReduction) : null,
             crowdReduction: athlete.crowdCount > 0 && number(age) !== null && number(athlete.crowdAge) !== null ? number(athlete.crowdAge - age) : null,
             pace: athlete.chronoAtLowestBortzAge > 0 && number(athlete.lowestBortzAge) !== null ? number(athlete.lowestBortzAge / athlete.chronoAtLowestBortzAge) : null,
+            phenoPace: hasPheno && athlete.chronoAtLowestPhenoAge > 0 ? number(athlete.lowestPhenoAge / athlete.chronoAtLowestPhenoAge) : null,
             phenoImprovement: number(athlete.phenoAgeImprovement), bortzImprovement: number(athlete.bortzAgeImprovement),
             phenoPercent: hasPheno ? number(athlete.ageReductionPercent) : null,
+            bortzPercent: number(athlete.bortzAgeReductionPercent),
             firstTest: dated[0]?.date || null, lastTest: dated.at(-1)?.date || null,
             tests: panels.length, crowdCount: number(athlete.crowdCount), name: athlete.displayName,
             flag: athlete.canonicalFlag, track: Number.isFinite(athlete.bortzAgeReduction) ? 'Pro' : 'Amateur',
             division: athlete.division, badges: Array.isArray(source.Badges) ? source.Badges.length : 0
         };
-        for (const [key, sourceKey] of Object.entries({ albumin: 'AlbGL', glucose: 'GluMmolL', hba1c: 'Hba1cMmolMol', crp: 'CrpMgL', vitd: 'VitaminDNmolL', apoa1: 'ApoA1GL', creatinine: 'CreatUmolL' })) {
+        for (const { key, sourceKey } of fields.values()) {
+            if (!sourceKey) continue;
             result[key] = null;
             for (const item of dated) if (number(item.panel[sourceKey]) !== null) result[key] = { value: item.panel[sourceKey], date: item.date };
         }
@@ -101,6 +104,10 @@
     }
     const columns = state => (state.sort === 'rank' ? [] : [state.sort, state.then]).filter(key => key && !['rank', 'name', 'metric'].includes(key)).map(key => fields.get(key));
     const labelFor = (key, metricLabel) => key === 'metric' ? metricLabel : fields.get(key)?.label || key;
+    const accessibleLabelFor = (key, metricLabel) => {
+        const unit = fields.get(key)?.unit;
+        return labelFor(key, metricLabel) + (unit ? ` (${unit})` : '');
+    };
     function decorateHeader(header, state, metricLabel) {
         const key = header.dataset.orderKey;
         const level = state.sort !== 'rank' && state.sort === key ? 1 : state.then === key ? 2 : 0;
@@ -112,7 +119,7 @@
         else if (!ariaSort && header.hasAttribute('aria-sort')) header.removeAttribute('aria-sort');
         const indicator = header.querySelector('.order-indicator');
         if (!!level !== indicator.hasChildNodes()) indicator.innerHTML = level ? '<svg viewBox="0 0 20 20"><path d="M10 4v12m-4-4 4 4 4-4" /></svg>' : '';
-        const label = labelFor(key, metricLabel);
+        const label = accessibleLabelFor(key, metricLabel);
         const description = key === 'rank' ? 'Restore official ranking' : level
             ? `${label}, ${level === 1 ? 'order by' : 'then by'}, ${dir === 'asc' ? 'ascending' : 'descending'}; reverse order` : `Order by ${label}`;
         const button = header.querySelector('button');
@@ -178,7 +185,7 @@
             const field = fields.get(key);
             const ascending = field?.kind === 'text' ? 'A to Z' : field?.kind === 'date' ? 'oldest first' : 'lowest first';
             const descending = field?.kind === 'text' ? 'Z to A' : field?.kind === 'date' ? 'newest first' : 'highest first';
-            const description = enabled ? `${labelFor(key, metricLabel)}: ${dir === 'asc' ? ascending : descending}; switch to ${dir === 'asc' ? descending : ascending}`
+            const description = enabled ? `${accessibleLabelFor(key, metricLabel)}: ${dir === 'asc' ? ascending : descending}; switch to ${dir === 'asc' ? descending : ascending}`
                 : key === 'rank' ? 'Official ranking' : 'Select a secondary field to set its direction';
             if (button.getAttribute('aria-label') !== description) button.setAttribute('aria-label', description);
             if (button.title !== description) button.title = description;
@@ -249,7 +256,7 @@
         if (url.href !== location.href) history.pushState(history.state || {}, '', url);
         onChange();
         const status = byId('leaderboardOrderStatus');
-        if (status) status.textContent = current.sort === 'rank' ? 'Official ranking restored.' : `Ordered by ${labelFor(current.sort, byId('leaderboardMetricHeader')?.textContent)}, ${current.direction === 'asc' ? 'ascending' : 'descending'}${current.then ? `, then by ${labelFor(current.then, byId('leaderboardMetricHeader')?.textContent)}, ${current.thenDirection === 'asc' ? 'ascending' : 'descending'}` : ''}.`;
+        if (status) status.textContent = current.sort === 'rank' ? 'Official ranking restored.' : `Ordered by ${accessibleLabelFor(current.sort, byId('leaderboardMetricHeader')?.textContent)}, ${current.direction === 'asc' ? 'ascending' : 'descending'}${current.then ? `, then by ${accessibleLabelFor(current.then, byId('leaderboardMetricHeader')?.textContent)}, ${current.thenDirection === 'asc' ? 'ascending' : 'descending'}` : ''}.`;
     }
     if (toggle && panel && fields.size) {
         // One shared catalog avoids shipping the same choices three times in every page.

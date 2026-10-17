@@ -4,7 +4,7 @@ using LongevityWorldCup.Website.Tools;
 
 namespace LongevityWorldCup.Website.Business;
 
-public sealed record LeaderboardOrderField(string Key, string Label, string Group, string Unit = "", int Decimals = 1, string Direction = "asc", string Kind = "number");
+public sealed record LeaderboardOrderField(string Key, string Label, string Group, string Unit = "", int Decimals = 1, string Direction = "asc", string Kind = "number", string? SourceKey = null);
 
 public sealed record LeaderboardOrderState(string Sort = "rank", string Direction = "asc", string? Then = null, string ThenDirection = "asc")
 {
@@ -47,7 +47,9 @@ public static class LeaderboardOrdering
         new("phenoReduction", "Pheno age reduction", "Age reduction", "years"),
         new("crowdReduction", "Crowd age reduction", "Age reduction", "years"),
         new("phenoPercent", "Pheno age reduction", "Age reduction", "%", Direction: "desc"),
+        new("bortzPercent", "Bortz age reduction", "Age reduction", "%", Direction: "desc"),
         new("pace", "Bortz pace of aging", "Progress", "×", 2),
+        new("phenoPace", "Pheno pace of aging", "Progress", "×", 2),
         new("phenoImprovement", "Pheno improvement", "Progress", "years"),
         new("bortzImprovement", "Bortz improvement", "Progress", "years"),
         new("lastTest", "Latest test date", "Activity", Direction: "desc", Kind: "date"),
@@ -59,13 +61,28 @@ public static class LeaderboardOrdering
         new("track", "Track", "Profile", Kind: "text"),
         new("division", "Division", "Profile", Kind: "text"),
         new("badges", "Badges earned", "Profile", Decimals: 0, Direction: "desc"),
-        new("albumin", "Albumin", "Biomarkers", "g/L"),
-        new("glucose", "Glucose", "Biomarkers", "mmol/L", 2),
-        new("hba1c", "HbA1c", "Biomarkers", "mmol/mol"),
-        new("crp", "CRP", "Biomarkers", "mg/L", 2),
-        new("vitd", "Vitamin D", "Biomarkers", "nmol/L"),
-        new("apoa1", "ApoA1", "Biomarkers", "g/L", 2),
-        new("creatinine", "Creatinine", "Biomarkers", "µmol/L")
+        new("albumin", "Albumin", "Biomarkers", "g/L", SourceKey: nameof(BiomarkerData.AlbGL)),
+        new("alp", "ALP", "Biomarkers", "U/L", SourceKey: nameof(BiomarkerData.AlpUL)),
+        new("alt", "ALT", "Biomarkers", "U/L", SourceKey: nameof(BiomarkerData.AltUL)),
+        new("apoa1", "ApoA1", "Biomarkers", "g/L", 2, SourceKey: nameof(BiomarkerData.ApoA1GL)),
+        new("crp", "CRP", "Biomarkers", "mg/L", 2, SourceKey: nameof(BiomarkerData.CrpMgL)),
+        new("creatinine", "Creatinine", "Biomarkers", "µmol/L", SourceKey: nameof(BiomarkerData.CreatUmolL)),
+        new("cystatinC", "Cystatin C", "Biomarkers", "mg/L", 2, SourceKey: nameof(BiomarkerData.CystatinCMgL)),
+        new("ggt", "GGT", "Biomarkers", "U/L", SourceKey: nameof(BiomarkerData.GgtUL)),
+        new("glucose", "Glucose", "Biomarkers", "mmol/L", 2, SourceKey: nameof(BiomarkerData.GluMmolL)),
+        new("hba1c", "HbA1c", "Biomarkers", "mmol/mol", SourceKey: nameof(BiomarkerData.Hba1cMmolMol)),
+        new("lymphocytes", "Lymphocytes", "Biomarkers", "%", SourceKey: nameof(BiomarkerData.LymPc)),
+        new("mch", "MCH", "Biomarkers", "pg", SourceKey: nameof(BiomarkerData.MchPg)),
+        new("mcv", "MCV", "Biomarkers", "fL", SourceKey: nameof(BiomarkerData.McvFL)),
+        new("monocytes", "Monocytes", "Biomarkers", "%", SourceKey: nameof(BiomarkerData.MonocytePc)),
+        new("neutrophils", "Neutrophils", "Biomarkers", "%", SourceKey: nameof(BiomarkerData.NeutrophilPc)),
+        new("rbc", "RBC", "Biomarkers", "10¹²/L", 2, SourceKey: nameof(BiomarkerData.Rbc10e12L)),
+        new("rdw", "RDW", "Biomarkers", "%", SourceKey: nameof(BiomarkerData.RdwPc)),
+        new("shbg", "SHBG", "Biomarkers", "nmol/L", SourceKey: nameof(BiomarkerData.ShbgNmolL)),
+        new("cholesterol", "Total cholesterol", "Biomarkers", "mmol/L", 2, SourceKey: nameof(BiomarkerData.CholesterolMmolL)),
+        new("urea", "Urea", "Biomarkers", "mmol/L", 2, SourceKey: nameof(BiomarkerData.UreaMmolL)),
+        new("vitd", "Vitamin D", "Biomarkers", "nmol/L", SourceKey: nameof(BiomarkerData.VitaminDNmolL)),
+        new("wbc", "WBC", "Biomarkers", "10³ cells/µL", 2, SourceKey: nameof(BiomarkerData.Wbc1000cellsuL))
     ];
 
     public static LeaderboardOrderField? Find(string? key) => Fields.FirstOrDefault(field => field.Key == key);
@@ -99,9 +116,11 @@ public static class LeaderboardOrdering
             ["phenoReduction"] = Number(hasPheno ? stats.AgeReduction : null),
             ["crowdReduction"] = Number(hasCrowd ? stats.CrowdAge - stats.ChronoAge : null),
             ["pace"] = Number(stats.BortzPaceOfAging),
+            ["phenoPace"] = Number(hasPheno ? stats.PhenoPaceOfAging : null),
             ["phenoImprovement"] = Number(stats.PhenoAgeImprovementFromWorst),
             ["bortzImprovement"] = Number(stats.BortzAgeImprovementFromWorst),
             ["phenoPercent"] = Number(hasPheno ? (1 - stats.PhenoPaceOfAging) * 100 : null),
+            ["bortzPercent"] = Number((1 - stats.BortzPaceOfAging) * 100),
             ["crowdCount"] = Number(stats.CrowdCount),
             ["name"] = new(Text: athlete.Row.DisplayName),
             ["flag"] = new(Text: FlagCanonicalizer.GetCanonicalName(athlete.Row.Flag)),
@@ -115,16 +134,12 @@ public static class LeaderboardOrdering
             .Where(item => item.Date is not null).OrderBy(item => item.Date, StringComparer.Ordinal).ThenBy(item => item.Index).ToList();
         values["firstTest"] = new(Text: dated.FirstOrDefault().Date);
         values["lastTest"] = new(Text: dated.LastOrDefault().Date);
-        foreach (var (key, source) in new (string, string)[]
+        foreach (var field in Fields.Where(field => field.SourceKey is not null))
         {
-            ("albumin", "AlbGL"), ("glucose", "GluMmolL"), ("hba1c", "Hba1cMmolMol"),
-            ("crp", "CrpMgL"), ("vitd", "VitaminDNmolL"), ("apoa1", "ApoA1GL"), ("creatinine", "CreatUmolL")
-        })
-        {
-            values[key] = default;
+            values[field.Key] = default;
             foreach (var item in dated)
-                if (item.Panel[source] is JsonValue number && number.TryGetValue<double>(out var value) && double.IsFinite(value))
-                    values[key] = new(value, TestDate: item.Date);
+                if (item.Panel[field.SourceKey!] is JsonValue number && number.TryGetValue<double>(out var value) && double.IsFinite(value))
+                    values[field.Key] = new(value, TestDate: item.Date);
         }
         return values;
     }

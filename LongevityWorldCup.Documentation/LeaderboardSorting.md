@@ -29,9 +29,11 @@ Use stable URL keys and grouped options. These are public data already available
 | phenoReduction | Pheno age reduction | Existing Pheno age minus chronological age at that winning result | asc |
 | crowdReduction | Crowd age reduction | Active-image crowd age minus chronological age at the common UTC snapshot date; count > 0 | asc |
 | pace | Bortz pace of aging | Existing BortzPaceOfAging / lowestBortzAge divided by chronoAtLowestBortzAge; use current public definition, not DunedinPACE | asc |
+| phenoPace | Pheno pace of aging | Existing PhenoPaceOfAging / lowestPhenoAge divided by chronoAtLowestPhenoAge; missing without an eligible result | asc |
 | phenoImprovement | Pheno improvement | Existing latest-minus-worst eligible result, requiring at least two eligible results | asc |
 | bortzImprovement | Bortz improvement | Existing latest-minus-worst eligible result, requiring at least two eligible results | asc |
 | phenoPercent | Pheno age reduction (%) | Existing (1 − lowestPhenoAge / chronoAtLowestPhenoAge) × 100 | desc |
+| bortzPercent | Bortz age reduction (%) | Existing (1 − lowestBortzAge / chronoAtLowestBortzAge) × 100; missing without an eligible result | desc |
 | lastTest | Latest test date | Maximum valid explicit date in public Biomarkers; date-only UTC | desc |
 | firstTest | First test date | Minimum valid explicit date in public Biomarkers; date-only UTC | desc |
 | tests | Tests submitted | Number of public Biomarkers result entries, counting each entry once; not a sum of Pheno and Bortz eligibility counts | desc |
@@ -42,15 +44,30 @@ Use stable URL keys and grouped options. These are public data already available
 | division | Division | Public division label | asc |
 | badges | Badges earned | Count actual public award records in Badges, excluding visual utility/link/overflow badges | desc |
 | albumin | Albumin | Latest dated finite AlbGL; g/L, original value without scoring cap | asc |
+| alp | ALP | Latest dated finite AlpUL; U/L | asc |
+| alt | ALT | Latest dated finite AltUL; U/L | asc |
+| apoa1 | ApoA1 | Latest dated finite ApoA1GL; g/L | asc |
+| crp | CRP | Latest dated finite CrpMgL; mg/L | asc |
+| creatinine | Creatinine | Latest dated finite CreatUmolL; µmol/L | asc |
+| cystatinC | Cystatin C | Latest dated finite CystatinCMgL; mg/L | asc |
+| ggt | GGT | Latest dated finite GgtUL; U/L | asc |
 | glucose | Glucose | Latest dated finite GluMmolL; mmol/L | asc |
 | hba1c | HbA1c | Latest dated finite Hba1cMmolMol; mmol/mol | asc |
-| crp | CRP | Latest dated finite CrpMgL; mg/L | asc |
+| lymphocytes | Lymphocytes | Latest dated finite LymPc; % | asc |
+| mch | MCH | Latest dated finite MchPg; pg | asc |
+| mcv | MCV | Latest dated finite McvFL; fL | asc |
+| monocytes | Monocytes | Latest dated finite MonocytePc; stored %, not a derived absolute count | asc |
+| neutrophils | Neutrophils | Latest dated finite NeutrophilPc; stored %, not a derived absolute count | asc |
+| rbc | RBC | Latest dated finite Rbc10e12L; 10¹²/L | asc |
+| rdw | RDW | Latest dated finite RdwPc; % | asc |
+| shbg | SHBG | Latest dated finite ShbgNmolL; nmol/L | asc |
+| cholesterol | Total cholesterol | Latest dated finite CholesterolMmolL; mmol/L | asc |
+| urea | Urea | Latest dated finite UreaMmolL; mmol/L | asc |
 | vitd | Vitamin D | Latest dated finite VitaminDNmolL; nmol/L | asc |
-| apoa1 | ApoA1 | Latest dated finite ApoA1GL; g/L | asc |
-| creatinine | Creatinine | Latest dated finite CreatUmolL; µmol/L | asc |
+| wbc | WBC | Latest dated finite Wbc1000cellsuL; 10³ cells/µL | asc |
 | metric | Existing active metric label | The selected ranking view’s existing metric; includes effective reduction in Ultimate | asc |
 
-Official rank is the 29th select entry including the reset mode; None is secondary-only. The mock’s 28 choices include Official rank; adding active metric supports the existing score header.
+Include every supported public blood marker, not a sample subset. The shared catalog carries each marker's source property so server and browser extraction use the same mapping. A coverage test compares the catalog with every numeric property in the public BiomarkerData model. Official rank is the reset mode; None is secondary-only.
 
 Group options as Ages, Age reduction, Progress, Activity, Profile, Biomarkers; place Official rank first. Do not offer generic “Biological age”: the three clocks are distinct. Do not invent BMI, location, sex, join date, first announcement date, or missing lab data. Division is the existing public field.
 
