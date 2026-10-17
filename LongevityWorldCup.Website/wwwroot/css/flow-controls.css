@@ -153,18 +153,28 @@ body.play-flow-route > main {
 }
 
 .flow-action-stack.flow-action-stack--docked.flow-action-stack--back-primary-action > .back-button.flow-action--icon-left {
-    flex: 1 0 5.5rem;
+    flex: 0 0 auto;
     order: -1;
     width: auto;
-    max-width: 6.25rem;
+    min-width: 5.5rem;
+    max-width: 100%;
     margin: 0;
-    padding-right: 0.65rem;
-    padding-left: 2rem;
+    padding-inline: 0.85rem;
+    gap: 0.5em;
 }
 
 .flow-action-stack.flow-action-stack--docked.flow-action-stack--back-primary-action > .back-button.flow-action--icon-left .flow-action__icon,
 .flow-action-stack.flow-action-stack--docked.flow-action-stack--back-primary-action > .back-button.flow-action--icon-left > i {
-    left: 0.75rem;
+    position: static;
+    width: auto;
+    transform: none;
+    flex: none;
+}
+
+.flow-action-stack.flow-action-stack--docked.flow-action-stack--back-primary-action > .back-button .flow-action__label {
+    flex: none;
+    width: auto;
+    white-space: nowrap;
 }
 
 body.bioage-result-ready .lwc-step-actions {
@@ -442,6 +452,20 @@ body.flow-input-keyboard-open::after {
         min-width: min(100%, 8.5rem);
         max-width: 100%;
         align-self: stretch;
-        padding-inline: 2.85rem 1.35rem;
+        padding-inline: 1.15rem;
+        gap: 0.5em;
+    }
+
+    .flow-action-stack:not(.flow-action-stack--docked):not(.flow-action-stack--hide-disabled-primary):has(> .flow-action:first-child + .flow-action:last-child):has(> .back-button.flow-action--icon-left) > .back-button > i {
+        position: static;
+        width: auto;
+        transform: none;
+        flex: none;
+    }
+
+    .flow-action-stack:not(.flow-action-stack--docked):not(.flow-action-stack--hide-disabled-primary):has(> .flow-action:first-child + .flow-action:last-child):has(> .back-button.flow-action--icon-left) > .back-button .flow-action__label {
+        flex: none;
+        width: auto;
+        white-space: nowrap;
     }
 }

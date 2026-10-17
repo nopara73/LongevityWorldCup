@@ -16,7 +16,7 @@
     justify-content: center;
     align-items: flex-start;
     gap: 0;
-    width: min(100%, 15rem);
+    width: min(100%, 15em);
     margin-inline: auto;
     position: relative;
     counter-reset: lwc-stage;

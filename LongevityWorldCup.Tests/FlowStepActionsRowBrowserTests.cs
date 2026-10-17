@@ -203,4 +203,82 @@ public sealed class FlowStepActionsRowBrowserTests(
         await page.WaitForFunctionAsync("() => window.LwcFlowActionDock && document.documentElement.classList.contains('flow-action-dock-ready')");
         await page.EvaluateAsync("() => window.LwcFlowActionDock.refreshNow()");
     }
+
+    [Theory]
+    [InlineData("/pheno-age", 320)]
+    [InlineData("/pheno-age", 390)]
+    [InlineData("/apply", 320)]
+    [InlineData("/apply", 390)]
+    public async Task PhoneStep_ActualDoubleTextKeepsBackWholeAndItsIconSeparate(string path, int width)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = 844 },
+            ReducedMotion = ReducedMotion.Reduce, IsMobile = true, HasTouch = true
+        });
+        var page = await context.NewPageAsync();
+        await NavigateDockReadyAsync(page, path);
+        var result = await page.EvaluateAsync<string[]>("""
+            () => {
+                const stack = document.querySelector('.flow-action-stack--docked');
+                const elements = [stack, ...stack.querySelectorAll('*')];
+                const sizes = elements.map(e => parseFloat(getComputedStyle(e).fontSize));
+                elements.forEach((e,i) => e.style.setProperty('font-size', `${sizes[i] * 2}px`, 'important'));
+                window.LwcFlowActionDock.refreshNow();
+                const back = stack.querySelector('.back-button');
+                const label = back.querySelector('.flow-action__label');
+                const range = document.createRange();
+                range.selectNodeContents(label);
+                const glyphs = [...range.getClientRects()].filter(r=>r.width>0);
+                const box = back.getBoundingClientRect();
+                const icon = back.querySelector('i').getBoundingClientRect();
+                const issues = [];
+                if (new Set(glyphs.map(r=>Math.round(r.top))).size !== 1) issues.push('Back splits across lines');
+                if (glyphs.some(r=>r.left < icon.right || r.right > box.right || r.top < box.top || r.bottom > box.bottom)) issues.push('Back label overlaps or clips');
+                if (box.left < 0 || box.right > innerWidth) issues.push('Back overflows the viewport');
+                return issues;
+            }
+            """);
+        Assert.True(result.Length == 0, string.Join("; ", result));
+    }
+
+    [Theory]
+    [InlineData("/pheno-age", 320)]
+    [InlineData("/pheno-age", 390)]
+    [InlineData("/bortz-age", 390)]
+    public async Task Calculator_ActualDoubleTextKeepsDateAndProgressLabelsInsideTheirCells(string path, int width)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = 844 },
+            ReducedMotion = ReducedMotion.Reduce, IsMobile = true, HasTouch = true
+        });
+        var page = await context.NewPageAsync();
+        await NavigateDockReadyAsync(page, path);
+        await page.EvaluateAsync("""
+            () => {
+                const elements = [...document.querySelectorAll('body, body *')];
+                const sizes = elements.map(e => parseFloat(getComputedStyle(e).fontSize));
+                elements.forEach((e,i) => { if(sizes[i] > 0) e.style.setProperty('font-size', `${sizes[i] * 2}px`, 'important'); });
+                window.LwcFlowActionDock.refreshNow();
+            }
+            """);
+        await page.EvaluateAsync("async () => { await document.fonts.ready; for(let i=0;i<4;i++) await new Promise(requestAnimationFrame); }");
+        var issues = await page.EvaluateAsync<string[]>("""
+            () => {
+                const issues = [];
+                for(const label of document.querySelectorAll('#dobFieldset > label, .progress-container .stage-label')) {
+                    const cell = label.matches('.stage-label') ? label.closest('.stage') : label;
+                    const box = cell.getBoundingClientRect();
+                    const range = document.createRange(); range.selectNodeContents(label);
+                    for(const text of range.getClientRects()) {
+                        if(text.width && (text.left < box.left - 1 || text.right > box.right + 1)) issues.push(label.textContent.trim() + ' overflows its cell');
+                    }
+                }
+                if(document.documentElement.scrollWidth > innerWidth + 1) issues.push('Horizontal overflow');
+                return issues;
+            }
+            """);
+        Assert.True(issues.Length == 0, string.Join("; ", issues));
+    }
 }
