@@ -18,7 +18,7 @@ internal sealed record InstagramVisual(
         var slugs = Regex.Matches(rawText, @"\[mention\]\(([^()]*)\)", RegexOptions.IgnoreCase)
             .Select(x => x.Groups[1].Value.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).Take(2).ToArray();
         var artworkAddress = artwork is not null && Uri.TryCreate(link, UriKind.Absolute, out var destination)
-            ? destination.Host.Replace("www.", "") + destination.AbsolutePath.TrimEnd('/') : null;
+            ? destination.Host.Replace("www.", "") + destination.AbsolutePath.TrimEnd('/') + destination.Query : null;
         return new(headline, details, platform, AddressFor(platform, link) ?? artworkAddress, FindVideoId(rawText), slugs, artwork);
     }
 

@@ -142,7 +142,7 @@ public sealed class SocialContactPreviewBrowserTests(
                 const media = post?.querySelector('.instagram-media');
                 const caption = post?.querySelector('.instagram-caption');
                 if (!image?.complete || image.naturalWidth !== 1080 || image.naturalHeight !== 1350
-                    || !media || !caption) return false;
+                    || !media || !caption || !caption.textContent.includes('Follow')) return false;
                 const picture = media.getBoundingClientRect();
                 const text = caption.getBoundingClientRect();
                 if (!picture.width || !picture.height || !text.width || !text.height) return false;

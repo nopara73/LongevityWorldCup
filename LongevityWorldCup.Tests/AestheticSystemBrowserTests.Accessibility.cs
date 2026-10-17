@@ -11,6 +11,42 @@ public sealed class AestheticAccessibilityBrowserTests(
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Theory]
+    [InlineData(ReducedMotion.Reduce, 1440)]
+    [InlineData(ReducedMotion.Reduce, 390)]
+    [InlineData(ReducedMotion.NoPreference, 1440)]
+    [InlineData(ReducedMotion.NoPreference, 390)]
+    public async Task MotionPreference_DoesNotIntroduceTransitionsForOrdinaryLayoutChanges(ReducedMotion motion, int width)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = 844 },
+            ReducedMotion = motion
+        });
+        var page = await context.NewPageAsync();
+        await NavigateAndSettleAsync(page, "/about");
+        var layout = await page.EvaluateAsync<double[]>(
+            """
+            () => {
+                const probe = document.createElement('div');
+                probe.style.cssText = 'font-size:16px;width:100px';
+                probe.textContent = 'Text and layout must update together';
+                document.body.append(probe);
+                void probe.getBoundingClientRect();
+                probe.style.fontSize = '32px';
+                probe.style.width = '200px';
+                const fontSize = parseFloat(getComputedStyle(probe).fontSize);
+                const width = probe.getBoundingClientRect().width;
+                const transitions = probe.getAnimations().filter(animation => animation instanceof CSSTransition).length;
+                probe.remove();
+                return [fontSize, width, transitions];
+            }
+            """);
+        Assert.Equal(32, layout[0]);
+        Assert.Equal(200, layout[1]);
+        Assert.Equal(0, layout[2]);
+    }
+
+    [Theory]
     [InlineData("/about", 720)]
     [InlineData("/about", 350)]
     [InlineData("/ruleset", 720)]
