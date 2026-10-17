@@ -133,13 +133,27 @@ public sealed class SocialContactPreviewBrowserTests(
         Assert.True(await page.EvaluateAsync<bool>("() => hasSelectedDestination(buildEventPayload()) && buildEventPayload().sendToInstagram"));
         var preview = page.Locator(".instagram-post");
         await preview.WaitForAsync();
-        await page.WaitForFunctionAsync("() => { const image = document.querySelector('.instagram-media img'); return image?.complete && image.naturalWidth === 1080 && image.naturalHeight === 1350; }");
-        var image = await preview.Locator(".instagram-media").BoundingBoxAsync();
-        var caption = await preview.Locator(".instagram-caption").BoundingBoxAsync();
-        Assert.NotNull(image);
-        Assert.NotNull(caption);
-        Assert.True(image.Y + image.Height <= caption.Y);
-        Assert.InRange(Math.Abs(image.Width / image.Height - 4d / 5), 0, .01);
+        // Image/OG completions replace the preview markup. Capture readiness and
+        // both rectangles in one browser task so they belong to the same render.
+        var layoutHandle = await page.WaitForFunctionAsync("""
+            () => {
+                const post = document.querySelector('.instagram-post');
+                const image = post?.querySelector('.instagram-media img');
+                const media = post?.querySelector('.instagram-media');
+                const caption = post?.querySelector('.instagram-caption');
+                if (!image?.complete || image.naturalWidth !== 1080 || image.naturalHeight !== 1350
+                    || !media || !caption) return false;
+                const picture = media.getBoundingClientRect();
+                const text = caption.getBoundingClientRect();
+                if (!picture.width || !picture.height || !text.width || !text.height) return false;
+                return [picture.bottom, text.top, picture.width, picture.height];
+            }
+            """);
+        var layout = await layoutHandle.JsonValueAsync<double[]>();
+        await layoutHandle.DisposeAsync();
+        Assert.Equal(4, layout.Length);
+        Assert.True(layout[0] <= layout[1]);
+        Assert.InRange(Math.Abs(layout[2] / layout[3] - 4d / 5), 0, .01);
         Assert.Equal("image", await page.EvaluateAsync<string>("() => buildPlan('A short update', '', LIMITS.instagram, 'instagram', false).mode"));
         var emojiTitle = string.Concat(Enumerable.Repeat("👩‍🔬", 500));
         var clipped = await page.EvaluateAsync<string>("title => buildPlan(title, '', LIMITS.instagram, 'instagram', false).postText", emojiTitle);
