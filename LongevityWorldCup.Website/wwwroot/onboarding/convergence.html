@@ -189,6 +189,14 @@
             box-sizing: border-box;
         }
 
+        /* The proof task shares the stage card's content column. */
+        #proofUploadSection .convergence-upload-action,
+        #proofUploadSection #biomarker-checklist {
+            width: 100%;
+            max-width: none;
+            margin-inline: 0;
+        }
+
         #proofUploadSection .camera-capture-action {
             display: none;
         }
@@ -2014,10 +2022,11 @@
 
             applyProofInstructionCopy();
 
-            // catch Enter anywhere in the inputForm (but not in the textarea)
+            // Advance text fields with Enter while preserving each control's native activation.
             const inputForm = document.getElementById('inputForm');
             inputForm.addEventListener('keydown', function (e) {
-                if (e.key === 'Enter' && !e.defaultPrevented && !e.isComposing && e.target.tagName !== 'TEXTAREA') {
+                if (e.key === 'Enter' && !e.defaultPrevented && !e.isComposing
+                    && !e.target.closest('button, a, textarea, select, input[type="file"], input[type="checkbox"], input[type="radio"], [role="button"]')) {
                     e.preventDefault();                     // prevent native submit/newline
                     document.getElementById('nextButton').click();
                 }
