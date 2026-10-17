@@ -122,7 +122,7 @@
         margin-right: 0;
     }
 
-/* Names remain available on focus and hover; touch users see them in place. */
+/* Names remain available to assistive technology and on focus and hover. */
 .footer-column--follow .footer-link-label {
     position: absolute;
     width: 1px;
@@ -150,11 +150,6 @@
         z-index: 1;
     }
 
-    .footer-subscriptions .footer-link:last-child:is(:hover, :focus-visible) .footer-link-label {
-        right: 0;
-        max-width: calc(50vw + 1.75rem);
-        white-space: normal;
-    }
 }
 
 /* Use the available space and actual rem size, including enlarged text,
@@ -162,41 +157,6 @@
 @container (max-width: 21.7rem) {
     .footer-follow-links {
         max-width: min(100%, calc(4 * 2.75rem + 3 * 0.4rem));
-    }
-
-    .footer-subscriptions {
-        flex-basis: 100%;
-        justify-content: center;
-        padding-left: 0;
-        border-left: 0;
-    }
-}
-
-@media (hover: none) {
-    .footer-follow-links {
-        max-width: min(100%, calc(4 * 4rem + 3 * 0.4rem));
-    }
-
-    .footer-column--follow .footer-link {
-        width: auto;
-        height: auto;
-        min-width: 4rem;
-        min-height: 3.5rem;
-        flex-direction: column;
-        gap: 0.35rem;
-        padding: 0.4rem 0.25rem;
-        border-radius: var(--radius-sm, 4px);
-    }
-
-    .footer-column--follow .footer-link-label {
-        position: static;
-        width: auto;
-        height: auto;
-        margin: 0;
-        overflow: visible;
-        clip-path: none;
-        white-space: normal;
-        font-size: 0.75rem;
     }
 
     .footer-subscriptions {

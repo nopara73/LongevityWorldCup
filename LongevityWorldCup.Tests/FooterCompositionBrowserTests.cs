@@ -37,7 +37,7 @@ public sealed class FooterCompositionBrowserTests(
     [InlineData("/events", 600, true, false, 200)]
     [InlineData("/leaderboard", 768, false, true, 200)]
     [InlineData("/longevitymaxxing", 844, true, true, 100)]
-    public async Task Footer_PreservesReadableLabelsTargetsAndOrderWithActualTextEnlargement(
+    public async Task Footer_PreservesIconDesignTargetsAndOrderWithActualTextEnlargement(
         string path, int width, bool dark, bool touch, int textPercent)
     {
         await using var context = await NewContextAsync(Browser, App, new()
@@ -60,7 +60,7 @@ public sealed class FooterCompositionBrowserTests(
         var sizes = await labels.EvaluateAllAsync<double[]>("labels => labels.map(l => parseFloat(getComputedStyle(l).fontSize))");
         for (var i = 0; i < sizes.Length; i++) Assert.InRange(sizes[i], originalSizes[i] * textPercent / 100 - 0.1, originalSizes[i] * textPercent / 100 + 0.1);
         var links = page.Locator(".footer .footer-link");
-        Assert.Equal(Labels, (await links.AllTextContentsAsync()).Select(s => s.Trim()).ToArray());
+        Assert.Equal(Labels, await links.EvaluateAllAsync<string[]>("links => links.map(l => l.textContent.trim() || l.title)"));
         Assert.Equal(Destinations, await links.EvaluateAllAsync<string[]>("links => links.map(l => l.getAttribute('href'))"));
         var problems = await page.EvaluateAsync<string[]>(
             """
@@ -77,10 +77,11 @@ public sealed class FooterCompositionBrowserTests(
                     const icon = link.querySelector('i, svg');
                     if (!icon || !contains(box, icon.getBoundingClientRect())) problems.push(name + ': clipped icon');
                     const label = link.querySelector('.footer-link-label');
-                    if (label.getBoundingClientRect().width > 1) {
+                    if (label && label.getBoundingClientRect().width > 1) {
                         const range = document.createRange(); range.selectNodeContents(label);
                         for (const rect of range.getClientRects()) if (!contains(box, rect)) problems.push(name + ': clipped text');
-                    } else if (matchMedia('(hover: none)').matches || link.closest('.footer-column--explore')) problems.push(name + ': hidden name');
+                    } else if (link.closest('.footer-column--explore')) problems.push(name + ': hidden name');
+                    if (link.closest('.footer-column--follow') && label && getComputedStyle(label).clipPath !== 'inset(50%)') problems.push(name + ': unexpected visible caption');
                     if (link.target === '_blank' && !link.relList.contains('noopener')) problems.push(name + ': unsafe external target');
                     for (let j = i + 1; j < boxes.length; j++) {
                         const other = boxes[j];
@@ -143,7 +144,7 @@ public sealed class FooterCompositionBrowserTests(
             await Assertions.Expect(link).ToBeFocusedAsync();
             Assert.True(await link.EvaluateAsync<bool>(
                 "l => l.matches(':focus-visible') && parseFloat(getComputedStyle(l).outlineWidth) >= 2"));
-            if (i >= 6)
+            if (i >= 6 && i < 13)
             {
                 var label = link.Locator(".footer-link-label");
                 await Assertions.Expect(label).ToBeVisibleAsync();
@@ -152,6 +153,7 @@ public sealed class FooterCompositionBrowserTests(
                 Assert.Equal("inset(50%)", await label.EvaluateAsync<string>("l => getComputedStyle(l).clipPath"));
                 await Assertions.Expect(link).ToBeFocusedAsync();
             }
+            else if (i >= 13) Assert.Equal(Labels[i], await link.GetAttributeAsync("title"));
             await page.Keyboard.PressAsync("Tab");
         }
         await page.EvaluateAsync("() => document.activeElement?.blur()");
