@@ -280,6 +280,9 @@ public sealed class FlowStepActionsRowBrowserTests(
                     const cell = label.matches('.stage-label') ? label.closest('.stage') : label;
                     const box = cell.getBoundingClientRect();
                     const range = document.createRange(); range.selectNodeContents(label);
+                    if (innerWidth >= 390 && label.matches('.stage-label')
+                        && new Set([...range.getClientRects()].filter(r=>r.width>0).map(r=>Math.round(r.top))).size > 1)
+                        issues.push(label.textContent.trim() + ' wraps despite available progress width');
                     for(const text of range.getClientRects()) {
                         if(text.width && (text.left < box.left - 1 || text.right > box.right + 1)) issues.push(label.textContent.trim() + ' overflows its cell');
                     }
