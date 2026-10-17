@@ -2670,6 +2670,41 @@ body.lmx-checkin-dialog-open {
     z-index: 1;
 }
 
+.lmx-note.lmx-announcement {
+    border-left: 3px solid var(--lmx-accent);
+    background: var(--lmx-surface-accent);
+}
+
+.lmx-announcement-icon {
+    display: grid;
+    place-items: center;
+    color: var(--lmx-accent);
+}
+
+.lmx-announcement-content {
+    padding-left: var(--lmx-discussion-indent);
+    overflow-wrap: anywhere;
+    max-width: 76ch;
+    line-height: 1.5;
+}
+
+.lmx-announcement-content h3 {
+    margin: var(--lwc-space-3) 0 var(--lwc-space-2);
+    font-size: 1.15rem;
+    line-height: 1.3;
+}
+
+.lmx-note .lmx-announcement-content p {
+    padding-left: 0;
+    margin: 0 0 var(--lwc-space-3);
+}
+
+@media (max-width: 480px) {
+    .lmx-announcement-content {
+        padding-left: 0;
+    }
+}
+
 .lmx-discussion-post-header {
     position: relative;
     padding-left: var(--lmx-discussion-indent);

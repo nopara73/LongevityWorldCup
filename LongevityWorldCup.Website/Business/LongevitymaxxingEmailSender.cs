@@ -110,6 +110,10 @@ public sealed class SmtpLongevitymaxxingEmailSender(Config config, ILogger<SmtpL
 
                 return item.Kind switch
                 {
+                    LongevitymaxxingDiscussionActivityKind.Mention when item.SystemPostKind == "announcement"
+                        => $"- {actorText} mentioned you in a Challenge announcement ({item.Date}).",
+                    LongevitymaxxingDiscussionActivityKind.Reply when item.SystemPostKind == "announcement"
+                        => $"- Your Challenge announcement ({item.Date}): {item.Count} new {(item.Count == 1 ? "reply" : "replies")} from {actorText}.",
                     LongevitymaxxingDiscussionActivityKind.Mention
                         when item.SystemPostKind == "participant-joined" && item.Count == 1
                         => $"- {actorText} mentioned you in the welcome thread for {postDisplayName} ({item.Date}).",
