@@ -103,6 +103,17 @@
         successActions: number;
     }
 
+    interface TrafficOutcomes {
+        actions: number;
+        sessions: number;
+        calculatorResults: number;
+        newApplications: number;
+        challengeSignups: number;
+        resultUploads: number;
+        profileEdits: number;
+        unknownSubmissions: number;
+    }
+
     interface TrafficPage {
         route: string;
         sessions: number;
@@ -127,6 +138,7 @@
         referrers: TrafficBreakdown[];
         devices: TrafficBreakdown[];
         browsers: TrafficBreakdown[];
+        outcomes: TrafficOutcomes;
     }
 
     interface RawTrafficSummary {
@@ -140,6 +152,7 @@
         referrers?: RawTrafficBreakdown[] | null;
         devices?: RawTrafficBreakdown[] | null;
         browsers?: RawTrafficBreakdown[] | null;
+        outcomes?: RawTrafficOutcomes | null;
     }
 
     interface DashboardFilters {
@@ -163,6 +176,7 @@
         { [Key in Exclude<keyof T, TextKey>]?: unknown }
         & { [Key in TextKey]?: string | null };
     type RawTrafficTotals = RawTrafficRecord<TrafficTotals>;
+    type RawTrafficOutcomes = RawTrafficRecord<TrafficOutcomes>;
     type RawTrafficQuality = RawTrafficRecord<TrafficQuality>;
     type RawTrafficDailyPoint = RawTrafficRecord<TrafficDailyPoint, "day">;
     type RawTrafficPage = RawTrafficRecord<TrafficPage, "route">;
@@ -346,6 +360,8 @@
         selectedLabel: "all events"
     };
     let loadGeneration = 0;
+    let trafficChartObserver: ResizeObserver | null = null;
+    let selectedTrafficDay: string | null = null;
 
     function calculatorFunnel(selectionLabel: string): FunnelDefinition[] {
         return [
@@ -499,7 +515,7 @@
         if (requestedTab && isLegacyTab(requestedTab)) state.tab = legacyTabs[requestedTab];
         else if (requestedTab && isDashboardTab(requestedTab)) state.tab = requestedTab;
         const selectedFlow = params.get("selectedFlow");
-        if (selectedFlow) state.selectedFlow = selectedFlow;
+        if (selectedFlow && isFunnelFlow(selectedFlow)) state.selectedFlow = selectedFlow;
         for (const [id, key] of [["statsRange", "range"], ["statsFlow", "flow"], ["statsDevice", "device"], ["statsSource", "source"]] as const) {
             const value = params.get(key);
             if (id === "statsSource" && value && /^ai:[a-z]+$/.test(value)) {
@@ -507,7 +523,7 @@
                 option.dataset.aiProvider = "true";
                 el(id).add(option);
             }
-            if (value) el(id).value = value;
+            if (value && Array.from(el(id).options).some(option => option.value === value)) el(id).value = value;
         }
         state.flow = el("statsFlow").value;
         state.selectedEventName = params.get("event");
@@ -515,16 +531,24 @@
     }
 
     function updateUrl(): void {
-        const params = new URLSearchParams();
-        params.set("tab", state.tab);
-        params.set("range", el("statsRange").value);
-        params.set("flow", el("statsFlow").value);
-        params.set("device", el("statsDevice").value);
-        params.set("source", el("statsSource").value);
-        params.set("selectedFlow", state.selectedFlow);
-        if (state.selectedEventName) params.set("event", state.selectedEventName);
-        if (state.selectedSession) params.set("session", state.selectedSession);
-        history.replaceState({}, "", `${window.location.pathname}?${params.toString()}`);
+        const url = new URL(window.location.href);
+        const values: [key: string, value: string, defaultValue: string][] = [
+            ["tab", state.tab, trafficOverviewTab],
+            ["range", el("statsRange").value, "7d"],
+            ["flow", el("statsFlow").value, "all"],
+            ["device", el("statsDevice").value, "all"],
+            ["source", el("statsSource").value, "all"],
+            ["selectedFlow", state.selectedFlow, "pheno"],
+            ["event", state.selectedEventName || "", ""],
+            ["session", state.selectedSession || "", ""]
+        ];
+        values.forEach(([key, value, defaultValue]) => {
+            if (value === defaultValue) url.searchParams.delete(key);
+            else url.searchParams.set(key, value);
+        });
+        const target = `${url.pathname}${url.search}${url.hash}`;
+        if (target !== `${window.location.pathname}${window.location.search}${window.location.hash}`)
+            history.replaceState(history.state, "", target);
     }
 
     async function loadDashboard(): Promise<void> {
@@ -649,10 +673,9 @@
     }
 
     function renderLoadedStatus(): void {
-        const totals = state.trafficSummary.totals;
         setStatus(state.tab !== trafficOverviewTab
             ? `Complete ${selectedRangeLabel()} diagnostic windows loaded: ${formatNumber(state.events.length)} current and ${formatNumber(state.previousEvents.length)} previous redacted events. Generated ${formatTime(state.generatedAtUtc)}.`
-            : `Complete ${selectedRangeLabel()} traffic window loaded: ${formatNumber(totals.sessions)} visitor sessions and ${formatNumber(totals.pageViews)} page views. ${formatNumber(state.events.length)} recent redacted rows retained for export and drilldown. Generated ${formatTime(state.generatedAtUtc)}.`);
+            : `Updated ${formatTime(state.generatedAtUtc)}`);
     }
 
     function setDashboardLoading(loading: boolean): void {
@@ -679,6 +702,7 @@
 
     function renderPageMode(): void {
         const traffic = state.tab === trafficOverviewTab;
+        document.body.classList.toggle("stats-diagnostic-mode", !traffic);
         el("trafficOverview").hidden = !traffic;
         el("aiReferralReport").hidden = state.tab !== sourceQualityTab;
         renderAiReferrals();
@@ -744,217 +768,137 @@
 
     function renderTrafficOverview(): void {
         const host = el("trafficOverview");
-        if (state.tab !== trafficOverviewTab) {
+        trafficChartObserver?.disconnect();
+        trafficChartObserver = null;
+        el("statsWindow").textContent = formatTrafficWindow();
+        if (state.tab !== trafficOverviewTab || !state.generatedAtUtc) {
             host.innerHTML = "";
             return;
         }
 
-        const summary = state.trafficSummary || emptyTrafficSummary();
-        const totals = summary.totals || emptyTrafficTotals();
-        const previous = summary.previousTotals || emptyTrafficTotals();
-        const clean = summary.cleanTotals || emptyTrafficTotals();
-        const quality = summary.quality || emptyTrafficQuality();
+        const openSections = new Set(Array.from(host.querySelectorAll<HTMLDetailsElement>("details[open]"), detail => detail.dataset.trafficDisclosure));
+        const summary = state.trafficSummary;
+        const points = trafficDailyPoints(summary.daily);
+        const outcomes = summary.outcomes;
         host.innerHTML = `
-            <section class="traffic-metrics" aria-label="Traffic totals">
-                ${trafficMetric("Visitor sessions", totals.sessions, previous.sessions, `${formatNumber(clean.sessions)} clean / ${formatNumber(quality.noisySessions)} noisy`)}
-                ${trafficMetric("Clean sessions", clean.sessions, null, `${percentNumber(ratio(clean.sessions, totals.sessions))} of raw`)}
-                ${trafficMetric("Page views", totals.pageViews, previous.pageViews)}
-                ${trafficMetric("Clean page views", clean.pageViews, null, `${percentNumber(ratio(clean.pageViews, totals.pageViews))} of raw`)}
-                ${trafficMetric("Interactions", totals.events, previous.events)}
-                ${trafficMetric("Ranked pages", (summary.topPages || []).length, null, "top page list")}
-            </section>
-            ${successTrendPanel(summary)}
+            <div class="traffic-summary-grid">
+                <section class="traffic-audience" aria-label="Traffic">
+                    <div class="traffic-metrics" aria-label="Traffic totals">
+                        ${trafficMetric("Recorded sessions", summary.totals.sessions, summary.previousTotals.sessions)}
+                        ${trafficMetric("Page views", summary.totals.pageViews, summary.previousTotals.pageViews)}
+                    </div>
+                    <div class="traffic-chart-heading">
+                        <h2>Daily sessions</h2>
+                        <label class="traffic-day-picker"><span class="sr-only">Selected day (UTC)</span>
+                            <select id="trafficDay">${points.map(point => `<option value="${escAttr(point.day)}">${esc(formatTrafficDay(point.day))}${isPartialTrafficDay(point.day) ? " · partial day" : ""}</option>`).join("")}</select>
+                        </label>
+                    </div>
+                    <div class="traffic-chart"><svg id="trafficDailyChart" role="img" aria-label="Daily recorded sessions, by UTC date"></svg></div>
+                    <div id="trafficDayDetail" class="traffic-chart-detail" role="status" aria-live="polite"></div>
+                    <p class="traffic-chart-note">UTC dates.${points.some(point => isPartialTrafficDay(point.day)) ? " Hatched bars cover part of a day." : ""}</p>
+                </section>
+                <section class="traffic-outcomes" aria-label="Results and submissions">
+                    <h2>Results &amp; submissions</h2>
+                    <p class="traffic-caption">Recorded actions in this period</p>
+                    ${trafficOutcome("New applications", outcomes.newApplications, "Submitted for review")}
+                    ${trafficOutcome("Challenge signups", outcomes.challengeSignups, "Successful signups")}
+                    ${trafficOutcome("Calculator results", outcomes.calculatorResults, "Results generated")}
+                    ${trafficOtherOutcomes(outcomes)}
+                </section>
+            </div>
+            <div class="traffic-breakdowns">
+                ${trafficRankedList("Where sessions came from", "Sessions", summary.sources.map(row => ({ label: trafficSourceLabel(row.label), value: row.sessions })), "sources")}
+                ${trafficRankedList("Most viewed pages", "Page views", summary.topPages.map(row => ({ label: trafficPageLabel(row.route), value: row.pageViews })), "pages")}
+            </div>
             ${trafficQualityPanel(summary)}
-            <section class="stats-panel traffic-chart-panel">
-                <div class="panel-heading">
-                    <h2>Daily traffic</h2>
-                    <span class="panel-meta">${formatNumber((summary.daily || []).length)} days</span>
+            <details class="traffic-disclosure" data-traffic-disclosure="breakdowns">
+                <summary>More traffic breakdowns</summary>
+                <div class="traffic-detail-grid">
+                    ${trafficBreakdownTable("Referrers", summary.referrers)}
+                    ${trafficBreakdownTable("Devices", summary.devices)}
+                    ${trafficBreakdownTable("Browsers", summary.browsers)}
                 </div>
-                ${dailyTrafficChart(summary.daily || [])}
-            </section>
-            <section class="traffic-grid" aria-label="Traffic breakdowns">
-                ${trafficPanel("Top pages", trafficPageTable(summary.topPages || []))}
-                ${trafficPanel("Sources", trafficBreakdownTable(summary.sources || []))}
-                ${trafficPanel("Referrers", trafficBreakdownTable(summary.referrers || []))}
-                ${trafficPanel("Devices", trafficBreakdownTable(summary.devices || []))}
-                ${trafficPanel("Browsers", trafficBreakdownTable(summary.browsers || []))}
-            </section>
+            </details>
         `;
+        host.querySelectorAll<HTMLDetailsElement>("details").forEach(detail => {
+            detail.open = openSections.has(detail.dataset.trafficDisclosure);
+        });
+        bindTrafficChart(points);
+    }
+
+    function trafficMetric(label: string, current: number, previous: number): string {
+        let delta = "";
+        if (el("statsRange").value !== "alltime") {
+            if (previous > 0) {
+                const change = (current - previous) / previous;
+                const percent = new Intl.NumberFormat(undefined, { style: "percent", maximumFractionDigits: 1 }).format(Math.abs(change));
+                const period = selectedRangeLabel().replace(/^last /i, "").toLowerCase();
+                delta = `${change < 0 ? "↓" : change > 0 ? "↑" : ""} ${percent} vs previous ${/\d/.test(period) ? period : "period"}`;
+            } else delta = "No activity in the previous period";
+        }
+        return `<div class="traffic-metric"><span>${esc(label)}</span><strong>${esc(formatNumber(current))}</strong><em>${esc(delta)}</em></div>`;
+    }
+
+    function trafficOutcome(label: string, value: number, detail: string): string {
+        return `<div class="traffic-outcome"><div><span>${esc(label)}</span><small>${esc(detail)}</small></div><strong>${formatNumber(value)}</strong></div>`;
+    }
+
+    function trafficOtherOutcomes(outcomes: TrafficOutcomes): string {
+        const items = [
+            outcomes.resultUploads ? `${formatNumber(outcomes.resultUploads)} result ${outcomes.resultUploads === 1 ? "upload" : "uploads"}` : "",
+            outcomes.profileEdits ? `${formatNumber(outcomes.profileEdits)} profile ${outcomes.profileEdits === 1 ? "edit" : "edits"}` : "",
+            outcomes.unknownSubmissions ? `${formatNumber(outcomes.unknownSubmissions)} ${outcomes.unknownSubmissions === 1 ? "submission" : "submissions"} of unknown type` : ""
+        ].filter(Boolean);
+        return items.length ? `<p class="traffic-other-outcomes">Also: ${esc(items.join(" · "))}</p>` : "";
     }
 
     function trafficQualityPanel(summary: TrafficSummary): string {
-        const totals = summary.totals || emptyTrafficTotals();
-        const clean = summary.cleanTotals || emptyTrafficTotals();
-        const quality = summary.quality || emptyTrafficQuality();
-        const noisyLevel = quality.noisySessions ? "warn" : "good";
-        const topLevel = quality.topSessionShare >= 0.5 ? "bad" : quality.topSessionShare >= 0.25 ? "warn" : "good";
-        const viewLevel = quality.noisyPageViewShare >= 0.5 ? "bad" : quality.noisyPageViewShare >= 0.25 ? "warn" : "good";
-        const repeatedLevel = quality.repeatedPageViewSessions ? "warn" : "good";
-        return `
-            <section class="stats-panel traffic-quality-panel">
-                <div class="panel-heading">
-                    <h2>Clean vs raw traffic</h2>
-                    <span class="panel-meta">${esc(pageViewMixLabel(quality))}</span>
-                </div>
-                <div class="traffic-quality-grid">
-                    ${trafficQualityCard("Raw sessions", totals.sessions, `${formatNumber(totals.pageViews)} raw page views`, "")}
-                    ${trafficQualityCard("Clean sessions", clean.sessions, `${percentNumber(ratio(clean.sessions, totals.sessions))} of raw sessions`, clean.sessions === totals.sessions ? "good" : "warn")}
-                    ${trafficQualityCard("Noisy sessions", quality.noisySessions, `${formatNumber(quality.rawSessions)} raw sessions`, noisyLevel)}
-                    ${trafficQualityCard("Top-session share", percentNumber(quality.topSessionShare), `${formatNumber(quality.topSessionEvents)} interactions in one session`, topLevel)}
-                    ${trafficQualityCard("Noisy page-view share", percentNumber(quality.noisyPageViewShare), `${formatNumber(quality.noisyPageViews)} noisy page views`, viewLevel)}
-                    ${trafficQualityCard("Repeated-refresh sessions", quality.repeatedPageViewSessions, `${formatNumber(quality.pageViewDominantSessions)} page-view-heavy`, repeatedLevel)}
-                </div>
-            </section>
-        `;
-    }
-
-    function trafficQualityCard(label: string, value: unknown, detail: string, level: string): string {
-        return `
-            <div class="traffic-quality-card ${escAttr(level)}">
-                <span>${esc(label)}</span>
-                <strong>${esc(String(value))}</strong>
-                <em>${esc(detail)}</em>
+        const quality = summary.quality;
+        const outcomes = summary.outcomes;
+        return `<details class="traffic-disclosure traffic-quality-panel" data-traffic-disclosure="quality">
+            <summary><span>Traffic quality &amp; measurement</span><span class="traffic-caption">${formatNumber(quality.noisySessions)} flagged sessions · ${formatNumber(quality.noisyPageViews)} page views in flagged sessions</span></summary>
+            <div class="traffic-measurement">
+                ${table(["Metric", "Recorded", "After filtering"], [
+                    ["Sessions", formatNumber(summary.totals.sessions), formatNumber(summary.cleanTotals.sessions)],
+                    ["Page views", formatNumber(summary.totals.pageViews), formatNumber(summary.cleanTotals.pageViews)]
+                ])}
+                <p>The overview shows recorded traffic. Filtering excludes sessions flagged for repeated refreshes or unusually concentrated page views. Recorded sessions are browser sessions, not unique people.</p>
+                <p>${formatNumber(outcomes.actions)} result and submission actions came from <strong>${formatNumber(outcomes.sessions)} distinct sessions</strong> across this period. Daily session counts can include the same session on multiple dates.</p>
+                <p>Results and submissions count actions separately. New applications are server-confirmed full applications, before approval or payment confirmation. Result uploads, profile edits, and submissions of unknown type are excluded from that count.</p>
+                <p>Daily bars use UTC dates. The first and last dates can cover part of a day. Comparisons use the preceding period of the same duration.</p>
+                ${table(["Additional measurement", "Value"], [
+                    ["Tracked events", formatNumber(summary.totals.events)],
+                    ["Largest session", `${formatNumber(quality.topSessionEvents)} events · ${percentNumber(quality.topSessionShare)} of events`],
+                    ["Repeated-refresh sessions", formatNumber(quality.repeatedPageViewSessions)],
+                    ["Page-view-heavy sessions", formatNumber(quality.pageViewDominantSessions)]
+                ])}
             </div>
-        `;
+        </details>`;
     }
 
-    function pageViewMixLabel(quality: TrafficQuality): string {
-        if ((quality.noisyPageViewShare || 0) >= 0.5) return "page views dominated by noisy sessions";
-        if ((quality.noisyPageViewShare || 0) >= 0.25) return "page views pressured by noisy sessions";
-        if ((quality.repeatedPageViewSessions || 0) > 0) return "repeated refreshes detected";
-        return "page views mostly clean";
+    function trafficRankedList(title: string, unit: string, rows: { label: string; value: number }[], key: string): string {
+        const maxValue = Math.max(1, ...rows.map(row => row.value));
+        const list = (items: typeof rows): string => `<div class="traffic-ranked-list">${items.map(row => `
+            <div class="traffic-ranked-row"><span>${esc(row.label)}</span><span class="traffic-meter" aria-hidden="true"><i style="width:${Math.max(0, row.value / maxValue * 100)}%"></i></span><span>${formatNumber(row.value)}</span></div>`).join("")}</div>`;
+        return `<section class="traffic-ranked-panel"><div class="traffic-list-heading"><h2>${esc(title)}</h2><span class="traffic-caption">${esc(unit)}</span></div>
+            ${rows.length ? list(rows.slice(0, 4)) : empty("No traffic for the active filters.")}
+            ${rows.length > 4 ? `<details class="traffic-more" data-traffic-disclosure="${escAttr(key)}"><summary>${formatNumber(rows.length - 4)} more ${esc(key)}</summary>${list(rows.slice(4))}</details>` : ""}
+        </section>`;
     }
 
-    function trafficMetric(label: string, value: unknown, previous: unknown, detail?: string): string {
-        const current = Number(value) || 0;
-        const previousValue = previous === null || previous === undefined ? null : Number(previous) || 0;
-        const delta = previousValue === null
-            ? detail || ""
-            : `${signedNumber(current - previousValue)} vs previous`;
-        const level = previousValue === null || current === previousValue
-            ? ""
-            : current > previousValue ? "good" : "warn";
-        return `
-            <div class="traffic-metric ${escAttr(level)}">
-                <span>${esc(label)}</span>
-                <strong>${esc(formatNumber(current))}</strong>
-                <em>${esc(delta)}</em>
-            </div>
-        `;
+    function trafficSourceLabel(value: string): string {
+        if (value === "ai") return "AI";
+        if (value === "internal") return "Internal links";
+        return value.charAt(0).toUpperCase() + value.slice(1);
     }
 
-    function successTrendPanel(summary: TrafficSummary): string {
-        const points = summary.daily || [];
-        const stats = successTrendStats(points);
-        return `
-            <section class="stats-panel success-trend-panel">
-                <div class="panel-heading">
-                    <h2>Conversions over time</h2>
-                    <span class="panel-meta">${esc(selectedRangeLabel())}</span>
-                </div>
-                <div class="success-summary" aria-label="Conversion summary">
-                    ${successTrendCard("Conversion actions", stats.actions, "calculator results / submitted applications / challenge signups")}
-                    ${successTrendCard("Converting sessions", stats.sessions, `${percentNumber(stats.rate)} of visitor sessions`)}
-                    ${successTrendCard("Best conversion day", stats.bestDayLabel, stats.bestDayRate)}
-                </div>
-                ${successTrendChart(points)}
-            </section>
-        `;
+    function trafficPageLabel(route: string): string {
+        const labels: Record<string, string> = { "/": "Homepage", "/leaderboard": "Leaderboard", "/join": "Join", "/play": "Play", "/pheno-age": "pheno age", "/bortz-age": "bortz age", "/longevitymaxxing": "Longevitymaxxing" };
+        return labels[route] || route;
     }
 
-    function successTrendCard(label: string, value: unknown, detail: string): string {
-        return `
-            <div class="success-summary-card">
-                <span>${esc(label)}</span>
-                <strong>${esc(String(value))}</strong>
-                <em>${esc(detail)}</em>
-            </div>
-        `;
-    }
-
-    function successTrendStats(points: TrafficDailyPoint[]): {
-        actions: string;
-        sessions: string;
-        rate: number;
-        bestDayLabel: string;
-        bestDayRate: string;
-    } {
-        const actions = points.reduce((sum, point) => sum + (Number(point.successActions) || 0), 0);
-        const sessions = points.reduce((sum, point) => sum + (Number(point.successSessions) || 0), 0);
-        const visitorSessions = points.reduce((sum, point) => sum + (Number(point.sessions) || 0), 0);
-        const best = points.reduce<{ point: TrafficDailyPoint; rate: number } | null>((winner, point) => {
-            const currentRate = successRate(point);
-            return !winner || currentRate > winner.rate ? { point, rate: currentRate } : winner;
-        }, null);
-        return {
-            actions: formatNumber(actions),
-            sessions: formatNumber(sessions),
-            rate: ratio(sessions, visitorSessions),
-            bestDayLabel: best ? formatDay(best.point.day) : "-",
-            bestDayRate: best ? percentNumber(best.rate) : "0%"
-        };
-    }
-
-    function successTrendChart(points: TrafficDailyPoint[]): string {
-        if (!points.length) return empty("No conversion data for the active timeframe.");
-
-        const width = Math.max(720, points.length * 58);
-        const height = 260;
-        const left = 46;
-        const right = 18;
-        const top = 20;
-        const bottom = 50;
-        const plotWidth = width - left - right;
-        const plotHeight = height - top - bottom;
-        const maxRate = Math.max(0.05, ...points.map(successRate));
-        const maxActions = Math.max(1, ...points.map(point => Number(point.successActions) || 0));
-        const labelsEvery = Math.max(1, Math.ceil(points.length / 9));
-        const barWidth = Math.max(6, Math.min(26, (plotWidth / Math.max(1, points.length)) * 0.36));
-        const x = (index: number) => left + (points.length === 1 ? plotWidth / 2 : (index / (points.length - 1)) * plotWidth);
-        const yRate = (value: unknown) => top + (1 - ((Number(value) || 0) / maxRate)) * plotHeight;
-        const yActions = (value: unknown) => top + (1 - ((Number(value) || 0) / maxActions)) * plotHeight;
-        const rateLine = points.map((point, index) => `${x(index).toFixed(1)},${yRate(successRate(point)).toFixed(1)}`).join(" ");
-        const gridLines = [0, 0.25, 0.5, 0.75, 1].map(step => {
-            const y = top + step * plotHeight;
-            return `<line class="success-grid-line" x1="${left}" y1="${y.toFixed(1)}" x2="${width - right}" y2="${y.toFixed(1)}"></line>`;
-        }).join("");
-
-        return `
-            <div class="success-trend-wrap">
-                <svg class="success-trend-svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" role="img" aria-label="Conversions over time">
-                    ${gridLines}
-                    <text class="success-axis-label" x="${left - 8}" y="${top + 4}" text-anchor="end">${esc(percentNumber(maxRate))}</text>
-                    <text class="success-axis-label" x="${left - 8}" y="${top + plotHeight}" text-anchor="end">0%</text>
-                    ${points.map((point, index) => {
-                        const cx = x(index);
-                        const actions = Number(point.successActions) || 0;
-                        const rate = successRate(point);
-                        const barHeight = Math.max(actions ? 4 : 0, top + plotHeight - yActions(actions));
-                        const barY = top + plotHeight - barHeight;
-                        const showLabel = index === 0 || index === points.length - 1 || index % labelsEvery === 0;
-                        return `
-                            <g>
-                                <title>${esc(`${point.day}: ${formatNumber(point.successActions)} conversion actions, ${formatNumber(point.successSessions)} converting sessions, ${percentNumber(rate)} session conversion rate`)}</title>
-                                <rect class="success-action-bar" x="${(cx - barWidth / 2).toFixed(1)}" y="${barY.toFixed(1)}" width="${barWidth.toFixed(1)}" height="${barHeight.toFixed(1)}" rx="4"></rect>
-                                ${showLabel ? `<text class="success-day-label" x="${cx.toFixed(1)}" y="${height - 16}" text-anchor="middle">${esc(formatDay(point.day))}</text>` : ""}
-                            </g>
-                        `;
-                    }).join("")}
-                    <polyline class="success-rate-line" points="${rateLine}"></polyline>
-                    ${points.map((point, index) => `
-                        <circle class="success-rate-dot" cx="${x(index).toFixed(1)}" cy="${yRate(successRate(point)).toFixed(1)}" r="3.4"></circle>
-                    `).join("")}
-                </svg>
-            </div>
-            <div class="traffic-legend" aria-label="Conversion legend">
-                <span><i class="success-rate"></i>Session conversion rate</span>
-                <span><i class="success-actions"></i>Conversion actions</span>
-            </div>
-        `;
-    }
-
-    function successRate(point: TrafficDailyPoint | null | undefined): number {
-        return ratio(point && point.successSessions, point && point.sessions);
+    function trafficBreakdownTable(title: string, rows: TrafficBreakdown[]): string {
+        return `<section><h2>${esc(title)}</h2>${table(["Name", "Sessions", "Page views"], rows.map(row => [row.label, formatNumber(row.sessions), formatNumber(row.pageViews)]))}</section>`;
     }
 
     function selectedRangeLabel(): string {
@@ -963,61 +907,112 @@
         return option ? option.text : "selected timeframe";
     }
 
-    function dailyTrafficChart(points: TrafficDailyPoint[]): string {
-        if (!points.length) return empty("No daily traffic for the active filters.");
-
-        const maxValue = Math.max(1, ...points.flatMap(point => [point.sessions, point.pageViews]));
-        return `
-            <div class="traffic-chart">
-                ${points.map(point => `
-                    <div class="traffic-day">
-                        <div class="traffic-bars" aria-label="${escAttr(`${point.day}: ${point.sessions} sessions, ${point.pageViews} page views`)}">
-                            <span class="traffic-bar sessions" style="height:${trafficBarHeight(point.sessions, maxValue)}%"></span>
-                            <span class="traffic-bar page-views" style="height:${trafficBarHeight(point.pageViews, maxValue)}%"></span>
-                        </div>
-                        <strong>${esc(formatDay(point.day))}</strong>
-                        <span>${esc(formatNumber(point.sessions))} sessions</span>
-                        <span>${esc(formatNumber(point.pageViews))} views</span>
-                    </div>
-                `).join("")}
-            </div>
-            <div class="traffic-legend" aria-label="Daily traffic legend">
-                <span><i class="sessions"></i>Sessions</span>
-                <span><i class="page-views"></i>Page views</span>
-            </div>
-        `;
+    function formatTrafficWindow(): string {
+        if (!state.filters?.fromUtc || !state.filters.toUtc) return "";
+        const showYear = state.filters.fromUtc.slice(0, 4) !== state.filters.toUtc.slice(0, 4);
+        const format = (value: string): string => new Date(value).toLocaleString(undefined, { month: "short", day: "numeric", ...(showYear ? { year: "numeric" } as const : {}), hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "UTC" });
+        return `${format(state.filters.fromUtc)} – ${format(state.filters.toUtc)} UTC`;
     }
 
-    function trafficBarHeight(value: unknown, maxValue: number): number {
-        return Math.max(4, Math.round(((Number(value) || 0) / Math.max(1, maxValue)) * 100));
+    function formatTrafficDay(day: string): string {
+        if (state.filters?.fromUtc?.slice(0, 4) === state.filters?.toUtc?.slice(0, 4)) return formatDay(day);
+        return new Date(`${day}T00:00:00Z`).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
     }
 
-    function trafficPanel(title: string, content: string): string {
-        return `<section class="stats-panel traffic-panel"><div class="panel-heading"><h2>${esc(title)}</h2></div>${content}</section>`;
+    function trafficDailyPoints(points: TrafficDailyPoint[]): TrafficDailyPoint[] {
+        const from = Date.parse(state.filters?.fromUtc || "");
+        const to = Date.parse(state.filters?.toUtc || "");
+        if (!Number.isFinite(from) || !Number.isFinite(to) || to <= from) return points;
+        const byDay = new Map(points.map(point => [point.day, point]));
+        const filled: TrafficDailyPoint[] = [];
+        // SQL only returns active dates. Preserve zero-activity days on the time axis.
+        for (let time = Math.floor(from / 86400000) * 86400000; time < to; time += 86400000) {
+            const day = new Date(time).toISOString().slice(0, 10);
+            filled.push(byDay.get(day) || { day, sessions: 0, pageViews: 0, events: 0, successSessions: 0, successActions: 0 });
+        }
+        return filled;
     }
 
-    function trafficPageTable(rows: TrafficPage[]): string {
-        if (!rows.length) return empty("No page-view traffic for the active filters.");
-        return table(
-            ["Page", "Sessions", "Page views"],
-            rows.map(row => [row.route || "unknown", formatNumber(row.sessions), formatNumber(row.pageViews)]));
+    function isPartialTrafficDay(day: string): boolean {
+        const start = Date.parse(`${day}T00:00:00Z`);
+        return Date.parse(state.filters?.fromUtc || "") > start || Date.parse(state.filters?.toUtc || "") < start + 86400000;
     }
 
-    function trafficBreakdownTable(rows: TrafficBreakdown[]): string {
-        if (!rows.length) return empty("No traffic for the active filters.");
-        const maxSessions = Math.max(1, ...rows.map(row => Number(row.sessions) || 0));
-        return `
-            <div class="traffic-breakdown">
-                ${rows.map(row => `
-                    <div class="traffic-breakdown-row">
-                        <strong>${esc(row.label || "unknown")}</strong>
-                        <span class="traffic-breakdown-bar"><span style="width:${barWidth(row.sessions, maxSessions)}%"></span></span>
-                        <span>${esc(formatNumber(row.sessions))} sessions</span>
-                        <span>${esc(formatNumber(row.pageViews))} views</span>
-                    </div>
-                `).join("")}
-            </div>
-        `;
+    function bindTrafficChart(points: TrafficDailyPoint[]): void {
+        const svg = document.getElementById("trafficDailyChart");
+        if (!(svg instanceof SVGSVGElement)) return;
+        const select = el("trafficDay") as HTMLSelectElement;
+        if (!points.length) return;
+        if (!points.some(point => point.day === selectedTrafficDay)) {
+            selectedTrafficDay = points.slice().reverse().find(point => !isPartialTrafficDay(point.day))?.day || points[points.length - 1]?.day || null;
+        }
+        const selectDay = (day: string): void => {
+            const point = points.find(item => item.day === day);
+            if (!point) return;
+            selectedTrafficDay = day;
+            select.value = day;
+            el("trafficDayDetail").textContent = `${formatTrafficDay(day)} · ${formatNumber(point.sessions)} sessions · ${formatNumber(point.pageViews)} page views${isPartialTrafficDay(day) ? " · partial day" : ""}`;
+            svg.querySelectorAll<SVGRectElement>("[data-day]").forEach(bar => bar.classList.toggle("is-selected", bar.dataset.day === day));
+        };
+        select.addEventListener("change", () => selectDay(select.value));
+        svg.addEventListener("click", event => {
+            const bounds = svg.getBoundingClientRect();
+            const x = event.clientX - bounds.left;
+            if (x < 44 || x > bounds.width - 12) return;
+            const point = points[Math.min(points.length - 1, Math.floor((x - 44) / (bounds.width - 56) * points.length))];
+            if (point) selectDay(point.day);
+        });
+        const draw = (): void => {
+            drawTrafficChart(svg, points);
+            if (selectedTrafficDay) selectDay(selectedTrafficDay);
+        };
+        trafficChartObserver = new ResizeObserver(draw);
+        trafficChartObserver.observe(svg.parentElement!);
+        draw();
+    }
+
+    function drawTrafficChart(svg: SVGSVGElement, points: TrafficDailyPoint[]): void {
+        const width = svg.parentElement?.clientWidth || 300;
+        const height = 250;
+        const left = 44;
+        const right = 12;
+        const top = 26;
+        const bottom = height - 32;
+        const plotWidth = Math.max(1, width - left - right);
+        const peak = Math.max(1, ...points.map(point => point.sessions));
+        const power = 10 ** Math.floor(Math.log10(peak / 3));
+        const step = ([1, 2, 5, 10].find(value => value * power >= peak / 3) || 10) * power;
+        const maxValue = Math.max(1, Math.ceil(peak / step) * step);
+        const y = (value: number): number => bottom - value / maxValue * (bottom - top);
+        const slot = plotWidth / points.length;
+        const barWidth = Math.min(42, slot * 0.65);
+        const labelEvery = Math.max(1, Math.ceil(points.length / (width < 480 ? 4 : 7)));
+        const ticks: string[] = [];
+        for (let value = 0; value <= maxValue + step / 2; value += step) {
+            if (!Number.isInteger(value)) continue;
+            ticks.push(`<line x1="${left}" y1="${y(value)}" x2="${width - right}" y2="${y(value)}" class="traffic-chart-grid"></line><text x="${left - 9}" y="${y(value) + 4}" text-anchor="end">${esc(formatNumber(value))}</text>`);
+        }
+        svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+        svg.innerHTML = `<desc>${points.length} UTC dates. Use the selected-day control for session and page-view counts.</desc>
+            <defs><pattern id="trafficPartialPattern" width="6" height="6" patternUnits="userSpaceOnUse"><rect width="6" height="6" class="traffic-partial-background"></rect><path d="M-1,1 L1,-1 M0,6 L6,0 M5,7 L7,5" class="traffic-partial-stripe"></path></pattern></defs>
+            ${ticks.join("")}
+            ${points.map((point, index) => {
+                const x = left + slot * (index + 0.5);
+                const showLabel = index === points.length - 1 || index % labelEvery === 0 && (index === 0 || index < points.length - labelEvery / 2);
+                return `<rect data-day="${escAttr(point.day)}" x="${x - barWidth / 2}" y="${y(point.sessions)}" width="${barWidth}" height="${bottom - y(point.sessions)}" rx="2" class="traffic-session-bar${isPartialTrafficDay(point.day) ? " partial" : ""}"><title>${esc(`${formatDay(point.day)}: ${formatNumber(point.sessions)} sessions${isPartialTrafficDay(point.day) ? ", partial day" : ""}`)}</title></rect>
+                    ${slot >= 35 ? `<text x="${x}" y="${y(point.sessions) - 7}" text-anchor="middle" class="traffic-bar-value">${formatNumber(point.sessions)}</text>` : ""}
+                    ${showLabel ? `<text class="traffic-date-label" x="${index === 0 ? left : index === points.length - 1 ? width - right : x}" y="${height - 9}" text-anchor="${index === 0 ? "start" : index === points.length - 1 ? "end" : "middle"}">${esc(formatTrafficDay(point.day))}</text>` : ""}`;
+            }).join("")}`;
+        const labels = Array.from(svg.querySelectorAll<SVGTextElement>(".traffic-date-label"));
+        const lastLabel = labels[labels.length - 1];
+        if (!lastLabel) return;
+        const lastLeft = lastLabel.getBoundingClientRect().left;
+        let previousRight = -Infinity;
+        labels.forEach((label, index) => {
+            const bounds = label.getBoundingClientRect();
+            if (index > 0 && index < labels.length - 1 && (bounds.left < previousRight + 8 || bounds.right > lastLeft - 8)) label.remove();
+            else previousRight = bounds.right;
+        });
     }
 
     function renderDataQuality(): void {
@@ -1533,13 +1528,31 @@
 
     function renderTabs(): void {
         const host = el("statsTabs");
+        const previousPicker = host.querySelector<HTMLDetailsElement>("details");
+        const pickerOpen = previousPicker?.open || state.tab !== trafficOverviewTab;
+        const focusedTab = host.contains(document.activeElement) && document.activeElement instanceof HTMLButtonElement
+            ? document.activeElement.dataset.tab : null;
         host.innerHTML = "";
+        const picker = document.createElement("details");
+        picker.id = "statsDiagnostics";
+        picker.className = "stats-diagnostics";
+        picker.open = pickerOpen;
+        const toggle = document.createElement("summary");
+        toggle.textContent = "Diagnostics";
+        toggle.className = "stats-tab stats-diagnostics-toggle";
+        picker.appendChild(toggle);
+        const diagnosticTabs = document.createElement("div");
+        diagnosticTabs.className = "stats-diagnostic-tabs";
+        picker.appendChild(diagnosticTabs);
         tabs.forEach(tab => {
             const button = document.createElement("button");
             button.type = "button";
             button.className = `stats-tab${state.tab === tab ? " active" : ""}`;
-            button.textContent = tab;
+            button.textContent = tab === trafficOverviewTab ? "Overview" : tab;
+            button.dataset.tab = tab;
+            button.setAttribute("aria-pressed", String(state.tab === tab));
             button.addEventListener("click", () => {
+                if (tab === trafficOverviewTab) picker.open = false;
                 state.tab = tab;
                 if (tab === challengeDiagnosticsTab) state.selectedFlow = "challenge";
                 if (tab === onboardingDiagnosticsTab && state.selectedFlow === "challenge") state.selectedFlow = "pheno";
@@ -1551,8 +1564,12 @@
                     renderAll();
                 }
             });
-            host.appendChild(button);
+            (tab === trafficOverviewTab ? host : diagnosticTabs).appendChild(button);
         });
+        host.appendChild(picker);
+        if (focusedTab) {
+            Array.from(host.querySelectorAll<HTMLButtonElement>("button")).find(button => button.dataset.tab === focusedTab)?.focus({ preventScroll: true });
+        }
     }
 
     function renderOutcomeStrip(): void {
@@ -2654,7 +2671,21 @@
             sources: normalizeTrafficRows(summary.sources, normalizeTrafficBreakdown),
             referrers: normalizeTrafficRows(summary.referrers, normalizeTrafficBreakdown),
             devices: normalizeTrafficRows(summary.devices, normalizeTrafficBreakdown),
-            browsers: normalizeTrafficRows(summary.browsers, normalizeTrafficBreakdown)
+            browsers: normalizeTrafficRows(summary.browsers, normalizeTrafficBreakdown),
+            outcomes: normalizeTrafficOutcomes(summary.outcomes)
+        };
+    }
+
+    function normalizeTrafficOutcomes(outcomes: RawTrafficOutcomes | null | undefined): TrafficOutcomes {
+        return {
+            actions: numberValue(outcomes?.actions),
+            sessions: numberValue(outcomes?.sessions),
+            calculatorResults: numberValue(outcomes?.calculatorResults),
+            newApplications: numberValue(outcomes?.newApplications),
+            challengeSignups: numberValue(outcomes?.challengeSignups),
+            resultUploads: numberValue(outcomes?.resultUploads),
+            profileEdits: numberValue(outcomes?.profileEdits),
+            unknownSubmissions: numberValue(outcomes?.unknownSubmissions)
         };
     }
 
@@ -2709,7 +2740,8 @@
             sources: [],
             referrers: [],
             devices: [],
-            browsers: []
+            browsers: [],
+            outcomes: normalizeTrafficOutcomes(null)
         };
     }
 
@@ -2921,7 +2953,7 @@
         a.download = "site-statistics-redacted.csv";
         a.click();
         setTimeout(() => URL.revokeObjectURL(url), 500);
-        setStatus(`Exported ${formatNumber(events.length)} redacted events from the complete ${selectedRangeLabel()} window.`);
+        setStatus(`Exported ${formatNumber(events.length)} redacted events for ${selectedRangeLabel().toLowerCase()}.`);
     }
 
     async function copyLink(): Promise<void> {

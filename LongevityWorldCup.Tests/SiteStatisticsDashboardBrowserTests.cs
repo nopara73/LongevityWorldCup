@@ -39,6 +39,109 @@ public sealed class SiteStatisticsDashboardBrowserTests(
     }
 
     [Fact]
+    public async Task Dashboard_DefaultUrlStaysCleanAndOnlyChangedFiltersRoundTrip()
+    {
+        await using var context = await Browser.NewContextAsync(new() { BaseURL = App.BaseAddress.ToString() });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        var page = await context.NewPageAsync();
+        await RoutePagedDashboardAsync(page, []);
+        await page.GotoAsync("/internal/site-statistics.html");
+        await page.Locator("#trafficDailyChart").WaitForAsync();
+        Assert.Equal("/internal/site-statistics.html", new Uri(page.Url).PathAndQuery);
+
+        await page.Locator("#statsRange").SelectOptionAsync("30d");
+        await page.Locator("#statsDevice").SelectOptionAsync("mobile");
+        await page.Locator("#statsSource").SelectOptionAsync("search");
+        await Assertions.Expect(page.Locator("#statsExport")).ToBeEnabledAsync();
+        Assert.Equal("?range=30d&device=mobile&source=search", new Uri(page.Url).Query);
+
+        await page.ReloadAsync();
+        await page.Locator("#trafficDailyChart").WaitForAsync();
+        await Assertions.Expect(page.Locator("#statsRange")).ToHaveValueAsync("30d");
+        await Assertions.Expect(page.Locator("#statsDevice")).ToHaveValueAsync("mobile");
+        await Assertions.Expect(page.Locator("#statsSource")).ToHaveValueAsync("search");
+        Assert.Equal("?range=30d&device=mobile&source=search", new Uri(page.Url).Query);
+
+        await page.Locator("#statsReset").ClickAsync();
+        await Assertions.Expect(page.Locator("#statsExport")).ToBeEnabledAsync();
+        Assert.Equal("/internal/site-statistics.html", new Uri(page.Url).PathAndQuery);
+    }
+
+    [Theory]
+    [InlineData("?tab=Traffic+Overview&range=7d&flow=all&device=all&source=all&selectedFlow=pheno", "")]
+    [InlineData("?tab=Traffic+Overview&range=7d&flow=all&device=all&source=all&selectedFlow=pheno&note=keep#measurement", "?note=keep#measurement")]
+    [InlineData("?range=invalid&flow=invalid&device=invalid&source=invalid&selectedFlow=pheno,", "")]
+    public async Task Dashboard_DefaultLinksNormalizeWithoutLosingOtherUrlState(string query, string expected)
+    {
+        await using var context = await Browser.NewContextAsync(new() { BaseURL = App.BaseAddress.ToString() });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        var page = await context.NewPageAsync();
+        await RoutePagedDashboardAsync(page, []);
+        await page.GotoAsync("/internal/site-statistics.html" + query);
+        await page.Locator("#trafficDailyChart").WaitForAsync();
+        var url = new Uri(page.Url);
+        Assert.Equal(expected, url.Query + url.Fragment);
+        await Assertions.Expect(page.Locator("#statsRange")).ToHaveValueAsync("7d");
+    }
+
+    [Fact]
+    public async Task Dashboard_OverviewUsesCompleteOutcomesAndKeepsZeroAndPartialDatesReadable()
+    {
+        await using var context = await Browser.NewContextAsync(new()
+        {
+            BaseURL = App.BaseAddress.ToString(), Locale = "en-US",
+            ViewportSize = new() { Width = 1440, Height = 1000 },
+            ReducedMotion = ReducedMotion.Reduce
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        await context.RouteAsync("**/api/site-statistics/dashboard?**", route => route.FulfillAsync(new()
+        {
+            ContentType = "application/json",
+            Body = JsonSerializer.Serialize(new
+            {
+                generatedAtUtc = "2026-10-17T12:00:00Z",
+                filters = new { fromUtc = "2026-10-10T12:00:00Z", toUtc = "2026-10-17T12:00:00Z" },
+                trafficSummary = new SiteStatisticsTrafficSummary(
+                    Totals: new(6, 11, 100), PreviousTotals: new(12, 22, 200), CleanTotals: new(6, 11, 100),
+                    Quality: new(6, 6, 0, 10, .1, 0, 0, 0, 0),
+                    Daily: [new("2026-10-12", 2, 3, 40, 2, 3), new("2026-10-14", 5, 8, 60, 1, 3)],
+                    TopPages: [new("/", 6, 11)], Sources: [new("direct", 6, 11, 100)],
+                    Referrers: [], Devices: [], Browsers: [],
+                    Outcomes: new(6, 3, 3, 2, 1, 0, 0, 0)),
+                events = Array.Empty<object>(), previousEvents = Array.Empty<object>()
+            }, new JsonSerializerOptions(JsonSerializerDefaults.Web))
+        }));
+        var page = await context.NewPageAsync();
+        var errors = new List<string>();
+        page.PageError += (_, error) => errors.Add(error);
+        await page.GotoAsync("/internal/site-statistics.html");
+        await Assertions.Expect(page.Locator(".traffic-outcome").Filter(new() { HasText = "New applications" }).Locator("strong")).ToHaveTextAsync("2");
+        await Assertions.Expect(page.Locator("#trafficDay option")).ToHaveCountAsync(8);
+        await Assertions.Expect(page.Locator("#trafficDailyChart .partial")).ToHaveCountAsync(2);
+        await Assertions.Expect(page.Locator("#statsDiagnostics")).Not.ToHaveAttributeAsync("open", "");
+        await page.GetByLabel("Selected day (UTC)").SelectOptionAsync("2026-10-13");
+        await Assertions.Expect(page.Locator("#trafficDayDetail")).ToHaveTextAsync("Oct 13 · 0 sessions · 0 page views");
+        await page.GetByLabel("Selected day (UTC)").FocusAsync();
+        await page.Keyboard.PressAsync("ArrowDown");
+        await Assertions.Expect(page.Locator("#trafficDayDetail")).ToHaveTextAsync("Oct 14 · 5 sessions · 8 page views");
+        await page.Locator(".traffic-quality-panel > summary").ClickAsync();
+        await Assertions.Expect(page.Locator(".traffic-measurement")).ToContainTextAsync("3 distinct sessions");
+        await page.Locator(".traffic-quality-panel > summary").ClickAsync();
+
+        var screenshots = Environment.GetEnvironmentVariable("LWC_STATS_SCREENSHOTS");
+        if (!string.IsNullOrEmpty(screenshots)) Directory.CreateDirectory(screenshots);
+        foreach (var width in new[] { 1440, 768, 390, 320 })
+        {
+            await page.SetViewportSizeAsync(width, 1000);
+            await Assertions.Expect(page.Locator("#trafficDailyChart")).ToBeVisibleAsync();
+            Assert.True(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth <= innerWidth"));
+            if (!string.IsNullOrEmpty(screenshots))
+                await page.ScreenshotAsync(new() { Path = Path.Combine(screenshots, $"statistics-{width}.png"), FullPage = true });
+        }
+        Assert.Empty(errors);
+    }
+
+    [Fact]
     public async Task Dashboard_AiReportSharesProviderFiltersAndFitsDesktopAndMobile()
     {
         var statistics = App.Services.GetRequiredService<SiteStatisticsService>();
@@ -179,20 +282,18 @@ public sealed class SiteStatisticsDashboardBrowserTests(
         };
 
         await page.GotoAsync("/internal/site-statistics.html", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-        await page.Locator("#statsTabs").GetByRole(AriaRole.Button, new() { Name = "Traffic Overview" }).WaitForAsync();
-        await page.Locator("#trafficOverview").GetByText("Visitor sessions", new() { Exact = true }).WaitForAsync();
+        await page.Locator("#statsTabs").GetByRole(AriaRole.Button, new() { Name = "Overview", Exact = true }).WaitForAsync();
+        await page.Locator("#trafficOverview").GetByText("Recorded sessions", new() { Exact = true }).WaitForAsync();
         await page.GetByLabel("Traffic totals").GetByText("Page views", new() { Exact = true }).WaitForAsync();
-        await page.GetByRole(AriaRole.Heading, new() { Name = "Clean vs raw traffic" }).WaitForAsync();
-        await page.Locator("#trafficOverview").GetByText("Noisy sessions").WaitForAsync();
-        await page.Locator("#trafficOverview").GetByText("Top-session share").WaitForAsync();
-        await page.Locator("#trafficOverview").GetByText("Repeated-refresh sessions").WaitForAsync();
-        await page.GetByRole(AriaRole.Heading, new() { Name = "Conversions over time" }).WaitForAsync();
-        await page.Locator("#trafficOverview .success-trend-panel .traffic-legend i.success-rate").WaitForAsync();
-        await page.Locator("#trafficOverview .success-trend-svg").WaitForAsync();
-        await page.GetByRole(AriaRole.Heading, new() { Name = "Daily traffic" }).WaitForAsync();
-        await page.Locator("#trafficOverview .traffic-chart .traffic-bar.sessions").First.WaitForAsync();
-        await page.GetByRole(AriaRole.Heading, new() { Name = "Top pages" }).WaitForAsync();
-        await page.GetByRole(AriaRole.Heading, new() { Name = "Sources" }).WaitForAsync();
+        await page.GetByRole(AriaRole.Heading, new() { Name = "Results & submissions" }).WaitForAsync();
+        await page.Locator("#trafficOverview .traffic-quality-panel > summary").ClickAsync();
+        await page.Locator("#trafficOverview").GetByText("Repeated-refresh sessions", new() { Exact = true }).WaitForAsync();
+        await page.Locator("#trafficOverview .traffic-quality-panel > summary").ClickAsync();
+        await page.GetByRole(AriaRole.Heading, new() { Name = "Daily sessions" }).WaitForAsync();
+        await page.Locator("#trafficDailyChart").WaitForAsync();
+        await page.GetByRole(AriaRole.Heading, new() { Name = "Most viewed pages" }).WaitForAsync();
+        await page.GetByRole(AriaRole.Heading, new() { Name = "Where sessions came from" }).WaitForAsync();
+        await page.Locator("[data-traffic-disclosure=breakdowns] > summary").ClickAsync();
         await page.GetByRole(AriaRole.Heading, new() { Name = "Referrers" }).WaitForAsync();
         await page.GetByRole(AriaRole.Heading, new() { Name = "Devices" }).WaitForAsync();
         Assert.Contains(dashboardRequests, url => url.Contains("limit=100", StringComparison.Ordinal));
@@ -202,8 +303,9 @@ public sealed class SiteStatisticsDashboardBrowserTests(
             response.Ok);
         await page.Locator("#statsRange").SelectOptionAsync("30d");
         await range30Response;
-        await page.Locator("#trafficOverview .success-trend-svg").WaitForAsync();
+        await Assertions.Expect(page.Locator("#trafficDay option")).ToHaveCountAsync(31);
         Assert.Contains(dashboardRequests, url => url.Contains("range=30d", StringComparison.Ordinal));
+        await page.Locator("#statsDiagnostics > summary").ClickAsync();
         await page.Locator("#statsTabs").GetByRole(AriaRole.Button, new() { Name = "Onboarding Diagnostics" }).ClickAsync();
         await page.WaitForSelectorAsync("#decisionBrief .decision-card");
         Assert.Contains(dashboardRequests, url => url.Contains("limit=5000", StringComparison.Ordinal));
@@ -269,6 +371,7 @@ public sealed class SiteStatisticsDashboardBrowserTests(
         page.PageError += (_, error) => errors.Add(error);
 
         await page.GotoAsync("/internal/site-statistics.html", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.Locator("#statsDiagnostics > summary").ClickAsync();
         await page.Locator("#statsTabs").GetByRole(AriaRole.Button, new() { Name = "Onboarding Diagnostics" }).ClickAsync();
         await page.Locator("#decisionBrief").GetByText("Join track selection bottleneck").WaitForAsync();
         await page.Locator("#eventSamples").GetByText("burst x30").WaitForAsync();
@@ -358,11 +461,11 @@ public sealed class SiteStatisticsDashboardBrowserTests(
         await RoutePagedDashboardAsync(page, paginationRequests);
 
         await page.GotoAsync("/internal/site-statistics.html", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-        await page.Locator("#trafficOverview").GetByText("Visitor sessions", new() { Exact = true }).WaitForAsync();
+        await page.Locator("#trafficOverview").GetByText("Recorded sessions", new() { Exact = true }).WaitForAsync();
         var downloadTask = page.WaitForDownloadAsync();
         await page.Locator("#statsExport").ClickAsync();
         var download = await downloadTask;
-        await page.Locator("#statsStatus").GetByText("Exported 2 redacted events from the complete 7D window.", new() { Exact = true }).WaitForAsync();
+        await page.Locator("#statsStatus").GetByText("Exported 2 redacted events for last 7 days.", new() { Exact = true }).WaitForAsync();
 
         Assert.Equal("site-statistics-redacted.csv", download.SuggestedFilename);
         var request = Assert.Single(paginationRequests);

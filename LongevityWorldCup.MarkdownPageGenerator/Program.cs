@@ -44,6 +44,15 @@ foreach (var page in pages)
     var markdown = await File.ReadAllTextAsync(page.Source);
     var title = ExtractTitle(markdown);
     var documentHtml = AddTableCellLabels(OpenAbsoluteLinksInNewTabs(RewriteWebsiteAssetImageSources(Markdown.ToHtml(markdown, pipeline))));
+    if (page.CanonicalPath is "/about" or "/history")
+    {
+        // A discretionary break preserves the full title at enlarged text sizes.
+        // Keep metadata, source Markdown, anchors and the accessible name verbatim.
+        documentHtml = Regex.Replace(documentHtml, "<h1(?<attributes>[^>]*)>(?<title>.*?)</h1>", match =>
+            $"<h1{match.Groups["attributes"].Value} aria-label=\"{WebUtility.HtmlEncode(title)}\">" +
+            Regex.Replace(match.Groups["title"].Value, "[Ll]ongevity", word =>
+                $"<span class=\"page-title-word\">{word.Value[..3]}&shy;gev&shy;ity</span>") + "</h1>");
+    }
     var contentsHtml = BuildContentsNav(documentHtml, page.SourceUrl);
     documentHtml = BuildTimeline(documentHtml);
     if (page.Reference)
@@ -1119,7 +1128,8 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
 
             const getOffset = () => {
                 const stickyHeader = document.getElementById("site-sticky-header");
-                return ((stickyHeader && stickyHeader.offsetHeight) || 52) + 18;
+                const measuredHeight = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--site-sticky-height"));
+                return ((stickyHeader && stickyHeader.offsetHeight) || measuredHeight || 52) + 18;
             };
 
             let activeLink = null;

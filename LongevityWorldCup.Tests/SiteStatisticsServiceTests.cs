@@ -433,6 +433,60 @@ public sealed class SiteStatisticsServiceTests
     }
 
     [Fact]
+    public async Task GetDashboardAsync_OutcomesSeparateSubmissionKindsAndDeduplicateSessionsAcrossDays()
+    {
+        var dbPath = Path.Combine(Path.GetTempPath(), "LongevityWorldCup.Tests", $"{Guid.NewGuid():N}.db");
+        Directory.CreateDirectory(Path.GetDirectoryName(dbPath)!);
+        await using var cleanup = new TempDatabaseCleanup(dbPath);
+        using var database = new DatabaseManager(dbPath: dbPath);
+        var service = new SiteStatisticsService(database, NullLogger<SiteStatisticsService>.Instance);
+        await service.GetDashboardAsync(new SiteStatisticsDashboardQuery { Range = "7d" });
+        var yesterday = new DateTimeOffset(DateTime.UtcNow.Date.AddDays(-1).AddHours(12), TimeSpan.Zero);
+
+        InsertDashboardEvent(database, yesterday.AddDays(-1), "S-RETURNING", "calculator_result_generated", "pheno", source: "search");
+        InsertDashboardEvent(database, yesterday, "S-RETURNING", "calculator_result_generated", "pheno", source: "search");
+        InsertDashboardEvent(database, yesterday, "S-RETURNING", "application_submit_succeeded", "application", source: "search",
+            metadataJson: """{"submissionKind":"full-application"}""");
+        InsertDashboardEvent(database, yesterday, "S-UPLOAD", "application_submit_succeeded", "application",
+            metadataJson: """{"submissionKind":"result-upload"}""");
+        InsertDashboardEvent(database, yesterday, "S-EDIT", "application_submit_succeeded", "application",
+            metadataJson: """{"submissionKind":"edit-request"}""");
+        InsertDashboardEvent(database, yesterday, "S-UNKNOWN", "application_submit_succeeded", "application");
+        InsertDashboardEvent(database, yesterday, "S-LEGACY", "application_submit_accepted", "application");
+        InsertDashboardEvent(database, yesterday, "S-MALFORMED", "application_submit_succeeded", "application", metadataJson: "{invalid");
+        InsertDashboardEvent(database, yesterday, "S-CHALLENGE", "challenge_signup_succeeded", "challenge");
+        InsertDashboardEvent(database, yesterday, "S-FAILED", "application_submit_failed", "application");
+        InsertDashboardEvent(database, yesterday, "S-VIEW", "site_page_viewed", "site", route: "/");
+        InsertDashboardEvent(database, yesterday.AddDays(-10), "S-OLD", "calculator_result_generated", "pheno");
+
+        var dashboard = await service.GetDashboardAsync(new SiteStatisticsDashboardQuery { Range = "7d", Limit = 1 });
+        var outcomes = dashboard.TrafficSummary.Outcomes;
+        Assert.Single(dashboard.Events);
+        Assert.True(dashboard.EventsPage.HasMore);
+        Assert.Equal(9, outcomes.Actions);
+        Assert.Equal(7, outcomes.Sessions);
+        Assert.Equal(8, dashboard.TrafficSummary.Daily.Sum(point => point.SuccessSessions));
+        Assert.Equal(2, outcomes.CalculatorResults);
+        Assert.Equal(1, outcomes.NewApplications);
+        Assert.Equal(1, outcomes.ChallengeSignups);
+        Assert.Equal(1, outcomes.ResultUploads);
+        Assert.Equal(1, outcomes.ProfileEdits);
+        Assert.Equal(3, outcomes.UnknownSubmissions);
+
+        var filtered = await service.GetDashboardAsync(new SiteStatisticsDashboardQuery
+        {
+            Range = "7d", Flow = "pheno", Device = "desktop", Source = "search", Limit = 1
+        });
+        Assert.Equal(2, filtered.TrafficSummary.Outcomes.Actions);
+        Assert.Equal(1, filtered.TrafficSummary.Outcomes.Sessions);
+        Assert.Equal(2, filtered.TrafficSummary.Outcomes.CalculatorResults);
+        Assert.Equal(0, filtered.TrafficSummary.Outcomes.NewApplications);
+        var noMatches = await service.GetDashboardAsync(new SiteStatisticsDashboardQuery { Range = "7d", Device = "mobile" });
+        Assert.Equal(0, noMatches.TrafficSummary.Outcomes.Actions);
+        Assert.Equal(0, noMatches.TrafficSummary.Outcomes.Sessions);
+    }
+
+    [Fact]
     public async Task GetDashboardAsync_ReturnsPreviousEquivalentPeriodForTrendDetection()
     {
         var dbPath = Path.Combine(Path.GetTempPath(), "LongevityWorldCup.Tests", $"{Guid.NewGuid():N}.db");
@@ -915,7 +969,8 @@ public sealed class SiteStatisticsServiceTests
         string flow,
         string source = "direct",
         string? referrerDomain = null,
-        string route = "/pheno-age")
+        string route = "/pheno-age",
+        string? metadataJson = null)
     {
         database.Run(sqlite =>
         {
@@ -927,7 +982,7 @@ public sealed class SiteStatisticsServiceTests
                  ErrorCode, DurationMs, DeviceClass, BrowserFamily, ReferrerDomain, Source, MetadataJson)
                 VALUES
                 (@id, @occurred, @session, @eventName, @flow, @route, @component, @step, @outcome,
-                 NULL, NULL, @device, @browser, @referrer, @source, NULL);
+                 NULL, NULL, @device, @browser, @referrer, @source, @metadata);
                 """;
             cmd.Parameters.AddWithValue("@id", Guid.NewGuid().ToString("N"));
             cmd.Parameters.AddWithValue("@occurred", occurredAtUtc.ToString("O"));
@@ -942,6 +997,7 @@ public sealed class SiteStatisticsServiceTests
             cmd.Parameters.AddWithValue("@browser", "Chrome");
             cmd.Parameters.AddWithValue("@source", source);
             cmd.Parameters.AddWithValue("@referrer", referrerDomain ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("@metadata", metadataJson ?? (object)DBNull.Value);
             cmd.ExecuteNonQuery();
         });
     }
