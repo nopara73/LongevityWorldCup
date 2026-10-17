@@ -1493,6 +1493,10 @@ public sealed class AestheticSystemBrowserTests(
                         probe.style.setProperty('width', `${arg.Width}px`, 'important');
                         probe.style.setProperty('inline-size', `${arg.Width}px`, 'important');
                         await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                        await Promise.all(probe.getAnimations({ subtree: true })
+                            .filter(animation => Number.isFinite(animation.effect.getComputedTiming().endTime))
+                            .map(animation => animation.finished.catch(() => {})));
+                        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
                         let applied;
                         if (arg.Name === 'league-filters') applied = getComputedStyle(probe.querySelector('.filter-label-copy')).display === 'block';
                         else if (arg.Name === 'athlete-stats') applied = getComputedStyle(probe.querySelector('.athlete-info-table tr')).display === 'grid';
