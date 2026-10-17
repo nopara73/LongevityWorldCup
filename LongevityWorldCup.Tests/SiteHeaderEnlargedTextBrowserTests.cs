@@ -160,6 +160,8 @@ public sealed class SiteHeaderEnlargedTextBrowserTests(
     {
         await NavigateAndSettleAsync(page, path);
         await page.EvaluateAsync("async () => { await window.modulesReady; await Promise.allSettled([window.getSharedAthletes?.(), window.getSharedEvents?.()]); }");
+        if (path == "/events")
+            await page.WaitForFunctionAsync("() => window.scrollY > 0");
         await WaitForLayoutAsync(page);
         await ScrollToTopAsync(page);
     }
