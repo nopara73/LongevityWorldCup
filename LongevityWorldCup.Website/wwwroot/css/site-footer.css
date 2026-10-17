@@ -135,7 +135,7 @@
 }
 
 @media (hover: hover) {
-    .footer-column--follow .footer-link:is(:hover, :focus-visible) .footer-link-label {
+    .footer-column--follow .footer-link:is(:hover, :focus-visible):not([data-label-dismissed]) .footer-link-label {
         width: max-content;
         height: auto;
         margin: 0;
@@ -148,6 +148,12 @@
         border-radius: var(--radius-sm, 4px);
         font-size: 0.85rem;
         z-index: 1;
+    }
+
+    .footer-subscriptions .footer-link:last-child:is(:hover, :focus-visible) .footer-link-label {
+        right: 0;
+        max-width: calc(50vw + 1.75rem);
+        white-space: normal;
     }
 }
 
@@ -184,6 +190,13 @@
         clip-path: none;
         white-space: normal;
         font-size: 0.75rem;
+    }
+
+    .footer-subscriptions {
+        flex-basis: 100%;
+        justify-content: center;
+        padding-left: 0;
+        border-left: 0;
     }
 }
 

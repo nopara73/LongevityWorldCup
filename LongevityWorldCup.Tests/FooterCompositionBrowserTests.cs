@@ -121,16 +121,20 @@ public sealed class FooterCompositionBrowserTests(
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task Footer_KeyboardOrderFocusAndPlatformNamesRemainVisible(bool dark)
+    [InlineData(390, false, 100)]
+    [InlineData(390, true, 100)]
+    [InlineData(320, false, 200)]
+    [InlineData(390, true, 200)]
+    public async Task Footer_KeyboardOrderFocusAndPlatformNamesRemainVisible(int width, bool dark, int textPercent)
     {
         await using var context = await NewContextAsync(Browser, App, new()
         {
-            ViewportSize = new() { Width = 390, Height = 844 }, ColorScheme = dark ? ColorScheme.Dark : ColorScheme.Light, ReducedMotion = ReducedMotion.Reduce
+            ViewportSize = new() { Width = width, Height = 844 }, ColorScheme = dark ? ColorScheme.Dark : ColorScheme.Light, ReducedMotion = ReducedMotion.Reduce
         });
         var page = await context.NewPageAsync();
         await NavigateAndSettleAsync(page, "/ruleset");
+        await page.EvaluateAsync("percent => document.documentElement.style.fontSize = parseFloat(getComputedStyle(document.documentElement).fontSize) * percent / 100 + 'px'", textPercent);
+        await SettleAsync(page);
         var links = page.Locator(".footer .footer-link");
         await links.First.FocusAsync();
         for (var i = 0; i < Labels.Length; i++)
@@ -144,6 +148,9 @@ public sealed class FooterCompositionBrowserTests(
                 var label = link.Locator(".footer-link-label");
                 await Assertions.Expect(label).ToBeVisibleAsync();
                 Assert.True(await label.EvaluateAsync<bool>("l => { const b=l.getBoundingClientRect(); return b.width > 1 && b.left >= 0 && b.right <= innerWidth && getComputedStyle(l).clipPath === 'none'; }"));
+                await page.Keyboard.PressAsync("Escape");
+                Assert.Equal("inset(50%)", await label.EvaluateAsync<string>("l => getComputedStyle(l).clipPath"));
+                await Assertions.Expect(link).ToBeFocusedAsync();
             }
             await page.Keyboard.PressAsync("Tab");
         }
