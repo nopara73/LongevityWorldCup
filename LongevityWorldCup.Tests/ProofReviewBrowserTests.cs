@@ -231,6 +231,37 @@ public sealed class ProofReviewBrowserTests(PlaywrightBrowserFixture browserFixt
     }
 
     [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public async Task QueuedCloseEvent_PreservesNewFocusAndAReopenedReview(bool onboarding, bool reopen)
+    {
+        await using var context = await NewContextAsync(Browser, App, new());
+        var page = await PrepareAsync(context, onboarding);
+        await UploadAsync(page, await CreatePagesAsync(1));
+        await page.Locator(".proof-page-preview").First.ClickAsync();
+        await Assertions.Expect(page.Locator(".proof-review-dialog")).ToBeVisibleAsync();
+        await page.EvaluateAsync("""
+            reopen => {
+                const dialog = document.querySelector('.proof-review-dialog');
+                window.__proofCloseObserved = false;
+                dialog.addEventListener('close', () => window.__proofCloseObserved = true, { once: true });
+                dialog.close();
+                if (reopen) document.querySelector('.proof-page-preview').click();
+                else document.querySelector('.proof-page-remove').focus();
+            }
+            """, reopen);
+        await page.WaitForFunctionAsync("() => window.__proofCloseObserved === true");
+        if (reopen)
+        {
+            await Assertions.Expect(page.Locator(".proof-review-dialog")).ToBeVisibleAsync();
+            Assert.True(await page.EvaluateAsync<bool>("() => document.body.classList.contains('proof-review-open') && document.querySelector('.proof-review-dialog').contains(document.activeElement)"));
+        }
+        else await Assertions.Expect(page.Locator(".proof-page-remove").First).ToBeFocusedAsync();
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public async Task RemoveTarget_TransparentCornersCatchTouchWithoutOpeningReview(bool onboarding)
