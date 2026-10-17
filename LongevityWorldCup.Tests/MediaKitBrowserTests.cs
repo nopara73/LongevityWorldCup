@@ -56,9 +56,15 @@ public sealed class MediaKitBrowserTests(PlaywrightBrowserFixture browserFixture
     }
 
     [Theory]
-    [InlineData(1440, 900, false)]
-    [InlineData(390, 844, true)]
-    public async Task Documents_AreTilesThatLeadTheirFoldersGrid(int width, int height, bool dark)
+    [InlineData(1440, 900, false, 100)]
+    [InlineData(1440, 900, true, 200)]
+    [InlineData(390, 844, true, 100)]
+    [InlineData(390, 844, false, 200)]
+    [InlineData(320, 740, false, 100)]
+    [InlineData(320, 740, true, 200)]
+    [InlineData(195, 422, false, 100)]
+    [InlineData(768, 1024, false, 200)]
+    public async Task Documents_AreTilesThatLeadTheirFoldersGrid(int width, int height, bool dark, int textSize)
     {
         await using var context = await NewContextAsync(Browser, App, new()
         {
@@ -72,6 +78,8 @@ public sealed class MediaKitBrowserTests(PlaywrightBrowserFixture browserFixture
         var page = await context.NewPageAsync();
         await page.GotoAsync("/media", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
         await Assertions.Expect(page.Locator("#fileList .media-file-row")).ToHaveCountAsync(KitFiles.Value.Count);
+        await page.AddStyleTagAsync(new() { Content = $"html {{ font-size: {textSize}% !important; }}" });
+        await page.EvaluateAsync("() => document.fonts.ready");
         var problems = await page.EvaluateAsync<string[]>(
             """
             () => {
@@ -84,8 +92,13 @@ public sealed class MediaKitBrowserTests(PlaywrightBrowserFixture browserFixture
                     const thumb = doc.querySelector('.media-file-thumb');
                     const icon = thumb?.querySelector('.media-file-icon');
                     if (!thumb || !icon) { issues.push(`${name}: no file-type well`); continue; }
+                    if (icon.getAttribute('aria-hidden') !== 'true') issues.push(`${name}: duplicate accessible icon text`);
+                    if (!getComputedStyle(icon, '::before').content || getComputedStyle(icon, '::before').content === 'none') issues.push(`${name}: missing file-type glyph`);
                     const t = thumb.getBoundingClientRect(), i = icon.getBoundingClientRect(), b = doc.querySelector('.media-file-button').getBoundingClientRect();
                     if (i.left < t.left || i.right > t.right || i.top < t.top || i.bottom > t.bottom || i.height < 32) issues.push(`${name}: file type is not shown in its well`);
+                    if (Math.min(i.right, b.right) - Math.max(i.left, b.left) > 1
+                        && Math.min(i.bottom, b.bottom) - Math.max(i.top, b.top) > 1)
+                        issues.push(`${name}: file-type icon is covered by its download control`);
                     if (b.top < t.top - 1 || b.bottom > t.bottom + 1 || b.right > t.right + 1 || b.width < 44 || b.height < 44) issues.push(`${name}: download is not the round corner mark`);
                     const grid = doc.parentElement;
                     const firstPicture = [...grid.children].find(child => !docs.includes(child));
@@ -97,6 +110,56 @@ public sealed class MediaKitBrowserTests(PlaywrightBrowserFixture browserFixture
             """);
         Assert.True(problems.Length == 0, $"{width}x{height}: {string.Join("; ", problems)}");
         Assert.True(await page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= innerWidth + 1"));
+    }
+
+    [Fact]
+    public async Task FolderContents_KeepEveryFileOnceAndDocumentsBeforeImagesInDownloadOrder()
+    {
+        var files = new Dictionary<string, string>
+        {
+            ["MediaKit/Mixed/A-picture.png"] = KitFiles.Value["MediaKit/Logos/Logo.png"],
+            ["MediaKit/Mixed/Z-fact-sheet.PDF"] = KitFiles.Value["MediaKit/FactSheet.pdf"],
+            ["MediaKit/Mixed/B-readme.txt"] = KitFiles.Value["MediaKit/README.txt"],
+            ["MediaKit/Documents/B.txt"] = KitFiles.Value["MediaKit/README.txt"],
+            ["MediaKit/Documents/A.pdf"] = KitFiles.Value["MediaKit/FactSheet.pdf"],
+            ["MediaKit/Pictures/B.png"] = KitFiles.Value["MediaKit/Logos/Logo.png"],
+            ["MediaKit/Pictures/A.png"] = KitFiles.Value["MediaKit/Logos/Transparent.png"]
+        };
+        await using var context = await NewContextAsync(Browser, App, new() { ReducedMotion = ReducedMotion.Reduce });
+        await InstallKitFixtureAsync(context, kitFiles: files);
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/media", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await Assertions.Expect(page.Locator("#fileList .media-file-row")).ToHaveCountAsync(files.Count);
+        await Assertions.Expect(page.Locator(".media-kit-group-title")).ToHaveTextAsync(["Documents", "Mixed", "Pictures"]);
+        var expected = new[] { "A.pdf", "B.txt", "B-readme.txt", "Z-fact-sheet.PDF", "A-picture.png", "A.png", "B.png" };
+        await Assertions.Expect(page.Locator(".media-file-name")).ToHaveTextAsync(expected);
+        await Assertions.Expect(page.Locator(".media-file-button")).ToHaveCountAsync(expected.Length);
+        await page.Locator(".media-kit-primary-download").FocusAsync();
+        foreach (var filename in expected)
+        {
+            var button = page.GetByRole(AriaRole.Button, new() { Name = $"Download {filename}", Exact = true });
+            await page.Keyboard.PressAsync("Tab");
+            await Assertions.Expect(button).ToBeFocusedAsync();
+            var download = await page.RunAndWaitForDownloadAsync(() => page.Keyboard.PressAsync("Enter"));
+            Assert.Equal(filename, download.SuggestedFilename);
+            var path = files.Keys.Single(path => path.EndsWith($"/{filename}", StringComparison.Ordinal));
+            Assert.Equal(Convert.FromBase64String(files[path]), await File.ReadAllBytesAsync((await download.PathAsync())!));
+        }
+        await Assertions.Expect(page.Locator(".media-file-doc .fa-file-pdf")).ToHaveCountAsync(2);
+        await Assertions.Expect(page.Locator(".media-file-doc .fa-file-lines")).ToHaveCountAsync(2);
+    }
+
+    [Fact]
+    public async Task EmptyArchive_DoesNotInventFilesOrFoldersAndKeepsTheZipDownload()
+    {
+        await using var context = await NewContextAsync(Browser, App, new());
+        await InstallKitFixtureAsync(context, kitFiles: new Dictionary<string, string>());
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/media", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await Assertions.Expect(page.Locator("#loading")).ToBeHiddenAsync();
+        await Assertions.Expect(page.Locator("#fileList .media-kit-group")).ToHaveCountAsync(0);
+        await Assertions.Expect(page.Locator("#fallback")).ToBeHiddenAsync();
+        await Assertions.Expect(page.Locator(".media-kit-primary-download")).ToBeVisibleAsync();
     }
 
     [Fact]
@@ -292,12 +355,15 @@ public sealed class MediaKitBrowserTests(PlaywrightBrowserFixture browserFixture
                     if (element.matches('button, a') && (box.width < 44 || box.height < 44))
                         broken.push(`${element.className} loses its touch target`);
                 }
-                for (const row of document.querySelectorAll('#fileList .media-file-row:not(.media-file-tile)')) {
+                for (const row of document.querySelectorAll('#fileList .media-file-row')) {
                     const name = row.querySelector('.media-file-name').getBoundingClientRect();
                     const button = row.querySelector('.media-file-button').getBoundingClientRect();
                     if (Math.min(name.right, button.right) - Math.max(name.left, button.left) > 1
                         && Math.min(name.bottom, button.bottom) - Math.max(name.top, button.top) > 1)
-                        broken.push('A document name overlaps its download control');
+                        broken.push('A file name overlaps its download control');
+                    const control = row.querySelector('.media-file-button');
+                    if (getComputedStyle(control, '::before').content === 'none')
+                        broken.push('A download control has no visible icon');
                 }
                 return broken;
             }
@@ -360,7 +426,7 @@ public sealed class MediaKitBrowserTests(PlaywrightBrowserFixture browserFixture
             Assert.True(await button.EvaluateAsync<bool>("button => getComputedStyle(button).outlineStyle !== 'none' && parseFloat(getComputedStyle(button).outlineWidth) >= 3"));
         }
 
-        var preview = page.Locator(".media-file-thumb").First;
+        var preview = page.Locator(".media-file-thumb:has(img)").First;
         await preview.ScrollIntoViewIfNeededAsync();
         Assert.True(await preview.EvaluateAsync<bool>("""
             preview => {
@@ -376,13 +442,13 @@ public sealed class MediaKitBrowserTests(PlaywrightBrowserFixture browserFixture
         Assert.Equal(1, downloads);
     }
 
-    private static async Task InstallKitFixtureAsync(IBrowserContext context, bool failDownloadOnce = false)
+    private static async Task InstallKitFixtureAsync(IBrowserContext context, bool failDownloadOnce = false, IReadOnlyDictionary<string, string>? kitFiles = null)
     {
         await context.RouteAsync("**/MediaKit.zip", route => route.FulfillAsync(new() { Body = "fixture archive" }));
         // Prepare source images outside the page's preview assertions. Encoding seven
         // megapixels in browser toBlob callbacks can exhaust the five-second row wait
         // under parallel CI load. The page still decodes and resizes the large originals.
-        var archiveFiles = JsonSerializer.Serialize(KitFiles.Value);
+        var archiveFiles = JsonSerializer.Serialize(kitFiles ?? KitFiles.Value);
         await context.RouteAsync("**/jszip.min.js", route => route.FulfillAsync(new()
         {
             ContentType = "application/javascript",
@@ -393,7 +459,10 @@ public sealed class MediaKitBrowserTests(PlaywrightBrowserFixture browserFixture
                 const failedDownloads = new Set();
                 window.JSZip = { async loadAsync() {
                     return {
-                        forEach(callback) { for (const path of files.keys()) callback(path, { dir: false }); },
+                        forEach(callback) {
+                            callback('MediaKit/Empty/', { dir: true });
+                            for (const path of files.keys()) callback(path, { dir: false });
+                        },
                         file(path) { return { async async(type) {
                             if ({{{(failDownloadOnce ? "true" : "false")}}} && type === 'blob' && !failedDownloads.has(path)) {
                                 failedDownloads.add(path);

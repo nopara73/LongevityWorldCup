@@ -83,8 +83,7 @@
             text-align: center;
         }
 
-        /* The kit reads as its own folders: one group per folder, documents as
-           rows, pictures as tiles that show what the download is. */
+        /* Each folder is a tile grid, with documents before pictures. */
         .media-kit-group + .media-kit-group {
             margin-top: var(--lwc-space-5);
             padding-top: var(--lwc-space-4);
@@ -404,8 +403,11 @@
 
         /* A document tile shows its file type where a picture tile shows the picture. */
         .media-file-tile .media-file-doc-thumb {
+            box-sizing: border-box;
             display: grid;
             place-items: center;
+            /* Leave the corner control clear even on narrow, enlarged tiles. */
+            padding-inline-end: 44px;
             background: var(--lwc-surface-muted);
         }
 
@@ -582,10 +584,8 @@
                         title.textContent = folder;
                         group.appendChild(title);
                     }
-                    const documents = document.createElement('ul');
-                    documents.className = 'media-kit-file-list';
-                    const pictures = document.createElement('ul');
-                    pictures.className = 'media-kit-file-list media-kit-tiles';
+                    const tiles = document.createElement('ul');
+                    tiles.className = 'media-kit-file-list media-kit-tiles';
 
                 for (const path of paths) {
                     const isPicture = extensionOf(path) in imageTypes;
@@ -650,12 +650,11 @@
                     li.appendChild(name);
                     li.appendChild(btn);
                     // One grid per folder: documents lead, pictures follow.
-                    if (isPicture) pictures.appendChild(li);
-                    else pictures.insertBefore(li, pictures.querySelector('.media-file-tile:not(.media-file-doc)'));
+                    if (isPicture) tiles.appendChild(li);
+                    else tiles.insertBefore(li, tiles.querySelector('.media-file-tile:not(.media-file-doc)'));
                 }
 
-                    if (documents.children.length) group.appendChild(documents);
-                    if (pictures.children.length) group.appendChild(pictures);
+                    if (tiles.children.length) group.appendChild(tiles);
                     listEl.appendChild(group);
                 }
             } catch (e) {
