@@ -1576,44 +1576,38 @@ main.homepage-main .lwc-merch-body {
     }
 }
 
-/* Enlarged text on phones: page titles shrink to fit their longest word
-   instead of breaking it letter by letter ("Longevitymaxxin / g"). Each cap
-   sits above the title's normal-size value, so it only bites when text is
-   enlarged. */
+/* Keep a title word together whenever it fits, and use only its discretionary
+   syllable breaks when it cannot. The font remains free to enlarge. */
+.page-title-word {
+    display: inline-block;
+    inline-size: max-content;
+    max-inline-size: 100%;
+    vertical-align: top;
+    hyphens: manual;
+    overflow-wrap: normal;
+    word-break: normal;
+}
+
+html body :is(#about-longevity-world-cup, #history-of-longevity-as-a-sport, #ro-title, #lmx-title, .unsubscribe-panel h1) {
+    min-inline-size: 0;
+    max-inline-size: 100%;
+    overflow-wrap: normal;
+    word-break: normal;
+}
+
 @media (max-width: 600px) {
-    html body #about-longevity-world-cup {
-        font-size: min(2.3rem, 12vw);
+    html body .documentation-page-about .documentation-document {
+        --about-bleed: min(1.1rem, 5.5vw);
     }
 
-    html body #history-of-longevity-as-a-sport {
-        font-size: min(1.95rem, 11vw);
-    }
-
-    html body #ro-title {
-        font-size: min(2.25rem, 12.5vw);
-    }
-
-    html body #lmx-title {
-        font-size: min(2rem, 9vw);
-    }
-
-    html body .unsubscribe-panel h1 {
-        font-size: min(2rem, 12vw);
-    }
-
-    html body :is(#about-longevity-world-cup, #history-of-longevity-as-a-sport, #ro-title, #lmx-title, .unsubscribe-panel h1) {
-        overflow-wrap: break-word;
+    html body .documentation-page-history .documentation-document {
+        padding-inline: min(1.1rem, 5.5vw);
     }
 }
 
-@media (max-width: 360px) {
-    html body #lmx-title {
-        font-size: min(clamp(1.58rem, 9vw, 1.85rem), 9vw);
-    }
-}
-
-@media (min-width: 560px) and (max-width: 600px) {
-    html body .unsubscribe-panel h1 {
-        font-size: min(2.6rem, 12vw);
+/* Full browser zoom can reflow a 320px window to 160 CSS pixels. */
+@media (max-width: 280px) {
+    html body .unsubscribe-panel {
+        padding-inline: min(20px, 6.25vw);
     }
 }

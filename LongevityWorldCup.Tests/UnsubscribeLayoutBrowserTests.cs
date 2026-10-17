@@ -32,8 +32,6 @@ public sealed class UnsubscribeLayoutBrowserTests(
         await page.GotoAsync("/unsubscribe");
         await Assertions.Expect(page.Locator("#unsubscribe-button")).ToBeVisibleAsync();
         var originalTitleSize = await page.Locator(".unsubscribe-panel h1").EvaluateAsync<double>("title => parseFloat(getComputedStyle(title).fontSize)");
-        // On phones the enlarged title caps at 12vw so "Unsubscribe" never breaks mid-word.
-        var expectedTitleSize = Math.Min(originalTitleSize * textPercent / 100, width <= 600 && textPercent > 100 ? width * 0.12 : double.MaxValue);
         await page.EvaluateAsync("async percent => { document.documentElement.style.fontSize = `${percent}%`; await document.fonts.ready; await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))); }", textPercent);
 
         // Enlarging the root starts a reflow; two animation frames need not expose its final computed type.
@@ -41,7 +39,7 @@ public sealed class UnsubscribeLayoutBrowserTests(
         {
             await page.WaitForFunctionAsync(
                 "minimum => parseFloat(getComputedStyle(document.querySelector('.unsubscribe-panel h1')).fontSize) >= minimum",
-                expectedTitleSize - 0.1, new() { Timeout = 5_000 });
+                originalTitleSize * textPercent / 100 - 0.1, new() { Timeout = 5_000 });
         }
         catch (System.TimeoutException)
         {
@@ -72,7 +70,7 @@ public sealed class UnsubscribeLayoutBrowserTests(
         var scenario = $"{width}x{height} / {textPercent}%";
         Assert.True(Math.Abs(layout[0]) <= 1, $"{scenario}: the footer stops {layout[0]}px above the bottom of the page.");
         Assert.True(layout[3] <= layout[2] + 1 && layout[4] <= 1, $"{scenario}: the title spills out of the card.");
-        Assert.True(layout[10] >= expectedTitleSize - 0.1 && layout[10] >= originalTitleSize - 0.1,
+        Assert.True(layout[10] >= originalTitleSize * textPercent / 100 - 0.1,
             $"{scenario}: the title should respect enlarged text ({originalTitleSize}px became {layout[10]}px).");
         Assert.True(layout[11] >= layout[1] && layout[12] <= layout[2], $"{scenario}: heading text is clipped outside the card.");
         if (width >= 560 && textPercent == 100)

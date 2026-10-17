@@ -29,7 +29,8 @@ public sealed class RejuvenationOlympicsBrowserTests(
         var page = await context.NewPageAsync();
         var response = await page.GotoAsync("/rejuvenation-olympics");
         Assert.True(response!.Ok);
-        await Assertions.Expect(page.Locator("h1")).ToHaveTextAsync("Coming from the Rejuvenation Olympics?");
+        await Assertions.Expect(page.Locator("h1")).ToHaveAccessibleNameAsync("Coming from the Rejuvenation Olympics?");
+        Assert.Equal("Coming from the Rejuvenation Olympics?", (await page.Locator("h1").TextContentAsync())!.Replace("\u00ad", ""));
         await Assertions.Expect(page.Locator(".ro-lead")).ToHaveTextAsync(
             "Rejuvenation Olympics is closing. Its final leaderboard will freeze on 15 April 2027. " +
             "If you competed there, Longevity World Cup is your chance to keep competing.");
@@ -148,12 +149,9 @@ public sealed class RejuvenationOlympicsBrowserTests(
         var originalSize = await page.Locator(".ro-guide h1").EvaluateAsync<double>(
             "heading => parseFloat(getComputedStyle(heading).fontSize)");
         await page.AddStyleTagAsync(new() { Content = "html { font-size: 200% !important; }" });
-        // The headline grows with the text but caps at 12.5vw so "Rejuvenation" never breaks mid-word.
-        var expectedSize = Math.Min(originalSize * 2, width * 0.125);
         await page.WaitForFunctionAsync(
-            "size => parseFloat(getComputedStyle(document.querySelector('.ro-guide h1')).fontSize) >= size",
-            expectedSize - 0.1, new() { Timeout = 5000 });
-        Assert.True(expectedSize > originalSize, $"{width}px: the headline should still grow with enlarged text.");
+            "size => parseFloat(getComputedStyle(document.querySelector('.ro-guide h1')).fontSize) >= size * 1.99",
+            originalSize, new() { Timeout = 5000 });
         var overflowing = await page.EvaluateAsync<string[]>(
             """
             () => [...document.querySelectorAll('.ro-intro, .ro-intro h1, .ro-actions, .ro-actions a')]
