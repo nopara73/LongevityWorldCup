@@ -174,6 +174,12 @@ public sealed class MediaKitBrowserTests(PlaywrightBrowserFixture browserFixture
     [Theory]
     [InlineData(390, 844, 200, false)]
     [InlineData(320, 640, 200, true)]
+    [InlineData(480, 844, 150, false)]
+    [InlineData(600, 844, 200, true)]
+    [InlineData(601, 844, 200, false)]
+    [InlineData(768, 1024, 200, true)]
+    [InlineData(844, 390, 200, false)]
+    [InlineData(1440, 900, 200, true)]
     [InlineData(390, 844, 100, false)]
     [InlineData(1440, 900, 100, true)]
     public async Task DownloadsAndFileNames_KeepWholeWordsAtEnlargedPhoneText(int width, int height, int textSize, bool dark)
@@ -190,10 +196,15 @@ public sealed class MediaKitBrowserTests(PlaywrightBrowserFixture browserFixture
         var page = await context.NewPageAsync();
         await page.GotoAsync("/media", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
         await Assertions.Expect(page.Locator("#fileList .media-file-row .media-file-button").First).ToBeVisibleAsync();
+        await page.EvaluateAsync("() => document.fonts.ready");
+        var normalLabelSize = await page.Locator(".media-kit-primary-download").EvaluateAsync<double>(
+            "element => parseFloat(getComputedStyle(element).fontSize)");
         await page.AddStyleTagAsync(new() { Content = $"html {{ font-size: {textSize}% !important; }}" });
         await page.WaitForFunctionAsync(
-            "size => parseFloat(getComputedStyle(document.documentElement).fontSize) >= 16 * size / 100 - 0.5", textSize);
-        await page.EvaluateAsync("() => document.fonts.ready");
+            "size => Math.abs(parseFloat(getComputedStyle(document.documentElement).fontSize) - 16 * size / 100) < 0.1", textSize);
+        await page.EvaluateAsync("async () => { await document.fonts.ready; await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))); }");
+        Assert.InRange(await page.Locator(".media-kit-primary-download").EvaluateAsync<double>(
+            "element => parseFloat(getComputedStyle(element).fontSize)"), normalLabelSize * textSize / 100.0 - 0.1, normalLabelSize * textSize / 100.0 + 0.1);
 
         var broken = await page.EvaluateAsync<string[]>(
             """
@@ -209,21 +220,84 @@ public sealed class MediaKitBrowserTests(PlaywrightBrowserFixture browserFixture
                             range.setEnd(node, word.index + word[0].length);
                             const fragments = [...range.getClientRects()].filter(rect => rect.width > 0);
                             const wholeWidth = fragments.reduce((sum, rect) => sum + rect.width, 0);
-                            // A word wider than the element itself has to break somewhere.
+                            // Short words stay whole. Overlong names may wrap, but every
+                            // fragment must remain visible inside the caption and card.
                             const style = getComputedStyle(element);
                             const contentWidth = element.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
                             if (new Set(fragments.map(rect => Math.round(rect.top))).size > 1 && wholeWidth <= contentWidth)
                                 broken.push(`"${word[0]}" in ${element.className}`);
+                            for (const fragment of fragments) {
+                                const box = element.getBoundingClientRect();
+                                if (fragment.left < box.left - 1 || fragment.right > box.right + 1
+                                    || fragment.top < box.top - 1 || fragment.bottom > box.bottom + 1)
+                                    broken.push(`"${word[0]}" overflows ${element.className}`);
+                                for (let parent = element.parentElement; parent && parent !== document.body; parent = parent.parentElement) {
+                                    const style = getComputedStyle(parent);
+                                    if (!['hidden', 'clip'].includes(style.overflowX) && !['hidden', 'clip'].includes(style.overflowY)) continue;
+                                    const clip = parent.getBoundingClientRect();
+                                    if (fragment.left < clip.left - 1 || fragment.right > clip.right + 1
+                                        || fragment.top < clip.top - 1 || fragment.bottom > clip.bottom + 1)
+                                        broken.push(`"${word[0]}" is clipped by ${parent.className}`);
+                                }
+                            }
                         }
                     }
                     const box = element.getBoundingClientRect();
                     if (box.left < -1 || box.right > innerWidth + 1)
                         broken.push(`${element.className} leaves the screen`);
+                    if (element.matches('button, a') && (box.width < 44 || box.height < 44))
+                        broken.push(`${element.className} loses its touch target`);
+                }
+                for (const row of document.querySelectorAll('#fileList .media-file-row:not(.media-file-tile)')) {
+                    const name = row.querySelector('.media-file-name').getBoundingClientRect();
+                    const button = row.querySelector('.media-file-button').getBoundingClientRect();
+                    if (Math.min(name.right, button.right) - Math.max(name.left, button.left) > 1
+                        && Math.min(name.bottom, button.bottom) - Math.max(name.top, button.top) > 1)
+                        broken.push('A document name overlaps its download control');
                 }
                 return broken;
             }
             """);
         Assert.True(broken.Length == 0, $"{width}x{height} at {textSize}%: {string.Join("; ", broken.Distinct().Take(8))}");
+    }
+
+    [Theory]
+    [InlineData("txt")]
+    [InlineData("png")]
+    public async Task OverlongNames_RemainVisibleAndDownloadWithTheirFullName(string extension)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = 320, Height = 640 },
+            ReducedMotion = ReducedMotion.Reduce,
+            IsMobile = true,
+            HasTouch = true
+        });
+        await InstallKitFixtureAsync(context);
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/media", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.AddStyleTagAsync(new() { Content = "html { font-size: 200% !important; }" });
+        await page.EvaluateAsync("() => document.fonts.ready");
+        var filename = $"Averylongunbrokenfilenametocheckwrappingwithenlargedtext.{extension}";
+        var button = page.GetByRole(AriaRole.Button, new() { Name = $"Download {filename}", Exact = true });
+        var name = button.Locator("..").Locator(".media-file-name");
+        await Assertions.Expect(name).ToHaveTextAsync(filename);
+        Assert.True(await name.EvaluateAsync<bool>(
+            """
+            name => {
+                const word = name.firstChild, range = document.createRange();
+                range.selectNodeContents(word);
+                const fragments = [...range.getClientRects()].filter(rect => rect.width > 0);
+                const box = name.getBoundingClientRect();
+                return new Set(fragments.map(rect => Math.round(rect.top))).size > 1
+                    && fragments.every(rect => rect.left >= box.left - 1 && rect.right <= box.right + 1
+                        && rect.top >= box.top - 1 && rect.bottom <= box.bottom + 1);
+            }
+            """), "The unbroken filename must wrap visibly instead of being clipped or ellipsized.");
+        var download = await page.RunAndWaitForDownloadAsync(() => button.TapAsync());
+        Assert.Equal(filename, download.SuggestedFilename);
+        var originalPath = KitFiles.Value.Keys.Single(path => path.EndsWith($"/{filename}", StringComparison.Ordinal));
+        Assert.Equal(Convert.FromBase64String(KitFiles.Value[originalPath]), await File.ReadAllBytesAsync((await download.PathAsync())!));
     }
 
     [Fact]
@@ -293,6 +367,7 @@ public sealed class MediaKitBrowserTests(PlaywrightBrowserFixture browserFixture
     {
         ["MediaKit/FactSheet.pdf"] = Convert.ToBase64String(Encoding.UTF8.GetBytes("original fact sheet bytes")),
         ["MediaKit/README.txt"] = Convert.ToBase64String(Encoding.UTF8.GetBytes("original readme bytes")),
+        ["MediaKit/Averylongunbrokenfilenametocheckwrappingwithenlargedtext.txt"] = Convert.ToBase64String(Encoding.UTF8.GetBytes("original long filename bytes")),
         ["MediaKit/Logos/Logo.png"] = CreatePicture(1800, 400),
         ["MediaKit/Logos/Transparent.png"] = CreatePicture(640, 640, transparent: true),
         ["MediaKit/Logos/Averylongunbrokenfilenametocheckwrappingwithenlargedtext.png"] = CreatePicture(400, 300),
