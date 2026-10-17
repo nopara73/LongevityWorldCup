@@ -618,8 +618,8 @@ html body #proofImageContainer {
 }
 html body #proofImageContainer[hidden] { display: none !important; }
 .proof-review-heading { margin: 0 0 var(--lwc-space-3); font-size: var(--lwc-type-body); }
-.proof-page-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 8rem), 1fr)); gap: var(--lwc-space-3); }
-.proof-page-card { display: flex; flex-direction: column; min-width: 0; padding: var(--lwc-space-2); border: 1px solid var(--lwc-border); border-radius: var(--lwc-radius-md); background: var(--lwc-surface); }
+.proof-page-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 8.5rem), 1fr)); gap: var(--lwc-space-3); }
+.proof-page-card { position: relative; display: flex; flex-direction: column; min-width: 0; padding: 0; overflow: hidden; border: 1px solid var(--lwc-border); border-radius: var(--lwc-radius-md); background: var(--lwc-surface); }
 .proof-page-preview,
 .proof-page-remove,
 .proof-undo,
@@ -639,22 +639,13 @@ html body #proofImageContainer[hidden] { display: none !important; }
     transform: none;
     transition: background-color var(--lwc-duration-fast) var(--lwc-ease);
 }
-.proof-page-preview { display: flex; flex-direction: column; align-items: stretch; gap: var(--lwc-space-2); padding: 0 0 var(--lwc-space-2); border-color: transparent; color: var(--lwc-accent); font-size: var(--lwc-type-sm); overflow: hidden; }
-.proof-page-preview img { display: block; width: 100%; height: 168px; object-fit: contain; background: var(--lwc-surface-muted); border-radius: var(--lwc-radius-sm); }
+.proof-page-preview { display: flex; flex-direction: column; align-items: stretch; gap: 0; padding: 0; border: 0; border-radius: 0; background: var(--lwc-surface-muted); color: var(--lwc-accent); font-size: var(--lwc-type-sm); overflow: hidden; }
+.proof-page-preview img { display: block; width: 100%; height: 160px; object-fit: contain; background: var(--lwc-surface-muted); border-radius: 0; }
 .proof-page-preview:hover { background: var(--lwc-accent-soft); }
-.proof-page-caption { display: flex; flex-direction: column; gap: var(--lwc-space-1); padding: var(--lwc-space-2) var(--lwc-space-1); font-size: var(--lwc-type-sm); }
+.proof-page-caption { display: flex; flex-direction: column; gap: var(--lwc-space-1); padding: var(--lwc-space-2) var(--lwc-space-3) var(--lwc-space-3); border-top: 1px solid var(--lwc-border); font-size: var(--lwc-type-sm); }
 .proof-page-source { color: var(--lwc-muted); font-size: var(--lwc-type-xs); overflow-wrap: anywhere; line-height: 1.4; }
-.proof-page-remove { align-self: stretch; margin-top: auto; color: var(--lwc-danger); font-size: var(--lwc-type-sm); font-weight: 400; }
-.proof-page-remove:hover { background: var(--lwc-danger-soft); }
-/* Uploaded proof pages read as tiles, like the media kit's pictures: the page
-   fills the tile, its number and source are the caption, and removing it is a
-   round mark on the page's corner rather than a full-width bar. */
-.proof-page-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 8.5rem), 1fr)); }
-.proof-page-card { position: relative; padding: 0; overflow: hidden; }
-.proof-page-preview { gap: 0; padding: 0; border: 0; border-radius: 0; background: var(--lwc-surface-muted); }
-.proof-page-preview img { height: 160px; border-radius: 0; }
+/* The complete page stays available in review; its duplicate label is visually hidden. */
 .proof-page-preview > span { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-.proof-page-caption { padding: var(--lwc-space-2) var(--lwc-space-3) var(--lwc-space-3); border-top: 1px solid var(--lwc-border); }
 .proof-page-remove {
     position: absolute; top: 2px; right: 2px; display: grid; place-items: center;
     width: 44px; min-width: 44px; height: 44px; min-height: 44px; margin: 0; padding: 0;

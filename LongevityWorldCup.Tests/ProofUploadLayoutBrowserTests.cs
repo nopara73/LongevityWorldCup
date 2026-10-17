@@ -241,6 +241,81 @@ public sealed class ProofUploadLayoutBrowserTests(
         await ExpectNoHorizontalOverflowAsync(page);
     }
 
+    [Theory]
+    [InlineData(1440, 100)]
+    [InlineData(390, 100)]
+    [InlineData(320, 200)]
+    [InlineData(1440, 200)]
+    public async Task ApplicationProofs_ShareTheStageContentColumn(int width, int textPercent)
+    {
+        await using var context = await CreateContextAsync(width, 900);
+        var page = await ProofReviewBrowserTests.PrepareAsync(context, onboarding: true);
+        await page.EvaluateAsync("percent => document.documentElement.style.fontSize = percent + '%'", textPercent);
+        await page.Locator("#proofPicInput").SetInputFilesAsync(await CreateProofImagesAsync(context, 3));
+        await page.WaitForFunctionAsync("() => !document.getElementById('proofPicInput').disabled && document.querySelectorAll('.proof-page-card').length >= 3");
+        await page.EvaluateAsync("async () => { await document.fonts.ready; window.LwcFlowActionDock?.refreshNow(); }");
+
+        var columns = await page.EvaluateAsync<double[][]>(
+            """
+            () => ['#proofUploadSection legend', '#proofUploadSection .convergence-upload-action',
+                '#proofImageContainer', '.proof-review-heading', '.proof-page-grid', '#biomarker-checklist']
+                .map(selector => {
+                    const rect = document.querySelector(selector).getBoundingClientRect();
+                    return [rect.left, rect.right];
+                })
+            """);
+        foreach (var column in columns.Skip(1))
+        {
+            Assert.InRange(Math.Abs(column[0] - columns[0][0]), 0, 1);
+            Assert.InRange(Math.Abs(column[1] - columns[0][1]), 0, 1);
+        }
+        await ExpectNoHorizontalOverflowAsync(page);
+    }
+
+    [Theory]
+    [InlineData(false, 1440)]
+    [InlineData(true, 1440)]
+    [InlineData(false, 390)]
+    [InlineData(true, 390)]
+    public async Task OneTwoAndManyPages_KeepTheirTileWidthInBothFlows(bool onboarding, int width)
+    {
+        await using var context = await CreateContextAsync(width, 900);
+        var page = await ProofReviewBrowserTests.PrepareAsync(context, onboarding);
+        while (await page.Locator(".proof-page-remove").CountAsync() > 0)
+            await page.Locator(".proof-page-remove").First.ClickAsync();
+        var files = await CreateProofImagesAsync(context, 7);
+        files[0].Name = "Laboratory-source-with-a-very-long-filename-showing-the-complete-blood-panel-and-collection-date.png";
+        double? tileWidth = null;
+        var uploaded = 0;
+        foreach (var count in new[] { 1, 2, 7 })
+        {
+            await page.Locator("#proofPicInput").SetInputFilesAsync(files[uploaded..count]);
+            await page.WaitForFunctionAsync("count => !document.getElementById('proofPicInput').disabled && document.querySelectorAll('.proof-page-card').length === count", count);
+            await page.EvaluateAsync("async () => { await document.fonts.ready; await Promise.all([...document.querySelectorAll('#proofImageContainer img')].map(image => image.decode())); }");
+            var currentWidth = (await page.Locator(".proof-page-card").First.BoundingBoxAsync())!.Width;
+            if (tileWidth is not null)
+                Assert.InRange(Math.Abs(currentWidth - tileWidth.Value), 0, 1);
+            tileWidth = currentWidth;
+            uploaded = count;
+        }
+        // A page is a tile even when its neighbouring tracks are empty.
+        var gridWidth = (await page.Locator(".proof-page-grid").BoundingBoxAsync())!.Width;
+        Assert.True(tileWidth < gridWidth / 1.5, "One or two pages should not stretch across the proof column.");
+        var overflow = await page.EvaluateAsync<bool>(
+            """
+            () => [...document.querySelectorAll('.proof-page-caption')].some(caption => {
+                const card = caption.closest('.proof-page-card').getBoundingClientRect();
+                const range = document.createRange();
+                range.selectNodeContents(caption);
+                return [...range.getClientRects()].some(rect => rect.left < card.left || rect.right > card.right || rect.bottom > card.bottom);
+            })
+            """);
+        Assert.False(overflow, "Captions, including the complete source filename, should remain inside their tiles.");
+        await Assertions.Expect(page.Locator(".proof-page-preview").First)
+            .ToHaveAccessibleNameAsync($"Review proof page 1: {files[0].Name}");
+        await ExpectNoHorizontalOverflowAsync(page);
+    }
+
     private async Task<IBrowserContext> CreateContextAsync(int width, int height, bool dark = false)
     {
         var context = await NewContextAsync(Browser, App, new()

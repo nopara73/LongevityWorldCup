@@ -128,16 +128,22 @@ public sealed class ProofReviewBrowserTests(PlaywrightBrowserFixture browserFixt
         Assert.InRange(Math.Abs(firstCard.Y - secondCard.Y), 0, 1);
         Assert.True(secondCard.X >= firstCard.X + firstCard.Width);
         await page.Locator(".proof-page-remove").Nth(1).ClickAsync();
+        await Assertions.Expect(page.Locator(".proof-page-remove").Nth(1)).ToBeFocusedAsync();
+        Assert.Equal(0, await page.Locator(".proof-review-dialog[open]").CountAsync());
         await page.Locator(".proof-page-remove").First.ClickAsync();
+        await Assertions.Expect(page.Locator(".proof-page-remove").First).ToBeFocusedAsync();
         Assert.Equal(original.Skip(2), await ReadSourcesAsync(page));
         await page.GetByRole(AriaRole.Button, new() { Name = "Undo removal", Exact = true }).ClickAsync();
+        await Assertions.Expect(page.Locator(".proof-page-preview").First).ToBeFocusedAsync();
         await page.GetByRole(AriaRole.Button, new() { Name = "Undo removal", Exact = true }).ClickAsync();
+        await Assertions.Expect(page.Locator(".proof-page-preview").Nth(1)).ToBeFocusedAsync();
         Assert.Equal(original, await ReadSourcesAsync(page));
         Assert.Equal(original, await page.EvaluateAsync<string[]>("proofPics"));
         Assert.Equal(0, await page.Locator(".proof-review-feedback").CountAsync());
 
         while (await page.Locator(".proof-page-remove").CountAsync() > 0)
             await page.Locator(".proof-page-remove").First.ClickAsync();
+        await Assertions.Expect(page.Locator(".proof-undo")).ToBeFocusedAsync();
         Assert.True(await page.Locator(onboarding ? "#nextButton" : "#submitButton").IsDisabledAsync());
         Assert.True(await page.Locator(".proof-undo").IsVisibleAsync());
         await page.Locator(".proof-undo").ClickAsync();
@@ -193,16 +199,60 @@ public sealed class ProofReviewBrowserTests(PlaywrightBrowserFixture browserFixt
         Assert.False(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth > innerWidth"));
     }
 
-    [Fact]
-    public async Task ReuploadAfterRemoval_ThenUndoNeverAddsTheSamePageTwice()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task KeyboardActivation_ReviewsRemovesAndRestoresWithoutAdvancingTheForm(bool onboarding)
     {
         await using var context = await NewContextAsync(Browser, App, new());
-        var page = await PrepareAsync(context, false);
+        var page = await PrepareAsync(context, onboarding);
+        while (await page.Locator(".proof-page-remove").CountAsync() > 0)
+            await page.Locator(".proof-page-remove").First.ClickAsync();
+        await UploadAsync(page, await CreatePagesAsync(2));
+        var original = await ReadSourcesAsync(page);
+        await page.Locator(".proof-page-preview").First.FocusAsync();
+        await page.Keyboard.PressAsync("Enter");
+        await Assertions.Expect(page.Locator(".proof-review-dialog")).ToBeVisibleAsync();
+        await page.Keyboard.PressAsync("Escape");
+        await Assertions.Expect(page.Locator(".proof-page-preview").First).ToBeFocusedAsync();
+        await page.Keyboard.PressAsync("Tab");
+        await Assertions.Expect(page.Locator(".proof-page-remove").First).ToBeFocusedAsync();
+        await page.Keyboard.PressAsync("Enter");
+        await Assertions.Expect(page.Locator(".proof-page-card")).ToHaveCountAsync(1);
+        Assert.Equal(0, await page.Locator(".proof-review-dialog[open]").CountAsync());
+        await page.Locator(".proof-undo").FocusAsync();
+        await page.Keyboard.PressAsync("Enter");
+        Assert.Equal(original, await ReadSourcesAsync(page));
+        await Assertions.Expect(page.Locator(".proof-page-preview").First).ToBeFocusedAsync();
+        await page.Keyboard.PressAsync("Space");
+        await Assertions.Expect(page.Locator(".proof-review-dialog")).ToBeVisibleAsync();
+        if (onboarding)
+            Assert.Equal("5", await page.Locator("body").GetAttributeAsync("data-convergence-stage"));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ReuploadAfterRemoval_ThenUndoNeverAddsTheSamePageTwice(bool onboarding)
+    {
+        await using var context = await NewContextAsync(Browser, App, new());
+        var page = await PrepareAsync(context, onboarding);
         var files = await CreatePagesAsync(2);
+        while (await page.Locator(".proof-page-remove").CountAsync() > 0)
+            await page.Locator(".proof-page-remove").First.ClickAsync();
         await UploadAsync(page, files);
-        await page.Locator(".proof-page-remove").First.ClickAsync();
-        await UploadAsync(page, [files[0]]);
-        await page.Locator(".proof-undo").ClickAsync();
+        for (var cycle = 0; cycle < 3; cycle++)
+        {
+            var before = await ReadSourcesAsync(page);
+            await page.Locator(".proof-page-remove").First.ClickAsync();
+            await UploadAsync(page, [files[cycle % 2]]);
+            await page.Locator(".proof-undo").ClickAsync();
+            var after = await ReadSourcesAsync(page);
+            Assert.Equal(2, after.Length);
+            Assert.Equal(before.Reverse(), after);
+            Assert.Equal(after, await page.EvaluateAsync<string[]>("proofPics"));
+            Assert.Equal(0, await page.Locator(".proof-review-dialog[open]").CountAsync());
+        }
         var sources = await ReadSourcesAsync(page);
         Assert.Equal(2, sources.Length);
         Assert.Equal(2, sources.Distinct().Count());
@@ -211,7 +261,7 @@ public sealed class ProofReviewBrowserTests(PlaywrightBrowserFixture browserFixt
         Assert.Contains("Duplicate proof images were skipped.", await page.Locator(".proof-upload-notice").InnerTextAsync());
         await UploadAsync(page, [(await CreatePagesAsync(3))[2]]);
         Assert.Equal(3, (await ReadSourcesAsync(page)).Length);
-        Assert.Equal(0, await page.Locator(".proof-review-feedback").CountAsync());
+        Assert.Equal(onboarding ? 1 : 0, await page.Locator(".proof-review-feedback").CountAsync());
     }
 
     [Fact]
