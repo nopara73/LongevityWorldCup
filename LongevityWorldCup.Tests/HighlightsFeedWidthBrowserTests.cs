@@ -64,7 +64,8 @@ public sealed class HighlightsFeedWidthBrowserTests(
             Body = """
                 [
                   {"Key":"column-photo","Name":"Nóra Marosvölgyi","CurrentPlacement":232,"ProfilePic":"/assets/favicon-64x64.png"},
-                  {"Key":"column-fallback","Name":"Alexandertheexceptionallylongunbrokentokenforreflow","CurrentPlacement":75}
+                  {"Key":"column-fallback","Name":"Alexandertheexceptionallylongunbrokentokenforreflow","CurrentPlacement":75},
+                  {"Key":"column-initials","Name":"William Wilson","CurrentPlacement":3}
                 ]
                 """
         }));
@@ -75,7 +76,8 @@ public sealed class HighlightsFeedWidthBrowserTests(
                 [
                   {"Id":"column-photo","Type":1,"Text":"slug[column-photo]","OccurredAt":"2026-10-16T08:00:00Z","Relevance":10},
                   {"Id":"column-fallback","Type":2,"Text":"slug[column-fallback] rank[3] prev[column-photo]","OccurredAt":"2026-10-15T08:00:00Z","Relevance":10},
-                  {"Id":"column-donation","Type":3,"Text":"sats[8455]","OccurredAt":"2026-10-14T08:00:00Z","Relevance":10}
+                  {"Id":"column-donation","Type":3,"Text":"sats[8455]","OccurredAt":"2026-10-14T08:00:00Z","Relevance":10},
+                  {"Id":"column-initials","Type":1,"Text":"slug[column-initials]","OccurredAt":"2026-10-13T08:00:00Z","Relevance":10}
                 ]
                 """
         }));
@@ -112,6 +114,18 @@ public sealed class HighlightsFeedWidthBrowserTests(
                     const box = avatar.getBoundingClientRect();
                     if (Math.abs(box.width - avatarSize) > 1 || Math.abs(box.height - avatarSize) > 1)
                         issues.push(`avatar is ${box.width}x${box.height}, expected ${avatarSize}`);
+                }
+                for (const initials of document.querySelectorAll('.events-board .avatar-fallback')) {
+                    if (!initials.textContent.trim()) continue;
+                    const box = initials.getBoundingClientRect(), style = getComputedStyle(initials);
+                    const range = document.createRange(); range.selectNodeContents(initials);
+                    const rects = [...range.getClientRects()].filter(rect => rect.width > 0);
+                    if (new Set(rects.map(rect => Math.round(rect.top))).size !== 1
+                        || rects.some(rect => rect.left < box.left + parseFloat(style.borderLeftWidth) - 1
+                            || rect.right > box.right - parseFloat(style.borderRightWidth) + 1
+                            || rect.top < box.top + parseFloat(style.borderTopWidth) - 1
+                            || rect.bottom > box.bottom - parseFloat(style.borderBottomWidth) + 1))
+                        issues.push(`${initials.textContent} is clipped inside its avatar`);
                 }
                 for (const cell of document.querySelectorAll('.event-message-cell')) {
                     const bounds = cell.getBoundingClientRect();
