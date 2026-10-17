@@ -3298,7 +3298,8 @@ public sealed partial class LongevitymaxxingChallengeService
     }
 
     private IReadOnlyList<LongevitymaxxingParticipantNote> GetParticipantNotes(
-        bool publicOnly, DateTimeOffset now, string? postParticipantId = null, int challengeDay = 0)
+        bool publicOnly, DateTimeOffset now, string? postParticipantId = null, int challengeDay = 0,
+        int limit = MaxDiscussionThreads, LongevitymaxxingDiscussionFeedCursor? before = null)
     {
         return _db.Run(sqlite =>
         {
@@ -3354,14 +3355,12 @@ public sealed partial class LongevitymaxxingChallengeService
             }
 
             var selectedRows = rows
-                .OrderByDescending(row => CalculateDiscussionHotScore(
-                    row.ReplyCount,
-                    row.LastActivityAtUtc,
-                    now))
-                .ThenByDescending(row => row.LastActivityAtUtc)
-                .ThenByDescending(row => row.ChallengeDay)
-                .ThenBy(row => row.ParticipantId, StringComparer.Ordinal)
-                .Take(MaxDiscussionThreads)
+                .Select(row => (Row: row, Position: DiscussionFeedPosition(
+                    now, row.ReplyCount, row.LastActivityAtUtc, row.ChallengeDay, row.ParticipantId)))
+                .Where(item => before is null || CompareDiscussionFeedPositions(item.Position, before) > 0)
+                .OrderBy(item => item.Position, DiscussionFeedOrder)
+                .Take(limit)
+                .Select(item => item.Row)
                 .ToList();
 
             var imagesByCheckIn = GetCheckInImagesForDiscussionThreads(sqlite, selectedRows);
@@ -3389,7 +3388,8 @@ public sealed partial class LongevitymaxxingChallengeService
         });
     }
 
-    private IReadOnlyList<LongevitymaxxingDiscussionSystemPost> GetSystemDiscussionPosts(DateTimeOffset now, string? postId = null)
+    private IReadOnlyList<LongevitymaxxingDiscussionSystemPost> GetSystemDiscussionPosts(DateTimeOffset now, string? postId = null,
+        int limit = MaxDiscussionThreads, LongevitymaxxingDiscussionFeedCursor? before = null)
     {
         return _db.Run(sqlite =>
         {
@@ -3427,10 +3427,12 @@ public sealed partial class LongevitymaxxingChallengeService
             }
 
             var selectedRows = rows
-                .OrderByDescending(row => CalculateDiscussionHotScore(row.ReplyCount, row.LastActivityAtUtc, now))
-                .ThenByDescending(row => row.LastActivityAtUtc)
-                .ThenBy(row => row.Id, StringComparer.Ordinal)
-                .Take(MaxDiscussionThreads)
+                .Select(row => (Row: row, Position: DiscussionFeedPosition(
+                    now, row.ReplyCount, row.LastActivityAtUtc, 0, row.ParticipantId, row.Id)))
+                .Where(item => before is null || CompareDiscussionFeedPositions(item.Position, before) > 0)
+                .OrderBy(item => item.Position, DiscussionFeedOrder)
+                .Take(limit)
+                .Select(item => item.Row)
                 .ToList();
             var repliesByPost = GetInitialSystemDiscussionPostReplies(sqlite, selectedRows);
             return selectedRows
