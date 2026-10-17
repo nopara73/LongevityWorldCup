@@ -862,6 +862,16 @@
         line-height:1.5;
     }
 
+    /* Names and words wrap whole; a rank like "(#224)" never loses its bracket to the next line. */
+    .events-board:not(.athlete-scroll) td.event-message .event-message-cell,
+    .events-board:not(.athlete-scroll) td.event-message .event-message-cell a{
+        overflow-wrap:break-word;
+        word-break:normal;
+    }
+    .events-board:not(.athlete-scroll) td.event-message .event-message-cell a.placement-link{
+        white-space:nowrap;
+    }
+
     /* Mobile athlete profile: avoid per-row horizontal scrolling/overlap in highlights. */
     .events-board.athlete-scroll td.event-message .event-message-cell{
         white-space:normal;

@@ -1935,6 +1935,17 @@ main > .main-container .leaderboard {
         color: var(--lwc-ink, #17212b);
         font-weight: 700;
     }
+
+    /* Highlights: names and words wrap whole; a rank like "(#75)" stays in one piece. */
+    #events-root-index .events-board td.event-message .event-message-cell,
+    #events-root-index .events-board td.event-message .event-message-cell a {
+        overflow-wrap: break-word;
+        word-break: normal;
+    }
+
+    #events-root-index .events-board td.event-message .event-message-cell a.placement-link {
+        white-space: nowrap;
+    }
 }
 
 @media (prefers-color-scheme: dark) {
