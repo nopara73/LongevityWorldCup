@@ -125,6 +125,12 @@
             overflow-wrap: anywhere;
         }
 
+        .documentation-document h2,
+        .documentation-document h3,
+        .documentation-document h4 {
+            overflow-wrap: break-word;
+        }
+
         .documentation-document h1 {
             margin: 0 0 1.25rem;
             padding: 0 0 1rem;
@@ -351,6 +357,16 @@
             .documentation-document img {
                 margin: 1.15rem auto 1.45rem;
             }
+
+            /* Keep side space from growing with enlarged text. */
+            .documentation-page {
+                padding-inline: min(1rem, 5vw);
+            }
+
+            .documentation-document {
+                padding-inline: min(1.1rem, 5.5vw);
+            }
+
         }
 
         @media (max-width: 720px) {
@@ -809,9 +825,18 @@
         /* Rules are numbered like a rulebook; the number sits in a solid accent tile. */
         .documentation-document .ruleset-rule > h2 {
             display: flex;
+            flex-wrap: wrap;
             align-items: center;
-            gap: 0.85rem;
+            gap: 0.5rem 0.85rem;
             counter-increment: ruleset-rule;
+        }
+
+        /* Collect flex lines using the longest word, not the entire title.
+           If even that word exceeds a full line, break-word can still reflow it. */
+        .ruleset-rule-title {
+            flex: 1 1 min-content;
+            min-width: 0;
+            max-width: 100%;
         }
 
         .documentation-document .ruleset-rule > h2::before {
@@ -1100,7 +1125,7 @@
             }
 
             .documentation-document .ruleset-rule > h2 {
-                gap: 0.7rem;
+                gap: 0.5rem 0.7rem;
             }
 
             .documentation-document .ruleset-rule > h2::before {
@@ -1170,7 +1195,7 @@
 <h1 id="ruleset">Ruleset</h1>
 <p class="ruleset-lede">The Longevity World Cup is a competition between longevity athletes. The goal is to improve the results of biological aging clocks.</p>
 <section class="ruleset-section ruleset-rule">
-<h2 id="seasons--schedule">Seasons &amp; schedule</h2>
+<h2 id="seasons--schedule"><span class="ruleset-rule-title">Seasons &amp; schedule</span></h2>
 <ul>
 <li>A <strong>Season</strong> is the yearly competition window for <strong>seasonal clocks</strong> (for example the Season 2026 <a href="https://www.nature.com/articles/s42003-023-05456-z" target="_blank" rel="noopener noreferrer">bortz age</a> competition).</li>
 <li>Seasonal clocks typically start and end around mid-January, and <strong>only accept results from the given calendar year</strong> (January 1 to December 31). At <strong>season close</strong>, final rankings lock for that season.</li>
@@ -1179,7 +1204,7 @@
 <p><img src="https://github.com/user-attachments/assets/337ab8a6-935b-4986-8e63-28aa6f494582" alt="Season duration defines the competition cycle, while test validity defines test acceptance" /></p>
 </section>
 <section class="ruleset-section ruleset-rule">
-<h2 id="tracks">Tracks</h2>
+<h2 id="tracks"><span class="ruleset-rule-title">Tracks</span></h2>
 <p>The Longevity World Cup has multiple tracks: <strong>Amateur</strong> and <strong>Professional</strong>. These use different clocks and rules.</p>
 <ul>
 <li><strong>Amateur</strong>: designed for accessibility. In Season 2026 this track is centered around <strong><a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf" target="_blank" rel="noopener noreferrer">pheno age</a> (all-time)</strong> submissions.</li>
@@ -1187,7 +1212,7 @@
 </ul>
 </section>
 <section class="ruleset-section ruleset-rule">
-<h2 id="point-system-ranking">Point system (ranking)</h2>
+<h2 id="point-system-ranking"><span class="ruleset-rule-title">Point system (ranking)</span></h2>
 <ul>
 <li>What counts is <strong>biological age reduction</strong>: the more your biological age is below your chronological age, the higher you rank.</li>
 <li>You can submit as many tests as you want.
@@ -1202,7 +1227,7 @@
 <p><img src="https://github.com/user-attachments/assets/968fc0b2-3389-40a3-93e9-4a415f565b11" alt="Multiple submissions may improve ranking at higher cost, while one strategic submission is cheaper but may miss the optimum" /></p>
 </section>
 <section class="ruleset-section ruleset-rule">
-<h2 id="prizes-and-payouts">Prizes and payouts</h2>
+<h2 id="prizes-and-payouts"><span class="ruleset-rule-title">Prizes and payouts</span></h2>
 <ul>
 <li>Prize money is awarded to the top three athletes in the Ultimate League.</li>
 <li>Bitcoin donations fund the prize money pool.</li>

@@ -284,17 +284,52 @@ interface FlowActionDockApi {
         element.classList.remove(dockEnteringClass);
     }
 
-    // Moving a stack between the page and the dock must not drop the reader's focus.
     function moveKeepingFocus(element: HTMLElement, move: () => void): void {
         const focused = document.activeElement;
         const hadFocus = focused instanceof HTMLElement && element.contains(focused);
-        move();
-        if (hadFocus && document.activeElement !== focused && element.contains(focused)) {
-            try {
-                focused.focus({ preventScroll: true });
-            } catch (_) {
-                focused.focus();
-            }
+        let focusAssigned = false;
+        const trackFocus = (event: FocusEvent): void => {
+            if (event.target !== focused) focusAssigned = true;
+        };
+        if (hadFocus) document.addEventListener('focusin', trackFocus, true);
+        try {
+            move();
+        } finally {
+            document.removeEventListener('focusin', trackFocus, true);
+        }
+        // insertBefore blurs a moved subtree in older engines. Only recover
+        // focus lost by the move, after its final layout and loading state agree.
+        // A page handler's new focus always takes precedence.
+        if (hadFocus && !focusAssigned && document.activeElement !== focused
+            && (!document.activeElement || document.activeElement === document.body)
+            && element.contains(focused) && focused.isConnected && focused.tabIndex >= 0
+            && !focused.matches(':disabled, [aria-disabled="true"]')
+            && !focused.closest('[hidden], [inert], [aria-hidden="true"]')
+            && focused.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true })) {
+            focused.focus({ preventScroll: true });
+        }
+    }
+
+    function moveElement(element: HTMLElement, parent: Node, before: ChildNode | null): void {
+        if ('moveBefore' in parent && typeof parent.moveBefore === 'function'
+            && element.isConnected && parent.isConnected) {
+            parent.moveBefore(element, before);
+        } else {
+            parent.insertBefore(element, before);
+        }
+    }
+
+    function syncActionOrder(element: HTMLElement, docked: boolean): void {
+        const actions = Array.from(element.children);
+        if (actions.length !== 2 || !actions.every(action => action.matches('.flow-action'))) return;
+        const back = actions.find(action => isBackAction(action as HTMLElement)) as HTMLElement | undefined;
+        const primary = actions.find(action => action !== back) as HTMLElement | undefined;
+        if (!back || !primary) return;
+        const backFirst = docked || (!mobileMedia.matches
+            && !element.classList.contains('flow-action-stack--hide-disabled-primary'));
+        const first = backFirst ? back : primary;
+        if (element.firstElementChild !== first) {
+            moveKeepingFocus(element, () => moveElement(first, element, element.firstChild));
         }
     }
 
@@ -305,10 +340,13 @@ interface FlowActionDockApi {
         setPlaceholderHeight(state, state.inlineHeight);
 
         ensureSubmitButtonFormOwnership(element);
-        moveKeepingFocus(element, () => document.body.appendChild(element));
-        element.classList.add(dockClass);
-        state.docked = true;
-        updateActionLayoutState(element);
+        moveKeepingFocus(element, () => {
+            moveElement(element, document.body, null);
+            element.classList.add(dockClass);
+            state.docked = true;
+            syncActionOrder(element, true);
+            updateActionLayoutState(element);
+        });
         beginDockEnter(element, state);
     }
 
@@ -320,7 +358,10 @@ interface FlowActionDockApi {
 
         const placeholderParent = state.placeholder.parentNode;
         if (placeholderParent) {
-            moveKeepingFocus(element, () => placeholderParent.insertBefore(element, state.placeholder.nextSibling));
+            moveKeepingFocus(element, () => {
+                moveElement(element, placeholderParent, state.placeholder.nextSibling);
+                syncActionOrder(element, false);
+            });
         }
         state.placeholder.hidden = true;
         state.placeholder.style.height = '';
@@ -384,6 +425,7 @@ interface FlowActionDockApi {
         let hasDockedElement = false;
 
         states.forEach((state, element) => {
+            syncActionOrder(element, state.docked);
             const docked = shouldDock(element, state);
             if (docked && !state.docked) dockElement(element, state);
             if (!docked && state.docked) undockElement(element, state);
