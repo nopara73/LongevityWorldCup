@@ -1172,9 +1172,46 @@ public sealed class AestheticSystemBrowserTests(
                 case "css/play-menu.css":
                     await AssertJoinContainerBoundariesAsync(page, source.ToArray());
                     break;
+                case "css/homepage.css":
+                    await AssertNewsletterContainerBoundariesAsync(page, source.ToArray());
+                    break;
                 default:
                     Assert.Fail($"Add a rendered container-boundary probe for {source.Key}.");
                     break;
+            }
+        }
+    }
+
+    private static async Task AssertNewsletterContainerBoundariesAsync(IPage page, ResponsiveContainerCondition[] conditions)
+    {
+        await NavigateAndSettleAsync(page, "/");
+        foreach (var condition in conditions)
+        {
+            Assert.Equal("newsletter-section", condition.Name);
+            Assert.Equal("min", condition.Bound);
+            Assert.Equal("em", condition.Unit);
+            Assert.Equal(34, condition.Value);
+            await page.Locator(".newsletter-section").EvaluateAsync("section => section.style.fontSize = '20px'");
+            var fontSize = await page.Locator(".newsletter-section").EvaluateAsync<double>("section => parseFloat(getComputedStyle(section).fontSize)");
+            var threshold = condition.Value * fontSize;
+            foreach (var delta in new[] { -1, 0, 1, 0, -1 })
+            {
+                var width = threshold + delta;
+                var diagnostics = await page.EvaluateAsync<double[]>("""
+                    async width => {
+                        const section = document.querySelector('.newsletter-section');
+                        section.style.boxSizing = 'content-box';
+                        section.style.inlineSize = `${width}px`;
+                        section.style.maxInlineSize = 'none';
+                        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                        return [parseFloat(getComputedStyle(section).width),
+                            getComputedStyle(section.querySelector('.newsletter-panel')).gridTemplateColumns.split(' ').length,
+                            Math.max(0, section.scrollWidth - section.clientWidth)];
+                    }
+                    """, width);
+                Assert.Equal(width, diagnostics[0], 1);
+                Assert.Equal(width >= threshold ? 2 : 1, diagnostics[1]);
+                Assert.True(diagnostics[2] <= 1, $"Newsletter overflowed at {width}px.");
             }
         }
     }
