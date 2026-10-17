@@ -139,6 +139,47 @@ public sealed class PlayJoinTrackBrowserTests(
         await ExpectNoHorizontalOverflowAsync(page);
     }
 
+    [Theory]
+    [InlineData(390, 844, false)]
+    [InlineData(360, 740, true)]
+    [InlineData(320, 640, false)]
+    public async Task PhoneDock_GivesTheTracksEvenRoomBesideAnArrowBack(int width, int height, bool dark)
+    {
+        await using var context = await Browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = App.BaseAddress.ToString(),
+            Locale = "en-US",
+            ViewportSize = new ViewportSize { Width = width, Height = height },
+            ColorScheme = dark ? ColorScheme.Dark : ColorScheme.Light,
+            IsMobile = true,
+            HasTouch = true
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/join");
+        await page.WaitForFunctionAsync("() => !document.getElementById('joinMobileStartAmateurBtn')?.disabled && !document.getElementById('joinMobileGoProButton')?.disabled");
+        await ExpectActionStackDockedInViewportAsync(page, ".play-join-actions");
+
+        var layout = await page.EvaluateAsync<double[]>(
+            """
+            () => {
+                const box = id => document.getElementById(id).getBoundingClientRect();
+                const back = box('joinTrackBackBtn');
+                const amateur = box('joinMobileStartAmateurBtn');
+                const pro = box('joinMobileGoProButton');
+                const label = document.querySelector('#joinTrackBackBtn .flow-action__label').getBoundingClientRect();
+                return [back.width, back.height, label.width, amateur.width, pro.width, Math.abs(amateur.top - pro.top), Math.abs(back.top - amateur.top)];
+            }
+            """);
+        var scenario = $"{width}x{height}";
+        Assert.True(layout[0] <= 56 && layout[0] >= 44 && layout[1] >= 44, $"{scenario}: Back should be the dashboard's arrow square, not a {layout[0]:F0}px button.");
+        Assert.True(layout[2] == 0, $"{scenario}: Back's label should give way to its arrow on a phone.");
+        Assert.True(Math.Abs(layout[3] - layout[4]) <= 2, $"{scenario}: the two tracks should share the bar evenly ({layout[3]:F0}px vs {layout[4]:F0}px).");
+        Assert.True(layout[5] <= 1 && layout[6] <= 1, $"{scenario}: Back and both tracks should share one row.");
+        await Assertions.Expect(page.Locator("#joinTrackBackBtn")).ToHaveAccessibleNameAsync("Back");
+        await ExpectNoHorizontalOverflowAsync(page);
+    }
+
     [Fact]
     public async Task BiomarkerLists_OpenAndCloseFromTheKeyboard()
     {
