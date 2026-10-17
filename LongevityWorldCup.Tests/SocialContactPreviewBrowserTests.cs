@@ -179,7 +179,7 @@ public sealed class SocialContactPreviewBrowserTests(
     [Theory]
     [InlineData(1280)]
     [InlineData(360)]
-    public async Task FollowLinks_KeepIncreasingLabelLengthsAndAccessibleIcons(int width)
+    public async Task FollowLinks_PreserveFeaturedOrderAndAccessibleIcons(int width)
     {
         await using var context = await Browser.NewContextAsync(new BrowserNewContextOptions
         {
@@ -190,10 +190,8 @@ public sealed class SocialContactPreviewBrowserTests(
         await page.GotoAsync("/events");
         var link = page.GetByRole(AriaRole.Link, new PageGetByRoleOptions { Name = "Follow Longevity World Cup on Nostr", Exact = true });
         await link.ScrollIntoViewIfNeededAsync();
-        var labels = await link.Locator("..").Locator("a").AllTextContentsAsync();
-        var lengths = labels.Select(label => label.Trim().Length).ToArray();
-        Assert.Equal(lengths.Order().ToArray(), lengths);
-        Assert.Equal(["X", "Nostr", "Reddit", "Threads", "YouTube", "Mastodon", "Instagram"], labels.Select(label => label.Trim()));
+        var labels = await page.Locator(".footer-follow-links .footer-link").AllTextContentsAsync();
+        Assert.Equal(["Instagram", "YouTube", "X", "Nostr", "Reddit", "Threads", "Mastodon"], labels.Select(label => label.Trim()));
         Assert.Equal(0, await page.Locator(".footer a[href*='bsky.app']").CountAsync());
         Assert.Equal("true", await link.Locator("svg").GetAttributeAsync("aria-hidden"));
         var box = Assert.IsType<LocatorBoundingBoxResult>(await link.BoundingBoxAsync());

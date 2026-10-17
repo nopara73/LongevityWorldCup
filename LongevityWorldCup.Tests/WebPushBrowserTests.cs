@@ -52,7 +52,7 @@ public sealed class WebPushBrowserTests
         var bounds = await bell.BoundingBoxAsync();
         Assert.True(bounds!.Width >= 44 && bounds.Height >= 44);
         Assert.False(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth > window.innerWidth"));
-        Assert.Equal(["X", "Nostr", "Reddit", "Threads", "YouTube", "Mastodon", "Instagram"], await page.Locator(".footer-follow-links .footer-link").AllTextContentsAsync().ContinueWith(t => t.Result.Select(s => s.Trim()).ToArray()));
+        Assert.Equal(["Instagram", "YouTube", "X", "Nostr", "Reddit", "Threads", "Mastodon"], await page.Locator(".footer-follow-links .footer-link").AllTextContentsAsync().ContinueWith(t => t.Result.Select(s => s.Trim()).ToArray()));
         var footerShortcut = page.GetByRole(AriaRole.Link, new PageGetByRoleOptions { Name = "Get browser notifications on Highlights", Exact = true });
         Assert.Null(await footerShortcut.GetAttributeAsync("aria-current"));
         await footerShortcut.ClickAsync();

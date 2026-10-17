@@ -61,6 +61,11 @@ public sealed class PageStructuredData(AthleteDataService athletes)
             var selectionUrl = SelectionUrl(view, filters);
             var byFlag = string.Equals(query["group"].FirstOrDefault(), "flags", StringComparison.OrdinalIgnoreCase);
             if (byFlag) selectionUrl += (selectionUrl.Contains('?') ? "&" : "?") + "group=flags";
+            var ordering = LeaderboardOrderState.Parse(query);
+            selectionUrl = Microsoft.AspNetCore.WebUtilities.QueryHelpers.AddQueryString(selectionUrl, LeaderboardOrdering.Query(ordering));
+            if (ordering.IsCustom && !byFlag)
+                selected = new PublicLeaderboardSnapshot(athletes.GetAthletesSnapshot(), DateTime.UtcNow.Date).Select(requestPath, query)
+                    .Snapshot.Rows.Select(row => bySlug[row.Slug]);
             var items = byFlag
                 ? new PublicLeaderboardSnapshot(athletes.GetAthletesSnapshot(), DateTime.UtcNow.Date).Select(requestPath, query).FlagTeams
                     .Select((team, index) => new Dictionary<string, object>
