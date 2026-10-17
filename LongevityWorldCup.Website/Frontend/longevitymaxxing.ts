@@ -3960,7 +3960,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         return `<div class="lmx-discussion-post-header">
             <span class="lmx-discussion-post-author">
                 ${note.kind === "announcement"
-                    ? '<span class="lmx-discussion-author-identity"><span class="lmx-discussion-author-avatar lmx-announcement-icon"><i class="fas fa-bullhorn" aria-hidden="true"></i></span><strong>Announcement</strong></span>'
+                    ? `<span class="lmx-discussion-author-identity"><span class="lmx-discussion-author-avatar lmx-announcement-icon"><i class="fas fa-bullhorn" aria-hidden="true"></i></span><strong role="heading" aria-level="3">${esc(note.announcement?.title || "")}</strong></span>`
                     : discussionAuthorHtml(note.participantId, note.displayName)}
                 <small>${context}</small>
             </span>
@@ -4432,9 +4432,10 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     function discussionOpeningPostHtml(note: ParticipantNote): string {
         if (note.kind === "announcement" && note.announcement) {
             const markup = window.CustomEventMarkup;
-            const content = String(note.announcement.content || "").split(/\n\s*\n/).map(paragraph =>
-                `<p>${markup ? markup.renderMarkupWithBreaks(paragraph) : esc(paragraph)}</p>`).join("");
-            return `<div class="lmx-announcement-content"><h3>${esc(note.announcement.title)}</h3>${content}</div>`;
+            const content = String(note.announcement.content || "").split(/\n\s*\n/)
+                .filter(paragraph => !/^\s*\[[^\]]+\]\(https:\/\/longevityworldcup\.com\/longevitymaxxing\/?\)\s*$/i.test(paragraph))
+                .map(paragraph => `<p>${markup ? markup.renderMarkupWithBreaks(paragraph) : esc(paragraph)}</p>`).join("");
+            return `<div class="lmx-announcement-content">${content}</div>`;
         }
         if (note.kind === "participant-joined")
             return `<p>Joined the Longevitymaxxing Challenge.</p>`;
