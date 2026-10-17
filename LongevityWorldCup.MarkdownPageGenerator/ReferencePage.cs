@@ -39,6 +39,11 @@ internal static partial class ReferencePage
             else
             {
                 kind = faqSeen ? "ruleset-next" : "ruleset-rule";
+                if (!faqSeen)
+                {
+                    section = SectionHeading().Replace(section,
+                        "${start}<span class=\"ruleset-rule-title\">${title}</span></h2>", 1);
+                }
             }
 
             output.Append($"<section class=\"ruleset-section {kind}\">\n{section}\n</section>{trailing}");
@@ -124,9 +129,18 @@ internal static partial class ReferencePage
         /* Rules are numbered like a rulebook; the number sits in a solid accent tile. */
         .documentation-document .ruleset-rule > h2 {
             display: flex;
+            flex-wrap: wrap;
             align-items: center;
-            gap: 0.85rem;
+            gap: 0.5rem 0.85rem;
             counter-increment: ruleset-rule;
+        }
+
+        /* Collect flex lines using the longest word, not the entire title.
+           If even that word exceeds a full line, break-word can still reflow it. */
+        .ruleset-rule-title {
+            flex: 1 1 min-content;
+            min-width: 0;
+            max-width: 100%;
         }
 
         .documentation-document .ruleset-rule > h2::before {
@@ -414,9 +428,7 @@ internal static partial class ReferencePage
                 padding: min(1.1rem, 18px);
             }
 
-            /* A title whose longest word cannot sit beside its number moves under it. */
             .documentation-document .ruleset-rule > h2 {
-                flex-wrap: wrap;
                 gap: 0.5rem 0.7rem;
             }
 
@@ -541,7 +553,7 @@ internal static partial class ReferencePage
     [GeneratedRegex("(?<heading><h1 id=\"[^\"]+\">.*?</h1>)\\s*<p>", RegexOptions.Singleline)]
     private static partial Regex LedeParagraph();
 
-    [GeneratedRegex("<h2 id=\"[^\"]+\">")]
+    [GeneratedRegex("(?<start><h2 id=\"[^\"]+\">)(?<title>.*?)</h2>", RegexOptions.Singleline)]
     private static partial Regex SectionHeading();
 
     [GeneratedRegex("<section class=\"ruleset-section ruleset-rule\">\\s*<h2 id=\"(?<id>[^\"]+)\">")]

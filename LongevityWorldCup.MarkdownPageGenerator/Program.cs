@@ -423,6 +423,12 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
             overflow-wrap: anywhere;
         }
 
+        .documentation-document h2,
+        .documentation-document h3,
+        .documentation-document h4 {
+            overflow-wrap: break-word;
+        }
+
         .documentation-document h1 {
             margin: 0 0 1.25rem;
             padding: 0 0 1rem;
@@ -650,8 +656,7 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
                 margin: 1.15rem auto 1.45rem;
             }
 
-            /* Enlarged text: side space stops growing with the text, and
-               headings wrap between words instead of letter by letter. */
+            /* Keep side space from growing with enlarged text. */
             .documentation-page {
                 padding-inline: min(1rem, 5vw);
             }
@@ -660,11 +665,6 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
                 padding-inline: min(1.1rem, 5.5vw);
             }
 
-            .documentation-document h2,
-            .documentation-document h3,
-            .documentation-document h4 {
-                overflow-wrap: break-word;
-            }
         }
 
         @media (max-width: 720px) {
