@@ -1596,58 +1596,6 @@ body #validAgeInput + * {
     margin-top: 1.25rem;
 }
 
-/* Reflow the rank content at its available width, including enlarged text. */
-@container bioage-rank (max-width: 24rem) {
-    .bioage-rank-summary {
-        grid-template-columns: minmax(0, 1fr);
-    }
-
-    .bioage-rank-number {
-        min-width: 0;
-        overflow-wrap: anywhere;
-    }
-
-    .bioage-rank-copy {
-        overflow-wrap: anywhere;
-    }
-
-    .bioage-rank-row {
-        grid-template-columns: auto 24px minmax(0, 1fr);
-    }
-
-    .bioage-rank-row-place,
-    .bioage-rank-row-avatar {
-        grid-row: 1 / span 2;
-    }
-
-    .bioage-rank-row-name,
-    .bioage-rank-row-score {
-        grid-column: 3;
-    }
-
-    .bioage-rank-row-score {
-        white-space: normal;
-        overflow-wrap: anywhere;
-        text-align: left;
-    }
-}
-
-@container bioage-rank (max-width: 18rem) {
-    .bioage-rank-row {
-        grid-template-columns: minmax(0, 1fr) 24px;
-    }
-
-    .bioage-rank-row-place,
-    .bioage-rank-row-avatar {
-        grid-row: 1;
-    }
-
-    .bioage-rank-row-name,
-    .bioage-rank-row-score {
-        grid-column: 1 / -1;
-    }
-}
-
 /* The rank is the second half of the result reveal, not a grey box inside it:
    its label, place and field read like the age above them, and the nearby
    athletes are leaderboard rows with their scores kept on the same line. */

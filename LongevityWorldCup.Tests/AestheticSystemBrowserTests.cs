@@ -1611,7 +1611,7 @@ public sealed class AestheticSystemBrowserTests(
             {
                 Assert.Equal("max", condition.Bound);
                 Assert.Equal("rem", condition.Unit);
-                Assert.Contains(condition.Value, new double[] { 18, 24 });
+                Assert.Contains(condition.Value, new double[] { 15, 24 });
                 await NavigateAndSettleAsync(page, route);
                 await FlowActionDockBrowserTests.FillBioageStepOneAsync(
                     page, DateTime.UtcNow.Date.AddDays(-9).ToString("yyyy-MM-dd"));
@@ -1631,13 +1631,13 @@ public sealed class AestheticSystemBrowserTests(
                             rank.style.inlineSize = `${argument.InlineSize}px`;
                             rank.style.maxInlineSize = 'none';
                             await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-                            const summary = getComputedStyle(rank.querySelector('.bioage-rank-summary'));
-                            const name = getComputedStyle(rank.querySelector('.bioage-rank-row-name'));
+                            const avatar = getComputedStyle(rank.querySelector('.bioage-rank-row-avatar'));
+                            const score = getComputedStyle(rank.querySelector('.bioage-rank-row-score'));
                             return {
                                 ContainerWidth: parseFloat(getComputedStyle(rank).width),
                                 IsCompact: argument.Boundary === 24
-                                    ? summary.gridTemplateColumns.split(' ').length === 1
-                                    : name.gridColumnStart === '1' && name.gridColumnEnd === '-1',
+                                    ? parseFloat(avatar.width) === 28
+                                    : score.gridColumnStart === '3' && score.whiteSpace === 'normal',
                                 HorizontalOverflow: Math.max(0, rank.scrollWidth - rank.clientWidth)
                             };
                         }
