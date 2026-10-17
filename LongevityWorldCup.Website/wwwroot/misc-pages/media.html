@@ -401,6 +401,36 @@
         .media-file-button[data-download-failed]::before {
             content: "\f01e";
         }
+
+        /* Phones: the panel's side space stops growing with the text, and words
+           wrap whole. A row's button drops under its name rather than squeezing
+           "Download" into a column of letters. */
+        @media (max-width: 600px) {
+            .media-kit-panel {
+                margin-inline: min(1rem, 4vw);
+                padding-inline: min(1rem, 4vw);
+            }
+
+            .media-file-row:not(.media-file-tile) {
+                padding-inline: min(0.75rem, 3vw) min(0.5rem, 2vw);
+            }
+
+            .media-file-tile .media-file-name {
+                padding-inline: min(0.7rem, 3vw);
+            }
+
+            .media-kit-actions,
+            .media-kit-primary-download,
+            .media-file-name,
+            .media-file-button {
+                overflow-wrap: break-word;
+            }
+
+            .media-file-row > .media-file-button {
+                flex: 0 0 auto;
+                white-space: nowrap;
+            }
+        }
     </style>
 </head>
 <body>

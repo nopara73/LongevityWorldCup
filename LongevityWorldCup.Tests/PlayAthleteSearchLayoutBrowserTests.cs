@@ -85,19 +85,17 @@ public sealed class PlayAthleteSearchLayoutBrowserTests(
             await input.PressAsync("ArrowDown");
             var option = options.Nth(index);
             await Assertions.Expect(option).ToHaveAttributeAsync("aria-selected", "true");
-            // Selection is synchronous; viewport/dock observers finish positioning
-            // on the next frame. Require the selected target to become reachable.
+            // Native scrolling and the dock's scroll/resize callbacks settle after
+            // keydown. Poll the same geometry and hit test together at that boundary.
             await page.WaitForFunctionAsync("""
-                id => {
-                    const option = document.getElementById(id);
-                    if (!option || option.getAttribute('aria-selected') !== 'true') return false;
+                option => {
                     const box = option.getBoundingClientRect();
                     const list = option.parentElement.getBoundingClientRect();
                     const actions = document.querySelector('.play-athlete-actions').getBoundingClientRect();
                     return box.top >= list.top - 1 && box.bottom <= Math.min(list.bottom, actions.top, innerHeight) + 1
                         && option.contains(document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2));
                 }
-                """, await option.GetAttributeAsync("id"));
+                """, await option.ElementHandleAsync());
         }
         var selectedName = await options.Last.InnerTextAsync();
         await input.PressAsync("Enter");
