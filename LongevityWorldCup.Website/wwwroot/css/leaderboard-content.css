@@ -1048,6 +1048,9 @@
      border:0; background:transparent; font:inherit; appearance:none; -webkit-appearance:none; box-sizing:border-box;
  }
  .athlete-name-content{ min-width:0; }
+ /* Let an otherwise unbreakable name shrink inside the wider table too.
+    Phones override this with their per-row, whole-word fallback below. */
+ .leaderboard table tbody .athlete-name{ overflow-wrap:anywhere; }
  .athlete-name:hover{
      color:var(--secondary-color); background-color:rgba(8,118,133,.08); box-shadow:inset 0 0 0 1px rgba(8,118,133,.12);
  }
@@ -3020,8 +3023,20 @@
              font-weight: 700;
              line-height: 1.2;
              min-width: 0;
-             overflow-wrap: anywhere;
+             overflow-wrap: break-word;
              word-break: normal;
+         }
+
+         /* A name whose longest word cannot sit beside the portrait moves under it
+            and takes the cell's full width instead of breaking letter by letter. */
+         .leaderboard table tbody tr:not(.no-results):not(.tier-separator) td.athlete-td {
+             flex-wrap: wrap;
+             row-gap: 0.25rem;
+         }
+
+         .leaderboard table tbody td.athlete-td .athlete-identity {
+             flex: 1 1 min-content;
+             max-width: 100%;
          }
 
          /* One column head names the score for every row, in place of a label
@@ -3181,12 +3196,33 @@
 
          /* Reflow relative to the reader's text size when three columns no longer fit. */
          @container leaderboard (max-width: 17em) {
+             /* Rank and portrait lead; the name and then the score each get the
+                whole row width so long names and the label stay whole. */
              .leaderboard table tbody tr:not(.no-results):not(.tier-separator) {
-                 grid-template-columns: 1.9rem minmax(0, 1fr);
+                 grid-template-columns: minmax(1.9rem, max-content) auto minmax(0, 1fr);
                  grid-template-areas:
-                     "rank athlete"
-                     "rank score";
-                 row-gap: 0.2rem;
+                     "rank portrait ."
+                     "name name name"
+                     "score score score";
+                 row-gap: 0.3rem;
+             }
+
+             .leaderboard table tbody tr:not(.no-results):not(.tier-separator) td.athlete-td {
+                 display: contents;
+             }
+
+             .leaderboard table tbody td.athlete-td > .portrait-wrapper {
+                 grid-area: portrait;
+             }
+
+             .leaderboard table tbody td.athlete-td > .athlete-identity {
+                 grid-area: name;
+             }
+
+             .leaderboard table td.age-reduction-td {
+                 justify-self: stretch;
+                 align-items: flex-start;
+                 text-align: left;
              }
 
              .leaderboard table td.age-reduction-td .age-reduction {
