@@ -34,7 +34,8 @@ public static class LeaderboardOrderingHtmlRenderer
         if (display.IsCustom)
         {
             html = html.Replace("class=\"leaderboard\"", $"class=\"leaderboard leaderboard--ordered\" data-order-columns=\"{display.Columns.Count()}\"", StringComparison.Ordinal)
-                .Replace("class=\"leaderboard-order-toggle\"", "class=\"leaderboard-order-toggle is-active\"", StringComparison.Ordinal);
+                .Replace("class=\"leaderboard-order-toggle\"", "class=\"leaderboard-order-toggle is-active\"", StringComparison.Ordinal)
+                .Replace("id=\"leaderboardOrderReset\" hidden disabled", "id=\"leaderboardOrderReset\" disabled", StringComparison.Ordinal);
         }
         if (selection.ByFlag) html = html.Replace("class=\"leaderboard-order-tools\"", "class=\"leaderboard-order-tools\" hidden", StringComparison.Ordinal);
         return html;
@@ -52,9 +53,12 @@ public static class LeaderboardOrderingHtmlRenderer
         var extra = key is not "rank" and not "name" and not "metric" ? " class=\"leaderboard-order-column\"" : "";
         var content = key == "metric" ? $"<span id=\"leaderboardMetricHeader\" class=\"order-heading-label\">{E(label)}</span>" : $"<span class=\"order-heading-label\">{E(label)}</span>";
         if (unit.Length > 0) content += $"<small>{E(unit)}</small>";
-        content = $"<span class=\"order-heading\">{content}</span><span class=\"order-indicator\" aria-hidden=\"true\">{(level == 0 ? "" : direction == "asc" ? "↑" : "↓")}</span>";
-        return $"<th scope=\"col\" data-order-key=\"{key}\"{extra}{attributes}><button type=\"button\" class=\"leaderboard-column-order\" aria-label=\"{E(action)}\">{content}</button>" +
-            (key == "metric" ? "<a href=\"/ruleset#point-system-ranking\" class=\"leaderboard-metric-link leaderboard-rules-link\" aria-label=\"How competition rankings work\" title=\"How competition rankings work\"><i class=\"fa-regular fa-circle-question\" aria-hidden=\"true\"></i></a>" : "") + "</th>";
+        const string arrow = "<svg viewBox=\"0 0 20 20\"><path d=\"M10 4v12m-4-4 4 4 4-4\" /></svg>";
+        content = $"<span class=\"order-heading\">{content}</span><span class=\"order-indicator\" aria-hidden=\"true\">{(level == 0 ? "" : arrow)}</span>";
+        var button = $"<button type=\"button\" class=\"leaderboard-column-order\" aria-label=\"{E(action)}\">{content}</button>";
+        if (key == "metric") button = "<span class=\"leaderboard-metric-heading\">" + button +
+            "<a href=\"/ruleset#point-system-ranking\" class=\"leaderboard-metric-link leaderboard-rules-link\" aria-label=\"How competition rankings work\" title=\"How competition rankings work\"><i class=\"fa-regular fa-circle-question\" aria-hidden=\"true\"></i></a></span>";
+        return $"<th scope=\"col\" data-order-key=\"{key}\"{extra}{attributes}>" + button + "</th>";
     }
 
     public static string Cell(LeaderboardSnapshotRow row, LeaderboardOrderField field)

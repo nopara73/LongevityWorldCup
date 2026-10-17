@@ -1188,24 +1188,25 @@ public sealed class AestheticSystemBrowserTests(
         {
             Assert.Equal("max", condition.Bound);
             Assert.Equal("em", condition.Unit);
-            Assert.Contains(condition.Name, new[] { "order-panel", "ordered-board" });
+            Assert.Contains(condition.Name, new[] { "order-panel", "ordered-board", "leaderboard-results" });
             var composer = condition.Name == "order-panel";
-            Assert.Equal(composer ? 18 : 17, condition.Value);
-            await page.SetViewportSizeAsync(composer ? 1280 : 390, 900);
+            var results = condition.Name == "leaderboard-results";
+            Assert.Equal(composer ? 18 : results ? 55 : 17, condition.Value);
+            await page.SetViewportSizeAsync(composer ? 1280 : results ? 1440 : 390, 900);
             await NavigateAndSettleAsync(page, "/leaderboard?sort=pheno&then=age");
             await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
             if (composer) await page.Locator("#leaderboardOrderToggle").ClickAsync();
             // Keep the real rendered markup and selectors, without live observers moving the probe.
             var fontSize = await page.EvaluateAsync<double>("""
-                composer => {
-                    const original = document.querySelector(composer ? '#leaderboardOrderPanel' : '#athleteLeaderboard');
+                argument => {
+                    const original = document.querySelector(argument.Composer ? '#leaderboardOrderPanel' : '#athleteLeaderboard');
                     const probe = original.cloneNode(true);
                     original.replaceWith(probe);
-                    const container = composer ? probe : probe.querySelector(':scope > table');
+                    const container = argument.Composer || argument.Results ? probe : probe.querySelector(':scope > table');
                     container.dataset.orderBoundaryProbe = '';
                     return parseFloat(getComputedStyle(container).fontSize);
                 }
-                """, composer);
+                """, new { Composer = composer, Results = results });
             var threshold = condition.Value * fontSize;
             foreach (var delta in new[] { -1, 0, 1, 0, -1 })
             {
@@ -1220,11 +1221,12 @@ public sealed class AestheticSystemBrowserTests(
                         const second = container.querySelector(argument.Composer ? '.leaderboard-order-field' : 'tbody tr[data-athlete-name] .age-reduction-td');
                         return {
                             ContainerWidth: parseFloat(getComputedStyle(container).width),
-                            IsCompact: second.getBoundingClientRect().top >= first.getBoundingClientRect().bottom - 1,
+                            IsCompact: argument.Results ? getComputedStyle(container.querySelector('tbody tr[data-athlete-name]')).display === 'grid'
+                                : second.getBoundingClientRect().top >= first.getBoundingClientRect().bottom - 1,
                             HorizontalOverflow: Math.max(0, container.scrollWidth - container.clientWidth)
                         };
                     }
-                    """, new { Width = width, Composer = composer });
+                    """, new { Width = width, Composer = composer, Results = results });
                 Assert.Equal(width, diagnostics.ContainerWidth, 1);
                 Assert.True(diagnostics.IsCompact == (width <= threshold),
                     $"Ordering {condition.Name} did not cross {condition.Value}em at {width}px.");

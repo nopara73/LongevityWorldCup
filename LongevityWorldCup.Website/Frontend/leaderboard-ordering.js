@@ -5,6 +5,7 @@
     try { catalog = JSON.parse(byId('leaderboardOrderCatalog')?.textContent || '{}'); } catch { /* Dialog-only embeds do not have sorting controls. */ }
     const fields = new Map((catalog.fields || []).map(field => [field.key, { unit: '', decimals: 1, direction: 'asc', kind: 'number', ...field }]));
     const toggle = byId('leaderboardOrderToggle');
+    const reset = byId('leaderboardOrderReset');
     const panel = byId('leaderboardOrderPanel');
     const primary = byId('leaderboardOrderPrimary');
     const secondary = byId('leaderboardOrderSecondary');
@@ -104,7 +105,7 @@
         header.dataset.orderLevel = level || '';
         header.dataset.orderDirection = level ? dir : '';
         if (level === 1) header.setAttribute('aria-sort', dir === 'asc' ? 'ascending' : 'descending');
-        header.querySelector('.order-indicator').textContent = level ? dir === 'asc' ? '↑' : '↓' : '';
+        header.querySelector('.order-indicator').innerHTML = level ? '<svg viewBox="0 0 20 20"><path d="M10 4v12m-4-4 4 4 4-4" /></svg>' : '';
         const label = labelFor(key, metricLabel);
         header.querySelector('button').setAttribute('aria-label', key === 'rank' ? 'Restore official ranking' : level
             ? `${label}, ${level === 1 ? 'order by' : 'then by'}, ${dir === 'asc' ? 'ascending' : 'descending'}; reverse order` : `Order by ${label}`);
@@ -140,6 +141,8 @@
         if (byFlag) close();
         const active = !byFlag && current.sort !== 'rank';
         toggle.classList.toggle('is-active', active);
+        reset.hidden = !active;
+        reset.disabled = false;
         primary.value = current.sort;
         secondary.value = current.then || '';
         secondary.disabled = !active;
@@ -245,6 +248,11 @@
                 positionPanel();
                 primary.focus({ preventScroll: true });
             }
+        });
+        reset.addEventListener('click', () => {
+            commit(defaults());
+            close();
+            toggle.focus({ preventScroll: true });
         });
         new ResizeObserver(positionPanel).observe(panel);
         window.addEventListener('resize', positionPanel);

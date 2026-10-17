@@ -118,7 +118,7 @@ public sealed class LeaderboardOrderingBrowserTests(PlaywrightBrowserFixture bro
         await Assertions.Expect(page.Locator("th[data-order-key=age]")).ToHaveAttributeAsync("data-order-direction", "asc");
         var toggle = page.GetByRole(AriaRole.Button, new() { Name = "Order athletes", Exact = true });
         Assert.Equal("", (await toggle.InnerTextAsync()).Trim());
-        Assert.True(await toggle.EvaluateAsync<bool>("e=>e.parentElement.previousElementSibling.classList.contains('search-container') && e.parentElement.nextElementSibling.classList.contains('sidebar-toggle')"));
+        Assert.True(await toggle.EvaluateAsync<bool>("e=>e.closest('.leaderboard-actions').previousElementSibling.classList.contains('search-container') && e.parentElement.nextElementSibling.classList.contains('sidebar-toggle')"));
         await toggle.ClickAsync();
         await Assertions.Expect(page.Locator("#leaderboardOrderPrimary")).ToBeFocusedAsync();
         await page.Locator("#leaderboardOrderSecondary").SelectOptionAsync("");
@@ -159,6 +159,108 @@ public sealed class LeaderboardOrderingBrowserTests(PlaywrightBrowserFixture bro
         await toggle.ClickAsync();
         await page.Locator("#leaderboardTitle").ClickAsync();
         await Assertions.Expect(panel).ToBeHiddenAsync();
+    }
+
+    [Theory]
+    [InlineData(1280)]
+    [InlineData(390)]
+    [InlineData(320)]
+    public async Task ClearOrdering_ResetsBothLevelsWithoutOpeningThePicker(int width)
+    {
+        await using var context = await NewContextAsync(Browser, App, new() { ViewportSize = new() { Width = width, Height = 900 } });
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/leaderboard?sort=bortz&then=pace#rank-1");
+        await Loaded(page);
+        var reset = page.GetByRole(AriaRole.Button, new() { Name = "Clear ordering", Exact = true });
+        await Assertions.Expect(reset).ToBeVisibleAsync();
+        var target = (await reset.BoundingBoxAsync())!;
+        Assert.True(target.Width >= 44 && target.Height >= 44);
+        await page.Locator("#athleteSearch").FillAsync("Wen");
+        await Assertions.Expect(page.Locator("#leaderboardOrderPanel")).ToBeHiddenAsync();
+        await reset.ClickAsync();
+        await Assertions.Expect(reset).ToBeHiddenAsync();
+        await Assertions.Expect(page.Locator("#leaderboardOrderToggle")).ToBeFocusedAsync();
+        await Assertions.Expect(page.Locator("#athleteSearch")).ToHaveValueAsync("Wen");
+        await Assertions.Expect(page.Locator("th.leaderboard-order-column, td.leaderboard-order-value")).ToHaveCountAsync(0);
+        await Assertions.Expect(page.Locator("#leaderboardOrderStatus")).ToHaveTextAsync("Official ranking restored.");
+        Assert.DoesNotContain("sort=", page.Url);
+        Assert.DoesNotContain("then=", page.Url);
+        Assert.EndsWith("#rank-1", page.Url);
+        await page.GoBackAsync();
+        await Assertions.Expect(reset).ToBeVisibleAsync();
+        await Assertions.Expect(page.Locator("th.leaderboard-order-column")).ToHaveCountAsync(2);
+    }
+
+    [Theory]
+    [InlineData(320, 100)]
+    [InlineData(390, 100)]
+    [InlineData(1024, 100)]
+    [InlineData(1440, 100)]
+    [InlineData(1024, 200)]
+    [InlineData(1440, 200)]
+    [InlineData(320, 200)]
+    [InlineData(390, 200)]
+    public async Task MixedLengthHeadersAndMobileNames_StayReadable(int width, int textPercent)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = 900 }, ReducedMotion = ReducedMotion.Reduce
+        });
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/leaderboard?sort=bortz&then=pace");
+        await Loaded(page);
+        await page.EvaluateAsync("percent => document.documentElement.style.fontSize = `${percent}%`", textPercent);
+        await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
+        var problems = await page.EvaluateAsync<string[]>("""
+            textPercent => {
+                const board = document.querySelector('#athleteLeaderboard').getBoundingClientRect();
+                const problems = [];
+                for (const header of document.querySelectorAll('#athleteLeaderboard > table thead th')) {
+                    const cell = header.getBoundingClientRect();
+                    if (!cell.width) continue;
+                    const walker = document.createTreeWalker(header, NodeFilter.SHOW_TEXT);
+                    while (walker.nextNode()) {
+                        const range = document.createRange(); range.selectNodeContents(walker.currentNode);
+                        for (const rect of range.getClientRects()) {
+                            if (rect.width && (rect.left < Math.max(board.left,cell.left) - 1 || rect.right > Math.min(board.right,cell.right) + 1)) problems.push(`Clipped heading: ${walker.currentNode.textContent}`);
+                        }
+                    }
+                }
+                const headers = [...document.querySelectorAll('th.leaderboard-order-column')];
+                const metric = document.querySelector('th[data-order-key="metric"]');
+                const help = metric.querySelector('.leaderboard-rules-link').getBoundingClientRect();
+                const score = metric.querySelector('button').getBoundingClientRect();
+                if (Math.abs((help.top + help.bottom - score.top - score.bottom) / 2) > 1 || help.left < score.right - 1) problems.push('The ranking help icon wrapped away from its heading.');
+                if (innerWidth <= 768 && headers.length === 2 && textPercent === 100) {
+                    const labels = headers.map(h => h.querySelector('.order-heading-label').getBoundingClientRect());
+                    if (Math.abs(labels[0].top - labels[1].top) > 1) problems.push('Selected headings do not share a top edge.');
+                    const row = document.querySelector('#athleteLeaderboard tr[data-athlete-name]');
+                    for (const header of headers) {
+                        const cell = row.querySelector(`td[data-order-key="${header.dataset.orderKey}"]`);
+                        const value = document.createRange(); value.selectNodeContents(cell);
+                        if (Math.abs(value.getBoundingClientRect().left - header.querySelector('.order-heading-label').getBoundingClientRect().left) > 1) problems.push(`Misaligned value: ${header.dataset.orderKey}`);
+                    }
+                }
+                return problems;
+            }
+            """, textPercent);
+        Assert.Empty(problems);
+        if (width <= 390 && textPercent == 100)
+        {
+            var name = Rows(page).Locator(".athlete-name-content").Filter(new() { HasText = "Siim Land" }).First;
+            Assert.Equal(1, await name.EvaluateAsync<int>("element => { const range = document.createRange(); range.selectNodeContents(element); return new Set([...range.getClientRects()].map(rect => Math.round(rect.top))).size; }"));
+            var overlap = await name.EvaluateAsync<bool>("""
+                element => {
+                    const row = element.closest('tr');
+                    const rank = row.querySelector('.rank').getBoundingClientRect();
+                    const marker = row.querySelector('.new-bubble').getBoundingClientRect();
+                    return marker.left < rank.right && marker.right > rank.left && marker.top < rank.bottom && marker.bottom > rank.top;
+                }
+                """);
+            Assert.False(overlap, "The new-athlete marker must not overlap the competition medal.");
+        }
+        var screenshots = Environment.GetEnvironmentVariable("LWC_ORDER_SCREENSHOTS");
+        if (!string.IsNullOrWhiteSpace(screenshots)) await page.ScreenshotAsync(new() { Path = Path.Combine(screenshots, $"ordering-bortz-pace-{width}-{textPercent}.png") });
     }
 
     [Theory]
@@ -260,6 +362,8 @@ public sealed class LeaderboardOrderingBrowserTests(PlaywrightBrowserFixture bro
         }
         await page.Keyboard.PressAsync("Escape");
         await Assertions.Expect(toggle).ToBeFocusedAsync();
+        await page.Keyboard.PressAsync("Tab");
+        await Assertions.Expect(page.Locator("#leaderboardOrderReset")).ToBeFocusedAsync();
         await page.Keyboard.PressAsync("Tab");
         await Assertions.Expect(page.Locator(".sidebar-toggle")).ToBeFocusedAsync();
         await page.Locator("#leaderboardTitle").ClickAsync();
