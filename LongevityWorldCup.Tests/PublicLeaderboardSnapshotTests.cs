@@ -72,6 +72,26 @@ public sealed class PublicLeaderboardSnapshotTests
         Assert.DoesNotContain("DateOfBirth", html);
     }
 
+    [Theory]
+    [InlineData("\"Already quoted\"", true)]
+    [InlineData("  “Already quoted”", true)]
+    [InlineData("\n'Already quoted'", true)]
+    [InlineData("«Already quoted»", true)]
+    [InlineData("「Already quoted」", true)]
+    [InlineData("A longer healthy life", false)]
+    [InlineData("I'm here for my family", false)]
+    [InlineData("", false)]
+    public void Profile_IdentifiesLeadingQuotesWithoutChangingTheAthletesText(string why, bool quoted)
+    {
+        var source = Athlete("example", 1980);
+        source["Why"] = why;
+        var snapshot = new PublicLeaderboardSnapshot(new JsonArray(source), Today);
+        const string template = "<p id=\"athleteBio\"></p>";
+        var html = PublicProfileHtmlRenderer.Render(template, snapshot, snapshot.Athletes[0], Today);
+        Assert.Equal(quoted, html.Contains("data-leading-quote", StringComparison.Ordinal));
+        Assert.Contains(System.Net.WebUtility.HtmlEncode(why), html);
+    }
+
     private static JsonObject Athlete(string slug, int year, double crowdReduction = -10, int count = 100) => new()
     {
         ["AthleteSlug"] = slug,

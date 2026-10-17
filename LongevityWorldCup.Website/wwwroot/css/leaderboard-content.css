@@ -1463,7 +1463,7 @@
      word-break:normal;
      text-wrap:balance;
  }
- #detailsModal #athleteBio:not(:empty)::before{
+ #detailsModal #athleteBio:not(:empty):not([data-leading-quote])::before{
      content: "\201C";
      display: block;
      height: 1.6rem;

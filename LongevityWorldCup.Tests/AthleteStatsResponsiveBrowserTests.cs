@@ -1,3 +1,5 @@
+using System.Net.Http.Json;
+using System.Text.Json.Nodes;
 using Microsoft.Playwright;
 using Xunit;
 
@@ -9,6 +11,37 @@ public sealed class AthleteStatsResponsiveBrowserTests(
     BrowserTestAppFixture appFixture)
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
+    [Theory]
+    [InlineData(false, 1440)]
+    [InlineData(false, 390)]
+    [InlineData(true, 1440)]
+    [InlineData(true, 390)]
+    public async Task AthleteWhy_AlreadyQuotedSourceKeepsOneOpenerBeforeAndAfterHydration(bool javascript, int width)
+    {
+        using var client = App.CreateClient();
+        var athletes = (await client.GetFromJsonAsync<JsonArray>("/api/data/athletes"))!;
+        var original = athletes.Single(a => a?["Name"]?.GetValue<string>() == "QingqingZhuo")!["Why"]!.GetValue<string>();
+        await using var context = await AestheticSystemBrowserTests.NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = 844 },
+            ReducedMotion = ReducedMotion.Reduce,
+            JavaScriptEnabled = javascript
+        });
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/athlete/qingqingzhuo");
+        if (javascript)
+            await page.WaitForFunctionAsync("() => !document.querySelector('#detailsModal .modal-content').hasAttribute('data-server-rendered-profile') && !document.querySelector('#detailsModal .modal-content').classList.contains('is-loading')");
+        await Assertions.Expect(page.Locator("#athleteBio")).ToHaveTextAsync(original);
+        var mark = await page.Locator("#athleteBio").EvaluateAsync<string>("bio => getComputedStyle(bio, '::before').content");
+        Assert.True(mark is "none" or "normal", $"The original quoted why already has its opener; decoration was {mark}.");
+        if (javascript)
+        {
+            await page.EvaluateAsync("() => window.openAthleteModalBySlug('michael-lustgarten')");
+            await page.WaitForFunctionAsync("() => document.querySelector('#detailsModal .modal-content').dataset.athleteSlug === 'michael-lustgarten' && !document.querySelector('#detailsModal .modal-content').classList.contains('is-loading')");
+            Assert.Equal("\"“\"", await page.Locator("#athleteBio").EvaluateAsync<string>("bio => getComputedStyle(bio, '::before').content"));
+        }
+    }
+
     [Theory]
     [InlineData("/athlete/michael-lustgarten", 390, 100)]
     [InlineData("/athlete/michael-lustgarten", 375, 200)]
