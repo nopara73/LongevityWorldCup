@@ -213,6 +213,13 @@ th[data-order-direction="asc"] .order-indicator svg { transform:rotate(180deg); 
     #athleteLeaderboard.leaderboard--ordered > table > thead > tr > th:is([data-order-level="1"],[data-order-level="2"]) .order-indicator { grid-column:1; grid-row:1; justify-self:end; }
     #athleteLeaderboard.leaderboard--ordered > table > thead > tr > th:is([data-order-level="1"],[data-order-level="2"]) small { grid-column:1; grid-row:3; }
 }
+/* At enlarged text sizes even the longest name word cannot share the remaining
+   identity width with a portrait. Give every name the same start below it. */
+@container ordered-board (max-width:10em) {
+    #athleteLeaderboard.leaderboard--ordered > table > thead > tr > th[data-order-key="name"] { padding-left:0; }
+    #athleteLeaderboard.leaderboard--ordered > table > tbody > tr[data-athlete-name] > .athlete-td { flex-direction:column; flex-wrap:nowrap; align-items:flex-start; }
+    #athleteLeaderboard.leaderboard--ordered > table > tbody > tr[data-athlete-name] > .rank-td { align-self:start; min-height:var(--portrait-size); }
+}
 @media (max-width:360px) {
     .leaderboard-order-panel { padding:min(.75rem,12px); }
     .leaderboard-order-row { column-gap:.35rem; }

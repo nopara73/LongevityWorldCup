@@ -1192,7 +1192,7 @@ public sealed class AestheticSystemBrowserTests(
             var composer = condition.Name == "order-panel";
             var results = condition.Name == "leaderboard-results";
             if (composer || results) Assert.Equal(composer ? 18 : 55, condition.Value);
-            else Assert.Contains(condition.Value, new[] { 17d, 32d });
+            else Assert.Contains(condition.Value, new[] { 10d, 17d, 32d });
             await page.SetViewportSizeAsync(composer ? 1280 : results ? 1440 : 390, 900);
             await NavigateAndSettleAsync(page, "/leaderboard?sort=pheno&then=age");
             await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
@@ -1218,9 +1218,11 @@ public sealed class AestheticSystemBrowserTests(
                         Object.assign(container.style, { boxSizing:'content-box', inlineSize:`${argument.Width}px`,
                             width:`${argument.Width}px`, maxWidth:'none', maxInlineSize:'none', flex:'none' });
                         await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-                        const first = container.querySelector(argument.Composer ? '.leaderboard-order-rows' : argument.DeepStack ? 'tbody tr[data-athlete-name] .leaderboard-order-value' : 'tbody tr[data-athlete-name] .athlete-td');
+                        const first = container.querySelector(argument.Composer ? '.leaderboard-order-rows' : argument.IdentityStack
+                            ? 'tbody tr[data-athlete-name] .portrait-wrapper' : argument.DeepStack ? 'tbody tr[data-athlete-name] .leaderboard-order-value' : 'tbody tr[data-athlete-name] .athlete-td');
                         const second = argument.Composer ? container.querySelector('.leaderboard-order-swap') : argument.DeepStack
                             ? container.querySelector('tbody tr[data-athlete-name] .leaderboard-order-value ~ .leaderboard-order-value')
+                            : argument.IdentityStack ? container.querySelector('tbody tr[data-athlete-name] .athlete-identity')
                             : container.querySelector('tbody tr[data-athlete-name] .leaderboard-order-value');
                         return {
                             ContainerWidth: parseFloat(getComputedStyle(container).width),
@@ -1229,7 +1231,9 @@ public sealed class AestheticSystemBrowserTests(
                             HorizontalOverflow: Math.max(0, container.scrollWidth - container.clientWidth)
                         };
                     }
-                    """, new { Width = width, Composer = composer, Results = results, DeepStack = !composer && !results && condition.Value == 17 });
+                    """, new { Width = width, Composer = composer, Results = results,
+                        DeepStack = !composer && !results && condition.Value == 17,
+                        IdentityStack = !composer && !results && condition.Value == 10 });
                 Assert.Equal(width, diagnostics.ContainerWidth, 1);
                 Assert.True(diagnostics.IsCompact == (width <= threshold),
                     $"Ordering {condition.Name} did not cross {condition.Value}em at {width}px.");
