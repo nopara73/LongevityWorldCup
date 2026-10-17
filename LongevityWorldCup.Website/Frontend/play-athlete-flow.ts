@@ -587,11 +587,28 @@ function createAthleteSelectionController(
             window.scrollBy({ top: inputBox.bottom - visibleBottom + gap, behavior: "instant" });
             inputBox = input.getBoundingClientRect();
         }
-        const headerBottom = document.querySelector("header")?.getBoundingClientRect().bottom ?? 0;
-        const listTop = Math.max(visibleTop, headerBottom + gap);
-        const parentBox = parent.getBoundingClientRect();
         list.style.maxHeight = "";
         const preferredHeight = list.getBoundingClientRect().height;
+        const listStyle = getComputedStyle(list);
+        const tallestOption = Math.max(0, ...Array.from(list.children, option => option.getBoundingClientRect().height));
+        const wholeOptionHeight = Math.min(preferredHeight, tallestOption
+            + parseFloat(listStyle.paddingTop) + parseFloat(listStyle.paddingBottom)
+            + list.offsetHeight - list.clientHeight);
+        const headerBottom = document.querySelector("header")?.getBoundingClientRect().bottom ?? 0;
+        const currentAbove = Math.max(0, inputBox.top - Math.max(visibleTop, headerBottom + gap) - gap);
+        const currentBelow = Math.max(0, visibleBottom - inputBox.bottom - gap);
+        if (document.activeElement === input && Math.max(currentAbove, currentBelow) + 1 < wholeOptionHeight) {
+            // A wrapped name must fit as a whole row. Move the field only when
+            // neither side has room, retaining the field inside the viewport.
+            const clearance = Math.min(wholeOptionHeight - currentBelow, inputBox.top - visibleTop);
+            if (clearance > 1) {
+                window.scrollBy({ top: Math.ceil(clearance), behavior: "instant" });
+                inputBox = input.getBoundingClientRect();
+            }
+        }
+        const settledHeaderBottom = document.querySelector("header")?.getBoundingClientRect().bottom ?? 0;
+        const listTop = Math.max(visibleTop, settledHeaderBottom + gap);
+        const parentBox = parent.getBoundingClientRect();
         const above = Math.max(0, inputBox.top - listTop - gap);
         const below = Math.max(0, visibleBottom - inputBox.bottom - gap);
         const openAbove = below < preferredHeight && above > below;
@@ -599,7 +616,18 @@ function createAthleteSelectionController(
         const inputTop = inputBox.top - parentBox.top - parent.clientTop + parent.scrollTop;
         list.style.top = openAbove ? "auto" : inputTop + inputBox.height + gap + "px";
         list.style.bottom = openAbove ? parent.clientHeight - inputTop + gap + "px" : "auto";
-        list.querySelector<HTMLElement>('[aria-selected="true"]')?.scrollIntoView({ block: "nearest" });
+        keepActiveOptionVisible(list);
+    }
+
+    function keepActiveOptionVisible(list: HTMLElement): void {
+        const activeItem = list.querySelector<HTMLElement>('[aria-selected="true"]');
+        if (!activeItem) return;
+        const itemBox = activeItem.getBoundingClientRect();
+        const listBox = list.getBoundingClientRect();
+        const top = listBox.top + list.clientTop;
+        const bottom = top + list.clientHeight;
+        if (itemBox.top < top) list.scrollTop -= top - itemBox.top;
+        else if (itemBox.bottom > bottom) list.scrollTop += itemBox.bottom - bottom;
     }
 
     function addActive(items: HTMLCollectionOf<HTMLDivElement> | null): void {
@@ -612,7 +640,7 @@ function createAthleteSelectionController(
         activeItem.classList.add("autocomplete-active");
         activeItem.setAttribute("aria-selected", "true");
         input.setAttribute("aria-activedescendant", activeItem.id);
-        activeItem.scrollIntoView({ block: "nearest" });
+        if (activeItem.parentElement) keepActiveOptionVisible(activeItem.parentElement);
     }
 
     function removeActive(items: HTMLCollectionOf<HTMLDivElement>): void {

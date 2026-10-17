@@ -105,6 +105,52 @@ public sealed class PlayAthleteSearchLayoutBrowserTests(
     }
 
     [Fact]
+    public async Task AthleteSearch_ReservesAWholeWrappedOptionWhenNeitherSideInitiallyFits()
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = 320, Height = 640 },
+            ReducedMotion = ReducedMotion.Reduce, IsMobile = true, HasTouch = true
+        });
+        await context.RouteAsync("**/api/data/athletes", route => route.FulfillAsync(new()
+        {
+            ContentType = "application/json",
+            Body = System.Text.Json.JsonSerializer.Serialize(new[] { "Aaron", "AgatheL", "Alan V", "Alberto Pérez Sciú", "Alena" }
+                .Select(name => new { Name = name, ProfilePic = "/assets/favicon-512x512.png" }))
+        }));
+        var page = await context.NewPageAsync();
+        await NavigateAndSettleAsync(page, "/select-athlete");
+        await page.EvaluateAsync("() => document.documentElement.style.fontSize = '32px'");
+        await page.EvaluateAsync("() => document.fonts.ready");
+        var input = page.Locator("#playAthleteInput");
+        await input.FillAsync("a");
+        await page.GetByRole(AriaRole.Option).First.WaitForAsync();
+        // This scroll position left only 136px above the field for a 146px
+        // wrapped option. Both popup placement and keyboard scrolling must fit it.
+        await page.EvaluateAsync("() => { scrollTo(0, 49); window.dispatchEvent(new Event('scroll')); }");
+        for (var index = 0; index < 5; index++)
+        {
+            await input.PressAsync("ArrowDown");
+            await page.WaitForFunctionAsync("""
+                () => {
+                    const option = document.querySelector('[role=option][aria-selected=true]');
+                    if (!option) return false;
+                    const box = option.getBoundingClientRect();
+                    const list = option.parentElement.getBoundingClientRect();
+                    const field = document.getElementById('playAthleteInput').getBoundingClientRect();
+                    const actions = document.querySelector('.play-athlete-actions').getBoundingClientRect();
+                    return box.top >= list.top - 1 && box.bottom <= Math.min(list.bottom, actions.top, innerHeight) + 1
+                        && field.top >= 0 && field.bottom < actions.top
+                        && option.contains(document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2));
+                }
+                """);
+        }
+        await input.PressAsync("Enter");
+        await Assertions.Expect(input).ToHaveValueAsync("Alena");
+        await Assertions.Expect(page.Locator("#playConfirmAthleteBtn")).ToBeFocusedAsync();
+    }
+
+    [Fact]
     public async Task AthleteSearch_RefitsAfterTextAndViewportChangesWithoutLosingTheActiveOption()
     {
         await using var context = await NewContextAsync(Browser, App, new()
