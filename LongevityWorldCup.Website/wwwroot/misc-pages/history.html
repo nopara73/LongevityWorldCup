@@ -125,6 +125,12 @@
             overflow-wrap: anywhere;
         }
 
+        .documentation-document h2,
+        .documentation-document h3,
+        .documentation-document h4 {
+            overflow-wrap: break-word;
+        }
+
         .documentation-document h1 {
             margin: 0 0 1.25rem;
             padding: 0 0 1rem;
@@ -351,6 +357,16 @@
             .documentation-document img {
                 margin: 1.15rem auto 1.45rem;
             }
+
+            /* Keep side space from growing with enlarged text. */
+            .documentation-page {
+                padding-inline: min(1rem, 5vw);
+            }
+
+            .documentation-document {
+                padding-inline: min(1.1rem, 5.5vw);
+            }
+
         }
 
         @media (max-width: 720px) {

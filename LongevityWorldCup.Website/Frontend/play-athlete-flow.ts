@@ -587,11 +587,25 @@ function createAthleteSelectionController(
             window.scrollBy({ top: inputBox.bottom - visibleBottom + gap, behavior: "instant" });
             inputBox = input.getBoundingClientRect();
         }
-        const headerBottom = document.querySelector("header")?.getBoundingClientRect().bottom ?? 0;
-        const listTop = Math.max(visibleTop, headerBottom + gap);
-        const parentBox = parent.getBoundingClientRect();
         list.style.maxHeight = "";
         const preferredHeight = list.getBoundingClientRect().height;
+        const desiredHeight = Math.min(preferredHeight,
+            Math.max(0, visibleBottom - visibleTop - inputBox.height - gap * 2));
+        const headerBottom = document.querySelector("header")?.getBoundingClientRect().bottom ?? 0;
+        const currentAbove = Math.max(0, inputBox.top - Math.max(visibleTop, headerBottom + gap) - gap);
+        const currentBelow = Math.max(0, visibleBottom - inputBox.bottom - gap);
+        if (document.activeElement === input && Math.max(currentAbove, currentBelow) + 1 < desiredHeight) {
+            // Keep the preferred result space when the viewport can provide it,
+            // rather than settling for a sliver above or below the field.
+            const clearance = Math.min(desiredHeight - currentBelow, inputBox.top - visibleTop);
+            if (clearance > 1) {
+                window.scrollBy({ top: Math.ceil(clearance), behavior: "instant" });
+                inputBox = input.getBoundingClientRect();
+            }
+        }
+        const settledHeaderBottom = document.querySelector("header")?.getBoundingClientRect().bottom ?? 0;
+        const listTop = Math.max(visibleTop, settledHeaderBottom + gap);
+        const parentBox = parent.getBoundingClientRect();
         const above = Math.max(0, inputBox.top - listTop - gap);
         const below = Math.max(0, visibleBottom - inputBox.bottom - gap);
         const openAbove = below < preferredHeight && above > below;
@@ -599,18 +613,18 @@ function createAthleteSelectionController(
         const inputTop = inputBox.top - parentBox.top - parent.clientTop + parent.scrollTop;
         list.style.top = openAbove ? "auto" : inputTop + inputBox.height + gap + "px";
         list.style.bottom = openAbove ? parent.clientHeight - inputTop + gap + "px" : "auto";
-        keepActiveMatchVisible(list);
+        keepActiveOptionVisible(list);
     }
 
-    function keepActiveMatchVisible(list: HTMLElement): void {
-        const active = list.querySelector<HTMLElement>('[aria-selected="true"]');
-        if (!active) return;
-        const box = active.getBoundingClientRect();
-        const top = list.getBoundingClientRect().top + list.clientTop;
+    function keepActiveOptionVisible(list: HTMLElement): void {
+        const activeItem = list.querySelector<HTMLElement>('[aria-selected="true"]');
+        if (!activeItem) return;
+        const itemBox = activeItem.getBoundingClientRect();
+        const listBox = list.getBoundingClientRect();
+        const top = listBox.top + list.clientTop;
         const bottom = top + list.clientHeight;
-        const offset = box.top < top ? box.top - top : Math.max(0, box.bottom - bottom);
-        // Reveal the option without scrolling the page or moving the action dock.
-        if (offset) list.scrollBy({ top: offset, behavior: "instant" });
+        if (itemBox.top < top) list.scrollTop -= top - itemBox.top;
+        else if (itemBox.bottom > bottom) list.scrollTop += itemBox.bottom - bottom;
     }
 
     function addActive(items: HTMLCollectionOf<HTMLDivElement> | null): void {
@@ -623,8 +637,7 @@ function createAthleteSelectionController(
         activeItem.classList.add("autocomplete-active");
         activeItem.setAttribute("aria-selected", "true");
         input.setAttribute("aria-activedescendant", activeItem.id);
-        const list = activeItem.parentElement;
-        if (list) keepActiveMatchVisible(list);
+        if (activeItem.parentElement) keepActiveOptionVisible(activeItem.parentElement);
     }
 
     function removeActive(items: HTMLCollectionOf<HTMLDivElement>): void {
