@@ -1513,11 +1513,6 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 <span>Perfect plans keep failing?</span>`;
             life.className = "lmx-life-strip";
             life.setAttribute("aria-label", "Real life compatible challenge");
-            life.innerHTML = `
-                <span><i class="fas fa-briefcase" aria-hidden="true"></i>Work compatible</span>
-                <span><i class="fas fa-plane" aria-hidden="true"></i>Travel compatible</span>
-                <span><i class="fas fa-people-roof" aria-hidden="true"></i>Family compatible</span>
-                <span><i class="fas fa-notes-medical" aria-hidden="true"></i>Illness compatible</span>`;
             return;
         }
 
@@ -1533,11 +1528,6 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             highlights.innerHTML = "";
             life.className = "lmx-life-strip";
             life.setAttribute("aria-label", "Challenge compatibility");
-            life.innerHTML = `
-                <span><i class="fas fa-briefcase" aria-hidden="true"></i>Work compatible</span>
-                <span><i class="fas fa-plane" aria-hidden="true"></i>Travel compatible</span>
-                <span><i class="fas fa-people-roof" aria-hidden="true"></i>Family compatible</span>
-                <span><i class="fas fa-notes-medical" aria-hidden="true"></i>Illness compatible</span>`;
             return;
         }
 
