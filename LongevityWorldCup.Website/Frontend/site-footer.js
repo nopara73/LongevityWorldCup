@@ -14,9 +14,11 @@
     }
 
     const footer = document.querySelector('.footer');
-    footer?.addEventListener('keydown', event => {
-        if (event.key !== 'Escape' || !(event.target instanceof Element)) return;
-        event.target.closest('.footer-column--follow .footer-link')?.setAttribute('data-label-dismissed', '');
+    document.addEventListener('keydown', event => {
+        if (event.key !== 'Escape') return;
+        footer?.querySelectorAll('.footer-column--follow .footer-link:is(:hover, :focus-visible)').forEach(link => {
+            link.setAttribute('data-label-dismissed', '');
+        });
     });
     for (const eventName of ['focusin', 'pointerover']) {
         footer?.addEventListener(eventName, event => {

@@ -154,8 +154,18 @@ public sealed class FooterCompositionBrowserTests(
             }
             await page.Keyboard.PressAsync("Tab");
         }
-        await links.Nth(7).HoverAsync();
-        Assert.True(await links.Nth(7).Locator(".footer-link-label").EvaluateAsync<bool>("l => l.getBoundingClientRect().width > 1 && getComputedStyle(l).clipPath === 'none'"));
+        await page.EvaluateAsync("() => document.activeElement?.blur()");
+        var hoveredLink = links.Nth(7);
+        var hoveredLabel = hoveredLink.Locator(".footer-link-label");
+        await hoveredLink.HoverAsync();
+        Assert.True(await hoveredLink.EvaluateAsync<bool>("l => l.matches(':hover') && document.activeElement === document.body"));
+        Assert.True(await hoveredLabel.EvaluateAsync<bool>("l => l.getBoundingClientRect().width > 1 && getComputedStyle(l).clipPath === 'none'"));
+        await page.Keyboard.PressAsync("Escape");
+        Assert.Equal("inset(50%)", await hoveredLabel.EvaluateAsync<string>("l => getComputedStyle(l).clipPath"));
+        Assert.True(await hoveredLink.EvaluateAsync<bool>("l => l.matches(':hover') && document.activeElement === document.body"));
+        await page.Mouse.MoveAsync(0, 0);
+        await hoveredLink.HoverAsync();
+        Assert.Equal("none", await hoveredLabel.EvaluateAsync<string>("l => getComputedStyle(l).clipPath"));
     }
 
     [Fact]
