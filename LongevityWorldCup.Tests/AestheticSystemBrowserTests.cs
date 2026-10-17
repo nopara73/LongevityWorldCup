@@ -1172,6 +1172,9 @@ public sealed class AestheticSystemBrowserTests(
                 case "css/play-menu.css":
                     await AssertJoinContainerBoundariesAsync(page, source.ToArray());
                     break;
+                case "css/site-footer.css":
+                    await AssertFooterContainerBoundariesAsync(page, source.ToArray());
+                    break;
                 default:
                     Assert.Fail($"Add a rendered container-boundary probe for {source.Key}.");
                     break;
@@ -1212,6 +1215,55 @@ public sealed class AestheticSystemBrowserTests(
                 Assert.Equal(width, diagnostics.ContainerWidth, 1);
                 Assert.Equal(width <= threshold, diagnostics.IsCompact);
                 Assert.True(diagnostics.HorizontalOverflow <= 1, $"Join card overflowed at {width}px.");
+            }
+        }
+    }
+
+    private static async Task AssertFooterContainerBoundariesAsync(
+        IPage page,
+        ResponsiveContainerCondition[] conditions)
+    {
+        await NavigateAndSettleAsync(page, "/ruleset");
+        var normalFontSize = await page.EvaluateAsync<double>(
+            "() => parseFloat(getComputedStyle(document.documentElement).fontSize)");
+        foreach (var fontSize in new[] { normalFontSize, normalFontSize * 2 })
+        {
+            await page.EvaluateAsync("size => document.documentElement.style.fontSize = size + 'px'", fontSize);
+            foreach (var condition in conditions)
+            {
+                Assert.Null(condition.Name);
+                Assert.Equal("max", condition.Bound);
+                Assert.Equal("rem", condition.Unit);
+                Assert.Equal(21.7, condition.Value);
+                var threshold = condition.Value * fontSize;
+                foreach (var delta in new[] { -1, 0, 1, 0, -1 })
+                {
+                    var width = threshold + delta;
+                    var diagnostics = await page.EvaluateAsync<ContainerQueryDiagnostics>(
+                        """
+                        async width => {
+                            const footer = document.querySelector('.footer-column--follow');
+                            footer.style.boxSizing = 'content-box';
+                            footer.style.inlineSize = `${width}px`;
+                            footer.style.maxInlineSize = 'none';
+                            await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                            const platforms = footer.querySelector('.footer-follow-links');
+                            const first = platforms.firstElementChild.getBoundingClientRect();
+                            const last = platforms.lastElementChild.getBoundingClientRect();
+                            return {
+                                ContainerWidth: parseFloat(getComputedStyle(footer).width),
+                                IsCompact: last.top > first.bottom,
+                                HorizontalOverflow: Math.max(0, footer.scrollWidth - footer.clientWidth)
+                            };
+                        }
+                        """, width);
+                    Assert.Equal(width, diagnostics.ContainerWidth, 1);
+                    Assert.Equal(width <= threshold, diagnostics.IsCompact);
+                    Assert.True(diagnostics.HorizontalOverflow <= 1, $"Footer overflowed at {width}px with {fontSize}px text.");
+                    Assert.True(await page.EvaluateAsync<bool>(
+                        "() => document.querySelector('.footer-subscriptions').getBoundingClientRect().top >= document.querySelector('.footer-follow-links').getBoundingClientRect().bottom - 1"),
+                        $"Subscriptions preceded wrapped platforms at {width}px with {fontSize}px text.");
+                }
             }
         }
     }
@@ -1706,8 +1758,8 @@ public sealed class AestheticSystemBrowserTests(
              directory is not null;
              directory = directory.Parent)
         {
-            if (Directory.Exists(Path.Combine(directory.FullName, "LongevityWorldCup.Website"))
-                && Directory.Exists(Path.Combine(directory.FullName, "LongevityWorldCup.Tests")))
+            if (File.Exists(Path.Combine(directory.FullName, "LongevityWorldCup.Website", "LongevityWorldCup.Website.csproj"))
+                && File.Exists(Path.Combine(directory.FullName, "LongevityWorldCup.Tests", "LongevityWorldCup.Tests.csproj")))
             {
                 return directory.FullName;
             }
