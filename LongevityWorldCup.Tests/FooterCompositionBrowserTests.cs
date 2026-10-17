@@ -11,17 +11,17 @@ public sealed class FooterCompositionBrowserTests(
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     private static readonly string[] Labels =
-        ["Merch", "GitHub", "History", "Ruleset", "Contact", "Podcast", "X", "Nostr", "Reddit", "Threads", "YouTube", "Mastodon", "Instagram", "RSS", "Browser notifications"];
+        ["Merch", "GitHub", "History", "Ruleset", "Contact", "Podcast", "Instagram", "YouTube", "X", "Nostr", "Reddit", "Threads", "Mastodon", "RSS", "Browser notifications"];
 
     private static readonly string[] Destinations =
     [
         "https://merch.longevityworldcup.com/", "https://github.com/nopara73/LongevityWorldCup/",
         "/history", "/ruleset", "mailto:hi@longevityworldcup.com",
         "https://www.youtube.com/playlist?list=PL4nqc85w185sO4i7eR3oUO_lMmlJ2K1cL",
+        "https://www.instagram.com/LongevityWorldCup/", "https://www.youtube.com/@longevityworldcup",
         "https://x.com/LongevityWorldC", "https://primal.net/p/npub1dgxhzvhhca4hrpzmakc2n8hpvmawtvlacdy80r4wsaghf4h5486sg8tqtl",
         "https://www.reddit.com/r/LongevityWorldCup/", "https://www.threads.com/@longevityworldcup",
-        "https://www.youtube.com/@longevityworldcup", "https://mastodon.social/@longevityworldcup",
-        "https://www.instagram.com/LongevityWorldCup/", "/feeds/events.rss", "/events#eventBoardTitle"
+        "https://mastodon.social/@longevityworldcup", "/feeds/events.rss", "/events#eventBoardTitle"
     ];
 
     [Theory]
@@ -91,6 +91,11 @@ public sealed class FooterCompositionBrowserTests(
                 });
                 const pages = links.slice(0, 6), platforms = links.slice(6);
                 if (Math.min(...platforms.map(l => l.getBoundingClientRect().top)) < Math.max(...pages.map(l => l.getBoundingClientRect().bottom))) problems.push('groups overlap');
+                const featured = links.slice(6, 9).map(l => l.getBoundingClientRect());
+                const remaining = links.slice(9).map(l => l.getBoundingClientRect());
+                if (featured.some(b => Math.abs(b.top - featured[0].top) > 1)) problems.push('featured platforms split across rows');
+                if (Math.min(...remaining.map(b => b.top)) < Math.max(...featured.map(b => b.bottom))) problems.push('other icons share the featured row');
+                if (Math.min(...featured.map(b => b.width)) <= Math.max(...remaining.map(b => b.width))) problems.push('featured platforms are not larger');
                 if (!document.fonts.check('400 16px Roboto') || !document.fonts.check('900 16px "Font Awesome 6 Free"')) problems.push('fonts missing');
                 return problems;
             }
@@ -148,7 +153,8 @@ public sealed class FooterCompositionBrowserTests(
             {
                 var label = link.Locator(".footer-link-label");
                 await Assertions.Expect(label).ToBeVisibleAsync();
-                Assert.True(await label.EvaluateAsync<bool>("l => { const b=l.getBoundingClientRect(); return b.width > 1 && b.left >= 0 && b.right <= innerWidth && getComputedStyle(l).clipPath === 'none'; }"));
+                Assert.True(await label.EvaluateAsync<bool>("l => { const b=l.getBoundingClientRect(); return b.width > 1 && b.left >= 0 && b.right <= innerWidth && getComputedStyle(l).clipPath === 'none'; }"),
+                    $"{Labels[i]} label was hidden or clipped at {width}px / {textPercent}% text.");
                 await page.Keyboard.PressAsync("Escape");
                 Assert.Equal("inset(50%)", await label.EvaluateAsync<string>("l => getComputedStyle(l).clipPath"));
                 await Assertions.Expect(link).ToBeFocusedAsync();

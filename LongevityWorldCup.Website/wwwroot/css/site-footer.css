@@ -59,9 +59,7 @@
         height: 1.125rem;
     }
 
-/* One centred composition: the site's own pages read as a single row of
-   links, and every place to follow or subscribe sits beneath them as a row
-   of round marks. */
+/* Site links sit above the featured platforms and their smaller companions. */
 .footer-container {
     max-width: 1040px;
     margin: 0 auto;
@@ -82,7 +80,8 @@
 }
 
 .footer-column--follow {
-    gap: 0.6rem;
+    --footer-icon-size: clamp(44px, 12cqw, 2.75rem);
+    gap: 1rem 0.6rem;
     width: min(100%, 40rem);
     padding-top: 1.25rem;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
@@ -94,7 +93,15 @@
     flex-wrap: wrap;
     justify-content: center;
     gap: 0.4rem;
-    max-width: min(100%, calc(7 * 2.75rem + 6 * 0.4rem));
+    max-width: min(100%, calc(4 * var(--footer-icon-size) + 3 * 0.4rem));
+}
+
+.footer-follow-links--primary {
+    --footer-icon-size: clamp(56px, 18cqw, 4rem);
+    flex: 0 0 100%;
+    flex-wrap: nowrap;
+    max-width: none;
+    gap: 1rem;
 }
 
 .footer-subscriptions {
@@ -106,8 +113,10 @@
 
 .footer-column--follow .footer-link {
     position: relative;
-    width: 2.75rem;
-    height: 2.75rem;
+    width: var(--footer-icon-size);
+    height: var(--footer-icon-size);
+    min-height: var(--footer-icon-size);
+    flex: 0 0 auto;
     padding: 0;
     border-radius: var(--lwc-radius-pill, 999px);
     background: rgba(255, 255, 255, 0.06);
@@ -119,7 +128,13 @@
     }
 
     .footer-column--follow .footer-link :is(i, svg) {
+        width: calc(var(--footer-icon-size) * 0.48);
         margin-right: 0;
+        font-size: calc(var(--footer-icon-size) * 0.42);
+    }
+
+    .footer-column--follow .footer-link svg {
+        height: calc(var(--footer-icon-size) * 0.42);
     }
 
 /* Names remain available to assistive technology and on focus and hover. */
@@ -150,15 +165,17 @@
         z-index: 1;
     }
 
-}
-
-/* Use the available space and actual rem size, including enlarged text,
-   so the seven marks never fall into the old six-plus-one dead band. */
-@container (max-width: 21.7rem) {
-    .footer-follow-links {
-        max-width: min(100%, calc(4 * 2.75rem + 3 * 0.4rem));
+    .footer-follow-links .footer-link:first-child .footer-link-label {
+        left: 0;
     }
 
+    .footer-follow-links .footer-link:last-child .footer-link-label {
+        right: 0;
+    }
+}
+
+/* Give subscriptions their own row when the smaller icons need more room. */
+@container (max-width: 20rem) {
     .footer-subscriptions {
         flex-basis: 100%;
         justify-content: center;
@@ -211,21 +228,5 @@
 
     .footer-column--follow {
         padding-top: 1rem;
-    }
-}
-
-/* Keep subscriptions together beneath the platforms on phones. */
-@media (max-width: 600px) {
-    .footer-column--follow {
-        gap: 0.4rem;
-    }
-
-    .footer-subscriptions {
-        flex-basis: 100%;
-        justify-content: center;
-        gap: 0.4rem;
-        padding-top: 0.25rem;
-        padding-left: 0;
-        border-left: 0;
     }
 }

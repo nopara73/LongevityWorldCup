@@ -288,7 +288,7 @@ public sealed class AestheticSystemBrowserTests(
         var iconCount = diagnostics.Icons.Length + diagnostics.VectorIcons.Length;
         Assert.True(iconCount >= 34, $"Expected at least 34 visible Challenge/footer icons, found {iconCount}.");
         Assert.Equal(15, diagnostics.FooterIconCount);
-        Assert.Equal(["X", "Nostr", "Reddit", "Threads", "YouTube", "Mastodon", "Instagram"], diagnostics.FooterPlatforms);
+        Assert.Equal(["Instagram", "YouTube", "X", "Nostr", "Reddit", "Threads", "Mastodon"], diagnostics.FooterPlatforms);
         Assert.Contains(diagnostics.VectorIcons, icon => icon.Label == "Nostr");
         Assert.All(diagnostics.VectorIcons, icon =>
         {
@@ -1298,7 +1298,7 @@ public sealed class AestheticSystemBrowserTests(
                 Assert.Null(condition.Name);
                 Assert.Equal("max", condition.Bound);
                 Assert.Equal("rem", condition.Unit);
-                Assert.Equal(21.7, condition.Value);
+                Assert.Equal(20, condition.Value);
                 var threshold = condition.Value * fontSize;
                 foreach (var delta in new[] { -1, 0, 1, 0, -1 })
                 {
@@ -1311,12 +1311,11 @@ public sealed class AestheticSystemBrowserTests(
                             footer.style.inlineSize = `${width}px`;
                             footer.style.maxInlineSize = 'none';
                             await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-                            const platforms = footer.querySelector('.footer-follow-links');
-                            const first = platforms.firstElementChild.getBoundingClientRect();
-                            const last = platforms.lastElementChild.getBoundingClientRect();
+                            const platforms = footer.querySelector('.footer-follow-links:not(.footer-follow-links--primary)');
+                            const subscriptions = footer.querySelector('.footer-subscriptions');
                             return {
                                 ContainerWidth: parseFloat(getComputedStyle(footer).width),
-                                IsCompact: last.top > first.bottom,
+                                IsCompact: subscriptions.getBoundingClientRect().top >= platforms.getBoundingClientRect().bottom - 1,
                                 HorizontalOverflow: Math.max(0, footer.scrollWidth - footer.clientWidth)
                             };
                         }
@@ -1324,9 +1323,6 @@ public sealed class AestheticSystemBrowserTests(
                     Assert.Equal(width, diagnostics.ContainerWidth, 1);
                     Assert.Equal(width <= threshold, diagnostics.IsCompact);
                     Assert.True(diagnostics.HorizontalOverflow <= 1, $"Footer overflowed at {width}px with {fontSize}px text.");
-                    Assert.True(await page.EvaluateAsync<bool>(
-                        "() => document.querySelector('.footer-subscriptions').getBoundingClientRect().top >= document.querySelector('.footer-follow-links').getBoundingClientRect().bottom - 1"),
-                        $"Subscriptions preceded wrapped platforms at {width}px with {fontSize}px text.");
                 }
             }
         }
