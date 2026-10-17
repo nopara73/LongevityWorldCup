@@ -3377,11 +3377,19 @@ const debouncedFilter = debounce(() => {
 
 function debounce(func, delay) {
     let debounceTimer;
-    return function (...args) {
+    const debounced = function (...args) {
         const context = this;
         clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => func.apply(context, args), delay);
+        debounceTimer = setTimeout(() => {
+            debounceTimer = undefined;
+            func.apply(context, args);
+        }, delay);
     };
+    debounced.cancel = () => {
+        clearTimeout(debounceTimer);
+        debounceTimer = undefined;
+    };
+    return debounced;
 }
 
 function hasActiveLeaderboardState() {
@@ -3841,6 +3849,9 @@ function renderFlagTeams(teams, view) {
 }
 
 function performFilter({ updateUrl = true, orderingOnly = false } = {}) {
+    // Immediate filter changes already consume the current query. A stale timer
+    // must not rewrite a profile URL opened from those freshly filtered rows.
+    debouncedFilter.cancel();
     const selectedState = getSelectedLeaderboardState();
     const query = window.normalizeString(document.getElementById('athleteSearch').value.trim().toLowerCase());
     const filterKey = JSON.stringify({ ...selectedState, ordering: undefined, search: document.getElementById('athleteSearch').value });
