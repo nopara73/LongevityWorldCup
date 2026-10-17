@@ -13,14 +13,32 @@ public sealed class EventFeedBrowserTests(PlaywrightBrowserFixture browserFixtur
     public async Task InitialHeadingScroll_RespectsReducedMotion(int width)
     {
         await using var context = await HomepageChromeRegressionBrowserTests.NewContextAsync(Browser, App, ReducedMotion.Reduce);
+        await context.AddInitScriptAsync("""
+            (() => {
+                const scrollIntoView = Element.prototype.scrollIntoView;
+                Element.prototype.scrollIntoView = function (options) {
+                    const result = scrollIntoView.call(this, options);
+                    if (this.matches('.event-board-heading')) {
+                        window.__initialHeadingScroll = {
+                            behavior: options?.behavior,
+                            offset: Math.abs(this.getBoundingClientRect().top
+                                - parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop))
+                        };
+                    }
+                    return result;
+                };
+            })();
+            """);
         var page = await context.NewPageAsync();
         await page.SetViewportSizeAsync(width, 850);
-        await page.Clock.InstallAsync(new() { Time = "2026-10-15T10:00:00Z" });
-        await page.Clock.PauseAtAsync("2026-10-15T10:00:01Z");
         await page.GotoAsync("/events", new() { WaitUntil = WaitUntilState.Load });
         await page.EvaluateAsync("() => document.fonts.ready");
 
-        await page.Clock.RunForAsync(500);
+        // Observe the real callback rather than sampling exactly at its timer boundary.
+        // Capture alignment synchronously so an unintended smooth scroll cannot settle first.
+        await page.WaitForFunctionAsync("() => window.__initialHeadingScroll !== undefined");
+        Assert.Equal("instant", await page.EvaluateAsync<string>("window.__initialHeadingScroll.behavior"));
+        Assert.InRange(await page.EvaluateAsync<double>("window.__initialHeadingScroll.offset"), 0, 1);
 
         var offset = await page.Locator(".event-board-heading").EvaluateAsync<double>(
             "heading => Math.abs(heading.getBoundingClientRect().top - parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop))");
