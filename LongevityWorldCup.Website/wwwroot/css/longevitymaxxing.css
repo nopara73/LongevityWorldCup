@@ -4226,6 +4226,11 @@ a.lmx-note-mention:focus-visible {
     max-height: max(264px, calc(100dvh - 8rem));
 }
 
+/* Keep the inline Save row inside the viewport when the site bar wraps. */
+.lmx-participant-actions:not(.lmx-checkin-dialog-panel) .lmx-checkin-entry {
+    max-height: max(264px, calc(100dvh - max(8rem, calc(var(--site-sticky-height, 0px) + 4.5rem))));
+}
+
 /* Reserve the Save row's space so it never paints over remarks or photos. */
 .lmx-checkin-fields {
     min-height: 0;
