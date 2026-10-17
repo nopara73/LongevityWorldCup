@@ -814,7 +814,7 @@
             </div>
         </nav>
         <article class="documentation-document">
-<h1 id="history-of-longevity-as-a-sport">History of longevity as a sport</h1>
+<h1 id="history-of-longevity-as-a-sport" aria-label="History of longevity as a sport">History of <span class="page-title-word">lon&shy;gev&shy;ity</span> as a sport</h1>
 <p>The longevity sport industry is an emerging field where participants compete to reverse biological aging and optimize health, turning longevity into a <a href="https://nopara73.medium.com/longevity-game-9a79a8645bd9" target="_blank" rel="noopener noreferrer">measurable and dynamic competition.</a></p>
 <h2 id="timeline">Timeline</h2>
 <div class="documentation-timeline">
@@ -1035,7 +1035,8 @@
 
             const getOffset = () => {
                 const stickyHeader = document.getElementById("site-sticky-header");
-                return ((stickyHeader && stickyHeader.offsetHeight) || 52) + 18;
+                const measuredHeight = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--site-sticky-height"));
+                return ((stickyHeader && stickyHeader.offsetHeight) || measuredHeight || 52) + 18;
             };
 
             let activeLink = null;

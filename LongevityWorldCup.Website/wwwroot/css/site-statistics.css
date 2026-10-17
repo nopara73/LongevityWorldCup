@@ -1,15 +1,15 @@
 :root {
     color-scheme: dark;
-    --bg: #090b0f;
-    --panel: #11161d;
-    --panel-2: #151b24;
+    --bg: #111416;
+    --panel: #191d20;
+    --panel-2: #20262a;
     --line: rgba(255, 255, 255, 0.11);
     --line-strong: rgba(255, 255, 255, 0.2);
     --text: #f5f7fb;
-    --muted: rgba(245, 247, 251, 0.66);
-    --dim: rgba(245, 247, 251, 0.48);
+    --muted: rgba(245, 247, 251, 0.72);
+    --dim: rgba(245, 247, 251, 0.62);
     --pink: #ff4081;
-    --cyan: #2dd4ff;
+    --cyan: #6bcec0;
     --green: #67d393;
     --amber: #ffcf5d;
     --red: #ff6b6b;
@@ -61,11 +61,10 @@
 body {
     margin: 0;
     min-height: 100vh;
-    font-family: "Poppins", Arial, sans-serif;
+    font-family: "Roboto", Arial, sans-serif;
+    font-size: 14px;
     color: var(--text);
-    background:
-        linear-gradient(180deg, rgba(45, 212, 255, 0.05), transparent 280px),
-        linear-gradient(135deg, #080a0e 0%, #11151c 52%, #07080b 100%);
+    background: var(--bg);
 }
 
 button,
@@ -74,11 +73,11 @@ select {
 }
 
 .stats-page {
-    width: min(100%, 1600px);
+    width: min(100%, 1280px);
     margin: 0 auto;
-    padding: 18px;
+    padding: 28px;
     display: grid;
-    gap: 14px;
+    gap: 18px;
 }
 
 .stats-header {
@@ -86,11 +85,8 @@ select {
     grid-template-columns: minmax(220px, 1fr) auto;
     gap: 14px;
     align-items: end;
-    padding: 14px;
-    border: 1px solid var(--line);
-    border-radius: 8px;
-    background: rgba(17, 22, 29, 0.86);
-    box-shadow: var(--shadow);
+    padding: 0 0 22px;
+    border-bottom: 1px solid var(--line);
 }
 
 .stats-title {
@@ -99,10 +95,9 @@ select {
 }
 
 .stats-kicker {
-    color: var(--cyan);
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 400;
 }
 
 h1,
@@ -113,13 +108,13 @@ p {
 }
 
 h1 {
-    font-size: 36px;
-    line-height: 1;
-    letter-spacing: 0;
+    font-size: 30px;
+    line-height: 1.2;
+    letter-spacing: -0.5px;
 }
 
 h2 {
-    font-size: 15px;
+    font-size: 16px;
     line-height: 1.2;
 }
 
@@ -143,15 +138,19 @@ h3 {
 }
 
 .stats-controls span {
-    font-size: 10px;
+    font-size: 11px;
     color: var(--dim);
-    font-weight: 700;
-    text-transform: uppercase;
+    font-weight: 400;
 }
+
+.stats-window { color: var(--muted); font-size: 12px; margin-top: 6px; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
+.stats-diagnostic-mode .stats-page { width: min(100%, 1600px); }
 
 select,
 .stats-button {
-    min-height: 36px;
+    min-height: 40px;
     border-radius: 8px;
     border: 1px solid var(--line);
     color: var(--text);
@@ -187,8 +186,8 @@ select:focus,
 }
 
 .stats-button.primary {
-    border-color: rgba(255, 64, 129, 0.6);
-    background: rgba(255, 64, 129, 0.18);
+    border-color: var(--line-strong);
+    background: transparent;
 }
 
 .stats-button.small {
@@ -224,6 +223,17 @@ select:focus,
     border-color: var(--cyan);
     background: rgba(45, 212, 255, 0.12);
 }
+
+.stats-tabs { align-items: start; flex-wrap: nowrap; gap: 12px; }
+.stats-tabs > .stats-tab { flex: 0 0 auto; }
+.stats-diagnostics { min-width: 0; flex: 1; }
+.stats-diagnostics-toggle { display: flex; align-items: center; gap: 12px; width: fit-content; list-style: none; }
+.stats-diagnostics-toggle::-webkit-details-marker { display: none; }
+.stats-diagnostics-toggle::after { content: ""; width: 6px; height: 6px; border-right: 1px solid currentColor; border-bottom: 1px solid currentColor; transform: rotate(45deg) translateY(-2px); }
+.stats-diagnostics[open] > .stats-diagnostics-toggle::after { transform: rotate(225deg) translate(-2px, -1px); }
+.stats-diagnostic-tabs { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 12px; }
+.stats-tab { min-height: 40px; font-size: 14px; font-weight: 400; }
+.stats-tab.active { background: rgba(107, 206, 192, .1); }
 
 .stats-status {
     min-height: 22px;
@@ -283,323 +293,80 @@ select:focus,
     overflow-wrap: anywhere;
 }
 
-.traffic-overview {
-    display: grid;
-    gap: 14px;
+.traffic-overview { display: grid; gap: 0; }
+.traffic-summary-grid { display: grid; grid-template-columns: minmax(0, 1.85fr) minmax(250px, 1fr); gap: 32px; padding: 8px 0 28px; }
+.traffic-audience { min-width: 0; }
+.traffic-metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; padding-bottom: 26px; }
+.traffic-metric { display: grid; gap: 6px; align-content: start; min-width: 0; }
+.traffic-metric > span { color: var(--muted); font-size: 14px; }
+.traffic-metric > strong { font-size: 40px; font-weight: 400; line-height: 1.2; letter-spacing: -1px; font-variant-numeric: tabular-nums; }
+.traffic-metric > em { color: var(--muted); font-size: 12px; font-style: normal; }
+.traffic-chart-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 12px; }
+.traffic-day-picker { min-width: 0; }
+.traffic-day-picker select { max-width: 100%; min-height: 36px; font-size: 12px; background: transparent; }
+.traffic-chart { width: 100%; }
+.traffic-chart svg { display: block; width: 100%; height: 250px; overflow: visible; touch-action: pan-y; }
+.traffic-chart text { fill: var(--muted); font-family: inherit; font-size: 11px; font-variant-numeric: tabular-nums; }
+.traffic-chart .traffic-bar-value { fill: var(--text); }
+.traffic-chart-grid { stroke: var(--line); stroke-width: 1; }
+.traffic-session-bar { fill: var(--cyan); opacity: .8; }
+.traffic-session-bar.is-selected { opacity: 1; }
+.traffic-session-bar.partial { fill: url(#trafficPartialPattern); }
+.traffic-partial-background { fill: var(--bg); }
+.traffic-partial-stripe { stroke: var(--cyan); stroke-width: 1.5; }
+.traffic-chart-detail { min-height: 24px; margin-top: 8px; font-size: 12px; font-variant-numeric: tabular-nums; }
+.traffic-chart-note { color: var(--muted); font-size: 12px; }
+.traffic-outcomes { min-width: 0; border-left: 1px solid var(--line); padding-left: 32px; }
+.traffic-caption { color: var(--muted); font-size: 12px; font-weight: 400; }
+.traffic-outcomes > .traffic-caption { margin-top: 5px; }
+.traffic-outcome { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; padding: 22px 0; border-bottom: 1px solid var(--line); }
+.traffic-outcome small { display: block; color: var(--muted); font-size: 12px; margin-top: 4px; }
+.traffic-outcome strong { font-size: 32px; line-height: 1.1; font-weight: 400; font-variant-numeric: tabular-nums; }
+.traffic-other-outcomes { color: var(--muted); font-size: 12px; padding-top: 16px; }
+.traffic-breakdowns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px; padding: 26px 0; border-top: 1px solid var(--line); }
+.traffic-ranked-panel { min-width: 0; }
+.traffic-list-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; padding-bottom: 16px; }
+.traffic-list-heading > .traffic-caption { white-space: nowrap; }
+.traffic-ranked-list { display: grid; gap: 16px; }
+.traffic-ranked-row { display: grid; grid-template-columns: minmax(100px, 1.4fr) minmax(30px, 1fr) 46px; align-items: center; gap: 16px; font-size: 14px; }
+.traffic-ranked-row > span:first-child { min-width: 0; overflow-wrap: anywhere; }
+.traffic-ranked-row > span:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+.traffic-meter { display: block; height: 5px; border-radius: 2px; overflow: hidden; background: rgba(255,255,255,.1); }
+.traffic-meter > i { display: block; height: 100%; background: var(--cyan); opacity: .65; }
+.traffic-more { margin-top: 12px; color: var(--muted); font-size: 12px; }
+.traffic-more summary { width: fit-content; min-height: 36px; padding: 8px 0; cursor: pointer; }
+.traffic-more .traffic-ranked-list { padding-top: 12px; color: var(--text); }
+.traffic-disclosure { border-top: 1px solid var(--line); padding: 14px 0; min-width: 0; }
+.traffic-disclosure > summary { display: flex; align-items: baseline; gap: 12px; list-style: none; cursor: pointer; min-height: 30px; padding: 5px 0; font-size: 14px; }
+.traffic-disclosure > summary::-webkit-details-marker { display: none; }
+.traffic-disclosure > summary::after { content: "+"; margin-left: auto; font-size: 20px; line-height: 1; }
+.traffic-disclosure[open] > summary::after { content: "−"; }
+.traffic-disclosure > summary > .traffic-caption { flex: 1; }
+.traffic-measurement { display: grid; gap: 16px; max-width: 900px; padding-top: 16px; color: var(--muted); font-size: 14px; line-height: 1.6; }
+.traffic-measurement strong { color: var(--text); }
+.traffic-detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; padding-top: 20px; }
+.traffic-detail-grid > section { min-width: 0; }
+.traffic-detail-grid h2 { margin-bottom: 12px; }
+.traffic-overview table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.traffic-overview table th, .traffic-overview table td { padding: 10px 8px; text-align: right; font-weight: 400; }
+.traffic-overview table th:first-child, .traffic-overview table td:first-child { text-align: left; overflow-wrap: anywhere; }
+.traffic-overview table th { color: var(--muted); font-size: 12px; }
+.traffic-overview table td { color: var(--text); }
+@media (max-width: 820px) {
+    .traffic-summary-grid { grid-template-columns: 1fr; gap: 28px; }
+    .traffic-outcomes { padding: 24px 0 0; border-left: 0; border-top: 1px solid var(--line); }
+    .traffic-outcome { padding: 16px 0; }
+    .traffic-breakdowns { grid-template-columns: 1fr; gap: 28px; }
+    .traffic-detail-grid { grid-template-columns: 1fr; }
 }
-
-.traffic-metrics {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 8px;
-}
-
-.traffic-metric {
-    min-height: 82px;
-    border: 1px solid var(--line);
-    border-radius: 8px;
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.035));
-    padding: 12px;
-    display: grid;
-    gap: 6px;
-    align-content: space-between;
-}
-
-.traffic-metric.good {
-    border-color: rgba(103, 211, 147, 0.55);
-}
-
-.traffic-metric.warn {
-    border-color: rgba(255, 207, 93, 0.55);
-}
-
-.traffic-metric span {
-    color: var(--muted);
-    font-size: 11px;
-    font-weight: 700;
-}
-
-.traffic-metric strong {
-    font-size: 28px;
-    line-height: 1;
-}
-
-.traffic-metric em {
-    color: var(--dim);
-    font-size: 11px;
-    font-style: normal;
-}
-
-.traffic-chart-panel {
-    overflow: hidden;
-}
-
-.traffic-quality-grid {
-    display: grid;
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-    gap: 8px;
-}
-
-.traffic-quality-card {
-    min-height: 74px;
-    border: 1px solid var(--line);
-    border-radius: 8px;
-    background: rgba(255, 255, 255, 0.045);
-    padding: 9px;
-    display: grid;
-    gap: 5px;
-    align-content: space-between;
-}
-
-.traffic-quality-card.good {
-    border-color: rgba(103, 211, 147, 0.55);
-}
-
-.traffic-quality-card.warn {
-    border-color: rgba(255, 207, 93, 0.6);
-}
-
-.traffic-quality-card.bad {
-    border-color: rgba(255, 107, 107, 0.75);
-}
-
-.traffic-quality-card span {
-    color: var(--dim);
-    font-size: 10px;
-    font-weight: 700;
-}
-
-.traffic-quality-card strong {
-    font-size: 18px;
-    line-height: 1;
-    overflow-wrap: anywhere;
-}
-
-.traffic-quality-card em {
-    color: var(--muted);
-    font-size: 10px;
-    font-style: normal;
-    overflow-wrap: anywhere;
-}
-
-.success-trend-panel {
-    overflow: hidden;
-}
-
-.success-summary {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 8px;
-    margin-bottom: 12px;
-}
-
-.success-summary-card {
-    min-height: 72px;
-    border: 1px solid var(--line);
-    border-radius: 8px;
-    background: rgba(255, 255, 255, 0.045);
-    padding: 10px;
-    display: grid;
-    gap: 5px;
-    align-content: space-between;
-}
-
-.success-summary-card span {
-    color: var(--dim);
-    font-size: 10px;
-    font-weight: 700;
-}
-
-.success-summary-card strong {
-    font-size: 22px;
-    line-height: 1;
-    overflow-wrap: anywhere;
-}
-
-.success-summary-card em {
-    color: var(--muted);
-    font-size: 10px;
-    font-style: normal;
-    overflow-wrap: anywhere;
-}
-
-.success-trend-wrap {
-    overflow-x: auto;
-    padding-bottom: 3px;
-}
-
-.success-trend-svg {
-    min-width: 100%;
-    display: block;
-    border: 1px solid var(--line);
-    border-radius: 8px;
-    background:
-        linear-gradient(180deg, rgba(103, 211, 147, 0.07), rgba(255, 255, 255, 0.025)),
-        rgba(255, 255, 255, 0.025);
-}
-
-.success-grid-line {
-    stroke: rgba(255, 255, 255, 0.09);
-    stroke-width: 1;
-}
-
-.success-axis-label,
-.success-day-label {
-    fill: var(--dim);
-    font-size: 10px;
-    font-weight: 700;
-}
-
-.success-action-bar {
-    fill: rgba(255, 207, 93, 0.58);
-}
-
-.success-rate-line {
-    fill: none;
-    stroke: var(--green);
-    stroke-width: 3;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-}
-
-.success-rate-dot {
-    fill: var(--green);
-    stroke: var(--panel);
-    stroke-width: 2;
-}
-
-.traffic-chart {
-    min-height: 250px;
-    display: grid;
-    grid-auto-flow: column;
-    grid-auto-columns: minmax(78px, 1fr);
-    gap: 8px;
-    align-items: end;
-    overflow-x: auto;
-    padding-bottom: 4px;
-}
-
-.traffic-day {
-    min-height: 232px;
-    display: grid;
-    grid-template-rows: 1fr auto auto auto;
-    gap: 6px;
-    align-items: end;
-    color: var(--muted);
-    font-size: 10px;
-    min-width: 0;
-}
-
-.traffic-day strong {
-    color: var(--text);
-    font-size: 11px;
-    line-height: 1.1;
-}
-
-.traffic-bars {
-    height: 150px;
-    width: 100%;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 4px;
-    align-items: end;
-    padding: 8px;
-    border: 1px solid var(--line);
-    border-radius: 8px;
-    background: rgba(255, 255, 255, 0.035);
-}
-
-.traffic-bar {
-    display: block;
-    min-height: 4px;
-    border-radius: 5px 5px 2px 2px;
-}
-
-.traffic-bar.sessions,
-.traffic-legend i.sessions {
-    background: var(--cyan);
-}
-
-.traffic-bar.page-views,
-.traffic-legend i.page-views {
-    background: var(--pink);
-}
-
-.traffic-legend i.success-rate {
-    background: var(--green);
-}
-
-.traffic-legend i.success-actions {
-    background: var(--amber);
-}
-
-.traffic-legend {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-    margin-top: 10px;
-    color: var(--dim);
-    font-size: 11px;
-    font-weight: 700;
-}
-
-.traffic-legend span {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-}
-
-.traffic-legend i {
-    display: inline-block;
-    width: 10px;
-    height: 10px;
-    border-radius: 2px;
-}
-
-.traffic-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(320px, 1fr));
-    gap: 14px;
-}
-
-.traffic-panel:first-child {
-    grid-column: 1 / -1;
-}
-
-.traffic-breakdown {
-    display: grid;
-    gap: 8px;
-}
-
-.traffic-breakdown-row {
-    display: grid;
-    grid-template-columns: minmax(120px, 0.8fr) minmax(140px, 1.4fr) 96px 96px;
-    gap: 10px;
-    align-items: center;
-    min-height: 34px;
-    color: var(--muted);
-    font-size: 11px;
-}
-
-.traffic-breakdown-row strong {
-    color: var(--text);
-    font-size: 12px;
-    overflow-wrap: anywhere;
-}
-
-.traffic-breakdown-bar {
-    height: 9px;
-    overflow: hidden;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.08);
-}
-
-.traffic-breakdown-bar span {
-    display: block;
-    height: 100%;
-    min-width: 2px;
-    border-radius: inherit;
-    background: linear-gradient(90deg, var(--cyan), var(--green));
+@media (max-width: 480px) {
+    .traffic-metrics { gap: 16px; }
+    .traffic-metric > strong { font-size: 34px; }
+    .traffic-chart-heading { flex-wrap: wrap; }
+    .traffic-disclosure > summary { flex-wrap: wrap; position: relative; padding-right: 24px; }
+    .traffic-disclosure > summary > .traffic-caption { flex-basis: 100%; }
+    .traffic-disclosure > summary::after { position: absolute; right: 0; top: 5px; }
+    .traffic-ranked-row { gap: 12px; }
 }
 
 .decision-grid,
@@ -1323,120 +1090,64 @@ select:focus,
 }
 
 @media (min-width: 1181px) {
-    .stats-page {
+    .stats-diagnostic-mode .stats-page {
         padding: 10px 14px;
         gap: 8px;
     }
 
-    .stats-header {
+    .stats-diagnostic-mode .stats-header {
         padding: 9px 10px;
         gap: 10px;
     }
 
-    .stats-title {
+    .stats-diagnostic-mode .stats-title {
         gap: 2px;
     }
 
-    h1 {
+    .stats-diagnostic-mode h1 {
         font-size: 30px;
     }
 
-    h2 {
+    .stats-diagnostic-mode h2 {
         font-size: 13px;
     }
 
-    .stats-controls {
+    .stats-diagnostic-mode .stats-controls {
         gap: 6px;
     }
 
-    .stats-controls label {
+    .stats-diagnostic-mode .stats-controls label {
         min-width: 92px;
         gap: 2px;
     }
 
-    select,
-    .stats-button {
+    .stats-diagnostic-mode select,
+    .stats-diagnostic-mode .stats-button {
         min-height: 30px;
         padding: 5px 8px;
     }
 
-    .stats-tabs,
-    .flow-selectors {
+    .stats-diagnostic-mode .stats-tabs,
+    .stats-diagnostic-mode .flow-selectors {
         gap: 6px;
     }
 
-    .stats-tab {
+    .stats-diagnostic-mode .stats-tab {
         min-height: 30px;
         padding: 5px 9px;
         font-size: 12px;
     }
 
-    .stats-status {
+    .stats-diagnostic-mode .stats-status {
         min-height: 16px;
         font-size: 11px;
     }
 
-    .data-quality-strip {
+    .stats-diagnostic-mode .data-quality-strip {
         gap: 6px;
     }
 
-    .traffic-overview {
-        gap: 8px;
-    }
-
-    .traffic-metrics,
-    .traffic-grid,
-    .traffic-quality-grid {
-        gap: 8px;
-    }
-
-    .traffic-quality-grid {
-        grid-template-columns: repeat(6, minmax(0, 1fr));
-    }
-
-    .traffic-quality-card {
-        min-height: 54px;
-        padding: 7px;
-        gap: 4px;
-    }
-
-    .traffic-quality-card strong {
-        font-size: 15px;
-    }
-
-    .traffic-metric {
-        min-height: 58px;
-        padding: 8px;
-        gap: 4px;
-    }
-
-    .traffic-metric strong {
-        font-size: 22px;
-    }
-
-    .traffic-chart {
-        min-height: 170px;
-        grid-auto-columns: minmax(66px, 1fr);
-        gap: 6px;
-    }
-
-    .traffic-day {
-        min-height: 154px;
-        gap: 4px;
-    }
-
-    .traffic-bars {
-        height: 92px;
-        padding: 6px;
-    }
-
-    .traffic-breakdown-row {
-        min-height: 28px;
-        grid-template-columns: minmax(100px, 0.8fr) minmax(110px, 1.2fr) 82px 82px;
-        gap: 7px;
-    }
-
-    .quality-card {
+    .stats-diagnostic-mode .quality-card {
         min-height: 28px;
         padding: 4px 7px;
         grid-template-columns: auto auto minmax(0, 1fr);
@@ -1444,242 +1155,243 @@ select:focus,
         gap: 6px;
     }
 
-    .quality-card strong {
+    .stats-diagnostic-mode .quality-card strong {
         font-size: 11px;
     }
 
-    .quality-card span,
-    .quality-card em {
+    .stats-diagnostic-mode .quality-card span,
+    .stats-diagnostic-mode .quality-card em {
         font-size: 9px;
     }
 
-    .decision-grid,
-    .decision-support-grid,
-    .stats-main-grid,
-    .detail-sections {
+    .stats-diagnostic-mode .decision-grid,
+    .stats-diagnostic-mode .decision-support-grid,
+    .stats-diagnostic-mode .stats-main-grid,
+    .stats-diagnostic-mode .detail-sections {
         gap: 8px;
     }
 
-    .decision-grid {
+    .stats-diagnostic-mode .decision-grid {
         grid-template-columns: minmax(0, 1.3fr) minmax(280px, 0.75fr);
     }
 
-    .decision-support-grid {
+    .stats-diagnostic-mode .decision-support-grid {
         grid-template-columns: minmax(0, 1fr) minmax(280px, 0.75fr);
     }
 
-    .stats-panel {
+    .stats-diagnostic-mode .stats-panel {
         padding: 10px;
     }
 
-    .panel-heading {
+    .stats-diagnostic-mode .panel-heading {
         min-height: 24px;
         gap: 7px;
         margin-bottom: 6px;
     }
 
-    .decision-brief,
-    .investigation-list,
-    .segment-comparisons,
-    .trend-watch {
+    .stats-diagnostic-mode .decision-brief,
+    .stats-diagnostic-mode .investigation-list,
+    .stats-diagnostic-mode .segment-comparisons,
+    .stats-diagnostic-mode .trend-watch {
         gap: 6px;
     }
 
-    .decision-brief,
-    .investigation-list {
+    .stats-diagnostic-mode .decision-brief,
+    .stats-diagnostic-mode .investigation-list {
         max-height: 140px;
         overflow: auto;
         padding-right: 2px;
     }
 
-    .segment-comparisons,
-    .trend-watch {
+    .stats-diagnostic-mode .segment-comparisons,
+    .stats-diagnostic-mode .trend-watch {
         max-height: 88px;
         overflow: auto;
         padding-right: 2px;
     }
 
-    .decision-card {
+    .stats-diagnostic-mode .decision-card {
         grid-template-columns: 28px minmax(0, 1fr);
         gap: 7px;
         padding: 7px;
     }
 
-    .decision-rank {
+    .stats-diagnostic-mode .decision-rank {
         width: 26px;
         height: 26px;
         font-size: 12px;
     }
 
-    .decision-body {
+    .stats-diagnostic-mode .decision-body {
         gap: 4px;
     }
 
-    .decision-title {
+    .stats-diagnostic-mode .decision-title {
         font-size: 12px;
     }
 
-    .decision-gridline {
+    .stats-diagnostic-mode .decision-gridline {
         grid-template-columns: 64px minmax(0, 1fr);
         gap: 5px;
         font-size: 10px;
     }
 
-    .decision-gridline strong,
-    .decision-footer {
+    .stats-diagnostic-mode .decision-gridline strong,
+    .stats-diagnostic-mode .decision-footer {
         font-size: 9px;
     }
 
-    .investigation-row,
-    .segment-row,
-    .trend-row {
+    .stats-diagnostic-mode .investigation-row,
+    .stats-diagnostic-mode .segment-row,
+    .stats-diagnostic-mode .trend-row {
         gap: 3px;
         padding: 7px;
     }
 
-    .investigation-row strong,
-    .segment-row strong,
-    .trend-row strong {
+    .stats-diagnostic-mode .investigation-row strong,
+    .stats-diagnostic-mode .segment-row strong,
+    .stats-diagnostic-mode .trend-row strong {
         font-size: 11px;
     }
 
-    .investigation-row span,
-    .segment-row span,
-    .trend-row span {
+    .stats-diagnostic-mode .investigation-row span,
+    .stats-diagnostic-mode .segment-row span,
+    .stats-diagnostic-mode .trend-row span {
         font-size: 10px;
     }
 
-    .investigation-row em,
-    .segment-row em,
-    .trend-row em {
+    .stats-diagnostic-mode .investigation-row em,
+    .stats-diagnostic-mode .segment-row em,
+    .stats-diagnostic-mode .trend-row em {
         font-size: 9px;
     }
 
-    .segment-row,
-    .trend-row {
+    .stats-diagnostic-mode .segment-row,
+    .stats-diagnostic-mode .trend-row {
         grid-template-columns: minmax(120px, 1fr) 72px 72px 82px;
     }
 
-    .outcome-strip {
+    .stats-diagnostic-mode .outcome-strip {
         grid-template-columns: repeat(12, minmax(76px, 1fr));
         gap: 6px;
     }
 
-    .metric-tile {
+    .stats-diagnostic-mode .metric-tile {
         min-height: 50px;
         padding: 6px;
         gap: 4px;
     }
 
-    .metric-label,
-    .metric-footer {
+    .stats-diagnostic-mode .metric-label,
+    .stats-diagnostic-mode .metric-footer {
         font-size: 9px;
         line-height: 1.1;
     }
 
-    .metric-value {
+    .stats-diagnostic-mode .metric-value {
         font-size: 18px;
     }
 
-    .spark {
+    .stats-diagnostic-mode .spark {
         height: 12px;
         min-width: 36px;
     }
 
-    .drilldown-panel {
+    .stats-diagnostic-mode .drilldown-panel {
         gap: 4px;
         padding: 7px 10px;
     }
 
-    .drilldown-panel .panel-heading {
+    .stats-diagnostic-mode .drilldown-panel .panel-heading {
         min-height: 20px;
         margin-bottom: 0;
     }
 
-    .drilldown-actions {
+    .stats-diagnostic-mode .drilldown-actions {
         gap: 5px;
     }
 
-    .drilldown-panel .stats-button.small {
+    .stats-diagnostic-mode .drilldown-panel .stats-button.small {
         min-height: 24px;
         padding: 3px 6px;
         font-size: 10px;
     }
 
-    .breadcrumb {
+    .stats-diagnostic-mode .breadcrumb {
         min-height: 18px;
         padding: 3px 6px;
         font-size: 10px;
     }
 
-    .drilldown-grid {
+    .stats-diagnostic-mode .drilldown-grid {
         grid-template-columns: minmax(170px, 0.65fr) minmax(260px, 1fr) minmax(260px, 1.1fr);
         gap: 8px;
     }
 
-    .drilldown-summary,
-    .event-samples,
-    .session-timeline {
+    .stats-diagnostic-mode .drilldown-summary,
+    .stats-diagnostic-mode .event-samples,
+    .stats-diagnostic-mode .session-timeline {
         min-height: 76px;
         max-height: 92px;
         padding: 6px;
     }
 
-    .summary-grid {
+    .stats-diagnostic-mode .summary-grid {
         gap: 5px;
     }
 
-    .summary-item {
+    .stats-diagnostic-mode .summary-item {
         padding: 6px;
     }
 
-    .summary-item strong {
+    .stats-diagnostic-mode .summary-item strong {
         font-size: 15px;
     }
 
-    .sample-row,
-    .timeline-row {
+    .stats-diagnostic-mode .sample-row,
+    .stats-diagnostic-mode .timeline-row {
         gap: 2px;
         padding: 5px;
     }
 
-    .sample-main,
-    .timeline-main {
+    .stats-diagnostic-mode .sample-main,
+    .stats-diagnostic-mode .timeline-main {
         font-size: 10px;
     }
 
-    .sample-meta,
-    .timeline-meta {
+    .stats-diagnostic-mode .sample-meta,
+    .stats-diagnostic-mode .timeline-meta {
         font-size: 9px;
     }
 
-    .empty-state {
+    .stats-diagnostic-mode .empty-state {
         min-height: 64px;
         padding: 8px;
     }
 
-    .source-visual-list,
-    .field-visual-list {
+    .stats-diagnostic-mode .source-visual-list,
+    .stats-diagnostic-mode .field-visual-list {
         gap: 6px;
     }
 
-    .source-visual-row,
-    .field-visual-row {
+    .stats-diagnostic-mode .source-visual-row,
+    .stats-diagnostic-mode .field-visual-row {
         gap: 6px;
         padding: 7px;
     }
 
-    .source-pill,
-    .metric-chip {
+    .stats-diagnostic-mode .source-pill,
+    .stats-diagnostic-mode .metric-chip {
         min-height: 19px;
         padding: 2px 6px;
         font-size: 9px;
     }
 
-    .visual-meter,
-    .stacked-bar {
+    .stats-diagnostic-mode .visual-meter,
+    .stats-diagnostic-mode .stacked-bar {
         height: 10px;
     }
+
 }
 
 @media (max-width: 1180px) {
@@ -1689,26 +1401,6 @@ select:focus,
 
     .data-quality-strip {
         grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .traffic-metrics {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .traffic-quality-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .success-summary {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-
-    .traffic-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .traffic-panel:first-child {
-        grid-column: auto;
     }
 
     .stats-main-grid,
@@ -1722,7 +1414,7 @@ select:focus,
 
 @media (max-width: 720px) {
     .stats-page {
-        padding: 10px;
+        padding: 20px;
     }
 
     .stats-header {
@@ -1750,30 +1442,6 @@ select:focus,
         grid-template-columns: 1fr;
     }
 
-    .traffic-metrics {
-        grid-template-columns: 1fr;
-    }
-
-    .traffic-quality-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .success-summary {
-        grid-template-columns: 1fr;
-    }
-
-    .success-summary-card {
-        min-height: 58px;
-        padding: 8px;
-    }
-
-    .traffic-breakdown-row {
-        grid-template-columns: 1fr;
-        gap: 5px;
-        padding: 7px 0;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.075);
-    }
-
     .funnel-row {
         grid-template-columns: 1fr;
         gap: 5px;
@@ -1798,4 +1466,9 @@ select:focus,
     .field-metrics {
         justify-content: flex-start;
     }
+}
+
+@media (pointer: coarse) {
+    select, .stats-button, .stats-tab, .traffic-more summary, .traffic-disclosure > summary { min-height: 44px; }
+    select, .traffic-day-picker select { font-size: 16px; min-height: 44px; }
 }
