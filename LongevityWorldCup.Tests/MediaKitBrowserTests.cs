@@ -171,6 +171,61 @@ public sealed class MediaKitBrowserTests(PlaywrightBrowserFixture browserFixture
         Assert.True(await page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= innerWidth + 1"));
     }
 
+    [Theory]
+    [InlineData(390, 844, 200, false)]
+    [InlineData(320, 640, 200, true)]
+    [InlineData(390, 844, 100, false)]
+    [InlineData(1440, 900, 100, true)]
+    public async Task DownloadsAndFileNames_KeepWholeWordsAtEnlargedPhoneText(int width, int height, int textSize, bool dark)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = height },
+            ColorScheme = dark ? ColorScheme.Dark : ColorScheme.Light,
+            ReducedMotion = ReducedMotion.Reduce,
+            IsMobile = width < 600,
+            HasTouch = width < 600
+        });
+        await InstallKitFixtureAsync(context);
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/media", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await Assertions.Expect(page.Locator("#fileList .media-file-row .media-file-button").First).ToBeVisibleAsync();
+        await page.AddStyleTagAsync(new() { Content = $"html {{ font-size: {textSize}% !important; }}" });
+        await page.WaitForFunctionAsync(
+            "size => parseFloat(getComputedStyle(document.documentElement).fontSize) >= 16 * size / 100 - 0.5", textSize);
+        await page.EvaluateAsync("() => document.fonts.ready");
+
+        var broken = await page.EvaluateAsync<string[]>(
+            """
+            () => {
+                const broken = [];
+                const texts = document.querySelectorAll('.media-kit-primary-download, #fileList .media-file-row :is(.media-file-name, .media-file-button)');
+                for (const element of texts) {
+                    const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+                    for (let node; (node = walker.nextNode());) {
+                        for (const word of node.textContent.matchAll(/[^\s ]+/g)) {
+                            const range = document.createRange();
+                            range.setStart(node, word.index);
+                            range.setEnd(node, word.index + word[0].length);
+                            const fragments = [...range.getClientRects()].filter(rect => rect.width > 0);
+                            const wholeWidth = fragments.reduce((sum, rect) => sum + rect.width, 0);
+                            // A word wider than the element itself has to break somewhere.
+                            const style = getComputedStyle(element);
+                            const contentWidth = element.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+                            if (new Set(fragments.map(rect => Math.round(rect.top))).size > 1 && wholeWidth <= contentWidth)
+                                broken.push(`"${word[0]}" in ${element.className}`);
+                        }
+                    }
+                    const box = element.getBoundingClientRect();
+                    if (box.left < -1 || box.right > innerWidth + 1)
+                        broken.push(`${element.className} leaves the screen`);
+                }
+                return broken;
+            }
+            """);
+        Assert.True(broken.Length == 0, $"{width}x{height} at {textSize}%: {string.Join("; ", broken.Distinct().Take(8))}");
+    }
+
     [Fact]
     public async Task Downloads_KeepKeyboardOrderAndFocusAndDoNotCapturePreviewClicks()
     {
