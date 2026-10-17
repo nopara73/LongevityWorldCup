@@ -391,6 +391,9 @@ public sealed class FlowActionDockLayoutBrowserTests(
         var rect = await ReadElementRectAsync(page, actionSelector);
         Assert.True(rect.Height <= 68,
             $"{path}: {actionSelector} dock is too tall: {rect.Height}px.");
+        await page.SetViewportSizeAsync(1366, 1100);
+        await page.WaitForFunctionAsync("selector => { window.LwcFlowActionDock.refreshNow(); return !document.querySelector(selector).classList.contains('flow-action-stack--docked'); }", actionSelector);
+        await ExpectActionStackInViewportAsync(page, actionSelector);
         Assert.True(errors.Count == 0, $"{path}: {string.Join(" | ", errors)}");
     }
 
@@ -445,6 +448,10 @@ public sealed class FlowActionDockLayoutBrowserTests(
             Assert.InRange(sample[0], inlineHeight - 1, inlineHeight + 1);
             Assert.True(sample[1] > 0, "The docked action stack lost its rendered height.");
         }
+        await page.SetViewportSizeAsync(1366, 900);
+        await page.WaitForFunctionAsync("() => { window.LwcFlowActionDock.refreshNow(); return !document.getElementById('lwcStepOneActions').classList.contains('flow-action-stack--docked'); }");
+        await ExpectActionStackInViewportAsync(page, "#lwcStepOneActions");
+        Assert.InRange(await page.Locator("#lwcStepOneActions").EvaluateAsync<double>("s => s.getBoundingClientRect().height"), inlineHeight - 1, inlineHeight + 1);
         Assert.Empty(errors);
     }
 
@@ -588,7 +595,10 @@ public sealed class FlowActionDockLayoutBrowserTests(
         if (viewportWidth < 769)
             await ExpectActionStackDockedInViewportAsync(page, ".convergence-actions");
         else
+        {
             await ExpectActionStackInViewportAsync(page, ".convergence-actions");
+            Assert.False(await HasDockClassAsync(page, ".convergence-actions"));
+        }
 
         var layout = await page.EvaluateAsync<ApplyFirstStageDetailsLayout>(
             """

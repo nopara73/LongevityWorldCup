@@ -37,6 +37,7 @@ interface FlowActionDockApi {
     const singleBackActionClass = 'flow-action-stack--single-back-action';
     const backPrimaryActionClass = 'flow-action-stack--back-primary-action';
     const mobileMedia = window.matchMedia('(max-width: 760px)');
+    const desktopRowMedia = window.matchMedia('(min-width: 769px)');
     const keyboardMedia = window.matchMedia('(max-width: 760px), (pointer: coarse)');
     const reducedMotionMedia = window.matchMedia('(prefers-reduced-motion: reduce)');
     const states = new Map<HTMLElement, DockState>();
@@ -266,7 +267,7 @@ interface FlowActionDockApi {
     }
 
     function beginDockEnter(element: HTMLElement, state: DockState): void {
-        if (!transitionsReady || reducedMotionMedia.matches) return;
+        if (!transitionsReady || reducedMotionMedia.matches || element.contains(document.activeElement)) return;
         element.classList.add(dockEnteringClass);
         state.enterFrame = window.requestAnimationFrame(() => {
             state.enterFrame = window.requestAnimationFrame(() => {
@@ -325,7 +326,7 @@ interface FlowActionDockApi {
         const back = actions.find(action => isBackAction(action as HTMLElement)) as HTMLElement | undefined;
         const primary = actions.find(action => action !== back) as HTMLElement | undefined;
         if (!back || !primary) return;
-        const backFirst = docked || (!mobileMedia.matches
+        const backFirst = docked || (desktopRowMedia.matches
             && !element.classList.contains('flow-action-stack--hide-disabled-primary'));
         const first = backFirst ? back : primary;
         if (element.firstElementChild !== first) {

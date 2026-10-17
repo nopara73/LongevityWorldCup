@@ -161,7 +161,9 @@ public sealed class SiteHeaderEnlargedTextBrowserTests(
         await NavigateAndSettleAsync(page, path);
         await page.EvaluateAsync("async () => { await window.modulesReady; await Promise.allSettled([window.getSharedAthletes?.(), window.getSharedEvents?.()]); }");
         if (path == "/events")
-            await page.WaitForFunctionAsync("() => window.scrollY > 0");
+            // The board can already fit at this viewport. Its readiness does
+            // not imply that the browser had to scroll away from the banner.
+            await page.WaitForFunctionAsync("() => document.getElementById('events-root')?.getAttribute('aria-busy') === 'false'");
         await WaitForLayoutAsync(page);
         await ScrollToTopAsync(page);
     }

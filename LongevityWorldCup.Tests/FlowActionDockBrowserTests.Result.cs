@@ -35,6 +35,9 @@ public sealed class FlowActionDockResultBrowserTests(
         Assert.Equal(2, layout.Count);
         Assert.True(layout.MaxGap <= 24,
             $"{path}: docked bioage commands are split apart by {layout.MaxGap}px instead of staying grouped.");
+        await page.SetViewportSizeAsync(1366, 900);
+        await page.WaitForFunctionAsync("() => { window.LwcFlowActionDock.refreshNow(); return !document.getElementById('lwcStepOneActions').classList.contains('flow-action-stack--docked'); }");
+        await ExpectActionStackInViewportAsync(page, "#lwcStepOneActions");
         Assert.True(errors.Count == 0, $"{path}: {string.Join(" | ", errors)}");
     }
 
@@ -173,6 +176,9 @@ public sealed class FlowActionDockResultBrowserTests(
             $"Back should be visibly secondary. Back width {layout.BackWidth}, primary width {layout.PrimaryWidth}.");
         Assert.True(Math.Abs(layout.PrimaryCenter - layout.ViewportCenter) <= 16,
             $"Primary action should stay centered. Primary center {layout.PrimaryCenter}, viewport center {layout.ViewportCenter}.");
+        await page.SetViewportSizeAsync(1366, 900);
+        await page.WaitForFunctionAsync("() => { window.LwcFlowActionDock.refreshNow(); return !document.getElementById('lwcStepOneActions').classList.contains('flow-action-stack--docked'); }");
+        await ExpectActionStackInViewportAsync(page, "#lwcStepOneActions");
         Assert.Empty(errors);
     }
 
@@ -302,6 +308,10 @@ public sealed class FlowActionDockResultBrowserTests(
             $"{formSelector}|{actionSelector}");
         Assert.NotEqual("none", state.FormTransform);
         Assert.True(state.ActionsParentIsBody, path);
+        await page.SetViewportSizeAsync(1280, 1000);
+        await page.WaitForFunctionAsync("selector => { window.LwcFlowActionDock.refreshNow(); return !document.querySelector(selector).classList.contains('flow-action-stack--docked'); }", actionSelector);
+        Assert.True(await page.Locator(actionSelector).EvaluateAsync<bool>("s => !!s.closest('form')"));
+        Assert.NotEqual("none", await page.Locator(formSelector).EvaluateAsync<string>("f => getComputedStyle(f).transform"));
         Assert.True(errors.Count == 0, $"{path}: {string.Join(" | ", errors)}");
     }
 

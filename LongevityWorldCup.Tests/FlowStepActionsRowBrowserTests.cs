@@ -41,6 +41,7 @@ public sealed class FlowStepActionsRowBrowserTests(
                 range.selectNodeContents(label);
                 const text = range.getBoundingClientRect();
                 const problems = [];
+                if (!stack.firstElementChild.matches('.back-button')) problems.push('DOM order does not start with Back');
                 if (Math.abs(back.top - action.top) > 1 || Math.abs(back.bottom - action.bottom) > 1) problems.push('Back and the action do not share one row');
                 if (back.right > action.left) problems.push('Back is not to the left of the action');
                 if (back.width > action.width * 0.6) problems.push(`Back (${back.width}px) is not compact beside the action (${action.width}px)`);
@@ -73,9 +74,126 @@ public sealed class FlowStepActionsRowBrowserTests(
                 const stack = document.querySelector('.flow-action-stack--docked');
                 const back = stack.querySelector('.back-button').getBoundingClientRect();
                 const action = stack.querySelector('.flow-action:not(.back-button)').getBoundingClientRect();
-                return Math.abs(back.top - action.top) <= 1 && back.right <= action.left;
+                return stack.firstElementChild.matches('.back-button')
+                    && Math.abs(back.top - action.top) <= 1 && back.right <= action.left;
             }
             """);
         Assert.True(sameRow, $"{path}: the phone dock keeps Back beside the action.");
+    }
+
+    [Theory]
+    [InlineData("/pheno-age", "#lwcStepOneActions")]
+    [InlineData("/bortz-age", "#lwcStepOneActions")]
+    [InlineData("/apply?fake=1", ".convergence-actions")]
+    [InlineData("/select-athlete", ".play-athlete-actions")]
+    public async Task StepOrderAndFocus_SurviveInlineDockedAndInlineAgain(string path, string selector)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = 1280, Height = 1000 },
+            ReducedMotion = ReducedMotion.Reduce
+        });
+        var page = await context.NewPageAsync();
+        await NavigateAndSettleAsync(page, path);
+        var stack = page.Locator(selector).First;
+        await page.EvaluateAsync("() => window.LwcFlowActionDock.refreshNow()");
+        await Assertions.Expect(stack).Not.ToHaveClassAsync(new System.Text.RegularExpressions.Regex("--docked"));
+        var back = stack.Locator(".back-button");
+        await back.FocusAsync();
+
+        foreach (var height in new[] { 460, 1000 })
+        {
+            await page.SetViewportSizeAsync(1280, height);
+            await page.EvaluateAsync("() => window.LwcFlowActionDock.refreshNow()");
+            if (height == 460)
+                await Assertions.Expect(stack).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("--docked"));
+            else
+                await Assertions.Expect(stack).Not.ToHaveClassAsync(new System.Text.RegularExpressions.Regex("--docked"));
+            await Assertions.Expect(back).ToBeFocusedAsync();
+            Assert.True(await stack.EvaluateAsync<bool>("s => s.firstElementChild.matches('.back-button')"));
+        }
+
+        var primary = stack.Locator(":scope > .flow-action:not(.back-button)");
+        if (await primary.IsEnabledAsync())
+        {
+            await page.Keyboard.PressAsync("Tab");
+            await Assertions.Expect(primary).ToBeFocusedAsync();
+            await page.Keyboard.PressAsync("Shift+Tab");
+            await Assertions.Expect(back).ToBeFocusedAsync();
+        }
+    }
+
+    [Theory]
+    [InlineData(1024, false)]
+    [InlineData(1280, true)]
+    [InlineData(1440, true)]
+    public async Task DesktopStep_WrapsLongLabelsWithoutClippingOrReversingOrder(int width, bool doubleText)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = 900 },
+            ReducedMotion = ReducedMotion.Reduce
+        });
+        var page = await context.NewPageAsync();
+        await NavigateAndSettleAsync(page, "/pheno-age");
+        await page.EvaluateAsync("""
+            doubleText => {
+                const stack = document.getElementById('lwcStepOneActions');
+                stack.dataset.flowDock = 'off';
+                stack.querySelector('.flow-action:not(.back-button) .flow-action__label').textContent = 'Continue to review my saved biological age result';
+                if (doubleText) {
+                    const elements = [stack, ...stack.querySelectorAll('*')];
+                    const sizes = elements.map(e => parseFloat(getComputedStyle(e).fontSize));
+                    elements.forEach((e, i) => e.style.setProperty('font-size', `${sizes[i] * 2}px`, 'important'));
+                }
+                window.LwcFlowActionDock.refreshNow();
+            }
+            """, doubleText);
+        await page.EvaluateAsync("async () => { await document.fonts.ready; for(let i=0;i<4;i++) await new Promise(requestAnimationFrame); }");
+        var problems = await page.EvaluateAsync<string[]>("""
+            () => {
+                const stack = document.getElementById('lwcStepOneActions');
+                const buttons = [...stack.children];
+                const issues = [];
+                if (!buttons[0].matches('.back-button')) issues.push('Back is not first in the DOM');
+                const [back, primary] = buttons.map(b => b.getBoundingClientRect());
+                if (!(back.bottom <= primary.top + 1 || back.right <= primary.left)) issues.push('Actions overlap or read in the opposite order');
+                for (const button of buttons) {
+                    const box = button.getBoundingClientRect();
+                    const range = document.createRange();
+                    range.selectNodeContents(button.querySelector('.flow-action__label'));
+                    for (const text of range.getClientRects()) {
+                        if (text.left < box.left || text.right > box.right + 1 || text.top < box.top || text.bottom > box.bottom + 1) issues.push('Visible label is clipped');
+                    }
+                }
+                if (document.documentElement.scrollWidth > innerWidth + 1) issues.push('Horizontal overflow');
+                return issues;
+            }
+            """);
+        Assert.True(problems.Length == 0, string.Join("; ", problems));
+    }
+
+    [Theory]
+    [InlineData("/apply")]
+    [InlineData("/select-athlete")]
+    public async Task DisabledPrimary_HasADistinctBoundaryAndIsSkippedByKeyboard(string path)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = 1280, Height = 900 },
+            ReducedMotion = ReducedMotion.Reduce
+        });
+        var page = await context.NewPageAsync();
+        await NavigateAndSettleAsync(page, path);
+        // Locate the ready task's pair rather than another hidden panel's actions.
+        var primary = page.Locator("[data-flow-dock]:visible > .flow-action:not(.back-button)").First;
+        var back = page.Locator("[data-flow-dock]:visible > .back-button").First;
+        await Assertions.Expect(primary).ToBeDisabledAsync();
+        Assert.Equal("dashed", await primary.EvaluateAsync<string>("b => getComputedStyle(b).borderTopStyle"));
+        Assert.Equal("solid", await back.EvaluateAsync<string>("b => getComputedStyle(b).borderTopStyle"));
+        await back.FocusAsync();
+        await page.Keyboard.PressAsync("Tab");
+        await Assertions.Expect(primary).Not.ToBeFocusedAsync();
+        Assert.False(await primary.EvaluateAsync<bool>("b => b.getBoundingClientRect().width === 0"));
     }
 }

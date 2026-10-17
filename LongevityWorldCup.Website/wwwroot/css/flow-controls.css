@@ -137,11 +137,11 @@ body.play-flow-route > main {
     padding-right: 1.25rem;
 }
 
-/* Back sits beside the primary action; enlarged text wraps the primary onto its own line above. */
+/* Back and the primary action follow their DOM order, including when text wraps. */
 .flow-action-stack.flow-action-stack--docked.flow-action-stack--back-primary-action {
     display: flex;
     flex-direction: row;
-    flex-wrap: wrap-reverse;
+    flex-wrap: wrap;
     align-items: stretch;
     gap: 0.55rem;
 }
@@ -266,6 +266,7 @@ body.flow-input-keyboard-open::after {
 .option-button.flow-action:disabled:hover {
     background: var(--lwc-surface-muted, #eef2f7) !important;
     border: 1px solid var(--lwc-border, rgba(100, 116, 139, 0.16));
+    border-style: dashed;
     color: var(--lwc-muted, #526373);
     box-shadow: none !important;
     cursor: not-allowed;
@@ -420,28 +421,26 @@ body.flow-input-keyboard-open::after {
     }
 }
 
-/* Desktop steps read like the phone dock: one row with a compact Back on the
-   left and the step's action filling the rest, instead of two stacked
-   full-width buttons with Back's arrow stranded at its far edge. Only stacks
-   holding exactly an action followed by Back take this shape. */
+/* Only two-action steps use the compact desktop row. The dock script keeps
+   their DOM order aligned with Back on the left. Long labels can wrap the row. */
 @media (min-width: 769px) {
-    .flow-action-stack:not(.flow-action-stack--docked):not(.flow-action-stack--hide-disabled-primary):has(> .flow-action:not(.back-button):first-child + .back-button.flow-action--icon-left:last-child) {
+    .flow-action-stack:not(.flow-action-stack--docked):not(.flow-action-stack--hide-disabled-primary):has(> .flow-action:first-child + .flow-action:last-child):has(> .back-button.flow-action--icon-left) {
         flex-direction: row;
+        flex-wrap: wrap;
         align-items: stretch;
         gap: 0.75rem;
     }
 
-    .flow-action-stack:not(.flow-action-stack--docked):not(.flow-action-stack--hide-disabled-primary):has(> .flow-action:not(.back-button):first-child + .back-button.flow-action--icon-left:last-child) > .flow-action:not(.back-button) {
-        flex: 1 1 auto;
+    .flow-action-stack:not(.flow-action-stack--docked):not(.flow-action-stack--hide-disabled-primary):has(> .flow-action:first-child + .flow-action:last-child):has(> .back-button.flow-action--icon-left) > .flow-action:not(.back-button) {
+        flex: 1 1 12rem;
         width: auto;
     }
 
-    .flow-action-stack:not(.flow-action-stack--docked):not(.flow-action-stack--hide-disabled-primary):has(> .flow-action:not(.back-button):first-child + .back-button.flow-action--icon-left:last-child) > .back-button.flow-action--icon-left {
+    .flow-action-stack:not(.flow-action-stack--docked):not(.flow-action-stack--hide-disabled-primary):has(> .flow-action:first-child + .flow-action:last-child):has(> .back-button.flow-action--icon-left) > .back-button.flow-action--icon-left {
         flex: 0 0 auto;
-        order: -1;
         width: auto;
-        min-width: 8.5rem;
-        max-width: none;
+        min-width: min(100%, 8.5rem);
+        max-width: 100%;
         align-self: stretch;
         padding-inline: 2.85rem 1.35rem;
     }
