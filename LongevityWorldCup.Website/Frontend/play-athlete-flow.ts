@@ -589,18 +589,15 @@ function createAthleteSelectionController(
         }
         list.style.maxHeight = "";
         const preferredHeight = list.getBoundingClientRect().height;
-        const listStyle = getComputedStyle(list);
-        const tallestOption = Math.max(0, ...Array.from(list.children, option => option.getBoundingClientRect().height));
-        const wholeOptionHeight = Math.min(preferredHeight, tallestOption
-            + parseFloat(listStyle.paddingTop) + parseFloat(listStyle.paddingBottom)
-            + list.offsetHeight - list.clientHeight);
+        const desiredHeight = Math.min(preferredHeight,
+            Math.max(0, visibleBottom - visibleTop - inputBox.height - gap * 2));
         const headerBottom = document.querySelector("header")?.getBoundingClientRect().bottom ?? 0;
         const currentAbove = Math.max(0, inputBox.top - Math.max(visibleTop, headerBottom + gap) - gap);
         const currentBelow = Math.max(0, visibleBottom - inputBox.bottom - gap);
-        if (document.activeElement === input && Math.max(currentAbove, currentBelow) + 1 < wholeOptionHeight) {
-            // A wrapped name must fit as a whole row. Move the field only when
-            // neither side has room, retaining the field inside the viewport.
-            const clearance = Math.min(wholeOptionHeight - currentBelow, inputBox.top - visibleTop);
+        if (document.activeElement === input && Math.max(currentAbove, currentBelow) + 1 < desiredHeight) {
+            // Keep the preferred result space when the viewport can provide it,
+            // rather than settling for a sliver above or below the field.
+            const clearance = Math.min(desiredHeight - currentBelow, inputBox.top - visibleTop);
             if (clearance > 1) {
                 window.scrollBy({ top: Math.ceil(clearance), behavior: "instant" });
                 inputBox = input.getBoundingClientRect();

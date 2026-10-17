@@ -37,6 +37,16 @@ public sealed class PlayAthleteSearchLayoutBrowserTests(
         await page.WaitForFunctionAsync("() => !document.body.classList.contains('play-route-hydrating')");
         await page.EvaluateAsync("size => document.documentElement.style.fontSize = size + 'px'", fontSize);
         await page.EvaluateAsync("() => document.fonts.ready");
+        await page.WaitForFunctionAsync("size => Math.abs(parseFloat(getComputedStyle(document.documentElement).fontSize) - size) < 0.1", fontSize);
+        await page.EvaluateAsync("""
+            async () => {
+                document.body.getBoundingClientRect();
+                await Promise.all(document.getAnimations()
+                    .filter(animation => animation.effect?.getTiming().iterations !== Infinity)
+                    .map(animation => animation.finished.catch(() => {})));
+                await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+            }
+            """);
         await input.FillAsync("a");
         await Assertions.Expect(page.Locator(".autocomplete-items [role=option]").First).ToBeVisibleAsync();
         await page.EvaluateAsync("async () => { window.LwcFlowActionDock?.refreshNow(); await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))); }");
@@ -104,12 +114,14 @@ public sealed class PlayAthleteSearchLayoutBrowserTests(
         await Assertions.Expect(page.Locator(".athlete-search-open")).ToHaveCountAsync(0);
     }
 
-    [Fact]
-    public async Task AthleteSearch_ReservesAWholeWrappedOptionWhenNeitherSideInitiallyFits()
+    [Theory]
+    [InlineData(320)]
+    [InlineData(390)]
+    public async Task AthleteSearch_ReservesAWholeWrappedOptionWhenNeitherSideInitiallyFits(int width)
     {
         await using var context = await NewContextAsync(Browser, App, new()
         {
-            ViewportSize = new() { Width = 320, Height = 640 },
+            ViewportSize = new() { Width = width, Height = 640 },
             ReducedMotion = ReducedMotion.Reduce, IsMobile = true, HasTouch = true
         });
         await context.RouteAsync("**/api/data/athletes", route => route.FulfillAsync(new()
@@ -128,6 +140,15 @@ public sealed class PlayAthleteSearchLayoutBrowserTests(
         // This scroll position left only 136px above the field for a 146px
         // wrapped option. Both popup placement and keyboard scrolling must fit it.
         await page.EvaluateAsync("() => { scrollTo(0, 49); window.dispatchEvent(new Event('scroll')); }");
+        await page.WaitForFunctionAsync("""
+            minimum => {
+                const list = document.querySelector('[role=listbox]').getBoundingClientRect();
+                return [...document.querySelectorAll('[role=option]')].filter(option => {
+                    const box = option.getBoundingClientRect();
+                    return box.top >= list.top && box.bottom <= list.bottom + 1;
+                }).length >= minimum;
+            }
+            """, width >= 360 ? 2 : 1);
         for (var index = 0; index < 5; index++)
         {
             await input.PressAsync("ArrowDown");
