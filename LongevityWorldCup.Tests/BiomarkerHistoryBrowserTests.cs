@@ -760,6 +760,38 @@ public sealed class BiomarkerHistoryBrowserTests(
 
     private static ILocator Row(IPage page, string key) => page.Locator($"#athlete-biomarkers tr[data-measure='{key}']");
 
+    [Theory]
+    [InlineData(1440, false, 140)]
+    [InlineData(1024, true, 140)]
+    [InlineData(390, true, 88)]
+    public async Task ProfileRadar_FillsItsCardInsteadOfFloatingInASquare(int width, bool dark, double minimumRadius)
+    {
+        await using var context = await NewContextAsync(width, dark, touch: width < 600);
+        var athlete = await HistoryAthleteAsync("Benjamin Garden", 44, partial: false);
+        var peer = await HistoryAthleteAsync("Valerie Orsoni", 44, partial: false);
+        await context.AddInitScriptAsync($"window.getSharedAthletes = async () => ({new JsonArray(athlete, peer).ToJsonString()});");
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/athlete/benjamin-garden", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.WaitForFunctionAsync("() => window.Chart?.getChart(document.getElementById('ageRadarChart'))?.scales?.r?.drawingArea > 0");
+        await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+
+        var layout = await page.EvaluateAsync<double[]>(
+            """
+            () => {
+                const chart = Chart.getChart(document.getElementById('ageRadarChart'));
+                const wrapper = document.getElementById('ageRadarWrapper').getBoundingClientRect();
+                const card = document.getElementById('ageVisualization').getBoundingClientRect();
+                return [chart.scales.r.drawingArea, wrapper.width, wrapper.height, wrapper.left, wrapper.right, card.left, card.right,
+                    document.documentElement.scrollWidth, innerWidth];
+            }
+            """);
+        Assert.True(layout[0] >= minimumRadius, $"{width}px: the radar web is only {layout[0]:F0}px in radius; it should be at least {minimumRadius}px.");
+        if (width >= 769)
+            Assert.True(layout[2] <= layout[1] * 0.75, $"{width}px: the radar well should be landscape, not a {layout[1]:F0}x{layout[2]:F0} square.");
+        Assert.True(layout[3] >= layout[5] && layout[4] <= layout[6], $"{width}px: the radar should stay inside its card.");
+        Assert.True(layout[7] <= layout[8], $"{width}px: the page scrolls sideways ({layout[7]} > {layout[8]}).");
+    }
+
     private async Task<IBrowserContext> NewContextAsync(int width, bool dark, string timezone = "UTC", bool touch = false)
     {
         var context = await Browser.NewContextAsync(new()

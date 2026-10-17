@@ -354,3 +354,23 @@
         box-sizing: border-box;
     }
 }
+
+/* The radar fills its well: a landscape canvas gives the side labels room, so
+   the web itself grows instead of floating in a square of empty space. */
+#detailsModal .age-radar-wrapper {
+    width: min(100%, 36rem);
+    aspect-ratio: 16 / 10;
+}
+@media (max-width: 768px) {
+    /* Phones let the web use the card's side padding; the labels sit in it. */
+    #detailsModal .age-radar-wrapper {
+        width: calc(100% + 2 * min(1rem, 16px));
+        margin-inline: calc(-1 * min(1rem, 16px));
+        aspect-ratio: 6 / 5;
+    }
+}
+@media (max-width: 360px) {
+    #detailsModal .age-radar-wrapper {
+        aspect-ratio: 1;
+    }
+}
