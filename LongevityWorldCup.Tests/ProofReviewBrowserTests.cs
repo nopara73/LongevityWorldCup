@@ -233,6 +233,40 @@ public sealed class ProofReviewBrowserTests(PlaywrightBrowserFixture browserFixt
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
+    public async Task RemoveTarget_TransparentCornersCatchTouchWithoutOpeningReview(bool onboarding)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = 390, Height = 844 }, IsMobile = true, HasTouch = true,
+            ReducedMotion = ReducedMotion.Reduce
+        });
+        var page = await PrepareAsync(context, onboarding);
+        await UploadAsync(page, await CreatePagesAsync(2));
+        var original = await ReadSourcesAsync(page);
+        var remove = page.Locator(".proof-page-remove").Nth(1);
+        await remove.ScrollIntoViewIfNeededAsync();
+        Assert.True(await remove.EvaluateAsync<bool>(
+            """
+            button => {
+                const rect = button.getBoundingClientRect();
+                return [[2, 2], [rect.width - 2, 2], [2, rect.height - 2], [rect.width - 2, rect.height - 2]]
+                    .every(([x, y]) => document.elementFromPoint(rect.left + x, rect.top + y)?.closest('button') === button);
+            }
+            """), "The complete 44px remove target must catch taps, including corners outside its round visible mark.");
+        var target = (await remove.BoundingBoxAsync())!;
+        await page.Touchscreen.TapAsync(target.X + 2, target.Y + 2);
+        await Assertions.Expect(page.Locator(".proof-page-card")).ToHaveCountAsync(original.Length - 1);
+        Assert.Equal(0, await page.Locator(".proof-review-dialog[open]").CountAsync());
+        await page.Locator(".proof-undo").TapAsync();
+        Assert.Equal(original, await ReadSourcesAsync(page));
+        await page.Locator(".proof-page-preview").Nth(1).TapAsync();
+        await Assertions.Expect(page.Locator(".proof-review-dialog")).ToBeVisibleAsync();
+        Assert.Equal(original[1], await page.Locator(".proof-review-dialog img").GetAttributeAsync("src"));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     public async Task ReuploadAfterRemoval_ThenUndoNeverAddsTheSamePageTwice(bool onboarding)
     {
         await using var context = await NewContextAsync(Browser, App, new());

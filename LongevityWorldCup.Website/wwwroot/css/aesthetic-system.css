@@ -649,13 +649,14 @@ html body #proofImageContainer[hidden] { display: none !important; }
 .proof-page-remove {
     position: absolute; top: 2px; right: 2px; display: grid; place-items: center;
     width: 44px; min-width: 44px; height: 44px; min-height: 44px; margin: 0; padding: 0;
-    border: 0; border-radius: var(--lwc-radius-pill, 999px); background: transparent;
+    border: 0; border-radius: 0; background: transparent;
     color: var(--lwc-danger); font-size: 0;
 }
-/* A 32px mark drawn inside the 44px target, outlined so it shows on white pages. */
+/* Only the 32px mark is round. All 44px of the target must catch taps, including
+   its transparent corners, so they cannot fall through to the review control. */
 .proof-page-remove::before {
     content: "\f00d"; display: grid; place-items: center; width: 32px; height: 32px; box-sizing: border-box;
-    border: 1px solid var(--lwc-border); border-radius: inherit; background: var(--lwc-surface); box-shadow: 0 1px 3px rgba(15, 23, 42, 0.22);
+    border: 1px solid var(--lwc-border); border-radius: var(--lwc-radius-pill, 999px); background: var(--lwc-surface); box-shadow: 0 1px 3px rgba(15, 23, 42, 0.22);
     font-family: "Font Awesome 6 Free"; font-weight: 900; font-size: .875rem; line-height: 1;
     transition: background-color var(--lwc-duration-fast) var(--lwc-ease), color var(--lwc-duration-fast) var(--lwc-ease);
 }
