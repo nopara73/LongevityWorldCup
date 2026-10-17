@@ -250,26 +250,35 @@ body.flow-input-keyboard-open::after {
    the button's far edge. */
 @media (min-width: 769px) {
     .flow-action-stack:not(.flow-action-stack--docked) > .option-button.flow-action.back-button.flow-action--icon-left {
-        gap: 0.6rem;
+        gap: 0.5em;
         padding-inline: 1.35rem !important;
     }
 
-    .flow-action-stack:not(.flow-action-stack--docked) > .option-button.flow-action.back-button.flow-action--icon-left > i {
+    .flow-action-stack:not(.flow-action-stack--docked) > .option-button.flow-action.back-button.flow-action--icon-left > i,
+    .flow-action-stack:not(.flow-action-stack--docked) > .option-button.flow-action.back-button.flow-action--icon-left > .flow-action__icon {
         position: static;
         width: auto;
         transform: none;
+        flex: none;
     }
 
     .flow-action-stack:not(.flow-action-stack--docked) > .option-button.flow-action.back-button.flow-action--icon-left .flow-action__label {
         width: auto;
         margin: 0;
+        /* Keep longer captions inside the control, including compact action rows. */
+        flex: 0 1 auto !important;
+        white-space: normal !important;
     }
 
     /* A lone Back is a compact control, not a full-width bar. */
     .flow-action-stack:not(.flow-action-stack--docked) > .option-button.flow-action.back-button.flow-action--icon-left:only-child,
-    .flow-action-stack--hide-disabled-primary:not(.flow-action-stack--docked) > .flow-action:disabled + .option-button.flow-action.back-button.flow-action--icon-left:last-child {
-        width: min(100%, 11rem);
-        max-width: 11rem;
+    .flow-action-stack--single-back-action:not(.flow-action-stack--docked) > .option-button.flow-action.back-button.flow-action--icon-left {
+        /* Visible actions, rather than DOM child count, determine a lone Back.
+           These bounds also take precedence over the two-action row's sizing. */
+        flex: 0 1 auto !important;
+        width: min(100%, 11rem) !important;
+        max-width: 11rem !important;
+        margin-inline: auto !important;
         align-self: center;
     }
 }
