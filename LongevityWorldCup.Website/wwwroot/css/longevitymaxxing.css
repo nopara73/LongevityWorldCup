@@ -2670,6 +2670,36 @@ body.lmx-checkin-dialog-open {
     z-index: 1;
 }
 
+.lmx-note.lmx-announcement {
+    border-left: 3px solid var(--lmx-accent);
+    background: var(--lmx-surface-accent);
+}
+
+.lmx-announcement-icon {
+    display: grid;
+    place-items: center;
+    color: var(--lmx-accent);
+}
+
+.lmx-announcement-content {
+    margin-top: var(--lwc-space-2);
+    padding-left: var(--lmx-discussion-indent);
+    overflow-wrap: anywhere;
+    max-width: 76ch;
+    line-height: 1.5;
+}
+
+.lmx-note .lmx-announcement-content p {
+    padding-left: 0;
+    margin: 0 0 var(--lwc-space-3);
+}
+
+@media (max-width: 480px) {
+    .lmx-announcement-content {
+        padding-left: 0;
+    }
+}
+
 .lmx-discussion-post-header {
     position: relative;
     padding-left: var(--lmx-discussion-indent);
@@ -4794,7 +4824,8 @@ a.lmx-note-mention:focus-visible {
     box-shadow: 0 4px 10px rgba(15, 23, 42, 0.10);
 }
 
-.lmx-feed-button:focus-visible {
+.lmx-feed-button:focus-visible,
+.lmx-feed-caught-up:focus-visible {
     outline: 3px solid rgba(0, 188, 212, 0.25);
     outline-offset: 2px;
 }

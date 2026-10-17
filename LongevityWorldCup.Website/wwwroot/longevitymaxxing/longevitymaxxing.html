@@ -313,7 +313,7 @@
             <div id="lmxNotes" class="lmx-notes"></div>
             <div id="lmxFeedSentinel" class="lmx-feed-sentinel" aria-hidden="true"></div>
             <div class="lmx-feed-footer">
-                <div id="lmxFeedCaughtUp" class="lmx-feed-caught-up" hidden>
+                <div id="lmxFeedCaughtUp" class="lmx-feed-caught-up" tabindex="-1" hidden>
                     <i class="fas fa-circle-check" aria-hidden="true"></i><span>You’re caught up</span>
                 </div>
                 <button id="lmxFeedOlder" class="lmx-feed-button" type="button" aria-controls="lmxNotes" hidden>
@@ -328,6 +328,7 @@
 <div id="lmxCheckinDialogBackdrop" class="lmx-checkin-dialog-backdrop" aria-hidden="true" hidden></div>
 
 <!--FOOTER-->
+<script src="{{ASSET_CUSTOM_EVENT_MARKUP_JS}}" defer></script>
 <script src="{{ASSET_LONGEVITYMAXXING_JS}}" defer></script>
 </body>
 </html>

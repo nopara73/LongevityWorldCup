@@ -233,7 +233,12 @@ public sealed record LongevitymaxxingDiscussionSystemPost(
     string OccurredAtUtc,
     string LastActivityAtUtc,
     int ReplyCount,
-    IReadOnlyList<LongevitymaxxingDiscussionReply> Replies);
+    IReadOnlyList<LongevitymaxxingDiscussionReply> Replies)
+{
+    public LongevitymaxxingDiscussionAnnouncement? Announcement { get; init; }
+}
+
+public sealed record LongevitymaxxingDiscussionAnnouncement(string EventId, string Title, string Content);
 
 public sealed record LongevitymaxxingCheckInImage(
     string Url,
