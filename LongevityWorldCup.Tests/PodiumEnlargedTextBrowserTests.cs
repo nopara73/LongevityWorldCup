@@ -28,7 +28,11 @@ public sealed class PodiumEnlargedTextBrowserTests(
     [InlineData(768, 1024, 100, false)]
     [InlineData(844, 390, 100, false)]
     [InlineData(1440, 900, 100, false)]
-    public async Task PhonePodium_StacksFullWidthCardsWithWholeWordsAtEnlargedText(int width, int height, int textPercent, bool stacked)
+    [InlineData(844, 844, 175, true)]
+    [InlineData(844, 844, 200, true)]
+    [InlineData(1024, 900, 200, true)]
+    [InlineData(1440, 900, 200, false)]
+    public async Task Podium_StacksFullWidthCardsWithWholeWordsAtEnlargedText(int width, int height, int textPercent, bool stacked)
     {
         await using var context = await NewContextAsync(Browser, App, new()
         {
@@ -77,7 +81,7 @@ public sealed class PodiumEnlargedTextBrowserTests(
                 }
                 const fullWidth = boxes.every(box => box.width >= podium.width - 2);
                 const mobile = matchMedia('(max-width: 768px), (max-width: 932px) and (max-height: 480px) and (orientation: landscape)').matches;
-                const nameBelowPortrait = mobile && cards[0].querySelector('.athlete-name').getBoundingClientRect().top
+                const nameBelowPortrait = (mobile || fullWidth) && cards[0].querySelector('.athlete-name').getBoundingClientRect().top
                     >= cards[0].querySelector('.podium-portrait').getBoundingClientRect().bottom - 1;
                 if (fullWidth && !(boxes[0].bottom <= boxes[1].top && boxes[1].bottom <= boxes[2].top))
                     problems.push('stacked visual order is not first, second, third');
