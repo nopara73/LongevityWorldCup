@@ -1928,8 +1928,8 @@ html.play-panel-transitioning .play-hub-panel--entering {
 
 .play-athlete-panel .play-athlete-card .athlete-picture-frame {
     grid-area: 1 / 1;
-    width: 100% !important;
-    border-radius: 8px !important;
+    width: 100%;
+    border-radius: 8px;
     box-shadow: none;
 }
 
@@ -1938,7 +1938,7 @@ html.play-panel-transitioning .play-hub-panel--entering {
     grid-area: 1 / 1;
     align-self: end;
     z-index: 2;
-    margin: 0 !important;
+    margin: 0;
     padding: 0.7rem 1rem;
     border-radius: 0 0 8px 8px;
     background: linear-gradient(to top, rgba(6, 12, 18, 0.94), rgba(6, 12, 18, 0.82));
@@ -1964,7 +1964,17 @@ html.play-panel-transitioning .play-hub-panel--entering {
 }
 
 .play-athlete-panel.athlete-search-open .play-athlete-card .play-athlete-title {
+    position: absolute;
+    inset: auto 0 0;
     opacity: 0;
+}
+
+/* Let actual text enlargement widen Back before wrapping the action row. */
+.play-athlete-actions.flow-action-stack.flow-action-stack--docked.flow-action-stack--back-primary-action > .back-button.flow-action--icon-left {
+    flex: 0 0 auto;
+    width: max-content;
+    min-width: min(100%, 6.25rem);
+    max-width: 100%;
 }
 
 @media (max-width: 760px) {
@@ -1979,6 +1989,10 @@ html.play-panel-transitioning .play-hub-panel--entering {
     .play-athlete-panel .play-athlete-card {
         width: min(100%, clamp(340px, 50dvh, 408px));
     }
+
+    .play-athlete-panel:not(.athlete-search-open) .play-athlete-visual {
+        margin-bottom: 1rem;
+    }
 }
 
 @media (min-width: 761px) and (max-height: 740px) {
@@ -1990,6 +2004,34 @@ html.play-panel-transitioning .play-hub-panel--entering {
 @media (max-height: 700px) {
     .play-athlete-panel.athlete-search-open .play-athlete-card {
         width: min(100%, 104px);
+    }
+}
+
+@media (min-width: 640px) and (max-width: 932px) and (max-height: 480px) and (orientation: landscape) {
+    .play-athlete-panel .play-athlete-card {
+        width: min(100%, 40dvh, 240px);
+    }
+
+    .play-athlete-panel .play-athlete-card .play-athlete-title {
+        font-size: 1.15rem;
+        padding: 0.55rem 0.6rem;
+    }
+}
+
+@media (max-height: 480px) {
+    /* Free the search space while keeping its heading in the accessibility tree. */
+    .play-athlete-panel.athlete-search-open .play-athlete-visual {
+        display: block;
+        height: 0;
+        margin-bottom: 0;
+    }
+
+    .play-athlete-panel.athlete-search-open .play-athlete-card {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        clip-path: inset(50%);
+        overflow: hidden;
     }
 }
 
