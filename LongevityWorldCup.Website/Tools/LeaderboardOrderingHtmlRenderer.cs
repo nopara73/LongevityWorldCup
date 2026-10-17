@@ -1,6 +1,5 @@
 using System.Net;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using LongevityWorldCup.Website.Business;
 
@@ -17,16 +16,13 @@ public static class LeaderboardOrderingHtmlRenderer
         html = html.Replace("<!--ORDER-CATALOG-->", JsonSerializer.Serialize(new
         {
             asOf = asOf.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture),
-            // The browser expands defaults and builds both pickers from this one catalog.
-            fields = LeaderboardOrdering.Fields.Select(field => new
+            // Group once and omit trailing defaults to keep the shared homepage catalog small.
+            groups = LeaderboardOrdering.Fields.GroupBy(field => field.Group).Select(group => new
             {
-                field.Key, field.Label, field.Group, field.SourceKey,
-                Unit = field.Unit.Length == 0 ? null : field.Unit,
-                Decimals = field.Decimals == 1 ? (int?)null : field.Decimals,
-                Direction = field.Direction == "asc" ? null : field.Direction,
-                Kind = field.Kind == "number" ? null : field.Kind
+                label = group.Key,
+                fields = group.Select(CatalogEntry)
             })
-        }, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull }), StringComparison.Ordinal);
+        }), StringComparison.Ordinal);
         html = ReplaceSection(html, "ORDER-RANK-HEADER", Header("rank", "Rank", display));
         html = ReplaceSection(html, "ORDER-NAME-HEADER", Header("name", "Athlete", display));
         html = ReplaceSection(html, "ORDER-METRIC-HEADER", Header("metric", selection.MetricLabel, display));
@@ -39,6 +35,20 @@ public static class LeaderboardOrderingHtmlRenderer
         }
         if (selection.ByFlag) html = html.Replace("class=\"leaderboard-order-tools\"", "class=\"leaderboard-order-tools\" hidden", StringComparison.Ordinal);
         return html;
+    }
+
+    // Wire row: key, label, unit, source key, decimals, direction, kind.
+    // Null and omitted values use the same defaults as the browser decoder.
+    private static object?[] CatalogEntry(LeaderboardOrderField field)
+    {
+        object?[] values =
+        [
+            field.Key, field.Label, field.Unit.Length == 0 ? null : field.Unit, field.SourceKey,
+            field.Decimals == 1 ? null : field.Decimals,
+            field.Direction == "asc" ? null : field.Direction,
+            field.Kind == "number" ? null : field.Kind
+        ];
+        return values[..(Array.FindLastIndex(values, value => value is not null) + 1)];
     }
 
     public static string Header(string key, string label, LeaderboardOrderState state, string unit = "")

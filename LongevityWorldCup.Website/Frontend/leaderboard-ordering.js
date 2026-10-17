@@ -3,7 +3,13 @@
     const byId = id => document.getElementById(id);
     let catalog = { fields: [], asOf: new Date().toISOString().slice(0, 10) };
     try { catalog = JSON.parse(byId('leaderboardOrderCatalog')?.textContent || '{}'); } catch { /* Dialog-only embeds do not have sorting controls. */ }
-    const fields = new Map((catalog.fields || []).map(field => [field.key, { unit: '', decimals: 1, direction: 'asc', kind: 'number', ...field }]));
+    // Wire row: key, label, unit, source key, decimals, direction, kind. Expand once;
+    // sorting and controls use readable field objects throughout.
+    const catalogFields = catalog.groups ? catalog.groups.flatMap(group => group.fields.map(
+        ([key, label, unit, sourceKey, decimals, direction, kind]) => ({ key, label, group: group.label,
+            unit: unit ?? '', sourceKey, decimals: decimals ?? 1, direction: direction ?? 'asc', kind: kind ?? 'number' })
+    )) : catalog.fields || [];
+    const fields = new Map(catalogFields.map(field => [field.key, { unit: '', decimals: 1, direction: 'asc', kind: 'number', ...field }]));
     const toggle = byId('leaderboardOrderToggle');
     const reset = byId('leaderboardOrderReset');
     const panel = byId('leaderboardOrderPanel');
