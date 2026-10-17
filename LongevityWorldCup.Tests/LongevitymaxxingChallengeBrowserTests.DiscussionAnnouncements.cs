@@ -15,7 +15,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
     [InlineData(1440, false)]
     [InlineData(390, true)]
     [InlineData(1440, true)]
-    public async Task DiscussionAnnouncements_RenderLinkedSpecialCardsAndKeepWelcomeRepliesSeparate(int width, bool signedIn)
+    public async Task DiscussionAnnouncements_RenderConciseCardsAndKeepWelcomeRepliesSeparate(int width, bool signedIn)
     {
         await using var context = await NewContextAsync(Browser, App, new() { ViewportSize = new() { Width = width, Height = 900 } });
         var state = JsonSerializer.SerializeToNode(BuildParticipantState(noEligibleDays: true,
@@ -45,9 +45,10 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await Assertions.Expect(announcement).ToBeVisibleAsync();
         await Assertions.Expect(announcement).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("lmx-announcement"));
         await Assertions.Expect(announcement.GetByRole(AriaRole.Heading, new() { Name = "Earn your words." })).ToBeVisibleAsync();
-        await Assertions.Expect(announcement.Locator(".lmx-discussion-post-author strong")).ToHaveTextAsync("Announcement");
+        await Assertions.Expect(announcement.Locator(".lmx-discussion-post-author strong")).ToHaveTextAsync("Earn your words.");
+        await Assertions.Expect(announcement.GetByText("Announcement", new() { Exact = true })).ToHaveCountAsync(0);
         await Assertions.Expect(announcement.GetByRole(AriaRole.Link, new() { Name = "Join the Challenge", Exact = true }))
-            .ToHaveAttributeAsync("href", "https://longevityworldcup.com/longevitymaxxing");
+            .ToHaveCountAsync(0);
         await Assertions.Expect(announcement).Not.ToContainTextAsync("Day 0");
         Assert.True(await announcement.EvaluateAsync<bool>("e => e.scrollWidth <= e.clientWidth + 1"));
         Assert.True(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth <= innerWidth + 1"));

@@ -52,7 +52,12 @@ public sealed class LeaderboardRowReflowBrowserTests(
             "/league/improvement", "/league/bortz-improvement", "/league/crowd"
         })
         {
+            // The intercepted fixture fetches and rewrites the full directory.
+            // Start the client-render assertion after that response body arrives.
+            var athleteResponse = page.WaitForResponseAsync(response =>
+                response.Url.EndsWith("/api/data/athletes", StringComparison.Ordinal));
             await NavigateAndSettleAsync(page, path);
+            await (await athleteResponse).FinishedAsync();
             await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
             await page.EvaluateAsync("size => document.documentElement.style.fontSize = size + 'px'", rootFontSize);
             await page.WaitForFunctionAsync(
@@ -86,9 +91,12 @@ public sealed class LeaderboardRowReflowBrowserTests(
                             const athlete = row.querySelector('.athlete-td');
                             const score = row.querySelector('.age-reduction-td');
                             const nameBox = name.getBoundingClientRect();
-                            const athleteBox = athlete.getBoundingClientRect();
                             const scoreBox = score.getBoundingClientRect();
                             const rowBox = row.getBoundingClientRect();
+                            const identityBox = row.querySelector('.athlete-identity').getBoundingClientRect();
+                            // Stacked rows dissolve the athlete cell so the name can span the row.
+                            const athleteBox = getComputedStyle(athlete).display === 'contents'
+                                ? rowBox : athlete.getBoundingClientRect();
                             if (nameBox.left < athleteBox.left - 1 || nameBox.right > athleteBox.right + 1)
                                 failures.push(`${name.textContent}: name leaves the athlete cell.`);
                             if (name.scrollWidth > name.clientWidth + 1 || score.scrollWidth > score.clientWidth + 1)
@@ -100,6 +108,22 @@ public sealed class LeaderboardRowReflowBrowserTests(
                                 failures.push(`${name.textContent}: score leaves the row.`);
                             if (nameBox.height < 44)
                                 failures.push(`${name.textContent}: name loses its touch target.`);
+                            // Row containment alone can hide collisions after display:contents.
+                            const parts = [...row.querySelectorAll('.rank-td, .portrait-wrapper, .athlete-identity, .age-reduction-td, .athlete-td > .badge-section')]
+                                .map(element => ({ element, box: element.getBoundingClientRect() }))
+                                .filter(part => part.box.width > 0 && part.box.height > 0);
+                            for (let i = 0; i < parts.length; i++) {
+                                const a = parts[i].box;
+                                if (a.left < rowBox.left - 1 || a.right > rowBox.right + 1
+                                    || a.top < rowBox.top - 1 || a.bottom > rowBox.bottom + 1)
+                                    failures.push(`${name.textContent}: ${parts[i].element.className} leaves the row.`);
+                                for (let j = i + 1; j < parts.length; j++) {
+                                    const b = parts[j].box;
+                                    if (a.left < b.right - 1 && a.right > b.left + 1
+                                        && a.top < b.bottom - 1 && a.bottom > b.top + 1)
+                                        failures.push(`${name.textContent}: ${parts[i].element.className} overlaps ${parts[j].element.className}.`);
+                                }
+                            }
                             const textNodes = document.createTreeWalker(name, NodeFilter.SHOW_TEXT);
                             let previous = null;
                             while (textNodes.nextNode()) {
@@ -112,6 +136,9 @@ public sealed class LeaderboardRowReflowBrowserTests(
                                     const box = range.getBoundingClientRect();
                                     if (box.left < athleteBox.left - 1 || box.right > athleteBox.right + 1)
                                         failures.push(`${name.textContent}: a character leaves the athlete cell.`);
+                                    if (box.left < identityBox.left - 1 || box.right > identityBox.right + 1
+                                        || box.top < nameBox.top - 1 || box.bottom > nameBox.bottom + 1)
+                                        failures.push(`${name.textContent}: a character leaves its name target.`);
                                     if (previous && (box.top < previous.top - 1
                                         || (Math.abs(box.top - previous.top) < 1 && box.left < previous.left - 1)))
                                         failures.push(`${name.textContent}: characters lose their reading order.`);

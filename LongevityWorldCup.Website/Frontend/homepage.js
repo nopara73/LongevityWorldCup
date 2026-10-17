@@ -175,14 +175,11 @@ function placeHomepageHighlightsForVisit() {
     if (main) main.dataset.homepageVisitLayout = 'repeat';
 }
 
-function loadHomepageHighlights(rowCount, reason = 'unknown') {
+function loadHomepageHighlights(rowCount) {
     homepageHighlightsRows = rowCount;
-    if (reason === 'fit') {
-        window.__homepageLastRenderIds = [];
-    }
     callScoped('events-root-index', function () {
         loadEventsTable(rowCount, true, null, true, {
-            preserveExistingRows: reason === 'grow',
+            preserveExistingRows: true,
             useSharedEvents: true
         });
     });
@@ -224,7 +221,7 @@ function maybeGrowHomepageHighlights() {
     const heightGap = swagHeight - highlightsContentHeight;
     const canRequestMoreRows = renderedRows >= homepageHighlightsRows && homepageHighlightsRows < homepageHighlightsMaxRows;
     if (heightGap > 28 && canRequestMoreRows) {
-        loadHomepageHighlights(homepageHighlightsRows + 1, 'grow');
+        loadHomepageHighlights(homepageHighlightsRows + 1);
         homepageHighlightsWaitAttempts = 0;
         homepageHighlightsMeasureTimer = window.setTimeout(maybeGrowHomepageHighlights, 220);
     }
@@ -234,7 +231,11 @@ function fitHomepageHighlights() {
     window.clearTimeout(homepageHighlightsMeasureTimer);
     homepageHighlightsWaitAttempts = 0;
     const initialRows = window.innerWidth > 991 ? 1 : homepageHighlightsBaseRows;
-    loadHomepageHighlights(initialRows, 'fit');
+    const rows = [...document.querySelectorAll('#events-root-index tr.main-row')];
+    const readingRows = rows.reduce((count, row, index) =>
+        row.matches('.is-open, :focus-within') || row.nextElementSibling?.matches('.details-row:focus-within')
+            ? index + 1 : count, 0);
+    loadHomepageHighlights(Math.max(initialRows, readingRows));
     homepageHighlightsMeasureTimer = window.setTimeout(maybeGrowHomepageHighlights, 220);
 }
 

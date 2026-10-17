@@ -193,6 +193,56 @@ public sealed class HighlightsEnlargedTextBrowserTests(
         Assert.Empty(errors);
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(2)]
+    public async Task HomepageHighlights_KeepAnnouncementStateAndFocusAcrossResizes(int announcementIndex)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = 390, Height = 844 },
+            ReducedMotion = ReducedMotion.Reduce,
+            HasTouch = true
+        });
+        await context.RouteAsync("**/api/events", route => route.FulfillAsync(new()
+        {
+            ContentType = "application/json",
+            Body = """
+                [
+                  {"Id":"resize-announcement-0","Type":6,"Text":"Season update\n\n[Read the rules](https://longevityworldcup.com/ruleset)","OccurredAt":"2026-10-17T07:00:00Z","Relevance":10},
+                  {"Id":"resize-announcement-1","Type":6,"Text":"Another update\n\nMore details.","OccurredAt":"2026-10-16T07:00:00Z","Relevance":10},
+                  {"Id":"resize-announcement-2","Type":6,"Text":"Earlier update\n\n[Read the rules](https://longevityworldcup.com/ruleset)","OccurredAt":"2026-10-15T07:00:00Z","Relevance":10}
+                ]
+                """
+        }));
+        var page = await context.NewPageAsync();
+        await page.Clock.InstallAsync(new() { Time = "2026-10-17T08:00:00Z" });
+        await page.Clock.PauseAtAsync("2026-10-17T08:00:01Z");
+        await NavigateAndSettleAsync(page, "/");
+        await page.Clock.RunForAsync(500);
+        var announcement = page.Locator($"tr.main-row[data-event-id='resize-announcement-{announcementIndex}']");
+        var expander = announcement.Locator(".custom-event-expander");
+        await expander.FocusAsync();
+        await page.Keyboard.PressAsync("Enter");
+        await Assertions.Expect(expander).ToHaveAttributeAsync("aria-expanded", "true");
+
+        foreach (var width in new[] { 600, 1440, 390 })
+        {
+            await page.SetViewportSizeAsync(width, 844);
+            // Advance the pending responsive layout work before checking the interaction.
+            await page.Clock.RunForAsync(600);
+            await Assertions.Expect(expander).ToHaveAttributeAsync("aria-expanded", "true");
+            await Assertions.Expect(expander).ToBeFocusedAsync();
+        }
+        var rules = announcement.Locator("+ tr.custom-event-details").GetByRole(AriaRole.Link, new() { Name = "Read the rules" });
+        await rules.FocusAsync();
+        await page.SetViewportSizeAsync(844, 390);
+        await page.Clock.RunForAsync(600);
+        await Assertions.Expect(rules).ToBeFocusedAsync();
+        await expander.TapAsync();
+        await Assertions.Expect(expander).ToHaveAttributeAsync("aria-expanded", "false");
+    }
+
     private static string WithAthletePageFields(string json)
     {
         // The homepage also renders the leaderboard; its required fields must
