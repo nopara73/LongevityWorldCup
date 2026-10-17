@@ -85,15 +85,19 @@ public sealed class PlayAthleteSearchLayoutBrowserTests(
             await input.PressAsync("ArrowDown");
             var option = options.Nth(index);
             await Assertions.Expect(option).ToHaveAttributeAsync("aria-selected", "true");
-            Assert.True(await option.EvaluateAsync<bool>("""
-                option => {
+            // Selection is synchronous; viewport/dock observers finish positioning
+            // on the next frame. Require the selected target to become reachable.
+            await page.WaitForFunctionAsync("""
+                id => {
+                    const option = document.getElementById(id);
+                    if (!option || option.getAttribute('aria-selected') !== 'true') return false;
                     const box = option.getBoundingClientRect();
                     const list = option.parentElement.getBoundingClientRect();
                     const actions = document.querySelector('.play-athlete-actions').getBoundingClientRect();
                     return box.top >= list.top - 1 && box.bottom <= Math.min(list.bottom, actions.top, innerHeight) + 1
                         && option.contains(document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2));
                 }
-                """), $"Match {index + 1} must be reachable above the actions.");
+                """, await option.GetAttributeAsync("id"));
         }
         var selectedName = await options.Last.InnerTextAsync();
         await input.PressAsync("Enter");
