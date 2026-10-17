@@ -1297,9 +1297,10 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         if (manual && focused && !userInterrupted &&
             (document.activeElement === button || document.activeElement === document.body)) {
             const key = discussionFeedOrder[firstNewIndex];
-            const next = Array.from(document.querySelectorAll<HTMLElement>("#lmxNotes article"))
+            const next = Array.from(document.querySelectorAll<HTMLElement>("#lmxNotes > article"))
                 .find(article => article.dataset.feedKey === key);
-            next?.focus({ preventScroll: true });
+            const fallback = button.hidden ? document.getElementById("lmxFeedCaughtUp") : button;
+            (next || fallback)?.focus({ preventScroll: true });
         }
     }
 

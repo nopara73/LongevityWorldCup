@@ -4829,7 +4829,8 @@ a.lmx-note-mention:focus-visible {
     box-shadow: 0 4px 10px rgba(15, 23, 42, 0.10);
 }
 
-.lmx-feed-button:focus-visible {
+.lmx-feed-button:focus-visible,
+.lmx-feed-caught-up:focus-visible {
     outline: 3px solid rgba(0, 188, 212, 0.25);
     outline-offset: 2px;
 }

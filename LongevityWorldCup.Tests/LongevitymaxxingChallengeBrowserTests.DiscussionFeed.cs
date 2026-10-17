@@ -100,12 +100,14 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await Assertions.Expect(page.Locator("#lmxFeedNew")).ToBeHiddenAsync();
     }
 
-    [Fact]
-    public async Task DiscussionFeed_LoadsBeyondTheOriginalHundredAndRetriesMalformedHistoryWithoutLosingContent()
+    [Theory]
+    [InlineData(0)]
+    [InlineData(2)]
+    public async Task DiscussionFeed_LoadsBeyondTheOriginalHundredAndRetriesMalformedHistoryWithoutLosingContent(int olderCount)
     {
         await using var context = await NewContextAsync(Browser, App, new());
         var state = LargeDiscussionFeedState(100);
-        var history = LargeDiscussionFeedState(102)["notes"]!.AsArray().Skip(100).ToArray();
+        var history = LargeDiscussionFeedState(100 + olderCount)["notes"]!.AsArray().Skip(100).ToArray();
         var requests = 0;
         JsonNode? cursor = null;
         await context.RouteAsync("**/api/longevitymaxxing/discussion/feed", async route => {
@@ -125,16 +127,20 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
             await older.ClickAsync();
             await Assertions.Expect(articles).ToHaveCountAsync(expected);
         }
-        await older.ClickAsync();
+        await older.FocusAsync();
+        await page.Keyboard.PressAsync("Enter");
         await Assertions.Expect(older).ToHaveTextAsync("Retry loading posts");
         await Assertions.Expect(articles).ToHaveCountAsync(100);
+        await Assertions.Expect(older).ToBeFocusedAsync();
         Assert.True(await articles.First.EvaluateAsync<bool>("e => e === window.firstFeedArticle"));
-        await older.ClickAsync();
-        await Assertions.Expect(articles).ToHaveCountAsync(102);
+        await page.Keyboard.PressAsync("Enter");
+        await Assertions.Expect(articles).ToHaveCountAsync(100 + olderCount);
         await Assertions.Expect(page.Locator("#lmxFeedCaughtUp")).ToBeVisibleAsync();
+        if (olderCount > 0) await Assertions.Expect(articles.Nth(100)).ToBeFocusedAsync();
+        else await Assertions.Expect(page.Locator("#lmxFeedCaughtUp")).ToBeFocusedAsync();
         Assert.Equal(2, requests);
         Assert.Equal("feed-099", (string?)cursor!["participantId"]);
-        Assert.Equal(102, (await articles.EvaluateAllAsync<string[]>("items => items.map(item => item.dataset.feedKey)")).Distinct().Count());
+        Assert.Equal(100 + olderCount, (await articles.EvaluateAllAsync<string[]>("items => items.map(item => item.dataset.feedKey)")).Distinct().Count());
         Assert.True(await articles.First.EvaluateAsync<bool>("e => e === window.firstFeedArticle"));
     }
 
