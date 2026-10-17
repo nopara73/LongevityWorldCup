@@ -52,7 +52,51 @@ public sealed class MediaKitBrowserTests(PlaywrightBrowserFixture browserFixture
             Assert.Equal(filename, download.SuggestedFilename);
             Assert.Equal(Convert.FromBase64String(KitFiles.Value[path]), await File.ReadAllBytesAsync((await download.PathAsync())!));
         }
-        await Assertions.Expect(page.Locator(".media-file-row:not(.media-file-tile) .media-file-button").First).ToHaveTextAsync("Download");
+        await Assertions.Expect(page.Locator(".media-file-doc .media-file-button").First).ToHaveTextAsync("Download");
+    }
+
+    [Theory]
+    [InlineData(1440, 900, false)]
+    [InlineData(390, 844, true)]
+    public async Task Documents_AreTilesThatLeadTheirFoldersGrid(int width, int height, bool dark)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = height },
+            ColorScheme = dark ? ColorScheme.Dark : ColorScheme.Light,
+            ReducedMotion = ReducedMotion.Reduce,
+            IsMobile = width < 600,
+            HasTouch = width < 600
+        });
+        await InstallKitFixtureAsync(context);
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/media", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await Assertions.Expect(page.Locator("#fileList .media-file-row")).ToHaveCountAsync(KitFiles.Value.Count);
+        var problems = await page.EvaluateAsync<string[]>(
+            """
+            () => {
+                const issues = [];
+                const docs = [...document.querySelectorAll('#fileList .media-file-row')].filter(row => !/\.(png|jpe?g|gif|webp|svg)$/i.test(row.querySelector('.media-file-name').textContent.trim()));
+                if (!docs.length) return ['no documents'];
+                for (const doc of docs) {
+                    const name = doc.querySelector('.media-file-name').textContent.trim();
+                    if (!doc.classList.contains('media-file-tile')) issues.push(`${name}: not a tile`);
+                    const thumb = doc.querySelector('.media-file-thumb');
+                    const icon = thumb?.querySelector('.media-file-icon');
+                    if (!thumb || !icon) { issues.push(`${name}: no file-type well`); continue; }
+                    const t = thumb.getBoundingClientRect(), i = icon.getBoundingClientRect(), b = doc.querySelector('.media-file-button').getBoundingClientRect();
+                    if (i.left < t.left || i.right > t.right || i.top < t.top || i.bottom > t.bottom || i.height < 32) issues.push(`${name}: file type is not shown in its well`);
+                    if (b.top < t.top - 1 || b.bottom > t.bottom + 1 || b.right > t.right + 1 || b.width < 44 || b.height < 44) issues.push(`${name}: download is not the round corner mark`);
+                    const grid = doc.parentElement;
+                    const firstPicture = [...grid.children].find(child => !docs.includes(child));
+                    if (firstPicture && [...grid.children].indexOf(firstPicture) < [...grid.children].indexOf(doc)) issues.push(`${name}: follows a picture`);
+                    if (!grid.classList.contains('media-kit-tiles')) issues.push(`${name}: not in the tile grid`);
+                }
+                return issues;
+            }
+            """);
+        Assert.True(problems.Length == 0, $"{width}x{height}: {string.Join("; ", problems)}");
+        Assert.True(await page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= innerWidth + 1"));
     }
 
     [Fact]
