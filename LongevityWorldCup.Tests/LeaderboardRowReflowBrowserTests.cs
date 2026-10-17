@@ -86,9 +86,11 @@ public sealed class LeaderboardRowReflowBrowserTests(
                             const athlete = row.querySelector('.athlete-td');
                             const score = row.querySelector('.age-reduction-td');
                             const nameBox = name.getBoundingClientRect();
-                            const athleteBox = athlete.getBoundingClientRect();
                             const scoreBox = score.getBoundingClientRect();
                             const rowBox = row.getBoundingClientRect();
+                            // Stacked rows dissolve the athlete cell so the name can span the row.
+                            const athleteBox = getComputedStyle(athlete).display === 'contents'
+                                ? rowBox : athlete.getBoundingClientRect();
                             if (nameBox.left < athleteBox.left - 1 || nameBox.right > athleteBox.right + 1)
                                 failures.push(`${name.textContent}: name leaves the athlete cell.`);
                             if (name.scrollWidth > name.clientWidth + 1 || score.scrollWidth > score.clientWidth + 1)
