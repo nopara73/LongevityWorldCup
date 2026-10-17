@@ -18,6 +18,7 @@ interface FlowActionDockApi {
         inlineHeight: number;
         mutationObserver: MutationObserver;
         placeholder: HTMLDivElement;
+        oversizedInlineSignature: string;
     }
 
     interface VisualViewportBounds {
@@ -238,7 +239,8 @@ interface FlowActionDockApi {
             enterFrame: 0,
             inlineHeight: 0,
             mutationObserver,
-            placeholder
+            placeholder,
+            oversizedInlineSignature: ''
         };
         states.set(element, state);
         resizeObserver?.observe(element);
@@ -315,6 +317,13 @@ interface FlowActionDockApi {
             : element.getBoundingClientRect();
     }
 
+    function getInlineSignature(element: HTMLElement): string {
+        const rect = element.getBoundingClientRect();
+        return [window.innerWidth, window.innerHeight, getVisualViewportBounds().height,
+            rect.width, rect.height, getComputedStyle(element).fontSize,
+            element.getAttribute('data-flow-dock-max-height-ratio'), element.textContent].join('|');
+    }
+
     function shouldDock(element: HTMLElement, state: DockState): boolean {
         if (!conditionMatches(element)) return false;
         // Portaled controls still belong to their source task while it loads.
@@ -322,6 +331,10 @@ interface FlowActionDockApi {
         if (document.documentElement.hasAttribute('data-initial-view') && origin.closest('.initial-view-main')) return false;
         if (state.docked ? !hasLayoutBox(state.placeholder) : !isVisible(element)) return false;
         if (isKeyboardOpen) return false;
+        // A large action set is more useful in normal flow than over most of the
+        // task. Retry its dock measurement when text, content or viewport changes.
+        if (!state.docked && state.oversizedInlineSignature
+            && state.oversizedInlineSignature === getInlineSignature(element)) return false;
 
         const mode = (element.getAttribute('data-flow-dock') || 'auto').toLowerCase();
         if (mode === 'off') return false;
@@ -363,6 +376,14 @@ interface FlowActionDockApi {
 
             updateActionLayoutState(element);
             const measuredHeight = element.getBoundingClientRect().height || element.offsetHeight;
+            const maxHeightRatio = Number(element.getAttribute('data-flow-dock-max-height-ratio'));
+            if (maxHeightRatio > 0 && maxHeightRatio <= 1
+                && measuredHeight > getVisualViewportBounds().height * maxHeightRatio) {
+                undockElement(element, state);
+                state.oversizedInlineSignature = getInlineSignature(element);
+                return;
+            }
+            state.oversizedInlineSignature = '';
             setPlaceholderHeight(state, state.inlineHeight || measuredHeight);
             dockedHeight = Math.max(dockedHeight, measuredHeight);
             hasDockedElement = true;

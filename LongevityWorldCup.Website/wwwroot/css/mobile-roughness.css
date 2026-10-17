@@ -81,7 +81,7 @@ textarea:focus-visible {
     outline-offset: 3px;
 }
 
-[hidden],
+[hidden]:not([hidden="until-found"]),
 template {
     display: none !important;
 }

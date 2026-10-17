@@ -1417,12 +1417,58 @@ public sealed class AestheticSystemBrowserTests(
         string route,
         ResponsiveContainerCondition[] conditions)
     {
+        // Previous probes save drafts on pagehide. Reset only calculator fixture
+        // drafts as the new document starts, before it chooses its initial step.
+        await page.AddInitScriptAsync("for (const storage of [localStorage, sessionStorage]) for (const key of Object.keys(storage)) if (key.startsWith('bioageDraft:')) storage.removeItem(key);");
         await NavigateAndSettleAsync(page, route);
         var rootFontSize = await page.EvaluateAsync<double>(
             "() => parseFloat(getComputedStyle(document.documentElement).fontSize)");
 
         foreach (var condition in conditions)
         {
+            if (condition.Name == "bioage-rank")
+            {
+                Assert.Equal("max", condition.Bound);
+                Assert.Equal("rem", condition.Unit);
+                Assert.Contains(condition.Value, new double[] { 18, 24 });
+                await NavigateAndSettleAsync(page, route);
+                await FlowActionDockBrowserTests.FillBioageStepOneAsync(
+                    page, DateTime.UtcNow.Date.AddDays(-9).ToString("yyyy-MM-dd"));
+                if (route == "/bortz-age") await FlowActionDockBrowserTests.FillBortzBiomarkersAsync(page);
+                else await FlowActionDockBrowserTests.FillPhenoBiomarkersAsync(page);
+                await page.Locator(".bioage-calculate-button").ClickAsync();
+                await page.Locator(".bioage-rank-summary").WaitForAsync();
+                var rankThreshold = condition.Value * rootFontSize;
+                foreach (var delta in new[] { -1, 0, 1, 0, -1 })
+                {
+                    var inlineSize = rankThreshold + delta;
+                    var diagnostics = await page.EvaluateAsync<ContainerQueryDiagnostics>(
+                        """
+                        async argument => {
+                            const rank = document.querySelector('[data-bioage-result-rank]');
+                            rank.style.boxSizing = 'content-box';
+                            rank.style.inlineSize = `${argument.InlineSize}px`;
+                            rank.style.maxInlineSize = 'none';
+                            await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                            const summary = getComputedStyle(rank.querySelector('.bioage-rank-summary'));
+                            const name = getComputedStyle(rank.querySelector('.bioage-rank-row-name'));
+                            return {
+                                ContainerWidth: parseFloat(getComputedStyle(rank).width),
+                                IsCompact: argument.Boundary === 24
+                                    ? summary.gridTemplateColumns.split(' ').length === 1
+                                    : name.gridColumnStart === '1' && name.gridColumnEnd === '-1',
+                                HorizontalOverflow: Math.max(0, rank.scrollWidth - rank.clientWidth)
+                            };
+                        }
+                        """, new { InlineSize = inlineSize, Boundary = condition.Value });
+                    Assert.Equal(inlineSize, diagnostics.ContainerWidth, 1);
+                    Assert.Equal(inlineSize <= rankThreshold, diagnostics.IsCompact);
+                    Assert.True(diagnostics.HorizontalOverflow <= 1,
+                        $"{route} rank preview overflowed at {inlineSize}px.");
+                }
+                continue;
+            }
+
             if (condition.Name == "bioage-entry")
             {
                 Assert.Equal("max", condition.Bound);
@@ -1528,7 +1574,7 @@ public sealed class AestheticSystemBrowserTests(
                     var inlineSize = thresholdPixels + delta;
                     var diagnostics = await page.EvaluateAsync<ContainerQueryDiagnostics>(
                         """
-                        async width => {
+                        async argument => {
                             let entry = document.getElementById('responsive-checkin-probe');
                             if (!entry) {
                                 entry = document.createElement('div');
@@ -1541,16 +1587,18 @@ public sealed class AestheticSystemBrowserTests(
                                     </div></div>`;
                                 document.querySelector('main').append(entry);
                             }
-                            entry.style.inlineSize = `${width}px`;
+                            entry.style.inlineSize = `${argument.InlineSize}px`;
                             await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
                             const question = entry.querySelector('.lmx-question');
                             return {
                                 ContainerWidth: parseFloat(getComputedStyle(entry).width),
-                                IsCompact: getComputedStyle(question).gridTemplateColumns.split(' ').length === 1,
+                                IsCompact: argument.Boundary === 28
+                                    ? getComputedStyle(question).gridTemplateColumns.split(' ').length === 2
+                                    : getComputedStyle(question).gridTemplateAreas.startsWith('"label label"'),
                                 HorizontalOverflow: Math.max(0, entry.scrollWidth - entry.clientWidth)
                             };
                         }
-                        """, inlineSize);
+                        """, new { InlineSize = inlineSize, Boundary = condition.Value });
                     Assert.Equal(inlineSize, diagnostics.ContainerWidth, 1);
                     Assert.Equal(inlineSize <= thresholdPixels, diagnostics.IsCompact);
                     Assert.True(diagnostics.HorizontalOverflow <= 1);
@@ -1844,6 +1892,10 @@ public sealed class AestheticSystemBrowserTests(
     internal static async Task NavigateAndSettleAsync(IPage page, string path)
     {
         await page.GotoAsync(path, new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        // DOMContentLoaded does not wait for a stylesheet that follows the page's scripts.
+        // Measure the rendered design only after those styles and their fonts have loaded.
+        await page.WaitForFunctionAsync(
+            "() => [...document.querySelectorAll('link[rel=stylesheet]')].every(link => link.sheet !== null)");
         await page.WaitForFunctionAsync("() => !document.documentElement.hasAttribute('data-initial-view')");
         await page.EvaluateAsync("() => document.fonts?.ready || Promise.resolve()");
     }

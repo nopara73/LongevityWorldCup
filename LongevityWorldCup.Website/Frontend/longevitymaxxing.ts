@@ -935,6 +935,17 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const editTimeZone = requiredSelect("lmxEditTimeZone");
         const inactiveToggle = optionalElement("lmxInactiveToggle", HTMLButtonElement);
         wireEmailValidityReset(signupEmailInput);
+        // The completion rail is silent and uses the same normalization as submission.
+        // These text inputs deliberately accept copied email formats before validation.
+        const refreshSignupCompletion = () => {
+            const email = normalizeEmailValue(signupEmailInput.value);
+            signupEmailInput.dataset.complete = String(!!email && isEmailAddress(email));
+            const name = requiredInput("lmxSignupName");
+            name.dataset.complete = String(!!name.value.trim());
+        };
+        signupForm.addEventListener("input", refreshSignupCompletion);
+        signupForm.addEventListener("reset", () => queueMicrotask(refreshSignupCompletion));
+        refreshSignupCompletion();
         wireSignInForm();
 
         signupForm.addEventListener("submit", async event => {
@@ -2124,6 +2135,19 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
 
     function renderBoard(state: PublicState): void {
         const board = requiredElement("lmxBoard", HTMLElement);
+        const leaderboardRows = splitLeaderboardRows(state);
+        const boardWrap = board.closest(".lmx-board-wrap");
+        const wasEmpty = boardWrap?.classList.contains("lmx-board-wrap--empty") ?? false;
+        const isEmpty = leaderboardRows.visible.length === 0;
+        // Apply the same empty layout to both the signup roster and scored board.
+        boardWrap?.classList.toggle("lmx-board-wrap--empty", isEmpty);
+        if (wasEmpty && !isEmpty) {
+            // Collapsing the board clamps scrollLeft to zero, losing any prior
+            // manual position. Restored history should open at the latest day.
+            const scroller = board.closest(".lmx-board-scroll");
+            if (scroller) autoScrollPositions.delete(scroller);
+            scrollBoardToLatestDay();
+        }
         const dayWindow = leaderboardDayWindow(state);
         updateLeaderboardPager(dayWindow);
         if (isPreStartSignup(state)) {
@@ -2138,7 +2162,6 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         setBoardDayColumns(board, dayCount, false);
         updateInactiveToggle(state);
         const dayHeaders = visibleDays.map(day => `<div class="lmx-cell${reportingDayClasses(day.challengeDay, state)}" title="${escAttr(`Day ${day.challengeDay}${reportingDayTitle(day.challengeDay, state)}`)}">${day.challengeDay}</div>`).join("");
-        const leaderboardRows = splitLeaderboardRows(state);
         const rows = leaderboardRows.visible.map((row, index) => {
             const name = row.athleteUrl
                 ? `<a href="${escAttr(row.athleteUrl)}">${esc(row.displayName)}</a>`
@@ -2669,6 +2692,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             <h3><span data-check-in-day-label>${esc(checkInDayLabel(day))}</span> <span class="lmx-phase">${esc(formatCheckInDate(day.date))}</span></h3>
             ${practice ? `<div class="lmx-practice-note"><strong>Practice check-in.</strong><span>Counts for checked-in days and streak, not points.</span></div>` : ""}
             <div class="lmx-checkin-entry">
+            <div class="lmx-checkin-fields">
             ${questions}
             <div class="lmx-field lmx-mention-field">
                 <div class="lmx-checkin-note-head">
@@ -2690,6 +2714,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 ${savedImageHtml}
                 <div class="lmx-note-photo-grid pending" data-photo-previews></div>
                 <div class="lmx-photo-feedback" data-photo-feedback role="status" aria-live="polite"></div>
+            </div>
             </div>
             <div class="lmx-checkin-actions">
                 <div class="lmx-checkin-save-row">
@@ -4911,12 +4936,14 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             checkInResetUndo.delete(key);
             checkInSubmissions.delete(key);
             const stillOnSubmittedDay = selectedCheckInDay === payload.challengeDay;
+            // Rendering can automatically switch to Home after the last due check-in.
+            const stillViewingSubmittedDay = stillOnSubmittedDay && participantActiveTab === "checkin";
             acceptParticipantState(result);
             const nextMissing = getPendingCheckInDays(result)
                 .sort((a, b) => a.challengeDay - b.challengeDay)[0];
             if (stillOnSubmittedDay) selectedCheckInDay = nextMissing ? nextMissing.challengeDay : payload.challengeDay;
             renderAll();
-            if (quoteBucket && stillOnSubmittedDay && participantActiveTab === "checkin") void showRandomCheckInQuote(quoteBucket);
+            if (quoteBucket && stillViewingSubmittedDay) void showRandomCheckInQuote(quoteBucket);
         } catch (err) {
             if (accessToken === currentAccessToken) checkInErrors.set(key, messageOf(err));
         } finally {
@@ -7385,6 +7412,12 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         input.setAttribute("aria-haspopup", "listbox");
         input.setAttribute("aria-controls", listId);
         let currentFocus = -1;
+        let pointerGesture = false;
+        const finishPointerGesture = () => { pointerGesture = false; };
+        document.addEventListener("pointerdown", () => { pointerGesture = true; }, true);
+        document.addEventListener("pointercancel", finishPointerGesture, true);
+        document.addEventListener("keydown", finishPointerGesture, true);
+        window.addEventListener("blur", finishPointerGesture);
         const selected = document.getElementById(`${input.id}Selected`);
         const clearButton = document.getElementById(`${input.id}Clear`);
         const selector: AthleteSelectorController = {
@@ -7471,7 +7504,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             if (!input.dataset.athleteSlug) renderSuggestions(true);
         });
         container?.addEventListener("focusout", event => {
-            if (event.relatedTarget instanceof Node && !container.contains(event.relatedTarget)) closeList();
+            // Closing this in-flow list on pointer blur moves the next control before its click lands.
+            if (!pointerGesture && event.relatedTarget instanceof Node && !container.contains(event.relatedTarget)) closeList();
         });
 
         container?.addEventListener("keydown", event => {
@@ -7507,8 +7541,10 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         });
 
         document.addEventListener("click", event => {
+            // Touch compatibility clicks can follow pointerup in a later frame; their target is fixed here.
+            finishPointerGesture();
             if (!container || !event.composedPath().includes(container)) closeList();
-        });
+        }, true);
 
         clearButton?.addEventListener("click", () => {
             selector.clear();
