@@ -939,7 +939,7 @@ button:hover {
         white-space: normal;
     }
 
-    #events-root-index .events-board td.event-message .event-message-cell .name-and-rank,
+    #events-root-index .events-board td.event-message .event-message-cell .placement-link,
     #events-root-index .events-board td.event-message .event-message-cell .rank-badge,
     #events-root-index .events-board td.event-message .event-message-cell .badge-class,
     #events-root-index .events-board td.event-message .event-message-cell .badge-chip,
@@ -1934,17 +1934,6 @@ main > .main-container .leaderboard {
     .archive-mobile-card-winner-name a {
         color: var(--lwc-ink, #17212b);
         font-weight: 700;
-    }
-
-    /* Highlights: names and words wrap whole; a rank like "(#75)" stays in one piece. */
-    #events-root-index .events-board td.event-message .event-message-cell,
-    #events-root-index .events-board td.event-message .event-message-cell a {
-        overflow-wrap: break-word;
-        word-break: normal;
-    }
-
-    #events-root-index .events-board td.event-message .event-message-cell a.placement-link {
-        white-space: nowrap;
     }
 }
 

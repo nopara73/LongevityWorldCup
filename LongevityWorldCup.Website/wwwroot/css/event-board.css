@@ -281,7 +281,7 @@
 .events-board.athlete-scroll tbody tr.custom-event-details{display:none}
 .events-board.athlete-scroll tbody tr.custom-event-row.is-open + tr.custom-event-details{display:table}
 
-.header-bar{display:flex;align-items:center;justify-content:space-between;gap:1rem}
+.header-bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:1rem}
 .header-bar span{line-height:1.15}
 .view-all{
     display:inline-flex;
@@ -443,20 +443,22 @@
     overflow:visible;
     white-space:normal;
     row-gap:.15rem;
+    overflow-wrap:break-word;
+    word-break:normal;
 }
 .events-board td.event-message .event-message-cell *{
     white-space:normal;
 }
 
-.event-message a{color:var(--primary-color);text-decoration:underline;cursor:pointer;overflow-wrap:anywhere;word-break:break-word}
-.events-board td.event-message .event-message-cell a{overflow-wrap:anywhere;word-break:break-word}
+.event-message a{color:var(--primary-color);text-decoration:underline;cursor:pointer;overflow-wrap:break-word;word-break:normal}
+.events-board td.event-message .event-message-cell a{overflow-wrap:break-word;word-break:normal}
 .event-message a:hover,
 .event-message a:focus{color:var(--secondary-color,#087685);text-decoration-color:var(--secondary-color,#087685)}
 .event-message .athlete-name-text{color:var(--primary-color);text-decoration:none;cursor:default}
 .event-message .event-inline-text{min-width:0;white-space:normal}
-.events-board .event-measurement,
-.events-board .event-measurement *{white-space:nowrap!important}
-.name-and-rank{display:inline;vertical-align:baseline;white-space:normal;overflow-wrap:anywhere}
+.events-board .event-measurement{white-space:normal!important}
+.events-board .event-measurement strong{white-space:nowrap!important}
+.name-and-rank{display:inline;vertical-align:baseline;white-space:normal;overflow-wrap:break-word;min-width:0;max-width:100%}
 .name-and-rank .rank-badge{padding-left:.15rem}
 .event-message .rank-badge{display:inline-flex;align-items:baseline;gap:.15rem;white-space:nowrap}
 .event-message .rank-icon{margin-left:.2rem}
@@ -862,16 +864,6 @@
         line-height:1.5;
     }
 
-    /* Names and words wrap whole; a rank like "(#224)" never loses its bracket to the next line. */
-    .events-board:not(.athlete-scroll) td.event-message .event-message-cell,
-    .events-board:not(.athlete-scroll) td.event-message .event-message-cell a{
-        overflow-wrap:break-word;
-        word-break:normal;
-    }
-    .events-board:not(.athlete-scroll) td.event-message .event-message-cell a.placement-link{
-        white-space:nowrap;
-    }
-
     /* Mobile athlete profile: avoid per-row horizontal scrolling/overlap in highlights. */
     .events-board.athlete-scroll td.event-message .event-message-cell{
         white-space:normal;
@@ -893,6 +885,11 @@
     .events-board.athlete-scroll td.event-message .event-message-cell .donation-amount{
         white-space:nowrap;
     }
+}
+
+/* Ranks are atomic in every layout, including non-link labels in embeds. */
+.events-board td.event-message .event-message-cell .placement-link{
+    white-space:nowrap;
 }
 
 @media (max-width:360px){
