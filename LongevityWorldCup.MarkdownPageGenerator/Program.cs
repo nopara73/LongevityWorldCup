@@ -1128,7 +1128,8 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
 
             const getOffset = () => {
                 const stickyHeader = document.getElementById("site-sticky-header");
-                return ((stickyHeader && stickyHeader.offsetHeight) || 52) + 18;
+                const measuredHeight = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--site-sticky-height"));
+                return ((stickyHeader && stickyHeader.offsetHeight) || measuredHeight || 52) + 18;
             };
 
             let activeLink = null;
