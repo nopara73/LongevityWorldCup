@@ -27,6 +27,9 @@ public sealed class LongevitymaxxingLifeStripBrowserTests(
     [InlineData(768, 1024)]
     [InlineData(844, 390)]
     [InlineData(1024, 768)]
+    [InlineData(1080, 900)]
+    [InlineData(1081, 900)]
+    [InlineData(1200, 900)]
     [InlineData(1440, 900)]
     public async Task LifeStrip_ContainsTextAndIconsThroughTextResizing(int width, int height)
     {
@@ -44,7 +47,7 @@ public sealed class LongevitymaxxingLifeStripBrowserTests(
         var normal = await MeasureAsync(page);
         AssertLayout(normal, $"{width}x{height}, normal text");
         if (width is 320 or 390) Assert.Equal(2, normal.Columns);
-        if (width is 768 or 1440) Assert.Equal(4, normal.Columns);
+        if (width is 768 or 1080 or 1081 or 1200 or 1440) Assert.Equal(4, normal.Columns);
 
         foreach (var percent in new[] { 125, 150, 175, 200 })
         {
