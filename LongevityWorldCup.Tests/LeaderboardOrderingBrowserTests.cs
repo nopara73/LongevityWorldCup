@@ -162,6 +162,117 @@ public sealed class LeaderboardOrderingBrowserTests(PlaywrightBrowserFixture bro
     }
 
     [Theory]
+    [InlineData(1280, false)]
+    [InlineData(390, true)]
+    public async Task OutsideDismissal_DoesNotActivateTheAthleteOrHeaderUnderneath(int width, bool touch)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = 900 }, HasTouch = touch, IsMobile = touch,
+            ReducedMotion = ReducedMotion.Reduce
+        });
+        var page = await context.NewPageAsync();
+        await page.GotoAsync(Ordered);
+        await Loaded(page);
+        var original = await Snapshot(page);
+        var toggle = page.Locator("#leaderboardOrderToggle");
+        var panel = page.Locator("#leaderboardOrderPanel");
+        await toggle.ClickAsync();
+        var athlete = Rows(page).Nth(3).Locator(".athlete-name");
+        if (touch) await athlete.TapAsync();
+        else await athlete.ClickAsync();
+        await Assertions.Expect(panel).ToBeHiddenAsync();
+        await Assertions.Expect(page.Locator("#detailsModal")).ToBeHiddenAsync();
+        await Assertions.Expect(toggle).ToBeFocusedAsync();
+        Assert.Equal(original, await Snapshot(page));
+        Assert.DoesNotContain("/athlete/", page.Url);
+
+        // On phones the anchored panel covers this header, so test the header's
+        // outside activation only where it is physically exposed.
+        if (!touch)
+        {
+            await toggle.ClickAsync();
+            await page.Locator("th[data-order-key=rank] button").ClickAsync();
+            await Assertions.Expect(panel).ToBeHiddenAsync();
+            Assert.Contains("sort=pheno", page.Url);
+            Assert.Equal(original, await Snapshot(page));
+        }
+
+        // Once dismissed, the next deliberate action works normally.
+        await athlete.ClickAsync();
+        await Assertions.Expect(page.Locator("#detailsModal")).ToBeVisibleAsync();
+    }
+
+    [Theory]
+    [InlineData(1280)]
+    [InlineData(390)]
+    public async Task OrderingChanges_PreserveResultContentAndSidebarWithoutReplayingRowReveals(int width)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = 900 }
+        });
+        var page = await context.NewPageAsync();
+        await page.GotoAsync(Ordered);
+        await Loaded(page);
+        await page.EvaluateAsync("async()=>{await document.fonts.ready;await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));}");
+        await page.EvaluateAsync("""
+            () => {
+                const rows = [...document.querySelectorAll('.leaderboard tbody tr[data-athlete-name]')];
+                window.orderingRetained = rows.map(row => ({row,
+                    name: row.querySelector('.athlete-name').firstChild,
+                    rank: row.querySelector('.rank').firstChild}));
+                window.orderingExtraWork = [];
+                const observe = new MutationObserver(records => {
+                    for (const record of records) {
+                        if (record.type === 'attributes' && record.target.matches('tr[data-athlete-name]')
+                            && (record.attributeName === 'style' || record.target.classList.contains('fade-in')
+                                || (record.oldValue || '').split(/\s+/).includes('fade-in')))
+                            window.orderingExtraWork.push(`row ${record.attributeName}`);
+                        if (record.type === 'childList' && record.target.closest('.filter-count'))
+                            window.orderingExtraWork.push('sidebar count rebuilt');
+                    }
+                });
+                observe.observe(document.querySelector('#athleteDialogRuntime'),
+                    {subtree:true, childList:true, attributes:true, attributeOldValue:true, attributeFilter:['style','class']});
+            }
+            """);
+        var before = await Snapshot(page);
+        await page.Locator("th[data-order-key=pheno] button").ClickAsync();
+        Assert.NotEqual(before, await Snapshot(page));
+        await page.Locator("#leaderboardOrderToggle").ClickAsync();
+        await page.Locator("#leaderboardOrderSwap").ClickAsync();
+        await page.Locator("#leaderboardOrderSecondaryClear").ClickAsync();
+        await page.Locator("#leaderboardOrderPrimaryClear").ClickAsync();
+        await Assertions.Expect(Rows(page).First.Locator(".rank")).ToHaveTextAsync("1");
+        Assert.True(await page.EvaluateAsync<bool>("orderingRetained.every(x=>x.row.isConnected && x.row.querySelector('.athlete-name').firstChild===x.name && x.row.querySelector('.rank').firstChild===x.rank)"));
+        Assert.Empty(await page.EvaluateAsync<string[]>("orderingExtraWork"));
+        await Assertions.Expect(page.Locator("tr.fade-in")).ToHaveCountAsync(0);
+    }
+
+    [Fact]
+    public async Task OrderingChanges_UseAPendingSearchAndKeepEmptyResultsConsistent()
+    {
+        await using var context = await NewContextAsync(Browser, App, new());
+        var page = await context.NewPageAsync();
+        await page.GotoAsync(Ordered);
+        await Loaded(page);
+        var targetName = await Rows(page).Filter(new() { HasText = "Michael Lustgarten" }).Locator(".athlete-name").InnerTextAsync();
+        await page.Locator("#athleteSearch").FillAsync(targetName);
+        await page.Locator("#leaderboardOrderReset").ClickAsync();
+        await Assertions.Expect(Rows(page)).ToHaveCountAsync(1);
+        await Assertions.Expect(Rows(page).First.Locator(".athlete-name")).ToHaveTextAsync(targetName);
+        await page.Locator("#athleteSearch").FillAsync("no-matching-athlete-982164");
+        await Assertions.Expect(Rows(page)).ToHaveCountAsync(0);
+        await page.Locator("#leaderboardOrderToggle").ClickAsync();
+        await page.Locator("#leaderboardOrderPrimary").SelectOptionAsync("age");
+        await Assertions.Expect(page.Locator(".leaderboard .no-results")).ToHaveCountAsync(1);
+        await page.Locator("#leaderboardOrderDirection").ClickAsync();
+        await Assertions.Expect(page.Locator(".leaderboard .no-results")).ToHaveCountAsync(1);
+        await Assertions.Expect(Rows(page)).ToHaveCountAsync(0);
+    }
+
+    [Theory]
     [InlineData(1280)]
     [InlineData(390)]
     [InlineData(320)]

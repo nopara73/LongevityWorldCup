@@ -31,6 +31,7 @@
     }
     let current = readUrl();
     let onChange = () => {};
+    let panelPositionFrame = 0;
     function writeUrl(url, state = current) {
         for (const key of [...url.searchParams.keys()]) if (['sort', 'dir', 'then', 'thendir'].includes(key.toLowerCase())) url.searchParams.delete(key);
         if (state.sort !== 'rank') {
@@ -104,20 +105,24 @@
         const key = header.dataset.orderKey;
         const level = state.sort !== 'rank' && state.sort === key ? 1 : state.then === key ? 2 : 0;
         const dir = level === 2 ? state.thenDirection : state.direction;
-        header.removeAttribute('aria-sort');
-        header.dataset.orderLevel = level || '';
-        header.dataset.orderDirection = level ? dir : '';
-        if (level === 1) header.setAttribute('aria-sort', dir === 'asc' ? 'ascending' : 'descending');
-        header.querySelector('.order-indicator').innerHTML = level ? '<svg viewBox="0 0 20 20"><path d="M10 4v12m-4-4 4 4 4-4" /></svg>' : '';
+        if (header.dataset.orderLevel !== String(level || '')) header.dataset.orderLevel = level || '';
+        if (header.dataset.orderDirection !== (level ? dir : '')) header.dataset.orderDirection = level ? dir : '';
+        const ariaSort = level === 1 ? (dir === 'asc' ? 'ascending' : 'descending') : null;
+        if (ariaSort && header.getAttribute('aria-sort') !== ariaSort) header.setAttribute('aria-sort', ariaSort);
+        else if (!ariaSort && header.hasAttribute('aria-sort')) header.removeAttribute('aria-sort');
+        const indicator = header.querySelector('.order-indicator');
+        if (!!level !== indicator.hasChildNodes()) indicator.innerHTML = level ? '<svg viewBox="0 0 20 20"><path d="M10 4v12m-4-4 4 4 4-4" /></svg>' : '';
         const label = labelFor(key, metricLabel);
-        header.querySelector('button').setAttribute('aria-label', key === 'rank' ? 'Restore official ranking' : level
-            ? `${label}, ${level === 1 ? 'order by' : 'then by'}, ${dir === 'asc' ? 'ascending' : 'descending'}; reverse order` : `Order by ${label}`);
+        const description = key === 'rank' ? 'Restore official ranking' : level
+            ? `${label}, ${level === 1 ? 'order by' : 'then by'}, ${dir === 'asc' ? 'ascending' : 'descending'}; reverse order` : `Order by ${label}`;
+        const button = header.querySelector('button');
+        if (button.getAttribute('aria-label') !== description) button.setAttribute('aria-label', description);
     }
     function close(restoreFocus = false) {
         if (!panel || panel.hidden) return;
         panel.hidden = true;
         toggle.setAttribute('aria-expanded', 'false');
-        if (restoreFocus) toggle.focus();
+        if (restoreFocus) toggle.focus({ preventScroll: true });
     }
     function positionPanel() {
         if (!panel || panel.hidden) return;
@@ -136,6 +141,13 @@
         const verticalShift = parseFloat(panel.style.getPropertyValue('--order-panel-shift-y')) || 0;
         if (verticalCorrection) panel.style.setProperty('--order-panel-shift-y', `${verticalShift + verticalCorrection}px`);
     }
+    function schedulePanelPosition() {
+        if (panelPositionFrame || !panel || panel.hidden) return;
+        panelPositionFrame = requestAnimationFrame(() => {
+            panelPositionFrame = 0;
+            positionPanel();
+        });
+    }
     function sync(state = current, byFlag = false, metricLabel = 'Age reduction') {
         if (!toggle || !fields.size) return;
         current = normalize(state);
@@ -146,33 +158,36 @@
         toggle.classList.toggle('is-active', active);
         reset.hidden = !active;
         reset.disabled = false;
-        primary.value = current.sort;
-        secondary.value = current.then || '';
+        if (primary.value !== current.sort) primary.value = current.sort;
+        if (secondary.value !== (current.then || '')) secondary.value = current.then || '';
         secondary.disabled = !active;
         swap.disabled = !active || !current.then;
         primaryClear.disabled = !active;
         secondaryClear.disabled = !active || !current.then;
         for (const [select, other] of [[primary, null], [secondary, current.sort]]) {
-            for (const option of select.options) { option.disabled = !!other && option.value === other; option.hidden = false; }
+            for (const option of select.options) {
+                const disabled = !!other && option.value === other;
+                if (option.disabled !== disabled) option.disabled = disabled;
+            }
             const metric = select.querySelector('option[value="metric"]');
-            if (metric) metric.textContent = metricLabel;
+            if (metric && metric.textContent !== metricLabel) metric.textContent = metricLabel;
         }
         for (const [button, key, dir, enabled] of [[primaryDirection, current.sort, current.direction, active], [secondaryDirection, current.then, current.thenDirection, active && !!current.then]]) {
             button.disabled = !enabled;
-            button.dataset.direction = dir;
+            if (button.dataset.direction !== dir) button.dataset.direction = dir;
             const field = fields.get(key);
             const ascending = field?.kind === 'text' ? 'A to Z' : field?.kind === 'date' ? 'oldest first' : 'lowest first';
             const descending = field?.kind === 'text' ? 'Z to A' : field?.kind === 'date' ? 'newest first' : 'highest first';
             const description = enabled ? `${labelFor(key, metricLabel)}: ${dir === 'asc' ? ascending : descending}; switch to ${dir === 'asc' ? descending : ascending}`
                 : key === 'rank' ? 'Official ranking' : 'Select a secondary field to set its direction';
-            button.setAttribute('aria-label', description);
-            button.title = description;
+            if (button.getAttribute('aria-label') !== description) button.setAttribute('aria-label', description);
+            if (button.title !== description) button.title = description;
         }
         const leaderboard = document.querySelector('.leaderboard');
         leaderboard?.classList.toggle('leaderboard--ordered', active);
         const display = byFlag ? defaults() : current;
         const selectedColumns = columns(display);
-        if (leaderboard) leaderboard.dataset.orderColumns = selectedColumns.length;
+        if (leaderboard && leaderboard.dataset.orderColumns !== String(selectedColumns.length)) leaderboard.dataset.orderColumns = selectedColumns.length;
         const keys = selectedColumns.map(field => field.key);
         document.querySelectorAll('th.leaderboard-order-column, td.leaderboard-order-value').forEach(cell => { if (!keys.includes(cell.dataset.orderKey)) cell.remove(); });
         const metricHeader = document.querySelector('th[data-order-key="metric"]');
@@ -194,18 +209,22 @@
             previous = header;
         }
         document.querySelectorAll('th[data-order-key]').forEach(header => decorateHeader(header, display, metricLabel));
-        positionPanel();
+        // Measure after the table's writes, never halfway through a reorder.
+        schedulePanelPosition();
     }
-    function renderValues(entries, state = current) {
+    function renderValues(entries, state = current, rowsByName) {
         const selected = columns(state);
+        if (!selected.length) return;
+        rowsByName ||= new Map(Array.from(document.querySelectorAll('.leaderboard tbody tr[data-athlete-name]'), row => [row.dataset.athleteName, row]));
         for (const entry of entries) {
-            const row = document.querySelector(`.leaderboard tbody tr[data-athlete-name="${CSS.escape(entry.athlete.name)}"]`);
+            const row = rowsByName.get(entry.athlete.name);
             if (!row) continue;
             let previous = row.querySelector('.age-reduction-td');
             for (const field of selected) {
                 let cell = row.querySelector(`td[data-order-key="${field.key}"]`);
                 if (!cell) { cell = document.createElement('td'); cell.className = 'leaderboard-order-value'; cell.dataset.orderKey = field.key; }
-                cell.dataset.label = field.label + (field.unit ? ` (${field.unit})` : '');
+                const label = field.label + (field.unit ? ` (${field.unit})` : '');
+                if (cell.dataset.label !== label) cell.dataset.label = label;
                 const item = rawValue(entry, field.key);
                 const value = unwrap(item);
                 const text = missing(value) ? '—' : typeof value === 'number' ? value.toFixed(field.decimals) : String(value);
@@ -214,7 +233,10 @@
                     if (missing(value)) { const dash = document.createElement('span'); dash.className = 'order-missing'; dash.setAttribute('role', 'img'); dash.setAttribute('aria-label', 'Not available'); dash.textContent = '—'; cell.append(dash); }
                     else cell.textContent = text;
                 }
-                if (item?.date) { cell.title = `${field.label}: ${text} ${field.unit}. Tested ${item.date}`; cell.setAttribute('aria-label', cell.title); }
+                if (item?.date) {
+                    const title = `${field.label}: ${text} ${field.unit}. Tested ${item.date}`;
+                    if (cell.title !== title) { cell.title = title; cell.setAttribute('aria-label', title); }
+                }
                 else { cell.removeAttribute('title'); cell.removeAttribute('aria-label'); }
                 if (previous?.nextElementSibling !== cell) previous?.after(cell);
                 previous = cell;
@@ -256,12 +278,12 @@
             }
         });
         reset.addEventListener('click', () => {
+            toggle.focus({ preventScroll: true });
             commit(defaults());
             close();
-            toggle.focus({ preventScroll: true });
         });
-        new ResizeObserver(positionPanel).observe(panel);
-        window.addEventListener('resize', positionPanel);
+        new ResizeObserver(schedulePanelPosition).observe(panel);
+        window.addEventListener('resize', schedulePanelPosition);
         primary.addEventListener('change', () => commit({ ...current, sort: primary.value, direction: fields.get(primary.value)?.direction }));
         secondary.addEventListener('change', () => commit({ ...current, then: secondary.value, thenDirection: fields.get(secondary.value)?.direction }));
         primaryDirection.addEventListener('click', () => commit({ ...current, direction: current.direction === 'asc' ? 'desc' : 'asc' }));
@@ -270,12 +292,12 @@
             commit({ sort: current.then, direction: current.thenDirection, then: current.sort, thenDirection: current.direction });
         });
         primaryClear.addEventListener('click', () => {
-            commit(defaults());
             primary.focus({ preventScroll: true });
+            commit(defaults());
         });
         secondaryClear.addEventListener('click', () => {
-            commit({ ...current, then: null });
             secondary.focus({ preventScroll: true });
+            commit({ ...current, then: null });
         });
         document.addEventListener('click', event => {
             const header = event.target.closest('.leaderboard-column-order')?.closest('th[data-order-key]');
@@ -286,7 +308,31 @@
             else if (key === current.then) commit({ ...current, thenDirection: current.thenDirection === 'asc' ? 'desc' : 'asc' });
             else commit({ ...current, sort: key, direction: fields.get(key)?.direction });
         });
-        document.addEventListener('pointerdown', event => { if (!toggle.parentElement.contains(event.target)) close(); });
+        // Dismissing the picker must not activate a profile, header or link underneath.
+        // Intercept pointerdown before focusout can close it, and consume that gesture's
+        // click as well. A drag/scroll has no click and remains ordinary page scrolling.
+        let dismissPointer = null;
+        document.addEventListener('pointerdown', event => {
+            dismissPointer = null;
+            if (panel.hidden || toggle.parentElement.contains(event.target)) return;
+            dismissPointer = event.pointerId;
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            close(true);
+        }, true);
+        document.addEventListener('click', event => {
+            if (dismissPointer !== null && (event.pointerId === undefined || event.pointerId === dismissPointer)) {
+                dismissPointer = null;
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                return;
+            }
+            if (panel.hidden || toggle.parentElement.contains(event.target)) return;
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            close(true);
+        }, true);
+        document.addEventListener('pointercancel', () => { dismissPointer = null; }, true);
         document.addEventListener('keydown', event => { if (event.key === 'Escape' && !panel.hidden) { event.preventDefault(); event.stopImmediatePropagation(); close(true); } }, true);
         toggle.parentElement.addEventListener('focusout', event => {
             // Native select menus can temporarily leave activeElement at body.

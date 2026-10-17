@@ -35,6 +35,7 @@ const document = new Proxy(pageDocument, {
 });
 
 let athleteResults = [];
+let leaderboardOrderingSnapshot = null;
 let athletesOrderedByPace;
 let athletesOrderedByBortzPace;
 const isAthleteDialogOnlyRuntime = athleteDialogRuntime.dataset.athleteDialogOnly === 'true';
@@ -3458,8 +3459,8 @@ function getViewAllAthletesButton() {
     return pageDocument.getElementById('viewAllAthletesBtn');
 }
 
-function updateViewAllAthletesButton(count) {
-    updateLeaderboardSelectionSummary(count);
+function updateViewAllAthletesButton(count, updateSummary = true) {
+    if (updateSummary) updateLeaderboardSelectionSummary(count);
     const button = getViewAllAthletesButton();
     if (!button) return;
 
@@ -3836,9 +3837,13 @@ function renderFlagTeams(teams, view) {
     });
 }
 
-function performFilter({ updateUrl = true } = {}) {
+function performFilter({ updateUrl = true, orderingOnly = false } = {}) {
     const selectedState = getSelectedLeaderboardState();
-    syncFlagFilters(selectedState.byFlag);
+    const query = window.normalizeString(document.getElementById('athleteSearch').value.trim().toLowerCase());
+    const filterKey = JSON.stringify({ ...selectedState, ordering: undefined, search: document.getElementById('athleteSearch').value });
+    const orderingSnapshot = orderingOnly && !selectedState.byFlag && leaderboardOrderingSnapshot?.athletes === athleteResults
+        && leaderboardOrderingSnapshot.key === filterKey ? leaderboardOrderingSnapshot : null;
+    if (!orderingSnapshot) syncFlagFilters(selectedState.byFlag);
     const selectedDivisions = selectedState.divisions.map(value => value.toLowerCase());
     const selectedFlags = selectedState.flags.map(getFlagFilterKey);
     const selectedGenerations = selectedState.generations.map(value => value.toLowerCase());
@@ -3856,9 +3861,11 @@ function performFilter({ updateUrl = true } = {}) {
     searchInput.placeholder = selectedState.byFlag ? 'Search flags or athletes' : 'Search athletes';
     searchInput.setAttribute('aria-label', searchInput.placeholder);
     document.querySelector('label[for="athleteSearch"]').textContent = searchInput.placeholder;
-    syncAgingClockFilters(currentLeaderboardView);
-    updateActiveFilterSections();
-    updateRankingExplanation(currentLeaderboardView, selectedState.byFlag);
+    if (!orderingSnapshot) {
+        syncAgingClockFilters(currentLeaderboardView);
+        updateActiveFilterSections();
+        updateRankingExplanation(currentLeaderboardView, selectedState.byFlag);
+    }
 
     const hasBortz = (a) => a.bortzAgeReduction != null && Number.isFinite(a.bortzAgeReduction);
     const hasCrowdAge = (a) => a.crowdCount >= CROWD_AGE_LEADERBOARD_MINIMUM_GUESS_COUNT && Number.isFinite(a.crowdAgeReduction);
@@ -3915,12 +3922,12 @@ function performFilter({ updateUrl = true } = {}) {
         : currentLeaderboardView === 'bortz-improvement'
             ? 'Bortz improvement'
             : 'Age reduction';
-    if (metricHeader) {
+    if (metricHeader && metricHeader.textContent !== metricLabel) {
         metricHeader.textContent = metricLabel;
     }
     window.LwcLeaderboardOrder.sync(selectedState.ordering, selectedState.byFlag, metricLabel);
     document.querySelector('.podium')?.style.setProperty('display', includePodiumGlobal && !hasActiveLeaderboardState() ? 'flex' : 'none');
-    document.querySelectorAll('.leaderboard table td.age-reduction-td').forEach(cell => {
+    if (!orderingSnapshot) document.querySelectorAll('.leaderboard table td.age-reduction-td').forEach(cell => {
         cell.setAttribute('data-label', metricLabel);
     });
 
@@ -3941,14 +3948,13 @@ function performFilter({ updateUrl = true } = {}) {
         return athletesByView.get(view);
     };
 
-    const query = window.normalizeString(document.getElementById('athleteSearch').value.trim().toLowerCase());
     const searchTerms = query.split(/\s+/).filter(term => term.length > 0);
     const uniqueSearchTerms = [...new Set(searchTerms)];
 
     const showAll = uniqueSearchTerms.length === 0;
 
     const athleteBadgeTextByName = new Map();
-    document.querySelectorAll('.leaderboard table tbody tr[data-athlete-name]').forEach(row => {
+    if (!orderingSnapshot) document.querySelectorAll('.leaderboard table tbody tr[data-athlete-name]').forEach(row => {
         const athleteName = row.getAttribute('data-athlete-name');
         if (!athleteName) return;
 
@@ -3965,7 +3971,7 @@ function performFilter({ updateUrl = true } = {}) {
         athleteBadgeTextByName.set(athleteName, window.normalizeString(badgeSearchText.toLowerCase()));
     });
 
-    const searchTextByAthlete = new Map(athleteResults.map(athlete => [athlete, [
+    const searchTextByAthlete = orderingSnapshot ? null : new Map(athleteResults.map(athlete => [athlete, [
         athlete.name,
         athlete.displayName,
         athleteBadgeTextByName.get(athlete.name) || '',
@@ -4040,22 +4046,25 @@ function performFilter({ updateUrl = true } = {}) {
         return;
     }
 
-    const matchingEntries = window.LwcLeaderboardOrder.sort(getMatchingEntries(selectedState), selectedState.ordering);
-    window.LwcLeaderboardOrder.renderValues(matchingEntries, selectedState.ordering);
+    const cohortEntries = orderingSnapshot ? orderingSnapshot.entries : getMatchingEntries(selectedState);
+    leaderboardOrderingSnapshot = { key: filterKey, athletes: athleteResults, entries: cohortEntries };
+    const matchingEntries = window.LwcLeaderboardOrder.sort(cohortEntries, selectedState.ordering);
+    const tableBody = document.querySelector('.leaderboard table tbody');
+    tableBody.querySelector('.no-results')?.remove();
+    const allRows = Array.from(tableBody.querySelectorAll('tr'));
+    const rowsByName = new Map(allRows.filter(row => row.dataset.athleteName).map(row => [row.dataset.athleteName, row]));
+    window.LwcLeaderboardOrder.renderValues(matchingEntries, selectedState.ordering, rowsByName);
     const entriesByAthlete = new Map(matchingEntries.map(entry => [entry.athlete, entry]));
     const unslicedFilteredAthletes = matchingEntries.map(entry => entry.athlete);
     const filteredAthletes = unslicedFilteredAthletes.slice(0, maxAthletesGlobal);
-    updateViewAllAthletesButton(unslicedFilteredAthletes.length);
+    updateViewAllAthletesButton(unslicedFilteredAthletes.length, !orderingSnapshot);
 
-    // First, hide all rows (including tier separator)
-    const tableRows = document.querySelectorAll('.leaderboard table tbody tr');
-    tableRows.forEach(row => {
-        row.style.display = 'none';
-    });
+    const tableRows = allRows;
     const tierSeparatorRow = document.querySelector('.leaderboard table tbody tr.tier-separator');
 
     // Remove 'blurred' class from all podium items
     const podiumItems = document.querySelectorAll('.podium-item');
+    const podiumByName = new Map(Array.from(podiumItems, item => [item.dataset.athleteName, item]));
     podiumItems.forEach(item => {
         item.classList.remove('blurred');
     });
@@ -4065,11 +4074,8 @@ function performFilter({ updateUrl = true } = {}) {
     // Show the rows and podium items for the filtered athletes
     filteredAthletes.forEach(athlete => {
         const athleteName = athlete.name;
-        const row = document.querySelector(`.leaderboard table tbody tr[data-athlete-name="${athleteName}"]`);
-        if (row) {
-            row.style.display = '';
-            window.showWithDelay(row);
-
+        const row = rowsByName.get(athleteName);
+        if (row && !orderingSnapshot) {
             // Update the rank cell
             const rankCell = row.querySelector('td[data-label="Rank"] .rank');
             if (rankCell) {
@@ -4078,15 +4084,14 @@ function performFilter({ updateUrl = true } = {}) {
 
             const ageReductionCell = row.querySelector('.age-reduction');
             const displayMetric = entriesByAthlete.get(athlete).metric;
-            if (ageReductionCell && displayMetric) {
+            if (ageReductionCell && displayMetric && ageReductionCell.textContent !== displayMetric) {
                 ageReductionCell.textContent = displayMetric;
             }
 
         }
-        const item = document.querySelector(`.podium-item[data-athlete-name="${athleteName}"]`);
+        const item = podiumByName.get(athleteName);
         if (item) {
-            item.style.display = '';
-            window.showWithDelay(item);
+            if (item.style.display) item.style.display = '';
             anyPodiumVisible = true;
         }
     });
@@ -4119,45 +4124,42 @@ function performFilter({ updateUrl = true } = {}) {
     }
 
     // Reorder tbody so visible rows match the athletes actually shown in the table.
-    const tableBody = document.querySelector('.leaderboard table tbody');
-    const allRows = Array.from(tableBody.querySelectorAll('tr'));
-    const visibleOrdered = tableVisibleAthletes.map(a => allRows.find(r => r.getAttribute('data-athlete-name') === a.name)).filter(Boolean);
+    const visibleOrdered = tableVisibleAthletes.map(a => rowsByName.get(a.name)).filter(Boolean);
+    const visibleRows = new Set(visibleOrdered);
+    rowsByName.forEach(row => {
+        const display = visibleRows.has(row) ? '' : 'none';
+        if (row.style.display !== display) row.style.display = display;
+    });
     const separator = allRows.find(r => r.classList.contains('tier-separator'));
-    const hiddenRows = allRows.filter(r => r !== separator && !visibleOrdered.includes(r));
-    const fragment = document.createDocumentFragment();
+    const hiddenRows = allRows.filter(r => r !== separator && !visibleRows.has(r));
+    const orderedRows = [...visibleOrdered];
     const isProForOrder = (a) => a.bortzAgeReduction != null && Number.isFinite(a.bortzAgeReduction);
     const firstAmateurIndex = tableVisibleAthletes.findIndex(a => !isProForOrder(a));
     const separatorVisible = tierSeparatorRow && tierSeparatorRow.style.display !== 'none';
     if (separator && separatorVisible && firstAmateurIndex > 0 && firstAmateurIndex < visibleOrdered.length) {
-        visibleOrdered.slice(0, firstAmateurIndex).forEach(r => fragment.appendChild(r));
-        fragment.appendChild(separator);
-        visibleOrdered.slice(firstAmateurIndex).forEach(r => fragment.appendChild(r));
+        orderedRows.splice(firstAmateurIndex, 0, separator);
     } else {
-        visibleOrdered.forEach(r => fragment.appendChild(r));
-        if (separator) fragment.appendChild(separator);
+        if (separator) orderedRows.push(separator);
     }
-    hiddenRows.forEach(r => fragment.appendChild(r));
-    tableBody.appendChild(fragment);
+    orderedRows.push(...hiddenRows);
+    let nextRow = tableBody.firstElementChild;
+    for (const row of orderedRows) {
+        if (row === nextRow) nextRow = nextRow.nextElementSibling;
+        else tableBody.insertBefore(row, nextRow);
+    }
 
-    // Remove existing highlights
-    window.removeAllHighlights();
-
-    // Highlight search terms
-    document.querySelectorAll('.athlete-name').forEach(athleteNameElement => {
-        const athleteNameText = athleteNameElement.textContent;
-        const athleteOwner = athleteNameElement.closest('[data-athlete-name]');
-        const athleteKey = athleteOwner ? athleteOwner.getAttribute('data-athlete-name') : null;
-
-        // Check if the athlete is in filteredAthletes
-        const athleteInFiltered = filteredAthletes.some(athlete => athlete.name === (athleteKey || athleteNameText));
-        const athleteInFilteredByDisplayedText = filteredAthletes.some(athlete => athlete.name === athleteNameText);
-        if (athleteInFiltered) {
-            window.highlightText(athleteNameElement, uniqueSearchTerms);
+    // An ordering change cannot alter the search or sidebar membership. Keep
+    // their DOM and computed counts intact instead of rebuilding them per click.
+    if (!orderingSnapshot) {
+        if (document.querySelector('.athlete-name .highlight')) window.removeAllHighlights();
+        if (uniqueSearchTerms.length) {
+            const filteredNames = new Set(matchingEntries.map(entry => entry.athlete.name));
+            document.querySelectorAll('.athlete-name').forEach(element => {
+                if (filteredNames.has(element.closest('[data-athlete-name]')?.dataset.athleteName)) window.highlightText(element, uniqueSearchTerms);
+            });
         }
-    });
-
-    // Update the counts in the filter sections
-    updateFilterCounts(selectedState, getMatchingEntries, matchingEntries);
+        updateFilterCounts(selectedState, getMatchingEntries, matchingEntries);
+    }
 
     // Add or remove 'blurred' class from podium items based on filtering
     podiumItems.forEach(item => {
@@ -4172,7 +4174,7 @@ function performFilter({ updateUrl = true } = {}) {
         }
     });
 
-    updateLeaderboardTitles(selectedState);
+    if (!orderingSnapshot) updateLeaderboardTitles(selectedState);
 
     // Display "No Results Found" if Necessary
     displayNoResults(tableRows, podiumItems, query);
@@ -4185,7 +4187,7 @@ function performFilter({ updateUrl = true } = {}) {
         });
     }
 
-    if (typeof AOS !== 'undefined') {
+    if (!orderingSnapshot && typeof AOS !== 'undefined') {
         AOS.refresh();
     }
 
@@ -4572,7 +4574,7 @@ document.addEventListener('click', function (event) {
     showAllAthletes();
 });
 
-window.LwcLeaderboardOrder.bind(() => performFilter({ updateUrl: false }));
+window.LwcLeaderboardOrder.bind(() => performFilter({ updateUrl: false, orderingOnly: true }));
 document.getElementById('group-flags')?.addEventListener('change', () => performFilter());
 
 document.querySelectorAll('input[name="leaderboardView"]').forEach(radio => {
@@ -4785,7 +4787,7 @@ function escapeHtml(text) {
 
 // Shows a rank and marks the top three places of the current view for their medal styling.
 function setDisplayedRank(rankElement, rank) {
-    rankElement.textContent = rank;
+    if (rankElement.textContent !== String(rank)) rankElement.textContent = rank;
     const place = Number(rank);
     if (place >= 1 && place <= 3) {
         rankElement.dataset.place = String(place);
