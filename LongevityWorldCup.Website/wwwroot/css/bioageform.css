@@ -1799,3 +1799,11 @@ body #validAgeInput + * {
         text-align: left;
     }
 }
+
+/* Reflow the existing label/control pairs when enlarged text needs more room. */
+@container bioage-form (max-width: 14em) {
+    .bioageform fieldset#dobFieldset > :is(label, select, #privacyNote) {
+        grid-column: 1 / -1;
+        grid-row: auto;
+    }
+}

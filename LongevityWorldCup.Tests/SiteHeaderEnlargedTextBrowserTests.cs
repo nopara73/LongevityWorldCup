@@ -70,6 +70,7 @@ public sealed class SiteHeaderEnlargedTextBrowserTests(
         var hash = await link.GetAttributeAsync("href");
         await link.ClickAsync();
         await Assertions.Expect(page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex($"{System.Text.RegularExpressions.Regex.Escape(hash!)}$"));
+        await WaitForVisibleStickyHeaderAsync(page);
         await AssertHeaderFitsAsync(page, sticky: true);
         Assert.True(await page.EvaluateAsync<bool>(
             "() => document.getElementById(decodeURIComponent(location.hash.slice(1))).getBoundingClientRect().top >= document.querySelector('#site-sticky-header').getBoundingClientRect().bottom - 1"));
@@ -95,8 +96,8 @@ public sealed class SiteHeaderEnlargedTextBrowserTests(
         var page = await context.NewPageAsync();
         await NavigateAndSettleAsync(page, "/about");
         await DoubleTextAsync(page);
-        await page.EvaluateAsync("window.scrollTo(0, 600)");
-        await Assertions.Expect(page.Locator("#site-sticky-header")).ToHaveAttributeAsync("aria-hidden", "false");
+        await page.Mouse.WheelAsync(0, 1000);
+        await WaitForVisibleStickyHeaderAsync(page);
         foreach (var size in new[] { (320, 844), (844, 390), (390, 844) })
         {
             await page.SetViewportSizeAsync(size.Item1, size.Item2);
@@ -156,6 +157,12 @@ public sealed class SiteHeaderEnlargedTextBrowserTests(
     private static Task WaitForLayoutAsync(IPage page)
         => page.EvaluateAsync("async () => { await document.fonts.ready; for (let i = 0; i < 4; i++) await new Promise(requestAnimationFrame); }");
 
+    private static Task WaitForVisibleStickyHeaderAsync(IPage page)
+        => page.WaitForFunctionAsync("""
+            () => document.querySelector('header[role=banner]').getBoundingClientRect().bottom < 0
+                && document.getElementById('site-sticky-header').getAttribute('aria-hidden') === 'false'
+            """);
+
     private static async Task NavigateHeaderAsync(IPage page, string path)
     {
         // Highlights aligns its heading after a delay. Observe that real call:
@@ -175,7 +182,7 @@ public sealed class SiteHeaderEnlargedTextBrowserTests(
         await NavigateAndSettleAsync(page, path);
         await page.EvaluateAsync("async () => { await window.modulesReady; await Promise.allSettled([window.getSharedAthletes?.(), window.getSharedEvents?.()]); }");
         if (path == "/events")
-            await page.WaitForFunctionAsync("() => window.__headerEventBoardScrollObserved === true");
+            await page.WaitForFunctionAsync("() => document.getElementById('events-root')?.getAttribute('aria-busy') === 'false' && window.__headerEventBoardScrollObserved === true");
         await WaitForLayoutAsync(page);
         await ScrollToTopAsync(page);
     }

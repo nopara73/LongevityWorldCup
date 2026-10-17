@@ -83,8 +83,7 @@
             text-align: center;
         }
 
-        /* The kit reads as its own folders: one group per folder, documents as
-           rows, pictures as tiles that show what the download is. */
+        /* Each folder is a tile grid, with documents before pictures. */
         .media-kit-group + .media-kit-group {
             margin-top: var(--lwc-space-5);
             padding-top: var(--lwc-space-4);
@@ -402,6 +401,23 @@
             content: "\f01e";
         }
 
+        /* A document tile shows its file type where a picture tile shows the picture. */
+        .media-file-tile .media-file-doc-thumb {
+            box-sizing: border-box;
+            display: grid;
+            place-items: center;
+            /* Leave the corner control clear even on narrow, enlarged tiles. */
+            padding-inline-end: 44px;
+            background: var(--lwc-surface-muted);
+        }
+
+        .media-file-tile .media-file-doc-thumb .media-file-icon {
+            width: auto;
+            font-size: 3rem;
+            line-height: 1;
+            color: var(--lwc-accent);
+        }
+
         /* Phones: the panel's side space stops growing with the text, and words
            wrap whole. A row's button drops under its name rather than squeezing
            "Download" into a column of letters. */
@@ -568,15 +584,14 @@
                         title.textContent = folder;
                         group.appendChild(title);
                     }
-                    const documents = document.createElement('ul');
-                    documents.className = 'media-kit-file-list';
-                    const pictures = document.createElement('ul');
-                    pictures.className = 'media-kit-file-list media-kit-tiles';
+                    const tiles = document.createElement('ul');
+                    tiles.className = 'media-kit-file-list media-kit-tiles';
 
                 for (const path of paths) {
                     const isPicture = extensionOf(path) in imageTypes;
                     const li = document.createElement('li');
-                    li.className = isPicture ? 'media-file-row media-file-tile' : 'media-file-row';
+                    // Documents are tiles too: their file type fills the well a picture would.
+                    li.className = isPicture ? 'media-file-row media-file-tile' : 'media-file-row media-file-tile media-file-doc';
 
                     if (isPicture) {
                         const thumb = document.createElement('span');
@@ -589,10 +604,13 @@
                         li.appendChild(thumb);
                         if (thumbnails) thumbnails.observe(image); else showThumbnail(image);
                     } else {
+                        const thumb = document.createElement('span');
+                        thumb.className = 'media-file-thumb media-file-doc-thumb';
                         const icon = document.createElement('i');
                         icon.className = extensionOf(path) === 'pdf' ? 'fas fa-file-pdf media-file-icon' : 'fas fa-file-lines media-file-icon';
                         icon.setAttribute('aria-hidden', 'true');
-                        li.appendChild(icon);
+                        thumb.appendChild(icon);
+                        li.appendChild(thumb);
                     }
 
                     const name = document.createElement('span');
@@ -631,11 +649,12 @@
 
                     li.appendChild(name);
                     li.appendChild(btn);
-                    (isPicture ? pictures : documents).appendChild(li);
+                    // One grid per folder: documents lead, pictures follow.
+                    if (isPicture) tiles.appendChild(li);
+                    else tiles.insertBefore(li, tiles.querySelector('.media-file-tile:not(.media-file-doc)'));
                 }
 
-                    if (documents.children.length) group.appendChild(documents);
-                    if (pictures.children.length) group.appendChild(pictures);
+                    if (tiles.children.length) group.appendChild(tiles);
                     listEl.appendChild(group);
                 }
             } catch (e) {
