@@ -345,13 +345,18 @@
         mobile: boolean;
     }
 
-    interface DiscussionPage {
-        notes: ParticipantNote[];
-        startIndex: number;
-        endIndex: number;
-        totalCount: number;
-        pageIndex: number;
-        pageCount: number;
+    interface DiscussionFeedCursor {
+        rankedAtUnixMs: number;
+        score: number;
+        activityAtUnixMs: number;
+        challengeDay: number;
+        participantId: string;
+        systemPostId: string | null;
+    }
+
+    interface DiscussionFeedPage {
+        threads: { note: ParticipantNote | null; systemPost: DiscussionSystemPost | null }[];
+        nextCursor: DiscussionFeedCursor | null;
     }
 
     interface DashboardCategory {
@@ -578,7 +583,9 @@
     ];
     const MAX_NOTE_PHOTOS = 4;
     const MAX_NOTE_MENTIONS = 5;
-    const DISCUSSION_PAGE_SIZE = 5;
+    const DISCUSSION_BATCH_SIZE = 10;
+    const DISCUSSION_AUTO_BATCHES = 3;
+    const DISCUSSION_FEED_STORAGE_KEY = "lmxDiscussionFeed";
     const DISCUSSION_THREAD_LIMIT = 100;
     const PLANT_LEAF_CAPACITY = 64;
     const PLANT_BUD_CAPACITY = 12;
@@ -775,7 +782,24 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     let boardScrollObservedElement: Element | null = null;
     let mobileLeaderboardMedia: MediaQueryList | null = null;
     let mobileLeaderboardPage = 0;
-    let discussionPageIndex = 0;
+    let discussionFeedOwner: string | null = null;
+    const discussionFeedNotes = new Map<string, ParticipantNote>();
+    const discussionFeedPending = new Set<string>();
+    const discussionFeedUpdates = new Map<string, ParticipantNote>();
+    const renderedDiscussionNotes = new WeakMap<HTMLElement, string>();
+    let discussionFeedOrder: string[] = [];
+    let discussionFeedVisible = DISCUSSION_BATCH_SIZE;
+    let discussionFeedAutoBatches = 1;
+    let discussionFeedRankedAt = Date.now();
+    let discussionFeedBefore: DiscussionFeedCursor | null = null;
+    let discussionFeedHasHistory = false;
+    let discussionFeedLoading = false;
+    let discussionFeedError = false;
+    let discussionFeedGeneration = 0;
+    let discussionFeedAcceptedGeneration = -1;
+    let discussionFeedRefreshing = false;
+    let discussionFeedObserver: IntersectionObserver | null = null;
+    let discussionFeedRestoredAnchor: { key: string; top: number } | null = null;
     let linkedDiscussionThread: ParticipantNote | null = null;
     let discussionNavigationGeneration = 0;
     let dashboardScrollObserver: ResizeObserver | null = null;
@@ -890,7 +914,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         renderQuestionPreview();
         wireForms();
         wireLeaderboardPager();
-        wireDiscussionPager();
+        wireDiscussionFeed();
         wireDiscussionNavigation();
         wireAccessTabs();
         initAthleteSelectors();
@@ -1052,19 +1076,246 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         renderBoard(state);
     }
 
-    function wireDiscussionPager(): void {
-        optionalElement("lmxNotesNewer", HTMLButtonElement)?.addEventListener("click", () => changeDiscussionPage(-1));
-        optionalElement("lmxNotesOlder", HTMLButtonElement)?.addEventListener("click", () => changeDiscussionPage(1));
+    function wireDiscussionFeed(): void {
+        requiredButton("lmxFeedOlder").addEventListener("click", () => void loadDiscussionFeed(true));
+        requiredButton("lmxFeedNew").addEventListener("click", () => {
+            discussionFeedUpdates.forEach((note, key) => discussionFeedNotes.set(key, note));
+            discussionFeedUpdates.clear();
+            discussionFeedOrder = discussionThreadsInHotOrder(Array.from(discussionFeedNotes.values()), false)
+                .map(discussionPermalink);
+            discussionFeedPending.clear();
+            renderNotes(currentDiscussionNotes(), !!participantState);
+            const first = document.querySelector<HTMLElement>("#lmxNotes article");
+            first?.focus({ preventScroll: true });
+            first?.scrollIntoView({ block: "start", behavior: "instant" });
+        });
+        const sentinel = document.getElementById("lmxFeedSentinel");
+        if (sentinel && typeof IntersectionObserver === "function") {
+            discussionFeedObserver = new IntersectionObserver(entries => {
+                if (entries.some(entry => entry.isIntersecting) && discussionFeedAutoBatches < DISCUSSION_AUTO_BATCHES &&
+                    !discussionFeedLoading && !discussionFeedError &&
+                    !Array.from(document.querySelectorAll("[aria-modal='true']")).some(dialog => dialog.getClientRects().length))
+                    void loadDiscussionFeed(false);
+            }, { rootMargin: "0px 0px 200px 0px" });
+        }
+        window.addEventListener("pagehide", saveDiscussionFeedPosition);
+        window.setInterval(() => {
+            if (!document.hidden && document.getElementById("lmxNotesPanel")?.getClientRects().length &&
+                !discussionMutation && !discussionFeedLoading)
+                void refreshDiscussionFeed();
+        }, 60_000);
     }
 
-    function changeDiscussionPage(delta: number): void {
-        const participantView = participantState !== null;
-        const notes = participantState
-            ? participantDiscussionThreads(participantState)
+    async function refreshDiscussionFeed(): Promise<void> {
+        if (discussionFeedRefreshing) return;
+        discussionFeedRefreshing = true;
+        const generation = discussionFeedGeneration;
+        const token = accessToken;
+        try {
+            const notes = token
+                ? participantDiscussionThreads(await postJson(`${API}/participant`, { token }))
+                : publicDiscussionThreads(await getJson(`${API}/state`));
+            if (generation !== discussionFeedGeneration || token !== accessToken) return;
+            queueDiscussionFeedUpdates(notes);
+            updateDiscussionFeedControls();
+        } catch { /* A background refresh must not interrupt reading or drafts. */ }
+        finally { discussionFeedRefreshing = false; }
+    }
+
+    function queueDiscussionFeedUpdates(notes: ParticipantNote[]): void {
+        for (const note of discussionThreadsInHotOrder(notes)) {
+            const key = discussionPermalink(note);
+            const previous = discussionFeedUpdates.get(key) || discussionFeedNotes.get(key);
+            if (JSON.stringify(previous) === JSON.stringify(note)) continue;
+            discussionFeedUpdates.set(key, note);
+            discussionFeedPending.add(key);
+        }
+    }
+
+    function currentDiscussionNotes(): ParticipantNote[] {
+        return participantState ? participantDiscussionThreads(participantState)
             : publicState ? publicDiscussionThreads(publicState) : [];
-        const page = getDiscussionPage(notes);
-        discussionPageIndex = Math.max(0, Math.min(page.pageCount - 1, page.pageIndex + delta));
-        renderNotes(notes, participantView, false);
+    }
+
+    function discussionFeedPosition(note: ParticipantNote): DiscussionFeedCursor {
+        return {
+            rankedAtUnixMs: discussionFeedRankedAt,
+            score: Math.round(discussionHotScore(note, discussionFeedRankedAt) * 1e9) / 1e9,
+            activityAtUnixMs: discussionActivityTimestamp(note),
+            challengeDay: note.challengeDay,
+            participantId: note.participantId,
+            systemPostId: note.systemPostId || null
+        };
+    }
+
+    function syncDiscussionFeed(notes: ParticipantNote[]): void {
+        const owner = participantState?.participant.id || "public";
+        if (discussionFeedOwner !== owner) {
+            if (discussionFeedOwner !== null) linkedDiscussionThread = null;
+            discussionFeedOwner = owner;
+            discussionFeedGeneration++;
+            discussionFeedNotes.clear();
+            discussionFeedOrder = [];
+            discussionFeedPending.clear();
+            discussionFeedUpdates.clear();
+            discussionFeedAcceptedGeneration = -1;
+            discussionFeedVisible = DISCUSSION_BATCH_SIZE;
+            discussionFeedAutoBatches = 1;
+            discussionFeedRankedAt = Date.now();
+            discussionFeedBefore = null;
+            discussionFeedHasHistory = false;
+            discussionFeedLoading = false;
+            discussionFeedError = false;
+            restoreDiscussionFeedPosition(owner);
+            if (discussionFeedOrder.length) {
+                queueDiscussionFeedUpdates(notes);
+                discussionFeedAcceptedGeneration = stateAcceptanceGeneration;
+            }
+        }
+        if (discussionFeedAcceptedGeneration !== stateAcceptanceGeneration) {
+            discussionFeedAcceptedGeneration = stateAcceptanceGeneration;
+            const ordered = discussionThreadsInHotOrder(notes);
+            if (!discussionFeedOrder.length) {
+                for (const note of ordered) {
+                    const key = discussionPermalink(note);
+                    discussionFeedNotes.set(key, note);
+                    discussionFeedOrder.push(key);
+                }
+                const last = ordered.at(-1);
+                discussionFeedBefore = last ? discussionFeedPosition(last) : null;
+                discussionFeedHasHistory = ordered.length >= DISCUSSION_THREAD_LIMIT;
+            } else {
+                const visible = new Set(discussionFeedOrder.slice(0, discussionFeedVisible));
+                for (const note of ordered) {
+                    const key = discussionPermalink(note);
+                    const previous = discussionFeedNotes.get(key);
+                    if (!previous || (!visible.has(key) && discussionActivityTimestamp(note) > discussionActivityTimestamp(previous)))
+                        discussionFeedPending.add(key);
+                    discussionFeedNotes.set(key, note);
+                    discussionFeedUpdates.delete(key);
+                }
+            }
+        }
+        if (linkedDiscussionThread) {
+            const key = discussionPermalink(linkedDiscussionThread);
+            if (!discussionFeedNotes.has(key)) discussionFeedNotes.set(key, linkedDiscussionThread);
+            if (!discussionFeedOrder.includes(key)) discussionFeedOrder.push(key);
+        }
+    }
+
+    async function loadDiscussionFeed(manual: boolean): Promise<void> {
+        if (discussionFeedLoading || (!discussionFeedHasHistory && discussionFeedVisible >= discussionFeedOrder.length)) return;
+        if (manual) discussionFeedAutoBatches = DISCUSSION_AUTO_BATCHES;
+        else discussionFeedAutoBatches++;
+        const generation = discussionFeedGeneration;
+        const button = requiredButton("lmxFeedOlder");
+        const focused = document.activeElement === button;
+        const firstNewIndex = discussionFeedVisible;
+        discussionFeedError = false;
+        if (discussionFeedVisible >= discussionFeedOrder.length && discussionFeedHasHistory) {
+            discussionFeedLoading = true;
+            updateDiscussionFeedControls();
+            try {
+                const page = await postJson(`${API}/discussion/feed`, { accessToken, before: discussionFeedBefore });
+                if (generation !== discussionFeedGeneration) return;
+                if (page.nextCursor && JSON.stringify(page.nextCursor) === JSON.stringify(discussionFeedBefore))
+                    throw invalidApiResponse(`${API}/discussion/feed`);
+                for (const thread of page.threads) {
+                    const note = thread.note || (thread.systemPost ? systemDiscussionThread(thread.systemPost) : null);
+                    if (!note) continue;
+                    const key = discussionPermalink(note);
+                    discussionFeedNotes.set(key, note);
+                    if (!discussionFeedOrder.includes(key)) discussionFeedOrder.push(key);
+                }
+                discussionFeedBefore = page.nextCursor;
+                discussionFeedHasHistory = !!page.nextCursor;
+            } catch {
+                if (generation === discussionFeedGeneration) discussionFeedError = true;
+            } finally {
+                if (generation === discussionFeedGeneration) discussionFeedLoading = false;
+            }
+        }
+        if (generation !== discussionFeedGeneration) return;
+        discussionFeedVisible = Math.min(discussionFeedOrder.length, discussionFeedVisible + DISCUSSION_BATCH_SIZE);
+        renderNotes(currentDiscussionNotes(), !!participantState);
+        // Keyboard activation continues into the newly appended content. Automatic loads never take focus.
+        if (manual && focused && (document.activeElement === button || document.activeElement === document.body)) {
+            const key = discussionFeedOrder[firstNewIndex];
+            const next = Array.from(document.querySelectorAll<HTMLElement>("#lmxNotes article"))
+                .find(article => article.dataset.feedKey === key);
+            next?.focus({ preventScroll: true });
+        }
+    }
+
+    function updateDiscussionFeedControls(): void {
+        const remaining = discussionFeedVisible < discussionFeedOrder.length || discussionFeedHasHistory;
+        const older = requiredButton("lmxFeedOlder");
+        older.hidden = !remaining && !discussionFeedLoading;
+        older.disabled = discussionFeedLoading;
+        older.setAttribute("aria-busy", String(discussionFeedLoading));
+        older.querySelector("span")!.textContent = discussionFeedLoading ? "Loading…" : discussionFeedError ? "Retry loading posts" : "Load older posts";
+        older.querySelector("i")!.className = discussionFeedError ? "fas fa-rotate-right" : "fas fa-chevron-down";
+        const status = document.getElementById("lmxFeedStatus")!;
+        status.textContent = discussionFeedError ? "Couldn’t load older posts." : "";
+        document.getElementById("lmxFeedCaughtUp")!.hidden = remaining || discussionFeedLoading || !discussionFeedOrder.length;
+        const fresh = requiredButton("lmxFeedNew");
+        fresh.hidden = !discussionFeedPending.size;
+        fresh.querySelector("span")!.textContent = `New posts${discussionFeedPending.size ? ` · ${discussionFeedPending.size}` : ""}`;
+        const sentinel = document.getElementById("lmxFeedSentinel");
+        discussionFeedObserver?.disconnect();
+        if (sentinel && remaining && !discussionFeedLoading && !discussionFeedError && discussionFeedAutoBatches < DISCUSSION_AUTO_BATCHES)
+            discussionFeedObserver?.observe(sentinel);
+    }
+
+    function discussionFeedAnchor(): { key: string; top: number } | null {
+        const article = Array.from(document.querySelectorAll<HTMLElement>("#lmxNotes article[data-feed-key]"))
+            .find(element => element.getBoundingClientRect().bottom > 0 && element.getBoundingClientRect().top < innerHeight);
+        return article ? { key: article.dataset.feedKey!, top: article.getBoundingClientRect().top } : null;
+    }
+
+    function restoreDiscussionFeedAnchor(anchor: { key: string; top: number } | null): void {
+        if (!anchor) return;
+        const article = Array.from(document.querySelectorAll<HTMLElement>("#lmxNotes article[data-feed-key]"))
+            .find(element => element.dataset.feedKey === anchor.key);
+        if (article) window.scrollBy({ top: article.getBoundingClientRect().top - anchor.top, behavior: "instant" });
+    }
+
+    function saveDiscussionFeedPosition(): void {
+        if (!discussionFeedOwner || !discussionFeedOrder.length) return;
+        try {
+            sessionStorage.setItem(DISCUSSION_FEED_STORAGE_KEY, JSON.stringify({
+                owner: discussionFeedOwner, savedAt: Date.now(), notes: Array.from(discussionFeedNotes.values()),
+                order: discussionFeedOrder, visible: discussionFeedVisible, autoBatches: discussionFeedAutoBatches,
+                rankedAt: discussionFeedRankedAt, before: discussionFeedBefore, hasHistory: discussionFeedHasHistory,
+                pending: Array.from(discussionFeedPending), anchor: discussionFeedAnchor(),
+                updates: Array.from(discussionFeedUpdates.values())
+            }));
+        } catch { /* The live feed still works when session storage is unavailable. */ }
+    }
+
+    function restoreDiscussionFeedPosition(owner: string): void {
+        try {
+            const saved = JSON.parse(sessionStorage.getItem(DISCUSSION_FEED_STORAGE_KEY) || "null") as {
+                owner?: string; savedAt?: number; notes?: unknown[]; order?: string[]; visible?: number;
+                autoBatches?: number; rankedAt?: number; before?: DiscussionFeedCursor | null; hasHistory?: boolean;
+                pending?: string[]; updates?: unknown[]; anchor?: { key: string; top: number } | null;
+            } | null;
+            if (!saved || saved.owner !== owner || !saved.savedAt || Date.now() - saved.savedAt > 30 * 60_000 ||
+                !Array.isArray(saved.notes) || !Array.isArray(saved.order) || !saved.rankedAt) return;
+            for (const note of saved.notes.filter(isParticipantNote)) discussionFeedNotes.set(discussionPermalink(note), note);
+            if (Array.isArray(saved.updates))
+                for (const note of saved.updates.filter(isParticipantNote)) discussionFeedUpdates.set(discussionPermalink(note), note);
+            discussionFeedOrder = saved.order.filter(key => typeof key === "string" && discussionFeedNotes.has(key));
+            discussionFeedVisible = Math.max(DISCUSSION_BATCH_SIZE, Math.min(saved.visible || DISCUSSION_BATCH_SIZE, discussionFeedOrder.length));
+            discussionFeedAutoBatches = Math.max(1, Math.min(saved.autoBatches || 1, DISCUSSION_AUTO_BATCHES));
+            discussionFeedRankedAt = saved.rankedAt;
+            discussionFeedBefore = isDiscussionFeedCursor(saved.before) ? saved.before : null;
+            discussionFeedHasHistory = !!saved.hasHistory;
+            for (const key of saved.pending || [])
+                if (discussionFeedNotes.has(key) || discussionFeedUpdates.has(key)) discussionFeedPending.add(key);
+            if (saved.anchor && typeof saved.anchor.key === "string" && Number.isFinite(saved.anchor.top))
+                discussionFeedRestoredAnchor = saved.anchor;
+        } catch { /* Ignore an expired or incomplete bookmark. */ }
     }
 
     function wireAccessTabs() {
@@ -3053,6 +3304,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
 
     function discussionPageThreads(notes: ParticipantNote[]): ParticipantNote[] {
         const ordered = discussionThreadsInHotOrder(notes);
+        const keys = new Set(ordered.map(discussionPermalink));
+        for (const [key, note] of discussionFeedNotes) if (!keys.has(key)) ordered.push(note);
         if (linkedDiscussionThread && !ordered.some(note => discussionPermalink(note) === discussionPermalink(linkedDiscussionThread!)))
             ordered.push(linkedDiscussionThread);
         return ordered;
@@ -3171,9 +3424,12 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             }
             if (!thread) {
                 closeCheckInDialog(true, false);
-                const ordered = discussionPageThreads(notes);
-                discussionPageIndex = Math.max(0, Math.floor(ordered.findIndex(candidate => discussionPermalink(candidate) === discussionPermalink(note!)) / DISCUSSION_PAGE_SIZE));
-                renderNotes(notes, !!participantState, false);
+                syncDiscussionFeed(notes);
+                const key = discussionPermalink(note!);
+                if (!discussionFeedOrder.includes(key)) discussionFeedOrder.push(key);
+                discussionFeedNotes.set(key, note!);
+                discussionFeedVisible = Math.max(discussionFeedVisible, discussionFeedOrder.indexOf(key) + 1);
+                renderNotes(notes, !!participantState);
                 thread = Array.from(document.querySelectorAll<HTMLElement>("#lmxNotes article[data-discussion-post-participant-id]"))
                     .find(candidate => candidate.dataset.discussionSystemPostId === (note!.systemPostId || "") &&
                         candidate.dataset.discussionPostParticipantId === note!.participantId &&
@@ -3587,7 +3843,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         };
     }
 
-    function discussionThreadsInHotOrder(notes: ParticipantNote[]): ParticipantNote[] {
+    function discussionThreadsInHotOrder(notes: ParticipantNote[], limited = true): ParticipantNote[] {
         const now = Date.now();
         return (Array.isArray(notes) ? notes : [])
             .filter(hasParticipantNoteContent)
@@ -3599,9 +3855,11 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 if (activityOrder) return activityOrder;
                 const dayOrder = right.challengeDay - left.challengeDay;
                 if (dayOrder) return dayOrder;
-                return left.participantId < right.participantId ? -1 : left.participantId > right.participantId ? 1 : 0;
+                const participantOrder = left.participantId < right.participantId ? -1 : left.participantId > right.participantId ? 1 : 0;
+                if (participantOrder) return participantOrder;
+                return (left.systemPostId || "").localeCompare(right.systemPostId || "");
             })
-            .slice(0, DISCUSSION_THREAD_LIMIT);
+            .slice(0, limited ? DISCUSSION_THREAD_LIMIT : undefined);
     }
 
     function discussionHotScore(note: ParticipantNote, now: number): number {
@@ -3905,6 +4163,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         replyCount: number;
     } {
         const noteCollections = [
+            Array.from(discussionFeedNotes.values()),
             participantState?.notes,
             participantState?.public?.notes,
             publicState?.notes,
@@ -4902,6 +5161,14 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             // Rendering can automatically switch to Home after the last due check-in.
             const stillViewingSubmittedDay = stillOnSubmittedDay && participantActiveTab === "checkin";
             acceptParticipantState(result);
+            const saved = result.eligibleDays.find(day => day.challengeDay === payload.challengeDay)?.existing;
+            if (saved && !String(saved.note || "").trim() && !saved.images.length) {
+                const postKey = discussionPermalink({ participantId: result.participant.id, challengeDay: payload.challengeDay, systemPostId: null });
+                discussionFeedNotes.delete(postKey);
+                discussionFeedPending.delete(postKey);
+                discussionFeedOrder = discussionFeedOrder.filter(value => value !== postKey);
+                if (linkedDiscussionThread && discussionPermalink(linkedDiscussionThread) === postKey) linkedDiscussionThread = null;
+            }
             const nextMissing = getPendingCheckInDays(result)
                 .sort((a, b) => a.challengeDay - b.challengeDay)[0];
             if (stillOnSubmittedDay) selectedCheckInDay = nextMissing ? nextMissing.challengeDay : payload.challengeDay;
@@ -5339,31 +5606,38 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         return `${clean || "profile-picture"}.${extension}`;
     }
 
-    function renderNotes(notes: ParticipantNote[], participantView: boolean, keepActiveThread = true): void {
+    function renderNotes(notes: ParticipantNote[], participantView: boolean): void {
         const container = document.getElementById("lmxNotes");
         if (!container) return;
         if (linkedDiscussionThread) linkedDiscussionThread = notes.find(note =>
             discussionPermalink(note) === discussionPermalink(linkedDiscussionThread!)) || linkedDiscussionThread;
         const restoreDraftFocus = preserveDiscussionDraftFocus(container);
-        const draft = activeDiscussionDraft?.surface === "notes" ? discussionDrafts.get(activeDiscussionDraft.key) : null;
-        if (keepActiveThread && draft && container.querySelector("[data-discussion-draft]")) {
-            const index = discussionThreadsInHotOrder(notes).findIndex(note => isDiscussionDraftThread(note, draft));
-            if (index >= 0) discussionPageIndex = Math.floor(index / DISCUSSION_PAGE_SIZE);
-        }
-        const page = getDiscussionPage(notes);
-        updateDiscussionPager(page);
-        if (!page.totalCount) {
+        const anchor = discussionFeedAnchor();
+        syncDiscussionFeed(notes);
+        if (!discussionFeedOrder.length) {
             container.innerHTML = `<div class="lmx-note"><strong>No discussion yet.</strong></div>`;
+            updateDiscussionFeedControls();
             return;
         }
 
         const canReply = participantView && !!participantState;
-        container.innerHTML = page.notes.map(note => {
-            const images = Array.isArray(note.images) ? note.images : [];
-            const imageHtml = images.length
-                ? `<div class="lmx-note-photo-grid">${images.map((image, index) => notePhotoHtml(image, `${note.participantId}-${note.challengeDay}-${index}`)).join("")}</div>`
-                : "";
-            return `<article class="lmx-note" tabindex="-1"
+        const existing = new Map(Array.from(container.querySelectorAll<HTMLElement>("article[data-feed-key]"))
+            .map(article => [article.dataset.feedKey!, article]));
+        container.querySelector(":scope > div")?.remove();
+        let previous: HTMLElement | null = null;
+        for (const key of discussionFeedOrder.slice(0, discussionFeedVisible)) {
+            const note = discussionFeedNotes.get(key);
+            if (!note) continue;
+            let article = existing.get(key);
+            existing.delete(key);
+            const signature = JSON.stringify([note, canReply, discussionFeedOwner, discussionCharacterLimit()]);
+            if (!article || renderedDiscussionNotes.get(article) !== signature) {
+                const images = Array.isArray(note.images) ? note.images : [];
+                const imageHtml = images.length
+                    ? `<div class="lmx-note-photo-grid">${images.map((image, index) => notePhotoHtml(image, `${note.participantId}-${note.challengeDay}-${index}`)).join("")}</div>`
+                    : "";
+                const template = document.createElement("template");
+                template.innerHTML = `<article class="lmx-note" tabindex="-1" data-feed-key="${escAttr(key)}"
                 data-discussion-post-participant-id="${escAttr(note.participantId)}"
                 data-discussion-post-challenge-day="${escAttr(note.challengeDay)}"
                 data-discussion-system-post-id="${escAttr(note.systemPostId || "")}">
@@ -5374,9 +5648,27 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 ${discussionQuickReplyHtml(note, canReply)}
                 <div class="lmx-discussion-reply-slot"></div>
             </article>`;
-        }).join("");
+                const replacement = template.content.firstElementChild as HTMLElement;
+                article?.replaceWith(replacement);
+                article = replacement;
+                renderedDiscussionNotes.set(article, signature);
+            }
+            if (article.previousElementSibling !== previous || article.parentElement !== container) {
+                if (previous) previous.after(article);
+                else container.prepend(article);
+            }
+            previous = article;
+        }
+        existing.forEach(article => article.remove());
         wireDiscussionControls(container);
+        updateDiscussionFeedControls();
+        restoreDiscussionFeedAnchor(anchor);
         restoreDraftFocus();
+        if (discussionFeedRestoredAnchor && !window.location.hash.startsWith("#discussion/")) {
+            const bookmark = discussionFeedRestoredAnchor;
+            discussionFeedRestoredAnchor = null;
+            requestAnimationFrame(() => restoreDiscussionFeedAnchor(bookmark));
+        }
     }
 
     function wireDiscussionControls(root: ParentNode): void {
@@ -6329,6 +6621,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             if (cached) return cached;
         }
         const collections = [
+            Array.from(discussionFeedNotes.values()),
             participantState?.notes,
             participantState?.public?.notes,
             publicState?.notes,
@@ -6357,6 +6650,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             cache.byId.forEach((reply, id) => cache.byId.set(id, reconcile(reply)));
         });
         const collections = [
+            Array.from(discussionFeedNotes.values()),
             participantState?.notes,
             participantState?.public?.notes,
             publicState?.notes,
@@ -6476,54 +6770,6 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     function renderParticipantDiscussion(state: ParticipantState): void {
         renderNotes(participantDiscussionThreads(state), true);
     }
-
-    function getDiscussionPage(notes: ParticipantNote[]): DiscussionPage {
-        const posts = discussionPageThreads(notes);
-        const pageCount = Math.max(1, Math.ceil(posts.length / DISCUSSION_PAGE_SIZE));
-        const pageIndex = Math.max(0, Math.min(pageCount - 1, discussionPageIndex));
-        discussionPageIndex = pageIndex;
-        const startIndex = pageIndex * DISCUSSION_PAGE_SIZE;
-        const endIndex = Math.min(startIndex + DISCUSSION_PAGE_SIZE, posts.length);
-
-        return {
-            notes: posts.slice(startIndex, endIndex),
-            startIndex,
-            endIndex,
-            totalCount: posts.length,
-            pageIndex,
-            pageCount
-        };
-    }
-
-    function updateDiscussionPager(page: DiscussionPage): void {
-        const pager = document.getElementById("lmxNotesPager");
-        const newerButton = optionalElement("lmxNotesNewer", HTMLButtonElement);
-        const olderButton = optionalElement("lmxNotesOlder", HTMLButtonElement);
-        const label = document.getElementById("lmxNotesDayLabel");
-        if (!pager || !newerButton || !olderButton || !label) return;
-
-        const visible = page.pageCount > 1;
-        pager.classList.toggle("lmx-hidden", !visible);
-        pager.toggleAttribute("hidden", !visible);
-
-        if (!page.totalCount) {
-            label.textContent = "";
-            label.removeAttribute("aria-label");
-        } else {
-            const first = page.startIndex + 1;
-            const last = page.endIndex;
-            label.textContent = first === last ? `${first} of ${page.totalCount}` : `${first}\u2013${last} of ${page.totalCount}`;
-            label.setAttribute(
-                "aria-label",
-                first === last
-                    ? `Discussion post ${first} of ${page.totalCount}`
-                    : `Discussion posts ${first} through ${last} of ${page.totalCount}`);
-        }
-
-        newerButton.disabled = !visible || page.pageIndex === 0;
-        olderButton.disabled = !visible || page.pageIndex >= page.pageCount - 1;
-    }
-
 
     function leaderboardRank(state: PublicState, row: LeaderboardRow): number {
         // Keep cached/older API responses consistent with the server's competition ranks.
@@ -7825,6 +8071,24 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             isNullableString(value.nextBeforeCreatedAtUtc) && isNullableString(value.nextBeforeReplyId);
     }
 
+    function isDiscussionFeedCursor(value: unknown): value is DiscussionFeedCursor {
+        return hasProperties(value, "rankedAtUnixMs", "score", "activityAtUnixMs", "challengeDay", "participantId", "systemPostId") &&
+            typeof value.rankedAtUnixMs === "number" && Number.isFinite(value.rankedAtUnixMs) &&
+            typeof value.score === "number" && Number.isFinite(value.score) &&
+            typeof value.activityAtUnixMs === "number" && Number.isFinite(value.activityAtUnixMs) &&
+            typeof value.challengeDay === "number" && Number.isInteger(value.challengeDay) && value.challengeDay >= 0 &&
+            typeof value.participantId === "string" && isNullableString(value.systemPostId);
+    }
+
+    function isDiscussionFeedPage(value: unknown): value is DiscussionFeedPage {
+        return hasProperties(value, "threads", "nextCursor") &&
+            Array.isArray(value.threads) && value.threads.length <= DISCUSSION_BATCH_SIZE &&
+            value.threads.every(thread => hasProperties(thread, "note", "systemPost") &&
+                ((thread.note === null && isDiscussionSystemPost(thread.systemPost)) ||
+                 (thread.systemPost === null && isParticipantNote(thread.note)))) &&
+            (value.nextCursor === null || isDiscussionFeedCursor(value.nextCursor));
+    }
+
     function isLeaderboardRow(value: unknown): value is LeaderboardRow {
         return hasProperties(value, "participantId", "displayName", "athleteUrl", "profileImageUrl", "checkedInDays", "totalPoints", "currentStreak", "cells", "badges", "latestCheckInAtUtc", "challengeEmailsStopped", "challengeInactive") &&
             typeof value.participantId === "string" && typeof value.displayName === "string" &&
@@ -7919,6 +8183,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     async function postJson(url: `${typeof API}/signup` | `${typeof API}/resend`, payload: object): Promise<SignupResult>;
     async function postJson(url: `${typeof API}/confirm`, payload: object): Promise<AccessResult>;
     async function postJson(url: `${typeof API}/discussion/replies/page`, payload: object): Promise<DiscussionReplyPage>;
+    async function postJson(url: `${typeof API}/discussion/feed`, payload: object): Promise<DiscussionFeedPage>;
     async function postJson(url: `${typeof API}/discussion/replies/edit`, payload: object): Promise<DiscussionReply>;
     async function postJson(
         url: `${typeof API}/edit` | `${typeof API}/participant` | `${typeof API}/check-in` | `${typeof API}/discussion/replies` | `${typeof API}/discussion/replies/delete`,
@@ -7942,6 +8207,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         if ((url === `${API}/signup` || url === `${API}/resend`) && !isSignupResult(data)) throw invalidApiResponse(url);
         if (url === `${API}/confirm` && !isAccessResult(data)) throw invalidApiResponse(url);
         if (url === `${API}/discussion/replies/page` && !isDiscussionReplyPage(data)) throw invalidApiResponse(url);
+        if (url === `${API}/discussion/feed` && !isDiscussionFeedPage(data)) throw invalidApiResponse(url);
         if (url === `${API}/discussion/replies/edit` && !isDiscussionReply(data)) throw invalidApiResponse(url);
         if ((url === `${API}/edit` || url === `${API}/participant` || url === `${API}/check-in` || url === `${API}/discussion/replies` || url === `${API}/discussion/replies/delete`) && !isParticipantState(data)) {
             throw invalidApiResponse(url);

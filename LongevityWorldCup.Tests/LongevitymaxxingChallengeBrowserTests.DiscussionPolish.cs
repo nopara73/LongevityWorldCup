@@ -109,7 +109,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         Assert.DoesNotContain("token", await reply.Locator(".lmx-discussion-permalink").GetAttributeAsync("href"));
         await page.GotoAsync("/longevitymaxxing#discussion/post/p6/19");
         await Assertions.Expect(DiscussionThread(page, "p6", 19)).ToBeFocusedAsync();
-        await Assertions.Expect(page.Locator("#lmxNotesDayLabel")).ToContainTextAsync("6");
+        await Assertions.Expect(page.Locator("#lmxNotes article")).ToHaveCountAsync(6);
     }
 
     [Fact]

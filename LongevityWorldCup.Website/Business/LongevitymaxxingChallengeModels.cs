@@ -55,6 +55,22 @@ public sealed record LongevitymaxxingDiscussionThread(
     LongevitymaxxingParticipantNote? Note,
     LongevitymaxxingDiscussionSystemPost? SystemPost);
 
+public sealed record LongevitymaxxingDiscussionFeedCursor(
+    long RankedAtUnixMs,
+    double Score,
+    long ActivityAtUnixMs,
+    int ChallengeDay,
+    string ParticipantId,
+    string? SystemPostId);
+
+public sealed record LongevitymaxxingDiscussionFeedRequest(
+    string? AccessToken,
+    LongevitymaxxingDiscussionFeedCursor? Before = null);
+
+public sealed record LongevitymaxxingDiscussionFeedPage(
+    IReadOnlyList<LongevitymaxxingDiscussionThread> Threads,
+    LongevitymaxxingDiscussionFeedCursor? NextCursor);
+
 public sealed record LongevitymaxxingParticipantEditRequest(
     string AccessToken,
     string TimeZoneId,

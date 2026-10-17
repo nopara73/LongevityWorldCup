@@ -1514,80 +1514,28 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
     }
 
     [Fact]
-    public async Task DiscussionPager_PreservesServerHotOrderAndPagesPosts()
+    public async Task DiscussionFeed_PreservesHotOrderAndKeepsThreadsTogether()
     {
-        var app = App;
-        var browser = Browser;
-        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
-        {
-            BaseURL = app.BaseAddress.ToString(),
-            Locale = "en-US",
-            ViewportSize = new ViewportSize { Width = 1140, Height = 900 }
-        });
-        await RouteChallengeResourcesAsync(context);
-
+        await using var context = await AestheticSystemBrowserTests.NewContextAsync(Browser, App, new() { Locale = "en-US", ViewportSize = new() { Width = 1140, Height = 900 } });
         var page = await context.NewPageAsync();
         var errors = new List<string>();
-        page.Console += (_, message) =>
-        {
-            if (message.Type == "error")
-                errors.Add(message.Text);
-        };
         page.PageError += (_, error) => errors.Add(error);
         await page.RouteAsync("**/api/longevitymaxxing/state", route => FulfillJsonAsync(route, JsonSerializer.Serialize(BuildPublicState())));
-
-        await page.GotoAsync("/longevitymaxxing", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-
+        await page.GotoAsync("/longevitymaxxing");
         var notes = page.Locator("#lmxNotes");
-        var pager = page.Locator("#lmxNotesPager");
-        var newer = page.Locator("#lmxNotesNewer");
-        var older = page.Locator("#lmxNotesOlder");
-        var label = page.Locator("#lmxNotesDayLabel");
-        await notes.WaitForAsync();
-
-        Assert.Equal("1–5 of 6", await label.InnerTextAsync());
-        Assert.Equal("Discussion posts 1 through 5 of 6", await label.GetAttributeAsync("aria-label"));
-        Assert.True(await newer.IsDisabledAsync());
-        Assert.False(await older.IsDisabledAsync());
-        var firstPageText = await notes.InnerTextAsync();
-        await Assertions.Expect(notes.Locator(".lmx-discussion-post-author strong")).ToHaveTextAsync(["Fox", "Ari", "Bea", "Cam", "Dee"]);
-        Assert.Contains("An older post with enough current discussion to rank first.", firstPageText);
-        Assert.DoesNotContain("Another note from the same day.", firstPageText);
+        await Assertions.Expect(notes.Locator(".lmx-discussion-post-author strong"))
+            .ToHaveTextAsync(["Fox", "Ari", "Bea", "Cam", "Dee", "Eli"]);
+        await Assertions.Expect(page.Locator("#lmxFeedCaughtUp")).ToBeVisibleAsync();
+        await Assertions.Expect(page.Locator("#lmxFeedOlder")).ToBeHiddenAsync();
+        await Assertions.Expect(page.Locator("#lmxNotesPager")).ToHaveCountAsync(0);
         var postHeader = notes.Locator(".lmx-discussion-post-header").First;
         Assert.Equal("div", await postHeader.EvaluateAsync<string>("element => element.tagName.toLowerCase()"));
         Assert.NotEqual("fixed", await postHeader.EvaluateAsync<string>("element => getComputedStyle(element).position"));
-        var postHeaderBox = await postHeader.BoundingBoxAsync();
-        Assert.NotNull(postHeaderBox);
-        Assert.True(postHeaderBox.Height < 80, $"Discussion post header unexpectedly expanded to {postHeaderBox.Height}px.");
+        Assert.True((await postHeader.BoundingBoxAsync())!.Height < 80);
         Assert.Equal("visible", await notes.EvaluateAsync<string>("element => getComputedStyle(element).overflowY"));
         Assert.Equal("none", await notes.EvaluateAsync<string>("element => getComputedStyle(element).maxHeight"));
-
-        await older.ClickAsync();
-        Assert.Equal("6 of 6", await label.InnerTextAsync());
-        Assert.Equal("Discussion post 6 of 6", await label.GetAttributeAsync("aria-label"));
-        var oldestPageText = await notes.InnerTextAsync();
-        await Assertions.Expect(notes.Locator(".lmx-discussion-post-author strong")).ToHaveTextAsync("Eli");
-        Assert.Contains("Another note from the same day.", oldestPageText);
-        Assert.DoesNotContain("Fox", oldestPageText);
-        Assert.True(await older.IsDisabledAsync());
-        Assert.False(await newer.IsDisabledAsync());
-
-        await newer.ClickAsync();
-        Assert.Equal("1–5 of 6", await label.InnerTextAsync());
-        Assert.Contains("Fox", await notes.InnerTextAsync());
-        Assert.Contains("Ari", await notes.InnerTextAsync());
-
-        foreach (var control in new[] { newer, older })
-        {
-            var box = await control.BoundingBoxAsync();
-            Assert.NotNull(box);
-            Assert.True(box.Width >= 44 && box.Height >= 44, $"Expected at least a 44px notes pager touch target; got {box.Width}x{box.Height}.");
-        }
-
         await page.SetViewportSizeAsync(390, 844);
-        Assert.True(await pager.EvaluateAsync<bool>(
-            "element => element.getBoundingClientRect().right <= element.closest('.lmx-card').getBoundingClientRect().right"));
-        Assert.Equal("column", await page.Locator(".lmx-notes-header").EvaluateAsync<string>("element => getComputedStyle(element).flexDirection"));
+        Assert.False(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth > innerWidth"));
         Assert.Empty(errors);
     }
 

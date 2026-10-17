@@ -568,11 +568,11 @@ public sealed class LongevitymaxxingChallengePageTests(TestWebApplicationFactory
         Assert.Contains("toggle(\"lmxNotesPanel\", dashboardMode);", javascript);
         Assert.Contains("renderNotes(publicDiscussionThreads(state), false);", javascript);
         Assert.Contains("renderNotes(participantDiscussionThreads(state), true);", javascript);
-        Assert.Contains("const DISCUSSION_PAGE_SIZE = 5;", javascript);
+        Assert.Contains("const DISCUSSION_BATCH_SIZE = 10;", javascript);
         Assert.Contains("const DISCUSSION_THREAD_LIMIT = 100;", javascript);
         Assert.Contains("renderCheckIns(state.eligibleDays || []);", javascript);
         Assert.Contains("function systemDiscussionThreads(state: PublicState | null | undefined): ParticipantNote[]", javascript);
-        Assert.Contains("function discussionThreadsInHotOrder(notes: ParticipantNote[]): ParticipantNote[]", javascript);
+        Assert.Contains("function discussionThreadsInHotOrder(notes: ParticipantNote[], limited = true): ParticipantNote[]", javascript);
         Assert.Contains("function openDiscussionReplyComposer(button: HTMLButtonElement): void", javascript);
         Assert.Contains("function openDiscussionReplyEditor(button: HTMLButtonElement): void", javascript);
         Assert.Contains("function deleteDiscussionReply(button: HTMLButtonElement): Promise<void>", javascript);
