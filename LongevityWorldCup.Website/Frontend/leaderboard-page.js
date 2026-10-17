@@ -667,10 +667,11 @@ function initializeAthletePortraitMotion() {
         for (const [img, playback] of active) {
             if (!img.isConnected || motionFor(img) !== playback.motion) playback.stop();
         }
-        // Initial hydration replaces the server-rendered cards. Wait for its final
-        // portraits so a replacement cannot consume the gesture before it is seen.
+        // Server-rendered table rows remain usable while hydration is pending or fails.
+        leaderboard?.querySelectorAll('img.portrait').forEach(wire);
+        // Initial hydration replaces the podium cards. Wait for their final
+        // portraits so a replacement cannot consume autoplay before it is seen.
         if (athleteResultsReady) {
-            leaderboard?.querySelectorAll('img.portrait').forEach(wire);
             podium?.querySelectorAll('img.podium-portrait').forEach(img => {
                 wire(img);
                 const motion = motionFor(img);

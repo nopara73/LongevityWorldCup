@@ -272,6 +272,59 @@ public sealed class AthletePortraitMotionBrowserTests(
     }
 
     [Theory]
+    [InlineData(1440, false)]
+    [InlineData(390, false)]
+    [InlineData(1440, true)]
+    [InlineData(390, true)]
+    public async Task ServerRenderedTablePortraits_PlayBeforeHydrationAndAfterDataFailure(int width, bool failRequest)
+    {
+        await using var context = await NewContextAsync(width);
+        await context.AddInitScriptAsync("window.holdTableMotion = true");
+        var requested = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await context.RouteAsync("**/api/data/athletes", async route =>
+        {
+            requested.TrySetResult();
+            if (failRequest) await route.AbortAsync();
+            else
+            {
+                await release.Task;
+                await route.ContinueAsync();
+            }
+        });
+        var page = await context.NewPageAsync();
+        try
+        {
+            await page.GotoAsync("/leaderboard", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+            await requested.Task.WaitAsync(TimeSpan.FromSeconds(20));
+            if (failRequest)
+                await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard could not load.");
+            var body = page.Locator(".leaderboard table tbody");
+            await Assertions.Expect(body).ToHaveAttributeAsync("data-server-rendered", "true");
+            var link = body.Locator("a[href='/athlete/anna-buky']").Filter(new() { Has = page.Locator("img.portrait") }).First;
+            var image = link.Locator("img.portrait");
+            await image.ScrollIntoViewIfNeededAsync();
+            await page.WaitForFunctionAsync("() => document.querySelector(\".leaderboard a[href='/athlete/anna-buky'] img.portrait\")?.naturalWidth > 0");
+
+            await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.NoPreference });
+            await image.HoverAsync();
+            var overlay = link.Locator("video.athlete-portrait-motion");
+            await Assertions.Expect(overlay).ToHaveClassAsync("athlete-portrait-motion is-playing");
+            Assert.Contains("/assets/athlete-motion/anna-buky-", await overlay.EvaluateAsync<string>("video => video.currentSrc"));
+            await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.Reduce });
+            await Assertions.Expect(overlay).ToHaveCountAsync(0);
+            await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.NoPreference });
+            await link.FocusAsync();
+            await Assertions.Expect(overlay).ToHaveClassAsync("athlete-portrait-motion is-playing");
+            await Assertions.Expect(link).ToBeFocusedAsync();
+            await Assertions.Expect(link).ToHaveAttributeAsync("href", "/athlete/anna-buky");
+            await Assertions.Expect(body).ToHaveAttributeAsync("data-server-rendered", "true");
+            Assert.Equal(2, await page.EvaluateAsync<int>("window.motionStarts"));
+        }
+        finally { release.TrySetResult(); }
+    }
+
+    [Theory]
     [InlineData(1440)]
     [InlineData(390)]
     public async Task ApprovedTablePortraits_ReplayOnHover_AndKeepTheirLinksAndAlignment(int width)
