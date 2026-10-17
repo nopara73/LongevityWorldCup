@@ -805,24 +805,37 @@
         .edit-profile-portrait .edit-profile-visual {
             position: relative;
             display: grid;
+            grid-template-columns: minmax(0, 1fr);
+            grid-template-rows: 1fr 1fr;
             overflow: hidden;
             border-radius: 8px;
             line-height: 0;
         }
 
-        .edit-profile-portrait .edit-profile-visual > picture,
-        .edit-profile-portrait .edit-profile-visual > .edit-profile-title {
-            grid-area: 1 / 1;
+        .edit-profile-portrait .edit-profile-visual > picture {
+            grid-area: 1 / 1 / 3;
+            position: relative;
+            align-self: stretch;
+            width: 100%;
+            aspect-ratio: 1;
         }
 
         .edit-profile-portrait .edit-profile-visual .illustration {
+            position: absolute;
+            inset: 0;
+            display: block;
+            width: 100%;
+            height: 100%;
+            max-width: none;
+            max-height: none;
             border-radius: 8px;
         }
 
-        /* Phones size the card to the picture, so the caption never overhangs it. */
+        /* The caption gets at most half the frame. Long names and enlarged text
+           can grow both grid rows, keeping the full name and portrait visible. */
         @media (max-width: 600px) {
             .edit-profile-portrait .edit-profile-visual {
-                width: min(100%, clamp(184px, 50vw, 240px));
+                width: min(100%, clamp(11.5rem, 50vw, 15rem));
                 margin-inline: auto;
             }
 
@@ -833,7 +846,7 @@
 
         @media (min-width: 640px) and (max-width: 932px) and (max-height: 480px) and (orientation: landscape) {
             .edit-profile-portrait .edit-profile-visual {
-                width: min(100%, 240px, 26dvh);
+                width: min(100%, 15rem, max(9.5rem, 26dvh));
                 margin-inline: auto;
             }
 
@@ -844,6 +857,7 @@
 
         .edit-profile-portrait .edit-profile-visual > .edit-profile-title {
             position: relative;
+            grid-area: 2 / 1;
             z-index: 2;
             align-self: end;
             margin: 0;
@@ -851,12 +865,32 @@
             border-radius: 0 0 8px 8px;
             background: linear-gradient(to top, rgba(6, 12, 18, 0.94), rgba(6, 12, 18, 0.82));
             color: #ffffff;
-            font-size: clamp(1.3rem, 1rem + 1vw, 1.85rem);
+            font-size: 1.85rem;
             line-height: 1.1;
             overflow-wrap: break-word;
             text-align: center;
             text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
             pointer-events: none;
+        }
+
+        @media (max-width: 959px) {
+            .edit-profile-portrait .edit-profile-visual > .edit-profile-title {
+                font-size: 1.5rem;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .edit-profile-portrait .edit-profile-visual > .edit-profile-title {
+                font-size: 1.25rem;
+                padding-inline: min(0.9rem, 6px);
+            }
+        }
+
+        @media (min-width: 640px) and (max-width: 932px) and (max-height: 480px) and (orientation: landscape) {
+            .edit-profile-portrait .edit-profile-visual > .edit-profile-title {
+                font-size: 1.25rem;
+                padding-inline: min(0.9rem, 6px);
+            }
         }
 
         .edit-profile-portrait .edit-profile-visual > .edit-profile-title::before {
@@ -1206,7 +1240,12 @@
             const athleteDisplayName = getAthleteDisplayName();
             document.getElementById('character-title').textContent = athleteDisplayName;
             const athleteImage = document.createElement('img');
-            athleteImage.src = athlete.ProfilePic;
+            const portraitPlaceholder = document.querySelector('meta[name="lwc-athlete-placeholder"]').content;
+            athleteImage.addEventListener('error', () => {
+                if (athleteImage.getAttribute('src') !== portraitPlaceholder) athleteImage.src = portraitPlaceholder;
+            });
+            athleteImage.dataset.profilePicValue = athlete.ProfilePic || '';
+            athleteImage.src = athlete.ProfilePic || portraitPlaceholder;
             athleteImage.alt = `${athleteDisplayName} headshot`;
             athleteImage.className = 'illustration';
             athleteImage.loading = 'lazy';
@@ -1507,11 +1546,18 @@
             if (isValidSelectedAthlete(originalAthlete)) window.LwcInitialView.complete();
         }));
 
+        function setProfilePictureValue(value) {
+            const image = document.querySelector('.edit-profile-visual .illustration');
+            image.dataset.profilePicValue = value || '';
+            image.src = value || document.querySelector('meta[name="lwc-athlete-placeholder"]').content;
+        }
+
         function restoreProfilePicToOriginal() {
-            const imgEl = document.querySelector('.illustration');
-            imgEl.src = originalAthlete.ProfilePic;
+            setProfilePictureValue(originalAthlete.ProfilePic);
             athlete.ProfilePic = originalAthlete.ProfilePic;
-            document.getElementById('restoreProfilePicButton').style.display = 'none';
+            const restoreButton = document.getElementById('restoreProfilePicButton');
+            if (document.activeElement === restoreButton) changeProfileBtn.focus({ preventScroll: true });
+            restoreButton.style.display = 'none';
             // go back to “nothing changed,” so disable submit again
             updateSubmitButtonState();
         }
@@ -1799,7 +1845,7 @@
                     newSrc = raw;
                 }
                 const imgEl = document.querySelector('.illustration');
-                imgEl.src = newSrc;
+                setProfilePictureValue(newSrc);
                 imgEl.alt = getAthleteDisplayName() + ' headshot';
                 athlete.ProfilePic = newSrc;
                 document.getElementById('restoreProfilePicButton').style.display = 'inline-flex';
@@ -1890,14 +1936,14 @@
         }
 
         function readProfileField(field) {
-            return field.key === 'ProfilePic' ? document.querySelector('.illustration').getAttribute('src')
+            return field.key === 'ProfilePic' ? document.querySelector('.illustration').dataset.profilePicValue
                 : document.getElementById(field.id).value;
         }
 
         function applyProfileDraftValues(values) {
             profileFieldValidation.forEach(controller => controller.reset());
             getProfileEditFields().forEach(field => {
-                if (field.key === 'ProfilePic') document.querySelector('.illustration').src = values[field.key].value;
+                if (field.key === 'ProfilePic') setProfilePictureValue(values[field.key].value);
                 else document.getElementById(field.id).value = values[field.key].value;
                 if (document.getElementById(field.id + 'Error')) setProfileFieldError(field.id, values[field.key].error || '');
             });

@@ -127,7 +127,7 @@ interface FlowActionDockApi {
 
     function keepFocusedControlInVisualViewport(): void {
         if (keyboardClearFrame) window.cancelAnimationFrame(keyboardClearFrame);
-        if (!isKeyboardOpen || !isKeyboardEditingControl(document.activeElement)) {
+        if (!isKeyboardEditingControl(document.activeElement)) {
             keyboardClearFrame = 0;
             return;
         }
@@ -135,13 +135,16 @@ interface FlowActionDockApi {
         keyboardClearFrame = window.requestAnimationFrame(() => {
             keyboardClearFrame = 0;
             const control = document.activeElement;
-            if (!isKeyboardOpen || !isKeyboardEditingControl(control)) return;
+            if (!isKeyboardEditingControl(control) || !isVisible(control)
+                || control.closest('[hidden], [inert], [aria-hidden="true"]')) return;
 
             const viewport = getVisualViewportBounds();
             const rect = control.getBoundingClientRect();
             const margin = 16;
             const topLimit = viewport.top + margin;
-            const bottomLimit = viewport.bottom - margin;
+            const dockHeight = parseFloat(getComputedStyle(document.documentElement)
+                .getPropertyValue('--flow-action-dock-height')) || 0;
+            const bottomLimit = viewport.bottom - dockHeight - margin;
             if (rect.bottom > bottomLimit) {
                 window.scrollBy({ top: Math.ceil(rect.bottom - bottomLimit), behavior: 'auto' });
             } else if (rect.top < topLimit) {
@@ -485,7 +488,7 @@ interface FlowActionDockApi {
     }
 
     function init(): void {
-        if ('ResizeObserver' in window) resizeObserver = new ResizeObserver(scheduleRefresh);
+        if ('ResizeObserver' in window) resizeObserver = new ResizeObserver(scheduleFocusedControlClearance);
         ensureRegisteredElements();
 
         registrationObserver = new MutationObserver(scheduleRefresh);
