@@ -85,6 +85,14 @@ public sealed class PageTitleEnlargedTextBrowserTests(
                             issues.push('Roboto is not loaded');
                         const titleBox = title.getBoundingClientRect();
                         if (title.scrollWidth > title.clientWidth + 1) issues.push('title overflows its column');
+                        // Keep the compound suffix whole on supported phone widths;
+                        // enlarged padding must not needlessly split "maxxing" again.
+                        const suffix = title.querySelector('wbr')?.nextSibling;
+                        if (suffix && innerWidth >= 320) {
+                            const range = document.createRange(); range.selectNodeContents(suffix);
+                            const lines = new Set([...range.getClientRects()].filter(r => r.width > 0).map(r => Math.round(r.top)));
+                            if (lines.size > 1) issues.push('compound suffix wraps despite the available phone width');
+                        }
                         const walker = document.createTreeWalker(title, NodeFilter.SHOW_TEXT);
                         for (let node; (node = walker.nextNode());) {
                             // Soft hyphens are the only permitted internal word breaks.

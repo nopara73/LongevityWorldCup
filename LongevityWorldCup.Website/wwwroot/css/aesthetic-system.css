@@ -1596,6 +1596,10 @@ html body :is(#about-longevity-world-cup, #history-of-longevity-as-a-sport, #ro-
 }
 
 @media (max-width: 600px) {
+    html body .lmx-title-panel {
+        padding-inline: min(clamp(1rem, 3vw, 1.7rem), 5vw);
+    }
+
     html body .documentation-page-about .documentation-document {
         --about-bleed: min(1.1rem, 5.5vw);
     }
