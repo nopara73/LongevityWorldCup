@@ -85,7 +85,10 @@ public sealed class PlayJoinTrackBrowserTests(
     [InlineData(768, 1024)]
     [InlineData(601, 900)]
     [InlineData(844, 390)]
+    [InlineData(600, 320)]
+    [InlineData(390, 320)]
     [InlineData(390, 844)]
+    [InlineData(360, 740)]
     [InlineData(320, 640)]
     public async Task EnlargedText_KeepsTrackNamesAndDetailsWhole(int width, int height)
     {
@@ -103,10 +106,13 @@ public sealed class PlayJoinTrackBrowserTests(
         await page.GotoAsync("/join");
         await page.WaitForFunctionAsync("() => !document.getElementById('joinMobileGoProButton')?.disabled && !document.getElementById('joinGoProButton')?.disabled");
         await Assertions.Expect(page.Locator("#joinProDiscountNote")).ToBeVisibleAsync();
-        await page.EvaluateAsync("() => { document.documentElement.style.fontSize = '200%'; }");
+        var normalActionFont = await page.Locator("#joinTrackBackBtn").EvaluateAsync<double>("element => parseFloat(getComputedStyle(element).fontSize)");
+        await page.EvaluateAsync("() => { document.documentElement.style.setProperty('font-size', '200%', 'important'); }");
         await page.EvaluateAsync("() => document.fonts.ready");
         await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
         await page.EvaluateAsync("() => window.LwcFlowActionDock?.refreshNow?.()");
+        var enlargedActionFont = await page.Locator("#joinTrackBackBtn").EvaluateAsync<double>("element => parseFloat(getComputedStyle(element).fontSize)");
+        Assert.InRange(enlargedActionFont / normalActionFont, 1.99, 2.01);
 
         const string selector = ".play-join-card .track-name, .play-join-meta dt, .play-join-meta dd, .play-join-actions .flow-action__label";
         var splitWords = await page.EvaluateAsync<string[]>(
@@ -137,12 +143,17 @@ public sealed class PlayJoinTrackBrowserTests(
         var dockHeight = await page.Locator(".play-join-actions").EvaluateAsync<double>("element => element.getBoundingClientRect().height");
         Assert.True(dockHeight <= Math.Min(280, height / 2d), $"The join actions occupy {dockHeight}px of the {height}px viewport.");
         await ExpectNoHorizontalOverflowAsync(page);
+        await ExpectJoinControlsReadableAsync(page);
     }
 
     [Theory]
     [InlineData(390, 844, false)]
+    [InlineData(390, 844, true)]
+    [InlineData(360, 740, false)]
     [InlineData(360, 740, true)]
     [InlineData(320, 640, false)]
+    [InlineData(320, 640, true)]
+    [InlineData(390, 320, true)]
     public async Task PhoneDock_GivesTheTracksEvenRoomBesideAnArrowBack(int width, int height, bool dark)
     {
         await using var context = await Browser.NewContextAsync(new BrowserNewContextOptions
@@ -178,6 +189,94 @@ public sealed class PlayJoinTrackBrowserTests(
         Assert.True(layout[5] <= 1 && layout[6] <= 1, $"{scenario}: Back and both tracks should share one row.");
         await Assertions.Expect(page.Locator("#joinTrackBackBtn")).ToHaveAccessibleNameAsync("Back");
         await ExpectNoHorizontalOverflowAsync(page);
+        await ExpectJoinControlsReadableAsync(page);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task JoinDock_PreservesKeyboardOrderAndFocusWhenItMoves(bool fallback)
+    {
+        await using var context = await Browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = App.BaseAddress.ToString(),
+            ViewportSize = new() { Width = 390, Height = 844 },
+            ReducedMotion = fallback ? ReducedMotion.Reduce : ReducedMotion.NoPreference
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        if (fallback) await context.AddInitScriptAsync("Element.prototype.moveBefore = undefined");
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/join");
+        await page.WaitForFunctionAsync("() => !document.getElementById('joinTrackBackBtn')?.disabled");
+        await ExpectActionStackDockedInViewportAsync(page, ".play-join-actions");
+        var back = page.GetByRole(AriaRole.Button, new() { Name = "Back", Exact = true });
+        await back.FocusAsync();
+        await page.Keyboard.PressAsync("Tab");
+        await Assertions.Expect(page.Locator("#joinMobileStartAmateurBtn")).ToBeFocusedAsync();
+        await page.Keyboard.PressAsync("Tab");
+        await Assertions.Expect(page.Locator("#joinMobileGoProButton")).ToBeFocusedAsync();
+        await page.Keyboard.PressAsync("Shift+Tab");
+        await page.Keyboard.PressAsync("Shift+Tab");
+        await Assertions.Expect(back).ToBeFocusedAsync();
+
+        var scroll = await page.EvaluateAsync<double>("window.scrollY");
+        foreach (var mode in new[] { "off", "always", "off", "always" })
+        {
+            await page.EvaluateAsync("mode => { const stack = document.querySelector('.play-join-actions'); stack.dataset.flowDock = mode; window.LwcFlowActionDock.refreshNow(); }", mode);
+            await Assertions.Expect(back).ToBeFocusedAsync();
+            Assert.InRange(await page.EvaluateAsync<double>("window.scrollY"), scroll - 1, scroll + 1);
+            await Assertions.Expect(back).ToHaveAccessibleNameAsync("Back");
+        }
+        await page.EvaluateAsync("() => { document.querySelector('.play-join-actions').dataset.flowDock = 'auto'; }");
+        foreach (var size in new[] { new ViewportSize { Width = 1440, Height = 900 }, new ViewportSize { Width = 390, Height = 844 } })
+        {
+            await page.SetViewportSizeAsync(size.Width, size.Height);
+            await page.EvaluateAsync("() => window.LwcFlowActionDock.refreshNow()");
+            await Assertions.Expect(back).ToBeFocusedAsync();
+            await Assertions.Expect(back).ToHaveAccessibleNameAsync("Back");
+        }
+        await page.Keyboard.PressAsync("Enter");
+        await page.WaitForURLAsync("**/play");
+        await Assertions.Expect(page.Locator("#playStartPanel")).ToBeVisibleAsync();
+        await Assertions.Expect(page.Locator("#joinTrackPanel")).ToBeHiddenAsync();
+    }
+
+    private static async Task ExpectJoinControlsReadableAsync(IPage page)
+    {
+        var problems = await page.EvaluateAsync<string[]>(
+            """
+            () => {
+                const issues = [];
+                const actions = [...document.querySelectorAll('.play-join-actions > .flow-action')]
+                    .filter(action => action.getBoundingClientRect().width > 0);
+                const inside = (inner, outer) => inner.left >= outer.left - 1 && inner.right <= outer.right + 1
+                    && inner.top >= outer.top - 1 && inner.bottom <= outer.bottom + 1;
+                for (const action of actions) {
+                    const box = action.getBoundingClientRect();
+                    if (box.width < 44 || box.height < 44) issues.push(`${action.id}: target below 44px`);
+                    const label = action.querySelector('.flow-action__label');
+                    if (label.getBoundingClientRect().width) {
+                        const range = document.createRange();
+                        range.selectNodeContents(label);
+                        if ([...range.getClientRects()].some(rect => !inside(rect, box))) issues.push(`${action.id}: clipped text`);
+                    }
+                    const icon = action.querySelector('i'), iconBox = icon.getBoundingClientRect();
+                    if (iconBox.width && !inside(iconBox, box)) issues.push(`${action.id}: clipped icon`);
+                    if (action.id === 'joinTrackBackBtn' && !label.getBoundingClientRect().width) {
+                        const glyph = getComputedStyle(icon, '::before').content;
+                        if (!iconBox.width || !iconBox.height || glyph === 'none' || glyph === 'normal') issues.push('Back: missing arrow');
+                        if (Math.abs(iconBox.left + iconBox.width / 2 - box.left - box.width / 2) > 1) issues.push('Back: arrow not centered');
+                    }
+                }
+                for (let i = 0; i < actions.length; i++) for (let j = i + 1; j < actions.length; j++) {
+                    const a = actions[i].getBoundingClientRect(), b = actions[j].getBoundingClientRect();
+                    if (Math.min(a.right, b.right) > Math.max(a.left, b.left) + 1
+                        && Math.min(a.bottom, b.bottom) > Math.max(a.top, b.top) + 1) issues.push('overlapping controls');
+                }
+                return issues;
+            }
+            """);
+        Assert.True(problems.Length == 0, string.Join("; ", problems));
     }
 
     [Fact]
