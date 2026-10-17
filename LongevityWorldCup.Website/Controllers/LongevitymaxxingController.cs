@@ -30,6 +30,23 @@ public sealed class LongevitymaxxingController(LongevitymaxxingChallengeService 
         }
     }
 
+    [HttpPost("discussion/feed")]
+    public IActionResult GetDiscussionFeed([FromBody] LongevitymaxxingDiscussionFeedRequest request)
+    {
+        try
+        {
+            return Ok(_challenge.GetDiscussionFeed(request));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
     [HttpPost("signup")]
     public async Task<IActionResult> Signup([FromBody] LongevitymaxxingSignupRequest request, CancellationToken ct)
     {

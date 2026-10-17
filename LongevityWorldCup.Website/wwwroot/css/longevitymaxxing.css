@@ -2670,6 +2670,41 @@ body.lmx-checkin-dialog-open {
     z-index: 1;
 }
 
+.lmx-note.lmx-announcement {
+    border-left: 3px solid var(--lmx-accent);
+    background: var(--lmx-surface-accent);
+}
+
+.lmx-announcement-icon {
+    display: grid;
+    place-items: center;
+    color: var(--lmx-accent);
+}
+
+.lmx-announcement-content {
+    padding-left: var(--lmx-discussion-indent);
+    overflow-wrap: anywhere;
+    max-width: 76ch;
+    line-height: 1.5;
+}
+
+.lmx-announcement-content h3 {
+    margin: var(--lwc-space-3) 0 var(--lwc-space-2);
+    font-size: 1.15rem;
+    line-height: 1.3;
+}
+
+.lmx-note .lmx-announcement-content p {
+    padding-left: 0;
+    margin: 0 0 var(--lwc-space-3);
+}
+
+@media (max-width: 480px) {
+    .lmx-announcement-content {
+        padding-left: 0;
+    }
+}
+
 .lmx-discussion-post-header {
     position: relative;
     padding-left: var(--lmx-discussion-indent);
@@ -4768,23 +4803,13 @@ a.lmx-note-mention:focus-visible {
     margin: 0;
 }
 
-.lmx-notes-pager {
-    min-width: min(100%, 17.25rem);
-    display: grid;
-    grid-template-columns: minmax(4.75rem, auto) minmax(5.5rem, 1fr) minmax(4.75rem, auto);
-    gap: 0.3rem;
-    align-items: stretch;
-    padding: 0.25rem;
-    border: 1px solid var(--lmx-border);
-    border-radius: 12px;
-    background: var(--lmx-surface-muted);
-}
-
-.lmx-notes-pager button {
+.lmx-feed-button {
     min-height: 2.75rem;
-    padding: 0 0.65rem;
+    max-width: 100%;
+    min-width: 0;
+    padding: 0.65rem 1.1rem;
     border: 1px solid var(--lmx-border);
-    border-radius: 9px;
+    border-radius: 999px;
     background: var(--lmx-surface);
     color: var(--lmx-ink);
     box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
@@ -4793,38 +4818,84 @@ a.lmx-note-mention:focus-visible {
     justify-content: center;
     gap: 0.4rem;
     font: inherit;
-    font-size: 0.78rem;
-    font-weight: 850;
+    font-size: var(--lwc-type-sm);
+    font-weight: 700;
     cursor: pointer;
     touch-action: manipulation;
 }
 
-.lmx-notes-pager button:not(:disabled):hover {
+.lmx-feed-button:not(:disabled):hover {
     border-color: rgba(0, 188, 212, 0.48);
     box-shadow: 0 4px 10px rgba(15, 23, 42, 0.10);
 }
 
-.lmx-notes-pager button:focus-visible {
+.lmx-feed-button:focus-visible,
+.lmx-feed-caught-up:focus-visible {
     outline: 3px solid rgba(0, 188, 212, 0.25);
     outline-offset: 2px;
 }
 
-.lmx-notes-pager button:disabled {
+.lmx-feed-button:disabled {
     opacity: 0.42;
     cursor: default;
     box-shadow: none;
 }
 
-.lmx-notes-day-label {
-    min-width: 0;
-    display: inline-flex;
-    align-items: center;
+.lmx-feed-updates {
+    position: sticky;
+    top: 5.75rem;
+    z-index: 2;
+    height: 0;
+    display: flex;
     justify-content: center;
-    color: var(--lmx-ink);
-    font-size: 0.78rem;
-    font-weight: 800;
-    line-height: 1.2;
+    pointer-events: none;
+}
+
+.lmx-feed-new {
+    transform: translateY(-50%);
+    pointer-events: auto;
+    align-self: flex-start;
+    color: var(--lmx-accent-hover);
+    border-color: var(--lmx-accent);
+    background: var(--lmx-surface);
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.15);
+}
+
+.lmx-feed-sentinel {
+    height: 1px;
+}
+
+.lmx-feed-footer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--lwc-space-3);
+    padding-top: var(--lwc-space-5);
+}
+
+.lmx-feed-caught-up {
+    display: flex;
+    align-items: center;
+    gap: var(--lwc-space-2);
+    color: var(--lmx-muted);
+    font-size: var(--lwc-type-sm);
+}
+
+.lmx-feed-caught-up i {
+    color: var(--lmx-accent-hover);
+}
+
+.lmx-feed-status {
+    margin: 0;
+    color: var(--lmx-danger);
+    font-size: var(--lwc-type-sm);
     text-align: center;
+}
+
+.lmx-feed-status:empty,
+.lmx-feed-button[hidden],
+.lmx-feed-caught-up[hidden] {
+    display: none;
 }
 
 .lmx-notes {
@@ -5292,12 +5363,6 @@ a.lmx-note-mention:focus-visible {
     .lmx-notes-header {
         align-items: stretch;
         flex-direction: column;
-    }
-
-    .lmx-notes-pager {
-        width: 100%;
-        min-width: 0;
-        grid-template-columns: minmax(4.75rem, auto) minmax(0, 1fr) minmax(4.75rem, auto);
     }
 
     .lmx-tab {

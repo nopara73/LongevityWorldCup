@@ -77,11 +77,11 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         Assert.Equal(1, requests);
         await thread.Locator("[data-discussion-replies-collapse]").ClickAsync();
         await textarea.PressAsync("Escape");
-        // Rendering another page must keep the collapsed choice and cached history.
+        // Browsing the feed must keep the collapsed choice and cached history.
         if (!dialog)
         {
-            await page.Locator("#lmxNotesOlder").ClickAsync();
-            await page.Locator("#lmxNotesNewer").ClickAsync();
+            await DiscussionThread(page, "p6", 19).ScrollIntoViewIfNeededAsync();
+            await thread.ScrollIntoViewIfNeededAsync();
             await Assertions.Expect(thread.Locator("[data-discussion-reply-id]:not([hidden])")).ToHaveCountAsync(3);
         }
         await page.EvaluateAsync("location.hash = '#discussion/post/p7/5/reply/r1'");

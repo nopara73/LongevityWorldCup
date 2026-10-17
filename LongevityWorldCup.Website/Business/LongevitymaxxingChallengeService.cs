@@ -2596,16 +2596,18 @@ public sealed partial class LongevitymaxxingChallengeService
 
                 CREATE TABLE IF NOT EXISTS LongevitymaxxingDiscussionSystemPosts (
                     Id TEXT PRIMARY KEY,
-                    Kind TEXT NOT NULL CHECK (Kind IN ('participant-joined')),
+                    Kind TEXT NOT NULL CHECK (Kind IN ('participant-joined', 'announcement')),
                     ParticipantId TEXT NOT NULL,
                     OccurredDate TEXT NOT NULL,
                     OccurredAtUtc TEXT NOT NULL,
+                    SourceEventId TEXT NULL,
+                    AnnouncementText TEXT NULL,
                     FOREIGN KEY (ParticipantId)
                         REFERENCES LongevitymaxxingParticipants(Id) ON DELETE CASCADE
                 );
 
                 CREATE UNIQUE INDEX IF NOT EXISTS UX_LongevitymaxxingDiscussionSystemPosts_ParticipantKind
-                    ON LongevitymaxxingDiscussionSystemPosts(ParticipantId, Kind);
+                    ON LongevitymaxxingDiscussionSystemPosts(ParticipantId, Kind) WHERE Kind = 'participant-joined';
 
                 CREATE TABLE IF NOT EXISTS LongevitymaxxingDiscussionSystemPostReplies (
                     Id TEXT PRIMARY KEY,
@@ -2675,6 +2677,7 @@ public sealed partial class LongevitymaxxingChallengeService
                 TryAddLongevitymaxxingDiscussionRepliesColumn(sqlite, "PhotosJson TEXT NOT NULL DEFAULT '[]'", systemPosts);
                 TryAddLongevitymaxxingDiscussionRepliesColumn(sqlite, "PhotoHash TEXT NOT NULL DEFAULT ''", systemPosts);
             }
+            EnsureDiscussionAnnouncementSchema(sqlite);
             BackfillDiscussionUpdatedAtUtc(sqlite);
             RemoveRetiredChallengePaymentData(sqlite);
         });
@@ -3298,7 +3301,8 @@ public sealed partial class LongevitymaxxingChallengeService
     }
 
     private IReadOnlyList<LongevitymaxxingParticipantNote> GetParticipantNotes(
-        bool publicOnly, DateTimeOffset now, string? postParticipantId = null, int challengeDay = 0)
+        bool publicOnly, DateTimeOffset now, string? postParticipantId = null, int challengeDay = 0,
+        int limit = MaxDiscussionThreads, LongevitymaxxingDiscussionFeedCursor? before = null)
     {
         return _db.Run(sqlite =>
         {
@@ -3354,14 +3358,12 @@ public sealed partial class LongevitymaxxingChallengeService
             }
 
             var selectedRows = rows
-                .OrderByDescending(row => CalculateDiscussionHotScore(
-                    row.ReplyCount,
-                    row.LastActivityAtUtc,
-                    now))
-                .ThenByDescending(row => row.LastActivityAtUtc)
-                .ThenByDescending(row => row.ChallengeDay)
-                .ThenBy(row => row.ParticipantId, StringComparer.Ordinal)
-                .Take(MaxDiscussionThreads)
+                .Select(row => (Row: row, Position: DiscussionFeedPosition(
+                    now, row.ReplyCount, row.LastActivityAtUtc, row.ChallengeDay, row.ParticipantId)))
+                .Where(item => before is null || CompareDiscussionFeedPositions(item.Position, before) > 0)
+                .OrderBy(item => item.Position, DiscussionFeedOrder)
+                .Take(limit)
+                .Select(item => item.Row)
                 .ToList();
 
             var imagesByCheckIn = GetCheckInImagesForDiscussionThreads(sqlite, selectedRows);
@@ -3389,7 +3391,8 @@ public sealed partial class LongevitymaxxingChallengeService
         });
     }
 
-    private IReadOnlyList<LongevitymaxxingDiscussionSystemPost> GetSystemDiscussionPosts(DateTimeOffset now, string? postId = null)
+    private IReadOnlyList<LongevitymaxxingDiscussionSystemPost> GetSystemDiscussionPosts(DateTimeOffset now, string? postId = null,
+        int limit = MaxDiscussionThreads, LongevitymaxxingDiscussionFeedCursor? before = null)
     {
         return _db.Run(sqlite =>
         {
@@ -3397,14 +3400,15 @@ public sealed partial class LongevitymaxxingChallengeService
             cmd.CommandText =
                 """
                 SELECT post.Id, post.Kind, post.ParticipantId, participant.DisplayName,
-                       post.OccurredDate, post.OccurredAtUtc, COUNT(reply.Id), MAX(reply.CreatedAtUtc)
+                       post.OccurredDate, post.OccurredAtUtc, COUNT(reply.Id), MAX(reply.CreatedAtUtc),
+                       post.SourceEventId, post.AnnouncementText
                 FROM LongevitymaxxingDiscussionSystemPosts post
                 JOIN LongevitymaxxingParticipants participant ON participant.Id = post.ParticipantId
                 LEFT JOIN LongevitymaxxingDiscussionSystemPostReplies reply ON reply.PostId = post.Id
                 WHERE participant.ConfirmedAtUtc IS NOT NULL
                   AND (@postId IS NULL OR post.Id = @postId)
                 GROUP BY post.Id, post.Kind, post.ParticipantId, participant.DisplayName,
-                         post.OccurredDate, post.OccurredAtUtc;
+                         post.OccurredDate, post.OccurredAtUtc, post.SourceEventId, post.AnnouncementText;
                 """;
             Add(cmd, "@postId", postId);
             var rows = new List<SystemDiscussionPostRow>();
@@ -3423,14 +3427,17 @@ public sealed partial class LongevitymaxxingChallengeService
                     reader.GetString(4),
                     reader.GetString(5),
                     reader.GetInt32(6),
-                    latestReplyAt is null || latestReplyAt <= occurredAt ? occurredAt : latestReplyAt.Value));
+                    latestReplyAt is null || latestReplyAt <= occurredAt ? occurredAt : latestReplyAt.Value,
+                    ReadDiscussionAnnouncement(reader)));
             }
 
             var selectedRows = rows
-                .OrderByDescending(row => CalculateDiscussionHotScore(row.ReplyCount, row.LastActivityAtUtc, now))
-                .ThenByDescending(row => row.LastActivityAtUtc)
-                .ThenBy(row => row.Id, StringComparer.Ordinal)
-                .Take(MaxDiscussionThreads)
+                .Select(row => (Row: row, Position: DiscussionFeedPosition(
+                    now, row.ReplyCount, row.LastActivityAtUtc, 0, row.ParticipantId, row.Id)))
+                .Where(item => before is null || CompareDiscussionFeedPositions(item.Position, before) > 0)
+                .OrderBy(item => item.Position, DiscussionFeedOrder)
+                .Take(limit)
+                .Select(item => item.Row)
                 .ToList();
             var repliesByPost = GetInitialSystemDiscussionPostReplies(sqlite, selectedRows);
             return selectedRows
@@ -3445,7 +3452,7 @@ public sealed partial class LongevitymaxxingChallengeService
                     row.ReplyCount,
                     repliesByPost.TryGetValue(row.Id, out var replies)
                         ? replies
-                        : []))
+                        : []) { Announcement = row.Announcement })
                 .ToList();
         });
     }
@@ -4747,7 +4754,8 @@ public sealed partial class LongevitymaxxingChallengeService
         string Date,
         string OccurredAtUtc,
         int ReplyCount,
-        DateTimeOffset LastActivityAtUtc);
+        DateTimeOffset LastActivityAtUtc,
+        LongevitymaxxingDiscussionAnnouncement? Announcement);
 
     private sealed record AthleteTieBreak(bool IsOnLeaderboard, int? CurrentPlacement, DateTime? DateOfBirthUtc)
     {

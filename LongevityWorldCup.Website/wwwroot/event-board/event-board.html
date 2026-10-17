@@ -140,7 +140,6 @@
                 white-space: normal;
             }
 
-            .event-board-page .events-board td.event-message .event-message-cell .name-and-rank,
             .event-board-page .events-board td.event-message .event-message-cell .rank-badge,
             .event-board-page .events-board td.event-message .event-message-cell .badge-class,
             .event-board-page .events-board td.event-message .event-message-cell .badge-chip,
@@ -287,6 +286,16 @@
 
             .event-board-page .events-board tbody tr > td.col-date:empty {
                 display: none;
+            }
+
+            /* Enlarged text: the side space stops growing with the text so the
+               message keeps its width. */
+            main.event-board-page {
+                padding-inline: min(1rem, 5vw);
+            }
+
+            .event-board-page .events-board tbody tr > td.event-message {
+                padding-right: min(var(--lwc-space-4, 16px), 5vw);
             }
         }
     </style>
