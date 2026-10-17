@@ -380,7 +380,7 @@ public sealed class BiomarkerHistoryBrowserTests(
             await Expect(readings.First).ToHaveAttributeAsync("data-date", "2010-01-01");
             await Expect(readings.Last).ToHaveAttributeAsync("data-date", $"{2009 + count}-01-01");
             await Expect(row.Locator(".clock-history-reading.is-latest")).ToHaveTextAsync(await row.Locator(".biomarker-overview-current").InnerTextAsync());
-            Assert.True(await row.Locator(".clock-history-scroll").EvaluateAsync<bool>("el => el.getBoundingClientRect().height >= 44"));
+            Assert.True(await row.Locator(".clock-history-scroll").EvaluateAsync<bool>("el => { const bounds = el.getBoundingClientRect(); return bounds.height >= 44 && bounds.width >= 44; }"));
             Assert.True(await row.Locator(".clock-history-scroll").EvaluateAsync<bool>("""
                 el => { const viewport = el.getBoundingClientRect(); const last = el.querySelector('.is-latest').getBoundingClientRect();
                     return last.left >= viewport.left - 1 && last.right <= viewport.right + 1; }
@@ -621,7 +621,7 @@ public sealed class BiomarkerHistoryBrowserTests(
     [InlineData(768, false)]
     [InlineData(390, true)]
     [InlineData(320, true)]
-    public async Task ResultsOverTime_ReadsAsCompactSingleLineBiomarkers(int width, bool touch)
+    public async Task ResultsOverTime_KeepsShortBiomarkersCompactAndLetsLongLabelsWrap(int width, bool touch)
     {
         await using var context = await NewContextAsync(width, dark: true, touch: touch);
         var athlete = await HistoryAthleteAsync("Benjamin Garden", 66, partial: true);
@@ -646,12 +646,17 @@ public sealed class BiomarkerHistoryBrowserTests(
                     const name = range.getBoundingClientRect();
                     const unit = row.querySelector('.biomarker-history-unit').getBoundingClientRect();
                     const label = button.firstChild.textContent.trim();
-                    // Short pairs share one line; a long name may wrap its unit onto a second line on phones.
-                    const shortPair = label.length + row.querySelector('.biomarker-history-unit').textContent.trim().length <= 12;
-                    const limit = shortPair ? 56 : 64;
-                    if (row.getBoundingClientRect().height > limit) problems.push(`${label}: row is ${Math.round(row.getBoundingClientRect().height)}px tall`);
-                    if (button.getBoundingClientRect().height < 44) problems.push(`${label}: target shorter than 44px`);
-                    if (shortPair && (Math.abs(unit.bottom - name.bottom) > 4 || unit.left < name.right)) problems.push(`${label}: unit is not beside its name`);
+                    const bounds = button.getBoundingClientRect();
+                    if (bounds.height < 44 || bounds.width < 44) problems.push(`${label}: target below 44px`);
+                    range.selectNodeContents(button);
+                    const cell = button.closest('th').getBoundingClientRect();
+                    if ([...range.getClientRects()].some(rect => rect.width > 0 && (rect.left < cell.left - 1 || rect.right > cell.right + 1 || rect.top < bounds.top - 1 || rect.bottom > bounds.bottom + 1)))
+                        problems.push(`${label}: label escapes its target or cell`);
+                    // These short labels fit even at 320px. Character count alone cannot predict the width of other labels.
+                    if (['ALP', 'ALT', 'CRP'].includes(label)) {
+                        if (row.getBoundingClientRect().height > 56) problems.push(`${label}: short row lost its compact layout`);
+                        if (Math.abs(unit.bottom - name.bottom) > 4 || unit.left < name.right) problems.push(`${label}: unit is not beside its name`);
+                    }
                 }
                 const size = row => parseFloat(getComputedStyle(row.querySelector('.biomarker-overview-current')).fontSize);
                 if (size(clock) <= size(biomarkers[0])) problems.push('clocks no longer lead the biomarkers');
