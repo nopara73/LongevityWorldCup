@@ -49,6 +49,7 @@
 
     button.addEventListener('click', async () => {
         if (busy) return;
+        const restoreFocus = document.activeElement === button;
         busy = true;
         // Request permission directly within the click: Safari requires a user gesture.
         try {
@@ -88,6 +89,9 @@
             busy = false;
             const message = status?.textContent || '';
             render(message);
+            if (restoreFocus && !button.disabled && document.activeElement === document.body) {
+                button.focus({ preventScroll: true });
+            }
         }
     });
 

@@ -51,7 +51,9 @@ public sealed class LongevitymaxxingLifeStripBrowserTests(
 
         foreach (var percent in new[] { 125, 150, 175, 200 })
         {
-            await page.EvaluateAsync("percent => document.documentElement.style.fontSize = percent + '%'", percent);
+            // Root percentages use the browser default, which need not equal the
+            // page's measured baseline. Enlarge the actual starting size instead.
+            await page.EvaluateAsync("size => document.documentElement.style.fontSize = size + 'px'", normal.RootFontSize * percent / 100);
             await SettleAsync(page);
             var enlarged = await MeasureAsync(page);
             Assert.InRange(enlarged.RootFontSize, normal.RootFontSize * percent / 100 - 0.1, normal.RootFontSize * percent / 100 + 0.1);
