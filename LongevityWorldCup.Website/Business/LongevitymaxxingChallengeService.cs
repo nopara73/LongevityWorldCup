@@ -25,7 +25,6 @@ public sealed partial class LongevitymaxxingChallengeService
     private const int MaxConsecutiveMissedScoredDaysForDailyReminders = 3;
     private const int LeaderboardScoringWindowDays = 14;
     private const int MaxMentionsPerCheckIn = 5;
-    private const int MaxDiscussionReplyLength = 240;
     private const int MaxDiscussionThreads = 100;
     private const int InitialDiscussionReplyCount = 3;
     private const int DiscussionReplyPageSize = 20;
@@ -655,7 +654,8 @@ public sealed partial class LongevitymaxxingChallengeService
         if (systemPostId is null && (string.IsNullOrWhiteSpace(postParticipantId) || request.ChallengeDay < 1))
             throw new InvalidOperationException("That discussion post is no longer available.");
 
-        var body = NormalizeDiscussionReply(request.Body, photos.Count > 0);
+        var body = NormalizeDiscussionReply(request.Body, int.MaxValue, photos.Count > 0);
+        var characterLimit = GetCharacterAllowance(author, now).Limit;
         var mentionedParticipants = ResolveMentionedParticipants(body, author.Id, GetConfirmedParticipants());
         if (mentionedParticipants.Count > MaxMentionsPerCheckIn)
             throw new InvalidOperationException($"Each reply can mention up to {MaxMentionsPerCheckIn} participants.");
@@ -689,6 +689,9 @@ public sealed partial class LongevitymaxxingChallengeService
                 transaction.Commit();
                 return;
             }
+
+            // An already accepted reply remains replayable after its author's allowance falls.
+            NormalizeDiscussionReply(body, characterLimit, photos.Count > 0);
 
             if (replyToId is not null)
                 RequireDiscussionReplyContext(sqlite, transaction, replyToId, postParticipantId, request.ChallengeDay, systemPostId);
@@ -800,11 +803,13 @@ public sealed partial class LongevitymaxxingChallengeService
         var now = EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow);
         var author = RequireParticipantByAccessToken(request.AccessToken);
         var replyId = NormalizeDiscussionReplyId(request.ReplyId);
+        var characterLimit = GetCharacterAllowance(author, now).Limit;
         return _db.Run(sqlite =>
         {
             using var transaction = sqlite.BeginTransaction(deferred: false);
             var reply = RequireOwnedDiscussionReply(sqlite, transaction, replyId, author.Id, "edit");
-            var body = NormalizeDiscussionReply(request.Body, ReadDiscussionPhotos(sqlite, transaction, replyId, reply.SystemPostId).Count > 0);
+            var body = NormalizeDiscussionReply(request.Body, Math.Max(characterLimit, reply.Body.Length),
+                ReadDiscussionPhotos(sqlite, transaction, replyId, reply.SystemPostId).Count > 0);
             if (string.Equals(reply.Body, body, StringComparison.Ordinal))
             {
                 transaction.Commit();
@@ -1538,7 +1543,9 @@ public sealed partial class LongevitymaxxingChallengeService
         if (eligible is null)
             throw new InvalidOperationException("That challenge day is not open for check-in.");
 
-        var note = NormalizeNote(request.Note);
+        var characterLimit = GetCharacterAllowance(settings, participant, byDay, now).Limit;
+        var existingLength = byDay.GetValueOrDefault(request.ChallengeDay)?.Note?.Length ?? 0;
+        var note = NormalizeNote(request.Note, Math.Max(characterLimit, existingLength));
         var confirmedParticipants = GetConfirmedParticipants();
         var mentionedParticipants = ResolveMentionedParticipants(note, participant.Id, confirmedParticipants);
         if (mentionedParticipants.Count > MaxMentionsPerCheckIn)
@@ -1622,7 +1629,7 @@ public sealed partial class LongevitymaxxingChallengeService
     private static string CheckInRequestHash(LongevitymaxxingCheckInRequest request, IReadOnlyList<string> photoHashes)
         => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(new {
             request.ChallengeDay, request.Sleep, request.Exercise, request.Nutrition, request.Vices,
-            Note = NormalizeNote(request.Note), Photos = photoHashes
+            Note = NormalizeNote(request.Note, int.MaxValue), Photos = photoHashes
         }))));
 
     private static bool HasCheckInReceipt(SqliteConnection sqlite, SqliteTransaction? transaction, string participantId, string? submissionId, string requestHash)
@@ -2818,6 +2825,7 @@ public sealed partial class LongevitymaxxingChallengeService
                 .OrderByDescending(x => x)
                 .FirstOrDefault();
             var badges = BuildBadges(settings, p, p.Id, performanceByDay, currentStreak, categoryLeaders);
+            var athleteTieBreak = GetAthleteTieBreak(athleteTieBreaks, p.AthleteSlug);
             var challengeInactive = HasMissedScoredDayInactiveThreshold(settings, p, includedByDay,
                 settings.StartDate.AddDays(leaderboardWindowEndDay - 1));
             var cells = Enumerable.Range(1, visibleDayCount)
@@ -2849,10 +2857,11 @@ public sealed partial class LongevitymaxxingChallengeService
                     p.StoppedEmailsAtUtc is not null,
                     challengeInactive)
                 {
+                    CharacterAllowance = new(totalPoints, athleteTieBreak.AthletesBehind),
                     HasFullMarks = checkedInDays == LeaderboardScoringWindowDays
                         && maximumWindowPoints > 0 && totalPoints == maximumWindowPoints
                 },
-                TieBreak: GetAthleteTieBreak(athleteTieBreaks, p.AthleteSlug));
+                TieBreak: athleteTieBreak);
         })
         .OrderByDescending(r => r.Row.TotalPoints)
         .ThenByDescending(r => r.Row.CheckedInDays)
@@ -2955,6 +2964,11 @@ public sealed partial class LongevitymaxxingChallengeService
         if (snapshot is null)
             return result;
 
+        var placements = snapshot.OfType<JsonObject>()
+            .Where(athlete => !string.IsNullOrWhiteSpace(athlete["AthleteSlug"]?.GetValue<string>()))
+            .Select(TryReadCurrentPlacement)
+            .OfType<int>()
+            .ToArray();
         foreach (var athlete in snapshot.OfType<JsonObject>())
         {
             var slug = athlete["AthleteSlug"]?.GetValue<string>();
@@ -2965,7 +2979,10 @@ public sealed partial class LongevitymaxxingChallengeService
             var tieBreak = new AthleteTieBreak(
                 placement is not null,
                 placement,
-                TryReadDateOfBirthUtc(athlete));
+                TryReadDateOfBirthUtc(athlete))
+            {
+                AthletesBehind = placement is { } rank ? placements.Count(otherRank => otherRank > rank) : 0
+            };
             foreach (var key in BuildAthleteTieBreakKeys(slug))
                 result[key] = tieBreak;
         }
@@ -4257,23 +4274,23 @@ public sealed partial class LongevitymaxxingChallengeService
         return string.IsNullOrWhiteSpace(cleaned) ? null : cleaned;
     }
 
-    private static string? NormalizeNote(string? note)
+    private static string? NormalizeNote(string? note, int characterLimit)
     {
         var normalized = (note ?? "").Trim();
         if (string.IsNullOrWhiteSpace(normalized))
             return null;
-        if (normalized.Length > MaxDiscussionReplyLength)
-            throw new InvalidOperationException($"Keep check-in text within {MaxDiscussionReplyLength} characters. Your text has not been saved.");
+        if (normalized.Length > characterLimit)
+            throw new InvalidOperationException($"Keep check-in text within {characterLimit} characters. Your text has not been saved.");
         return normalized;
     }
 
-    private static string NormalizeDiscussionReply(string? body, bool hasPhotos = false)
+    private static string NormalizeDiscussionReply(string? body, int characterLimit, bool hasPhotos = false)
     {
         var normalized = (body ?? "").Trim();
         if (string.IsNullOrWhiteSpace(normalized) && !hasPhotos)
             throw new InvalidOperationException("Write a reply before posting.");
-        if (normalized.Length > MaxDiscussionReplyLength)
-            throw new InvalidOperationException($"Keep replies within {MaxDiscussionReplyLength} characters. Your text has not been posted.");
+        if (normalized.Length > characterLimit)
+            throw new InvalidOperationException($"Keep replies within {characterLimit} characters. Your text has not been posted.");
         return normalized;
     }
 
@@ -4734,6 +4751,7 @@ public sealed partial class LongevitymaxxingChallengeService
 
     private sealed record AthleteTieBreak(bool IsOnLeaderboard, int? CurrentPlacement, DateTime? DateOfBirthUtc)
     {
+        public int AthletesBehind { get; init; }
         public static readonly AthleteTieBreak None = new(false, null, null);
     }
 

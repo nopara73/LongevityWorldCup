@@ -526,7 +526,8 @@ internal static partial class ReferencePage
                 }
                 setOpen(item, true);
                 const stickyHeader = document.getElementById("site-sticky-header");
-                const offset = ((stickyHeader && stickyHeader.offsetHeight) || 52) + 18;
+                const measuredHeight = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--site-sticky-height"));
+                const offset = ((stickyHeader && stickyHeader.offsetHeight) || measuredHeight || 52) + 18;
                 window.scrollTo({ top: target.getBoundingClientRect().top + window.scrollY - offset, behavior: "instant" });
             };
             window.addEventListener("hashchange", openFromHash);

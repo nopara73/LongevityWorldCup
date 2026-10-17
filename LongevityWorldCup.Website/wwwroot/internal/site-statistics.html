@@ -9,14 +9,14 @@
     <script>window.LwcInitialView.prepare();</script>
     <style>
         @font-face {
-            font-family: "Poppins";
-            src: url("{{ASSET_POPPINS_REGULAR}}") format("truetype");
+            font-family: "Roboto";
+            src: url("{{ASSET_ROBOTO_REGULAR}}") format("woff2");
             font-weight: 400;
         }
 
         @font-face {
-            font-family: "Poppins";
-            src: url("{{ASSET_POPPINS_BOLD}}") format("truetype");
+            font-family: "Roboto";
+            src: url("{{ASSET_ROBOTO_BOLD}}") format("woff2");
             font-weight: 700;
         }
     </style>
@@ -27,17 +27,18 @@
     <main class="stats-page initial-view-main">
         <header class="stats-header">
             <div class="stats-title">
-                <span class="stats-kicker">internal / public-safe</span>
+                <span class="stats-kicker">Longevity World Cup</span>
                 <h1>Site Statistics</h1>
+                <span id="statsWindow" class="stats-window"></span>
             </div>
             <div class="stats-controls" aria-label="Dashboard filters">
                 <label>
                     <span>Timeframe</span>
                     <select id="statsRange">
                         <option value="today">Today</option>
-                        <option value="7d" selected>7D</option>
-                        <option value="30d">30D</option>
-                        <option value="90d">90D</option>
+                        <option value="7d">Last 7 days</option>
+                        <option value="30d">Last 30 days</option>
+                        <option value="90d" selected>Last 90 days</option>
                         <option value="season">Season</option>
                         <option value="alltime">All-time</option>
                     </select>
@@ -80,7 +81,7 @@
             </div>
         </header>
 
-        <nav id="statsTabs" class="stats-tabs" aria-label="Dashboard tabs"></nav>
+        <nav id="statsTabs" class="stats-tabs" aria-label="Dashboard views"></nav>
 
         <section id="statsStatus" class="stats-status" role="status" aria-live="polite">Loading redacted analytics...</section>
 

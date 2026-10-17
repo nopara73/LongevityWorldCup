@@ -246,6 +246,7 @@
         profileImageUrl: string | null;
         checkedInDays: number;
         totalPoints: number;
+        characterAllowance?: { challengePoints: number; ultimateLeagueAthletesBehind: number; limit: number };
         currentStreak: number;
         cells: DayCell[];
         badges: string[];
@@ -1513,11 +1514,6 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 <span>Perfect plans keep failing?</span>`;
             life.className = "lmx-life-strip";
             life.setAttribute("aria-label", "Real life compatible challenge");
-            life.innerHTML = `
-                <span><i class="fas fa-briefcase" aria-hidden="true"></i>Work compatible</span>
-                <span><i class="fas fa-plane" aria-hidden="true"></i>Travel compatible</span>
-                <span><i class="fas fa-people-roof" aria-hidden="true"></i>Family compatible</span>
-                <span><i class="fas fa-notes-medical" aria-hidden="true"></i>Illness compatible</span>`;
             return;
         }
 
@@ -1533,11 +1529,6 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             highlights.innerHTML = "";
             life.className = "lmx-life-strip";
             life.setAttribute("aria-label", "Challenge compatibility");
-            life.innerHTML = `
-                <span><i class="fas fa-briefcase" aria-hidden="true"></i>Work compatible</span>
-                <span><i class="fas fa-plane" aria-hidden="true"></i>Travel compatible</span>
-                <span><i class="fas fa-people-roof" aria-hidden="true"></i>Family compatible</span>
-                <span><i class="fas fa-notes-medical" aria-hidden="true"></i>Illness compatible</span>`;
             return;
         }
 
@@ -2652,6 +2643,25 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         </svg>`;
     }
 
+    function discussionCharacterLimit(originalBody = ""): number {
+        const row = publicState?.leaderboard.find(candidate => candidate.participantId === participantState?.participant.id);
+        const limit = row?.characterAllowance?.limit ?? 146 + Math.min(154, Math.max(0, row?.totalPoints || 0));
+        return Math.max(limit, originalBody.length);
+    }
+
+    function characterAllowanceDescription(characterLimit: number): string {
+        const row = publicState?.leaderboard.find(candidate => candidate.participantId === participantState?.participant.id);
+        const points = row?.characterAllowance?.challengePoints ?? Math.min(154, Math.max(0, row?.totalPoints || 0));
+        const behind = row?.characterAllowance?.ultimateLeagueAthletesBehind || 0;
+        const breakdown = `146 base + ${points} Challenge points + ${behind} athletes behind you in the Ultimate League`;
+        return characterLimit > discussionCharacterLimit()
+            ? `Saved text allowance: ${characterLimit} characters. ${breakdown}` : breakdown;
+    }
+
+    function checkInCharacterLimit(form: HTMLFormElement): number {
+        return discussionCharacterLimit(form.dataset.originalNote || "");
+    }
+
     function checkInCardHtml(day: EligibleDay): string {
         const existing: Partial<CheckInDraft> = day.existing || {};
         const draft = checkInDrafts.get(checkInDraftKey(day));
@@ -2707,7 +2717,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                     <span id="lmx-note-${day.challengeDay}-count" class="lmx-note-character-count" data-note-character-count></span>
                 </div>
                 </div>
-                <textarea id="lmx-note-${day.challengeDay}" data-character-limit="240" placeholder="Visible publicly" data-mention-input role="combobox" aria-autocomplete="list" aria-haspopup="listbox" aria-expanded="false" aria-controls="lmx-mentions-${day.challengeDay}" aria-describedby="lmx-note-${day.challengeDay}-count">${esc(draft ? draft.note : note)}</textarea>
+                <textarea id="lmx-note-${day.challengeDay}" data-character-limit="${discussionCharacterLimit(note)}" placeholder="Visible publicly" data-mention-input role="combobox" aria-autocomplete="list" aria-haspopup="listbox" aria-expanded="false" aria-controls="lmx-mentions-${day.challengeDay}" aria-describedby="lmx-note-${day.challengeDay}-count">${esc(draft ? draft.note : note)}</textarea>
                 <div id="lmx-mentions-${day.challengeDay}" class="lmx-mention-options" role="listbox" aria-label="Mention a participant" hidden></div>
             </div>
             <div class="lmx-field lmx-note-photo-field" data-photo-slots="${photoSlotsLeft}">
@@ -4900,7 +4910,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             form.querySelector<HTMLInputElement>(".lmx-question:not(:has(.lmx-answer-input:checked)) .lmx-answer-input")?.focus();
             return;
         }
-        if (draft.note.length > 240) {
+        if (draft.note.length > checkInCharacterLimit(form)) {
             updateCheckInSaveState(form);
             form.querySelector<HTMLTextAreaElement>("textarea")?.focus();
             return;
@@ -5043,12 +5053,16 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const savingThisDay = checkInSaving?.key === key;
         const note = form.querySelector<HTMLTextAreaElement>("textarea");
         const noteLength = draft.note.length;
+        const characterLimit = checkInCharacterLimit(form);
         if (note) {
-            const over = Math.max(0, noteLength - 240);
+            const over = Math.max(0, noteLength - characterLimit);
+            note.dataset.characterLimit = String(characterLimit);
             note.setCustomValidity(over ? `Remove ${over} characters before saving.` : "");
             note.setAttribute("aria-invalid", String(over > 0));
             const count = form.querySelector<HTMLElement>("[data-note-character-count]")!;
-            count.textContent = over ? `${over} over` : `${noteLength}/240`;
+            count.textContent = over ? `${over} over` : `${noteLength}/${characterLimit}`;
+            count.title = characterAllowanceDescription(characterLimit);
+            count.setAttribute("aria-label", over ? `${over} characters over the limit` : `${noteLength} of ${characterLimit} characters`);
             count.classList.toggle("over-limit", over > 0);
         }
         if (changed) {
@@ -5059,7 +5073,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const slots = Number(form.querySelector<HTMLElement>(".lmx-note-photo-field")?.dataset.photoSlots || MAX_NOTE_PHOTOS);
         form.querySelectorAll<HTMLInputElement | HTMLButtonElement>("[data-photo-button], [data-note-photos]").forEach(control => { control.disabled = savingThisDay || getPendingNotePhotos(form).length >= slots; });
         if (button) {
-            button.disabled = !!checkInSaving || !complete || (!changed && !checkInErrors.has(key)) || noteLength > 240;
+            button.disabled = !!checkInSaving || !complete || (!changed && !checkInErrors.has(key)) || noteLength > characterLimit;
             button.toggleAttribute("aria-busy", savingThisDay);
             if (savingThisDay) button.setAttribute("aria-busy", "true");
             button.innerHTML = savingThisDay
@@ -5913,7 +5927,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
 
     function discussionDraftCanSubmit(draft: DiscussionDraft): boolean {
         const hasPhotos = !!draft.photos?.length || !!(draft.editReplyId && findDiscussionReply(draft.editReplyId)?.images?.length);
-        return !draft.needsPhotos && draft.body.length <= 240 && (!!draft.body.trim() || hasPhotos) &&
+        return !draft.needsPhotos && draft.body.length <= discussionCharacterLimit(draft.originalBody) && (!!draft.body.trim() || hasPhotos) &&
             (draft.body.trim() !== draft.originalBody || !!draft.photos?.length);
     }
 
@@ -5988,7 +6002,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             else if (!mentioned.has(reply.participantId)) {
                 const prefix = `@${recipient.displayName} `;
                 if (mentioned.size >= MAX_NOTE_MENTIONS) draft.notice = "Five-participant mention limit reached. Your draft is unchanged.";
-                else if (draft.body.length + prefix.length > 240) draft.notice = "Make room in your draft to add this @mention.";
+                else if (draft.body.length + prefix.length > discussionCharacterLimit(draft.originalBody)) draft.notice = "Make room in your draft to add this @mention.";
                 else {
                     draft.body = prefix + draft.body;
                     draft.selectionStart += prefix.length;
@@ -6087,7 +6101,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             </div>
             <div class="lmx-discussion-context" data-discussion-compose-context hidden></div>
             <div class="lmx-mention-field">
-                <textarea id="${inputId}" data-character-limit="240" rows="3" placeholder="Write a reply or mention @Name"
+                <textarea id="${inputId}" data-character-limit="${discussionCharacterLimit(draft.originalBody)}" rows="3" placeholder="Write a reply or mention @Name"
                     data-mention-input role="combobox" aria-autocomplete="list" aria-haspopup="listbox"
                     aria-expanded="false" aria-controls="${inputId}-mentions" aria-describedby="${inputId}-count"></textarea>
                 <div id="${inputId}-mentions" class="lmx-mention-options" role="listbox" aria-label="Mention a participant" hidden></div>
@@ -6267,12 +6281,15 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             }
             const count = composer.querySelector<HTMLElement>("[data-reply-count]")!;
             const length = draft.body.length;
-            const over = Math.max(0, length - 240);
-            count.textContent = over ? `${over} over` : `${length}/240`;
-            count.setAttribute("aria-label", over ? `${over} characters over the limit` : `${length} of 240 characters`);
+            const characterLimit = discussionCharacterLimit(draft.originalBody);
+            const over = Math.max(0, length - characterLimit);
+            textarea.dataset.characterLimit = String(characterLimit);
+            count.textContent = over ? `${over} over` : `${length}/${characterLimit}`;
+            count.title = characterAllowanceDescription(characterLimit);
+            count.setAttribute("aria-label", over ? `${over} characters over the limit` : `${length} of ${characterLimit} characters`);
             count.classList.toggle("over-limit", over > 0);
             textarea.setAttribute("aria-invalid", String(over > 0));
-            count.classList.toggle("at-limit", draft.body.length >= 240);
+            count.classList.toggle("at-limit", draft.body.length >= characterLimit);
             const hint = composer.querySelector<HTMLElement>("[data-draft-hint]")!;
             hint.textContent = pending ? (draft.editReplyId ? "Saving your edit…" : "Posting your reply…")
                 : draft.photos?.length ? "Photos kept while this page is open" : discussionDraftStorageFailed ? "" : "Draft saved in this tab";

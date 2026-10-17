@@ -808,7 +808,34 @@ function getFlagRouteState(pathname) {
     };
 }
 
-function normalizeLegacyLeagueRoute() {
+function removeDefaultLeaderboardParameters(url) {
+    const route = getLeagueRouteState(url.pathname);
+    const view = url.searchParams.get('view');
+    if (view === '' || view?.toLowerCase() === (route.view || 'ultimate')) {
+        url.searchParams.delete('view');
+    }
+    const search = url.searchParams.get('search');
+    if (search !== null && search.trim() === '') url.searchParams.delete('search');
+    const group = url.searchParams.get('group');
+    if (group !== null && group.toLowerCase() !== 'flags') url.searchParams.delete('group');
+
+    const filtersParam = url.searchParams.get('filters');
+    if (filtersParam === null) return;
+    const filters = parseFiltersParam(filtersParam);
+    if (filters.length === 0) {
+        url.searchParams.delete('filters');
+    } else if (!route.filterLabel && !getFlagRouteState(url.pathname).flagKey) {
+        // Selecting both tracks means all athletes. Keep any other selected filters.
+        const tracks = new Set(filters.map(filter => filter.toLowerCase()));
+        if (tracks.has('amateur') && tracks.has('professional')) {
+            const selectedFilters = filters.filter(filter => !['amateur', 'professional'].includes(filter.toLowerCase()));
+            if (selectedFilters.length === 0) url.searchParams.delete('filters');
+            else url.searchParams.set('filters', serializeFiltersParam(selectedFilters));
+        }
+    }
+}
+
+function normalizeLeaderboardUrl() {
     const url = new URL(window.location.href);
     const route = getLeagueRouteState(url.pathname);
     if (route.slug === 'pheno-improvement') {
@@ -820,10 +847,9 @@ function normalizeLegacyLeagueRoute() {
         if (!url.searchParams.has('filters')) {
             url.searchParams.set('filters', serializeFiltersParam([route.filterLabel.toLowerCase()]));
         }
-    } else {
-        return;
     }
-    history.replaceState(history.state || {}, '', url.toString());
+    removeDefaultLeaderboardParameters(url);
+    if (url.href !== window.location.href) history.replaceState(history.state, '', url.href);
 }
 
 
@@ -4179,7 +4205,7 @@ function finishLeaderboardFilter(selectedState, query, updateUrl) {
 
     // Initial hydration must preserve direct rank/profile fragments and unrelated URL state.
     if (!updateUrl) {
-        normalizeLegacyLeagueRoute();
+        normalizeLeaderboardUrl();
         updateFullLeaderboardLink();
         return;
     }
