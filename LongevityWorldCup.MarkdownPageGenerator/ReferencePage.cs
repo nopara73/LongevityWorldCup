@@ -414,8 +414,10 @@ internal static partial class ReferencePage
                 padding: min(1.1rem, 18px);
             }
 
+            /* A title whose longest word cannot sit beside its number moves under it. */
             .documentation-document .ruleset-rule > h2 {
-                gap: 0.7rem;
+                flex-wrap: wrap;
+                gap: 0.5rem 0.7rem;
             }
 
             .documentation-document .ruleset-rule > h2::before {
