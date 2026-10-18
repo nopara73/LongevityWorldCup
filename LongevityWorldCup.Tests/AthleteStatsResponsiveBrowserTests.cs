@@ -47,6 +47,8 @@ public sealed class AthleteStatsResponsiveBrowserTests(
     [InlineData("/athlete/michael-lustgarten", 375, 200)]
     [InlineData("/athlete/michael-lustgarten", 390, 200)]
     [InlineData("/athlete/michael-lustgarten", 480, 200)]
+    [InlineData("/athlete/michael-lustgarten", 769, 200)]
+    [InlineData("/athlete/michael-lustgarten", 933, 200)]
     [InlineData("/about", 390, 200)]
     public async Task ProfileStats_KeepLabelsValuesAndUnitsInsideTheirRows(string path, int width, int textPercent)
     {
