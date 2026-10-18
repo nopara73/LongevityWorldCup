@@ -5724,9 +5724,7 @@ a.lmx-note-mention:focus-visible {
 .lmx-advice-story-dialog :focus-visible { outline: 2px solid var(--lmx-accent); outline-offset: 2px; }
 .lmx-advice-story-dialog textarea:focus-visible { outline-offset: -1px; }
 .lmx-advice-story-count { position: absolute; bottom: .5rem; right: 1.25rem; color: var(--lmx-muted); font-size: .75rem; line-height: 1; font-variant-numeric: tabular-nums; pointer-events: none; }
-.lmx-advice-story-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; }
-.lmx-advice-continue { background: transparent; border: 0; color: var(--lmx-muted); font: inherit; min-width: 44px; min-height: 44px; padding: .5rem 0; text-align: left; }
-.lmx-advice-continue:hover { color: var(--lmx-ink); text-decoration: underline; }
+.lmx-advice-story-actions { display: flex; align-items: center; justify-content: flex-end; }
 .lmx-advice-story-dialog .lmx-button { min-height: 44px; padding: .5rem .85rem; border: 1px solid var(--lmx-accent); border-radius: 5px; background: var(--lmx-accent); color: white; font: inherit; font-weight: 700; }
 .lmx-advice-story-dialog .lmx-button:disabled { opacity: .5; cursor: default; }
 .lmx-advice-badge { display: inline-flex; margin-right: .6rem; color: var(--lmx-accent); font-size: .75rem; font-weight: 700; }

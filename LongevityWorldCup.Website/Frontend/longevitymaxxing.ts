@@ -5083,13 +5083,13 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             dialog.className = "lmx-advice-story-dialog";
             dialog.setAttribute("aria-labelledby", "lmxAdviceStoryHeading");
             dialog.innerHTML = `<form>
-                <h2 id="lmxAdviceStoryHeading">What's the story?</h2>
+                <h2 id="lmxAdviceStoryHeading">This is unusual from you. What's the story?</h2>
                 <div class="lmx-advice-story-input">
                     <textarea id="lmxAdviceStory" rows="4" placeholder="Writing helps process it." aria-labelledby="lmxAdviceStoryHeading" aria-describedby="lmxAdviceStoryCount"></textarea>
                     <span id="lmxAdviceStoryCount" class="lmx-advice-story-count"></span>
                 </div>
                 <p class="lmx-status error" role="status" aria-live="polite"></p>
-                <div class="lmx-advice-story-actions"><button class="lmx-advice-continue" type="button">Skip</button><button class="lmx-button" type="submit">Post publicly</button></div>
+                <div class="lmx-advice-story-actions"><button class="lmx-button" type="submit">Post</button></div>
             </form>`;
             document.body.append(dialog);
             const textarea = dialog.querySelector<HTMLTextAreaElement>("textarea")!;
@@ -5100,7 +5100,6 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 updateAdviceStoryControls();
             });
             dialog.querySelector("form")!.addEventListener("submit", event => { event.preventDefault(); void finishAdviceStory(true); });
-            dialog.querySelector(".lmx-advice-continue")!.addEventListener("click", () => void finishAdviceStory(false));
             dialog.addEventListener("cancel", event => { event.preventDefault(); if (!adviceStorySaving) void finishAdviceStory(false); });
         }
         if (adviceStoryDraft?.id !== prompt.id) {
@@ -5122,19 +5121,19 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     function updateAdviceStoryControls(): void {
         const dialog = document.getElementById("lmxAdviceStoryDialog");
         const prompt = participantState?.pendingAdvicePrompt;
-        if (!dialog || !prompt) return;
-        if (adviceStoryDraft?.id !== prompt.id) {
-            dialog.querySelector<HTMLButtonElement>("[type=submit]")!.disabled = true;
-            dialog.querySelector<HTMLButtonElement>(".lmx-advice-continue")!.disabled = false;
-            dialog.querySelector<HTMLTextAreaElement>("textarea")!.readOnly = false;
-            return;
-        }
-        const length = adviceStoryDraft?.body.length || 0;
-        dialog.querySelector<HTMLElement>("#lmxAdviceStoryCount")!.textContent = `${length} / ${prompt.characterLimit}`;
-        dialog.querySelector<HTMLButtonElement>("[type=submit]")!.disabled = adviceStorySaving || !adviceStoryDraft?.body.trim() || length > prompt.characterLimit;
-        dialog.querySelector<HTMLButtonElement>(".lmx-advice-continue")!.disabled = adviceStorySaving;
+        if (!dialog) return;
+        const submit = dialog.querySelector<HTMLButtonElement>("[type=submit]")!;
+        submit.disabled = adviceStorySaving;
         dialog.querySelector<HTMLTextAreaElement>("textarea")!.readOnly = adviceStorySaving;
         dialog.setAttribute("aria-busy", String(adviceStorySaving));
+        if (!prompt || adviceStoryDraft?.id !== prompt.id) {
+            submit.textContent = prompt ? "Continue" : "Close";
+            return;
+        }
+        submit.textContent = "Post";
+        const length = adviceStoryDraft?.body.length || 0;
+        dialog.querySelector<HTMLElement>("#lmxAdviceStoryCount")!.textContent = `${length} / ${prompt.characterLimit}`;
+        submit.disabled = adviceStorySaving || !adviceStoryDraft?.body.trim() || length > prompt.characterLimit;
     }
 
     async function finishAdviceStory(publish: boolean): Promise<void> {
@@ -5150,7 +5149,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             return;
         }
         if (adviceStoryDraft?.id !== prompt.id) {
-            if (!publish) syncAdvicePrompt();
+            syncAdvicePrompt();
             return;
         }
         adviceStorySaving = true;
@@ -5182,9 +5181,6 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                     if (accessToken === token) acceptParticipantState(refreshed);
                     if (!refreshed.pendingAdvicePrompt || refreshed.pendingAdvicePrompt.id !== prompt.id) {
                         status.textContent = "This request was handled in another tab. You can copy your unpublished story before continuing.";
-                        dialog.querySelector<HTMLButtonElement>("[type=submit]")!.disabled = true;
-                        dialog.querySelector<HTMLButtonElement>(".lmx-advice-continue")!.disabled = false;
-                        dialog.querySelector<HTMLTextAreaElement>("textarea")!.readOnly = false;
                         return;
                     }
                 } catch { /* Leave the draft recoverable if refreshing fails. */ }

@@ -53,9 +53,9 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         var dialog = page.Locator("#lmxAdviceStoryDialog");
         await Assertions.Expect(dialog).ToBeVisibleAsync();
         await Assertions.Expect(page.Locator(".lmx-checkin-dialog-panel")).ToHaveCountAsync(0);
-        await Assertions.Expect(dialog.Locator("h2")).ToHaveTextAsync("What's the story?");
-        await Assertions.Expect(dialog.GetByRole(AriaRole.Button, new() { Name = "Skip", Exact = true })).ToBeVisibleAsync();
-        await Assertions.Expect(dialog.GetByRole(AriaRole.Button, new() { Name = "Post publicly", Exact = true })).ToBeDisabledAsync();
+        await Assertions.Expect(dialog.Locator("h2")).ToHaveTextAsync("This is unusual from you. What's the story?");
+        await Assertions.Expect(dialog.Locator("button")).ToHaveCountAsync(1);
+        await Assertions.Expect(dialog.GetByRole(AriaRole.Button, new() { Name = "Post", Exact = true })).ToBeDisabledAsync();
         await CaptureAdviceAsync(page, $"story-empty-{width}-{theme}.png");
         await dialog.Locator("textarea").FillAsync(AdviceStory);
         await CaptureAdviceAsync(page, $"story-{width}-{theme}.png");
@@ -178,8 +178,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await dialog.Locator("button[type=submit]").ClickAsync();
         await Assertions.Expect(dialog.Locator(".lmx-status")).ToContainTextAsync("another tab");
         await Assertions.Expect(dialog.Locator("textarea")).ToHaveValueAsync("This explanation belongs to day 22.");
-        await Assertions.Expect(dialog.Locator("button[type=submit]")).ToBeDisabledAsync();
-        await dialog.Locator(".lmx-advice-continue").ClickAsync();
+        await dialog.GetByRole(AriaRole.Button, new() { Name = "Continue", Exact = true }).ClickAsync();
         await Assertions.Expect(dialog).ToHaveAttributeAsync("aria-description", "Day 21 · Monday, Jun 29");
         await Assertions.Expect(dialog.Locator("textarea")).ToHaveValueAsync("");
         await dialog.Locator("textarea").FillAsync("This explanation belongs to day 21.");
