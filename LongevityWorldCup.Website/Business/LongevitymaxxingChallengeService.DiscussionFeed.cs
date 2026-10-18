@@ -44,24 +44,28 @@ public sealed partial class LongevitymaxxingChallengeService
     {
         if (thread.Note is { } note)
             return DiscussionFeedPosition(rankedAt, note.ReplyCount,
-                ParseDateTimeOffset(note.LastActivityAtUtc, DateTimeOffset.UnixEpoch), note.ChallengeDay, note.ParticipantId);
+                ParseDateTimeOffset(note.LastActivityAtUtc, DateTimeOffset.UnixEpoch), note.ChallengeDay, note.ParticipantId,
+                needsAdvice: note.Advice is { Withdrawn: false, ActiveAdviceReplyId: null });
         var post = thread.SystemPost!;
         return DiscussionFeedPosition(rankedAt, post.ReplyCount,
             ParseDateTimeOffset(post.LastActivityAtUtc, DateTimeOffset.UnixEpoch), 0, post.ParticipantId, post.Id);
     }
 
     private static LongevitymaxxingDiscussionFeedCursor DiscussionFeedPosition(
-        DateTimeOffset rankedAt, int replyCount, DateTimeOffset activityAt, int day, string participantId, string? systemPostId = null)
+        DateTimeOffset rankedAt, int replyCount, DateTimeOffset activityAt, int day, string participantId,
+        string? systemPostId = null, bool needsAdvice = false)
     {
         rankedAt = DateTimeOffset.FromUnixTimeMilliseconds(rankedAt.ToUnixTimeMilliseconds());
         var activityMs = activityAt.ToUnixTimeMilliseconds();
         var score = CalculateDiscussionHotScore(replyCount, DateTimeOffset.FromUnixTimeMilliseconds(activityMs), rankedAt);
-        return new(rankedAt.ToUnixTimeMilliseconds(), Math.Floor(score * 1e9 + 0.5) / 1e9, activityMs, day, participantId, systemPostId);
+        return new(rankedAt.ToUnixTimeMilliseconds(), Math.Floor(score * 1e9 + 0.5) / 1e9, activityMs, day, participantId, systemPostId, needsAdvice);
     }
 
     private static int CompareDiscussionFeedPositions(LongevitymaxxingDiscussionFeedCursor left, LongevitymaxxingDiscussionFeedCursor right)
     {
-        var order = right.Score.CompareTo(left.Score);
+        var order = right.NeedsAdvice.CompareTo(left.NeedsAdvice);
+        if (order != 0) return order;
+        order = right.Score.CompareTo(left.Score);
         if (order != 0) return order;
         order = right.ActivityAtUnixMs.CompareTo(left.ActivityAtUnixMs);
         if (order != 0) return order;

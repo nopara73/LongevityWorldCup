@@ -3350,7 +3350,10 @@ public sealed partial class LongevitymaxxingChallengeService
                 SELECT p.Id, p.DisplayName, c.ChallengeDay, c.ChallengeDate, c.Note,
                        COALESCE(c.DiscussionUpdatedAtUtc, c.UpdatedAtUtc),
                        COUNT(r.Id),
-                       MAX(r.CreatedAtUtc)
+                       MAX(r.CreatedAtUtc),
+                       EXISTS (SELECT 1 FROM LongevitymaxxingAdviceRequests a
+                           WHERE a.ParticipantId = c.ParticipantId AND a.ChallengeDay = c.ChallengeDay
+                             AND a.Status = 'published' AND a.ActiveAdviceReplyId IS NULL)
                 FROM LongevitymaxxingCheckIns c
                 JOIN LongevitymaxxingParticipants p ON p.Id = c.ParticipantId
                 LEFT JOIN LongevitymaxxingDiscussionReplies r
@@ -3395,12 +3398,13 @@ public sealed partial class LongevitymaxxingChallengeService
                     reader.IsDBNull(4) ? null : reader.GetString(4),
                     postUpdatedAtText,
                     reader.GetInt32(6),
-                    latestReplyAt is null || latestReplyAt <= postUpdatedAt ? postUpdatedAt : latestReplyAt.Value));
+                    latestReplyAt is null || latestReplyAt <= postUpdatedAt ? postUpdatedAt : latestReplyAt.Value,
+                    reader.GetBoolean(8)));
             }
 
             var selectedRows = rows
                 .Select(row => (Row: row, Position: DiscussionFeedPosition(
-                    now, row.ReplyCount, row.LastActivityAtUtc, row.ChallengeDay, row.ParticipantId)))
+                    now, row.ReplyCount, row.LastActivityAtUtc, row.ChallengeDay, row.ParticipantId, needsAdvice: row.NeedsAdvice)))
                 .Where(item => before is null || CompareDiscussionFeedPositions(item.Position, before) > 0)
                 .OrderBy(item => item.Position, DiscussionFeedOrder)
                 .Take(limit)
@@ -4786,7 +4790,8 @@ public sealed partial class LongevitymaxxingChallengeService
         string? Note,
         string UpdatedAtUtc,
         int ReplyCount,
-        DateTimeOffset LastActivityAtUtc);
+        DateTimeOffset LastActivityAtUtc,
+        bool NeedsAdvice = false);
 
     private sealed record SystemDiscussionPostRow(
         string Id,

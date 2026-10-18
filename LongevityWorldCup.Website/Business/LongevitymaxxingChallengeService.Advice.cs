@@ -62,13 +62,16 @@ public sealed partial class LongevitymaxxingChallengeService
         }
         var current = history[checkIn.Request.ChallengeDay];
         var practice = GetParticipantPracticeDay(BuildSettings(), checkIn.Participant, history);
-        var scores = history.Values.Where(day => day.ChallengeDay != practice &&
-                day.ChallengeDay < current.ChallengeDay && day.ChallengeDay >= current.ChallengeDay - 14)
-            .OrderByDescending(day => day.ChallengeDay).Take(7).Select(day => day.Score).Order().ToArray();
-        double? baseline = scores.Length >= 3
-            ? (scores[(scores.Length - 1) / 2] + scores[scores.Length / 2]) / 2d : null;
-        var qualifies = checkIn.CountsForScore && GetEffectiveRawScore(current, history) != RawDailyMaxScore &&
-            (current.Score <= 4 || current.Score <= 5 && baseline - current.Score >= 3);
+        // Practice still reports real habits. Include it in the baseline, but never prompt on it.
+        var scores = history.Values.Where(day => day.ChallengeDay < current.ChallengeDay &&
+                day.ChallengeDay >= current.ChallengeDay - 14)
+            .OrderByDescending(day => day.ChallengeDay).Take(7).Select(day => day.Score).ToArray();
+        double? baseline = scores.Length >= 6 ? scores.Average() : null;
+        var standardDeviation = baseline is { } mean
+            ? Math.Sqrt(scores.Sum(score => Math.Pow(score - mean, 2)) / (scores.Length - 1)) : 0;
+        var qualifies = current.ChallengeDay >= practice + 6 && checkIn.CountsForScore &&
+            GetEffectiveRawScore(current, history) != RawDailyMaxScore && baseline is { } average &&
+            average - current.Score >= Math.Max(3, 2 * standardDeviation);
         using var command = sqlite.CreateCommand();
         command.Transaction = transaction;
         // A corrected pending check-in is retired. A published or dismissed story never reopens itself.

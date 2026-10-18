@@ -5728,6 +5728,8 @@ a.lmx-note-mention:focus-visible {
 .lmx-advice-story-dialog .lmx-button { min-height: 44px; padding: .5rem .85rem; border: 1px solid var(--lmx-accent); border-radius: 5px; background: var(--lmx-accent); color: white; font: inherit; font-weight: 700; }
 .lmx-advice-story-dialog .lmx-button:disabled { opacity: .5; cursor: default; }
 .lmx-advice-badge { display: inline-flex; margin-right: .6rem; color: var(--lmx-accent); font-size: .75rem; font-weight: 700; }
+.lmx-needs-advice { background: color-mix(in srgb, var(--lmx-warning-soft) 60%, var(--lmx-surface)); border-color: color-mix(in srgb, var(--lmx-warning) 30%, var(--lmx-border)); }
+.lmx-needs-advice .lmx-advice-badge { color: var(--lmx-warning); }
 .lmx-advice-story { padding-top: .75rem; }
 .lmx-advice-story > p { font-size: 1.05rem; line-height: 1.6; margin: 0; overflow-wrap: anywhere; }
 .lmx-advice-context { margin-bottom: 1rem; color: var(--lmx-muted); font-size: .9rem; }
@@ -5753,6 +5755,22 @@ a.lmx-note-mention:focus-visible {
 .lmx-advice-post .lmx-discussion-post-header { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; }
 .lmx-advice-post .lmx-discussion-post-author { min-width: 0; }
 .lmx-advice-branch :focus-visible, .lmx-advice-archive :focus-visible { outline: 2px solid var(--lmx-accent); outline-offset: 2px; }
+@container (max-width: 420px) {
+    .lmx-advice-post .lmx-discussion-post-header { padding-left: 0; row-gap: 0; }
+    .lmx-advice-post .lmx-discussion-post-author { display: contents; }
+    .lmx-advice-post .lmx-discussion-post-author > .lmx-discussion-author-identity { grid-column: 1; grid-row: 1; min-height: 44px; padding-left: min(2.5rem, 40px); }
+    .lmx-advice-post .lmx-discussion-post-author small { grid-column: 1 / -1; grid-row: 2; margin-left: min(2.5rem, 40px); }
+    .lmx-advice-post .lmx-discussion-post-actions { display: inline-flex; grid-column: 2; grid-row: 1; }
+    .lmx-advice-post .lmx-discussion-post-header .lmx-discussion-author-avatar { width: min(2rem, 32px); height: min(2rem, 32px); }
+}
+@container (max-width: 280px) and (max-width: 12rem) {
+    .lmx-advice-post .lmx-discussion-post-author > .lmx-discussion-author-identity { grid-column: 1 / -1; }
+    .lmx-advice-post .lmx-discussion-post-actions { grid-row: 2; }
+    .lmx-advice-post .lmx-discussion-post-author small { grid-column: 1 / -1; grid-row: 3; margin-left: 0; }
+}
+@container (max-width: 280px) {
+    .lmx-advice-post .lmx-discussion-post-author small { margin-left: 0; }
+}
 @media (max-width: 480px) {
     .lmx-advice-conversation > .lmx-discussion-reply-item,
     .lmx-advice-archive > .lmx-discussion-reply-item { margin-left: .5rem; padding-left: .75rem; }

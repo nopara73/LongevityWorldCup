@@ -63,7 +63,8 @@ public sealed record LongevitymaxxingDiscussionFeedCursor(
     long ActivityAtUnixMs,
     int ChallengeDay,
     string ParticipantId,
-    string? SystemPostId);
+    string? SystemPostId,
+    bool NeedsAdvice = false);
 
 public sealed record LongevitymaxxingDiscussionFeedRequest(
     string? AccessToken,

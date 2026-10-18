@@ -12,6 +12,217 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
     private const string FirstAdviceId = "00000000000000000000000000000007";
 
     [Theory]
+    [InlineData(320, ColorScheme.Light)]
+    [InlineData(1280, ColorScheme.Light)]
+    [InlineData(390, ColorScheme.Light)]
+    [InlineData(390, ColorScheme.Dark)]
+    public async Task Advice_UnansweredRequestStaysAboveNewerDiscussionsUntilAdviceArrives(int width, ColorScheme theme)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = 900 }, ColorScheme = theme, HasTouch = width < 500
+        });
+        var state = AdviceFeedBrowserState();
+        await context.RouteAsync("**/api/longevitymaxxing/discussion/replies", async route =>
+        {
+            var payload = JsonNode.Parse(route.Request.PostData!)!;
+            Assert.True(payload["isAdvice"]!.GetValue<bool>());
+            var answered = AdviceFeedBrowserState(true, replyId: payload["replyId"]!.GetValue<string>());
+            state["notes"] = answered["notes"]!.DeepClone();
+            state["public"] = answered["public"]!.DeepClone();
+            state["updatedDiscussionThread"] = state["notes"]!.AsArray().Single(note => note!["advice"] != null)!.DeepClone();
+            await FulfillJsonAsync(route, state.ToJsonString());
+        });
+        var page = await OpenDiscussionFeedAsync(context, state, automatic: false);
+        var errors = new List<string>();
+        page.PageError += (_, error) => errors.Add(error);
+        var posts = page.Locator("#lmxNotes > article");
+        var request = page.Locator("#lmxNotes > .lmx-advice-post");
+        await Assertions.Expect(posts.First).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("lmx-needs-advice"));
+        await Assertions.Expect(request.Locator(".lmx-advice-badge")).ToHaveTextAsync("Needs advice");
+        Assert.NotEqual(await posts.Nth(1).EvaluateAsync<string>("e => getComputedStyle(e).backgroundColor"),
+            await request.EvaluateAsync<string>("e => getComputedStyle(e).backgroundColor"));
+        var header = await request.Locator(".lmx-discussion-post-header").BoundingBoxAsync();
+        Assert.True(header!.Height <= 96, "The request metadata must not create a tall empty header.");
+        await page.Locator("#lmxNotesTitle").EvaluateAsync("element => window.scrollBy({top: element.getBoundingClientRect().top - 80, behavior: 'instant'})");
+        await CaptureAdviceAsync(page, $"unanswered-feed-{width}-{theme}.png");
+        await CaptureAdviceAsync(page, $"unanswered-request-{width}-{theme}.png", request);
+        await request.Locator(".lmx-discussion-post-actions [data-discussion-reply]").ClickAsync();
+        await request.Locator("[data-discussion-draft] textarea").FillAsync("Keep one daily anchor. A short walk after lunch is enough to start.");
+        await request.Locator("[data-reply-submit]").ClickAsync();
+        await Assertions.Expect(page.Locator("#lmxNotes > .lmx-needs-advice")).ToHaveCountAsync(0);
+        await Assertions.Expect(request.Locator(".lmx-advice-badge")).ToHaveCountAsync(0);
+        await Assertions.Expect(posts.First).ToHaveAttributeAsync("data-discussion-post-participant-id", "p2");
+        Assert.Equal(await posts.First.EvaluateAsync<string>("e => getComputedStyle(e).backgroundColor"),
+            await request.EvaluateAsync<string>("e => getComputedStyle(e).backgroundColor"));
+        await CaptureAdviceAsync(page, $"answered-request-{width}-{theme}.png", request);
+        Assert.True(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth <= innerWidth"));
+        Assert.Empty(errors);
+    }
+
+    [Fact]
+    public async Task Advice_RefreshRevalidatesAnOldPinnedRequestMissingFromTheBoundedState()
+    {
+        await using var context = await NewContextAsync(Browser, App, new());
+        var state = AdviceFeedBrowserState(normalCount: 99);
+        var withdrawn = state["notes"]!.AsArray().Single(note => note!["advice"] != null)!.DeepClone();
+        withdrawn["advice"]!["withdrawn"] = true;
+        withdrawn["advice"]!["story"] = "";
+        withdrawn["advice"]!["version"] = 3;
+        var lookups = 0;
+        await context.RouteAsync("**/api/longevitymaxxing/discussion/thread?**", async route =>
+        {
+            lookups++;
+            await FulfillJsonAsync(route, new JsonObject { ["note"] = withdrawn.DeepClone(), ["systemPost"] = null }.ToJsonString());
+        });
+        var page = await OpenDiscussionFeedAsync(context, state, automatic: false);
+        var request = page.Locator("#lmxNotes > .lmx-advice-post");
+        var ordinary = page.Locator("#lmxNotes > article[data-discussion-post-participant-id='p2']");
+        await ordinary.Locator("[data-discussion-quick-reply]").ClickAsync();
+        var draft = ordinary.Locator("textarea");
+        await draft.FillAsync("Keep this reply while the request changes.");
+        await draft.EvaluateAsync("e => { e.setSelectionRange(5, 15); window.adviceRefreshDraft = e; }");
+        var newer = LargeDiscussionFeedState(100);
+        state["notes"] = newer["notes"]!.DeepClone();
+        state["public"]!["notes"] = newer["public"]!["notes"]!.DeepClone();
+        await page.Clock.FastForwardAsync(61_000);
+        await Assertions.Expect(request.Locator(".lmx-advice-badge")).ToHaveTextAsync("Request withdrawn");
+        await Assertions.Expect(page.Locator("#lmxNotes > .lmx-needs-advice")).ToHaveCountAsync(0);
+        await Assertions.Expect(request).Not.ToContainTextAsync(AdviceStory);
+        Assert.Equal(1, lookups);
+        Assert.True(await draft.EvaluateAsync<bool>("e => e === window.adviceRefreshDraft && document.activeElement === e && e.selectionStart === 5 && e.selectionEnd === 15"));
+        await Assertions.Expect(draft).ToHaveValueAsync("Keep this reply while the request changes.");
+    }
+
+    [Fact]
+    public async Task Advice_AnAnswerElsewherePreservesTheFocusedDraftWhenThereAreMoreThanTenPins()
+    {
+        await using var context = await NewContextAsync(Browser, App, new());
+        var state = AdviceFeedBrowserState();
+        for (var i = 0; i < 12; i++)
+        {
+            var extra = state["notes"]!.AsArray().Single(note => (string?)note!["participantId"] == "p1")!.DeepClone();
+            extra["participantId"] = $"pin-{i:00}";
+            extra["displayName"] = $"Walker {i}";
+            extra["advice"]!["id"] = $"case-{i}";
+            state["notes"]!.AsArray().Add(extra);
+        }
+        state["public"]!["notes"] = state["notes"]!.DeepClone();
+        var page = await OpenDiscussionFeedAsync(context, state, automatic: false);
+        var request = page.Locator("#lmxNotes > article[data-discussion-post-participant-id='p1']");
+        await request.Locator(".lmx-discussion-post-actions [data-discussion-reply]").ClickAsync();
+        var draft = request.Locator("textarea");
+        await draft.FillAsync("My advice is still being written.");
+        await draft.EvaluateAsync("e => { e.setSelectionRange(3, 9); window.manyPinsDraft = e; }");
+        var top = await draft.EvaluateAsync<double>("e => e.getBoundingClientRect().top");
+        var answered = AdviceFeedBrowserState(true)["notes"]!.AsArray().Single(note => note!["advice"] != null)!;
+        foreach (var replies in new[] { answered["replies"]!.AsArray(), answered["advice"]!["replies"]!.AsArray() })
+            foreach (var reply in replies)
+            {
+                reply!["participantId"] = "p3";
+                reply["displayName"] = "Bea Builder";
+            }
+        foreach (var notes in new[] { state["notes"]!.AsArray(), state["public"]!["notes"]!.AsArray() })
+        {
+            var index = notes.Select((note, index) => (note, index)).Single(pair => (string?)pair.note!["participantId"] == "p1").index;
+            notes[index] = answered.DeepClone();
+        }
+        await page.Clock.FastForwardAsync(61_000);
+        await Assertions.Expect(request.Locator(".lmx-advice-badge")).ToHaveCountAsync(0);
+        Assert.True(await draft.EvaluateAsync<bool>("e => e === window.manyPinsDraft && document.activeElement === e && e.selectionStart === 3 && e.selectionEnd === 9"));
+        Assert.InRange(Math.Abs(top - await draft.EvaluateAsync<double>("e => e.getBoundingClientRect().top")), 0, 2);
+        await Assertions.Expect(draft).ToHaveValueAsync("My advice is still being written.");
+        await draft.PressAsync("Escape");
+        await Assertions.Expect(request.Locator("textarea")).ToHaveCountAsync(0);
+        await request.Locator(".lmx-discussion-post-actions [data-discussion-reply]").ClickAsync();
+        await Assertions.Expect(draft).ToHaveValueAsync("My advice is still being written.");
+    }
+
+    [Fact]
+    public async Task Advice_AnOlderHistoryResponseCannotRestoreThePinAfterFirstAdvice()
+    {
+        await using var context = await NewContextAsync(Browser, App, new());
+        var state = AdviceFeedBrowserState(normalCount: 99);
+        var oldRequest = state["notes"]!.AsArray().Single(note => note!["advice"] != null)!.DeepClone();
+        var release = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var historyCalls = 0;
+        await context.RouteAsync("**/api/longevitymaxxing/discussion/feed", async route =>
+        {
+            historyCalls++;
+            await release.Task;
+            await FulfillJsonAsync(route, new JsonObject
+            {
+                ["threads"] = new JsonArray(new JsonObject { ["note"] = oldRequest.DeepClone(), ["systemPost"] = null }),
+                ["nextCursor"] = null
+            }.ToJsonString());
+        });
+        await context.RouteAsync("**/api/longevitymaxxing/discussion/replies", async route =>
+        {
+            var payload = JsonNode.Parse(route.Request.PostData!)!;
+            var answered = AdviceFeedBrowserState(true, 99, payload["replyId"]!.GetValue<string>());
+            state["notes"] = answered["notes"]!.DeepClone();
+            state["public"] = answered["public"]!.DeepClone();
+            state["updatedDiscussionThread"] = state["notes"]!.AsArray().Single(note => note!["advice"] != null)!.DeepClone();
+            await FulfillJsonAsync(route, state.ToJsonString());
+        });
+        try
+        {
+            var page = await OpenDiscussionFeedAsync(context, state, automatic: false);
+            var older = page.Locator("#lmxFeedOlder");
+            for (var count = 20; count <= 100; count += 10)
+            {
+                await older.ClickAsync();
+                await Assertions.Expect(page.Locator("#lmxNotes > article")).ToHaveCountAsync(count);
+            }
+            await older.ClickAsync();
+            await Assertions.Expect(older).ToBeDisabledAsync();
+            var request = page.Locator("#lmxNotes > .lmx-advice-post");
+            await request.Locator(".lmx-discussion-post-actions [data-discussion-reply]").ClickAsync();
+            await request.Locator("textarea").FillAsync("Keep one daily anchor. A short walk after lunch is enough to start.");
+            await request.Locator("[data-reply-submit]").ClickAsync();
+            await Assertions.Expect(page.Locator("#lmxNotes > .lmx-needs-advice")).ToHaveCountAsync(0);
+            release.SetResult(true);
+            await Assertions.Expect(older).ToBeEnabledAsync();
+            await Assertions.Expect(page.Locator("#lmxNotes > .lmx-needs-advice")).ToHaveCountAsync(0);
+            await Assertions.Expect(request.Locator(".is-active .lmx-advice-rank")).ToHaveTextAsync("#3");
+            Assert.Equal(1, historyCalls);
+        }
+        finally { release.TrySetResult(true); }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Advice_PromotionKeepsAnOpenEditVisibleAndAppliesTheArchiveRules(bool editingAdvice)
+    {
+        await using var context = await NewContextAsync(Browser, App, new());
+        var state = AdviceBrowserState(1);
+        if (editingAdvice)
+        {
+            state["participant"]!["id"] = "p3";
+            state["participant"]!["displayName"] = "Bea Builder";
+        }
+        var page = await OpenDiscussionFeedAsync(context, state, automatic: false);
+        var comment = page.Locator($"#lmxNotes [data-discussion-reply-id='{(editingAdvice ? FirstAdviceId : "old-comment")}']");
+        await comment.Locator("[data-discussion-reply-edit]").ClickAsync();
+        var draft = comment.Locator("textarea");
+        await draft.FillAsync("My edit should stay visible after promotion.");
+        await draft.EvaluateAsync("e => { e.setSelectionRange(3, 9); window.archivedEditDraft = e; }");
+        var promoted = AdviceBrowserState(2);
+        state["notes"] = promoted["notes"]!.DeepClone();
+        state["public"]!["notes"] = promoted["public"]!["notes"]!.DeepClone();
+        await page.Clock.FastForwardAsync(61_000);
+        await page.Locator("#lmxFeedNew").ClickAsync();
+        if (!editingAdvice)
+            await Assertions.Expect(page.Locator($"#lmxNotes [data-advice-root-id='{FirstAdviceId}'] > .lmx-advice-archive")).ToHaveAttributeAsync("open", "");
+        await Assertions.Expect(draft).ToBeVisibleAsync();
+        Assert.True(await draft.EvaluateAsync<bool>("e => e === window.archivedEditDraft && e.selectionStart === 3 && e.selectionEnd === 9"));
+        await Assertions.Expect(draft).ToHaveValueAsync("My edit should stay visible after promotion.");
+        if (editingAdvice) await Assertions.Expect(comment.Locator("[data-reply-edit-submit]")).ToBeEnabledAsync();
+        else await Assertions.Expect(comment.Locator("[data-reply-edit-submit]")).ToBeDisabledAsync();
+    }
+
+    [Theory]
     [InlineData(1280, ColorScheme.Light)]
     [InlineData(390, ColorScheme.Light)]
     [InlineData(390, ColorScheme.Dark)]
@@ -314,6 +525,29 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         state["notes"] = new JsonArray();
         state["public"]!["notes"] = new JsonArray();
         state["pendingAdvicePrompt"] = JsonSerializer.SerializeToNode(new { id, challengeDay = day, date = "2026-06-29", rawScore = 4, baselineRawScore = 8, characterLimit = 240, version = 1 });
+        return state;
+    }
+
+    private static JsonObject AdviceFeedBrowserState(bool answered = false, int normalCount = 5, string replyId = FirstAdviceId)
+    {
+        var state = AdviceBrowserState(0, advisor: true);
+        var request = state["notes"]![0]!.DeepClone();
+        if (answered)
+        {
+            var reply = AdviceBrowserReply(replyId, "p2", "Ari Able",
+                "Keep one daily anchor. A short walk after lunch is enough to start.", "2026-07-01T09:00:00Z", replyId, true, 3);
+            request["advice"]!["activeAdviceReplyId"] = replyId;
+            request["advice"]!["version"] = 3;
+            request["advice"]!["replies"] = new JsonArray(reply.DeepClone());
+            request["replyCount"] = 1;
+            request["replies"] = new JsonArray(reply.DeepClone());
+            request["lastActivityAtUtc"] = "2026-07-01T09:00:00Z";
+        }
+        var notes = LargeDiscussionFeedState(normalCount)["notes"]!.AsArray().DeepClone().AsArray();
+        notes.Add(request);
+        state["notes"] = notes.DeepClone();
+        state["public"]!["notes"] = notes;
+        state["public"]!["systemDiscussionPosts"] = new JsonArray();
         return state;
     }
 

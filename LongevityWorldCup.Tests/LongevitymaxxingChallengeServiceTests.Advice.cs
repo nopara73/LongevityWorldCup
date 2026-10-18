@@ -6,20 +6,23 @@ namespace LongevityWorldCup.Tests;
 public sealed partial class LongevitymaxxingChallengeServiceTests
 {
     [Fact]
-    public async Task AdvicePrompt_UsesRawFailureExcludesPracticeAndKeepsOneDisposition()
+    public async Task AdvicePrompt_StartsOnPersonalDaySevenAndKeepsOneDisposition()
     {
         using var fixture = TestChallengeFixture.Create();
         var access = await fixture.ConfirmParticipantAsync("story@example.com", "Story Sam");
-        var practice = fixture.Service.SubmitCheckIn(new(access, 1, 0, 0, 0, 0, null), DateTimeOffset.Parse("2026-06-09T10:00:00Z"));
-        Assert.Null(practice.PendingAdvicePrompt);
-        var failed = fixture.Service.SubmitCheckIn(new(access, 2, 2, 2, 0, 0, null, Guid.NewGuid().ToString("D")), DateTimeOffset.Parse("2026-06-10T10:00:00Z"));
+        for (var day = 1; day <= 6; day++)
+        {
+            Assert.Null(SubmitAdviceScore(fixture, access, day, 0).PendingAdvicePrompt);
+            SubmitAdviceScore(fixture, access, day, 8);
+        }
+        var failed = SubmitAdviceScore(fixture, access, 7, 4);
         var prompt = Assert.IsType<LongevitymaxxingAdvicePrompt>(failed.PendingAdvicePrompt);
         Assert.Equal(4, prompt.RawScore);
         Assert.Empty(failed.Notes);
-        var edited = fixture.Service.SubmitCheckIn(new(access, 2, 2, 2, 0, 0, "Some context."), DateTimeOffset.Parse("2026-06-10T10:01:00Z"));
+        var edited = SubmitAdviceScore(fixture, access, 7, 4, "Some context.");
         Assert.Equal(prompt.Id, edited.PendingAdvicePrompt!.Id);
         fixture.Service.DismissAdviceStory(new(access, prompt.Id, prompt.Version));
-        var afterDismiss = fixture.Service.SubmitCheckIn(new(access, 2, 0, 0, 0, 0, "Some context."), DateTimeOffset.Parse("2026-06-10T10:02:00Z"));
+        var afterDismiss = SubmitAdviceScore(fixture, access, 7, 0, "Some context.");
         Assert.Null(afterDismiss.PendingAdvicePrompt);
     }
 
@@ -28,9 +31,8 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
     {
         using var fixture = TestChallengeFixture.Create();
         var access = await fixture.ConfirmParticipantAsync("trend@example.com", "Trend Terry");
-        for (var day = 2; day <= 4; day++)
-            fixture.Service.SubmitCheckIn(new(access, day, 2, 2, 2, 2, null), DateTimeOffset.Parse("2026-06-08T10:00:00Z").AddDays(day));
-        var decline = fixture.Service.SubmitCheckIn(new(access, 6, 2, 1, 1, 1, null), DateTimeOffset.Parse("2026-06-14T10:00:00Z"));
+        foreach (var day in new[] { 1, 2, 4, 5, 7, 8 }) SubmitAdviceScore(fixture, access, day, 8);
+        var decline = SubmitAdviceScore(fixture, access, 10, 5);
         Assert.Equal(8, decline.PendingAdvicePrompt!.BaselineRawScore);
         Assert.Equal(5, decline.PendingAdvicePrompt.RawScore);
     }
@@ -40,12 +42,60 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
     {
         using var fixture = TestChallengeFixture.Create();
         var access = await fixture.ConfirmParticipantAsync("correct@example.com", "Correct Casey");
-        var now = DateTimeOffset.Parse("2026-06-10T10:00:00Z");
-        fixture.Service.SubmitCheckIn(new(access, 2, 2, 2, 0, 0, null), now);
-        var corrected = fixture.Service.SubmitCheckIn(new(access, 2, 2, 2, 2, 2, null), now.AddMinutes(1));
+        SeedAdviceBaseline(fixture, access);
+        Assert.NotNull(SubmitAdviceScore(fixture, access, 7, 4).PendingAdvicePrompt);
+        var corrected = SubmitAdviceScore(fixture, access, 7, 8);
         Assert.Null(corrected.PendingAdvicePrompt);
-        var slip = fixture.Service.SubmitCheckIn(new(access, 3, 2, 2, 2, 0, null), now.AddDays(1));
+        var slip = SubmitAdviceScore(fixture, access, 8, 6);
         Assert.Null(slip.PendingAdvicePrompt);
+    }
+
+    [Theory]
+    [InlineData(new[] { 8, 8, 8, 8, 8, 8 }, 5, true)]
+    [InlineData(new[] { 8, 8, 8, 8, 8, 8 }, 6, false)]
+    [InlineData(new[] { 4, 4, 4, 4, 4, 4 }, 4, false)]
+    [InlineData(new[] { 4, 4, 4, 4, 4, 4 }, 0, true)]
+    [InlineData(new[] { 8, 0, 8, 0, 8, 0 }, 0, false)]
+    // Sample SD is 1.549; population SD would incorrectly flag this three-point drop.
+    [InlineData(new[] { 5, 5, 5, 5, 8, 8 }, 3, false)]
+    public async Task AdvicePrompt_RequiresBothAMeaningfulDropAndTwoSampleStandardDeviations(int[] scores, int current, bool prompts)
+    {
+        using var fixture = TestChallengeFixture.Create();
+        var access = await fixture.ConfirmParticipantAsync("deviation@example.com", "Deviation Devin");
+        for (var i = 0; i < scores.Length; i++) SubmitAdviceScore(fixture, access, i + 1, scores[i]);
+        var result = SubmitAdviceScore(fixture, access, 7, current);
+        Assert.Equal(prompts, result.PendingAdvicePrompt is not null);
+        if (prompts) Assert.Equal(scores.Average(), result.PendingAdvicePrompt!.BaselineRawScore);
+    }
+
+    [Fact]
+    public async Task AdvicePrompt_RequiresSixRecentObservationsAndUsesOnlyTheLatestSeven()
+    {
+        using var fixture = TestChallengeFixture.Create();
+        var sparse = await fixture.ConfirmParticipantAsync("sparse@example.com", "Sparse Sam");
+        for (var day = 1; day <= 5; day++) SubmitAdviceScore(fixture, sparse, day, 8);
+        Assert.Null(SubmitAdviceScore(fixture, sparse, 12, 0).PendingAdvicePrompt);
+        var stale = await fixture.ConfirmParticipantAsync("stale@example.com", "Stale Sam");
+        SeedAdviceBaseline(fixture, stale);
+        Assert.Null(SubmitAdviceScore(fixture, stale, 21, 0).PendingAdvicePrompt);
+        var recent = await fixture.ConfirmParticipantAsync("recent@example.com", "Recent Rae");
+        SubmitAdviceScore(fixture, recent, 1, 0);
+        for (var day = 2; day <= 8; day++) SubmitAdviceScore(fixture, recent, day, 8);
+        Assert.Equal(8, SubmitAdviceScore(fixture, recent, 9, 5).PendingAdvicePrompt!.BaselineRawScore);
+    }
+
+    [Fact]
+    public async Task AdvicePrompt_LateJoinerWaitsUntilTheirOwnSeventhDay()
+    {
+        using var fixture = TestChallengeFixture.Create();
+        var access = await fixture.ConfirmParticipantAsync("late-story@example.com", "Late Lee",
+            nowUtc: DateTimeOffset.Parse("2026-06-20T12:00:00Z"));
+        for (var day = 13; day <= 18; day++)
+        {
+            Assert.Null(SubmitAdviceScore(fixture, access, day, 0).PendingAdvicePrompt);
+            SubmitAdviceScore(fixture, access, day, 8);
+        }
+        Assert.Equal(19, SubmitAdviceScore(fixture, access, 19, 5).PendingAdvicePrompt!.ChallengeDay);
     }
 
     [Fact]
@@ -54,10 +104,11 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
         using var fixture = TestChallengeFixture.Create();
         fixture.Config.LongevitymaxxingChallenge!.StartDate = "2026-06-20";
         var access = await fixture.ConfirmParticipantAsync("public@example.com", "Public Pat");
-        var saved = fixture.Service.SubmitCheckIn(new(access, 2, 2, 2, 0, 0, null), DateTimeOffset.Parse("2026-06-22T10:00:00Z"));
+        SeedAdviceBaseline(fixture, access);
+        var saved = SubmitAdviceScore(fixture, access, 7, 4);
         var prompt = saved.PendingAdvicePrompt!;
         var request = new LongevitymaxxingAdviceStoryRequest(access, prompt.Id, prompt.Version, "Travel derailed my routine. How do you get back on track?");
-        var published = fixture.Service.PublishAdviceStory(request, DateTimeOffset.Parse("2026-06-25T10:00:00Z"));
+        var published = fixture.Service.PublishAdviceStory(request, DateTimeOffset.Parse("2026-06-30T10:00:00Z"));
         Assert.Null(published.PendingAdvicePrompt);
         var post = Assert.Single(published.Notes);
         Assert.Null(post.Note);
@@ -77,7 +128,8 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
         using var fixture = TestChallengeFixture.Create();
         var owner = await fixture.ConfirmParticipantAsync("owner@example.com", "Owner");
         var other = await fixture.ConfirmParticipantAsync("other@example.com", "Other");
-        var state = fixture.Service.SubmitCheckIn(new(owner, 2, 0, 0, 0, 0, null), DateTimeOffset.Parse("2026-06-10T10:00:00Z"));
+        SeedAdviceBaseline(fixture, owner);
+        var state = SubmitAdviceScore(fixture, owner, 7, 0);
         var prompt = state.PendingAdvicePrompt!;
         Assert.Throws<UnauthorizedAccessException>(() => fixture.Service.PublishAdviceStory(new(other, prompt.Id, prompt.Version, "My story.")));
         Assert.Throws<InvalidOperationException>(() => fixture.Service.PublishAdviceStory(new(owner, prompt.Id, prompt.Version, "  ")));
@@ -154,14 +206,15 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
         var owner = await fixture.ConfirmParticipantAsync("ties-owner@example.com", "Owner");
         var first = await fixture.ConfirmParticipantAsync("ties-first@example.com", "First");
         var second = await fixture.ConfirmParticipantAsync("ties-second@example.com", "Second");
-        var now = DateTimeOffset.Parse("2026-06-10T10:00:00Z");
-        var saved = fixture.Service.SubmitCheckIn(new(owner, 2, 0, 0, 0, 0, null), now);
+        var now = DateTimeOffset.Parse("2026-06-15T10:00:00Z");
+        SeedAdviceBaseline(fixture, owner);
+        var saved = SubmitAdviceScore(fixture, owner, 7, 0);
         var prompt = saved.PendingAdvicePrompt!;
         var published = fixture.Service.PublishAdviceStory(new(owner, prompt.Id, prompt.Version, "What is a manageable restart?"), now);
         var ownerId = published.Participant.Id;
         var firstId = Guid.NewGuid().ToString("N");
-        fixture.Service.SubmitDiscussionReply(new(first, ownerId, 2, "Start with one walk.", firstId, IsAdvice: true), now.AddMinutes(1));
-        var result = fixture.Service.SubmitDiscussionReply(new(second, ownerId, 2, "Plan the easiest version.", Guid.NewGuid().ToString("N"), IsAdvice: true), now.AddMinutes(2));
+        fixture.Service.SubmitDiscussionReply(new(first, ownerId, 7, "Start with one walk.", firstId, IsAdvice: true), now.AddMinutes(1));
+        var result = fixture.Service.SubmitDiscussionReply(new(second, ownerId, 7, "Plan the easiest version.", Guid.NewGuid().ToString("N"), IsAdvice: true), now.AddMinutes(2));
         var advice = Assert.Single(result.Notes).Advice!;
         Assert.Equal(firstId, advice.ActiveAdviceReplyId);
         Assert.Single(advice.Replies.Select(reply => reply.AdviceRank).Distinct());
@@ -173,19 +226,20 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
         using var fixture = TestChallengeFixture.Create();
         var owner = await fixture.ConfirmParticipantAsync("paging-owner@example.com", "Owner");
         var helper = await fixture.ConfirmParticipantAsync("paging-helper@example.com", "Helper");
-        var now = DateTimeOffset.Parse("2026-06-12T10:00:00Z");
-        var saved = fixture.Service.SubmitCheckIn(new(owner, 4, 0, 0, 2, 2, null), now);
+        var now = DateTimeOffset.Parse("2026-06-15T10:00:00Z");
+        SeedAdviceBaseline(fixture, owner);
+        var saved = SubmitAdviceScore(fixture, owner, 7, 4);
         var prompt = saved.PendingAdvicePrompt!;
         var originalPublish = new LongevitymaxxingAdviceStoryRequest(owner, prompt.Id, prompt.Version, "My original explanation.");
         var published = fixture.Service.PublishAdviceStory(originalPublish, now);
         var rootId = Guid.NewGuid().ToString("N");
-        fixture.Service.SubmitDiscussionReply(new(helper, published.Participant.Id, 4, "Take a small next step.", rootId, IsAdvice: true), now.AddMinutes(1));
+        fixture.Service.SubmitDiscussionReply(new(helper, published.Participant.Id, 7, "Take a small next step.", rootId, IsAdvice: true), now.AddMinutes(1));
         for (var i = 0; i < 6; i++)
-            fixture.Service.SubmitDiscussionReply(new(owner, published.Participant.Id, 4, $"Follow-up {i}.", Guid.NewGuid().ToString("N"), AdviceRootId: rootId), now.AddMinutes(i + 2));
-        var page = fixture.Service.GetDiscussionReplyPage(new(owner, published.Participant.Id, 4, null, null));
+            fixture.Service.SubmitDiscussionReply(new(owner, published.Participant.Id, 7, $"Follow-up {i}.", Guid.NewGuid().ToString("N"), AdviceRootId: rootId), now.AddMinutes(i + 2));
+        var page = fixture.Service.GetDiscussionReplyPage(new(owner, published.Participant.Id, 7, null, null));
         Assert.Equal(7, page.TotalCount);
         Assert.All(page.Replies, reply => Assert.Equal(rootId, reply.AdviceRootId));
-        var corrected = fixture.Service.SubmitCheckIn(new(owner, 4, 2, 2, 2, 2, null), now.AddMinutes(10));
+        var corrected = fixture.Service.SubmitCheckIn(new(owner, 7, 2, 2, 2, 2, null), now.AddMinutes(10));
         var advice = Assert.Single(corrected.Notes).Advice!;
         Assert.Equal("My original explanation.", advice.Story);
         var edited = fixture.Service.EditAdviceStory(new(owner, advice.Id, advice.Version, "More context after trying it."), now.AddMinutes(11));
@@ -203,7 +257,7 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
         {
             using var insert = sqlite.CreateCommand();
             insert.CommandText = """
-                WITH RECURSIVE days(day) AS (SELECT 5 UNION ALL SELECT day + 1 FROM days WHERE day < 106)
+                WITH RECURSIVE days(day) AS (SELECT 8 UNION ALL SELECT day + 1 FROM days WHERE day < 109)
                 INSERT INTO LongevitymaxxingCheckIns
                 (ParticipantId, ChallengeDay, ChallengeDate, Sleep, Exercise, Nutrition, Vices, Note, DiscussionUpdatedAtUtc, CheckedInAtUtc, UpdatedAtUtc)
                 SELECT @participant, day, '2026-06-14', 2, 2, 2, 2, 'Newer discussion', @time, @time, @time FROM days;
@@ -223,13 +277,29 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
         var owner = await fixture.ConfirmParticipantAsync("ask@example.com", "Asking Alex");
         var lower = await fixture.ConfirmParticipantAsync("lower@example.com", "Helper Bea");
         var higher = await fixture.ConfirmParticipantAsync("higher@example.com", "Helper Ari");
-        var now = DateTimeOffset.Parse("2026-06-14T13:00:00Z");
-        fixture.Service.SubmitCheckIn(new(lower, 2, 2, 2, 2, 2, null), DateTimeOffset.Parse("2026-06-10T10:00:00Z"));
-        fixture.Service.SubmitCheckIn(new(higher, 2, 2, 2, 2, 2, null), DateTimeOffset.Parse("2026-06-10T10:00:00Z"));
-        fixture.Service.SubmitCheckIn(new(higher, 3, 2, 2, 2, 2, null), DateTimeOffset.Parse("2026-06-11T10:00:00Z"));
-        var saved = fixture.Service.SubmitCheckIn(new(owner, 4, 2, 2, 0, 0, null), DateTimeOffset.Parse("2026-06-12T10:00:00Z"));
+        var now = new DateTimeOffset(DateOnly.Parse(fixture.Config.LongevitymaxxingChallenge!.StartDate)
+            .AddDays(9).ToDateTime(new TimeOnly(13, 0)), TimeSpan.Zero);
+        SubmitAdviceScore(fixture, lower, 2, 8);
+        SubmitAdviceScore(fixture, higher, 2, 8);
+        SubmitAdviceScore(fixture, higher, 3, 8);
+        SeedAdviceBaseline(fixture, owner);
+        var saved = SubmitAdviceScore(fixture, owner, 7, 4);
         var prompt = saved.PendingAdvicePrompt!;
         var published = fixture.Service.PublishAdviceStory(new(owner, prompt.Id, prompt.Version, "Work and travel derailed my routine. Where should I restart?"), now);
         return (owner, lower, higher, Assert.Single(published.Notes), now);
+    }
+
+    private static void SeedAdviceBaseline(TestChallengeFixture fixture, string access, int firstDay = 1)
+    {
+        for (var day = firstDay; day < firstDay + 6; day++) SubmitAdviceScore(fixture, access, day, 8);
+    }
+
+    private static LongevitymaxxingParticipantState SubmitAdviceScore(TestChallengeFixture fixture, string access,
+        int day, int score, string? note = null)
+    {
+        var now = new DateTimeOffset(DateOnly.Parse(fixture.Config.LongevitymaxxingChallenge!.StartDate)
+            .AddDays(day).ToDateTime(new TimeOnly(10, 0)), TimeSpan.Zero);
+        return fixture.Service.SubmitCheckIn(new(access, day, Math.Clamp(score, 0, 2), Math.Clamp(score - 2, 0, 2),
+            Math.Clamp(score - 4, 0, 2), Math.Clamp(score - 6, 0, 2), note), now);
     }
 }
