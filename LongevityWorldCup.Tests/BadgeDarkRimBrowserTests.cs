@@ -11,39 +11,86 @@ public sealed class BadgeDarkRimBrowserTests(
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Theory]
-    [InlineData("/leaderboard", ".leaderboard .badge-class", 1440)]
-    [InlineData("/leaderboard", ".leaderboard .badge-class", 390)]
-    [InlineData("/events", ".events-board .badge-class", 1440)]
-    public async Task DarkMode_GivesBadgesALightRimInsteadOfBlackOnBlack(string path, string selector, int width)
+    [InlineData("/", ".leaderboard", 1440)]
+    [InlineData("/", ".leaderboard", 390)]
+    [InlineData("/leaderboard", ".leaderboard", 1440)]
+    [InlineData("/leaderboard", ".leaderboard", 390)]
+    [InlineData("/events", ".events-board", 1440)]
+    [InlineData("/events", ".events-board", 390)]
+    public async Task ThemeChanges_OnlyChangeTheRimOfRoundBadges(string path, string surface, int width)
     {
         await using var context = await NewContextAsync(Browser, App, new()
         {
             ViewportSize = new() { Width = width, Height = 900 },
-            ColorScheme = ColorScheme.Dark,
+            ColorScheme = ColorScheme.Light,
             ReducedMotion = ReducedMotion.Reduce,
             IsMobile = width < 600,
             HasTouch = width < 600
         });
         var page = await context.NewPageAsync();
-        await page.GotoAsync(path);
-        await page.WaitForFunctionAsync("selector => document.querySelector(selector.split(' ')[0])", selector);
-        // Render the black utility badge the leaderboard and Highlights use, inside each surface.
-        await page.EvaluateAsync("selector => { const host = document.querySelector(selector.split(' ')[0]); const badge = document.createElement('span'); badge.className = 'badge-class badge-family-utility'; badge.style.background = 'linear-gradient(135deg,#2a2a2a,#1e1e1e)'; badge.innerHTML = '<i class=\"fa fa-calendar-check\"></i>'; host.appendChild(badge); }", selector);
+        await NavigateAndSettleAsync(page, path);
+        await page.WaitForFunctionAsync("() => typeof window.setBadges === 'function'");
+        // Exercise the shared renderer's actual gradients, icons and tooltips in each
+        // surface's cascade rather than manufacturing a styled badge span.
+        await page.EvaluateAsync("""
+            surface => {
+                const container = document.querySelector(surface);
+                const table = container.matches('table') ? container : container.querySelector('table');
+                const row = (table.tBodies[0] || table.createTBody()).insertRow();
+                const host = document.createElement('div');
+                host.id = 'rim-test-badges';
+                host.className = 'badge-section';
+                row.insertCell().appendChild(host);
+                window.setBadges({ Name: 'Rim Test', Badges: [
+                    { BadgeLabel: '≥2 submissions' },
+                    { BadgeLabel: 'Age reduction', Category: 'global', Place: 1 },
+                    { BadgeLabel: 'Best domain – liver', Place: 1 }
+                ] }, host);
+            }
+            """, surface);
+        var badges = page.Locator("#rim-test-badges .badge-class");
+        await Assertions.Expect(badges).ToHaveCountAsync(3);
+        var light = await MeasureAsync(badges);
+        Assert.All(light.Where(b => !b.Domain), b => Assert.Equal("rgba(0, 0, 0, 0.48)", b.Rim));
+        Assert.Equal("0px", Assert.Single(light, b => b.Domain).BorderWidth);
 
-        var measured = await page.EvaluateAsync<int>(
-            "selector => [...document.querySelectorAll(selector)].filter(badge => badge.getBoundingClientRect().width > 0 && parseFloat(getComputedStyle(badge).borderTopWidth) > 0).length",
-            selector);
-        Assert.True(measured > 0, $"{path} {width}px: no rimmed badge was rendered to check.");
-        var dark = await page.EvaluateAsync<string[]>(
-            """
-            selector => [...document.querySelectorAll(selector)]
-                .filter(badge => badge.getBoundingClientRect().width > 0 && parseFloat(getComputedStyle(badge).borderTopWidth) > 0)
-                .map(badge => getComputedStyle(badge).borderTopColor)
-                .filter(color => {
-                    const [r, g, b, a = 1] = color.match(/[\d.]+/g).map(Number);
-                    return (r + g + b) / 3 < 128 || a < 0.15;
-                })
-            """, selector);
-        Assert.True(dark.Length == 0, $"{path} {width}px: {dark.Length} badges keep a dark rim that disappears on the dark surface ({string.Join(", ", dark.Distinct())}).");
+        await page.EmulateMediaAsync(new() { ColorScheme = ColorScheme.Dark });
+        var dark = await MeasureAsync(badges);
+        Assert.All(dark.Where(b => !b.Domain), b => Assert.Equal("rgba(255, 255, 255, 0.26)", b.Rim));
+        Assert.Equal("0px", Assert.Single(dark, b => b.Domain).BorderWidth);
+        Assert.Equal(light.Select(b => b.Appearance), dark.Select(b => b.Appearance));
+
+        await page.EmulateMediaAsync(new() { ColorScheme = ColorScheme.Light });
+        var restored = await MeasureAsync(badges);
+        Assert.Equal(light.Select(b => b.Rim), restored.Select(b => b.Rim));
+        Assert.Equal(light.Select(b => b.Appearance), restored.Select(b => b.Appearance));
+    }
+
+    private static Task<BadgeAppearance[]> MeasureAsync(ILocator badges)
+        => badges.EvaluateAllAsync<BadgeAppearance[]>("""
+            badges => badges.map(badge => {
+                const style = getComputedStyle(badge);
+                const icon = badge.querySelector('i');
+                return {
+                    Domain: badge.classList.contains('badge-family-domain'),
+                    Rim: style.borderTopColor,
+                    BorderWidth: style.borderTopWidth,
+                    Appearance: JSON.stringify([
+                        style.backgroundImage, style.backgroundColor, style.color,
+                        style.width, style.height, style.borderRadius, style.clipPath,
+                        style.borderTopWidth, style.borderTopStyle, icon?.className,
+                        getComputedStyle(badge, '::before').backgroundImage,
+                        badge.title, badge.getAttribute('aria-label'), badge.getAttribute('href')
+                    ])
+                };
+            })
+            """);
+
+    private sealed class BadgeAppearance
+    {
+        public bool Domain { get; set; }
+        public string Rim { get; set; } = "";
+        public string BorderWidth { get; set; } = "";
+        public string Appearance { get; set; } = "";
     }
 }
