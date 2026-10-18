@@ -547,17 +547,21 @@
             line-height: 1;
         }
 
-        .documentation-page-about #where-to-go-next + ul {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(min(100%, 13.5rem), 1fr));
+        /* Every document ends with the same next-step tiles; a short last row
+           stretches to the full width instead of leaving an empty slot. */
+        .documentation-page #where-to-go-next + ul {
+            display: flex;
+            flex-wrap: wrap;
             gap: 0.75rem;
             margin: 1.25rem 0 0;
             padding: 0;
             list-style: none;
         }
 
-        .documentation-page-about #where-to-go-next + ul > li {
+        .documentation-page #where-to-go-next + ul > li {
             position: relative;
+            flex: 1 1 13.5rem;
+            min-width: 0;
             margin: 0;
             padding: 1rem 1.1rem 1.05rem;
             border: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.1));
@@ -570,29 +574,29 @@
                 box-shadow var(--lwc-duration-fast, 0.15s) var(--lwc-ease, ease);
         }
 
-        .documentation-page-about #where-to-go-next + ul > li > a {
+        .documentation-page #where-to-go-next + ul > li > a {
             font-size: 1.06rem;
             text-decoration: none;
         }
 
-        .documentation-page-about #where-to-go-next + ul > li > a::after {
+        .documentation-page #where-to-go-next + ul > li > a::after {
             content: "";
             position: absolute;
             inset: -1px;
             border-radius: inherit;
         }
 
-        .documentation-page-about #where-to-go-next + ul > li:hover,
-        .documentation-page-about #where-to-go-next + ul > li:focus-within {
+        .documentation-page #where-to-go-next + ul > li:hover,
+        .documentation-page #where-to-go-next + ul > li:focus-within {
             border-color: var(--lwc-accent, var(--primary-color));
             box-shadow: var(--lwc-shadow-sm, none);
         }
 
-        .documentation-page-about #where-to-go-next + ul > li > a:focus-visible {
+        .documentation-page #where-to-go-next + ul > li > a:focus-visible {
             outline: none;
         }
 
-        .documentation-page-about #where-to-go-next + ul > li > a:focus-visible::after {
+        .documentation-page #where-to-go-next + ul > li > a:focus-visible::after {
             outline: 3px solid var(--lwc-accent-bright, #19c3d1);
             outline-offset: 2px;
         }
@@ -665,11 +669,11 @@
                 aspect-ratio: 4 / 3;
             }
 
-            .documentation-page-about #where-to-go-next + ul > li {
+            .documentation-page #where-to-go-next + ul > li {
                 padding: 0.8rem 0.85rem 0.85rem;
             }
 
-            .documentation-page-about #where-to-go-next + ul > li > a {
+            .documentation-page #where-to-go-next + ul > li > a {
                 font-size: inherit;
             }
 
@@ -680,7 +684,7 @@
         }
 
         @media (prefers-reduced-motion: reduce) {
-            .documentation-page-about #where-to-go-next + ul > li {
+            .documentation-page #where-to-go-next + ul > li {
                 transition: none;
             }
         }
