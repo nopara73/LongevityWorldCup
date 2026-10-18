@@ -5083,7 +5083,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             dialog.className = "lmx-advice-story-dialog";
             dialog.setAttribute("aria-labelledby", "lmxAdviceStoryHeading");
             dialog.innerHTML = `<form>
-                <h2 id="lmxAdviceStoryHeading">This is unusual from you. What's the story?</h2>
+                <h2 id="lmxAdviceStoryHeading">This is unusual for you. What’s the story?</h2>
                 <div class="lmx-advice-story-input">
                     <textarea id="lmxAdviceStory" rows="4" placeholder="Writing helps process it." aria-labelledby="lmxAdviceStoryHeading" aria-describedby="lmxAdviceStoryCount"></textarea>
                     <span id="lmxAdviceStoryCount" class="lmx-advice-story-count"></span>

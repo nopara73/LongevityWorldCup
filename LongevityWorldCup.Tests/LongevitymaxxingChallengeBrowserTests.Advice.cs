@@ -53,7 +53,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         var dialog = page.Locator("#lmxAdviceStoryDialog");
         await Assertions.Expect(dialog).ToBeVisibleAsync();
         await Assertions.Expect(page.Locator(".lmx-checkin-dialog-panel")).ToHaveCountAsync(0);
-        await Assertions.Expect(dialog.Locator("h2")).ToHaveTextAsync("This is unusual from you. What's the story?");
+        await Assertions.Expect(dialog.Locator("h2")).ToHaveTextAsync("This is unusual for you. What’s the story?");
         await Assertions.Expect(dialog.Locator("button")).ToHaveCountAsync(1);
         await Assertions.Expect(dialog.GetByRole(AriaRole.Button, new() { Name = "Post", Exact = true })).ToBeDisabledAsync();
         await CaptureAdviceAsync(page, $"story-empty-{width}-{theme}.png");
