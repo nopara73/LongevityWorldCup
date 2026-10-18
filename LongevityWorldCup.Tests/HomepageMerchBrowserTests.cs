@@ -396,7 +396,10 @@ public sealed class HomepageMerchBrowserTests(PlaywrightBrowserFixture browserFi
         var box = Assert.IsType<LocatorBoundingBoxResult>(await track.BoundingBoxAsync());
         var startX = box.X + box.Width * (forward && !vertical ? 0.9f : 0.1f);
         var startY = box.Y + Math.Min(box.Height * 0.7f, 200);
-        var distance = vertical ? Math.Min(box.Height * 0.6f, 150) : box.Width * 0.8f;
+        // The final snap is clamped, so a long reverse drag can already pass
+        // the middle snap before release. Keep single-step drags short; flings
+        // still use a longer, fast gesture to exercise native momentum.
+        var distance = vertical ? Math.Min(box.Height * 0.6f, 150) : box.Width * (fling ? 0.8f : 0.6f);
         var steps = fling ? 4 : 12;
         var session = await page.Context.NewCDPSessionAsync(page);
         await session.SendAsync("Input.dispatchTouchEvent", new() { ["type"] = "touchStart", ["touchPoints"] = new[] { new { x = startX, y = startY } } });
@@ -407,8 +410,7 @@ public sealed class HomepageMerchBrowserTests(PlaywrightBrowserFixture browserFi
             await session.SendAsync("Input.dispatchTouchEvent", new() { ["type"] = "touchMove", ["touchPoints"] = new[] { new { x, y } } });
             await Task.Delay(fling ? 10 : 20);
         }
-        // A slow drag ends with the finger at rest. Without this pause Linux
-        // Chromium can treat delayed CDP moves as a fling past the next card.
+        // Stop before lifting so the slow drag ends with the finger at rest.
         // Fling cases deliberately retain their release velocity.
         if (!fling) await Task.Delay(150);
         await session.SendAsync("Input.dispatchTouchEvent", new() { ["type"] = "touchEnd", ["touchPoints"] = Array.Empty<object>() });
