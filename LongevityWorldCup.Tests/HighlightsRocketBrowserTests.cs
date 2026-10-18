@@ -17,7 +17,7 @@ public sealed class HighlightsRocketBrowserTests(
     private const string Events = """
         [
           {"Id":"rocket-joined","Type":1,"Text":"slug[rocket-athlete]","OccurredAt":"2026-10-18T08:00:00Z","Relevance":10},
-          {"Id":"rocket-custom","Type":6,"Text":"Season update\n\nA message for slug[rocket-athlete]. [Read the rules](/ruleset)","OccurredAt":"2026-10-17T08:00:00Z","Relevance":10},
+          {"Id":"rocket-custom","Type":6,"Text":"Season update\n\nA message for slug[rocket-athlete]. [Read the rules](https://longevityworldcup.com/ruleset)","OccurredAt":"2026-10-17T08:00:00Z","Relevance":10},
           {"Id":"rocket-rank","Type":2,"Text":"slug[rocket-athlete] rank[3]","OccurredAt":"2026-10-16T08:00:00Z","Relevance":10},
           {"Id":"rocket-missing","Type":1,"Text":"slug[undated-athlete]","Relevance":1},
           {"Id":"rocket-invalid","Type":1,"Text":"slug[invalid-date-athlete]","OccurredAt":"unknown","Relevance":1}
