@@ -380,7 +380,7 @@ public sealed partial class NewAthleteOnboardingBrowserTests(
                 "#25 Joe V -9.7y",
                 "#26 Todd Cus -7.5y",
                 "#27 You -6.5y",
-                "#28 Devarajan Narayanan -5.0y",
+                "#28 Devarajan Narayanan -4.4y",
                 "#29 Andressa Lohana de Almeida -2.8y"
             }
             : new[]
