@@ -83,7 +83,7 @@ public sealed partial class BioageResultScoreboardBrowserTests
     {
         await using var context = await NewContextAsync(Browser, App, new()
         {
-            ViewportSize = new() { Width = 390, Height = 844 },
+            ViewportSize = new() { Width = 320, Height = 844 },
             ReducedMotion = ReducedMotion.Reduce
         });
         var page = await context.NewPageAsync();
@@ -139,6 +139,21 @@ public sealed partial class BioageResultScoreboardBrowserTests
             Assert.Equal("You", await preview.Locator(".current .bioage-rank-row-name").TextContentAsync());
             Assert.Equal(0, await preview.Locator(".current a").CountAsync());
             Assert.True(await preview.Locator(".bioage-rank-row-avatar-fallback").CountAsync() >= 2);
+            if (names.Contains("Older"))
+            {
+                var older = preview.Locator(".bioage-rank-row").Filter(new()
+                {
+                    Has = page.Locator(".bioage-rank-row-name", new() { HasText = "Older" })
+                });
+                Assert.True(await older.EvaluateAsync<bool>(
+                    """
+                    row => {
+                        const name = row.querySelector('.bioage-rank-row-name').getBoundingClientRect();
+                        const score = row.querySelector('.bioage-rank-row-score').getBoundingClientRect();
+                        return score.left >= name.right && score.top < name.bottom;
+                    }
+                    """), "A short name and score fit on one row at 320px without sacrificing name space.");
+            }
             if (names.Contains("Leader"))
             {
                 var leader = preview.Locator(".bioage-rank-row").Filter(new()

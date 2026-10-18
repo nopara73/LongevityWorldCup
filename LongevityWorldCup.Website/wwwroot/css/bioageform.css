@@ -1700,8 +1700,9 @@ body #validAgeInput + * {
 }
 
 .bioage-rank-row-name {
-    flex: 1 1 8rem;
+    flex: 1 1 min-content;
     max-width: 100%;
+    overflow-wrap: break-word;
 }
 
 .bioage-rank-row-score {
