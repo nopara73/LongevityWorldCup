@@ -532,6 +532,15 @@ textarea {
     min-height: 7rem;
 }
 
+/* An athlete's motivation is read back in full while editing: the field grows
+   with its words instead of hiding lines behind an inner scrollbar. */
+#whyDisplayInput,
+#why {
+    field-sizing: content;
+    min-height: calc(3lh + 1.6rem);
+    max-height: 22rem;
+}
+
 input::placeholder,
 textarea::placeholder {
     color: var(--lwc-muted, #52606d);
