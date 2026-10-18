@@ -23,7 +23,9 @@ public sealed record LongevitymaxxingDiscussionReplyRequest(
     string Body,
     string ReplyId,
     string? SystemPostId = null,
-    string? ReplyToId = null);
+    string? ReplyToId = null,
+    bool IsAdvice = false,
+    string? AdviceRootId = null);
 
 public sealed record LongevitymaxxingDiscussionReplyEditRequest(
     string AccessToken,
@@ -102,7 +104,11 @@ public sealed record LongevitymaxxingParticipantState(
     LongevitymaxxingParticipantSummary Participant,
     IReadOnlyList<LongevitymaxxingEligibleDay> EligibleDays,
     IReadOnlyList<LongevitymaxxingParticipantNote> Notes,
-    LongevitymaxxingGardenState Garden);
+    LongevitymaxxingGardenState Garden)
+{
+    public LongevitymaxxingAdvicePrompt? PendingAdvicePrompt { get; init; }
+    public LongevitymaxxingParticipantNote? UpdatedDiscussionThread { get; init; }
+}
 
 public sealed record LongevitymaxxingGardenState(
     int CheckedInDays,
@@ -207,7 +213,10 @@ public sealed record LongevitymaxxingParticipantNote(
     string LastActivityAtUtc,
     int ReplyCount,
     IReadOnlyList<LongevitymaxxingCheckInImage> Images,
-    IReadOnlyList<LongevitymaxxingDiscussionReply> Replies);
+    IReadOnlyList<LongevitymaxxingDiscussionReply> Replies)
+{
+    public LongevitymaxxingAdviceThread? Advice { get; init; }
+}
 
 public sealed record LongevitymaxxingDiscussionReply(
     string Id,
@@ -220,6 +229,26 @@ public sealed record LongevitymaxxingDiscussionReply(
     LongevitymaxxingDiscussionReplyContext? ReplyTo = null)
 {
     public IReadOnlyList<LongevitymaxxingCheckInImage> Images { get; init; } = [];
+    public bool IsAdvice { get; init; }
+    public string? AdviceRootId { get; init; }
+    public int? AdviceRank { get; init; }
+    public bool IsArchived { get; init; }
+    public bool IsDeleted { get; init; }
+}
+
+public sealed record LongevitymaxxingAdvicePrompt(
+    string Id, int ChallengeDay, string Date, int RawScore, double? BaselineRawScore, int CharacterLimit, int Version);
+
+public sealed record LongevitymaxxingAdviceStoryRequest(
+    string AccessToken, string AdviceId, int Version, string? Story = null);
+
+public sealed record LongevitymaxxingAdviceThread(
+    string Id, string Story, string PublishedAtUtc, string? ActiveAdviceReplyId,
+    IReadOnlyList<LongevitymaxxingDiscussionReply> Replies)
+{
+    public int Version { get; init; }
+    public bool Withdrawn { get; init; }
+    public int StoryCharacterLimit { get; init; }
 }
 
 public sealed record LongevitymaxxingDiscussionReplyContext(string DisplayName, string Body);

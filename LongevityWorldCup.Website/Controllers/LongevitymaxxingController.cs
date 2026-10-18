@@ -197,6 +197,7 @@ public sealed class LongevitymaxxingController(LongevitymaxxingChallengeService 
         {
             return Ok(_challenge.SubmitDiscussionReply(request));
         }
+        catch (LongevitymaxxingAdviceChangedException ex) { return Conflict(new { message = ex.Message, code = "advice_changed" }); }
         catch (UnauthorizedAccessException ex)
         {
             return Unauthorized(new { message = ex.Message });
@@ -219,9 +220,10 @@ public sealed class LongevitymaxxingController(LongevitymaxxingChallengeService 
         {
             var reply = new LongevitymaxxingDiscussionReplyRequest(
                 request.AccessToken, request.PostParticipantId ?? "", request.ChallengeDay,
-                request.Body ?? "", request.ReplyId, request.SystemPostId, request.ReplyToId);
+                request.Body ?? "", request.ReplyId, request.SystemPostId, request.ReplyToId, request.IsAdvice, request.AdviceRootId);
             return Ok(await _challenge.SubmitDiscussionReplyWithPhotosAsync(reply, photos, ct: ct).ConfigureAwait(false));
         }
+        catch (LongevitymaxxingAdviceChangedException ex) { return Conflict(new { message = ex.Message, code = "advice_changed" }); }
         catch (UnauthorizedAccessException ex)
         {
             return Unauthorized(new { message = ex.Message });
@@ -283,6 +285,39 @@ public sealed class LongevitymaxxingController(LongevitymaxxingChallengeService 
         }
     }
 
+    [HttpPost("advice/publish")]
+    public IActionResult PublishAdviceStory([FromBody] LongevitymaxxingAdviceStoryRequest request)
+        => ChangeAdviceStory(request, "publish");
+
+    [HttpPost("advice/dismiss")]
+    public IActionResult DismissAdviceStory([FromBody] LongevitymaxxingAdviceStoryRequest request)
+        => ChangeAdviceStory(request, "dismiss");
+
+    [HttpPost("advice/withdraw")]
+    public IActionResult WithdrawAdviceStory([FromBody] LongevitymaxxingAdviceStoryRequest request)
+        => ChangeAdviceStory(request, "withdraw");
+
+    [HttpPost("advice/edit")]
+    public IActionResult EditAdviceStory([FromBody] LongevitymaxxingAdviceStoryRequest request)
+        => ChangeAdviceStory(request, "edit");
+
+    private IActionResult ChangeAdviceStory(LongevitymaxxingAdviceStoryRequest request, string action)
+    {
+        try
+        {
+            return Ok(action switch
+            {
+                "publish" => _challenge.PublishAdviceStory(request),
+                "dismiss" => _challenge.DismissAdviceStory(request),
+                "edit" => _challenge.EditAdviceStory(request),
+                _ => _challenge.WithdrawAdviceStory(request)
+            });
+        }
+        catch (LongevitymaxxingAdviceChangedException ex) { return Conflict(new { message = ex.Message, code = "advice_changed" }); }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(new { message = ex.Message }); }
+        catch (InvalidOperationException ex) { return BadRequest(new { message = ex.Message }); }
+    }
+
     [HttpPost("stop-emails")]
     public IActionResult StopEmails([FromBody] LongevitymaxxingTokenRequest request)
     {
@@ -326,4 +361,6 @@ public sealed class LongevitymaxxingDiscussionReplyFormRequest
     public string ReplyId { get; set; } = "";
     public string? SystemPostId { get; set; }
     public string? ReplyToId { get; set; }
+    public bool IsAdvice { get; set; }
+    public string? AdviceRootId { get; set; }
 }
