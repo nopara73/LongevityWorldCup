@@ -59,7 +59,19 @@ public sealed class HighlightsRocketBrowserTests(
             await page.EvaluateAsync("percent => document.documentElement.style.fontSize = `${percent}%`", percent);
             await page.EvaluateAsync("async () => { await document.fonts.ready; await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))); }");
             // Verify actual message text enlargement, not just the root setting.
-            var fontSize = await page.Locator("tr[data-event-id='rocket-joined'] .event-message-cell").EvaluateAsync<double>("el => parseFloat(getComputedStyle(el).fontSize)");
+            // Homepage fitting replaces rows after viewport changes. Resolve and
+            // measure in one browser task instead of retaining a detached node.
+            var fontMeasurement = await page.WaitForFunctionAsync(
+                """
+                () => {
+                    const cell = document.querySelector("tr[data-event-id='rocket-joined'] .event-message-cell");
+                    if (!cell?.isConnected) return false;
+                    const size = parseFloat(getComputedStyle(cell).fontSize);
+                    return Number.isFinite(size) ? size : false;
+                }
+                """);
+            var fontSize = await fontMeasurement.JsonValueAsync<double>();
+            await fontMeasurement.DisposeAsync();
             Assert.True(fontSize >= 13 * percent / 100d, $"{path}: actual text is only {fontSize}px at {percent}%");
             var problems = await page.EvaluateAsync<string[]>(MeasureRocketLayout);
             Assert.True(problems.Length == 0, $"{path} {width}px / {percent}%: {string.Join("; ", problems)}");
