@@ -619,7 +619,8 @@
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: true,
+                // The wrapper sets a landscape shape, so side labels no longer shrink the web inside a square.
+                maintainAspectRatio: false,
                 layout: { padding: 4 },
                 plugins: {
                     legend: { display: false },
@@ -661,9 +662,11 @@
                             display: false
                         },
                         pointLabels: {
-                            font: { family: fontFamily, size: 11, weight: '500' },
+                            font: function (context: { readonly chart: { readonly width: number } }) {
+                                return { family: fontFamily, size: context.chart.width >= 420 ? 12 : 11, weight: '500' };
+                            },
                             color: radarLabelColor,
-                            padding: 8,
+                            padding: 6,
                             z: 1
                         },
                         grid: {
