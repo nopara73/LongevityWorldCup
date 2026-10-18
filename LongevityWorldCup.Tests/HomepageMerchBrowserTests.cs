@@ -173,8 +173,26 @@ public sealed class HomepageMerchBrowserTests(PlaywrightBrowserFixture browserFi
     [InlineData(320, true)]
     public async Task Swag_PhoneCarouselSwipesWithTheNextProductPeeking(int width, bool dark)
     {
-        await using var context = await HomepageChromeRegressionBrowserTests.NewContextAsync(Browser, App, ReducedMotion.Reduce);
+        await using var context = await Browser.NewContextAsync(new()
+        {
+            BaseURL = App.BaseAddress.ToString(),
+            Locale = "en-US",
+            HasTouch = true,
+            ReducedMotion = ReducedMotion.Reduce,
+            ViewportSize = new() { Width = width, Height = 850 }
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
         var page = await context.NewPageAsync();
+        await page.AddInitScriptAsync(
+            """
+            window.swagTouchTrace = [];
+            for (const type of ['touchstart', 'touchend', 'touchcancel', 'scrollend']) document.addEventListener(type, event => {
+                const track = document.querySelector('.lwc-merch-mobile-track');
+                const point = event.changedTouches?.[0];
+                window.swagTouchTrace.push({ type, target: event.target.className, x: point?.clientX, y: point?.clientY,
+                    scroll: track?.scrollLeft, focus: document.activeElement.className, time: performance.now() });
+            }, { capture: true, passive: true });
+            """);
         await page.EmulateMediaAsync(new() { ColorScheme = dark ? ColorScheme.Dark : ColorScheme.Light });
         await page.SetViewportSizeAsync(width, 850);
         await page.GotoAsync("/", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
@@ -198,9 +216,7 @@ public sealed class HomepageMerchBrowserTests(PlaywrightBrowserFixture browserFi
         // Send real touch input through Chromium; assigning scrollLeft cannot
         // verify gesture handling, snap stops, or vertical page scrolling.
         await carousel.ScrollIntoViewIfNeededAsync();
-        var session = await context.NewCDPSessionAsync(page);
-        await session.SendAsync("Emulation.setTouchEmulationEnabled", new() { ["enabled"] = true });
-        await SwipeAsync(session, page.Locator(".lwc-merch-mobile-track"), forward: true);
+        await SwipeAsync(page, page.Locator(".lwc-merch-mobile-track"), forward: true);
         var dots = carousel.Locator(".lwc-merch-mobile-dot");
         var cards = carousel.Locator(".lwc-merch-mobile-slide");
         await Assertions.Expect(dots.Nth(1)).ToHaveAttributeAsync("aria-pressed", "true");
@@ -209,22 +225,22 @@ public sealed class HomepageMerchBrowserTests(PlaywrightBrowserFixture browserFi
         await WaitForProductPositionAsync(page, 1);
 
         await cards.Nth(1).FocusAsync();
-        await SwipeAsync(session, page.Locator(".lwc-merch-mobile-track"), forward: true, fling: true);
+        await SwipeAsync(page, page.Locator(".lwc-merch-mobile-track"), forward: true, fling: true);
         await Assertions.Expect(dots.Nth(2)).ToHaveAttributeAsync("aria-pressed", "true");
         await WaitForProductPositionAsync(page, 2);
         Assert.False(await page.EvaluateAsync<bool>("!!document.activeElement.closest('[aria-hidden=true], [inert]')"),
             "Swiping must never leave focus in a hidden product.");
-        await SwipeAsync(session, page.Locator(".lwc-merch-mobile-track"), forward: false);
+        await SwipeAsync(page, page.Locator(".lwc-merch-mobile-track"), forward: false);
         await Assertions.Expect(dots.Nth(1)).ToHaveAttributeAsync("aria-pressed", "true");
         await WaitForProductPositionAsync(page, 1);
         await Assertions.Expect(page.Locator(".sidebar-toggle")).ToHaveAttributeAsync("aria-expanded", "false");
-        await SwipeAsync(session, page.Locator(".lwc-merch-mobile-track"), forward: false, fling: true);
+        await SwipeAsync(page, page.Locator(".lwc-merch-mobile-track"), forward: false, fling: true);
         await Assertions.Expect(dots.Nth(0)).ToHaveAttributeAsync("aria-pressed", "true");
         await WaitForProductPositionAsync(page, 0);
 
         await page.Locator(".lwc-merch-mobile-track").ScrollIntoViewIfNeededAsync();
         var scrollBefore = await page.EvaluateAsync<double>("scrollY");
-        await SwipeAsync(session, page.Locator(".lwc-merch-mobile-track"), forward: true, vertical: true);
+        await SwipeAsync(page, page.Locator(".lwc-merch-mobile-track"), forward: true, vertical: true);
         await page.WaitForFunctionAsync("before => scrollY > before + 30", scrollBefore);
         await Assertions.Expect(dots.Nth(0)).ToHaveAttributeAsync("aria-pressed", "true");
 
@@ -243,7 +259,7 @@ public sealed class HomepageMerchBrowserTests(PlaywrightBrowserFixture browserFi
         Assert.True(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth <= innerWidth"));
 
         // The page gesture still opens filters when it starts outside a scroller.
-        await SwipeAsync(session, page.Locator(".lwc-merch-copy"), forward: false);
+        await SwipeAsync(page, page.Locator(".lwc-merch-copy"), forward: false);
         await Assertions.Expect(page.Locator(".sidebar-toggle")).ToHaveAttributeAsync("aria-expanded", "true");
     }
 
@@ -341,7 +357,10 @@ public sealed class HomepageMerchBrowserTests(PlaywrightBrowserFixture browserFi
     }
 
     private static async Task WaitForProductPositionAsync(IPage page, int index)
-        => await page.WaitForFunctionAsync(
+    {
+        try
+        {
+            await page.WaitForFunctionAsync(
             """
             index => {
                 const track = document.querySelector('.lwc-merch-mobile-track');
@@ -349,9 +368,24 @@ public sealed class HomepageMerchBrowserTests(PlaywrightBrowserFixture browserFi
                 const target = Math.min(slide.offsetLeft, track.scrollWidth - track.clientWidth);
                 return Math.abs(track.scrollLeft - target) <= 1;
             }
-            """, index);
+            """, index, new() { Timeout = 5000 });
+            await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
+        }
+        catch (TimeoutException exception)
+        {
+            var evidence = await page.EvaluateAsync<string>(
+                """
+                () => JSON.stringify({ scroll: document.querySelector('.lwc-merch-mobile-track').scrollLeft,
+                    snap: getComputedStyle(document.querySelector('.lwc-merch-mobile-track')).scrollSnapType,
+                    visible: document.visibilityState, hasFocus: document.hasFocus(),
+                    slides: [...document.querySelectorAll('.lwc-merch-mobile-slide')].map(slide => ({ offset: slide.offsetLeft, active: slide.classList.contains('is-active') })),
+                    focus: document.activeElement.outerHTML.slice(0, 250), trace: window.swagTouchTrace })
+                """);
+            throw new InvalidOperationException($"Product {index} did not snap into place: {evidence}", exception);
+        }
+    }
 
-    private static async Task SwipeAsync(ICDPSession session, ILocator track, bool forward, bool fling = false, bool vertical = false)
+    private static async Task SwipeAsync(IPage page, ILocator track, bool forward, bool fling = false, bool vertical = false)
     {
         await track.ScrollIntoViewIfNeededAsync();
         var box = Assert.IsType<LocatorBoundingBoxResult>(await track.BoundingBoxAsync());
@@ -359,6 +393,7 @@ public sealed class HomepageMerchBrowserTests(PlaywrightBrowserFixture browserFi
         var startY = box.Y + Math.Min(box.Height * 0.7f, 200);
         var distance = vertical ? Math.Min(box.Height * 0.6f, 150) : box.Width * 0.8f;
         var steps = fling ? 4 : 12;
+        var session = await page.Context.NewCDPSessionAsync(page);
         await session.SendAsync("Input.dispatchTouchEvent", new() { ["type"] = "touchStart", ["touchPoints"] = new[] { new { x = startX, y = startY } } });
         for (var step = 1; step <= steps; step++)
         {
@@ -368,5 +403,6 @@ public sealed class HomepageMerchBrowserTests(PlaywrightBrowserFixture browserFi
             await Task.Delay(fling ? 10 : 20);
         }
         await session.SendAsync("Input.dispatchTouchEvent", new() { ["type"] = "touchEnd", ["touchPoints"] = Array.Empty<object>() });
+        await session.DetachAsync();
     }
 }

@@ -365,15 +365,22 @@ document.addEventListener('DOMContentLoaded', function () {
     }, { passive: true });
     window.addEventListener('touchend', function () { touchScrolling = false; }, { passive: true });
     window.addEventListener('touchcancel', function () { touchScrolling = false; }, { passive: true });
-    if (!('onscrollend' in track)) {
-        let settleTimer = 0;
-        const queueScrollEnd = function () {
-            window.clearTimeout(settleTimer);
-            settleTimer = window.setTimeout(finishScroll, 150);
-        };
-        track.addEventListener('scroll', queueScrollEnd, { passive: true });
-        window.addEventListener('touchend', queueScrollEnd, { passive: true });
-    }
+    // A released or interrupted gesture can stop between native snap points
+    // without a scrollend event. Finish only after horizontal movement is idle.
+    let settleTimer = 0;
+    const queueScrollEnd = function () {
+        window.clearTimeout(settleTimer);
+        settleTimer = window.setTimeout(function () {
+            if (!phone.matches || touchScrolling) return;
+            syncScrolledSlide();
+            if (pendingIndex === null && Math.abs(track.scrollLeft - slideScrollLeft(activeIndex)) > 1) {
+                scrollToSlide(activeIndex, reduceMotion.matches ? 'instant' : 'smooth');
+            }
+        }, 150);
+    };
+    track.addEventListener('scroll', queueScrollEnd, { passive: true });
+    window.addEventListener('touchend', queueScrollEnd, { passive: true });
+    window.addEventListener('touchcancel', queueScrollEnd, { passive: true });
 
     function interruptScroll() {
         if (pendingIndex === null) return;
