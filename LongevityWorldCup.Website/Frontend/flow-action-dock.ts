@@ -285,6 +285,8 @@ interface FlowActionDockApi {
     function moveKeepingFocus(element: HTMLElement, move: () => void): void {
         const focused = document.activeElement;
         const hadFocus = focused instanceof HTMLElement && element.contains(focused);
+        const scrollLeft = window.scrollX;
+        const scrollTop = window.scrollY;
         let focusAssigned = false;
         const trackFocus = (event: FocusEvent): void => {
             if (event.target !== focused) focusAssigned = true;
@@ -305,6 +307,12 @@ interface FlowActionDockApi {
             && !focused.closest('[hidden], [inert], [aria-hidden="true"]')
             && isFocusTargetVisible(focused)) {
             focused.focus({ preventScroll: true });
+        }
+        // A native state-preserving move can scroll a focused fixed control
+        // into its new inline position even though it never lost focus.
+        if (hadFocus && !focusAssigned && document.activeElement === focused
+            && (window.scrollX !== scrollLeft || window.scrollY !== scrollTop)) {
+            window.scrollTo({ left: scrollLeft, top: scrollTop, behavior: 'instant' });
         }
     }
 
