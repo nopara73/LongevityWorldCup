@@ -23,7 +23,13 @@ public static class PublicProfileHtmlRenderer
         html = html.Replace("<div class=\"modal-content\">", $"<div class=\"modal-content\" data-server-rendered-profile=\"{Encode(row.RouteSlug)}\" data-athlete-slug=\"{Encode(row.RouteSlug)}\">", StringComparison.Ordinal);
         html = SetContent(html, "athleteName", Encode(row.DisplayName));
         html = SetContent(html, "stickyAthleteName", Encode(row.DisplayName));
-        html = SetContent(html, "athleteBio", Encode(athlete.Source["Why"]?.GetValue<string>() ?? ""));
+        var why = athlete.Source["Why"]?.GetValue<string>() ?? "";
+        html = SetContent(html, "athleteBio", Encode(why));
+        var trimmedWhy = why.TrimStart();
+        if (trimmedWhy.Length == 0)
+            html = html.Replace("id=\"athleteBio\"", "id=\"athleteBio\" hidden", StringComparison.Ordinal);
+        if (trimmedWhy.Length > 0 && "\"'“‘„«‹「『".Contains(trimmedWhy[0]))
+            html = html.Replace("id=\"athleteBio\"", "id=\"athleteBio\" data-leading-quote", StringComparison.Ordinal);
         html = html.Replace("id=\"shareAthleteProfile\" type=\"button\"", "id=\"shareAthleteProfile\" type=\"button\" disabled", StringComparison.Ordinal);
         html = PopulateLink(html, "personalLink", athlete.Source["PersonalLink"]?.GetValue<string>());
         html = PopulateLink(html, "mediaContact", row.MediaContact);
