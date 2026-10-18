@@ -1615,11 +1615,6 @@
      background: var(--athlete-modal-border);
  }
 
- /* === FIX: Pace of aging sor biztosan egy sorban === */
- #bortzPaceOfAgingContainer td{ white-space: nowrap; }
- #paceOfAgingContainer td{ white-space: nowrap; }
-
-
  #ageReduction,
  #ageReductionPercent,
  #lowestBortzAge,
@@ -4108,23 +4103,25 @@
      line-height:1.15;
  }
  #detailsModal #athlete-profile > #athleteRankings{
-     display:grid;
-     grid-auto-flow:column;
-     grid-auto-columns:minmax(0, 1fr);
+     display:flex;
+     flex-wrap:wrap;
      gap:0;
      margin-top:1.25rem;
      overflow:hidden;
      background:linear-gradient(var(--athlete-doc-band), var(--athlete-doc-band)), var(--athlete-modal-card);
  }
  #detailsModal #athlete-profile > #athleteRankings[hidden]{ display:none; }
+ /* Tiles share the band and wrap when text is enlarged; each draws its
+    divider on its left and top, and the card clips the ones on its edges. */
  #detailsModal #athleteRankings a{
+     flex:1 1 7.5rem;
      min-height:var(--athlete-doc-band-height);
      padding:.8rem .75rem .85rem;
      border:0;
      border-radius:0;
      background:none;
+     box-shadow:-1px 0 0 var(--athlete-modal-border), 0 -1px 0 var(--athlete-modal-border);
  }
- #detailsModal #athleteRankings a + a{ border-left:1px solid var(--athlete-modal-border); }
  #detailsModal #athleteRankings strong{ font-size:1.75rem; }
  #detailsModal #athleteRankings a:hover,
  #detailsModal #athleteRankings a:focus-visible{ background:var(--athlete-modal-card-hover); }

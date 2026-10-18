@@ -545,7 +545,7 @@ interface FlowActionDockApi {
 
         const dockHeight = parseFloat(getComputedStyle(document.documentElement)
             .getPropertyValue('--flow-action-dock-height')) || 0;
-        if (!dockHeight) return;
+        if (!dockHeight && !isKeyboardOpen) return;
 
         const requestedMargin = options.margin;
         const margin = typeof requestedMargin === 'number' && Number.isFinite(requestedMargin) ? requestedMargin : 16;

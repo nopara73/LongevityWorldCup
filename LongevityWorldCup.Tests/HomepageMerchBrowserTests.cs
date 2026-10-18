@@ -328,10 +328,32 @@ public sealed class HomepageMerchBrowserTests(PlaywrightBrowserFixture browserFi
         await Assertions.Expect(page.Locator(".lwc-merch-mobile-slide").Nth(2)).ToBeFocusedAsync();
     }
 
-    [Fact]
-    public async Task Swag_ResizeTransfersFocusAndKeepsTheSelectedProductAlignedAfterTextChanges()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Swag_ResizeTransfersFocusAndKeepsTheSelectedProductAlignedAfterTextChanges(bool blurHiddenFocusBeforeMediaChange)
     {
         await using var context = await HomepageChromeRegressionBrowserTests.NewContextAsync(Browser, App, ReducedMotion.Reduce);
+        if (blurHiddenFocusBeforeMediaChange)
+        {
+            await context.AddInitScriptAsync("""
+                // A browser may blur display:none content before dispatching the
+                // media-query change. Exercise that ordering deterministically.
+                const originalMatchMedia = window.matchMedia.bind(window);
+                window.matchMedia = query => {
+                    const media = originalMatchMedia(query);
+                    if (query !== '(max-width: 576px)') return media;
+                    const addListener = media.addEventListener.bind(media);
+                    media.addEventListener = (type, listener, options) => addListener(type, event => {
+                        const focused = document.activeElement;
+                        if (focused?.closest('.lwc-merch-body') && !focused.getClientRects().length)
+                            focused.blur();
+                        listener(event);
+                    }, options);
+                    return media;
+                };
+                """);
+        }
         var page = await context.NewPageAsync();
         await page.SetViewportSizeAsync(390, 844);
         await page.GotoAsync("/", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
@@ -341,6 +363,7 @@ public sealed class HomepageMerchBrowserTests(PlaywrightBrowserFixture browserFi
         await dots.Nth(2).FocusAsync();
         await dots.Nth(2).PressAsync("Space");
         await WaitForProductPositionAsync(page, 2);
+        await Assertions.Expect(slides.Nth(2)).ToBeFocusedAsync();
         await page.SetViewportSizeAsync(768, 844);
         await Assertions.Expect(grid.Nth(2)).ToBeFocusedAsync();
         for (var index = 0; index < 3; index++)
@@ -359,6 +382,18 @@ public sealed class HomepageMerchBrowserTests(PlaywrightBrowserFixture browserFi
         await Assertions.Expect(dots.Nth(1)).ToHaveAttributeAsync("aria-pressed", "true");
         await Assertions.Expect(slides.Nth(1)).ToHaveAttributeAsync("aria-hidden", "false");
         Assert.True(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth <= innerWidth"));
+
+        // A deliberate blur or focus moved elsewhere must not be restored by
+        // a later breakpoint change.
+        await slides.Nth(1).EvaluateAsync("link => link.blur()");
+        await page.SetViewportSizeAsync(768, 844);
+        await page.WaitForFunctionAsync("!document.querySelector('.lwc-merch-grid').inert && document.querySelector('#lwc-merch-mobile-carousel').inert");
+        Assert.True(await page.EvaluateAsync<bool>("document.activeElement === document.body"));
+        await grid.Nth(0).FocusAsync();
+        await page.Locator("#emailInput").FocusAsync();
+        await page.SetViewportSizeAsync(390, 844);
+        await page.WaitForFunctionAsync("document.querySelector('.lwc-merch-grid').inert && !document.querySelector('#lwc-merch-mobile-carousel').inert");
+        await Assertions.Expect(page.Locator("#emailInput")).ToBeFocusedAsync();
     }
 
     private static async Task WaitForProductPositionAsync(IPage page, int index)
