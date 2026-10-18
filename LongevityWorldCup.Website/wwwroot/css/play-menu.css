@@ -918,24 +918,34 @@ html.play-panel-transitioning .play-hub-panel--entering {
 
 .play-dashboard-actions.flow-action-stack--docked .flow-action {
     order: 1;
-    flex: 1 1 min(10em, 10rem);
+    flex: 1 1 max-content;
+    flex-wrap: wrap;
+    gap: 0.45em;
     width: auto;
-    max-width: none;
-    min-width: min-content;
+    max-width: 100%;
+    min-width: 0;
     margin-inline: 0;
     min-height: 44px;
-    padding-block: 0.45rem;
-    padding: 0.45rem 2rem 0.45rem 0.65rem;
+    padding: 0.45rem 0.65rem;
     font-size: 0.88rem;
     line-height: 1.12;
     overflow-wrap: normal;
 }
 
+.play-dashboard-actions.flow-action-stack--docked .flow-action__label {
+    flex: 1 0 auto;
+    width: auto;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+}
+
 .play-dashboard-actions.flow-action-stack--docked .flow-action__icon,
 .play-dashboard-actions.flow-action-stack--docked .flow-action > i {
-    right: 0.65rem;
+    position: static;
     display: inline-block;
+    flex: none;
     width: 1.25em;
+    transform: none;
 }
 
 .play-dashboard-actions.flow-action-stack--docked #playDashboardBackBtn {
@@ -1111,14 +1121,26 @@ html.play-panel-transitioning .play-hub-panel--entering {
         margin-top: 1.15rem;
     }
 
-    .play-dashboard-actions.flow-action-stack--docked .flow-action {
-        padding-right: max(min(1.65rem, 27px), 2.1em);
-        padding-left: min(0.45rem, 8px);
-        font-size: 0.78rem;
+    /* Keep each glyph in the layout so labels and enlarged text can reflow
+       without colliding with an absolutely positioned icon. */
+    .play-dashboard-actions .flow-action:not(#playDashboardBackBtn) {
+        flex-wrap: wrap;
+        gap: 0.45em;
+        padding-inline: min(0.75rem, 12px);
     }
 
-    .play-dashboard-actions.flow-action-stack--docked .flow-action > i {
-        right: min(0.5rem, 8px);
+    .play-dashboard-actions .flow-action:not(#playDashboardBackBtn) .flow-action__label {
+        flex: 1 0 auto;
+        width: auto;
+        max-width: 100%;
+        overflow-wrap: anywhere;
+    }
+
+    .play-dashboard-actions .flow-action:not(#playDashboardBackBtn) > i {
+        position: static;
+        display: inline-block;
+        flex: none;
+        transform: none;
     }
 
     .play-athlete-panel,
@@ -1395,12 +1417,7 @@ html.play-panel-transitioning .play-hub-panel--entering {
     }
 
     .play-dashboard-actions.flow-action-stack--docked .flow-action {
-        padding-inline: 2rem max(2rem, 2.25em);
-    }
-
-    .play-dashboard-actions.flow-action-stack--docked .flow-action > i {
-        right: 0.8rem;
-        display: inline-block;
+        padding-inline: 0.85rem;
     }
 
     .play-dashboard-actions.flow-action-stack--docked #playDashboardBackBtn > i {
@@ -1431,18 +1448,6 @@ html.play-panel-transitioning .play-hub-panel--entering {
         padding-inline: 2.85rem min(0.5rem, 16px);
         overflow-wrap: normal;
     }
-}
-
-@media (min-width: 761px) and (max-width: 959px) {
-    .play-dashboard-actions.flow-action-stack--docked .flow-action {
-        padding: 0.45rem max(1.5rem, 2em) 0.45rem 0.3rem;
-        font-size: 0.78rem;
-    }
-
-    .play-dashboard-actions.flow-action-stack--docked .flow-action > i {
-        right: 0.45rem;
-    }
-
 }
 
 @media (min-width: 761px) and (max-height: 820px) {
