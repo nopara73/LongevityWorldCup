@@ -110,8 +110,184 @@ public sealed class DashboardAthleteCardBrowserTests(
         if (width < 600)
             await page.Locator("#playDashboardBackBtn").TapAsync();
         else
+        {
+            await page.Locator("#playDashboardBackBtn").FocusAsync();
             await page.Keyboard.PressAsync("Enter");
+        }
         await Assertions.Expect(page.Locator("#athleteSelectionPanel")).ToBeVisibleAsync();
+    }
+
+    [Theory]
+    [InlineData(1440, 900, false)]
+    [InlineData(1280, 720, true)]
+    [InlineData(1366, 768, false)]
+    public async Task DockedDashboard_IsOneCentredCommandGroup(int width, int height, bool dark)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = height },
+            ColorScheme = dark ? ColorScheme.Dark : ColorScheme.Light,
+            ReducedMotion = ReducedMotion.Reduce
+        });
+        // An amateur's discounts push the actions below the fold, so they dock.
+        await context.AddInitScriptAsync(
+            """
+            const athlete = {
+                Name: 'Browser Test Athlete', DisplayName: 'Browser Test Athlete', PersonalLink: 'https://example.test/browser-test-athlete',
+                DateOfBirth: { Year: 1980, Month: 5, Day: 20 }, Biomarkers: []
+            };
+            sessionStorage.setItem('selectedAthlete', JSON.stringify(athlete));
+            localStorage.setItem('selectedAthleteName', athlete.Name);
+            localStorage.setItem('hasApplication', 'true');
+            localStorage.setItem('gmaHasPerfectGuess', '1');
+            """);
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/dashboard", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.WaitForFunctionAsync(
+            "() => !document.documentElement.hasAttribute('data-initial-view') && document.getElementById('athleteDashboardPanel')?.hidden === false && document.querySelectorAll('#athleteDashboardActions .flow-action').length >= 4");
+        await page.EvaluateAsync("async () => { await document.fonts.ready; window.LwcFlowActionDock?.refreshNow?.(); await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))); }");
+        await Assertions.Expect(page.Locator("#athleteDashboardActions")).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("flow-action-stack--docked"));
+
+        var layout = await page.EvaluateAsync<double[]>(
+            """
+            () => {
+                const actions = [...document.querySelectorAll('#athleteDashboardActions .flow-action')].filter(action => action.offsetParent);
+                const boxes = actions.map(action => action.getBoundingClientRect());
+                const left = Math.min(...boxes.map(box => box.left));
+                const right = Math.max(...boxes.map(box => box.right));
+                const gaps = boxes.map(box => box.left).sort((a, b) => a - b)
+                    .map((x, i, xs) => i === 0 ? 0 : x - boxes.find(box => box.left === xs[i - 1]).right).slice(1);
+                const back = document.getElementById('playDashboardBackBtn').getBoundingClientRect();
+                return [left, innerWidth - right, Math.max(...gaps), back.left === left ? 1 : 0];
+            }
+            """);
+        var scenario = $"{width}x{height}";
+        Assert.True(Math.Abs(layout[0] - layout[1]) <= 4, $"{scenario}: the docked actions should be centred ({layout[0]:F0}px left vs {layout[1]:F0}px right).");
+        Assert.True(layout[2] <= 24, $"{scenario}: the docked actions should read as one group, not leave a {layout[2]:F0}px gap.");
+        Assert.True(layout[3] == 1, $"{scenario}: Change athlete should lead the group.");
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task DashboardDock_KeepsKeyboardOrderAndFocusAcrossRealResize(bool fallback)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = 1440, Height = 1600 },
+            ReducedMotion = ReducedMotion.Reduce
+        });
+        await context.AddInitScriptAsync("""
+            sessionStorage.setItem('selectedAthlete', JSON.stringify({
+                Name: 'Browser Test Athlete', DisplayName: 'Browser Test Athlete',
+                PersonalLink: 'https://example.test/browser-test-athlete',
+                DateOfBirth: { Year: 1980, Month: 5, Day: 20 }, Biomarkers: []
+            }));
+            localStorage.setItem('gmaHasPerfectGuess', '1');
+            """);
+        if (fallback)
+            await context.AddInitScriptAsync("Element.prototype.moveBefore = undefined");
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/dashboard", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.WaitForFunctionAsync("() => !document.documentElement.hasAttribute('data-initial-view') && document.querySelectorAll('#athleteDashboardActions .flow-action').length === 5");
+        await page.EvaluateAsync("async () => { await document.fonts.ready; window.LwcFlowActionDock.refreshNow(); }");
+        var back = page.Locator("#playDashboardBackBtn");
+        var edit = page.GetByRole(AriaRole.Button, new() { Name = "Edit profile", Exact = true });
+        var stack = page.Locator("#athleteDashboardActions");
+        Assert.False(await stack.EvaluateAsync<bool>("s => s.classList.contains('flow-action-stack--docked')"));
+        await back.FocusAsync();
+
+        foreach (var height in new[] { 900, 1600, 900 })
+        {
+            await page.SetViewportSizeAsync(1440, height);
+            await page.WaitForFunctionAsync("docked => document.querySelector('#athleteDashboardActions').classList.contains('flow-action-stack--docked') === docked", height == 900);
+            await Assertions.Expect(back).ToBeFocusedAsync();
+            Assert.True(await stack.EvaluateAsync<bool>("s => s.classList.contains('flow-action-stack--docked') ? s.firstElementChild.id === 'playDashboardBackBtn' : s.lastElementChild.id === 'playDashboardBackBtn'"));
+            if (height == 900)
+            {
+                await page.Keyboard.PressAsync("Tab");
+                await Assertions.Expect(edit).ToBeFocusedAsync();
+                await page.Keyboard.PressAsync("Shift+Tab");
+                await Assertions.Expect(back).ToBeFocusedAsync();
+            }
+        }
+        await page.Keyboard.PressAsync("Enter");
+        await Assertions.Expect(page.Locator("#athleteSelectionPanel")).ToBeVisibleAsync();
+        Assert.False(await stack.EvaluateAsync<bool>("s => s.classList.contains('flow-action-stack--docked')"));
+    }
+
+    [Theory]
+    [InlineData(1440, 900)]
+    [InlineData(390, 844)]
+    [InlineData(320, 640)]
+    [InlineData(844, 390)]
+    public async Task DashboardDock_ActualDoubleTextKeepsCommandsAndIconsWhole(int width, int height)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = height },
+            ReducedMotion = ReducedMotion.Reduce
+        });
+        await context.AddInitScriptAsync("""
+            sessionStorage.setItem('selectedAthlete', JSON.stringify({
+                Name: 'Browser Test Athlete', DisplayName: 'Browser Test Athlete',
+                PersonalLink: 'https://example.test/browser-test-athlete', Biomarkers: []
+            }));
+            localStorage.setItem('gmaHasPerfectGuess', '1');
+            """);
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/dashboard", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.WaitForFunctionAsync("() => !document.documentElement.hasAttribute('data-initial-view') && document.querySelectorAll('#athleteDashboardActions .flow-action').length === 5");
+        var ratio = await page.EvaluateAsync<double>("""
+            async () => {
+                await document.fonts.ready;
+                const label = document.querySelector('#athleteDashboardActions .flow-action__label');
+                const before = parseFloat(getComputedStyle(label).fontSize);
+                const elements = [document.body, ...document.body.querySelectorAll('*')].filter(e => e instanceof HTMLElement);
+                const sizes = elements.map(e => [e, parseFloat(getComputedStyle(e).fontSize)]);
+                for (const [e, size] of sizes) e.style.setProperty('font-size', `${size * 2}px`, 'important');
+                await Promise.allSettled(document.getAnimations().filter(a => a.effect?.getTiming().iterations !== Infinity).map(a => a.finished));
+                window.LwcFlowActionDock.refreshNow();
+                await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                return parseFloat(getComputedStyle(label).fontSize) / before;
+            }
+            """);
+        Assert.InRange(ratio, 1.99, 2.01);
+        if (width >= 761)
+        {
+            var gaps = await page.EvaluateAsync<double[]>("""
+                () => {
+                    const stack = document.getElementById('athleteDashboardActions');
+                    if (!stack.classList.contains('flow-action-stack--docked')) return [];
+                    const boxes = [...stack.querySelectorAll('.flow-action')].map(a => a.getBoundingClientRect())
+                        .filter(r => r.width && r.height).sort((a, b) => a.top - b.top || a.left - b.left);
+                    return boxes.slice(1).flatMap((box, i) => Math.abs(box.top - boxes[i].top) <= 1 ? [box.left - boxes[i].right] : []);
+                }
+                """);
+            Assert.All(gaps, gap => Assert.InRange(gap, 0, 24));
+        }
+        foreach (var action in await page.Locator("#athleteDashboardActions .flow-action").AllAsync())
+        {
+            await action.FocusAsync();
+            await action.ScrollIntoViewIfNeededAsync();
+            var issues = await action.EvaluateAsync<string[]>("""
+                button => {
+                    const bounds = button.getBoundingClientRect(), icon = button.querySelector('i').getBoundingClientRect();
+                    const range = document.createRange();
+                    range.selectNodeContents(button.querySelector('.flow-action__label'));
+                    const fragments = [...range.getClientRects()].filter(r => r.width > 0 && r.height > 0);
+                    const inside = r => r.left >= bounds.left - 1 && r.right <= bounds.right + 1 && r.top >= bounds.top - 1 && r.bottom <= bounds.bottom + 1;
+                    const overlaps = r => r.left < icon.right - 1 && r.right > icon.left + 1 && r.top < icon.bottom - 1 && r.bottom > icon.top + 1;
+                    const issues = [];
+                    if (fragments.some(r => !inside(r)) || !inside(icon)) issues.push('text or icon outside its command');
+                    if (fragments.some(overlaps)) issues.push('icon overlaps text');
+                    if (bounds.width < 44 || bounds.height < 44 || !button.contains(document.elementFromPoint((bounds.left + bounds.right) / 2, (bounds.top + bounds.bottom) / 2))) issues.push('command is too small or covered');
+                    return issues;
+                }
+                """);
+            Assert.True(issues.Length == 0, $"{width}x{height}, 200% text: {string.Join("; ", issues)}");
+        }
+        Assert.True(await page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= innerWidth"));
     }
 
     [Theory]

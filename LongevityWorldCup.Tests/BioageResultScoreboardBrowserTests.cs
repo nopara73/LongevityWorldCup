@@ -6,7 +6,7 @@ using static LongevityWorldCup.Tests.FlowActionDockBrowserTests;
 namespace LongevityWorldCup.Tests;
 
 [Collection(BrowserTestCollections.WorkloadB)]
-public sealed class BioageResultScoreboardBrowserTests(
+public sealed partial class BioageResultScoreboardBrowserTests(
     PlaywrightBrowserFixture browserFixture,
     BrowserTestAppFixture appFixture)
     : BrowserIntegrationTest(browserFixture, appFixture)
@@ -185,6 +185,57 @@ public sealed class BioageResultScoreboardBrowserTests(
             """);
         Assert.True(layout[0] >= layout[1] - 1, $"{path}: the result label settled behind the header ({layout[0]} < {layout[1]}).");
         Assert.True(layout[2] <= layout[3] - 8, $"{path}: the result settled behind the actions ({layout[2]} >= {layout[3]}).");
+    }
+
+    [Theory]
+    [InlineData("/pheno-age", 1440, 900, false)]
+    [InlineData("/bortz-age", 1024, 768, true)]
+    [InlineData("/pheno-age", 390, 844, true)]
+    [InlineData("/bortz-age", 320, 640, false)]
+    public async Task Rank_RevealsItsPlaceLikeTheAgeAndContainsNeighbourContent(string path, int width, int height, bool dark)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = height },
+            ColorScheme = dark ? ColorScheme.Dark : ColorScheme.Light,
+            ReducedMotion = ReducedMotion.Reduce,
+            IsMobile = width < 600,
+            HasTouch = width < 600
+        });
+        var page = await context.NewPageAsync();
+        await CalculateAsync(page, path);
+        await page.WaitForFunctionAsync("() => document.querySelector('[data-bioage-result-rank]')?.getAttribute('aria-busy') === 'false' && document.querySelector('.bioage-rank-row')");
+        await page.EvaluateAsync("() => document.fonts.ready");
+
+        var layout = await page.EvaluateAsync<double[]>(
+            """
+            () => {
+                const preview = document.querySelector('[data-bioage-result-rank]');
+                const box = preview.getBoundingClientRect();
+                const style = getComputedStyle(preview);
+                const textCenter = element => {
+                    const range = document.createRange();
+                    range.selectNodeContents(element);
+                    const rect = range.getBoundingClientRect();
+                    return rect.left + rect.width / 2;
+                };
+                const label = preview.querySelector('.bioage-rank-label');
+                const number = preview.querySelector('.bioage-rank-number');
+                return [style.backgroundColor === 'rgba(0, 0, 0, 0)' || style.backgroundColor === 'transparent' ? 1 : 0,
+                    parseFloat(style.borderLeftWidth), box.left + box.width / 2,
+                    textCenter(label), textCenter(number),
+                    label.getBoundingClientRect().bottom <= number.getBoundingClientRect().top + 1 ? 1 : 0,
+                    getComputedStyle(number).backgroundColor === 'rgba(0, 0, 0, 0)' ? 1 : 0];
+            }
+            """);
+        var scenario = $"{path} {width}x{height}";
+        Assert.True(layout[0] == 1 && layout[1] == 0, $"{scenario}: the rank should be part of the result card, not a grey box inside it.");
+        Assert.True(layout[5] == 1, $"{scenario}: the rank's label should lead its place, as the age's label leads the age.");
+        Assert.True(Math.Abs(layout[3] - layout[2]) <= 2 && Math.Abs(layout[4] - layout[2]) <= 2,
+            $"{scenario}: the label and place should be centred like the age ({layout[3]}, {layout[4]} vs {layout[2]}).");
+        Assert.True(layout[6] == 1, $"{scenario}: the place should be a headline number, not a tinted chip.");
+        await AssertReadableRankRowsAsync(page);
+        await ExpectNoHorizontalOverflowAsync(page);
     }
 
     private static async Task CalculateAsync(IPage page, string path)

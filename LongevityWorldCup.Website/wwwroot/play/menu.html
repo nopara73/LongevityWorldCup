@@ -180,14 +180,14 @@
             </p>
 
             <div class="options-container play-join-actions flow-action-stack" data-flow-dock="auto">
+                <button disabled id="joinTrackBackBtn" type="button" class="option-button back-button flow-action flow-action--secondary flow-action--icon-left" aria-label="Back">
+                    <i class="fas fa-arrow-left" aria-hidden="true"></i><span class="flow-action__label">Back</span>
+                </button>
                 <button disabled id="joinMobileStartAmateurBtn" type="button" class="option-button grey flow-action flow-action--secondary play-join-mobile-track-action">
                     <span class="flow-action__label">Start amateur</span><i class="fas fa-arrow-right" aria-hidden="true"></i>
                 </button>
                 <button disabled id="joinMobileGoProButton" type="button" class="option-button green flow-action play-join-mobile-track-action">
                     <span class="flow-action__label">Go pro</span><i class="fas fa-bolt" aria-hidden="true"></i>
-                </button>
-                <button disabled id="joinTrackBackBtn" type="button" class="option-button back-button flow-action flow-action--secondary flow-action--icon-left">
-                    <i class="fas fa-arrow-left" aria-hidden="true"></i><span class="flow-action__label">Back</span>
                 </button>
             </div>
         </section>
@@ -245,7 +245,7 @@
                 </div>
             </div>
             <div id="athleteDashboardDiscounts" class="play-dashboard-discounts" aria-live="polite"></div>
-            <div id="athleteDashboardActions" class="options-container play-dashboard-actions flow-action-stack" data-flow-dock="overflow" data-flow-dock-unless="body.play-route-hydrating" data-flow-dock-max-height-ratio="0.5">
+            <div id="athleteDashboardActions" class="options-container play-dashboard-actions flow-action-stack" data-flow-dock="overflow" data-flow-dock-back-first data-flow-dock-unless="body.play-route-hydrating" data-flow-dock-max-height-ratio="0.5">
                 <button type="button" class="option-button grey flow-action flow-action--secondary" onclick="window.location.href='/edit-profile'">
                     <span class="dashboard-action-label flow-action__label">Edit profile</span><i class="fas fa-pen" aria-hidden="true"></i>
                 </button>
