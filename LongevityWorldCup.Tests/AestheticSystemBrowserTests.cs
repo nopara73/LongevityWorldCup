@@ -1813,6 +1813,11 @@ public sealed class AestheticSystemBrowserTests(
             var thresholdPixels = condition.Unit == "rem"
                 ? condition.Value * rootFontSize
                 : condition.Value;
+            if (condition.Name is null && condition.Unit == "rem" && condition.Value == 12)
+            {
+                await AssertUnavailableDiscussionContextBoundaryAsync(page, thresholdPixels);
+                continue;
+            }
             if (condition.Name == "lmx-checkin")
             {
                 foreach (var delta in new[] { -1, 0, 1, 0, -1 })
@@ -1912,6 +1917,46 @@ public sealed class AestheticSystemBrowserTests(
                     $"Container query from {condition.Source} caused {diagnostics.HorizontalOverflow}px " +
                     $"horizontal overflow at {inlineSize:F1}px.");
             }
+        }
+    }
+
+    private static async Task AssertUnavailableDiscussionContextBoundaryAsync(IPage page, double thresholdPixels)
+    {
+        foreach (var delta in new[] { -1, 0, 1, 0, -1 })
+        {
+            var inlineSize = thresholdPixels + delta;
+            var diagnostics = await page.EvaluateAsync<ContainerQueryDiagnostics>("""
+                async inlineSize => {
+                    let tile = document.getElementById('responsive-unavailable-context-probe');
+                    if (!tile) {
+                        tile = document.createElement('article');
+                        tile.id = 'responsive-unavailable-context-probe';
+                        tile.className = 'lmx-note';
+                        tile.innerHTML = `<div class="lmx-discussion-reply-item">
+                            <div class="lmx-discussion-reply-meta">
+                                <span class="lmx-discussion-author-avatar"></span>
+                                <div class="lmx-discussion-reply-byline">
+                                    <span class="lmx-discussion-context-link unavailable"><i class="fas fa-reply" aria-hidden="true"></i>Original reply unavailable</span>
+                                </div>
+                            </div></div>`;
+                        document.querySelector('main').append(tile);
+                    }
+                    tile.style.boxSizing = 'content-box';
+                    tile.style.inlineSize = `${inlineSize}px`;
+                    tile.style.maxInlineSize = 'none';
+                    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                    const context = tile.querySelector('.lmx-discussion-context-link.unavailable');
+                    return {
+                        ContainerWidth: parseFloat(getComputedStyle(tile).width),
+                        IsCompact: getComputedStyle(context).display === 'block',
+                        HorizontalOverflow: Math.max(0, tile.scrollWidth - tile.clientWidth)
+                    };
+                }
+                """, inlineSize);
+            Assert.Equal(inlineSize, diagnostics.ContainerWidth, 1);
+            Assert.Equal(inlineSize <= thresholdPixels, diagnostics.IsCompact);
+            Assert.True(diagnostics.HorizontalOverflow <= 1,
+                $"Deleted reply context overflowed by {diagnostics.HorizontalOverflow}px at {inlineSize}px.");
         }
     }
 
