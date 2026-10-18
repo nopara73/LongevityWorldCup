@@ -72,6 +72,11 @@ public sealed class HomepageMerchBrowserTests(PlaywrightBrowserFixture browserFi
             var box = Assert.IsType<LocatorBoundingBoxResult>(await card.BoundingBoxAsync());
             Assert.True(box.Width >= 44 && box.Height >= 44, "Every product must remain a usable touch target.");
             Assert.True(box.X >= 0 && box.X + box.Width <= width, "Product cards must fit the viewport.");
+            if (mobile)
+            {
+                var imageBox = Assert.IsType<LocatorBoundingBoxResult>(await card.Locator("img").BoundingBoxAsync());
+                Assert.True(imageBox.Height >= 100, "Product photos must remain identifiable when text is enlarged.");
+            }
             Assert.True(await card.EvaluateAsync<bool>(
                 """
                 card => {

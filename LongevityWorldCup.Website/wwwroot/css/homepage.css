@@ -1371,6 +1371,8 @@ button:hover {
         position: relative;
         inset: auto;
         flex: 0 0 82%;
+        min-width: 0;
+        min-height: calc(min(8rem, 40vw) + var(--lwc-merch-caption-space, 0px));
         aspect-ratio: 1 / 0.98;
         display: grid;
         grid-template-rows: minmax(0, 1fr) auto;

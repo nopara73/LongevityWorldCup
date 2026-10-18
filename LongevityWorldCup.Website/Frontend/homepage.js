@@ -409,6 +409,17 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     function syncLayout() {
+        if (phone.matches) {
+            // Reserve photo space above wrapped captions without changing the
+            // normal-size card geometry. Measure first, then update all slides.
+            const captions = slides.map(slide => {
+                const style = getComputedStyle(slide);
+                const inset = ['paddingTop', 'paddingBottom', 'borderTopWidth', 'borderBottomWidth', 'rowGap']
+                    .reduce((sum, property) => sum + (parseFloat(style[property]) || 0), 0);
+                return { slide, space: slide.querySelector('.lwc-merch-item-copy').getBoundingClientRect().height + inset };
+            });
+            captions.forEach(({ slide, space }) => slide.style.setProperty('--lwc-merch-caption-space', `${space}px`));
+        }
         if (phone.matches && touchScrolling) return;
         const focusedGridIndex = gridLinks.indexOf(document.activeElement);
         const focusedSlideIndex = slides.indexOf(document.activeElement);
@@ -434,7 +445,14 @@ document.addEventListener('DOMContentLoaded', function () {
     merchCarousel.parentElement.classList.add('has-merch-carousel');
     syncLayout();
     phone.addEventListener('change', syncLayout);
-    const layoutObserver = new ResizeObserver(syncLayout);
+    let layoutFrame = 0;
+    const layoutObserver = new ResizeObserver(function () {
+        if (layoutFrame) return;
+        layoutFrame = requestAnimationFrame(function () {
+            layoutFrame = 0;
+            syncLayout();
+        });
+    });
     layoutObserver.observe(track);
     slides.forEach(slide => layoutObserver.observe(slide.querySelector('.lwc-merch-item-copy')));
     document.fonts.ready.then(syncLayout);
