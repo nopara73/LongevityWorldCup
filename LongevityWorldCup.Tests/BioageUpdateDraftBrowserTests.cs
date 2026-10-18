@@ -350,7 +350,9 @@ public sealed class BioageUpdateDraftBrowserTests(PlaywrightBrowserFixture brows
 
     private static async Task SelectAthleteAsync(IPage page)
     {
-        if (page.Url == "about:blank") await page.GotoAsync("/dashboard");
+        // Only establish the storage origin here. An anonymous dashboard redirects
+        // to athlete selection while loading, racing the fixture's athlete seed.
+        if (page.Url == "about:blank") await page.GotoAsync("/health");
         await page.EvaluateAsync("athlete => sessionStorage.setItem('selectedAthlete', athlete)", Athlete);
     }
 
