@@ -359,8 +359,11 @@ public sealed class LeaderboardOrderingBrowserTests(PlaywrightBrowserFixture bro
         var page = await context.NewPageAsync();
         await page.GotoAsync(Ordered);
         await Loaded(page);
-        await page.Clock.InstallAsync(new() { Time = "2026-10-17T12:00:00Z" });
-        await page.Clock.PauseAtAsync("2026-10-17T12:00:01Z");
+        // Freeze wall time before pausing timers; protocol latency must not
+        // advance past the timestamp between these two calls.
+        const string pausedTime = "2026-10-17T12:00:01Z";
+        await page.Clock.SetFixedTimeAsync(pausedTime);
+        await page.Clock.PauseAtAsync(pausedTime);
         await page.Locator("#athleteSearch").FillAsync("Michael Lustgarten");
         await page.Locator(clearSearch ? ".clear-icon" : "#leaderboardOrderReset").ClickAsync();
         var row = Rows(page).Filter(new() { HasText = "Michael Lustgarten" });
