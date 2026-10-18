@@ -1166,7 +1166,7 @@
 .lmx-reply-photos {
     max-width: 32rem;
     margin-bottom: var(--lwc-space-2);
-    margin-left: var(--lmx-discussion-indent);
+    margin-left: var(--lmx-discussion-body-indent, var(--lmx-discussion-indent));
 }
 
 .lmx-discussion-reply-item [data-discussion-reply-body]:empty {
@@ -2665,6 +2665,19 @@ body.lmx-checkin-dialog-open {
     container-type: inline-size;
 }
 
+/* On phones a post's and a reply's text run under the author row instead of
+   hanging beside the avatar column, so replies read at nearly full width. */
+@media (max-width: 600px) {
+    .lmx-note {
+        --lmx-discussion-body-indent: 0px;
+    }
+
+    .lmx-discussion-replies {
+        margin-left: 0.5rem;
+        padding-left: 0.75rem;
+    }
+}
+
 .lmx-note:focus-within {
     position: relative;
     z-index: 1;
@@ -2683,7 +2696,7 @@ body.lmx-checkin-dialog-open {
 
 .lmx-announcement-content {
     margin-top: var(--lwc-space-2);
-    padding-left: var(--lmx-discussion-indent);
+    padding-left: var(--lmx-discussion-body-indent, var(--lmx-discussion-indent));
     overflow-wrap: anywhere;
     max-width: 76ch;
     line-height: 1.5;
@@ -3162,7 +3175,7 @@ a.lmx-discussion-author-identity:focus-visible {
     align-items: center;
     flex-wrap: wrap;
     gap: var(--lwc-space-1);
-    margin-left: var(--lmx-discussion-indent);
+    margin-left: var(--lmx-discussion-body-indent, var(--lmx-discussion-indent));
 }
 
 .lmx-discussion-quiet-action {
@@ -3209,7 +3222,7 @@ a.lmx-discussion-author-identity:focus-visible {
 }
 
 .lmx-discussion-copy-feedback.error {
-    margin: var(--lwc-space-2) 0 var(--lwc-space-2) var(--lmx-discussion-indent);
+    margin: var(--lwc-space-2) 0 var(--lwc-space-2) var(--lmx-discussion-body-indent, var(--lmx-discussion-indent));
     color: var(--lmx-muted);
     font-size: var(--lwc-type-sm);
 }
@@ -3303,7 +3316,7 @@ a.lmx-discussion-author-identity:focus-visible {
 
 .lmx-discussion-reply-item p {
     display: block;
-    margin: var(--lwc-space-1) 0 0 var(--lmx-discussion-indent);
+    margin: var(--lwc-space-1) 0 0 var(--lmx-discussion-body-indent, var(--lmx-discussion-indent));
     color: var(--lmx-ink);
     font-size: var(--lwc-type-body);
     line-height: 1.5;
@@ -3319,11 +3332,11 @@ a.lmx-discussion-author-identity:focus-visible {
 
 .lmx-discussion-reply-editor-slot:not([hidden]) {
     display: block;
-    margin: var(--lwc-space-2) 0 0 var(--lmx-discussion-indent);
+    margin: var(--lwc-space-2) 0 0 var(--lmx-discussion-body-indent, var(--lmx-discussion-indent));
 }
 
 .lmx-discussion-reply-status:not(:empty) {
-    margin: var(--lwc-space-1) 0 0 var(--lmx-discussion-indent);
+    margin: var(--lwc-space-1) 0 0 var(--lmx-discussion-body-indent, var(--lmx-discussion-indent));
     color: var(--lmx-ink);
     font-size: var(--lwc-type-sm);
     font-weight: 400;
@@ -3335,7 +3348,7 @@ a.lmx-discussion-author-identity:focus-visible {
 }
 
 .lmx-discussion-reply-slot:not(:empty) {
-    margin: var(--lwc-space-4) 0 0 var(--lmx-discussion-indent);
+    margin: var(--lwc-space-4) 0 0 var(--lmx-discussion-body-indent, var(--lmx-discussion-indent));
 }
 
 .lmx-discussion-reply-composer {
@@ -4921,7 +4934,7 @@ a.lmx-note-mention:focus-visible {
 
 .lmx-note > p,
 .lmx-note > .lmx-note-photo-grid {
-    margin: var(--lwc-space-2) 0 0 var(--lmx-discussion-indent);
+    margin: var(--lwc-space-2) 0 0 var(--lmx-discussion-body-indent, var(--lmx-discussion-indent));
 }
 
 .lmx-note > p,
