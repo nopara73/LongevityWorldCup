@@ -1615,11 +1615,6 @@
      background: var(--athlete-modal-border);
  }
 
- /* === FIX: Pace of aging sor biztosan egy sorban === */
- #bortzPaceOfAgingContainer td{ white-space: nowrap; }
- #paceOfAgingContainer td{ white-space: nowrap; }
-
-
  #ageReduction,
  #ageReductionPercent,
  #lowestBortzAge,
@@ -3321,6 +3316,7 @@
          line-height:1.08;
          margin-top:.75rem;
      }
+     #detailsModal #athleteRankings,
      #detailsModal #athleteBio,
      #detailsModal .athlete-info,
      #detailsModal .age-visualization,
@@ -3332,6 +3328,10 @@
          margin-left:auto;
          margin-right:auto;
          box-sizing:border-box;
+     }
+     /* Compact tiles share a row when there is room; enlarged text can reflow. */
+     #detailsModal #athleteRankings a{
+         flex-basis:6.5rem;
      }
      #detailsModal #athleteBio{
          margin:.85rem auto 1.25rem;
@@ -3560,6 +3560,7 @@
          margin-bottom:.1rem;
      }
 
+     #detailsModal #athleteRankings,
      #detailsModal #athleteBio,
      #detailsModal .athlete-links,
      #detailsModal .athlete-info,
