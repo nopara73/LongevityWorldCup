@@ -563,7 +563,7 @@
             flex: 1 1 13.5rem;
             min-width: 0;
             margin: 0;
-            padding: 1rem 1.1rem 1.05rem;
+            padding: 1rem 3rem 1.05rem 1.1rem;
             border: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.1));
             border-radius: var(--lwc-radius-lg, 8px);
             background: var(--lwc-surface-muted, #eef2f5);
@@ -574,7 +574,17 @@
                 box-shadow var(--lwc-duration-fast, 0.15s) var(--lwc-ease, ease);
         }
 
+        .documentation-page #where-to-go-next + ul > li::before {
+            content: "\2192" / "";
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            color: var(--lwc-accent, var(--primary-color));
+            pointer-events: none;
+        }
+
         .documentation-page #where-to-go-next + ul > li > a {
+            border-radius: inherit;
             font-size: 1.06rem;
             text-decoration: none;
         }
@@ -670,7 +680,12 @@
             }
 
             .documentation-page #where-to-go-next + ul > li {
-                padding: 0.8rem 0.85rem 0.85rem;
+                padding: 0.8rem 2.6rem 0.85rem 0.85rem;
+            }
+
+            .documentation-page #where-to-go-next + ul > li::before {
+                top: 0.8rem;
+                right: 0.85rem;
             }
 
             .documentation-page #where-to-go-next + ul > li > a {
