@@ -918,9 +918,11 @@ html.play-panel-transitioning .play-hub-panel--entering {
 
 .play-dashboard-actions.flow-action-stack--docked .flow-action {
     order: 1;
-    flex: 1 1 10em;
+    flex: 1 1 min(10em, 10rem);
     width: auto;
     max-width: none;
+    min-width: min-content;
+    margin-inline: 0;
     min-height: 44px;
     padding-block: 0.45rem;
     padding: 0.45rem 2rem 0.45rem 0.65rem;
@@ -933,6 +935,7 @@ html.play-panel-transitioning .play-hub-panel--entering {
 .play-dashboard-actions.flow-action-stack--docked .flow-action > i {
     right: 0.65rem;
     display: inline-block;
+    width: 1.25em;
 }
 
 .play-dashboard-actions.flow-action-stack--docked #playDashboardBackBtn {
@@ -947,7 +950,7 @@ html.play-panel-transitioning .play-hub-panel--entering {
 .play-dashboard-actions.flow-action-stack--docked #playDashboardBackBtn > i {
     position: static;
     display: inline-block;
-    width: 1.25rem;
+    width: 1.25em;
     transform: none;
 }
 
@@ -1108,15 +1111,32 @@ html.play-panel-transitioning .play-hub-panel--entering {
         margin-top: 1.15rem;
     }
 
-    /* Like the join dock, phones give the docked commands their words, not
-       their icons, so no label is clipped or squeezed against a glyph. */
-    .play-dashboard-actions.flow-action-stack--docked .flow-action {
-        padding-inline: min(0.5rem, 8px);
-        font-size: max(0.78rem, min(0.86rem, 14px));
+    /* Keep each glyph in the layout so labels and enlarged text can reflow
+       without colliding with an absolutely positioned icon. */
+    .play-dashboard-actions .flow-action:not(#playDashboardBackBtn) {
+        flex-wrap: wrap;
+        gap: 0.45em;
+        padding-inline: min(0.75rem, 12px);
     }
 
-    .play-dashboard-actions.flow-action-stack--docked .flow-action:not(#playDashboardBackBtn) > i {
-        display: none;
+    .play-dashboard-actions .flow-action:not(#playDashboardBackBtn) .flow-action__label {
+        flex: 1 1 min-content;
+        width: auto;
+        overflow-wrap: anywhere;
+    }
+
+    .play-dashboard-actions .flow-action:not(#playDashboardBackBtn) > i {
+        position: static;
+        display: inline-block;
+        flex: none;
+        transform: none;
+    }
+
+    .play-dashboard-actions.flow-action-stack--docked .flow-action {
+        flex-basis: max-content;
+        min-width: 0;
+        max-width: 100%;
+        font-size: 0.88rem;
     }
 
     .play-athlete-panel,
@@ -1379,18 +1399,21 @@ html.play-panel-transitioning .play-hub-panel--entering {
         box-shadow: none;
     }
 
+    /* The command bar is one centred group led by Change athlete; the generic
+       dock's auto margin would pin Back to the edge and leave a hole. */
     .play-dashboard-actions.flow-action-stack--docked #playDashboardBackBtn {
         flex-basis: max-content;
         max-width: none;
         width: auto;
+        margin-inline: 0;
         padding-right: 0.7rem;
-        padding-left: 2.55rem;
+        padding-left: max(2.55rem, 2.55em);
         border-right: 1px solid rgba(96, 125, 139, 0.18);
         border-radius: 0;
     }
 
     .play-dashboard-actions.flow-action-stack--docked .flow-action {
-        padding-inline: 2rem;
+        padding-inline: 2rem max(2rem, 2.25em);
     }
 
     .play-dashboard-actions.flow-action-stack--docked .flow-action > i {
@@ -1403,7 +1426,7 @@ html.play-panel-transitioning .play-hub-panel--entering {
         top: 50%;
         right: auto;
         left: 0.8rem;
-        width: 1.25rem;
+        width: 1.25em;
         transform: translateY(-50%);
     }
 
@@ -1430,7 +1453,7 @@ html.play-panel-transitioning .play-hub-panel--entering {
 
 @media (min-width: 761px) and (max-width: 959px) {
     .play-dashboard-actions.flow-action-stack--docked .flow-action {
-        padding: 0.45rem 1.5rem 0.45rem 0.3rem;
+        padding: 0.45rem max(1.5rem, 2em) 0.45rem 0.3rem;
         font-size: 0.78rem;
     }
 
