@@ -407,6 +407,10 @@ public sealed class HomepageMerchBrowserTests(PlaywrightBrowserFixture browserFi
             await session.SendAsync("Input.dispatchTouchEvent", new() { ["type"] = "touchMove", ["touchPoints"] = new[] { new { x, y } } });
             await Task.Delay(fling ? 10 : 20);
         }
+        // A slow drag ends with the finger at rest. Without this pause Linux
+        // Chromium can treat delayed CDP moves as a fling past the next card.
+        // Fling cases deliberately retain their release velocity.
+        if (!fling) await Task.Delay(150);
         await session.SendAsync("Input.dispatchTouchEvent", new() { ["type"] = "touchEnd", ["touchPoints"] = Array.Empty<object>() });
         await session.DetachAsync();
     }
