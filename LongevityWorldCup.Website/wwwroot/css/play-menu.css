@@ -1108,14 +1108,15 @@ html.play-panel-transitioning .play-hub-panel--entering {
         margin-top: 1.15rem;
     }
 
+    /* Like the join dock, phones give the docked commands their words, not
+       their icons, so no label is clipped or squeezed against a glyph. */
     .play-dashboard-actions.flow-action-stack--docked .flow-action {
-        padding-right: min(1.65rem, 27px);
-        padding-left: min(0.45rem, 8px);
-        font-size: 0.78rem;
+        padding-inline: min(0.5rem, 8px);
+        font-size: max(0.78rem, min(0.86rem, 14px));
     }
 
-    .play-dashboard-actions.flow-action-stack--docked .flow-action > i {
-        right: min(0.5rem, 8px);
+    .play-dashboard-actions.flow-action-stack--docked .flow-action:not(#playDashboardBackBtn) > i {
+        display: none;
     }
 
     .play-athlete-panel,
