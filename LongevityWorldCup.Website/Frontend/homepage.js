@@ -281,14 +281,51 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    const track = merchCarousel.querySelector('.lwc-merch-mobile-track');
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+    // The track is a native swipe strip: a dot scrolls its product into place,
+    // and swiping makes whichever product has snapped into place the active one.
+    function scrollToSlide(index) {
+        if (!track) return;
+        const left = slides[index].offsetLeft - track.offsetLeft;
+        track.scrollTo({ left, behavior: reduceMotion.matches ? 'auto' : 'smooth' });
+    }
+
+    function slideNearestScroll() {
+        let nearest = 0;
+        let nearestDistance = Infinity;
+        slides.forEach((slide, slideIndex) => {
+            const distance = Math.abs(slide.offsetLeft - track.offsetLeft - track.scrollLeft);
+            if (distance < nearestDistance) {
+                nearest = slideIndex;
+                nearestDistance = distance;
+            }
+        });
+        return nearest;
+    }
+
     dots.forEach((dot, dotIndex) => {
         dot.addEventListener('click', function (event) {
             setActiveSlide(dotIndex);
+            scrollToSlide(dotIndex);
             if (event.detail === 0) {
-                slides[activeIndex].focus();
+                slides[activeIndex].focus({ preventScroll: true });
             }
         });
     });
+
+    if (track) {
+        let scrollFrame = 0;
+        track.addEventListener('scroll', function () {
+            if (scrollFrame) return;
+            scrollFrame = requestAnimationFrame(function () {
+                scrollFrame = 0;
+                const nearest = slideNearestScroll();
+                if (nearest !== activeIndex) setActiveSlide(nearest);
+            });
+        }, { passive: true });
+    }
 
     setActiveSlide(0);
     merchCarousel.hidden = false;

@@ -167,4 +167,61 @@ public sealed class HomepageMerchBrowserTests(PlaywrightBrowserFixture browserFi
         var after = await track.ScreenshotAsync();
         Assert.False(before.SequenceEqual(after), "The focused product must have a visible indicator inside the clipped carousel track.");
     }
+
+    [Theory]
+    [InlineData(390, false)]
+    [InlineData(320, true)]
+    public async Task Swag_PhoneCarouselSwipesWithTheNextProductPeeking(int width, bool dark)
+    {
+        await using var context = await HomepageChromeRegressionBrowserTests.NewContextAsync(Browser, App, ReducedMotion.Reduce);
+        var page = await context.NewPageAsync();
+        await page.EmulateMediaAsync(new() { ColorScheme = dark ? ColorScheme.Dark : ColorScheme.Light });
+        await page.SetViewportSizeAsync(width, 850);
+        await page.GotoAsync("/", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
+        var carousel = page.Locator("#lwc-merch-mobile-carousel");
+        await Assertions.Expect(carousel).ToBeVisibleAsync();
+
+        var peek = await page.EvaluateAsync<double[]>(
+            """
+            () => {
+                const track = document.querySelector('.lwc-merch-mobile-track');
+                const slides = [...track.querySelectorAll('.lwc-merch-mobile-slide')];
+                const box = track.getBoundingClientRect();
+                const next = slides[1].getBoundingClientRect();
+                return [box.right - next.left, track.scrollWidth - track.clientWidth];
+            }
+            """);
+        Assert.True(peek[0] >= 16, $"{width}px: the next product should peek into view ({peek[0]:F0}px visible) to show the carousel can be swiped.");
+        Assert.True(peek[1] > 0, $"{width}px: the products should be a swipeable strip, not stacked slides.");
+
+        // A swipe (native horizontal scroll) makes the snapped product the active one.
+        await page.EvaluateAsync(
+            """
+            () => {
+                const track = document.querySelector('.lwc-merch-mobile-track');
+                const slide = track.querySelectorAll('.lwc-merch-mobile-slide')[1];
+                track.scrollLeft = slide.offsetLeft - track.offsetLeft;
+            }
+            """);
+        var dots = carousel.Locator(".lwc-merch-mobile-dot");
+        var cards = carousel.Locator(".lwc-merch-mobile-slide");
+        await Assertions.Expect(dots.Nth(1)).ToHaveAttributeAsync("aria-pressed", "true");
+        await Assertions.Expect(cards.Nth(1)).ToHaveAttributeAsync("aria-hidden", "false");
+        await Assertions.Expect(cards.Nth(0)).ToHaveAttributeAsync("aria-hidden", "true");
+
+        // A dot brings its product back into place.
+        await dots.Nth(2).ClickAsync();
+        await page.WaitForFunctionAsync(
+            """
+            () => {
+                const track = document.querySelector('.lwc-merch-mobile-track');
+                const slide = track.querySelectorAll('.lwc-merch-mobile-slide')[2];
+                return Math.abs(slide.getBoundingClientRect().right - track.getBoundingClientRect().right) <= 2
+                    || Math.abs(slide.getBoundingClientRect().left - track.getBoundingClientRect().left) <= 2;
+            }
+            """);
+        await Assertions.Expect(cards.Nth(2)).ToHaveAttributeAsync("aria-hidden", "false");
+        Assert.True(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth <= innerWidth"));
+    }
 }
