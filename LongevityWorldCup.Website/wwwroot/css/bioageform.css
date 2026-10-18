@@ -697,6 +697,45 @@ html body .bioageform .lwc-wizard-nav .lwc-dot[aria-disabled="true"] {
     background: var(--lwc-surface, #fff);
 }
 
+/* Each domain is one card: its biomarkers are rows divided by hairlines,
+   not a stack of separate boxes. The ✓ badge marks a finished row. */
+.bioageform.bioage-biomarker-entry-ready #lwc-step-2 > fieldset > .biomarker-card {
+    margin: 0;
+    overflow: hidden;
+    border-color: var(--lwc-border, rgba(148, 163, 184, 0.38));
+    border-radius: 0;
+    background: var(--lwc-surface, #fff);
+}
+
+.bioageform.bioage-biomarker-entry-ready #lwc-step-2 > fieldset > .biomarker-card + .biomarker-card {
+    margin-top: -1px;
+}
+
+.bioageform.bioage-biomarker-entry-ready #lwc-step-2 > fieldset > .biomarker-card:first-of-type {
+    border-top-left-radius: var(--lwc-radius-md, 10px);
+    border-top-right-radius: var(--lwc-radius-md, 10px);
+}
+
+.bioageform.bioage-biomarker-entry-ready #lwc-step-2 > fieldset > .biomarker-card:last-of-type {
+    border-bottom-left-radius: var(--lwc-radius-md, 10px);
+    border-bottom-right-radius: var(--lwc-radius-md, 10px);
+}
+
+.bioageform.bioage-biomarker-entry-ready #lwc-step-2 > fieldset > .biomarker-card .biomarker-card-header {
+    background: transparent;
+}
+
+.bioageform.bioage-biomarker-entry-ready #lwc-step-2 > fieldset > .biomarker-card .biomarker-card-content {
+    border-top: 0;
+}
+
+/* Stacked rows: the inputs sit directly under their name. */
+@media (max-width: 959px), (max-height: 639px) {
+    .bioageform.bioage-biomarker-entry-ready #lwc-step-2 > fieldset > .biomarker-card .biomarker-card-content {
+        padding-top: 0 !important;
+    }
+}
+
 .bioage-fixed-unit {
     display: none;
 }
