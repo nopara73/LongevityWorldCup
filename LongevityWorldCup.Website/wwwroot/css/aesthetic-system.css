@@ -532,6 +532,24 @@ textarea {
     min-height: 7rem;
 }
 
+/* Grow motivations where supported; retain the existing rows and sizing elsewhere.
+   Leave room for the actions so both ends remain reachable in short viewports. */
+@supports (field-sizing: content) {
+    #whyDisplayInput,
+    #why {
+        field-sizing: content;
+        min-height: calc(3lh + 1.6rem);
+        max-height: min(22rem, calc(100dvh
+            - var(--flow-input-keyboard-occlusion, 0px)
+            - var(--flow-action-dock-height, 0px)
+            - var(--motivation-counter-space, 0px) - 2rem));
+    }
+
+    #why {
+        --motivation-counter-space: 3rem;
+    }
+}
+
 input::placeholder,
 textarea::placeholder {
     color: var(--lwc-muted, #52606d);
