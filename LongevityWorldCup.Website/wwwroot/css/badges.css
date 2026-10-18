@@ -183,3 +183,12 @@ a.badge-class,.badge-class.badge-clickable,.badge-class[data-clickable="true"],.
     #detailsModal .badge-class{pointer-events:none;cursor:default}
     #detailsModal .badge-class.badge-podcast{pointer-events:auto!important;cursor:pointer!important}
 }
+
+/* On dark surfaces a black rim disappears, so the black badges read as loose glyphs.
+   Dark mode gives every badge a faint light rim instead, keeping each one a shape. */
+@media (prefers-color-scheme: dark) {
+    html .badge-class,
+    html .events-board .badge-class {
+        border-color: rgba(255, 255, 255, 0.26) !important;
+    }
+}
