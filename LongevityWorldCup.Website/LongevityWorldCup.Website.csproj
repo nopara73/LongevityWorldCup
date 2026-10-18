@@ -13,6 +13,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="DataCorrections/BiomarkerAudit20261018.json" />
     <TypeScriptSource Include="Frontend\*.ts" />
     <ClassicScriptSource Include="Frontend\*.js" />
     <NestedFrontendRuntimeSource Include="Frontend\**\*.ts;Frontend\**\*.js"
