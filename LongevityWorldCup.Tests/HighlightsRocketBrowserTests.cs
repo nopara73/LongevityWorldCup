@@ -41,14 +41,18 @@ public sealed class HighlightsRocketBrowserTests(
             ReducedMotion = ReducedMotion.Reduce,
             HasTouch = true
         });
-        await RouteFixturesAsync(context);
+        await RouteFixturesAsync(context, yesterday: true);
         var page = await context.NewPageAsync();
         var errors = new List<string>();
         page.PageError += (_, error) => errors.Add(error);
         await page.Clock.SetFixedTimeAsync(new DateTime(2026, 10, 18, 12, 0, 0, DateTimeKind.Utc));
         await NavigateAndSettleAsync(page, path);
         await page.Locator("tr[data-event-id='rocket-joined'] .fa-rocket").WaitForAsync();
-        foreach (var width in new[] { 320, 390, 600, 768, 1440 })
+        // The 320px athlete dialog leaves only 238px for its Highlights iframe.
+        var widths = path.StartsWith("/event-board-embed")
+            ? new[] { 238, 320, 390, 600, 768, 1440 }
+            : new[] { 320, 390, 600, 768, 1440 };
+        foreach (var width in widths)
         foreach (var percent in new[] { 100, 200 })
         {
             await page.SetViewportSizeAsync(width, width == 1440 ? 900 : 844);
@@ -105,10 +109,14 @@ public sealed class HighlightsRocketBrowserTests(
         await Assertions.Expect(page.GetByRole(AriaRole.Link, new() { Name = "Read the rules" })).ToBeVisibleAsync();
     }
 
-    private static async Task RouteFixturesAsync(IBrowserContext context)
+    private static async Task RouteFixturesAsync(IBrowserContext context, bool yesterday = false)
     {
         await context.RouteAsync("**/api/data/athletes", route => route.FulfillAsync(new() { ContentType = "application/json", Body = Athlete }));
-        await context.RouteAsync("**/api/events", route => route.FulfillAsync(new() { ContentType = "application/json", Body = Events }));
+        await context.RouteAsync("**/api/events", route => route.FulfillAsync(new()
+        {
+            ContentType = "application/json",
+            Body = yesterday ? Events.Replace("2026-10-18T08:00:00Z", "2026-10-17T08:00:00Z") : Events
+        }));
     }
 
     private const string MeasureRocketLayout = """

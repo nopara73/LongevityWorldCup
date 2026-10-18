@@ -438,6 +438,14 @@
                 display:none !important;
             }
         }
+        @media (max-width:300px){
+            /* A 320px dialog leaves a 238px iframe. Keep the avatar target intact
+               while giving enlarged "Yesterday" and its rocket room to fit. */
+            #events-embed-root .events-board{--event-avatar-inset:4px}
+            #events-embed-root .events-board.athlete-scroll #eventsTable td.event-message{
+                padding-right:4px !important;
+            }
+        }
     </style>
 </head>
 <body>
