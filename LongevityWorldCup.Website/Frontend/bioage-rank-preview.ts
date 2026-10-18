@@ -457,6 +457,20 @@ declare global {
         return html;
     }
 
+    function installAvatarFallbacks(target: HTMLElement): void {
+        target.querySelectorAll<HTMLImageElement>('.bioage-rank-row-avatar img').forEach(function (image) {
+            const showInitials = function (): void {
+                const avatar = image.parentElement;
+                if (!avatar || !avatar.contains(image)) return;
+                const name = avatar.closest('.bioage-rank-row')?.querySelector('.bioage-rank-row-name')?.textContent || '';
+                avatar.classList.add('bioage-rank-row-avatar-fallback');
+                avatar.textContent = initialsFromName(name);
+            };
+            image.addEventListener('error', showInitials, { once: true });
+            if (image.complete && image.naturalWidth === 0) showInitials();
+        });
+    }
+
     function buildHtml(
         clock: BioageRankClock,
         rank: number,
@@ -575,6 +589,7 @@ declare global {
                 var rankedFieldSize = rows.length;
                 var topPercent = Math.max(1, Math.ceil(rank / rankedFieldSize * 100));
                 target.innerHTML = buildHtml(clock, rank, rankedFieldSize, topPercent, rows, youIndex);
+                installAvatarFallbacks(target);
                 target.setAttribute('aria-busy', 'false');
             })
             .catch(function () {
