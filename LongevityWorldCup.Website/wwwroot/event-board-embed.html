@@ -250,6 +250,8 @@
             white-space:normal !important;
         }
         :root[data-embed-theme="dark"] #events-embed-root .events-board td.event-message .event-message-cell .name-and-rank,
+        :root[data-embed-theme="dark"] #events-embed-root .events-board td.event-message .event-message-cell .placement-link,
+        :root[data-embed-theme="dark"] #events-embed-root .events-board td.event-message .event-message-cell .event-rocket-tail,
         :root[data-embed-theme="dark"] #events-embed-root .events-board td.event-message .event-message-cell .rank-badge,
         :root[data-embed-theme="dark"] #events-embed-root .events-board td.event-message .event-message-cell .badge-class,
         :root[data-embed-theme="dark"] #events-embed-root .events-board td.event-message .event-message-cell .badge-chip,
@@ -434,6 +436,14 @@
             }
             :root[data-embed-theme="dark"] #events-embed-root .events-board.athlete-scroll #eventsTable td.col-date:empty{
                 display:none !important;
+            }
+        }
+        @media (max-width:300px){
+            /* A 320px dialog leaves a 238px iframe. Keep the avatar target intact
+               while giving enlarged "Yesterday" and its rocket room to fit. */
+            #events-embed-root .events-board{--event-avatar-inset:4px}
+            #events-embed-root .events-board.athlete-scroll #eventsTable td.event-message{
+                padding-right:4px !important;
             }
         }
     </style>
