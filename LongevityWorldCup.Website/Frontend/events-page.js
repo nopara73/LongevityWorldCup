@@ -150,7 +150,12 @@ const eventsPageAssets = document.currentScript.dataset;
     function renderCustomMarkupWithBreaks(text){return window.CustomEventMarkup.renderWebpageMarkupWithBreaks(text, eventBoardMarkupOptions);}
     function startOfLocalDay(d){return new Date(d.getFullYear(),d.getMonth(),d.getDate());}
     // The rocket travels with the last word, so it never wraps onto a line of its own.
-    function withRocket(label){const i=label.lastIndexOf(' ');const head=i<0?'':label.slice(0,i+1);const tail=i<0?label:label.slice(i+1);return head+'<span class="event-rocket-tail">'+tail+'&nbsp;<i class="fa fa-rocket" aria-hidden="true"></i></span>';}
+    function withRocket(label){
+        const lastSpace=label.lastIndexOf(' ');
+        const head=lastSpace<0?'':label.slice(0,lastSpace+1);
+        const tail=label.slice(lastSpace+1);
+        return `${head}<span class="event-rocket-tail">${tail}&nbsp;<i class="fa fa-rocket" aria-hidden="true"></i></span>`;
+    }
     function relativeDayLabel(iso){
         const dt=new Date(iso); if(isNaN(dt)) return "";
         const today=startOfLocalDay(new Date());
