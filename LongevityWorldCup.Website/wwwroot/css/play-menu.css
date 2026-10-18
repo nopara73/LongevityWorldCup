@@ -1782,6 +1782,10 @@ html.play-panel-transitioning .play-hub-panel--entering {
         padding-inline: min(0.65rem, 12px);
     }
 
+    .play-join-actions .play-join-mobile-track-action > i {
+        display: none;
+    }
+
     .play-join-actions.flow-action-stack--docked {
         container: play-join-actions / inline-size;
     }

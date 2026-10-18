@@ -152,6 +152,8 @@ public sealed class PlayJoinTrackBrowserTests(
         }
         else
         {
+            await Assertions.Expect(page.Locator("#joinMobileStartAmateurBtn > i")).ToBeHiddenAsync();
+            await Assertions.Expect(page.Locator("#joinMobileGoProButton > i")).ToBeHiddenAsync();
             foreach (var id in new[] { "joinTrackBackBtn", "joinMobileStartAmateurBtn", "joinMobileGoProButton" })
             {
                 var action = page.Locator($"#{id}");
