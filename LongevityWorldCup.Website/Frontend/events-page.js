@@ -149,19 +149,26 @@ const eventsPageAssets = document.currentScript.dataset;
     function renderCustomMarkup(text){return window.CustomEventMarkup.renderWebpageMarkup(text, eventBoardMarkupOptions);}
     function renderCustomMarkupWithBreaks(text){return window.CustomEventMarkup.renderWebpageMarkupWithBreaks(text, eventBoardMarkupOptions);}
     function startOfLocalDay(d){return new Date(d.getFullYear(),d.getMonth(),d.getDate());}
+    // The rocket travels with the last word, so it never wraps onto a line of its own.
+    function withRocket(label){
+        const lastSpace=label.lastIndexOf(' ');
+        const head=lastSpace<0?'':label.slice(0,lastSpace+1);
+        const tail=label.slice(lastSpace+1);
+        return `${head}<span class="event-rocket-tail">${tail}&nbsp;<i class="fa fa-rocket" aria-hidden="true"></i></span>`;
+    }
     function relativeDayLabel(iso){
         const dt=new Date(iso); if(isNaN(dt)) return "";
         const today=startOfLocalDay(new Date());
         const thatDay=startOfLocalDay(dt);
-        if(thatDay>today) return 'Today <i class="fa fa-rocket"></i>';
+        if(thatDay>today) return withRocket('Today');
         const years=today.getFullYear()-thatDay.getFullYear()-((today.getMonth()<thatDay.getMonth()||(today.getMonth()===thatDay.getMonth()&&today.getDate()<thatDay.getDate()))?1:0);
-        if(years>=1) return years===1?'1 year ago <i class="fa fa-rocket"></i>':`${years} years ago <i class="fa fa-rocket"></i>`;
+        if(years>=1) return years===1?withRocket('1 year ago'):withRocket(`${years} years ago`);
         const months=(today.getFullYear()*12+today.getMonth())-(thatDay.getFullYear()*12+thatDay.getMonth())-(today.getDate()<thatDay.getDate()?1:0);
-        if(months>=1) return months===1?'1 month ago <i class="fa fa-rocket"></i>':`${months} months ago <i class="fa fa-rocket"></i>`;
+        if(months>=1) return months===1?withRocket('1 month ago'):withRocket(`${months} months ago`);
         const diffDays=Math.round((today-thatDay)/86400000);
-        if(diffDays<=0) return 'Today <i class="fa fa-rocket"></i>';
-        if(diffDays===1) return 'Yesterday <i class="fa fa-rocket"></i>';
-        return `${diffDays} days ago <i class="fa fa-rocket"></i>`;
+        if(diffDays<=0) return withRocket('Today');
+        if(diffDays===1) return withRocket('Yesterday');
+        return withRocket(`${diffDays} days ago`);
     }
     function relativeDayLabelNoIcon(iso,{emptyIfToday=true}={}){
         const dt=new Date(iso); if(isNaN(dt)) return "";

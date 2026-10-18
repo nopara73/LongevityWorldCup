@@ -11,6 +11,89 @@ public sealed class PlayAthleteSelectionCardBrowserTests(
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Theory]
+    [InlineData(1440, 900, false, 16, false)]
+    [InlineData(390, 844, true, 16, false)]
+    [InlineData(320, 640, false, 16, false)]
+    [InlineData(1440, 900, false, 32, false)]
+    [InlineData(390, 844, true, 32, false)]
+    [InlineData(320, 640, false, 32, false)]
+    [InlineData(740, 390, false, 32, false)]
+    [InlineData(390, 844, true, 16, true)]
+    [InlineData(740, 390, true, 16, true)]
+    public async Task Selection_SearchIsAMagnifierLedFieldAsTallAsTheActions(int width, int height, bool dark, int fontSize, bool doubleInputText)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = height },
+            ColorScheme = dark ? ColorScheme.Dark : ColorScheme.Light,
+            ReducedMotion = ReducedMotion.Reduce,
+            IsMobile = width < 600,
+            HasTouch = width < 600
+        });
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/select-athlete");
+        var input = page.Locator("#playAthleteInput");
+        await Assertions.Expect(input).ToBeEditableAsync();
+        await page.WaitForFunctionAsync("() => !document.body.classList.contains('play-route-hydrating')");
+        await page.EvaluateAsync("size => document.documentElement.style.fontSize = size + 'px'", fontSize);
+        await page.EvaluateAsync("() => document.fonts.ready");
+        if (doubleInputText)
+            await input.EvaluateAsync("e => e.style.fontSize = parseFloat(getComputedStyle(e).fontSize) * 2 + 'px'");
+
+        var field = await page.EvaluateAsync<string[]>(
+            """
+            () => {
+                const input = document.getElementById('playAthleteInput');
+                const box = input.getBoundingClientRect();
+                const icon = document.querySelector('.play-athlete-search-icon');
+                const iconBox = icon.getBoundingClientRect();
+                const iconCentre = iconBox.top + iconBox.height / 2;
+                return [String(box.height), getComputedStyle(icon, '::before').content,
+                    String(Math.abs(iconCentre - (box.top + box.height / 2))),
+                    String(box.left + parseFloat(getComputedStyle(input).paddingLeft) - iconBox.right)];
+            }
+            """);
+        var scenario = $"{width}x{height}, root {fontSize}px, double input text {doubleInputText}";
+        Assert.True(double.Parse(field[0], System.Globalization.CultureInfo.InvariantCulture) >= (height <= 480 ? 44 : 56),
+            $"{scenario}: the athlete search should be as tall as the actions, not a {field[0]}px line.");
+        Assert.True(field[1] == "\"\"", $"{scenario}: the athlete search should be led by the magnifier, not {field[1]}.");
+        Assert.True(double.Parse(field[2], System.Globalization.CultureInfo.InvariantCulture) <= 2, $"{scenario}: the magnifier should sit centred in the field.");
+        Assert.True(double.Parse(field[3], System.Globalization.CultureInfo.InvariantCulture) >= 4, $"{scenario}: typed names should start clear of the magnifier.");
+        await Assertions.Expect(input).ToHaveAccessibleNameAsync("Athlete name");
+        await Assertions.Expect(page.Locator("label[for=playAthleteInput]")).ToHaveClassAsync("visually-hidden");
+        await Assertions.Expect(page.Locator(".play-athlete-search-icon")).ToHaveAttributeAsync("aria-hidden", "true");
+        Assert.DoesNotContain("\uf002", await page.Locator(".play-autocomplete-container").AriaSnapshotAsync());
+    }
+
+    [Theory]
+    [InlineData(16)]
+    [InlineData(32)]
+    public async Task Selection_SearchIconRemainsCenteredWhenTheDirectoryErrorWraps(int fontSize)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = 320, Height = 640 },
+            ReducedMotion = ReducedMotion.Reduce, IsMobile = true, HasTouch = true
+        });
+        await context.RouteAsync("**/api/data/athletes", route => route.FulfillAsync(new() { Status = 503, Body = "{}" }));
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/select-athlete");
+        await Assertions.Expect(page.GetByRole(AriaRole.Button, new() { Name = "Retry", Exact = true })).ToBeVisibleAsync();
+        await page.EvaluateAsync("size => document.documentElement.style.fontSize = size + 'px'", fontSize);
+        await page.EvaluateAsync("() => document.fonts.ready");
+        var positions = await page.EvaluateAsync<double[]>("""
+            () => {
+                const input = document.getElementById('playAthleteInput').getBoundingClientRect();
+                const icon = document.querySelector('.play-athlete-search-icon').getBoundingClientRect();
+                const error = document.getElementById('playAthleteError').getBoundingClientRect();
+                return [Math.abs(icon.top + icon.height / 2 - input.top - input.height / 2), error.top - input.bottom];
+            }
+            """);
+        Assert.InRange(positions[0], 0, 2);
+        Assert.True(positions[1] >= 0, "The directory error must stay below the field.");
+    }
+
+    [Theory]
     [InlineData(1440, 900, false, 16)]
     [InlineData(390, 844, true, 16)]
     [InlineData(320, 640, false, 16)]

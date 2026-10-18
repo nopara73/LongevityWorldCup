@@ -7015,16 +7015,27 @@ let startY = 0;
 let endY = 0;
 const SWIPE_THRESHOLD = 50; // Minimum distance to qualify as a swipe
 const TAP_THRESHOLD = 10; // Allowable movement for taps
+let sidebarSwipeEligible = false;
 
 document.addEventListener('touchstart', (e) => {
+    sidebarSwipeEligible = false;
     if (!hasLeaderboardSidebar) return;
     if (modal.style.display === "block") return;
+    if (e.touches.length !== 1) return;
+    // Horizontal scrollers own their gestures, including the Swag carousel.
+    // A page-level right swipe must not open the filter drawer over them.
+    if (e.composedPath().some(node => node instanceof HTMLElement
+        && node.scrollWidth > node.clientWidth + 1
+        && ['auto', 'scroll'].includes(getComputedStyle(node).overflowX))) return;
 
+    sidebarSwipeEligible = true;
     startX = e.changedTouches[0].clientX;
     startY = e.changedTouches[0].clientY;
 }, false);
 
 document.addEventListener('touchend', (e) => {
+    if (!sidebarSwipeEligible) return;
+    sidebarSwipeEligible = false;
     if (!hasLeaderboardSidebar) return;
     if (modal.style.display === "block") return;
 
@@ -7050,6 +7061,8 @@ document.addEventListener('touchend', (e) => {
         }
     }
 }, false);
+
+document.addEventListener('touchcancel', () => { sidebarSwipeEligible = false; }, { passive: true });
 
 // Updates the document title for the selected athlete.
 function updatePageTitleForAthlete(athleteName, athleteRank) {
