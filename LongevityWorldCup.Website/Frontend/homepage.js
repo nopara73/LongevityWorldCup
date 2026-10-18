@@ -276,10 +276,8 @@ document.addEventListener('DOMContentLoaded', function () {
     // CSS can hide the old layout and blur its control before matchMedia's
     // change event runs. Retain only that involuntary blur for the handoff.
     function rememberHiddenLayoutFocus(event) {
-        const hiddenByLayout = phone.matches
-            ? grid.contains(event.target)
-            : merchCarousel.contains(event.target);
-        hiddenLayoutFocus = !event.relatedTarget && hiddenByLayout ? event.target : null;
+        hiddenLayoutFocus = !event.relatedTarget && !event.target.getClientRects().length
+            ? event.target : null;
     }
     grid.addEventListener('focusout', rememberHiddenLayoutFocus);
     merchCarousel.addEventListener('focusout', rememberHiddenLayoutFocus);
