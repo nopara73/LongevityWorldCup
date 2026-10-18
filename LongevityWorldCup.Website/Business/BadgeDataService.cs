@@ -99,7 +99,9 @@ CREATE TABLE IF NOT EXISTS {AwardsTable} (
     /// </summary>
     public void ComputeAndPersistAwards()
     {
-        var stats = BuildAthleteStats(_asOfUtc);
+        var snapshot = _athletes.GetAthletesSnapshot();
+        var silentCorrections = AthleteDataCorrections.PendingForSnapshot(_db, snapshot);
+        var stats = BuildAthleteStats(_asOfUtc, snapshot);
         HydrateComputedStatsIntoAthletes(stats);
         var defs = BuildBadgeDefinitions();
 
@@ -170,8 +172,12 @@ CREATE TABLE IF NOT EXISTS {AwardsTable} (
         var currentProSlugs = BuildCurrentProSlugSet(stats.Values);
         _events.CleanupAmateurAgeReductionGraduationLinks(currentProSlugs);
         var badgeEvents = BuildBadgeAwardEventsForCurrentSnapshotChange(previous, awards, DateTime.UtcNow, currentProSlugs);
-        var suppressBadgeEvents = badgeEvents.Count > MaxBadgeEventsPerRecompute;
-        if (suppressBadgeEvents)
+        var suppressBadgeEvents = silentCorrections.Count > 0 || badgeEvents.Count > MaxBadgeEventsPerRecompute;
+        if (silentCorrections.Count > 0)
+        {
+            _log.LogInformation("Rebaselining badge awards silently for {CorrectionCount} approved athlete correction(s).", silentCorrections.Count);
+        }
+        else if (suppressBadgeEvents)
         {
             _log.LogError(
                 "Suppressing {BadgeEventCount} badge event(s) from a single recompute. PreviousAwards={PreviousAwardCount}; NewAwards={NewAwardCount}; AthleteStats={AthleteStatsCount}.",
@@ -221,6 +227,7 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
                 }
             }
 
+            AthleteDataCorrections.CompleteBadgeBaselines(sqlite, tx, silentCorrections);
             tx.Commit();
         });
 
@@ -1073,9 +1080,9 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
         };
     }
 
-    private Dictionary<string, AthleteStats> BuildAthleteStats(DateTime asOf)
+    private Dictionary<string, AthleteStats> BuildAthleteStats(DateTime asOf, JsonArray snapshot)
     {
-        var core = PhenoStatsCalculator.BuildAll(_athletes.Athletes, asOf);
+        var core = PhenoStatsCalculator.BuildAll(snapshot, asOf);
         var result = new Dictionary<string, AthleteStats>(StringComparer.OrdinalIgnoreCase);
         foreach (var kv in core)
         {
