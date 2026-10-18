@@ -138,7 +138,8 @@ public sealed partial class BioageResultScoreboardBrowserTests
                 Assert.StartsWith("/athlete/rank-", await link.GetAttributeAsync("href"));
             Assert.Equal("You", await preview.Locator(".current .bioage-rank-row-name").TextContentAsync());
             Assert.Equal(0, await preview.Locator(".current a").CountAsync());
-            Assert.True(await preview.Locator(".bioage-rank-row-avatar-fallback").CountAsync() >= 2);
+            // A failed portrait decodes after rank rendering completes.
+            await Assertions.Expect(preview.Locator(".bioage-rank-row-avatar-fallback")).ToHaveCountAsync(names.Length - 1);
             if (names.Contains("Older"))
             {
                 var older = preview.Locator(".bioage-rank-row").Filter(new()
