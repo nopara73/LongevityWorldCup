@@ -107,12 +107,15 @@ public sealed class PlayJoinTrackBrowserTests(
         await page.WaitForFunctionAsync("() => !document.getElementById('joinMobileGoProButton')?.disabled && !document.getElementById('joinGoProButton')?.disabled");
         await Assertions.Expect(page.Locator("#joinProDiscountNote")).ToBeVisibleAsync();
         var normalActionFont = await page.Locator("#joinTrackBackBtn").EvaluateAsync<double>("element => parseFloat(getComputedStyle(element).fontSize)");
+        var normalRootFont = await page.EvaluateAsync<double>("parseFloat(getComputedStyle(document.documentElement).fontSize)");
         await page.EvaluateAsync("() => { document.documentElement.style.setProperty('font-size', '200%', 'important'); }");
         await page.EvaluateAsync("() => document.fonts.ready");
         await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
         await page.EvaluateAsync("() => window.LwcFlowActionDock?.refreshNow?.()");
         var enlargedActionFont = await page.Locator("#joinTrackBackBtn").EvaluateAsync<double>("element => parseFloat(getComputedStyle(element).fontSize)");
-        Assert.InRange(enlargedActionFont / normalActionFont, 1.99, 2.01);
+        var enlargedRootFont = await page.EvaluateAsync<double>("parseFloat(getComputedStyle(document.documentElement).fontSize)");
+        Assert.InRange(enlargedRootFont / normalRootFont, 1.99, 2.01);
+        Assert.True(enlargedActionFont >= normalActionFont * 1.99, "Actions must retain enlarged text when moving between the dock and the page.");
 
         const string selector = ".play-join-card .track-name, .play-join-meta dt, .play-join-meta dd, .play-join-actions .flow-action__label";
         var splitWords = await page.EvaluateAsync<string[]>(
@@ -140,8 +143,24 @@ public sealed class PlayJoinTrackBrowserTests(
             }
             """, selector);
         Assert.True(splitWords.Length == 0, $"{width}px at 200%: words split across lines: {string.Join(", ", splitWords)}");
-        var dockHeight = await page.Locator(".play-join-actions").EvaluateAsync<double>("element => element.getBoundingClientRect().height");
-        Assert.True(dockHeight <= Math.Min(280, height / 2d), $"The join actions occupy {dockHeight}px of the {height}px viewport.");
+        var actions = page.Locator(".play-join-actions");
+        var docked = await actions.EvaluateAsync<bool>("element => element.classList.contains('flow-action-stack--docked')");
+        if (docked)
+        {
+            var dockHeight = await actions.EvaluateAsync<double>("element => element.getBoundingClientRect().height");
+            Assert.True(dockHeight <= Math.Min(280, height / 2d), $"The join actions occupy {dockHeight}px of the {height}px viewport.");
+        }
+        else
+        {
+            await Assertions.Expect(page.Locator("#joinMobileStartAmateurBtn > i")).ToBeHiddenAsync();
+            await Assertions.Expect(page.Locator("#joinMobileGoProButton > i")).ToBeHiddenAsync();
+            foreach (var id in new[] { "joinTrackBackBtn", "joinMobileStartAmateurBtn", "joinMobileGoProButton" })
+            {
+                var action = page.Locator($"#{id}");
+                await action.ScrollIntoViewIfNeededAsync();
+                Assert.True(await action.EvaluateAsync<bool>("element => { const r = element.getBoundingClientRect(); const x = r.left + r.width / 2, y = r.top + r.height / 2; return y >= 0 && y <= innerHeight && element.contains(document.elementFromPoint(x, y)); }"), $"{id} must remain reachable in the scrolling page.");
+            }
+        }
         await ExpectNoHorizontalOverflowAsync(page);
         await ExpectJoinControlsReadableAsync(page);
     }
@@ -193,9 +212,71 @@ public sealed class PlayJoinTrackBrowserTests(
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task JoinDock_PreservesKeyboardOrderAndFocusWhenItMoves(bool fallback)
+    [InlineData(390, 200, false)]
+    [InlineData(390, 200, true)]
+    [InlineData(414, 200, false)]
+    [InlineData(390, 175, false)]
+    [InlineData(360, 150, true)]
+    [InlineData(320, 150, false)]
+    public async Task EnlargedPhoneText_RestoresTheTwoRowTrackLayout(int width, int textPercent, bool dark)
+    {
+        await using var context = await Browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = App.BaseAddress.ToString(),
+            ViewportSize = new() { Width = width, Height = 844 },
+            ColorScheme = dark ? ColorScheme.Dark : ColorScheme.Light,
+            IsMobile = true,
+            HasTouch = true
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/join");
+        await page.WaitForFunctionAsync("() => !document.getElementById('joinTrackBackBtn')?.disabled");
+        await page.EvaluateAsync("percent => document.documentElement.style.setProperty('font-size', `${percent}%`, 'important')", textPercent);
+        await page.EvaluateAsync("() => document.fonts.ready");
+        await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+        await page.EvaluateAsync("() => window.LwcFlowActionDock.refreshNow()");
+        await ExpectActionStackDockedInViewportAsync(page, ".play-join-actions");
+
+        var problems = await page.EvaluateAsync<string[]>(
+            """
+            () => {
+                const issues = [];
+                const back = document.getElementById('joinTrackBackBtn');
+                const amateur = document.getElementById('joinMobileStartAmateurBtn');
+                const pro = document.getElementById('joinMobileGoProButton');
+                const b = back.getBoundingClientRect(), a = amateur.getBoundingClientRect(), p = pro.getBoundingClientRect();
+                if (!back.querySelector('.flow-action__label').getBoundingClientRect().width) issues.push('Back label is hidden');
+                if (Math.abs(b.top - a.top) > 1 || p.top <= a.bottom) issues.push('expected Back and Amateur above Pro');
+                if (Math.abs(p.left - b.left) > 1 || Math.abs(p.right - a.right) > 1) issues.push('Pro should span the whole second row');
+                if (Math.max(b.height, a.height, p.height) - Math.min(b.height, a.height, p.height) > 2) issues.push('button heights differ');
+                const range = document.createRange();
+                range.selectNodeContents(amateur.querySelector('.flow-action__label'));
+                if (new Set([...range.getClientRects()].map(rect => Math.round(rect.top))).size !== 1) issues.push('Start amateur wraps');
+                return issues;
+            }
+            """);
+        Assert.True(problems.Length == 0, $"{width}px at {textPercent}%: {string.Join("; ", problems)}");
+        await ExpectNoHorizontalOverflowAsync(page);
+        await ExpectJoinControlsReadableAsync(page);
+
+        var backButton = page.GetByRole(AriaRole.Button, new() { Name = "Back", Exact = true });
+        await backButton.FocusAsync();
+        await page.Keyboard.PressAsync("Tab");
+        await Assertions.Expect(page.Locator("#joinMobileStartAmateurBtn")).ToBeFocusedAsync();
+        await page.Keyboard.PressAsync("Tab");
+        await Assertions.Expect(page.Locator("#joinMobileGoProButton")).ToBeFocusedAsync();
+        await page.EvaluateAsync("() => document.documentElement.style.removeProperty('font-size')");
+        await page.EvaluateAsync("() => window.LwcFlowActionDock.refreshNow()");
+        await Assertions.Expect(page.Locator("#joinMobileGoProButton")).ToBeFocusedAsync();
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public async Task JoinDock_PreservesKeyboardOrderAndFocusWhenItMoves(bool fallback, bool enlarged)
     {
         await using var context = await Browser.NewContextAsync(new BrowserNewContextOptions
         {
@@ -208,6 +289,12 @@ public sealed class PlayJoinTrackBrowserTests(
         var page = await context.NewPageAsync();
         await page.GotoAsync("/join");
         await page.WaitForFunctionAsync("() => !document.getElementById('joinTrackBackBtn')?.disabled");
+        if (enlarged)
+        {
+            await page.EvaluateAsync("() => document.documentElement.style.setProperty('font-size', '200%', 'important')");
+            await page.EvaluateAsync("() => document.fonts.ready");
+            await page.EvaluateAsync("() => window.LwcFlowActionDock.refreshNow()");
+        }
         await ExpectActionStackDockedInViewportAsync(page, ".play-join-actions");
         var back = page.GetByRole(AriaRole.Button, new() { Name = "Back", Exact = true });
         await back.FocusAsync();

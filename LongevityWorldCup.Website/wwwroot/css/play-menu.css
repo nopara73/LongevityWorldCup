@@ -1822,26 +1822,40 @@ html.play-panel-transitioning .play-hub-panel--entering {
     }
 }
 
-/* On phones Back is the dashboard's arrow square, so the two tracks share the bar evenly. */
+/* Keep the compact phone row only while its width leaves enough room for the text. */
 @media (max-width: 600px) {
-    .play-join-actions.flow-action-stack--docked #joinTrackBackBtn {
-        flex: 0 0 min(3.5rem, 56px);
-        justify-content: center;
-        padding: 0.5rem;
+    .play-join-actions .flow-action {
+        padding-inline: min(0.65rem, 12px);
     }
 
-    .play-join-actions.flow-action-stack--docked #joinTrackBackBtn > i {
-        width: 1.25rem;
-        margin: 0;
-    }
-
-    .play-join-actions.flow-action-stack--docked #joinTrackBackBtn .flow-action__label {
+    .play-join-actions .play-join-mobile-track-action > i {
         display: none;
     }
 
-    .play-join-actions.flow-action-stack--docked .play-join-mobile-track-action {
-        flex: 1 1 0;
-        min-width: min-content;
+    .play-join-actions.flow-action-stack--docked {
+        container: play-join-actions / inline-size;
+    }
+
+    @container play-join-actions (min-width: 17rem) {
+        .play-join-actions.flow-action-stack--docked #joinTrackBackBtn {
+            flex: 0 0 min(3.5rem, 56px);
+            justify-content: center;
+            padding: 0.5rem;
+        }
+
+        .play-join-actions.flow-action-stack--docked #joinTrackBackBtn > i {
+            width: 1.25rem;
+            margin: 0;
+        }
+
+        .play-join-actions.flow-action-stack--docked #joinTrackBackBtn .flow-action__label {
+            display: none;
+        }
+
+        .play-join-actions.flow-action-stack--docked .play-join-mobile-track-action {
+            flex: 1 1 0;
+            min-width: min-content;
+        }
     }
 }
 
