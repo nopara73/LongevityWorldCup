@@ -3,19 +3,50 @@
     "AthleteSlug": "david",
     "PreviousSignature": "5bf10940985411c05590774b6218c49ef33d7316e94e9e1622d9cacace650853",
     "CorrectedSignature": "0e1f0cf961ec38c963cb10b2b6cd324172c971653edea817dc017a463636a889",
-    "Dates": []
+    "Dates": [],
+    "Fields": [
+      {
+        "ResultDate": "2025-11-17",
+        "Field": "LymPc",
+        "Before": 1.09
+      }
+    ]
   },
   {
     "AthleteSlug": "anton_eich",
     "PreviousSignature": "36e6011ff26abd9f84507158e4c7a224563e1c04e6ada58b8aba46d43088c652",
     "CorrectedSignature": "5700c999641ad9126867a8cef4abefe18ba19bdb772aa1931a300a253ff7bdd9",
-    "Dates": []
+    "Dates": [],
+    "Fields": [
+      {
+        "ResultDate": "2025-02-12",
+        "Field": "LymPc",
+        "Before": 15
+      },
+      {
+        "ResultDate": "2025-03-13",
+        "Field": "LymPc",
+        "Before": 39.3
+      }
+    ]
   },
   {
     "AthleteSlug": "roman",
     "PreviousSignature": "185ecad8b9f14254d5194113754273a38d3b786c18d7b809365c1eddf70cf8ea",
     "CorrectedSignature": "7a6713ef4b660b4987af999fad0a61a6bccadd9d09dbe6c145f49413300b6edd",
-    "Dates": []
+    "Dates": [],
+    "Fields": [
+      {
+        "ResultDate": "2025-02-03",
+        "Field": "AlpUL",
+        "Before": 97
+      },
+      {
+        "ResultDate": "2025-10-27",
+        "Field": "AlpUL",
+        "Before": 1
+      }
+    ]
   },
   {
     "AthleteSlug": "scomer",
@@ -26,13 +57,42 @@
         "Before": "2025-09-25",
         "After": "2025-07-15"
       }
+    ],
+    "Fields": [
+      {
+        "ResultDate": "2025-07-15",
+        "Field": "GluMmolL",
+        "Before": 0.48290408525754885
+      },
+      {
+        "ResultDate": "2025-07-15",
+        "Field": "Date",
+        "Before": "2025-09-25"
+      }
     ]
   },
   {
     "AthleteSlug": "devarajan_narayanan",
     "PreviousSignature": "546387a163485159c91a73d8dade25fcec0f275596c7b4856333061ffce4d80e",
     "CorrectedSignature": "366702c139e6fa6380cfa3e8bb3514391bd7c919df1c7d8ae76d1e5d86cddd2f",
-    "Dates": []
+    "Dates": [],
+    "Fields": [
+      {
+        "ResultDate": "2026-04-06",
+        "Field": "UreaMmolL",
+        "Before": 3.82
+      },
+      {
+        "ResultDate": "2026-04-06",
+        "Field": "MonocytePc",
+        "Before": 3.33
+      },
+      {
+        "ResultDate": "2026-04-06",
+        "Field": "NeutrophilPc",
+        "Before": 60.44
+      }
+    ]
   },
   {
     "AthleteSlug": "june_hou",
@@ -42,6 +102,13 @@
       {
         "Before": "2025-04-19",
         "After": "2025-04-05"
+      }
+    ],
+    "Fields": [
+      {
+        "ResultDate": "2025-04-05",
+        "Field": "Date",
+        "Before": "2025-04-19"
       }
     ]
   },
@@ -54,6 +121,13 @@
         "Before": "2025-11-14",
         "After": "2025-11-11"
       }
+    ],
+    "Fields": [
+      {
+        "ResultDate": "2025-11-11",
+        "Field": "Date",
+        "Before": "2025-11-14"
+      }
     ]
   },
   {
@@ -64,6 +138,13 @@
       {
         "Before": "2025-11-23",
         "After": "2025-11-12"
+      }
+    ],
+    "Fields": [
+      {
+        "ResultDate": "2025-11-12",
+        "Field": "Date",
+        "Before": "2025-11-23"
       }
     ]
   },
@@ -76,6 +157,13 @@
         "Before": "2025-07-28",
         "After": "2025-07-31"
       }
+    ],
+    "Fields": [
+      {
+        "ResultDate": "2025-07-31",
+        "Field": "Date",
+        "Before": "2025-07-28"
+      }
     ]
   },
   {
@@ -87,6 +175,13 @@
         "Before": "2025-08-08",
         "After": "2025-08-09"
       }
+    ],
+    "Fields": [
+      {
+        "ResultDate": "2025-08-09",
+        "Field": "Date",
+        "Before": "2025-08-08"
+      }
     ]
   },
   {
@@ -97,6 +192,13 @@
       {
         "Before": "2025-03-16",
         "After": "2025-02-22"
+      }
+    ],
+    "Fields": [
+      {
+        "ResultDate": "2025-02-22",
+        "Field": "Date",
+        "Before": "2025-03-16"
       }
     ]
   }

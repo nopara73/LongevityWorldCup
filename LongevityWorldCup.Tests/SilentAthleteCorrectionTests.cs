@@ -73,6 +73,32 @@ public sealed class SilentAthleteCorrectionTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
+    public void GenuineBadgeChangesAlongsideAPendingCorrectionStillCreateEvents(bool correctionAlreadyPending)
+    {
+        using var workspace = new Workspace();
+        HashSet<string> original;
+        using (var baseline = workspace.Factory()) original = EventIds(baseline);
+        workspace.WriteCorrected();
+        if (correctionAlreadyPending)
+        {
+            using var interrupted = workspace.Factory(refreshBadges: false);
+            Assert.True(original.SetEquals(EventIds(interrupted)));
+            Assert.Equal(1, Pending(interrupted));
+        }
+        workspace.WritePeerResult();
+        using var factory = workspace.Factory();
+        var events = factory.Services.GetRequiredService<EventDataService>();
+        var addedBadges = events.GetEvents(EventType.BadgeAward).Where(e => !original.Contains(e.Id)).ToList();
+        Assert.Contains(addedBadges, e => e.Text.Contains("peer", StringComparison.Ordinal) && e.Text.Contains("submissions", StringComparison.Ordinal));
+        Assert.DoesNotContain(addedBadges, e => e.Text.StartsWith("slug[correction_target]", StringComparison.Ordinal));
+        Assert.Contains(events.GetEvents(EventType.TestResultAccepted), e => e.Text == "slug[peer] date[2025-09-01]");
+        Assert.DoesNotContain(events.GetEvents(EventType.TestResultAccepted), e => e.Text == "slug[correction_target] date[2025-08-31]");
+        Assert.Equal(0, Pending(factory));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     public void RestartBeforeBadgeRecomputeRetainsTheSilentCorrection(bool proCorrection)
     {
         using var workspace = new Workspace(proCorrection);
@@ -118,6 +144,7 @@ public sealed class SilentAthleteCorrectionTests
         var entries = JsonSerializer.Deserialize<AthleteDataCorrections.Correction[]>(stream)!;
         Assert.Equal(11, entries.Length);
         Assert.Equal(7, entries.Sum(e => e.Dates.Length));
+        Assert.Equal(16, entries.Sum(e => e.Fields.Length));
         var catalog = new AthleteDataCorrections();
         foreach (var entry in entries)
         {
@@ -170,7 +197,11 @@ public sealed class SilentAthleteCorrectionTests
                     ["AltUL"] = 20,["ShbgNmolL"] = 30,["VitaminDNmolL"] = 80,["MchPg"] = 30,["ApoA1GL"] = 1.5
                 }) panel[key] = value;
             }
-            _catalog = new AthleteDataCorrections([new("correction_target", AthleteDataService.ComputeBiomarkerSignature(_before), CorrectedSignature, [new("2025-08-20", "2025-08-31")])]);
+            var oldPanel = _before["Biomarkers"]![0]!.AsObject();
+            var correctedPanel = _corrected["Biomarkers"]![0]!.AsObject();
+            var fields = correctedPanel.Where(p => !JsonNode.DeepEquals(p.Value, oldPanel[p.Key]))
+                .Select(p => new AthleteDataCorrections.FieldCorrection("2025-08-31", p.Key, oldPanel[p.Key]?.DeepClone())).ToArray();
+            _catalog = new AthleteDataCorrections([new("correction_target", AthleteDataService.ComputeBiomarkerSignature(_before), CorrectedSignature, [new("2025-08-20", "2025-08-31")], fields)]);
             Write(_before);
             Write(Athlete("peer", Result("2025-08-20", 30)));
         }
@@ -184,6 +215,7 @@ public sealed class SilentAthleteCorrectionTests
             command.ExecuteNonQuery();
         }
         internal void WriteRealResult() => Write(Athlete("correction_target", Result("2025-08-31", 50), Result("2025-09-01", 60)));
+        internal void WritePeerResult() => Write(Athlete("peer", Result("2025-08-20", 30), Result("2025-09-01", 30)));
         private void Write(JsonObject athlete)
         {
             var folder = Path.Combine(_root, "wwwroot", "athletes", athlete["AthleteSlug"]!.GetValue<string>());

@@ -8,7 +8,8 @@ namespace LongevityWorldCup.Website.Business;
 public sealed class AthleteDataCorrections
 {
     internal sealed record ResultDateCorrection(string Before, string After);
-    internal sealed record Correction(string AthleteSlug, string PreviousSignature, string CorrectedSignature, ResultDateCorrection[] Dates);
+    internal sealed record FieldCorrection(string ResultDate, string Field, JsonNode? Before);
+    internal sealed record Correction(string AthleteSlug, string PreviousSignature, string CorrectedSignature, ResultDateCorrection[] Dates, FieldCorrection[] Fields);
     internal sealed record PendingBadgeBaseline(string AthleteSlug, string CorrectedSignature);
     private readonly Correction[] _corrections;
 
@@ -34,6 +35,32 @@ public sealed class AthleteDataCorrections
                     dates.Add((correction.AthleteSlug, date.After));
         }
         return dates;
+    }
+
+    internal JsonArray RevertPendingCorrections(JsonArray athletes, IReadOnlyList<PendingBadgeBaseline> pending)
+    {
+        var reverted = (JsonArray)athletes.DeepClone();
+        foreach (var baseline in pending)
+        {
+            var correction = _corrections.Single(c =>
+                string.Equals(c.AthleteSlug, baseline.AthleteSlug, StringComparison.OrdinalIgnoreCase) &&
+                c.CorrectedSignature == baseline.CorrectedSignature);
+            var athlete = reverted.OfType<JsonObject>().Single(a =>
+                string.Equals(a["AthleteSlug"]?.GetValue<string>(), baseline.AthleteSlug, StringComparison.OrdinalIgnoreCase));
+            foreach (var resultFields in correction.Fields.GroupBy(f => f.ResultDate))
+            {
+                var panel = athlete["Biomarkers"]!.AsArray().OfType<JsonObject>().Single(p =>
+                    p["Date"]?.GetValue<string>() == resultFields.Key);
+                foreach (var field in resultFields)
+                {
+                    if (field.Before is null) panel.Remove(field.Field);
+                    else panel[field.Field] = field.Before.DeepClone();
+                }
+            }
+            if (AthleteDataService.ComputeBiomarkerSignature(athlete) != correction.PreviousSignature)
+                throw new InvalidOperationException($"The approved correction cannot reconstruct the previous biomarkers for {baseline.AthleteSlug}.");
+        }
+        return reverted;
     }
 
     internal static void EnsureTrackingTable(SqliteConnection sqlite, SqliteTransaction transaction)
