@@ -1881,14 +1881,15 @@ body #validAgeInput + * {
     }
 }
 
-/* While the actions ride in the dock, the card ends at its last field; the
-   space the dock covers is kept below the card instead of inside it. */
+/* While the step actions ride in the dock, the card ends at its last field;
+   the space the dock covers is kept below the card instead of inside it.
+   Result actions keep their own placeholder outside the card. */
 :is(#phenoAgeForm, #bortzAgeForm) .flow-action-dock-placeholder {
     height: 1px !important;
     margin: 0;
 }
 
-html.flow-action-dock-active :is(.phenoage-main, .bioage-main) {
+html.flow-action-dock-active body:not(.bioage-result-ready) :is(.phenoage-main, .bioage-main) {
     padding-bottom: var(--flow-action-dock-height, 0px);
 }
 
