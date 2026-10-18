@@ -5720,7 +5720,6 @@ a.lmx-note-mention:focus-visible {
 .lmx-advice-story-dialog h2 { text-align: left; font-size: clamp(1.65rem, 5vw, 2rem); line-height: 1.2; margin: 0; padding: 0; text-shadow: none; }
 .lmx-advice-story-dialog p { margin: 0; color: var(--lmx-muted); }
 .lmx-advice-eyebrow { color: var(--lmx-accent); font-size: .85rem; font-weight: 700; display: flex; align-items: center; gap: .5rem; }
-.lmx-advice-story-dialog label { font-weight: 700; margin-top: .35rem; }
 .lmx-advice-story-dialog textarea { box-sizing: border-box; width: 100%; min-height: 9rem; max-height: 40dvh; resize: vertical; border: 1px solid var(--lmx-border-strong); border-radius: 8px; padding: .85rem; font: inherit; line-height: 1.55; color: var(--lmx-ink); background: var(--lmx-surface); }
 .lmx-advice-story-dialog :focus-visible { outline: 3px solid var(--lmx-accent); outline-offset: 3px; }
 .lmx-advice-story-meta { display: flex; justify-content: space-between; gap: .6rem; flex-wrap: wrap; color: var(--lmx-muted); font-size: .8rem; }
@@ -5729,25 +5728,22 @@ a.lmx-note-mention:focus-visible {
 .lmx-advice-continue:hover { color: var(--lmx-ink); text-decoration: underline; }
 .lmx-advice-story-dialog .lmx-button { min-height: 44px; padding: .75rem 1rem; border: 1px solid var(--lmx-accent); border-radius: 7px; background: var(--lmx-accent); color: white; font: inherit; font-weight: 700; }
 .lmx-advice-story-dialog .lmx-button:disabled { opacity: .5; cursor: default; }
-.lmx-advice-post { border-top: 3px solid var(--lmx-accent); }
-.lmx-advice-badge { display: inline-flex; margin-right: .6rem; padding: .2rem .5rem; border-radius: 5px; background: var(--lmx-accent-soft); color: var(--lmx-accent); font-size: .75rem; font-weight: 700; }
+.lmx-advice-badge { display: inline-flex; margin-right: .6rem; color: var(--lmx-accent); font-size: .75rem; font-weight: 700; }
 .lmx-advice-story { padding-block: .75rem; }
 .lmx-advice-story > p { font-size: 1.05rem; line-height: 1.6; margin: 0 0 .6rem; overflow-wrap: anywhere; }
 .lmx-advice-context { margin-bottom: 1rem; color: var(--lmx-muted); font-size: .9rem; }
 .lmx-advice-context summary, .lmx-advice-archive summary { cursor: pointer; min-height: 44px; align-content: center; }
-.lmx-advice-branch { border: 1px solid var(--lmx-border); border-radius: 8px; margin-top: 1rem; overflow: hidden; min-width: 0; }
-.lmx-advice-branch.is-active { border-color: var(--lmx-accent); }
-.lmx-advice-branch-heading { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .5rem; padding: .75rem 1rem; color: var(--lmx-muted); background: var(--lmx-surface-muted); font-size: .82rem; }
-.lmx-advice-branch.is-active > .lmx-advice-branch-heading { color: var(--lmx-accent); background: var(--lmx-accent-soft); }
-.lmx-advice-branch > .lmx-discussion-reply-item { padding: 1rem; margin: 0; border: 0; }
-.lmx-advice-conversation { padding: 0 1rem 1rem; }
-.lmx-advice-conversation > .lmx-discussion-reply-item { margin-left: .5rem; padding-left: .8rem; border-left: 2px solid var(--lmx-border); }
-.lmx-advice-archive { padding-inline: 1rem; border-top: 1px solid var(--lmx-border); }
-.lmx-advice-archive[open] { padding-bottom: .75rem; }
-.lmx-advice-archive .lmx-discussion-reply-item { margin-left: 0; }
-.lmx-advice-readonly, .lmx-advice-empty { color: var(--lmx-muted); font-size: .85rem; }
+.lmx-advice-replies { margin: .5rem 0 0; padding: 0; border: 0; }
+.lmx-advice-branch { min-width: 0; }
+.lmx-advice-branch + .lmx-advice-branch { border-top: 1px solid var(--lmx-border); margin-top: 1rem; padding-top: 1rem; }
+.lmx-advice-rank { color: var(--lmx-muted); font-size: .8rem; font-variant-numeric: tabular-nums; }
+.lmx-advice-branch.is-active .lmx-advice-rank { color: var(--lmx-accent); }
+.lmx-advice-conversation > .lmx-discussion-reply-item,
+.lmx-advice-archive > .lmx-discussion-reply-item { margin: .75rem 0 0 .95rem; padding-left: 1.25rem; border-left: 1px solid var(--lmx-border); }
+.lmx-advice-compose-slot:not(:empty) { margin-top: .75rem; }
+.lmx-advice-archive { color: var(--lmx-muted); font-size: .9rem; }
+.lmx-advice-archive > .lmx-discussion-reply-item { color: var(--lmx-ink); font-size: 1rem; }
 .lmx-advice-replies > .lmx-discussion-reply-list { display: block; }
-.lmx-advice-join { min-height: 44px; }
 .lmx-advice-story-date { color: var(--lmx-muted); font-size: .85rem; }
 .lmx-advice-story-dialog .lmx-status:empty { display: none; }
 .lmx-advice-story > p { max-width: 65ch; }
@@ -5762,6 +5758,6 @@ a.lmx-note-mention:focus-visible {
 @media (max-width: 480px) {
     .lmx-advice-story-actions { flex-direction: column-reverse; align-items: stretch; gap: .35rem; }
     .lmx-advice-continue { text-align: center; }
-    .lmx-advice-branch-heading, .lmx-advice-branch > .lmx-discussion-reply-item { padding: .75rem; }
-    .lmx-advice-conversation { padding-inline: .75rem; }
+    .lmx-advice-conversation > .lmx-discussion-reply-item,
+    .lmx-advice-archive > .lmx-discussion-reply-item { margin-left: .5rem; padding-left: .75rem; }
 }

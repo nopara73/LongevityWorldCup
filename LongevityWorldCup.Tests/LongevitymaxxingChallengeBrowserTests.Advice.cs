@@ -93,12 +93,20 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         var errors = new List<string>();
         page.PageError += (_, error) => errors.Add(error);
         var post = page.Locator("#lmxNotes > .lmx-advice-post");
-        await Assertions.Expect(post.Locator(".is-active .lmx-advice-branch-heading")).ToContainTextAsync("Challenge #7");
+        await Assertions.Expect(post.Locator(".is-active .lmx-advice-rank")).ToHaveTextAsync("#7");
+        await Assertions.Expect(post.GetByRole(AriaRole.Button, new() { Name = "Join conversation", Exact = true })).ToHaveCountAsync(0);
         await CaptureAdviceAsync(page, $"first-advice-{width}-{theme}.png", post);
         await post.Locator(".lmx-discussion-post-actions [data-discussion-reply]").ClickAsync();
         await post.Locator("[data-discussion-draft] textarea").FillAsync("Keep one anchor even on travel days. Choose a ten-minute walk after lunch, then rebuild from there.");
         await post.Locator("[data-reply-submit]").ClickAsync();
-        await Assertions.Expect(post.Locator(".is-active .lmx-advice-branch-heading")).ToContainTextAsync("Challenge #3");
+        await Assertions.Expect(post.Locator(".is-active .lmx-advice-rank")).ToHaveTextAsync("#3");
+        var replyAction = post.Locator(".is-active > .lmx-discussion-reply-item [data-discussion-reply]");
+        await Assertions.Expect(replyAction).ToHaveCountAsync(1);
+        await Assertions.Expect(post.Locator(".is-active > .lmx-discussion-reply-item [data-discussion-reply-to]")).ToHaveCountAsync(0);
+        await replyAction.ClickAsync();
+        await Assertions.Expect(post.Locator("[data-discussion-draft]")).ToBeVisibleAsync();
+        await replyAction.ClickAsync();
+        await Assertions.Expect(post.Locator("[data-discussion-draft]")).ToHaveCountAsync(0);
         var old = post.Locator($".lmx-advice-branch[data-advice-root-id='{FirstAdviceId}']");
         var archive = old.Locator("details");
         await Assertions.Expect(archive).Not.ToHaveAttributeAsync("open", "");
@@ -127,13 +135,14 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await page.GotoAsync("/longevitymaxxing#discussion/post/p1/22/reply/old-comment");
         await Assertions.Expect(page.Locator("#lmxNotes [data-discussion-reply-id='old-comment']")).ToBeFocusedAsync();
         await Assertions.Expect(page.Locator("#lmxNotes .lmx-advice-archive")).ToHaveAttributeAsync("open", "");
-        await page.Locator("#lmxNotes .is-active .lmx-advice-join").ClickAsync();
+        await page.Locator("#lmxNotes .is-active [data-discussion-reply][data-advice-root-id]").ClickAsync();
         await page.Locator("#lmxNotes [data-discussion-draft] textarea").FillAsync("A useful next step.");
         await page.Locator("#lmxNotes [data-reply-submit]").ClickAsync();
         await Assertions.Expect(page.Locator("#lmxNotes [data-discussion-draft]")).ToHaveCountAsync(0);
         Assert.NotNull(submitted);
         Assert.False(submitted!["isAdvice"]!.GetValue<bool>());
         Assert.Equal("higher-advice", submitted["adviceRootId"]!.GetValue<string>());
+        Assert.Equal("higher-advice", submitted["replyToId"]!.GetValue<string>());
     }
 
     [Fact]
@@ -200,7 +209,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         var page = await context.NewPageAsync();
         await page.GotoAsync("/longevitymaxxing");
         await page.Locator("#lmxCheckinTab").ClickAsync();
-        await page.Locator("#lmxNotes .is-active .lmx-advice-join").ClickAsync();
+        await page.Locator("#lmxNotes .is-active [data-discussion-reply][data-advice-root-id]").ClickAsync();
         var composer = page.Locator("#lmxNotes [data-discussion-draft]");
         await composer.Locator("textarea").FillAsync("Keep this thought while the lead changes.");
         await composer.Locator("[data-reply-submit]").ClickAsync();
@@ -236,7 +245,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await page.Locator("#lmxNotes [data-advice-withdraw]").ClickAsync();
         await Assertions.Expect(page.Locator("#lmxNotes .lmx-advice-story")).ToContainTextAsync("Advice request withdrawn");
         await Assertions.Expect(page.Locator("#lmxNotes .lmx-advice-story")).Not.ToContainTextAsync(AdviceStory);
-        await Assertions.Expect(page.Locator("#lmxNotes .lmx-advice-join")).ToHaveCountAsync(0);
+        await Assertions.Expect(page.Locator("#lmxNotes [data-discussion-reply][data-advice-root-id]")).ToHaveCountAsync(0);
     }
 
     [Fact]
@@ -258,7 +267,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await page.Locator("#lmxNotes [data-advice-edit]").ClickAsync();
         var storyEditor = page.Locator("#lmxNotes .lmx-advice-story-editor");
         await storyEditor.Locator("textarea").FillAsync("An unfinished clarification that must survive the handoff.");
-        await page.Locator("#lmxNotes .is-active .lmx-advice-join").ClickAsync();
+        await page.Locator("#lmxNotes .is-active [data-discussion-reply][data-advice-root-id]").ClickAsync();
         await page.Locator("#lmxNotes [data-discussion-draft] textarea").FillAsync("One more detail for the conversation.");
         await page.Locator("#lmxNotes [data-reply-submit]").ClickAsync();
         await Assertions.Expect(storyEditor.Locator("textarea")).ToHaveValueAsync("An unfinished clarification that must survive the handoff.");
@@ -287,7 +296,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
             remainingEarlierReplyCount = 0, hasEarlier = false, nextBeforeCreatedAtUtc = (string?)null, nextBeforeReplyId = (string?)null
         })));
         var page = await OpenDiscussionWorkspaceAsync(context, state);
-        await page.Locator("#lmxNotes .lmx-advice-join").ClickAsync();
+        await page.Locator("#lmxNotes [data-discussion-reply][data-advice-root-id]").ClickAsync();
         var textarea = page.Locator("#lmxNotes [data-discussion-draft] textarea");
         await textarea.FillAsync("Keep this draft while reading the older context.");
         await page.Locator("#lmxNotes [data-discussion-replies-page]").ClickAsync();
@@ -352,7 +361,18 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         if (string.IsNullOrWhiteSpace(directory)) return;
         Directory.CreateDirectory(directory);
         await page.EvaluateAsync("() => document.fonts.ready");
-        if (element != null) await element.ScreenshotAsync(new() { Path = Path.Combine(directory, name) });
-        else await page.ScreenshotAsync(new() { Path = Path.Combine(directory, name) });
+        await Assertions.Expect(page.Locator(".lmx-discussion-just-saved")).ToHaveCountAsync(0);
+        if (element == null) { await page.ScreenshotAsync(new() { Path = Path.Combine(directory, name) }); return; }
+        var viewport = page.ViewportSize;
+        var bounds = await element.BoundingBoxAsync();
+        var expanded = viewport != null && bounds != null && bounds.Height > viewport.Height - 240;
+        // Keep fixed page chrome outside a tall component capture at enlarged text sizes.
+        if (expanded)
+        {
+            await page.SetViewportSizeAsync(viewport!.Width, (int)Math.Ceiling(bounds!.Height) + 480);
+            await element.EvaluateAsync("element => window.scrollBy({top: element.getBoundingClientRect().top - 240, behavior: 'instant'})");
+        }
+        try { await element.ScreenshotAsync(new() { Path = Path.Combine(directory, name) }); }
+        finally { if (expanded) await page.SetViewportSizeAsync(viewport!.Width, viewport.Height); }
     }
 }

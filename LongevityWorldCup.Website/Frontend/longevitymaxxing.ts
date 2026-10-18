@@ -3975,7 +3975,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const ownsPost = participantState?.participant.id === note.participantId;
         const alreadyAdvised = advice?.replies.some(reply => reply.isAdvice && !reply.isDeleted && reply.participantId === participantState?.participant.id);
         const joining = !!advice && (ownsPost || alreadyAdvised);
-        const replyText = advice ? joining ? "Join conversation" : "Give advice" : "Reply";
+        const replyText = advice ? "Give advice" : "Reply";
         canReply = canReply && !advice?.withdrawn && !joining;
         const replyCount = effectiveDiscussionReplyCount(note);
         const replyLabel = `${replyCount} ${replyCount === 1 ? "reply" : "replies"}`;
@@ -3995,7 +3995,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 data-post-challenge-day="${escAttr(note.challengeDay)}"
                 data-system-post-id="${escAttr(note.systemPostId || "")}"
                 data-post-display-name="${escAttr(note.displayName)}"
-                ${advice ? `data-is-advice="${!joining}" data-advice-root-id="${escAttr(joining ? advice.activeAdviceReplyId || "" : "")}"` : ""}
+                ${advice ? 'data-is-advice="true"' : ""}
                 aria-label="${advice ? replyText : `Reply to ${escAttr(note.displayName)}`}"
                 aria-expanded="false">
                 <i class="fas fa-reply" aria-hidden="true"></i>
@@ -4029,20 +4029,11 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const branchHtml = roots.map(root => {
             const active = !root.isArchived && !root.isDeleted;
             const replies = all.filter(reply => !reply.isAdvice && reply.adviceRootId === root.id);
-            const rank = root.adviceRank ? `Challenge #${root.adviceRank}` : "Unranked";
             const conversation = replies.map(reply => discussionReplyHtml(reply, note)).join("");
-            const button = active && participantState && accessToken
-                ? `<button class="lmx-discussion-reply lmx-advice-join" type="button" data-discussion-reply
-                    data-post-participant-id="${escAttr(note.participantId)}" data-post-challenge-day="${note.challengeDay}"
-                    data-post-display-name="${escAttr(root.displayName)}" data-advice-root-id="${escAttr(root.id)}"
-                    aria-expanded="false">Join conversation</button>` : "";
             return `<section class="lmx-advice-branch${active ? " is-active" : ""}" data-advice-root-id="${escAttr(root.id)}">
-                <div class="lmx-advice-branch-heading"><strong>${active ? "Active conversation" : "Other advice"}</strong>
-                    <span title="Challenge rank when this request opened">${rank}</span></div>
                 ${discussionReplyHtml(root, note)}
-                ${active ? `<div class="lmx-advice-conversation">${conversation}${button}<div class="lmx-advice-compose-slot"></div></div>`
-                    : replies.length ? `<details class="lmx-advice-archive"><summary>Earlier conversation</summary>
-                        <p class="lmx-advice-readonly">Archived · read-only</p>${conversation}</details>` : ""}
+                ${active ? `<div class="lmx-advice-conversation">${conversation}<div class="lmx-advice-compose-slot"></div></div>`
+                    : replies.length ? `<details class="lmx-advice-archive"><summary>Earlier conversation</summary>${conversation}</details>` : ""}
             </section>`;
         }).join("");
         const legacy = all.filter(reply => !reply.adviceRootId);
@@ -4054,9 +4045,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             data-remaining-earlier-replies="${remaining}">View earlier replies across conversations</button>` : "";
         return `<div class="lmx-discussion-replies lmx-advice-replies" data-discussion-replies data-discussion-total-replies="${reportedDiscussionReplyCount(note)}">
             <div class="lmx-discussion-reply-list">${branchHtml}
-                ${legacy.length ? `<details class="lmx-advice-archive"><summary>Earlier conversation · before this request</summary><p class="lmx-advice-readonly">Archived · read-only</p>${legacy.map(reply => discussionReplyHtml(reply, note)).join("")}</details>` : ""}
+                ${legacy.length ? `<details class="lmx-advice-archive"><summary>Before this request</summary>${legacy.map(reply => discussionReplyHtml(reply, note)).join("")}</details>` : ""}
             </div>
-            ${!roots.length && !advice.withdrawn ? '<p class="lmx-advice-empty">A rough day is easier to work through together. Be the first to offer advice.</p>' : ""}
             ${earlier}<div class="lmx-discussion-page-status" role="status" aria-live="polite"></div>
         </div>`;
     }
@@ -4371,8 +4361,13 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const ownsReply = !!participantState && participantState.participant.id === reply.participantId;
         const author = reply.participantId === note.participantId
             ? '<span class="lmx-discussion-author-marker" title="Author of the opening post">Author</span>' : "";
+        const rank = reply.isAdvice ? `<span class="lmx-advice-rank" title="Challenge rank when this request opened"
+            aria-label="${reply.adviceRank ? `Challenge rank ${reply.adviceRank}` : "Unranked"}">${reply.adviceRank ? `#${reply.adviceRank}` : "Unranked"}</span>` : "";
         const replyAction = participantState && accessToken && !reply.isArchived && !reply.isDeleted
-            ? `<button class="lmx-discussion-quiet-action" type="button" data-discussion-reply-to
+            ? `<button class="lmx-discussion-quiet-action" type="button" ${reply.isAdvice
+                ? `data-discussion-reply data-post-participant-id="${escAttr(note.participantId)}" data-post-challenge-day="${note.challengeDay}"
+                    data-post-display-name="${escAttr(reply.displayName)}" data-advice-root-id="${escAttr(reply.id)}" aria-expanded="false"`
+                : "data-discussion-reply-to"}
                 aria-label="Reply to ${escAttr(reply.displayName)}"><i class="fas fa-reply" aria-hidden="true"></i><span>Reply</span></button>` : "";
         const ownerActions = ownsReply && !reply.isDeleted
             ? `<span class="lmx-discussion-reply-owner-actions" aria-label="Reply actions">
@@ -4387,6 +4382,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             <div class="lmx-discussion-reply-meta">
                 <div class="lmx-discussion-reply-byline">
                     ${discussionAuthorHtml(reply.participantId, reply.displayName)}
+                    ${rank}
                     ${author}
                     <span class="lmx-discussion-reply-time">${when}${edited}</span>
                     ${reply.replyToId ? reply.replyTo
@@ -5092,8 +5088,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 <span id="lmxAdviceStoryDate" class="lmx-advice-story-date"></span>
                 <h2 id="lmxAdviceStoryHeading">What's the story?</h2>
                 <p id="lmxAdviceStoryIntro">Writing helps process it.</p>
-                <label for="lmxAdviceStory">What got in the way?</label>
-                <textarea id="lmxAdviceStory" rows="5" placeholder="Tell us what happened…" aria-describedby="lmxAdviceStoryScope lmxAdviceStoryCount"></textarea>
+                <textarea id="lmxAdviceStory" rows="5" aria-labelledby="lmxAdviceStoryHeading" aria-describedby="lmxAdviceStoryScope lmxAdviceStoryCount"></textarea>
                 <div class="lmx-advice-story-meta"><span id="lmxAdviceStoryScope"><i class="fas fa-earth-americas" aria-hidden="true"></i> Public with your check-in</span><span id="lmxAdviceStoryCount"></span></div>
                 <p class="lmx-status error" role="status" aria-live="polite"></p>
                 <div class="lmx-advice-story-actions"><button class="lmx-advice-continue" type="button">Continue without posting</button><button class="lmx-button" type="submit">Ask for advice</button></div>
@@ -6647,7 +6642,9 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     }
 
     function openDiscussionReplyComposer(button: HTMLButtonElement): void {
-        openDiscussionDraft(button, null);
+        if (button.dataset.adviceRootId && button.closest("[data-discussion-reply-id]") && button.getAttribute("aria-expanded") !== "true")
+            replyToDiscussionComment(button);
+        else openDiscussionDraft(button, null);
     }
 
     function replyToDiscussionComment(button: HTMLButtonElement): void {
@@ -6945,7 +6942,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             const label = pending ? (editing ? "Saving…" : "Posting…")
                 : open ? (editing ? "Editing" : "Writing")
                 : draft?.error ? (editing ? "Retry edit" : "Retry reply")
-                : dirty ? (editing ? "Resume edit" : "Resume reply") : editing ? "Edit" : button.dataset.isAdvice === "true" ? "Give advice" : button.dataset.adviceRootId ? "Join conversation" : "Reply";
+                : dirty ? (editing ? "Resume edit" : "Resume reply") : editing ? "Edit" : button.dataset.isAdvice === "true" ? "Give advice" : "Reply";
             if (editing) {
                 button.textContent = label;
                 button.disabled = discussionMutation === `delete:${button.closest<HTMLElement>("[data-discussion-reply-id]")?.dataset.discussionReplyId}`;
