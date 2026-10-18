@@ -271,6 +271,18 @@ document.addEventListener('DOMContentLoaded', function () {
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
     let activeIndex = 0;
     let pendingIndex = null;
+    let hiddenLayoutFocus = null;
+
+    // CSS can hide the old layout and blur its control before matchMedia's
+    // change event runs. Retain only that involuntary blur for the handoff.
+    function rememberHiddenLayoutFocus(event) {
+        const hiddenByLayout = phone.matches
+            ? grid.contains(event.target)
+            : merchCarousel.contains(event.target);
+        hiddenLayoutFocus = !event.relatedTarget && hiddenByLayout ? event.target : null;
+    }
+    grid.addEventListener('focusout', rememberHiddenLayoutFocus);
+    merchCarousel.addEventListener('focusout', rememberHiddenLayoutFocus);
 
     function setActiveSlide(index) {
         const focusedSlide = slides.findIndex(slide => slide.contains(document.activeElement));
@@ -421,9 +433,12 @@ document.addEventListener('DOMContentLoaded', function () {
             captions.forEach(({ slide, space }) => slide.style.setProperty('--lwc-merch-caption-space', `${space}px`));
         }
         if (phone.matches && touchScrolling) return;
-        const focusedGridIndex = gridLinks.indexOf(document.activeElement);
-        const focusedSlideIndex = slides.indexOf(document.activeElement);
-        const focusedDotIndex = dots.indexOf(document.activeElement);
+        const focused = document.activeElement === document.body && hiddenLayoutFocus
+            ? hiddenLayoutFocus : document.activeElement;
+        hiddenLayoutFocus = null;
+        const focusedGridIndex = gridLinks.indexOf(focused);
+        const focusedSlideIndex = slides.indexOf(focused);
+        const focusedDotIndex = dots.indexOf(focused);
         pendingIndex = null;
         if (phone.matches) {
             merchCarousel.inert = false;
