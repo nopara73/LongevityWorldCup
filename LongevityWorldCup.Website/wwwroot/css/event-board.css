@@ -1017,3 +1017,8 @@
         --events-header-action: #5bd5dd;
     }
 }
+
+/* "3 days ago 🚀" ends as one unit; the rocket never wraps onto a line of its own. */
+.event-rocket-tail {
+    white-space: nowrap !important;
+}
