@@ -221,6 +221,8 @@ public sealed class FooterCompositionBrowserTests(
         var page = await context.NewPageAsync();
         await NavigateAndSettleAsync(page, "/ruleset");
         await page.GetByRole(AriaRole.Link, new() { Name = "Get browser notifications on Highlights", Exact = true }).ClickAsync();
+        await page.WaitForLoadStateAsync(LoadState.Load);
+        await SettleAsync(page);
         await Assertions.Expect(page.Locator("#eventBoardTitle")).ToBeInViewportAsync();
         Assert.Equal(0, await page.EvaluateAsync<int>("window.footerPermissionRequests"));
         var bell = page.Locator("#webPushToggle");
