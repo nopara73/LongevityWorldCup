@@ -476,7 +476,7 @@ public sealed class FlowActionDockLayoutBrowserTests(
         await page.EvaluateAsync("() => window.LwcFlowActionDock?.refreshNow()");
         await ExpectActionStackInViewportAsync(page, ".convergence-actions");
 
-        var titleRect = await ReadElementRectAsync(page, ".convergence-main > h1");
+        var titleRect = await ReadElementRectAsync(page, ".convergence-stage-head h1");
         var detailsRect = await ReadElementRectAsync(page, "#personalDetails");
         var actionsRect = await ReadElementRectAsync(page, ".convergence-actions");
         var descriptionDisplay = await page.Locator("#descriptionForm").EvaluateAsync<string>("element => getComputedStyle(element).display");
@@ -484,7 +484,7 @@ public sealed class FlowActionDockLayoutBrowserTests(
 
         Assert.True(scrollY <= 1, $"Apply first stage should not auto-scroll on load: scrollY={scrollY}.");
         Assert.True(titleRect.Top >= 0, $"Apply title starts above the viewport: {titleRect.Top}px.");
-        Assert.Equal("none", descriptionDisplay);
+        Assert.Equal("block", descriptionDisplay);
         Assert.True(detailsRect.Top >= titleRect.Bottom,
             $"Apply details should follow the title: details top {detailsRect.Top}px, title bottom {titleRect.Bottom}px.");
         Assert.True(detailsRect.Bottom <= actionsRect.Top - 12,
