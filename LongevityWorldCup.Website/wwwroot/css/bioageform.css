@@ -1598,7 +1598,7 @@ body #validAgeInput + * {
 
 /* The rank is the second half of the result reveal, not a grey box inside it:
    its label, place and field read like the age above them, and the nearby
-   athletes are leaderboard rows with their scores kept on the same line. */
+   athletes keep their scores beside their names when the content fits. */
 .bioage-rank-preview {
     margin-top: 1.5rem;
     padding: 1.25rem 0 0;
@@ -1667,7 +1667,8 @@ body #validAgeInput + * {
 }
 
 .bioage-rank-row {
-    grid-template-columns: 3rem 32px minmax(0, 1fr) auto;
+    display: flex;
+    flex-wrap: wrap;
     gap: 0.75rem;
     min-height: 52px;
     padding: 0.35rem 0.75rem;
@@ -1681,7 +1682,11 @@ body #validAgeInput + * {
 }
 
 .bioage-rank-row-place {
+    flex: 0 1 auto;
+    max-width: 100%;
     color: var(--lwc-muted, #526373);
+    white-space: normal;
+    overflow-wrap: anywhere;
 }
 
 .bioage-rank-row.current .bioage-rank-row-place {
@@ -1689,62 +1694,41 @@ body #validAgeInput + * {
 }
 
 .bioage-rank-row-avatar {
+    flex: 0 0 auto;
     width: 32px;
     height: 32px;
 }
 
+.bioage-rank-row-name {
+    flex: 1 1 8rem;
+    max-width: 100%;
+}
+
 .bioage-rank-row-score {
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: 100%;
+    margin-left: auto;
+    white-space: normal;
+    overflow-wrap: anywhere;
     text-align: right;
 }
 
 @container bioage-rank (max-width: 24rem) {
     .bioage-rank-row {
-        grid-template-columns: 2.6rem 28px minmax(0, 1fr) auto;
         gap: 0.55rem;
         padding-inline: 0.5rem;
-    }
-
-    .bioage-rank-row-place,
-    .bioage-rank-row-avatar {
-        grid-row: auto;
     }
 
     .bioage-rank-row-avatar {
         width: 28px;
         height: 28px;
     }
-
-    .bioage-rank-row-name {
-        grid-column: 3;
-    }
-
-    .bioage-rank-row-score {
-        grid-column: 4;
-        white-space: nowrap;
-        text-align: right;
-    }
 }
 
-/* Only a very narrow rank (small phones at enlarged text) stacks the score. */
-@container bioage-rank (max-width: 15rem) {
-    .bioage-rank-row {
-        grid-template-columns: auto 28px minmax(0, 1fr);
-    }
-
-    .bioage-rank-row-place,
-    .bioage-rank-row-avatar {
-        grid-row: 1 / span 2;
-    }
-
-    .bioage-rank-row-name,
-    .bioage-rank-row-score {
-        grid-column: 3;
-    }
-
-    .bioage-rank-row-score {
-        white-space: normal;
-        overflow-wrap: anywhere;
-        text-align: left;
+@media (max-width: 360px) {
+    body.bioage-result-ready #continueButton.flow-action {
+        padding-left: 0.5rem;
     }
 }
 

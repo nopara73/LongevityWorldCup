@@ -6,7 +6,7 @@ using static LongevityWorldCup.Tests.FlowActionDockBrowserTests;
 namespace LongevityWorldCup.Tests;
 
 [Collection(BrowserTestCollections.WorkloadB)]
-public sealed class BioageResultScoreboardBrowserTests(
+public sealed partial class BioageResultScoreboardBrowserTests(
     PlaywrightBrowserFixture browserFixture,
     BrowserTestAppFixture appFixture)
     : BrowserIntegrationTest(browserFixture, appFixture)
@@ -192,7 +192,7 @@ public sealed class BioageResultScoreboardBrowserTests(
     [InlineData("/bortz-age", 1024, 768, true)]
     [InlineData("/pheno-age", 390, 844, true)]
     [InlineData("/bortz-age", 320, 640, false)]
-    public async Task Rank_RevealsItsPlaceLikeTheAgeAndKeepsNeighbourScoresOnTheirRows(string path, int width, int height, bool dark)
+    public async Task Rank_RevealsItsPlaceLikeTheAgeAndContainsNeighbourContent(string path, int width, int height, bool dark)
     {
         await using var context = await NewContextAsync(Browser, App, new()
         {
@@ -205,6 +205,7 @@ public sealed class BioageResultScoreboardBrowserTests(
         var page = await context.NewPageAsync();
         await CalculateAsync(page, path);
         await page.WaitForFunctionAsync("() => document.querySelector('[data-bioage-result-rank]')?.getAttribute('aria-busy') === 'false' && document.querySelector('.bioage-rank-row')");
+        await page.EvaluateAsync("() => document.fonts.ready");
 
         var layout = await page.EvaluateAsync<double[]>(
             """
@@ -220,17 +221,11 @@ public sealed class BioageResultScoreboardBrowserTests(
                 };
                 const label = preview.querySelector('.bioage-rank-label');
                 const number = preview.querySelector('.bioage-rank-number');
-                const misplacedScores = [...preview.querySelectorAll('.bioage-rank-row')].filter(row => {
-                    const name = row.querySelector('.bioage-rank-row-name').getBoundingClientRect();
-                    const score = row.querySelector('.bioage-rank-row-score').getBoundingClientRect();
-                    return score.left < name.right || score.top >= name.bottom - 1;
-                }).length;
                 return [style.backgroundColor === 'rgba(0, 0, 0, 0)' || style.backgroundColor === 'transparent' ? 1 : 0,
                     parseFloat(style.borderLeftWidth), box.left + box.width / 2,
                     textCenter(label), textCenter(number),
                     label.getBoundingClientRect().bottom <= number.getBoundingClientRect().top + 1 ? 1 : 0,
-                    getComputedStyle(number).backgroundColor === 'rgba(0, 0, 0, 0)' ? 1 : 0,
-                    misplacedScores];
+                    getComputedStyle(number).backgroundColor === 'rgba(0, 0, 0, 0)' ? 1 : 0];
             }
             """);
         var scenario = $"{path} {width}x{height}";
@@ -239,7 +234,7 @@ public sealed class BioageResultScoreboardBrowserTests(
         Assert.True(Math.Abs(layout[3] - layout[2]) <= 2 && Math.Abs(layout[4] - layout[2]) <= 2,
             $"{scenario}: the label and place should be centred like the age ({layout[3]}, {layout[4]} vs {layout[2]}).");
         Assert.True(layout[6] == 1, $"{scenario}: the place should be a headline number, not a tinted chip.");
-        Assert.True(layout[7] == 0, $"{scenario}: {layout[7]} neighbour scores dropped below or beside their names.");
+        await AssertReadableRankRowsAsync(page);
         await ExpectNoHorizontalOverflowAsync(page);
     }
 

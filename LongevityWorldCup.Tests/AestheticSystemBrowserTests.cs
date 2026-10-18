@@ -1611,7 +1611,7 @@ public sealed class AestheticSystemBrowserTests(
             {
                 Assert.Equal("max", condition.Bound);
                 Assert.Equal("rem", condition.Unit);
-                Assert.Contains(condition.Value, new double[] { 15, 24 });
+                Assert.Equal(24, condition.Value);
                 await NavigateAndSettleAsync(page, route);
                 await FlowActionDockBrowserTests.FillBioageStepOneAsync(
                     page, DateTime.UtcNow.Date.AddDays(-9).ToString("yyyy-MM-dd"));
@@ -1632,12 +1632,9 @@ public sealed class AestheticSystemBrowserTests(
                             rank.style.maxInlineSize = 'none';
                             await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
                             const avatar = getComputedStyle(rank.querySelector('.bioage-rank-row-avatar'));
-                            const score = getComputedStyle(rank.querySelector('.bioage-rank-row-score'));
                             return {
                                 ContainerWidth: parseFloat(getComputedStyle(rank).width),
-                                IsCompact: argument.Boundary === 24
-                                    ? parseFloat(avatar.width) === 28
-                                    : score.gridColumnStart === '3' && score.whiteSpace === 'normal',
+                                IsCompact: parseFloat(avatar.width) === 28,
                                 HorizontalOverflow: Math.max(0, rank.scrollWidth - rank.clientWidth)
                             };
                         }
