@@ -179,7 +179,7 @@
                 <a id="joinStartChallengeLink" href="/longevitymaxxing">Try our longevitymaxxing lifestyle challenge instead</a>
             </p>
 
-            <div class="options-container play-join-actions flow-action-stack" data-flow-dock="auto">
+            <div class="options-container play-join-actions flow-action-stack" data-flow-dock="auto" data-flow-dock-max-height-ratio="0.5">
                 <button disabled id="joinTrackBackBtn" type="button" class="option-button back-button flow-action flow-action--secondary flow-action--icon-left" aria-label="Back">
                     <i class="fas fa-arrow-left" aria-hidden="true"></i><span class="flow-action__label">Back</span>
                 </button>
@@ -208,6 +208,7 @@
             <div class="play-autocomplete-wrapper">
                 <div class="play-autocomplete-container">
                     <label for="playAthleteInput" class="visually-hidden">Athlete name</label>
+                    <span class="play-athlete-search-icon fas fa-search" aria-hidden="true"></span>
                     <input type="search"
                            id="playAthleteInput"
                            name="athlete-search"
@@ -245,7 +246,7 @@
                 </div>
             </div>
             <div id="athleteDashboardDiscounts" class="play-dashboard-discounts" aria-live="polite"></div>
-            <div id="athleteDashboardActions" class="options-container play-dashboard-actions flow-action-stack" data-flow-dock="overflow" data-flow-dock-back-first data-flow-dock-unless="body.play-route-hydrating" data-flow-dock-max-height-ratio="0.5">
+            <div id="athleteDashboardActions" class="options-container play-dashboard-actions flow-action-stack" data-flow-dock="overflow" data-flow-dock-back-first data-flow-dock-unless="body.play-route-hydrating" data-flow-dock-max-height-ratio="0.4">
                 <button type="button" class="option-button grey flow-action flow-action--secondary" onclick="window.location.href='/edit-profile'">
                     <span class="dashboard-action-label flow-action__label">Edit profile</span><i class="fas fa-pen" aria-hidden="true"></i>
                 </button>

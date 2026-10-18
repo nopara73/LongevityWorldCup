@@ -370,59 +370,6 @@ internal static partial class ReferencePage
             line-height: 1.4;
         }
 
-        /* The closing links are tiles. */
-        .documentation-document .ruleset-next ul {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
-            gap: 0.75rem;
-            padding: 0;
-            list-style: none;
-        }
-
-        .documentation-document .ruleset-next li {
-            margin: 0;
-            padding: 0;
-        }
-
-        .documentation-document .ruleset-next a {
-            box-sizing: border-box;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 0.75rem;
-            height: 100%;
-            min-height: 3.5rem;
-            padding: 0.85rem 1rem;
-            border: 1px solid var(--lwc-border);
-            border-radius: var(--lwc-radius-lg);
-            background: var(--lwc-surface-muted);
-            line-height: 1.35;
-            text-decoration: none;
-            transition: border-color var(--lwc-duration-fast) var(--lwc-ease), background var(--lwc-duration-fast) var(--lwc-ease);
-        }
-
-        .documentation-document .ruleset-next a::after {
-            content: "\2192" / "";
-            flex: 0 0 auto;
-            font-size: 1.15rem;
-            transition: transform var(--lwc-duration-fast) var(--lwc-ease);
-        }
-
-        .documentation-document .ruleset-next a:hover,
-        .documentation-document .ruleset-next a:focus-visible {
-            border-color: var(--lwc-accent);
-            background: var(--lwc-accent-soft);
-        }
-
-        .documentation-document .ruleset-next a:focus-visible {
-            outline: 3px solid var(--lwc-accent-bright);
-            outline-offset: 2px;
-        }
-
-        .documentation-document .ruleset-next a:hover::after {
-            transform: translateX(3px);
-        }
-
         @media (max-width: 600px) {
             .documentation-document.ruleset-document {
                 padding: min(1.1rem, 18px);
@@ -465,9 +412,7 @@ internal static partial class ReferencePage
         }
 
         @media (prefers-reduced-motion: reduce) {
-            .ruleset-faq-toggle::before,
-            .documentation-document .ruleset-next a,
-            .documentation-document .ruleset-next a::after {
+            .ruleset-faq-toggle::before {
                 transition: none;
             }
         }

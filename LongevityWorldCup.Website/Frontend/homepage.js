@@ -263,10 +263,26 @@ document.addEventListener('DOMContentLoaded', function () {
         return;
     }
 
+    const track = merchCarousel.querySelector('.lwc-merch-mobile-track');
+    if (!track) return;
+    const grid = merchCarousel.parentElement.querySelector('.lwc-merch-grid');
+    const gridLinks = Array.from(grid.querySelectorAll('.lwc-merch-item'));
+    const phone = window.matchMedia('(max-width: 576px)');
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
     let activeIndex = 0;
+    let pendingIndex = null;
 
     function setActiveSlide(index) {
+        const focusedSlide = slides.findIndex(slide => slide.contains(document.activeElement));
         activeIndex = (index + slides.length) % slides.length;
+
+        // Expose and focus the new product before hiding the previous one.
+        // This also covers a native swipe while a product has keyboard focus.
+        slides[activeIndex].setAttribute('aria-hidden', 'false');
+        slides[activeIndex].tabIndex = 0;
+        if (focusedSlide >= 0 && focusedSlide !== activeIndex && phone.matches) {
+            slides[activeIndex].focus({ preventScroll: true });
+        }
 
         slides.forEach((slide, slideIndex) => {
             const isActive = slideIndex === activeIndex;
@@ -281,18 +297,165 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    function slideScrollLeft(index) {
+        // Slides are positioned relative to the track. The final snap point
+        // is clamped to the end so the last product remains fully reachable.
+        return Math.min(slides[index].offsetLeft, track.scrollWidth - track.clientWidth);
+    }
+
+    function scrollToSlide(index, behavior) {
+        pendingIndex = index;
+        track.scrollTo({ left: slideScrollLeft(index), behavior });
+        if (Math.abs(track.scrollLeft - slideScrollLeft(index)) <= 1) pendingIndex = null;
+    }
+
+    function slideNearestScroll() {
+        let nearest = 0;
+        let nearestDistance = Infinity;
+        slides.forEach((slide, slideIndex) => {
+            const distance = Math.abs(slideScrollLeft(slideIndex) - track.scrollLeft);
+            if (distance < nearestDistance) {
+                nearest = slideIndex;
+                nearestDistance = distance;
+            }
+        });
+        return nearest;
+    }
+
     dots.forEach((dot, dotIndex) => {
         dot.addEventListener('click', function (event) {
             setActiveSlide(dotIndex);
+            scrollToSlide(dotIndex, reduceMotion.matches ? 'instant' : 'smooth');
             if (event.detail === 0) {
-                slides[activeIndex].focus();
+                slides[activeIndex].focus({ preventScroll: true });
             }
         });
     });
 
+    let touchScrolling = false;
+
+    function syncScrolledSlide() {
+        if (!phone.matches) return;
+        if (pendingIndex !== null && Math.abs(track.scrollLeft - slideScrollLeft(pendingIndex)) > 1) return;
+        pendingIndex = null;
+        const nearest = slideNearestScroll();
+        if (nearest !== activeIndex) setActiveSlide(nearest);
+    }
+
+    let scrollFrame = 0;
+    track.addEventListener('scroll', function () {
+        if (scrollFrame) return;
+        scrollFrame = requestAnimationFrame(function () {
+            scrollFrame = 0;
+            syncScrolledSlide();
+        });
+    }, { passive: true });
+    function finishScroll() {
+        if (!touchScrolling) syncScrolledSlide();
+    }
+
+    // Intermediate smooth-scroll frames must not undo a dot selection.
+    track.addEventListener('scrollend', finishScroll);
+    track.addEventListener('touchstart', function () {
+        touchScrolling = true;
+        // A focused snap target can anchor native panning. Keep focus on its
+        // visible selector while touch input moves that product out of view.
+        const focusedSlide = slides.indexOf(document.activeElement);
+        if (focusedSlide >= 0) dots[focusedSlide].focus({ preventScroll: true });
+    }, { passive: true });
+    window.addEventListener('touchend', function () { touchScrolling = false; }, { passive: true });
+    window.addEventListener('touchcancel', function () { touchScrolling = false; }, { passive: true });
+    // A released or interrupted gesture can stop between native snap points
+    // without a scrollend event. Finish only after horizontal movement is idle.
+    let settleTimer = 0;
+    const queueScrollEnd = function () {
+        window.clearTimeout(settleTimer);
+        settleTimer = window.setTimeout(function () {
+            if (!phone.matches || touchScrolling) return;
+            syncScrolledSlide();
+            if (pendingIndex === null && Math.abs(track.scrollLeft - slideScrollLeft(activeIndex)) > 1) {
+                scrollToSlide(activeIndex, reduceMotion.matches ? 'instant' : 'smooth');
+            }
+        }, 150);
+    };
+    track.addEventListener('scroll', queueScrollEnd, { passive: true });
+    window.addEventListener('touchend', queueScrollEnd, { passive: true });
+    window.addEventListener('touchcancel', queueScrollEnd, { passive: true });
+
+    function interruptScroll() {
+        if (pendingIndex === null) return;
+        pendingIndex = null;
+        track.scrollTo({ left: track.scrollLeft, behavior: 'instant' });
+        syncScrolledSlide();
+    }
+    track.addEventListener('pointerdown', interruptScroll, { passive: true });
+    track.addEventListener('wheel', interruptScroll, { passive: true });
+    track.addEventListener('keydown', function (event) {
+        if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) interruptScroll();
+    });
+    slides.forEach((slide, index) => {
+        // A visible peek remains a usable product link. Expose it before mouse
+        // focus, and also cover native touch focus and direct focus restoration.
+        slide.addEventListener('pointerdown', function (event) {
+            if (event.pointerType !== 'touch' && index !== activeIndex) setActiveSlide(index);
+        });
+        slide.addEventListener('focus', function () {
+            if (index !== activeIndex) setActiveSlide(index);
+        });
+        slide.addEventListener('click', function () {
+            setActiveSlide(index);
+            scrollToSlide(index, reduceMotion.matches ? 'instant' : 'smooth');
+        });
+    });
+
+    function syncLayout() {
+        if (phone.matches) {
+            // Reserve photo space above wrapped captions without changing the
+            // normal-size card geometry. Measure first, then update all slides.
+            const captions = slides.map(slide => {
+                const style = getComputedStyle(slide);
+                const inset = ['paddingTop', 'paddingBottom', 'borderTopWidth', 'borderBottomWidth', 'rowGap']
+                    .reduce((sum, property) => sum + (parseFloat(style[property]) || 0), 0);
+                return { slide, space: slide.querySelector('.lwc-merch-item-copy').getBoundingClientRect().height + inset };
+            });
+            captions.forEach(({ slide, space }) => slide.style.setProperty('--lwc-merch-caption-space', `${space}px`));
+        }
+        if (phone.matches && touchScrolling) return;
+        const focusedGridIndex = gridLinks.indexOf(document.activeElement);
+        const focusedSlideIndex = slides.indexOf(document.activeElement);
+        const focusedDotIndex = dots.indexOf(document.activeElement);
+        pendingIndex = null;
+        if (phone.matches) {
+            merchCarousel.inert = false;
+            setActiveSlide(focusedGridIndex >= 0 ? focusedGridIndex : activeIndex);
+            scrollToSlide(activeIndex, 'instant');
+            if (focusedGridIndex >= 0) slides[activeIndex].focus({ preventScroll: true });
+            grid.inert = true;
+        } else {
+            grid.inert = false;
+            if (focusedSlideIndex >= 0 || focusedDotIndex >= 0) {
+                gridLinks[focusedSlideIndex >= 0 ? focusedSlideIndex : activeIndex].focus({ preventScroll: true });
+            }
+            merchCarousel.inert = true;
+        }
+    }
+
     setActiveSlide(0);
     merchCarousel.hidden = false;
     merchCarousel.parentElement.classList.add('has-merch-carousel');
+    syncLayout();
+    phone.addEventListener('change', syncLayout);
+    let layoutFrame = 0;
+    const layoutObserver = new ResizeObserver(function () {
+        if (layoutFrame) return;
+        layoutFrame = requestAnimationFrame(function () {
+            layoutFrame = 0;
+            syncLayout();
+        });
+    });
+    layoutObserver.observe(track);
+    slides.forEach(slide => layoutObserver.observe(slide.querySelector('.lwc-merch-item-copy')));
+    document.fonts.ready.then(syncLayout);
 })();
 
 
