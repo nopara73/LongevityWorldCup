@@ -5729,11 +5729,11 @@ a.lmx-note-mention:focus-visible {
 .lmx-advice-story-dialog .lmx-button { min-height: 44px; padding: .75rem 1rem; border: 1px solid var(--lmx-accent); border-radius: 7px; background: var(--lmx-accent); color: white; font: inherit; font-weight: 700; }
 .lmx-advice-story-dialog .lmx-button:disabled { opacity: .5; cursor: default; }
 .lmx-advice-badge { display: inline-flex; margin-right: .6rem; color: var(--lmx-accent); font-size: .75rem; font-weight: 700; }
-.lmx-advice-story { padding-block: .75rem; }
-.lmx-advice-story > p { font-size: 1.05rem; line-height: 1.6; margin: 0 0 .6rem; overflow-wrap: anywhere; }
+.lmx-advice-story { padding-top: .75rem; }
+.lmx-advice-story > p { font-size: 1.05rem; line-height: 1.6; margin: 0; overflow-wrap: anywhere; }
 .lmx-advice-context { margin-bottom: 1rem; color: var(--lmx-muted); font-size: .9rem; }
 .lmx-advice-context summary, .lmx-advice-archive summary { cursor: pointer; min-height: 44px; align-content: center; }
-.lmx-advice-replies { margin: .5rem 0 0; padding: 0; border: 0; }
+.lmx-advice-replies { margin: 0; padding: 0; border: 0; }
 .lmx-advice-branch { min-width: 0; }
 .lmx-advice-branch + .lmx-advice-branch { border-top: 1px solid var(--lmx-border); margin-top: 1rem; padding-top: 1rem; }
 .lmx-advice-rank { color: var(--lmx-muted); font-size: .8rem; font-variant-numeric: tabular-nums; }
@@ -5747,7 +5747,7 @@ a.lmx-note-mention:focus-visible {
 .lmx-advice-story-date { color: var(--lmx-muted); font-size: .85rem; }
 .lmx-advice-story-dialog .lmx-status:empty { display: none; }
 .lmx-advice-story > p { max-width: 65ch; }
-.lmx-advice-story-tools { display: flex; flex-wrap: wrap; gap: .5rem; }
+.lmx-advice-story-tools { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .25rem; }
 .lmx-advice-story-editor { display: grid; gap: .65rem; max-width: 65ch; margin-top: .75rem; }
 .lmx-advice-story-editor textarea { width: 100%; box-sizing: border-box; padding: .75rem; font: inherit; color: var(--lmx-ink); background: var(--lmx-surface); border: 1px solid var(--lmx-border-strong); border-radius: 6px; }
 .lmx-advice-post .lmx-discussion-reply { width: auto; max-width: 100%; padding-inline: .75rem; white-space: normal; }
