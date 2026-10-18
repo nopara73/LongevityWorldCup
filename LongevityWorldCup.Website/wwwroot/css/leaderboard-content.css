@@ -1615,11 +1615,6 @@
      background: var(--athlete-modal-border);
  }
 
- /* === FIX: Pace of aging sor biztosan egy sorban === */
- #bortzPaceOfAgingContainer td{ white-space: nowrap; }
- #paceOfAgingContainer td{ white-space: nowrap; }
-
-
  #ageReduction,
  #ageReductionPercent,
  #lowestBortzAge,
@@ -3334,7 +3329,7 @@
          margin-right:auto;
          box-sizing:border-box;
      }
-     /* The rank tiles share the sections' column edge and still sit side by side. */
+     /* Compact tiles share a row when there is room; enlarged text can reflow. */
      #detailsModal #athleteRankings a{
          flex-basis:6.5rem;
      }
