@@ -1310,6 +1310,13 @@ public sealed class AestheticSystemBrowserTests(
         var rootFontSize = await page.EvaluateAsync<double>("() => parseFloat(getComputedStyle(document.documentElement).fontSize)");
         foreach (var condition in conditions)
         {
+            if (condition.Name == "play-join-actions")
+            {
+                await AssertJoinActionContainerBoundaryAsync(page, condition);
+                await page.SetViewportSizeAsync(1280, 800);
+                await NavigateAndSettleAsync(page, "/join");
+                continue;
+            }
             Assert.Equal("play-track", condition.Name);
             Assert.Equal("max", condition.Bound);
             Assert.Equal(18, condition.Value);
@@ -1338,6 +1345,59 @@ public sealed class AestheticSystemBrowserTests(
                 Assert.True(diagnostics.HorizontalOverflow <= 1, $"Join card overflowed at {width}px.");
             }
         }
+    }
+
+    private static async Task AssertJoinActionContainerBoundaryAsync(IPage page, ResponsiveContainerCondition condition)
+    {
+        Assert.Equal("min", condition.Bound);
+        Assert.Equal(17, condition.Value);
+        Assert.Equal("rem", condition.Unit);
+        await page.SetViewportSizeAsync(390, 844);
+        await NavigateAndSettleAsync(page, "/join");
+        await page.WaitForFunctionAsync("() => !document.getElementById('joinTrackBackBtn')?.disabled");
+        // Keep the production markup and styles, while isolating the width probe
+        // from dock observers that would restore its viewport-derived width.
+        await page.Locator(".play-join-actions").EvaluateAsync("""
+            actions => {
+                const probe = actions.cloneNode(true);
+                actions.replaceWith(probe);
+                probe.removeAttribute('data-flow-dock');
+                probe.classList.remove('flow-action-stack--dock-entering');
+                probe.dataset.joinActionBoundaryProbe = '';
+                probe.classList.add('flow-action-stack--docked');
+            }
+            """);
+        foreach (var textPercent in new[] { 100, 200 })
+        {
+            await page.EvaluateAsync("percent => document.documentElement.style.fontSize = `${percent}%`", textPercent);
+            var rootFont = await page.EvaluateAsync<double>("() => parseFloat(getComputedStyle(document.documentElement).fontSize)");
+            var threshold = condition.Value * rootFont;
+            foreach (var delta in new[] { -1, 0, 1, 0, -1 })
+            {
+                var width = threshold + delta;
+                var diagnostics = await page.Locator("[data-join-action-boundary-probe]").EvaluateAsync<double[]>("""
+                    async (actions, width) => {
+                        Object.assign(actions.style, { boxSizing: 'content-box', maxInlineSize: 'none' });
+                        actions.style.setProperty('width', `${width}px`, 'important');
+                        actions.style.setProperty('max-width', 'none', 'important');
+                        await document.fonts.ready;
+                        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                        const back = actions.querySelector('#joinTrackBackBtn');
+                        const amateur = actions.querySelector('#joinMobileStartAmateurBtn').getBoundingClientRect();
+                        const pro = actions.querySelector('#joinMobileGoProButton').getBoundingClientRect();
+                        return [parseFloat(getComputedStyle(actions).width),
+                            back.querySelector('.flow-action__label').getBoundingClientRect().width,
+                            Math.abs(amateur.top - pro.top),
+                            Math.max(0, actions.scrollWidth - actions.clientWidth)];
+                    }
+                    """, width);
+                Assert.Equal(width, diagnostics[0], 1);
+                Assert.Equal(width >= threshold, diagnostics[1] == 0);
+                if (width >= threshold) Assert.True(diagnostics[2] <= 1, "Compact track actions must share a row.");
+                Assert.True(diagnostics[3] <= 1, $"Join actions overflowed at {width}px and {textPercent}% text.");
+            }
+        }
+        await page.EvaluateAsync("() => document.documentElement.style.removeProperty('font-size')");
     }
 
     private static async Task AssertFooterContainerBoundariesAsync(
