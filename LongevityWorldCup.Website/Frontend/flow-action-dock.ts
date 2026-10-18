@@ -285,6 +285,8 @@ interface FlowActionDockApi {
     function moveKeepingFocus(element: HTMLElement, move: () => void): void {
         const focused = document.activeElement;
         const hadFocus = focused instanceof HTMLElement && element.contains(focused);
+        const scrollLeft = window.scrollX;
+        const scrollTop = window.scrollY;
         let focusAssigned = false;
         const trackFocus = (event: FocusEvent): void => {
             if (event.target !== focused) focusAssigned = true;
@@ -305,6 +307,12 @@ interface FlowActionDockApi {
             && !focused.closest('[hidden], [inert], [aria-hidden="true"]')
             && isFocusTargetVisible(focused)) {
             focused.focus({ preventScroll: true });
+        }
+        // A native state-preserving move can scroll a focused fixed control
+        // into its new inline position even though it never lost focus.
+        if (hadFocus && !focusAssigned && document.activeElement === focused
+            && (window.scrollX !== scrollLeft || window.scrollY !== scrollTop)) {
+            window.scrollTo({ left: scrollLeft, top: scrollTop, behavior: 'instant' });
         }
     }
 
@@ -330,6 +338,16 @@ interface FlowActionDockApi {
 
     function syncActionOrder(element: HTMLElement, docked: boolean): void {
         const actions = Array.from(element.children);
+        // Multi-command docks can lead with Back while keeping it after the
+        // regular actions in their inline layout. Match keyboard and visual
+        // order using the same focus-preserving move as two-action flows.
+        if (element.hasAttribute('data-flow-dock-back-first')) {
+            const back = actions.find(action => isBackAction(action as HTMLElement)) as HTMLElement | undefined;
+            if (back && (docked ? element.firstElementChild !== back : element.lastElementChild !== back)) {
+                moveKeepingFocus(element, () => moveElement(back, element, docked ? element.firstChild : null));
+            }
+            return;
+        }
         if (actions.length !== 2 || !actions.every(action => action.matches('.flow-action'))) return;
         const back = actions.find(action => isBackAction(action as HTMLElement)) as HTMLElement | undefined;
         const primary = actions.find(action => action !== back) as HTMLElement | undefined;

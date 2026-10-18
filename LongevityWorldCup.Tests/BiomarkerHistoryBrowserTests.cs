@@ -393,6 +393,82 @@ public sealed class BiomarkerHistoryBrowserTests(
     }
 
     [Theory]
+    [InlineData(1440, false, false, 100)]
+    [InlineData(768, true, false, 100)]
+    [InlineData(390, true, true, 100)]
+    [InlineData(320, false, false, 100)]
+    [InlineData(1440, true, false, 200)]
+    [InlineData(768, false, false, 200)]
+    [InlineData(390, false, true, 200)]
+    [InlineData(320, true, true, 200)]
+    public async Task RadarCard_OpensWithTheSameHeaderBandAsItsSiblingCards(int width, bool dark, bool touch, int textPercent)
+    {
+        await using var context = await NewContextAsync(width, dark, touch: touch);
+        var athlete = await HistoryAthleteAsync("Benjamin Garden", 44, partial: false);
+        var peer = await HistoryAthleteAsync("Valerie Orsoni", 44, partial: false);
+        await context.AddInitScriptAsync($"window.getSharedAthletes = async () => ({new JsonArray(athlete, peer).ToJsonString()});");
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/athlete/benjamin-garden", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.WaitForFunctionAsync("() => window.Chart?.getChart(document.getElementById('ageRadarChart')) && document.querySelector('#detailsModal .biomarkers-heading')");
+        await page.EvaluateAsync("() => document.fonts.ready");
+        var normalTabFontSize = await page.Locator("#ageTabBortz").EvaluateAsync<double>("el => parseFloat(getComputedStyle(el).fontSize)");
+        if (textPercent != 100)
+            await page.AddStyleTagAsync(new() { Content = $"html {{ font-size:{textPercent}% !important; }}" });
+
+        var layout = await page.EvaluateAsync<double[]>(
+            """
+            () => {
+                const card = document.getElementById('ageVisualization').getBoundingClientRect();
+                const band = document.getElementById('ageClockSwitch');
+                const bandBox = band.getBoundingClientRect();
+                const sibling = document.querySelector('#detailsModal .biomarkers-heading');
+                const siblingStyle = getComputedStyle(sibling);
+                const bandStyle = getComputedStyle(band);
+                const tabs = [...band.querySelectorAll('[role="tab"]:not([hidden])')];
+                const tablist = getComputedStyle(band.querySelector('[role="tablist"]'));
+                const title = getComputedStyle(sibling.querySelector('h3'));
+                return [card.left, card.right, card.top, bandBox.left, bandBox.right, bandBox.top, bandBox.height,
+                    sibling.getBoundingClientRect().height,
+                    bandStyle.borderBottomWidth === siblingStyle.borderBottomWidth && bandStyle.backgroundColor === siblingStyle.backgroundColor ? 1 : 0,
+                    tablist.borderTopWidth === '0px' && tablist.backgroundColor === 'rgba(0, 0, 0, 0)' ? 1 : 0,
+                    tabs.length, tabs.every(tab => getComputedStyle(tab).textTransform === title.textTransform
+                        && getComputedStyle(tab).fontWeight === title.fontWeight) ? 1 : 0];
+            }
+            """);
+        Assert.True(Math.Abs(layout[3] - layout[0]) <= 2 && Math.Abs(layout[4] - layout[1]) <= 2 && Math.Abs(layout[5] - layout[2]) <= 2,
+            $"{width}px: the clock tabs should be the card's full-width header band, not a switch inset in it.");
+        if (textPercent == 100)
+            Assert.True(Math.Abs(layout[6] - layout[7]) <= 2, $"{width}px: the radar band ({layout[6]:F0}px) should match the sibling cards' bands ({layout[7]:F0}px).");
+        Assert.True(layout[8] == 1, $"{width}px: the radar band should share the sibling bands' surface and hairline.");
+        Assert.True(layout[9] == 1, $"{width}px: the clock tabs should not sit in their own bordered box.");
+        Assert.True(layout[10] == 2 && layout[11] == 1, $"{width}px: both clock tabs should read as card titles.");
+        var tabFontSize = await page.Locator("#ageTabBortz").EvaluateAsync<double>("el => parseFloat(getComputedStyle(el).fontSize)");
+        Assert.True(tabFontSize >= normalTabFontSize * textPercent / 100 - .1, "The rendered tab text must actually enlarge.");
+        var problems = await page.Locator("#ageClockSwitch [role='tab']:not([hidden])").EvaluateAllAsync<string[]>(
+            """
+            tabs => tabs.flatMap(tab => {
+                const bounds = tab.getBoundingClientRect();
+                const band = tab.closest('.age-clock-switch').getBoundingClientRect();
+                const range = document.createRange(); range.selectNodeContents(tab);
+                const problems = [];
+                if (bounds.width < 44 || bounds.height < 44) problems.push('target below 44px');
+                if (bounds.left < band.left || bounds.right > band.right || bounds.top < band.top || bounds.bottom > band.bottom)
+                    problems.push('target escapes header band');
+                if ([...range.getClientRects()].some(rect => rect.width > 0 &&
+                    (rect.left < bounds.left - 1 || rect.right > bounds.right + 1 || rect.top < bounds.top - 1 || rect.bottom > bounds.bottom + 1)))
+                    problems.push('label escapes target');
+                return problems.map(problem => `${tab.textContent}: ${problem}`);
+            })
+            """);
+        Assert.True(problems.Length == 0, $"{width}px at {textPercent}%: {string.Join("; ", problems)}");
+        Assert.True(await page.Locator("#detailsModal .modal-content").EvaluateAsync<bool>("el => el.scrollWidth <= el.clientWidth + 1"));
+        await page.Locator("#ageTabBortz").PressAsync("ArrowRight");
+        await Expect(page.Locator("#ageTabPheno")).ToBeFocusedAsync();
+        await Expect(page.Locator("#ageTabPheno")).ToHaveAttributeAsync("aria-selected", "true");
+        Assert.True(await page.Locator("#ageTabPheno").EvaluateAsync<bool>("el => getComputedStyle(el).outlineStyle !== 'none' && parseFloat(getComputedStyle(el).outlineWidth) >= 2"));
+    }
+
+    [Theory]
     [InlineData(1280, true, 100, "UTC")]
     [InlineData(390, false, 100, "America/Los_Angeles")]
     [InlineData(320, true, 200, "America/Los_Angeles")]
@@ -438,6 +514,7 @@ public sealed class BiomarkerHistoryBrowserTests(
             for (var i = 0; i < count; i++)
             {
                 await select.SelectOptionAsync(i.ToString(CultureInfo.InvariantCulture));
+                await AssertRadarDrawingBoundsAsync(page);
                 await Expect(page.Locator("#ageRadarChart")).ToHaveAttributeAsync("data-result-date", panels[i].Date);
                 await Expect(page.Locator("#ageResultDate")).ToHaveAttributeAsync("datetime", panels[i].Date);
                 await Expect(page.Locator("#ageRadarCenterBio")).ToHaveTextAsync($"biological age: {expected[i].ToString("F1", CultureInfo.InvariantCulture)}");
@@ -526,7 +603,15 @@ public sealed class BiomarkerHistoryBrowserTests(
         {
             await Expect(page.Locator("#ageTabBortz")).ToBeHiddenAsync();
             await Expect(page.Locator("#ageTabPheno")).ToBeVisibleAsync();
+            Assert.Equal("none", await page.Locator("#ageTabPheno").EvaluateAsync<string>("el => getComputedStyle(el).boxShadow"));
         }
+        Assert.True(await page.Locator("#ageClockSwitch [role='tab']").EvaluateAllAsync<bool>(
+            """
+            tabs => tabs.filter(tab => !tab.checkVisibility()).every(tab => {
+                tab.focus();
+                return document.activeElement !== tab;
+            })
+            """));
     }
 
     [Fact]
@@ -759,6 +844,145 @@ public sealed class BiomarkerHistoryBrowserTests(
             """);
 
     private static ILocator Row(IPage page, string key) => page.Locator($"#athlete-biomarkers tr[data-measure='{key}']");
+
+    [Theory]
+    [InlineData(1440, false, 140)]
+    [InlineData(1024, true, 140)]
+    [InlineData(390, true, 88)]
+    public async Task ProfileRadar_FillsItsCardInsteadOfFloatingInASquare(int width, bool dark, double minimumRadius)
+    {
+        await using var context = await NewContextAsync(width, dark, touch: width < 600);
+        var athlete = await HistoryAthleteAsync("Benjamin Garden", 44, partial: false);
+        var peer = await HistoryAthleteAsync("Valerie Orsoni", 44, partial: false);
+        await context.AddInitScriptAsync($"window.getSharedAthletes = async () => ({new JsonArray(athlete, peer).ToJsonString()});");
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/athlete/benjamin-garden", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.WaitForFunctionAsync("() => window.Chart?.getChart(document.getElementById('ageRadarChart'))?.scales?.r?.drawingArea > 0");
+        await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+
+        var layout = await page.EvaluateAsync<double[]>(
+            """
+            () => {
+                const chart = Chart.getChart(document.getElementById('ageRadarChart'));
+                const wrapper = document.getElementById('ageRadarWrapper').getBoundingClientRect();
+                const card = document.getElementById('ageVisualization').getBoundingClientRect();
+                return [chart.scales.r.drawingArea, wrapper.width, wrapper.height, wrapper.left, wrapper.right, card.left, card.right,
+                    document.documentElement.scrollWidth, innerWidth];
+            }
+            """);
+        Assert.True(layout[0] >= minimumRadius, $"{width}px: the radar web is only {layout[0]:F0}px in radius; it should be at least {minimumRadius}px.");
+        if (width >= 769)
+            Assert.True(layout[2] <= layout[1] * 0.75, $"{width}px: the radar well should be landscape, not a {layout[1]:F0}x{layout[2]:F0} square.");
+        Assert.True(layout[3] >= layout[5] && layout[4] <= layout[6], $"{width}px: the radar should stay inside its card.");
+        Assert.True(layout[7] <= layout[8], $"{width}px: the page scrolls sideways ({layout[7]} > {layout[8]}).");
+        await AssertRadarDrawingBoundsAsync(page);
+    }
+
+    [Theory]
+    [InlineData(700, 400, false)]
+    [InlineData(760, 480, true)]
+    [InlineData(844, 390, false)]
+    public async Task ProfileRadar_ShortLandscapeKeepsTheChartWithinOneScreen(int width, int height, bool dark)
+    {
+        await using var context = await NewContextAsync(width, dark, touch: true);
+        var athlete = await HistoryAthleteAsync("Benjamin Garden", 44, partial: false);
+        var peer = await HistoryAthleteAsync("Valerie Orsoni", 44, partial: false);
+        await context.AddInitScriptAsync($"window.getSharedAthletes = async () => ({new JsonArray(athlete, peer).ToJsonString()});");
+        var page = await context.NewPageAsync();
+        await page.SetViewportSizeAsync(width, height);
+        await page.GotoAsync("/athlete/benjamin-garden", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.WaitForFunctionAsync("() => window.Chart?.getChart(document.getElementById('ageRadarChart'))?.scales?.r?.drawingArea > 0");
+        var layout = await page.EvaluateAsync<double[]>(
+            """
+            () => {
+                const wrapper = document.getElementById('ageRadarWrapper').getBoundingClientRect();
+                const card = document.getElementById('ageVisualization').getBoundingClientRect();
+                const chart = Chart.getChart(document.getElementById('ageRadarChart'));
+                return [wrapper.height, wrapper.left, wrapper.right, card.left, card.right,
+                    chart.scales.r.drawingArea, document.documentElement.scrollWidth, innerWidth, innerHeight];
+            }
+            """);
+        Assert.True(layout[0] <= Math.Min(280, layout[8] * 0.7) + 1,
+            $"{width}x{height}: the radar is {layout[0]}px tall and takes over the short dialog.");
+        Assert.True(layout[1] >= layout[3] && layout[2] <= layout[4], "The radar must remain inside its card.");
+        Assert.True(layout[5] >= 50, "The bounded chart must still render a readable radar.");
+        Assert.True(layout[6] <= layout[7], "The profile must not scroll sideways.");
+        await AssertRadarDrawingBoundsAsync(page);
+    }
+
+    [Fact]
+    public async Task ProfileRadar_HiddenOpenResizeClockSwitchAndReopenKeepFreshGeometry()
+    {
+        await using var context = await NewContextAsync(390, dark: true, touch: true);
+        var athlete = await HistoryAthleteAsync("Benjamin Garden", 44, partial: false);
+        var peer = await HistoryAthleteAsync("Valerie Orsoni", 44, partial: false);
+        await context.AddInitScriptAsync($"window.getSharedAthletes = async () => ({new JsonArray(athlete, peer).ToJsonString()});");
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/leaderboard", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await Expect(page.Locator("#detailsModal")).ToBeHiddenAsync();
+        var opener = page.GetByRole(AriaRole.Link, new() { Name = "View stats of Benjamin Garden", Exact = true }).First;
+        await opener.ClickAsync();
+        foreach (var (width, height) in new[] { (390, 844), (700, 400), (1440, 600), (320, 720) })
+        {
+            await page.SetViewportSizeAsync(width, height);
+            foreach (var clock in new[] { "#ageTabPheno", "#ageTabBortz" })
+            {
+                await page.Locator(clock).ClickAsync();
+                await AssertRadarDrawingBoundsAsync(page);
+            }
+        }
+        await page.Locator("#closeAthleteDetailsModal").ClickAsync();
+        await Expect(page.Locator("#detailsModal")).ToBeHiddenAsync();
+        await opener.ClickAsync();
+        await AssertRadarDrawingBoundsAsync(page);
+    }
+
+    private static async Task AssertRadarDrawingBoundsAsync(IPage page)
+    {
+        await page.EvaluateAsync("() => document.fonts.ready");
+        await page.WaitForFunctionAsync("""
+            () => {
+                const chart = window.Chart?.getChart(document.getElementById('ageRadarChart'));
+                if (!chart?.scales?.r?.drawingArea) return false;
+                const rect = chart.canvas.getBoundingClientRect();
+                return Math.abs(chart.width - rect.width) <= 1 && Math.abs(chart.height - rect.height) <= 1;
+            }
+            """);
+        var problems = await page.EvaluateAsync<string[]>("""
+            () => {
+                const chart = Chart.getChart(document.getElementById('ageRadarChart'));
+                const scale = chart.scales.r;
+                const problems = [];
+                const inside = (left, top, right, bottom) =>
+                    left >= -1 && top >= -1 && right <= chart.width + 1 && bottom <= chart.height + 1;
+                chart.data.labels.forEach((label, index) => {
+                    const box = scale.getPointLabelPosition(index);
+                    if (!inside(box.left, box.top, box.right, box.bottom)) problems.push(`${label}: label box clipped`);
+                    // Measure the current font's painted glyphs, not just the chart's fitting rectangle.
+                    const item = scale._pointLabelItems[index];
+                    const font = Chart.helpers.toFont(scale.options.pointLabels.setContext(scale.getPointLabelContext(index)).font);
+                    const ctx = chart.ctx;
+                    ctx.save();
+                    ctx.font = font.string;
+                    ctx.textAlign = item.textAlign;
+                    ctx.textBaseline = 'middle';
+                    const glyph = ctx.measureText(label);
+                    const baseline = item.y + font.lineHeight / 2;
+                    if (!inside(item.x - glyph.actualBoundingBoxLeft, baseline - glyph.actualBoundingBoxAscent,
+                        item.x + glyph.actualBoundingBoxRight, baseline + glyph.actualBoundingBoxDescent))
+                        problems.push(`${label}: painted glyphs clipped`);
+                    ctx.restore();
+                });
+                const ratio = chart.currentDevicePixelRatio;
+                if (Math.abs(chart.canvas.width - chart.width * ratio) > 1 ||
+                    Math.abs(chart.canvas.height - chart.height * ratio) > 1) problems.push('canvas backing resolution is stale');
+                if (scale.min !== 0 || scale.max !== 100 || scale.options.ticks.stepSize !== 20)
+                    problems.push('percentile scale changed');
+                return problems;
+            }
+            """);
+        Assert.True(problems.Length == 0, string.Join("; ", problems));
+    }
 
     private async Task<IBrowserContext> NewContextAsync(int width, bool dark, string timezone = "UTC", bool touch = false)
     {
