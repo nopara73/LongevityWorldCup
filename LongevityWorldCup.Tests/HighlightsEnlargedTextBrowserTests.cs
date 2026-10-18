@@ -216,8 +216,9 @@ public sealed class HighlightsEnlargedTextBrowserTests(
                 """
         }));
         var page = await context.NewPageAsync();
-        await page.Clock.InstallAsync(new() { Time = "2026-10-17T08:00:00Z" });
-        await page.Clock.PauseAtAsync("2026-10-17T08:00:01Z");
+        const string pausedTime = "2026-10-17T08:00:01Z";
+        await page.Clock.SetFixedTimeAsync(pausedTime);
+        await page.Clock.PauseAtAsync(pausedTime);
         await NavigateAndSettleAsync(page, "/");
         await page.Clock.RunForAsync(500);
         var announcement = page.Locator($"tr.main-row[data-event-id='resize-announcement-{announcementIndex}']");
