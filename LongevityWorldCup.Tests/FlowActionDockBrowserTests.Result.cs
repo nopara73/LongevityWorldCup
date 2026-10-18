@@ -440,10 +440,8 @@ public sealed class FlowActionDockResultBrowserTests(
                         () => Array.from(document.querySelectorAll('#athleteDashboardActions .flow-action > i'))
                             .filter(icon => getComputedStyle(icon).display !== 'none').length
                         """);
-            // Phones give the docked commands their words; only the back arrow keeps its glyph.
-            var expectedVisibleIcons = viewportWidth <= 600 ? 1 : 5;
-            Assert.True(visibleActionIcons == expectedVisibleIcons,
-                $"{scenario}: expected {expectedVisibleIcons} visible action icons, found {visibleActionIcons}.");
+            Assert.True(visibleActionIcons == 5,
+                $"{scenario}: expected five visible action icons, found {visibleActionIcons}.");
 
             var longevityLabelUsesOneLine = await page.EvaluateAsync<bool>(
                 """
