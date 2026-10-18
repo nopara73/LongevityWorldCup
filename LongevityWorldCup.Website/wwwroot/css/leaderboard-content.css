@@ -3321,6 +3321,7 @@
          line-height:1.08;
          margin-top:.75rem;
      }
+     #detailsModal #athleteRankings,
      #detailsModal #athleteBio,
      #detailsModal .athlete-info,
      #detailsModal .age-visualization,
@@ -3332,6 +3333,10 @@
          margin-left:auto;
          margin-right:auto;
          box-sizing:border-box;
+     }
+     /* The rank tiles share the sections' column edge and still sit side by side. */
+     #detailsModal #athleteRankings a{
+         flex-basis:6.5rem;
      }
      #detailsModal #athleteBio{
          margin:.85rem auto 1.25rem;
@@ -3560,6 +3565,7 @@
          margin-bottom:.1rem;
      }
 
+     #detailsModal #athleteRankings,
      #detailsModal #athleteBio,
      #detailsModal .athlete-links,
      #detailsModal .athlete-info,
