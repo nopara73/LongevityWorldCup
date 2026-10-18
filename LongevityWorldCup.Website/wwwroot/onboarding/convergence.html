@@ -453,6 +453,7 @@
         }
 
         #whyField textarea {
+            display: block;
             margin-bottom: 0;
         }
 
@@ -1935,6 +1936,11 @@
 
             // Initialize the first stage
             initializeApplicationFieldValidation();
+            window.visualViewport?.addEventListener('resize', () => {
+                if (currentStage === 2 && document.activeElement?.id === 'why') {
+                    window.requestAnimationFrame(checkFormValidityStage2);
+                }
+            });
             goToStage(currentStage);
             applyFakeDataIfNeeded();
 
@@ -2455,7 +2461,7 @@
             // A paste can grow the field and dock the actions in the same edit.
             // Reconcile their final layout before clearing the focused field.
             if (document.activeElement === whyInput) {
-                window.LwcFlowActionDock?.ensureClear?.(whyInput, { behavior: 'auto' });
+                window.LwcFlowActionDock?.ensureClear?.(whyInput, { behavior: 'auto', includeNextVisibleSibling: true });
             }
         }
 

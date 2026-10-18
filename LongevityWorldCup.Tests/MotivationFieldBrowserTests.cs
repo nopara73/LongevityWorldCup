@@ -45,14 +45,19 @@ public sealed class MotivationFieldBrowserTests(
     }
 
     [Theory]
-    [InlineData(false, 1440, 900)]
-    [InlineData(true, 1440, 900)]
-    [InlineData(false, 844, 390)]
-    [InlineData(true, 844, 390)]
-    public async Task PastedMultilineText_AndKeyboardNavigation_StayClearOfDockedActions(bool application, int width, int height)
+    [InlineData(false, 1440, 900, 100)]
+    [InlineData(true, 1440, 900, 100)]
+    [InlineData(false, 844, 390, 100)]
+    [InlineData(true, 844, 390, 100)]
+    [InlineData(true, 844, 390, 200)]
+    [InlineData(true, 390, 844, 200)]
+    [InlineData(true, 1440, 900, 200)]
+    public async Task PastedMultilineText_AndKeyboardNavigation_StayClearOfDockedActions(bool application, int width, int height, int textPercent)
     {
         await using var context = await CreateContextAsync(width, height);
         var (page, field) = await OpenAsync(context, application);
+        await page.EvaluateAsync("percent => document.documentElement.style.fontSize = `${percent}%`", textPercent);
+        await SettleAsync(page);
         var text = string.Join('\n', Enumerable.Range(1, 20).Select(index => $"Line {index}"));
         await field.FillAsync("");
         await field.ClickAsync();
@@ -70,6 +75,38 @@ public sealed class MotivationFieldBrowserTests(
         }
         await Assertions.Expect(field).ToHaveValueAsync(text);
         await ExpectNoHorizontalOverflowAsync(page);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task KeyboardOcclusion_LeavesBothEndsAndTheCounterReachable(bool application)
+    {
+        await using var context = await CreateContextAsync(390, 844);
+        await context.AddInitScriptAsync("""
+            const viewport = new EventTarget();
+            Object.assign(viewport, {height: innerHeight, offsetTop: 0});
+            Object.defineProperty(window, 'visualViewport', {configurable: true, value: viewport});
+            window.reviewKeyboardHeight = height => {
+                viewport.height = height;
+                viewport.dispatchEvent(new Event('resize'));
+            };
+            """);
+        var (page, field) = await OpenAsync(context, application);
+        // The mobile viewport meta tag is parsed after init scripts. Establish
+        // the unobscured baseline after that layout, before focusing the field.
+        await page.EvaluateAsync("() => { document.activeElement?.blur(); window.reviewKeyboardHeight(innerHeight); }");
+        await SettleAsync(page);
+        await field.FillAsync(string.Join('\n', Enumerable.Range(1, 20).Select(index => $"Line {index}")));
+        await page.EvaluateAsync("() => window.reviewKeyboardHeight(280)");
+        await page.WaitForFunctionAsync("() => document.documentElement.classList.contains('flow-input-keyboard-open')");
+        await SettleAsync(page);
+        await SettleAsync(page);
+        await ExpectFieldClearAsync(page, field);
+        await field.PressAsync("Control+Home");
+        await page.Keyboard.InsertTextAsync("X");
+        await SettleAsync(page);
+        await ExpectFieldClearAsync(page, field, caretOnly: true);
     }
 
     [Fact]
@@ -164,6 +201,10 @@ public sealed class MotivationFieldBrowserTests(
                 const rect = field.getBoundingClientRect();
                 const dock = document.querySelector('.flow-action-stack--docked')?.getBoundingClientRect();
                 let top = rect.top, bottom = rect.bottom;
+                if (!caretOnly && field.id === 'why') {
+                    const counter = document.getElementById('whyCharCounter').getBoundingClientRect();
+                    bottom = Math.max(bottom, counter.bottom);
+                }
                 if (caretOnly) {
                     // A textarea's value is not a DOM text node. Mirror its
                     // computed text layout to measure the active caret line.
@@ -180,7 +221,8 @@ public sealed class MotivationFieldBrowserTests(
                     bottom = rect.top + line.bottom - origin.top - field.scrollTop;
                     mirror.remove();
                 }
-                return [top, bottom, Math.min(innerHeight, dock?.top ?? innerHeight)];
+                const viewport = window.visualViewport;
+                return [top, bottom, Math.min((viewport?.offsetTop ?? 0) + (viewport?.height ?? innerHeight), dock?.top ?? innerHeight)];
             }
             """, caretOnly);
         Assert.True(bounds[0] >= -1 && bounds[1] <= bounds[2] + 1,

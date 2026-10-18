@@ -539,7 +539,14 @@ textarea {
     #why {
         field-sizing: content;
         min-height: calc(3lh + 1.6rem);
-        max-height: min(22rem, calc(100dvh - var(--flow-action-dock-height, 0px) - 2rem));
+        max-height: min(22rem, calc(100dvh
+            - var(--flow-input-keyboard-occlusion, 0px)
+            - var(--flow-action-dock-height, 0px)
+            - var(--motivation-counter-space, 0px) - 2rem));
+    }
+
+    #why {
+        --motivation-counter-space: 3rem;
     }
 }
 
