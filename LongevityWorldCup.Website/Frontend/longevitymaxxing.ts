@@ -5082,16 +5082,14 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             dialog.id = "lmxAdviceStoryDialog";
             dialog.className = "lmx-advice-story-dialog";
             dialog.setAttribute("aria-labelledby", "lmxAdviceStoryHeading");
-            dialog.setAttribute("aria-describedby", "lmxAdviceStoryIntro");
             dialog.innerHTML = `<form>
-                <span class="lmx-advice-eyebrow"><i class="fas fa-check" aria-hidden="true"></i> Check-in saved</span>
-                <span id="lmxAdviceStoryDate" class="lmx-advice-story-date"></span>
                 <h2 id="lmxAdviceStoryHeading">What's the story?</h2>
-                <p id="lmxAdviceStoryIntro">Writing helps process it.</p>
-                <textarea id="lmxAdviceStory" rows="5" aria-labelledby="lmxAdviceStoryHeading" aria-describedby="lmxAdviceStoryScope lmxAdviceStoryCount"></textarea>
-                <div class="lmx-advice-story-meta"><span id="lmxAdviceStoryScope"><i class="fas fa-earth-americas" aria-hidden="true"></i> Public with your check-in</span><span id="lmxAdviceStoryCount"></span></div>
+                <div class="lmx-advice-story-input">
+                    <textarea id="lmxAdviceStory" rows="4" placeholder="Writing helps process it." aria-labelledby="lmxAdviceStoryHeading" aria-describedby="lmxAdviceStoryCount"></textarea>
+                    <span id="lmxAdviceStoryCount" class="lmx-advice-story-count"></span>
+                </div>
                 <p class="lmx-status error" role="status" aria-live="polite"></p>
-                <div class="lmx-advice-story-actions"><button class="lmx-advice-continue" type="button">Continue without posting</button><button class="lmx-button" type="submit">Ask for advice</button></div>
+                <div class="lmx-advice-story-actions"><button class="lmx-advice-continue" type="button">Skip</button><button class="lmx-button" type="submit">Post publicly</button></div>
             </form>`;
             document.body.append(dialog);
             const textarea = dialog.querySelector<HTMLTextAreaElement>("textarea")!;
@@ -5112,7 +5110,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             dialog.querySelector<HTMLTextAreaElement>("textarea")!.value = body;
             dialog.querySelector<HTMLElement>(".lmx-status")!.textContent = "";
         }
-        dialog.querySelector<HTMLElement>("#lmxAdviceStoryDate")!.textContent = `Day ${prompt.challengeDay} · ${formatDateLabel(prompt.date)}`;
+        dialog.setAttribute("aria-description", `Day ${prompt.challengeDay} · ${formatDateLabel(prompt.date)}`);
         updateAdviceStoryControls();
         if (!dialog.open) dialog.showModal();
     }

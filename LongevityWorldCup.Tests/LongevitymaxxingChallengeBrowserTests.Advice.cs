@@ -54,8 +54,12 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await Assertions.Expect(dialog).ToBeVisibleAsync();
         await Assertions.Expect(page.Locator(".lmx-checkin-dialog-panel")).ToHaveCountAsync(0);
         await Assertions.Expect(dialog.Locator("h2")).ToHaveTextAsync("What's the story?");
+        await Assertions.Expect(dialog.GetByRole(AriaRole.Button, new() { Name = "Skip", Exact = true })).ToBeVisibleAsync();
+        await Assertions.Expect(dialog.GetByRole(AriaRole.Button, new() { Name = "Post publicly", Exact = true })).ToBeDisabledAsync();
+        await CaptureAdviceAsync(page, $"story-empty-{width}-{theme}.png");
         await dialog.Locator("textarea").FillAsync(AdviceStory);
         await CaptureAdviceAsync(page, $"story-{width}-{theme}.png");
+        await CaptureAdviceAsync(page, $"story-panel-{width}-{theme}.png", dialog);
         await page.ReloadAsync();
         await Assertions.Expect(dialog.Locator("textarea")).ToHaveValueAsync(AdviceStory);
         await dialog.Locator("button[type=submit]").ClickAsync();
@@ -176,7 +180,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await Assertions.Expect(dialog.Locator("textarea")).ToHaveValueAsync("This explanation belongs to day 22.");
         await Assertions.Expect(dialog.Locator("button[type=submit]")).ToBeDisabledAsync();
         await dialog.Locator(".lmx-advice-continue").ClickAsync();
-        await Assertions.Expect(dialog.Locator("#lmxAdviceStoryDate")).ToContainTextAsync("Day 21");
+        await Assertions.Expect(dialog).ToHaveAttributeAsync("aria-description", "Day 21 · Monday, Jun 29");
         await Assertions.Expect(dialog.Locator("textarea")).ToHaveValueAsync("");
         await dialog.Locator("textarea").FillAsync("This explanation belongs to day 21.");
         await dialog.Locator("button[type=submit]").ClickAsync();
