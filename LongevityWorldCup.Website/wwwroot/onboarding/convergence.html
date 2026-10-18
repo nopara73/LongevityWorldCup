@@ -2451,6 +2451,12 @@
             } else {
                 nextButton.disabled = true;
             }
+
+            // A paste can grow the field and dock the actions in the same edit.
+            // Reconcile their final layout before clearing the focused field.
+            if (document.activeElement === whyInput) {
+                window.LwcFlowActionDock?.ensureClear?.(whyInput, { behavior: 'auto' });
+            }
         }
 
         function checkFormValidityStage6() {

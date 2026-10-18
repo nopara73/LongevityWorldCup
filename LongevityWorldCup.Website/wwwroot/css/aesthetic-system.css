@@ -532,13 +532,15 @@ textarea {
     min-height: 7rem;
 }
 
-/* An athlete's motivation is read back in full while editing: the field grows
-   with its words instead of hiding lines behind an inner scrollbar. */
-#whyDisplayInput,
-#why {
-    field-sizing: content;
-    min-height: calc(3lh + 1.6rem);
-    max-height: 22rem;
+/* Grow motivations where supported; retain the existing rows and sizing elsewhere.
+   Leave room for the actions so both ends remain reachable in short viewports. */
+@supports (field-sizing: content) {
+    #whyDisplayInput,
+    #why {
+        field-sizing: content;
+        min-height: calc(3lh + 1.6rem);
+        max-height: min(22rem, calc(100dvh - var(--flow-action-dock-height, 0px) - 2rem));
+    }
 }
 
 input::placeholder,
