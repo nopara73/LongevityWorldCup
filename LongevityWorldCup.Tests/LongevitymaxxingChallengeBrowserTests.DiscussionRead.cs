@@ -95,7 +95,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
     {
         await using var context = await NewContextAsync(Browser, App, new());
         var state = LargeDiscussionFeedState(100);
-        var all = LargeDiscussionFeedState(120)["notes"]!.AsArray();
+        var all = LargeDiscussionFeedState(130)["notes"]!.AsArray();
         if (newUnread) {
             var promoted = all[110]!.DeepClone(); all.RemoveAt(110); all.Insert(0, promoted);
         }
@@ -136,6 +136,9 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         Assert.Equal(newUnread ? 13 : 12, calls);
         Assert.True(await draft.EvaluateAsync<bool>("e => e === window.restartDraft && e.selectionStart === 5 && e.selectionEnd === 9"));
         Assert.Equal(110, (await page.Locator("#lmxNotes > article").EvaluateAllAsync<string[]>("rows => rows.map(row => row.dataset.feedKey)")).Distinct().Count());
+        await older.ClickAsync();
+        await Assertions.Expect(page.Locator("#lmxNotes > article")).ToHaveCountAsync(120);
+        Assert.Equal(newUnread ? 14 : 13, calls);
         if (newUnread) {
             await Assertions.Expect(page.Locator("#lmxNotes > article[data-discussion-post-participant-id='feed-110']")).ToHaveCountAsync(0);
             await Assertions.Expect(page.Locator("#lmxFeedNew")).ToBeVisibleAsync();

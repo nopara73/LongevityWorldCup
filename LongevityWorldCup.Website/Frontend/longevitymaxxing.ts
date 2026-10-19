@@ -1437,7 +1437,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const firstNewIndex = discussionFeedVisible;
         let userInterrupted = false;
         discussionFeedError = false;
-        if (discussionFeedVisible >= discussionFeedOrder.length && discussionFeedHasHistory) {
+        if (discussionFeedVisible + DISCUSSION_BATCH_SIZE > discussionFeedOrder.length && discussionFeedHasHistory) {
             const interactionListeners = new AbortController();
             if (manual && focused) {
                 for (const event of ["wheel", "touchmove", "pointerdown", "keydown"])
