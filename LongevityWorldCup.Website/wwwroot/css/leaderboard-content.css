@@ -4495,7 +4495,7 @@ main[data-leaderboard-page="full"] .no-results-empty-state{
     border:1px dashed var(--lwc-border-strong); border-radius:var(--board-radius); background:var(--lwc-surface-muted); box-shadow:none;
 }
 main[data-leaderboard-page="full"] .no-results-empty-state::before{
-    content:"\f002"; display:grid; place-items:center; width:3rem; height:3rem; border-radius:50%;
+    content:"\f002" / ""; display:grid; place-items:center; width:3rem; height:3rem; border-radius:50%;
     background:var(--lwc-surface); box-shadow:inset 0 0 0 1px var(--lwc-border); color:var(--lwc-accent);
     font:900 1.1rem/1 "Font Awesome 6 Free";
 }

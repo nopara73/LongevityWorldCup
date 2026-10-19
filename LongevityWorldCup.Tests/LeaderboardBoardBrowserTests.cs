@@ -205,6 +205,7 @@ public sealed class LeaderboardBoardBrowserTests(PlaywrightBrowserFixture browse
         Assert.Equal("dashed", style[0]);
         Assert.Equal(style[2], style[1]);
         Assert.NotEqual("none", style[3]);
+        Assert.DoesNotContain("\uf002", await state.AriaSnapshotAsync());
         await page.Locator(".show-all-athletes-btn").ClickAsync();
         await Assertions.Expect(state).ToHaveCountAsync(0);
         await ExpectNoHorizontalOverflowAsync(page);
