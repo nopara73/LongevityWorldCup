@@ -120,7 +120,7 @@ public sealed class ProofUploadBrowserTests(
         Assert.Contains("Glucose", await page.Locator("#biomarker-checklist").InnerTextAsync());
         Assert.True(await page.Locator("#nextButton").IsEnabledAsync());
         Assert.True(await page.Locator("#illustrationPicture").IsVisibleAsync());
-        Assert.Contains("proof.", await page.Locator("#illustrationImage").GetAttributeAsync("src"));
+        Assert.Contains("apply-bloodwork.", await page.Locator("#illustrationImage").GetAttributeAsync("src"));
 
         await page.Locator("#nextButton").ClickAsync();
         await page.GetByRole(AriaRole.Heading, new() { Name = "Final details" }).WaitForAsync();
@@ -129,7 +129,7 @@ public sealed class ProofUploadBrowserTests(
         Assert.Equal("stage active", await page.Locator("#subStage4").GetAttributeAsync("class"));
         Assert.Equal("stage", await page.Locator("#subStage5").GetAttributeAsync("class"));
         Assert.True(await page.Locator("#illustrationPicture").IsVisibleAsync());
-        Assert.Contains("proof.", await page.Locator("#illustrationImage").GetAttributeAsync("src"));
+        Assert.Contains("apply-bloodwork.", await page.Locator("#illustrationImage").GetAttributeAsync("src"));
 
         var uploadButton = page.Locator("#uploadProofButton");
         var cameraButton = page.Locator("#takeProofPhotoButton");
