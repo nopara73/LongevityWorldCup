@@ -1230,6 +1230,12 @@ html body .bioageform .lwc-wizard-nav .lwc-dot[aria-disabled="true"] {
     font-weight: 400;
 }
 
+/* The global alert color is fixed to the light theme. Calculator errors must
+   stay readable on the invalid row's theme-aware surface. */
+:is(#phenoAgeForm, #bortzAgeForm) .bioage-biomarker-error {
+    color: var(--lwc-danger, #b4233b);
+}
+
 .bioage-rank-meta {
     font-weight: 700;
 }

@@ -176,6 +176,49 @@ public sealed class BioageInstrumentBrowserTests(
             $"{path} {scheme}: loading text fades to a contrast ratio of {contrast:F2}:1."));
     }
 
+    [Theory]
+    [InlineData("/pheno-age", ColorScheme.Light)]
+    [InlineData("/pheno-age", ColorScheme.Dark)]
+    [InlineData("/bortz-age", ColorScheme.Light)]
+    [InlineData("/bortz-age", ColorScheme.Dark)]
+    public async Task InvalidBiomarker_TextAndControlRemainReadable(string path, ColorScheme scheme)
+    {
+        var page = await OpenAsync(path, 390, 844, scheme);
+        await FillBioageStepOneAsync(page, DateTime.UtcNow.Date.AddDays(-9).ToString("yyyy-MM-dd"));
+        await page.Locator("#mcv").FillAsync("92");
+        await page.Locator("#mcv").FillAsync("");
+        await page.Locator("#wbc").FocusAsync();
+        await Assertions.Expect(page.Locator("#mcv")).ToHaveAttributeAsync("aria-invalid", "true");
+
+        var contrasts = await page.Locator("#mcv").EvaluateAsync<double[]>(
+            """
+            input => {
+                const error = input.closest('.biomarker-card').querySelector('.bioage-biomarker-error');
+                const luminance = color => color.match(/[\d.]+/g).slice(0, 3).map(Number)
+                    .map(channel => {
+                        const value = channel / 255;
+                        return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+                    }).reduce((sum, value, index) => sum + value * [0.2126, 0.7152, 0.0722][index], 0);
+                const background = element => {
+                    while (getComputedStyle(element).backgroundColor === 'rgba(0, 0, 0, 0)')
+                        element = element.parentElement;
+                    return getComputedStyle(element).backgroundColor;
+                };
+                const contrast = (foreground, surface) => {
+                    const values = [luminance(foreground), luminance(surface)];
+                    return (Math.max(...values) + 0.05) / (Math.min(...values) + 0.05);
+                };
+                return [contrast(getComputedStyle(error).color, background(error)),
+                    contrast(getComputedStyle(input).borderColor, background(input))];
+            }
+            """);
+
+        Assert.True(contrasts[0] >= 4.5,
+            $"{path} {scheme}: validation text has contrast {contrasts[0]:F2}:1.");
+        Assert.True(contrasts[1] >= 3,
+            $"{path} {scheme}: the invalid input border has contrast {contrasts[1]:F2}:1.");
+    }
+
     private readonly List<IBrowserContext> _contexts = [];
 
     [Theory]
