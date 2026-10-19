@@ -371,25 +371,14 @@
             line-height: 1.4;
         }
 
-        /* Task: quiet uppercase section titles over the fields. */
+        /* Task fields sit directly below the story. */
         #inputForm.bioageform > fieldset {
             margin: 0;
             padding: 0;
             border: 0;
         }
 
-        #inputForm.bioageform > fieldset > legend {
-            min-height: 0;
-            margin: 0 0 0.35rem;
-            color: var(--lwc-muted, #52606d);
-            font-size: var(--lwc-type-xs, 0.75rem);
-            font-weight: 800;
-            letter-spacing: 0.08em;
-            line-height: 1.3;
-            text-transform: uppercase;
-        }
-
-        #inputForm.bioageform > fieldset > legend + * {
+        #inputForm.bioageform > fieldset > :first-child {
             margin-top: 0;
         }
 
@@ -695,7 +684,6 @@
                     display: grid;
                     grid-template-columns: repeat(3, minmax(0, 1fr));
                     grid-template-areas:
-                        "legend legend legend"
                         "name-label division-label flag-label"
                         "name-input division-input flag-input"
                         "name-error division-error flag-input";
@@ -703,7 +691,6 @@
                     align-items: start;
                 }
 
-                #personalDetails > legend { grid-area: legend; }
                 #personalDetails > label[for="name"] { grid-area: name-label; }
                 #personalDetails > #name { grid-area: name-input; }
                 #personalDetails > #nameError { grid-area: name-error; }
@@ -773,7 +760,7 @@
                 </div>
                 <div class="convergence-stage-head">
                     <!--SUB-PROGRESS-BAR-->
-                    <h1 tabindex="-1">Enter the arena</h1>
+                    <h1 id="applicationStageTitle" tabindex="-1">Enter the arena</h1>
                 </div>
                 <div id="privacyText" class="convergence-stage-copy" style="display:none">
                     <p><strong>Privacy is your ability to selectively reveal yourself to the world.</strong></p>
@@ -797,9 +784,8 @@
                 <div id="finalDetailsText" style="display:none"></div>
             </form>
     
-            <form id="inputForm" class="bioageform" data-aos="fade" data-aos-duration="700" data-aos-delay="500">
+            <form id="inputForm" class="bioageform" aria-labelledby="applicationStageTitle" data-aos="fade" data-aos-duration="700" data-aos-delay="500">
                 <fieldset id="personalDetails">
-                    <legend>Athlete details</legend>
     
                     <!-- Name Field -->
                     <label for="name">Name <span class="field-requirement">(required)</span></label>
@@ -821,7 +807,6 @@
                     </div>
                 </fieldset>
                 <fieldset id="privacyDetails">
-                    <legend>Visibility choice</legend>
                     <p>
                         <strong>It's now your turn to make that decision.</strong>
                     </p>
@@ -832,7 +817,6 @@
                     </p>
                 </fieldset>
                 <fieldset id="profileUploadSection">
-                    <legend>Profile photo</legend>
                     <div id="uploadPart" style="display:block">
                         <p><strong>Upload a clear headshot:</strong></p>
                         <ol class="smaller-text convergence-upload-guidance">
@@ -867,7 +851,6 @@
                     </div>
                 </fieldset>
                 <fieldset id="proofUploadSection">
-                    <legend>Proof upload</legend>
                     <div class="convergence-upload-action flow-action-stack">
                         <input type="file" id="proofPicInput" accept="image/*,application/pdf,.heic,.heif,.pdf" style="display: none;" multiple>
                         <input type="file" id="proofCameraInput" accept="image/*,.heic,.heif" capture="environment" style="display: none;">
@@ -884,7 +867,6 @@
                     <div id="biomarker-checklist"></div>
                 </fieldset>
                 <fieldset id="finalDetails">
-                    <legend>Public profile</legend>
     
                     <!-- Link to Personal Page (Optional) -->
                     <label for="personalLink">Link (optional)</label>
@@ -901,13 +883,12 @@
     
                     <p class="convergence-helper-text">
                         <span class="smaller-text">
-                            Please provide a media contact email. Be cautious about using your personal email address. It is recommended to create a dedicated email (e.g.: <a href="https://protonmail.com" target="_blank" rel="noopener">ProtonMail</a>) or use a social media account like Instagram or Twitter if your messages are open to the public.
+                            Please provide a media contact. Be cautious about using your personal email address. It is recommended to create a dedicated email (e.g.: <a href="https://protonmail.com" target="_blank" rel="noopener">ProtonMail</a>) or use a social media account like Instagram or Twitter if your messages are open to the public.
                         </span>
                     </p>
                 </fieldset>
                 <fieldset id="applyDetails">
                     <!-- Email Field -->
-                    <legend>Contact email</legend>
                     <div id="congratsText" class="convergence-application-copy" style="display:none">
                         <strong>Congratulations!</strong> All that's left to do is to provide an email where we can reach you about your application.
                     </div>
@@ -918,7 +899,6 @@
     
                 <!-- WHY Field (Initially Hidden) -->
                 <fieldset id="whyField" style="display: none; position: relative;">
-                    <legend>Motivation</legend>
                     <label for="why">What drives you forward? <span class="field-requirement">(required)</span></label>
                     <textarea id="why" name="why" rows="5" required aria-required="true" aria-describedby="whyError whyCharCounter" minlength="30" maxlength="250" placeholder="Share your motivation here..."></textarea>
                     <div id="whyCharCounter" class="char-counter">0/250</div>
@@ -1783,7 +1763,6 @@
                     illustrationImage.loading = "lazy";
                     document.getElementById('personalDetails').style.display = '';
                     nextButton.innerHTML = '<span class="flow-action__label">Next</span><i class="fas fa-arrow-right" aria-hidden="true"></i>';
-                    updateSubProgress(1);
 
                     // Disable Next button initially
                     nextButton.disabled = true;
@@ -1806,7 +1785,6 @@
                     illustrationImage.loading = "lazy";
                     document.getElementById('whyField').style.display = 'block';
                     nextButton.innerHTML = '<span class="flow-action__label">Next</span><i class="fas fa-arrow-right" aria-hidden="true"></i>';
-                    updateSubProgress(2);
 
                     // Disable Next button initially
                     nextButton.disabled = true;
@@ -1829,7 +1807,6 @@
                     document.getElementById('privacyDetails').style.display = '';
                     // In the goToStage function, within case 3, replace the existing line with the following:
                     nextButton.innerHTML = '<span class="flow-action__label">Next</span><i class="fas fa-arrow-right" aria-hidden="true"></i>';
-                    updateSubProgress(3);
                     nextButton.innerHTML = '<span class="flow-action__label">Bring it on!</span>';
 
                     // Enable Next button
@@ -1846,7 +1823,6 @@
 
                     illustrationImage.classList.add('clickable');
                     nextButton.innerHTML = '<span class="flow-action__label">Next</span><i class="fas fa-arrow-right" aria-hidden="true"></i>';
-                    updateSubProgress(4);
 
                     // Disable Next button initially
                     nextButton.disabled = true;
@@ -1872,7 +1848,6 @@
                     illustrationImage.loading = "lazy";
                     document.getElementById('proofText').style.display = '';
                     document.getElementById('proofUploadSection').style.display = '';
-                    updateSubProgress(4);
 
                     illustrationImage.classList.remove('clickable');
                     nextButton.innerHTML = '<span class="flow-action__label">Next</span><i class="fas fa-arrow-right" aria-hidden="true"></i>';
@@ -1903,7 +1878,6 @@
                     illustrationImage.loading = "lazy";
                     document.getElementById('finalDetailsText').style.display = '';
                     document.getElementById('finalDetails').style.display = '';
-                    updateSubProgress(5);
 
                     illustrationImage.classList.remove('clickable');
                     nextButton.innerHTML = '<span class="flow-action__label">Next</span><i class="fas fa-arrow-right" aria-hidden="true"></i>';
@@ -1932,8 +1906,6 @@
 
                     illustrationImage.classList.remove('clickable');
                     setNextButtonToApply();
-                    // The final contact fields share the fifth meter segment.
-                    updateSubProgress(5);
 
                     const accountEmailInput = document.getElementById('accountEmail');
                     prefillAccountEmailFromMediaContact();
@@ -1946,6 +1918,7 @@
                     console.error('Unknown stage:', stage);
             }
 
+            updateSubProgress(stage);
             updateUploadButtons();
             window.LwcFlowActionDock?.refresh();
             saveApplicationDraft();
