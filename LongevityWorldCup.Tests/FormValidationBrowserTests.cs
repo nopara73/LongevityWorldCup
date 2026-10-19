@@ -44,11 +44,9 @@ public sealed class FormValidationBrowserTests(
         await flag.FillAsync("U");
         await Assertions.Expect(flag).ToHaveAttributeAsync("aria-invalid", "false");
         await Assertions.Expect(page.Locator("#flagError")).ToBeEmptyAsync();
-        await flag.PressAsync("Escape");
         await name.ClickAsync();
         await Assertions.Expect(flag).ToHaveAttributeAsync("aria-invalid", "true");
         await flag.FillAsync("United Kingdom");
-        await flag.PressAsync("Escape");
         await name.ClickAsync();
         await Assertions.Expect(page.Locator(".error-message:not(:empty)")).ToHaveCountAsync(0);
         await Assertions.Expect(page.Locator("#nextButton")).ToBeEnabledAsync();

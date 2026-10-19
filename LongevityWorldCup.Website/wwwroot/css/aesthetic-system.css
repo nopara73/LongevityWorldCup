@@ -589,7 +589,7 @@ textarea:read-only {
 .error-message,
 .validation-message,
 [role="alert"] {
-    color: #8f1d32;
+    color: var(--lwc-danger);
 }
 
 .error-message:not(:empty),

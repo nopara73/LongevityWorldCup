@@ -515,6 +515,34 @@ public sealed class InitialViewBrowserTests(PlaywrightBrowserFixture browserFixt
         await Assertions.Expect(page.Locator("#whyDisplayInput")).ToBeVisibleAsync();
     }
 
+    [Theory]
+    [InlineData("proof-helpers")]
+    [InlineData("flags")]
+    public async Task FailedApplicationModule_OffersRetryAndPreservesTheDraft(string module)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = 390, Height = 844 },
+            ReducedMotion = ReducedMotion.Reduce
+        });
+        await context.AddInitScriptAsync(SeedTask);
+        var unavailable = true;
+        await context.RouteAsync($"**/js/{module}.js*", route => unavailable ? route.AbortAsync() : route.ContinueAsync());
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/apply", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await Assertions.Expect(page.Locator("html")).ToHaveAttributeAsync("data-initial-view", "failed");
+        await Assertions.Expect(page.Locator("#name")).ToBeHiddenAsync();
+        await Assertions.Expect(page.Locator(".initial-view-recovery")).ToBeVisibleAsync();
+
+        unavailable = false;
+        await page.GetByRole(AriaRole.Button, new() { Name = "Retry", Exact = true }).ClickAsync();
+        await Assertions.Expect(page.Locator("#name")).ToBeVisibleAsync();
+        await Assertions.Expect(page.Locator("#name")).ToHaveValueAsync("Saved Application");
+        await Assertions.Expect(page.Locator("#flag")).ToHaveAttributeAsync("data-keydown-listener", "true");
+        await page.EvaluateAsync("() => { currentStage = 5; goToStage(5); }");
+        await Assertions.Expect(page.Locator("#uploadProofButton")).ToHaveAttributeAsync("data-listener", "true");
+    }
+
     private static Task NextPaintAsync(IPage page)
         => page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
 

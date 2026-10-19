@@ -1184,6 +1184,9 @@ public sealed class AestheticSystemBrowserTests(
                 case "css/site-footer.css":
                     await AssertFooterContainerBoundariesAsync(page, source.ToArray());
                     break;
+                case "onboarding/convergence.html":
+                    await AssertApplicationContainerBoundariesAsync(page, source.ToArray());
+                    break;
                 case "misc-pages/about.html":
                 case "misc-pages/history.html":
                 case "misc-pages/ruleset.html":
@@ -1196,6 +1199,58 @@ public sealed class AestheticSystemBrowserTests(
                     break;
             }
         }
+    }
+
+    private static async Task AssertApplicationContainerBoundariesAsync(
+        IPage page,
+        ResponsiveContainerCondition[] conditions)
+    {
+        await page.SetViewportSizeAsync(1920, 720);
+        await NavigateAndSettleAsync(page, "/apply");
+        var normalFontSize = await page.EvaluateAsync<double>(
+            "() => parseFloat(getComputedStyle(document.documentElement).fontSize)");
+        foreach (var fontSize in new[] { normalFontSize, normalFontSize * 2 })
+        {
+            await page.EvaluateAsync("size => document.documentElement.style.fontSize = size + 'px'", fontSize);
+            foreach (var condition in conditions)
+            {
+                Assert.Null(condition.Name);
+                Assert.Equal("min", condition.Bound);
+                Assert.Equal("rem", condition.Unit);
+                Assert.Equal(35, condition.Value);
+                var threshold = condition.Value * fontSize;
+                foreach (var delta in new[] { -1, 0, 1, 0, -1 })
+                {
+                    var width = threshold + delta;
+                    var diagnostics = await page.EvaluateAsync<double[]>(
+                        """
+                        async width => {
+                            const form = document.getElementById('inputForm');
+                            Object.assign(form.style, {
+                                boxSizing: 'content-box', width: `${width}px`, maxWidth: 'none', maxInlineSize: 'none'
+                            });
+                            await document.fonts.ready;
+                            await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                            const fields = ['name', 'division', 'flag'].map(id => document.getElementById(id).getBoundingClientRect());
+                            return [parseFloat(getComputedStyle(form).width),
+                                getComputedStyle(document.getElementById('personalDetails')).display === 'grid' ? 1 : 0,
+                                Math.max(...fields.map(field => field.top)) - Math.min(...fields.map(field => field.top)),
+                                fields[1].top - fields[0].bottom, fields[2].top - fields[1].bottom,
+                                Math.max(0, form.scrollWidth - form.clientWidth)];
+                        }
+                        """, width);
+                    Assert.Equal(width, diagnostics[0], 1);
+                    Assert.Equal(width >= threshold ? 1 : 0, diagnostics[1]);
+                    if (width >= threshold)
+                        Assert.True(diagnostics[2] <= 1, $"Application fields must share a row at {width}px with {fontSize}px text.");
+                    else
+                        Assert.True(diagnostics[3] >= 0 && diagnostics[4] >= 0,
+                            $"Application fields must stack at {width}px with {fontSize}px text.");
+                    Assert.True(diagnostics[5] <= 1, $"Application fields overflowed at {width}px with {fontSize}px text.");
+                }
+            }
+        }
+        await page.EvaluateAsync("() => document.documentElement.style.removeProperty('font-size')");
     }
 
     private static async Task AssertDocumentationTableContainerBoundariesAsync(IPage page, ResponsiveContainerCondition[] conditions)

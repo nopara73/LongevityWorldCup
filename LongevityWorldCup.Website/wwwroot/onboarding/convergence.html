@@ -75,7 +75,7 @@
 
         .char-counter {
             font-size: 0.9rem;
-            color: green;
+            color: var(--lwc-success);
             position: absolute;
             bottom: 10px;
             right: 10px;
@@ -104,6 +104,12 @@
             scrollbar-color: rgba(96, 125, 139, 0.45) transparent;
             overscroll-behavior: contain;
             scroll-padding-block: var(--lwc-space-1);
+        }
+
+        .lwc-flag-suggestions--inline {
+            position: static;
+            /* Keep the focused field visible above the list at enlarged text sizes. */
+            max-height: min(14rem, 42vh, max(48px, calc(100dvh - var(--flow-action-dock-height, 0px) - 6rem)));
         }
 
             .autocomplete-items .autocomplete-active {
@@ -153,50 +159,6 @@
             cursor: pointer;
         }
 
-        .convergence-upload-guidance {
-            width: min(100%, 408px);
-            margin: 0.75rem auto 1.2rem;
-            padding: 0.85rem 1rem 0.85rem 2.25rem;
-            border: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.14));
-            border-radius: 8px;
-            background: var(--lwc-surface-muted, rgba(248, 250, 252, 0.92));
-            box-sizing: border-box;
-            color: var(--lwc-ink, #334155);
-            line-height: 1.55;
-        }
-
-        .convergence-upload-guidance li + li {
-            margin-top: 0.25rem;
-        }
-
-        .convergence-upload-action {
-            width: min(100%, 408px);
-            min-width: 0;
-            max-width: 408px;
-            display: flex;
-            flex-direction: column;
-            align-items: stretch;
-            gap: 0.85rem;
-            margin: 1rem auto 0;
-        }
-
-        #profileUploadSection .convergence-upload-action .option-button,
-        #proofUploadSection .convergence-upload-action .option-button {
-            width: 100%;
-            min-width: 0;
-            max-width: none;
-            margin: 0;
-            box-sizing: border-box;
-        }
-
-        /* The proof task shares the stage card's content column. */
-        #proofUploadSection .convergence-upload-action,
-        #proofUploadSection #biomarker-checklist {
-            width: 100%;
-            max-width: none;
-            margin-inline: 0;
-        }
-
         #proofUploadSection .camera-capture-action {
             display: none;
         }
@@ -226,63 +188,6 @@
             background: var(--lwc-border, rgba(100, 116, 139, 0.22));
         }
 
-        .convergence-upload-action .option-button i {
-            margin-right: 0.45rem;
-        }
-
-        .convergence-crop-preview {
-            width: min(100%, 408px);
-            max-width: 408px;
-            margin: 0.75rem auto 0;
-            padding: 0.45rem;
-            border: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.14));
-            border-radius: 8px;
-            background: var(--lwc-surface, #fff);
-            box-shadow: none;
-            box-sizing: border-box;
-            overflow: hidden;
-        }
-
-        .convergence-crop-preview #cropperImage {
-            display: block;
-            max-width: 100%;
-            max-height: 320px;
-            height: auto;
-            margin: 0 auto;
-            border-radius: 6px;
-            background: var(--lwc-surface-muted, #f8fafc);
-        }
-
-        .convergence-crop-preview .cropper-container {
-            max-width: 100%;
-            margin: 0 auto;
-            border-radius: 6px;
-        }
-
-        #biomarker-checklist {
-            width: min(100%, 408px);
-            max-width: 408px;
-            margin: 1.25rem auto 1.35rem;
-            padding: 0.9rem 1.05rem;
-            border: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.14));
-            border-radius: 8px;
-            background: var(--lwc-surface-muted, rgba(248, 250, 252, 0.92));
-            box-shadow: none;
-            box-sizing: border-box;
-            color: var(--lwc-ink, #222);
-        }
-
-        #biomarker-checklist h4 {
-            margin: 0 0 0.35rem !important;
-            color: var(--lwc-ink, #111827);
-        }
-
-        #biomarker-checklist p {
-            margin: 0 !important;
-            color: var(--lwc-muted, #526373);
-            line-height: 1.35;
-        }
-
         /* Must use important because back button styles applied later. Without important it doesn't overwrite it. */
         .back-button {
             margin-right: auto !important;
@@ -292,228 +197,6 @@
         .convergence-main [data-aos]:not(.aos-animate) {
             opacity: 1;
             transform: none;
-        }
-
-        .convergence-actions {
-            width: min(100%, 408px);
-            min-width: 0;
-            max-width: 408px;
-            display: flex;
-            flex-direction: column;
-            align-items: stretch;
-            gap: 0.85rem;
-            margin: 1.4rem auto 0;
-        }
-
-        .convergence-actions .option-button {
-            width: 100%;
-            min-width: 0;
-            max-width: none;
-            margin: 0;
-            box-sizing: border-box;
-        }
-
-        .convergence-actions .option-button:disabled {
-            background: var(--lwc-surface-muted, #eef2f7) !important;
-            border: 1px solid var(--lwc-border, rgba(100, 116, 139, 0.16));
-            color: var(--lwc-muted, #526373);
-            box-shadow: none !important;
-            cursor: not-allowed;
-            opacity: 1;
-            transform: none;
-        }
-
-        .convergence-actions .option-button:disabled:hover {
-            background: var(--lwc-surface-muted, #eef2f7) !important;
-            border-color: var(--lwc-border, rgba(100, 116, 139, 0.16));
-            color: var(--lwc-muted, #526373);
-            box-shadow: none !important;
-            transform: none;
-        }
-
-        .convergence-actions .back-button {
-            margin-left: 0 !important;
-            margin-right: 0 !important;
-        }
-
-        .convergence-helper-text {
-            margin: 0.75rem 0 0;
-            padding: 0.8rem 0.9rem;
-            border: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.12));
-            border-radius: 8px;
-            background: var(--lwc-surface-muted, rgba(248, 250, 252, 0.92));
-            color: var(--lwc-ink, #334155);
-            line-height: 1.48;
-            box-sizing: border-box;
-        }
-
-        .convergence-helper-text + label {
-            margin-top: 1.5rem;
-        }
-
-        .convergence-helper-text a,
-        .convergence-application-copy a {
-            font-weight: 700;
-        }
-
-        .convergence-stage-copy {
-            max-width: 32rem;
-            margin: 1.1rem auto 0;
-            padding: 0.95rem 1rem;
-            border: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.12));
-            border-radius: 8px;
-            background: var(--lwc-surface-muted, rgba(248, 250, 252, 0.92));
-            color: var(--lwc-ink, #334155);
-            line-height: 1.5;
-            text-align: left;
-            box-sizing: border-box;
-        }
-
-        .convergence-stage-copy p {
-            margin: 0.65rem 0 0;
-        }
-
-        .convergence-stage-copy p:first-child {
-            margin-top: 0;
-        }
-
-        .convergence-stage-copy strong {
-            color: var(--lwc-ink, #1f2937);
-        }
-
-        .convergence-stage-copy em {
-            color: var(--lwc-ink, #1f2937);
-        }
-
-        .convergence-visual {
-            width: 100%;
-            text-align: center;
-        }
-
-        body[data-convergence-stage="1"] #descriptionForm {
-            display: none !important;
-        }
-
-        body[data-convergence-stage="1"].flow-action-dock-active #inputForm {
-            margin-top: 0.75rem;
-        }
-
-        body[data-convergence-stage="1"].flow-action-dock-active #personalDetails {
-            margin-top: 0;
-            padding-block: 0.95rem;
-        }
-
-        body[data-convergence-stage="1"].flow-action-dock-active #personalDetails > label:first-of-type {
-            margin-top: 0.45rem;
-        }
-
-        @media (min-width: 960px) and (max-height: 780px) {
-            body[data-convergence-stage="1"] #mainProgressBar {
-                margin: 1.6rem auto 1.8rem;
-                padding: 0.9rem 0 1.55rem;
-            }
-
-            body[data-convergence-stage="1"] .convergence-main > h1 {
-                margin: 0.6rem 0 0.9rem;
-                font-size: 2.35rem;
-                line-height: 1.05;
-            }
-
-        }
-
-        @media (min-width: 960px) and (max-height: 720px) {
-            body[data-convergence-stage="1"] #mainProgressBar {
-                margin-block: 1.15rem 1.2rem;
-                padding-block: 0.75rem 1.3rem;
-            }
-
-            body[data-convergence-stage="1"] .convergence-main > h1 {
-                margin-block: 0.4rem 0.55rem;
-                font-size: 2.18rem;
-            }
-
-        }
-
-        #profileImage.illustration {
-            width: 100%;
-            max-width: 408px;
-            aspect-ratio: 4 / 3;
-            object-fit: contain;
-        }
-
-        .convergence-application-copy {
-            margin: 0.75rem 0 1.1rem;
-            padding: 0.85rem 0.95rem;
-            border: 1px solid var(--lwc-border, rgba(0, 188, 212, 0.22));
-            border-radius: 8px;
-            background: var(--lwc-accent-soft, rgba(0, 188, 212, 0.08));
-            color: var(--lwc-ink, #2d3748);
-            line-height: 1.5;
-            box-sizing: border-box;
-        }
-
-        #whyField textarea {
-            display: block;
-            margin-bottom: 0;
-        }
-
-        #whyField .char-counter {
-            position: static;
-            display: flex;
-            width: fit-content;
-            min-height: 28px;
-            align-items: center;
-            margin: 0.55rem 0 0 auto;
-            padding: 0.25rem 0.65rem;
-            border: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.12));
-            border-radius: 999px;
-            background: var(--lwc-surface-muted, rgba(248, 250, 252, 0.96));
-            box-sizing: border-box;
-            font-weight: 700;
-            line-height: 1;
-            color: var(--lwc-muted, #526373);
-            box-shadow: none;
-        }
-
-        @media (max-width: 600px) {
-            .convergence-actions {
-                width: min(100%, 408px);
-                margin-top: 1.25rem;
-            }
-
-            #descriptionForm {
-                padding: 0.9rem;
-            }
-
-            #descriptionForm .illustration {
-                width: min(100%, 290px);
-                max-height: 218px;
-                border-width: 3px;
-                margin-bottom: 1rem;
-            }
-
-            #descriptionForm #illustrationImage.illustration {
-                object-fit: cover;
-            }
-
-            #descriptionForm #profileImage.illustration {
-                object-fit: contain;
-            }
-
-            #descriptionForm .sub-progress-container {
-                margin-bottom: 1rem;
-                padding-inline: 12px;
-            }
-
-            .convergence-upload-guidance,
-            .convergence-upload-action,
-            .convergence-crop-preview {
-                width: min(100%, 408px);
-            }
-
-            #biomarker-checklist {
-                margin: 1.05rem auto 1.1rem;
-            }
         }
 
         @media (pointer: coarse) {
@@ -527,21 +210,17 @@
             }
         }
 
-        /* Each stage is one card: a banner illustration, a slim stage track, the story, then the task. */
+        /* Every stage is the same card: banner, step meter and title, story, then the task. */
         .convergence-stage-layout {
-            --convergence-card-pad: min(var(--lwc-space-5, 1.5rem), 24px);
-            width: min(100%, 600px);
+            --convergence-card-pad: clamp(16px, 4vw, 28px);
+            width: min(100%, 640px);
             max-width: calc(100vw - 2rem);
-            margin: 2rem auto;
+            margin: 0.5rem auto 2rem;
             border: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.16));
             border-radius: var(--lwc-radius-lg, 12px);
             background: var(--lwc-surface, #fff);
             box-shadow: var(--lwc-shadow-sm, 0 1px 2px rgba(15, 23, 42, 0.08));
             box-sizing: border-box;
-        }
-
-        body[data-convergence-stage="1"].flow-action-dock-active .convergence-stage-layout {
-            margin-top: 0.75rem;
         }
 
         .convergence-stage-layout > .bioageform {
@@ -555,17 +234,20 @@
         }
 
         .convergence-stage-layout > #descriptionForm {
-            align-items: stretch;
-            padding: 0;
+            display: block;
+            padding: 0 0 var(--convergence-card-pad);
+            border-bottom: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.12));
+            text-align: left;
         }
 
-        #descriptionForm > :not(.convergence-visual) {
-            width: auto;
-            max-width: none;
-            margin-inline: var(--convergence-card-pad);
+        .convergence-stage-layout > #inputForm {
+            padding: var(--convergence-card-pad);
         }
 
-        #descriptionForm .convergence-visual {
+        /* Banner */
+        .convergence-visual {
+            position: relative;
+            width: 100%;
             line-height: 0;
         }
 
@@ -573,52 +255,275 @@
             display: block;
             width: 100%;
             max-width: none;
-            height: clamp(120px, min(26vw, 22vh), 224px);
+            height: auto;
+            aspect-ratio: var(--convergence-banner-aspect, 3 / 1);
             max-height: none;
             margin: 0;
             border: 0;
             border-radius: calc(var(--lwc-radius-lg, 12px) - 1px) calc(var(--lwc-radius-lg, 12px) - 1px) 0 0;
+            background: var(--lwc-surface-muted, #eef2f5);
+            box-shadow: none;
             object-fit: cover;
-            object-position: center 35%;
+            object-position: var(--convergence-banner-position, center 35%);
         }
 
-        body[data-convergence-stage="4"] #descriptionForm #illustrationImage.illustration {
-            object-position: center top;
+        /* Focal positions belong to the image, independently of banner size.
+           A stage may also set --convergence-banner-position-phone. */
+        body[data-convergence-stage="1"] { --convergence-banner-position: center 35%; --convergence-banner-aspect: 2170 / 725; }
+        body[data-convergence-stage="2"] { --convergence-banner-position: center 35%; }
+        body[data-convergence-stage="3"] { --convergence-banner-position: center 35%; }
+        body[data-convergence-stage="4"] { --convergence-banner-position: center top; }
+        body[data-convergence-stage="5"] { --convergence-banner-position: center 35%; }
+        body[data-convergence-stage="6"] { --convergence-banner-position: center 35%; }
+        body[data-convergence-stage="7"] { --convergence-banner-position: center 35%; }
+
+        @media (max-width: 600px) {
+            #descriptionForm #illustrationImage.illustration {
+                object-position: var(--convergence-banner-position-phone, var(--convergence-banner-position));
+            }
         }
 
+        /* The saved portrait sits on the banner's lower edge, like a profile header. */
         #descriptionForm #profileImage.illustration {
+            position: absolute;
+            left: var(--convergence-card-pad);
+            bottom: -48px;
             display: block;
-            width: min(200px, calc(100% - 2 * var(--convergence-card-pad)));
-            height: auto;
+            width: 112px;
+            height: 112px;
             max-width: none;
             max-height: none;
-            margin: var(--convergence-card-pad) auto 0;
-            aspect-ratio: 1;
+            margin: 0;
+            border: 4px solid var(--lwc-surface, #fff);
+            border-radius: 50%;
+            background: var(--lwc-surface-muted, #eef2f5);
+            box-shadow: var(--lwc-shadow-sm, 0 1px 2px rgba(15, 23, 42, 0.08));
+            box-sizing: border-box;
             object-fit: cover;
-            border: 0;
-            border-radius: var(--lwc-radius-md, 8px);
-            box-shadow: none;
+            aspect-ratio: 1;
         }
 
-        #descriptionForm #onboardingProofSymbol {
-            margin: var(--convergence-card-pad) auto 0;
+        /* Step meter and title */
+        .convergence-stage-head {
+            padding: min(var(--convergence-card-pad), 22px) var(--convergence-card-pad) 0;
         }
 
-        #descriptionForm .sub-progress-container {
-            margin-top: 1.1rem;
-            margin-bottom: 0;
+        body.convergence-has-portrait[data-convergence-stage="4"] .convergence-stage-head {
+            padding-top: calc(48px + var(--convergence-card-pad));
+        }
+
+        .convergence-stage-head h1 {
+            margin: 0.7rem 0 0;
+            color: var(--lwc-ink, #17212b);
+            font-size: clamp(1.6rem, 1.15rem + 1.6vw, 2.15rem);
+            line-height: 1.12;
+            text-align: left;
+            overflow-wrap: break-word;
+        }
+
+        .convergence-stage-head h1:focus {
+            outline: none;
+        }
+
+        .convergence-stage-head h1:focus-visible {
+            outline: 3px solid var(--lwc-accent, #087685);
+            outline-offset: 4px;
+            border-radius: var(--lwc-radius-sm, 4px);
+        }
+
+        /* Story */
+        #descriptionForm .convergence-stage-copy {
+            max-width: none;
+            margin: 0.85rem var(--convergence-card-pad) 0;
             padding: 0;
             border: 0;
-            background: transparent;
+            border-radius: 0;
+            background: none;
+            color: var(--lwc-muted, #52606d);
+            font-size: 1.0625rem;
+            line-height: 1.6;
+            text-align: left;
         }
 
-        #descriptionForm .convergence-stage-copy {
-            margin-top: 1.1rem;
-            padding: min(0.95rem, 16px) min(1rem, 16px);
+        .convergence-stage-copy p {
+            margin: 0.7rem 0 0;
         }
 
-        .convergence-stage-layout .convergence-helper-text {
-            padding: min(0.8rem, 16px) min(0.9rem, 16px);
+        .convergence-stage-copy p:first-child {
+            margin-top: 0;
+        }
+
+        .convergence-stage-copy strong,
+        .convergence-stage-copy em {
+            color: var(--lwc-ink, #17212b);
+        }
+
+        .convergence-stage-copy .smaller-text {
+            display: block;
+            margin-top: 0.6rem;
+            font-size: var(--lwc-type-sm, 0.875rem);
+            line-height: 1.5;
+        }
+
+        .convergence-stage-copy > p:first-child:has(> strong:only-child) {
+            color: var(--lwc-ink, #17212b);
+            font-size: 1.15rem;
+            line-height: 1.4;
+        }
+
+        /* Task: quiet uppercase section titles over the fields. */
+        #inputForm.bioageform > fieldset {
+            margin: 0;
+            padding: 0;
+            border: 0;
+        }
+
+        #inputForm.bioageform > fieldset > legend {
+            min-height: 0;
+            margin: 0 0 0.35rem;
+            color: var(--lwc-muted, #52606d);
+            font-size: var(--lwc-type-xs, 0.75rem);
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            line-height: 1.3;
+            text-transform: uppercase;
+        }
+
+        #inputForm.bioageform > fieldset > legend + * {
+            margin-top: 0;
+        }
+
+        #inputForm.bioageform > fieldset > label:first-of-type {
+            margin-top: 0.35rem;
+        }
+
+        #privacyDetails p {
+            margin: 0;
+            color: var(--lwc-ink, #17212b);
+            line-height: 1.55;
+        }
+
+        #privacyDetails p + p {
+            margin-top: 0.5rem;
+        }
+
+        #privacyDetails .smaller-text {
+            color: var(--lwc-muted, #52606d);
+            font-size: var(--lwc-type-sm, 0.875rem);
+        }
+
+        /* Notes share one shape: a muted panel with a coloured rail. */
+        .convergence-upload-guidance,
+        #biomarker-checklist,
+        .convergence-application-copy {
+            width: 100%;
+            max-width: none;
+            margin: 0.75rem 0 0;
+            padding: 0.8rem 1rem;
+            border: 0;
+            border-inline-start: 3px solid var(--lwc-border-strong, #71808d);
+            border-radius: var(--lwc-radius-md, 8px);
+            background: var(--lwc-surface-muted, #eef2f5);
+            box-shadow: none;
+            box-sizing: border-box;
+            color: var(--lwc-ink, #17212b);
+            font-size: var(--lwc-type-sm, 0.875rem);
+            line-height: 1.5;
+            text-align: left;
+        }
+
+        .convergence-application-copy {
+            margin: 0.25rem 0 1rem;
+            border-inline-start-color: var(--lwc-success, #1f7a38);
+            font-size: 1rem;
+        }
+
+        .convergence-application-copy a {
+            font-weight: 700;
+        }
+
+        .convergence-upload-guidance {
+            padding-inline-start: 2.1rem;
+        }
+
+        .convergence-upload-guidance li + li {
+            margin-top: 0.2rem;
+        }
+
+        #uploadPart > p {
+            margin: 0.35rem 0 0;
+        }
+
+        /* Field hints read as plain text under their field. */
+        .convergence-helper-text {
+            margin: 0.4rem 0 0;
+            padding: 0;
+            border: 0;
+            background: none;
+            color: var(--lwc-muted, #52606d);
+            font-size: var(--lwc-type-sm, 0.875rem);
+            line-height: 1.5;
+        }
+
+        .convergence-helper-text .smaller-text {
+            font-size: inherit;
+        }
+
+        .convergence-helper-text a {
+            font-weight: 700;
+        }
+
+        .convergence-helper-text + label {
+            margin-top: 1.25rem;
+        }
+
+        /* Proof tracker: compact rows with hairlines. */
+        #biomarker-checklist:empty {
+            display: none;
+        }
+
+        #biomarker-checklist h4 {
+            margin: 0 0 0.15rem !important;
+            color: var(--lwc-ink, #17212b);
+            font-size: 1rem;
+        }
+
+        #biomarker-checklist p {
+            margin: 0 0 0.35rem !important;
+            color: var(--lwc-muted, #52606d);
+            line-height: 1.4;
+        }
+
+        #biomarker-checklist > div + div {
+            border-top: 1px solid var(--lwc-border, #d7e0e6);
+        }
+
+        #biomarker-checklist .biomarker-item {
+            min-height: 44px;
+            margin: 0;
+            padding: 0.25rem 0.35rem;
+            font-size: 1rem;
+        }
+
+        /* Upload controls fill the task column on both upload stages. */
+        .convergence-upload-action {
+            width: 100%;
+            min-width: 0;
+            max-width: none;
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 0.6rem;
+            margin: 1rem 0 0;
+        }
+
+        .convergence-upload-action .option-button,
+        .convergence-upload-action .option-button.flow-action {
+            width: 100%;
+            min-width: 0;
+            max-width: none;
+            margin: 0;
+            box-sizing: border-box;
         }
 
         .convergence-upload-action .option-button.flow-action {
@@ -636,53 +541,240 @@
         .convergence-upload-action .option-button.flow-action > i {
             position: static;
             width: min(1.25rem, 24px);
+            margin: 0;
             font-size: min(1.12rem, 24px);
             transform: none;
         }
 
-        /* A hairline separates the story from the task below it. */
-        .convergence-stage-layout > #descriptionForm {
-            padding-bottom: var(--convergence-card-pad);
-            border-bottom: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.12));
+        #proofImageContainer:not(:empty) {
+            margin-top: 1rem;
         }
 
-        body:not([data-convergence-stage="1"]):not([data-convergence-stage="7"]) .convergence-stage-layout > #inputForm > fieldset {
-            margin-top: 0;
-            padding-top: 0;
-            border-top: 0;
+        .convergence-crop-preview {
+            width: 100%;
+            max-width: none;
+            margin: 0.35rem 0 0;
+            padding: 0.4rem;
+            border: 1px solid var(--lwc-border, #d7e0e6);
+            border-radius: var(--lwc-radius-md, 8px);
+            background: var(--lwc-surface-muted, #eef2f5);
+            box-sizing: border-box;
+            overflow: hidden;
         }
 
-        @media (max-width: 600px) {
+        .convergence-crop-preview #cropperImage {
+            display: block;
+            max-width: 100%;
+            max-height: 320px;
+            height: auto;
+            margin: 0 auto;
+            border-radius: var(--lwc-radius-sm, 4px);
+        }
+
+        .convergence-crop-preview .cropper-container {
+            max-width: 100%;
+            margin: 0 auto;
+        }
+
+        /* Motivation */
+        #whyField textarea {
+            display: block;
+            margin-bottom: 0;
+        }
+
+        #whyField .char-counter {
+            position: static;
+            display: flex;
+            width: fit-content;
+            min-height: 26px;
+            align-items: center;
+            margin: 0.45rem 0 0 auto;
+            padding: 0.2rem 0.6rem;
+            border: 1px solid var(--lwc-border, #d7e0e6);
+            border-radius: var(--lwc-radius-pill, 999px);
+            background: var(--lwc-surface-muted, #eef2f5);
+            box-sizing: border-box;
+            color: var(--lwc-muted, #52606d);
+            font-size: var(--lwc-type-xs, 0.75rem);
+            font-weight: 700;
+            line-height: 1;
+            box-shadow: none;
+        }
+
+        #whyField .char-counter.hidden {
+            display: none;
+        }
+
+        /* Actions close the card on one full-width row. */
+        .convergence-actions {
+            width: 100%;
+            min-width: 0;
+            max-width: none;
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 0.6rem;
+            margin: 1.5rem 0 0;
+            padding-top: var(--convergence-card-pad);
+            border-top: 1px solid var(--lwc-border, #d7e0e6);
+        }
+
+        .convergence-stage-layout .flow-action-dock-placeholder {
+            width: 100%;
+            max-width: none;
+            margin: 1.5rem 0 0;
+        }
+
+        .convergence-actions.flow-action-stack--docked {
+            padding-top: 0.55rem;
+        }
+
+        .convergence-actions .option-button {
+            width: 100%;
+            min-width: 0;
+            max-width: none;
+            margin: 0;
+            box-sizing: border-box;
+        }
+
+        .convergence-actions .back-button {
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+        }
+
+        #applicationDraftStatus:not([hidden]) {
+            margin: 1rem 0 0;
+            padding: 0.55rem 0.7rem;
+            border-inline-start: 3px solid var(--lwc-danger, #b4233b);
+            border-radius: var(--lwc-radius-md, 8px);
+            background: var(--lwc-surface-muted, #eef2f5);
+        }
+
+        @media (min-width: 769px) {
+            .convergence-stage-layout .convergence-actions:not(.flow-action-stack--docked) {
+                flex-direction: row;
+                justify-content: space-between;
+            }
+
+            .convergence-stage-layout .convergence-actions:not(.flow-action-stack--docked) > .flow-action {
+                width: auto;
+                min-width: 9.5rem;
+            }
+
+            .convergence-stage-layout .convergence-actions:not(.flow-action-stack--docked) > #nextButton {
+                order: 2;
+                min-width: 14rem;
+            }
+        }
+
+        /* Short desktops keep the full scene and all identity fields above the actions. */
+        @media (min-width: 769px) and (max-height: 800px) {
+            .convergence-main #mainProgressBar {
+                margin-block: 0 0.5rem;
+            }
+
             .convergence-stage-layout {
-                --convergence-card-pad: min(var(--lwc-space-4, 1rem), 16px);
-                max-width: calc(100vw - 1.5rem);
-                margin-block: var(--lwc-space-2, 0.5rem);
+                --convergence-card-pad: 18px;
+                margin-top: 0.25rem;
             }
 
-            .convergence-stage-layout > .bioageform:not(#descriptionForm) {
-                padding: var(--convergence-card-pad);
+            .convergence-stage-layout > #descriptionForm {
+                padding-bottom: 12px;
+            }
+
+            .convergence-stage-layout > #inputForm {
+                padding-top: 12px;
+            }
+
+            #inputForm {
+                container-type: inline-size;
+            }
+
+            @container (min-width: 35rem) {
+                #inputForm #personalDetails {
+                    display: grid;
+                    grid-template-columns: repeat(3, minmax(0, 1fr));
+                    grid-template-areas:
+                        "legend legend legend"
+                        "name-label division-label flag-label"
+                        "name-input division-input flag-input"
+                        "name-error division-error flag-input";
+                    column-gap: 1rem;
+                    align-items: start;
+                }
+
+                #personalDetails > legend { grid-area: legend; }
+                #personalDetails > label[for="name"] { grid-area: name-label; }
+                #personalDetails > #name { grid-area: name-input; }
+                #personalDetails > #nameError { grid-area: name-error; }
+                #personalDetails > label[for="division"] { grid-area: division-label; }
+                #personalDetails > #division { grid-area: division-input; }
+                #personalDetails > #divisionError { grid-area: division-error; }
+                #personalDetails > label[for="flag"] { grid-area: flag-label; }
+                #personalDetails > .autocomplete-container { grid-area: flag-input; }
+            }
+
+            #inputForm.bioageform > fieldset > label {
+                margin-top: 0.45rem;
+            }
+
+            .convergence-stage-layout .flow-action-dock-placeholder {
+                margin: 0.7rem 0 0;
+            }
+
+            .convergence-stage-head h1 {
+                margin-top: 0.45rem;
+                font-size: 1.6rem;
+            }
+
+            #descriptionForm .convergence-stage-copy {
+                margin-top: 0.6rem;
+            }
+
+            .convergence-actions {
+                margin-top: 0.7rem;
+                padding-top: 0.7rem;
             }
         }
 
+        /* Reserve dock clearance outside the card at every width, including
+           overflow docking on tablets and short desktop windows. */
+        html.flow-action-dock-active .convergence-main {
+            padding-bottom: calc(var(--flow-action-dock-height, 0px) + 0.25rem);
+        }
+
+        html.flow-action-dock-active .convergence-stage-layout .flow-action-dock-placeholder {
+            height: 1px !important;
+            margin: 0 !important;
+        }
+
+        @media (max-width: 760px) {
+            .convergence-stage-layout {
+                max-width: calc(100vw - 1.5rem);
+                margin-block: 0.25rem 1rem;
+            }
+
+        }
     </style>
 </head>
 <body class="play-flow-route" data-convergence-stage="1">
     <!--HEADER-->
     <main class="convergence-main initial-view-main">
         <!--MAIN-PROGRESS-BAR-->
-        <h1 tabindex="-1" data-aos="fade" data-aos-duration="700" data-aos-delay="400">1. Enter the arena</h1>
         <div class="convergence-stage-layout">
             <form id="descriptionForm" class="bioageform" data-aos="fade" data-aos-duration="700" data-aos-delay="450">
                 <div class="convergence-visual">
                     <picture id="illustrationPicture" style="display:''">
-                        <source type="image/webp" srcset="../assets/content-images/enter-arena.webp">
-                        <source type="image/jpeg" srcset="../assets/content-images/enter-arena.jpg">
-                        <img id="illustrationImage" src="../assets/content-images/enter-arena.jpg" alt="Longevity World Cup logo" class="illustration" width="1024" height="768" loading="lazy" decoding="async">
+                        <source type="image/webp" srcset="../assets/content-images/apply-arena.webp">
+                        <source type="image/jpeg" srcset="../assets/content-images/apply-arena.jpg">
+                        <img id="illustrationImage" src="../assets/content-images/apply-arena.jpg" alt="Hooded applicant enters a sunlit stadium with longevity athletes" class="illustration" width="2170" height="725" loading="lazy" decoding="async">
                     </picture>
-                    <div id="onboardingProofSymbol" class="proof-upload-symbol" aria-hidden="true" hidden><i class="fas fa-file-medical"></i></div>
                     <img style="display:none" id="profileImage" src="" alt="Profile picture" class="illustration" loading="lazy">
                 </div>
-                <!--SUB-PROGRESS-BAR-->
+                <div class="convergence-stage-head">
+                    <!--SUB-PROGRESS-BAR-->
+                    <h1 tabindex="-1">Enter the arena</h1>
+                </div>
                 <div id="privacyText" class="convergence-stage-copy" style="display:none">
                     <p><strong>Privacy is your ability to selectively reveal yourself to the world.</strong></p>
                     <p>
@@ -1636,6 +1728,8 @@
             // Clear out any lingering click‐handlers on the illustration
             const oldImg = document.getElementById('illustrationImage');
             const newImg = oldImg.cloneNode(true);
+            // cloneNode drops listeners, but retains their bookkeeping attributes.
+            newImg.removeAttribute('data-listener');
             oldImg.parentNode.replaceChild(newImg, oldImg);
 
             // Clear visibility on all main form sections
@@ -1658,17 +1752,18 @@
             const illustrationImage = document.getElementById('illustrationImage');
             const illustrationPicture = document.getElementById('illustrationPicture');
             illustrationPicture.style.display = '';
-            const proofUploadSymbol = document.getElementById('onboardingProofSymbol');
-            proofUploadSymbol.hidden = true;
             const profileImage = document.getElementById('profileImage');
             profileImage.style.display = 'none';
+            document.body.classList.remove('convergence-has-portrait');
             const webpSource = illustrationPicture.querySelector('source[type="image/webp"]');
             const jpegSource = illustrationPicture.querySelector('source[type="image/jpeg"]');
 
-            function updateIllustration(imageName, format, webpSource, jpegSource, illustrationImage) {
+            function updateIllustration(imageName, format, webpSource, jpegSource, illustrationImage, width = 2172, height = 724) {
                 webpSource.srcset = `../assets/content-images/${imageName}.webp`;
                 jpegSource.srcset = `../assets/content-images/${imageName}.${format}`;
                 illustrationImage.src = `../assets/content-images/${imageName}.${format}`;
+                illustrationImage.width = width;
+                illustrationImage.height = height;
             }
 
             const nextButton = document.getElementById('nextButton');
@@ -1682,9 +1777,9 @@
             switch (stage) {
                 case 1:
                     // Stage 1: Enter the Arena
-                    document.querySelector('h1').innerHTML = "1. Enter the arena";
-                    updateIllustration("enter-arena", "jpg", webpSource, jpegSource, illustrationImage);
-                    illustrationImage.alt = "Longevity World Cup logo";
+                    document.querySelector('h1').textContent = "Enter the arena";
+                    updateIllustration("apply-arena", "jpg", webpSource, jpegSource, illustrationImage, 2170, 725);
+                    illustrationImage.alt = "Hooded applicant enters a sunlit stadium with longevity athletes";
                     illustrationImage.loading = "lazy";
                     document.getElementById('personalDetails').style.display = '';
                     nextButton.innerHTML = '<span class="flow-action__label">Next</span><i class="fas fa-arrow-right" aria-hidden="true"></i>';
@@ -1705,9 +1800,9 @@
                     break;
                 case 2:
                     // Stage 2: Finding Your Why
-                    document.querySelector('h1').innerHTML = "2. Finding your why";
-                    updateIllustration("why-banner", "jpg", webpSource, jpegSource, illustrationImage);
-                    illustrationImage.alt = "Boxer celebrating in the rain";
+                    document.querySelector('h1').textContent = "Finding your why";
+                    updateIllustration("apply-encouragement", "jpg", webpSource, jpegSource, illustrationImage);
+                    illustrationImage.alt = "Dave Pascoe offers a helping hand to the hooded applicant";
                     illustrationImage.loading = "lazy";
                     document.getElementById('whyField').style.display = 'block';
                     nextButton.innerHTML = '<span class="flow-action__label">Next</span><i class="fas fa-arrow-right" aria-hidden="true"></i>';
@@ -1726,9 +1821,9 @@
                     break;
                 case 3:
                     // Stage 3: The price of glory
-                    document.querySelector('h1').innerHTML = "3. The price of glory";
-                    updateIllustration("privacy-banner", "jpg", webpSource, jpegSource, illustrationImage);
-                    illustrationImage.alt = "Footballers entering a stadium";
+                    document.querySelector('h1').textContent = "The price of glory";
+                    updateIllustration("apply-interview", "jpg", webpSource, jpegSource, illustrationImage);
+                    illustrationImage.alt = "Siim Land and Wong join the hooded applicant for a press interview";
                     illustrationImage.loading = "lazy";
                     document.getElementById('privacyText').style.display = '';
                     document.getElementById('privacyDetails').style.display = '';
@@ -1742,9 +1837,9 @@
                     break;
                 case 4:
                     // Stage 4: Almost There
-                    document.querySelector('h1').innerHTML = "4/a. Almost there";
-                    updateIllustration("headshot", "jpg", webpSource, jpegSource, illustrationImage);
-                    illustrationImage.alt = "Headshot";
+                    document.querySelector('h1').textContent = "Almost there";
+                    updateIllustration("apply-reveal", "jpg", webpSource, jpegSource, illustrationImage);
+                    illustrationImage.alt = "The applicant lifts their hood to reveal their identity";
                     illustrationImage.loading = "lazy";
                     document.getElementById('profilePicText').style.display = '';
                     document.getElementById('profileUploadSection').style.display = '';
@@ -1758,8 +1853,8 @@
 
                     // Check if there is a profile picture in the global variable
                     if (profilePic) {
-                        illustrationPicture.style.display = 'none';
                         profileImage.style.display = '';
+                        document.body.classList.add('convergence-has-portrait');
                         profileImage.src = profilePic;
                         // Enable Next button if profile picture exists
                         nextButton.disabled = false;
@@ -1771,9 +1866,10 @@
                     break;
                 case 5:
                     // Stage 5: Don't Trust, Verify
-                    document.querySelector('h1').innerHTML = "4/b. Don't trust, verify";
-                    illustrationPicture.style.display = 'none';
-                    proofUploadSymbol.hidden = false;
+                    document.querySelector('h1').textContent = "Don't trust, verify";
+                    updateIllustration("apply-bloodwork", "jpg", webpSource, jpegSource, illustrationImage);
+                    illustrationImage.alt = "A surprised judge examines the applicant's bloodwork";
+                    illustrationImage.loading = "lazy";
                     document.getElementById('proofText').style.display = '';
                     document.getElementById('proofUploadSection').style.display = '';
                     updateSubProgress(4);
@@ -1801,9 +1897,9 @@
                     break;
                 case 6:
                     // Stage 6: Final Details
-                    document.querySelector('h1').innerHTML = "5. Final details";
-                    updateIllustration("finish-banner", "jpg", webpSource, jpegSource, illustrationImage);
-                    illustrationImage.alt = "Finish line";
+                    document.querySelector('h1').textContent = "Final details";
+                    updateIllustration("apply-daydream", "jpg", webpSource, jpegSource, illustrationImage);
+                    illustrationImage.alt = "The applicant imagines a trophy victory alongside longevity athletes";
                     illustrationImage.loading = "lazy";
                     document.getElementById('finalDetailsText').style.display = '';
                     document.getElementById('finalDetails').style.display = '';
@@ -1827,19 +1923,17 @@
                     break;
                 case 7:
                     // Stage 7: Application
-                    document.getElementById('descriptionForm').style.display = 'none';
-                    document.getElementById('illustrationPicture').style.display = 'none';
-
                     document.querySelector('h1').textContent = "Application";
-                    updateIllustration("account-creation", "jpg", webpSource, jpegSource, illustrationImage);
-                    illustrationImage.alt = "Application";
+                    updateIllustration("apply-first-step", "jpg", webpSource, jpegSource, illustrationImage);
+                    illustrationImage.alt = "The applicant takes a first step across the stadium's painted field line";
                     illustrationImage.loading = "lazy";
                     document.getElementById('congratsText').style.display = '';
                     document.getElementById('applyDetails').style.display = '';
 
                     illustrationImage.classList.remove('clickable');
                     setNextButtonToApply();
-                    updateSubProgress(99);
+                    // The final contact fields share the fifth meter segment.
+                    updateSubProgress(5);
 
                     const accountEmailInput = document.getElementById('accountEmail');
                     prefillAccountEmailFromMediaContact();
@@ -1862,14 +1956,6 @@
                 }[stage];
                 const target = targetId ? document.getElementById(targetId) : document.querySelector('h1');
                 target?.focus({ preventScroll: true });
-            }
-        }
-
-        async function waitForPageModules() {
-            try {
-                await Promise.resolve(window.modulesReady || undefined);
-            } catch (error) {
-                console.error('Page modules failed to load:', error);
             }
         }
 
@@ -1916,7 +2002,7 @@
         const applicationFieldValidation = new Map();
         // Flag Autocomplete Implementation
         document.addEventListener('DOMContentLoaded', () => window.LwcInitialView.run(async function () {
-            await waitForPageModules();
+            await window.modulesReady;
 
             const pendingSubmission = window.getPendingApplicationSubmission('full-application');
             if (pendingSubmission) {
@@ -1973,7 +2059,8 @@
                 .then(([flags, athletes]) => {
                     const flagOptions = window.LwcFlags.buildFlagOptions(flags, athletes);
                     window.LwcFlags.bindAutocomplete(document.getElementById('flag'), {
-                        getOptions: () => flagOptions
+                        getOptions: () => flagOptions,
+                        inline: true
                     });
                 });
 
@@ -2314,8 +2401,8 @@
                         } catch {
                             croppedImageDataURL = raw;
                         }
-                        document.getElementById('illustrationPicture').style.display = 'none';
                         document.getElementById('profileImage').style.display = '';
+                        document.body.classList.add('convergence-has-portrait');
                         document.getElementById('profileImage').src = croppedImageDataURL;
 
                         profilePic = croppedImageDataURL;
@@ -2445,10 +2532,10 @@
                 charCounter.style.color = 'var(--lwc-muted)';
             } else if (charCount <= 250) {
                 charCounter.textContent = charCount + '/250';
-                charCounter.style.color = 'green';
+                charCounter.style.color = 'var(--lwc-success)';
             } else {
                 charCounter.textContent = charCount + '/250';
-                charCounter.style.color = 'red';
+                charCounter.style.color = 'var(--lwc-danger)';
             }
 
             // Enable or disable the Next button based on validity
