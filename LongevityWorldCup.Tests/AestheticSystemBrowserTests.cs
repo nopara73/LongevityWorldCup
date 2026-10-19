@@ -1813,6 +1813,12 @@ public sealed class AestheticSystemBrowserTests(
             var thresholdPixels = condition.Unit == "rem"
                 ? condition.Value * rootFontSize
                 : condition.Value;
+            if (condition.Name is null && (condition.Unit == "px" && condition.Value is 280 or 420
+                || condition.Unit == "rem" && condition.Value == 12))
+            {
+                await AssertAdviceHeaderContainerBoundaryAsync(page, condition, thresholdPixels);
+                if (condition.Unit == "px" && condition.Value == 420) continue;
+            }
             if (condition.Name is null && condition.Unit == "rem" && condition.Value == 12)
             {
                 await AssertUnavailableDiscussionContextBoundaryAsync(page, thresholdPixels);
@@ -1918,6 +1924,50 @@ public sealed class AestheticSystemBrowserTests(
                     $"horizontal overflow at {inlineSize:F1}px.");
             }
         }
+    }
+
+    private static async Task AssertAdviceHeaderContainerBoundaryAsync(
+        IPage page, ResponsiveContainerCondition condition, double thresholdPixels)
+    {
+        foreach (var delta in new[] { -1, 0, 1, 0, -1 })
+        {
+            var width = thresholdPixels + delta;
+            var diagnostics = await page.EvaluateAsync<ContainerQueryDiagnostics>("""
+                async argument => {
+                    let post = document.getElementById('responsive-advice-probe');
+                    if (!post) {
+                        post = document.createElement('article');
+                        post.id = 'responsive-advice-probe';
+                        post.className = 'lmx-note lmx-advice-post';
+                        post.innerHTML = `<div class="lmx-discussion-post-header">
+                            <span class="lmx-discussion-post-author">
+                                <span class="lmx-discussion-author-identity"><span class="lmx-discussion-author-avatar"></span><strong>Ari Able</strong></span>
+                                <small>1 hour ago</small>
+                            </span>
+                            <span class="lmx-discussion-post-actions"><button class="lmx-discussion-copy-link">Link</button><button class="lmx-discussion-reply">Reply</button></span>
+                        </div>`;
+                        document.querySelector('main').append(post);
+                    }
+                    post.style.cssText = `box-sizing:content-box;inline-size:${argument.Width}px;max-inline-size:none;max-width:none;`;
+                    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                    const author = post.querySelector('.lmx-discussion-post-author');
+                    const actions = post.querySelector('.lmx-discussion-post-actions');
+                    const metadata = author.querySelector('small');
+                    return {
+                        ContainerWidth: parseFloat(getComputedStyle(post).width),
+                        IsCompact: argument.Unit === 'rem' ? getComputedStyle(actions).gridRowStart === '2'
+                            : argument.Boundary === 420 ? getComputedStyle(author).display === 'contents'
+                            : parseFloat(getComputedStyle(metadata).marginLeft) === 0,
+                        HorizontalOverflow: Math.max(0, post.scrollWidth - post.clientWidth)
+                    };
+                }
+                """, new { Width = width, condition.Unit, Boundary = condition.Value });
+            Assert.Equal(width, diagnostics.ContainerWidth, 1);
+            Assert.Equal(width <= thresholdPixels, diagnostics.IsCompact);
+            Assert.True(diagnostics.HorizontalOverflow <= 1,
+                $"Advice header overflowed at {width}px around {condition.Value}{condition.Unit}.");
+        }
+        await page.Locator("#responsive-advice-probe").EvaluateAsync("post => post.remove()");
     }
 
     private static async Task AssertUnavailableDiscussionContextBoundaryAsync(IPage page, double thresholdPixels)
