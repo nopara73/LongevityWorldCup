@@ -2025,6 +2025,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             article.querySelectorAll<HTMLElement>("[data-discussion-reply-id]").forEach(reply => {
                 const isUnread = !!unread?.notifications.some(item => item.sourceReplyId === reply.dataset.discussionReplyId);
                 reply.classList.toggle("lmx-unread-message", isUnread);
+                reply.tabIndex = isUnread ? 0 : -1;
                 const meta = reply.querySelector(".lmx-discussion-reply-byline");
                 let marker = meta?.querySelector("[data-unread-marker]");
                 if (isUnread && meta && !marker) {
@@ -2043,7 +2044,6 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const target = { postParticipantId: article.dataset.discussionPostParticipantId || "",
             challengeDay: Number(article.dataset.discussionPostChallengeDay), systemPostId: article.dataset.discussionSystemPostId || null };
         const key = discussionPermalink({ ...target, participantId: target.postParticipantId });
-        if (discussionReadPending.has(key)) return;
         const unread = discussionUnread.get(key);
         if (!unread?.unreadCount) return;
         const revealed = new Set(Array.from(article.querySelectorAll<HTMLElement>("[data-discussion-reply-id]"))
@@ -2051,21 +2051,26 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             .map(reply => reply.dataset.discussionReplyId));
         const ids = unread.notifications.filter(item => item.sourceReplyId === null ? !onlyReplyId : revealed.has(item.sourceReplyId))
             .filter(item => item.sourceReplyId !== null || !article.querySelector(".lmx-advice-context:not([open])"))
-            .filter(item => item.createdRevision <= discussionReadRevision).map(item => item.id).slice(0, 100);
+            .filter(item => item.createdRevision <= discussionReadRevision).map(item => item.id)
+            .filter(id => !discussionReadPending.has(JSON.stringify([key, id])));
         if (!ids.length) return;
+        // Do not resubmit IDs already being saved; clicks on other messages can still proceed.
+        const pendingKeys = ids.map(id => JSON.stringify([key, id]));
         const observedRevision = discussionReadRevision;
-        discussionReadPending.add(key);
+        pendingKeys.forEach(pendingKey => discussionReadPending.add(pendingKey));
         try {
-            const result = await postJson(`${API}/discussion/read`, { accessToken: token, ...target, observedRevision, notificationIds: ids });
-            if (accessToken !== token || participantState?.participant.id !== owner) return;
-            if (result.acknowledgedIds.length) {
-                discussionReadHolds.set(key, Math.max(discussionReadHolds.get(key) || 0, unread.latestRelevantAtUnixMs));
-                stateAcceptanceGeneration++;
-                discussionFeedAcceptedGeneration = stateAcceptanceGeneration;
+            for (let offset = 0; offset < ids.length; offset += 100) {
+                const result = await postJson(`${API}/discussion/read`, { accessToken: token, ...target, observedRevision, notificationIds: ids.slice(offset, offset + 100) });
+                if (accessToken !== token || participantState?.participant.id !== owner) return;
+                if (result.acknowledgedIds.length) {
+                    discussionReadHolds.set(key, Math.max(discussionReadHolds.get(key) || 0, unread.latestRelevantAtUnixMs));
+                    stateAcceptanceGeneration++;
+                    discussionFeedAcceptedGeneration = stateAcceptanceGeneration;
+                }
+                acceptDiscussionReadContext(result.readContext);
             }
-            acceptDiscussionReadContext(result.readContext);
         } catch { /* Keep the unread cue. A later deliberate opening can retry. */ }
-        finally { if (accessToken === token) discussionReadPending.delete(key); }
+        finally { if (accessToken === token) pendingKeys.forEach(pendingKey => discussionReadPending.delete(pendingKey)); }
     }
 
     async function lookupDiscussionThread(note: Pick<ParticipantNote, "participantId" | "challengeDay" | "systemPostId">): Promise<DiscussionThreadResult> {
@@ -6458,6 +6463,27 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 }
             });
         });
+        root.querySelectorAll<HTMLElement>("[data-discussion-reply-id]").forEach(reply => {
+            if (reply.dataset.discussionReadWired) return;
+            reply.dataset.discussionReadWired = "true";
+            const readReply = () => {
+                const article = reply.closest<HTMLElement>("article[data-discussion-post-participant-id]");
+                if (article && reply.dataset.discussionReplyId) void acknowledgeDiscussion(article, reply.dataset.discussionReplyId);
+            };
+            reply.addEventListener("click", event => {
+                if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || event.defaultPrevented) return;
+                const target = event.target instanceof Element ? event.target : null;
+                if (target?.closest("[data-discussion-reply-id]") !== reply ||
+                    target.closest("a, button, input, textarea, select, summary, [role='button']") ||
+                    !window.getSelection()?.isCollapsed) return;
+                readReply();
+            });
+            reply.addEventListener("keydown", event => {
+                if (event.key !== "Enter" || event.target !== reply || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+                event.preventDefault();
+                readReply();
+            });
+        });
         root.querySelectorAll<HTMLAnchorElement>("[data-discussion-link]").forEach(link => {
             if (link.dataset.discussionControlWired === "true") return;
             link.dataset.discussionControlWired = "true";
@@ -9057,10 +9083,10 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             value.threads.every(thread => hasProperties(thread, "participantId", "challengeDay", "systemPostId", "unreadCount",
                 "firstUnreadReplyId", "hasOpeningMention", "latestRelevantAtUnixMs", "notifications") &&
                 typeof thread.participantId === "string" && typeof thread.challengeDay === "number" &&
-                isNullableString(thread.systemPostId) && typeof thread.unreadCount === "number" && thread.unreadCount >= 0 &&
+                isNullableString(thread.systemPostId) && typeof thread.unreadCount === "number" && Number.isSafeInteger(thread.unreadCount) && thread.unreadCount >= 0 &&
                 isNullableString(thread.firstUnreadReplyId) && typeof thread.hasOpeningMention === "boolean" &&
                 typeof thread.latestRelevantAtUnixMs === "number" && Number.isFinite(thread.latestRelevantAtUnixMs) &&
-                Array.isArray(thread.notifications) && thread.notifications.length <= 100 &&
+                Array.isArray(thread.notifications) &&
                 thread.notifications.every(item => hasProperties(item, "id", "sourceReplyId", "createdRevision") && typeof item.id === "string" &&
                     isNullableString(item.sourceReplyId) && typeof item.createdRevision === "number" && Number.isSafeInteger(item.createdRevision) && item.createdRevision >= 0));
     }

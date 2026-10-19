@@ -1086,7 +1086,7 @@ public sealed partial class LongevitymaxxingChallengeService
             {
                 ReadContext = hasAccessToken ? BuildDiscussionReadContext(sqlite,
                     RequireParticipantByAccessToken(request.AccessToken!).Id,
-                    [GetDiscussionThreadCore(postParticipantId, request.ChallengeDay, systemPostId, false)]) : null
+                    [GetDiscussionThreadCore(postParticipantId, request.ChallengeDay, systemPostId, false)], revealedReplies: replies) : null
             };
         });
     }

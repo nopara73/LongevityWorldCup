@@ -1814,10 +1814,10 @@ public sealed class AestheticSystemBrowserTests(
                 ? condition.Value * rootFontSize
                 : condition.Value;
             if (condition.Name is null && (condition.Unit == "px" && condition.Value is 280 or 420
-                || condition.Unit == "rem" && condition.Value == 12))
+                || condition.Unit == "rem" && condition.Value is 12 or 20))
             {
                 await AssertAdviceHeaderContainerBoundaryAsync(page, condition, thresholdPixels);
-                if (condition.Unit == "px" && condition.Value == 420) continue;
+                if (condition.Unit == "px" && condition.Value == 420 || condition.Unit == "rem" && condition.Value == 20) continue;
             }
             if (condition.Name is null && condition.Unit == "rem" && condition.Value == 12)
             {
@@ -1938,7 +1938,7 @@ public sealed class AestheticSystemBrowserTests(
                     if (!post) {
                         post = document.createElement('article');
                         post.id = 'responsive-advice-probe';
-                        post.className = 'lmx-note lmx-advice-post';
+                        post.className = 'lmx-note lmx-advice-post' + (argument.Unit === 'rem' && argument.Boundary === 12 ? ' lmx-needs-advice' : '');
                         post.innerHTML = `<div class="lmx-discussion-post-header">
                             <span class="lmx-discussion-post-author">
                                 <span class="lmx-discussion-author-identity"><span class="lmx-discussion-author-avatar"></span><strong>Ari Able</strong></span>
@@ -1955,7 +1955,7 @@ public sealed class AestheticSystemBrowserTests(
                     const metadata = author.querySelector('small');
                     return {
                         ContainerWidth: parseFloat(getComputedStyle(post).width),
-                        IsCompact: argument.Unit === 'rem' ? getComputedStyle(actions).gridRowStart === '2'
+                        IsCompact: argument.Unit === 'rem' ? getComputedStyle(actions).gridRowStart === '3'
                             : argument.Boundary === 420 ? getComputedStyle(author).display === 'contents'
                             : parseFloat(getComputedStyle(metadata).marginLeft) === 0,
                         HorizontalOverflow: Math.max(0, post.scrollWidth - post.clientWidth)

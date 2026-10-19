@@ -27,7 +27,8 @@ public sealed class LongevitymaxxingChallengePageTests(TestWebApplicationFactory
         Assert.Contains("const fallback = response.statusText || (response.status ? `HTTP ${response.status}` : \"Request failed\");", source);
         Assert.Contains("typeof data === \"string\" && data.trim()", source);
         Assert.Contains("Array.isArray(data)", source);
-        Assert.Contains("throw Object.assign(new Error(message || fallback), { status: response.status });", source);
+        Assert.Contains("throw Object.assign(new Error(message || fallback), { status: response.status,", source);
+        Assert.Contains("code: hasStringProperty(data, \"code\") ? data.code : \"\" });", source);
         Assert.Contains("return hasStringProperty(err, \"message\") && err.message ? err.message : \"Something went wrong.\";", source);
     }
 
@@ -519,7 +520,8 @@ public sealed class LongevitymaxxingChallengePageTests(TestWebApplicationFactory
         Assert.Contains("id=\"lmxAccessLoadingPanel\"", await client.GetStringAsync("/longevitymaxxing"));
         Assert.Contains(".lmx-access-loading", css);
         Assert.Contains("if (isAuthFailure(err))", javascript);
-        Assert.Contains("throw Object.assign(new Error(message || fallback), { status: response.status });", javascript);
+        Assert.Contains("throw Object.assign(new Error(message || fallback), { status: response.status,", javascript);
+        Assert.Contains("code: hasStringProperty(data, \"code\") ? data.code : \"\" });", javascript);
         Assert.Contains("function isAuthFailure(err: unknown): boolean", javascript);
         Assert.Contains("const activeParticipantTab = currentParticipantState ? ensureParticipantTab(currentParticipantState) : null;", javascript);
         Assert.Contains("const PARTICIPANT_TABS: readonly ParticipantTab[] = [\"checkin\", \"profile\", \"home\"];", javascript);

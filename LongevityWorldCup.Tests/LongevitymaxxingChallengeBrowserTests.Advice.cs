@@ -76,6 +76,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         {
             ViewportSize = new() { Width = width, Height = 900 }, ColorScheme = theme, HasTouch = width < 500
         });
+        await RouteUnreadBaselineAsync(context);
         var state = AdviceFeedBrowserState();
         await context.RouteAsync("**/api/longevitymaxxing/discussion/replies", async route =>
         {
@@ -96,11 +97,11 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await Assertions.Expect(request.Locator(".lmx-advice-badge")).ToHaveTextAsync("Needs advice");
         Assert.NotEqual(await posts.Nth(1).EvaluateAsync<string>("e => getComputedStyle(e).backgroundColor"),
             await request.EvaluateAsync<string>("e => getComputedStyle(e).backgroundColor"));
+        await CaptureAdviceAsync(page, $"unanswered-request-{width}-{theme}.png", request);
         var header = await request.Locator(".lmx-discussion-post-header").BoundingBoxAsync();
         Assert.True(header!.Height <= 96, "The request metadata must not create a tall empty header.");
         await page.Locator("#lmxNotesTitle").EvaluateAsync("element => window.scrollBy({top: element.getBoundingClientRect().top - 80, behavior: 'instant'})");
         await CaptureAdviceAsync(page, $"unanswered-feed-{width}-{theme}.png");
-        await CaptureAdviceAsync(page, $"unanswered-request-{width}-{theme}.png", request);
         await request.Locator(".lmx-discussion-post-actions [data-discussion-reply]").ClickAsync();
         await request.Locator("[data-discussion-draft] textarea").FillAsync("Keep one daily anchor. A short walk after lunch is enough to start.");
         await request.Locator("[data-reply-submit]").ClickAsync();

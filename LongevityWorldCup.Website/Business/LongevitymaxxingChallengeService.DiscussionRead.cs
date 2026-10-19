@@ -139,20 +139,27 @@ public sealed partial class LongevitymaxxingChallengeService
         => notifications.GroupBy(ThreadKey).ToDictionary(group => group.Key, group => group.Max(item => item.CreatedAt));
 
     private static LongevitymaxxingDiscussionReadContext BuildDiscussionReadContext(SqliteConnection sqlite, string participantId,
-        IReadOnlyList<LongevitymaxxingDiscussionThread> threads, SqliteTransaction? transaction = null)
+        IReadOnlyList<LongevitymaxxingDiscussionThread> threads, SqliteTransaction? transaction = null,
+        IReadOnlyList<LongevitymaxxingDiscussionReply>? revealedReplies = null)
     {
         var byThread = ReadDiscussionNotifications(sqlite, participantId, transaction: transaction).GroupBy(ThreadKey)
             .ToDictionary(group => group.Key, group => group.ToList());
         var summaries = threads.Select(thread => {
             var key = ThreadKey(thread);
             var rows = byThread.GetValueOrDefault(key) ?? [];
+            var firstUnreadReplyId = rows.FirstOrDefault(row => row.ReplyId is not null)?.ReplyId;
+            var displayedReplyIds = (thread.Note?.Replies ?? thread.SystemPost!.Replies)
+                .Concat(thread.Note?.Advice?.Replies ?? [])
+                .Concat(revealedReplies ?? [])
+                .Select(reply => reply.Id).ToHashSet(StringComparer.Ordinal);
             return new LongevitymaxxingDiscussionUnreadThread(key.ParticipantId, key.ChallengeDay, key.SystemPostId,
                 rows.Select(row => row.ReplyId ?? "opening").Distinct(StringComparer.Ordinal).Count(),
-                rows.FirstOrDefault(row => row.ReplyId is not null)?.ReplyId, rows.Any(row => row.ReplyId is null),
+                firstUnreadReplyId, rows.Any(row => row.ReplyId is null),
                 rows.Count == 0 ? 0 : rows.Max(row => row.CreatedAt),
-                // References are bounded, including older targets not loaded yet. A receipt must still
-                // name the exact observed IDs; the UI only submits messages deliberately revealed.
-                rows.Take(100)
+                // Bound hidden history while retaining the opening and every rendered or paged reply.
+                // Receipts still name exact observed IDs and are written in batches of at most 100.
+                rows.Take(100).Concat(rows.Where(row => row.ReplyId is null || displayedReplyIds.Contains(row.ReplyId)))
+                    .DistinctBy(row => row.Id)
                     .Select(row => new LongevitymaxxingDiscussionNotification(row.Id, row.ReplyId, row.Revision)).ToList());
         }).ToList();
         return new(DiscussionVersions(sqlite, transaction).Activity, summaries);

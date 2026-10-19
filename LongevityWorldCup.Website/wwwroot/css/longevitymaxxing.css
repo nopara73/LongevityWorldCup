@@ -2956,11 +2956,11 @@ a.lmx-discussion-author-identity:focus-visible {
     scroll-margin-block: 6rem;
 }
 
-.lmx-discussion-target {
+.lmx-discussion-target:focus-visible,
+.lmx-discussion-reply-item:focus-visible {
     outline: 2px solid var(--lmx-accent-hover);
     outline-offset: 4px;
     border-radius: var(--lwc-radius-sm);
-    background: var(--lmx-surface-accent);
 }
 
 .lmx-discussion-author-identity strong {
@@ -6293,6 +6293,7 @@ html body .lmx-page #lmxAccessTabs .lmx-tab[aria-selected="true"] {
 .lmx-unread-link::before, .lmx-unread-marker { content: ""; display: inline-block; inline-size: .4rem; block-size: .4rem; border-radius: 50%; background: var(--lmx-accent); vertical-align: middle; flex: 0 0 auto; }
 .lmx-unread-link::before { margin-inline-end: .4rem; }
 .lmx-unread-marker { margin-inline-start: .15rem; }
+.lmx-unread-message { background: var(--lmx-surface-accent); border-radius: var(--lwc-radius-sm); cursor: pointer; }
 .lmx-advice-branch { min-width: 0; }
 .lmx-advice-branch + .lmx-advice-branch { border-top: 1px solid var(--lmx-border); margin-top: .25rem; padding-top: 0; }
 .lmx-advice-rank { color: var(--lmx-muted); font-size: .8rem; font-variant-numeric: tabular-nums; }
@@ -6324,18 +6325,19 @@ html body .lmx-page #lmxAccessTabs .lmx-tab[aria-selected="true"] {
     .lmx-advice-post .lmx-discussion-post-actions { display: inline-flex; grid-column: 2; grid-row: 1; }
     .lmx-advice-post .lmx-discussion-post-header .lmx-discussion-author-avatar { width: min(2rem, 32px); height: min(2rem, 32px); }
 }
-@container (max-width: 280px) and (max-width: 12rem) {
-    .lmx-advice-post .lmx-discussion-post-author > .lmx-discussion-author-identity { grid-column: 1 / -1; }
-    .lmx-advice-post .lmx-discussion-post-actions { grid-row: 2; }
-    .lmx-advice-post .lmx-discussion-post-author small { grid-column: 1 / -1; grid-row: 3; margin-left: 0; }
-}
 @container (max-width: 280px) {
     .lmx-advice-post .lmx-discussion-post-author small { margin-left: 0; }
 }
 @container (max-width: 20rem) {
-    .lmx-advice-post .lmx-discussion-post-author > .lmx-discussion-author-identity { grid-column: 1 / -1; }
-    .lmx-advice-post .lmx-discussion-post-author small { grid-column: 1 / -1; grid-row: 2; }
+    .lmx-advice-post .lmx-discussion-post-author > .lmx-discussion-author-identity { grid-column: 1 / -1; min-height: min(2rem, 32px); }
+    .lmx-advice-post .lmx-discussion-post-author small { grid-column: 1 / -1; grid-row: 2; line-height: 1.4; }
     .lmx-advice-post .lmx-discussion-post-actions { grid-column: 1 / -1; grid-row: 3; justify-content: flex-start; }
+    .lmx-needs-advice .lmx-discussion-post-author > .lmx-discussion-author-identity { grid-column: 1; min-height: 44px; }
+    .lmx-needs-advice .lmx-discussion-post-actions { grid-column: 2; grid-row: 1; }
+}
+@container (max-width: 12rem) {
+    .lmx-needs-advice .lmx-discussion-post-author > .lmx-discussion-author-identity { grid-column: 1 / -1; }
+    .lmx-needs-advice .lmx-discussion-post-actions { grid-column: 1 / -1; grid-row: 3; }
 }
 @media (max-width: 480px) {
     .lmx-advice-conversation > .lmx-discussion-reply-item,

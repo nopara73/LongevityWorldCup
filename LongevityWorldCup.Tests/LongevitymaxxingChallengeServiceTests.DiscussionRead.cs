@@ -7,6 +7,62 @@ namespace LongevityWorldCup.Tests;
 public sealed partial class LongevitymaxxingChallengeServiceTests
 {
     [Fact]
+    public async Task DiscussionRead_BoundedContextIncludesVisibleNewRepliesBeyondTheOldestHundred()
+    {
+        using var fixture = TestChallengeFixture.Create();
+        var owner = await fixture.ConfirmParticipantAsync("read-history-owner@example.com", "History Owner");
+        var actor = await fixture.ConfirmParticipantAsync("read-history-actor@example.com", "History Actor");
+        var now = DateTimeOffset.Parse("2026-06-30T12:00:00Z");
+        var ownerId = fixture.Service.GetParticipantState(owner, now).Participant.Id;
+        var actorId = fixture.Service.GetParticipantState(actor, now).Participant.Id;
+        SeedDiscussionFeed(fixture, ownerId);
+        var replyIds = Enumerable.Range(0, 105).Select(_ => Guid.NewGuid().ToString("N")).ToArray();
+        fixture.Db.Run(sqlite => {
+            using var transaction = sqlite.BeginTransaction();
+            for (var index = 0; index < replyIds.Length; index++) {
+                using var command = sqlite.CreateCommand();
+                command.Transaction = transaction;
+                command.CommandText = """
+                    INSERT INTO LongevitymaxxingDiscussionReplies
+                        (Id, PostParticipantId, PostChallengeDay, AuthorParticipantId, Body, CreatedAtUtc)
+                    VALUES (@reply, @owner, 1, @actor, 'Another small step.', @now);
+                    INSERT INTO LongevitymaxxingDiscussionNotifications
+                        (Id, RecipientParticipantId, ActorParticipantId, PostParticipantId, PostChallengeDay, Kind, SourceReplyId, CreatedAtUtc)
+                    VALUES (@notice, @owner, @actor, @owner, 1, 'reply', @reply, @now);
+                    """;
+                command.Parameters.AddWithValue("@reply", replyIds[index]);
+                command.Parameters.AddWithValue("@notice", Guid.NewGuid().ToString("N"));
+                command.Parameters.AddWithValue("@owner", ownerId);
+                command.Parameters.AddWithValue("@actor", actorId);
+                command.Parameters.AddWithValue("@now", now.AddSeconds(index).ToString("o"));
+                command.ExecuteNonQuery();
+            }
+            transaction.Commit();
+        });
+        var state = fixture.Service.GetParticipantState(owner, now.AddMinutes(5));
+        var note = state.Notes.Single(note => note.ParticipantId == ownerId && note.ChallengeDay == 1);
+        var unread = state.ReadContext!.Threads.Single(thread => thread.ParticipantId == ownerId && thread.ChallengeDay == 1);
+        Assert.Equal(105, unread.UnreadCount);
+        Assert.Equal(replyIds[0], unread.FirstUnreadReplyId);
+        Assert.InRange(unread.Notifications.Count, 1, 100 + note.Replies.Count);
+        Assert.Contains(unread.Notifications, notification => notification.SourceReplyId == replyIds[0]);
+        Assert.NotEmpty(note.Replies);
+        foreach (var reply in note.Replies)
+            Assert.Contains(unread.Notifications, notification => notification.SourceReplyId == reply.Id);
+        var oldestVisible = note.Replies.First();
+        var earlier = fixture.Service.GetDiscussionReplyPage(new(owner, ownerId, 1, oldestVisible.CreatedAtUtc, oldestVisible.Id));
+        var earlierUnread = Assert.Single(earlier.ReadContext!.Threads);
+        Assert.InRange(earlierUnread.Notifications.Count, 1, 100 + note.Replies.Count + earlier.Replies.Count);
+        foreach (var reply in earlier.Replies)
+            Assert.Contains(earlierUnread.Notifications, notification => notification.SourceReplyId == reply.Id);
+        var newest = unread.Notifications.Single(notification => notification.SourceReplyId == replyIds[^1]);
+        var receipt = fixture.Service.MarkDiscussionRead(new(owner, ownerId, 1, null,
+            state.ReadContext.ActivityRevision, [newest.Id]));
+        Assert.Equal(104, Assert.Single(receipt.ReadContext.Threads).UnreadCount);
+        Assert.Equal(replyIds[0], Assert.Single(receipt.ReadContext.Threads).FirstUnreadReplyId);
+    }
+
+    [Fact]
     public async Task DiscussionRead_OnlyObservedOwnedIdsAreAcknowledgedAndNewerRepliesStayUnread()
     {
         using var fixture = TestChallengeFixture.Create();

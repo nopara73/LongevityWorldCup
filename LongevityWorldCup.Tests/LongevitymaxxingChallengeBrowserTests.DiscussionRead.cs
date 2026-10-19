@@ -11,6 +11,232 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
     [InlineData(390, ColorScheme.Light)]
     [InlineData(390, ColorScheme.Dark)]
     [InlineData(1280, ColorScheme.Light)]
+    public async Task DiscussionRead_OpeningConversationClearsUnreadBackgroundWithoutLeavingAFrame(int width, ColorScheme theme)
+    {
+        await using var context = await NewContextAsync(Browser, App, new() {
+            ViewportSize = new() { Width = width, Height = 1000 }, ColorScheme = theme, Locale = "en-US"
+        });
+        await RouteUnreadBaselineAsync(context);
+        var state = UnreadConversationBrowserState();
+        var calls = 0;
+        await context.RouteAsync("**/api/longevitymaxxing/discussion/read", async route => {
+            calls++;
+            await FulfillJsonAsync(route, AcknowledgeBrowserUnread(state, route.Request.PostData!).ToJsonString());
+        });
+        var page = await OpenDiscussionWorkspaceAsync(context, state);
+        var post = page.Locator("#lmxNotes > .lmx-advice-post");
+        await CaptureAdviceAsync(page, $"unread-conversation-before-{width}-{theme}.png", post);
+        Assert.Equal(0, calls);
+        await post.Locator(".lmx-discussion-count").ClickAsync();
+        await Assertions.Expect(post.Locator(".lmx-unread-message")).ToHaveCountAsync(0);
+        await Assertions.Expect(post.Locator(".lmx-discussion-count")).ToHaveTextAsync("4 replies");
+        await CaptureAdviceAsync(page, $"unread-conversation-after-{width}-{theme}.png", post);
+        if (Environment.GetEnvironmentVariable("LWC_UNREAD_BASELINE") == "1") return;
+        var target = post.Locator("[data-discussion-reply-id='old-answer']");
+        await Assertions.Expect(target).ToBeFocusedAsync();
+        await Assertions.Expect(target).ToHaveCSSAsync("outline-style", "none");
+        await Assertions.Expect(target).ToHaveCSSAsync("background-color", "rgba(0, 0, 0, 0)");
+        await Assertions.Expect(post.Locator("[data-unread-marker]")).ToHaveCountAsync(0);
+        Assert.Equal(1, calls);
+    }
+
+    [Fact]
+    public async Task DiscussionRead_ClickingOneMessageKeepsOtherRepliesUnreadAndWaitsForReceipt()
+    {
+        await using var context = await NewContextAsync(Browser, App, new() {
+            ViewportSize = new() { Width = 390, Height = 1000 }, ColorScheme = ColorScheme.Light, Locale = "en-US"
+        });
+        await context.AddInitScriptAsync("Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: async () => {} } });");
+        var state = UnreadConversationBrowserState();
+        var calls = new List<JsonObject>();
+        var started = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        await context.RouteAsync("**/api/longevitymaxxing/discussion/read", async route => {
+            calls.Add(JsonNode.Parse(route.Request.PostData!)!.AsObject());
+            if (calls.Count == 1) { await route.FulfillAsync(new() { Status = 503 }); return; }
+            started.TrySetResult(true);
+            await release.Task;
+            await FulfillJsonAsync(route, AcknowledgeBrowserUnread(state, route.Request.PostData!).ToJsonString());
+        });
+        try {
+            var page = await OpenDiscussionWorkspaceAsync(context, state);
+            var post = page.Locator("#lmxNotes > .lmx-advice-post");
+            var first = post.Locator("[data-discussion-reply-id='old-answer']");
+            var second = post.Locator("[data-discussion-reply-id='new-followup']");
+            await Assertions.Expect(post.Locator(".lmx-unread-message")).ToHaveCountAsync(2);
+            await Assertions.Expect(first).Not.ToHaveCSSAsync("background-color", "rgba(0, 0, 0, 0)");
+            await Assertions.Expect(first).ToHaveCSSAsync("outline-style", "none");
+            await first.Locator("[data-discussion-copy-link]").ClickAsync();
+            await Assertions.Expect(first.Locator(".lmx-discussion-copy-feedback")).ToHaveTextAsync("Link copied.");
+            await page.Clock.FastForwardAsync(2_001);
+            await Assertions.Expect(first.Locator("[data-discussion-copy-link] i")).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("fa-link"));
+            Assert.Empty(calls);
+            var body = first.Locator("[data-discussion-reply-body]");
+            await body.EvaluateAsync("e => { const range = document.createRange(); range.selectNodeContents(e); const selection = getSelection(); selection.removeAllRanges(); selection.addRange(range); }");
+            await body.DispatchEventAsync("click");
+            Assert.Empty(calls);
+            await page.EvaluateAsync("getSelection().removeAllRanges()");
+            await body.ClickAsync();
+            await Assertions.Expect(first).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("lmx-unread-message"));
+            Assert.Single(calls);
+            await body.ClickAsync();
+            await started.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            await Assertions.Expect(first).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("lmx-unread-message"));
+            release.TrySetResult(true);
+            await Assertions.Expect(post.Locator(".lmx-discussion-count")).ToHaveTextAsync("1 new reply");
+            await Assertions.Expect(first).Not.ToHaveClassAsync(new System.Text.RegularExpressions.Regex("lmx-unread-message"));
+            await Assertions.Expect(first).ToHaveCSSAsync("background-color", "rgba(0, 0, 0, 0)");
+            await Assertions.Expect(second).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("lmx-unread-message"));
+            Assert.All(calls, payload => Assert.Equal(new[] { "00000000000000000000000000000081" },
+                payload["notificationIds"]!.AsArray().Select(id => id!.GetValue<string>())));
+            await CaptureAdviceAsync(page, "unread-one-left-390-Light.png", post);
+            await second.Locator("[data-discussion-reply-body]").ClickAsync();
+            await Assertions.Expect(post.Locator(".lmx-unread-message")).ToHaveCountAsync(0);
+            await Assertions.Expect(post.Locator(".lmx-discussion-count")).ToHaveTextAsync("4 replies");
+            await CaptureAdviceAsync(page, "unread-all-clicked-390-Light.png", post);
+        } finally { release.TrySetResult(true); }
+    }
+
+    [Fact]
+    public async Task DiscussionRead_EnterOnAnUnreadMessageAcknowledgesOnlyThatMessage()
+    {
+        await using var context = await NewContextAsync(Browser, App, new());
+        var state = UnreadConversationBrowserState();
+        await context.RouteAsync("**/api/longevitymaxxing/discussion/read", route =>
+            FulfillJsonAsync(route, AcknowledgeBrowserUnread(state, route.Request.PostData!).ToJsonString()));
+        var page = await OpenDiscussionWorkspaceAsync(context, state);
+        var first = page.Locator("[data-discussion-reply-id='old-answer']");
+        await Assertions.Expect(first).ToHaveAttributeAsync("tabindex", "0");
+        await first.FocusAsync();
+        await Assertions.Expect(page.Locator(".lmx-discussion-count")).ToHaveTextAsync("2 new replies");
+        await first.PressAsync("Enter");
+        await Assertions.Expect(page.Locator(".lmx-discussion-count")).ToHaveTextAsync("1 new reply");
+        await Assertions.Expect(first).ToHaveAttributeAsync("tabindex", "-1");
+        await Assertions.Expect(first).ToBeFocusedAsync();
+        await Assertions.Expect(first).Not.ToHaveCSSAsync("outline-style", "none");
+    }
+
+    [Fact]
+    public async Task DiscussionRead_ClickingAnotherMessageWhileAReceiptIsPendingStillMarksItRead()
+    {
+        await using var context = await NewContextAsync(Browser, App, new());
+        var state = UnreadConversationBrowserState();
+        var started = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var calls = 0;
+        await context.RouteAsync("**/api/longevitymaxxing/discussion/read", async route => {
+            if (++calls == 1) { started.TrySetResult(true); await release.Task; }
+            await FulfillJsonAsync(route, AcknowledgeBrowserUnread(state, route.Request.PostData!).ToJsonString());
+        });
+        try {
+            var page = await OpenDiscussionWorkspaceAsync(context, state);
+            var first = page.Locator("[data-discussion-reply-id='old-answer']");
+            var second = page.Locator("[data-discussion-reply-id='new-followup']");
+            await first.Locator("[data-discussion-reply-body]").ClickAsync();
+            await started.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            await second.Locator("[data-discussion-reply-body]").ClickAsync();
+            await Assertions.Expect(second).Not.ToHaveClassAsync(new System.Text.RegularExpressions.Regex("lmx-unread-message"));
+            await Assertions.Expect(first).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("lmx-unread-message"));
+            Assert.Equal(2, calls);
+            release.TrySetResult(true);
+            await Assertions.Expect(page.Locator(".lmx-unread-message")).ToHaveCountAsync(0);
+        } finally { release.TrySetResult(true); }
+    }
+
+    [Fact]
+    public async Task DiscussionRead_OpeningManyRevealedMessagesUsesBoundedReceiptsFromTheOriginalObservation()
+    {
+        await using var context = await NewContextAsync(Browser, App, new());
+        var state = AdviceBrowserState(1);
+        var ids = Enumerable.Range(0, 103).Select(index => $"new-message-{index:D3}").ToArray();
+        foreach (var note in new[] { state["notes"]![0]!, state["public"]!["notes"]![0]! }) {
+            foreach (var id in ids) note["advice"]!["replies"]!.AsArray().Add(AdviceBrowserReply(id, "p2", "Ari Able",
+                "A new reply in this conversation.", "2026-07-01T08:12:00Z", FirstAdviceId));
+            note["replyCount"] = 106;
+        }
+        state["readContext"] = UnreadAdviceContext(10, ids);
+        var calls = new List<JsonObject>();
+        await context.RouteAsync("**/api/longevitymaxxing/discussion/read", async route => {
+            calls.Add(JsonNode.Parse(route.Request.PostData!)!.AsObject());
+            await FulfillJsonAsync(route, AcknowledgeBrowserUnread(state, route.Request.PostData!).ToJsonString());
+        });
+        var page = await OpenDiscussionWorkspaceAsync(context, state);
+        await Assertions.Expect(page.Locator(".lmx-unread-message")).ToHaveCountAsync(103);
+        await page.Locator(".lmx-discussion-count").ClickAsync();
+        await Assertions.Expect(page.Locator(".lmx-unread-message")).ToHaveCountAsync(0);
+        Assert.Equal(new[] { 100, 3 }, calls.Select(payload => payload["notificationIds"]!.AsArray().Count));
+        Assert.All(calls, payload => Assert.Equal(10, payload["observedRevision"]!.GetValue<int>()));
+    }
+
+    [Fact]
+    public async Task DiscussionRead_PointerOpeningArchiveClearsTheRevealedMessagesWithoutAFrame()
+    {
+        await using var context = await NewContextAsync(Browser, App, new() {
+            ViewportSize = new() { Width = 390, Height = 1000 }, ColorScheme = ColorScheme.Light, Locale = "en-US"
+        });
+        await RouteUnreadBaselineAsync(context);
+        var state = AdviceBrowserState(2);
+        state["readContext"] = UnreadAdviceContext(10, "old-answer", "higher-advice");
+        await context.RouteAsync("**/api/longevitymaxxing/discussion/read", route =>
+            FulfillJsonAsync(route, AcknowledgeBrowserUnread(state, route.Request.PostData!).ToJsonString()));
+        var page = await OpenDiscussionWorkspaceAsync(context, state);
+        var post = page.Locator("#lmxNotes > .lmx-advice-post");
+        await CaptureAdviceAsync(page, "unread-archive-before-390-Light.png", post);
+        await post.Locator(".lmx-discussion-count").ClickAsync();
+        await Assertions.Expect(post.Locator(".lmx-discussion-count")).ToHaveTextAsync("4 replies");
+        await Assertions.Expect(post.Locator(".lmx-advice-archive").First).ToHaveAttributeAsync("open", "");
+        await CaptureAdviceAsync(page, "unread-archive-after-390-Light.png", post);
+        if (Environment.GetEnvironmentVariable("LWC_UNREAD_BASELINE") == "1") return;
+        var target = post.Locator("[data-discussion-reply-id='old-answer']");
+        await Assertions.Expect(target).ToBeFocusedAsync();
+        await Assertions.Expect(target).ToHaveCSSAsync("outline-style", "none");
+        await Assertions.Expect(post.Locator(".lmx-unread-message")).ToHaveCountAsync(0);
+    }
+
+    private static JsonObject UnreadConversationBrowserState()
+    {
+        var state = AdviceBrowserState(1);
+        foreach (var note in new[] { state["notes"]![0]!, state["public"]!["notes"]![0]! }) {
+            note["advice"]!["replies"]!.AsArray().Add(AdviceBrowserReply("new-followup", "p2", "Ari Able",
+                "Try keeping the walk at the same time tomorrow.", "2026-07-01T08:12:00Z", FirstAdviceId));
+            note["replyCount"] = 4;
+            note["lastActivityAtUtc"] = "2026-07-01T08:12:00Z";
+        }
+        state["readContext"] = UnreadAdviceContext(10, "old-answer", "new-followup");
+        return state;
+    }
+
+    private static JsonObject AcknowledgeBrowserUnread(JsonObject state, string requestBody)
+    {
+        var payload = JsonNode.Parse(requestBody)!;
+        var ids = payload["notificationIds"]!.AsArray().Select(id => id!.GetValue<string>()).ToHashSet();
+        var context = state["readContext"]!.DeepClone();
+        context["activityRevision"] = context["activityRevision"]!.GetValue<int>() + 1;
+        var thread = context["threads"]![0]!;
+        var remaining = thread["notifications"]!.AsArray().Where(item => !ids.Contains(item!["id"]!.GetValue<string>())).ToList();
+        thread["notifications"] = new JsonArray(remaining.Select(item => item!.DeepClone()).ToArray());
+        thread["unreadCount"] = remaining.Count;
+        thread["firstUnreadReplyId"] = remaining.FirstOrDefault()?["sourceReplyId"]!.DeepClone();
+        state["readContext"] = context.DeepClone();
+        return new JsonObject { ["acknowledgedIds"] = payload["notificationIds"]!.DeepClone(), ["readContext"] = context };
+    }
+
+    private static async Task RouteUnreadBaselineAsync(IBrowserContext context)
+    {
+        var directory = Environment.GetEnvironmentVariable("LWC_UNREAD_BASELINE_ASSETS");
+        if (string.IsNullOrEmpty(directory)) return;
+        await context.RouteAsync("**/js/longevitymaxxing.js*", route => route.FulfillAsync(new() {
+            Path = Path.Combine(directory, "longevitymaxxing.js"), ContentType = "text/javascript"
+        }));
+        await context.RouteAsync("**/css/longevitymaxxing.css*", route => route.FulfillAsync(new() {
+            Path = Path.Combine(directory, "longevitymaxxing.css"), ContentType = "text/css"
+        }));
+    }
+
+    [Theory]
+    [InlineData(390, ColorScheme.Light)]
+    [InlineData(390, ColorScheme.Dark)]
+    [InlineData(1280, ColorScheme.Light)]
     public async Task DiscussionRead_ExplicitOpeningPreservesDraftAndDoesNotReadNewerActivity(int width, ColorScheme theme)
     {
         await using var context = await NewContextAsync(Browser, App, new() { ViewportSize = new() { Width = width, Height = 1000 }, ColorScheme = theme });
