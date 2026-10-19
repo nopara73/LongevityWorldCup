@@ -5782,6 +5782,7 @@ function fetchFullAthleteData(athleteNameText, athleteData, options) {
 async function refreshAthleteAfterStaleGuess(athleteSlug) {
     const normalizedSlug = normalizeAthleteSlugForLookup(athleteSlug);
     if (!normalizedSlug) return false;
+    const requestId = currentAthleteModalRequestId;
 
     try {
         const refreshUrl = `/api/data/athletes?profileImageRefresh=${Date.now()}`;
@@ -5793,6 +5794,8 @@ async function refreshAthleteAfterStaleGuess(athleteSlug) {
 
         const athletes = await response.json();
         if (!Array.isArray(athletes)) return false;
+        if (requestId !== currentAthleteModalRequestId
+            || modal.style.display !== 'block' || modal.classList.contains('fade-out')) return false;
 
         const fullAthleteData = athletes.find(athlete =>
             normalizeAthleteSlugForLookup(athlete.AthleteSlug) === normalizedSlug ||

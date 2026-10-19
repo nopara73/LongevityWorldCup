@@ -217,7 +217,11 @@ public sealed class GuessMyAgeStageBrowserTests(
                 const card = document.getElementById('guessAgeContainer');
                 const modalContent = document.querySelector('#detailsModal .modal-content');
                 const portrait = document.querySelector('#athlete-profile .portrait-wrapper');
-                const startTop = portrait.getBoundingClientRect().top;
+                const read = () => {
+                    const rect = portrait.getBoundingClientRect();
+                    return [rect.x, rect.y, rect.width, rect.height];
+                };
+                const start = read();
                 window.__gmaPortraitDrift = { samples: 0, maximum: 0 };
                 const sample = () => {
                     if (!modalContent.classList.contains('guess-mode')) return;
@@ -225,7 +229,7 @@ public sealed class GuessMyAgeStageBrowserTests(
                         window.__gmaPortraitDrift.samples += 1;
                         window.__gmaPortraitDrift.maximum = Math.max(
                             window.__gmaPortraitDrift.maximum,
-                            Math.abs(portrait.getBoundingClientRect().top - startTop));
+                            ...read().map((value, index) => Math.abs(value - start[index])));
                     }
                     requestAnimationFrame(sample);
                 };

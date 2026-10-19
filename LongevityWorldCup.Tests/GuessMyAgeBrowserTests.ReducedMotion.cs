@@ -435,15 +435,23 @@ public sealed class GuessMyAgeReducedMotionBrowserTests(
         await BrowserTestApp.RouteExternalResourcesAsync(context);
 
         var athleteSnapshotRequests = 0;
+        var profileImageChanged = false;
         await context.RouteAsync("**/api/data/athletes*", async route =>
         {
             athleteSnapshotRequests++;
+            // A retry of the initial snapshot must still show the original image.
+            // Tie the replacement to the conflict, not the number of fetch attempts.
+            if (athleteSnapshotRequests == 1)
+            {
+                await route.FulfillAsync(new RouteFulfillOptions { Status = 503, Body = "Retry snapshot" });
+                return;
+            }
             var response = await route.FetchAsync();
             var athletes = JsonNode.Parse(await response.TextAsync())!.AsArray();
             var patrick = athletes
                 .OfType<JsonObject>()
                 .Single(athlete => athlete["Name"]?.GetValue<string>() == "Patrick Ruff");
-            var isInitialSnapshot = athleteSnapshotRequests == 1;
+            var isInitialSnapshot = !profileImageChanged;
             var imageId = isInitialSnapshot ? ProfileImageA : ProfileImageB;
             var imageUrl = isInitialSnapshot
                 ? "/assets/content-images/trollface.png?v=image-a"
@@ -464,6 +472,7 @@ public sealed class GuessMyAgeReducedMotionBrowserTests(
         var guessRequestUrl = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
         await context.RouteAsync("**/api/Guess/athlete-age**", async route =>
         {
+            profileImageChanged = true;
             guessRequestUrl.TrySetResult(route.Request.Url);
             await route.FulfillAsync(new RouteFulfillOptions
             {
@@ -502,7 +511,7 @@ public sealed class GuessMyAgeReducedMotionBrowserTests(
             """,
             ProfileImageB);
 
-        Assert.True(athleteSnapshotRequests >= 2);
+        Assert.True(athleteSnapshotRequests >= 3);
         Assert.DoesNotContain("Actual age:", await page.Locator("#gmaStatus").InnerTextAsync(), StringComparison.Ordinal);
         Assert.Equal(0, await page.Locator("#gmaRealBubble").CountAsync());
         Assert.True(await page.EvaluateAsync<bool>(

@@ -200,7 +200,7 @@ public sealed class GuessMyAgeCelebrationBrowserTests(
         Assert.True(await page.Locator("#closeAthleteDetailsModal").EvaluateAsync<bool>(
             "element => element === document.activeElement"));
         Assert.Equal(0, await page.Locator(".gma-reaction").CountAsync());
-        await Assertions.Expect(page.Locator("#gmaBubble")).ToHaveCSSAsync("opacity", "0.4");
+        await Assertions.Expect(page.Locator("#gmaBubble")).ToHaveCSSAsync("opacity", "0");
         var settledBubbleThumbDelta = await page.EvaluateAsync<double>(
             """
             () => {

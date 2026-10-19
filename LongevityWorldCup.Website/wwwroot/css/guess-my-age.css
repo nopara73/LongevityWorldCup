@@ -710,6 +710,8 @@
 
 #detailsModal .modal-content.guess-mode #guessAgeContainer.gma-done {
     animation-name: gma-stage-card-exit !important;
+    /* Clipping changes this grid item's automatic minimum and redistributes its row. */
+    overflow: visible;
 }
 
 #detailsModal .modal-content.guess-mode #athlete-profile:has(> #guessAgeContainer.gma-done) .portrait-wrapper::before {
@@ -799,6 +801,11 @@
     opacity: 0.4;
     transform: translateX(-50%) scale(0.92);
     z-index: 2;
+}
+
+/* Keep the answer legible when both values occupy the same part of the ruler. */
+#gmaBubble.gma-bubble-inactive.gma-bubble-overlap {
+    opacity: 0;
 }
 
 /* Smooth transitions on track, thumb & bubbles */
@@ -1493,17 +1500,18 @@
 /* Skip, Skip all and Submit are one row of equal-height pills spanning the slider. */
 #detailsModal .gma-actions {
     display: flex;
+    flex-wrap: wrap;
     align-items: stretch;
     gap: clamp(0.5rem, 1.4vw, 0.85rem);
     width: 100%;
 }
 #detailsModal .gma-btn {
     flex: 1 1 0;
-    min-width: 0;
-    height: var(--gma-dock-height, 3.5rem);
-    min-height: 44px;
+    min-width: max-content;
+    min-height: max(44px, var(--gma-dock-height, 3.5rem));
+    height: auto;
     box-sizing: border-box;
-    padding: 0 clamp(0.6rem, 2vw, 1.25rem);
+    padding: 0.6rem clamp(0.6rem, 2vw, 1.25rem);
     border-radius: 999px;
     font-size: var(--gma-button-font, 1.05rem);
     line-height: 1.15;
@@ -1534,6 +1542,15 @@
     color: rgba(12,16,16,.94);
     box-shadow: 0 0.65rem 1.55rem rgba(0,0,0,.32), 0 1px 0 rgba(255,255,255,.68) inset;
 }
+/* Hidden actions still size the shared dock, including when enlarged labels wrap it. */
+#detailsModal .gma-actions.gma-actions-hide {
+    max-height: none;
+    animation: gma-stage-actions-exit var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease) both !important;
+}
+@keyframes gma-stage-actions-exit {
+    from { opacity: 1; visibility: visible; }
+    to { opacity: 0; visibility: hidden; }
+}
 #detailsModal .gma-btn--primary:hover,
 #detailsModal .gma-btn--primary:focus-visible {
     filter: brightness(1.04);
@@ -1542,10 +1559,10 @@
 #detailsModal .gma-pop-banner {
     min-height: var(--gma-dock-height, 3.5rem);
     box-sizing: border-box;
-    padding: 0 clamp(0.9rem, 3vw, 1.6rem);
+    padding: 0.6rem clamp(0.9rem, 3vw, 1.6rem);
     border-radius: 999px;
     font-size: var(--gma-banner-font, clamp(1.15rem, 0.8rem + 1.2vw, 1.6rem));
-    white-space: nowrap;
+    white-space: normal;
 }
 #detailsModal .gma-card.celebrate-exact {
     --gma-settle-glow: rgba(255, 215, 0, 0.82);
@@ -1691,7 +1708,7 @@
         --gma-bubble-room: 3.1rem;
         --gma-button-font: .9rem;
         grid-template-columns: auto minmax(0, 540px);
-        grid-template-rows: minmax(0, 1fr);
+        grid-template-rows: minmax(min-content, 1fr);
         justify-content: center;
         align-items: center;
         column-gap: clamp(1rem, 3vw, 1.5rem);
@@ -1702,9 +1719,9 @@
     #detailsModal .modal-content.guess-mode #athlete-profile .portrait-wrapper {
         grid-row: 1;
         grid-column: 1;
-        align-self: center;
+        align-self: start;
         height: clamp(86px, 25vh, 116px);
-        margin: 0;
+        margin: max(0px, calc((100dvh - clamp(86px, 25vh, 116px)) / 2 - 1.125rem)) 0 0;
     }
 
     #detailsModal .modal-content.guess-mode #guessAgeContainer {
@@ -1743,7 +1760,7 @@
     #detailsModal .modal-content #guessAgeContainer.gma-done,
     .gma-heading,
     .gma-actions,
-    .gma-actions.gma-actions-hide,
+    #detailsModal .gma-actions.gma-actions-hide,
     .gma-payoff-region,
     .gma-slider-wrap,
     #detailsModal .modal-content.guess-mode #athlete-profile .portrait-wrapper,
