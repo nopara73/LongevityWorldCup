@@ -1610,7 +1610,7 @@ public sealed class AestheticSystemBrowserTests(
         {
             Assert.Equal("max", condition.Bound);
             Assert.Equal("rem", condition.Unit);
-            Assert.Contains(condition.Value, new double[] { 42, 28, 22 });
+            Assert.Contains(condition.Value, new double[] { 42, 28, 22, 14 });
             var thresholdPixels = condition.Value * rootFontSize;
             foreach (var delta in new[] { -1, 0, 1, 0, -1 })
             {
@@ -1622,6 +1622,7 @@ public sealed class AestheticSystemBrowserTests(
                         list.style.boxSizing = 'content-box';
                         list.style.inlineSize = `${argument.InlineSize}px`;
                         list.style.maxInlineSize = 'none';
+                        list.querySelector('.flag-team').open = argument.Boundary === 14;
                         await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
                         await Promise.all(list.getAnimations({ subtree: true })
                             .filter(animation => Number.isFinite(animation.effect.getComputedTiming().endTime))
@@ -1630,12 +1631,18 @@ public sealed class AestheticSystemBrowserTests(
                         const team = list.querySelector('.flag-team');
                         const name = team.querySelector('.flag-team-name').getBoundingClientRect();
                         const score = team.querySelector('.flag-team-score').getBoundingClientRect();
+                        const athleteName = team.querySelector('.flag-athlete-name').getBoundingClientRect();
+                        const athleteLink = team.querySelector('.flag-athlete-link');
+                        const athleteBox = athleteLink.getBoundingClientRect();
+                        const athleteStyle = getComputedStyle(athleteLink);
                         const rootFontSize = parseFloat(getComputedStyle(document.documentElement).fontSize);
                         const compact = argument.Boundary === 42
                             ? getComputedStyle(team.querySelector('.flag-team-portraits')).display === 'none'
                             : argument.Boundary === 28
                                 ? Math.abs(team.querySelector('.flag-team-icon').getBoundingClientRect().width - 1.75 * rootFontSize) < .1
-                                : score.top >= name.bottom;
+                                : argument.Boundary === 22 ? score.top >= name.bottom
+                                    : Math.abs(athleteName.left - athleteBox.left - parseFloat(athleteStyle.paddingLeft)) < 1
+                                        && Math.abs(athleteBox.right - parseFloat(athleteStyle.paddingRight) - athleteName.right) < 1;
                         return {
                             ContainerWidth: parseFloat(getComputedStyle(list).width),
                             IsCompact: compact,

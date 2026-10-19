@@ -4543,10 +4543,24 @@ main[data-leaderboard-page="full"] .flag-section-heading{ padding-block:var(--lw
     main[data-leaderboard-page="full"] .flag-team-icon{ flex-basis:1.75rem; width:1.75rem; font-size:1.3rem; }
 }
 @container flag-results (max-width: 22rem){
-    main[data-leaderboard-page="full"] .flag-team summary{ grid-template-columns:24px minmax(0, 1fr) 32px; padding-inline:12px; }
-    main[data-leaderboard-page="full"] .flag-team-rank:is([data-rank="1"], [data-rank="2"], [data-rank="3"]){ width:24px; font-size:var(--lwc-type-sm); }
+    main[data-leaderboard-page="full"] .flag-team summary{ grid-template-columns:max(24px, 1.25rem) minmax(0, 1fr) 32px; padding-inline:12px; }
+    main[data-leaderboard-page="full"] .flag-team-rank:is([data-rank="1"], [data-rank="2"], [data-rank="3"]){ width:max(24px, 1.25rem); font-size:var(--lwc-type-sm); line-height:1; }
+    main[data-leaderboard-page="full"] .flag-team-name{ flex-wrap:wrap; }
+    main[data-leaderboard-page="full"] .flag-team-name > span:last-child{ max-width:100%; overflow-wrap:break-word; }
     main[data-leaderboard-page="full"] .flag-team-icon{ flex-basis:28px; width:28px; font-size:24px; }
     main[data-leaderboard-page="full"] .flag-team-athletes{ padding-inline-start:12px; }
+    main[data-leaderboard-page="full"] .flag-athlete-link{ grid-template-columns:1rem 32px minmax(0, 1fr); }
+    main[data-leaderboard-page="full"] .flag-athlete-metric{ grid-column:3; text-align:left; }
+    main[data-leaderboard-page="full"] .flag-athlete-metric small{ display:inline; margin-inline-start:.4rem; }
+}
+/* Very narrow text-relative cards give names the complete line. */
+@container flag-results (max-width: 14rem){
+    main[data-leaderboard-page="full"] .flag-team summary{ grid-template-areas:"rank flag chevron" "name name name" "score score score"; }
+    main[data-leaderboard-page="full"] .flag-team-name{ display:contents; }
+    main[data-leaderboard-page="full"] .flag-team-icon{ grid-area:flag; }
+    main[data-leaderboard-page="full"] .flag-team-name > span:last-child{ grid-area:name; }
+    main[data-leaderboard-page="full"] .flag-athlete-name,
+    main[data-leaderboard-page="full"] .flag-athlete-metric{ grid-column:1 / -1; }
 }
 
 /* Phones and small tablets: the header band stacks into a title row with By

@@ -212,13 +212,59 @@ public sealed class LeaderboardBoardBrowserTests(PlaywrightBrowserFixture browse
     }
 
     [Fact]
-    public async Task HomepageEmbed_KeepsItsOwnComposition()
+    public async Task HomepageEmbed_KeepsItsOwnTableAndPortraitSizing()
     {
         var (context, page) = await OpenAsync(1440, 900, false, "/");
         await using var _ = context;
-        var gap = await page.EvaluateAsync<double>(
-            "() => document.querySelector('#athleteLeaderboard').getBoundingClientRect().top - document.querySelector('.leaderboard-controls').getBoundingClientRect().bottom");
-        Assert.True(gap > 4, "The homepage board is outside this page's redesign.");
+        var fullPageOffset = await page.Locator("main").EvaluateAsync<string>(
+            "main => getComputedStyle(main).getPropertyValue('--board-sticky-top').trim()");
+        Assert.Empty(fullPageOffset);
+        var headerPosition = await page.Locator("#athleteLeaderboard thead th").First.EvaluateAsync<string>("head => getComputedStyle(head).position");
+        Assert.DoesNotContain(headerPosition, new[] { "sticky", "fixed" });
+        var portraitWidth = await page.Locator("#athleteLeaderboard img.portrait").First.EvaluateAsync<double>(
+            "image => image.getBoundingClientRect().width");
+        Assert.InRange(portraitWidth, 47, 49);
+    }
+
+    [Theory]
+    [InlineData(320, 100)]
+    [InlineData(320, 200)]
+    [InlineData(390, 200)]
+    [InlineData(769, 200)]
+    public async Task ExpandedFlagTeams_KeepWholeNamesCircularMedalsAndLargeDisclosures(int width, int textPercent)
+    {
+        var (context, page) = await OpenAsync(width, 1000, false, "/leaderboard?group=flags");
+        await using var _ = context;
+        await page.EvaluateAsync("percent => document.documentElement.style.fontSize = `${percent}%`", textPercent);
+        var summary = page.Locator(".flag-team summary").First;
+        await summary.FocusAsync();
+        await page.Keyboard.PressAsync("Space");
+        await Assertions.Expect(page.Locator(".flag-team").First).ToHaveAttributeAsync("open", "");
+        await Assertions.Expect(summary).ToBeFocusedAsync();
+        await page.Locator(".flag-team-name > span:last-child").First.EvaluateAsync("name => name.textContent = 'Liechtenstein'");
+        await page.Locator(".flag-athlete-name").First.EvaluateAsync("name => name.firstChild.textContent = 'Alexandria Montgomery'");
+        var brokenWords = await page.Locator(".flag-team[open] :is(.flag-team-name > span:last-child, .flag-athlete-name)").EvaluateAllAsync<string[]>("""
+            names => names.flatMap(name => {
+                const node = name.firstChild;
+                return [...node.textContent.matchAll(/\p{Letter}+/gu)].flatMap(word => {
+                    const range = document.createRange();
+                    range.setStart(node, word.index);
+                    range.setEnd(node, word.index + word[0].length);
+                    return [...range.getClientRects()].filter(rect => rect.width && rect.height).length > 1 ? [word[0]] : [];
+                });
+            })
+            """);
+        Assert.Empty(brokenWords);
+        var dimensions = await summary.EvaluateAsync<double[]>("""
+            summary => {
+                const box = summary.getBoundingClientRect();
+                const medal = summary.querySelector('.flag-team-rank').getBoundingClientRect();
+                return [box.width, box.height, Math.abs(medal.width - medal.height)];
+            }
+            """);
+        Assert.True(dimensions[0] >= 44 && dimensions[1] >= 44, "The whole summary is the disclosure action.");
+        Assert.InRange(dimensions[2], 0, 1);
+        await ExpectNoHorizontalOverflowAsync(page);
     }
 
     [Theory]
