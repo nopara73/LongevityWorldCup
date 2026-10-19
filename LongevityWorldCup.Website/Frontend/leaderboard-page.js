@@ -2283,6 +2283,13 @@ function setProofViewerZoom(enlargedElem, requestedIndex, shouldCenter = true) {
 function stopEnlargedImageLoad(enlargedElem) {
     clearTimeout(enlargedElem._imageLoadTimer);
     enlargedElem._imageLoadTimer = null;
+    const pendingImage = enlargedElem._pendingImage;
+    enlargedElem._pendingImage = null;
+    if (pendingImage) {
+        pendingImage.onload = null;
+        pendingImage.onerror = null;
+        pendingImage.removeAttribute('src');
+    }
     const image = enlargedElem.querySelector('.image-viewer-stage img');
     if (image) {
         image.onload = null;
@@ -2327,16 +2334,30 @@ function loadEnlargedImage(enlargedElem, sourceImage) {
     const image = document.createElement('img');
     image.alt = sourceImage.alt;
     image.loading = 'eager';
-    enlargedElem.querySelector('.image-viewer-stage img').replaceWith(image);
-    setEnlargedImageLoadState(enlargedElem, 'loading');
+    image.fetchPriority = 'high';
+    // A portrait is already useful at thumbnail resolution. Keep it visible
+    // while its full-size version downloads, including if that upgrade fails.
+    // Proofs still require the selected page to load before it can be read.
+    const preview = !enlargedElem.isProofGallery && !sourceImage.classList.contains('portrait-fallback')
+        && sourceImage.complete && sourceImage.naturalWidth > 0
+        ? document.createElement('img')
+        : null;
+    if (preview) {
+        preview.alt = sourceImage.alt;
+        preview.src = sourceImage.currentSrc || sourceImage.src;
+    }
+    enlargedElem.querySelector('.image-viewer-stage img').replaceWith(preview || image);
+    enlargedElem._pendingImage = image;
+    setEnlargedImageLoadState(enlargedElem, preview ? 'ready' : 'loading');
     const finish = state => {
-        if (enlargedElem.querySelector('.image-viewer-stage img') !== image
-            || enlargedElem.dataset.imageState !== 'loading') return;
+        if (enlargedElem._pendingImage !== image) return;
+        enlargedElem._pendingImage = null;
         clearTimeout(enlargedElem._imageLoadTimer);
         enlargedElem._imageLoadTimer = null;
         image.onload = null;
         image.onerror = null;
-        setEnlargedImageLoadState(enlargedElem, state);
+        if (preview && state === 'ready') preview.replaceWith(image);
+        if (!preview || state === 'ready') setEnlargedImageLoadState(enlargedElem, state);
         if (state === 'ready') {
             requestAnimationFrame(() => {
                 if (enlargedElem.querySelector('.image-viewer-stage img') === image) centerProofViewer(enlargedElem);
@@ -5477,6 +5498,11 @@ function handleAthleteModalLoadFailure(modalContent, athleteSlug, options, error
 
     const athleteNameElement = document.getElementById('athleteName');
     if (athleteNameElement && !preserveServerProfile) athleteNameElement.textContent = 'Athlete details unavailable';
+    if (preserveServerProfile && athleteNameElement) {
+        // Sharing the readable server profile needs only its name and canonical
+        // slug; a failed enhancement must not leave this action disabled.
+        configureAthleteShareButton(athleteNameElement.textContent.trim(), athleteSlug);
+    }
     const stickyAthleteName = document.getElementById('stickyAthleteName');
     if (stickyAthleteName && !preserveServerProfile) stickyAthleteName.textContent = 'Athlete details unavailable';
     const profilePic = document.getElementById('modalProfilePic');

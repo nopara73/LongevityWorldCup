@@ -32,7 +32,7 @@
             max-width: calc(100vw - 2rem);
             padding: 1.1rem 1.15rem 1rem;
             box-sizing: border-box;
-            border-radius: 8px;
+            border-radius: var(--lwc-radius-lg, 12px);
             border: 1px solid var(--lwc-border, rgba(0, 188, 212, 0.22));
             background: var(--lwc-surface, #ffffff);
             color: var(--lwc-ink, #2d3748);
@@ -325,7 +325,7 @@
             padding: 1.5rem;
             color: var(--dark-text-color);
             box-shadow: none;
-            border-radius: 8px;
+            border-radius: var(--lwc-radius-lg, 12px);
             font-size: 1.5rem;
             opacity: 0;
             transition: opacity var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
@@ -487,7 +487,7 @@
             #bortzAgeResult {
                 padding: 2.5rem 1.5rem;
                 margin: 1.5rem auto;
-                border-radius: 18px;
+                border-radius: var(--lwc-radius-lg, 12px);
             }
 
             .bio-age-number-container {

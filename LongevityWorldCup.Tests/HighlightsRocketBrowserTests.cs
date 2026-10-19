@@ -1,3 +1,4 @@
+using System.Text.Json.Nodes;
 using Microsoft.Playwright;
 using Xunit;
 using static LongevityWorldCup.Tests.AestheticSystemBrowserTests;
@@ -41,7 +42,9 @@ public sealed class HighlightsRocketBrowserTests(
             ReducedMotion = ReducedMotion.Reduce,
             HasTouch = true
         });
-        await RouteFixturesAsync(context, yesterday: true);
+        // Desktop fitting can select only one highlight. Keep the joined event
+        // eligible instead of competing with a higher-priority rank for its athlete.
+        await RouteFixturesAsync(context, yesterday: true, joinedOnly: path == "/");
         var page = await context.NewPageAsync();
         var errors = new List<string>();
         page.PageError += (_, error) => errors.Add(error);
@@ -58,23 +61,13 @@ public sealed class HighlightsRocketBrowserTests(
             await page.SetViewportSizeAsync(width, width == 1440 ? 900 : 844);
             await page.EvaluateAsync("percent => document.documentElement.style.fontSize = `${percent}%`", percent);
             await page.EvaluateAsync("async () => { await document.fonts.ready; await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))); }");
-            // Verify actual message text enlargement, not just the root setting.
-            // Homepage fitting replaces rows after viewport changes. Resolve and
-            // measure in one browser task instead of retaining a detached node.
-            var fontMeasurement = await page.WaitForFunctionAsync(
-                """
-                () => {
-                    const cell = document.querySelector("tr[data-event-id='rocket-joined'] .event-message-cell");
-                    if (!cell?.isConnected) return false;
-                    const size = parseFloat(getComputedStyle(cell).fontSize);
-                    return Number.isFinite(size) ? size : false;
-                }
-                """);
-            var fontSize = await fontMeasurement.JsonValueAsync<double>();
-            await fontMeasurement.DisposeAsync();
-            Assert.True(fontSize >= 13 * percent / 100d, $"{path}: actual text is only {fontSize}px at {percent}%");
-            var problems = await page.EvaluateAsync<string[]>(MeasureRocketLayout);
-            Assert.True(problems.Length == 0, $"{path} {width}px / {percent}%: {string.Join("; ", problems)}");
+            if (path == "/")
+                await page.EvaluateAsync("() => fitHomepageHighlights()");
+            // Resolve the rendered fixture and measure its font and geometry in
+            // one browser task, so a refit cannot replace rows between checks.
+            var layout = await MeasureRocketLayoutAsync(page);
+            Assert.True(layout.FontSize >= 13 * percent / 100d, $"{path}: actual text is only {layout.FontSize}px at {percent}%");
+            Assert.True(layout.Problems.Length == 0, $"{path} {width}px / {percent}%: {string.Join("; ", layout.Problems)}");
         }
         Assert.Empty(errors);
     }
@@ -121,18 +114,42 @@ public sealed class HighlightsRocketBrowserTests(
         await Assertions.Expect(page.GetByRole(AriaRole.Link, new() { Name = "Read the rules" })).ToBeVisibleAsync();
     }
 
-    private static async Task RouteFixturesAsync(IBrowserContext context, bool yesterday = false)
+    private static async Task RouteFixturesAsync(IBrowserContext context, bool yesterday = false, bool joinedOnly = false)
     {
+        var events = JsonNode.Parse(Events)!.AsArray();
+        if (joinedOnly)
+            foreach (var item in events.Where(item => item!["Id"]!.GetValue<string>() != "rocket-joined").ToArray())
+                events.Remove(item);
+        var body = events.ToJsonString();
+        if (yesterday)
+            body = body.Replace("2026-10-18T08:00:00Z", "2026-10-17T08:00:00Z");
         await context.RouteAsync("**/api/data/athletes", route => route.FulfillAsync(new() { ContentType = "application/json", Body = Athlete }));
         await context.RouteAsync("**/api/events", route => route.FulfillAsync(new()
         {
             ContentType = "application/json",
-            Body = yesterday ? Events.Replace("2026-10-18T08:00:00Z", "2026-10-17T08:00:00Z") : Events
+            Body = body
         }));
+    }
+
+    private sealed class RocketLayout
+    {
+        public double FontSize { get; set; }
+        public string[] Problems { get; set; } = [];
+    }
+
+    private static async Task<RocketLayout> MeasureRocketLayoutAsync(IPage page)
+    {
+        await using var snapshot = await page.WaitForFunctionAsync(MeasureRocketLayout);
+        return await snapshot.JsonValueAsync<RocketLayout>();
     }
 
     private const string MeasureRocketLayout = """
         () => {
+            const fixture = document.querySelector("tr[data-event-id='rocket-joined'] .event-message-cell");
+            if (!fixture?.isConnected || !fixture.querySelector('.fa-rocket')) return false;
+            if (fixture.closest('[aria-busy="true"]')) return false;
+            const fontSize = parseFloat(getComputedStyle(fixture).fontSize);
+            if (!Number.isFinite(fontSize)) return false;
             const issues = [];
             const rockets = [...document.querySelectorAll('.events-board .fa-rocket')];
             if (!rockets.length) issues.push('fixture has no rocket');
@@ -160,7 +177,7 @@ public sealed class HighlightsRocketBrowserTests(
                 if (new Set([...range.getClientRects()].filter(r => r.width).map(r => Math.round(r.top))).size > 1)
                     issues.push('rank token breaks');
             }
-            return issues;
+            return { FontSize: fontSize, Problems: issues };
         }
         """;
 }
