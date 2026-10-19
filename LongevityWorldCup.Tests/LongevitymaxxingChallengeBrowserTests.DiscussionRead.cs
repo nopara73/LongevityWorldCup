@@ -261,4 +261,47 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         } else await Assertions.Expect(post).ToHaveCountAsync(0);
         Assert.Equal(1, lookups);
     }
+
+    [Fact]
+    public async Task DiscussionRead_ReloadUsesFreshUnreadOrderAndMessagesAboveRestoredHistory()
+    {
+        await using var context = await NewContextAsync(Browser, App, new() {
+            ViewportSize = new() { Width = 1280, Height = 1000 }, ColorScheme = ColorScheme.Light, Locale = "en-US"
+        });
+        var state = LargeDiscussionFeedState(60);
+        static JsonObject Snapshot(JsonArray notes) => new() {
+            ["keys"] = new JsonArray(notes.Select(note => (JsonNode)new JsonObject {
+                ["participantId"] = note!["participantId"]!.DeepClone(), ["challengeDay"] = note["challengeDay"]!.DeepClone(), ["systemPostId"] = null
+            }).ToArray()), ["nextCursor"] = null
+        };
+        state["discussionSnapshot"] = Snapshot(state["notes"]!.AsArray());
+        state["readContext"] = new JsonObject { ["activityRevision"] = 10, ["threads"] = new JsonArray() };
+        var reads = 0;
+        await context.RouteAsync("**/api/longevitymaxxing/discussion/read", route => { reads++; return route.FulfillAsync(new() { Status = 503 }); });
+        var page = await OpenDiscussionFeedAsync(context, state, automatic: false);
+        await Assertions.Expect(page.Locator("#lmxNotes > article").First).ToHaveAttributeAsync("data-discussion-post-participant-id", "p2");
+        for (var count = 20; count <= 40; count += 10) {
+            await page.Locator("#lmxFeedOlder").ClickAsync();
+            await Assertions.Expect(page.Locator("#lmxNotes > article")).ToHaveCountAsync(count);
+        }
+        await page.EvaluateAsync("window.dispatchEvent(new Event('pagehide'))");
+        var saved = JsonNode.Parse(await page.EvaluateAsync<string>("sessionStorage.getItem('lmxDiscussionFeedAdviceV2')"))!;
+        Assert.Equal(state["participant"]!["id"]!.GetValue<string>(), saved["owner"]!.GetValue<string>());
+        var notes = state["notes"]!.AsArray();
+        var promoted = notes[50]!.DeepClone(); notes.RemoveAt(50);
+        promoted["note"] = "An updated question for @Alex.";
+        notes.Insert(0, promoted);
+        state["public"]!["notes"] = notes.DeepClone();
+        state["discussionSnapshot"] = Snapshot(notes);
+        state["readContext"] = ReadPostContext(11, "feed-050", promoted["challengeDay"]!.GetValue<int>(), null);
+        await page.ReloadAsync();
+        await Assertions.Expect(page.Locator("#lmxNotes > article")).ToHaveCountAsync(40);
+        var first = page.Locator("#lmxNotes > article").First;
+        await page.Locator("#lmxNotesTitle").EvaluateAsync("element => window.scrollBy({top: element.getBoundingClientRect().top - 80, behavior: 'instant'})");
+        await CaptureAdviceAsync(page, "unread-restored-feed-1280-Light.png");
+        await Assertions.Expect(first).ToHaveAttributeAsync("data-discussion-post-participant-id", "feed-050");
+        await Assertions.Expect(first).ToContainTextAsync("An updated question for @Alex.");
+        await Assertions.Expect(first.Locator(".lmx-discussion-count")).ToHaveTextAsync("New mention");
+        Assert.Equal(0, reads);
+    }
 }

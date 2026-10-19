@@ -1377,7 +1377,20 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             discussionFeedError = false;
             restoreDiscussionFeedPosition(owner);
             if (discussionFeedOrder.length) {
-                queueDiscussionFeedUpdates(notes);
+                const snapshot = participantState?.discussionSnapshot || publicState?.discussionSnapshot;
+                if (snapshot) {
+                    for (const note of notes) {
+                        const key = discussionPermalink(note);
+                        discussionFeedNotes.set(key, note);
+                        discussionFeedUpdates.delete(key);
+                        discussionFeedPending.delete(key);
+                    }
+                    const first = snapshot.keys.map(discussionPermalink).filter(key => discussionFeedNotes.has(key));
+                    const initial = new Set(first);
+                    discussionFeedOrder = first.concat(discussionFeedOrder.filter(key => !initial.has(key)));
+                    discussionFeedBefore = snapshot.nextCursor;
+                    discussionFeedHasHistory = !!snapshot.nextCursor;
+                } else queueDiscussionFeedUpdates(notes);
                 discussionFeedAcceptedGeneration = stateAcceptanceGeneration;
             }
         }
