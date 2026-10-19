@@ -2068,6 +2068,12 @@ html body main.homepage-main .full-rankings-action {
     box-shadow: var(--lwc-shadow-sm);
 }
 
+@media (max-width: 360px) {
+    html body main.homepage-main .full-rankings-action {
+        margin-inline: -0.5rem;
+    }
+}
+
 html body main.homepage-main .rankings-btn {
     display: inline-flex;
     align-items: center;

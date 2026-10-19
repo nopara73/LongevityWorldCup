@@ -239,21 +239,60 @@ function fitHomepageHighlights() {
     homepageHighlightsMeasureTimer = window.setTimeout(maybeGrowHomepageHighlights, 220);
 }
 
+function watchHomepageHighlightsLayout() {
+    const highlights = document.getElementById('events-root-index');
+    const swag = document.getElementById('lwc-countdown-box');
+    const body = swag?.querySelector('.lwc-merch-body');
+    if (!highlights || !body) return;
+
+    // Observe the inputs to fitting, rather than the stretched card heights.
+    // Appending a highlight changes both card heights; using those heights as
+    // inputs would continually reset the rows we just fitted.
+    const signature = function () {
+        const row = highlights.querySelector('.event-message');
+        const rowStyle = row ? getComputedStyle(row) : null;
+        const bodyStyle = getComputedStyle(body);
+        const content = [swag.querySelector('.lwc-countdown-header-row'), ...body.children];
+        return JSON.stringify([
+            window.innerWidth > 991,
+            highlights.getBoundingClientRect().width,
+            rowStyle?.fontSize, rowStyle?.lineHeight, rowStyle?.fontFamily,
+            bodyStyle.paddingBlockStart, bodyStyle.paddingBlockEnd, bodyStyle.rowGap,
+            ...content.map(element => element ? [
+                element.getBoundingClientRect().width, element.getBoundingClientRect().height
+            ] : [])
+        ]);
+    };
+    let fittedLayout = signature();
+    const queueFit = function (force = false) {
+        const layout = signature();
+        if (!force && layout === fittedLayout) return;
+        fittedLayout = layout;
+        window.clearTimeout(homepageHighlightsResizeTimer);
+        homepageHighlightsResizeTimer = window.setTimeout(fitHomepageHighlights, 180);
+    };
+    const resizeObserver = new ResizeObserver(() => queueFit());
+    resizeObserver.observe(highlights);
+    resizeObserver.observe(body);
+    resizeObserver.observe(swag.querySelector('.lwc-countdown-header-row'));
+    const observeContent = function () {
+        [...body.children].forEach(element => resizeObserver.observe(element));
+        queueFit();
+    };
+    observeContent();
+    new MutationObserver(observeContent).observe(body, { childList: true, subtree: true, characterData: true });
+    window.addEventListener('resize', () => queueFit());
+    document.fonts.ready.then(() => queueFit(true));
+    document.fonts.addEventListener('loadingdone', () => queueFit(true));
+}
+
 document.addEventListener('DOMContentLoaded', function () {
     placeHomepageHighlightsForVisit();
     fitHomepageHighlights();
     LoadLeaderboard(true, 10);
     stabilizeHomepageFragmentTarget();
 
-    // Card widths set the Highlights row count. A height-only resize, such as
-    // a phone's collapsing address bar, keeps the rows already shown.
-    let fittedWidth = window.innerWidth;
-    window.addEventListener('resize', function () {
-        if (window.innerWidth === fittedWidth) return;
-        fittedWidth = window.innerWidth;
-        window.clearTimeout(homepageHighlightsResizeTimer);
-        homepageHighlightsResizeTimer = window.setTimeout(fitHomepageHighlights, 180);
-    });
+    watchHomepageHighlightsLayout();
 });
 
 (function initializeMerchCarousel() {

@@ -1,4 +1,5 @@
 using Microsoft.Playwright;
+using System.Text.Json;
 using Xunit;
 
 namespace LongevityWorldCup.Tests;
@@ -62,6 +63,7 @@ public sealed class HomepageLandingBrowserTests(
     [InlineData(1440, 900)]
     [InlineData(768, 1024)]
     [InlineData(390, 844)]
+    [InlineData(320, 640)]
     public async Task Board_JoinsControlsStandingsAndViewAllAthletesInOneCard(int width, int height)
     {
         var (context, page) = await OpenHomepageAsync(width, height);
@@ -131,6 +133,7 @@ public sealed class HomepageLandingBrowserTests(
             "() => document.querySelectorAll('#events-root-index tr.main-row').length > 2");
         await page.WaitForTimeoutAsync(1500);
         var rows = await CountHighlightsAsync(page);
+        await page.EvaluateAsync("() => window.retainedHighlights = [...document.querySelectorAll('#events-root-index tr.main-row')]");
 
         await page.SetViewportSizeAsync(1440, 600);
         await page.WaitForTimeoutAsync(260);
@@ -139,6 +142,156 @@ public sealed class HomepageLandingBrowserTests(
         await page.SetViewportSizeAsync(1440, 900);
         await page.WaitForTimeoutAsync(260);
         Assert.Equal(rows, await CountHighlightsAsync(page));
+        Assert.True(await page.EvaluateAsync<bool>(
+            "() => window.retainedHighlights.every(row => row.isConnected)"),
+            "A height-only resize must retain the fitted rows themselves.");
+    }
+
+    [Theory]
+    [InlineData(1440, 900, 100)]
+    [InlineData(1024, 768, 200)]
+    [InlineData(844, 390, 200)]
+    [InlineData(390, 844, 100)]
+    [InlineData(390, 844, 200)]
+    [InlineData(320, 640, 200)]
+    public async Task Podium_LongNamesMedalsAndPrizeGlyphsStayInsideTheirPlacing(int width, int height, int textPercent)
+    {
+        var (context, page) = await OpenHomepageAsync(width, height);
+        await using var _ = context;
+        await page.EvaluateAsync(
+            """
+            percent => {
+                document.documentElement.style.fontSize = percent + '%';
+                const names = ['Alexandertheexceptionallylongunbrokentokenforreflow',
+                    'Nóra Marosvölgyi A Very Long Competition Name', 'Siim Land'];
+                document.querySelectorAll('.podium .athlete-name').forEach((name, index) => name.textContent = names[index]);
+            }
+            """, textPercent);
+        await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
+        var problems = await page.EvaluateAsync<string[]>(
+            """
+            () => {
+                const problems = [];
+                const stage = document.querySelector('.podium').getBoundingClientRect();
+                for (const card of document.querySelectorAll('.podium-item')) {
+                    const box = card.getBoundingClientRect();
+                    for (const element of card.querySelectorAll('.athlete-name, .age-reduction, .prize-money, .btc-amount')) {
+                        const range = document.createRange();
+                        range.selectNodeContents(element);
+                        for (const r of range.getClientRects()) {
+                            if (r.width > 0 && (r.left < Math.max(box.left, stage.left) - 1
+                                || r.right > Math.min(box.right, stage.right) + 1
+                                || r.top < Math.max(box.top, stage.top) - 1
+                                || r.bottom > Math.min(box.bottom, stage.bottom) + 1))
+                                problems.push(card.className + ': ' + element.textContent);
+                        }
+                    }
+                    const medal = card.querySelector('.podium-rank').getBoundingClientRect();
+                    if (medal.left < box.left || medal.right > box.right || medal.top < box.top || medal.bottom > box.bottom)
+                        problems.push(card.className + ': clipped medal');
+                }
+                return problems;
+            }
+            """);
+        Assert.True(problems.Length == 0, string.Join("; ", problems));
+        await FlowActionDockBrowserTests.ExpectNoHorizontalOverflowAsync(page);
+    }
+
+    [Theory]
+    [InlineData("content", false)]
+    [InlineData("content", true)]
+    [InlineData("text", false)]
+    [InlineData("width", false)]
+    public async Task Highlights_RefitWhenTheirLayoutInputsChangeWithoutAWindowResize(string change, bool repeat)
+    {
+        await using var context = await HomepageChromeRegressionBrowserTests.NewContextAsync(Browser, App, ReducedMotion.Reduce);
+        if (repeat)
+            await context.AddInitScriptAsync("localStorage.setItem('lwcHomepageVisitCount:v1', '4')");
+        var page = await context.NewPageAsync();
+        await page.SetViewportSizeAsync(1440, 900);
+        await page.GotoAsync("/", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.WaitForSelectorAsync("#events-root-index tr.main-row");
+        await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
+        await page.WaitForTimeoutAsync(3500);
+        var initialRows = await CountHighlightsAsync(page);
+        Assert.InRange(initialRows, 2, 11);
+        var initialWidth = await page.EvaluateAsync<int>("innerWidth");
+
+        await page.EvaluateAsync(
+            """
+            change => {
+                if (change === 'content') {
+                    const content = document.createElement('div');
+                    content.id = 'product-information-fixture';
+                    content.style.cssText = 'height:400px;flex-shrink:0';
+                    content.textContent = 'Expanded product information';
+                    document.querySelector('.lwc-merch-body').append(content);
+                } else if (change === 'text') {
+                    document.documentElement.style.fontSize = '200%';
+                } else {
+                    document.querySelector('.lwc-highlights-countdown-wrapper').style.maxWidth = '700px';
+                }
+            }
+            """, change);
+        await page.WaitForFunctionAsync(
+            "initial => document.querySelectorAll('#events-root-index tr.main-row').length !== initial", initialRows);
+        await page.WaitForTimeoutAsync(3500);
+        Assert.Equal(initialWidth, await page.EvaluateAsync<int>("innerWidth"));
+
+        await page.EvaluateAsync(
+            """
+            change => {
+                if (change === 'content') document.getElementById('product-information-fixture').remove();
+                else if (change === 'text') document.documentElement.style.fontSize = '';
+                else document.querySelector('.lwc-highlights-countdown-wrapper').style.maxWidth = '';
+            }
+            """, change);
+        await page.WaitForFunctionAsync(
+            "initial => document.querySelectorAll('#events-root-index tr.main-row').length === initial", initialRows);
+        await page.WaitForTimeoutAsync(500);
+        Assert.Equal(initialRows, await CountHighlightsAsync(page));
+    }
+
+    [Fact]
+    public async Task Highlights_RefittingRetainsAnExpandedAnnouncementAndItsKeyboardFocus()
+    {
+        await using var context = await HomepageChromeRegressionBrowserTests.NewContextAsync(Browser, App, ReducedMotion.Reduce);
+        var events = Enumerable.Range(0, 12).Select(index => new
+        {
+            Id = $"announcement-{index}", Type = 6, Relevance = 10,
+            OccurredAt = new DateTime(2026, 10, 19, 8, 0, 0, DateTimeKind.Utc).AddDays(-index),
+            Text = $"Season announcement {index}\n\nThe complete announcement. [Read the rules](https://longevityworldcup.com/ruleset)"
+        });
+        await context.RouteAsync("**/api/events", route => route.FulfillAsync(new()
+        {
+            ContentType = "application/json", Body = JsonSerializer.Serialize(events)
+        }));
+        var page = await context.NewPageAsync();
+        await page.SetViewportSizeAsync(1440, 900);
+        await page.GotoAsync("/", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.WaitForSelectorAsync("#events-root-index .custom-event-expander");
+        await page.WaitForTimeoutAsync(3500);
+        var expander = page.Locator("#events-root-index .custom-event-expander").Last;
+        await expander.FocusAsync();
+        await expander.PressAsync("Enter");
+        await Assertions.Expect(expander).ToHaveAttributeAsync("aria-expanded", "true");
+        await page.EvaluateAsync(
+            """
+            () => {
+                window.retainedAnnouncement = document.activeElement;
+                window.retainedAnnouncementRow = document.activeElement.closest('tr.main-row');
+                document.querySelector('.lwc-merch-copy').style.paddingBottom = '400px';
+            }
+            """);
+        await page.WaitForTimeoutAsync(3500);
+        await page.EvaluateAsync("() => document.querySelector('.lwc-merch-copy').style.paddingBottom = ''");
+        await page.WaitForTimeoutAsync(3500);
+        Assert.True(await page.EvaluateAsync<bool>(
+            """
+            () => window.retainedAnnouncement === document.activeElement
+                && window.retainedAnnouncementRow.isConnected
+                && window.retainedAnnouncement.getAttribute('aria-expanded') === 'true'
+            """), "Refitting must retain the reader's expanded row, control and focus.");
     }
 
     private static Task<int> CountHighlightsAsync(IPage page) =>
