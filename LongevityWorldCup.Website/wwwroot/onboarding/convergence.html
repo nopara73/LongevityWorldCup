@@ -108,6 +108,8 @@
 
         .lwc-flag-suggestions--inline {
             position: static;
+            /* Keep the focused field visible above the list at enlarged text sizes. */
+            max-height: min(14rem, 42vh, max(48px, calc(100dvh - var(--flow-action-dock-height, 0px) - 6rem)));
         }
 
             .autocomplete-items .autocomplete-active {
@@ -211,7 +213,6 @@
         /* Every stage is the same card: banner, step meter and title, story, then the task. */
         .convergence-stage-layout {
             --convergence-card-pad: clamp(16px, 4vw, 28px);
-            --convergence-banner-height: clamp(112px, min(24vw, 18vh), 200px);
             width: min(100%, 640px);
             max-width: calc(100vw - 2rem);
             margin: 0.5rem auto 2rem;
@@ -254,7 +255,8 @@
             display: block;
             width: 100%;
             max-width: none;
-            height: var(--convergence-banner-height);
+            height: auto;
+            aspect-ratio: 3 / 1;
             max-height: none;
             margin: 0;
             border: 0;
@@ -665,7 +667,7 @@
             }
         }
 
-        /* Short desktop windows keep the whole first stage, actions included, on one screen. */
+        /* Short desktops keep the full scene and all identity fields above the actions. */
         @media (min-width: 769px) and (max-height: 800px) {
             .convergence-main #mainProgressBar {
                 margin-block: 0 0.5rem;
@@ -673,7 +675,6 @@
 
             .convergence-stage-layout {
                 --convergence-card-pad: 18px;
-                --convergence-banner-height: 64px;
                 margin-top: 0.25rem;
             }
 
@@ -683,6 +684,34 @@
 
             .convergence-stage-layout > #inputForm {
                 padding-top: 12px;
+            }
+
+            #inputForm {
+                container-type: inline-size;
+            }
+
+            @container (min-width: 35rem) {
+                #inputForm #personalDetails {
+                    display: grid;
+                    grid-template-columns: repeat(3, minmax(0, 1fr));
+                    grid-template-areas:
+                        "legend legend legend"
+                        "name-label division-label flag-label"
+                        "name-input division-input flag-input"
+                        "name-error division-error flag-input";
+                    column-gap: 1rem;
+                    align-items: start;
+                }
+
+                #personalDetails > legend { grid-area: legend; }
+                #personalDetails > label[for="name"] { grid-area: name-label; }
+                #personalDetails > #name { grid-area: name-input; }
+                #personalDetails > #nameError { grid-area: name-error; }
+                #personalDetails > label[for="division"] { grid-area: division-label; }
+                #personalDetails > #division { grid-area: division-input; }
+                #personalDetails > #divisionError { grid-area: division-error; }
+                #personalDetails > label[for="flag"] { grid-area: flag-label; }
+                #personalDetails > .autocomplete-container { grid-area: flag-input; }
             }
 
             #inputForm.bioageform > fieldset > label {
@@ -736,9 +765,9 @@
             <form id="descriptionForm" class="bioageform" data-aos="fade" data-aos-duration="700" data-aos-delay="450">
                 <div class="convergence-visual">
                     <picture id="illustrationPicture" style="display:''">
-                        <source type="image/webp" srcset="../assets/content-images/enter-arena.webp">
-                        <source type="image/jpeg" srcset="../assets/content-images/enter-arena.jpg">
-                        <img id="illustrationImage" src="../assets/content-images/enter-arena.jpg" alt="Longevity World Cup logo" class="illustration" width="1024" height="768" loading="lazy" decoding="async">
+                        <source type="image/webp" srcset="../assets/content-images/apply-arena.webp">
+                        <source type="image/jpeg" srcset="../assets/content-images/apply-arena.jpg">
+                        <img id="illustrationImage" src="../assets/content-images/apply-arena.jpg" alt="Hooded applicant enters a sunlit stadium with longevity athletes" class="illustration" width="2172" height="724" loading="lazy" decoding="async">
                     </picture>
                     <img style="display:none" id="profileImage" src="" alt="Profile picture" class="illustration" loading="lazy">
                 </div>
@@ -1729,10 +1758,12 @@
             const webpSource = illustrationPicture.querySelector('source[type="image/webp"]');
             const jpegSource = illustrationPicture.querySelector('source[type="image/jpeg"]');
 
-            function updateIllustration(imageName, format, webpSource, jpegSource, illustrationImage) {
+            function updateIllustration(imageName, format, webpSource, jpegSource, illustrationImage, width = 2172, height = 724) {
                 webpSource.srcset = `../assets/content-images/${imageName}.webp`;
                 jpegSource.srcset = `../assets/content-images/${imageName}.${format}`;
                 illustrationImage.src = `../assets/content-images/${imageName}.${format}`;
+                illustrationImage.width = width;
+                illustrationImage.height = height;
             }
 
             const nextButton = document.getElementById('nextButton');
@@ -1747,8 +1778,8 @@
                 case 1:
                     // Stage 1: Enter the Arena
                     document.querySelector('h1').textContent = "Enter the arena";
-                    updateIllustration("enter-arena", "jpg", webpSource, jpegSource, illustrationImage);
-                    illustrationImage.alt = "Longevity World Cup logo";
+                    updateIllustration("apply-arena", "jpg", webpSource, jpegSource, illustrationImage);
+                    illustrationImage.alt = "Hooded applicant enters a sunlit stadium with longevity athletes";
                     illustrationImage.loading = "lazy";
                     document.getElementById('personalDetails').style.display = '';
                     nextButton.innerHTML = '<span class="flow-action__label">Next</span><i class="fas fa-arrow-right" aria-hidden="true"></i>';
@@ -1770,8 +1801,8 @@
                 case 2:
                     // Stage 2: Finding Your Why
                     document.querySelector('h1').textContent = "Finding your why";
-                    updateIllustration("why-banner", "jpg", webpSource, jpegSource, illustrationImage);
-                    illustrationImage.alt = "Boxer celebrating in the rain";
+                    updateIllustration("apply-encouragement", "jpg", webpSource, jpegSource, illustrationImage);
+                    illustrationImage.alt = "Dave Pascoe offers a helping hand to the hooded applicant";
                     illustrationImage.loading = "lazy";
                     document.getElementById('whyField').style.display = 'block';
                     nextButton.innerHTML = '<span class="flow-action__label">Next</span><i class="fas fa-arrow-right" aria-hidden="true"></i>';
@@ -1791,8 +1822,8 @@
                 case 3:
                     // Stage 3: The price of glory
                     document.querySelector('h1').textContent = "The price of glory";
-                    updateIllustration("privacy-banner", "jpg", webpSource, jpegSource, illustrationImage);
-                    illustrationImage.alt = "Footballers entering a stadium";
+                    updateIllustration("apply-interview", "jpg", webpSource, jpegSource, illustrationImage);
+                    illustrationImage.alt = "Longevity athletes and reporters interview the hooded applicant";
                     illustrationImage.loading = "lazy";
                     document.getElementById('privacyText').style.display = '';
                     document.getElementById('privacyDetails').style.display = '';
@@ -1807,8 +1838,8 @@
                 case 4:
                     // Stage 4: Almost There
                     document.querySelector('h1').textContent = "Almost there";
-                    updateIllustration("headshot", "jpg", webpSource, jpegSource, illustrationImage);
-                    illustrationImage.alt = "Headshot";
+                    updateIllustration("apply-reveal", "jpg", webpSource, jpegSource, illustrationImage);
+                    illustrationImage.alt = "The applicant lifts their hood to reveal their identity";
                     illustrationImage.loading = "lazy";
                     document.getElementById('profilePicText').style.display = '';
                     document.getElementById('profileUploadSection').style.display = '';
@@ -1836,8 +1867,8 @@
                 case 5:
                     // Stage 5: Don't Trust, Verify
                     document.querySelector('h1').textContent = "Don't trust, verify";
-                    updateIllustration("proof", "jpg", webpSource, jpegSource, illustrationImage);
-                    illustrationImage.alt = "Lab results";
+                    updateIllustration("apply-bloodwork", "jpg", webpSource, jpegSource, illustrationImage);
+                    illustrationImage.alt = "A surprised judge examines the applicant's bloodwork";
                     illustrationImage.loading = "lazy";
                     document.getElementById('proofText').style.display = '';
                     document.getElementById('proofUploadSection').style.display = '';
@@ -1867,8 +1898,8 @@
                 case 6:
                     // Stage 6: Final Details
                     document.querySelector('h1').textContent = "Final details";
-                    updateIllustration("finish-banner", "jpg", webpSource, jpegSource, illustrationImage);
-                    illustrationImage.alt = "Finish line";
+                    updateIllustration("apply-daydream", "jpg", webpSource, jpegSource, illustrationImage);
+                    illustrationImage.alt = "The applicant imagines a trophy victory alongside longevity athletes";
                     illustrationImage.loading = "lazy";
                     document.getElementById('finalDetailsText').style.display = '';
                     document.getElementById('finalDetails').style.display = '';
@@ -1893,7 +1924,7 @@
                 case 7:
                     // Stage 7: Application
                     document.querySelector('h1').textContent = "Application";
-                    updateIllustration("account-creation", "jpg", webpSource, jpegSource, illustrationImage);
+                    updateIllustration("account-creation", "jpg", webpSource, jpegSource, illustrationImage, 1024, 768);
                     illustrationImage.alt = "Application";
                     illustrationImage.loading = "lazy";
                     document.getElementById('congratsText').style.display = '';
