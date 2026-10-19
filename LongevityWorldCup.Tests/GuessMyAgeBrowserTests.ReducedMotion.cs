@@ -65,6 +65,8 @@ public sealed class GuessMyAgeReducedMotionBrowserTests(
         await page.WaitForFunctionAsync("() => document.getElementById('gmaRange')?.disabled === false");
         await page.Locator("#gmaRange").EvaluateAsync(
             "range => { range.value = '54'; range.dispatchEvent(new Event('input', { bubbles: true })); }");
+        var actionHeight = await page.Locator("#guessAgeContainer .gma-actions").EvaluateAsync<double>(
+            "element => element.getBoundingClientRect().height");
 
         await page.Locator("#guessAgeContainer .gma-btn--primary").ClickAsync();
         try
@@ -89,8 +91,11 @@ public sealed class GuessMyAgeReducedMotionBrowserTests(
             "element => getComputedStyle(element).animationName === 'none' && element.getAnimations().length === 0"));
         var reducedMotionOldActions = await page.Locator("#guessAgeContainer .gma-actions").EvaluateAsync<double[]>(
             "element => [element.getBoundingClientRect().height, Number.parseFloat(getComputedStyle(element).opacity)]");
-        Assert.InRange(reducedMotionOldActions[0], 0, 0.5);
+        // Hidden controls retain the dock's geometry without remaining interactive.
+        Assert.InRange(reducedMotionOldActions[0] - actionHeight, -0.5, 0.5);
         Assert.Equal(0, reducedMotionOldActions[1]);
+        Assert.True(await page.Locator("#guessAgeContainer .gma-actions").EvaluateAsync<bool>(
+            "element => element.inert && getComputedStyle(element).visibility === 'hidden'"));
         Assert.Equal(0, await page.Locator(".gma-reaction").CountAsync());
         Assert.Equal(0, await page.Locator(".gma-celebration-spark").CountAsync());
         await page.GetByText("You beat the crowd!", new PageGetByTextOptions { Exact = true }).WaitForAsync();
