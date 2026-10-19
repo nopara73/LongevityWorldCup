@@ -147,9 +147,12 @@ public sealed class PlayAthleteSelectionCardBrowserTests(
             """;
         var idle = await page.EvaluateAsync<double[]>(measure);
         Assert.InRange(Math.Abs(idle[0] - idle[2]), 0, 1);
-        Assert.InRange(Math.Abs(idle[2] - idle[3]), 0, 1);
+        // Tablets and desktops head the player card with a wide portrait; phones keep the square.
+        var wideCard = width >= 761 && height >= 600;
+        if (wideCard) Assert.InRange(idle[2] / idle[3], 1.55, 1.65);
+        else Assert.InRange(Math.Abs(idle[2] - idle[3]), 0, 1);
         Assert.True(idle[4] > 0 && Math.Abs(idle[5]) <= 1, $"{width}px: the title should be the caption along the portrait's bottom edge.");
-        Assert.True(Math.Abs(idle[0] - idle[8]) <= 1, $"{width}px: the card ({idle[0]}px) should share the field's column ({idle[8]}px).");
+        if (!wideCard) Assert.True(Math.Abs(idle[0] - idle[8]) <= 1, $"{width}px: the card ({idle[0]}px) should share the field's column ({idle[8]}px).");
 
         await input.FillAsync("a");
         await Assertions.Expect(page.Locator(".athlete-search-open")).ToHaveCountAsync(1);

@@ -84,7 +84,7 @@ public sealed class DashboardAthleteCardBrowserTests(
             Assert.True(layout[9] == 0, $"{scenario}: fitting Pro actions should stay inline.");
             Assert.True(layout[12] <= height - 12, $"{scenario}: inline actions exceed the viewport.");
             var minPictureWidth = width < 600 ? 300 : height <= 740 ? 310 : 340;
-            Assert.InRange(layout[5] - layout[4], minPictureWidth, 408);
+            Assert.InRange(layout[5] - layout[4], minPictureWidth, width >= 761 ? 560 : 408);
         }
         // Phone docks show an icon. An inline fallback at 200% text may use two
         // whole words on separate lines; all other visible back labels fit one.
@@ -118,7 +118,7 @@ public sealed class DashboardAthleteCardBrowserTests(
     }
 
     [Theory]
-    [InlineData(1440, 900, false)]
+    [InlineData(1440, 640, false)]
     [InlineData(1280, 720, true)]
     [InlineData(1366, 768, false)]
     public async Task DockedDashboard_IsOneCentredCommandGroup(int width, int height, bool dark)
@@ -197,13 +197,13 @@ public sealed class DashboardAthleteCardBrowserTests(
         Assert.False(await stack.EvaluateAsync<bool>("s => s.classList.contains('flow-action-stack--docked')"));
         await back.FocusAsync();
 
-        foreach (var height in new[] { 900, 1600, 900 })
+        foreach (var height in new[] { 640, 1600, 640 })
         {
             await page.SetViewportSizeAsync(1440, height);
-            await page.WaitForFunctionAsync("docked => document.querySelector('#athleteDashboardActions').classList.contains('flow-action-stack--docked') === docked", height == 900);
+            await page.WaitForFunctionAsync("docked => document.querySelector('#athleteDashboardActions').classList.contains('flow-action-stack--docked') === docked", height == 640);
             await Assertions.Expect(back).ToBeFocusedAsync();
             Assert.True(await stack.EvaluateAsync<bool>("s => s.classList.contains('flow-action-stack--docked') ? s.firstElementChild.id === 'playDashboardBackBtn' : s.lastElementChild.id === 'playDashboardBackBtn'"));
-            if (height == 900)
+            if (height == 640)
             {
                 await page.Keyboard.PressAsync("Tab");
                 await Assertions.Expect(edit).ToBeFocusedAsync();
