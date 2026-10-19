@@ -81,6 +81,7 @@ interface FlagAutocompleteOptions {
     getOptions(): readonly FlagOption[];
     limit?: number;
     hideExactMatch?: boolean;
+    inline?: boolean;
 }
 
 interface CustomEventMarkupOptions {

@@ -13,7 +13,7 @@ public sealed class FlowStepActionsRowBrowserTests(
     [Theory]
     [InlineData("/pheno-age", ".lwc-step-actions", 1440, 900)]
     [InlineData("/bortz-age", ".lwc-step-actions", 1280, 720)]
-    [InlineData("/apply", ".flow-action-stack", 1440, 900)]
+    [InlineData("/apply", ".flow-action-stack", 1440, 1000)]
     [InlineData("/select-athlete", ".play-athlete-actions", 1440, 900)]
     [InlineData("/pheno-age", ".lwc-step-actions", 1024, 768)]
     public async Task DesktopStep_SetsACompactBackBesideItsAction(string path, string stackSelector, int width, int height)
@@ -55,14 +55,15 @@ public sealed class FlowStepActionsRowBrowserTests(
     [Theory]
     [InlineData("/pheno-age", 390, 844)]
     [InlineData("/apply", 390, 844)]
-    public async Task PhoneStep_KeepsTheDockedRow(string path, int width, int height)
+    [InlineData("/apply", 1440, 900)]
+    public async Task OverflowingStep_KeepsTheDockedRow(string path, int width, int height)
     {
         await using var context = await NewContextAsync(Browser, App, new()
         {
             ViewportSize = new() { Width = width, Height = height },
             ReducedMotion = ReducedMotion.Reduce,
-            IsMobile = true,
-            HasTouch = true
+            IsMobile = width < 600,
+            HasTouch = width < 600
         });
         var page = await context.NewPageAsync();
         await NavigateDockReadyAsync(page, path);
@@ -78,7 +79,7 @@ public sealed class FlowStepActionsRowBrowserTests(
                     && Math.abs(back.top - action.top) <= 1 && back.right <= action.left;
             }
             """);
-        Assert.True(sameRow, $"{path}: the phone dock keeps Back beside the action.");
+        Assert.True(sameRow, $"{path} {width}x{height}: the overflow dock keeps Back beside the action.");
     }
 
     [Theory]
