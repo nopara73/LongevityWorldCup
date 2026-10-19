@@ -152,6 +152,8 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
         var first = new LongevitymaxxingDiscussionReplyRequest(lower, post.ParticipantId, post.ChallengeDay, "Pick one small habit to restart.", Guid.NewGuid().ToString("N"), IsAdvice: true);
         var firstState = fixture.Service.SubmitDiscussionReply(first, now);
         var firstRoot = firstState.Notes.Single(note => note.Advice != null).Advice!.ActiveAdviceReplyId!;
+        var higherId = fixture.Service.GetParticipantState(higher, now).Participant.Id;
+        Assert.Contains(higherId, firstState.Notes.Single(note => note.Advice != null).Advice!.BetterAdviceParticipantIds);
         var comment = new LongevitymaxxingDiscussionReplyRequest(owner, post.ParticipantId, post.ChallengeDay, "I can do a short walk after lunch.", Guid.NewGuid().ToString("N"), ReplyToId: firstRoot, AdviceRootId: firstRoot);
         fixture.Service.SubmitDiscussionReply(comment, now.AddMinutes(1));
         var promoted = fixture.Service.SubmitDiscussionReply(new(higher, post.ParticipantId, post.ChallengeDay, "Tie that walk to a reliable event in your day.", Guid.NewGuid().ToString("N"), IsAdvice: true), now.AddMinutes(2));
@@ -164,6 +166,7 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
         var replay = fixture.Service.SubmitDiscussionReply(comment, now.AddMinutes(4));
         Assert.Equal(3, replay.Notes.Single(note => note.Advice != null).ReplyCount);
         Assert.Equal(advice.ActiveAdviceReplyId, replay.Notes.Single(note => note.Advice != null).Advice!.ActiveAdviceReplyId);
+        Assert.Equal(3, fixture.Service.SubmitDiscussionReply(first, now.AddMinutes(4)).Notes.Single(note => note.Advice != null).ReplyCount);
         Assert.Throws<InvalidOperationException>(() => fixture.Service.SubmitDiscussionReply(comment with { IsAdvice = true }, now.AddMinutes(5)));
     }
 
@@ -176,11 +179,16 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
         // A participant joining after publication is unranked for this case.
         var first = new LongevitymaxxingDiscussionReplyRequest(higher, post.ParticipantId, post.ChallengeDay, "Start small.", Guid.NewGuid().ToString("N"), IsAdvice: true);
         fixture.Service.SubmitDiscussionReply(first, now);
-        var result = fixture.Service.SubmitDiscussionReply(new(lower, post.ParticipantId, post.ChallengeDay, "Take a walk.", Guid.NewGuid().ToString("N"), IsAdvice: true), now.AddMinutes(1));
-        result = fixture.Service.SubmitDiscussionReply(new(twin, post.ParticipantId, post.ChallengeDay, "Another option.", Guid.NewGuid().ToString("N"), IsAdvice: true), now.AddMinutes(2));
+        Assert.Throws<LongevitymaxxingAdviceChangedException>(() => fixture.Service.SubmitDiscussionReply(new(lower, post.ParticipantId, post.ChallengeDay, "Take a walk.", Guid.NewGuid().ToString("N"), IsAdvice: true), now.AddMinutes(1)));
+        Assert.Throws<LongevitymaxxingAdviceChangedException>(() => fixture.Service.SubmitDiscussionReply(new(twin, post.ParticipantId, post.ChallengeDay, "Another option.", Guid.NewGuid().ToString("N"), IsAdvice: true), now.AddMinutes(2)));
+        SubmitAdviceScore(fixture, lower, 3, 8);
+        SubmitAdviceScore(fixture, lower, 4, 8);
+        Assert.Throws<LongevitymaxxingAdviceChangedException>(() => fixture.Service.SubmitDiscussionReply(new(lower, post.ParticipantId, post.ChallengeDay, "I rank higher now, but not in this request's snapshot.", Guid.NewGuid().ToString("N"), IsAdvice: true), now.AddMinutes(3)));
+        var result = fixture.Service.GetParticipantState(owner, now);
         var advice = result.Notes.Single(note => note.Advice != null).Advice!;
         Assert.Equal(first.ReplyId, advice.ActiveAdviceReplyId);
-        Assert.Null(advice.Replies.Single(reply => reply.DisplayName == "Twin").AdviceRank);
+        Assert.Single(advice.Replies);
+        Assert.DoesNotContain(fixture.Service.GetParticipantState(lower, now).Participant.Id, advice.BetterAdviceParticipantIds);
         Assert.ThrowsAny<InvalidOperationException>(() => fixture.Service.SubmitDiscussionReply(new(owner, post.ParticipantId, post.ChallengeDay, "Unscoped reply.", Guid.NewGuid().ToString("N")), now.AddMinutes(3)));
         Assert.ThrowsAny<InvalidOperationException>(() => fixture.Service.SubmitDiscussionReply(new(owner, post.ParticipantId, post.ChallengeDay, "Forged root.", Guid.NewGuid().ToString("N"), AdviceRootId: Guid.NewGuid().ToString("N")), now.AddMinutes(3)));
         var nextDay = fixture.Service.GetParticipantState(owner, now.AddDays(20));
@@ -221,10 +229,29 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
         var ownerId = published.Participant.Id;
         var firstId = Guid.NewGuid().ToString("N");
         fixture.Service.SubmitDiscussionReply(new(first, ownerId, 7, "Start with one walk.", firstId, IsAdvice: true), now.AddMinutes(1));
-        var result = fixture.Service.SubmitDiscussionReply(new(second, ownerId, 7, "Plan the easiest version.", Guid.NewGuid().ToString("N"), IsAdvice: true), now.AddMinutes(2));
+        Assert.Throws<LongevitymaxxingAdviceChangedException>(() => fixture.Service.SubmitDiscussionReply(new(second, ownerId, 7, "Plan the easiest version.", Guid.NewGuid().ToString("N"), IsAdvice: true), now.AddMinutes(2)));
+        var result = fixture.Service.GetParticipantState(owner, now.AddMinutes(2));
         var advice = Assert.Single(result.Notes).Advice!;
         Assert.Equal(firstId, advice.ActiveAdviceReplyId);
         Assert.Single(advice.Replies.Select(reply => reply.AdviceRank).Distinct());
+    }
+
+    [Fact]
+    public async Task Advice_AnUnrankedParticipantCanAnswerFirstButOnlyRankedParticipantsCanTakeOver()
+    {
+        using var fixture = TestChallengeFixture.Create();
+        var (_, _, higher, post, now) = await AdviceScenarioAsync(fixture);
+        var newcomer = await fixture.ConfirmParticipantAsync("new-adviser@example.com", "New adviser");
+        var first = new LongevitymaxxingDiscussionReplyRequest(newcomer, post.ParticipantId, post.ChallengeDay,
+            "Start with a short walk.", Guid.NewGuid().ToString("N"), IsAdvice: true);
+        var state = fixture.Service.SubmitDiscussionReply(first, now);
+        var advice = state.Notes.Single(note => note.Advice != null).Advice!;
+        Assert.Null(Assert.Single(advice.Replies).AdviceRank);
+        var higherId = fixture.Service.GetParticipantState(higher, now).Participant.Id;
+        Assert.Contains(higherId, advice.BetterAdviceParticipantIds);
+        var promoted = fixture.Service.SubmitDiscussionReply(new(higher, post.ParticipantId, post.ChallengeDay,
+            "Tie the walk to lunch.", Guid.NewGuid().ToString("N"), IsAdvice: true), now.AddMinutes(1));
+        Assert.NotEqual(first.ReplyId, promoted.Notes.Single(note => note.Advice != null).Advice!.ActiveAdviceReplyId);
     }
 
     [Fact]

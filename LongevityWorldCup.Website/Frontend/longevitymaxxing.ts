@@ -152,6 +152,7 @@
         id: string; story: string; publishedAtUtc: string; activeAdviceReplyId: string | null;
         replies: DiscussionReply[]; version: number; withdrawn: boolean;
         storyCharacterLimit?: number;
+        betterAdviceParticipantIds?: string[];
     }
 
     interface DiscussionSystemPost {
@@ -4330,13 +4331,17 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         return Number.isFinite(parsed) ? parsed : 0;
     }
 
+    function canGiveDiscussionAdvice(advice: AdviceThread | null | undefined, postParticipantId: string): boolean {
+        if (!advice || advice.withdrawn || !participantState || !accessToken ||
+            participantState.participant.id === postParticipantId || advice.replies.some(reply =>
+                reply.isAdvice && !reply.isDeleted && reply.participantId === participantState!.participant.id)) return false;
+        return !advice.activeAdviceReplyId || !!advice.betterAdviceParticipantIds?.includes(participantState.participant.id);
+    }
+
     function discussionPostHeaderHtml(note: ParticipantNote, canReply: boolean): string {
         const advice = note.advice;
-        const ownsPost = participantState?.participant.id === note.participantId;
-        const alreadyAdvised = advice?.replies.some(reply => reply.isAdvice && !reply.isDeleted && reply.participantId === participantState?.participant.id);
-        const joining = !!advice && (ownsPost || alreadyAdvised);
-        const replyText = advice ? "Give advice" : "Reply";
-        canReply = canReply && !advice?.withdrawn && !joining;
+        const replyText = advice ? (advice.activeAdviceReplyId ? "Give better advice" : "Give advice") : "Reply";
+        canReply = canReply && (!advice || canGiveDiscussionAdvice(advice, note.participantId));
         const replyCount = effectiveDiscussionReplyCount(note);
         const replyLabel = `${replyCount} ${replyCount === 1 ? "reply" : "replies"}`;
         const unreadLink = discussionUnreadLink(note);
@@ -4357,7 +4362,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 data-post-challenge-day="${escAttr(note.challengeDay)}"
                 data-system-post-id="${escAttr(note.systemPostId || "")}"
                 data-post-display-name="${escAttr(note.displayName)}"
-                ${advice ? 'data-is-advice="true"' : ""}
+                ${advice ? `data-is-advice="true" data-advice-label="${replyText}"` : ""}
                 aria-label="${advice ? replyText : `Reply to ${escAttr(note.displayName)}`}"
                 aria-expanded="false">
                 <i class="fas fa-reply" aria-hidden="true"></i>
@@ -7007,6 +7012,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             challengeDay: draft.challengeDay, systemPostId: draft.systemPostId }))) return false;
         const advice = Array.from(discussionFeedNotes.values()).find(note => isDiscussionDraftThread(note, draft))?.advice;
         if (discussionDraftArchived(draft, advice)) return false;
+        if (draft.isAdvice && !canGiveDiscussionAdvice(advice, draft.postParticipantId)) return false;
         const hasPhotos = !!draft.photos?.length || !!(draft.editReplyId && findDiscussionReply(draft.editReplyId)?.images?.length);
         return !draft.needsPhotos && draft.body.length <= discussionCharacterLimit(draft.originalBody) && (!!draft.body.trim() || hasPhotos) &&
             (draft.body.trim() !== draft.originalBody || !!draft.photos?.length);
@@ -7028,8 +7034,12 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     // An edit can outlive the latest-replies window. Keep its draft reachable without
     // inserting an unverified old reply into the authoritative reply list or count.
     function ensureDiscussionEditDraftButtons(root: ParentNode): void {
+        root.querySelectorAll<HTMLButtonElement>("[data-advice-draft-resume]").forEach(button => {
+            const draft = discussionDrafts.get(discussionDraftKey(button));
+            if (!draft || !discussionDraftHasChanges(draft)) button.remove();
+        });
         for (const draft of discussionDrafts.values()) {
-            if (!draft.adviceRootId || draft.editReplyId || draft.participantId !== participantState?.participant.id || !discussionDraftHasChanges(draft)) continue;
+            if ((!draft.adviceRootId && !draft.isAdvice) || draft.editReplyId || draft.participantId !== participantState?.participant.id || !discussionDraftHasChanges(draft)) continue;
             const thread = discussionDraftThread(draft, "notes", root);
             if (!thread || discussionDraftButton(draft, "notes", thread)) continue;
             const button = document.createElement("button");
@@ -7038,9 +7048,13 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             button.setAttribute("data-discussion-reply", "");
             button.dataset.postParticipantId = draft.postParticipantId;
             button.dataset.postChallengeDay = String(draft.challengeDay);
-            button.dataset.adviceRootId = draft.adviceRootId;
+            if (draft.adviceRootId) button.dataset.adviceRootId = draft.adviceRootId;
+            if (draft.isAdvice) {
+                button.dataset.isAdvice = "true";
+                button.setAttribute("data-advice-draft-resume", "");
+            }
             button.dataset.postDisplayName = draft.displayName;
-            button.textContent = "Resume earlier conversation draft";
+            button.textContent = draft.isAdvice ? "Resume advice draft" : "Resume earlier conversation draft";
             button.addEventListener("click", () => openDiscussionDraft(button, null));
             thread.querySelector(".lmx-discussion-reply-slot")?.before(button);
         }
@@ -7385,7 +7399,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             const label = pending ? (editing ? "Saving…" : "Posting…")
                 : open ? (editing ? "Editing" : "Writing")
                 : draft?.error ? (editing ? "Retry edit" : givingAdvice ? "Retry advice" : "Retry reply")
-                : dirty ? (editing ? "Resume edit" : givingAdvice ? "Resume advice" : "Resume reply") : editing ? "Edit" : givingAdvice ? "Give advice" : "Reply";
+                : dirty ? (editing ? "Resume edit" : givingAdvice ? "Resume advice" : "Resume reply") : editing ? "Edit" : givingAdvice ? button.dataset.adviceLabel || "Give advice" : "Reply";
             if (editing) {
                 button.textContent = label;
                 button.disabled = discussionMutation === `delete:${button.closest<HTMLElement>("[data-discussion-reply-id]")?.dataset.discussionReplyId}`;
@@ -7426,6 +7440,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             if (!draft) return;
             const advice = Array.from(discussionFeedNotes.values()).find(note => isDiscussionDraftThread(note, draft))?.advice;
             const archived = discussionDraftArchived(draft, advice);
+            const adviceBlocked = !!draft.isAdvice && !canGiveDiscussionAdvice(advice, draft.postParticipantId);
             const retarget = composer.querySelector<HTMLButtonElement>("[data-advice-retarget]");
             if (retarget) retarget.hidden = !archived || !advice?.activeAdviceReplyId || !!draft.editReplyId;
             updateDiscussionComposerContext(composer, draft);
@@ -7467,6 +7482,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             composer.querySelectorAll<HTMLButtonElement>("[data-remove-reply-photo]").forEach(control => { control.disabled = pending; });
             const status = composer.querySelector<HTMLElement>(".lmx-status")!;
             status.textContent = archived ? "This conversation is now archived. Your draft is kept. Review it before moving to the active conversation."
+                : adviceBlocked ? "Only someone ranked above the current adviser can give better advice. Your draft is kept."
                 : draft.needsPhotos ? "Photos weren’t kept after reload. Add them again before posting."
                 : draft.error ? `Couldn’t confirm your ${draft.editReplyId ? "edit" : "reply"}. ${draft.error}`
                 : discussionMutation && !pending ? "Finishing another reply. You can keep writing."
@@ -8997,7 +9013,9 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         return hasProperties(value, "id", "story", "publishedAtUtc", "activeAdviceReplyId", "replies", "version", "withdrawn") &&
             typeof value.id === "string" && typeof value.story === "string" && typeof value.publishedAtUtc === "string" &&
             isNullableString(value.activeAdviceReplyId) && isArrayOf(value.replies, isDiscussionReply) &&
-            typeof value.version === "number" && typeof value.withdrawn === "boolean";
+            typeof value.version === "number" && typeof value.withdrawn === "boolean" &&
+            (!hasProperties(value, "betterAdviceParticipantIds") ||
+                isArrayOf(value.betterAdviceParticipantIds, (id): id is string => typeof id === "string"));
     }
 
     function isDiscussionSystemPost(value: unknown): value is DiscussionSystemPost {

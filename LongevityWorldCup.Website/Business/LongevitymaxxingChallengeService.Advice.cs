@@ -300,7 +300,11 @@ public sealed partial class LongevitymaxxingChallengeService
             Add(existing, "@author", authorId);
             if (existing.ExecuteScalar() is not null) throw new InvalidOperationException("You have already given advice on this request.");
             var ranks = JsonSerializer.Deserialize<Dictionary<string, int>>(advice.Ranks) ?? [];
-            return (replyId, ranks.TryGetValue(authorId, out var rank) ? rank : null);
+            int? rank = ranks.TryGetValue(authorId, out var capturedRank) ? capturedRank : null;
+            if (advice.ActiveId is { } activeId &&
+                (rank ?? int.MaxValue) >= (ReadAdviceRank(sqlite, activeId, transaction) ?? int.MaxValue))
+                throw new LongevitymaxxingAdviceChangedException("Only someone ranked above the current adviser can give better advice. Your draft is kept.");
+            return (replyId, rank);
         }
         if (request.AdviceRootId is null || advice.ActiveId != request.AdviceRootId)
             throw new LongevitymaxxingAdviceChangedException("The conversation has moved to newer, higher-ranked advice. Your draft is kept; open the active conversation.");
@@ -315,6 +319,16 @@ public sealed partial class LongevitymaxxingChallengeService
             if (parent.ExecuteScalar() as string != advice.ActiveId) throw new InvalidOperationException("That earlier conversation is archived.");
         }
         return (advice.ActiveId, null);
+    }
+
+    private static int? ReadAdviceRank(SqliteConnection sqlite, string replyId, SqliteTransaction? transaction = null)
+    {
+        using var command = sqlite.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = "SELECT AdviceRank FROM LongevitymaxxingDiscussionReplies WHERE Id = @id;";
+        Add(command, "@id", replyId);
+        var value = command.ExecuteScalar();
+        return value is null or DBNull ? null : Convert.ToInt32(value, CultureInfo.InvariantCulture);
     }
 
     private static void PromoteAdvice(SqliteConnection sqlite, SqliteTransaction transaction,
@@ -386,9 +400,21 @@ public sealed partial class LongevitymaxxingChallengeService
             while (reader.Read()) replies.Add(new(reader.GetString(0), reader.GetString(1), reader.GetString(2), reader.GetString(3),
                 reader.GetString(4), reader.IsDBNull(5) ? null : reader.GetString(5), reader.IsDBNull(6) ? null : reader.GetString(6)));
         PopulateDiscussionReplyContexts(sqlite, replies);
+        var betterAdviceParticipants = Array.Empty<string>();
+        if (advice.Status == "published" && advice.ActiveId is { } activeId)
+        {
+            var activeRank = ReadAdviceRank(sqlite, activeId) ?? int.MaxValue;
+            var ranks = JsonSerializer.Deserialize<Dictionary<string, int>>(advice.Ranks) ?? [];
+            var alreadyAdvised = replies.Where(reply => reply.IsAdvice && !reply.IsDeleted)
+                .Select(reply => reply.ParticipantId).ToHashSet(StringComparer.Ordinal);
+            betterAdviceParticipants = ranks.Where(entry => entry.Value < activeRank &&
+                    entry.Key != advice.ParticipantId && !alreadyAdvised.Contains(entry.Key))
+                .Select(entry => entry.Key).Order(StringComparer.Ordinal).ToArray();
+        }
         return new(advice.Id, advice.Status == "withdrawn" ? "" : advice.Story, advice.PublishedAt,
             advice.Status == "withdrawn" ? null : advice.ActiveId, replies)
-        { Version = advice.Version, Withdrawn = advice.Status == "withdrawn", StoryCharacterLimit = advice.CharacterLimit };
+        { Version = advice.Version, Withdrawn = advice.Status == "withdrawn", StoryCharacterLimit = advice.CharacterLimit,
+            BetterAdviceParticipantIds = betterAdviceParticipants };
     }
 
     private static void RequireAdviceReplyEditable(SqliteConnection sqlite, SqliteTransaction transaction, DiscussionReplyRecord reply)

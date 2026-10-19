@@ -170,6 +170,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await draft.EvaluateAsync("e => { e.setSelectionRange(3, 9); window.manyPinsDraft = e; }");
         var top = await draft.EvaluateAsync<double>("e => e.getBoundingClientRect().top");
         var answered = AdviceFeedBrowserState(true)["notes"]!.AsArray().Single(note => note!["advice"] != null)!;
+        answered["advice"]!["betterAdviceParticipantIds"] = new JsonArray("p2", "p4");
         foreach (var replies in new[] { answered["replies"]!.AsArray(), answered["advice"]!["replies"]!.AsArray() })
             foreach (var reply in replies)
             {
@@ -376,6 +377,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         page.PageError += (_, error) => errors.Add(error);
         var post = page.Locator("#lmxNotes > .lmx-advice-post");
         await Assertions.Expect(post.Locator(".is-active .lmx-advice-rank")).ToHaveTextAsync("#7");
+        await Assertions.Expect(post.Locator(".lmx-discussion-post-actions [data-is-advice='true']")).ToHaveTextAsync("Give better advice");
         await Assertions.Expect(post.GetByRole(AriaRole.Button, new() { Name = "Join conversation", Exact = true })).ToHaveCountAsync(0);
         await CaptureAdviceAsync(page, $"first-advice-{width}-{theme}.png", post);
         await post.Locator(".lmx-discussion-post-actions [data-discussion-reply]").ClickAsync();
@@ -423,7 +425,22 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         var visitorPost = visitorPage.Locator("#lmxNotes > .lmx-advice-post");
         var giveAdvice = visitorPost.Locator(".lmx-discussion-post-actions [data-is-advice='true']");
         await Assertions.Expect(giveAdvice).ToBeVisibleAsync();
-        await Assertions.Expect(giveAdvice).ToHaveTextAsync("Give advice");
+        await Assertions.Expect(giveAdvice).ToHaveTextAsync("Give better advice");
+        Assert.False(await visitorPost.Locator(".lmx-discussion-post-header").EvaluateAsync<bool>("""
+            header => {
+                const author = header.querySelector('.lmx-discussion-post-author');
+                const actions = [...header.querySelectorAll('.lmx-discussion-post-actions button')].map(button => button.getBoundingClientRect());
+                const text = document.createTreeWalker(author, NodeFilter.SHOW_TEXT);
+                while (text.nextNode()) {
+                    if (!text.currentNode.textContent.trim()) continue;
+                    const range = document.createRange(); range.selectNodeContents(text.currentNode);
+                    if ([...range.getClientRects()].some(glyph => actions.some(action =>
+                        glyph.left < action.right - 1 && glyph.right > action.left + 1 &&
+                        glyph.top < action.bottom - 1 && glyph.bottom > action.top + 1))) return true;
+                }
+                return false;
+            }
+            """), "Advice actions must not overlap the author's text.");
         await CaptureAdviceAsync(visitorPage, $"give-advice-collapsed-{width}-{theme}.png", visitorPost);
         await visitorPost.Locator(".lmx-advice-archive > summary").ClickAsync();
         await CaptureAdviceAsync(visitorPage, $"give-advice-expanded-{width}-{theme}.png", visitorPost);
@@ -433,8 +450,60 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await Assertions.Expect(giveAdvice).ToBeHiddenAsync();
         await visitorDraft.PressAsync("Escape");
         await Assertions.Expect(giveAdvice).ToBeVisibleAsync();
+        await Assertions.Expect(giveAdvice).ToHaveTextAsync("Give better advice");
         Assert.True(await visitorPage.EvaluateAsync<bool>("document.documentElement.scrollWidth <= innerWidth"));
         Assert.Empty(errors);
+    }
+
+    [Fact]
+    public async Task Advice_AViewerOutsideTheCapturedEligibilityCanReplyButCannotGiveNewAdvice()
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = 390, Height = 1000 }, ColorScheme = ColorScheme.Light, Locale = "en-US"
+        });
+        var state = AdviceBrowserState(2, advisor: true);
+        state["participant"]!["id"] = "p5";
+        state["participant"]!["displayName"] = "Cam";
+        var page = await OpenDiscussionWorkspaceAsync(context, state);
+        var post = page.Locator("#lmxNotes > .lmx-advice-post");
+        await Assertions.Expect(post.Locator(".lmx-discussion-post-actions [data-is-advice='true']")).ToHaveCountAsync(0);
+        await Assertions.Expect(post.Locator(".is-active [data-discussion-reply]")).ToBeVisibleAsync();
+        await CaptureAdviceAsync(page, "better-advice-ineligible-390-Light.png", post);
+    }
+
+    [Fact]
+    public async Task Advice_LosingBetterAdviceEligibilityKeepsTheDraftCopyableAcrossReload()
+    {
+        await using var context = await NewContextAsync(Browser, App, new());
+        var state = AdviceBrowserState(1, advisor: true);
+        var page = await OpenDiscussionWorkspaceAsync(context, state);
+        var post = page.Locator("#lmxNotes > .lmx-advice-post");
+        await post.Locator(".lmx-discussion-post-actions [data-is-advice='true']").ClickAsync();
+        const string body = "Keep this alternative so I can copy it later.";
+        await post.Locator("textarea").FillAsync(body);
+        var promoted = AdviceBrowserState(2, advisor: true);
+        foreach (var note in new[] { promoted["notes"]![0]!, promoted["public"]!["notes"]![0]! })
+        {
+            note["advice"]!["betterAdviceParticipantIds"] = new JsonArray();
+            foreach (var replies in new[] { note["replies"]!.AsArray(), note["advice"]!["replies"]!.AsArray() })
+                foreach (var reply in replies.Where(reply => (string?)reply!["participantId"] == "p2"))
+                {
+                    reply!["participantId"] = "p4";
+                    reply["displayName"] = "Dee";
+                    reply["adviceRank"] = 1;
+                }
+        }
+        state["notes"] = promoted["notes"]!.DeepClone();
+        state["public"]!["notes"] = promoted["public"]!["notes"]!.DeepClone();
+        await page.ReloadAsync();
+        await Assertions.Expect(post.Locator("textarea")).ToHaveValueAsync(body);
+        await Assertions.Expect(post.Locator("[data-reply-submit]")).ToBeDisabledAsync();
+        await Assertions.Expect(post.Locator("[data-discussion-draft] .lmx-status")).ToContainTextAsync("Your draft is kept");
+        await post.Locator("textarea").PressAsync("Escape");
+        await post.Locator("[data-advice-draft-resume]").ClickAsync();
+        await Assertions.Expect(post.Locator("textarea")).ToHaveValueAsync(body);
+        await Assertions.Expect(post.Locator("[data-reply-submit]")).ToBeDisabledAsync();
     }
 
     [Fact]
@@ -639,6 +708,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
             var reply = AdviceBrowserReply(replyId, "p2", "Ari Able",
                 "Keep one daily anchor. A short walk after lunch is enough to start.", "2026-07-01T09:00:00Z", replyId, true, 3);
             request["advice"]!["activeAdviceReplyId"] = replyId;
+            request["advice"]!["betterAdviceParticipantIds"] = new JsonArray("p4");
             request["advice"]!["version"] = 3;
             request["advice"]!["replies"] = new JsonArray(reply.DeepClone());
             request["replyCount"] = 1;
@@ -675,7 +745,8 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         {
             ["id"] = "case-22", ["story"] = AdviceStory, ["publishedAtUtc"] = "2026-07-01T07:30:00Z",
             ["activeAdviceReplyId"] = stage >= 2 ? higherId : stage == 1 ? FirstAdviceId : null,
-            ["replies"] = new JsonArray(replies.Select(reply => (JsonNode)reply.DeepClone()).ToArray()), ["version"] = stage + 2, ["withdrawn"] = false
+            ["replies"] = new JsonArray(replies.Select(reply => (JsonNode)reply.DeepClone()).ToArray()), ["version"] = stage + 2, ["withdrawn"] = false,
+            ["betterAdviceParticipantIds"] = stage == 1 ? new JsonArray("p2", "p4") : stage >= 2 ? new JsonArray("p4") : new JsonArray()
         };
         state["notes"] = due ? new JsonArray() : new JsonArray(note.DeepClone());
         state["public"]!["notes"] = due ? new JsonArray() : new JsonArray(note.DeepClone());

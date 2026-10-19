@@ -289,6 +289,7 @@ public sealed record LongevitymaxxingAdviceThread(
     public int Version { get; init; }
     public bool Withdrawn { get; init; }
     public int StoryCharacterLimit { get; init; }
+    public IReadOnlyList<string> BetterAdviceParticipantIds { get; init; } = [];
 }
 
 public sealed record LongevitymaxxingDiscussionReplyContext(string DisplayName, string Body);
