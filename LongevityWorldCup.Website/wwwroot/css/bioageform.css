@@ -2044,20 +2044,9 @@ body :is(#phenoAgeResult, #bortzAgeResult) #ensureCorrectInputSuggestion i {
 .bioage-rank-preview .bioage-rank-loading {
     padding: var(--lwc-space-5, 1.5rem) var(--bioage-pad-x, 0px);
     text-align: center;
-    animation: bioage-rank-pending 1.4s var(--lwc-ease, ease) infinite alternate;
 }
 
 .bioage-rank-preview .bioage-rank-error {
     margin: var(--lwc-space-4, 1rem) var(--bioage-pad-x, 0px);
 }
 
-@keyframes bioage-rank-pending {
-    from { opacity: 1; }
-    to { opacity: 0.55; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .bioage-rank-preview .bioage-rank-loading {
-        animation: none;
-    }
-}

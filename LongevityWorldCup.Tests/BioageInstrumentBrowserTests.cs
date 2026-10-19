@@ -126,6 +126,56 @@ public sealed class BioageInstrumentBrowserTests(
         await ExpectNoHorizontalOverflowAsync(page);
     }
 
+    [Theory]
+    [InlineData("/pheno-age", ColorScheme.Light)]
+    [InlineData("/bortz-age", ColorScheme.Dark)]
+    public async Task PendingRank_TextKeepsReadableContrastThroughoutMotion(string path, ColorScheme scheme)
+    {
+        var page = await OpenAsync(path, 390, 844, scheme);
+        await FillBioageStepOneAsync(page, DateTime.UtcNow.Date.AddDays(-9).ToString("yyyy-MM-dd"));
+        if (path == "/bortz-age") await FillBortzBiomarkersAsync(page);
+        else await FillPhenoBiomarkersAsync(page);
+        await page.EvaluateAsync("() => { window.getSharedAthletes = () => new Promise(() => {}); }");
+        await page.Locator(".bioage-calculate-button").ClickAsync();
+        var loading = page.Locator(".bioage-rank-loading");
+        await loading.WaitForAsync();
+        await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.NoPreference });
+
+        var contrasts = await loading.EvaluateAsync<double[]>(
+            """
+            async element => {
+                const rgb = value => value.match(/[\d.]+/g).slice(0, 3).map(Number);
+                const luminance = channels => channels.map(channel => {
+                    const value = channel / 255;
+                    return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+                }).reduce((sum, value, index) => sum + value * [0.2126, 0.7152, 0.0722][index], 0);
+                let background = element;
+                while (getComputedStyle(background).backgroundColor === 'rgba(0, 0, 0, 0)')
+                    background = background.parentElement;
+                const bg = rgb(getComputedStyle(background).backgroundColor);
+                const samples = [];
+                for (const time of [0, 700, 1399, 2100]) {
+                    for (const animation of element.getAnimations()) {
+                        animation.pause();
+                        animation.currentTime = time;
+                    }
+                    await new Promise(resolve => requestAnimationFrame(resolve));
+                    const style = getComputedStyle(element);
+                    const opacity = parseFloat(style.opacity);
+                    const fg = rgb(style.color).map((channel, index) =>
+                        channel * opacity + bg[index] * (1 - opacity));
+                    const light = Math.max(luminance(fg), luminance(bg));
+                    const dark = Math.min(luminance(fg), luminance(bg));
+                    samples.push((light + 0.05) / (dark + 0.05));
+                }
+                return samples;
+            }
+            """);
+
+        Assert.All(contrasts, contrast => Assert.True(contrast >= 4.5,
+            $"{path} {scheme}: loading text fades to a contrast ratio of {contrast:F2}:1."));
+    }
+
     private readonly List<IBrowserContext> _contexts = [];
 
     [Theory]
