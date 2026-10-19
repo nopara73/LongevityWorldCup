@@ -1540,7 +1540,7 @@ public sealed class AestheticSystemBrowserTests(
                     const source = [...document.querySelectorAll('body *')].find(e => getComputedStyle(e).containerName.split(' ').includes(name));
                     if (!source) throw new Error('Missing query container: ' + name);
                     const probe = source.cloneNode(true);
-                    probe.id = 'responsive-em-probe';
+                    probe.dataset.responsiveEmProbe = 'true';
                     probe.style.cssText += ';box-sizing:content-box;max-inline-size:none;min-inline-size:0;font-size:20px;flex:none;overflow:visible;scrollbar-gutter:auto;';
                     source.parentElement.append(probe);
                     return parseFloat(getComputedStyle(probe).fontSize);
@@ -1552,7 +1552,7 @@ public sealed class AestheticSystemBrowserTests(
                 var width = threshold + delta;
                 var diagnostics = await page.EvaluateAsync<double[]>("""
                     async arg => {
-                        const probe = document.getElementById('responsive-em-probe');
+                        const probe = document.querySelector('[data-responsive-em-probe]');
                         probe.style.setProperty('width', `${arg.Width}px`, 'important');
                         probe.style.setProperty('inline-size', `${arg.Width}px`, 'important');
                         await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
@@ -1562,7 +1562,7 @@ public sealed class AestheticSystemBrowserTests(
                         await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
                         let applied;
                         if (arg.Name === 'league-filters') applied = getComputedStyle(probe.querySelector('.filter-label-copy')).display === 'block';
-                        else if (arg.Name === 'athlete-stats') applied = getComputedStyle(probe.querySelector('.athlete-info-table tr')).display === 'grid';
+                        else if (arg.Name === 'athlete-stats') applied = getComputedStyle(probe.querySelector('.athlete-info-table tr')).gridTemplateColumns.split(' ').length === 1;
                         else if (arg.Name === 'leaderboard') {
                             const row = probe.querySelector('tbody tr:not(.no-results):not(.tier-separator)');
                             applied = row.querySelector('.athlete-identity').getBoundingClientRect().top >= row.querySelector('.portrait-wrapper').getBoundingClientRect().bottom - 1;
@@ -1580,7 +1580,7 @@ public sealed class AestheticSystemBrowserTests(
                 Assert.True((diagnostics[1] == 1) == expected,
                     $"{condition.Name} did not cross {condition.Value}em at {width}px (applied={diagnostics[1]}).");
             }
-            await page.Locator("#responsive-em-probe").EvaluateAsync("probe => probe.remove()");
+            await page.Locator("[data-responsive-em-probe]").EvaluateAsync("probe => probe.remove()");
         }
     }
 
