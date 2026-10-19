@@ -6039,10 +6039,17 @@ a.lmx-note-mention:focus-visible {
 .lmx-page .lmx-note .lmx-discussion-post-author strong {
     font-size: var(--lwc-type-body);
     line-height: 1.3;
+    overflow-wrap: break-word;
+}
+
+.lmx-page .lmx-discussion-post-header {
+    flex-wrap: wrap;
 }
 
 .lmx-page .lmx-discussion-post-author {
     gap: 0;
+    min-width: min-content;
+    max-width: 100%;
 }
 
 .lmx-page .lmx-note > p,
@@ -6114,7 +6121,7 @@ a.lmx-note-mention:focus-visible {
 
 @media (max-width: 760px) {
     .lmx-page .lmx-habit-grid {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 5rem), 1fr));
         gap: var(--lwc-space-2);
     }
 

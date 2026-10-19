@@ -8,6 +8,55 @@ namespace LongevityWorldCup.Tests;
 public sealed partial class LongevitymaxxingChallengeBrowserTests
 {
     [Theory]
+    [InlineData(390, 100, ColorScheme.Light)]
+    [InlineData(1440, 100, ColorScheme.Dark)]
+    [InlineData(390, 200, ColorScheme.Light)]
+    [InlineData(390, 200, ColorScheme.Dark)]
+    [InlineData(414, 200, ColorScheme.Light)]
+    [InlineData(520, 200, ColorScheme.Dark)]
+    public async Task PageSystem_HabitLabelsRemainWholeAndInsideTheirCardsWithEnlargedText(int width, int textPercent, ColorScheme theme)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = 900 }, ColorScheme = theme,
+            ReducedMotion = ReducedMotion.Reduce, HasTouch = width < 600
+        });
+        await context.RouteAsync("**/api/longevitymaxxing/state",
+            route => FulfillJsonAsync(route, JsonSerializer.Serialize(BuildPublicState())));
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/longevitymaxxing");
+        await page.EvaluateAsync("percent => document.documentElement.style.fontSize = `${percent}%`", textPercent);
+        await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
+        var problems = await page.Locator("#lmxHabitGrid").EvaluateAsync<string[]>("""
+            (grid, percent) => {
+                const problems = [];
+                const cards = [...grid.querySelectorAll('.lmx-habit-card')];
+                if (cards.length !== 4) problems.push('missing habit cards');
+                for (const card of cards) {
+                    const label = card.querySelector('span');
+                    const box = card.getBoundingClientRect();
+                    const range = document.createRange();
+                    range.selectNodeContents(label);
+                    for (const rect of range.getClientRects()) {
+                        if (rect.left < box.left - 1 || rect.right > box.right + 1 || rect.top < box.top - 1 || rect.bottom > box.bottom + 1)
+                            problems.push(label.textContent + ': clipped label');
+                    }
+                    for (const word of label.firstChild.textContent.matchAll(/\S+/g)) {
+                        range.setStart(label.firstChild, word.index);
+                        range.setEnd(label.firstChild, word.index + word[0].length);
+                        if (range.getClientRects().length > 1) problems.push(word[0] + ': broken word');
+                    }
+                    if (parseFloat(getComputedStyle(label).fontSize) < 14 * percent / 100 - .1)
+                        problems.push(label.textContent + ': text did not enlarge');
+                }
+                if (document.documentElement.scrollWidth > innerWidth) problems.push('page overflows');
+                return problems;
+            }
+            """, textPercent);
+        Assert.True(problems.Length == 0, $"{width}px / {textPercent}% / {theme}: {string.Join("; ", problems)}");
+    }
+
+    [Theory]
     [InlineData(1440, ColorScheme.Light)]
     [InlineData(768, ColorScheme.Dark)]
     [InlineData(390, ColorScheme.Light)]
