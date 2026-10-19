@@ -63,4 +63,133 @@ public sealed class PlayPlayerCardBrowserTests(
             $"{scenario}: the screen's controls should sit in the card's body under the portrait.");
         await FlowActionDockBrowserTests.ExpectNoHorizontalOverflowAsync(page);
     }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Selection_VisualAndKeyboardOrderAgreeAcrossThePlayerCardBoundaries(bool fallback)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = 768, Height = 1024 }, ReducedMotion = ReducedMotion.Reduce
+        });
+        await context.AddInitScriptAsync(ProAthlete);
+        if (fallback) await context.AddInitScriptAsync("Element.prototype.moveBefore = undefined");
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/select-athlete");
+        await page.WaitForFunctionAsync("() => !document.documentElement.hasAttribute('data-initial-view') && !document.getElementById('playConfirmAthleteBtn').disabled");
+        await page.EvaluateAsync("() => document.fonts.ready");
+        var input = page.Locator("#playAthleteInput");
+        await input.FocusAsync();
+        await input.EvaluateAsync("e => e.setSelectionRange(2, 7)");
+
+        foreach (var (width, height) in new[] { (768, 1024), (760, 1024), (761, 1024), (769, 1024), (768, 599), (768, 600), (1024, 768) })
+        {
+            await page.SetViewportSizeAsync(width, height);
+            await page.EvaluateAsync("async () => { window.LwcFlowActionDock.refreshNow(); await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))); }");
+            await Assertions.Expect(input).ToBeFocusedAsync();
+            Assert.Equal("Browser Test Athlete", await input.InputValueAsync());
+            Assert.Equal(new[] { 2, 7 }, await input.EvaluateAsync<int[]>("e => [e.selectionStart, e.selectionEnd]"));
+            Assert.True(await page.EvaluateAsync<bool>("""
+                () => {
+                    const buttons = [...document.querySelectorAll('.play-athlete-actions > .flow-action')];
+                    const visualOrder = [...buttons].sort((a, b) => {
+                        const x = a.getBoundingClientRect(), y = b.getBoundingClientRect();
+                        return Math.abs(x.top - y.top) > 2 ? x.top - y.top : x.left - y.left;
+                    });
+                    return buttons.every((button, i) => button === visualOrder[i]);
+                }
+                """), $"{width}x{height}: keyboard order must follow visual order.");
+        }
+
+        await page.SetViewportSizeAsync(768, 1024);
+        await page.EvaluateAsync("() => window.LwcFlowActionDock.refreshNow()");
+        await input.PressAsync("Tab");
+        await Assertions.Expect(page.Locator("#playSelectionBackBtn")).ToBeFocusedAsync();
+        await page.Keyboard.PressAsync("Tab");
+        await Assertions.Expect(page.Locator("#playConfirmAthleteBtn")).ToBeFocusedAsync();
+        await page.Keyboard.PressAsync("Enter");
+        await Assertions.Expect(page.Locator("#athleteDashboardPanel")).ToBeVisibleAsync();
+    }
+
+    [Theory]
+    [InlineData("/dashboard", 480, 640)]
+    [InlineData("/dashboard", 800, 200)]
+    [InlineData("/dashboard", 768, 768)]
+    [InlineData("/select-athlete", 480, 640)]
+    [InlineData("/select-athlete", 800, 200)]
+    [InlineData("/select-athlete", 768, 768)]
+    public async Task PortraitHeader_FitsTheWholeSourceImage(string path, int imageWidth, int imageHeight)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = 1440, Height = 900 }, ReducedMotion = ReducedMotion.Reduce
+        });
+        await context.AddInitScriptAsync(ProAthlete + """
+            const selected = JSON.parse(sessionStorage.getItem('selectedAthlete'));
+            selected.ProfilePic = '/player-card-shape.svg';
+            sessionStorage.setItem('selectedAthlete', JSON.stringify(selected));
+            """);
+        await context.RouteAsync("**/player-card-shape.svg", route => route.FulfillAsync(new()
+        {
+            ContentType = "image/svg+xml",
+            Body = $"<svg xmlns='http://www.w3.org/2000/svg' width='{imageWidth}' height='{imageHeight}'><rect width='100%' height='100%' fill='teal'/></svg>"
+        }));
+        var page = await context.NewPageAsync();
+        await page.GotoAsync(path);
+        await page.WaitForFunctionAsync("() => !document.documentElement.hasAttribute('data-initial-view') && document.querySelector('.play-hub-panel:not([hidden]) img.illustration')?.naturalWidth > 0");
+        Assert.True(await page.EvaluateAsync<bool>("""
+            () => {
+                const image = document.querySelector('.play-hub-panel:not([hidden]) img.illustration');
+                const rect = image.getBoundingClientRect(), style = getComputedStyle(image);
+                const ratios = [rect.width / image.naturalWidth, rect.height / image.naturalHeight];
+                const scale = style.objectFit === 'contain' ? Math.min(...ratios) : Math.max(...ratios);
+                return image.naturalWidth * scale <= rect.width + 1
+                    && image.naturalHeight * scale <= rect.height + 1;
+            }
+            """), $"{path}: the {imageWidth}x{imageHeight} portrait must fit without cropping its source framing.");
+    }
+
+    [Fact]
+    public async Task InlineCommandGrid_ReflowsLongWordsWithIconsAtDoubleTextSize()
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = 1440, Height = 1600 }, ReducedMotion = ReducedMotion.Reduce
+        });
+        await context.AddInitScriptAsync(ProAthlete);
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/dashboard");
+        await page.WaitForFunctionAsync("() => !document.documentElement.hasAttribute('data-initial-view') && document.querySelectorAll('#athleteDashboardActions .flow-action').length >= 4");
+        var scale = await page.EvaluateAsync<double>("""
+            async () => {
+                await document.fonts.ready;
+                const label = document.querySelector('#athleteDashboardActions .flow-action__label');
+                const before = parseFloat(getComputedStyle(label).fontSize);
+                label.textContent = 'Longevitymaxxing Championship';
+                const sizes = [...document.body.querySelectorAll('*')].filter(e => e instanceof HTMLElement)
+                    .map(e => [e, parseFloat(getComputedStyle(e).fontSize)]);
+                for (const [e, size] of sizes) e.style.setProperty('font-size', `${size * 2}px`, 'important');
+                window.LwcFlowActionDock.refreshNow();
+                await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+                return parseFloat(getComputedStyle(label).fontSize) / before;
+            }
+            """);
+        Assert.InRange(scale, 1.99, 2.01);
+        Assert.False(await page.Locator("#athleteDashboardActions").EvaluateAsync<bool>("e => e.classList.contains('flow-action-stack--docked')"));
+        foreach (var button in await page.Locator("#athleteDashboardActions .flow-action").AllAsync())
+        {
+            Assert.True(await button.EvaluateAsync<bool>("""
+                button => {
+                    const box = button.getBoundingClientRect(), icon = button.querySelector('i').getBoundingClientRect();
+                    const range = document.createRange(); range.selectNodeContents(button.querySelector('.flow-action__label'));
+                    const glyphs = [...range.getClientRects()].filter(r => r.width && r.height);
+                    const inside = r => r.left >= box.left - 1 && r.right <= box.right + 1 && r.top >= box.top - 1 && r.bottom <= box.bottom + 1;
+                    return inside(icon) && icon.width > 0 && icon.height > 0 && glyphs.length > 0
+                        && glyphs.every(r => inside(r) && !(r.left < icon.right - 1 && r.right > icon.left + 1 && r.top < icon.bottom - 1 && r.bottom > icon.top + 1));
+                }
+                """), "Each enlarged command must keep its actual text and icon inside the button without overlap.");
+        }
+        await FlowActionDockBrowserTests.ExpectNoHorizontalOverflowAsync(page);
+    }
 }

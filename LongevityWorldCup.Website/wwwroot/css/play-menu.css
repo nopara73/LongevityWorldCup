@@ -2169,6 +2169,7 @@ html.play-panel-transitioning .play-hub-panel--entering {
 
     .play-athlete-panel .play-athlete-card,
     .play-dashboard-panel .play-dashboard-card {
+        container: play-player-card / inline-size;
         width: 100%;
         margin: 0;
         border-radius: calc(var(--play-card-radius) - 1px) calc(var(--play-card-radius) - 1px) 0 0;
@@ -2199,8 +2200,8 @@ html.play-panel-transitioning .play-hub-panel--entering {
 
     .play-athlete-panel:not([hidden]) .athlete-picture-frame img.illustration,
     .play-dashboard-panel:not([hidden]) .athlete-picture-frame img.illustration {
-        object-fit: cover;
-        object-position: center 28%;
+        object-fit: contain;
+        object-position: center;
     }
 
     .play-athlete-panel .play-autocomplete-wrapper,
@@ -2236,7 +2237,25 @@ html.play-panel-transitioning .play-hub-panel--entering {
 
     .play-dashboard-panel .play-dashboard-actions:not(.flow-action-stack--docked) .flow-action {
         min-height: 52px;
-        overflow-wrap: normal;
+    }
+
+    .play-dashboard-panel .play-dashboard-actions:not(.flow-action-stack--docked) .flow-action:not(#playDashboardBackBtn) {
+        flex-wrap: wrap;
+        gap: 0.45em;
+        padding-inline: 0.75rem;
+    }
+
+    .play-dashboard-panel .play-dashboard-actions:not(.flow-action-stack--docked) .flow-action:not(#playDashboardBackBtn) .flow-action__label {
+        flex: 1 1 min-content;
+        width: auto;
+        overflow-wrap: anywhere;
+    }
+
+    .play-dashboard-panel .play-dashboard-actions:not(.flow-action-stack--docked) .flow-action:not(#playDashboardBackBtn) > i {
+        position: static;
+        flex: none;
+        width: 1.25em;
+        transform: none;
     }
 
     /* Selection: Back and Select share one row at the card's foot. */
@@ -2269,11 +2288,20 @@ html.play-panel-transitioning .play-hub-panel--entering {
         border-radius: 12px;
     }
 
-    .play-athlete-panel.athlete-search-open:not([hidden]) .play-athlete-card {
-        width: min(100%, 136px);
-    }
-
     .play-athlete-panel.athlete-search-open:not([hidden]) .athlete-picture-frame {
         aspect-ratio: 1;
+    }
+
+    /* Enlarged captions get their own row so the athlete's face stays visible. */
+    @container play-player-card (max-width: 20em) {
+        .play-athlete-panel .play-athlete-card .play-athlete-title,
+        .play-dashboard-panel .play-dashboard-card .play-dashboard-title {
+            grid-area: 2 / 1;
+        }
+
+        .play-athlete-panel .play-athlete-card .play-athlete-title::before,
+        .play-dashboard-panel .play-dashboard-card .play-dashboard-title::before {
+            display: none;
+        }
     }
 }

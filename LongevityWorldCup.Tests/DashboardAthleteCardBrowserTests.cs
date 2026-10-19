@@ -73,9 +73,13 @@ public sealed class DashboardAthleteCardBrowserTests(
             }
             """);
         var scenario = $"{width}x{height}, {textScale * 100}% text, {(isPro ? "pro" : "amateur")}";
-        Assert.True(layout[0] >= layout[4] - 1 && layout[1] <= layout[5] + 1 && layout[2] >= layout[6] - 1 && layout[3] <= layout[7] + 1,
-            $"{scenario}: the athlete name should sit on the portrait as its caption.");
-        Assert.True(Math.Abs(layout[3] - layout[7]) <= 2, $"{scenario}: the caption should rest on the portrait's bottom edge.");
+        var captionBelow = width >= 761 && height >= 600 && textScale == 2;
+        Assert.True(layout[0] >= layout[4] - 1 && layout[1] <= layout[5] + 1 && layout[2] >= layout[6] - 1,
+            $"{scenario}: the athlete name should stay within the portrait's width.");
+        if (captionBelow)
+            Assert.InRange(Math.Abs(layout[2] - layout[7]), 0, 2);
+        else
+            Assert.InRange(Math.Abs(layout[3] - layout[7]), 0, 2);
         if (layout[9] == 1)
             Assert.True(layout[7] <= layout[8] + 1, $"{scenario}: the docked actions cover the portrait ({layout[7]} > {layout[8]}).");
         if (isPro && textScale == 1 && ((width == 390 && height == 844)
@@ -197,12 +201,17 @@ public sealed class DashboardAthleteCardBrowserTests(
         Assert.False(await stack.EvaluateAsync<bool>("s => s.classList.contains('flow-action-stack--docked')"));
         await back.FocusAsync();
 
-        foreach (var height in new[] { 640, 1600, 640 })
+        // Check normal-height inline commands before overflowing them. Releasing
+        // an existing dock also needs its 48px hysteresis gap, so return to 1024.
+        foreach (var height in new[] { 900, 640, 1024, 1600, 640 })
         {
             await page.SetViewportSizeAsync(1440, height);
             await page.WaitForFunctionAsync("docked => document.querySelector('#athleteDashboardActions').classList.contains('flow-action-stack--docked') === docked", height == 640);
             await Assertions.Expect(back).ToBeFocusedAsync();
             Assert.True(await stack.EvaluateAsync<bool>("s => s.classList.contains('flow-action-stack--docked') ? s.firstElementChild.id === 'playDashboardBackBtn' : s.lastElementChild.id === 'playDashboardBackBtn'"));
+            if (height == 900)
+                Assert.True(await stack.EvaluateAsync<bool>("s => s.closest('#athleteDashboardPanel') !== null && s.getBoundingClientRect().bottom <= innerHeight - 12"),
+                    "At normal desktop height the fitting commands should remain inside the player card.");
             if (height == 640)
             {
                 await page.Keyboard.PressAsync("Tab");

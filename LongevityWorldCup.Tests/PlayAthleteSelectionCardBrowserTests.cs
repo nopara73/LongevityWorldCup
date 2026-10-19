@@ -142,7 +142,7 @@ public sealed class PlayAthleteSelectionCardBrowserTests(
                 return [card.width, card.height, frameBox.width, frameBox.height,
                     titleBox.top - frameBox.top, frameBox.bottom - titleBox.bottom,
                     parseFloat(getComputedStyle(frame).borderTopLeftRadius), Number(getComputedStyle(title).opacity),
-                    field.width];
+                    field.width, card.bottom - titleBox.bottom, titleBox.top - frameBox.bottom];
             }
             """;
         var idle = await page.EvaluateAsync<double[]>(measure);
@@ -151,7 +151,9 @@ public sealed class PlayAthleteSelectionCardBrowserTests(
         var wideCard = width >= 761 && height >= 600;
         if (wideCard) Assert.InRange(idle[2] / idle[3], 1.55, 1.65);
         else Assert.InRange(Math.Abs(idle[2] - idle[3]), 0, 1);
-        Assert.True(idle[4] > 0 && Math.Abs(idle[5]) <= 1, $"{width}px: the title should be the caption along the portrait's bottom edge.");
+        var captionBelow = wideCard && fontSize == 32;
+        Assert.True(idle[4] > 0 && Math.Abs(idle[9]) <= 1, $"{width}px: the title should caption the player card.");
+        Assert.InRange(Math.Abs(captionBelow ? idle[10] : idle[5]), 0, 1);
         if (!wideCard) Assert.True(Math.Abs(idle[0] - idle[8]) <= 1, $"{width}px: the card ({idle[0]}px) should share the field's column ({idle[8]}px).");
 
         await input.FillAsync("a");
@@ -171,7 +173,8 @@ public sealed class PlayAthleteSelectionCardBrowserTests(
         await Assertions.Expect(page.Locator("#athleteSelectionTitle")).ToHaveTextAsync(name);
         var chosen = await page.EvaluateAsync<double[]>(measure);
         Assert.InRange(Math.Abs(chosen[0] - idle[0]), 0, 1);
-        Assert.True(Math.Abs(chosen[5]) <= 1 && chosen[7] == 1, $"{width}px: the chosen athlete's name should caption their portrait.");
+        Assert.True(Math.Abs(chosen[9]) <= 1 && chosen[7] == 1, $"{width}px: the chosen athlete's name should caption their portrait.");
+        Assert.InRange(Math.Abs(captionBelow ? chosen[10] : chosen[5]), 0, 1);
     }
 
     [Theory]
