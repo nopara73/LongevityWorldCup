@@ -899,6 +899,10 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
             font-weight: 700;
         }
 
+        .documentation-document td:not(.is-numeric) {
+            overflow-wrap: anywhere;
+        }
+
         /* Closing band: the next-step tiles at the foot of every document. */
         .documentation-document .documentation-next {
             margin: 3.5rem calc(-1 * var(--doc-pad)) calc(-1 * var(--doc-pad));
