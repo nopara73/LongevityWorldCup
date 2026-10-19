@@ -222,35 +222,82 @@ public sealed class BioageInstrumentBrowserTests(
     private readonly List<IBrowserContext> _contexts = [];
 
     [Theory]
-    [InlineData("/pheno-age")]
-    [InlineData("/bortz-age")]
-    public async Task EnlargedDateFields_KeepTheFullSelectedMonthReadable(string path)
+    [InlineData("/pheno-age", 1440, 100)]
+    [InlineData("/bortz-age", 1440, 100)]
+    [InlineData("/pheno-age", 1440, 200)]
+    [InlineData("/bortz-age", 1440, 200)]
+    [InlineData("/pheno-age", 390, 100)]
+    [InlineData("/bortz-age", 390, 100)]
+    [InlineData("/pheno-age", 390, 200)]
+    [InlineData("/bortz-age", 390, 200)]
+    [InlineData("/pheno-age", 320, 100)]
+    [InlineData("/bortz-age", 320, 100)]
+    [InlineData("/pheno-age", 320, 200)]
+    [InlineData("/bortz-age", 320, 200)]
+    public async Task DateFields_KeepAllSelectedValuesReadable(string path, int width, int textPercent)
     {
-        var page = await OpenAsync(path, 1440, 900, ColorScheme.Light);
-        await page.AddStyleTagAsync(new() { Content = "html { font-size: 200% !important; }" });
+        var page = await OpenAsync(path, width, 900, ColorScheme.Light);
+        await page.AddStyleTagAsync(new() { Content = $"html {{ font-size: {textPercent}% !important; }}" });
+        await page.Locator("#dob-year").SelectOptionAsync("1980");
         await page.Locator("#dob-month").SelectOptionAsync("12");
+        await page.Locator("#dob-day").SelectOptionAsync("20");
         await page.EvaluateAsync("() => document.fonts.ready");
 
-        var widths = await page.Locator("#dob-month").EvaluateAsync<double[]>(
+        var widths = await page.Locator("#dobFieldset select").EvaluateAllAsync<double[][]>(
             """
-            select => {
+            selects => selects.map(select => {
                 const style = getComputedStyle(select);
                 const canvas = document.createElement('canvas');
                 const context = canvas.getContext('2d');
                 context.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
-                const longestMonth = Math.max(...Array.from(select.options,
+                const longestValue = Math.max(...Array.from(select.options,
                     option => context.measureText(option.textContent).width));
                 // Native select text is not a DOM text node and can be clipped
                 // even when the select itself has no horizontal overflow.
                 const available = select.clientWidth
                     - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
-                return [available, longestMonth];
-            }
+                return [available, longestValue];
+            })
             """);
 
-        Assert.True(widths[0] >= widths[1],
-            $"{path}: the month needs {widths[1]}px but its select leaves only {widths[0]}px for text.");
+        Assert.All(widths, values => Assert.True(values[0] >= values[1],
+            $"{path} {width}px / {textPercent}%: the date value needs {values[1]}px but its select leaves only {values[0]}px for text."));
         await ExpectNoHorizontalOverflowAsync(page);
+    }
+
+    [Theory]
+    [InlineData("/pheno-age")]
+    [InlineData("/bortz-age")]
+    public async Task StepReveal_KeepsFullWidthRowsInsideTheViewportThroughoutMotion(string path)
+    {
+        var page = await OpenAsync(path, 390, 844, ColorScheme.Light);
+        await FillBioageStepOneAsync(page, DateTime.UtcNow.Date.AddDays(-9).ToString("yyyy-MM-dd"));
+        await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.NoPreference });
+        var samples = await page.Locator("#lwc-step-2").EvaluateAsync<double[]>(
+            """
+            async step => {
+                step.classList.remove('lwc-step--visible');
+                getComputedStyle(step).transform;
+                for (const animation of step.getAnimations()) animation.finish();
+                await new Promise(resolve => requestAnimationFrame(resolve));
+                step.classList.add('lwc-step--visible');
+                getComputedStyle(step).transform;
+                const animations = step.getAnimations();
+                const samples = [];
+                for (const time of [0, 55, 110, 220]) {
+                    for (const animation of animations) {
+                        animation.pause();
+                        animation.currentTime = time;
+                    }
+                    await new Promise(resolve => requestAnimationFrame(resolve));
+                    samples.push(Math.max(document.documentElement.scrollWidth,
+                        document.body.scrollWidth) - innerWidth);
+                }
+                return samples;
+            }
+            """);
+        Assert.All(samples, overflow => Assert.True(overflow <= 1,
+            $"{path}: the step reveal creates {overflow}px of horizontal overflow."));
     }
 
     public override async Task DisposeAsync()

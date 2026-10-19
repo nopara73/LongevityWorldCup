@@ -1797,9 +1797,13 @@ body #validAgeInput + * {
     }
 }
 
-/* Native selects cannot wrap their selected option. Leave room for a full
-   month name and the select's arrow before keeping three date columns. */
-@container bioage-form (max-width: 26em) {
+/* Native selects cannot wrap their selected option. Give full month names
+   more of the date row before stacking the controls on very narrow forms. */
+:is(#phenoAgeForm, #bortzAgeForm) fieldset#dobFieldset {
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.8fr) minmax(0, 1fr);
+}
+
+@container bioage-form (max-width: 14em) {
     :is(#phenoAgeForm, #bortzAgeForm) fieldset#dobFieldset > :is(label, select, #privacyNote) {
         grid-column: 1 / -1;
         grid-row: auto;
@@ -1810,6 +1814,12 @@ body #validAgeInput + * {
  * Calculator instrument (pheno and bortz only; the application form shares
  * .bioageform and keeps its own look).
  */
+:is(#phenoAgeForm, #bortzAgeForm) .lwc-step {
+    /* Full-width rows have no horizontal gutter to slide through. Keep the
+       opacity reveal without moving the sheet beyond the phone viewport. */
+    transform: none;
+}
+
 :is(#phenoAgeForm, #bortzAgeForm) legend {
     min-height: 24px;
     margin-bottom: var(--lwc-space-3, 0.75rem);
