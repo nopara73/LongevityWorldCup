@@ -77,6 +77,9 @@ public sealed class AthleteProfileDocumentBrowserTests(
     [Theory]
     [InlineData(1440, 900)]
     [InlineData(390, 844)]
+    [InlineData(844, 390)]
+    [InlineData(667, 375)]
+    [InlineData(932, 480)]
     public async Task StickyHeader_KeepsTheCloseButtonInPlaceAndTracksProgressOnItsEdge(int width, int height)
     {
         await using var context = await NewContextAsync(width, height, true);

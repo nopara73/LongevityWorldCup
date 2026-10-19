@@ -2930,25 +2930,6 @@
      .athlete-info-table .unit {
          white-space: normal;
      }
-     /* Use the card's available width and text size, including in scoped dialogs. */
-     @container athlete-stats (min-width: 16em) {
-         .athlete-info-table tr {
-             display: grid;
-             grid-template-columns: fit-content(52%) minmax(0, 1fr);
-             column-gap: 0.75rem;
-             align-items: baseline;
-         }
-         .athlete-info-table tr.athlete-info-divider-row td {
-             grid-column: 1 / -1;
-         }
-         .athlete-info-table th,
-         .athlete-info-table td {
-             width: auto;
-         }
-         .athlete-info-table td {
-             text-align: right;
-         }
-     }
      /* Pace/age rows: allow wrapping on mobile instead of nowrap */
      #bortzPaceOfAgingContainer td,
      #paceOfAgingContainer td,
@@ -4323,4 +4304,8 @@
  }
  @media (max-width: 480px){
      #detailsModal #athlete-profile > .athlete-links{ display:grid; gap:.45rem; }
+ }
+
+ @media (max-width: 932px) and (max-height: 480px) and (orientation: landscape){
+     #detailsModal .modal-sticky-header{ padding-left:10px; }
  }
