@@ -83,6 +83,10 @@ public sealed class ApplyJourneyBrowserTests(
             IsMobile = width < 600,
             HasTouch = width < 900
         });
+        await context.RouteAsync("**/api/data/athletes", route => route.FulfillAsync(new()
+        {
+            ContentType = "application/json", Body = "[]"
+        }));
         await context.RouteAsync("**/api/data/flags", route => route.FulfillAsync(new()
         {
             ContentType = "application/json",
