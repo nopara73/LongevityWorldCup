@@ -1182,7 +1182,10 @@ public sealed class AestheticSystemBrowserTests(
                         source.Where(condition => condition.Name == "play-player-card").ToArray());
                     break;
                 case "css/homepage.css":
-                    await AssertNewsletterContainerBoundariesAsync(page, source.ToArray());
+                    await AssertNewsletterContainerBoundariesAsync(page,
+                        source.Where(condition => condition.Name == "newsletter-section").ToArray());
+                    await AssertFontRelativeLeaderboardBoundariesAsync(page,
+                        source.Where(condition => condition.Name != "newsletter-section").ToArray());
                     break;
                 case "css/site-footer.css":
                     await AssertFooterContainerBoundariesAsync(page, source.ToArray());

@@ -89,6 +89,17 @@ public sealed class FlowActionDockBrowserTests(
         Assert.True(firstPaint.WordmarkTop >= 0, $"The first-paint wordmark starts above the viewport: {firstPaint.WordmarkTop}.");
         Assert.True(firstPaint.WordmarkBottom < firstPaint.ActionTop, $"The first-paint wordmark overlaps actions: {firstPaint.WordmarkBottom} >= {firstPaint.ActionTop}.");
         Assert.True(firstPaint.ActionBottom <= firstPaint.ViewportHeight + 1, $"The first-paint actions overflow the viewport: {firstPaint.ActionBottom} > {firstPaint.ViewportHeight}.");
+        // Hold the real transient dock state. Sampling two frames can otherwise
+        // miss the fade that occasionally made this assertion fail in CI.
+        var enteringOpacity = await page.Locator(".play-menu-actions").EvaluateAsync<double>(
+            """
+            actions => {
+                actions.style.transition = 'none';
+                actions.classList.add('flow-action-stack--dock-entering');
+                return parseFloat(getComputedStyle(actions).opacity);
+            }
+            """);
+        Assert.True(enteringOpacity >= 0.8, $"The dock-entry state hides the initial actions: opacity {enteringOpacity}.");
         Assert.Empty(errors);
     }
 

@@ -185,6 +185,10 @@ body.play-start-active .play-menu-actions.flow-action-stack--docked {
     -webkit-backdrop-filter: none;
     animation: none !important;
     transform: translateY(0) !important;
+    /* The intro already animates the buttons. Docking must keep their common
+       container readable from its first frame, including the entering state. */
+    opacity: 1;
+    transition: none;
 }
 
 .play-start-panel {

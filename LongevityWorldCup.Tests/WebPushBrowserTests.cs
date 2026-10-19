@@ -126,6 +126,57 @@ public sealed class WebPushBrowserTests
     }
 
     [Fact]
+    public async Task Bell_EarlyPressIsNotMovedByTheDeferredOpeningScroll()
+    {
+        await using var app = await BrowserTestApp.StartAsync();
+        Configure(app);
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await playwright.Chromium.LaunchAsync(new() { Headless = true });
+        await using var context = await browser.NewContextAsync(new()
+        {
+            ViewportSize = new() { Width = 1280, Height = 720 },
+            ReducedMotion = ReducedMotion.Reduce
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        var subscription = JsonSerializer.Serialize(WebPushTests.Subscription(), new JsonSerializerOptions(JsonSerializerDefaults.Web));
+        await context.AddInitScriptAsync(
+            """
+            window.testSubscribeStarted = false;
+            Object.defineProperty(Notification, 'permission', { get: () => 'granted' });
+            Notification.requestPermission = async () => 'granted';
+            const documentSubscription = {
+                toJSON: () => (SUBSCRIPTION),
+                unsubscribe: async () => true
+            };
+            PushManager.prototype.getSubscription = async () => null;
+            PushManager.prototype.subscribe = async () => {
+                window.testSubscribeStarted = true;
+                return documentSubscription;
+            };
+            """.Replace("SUBSCRIPTION", subscription));
+        var page = await context.NewPageAsync();
+        var clockTime = new DateTime(2026, 10, 19, 8, 0, 0, DateTimeKind.Utc);
+        await page.Clock.InstallAsync(new() { Time = clockTime.ToString("O") });
+        await page.Clock.PauseAtAsync(clockTime.AddMinutes(1));
+        await page.GotoAsync(app.BaseAddress + "events", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        var bell = page.Locator("#webPushToggle");
+        await Assertions.Expect(bell).ToBeVisibleAsync();
+        await page.EvaluateAsync("() => document.fonts.ready");
+        var before = Assert.IsType<LocatorBoundingBoxResult>(await bell.BoundingBoxAsync());
+        await page.Mouse.MoveAsync(before.X + before.Width / 2, before.Y + before.Height / 2);
+        await page.Mouse.DownAsync();
+        // Cross the opening-scroll deadline while the native press is held.
+        await page.Clock.FastForwardAsync(600);
+        var after = Assert.IsType<LocatorBoundingBoxResult>(await bell.BoundingBoxAsync());
+        await page.Mouse.UpAsync();
+
+        Assert.InRange(Math.Abs(before.Y - after.Y), 0, 0.5);
+        await page.Clock.ResumeAsync();
+        await page.WaitForFunctionAsync("() => window.testSubscribeStarted");
+        await Assertions.Expect(bell).ToHaveAttributeAsync("aria-pressed", "true");
+    }
+
+    [Fact]
     public async Task Designer_OffersIndependentUncheckedPushDestinationWithNotificationPreview()
     {
         await using var app = await BrowserTestApp.StartAsync();

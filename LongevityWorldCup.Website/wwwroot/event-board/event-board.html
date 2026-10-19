@@ -358,7 +358,15 @@
     function initEventBoard() {
         const headingEl = document.querySelector('.event-board-heading');
         if (headingEl && headingEl.scrollIntoView) {
-            setTimeout(() => {
+            const interactions = ['pointerdown', 'touchstart', 'wheel', 'keydown'];
+            let scrollTimer;
+            const cancelOpeningScroll = () => {
+                window.clearTimeout(scrollTimer);
+                interactions.forEach(type => window.removeEventListener(type, cancelOpeningScroll));
+            };
+            interactions.forEach(type => window.addEventListener(type, cancelOpeningScroll, { once: true, passive: true }));
+            scrollTimer = window.setTimeout(() => {
+                cancelOpeningScroll();
                 const behavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth';
                 headingEl.scrollIntoView({ behavior, block: 'start' });
             }, 500);

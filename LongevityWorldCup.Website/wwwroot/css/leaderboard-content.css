@@ -2789,7 +2789,7 @@
          .podium-item.first > :is(.podium-link-row, .podium-score){ justify-self:center; justify-content:center; }
          .podium-item.first .podium-score .age-reduction{ text-align:center; }
          .podium-item.first > .podium-item-lower{ justify-self:stretch; margin-inline:calc(-1 * var(--lwc-space-3)); }
-         .podium .name-row .athlete-name{ overflow-wrap:break-word; text-align:center; }
+         .podium .name-row .athlete-name{ overflow-wrap:anywhere; text-align:center; }
      }
 
      .leaderboard table{ width:100%; table-layout:auto; }
