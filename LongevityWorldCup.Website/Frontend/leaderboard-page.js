@@ -5477,6 +5477,11 @@ function handleAthleteModalLoadFailure(modalContent, athleteSlug, options, error
 
     const athleteNameElement = document.getElementById('athleteName');
     if (athleteNameElement && !preserveServerProfile) athleteNameElement.textContent = 'Athlete details unavailable';
+    if (preserveServerProfile && athleteNameElement) {
+        // Sharing the readable server profile needs only its name and canonical
+        // slug; a failed enhancement must not leave this action disabled.
+        configureAthleteShareButton(athleteNameElement.textContent.trim(), athleteSlug);
+    }
     const stickyAthleteName = document.getElementById('stickyAthleteName');
     if (stickyAthleteName && !preserveServerProfile) stickyAthleteName.textContent = 'Athlete details unavailable';
     const profilePic = document.getElementById('modalProfilePic');
