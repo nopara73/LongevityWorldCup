@@ -1084,6 +1084,18 @@ function persistGmaGuessState(athleteSlug, profileImageId, guessState) {
     }
 }
 
+function focusGmaCloseControl() {
+    const close = document.getElementById('closeAthleteDetailsModal');
+    if (!close) return;
+    const rect = close.getBoundingClientRect();
+    const viewport = modalContent.getBoundingClientRect();
+    const isVisible = rect.top >= Math.max(0, viewport.top)
+        && rect.bottom <= Math.min(window.innerHeight, viewport.bottom)
+        && rect.left >= Math.max(0, viewport.left)
+        && rect.right <= Math.min(window.innerWidth, viewport.right);
+    close.focus({ preventScroll: isVisible });
+}
+
 function scheduleGmaExit(athleteSlug, profileImageId, presentationGeneration, dwell) {
     if (gmaExitTimer) window.clearTimeout(gmaExitTimer);
 
@@ -1117,7 +1129,7 @@ function scheduleGmaExit(athleteSlug, profileImageId, presentationGeneration, dw
             modalContent.scrollTop = 0;
             modalContent.scrollLeft = 0;
             glideGmaPortraitIntoProfile(portrait, stageRect);
-            document.getElementById('closeAthleteDetailsModal')?.focus({ preventScroll: true });
+            focusGmaCloseControl();
         }, exitDelay);
     };
 
@@ -1347,7 +1359,7 @@ gmaSubmitBtn.addEventListener('click', async function () {
         if (!revealCompleted || !isCurrentGmaPresentation(presentation)) return;
 
         document.querySelectorAll('.gma-reaction').forEach(element => element.remove());
-        document.getElementById('closeAthleteDetailsModal')?.focus({ preventScroll: true });
+        focusGmaCloseControl();
 
         const outcomeDwell = userError === 0 && !prefersReducedGmaMotion()
             ? 16000

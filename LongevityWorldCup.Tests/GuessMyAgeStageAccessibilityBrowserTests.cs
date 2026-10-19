@@ -127,6 +127,44 @@ public sealed class GuessMyAgeStageAccessibilityBrowserTests(
         """;
 
     [Theory]
+    [InlineData(320, 640, 200)]
+    [InlineData(568, 240, 200)]
+    [InlineData(195, 422, 100)]
+    public async Task ScrolledResult_BringsTheFocusedCloseControlIntoView(int width, int height, int textPercent)
+    {
+        await using var context = await Browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = App.BaseAddress.ToString(), Locale = "en-US", ReducedMotion = ReducedMotion.Reduce,
+            ViewportSize = new ViewportSize { Width = width, Height = height }
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        await context.RouteAsync("**/api/Guess/athlete-age**", route => route.FulfillAsync(new RouteFulfillOptions
+        {
+            Status = 200, ContentType = "application/json",
+            Body = """{"crowdAge":60,"crowdCount":12,"actualAge":44,"guessAccepted":true}"""
+        }));
+        var page = await context.NewPageAsync();
+        await OpenRoundAsync(page);
+        await page.EvaluateAsync("percent => { document.documentElement.style.fontSize = percent + '%'; document.getElementById('gmaSkipAll').style.display = 'inline-block'; }", textPercent);
+        await page.Locator(".gma-btn--primary").ScrollIntoViewIfNeededAsync();
+        Assert.True(await page.EvaluateAsync<bool>("() => document.querySelector('#detailsModal .modal-content').scrollTop > 0"));
+        await page.Locator(".gma-btn--primary").ClickAsync();
+        await page.WaitForFunctionAsync("() => document.querySelector('#gmaRealBubble.is-settled')");
+        await Assertions.Expect(page.Locator("#closeAthleteDetailsModal")).ToBeFocusedAsync();
+        Assert.True(await page.Locator("#closeAthleteDetailsModal").EvaluateAsync<bool>(
+            """
+            close => {
+                const r = close.getBoundingClientRect();
+                const m = document.querySelector('#detailsModal .modal-content').getBoundingClientRect();
+                return r.top >= m.top && r.bottom <= Math.min(m.bottom, innerHeight)
+                    && r.left >= m.left && r.right <= m.right;
+            }
+            """));
+        await page.Keyboard.PressAsync("Escape");
+        await page.WaitForFunctionAsync("() => getComputedStyle(document.getElementById('detailsModal')).display === 'none'");
+    }
+
+    [Theory]
     [InlineData(43, true)]
     [InlineData(100, false)]
     public async Task ResultBubbles_KeepTheAnswerReadableAndResetOnTheNextAthlete(int guess, bool overlap)
