@@ -222,6 +222,44 @@ public sealed class LeaderboardBoardBrowserTests(PlaywrightBrowserFixture browse
 
     [Theory]
     [InlineData(320)]
+    [InlineData(390)]
+    [InlineData(481)]
+    [InlineData(769)]
+    [InlineData(1024)]
+    public async Task RankingTabs_EnlargedTextKeepsWholeWordsAndLargeActions(int width)
+    {
+        var (context, page) = await OpenAsync(width, 900, false);
+        await using var _ = context;
+        await page.EvaluateAsync("() => document.documentElement.style.fontSize = '200%'");
+        foreach (var view in new[] { "ultimate", "pheno" })
+        {
+            await page.Locator($"label[for='view-{view}']").ClickAsync();
+            var issues = await page.Locator(".leaderboard-view-switcher .view-badge").EvaluateAllAsync<string[]>("""
+                labels => labels.flatMap(label => {
+                    const box = label.getBoundingClientRect();
+                    const issues = [];
+                    if (box.width < 44 || box.height < 44 || box.right > innerWidth + 1) issues.push(label.textContent);
+                    const walker = document.createTreeWalker(label, NodeFilter.SHOW_TEXT);
+                    while (walker.nextNode()) {
+                        const node = walker.currentNode;
+                        for (const word of node.textContent.matchAll(/\p{Letter}+/gu)) {
+                            const range = document.createRange();
+                            range.setStart(node, word.index);
+                            range.setEnd(node, word.index + word[0].length);
+                            const rects = [...range.getClientRects()].filter(rect => rect.width && rect.height);
+                            if (rects.length > 1 || rects.some(rect => rect.left < box.left - 1 || rect.right > box.right + 1)) issues.push(word[0]);
+                        }
+                    }
+                    return issues;
+                })
+                """);
+            Assert.Empty(issues);
+        }
+        await ExpectNoHorizontalOverflowAsync(page);
+    }
+
+    [Theory]
+    [InlineData(320)]
     [InlineData(481)]
     [InlineData(769)]
     [InlineData(1024)]

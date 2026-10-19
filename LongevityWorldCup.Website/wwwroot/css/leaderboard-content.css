@@ -4341,17 +4341,18 @@ main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-toolbar{
     align-items:stretch; column-gap:var(--lwc-space-4); row-gap:0; padding:0 var(--lwc-space-4);
 }
 main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-view-switcher{
-    align-self:stretch; align-items:stretch; flex-wrap:nowrap; gap:var(--lwc-space-3);
+    align-self:stretch; align-items:stretch; flex-wrap:wrap; gap:var(--lwc-space-3); max-width:100%;
 }
 main[data-leaderboard-page="full"] .leaderboard-view-switcher .view-switcher-label{
     align-self:center; margin:0; color:var(--lwc-muted); font-size:var(--lwc-type-xs); font-weight:700; letter-spacing:.08em;
 }
 main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-view-switcher .view-switcher-chips{
-    align-items:stretch; flex-wrap:nowrap; gap:var(--lwc-space-1); min-height:0; padding:0;
+    align-items:stretch; flex-wrap:wrap; gap:var(--lwc-space-1); min-height:0; padding:0; max-width:100%;
     background:transparent; border:0; border-radius:0;
 }
 html body main[data-leaderboard-page="full"] .leaderboard-view-switcher .view-badge{
     min-height:60px; padding:0 var(--lwc-space-3); border-radius:0; background:transparent;
+    min-width:min-content; overflow-wrap:normal; word-break:normal;
     color:var(--lwc-muted); font-size:var(--lwc-type-sm); font-weight:700;
     box-shadow:inset 0 -3px 0 transparent;
 }
@@ -4554,7 +4555,7 @@ main[data-leaderboard-page="full"] .flag-section-heading{ padding-block:var(--lw
     main[data-leaderboard-page="full"] .leaderboard-controls{ margin-top:0; }
     main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-toolbar{ padding:var(--lwc-space-3) var(--lwc-space-3) 0; row-gap:0; }
     main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-view-switcher .view-switcher-chips{
-        display:flex; flex-wrap:nowrap; width:calc(100% + 2 * var(--lwc-space-3)); max-width:none; box-sizing:border-box;
+        display:flex; flex-wrap:wrap; width:calc(100% + 2 * var(--lwc-space-3)); max-width:none; box-sizing:border-box;
         margin:var(--lwc-space-2) calc(-1 * var(--lwc-space-3)) 0; padding:0 var(--lwc-space-1); gap:0;
         border-bottom:1px solid var(--lwc-border);
     }
