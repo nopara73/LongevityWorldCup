@@ -652,7 +652,10 @@ public sealed class GuessMyAgeBrowserTests(
                 """
                 element => {
                     const animation = element.getAnimations()
-                        .find(candidate => candidate.animationName === 'fadeOutButtons');
+                        .find(candidate => {
+                            const frames = candidate.effect.getKeyframes();
+                            return Number(frames[0]?.opacity) === 1 && Number(frames.at(-1)?.opacity) === 0;
+                        });
                     if (!animation) return [];
                     const duration = Number(animation.effect.getTiming().duration);
                     animation.pause();
@@ -710,7 +713,15 @@ public sealed class GuessMyAgeBrowserTests(
         Assert.True(await page.Locator("#guessAgeContainer .gma-actions").EvaluateAsync<bool>("element => element.inert"));
         Assert.False(await page.Locator("#guessAgeContainer .gma-actions").IsVisibleAsync());
         Assert.Equal("41", await page.Locator("#gmaRealBubble").InnerTextAsync());
-        await Assertions.Expect(page.Locator("#gmaBubble")).ToHaveCSSAsync("opacity", "0.4");
+        Assert.True(await page.Locator("#gmaRealBubble").EvaluateAsync<bool>(
+            """
+            real => {
+                const answer = real.getBoundingClientRect();
+                const submitted = document.getElementById('gmaBubble').getBoundingClientRect();
+                return submitted.left < answer.right && submitted.right > answer.left;
+            }
+            """));
+        await Assertions.Expect(page.Locator("#gmaBubble")).ToHaveCSSAsync("opacity", "0");
         Assert.Equal(0, await page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = "See profile", Exact = true }).CountAsync());
         Assert.True(await page.Locator("#detailsModal .modal-content").EvaluateAsync<bool>(
             "element => element.classList.contains('gma-result-ready')"));
@@ -743,17 +754,23 @@ public sealed class GuessMyAgeBrowserTests(
             () => {
                 const rect = selector => document.querySelector(selector).getBoundingClientRect();
                 const slider = rect('.gma-slider-wrap');
-                const payoff = rect('#gmaPayoffRegion');
+                const payoffElement = document.getElementById('gmaPayoffRegion');
+                const payoff = payoffElement.getBoundingClientRect();
                 const oldActions = rect('#guessAgeContainer > .gma-actions');
-                const card = rect('#guessAgeContainer');
+                const cardElement = document.getElementById('guessAgeContainer');
+                const card = cardElement.getBoundingClientRect();
+                const cardStyle = getComputedStyle(cardElement);
+                const sliderMargin = parseFloat(getComputedStyle(document.querySelector('.gma-slider-wrap')).marginBottom);
                 return [
                     payoff.height,
-                    payoff.childElementCount,
+                    payoffElement.childElementCount,
                     oldActions.height,
                     card.bottom,
                     window.innerHeight,
                     document.documentElement.scrollWidth - document.documentElement.clientWidth,
-                    card.bottom - slider.bottom
+                    card.bottom - slider.bottom - oldActions.height - sliderMargin
+                        - parseFloat(cardStyle.paddingBottom) - parseFloat(cardStyle.borderBottomWidth),
+                    oldActions.top - slider.bottom - sliderMargin
                 ];
             }
             """;
@@ -761,20 +778,23 @@ public sealed class GuessMyAgeBrowserTests(
         var phoneResultLayout = await page.EvaluateAsync<double[]>(compactResultLayoutScript);
         Assert.InRange(phoneResultLayout[0], 0, 0.5);
         Assert.Equal(0, phoneResultLayout[1]);
-        Assert.InRange(phoneResultLayout[2], 0, 0.5);
+        Assert.True(phoneResultLayout[2] >= 44);
         Assert.True(phoneResultLayout[3] <= phoneResultLayout[4] + 1);
         Assert.InRange(phoneResultLayout[5], -0.5, 0.5);
-        Assert.InRange(phoneResultLayout[6], 0, 80);
+        // The only gap is the reserved action row, slider margin and card padding.
+        Assert.InRange(phoneResultLayout[6], -1, 1);
+        Assert.InRange(phoneResultLayout[7], -1, 1);
 
         await page.SetViewportSizeAsync(1280, 720);
         await page.Clock.RunForAsync(50);
         var compactDesktopResultLayout = await page.EvaluateAsync<double[]>(compactResultLayoutScript);
         Assert.InRange(compactDesktopResultLayout[0], 0, 0.5);
         Assert.Equal(0, compactDesktopResultLayout[1]);
-        Assert.InRange(compactDesktopResultLayout[2], 0, 0.5);
+        Assert.True(compactDesktopResultLayout[2] >= 44);
         Assert.True(compactDesktopResultLayout[3] <= compactDesktopResultLayout[4] + 1);
         Assert.InRange(compactDesktopResultLayout[5], -0.5, 0.5);
-        Assert.InRange(compactDesktopResultLayout[6], 0, 80);
+        Assert.InRange(compactDesktopResultLayout[6], -1, 1);
+        Assert.InRange(compactDesktopResultLayout[7], -1, 1);
 
         await page.SetViewportSizeAsync(390, 844);
         await page.Clock.RunForAsync(50);

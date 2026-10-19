@@ -37,6 +37,12 @@ let cancelCurrentGmaReveal = null;
 let gmaExitTimer = 0;
 let gmaExactJackpotController = null;
 let gmaTrollController = null;
+let gmaPortraitGlide = null;
+
+function cancelGmaPortraitGlide() {
+    gmaPortraitGlide?.cancel();
+    gmaPortraitGlide = null;
+}
 
 function cancelGmaPresentation() {
     gmaPresentationGeneration += 1;
@@ -75,8 +81,16 @@ const resetObserver = new MutationObserver(mutations => {
     const isGuessMode = modalContent.classList.contains('guess-mode');
     const athleteSlug = modalContent.dataset.athleteSlug || '';
     const profileImageId = modalContent.dataset.profileImageId || '';
+    const modal = modalContent.closest('#detailsModal');
+    const isClosing = modal?.classList.contains('fade-out') || modal?.style.display === 'none';
+    const isUnavailable = modalContent.classList.contains('is-loading') || isClosing;
+    if (isClosing) cancelGmaPresentation();
+    if (isGuessMode || isUnavailable
+        || athleteSlug !== gmaObservedAthleteSlug || profileImageId !== gmaObservedProfileImageId) {
+        cancelGmaPortraitGlide();
+    }
     const guessModeWasAbsentDuringBatch = mutations.some(mutation =>
-        mutation.attributeName === 'class'
+        mutation.target === modalContent && mutation.attributeName === 'class'
         && !String(mutation.oldValue || '').split(/\s+/).includes('guess-mode'));
     const openedOrChangedAthlete = isGuessMode
         && (!gmaWasGuessMode
@@ -103,7 +117,7 @@ const resetObserver = new MutationObserver(mutations => {
         gmaCard.style.removeProperty('--gma-exit-height');
         gmaCard.classList.remove('is-submitting', 'is-revealing');
 
-        gmaBubble.classList.remove('gma-bubble-inactive');
+        gmaBubble.classList.remove('gma-bubble-inactive', 'gma-bubble-overlap');
 
         const oldRealBubble = document.getElementById('gmaRealBubble');
         if (oldRealBubble) oldRealBubble.remove();
@@ -130,6 +144,9 @@ const resetObserver = new MutationObserver(mutations => {
 });
 
 resetObserver.observe(modalContent, { attributes: true, attributeOldValue: true });
+resetObserver.observe(modalContent.closest('#detailsModal'), {
+    attributes: true, attributeFilter: ['class', 'style']
+});
 
 function gmaGeometryForAge(age) {
     const min = +gmaRange.min;
@@ -162,6 +179,12 @@ function positionGmaBubble(element, age) {
     element.style.left = geometry.bubbleLeft == null
         ? `${geometry.fillPercent}%`
         : `${geometry.bubbleLeft}px`;
+    if (element.id === 'gmaRealBubble' && geometry.bubbleLeft != null) {
+        const guessedLeft = Number.parseFloat(gmaBubble.style.left);
+        const separation = (gmaBubble.offsetWidth + element.offsetWidth) / 2 + 8;
+        gmaBubble.classList.toggle('gma-bubble-overlap',
+            Math.abs(guessedLeft - geometry.bubbleLeft) < separation);
+    }
     return geometry;
 }
 
@@ -1061,6 +1084,19 @@ function persistGmaGuessState(athleteSlug, profileImageId, guessState) {
     }
 }
 
+function focusGmaCloseControl() {
+    const close = document.getElementById('closeAthleteDetailsModal');
+    if (!close) return;
+    const rect = close.getBoundingClientRect();
+    const viewport = modalContent.getBoundingClientRect();
+    const isVisible = rect.top >= Math.max(0, viewport.top)
+        && rect.bottom <= Math.min(window.innerHeight, viewport.bottom)
+        && rect.left >= Math.max(0, viewport.left)
+        && rect.right <= Math.min(window.innerWidth, viewport.right);
+    if (!isVisible) modalContent.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    close.focus({ preventScroll: true });
+}
+
 function scheduleGmaExit(athleteSlug, profileImageId, presentationGeneration, dwell) {
     if (gmaExitTimer) window.clearTimeout(gmaExitTimer);
 
@@ -1087,10 +1123,14 @@ function scheduleGmaExit(athleteSlug, profileImageId, presentationGeneration, dw
             if (!canExit()) return;
 
             clearGmaEphemera();
+            const portrait = document.querySelector('#athlete-profile .portrait-wrapper');
+            const stageRect = portrait?.getBoundingClientRect();
             modalContent.classList.remove('guess-mode', 'gma-result-ready');
-            modalContent.scrollTop = 0;
-            modalContent.scrollLeft = 0;
-            document.getElementById('closeAthleteDetailsModal')?.focus({ preventScroll: true });
+            gmaCard.style.removeProperty('--gma-exit-height');
+            // The dialog's smooth-scroll style must not race the new profile geometry.
+            modalContent.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+            glideGmaPortraitIntoProfile(portrait, stageRect);
+            focusGmaCloseControl();
         }, exitDelay);
     };
 
@@ -1099,6 +1139,49 @@ function scheduleGmaExit(athleteSlug, profileImageId, presentationGeneration, dw
     } else {
         beginExit();
     }
+}
+
+// The stage portrait is larger and lower than the profile portrait. Animate from the stage
+// geometry to the profile geometry so the game hands the athlete over instead of snapping.
+function glideGmaPortraitIntoProfile(portrait, stageRect) {
+    cancelGmaPortraitGlide();
+    if (!portrait || !stageRect || stageRect.width <= 0
+        || prefersReducedGmaMotion()
+        || typeof portrait.animate !== 'function') return;
+
+    const profileRect = portrait.getBoundingClientRect();
+    if (profileRect.width <= 0) return;
+    const scale = stageRect.width / profileRect.width;
+    const deltaX = (stageRect.left + (stageRect.width / 2)) - (profileRect.left + (profileRect.width / 2));
+    const deltaY = (stageRect.top + (stageRect.height / 2)) - (profileRect.top + (profileRect.height / 2));
+    if (Math.abs(deltaX) < 1 && Math.abs(deltaY) < 1 && Math.abs(scale - 1) < 0.01) return;
+
+    const animation = portrait.animate([
+        { transform: `translate(${deltaX}px, ${deltaY}px) scale(${scale})` },
+        { transform: 'none' }
+    ], {
+        duration: modalContent.classList.contains('gma-fast') ? 320 : 460,
+        easing: 'cubic-bezier(.2, .8, .2, 1)'
+    });
+    gmaPortraitGlide = animation;
+    const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const cancelForReducedMotion = () => {
+        if (motionQuery.matches) cancelGmaPortraitGlide();
+    };
+    if (typeof motionQuery.addEventListener === 'function') {
+        motionQuery.addEventListener('change', cancelForReducedMotion);
+    } else {
+        motionQuery.addListener?.(cancelForReducedMotion);
+    }
+    const finish = () => {
+        if (typeof motionQuery.removeEventListener === 'function') {
+            motionQuery.removeEventListener('change', cancelForReducedMotion);
+        } else {
+            motionQuery.removeListener?.(cancelForReducedMotion);
+        }
+        if (gmaPortraitGlide === animation) gmaPortraitGlide = null;
+    };
+    animation.finished.then(finish, finish);
 }
 
 function restoreGuessControls(message, focusTarget) {
@@ -1117,7 +1200,7 @@ function restoreGuessControls(message, focusTarget) {
     gmaRange.style.pointerEvents = '';
     setGmaRangeResultState(false);
     gmaSubmitBtn.disabled = false;
-    gmaBubble.classList.remove('gma-bubble-inactive');
+    gmaBubble.classList.remove('gma-bubble-inactive', 'gma-bubble-overlap');
     document.getElementById('gmaRealBubble')?.remove();
     clearGmaEphemera();
     syncRange();
@@ -1169,11 +1252,15 @@ gmaSubmitBtn.addEventListener('click', async function () {
             // The server must not disclose actual age for a portrait that is
             // no longer current. Reload the athlete snapshot and let the
             // visitor judge the replacement image before retrying.
+            if (!isCurrentGmaPresentation(presentation)) return;
             cancelGmaPresentation();
+            const refreshGeneration = gmaPresentationGeneration;
             clearGmaEphemera();
             const refreshed = typeof window.refreshAthleteAfterStaleGuess === 'function'
                 && await window.refreshAthleteAfterStaleGuess(presentation.athleteSlug);
-            if (!refreshed) {
+            if (!refreshed && refreshGeneration === gmaPresentationGeneration
+                && modalContent.dataset.athleteSlug === presentation.athleteSlug
+                && modalContent.dataset.profileImageId === presentation.profileImageId) {
                 restoreGuessControls('The profile picture changed. Reopen this profile and try again.', gmaSubmitBtn);
             }
             return;
@@ -1273,7 +1360,7 @@ gmaSubmitBtn.addEventListener('click', async function () {
         if (!revealCompleted || !isCurrentGmaPresentation(presentation)) return;
 
         document.querySelectorAll('.gma-reaction').forEach(element => element.remove());
-        document.getElementById('closeAthleteDetailsModal')?.focus({ preventScroll: true });
+        focusGmaCloseControl();
 
         const outcomeDwell = userError === 0 && !prefersReducedGmaMotion()
             ? 16000
