@@ -250,8 +250,11 @@ public sealed class BioageInstrumentBrowserTests(
                 const canvas = document.createElement('canvas');
                 const context = canvas.getContext('2d');
                 context.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
-                const longestValue = Math.max(...Array.from(select.options,
-                    option => context.measureText(option.textContent).width));
+                // An unselected disabled placeholder cannot become a value;
+                // include it only when the control actually displays it.
+                const longestValue = Math.max(...Array.from(select.options)
+                    .filter(option => !option.disabled || option.selected)
+                    .map(option => context.measureText(option.textContent).width));
                 // Native select text is not a DOM text node and can be clipped
                 // even when the select itself has no horizontal overflow.
                 const available = select.clientWidth
