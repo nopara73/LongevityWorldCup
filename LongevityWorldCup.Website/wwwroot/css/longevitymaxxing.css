@@ -6294,7 +6294,7 @@ html body .lmx-page #lmxAccessTabs .lmx-tab[aria-selected="true"] {
 .lmx-unread-link::before { margin-inline-end: .4rem; }
 .lmx-unread-marker { margin-inline-start: .15rem; }
 .lmx-advice-branch { min-width: 0; }
-.lmx-advice-branch + .lmx-advice-branch { border-top: 1px solid var(--lmx-border); margin-top: 1rem; padding-top: 1rem; }
+.lmx-advice-branch + .lmx-advice-branch { border-top: 1px solid var(--lmx-border); margin-top: .25rem; padding-top: 0; }
 .lmx-advice-rank { color: var(--lmx-muted); font-size: .8rem; font-variant-numeric: tabular-nums; }
 .lmx-advice-branch.is-active .lmx-advice-rank { color: var(--lmx-accent); }
 .lmx-advice-conversation > .lmx-discussion-reply-item,
