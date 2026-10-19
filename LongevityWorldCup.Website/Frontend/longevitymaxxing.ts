@@ -898,6 +898,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     let regionDisplayNames: Intl.DisplayNames | null = null;
     let quoteDialogLastFocus: HTMLElement | null = null;
     let adviceStoryDraft: { id: string; body: string } | null = null;
+    let adviceCheckInEditing: { participantId: string; adviceId: string; challengeDay: number } | null = null;
     let adviceStorySaving = false;
     let adviceStoryEditDirty = false;
     let notePhotoViewerItems: NotePhotoViewerItem[] = [];
@@ -2459,11 +2460,12 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     }
 
     function syncCheckInDialog(): void {
-        if (participantState?.pendingAdvicePrompt) { closeCheckInDialog(false, false); return; }
+        const correctingAdviceScore = getAdviceCheckInBeingCorrected() !== null;
+        if (participantState?.pendingAdvicePrompt && !correctingAdviceScore) { closeCheckInDialog(false, false); return; }
         const currentParticipantState = participantState;
         const shouldOpen = !!currentParticipantState
             && !checkInDialogDismissed
-            && getPendingCheckInDays(currentParticipantState).length > 0
+            && (correctingAdviceScore || getPendingCheckInDays(currentParticipantState).length > 0)
             && ensureParticipantTab(currentParticipantState) === "checkin";
 
         if (shouldOpen) {
@@ -2505,6 +2507,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const backdrop = document.getElementById("lmxCheckinDialogBackdrop");
         const wasOpen = !!panel?.classList.contains("lmx-checkin-dialog-panel");
         if (!panel || !wasOpen) return;
+        const returnToStory = dismissed && getAdviceCheckInBeingCorrected() !== null;
+        if (returnToStory) adviceCheckInEditing = null;
 
         panel.classList.remove("lmx-checkin-dialog-panel");
         panel.removeAttribute("role");
@@ -2529,6 +2533,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         if (restoreFocus && returnFocus?.isConnected) {
             requestAnimationFrame(() => returnFocus.focus({ preventScroll: true }));
         }
+        if (returnToStory) renderAll();
     }
 
     function setCheckInDialogPageInert(panel: HTMLElement, backdrop: HTMLElement | null, inert: boolean): void {
@@ -2556,7 +2561,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         renderProfileIdentity(participant);
         renderProfileTimeZoneControls();
         renderProfilePictureControls(participant);
-        renderCheckIns(state.eligibleDays || []);
+        const correctingAdviceCheckIn = getAdviceCheckInBeingCorrected();
+        renderCheckIns(correctingAdviceCheckIn ? [correctingAdviceCheckIn] : state.eligibleDays || []);
         renderNotes(participantDiscussionThreads(state), true);
         renderParticipantTabs();
     }
@@ -5446,9 +5452,32 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         </div>`;
     }
 
+    function getAdviceCheckInBeingCorrected(): EligibleDay | null {
+        const editing = adviceCheckInEditing;
+        if (!editing || participantState?.participant.id !== editing.participantId ||
+            participantState.pendingAdvicePrompt?.id !== editing.adviceId) return null;
+        return participantState.eligibleDays.find(day => day.challengeDay === editing.challengeDay && day.existing) ?? null;
+    }
+
+    function changeAdviceCheckInScores(): void {
+        const state = participantState;
+        const prompt = state?.pendingAdvicePrompt;
+        if (!state || !prompt || adviceStorySaving || checkInSaving || adviceStoryDraft?.id !== prompt.id ||
+            !state.eligibleDays.some(day => day.challengeDay === prompt.challengeDay && day.existing)) return;
+        adviceCheckInEditing = { participantId: state.participant.id, adviceId: prompt.id, challengeDay: prompt.challengeDay };
+        selectedCheckInDay = prompt.challengeDay;
+        participantActiveTab = "checkin";
+        participantTabManual = true;
+        checkInDialogDismissed = false;
+        (document.getElementById("lmxAdviceStoryDialog") as HTMLDialogElement | null)?.close();
+        renderAll();
+    }
+
     function syncAdvicePrompt(): void {
         const prompt = participantState?.pendingAdvicePrompt;
         let dialog = document.getElementById("lmxAdviceStoryDialog") as HTMLDialogElement | null;
+        if (getAdviceCheckInBeingCorrected()) { if (dialog?.open) dialog.close(); return; }
+        adviceCheckInEditing = null;
         if (!prompt || !participantState) { if (dialog?.open) dialog.close(); return; }
         if (!dialog) {
             dialog = document.createElement("dialog");
@@ -5462,7 +5491,10 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                     <span id="lmxAdviceStoryCount" class="lmx-advice-story-count"></span>
                 </div>
                 <p class="lmx-status error" role="status" aria-live="polite"></p>
-                <div class="lmx-advice-story-actions"><button class="lmx-button" type="submit">Post</button></div>
+                <div class="lmx-advice-story-actions">
+                    <button class="lmx-discussion-quiet-action" type="button" data-advice-change-scores>Change scores</button>
+                    <button class="lmx-button" type="submit">Post</button>
+                </div>
             </form>`;
             document.body.append(dialog);
             const textarea = dialog.querySelector<HTMLTextAreaElement>("textarea")!;
@@ -5473,6 +5505,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 updateAdviceStoryControls();
             });
             dialog.querySelector("form")!.addEventListener("submit", event => { event.preventDefault(); void finishAdviceStory(true); });
+            dialog.querySelector<HTMLButtonElement>("[data-advice-change-scores]")!.addEventListener("click", changeAdviceCheckInScores);
             dialog.addEventListener("cancel", event => { event.preventDefault(); if (!adviceStorySaving) void finishAdviceStory(false); });
         }
         if (adviceStoryDraft?.id !== prompt.id) {
@@ -5496,6 +5529,10 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const prompt = participantState?.pendingAdvicePrompt;
         if (!dialog) return;
         const submit = dialog.querySelector<HTMLButtonElement>("[type=submit]")!;
+        const changeScores = dialog.querySelector<HTMLButtonElement>("[data-advice-change-scores]")!;
+        changeScores.hidden = !prompt || adviceStoryDraft?.id !== prompt.id ||
+            !participantState?.eligibleDays.some(day => day.challengeDay === prompt.challengeDay && day.existing);
+        changeScores.disabled = adviceStorySaving;
         submit.disabled = adviceStorySaving;
         dialog.querySelector<HTMLTextAreaElement>("textarea")!.readOnly = adviceStorySaving;
         dialog.setAttribute("aria-busy", String(adviceStorySaving));
@@ -5837,6 +5874,14 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             const stillOnSubmittedDay = selectedCheckInDay === payload.challengeDay;
             // Rendering can automatically switch to Home after the last due check-in.
             const stillViewingSubmittedDay = stillOnSubmittedDay && participantActiveTab === "checkin";
+            if (adviceCheckInEditing?.participantId === result.participant.id && adviceCheckInEditing.challengeDay === payload.challengeDay) {
+                if (result.pendingAdvicePrompt?.id !== adviceCheckInEditing.adviceId && adviceStoryDraft?.id === adviceCheckInEditing.adviceId) {
+                    try { sessionStorage.removeItem(adviceStoryStorageKey(adviceStoryDraft.id)); } catch { /* The corrected check-in no longer needs this story. */ }
+                    adviceStoryDraft = null;
+                }
+                adviceCheckInEditing = null;
+                participantTabManual = false;
+            }
             acceptParticipantState(result);
             const saved = result.eligibleDays.find(day => day.challengeDay === payload.challengeDay)?.existing;
             if (saved && !String(saved.note || "").trim() && !saved.images.length &&

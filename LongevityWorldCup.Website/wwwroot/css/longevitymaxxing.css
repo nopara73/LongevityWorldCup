@@ -6274,6 +6274,8 @@ html body .lmx-page #lmxAccessTabs .lmx-tab[aria-selected="true"] {
 .lmx-advice-story-dialog textarea:focus-visible { outline-offset: -1px; }
 .lmx-advice-story-count { position: absolute; bottom: .5rem; right: 1.25rem; color: var(--lmx-muted); font-size: .75rem; line-height: 1; font-variant-numeric: tabular-nums; pointer-events: none; }
 .lmx-advice-story-actions { display: flex; align-items: center; justify-content: flex-end; }
+.lmx-advice-story-actions [data-advice-change-scores] { margin-inline-end: auto; }
+.lmx-advice-story-actions [hidden] { display: none; }
 .lmx-advice-story-dialog .lmx-button { min-height: 44px; padding: .5rem .85rem; border: 1px solid var(--lmx-accent); border-radius: 5px; background: var(--lmx-accent); color: white; font: inherit; font-weight: 700; }
 .lmx-advice-story-dialog .lmx-button:disabled { opacity: .5; cursor: default; }
 .lmx-advice-badge { display: inline-flex; margin-right: .6rem; color: var(--lmx-accent); font-size: .75rem; font-weight: 700; }
