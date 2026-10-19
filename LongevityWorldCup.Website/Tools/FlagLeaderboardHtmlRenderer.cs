@@ -21,7 +21,7 @@ public static class FlagLeaderboardHtmlRenderer
             previousSection = section;
             var rank = team.Rank?.ToString() ?? "—";
             html.Append($"<details class=\"flag-team{(isAmateur ? " tier-amateur" : "")}\" id=\"flag-team-{team.Flag.Slug}\" data-clock=\"{team.View}\" data-flag=\"{Encode(team.Flag.Name)}\">")
-                .Append($"<summary title=\"{FlagLeaderboard.Label(team.View)}\"><span class=\"flag-team-rank\" aria-label=\"{(team.Rank.HasValue ? "Rank " + rank : "Unranked")}\">{rank}</span>")
+                .Append($"<summary title=\"{FlagLeaderboard.Label(team.View)}\"><span class=\"flag-team-rank\" data-rank=\"{team.Rank?.ToString() ?? ""}\" aria-label=\"{(team.Rank.HasValue ? "Rank " + rank : "Unranked")}\">{rank}</span>")
                 .Append($"<span class=\"flag-team-name\"><span class=\"flag-team-icon\" aria-hidden=\"true\">{Icon(team.Flag.Name)}</span><span>{Encode(team.Flag.Name)}</span></span>")
                 .Append("<span class=\"flag-team-portraits\" aria-hidden=\"true\">");
             foreach (var athlete in team.Athletes)

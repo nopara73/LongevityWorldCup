@@ -10,13 +10,15 @@ public sealed class LeaderboardSelectionBrowserTests(PlaywrightBrowserFixture br
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Theory]
-    [InlineData("ultimate", "ULTIMATE LEAGUE")]
-    [InlineData("pheno", "PHENO AGE LEAGUE")]
-    [InlineData("bortz", "BORTZ AGE LEAGUE")]
-    [InlineData("improvement", "PHENO IMPROVEMENT LEAGUE")]
-    [InlineData("bortz-improvement", "BORTZ IMPROVEMENT LEAGUE")]
-    [InlineData("crowd", "CROWD AGE LEAGUE")]
-    public async Task ShortResults_KeepTheFullLeagueNameVisibleWithoutStretchingRows(string view, string title)
+    [InlineData("ultimate", "ULTIMATE LEAGUE", 100)]
+    [InlineData("pheno", "PHENO AGE LEAGUE", 100)]
+    [InlineData("bortz", "BORTZ AGE LEAGUE", 100)]
+    [InlineData("improvement", "PHENO IMPROVEMENT LEAGUE", 100)]
+    [InlineData("bortz-improvement", "BORTZ IMPROVEMENT LEAGUE", 100)]
+    [InlineData("crowd", "CROWD AGE LEAGUE", 100)]
+    [InlineData("pheno", "PHENO AGE LEAGUE", 200)]
+    [InlineData("improvement", "PHENO IMPROVEMENT LEAGUE", 200)]
+    public async Task ShortResults_KeepTheFullLeagueNameVisibleWithoutStretchingRows(string view, string title, int textPercent)
     {
         await using var context = await NewContextAsync(Browser, App, new() { ViewportSize = new() { Width = 1280, Height = 844 }, ReducedMotion = ReducedMotion.Reduce });
         await context.AddInitScriptAsync("localStorage.setItem('gmaSkipAll','true')");
@@ -37,6 +39,7 @@ public sealed class LeaderboardSelectionBrowserTests(PlaywrightBrowserFixture br
 
         var page = await context.NewPageAsync();
         await page.GotoAsync(view == "ultimate" ? "/leaderboard" : $"/league/{view}");
+        await page.EvaluateAsync("async percent => { document.documentElement.style.fontSize = percent + '%'; await document.fonts.ready; }", textPercent);
         await Assertions.Expect(page.Locator(".leaderboard-selection-chip")).ToHaveCountAsync(view == "ultimate" ? 0 : 1);
         await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
         var originalCount = await Rows(page).CountAsync();
@@ -49,6 +52,7 @@ public sealed class LeaderboardSelectionBrowserTests(PlaywrightBrowserFixture br
         Assert.InRange(Math.Abs((await Rows(page).BoundingBoxAsync())!.Height - originalHeight), 0, 1);
 
         await page.ReloadAsync();
+        await page.EvaluateAsync("async percent => { document.documentElement.style.fontSize = percent + '%'; await document.fonts.ready; }", textPercent);
         await Assertions.Expect(Rows(page)).ToHaveCountAsync(1);
         await AssertVisibleRailAsync(page, title);
         if (view is "pheno" or "improvement")
