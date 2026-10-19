@@ -32,6 +32,8 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
                 const problems = [];
                 const cards = [...grid.querySelectorAll('.lmx-habit-card')];
                 if (cards.length !== 4) problems.push('missing habit cards');
+                const columns = getComputedStyle(grid).gridTemplateColumns.split(' ').length;
+                if (columns !== (percent === 100 ? 4 : 2)) problems.push(`unexpected ${columns}-column habit grid`);
                 for (const card of cards) {
                     const label = card.querySelector('span');
                     const box = card.getBoundingClientRect();

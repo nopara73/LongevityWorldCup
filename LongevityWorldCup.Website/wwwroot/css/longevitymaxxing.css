@@ -6121,7 +6121,7 @@ a.lmx-note-mention:focus-visible {
 
 @media (max-width: 760px) {
     .lmx-page .lmx-habit-grid {
-        grid-template-columns: repeat(auto-fit, minmax(min(100%, 5rem), 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 4.5rem), 1fr));
         gap: var(--lwc-space-2);
     }
 
