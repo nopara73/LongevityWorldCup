@@ -133,7 +133,7 @@ public sealed class BioageBiomarkerSheetBrowserTests(
         var rows = await page.EvaluateAsync<double[]>(
             """
             () => [
-                document.querySelector('label[for="dob-year"]').getBoundingClientRect().top,
+                document.querySelector('#dobFieldset > legend').getBoundingClientRect().top,
                 document.querySelector('#lwc-step-1 > fieldset:nth-of-type(2) > legend').getBoundingClientRect().top,
                 document.querySelector('#dob-year').getBoundingClientRect().top,
                 document.querySelector('#blood-draw-date').getBoundingClientRect().top,
