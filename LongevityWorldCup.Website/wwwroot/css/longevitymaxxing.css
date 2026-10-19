@@ -6302,6 +6302,7 @@ html body .lmx-page #lmxAccessTabs .lmx-tab[aria-selected="true"] {
 .lmx-advice-compose-slot:not(:empty) { margin-top: .75rem; }
 .lmx-advice-archive { color: var(--lmx-muted); font-size: .9rem; }
 .lmx-advice-archive > .lmx-discussion-reply-item { color: var(--lmx-ink); font-size: 1rem; }
+.lmx-advice-archive-content { color: var(--lmx-ink); font-size: 1rem; }
 .lmx-advice-replies > .lmx-discussion-reply-list { display: block; }
 .lmx-advice-story-dialog .lmx-status:empty { display: none; }
 .lmx-advice-story > p { max-width: 65ch; }

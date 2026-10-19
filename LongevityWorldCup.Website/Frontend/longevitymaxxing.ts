@@ -4393,9 +4393,10 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             const replies = all.filter(reply => !reply.isAdvice && reply.adviceRootId === root.id);
             const conversation = replies.map(reply => discussionReplyHtml(reply, note)).join("");
             return `<section class="lmx-advice-branch${active ? " is-active" : ""}" data-advice-root-id="${escAttr(root.id)}">
-                ${discussionReplyHtml(root, note)}
-                ${active ? `<div class="lmx-advice-conversation">${conversation}<div class="lmx-advice-compose-slot"></div></div>`
-                    : replies.length ? `<details class="lmx-advice-archive"><summary>Earlier conversation</summary>${conversation}</details>` : ""}
+                ${active ? `${discussionReplyHtml(root, note)}<div class="lmx-advice-conversation">${conversation}<div class="lmx-advice-compose-slot"></div></div>`
+                    : `<details class="lmx-advice-archive"><summary>Earlier conversation</summary><div class="lmx-advice-archive-content">
+                        ${discussionReplyHtml(root, note)}<div class="lmx-advice-conversation">${conversation}</div>
+                    </div></details>`}
             </section>`;
         }).join("");
         const legacy = all.filter(reply => !reply.adviceRootId);

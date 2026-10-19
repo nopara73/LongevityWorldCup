@@ -267,8 +267,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         state["public"]!["notes"] = promoted["public"]!["notes"]!.DeepClone();
         await page.Clock.FastForwardAsync(61_000);
         await page.Locator("#lmxFeedNew").ClickAsync();
-        if (!editingAdvice)
-            await Assertions.Expect(page.Locator($"#lmxNotes [data-advice-root-id='{FirstAdviceId}'] > .lmx-advice-archive")).ToHaveAttributeAsync("open", "");
+        await Assertions.Expect(page.Locator($"#lmxNotes [data-advice-root-id='{FirstAdviceId}'] > .lmx-advice-archive")).ToHaveAttributeAsync("open", "");
         await Assertions.Expect(draft).ToBeVisibleAsync();
         Assert.True(await draft.EvaluateAsync<bool>("e => e === window.archivedEditDraft && e.selectionStart === 3 && e.selectionEnd === 9"));
         await Assertions.Expect(draft).ToHaveValueAsync("My edit should stay visible after promotion.");
@@ -397,9 +396,13 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         var old = post.Locator($".lmx-advice-branch[data-advice-root-id='{FirstAdviceId}']");
         var archive = old.Locator("details");
         await Assertions.Expect(archive).Not.ToHaveAttributeAsync("open", "");
+        var oldAdvice = archive.Locator($"[data-discussion-reply-id='{FirstAdviceId}']");
+        await Assertions.Expect(oldAdvice).ToBeHiddenAsync();
         await Assertions.Expect(old.Locator("[data-discussion-reply-to]")).ToHaveCountAsync(0);
         await CaptureAdviceAsync(page, $"promoted-{width}-{theme}.png", post);
         await archive.Locator("summary").ClickAsync();
+        await Assertions.Expect(oldAdvice).ToBeVisibleAsync();
+        await Assertions.Expect(oldAdvice).ToContainTextAsync("Keep the restart small. One walk is a perfectly good first step.");
         await Assertions.Expect(archive).ToContainTextAsync("I can make a short walk happen after lunch.");
         await Assertions.Expect(archive.Locator("[data-discussion-reply-to], [data-discussion-reply-edit]")).ToHaveCountAsync(0);
         await CaptureAdviceAsync(page, $"archive-{width}-{theme}.png", post);
