@@ -107,17 +107,6 @@ internal static partial class ReferencePage
     public const string Style = """
 
     <style>
-        .documentation-document .ruleset-lede {
-            margin-bottom: 0;
-            color: var(--lwc-ink);
-            font-size: clamp(1.12rem, 1.6vw, 1.28rem);
-            line-height: 1.55;
-        }
-
-        .documentation-document {
-            counter-reset: ruleset-rule;
-        }
-
         .ruleset-section {
             margin-top: clamp(2.2rem, 4vw, 3rem);
         }
@@ -126,13 +115,13 @@ internal static partial class ReferencePage
             margin-top: 0;
         }
 
-        /* Rules are numbered like a rulebook; the number sits in a solid accent tile. */
+        /* Rules use the shared chapter tile, numbered by their own counter. */
         .documentation-document .ruleset-rule > h2 {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            gap: 0.5rem 0.85rem;
             counter-increment: ruleset-rule;
+        }
+
+        .documentation-document .ruleset-rule > h2::before {
+            content: counter(ruleset-rule, decimal-leading-zero);
         }
 
         /* Collect flex lines using the longest word, not the entire title.
@@ -143,88 +132,12 @@ internal static partial class ReferencePage
             max-width: 100%;
         }
 
-        .documentation-document .ruleset-rule > h2::before {
-            content: counter(ruleset-rule);
-            display: inline-grid;
-            flex: 0 0 auto;
-            place-items: center;
-            width: 2.6rem;
-            height: 2.6rem;
-            border-radius: var(--lwc-radius-md);
-            background: var(--lwc-accent);
-            color: var(--lwc-on-accent);
-            font-family: Orbitron, Roboto, sans-serif;
-            font-size: 1rem;
-            font-weight: 700;
-            letter-spacing: 0.02em;
-            line-height: 1;
-        }
-
-        .documentation-nav {
-            counter-reset: ruleset-nav-rule;
-        }
-
         .documentation-nav a.documentation-nav-rule {
-            gap: 0.55rem;
             counter-increment: ruleset-nav-rule;
         }
 
         .documentation-nav a.documentation-nav-rule::before {
-            content: counter(ruleset-nav-rule);
-            flex: 0 0 auto;
-            min-width: 1rem;
-            color: var(--lwc-accent);
-            font-family: Orbitron, Roboto, sans-serif;
-            font-size: var(--lwc-type-xs);
-            font-weight: 700;
-        }
-
-        .documentation-nav a.documentation-nav-rule.is-active::before {
-            color: inherit;
-        }
-
-        /* Each rule is a clause with a square accent marker; sub-clauses hang off a rail. */
-        .documentation-document .ruleset-rule ul {
-            padding-left: 0;
-            list-style: none;
-        }
-
-        .documentation-document .ruleset-rule li {
-            position: relative;
-            margin: 0.7rem 0;
-            padding-left: 1.55rem;
-        }
-
-        .documentation-document .ruleset-rule li::before {
-            content: "";
-            position: absolute;
-            top: 0.62em;
-            left: 0.2rem;
-            width: 0.5rem;
-            height: 0.5rem;
-            border-radius: 2px;
-            background: var(--lwc-accent);
-        }
-
-        .documentation-document .ruleset-rule li ul {
-            margin: 0.55rem 0 0.2rem;
-            padding: 0.1rem 0 0.1rem 0.95rem;
-            border-left: 2px solid var(--lwc-border);
-        }
-
-        .documentation-document .ruleset-rule li li {
-            margin: 0.5rem 0;
-            padding-left: 1.2rem;
-        }
-
-        .documentation-document .ruleset-rule li li::before {
-            top: 0.68em;
-            left: 0.1rem;
-            width: 0.42rem;
-            height: 0.42rem;
-            border: 2px solid var(--lwc-accent);
-            background: transparent;
-            box-sizing: border-box;
+            content: counter(ruleset-nav-rule, decimal-leading-zero);
         }
 
         /* FAQ: every group is a card of questions; answers open in place. */
@@ -371,20 +284,6 @@ internal static partial class ReferencePage
         }
 
         @media (max-width: 600px) {
-            .documentation-document.ruleset-document {
-                padding: min(1.1rem, 18px);
-            }
-
-            .documentation-document .ruleset-rule > h2 {
-                gap: 0.5rem 0.7rem;
-            }
-
-            .documentation-document .ruleset-rule > h2::before {
-                width: 2.25rem;
-                height: 2.25rem;
-                font-size: 0.9rem;
-            }
-
             .ruleset-faq-group {
                 margin-right: -0.35rem;
                 margin-left: -0.35rem;

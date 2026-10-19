@@ -93,7 +93,7 @@ public sealed class DocumentationHeadingWrapBrowserTests(
                             if (!inline && (Math.abs(box.left - hBox.left) > 1
                                 || box.top < hBox.top + parseFloat(style.paddingTop) + parseFloat(tile.height) + parseFloat(style.rowGap) - 1))
                                 issues.push(`${h.id}: stacked title overlaps or is misaligned`);
-                            if (style.counterIncrement !== 'ruleset-rule 1' || !tile.content.startsWith('counter(ruleset-rule)'))
+                            if (style.counterIncrement !== 'ruleset-rule 1' || !/^counter\(ruleset-rule[,)]/.test(tile.content))
                                 issues.push(`${h.id}: lost numbering`);
                             if (parseFloat(getComputedStyle(document.documentElement).fontSize) === 16 && innerWidth >= 320 && !inline)
                                 issues.push(`${h.id}: normal-text title must stay beside its number`);
