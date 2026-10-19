@@ -39,6 +39,7 @@ public sealed class ApplyJourneyBrowserTests(
                 BannerHeight: bannerRect.height,
                 Segments: segments.filter(visible).length,
                 Filled: segments.filter(segment => segment.classList.contains('active') || segment.classList.contains('completed')).length,
+                Current: segments.filter(segment => segment.getAttribute('aria-current') === 'step').map(segment => segments.indexOf(segment) + 1),
                 DrawnNumbers: Array.from(document.querySelectorAll('#subProgressContainerItem .stage-dot')).filter(visible).length,
                 StoryTiles: Array.from(document.querySelectorAll('#descriptionForm .convergence-stage-copy'))
                     .filter(visible)
@@ -80,6 +81,7 @@ public sealed class ApplyJourneyBrowserTests(
             Assert.True(Math.Abs(header.BannerTop) <= 2, $"{scenario}: the banner should be the card's top edge.");
             Assert.Equal(5, header.Segments);
             Assert.Equal(expectedFilled[stage], header.Filled);
+            Assert.Equal(new[] { expectedFilled[stage] }, header.Current);
             Assert.Equal(0, header.DrawnNumbers);
             Assert.Equal(0, header.StoryTiles);
             headers.Add(header);
@@ -253,6 +255,7 @@ public sealed class ApplyJourneyBrowserTests(
         public double BannerHeight { get; set; }
         public int Segments { get; set; }
         public int Filled { get; set; }
+        public int[] Current { get; set; } = [];
         public int DrawnNumbers { get; set; }
         public int StoryTiles { get; set; }
     }

@@ -1877,7 +1877,8 @@
 
                     illustrationImage.classList.remove('clickable');
                     setNextButtonToApply();
-                    updateSubProgress(6);
+                    // The final contact fields share the fifth meter segment.
+                    updateSubProgress(5);
 
                     const accountEmailInput = document.getElementById('accountEmail');
                     prefillAccountEmailFromMediaContact();
