@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.Playwright;
 using Xunit;
 using static LongevityWorldCup.Tests.AestheticSystemBrowserTests;
@@ -66,6 +67,55 @@ public sealed class ApplyJourneyBrowserTests(
         await Assertions.Expect(flag).ToHaveValueAsync("Hungary");
         await Assertions.Expect(flag).ToHaveAttributeAsync("aria-expanded", "false");
         await ExpectNoHorizontalOverflowAsync(page);
+    }
+
+    [Theory]
+    [InlineData(320, 480)]
+    [InlineData(390, 400)]
+    [InlineData(844, 390)]
+    [InlineData(1440, 900)]
+    public async Task FlagSuggestions_KeepEveryKeyboardOptionAboveTheActionDock(int width, int height)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = height },
+            ReducedMotion = ReducedMotion.Reduce,
+            IsMobile = width < 600,
+            HasTouch = width < 900
+        });
+        await context.RouteAsync("**/api/data/flags", route => route.FulfillAsync(new()
+        {
+            ContentType = "application/json",
+            Body = JsonSerializer.Serialize(Enumerable.Range(1, 15).Select(n => $"United Territory {n:00}"))
+        }));
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/apply");
+        var flag = page.Locator("#flag");
+        await Assertions.Expect(flag).ToHaveAttributeAsync("data-keydown-listener", "true");
+        await flag.FillAsync("United");
+        await page.WaitForFunctionAsync("""
+            () => {
+                const list = document.getElementById('flag-autocomplete-list')?.getBoundingClientRect();
+                const dock = document.querySelector('.flow-action-stack--docked')?.getBoundingClientRect();
+                return list && list.bottom <= (dock?.top ?? innerHeight);
+            }
+            """);
+        for (var index = 0; index < 15; index++)
+        {
+            await flag.PressAsync("ArrowDown");
+            var visible = await page.EvaluateAsync<bool>("""
+                () => {
+                    const active = document.getElementById(document.getElementById('flag').getAttribute('aria-activedescendant')).getBoundingClientRect();
+                    const dock = document.querySelector('.flow-action-stack--docked')?.getBoundingClientRect();
+                    const sticky = document.querySelector('#site-sticky-header.visible')?.getBoundingClientRect();
+                    return active.top >= (sticky?.bottom ?? 0) - 1 && active.bottom <= (dock?.top ?? innerHeight) + 1;
+                }
+                """);
+            Assert.True(visible, $"Suggestion {index + 1} must remain visible above the action dock.");
+        }
+        await flag.PressAsync("Enter");
+        await Assertions.Expect(flag).ToHaveValueAsync("United Territory 15");
+        await Assertions.Expect(flag).ToHaveAttributeAsync("aria-expanded", "false");
     }
 
     [Fact]

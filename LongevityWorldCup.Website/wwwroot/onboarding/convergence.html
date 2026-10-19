@@ -1928,14 +1928,6 @@
             }
         }
 
-        async function waitForPageModules() {
-            try {
-                await Promise.resolve(window.modulesReady || undefined);
-            } catch (error) {
-                console.error('Page modules failed to load:', error);
-            }
-        }
-
         function applyProofInstructionCopy() {
             const mainProofInstructions = document.getElementById('mainProofInstructions');
             if (mainProofInstructions && typeof window.getMainProofInstructionsInnerHTML === 'function') {
@@ -1979,7 +1971,7 @@
         const applicationFieldValidation = new Map();
         // Flag Autocomplete Implementation
         document.addEventListener('DOMContentLoaded', () => window.LwcInitialView.run(async function () {
-            await waitForPageModules();
+            await window.modulesReady;
 
             const pendingSubmission = window.getPendingApplicationSubmission('full-application');
             if (pendingSubmission) {

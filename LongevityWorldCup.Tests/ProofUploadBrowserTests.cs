@@ -48,12 +48,14 @@ public sealed class ProofUploadBrowserTests(
         };
         page.PageError += (_, error) => errors.Add(error);
 
-        var navigation = page.GotoAsync(
+        await page.GotoAsync(
             "/play/proof-upload.html",
             new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        // Time the deliberately delayed module after document navigation, rather
+        // than spending its deadline on a cold page and its blocking assets.
         await proofHelperRequestStarted.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        Assert.False(await page.EvaluateAsync<bool>("() => typeof window.setupProofUploadHTML === 'function'"));
         releaseProofHelper.SetResult();
-        await navigation;
         await page.WaitForFunctionAsync(
             "() => document.getElementById('uploadProofButton')?.getAttribute('data-listener') === 'true'");
 
@@ -97,12 +99,12 @@ public sealed class ProofUploadBrowserTests(
         };
         page.PageError += (_, error) => errors.Add(error);
 
-        var navigation = page.GotoAsync(
+        await page.GotoAsync(
             "/onboarding/convergence.html?fake=1",
             new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
         await proofHelperRequestStarted.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        Assert.False(await page.EvaluateAsync<bool>("() => typeof window.setupProofUploadHTML === 'function'"));
         releaseProofHelper.SetResult();
-        await navigation;
 
         await AdvanceOnboardingStageAsync(page, "Finding your why");
         await AdvanceOnboardingStageAsync(page, "The price of glory");

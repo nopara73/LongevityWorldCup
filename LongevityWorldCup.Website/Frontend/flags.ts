@@ -300,7 +300,7 @@
             if (options.inline) {
                 window.requestAnimationFrame(() => {
                     if (list && document.activeElement === input) {
-                        window.LwcFlowActionDock?.ensureClear?.(list.firstElementChild);
+                        window.LwcFlowActionDock?.ensureClear?.(list);
                     }
                 });
             }
