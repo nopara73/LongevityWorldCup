@@ -126,8 +126,9 @@ public sealed class ProofUploadBrowserTests(
         await page.GetByRole(AriaRole.Heading, new() { Name = "Final details" }).WaitForAsync();
         await page.Locator("#backButton").ClickAsync();
         await page.GetByRole(AriaRole.Heading, new() { Name = "Don't trust, verify" }).WaitForAsync();
-        Assert.Equal("stage active", await page.Locator("#subStage4").GetAttributeAsync("class"));
-        Assert.Equal("stage", await page.Locator("#subStage5").GetAttributeAsync("class"));
+        Assert.Equal("stage completed", await page.Locator("#subStage4").GetAttributeAsync("class"));
+        Assert.Equal("stage active", await page.Locator("#subStage5").GetAttributeAsync("class"));
+        Assert.Equal("stage", await page.Locator("#subStage6").GetAttributeAsync("class"));
         Assert.True(await page.Locator("#illustrationPicture").IsVisibleAsync());
         Assert.Contains("apply-bloodwork.", await page.Locator("#illustrationImage").GetAttributeAsync("src"));
 

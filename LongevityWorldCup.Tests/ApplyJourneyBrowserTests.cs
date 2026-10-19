@@ -131,9 +131,10 @@ public sealed class ApplyJourneyBrowserTests(
         await page.WaitForFunctionAsync("() => !document.getElementById('nextButton').disabled");
         await page.EvaluateAsync("() => { currentStage = 7; goToStage(7); }");
         await Assertions.Expect(page.Locator("#subProgressContainerItem [aria-current=step]")).ToHaveCountAsync(1);
-        await Assertions.Expect(page.Locator("#subStage5")).ToHaveAttributeAsync("aria-current", "step");
+        await Assertions.Expect(page.Locator("#subStage7")).ToHaveAttributeAsync("aria-current", "step");
         await page.Locator("#backButton").ClickAsync();
-        await Assertions.Expect(page.Locator("#subStage5")).ToHaveAttributeAsync("aria-current", "step");
+        await Assertions.Expect(page.Locator("#subProgressContainerItem [aria-current=step]")).ToHaveCountAsync(1);
+        await Assertions.Expect(page.Locator("#subStage6")).ToHaveAttributeAsync("aria-current", "step");
     }
 
     [Fact]
@@ -204,7 +205,6 @@ public sealed class ApplyJourneyBrowserTests(
         await page.GotoAsync("/apply?fake=1");
         await page.WaitForFunctionAsync("() => document.body.dataset.convergenceStage === '1' && !document.getElementById('nextButton').disabled");
 
-        var expectedFilled = new Dictionary<int, int> { [1] = 1, [2] = 2, [3] = 3, [4] = 4, [5] = 4, [6] = 5, [7] = 5 };
         var headers = new List<StageHeader>();
         for (var stage = 1; stage <= 7; stage++)
         {
@@ -218,9 +218,9 @@ public sealed class ApplyJourneyBrowserTests(
             Assert.DoesNotMatch(@"^\d", header.Title);
             Assert.True(header.BannerVisible, $"{scenario}: every stage should open with its banner.");
             Assert.True(Math.Abs(header.BannerTop) <= 2, $"{scenario}: the banner should be the card's top edge.");
-            Assert.Equal(5, header.Segments);
-            Assert.Equal(expectedFilled[stage], header.Filled);
-            Assert.Equal(new[] { expectedFilled[stage] }, header.Current);
+            Assert.Equal(7, header.Segments);
+            Assert.Equal(stage, header.Filled);
+            Assert.Equal(new[] { stage }, header.Current);
             Assert.Equal(0, header.DrawnNumbers);
             Assert.Equal(0, header.StoryTiles);
             headers.Add(header);
