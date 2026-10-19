@@ -1093,7 +1093,8 @@ function focusGmaCloseControl() {
         && rect.bottom <= Math.min(window.innerHeight, viewport.bottom)
         && rect.left >= Math.max(0, viewport.left)
         && rect.right <= Math.min(window.innerWidth, viewport.right);
-    close.focus({ preventScroll: isVisible });
+    if (!isVisible) modalContent.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    close.focus({ preventScroll: true });
 }
 
 function scheduleGmaExit(athleteSlug, profileImageId, presentationGeneration, dwell) {
@@ -1126,8 +1127,8 @@ function scheduleGmaExit(athleteSlug, profileImageId, presentationGeneration, dw
             const stageRect = portrait?.getBoundingClientRect();
             modalContent.classList.remove('guess-mode', 'gma-result-ready');
             gmaCard.style.removeProperty('--gma-exit-height');
-            modalContent.scrollTop = 0;
-            modalContent.scrollLeft = 0;
+            // The dialog's smooth-scroll style must not race the new profile geometry.
+            modalContent.scrollTo({ top: 0, left: 0, behavior: 'instant' });
             glideGmaPortraitIntoProfile(portrait, stageRect);
             focusGmaCloseControl();
         }, exitDelay);

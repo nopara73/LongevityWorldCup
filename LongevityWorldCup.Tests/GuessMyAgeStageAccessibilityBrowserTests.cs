@@ -194,14 +194,18 @@ public sealed class GuessMyAgeStageAccessibilityBrowserTests(
     }
 
     [Theory]
-    [InlineData(320, 640, 200)]
-    [InlineData(568, 240, 200)]
-    [InlineData(195, 422, 100)]
-    public async Task ScrolledResult_BringsTheFocusedCloseControlIntoView(int width, int height, int textPercent)
+    [InlineData(320, 640, 200, true)]
+    [InlineData(568, 240, 200, true)]
+    [InlineData(195, 422, 100, true)]
+    [InlineData(320, 640, 200, false)]
+    [InlineData(568, 240, 200, false)]
+    [InlineData(195, 422, 100, false)]
+    public async Task ScrolledResult_BringsTheFocusedCloseControlIntoView(int width, int height, int textPercent, bool reducedMotion)
     {
         await using var context = await Browser.NewContextAsync(new BrowserNewContextOptions
         {
-            BaseURL = App.BaseAddress.ToString(), Locale = "en-US", ReducedMotion = ReducedMotion.Reduce,
+            BaseURL = App.BaseAddress.ToString(), Locale = "en-US",
+            ReducedMotion = reducedMotion ? ReducedMotion.Reduce : ReducedMotion.NoPreference,
             ViewportSize = new ViewportSize { Width = width, Height = height }
         });
         await BrowserTestApp.RouteExternalResourcesAsync(context);
@@ -217,6 +221,57 @@ public sealed class GuessMyAgeStageAccessibilityBrowserTests(
         Assert.True(await page.EvaluateAsync<bool>("() => document.querySelector('#detailsModal .modal-content').scrollTop > 0"));
         await page.Locator(".gma-btn--primary").ClickAsync();
         await page.WaitForFunctionAsync("() => document.querySelector('#gmaRealBubble.is-settled')");
+        await Assertions.Expect(page.Locator("#closeAthleteDetailsModal")).ToBeFocusedAsync();
+        Assert.True(await page.Locator("#closeAthleteDetailsModal").EvaluateAsync<bool>(
+            """
+            close => {
+                const r = close.getBoundingClientRect();
+                const m = document.querySelector('#detailsModal .modal-content').getBoundingClientRect();
+                return r.top >= m.top && r.bottom <= Math.min(m.bottom, innerHeight)
+                    && r.left >= m.left && r.right <= m.right;
+            }
+            """));
+        await page.Keyboard.PressAsync("Escape");
+        await page.WaitForFunctionAsync("() => getComputedStyle(document.getElementById('detailsModal')).display === 'none'");
+    }
+
+    [Theory]
+    [InlineData(320, 640, 200, false)]
+    [InlineData(320, 640, 200, true)]
+    [InlineData(640, 360, 200, false)]
+    [InlineData(640, 360, 200, true)]
+    [InlineData(568, 240, 200, false)]
+    [InlineData(568, 240, 200, true)]
+    [InlineData(195, 422, 100, false)]
+    [InlineData(195, 422, 100, true)]
+    public async Task ScrolledSkip_LeavesCloseVisibleAfterTheGlide(int width, int height, int textPercent, bool skipAll)
+    {
+        await using var context = await Browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = App.BaseAddress.ToString(), Locale = "en-US", ReducedMotion = ReducedMotion.NoPreference,
+            ViewportSize = new ViewportSize { Width = width, Height = height }
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        var page = await context.NewPageAsync();
+        await OpenRoundAsync(page);
+        await page.EvaluateAsync("percent => { document.documentElement.style.fontSize = percent + '%'; document.getElementById('gmaSkipAll').style.display = 'inline-block'; }", textPercent);
+        var control = page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = skipAll ? "Skip all" : "Skip", Exact = true });
+        await control.ScrollIntoViewIfNeededAsync();
+        await control.ClickAsync();
+        await page.WaitForFunctionAsync("() => !document.querySelector('#detailsModal .modal-content').classList.contains('guess-mode')");
+        await page.EvaluateAsync(
+            """
+            async () => {
+                const close = document.getElementById('closeAthleteDetailsModal');
+                close.getBoundingClientRect();
+                await Promise.all([
+                    ...close.getAnimations(),
+                    ...document.querySelector('#athlete-profile .portrait-wrapper').getAnimations()
+                ].map(animation => animation.finished.catch(() => {})));
+                await new Promise(requestAnimationFrame);
+                await new Promise(requestAnimationFrame);
+            }
+            """);
         await Assertions.Expect(page.Locator("#closeAthleteDetailsModal")).ToBeFocusedAsync();
         Assert.True(await page.Locator("#closeAthleteDetailsModal").EvaluateAsync<bool>(
             """
