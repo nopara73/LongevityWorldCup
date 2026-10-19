@@ -386,6 +386,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await CaptureAdviceAsync(page, $"advice-composer-{width}-{theme}.png", post);
         await post.Locator("[data-reply-submit]").ClickAsync();
         await Assertions.Expect(post.Locator(".is-active .lmx-advice-rank")).ToHaveTextAsync("#3");
+        await Assertions.Expect(post.Locator(".lmx-discussion-post-actions [data-is-advice='true']")).ToHaveCountAsync(0);
         var replyAction = post.Locator(".is-active > .lmx-discussion-reply-item [data-discussion-reply]");
         await Assertions.Expect(replyAction).ToHaveCountAsync(1);
         await Assertions.Expect(post.Locator(".is-active > .lmx-discussion-reply-item [data-discussion-reply-to]")).ToHaveCountAsync(0);
@@ -395,6 +396,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await Assertions.Expect(post.Locator("[data-discussion-draft]")).ToHaveCountAsync(0);
         var old = post.Locator($".lmx-advice-branch[data-advice-root-id='{FirstAdviceId}']");
         var archive = old.Locator("details");
+        await Assertions.Expect(archive.Locator("summary")).ToHaveTextAsync("Earlier advice");
         await Assertions.Expect(archive).Not.ToHaveAttributeAsync("open", "");
         var oldAdvice = archive.Locator($"[data-discussion-reply-id='{FirstAdviceId}']");
         await Assertions.Expect(oldAdvice).ToBeHiddenAsync();
@@ -407,6 +409,31 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await Assertions.Expect(archive.Locator("[data-discussion-reply-to], [data-discussion-reply-edit]")).ToHaveCountAsync(0);
         await CaptureAdviceAsync(page, $"archive-{width}-{theme}.png", post);
         Assert.True(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth <= innerWidth"));
+
+        await using var visitorContext = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = 1000 }, ColorScheme = theme, Locale = "en-US"
+        });
+        if (width == 640) await visitorContext.AddInitScriptAsync("document.addEventListener('DOMContentLoaded',()=>document.documentElement.style.fontSize='200%')");
+        var visitorState = AdviceBrowserState(2, advisor: true);
+        visitorState["participant"]!["id"] = "p4";
+        visitorState["participant"]!["displayName"] = "Dee";
+        var visitorPage = await OpenDiscussionWorkspaceAsync(visitorContext, visitorState);
+        visitorPage.PageError += (_, error) => errors.Add(error);
+        var visitorPost = visitorPage.Locator("#lmxNotes > .lmx-advice-post");
+        var giveAdvice = visitorPost.Locator(".lmx-discussion-post-actions [data-is-advice='true']");
+        await Assertions.Expect(giveAdvice).ToBeVisibleAsync();
+        await Assertions.Expect(giveAdvice).ToHaveTextAsync("Give advice");
+        await CaptureAdviceAsync(visitorPage, $"give-advice-collapsed-{width}-{theme}.png", visitorPost);
+        await visitorPost.Locator(".lmx-advice-archive > summary").ClickAsync();
+        await CaptureAdviceAsync(visitorPage, $"give-advice-expanded-{width}-{theme}.png", visitorPost);
+        await giveAdvice.ClickAsync();
+        var visitorDraft = visitorPost.Locator("[data-discussion-draft] textarea");
+        await Assertions.Expect(visitorDraft).ToBeVisibleAsync();
+        await Assertions.Expect(giveAdvice).ToBeHiddenAsync();
+        await visitorDraft.PressAsync("Escape");
+        await Assertions.Expect(giveAdvice).ToBeVisibleAsync();
+        Assert.True(await visitorPage.EvaluateAsync<bool>("document.documentElement.scrollWidth <= innerWidth"));
         Assert.Empty(errors);
     }
 
