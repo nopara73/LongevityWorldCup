@@ -7380,6 +7380,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             const container = (editing ? button.closest("[data-discussion-reply-id]") : null) || button.closest("article[data-discussion-post-participant-id]");
             const open = activeDiscussionDraft?.key === key && activeDiscussionDraft.surface === discussionDraftSurface(button) &&
                 !!container?.querySelector("[data-discussion-draft]");
+            if (givingAdvice) button.hidden = open;
             const label = pending ? (editing ? "Saving…" : "Posting…")
                 : open ? (editing ? "Editing" : "Writing")
                 : draft?.error ? (editing ? "Retry edit" : givingAdvice ? "Retry advice" : "Retry reply")
