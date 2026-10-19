@@ -6289,6 +6289,10 @@ html body .lmx-page #lmxAccessTabs .lmx-tab[aria-selected="true"] {
 .lmx-advice-composer textarea { padding-bottom: 1.75rem; }
 .lmx-advice-composer [data-reply-count] { position: absolute; bottom: .5rem; right: 1.15rem; color: var(--lmx-muted); font-size: .75rem; line-height: 1; font-variant-numeric: tabular-nums; pointer-events: none; }
 .lmx-advice-composer [data-reply-count].over-limit { color: var(--lmx-danger); }
+.lmx-page .lmx-unread-link { font-weight: 700; color: var(--lmx-accent); }
+.lmx-unread-link::before, .lmx-unread-marker { content: ""; display: inline-block; inline-size: .4rem; block-size: .4rem; border-radius: 50%; background: var(--lmx-accent); vertical-align: middle; flex: 0 0 auto; }
+.lmx-unread-link::before { margin-inline-end: .4rem; }
+.lmx-unread-marker { margin-inline-start: .15rem; }
 .lmx-advice-branch { min-width: 0; }
 .lmx-advice-branch + .lmx-advice-branch { border-top: 1px solid var(--lmx-border); margin-top: 1rem; padding-top: 1rem; }
 .lmx-advice-rank { color: var(--lmx-muted); font-size: .8rem; font-variant-numeric: tabular-nums; }

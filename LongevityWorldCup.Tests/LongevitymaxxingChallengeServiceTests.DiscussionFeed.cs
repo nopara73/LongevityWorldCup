@@ -49,12 +49,14 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
             command.CommandText = "UPDATE LongevitymaxxingCheckIns SET DiscussionUpdatedAtUtc = '2026-06-21T08:00:00.123' || printf('%04d', 126 - ChallengeDay) || '+00:00';";
             command.ExecuteNonQuery();
         });
-        var last = fixture.Service.GetPublicState(now).Notes[^1];
+        var state = fixture.Service.GetPublicState(now);
+        var last = state.Notes[^1];
         Assert.Equal(26, last.ChallengeDay);
         var activity = DateTimeOffset.FromUnixTimeMilliseconds(DateTimeOffset.Parse(last.LastActivityAtUtc).ToUnixTimeMilliseconds());
         var score = Math.Round(Math.Log2(last.ReplyCount + 1) - 4 * (now - activity).TotalDays, 9);
-        var cursor = new LongevitymaxxingDiscussionFeedCursor(now.ToUnixTimeMilliseconds(), score,
-            activity.ToUnixTimeMilliseconds(), last.ChallengeDay, participantId, null);
+        var cursor = state.DiscussionSnapshot!.NextCursor!;
+        Assert.Equal(score, cursor.Score, 8);
+        Assert.Equal(activity.ToUnixTimeMilliseconds(), cursor.ActivityAtUnixMs);
         var older = fixture.Service.GetDiscussionFeed(new(null, cursor), now);
         Assert.Equal(Enumerable.Range(16, 10).Reverse(), older.Threads.Select(thread => thread.Note!.ChallengeDay));
 

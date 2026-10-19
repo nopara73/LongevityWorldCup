@@ -259,6 +259,7 @@
     }
 
     interface DiscussionReplyPage {
+        readContext?: DiscussionReadContext | null;
         replies: DiscussionReply[];
         totalCount: number;
         latestReplyIds: string[];
@@ -296,6 +297,7 @@
     }
 
     interface PublicState {
+        discussionSnapshot?: DiscussionFeedSnapshot | null;
         challengeName: string;
         phase: string;
         signupOpen: boolean;
@@ -348,6 +350,9 @@
     }
 
     interface ParticipantState {
+        systemDiscussionPosts?: DiscussionSystemPost[];
+        discussionSnapshot?: DiscussionFeedSnapshot | null;
+        readContext?: DiscussionReadContext | null;
         public: PublicState;
         participant: ParticipantSummary;
         eligibleDays: EligibleDay[];
@@ -379,6 +384,10 @@
     }
 
     interface DiscussionFeedCursor {
+        rankingRevision?: number | null;
+        readSnapshotRevision?: number | null;
+        hasPersonalUnread?: boolean;
+        latestRelevantAtUnixMs?: number;
         rankedAtUnixMs: number;
         score: number;
         activityAtUnixMs: number;
@@ -389,8 +398,33 @@
     }
 
     interface DiscussionFeedPage {
+        readContext?: DiscussionReadContext | null;
         threads: { note: ParticipantNote | null; systemPost: DiscussionSystemPost | null }[];
         nextCursor: DiscussionFeedCursor | null;
+    }
+
+    interface DiscussionFeedSnapshot {
+        keys: { participantId: string; challengeDay: number; systemPostId?: string | null }[];
+        nextCursor: DiscussionFeedCursor | null;
+    }
+
+    interface DiscussionUnreadThread {
+        participantId: string;
+        challengeDay: number;
+        systemPostId: string | null;
+        unreadCount: number;
+        firstUnreadReplyId: string | null;
+        hasOpeningMention: boolean;
+        latestRelevantAtUnixMs: number;
+        notifications: { id: string; sourceReplyId: string | null; createdRevision: number }[];
+    }
+
+    interface DiscussionReadContext { activityRevision: number; threads: DiscussionUnreadThread[]; }
+    interface DiscussionReadResult { acknowledgedIds: string[]; readContext: DiscussionReadContext; }
+    interface DiscussionThreadResult {
+        note: ParticipantNote | null;
+        systemPost: DiscussionSystemPost | null;
+        readContext?: DiscussionReadContext | null;
     }
 
     interface DashboardCategory {
@@ -781,6 +815,13 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     let publicState: PublicState | null = null;
     let participantState: ParticipantState | null = null;
     let stateAcceptanceGeneration = 0;
+    let discussionReadOwner: string | null = null;
+    let discussionReadRevision = -1;
+    const discussionUnread = new Map<string, DiscussionUnreadThread>();
+    const discussionThreadReadRevisions = new Map<string, number>();
+    const discussionReadHolds = new Map<string, number>();
+    const discussionReadPending = new Set<string>();
+    const unavailableDiscussionThreads = new Set<string>();
     let discussionStateRefreshPromise: Promise<void> | null = null;
     let accessToken = safeStorageGet(STORAGE_KEY);
     let signupSubmitted = false;
@@ -966,7 +1007,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             await consumeUrlTokens();
             await refreshState();
             scrollBoardToLatestDay();
-            await navigateDiscussion(window.location.hash);
+            await navigateDiscussion(window.location.hash, undefined, true);
         } catch (err) {
             const statusId = accessTab === "signin" ? "lmxResendStatus" : "lmxSignupStatus";
             setStatus(statusId, messageOf(err), true);
@@ -1148,6 +1189,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         window.matchMedia(MOBILE_DISCUSSION_ACTIONS_QUERY).addEventListener("change", syncDiscussionReplyActionOrder);
         requiredButton("lmxFeedOlder").addEventListener("click", () => void loadDiscussionFeed(true));
         requiredButton("lmxFeedNew").addEventListener("click", () => {
+            discussionReadHolds.clear();
             const visible = new Set(discussionFeedOrder.slice(0, discussionFeedVisible));
             discussionFeedUpdates.forEach((note, key) => discussionFeedNotes.set(key, note));
             discussionFeedUpdates.clear();
@@ -1186,26 +1228,75 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const acceptedGeneration = stateAcceptanceGeneration;
         const token = accessToken;
         try {
-            const notes = token
-                ? participantDiscussionThreads(await postJson(`${API}/participant`, { token }))
-                : publicDiscussionThreads(await getJson(`${API}/state`));
+            const state = token ? await postJson(`${API}/participant`, { token }) : null;
+            const notes = state ? participantDiscussionThreads(state) : publicDiscussionThreads(await getJson(`${API}/state`));
+            const readContexts: DiscussionReadContext[] = state?.readContext ? [state.readContext] : [];
+            const unavailable: ParticipantNote[] = [];
             // A newly answered or withdrawn old request may fall outside the bounded state window.
             const returned = new Set(notes.map(discussionPermalink));
             const missing = Array.from(discussionFeedNotes.values())
-                .filter(note => discussionNeedsAdvice(note) && !returned.has(discussionPermalink(note)));
+                .filter(note => (discussionNeedsAdvice(note) || discussionUnreadPriority(note)) && !returned.has(discussionPermalink(note)));
             for (let start = 0; start < missing.length; start += 4) {
                 await Promise.all(missing.slice(start, start + 4).map(async note => {
                     try {
-                        const query = new URLSearchParams({ postParticipantId: note.participantId, challengeDay: String(note.challengeDay) });
-                        const thread = await getJson(`${API}/discussion/thread?${query}`);
-                        if (hasProperties(thread, "note") && isParticipantNote(thread.note)) notes.push(thread.note);
-                    } catch { /* Retain the last known request until a later refresh succeeds. */ }
+                        const thread = await lookupDiscussionThread(note);
+                        if (thread.note) notes.push(thread.note);
+                        else if (thread.systemPost) notes.push(systemDiscussionThread(thread.systemPost));
+                        if (thread.readContext) readContexts.push(thread.readContext);
+                    } catch (error) {
+                        if (hasProperties(error, "status") && error.status === 404) unavailable.push(note);
+                        // Transient failures keep the last known request until a later refresh.
+                    }
                 }));
             }
             // A reply or check-in accepted while this request was pending is newer than its snapshot.
             if (generation !== discussionFeedGeneration || acceptedGeneration !== stateAcceptanceGeneration ||
                 token !== accessToken || discussionMutation) return;
-            if (queueDiscussionFeedUpdates(notes)) renderNotes(currentDiscussionNotes(), !!participantState);
+            const priorities = new Map(Array.from(discussionFeedNotes, ([key, note]) => [key, discussionUnreadPriority(note)]));
+            if (!hasUnpublishedDiscussionWork()) discussionReadHolds.clear();
+            readContexts.forEach(acceptDiscussionReadContext);
+            for (const note of unavailable) {
+                const key = discussionPermalink(note);
+                const previous = discussionUnread.get(key);
+                if (previous) discussionUnread.set(key, { ...previous, unreadCount: 0, notifications: [], firstUnreadReplyId: null, hasOpeningMention: false });
+                discussionThreadReadRevisions.set(key, discussionReadRevision);
+                discussionReadHolds.delete(key);
+                unavailableDiscussionThreads.add(key);
+                discussionFeedPending.delete(key); discussionFeedUpdates.delete(key);
+                const drafts = Array.from(discussionDrafts.values()).filter(draft => isDiscussionDraftThread(note, draft) && discussionDraftHasChanges(draft));
+                if (drafts.length) {
+                    drafts.forEach(draft => { draft.error = "This discussion is no longer available. Your draft is kept."; });
+                } else {
+                    discussionFeedNotes.delete(key);
+                    discussionFeedOrder = discussionFeedOrder.filter(candidate => candidate !== key);
+                    if (linkedDiscussionThread && discussionPermalink(linkedDiscussionThread) === key) linkedDiscussionThread = null;
+                }
+            }
+            updateDiscussionUnreadCues();
+            if (unavailable.length && !discussionFeedOrder.length) {
+                for (const note of discussionThreadsInHotOrder(notes)) {
+                    const key = discussionPermalink(note);
+                    discussionFeedNotes.set(key, note); discussionFeedOrder.push(key);
+                }
+                if (state?.discussionSnapshot) {
+                    discussionFeedBefore = state.discussionSnapshot.nextCursor;
+                    discussionFeedHasHistory = !!discussionFeedBefore;
+                }
+            }
+            let priorityChanged = false;
+            for (const note of notes) {
+                const key = discussionPermalink(note);
+                if ((priorities.get(key) || 0) === discussionUnreadPriority(note)) continue;
+                priorityChanged = true;
+                discussionFeedUpdates.set(key, note);
+                discussionFeedPending.add(key);
+            }
+            const atTop = (document.getElementById("lmxNotes")?.getBoundingClientRect().top || 0) >= -80;
+            if (priorityChanged && atTop && !hasUnpublishedDiscussionWork()) {
+                discussionFeedUpdates.forEach((note, key) => discussionFeedNotes.set(key, note));
+                discussionFeedUpdates.clear(); discussionFeedPending.clear(); reconcileAdviceFeedOrder();
+            }
+            if (queueDiscussionFeedUpdates(notes) || unavailable.length || priorityChanged && atTop && !hasUnpublishedDiscussionWork()) renderNotes(currentDiscussionNotes(), !!participantState);
             else updateDiscussionFeedControls();
         } catch { /* A background refresh must not interrupt reading or drafts. */ }
         finally { discussionFeedRefreshing = false; }
@@ -1238,7 +1329,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const visible = new Set(discussionFeedOrder.slice(0, discussionFeedVisible));
         const included = new Set(discussionFeedOrder);
         discussionFeedOrder = discussionThreadsInHotOrder(Array.from(discussionFeedNotes.values())
-            .filter(note => included.has(discussionPermalink(note)) || discussionNeedsAdvice(note)), false)
+            .filter(note => included.has(discussionPermalink(note)) || discussionNeedsAdvice(note) || discussionUnreadPriority(note)), false)
             .map(discussionPermalink);
         discussionFeedOrder.forEach((key, index) => {
             if (visible.has(key)) discussionFeedVisible = Math.max(discussionFeedVisible, index + 1);
@@ -1299,9 +1390,17 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                     discussionFeedNotes.set(key, note);
                     discussionFeedOrder.push(key);
                 }
-                const last = ordered.at(-1);
-                discussionFeedBefore = last ? discussionFeedPosition(last) : null;
-                discussionFeedHasHistory = ordered.length >= DISCUSSION_THREAD_LIMIT;
+                const snapshot = participantState?.discussionSnapshot || publicState?.discussionSnapshot;
+                if (snapshot) {
+                    const keys = snapshot.keys.map(discussionPermalink);
+                    discussionFeedOrder = keys.filter(key => discussionFeedNotes.has(key));
+                    discussionFeedBefore = snapshot.nextCursor;
+                    discussionFeedHasHistory = !!snapshot.nextCursor;
+                } else {
+                    const last = ordered.at(-1);
+                    discussionFeedBefore = last ? discussionFeedPosition(last) : null;
+                    discussionFeedHasHistory = ordered.length >= DISCUSSION_THREAD_LIMIT;
+                }
             } else {
                 const visible = new Set(discussionFeedOrder.slice(0, discussionFeedVisible));
                 let advicePriorityChanged = false;
@@ -1317,7 +1416,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                     discussionFeedNotes.set(key, note);
                     discussionFeedUpdates.delete(key);
                 }
-                if (advicePriorityChanged) reconcileAdviceFeedOrder();
+                if (advicePriorityChanged || participantState?.readContext) reconcileAdviceFeedOrder();
             }
         }
         if (linkedDiscussionThread) {
@@ -1348,7 +1447,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             discussionFeedLoading = true;
             updateDiscussionFeedControls();
             try {
-                const page = await postJson(`${API}/discussion/feed`, { accessToken, before: discussionFeedBefore });
+                const page = await fetchDiscussionHistory(generation, acceptedGeneration);
+                if (!page) return;
                 if (generation !== discussionFeedGeneration || acceptedGeneration !== stateAcceptanceGeneration) return;
                 if (page.nextCursor && JSON.stringify(page.nextCursor) === JSON.stringify(discussionFeedBefore))
                     throw invalidApiResponse(`${API}/discussion/feed`);
@@ -1388,6 +1488,53 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             const fallback = button.hidden ? document.getElementById("lmxFeedCaughtUp") : button;
             (next || fallback)?.focus({ preventScroll: true });
         }
+    }
+
+    async function fetchDiscussionHistory(generation: number, acceptedGeneration: number): Promise<DiscussionFeedPage | null> {
+        let cursor = discussionFeedBefore;
+        let restarts = 0;
+        const added = new Map<string, DiscussionThreadResult>();
+        const cursors = new Set<string>();
+        const token = accessToken;
+        while (true) {
+            let page: DiscussionFeedPage;
+            try { page = await postJson(`${API}/discussion/feed`, { accessToken: token, before: cursor }); }
+            catch (error) {
+                if (hasProperties(error, "status", "code") && error.status === 409 && error.code === "discussion_feed_changed" && restarts++ < 2) {
+                    cursor = null; cursors.clear(); added.clear(); continue;
+                }
+                throw error;
+            }
+            if (generation !== discussionFeedGeneration || acceptedGeneration !== stateAcceptanceGeneration || token !== accessToken) return null;
+            const signature = JSON.stringify(page.nextCursor);
+            if (page.nextCursor && (cursors.has(signature) || signature === JSON.stringify(cursor)))
+                throw invalidApiResponse(`${API}/discussion/feed`);
+            cursors.add(signature);
+            const oldPriorities = new Map(page.threads.map(thread => {
+                const note = thread.note || systemDiscussionThread(thread.systemPost!);
+                return [discussionPermalink(note), discussionUnreadPriority(note)] as const;
+            }));
+            acceptDiscussionReadContext(page.readContext);
+            for (const thread of page.threads) {
+                const note = thread.note || (thread.systemPost ? systemDiscussionThread(thread.systemPost) : null);
+                if (!note) continue;
+                const key = discussionPermalink(note);
+                const previous = discussionFeedNotes.get(key);
+                const priorityChanged = (oldPriorities.get(key) || 0) !== discussionUnreadPriority(note);
+                if (restarts && !previous && (discussionUnreadPriority(note) || discussionNeedsAdvice(note))) {
+                    discussionFeedUpdates.set(key, note);
+                    discussionFeedPending.add(key);
+                } else if (!previous) added.set(key, thread);
+                else if (restarts && !isOlderAdviceThread(note, previous) &&
+                    (priorityChanged || JSON.stringify(note) !== JSON.stringify(previous))) {
+                    discussionFeedUpdates.set(key, note);
+                    discussionFeedPending.add(key);
+                }
+            }
+            cursor = page.nextCursor;
+            if (!cursor || added.size >= DISCUSSION_BATCH_SIZE) break;
+        }
+        return { threads: Array.from(added.values()), nextCursor: cursor };
     }
 
     function updateDiscussionFeedControls(): void {
@@ -1775,9 +1922,21 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         invalidateDiscussionReplyCachesForAuthoritativeState([
             state.notes,
             state.public.notes,
-            systemDiscussionThreads(state.public)
+            systemDiscussionThreads(state.public),
+            (state.systemDiscussionPosts || []).map(systemDiscussionThread)
         ]);
         participantState = state;
+        if (discussionReadOwner !== state.participant.id) {
+            discussionReadOwner = state.participant.id;
+            discussionReadRevision = -1;
+            discussionUnread.clear();
+            discussionThreadReadRevisions.clear();
+            discussionReadHolds.clear();
+            discussionReadPending.clear();
+            unavailableDiscussionThreads.clear();
+        }
+        discussionReadHolds.clear();
+        acceptDiscussionReadContext(state.readContext);
         publicState = state.public;
         if (state.updatedDiscussionThread) {
             const note = state.updatedDiscussionThread;
@@ -1799,6 +1958,116 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         invalidateDiscussionReplyCachesForAuthoritativeState([state.notes, systemDiscussionThreads(state)]);
         publicState = state;
         stateAcceptanceGeneration++;
+    }
+
+    function acceptDiscussionReadContext(context: DiscussionReadContext | null | undefined): boolean {
+        if (!context || !participantState) return false;
+        discussionReadRevision = Math.max(discussionReadRevision, context.activityRevision);
+        for (const thread of context.threads) {
+            const key = discussionPermalink(thread);
+            if (context.activityRevision < (discussionThreadReadRevisions.get(key) ?? -1)) continue;
+            discussionThreadReadRevisions.set(key, context.activityRevision);
+            unavailableDiscussionThreads.delete(key);
+            discussionUnread.set(key, thread);
+        }
+        updateDiscussionUnreadCues();
+        return true;
+    }
+
+    function discussionUnreadFor(note: Pick<ParticipantNote, "participantId" | "challengeDay" | "systemPostId">): DiscussionUnreadThread | undefined {
+        return participantState?.participant.id === discussionReadOwner ? discussionUnread.get(discussionPermalink(note)) : undefined;
+    }
+
+    function discussionUnreadPriority(note: ParticipantNote): number {
+        if (participantState?.participant.id !== discussionReadOwner) return 0;
+        return Math.max(discussionUnreadFor(note)?.unreadCount ? discussionUnreadFor(note)!.latestRelevantAtUnixMs : 0,
+            discussionReadHolds.get(discussionPermalink(note)) || 0);
+    }
+
+    function discussionUnreadLink(note: Pick<ParticipantNote, "participantId" | "challengeDay" | "systemPostId">): { label: string; href: string } | null {
+        const unread = discussionUnreadFor(note);
+        if (!unread?.unreadCount) return null;
+        const count = unread.unreadCount - Number(unread.hasOpeningMention);
+        return { label: unread.hasOpeningMention ? "New mention" : `${count} new ${count === 1 ? "reply" : "replies"}`,
+            href: discussionPermalink(note) + (unread.hasOpeningMention ? "" : `/reply/${encodeURIComponent(unread.firstUnreadReplyId!)}`) };
+    }
+
+    function updateDiscussionUnreadCues(): void {
+        document.querySelectorAll<HTMLElement>("article[data-discussion-post-participant-id]").forEach(article => {
+            const note = { participantId: article.dataset.discussionPostParticipantId || "", challengeDay: Number(article.dataset.discussionPostChallengeDay),
+                systemPostId: article.dataset.discussionSystemPostId || null };
+            const unread = discussionUnreadFor(note);
+            article.classList.toggle("lmx-has-unread", !!unread?.unreadCount);
+            const link = article.querySelector<HTMLAnchorElement>(".lmx-discussion-count");
+            if (link) {
+                const cue = discussionUnreadLink(note);
+                if (!link.dataset.readLabel) link.dataset.readLabel = link.textContent || "";
+                if (!link.dataset.readHref) link.dataset.readHref = `${discussionPermalink(note)}/replies`;
+                link.textContent = cue?.label || link.dataset.readLabel;
+                link.href = cue?.href || link.dataset.readHref;
+                link.classList.toggle("lmx-unread-link", !!cue);
+                link.setAttribute("aria-label", cue ? `Unread: ${cue.label}` : `View ${link.dataset.readLabel}`);
+            }
+            article.querySelectorAll<HTMLElement>("[data-discussion-reply-id]").forEach(reply => {
+                const isUnread = !!unread?.notifications.some(item => item.sourceReplyId === reply.dataset.discussionReplyId);
+                reply.classList.toggle("lmx-unread-message", isUnread);
+                const meta = reply.querySelector(".lmx-discussion-reply-byline");
+                let marker = meta?.querySelector("[data-unread-marker]");
+                if (isUnread && meta && !marker) {
+                    marker = document.createElement("span"); marker.className = "lmx-unread-marker";
+                    marker.setAttribute("data-unread-marker", ""); marker.setAttribute("role", "img"); marker.setAttribute("aria-label", "Unread");
+                    meta.append(marker);
+                } else if (!isUnread) marker?.remove();
+            });
+        });
+    }
+
+    async function acknowledgeDiscussion(article: HTMLElement, onlyReplyId?: string): Promise<void> {
+        if (!accessToken || !participantState) return;
+        const token = accessToken;
+        const owner = participantState.participant.id;
+        const target = { postParticipantId: article.dataset.discussionPostParticipantId || "",
+            challengeDay: Number(article.dataset.discussionPostChallengeDay), systemPostId: article.dataset.discussionSystemPostId || null };
+        const key = discussionPermalink({ ...target, participantId: target.postParticipantId });
+        if (discussionReadPending.has(key)) return;
+        const unread = discussionUnread.get(key);
+        if (!unread?.unreadCount) return;
+        const revealed = new Set(Array.from(article.querySelectorAll<HTMLElement>("[data-discussion-reply-id]"))
+            .filter(reply => !reply.hidden && !!reply.getClientRects().length && (!onlyReplyId || reply.dataset.discussionReplyId === onlyReplyId))
+            .map(reply => reply.dataset.discussionReplyId));
+        const ids = unread.notifications.filter(item => item.sourceReplyId === null ? !onlyReplyId : revealed.has(item.sourceReplyId))
+            .filter(item => item.sourceReplyId !== null || !article.querySelector(".lmx-advice-context:not([open])"))
+            .filter(item => item.createdRevision <= discussionReadRevision).map(item => item.id).slice(0, 100);
+        if (!ids.length) return;
+        const observedRevision = discussionReadRevision;
+        discussionReadPending.add(key);
+        try {
+            const result = await postJson(`${API}/discussion/read`, { accessToken: token, ...target, observedRevision, notificationIds: ids });
+            if (accessToken !== token || participantState?.participant.id !== owner) return;
+            if (result.acknowledgedIds.length) {
+                discussionReadHolds.set(key, Math.max(discussionReadHolds.get(key) || 0, unread.latestRelevantAtUnixMs));
+                stateAcceptanceGeneration++;
+                discussionFeedAcceptedGeneration = stateAcceptanceGeneration;
+            }
+            acceptDiscussionReadContext(result.readContext);
+        } catch { /* Keep the unread cue. A later deliberate opening can retry. */ }
+        finally { if (accessToken === token) discussionReadPending.delete(key); }
+    }
+
+    async function lookupDiscussionThread(note: Pick<ParticipantNote, "participantId" | "challengeDay" | "systemPostId">): Promise<DiscussionThreadResult> {
+        const token = accessToken;
+        const owner = participantState?.participant.id;
+        if (token && participantState?.readContext) {
+            const result = await postJson(`${API}/discussion/thread`, { accessToken: token, postParticipantId: note.participantId,
+                challengeDay: note.challengeDay, systemPostId: note.systemPostId || null });
+            if (token !== accessToken || participantState?.participant.id !== owner) throw new Error("The signed-in participant changed.");
+            return result;
+        }
+        const query = new URLSearchParams(note.systemPostId ? { systemPostId: note.systemPostId }
+            : { postParticipantId: note.participantId, challengeDay: String(note.challengeDay) });
+        const result = await getJson(`${API}/discussion/thread?${query}`);
+        if (!isDiscussionThreadResult(result)) throw invalidApiResponse(`${API}/discussion/thread`);
+        return result;
     }
 
     function renderAll() {
@@ -3470,7 +3739,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
 
     function wireDiscussionNavigation(): void {
         if (window.location.hash.startsWith("#discussion/")) checkInDialogDismissed = true;
-        window.addEventListener("hashchange", () => void navigateDiscussion(window.location.hash));
+        window.addEventListener("hashchange", () => void navigateDiscussion(window.location.hash, undefined, true));
         const refreshTimes = () => {
             if (document.hidden) return;
             const now = Date.now();
@@ -3522,8 +3791,10 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         window.addEventListener("resize", hideTooltip);
     }
 
-    async function navigateDiscussion(hash: string, localThread?: HTMLElement): Promise<void> {
+    async function navigateDiscussion(hash: string, localThread?: HTMLElement, readIntent: boolean | "conversation" = false): Promise<void> {
         const generation = ++discussionNavigationGeneration;
+        const tokenAtStart = accessToken;
+        const ownerAtStart = participantState?.participant.id;
         document.querySelectorAll(".lmx-discussion-target").forEach(element => element.classList.remove("lmx-discussion-target"));
         document.getElementById("lmxDiscussionLinkStatus")?.remove();
         const match = /^#discussion\/(post\/([^/]+)\/(\d+)|system\/([^/]+))(?:\/(replies|reply\/([^/]+)))?$/.exec(hash);
@@ -3537,7 +3808,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         for (const event of ["wheel", "touchmove", "pointerdown", "keydown"])
             document.addEventListener(event, () => { userInterrupted = true; },
                 { capture: true, passive: true, signal: interactionListeners.signal });
-        const isCurrent = () => generation === discussionNavigationGeneration && window.location.hash === hash;
+        const isCurrent = () => generation === discussionNavigationGeneration && window.location.hash === hash &&
+            accessToken === tokenAtStart && participantState?.participant.id === ownerAtStart;
         let thread = localThread?.isConnected ? localThread : null;
         const notes = participantState ? participantDiscussionThreads(participantState)
             : publicState ? publicDiscussionThreads(publicState) : [];
@@ -3557,7 +3829,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 button.type = "button";
                 button.className = "lmx-discussion-replies-toggle";
                 button.textContent = "Retry";
-                button.addEventListener("click", () => void navigateDiscussion(hash));
+                button.addEventListener("click", () => void navigateDiscussion(hash, undefined, readIntent || true));
                 element.append(" ", button);
             }
             if (!message.startsWith("Loading") && !userInterrupted &&
@@ -3570,10 +3842,10 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         try {
             if (!note) {
                 status("Loading discussion…");
-                const query = new URLSearchParams(match[4] ? { systemPostId: decodeURIComponent(match[4]) }
-                    : { postParticipantId: decodeURIComponent(match[2]!), challengeDay: match[3]! });
-                const result = await getJson(`${API}/discussion/thread?${query}`);
+                const result = await lookupDiscussionThread({ participantId: decodeURIComponent(match[2] || ""),
+                    challengeDay: Number(match[3] || 0), systemPostId: match[4] ? decodeURIComponent(match[4]) : null });
                 if (!isCurrent()) return;
+                acceptDiscussionReadContext(result.readContext);
                 if (hasProperties(result, "note") && isParticipantNote(result.note)) note = result.note;
                 else if (hasProperties(result, "systemPost") && isDiscussionSystemPost(result.systemPost)) note = systemDiscussionThread(result.systemPost);
                 else throw new Error("That discussion post is no longer available.");
@@ -3594,7 +3866,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             }
             if (!thread) return;
             const replyId = match[6] ? decodeURIComponent(match[6]) : null;
-            if (replyId) setDiscussionHistoryExpanded(thread, true);
+            if (replyId || match[5] === "replies") setDiscussionHistoryExpanded(thread, true);
             const findReply = () => Array.from(thread!.querySelectorAll<HTMLElement>("[data-discussion-reply-id]"))
                 .find(reply => reply.dataset.discussionReplyId === replyId) || null;
             const cursors = new Set<string>();
@@ -3610,6 +3882,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 }
             }
             if (!isCurrent()) return;
+            if (readIntent && !replyId && discussionUnreadFor(note!)?.hasOpeningMention)
+                thread.querySelector<HTMLDetailsElement>(".lmx-advice-context")?.setAttribute("open", "");
             const target = replyId ? findReply() : match[5] === "replies"
                 ? thread.querySelector<HTMLElement>("[data-discussion-replies-page], [data-discussion-reply-id]") ||
                     thread.querySelector<HTMLElement>("[data-discussion-reply]") || thread : thread;
@@ -3638,6 +3912,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 target.focus({ preventScroll: true });
                 target.scrollIntoView({ block: target === thread ? "start" : "center", behavior: "instant" });
             }
+            if (readIntent) await acknowledgeDiscussion(thread, readIntent === "conversation" ? undefined : replyId || undefined);
         } catch (err) {
             if (isCurrent()) status(messageOf(err), true);
         } finally {
@@ -3977,7 +4252,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const checkInPosts = Array.isArray(state?.notes)
             ? state.notes
             : Array.isArray(state?.public?.notes) ? state.public.notes : [];
-        return checkInPosts.concat(systemDiscussionThreads(state.public));
+        return checkInPosts.concat(Array.isArray(state.systemDiscussionPosts) ? state.systemDiscussionPosts.map(systemDiscussionThread)
+            : systemDiscussionThreads(state.public));
     }
 
     function systemDiscussionThreads(state: PublicState | null | undefined): ParticipantNote[] {
@@ -4009,6 +4285,9 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             .filter(hasParticipantNoteContent)
             .slice()
             .sort((left, right) => {
+                const leftUnread = discussionUnreadPriority(left), rightUnread = discussionUnreadPriority(right);
+                const unreadOrder = Number(!!rightUnread) - Number(!!leftUnread) || rightUnread - leftUnread;
+                if (unreadOrder) return unreadOrder;
                 const adviceOrder = Number(discussionNeedsAdvice(right)) - Number(discussionNeedsAdvice(left));
                 if (adviceOrder) return adviceOrder;
                 const scoreOrder = Math.round(discussionHotScore(right, now) * 1e9) - Math.round(discussionHotScore(left, now) * 1e9);
@@ -4025,7 +4304,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     }
 
     function discussionNeedsAdvice(note: ParticipantNote): boolean {
-        return !!note.advice && !note.advice.withdrawn && !note.advice.activeAdviceReplyId;
+        return !unavailableDiscussionThreads.has(discussionPermalink(note)) && !!note.advice && !note.advice.withdrawn && !note.advice.activeAdviceReplyId;
     }
 
     function discussionHotScore(note: ParticipantNote, now: number): number {
@@ -4047,13 +4326,15 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         canReply = canReply && !advice?.withdrawn && !joining;
         const replyCount = effectiveDiscussionReplyCount(note);
         const replyLabel = `${replyCount} ${replyCount === 1 ? "reply" : "replies"}`;
+        const unreadLink = discussionUnreadLink(note);
         const permalink = discussionPermalink(note);
         const when = discussionTimeHtml(note.updatedAtUtc, permalink, note.kind === "participant-joined" ? "Joined" : "Post updated");
         const day = note.systemPostId ? ""
             : `<span title="${escAttr(formatDateLabel(note.date))}">Day ${note.challengeDay}</span>`;
-        const replies = discussionNeedsAdvice(note) && !replyCount ? "" : replyCount || canReply
-            ? `<a class="lmx-discussion-count" data-discussion-link href="${escAttr(`${permalink}/replies`)}"
-                aria-label="${escAttr(replyCount ? `View ${replyLabel} to ${note.displayName}` : `Reply to ${note.displayName}`)}">${replyLabel}</a>`
+        const replies = discussionNeedsAdvice(note) && !replyCount && !unreadLink ? "" : replyCount || canReply || unreadLink
+            ? `<a class="lmx-discussion-count${unreadLink ? " lmx-unread-link" : ""}" data-discussion-link
+                data-read-label="${escAttr(replyLabel)}" data-read-href="${escAttr(`${permalink}/replies`)}" href="${escAttr(unreadLink?.href || `${permalink}/replies`)}"
+                aria-label="${escAttr(unreadLink ? `Unread: ${unreadLink.label}` : replyCount ? `View ${replyLabel} to ${note.displayName}` : `Reply to ${note.displayName}`)}">${esc(unreadLink?.label || replyLabel)}</a>`
             : `<span>${replyLabel}</span>`;
         const context = [when, day, replies].filter(Boolean).join('<span aria-hidden="true"> · </span>');
         const reply = canReply
@@ -6004,7 +6285,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             if (!note) continue;
             let article = existing.get(key);
             existing.delete(key);
-            const signature = JSON.stringify([note, canReply, discussionFeedOwner, discussionCharacterLimit()]);
+            const signature = JSON.stringify([note, canReply, discussionFeedOwner, discussionCharacterLimit(), unavailableDiscussionThreads.has(key)]);
             if (!article || renderedDiscussionNotes.get(article) !== signature) {
                 const images = Array.isArray(note.images) ? note.images : [];
                 const imageHtml = images.length
@@ -6130,7 +6411,14 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             if (button.dataset.discussionControlWired === "true") return;
             button.dataset.discussionControlWired = "true";
             button.addEventListener("click", () => {
-                if (!button.hasAttribute("data-discussion-quick-reply")) return toggleDiscussionHistory(button);
+                if (!button.hasAttribute("data-discussion-quick-reply")) {
+                    toggleDiscussionHistory(button);
+                    if (button.hasAttribute("data-discussion-replies-expand")) {
+                        const article = button.closest<HTMLElement>("article[data-discussion-post-participant-id]");
+                        if (article) void acknowledgeDiscussion(article);
+                    }
+                    return;
+                }
                 const opener = button.closest("article[data-discussion-post-participant-id]")?.querySelector<HTMLButtonElement>("[data-discussion-reply]");
                 if (!opener) return;
                 openDiscussionReplyComposer(opener);
@@ -6143,7 +6431,12 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             button.dataset.discussionControlWired = "true";
             button.addEventListener("click", () => {
                 if (button.hasAttribute("data-discussion-copy-link")) void copyDiscussionLink(button);
-                else replyToDiscussionComment(button);
+                else {
+                    replyToDiscussionComment(button);
+                    const article = button.closest<HTMLElement>("article[data-discussion-post-participant-id]");
+                    const reply = button.closest<HTMLElement>("[data-discussion-reply-id]");
+                    if (article && reply?.dataset.discussionReplyId) void acknowledgeDiscussion(article, reply.dataset.discussionReplyId);
+                }
             });
         });
         root.querySelectorAll<HTMLAnchorElement>("[data-discussion-link]").forEach(link => {
@@ -6153,18 +6446,32 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
                 event.preventDefault();
                 if (window.location.hash !== link.hash) window.history.pushState(window.history.state, "", link.href);
-                void navigateDiscussion(link.hash, link.closest<HTMLElement>("article[data-discussion-post-participant-id]") || undefined);
+                void navigateDiscussion(link.hash, link.closest<HTMLElement>("article[data-discussion-post-participant-id]") || undefined,
+                    link.classList.contains("lmx-discussion-count") ? "conversation" : true);
             });
         });
         root.querySelectorAll<HTMLButtonElement>("[data-discussion-reply]").forEach(button => {
             if (button.dataset.discussionControlWired === "true") return;
             button.dataset.discussionControlWired = "true";
-            button.addEventListener("click", () => openDiscussionReplyComposer(button));
+            button.addEventListener("click", () => {
+                openDiscussionReplyComposer(button);
+                const article = button.closest<HTMLElement>("article[data-discussion-post-participant-id]");
+                if (article) void acknowledgeDiscussion(article, button.dataset.adviceRootId || undefined);
+            });
         });
         root.querySelectorAll<HTMLButtonElement>("[data-discussion-replies-page]").forEach(button => {
             if (button.dataset.discussionControlWired === "true") return;
             button.dataset.discussionControlWired = "true";
-            button.addEventListener("click", () => void loadEarlierDiscussionReplies(button));
+            button.addEventListener("click", () => {
+                const original = button.closest<HTMLElement>("article[data-discussion-post-participant-id]");
+                void loadEarlierDiscussionReplies(button).then(loaded => {
+                    const article = original?.isConnected ? original : Array.from(document.querySelectorAll<HTMLElement>("article[data-discussion-post-participant-id]"))
+                        .find(candidate => candidate.dataset.discussionPostParticipantId === original?.dataset.discussionPostParticipantId &&
+                            candidate.dataset.discussionPostChallengeDay === original?.dataset.discussionPostChallengeDay &&
+                            candidate.dataset.discussionSystemPostId === original?.dataset.discussionSystemPostId);
+                    if (loaded && article) void acknowledgeDiscussion(article);
+                });
+            });
         });
         root.querySelectorAll<HTMLButtonElement>("[data-discussion-reply-edit]").forEach(button => {
             if (button.dataset.discussionControlWired === "true") return;
@@ -6176,11 +6483,22 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             button.dataset.discussionControlWired = "true";
             button.addEventListener("click", () => void deleteDiscussionReply(button));
         });
+        root.querySelectorAll<HTMLElement>(".lmx-advice-archive > summary, .lmx-advice-context > summary").forEach(summary => {
+            if (summary.dataset.discussionControlWired) return;
+            summary.dataset.discussionControlWired = "true";
+            summary.addEventListener("click", () => requestAnimationFrame(() => {
+                const article = summary.closest<HTMLElement>("article[data-discussion-post-participant-id]");
+                if (article && summary.parentElement?.hasAttribute("open")) void acknowledgeDiscussion(article);
+            }));
+        });
+        updateDiscussionUnreadCues();
         restoreActiveDiscussionDraft(root);
         updateDiscussionDraftControls();
     }
 
     async function loadEarlierDiscussionReplies(button: HTMLButtonElement, preservePosition = true): Promise<boolean> {
+        const tokenAtStart = accessToken;
+        const ownerAtStart = participantState?.participant.id;
         const article = button.closest<HTMLElement>("article[data-discussion-post-participant-id]");
         let anchor = article?.querySelector<HTMLElement>("[data-discussion-reply-id]");
         if (article?.classList.contains("lmx-advice-post")) anchor = Array.from(article.querySelectorAll<HTMLElement>("[data-discussion-reply-id]"))
@@ -6212,12 +6530,15 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         if (article) updateDiscussionHistoryControls(article);
         try {
             const page = await postJson(`${API}/discussion/replies/page`, payload);
+            if (accessToken !== tokenAtStart || participantState?.participant.id !== ownerAtStart) return false;
             const currentBeforeCreatedAtUtc = String(button.dataset.beforeCreatedAtUtc || "") || null;
             const currentBeforeReplyId = String(button.dataset.beforeReplyId || "") || null;
             if (!button.isConnected ||
                 currentBeforeCreatedAtUtc !== payload.beforeCreatedAtUtc ||
                 currentBeforeReplyId !== payload.beforeReplyId) return false;
+            acceptDiscussionReadContext(page.readContext);
             await updateDiscussionReplyPages(payload, page);
+            if (accessToken !== tokenAtStart || participantState?.participant.id !== ownerAtStart) return false;
             if (anchor && !anchor.isConnected && anchorId) anchor = Array.from(article?.querySelectorAll<HTMLElement>("[data-discussion-reply-id]") || [])
                 .find(reply => reply.dataset.discussionReplyId === anchorId);
             const stillReading = !userInterrupted &&
@@ -6335,16 +6656,18 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     }
 
     async function refreshDiscussionStateCore(generation: number): Promise<void> {
-        if (accessToken) {
-            const result = await postJson(`${API}/participant`, { token: accessToken });
-            if (generation !== stateAcceptanceGeneration) return;
+        const token = accessToken;
+        const owner = participantState?.participant.id;
+        if (token) {
+            const result = await postJson(`${API}/participant`, { token });
+            if (generation !== stateAcceptanceGeneration || token !== accessToken || participantState?.participant.id !== owner) return;
             acceptParticipantState(result);
             renderParticipantDiscussion(result);
             return;
         }
 
         const result = await getJson(`${API}/state`);
-        if (generation !== stateAcceptanceGeneration) return;
+        if (generation !== stateAcceptanceGeneration || token !== accessToken || participantState?.participant.id !== owner) return;
         acceptPublicState(result);
         renderNotes(publicDiscussionThreads(result), false);
     }
@@ -6666,6 +6989,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     }
 
     function discussionDraftCanSubmit(draft: DiscussionDraft): boolean {
+        if (unavailableDiscussionThreads.has(discussionPermalink({ participantId: draft.postParticipantId,
+            challengeDay: draft.challengeDay, systemPostId: draft.systemPostId }))) return false;
         const advice = Array.from(discussionFeedNotes.values()).find(note => isDiscussionDraftThread(note, draft))?.advice;
         if (discussionDraftArchived(draft, advice)) return false;
         const hasPhotos = !!draft.photos?.length || !!(draft.editReplyId && findDiscussionReply(draft.editReplyId)?.images?.length);
@@ -7071,6 +7396,13 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         document.querySelectorAll<HTMLElement>("article[data-discussion-post-participant-id]").forEach(updateDiscussionHistoryControls);
         document.querySelectorAll<HTMLButtonElement>("[data-discussion-reply-delete]").forEach(button => {
             button.disabled = !!discussionMutation;
+        });
+        document.querySelectorAll<HTMLElement>("article[data-discussion-post-participant-id]").forEach(article => {
+            const key = discussionPermalink({ participantId: article.dataset.discussionPostParticipantId || "",
+                challengeDay: Number(article.dataset.discussionPostChallengeDay), systemPostId: article.dataset.discussionSystemPostId || null });
+            if (!unavailableDiscussionThreads.has(key)) return;
+            article.querySelectorAll<HTMLButtonElement>("[data-discussion-reply], [data-discussion-quick-reply], [data-discussion-reply-to], [data-discussion-reply-edit], [data-discussion-reply-delete], [data-discussion-replies-page]")
+                .forEach(button => { button.disabled = true; });
         });
         persistDiscussionDrafts();
         renderDiscussionDiscardUndo();
@@ -8684,6 +9016,29 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 hasProperties(value.replyTo, "displayName", "body") && typeof value.replyTo.displayName === "string" && typeof value.replyTo.body === "string");
     }
 
+    function isDiscussionReadContext(value: unknown): value is DiscussionReadContext {
+        return hasProperties(value, "activityRevision", "threads") && typeof value.activityRevision === "number" &&
+            Number.isSafeInteger(value.activityRevision) && value.activityRevision >= 0 && Array.isArray(value.threads) &&
+            value.threads.every(thread => hasProperties(thread, "participantId", "challengeDay", "systemPostId", "unreadCount",
+                "firstUnreadReplyId", "hasOpeningMention", "latestRelevantAtUnixMs", "notifications") &&
+                typeof thread.participantId === "string" && typeof thread.challengeDay === "number" &&
+                isNullableString(thread.systemPostId) && typeof thread.unreadCount === "number" && thread.unreadCount >= 0 &&
+                isNullableString(thread.firstUnreadReplyId) && typeof thread.hasOpeningMention === "boolean" &&
+                typeof thread.latestRelevantAtUnixMs === "number" && Number.isFinite(thread.latestRelevantAtUnixMs) &&
+                Array.isArray(thread.notifications) && thread.notifications.length <= 100 &&
+                thread.notifications.every(item => hasProperties(item, "id", "sourceReplyId", "createdRevision") && typeof item.id === "string" &&
+                    isNullableString(item.sourceReplyId) && typeof item.createdRevision === "number" && Number.isSafeInteger(item.createdRevision) && item.createdRevision >= 0));
+    }
+
+    function hasValidDiscussionReadContext(value: unknown): boolean {
+        return !hasProperties(value, "readContext") || value.readContext === null || isDiscussionReadContext(value.readContext);
+    }
+
+    function isDiscussionThreadResult(value: unknown): value is DiscussionThreadResult {
+        return hasProperties(value, "note", "systemPost") && hasValidDiscussionReadContext(value) &&
+            ((value.note === null && isDiscussionSystemPost(value.systemPost)) || (value.systemPost === null && isParticipantNote(value.note)));
+    }
+
     function isDiscussionReplyPage(value: unknown): value is DiscussionReplyPage {
         return hasProperties(value, "replies", "totalCount", "latestReplyIds", "remainingEarlierReplyCount", "hasEarlier", "nextBeforeCreatedAtUtc", "nextBeforeReplyId") &&
             isArrayOf(value.replies, isDiscussionReply) &&
@@ -8691,7 +9046,19 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             Array.isArray(value.latestReplyIds) && value.latestReplyIds.every(id => typeof id === "string") &&
             typeof value.remainingEarlierReplyCount === "number" && value.remainingEarlierReplyCount >= 0 &&
             typeof value.hasEarlier === "boolean" &&
-            isNullableString(value.nextBeforeCreatedAtUtc) && isNullableString(value.nextBeforeReplyId);
+            isNullableString(value.nextBeforeCreatedAtUtc) && isNullableString(value.nextBeforeReplyId) && hasValidDiscussionReadContext(value);
+    }
+
+    function isDiscussionFeedSnapshot(value: unknown): value is DiscussionFeedSnapshot {
+        return hasProperties(value, "keys", "nextCursor") && Array.isArray(value.keys) && value.keys.length <= DISCUSSION_THREAD_LIMIT &&
+            value.keys.every(key => hasProperties(key, "participantId", "challengeDay") && typeof key.participantId === "string" &&
+                typeof key.challengeDay === "number" && Number.isInteger(key.challengeDay) && key.challengeDay >= 0 &&
+                (!hasProperties(key, "systemPostId") || isNullableString(key.systemPostId))) &&
+            (value.nextCursor === null || isDiscussionFeedCursor(value.nextCursor));
+    }
+
+    function hasValidDiscussionSnapshot(value: unknown): boolean {
+        return !hasProperties(value, "discussionSnapshot") || value.discussionSnapshot === null || isDiscussionFeedSnapshot(value.discussionSnapshot);
     }
 
     function isDiscussionFeedCursor(value: unknown): value is DiscussionFeedCursor {
@@ -8701,7 +9068,10 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             typeof value.activityAtUnixMs === "number" && Number.isFinite(value.activityAtUnixMs) &&
             typeof value.challengeDay === "number" && Number.isInteger(value.challengeDay) && value.challengeDay >= 0 &&
             typeof value.participantId === "string" && isNullableString(value.systemPostId) &&
-            (!hasProperties(value, "needsAdvice") || typeof value.needsAdvice === "boolean");
+            (!hasProperties(value, "needsAdvice") || typeof value.needsAdvice === "boolean") &&
+            (["rankingRevision", "readSnapshotRevision", "latestRelevantAtUnixMs"] as const).every(key =>
+                !hasProperties(value, key) || value[key] === null || typeof value[key] === "number" && Number.isSafeInteger(value[key]) && value[key] >= 0) &&
+            (!hasProperties(value, "hasPersonalUnread") || typeof value.hasPersonalUnread === "boolean");
     }
 
     function isDiscussionFeedPage(value: unknown): value is DiscussionFeedPage {
@@ -8710,7 +9080,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             value.threads.every(thread => hasProperties(thread, "note", "systemPost") &&
                 ((thread.note === null && isDiscussionSystemPost(thread.systemPost)) ||
                  (thread.systemPost === null && isParticipantNote(thread.note)))) &&
-            (value.nextCursor === null || isDiscussionFeedCursor(value.nextCursor));
+            (value.nextCursor === null || isDiscussionFeedCursor(value.nextCursor)) && hasValidDiscussionReadContext(value);
     }
 
     function isLeaderboardRow(value: unknown): value is LeaderboardRow {
@@ -8746,7 +9116,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 typeof value.scoringWindow.startDay === "number" && Number.isInteger(value.scoringWindow.startDay) && value.scoringWindow.startDay >= 1 &&
                 typeof value.scoringWindow.endDay === "number" && Number.isInteger(value.scoringWindow.endDay) && value.scoringWindow.endDay >= 0 &&
                 typeof value.scoringWindow.nextClosesAtUtc === "string")) &&
-            (!hasProperties(value, "systemDiscussionPosts") || isArrayOf(value.systemDiscussionPosts, isDiscussionSystemPost)) &&
+            (!hasProperties(value, "systemDiscussionPosts") || isArrayOf(value.systemDiscussionPosts, isDiscussionSystemPost)) && hasValidDiscussionSnapshot(value) &&
             typeof value.slackInviteUrl === "string" && isNullableString(value.slackRoomUrl);
     }
 
@@ -8779,7 +9149,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         return hasProperties(value, "public", "participant", "eligibleDays", "notes", "garden") &&
             isPublicState(value.public) && isParticipantSummary(value.participant) &&
             isArrayOf(value.eligibleDays, isEligibleDay) && isArrayOf(value.notes, isParticipantNote) &&
-            isGardenState(value.garden) &&
+            isGardenState(value.garden) && hasValidDiscussionReadContext(value) && hasValidDiscussionSnapshot(value) &&
+            (!hasProperties(value, "systemDiscussionPosts") || isArrayOf(value.systemDiscussionPosts, isDiscussionSystemPost)) &&
             (!hasProperties(value, "pendingAdvicePrompt") || value.pendingAdvicePrompt === null ||
                 hasProperties(value.pendingAdvicePrompt, "id", "challengeDay", "date", "characterLimit", "version") &&
                 typeof value.pendingAdvicePrompt.id === "string" && typeof value.pendingAdvicePrompt.challengeDay === "number" &&
@@ -8815,6 +9186,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     async function postJson(url: `${typeof API}/confirm`, payload: object): Promise<AccessResult>;
     async function postJson(url: `${typeof API}/discussion/replies/page`, payload: object): Promise<DiscussionReplyPage>;
     async function postJson(url: `${typeof API}/discussion/feed`, payload: object): Promise<DiscussionFeedPage>;
+    async function postJson(url: `${typeof API}/discussion/thread`, payload: object): Promise<DiscussionThreadResult>;
+    async function postJson(url: `${typeof API}/discussion/read`, payload: object): Promise<DiscussionReadResult>;
     async function postJson(url: `${typeof API}/discussion/replies/edit`, payload: object): Promise<DiscussionReply>;
     async function postJson(
         url: `${typeof API}/edit` | `${typeof API}/participant` | `${typeof API}/check-in` | `${typeof API}/discussion/replies` | `${typeof API}/discussion/replies/delete` | `${typeof API}/advice/publish` | `${typeof API}/advice/dismiss` | `${typeof API}/advice/withdraw` | `${typeof API}/advice/edit`,
@@ -8839,6 +9212,10 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         if (url === `${API}/confirm` && !isAccessResult(data)) throw invalidApiResponse(url);
         if (url === `${API}/discussion/replies/page` && !isDiscussionReplyPage(data)) throw invalidApiResponse(url);
         if (url === `${API}/discussion/feed` && !isDiscussionFeedPage(data)) throw invalidApiResponse(url);
+        if (url === `${API}/discussion/thread` && !isDiscussionThreadResult(data)) throw invalidApiResponse(url);
+        if (url === `${API}/discussion/read` && !(hasProperties(data, "acknowledgedIds", "readContext") &&
+            Array.isArray(data.acknowledgedIds) && data.acknowledgedIds.every(id => typeof id === "string") && isDiscussionReadContext(data.readContext)))
+            throw invalidApiResponse(url);
         if (url === `${API}/discussion/replies/edit` && !isDiscussionReply(data)) throw invalidApiResponse(url);
         if ((url === `${API}/edit` || url === `${API}/participant` || url === `${API}/check-in` || url === `${API}/discussion/replies` || url === `${API}/discussion/replies/delete` || url.startsWith(`${API}/advice/`)) && !isParticipantState(data)) {
             throw invalidApiResponse(url);
@@ -8899,7 +9276,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                     : Array.isArray(data)
                         ? data.filter(value => typeof value === "string").map(value => value.trim()).filter(Boolean).join("\n")
                         : "";
-            throw Object.assign(new Error(message || fallback), { status: response.status });
+            throw Object.assign(new Error(message || fallback), { status: response.status,
+                code: hasStringProperty(data, "code") ? data.code : "" });
         }
         return data;
     }

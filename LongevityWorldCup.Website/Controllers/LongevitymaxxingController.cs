@@ -31,12 +31,14 @@ public sealed class LongevitymaxxingController(LongevitymaxxingChallengeService 
     }
 
     [HttpPost("discussion/feed")]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
     public IActionResult GetDiscussionFeed([FromBody] LongevitymaxxingDiscussionFeedRequest request)
     {
         try
         {
             return Ok(_challenge.GetDiscussionFeed(request));
         }
+        catch (LongevitymaxxingDiscussionFeedChangedException ex) { return Conflict(new { message = ex.Message, code = "discussion_feed_changed" }); }
         catch (UnauthorizedAccessException ex)
         {
             return Unauthorized(new { message = ex.Message });
@@ -45,6 +47,24 @@ public sealed class LongevitymaxxingController(LongevitymaxxingChallengeService 
         {
             return BadRequest(new { message = ex.Message });
         }
+    }
+
+    [HttpPost("discussion/thread")]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+    public IActionResult GetPrivateDiscussionThread([FromBody] LongevitymaxxingDiscussionThreadRequest request)
+    {
+        try { return Ok(_challenge.GetDiscussionThread(request)); }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(new { message = ex.Message }); }
+        catch (InvalidOperationException ex) { return NotFound(new { message = ex.Message }); }
+    }
+
+    [HttpPost("discussion/read")]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+    public IActionResult MarkDiscussionRead([FromBody] LongevitymaxxingDiscussionReadRequest request)
+    {
+        try { return Ok(_challenge.MarkDiscussionRead(request)); }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(new { message = ex.Message }); }
+        catch (InvalidOperationException ex) { return BadRequest(new { message = ex.Message }); }
     }
 
     [HttpPost("signup")]
@@ -75,6 +95,7 @@ public sealed class LongevitymaxxingController(LongevitymaxxingChallengeService 
     }
 
     [HttpPost("participant")]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
     public IActionResult GetParticipantState([FromBody] LongevitymaxxingTokenRequest request)
     {
         try
@@ -235,6 +256,7 @@ public sealed class LongevitymaxxingController(LongevitymaxxingChallengeService 
     }
 
     [HttpPost("discussion/replies/page")]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
     public IActionResult GetDiscussionReplyPage([FromBody] LongevitymaxxingDiscussionReplyPageRequest request)
     {
         try

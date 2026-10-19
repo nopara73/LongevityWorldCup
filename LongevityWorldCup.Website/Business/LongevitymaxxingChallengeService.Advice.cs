@@ -244,7 +244,10 @@ public sealed partial class LongevitymaxxingChallengeService
             insert.CommandText = """
                 INSERT OR IGNORE INTO LongevitymaxxingDiscussionNotifications
                 (Id, RecipientParticipantId, ActorParticipantId, PostParticipantId, PostChallengeDay, Kind, SourceReplyId, CreatedAtUtc, NotifiedAtUtc)
-                VALUES (@id, @recipient, @participant, @participant, @day, 'mention', NULL, @now, NULL);
+                SELECT @id, @recipient, @participant, @participant, @day, 'mention', NULL, @now, NULL
+                WHERE NOT EXISTS (SELECT 1 FROM LongevitymaxxingDiscussionNotifications
+                    WHERE RecipientParticipantId = @recipient AND PostParticipantId = @participant
+                      AND PostChallengeDay = @day AND Kind = 'mention' AND SourceReplyId IS NULL);
                 """;
             Add(insert, "@id", Guid.NewGuid().ToString("N"));
             Add(insert, "@recipient", recipient.Id);

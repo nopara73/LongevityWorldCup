@@ -51,11 +51,34 @@ public sealed record LongevitymaxxingDiscussionReplyPage(
     int RemainingEarlierReplyCount,
     bool HasEarlier,
     string? NextBeforeCreatedAtUtc,
-    string? NextBeforeReplyId);
+    string? NextBeforeReplyId)
+{
+    public LongevitymaxxingDiscussionReadContext? ReadContext { get; init; }
+}
 
 public sealed record LongevitymaxxingDiscussionThread(
     LongevitymaxxingParticipantNote? Note,
-    LongevitymaxxingDiscussionSystemPost? SystemPost);
+    LongevitymaxxingDiscussionSystemPost? SystemPost)
+{
+    public LongevitymaxxingDiscussionReadContext? ReadContext { get; init; }
+}
+
+public sealed record LongevitymaxxingDiscussionThreadKey(string ParticipantId, int ChallengeDay, string? SystemPostId = null);
+public sealed record LongevitymaxxingDiscussionNotification(string Id, string? SourceReplyId, long CreatedRevision);
+public sealed record LongevitymaxxingDiscussionUnreadThread(
+    string ParticipantId, int ChallengeDay, string? SystemPostId, int UnreadCount,
+    string? FirstUnreadReplyId, bool HasOpeningMention, long LatestRelevantAtUnixMs,
+    IReadOnlyList<LongevitymaxxingDiscussionNotification> Notifications);
+public sealed record LongevitymaxxingDiscussionReadContext(long ActivityRevision,
+    IReadOnlyList<LongevitymaxxingDiscussionUnreadThread> Threads);
+public sealed record LongevitymaxxingDiscussionReadRequest(string AccessToken, string PostParticipantId,
+    int ChallengeDay, string? SystemPostId, long ObservedRevision, IReadOnlyList<string> NotificationIds);
+public sealed record LongevitymaxxingDiscussionReadResult(IReadOnlyList<string> AcknowledgedIds,
+    LongevitymaxxingDiscussionReadContext ReadContext);
+public sealed record LongevitymaxxingDiscussionThreadRequest(string AccessToken, string PostParticipantId,
+    int ChallengeDay, string? SystemPostId = null);
+public sealed record LongevitymaxxingDiscussionFeedSnapshot(
+    IReadOnlyList<LongevitymaxxingDiscussionThreadKey> Keys, LongevitymaxxingDiscussionFeedCursor? NextCursor);
 
 public sealed record LongevitymaxxingDiscussionFeedCursor(
     long RankedAtUnixMs,
@@ -64,7 +87,11 @@ public sealed record LongevitymaxxingDiscussionFeedCursor(
     int ChallengeDay,
     string ParticipantId,
     string? SystemPostId,
-    bool NeedsAdvice = false);
+    bool NeedsAdvice = false,
+    long? RankingRevision = null,
+    long? ReadSnapshotRevision = null,
+    bool HasPersonalUnread = false,
+    long LatestRelevantAtUnixMs = 0);
 
 public sealed record LongevitymaxxingDiscussionFeedRequest(
     string? AccessToken,
@@ -72,7 +99,10 @@ public sealed record LongevitymaxxingDiscussionFeedRequest(
 
 public sealed record LongevitymaxxingDiscussionFeedPage(
     IReadOnlyList<LongevitymaxxingDiscussionThread> Threads,
-    LongevitymaxxingDiscussionFeedCursor? NextCursor);
+    LongevitymaxxingDiscussionFeedCursor? NextCursor)
+{
+    public LongevitymaxxingDiscussionReadContext? ReadContext { get; init; }
+}
 
 public sealed record LongevitymaxxingParticipantEditRequest(
     string AccessToken,
@@ -96,7 +126,10 @@ public sealed record LongevitymaxxingPublicState(
     IReadOnlyList<LongevitymaxxingDiscussionSystemPost> SystemDiscussionPosts,
     string SlackInviteUrl,
     string? SlackRoomUrl,
-    LongevitymaxxingScoringWindow ScoringWindow);
+    LongevitymaxxingScoringWindow ScoringWindow)
+{
+    public LongevitymaxxingDiscussionFeedSnapshot? DiscussionSnapshot { get; init; }
+}
 
 public sealed record LongevitymaxxingScoringWindow(int StartDay, int EndDay, string NextClosesAtUtc);
 
@@ -109,6 +142,9 @@ public sealed record LongevitymaxxingParticipantState(
 {
     public LongevitymaxxingAdvicePrompt? PendingAdvicePrompt { get; init; }
     public LongevitymaxxingParticipantNote? UpdatedDiscussionThread { get; init; }
+    public IReadOnlyList<LongevitymaxxingDiscussionSystemPost> SystemDiscussionPosts { get; init; } = [];
+    public LongevitymaxxingDiscussionFeedSnapshot? DiscussionSnapshot { get; init; }
+    public LongevitymaxxingDiscussionReadContext? ReadContext { get; init; }
 }
 
 public sealed record LongevitymaxxingGardenState(
