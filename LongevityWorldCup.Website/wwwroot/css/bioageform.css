@@ -1791,9 +1791,10 @@ body #validAgeInput + * {
     }
 }
 
-/* Reflow the existing label/control pairs when enlarged text needs more room. */
-@container bioage-form (max-width: 14em) {
-    .bioageform fieldset#dobFieldset > :is(label, select, #privacyNote) {
+/* Native selects cannot wrap their selected option. Leave room for a full
+   month name and the select's arrow before keeping three date columns. */
+@container bioage-form (max-width: 26em) {
+    :is(#phenoAgeForm, #bortzAgeForm) fieldset#dobFieldset > :is(label, select, #privacyNote) {
         grid-column: 1 / -1;
         grid-row: auto;
     }

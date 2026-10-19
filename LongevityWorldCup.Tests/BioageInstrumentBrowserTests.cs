@@ -128,6 +128,38 @@ public sealed class BioageInstrumentBrowserTests(
 
     private readonly List<IBrowserContext> _contexts = [];
 
+    [Theory]
+    [InlineData("/pheno-age")]
+    [InlineData("/bortz-age")]
+    public async Task EnlargedDateFields_KeepTheFullSelectedMonthReadable(string path)
+    {
+        var page = await OpenAsync(path, 1440, 900, ColorScheme.Light);
+        await page.AddStyleTagAsync(new() { Content = "html { font-size: 200% !important; }" });
+        await page.Locator("#dob-month").SelectOptionAsync("12");
+        await page.EvaluateAsync("() => document.fonts.ready");
+
+        var widths = await page.Locator("#dob-month").EvaluateAsync<double[]>(
+            """
+            select => {
+                const style = getComputedStyle(select);
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                context.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+                const longestMonth = Math.max(...Array.from(select.options,
+                    option => context.measureText(option.textContent).width));
+                // Native select text is not a DOM text node and can be clipped
+                // even when the select itself has no horizontal overflow.
+                const available = select.clientWidth
+                    - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+                return [available, longestMonth];
+            }
+            """);
+
+        Assert.True(widths[0] >= widths[1],
+            $"{path}: the month needs {widths[1]}px but its select leaves only {widths[0]}px for text.");
+        await ExpectNoHorizontalOverflowAsync(page);
+    }
+
     public override async Task DisposeAsync()
     {
         foreach (var context in _contexts) await context.DisposeAsync();
