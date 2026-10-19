@@ -183,7 +183,8 @@
         let list: HTMLDivElement | null = null;
         let currentFocus = -1;
         let wantsSuggestions = false;
-        const geometryObserver = new ResizeObserver(positionList);
+        let clearanceFrame = 0;
+        const geometryObserver = new ResizeObserver(resizeList);
         input.setAttribute("role", "combobox");
         input.setAttribute("aria-autocomplete", "list");
         input.setAttribute("aria-controls", listId);
@@ -191,6 +192,8 @@
 
         function close(): void {
             geometryObserver.disconnect();
+            if (clearanceFrame) window.cancelAnimationFrame(clearanceFrame);
+            clearanceFrame = 0;
             list?.remove();
             list = null;
             currentFocus = -1;
@@ -201,6 +204,21 @@
         function dismiss(): void {
             wantsSuggestions = false;
             close();
+        }
+
+        function scheduleInlineClearance(): void {
+            if (!options.inline || !list || clearanceFrame) return;
+            clearanceFrame = window.requestAnimationFrame(() => {
+                clearanceFrame = 0;
+                if (list && document.activeElement === input) {
+                    window.LwcFlowActionDock?.ensureClear?.(list);
+                }
+            });
+        }
+
+        function resizeList(): void {
+            positionList();
+            scheduleInlineClearance();
         }
 
         function positionList(): void {
@@ -297,13 +315,7 @@
             input.parentElement.appendChild(list);
             input.setAttribute("aria-expanded", "true");
             positionList();
-            if (options.inline) {
-                window.requestAnimationFrame(() => {
-                    if (list && document.activeElement === input) {
-                        window.LwcFlowActionDock?.ensureClear?.(list);
-                    }
-                });
-            }
+            scheduleInlineClearance();
             // Docking and font/layout changes can move the available space without a viewport event.
             geometryObserver.observe(input, { box: "border-box" });
             geometryObserver.observe(input.parentElement, { box: "border-box" });
@@ -344,9 +356,9 @@
         document.addEventListener("click", event => {
             if (event.target !== input && (!(event.target instanceof Node) || !list?.contains(event.target))) dismiss();
         });
-        window.addEventListener("resize", positionList);
+        window.addEventListener("resize", resizeList);
         window.addEventListener("scroll", event => { if (event.target !== list) positionList(); }, true);
-        window.visualViewport?.addEventListener("resize", positionList);
+        window.visualViewport?.addEventListener("resize", resizeList);
         window.visualViewport?.addEventListener("scroll", positionList);
         return { refresh() { if (wantsSuggestions && document.activeElement === input) render(); } };
     }
