@@ -71,16 +71,40 @@ a.badge-class:focus-visible,.badge-class.badge-clickable:focus-visible,.badge-cl
 .modal-badge-item:hover .modal-badge-name,.modal-badge-item.expanded .modal-badge-name{-webkit-line-clamp:unset;max-height:none;overflow:visible}
 .modal-badge-item[role="button"]{cursor:pointer}
 .modal-badge-item[role="button"]:focus-visible{outline:3px solid rgba(0,188,212,.72);outline-offset:4px;border-radius:14px}
+/* In the profile the badges are the shelf of the rank card: an even grid of
+   equal cells under the ranks, not a separately framed cluster. The frame
+   itself comes from the dialog's shared card rules. */
 #detailsModal .modal-badge-strip{
-    width:min(100%, var(--athlete-modal-section-width, 680px));
+    display:flex;
+    flex-wrap:wrap;
+    justify-content:center;
+    align-items:flex-start;
+    gap:1rem .5rem;
     box-sizing:border-box;
-    background:linear-gradient(180deg, rgba(246,244,237,.105), rgba(246,244,237,.05));
-    border:1px solid var(--athlete-modal-cream-border,rgba(246,244,237,.52));
-    border-radius:var(--lwc-radius-lg,12px);
-    padding:.85rem 1rem;
-    margin-top:.75rem;
-    margin-bottom:1.15rem;
-    box-shadow:0 18px 44px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.1);
+    padding:1.1rem 1rem 1rem;
+}
+#detailsModal .modal-badge-strip .modal-badge-item{
+    flex:0 1 5.75rem;
+    width:5.75rem;
+    min-width:0;
+    margin:0;
+    text-align:center;
+}
+#detailsModal .modal-badge-strip .badge-class{
+    width:56px;
+    height:56px;
+    margin:0 0 .3rem;
+    font-size:1.6rem;
+}
+#detailsModal .modal-badge-strip .modal-badge-name{
+    width:auto;
+    max-width:7.5rem;
+    margin-inline:auto;
+    font-size:.72rem;
+}
+#detailsModal .modal-badge-strip .modal-badge-item.expanded{
+    flex-basis:100%;
+    width:100%;
 }
 #detailsModal .modal-badge-strip:empty{
     display:none;
@@ -126,22 +150,12 @@ a.badge-class,.badge-class.badge-clickable,.badge-class[data-clickable="true"],.
 
 @media (max-width:768px){
     #detailsModal .modal-badge-strip{
-        display:flex;
-        flex-wrap:wrap;
-        justify-content:center;
-        align-items:start;
-        width:calc(100% - 1.5rem)!important;
-        max-width:calc(100% - 1.5rem)!important;
-        box-sizing:border-box;
-        gap:.7rem .35rem;
-        padding:.75rem .55rem;
-        margin:.45rem auto .9rem;
+        gap:.85rem .35rem;
+        padding:.9rem .5rem .85rem;
     }
     #detailsModal .modal-badge-strip .modal-badge-item{
-        flex:0 1 92px;
-        width:92px;
-        margin:0;
-        text-align:center;
+        flex-basis:5.25rem;
+        width:5.25rem;
     }
     #detailsModal .modal-badge-strip .badge-class{
         width:50px;
