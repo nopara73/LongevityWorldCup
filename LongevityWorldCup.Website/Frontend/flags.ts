@@ -210,6 +210,16 @@
             const parentBox = parent.getBoundingClientRect();
             const viewport = window.visualViewport;
             const gap = 8;
+            if (options.inline) {
+                // Long forms can reserve space below the field instead of covering
+                // earlier inputs with an upward-opening popup.
+                list.style.maxHeight = "";
+                const preferredHeight = list.getBoundingClientRect().height;
+                list.style.maxHeight = Math.min(preferredHeight,
+                    Math.max(48, (viewport?.height ?? window.innerHeight) * 0.42)) + "px";
+                if (currentFocus >= 0) setActive(currentFocus);
+                return;
+            }
             const visibleTop = (viewport?.offsetTop ?? 0) + gap;
             let visibleBottom = (viewport?.offsetTop ?? 0) + (viewport?.height ?? window.innerHeight) - gap;
             const dock = document.querySelector(".flow-action-stack--docked")?.getBoundingClientRect();
@@ -264,6 +274,7 @@
             list = document.createElement("div");
             list.id = listId;
             list.className = "autocomplete-items lwc-flag-suggestions";
+            if (options.inline) list.classList.add("lwc-flag-suggestions--inline");
             list.setAttribute("role", "listbox");
             list.setAttribute("aria-label", "Flag suggestions");
             matches.forEach((option, index) => {
@@ -286,6 +297,13 @@
             input.parentElement.appendChild(list);
             input.setAttribute("aria-expanded", "true");
             positionList();
+            if (options.inline) {
+                window.requestAnimationFrame(() => {
+                    if (list && document.activeElement === input) {
+                        window.LwcFlowActionDock?.ensureClear?.(list.firstElementChild);
+                    }
+                });
+            }
             // Docking and font/layout changes can move the available space without a viewport event.
             geometryObserver.observe(input, { box: "border-box" });
             geometryObserver.observe(input.parentElement, { box: "border-box" });

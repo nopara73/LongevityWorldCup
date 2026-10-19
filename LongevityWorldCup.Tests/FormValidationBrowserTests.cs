@@ -36,8 +36,6 @@ public sealed class FormValidationBrowserTests(
         await page.Locator("#personalDetails").ScreenshotAsync(new() { Path = Path.Combine(captures, $"application-{width}.png") });
 
         await flag.FillAsync("?");
-        // The stage card puts Flag low in the first screen, so its suggestions open above it; close them first.
-        await flag.PressAsync("Escape");
         await name.ClickAsync();
         await Assertions.Expect(name).ToBeFocusedAsync();
         await Assertions.Expect(flag).ToHaveAttributeAsync("aria-invalid", "true");
@@ -46,11 +44,9 @@ public sealed class FormValidationBrowserTests(
         await flag.FillAsync("U");
         await Assertions.Expect(flag).ToHaveAttributeAsync("aria-invalid", "false");
         await Assertions.Expect(page.Locator("#flagError")).ToBeEmptyAsync();
-        await flag.PressAsync("Escape");
         await name.ClickAsync();
         await Assertions.Expect(flag).ToHaveAttributeAsync("aria-invalid", "true");
         await flag.FillAsync("United Kingdom");
-        await flag.PressAsync("Escape");
         await name.ClickAsync();
         await Assertions.Expect(page.Locator(".error-message:not(:empty)")).ToHaveCountAsync(0);
         await Assertions.Expect(page.Locator("#nextButton")).ToBeEnabledAsync();

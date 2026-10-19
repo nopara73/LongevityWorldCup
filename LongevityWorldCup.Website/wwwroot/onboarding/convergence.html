@@ -75,7 +75,7 @@
 
         .char-counter {
             font-size: 0.9rem;
-            color: green;
+            color: var(--lwc-success);
             position: absolute;
             bottom: 10px;
             right: 10px;
@@ -104,6 +104,10 @@
             scrollbar-color: rgba(96, 125, 139, 0.45) transparent;
             overscroll-behavior: contain;
             scroll-padding-block: var(--lwc-space-1);
+        }
+
+        .lwc-flag-suggestions--inline {
+            position: static;
         }
 
             .autocomplete-items .autocomplete-active {
@@ -258,11 +262,23 @@
             background: var(--lwc-surface-muted, #eef2f5);
             box-shadow: none;
             object-fit: cover;
-            object-position: center 35%;
+            object-position: var(--convergence-banner-position, center 35%);
         }
 
-        body[data-convergence-stage="4"] #descriptionForm #illustrationImage.illustration {
-            object-position: center top;
+        /* Focal positions belong to the image, independently of banner size.
+           A stage may also set --convergence-banner-position-phone. */
+        body[data-convergence-stage="1"] { --convergence-banner-position: center 35%; }
+        body[data-convergence-stage="2"] { --convergence-banner-position: center 35%; }
+        body[data-convergence-stage="3"] { --convergence-banner-position: center 35%; }
+        body[data-convergence-stage="4"] { --convergence-banner-position: center top; }
+        body[data-convergence-stage="5"] { --convergence-banner-position: center 35%; }
+        body[data-convergence-stage="6"] { --convergence-banner-position: center 35%; }
+        body[data-convergence-stage="7"] { --convergence-banner-position: center 35%; }
+
+        @media (max-width: 600px) {
+            #descriptionForm #illustrationImage.illustration {
+                object-position: var(--convergence-banner-position-phone, var(--convergence-banner-position));
+            }
         }
 
         /* The saved portrait sits on the banner's lower edge, like a profile header. */
@@ -583,6 +599,10 @@
             box-shadow: none;
         }
 
+        #whyField .char-counter.hidden {
+            display: none;
+        }
+
         /* Actions close the card on one full-width row. */
         .convergence-actions {
             width: 100%;
@@ -688,21 +708,23 @@
             }
         }
 
-        /* On phones the dock is always on; reserve its height below the card, not inside it. */
+        /* Reserve dock clearance outside the card at every width, including
+           overflow docking on tablets and short desktop windows. */
+        html.flow-action-dock-active .convergence-main {
+            padding-bottom: calc(var(--flow-action-dock-height, 0px) + 0.25rem);
+        }
+
+        html.flow-action-dock-active .convergence-stage-layout .flow-action-dock-placeholder {
+            height: 1px !important;
+            margin: 0 !important;
+        }
+
         @media (max-width: 760px) {
             .convergence-stage-layout {
                 max-width: calc(100vw - 1.5rem);
                 margin-block: 0.25rem 1rem;
             }
 
-            html.flow-action-dock-active .convergence-main {
-                padding-bottom: calc(var(--flow-action-dock-height, 0px) + 0.25rem);
-            }
-
-            html.flow-action-dock-active .convergence-stage-layout .flow-action-dock-placeholder {
-                height: 1px !important;
-                margin: 0 !important;
-            }
         }
     </style>
 </head>
@@ -1677,6 +1699,8 @@
             // Clear out any lingering click‐handlers on the illustration
             const oldImg = document.getElementById('illustrationImage');
             const newImg = oldImg.cloneNode(true);
+            // cloneNode drops listeners, but retains their bookkeeping attributes.
+            newImg.removeAttribute('data-listener');
             oldImg.parentNode.replaceChild(newImg, oldImg);
 
             // Clear visibility on all main form sections
@@ -2012,7 +2036,8 @@
                 .then(([flags, athletes]) => {
                     const flagOptions = window.LwcFlags.buildFlagOptions(flags, athletes);
                     window.LwcFlags.bindAutocomplete(document.getElementById('flag'), {
-                        getOptions: () => flagOptions
+                        getOptions: () => flagOptions,
+                        inline: true
                     });
                 });
 
@@ -2484,10 +2509,10 @@
                 charCounter.style.color = 'var(--lwc-muted)';
             } else if (charCount <= 250) {
                 charCounter.textContent = charCount + '/250';
-                charCounter.style.color = 'green';
+                charCounter.style.color = 'var(--lwc-success)';
             } else {
                 charCounter.textContent = charCount + '/250';
-                charCounter.style.color = 'red';
+                charCounter.style.color = 'var(--lwc-danger)';
             }
 
             // Enable or disable the Next button based on validity

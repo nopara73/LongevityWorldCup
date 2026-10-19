@@ -11,6 +11,91 @@ public sealed class ApplyJourneyBrowserTests(
     BrowserTestAppFixture appFixture)
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
+    [Theory]
+    [InlineData(320)]
+    [InlineData(390)]
+    [InlineData(768)]
+    [InlineData(1440)]
+    public async Task FlagSuggestions_ReserveSpaceAndLeaveNameAndDivisionReachable(int width)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = 844 },
+            ReducedMotion = ReducedMotion.Reduce,
+            IsMobile = width < 600,
+            HasTouch = width < 600
+        });
+        await context.RouteAsync("**/api/data/flags", route => route.FulfillAsync(new()
+        {
+            ContentType = "application/json", Body = """["United Kingdom","United States","Hungary"]"""
+        }));
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/apply");
+        var flag = page.Locator("#flag");
+        await Assertions.Expect(flag).ToHaveAttributeAsync("data-keydown-listener", "true");
+        await page.Locator("#name").FillAsync("Review Athlete");
+        await flag.FillAsync("United");
+        await Assertions.Expect(page.Locator("#flag-autocomplete-list")).ToBeVisibleAsync();
+        var positions = await page.EvaluateAsync<double[]>("""
+            () => [document.getElementById('flag-autocomplete-list').getBoundingClientRect().top,
+                   document.getElementById('flag').getBoundingClientRect().bottom]
+            """);
+        Assert.True(positions[0] >= positions[1], "Suggestions must follow the field without covering earlier controls.");
+
+        // A real pointer gesture must reach its intended field without Escape.
+        if (width < 600) await page.Locator("#name").TapAsync();
+        else await page.Locator("#name").ClickAsync();
+        await Assertions.Expect(page.Locator("#name")).ToBeFocusedAsync();
+        await Assertions.Expect(flag).ToHaveValueAsync("United");
+        await Assertions.Expect(page.Locator("#flag-autocomplete-list")).ToHaveCountAsync(0);
+
+        await flag.FocusAsync();
+        await page.Locator("#division").ClickAsync();
+        await page.Keyboard.PressAsync("Escape");
+        await Assertions.Expect(page.Locator("#division")).ToBeFocusedAsync();
+        await Assertions.Expect(flag).ToHaveValueAsync("United");
+        await flag.FocusAsync();
+        await flag.PressAsync("ArrowDown");
+        await flag.PressAsync("Enter");
+        Assert.StartsWith("United ", await flag.InputValueAsync());
+        await Assertions.Expect(flag).ToHaveAttributeAsync("aria-expanded", "false");
+        await flag.FillAsync("Hungary");
+        var option = page.GetByRole(AriaRole.Option, new() { Name = "Hungary", Exact = true });
+        if (width < 600) await option.TapAsync();
+        else await option.ClickAsync();
+        await Assertions.Expect(flag).ToHaveValueAsync("Hungary");
+        await Assertions.Expect(flag).ToHaveAttributeAsync("aria-expanded", "false");
+        await ExpectNoHorizontalOverflowAsync(page);
+    }
+
+    [Fact]
+    public async Task FinalContactStage_KeepsACurrentStepUntilSubmission()
+    {
+        await using var context = await NewContextAsync(Browser, App, new());
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/apply?fake=1");
+        await page.WaitForFunctionAsync("() => !document.getElementById('nextButton').disabled");
+        await page.EvaluateAsync("() => { currentStage = 7; goToStage(7); }");
+        await Assertions.Expect(page.Locator("#subProgressContainerItem [aria-current=step]")).ToHaveCountAsync(1);
+        await Assertions.Expect(page.Locator("#subStage5")).ToHaveAttributeAsync("aria-current", "step");
+        await page.Locator("#backButton").ClickAsync();
+        await Assertions.Expect(page.Locator("#subStage5")).ToHaveAttributeAsync("aria-current", "step");
+    }
+
+    [Fact]
+    public async Task PortraitBanner_ReopensUploadAfterReturningToThePhotoStage()
+    {
+        await using var context = await NewContextAsync(Browser, App, new());
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/apply?fake=1");
+        await page.WaitForFunctionAsync("() => !document.getElementById('nextButton').disabled");
+        await page.EvaluateAsync("() => { currentStage = 4; goToStage(4); }");
+        await page.RunAndWaitForFileChooserAsync(() => page.Locator("#illustrationImage").ClickAsync());
+        await page.Locator("#nextButton").ClickAsync();
+        await page.Locator("#backButton").ClickAsync();
+        await page.RunAndWaitForFileChooserAsync(() => page.Locator("#illustrationImage").ClickAsync());
+    }
+
     private const string SeedProofSession = """
         window.sessionStorage.setItem('biomarkerData', JSON.stringify({
             Biomarkers: [{ Date: '2026-06-19', AlbGL: 45, GluMmolL: 5.1 }]
@@ -155,7 +240,9 @@ public sealed class ApplyJourneyBrowserTests(
     [Theory]
     [InlineData(390, 844)]
     [InlineData(320, 640)]
-    public async Task PhoneStages_EndTheCardAtItsContentWhileTheActionsAreDocked(int width, int height)
+    [InlineData(768, 700)]
+    [InlineData(1024, 600)]
+    public async Task DockedStages_EndTheCardAtItsContent(int width, int height)
     {
         await using var context = await NewContextAsync(Browser, App, new()
         {
