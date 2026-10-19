@@ -256,7 +256,7 @@
             width: 100%;
             max-width: none;
             height: auto;
-            aspect-ratio: 3 / 1;
+            aspect-ratio: var(--convergence-banner-aspect, 3 / 1);
             max-height: none;
             margin: 0;
             border: 0;
@@ -269,7 +269,7 @@
 
         /* Focal positions belong to the image, independently of banner size.
            A stage may also set --convergence-banner-position-phone. */
-        body[data-convergence-stage="1"] { --convergence-banner-position: center 35%; }
+        body[data-convergence-stage="1"] { --convergence-banner-position: center 35%; --convergence-banner-aspect: 2170 / 725; }
         body[data-convergence-stage="2"] { --convergence-banner-position: center 35%; }
         body[data-convergence-stage="3"] { --convergence-banner-position: center 35%; }
         body[data-convergence-stage="4"] { --convergence-banner-position: center top; }
@@ -767,7 +767,7 @@
                     <picture id="illustrationPicture" style="display:''">
                         <source type="image/webp" srcset="../assets/content-images/apply-arena.webp">
                         <source type="image/jpeg" srcset="../assets/content-images/apply-arena.jpg">
-                        <img id="illustrationImage" src="../assets/content-images/apply-arena.jpg" alt="Hooded applicant enters a sunlit stadium with longevity athletes" class="illustration" width="2172" height="724" loading="lazy" decoding="async">
+                        <img id="illustrationImage" src="../assets/content-images/apply-arena.jpg" alt="Hooded applicant enters a sunlit stadium with longevity athletes" class="illustration" width="2170" height="725" loading="lazy" decoding="async">
                     </picture>
                     <img style="display:none" id="profileImage" src="" alt="Profile picture" class="illustration" loading="lazy">
                 </div>
@@ -1778,7 +1778,7 @@
                 case 1:
                     // Stage 1: Enter the Arena
                     document.querySelector('h1').textContent = "Enter the arena";
-                    updateIllustration("apply-arena", "jpg", webpSource, jpegSource, illustrationImage);
+                    updateIllustration("apply-arena", "jpg", webpSource, jpegSource, illustrationImage, 2170, 725);
                     illustrationImage.alt = "Hooded applicant enters a sunlit stadium with longevity athletes";
                     illustrationImage.loading = "lazy";
                     document.getElementById('personalDetails').style.display = '';
@@ -1822,7 +1822,7 @@
                 case 3:
                     // Stage 3: The price of glory
                     document.querySelector('h1').textContent = "The price of glory";
-                    updateIllustration("apply-interview", "jpg", webpSource, jpegSource, illustrationImage, 2171, 724);
+                    updateIllustration("apply-interview", "jpg", webpSource, jpegSource, illustrationImage);
                     illustrationImage.alt = "Siim Land and Wong join the hooded applicant for a press interview";
                     illustrationImage.loading = "lazy";
                     document.getElementById('privacyText').style.display = '';
