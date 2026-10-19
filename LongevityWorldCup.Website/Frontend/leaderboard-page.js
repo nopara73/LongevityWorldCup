@@ -3818,7 +3818,7 @@ function renderFlagTeams(teams, view) {
             : section === 'incomplete' && section !== previousSection ? '<h3 class="flag-section-heading">Incomplete teams</h3>' : '';
         previousSection = section;
         return `${heading}<details class="flag-team${isAmateur ? ' tier-amateur' : ''}" id="${escapeHtml(id)}" data-clock="${team.view}" data-flag="${escapeHtml(team.flag)}" ${open.has(id) ? 'open' : ''}>
-            <summary title="${labels[team.view]}"><span class="flag-team-rank" aria-label="${team.rank ? `Rank ${team.rank}` : 'Unranked'}">${team.rank || '—'}</span>
+            <summary title="${labels[team.view]}"><span class="flag-team-rank" data-rank="${team.rank || ''}" aria-label="${team.rank ? `Rank ${team.rank}` : 'Unranked'}">${team.rank || '—'}</span>
             <span class="flag-team-name"><span class="flag-team-icon" aria-hidden="true">${icon ? `<span class="fi fi-${icon}"></span>` : '<i class="fas fa-flag"></i>'}</span><span>${escapeHtml(team.flag)}</span></span>
             <span class="flag-team-portraits" aria-hidden="true">${team.top.map(a => `<img src="${escapeHtml(getAthletePortraitUrl(a))}" alt="" loading="lazy">`).join('')}</span>
             <span class="flag-team-score">${team.rank ? signed(team.score, 2) : `${team.top.length}/3`}<small>${team.rank ? 'years total' : 'to qualify'}</small></span><span class="flag-team-chevron" aria-hidden="true">⌄</span></summary>
@@ -6769,6 +6769,12 @@ function syncLeaderboardTableHeight() {
     const table = document.querySelector('.leaderboard--flags > .flag-leaderboard') || document.querySelector('.leaderboard > table');
     if (!leaderboard || !table) return;
 
+    if (leaderboard.closest('main[data-leaderboard-page="full"]')) {
+        const headHeight = table.tHead?.getBoundingClientRect().height;
+        if (headHeight > 0) leaderboard.style.setProperty('--leaderboard-head-height', `${Math.ceil(headHeight)}px`);
+        else leaderboard.style.removeProperty('--leaderboard-head-height');
+    }
+
     if (isMobileDrawerViewport()) {
         leaderboard.style.removeProperty('--leaderboard-table-height');
         leaderboard.style.removeProperty('--leaderboard-title-height');
@@ -6793,6 +6799,7 @@ function installLeaderboardTableHeightObserver() {
     if ('ResizeObserver' in window) {
         leaderboardTableResizeObserver = new ResizeObserver(scheduleLeaderboardTableHeightSync);
         leaderboardTableResizeObserver.observe(table);
+        if (table.tHead) leaderboardTableResizeObserver.observe(table.tHead);
         const flags = document.getElementById('flagLeaderboard');
         if (flags) leaderboardTableResizeObserver.observe(flags);
         if (sidebarPanel) leaderboardTableResizeObserver.observe(sidebarPanel);

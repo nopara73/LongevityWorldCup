@@ -114,21 +114,36 @@ public sealed class LeaderboardBoardBrowserTests(PlaywrightBrowserFixture browse
     }
 
     [Theory]
-    [InlineData(1440, 900, false)]
-    [InlineData(768, 1024, true)]
-    [InlineData(390, 844, false)]
-    public async Task ColumnHeads_StayUnderTheSiteHeaderWhileRowsScroll(int width, int height, bool dark)
+    [InlineData(1440, 900, false, 100)]
+    [InlineData(1440, 900, true, 200)]
+    [InlineData(1100, 900, false, 200)]
+    [InlineData(901, 900, true, 200)]
+    [InlineData(769, 900, false, 200)]
+    [InlineData(768, 1024, true, 100)]
+    [InlineData(481, 900, false, 200)]
+    [InlineData(480, 900, true, 200)]
+    [InlineData(390, 844, false, 100)]
+    [InlineData(390, 844, true, 200)]
+    public async Task ColumnHeads_StayUnderTheSiteHeaderWhileRowsScroll(int width, int height, bool dark, int textPercent)
     {
         var (context, page) = await OpenAsync(width, height, dark);
         await using var _ = context;
+        await page.EvaluateAsync("percent => document.documentElement.style.fontSize = `${percent}%`", textPercent);
         await page.EvaluateAsync(
             "() => { document.documentElement.style.scrollBehavior = 'auto'; const row = document.querySelector('#athleteLeaderboard tbody tr:nth-child(40)'); scrollTo(0, row.getBoundingClientRect().top + scrollY - 300); }");
         await page.WaitForTimeoutAsync(200);
         var top = await page.Locator("#athleteLeaderboard thead th").Nth(1).EvaluateAsync<double>("th => th.getBoundingClientRect().top");
-        Assert.InRange(top, 48, 56);
+        var headerBottom = await page.Locator("#site-sticky-header").EvaluateAsync<double>("header => header.getBoundingClientRect().bottom");
+        Assert.InRange(top - headerBottom, -1, 1);
         var covered = await page.EvaluateAsync<bool>(
             "() => { const th = document.querySelectorAll('#athleteLeaderboard thead th')[1]; const box = th.getBoundingClientRect(); const hit = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2); return !th.contains(hit); }");
         Assert.False(covered, "Rows must pass under the held column heads.");
+        if (width > 768 && height > 480)
+        {
+            var headingHeight = await page.Locator("#athleteLeaderboard thead").EvaluateAsync<double>("head => head.getBoundingClientRect().height");
+            var railHeight = await page.Locator(".sidebar-rail-icon").EvaluateAsync<double>("icon => icon.getBoundingClientRect().height");
+            Assert.InRange(railHeight - headingHeight, -1, 1);
+        }
     }
 
     [Fact]
@@ -142,7 +157,7 @@ public sealed class LeaderboardBoardBrowserTests(PlaywrightBrowserFixture browse
         var head = await page.Locator("#athleteLeaderboard thead th").Nth(3).EvaluateAsync<string[]>(
             "th => [getComputedStyle(th).textTransform, getComputedStyle(th).whiteSpace, String(th.getBoundingClientRect().height)]");
         Assert.Equal("uppercase", head[0]);
-        Assert.Equal("nowrap", head[1]);
+        Assert.True(await page.Locator(".leaderboard-metric-link").EvaluateAsync<bool>("link => link.getBoundingClientRect().height >= 44"));
     }
 
     [Theory]
@@ -203,5 +218,78 @@ public sealed class LeaderboardBoardBrowserTests(PlaywrightBrowserFixture browse
         var gap = await page.EvaluateAsync<double>(
             "() => document.querySelector('#athleteLeaderboard').getBoundingClientRect().top - document.querySelector('.leaderboard-controls').getBoundingClientRect().bottom");
         Assert.True(gap > 4, "The homepage board is outside this page's redesign.");
+    }
+
+    [Theory]
+    [InlineData(320)]
+    [InlineData(481)]
+    [InlineData(769)]
+    [InlineData(1024)]
+    public async Task Search_EnlargedTextKeepsItsLineBoxAndFocusCue(int width)
+    {
+        var (context, page) = await OpenAsync(width, 900, false);
+        await using var _ = context;
+        await page.EvaluateAsync("() => document.documentElement.style.fontSize = '200%'");
+        var sizing = await page.Locator("#athleteSearch").EvaluateAsync<double[]>("""
+            input => {
+                const style = getComputedStyle(input);
+                return [input.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom), parseFloat(style.lineHeight)];
+            }
+            """);
+        Assert.True(sizing[0] >= sizing[1] - 1, $"Search has {sizing[0]}px for its {sizing[1]}px line box.");
+        await page.Locator("#athleteSearch").FocusAsync();
+        await Assertions.Expect(page.Locator("#athleteSearch")).ToHaveCSSAsync("border-color", "rgb(8, 118, 133)");
+        await Assertions.Expect(page.Locator(".search-icon")).ToHaveCSSAsync("color", "rgb(8, 118, 133)");
+    }
+
+    [Theory]
+    [InlineData(481)]
+    [InlineData(901)]
+    [InlineData(1100)]
+    public async Task EnlargedColumnLabels_KeepTheirWordsInsideTheirAssociatedColumns(int width)
+    {
+        var (context, page) = await OpenAsync(width, 900, false);
+        await using var _ = context;
+        await context.AddInitScriptAsync("document.addEventListener('DOMContentLoaded', () => document.documentElement.style.fontSize = '200%')");
+        foreach (var view in new[] { "ultimate", "bortz", "pheno", "crowd", "improvement", "bortz-improvement" })
+        {
+            await NavigateAndSettleAsync(page, $"/leaderboard?view={view}");
+            await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+            var overflow = await page.Locator(".leaderboard table thead th").EvaluateAllAsync<string[]>("""
+                heads => heads.flatMap(head => {
+                    const box = head.getBoundingClientRect();
+                    if (!box.width) return [];
+                    const range = document.createRange();
+                    range.selectNodeContents(head);
+                    return [...range.getClientRects()].filter(rect => rect.width && (rect.left < box.left - 1 || rect.right > box.right + 1))
+                        .map(() => head.textContent.trim());
+                })
+                """);
+            Assert.Empty(overflow);
+            Assert.True(await page.GetByRole(AriaRole.Columnheader).CountAsync() >= 3, "The ranking keeps its accessible column headers.");
+            await ExpectNoHorizontalOverflowAsync(page);
+        }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task FlagMedals_FollowTheRankBeforeHydrationAndThroughSearch(bool javaScript)
+    {
+        await using var context = await NewContextAsync(Browser, App, new() { JavaScriptEnabled = javaScript });
+        var page = await context.NewPageAsync();
+        foreach (var rank in new[] { "2", "4", "" })
+        {
+            await page.GotoAsync("/leaderboard?group=flags");
+            if (javaScript) await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+            var team = page.Locator($".flag-team:has(.flag-team-rank[data-rank='{rank}'])").First;
+            var flag = (await team.GetAttributeAsync("data-flag"))!;
+            var id = (await team.GetAttributeAsync("id"))!;
+            if (javaScript)
+                await page.Locator("#athleteSearch").FillAsync(flag);
+            var medal = page.Locator($"#{id} .flag-team-rank");
+            await Assertions.Expect(medal).ToHaveAttributeAsync("data-rank", rank);
+            await Assertions.Expect(medal).ToHaveCSSAsync("background-color", rank == "2" ? "rgb(201, 210, 218)" : "rgba(0, 0, 0, 0)");
+        }
     }
 }
