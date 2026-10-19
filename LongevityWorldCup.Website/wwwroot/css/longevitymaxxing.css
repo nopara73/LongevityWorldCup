@@ -5812,7 +5812,7 @@ a.lmx-note-mention:focus-visible {
 
 /* Agencies: four even tiles, each keyed by its habit colour. */
 .lmx-page .lmx-habit-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 7rem), 1fr));
     gap: var(--lwc-space-3);
     margin-top: 0;
 }
@@ -5894,9 +5894,16 @@ a.lmx-note-mention:focus-visible {
 
 /* Signed-in stats read as competition marks. */
 .lmx-page .lmx-benefit-strip.lmx-ops-strip {
+    display: flex;
+    flex-wrap: wrap;
+    row-gap: var(--lwc-space-3);
     margin-top: var(--lwc-space-5);
     padding: var(--lwc-space-4) 0;
     border-block: 1px solid var(--lmx-border);
+}
+
+.lmx-page .lmx-ops-tile {
+    flex: 1 1 max-content;
 }
 
 .lmx-page .lmx-ops-tile > .lmx-ops-label {
@@ -5911,6 +5918,7 @@ a.lmx-note-mention:focus-visible {
     font-size: clamp(1.6rem, 3vw, 2.1rem);
     font-weight: 700;
     font-variant-numeric: tabular-nums;
+    line-height: 1.3;
 }
 
 /* --- Action card ---------------------------------------------------------- */
@@ -5944,6 +5952,16 @@ a.lmx-note-mention:focus-visible {
     font-size: var(--lwc-type-sm);
     font-weight: 700;
     box-shadow: none;
+}
+
+/* Let whole icon-and-word actions wrap before their targets become too narrow. */
+.lmx-page #lmxParticipantTabs {
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.lmx-page #lmxParticipantTabs .lmx-tab {
+    flex: 1 1 max-content;
 }
 
 .lmx-page .lmx-tabs .lmx-tab:hover,
@@ -6210,7 +6228,7 @@ a.lmx-note-mention:focus-visible {
 
 @media (max-width: 360px) {
     .lmx-page .lmx-habit-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 6.5rem), 1fr));
     }
 
     .lmx-page .lmx-life-strip {

@@ -8,12 +8,108 @@ namespace LongevityWorldCup.Tests;
 public sealed partial class LongevitymaxxingChallengeBrowserTests
 {
     [Theory]
+    [InlineData(320, 100)]
+    [InlineData(320, 200)]
+    [InlineData(390, 200)]
+    [InlineData(768, 200)]
+    [InlineData(1440, 200)]
+    public async Task PageSystem_LongRankScoreAndStreakStayInsideTheirOwnTiles(int width, int textPercent)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = 900 }, ReducedMotion = ReducedMotion.Reduce
+        });
+        var page = await OpenDiscussionWorkspaceAsync(context, DiscussionWorkspaceState());
+        await page.EvaluateAsync("percent => document.documentElement.style.fontSize = `${percent}%`", textPercent);
+        await page.Locator(".lmx-ops-tile strong").EvaluateAllAsync<object?>("tiles => tiles.forEach((tile, i) => tile.textContent = ['#1234', '154', '1234'][i])");
+        await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
+        var problems = await page.Locator(".lmx-ops-strip").EvaluateAsync<string[]>("""
+            strip => {
+                const problems = [];
+                for (const tile of strip.children) {
+                    const box = tile.getBoundingClientRect();
+                    for (const label of tile.children) {
+                        const range = document.createRange();
+                        range.selectNodeContents(label);
+                        for (const rect of range.getClientRects())
+                            if (rect.left < box.left - 1 || rect.right > box.right + 1 || rect.top < box.top - 1 || rect.bottom > box.bottom + 1)
+                                problems.push(label.textContent + ': outside stat tile');
+                    }
+                }
+                return problems;
+            }
+            """);
+        Assert.True(problems.Length == 0, $"{width}px / {textPercent}%: {string.Join("; ", problems)}");
+    }
+
+    [Theory]
+    [InlineData(320, ColorScheme.Light)]
+    [InlineData(390, ColorScheme.Dark)]
+    [InlineData(844, ColorScheme.Light)]
+    public async Task PageSystem_EnlargedParticipantTabsKeepIconsWordsAndKeyboardSelection(int width, ColorScheme theme)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = 844 }, ColorScheme = theme,
+            ReducedMotion = ReducedMotion.Reduce, HasTouch = width < 600
+        });
+        var page = await OpenDiscussionWorkspaceAsync(context, DiscussionWorkspaceState());
+        await page.EvaluateAsync("document.documentElement.style.fontSize = '200%'");
+        await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
+        var problems = await page.Locator("#lmxParticipantTabs").EvaluateAsync<string[]>("""
+            tabs => {
+                const problems = [];
+                for (const tab of tabs.querySelectorAll('[role="tab"]')) {
+                    const box = tab.getBoundingClientRect(), icon = tab.querySelector('i').getBoundingClientRect();
+                    if (icon.width < 1 || icon.height < 1) problems.push(tab.id + ': missing icon');
+                    if (box.height < 44 || box.width < 44) problems.push(tab.id + ': small target');
+                    const walker = document.createTreeWalker(tab, NodeFilter.SHOW_TEXT);
+                    let node;
+                    while (node = walker.nextNode()) {
+                        for (const word of node.textContent.matchAll(/\S+/g)) {
+                            const range = document.createRange();
+                            range.setStart(node, word.index);
+                            range.setEnd(node, word.index + word[0].length);
+                            const rects = [...range.getClientRects()];
+                            if (rects.length !== 1) problems.push(word[0] + ': broken word');
+                            if (rects.some(r => r.left < box.left - 1 || r.right > box.right + 1 || r.top < box.top - 1 || r.bottom > box.bottom + 1))
+                                problems.push(word[0] + ': outside target');
+                        }
+                    }
+                    if (icon.left < box.left - 1 || icon.right > box.right + 1) problems.push(tab.id + ': icon outside target');
+                }
+                if (document.documentElement.scrollWidth > innerWidth) problems.push('page overflows');
+                return problems;
+            }
+            """);
+        Assert.True(problems.Length == 0, $"{width}px / {theme}: {string.Join("; ", problems)}");
+        await page.Locator("#lmxCheckinTab").FocusAsync();
+        await page.Keyboard.PressAsync("ArrowRight");
+        await Assertions.Expect(page.Locator("#lmxProfileTab")).ToBeFocusedAsync();
+        await Assertions.Expect(page.Locator("#lmxProfileTab")).ToHaveAttributeAsync("aria-selected", "true");
+        await Assertions.Expect(page.Locator("#lmxCheckinPanel")).ToBeHiddenAsync();
+        await Assertions.Expect(page.Locator("#lmxEditForm")).ToBeVisibleAsync();
+        await page.Keyboard.PressAsync("ArrowRight");
+        await Assertions.Expect(page.Locator("#lmxHomeTab")).ToBeFocusedAsync();
+        await Assertions.Expect(page.Locator("#lmxHomePanel")).ToBeVisibleAsync();
+        await Assertions.Expect(page.Locator("#lmxEditForm")).ToBeHiddenAsync();
+        await page.Keyboard.PressAsync("Home");
+        await Assertions.Expect(page.Locator("#lmxCheckinTab")).ToBeFocusedAsync();
+        await Assertions.Expect(page.Locator("#lmxCheckinPanel")).ToBeVisibleAsync();
+    }
+
+    [Theory]
     [InlineData(390, 100, ColorScheme.Light)]
     [InlineData(1440, 100, ColorScheme.Dark)]
     [InlineData(390, 200, ColorScheme.Light)]
     [InlineData(390, 200, ColorScheme.Dark)]
+    [InlineData(320, 200, ColorScheme.Light)]
+    [InlineData(360, 200, ColorScheme.Dark)]
     [InlineData(414, 200, ColorScheme.Light)]
     [InlineData(520, 200, ColorScheme.Dark)]
+    [InlineData(768, 200, ColorScheme.Light)]
+    [InlineData(1024, 200, ColorScheme.Dark)]
+    [InlineData(1440, 200, ColorScheme.Light)]
     public async Task PageSystem_HabitLabelsRemainWholeAndInsideTheirCardsWithEnlargedText(int width, int textPercent, ColorScheme theme)
     {
         await using var context = await NewContextAsync(Browser, App, new()
@@ -33,7 +129,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
                 const cards = [...grid.querySelectorAll('.lmx-habit-card')];
                 if (cards.length !== 4) problems.push('missing habit cards');
                 const columns = getComputedStyle(grid).gridTemplateColumns.split(' ').length;
-                if (columns !== (percent === 100 ? 4 : 2)) problems.push(`unexpected ${columns}-column habit grid`);
+                if (percent === 100 && columns !== 4) problems.push(`unexpected ${columns}-column habit grid`);
                 for (const card of cards) {
                     const label = card.querySelector('span');
                     const box = card.getBoundingClientRect();
