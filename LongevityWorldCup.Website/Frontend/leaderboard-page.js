@@ -4414,8 +4414,9 @@ function syncCollapsedTitleHeight() {
     if (!collapsedTitle || collapsedTitle.getClientRects().length === 0 || collapsedTitle.clientHeight <= 0) return;
 
     // Short result sets still need room for the complete league name.
-    // Measure the natural title, independently of the current row count.
-    const heading = document.querySelector('.sidebar-heading');
+    // Measure the visible rail, independently of the current row count. Its
+    // icon follows the table head and can be taller than the drawer heading.
+    const heading = document.querySelector('.sidebar-rail-icon') || document.querySelector('.sidebar-heading');
     const leaderboard = document.querySelector('.leaderboard');
     if (!heading || !leaderboard) return;
     const minimumHeight = Math.ceil(heading.getBoundingClientRect().height + collapsedTitle.scrollHeight);
