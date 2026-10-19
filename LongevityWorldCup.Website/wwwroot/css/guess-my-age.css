@@ -1347,7 +1347,7 @@
     grid-template-rows: auto auto auto minmax(var(--gma-dock-height, 3.5rem), auto);
     grid-template-areas: "prompt" "status" "slider" "dock";
     justify-items: center;
-    width: min(560px, 100%);
+    width: min(35rem, 100%);
     margin-top: 0;
     margin-bottom: 0;
     box-sizing: border-box;
@@ -1416,6 +1416,10 @@
 #detailsModal .gma-actions {
     grid-area: dock;
     justify-self: stretch;
+    min-width: 0;
+}
+#detailsModal .gma-payoff-region {
+    grid-template-columns: minmax(0, 1fr);
 }
 #detailsModal .gma-payoff-region,
 #detailsModal .gma-card.is-revealing .gma-payoff-region:not(:empty) {
@@ -1557,6 +1561,8 @@
 }
 /* The payoff banner lands in the slot the buttons just left, at their height. */
 #detailsModal .gma-pop-banner {
+    flex-wrap: wrap;
+    min-width: 0;
     min-height: var(--gma-dock-height, 3.5rem);
     box-sizing: border-box;
     padding: 0.6rem clamp(0.9rem, 3vw, 1.6rem);
@@ -1641,6 +1647,13 @@
         --gma-bubble-pad: 0.45rem 0.9rem;
         --gma-bubble-room: 3.6rem;
         --gma-button-font: 0.95rem;
+    }
+}
+
+@media (max-width: 360px) {
+    #detailsModal .gma-pop-banner {
+        column-gap: 0.125rem;
+        padding-inline: 0.5rem;
     }
 }
 

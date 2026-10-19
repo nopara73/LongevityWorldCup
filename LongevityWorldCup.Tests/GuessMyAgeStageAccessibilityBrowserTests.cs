@@ -127,6 +127,73 @@ public sealed class GuessMyAgeStageAccessibilityBrowserTests(
         """;
 
     [Theory]
+    [InlineData(320, 640, 100, 44, 12)]
+    [InlineData(320, 640, 100, 40, 1)]
+    [InlineData(320, 640, 100, 40, 12)]
+    [InlineData(320, 640, 200, 44, 12)]
+    [InlineData(320, 640, 200, 40, 1)]
+    [InlineData(320, 640, 200, 40, 12)]
+    [InlineData(195, 422, 100, 44, 12)]
+    [InlineData(195, 422, 100, 40, 1)]
+    [InlineData(195, 422, 100, 40, 12)]
+    [InlineData(1440, 900, 200, 40, 1)]
+    public async Task PayoffBanners_KeepEveryGlyphInsideTheCard(int width, int height, int textPercent, int guess, int crowdCount)
+    {
+        await using var context = await Browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = App.BaseAddress.ToString(), Locale = "en-US", ReducedMotion = ReducedMotion.Reduce,
+            ViewportSize = new ViewportSize { Width = width, Height = height }
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        await context.RouteAsync("**/api/Guess/athlete-age**", route => route.FulfillAsync(new RouteFulfillOptions
+        {
+            Status = 200, ContentType = "application/json",
+            Body = JsonSerializer.Serialize(new { crowdAge = 60, crowdCount, actualAge = 44, guessAccepted = true })
+        }));
+        var page = await context.NewPageAsync();
+        await page.Clock.InstallAsync();
+        await OpenRoundAsync(page);
+        await page.EvaluateAsync("percent => document.documentElement.style.fontSize = percent + '%'", textPercent);
+        await page.Locator("#gmaRange").EvaluateAsync("(range, guess) => { range.value = String(guess); range.dispatchEvent(new Event('input', { bubbles: true })); }", guess);
+        var beforeHeight = await page.Locator("#guessAgeContainer").EvaluateAsync<double>("e => e.getBoundingClientRect().height");
+        await page.Locator(".gma-btn--primary").ClickAsync();
+        await page.Locator(".gma-pop-banner.show").WaitForAsync();
+        await GuessMyAgeBrowserTests.PauseClockAsync(page);
+        await page.Locator(".gma-pop-banner").ScrollIntoViewIfNeededAsync();
+        var bounds = await page.Locator(".gma-pop-banner").EvaluateAsync<JsonElement>(
+            """
+            banner => {
+                const r = banner.getBoundingClientRect();
+                const card = document.getElementById('guessAgeContainer').getBoundingClientRect();
+                const modal = document.querySelector('#detailsModal .modal-content');
+                const walker = document.createTreeWalker(banner, NodeFilter.SHOW_TEXT);
+                const glyphs = [];
+                let node;
+                while ((node = walker.nextNode())) {
+                    if (!node.textContent.trim()) continue;
+                    const range = document.createRange();
+                    range.selectNode(node);
+                    glyphs.push(...range.getClientRects());
+                }
+                return {
+                    glyphsFit: glyphs.every(g => g.left >= r.left && g.right <= r.right
+                        && g.top >= r.top && g.bottom <= r.bottom),
+                    bannerFits: r.left >= card.left && r.right <= card.right,
+                    horizontalOverflow: modal.scrollWidth - modal.clientWidth,
+                    cardHeight: card.height,
+                    portraitWidth: document.querySelector('#athlete-profile .portrait-wrapper').getBoundingClientRect().width
+                };
+            }
+            """);
+        Assert.True(bounds.GetProperty("glyphsFit").GetBoolean(), $"Payoff text or emojis escape their banner: {bounds}");
+        Assert.True(bounds.GetProperty("bannerFits").GetBoolean(), $"Payoff escapes its card: {bounds}");
+        Assert.InRange(bounds.GetProperty("horizontalOverflow").GetDouble(), -1, 1);
+        Assert.True(bounds.GetProperty("portraitWidth").GetDouble() >= 86);
+        if ((textPercent == 100 && width >= 320) || width >= 769)
+            Assert.InRange(bounds.GetProperty("cardHeight").GetDouble() - beforeHeight, -1, 1);
+    }
+
+    [Theory]
     [InlineData(320, 640, 200)]
     [InlineData(568, 240, 200)]
     [InlineData(195, 422, 100)]
