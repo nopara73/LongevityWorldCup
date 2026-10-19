@@ -73,9 +73,13 @@ public sealed class DashboardAthleteCardBrowserTests(
             }
             """);
         var scenario = $"{width}x{height}, {textScale * 100}% text, {(isPro ? "pro" : "amateur")}";
-        Assert.True(layout[0] >= layout[4] - 1 && layout[1] <= layout[5] + 1 && layout[2] >= layout[6] - 1 && layout[3] <= layout[7] + 1,
-            $"{scenario}: the athlete name should sit on the portrait as its caption.");
-        Assert.True(Math.Abs(layout[3] - layout[7]) <= 2, $"{scenario}: the caption should rest on the portrait's bottom edge.");
+        var captionBelow = width >= 761 && height >= 600 && textScale == 2;
+        Assert.True(layout[0] >= layout[4] - 1 && layout[1] <= layout[5] + 1 && layout[2] >= layout[6] - 1,
+            $"{scenario}: the athlete name should stay within the portrait's width.");
+        if (captionBelow)
+            Assert.InRange(Math.Abs(layout[2] - layout[7]), 0, 2);
+        else
+            Assert.InRange(Math.Abs(layout[3] - layout[7]), 0, 2);
         if (layout[9] == 1)
             Assert.True(layout[7] <= layout[8] + 1, $"{scenario}: the docked actions cover the portrait ({layout[7]} > {layout[8]}).");
         if (isPro && textScale == 1 && ((width == 390 && height == 844)
@@ -84,7 +88,7 @@ public sealed class DashboardAthleteCardBrowserTests(
             Assert.True(layout[9] == 0, $"{scenario}: fitting Pro actions should stay inline.");
             Assert.True(layout[12] <= height - 12, $"{scenario}: inline actions exceed the viewport.");
             var minPictureWidth = width < 600 ? 300 : height <= 740 ? 310 : 340;
-            Assert.InRange(layout[5] - layout[4], minPictureWidth, 408);
+            Assert.InRange(layout[5] - layout[4], minPictureWidth, width >= 761 ? 560 : 408);
         }
         // Phone docks show an icon. An inline fallback at 200% text may use two
         // whole words on separate lines; all other visible back labels fit one.
@@ -118,7 +122,7 @@ public sealed class DashboardAthleteCardBrowserTests(
     }
 
     [Theory]
-    [InlineData(1440, 900, false)]
+    [InlineData(1440, 640, false)]
     [InlineData(1280, 720, true)]
     [InlineData(1366, 768, false)]
     public async Task DockedDashboard_IsOneCentredCommandGroup(int width, int height, bool dark)
@@ -197,13 +201,18 @@ public sealed class DashboardAthleteCardBrowserTests(
         Assert.False(await stack.EvaluateAsync<bool>("s => s.classList.contains('flow-action-stack--docked')"));
         await back.FocusAsync();
 
-        foreach (var height in new[] { 900, 1600, 900 })
+        // Check normal-height inline commands before overflowing them. Releasing
+        // an existing dock also needs its 48px hysteresis gap, so return to 1024.
+        foreach (var height in new[] { 900, 640, 1024, 1600, 640 })
         {
             await page.SetViewportSizeAsync(1440, height);
-            await page.WaitForFunctionAsync("docked => document.querySelector('#athleteDashboardActions').classList.contains('flow-action-stack--docked') === docked", height == 900);
+            await page.WaitForFunctionAsync("docked => document.querySelector('#athleteDashboardActions').classList.contains('flow-action-stack--docked') === docked", height == 640);
             await Assertions.Expect(back).ToBeFocusedAsync();
             Assert.True(await stack.EvaluateAsync<bool>("s => s.classList.contains('flow-action-stack--docked') ? s.firstElementChild.id === 'playDashboardBackBtn' : s.lastElementChild.id === 'playDashboardBackBtn'"));
             if (height == 900)
+                Assert.True(await stack.EvaluateAsync<bool>("s => s.closest('#athleteDashboardPanel') !== null && s.getBoundingClientRect().bottom <= innerHeight - 12"),
+                    "At normal desktop height the fitting commands should remain inside the player card.");
+            if (height == 640)
             {
                 await page.Keyboard.PressAsync("Tab");
                 await Assertions.Expect(edit).ToBeFocusedAsync();

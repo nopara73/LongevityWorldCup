@@ -1176,7 +1176,10 @@ public sealed class AestheticSystemBrowserTests(
                     await AssertOrderingContainerBoundariesAsync(page, source.ToArray());
                     break;
                 case "css/play-menu.css":
-                    await AssertJoinContainerBoundariesAsync(page, source.ToArray());
+                    await AssertJoinContainerBoundariesAsync(page,
+                        source.Where(condition => condition.Name != "play-player-card").ToArray());
+                    await AssertPlayerCardContainerBoundariesAsync(page,
+                        source.Where(condition => condition.Name == "play-player-card").ToArray());
                     break;
                 case "css/homepage.css":
                     await AssertNewsletterContainerBoundariesAsync(page, source.ToArray());
@@ -1397,6 +1400,75 @@ public sealed class AestheticSystemBrowserTests(
                 }
             }
         }
+    }
+
+    private static async Task AssertPlayerCardContainerBoundariesAsync(IPage page, ResponsiveContainerCondition[] conditions)
+    {
+        if (conditions.Length == 0) return;
+        var savedSelection = await page.EvaluateAsync<string?[]>(
+            "() => [sessionStorage.getItem('selectedAthlete'), localStorage.getItem('selectedAthleteName')]");
+        foreach (var condition in conditions)
+        {
+            Assert.Equal("play-player-card", condition.Name);
+            Assert.Equal("max", condition.Bound);
+            Assert.Equal(20, condition.Value);
+            Assert.Equal("em", condition.Unit);
+            foreach (var route in new[] { "/select-athlete", "/dashboard" })
+            {
+                await page.SetViewportSizeAsync(1280, 900);
+                await NavigateAndSettleAsync(page, "/select-athlete");
+                await page.EvaluateAsync("""
+                    () => sessionStorage.setItem('selectedAthlete', JSON.stringify({
+                        Name: 'Container Probe Athlete', DisplayName: 'Container Probe Athlete', Biomarkers: []
+                    }))
+                    """);
+                await NavigateAndSettleAsync(page, route);
+                // Keep the real card, caption and selector ancestry. A clone
+                // isolates this width probe from the live picture/dock observers.
+                var fontSize = await page.EvaluateAsync<double>("""
+                    () => {
+                        const original = document.querySelector('.play-hub-panel:not([hidden]) .play-athlete-card, .play-hub-panel:not([hidden]) .play-dashboard-card');
+                        const card = original.cloneNode(true);
+                        original.replaceWith(card);
+                        card.dataset.playerCardBoundaryProbe = '';
+                        card.style.fontSize = '20px';
+                        card.style.transition = 'none';
+                        return parseFloat(getComputedStyle(card).fontSize);
+                    }
+                    """);
+                var threshold = condition.Value * fontSize;
+                foreach (var delta in new[] { -1, 0, 1, 0, -1 })
+                {
+                    var width = threshold + delta;
+                    var diagnostics = await page.EvaluateAsync<ContainerQueryDiagnostics>("""
+                        async width => {
+                            const card = document.querySelector('[data-player-card-boundary-probe]');
+                            Object.assign(card.style, { boxSizing: 'content-box', inlineSize: `${width}px`,
+                                width: `${width}px`, maxWidth: 'none', maxInlineSize: 'none' });
+                            await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                            const frame = card.querySelector('.athlete-picture-frame').getBoundingClientRect();
+                            const caption = card.querySelector('h1').getBoundingClientRect();
+                            return {
+                                ContainerWidth: parseFloat(getComputedStyle(card).width),
+                                IsCompact: caption.top >= frame.bottom - 1,
+                                HorizontalOverflow: Math.max(0, card.scrollWidth - card.clientWidth)
+                            };
+                        }
+                        """, width);
+                    Assert.Equal(width, diagnostics.ContainerWidth, 1);
+                    Assert.Equal(width <= threshold, diagnostics.IsCompact);
+                    Assert.True(diagnostics.HorizontalOverflow <= 1, $"{route} player card overflowed at {width}px.");
+                }
+            }
+        }
+        await page.EvaluateAsync("""
+            values => {
+                for (const [storage, key, value] of [[sessionStorage, 'selectedAthlete', values[0]], [localStorage, 'selectedAthleteName', values[1]]]) {
+                    if (value === null) storage.removeItem(key);
+                    else storage.setItem(key, value);
+                }
+            }
+            """, savedSelection);
     }
 
     private static async Task AssertJoinContainerBoundariesAsync(IPage page, ResponsiveContainerCondition[] conditions)
