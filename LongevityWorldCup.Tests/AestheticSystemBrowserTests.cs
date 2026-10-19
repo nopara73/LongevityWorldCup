@@ -1184,9 +1184,50 @@ public sealed class AestheticSystemBrowserTests(
                 case "css/site-footer.css":
                     await AssertFooterContainerBoundariesAsync(page, source.ToArray());
                     break;
+                case "misc-pages/about.html":
+                case "misc-pages/history.html":
+                case "misc-pages/ruleset.html":
+                    // These pages share the generator's table CSS. History has
+                    // the standings table that actually exercises that component.
+                    await AssertDocumentationTableContainerBoundariesAsync(page, source.ToArray());
+                    break;
                 default:
                     Assert.Fail($"Add a rendered container-boundary probe for {source.Key}.");
                     break;
+            }
+        }
+    }
+
+    private static async Task AssertDocumentationTableContainerBoundariesAsync(IPage page, ResponsiveContainerCondition[] conditions)
+    {
+        await NavigateAndSettleAsync(page, "/history");
+        await page.EvaluateAsync("document.documentElement.style.fontSize = '20px'");
+        var rootFont = await page.EvaluateAsync<double>("parseFloat(getComputedStyle(document.documentElement).fontSize)");
+        foreach (var condition in conditions)
+        {
+            Assert.Equal("documentation-table", condition.Name);
+            Assert.Equal("max", condition.Bound);
+            Assert.Equal("rem", condition.Unit);
+            Assert.Equal(24, condition.Value);
+            var threshold = condition.Value * rootFont;
+            foreach (var delta in new[] { -1, 0, 1, 0, -1 })
+            {
+                var width = threshold + delta;
+                var diagnostics = await page.EvaluateAsync<double[]>("""
+                    async width => {
+                        const frame = document.querySelector('.documentation-table');
+                        frame.style.boxSizing = 'content-box';
+                        frame.style.inlineSize = width + 'px';
+                        frame.style.maxInlineSize = 'none';
+                        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                        return [parseFloat(getComputedStyle(frame).width),
+                            getComputedStyle(frame.querySelector('thead')).position === 'absolute' ? 1 : 0,
+                            Math.max(0, frame.scrollWidth - frame.clientWidth)];
+                    }
+                    """, width);
+                Assert.Equal(width, diagnostics[0], 1);
+                Assert.Equal(width <= threshold ? 1 : 0, diagnostics[1]);
+                Assert.True(diagnostics[2] <= 1, $"Documentation standings overflowed at {width}px.");
             }
         }
     }
