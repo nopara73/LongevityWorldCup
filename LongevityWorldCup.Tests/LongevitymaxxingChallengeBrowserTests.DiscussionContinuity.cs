@@ -253,7 +253,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await Assertions.Expect(thread.Locator("[data-discussion-reply-body]").Last).ToHaveTextAsync("My published reply.");
         Assert.NotNull(postedReplyId);
         await Assertions.Expect(thread.Locator($"[data-discussion-reply-id='{postedReplyId}']")).ToBeFocusedAsync();
-        await Assertions.Expect(thread.Locator(".lmx-discussion-feedback")).ToHaveTextAsync("Reply posted.");
+        await Assertions.Expect(thread.Locator(".lmx-discussion-feedback")).ToHaveCountAsync(0);
         await thread.Locator("[data-discussion-reply]").ClickAsync();
         Assert.Equal("", await thread.Locator("textarea").InputValueAsync());
         var dialogs = 0;

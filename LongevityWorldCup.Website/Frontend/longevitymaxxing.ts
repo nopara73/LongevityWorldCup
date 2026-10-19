@@ -7665,11 +7665,13 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 const button = discussionDraftButton(draft, name) || thread?.querySelector<HTMLButtonElement>("[data-discussion-reply]");
                 const slot = (draft.editReplyId ? button?.closest("[data-discussion-reply-id]") : null) || thread;
                 if (!slot) continue;
-                const feedback = document.createElement("div");
-                feedback.className = "lmx-discussion-feedback";
-                feedback.setAttribute("role", "status");
-                slot.append(feedback);
-                feedback.textContent = draft.editReplyId ? "Reply saved." : "Reply posted.";
+                if (draft.editReplyId) {
+                    const feedback = document.createElement("div");
+                    feedback.className = "lmx-discussion-feedback";
+                    feedback.setAttribute("role", "status");
+                    feedback.textContent = "Reply saved.";
+                    slot.append(feedback);
+                }
                 if (restoreFocus && name === surface) {
                     const accepted = Array.from(thread?.querySelectorAll<HTMLElement>("[data-discussion-reply-id]") || [])
                         .find(item => item.dataset.discussionReplyId === (draft.editReplyId || draft.replyId));
