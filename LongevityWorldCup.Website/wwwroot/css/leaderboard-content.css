@@ -2930,25 +2930,6 @@
      .athlete-info-table .unit {
          white-space: normal;
      }
-     /* Use the card's available width and text size, including in scoped dialogs. */
-     @container athlete-stats (min-width: 16em) {
-         .athlete-info-table tr {
-             display: grid;
-             grid-template-columns: fit-content(52%) minmax(0, 1fr);
-             column-gap: 0.75rem;
-             align-items: baseline;
-         }
-         .athlete-info-table tr.athlete-info-divider-row td {
-             grid-column: 1 / -1;
-         }
-         .athlete-info-table th,
-         .athlete-info-table td {
-             width: auto;
-         }
-         .athlete-info-table td {
-             text-align: right;
-         }
-     }
      /* Pace/age rows: allow wrapping on mobile instead of nowrap */
      #bortzPaceOfAgingContainer td,
      #paceOfAgingContainer td,
@@ -3316,23 +3297,6 @@
          line-height:1.08;
          margin-top:.75rem;
      }
-     #detailsModal #athleteRankings,
-     #detailsModal #athleteBio,
-     #detailsModal .athlete-info,
-     #detailsModal .age-visualization,
-     #detailsModal .events-embed,
-     #detailsModal .biomarkers-section,
-     #detailsModal .proofs-section{
-         width:calc(100% - 1.5rem) !important;
-         max-width:calc(100% - 1.5rem) !important;
-         margin-left:auto;
-         margin-right:auto;
-         box-sizing:border-box;
-     }
-     /* Compact tiles share a row when there is room; enlarged text can reflow. */
-     #detailsModal #athleteRankings a{
-         flex-basis:6.5rem;
-     }
      #detailsModal #athleteBio{
          margin:.85rem auto 1.25rem;
          padding:0 .5rem;
@@ -3558,18 +3522,6 @@
          line-height:1.05;
          margin-top:.3rem;
          margin-bottom:.1rem;
-     }
-
-     #detailsModal #athleteRankings,
-     #detailsModal #athleteBio,
-     #detailsModal .athlete-links,
-     #detailsModal .athlete-info,
-     #detailsModal .age-visualization,
-     #detailsModal .events-embed,
-     #detailsModal .biomarkers-section,
-     #detailsModal .proofs-section{
-         width:calc(100% - 1rem) !important;
-         max-width:calc(100% - 1rem) !important;
      }
 
      #detailsModal .modal-badge-strip{
@@ -4087,7 +4039,6 @@
      .sidebar-show-results:hover { background: var(--lwc-accent-hover); }
  }
 
-/* =========================
    14) The leaderboard page as one board
    On /leaderboard the controls, their outcome and the results are a single
    card: tabs and tools in the header band, the ranking's meaning beneath,
@@ -4348,3 +4299,276 @@ main[data-leaderboard-page="full"] .flag-section-heading{ padding-block:var(--lw
     html body main[data-leaderboard-page="full"] .leaderboard table thead th{ position:static; height:auto; box-shadow:none; background:none; text-transform:none; letter-spacing:0; }
     main[data-leaderboard-page="full"] .leaderboard table thead{ position:sticky; top:var(--board-sticky-top); z-index:2; }
 }
+=======
+ /* =========================
+    Athlete dialog: one document
+    =========================
+    Every block of the profile is the same card on one column: one width, one
+    frame, one gap and one header band. The ranks are the band of the badge
+    card, the clocks are the band of the radar card, and the contact actions
+    are the footer band of the stats card, so the profile reads as a sequence
+    of sections instead of a stack of unrelated boxes. */
+ #detailsModal .modal-content{
+     --athlete-doc-width:640px;
+     --athlete-doc-gap:1.5rem;
+     --athlete-doc-band:rgba(246,244,237,.06);
+     --athlete-doc-band-height:3.5rem;
+     --athlete-doc-rule:rgba(246,244,237,.1);
+     --athlete-doc-radius:var(--lwc-radius-lg, 12px);
+ }
+ #detailsModal #athlete-profile > #athleteRankings,
+ #detailsModal #athlete-profile > #athleteLoadError,
+ #detailsModal #athlete-profile > #modalBadgeStrip,
+ #detailsModal #athlete-profile > #ageVisualization,
+ #detailsModal #athlete-profile > #athlete-stats,
+ #detailsModal #athlete-profile > .athlete-links,
+ #detailsModal .modal-content > #athlete-biomarkers,
+ #detailsModal .modal-content > #athlete-proofs,
+ #detailsModal .modal-content > .events-embed{
+     position:relative;
+     width:min(100%, var(--athlete-doc-width));
+     max-width:none;
+     box-sizing:border-box;
+     margin:var(--athlete-doc-gap) auto 0;
+     border:1px solid var(--athlete-modal-border);
+     border-radius:var(--athlete-doc-radius);
+     background:var(--athlete-modal-card);
+     box-shadow:none;
+     color:var(--athlete-modal-text);
+ }
+ #detailsModal .modal-content > .events-embed{ margin-bottom:var(--athlete-doc-gap); }
+ #detailsModal .modal-content > #athlete-biomarkers{ margin-bottom:0; }
+
+ /* Hero: portrait, name, then the rank card. */
+ #detailsModal #athleteName{
+     margin:1.6rem 0 0;
+     line-height:1.15;
+ }
+ #detailsModal #athlete-profile > #athleteRankings{
+     display:flex;
+     flex-wrap:wrap;
+     gap:0;
+     margin-top:1.25rem;
+     overflow:hidden;
+     background:linear-gradient(var(--athlete-doc-band), var(--athlete-doc-band)), var(--athlete-modal-card);
+ }
+ #detailsModal #athlete-profile > #athleteRankings[hidden]{ display:none; }
+ /* Tiles share the band and wrap when text is enlarged; each draws its
+    divider on its left and top, and the card clips the ones on its edges. */
+ #detailsModal #athleteRankings a{
+     flex:1 1 7.5rem;
+     min-height:var(--athlete-doc-band-height);
+     padding:.8rem .75rem .85rem;
+     border:0;
+     border-radius:0;
+     background:none;
+     box-shadow:-1px 0 0 var(--athlete-modal-border), 0 -1px 0 var(--athlete-modal-border);
+ }
+ #detailsModal #athleteRankings strong{ font-size:1.75rem; }
+ #detailsModal #athleteRankings a:hover,
+ #detailsModal #athleteRankings a:focus-visible{ background:var(--athlete-modal-card-hover); }
+ #detailsModal #athleteRankings a:focus-visible{ outline-offset:-3px; }
+ /* The badges hang under the ranks as the body of the same card. */
+ #detailsModal #athlete-profile:has(> #modalBadgeStrip:not(:empty)) > #athleteRankings:not([hidden]){
+     border-bottom-left-radius:0;
+     border-bottom-right-radius:0;
+ }
+ #detailsModal #athlete-profile > #athleteRankings:not([hidden]) ~ #modalBadgeStrip{
+     margin-top:0;
+     border-top:0;
+     border-top-left-radius:0;
+     border-top-right-radius:0;
+ }
+ #detailsModal #athlete-profile > #modalBadgeStrip:empty{ display:none; }
+
+ /* The why stays an open pull quote: the one unframed voice between the
+    rank card and the data cards, held to the same rhythm. */
+ #detailsModal #athleteBio{
+     margin:calc(var(--athlete-doc-gap) + .25rem) auto 0;
+ }
+
+ /* Radar card: the clock tabs are its band. A lone result without tabs keeps
+    the same inset at the top. */
+ #detailsModal #ageVisualization:not(:has(.age-clock-switch.visible)){ padding-top:1rem; }
+ #detailsModal #ageVisualization .age-clock-switch.visible{
+     border-radius:calc(var(--athlete-doc-radius) - 1px) calc(var(--athlete-doc-radius) - 1px) 0 0;
+     background:var(--athlete-doc-band);
+ }
+
+ /* Stats card: label and value rows on the same grid as Results over time. */
+ #detailsModal #athlete-profile > #athlete-stats{
+     padding:.25rem 0;
+     text-align:left;
+     container-type:inline-size;
+     container-name:athlete-stats;
+ }
+ #detailsModal #athlete-stats .athlete-info-table,
+ #detailsModal #athlete-stats .athlete-info-table tbody{
+     display:block;
+     width:100%;
+     border-spacing:0;
+     font-size:inherit;
+ }
+ #detailsModal #athlete-stats .athlete-info-table tr{
+     display:grid;
+     grid-template-columns:fit-content(48%) minmax(0, 1fr);
+     column-gap:1rem;
+     align-items:baseline;
+     margin:0;
+     padding:.7rem 1rem;
+     border-top:1px solid var(--athlete-doc-rule);
+ }
+ #detailsModal #athlete-stats .athlete-info-table tr[style*="none"]{ display:none; }
+ #detailsModal #athlete-stats .athlete-info-table tr.athlete-info-group-first{ border-top:0; }
+ #detailsModal #athlete-stats .athlete-info-table th,
+ #detailsModal #athlete-stats .athlete-info-table td{
+     display:block;
+     width:auto;
+     padding:0 !important;
+     border:0 !important;
+     line-height:1.35;
+ }
+ #detailsModal #athlete-stats .athlete-info-table th{
+     font-size:.9rem;
+     font-weight:600;
+ }
+ #detailsModal #athlete-stats .athlete-info-table th > strong{ font-weight:inherit; }
+ #detailsModal #athlete-stats .athlete-info-table td{
+     text-align:right;
+     font-size:1rem;
+     font-variant-numeric:tabular-nums;
+ }
+ /* The profile basics and the age results are two groups of one table. */
+ #detailsModal #athlete-stats .athlete-info-table tr.athlete-info-divider-row{
+     display:block;
+     height:0;
+     padding:0;
+     border-top:2px solid var(--athlete-modal-border);
+ }
+ #detailsModal #athlete-stats .athlete-info-divider-row td{ display:none; }
+ @container athlete-stats (max-width: 15.99em){
+     #detailsModal #athlete-stats .athlete-info-table tr{ grid-template-columns:minmax(0, 1fr); }
+     #detailsModal #athlete-stats .athlete-info-table td{ text-align:left; }
+ }
+
+ /* Contact actions: the footer band of the stats card. */
+ #detailsModal #athlete-profile > #athlete-stats:has(+ .athlete-links){
+     border-bottom:0;
+     border-bottom-left-radius:0;
+     border-bottom-right-radius:0;
+ }
+ #detailsModal #athlete-profile > #athlete-stats + .athlete-links{
+     margin-top:0;
+     border-top-left-radius:0;
+     border-top-right-radius:0;
+ }
+ #detailsModal #athlete-profile > .athlete-links{
+     display:flex;
+     flex-direction:row;
+     flex-wrap:wrap;
+     justify-content:center;
+     gap:.6rem;
+     padding:.85rem 1rem;
+     background:linear-gradient(var(--athlete-doc-band), var(--athlete-doc-band)), var(--athlete-modal-card);
+ }
+ #detailsModal #athlete-profile > .athlete-links > a,
+ #detailsModal #athlete-profile > .athlete-links > .athlete-share-wrapper{ flex:1 1 9rem; }
+ #detailsModal #athlete-profile > .athlete-links > a,
+ #detailsModal .athlete-share-wrapper > #shareAthleteProfile{
+     width:100%;
+     justify-content:center;
+     background:var(--athlete-modal-card);
+ }
+
+ /* Lower sections share the band height and inset of the cards above. */
+ #detailsModal .biomarkers-heading,
+ #detailsModal .proofs-heading{
+     min-height:var(--athlete-doc-band-height);
+     background:var(--athlete-doc-band);
+ }
+ #detailsModal .modal-content > #athlete-proofs,
+ #detailsModal .modal-content > .events-embed{ overflow:hidden; }
+
+ /* Loading: the radar card holds its place as a skeleton instead of an empty frame. */
+ #detailsModal .modal-content.is-loading #ageVisualization > *{ visibility:hidden; }
+ #detailsModal .modal-content.is-loading #ageVisualization::before,
+ #detailsModal .modal-content.is-loading #ageVisualization::after{
+     content:"";
+     position:absolute;
+     left:0;
+     right:0;
+     pointer-events:none;
+ }
+ #detailsModal .modal-content.is-loading #ageVisualization::before{
+     top:0;
+     height:var(--athlete-doc-band-height);
+     border-bottom:1px solid var(--athlete-modal-border);
+     border-radius:calc(var(--athlete-doc-radius) - 1px) calc(var(--athlete-doc-radius) - 1px) 0 0;
+     background:var(--athlete-doc-band);
+ }
+ #detailsModal .modal-content.is-loading #ageVisualization::after{
+     top:calc(var(--athlete-doc-band-height) + 1rem);
+     bottom:1rem;
+     left:1rem;
+     right:1rem;
+     border-radius:var(--lwc-radius-md, 8px);
+     background:linear-gradient(90deg, rgba(246,244,237,.04) 25%, rgba(246,244,237,.1) 50%, rgba(246,244,237,.04) 75%);
+     background-size:200% 100%;
+     animation:skeletonShimmer 1.4s ease-in-out infinite;
+ }
+ @media (prefers-reduced-motion: reduce){
+     #detailsModal .modal-content.is-loading #ageVisualization::after{ animation:none; }
+ }
+
+ /* Failure: the message is a card in the same column, and the radar that
+    cannot be drawn without data leaves no empty frame behind. */
+ #detailsModal #athlete-profile > #athleteLoadError{
+     padding:1rem;
+     text-align:center;
+ }
+ #detailsModal #athlete-profile > #athleteLoadError[hidden]{ display:none; }
+ #detailsModal #athlete-profile:has(> #athleteLoadError:not([hidden])) > #ageVisualization{ display:none; }
+
+ /* Sticky header: the close button keeps the place it has at the top of the
+    profile, and the reading progress runs along the header's bottom edge. */
+ #detailsModal .modal-sticky-header{
+     padding:.75rem 1.25rem .75rem 23px;
+     gap:.85rem;
+ }
+ #detailsModal .modal-sticky-header .sticky-close-btn{
+     order:-1;
+     margin:0;
+     width:44px;
+     border-radius:50%;
+ }
+ #detailsModal .modal-sticky-header .sticky-athlete-name{ font-size:1.15rem; }
+ #detailsModal .modal-scroll-progress{
+     top:auto;
+     bottom:-1px;
+     left:0;
+     right:0;
+     height:2px;
+     border-radius:0;
+     background:var(--athlete-modal-accent, #7bdde3);
+     box-shadow:none;
+ }
+
+ @media (max-width: 768px){
+     #detailsModal .modal-content{
+         --athlete-doc-width:100%;
+         --athlete-doc-gap:1.25rem;
+     }
+     #detailsModal .modal-sticky-header{ padding:.65rem 1rem .65rem 17px; }
+     #detailsModal #athleteRankings strong{ font-size:1.5rem; }
+     #detailsModal #athleteRankings a{ padding:.7rem .5rem .75rem; }
+     #detailsModal #athlete-profile > .athlete-links{ padding:.7rem .75rem; }
+ }
+ @media (max-width: 480px){
+     #detailsModal #athlete-profile > .athlete-links{ display:grid; gap:.45rem; }
+ }
+
+ @media (max-width: 932px) and (max-height: 480px) and (orientation: landscape){
+     #detailsModal .modal-sticky-header{ padding-left:10px; }
+ }
+
+/* ==================

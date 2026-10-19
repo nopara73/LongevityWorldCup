@@ -12,6 +12,8 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
     [InlineData(320, ColorScheme.Dark)]
     [InlineData(390, ColorScheme.Light)]
     [InlineData(390, ColorScheme.Dark)]
+    [InlineData(414, ColorScheme.Light)]
+    [InlineData(414, ColorScheme.Dark)]
     public async Task DiscussionReplies_EnlargedTextKeepsNamesAndReplyPromptReadable(int width, ColorScheme theme)
     {
         await using var context = await NewContextAsync(Browser, App, new()
@@ -24,8 +26,9 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         var page = await OpenDiscussionWorkspaceAsync(context, state);
         await page.EvaluateAsync("document.documentElement.style.fontSize = '200%'");
         await page.EvaluateAsync("document.fonts.ready");
+        await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
         var thread = DiscussionThread(page, "p7", 5);
-        var fragments = await thread.EvaluateAsync<string[]>("""
+        const string measureBrokenWords = """
             thread => {
                 const broken = [];
                 const labels = thread.querySelectorAll('.lmx-discussion-author-identity strong, [data-discussion-quick-label], .lmx-discussion-reply-owner-actions button');
@@ -42,8 +45,20 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
                 }
                 return broken;
             }
-            """);
+            """;
+        var fragments = await thread.EvaluateAsync<string[]>(measureBrokenWords);
         Assert.Empty(fragments);
+        if (width >= 390)
+        {
+            foreach (var contentWidth in new[] { 279, 280, 281, 300, 281, 280, 279 })
+            {
+                await thread.EvaluateAsync("(post, width) => { post.style.boxSizing = 'content-box'; post.style.width = `${width}px`; post.style.maxWidth = 'none'; }", contentWidth);
+                await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
+                fragments = await thread.EvaluateAsync<string[]>(measureBrokenWords);
+                Assert.True(fragments.Length == 0, $"{width}px viewport / {contentWidth}px post: {string.Join(", ", fragments)}");
+            }
+            await thread.EvaluateAsync("post => { post.style.removeProperty('box-sizing'); post.style.removeProperty('width'); post.style.removeProperty('max-width'); }");
+        }
         Assert.True(await thread.EvaluateAsync<bool>("thread => thread.scrollWidth <= thread.clientWidth"));
         Assert.True(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth <= innerWidth"));
     }
