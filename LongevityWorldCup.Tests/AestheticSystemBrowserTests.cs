@@ -1187,6 +1187,13 @@ public sealed class AestheticSystemBrowserTests(
                 case "onboarding/convergence.html":
                     await AssertApplicationContainerBoundariesAsync(page, source.ToArray());
                     break;
+                case "misc-pages/about.html":
+                case "misc-pages/history.html":
+                case "misc-pages/ruleset.html":
+                    // These pages share the generator's table CSS. History has
+                    // the standings table that actually exercises that component.
+                    await AssertDocumentationTableContainerBoundariesAsync(page, source.ToArray());
+                    break;
                 default:
                     Assert.Fail($"Add a rendered container-boundary probe for {source.Key}.");
                     break;
@@ -1244,6 +1251,40 @@ public sealed class AestheticSystemBrowserTests(
             }
         }
         await page.EvaluateAsync("() => document.documentElement.style.removeProperty('font-size')");
+    }
+
+    private static async Task AssertDocumentationTableContainerBoundariesAsync(IPage page, ResponsiveContainerCondition[] conditions)
+    {
+        await NavigateAndSettleAsync(page, "/history");
+        await page.EvaluateAsync("document.documentElement.style.fontSize = '20px'");
+        var rootFont = await page.EvaluateAsync<double>("parseFloat(getComputedStyle(document.documentElement).fontSize)");
+        foreach (var condition in conditions)
+        {
+            Assert.Equal("documentation-table", condition.Name);
+            Assert.Equal("max", condition.Bound);
+            Assert.Equal("rem", condition.Unit);
+            Assert.Equal(24, condition.Value);
+            var threshold = condition.Value * rootFont;
+            foreach (var delta in new[] { -1, 0, 1, 0, -1 })
+            {
+                var width = threshold + delta;
+                var diagnostics = await page.EvaluateAsync<double[]>("""
+                    async width => {
+                        const frame = document.querySelector('.documentation-table');
+                        frame.style.boxSizing = 'content-box';
+                        frame.style.inlineSize = width + 'px';
+                        frame.style.maxInlineSize = 'none';
+                        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                        return [parseFloat(getComputedStyle(frame).width),
+                            getComputedStyle(frame.querySelector('thead')).position === 'absolute' ? 1 : 0,
+                            Math.max(0, frame.scrollWidth - frame.clientWidth)];
+                    }
+                    """, width);
+                Assert.Equal(width, diagnostics[0], 1);
+                Assert.Equal(width <= threshold ? 1 : 0, diagnostics[1]);
+                Assert.True(diagnostics[2] <= 1, $"Documentation standings overflowed at {width}px.");
+            }
+        }
     }
 
     private static async Task AssertNewsletterContainerBoundariesAsync(IPage page, ResponsiveContainerCondition[] conditions)
@@ -1595,7 +1636,7 @@ public sealed class AestheticSystemBrowserTests(
                     const source = [...document.querySelectorAll('body *')].find(e => getComputedStyle(e).containerName.split(' ').includes(name));
                     if (!source) throw new Error('Missing query container: ' + name);
                     const probe = source.cloneNode(true);
-                    probe.id = 'responsive-em-probe';
+                    probe.dataset.responsiveEmProbe = 'true';
                     probe.style.cssText += ';box-sizing:content-box;max-inline-size:none;min-inline-size:0;font-size:20px;flex:none;overflow:visible;scrollbar-gutter:auto;';
                     source.parentElement.append(probe);
                     return parseFloat(getComputedStyle(probe).fontSize);
@@ -1607,7 +1648,7 @@ public sealed class AestheticSystemBrowserTests(
                 var width = threshold + delta;
                 var diagnostics = await page.EvaluateAsync<double[]>("""
                     async arg => {
-                        const probe = document.getElementById('responsive-em-probe');
+                        const probe = document.querySelector('[data-responsive-em-probe]');
                         probe.style.setProperty('width', `${arg.Width}px`, 'important');
                         probe.style.setProperty('inline-size', `${arg.Width}px`, 'important');
                         await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
@@ -1617,7 +1658,7 @@ public sealed class AestheticSystemBrowserTests(
                         await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
                         let applied;
                         if (arg.Name === 'league-filters') applied = getComputedStyle(probe.querySelector('.filter-label-copy')).display === 'block';
-                        else if (arg.Name === 'athlete-stats') applied = getComputedStyle(probe.querySelector('.athlete-info-table tr')).display === 'grid';
+                        else if (arg.Name === 'athlete-stats') applied = getComputedStyle(probe.querySelector('.athlete-info-table tr')).gridTemplateColumns.split(' ').length === 1;
                         else if (arg.Name === 'leaderboard') {
                             const row = probe.querySelector('tbody tr:not(.no-results):not(.tier-separator)');
                             applied = row.querySelector('.athlete-identity').getBoundingClientRect().top >= row.querySelector('.portrait-wrapper').getBoundingClientRect().bottom - 1;
@@ -1635,7 +1676,7 @@ public sealed class AestheticSystemBrowserTests(
                 Assert.True((diagnostics[1] == 1) == expected,
                     $"{condition.Name} did not cross {condition.Value}em at {width}px (applied={diagnostics[1]}).");
             }
-            await page.Locator("#responsive-em-probe").EvaluateAsync("probe => probe.remove()");
+            await page.Locator("[data-responsive-em-probe]").EvaluateAsync("probe => probe.remove()");
         }
     }
 

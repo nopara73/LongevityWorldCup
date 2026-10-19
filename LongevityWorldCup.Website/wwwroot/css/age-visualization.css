@@ -245,14 +245,15 @@
 @media (max-width: 480px) {
     .age-result-step:not([hidden]) { display: none; }
 }
+/* A step with nowhere to go is a faded arrow, not a grey block. */
+#detailsModal .age-result-picker .age-result-step:disabled {
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+}
+/* Width, frame and spacing come from the dialog's shared card rules. */
 #detailsModal .age-visualization {
-    width: min(100%, var(--athlete-modal-section-width, 640px));
-    box-sizing: border-box;
-    padding: .95rem 1rem 1.05rem;
-    background: linear-gradient(180deg, rgba(255,255,255,.09), rgba(255,255,255,.045));
-    border-color: var(--athlete-modal-border, rgba(255,255,255,.16));
-    border-radius: var(--lwc-radius-lg, 12px);
-    box-shadow: 0 16px 42px rgba(0,0,0,.26), inset 0 1px 0 rgba(255,255,255,.06);
+    padding: 0 1rem 1.05rem;
     color: var(--athlete-modal-text, rgba(255,255,255,.94));
 }
 #detailsModal .age-radar-wrapper {
@@ -262,7 +263,7 @@
 #detailsModal .age-radar-fallback {
     background: linear-gradient(180deg, rgba(246,244,237,.1), rgba(246,244,237,.055));
     border-color: var(--athlete-modal-cream-border, rgba(246,244,237,.52));
-    box-shadow: inset 0 1px 0 rgba(255,255,255,.1), 0 12px 26px rgba(0,0,0,.22);
+    box-shadow: none;
 }
 #detailsModal .age-radar-summary {
     gap: 0 var(--lwc-space-3, .75rem);
@@ -320,8 +321,8 @@
     justify-content: flex-start;
     align-items: stretch;
     box-sizing: border-box;
-    min-height: 57px;
-    margin: -0.95rem -1rem 1rem;
+    min-height: var(--athlete-doc-band-height, 3.5rem);
+    margin: 0 -1rem 1rem;
     padding: 6px 1rem;
     border-bottom: 1px solid var(--athlete-modal-border);
     border-radius: var(--lwc-radius-lg, 12px) var(--lwc-radius-lg, 12px) 0 0;
@@ -370,11 +371,7 @@
         padding-inline: min(1rem, 16px);
     }
     #detailsModal .age-visualization {
-        width: calc(100% - min(1.5rem, 24px)) !important;
-        max-width: calc(100% - min(1.5rem, 24px)) !important;
         padding-inline: min(1rem, 16px);
-        margin-left: auto;
-        margin-right: auto;
     }
     #detailsModal .age-radar-wrapper {
         width: min(100%, 280px);

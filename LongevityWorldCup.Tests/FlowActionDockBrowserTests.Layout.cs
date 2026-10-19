@@ -398,7 +398,7 @@ public sealed class FlowActionDockLayoutBrowserTests(
     }
 
     [Fact]
-    public async Task DesktopDock_PreservesItsInlinePlaceholderHeightWithoutOscillating()
+    public async Task DesktopDock_ReservesItsHeightBelowTheCardWithoutOscillating()
     {
         var app = App;
         var browser = Browser;
@@ -431,10 +431,12 @@ public sealed class FlowActionDockLayoutBrowserTests(
                 for (let index = 0; index < 10; index += 1) {
                     window.LwcFlowActionDock?.refreshNow?.();
                     await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                    const main = document.querySelector('.phenoage-main');
                     samples.push([
                         placeholder?.getBoundingClientRect().height || 0,
                         actions?.getBoundingClientRect().height || 0,
-                        actions?.classList.contains('flow-action-stack--docked') ? 1 : 0
+                        actions?.classList.contains('flow-action-stack--docked') ? 1 : 0,
+                        parseFloat(getComputedStyle(main).paddingBottom) - (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--flow-action-dock-height')) || -999)
                     ]);
                 }
                 return samples;
@@ -445,7 +447,10 @@ public sealed class FlowActionDockLayoutBrowserTests(
         foreach (var sample in samples)
         {
             Assert.Equal(1, sample[2]);
-            Assert.InRange(sample[0], inlineHeight - 1, inlineHeight + 1);
+            // The calculator card ends at its last field; the dock's height is
+            // reserved below the card rather than as an empty tail inside it.
+            Assert.InRange(sample[0], 0, 1);
+            Assert.InRange(sample[3], -2, 2);
             Assert.True(sample[1] > 0, "The docked action stack lost its rendered height.");
         }
         await page.SetViewportSizeAsync(1366, 900);

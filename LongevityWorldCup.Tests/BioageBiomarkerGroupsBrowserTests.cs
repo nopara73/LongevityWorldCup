@@ -16,7 +16,7 @@ public sealed class BioageBiomarkerGroupsBrowserTests(
     [InlineData("/bortz-age", 1440, 900, true)]
     [InlineData("/pheno-age", 390, 844, true)]
     [InlineData("/bortz-age", 320, 640, false)]
-    public async Task BiomarkerEntry_GroupsEachDomainIntoOneCardOfRows(string path, int width, int height, bool dark)
+    public async Task BiomarkerEntry_GroupsEachDomainIntoRuledRows(string path, int width, int height, bool dark)
     {
         await using var context = await NewContextAsync(Browser, App, new()
         {
@@ -41,13 +41,15 @@ public sealed class BioageBiomarkerGroupsBrowserTests(
                     const name = group.querySelector('legend')?.textContent.trim();
                     const cards = [...group.querySelectorAll(':scope > .biomarker-card')];
                     const radius = card => parseFloat(getComputedStyle(card).borderTopLeftRadius);
-                    const bottomRadius = card => parseFloat(getComputedStyle(card).borderBottomLeftRadius);
-                    if (radius(cards[0]) < 4) problems.push(`${name}: the domain card should round its top corners`);
-                    if (bottomRadius(cards[cards.length - 1]) < 4) problems.push(`${name}: the domain card should round its bottom corners`);
+                    // Each domain is a ruled block of rows: a rule under its title and one closing it.
+                    if (parseFloat(getComputedStyle(cards[0]).borderTopWidth) < 1) problems.push(`${name}: the first row should be ruled off from the title`);
+                    if (parseFloat(getComputedStyle(cards[cards.length - 1]).borderBottomWidth) < 1) problems.push(`${name}: the last row should close the domain with a rule`);
+                    for (let i = 0; i < cards.length; i++) {
+                        if (radius(cards[i]) > 0.5) problems.push(`${name}: rows should not be rounded boxes`);
+                    }
                     for (let i = 1; i < cards.length; i++) {
                         const gap = cards[i].getBoundingClientRect().top - cards[i - 1].getBoundingClientRect().bottom;
                         if (gap > 0.5) problems.push(`${name}: a ${gap.toFixed(0)}px gap splits its rows into separate boxes`);
-                        if (radius(cards[i]) > 0.5) problems.push(`${name}: inner rows should not be rounded boxes`);
                     }
                 }
                 if (document.documentElement.scrollWidth > innerWidth) problems.push('page scrolls sideways');
