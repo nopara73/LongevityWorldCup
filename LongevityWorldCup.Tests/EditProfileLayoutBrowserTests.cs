@@ -396,6 +396,24 @@ public sealed class EditProfileLayoutBrowserTests(
         await ExpectNoHorizontalOverflowAsync(page);
     }
 
+    [Theory]
+    [InlineData(1440, 900, false)]
+    [InlineData(768, 1024, true)]
+    [InlineData(390, 844, false)]
+    public async Task Motivation_GrowsToShowTheWholeTextInsteadOfScrolling(int width, int height, bool dark)
+    {
+        await using var context = await CreateContextAsync(width, height, dark);
+        var page = await OpenEditorAsync(context);
+        var why = page.Locator("#whyDisplayInput");
+        await why.FillAsync("I want to see what is possible in feeling the most energetic and excited about life. Following the status quo and the herd is not an option. I measure, I adjust, I compete, and I share what I learn so others can take back their biological age too.");
+        await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+
+        var size = await why.EvaluateAsync<double[]>("field => [field.scrollHeight, field.clientHeight]");
+        Assert.True(size[0] <= size[1] + 1,
+            $"{width}x{height}: the motivation hides {size[0] - size[1]:F0}px of its text behind an inner scrollbar.");
+        await ExpectNoHorizontalOverflowAsync(page);
+    }
+
     private static async Task<IPage> OpenEditorAsync(IBrowserContext context)
     {
         var page = await context.NewPageAsync();
