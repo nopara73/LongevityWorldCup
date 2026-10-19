@@ -2049,4 +2049,3 @@ body :is(#phenoAgeResult, #bortzAgeResult) #ensureCorrectInputSuggestion i {
 .bioage-rank-preview .bioage-rank-error {
     margin: var(--lwc-space-4, 1rem) var(--bioage-pad-x, 0px);
 }
-
