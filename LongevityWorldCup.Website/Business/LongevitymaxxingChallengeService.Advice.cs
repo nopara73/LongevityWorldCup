@@ -101,7 +101,7 @@ public sealed partial class LongevitymaxxingChallengeService
         {
             using var command = sqlite.CreateCommand();
             command.CommandText = """
-                SELECT a.Id, a.ChallengeDay, c.ChallengeDate, a.TriggerRawScore, a.BaselineRawScore, a.CharacterLimit, a.Version
+                SELECT a.Id, a.ChallengeDay, c.ChallengeDate, a.TriggerRawScore, a.BaselineRawScore, a.CharacterLimit, a.Version, c.Note
                 FROM LongevitymaxxingAdviceRequests a
                 JOIN LongevitymaxxingCheckIns c ON c.ParticipantId = a.ParticipantId AND c.ChallengeDay = a.ChallengeDay
                 WHERE a.ParticipantId = @participant AND a.Status = 'pending'
@@ -110,7 +110,8 @@ public sealed partial class LongevitymaxxingChallengeService
             Add(command, "@participant", participantId);
             using var reader = command.ExecuteReader();
             return reader.Read() ? new LongevitymaxxingAdvicePrompt(reader.GetString(0), reader.GetInt32(1), reader.GetString(2),
-                reader.GetInt32(3), reader.IsDBNull(4) ? null : reader.GetDouble(4), reader.GetInt32(5), reader.GetInt32(6)) : null;
+                reader.GetInt32(3), reader.IsDBNull(4) ? null : reader.GetDouble(4), reader.GetInt32(5), reader.GetInt32(6))
+                { CheckInNote = reader.IsDBNull(7) ? null : reader.GetString(7) } : null;
         });
 
     public LongevitymaxxingParticipantState PublishAdviceStory(LongevitymaxxingAdviceStoryRequest request, DateTimeOffset? nowUtc = null)

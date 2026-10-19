@@ -238,7 +238,10 @@ public sealed record LongevitymaxxingDiscussionReply(
 }
 
 public sealed record LongevitymaxxingAdvicePrompt(
-    string Id, int ChallengeDay, string Date, int RawScore, double? BaselineRawScore, int CharacterLimit, int Version);
+    string Id, int ChallengeDay, string Date, int RawScore, double? BaselineRawScore, int CharacterLimit, int Version)
+{
+    public string? CheckInNote { get; init; }
+}
 
 public sealed record LongevitymaxxingAdviceStoryRequest(
     string AccessToken, string AdviceId, int Version, string? Story = null);

@@ -145,6 +145,7 @@
     interface AdvicePrompt {
         id: string; challengeDay: number; date: string; rawScore: number;
         baselineRawScore: number | null; characterLimit: number; version: number;
+        checkInNote?: string | null;
     }
 
     interface AdviceThread {
@@ -5169,8 +5170,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             dialog.addEventListener("cancel", event => { event.preventDefault(); if (!adviceStorySaving) void finishAdviceStory(false); });
         }
         if (adviceStoryDraft?.id !== prompt.id) {
-            let body = "";
-            try { body = sessionStorage.getItem(adviceStoryStorageKey(prompt.id)) || ""; } catch { /* Storage can be unavailable. */ }
+            let body = prompt.checkInNote ?? "";
+            try { body = sessionStorage.getItem(adviceStoryStorageKey(prompt.id)) ?? body; } catch { /* Storage can be unavailable. */ }
             adviceStoryDraft = { id: prompt.id, body };
             dialog.querySelector<HTMLTextAreaElement>("textarea")!.value = body;
             dialog.querySelector<HTMLElement>(".lmx-status")!.textContent = "";
@@ -8764,7 +8765,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 hasProperties(value.pendingAdvicePrompt, "id", "challengeDay", "date", "characterLimit", "version") &&
                 typeof value.pendingAdvicePrompt.id === "string" && typeof value.pendingAdvicePrompt.challengeDay === "number" &&
                 typeof value.pendingAdvicePrompt.date === "string" && typeof value.pendingAdvicePrompt.characterLimit === "number" &&
-                typeof value.pendingAdvicePrompt.version === "number") &&
+                typeof value.pendingAdvicePrompt.version === "number" &&
+                (!hasProperties(value.pendingAdvicePrompt, "checkInNote") || isNullableString(value.pendingAdvicePrompt.checkInNote))) &&
             (!hasProperties(value, "updatedDiscussionThread") || value.updatedDiscussionThread === null || isParticipantNote(value.updatedDiscussionThread));
     }
 

@@ -9,6 +9,7 @@ namespace LongevityWorldCup.Tests;
 public sealed partial class LongevitymaxxingChallengeBrowserTests
 {
     private const string AdviceStory = "Travel knocked out sleep and exercise. Once one thing slipped, I wrote the whole day off. How do you stop that spiral?";
+    private const string AdviceCheckInNote = "Travel knocked out sleep and exercise.";
     private const string FirstAdviceId = "00000000000000000000000000000007";
 
     [Theory]
@@ -223,10 +224,11 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
     }
 
     [Theory]
+    [InlineData(320, ColorScheme.Light)]
     [InlineData(1280, ColorScheme.Light)]
     [InlineData(390, ColorScheme.Light)]
     [InlineData(390, ColorScheme.Dark)]
-    public async Task AdviceStory_SavedCheckInPausesForExplicitPublicationAndPreservesFailedDraft(int width, ColorScheme theme)
+    public async Task AdviceStory_SavedCheckInPrefillsStoryAndPreservesClearedAndFailedDrafts(int width, ColorScheme theme)
     {
         await using var context = await NewContextAsync(Browser, App, new()
         {
@@ -238,8 +240,9 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         {
             var payload = JsonNode.Parse(route.Request.PostData!)!;
             Assert.Equal(0, payload["exercise"]!.GetValue<int>());
-            state["eligibleDays"]![0]!["existing"] = JsonSerializer.SerializeToNode(new { sleep = 2, exercise = 0, nutrition = 0, vices = 2, note = (string?)null, images = Array.Empty<object>() });
-            state["pendingAdvicePrompt"] = JsonSerializer.SerializeToNode(new { id = "case-22", challengeDay = 22, date = "2026-06-29", rawScore = 4, baselineRawScore = 8, characterLimit = 240, version = 1 });
+            Assert.Equal(AdviceCheckInNote, payload["note"]!.GetValue<string>());
+            state["eligibleDays"]![0]!["existing"] = JsonSerializer.SerializeToNode(new { sleep = 2, exercise = 0, nutrition = 0, vices = 2, note = AdviceCheckInNote, images = Array.Empty<object>() });
+            state["pendingAdvicePrompt"] = JsonSerializer.SerializeToNode(new { id = "case-22", challengeDay = 22, date = "2026-06-29", rawScore = 4, baselineRawScore = 8, characterLimit = 240, version = 1, checkInNote = AdviceCheckInNote });
             await FulfillJsonAsync(route, state.ToJsonString());
         });
         await context.RouteAsync("**/api/longevitymaxxing/advice/publish", async route =>
@@ -248,6 +251,8 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
             Assert.Equal(AdviceStory, payload["story"]!.GetValue<string>());
             if (++publishCalls == 1) { await route.FulfillAsync(new() { Status = 503, ContentType = "application/json", Body = "{\"message\":\"Temporarily unavailable.\"}" }); return; }
             state = AdviceBrowserState(0);
+            state["notes"]![0]!["note"] = AdviceCheckInNote;
+            state["public"]!["notes"]![0]!["note"] = AdviceCheckInNote;
             await FulfillJsonAsync(route, state.ToJsonString());
         });
         await context.AddInitScriptAsync("localStorage.setItem('lmxAccessToken','browser-token')");
@@ -260,14 +265,21 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         var form = page.Locator(".lmx-checkin-card");
         foreach (var key in new[] { "sleep", "exercise", "nutrition", "vices" })
             await form.Locator($"[data-key='{key}'] .lmx-answer-option:has(input[value='{(key is "sleep" or "vices" ? "2" : "0")}'])").ClickAsync();
+        await form.Locator("textarea").FillAsync(AdviceCheckInNote);
         await form.Locator("button[type=submit]").ClickAsync();
         var dialog = page.Locator("#lmxAdviceStoryDialog");
         await Assertions.Expect(dialog).ToBeVisibleAsync();
         await Assertions.Expect(page.Locator(".lmx-checkin-dialog-panel")).ToHaveCountAsync(0);
         await Assertions.Expect(dialog.Locator("h2")).ToHaveTextAsync("This is unusual for you. What’s the story?");
         await Assertions.Expect(dialog.Locator("button")).ToHaveCountAsync(1);
+        await Assertions.Expect(dialog.Locator("textarea")).ToHaveValueAsync(AdviceCheckInNote);
+        await Assertions.Expect(dialog.GetByRole(AriaRole.Button, new() { Name = "Post", Exact = true })).ToBeEnabledAsync();
+        await CaptureAdviceAsync(page, $"story-prefilled-{width}-{theme}.png");
+        await CaptureAdviceAsync(page, $"story-prefilled-panel-{width}-{theme}.png", dialog);
+        await dialog.Locator("textarea").FillAsync("");
+        await page.ReloadAsync();
+        await Assertions.Expect(dialog.Locator("textarea")).ToHaveValueAsync("");
         await Assertions.Expect(dialog.GetByRole(AriaRole.Button, new() { Name = "Post", Exact = true })).ToBeDisabledAsync();
-        await CaptureAdviceAsync(page, $"story-empty-{width}-{theme}.png");
         await dialog.Locator("textarea").FillAsync(AdviceStory);
         await CaptureAdviceAsync(page, $"story-{width}-{theme}.png");
         await CaptureAdviceAsync(page, $"story-panel-{width}-{theme}.png", dialog);
@@ -279,6 +291,8 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await dialog.Locator("button[type=submit]").ClickAsync();
         await Assertions.Expect(dialog).ToBeHiddenAsync();
         await Assertions.Expect(page.Locator("#lmxNotes .lmx-advice-story")).ToContainTextAsync(AdviceStory);
+        await page.Locator("#lmxNotes .lmx-advice-context > summary").ClickAsync();
+        await Assertions.Expect(page.Locator("#lmxNotes .lmx-advice-context")).ToContainTextAsync(AdviceCheckInNote);
         await CaptureAdviceAsync(page, $"request-{width}-{theme}.png", page.Locator("#lmxNotes > article").First);
         Assert.Empty(errors);
     }
