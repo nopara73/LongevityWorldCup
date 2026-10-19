@@ -245,7 +245,12 @@ document.addEventListener('DOMContentLoaded', function () {
     LoadLeaderboard(true, 10);
     stabilizeHomepageFragmentTarget();
 
+    // Card widths set the Highlights row count. A height-only resize, such as
+    // a phone's collapsing address bar, keeps the rows already shown.
+    let fittedWidth = window.innerWidth;
     window.addEventListener('resize', function () {
+        if (window.innerWidth === fittedWidth) return;
+        fittedWidth = window.innerWidth;
         window.clearTimeout(homepageHighlightsResizeTimer);
         homepageHighlightsResizeTimer = window.setTimeout(fitHomepageHighlights, 180);
     });

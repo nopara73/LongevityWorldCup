@@ -1994,3 +1994,271 @@ main > .main-container .leaderboard {
         border-inline-start: 2px solid var(--archive-metal);
     }
 }
+
+/* ===== Landing page system =====
+   The homepage reads as one column of cards on one rhythm: the podium stands
+   on its own stage, the controls, standings and "View all athletes" are one
+   board, and every section after them keeps the same gap. Scoped to the
+   homepage and written at document specificity, because the shared
+   leaderboard and visual-system stylesheets load after this one. */
+html body main.homepage-main {
+    --home-gap: var(--lwc-space-5);
+    --home-card-inset: 20px;
+}
+
+html body main.homepage-main .game-description {
+    margin-bottom: var(--lwc-space-4);
+}
+
+/* The stage: one card, the three athletes on it and their prize steps as its floor. */
+html body main.homepage-main .podium {
+    margin: 0 0 var(--home-gap);
+    padding: var(--lwc-space-6) 0 0;
+    overflow: hidden;
+    /* An inset outline, not a border: the podium's container query keeps the
+       full stage width, and the edge still draws over the prize steps. */
+    outline: 1px solid var(--lwc-border);
+    outline-offset: -1px;
+    border-radius: var(--lwc-radius-lg);
+    background: var(--lwc-surface);
+    box-shadow: var(--lwc-shadow-sm);
+}
+
+html body main.homepage-main .podium-item {
+    max-width: none;
+}
+
+html body main.homepage-main .podium-rank {
+    box-shadow: 0 0 0 3px var(--lwc-surface);
+}
+
+/* Steps meet the card's edges, so only the champion's step keeps its corners. */
+html body main.homepage-main .podium-item.second .podium-item-lower,
+html body main.homepage-main .podium-item.third .podium-item-lower {
+    border-radius: 0;
+}
+
+/* The board: controls, standings and the way to the full list share one card. */
+html body main.homepage-main .leaderboard-controls {
+    margin: 0;
+    border-bottom: 0;
+    border-radius: var(--lwc-radius-lg) var(--lwc-radius-lg) 0 0;
+    box-shadow: none;
+}
+
+html body main.homepage-main .leaderboard-controls-status {
+    border-radius: 0;
+}
+
+html body main.homepage-main #athleteLeaderboard {
+    margin: 0;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+html body main.homepage-main .full-rankings-action {
+    display: flex;
+    justify-content: center;
+    margin: 0 0 var(--home-gap);
+    padding: var(--lwc-space-3) var(--home-card-inset);
+    border: 1px solid var(--lwc-border);
+    border-top: 0;
+    border-radius: 0 0 var(--lwc-radius-lg) var(--lwc-radius-lg);
+    background: var(--lwc-surface-muted);
+    box-shadow: var(--lwc-shadow-sm);
+}
+
+html body main.homepage-main .rankings-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: min(100%, 18rem);
+    padding: 0.7rem 1.5rem;
+    font-size: 1rem;
+    letter-spacing: 0.04em;
+    box-sizing: border-box;
+}
+
+/* Every section after the board sits on the same gap. */
+html body main.homepage-main .lwc-highlights-countdown-wrapper {
+    margin: 0 0 var(--home-gap);
+    gap: var(--home-gap);
+}
+
+html body main.homepage-main[data-homepage-visit-layout="repeat"] .lwc-highlights-countdown-wrapper {
+    margin-top: 0;
+}
+
+html body main.homepage-main > .section-container,
+html body main.homepage-main .homepage-panel-pair {
+    margin: 0 0 var(--home-gap);
+}
+
+html body main.homepage-main .homepage-panel-pair {
+    gap: var(--home-gap);
+}
+
+html body main.homepage-main > :last-child {
+    margin-bottom: var(--lwc-space-6);
+}
+
+html body main.homepage-main #lwc-countdown-box {
+    border: 1px solid var(--lwc-border);
+    border-radius: var(--lwc-radius-lg);
+    box-shadow: var(--lwc-shadow-sm);
+}
+
+/* Swag reads like the other cards: copy on the card's inset, products as
+   bordered tiles rather than floating shadows. */
+html body main.homepage-main .lwc-merch-body {
+    gap: var(--lwc-space-4);
+    padding: var(--home-card-inset);
+}
+
+html body main.homepage-main .lwc-merch-copy {
+    color: var(--lwc-muted);
+    font-size: var(--lwc-type-sm);
+    line-height: 1.5;
+    text-align: left;
+}
+
+html body main.homepage-main .lwc-merch-grid {
+    gap: var(--lwc-space-3);
+}
+
+html body main.homepage-main :is(.lwc-merch-item, .lwc-merch-mobile-slide) {
+    gap: var(--lwc-space-2);
+    padding: 0 0 var(--lwc-space-3);
+    overflow: hidden;
+    border: 1px solid var(--lwc-border);
+    border-radius: var(--lwc-radius-md);
+    background: var(--lwc-surface);
+    box-shadow: none;
+}
+
+html body main.homepage-main .lwc-merch-item:hover,
+html body main.homepage-main .lwc-merch-item:focus-visible {
+    transform: none;
+    border-color: var(--lwc-accent);
+    box-shadow: none;
+}
+
+html body main.homepage-main :is(.lwc-merch-item, .lwc-merch-mobile-slide) .lwc-merch-thumb {
+    border-radius: 0;
+}
+
+html body main.homepage-main .lwc-merch-item-copy {
+    gap: 0.15rem;
+    padding: 0 var(--lwc-space-2);
+}
+
+html body main.homepage-main .lwc-merch-item-title {
+    font-size: var(--lwc-type-sm);
+    line-height: 1.25;
+}
+
+html body main.homepage-main .lwc-merch-item-price {
+    color: var(--lwc-muted);
+    font-size: var(--lwc-type-xs);
+    font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 768px), (max-width: 932px) and (max-height: 480px) and (orientation: landscape) {
+    html body main.homepage-main {
+        --home-gap: var(--lwc-space-4);
+        --home-card-inset: 14px;
+    }
+
+    /* On phones the stage keeps one card: the champion's row, then second and
+       third side by side, each closing on its own prize step. */
+    html body main.homepage-main .podium {
+        gap: 0;
+        padding: 0;
+    }
+
+    html body main.homepage-main .podium-item {
+        width: 50%;
+        margin: 0;
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+    }
+
+    html body main.homepage-main .podium-item.first {
+        width: 100%;
+        max-width: none;
+        border-bottom: 1px solid var(--lwc-border);
+    }
+
+    html body main.homepage-main .podium-item.second {
+        border-right: 1px solid var(--lwc-border);
+    }
+
+    html body main.homepage-main .leaderboard-controls {
+        margin-top: 0;
+    }
+
+    html body main.homepage-main .lwc-merch-body {
+        padding: var(--home-card-inset);
+    }
+}
+
+/* A soft light falls on the champion's step; the medal rings take the stage colour. */
+@media (min-width: 769px) and (min-height: 481px), (min-width: 933px) {
+    html body main.homepage-main .podium {
+        background:
+            radial-gradient(ellipse 42% 78% at 50% 0, var(--lwc-surface-accent), transparent 100%),
+            var(--lwc-surface);
+    }
+}
+
+@media (max-width: 768px), (max-width: 932px) and (max-height: 480px) and (orientation: landscape) {
+    /* The champion's row centres on the stage instead of hugging its left
+       edge; the medal shares the portrait's cell so it follows the portrait. */
+    html body main.homepage-main .podium-item.first {
+        grid-template-columns: minmax(var(--lwc-space-4), 1fr) var(--podium-portrait-size) var(--lwc-space-4) minmax(0, max-content) minmax(var(--lwc-space-4), 1fr);
+        grid-template-areas:
+            ". portrait . name ."
+            ". portrait . score ."
+            ". portrait . links ."
+            "prize prize prize prize prize";
+        column-gap: 0;
+        padding-inline: 0;
+    }
+
+    html body main.homepage-main .podium-item.first > .podium-item-lower {
+        margin-inline: 0;
+    }
+
+    html body main.homepage-main .podium-item.first > .podium-rank {
+        position: relative;
+        top: auto;
+        left: auto;
+        grid-area: portrait;
+        align-self: start;
+        justify-self: center;
+        margin: calc(var(--podium-portrait-size) - 16px) 0 0;
+    }
+}
+
+/* Enlarged text: every placing takes the stage's full width, one under another. */
+@container podium (max-width: 16em) {
+    html body main.homepage-main .podium-item {
+        width: 100%;
+    }
+
+    html body main.homepage-main .podium-item:not(:last-child) {
+        border-right: 0;
+        border-bottom: 1px solid var(--lwc-border);
+    }
+
+    html body main.homepage-main .podium-item.first {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-areas: "portrait" "name" "score" "links" "prize";
+        padding-inline: var(--lwc-space-3);
+    }
+
+    html body main.homepage-main .podium-item.first > .podium-item-lower {
+        margin-inline: calc(-1 * var(--lwc-space-3));
+    }
+}
