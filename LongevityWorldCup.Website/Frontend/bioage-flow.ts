@@ -924,6 +924,7 @@ interface Window {
             ? `${completed} new biomarker${completed === 1 ? '' : 's'}${completed > 0 && !hasBloodDrawDate ? ' · blood draw date required' : ''}`
             : `${completed} of ${total} biomarkers entered`;
         controller.progress.classList.toggle('bioage-biomarker-progress--complete', ready);
+        controller.form.style.setProperty('--bioage-entry-progress', `${total > 0 ? Math.round(completed / total * 100) : 0}%`);
 
         // The flow dock portals the action stack out of the form on small screens.
         const calculateButton = document.querySelector<HTMLButtonElement>('.bioage-calculate-button');
