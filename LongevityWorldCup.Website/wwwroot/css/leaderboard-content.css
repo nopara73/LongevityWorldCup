@@ -4567,14 +4567,16 @@ main[data-leaderboard-page="full"] .flag-section-heading{ padding-block:var(--lw
    Flag, full-width underline tabs, then search with its two tools. */
 @media (max-width: 768px), (max-width: 932px) and (max-height: 480px) and (orientation: landscape){
     main[data-leaderboard-page="full"] .leaderboard-controls{ margin-top:0; }
-    main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-toolbar{ padding:var(--lwc-space-3) var(--lwc-space-3) 0; row-gap:0; }
+    main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-toolbar{ display:flex; flex-wrap:wrap; padding:var(--lwc-space-3) var(--lwc-space-3) 0; row-gap:0; }
+    main[data-leaderboard-page="full"] .leaderboard-controls .view-switcher-label{ order:0; flex:1 0 auto; }
+    main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-group-switcher{ order:1; flex:0 0 auto; margin-inline-start:auto; }
     main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-view-switcher .view-switcher-chips{
-        display:flex; flex-wrap:wrap; width:calc(100% + 2 * var(--lwc-space-3)); max-width:none; box-sizing:border-box;
+        order:2; flex:1 0 calc(100% + 2 * var(--lwc-space-3)); display:flex; flex-wrap:wrap; width:calc(100% + 2 * var(--lwc-space-3)); max-width:none; box-sizing:border-box;
         margin:var(--lwc-space-2) calc(-1 * var(--lwc-space-3)) 0; padding:0 var(--lwc-space-1); gap:0;
         border-bottom:1px solid var(--lwc-border);
     }
     html body main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-view-switcher .view-badge{ flex:1 1 0; min-height:48px; padding:0 var(--lwc-space-1); }
-    main[data-leaderboard-page="full"] .leaderboard-controls .search-wrapper{ padding-block:var(--lwc-space-3); }
+    main[data-leaderboard-page="full"] .leaderboard-controls .search-wrapper{ order:3; flex:1 0 100%; padding-block:var(--lwc-space-3); }
     main[data-leaderboard-page="full"] .leaderboard-controls-status{ padding-inline:var(--lwc-space-3); }
 }
 /* Mid-size phones and tablets get readable rows instead of the small-phone type scale. */

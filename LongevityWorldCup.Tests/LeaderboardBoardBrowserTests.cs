@@ -281,11 +281,11 @@ public sealed class LeaderboardBoardBrowserTests(PlaywrightBrowserFixture browse
         foreach (var view in new[] { "ultimate", "pheno" })
         {
             await page.Locator($"label[for='view-{view}']").ClickAsync();
-            var issues = await page.Locator(".leaderboard-view-switcher .view-badge").EvaluateAllAsync<string[]>("""
+            var issues = await page.Locator(".leaderboard-view-switcher :is(.view-badge, .view-switcher-label)").EvaluateAllAsync<string[]>("""
                 labels => labels.flatMap(label => {
                     const box = label.getBoundingClientRect();
                     const issues = [];
-                    if (box.width < 44 || box.height < 44 || box.right > innerWidth + 1) issues.push(label.textContent);
+                    if (label.matches('.view-badge') && (box.width < 44 || box.height < 44) || box.right > innerWidth + 1) issues.push(label.textContent);
                     const walker = document.createTreeWalker(label, NodeFilter.SHOW_TEXT);
                     while (walker.nextNode()) {
                         const node = walker.currentNode;
