@@ -2216,6 +2216,20 @@ html body main.homepage-main .lwc-merch-item-price {
             radial-gradient(ellipse 42% 78% at 50% 0, var(--lwc-surface-accent), transparent 100%),
             var(--lwc-surface);
     }
+
+    @container podium (max-width: 32em) {
+        html body main.homepage-main .podium-item {
+            margin: 0;
+            border: 0;
+            border-radius: 0;
+            background: transparent;
+            box-shadow: none;
+        }
+
+        html body main.homepage-main .podium-item:not(:last-child) {
+            border-bottom: 1px solid var(--lwc-border);
+        }
+    }
 }
 
 @media (max-width: 768px), (max-width: 932px) and (max-height: 480px) and (orientation: landscape) {

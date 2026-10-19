@@ -11,14 +11,18 @@ public sealed class HomepageLandingBrowserTests(
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Theory]
-    [InlineData(1440, 900)]
-    [InlineData(1024, 768)]
-    [InlineData(768, 1024)]
-    [InlineData(390, 844)]
-    public async Task Podium_StandsOnOneStageCardWhoseFloorIsThePrizeSteps(int width, int height)
+    [InlineData(1440, 900, 100)]
+    [InlineData(1024, 768, 100)]
+    [InlineData(768, 1024, 100)]
+    [InlineData(390, 844, 100)]
+    [InlineData(1024, 768, 200)]
+    [InlineData(800, 900, 200)]
+    public async Task Podium_StandsOnOneStageCardWhoseFloorIsThePrizeSteps(int width, int height, int textPercent)
     {
         var (context, page) = await OpenHomepageAsync(width, height);
         await using var _ = context;
+        await page.EvaluateAsync("percent => document.documentElement.style.fontSize = percent + '%'", textPercent);
+        await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
 
         var stage = await page.EvaluateAsync<StageMeasurement>(
             """
@@ -38,6 +42,10 @@ public sealed class HomepageLandingBrowserTests(
                     Bottom: box.bottom,
                     FirstLeft: rect('first').left,
                     FirstRight: rect('first').right,
+                    FirstBottom: rect('first').bottom,
+                    SecondTop: rect('second').top,
+                    SecondBottom: rect('second').bottom,
+                    ThirdTop: rect('third').top,
                     SecondRight: rect('second').right,
                     ThirdLeft: rect('third').left,
                     CardShadows: cards.filter(card => getComputedStyle(card).boxShadow !== 'none').length,
@@ -51,8 +59,15 @@ public sealed class HomepageLandingBrowserTests(
         Assert.Equal("hidden", stage.Overflow);
         Assert.Equal(0, stage.CardShadows);
         Assert.InRange(stage.Bottom - stage.LowestStepBottom, 0, 2);
-        Assert.InRange(Math.Abs(stage.SecondRight - stage.ThirdLeft), 0, width > 768 ? 400 : 1);
-        if (width <= 768)
+        var stacked = stage.SecondRight > stage.ThirdLeft + 1;
+        if (stacked)
+        {
+            Assert.InRange(stage.SecondTop - stage.FirstBottom, 0, 1);
+            Assert.InRange(stage.ThirdTop - stage.SecondBottom, 0, 1);
+        }
+        else
+            Assert.InRange(Math.Abs(stage.SecondRight - stage.ThirdLeft), 0, width > 768 ? 400 : 1);
+        if (width <= 768 || stacked)
         {
             Assert.InRange(stage.FirstLeft - stage.Left, 0, 2);
             Assert.InRange(stage.Right - stage.FirstRight, 0, 2);
@@ -319,6 +334,10 @@ public sealed class HomepageLandingBrowserTests(
         public double Bottom { get; set; }
         public double FirstLeft { get; set; }
         public double FirstRight { get; set; }
+        public double FirstBottom { get; set; }
+        public double SecondTop { get; set; }
+        public double SecondBottom { get; set; }
+        public double ThirdTop { get; set; }
         public double SecondRight { get; set; }
         public double ThirdLeft { get; set; }
         public int CardShadows { get; set; }
