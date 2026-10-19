@@ -186,28 +186,116 @@
     overflow-y: auto;
 }
 
+/*
+ * The guess stage is one object: the portrait docks onto the top edge of the game card.
+ * The portrait track is the only flexible size, so the card (and its Submit button) always
+ * fits and the portrait takes whatever height is left, up to its cap.
+ */
 #detailsModal .modal-content.guess-mode #athlete-profile {
-    --gma-portrait-gap: clamp(2rem, 4vh, 3rem);
-    --gma-portrait-size: clamp(220px, min(58vw, 40vh), 430px);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
+    --gma-portrait-max: min(360px, 68vw);
+    --gma-portrait-min: 112px;
+    --gma-overlap: clamp(1.75rem, 4.5vh, 2.75rem);
+    --gma-top-room: 3.5rem;
+    --gma-bottom-room: 0.75rem;
+    --gma-dock-height: 3.5rem;
+    --gma-bezel-gap: clamp(9px, 1.4vh, 14px);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows:
+        minmax(var(--gma-top-room), 1fr)
+        minmax(var(--gma-portrait-min), var(--gma-portrait-max))
+        auto
+        minmax(var(--gma-bottom-room), 1fr);
+    justify-items: center;
+    align-items: start;
     gap: 0;
     height: 100%;
     min-height: 0;
     box-sizing: border-box;
-    padding-block: clamp(3rem, 4.5vh, 4rem) clamp(0.75rem, 2vh, 1.5rem);
+    padding: 0;
 }
 
 #detailsModal .modal-content.guess-mode #athlete-profile .portrait-wrapper {
-    width: var(--gma-portrait-size);
-    height: auto;
+    grid-row: 2;
+    width: auto;
+    height: 100%;
     aspect-ratio: 1 / 1;
     max-width: none;
     max-height: none;
-    flex: 0 0 auto;
-    margin: 0 0 var(--gma-portrait-gap);
+    margin: 0;
+    z-index: 3;
+}
+
+/* The card rises into the portrait's row, so the portrait sits on its top edge. */
+#detailsModal .modal-content.guess-mode #guessAgeContainer {
+    grid-row: 3;
+    position: relative;
+    z-index: 2;
+    margin-top: calc(-1 * var(--gma-overlap));
+}
+
+/* A stopwatch bezel rings the portrait while the game is live. */
+#detailsModal .modal-content.guess-mode #athlete-profile .portrait-wrapper::before,
+#detailsModal .modal-content.guess-mode #athlete-profile .portrait-wrapper::after {
+    content: '';
+    position: absolute;
+    inset: calc(-1 * var(--gma-bezel-gap));
+    border-radius: 50%;
+    pointer-events: none;
+    -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 7px), #000 calc(100% - 6px));
+    mask: radial-gradient(farthest-side, transparent calc(100% - 7px), #000 calc(100% - 6px));
+}
+
+#detailsModal .modal-content.guess-mode #athlete-profile .portrait-wrapper::before {
+    --gma-tick: var(--athlete-modal-cream-border, rgba(246,244,237,.52));
+    background:
+        repeating-conic-gradient(from -1.2deg, var(--athlete-modal-cream, rgba(246,244,237,.92)) 0 2.4deg, transparent 2.4deg 30deg),
+        repeating-conic-gradient(from -0.6deg, var(--gma-tick) 0 1.2deg, transparent 1.2deg 6deg);
+    transition: filter var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
+}
+
+/* The sweep hand only runs while the real age is travelling. */
+#detailsModal .modal-content.guess-mode #athlete-profile .portrait-wrapper::after {
+    background: conic-gradient(from 0deg, transparent 0 250deg, rgba(246,244,237,.08) 280deg, var(--athlete-modal-cream, rgba(246,244,237,.92)) 357deg, transparent 357deg);
+    opacity: 0;
+    transition: opacity var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
+}
+
+#detailsModal .modal-content.guess-mode:has(#gmaRealBubble.is-travelling) #athlete-profile .portrait-wrapper::after {
+    opacity: 1;
+    animation: gma-bezel-sweep calc(var(--lwc-duration-normal, 220ms) * 5) linear infinite;
+}
+
+#detailsModal .modal-content.guess-mode:has(.gma-card.celebrate-better) #athlete-profile .portrait-wrapper::before {
+    --gma-tick: var(--lwc-accent-bright, #19c3d1);
+    filter: drop-shadow(0 0 0.45rem rgba(25, 195, 209, 0.55));
+}
+
+#detailsModal .modal-content.guess-mode:has(.gma-card.celebrate-exact) #athlete-profile .portrait-wrapper::before {
+    --gma-tick: #f4d260;
+    background:
+        repeating-conic-gradient(from -1.2deg, #fff3a1 0 2.4deg, transparent 2.4deg 30deg),
+        repeating-conic-gradient(from -0.6deg, #d6a315 0 1.2deg, transparent 1.2deg 6deg);
+    filter: drop-shadow(0 0 0.6rem rgba(255, 215, 0, 0.7));
+}
+
+@keyframes gma-bezel-sweep {
+    to { transform: rotate(1turn); }
+}
+
+@keyframes gma-bezel-enter {
+    from { opacity: 0; transform: rotate(-36deg) scale(0.94); }
+    to { opacity: 1; transform: rotate(0) scale(1); }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    #detailsModal .modal-content.guess-mode #athlete-profile .portrait-wrapper::before {
+        animation: gma-bezel-enter calc(var(--lwc-duration-normal, 220ms) * 4) var(--lwc-ease, ease) both;
+    }
+
+    #detailsModal .modal-content.guess-mode.gma-fast #athlete-profile .portrait-wrapper::before {
+        animation-duration: calc(var(--lwc-duration-normal, 220ms) * 2);
+    }
 }
 
 /* The game card is the active stage, with more depth than the profile below it. */
@@ -299,6 +387,12 @@
 .gma-card.is-revealing .gma-slider-wrap {
     padding-bottom: 2.85rem;
     margin-bottom: 0.35rem;
+}
+
+/* Inside the dialog the reveal keeps every row in place; nothing below the slider moves. */
+#detailsModal .gma-card.is-revealing .gma-slider-wrap {
+    padding-bottom: var(--gma-ruler-room, 1.1rem);
+    margin-bottom: var(--gma-slider-gap, 1.1rem);
 }
 
 /* slider track */
@@ -595,6 +689,13 @@
     }
 }
 
+/* On the stage the card steps back without collapsing, so the portrait never lurches
+   before it glides into the profile. */
+@keyframes gma-stage-card-exit {
+    from { opacity: 1; transform: translateY(0) scale(1); }
+    to { opacity: 0; transform: translateY(0.9rem) scale(0.96); }
+}
+
 /* Exit is a measured max-height animation: auto -> 0 would only hard-cut. */
 #detailsModal .modal-content:not(.guess-mode) #guessAgeContainer,
 #detailsModal .modal-content.is-loading #guessAgeContainer {
@@ -605,6 +706,15 @@
     overflow: hidden;
     animation: gma-card-exit var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease) both !important;
     pointer-events: none;
+}
+
+#detailsModal .modal-content.guess-mode #guessAgeContainer.gma-done {
+    animation-name: gma-stage-card-exit !important;
+}
+
+#detailsModal .modal-content.guess-mode #athlete-profile:has(> #guessAgeContainer.gma-done) .portrait-wrapper::before {
+    opacity: 0;
+    transition: opacity var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
 }
 
 #detailsModal .modal-content.gma-fast #guessAgeContainer.gma-done {
@@ -1217,17 +1327,34 @@
     border-color: #8a5c00 !important;
 }
 
+/*
+ * The card is a four-row instrument: prompt, status, slider, dock. The dock has a fixed
+ * height, and Skip/Submit, the submitting status and the payoff banner take turns in it,
+ * so the card never changes size between guessing and the reveal.
+ */
 #detailsModal .gma-card {
-    width: min(680px, calc(100% - 2rem));
+    --gma-ruler-room: 1.1rem;
+    --gma-slider-gap: clamp(0.85rem, 2.2vh, 1.35rem);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto auto minmax(var(--gma-dock-height, 3.5rem), auto);
+    grid-template-areas: "prompt" "status" "slider" "dock";
+    justify-items: center;
+    width: min(560px, 100%);
     margin-top: 0;
     margin-bottom: 0;
     box-sizing: border-box;
-    background: linear-gradient(145deg, rgba(255,255,255,.11), rgba(255,255,255,.055));
+    background:
+        radial-gradient(120% 70% at 50% 0%, rgba(246,244,237,.1), transparent 62%),
+        linear-gradient(180deg, rgba(255,255,255,.1), rgba(255,255,255,.045));
     color: var(--athlete-modal-text, rgba(255,255,255,.94));
     border: 1px solid var(--athlete-modal-cream-border, rgba(246,244,237,.52));
     border-radius: var(--lwc-radius-lg, 12px);
     box-shadow: 0 1.15rem 2.65rem rgba(0,0,0,.38), 0 0 0 1px rgba(255,255,255,.08) inset;
-    padding: 1.65rem 2rem 2rem;
+    padding:
+        calc(var(--gma-overlap, 0px) + var(--gma-bezel-gap, 0px) + clamp(0.6rem, 1.6vh, 1rem))
+        clamp(1rem, 4vw, 2.25rem)
+        clamp(1rem, 2.6vh, 1.6rem);
 }
 #detailsModal .gma-avatar {
     background: rgba(255,255,255,.08);
@@ -1235,16 +1362,59 @@
 }
 #detailsModal .gma-heading,
 #detailsModal .chrono-age-heading {
+    grid-area: prompt;
     color: var(--athlete-modal-text, rgba(255,255,255,.94));
-    font-size: clamp(2rem, 4vw, 2.5rem);
-    margin-bottom: clamp(1.25rem, 2.5vh, 2rem);
+    font-size: clamp(1.75rem, 1rem + 2.4vh, 2.5rem);
+    margin-bottom: clamp(0.35rem, 1.2vh, 0.75rem);
     text-shadow: 0 0.25rem 0.8rem rgba(0,0,0,.3);
 }
 #detailsModal #gmaStatus {
+    grid-area: status;
     color: var(--athlete-modal-cream, rgba(246,244,237,.92));
     line-height: 1.35;
-    margin: 0.25rem auto 1rem;
+    margin: 0.25rem auto 0;
     max-width: 34rem;
+}
+/* While the request is in flight the status sits where the buttons were. */
+#detailsModal .gma-card.is-submitting #gmaStatus:not(.gma-status--semantic) {
+    grid-area: dock;
+    align-self: center;
+    margin: 0;
+}
+#detailsModal .gma-slider-wrap {
+    grid-area: slider;
+    justify-self: stretch;
+    width: auto;
+    margin: 0 var(--gma-slider-inset, 0.25rem) var(--gma-slider-gap);
+    padding-top: var(--gma-bubble-room, 5rem);
+    padding-bottom: var(--gma-ruler-room);
+}
+/* Decade ticks under the track turn the slider into an age ruler. */
+#detailsModal .gma-slider-wrap::after {
+    content: '';
+    position: absolute;
+    left: calc(var(--gma-thumb, 64px) / 2);
+    right: calc(var(--gma-thumb, 64px) / 2);
+    bottom: 0;
+    height: 0.5rem;
+    pointer-events: none;
+    background:
+        linear-gradient(90deg, var(--athlete-modal-cream-border, rgba(246,244,237,.52)) 0 2px, transparent 2px) 0 0 / calc((100% - 2px) / 13) 100% repeat-x,
+        linear-gradient(90deg, var(--athlete-modal-border, rgba(246,244,237,.34)) 0 1px, transparent 1px) calc((100% - 2px) / 26) 100% / calc((100% - 2px) / 13) 50% repeat-x;
+    -webkit-mask: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+    mask: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+    opacity: 0.85;
+}
+#detailsModal .gma-payoff-region,
+#detailsModal .gma-actions {
+    grid-area: dock;
+    justify-self: stretch;
+}
+#detailsModal .gma-payoff-region,
+#detailsModal .gma-card.is-revealing .gma-payoff-region:not(:empty) {
+    align-self: center;
+    min-height: 0;
+    margin: 0;
 }
 #detailsModal #gmaStatus.gma-status--semantic {
     position: absolute !important;
@@ -1258,7 +1428,26 @@
     border: 0 !important;
 }
 #detailsModal #gmaRange {
+    --gma-thumb-size: var(--gma-thumb, 64px);
+    display: block;
+    height: var(--gma-track, 3rem);
+    margin: 0;
     background: linear-gradient(90deg, rgba(246,244,237,.88) 0%, rgba(246,244,237,.88) var(--percent, 50%), rgba(255,255,255,.24) var(--percent, 50%), rgba(255,255,255,.24) 100%);
+    box-shadow: inset 0 1px 3px rgba(0,0,0,.35);
+}
+#detailsModal #gmaRange::-webkit-slider-thumb {
+    width: var(--gma-thumb, 64px);
+    height: var(--gma-thumb, 64px);
+}
+#detailsModal #gmaRange::-moz-range-thumb {
+    width: var(--gma-thumb, 64px);
+    height: var(--gma-thumb, 64px);
+}
+#detailsModal #gmaBubble,
+#detailsModal #gmaRealBubble {
+    font-size: var(--gma-bubble-font, 2.6rem);
+    line-height: 1;
+    padding: var(--gma-bubble-pad, 0.7rem 1.4rem);
 }
 #detailsModal #gmaRange:focus-visible {
     outline: 3px solid var(--lwc-accent-bright, #19c3d1);
@@ -1292,11 +1481,34 @@
 }
 #detailsModal #gmaBubble::after,
 #detailsModal #gmaRealBubble::after {
-    background: rgba(10,12,12,.96);
+    bottom: -8px;
+    width: 14px;
+    height: 14px;
+    border-left-width: 2px;
+    border-bottom-width: 2px;
+    background: rgb(10,12,12);
     border-left-color: var(--athlete-modal-cream-border, rgba(246,244,237,.52));
     border-bottom-color: var(--athlete-modal-cream-border, rgba(246,244,237,.52));
 }
+/* Skip, Skip all and Submit are one row of equal-height pills spanning the slider. */
+#detailsModal .gma-actions {
+    display: flex;
+    align-items: stretch;
+    gap: clamp(0.5rem, 1.4vw, 0.85rem);
+    width: 100%;
+}
 #detailsModal .gma-btn {
+    flex: 1 1 0;
+    min-width: 0;
+    height: var(--gma-dock-height, 3.5rem);
+    min-height: 44px;
+    box-sizing: border-box;
+    padding: 0 clamp(0.6rem, 2vw, 1.25rem);
+    border-radius: 999px;
+    font-size: var(--gma-button-font, 1.05rem);
+    line-height: 1.15;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
     box-shadow: 0 0.55rem 1.35rem rgba(0,0,0,.26);
 }
 #detailsModal .gma-btn:focus-visible {
@@ -1305,9 +1517,9 @@
     outline-offset: 3px;
 }
 #detailsModal .gma-btn--ghost {
+    border: 2px solid var(--athlete-modal-cream-border, rgba(246,244,237,.52));
     background: rgba(246,244,237,.06);
     color: var(--athlete-modal-cream, rgba(246,244,237,.92));
-    border-color: var(--athlete-modal-cream-border, rgba(246,244,237,.52));
 }
 #detailsModal .gma-btn--ghost:hover,
 #detailsModal .gma-btn--ghost:focus-visible {
@@ -1315,6 +1527,9 @@
     background: var(--athlete-modal-cream, rgba(246,244,237,.92));
 }
 #detailsModal .gma-btn--primary {
+    flex-grow: 1.75;
+    border: 2px solid transparent;
+    font-size: calc(var(--gma-button-font, 1.05rem) * 1.14);
     background: var(--athlete-modal-cream, rgba(246,244,237,.92));
     color: rgba(12,16,16,.94);
     box-shadow: 0 0.65rem 1.55rem rgba(0,0,0,.32), 0 1px 0 rgba(255,255,255,.68) inset;
@@ -1322,6 +1537,15 @@
 #detailsModal .gma-btn--primary:hover,
 #detailsModal .gma-btn--primary:focus-visible {
     filter: brightness(1.04);
+}
+/* The payoff banner lands in the slot the buttons just left, at their height. */
+#detailsModal .gma-pop-banner {
+    min-height: var(--gma-dock-height, 3.5rem);
+    box-sizing: border-box;
+    padding: 0 clamp(0.9rem, 3vw, 1.6rem);
+    border-radius: 999px;
+    font-size: var(--gma-banner-font, clamp(1.15rem, 0.8rem + 1.2vw, 1.6rem));
+    white-space: nowrap;
 }
 #detailsModal .gma-card.celebrate-exact {
     --gma-settle-glow: rgba(255, 215, 0, 0.82);
@@ -1353,8 +1577,6 @@
 }
 #detailsModal .gma-card.gma-done {
     margin: 0;
-    border: 0;
-    box-shadow: none;
 }
 @media (max-width: 768px) {
     #detailsModal .modal-content.guess-mode #guessAgeContainer {
@@ -1369,17 +1591,14 @@
     }
 
     #detailsModal .modal-content.guess-mode #athlete-profile {
-        --gma-portrait-gap: clamp(1.5rem, 3.5vh, 2.5rem);
-        --gma-portrait-size: clamp(180px, min(70vw, 36vh), 320px);
-        padding-block: clamp(3.5rem, 5.5vh, 4.5rem) clamp(0.5rem, 2vh, 1.25rem);
-    }
-    #detailsModal .modal-content.guess-mode #athlete-profile .portrait-wrapper {
-        width: var(--gma-portrait-size);
-        height: auto;
-    }
-    #detailsModal .gma-card {
-        width: 100%;
-        padding: 1.75rem 1.25rem 2rem;
+        --gma-portrait-max: min(320px, 66vw);
+        --gma-top-room: 3.25rem;
+        --gma-dock-height: 3.25rem;
+        --gma-thumb: 56px;
+        --gma-track: 2.6rem;
+        --gma-bubble-font: 2.1rem;
+        --gma-bubble-pad: 0.55rem 1.1rem;
+        --gma-bubble-room: 4.1rem;
     }
     #detailsModal .modal-content.guess-mode .gma-heading,
     #detailsModal .modal-content.guess-mode .chrono-age-heading {
@@ -1393,106 +1612,65 @@
     #detailsModal .modal-content.guess-mode .chrono-age-heading.is-revealing {
         animation: none;
     }
-    #detailsModal .gma-slider-wrap {
-        width: 86%;
+}
+
+@media (max-width: 420px) {
+    #detailsModal .modal-content.guess-mode #athlete-profile {
+        --gma-portrait-max: min(300px, 70vw);
+        --gma-dock-height: 3rem;
+        --gma-thumb: 52px;
+        --gma-track: 2.4rem;
+        --gma-bubble-font: 1.75rem;
+        --gma-bubble-pad: 0.45rem 0.9rem;
+        --gma-bubble-room: 3.6rem;
+        --gma-button-font: 0.95rem;
+    }
+}
+
+/* Short laptop screens: the dialog grows to 96vh and every instrument steps down a size. */
+@media (min-width: 769px) and (max-height: 800px) {
+    #detailsModal .modal-content.guess-mode {
+        box-sizing: border-box;
+        height: 96vh;
+        max-height: 96vh;
+        margin: 2vh auto;
+    }
+    #detailsModal .modal-content.guess-mode #athlete-profile {
+        --gma-top-room: 3rem;
+        --gma-overlap: 1.75rem;
+        --gma-dock-height: 3.25rem;
+        --gma-thumb: 52px;
+        --gma-track: 2.5rem;
+        --gma-bubble-font: 2.1rem;
+        --gma-bubble-pad: 0.55rem 1.1rem;
+        --gma-bubble-room: 4.1rem;
     }
 }
 
 @media (max-height: 680px) {
     #detailsModal .modal-content.guess-mode #athlete-profile {
-        --gma-portrait-gap: 1.35rem;
-        --gma-portrait-size: clamp(140px, min(64vw, 32vh), 260px);
-        padding-block: 3rem 0.5rem;
-    }
-    #detailsModal .modal-content.guess-mode #athlete-profile .portrait-wrapper {
-        width: var(--gma-portrait-size);
-        height: auto;
+        --gma-portrait-min: 96px;
+        --gma-top-room: 2.75rem;
+        --gma-bottom-room: 0.25rem;
+        --gma-overlap: 1.4rem;
+        --gma-dock-height: 2.9rem;
+        --gma-thumb: 46px;
+        --gma-track: 2.2rem;
+        --gma-bubble-font: 1.6rem;
+        --gma-bubble-pad: 0.4rem 0.85rem;
+        --gma-bubble-room: 3.35rem;
     }
     #detailsModal .modal-content.guess-mode .gma-card {
-        margin-bottom: 0;
-        padding: 1rem 1rem 1.15rem;
+        --gma-ruler-room: 0.85rem;
+        --gma-slider-gap: 0.7rem;
     }
     #detailsModal .modal-content.guess-mode .gma-heading,
     #detailsModal .modal-content.guess-mode .chrono-age-heading {
-        margin-bottom: 1.25rem;
-    }
-    #detailsModal .modal-content.guess-mode .gma-slider-wrap {
-        --gma-you-anchor-y: 6.65rem;
-        margin: 0.25rem auto 0.75rem;
-        padding-top: 3.75rem;
-    }
-    #detailsModal .modal-content.guess-mode #gmaRange {
-        --gma-thumb-size: 52px;
-        height: 2.5rem;
-    }
-    #detailsModal .modal-content.guess-mode #gmaRange::-webkit-slider-thumb {
-        width: 52px;
-        height: 52px;
-    }
-    #detailsModal .modal-content.guess-mode #gmaRange::-moz-range-thumb {
-        width: 52px;
-        height: 52px;
-    }
-    #detailsModal .modal-content.guess-mode #gmaBubble,
-    #detailsModal .modal-content.guess-mode #gmaRealBubble {
-        font-size: 2rem;
-        padding: 0.55rem 1.1rem;
+        font-size: 1.6rem;
     }
 }
 
-@media (min-width: 769px) and (max-height: 760px) {
-    #detailsModal .modal-content.guess-mode {
-        box-sizing: border-box;
-        height: 96vh;
-        max-height: 96vh;
-        margin: 1vh auto;
-    }
-    #detailsModal .modal-content.guess-mode #athlete-profile {
-        --gma-portrait-gap: .8rem;
-        --gma-portrait-size: clamp(150px, min(34vw, 28vh), 230px);
-        padding-block: 2.25rem .5rem;
-    }
-    #detailsModal .modal-content.guess-mode .gma-card {
-        width: min(620px, calc(100% - 2rem));
-        padding: .95rem 1.25rem 1.15rem;
-    }
-    #detailsModal .modal-content.guess-mode .gma-heading,
-    #detailsModal .modal-content.guess-mode .chrono-age-heading {
-        font-size: 2rem;
-        margin-bottom: .9rem;
-    }
-    #detailsModal .modal-content.guess-mode .gma-slider-wrap {
-        --gma-you-anchor-y: 6.25rem;
-        width: 84%;
-        margin: .25rem auto .75rem;
-        padding-top: 3.5rem;
-    }
-    #detailsModal .modal-content.guess-mode #gmaRange {
-        --gma-thumb-size: 50px;
-        height: 2.35rem;
-    }
-    #detailsModal .modal-content.guess-mode #gmaRange::-webkit-slider-thumb {
-        width: 50px;
-        height: 50px;
-    }
-    #detailsModal .modal-content.guess-mode #gmaRange::-moz-range-thumb {
-        width: 50px;
-        height: 50px;
-    }
-    #detailsModal .modal-content.guess-mode #gmaBubble,
-    #detailsModal .modal-content.guess-mode #gmaRealBubble {
-        font-size: 1.9rem;
-        padding: .48rem .95rem;
-    }
-    #detailsModal .modal-content.guess-mode .gma-actions {
-        gap: .75rem;
-    }
-    #detailsModal .modal-content.guess-mode .gma-btn {
-        min-height: 44px;
-        padding: .75rem 1.45rem;
-    }
-}
-
+/* Landscape phones have no height to stack in, so the portrait stands to the card's left. */
 @media (min-width: 640px) and (max-width: 932px) and (max-height: 480px) and (orientation: landscape) {
     #detailsModal .modal-content.guess-mode {
         width: calc(100vw - .75rem);
@@ -1503,30 +1681,50 @@
     }
 
     #detailsModal .modal-content.guess-mode #athlete-profile {
-        --gma-portrait-gap: 0;
-        --gma-portrait-size: clamp(86px, 25vh, 116px);
-        flex-direction: row;
+        --gma-overlap: 0px;
+        --gma-bezel-gap: 7px;
+        --gma-dock-height: 2.75rem;
+        --gma-thumb: 44px;
+        --gma-track: 2rem;
+        --gma-bubble-font: 1.45rem;
+        --gma-bubble-pad: .35rem .75rem;
+        --gma-bubble-room: 3.1rem;
+        --gma-button-font: .9rem;
+        grid-template-columns: auto minmax(0, 540px);
+        grid-template-rows: minmax(0, 1fr);
         justify-content: center;
         align-items: center;
-        gap: clamp(.65rem, 2vw, 1rem);
+        column-gap: clamp(1rem, 3vw, 1.5rem);
         min-height: 100%;
         padding: 0 0.65rem 0 3.25rem;
     }
 
     #detailsModal .modal-content.guess-mode #athlete-profile .portrait-wrapper {
-        width: var(--gma-portrait-size);
+        grid-row: 1;
+        grid-column: 1;
+        align-self: center;
+        height: clamp(86px, 25vh, 116px);
         margin: 0;
     }
 
+    #detailsModal .modal-content.guess-mode #guessAgeContainer {
+        grid-row: 1;
+        grid-column: 2;
+        align-self: center;
+        margin-top: 0;
+    }
+
     #detailsModal .modal-content.guess-mode .gma-card {
-        width: min(100%, 540px);
+        --gma-ruler-room: .75rem;
+        --gma-slider-gap: .55rem;
+        width: 100%;
         padding: .7rem .9rem .8rem;
     }
 
     #detailsModal .modal-content.guess-mode .gma-heading,
     #detailsModal .modal-content.guess-mode .chrono-age-heading {
         font-size: clamp(1.35rem, 6vh, 1.75rem);
-        margin-bottom: .45rem;
+        margin-bottom: .2rem;
     }
 
     #detailsModal .modal-content.guess-mode .gma-heading {
@@ -1535,44 +1733,6 @@
         min-width: 100%;
         overflow: visible;
         white-space: normal;
-    }
-
-    #detailsModal .modal-content.guess-mode .gma-slider-wrap {
-        --gma-you-anchor-y: 5.4rem;
-        width: 82%;
-        margin: .35rem auto .55rem;
-        padding-top: 3rem;
-    }
-
-    #detailsModal .modal-content.guess-mode #gmaRange {
-        --gma-thumb-size: 44px;
-        height: 2rem;
-    }
-
-    #detailsModal .modal-content.guess-mode #gmaRange::-webkit-slider-thumb {
-        width: 44px;
-        height: 44px;
-    }
-
-    #detailsModal .modal-content.guess-mode #gmaRange::-moz-range-thumb {
-        width: 44px;
-        height: 44px;
-    }
-
-    #detailsModal .modal-content.guess-mode #gmaBubble,
-    #detailsModal .modal-content.guess-mode #gmaRealBubble {
-        font-size: 1.45rem;
-        padding: .35rem .75rem;
-    }
-
-    #detailsModal .modal-content.guess-mode .gma-actions {
-        gap: .5rem;
-    }
-
-    #detailsModal .modal-content.guess-mode .gma-btn {
-        min-height: 44px;
-        padding: .55rem .9rem;
-        font-size: .9rem;
     }
 }
 
@@ -1596,7 +1756,9 @@
     .gma-exact-target,
     #gmaRange,
     #gmaBubble,
-    #gmaRealBubble {
+    #gmaRealBubble,
+    #detailsModal .modal-content.guess-mode #athlete-profile .portrait-wrapper::before,
+    #detailsModal .modal-content.guess-mode #athlete-profile .portrait-wrapper::after {
         animation: none !important;
         transition: none !important;
     }
@@ -1629,9 +1791,6 @@
         bottom: 0;
     }
 }
-#detailsModal .gma-actions {
-    gap: var(--lwc-space-2);
-}
 
 #detailsModal #gmaBubble,
 #detailsModal #gmaRealBubble {
@@ -1641,11 +1800,4 @@
 #detailsModal #gmaStatus {
     font-size: var(--lwc-type-sm);
     line-height: 1.5;
-}
-
-@media (max-width: 420px) {
-    #detailsModal .gma-btn--ghost {
-        font-size: var(--lwc-type-sm);
-        line-height: 1.5;
-    }
 }

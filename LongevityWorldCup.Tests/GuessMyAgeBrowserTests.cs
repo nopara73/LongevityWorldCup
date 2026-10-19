@@ -764,7 +764,8 @@ public sealed class GuessMyAgeBrowserTests(
         Assert.InRange(phoneResultLayout[2], 0, 0.5);
         Assert.True(phoneResultLayout[3] <= phoneResultLayout[4] + 1);
         Assert.InRange(phoneResultLayout[5], -0.5, 0.5);
-        Assert.InRange(phoneResultLayout[6], 0, 80);
+        // The empty button slot stays reserved for the payoff banner, so the card never resizes.
+        Assert.InRange(phoneResultLayout[6], 0, 120);
 
         await page.SetViewportSizeAsync(1280, 720);
         await page.Clock.RunForAsync(50);
@@ -774,7 +775,8 @@ public sealed class GuessMyAgeBrowserTests(
         Assert.InRange(compactDesktopResultLayout[2], 0, 0.5);
         Assert.True(compactDesktopResultLayout[3] <= compactDesktopResultLayout[4] + 1);
         Assert.InRange(compactDesktopResultLayout[5], -0.5, 0.5);
-        Assert.InRange(compactDesktopResultLayout[6], 0, 80);
+        // The empty button slot stays reserved for the payoff banner, so the card never resizes.
+        Assert.InRange(compactDesktopResultLayout[6], 0, 120);
 
         await page.SetViewportSizeAsync(390, 844);
         await page.Clock.RunForAsync(50);

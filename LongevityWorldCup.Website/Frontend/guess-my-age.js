@@ -1087,9 +1087,12 @@ function scheduleGmaExit(athleteSlug, profileImageId, presentationGeneration, dw
             if (!canExit()) return;
 
             clearGmaEphemera();
+            const portrait = document.querySelector('#athlete-profile .portrait-wrapper');
+            const stageRect = portrait?.getBoundingClientRect();
             modalContent.classList.remove('guess-mode', 'gma-result-ready');
             modalContent.scrollTop = 0;
             modalContent.scrollLeft = 0;
+            glideGmaPortraitIntoProfile(portrait, stageRect);
             document.getElementById('closeAthleteDetailsModal')?.focus({ preventScroll: true });
         }, exitDelay);
     };
@@ -1099,6 +1102,29 @@ function scheduleGmaExit(athleteSlug, profileImageId, presentationGeneration, dw
     } else {
         beginExit();
     }
+}
+
+// The stage portrait is larger and lower than the profile portrait. Animate from the stage
+// geometry to the profile geometry so the game hands the athlete over instead of snapping.
+function glideGmaPortraitIntoProfile(portrait, stageRect) {
+    if (!portrait || !stageRect || stageRect.width <= 0
+        || prefersReducedGmaMotion()
+        || typeof portrait.animate !== 'function') return;
+
+    const profileRect = portrait.getBoundingClientRect();
+    if (profileRect.width <= 0) return;
+    const scale = stageRect.width / profileRect.width;
+    const deltaX = (stageRect.left + (stageRect.width / 2)) - (profileRect.left + (profileRect.width / 2));
+    const deltaY = (stageRect.top + (stageRect.height / 2)) - (profileRect.top + (profileRect.height / 2));
+    if (Math.abs(deltaX) < 1 && Math.abs(deltaY) < 1 && Math.abs(scale - 1) < 0.01) return;
+
+    portrait.animate([
+        { transform: `translate(${deltaX}px, ${deltaY}px) scale(${scale})` },
+        { transform: 'none' }
+    ], {
+        duration: modalContent.classList.contains('gma-fast') ? 320 : 460,
+        easing: 'cubic-bezier(.2, .8, .2, 1)'
+    });
 }
 
 function restoreGuessControls(message, focusTarget) {
