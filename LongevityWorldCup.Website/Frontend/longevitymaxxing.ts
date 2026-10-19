@@ -208,6 +208,7 @@
         photoUrls?: string[];
         needsPhotos?: boolean;
         submittedPhotoSignature?: string;
+        recoveringAdvicePhotos?: boolean;
         body: string;
         selectionStart: number;
         selectionEnd: number;
@@ -6017,6 +6018,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 ${discussionPostHeaderHtml(note, canReply)}
                 ${discussionOpeningPostHtml(note)}
                 ${imageHtml}
+                ${note.advice ? '<div class="lmx-advice-entry-slot"></div>' : ""}
                 ${discussionRepliesHtml(note)}
                 ${discussionQuickReplyHtml(note, canReply)}
                 <div class="lmx-discussion-reply-slot"></div>
@@ -6372,6 +6374,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             typeof value.body !== "string" || typeof value.replyId !== "string" || !value.replyId ||
             !(value.submittedBody === null || typeof value.submittedBody === "string")) return null;
         const isAdvice = hasProperties(value, "isAdvice") && value.isAdvice === true;
+        const hadPhotos = hasProperties(value, "hadPhotos") && value.hadPhotos === true;
+        const recoveringAdvicePhotos = isAdvice && value.submittedBody !== null && hadPhotos;
         const adviceRootId = hasStringProperty(value, "adviceRootId") ? value.adviceRootId : null;
         const key = JSON.stringify(value.editReplyId ? [participantId, "edit", value.editReplyId]
             : [participantId, "reply", value.postParticipantId, String(value.challengeDay), value.systemPostId || "",
@@ -6391,8 +6395,10 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             replyToId: hasStringProperty(value, "replyToId") ? value.replyToId : null,
             replyTo,
             isAdvice, adviceRootId,
-            needsPhotos: hasProperties(value, "hadPhotos") && value.hadPhotos === true,
-            submittedPhotoSignature: hasStringProperty(value, "submittedPhotoSignature") ? value.submittedPhotoSignature : "",
+            needsPhotos: hadPhotos && (!isAdvice || recoveringAdvicePhotos),
+            recoveringAdvicePhotos,
+            submittedPhotoSignature: isAdvice && value.submittedBody === null ? ""
+                : hasStringProperty(value, "submittedPhotoSignature") ? value.submittedPhotoSignature : "",
             error: value.submittedBody !== null ? "Your last save wasn’t confirmed in this tab. Retry to check it safely." : null
         };
     }
@@ -6633,6 +6639,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         }));
         const signature = hashes.join(":");
         if (draft.submittedPhotoSignature !== undefined && draft.submittedPhotoSignature !== signature) {
+            if (draft.recoveringAdvicePhotos)
+                throw Object.assign(new Error("Reattach the same photos in the same order to check your last save."), { status: 400 });
             draft.replyId = createDiscussionReplyId();
             payload.replyId = draft.replyId;
         }
@@ -6843,6 +6851,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             .find(candidate => candidate.dataset.adviceRootId === draft.adviceRootId) : null;
         return item?.querySelector<HTMLElement>("[data-discussion-reply-editor-slot]") ||
             branch?.querySelector<HTMLElement>(".lmx-advice-compose-slot") ||
+            (draft.isAdvice ? article?.querySelector<HTMLElement>(".lmx-advice-entry-slot") : null) ||
             article?.querySelector<HTMLElement>(".lmx-discussion-reply-slot") || null;
     }
 
@@ -6853,6 +6862,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
 
     function mountDiscussionDraft(button: HTMLButtonElement, draft: DiscussionDraft): void {
         const editing = !!draft.editReplyId;
+        const simpleAdvice = !!draft.isAdvice && !editing && !draft.recoveringAdvicePhotos;
         const surface = discussionDraftSurface(button);
         const slot = discussionDraftSlot(button.closest<HTMLElement>("article[data-discussion-post-participant-id]"), draft);
         if (!slot || slot.querySelector("[data-discussion-draft]")) return;
@@ -6860,27 +6870,28 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         if (editing) slot.closest("[data-discussion-reply-id]")?.querySelector<HTMLElement>("[data-discussion-reply-body]")?.setAttribute("hidden", "");
         const inputId = `lmx-discussion-draft-${draft.replyId}`;
         slot.hidden = false;
-        slot.innerHTML = `<div class="lmx-discussion-reply-composer${editing ? " lmx-discussion-reply-editor" : ""}"
+        slot.innerHTML = `<div class="lmx-discussion-reply-composer${editing ? " lmx-discussion-reply-editor" : simpleAdvice ? " lmx-advice-composer" : ""}"
                 ${editing ? "data-discussion-reply-editor" : "data-discussion-reply-composer"} data-discussion-draft="${escAttr(draft.key)}">
-            <div class="lmx-discussion-composer-heading">
+            ${simpleAdvice ? "" : `<div class="lmx-discussion-composer-heading">
                 <label for="${inputId}">${editing ? "Edit reply" : draft.isAdvice ? "Your advice" : `Reply to ${esc(draft.displayName)}`}</label>
                 <button class="lmx-discussion-composer-close" type="button" data-reply-action="close"
                     aria-label="Close ${editing ? "reply edit" : "reply draft"}" title="Close and keep draft">
                     <i class="fas fa-xmark" aria-hidden="true"></i>
                 </button>
-            </div>
-            <div class="lmx-discussion-context" data-discussion-compose-context hidden></div>
+            </div>`}
+            ${simpleAdvice ? "" : '<div class="lmx-discussion-context" data-discussion-compose-context hidden></div>'}
             <div class="lmx-mention-field">
-                <textarea id="${inputId}" data-character-limit="${discussionCharacterLimit(draft.originalBody)}" rows="3" placeholder="Write a reply or mention @Name"
+                <textarea id="${inputId}" data-character-limit="${discussionCharacterLimit(draft.originalBody)}" rows="3" ${simpleAdvice ? 'aria-label="Your advice"' : 'placeholder="Write a reply or mention @Name"'}
                     data-mention-input role="combobox" aria-autocomplete="list" aria-haspopup="listbox"
                     aria-expanded="false" aria-controls="${inputId}-mentions" aria-describedby="${inputId}-count"></textarea>
                 <div id="${inputId}-mentions" class="lmx-mention-options" role="listbox" aria-label="Mention a participant" hidden></div>
+                ${simpleAdvice ? `<span class="lmx-discussion-composer-meta" id="${inputId}-count" data-reply-count></span>` : ""}
             </div>
-            ${editing ? "" : '<div class="lmx-note-photo-grid pending" data-reply-photo-previews></div><div class="lmx-photo-feedback" data-reply-photo-feedback role="status" aria-live="polite"></div>'}
+            ${editing || simpleAdvice ? "" : '<div class="lmx-note-photo-grid pending" data-reply-photo-previews></div><div class="lmx-photo-feedback" data-reply-photo-feedback role="status" aria-live="polite"></div>'}
             <div class="lmx-status" role="status" aria-live="polite"></div>
-            <button class="lmx-discussion-replies-toggle" type="button" data-advice-retarget hidden>Move draft to the active conversation</button>
+            ${simpleAdvice ? "" : '<button class="lmx-discussion-replies-toggle" type="button" data-advice-retarget hidden>Move draft to the active conversation</button>'}
             <div class="lmx-discussion-reply-actions">
-                <span class="lmx-discussion-compose-tools">
+                ${simpleAdvice ? "" : `<span class="lmx-discussion-compose-tools">
                     ${editing ? "" : `<button class="lmx-discussion-quiet-action lmx-discussion-add-photo" type="button" data-reply-photo-button
                         title="Add photos (or paste or drop an image)" aria-label="Add photos"><i class="fas fa-image" aria-hidden="true"></i></button>
                         <input type="file" accept="image/*,.heic,.heif" multiple hidden data-reply-photos>`}
@@ -6890,11 +6901,11 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 <button class="lmx-discussion-quiet-action lmx-discussion-discard" type="button" data-reply-action="discard"
                     aria-label="Discard ${editing ? "reply edit" : "reply draft"}"
                     title="Discard ${editing ? "reply edit" : "reply draft"}"
-                    ${editing ? "data-reply-edit-cancel" : "data-reply-cancel"}><i class="fas fa-trash-can" aria-hidden="true"></i><span>Discard</span></button>
+                    ${editing ? "data-reply-edit-cancel" : "data-reply-cancel"}><i class="fas fa-trash-can" aria-hidden="true"></i><span>Discard</span></button>`}
                 <button class="lmx-button" type="button" data-reply-action="submit"
                     title="${/Mac|iPhone|iPad/.test(navigator.platform) ? "⌘" : "Ctrl"}+Enter to ${editing ? "save" : "post"}"
                     aria-keyshortcuts="Control+Enter Meta+Enter"
-                    ${editing ? "data-reply-edit-submit" : "data-reply-submit"} disabled>${editing ? "Save reply" : "Post reply"}</button>
+                    ${editing ? "data-reply-edit-submit" : "data-reply-submit"} disabled>${editing ? "Save reply" : simpleAdvice ? "Post advice" : "Post reply"}</button>
             </div>
         </div>`;
         const composer = slot.querySelector<HTMLElement>("[data-discussion-draft]")!;
@@ -6924,7 +6935,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             discussionDrafts.set(key, draft);
             openDiscussionDraft(target, null);
         });
-        if (!editing) wireDiscussionDraftPhotos(composer, draft);
+        if (!editing && !simpleAdvice) wireDiscussionDraftPhotos(composer, draft);
         textarea.value = draft.body;
         textarea.setSelectionRange(draft.selectionStart, draft.selectionEnd);
         const rememberSelection = () => {
@@ -6946,7 +6957,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             if (event.key === "Escape" && !event.isComposing && !event.defaultPrevented) {
                 event.preventDefault();
                 event.stopPropagation();
-                composer.querySelector<HTMLButtonElement>("[data-reply-action='close']")?.click();
+                if (simpleAdvice) { closeDiscussionDraft(); returnFocus(); }
+                else composer.querySelector<HTMLButtonElement>("[data-reply-action='close']")?.click();
             }
         });
         textarea.addEventListener("keydown", event => {
@@ -7026,20 +7038,21 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             const dirty = !!draft && discussionDraftHasChanges(draft);
             const pending = discussionMutation === key;
             const editing = button.hasAttribute("data-discussion-reply-edit");
+            const givingAdvice = !editing && button.dataset.isAdvice === "true";
             const container = (editing ? button.closest("[data-discussion-reply-id]") : null) || button.closest("article[data-discussion-post-participant-id]");
             const open = activeDiscussionDraft?.key === key && activeDiscussionDraft.surface === discussionDraftSurface(button) &&
                 !!container?.querySelector("[data-discussion-draft]");
             const label = pending ? (editing ? "Saving…" : "Posting…")
                 : open ? (editing ? "Editing" : "Writing")
-                : draft?.error ? (editing ? "Retry edit" : "Retry reply")
-                : dirty ? (editing ? "Resume edit" : "Resume reply") : editing ? "Edit" : button.dataset.isAdvice === "true" ? "Give advice" : "Reply";
+                : draft?.error ? (editing ? "Retry edit" : givingAdvice ? "Retry advice" : "Retry reply")
+                : dirty ? (editing ? "Resume edit" : givingAdvice ? "Resume advice" : "Resume reply") : editing ? "Edit" : givingAdvice ? "Give advice" : "Reply";
             if (editing) {
                 button.textContent = label;
                 button.disabled = discussionMutation === `delete:${button.closest<HTMLElement>("[data-discussion-reply-id]")?.dataset.discussionReplyId}`;
             }
             else if (button.querySelector("span")) button.querySelector("span")!.textContent = label;
             button.classList.toggle("has-draft", dirty || pending);
-            button.setAttribute("aria-label", open ? (editing ? "Close reply edit" : `Close reply to ${button.dataset.postDisplayName || "participant"}`)
+            button.setAttribute("aria-label", open ? (editing ? "Close reply edit" : `Close ${givingAdvice ? "advice" : "reply"} to ${button.dataset.postDisplayName || "participant"}`)
                 : editing ? `${dirty ? "Resume" : "Edit"} reply${dirty ? " edit" : ""}`
                 : `${label} to ${button.dataset.postDisplayName || "participant"}`);
             button.setAttribute("aria-expanded", String(open));
@@ -7090,8 +7103,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             count.classList.toggle("over-limit", over > 0);
             textarea.setAttribute("aria-invalid", String(over > 0));
             count.classList.toggle("at-limit", draft.body.length >= characterLimit);
-            const hint = composer.querySelector<HTMLElement>("[data-draft-hint]")!;
-            hint.textContent = pending ? (draft.editReplyId ? "Saving your edit…" : "Posting your reply…")
+            const hint = composer.querySelector<HTMLElement>("[data-draft-hint]");
+            if (hint) hint.textContent = pending ? (draft.editReplyId ? "Saving your edit…" : "Posting your reply…")
                 : draft.photos?.length ? "Photos kept while this page is open" : discussionDraftStorageFailed ? "" : "Draft saved in this tab";
             const submit = composer.querySelector<HTMLButtonElement>("[data-reply-action='submit']")!;
             submit.disabled = !!discussionMutation || !discussionDraftCanSubmit(draft);
@@ -7099,8 +7112,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 : draft.errorKind === "auth" ? "Sign in" : draft.error ? "Retry" : draft.editReplyId ? "Save reply" : draft.isAdvice ? "Post advice" : "Post reply";
             if (pending) submit.setAttribute("aria-busy", "true");
             else submit.removeAttribute("aria-busy");
-            const discard = composer.querySelector<HTMLButtonElement>("[data-reply-action='discard']")!;
-            discard.disabled = pending || !discussionDraftHasChanges(draft);
+            const discard = composer.querySelector<HTMLButtonElement>("[data-reply-action='discard']");
+            if (discard) discard.disabled = pending || !discussionDraftHasChanges(draft);
             composer.querySelectorAll<HTMLButtonElement | HTMLInputElement>("[data-reply-photo-button], [data-reply-photos]").forEach(control => {
                 control.disabled = pending || (draft.photos?.length || 0) >= MAX_NOTE_PHOTOS;
             });
@@ -7250,6 +7263,12 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const body = draft.body.trim();
         if (!discussionDraftCanSubmit(draft)) return;
         if (draft.errorKind === "auth") { beginDiscussionSignInRecovery(draft); return; }
+        if (draft.recoveringAdvicePhotos && (draft.submittedBody !== body ||
+            (draft.submittedReplyToId || null) !== (draft.replyToId || null))) {
+            draft.error = "Keep the original text and photos to check your last save, or discard this draft.";
+            updateDiscussionDraftControls();
+            return;
+        }
         if (draft.submittedBody !== null && (draft.submittedBody !== body ||
             (draft.submittedReplyToId || null) !== (draft.replyToId || null))) draft.replyId = createDiscussionReplyId();
         draft.submittedBody = body;

@@ -6284,6 +6284,11 @@ html body .lmx-page #lmxAccessTabs .lmx-tab[aria-selected="true"] {
 .lmx-advice-context { margin-bottom: 1rem; color: var(--lmx-muted); font-size: .9rem; }
 .lmx-advice-context summary, .lmx-advice-archive summary { cursor: pointer; min-height: 44px; align-content: center; }
 .lmx-page .lmx-advice-replies { margin: 0; padding: 0; border: 0; }
+.lmx-advice-entry-slot:not(:empty) { margin-block: .75rem; }
+.lmx-advice-composer .lmx-mention-field { position: relative; }
+.lmx-advice-composer textarea { padding-bottom: 1.75rem; }
+.lmx-advice-composer [data-reply-count] { position: absolute; bottom: .5rem; right: 1.15rem; color: var(--lmx-muted); font-size: .75rem; line-height: 1; font-variant-numeric: tabular-nums; pointer-events: none; }
+.lmx-advice-composer [data-reply-count].over-limit { color: var(--lmx-danger); }
 .lmx-advice-branch { min-width: 0; }
 .lmx-advice-branch + .lmx-advice-branch { border-top: 1px solid var(--lmx-border); margin-top: 1rem; padding-top: 1rem; }
 .lmx-advice-rank { color: var(--lmx-muted); font-size: .8rem; font-variant-numeric: tabular-nums; }

@@ -13,6 +13,59 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
     private const string FirstAdviceId = "00000000000000000000000000000007";
 
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task AdviceComposer_RestoresLegacyPhotoDraftsWithoutBlockingOrDuplicatingAdvice(bool submitted)
+    {
+        await using var context = await NewContextAsync(Browser, App, new());
+        var state = AdviceBrowserState(1, advisor: true);
+        const string body = "Keep one small daily anchor.";
+        const string id = "11111111111111111111111111111111";
+        var active = JsonSerializer.Serialize(new[] { "p2", "reply", "p1", "22", "", "advice", "" });
+        var stored = JsonSerializer.Serialize(new { version = 1, active, drafts = new[] { new {
+            participantId = "p2", postParticipantId = "p1", challengeDay = 22, systemPostId = (string?)null,
+            displayName = "Alex", editReplyId = (string?)null, originalBody = "", body, selectionStart = 5, selectionEnd = 9,
+            replyId = id, submittedBody = submitted ? body : null, submittedReplyToId = (string?)null,
+            isAdvice = true, hadPhotos = true, submittedPhotoSignature = "old-photo"
+        } } });
+        await context.AddInitScriptAsync($"sessionStorage.setItem('lmx-discussion-drafts:p2', {JsonSerializer.Serialize(stored)})");
+        var calls = 0;
+        await context.RouteAsync("**/api/longevitymaxxing/discussion/replies", async route => {
+            calls++;
+            var payload = JsonNode.Parse(route.Request.PostData!)!;
+            Assert.Equal(id, (string?)payload["replyId"]);
+            await FulfillJsonAsync(route, state.ToJsonString());
+        });
+        var page = await OpenDiscussionWorkspaceAsync(context, state);
+        var post = page.Locator("#lmxNotes > .lmx-advice-post");
+        await Assertions.Expect(post.Locator("textarea")).ToHaveValueAsync(body);
+        if (submitted)
+        {
+            await Assertions.Expect(post.Locator("[data-reply-submit]")).ToBeDisabledAsync();
+            await post.Locator("[data-reply-photos]").SetInputFilesAsync(ProfilePhotoFile("original.png"));
+            await Assertions.Expect(post.Locator("[data-reply-submit]")).ToBeEnabledAsync();
+            await post.Locator("textarea").FillAsync("Changed text must not create another advice.");
+            await post.Locator("[data-reply-submit]").ClickAsync();
+            await Assertions.Expect(post.Locator(".lmx-status")).ToContainTextAsync("Keep the original text");
+            await post.Locator("textarea").FillAsync(body);
+            await post.Locator("[data-reply-submit]").ClickAsync();
+            await Assertions.Expect(post.Locator(".lmx-status")).ToContainTextAsync("Reattach the same photos");
+            Assert.Equal(0, calls);
+            var draft = JsonNode.Parse((await page.EvaluateAsync<string>("sessionStorage.getItem('lmx-discussion-drafts:p2')")))!["drafts"]![0]!;
+            Assert.Equal(id, (string?)draft["replyId"]);
+            Assert.Equal("old-photo", (string?)draft["submittedPhotoSignature"]);
+        }
+        else
+        {
+            await Assertions.Expect(post.Locator("[data-reply-photo-button]")).ToHaveCountAsync(0);
+            await Assertions.Expect(post.Locator("[data-reply-submit]")).ToBeEnabledAsync();
+            await post.Locator("[data-reply-submit]").ClickAsync();
+            await Assertions.Expect(post.Locator("textarea")).ToHaveCountAsync(0);
+            Assert.Equal(1, calls);
+        }
+    }
+
+    [Theory]
     [InlineData(320, ColorScheme.Light)]
     [InlineData(1280, ColorScheme.Light)]
     [InlineData(390, ColorScheme.Light)]
@@ -298,6 +351,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
     }
 
     [Theory]
+    [InlineData(320, ColorScheme.Light)]
     [InlineData(1280, ColorScheme.Light)]
     [InlineData(390, ColorScheme.Light)]
     [InlineData(390, ColorScheme.Dark)]
@@ -326,7 +380,11 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await Assertions.Expect(post.GetByRole(AriaRole.Button, new() { Name = "Join conversation", Exact = true })).ToHaveCountAsync(0);
         await CaptureAdviceAsync(page, $"first-advice-{width}-{theme}.png", post);
         await post.Locator(".lmx-discussion-post-actions [data-discussion-reply]").ClickAsync();
+        await CaptureAdviceAsync(page, $"advice-composer-empty-{width}-{theme}.png", post);
         await post.Locator("[data-discussion-draft] textarea").FillAsync("Keep one anchor even on travel days. Choose a ten-minute walk after lunch, then rebuild from there.");
+        await post.EvaluateAsync("element => window.scrollBy({top: element.getBoundingClientRect().top - 80, behavior: 'instant'})");
+        await CaptureAdviceAsync(page, $"advice-composer-page-{width}-{theme}.png");
+        await CaptureAdviceAsync(page, $"advice-composer-{width}-{theme}.png", post);
         await post.Locator("[data-reply-submit]").ClickAsync();
         await Assertions.Expect(post.Locator(".is-active .lmx-advice-rank")).ToHaveTextAsync("#3");
         var replyAction = post.Locator(".is-active > .lmx-discussion-reply-item [data-discussion-reply]");
