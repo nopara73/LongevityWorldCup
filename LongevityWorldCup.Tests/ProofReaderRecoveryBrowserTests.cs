@@ -300,7 +300,16 @@ public sealed class ProofReaderRecoveryBrowserTests(
         if (portrait)
         {
             var photo = page.Locator("#modalProfilePic");
-            await photo.EvaluateAsync("(image, url) => image.dataset.fullSrc = url", FirstProof);
+            // Exercise recovery when neither the portrait nor its full image
+            // is available. A loaded portrait now remains usable on failure.
+            await photo.EvaluateAsync("""
+                async (image, url) => {
+                    image.onerror = null;
+                    image.dataset.fullSrc = url;
+                    image.src = url;
+                    await image.decode().catch(() => {});
+                }
+                """, FirstProof);
             await photo.ClickAsync();
         }
         else await page.Locator("#proofsGallery img").First.ClickAsync();

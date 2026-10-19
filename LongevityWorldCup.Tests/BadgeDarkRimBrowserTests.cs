@@ -36,7 +36,9 @@ public sealed class BadgeDarkRimBrowserTests(
             surface => {
                 const container = document.querySelector(surface);
                 const table = container.matches('table') ? container : container.querySelector('table');
-                const row = (table.tBodies[0] || table.createTBody()).insertRow();
+                // The page hydrates its first tbody asynchronously. Keep the fixture
+                // in the same table cascade without letting hydration remove it.
+                const row = table.createTBody().insertRow();
                 const host = document.createElement('div');
                 host.id = 'rim-test-badges';
                 host.className = 'badge-section';
@@ -49,7 +51,6 @@ public sealed class BadgeDarkRimBrowserTests(
             }
             """, surface);
         var badges = page.Locator("#rim-test-badges .badge-class");
-        await Assertions.Expect(badges).ToHaveCountAsync(3);
         var light = await MeasureAsync(badges);
         Assert.All(light.Where(b => !b.Domain), b => Assert.Equal("rgba(0, 0, 0, 0.48)", b.Rim));
         Assert.Equal("0px", Assert.Single(light, b => b.Domain).BorderWidth);
@@ -66,8 +67,10 @@ public sealed class BadgeDarkRimBrowserTests(
         Assert.Equal(light.Select(b => b.Appearance), restored.Select(b => b.Appearance));
     }
 
-    private static Task<BadgeAppearance[]> MeasureAsync(ILocator badges)
-        => badges.EvaluateAllAsync<BadgeAppearance[]>("""
+    private static async Task<BadgeAppearance[]> MeasureAsync(ILocator badges)
+    {
+        await Assertions.Expect(badges).ToHaveCountAsync(3);
+        return await badges.EvaluateAllAsync<BadgeAppearance[]>("""
             badges => badges.map(badge => {
                 const style = getComputedStyle(badge);
                 const icon = badge.querySelector('i');
@@ -85,6 +88,7 @@ public sealed class BadgeDarkRimBrowserTests(
                 };
             })
             """);
+    }
 
     private sealed class BadgeAppearance
     {
