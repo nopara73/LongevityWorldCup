@@ -681,6 +681,11 @@
                         displayColors: false,
                         padding: function (context: { readonly chart: { readonly height: number } }) { return context.chart.height < 180 ? 6 : 10; },
                         cornerRadius: 6,
+                        // Moving or resizing between contributors can carry stale bounds outside a narrow canvas.
+                        animations: {
+                            numbers: { duration: 0 },
+                            opacity: { duration: function () { return getRadarAnimationDuration() ? 200 : 0; } }
+                        },
                         titleFont: function (context: { readonly chart: { readonly width: number } }) { return { ...tooltipFont(context), weight: '600' }; },
                         bodyFont: tooltipFont,
                         bodySpacing: function (context: { readonly chart: { readonly width: number } }) { return context.chart.width < 260 ? 1 : 2; },

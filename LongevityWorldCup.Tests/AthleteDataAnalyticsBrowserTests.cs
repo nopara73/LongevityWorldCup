@@ -323,12 +323,15 @@ public sealed class AthleteDataAnalyticsBrowserTests(
     }
 
     [Theory]
-    [InlineData(195)]
-    [InlineData(320)]
-    [InlineData(1440)]
-    public async Task Radar_UsesClockColoursForActivePointsAndKeepsLabelsAndTooltipsInCanvas(int width)
+    [InlineData(195, true)]
+    [InlineData(195, false)]
+    [InlineData(320, true)]
+    [InlineData(320, false)]
+    [InlineData(1440, true)]
+    [InlineData(1440, false)]
+    public async Task Radar_UsesClockColoursForActivePointsAndKeepsLabelsAndTooltipsInCanvas(int width, bool reducedMotion)
     {
-        await using var context = await NewContextAsync(width, true);
+        await using var context = await NewContextAsync(width, true, reducedMotion);
         var page = await OpenAsync(context);
         await page.WaitForFunctionAsync("() => window.Chart?.getChart(document.getElementById('ageRadarChart'))?.scales?.r?.drawingArea > 0");
         foreach (var clock in new[] { "Pheno", "Bortz", "Pheno" })
@@ -351,7 +354,8 @@ public sealed class AthleteDataAnalyticsBrowserTests(
                         chart.tooltip.setActiveElements([{ datasetIndex: 0, index }], { x: point.x, y: point.y });
                         chart.update('none');
                         const t = chart.tooltip;
-                        if (t.x < -.5 || t.y < -.5 || t.x + t.width > chart.width + .5 || t.y + t.height > chart.height + .5) failures.push('tooltip is cropped by canvas');
+                        if (![t.x, t.y, t.width, t.height].every(Number.isFinite) || t.x < -.5 || t.y < -.5 || t.x + t.width > chart.width + .5 || t.y + t.height > chart.height + .5)
+                            failures.push(`${chart.canvas.dataset.clock} ${index}: tooltip [${t.x}, ${t.y}, ${t.width}, ${t.height}] is cropped by ${chart.width} × ${chart.height} canvas`);
                     });
                     for (const bounds of chart.scales.r._pointLabelItems)
                         if (bounds.left < -.5 || bounds.top < -.5 || bounds.right > chart.width + .5 || bounds.bottom > chart.height + .5) failures.push('percentile label is cropped by canvas');
@@ -453,13 +457,13 @@ public sealed class AthleteDataAnalyticsBrowserTests(
         Assert.Empty(viewerFailures);
     }
 
-    private async Task<IBrowserContext> NewContextAsync(int width, bool dark)
+    private async Task<IBrowserContext> NewContextAsync(int width, bool dark, bool reducedMotion = true)
     {
         var context = await Browser.NewContextAsync(new()
         {
             BaseURL = App.BaseAddress.ToString(), ViewportSize = new() { Width = width, Height = 900 },
             ColorScheme = dark ? ColorScheme.Dark : ColorScheme.Light, Locale = "en-GB", TimezoneId = "UTC",
-            ReducedMotion = ReducedMotion.Reduce, HasTouch = width < 600, IsMobile = width < 600
+            ReducedMotion = reducedMotion ? ReducedMotion.Reduce : ReducedMotion.NoPreference, HasTouch = width < 600, IsMobile = width < 600
         });
         await BrowserTestApp.RouteExternalResourcesAsync(context);
         // Expose the real private renderer functions only in this intercepted
