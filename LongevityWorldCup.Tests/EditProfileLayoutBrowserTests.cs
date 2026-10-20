@@ -654,6 +654,35 @@ public sealed class EditProfileLayoutBrowserTests(
         }
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ReturningToLongMotivation_InShortLandscape_KeepsTheWholeFieldVisible(bool mobile)
+    {
+        await using var context = await CreateContextAsync(844, 390, dark: true, touch: true, mobile: mobile);
+        var page = await OpenEditorAsync(context);
+        await page.EvaluateAsync("() => document.documentElement.style.fontSize = '200%'");
+        await SettleTextLayoutAsync(page);
+        await page.Locator("#whyDisplayInput").FillAsync(
+            "I want to see what is possible in feeling the most energetic and excited about life. " +
+            "Following the status quo and the herd is not an option. I measure, I adjust, I compete, " +
+            "and I share what I learn so others can take back their biological age too.");
+        await page.Locator(".edit-profile-actions .back-button").FocusAsync();
+        await page.Keyboard.PressAsync("Tab");
+        foreach (var id in new[] { "divisionDisplaySelect", "flagDisplayInput", "personalLinkInput", "mediaContactInput", "whyDisplayInput" })
+        {
+            await page.Locator("#" + id).FocusAsync();
+            await SettleTextLayoutAsync(page);
+        }
+        Assert.True(await page.Locator("#whyDisplayInput").EvaluateAsync<bool>("""
+            field => {
+                const r = field.getBoundingClientRect();
+                const dock = document.querySelector('.flow-action-stack--docked')?.getBoundingClientRect();
+                return document.activeElement === field && r.top >= 0 && r.bottom <= (dock?.top ?? innerHeight) - 8;
+            }
+            """), "Returning focus must show the full motivation when it fits above the dock.");
+    }
+
     [Fact]
     public async Task GridClearance_DoesNotScrollTheEditedFieldAboveTheViewport_ForATallFollowingMotivation()
     {
@@ -678,13 +707,13 @@ public sealed class EditProfileLayoutBrowserTests(
     }
 
     private async Task<IBrowserContext> CreateContextAsync(int width, int height, bool dark = false, string name = "Alex Morgan",
-        string picture = "/assets/content-images/play-athlete-placeholder.jpg", bool? touch = null)
+        string picture = "/assets/content-images/play-athlete-placeholder.jpg", bool? touch = null, bool? mobile = null)
     {
         var context = await NewContextAsync(Browser, App, new()
         {
             ViewportSize = new() { Width = width, Height = height },
             HasTouch = touch ?? (width < 960 || height < 480),
-            IsMobile = width < 600 || height < 480,
+            IsMobile = mobile ?? (width < 600 || height < 480),
             ColorScheme = dark ? ColorScheme.Dark : ColorScheme.Light,
             ReducedMotion = ReducedMotion.Reduce
         });

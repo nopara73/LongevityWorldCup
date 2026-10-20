@@ -1836,6 +1836,14 @@
                     followingVisibleSiblingCount,
                     margin: 16
                 });
+                // Native focus can reveal the caret while leaving the top of
+                // a long textarea above the screen. Reveal the whole control
+                // when it fits, without taking space away from its text.
+                const controlBounds = control.getBoundingClientRect();
+                const topLimit = (viewport?.offsetTop || 0) + 16;
+                if (controlBounds.height <= availableHeight && controlBounds.top < topLimit) {
+                    window.scrollBy({ top: Math.floor(controlBounds.top - topLimit), behavior: 'instant' });
+                }
             });
         }
 
