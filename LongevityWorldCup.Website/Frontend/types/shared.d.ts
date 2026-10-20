@@ -275,6 +275,8 @@ interface RadarData {
 }
 
 interface RadarChartInstance {
+    readonly width: number;
+    readonly height: number;
     data: {
         labels: string[];
         datasets: Array<{ data: number[] }>;

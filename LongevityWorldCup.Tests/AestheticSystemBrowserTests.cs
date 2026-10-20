@@ -1774,17 +1774,18 @@ public sealed class AestheticSystemBrowserTests(
         foreach (var condition in conditions)
         {
             Assert.Equal("em", condition.Unit);
-            Assert.Contains(condition.Name, new[] { "league-filters", "podium", "athlete-stats", "leaderboard" });
+            Assert.Contains(condition.Name, new[] { "league-filters", "podium", "athlete-stats", "athlete-proofs", "athlete-results", "leaderboard" });
             var desktop = condition.Name == "league-filters" || condition.Name == "podium" && condition.Value == 32;
             await page.SetViewportSizeAsync(desktop ? 1440 : 390, desktop ? 1000 : 844);
             await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.Reduce });
             var route = condition.Name == "podium" ? "/"
-                : condition.Name == "athlete-stats" ? "/athlete/michael-lustgarten"
+                : condition.Name is "athlete-stats" or "athlete-proofs" or "athlete-results" ? "/athlete/michael-lustgarten"
                 : "/leaderboard?filters=open,baby%20boomers";
             await NavigateAndSettleAsync(page, route);
             if (condition.Name is "league-filters" or "leaderboard")
                 await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
             if (condition.Name == "podium") await page.Locator(".podium-item.first").WaitForAsync();
+            if (condition.Name == "athlete-results") await page.Locator(".biomarker-overview-table .result-summary").First.WaitForAsync();
             // Clone the rendered component in its existing scope. Hydration and
             // scrolling keep ownership of the original while this probe resizes.
             var fontSize = await page.EvaluateAsync<double>("""
@@ -1792,6 +1793,7 @@ public sealed class AestheticSystemBrowserTests(
                     const source = [...document.querySelectorAll('body *')].find(e => getComputedStyle(e).containerName.split(' ').includes(name));
                     if (!source) throw new Error('Missing query container: ' + name);
                     const probe = source.cloneNode(true);
+                    if (name === 'athlete-proofs') probe.querySelector('.proofs-gallery').dataset.proofCount = '2';
                     probe.dataset.responsiveEmProbe = 'true';
                     probe.style.cssText += ';box-sizing:content-box;max-inline-size:none;min-inline-size:0;font-size:20px;flex:none;overflow:visible;scrollbar-gutter:auto;';
                     source.parentElement.append(probe);
@@ -1815,6 +1817,8 @@ public sealed class AestheticSystemBrowserTests(
                         let applied;
                         if (arg.Name === 'league-filters') applied = getComputedStyle(probe.querySelector('.filter-label-copy')).display === 'block';
                         else if (arg.Name === 'athlete-stats') applied = getComputedStyle(probe.querySelector('.athlete-info-table tr')).gridTemplateColumns.split(' ').length === 1;
+                        else if (arg.Name === 'athlete-proofs') applied = getComputedStyle(probe.querySelector('.proofs-gallery')).gridTemplateColumns.split(' ').length === 1;
+                        else if (arg.Name === 'athlete-results') applied = getComputedStyle(probe.querySelector('.result-summary')).display === 'grid';
                         else if (arg.Name === 'leaderboard') {
                             const row = probe.querySelector('tbody tr:not(.no-results):not(.tier-separator)');
                             applied = row.querySelector('.athlete-identity').getBoundingClientRect().top >= row.querySelector('.portrait-wrapper').getBoundingClientRect().bottom - 1;
