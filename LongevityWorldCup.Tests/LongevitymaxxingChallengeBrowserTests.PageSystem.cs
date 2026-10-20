@@ -173,7 +173,6 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await Assertions.Expect(page.Locator(".lmx-page")).ToHaveAttributeAsync("aria-busy", "false");
         await Assertions.Expect(page.Locator(".lmx-question-preview-item")).ToHaveCountAsync(4);
 
-        await page.WaitForFunctionAsync("() => [...document.querySelectorAll('link[rel=stylesheet]')].every(link => link.sheet !== null)");
         var hero = await page.EvaluateAsync<JsonElement>(
             """
             () => {
@@ -186,13 +185,6 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
                 const strip = document.getElementById('lmxLifeStrip');
                 const items = [...list.querySelectorAll('.lmx-question-preview-item')];
                 const headingStyle = e => [style(e).textAlign, style(e).fontSize, style(e).textTransform, style(e).letterSpacing].join('|');
-                // Outline tags use the semantic surface. The title panel is
-                // intentionally transparent under the shared page skin.
-                const surfaceProbe = document.createElement('div');
-                surfaceProbe.style.backgroundColor = 'var(--lmx-surface)';
-                strip.append(surfaceProbe);
-                const surface = style(surfaceProbe).backgroundColor;
-                surfaceProbe.remove();
                 return {
                     habitHeading: headingStyle(habit),
                     dailyHeading: headingStyle(daily),
@@ -203,7 +195,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
                     itemLefts: items.map(i => rect(i).left - rect(list).left),
                     listBorder: style(list).borderTopWidth,
                     tagBackgrounds: [...strip.querySelectorAll('span')].map(s => style(s).backgroundColor),
-                    surface,
+                    surface: style(document.querySelector('.lmx-title-panel')).backgroundColor,
                     overflow: document.documentElement.scrollWidth - innerWidth
                 };
             }
