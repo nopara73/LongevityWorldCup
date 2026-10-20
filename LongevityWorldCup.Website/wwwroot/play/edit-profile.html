@@ -1438,7 +1438,8 @@
             const preview = new Image();
             preview.src = source;
             preview.decode().then(() => {
-                if (image.isConnected && image.dataset.profilePicRequest === request) image.src = source;
+                if (image.isConnected && image.dataset.profilePicRequest === request
+                    && image.getAttribute('src') === placeholder) image.src = source;
             }).catch(() => {});
         }
 
