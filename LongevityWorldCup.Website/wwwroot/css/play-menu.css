@@ -2412,7 +2412,7 @@ body.play-start-active .play-menu-actions .option-button.grey.flow-action--secon
 }
 
 .play-join-card-head {
-    padding: 1.25rem 1.35rem 1rem;
+    padding: 1.25rem min(1.35rem, 22px) 1rem;
     border-bottom: 1px solid var(--lwc-border);
     background: var(--lwc-surface-muted);
 }
@@ -2427,7 +2427,7 @@ body.play-start-active .play-menu-actions .option-button.grey.flow-action--secon
 }
 
 .play-hub-main .play-join-card .play-join-details {
-    padding: 0.35rem 1.35rem 1.35rem;
+    padding: 0.35rem min(1.35rem, 22px) 1.35rem;
 }
 
 .play-hub-main .play-join-card .play-join-meta {
@@ -2659,11 +2659,11 @@ body.play-start-active .play-menu-actions .option-button.grey.flow-action--secon
     }
 
     .play-hub-main .play-join-card-head {
-        padding: 1.1rem 1rem 0.9rem;
+        padding: 1.1rem min(1rem, 16px) 0.9rem;
     }
 
     .play-hub-main .play-join-card .play-join-details {
-        padding: 0.25rem 1rem 1rem;
+        padding: 0.25rem min(1rem, 16px) 1rem;
     }
 }
 
