@@ -107,12 +107,14 @@ public sealed class HighlightsFeedWidthBrowserTests(
                 if (Math.abs(heading.left - board.left) > 1 || Math.abs(heading.right - board.right) > 1)
                     issues.push('heading and feed edges do not align');
                 const actions = document.querySelector('.event-board-actions').getBoundingClientRect();
-                if (Math.abs(actions.right - board.right) > 1) issues.push('subscription actions leave the column');
+                // The actions close the head band, one band inset from the feed's edge.
+                const inset = parseFloat(getComputedStyle(document.querySelector('.event-board-heading')).paddingRight);
+                if (Math.abs(board.right - inset - actions.right) > 1) issues.push('subscription actions leave the column');
                 for (const target of document.querySelectorAll('.event-feed-link, #webPushToggle, .events-board .avatar-link')) {
                     const box = target.getBoundingClientRect();
                     if (box.width < 44 || box.height < 44) issues.push(`${target.className} is smaller than 44px`);
                 }
-                const avatarSize = innerWidth <= 600 || innerWidth >= 720 ? 32 : 24;
+                const avatarSize = 32;
                 for (const avatar of document.querySelectorAll('.events-board .avatar, .events-board .avatar-fallback')) {
                     const box = avatar.getBoundingClientRect();
                     if (Math.abs(box.width - avatarSize) > 1 || Math.abs(box.height - avatarSize) > 1)

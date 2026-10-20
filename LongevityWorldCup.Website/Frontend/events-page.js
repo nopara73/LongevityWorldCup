@@ -781,6 +781,22 @@ const eventsPageAssets = document.currentScript.dataset;
         });
     }
 
+    // The feed groups by month: a month's events sit together, and a repeated
+    // day's date stays quiet under the first event of that day.
+    function markFeedGroups(tbody){
+        let previousDay=null, previousMonth=null;
+        tbody.querySelectorAll('tr.main-row').forEach(r=>{
+            const day=r.dataset.day||'';
+            const month=day.split('-').slice(0,2).join('-');
+            const dayStarts=!day||day!==previousDay;
+            r.classList.toggle('day-start',dayStarts);
+            r.classList.toggle('day-repeat',!dayStarts);
+            r.classList.toggle('month-start',!month||month!==previousMonth);
+            previousDay=day;
+            previousMonth=month;
+        });
+    }
+
     function renderRows(rows, athletesIndex, linkNames, options=null){
         const tbody = document.querySelector("#eventsTable tbody");
         const appendFromIndex = options && Number.isFinite(options.appendFromIndex) ? Math.max(0, Math.floor(options.appendFromIndex)) : 0;
@@ -1206,6 +1222,10 @@ const eventsPageAssets = document.currentScript.dataset;
             if (r.primarySlug) tr.dataset.primarySlug = String(r.primarySlug);
             if (r.homepageHighlightSelection) tr.dataset.highlightSelection = String(r.homepageHighlightSelection);
             if (r.id) tr.dataset.eventId = String(r.id);
+            if (r.occurredAt) {
+                const day = new Date(r.occurredAt);
+                if (!isNaN(day)) tr.dataset.day = `${day.getFullYear()}-${day.getMonth() + 1}-${day.getDate()}`;
+            }
             tr.innerHTML =
                 `<td class="col-avatar"><div class="athlete-td">${avatarHtml}</div></td>
          <td class="event-message"><div class="event-message-cell">${msgHtml}</div></td>
@@ -1282,6 +1302,7 @@ const eventsPageAssets = document.currentScript.dataset;
         tbody.appendChild(frag);
 
         applyZebraStriping(tbody);
+        markFeedGroups(tbody);
 
         const rowsNow = shouldAppend ? tbody.querySelectorAll(".row-appear:not(.is-visible)") : tbody.querySelectorAll(".row-appear");
         if (!prefersReduced && rowsNow.length){
