@@ -94,6 +94,51 @@ public sealed class PlayOnboardingBrowserTests(
     }
 
     [Theory]
+    [InlineData(390, 320, false)]
+    [InlineData(390, 320, true)]
+    [InlineData(844, 390, true)]
+    public async Task InlineJoinFoot_KeepsVisualOrderInSyncWithKeyboardOrder(int width, int height, bool longLabels)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = height },
+            ReducedMotion = ReducedMotion.Reduce,
+            IsMobile = width < 600,
+            HasTouch = true
+        });
+        var page = await OpenJoinAsync(context);
+        await page.EvaluateAsync(
+            """
+            longLabels => {
+                document.documentElement.style.setProperty('font-size', '200%', 'important');
+                if (longLabels) {
+                    for (const label of document.querySelectorAll('.play-join-mobile-track-action .flow-action__label'))
+                        label.textContent = 'Start my chosen longevity competition';
+                }
+                window.LwcFlowActionDock.refreshNow();
+            }
+            """, longLabels);
+        await page.WaitForFunctionAsync("() => !document.querySelector('.play-join-actions').classList.contains('flow-action-stack--docked')");
+        var order = await page.EvaluateAsync<bool>(
+            """
+            () => {
+                const actions = document.querySelector('.play-join-actions');
+                const note = document.querySelector('.play-join-challenge-note');
+                const placeholder = document.querySelector('.play-join-foot > .flow-action-dock-placeholder');
+                return actions.parentElement.classList.contains('play-join-foot')
+                    && placeholder.hidden
+                    && !!(actions.compareDocumentPosition(note) & Node.DOCUMENT_POSITION_FOLLOWING)
+                    && note.getBoundingClientRect().top >= actions.getBoundingClientRect().bottom - 1;
+            }
+            """);
+        Assert.True(order, $"{width}x{height}: the inline actions must precede the detour in visual and keyboard order.");
+        await page.Locator("#joinMobileGoProButton").FocusAsync();
+        await page.Keyboard.PressAsync("Tab");
+        await Assertions.Expect(page.Locator("#joinStartChallengeLink")).ToBeFocusedAsync();
+        await ExpectNoHorizontalOverflowAsync(page);
+    }
+
+    [Theory]
     [InlineData(1440, 900, false)]
     [InlineData(1024, 768, true)]
     [InlineData(390, 844, false)]
