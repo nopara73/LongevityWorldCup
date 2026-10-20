@@ -1176,17 +1176,119 @@ public sealed class AestheticSystemBrowserTests(
                     await AssertOrderingContainerBoundariesAsync(page, source.ToArray());
                     break;
                 case "css/play-menu.css":
-                    await AssertJoinContainerBoundariesAsync(page, source.ToArray());
+                    await AssertJoinContainerBoundariesAsync(page,
+                        source.Where(condition => condition.Name != "play-player-card").ToArray());
+                    await AssertPlayerCardContainerBoundariesAsync(page,
+                        source.Where(condition => condition.Name == "play-player-card").ToArray());
                     break;
                 case "css/homepage.css":
-                    await AssertNewsletterContainerBoundariesAsync(page, source.ToArray());
+                    await AssertNewsletterContainerBoundariesAsync(page,
+                        source.Where(condition => condition.Name == "newsletter-section").ToArray());
+                    await AssertFontRelativeLeaderboardBoundariesAsync(page,
+                        source.Where(condition => condition.Name != "newsletter-section").ToArray());
                     break;
                 case "css/site-footer.css":
                     await AssertFooterContainerBoundariesAsync(page, source.ToArray());
                     break;
+                case "onboarding/convergence.html":
+                    await AssertApplicationContainerBoundariesAsync(page, source.ToArray());
+                    break;
+                case "misc-pages/about.html":
+                case "misc-pages/history.html":
+                case "misc-pages/ruleset.html":
+                    // These pages share the generator's table CSS. History has
+                    // the standings table that actually exercises that component.
+                    await AssertDocumentationTableContainerBoundariesAsync(page, source.ToArray());
+                    break;
                 default:
                     Assert.Fail($"Add a rendered container-boundary probe for {source.Key}.");
                     break;
+            }
+        }
+    }
+
+    private static async Task AssertApplicationContainerBoundariesAsync(
+        IPage page,
+        ResponsiveContainerCondition[] conditions)
+    {
+        await page.SetViewportSizeAsync(1920, 720);
+        await NavigateAndSettleAsync(page, "/apply");
+        var normalFontSize = await page.EvaluateAsync<double>(
+            "() => parseFloat(getComputedStyle(document.documentElement).fontSize)");
+        foreach (var fontSize in new[] { normalFontSize, normalFontSize * 2 })
+        {
+            await page.EvaluateAsync("size => document.documentElement.style.fontSize = size + 'px'", fontSize);
+            foreach (var condition in conditions)
+            {
+                Assert.Null(condition.Name);
+                Assert.Equal("min", condition.Bound);
+                Assert.Equal("rem", condition.Unit);
+                Assert.Equal(35, condition.Value);
+                var threshold = condition.Value * fontSize;
+                foreach (var delta in new[] { -1, 0, 1, 0, -1 })
+                {
+                    var width = threshold + delta;
+                    var diagnostics = await page.EvaluateAsync<double[]>(
+                        """
+                        async width => {
+                            const form = document.getElementById('inputForm');
+                            Object.assign(form.style, {
+                                boxSizing: 'content-box', width: `${width}px`, maxWidth: 'none', maxInlineSize: 'none'
+                            });
+                            await document.fonts.ready;
+                            await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                            const fields = ['name', 'division', 'flag'].map(id => document.getElementById(id).getBoundingClientRect());
+                            return [parseFloat(getComputedStyle(form).width),
+                                getComputedStyle(document.getElementById('personalDetails')).display === 'grid' ? 1 : 0,
+                                Math.max(...fields.map(field => field.top)) - Math.min(...fields.map(field => field.top)),
+                                fields[1].top - fields[0].bottom, fields[2].top - fields[1].bottom,
+                                Math.max(0, form.scrollWidth - form.clientWidth)];
+                        }
+                        """, width);
+                    Assert.Equal(width, diagnostics[0], 1);
+                    Assert.Equal(width >= threshold ? 1 : 0, diagnostics[1]);
+                    if (width >= threshold)
+                        Assert.True(diagnostics[2] <= 1, $"Application fields must share a row at {width}px with {fontSize}px text.");
+                    else
+                        Assert.True(diagnostics[3] >= 0 && diagnostics[4] >= 0,
+                            $"Application fields must stack at {width}px with {fontSize}px text.");
+                    Assert.True(diagnostics[5] <= 1, $"Application fields overflowed at {width}px with {fontSize}px text.");
+                }
+            }
+        }
+        await page.EvaluateAsync("() => document.documentElement.style.removeProperty('font-size')");
+    }
+
+    private static async Task AssertDocumentationTableContainerBoundariesAsync(IPage page, ResponsiveContainerCondition[] conditions)
+    {
+        await NavigateAndSettleAsync(page, "/history");
+        await page.EvaluateAsync("document.documentElement.style.fontSize = '20px'");
+        var rootFont = await page.EvaluateAsync<double>("parseFloat(getComputedStyle(document.documentElement).fontSize)");
+        foreach (var condition in conditions)
+        {
+            Assert.Equal("documentation-table", condition.Name);
+            Assert.Equal("max", condition.Bound);
+            Assert.Equal("rem", condition.Unit);
+            Assert.Equal(24, condition.Value);
+            var threshold = condition.Value * rootFont;
+            foreach (var delta in new[] { -1, 0, 1, 0, -1 })
+            {
+                var width = threshold + delta;
+                var diagnostics = await page.EvaluateAsync<double[]>("""
+                    async width => {
+                        const frame = document.querySelector('.documentation-table');
+                        frame.style.boxSizing = 'content-box';
+                        frame.style.inlineSize = width + 'px';
+                        frame.style.maxInlineSize = 'none';
+                        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                        return [parseFloat(getComputedStyle(frame).width),
+                            getComputedStyle(frame.querySelector('thead')).position === 'absolute' ? 1 : 0,
+                            Math.max(0, frame.scrollWidth - frame.clientWidth)];
+                    }
+                    """, width);
+                Assert.Equal(width, diagnostics[0], 1);
+                Assert.Equal(width <= threshold ? 1 : 0, diagnostics[1]);
+                Assert.True(diagnostics[2] <= 1, $"Documentation standings overflowed at {width}px.");
             }
         }
     }
@@ -1301,6 +1403,75 @@ public sealed class AestheticSystemBrowserTests(
                 }
             }
         }
+    }
+
+    private static async Task AssertPlayerCardContainerBoundariesAsync(IPage page, ResponsiveContainerCondition[] conditions)
+    {
+        if (conditions.Length == 0) return;
+        var savedSelection = await page.EvaluateAsync<string?[]>(
+            "() => [sessionStorage.getItem('selectedAthlete'), localStorage.getItem('selectedAthleteName')]");
+        foreach (var condition in conditions)
+        {
+            Assert.Equal("play-player-card", condition.Name);
+            Assert.Equal("max", condition.Bound);
+            Assert.Equal(20, condition.Value);
+            Assert.Equal("em", condition.Unit);
+            foreach (var route in new[] { "/select-athlete", "/dashboard" })
+            {
+                await page.SetViewportSizeAsync(1280, 900);
+                await NavigateAndSettleAsync(page, "/select-athlete");
+                await page.EvaluateAsync("""
+                    () => sessionStorage.setItem('selectedAthlete', JSON.stringify({
+                        Name: 'Container Probe Athlete', DisplayName: 'Container Probe Athlete', Biomarkers: []
+                    }))
+                    """);
+                await NavigateAndSettleAsync(page, route);
+                // Keep the real card, caption and selector ancestry. A clone
+                // isolates this width probe from the live picture/dock observers.
+                var fontSize = await page.EvaluateAsync<double>("""
+                    () => {
+                        const original = document.querySelector('.play-hub-panel:not([hidden]) .play-athlete-card, .play-hub-panel:not([hidden]) .play-dashboard-card');
+                        const card = original.cloneNode(true);
+                        original.replaceWith(card);
+                        card.dataset.playerCardBoundaryProbe = '';
+                        card.style.fontSize = '20px';
+                        card.style.transition = 'none';
+                        return parseFloat(getComputedStyle(card).fontSize);
+                    }
+                    """);
+                var threshold = condition.Value * fontSize;
+                foreach (var delta in new[] { -1, 0, 1, 0, -1 })
+                {
+                    var width = threshold + delta;
+                    var diagnostics = await page.EvaluateAsync<ContainerQueryDiagnostics>("""
+                        async width => {
+                            const card = document.querySelector('[data-player-card-boundary-probe]');
+                            Object.assign(card.style, { boxSizing: 'content-box', inlineSize: `${width}px`,
+                                width: `${width}px`, maxWidth: 'none', maxInlineSize: 'none' });
+                            await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                            const frame = card.querySelector('.athlete-picture-frame').getBoundingClientRect();
+                            const caption = card.querySelector('h1').getBoundingClientRect();
+                            return {
+                                ContainerWidth: parseFloat(getComputedStyle(card).width),
+                                IsCompact: caption.top >= frame.bottom - 1,
+                                HorizontalOverflow: Math.max(0, card.scrollWidth - card.clientWidth)
+                            };
+                        }
+                        """, width);
+                    Assert.Equal(width, diagnostics.ContainerWidth, 1);
+                    Assert.Equal(width <= threshold, diagnostics.IsCompact);
+                    Assert.True(diagnostics.HorizontalOverflow <= 1, $"{route} player card overflowed at {width}px.");
+                }
+            }
+        }
+        await page.EvaluateAsync("""
+            values => {
+                for (const [storage, key, value] of [[sessionStorage, 'selectedAthlete', values[0]], [localStorage, 'selectedAthleteName', values[1]]]) {
+                    if (value === null) storage.removeItem(key);
+                    else storage.setItem(key, value);
+                }
+            }
+            """, savedSelection);
     }
 
     private static async Task AssertJoinContainerBoundariesAsync(IPage page, ResponsiveContainerCondition[] conditions)
@@ -1610,7 +1781,7 @@ public sealed class AestheticSystemBrowserTests(
         {
             Assert.Equal("max", condition.Bound);
             Assert.Equal("rem", condition.Unit);
-            Assert.Contains(condition.Value, new double[] { 42, 28, 22 });
+            Assert.Contains(condition.Value, new double[] { 42, 28, 22, 14 });
             var thresholdPixels = condition.Value * rootFontSize;
             foreach (var delta in new[] { -1, 0, 1, 0, -1 })
             {
@@ -1622,6 +1793,7 @@ public sealed class AestheticSystemBrowserTests(
                         list.style.boxSizing = 'content-box';
                         list.style.inlineSize = `${argument.InlineSize}px`;
                         list.style.maxInlineSize = 'none';
+                        list.querySelector('.flag-team').open = argument.Boundary === 14;
                         await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
                         await Promise.all(list.getAnimations({ subtree: true })
                             .filter(animation => Number.isFinite(animation.effect.getComputedTiming().endTime))
@@ -1630,12 +1802,18 @@ public sealed class AestheticSystemBrowserTests(
                         const team = list.querySelector('.flag-team');
                         const name = team.querySelector('.flag-team-name').getBoundingClientRect();
                         const score = team.querySelector('.flag-team-score').getBoundingClientRect();
+                        const athleteName = team.querySelector('.flag-athlete-name').getBoundingClientRect();
+                        const athleteLink = team.querySelector('.flag-athlete-link');
+                        const athleteBox = athleteLink.getBoundingClientRect();
+                        const athleteStyle = getComputedStyle(athleteLink);
                         const rootFontSize = parseFloat(getComputedStyle(document.documentElement).fontSize);
                         const compact = argument.Boundary === 42
                             ? getComputedStyle(team.querySelector('.flag-team-portraits')).display === 'none'
                             : argument.Boundary === 28
                                 ? Math.abs(team.querySelector('.flag-team-icon').getBoundingClientRect().width - 1.75 * rootFontSize) < .1
-                                : score.top >= name.bottom;
+                                : argument.Boundary === 22 ? score.top >= name.bottom
+                                    : Math.abs(athleteName.left - athleteBox.left - parseFloat(athleteStyle.paddingLeft)) < 1
+                                        && Math.abs(athleteBox.right - parseFloat(athleteStyle.paddingRight) - athleteName.right) < 1;
                         return {
                             ContainerWidth: parseFloat(getComputedStyle(list).width),
                             IsCompact: compact,

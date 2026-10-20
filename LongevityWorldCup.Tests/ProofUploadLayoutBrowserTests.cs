@@ -257,7 +257,7 @@ public sealed class ProofUploadLayoutBrowserTests(
 
         var columns = await page.EvaluateAsync<double[][]>(
             """
-            () => ['#proofUploadSection legend', '#proofUploadSection .convergence-upload-action',
+            () => ['#proofUploadSection', '#proofUploadSection .convergence-upload-action',
                 '#proofImageContainer', '.proof-review-heading', '.proof-page-grid', '#biomarker-checklist']
                 .map(selector => {
                     const rect = document.querySelector(selector).getBoundingClientRect();

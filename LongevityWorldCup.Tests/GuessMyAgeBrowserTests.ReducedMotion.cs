@@ -65,6 +65,8 @@ public sealed class GuessMyAgeReducedMotionBrowserTests(
         await page.WaitForFunctionAsync("() => document.getElementById('gmaRange')?.disabled === false");
         await page.Locator("#gmaRange").EvaluateAsync(
             "range => { range.value = '54'; range.dispatchEvent(new Event('input', { bubbles: true })); }");
+        var actionHeight = await page.Locator("#guessAgeContainer .gma-actions").EvaluateAsync<double>(
+            "element => element.getBoundingClientRect().height");
 
         await page.Locator("#guessAgeContainer .gma-btn--primary").ClickAsync();
         try
@@ -89,8 +91,11 @@ public sealed class GuessMyAgeReducedMotionBrowserTests(
             "element => getComputedStyle(element).animationName === 'none' && element.getAnimations().length === 0"));
         var reducedMotionOldActions = await page.Locator("#guessAgeContainer .gma-actions").EvaluateAsync<double[]>(
             "element => [element.getBoundingClientRect().height, Number.parseFloat(getComputedStyle(element).opacity)]");
-        Assert.InRange(reducedMotionOldActions[0], 0, 0.5);
+        // Hidden controls retain the dock's geometry without remaining interactive.
+        Assert.InRange(reducedMotionOldActions[0] - actionHeight, -0.5, 0.5);
         Assert.Equal(0, reducedMotionOldActions[1]);
+        Assert.True(await page.Locator("#guessAgeContainer .gma-actions").EvaluateAsync<bool>(
+            "element => element.inert && getComputedStyle(element).visibility === 'hidden'"));
         Assert.Equal(0, await page.Locator(".gma-reaction").CountAsync());
         Assert.Equal(0, await page.Locator(".gma-celebration-spark").CountAsync());
         await page.GetByText("You beat the crowd!", new PageGetByTextOptions { Exact = true }).WaitForAsync();
@@ -435,15 +440,23 @@ public sealed class GuessMyAgeReducedMotionBrowserTests(
         await BrowserTestApp.RouteExternalResourcesAsync(context);
 
         var athleteSnapshotRequests = 0;
+        var profileImageChanged = false;
         await context.RouteAsync("**/api/data/athletes*", async route =>
         {
             athleteSnapshotRequests++;
+            // A retry of the initial snapshot must still show the original image.
+            // Tie the replacement to the conflict, not the number of fetch attempts.
+            if (athleteSnapshotRequests == 1)
+            {
+                await route.FulfillAsync(new RouteFulfillOptions { Status = 503, Body = "Retry snapshot" });
+                return;
+            }
             var response = await route.FetchAsync();
             var athletes = JsonNode.Parse(await response.TextAsync())!.AsArray();
             var patrick = athletes
                 .OfType<JsonObject>()
                 .Single(athlete => athlete["Name"]?.GetValue<string>() == "Patrick Ruff");
-            var isInitialSnapshot = athleteSnapshotRequests == 1;
+            var isInitialSnapshot = !profileImageChanged;
             var imageId = isInitialSnapshot ? ProfileImageA : ProfileImageB;
             var imageUrl = isInitialSnapshot
                 ? "/assets/content-images/trollface.png?v=image-a"
@@ -464,6 +477,7 @@ public sealed class GuessMyAgeReducedMotionBrowserTests(
         var guessRequestUrl = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
         await context.RouteAsync("**/api/Guess/athlete-age**", async route =>
         {
+            profileImageChanged = true;
             guessRequestUrl.TrySetResult(route.Request.Url);
             await route.FulfillAsync(new RouteFulfillOptions
             {
@@ -502,7 +516,7 @@ public sealed class GuessMyAgeReducedMotionBrowserTests(
             """,
             ProfileImageB);
 
-        Assert.True(athleteSnapshotRequests >= 2);
+        Assert.True(athleteSnapshotRequests >= 3);
         Assert.DoesNotContain("Actual age:", await page.Locator("#gmaStatus").InnerTextAsync(), StringComparison.Ordinal);
         Assert.Equal(0, await page.Locator("#gmaRealBubble").CountAsync());
         Assert.True(await page.EvaluateAsync<bool>(

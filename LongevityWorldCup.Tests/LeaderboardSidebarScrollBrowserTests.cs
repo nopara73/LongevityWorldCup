@@ -36,11 +36,16 @@ public sealed class LeaderboardSidebarScrollBrowserTests(PlaywrightBrowserFixtur
                     const board = document.querySelector('.leaderboard');
                     const results = board.classList.contains('leaderboard--flags') ? board.querySelector('.flag-leaderboard') : board.querySelector('table');
                     const resultHeight = results.getBoundingClientRect().height;
-                    const titleHeight = board.querySelector('.sidebar-heading').getBoundingClientRect().height + board.querySelector('.collapsed-title').scrollHeight;
-                    return [board.getBoundingClientRect().height, Math.max(resultHeight, titleHeight)];
+                    const title = board.querySelector('.collapsed-title');
+                    const titleHeight = board.querySelector('.sidebar-rail-icon').getBoundingClientRect().height + title.scrollHeight;
+                    const rail = board.querySelector('.sidebar-rail').getBoundingClientRect();
+                    const titleBox = title.getBoundingClientRect();
+                    return [board.getBoundingClientRect().height, Math.max(resultHeight, titleHeight), titleBox.top - rail.top, rail.bottom - titleBox.bottom, title.scrollHeight - title.clientHeight];
                 }
                 """);
             Assert.InRange(geometry[0], geometry[1], geometry[1] + 2);
+            Assert.True(geometry[2] >= -1 && geometry[3] >= -1, "The complete league title must stay inside the visible rail.");
+            Assert.InRange(geometry[4], -1, 1);
 
             await page.Locator(".sidebar-toggle").ClickAsync();
             await WaitForLayoutAsync(page);

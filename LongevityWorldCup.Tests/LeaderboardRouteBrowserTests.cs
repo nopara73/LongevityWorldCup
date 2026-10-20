@@ -228,8 +228,10 @@ public sealed class LeaderboardRouteBrowserTests(
         await page.Locator(".sidebar-toggle").ClickAsync();
         Assert.Equal("Hide league filters", await page.Locator(".sidebar-toggle").GetAttributeAsync("aria-label"));
         Assert.Equal("Hide league filters", await page.Locator(".sidebar-close").GetAttributeAsync("aria-label"));
-        Assert.Equal("Aging clocks", (await page.Locator("#aging-clock-filter-section h3").InnerTextAsync()).Trim());
-        Assert.Equal("Exclusive", (await page.Locator("#exclusive-filter-section h3").InnerTextAsync()).Trim());
+        Assert.Equal("Aging clocks", (await page.Locator("#aging-clock-filter-section h3").TextContentAsync())!.Trim());
+        Assert.Equal("Exclusive", (await page.Locator("#exclusive-filter-section h3").TextContentAsync())!.Trim());
+        await Assertions.Expect(page.Locator("#aging-clock-filter-section h3")).ToHaveRoleAsync(AriaRole.Heading);
+        await Assertions.Expect(page.Locator("#exclusive-filter-section h3")).ToHaveRoleAsync(AriaRole.Heading);
 
         var improvementView = page.Locator("input[name=\"agingClockView\"][value=\"improvement\"]");
         await improvementView.CheckAsync();

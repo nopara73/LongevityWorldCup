@@ -183,7 +183,8 @@
         let list: HTMLDivElement | null = null;
         let currentFocus = -1;
         let wantsSuggestions = false;
-        const geometryObserver = new ResizeObserver(positionList);
+        let clearanceFrame = 0;
+        const geometryObserver = new ResizeObserver(resizeList);
         input.setAttribute("role", "combobox");
         input.setAttribute("aria-autocomplete", "list");
         input.setAttribute("aria-controls", listId);
@@ -191,6 +192,8 @@
 
         function close(): void {
             geometryObserver.disconnect();
+            if (clearanceFrame) window.cancelAnimationFrame(clearanceFrame);
+            clearanceFrame = 0;
             list?.remove();
             list = null;
             currentFocus = -1;
@@ -203,6 +206,21 @@
             close();
         }
 
+        function scheduleInlineClearance(): void {
+            if (!options.inline || !list || clearanceFrame) return;
+            clearanceFrame = window.requestAnimationFrame(() => {
+                clearanceFrame = 0;
+                if (list && document.activeElement === input) {
+                    window.LwcFlowActionDock?.ensureClear?.(list);
+                }
+            });
+        }
+
+        function resizeList(): void {
+            positionList();
+            scheduleInlineClearance();
+        }
+
         function positionList(): void {
             const parent = input.parentElement;
             if (!list || !parent) return;
@@ -210,6 +228,16 @@
             const parentBox = parent.getBoundingClientRect();
             const viewport = window.visualViewport;
             const gap = 8;
+            if (options.inline) {
+                // Long forms can reserve space below the field instead of covering
+                // earlier inputs with an upward-opening popup.
+                list.style.maxHeight = "";
+                const preferredHeight = list.getBoundingClientRect().height;
+                list.style.maxHeight = Math.min(preferredHeight,
+                    Math.max(48, (viewport?.height ?? window.innerHeight) * 0.42)) + "px";
+                if (currentFocus >= 0) setActive(currentFocus);
+                return;
+            }
             const visibleTop = (viewport?.offsetTop ?? 0) + gap;
             let visibleBottom = (viewport?.offsetTop ?? 0) + (viewport?.height ?? window.innerHeight) - gap;
             const dock = document.querySelector(".flow-action-stack--docked")?.getBoundingClientRect();
@@ -264,6 +292,7 @@
             list = document.createElement("div");
             list.id = listId;
             list.className = "autocomplete-items lwc-flag-suggestions";
+            if (options.inline) list.classList.add("lwc-flag-suggestions--inline");
             list.setAttribute("role", "listbox");
             list.setAttribute("aria-label", "Flag suggestions");
             matches.forEach((option, index) => {
@@ -286,6 +315,7 @@
             input.parentElement.appendChild(list);
             input.setAttribute("aria-expanded", "true");
             positionList();
+            scheduleInlineClearance();
             // Docking and font/layout changes can move the available space without a viewport event.
             geometryObserver.observe(input, { box: "border-box" });
             geometryObserver.observe(input.parentElement, { box: "border-box" });
@@ -326,9 +356,9 @@
         document.addEventListener("click", event => {
             if (event.target !== input && (!(event.target instanceof Node) || !list?.contains(event.target))) dismiss();
         });
-        window.addEventListener("resize", positionList);
+        window.addEventListener("resize", resizeList);
         window.addEventListener("scroll", event => { if (event.target !== list) positionList(); }, true);
-        window.visualViewport?.addEventListener("resize", positionList);
+        window.visualViewport?.addEventListener("resize", resizeList);
         window.visualViewport?.addEventListener("scroll", positionList);
         return { refresh() { if (wantsSuggestions && document.activeElement === input) render(); } };
     }

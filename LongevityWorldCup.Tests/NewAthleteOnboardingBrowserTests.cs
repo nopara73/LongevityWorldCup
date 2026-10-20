@@ -46,7 +46,7 @@ public sealed partial class NewAthleteOnboardingBrowserTests(
 
             await page.Locator("#continueButton").ClickAsync();
             await page.WaitForDomContentLoadedUrlAsync("**/apply");
-            await page.GetByRole(AriaRole.Heading, new() { Name = "1. Enter the arena" }).WaitForAsync();
+            await page.GetByRole(AriaRole.Heading, new() { Name = "Enter the arena" }).WaitForAsync();
 
             Assert.Equal("/apply", new Uri(page.Url).AbsolutePath);
             await AssertPhenoHandoffAsync(page, bloodDrawDate);
@@ -97,7 +97,7 @@ public sealed partial class NewAthleteOnboardingBrowserTests(
 
             await page.Locator("#continueButton").ClickAsync();
             await page.WaitForDomContentLoadedUrlAsync("**/apply");
-            await page.GetByRole(AriaRole.Heading, new() { Name = "1. Enter the arena" }).WaitForAsync();
+            await page.GetByRole(AriaRole.Heading, new() { Name = "Enter the arena" }).WaitForAsync();
 
             Assert.Equal("/apply", new Uri(page.Url).AbsolutePath);
             await AssertBortzHandoffAsync(page, bloodDrawDate);
@@ -539,7 +539,7 @@ public sealed partial class NewAthleteOnboardingBrowserTests(
         await FillAndCalculatePhenoAgeAsync(page, bloodDrawDate);
         await page.Locator("#continueButton").ClickAsync();
         await page.WaitForDomContentLoadedUrlAsync("**/apply");
-        await page.GetByRole(AriaRole.Heading, new() { Name = "1. Enter the arena" }).WaitForAsync();
+        await page.GetByRole(AriaRole.Heading, new() { Name = "Enter the arena" }).WaitForAsync();
     }
 
     private static async Task CompleteProHandoffToApplicationAsync(IPage page, string bloodDrawDate)
@@ -550,7 +550,7 @@ public sealed partial class NewAthleteOnboardingBrowserTests(
         await FillAndCalculateBortzAgeAsync(page, bloodDrawDate);
         await page.Locator("#continueButton").ClickAsync();
         await page.WaitForDomContentLoadedUrlAsync("**/apply");
-        await page.GetByRole(AriaRole.Heading, new() { Name = "1. Enter the arena" }).WaitForAsync();
+        await page.GetByRole(AriaRole.Heading, new() { Name = "Enter the arena" }).WaitForAsync();
     }
 
     private static async Task FillAndCalculatePhenoAgeAsync(IPage page, string bloodDrawDate)
@@ -1171,7 +1171,7 @@ public sealed partial class NewAthleteOnboardingBrowserTests(
     private static async Task GoToFakeApplicationFinalStageAsync(IPage page)
     {
         await GoToFakeProofStageAsync(page);
-        await AdvanceOnboardingStageAsync(page, "5. Final details");
+        await AdvanceOnboardingStageAsync(page, "Final details");
         await AdvanceOnboardingStageAsync(page, "Application");
         await page.WaitForFunctionAsync("() => !document.getElementById('nextButton')?.disabled");
     }
@@ -1179,11 +1179,11 @@ public sealed partial class NewAthleteOnboardingBrowserTests(
     private static async Task GoToFakeProofStageAsync(IPage page)
     {
         await page.GotoAsync("/apply?fake=1", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-        await page.GetByRole(AriaRole.Heading, new() { Name = "1. Enter the arena" }).WaitForAsync();
-        await AdvanceOnboardingStageAsync(page, "2. Finding your why");
-        await AdvanceOnboardingStageAsync(page, "3. The price of glory");
-        await AdvanceOnboardingStageAsync(page, "4/a. Almost there");
-        await AdvanceOnboardingStageAsync(page, "4/b. Don't trust, verify");
+        await page.GetByRole(AriaRole.Heading, new() { Name = "Enter the arena" }).WaitForAsync();
+        await AdvanceOnboardingStageAsync(page, "Finding your why");
+        await AdvanceOnboardingStageAsync(page, "The price of glory");
+        await AdvanceOnboardingStageAsync(page, "Almost there");
+        await AdvanceOnboardingStageAsync(page, "Don't trust, verify");
         await page.WaitForFunctionAsync(
             "() => document.getElementById('uploadProofButton')?.getAttribute('data-listener') === 'true'");
     }

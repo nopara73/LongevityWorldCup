@@ -2789,7 +2789,7 @@
          .podium-item.first > :is(.podium-link-row, .podium-score){ justify-self:center; justify-content:center; }
          .podium-item.first .podium-score .age-reduction{ text-align:center; }
          .podium-item.first > .podium-item-lower{ justify-self:stretch; margin-inline:calc(-1 * var(--lwc-space-3)); }
-         .podium .name-row .athlete-name{ overflow-wrap:break-word; text-align:center; }
+         .podium .name-row .athlete-name{ overflow-wrap:anywhere; text-align:center; }
      }
 
      .leaderboard table{ width:100%; table-layout:auto; }
@@ -4309,3 +4309,288 @@
  @media (max-width: 932px) and (max-height: 480px) and (orientation: landscape){
      #detailsModal .modal-sticky-header{ padding-left:10px; }
  }
+
+/* =========================
+   14) The leaderboard page as one board
+   On /leaderboard the controls, their outcome and the results are a single
+   card: tabs and tools in the header band, the ranking's meaning beneath,
+   then column heads that stay in view while 200+ rows scroll past.
+   The homepage embed keeps its own composition.
+   ========================= */
+main[data-leaderboard-page="full"]{
+    --board-radius:var(--lwc-radius-lg, 12px);
+    --board-sticky-top:var(--site-sticky-height, 52px);
+    --board-head-height:52px;
+}
+
+/* One card: no seam, no second shadow, one outline. */
+main[data-leaderboard-page="full"] .leaderboard-controls{
+    margin:0; border-bottom:0; border-radius:var(--board-radius) var(--board-radius) 0 0; box-shadow:none;
+}
+main[data-leaderboard-page="full"] .leaderboard-controls-status{
+    border-radius:0; border-bottom:1px solid var(--lwc-border);
+    min-height:32px; padding-block:var(--lwc-space-2);
+}
+main[data-leaderboard-page="full"] .leaderboard{
+    border:1px solid var(--lwc-border); border-top:0; border-radius:0 0 var(--board-radius) var(--board-radius);
+    box-shadow:none;
+}
+
+/* Header band: ranking tabs underline on the band's edge; tools sit at the end. */
+main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-toolbar{
+    align-items:stretch; column-gap:var(--lwc-space-4); row-gap:0; padding:0 var(--lwc-space-4);
+}
+main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-view-switcher{
+    align-self:stretch; align-items:stretch; flex-wrap:wrap; gap:var(--lwc-space-3); max-width:100%;
+}
+main[data-leaderboard-page="full"] .leaderboard-view-switcher .view-switcher-label{
+    align-self:center; margin:0; color:var(--lwc-muted); font-size:var(--lwc-type-xs); font-weight:700; letter-spacing:.08em;
+}
+main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-view-switcher .view-switcher-chips{
+    align-items:stretch; flex-wrap:wrap; gap:var(--lwc-space-1); min-height:0; padding:0; max-width:100%;
+    background:transparent; border:0; border-radius:0;
+}
+html body main[data-leaderboard-page="full"] .leaderboard-view-switcher .view-badge{
+    min-height:60px; padding:0 var(--lwc-space-3); border-radius:0; background:transparent;
+    min-width:min-content; overflow-wrap:normal; word-break:normal;
+    color:var(--lwc-muted); font-size:var(--lwc-type-sm); font-weight:700;
+    box-shadow:inset 0 -3px 0 transparent;
+}
+html body main[data-leaderboard-page="full"] .leaderboard-view-switcher .view-badge:hover{
+    background:transparent; color:var(--lwc-accent-hover); box-shadow:inset 0 -3px 0 var(--lwc-border);
+}
+html body main[data-leaderboard-page="full"] .leaderboard-view-switcher input[name="leaderboardView"]:checked + .view-badge{
+    background:transparent; color:var(--lwc-accent-hover); box-shadow:inset 0 -3px 0 var(--lwc-accent);
+}
+html body main[data-leaderboard-page="full"] .leaderboard-view-switcher input[name="leaderboardView"]:checked + .view-badge.is-clearable::after{
+    background:var(--lwc-accent-soft); color:var(--lwc-accent);
+}
+html body main[data-leaderboard-page="full"] .leaderboard-view-switcher input[name="leaderboardView"]:is(:focus-visible, .is-keyboard-focus) + .view-badge{
+    outline:3px solid var(--lwc-accent); outline-offset:-3px; background:var(--lwc-accent-soft); color:var(--lwc-accent-hover);
+    box-shadow:inset 0 -3px 0 var(--lwc-accent);
+}
+
+/* By Flag, Order and Filters are one family of bordered secondary buttons. */
+main[data-leaderboard-page="full"] .leaderboard-group-switcher{ align-self:center; }
+main[data-leaderboard-page="full"] .leaderboard-group-switcher .view-badge,
+main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-order-toggle,
+main[data-leaderboard-page="full"] .leaderboard-controls .sidebar-toggle{
+    height:auto; min-height:44px; border:1px solid var(--lwc-border-strong); border-radius:var(--lwc-radius-md);
+    background:var(--lwc-surface); color:var(--lwc-accent); box-shadow:none; transform:none;
+}
+main[data-leaderboard-page="full"] .leaderboard-group-switcher .view-badge{
+    padding:0 var(--lwc-space-4); color:var(--lwc-ink); font-size:var(--lwc-type-sm); font-weight:700;
+}
+main[data-leaderboard-page="full"] .leaderboard-group-switcher .view-badge i{ color:var(--lwc-accent); }
+main[data-leaderboard-page="full"] .leaderboard-controls .sidebar-toggle{ margin-right:0; }
+main[data-leaderboard-page="full"] .leaderboard-controls .sidebar-toggle i{ color:var(--lwc-accent); font-size:1.15rem; }
+main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-order-toggle{ font-size:1.1rem; }
+main[data-leaderboard-page="full"] .leaderboard-group-switcher .view-badge:hover,
+main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-order-toggle:hover,
+main[data-leaderboard-page="full"] .leaderboard-controls .sidebar-toggle:hover{
+    background:var(--lwc-accent-soft); border-color:var(--lwc-accent); transform:none;
+}
+main[data-leaderboard-page="full"] .leaderboard-controls .sidebar-toggle:hover i{ color:var(--lwc-accent-hover); }
+main[data-leaderboard-page="full"] .leaderboard-group-switcher input:checked + label,
+main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-order-toggle:is(.is-active, [aria-expanded="true"]),
+main[data-leaderboard-page="full"] .leaderboard-controls .sidebar-toggle:is(.active, .has-active-state){
+    background:var(--lwc-accent-soft); border-color:var(--lwc-accent); color:var(--lwc-accent-hover); box-shadow:none;
+}
+main[data-leaderboard-page="full"] .leaderboard-controls .sidebar-toggle.active i{ color:var(--lwc-accent-hover); }
+main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-order-reset{ height:44px; min-height:44px; }
+main[data-leaderboard-page="full"] .leaderboard-controls .search-wrapper{ align-self:center; padding-block:var(--lwc-space-2); }
+main[data-leaderboard-page="full"] .leaderboard-controls #athleteSearch{
+    min-height:44px; height:auto; padding-inline-start:var(--lwc-space-3); border-width:1px; border-color:var(--lwc-border-strong);
+    border-radius:var(--lwc-radius-md); background:var(--lwc-surface);
+}
+main[data-leaderboard-page="full"] .leaderboard-controls #athleteSearch:not(:placeholder-shown){ border-color:var(--lwc-accent); }
+main[data-leaderboard-page="full"] .leaderboard-controls #athleteSearch:focus{ border-color:var(--lwc-accent); }
+main[data-leaderboard-page="full"] .leaderboard-controls .search-icon{ font-size:1rem; color:var(--lwc-muted); }
+main[data-leaderboard-page="full"] .leaderboard-controls .search-container:focus-within .search-icon{ color:var(--lwc-accent); }
+
+/* Wide: one header row, tabs then By Flag, tools at the end. */
+@media (min-width: 769px){
+    main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-toolbar{ flex-wrap:wrap; }
+    main[data-leaderboard-page="full"] .leaderboard-group-switcher{
+        display:flex; align-items:center; padding-inline-start:var(--lwc-space-4); border-inline-start:1px solid var(--lwc-border);
+        align-self:center; min-height:44px;
+    }
+    main[data-leaderboard-page="full"] .leaderboard-controls .search-wrapper{ flex:0 1 25rem; margin-inline-start:auto; flex-wrap:nowrap; }
+    main[data-leaderboard-page="full"] .leaderboard-controls .search-container{ max-width:none; }
+}
+/* Laptop and tablet: tabs and By Flag on the first row, search across the second. */
+@media (min-width: 769px) and (max-width: 1100px){
+    main[data-leaderboard-page="full"] .leaderboard-group-switcher{ margin-inline-start:auto; padding-inline-start:0; border-inline-start:0; }
+    main[data-leaderboard-page="full"] .leaderboard-controls .search-wrapper{
+        flex:0 0 calc(100% + 2 * var(--lwc-space-4)); max-width:none; box-sizing:border-box;
+        margin:0 calc(-1 * var(--lwc-space-4)); padding:var(--lwc-space-3) var(--lwc-space-4);
+        border-top:1px solid var(--lwc-border);
+    }
+    main[data-leaderboard-page="full"] .leaderboard-controls .search-container{ max-width:none; }
+}
+
+/* Column heads: the site's small uppercase titles, held under the header
+   while the rows scroll, so every score keeps its name. */
+main[data-leaderboard-page="full"] .leaderboard{ --leaderboard-head-height:var(--board-head-height); }
+html body main[data-leaderboard-page="full"] .leaderboard table thead th{
+    position:sticky; top:var(--board-sticky-top); z-index:2;
+    height:var(--board-head-height); padding-block:var(--lwc-space-1);
+    background:var(--lwc-surface-accent); color:var(--lwc-accent-hover);
+    font-size:var(--lwc-type-xs); font-weight:700; letter-spacing:.08em; text-transform:uppercase; line-height:1.2;
+    box-shadow:inset 0 -1px 0 var(--lwc-border); border-bottom:0;
+}
+main[data-leaderboard-page="full"] .leaderboard table thead th a{ min-height:44px; min-width:min-content; color:inherit; }
+main[data-leaderboard-page="full"] .leaderboard table thead th,
+main[data-leaderboard-page="full"] .leaderboard table thead th :is(a, #leaderboardMetricHeader){ white-space:normal; }
+main[data-leaderboard-page="full"] .leaderboard table thead .sponsor-coming-soon{ display:block; letter-spacing:.02em; text-transform:none; }
+main[data-leaderboard-page="full"] .leaderboard table thead #comingSoon{ font-size:.6875rem; color:var(--lwc-muted); }
+main[data-leaderboard-page="full"] .leaderboard .sidebar-heading{ min-height:var(--board-head-height); }
+@container leaderboard-results (max-width: 45rem){
+    main[data-leaderboard-page="full"] .leaderboard table :is(.sponsor-th, .sponsor-td, .media-contact-th, .media-contact-td){ display:none; }
+    html body main[data-leaderboard-page="full"] .leaderboard table thead th{ text-transform:none; letter-spacing:.02em; }
+}
+
+/* Rows: a steadier rhythm, a little denser, so a laptop screen shows more athletes. */
+@media (min-width: 769px){
+    main[data-leaderboard-page="full"] .leaderboard{ --portrait-size:40px; }
+    main[data-leaderboard-page="full"] .leaderboard table tbody tr:not(.no-results):not(.tier-separator) > td{ padding-block:6px; }
+    main[data-leaderboard-page="full"] .leaderboard table tbody .athlete-name{ min-height:44px; padding-block:.25rem; }
+}
+html body main[data-leaderboard-page="full"] .leaderboard .athlete-name{ text-decoration-color:var(--lwc-border); }
+html body main[data-leaderboard-page="full"] .leaderboard .athlete-name:hover{ text-decoration-color:currentColor; }
+main[data-leaderboard-page="full"] .leaderboard tbody .age-reduction:not(.skeleton-shimmer){ color:var(--lwc-accent); letter-spacing:-.01em; }
+
+/* The league spine: a quiet rail with its name set like the page's other section titles. */
+@media (min-width: 933px), (min-width: 769px) and (min-height: 481px){
+    main[data-leaderboard-page="full"] .sidebar-rail{ background:var(--lwc-surface-muted); box-shadow:inset -1px 0 0 var(--lwc-border); border-radius:0 0 0 var(--board-radius); }
+    main[data-leaderboard-page="full"] .sidebar-rail-icon{ flex-basis:var(--leaderboard-head-height); font-size:1.25rem; }
+    main[data-leaderboard-page="full"] .sidebar .collapsed-title{
+        top:calc(var(--board-sticky-top) + var(--leaderboard-head-height) + var(--lwc-space-4));
+        padding:var(--lwc-space-4) 0; font:700 var(--lwc-type-xs)/1 Roboto, sans-serif; letter-spacing:.22em; word-spacing:.15em;
+        color:var(--lwc-accent); background:none; -webkit-text-fill-color:currentColor;
+    }
+    main[data-leaderboard-page="full"] .leaderboard > :is(table, .flag-leaderboard){ border-radius:0 0 var(--board-radius) 0; }
+}
+
+/* Filters read as the board's own panel: the heading band matches the column heads. */
+main[data-leaderboard-page="full"] .sidebar .sidebar-title{ font-size:1rem; }
+main[data-leaderboard-page="full"] .sidebar .sidebar-title .sidebar-icon{ flex-basis:1.5rem; width:1.5rem; height:1.5rem; font-size:1.15rem; }
+main[data-leaderboard-page="full"] .sidebar .sidebar-title .sidebar-title-text{ font-size:var(--lwc-type-xs); font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--lwc-accent-hover); }
+main[data-leaderboard-page="full"] .sidebar-filter-list .filter-section h3{
+    color:var(--lwc-muted); font-size:var(--lwc-type-xs); font-weight:700; letter-spacing:.08em; text-transform:uppercase;
+    padding-block:var(--lwc-space-4) var(--lwc-space-2);
+}
+main[data-leaderboard-page="full"] .sidebar-filter-list .filter-section.has-active-filter h3{ color:var(--lwc-accent-hover); }
+main[data-leaderboard-page="full"] .sidebar-filter-list .filter-section + .filter-section{ border-top:1px solid var(--lwc-border); }
+main[data-leaderboard-page="full"] .filter-section label{ border-radius:var(--lwc-radius-md); }
+main[data-leaderboard-page="full"] .filter-section label:hover{ background:var(--lwc-surface-muted); border-color:transparent; }
+main[data-leaderboard-page="full"] .filter-section label.active{ background:var(--lwc-accent-soft); border-color:transparent; box-shadow:inset 3px 0 0 var(--lwc-accent); }
+
+/* Empty: one calm card inside the board, the way back as its only action. */
+main[data-leaderboard-page="full"] .leaderboard table tbody tr.no-results,
+main[data-leaderboard-page="full"] .leaderboard table tbody tr.no-results:hover{ background:var(--lwc-surface); box-shadow:none; }
+main[data-leaderboard-page="full"] .leaderboard table tbody tr.no-results td{ padding:var(--lwc-space-7) var(--lwc-space-4); box-shadow:none; border:0; }
+main[data-leaderboard-page="full"] .no-results-empty-state{
+    width:min(100%, 24rem); gap:var(--lwc-space-4); padding:var(--lwc-space-6) var(--lwc-space-5);
+    border:1px dashed var(--lwc-border-strong); border-radius:var(--board-radius); background:var(--lwc-surface-muted); box-shadow:none;
+}
+main[data-leaderboard-page="full"] .no-results-empty-state::before{
+    content:"\f002" / ""; display:grid; place-items:center; width:3rem; height:3rem; border-radius:50%;
+    background:var(--lwc-surface); box-shadow:inset 0 0 0 1px var(--lwc-border); color:var(--lwc-accent);
+    font:900 1.1rem/1 "Font Awesome 6 Free";
+}
+main[data-leaderboard-page="full"] .no-results-empty-state p{ color:var(--lwc-ink); font-weight:700; }
+main[data-leaderboard-page="full"] .show-all-athletes-btn{ border-radius:var(--lwc-radius-md); border-color:var(--lwc-border-strong); color:var(--lwc-accent); }
+
+/* By Flag: the same row rhythm, medal discs and column edges as the athlete table. */
+main[data-leaderboard-page="full"] .flag-team summary{ min-height:72px; padding-block:var(--lwc-space-3); grid-template-columns:3rem minmax(0, 1fr) auto 7.5rem 32px; }
+main[data-leaderboard-page="full"] .flag-team-rank{ justify-self:center; font-size:var(--lwc-type-body); color:var(--lwc-ink); }
+main[data-leaderboard-page="full"] .flag-team-rank:is([data-rank="1"], [data-rank="2"], [data-rank="3"]){
+    display:inline-grid; place-items:center; width:2rem; aspect-ratio:1; border-radius:50%; color:#17212b; font-size:var(--lwc-type-sm);
+    box-shadow:inset 0 0 0 2px rgba(23, 33, 43, .14);
+}
+main[data-leaderboard-page="full"] .flag-team-rank[data-rank="1"]{ background:var(--lwc-gold); }
+main[data-leaderboard-page="full"] .flag-team-rank[data-rank="2"]{ background:var(--lwc-silver); }
+main[data-leaderboard-page="full"] .flag-team-rank[data-rank="3"]{ background:var(--lwc-bronze); }
+main[data-leaderboard-page="full"] .flag-team-name{ font-size:var(--lwc-type-body); }
+main[data-leaderboard-page="full"] .flag-team-icon{ flex-basis:2rem; width:2rem; font-size:1.5rem; }
+main[data-leaderboard-page="full"] .flag-team-portraits img{ width:32px; height:32px; }
+main[data-leaderboard-page="full"] .flag-team-score{ font-size:1.125rem; color:var(--lwc-accent); line-height:1.15; }
+main[data-leaderboard-page="full"] .flag-team-score small{ margin-top:.15rem; font-size:var(--lwc-type-xs); }
+/* The chevron is drawn, so it reads as a disclosure control in every font. */
+main[data-leaderboard-page="full"] .flag-team-chevron{
+    position:relative; display:block; width:32px; height:32px; border-radius:50%; font-size:0; color:var(--lwc-muted);
+    box-shadow:inset 0 0 0 1px var(--lwc-border);
+    transition:transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+}
+main[data-leaderboard-page="full"] .flag-team-chevron::before{
+    content:""; position:absolute; left:50%; top:45%; width:.45rem; height:.45rem;
+    border-right:2px solid currentColor; border-bottom:2px solid currentColor; transform:translate(-50%, -50%) rotate(45deg);
+}
+main[data-leaderboard-page="full"] .flag-team summary:hover .flag-team-chevron,
+main[data-leaderboard-page="full"] .flag-team[open] .flag-team-chevron{ color:var(--lwc-accent); box-shadow:inset 0 0 0 1px var(--lwc-accent); }
+main[data-leaderboard-page="full"] .flag-team-athletes{ padding-inline-start:calc(1.5rem + 3rem + 1rem); }
+main[data-leaderboard-page="full"] .flag-athlete-link{ min-height:56px; padding-block:.5rem; }
+main[data-leaderboard-page="full"] .flag-athlete-name small,
+main[data-leaderboard-page="full"] .flag-athlete-metric small{ display:block; color:var(--lwc-muted); font-size:var(--lwc-type-xs); font-weight:400; }
+main[data-leaderboard-page="full"] .flag-athlete-metric{ color:var(--lwc-accent); }
+main[data-leaderboard-page="full"] .flag-section-heading{ padding-block:var(--lwc-space-2); }
+@container flag-results (max-width: 42rem){
+    main[data-leaderboard-page="full"] .flag-team summary{ grid-template-columns:min(2.25rem, 36px) minmax(0, 1fr) auto 32px; padding-inline:var(--lwc-space-4); }
+    main[data-leaderboard-page="full"] .flag-team-athletes{ padding-inline:var(--lwc-space-4); padding-inline-start:calc(var(--lwc-space-4) + 2.25rem + .75rem); }
+}
+@container flag-results (max-width: 28rem){
+    main[data-leaderboard-page="full"] .flag-team-icon{ flex-basis:1.75rem; width:1.75rem; font-size:1.3rem; }
+}
+@container flag-results (max-width: 22rem){
+    main[data-leaderboard-page="full"] .flag-team summary{ grid-template-columns:max(24px, 1.25rem) minmax(0, 1fr) 32px; padding-inline:12px; }
+    main[data-leaderboard-page="full"] .flag-team-rank:is([data-rank="1"], [data-rank="2"], [data-rank="3"]){ width:max(24px, 1.25rem); font-size:var(--lwc-type-sm); line-height:1; }
+    main[data-leaderboard-page="full"] .flag-team-name{ flex-wrap:wrap; }
+    main[data-leaderboard-page="full"] .flag-team-name > span:last-child{ max-width:100%; overflow-wrap:break-word; }
+    main[data-leaderboard-page="full"] .flag-team-icon{ flex-basis:28px; width:28px; font-size:24px; }
+    main[data-leaderboard-page="full"] .flag-team-athletes{ padding-inline-start:12px; }
+    main[data-leaderboard-page="full"] .flag-athlete-link{ grid-template-columns:1rem 32px minmax(0, 1fr); }
+    main[data-leaderboard-page="full"] .flag-athlete-metric{ grid-column:3; text-align:left; }
+    main[data-leaderboard-page="full"] .flag-athlete-metric small{ display:inline; margin-inline-start:.4rem; }
+}
+/* Very narrow text-relative cards give names the complete line. */
+@container flag-results (max-width: 14rem){
+    main[data-leaderboard-page="full"] .flag-team summary{ grid-template-areas:"rank flag chevron" "name name name" "score score score"; }
+    main[data-leaderboard-page="full"] .flag-team-name{ display:contents; }
+    main[data-leaderboard-page="full"] .flag-team-icon{ grid-area:flag; }
+    main[data-leaderboard-page="full"] .flag-team-name > span:last-child{ grid-area:name; }
+    main[data-leaderboard-page="full"] .flag-athlete-name,
+    main[data-leaderboard-page="full"] .flag-athlete-metric{ grid-column:1 / -1; }
+}
+
+/* Phones and small tablets: the header band stacks into a title row with By
+   Flag, full-width underline tabs, then search with its two tools. */
+@media (max-width: 768px), (max-width: 932px) and (max-height: 480px) and (orientation: landscape){
+    main[data-leaderboard-page="full"] .leaderboard-controls{ margin-top:0; }
+    main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-toolbar{ display:flex; flex-wrap:wrap; padding:var(--lwc-space-3) var(--lwc-space-3) 0; row-gap:0; }
+    main[data-leaderboard-page="full"] .leaderboard-controls .view-switcher-label{ order:0; flex:1 0 auto; }
+    main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-group-switcher{ order:1; flex:0 0 auto; margin-inline-start:auto; }
+    main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-view-switcher .view-switcher-chips{
+        order:2; flex:1 0 calc(100% + 2 * var(--lwc-space-3)); display:flex; flex-wrap:wrap; width:calc(100% + 2 * var(--lwc-space-3)); max-width:none; box-sizing:border-box;
+        margin:var(--lwc-space-2) calc(-1 * var(--lwc-space-3)) 0; padding:0 var(--lwc-space-1); gap:0;
+        border-bottom:1px solid var(--lwc-border);
+    }
+    html body main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-view-switcher .view-badge{ flex:1 1 0; min-height:48px; padding:0 var(--lwc-space-1); }
+    main[data-leaderboard-page="full"] .leaderboard-controls .search-wrapper{ order:3; flex:1 0 100%; padding-block:var(--lwc-space-3); }
+    main[data-leaderboard-page="full"] .leaderboard-controls-status{ padding-inline:var(--lwc-space-3); }
+}
+/* Mid-size phones and tablets get readable rows instead of the small-phone type scale. */
+@media (min-width: 481px) and (max-width: 768px){
+    main[data-leaderboard-page="full"] .leaderboard table td{ font-size:var(--lwc-type-body); }
+    main[data-leaderboard-page="full"] .leaderboard table tbody .athlete-name{ font-size:var(--lwc-type-body); }
+    main[data-leaderboard-page="full"] .leaderboard tbody .age-reduction:not(.skeleton-shimmer){ font-size:1.0625rem; }
+    html body main[data-leaderboard-page="full"] .leaderboard table thead th{ font-size:.6875rem; text-transform:none; letter-spacing:.02em; padding-inline:4px; }
+    main[data-leaderboard-page="full"] .leaderboard table th:nth-child(4),
+    main[data-leaderboard-page="full"] .leaderboard table td.age-reduction-td{ width:8.5rem; min-width:0; }
+    main[data-leaderboard-page="full"] .leaderboard{ --portrait-size:44px; }
+}
+/* Small phones: the flex head row stays in view above the rows. */
+@media (max-width: 480px){
+    html body main[data-leaderboard-page="full"] .leaderboard table thead th{ position:static; height:auto; box-shadow:none; background:none; text-transform:none; letter-spacing:0; }
+    main[data-leaderboard-page="full"] .leaderboard table thead{ position:sticky; top:var(--board-sticky-top); z-index:2; }
+}
