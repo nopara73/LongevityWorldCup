@@ -7,7 +7,7 @@ namespace LongevityWorldCup.Tests;
 // The Highlights page is one card: the title band sits on the feed, and the feed
 // reads as a timeline grouped by month.
 [Collection(BrowserTestCollections.WorkloadB)]
-public sealed class HighlightsTimelineBrowserTests(
+public sealed partial class HighlightsTimelineBrowserTests(
     PlaywrightBrowserFixture browserFixture,
     BrowserTestAppFixture appFixture)
     : BrowserIntegrationTest(browserFixture, appFixture)
@@ -65,7 +65,7 @@ public sealed class HighlightsTimelineBrowserTests(
                 const monthStarts = rows.filter(row => row.classList.contains('month-start')).map(row => row.dataset.eventId);
                 if (monthStarts.join() !== 'oct-a,sep-a,aug-a') issues.push(`month starts: ${monthStarts.join()}`);
                 if (!byId('oct-b').classList.contains('day-repeat')) issues.push('a repeated day is not marked');
-                if (parseFloat(getComputedStyle(byId('oct-b').querySelector('.col-date')).opacity) >= 1)
+                if (getComputedStyle(byId('oct-b').querySelector('.col-date')).color === getComputedStyle(byId('oct-a').querySelector('.col-date')).color)
                     issues.push('a repeated day keeps a loud date');
                 if (getComputedStyle(byId('sep-a').querySelector('.col-date')).fontWeight < 700)
                     issues.push('a month does not open with its date in bold');

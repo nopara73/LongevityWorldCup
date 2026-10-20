@@ -169,7 +169,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await context.RouteAsync("**/api/longevitymaxxing/state",
             route => FulfillJsonAsync(route, JsonSerializer.Serialize(BuildPublicState())));
         var page = await context.NewPageAsync();
-        await page.GotoAsync("/longevitymaxxing");
+        await NavigateAndSettleAsync(page, "/longevitymaxxing");
         await Assertions.Expect(page.Locator(".lmx-question-preview-item")).ToHaveCountAsync(4);
 
         var hero = await page.EvaluateAsync<JsonElement>(

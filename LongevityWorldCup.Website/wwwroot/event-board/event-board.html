@@ -148,13 +148,14 @@
         /* Rows: date, portrait on the rail, message. */
         .event-board-page .events-board tbody tr.main-row,
         .event-board-page .events-board tbody tr.events-skeleton-row {
+            --timeline-row-top: 2px;
             display: grid;
             grid-template-columns: var(--event-date-column) var(--event-avatar-column) minmax(0, 1fr);
             grid-template-areas: "date avatar message";
             align-items: center;
             height: auto;
             min-height: 52px;
-            padding: 2px var(--feed-pad-x) 2px 0;
+            padding: var(--timeline-row-top) var(--feed-pad-x) 2px 0;
             box-sizing: border-box;
         }
 
@@ -237,19 +238,15 @@
 
         .event-board-page .events-board table tbody tr.main-row:last-child,
         .event-board-page .events-board table tbody tr.events-skeleton-row:last-child,
-        .event-board-page .events-board table tbody tr.main-row:not(.is-open):has(+ tr.custom-event-details:last-child),
+        .event-board-page .events-board table tbody tr.main-row:has(+ tr.custom-event-details:last-child),
         .event-board-page .events-board table tbody tr.custom-event-details:last-child {
             background-position: var(--event-rail-x) 0;
-            background-size: 2px 50%;
+            background-size: 2px calc(50% + (var(--timeline-row-top, 2px) - 2px) / 2);
         }
 
         .event-board-page .events-board table tbody tr.main-row:first-child:last-child,
-        .event-board-page .events-board table tbody tr.main-row:first-child:not(.is-open):has(+ tr.custom-event-details:last-child) {
+        .event-board-page .events-board table tbody tr.main-row:first-child:has(+ tr.custom-event-details:last-child) {
             background-image: none;
-        }
-
-        .event-board-page .events-board table tbody tr.main-row.is-open:has(+ tr.custom-event-details:last-child) {
-            background-size: 2px 100%;
         }
 
         .event-board-page .events-board table tbody tr.custom-event-details:last-child {
@@ -260,8 +257,13 @@
            month opens with a hairline, air and its date in ink, and a day that
            repeats keeps its date quiet. */
         .event-board-page .events-board tbody tr.main-row.month-start:not(:first-child) {
-            padding-top: var(--lwc-space-5, 24px);
+            --timeline-row-top: var(--lwc-space-5, 24px);
+            padding-top: var(--timeline-row-top);
             box-shadow: inset 0 1px 0 var(--events-border);
+        }
+
+        .event-board-page .events-board tbody tr.main-row.day-start > td.col-date {
+            color: var(--events-text);
         }
 
         .event-board-page .events-board tbody tr.main-row.month-start > td.col-date {
@@ -270,12 +272,15 @@
         }
 
         .event-board-page .events-board tbody tr.main-row.day-repeat > td.col-date {
-            opacity: .55;
+            color: var(--events-muted);
+            opacity: 1;
         }
 
         /* Portraits sit on the rail with a ring of the card around them. */
         .event-board-page .events-board .avatar,
         .event-board-page .events-board .avatar-fallback,
+        .event-board-page .events-board .avatar-link:is(:hover, :focus) .avatar,
+        .event-board-page .events-board .avatar-link:is(:hover, :focus) .avatar-fallback,
         .event-board-page .events-board .donation-gift-avatar,
         .event-board-page .events-board .milestone-people-avatar {
             width: var(--event-avatar-size);
@@ -519,18 +524,19 @@
                 --event-date-column: 0px;
                 --event-avatar-inset: var(--lwc-space-1, 4px);
                 --event-avatar-gap: var(--lwc-space-2, 8px);
-                /* Row padding, cell and link insets, half a portrait. */
-                --event-rail-top: calc(var(--lwc-space-2, 8px) + 4px + var(--event-avatar-size) / 2);
             }
 
             .event-board-page .events-board tbody tr.main-row,
             .event-board-page .events-board tbody tr.events-skeleton-row {
+                --timeline-row-top: var(--lwc-space-2, 8px);
+                /* Row padding, cell inset, half a portrait. */
+                --event-rail-top: calc(var(--timeline-row-top) + 2px + var(--event-avatar-size) / 2);
                 grid-template-columns: var(--event-avatar-column) minmax(0, 1fr);
                 grid-template-areas:
                     "avatar message"
                     "avatar date";
                 align-items: start;
-                padding: var(--lwc-space-2, 8px) min(var(--lwc-space-4, 16px), 4vw) var(--lwc-space-2, 8px) 0;
+                padding: var(--timeline-row-top) min(var(--lwc-space-4, 16px), 4vw) var(--lwc-space-2, 8px) 0;
             }
 
             .event-board-page .events-board tbody tr.main-row > td.col-avatar,
@@ -547,7 +553,7 @@
             .event-board-page .events-board .avatar-disabled {
                 align-items: flex-start;
                 min-height: 44px;
-                padding-top: 2px;
+                padding-top: 0;
             }
 
             .event-board-page .events-board tbody tr.main-row > td.event-message .event-message-cell {
@@ -579,13 +585,14 @@
 
             .event-board-page .events-board table tbody tr.main-row:last-child,
             .event-board-page .events-board table tbody tr.events-skeleton-row:last-child,
-            .event-board-page .events-board table tbody tr.main-row:not(.is-open):has(+ tr.custom-event-details:last-child) {
+            .event-board-page .events-board table tbody tr.main-row:has(+ tr.custom-event-details:last-child) {
                 background-position: var(--event-rail-x) 0;
                 background-size: 2px var(--event-rail-top);
             }
 
             .event-board-page .events-board tbody tr.main-row.month-start:not(:first-child) {
-                padding-top: var(--lwc-space-4, 16px);
+                --timeline-row-top: var(--lwc-space-4, 16px);
+                padding-top: var(--timeline-row-top);
             }
 
             .event-board-page .events-board tbody tr.custom-event-details > td.details-cell {
