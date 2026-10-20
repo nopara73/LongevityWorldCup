@@ -3,6 +3,7 @@
 <head>
     <title>Unsubscribe - Longevity World Cup</title>
     <!--HEAD-->
+    <link rel="stylesheet" href="{{ASSET_LANDING_PAGE_CSS}}">
     <style>
         .join-game {
             display: none !important;
@@ -22,82 +23,91 @@
             place-items: center;
             box-sizing: border-box;
             width: 100%;
-            padding: clamp(1.5rem, 5vh, 3.5rem) 16px;
+            padding: clamp(1.5rem, 6vh, 4.5rem) 16px;
         }
 
-        .unsubscribe-panel {
-            box-sizing: border-box;
-            width: min(100%, 36rem);
+        .unsubscribe-panel.landing-sheet {
+            --landing-pad: clamp(1.25rem, 5vw, 2.75rem);
+            width: min(100%, 38rem);
             margin: 0;
-            padding: clamp(20px, 4vw, 2.5rem);
-            background: var(--lwc-surface, #ffffff);
-            border: 1px solid var(--lwc-border, #d7e0e6);
-            border-radius: var(--lwc-radius-lg, 12px);
-            box-shadow: var(--lwc-shadow-sm, 0 1px 2px rgba(15, 23, 42, 0.08));
-            text-align: left;
         }
 
+        /* The envelope stamps the cover's corner, opposite the accent bar. */
         .unsubscribe-mark {
+            position: absolute;
+            top: clamp(1.25rem, 4vw, 2.25rem);
+            right: var(--landing-pad);
             display: grid;
             place-items: center;
-            width: 3rem;
-            height: 3rem;
-            margin-bottom: 1.1rem;
-            border-radius: var(--lwc-radius-pill, 999px);
-            background: var(--lwc-surface-accent, #e6f4f6);
-            color: var(--lwc-accent, #087685);
-            font-size: 1.25rem;
+            width: 56px;
+            height: 56px;
+            border: 1px solid var(--lwc-border);
+            border-radius: var(--lwc-radius-pill);
+            background: var(--lwc-surface);
+            color: var(--lwc-accent);
+            font-size: 22px;
+            box-shadow: var(--lwc-shadow-sm);
+            transform: rotate(-8deg);
         }
 
-        .unsubscribe-panel h1 {
-            margin: 0 0 0.55rem;
-            font-size: 2rem;
-            line-height: 1.08;
-            text-align: left;
-            overflow-wrap: anywhere;
+        .unsubscribe-panel .landing-title {
+            margin-bottom: var(--lwc-space-3);
+            padding-right: 64px;
+            font-size: 2.25rem;
         }
 
-        .unsubscribe-copy {
-            max-width: 34rem;
-            margin: 0;
-            color: var(--lwc-muted, #52606d);
-            line-height: 1.45;
+        .unsubscribe-panel .unsubscribe-copy {
+            max-width: 30rem;
+            color: var(--lwc-muted);
+            font-size: 1.0625rem;
+            line-height: 1.55;
         }
 
         .unsubscribe-form {
             display: grid;
             grid-template-columns: minmax(0, 1fr);
-            gap: 0.6rem;
-            margin: 1.6rem 0 0;
+            gap: var(--lwc-space-3);
+            margin: 0;
+            padding: clamp(1.5rem, 4vw, 2.25rem) var(--landing-pad) clamp(1.5rem, 4vw, 2.5rem);
             text-align: left;
         }
 
         .unsubscribe-form label {
+            color: var(--lwc-ink);
+            font-size: var(--lwc-type-xs);
             font-weight: 700;
-            color: var(--lwc-ink, #17212b);
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
         }
 
         .unsubscribe-form input {
             width: 100%;
             box-sizing: border-box;
-            min-height: 46px;
-            padding: 0.75rem 0.85rem;
-            border: 1px solid var(--lwc-border-strong, #71808d);
-            border-radius: var(--lwc-radius-sm, 4px);
-            background: var(--lwc-surface, #ffffff);
-            color: var(--lwc-ink, #17212b);
+            min-height: 56px;
+            padding: 0.85rem 1rem;
+            border: 1px solid var(--lwc-border-strong);
+            border-radius: var(--lwc-radius-md);
+            background: var(--lwc-surface);
+            color: var(--lwc-ink);
             font: inherit;
+            font-size: 1.0625rem;
+            transition: border-color var(--lwc-duration-fast) var(--lwc-ease), box-shadow var(--lwc-duration-fast) var(--lwc-ease);
         }
 
         .unsubscribe-form input:focus {
-            border-color: var(--primary-color);
-            outline: 3px solid rgba(0, 188, 212, 0.18);
-            outline-offset: 1px;
+            border-color: var(--lwc-accent);
+            outline: none;
+            box-shadow: 0 0 0 4px var(--lwc-accent-soft);
+        }
+
+        /* Shared phone rules lower field heights to 44px; keep the field level with the button. */
+        #unsubscribe-form input {
+            min-height: 56px;
         }
 
         #unsubscribe-form input[aria-invalid="true"] {
-            border-color: var(--lwc-danger, #b4233b);
-            outline-color: var(--lwc-danger, #b4233b);
+            border-color: var(--lwc-danger);
+            box-shadow: 0 0 0 4px var(--lwc-danger-soft);
         }
 
         .unsubscribe-button {
@@ -106,48 +116,68 @@
             justify-content: center;
             width: 100%;
             justify-self: stretch;
-            min-height: 46px;
-            margin-top: 0.15rem;
-            padding: 0.75rem 1.15rem;
+            min-height: 56px;
+            margin: 0;
+            padding: 0.85rem 1.5rem;
             border: none;
-            border-radius: var(--lwc-radius-sm, 4px);
-            background: var(--lwc-accent, #087685);
-            color: var(--lwc-on-accent, #ffffff);
+            border-radius: var(--lwc-radius-md);
+            background: var(--lwc-accent);
+            color: var(--lwc-on-accent);
+            font-size: 1.0625rem;
             font-weight: 700;
             cursor: pointer;
-            box-shadow: none;
-            transition: background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+            box-shadow: var(--lwc-shadow-md);
+            transition: background-color var(--lwc-duration-fast) var(--lwc-ease);
         }
 
         .unsubscribe-button:hover,
         .unsubscribe-button:focus-visible {
-            background: var(--lwc-accent-hover, #065d68);
-            box-shadow: none;
+            background: var(--lwc-accent-hover);
+            box-shadow: var(--lwc-shadow-md);
             transform: none;
         }
 
         .unsubscribe-button:focus-visible {
-            outline: 3px solid var(--lwc-accent, #087685);
-            outline-offset: 2px;
+            outline: 3px solid var(--lwc-accent);
+            outline-offset: 3px;
         }
 
         .unsubscribe-button[aria-disabled="true"] {
             cursor: progress;
-            opacity: 0.7;
+            opacity: 0.75;
+            box-shadow: none;
         }
 
+        /* Status reads as a callout with a glyph, so success and failure differ beyond colour. */
         .unsubscribe-message {
             grid-column: 1 / -1;
+            display: flex;
+            align-items: flex-start;
+            gap: var(--lwc-space-3);
             min-width: 0;
-            margin: 0;
-            padding: 0.75rem 0.85rem;
-            border-left: 3px solid var(--lwc-success, #1f7a38);
-            border-radius: var(--lwc-radius-sm, 4px);
-            background: var(--lwc-surface-muted, #eef2f5);
-            color: var(--lwc-ink, #17212b);
+            padding: var(--lwc-space-4);
+            border: 1px solid var(--lwc-success);
+            border-radius: var(--lwc-radius-md);
+            background: var(--lwc-success-soft);
+            color: var(--lwc-ink);
             text-align: left;
-            line-height: 1.45;
+            line-height: 1.5;
             overflow-wrap: anywhere;
+        }
+
+        .unsubscribe-message::before {
+            content: '\2713';
+            flex: none;
+            display: grid;
+            place-items: center;
+            width: 1.5rem;
+            height: 1.5rem;
+            border-radius: 50%;
+            background: var(--lwc-success);
+            color: var(--lwc-surface);
+            font-size: 0.875rem;
+            font-weight: 700;
+            line-height: 1;
         }
 
         .unsubscribe-message:empty {
@@ -155,12 +185,36 @@
         }
 
         .unsubscribe-message.is-error {
-            border-left-color: var(--lwc-danger, #b4233b);
+            border-color: var(--lwc-danger);
+            background: var(--lwc-danger-soft);
+        }
+
+        .unsubscribe-message.is-error::before {
+            content: '!';
+            background: var(--lwc-danger);
+        }
+
+        /* Very narrow windows give the title the whole cover; the stamp steps aside. */
+        @media (max-width: 359px) {
+            .unsubscribe-mark {
+                display: none;
+            }
+
+            /* The sheet's bands own the inset, so the shared 160px zoom padding moves into them. */
+            html body .unsubscribe-panel.landing-sheet {
+                --landing-pad: min(16px, 6.25vw);
+                padding-inline: 0;
+            }
+
+            .unsubscribe-panel .landing-title {
+                padding-right: 0;
+                font-size: 2rem;
+            }
         }
 
         @media (min-width: 560px) {
-            .unsubscribe-panel h1 {
-                font-size: 2.6rem;
+            .unsubscribe-panel .landing-title {
+                font-size: 3rem;
             }
 
             .unsubscribe-form {
@@ -175,9 +229,7 @@
 
             .unsubscribe-button {
                 width: auto;
-                min-width: 9.5rem;
-                margin-top: 0;
-                padding-inline: 1.5rem;
+                min-width: 10rem;
             }
         }
 
@@ -186,16 +238,24 @@
                 padding-block: 0.9rem;
             }
 
-            .unsubscribe-panel {
-                padding: 1.1rem 1.4rem;
+            .unsubscribe-panel .landing-cover {
+                padding-block: 1rem;
             }
 
+            .unsubscribe-panel .landing-cover::before,
             .unsubscribe-mark {
                 display: none;
             }
 
             .unsubscribe-form {
-                margin-top: 1rem;
+                padding-block: 1rem;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .unsubscribe-button,
+            .unsubscribe-form input {
+                transition: none;
             }
         }
     </style>
@@ -203,10 +263,12 @@
 <body class="unsubscribe-page">
     <!--HEADER-->
     <main class="unsubscribe-main">
-        <section class="unsubscribe-panel">
-            <div class="unsubscribe-mark" aria-hidden="true"><i class="fas fa-envelope"></i></div>
-            <h1 aria-label="Unsubscribe"><span class="page-title-word">Un&shy;sub&shy;scribe</span></h1>
-            <p class="unsubscribe-copy">Remove your email from the Longevity World Cup yearly newsletter.</p>
+        <section class="unsubscribe-panel landing-sheet">
+            <div class="landing-cover">
+                <div class="unsubscribe-mark" aria-hidden="true"><i class="fas fa-envelope"></i></div>
+                <h1 class="landing-title" aria-label="Unsubscribe"><span class="page-title-word">Un&shy;sub&shy;scribe</span></h1>
+                <p class="unsubscribe-copy">Remove your email from the Longevity World Cup yearly newsletter.</p>
+            </div>
 
             <form id="unsubscribe-form" class="unsubscribe-form" novalidate>
                 <label for="email">Email address</label>
