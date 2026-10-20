@@ -69,7 +69,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
             release.TrySetResult();
             await Assertions.Expect(thread.Locator("[data-reply-submit]")).ToHaveTextAsync("Retry");
             await thread.Locator("[data-reply-submit]").ClickAsync();
-            await Assertions.Expect(thread.Locator(".lmx-discussion-feedback")).ToHaveTextAsync("Reply posted.");
+            await Assertions.Expect(thread.Locator("[data-discussion-draft]")).ToHaveCountAsync(0);
             Assert.Equal(2, payloads.Count);
             Assert.Equal(payloads[0]["replyId"]!.GetValue<string>(), payloads[1]["replyId"]!.GetValue<string>());
             Assert.Equal("p7", payloads[1]["postParticipantId"]!.GetValue<string>());

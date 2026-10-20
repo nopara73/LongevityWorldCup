@@ -74,7 +74,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await thread.Locator("[data-discussion-reply]").ClickAsync();
         await thread.Locator("textarea").FillAsync("A separate discussion reply.");
         await thread.Locator("[data-reply-submit]").ClickAsync();
-        await Assertions.Expect(thread.Locator(".lmx-discussion-feedback")).ToHaveTextAsync("Reply posted.");
+        await Assertions.Expect(thread.Locator("[data-discussion-draft]")).ToHaveCountAsync(0);
         await page.Locator("#lmxProfileTab").ClickAsync();
         await Assertions.Expect(page.Locator("#lmxEditTimeZone")).ToHaveValueAsync(edit ? "Europe/London" : "Asia/Tokyo");
         await Assertions.Expect(page.Locator("#lmxSaveProfileButton")).ToHaveAttributeAsync("aria-disabled", edit ? "false" : "true");
