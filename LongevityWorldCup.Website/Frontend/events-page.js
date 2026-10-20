@@ -649,7 +649,11 @@ const eventsPageAssets = document.currentScript.dataset;
             const t=+new Date(r.occurredAt);
             if(!Number.isFinite(t)) continue;
             const c=seen.get(t)||0;
-            if(c>0) r.occurredAt=new Date(t+c*stepMs).toISOString();
+            if(c>0) {
+                // Arrival ordering must not move a displayed date past midnight.
+                r.displayOccurredAt = r.occurredAt;
+                r.occurredAt = new Date(t+c*stepMs).toISOString();
+            }
             seen.set(t,c+1);
         }
         return rows;
@@ -724,7 +728,7 @@ const eventsPageAssets = document.currentScript.dataset;
         return raw.split(',').map(s=>String(s).trim()).filter(Boolean);
     }
 
-    function groupAthleteBursts(rows, windowMs=60000){
+    function groupAthleteBursts(rows, windowMs=60000, respectLocalDays=false){
         const eligibleTypes=new Set([EVENT_TYPE.Joined, EVENT_TYPE.NewRank, EVENT_TYPE.DonationReceived, EVENT_TYPE.BadgeAward, EVENT_TYPE.LongevitymaxxingChallengeResult, EVENT_TYPE.BecamePro, EVENT_TYPE.BiologicalAgeImproved, EVENT_TYPE.CrowdAgeTop10Change, EVENT_TYPE.AgeImprovementTop10Change]);
 
         const timeOf=r=>{
@@ -741,11 +745,14 @@ const eventsPageAssets = document.currentScript.dataset;
             const slug=String(anchor.primarySlug);
             const tAnchor=timeOf(anchor);
             if(!Number.isFinite(tAnchor)) continue;
+            const anchorDay = respectLocalDays ? +startOfLocalDay(new Date(anchor.displayOccurredAt || anchor.occurredAt)) : null;
 
             const moved=[];
 
             for(let j=i-1;j>=0;j--){
                 const r=out[j];
+                // A dated timeline cannot pull tomorrow's event into yesterday's group.
+                if (respectLocalDays && +startOfLocalDay(new Date(r.displayOccurredAt || r.occurredAt)) !== anchorDay) break;
                 if(!(r && r.primarySlug && String(r.primarySlug)===slug && eligibleTypes.has(r.type) && r.occurredAt)) continue;
 
                 const tj=timeOf(r);
@@ -781,8 +788,36 @@ const eventsPageAssets = document.currentScript.dataset;
         });
     }
 
+    // The feed groups by month: a month's events sit together, and a repeated
+    // day's date stays quiet under the first event of that day.
+    function markFeedGroups(tbody){
+        let previousDay=null, previousMonth=null;
+        tbody.querySelectorAll('tr.main-row').forEach(r=>{
+            const day=r.dataset.day||'';
+            const month=day.split('-').slice(0,2).join('-');
+            const dayStarts=!day||day!==previousDay;
+            r.classList.toggle('day-start',dayStarts);
+            r.classList.toggle('day-repeat',!dayStarts);
+            r.classList.toggle('month-start',!month||month!==previousMonth);
+            previousDay=day;
+            previousMonth=month;
+        });
+    }
+
     function renderRows(rows, athletesIndex, linkNames, options=null){
         const tbody = document.querySelector("#eventsTable tbody");
+        const timelineRows = tbody.closest('.event-board-page') ? [...tbody.querySelectorAll('tr.main-row')] : [];
+        const expandedEvents = new Set(timelineRows.filter(row => row.classList.contains('is-open')).map(row => row.dataset.eventId));
+        const active = document.activeElement;
+        const focusedRow = active?.closest('tr');
+        const focusedMainRow = focusedRow?.classList.contains('details-row') ? focusedRow.previousElementSibling : focusedRow;
+        const timelineFocus = timelineRows.includes(focusedMainRow) ? {
+            eventId: focusedMainRow.dataset.eventId,
+            details: focusedRow !== focusedMainRow,
+            href: active.getAttribute('href'),
+            label: active.getAttribute('aria-label') || active.textContent,
+            index: [...focusedRow.querySelectorAll('a, button')].indexOf(active)
+        } : null;
         const appendFromIndex = options && Number.isFinite(options.appendFromIndex) ? Math.max(0, Math.floor(options.appendFromIndex)) : 0;
         const shouldAppend = !!(options && options.preserveExistingRows && appendFromIndex > 0);
         if (!shouldAppend) {
@@ -824,9 +859,10 @@ const eventsPageAssets = document.currentScript.dataset;
 
         rowsToRender.forEach((r, localIdx) => {
             const idx = shouldAppend ? appendFromIndex + localIdx : localIdx;
-            const dateLabel = r.occurredAt ? formatListDate(r.occurredAt) : "";
-            const rel = (r.type === EVENT_TYPE.Joined && r.occurredAt)
-                ? relativeDayLabel(r.occurredAt)
+            const occurredAt = r.displayOccurredAt || r.occurredAt;
+            const dateLabel = occurredAt ? formatListDate(occurredAt) : "";
+            const rel = (r.type === EVENT_TYPE.Joined && occurredAt)
+                ? relativeDayLabel(occurredAt)
                 : "";
 
             const a = r.primarySlug ? athletesIndex.get(r.primarySlug) : null;
@@ -1206,6 +1242,10 @@ const eventsPageAssets = document.currentScript.dataset;
             if (r.primarySlug) tr.dataset.primarySlug = String(r.primarySlug);
             if (r.homepageHighlightSelection) tr.dataset.highlightSelection = String(r.homepageHighlightSelection);
             if (r.id) tr.dataset.eventId = String(r.id);
+            if (occurredAt) {
+                const day = new Date(occurredAt);
+                if (!isNaN(day)) tr.dataset.day = `${day.getFullYear()}-${day.getMonth() + 1}-${day.getDate()}`;
+            }
             tr.innerHTML =
                 `<td class="col-avatar"><div class="athlete-td">${avatarHtml}</div></td>
          <td class="event-message"><div class="event-message-cell">${msgHtml}</div></td>
@@ -1281,7 +1321,25 @@ const eventsPageAssets = document.currentScript.dataset;
 
         tbody.appendChild(frag);
 
+        const renderedTimelineRows = new Map(timelineRows.length
+            ? [...tbody.querySelectorAll('tr.main-row[data-event-id]')].map(row => [row.dataset.eventId, row])
+            : []);
+        expandedEvents.forEach(id => renderedTimelineRows.get(id)?._setCustomEventExpanded?.(true));
+        if (timelineFocus) {
+            const mainRow = renderedTimelineRows.get(timelineFocus.eventId);
+            const row = timelineFocus.details ? mainRow?.nextElementSibling : mainRow;
+            const controls = [...(row?.querySelectorAll('a, button') || [])];
+            const sameLink = element => element && element.getAttribute('href') === timelineFocus.href
+                && (element.getAttribute('aria-label') || element.textContent) === timelineFocus.label;
+            const control = timelineFocus.href !== null
+                ? (sameLink(controls[timelineFocus.index]) ? controls[timelineFocus.index]
+                    : controls.find(sameLink) || controls.find(element => element.getAttribute('href') === timelineFocus.href))
+                : controls[timelineFocus.index];
+            control?.focus({ preventScroll: true });
+        }
+
         applyZebraStriping(tbody);
+        markFeedGroups(tbody);
 
         const rowsNow = shouldAppend ? tbody.querySelectorAll(".row-appear:not(.is-visible)") : tbody.querySelectorAll(".row-appear");
         if (!prefersReduced && rowsNow.length){
@@ -1296,7 +1354,7 @@ const eventsPageAssets = document.currentScript.dataset;
         const requestedEventId = getRequestedEventId();
         if (requestedEventId && window.CSS && typeof window.CSS.escape === "function") {
             const targetRow = tbody.querySelector(`tr.main-row[data-event-id="${window.CSS.escape(requestedEventId)}"]`);
-            if (targetRow) {
+            if (targetRow && !timelineRows.some(row => row.dataset.eventId === requestedEventId)) {
                 if (targetRow.classList.contains("custom-event-row") && !targetRow.classList.contains("is-open")) {
                     targetRow._setCustomEventExpanded?.(true);
                 }
@@ -1584,7 +1642,7 @@ const eventsPageAssets = document.currentScript.dataset;
     window.loadEventsTable=function(maxRows=null,showViewAll=true,athleteId=null,linkNames=true,options=null){
         const requestedPreserveExistingRows = !!(options && options.preserveExistingRows);
         const useSharedEvents = !!(options && options.useSharedEvents);
-        setEventsLoadingState(requestedPreserveExistingRows);
+        setEventsLoadingState(requestedPreserveExistingRows || !!document.querySelector('.event-board-page tr.main-row'));
         setViewAllVisible(!!showViewAll);
 
         const n=(function(val){ if(val===undefined||val===null||val==="")return null; const nn=typeof val==="string"?parseInt(val,10):Number(val); return Number.isFinite(nn)&&nn>0?Math.floor(nn):null; })(maxRows);
@@ -1732,15 +1790,15 @@ const eventsPageAssets = document.currentScript.dataset;
             }
 
             rows.sort((a,b)=>{
-                const ta=+new Date(a.occurredAt||0);
-                const tb=+new Date(b.occurredAt||0);
+                const ta=+new Date(a.displayOccurredAt||a.occurredAt||0);
+                const tb=+new Date(b.displayOccurredAt||b.occurredAt||0);
                 if(!Number.isFinite(ta) && !Number.isFinite(tb)) return 0;
                 if(!Number.isFinite(ta)) return -1;
                 if(!Number.isFinite(tb)) return 1;
-                return tb - ta;
+                return tb - ta || +new Date(b.occurredAt||0) - +new Date(a.occurredAt||0);
             });
 
-            rows = groupAthleteBursts(rows, 60000);
+            rows = groupAthleteBursts(rows, 60000, mode === "viewAll" && !!root?.closest('.event-board-page'));
 
             if(n!==null) rows=rows.slice(0,n);
             const currentRowIds = rows.map(r => r && r.id ? String(r.id) : '').filter(Boolean);
