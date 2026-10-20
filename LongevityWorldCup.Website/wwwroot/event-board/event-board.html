@@ -640,7 +640,8 @@
 
     function initEventBoard() {
         const headingEl = document.querySelector('.event-board-heading');
-        if (headingEl && headingEl.scrollIntoView) {
+        const requestedEventId = new URLSearchParams(window.location.search).get('event')?.trim();
+        if (headingEl && headingEl.scrollIntoView && !requestedEventId) {
             const interactions = ['pointerdown', 'touchstart', 'wheel', 'keydown'];
             let scrollTimer;
             const cancelOpeningScroll = () => {

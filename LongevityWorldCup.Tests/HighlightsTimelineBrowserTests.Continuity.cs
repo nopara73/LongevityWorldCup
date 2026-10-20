@@ -8,6 +8,35 @@ namespace LongevityWorldCup.Tests;
 public sealed partial class HighlightsTimelineBrowserTests
 {
     [Theory]
+    [InlineData(1440)]
+    [InlineData(390)]
+    public async Task DirectAnnouncementLink_KeepsTheOpenedStoryInViewAfterOpeningTimers(int width)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = 900 }, ReducedMotion = ReducedMotion.Reduce
+        });
+        var events = Enumerable.Range(0, 80).Select(i => new
+        {
+            Id = "recent-" + i, Type = 0, Text = "Recent timeline milestone " + i, OccurredAt = "2026-10-20T12:00:00Z"
+        }).Append(new { Id = "target-story", Type = 6, Text = "Target story\n\nThe requested announcement is here.", OccurredAt = "2026-09-20T12:00:00Z" });
+        await context.RouteAsync("**/api/data/athletes", route => route.FulfillAsync(new() { ContentType = "application/json", Body = Athletes }));
+        await context.RouteAsync("**/api/events", route => route.FulfillAsync(new() { ContentType = "application/json", Body = JsonSerializer.Serialize(events) }));
+        var page = await context.NewPageAsync();
+        await page.Clock.InstallAsync();
+        await GuessMyAgeBrowserTests.PauseClockAsync(page);
+        await page.GotoAsync("/events?event=target-story", new() { WaitUntil = WaitUntilState.Load });
+        await page.EvaluateAsync("() => document.fonts.ready");
+        var story = page.Locator("tr.main-row[data-event-id='target-story'].is-open");
+        await story.WaitForAsync(new() { State = WaitForSelectorState.Attached });
+        await page.Clock.RunForAsync(1000);
+        Assert.True(await story.EvaluateAsync<bool>(
+            "row => { const b=row.getBoundingClientRect(), h=document.querySelector('header').getBoundingClientRect(); return b.top>=h.bottom && b.bottom<=innerHeight; }"),
+            "The default heading scroll moved the opened notification target out of view.");
+        await Assertions.Expect(story.Locator(".custom-event-expander")).ToHaveAttributeAsync("aria-expanded", "true");
+    }
+
+    [Theory]
     [InlineData("UTC")]
     [InlineData("Asia/Singapore")]
     [InlineData("America/Los_Angeles")]
