@@ -1837,7 +1837,7 @@ header[role="banner"] .join-game:not(.scrolled-button) .join-game-end {
         min-width: 0;
         padding: 0;
         text-align: center;
-        overflow-wrap: normal;
+        overflow-wrap: anywhere;
     }
 
     header[role="banner"] .join-game:not(.scrolled-button) {

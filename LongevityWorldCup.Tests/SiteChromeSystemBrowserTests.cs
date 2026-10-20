@@ -502,6 +502,31 @@ public sealed class SiteChromeSystemBrowserTests(
         await ExpectNoHorizontalOverflowAsync(page);
     }
 
+    [Theory]
+    [InlineData("/", 160)]
+    [InlineData("/", 195)]
+    [InlineData("/about", 160)]
+    [InlineData("/about", 195)]
+    public async Task ZoomNarrowHeader_StillContainsAllGlyphsWithAdditionalTextEnlargement(string path, int width)
+    {
+        await using var context = await NewChromeContextAsync(width, 844, dark: true);
+        var page = await OpenAsync(context, path);
+        await page.AddStyleTagAsync(new() { Content = "html { font-size: 200% !important; }" });
+        var clipped = await page.Locator("header[role=banner] .bannertext").EvaluateAsync<bool>(
+            """
+            element => {
+                const band = element.closest('header').getBoundingClientRect();
+                const range = document.createRange(); range.selectNodeContents(element);
+                return [...range.getClientRects()].some(r => r.width > 0 &&
+                    (r.left < band.left || r.right > band.right || r.top < band.top || r.bottom > band.bottom));
+            }
+            """);
+        Assert.False(clipped, $"{path} at {width}px clipped its enlarged brand.");
+        var headerOverflow = await page.Locator("header[role=banner]").EvaluateAsync<double>(
+            "e => e.scrollWidth - e.clientWidth");
+        Assert.InRange(headerOverflow, 0, 1);
+    }
+
     private Task<IBrowserContext> NewChromeContextAsync(int width, int height, bool dark, bool? mobile = null)
     {
         var touch = mobile ?? width < 600;
