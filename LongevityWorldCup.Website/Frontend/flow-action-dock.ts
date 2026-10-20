@@ -355,7 +355,7 @@ interface FlowActionDockApi {
         if (!back || !primary) return;
         const inlineBackFirst = desktopRowMedia.matches
             || (element.classList.contains('play-athlete-actions') && playerCardRowMedia.matches);
-        const backFirst = docked || (inlineBackFirst
+        const backFirst = docked || element.hasAttribute('data-flow-dock-inline-back-first') || (inlineBackFirst
             && !element.classList.contains('flow-action-stack--hide-disabled-primary'));
         const first = backFirst ? back : primary;
         if (element.firstElementChild !== first) {

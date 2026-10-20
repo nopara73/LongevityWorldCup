@@ -1998,6 +1998,7 @@
  }
  #detailsModal .clock-history-reading.is-latest{ color:var(--result-accent); font-weight:700; }
  #detailsModal .clock-history-reading.is-latest::before{ background:currentColor; }
+ #detailsModal .clock-history-reading.is-clipped{ opacity:0; }
  #detailsModal .biomarker-overview-history svg{
      display:block;
      width:100%;
@@ -2144,6 +2145,7 @@
      #detailsModal .biomarker-overview-history{ width:30%; }
  }
  #detailsModal .proofs-section{
+     container:athlete-proofs / inline-size;
      margin-top:1.5rem;
      overflow:hidden;
  }
@@ -4532,6 +4534,511 @@ main[data-leaderboard-page="full"] .show-all-athletes-btn{ border-radius:var(--l
 @media (max-width: 480px){
     html body main[data-leaderboard-page="full"] .leaderboard table thead th{ position:static; height:auto; box-shadow:none; background:none; text-transform:none; letter-spacing:0; }
     main[data-leaderboard-page="full"] .leaderboard table thead{ position:sticky; top:var(--board-sticky-top); z-index:2; }
+}
+
+/* =========================
+   15) Athlete dialog data: one analytics view
+   =========================
+   Results over time, the proofs and the proof viewer read like one data
+   product: a column-head rule under the section band, numbers on a tabular
+   grid, every trend drawn on the same test timeline, and the change since
+   the first reading under each latest value. */
+#detailsModal .modal-content > #athlete-biomarkers{
+    --result-name-width:38%;
+    --result-trend-width:34%;
+    padding:0;
+    container-type:inline-size;
+    container-name:athlete-results;
+}
+#detailsModal .biomarkers-heading{
+    margin:0;
+    padding:6px 1rem;
+}
+/* The date span is the band's own end, like the proofs toggle on its neighbour. */
+#detailsModal .biomarkers-heading .biomarker-overview-range{
+    margin:0;
+    padding:0;
+    color:var(--athlete-modal-muted);
+    font-size:.78rem;
+    font-variant-numeric:tabular-nums;
+    letter-spacing:.02em;
+    white-space:nowrap;
+}
+#detailsModal .biomarkers-heading .biomarker-overview-range:empty{ display:none; }
+#detailsModal #biomarkerResultList{ --result-content-inset:1rem; }
+
+/* Column heads: the site's small uppercase titles on one hairline rule. */
+#detailsModal .biomarker-overview-table > thead > tr > th{
+    padding:.55rem .3rem;
+    border-bottom:1px solid var(--athlete-modal-border);
+    color:var(--athlete-modal-muted);
+    font-size:.68rem;
+    font-weight:700;
+    letter-spacing:1px;
+    text-transform:uppercase;
+}
+#detailsModal .biomarker-overview-table > thead > tr > th:last-child{ padding-right:2.1rem; }
+#detailsModal .biomarker-overview-table > thead > tr > th:first-child,
+#detailsModal .biomarker-overview-table > tbody > .result-summary > th:first-child{ width:var(--result-name-width); }
+#detailsModal .biomarker-overview-history{ width:var(--result-trend-width); }
+#detailsModal .biomarker-overview-table > tbody > .result-summary > :is(th,td){
+    border-bottom-color:var(--athlete-doc-rule, rgba(246,244,237,.1));
+}
+#detailsModal .biomarker-overview-table > tbody > .result-summary > td:last-child{ padding-right:2.1rem; }
+
+/* Rows: a hover band and an accent rail on the row in hand. */
+#detailsModal .result-summary > th:first-child{ position:relative; }
+#detailsModal .result-summary > th:first-child::before{
+    content:"";
+    position:absolute;
+    top:0;
+    bottom:0;
+    left:0;
+    width:3px;
+    background:var(--result-accent);
+    opacity:0;
+    transition:opacity var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+}
+#detailsModal .result-summary:has(button:enabled):hover,
+#detailsModal .result-summary:has(button:focus-visible),
+#detailsModal .result-summary:has(.clock-history-scroll:focus-visible){ background:rgba(246,244,237,.045); }
+#detailsModal .result-summary.is-expanded{ background:var(--athlete-modal-chart-panel); }
+#detailsModal .result-summary.is-expanded > th:first-child::before,
+#detailsModal .result-summary:has(button:focus-visible) > th:first-child::before{ opacity:1; }
+
+/* The two clocks are the headline figures: a permanent rail and large numbers. */
+#detailsModal .biomarker-overview-table > tbody > .result-clock > :is(th,td){ padding-block:1.05rem; }
+#detailsModal .result-clock > th:first-child::before{ opacity:1; }
+#detailsModal .result-clock button{ font-size:1rem; letter-spacing:.01em; }
+#detailsModal .result-clock .biomarker-overview-current{
+    font-size:1.7rem;
+    font-weight:700;
+    line-height:1.1;
+    letter-spacing:-.01em;
+}
+#detailsModal .result-summary.result-first-biomarker > *{ border-top:1px solid var(--athlete-modal-border); }
+#detailsModal .result-clock + .result-detail-row + .result-first-biomarker > *{ border-top-width:2px; }
+
+/* Biomarker rows: name and unit on one line, the value set as a figure. */
+#detailsModal .biomarker-overview-table > tbody > .result-summary:not(.result-clock) > :is(th,td){ padding-block:.2rem; }
+#detailsModal .result-summary:not(.result-clock) button{ min-height:48px; font-size:.92rem; }
+#detailsModal .result-summary:not(.result-clock) .biomarker-history-unit{ font-size:.72rem; letter-spacing:.01em; }
+#detailsModal .result-summary:not(.result-clock) .biomarker-overview-current{ font-size:1.05rem; font-weight:600; }
+#detailsModal .biomarker-overview-current{ font-variant-numeric:tabular-nums; line-height:1.2; }
+
+/* Change since the first reading: a signed figure under the latest value. */
+#detailsModal .biomarker-overview-change{
+    display:block;
+    margin-top:.15rem;
+    color:var(--athlete-modal-muted);
+    font-size:.72rem;
+    font-weight:500;
+    font-variant-numeric:tabular-nums;
+    line-height:1.2;
+}
+#detailsModal .biomarker-overview-change::before{
+    content:"";
+    display:inline-block;
+    width:0;
+    height:0;
+    margin-right:.3em;
+    border-inline:.3em solid transparent;
+    vertical-align:.1em;
+}
+#detailsModal .biomarker-overview-change[data-direction="up"]::before{ border-bottom:.4em solid currentColor; }
+#detailsModal .biomarker-overview-change[data-direction="down"]::before{ border-top:.4em solid currentColor; }
+#detailsModal .biomarker-overview-change[data-direction="flat"]::before{ display:none; }
+/* Younger is better for both clocks, so their drop carries the clock's own colour. */
+#detailsModal .result-clock .biomarker-overview-change[data-direction="down"]{ color:var(--result-accent); }
+
+/* The disclosure chevron is quieter and turns rather than jumps. */
+#detailsModal .biomarker-overview-arrow{
+    right:.9rem;
+    width:.45rem;
+    height:.45rem;
+    margin-top:-.28rem;
+    opacity:.75;
+    transition:transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+}
+
+/* Trends: an area under the line in the result's colour, on the shared test timeline. */
+#detailsModal .biomarker-overview-history svg{
+    width:100%;
+    min-width:48px;
+    max-width:150px;
+    height:40px;
+    overflow:visible;
+}
+#detailsModal .result-summary:not(.result-clock) .biomarker-overview-history svg{ height:34px; }
+#detailsModal .biomarker-overview-history line{
+    stroke:var(--result-accent, var(--athlete-modal-chart-pheno));
+    stroke-width:1.75;
+    stroke-linecap:round;
+    opacity:.85;
+}
+#detailsModal .biomarker-overview-history line.sparkline-track,
+#detailsModal .biomarker-overview-history line.sparkline-tick{
+    stroke:var(--athlete-modal-border);
+    stroke-width:1;
+    opacity:.7;
+}
+#detailsModal .biomarker-overview-history .sparkline-area path{
+    fill:var(--result-accent, var(--athlete-modal-chart-pheno));
+    opacity:.14;
+}
+#detailsModal .biomarker-overview-history circle,
+#detailsModal .biomarker-overview-history .is-baseline{
+    fill:var(--athlete-modal-card-strong, #1c2933);
+    stroke:var(--result-accent, var(--athlete-modal-chart-pheno));
+    stroke-width:1.5;
+}
+#detailsModal .biomarker-overview-history circle.is-latest{
+    fill:var(--result-accent, var(--athlete-modal-chart-pheno));
+    stroke:var(--athlete-modal-card-strong, #1c2933);
+    stroke-width:1.5;
+}
+#detailsModal .result-summary:has(button:disabled) .biomarker-overview-history svg{ opacity:.5; }
+
+/* Clock history: the readings sit on one timeline with the latest as a filled node. */
+#detailsModal .clock-history-reading{ gap:.4rem; font-size:.78rem; font-variant-numeric:tabular-nums; }
+#detailsModal .clock-history-reading::before{ width:9px; height:9px; border-width:1.5px; }
+#detailsModal .clock-history-reading:not(:last-child)::after{
+    top:4px;
+    left:calc(50% + 6px);
+    width:calc(100% + var(--clock-history-gap) - 12px);
+    border-top-width:1.5px;
+}
+#detailsModal .clock-history-reading.is-latest::before{ box-shadow:0 0 0 3px rgba(246,244,237,.08); }
+
+/* Expanded result: an inset analytics panel hanging from its row. */
+#detailsModal .result-detail{
+    position:relative;
+    margin:0;
+    padding:1.1rem 1rem 1.2rem;
+    border-bottom:1px solid var(--athlete-modal-border);
+    box-shadow:inset 3px 0 0 var(--result-accent);
+}
+#detailsModal .result-detail h4{
+    margin:0 0 .5rem;
+    font-size:.78rem;
+    font-weight:800;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    color:var(--athlete-modal-link);
+}
+#detailsModal .result-plot-legend{ gap:.35rem .5rem; }
+#detailsModal .result-plot-legend span{
+    padding:.2rem .55rem;
+    border:1px solid var(--athlete-doc-rule, rgba(246,244,237,.1));
+    border-radius:var(--lwc-radius-pill, 999px);
+    background:rgba(246,244,237,.04);
+}
+#detailsModal .result-field-count{ margin:.5rem 0 0; font-variant-numeric:tabular-nums; }
+#detailsModal .result-plot{
+    box-sizing:border-box;
+    margin:.75rem 0 1rem;
+    padding:.5rem 0 0;
+    border:1px solid var(--athlete-doc-rule, rgba(246,244,237,.1));
+    border-radius:var(--lwc-radius-md, 8px);
+    background:rgba(8,10,10,.18);
+}
+/* The dated readings are a ledger: dates muted, values as figures, rows banded. */
+#detailsModal .biomarker-history-table{
+    border:1px solid var(--athlete-doc-rule, rgba(246,244,237,.1));
+    border-radius:var(--lwc-radius-md, 8px);
+    border-collapse:separate;
+    border-spacing:0;
+    overflow:hidden;
+    font-variant-numeric:tabular-nums;
+}
+#detailsModal .biomarker-history-table th,
+#detailsModal .biomarker-history-table td{
+    padding:.5rem .75rem;
+    border-bottom:1px solid var(--athlete-doc-rule, rgba(246,244,237,.1));
+}
+#detailsModal .biomarker-history-table th:first-child{ padding-left:.75rem; }
+#detailsModal .biomarker-history-table thead th{
+    background:var(--athlete-doc-band, rgba(246,244,237,.06));
+    border-bottom-color:var(--athlete-modal-border);
+    font-size:.68rem;
+    font-weight:700;
+    letter-spacing:1px;
+    text-transform:uppercase;
+}
+#detailsModal .biomarker-history-table tbody th{ color:var(--athlete-modal-muted); }
+#detailsModal .biomarker-history-table tbody td{ font-weight:600; }
+#detailsModal .biomarker-history-table tbody td[aria-label]{ color:var(--athlete-modal-subtle); font-weight:400; }
+#detailsModal .biomarker-history-table tbody tr:nth-child(even) > *{ background:rgba(246,244,237,.03); }
+#detailsModal .biomarker-history-table tbody tr:last-child > *{ border-bottom:0; }
+#detailsModal .biomarker-history-table tbody tr.is-latest td:not([aria-label]){ color:var(--result-accent); }
+
+@media (max-width:600px){
+    #detailsModal .modal-content > #athlete-biomarkers{
+        --result-name-width:44%;
+        --result-trend-width:26%;
+    }
+    #detailsModal #biomarkerResultList{ --result-content-inset:.85rem; }
+    #detailsModal .biomarker-overview-table > tbody > .result-summary > td:last-child,
+    #detailsModal .biomarker-overview-table > thead > tr > th:last-child{ padding-right:1.7rem; }
+    #detailsModal .biomarker-overview-arrow{ right:.6rem; }
+    #detailsModal .result-clock .biomarker-overview-current{ font-size:1.45rem; }
+    #detailsModal .result-detail{ padding-inline:.85rem; }
+}
+@media (max-width:400px){
+    #detailsModal .biomarkers-heading{ padding-inline:.85rem; }
+    #detailsModal .biomarkers-heading .biomarker-overview-range{ font-size:.72rem; }
+}
+@media (max-width:360px){
+    #detailsModal .modal-content > #athlete-biomarkers{
+        --result-name-width:40%;
+        --result-trend-width:28%;
+    }
+    #detailsModal .result-clock .biomarker-overview-current{ font-size:1.25rem; }
+    #detailsModal .biomarker-overview-table > tbody > .result-summary > td:last-child,
+    #detailsModal .biomarker-overview-table > thead > tr > th:last-child{ padding-right:1.35rem; }
+    #detailsModal .biomarker-overview-arrow{ right:.4rem; }
+}
+
+/* Proofs: a contact sheet. Each proof is a whole page on paper, its number
+   rides on the sheet, and the toggle is the band's bordered button. */
+#detailsModal .proofs-gallery{ gap:.75rem; }
+#detailsModal .proof-item{
+    position:relative;
+    padding:0;
+    gap:0;
+    overflow:hidden;
+    border-color:var(--athlete-doc-rule, rgba(246,244,237,.1));
+    background:rgba(246,244,237,.92);
+    transition:border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+}
+#detailsModal .proof-item img{
+    box-sizing:border-box;
+    aspect-ratio:4 / 3;
+    padding:.6rem .6rem 2.1rem;
+    border-radius:0;
+    object-fit:contain;
+    object-position:center;
+    background:transparent;
+    transition:transform var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
+}
+#detailsModal .proof-number{
+    position:absolute;
+    left:.5rem;
+    bottom:.5rem;
+    padding:.2rem .55rem;
+    border:1px solid rgba(246,244,237,.22);
+    border-radius:var(--lwc-radius-pill, 999px);
+    background:rgba(12,14,14,.82);
+    color:rgba(255,255,255,.94);
+    font-size:.72rem;
+    font-weight:600;
+    font-variant-numeric:tabular-nums;
+    line-height:1.3;
+    pointer-events:none;
+    white-space:nowrap;
+}
+#detailsModal .proof-item:hover,
+#detailsModal .proof-item:has(img:focus-visible){
+    border-color:var(--athlete-modal-accent, #7bdde3);
+    box-shadow:0 0 0 1px var(--athlete-modal-accent, #7bdde3);
+}
+#detailsModal .proof-item:hover img{ transform:scale(1.03); }
+#detailsModal .proofs-toggle{
+    display:inline-flex;
+    align-items:center;
+    min-height:44px;
+    padding:.35rem .9rem;
+    border:1px solid var(--athlete-modal-border);
+    border-radius:var(--lwc-radius-md, 8px);
+    background:var(--athlete-modal-card);
+    font-weight:600;
+    text-decoration:none;
+    font-variant-numeric:tabular-nums;
+}
+#detailsModal .proofs-toggle:hover{
+    border-color:var(--athlete-modal-accent, #7bdde3);
+    background:var(--athlete-modal-card-hover);
+}
+@media (prefers-reduced-motion: reduce){
+    #detailsModal .proof-item:hover img{ transform:none; }
+}
+@media (max-width:600px){
+    #detailsModal .proofs-gallery:not([data-proof-count="1"]){ grid-template-columns:repeat(2, minmax(0, 1fr)); gap:.6rem; }
+}
+@container athlete-proofs (max-width:14em){
+    #detailsModal .proofs-gallery:not([data-proof-count="1"]){ grid-template-columns:minmax(0, 1fr); }
+}
+
+/* Proof viewer: the page sits in the middle of its stage, and zoom is one
+   toolbar instead of four loose buttons. */
+.enlarged-portrait.is-proof-gallery:not([hidden]){
+    display:grid;
+    grid-template-rows:minmax(0, 1fr) auto auto;
+    justify-items:center;
+    align-items:stretch;
+    padding:max(4.4rem, calc(env(safe-area-inset-top) + 4.4rem)) max(.75rem, env(safe-area-inset-right)) max(1rem, env(safe-area-inset-bottom)) max(.75rem, env(safe-area-inset-left));
+}
+.enlarged-portrait.is-proof-gallery .image-viewer-stage{
+    grid-row:1;
+    min-height:0;
+    width:min(900px, 100%);
+    height:100%;
+    max-height:100%;
+}
+.enlarged-portrait.is-proof-gallery .image-navigation{
+    position:absolute;
+    top:max(16px, env(safe-area-inset-top));
+    left:calc(max(16px, env(safe-area-inset-left)) + 56px);
+    right:max(16px, env(safe-area-inset-right));
+    display:flex;
+    align-items:center;
+    gap:.5rem;
+}
+.enlarged-portrait.is-proof-gallery .image-nav{
+    position:static;
+    flex:0 0 48px;
+    transform:none;
+}
+.enlarged-portrait.is-proof-gallery .image-nav:not(:disabled):hover{ transform:none; }
+.enlarged-portrait.is-proof-gallery .image-position{
+    order:-1;
+    position:static;
+    min-width:0;
+    margin-right:auto;
+    padding:.4rem .5rem;
+    line-height:1.2;
+    transform:none;
+}
+.enlarged-portrait.is-proof-gallery .image-viewer-stage img{ margin:auto; }
+.enlarged-portrait.is-proof-gallery[data-proof-zoom="1"] .image-viewer-stage img{
+    width:auto;
+    max-width:100%;
+    max-height:100%;
+    object-fit:contain;
+}
+.enlarged-portrait.is-proof-gallery .image-zoom-controls{
+    grid-row:3;
+    position:static;
+    transform:none;
+    gap:0;
+    padding:3px;
+    border:1px solid rgba(246,244,237,.26);
+    border-radius:var(--lwc-radius-pill, 999px);
+    background:rgba(12,14,14,.9);
+    box-shadow:0 10px 28px rgba(0,0,0,.38);
+}
+.enlarged-portrait.is-proof-gallery .image-zoom-controls button{
+    min-width:46px;
+    min-height:46px;
+    border:0;
+    border-radius:var(--lwc-radius-pill, 999px);
+    background:transparent;
+}
+.enlarged-portrait.is-proof-gallery .image-zoom-controls button:hover:not(:disabled){ background:rgba(246,244,237,.1); }
+.enlarged-portrait.is-proof-gallery .image-zoom-controls button:disabled{ background:transparent; color:rgba(255,255,255,.4); }
+.enlarged-portrait.is-proof-gallery .image-zoom-fit{
+    margin-left:3px;
+    padding-inline:1rem;
+    box-shadow:-1px 0 0 rgba(246,244,237,.2);
+    border-radius:0 var(--lwc-radius-pill, 999px) var(--lwc-radius-pill, 999px) 0 !important;
+}
+.enlarged-portrait.is-proof-gallery .image-viewer-hint{
+    grid-row:2;
+    position:static;
+    max-width:100%;
+    transform:none;
+    border:1px solid rgba(246,244,237,.16);
+    border-radius:var(--lwc-radius-pill, 999px);
+    padding:.35rem .85rem;
+    color:rgba(255,255,255,.8);
+}
+@media (max-height:320px){
+    .enlarged-portrait.is-proof-gallery .image-viewer-hint{ display:none; }
+}
+@media (max-width:280px){
+    .enlarged-portrait.is-proof-gallery:not([hidden]){ padding:8rem .5rem 1rem; }
+    .enlarged-portrait.is-proof-gallery .image-navigation{
+        top:4.4rem;
+        left:.75rem;
+        right:.75rem;
+        justify-content:space-between;
+    }
+    .enlarged-portrait.is-proof-gallery .image-position{
+        position:absolute;
+        top:-3.4rem;
+        left:3.5rem;
+        right:0;
+        white-space:normal;
+        text-wrap:balance;
+        text-align:center;
+    }
+    .enlarged-portrait.is-proof-gallery .image-viewer-hint{ display:none; }
+    .enlarged-portrait.is-proof-gallery .image-zoom-controls{
+        display:grid;
+        grid-template-columns:46px minmax(0, 1fr) 46px;
+        box-sizing:border-box;
+        width:100%;
+        max-width:100%;
+        border-radius:var(--lwc-radius-md, 8px);
+    }
+    .enlarged-portrait.is-proof-gallery .image-zoom-status{ min-width:0; }
+    .enlarged-portrait.is-proof-gallery .image-zoom-fit{
+        grid-column:1 / -1;
+        margin-left:0;
+        box-shadow:0 -1px 0 rgba(246,244,237,.2);
+        border-radius:0 0 var(--lwc-radius-md, 8px) var(--lwc-radius-md, 8px) !important;
+    }
+}
+
+/* At enlarged text or the narrowest browser zoom, each trend gets its own line. */
+@container athlete-results (max-width:12em){
+    #detailsModal .biomarkers-heading .biomarker-overview-range{ white-space:normal; text-align:left; }
+    #detailsModal .biomarker-overview-table,
+    #detailsModal .biomarker-overview-table > :is(thead,tbody){ display:block; }
+    #detailsModal .biomarker-overview-table > thead > tr,
+    #detailsModal .biomarker-overview-table > tbody > .result-summary{
+        display:grid;
+        grid-template-columns:minmax(0, 1fr) max-content;
+        align-items:center;
+    }
+    #detailsModal .biomarker-overview-table > thead > tr > th:first-child,
+    #detailsModal .biomarker-overview-table > tbody > .result-summary > th:first-child{
+        grid-column:1;
+        grid-row:1;
+        width:auto;
+        padding-left:.4rem;
+    }
+    #detailsModal .biomarker-overview-table > thead > tr > th:last-child,
+    #detailsModal .biomarker-overview-table > tbody > .result-summary > td:last-child{
+        grid-column:2;
+        grid-row:1;
+        width:auto;
+        padding-right:1.3rem;
+    }
+    #detailsModal .biomarker-overview-table > thead > tr > .biomarker-overview-history{
+        position:absolute;
+        width:1px;
+        height:1px;
+        padding:0;
+        overflow:hidden;
+        clip-path:inset(50%);
+        white-space:nowrap;
+    }
+    #detailsModal .biomarker-overview-table > tbody > .result-summary > :is(th,td){ border-bottom:0; }
+    #detailsModal .biomarker-overview-table > tbody > .result-summary > .biomarker-overview-history{
+        grid-column:1 / -1;
+        grid-row:2;
+        width:auto;
+        min-width:0;
+        padding:.35rem .6rem .75rem;
+        border-bottom:1px solid var(--athlete-modal-border);
+    }
+    #detailsModal .result-summary button,
+    #detailsModal .result-measurement-date,
+    #detailsModal .biomarker-history-unit{ white-space:normal; overflow-wrap:anywhere; }
+    #detailsModal .biomarker-overview-table > tbody > .result-detail-row:not([hidden]),
+    #detailsModal .biomarker-overview-table > tbody > .result-detail-row > td{ display:block; }
+    #detailsModal .biomarker-overview-table > tbody > .result-detail-row > td{ width:100%; box-sizing:border-box; }
 }
 
 /* =========================

@@ -164,7 +164,7 @@ public sealed class BiomarkerHistoryBrowserTests(
         await Expect(albumin.Locator(".biomarker-overview-current")).ToHaveTextAsync("63");
         await Expect(Row(page, "WBC (10^3 cells/µL)").Locator(".biomarker-overview-current")).ToHaveTextAsync("0");
         await Expect(Row(page, "Glucose (mmol/L)").Locator("time")).ToHaveAttributeAsync("datetime", "2026-01-01");
-        Assert.Equal(0, await albumin.Locator("svg line").CountAsync());
+        Assert.Equal(0, await albumin.Locator("svg line:not(.sparkline-track):not(.sparkline-tick)").CountAsync());
         await albumin.GetByRole(AriaRole.Button).ClickAsync();
         await WaitForChartAsync(page);
         Assert.True(await page.EvaluateAsync<bool>("""
@@ -293,7 +293,7 @@ public sealed class BiomarkerHistoryBrowserTests(
         if (!touch)
         {
             await page.Mouse.MoveAsync(0, 0);
-            await page.WaitForFunctionAsync("Chart.getChart(document.querySelector('.result-detail-row:not([hidden]) canvas')).tooltip.opacity === 0");
+            await page.WaitForFunctionAsync("() => Chart.getChart(document.querySelector('.result-detail-row:not([hidden]) canvas')).tooltip.opacity === 0");
         }
         Assert.True(await page.Locator("#biomarkerResultList").EvaluateAsync<bool>("el => el.scrollWidth <= el.clientWidth + 1"));
     }
