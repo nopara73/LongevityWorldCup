@@ -433,6 +433,41 @@ public sealed class EditProfileLayoutBrowserTests(
         finally { release.TrySetResult(); }
     }
 
+    [Fact]
+    public async Task CropDialog_KeepsFocusedCommandsVisibleAcrossTextAndViewportChanges()
+    {
+        await using var context = await CreateContextAsync(1440, 900);
+        await context.AddInitScriptAsync("window.Cropper = class { destroy() {} };");
+        var page = await OpenEditorAsync(context);
+        var scroll = await page.EvaluateAsync<double>("() => scrollY");
+        await page.Locator("#profilePicInputModal").SetInputFilesAsync(new FilePayload
+        {
+            Name = "fixture-selfie.png", MimeType = "image/png",
+            Buffer = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aO1cAAAAASUVORK5CYII=")
+        });
+        await Assertions.Expect(page.Locator("#changeProfileCropButton")).ToBeFocusedAsync();
+        foreach (var (width, height, text) in new[] { (1440, 900, 100), (640, 320, 200), (390, 844, 200), (390, 844, 100) })
+        {
+            await page.SetViewportSizeAsync(width, height);
+            await page.EvaluateAsync("size => document.documentElement.style.fontSize = size + '%'", text);
+            await page.WaitForFunctionAsync("""
+                () => {
+                    const modal = document.getElementById('changeProfileCropperModal').getBoundingClientRect();
+                    const focused = document.activeElement;
+                    const r = focused.getBoundingClientRect();
+                    return focused.id === 'changeProfileCropButton' && r.top >= modal.top
+                        && r.bottom <= modal.bottom && modal.top >= 0 && modal.bottom <= innerHeight + 1;
+                }
+                """);
+        }
+        await page.Keyboard.PressAsync("Tab");
+        await Assertions.Expect(page.Locator("#changeProfileCancelButton")).ToBeFocusedAsync();
+        await page.Keyboard.PressAsync("Escape");
+        await Assertions.Expect(page.Locator("#changeProfileCropperModal")).ToBeHiddenAsync();
+        await Assertions.Expect(page.Locator("#changeProfilePicButton")).ToBeFocusedAsync();
+        Assert.Equal(scroll, await page.EvaluateAsync<double>("() => scrollY"));
+    }
+
     [Theory]
     [InlineData(390, 844)]
     [InlineData(1280, 720)]

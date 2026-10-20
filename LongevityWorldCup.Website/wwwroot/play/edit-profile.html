@@ -1513,6 +1513,35 @@
         const profileCameraInput = document.getElementById('profileCameraInputModal');
         const cropperModal = document.getElementById('changeProfileCropperModal');
         const cropperImage = document.getElementById('changeProfileCropperImage');
+        const cropperStage = cropperImage.parentElement;
+        let cropperLayoutFrame = 0;
+
+        function refreshProfileCropperLayout() {
+            if (cropperModal.hidden || cropperLayoutFrame) return;
+            cropperLayoutFrame = requestAnimationFrame(() => {
+                cropperLayoutFrame = 0;
+                if (cropperModal.hidden) return;
+                const cropper = window.changeProfileCropper;
+                const container = cropper?.getContainerData?.();
+                if (container?.width && (Math.abs(container.width - cropperStage.clientWidth) > 1
+                    || Math.abs(container.height - cropperStage.clientHeight) > 1)) cropper.resize();
+
+                const focused = document.activeElement;
+                if (!focused || focused === cropperModal || !cropperModal.contains(focused)) return;
+                const bounds = focused.getBoundingClientRect();
+                const modalBounds = cropperModal.getBoundingClientRect();
+                if (bounds.bottom > modalBounds.bottom - 8) {
+                    cropperModal.scrollTop += Math.ceil(bounds.bottom - modalBounds.bottom + 8);
+                } else if (bounds.top < modalBounds.top + 8) {
+                    cropperModal.scrollTop -= Math.ceil(modalBounds.top + 8 - bounds.top);
+                }
+            });
+        }
+
+        const cropperLayoutObserver = new ResizeObserver(refreshProfileCropperLayout);
+        cropperLayoutObserver.observe(cropperModal);
+        cropperLayoutObserver.observe(cropperStage);
+        cropperModal.addEventListener('focusin', refreshProfileCropperLayout);
         const modalOverlay = document.getElementById('modalOverlay');
         const cropBtn = document.getElementById('changeProfileCropButton');
         const cancelBtn = document.getElementById('changeProfileCancelButton');
