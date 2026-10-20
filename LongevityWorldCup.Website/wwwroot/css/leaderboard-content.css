@@ -4608,6 +4608,8 @@ main[data-leaderboard-page="full"] .flag-section-heading{ padding-block:var(--lw
     --result-name-width:38%;
     --result-trend-width:34%;
     padding:0;
+    container-type:inline-size;
+    container-name:athlete-results;
 }
 #detailsModal .biomarkers-heading{
     margin:0;
@@ -5027,7 +5029,8 @@ main[data-leaderboard-page="full"] .flag-section-heading{ padding-block:var(--lw
         top:-3.4rem;
         left:3.5rem;
         right:0;
-        white-space:nowrap;
+        white-space:normal;
+        text-wrap:balance;
         text-align:center;
     }
     .enlarged-portrait.is-proof-gallery .image-viewer-hint{ display:none; }
@@ -5046,4 +5049,55 @@ main[data-leaderboard-page="full"] .flag-section-heading{ padding-block:var(--lw
         box-shadow:0 -1px 0 rgba(246,244,237,.2);
         border-radius:0 0 var(--lwc-radius-md, 8px) var(--lwc-radius-md, 8px) !important;
     }
+}
+
+/* At enlarged text or the narrowest browser zoom, each trend gets its own line. */
+@container athlete-results (max-width:12em){
+    #detailsModal .biomarkers-heading .biomarker-overview-range{ white-space:normal; text-align:left; }
+    #detailsModal .biomarker-overview-table,
+    #detailsModal .biomarker-overview-table > :is(thead,tbody){ display:block; }
+    #detailsModal .biomarker-overview-table > thead > tr,
+    #detailsModal .biomarker-overview-table > tbody > .result-summary{
+        display:grid;
+        grid-template-columns:minmax(0, 1fr) max-content;
+        align-items:center;
+    }
+    #detailsModal .biomarker-overview-table > thead > tr > th:first-child,
+    #detailsModal .biomarker-overview-table > tbody > .result-summary > th:first-child{
+        grid-column:1;
+        grid-row:1;
+        width:auto;
+        padding-left:.4rem;
+    }
+    #detailsModal .biomarker-overview-table > thead > tr > th:last-child,
+    #detailsModal .biomarker-overview-table > tbody > .result-summary > td:last-child{
+        grid-column:2;
+        grid-row:1;
+        width:auto;
+        padding-right:1.3rem;
+    }
+    #detailsModal .biomarker-overview-table > thead > tr > .biomarker-overview-history{
+        position:absolute;
+        width:1px;
+        height:1px;
+        padding:0;
+        overflow:hidden;
+        clip-path:inset(50%);
+        white-space:nowrap;
+    }
+    #detailsModal .biomarker-overview-table > tbody > .result-summary > :is(th,td){ border-bottom:0; }
+    #detailsModal .biomarker-overview-table > tbody > .result-summary > .biomarker-overview-history{
+        grid-column:1 / -1;
+        grid-row:2;
+        width:auto;
+        min-width:0;
+        padding:.35rem .6rem .75rem;
+        border-bottom:1px solid var(--athlete-modal-border);
+    }
+    #detailsModal .result-summary button,
+    #detailsModal .result-measurement-date,
+    #detailsModal .biomarker-history-unit{ white-space:normal; overflow-wrap:anywhere; }
+    #detailsModal .biomarker-overview-table > tbody > .result-detail-row:not([hidden]),
+    #detailsModal .biomarker-overview-table > tbody > .result-detail-row > td{ display:block; }
+    #detailsModal .biomarker-overview-table > tbody > .result-detail-row > td{ width:100%; box-sizing:border-box; }
 }

@@ -403,9 +403,64 @@ public sealed class AthleteDataAnalyticsBrowserTests(
     }
 
     [Theory]
+    [InlineData(160, false)]
+    [InlineData(195, false)]
+    [InlineData(390, true)]
+    public async Task Analytics_ReflowsNarrowResultsAndKeepsLongDatesClearOfThePickerArrow(int width, bool enlargedText)
+    {
+        await using var context = await NewContextAsync(width, true, latestDate: "2026-09-30");
+        var page = await OpenAsync(context);
+        if (enlargedText) await page.AddStyleTagAsync(new() { Content = "html { font-size:200% !important; }" });
+        var dates = await page.Locator("#ageResultSelect option").EvaluateAllAsync<string[]>("options => options.map(option => option.value)");
+        foreach (var date in dates)
+        {
+            await page.Locator("#ageResultSelect").SelectOptionAsync(date);
+            var pickerFailures = await page.EvaluateAsync<string[]>("""
+                () => {
+                    const failures = [], label = document.querySelector('#ageResultCurrent time');
+                    const box = document.getElementById('ageResultCurrent').getBoundingClientRect();
+                    const arrow = document.querySelector('.age-result-chevron').getBoundingClientRect();
+                    const range = document.createRange(); range.selectNodeContents(label);
+                    for (const glyphs of range.getClientRects())
+                        if (glyphs.left < box.left || glyphs.right > arrow.left - 1 || glyphs.top < box.top || glyphs.bottom > box.bottom)
+                            failures.push(`date ${label.textContent} overlaps its control or arrow`);
+                    return failures;
+                }
+                """);
+            Assert.Empty(pickerFailures);
+        }
+        await Expect(page.GetByRole(AriaRole.Columnheader, new() { Name = "History", Exact = true })).ToHaveCountAsync(1);
+        var resultFailures = await page.EvaluateAsync<string[]>("""
+            () => {
+                const failures = [], section = document.getElementById('athlete-biomarkers');
+                const list = document.getElementById('biomarkerResultList');
+                if (list.scrollWidth > list.clientWidth + 1 || section.scrollWidth > section.clientWidth + 1) failures.push('results overflow their section');
+                for (const element of section.querySelectorAll('.biomarkers-heading h3, .biomarker-overview-range, .result-summary button, .biomarker-overview-current, .biomarker-overview-change')) {
+                    const cell = (element.closest('th, td') || element.parentElement).getBoundingClientRect();
+                    const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+                    while (walker.nextNode()) {
+                        const range = document.createRange(); range.selectNodeContents(walker.currentNode);
+                        for (const glyphs of range.getClientRects())
+                            if (glyphs.left < cell.left - 1 || glyphs.right > cell.right + 1 || glyphs.top < cell.top - 1 || glyphs.bottom > cell.bottom + 1)
+                                failures.push(`${element.textContent}: clipped text`);
+                    }
+                }
+                for (const row of section.querySelectorAll('.result-summary')) {
+                    const history = row.querySelector('.biomarker-overview-history').getBoundingClientRect();
+                    const value = row.querySelector('.biomarker-overview-result').getBoundingClientRect();
+                    if (history.top < value.bottom - 1) failures.push('narrow trend overlaps its latest value');
+                }
+                return failures;
+            }
+            """);
+        Assert.Empty(resultFailures);
+    }
+
+    [Theory]
     [InlineData(1440, 900, false, false)]
     [InlineData(844, 390, false, true)]
     [InlineData(195, 422, false, true)]
+    [InlineData(160, 284, false, true)]
     [InlineData(390, 844, true, false)]
     public async Task Proofs_ReflowAtEnlargedTextAndFitWholePagesWithoutCoveredControls(int width, int height, bool enlargedText, bool wide)
     {
@@ -459,7 +514,7 @@ public sealed class AthleteDataAnalyticsBrowserTests(
         Assert.Empty(viewerFailures);
     }
 
-    private async Task<IBrowserContext> NewContextAsync(int width, bool dark, bool reducedMotion = true)
+    private async Task<IBrowserContext> NewContextAsync(int width, bool dark, bool reducedMotion = true, string? latestDate = null)
     {
         var context = await Browser.NewContextAsync(new()
         {
@@ -490,6 +545,7 @@ public sealed class AthleteDataAnalyticsBrowserTests(
         }));
         await context.AddInitScriptAsync("localStorage.setItem('gmaSkipAll', 'true');");
         var athlete = await TwoResultAthleteAsync();
+        if (latestDate is not null) athlete["Biomarkers"]!.AsArray()[1]!["Date"] = latestDate;
         await context.AddInitScriptAsync($"window.getSharedAthletes = async () => ([{athlete.ToJsonString()}]);");
         return context;
     }

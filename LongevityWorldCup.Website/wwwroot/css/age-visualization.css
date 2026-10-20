@@ -431,6 +431,7 @@
     font-variant-numeric:tabular-nums;
     letter-spacing:.01em;
 }
+#detailsModal .age-result-current time{ min-width:0; white-space:normal; }
 #detailsModal .age-result-picker[data-multiple="true"] .age-result-step:not(:disabled):hover{ background:var(--athlete-modal-card-hover, #26343d); }
 @media (max-width: 480px){
     #detailsModal .age-result-picker[data-multiple="true"] .age-result-current{ border-radius:var(--lwc-radius-md, 8px); }
