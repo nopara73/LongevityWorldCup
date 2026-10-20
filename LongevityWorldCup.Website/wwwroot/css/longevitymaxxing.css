@@ -2073,43 +2073,86 @@
 
 .lmx-access-loading {
     min-width: 0;
-    min-height: 7.5rem;
-    padding: 1rem;
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
-    gap: 0.75rem;
-    align-items: center;
-    border: 1px solid var(--lmx-border);
-    border-radius: 8px;
-    background: var(--lmx-surface-muted);
+    gap: 1.5rem;
 }
 
-.lmx-access-loading i {
-    width: 2.25rem;
-    height: 2.25rem;
-    border-radius: 999px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--lmx-inverse-surface);
-    color: #ffffff;
+.lmx-loading-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
 }
 
-.lmx-access-loading span {
+.lmx-loading-progress {
+    height: 2px;
+    overflow: hidden;
+    background: var(--lmx-border);
+}
+
+.lmx-loading-progress::before {
+    content: "";
+    display: block;
+    width: 25%;
+    height: 100%;
+    background: var(--lmx-accent);
+    animation: lmx-loading-progress 1.8s ease-in-out infinite alternate;
+}
+
+.lmx-loading-rows {
+    display: grid;
+}
+
+.lmx-loading-row {
     min-width: 0;
     display: grid;
-    gap: 0.25rem;
+    grid-template-columns: 2rem minmax(0, 1fr) minmax(0, 45%);
+    align-items: center;
+    gap: 1rem;
+    padding-block: 1rem;
+    border-bottom: 1px solid var(--lmx-border);
 }
 
-.lmx-access-loading strong {
-    min-width: 0;
-    overflow-wrap: anywhere;
+.lmx-loading-avatar,
+.lmx-loading-name {
+    display: block;
+    background: var(--lmx-border);
+    opacity: 0.65;
 }
 
-.lmx-access-loading strong {
-    color: var(--lmx-ink);
-    font-size: 1.05rem;
-    line-height: 1.2;
+.lmx-loading-avatar {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+}
+
+.lmx-loading-name {
+    width: min(70%, 10rem);
+    height: 0.625rem;
+    border-radius: 2px;
+}
+
+.lmx-loading-row:nth-child(even) .lmx-loading-name {
+    width: min(55%, 7rem);
+}
+
+.lmx-loading-days {
+    height: 0.625rem;
+    background: repeating-linear-gradient(90deg, var(--lmx-border) 0 1.5rem, transparent 1.5rem 2rem);
+    opacity: 0.5;
+}
+
+@keyframes lmx-loading-progress {
+    to { transform: translateX(300%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .lmx-loading-progress::before {
+        animation: none;
+    }
 }
 
 .lmx-button {
@@ -5084,6 +5127,27 @@ a.lmx-note-mention:focus-visible {
 }
 
 /* Keep the first paint neutral until the public or private view is resolved. */
+.lmx-page[aria-busy="true"] {
+    min-height: calc(100svh - 8rem);
+}
+
+.lmx-page[aria-busy="true"] .lmx-hero {
+    grid-template-columns: 1fr !important;
+}
+
+.lmx-page[aria-busy="true"] #lmxTitlePanel,
+.lmx-page[aria-busy="true"] .lmx-action-card {
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    background: transparent;
+}
+
+.lmx-page[aria-busy="true"] .lmx-action-card {
+    position: static;
+}
+
 .lmx-page[aria-busy="true"] #lmxTitlePanel > :not(.lmx-title-row),
 .lmx-page[aria-busy="true"] #lmxAccessTabs,
 .lmx-page[aria-busy="true"] #lmxSignupPanel,
