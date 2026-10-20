@@ -783,6 +783,61 @@ public sealed class MediaKitBrowserTests(PlaywrightBrowserFixture browserFixture
         await Assertions.Expect(thumb).ToHaveAttributeAsync("data-fill", "transparent");
     }
 
+    [Theory]
+    [InlineData(160, false, 100)]
+    [InlineData(160, true, 100)]
+    [InlineData(280, false, 200)]
+    public async Task NarrowFolderDocuments_KeepTheirDrawnGlyphClearOfTheDownloadControl(int width, bool dark, int textSize)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = 900 },
+            ColorScheme = dark ? ColorScheme.Dark : ColorScheme.Light,
+            ReducedMotion = ReducedMotion.Reduce
+        });
+        await InstallKitFixtureAsync(context, kitFiles: PressKitFiles());
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/media");
+        await Assertions.Expect(page.Locator(".media-file-row")).ToHaveCountAsync(PressKitFiles().Count);
+        await page.AddStyleTagAsync(new() { Content = $"html {{ font-size: {textSize}% !important; }}" });
+        await page.EvaluateAsync("() => document.fonts.ready");
+        var problems = await page.EvaluateAsync<string[]>(
+            """
+            () => {
+                const issues = [];
+                const context = document.createElement('canvas').getContext('2d');
+                for (const icon of document.querySelectorAll('.media-kit-group:not(.media-kit-root) .media-file-icon')) {
+                    const style = getComputedStyle(icon, '::before');
+                    const box = icon.getBoundingClientRect();
+                    const button = icon.closest('.media-file-tile').querySelector('button').getBoundingClientRect();
+                    context.font = style.fontStyle + ' ' + style.fontWeight + ' ' + style.fontSize + ' ' + style.fontFamily;
+                    const glyph = context.measureText(style.content.slice(1, -1));
+                    const origin = box.left + (box.width - glyph.width) / 2;
+                    const baseline = box.top + (box.height - glyph.fontBoundingBoxAscent - glyph.fontBoundingBoxDescent) / 2 + glyph.fontBoundingBoxAscent;
+                    const ink = {
+                        left: origin - glyph.actualBoundingBoxLeft,
+                        right: origin + glyph.actualBoundingBoxRight,
+                        top: baseline - glyph.actualBoundingBoxAscent,
+                        bottom: baseline + glyph.actualBoundingBoxDescent
+                    };
+                    if (Math.min(ink.right, button.right) - Math.max(ink.left, button.left) > 1
+                        && Math.min(ink.bottom, button.bottom) - Math.max(ink.top, button.top) > 1)
+                        issues.push('The document glyph is covered by its download button');
+                    for (let parent = icon.parentElement; parent && parent !== document.body; parent = parent.parentElement) {
+                        const style = getComputedStyle(parent);
+                        if (!['hidden', 'clip'].includes(style.overflowX) && !['hidden', 'clip'].includes(style.overflowY)) continue;
+                        const clip = parent.getBoundingClientRect();
+                        if (ink.left < clip.left - 1 || ink.right > clip.right + 1 || ink.top < clip.top - 1 || ink.bottom > clip.bottom + 1)
+                            issues.push('The drawn document glyph is clipped');
+                    }
+                }
+                return issues;
+            }
+            """);
+        Assert.True(problems.Length == 0, string.Join("; ", problems));
+        await FlowActionDockBrowserTests.ExpectNoHorizontalOverflowAsync(page);
+    }
+
     private static Dictionary<string, string> PressKitFiles()
     {
         var photo = KitFiles.Value["MediaKit/Athletes/Athlete.png"];

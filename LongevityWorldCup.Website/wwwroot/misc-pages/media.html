@@ -552,6 +552,18 @@
                 font-size: 2.25rem;
             }
         }
+
+        @media (max-width: 280px) {
+            /* At full phone zoom, put a folder document's glyph below its
+               corner control instead of squeezing both into the same line. */
+            .media-kit-group:not(.media-kit-root) .media-file-doc-thumb {
+                width: 100%;
+                min-width: 0;
+                aspect-ratio: auto;
+                min-height: 8rem;
+                padding: calc(44px + var(--lwc-space-3)) min(0.75rem, 3vw) min(0.75rem, 3vw);
+            }
+        }
     </style>
 </head>
 <body>
