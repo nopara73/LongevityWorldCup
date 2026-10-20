@@ -461,6 +461,8 @@
             var reading = state.readings[index];
             if (!reading) return;
             state.selectedIndex = index;
+            // The web takes the chosen clock's colour, so set it before the chart redraws.
+            if (canvas) canvas.dataset.clock = useBortz ? 'bortz' : 'pheno';
             applyRadarData(reading.data);
             updateCenterAndFallback(reading.bio, reading.chrono, useBortz);
             if (select) select.value = String(index);
@@ -471,7 +473,6 @@
                 resultDate.setAttribute('datetime', reading.date?.slice(0, 10) || '');
             }
             if (canvas) {
-                canvas.dataset.clock = useBortz ? 'bortz' : 'pheno';
                 canvas.dataset.resultDate = reading.date || '';
                 canvas.setAttribute('aria-label', (useBortz ? 'Bortz Age' : 'Pheno Age') + ': '
                     + resultLabel(reading) + '. Domain percentiles.');
@@ -570,6 +571,17 @@
         var radarFill = modalStyles ? (modalStyles.getPropertyValue('--athlete-modal-cream-soft').trim() || 'rgba(246,244,237,.18)') : 'rgba(246,244,237,.18)';
         var radarStroke = modalStyles ? (modalStyles.getPropertyValue('--athlete-modal-cream').trim() || 'rgba(246,244,237,.92)') : 'rgba(246,244,237,.92)';
         var radarPoint = modalStyles ? (modalStyles.getPropertyValue('--athlete-modal-cream').trim() || 'rgba(246,244,237,.92)') : 'rgba(246,244,237,.92)';
+        // The web wears the selected clock's colour from Results over time.
+        function clockColor(alpha?: number): string {
+            var token = canvas?.dataset.clock === 'pheno' ? '--athlete-modal-chart-pheno' : '--athlete-modal-chart-bortz';
+            var color = modalStyles ? modalStyles.getPropertyValue(token).trim() : '';
+            if (!color) return alpha == null ? radarStroke : radarFill;
+            if (alpha == null) return color;
+            var channels = color.match(/rgba?\(([^)]+)\)/)?.[1]?.split(',').slice(0, 3).join(',');
+            return channels ? 'rgba(' + channels + ',' + alpha + ')' : color;
+        }
+        var radarTooltip = modalStyles ? (modalStyles.getPropertyValue('--athlete-modal-chart-tooltip').trim() || 'rgba(0,0,0,0.78)') : 'rgba(0,0,0,0.78)';
+        var radarInk = modalStyles ? (modalStyles.getPropertyValue('--athlete-modal-text').trim() || '#fff') : '#fff';
         var radarPointHitRadius = window.matchMedia && window.matchMedia('(pointer: coarse)').matches ? 18 : 8;
         var contributors = data.tooltipContributors || [];
         var radarWebSpokesPlugin = {
@@ -602,13 +614,17 @@
                 datasets: [{
                     label: 'Percentile (higher = better)',
                     data: data.values,
-                    backgroundColor: radarFill,
-                    borderColor: radarStroke,
+                    backgroundColor: function () { return clockColor(0.16); },
+                    borderColor: function () { return clockColor(); },
+                    // Results switch in Chart.js's 'active' mode, which would otherwise paint a saturated hover colour.
+                    hoverBackgroundColor: function () { return clockColor(0.16); },
+                    hoverBorderColor: function () { return clockColor(); },
                     borderWidth: 2.5,
-                    pointBackgroundColor: radarPoint,
+                    pointBackgroundColor: function () { return clockColor(); },
                     pointBorderColor: 'rgba(18,20,20,.95)',
                     pointBorderWidth: 2,
                     pointHoverBackgroundColor: radarPoint,
+                    borderJoinStyle: 'round',
                     pointHoverBorderColor: 'rgba(18,20,20,.95)',
                     pointHoverBorderWidth: 2,
                     pointRadius: 5,
@@ -625,9 +641,14 @@
                 plugins: {
                     legend: { display: false },
                     tooltip: {
-                        backgroundColor: 'rgba(0,0,0,0.78)',
+                        backgroundColor: radarTooltip,
+                        titleColor: radarInk,
+                        bodyColor: radarInk,
+                        borderColor: function () { return clockColor(); },
+                        borderWidth: 1,
+                        displayColors: false,
                         padding: 10,
-                        cornerRadius: 8,
+                        cornerRadius: 6,
                         titleFont: { size: 12, weight: '600' },
                         bodyFont: { size: 12 },
                         callbacks: {
@@ -666,6 +687,11 @@
                                 return { family: fontFamily, size: context.chart.width >= 420 ? 12 : 11, weight: '500' };
                             },
                             color: radarLabelColor,
+                            // Each domain carries its percentile under its name, like a labelled axis.
+                            callback: function (this: { readonly chart?: { readonly data: { readonly datasets: ReadonlyArray<{ readonly data: readonly unknown[] }> } } }, label: string, index: number): string | string[] {
+                                var value = Number(this?.chart?.data.datasets[0]?.data[index]);
+                                return Number.isFinite(value) ? [label, String(Math.round(value))] : label;
+                            },
                             padding: 6,
                             z: 1
                         },

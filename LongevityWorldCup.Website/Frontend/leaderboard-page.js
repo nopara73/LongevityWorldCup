@@ -6277,7 +6277,10 @@ function renderBiomarkerHistory(history, athletes) {
         const arrow = document.createElement('span');
         arrow.className = 'biomarker-overview-arrow';
         arrow.setAttribute('aria-hidden', 'true');
-        result.append(current, arrow);
+        result.append(current);
+        const change = createResultChange(measure, measuredIndices);
+        if (change) result.appendChild(change);
+        result.appendChild(arrow);
         row.append(heading, sparkline, result);
         rows.append(row, detail);
     });
@@ -6292,6 +6295,21 @@ function renderBiomarkerHistory(history, athletes) {
             history.clockHistoryObserver.observe(strip.firstElementChild);
         });
     }
+}
+
+// The change since the first reading, signed and as precise as the readings themselves.
+function createResultChange(measure, indices) {
+    if (indices.length < 2) return null;
+    const first = Number(measure.values[indices[0]]);
+    const latest = Number(measure.values[indices.at(-1)]);
+    const decimals = value => measure.clock ? 1 : (String(value).split('.')[1] || '').length;
+    const precision = Math.min(3, Math.max(decimals(measure.values[indices[0]]), decimals(measure.values[indices.at(-1)])));
+    const delta = Number((latest - first).toFixed(precision));
+    const change = document.createElement('span');
+    change.className = 'biomarker-overview-change';
+    change.dataset.direction = delta > 0 ? 'up' : delta < 0 ? 'down' : 'flat';
+    change.textContent = delta === 0 ? '±0' : `${delta > 0 ? '+' : '−'}${Math.abs(delta).toFixed(precision)}`;
+    return change;
 }
 
 function updateClockHistoryOverflow(strip) {
@@ -6444,17 +6462,32 @@ function createBiomarkerSparkline(labels, values) {
     const start = Date.parse(labels[0]);
     const duration = Date.parse(labels.at(-1)) - start;
     const latest = values.findLastIndex(isBiomarkerHistoryValue);
+    // The whole test timeline sits under every trend, so a short series reads as recent, not misplaced.
+    historySvgNode(svg, 'line', { class: 'sparkline-track', x1: 8, y1: 36, x2: 112, y2: 36 });
+    labels.forEach((label, index) => {
+        const x = duration ? 8 + (Date.parse(label) - start) / duration * 104 : 60;
+        historySvgNode(svg, 'line', { class: 'sparkline-tick', x1: x, y1: 34, x2: x, y2: 38 });
+    });
+    const areas = historySvgNode(svg, 'g', { class: 'sparkline-area' });
     const lines = historySvgNode(svg, 'g', {});
-    let previous = null;
+    let run = [];
+    const closeRun = () => {
+        if (run.length > 1) historySvgNode(areas, 'path', {
+            d: `M${run[0].x},36 ${run.map(point => `L${point.x},${point.y}`).join(' ')} L${run.at(-1).x},36Z`
+        });
+        run = [];
+    };
     values.forEach((value, index) => {
-        if (!isBiomarkerHistoryValue(value)) { previous = null; return; }
+        if (!isBiomarkerHistoryValue(value)) { closeRun(); return; }
         const x = duration ? 8 + (Date.parse(labels[index]) - start) / duration * 104 : 60;
-        const y = min === max ? 20 : 32 - (Number(value) - min) / (max - min) * 24;
+        const y = min === max ? 18 : 30 - (Number(value) - min) / (max - min) * 24;
+        const previous = run.at(-1);
         if (previous) historySvgNode(lines, 'line', { x1: previous.x, y1: previous.y, x2: x, y2: y });
         historySvgNode(svg, 'circle', { cx: x, cy: y, r: index === latest ? 4 : 2.5,
             class: index === latest ? 'is-latest' : index === 0 ? 'is-baseline' : '' });
-        previous = { x, y };
+        run.push({ x, y });
     });
+    closeRun();
     return svg;
 }
 

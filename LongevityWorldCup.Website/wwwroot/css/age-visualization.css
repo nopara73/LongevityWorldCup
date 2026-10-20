@@ -410,3 +410,45 @@
         aspect-ratio: 16 / 10;
     }
 }
+
+/* The result picker is one segmented control: earlier, the date, later. */
+#detailsModal .age-result-picker{ margin-bottom:.75rem; }
+#detailsModal .age-result-picker[data-multiple="true"]{ gap:0; }
+#detailsModal .age-result-picker[data-multiple="true"] .age-result-step,
+#detailsModal .age-result-picker[data-multiple="true"] .age-result-step:disabled{
+    border:1px solid var(--athlete-modal-border, rgba(255,255,255,.16));
+    background:var(--athlete-modal-surface, #17212b);
+    opacity:1;
+}
+#detailsModal .age-result-picker[data-multiple="true"] #ageResultEarlier{ border-right:0; border-radius:var(--lwc-radius-md, 8px) 0 0 var(--lwc-radius-md, 8px); }
+#detailsModal .age-result-picker[data-multiple="true"] #ageResultLater{ border-left:0; border-radius:0 var(--lwc-radius-md, 8px) var(--lwc-radius-md, 8px) 0; }
+#detailsModal .age-result-picker .age-result-step:disabled svg{ opacity:.3; }
+#detailsModal .age-result-picker[data-multiple="true"] .age-result-current{ border-radius:0; }
+#detailsModal .age-result-current{
+    font-weight:600;
+    font-variant-numeric:tabular-nums;
+    letter-spacing:.01em;
+}
+#detailsModal .age-result-picker[data-multiple="true"] .age-result-step:not(:disabled):hover{ background:var(--athlete-modal-card-hover, #26343d); }
+@media (max-width: 480px){
+    #detailsModal .age-result-picker[data-multiple="true"] .age-result-current{ border-radius:var(--lwc-radius-md, 8px); }
+}
+
+/* The summary is the radar's figure: one number, its label, and the clock age under a hairline. */
+#detailsModal .age-radar-summary{
+    width:fit-content;
+    min-width:min(100%, 17rem);
+    max-width:100%;
+    box-sizing:border-box;
+    margin-top:.75rem;
+    padding:.75rem 1.25rem;
+    border-radius:var(--lwc-radius-md, 8px);
+    column-gap:.6rem;
+}
+#detailsModal .age-radar-summary .age-diff{ font-variant-numeric:tabular-nums; }
+#detailsModal .age-radar-summary .age-bio-age{
+    margin-top:.5rem;
+    padding-top:.45rem;
+    border-top:1px solid var(--athlete-doc-rule, rgba(246,244,237,.1));
+    font-variant-numeric:tabular-nums;
+}
