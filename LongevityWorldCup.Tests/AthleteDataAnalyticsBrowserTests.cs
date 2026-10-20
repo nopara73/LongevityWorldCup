@@ -388,6 +388,63 @@ public sealed class AthleteDataAnalyticsBrowserTests(
         }
     }
 
+    [Theory]
+    [InlineData(1440, 900, false, false)]
+    [InlineData(844, 390, false, true)]
+    [InlineData(195, 422, false, true)]
+    [InlineData(390, 844, true, false)]
+    public async Task Proofs_ReflowAtEnlargedTextAndFitWholePagesWithoutCoveredControls(int width, int height, bool enlargedText, bool wide)
+    {
+        await using var context = await NewContextAsync(width, true);
+        await RouteProofsAsync(context, 9, wide);
+        var page = await OpenAsync(context);
+        await page.SetViewportSizeAsync(width, height);
+        if (enlargedText)
+            await page.AddStyleTagAsync(new() { Content = "html { font-size:200% !important; }" });
+        await page.Locator("#athlete-proofs").ScrollIntoViewIfNeededAsync();
+        await page.WaitForFunctionAsync("() => [...document.querySelectorAll('#proofsGallery .proof-item:not([hidden]) img')].every(img => img.complete && img.naturalWidth)");
+        var galleryFailures = await page.EvaluateAsync<string[]>("""
+            () => {
+                const failures = [];
+                for (const img of document.querySelectorAll('#proofsGallery .proof-item:not([hidden]) img')) {
+                    const style = getComputedStyle(img);
+                    if (img.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom) < 10) failures.push('proof page has no visible reading area');
+                    const chip = img.nextElementSibling;
+                    const range = document.createRange(); range.selectNodeContents(chip);
+                    const glyphs = range.getBoundingClientRect(), box = img.getBoundingClientRect();
+                    if (glyphs.left < box.left || glyphs.right > box.right || glyphs.top < box.top || glyphs.bottom > box.bottom) failures.push('proof number is clipped');
+                }
+                const toggle = document.querySelector('.proofs-toggle').getBoundingClientRect();
+                if (toggle.height < 44) failures.push('proof toggle is too short for touch');
+                return failures;
+            }
+            """);
+        Assert.Empty(galleryFailures);
+        await page.Locator("#proofsGallery img").First.ClickAsync();
+        await page.WaitForFunctionAsync("() => document.getElementById('athleteImageViewer').dataset.imageState === 'ready'");
+        await page.Locator(".image-zoom-fit").ClickAsync();
+        var viewerFailures = await page.EvaluateAsync<string[]>("""
+            () => {
+                const failures = [];
+                const viewer = document.getElementById('athleteImageViewer');
+                const stage = viewer.querySelector('.image-viewer-stage').getBoundingClientRect();
+                const image = viewer.querySelector('.image-viewer-stage img').getBoundingClientRect();
+                if (image.left < stage.left - 1 || image.right > stage.right + 1 || image.top < stage.top - 1 || image.bottom > stage.bottom + 1) failures.push('Fit crops the proof page');
+                const controls = [...viewer.querySelectorAll('button, .image-position, .image-viewer-hint')].filter(element => element.checkVisibility());
+                for (const control of controls) {
+                    const box = control.getBoundingClientRect();
+                    if (box.left < -.5 || box.top < -.5 || box.right > innerWidth + .5 || box.bottom > innerHeight + .5) failures.push('proof control escapes viewport');
+                    const range = document.createRange(); range.selectNodeContents(control);
+                    const glyphs = range.getBoundingClientRect();
+                    if (glyphs.left < box.left - 1 || glyphs.right > box.right + 1) failures.push('proof control text is clipped');
+                    if (box.left < image.right && box.right > image.left && box.top < image.bottom && box.bottom > image.top) failures.push('proof control covers the page');
+                }
+                return failures;
+            }
+            """);
+        Assert.Empty(viewerFailures);
+    }
+
     private async Task<IBrowserContext> NewContextAsync(int width, bool dark)
     {
         var context = await Browser.NewContextAsync(new()

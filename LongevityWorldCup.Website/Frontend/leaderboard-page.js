@@ -2263,6 +2263,7 @@ function setProofViewerZoom(enlargedElem, requestedIndex, shouldCenter = true) {
     const ready = enlargedElem.dataset.imageState === 'ready';
 
     enlargedElem.proofZoomIndex = boundedIndex;
+    enlargedElem.dataset.proofZoom = String(zoom);
     enlargedElem.style.setProperty('--proof-viewer-zoom', String(zoom));
     if (zoomOut) zoomOut.disabled = !ready || boundedIndex === 0;
     if (zoomIn) zoomIn.disabled = !ready || boundedIndex === proofViewerZoomLevels.length - 1;
