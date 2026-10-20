@@ -94,6 +94,81 @@ public sealed class PlayOnboardingBrowserTests(
     }
 
     [Theory]
+    [InlineData(320, 640, false)]
+    [InlineData(390, 844, true)]
+    [InlineData(768, 1024, false)]
+    [InlineData(844, 390, true)]
+    [InlineData(1440, 900, false)]
+    public async Task StartDoors_ReflowLongLabelsWithoutCoveringTheWordmark(int width, int height, bool returning)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = height },
+            ReducedMotion = ReducedMotion.Reduce,
+            HasTouch = width < 600
+        });
+        if (returning) await context.AddInitScriptAsync("localStorage.setItem('hasApplication', 'true');");
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/play");
+        await page.WaitForFunctionAsync("() => document.documentElement.classList.contains('play-route-ready') && !document.getElementById('newGameBtn').disabled");
+        await page.EvaluateAsync(
+            """
+            async () => {
+                document.documentElement.style.setProperty('font-size', '200%', 'important');
+                for (const label of document.querySelectorAll('.play-menu-actions .flow-action__label'))
+                    label.textContent += ' — continue to my chosen competition';
+                await document.fonts.ready;
+                window.LwcFlowActionDock.refreshNow();
+                await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+            }
+            """);
+        var problems = await page.EvaluateAsync<string[]>(
+            """
+            () => {
+                const issues = [];
+                const wordmark = document.querySelector('.play-menu-wordmark');
+                const range = document.createRange();
+                range.selectNodeContents(wordmark);
+                const brand = range.getBoundingClientRect();
+                const actions = document.querySelector('.play-menu-actions');
+                const a = actions.getBoundingClientRect();
+                if (brand.left < -1 || brand.right > innerWidth + 1) issues.push('wordmark is clipped');
+                if (brand.bottom > a.top - 1) issues.push('actions cover the wordmark');
+                if (actions.classList.contains('flow-action-stack--docked')
+                    && (a.top < 0 || a.bottom > innerHeight + 1 || a.height > innerHeight * 0.5 + 1))
+                    issues.push('the oversized action dock must return to the page');
+                for (const label of actions.querySelectorAll('.flow-action__label')) {
+                    const text = label.firstChild;
+                    const button = label.closest('button').getBoundingClientRect();
+                    for (const match of text.textContent.matchAll(/\S+/g)) {
+                        range.setStart(text, match.index);
+                        range.setEnd(text, match.index + match[0].length);
+                        const rects = [...range.getClientRects()];
+                        if (new Set(rects.map(r => Math.round(r.top))).size > 1) issues.push(`split word: ${match[0]}`);
+                        if (rects.some(r => r.left < button.left - 1 || r.right > button.right + 1)) issues.push(`clipped word: ${match[0]}`);
+                    }
+                }
+                return issues;
+            }
+            """);
+        Assert.True(problems.Length == 0, $"{width}x{height}: {string.Join("; ", problems)}");
+        foreach (var id in new[] { "newGameBtn", "continueGameBtn" })
+        {
+            await page.Locator($"#{id}").FocusAsync();
+            await page.EvaluateAsync("() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))");
+            Assert.True(await page.Locator($"#{id}").EvaluateAsync<bool>(
+                """
+                e => {
+                    const r = e.getBoundingClientRect(), x = (r.left + r.right) / 2, y = (r.top + r.bottom) / 2;
+                    const hit = document.elementFromPoint(x, y);
+                    return y >= 0 && y <= innerHeight && hit && (hit === e || e.contains(hit));
+                }
+                """), $"{width}x{height}: {id} is not reachable.");
+        }
+        await ExpectNoHorizontalOverflowAsync(page);
+    }
+
+    [Theory]
     [InlineData(390, 320, false)]
     [InlineData(390, 320, true)]
     [InlineData(844, 390, true)]

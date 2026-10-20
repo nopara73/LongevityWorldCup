@@ -208,6 +208,7 @@ body.play-start-active .play-menu-actions.flow-action-stack--docked {
 }
 
 .play-menu-hero {
+    container-type: inline-size;
     min-height: clamp(430px, 64dvh, 760px);
     display: flex;
     align-items: center;
@@ -218,13 +219,15 @@ body.play-start-active .play-menu-actions.flow-action-stack--docked {
 }
 
 .play-menu-wordmark {
+    --play-wordmark-size: 5.65rem;
     position: relative;
     display: inline-flex;
     align-items: baseline;
     justify-content: center;
     gap: 0.2em;
     color: #fff;
-    font-size: 5.65rem;
+    max-width: 100%;
+    font-size: min(var(--play-wordmark-size), 14cqi);
     font-weight: 700;
     font-style: italic;
     line-height: 1;
@@ -301,19 +304,19 @@ body.play-start-active .play-menu-actions.flow-action-stack--docked {
 
 @media (max-width: 768px) {
     .play-menu-wordmark {
-        font-size: 3.35rem;
+        --play-wordmark-size: 3.35rem;
     }
 }
 
 @media (max-width: 420px) {
     .play-menu-wordmark {
-        font-size: 2.9rem;
+        --play-wordmark-size: 2.9rem;
     }
 }
 
 @media (max-width: 340px) {
     .play-menu-wordmark {
-        font-size: 2.5rem;
+        --play-wordmark-size: 2.5rem;
     }
 }
 
@@ -1589,7 +1592,7 @@ html.play-panel-transitioning .play-hub-panel--entering {
     }
 
     .play-menu-wordmark {
-        font-size: 3.4rem;
+        --play-wordmark-size: 3.4rem;
     }
 
     .play-menu-actions.flow-action-stack--docked {
@@ -2321,6 +2324,14 @@ html.play-panel-transitioning .play-hub-panel--entering {
 
 /* Start: the second door is an outlined button on the night stage instead of
    a pale slab competing with the primary. */
+body.play-start-active > .play-hub-main {
+    padding-inline: min(1rem, 16px);
+}
+
+body.play-start-active .play-menu-actions .flow-action {
+    padding-inline: min(1rem, 16px);
+}
+
 body.play-start-active .play-menu-actions .option-button.grey.flow-action--secondary {
     border: 1px solid rgba(255, 255, 255, 0.34);
     background: rgba(255, 255, 255, 0.06);
