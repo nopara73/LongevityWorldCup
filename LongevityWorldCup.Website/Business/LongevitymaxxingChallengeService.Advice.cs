@@ -71,7 +71,7 @@ public sealed partial class LongevitymaxxingChallengeService
             ? Math.Sqrt(scores.Sum(score => Math.Pow(score - mean, 2)) / (scores.Length - 1)) : 0;
         var qualifies = current.ChallengeDay >= practice + 6 && checkIn.CountsForScore &&
             GetEffectiveRawScore(current, history) != RawDailyMaxScore && baseline is { } average &&
-            average - current.Score >= Math.Max(3, 2 * standardDeviation);
+            current.Score < average && average - current.Score >= 2 * standardDeviation;
         using var command = sqlite.CreateCommand();
         command.Transaction = transaction;
         // A corrected pending check-in is retired. A published or dismissed story never reopens itself.

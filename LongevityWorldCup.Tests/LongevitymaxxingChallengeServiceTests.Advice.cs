@@ -55,12 +55,16 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
     [Theory]
     [InlineData(new[] { 8, 8, 8, 8, 8, 8 }, 5, true)]
     [InlineData(new[] { 8, 8, 8, 8, 8, 8 }, 6, false)]
+    [InlineData(new[] { 8, 8, 8, 8, 8, 8 }, 7, false)]
+    [InlineData(new[] { 7, 7, 7, 7, 7, 7 }, 6, true)]
+    [InlineData(new[] { 7, 7, 7, 7, 7, 7 }, 7, false)]
+    [InlineData(new[] { 4, 4, 4, 4, 4, 4 }, 3, true)]
     [InlineData(new[] { 4, 4, 4, 4, 4, 4 }, 4, false)]
     [InlineData(new[] { 4, 4, 4, 4, 4, 4 }, 0, true)]
     [InlineData(new[] { 8, 0, 8, 0, 8, 0 }, 0, false)]
     // Sample SD is 1.549; population SD would incorrectly flag this three-point drop.
     [InlineData(new[] { 5, 5, 5, 5, 8, 8 }, 3, false)]
-    public async Task AdvicePrompt_RequiresBothAMeaningfulDropAndTwoSampleStandardDeviations(int[] scores, int current, bool prompts)
+    public async Task AdvicePrompt_RequiresTwoSampleStandardDeviationsAndExcludesForgivenSlips(int[] scores, int current, bool prompts)
     {
         using var fixture = TestChallengeFixture.Create();
         var access = await fixture.ConfirmParticipantAsync("deviation@example.com", "Deviation Devin");

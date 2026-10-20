@@ -325,7 +325,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await Assertions.Expect(dialog).ToBeVisibleAsync();
         await Assertions.Expect(page.Locator(".lmx-checkin-dialog-panel")).ToHaveCountAsync(0);
         await Assertions.Expect(dialog.Locator("h2")).ToHaveTextAsync("This is unusual for you. What’s the story?");
-        await Assertions.Expect(dialog.GetByRole(AriaRole.Button, new() { Name = "Change scores", Exact = true })).ToBeVisibleAsync();
+        await Assertions.Expect(dialog.GetByRole(AriaRole.Button, new() { Name = "Back", Exact = true })).ToBeVisibleAsync();
         await Assertions.Expect(dialog.Locator("button")).ToHaveCountAsync(2);
         await Assertions.Expect(dialog.Locator("textarea")).ToHaveValueAsync(AdviceCheckInNote);
         await Assertions.Expect(dialog.GetByRole(AriaRole.Button, new() { Name = "Post", Exact = true })).ToBeEnabledAsync();
@@ -413,7 +413,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await CaptureAdviceAsync(page, $"story-change-scores-{width}-{theme}.png", dialog);
         const string draft = "I may have selected the wrong scores. Keep this draft while I check.";
         await dialog.Locator("textarea").FillAsync(draft);
-        await dialog.GetByRole(AriaRole.Button, new() { Name = "Change scores", Exact = true }).ClickAsync();
+        await dialog.GetByRole(AriaRole.Button, new() { Name = "Back", Exact = true }).ClickAsync();
         var form = page.Locator(".lmx-checkin-card");
         await Assertions.Expect(dialog).ToBeHiddenAsync();
         await Assertions.Expect(page.Locator(".lmx-checkin-dialog-panel")).ToBeVisibleAsync();
@@ -426,7 +426,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await page.Locator("#lmxCheckinDialogClose").ClickAsync();
         await Assertions.Expect(dialog).ToBeVisibleAsync();
         await Assertions.Expect(dialog.Locator("textarea")).ToHaveValueAsync(draft);
-        await dialog.GetByRole(AriaRole.Button, new() { Name = "Change scores", Exact = true }).ClickAsync();
+        await dialog.GetByRole(AriaRole.Button, new() { Name = "Back", Exact = true }).ClickAsync();
         await form.Locator("[data-key='exercise'] .lmx-answer-option:has(input[value='1'])").ClickAsync();
         await form.Locator("button[type=submit]").ClickAsync();
         await Assertions.Expect(form).ToContainTextAsync("Temporarily unavailable.");
@@ -435,7 +435,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await form.Locator("button[type=submit]").ClickAsync();
         await Assertions.Expect(dialog).ToBeVisibleAsync();
         await Assertions.Expect(dialog.Locator("textarea")).ToHaveValueAsync(draft);
-        await dialog.GetByRole(AriaRole.Button, new() { Name = "Change scores", Exact = true }).ClickAsync();
+        await dialog.GetByRole(AriaRole.Button, new() { Name = "Back", Exact = true }).ClickAsync();
         foreach (var key in new[] { "exercise", "nutrition" })
             await form.Locator($"[data-key='{key}'] .lmx-answer-option:has(input[value='2'])").ClickAsync();
         await CaptureAdviceAsync(page, $"story-corrected-scores-{width}-{theme}.png", form);
@@ -462,7 +462,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await page.GotoAsync("/longevitymaxxing");
         var dialog = page.Locator("#lmxAdviceStoryDialog");
         await Assertions.Expect(dialog).ToBeVisibleAsync();
-        await Assertions.Expect(dialog.GetByRole(AriaRole.Button, new() { Name = "Change scores", Exact = true })).ToBeHiddenAsync();
+        await Assertions.Expect(dialog.GetByRole(AriaRole.Button, new() { Name = "Back", Exact = true })).ToBeHiddenAsync();
     }
 
     [Theory]

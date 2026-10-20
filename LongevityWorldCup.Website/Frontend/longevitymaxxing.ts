@@ -5492,7 +5492,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 </div>
                 <p class="lmx-status error" role="status" aria-live="polite"></p>
                 <div class="lmx-advice-story-actions">
-                    <button class="lmx-discussion-quiet-action" type="button" data-advice-change-scores>Change scores</button>
+                    <button class="lmx-discussion-quiet-action" type="button" data-advice-change-scores><i class="fas fa-arrow-left" aria-hidden="true"></i>Back</button>
                     <button class="lmx-button" type="submit">Post</button>
                 </div>
             </form>`;
