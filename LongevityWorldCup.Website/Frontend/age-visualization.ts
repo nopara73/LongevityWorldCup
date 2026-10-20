@@ -458,7 +458,7 @@
 
         function showReading(index: number): void {
             var state = useBortz ? bortz : pheno;
-            var reading = state.readings[index];
+            const reading = state.readings[index];
             if (!reading) return;
             state.selectedIndex = index;
             // The web takes the chosen clock's colour, so set it before the chart redraws.
@@ -475,7 +475,9 @@
             if (canvas) {
                 canvas.dataset.resultDate = reading.date || '';
                 canvas.setAttribute('aria-label', (useBortz ? 'Bortz Age' : 'Pheno Age') + ': '
-                    + resultLabel(reading) + '. Domain percentiles.');
+                    + resultLabel(reading) + '. Domain percentiles: ' + reading.data.labels.map(function (label, domainIndex) {
+                        return label + ': ' + reading.data.values[domainIndex];
+                    }).join('; ') + '.');
             }
         }
 
@@ -581,6 +583,37 @@
         }
         var radarTooltip = modalStyles ? (modalStyles.getPropertyValue('--athlete-modal-chart-tooltip').trim() || 'rgba(0,0,0,0.78)') : 'rgba(0,0,0,0.78)';
         var radarInk = modalStyles ? (modalStyles.getPropertyValue('--athlete-modal-text').trim() || '#fff') : '#fff';
+        const radarTextContext = ctx;
+        function wrapRadarText(text: string, width: number, size: number, weight = '400'): string[] {
+            radarTextContext.save();
+            radarTextContext.font = weight + ' ' + size + 'px ' + fontFamily;
+            var lines: string[] = [];
+            var line = '';
+            text.split(/\s+/).forEach(function (word) {
+                var candidate = line ? line + ' ' + word : word;
+                if (line && radarTextContext.measureText(candidate).width <= width) {
+                    line = candidate;
+                    return;
+                }
+                if (line && radarTextContext.measureText(candidate).width > width) {
+                    lines.push(line);
+                    line = '';
+                }
+                for (const glyph of word) {
+                    if (line && radarTextContext.measureText(line + glyph).width > width) {
+                        lines.push(line);
+                        line = '';
+                    }
+                    line += glyph;
+                }
+            });
+            if (line) lines.push(line);
+            radarTextContext.restore();
+            return lines;
+        }
+        function tooltipFont(context: { readonly chart: { readonly width: number } }): { family: string; size: number; lineHeight: number } {
+            return { family: fontFamily, size: context.chart.width < 260 ? 11 : 12, lineHeight: context.chart.width < 260 ? 1.1 : 1.2 };
+        }
         var radarPointHitRadius = window.matchMedia && window.matchMedia('(pointer: coarse)').matches ? 18 : 8;
         var contributors = data.tooltipContributors || [];
         var radarWebSpokesPlugin = {
@@ -646,10 +679,12 @@
                         borderColor: function () { return clockColor(); },
                         borderWidth: 1,
                         displayColors: false,
-                        padding: 10,
+                        padding: function (context: { readonly chart: { readonly height: number } }) { return context.chart.height < 180 ? 6 : 10; },
                         cornerRadius: 6,
-                        titleFont: { size: 12, weight: '600' },
-                        bodyFont: { size: 12 },
+                        titleFont: function (context: { readonly chart: { readonly width: number } }) { return { ...tooltipFont(context), weight: '600' }; },
+                        bodyFont: tooltipFont,
+                        bodySpacing: function (context: { readonly chart: { readonly width: number } }) { return context.chart.width < 260 ? 1 : 2; },
+                        titleMarginBottom: function (context: { readonly chart: { readonly width: number } }) { return context.chart.width < 260 ? 4 : 6; },
                         callbacks: {
                             title: function (tooltipItems: readonly RadarTooltipItem[]) {
                                 var firstItem = tooltipItems[0];
@@ -660,13 +695,16 @@
                             afterBody: function (tooltipItems: readonly RadarTooltipItem[]) {
                                 var firstItem = tooltipItems[0];
                                 if (!firstItem) return [];
-                                var chart = radarChartInstance;
+                                const chart = radarChartInstance;
                                 if (!chart) return [];
                                 var contrib = chart._radarTooltipContributors;
                                 var idx = firstItem.dataIndex;
                                 var contributorLines = contrib?.[idx];
                                 if (!contributorLines?.length) return [];
-                                return [''].concat(contributorLines);
+                                var wrapped = contributorLines.flatMap(function (line) {
+                                    return wrapRadarText(line, Math.max(32, chart.width - 24), chart.width < 260 ? 11 : 12);
+                                });
+                                return chart.height < 180 ? wrapped : [''].concat(wrapped);
                             }
                         }
                     }
@@ -687,9 +725,11 @@
                             },
                             color: radarLabelColor,
                             // Each domain carries its percentile under its name, like a labelled axis.
-                            callback: function (this: { readonly chart?: { readonly data: { readonly datasets: ReadonlyArray<{ readonly data: readonly unknown[] }> } } }, label: string, index: number): string | string[] {
+                            callback: function (this: { readonly chart?: { readonly width: number; readonly data: { readonly datasets: ReadonlyArray<{ readonly data: readonly unknown[] }> } } }, label: string, index: number): string | string[] {
                                 var value = Number(this?.chart?.data.datasets[0]?.data[index]);
-                                return Number.isFinite(value) ? [label, String(Math.round(value))] : label;
+                                var width = this?.chart?.width ?? 420;
+                                var names = width < 260 ? wrapRadarText(label, Math.max(32, width * .28), 11, '500') : [label];
+                                return Number.isFinite(value) ? names.concat(String(Math.round(value))) : names;
                             },
                             padding: 6,
                             z: 1

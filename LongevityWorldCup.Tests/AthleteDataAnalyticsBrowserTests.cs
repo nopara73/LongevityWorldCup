@@ -323,6 +323,7 @@ public sealed class AthleteDataAnalyticsBrowserTests(
     }
 
     [Theory]
+    [InlineData(195)]
     [InlineData(320)]
     [InlineData(1440)]
     public async Task Radar_UsesClockColoursForActivePointsAndKeepsLabelsAndTooltipsInCanvas(int width)
@@ -338,6 +339,9 @@ public sealed class AthleteDataAnalyticsBrowserTests(
                     const failures = [];
                     const chart = Chart.getChart(document.getElementById('ageRadarChart'));
                     const expected = getComputedStyle(document.getElementById('detailsModal')).getPropertyValue(`--athlete-modal-chart-${chart.canvas.dataset.clock}`).trim();
+                    chart.data.labels.forEach((name, index) => {
+                        if (!chart.canvas.getAttribute('aria-label').includes(`${name}: ${chart.data.datasets[0].data[index]}`)) failures.push('accessible percentile value is missing');
+                    });
                     const paint = color => { const c = document.createElement('canvas').getContext('2d'); c.fillStyle = color; c.fillRect(0,0,1,1); return [...c.getImageData(0,0,1,1).data].join(','); };
                     chart.data.datasets[0].data.forEach((_, index) => {
                         chart.setActiveElements([{ datasetIndex: 0, index }]);
