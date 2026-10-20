@@ -1575,6 +1575,409 @@ html {
     }
 }
 
+/* ==========================================================================
+   Site chrome system
+   One dark band frames every page: the header, its sticky bar and the footer
+   share a surface, a hairline edge and the same content column, so the brand
+   and the Play invitation line up with the page they introduce.
+   ========================================================================== */
+:root {
+    --chrome-surface: #101820;
+    --chrome-surface-image: linear-gradient(120deg, #0b1117 0%, #2d3942 100%);
+    --chrome-line: rgba(255, 255, 255, 0.09);
+    --chrome-line-strong: rgba(255, 255, 255, 0.16);
+    --chrome-ink-soft: #cbd5e1;
+    --chrome-column: 1152px;
+    --chrome-gutter: max(var(--space-5), calc((100% - var(--chrome-column)) / 2));
+}
+
+header[role="banner"],
+:where(body.home-page) header[role="banner"] {
+    box-sizing: border-box;
+    min-height: 76px;
+    padding-top: max(var(--space-3), env(safe-area-inset-top, 0px));
+    padding-bottom: var(--space-3);
+    padding-left: max(var(--chrome-gutter), env(safe-area-inset-left, 0px));
+    padding-right: max(var(--chrome-gutter), env(safe-area-inset-right, 0px));
+    flex-direction: row;
+    justify-content: space-between;
+    gap: var(--space-5);
+    background: var(--chrome-surface) var(--chrome-surface-image);
+    border-bottom: 1px solid var(--chrome-line);
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.18), 0 8px 18px -16px rgba(2, 12, 18, 0.55);
+}
+
+/* The lockup: mark, a hairline, then the wordmark over its tagline. */
+header[role="banner"] .header-link,
+:where(body.home-page) header[role="banner"] .header-link {
+    display: grid;
+    grid-template-columns: auto 1px auto;
+    grid-template-rows: auto auto;
+    align-items: center;
+    align-content: center;
+    column-gap: var(--space-4);
+    row-gap: 0;
+    justify-content: start;
+    padding: 0 var(--space-2) 0 0;
+    text-align: left;
+}
+
+header[role="banner"] .header-link::before {
+    content: '';
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    align-self: stretch;
+    width: 1px;
+    min-height: 2.25rem;
+    background: var(--chrome-line-strong);
+}
+
+header[role="banner"] .header-link > .main-logo-image,
+:where(body.home-page) header[role="banner"] .header-link > .main-logo-image {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    width: 46px;
+    height: 46px;
+    margin: 0;
+    transition: transform var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
+}
+
+header[role="banner"] .header-link:hover > .main-logo-image {
+    transform: rotate(-6deg) scale(1.04);
+}
+
+header[role="banner"] .bannertext,
+:where(body.home-page) header[role="banner"] .bannertext {
+    grid-column: 3;
+    grid-row: 1;
+    align-self: end;
+    font-size: clamp(1.2rem, 1.9vw, 1.45rem);
+    line-height: 1.1;
+    letter-spacing: 0.005em;
+    text-align: left;
+}
+
+header[role="banner"] .tagline {
+    grid-column: 3;
+    grid-row: 2;
+    align-self: start;
+    margin: 0.3rem 0 0;
+    color: var(--chrome-ink-soft);
+    font-size: 0.7rem;
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    opacity: 0.82;
+}
+
+/* Without a visible tagline the wordmark sits on the mark's centre line. */
+header[role="banner"] .header-link:not(:has(.tagline)) .bannertext {
+    grid-row: 1 / span 2;
+    align-self: center;
+}
+
+@media (min-width: 641px) and (max-width: 932px) {
+    header[role="banner"] .tagline {
+        display: block;
+    }
+}
+
+@media (max-width: 640px) {
+    header[role="banner"] .bannertext {
+        grid-row: 1 / span 2;
+        align-self: center;
+    }
+}
+
+header[role="banner"] .join-game:not(.scrolled-button),
+:where(body.home-page) header[role="banner"] .join-game:not(.scrolled-button) {
+    position: relative;
+    right: auto;
+    flex: 0 0 auto;
+    margin-left: auto;
+    min-height: 46px;
+    padding: var(--space-3) var(--space-5);
+    font-size: 0.95rem;
+    letter-spacing: 0.04em;
+}
+
+header[role="banner"] .join-game:not(.scrolled-button) .join-game-middle,
+header[role="banner"] .join-game:not(.scrolled-button) .join-game-end {
+    display: inline-block;
+}
+
+/* The front door keeps a taller band and a larger lockup. */
+:where(body.home-page) header[role="banner"] {
+    min-height: 104px;
+    padding-top: max(var(--space-5), env(safe-area-inset-top, 0px));
+    padding-bottom: var(--space-5);
+}
+
+:where(body.home-page) header[role="banner"] .header-link > .main-logo-image {
+    width: 60px;
+    height: 60px;
+}
+
+:where(body.home-page) header[role="banner"] .bannertext {
+    font-size: clamp(1.5rem, 2.4vw, 2rem);
+}
+
+:where(body.home-page) header[role="banner"] .join-game:not(.scrolled-button) {
+    min-height: 50px;
+    font-size: 1rem;
+}
+
+/* Sticky bar: the same lockup, compacted and aligned to the same column. */
+.site-sticky-header {
+    padding-left: max(var(--chrome-gutter), env(safe-area-inset-left, 0px));
+    justify-content: flex-start;
+    background: rgba(16, 24, 32, 0.94) var(--chrome-surface-image);
+    border-bottom: 1px solid var(--chrome-line);
+    box-shadow: 0 8px 22px -14px rgba(2, 12, 18, 0.85);
+}
+
+.site-sticky-header.visible::before {
+    display: none;
+}
+
+.site-sticky-header.visible {
+    animation: chrome-sticky-arrive var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease) both;
+}
+
+@keyframes chrome-sticky-arrive {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.site-sticky-header-link {
+    gap: var(--space-3);
+    padding-left: 0;
+}
+
+.site-sticky-header-logo {
+    width: 30px;
+    height: 30px;
+}
+
+/* The logo image is inverted, so the hairline belongs to the title. */
+.site-sticky-header-title {
+    padding-left: var(--space-3);
+    border-left: 1px solid var(--chrome-line-strong);
+    font-size: 1.05rem;
+    letter-spacing: 0.005em;
+    text-shadow: none;
+}
+
+.scrolled-button {
+    right: max(var(--chrome-gutter), env(safe-area-inset-right, 0px));
+    padding-inline: var(--space-4);
+    font-size: 0.9rem;
+    letter-spacing: 0.04em;
+}
+
+@media (min-width: 769px) {
+    .site-sticky-header {
+        padding-left: max(var(--chrome-gutter), env(safe-area-inset-left, 0px));
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .site-sticky-header.visible {
+        animation: none;
+    }
+
+    header[role="banner"] .header-link > .main-logo-image {
+        transition: none;
+    }
+}
+
+/* Tablets keep the lockup and the complete invitation on one row. */
+@media (max-width: 932px) {
+    header[role="banner"],
+    :where(body.home-page) header[role="banner"] {
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        row-gap: var(--space-3);
+    }
+
+    header[role="banner"] .header-link,
+    :where(body.home-page) header[role="banner"] .header-link {
+        flex: 0 1 auto;
+        max-width: none;
+    }
+
+    :where(body.home-page) header[role="banner"] {
+        min-height: 88px;
+        padding-top: max(var(--space-4), env(safe-area-inset-top, 0px));
+        padding-bottom: var(--space-4);
+    }
+
+    :where(body.home-page) header[role="banner"] .header-link > .main-logo-image {
+        width: 52px;
+        height: 52px;
+    }
+
+    :where(body.home-page) header[role="banner"] .bannertext {
+        font-size: clamp(1.3rem, 3.4vw, 1.6rem);
+    }
+}
+
+/* Phones: a compact bar with the mark, the wordmark and the Play chip. */
+@media (max-width: 640px) {
+    header[role="banner"] {
+        --chrome-gutter: var(--space-4);
+        min-height: 64px;
+        padding-top: max(var(--space-2), env(safe-area-inset-top, 0px));
+        padding-bottom: var(--space-2);
+        gap: var(--space-3);
+    }
+
+    header[role="banner"] .header-link {
+        column-gap: var(--space-3);
+        padding-right: 0;
+    }
+
+    header[role="banner"] .header-link > .main-logo-image {
+        width: 38px;
+        height: 38px;
+    }
+
+    header[role="banner"] .header-link::before {
+        min-height: 1.75rem;
+    }
+
+    header[role="banner"] .bannertext {
+        font-size: clamp(1.02rem, 4.6vw, 1.2rem);
+    }
+
+    header[role="banner"] .join-game:not(.scrolled-button) {
+        min-height: 44px;
+        padding-inline: var(--space-4);
+        font-size: 0.9rem;
+    }
+
+    header[role="banner"] .join-game:not(.scrolled-button) .join-game-middle,
+    header[role="banner"] .join-game:not(.scrolled-button) .join-game-end {
+        display: none;
+    }
+
+    /* The homepage stacks its lockup over a full-width invitation. */
+    :where(body.home-page) header[role="banner"] {
+        min-height: 0;
+        padding-top: max(var(--space-4), env(safe-area-inset-top, 0px));
+        padding-bottom: var(--space-4);
+        flex-direction: column;
+        align-items: stretch;
+        row-gap: var(--space-4);
+    }
+
+    :where(body.home-page) header[role="banner"] .header-link {
+        align-self: center;
+        justify-content: center;
+    }
+
+    :where(body.home-page) header[role="banner"] .header-link > .main-logo-image {
+        width: 44px;
+        height: 44px;
+    }
+
+    :where(body.home-page) header[role="banner"] .bannertext {
+        font-size: clamp(1.25rem, 6vw, 1.5rem);
+    }
+
+    :where(body.home-page) header[role="banner"] .join-game:not(.scrolled-button) {
+        width: 100%;
+        max-width: 26rem;
+        align-self: center;
+        margin-left: 0;
+        min-height: 48px;
+        box-sizing: border-box;
+    }
+
+    :where(body.home-page) header[role="banner"] .join-game:not(.scrolled-button) .join-game-middle,
+    :where(body.home-page) header[role="banner"] .join-game:not(.scrolled-button) .join-game-end {
+        display: inline-block;
+    }
+
+    .site-sticky-header {
+        --chrome-gutter: var(--space-4);
+    }
+
+    .site-sticky-header-logo {
+        width: 26px;
+        height: 26px;
+    }
+
+    .site-sticky-header-title {
+        padding-left: var(--space-2);
+    }
+
+    .site-sticky-header-link {
+        gap: var(--space-2);
+    }
+
+    .scrolled-button {
+        right: max(var(--space-3), env(safe-area-inset-right, 0px));
+    }
+}
+
+@media (min-width: 440px) and (max-width: 640px) {
+    header[role="banner"] .join-game:not(.scrolled-button) .join-game-middle,
+    header[role="banner"] .join-game:not(.scrolled-button) .join-game-end {
+        display: inline-block;
+    }
+
+    header[role="banner"] .header-link > .main-logo-image {
+        width: 44px;
+        height: 44px;
+    }
+}
+
+@media (max-width: 360px) {
+    header[role="banner"] .header-link {
+        column-gap: var(--space-2);
+    }
+
+    header[role="banner"] .header-link > .main-logo-image {
+        width: 34px;
+        height: 34px;
+    }
+}
+
+@media (max-width: 932px) and (max-height: 480px) and (orientation: landscape) {
+    header[role="banner"],
+    :where(body.home-page) header[role="banner"] {
+        min-height: 64px;
+        padding-top: max(var(--space-2), env(safe-area-inset-top, 0px));
+        padding-bottom: var(--space-2);
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    :where(body.home-page) header[role="banner"] .header-link {
+        align-self: center;
+    }
+
+    :where(body.home-page) header[role="banner"] .header-link > .main-logo-image {
+        width: 40px;
+        height: 40px;
+    }
+
+    :where(body.home-page) header[role="banner"] .join-game:not(.scrolled-button) {
+        width: auto;
+        margin-left: auto;
+        align-self: center;
+    }
+}
+
 /* Full zoom can leave a phone only 160 CSS pixels: keep the complete brand readable. */
 @media (max-width: 280px) {
     header[role="banner"] {
@@ -1585,14 +1988,34 @@ html {
 
     header[role="banner"] .header-link {
         flex: 0 1 auto;
-        flex-direction: column;
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: auto 1px auto;
+        justify-items: center;
+        row-gap: var(--space-2);
         min-width: 0;
         max-width: 100%;
     }
 
-    header[role="banner"] .bannertext {
+    header[role="banner"] .header-link > .main-logo-image {
+        grid-column: 1;
+        grid-row: 1;
+    }
+
+    header[role="banner"] .header-link::before {
+        grid-column: 1;
+        grid-row: 2;
+        width: 2.25rem;
+        height: 1px;
+        min-height: 0;
+    }
+
+    header[role="banner"] .bannertext,
+    header[role="banner"] .header-link:not(:has(.tagline)) .bannertext {
+        grid-column: 1;
+        grid-row: 3;
         min-width: 0;
         padding: 0;
+        text-align: center;
         overflow-wrap: anywhere;
     }
 

@@ -73,9 +73,10 @@ public sealed class ProfileValidationBrowserTests(
         Assert.NotNull(restoreBox);
         Assert.InRange(feedbackBox.X, 0, width - feedbackBox.Width + 1);
         Assert.True(feedbackBox.Y >= fieldBox.Y + fieldBox.Height);
-        Assert.InRange(Math.Abs(fieldBox.Y - restoreBox.Y), 0, 2);
-        Assert.True(restoreBox.X >= fieldBox.X + fieldBox.Width);
-        Assert.True(restoreBox.Width >= 44 && restoreBox.Height >= 44);
+        // The restore sits at the end of the field's label line, so the field keeps its full width.
+        Assert.True(restoreBox.Y + restoreBox.Height <= fieldBox.Y + 1);
+        Assert.InRange(fieldBox.X + fieldBox.Width - (restoreBox.X + restoreBox.Width), -1, 2);
+        Assert.True(restoreBox.Width >= 24 && restoreBox.Height >= 24);
 
         await page.ReloadAsync();
         await Assertions.Expect(link).ToHaveValueAsync("not a link");

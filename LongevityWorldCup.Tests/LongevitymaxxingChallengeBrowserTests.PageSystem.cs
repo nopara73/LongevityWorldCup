@@ -170,6 +170,8 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
             route => FulfillJsonAsync(route, JsonSerializer.Serialize(BuildPublicState())));
         var page = await context.NewPageAsync();
         await NavigateAndSettleAsync(page, "/longevitymaxxing");
+        // Preview rows render before the public request resolves. The loading
+        // title panel is intentionally transparent until the view is ready.
         await Assertions.Expect(page.Locator(".lmx-page")).ToHaveAttributeAsync("aria-busy", "false");
         await Assertions.Expect(page.Locator(".lmx-question-preview-item")).ToHaveCountAsync(4);
 
