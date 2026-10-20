@@ -353,6 +353,33 @@ public sealed class SiteChromeSystemBrowserTests(
         await ExpectNoHorizontalOverflowAsync(page);
     }
 
+    [Fact]
+    public async Task Footer_FeaturedLinksWrapWhenEnlargedIconsNeedMoreThanTheirColumn()
+    {
+        await using var context = await NewChromeContextAsync(1440, 900, dark: true);
+        var page = await OpenAsync(context, "/ruleset");
+        await page.AddStyleTagAsync(new() { Content = "html { font-size: 200% !important; }" });
+        await page.Locator(".footer-column--follow").EvaluateAsync(
+            "e => { e.style.inlineSize = '230px'; e.style.maxInlineSize = 'none'; }");
+        var layout = await page.Locator(".footer-column--follow").EvaluateAsync<double[][]>(
+            """
+            column => {
+                const bounds = column.getBoundingClientRect();
+                return [...column.querySelectorAll('.footer-follow-links--primary .footer-link')].map(link => {
+                    const b = link.getBoundingClientRect();
+                    return [b.left - bounds.left, bounds.right - b.right, b.top, b.width, b.height];
+                });
+            }
+            """);
+        Assert.Equal(3, layout.Length);
+        Assert.All(layout, link =>
+        {
+            Assert.True(link[0] >= -0.5 && link[1] >= -0.5, "A featured link left its column.");
+            Assert.True(link[3] >= 44 && link[4] >= 44);
+        });
+        Assert.True(layout[2][2] > layout[0][2], "The last featured link needs another row.");
+    }
+
     [Theory]
     [InlineData(320, 640, 200)]
     [InlineData(844, 390, 200)]
