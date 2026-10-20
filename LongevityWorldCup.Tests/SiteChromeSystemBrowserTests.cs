@@ -403,6 +403,44 @@ public sealed class SiteChromeSystemBrowserTests(
         await ExpectNoHorizontalOverflowAsync(page);
     }
 
+    [Theory]
+    [InlineData(502, 320, 200)]
+    [InlineData(503, 390, 200)]
+    [InlineData(504, 195, 100)]
+    [InlineData(503, 1440, 200)]
+    public async Task OutageBand_KeepsTheBrandAndStatusWholeWhenTextOrZoomNeedsMoreRows(int code, int width, int textPercent)
+    {
+        await using var context = await NewChromeContextAsync(width, 844, dark: true);
+        var page = await OpenAsync(context, $"/error/{code}.html", settle: false);
+        await page.AddStyleTagAsync(new() { Content = $"html {{ font-size: {textPercent}% !important; }}" });
+        var problems = await page.EvaluateAsync<string[]>(
+            """
+            () => {
+                const problems = [];
+                const bar = document.querySelector('.card-bar').getBoundingClientRect();
+                const brand = document.querySelector('.brand').getBoundingClientRect();
+                const code = document.querySelector('.code').getBoundingClientRect();
+                if (brand.left < code.right && code.left < brand.right && brand.top < code.bottom && code.top < brand.bottom)
+                    problems.push('Brand and status overlap');
+                for (const element of document.querySelectorAll('.brand, .code')) {
+                    const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+                    let text;
+                    while (text = walker.nextNode()) {
+                        if (!text.textContent.trim()) continue;
+                        const range = document.createRange(); range.selectNodeContents(text);
+                        for (const r of range.getClientRects()) {
+                            if (r.width && (r.left < bar.left || r.right > bar.right || r.top < bar.top || r.bottom > bar.bottom))
+                                problems.push(text.textContent.trim() + ' clipped by band');
+                        }
+                    }
+                }
+                return problems;
+            }
+            """);
+        Assert.Empty(problems);
+        await ExpectNoHorizontalOverflowAsync(page);
+    }
+
     private Task<IBrowserContext> NewChromeContextAsync(int width, int height, bool dark, bool? mobile = null)
     {
         var touch = mobile ?? width < 600;

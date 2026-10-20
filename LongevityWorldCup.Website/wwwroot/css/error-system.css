@@ -265,6 +265,7 @@ body {
 
 .card-bar {
     min-height: 68px;
+    flex-wrap: wrap;
     padding: 0.75rem 1.25rem;
     border-bottom: 1px solid rgba(255, 255, 255, 0.09);
     background: var(--error-chrome) var(--error-chrome-image);
@@ -273,8 +274,17 @@ body {
 
 .brand {
     gap: 0.85rem;
+    flex: 1 1 min-content;
+    flex-wrap: wrap;
+    max-width: 100%;
     font-size: 1.1rem;
     letter-spacing: 0.005em;
+}
+
+.brand > :last-child {
+    flex: 1 1 min-content;
+    min-width: 0;
+    overflow-wrap: anywhere;
 }
 
 .mark {
@@ -293,6 +303,12 @@ body {
 
 .code {
     padding: 0.3rem 0.75rem;
+    flex: 0 1 auto;
+    max-width: 100%;
+    margin-left: auto;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    text-align: center;
     border: 1px solid var(--error-chrome-line);
     border-radius: 999px;
     background: rgba(255, 255, 255, 0.05);
