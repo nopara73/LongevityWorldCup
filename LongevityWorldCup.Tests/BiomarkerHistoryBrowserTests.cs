@@ -293,7 +293,7 @@ public sealed class BiomarkerHistoryBrowserTests(
         if (!touch)
         {
             await page.Mouse.MoveAsync(0, 0);
-            await page.WaitForFunctionAsync("Chart.getChart(document.querySelector('.result-detail-row:not([hidden]) canvas')).tooltip.opacity === 0");
+            await page.WaitForFunctionAsync("() => Chart.getChart(document.querySelector('.result-detail-row:not([hidden]) canvas')).tooltip.opacity === 0");
         }
         Assert.True(await page.Locator("#biomarkerResultList").EvaluateAsync<bool>("el => el.scrollWidth <= el.clientWidth + 1"));
     }

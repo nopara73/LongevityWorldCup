@@ -171,7 +171,7 @@
 .footer-follow-links--primary {
     --footer-icon-size: clamp(56px, 18cqw, 4rem);
     flex: 0 0 100%;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     max-width: none;
     gap: 1.1rem;
 }
@@ -287,14 +287,6 @@
         justify-content: center;
         padding-left: 0;
         border-left: 0;
-    }
-}
-
-/* Browser zoom can leave less than three featured targets' intrinsic width. */
-@container (max-width: 220px) {
-    .footer-follow-links--primary {
-        flex-wrap: wrap;
-        gap: 0.5rem;
     }
 }
 
