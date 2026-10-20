@@ -1,0 +1,162 @@
+using Microsoft.Playwright;
+using Xunit;
+using static LongevityWorldCup.Tests.AestheticSystemBrowserTests;
+using static LongevityWorldCup.Tests.FlowActionDockBrowserTests;
+
+namespace LongevityWorldCup.Tests;
+
+// The athlete dialog's Share action opens a sheet: the card the link unfurls into,
+// one copy action, and the destinations as one row of equal tiles.
+[Collection(BrowserTestCollections.WorkloadB)]
+public sealed class AthleteShareSheetBrowserTests(
+    PlaywrightBrowserFixture browserFixture,
+    BrowserTestAppFixture appFixture)
+    : BrowserIntegrationTest(browserFixture, appFixture)
+{
+    [Theory]
+    [InlineData(1440, 900, false)]
+    [InlineData(768, 1024, true)]
+    [InlineData(390, 844, true)]
+    [InlineData(320, 640, false)]
+    public async Task ShareSheet_PreviewsTheLinkCardAboveTheActions(int width, int height, bool dark)
+    {
+        await using var context = await CreateAsync(width, height, dark, copyFails: false);
+        var page = await OpenShareSheetAsync(context);
+
+        var preview = page.Locator("#athleteSharePreview");
+        await Assertions.Expect(preview).ToBeVisibleAsync();
+        await page.WaitForFunctionAsync("() => document.querySelector('.athlete-share-preview')?.classList.contains('is-loaded')");
+        var image = await preview.EvaluateAsync<PreviewImage>(
+            "img => ({ path: new URL(img.currentSrc || img.src).pathname, naturalWidth: img.naturalWidth, naturalHeight: img.naturalHeight, ratio: img.getBoundingClientRect().width / img.getBoundingClientRect().height })");
+        Assert.Equal("/og/athlete/michael-lustgarten.png", image.Path);
+        Assert.Equal(1200, image.NaturalWidth);
+        Assert.Equal(630, image.NaturalHeight);
+        Assert.InRange(image.Ratio, 1.86, 1.95);
+
+        var order = await page.EvaluateAsync<double[]>(
+            "() => ['.athlete-share-preview', '#copyAthleteProfileLink', '.athlete-share-destinations'].map(s => document.querySelector(s).getBoundingClientRect().top)");
+        Assert.True(order[0] < order[1] && order[1] < order[2], "Preview, then copy, then destinations.");
+        await ExpectSheetInViewportAsync(page);
+        await ExpectNoHorizontalOverflowAsync(page);
+    }
+
+    [Theory]
+    [InlineData(1440, 900)]
+    [InlineData(390, 844)]
+    [InlineData(320, 640)]
+    public async Task ShareSheet_LaysTheDestinationsOutAsOneRowOfEqualTiles(int width, int height)
+    {
+        await using var context = await CreateAsync(width, height, dark: false, copyFails: false);
+        var page = await OpenShareSheetAsync(context);
+
+        var tiles = await page.Locator(".athlete-share-destinations > a").EvaluateAllAsync<Tile[]>(
+            """
+            links => links.map(link => {
+                const box = link.getBoundingClientRect();
+                const icon = link.querySelector('i').getBoundingClientRect();
+                const label = [...link.childNodes].filter(node => node.nodeType === Node.TEXT_NODE && node.textContent.trim()).pop();
+                const range = document.createRange();
+                range.selectNodeContents(label);
+                const text = range.getBoundingClientRect();
+                return { top: box.top, width: box.width, height: box.height, iconBottom: icon.bottom, iconCenter: icon.left + icon.width / 2, center: box.left + box.width / 2, textTop: text.top };
+            })
+            """);
+        Assert.Equal(4, tiles.Length);
+        foreach (var tile in tiles)
+        {
+            Assert.InRange(Math.Abs(tile.Top - tiles[0].Top), 0, 1);
+            Assert.InRange(Math.Abs(tile.Width - tiles[0].Width), 0, 1.5);
+            Assert.True(tile.Height >= 56, $"Destination tiles must be at least 56px tall, got {tile.Height}.");
+            Assert.InRange(Math.Abs(tile.IconCenter - tile.Center), 0, 2);
+            Assert.True(tile.TextTop >= tile.IconBottom - 1, "Each destination's icon sits above its name.");
+        }
+
+        var copy = await page.Locator("#copyAthleteProfileLink").EvaluateAsync<double[]>(
+            "button => { const box = button.getBoundingClientRect(); const row = document.querySelector('.athlete-share-destinations').getBoundingClientRect(); return [box.width, row.width, box.height]; }");
+        Assert.InRange(Math.Abs(copy[0] - copy[1]), 0, 1);
+        Assert.True(copy[2] >= 44);
+    }
+
+    [Fact]
+    public async Task CopiedLink_IsConfirmedWithACheckOnTheShareAction()
+    {
+        await using var context = await CreateAsync(1280, 760, dark: false, copyFails: false);
+        var page = await OpenShareSheetAsync(context);
+        await page.Locator("#copyAthleteProfileLink").ClickAsync();
+
+        var share = page.Locator("#shareAthleteProfile");
+        await Assertions.Expect(share).ToHaveTextAsync("Copied");
+        await Assertions.Expect(share.Locator("i.fa-check")).ToHaveCountAsync(1);
+        await Assertions.Expect(share).ToHaveClassAsync(new System.Text.RegularExpressions.Regex(@"\bis-copied\b"));
+        await Assertions.Expect(share).ToHaveTextAsync("Share", new() { Timeout = 5000 });
+        await Assertions.Expect(share.Locator("i.fa-share-nodes")).ToHaveCountAsync(1);
+        await Assertions.Expect(share).Not.ToHaveClassAsync(new System.Text.RegularExpressions.Regex(@"\bis-copied\b"));
+    }
+
+    [Theory]
+    [InlineData(390, 844)]
+    [InlineData(1280, 760)]
+    public async Task FailedCopy_GivesTheLinkTheRoomThePreviewHad(int width, int height)
+    {
+        await using var context = await CreateAsync(width, height, dark: true, copyFails: true);
+        var page = await OpenShareSheetAsync(context);
+        await page.Locator("#copyAthleteProfileLink").ClickAsync();
+        await Assertions.Expect(page.Locator("#athleteShareLink")).ToBeFocusedAsync();
+        await Assertions.Expect(page.Locator(".athlete-share-preview")).ToBeHiddenAsync();
+        await ExpectSheetInViewportAsync(page);
+    }
+
+    private async Task<IBrowserContext> CreateAsync(int width, int height, bool dark, bool copyFails)
+    {
+        var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = height },
+            ColorScheme = dark ? ColorScheme.Dark : ColorScheme.Light,
+            ReducedMotion = ReducedMotion.Reduce
+        });
+        await context.AddInitScriptAsync(
+            "localStorage.setItem('gmaSkipAll','true');" +
+            "Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:() => " +
+            (copyFails ? "Promise.reject(new DOMException('Blocked','NotAllowedError'))" : "Promise.resolve()") + "}});");
+        return context;
+    }
+
+    private static async Task<IPage> OpenShareSheetAsync(IBrowserContext context)
+    {
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/athlete/michael-lustgarten", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.WaitForFunctionAsync(
+            "() => { const c = document.querySelector('#detailsModal .modal-content'); return c?.dataset.athleteSlug === 'michael-lustgarten' && !c.matches('.is-loading,.has-load-error'); }");
+        var share = page.Locator("#shareAthleteProfile");
+        await share.ScrollIntoViewIfNeededAsync();
+        await share.ClickAsync();
+        await Assertions.Expect(page.Locator("#athleteShareMenu")).ToBeVisibleAsync();
+        return page;
+    }
+
+    private static async Task ExpectSheetInViewportAsync(IPage page)
+    {
+        var fits = await page.Locator("#athleteShareMenu").EvaluateAsync<bool>(
+            "el => { const box = el.getBoundingClientRect(); return box.left >= 0 && box.right <= innerWidth + 1 && box.top >= 0 && box.bottom <= innerHeight + 1 && el.scrollWidth <= el.clientWidth; }");
+        Assert.True(fits, "The share sheet must fit the viewport without sideways scrolling.");
+    }
+
+    private sealed class PreviewImage
+    {
+        public string Path { get; set; } = "";
+        public int NaturalWidth { get; set; }
+        public int NaturalHeight { get; set; }
+        public double Ratio { get; set; }
+    }
+
+    private sealed class Tile
+    {
+        public double Top { get; set; }
+        public double Width { get; set; }
+        public double Height { get; set; }
+        public double IconBottom { get; set; }
+        public double IconCenter { get; set; }
+        public double Center { get; set; }
+        public double TextTop { get; set; }
+    }
+}

@@ -417,6 +417,7 @@
                             </button>
                             <span id="athleteShareStatus" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></span>
                             <div id="athleteShareMenu" class="athlete-share-menu" role="dialog" aria-label="Share athlete profile" hidden>
+                                <figure class="athlete-share-preview" aria-hidden="true"><img id="athleteSharePreview" alt=""></figure>
                                 <button id="copyAthleteProfileLink" type="button">
                                     <i class="fa fa-link"></i> Copy link
                                 </button>
@@ -425,6 +426,7 @@
                                     <label for="athleteShareLink">Profile link</label>
                                     <input id="athleteShareLink" type="text" readonly aria-describedby="athleteShareCopyHelp" spellcheck="false">
                                 </div>
+                                <div class="athlete-share-destinations">
                                 <a id="shareAthleteProfileX" href="#" target="_blank" rel="noopener" aria-label="Share on X">
                                     <i class="fa-brands fa-x-twitter"></i> Post
                                 </a>
@@ -437,6 +439,7 @@
                                 <a id="shareAthleteProfileEmail" href="#">
                                     <i class="fa fa-envelope"></i> Email
                                 </a>
+                                </div>
                             </div>
                         </div>
                         <a id="personalLink" href="#" target="_blank" rel="noopener" class="modal-link" aria-label="Visit the athlete's personal page">

@@ -5199,7 +5199,43 @@ function setShareButtonState(button, label, disabled) {
     button.disabled = false;
     button.setAttribute('aria-disabled', String(!!disabled));
     button.setAttribute('aria-busy', String(!!disabled));
-    button.innerHTML = `<i class="fa fa-share-nodes" aria-hidden="true"></i> ${escapeHtml(label)}`;
+    const icon = label === 'Copied' ? 'fa-check' : 'fa-share-nodes';
+    button.classList.toggle('is-copied', label === 'Copied');
+    button.innerHTML = `<i class="fa ${icon}" aria-hidden="true"></i> ${escapeHtml(label)}`;
+}
+
+// The sheet shows the card that link previews will unfurl. Profile pages already carry
+// its versioned URL; elsewhere a per-rank, per-day key keeps the immutable image fresh.
+function getAthleteSharePreviewUrl(athleteSlug, ultimateRank) {
+    const routeSlug = String(athleteSlug).replace(/_/g, '-');
+    const path = `/og/athlete/${encodeURIComponent(routeSlug)}.png`;
+    const meta = pageDocument.querySelector('meta[property="og:image"]');
+    try {
+        const current = meta && meta.content ? new URL(meta.content, window.location.href) : null;
+        if (current && current.pathname === path && !current.searchParams.has('ctx')) {
+            return `${path}${current.search}`;
+        }
+    } catch (error) {
+        // Fall back to the derived key below.
+    }
+    const day = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    return `${path}?v=${Number.isFinite(ultimateRank) ? ultimateRank : 'x'}-${day}`;
+}
+
+function setAthleteSharePreview(url) {
+    const image = document.getElementById('athleteSharePreview');
+    const figure = image ? image.closest('.athlete-share-preview') : null;
+    if (!image || !figure) return;
+    figure.classList.remove('is-loaded');
+    figure.hidden = !url;
+    if (!url) {
+        image.removeAttribute('src');
+        return;
+    }
+    image.onload = () => figure.classList.add('is-loaded');
+    image.onerror = () => { figure.hidden = true; };
+    if (image.getAttribute('src') !== url) image.setAttribute('src', url);
+    else if (image.complete && image.naturalWidth > 0) figure.classList.add('is-loaded');
 }
 
 function isCurrentAthleteShare(state) {
@@ -5382,6 +5418,9 @@ function configureAthleteShareMenu(button, sharePayload) {
                 if (recovery && manualLink) {
                     manualLink.value = sharePayload.url;
                     recovery.hidden = false;
+                    // A failed copy needs the room more than the picture does.
+                    const preview = menu.querySelector('.athlete-share-preview');
+                    if (preview) preview.hidden = true;
                     keepAthleteShareMenuInView(menu);
                     if (document.activeElement === copyButton) {
                         manualLink.focus({ preventScroll: true });
@@ -5416,6 +5455,7 @@ function openAthleteShareMenu(button, sharePayload) {
     document.getElementById('athleteShareStatus').textContent = '';
     state.menuVersion++;
     configureAthleteShareMenu(button, sharePayload);
+    setAthleteSharePreview(button.dataset.sharePreview || '');
     menu.hidden = false;
     button.setAttribute('aria-expanded', 'true');
 
@@ -5443,6 +5483,7 @@ function configureAthleteShareButton(displayName, athleteSlug, ultimateRank) {
     button.dataset.shareUrl = url;
     button.dataset.shareTitle = title;
     button.dataset.shareText = text;
+    button.dataset.sharePreview = getAthleteSharePreviewUrl(athleteSlug, ultimateRank);
     button.setAttribute('aria-label', `Share ${displayName}'s athlete profile`);
     setShareButtonState(button, 'Share', false);
 
