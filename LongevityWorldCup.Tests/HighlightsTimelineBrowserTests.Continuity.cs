@@ -167,9 +167,11 @@ public sealed partial class HighlightsTimelineBrowserTests
                     const a=luminance(fg), b=luminance(bg), contrast=(Math.max(a,b)+.05)/(Math.min(a,b)+.05);
                     if (contrast < 4.5) issues.push(`${row.dataset.eventId}: date contrast ${contrast}`);
                     const range = document.createRange(); range.selectNodeContents(date);
-                    if (![...range.getClientRects()].some(r => r.width > 0 && r.height > 0)) issues.push('date has no visible glyphs');
+                    const shown = innerWidth > 600 && row.classList.contains('day-repeat') ? [] : [...date.querySelectorAll('.event-date-day')];
+                    if (shown.some(day => day.getBoundingClientRect().width <= 1) || ![...range.getClientRects()].some(r => r.width > 0 && r.height > 0)) issues.push('date has no visible glyphs');
                 }
-                const last = rows.at(-1), style=getComputedStyle(last), box=last.getBoundingClientRect();
+                if (getComputedStyle(rows.at(-1)).backgroundImage !== 'none') issues.push('a month of one event has a rail');
+                const last = rows.filter(row => row.classList.contains('month-end') && !row.classList.contains('month-start')).at(-1), style=getComputedStyle(last), box=last.getBoundingClientRect();
                 const portrait=last.querySelector('.avatar,.avatar-fallback,.milestone-people-avatar').getBoundingClientRect();
                 const length = style.backgroundSize.slice(style.backgroundSize.indexOf(' ') + 1);
                 let height = 0;

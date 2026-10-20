@@ -189,6 +189,17 @@ const eventsPageAssets = document.currentScript.dataset;
         const base=d.toLocaleDateString(undefined,{month:'short',day:'numeric'}).replace(/,/g,'');
         return d.getFullYear()===nowYear?base:`${base}${separator}${d.getFullYear()}`;
     }
+    // The same label as formatListDate, with its day number in its own span
+    // so the Highlights page can set the day apart from its month.
+    function formatListDateHtml(iso){
+        const label=formatListDate(iso); if(!label) return '';
+        const day=String(new Date(iso).getDate());
+        const match=new RegExp(`(^|[^0-9])(${day})(?![0-9])`).exec(label);
+        if(!match) return esc(label);
+        const start=match.index+match[1].length, end=start+day.length;
+        const rest=text=>text?`<span class="event-date-rest">${esc(text)}</span>`:'';
+        return `${rest(label.slice(0,start))}<span class="event-date-day">${day}</span>${rest(label.slice(end))}`;
+    }
     function ordinal(n){const s=["th","st","nd","rd"],v=n%100;return `${n}${s[(v-20)%10]||s[v]||s[0]}`;}
     function podiumIcon(n){
         if(n===1) return '<i class="fa-solid fa-crown rank-icon" style="color: gold;" title="1st place" aria-label="1st place"></i>';
@@ -790,15 +801,30 @@ const eventsPageAssets = document.currentScript.dataset;
 
     // The feed groups by month: a month's events sit together, and a repeated
     // day's date stays quiet under the first event of that day.
+    // On the Highlights page every month opens with its own heading row.
     function markFeedGroups(tbody){
+        const chapters=!!tbody.closest('.event-board-page');
+        tbody.querySelectorAll('tr.events-month-row').forEach(r=>r.remove());
+        const rows=[...tbody.querySelectorAll('tr.main-row')];
         let previousDay=null, previousMonth=null;
-        tbody.querySelectorAll('tr.main-row').forEach(r=>{
+        rows.forEach((r,i)=>{
             const day=r.dataset.day||'';
             const month=day.split('-').slice(0,2).join('-');
+            const nextMonth=(rows[i+1]?.dataset.day||'').split('-').slice(0,2).join('-');
             const dayStarts=!day||day!==previousDay;
+            const monthStarts=!month||month!==previousMonth;
             r.classList.toggle('day-start',dayStarts);
             r.classList.toggle('day-repeat',!dayStarts);
-            r.classList.toggle('month-start',!month||month!==previousMonth);
+            r.classList.toggle('month-start',monthStarts);
+            r.classList.toggle('month-end',!month||!rows[i+1]||nextMonth!==month);
+            if(chapters&&monthStarts&&month){
+                const [y,m]=month.split('-').map(Number);
+                const heading=document.createElement('tr');
+                heading.className='events-month-row';
+                heading.dataset.month=month;
+                heading.innerHTML=`<th colspan="3" scope="rowgroup">${esc(new Date(y,m-1,1).toLocaleDateString(undefined,{month:'long',year:'numeric'}))}</th>`;
+                r.before(heading);
+            }
             previousDay=day;
             previousMonth=month;
         });
@@ -860,7 +886,7 @@ const eventsPageAssets = document.currentScript.dataset;
         rowsToRender.forEach((r, localIdx) => {
             const idx = shouldAppend ? appendFromIndex + localIdx : localIdx;
             const occurredAt = r.displayOccurredAt || r.occurredAt;
-            const dateLabel = occurredAt ? formatListDate(occurredAt) : "";
+            const dateLabel = occurredAt ? formatListDateHtml(occurredAt) : "";
             const rel = (r.type === EVENT_TYPE.Joined && occurredAt)
                 ? relativeDayLabel(occurredAt)
                 : "";
