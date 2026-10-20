@@ -1,4 +1,6 @@
 using Microsoft.Playwright;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 using static LongevityWorldCup.Tests.AestheticSystemBrowserTests;
 using static LongevityWorldCup.Tests.FlowActionDockBrowserTests;
@@ -466,6 +468,58 @@ public sealed class EditProfileLayoutBrowserTests(
         await Assertions.Expect(page.Locator("#changeProfileCropperModal")).ToBeHiddenAsync();
         await Assertions.Expect(page.Locator("#changeProfilePicButton")).ToBeFocusedAsync();
         Assert.Equal(scroll, await page.EvaluateAsync<double>("() => scrollY"));
+    }
+
+    [Fact]
+    public async Task RealCropper_PreservesTheSelectedImageRegionAcrossViewportAndTextReflow()
+    {
+        await using var context = await CreateContextAsync(1440, 900);
+        // The exact production version is copied before the Node-free publish
+        // check removes node_modules. Keep this a real-library geometry test.
+        await context.RouteAsync("**/cropperjs/1.5.13/cropper.min.*", route =>
+        {
+            var css = new Uri(route.Request.Url).AbsolutePath.EndsWith(".css", StringComparison.Ordinal);
+            return route.FulfillAsync(new()
+            {
+                Path = Path.Combine(AppContext.BaseDirectory, "Fixtures", css ? "cropper.min.css" : "cropper.min.js"),
+                ContentType = css ? "text/css" : "application/javascript"
+            });
+        });
+        var page = await OpenEditorAsync(context);
+        var webRoot = App.Services.GetRequiredService<IWebHostEnvironment>().WebRootPath;
+        await page.Locator("#profilePicInputModal").SetInputFilesAsync(
+            Path.Combine(webRoot, "assets", "content-images", "play-athlete-placeholder.jpg"));
+        await page.WaitForFunctionAsync("() => window.changeProfileCropper?.getImageData().naturalWidth === 1024 && window.changeProfileCropper.getCropBoxData().width > 0");
+        await page.EvaluateAsync("() => { window.changeProfileCropper.setData({ x: 256, y: 256, width: 512, height: 512 }); }");
+        foreach (var (width, height, text) in new[] { (1440, 900, 100), (1440, 900, 200), (640, 320, 200), (844, 390, 200), (390, 844, 200), (390, 844, 100) })
+        {
+            await page.SetViewportSizeAsync(width, height);
+            await page.EvaluateAsync("size => document.documentElement.style.fontSize = size + '%'", text);
+            await page.WaitForFunctionAsync("""
+                () => {
+                    const stage = document.getElementById('changeProfileCropperImage').parentElement;
+                    const container = window.changeProfileCropper.getContainerData();
+                    return Math.abs(container.width - stage.clientWidth) <= 1
+                        && Math.abs(container.height - stage.clientHeight) <= 1;
+                }
+                """);
+            var selection = await page.EvaluateAsync<double[]>("""
+                () => {
+                    const cropper = window.changeProfileCropper;
+                    const data = cropper.getData(), box = cropper.getCropBoxData(), container = cropper.getContainerData();
+                    return [data.x, data.y, data.width, data.height, box.left, box.top,
+                        container.width - box.left - box.width, container.height - box.top - box.height];
+                }
+                """);
+            var scenario = $"{width}x{height}, {text}% text";
+            Assert.True(Math.Abs(selection[0] - 256) <= 2 && Math.Abs(selection[1] - 256) <= 2,
+                $"{scenario}: resize selected a different part of the photo ({selection[0]}, {selection[1]}).");
+            Assert.True(Math.Abs(selection[2] - 512) <= 2 && Math.Abs(selection[3] - 512) <= 2,
+                $"{scenario}: resize changed the selected photo area.");
+            Assert.All(selection.Skip(4), clearance => Assert.True(clearance >= -1, $"{scenario}: the crop escaped its preview."));
+        }
+        await page.Locator("#changeProfileCancelButton").ClickAsync();
+        await Assertions.Expect(page.Locator("#changeProfilePicButton")).ToBeFocusedAsync();
     }
 
     [Theory]

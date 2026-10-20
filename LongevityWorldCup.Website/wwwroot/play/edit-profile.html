@@ -1524,7 +1524,11 @@
                 const cropper = window.changeProfileCropper;
                 const container = cropper?.getContainerData?.();
                 if (container?.width && (Math.abs(container.width - cropperStage.clientWidth) > 1
-                    || Math.abs(container.height - cropperStage.clientHeight) > 1)) cropper.resize();
+                    || Math.abs(container.height - cropperStage.clientHeight) > 1)) {
+                    const selection = cropper.getData();
+                    cropper.resize();
+                    cropper.setData(selection);
+                }
 
                 const focused = document.activeElement;
                 if (!focused || focused === cropperModal || !cropperModal.contains(focused)) return;
@@ -1714,6 +1718,9 @@
                         aspectRatio: 1,
                         viewMode: 1,
                         autoCropArea: 1,
+                        // The stage observer handles viewport and text reflow,
+                        // preserving image coordinates across aspect changes.
+                        responsive: false,
                     });
                 } catch (_) {
                     if (window.changeProfileCropper) {
