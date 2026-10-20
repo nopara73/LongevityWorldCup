@@ -31,7 +31,7 @@ public sealed partial class HighlightsTimelineBrowserTests
         await story.WaitForAsync(new() { State = WaitForSelectorState.Attached });
         await page.Clock.RunForAsync(1000);
         Assert.True(await story.EvaluateAsync<bool>(
-            "row => { const b=row.getBoundingClientRect(), h=document.querySelector('header').getBoundingClientRect(); return b.top>=h.bottom && b.bottom<=innerHeight; }"),
+            "row => { const b=row.getBoundingClientRect(), h=document.querySelector('header').getBoundingClientRect(); return b.top>=Math.max(0,h.bottom) && b.bottom<=innerHeight; }"),
             "The default heading scroll moved the opened notification target out of view.");
         await Assertions.Expect(story.Locator(".custom-event-expander")).ToHaveAttributeAsync("aria-expanded", "true");
     }
