@@ -723,15 +723,27 @@ public sealed class MediaKitBrowserTests(PlaywrightBrowserFixture browserFixture
         await using var context = await NewContextAsync(Browser, App, new());
         await InstallKitFixtureAsync(context);
         await context.AddInitScriptAsync("""
-            window.downloadTypes = [];
+            const downloadTypes = new Map();
+            window.fileDownloads = [];
             const create = URL.createObjectURL.bind(URL);
-            URL.createObjectURL = blob => { downloadTypes.push(blob.type); return create(blob); };
+            URL.createObjectURL = blob => {
+                const url = create(blob);
+                downloadTypes.set(url, blob.type);
+                return url;
+            };
+            document.addEventListener('click', event => {
+                const link = event.target;
+                if (link instanceof HTMLAnchorElement && link.download) {
+                    fileDownloads.push({ filename: link.download, type: downloadTypes.get(link.href) });
+                }
+            }, true);
             """);
         var page = await context.NewPageAsync();
         await page.GotoAsync("/media");
         var download = await page.RunAndWaitForDownloadAsync(() =>
             page.GetByRole(AriaRole.Button, new() { Name = $"Download {filename}", Exact = true }).ClickAsync());
-        Assert.Equal(type, await page.EvaluateAsync<string>("downloadTypes.at(-1)"));
+        Assert.Equal(filename, await page.EvaluateAsync<string>("fileDownloads.at(-1).filename"));
+        Assert.Equal(type, await page.EvaluateAsync<string>("fileDownloads.at(-1).type"));
         var path = KitFiles.Value.Keys.Single(path => path.EndsWith($"/{filename}", StringComparison.Ordinal));
         Assert.Equal(Convert.FromBase64String(KitFiles.Value[path]), await File.ReadAllBytesAsync((await download.PathAsync())!));
     }
