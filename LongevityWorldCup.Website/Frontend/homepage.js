@@ -57,6 +57,7 @@ let homepageHighlightsRows = homepageHighlightsBaseRows;
 let homepageHighlightsMeasureTimer = null;
 let homepageHighlightsResizeTimer = null;
 let homepageHighlightsWaitAttempts = 0;
+let homepageHighlightsRequested = false;
 
 function incrementHomepageVisitCount() {
     try {
@@ -176,6 +177,11 @@ function placeHomepageHighlightsForVisit() {
 }
 
 function loadHomepageHighlights(rowCount) {
+    const board = document.querySelector('#events-root-index .events-board');
+    // Layout changes must not restart pending data or consume manual recovery.
+    if (homepageHighlightsRequested && board
+        && (board.getAttribute('aria-busy') === 'true' || board.querySelector('.events-recovery'))) return;
+    homepageHighlightsRequested = true;
     homepageHighlightsRows = rowCount;
     callScoped('events-root-index', function () {
         loadEventsTable(rowCount, true, null, true, {
@@ -195,6 +201,12 @@ function maybeGrowHomepageHighlights() {
         return;
     }
     if (!highlightsBoard || !highlightsTable || !highlightsBody || !swagCard) {
+        return;
+    }
+
+    if (highlightsRoot.querySelector('.events-recovery')) return;
+    if (highlightsBoard.getAttribute('aria-busy') === 'true') {
+        homepageHighlightsMeasureTimer = window.setTimeout(fitHomepageHighlights, 180);
         return;
     }
 
@@ -230,6 +242,14 @@ function maybeGrowHomepageHighlights() {
 function fitHomepageHighlights() {
     window.clearTimeout(homepageHighlightsMeasureTimer);
     homepageHighlightsWaitAttempts = 0;
+    const board = document.querySelector('#events-root-index .events-board');
+    if (homepageHighlightsRequested && board) {
+        if (board.querySelector('.events-recovery')) return;
+        if (board.getAttribute('aria-busy') === 'true') {
+            homepageHighlightsMeasureTimer = window.setTimeout(fitHomepageHighlights, 180);
+            return;
+        }
+    }
     const initialRows = window.innerWidth > 991 ? 1 : homepageHighlightsBaseRows;
     const rows = [...document.querySelectorAll('#events-root-index tr.main-row')];
     const readingRows = rows.reduce((count, row, index) =>
