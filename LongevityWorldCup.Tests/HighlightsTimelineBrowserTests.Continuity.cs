@@ -196,6 +196,7 @@ public sealed partial class HighlightsTimelineBrowserTests
             Status = failed ? 503 : 200, ContentType = "application/json", Body = failed ? "{}" : Events
         }));
         var page = await context.NewPageAsync();
+        await NavigateAndSettleAsync(page, "/ruleset");
         await NavigateAndSettleAsync(page, "/events");
         var retry = page.GetByRole(AriaRole.Button, new() { Name = "Retry", Exact = true });
         await retry.WaitForAsync();
@@ -217,6 +218,31 @@ public sealed partial class HighlightsTimelineBrowserTests
         await Assertions.Expect(page.Locator("#eventsStatus")).ToHaveTextAsync("Events loaded.");
         await Assertions.Expect(page.Locator("#eventsStatus")).ToHaveAttributeAsync("role", "status");
         await page.Locator(".event-board-page .back-button").ClickAsync();
-        await page.WaitForURLAsync(App.BaseAddress.ToString());
+        await page.WaitForURLAsync(new Uri(App.BaseAddress, "ruleset").ToString(), new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+    }
+
+    [Fact]
+    public async Task Back_WorksFromTheLoadingFeedBeforeSharedModulesArrive()
+    {
+        await using var context = await NewContextAsync(Browser, App, new() { ViewportSize = new() { Width = 390, Height = 844 } });
+        var page = await context.NewPageAsync();
+        await NavigateAndSettleAsync(page, "/ruleset");
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await context.RouteAsync("**/js/misc.js*", async route =>
+        {
+            await release.Task;
+            await route.AbortAsync();
+        });
+        try
+        {
+            await page.GotoAsync("/events", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+            await page.Locator(".event-board-page .back-button").FocusAsync();
+            await page.Keyboard.PressAsync("Enter");
+            await page.WaitForURLAsync(new Uri(App.BaseAddress, "ruleset").ToString(), new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        }
+        finally
+        {
+            release.TrySetResult();
+        }
     }
 }

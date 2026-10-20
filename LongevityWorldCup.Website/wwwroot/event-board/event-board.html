@@ -628,7 +628,7 @@
     <script src="{{ASSET_WEB_PUSH_JS}}" data-worker-url="{{ASSET_WEB_PUSH_WORKER_JS}}"></script>
     <!--EVENT-BOARD-CONTENT-->
     <div class="options-container" data-aos="fade" data-aos-duration="700" data-aos-delay="700">
-        <button class="option-button back-button" onclick="window.goBackOrHome()">
+        <button class="option-button back-button" onclick="history.length > 1 ? history.back() : window.location.assign('/')">
             <i class="fas fa-arrow-left"></i>&nbsp;Back
         </button>
     </div>
