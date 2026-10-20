@@ -419,7 +419,8 @@ public sealed class EditProfileLayoutBrowserTests(
         try
         {
             var image = page.Locator(".edit-profile-visual .illustration");
-            await Assertions.Expect(image).ToHaveAttributeAsync("src", "/assets/content-images/play-athlete-placeholder.jpg");
+            var placeholder = await page.Locator("meta[name='lwc-athlete-placeholder']").GetAttributeAsync("content");
+            await Assertions.Expect(image).ToHaveAttributeAsync("src", placeholder!);
             await page.Locator("#whyDisplayInput").FillAsync("A motivation edited while the photo is loading.");
             await page.EvaluateAsync("() => setProfilePictureValue('/assets/content-images/play-athlete-placeholder.jpg?new-picture')");
             await Assertions.Expect(image).ToHaveAttributeAsync("src", "/assets/content-images/play-athlete-placeholder.jpg?new-picture");
