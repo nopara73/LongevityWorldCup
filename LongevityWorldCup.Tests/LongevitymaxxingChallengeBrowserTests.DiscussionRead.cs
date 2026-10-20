@@ -240,13 +240,32 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
     public async Task DiscussionRead_ExplicitOpeningPreservesDraftAndDoesNotReadNewerActivity(int width, ColorScheme theme)
     {
         await using var context = await NewContextAsync(Browser, App, new() { ViewportSize = new() { Width = width, Height = 1000 }, ColorScheme = theme });
+        // Observe completion in this intercepted test response. An unchanged
+        // unread label alone cannot tell us whether a failed request has settled.
+        await context.RouteAsync("**/js/longevitymaxxing.js*", async route => {
+            var response = await route.FetchAsync();
+            var script = await response.TextAsync();
+            var closureEnd = script.LastIndexOf("})();", StringComparison.Ordinal);
+            Assert.True(closureEnd > 0);
+            await route.FulfillAsync(new() { Response = response, Body = script.Insert(closureEnd,
+                "window.pendingDiscussionReadsForTest = () => discussionReadPending.size;\n") });
+        });
         var state = AdviceBrowserState(1);
         state["readContext"] = UnreadAdviceContext(10, FirstAdviceId, "old-answer");
         var calls = new List<JsonObject>();
+        var firstStarted = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var failedResponse = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var retryStarted = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         var release = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         await context.RouteAsync("**/api/longevitymaxxing/discussion/read", async route => {
             calls.Add(JsonNode.Parse(route.Request.PostData!)!.AsObject());
-            if (calls.Count == 1) { await route.FulfillAsync(new() { Status = 503 }); return; }
+            if (calls.Count == 1) {
+                firstStarted.TrySetResult(true);
+                await failedResponse.Task;
+                await route.FulfillAsync(new() { Status = 503 });
+                return;
+            }
+            retryStarted.TrySetResult(true);
             await release.Task;
             await FulfillJsonAsync(route, new JsonObject {
                 ["acknowledgedIds"] = calls[^1]["notificationIds"]!.DeepClone(),
@@ -266,11 +285,19 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
             await page.Clock.FastForwardAsync(61_000);
             Assert.Empty(calls);
             await link.ClickAsync();
+            await firstStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
             await Assertions.Expect(link).ToHaveTextAsync("2 new replies");
             await Assertions.Expect(post.Locator("[data-discussion-reply-id='" + FirstAdviceId + "']")).ToBeFocusedAsync();
             Assert.Single(calls);
             await link.FocusAsync();
             await link.PressAsync("Enter");
+            await Assertions.Expect(post.Locator("[data-discussion-reply-id='" + FirstAdviceId + "']")).ToBeFocusedAsync();
+            Assert.Single(calls);
+            failedResponse.TrySetResult(true);
+            await page.WaitForFunctionAsync("() => window.pendingDiscussionReadsForTest() === 0");
+            await link.FocusAsync();
+            await link.PressAsync("Enter");
+            await retryStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
             await post.Locator($"[data-discussion-reply-id='{FirstAdviceId}'] [data-discussion-reply]").ClickAsync();
             var draft = post.Locator("textarea");
             await draft.FillAsync("Keep my reply while the read receipt returns.");
@@ -287,7 +314,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
             await Assertions.Expect(draft).ToHaveValueAsync("Keep my reply while the read receipt returns.");
             Assert.True(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth <= innerWidth"));
             Assert.Empty(errors);
-        } finally { release.TrySetResult(true); }
+        } finally { failedResponse.TrySetResult(true); release.TrySetResult(true); }
     }
 
     [Fact]
