@@ -134,12 +134,15 @@ public sealed class PlayOnboardingBrowserTests(
                         if (dt.textContent.trim().endsWith(':')) issues.push(`${name}: ${dt.textContent} keeps a colon`);
                         const range = document.createRange();
                         range.selectNodeContents(dt);
-                        if (new Set([...range.getClientRects()].map(r => Math.round(r.top))).size > 1) issues.push(`${name}: ${dt.textContent.trim()} wraps`);
+                        const bounds = dt.getBoundingClientRect();
+                        if ([...range.getClientRects()].some(r => r.left < bounds.left - 1 || r.right > bounds.right + 1)) issues.push(`${name}: ${dt.textContent.trim()} is clipped`);
                     }
                     for (const dt of terms.slice(1)) {
                         if (parseFloat(getComputedStyle(dt).borderTopWidth) < 1) issues.push(`${name}: spec rows have no dividers`);
                         const dd = dt.nextElementSibling;
-                        if (Math.abs(dt.getBoundingClientRect().top - dd.getBoundingClientRect().top) > 1) issues.push(`${name}: ${dt.textContent.trim()} and its value do not share a row`);
+                        const label = dt.getBoundingClientRect(), value = dd.getBoundingClientRect();
+                        const stacked = getComputedStyle(card.querySelector('.play-join-meta')).gridTemplateColumns.split(' ').length === 1;
+                        if (stacked ? value.top < label.bottom - 1 : Math.abs(label.top - value.top) > 1) issues.push(`${name}: ${dt.textContent.trim()} and its value are not paired`);
                     }
                     const list = card.querySelector('.play-join-biomarkers');
                     const ls = getComputedStyle(list);
@@ -158,6 +161,71 @@ public sealed class PlayOnboardingBrowserTests(
                                 return Math.abs(dx * k + dy * k) < halfW && Math.abs(-dx * k + dy * k) < halfH;
                             }));
                         if (covered) issues.push(`${name}: the ribbon covers the rank line`);
+                    }
+                }
+                return issues;
+            }
+            """);
+        Assert.True(problems.Length == 0, $"{width}x{height}: {string.Join("; ", problems)}");
+        await ExpectNoHorizontalOverflowAsync(page);
+    }
+
+    [Theory]
+    [InlineData(1440, 900, false)]
+    [InlineData(1280, 720, true)]
+    [InlineData(768, 1024, false)]
+    [InlineData(390, 844, true)]
+    [InlineData(320, 640, false)]
+    [InlineData(844, 390, true)]
+    public async Task TrackSpecs_ReflowLongLabelsAndEnlargedTextWithoutClipping(int width, int height, bool dark)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = height },
+            ColorScheme = dark ? ColorScheme.Dark : ColorScheme.Light,
+            ReducedMotion = ReducedMotion.Reduce,
+            IsMobile = width < 600,
+            HasTouch = width < 600
+        });
+        await context.AddInitScriptAsync(ReturningAmateur);
+        var page = await OpenJoinAsync(context);
+        await page.EvaluateAsync(
+            """
+            () => {
+                document.documentElement.style.setProperty('font-size', '200%', 'important');
+                for (const label of document.querySelectorAll('.play-join-meta dt:first-of-type'))
+                    label.textContent = 'Zulässiger Untersuchungszeitraum';
+                for (const name of document.querySelectorAll('.play-join-card .track-name'))
+                    name.textContent += ' longevity athlete';
+                for (const details of document.querySelectorAll('.play-join-biomarkers details')) details.open = true;
+            }
+            """);
+        await page.EvaluateAsync("async () => { await document.fonts.ready; window.LwcFlowActionDock?.refreshNow?.(); await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))); }");
+        var problems = await page.EvaluateAsync<string[]>(
+            """
+            () => {
+                const issues = [];
+                for (const card of document.querySelectorAll('.play-join-card')) {
+                    const c = card.getBoundingClientRect();
+                    for (const element of card.querySelectorAll('dt, dd, h2, .play-join-tagline, summary')) {
+                        const b = element.getBoundingClientRect();
+                        const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+                        let text;
+                        while ((text = walker.nextNode())) {
+                            if (!text.textContent.trim()) continue;
+                            const range = document.createRange();
+                            range.selectNodeContents(text);
+                            if ([...range.getClientRects()].some(r => r.left < Math.max(b.left, c.left) - 1 || r.right > Math.min(b.right, c.right) + 1))
+                                issues.push(`clipped text: ${text.textContent.trim()}`);
+                        }
+                    }
+                    for (const label of card.querySelectorAll('dt')) {
+                        const a = label.getBoundingClientRect(), b = label.nextElementSibling.getBoundingClientRect();
+                        if (a.left < b.right && a.right > b.left && a.top < b.bottom - 1 && a.bottom > b.top + 1)
+                            issues.push(`overlapping spec: ${label.textContent}`);
+                        if (label.nextElementSibling.nextElementSibling?.tagName === 'DT'
+                            && label.nextElementSibling.nextElementSibling.getBoundingClientRect().top < b.bottom - 1)
+                            issues.push(`value runs into the next spec: ${label.textContent}`);
                     }
                 }
                 return issues;

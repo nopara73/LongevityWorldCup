@@ -1765,7 +1765,8 @@ html.play-panel-transitioning .play-hub-panel--entering {
 
     .play-join-card .track-name {
         font-size: min(1.6rem, 15cqi);
-        white-space: nowrap;
+        white-space: normal;
+        overflow-wrap: anywhere;
     }
 
     .play-join-ribbon-slot {
@@ -2430,6 +2431,8 @@ body.play-start-active .play-menu-actions .option-button.grey.flow-action--secon
 }
 
 .play-hub-main .play-join-card .play-join-meta {
+    display: grid;
+    grid-template-columns: minmax(0, 8rem) minmax(0, 1fr);
     gap: 0;
     align-items: stretch;
     margin: 0 0 1rem;
@@ -2448,17 +2451,19 @@ body.play-start-active .play-menu-actions .option-button.grey.flow-action--secon
 }
 
 .play-hub-main .play-join-card .play-join-meta dt {
-    flex: 0 0 8rem;
+    min-width: 0;
     padding-right: 0.75rem;
     box-sizing: border-box;
     font-size: var(--lwc-type-xs);
     letter-spacing: 0.06em;
     text-transform: uppercase;
+    overflow-wrap: anywhere;
 }
 
 .play-hub-main .play-join-card .play-join-meta dd {
-    flex: 1 1 calc(100% - 8rem);
+    min-width: 0;
     font-weight: 600;
+    overflow-wrap: anywhere;
 }
 
 /* The tagline clears the corner ribbon; once the ribbon turns into a badge
@@ -2659,5 +2664,23 @@ body.play-start-active .play-menu-actions .option-button.grey.flow-action--secon
 
     .play-hub-main .play-join-card .play-join-details {
         padding: 0.25rem 1rem 1rem;
+    }
+}
+
+/* Pair each term with its value when a narrow tile or enlarged text needs
+   another line. The divider belongs to the pair, not both stacked cells. */
+@container play-track (max-width: 18rem) {
+    .play-hub-main .play-join-card .play-join-meta {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .play-hub-main .play-join-card .play-join-meta dt {
+        padding-bottom: 0.15rem;
+        padding-right: 0;
+    }
+
+    .play-hub-main .play-join-card .play-join-meta dd {
+        padding-top: 0;
+        border-top: 0;
     }
 }
