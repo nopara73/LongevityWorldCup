@@ -34,7 +34,7 @@ public sealed class PrivacyPolicyBrowserTests(
             () => {
                 const card = document.querySelector('.card').getBoundingClientRect();
                 let narrowest = Infinity;
-                for (const paragraph of document.querySelectorAll('.card p')) {
+                for (const paragraph of document.querySelectorAll('.landing-section-text p')) {
                     const parent = paragraph.parentElement, style = getComputedStyle(parent);
                     const column = parent.getBoundingClientRect().width - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
                     narrowest = Math.min(narrowest, paragraph.getBoundingClientRect().width / column);
