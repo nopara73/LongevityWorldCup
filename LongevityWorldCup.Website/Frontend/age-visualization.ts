@@ -669,7 +669,7 @@
                 responsive: true,
                 // The wrapper sets a landscape shape, so side labels no longer shrink the web inside a square.
                 maintainAspectRatio: false,
-                layout: { padding: 4 },
+                layout: { padding: function (context: { readonly chart: { readonly width: number } }) { return context.chart.width < 160 ? 12 : 4; } },
                 plugins: {
                     legend: { display: false },
                     tooltip: {
@@ -679,7 +679,7 @@
                         borderColor: function () { return clockColor(); },
                         borderWidth: 1,
                         displayColors: false,
-                        padding: function (context: { readonly chart: { readonly height: number } }) { return context.chart.height < 180 ? 6 : 10; },
+                        padding: function (context: { readonly chart: { readonly width: number; readonly height: number } }) { return context.chart.width < 260 || context.chart.height < 180 ? 6 : 10; },
                         cornerRadius: 6,
                         // Moving or resizing between contributors can carry stale bounds outside a narrow canvas.
                         animations: {
@@ -706,10 +706,11 @@
                                 var idx = firstItem.dataIndex;
                                 var contributorLines = contrib?.[idx];
                                 if (!contributorLines?.length) return [];
+                                var compact = chart.width < 260 || chart.height < 180;
                                 var wrapped = contributorLines.flatMap(function (line) {
-                                    return wrapRadarText(line, Math.max(32, chart.width - 24), chart.width < 260 ? 11 : 12);
+                                    return wrapRadarText(line, Math.max(32, chart.width - (compact ? 12 : 20)), chart.width < 260 ? 11 : 12);
                                 });
-                                return chart.height < 180 ? wrapped : [''].concat(wrapped);
+                                return compact ? wrapped : [''].concat(wrapped);
                             }
                         }
                     }

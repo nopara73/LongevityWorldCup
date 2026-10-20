@@ -387,6 +387,8 @@
 #detailsModal .age-radar-wrapper {
     width: min(100%, 36rem);
     aspect-ratio: 16 / 10;
+    /* Wrapped axis labels and all tooltip contributors need a reading area at browser zoom. */
+    min-height: 180px;
 }
 @media (max-width: 768px) {
     /* Phones let the web use the card's side padding; the labels sit in it. */

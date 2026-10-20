@@ -323,6 +323,8 @@ public sealed class AthleteDataAnalyticsBrowserTests(
     }
 
     [Theory]
+    [InlineData(160, true)]
+    [InlineData(160, false)]
     [InlineData(195, true)]
     [InlineData(195, false)]
     [InlineData(320, true)]
