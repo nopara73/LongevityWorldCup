@@ -442,6 +442,220 @@ public sealed class MediaKitBrowserTests(PlaywrightBrowserFixture browserFixture
         Assert.Equal(1, downloads);
     }
 
+    [Theory]
+    [InlineData(1440, 900, false)]
+    [InlineData(1024, 768, true)]
+    [InlineData(768, 1024, false)]
+    [InlineData(390, 844, true)]
+    [InlineData(320, 640, false)]
+    public async Task PressPage_BandsTheCardAndFeaturesTheKitsOwnPictures(int width, int height, bool dark)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = height },
+            ColorScheme = dark ? ColorScheme.Dark : ColorScheme.Light,
+            ReducedMotion = ReducedMotion.Reduce,
+            IsMobile = width < 600,
+            HasTouch = width < 600
+        });
+        await InstallKitFixtureAsync(context, kitFiles: PressKitFiles());
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/media", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await Assertions.Expect(page.Locator("#fileList .media-file-row")).ToHaveCountAsync(PressKitFiles().Count);
+        await page.EvaluateAsync("() => document.fonts.ready");
+
+        var problems = await page.EvaluateAsync<string[]>(
+            """
+            () => {
+                const issues = [];
+                const panel = document.querySelector('.media-kit-panel').getBoundingClientRect();
+                const head = document.querySelector('.media-kit-head');
+                if (!head) return ['no cover band'];
+                for (const selector of ['.media-kit-title', '.media-kit-intro', '.media-kit-primary-download'])
+                    if (!head.querySelector(selector)) issues.push(`${selector} is outside the cover band`);
+                const headBox = head.getBoundingClientRect();
+                if (Math.abs(headBox.top - panel.top) > 2 || getComputedStyle(head).backgroundColor === getComputedStyle(document.querySelector('.media-kit-panel')).backgroundColor)
+                    issues.push('the cover is not a band at the top of the card');
+                const contact = document.querySelector('.media-kit-contact').getBoundingClientRect();
+                if (Math.abs(contact.bottom - panel.bottom) > 2 || Math.abs(contact.left - panel.left) > 2)
+                    issues.push('the press contact does not close the card');
+
+                const root = document.querySelector('#fileList .media-kit-group');
+                if (!root?.classList.contains('media-kit-root')) return [...issues, 'the kit top level is not first'];
+                const featured = root.querySelector('.media-kit-featured');
+                const docs = root.querySelector('.media-kit-docs');
+                if (!featured || featured.children.length !== 2) return [...issues, 'top-level pictures are not featured'];
+                if (!docs || docs.querySelector('.media-file-thumb img')) issues.push('top-level documents are not their own strip');
+                if (featured.compareDocumentPosition(docs) !== Node.DOCUMENT_POSITION_FOLLOWING) issues.push('featured pictures do not lead');
+                const hero = featured.querySelector('.media-file-tile').getBoundingClientRect();
+                const folderTile = document.querySelector('.media-kit-group:not(.media-kit-root) .media-file-tile:not(.media-file-doc)').getBoundingClientRect();
+                if (hero.width < folderTile.width * 1.4) issues.push(`a featured picture (${Math.round(hero.width)}px) is not larger than a folder tile (${Math.round(folderTile.width)}px)`);
+                const docTile = docs.querySelector('.media-file-tile').getBoundingClientRect();
+                if (docTile.height > hero.height * 0.75) issues.push('the document strip is as tall as the featured pictures');
+                return issues;
+            }
+            """);
+        Assert.True(problems.Length == 0, $"{width}x{height}: {string.Join("; ", problems)}");
+        await FlowActionDockBrowserTests.ExpectNoHorizontalOverflowAsync(page);
+    }
+
+    [Theory]
+    [InlineData(1440, 900, 100, false)]
+    [InlineData(1024, 768, 100, true)]
+    [InlineData(768, 1024, 100, false)]
+    [InlineData(390, 844, 100, true)]
+    [InlineData(1440, 900, 200, false)]
+    [InlineData(390, 844, 200, false)]
+    public async Task FolderSections_AreCountedCardsWithEvenRowsInCaseBlindOrder(int width, int height, int textSize, bool dark)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = height },
+            ColorScheme = dark ? ColorScheme.Dark : ColorScheme.Light,
+            ReducedMotion = ReducedMotion.Reduce,
+            IsMobile = width < 600,
+            HasTouch = width < 600
+        });
+        await InstallKitFixtureAsync(context, kitFiles: PressKitFiles());
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/media", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await Assertions.Expect(page.Locator("#fileList .media-file-row")).ToHaveCountAsync(PressKitFiles().Count);
+        await Assertions.Expect(page.Locator(".media-kit-group-title")).ToHaveTextAsync(["athletes", "Logos", "Team"]);
+        await Assertions.Expect(page.Locator(".media-kit-group-count")).ToHaveTextAsync(["10", "3", "6"]);
+        await page.EvaluateAsync("size => document.documentElement.style.fontSize = size + '%'", textSize);
+        await page.EvaluateAsync("async () => { await document.fonts.ready; await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))); }");
+
+        var problems = await page.EvaluateAsync<string[]>(
+            """
+            () => {
+                const issues = [];
+                for (const group of document.querySelectorAll('.media-kit-group:not(.media-kit-root)')) {
+                    const name = group.querySelector('.media-kit-group-title').textContent;
+                    const style = getComputedStyle(group);
+                    if (parseFloat(style.borderTopWidth) < 1 || style.borderTopStyle === 'none') issues.push(`${name}: not a card`);
+                    const head = group.querySelector('.media-kit-group-head');
+                    const box = group.getBoundingClientRect(), headBox = head?.getBoundingClientRect();
+                    if (!head || headBox.top - box.top > 2 || getComputedStyle(head).backgroundColor === style.backgroundColor)
+                        issues.push(`${name}: no header band`);
+                    const tiles = [...group.querySelectorAll('.media-file-tile')];
+                    const rows = new Map();
+                    for (const tile of tiles) {
+                        const top = Math.round(tile.getBoundingClientRect().top);
+                        rows.set(top, (rows.get(top) || 0) + 1);
+                    }
+                    const counts = [...rows.values()];
+                    const columns = Math.max(...counts), last = counts[counts.length - 1];
+                    if (columns > 1 && last < Math.ceil(columns / 2)) issues.push(`${name}: rows of ${counts.join('/')}`);
+                    const spread = values => Math.max(...values) - Math.min(...values);
+                    const widths = tiles.map(tile => tile.getBoundingClientRect().width);
+                    if (spread(widths) > 1.5) issues.push(`${name}: uneven tile widths ${widths.map(Math.round).join('/')}`);
+                    const wells = tiles.map(tile => tile.querySelector('.media-file-thumb').getBoundingClientRect().height);
+                    if (spread(wells) > 1.5) issues.push(`${name}: uneven wells ${wells.map(Math.round).join('/')}`);
+                }
+                return issues;
+            }
+            """);
+        Assert.True(problems.Length == 0, $"{width}x{height} at {textSize}%: {string.Join("; ", problems)}");
+        await FlowActionDockBrowserTests.ExpectNoHorizontalOverflowAsync(page);
+    }
+
+    [Fact]
+    public async Task Thumbnails_ShowTheirLoadingFilledAndFailedStatesInsteadOfAnEmptyWell()
+    {
+        await using var loadingContext = await NewContextAsync(Browser, App, new() { ReducedMotion = ReducedMotion.Reduce });
+        await InstallKitFixtureAsync(loadingContext);
+        var archive = new TaskCompletionSource();
+        await loadingContext.RouteAsync("**/jszip.min.js", async route => { await archive.Task; await route.FallbackAsync(); });
+        await loadingContext.AddInitScriptAsync("window.createImageBitmap = () => new Promise(() => {});");
+        var page = await loadingContext.NewPageAsync();
+        await page.GotoAsync("/media", new() { WaitUntil = WaitUntilState.Commit });
+        await Assertions.Expect(page.Locator("#loading .media-kit-skeleton span")).ToHaveCountAsync(2);
+        await Assertions.Expect(page.Locator("#loading .media-kit-skeleton span").First).ToBeVisibleAsync();
+        await Assertions.Expect(page.Locator("#loading")).ToContainTextAsync("Loading…");
+        archive.SetResult();
+        var pending = page.Locator(".media-file-thumb:has(img[data-path='MediaKit/Logos/Logo.png'])");
+        await pending.ScrollIntoViewIfNeededAsync();
+        await Assertions.Expect(pending).ToHaveAttributeAsync("data-state", "loading");
+        await Assertions.Expect(page.Locator("#loading")).ToBeHiddenAsync();
+
+        await using var context = await NewContextAsync(Browser, App, new() { ReducedMotion = ReducedMotion.Reduce });
+        await InstallKitFixtureAsync(context);
+        page = await context.NewPageAsync();
+        await page.GotoAsync("/media", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        var photo = page.Locator(".media-file-thumb:has(img[data-path='MediaKit/Athletes/Athlete.png'])");
+        var cutout = page.Locator(".media-file-thumb:has(img[data-path='MediaKit/Logos/Transparent.png'])");
+        await photo.ScrollIntoViewIfNeededAsync();
+        await Assertions.Expect(photo).ToHaveAttributeAsync("data-state", "ready");
+        await Assertions.Expect(photo).ToHaveAttributeAsync("data-fill", "photo");
+        Assert.StartsWith("url(", await photo.EvaluateAsync<string>("thumb => getComputedStyle(thumb, '::before').backgroundImage"));
+        await cutout.ScrollIntoViewIfNeededAsync();
+        await Assertions.Expect(cutout).ToHaveAttributeAsync("data-fill", "transparent");
+        Assert.Contains("conic-gradient", await cutout.EvaluateAsync<string>("thumb => getComputedStyle(thumb).backgroundImage"));
+
+        await using var failedContext = await NewContextAsync(Browser, App, new() { ReducedMotion = ReducedMotion.Reduce });
+        await InstallKitFixtureAsync(failedContext);
+        await failedContext.AddInitScriptAsync("""
+            const create = URL.createObjectURL.bind(URL);
+            URL.createObjectURL = blob => blob && /^image\//.test(blob.type) ? location.origin + '/missing-thumbnail.png' : create(blob);
+            """);
+        page = await failedContext.NewPageAsync();
+        await page.GotoAsync("/media", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await Assertions.Expect(page.Locator("#fileList .media-file-row")).ToHaveCountAsync(KitFiles.Value.Count);
+        var failed = page.Locator(".media-kit-group").Nth(1).Locator(".media-file-thumb").First;
+        await failed.ScrollIntoViewIfNeededAsync();
+        await Assertions.Expect(failed).ToHaveAttributeAsync("data-state", "failed");
+        await Assertions.Expect(failed.Locator("img")).ToHaveCountAsync(0);
+        Assert.NotEqual("none", await failed.EvaluateAsync<string>("thumb => getComputedStyle(thumb, '::after').content"));
+        var download = await page.RunAndWaitForDownloadAsync(() => failed.Locator("..").Locator(".media-file-button").ClickAsync());
+        Assert.EndsWith(".png", download.SuggestedFilename);
+    }
+
+    [Fact]
+    public async Task FailedDownload_MarksItsTileWithTheWarningColour()
+    {
+        await using var context = await NewContextAsync(Browser, App, new() { ReducedMotion = ReducedMotion.Reduce });
+        await InstallKitFixtureAsync(context, failDownloadOnce: true);
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/media", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        var button = page.GetByRole(AriaRole.Button, new() { Name = "Download Transparent.png", Exact = true });
+        var normal = await button.EvaluateAsync<string>("button => getComputedStyle(button).borderTopColor");
+        await button.ClickAsync();
+        await Assertions.Expect(button).ToHaveAttributeAsync("data-download-failed", "");
+        await page.Mouse.MoveAsync(0, 0);
+        var colours = await button.EvaluateAsync<string[]>("""
+            button => {
+                const probe = document.createElement('span');
+                probe.style.color = 'var(--lwc-warning)';
+                document.body.appendChild(probe);
+                const warning = getComputedStyle(probe).color;
+                probe.remove();
+                return [getComputedStyle(button).borderTopColor, getComputedStyle(button.closest('.media-file-tile')).borderTopColor, warning];
+            }
+            """);
+        Assert.NotEqual(normal, colours[0]);
+        Assert.Equal(colours[2], colours[0]);
+        Assert.Equal(colours[2], colours[1]);
+    }
+
+    private static Dictionary<string, string> PressKitFiles()
+    {
+        var photo = KitFiles.Value["MediaKit/Athletes/Athlete.png"];
+        var files = new Dictionary<string, string>
+        {
+            ["MediaKit/FactSheet.pdf"] = KitFiles.Value["MediaKit/FactSheet.pdf"],
+            ["MediaKit/README.txt"] = KitFiles.Value["MediaKit/README.txt"],
+            ["MediaKit/Hero.jpg"] = photo,
+            ["MediaKit/Hero.png"] = photo,
+            ["MediaKit/Logos/Logo.png"] = KitFiles.Value["MediaKit/Logos/Logo.png"],
+            ["MediaKit/Logos/Transparent.png"] = KitFiles.Value["MediaKit/Logos/Transparent.png"],
+            ["MediaKit/Logos/White.png"] = KitFiles.Value["MediaKit/Logos/Logo.png"],
+            ["MediaKit/Team/Bio.txt"] = KitFiles.Value["MediaKit/README.txt"]
+        };
+        for (var i = 0; i < 5; i++) files[$"MediaKit/Team/Member{i}.png"] = photo;
+        for (var i = 0; i < 10; i++) files[$"MediaKit/athletes/athlete_{i}.jpg"] = photo;
+        return files;
+    }
+
     private static async Task InstallKitFixtureAsync(IBrowserContext context, bool failDownloadOnce = false, IReadOnlyDictionary<string, string>? kitFiles = null)
     {
         await context.RouteAsync("**/MediaKit.zip", route => route.FulfillAsync(new() { Body = "fixture archive" }));
