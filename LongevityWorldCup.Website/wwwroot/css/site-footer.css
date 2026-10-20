@@ -396,3 +396,26 @@
         border-color: CanvasText;
     }
 }
+
+@media (max-width: 280px) {
+    .footer-container {
+        padding-inline: min(1rem, 5vw);
+    }
+
+    .footer-column--explore .footer-link {
+        flex-basis: 100%;
+        flex-direction: column;
+        gap: 0.25rem;
+        min-width: 0;
+        padding: 0.5rem;
+        overflow-wrap: anywhere;
+    }
+
+    .footer-column--explore .footer-link :is(i, svg) {
+        margin-right: 0;
+    }
+
+    .footer-follow-links--primary {
+        flex-wrap: wrap;
+    }
+}
