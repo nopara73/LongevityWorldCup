@@ -169,7 +169,8 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await context.RouteAsync("**/api/longevitymaxxing/state",
             route => FulfillJsonAsync(route, JsonSerializer.Serialize(BuildPublicState())));
         var page = await context.NewPageAsync();
-        await page.GotoAsync("/longevitymaxxing");
+        await NavigateAndSettleAsync(page, "/longevitymaxxing");
+        await Assertions.Expect(page.Locator(".lmx-page")).ToHaveAttributeAsync("aria-busy", "false");
         await Assertions.Expect(page.Locator(".lmx-question-preview-item")).ToHaveCountAsync(4);
 
         await page.WaitForFunctionAsync("() => [...document.querySelectorAll('link[rel=stylesheet]')].every(link => link.sheet !== null)");
