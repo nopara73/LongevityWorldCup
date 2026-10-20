@@ -472,6 +472,36 @@ public sealed class SiteChromeSystemBrowserTests(
         await ExpectNoHorizontalOverflowAsync(page);
     }
 
+    [Theory]
+    [InlineData("/", 160)]
+    [InlineData("/", 195)]
+    [InlineData("/about", 160)]
+    [InlineData("/about", 195)]
+    public async Task ZoomNarrowHeader_KeepsEveryBrandWordWhole(string path, int width)
+    {
+        await using var context = await NewChromeContextAsync(width, 844, dark: false);
+        var page = await OpenAsync(context, path);
+        var problems = await page.Locator("header[role=banner] .bannertext").EvaluateAsync<string[]>(
+            """
+            element => {
+                const band = element.closest('header').getBoundingClientRect();
+                const text = element.firstChild;
+                const problems = [];
+                for (const match of text.textContent.matchAll(/\S+/g)) {
+                    const word = document.createRange();
+                    word.setStart(text, match.index); word.setEnd(text, match.index + match[0].length);
+                    const lines = [...word.getClientRects()];
+                    if (lines.length !== 1) problems.push(match[0] + ' split across lines');
+                    if (lines.some(r => r.left < band.left || r.right > band.right || r.top < band.top || r.bottom > band.bottom))
+                        problems.push(match[0] + ' clipped by banner');
+                }
+                return problems;
+            }
+            """);
+        Assert.Empty(problems);
+        await ExpectNoHorizontalOverflowAsync(page);
+    }
+
     private Task<IBrowserContext> NewChromeContextAsync(int width, int height, bool dark, bool? mobile = null)
     {
         var touch = mobile ?? width < 600;

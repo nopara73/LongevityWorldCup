@@ -1809,15 +1809,35 @@ header[role="banner"] .join-game:not(.scrolled-button) .join-game-end {
 
     header[role="banner"] .header-link {
         flex: 0 1 auto;
-        flex-direction: column;
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: auto 1px auto;
+        justify-items: center;
+        row-gap: var(--space-2);
         min-width: 0;
         max-width: 100%;
     }
 
-    header[role="banner"] .bannertext {
+    header[role="banner"] .header-link > .main-logo-image {
+        grid-column: 1;
+        grid-row: 1;
+    }
+
+    header[role="banner"] .header-link::before {
+        grid-column: 1;
+        grid-row: 2;
+        width: 2.25rem;
+        height: 1px;
+        min-height: 0;
+    }
+
+    header[role="banner"] .bannertext,
+    header[role="banner"] .header-link:not(:has(.tagline)) .bannertext {
+        grid-column: 1;
+        grid-row: 3;
         min-width: 0;
         padding: 0;
-        overflow-wrap: anywhere;
+        text-align: center;
+        overflow-wrap: normal;
     }
 
     header[role="banner"] .join-game:not(.scrolled-button) {
