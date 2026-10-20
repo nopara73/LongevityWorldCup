@@ -142,7 +142,7 @@ public sealed partial class HighlightsTimelineBrowserTests
         Assert.Equal(0, await page.Locator("tr.main-row[data-event-id='sep-a'] + tr").EvaluateAsync<double>("e => e.getBoundingClientRect().height"));
         await page.Keyboard.PressAsync("Enter");
 
-        var changedEvents = Events.Replace("The full announcement is here.", "The updated announcement is here. [Read the rules](https://longevityworldcup.com/ruleset)")
+        var changedEvents = Events.Replace("The full announcement is here.", "The updated announcement is here. [Read the rules](https://longevityworldcup.com/ruleset). [Rules details](https://longevityworldcup.com/ruleset)")
             .Replace("2026-09-20T12:00:00Z", "2026-11-20T12:00:00Z");
         var pending = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         await context.RouteAsync("**/api/events", async route =>
@@ -150,13 +150,19 @@ public sealed partial class HighlightsTimelineBrowserTests
             await pending.Task;
             await route.FulfillAsync(new() { ContentType = "application/json", Body = changedEvents });
         });
-        await page.EvaluateAsync("() => loadEventsTable(null, false)");
-        await Assertions.Expect(page.Locator("#events-root")).ToHaveAttributeAsync("aria-busy", "true");
-        await Assertions.Expect(expander).ToBeFocusedAsync();
-        await Assertions.Expect(expander).ToHaveAttributeAsync("aria-expanded", "true");
-        pending.SetResult();
+        try
+        {
+            await page.EvaluateAsync("() => loadEventsTable(null, false)");
+            await Assertions.Expect(page.Locator("#events-root")).ToHaveAttributeAsync("aria-busy", "true");
+            await Assertions.Expect(expander).ToBeFocusedAsync();
+            await Assertions.Expect(expander).ToHaveAttributeAsync("aria-expanded", "true");
+        }
+        finally
+        {
+            pending.TrySetResult();
+        }
         await Assertions.Expect(page.GetByRole(AriaRole.Link, new() { Name = "Read the rules", Exact = true })).ToBeVisibleAsync();
-        var storyLink = page.Locator("tr.custom-event-details a[href='https://longevityworldcup.com/ruleset']");
+        var storyLink = page.GetByRole(AriaRole.Link, new() { Name = "Rules details", Exact = true });
         await storyLink.FocusAsync();
         await ReloadTimelineAsync(page);
         await Assertions.Expect(storyLink).ToBeFocusedAsync();
@@ -172,5 +178,45 @@ public sealed partial class HighlightsTimelineBrowserTests
     {
         await page.EvaluateAsync("() => { window.__timelinePriorRow = document.querySelector('tr.main-row'); loadEventsTable(null, false); }");
         await page.WaitForFunctionAsync("() => window.__timelinePriorRow !== document.querySelector('tr.main-row') && document.querySelector('#events-root').getAttribute('aria-busy') === 'false'");
+    }
+
+    [Theory]
+    [InlineData(ColorScheme.Light)]
+    [InlineData(ColorScheme.Dark)]
+    public async Task FailedFeed_EnlargedRetryStaysInsideTheNoticeAndKeyboardRetryRecovers(ColorScheme scheme)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = 320, Height = 640 }, ColorScheme = scheme, ReducedMotion = ReducedMotion.Reduce
+        });
+        var failed = true;
+        await context.RouteAsync("**/api/data/athletes", route => route.FulfillAsync(new() { ContentType = "application/json", Body = Athletes }));
+        await context.RouteAsync("**/api/events", route => route.FulfillAsync(new()
+        {
+            Status = failed ? 503 : 200, ContentType = "application/json", Body = failed ? "{}" : Events
+        }));
+        var page = await context.NewPageAsync();
+        await NavigateAndSettleAsync(page, "/events");
+        var retry = page.GetByRole(AriaRole.Button, new() { Name = "Retry", Exact = true });
+        await retry.WaitForAsync();
+        await page.EvaluateAsync("() => document.documentElement.style.fontSize = '200%'");
+        var contained = await retry.EvaluateAsync<bool>(
+            """
+            button => {
+                const b=button.getBoundingClientRect(),n=button.closest('.events-recovery').getBoundingClientRect();
+                const r=document.createRange();r.selectNodeContents(button);const t=r.getBoundingClientRect();
+                return b.width>=44 && b.height>=44 && b.left>=n.left && b.right<=n.right && b.right<=innerWidth && t.left>=b.left && t.right<=b.right;
+            }
+            """);
+        Assert.True(contained, "The enlarged Retry target or its glyphs leave the error notice.");
+        failed = false;
+        await retry.FocusAsync();
+        await page.Keyboard.PressAsync("Enter");
+        await page.Locator("tr.main-row[data-event-id='aug-a']").WaitForAsync();
+        await Assertions.Expect(page.Locator("#events-root")).ToHaveAttributeAsync("aria-busy", "false");
+        await Assertions.Expect(page.Locator("#eventsStatus")).ToHaveTextAsync("Events loaded.");
+        await Assertions.Expect(page.Locator("#eventsStatus")).ToHaveAttributeAsync("role", "status");
+        await page.Locator(".event-board-page .back-button").ClickAsync();
+        await page.WaitForURLAsync(App.BaseAddress.ToString());
     }
 }

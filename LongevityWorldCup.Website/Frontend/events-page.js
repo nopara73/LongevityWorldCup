@@ -812,6 +812,7 @@ const eventsPageAssets = document.currentScript.dataset;
             eventId: focusedMainRow.dataset.eventId,
             details: focusedRow !== focusedMainRow,
             href: active.getAttribute('href'),
+            label: active.getAttribute('aria-label') || active.textContent,
             index: [...focusedRow.querySelectorAll('a, button')].indexOf(active)
         } : null;
         const appendFromIndex = options && Number.isFinite(options.appendFromIndex) ? Math.max(0, Math.floor(options.appendFromIndex)) : 0;
@@ -1325,8 +1326,11 @@ const eventsPageAssets = document.currentScript.dataset;
             const mainRow = renderedTimelineRows.get(timelineFocus.eventId);
             const row = timelineFocus.details ? mainRow?.nextElementSibling : mainRow;
             const controls = [...(row?.querySelectorAll('a, button') || [])];
+            const sameLink = element => element && element.getAttribute('href') === timelineFocus.href
+                && (element.getAttribute('aria-label') || element.textContent) === timelineFocus.label;
             const control = timelineFocus.href !== null
-                ? controls.find(element => element.getAttribute('href') === timelineFocus.href)
+                ? (sameLink(controls[timelineFocus.index]) ? controls[timelineFocus.index]
+                    : controls.find(sameLink) || controls.find(element => element.getAttribute('href') === timelineFocus.href))
                 : controls[timelineFocus.index];
             control?.focus({ preventScroll: true });
         }
