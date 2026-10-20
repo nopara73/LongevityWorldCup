@@ -220,6 +220,174 @@ public sealed class AthleteDataAnalyticsBrowserTests(
         Assert.True(layout.Length == 0, $"{width}px: {string.Join("; ", layout)}");
     }
 
+    [Fact]
+    public async Task History_OrdersValidDatesAndPreservesCanonicalMeasurementsAndMissingValues()
+    {
+        await using var context = await NewContextAsync(390, true);
+        var page = await OpenAsync(context);
+        var failures = await page.EvaluateAsync<string[]>("""
+            () => {
+                const failures = [];
+                const { buildBiomarkerHistory, renderBiomarkerHistory } = window.analyticsTest;
+                const athlete = { Name: 'Synthetic history', DateOfBirth: { Year: 1980, Month: 1, Day: 1 }, Biomarkers: [
+                    { Date: '2026-04-01', AlbGL: 50, GluMmolL: 5 },
+                    { Date: 'invalid', AlbGL: 999 },
+                    { Date: '2026-01-01', AlbGL: 66, CrpMgL: 0 },
+                    { Date: '2026-02-30', AlbGL: 1000 },
+                    { Date: '2026-04-01', AlbGL: 49, GluMgDl: 180 },
+                    { Date: '2026-05-01', CrpMgL: 0.2, AlbGL: null, GluMmolL: Infinity },
+                    null, { Date: null, AlbGL: 999 }, { Date: '2026-06-01', AlbGL: ' ', GluMmolL: false }
+                ] };
+                const original = JSON.stringify(athlete);
+                const history = buildBiomarkerHistory(athlete);
+                if (history.labels.join(',') !== '2026-01-01,2026-04-01,2026-04-01,2026-05-01') failures.push('valid dates are not chronological');
+                if (history.biomarkersRaw['Albumin (g/L)'].join(',') !== '66,50,49,') failures.push('source measurements changed');
+                renderBiomarkerHistory(history, [athlete]);
+                const row = document.querySelector('[data-measure="Albumin (g/L)"]');
+                if (row.querySelector('.biomarker-overview-current').textContent !== '49') failures.push('latest available result is wrong');
+                if (row.querySelector('.biomarker-overview-change').textContent !== '−17') failures.push('change does not use first and latest valid readings');
+                if (document.querySelector('[data-measure="Glucose (mmol/L)"] .biomarker-overview-current').textContent !== '5') failures.push('changed units or nonfinite values contaminated canonical readings');
+                row.querySelector('button').click();
+                const ledger = document.querySelector('.result-detail-row:not([hidden]) .biomarker-history-table');
+                if (ledger.querySelector('tr.is-latest td')?.textContent !== '49' || ledger.querySelector('tbody tr:last-child td').textContent !== '—') failures.push('ledger does not mark the latest measured value');
+                if (JSON.stringify(athlete) !== original) failures.push('history rendering mutated source data');
+                for (const biomarkers of [[], [{ Date: 'invalid', AlbGL: 4 }]]) {
+                    renderBiomarkerHistory(buildBiomarkerHistory({ ...athlete, Biomarkers: biomarkers }), []);
+                    if (document.querySelectorAll('#athlete-biomarkers .result-summary').length) failures.push('empty history retains result rows');
+                }
+                return failures;
+            }
+            """);
+        Assert.Empty(failures);
+    }
+
+    [Fact]
+    public async Task Changes_RetainReadingPrecisionAndAccessibleUnitsWithoutNegativeZero()
+    {
+        await using var context = await NewContextAsync(390, true);
+        var page = await OpenAsync(context);
+        var failures = await page.EvaluateAsync<string[]>("""
+            () => {
+                const failures = [];
+                const { createResultChange } = window.analyticsTest;
+                for (const [values, expected, clock] of [
+                    [[0.000001, 0.000002], '+0.000001'], [[1e-7, 2e-7], '+0.0000001'],
+                    [[1.00001, 1.00002], '+0.00001'], [[0, 0], '±0'], [[1, 0], '−1'],
+                    [[40.04, 40.01], '±0', 'pheno'], [[40.04, 39.91], '−0.1', 'bortz']
+                ]) {
+                    const measure = { values, unit: clock ? 'years' : 'g/L', clock };
+                    const change = createResultChange(measure, [0, 1]);
+                    if (change.textContent !== expected) failures.push(`${values}: ${change.textContent} instead of ${expected}`);
+                    if (!change.getAttribute('aria-label')?.includes(`Change since first reading: ${expected} ${measure.unit}`)) failures.push('change lacks an accessible meaning and unit');
+                    if (expected === '±0' && change.dataset.direction !== 'flat') failures.push('rounded zero has a direction');
+                }
+                if (createResultChange({ values: [4], unit: 'g/L' }, [0]) !== null) failures.push('single result has a change');
+                if (createResultChange({ values: [-1e308, 1e308], unit: 'g/L' }, [0, 1]) !== null) failures.push('nonfinite difference displayed');
+                return failures;
+            }
+            """);
+        Assert.Empty(failures);
+    }
+
+    [Fact]
+    public async Task Sparklines_PreserveSharedUnevenDatesGapsDuplicateDatesAndFiniteCoordinates()
+    {
+        await using var context = await NewContextAsync(390, true);
+        var page = await OpenAsync(context);
+        var failures = await page.EvaluateAsync<string[]>("""
+            () => {
+                const failures = [];
+                const { createBiomarkerSparkline, isBiomarkerHistoryValue } = window.analyticsTest;
+                const labels = ['2026-01-01', '2026-01-02', '2026-04-01', '2026-04-01'];
+                for (const values of [[], [0], [null, 0, 1, 2], [1, null, 3, null], [1, 2, 3, 4], [-1e308, 0, 1e308, 1e308], [NaN, Infinity, null, undefined]]) {
+                    const svg = createBiomarkerSparkline(labels, values);
+                    for (const node of svg.querySelectorAll('*')) for (const attribute of node.attributes)
+                        if (/NaN|Infinity/.test(attribute.value)) failures.push(`${values}: nonfinite ${attribute.name}`);
+                    const ticks = [...svg.querySelectorAll('.sparkline-tick')].map(t => +t.getAttribute('x1'));
+                    if (ticks.length !== 4 || ticks[0] !== 8 || ticks[2] !== 112 || ticks[3] !== 112 || ticks[1] >= 10) failures.push('shared dates are not placed by elapsed time');
+                    const measured = values.filter(isBiomarkerHistoryValue).length;
+                    if (svg.querySelectorAll('circle').length !== measured) failures.push('measured or zero value disappeared');
+                    if (svg.querySelectorAll('.is-latest').length !== (measured ? 1 : 0)) failures.push('latest value marker is wrong');
+                    if (values[1] === null && svg.querySelectorAll('g:not(.sparkline-area) line, .sparkline-area path').length) failures.push('trend bridges a missing measurement');
+                }
+                const invalid = createBiomarkerSparkline(['invalid', null, '2026-02-30'], [1, 2, 3]);
+                if (invalid.querySelectorAll('circle,.sparkline-tick').length) failures.push('invalid dates were plotted');
+                return failures;
+            }
+            """);
+        Assert.Empty(failures);
+    }
+
+    [Theory]
+    [InlineData(320)]
+    [InlineData(1440)]
+    public async Task Radar_UsesClockColoursForActivePointsAndKeepsLabelsAndTooltipsInCanvas(int width)
+    {
+        await using var context = await NewContextAsync(width, true);
+        var page = await OpenAsync(context);
+        await page.WaitForFunctionAsync("() => window.Chart?.getChart(document.getElementById('ageRadarChart'))?.scales?.r?.drawingArea > 0");
+        foreach (var clock in new[] { "Pheno", "Bortz", "Pheno" })
+        {
+            await page.Locator($"#ageTab{clock}").ClickAsync();
+            var failures = await page.EvaluateAsync<string[]>("""
+                () => {
+                    const failures = [];
+                    const chart = Chart.getChart(document.getElementById('ageRadarChart'));
+                    const expected = getComputedStyle(document.getElementById('detailsModal')).getPropertyValue(`--athlete-modal-chart-${chart.canvas.dataset.clock}`).trim();
+                    const paint = color => { const c = document.createElement('canvas').getContext('2d'); c.fillStyle = color; c.fillRect(0,0,1,1); return [...c.getImageData(0,0,1,1).data].join(','); };
+                    chart.data.datasets[0].data.forEach((_, index) => {
+                        chart.setActiveElements([{ datasetIndex: 0, index }]);
+                        chart.update('none');
+                        if (paint(chart.getDatasetMeta(0).data[index].options.backgroundColor) !== paint(expected)) failures.push('active point changed clock colour');
+                        const point = chart.getDatasetMeta(0).data[index];
+                        chart.tooltip.setActiveElements([{ datasetIndex: 0, index }], { x: point.x, y: point.y });
+                        chart.update('none');
+                        const t = chart.tooltip;
+                        if (t.x < -.5 || t.y < -.5 || t.x + t.width > chart.width + .5 || t.y + t.height > chart.height + .5) failures.push('tooltip is cropped by canvas');
+                    });
+                    for (const bounds of chart.scales.r._pointLabelItems)
+                        if (bounds.left < -.5 || bounds.top < -.5 || bounds.right > chart.width + .5 || bounds.bottom > chart.height + .5) failures.push('percentile label is cropped by canvas');
+                    return failures;
+                }
+                """);
+            Assert.Empty(failures);
+        }
+    }
+
+    [Fact]
+    public async Task ClockHistory_ScrollEdgesKeepWholeFiguresAndAllAccessibleDatedReadings()
+    {
+        await using var context = await NewContextAsync(390, true);
+        await context.AddInitScriptAsync("""
+            (() => {
+                const original = window.getSharedAthletes;
+                window.getSharedAthletes = async () => (await original()).map(athlete => ({ ...athlete,
+                    Biomarkers: Array.from({ length: 16 }, (_, index) => ({ ...athlete.Biomarkers[0], Date: `${2010 + index}-01-01` }))
+                }));
+            })();
+            """);
+        var page = await OpenAsync(context);
+        foreach (var width in new[] { 390, 320, 768 })
+        {
+            await page.SetViewportSizeAsync(width, 844);
+            var strip = Row(page, "pheno").Locator(".clock-history-scroll");
+            await Expect(strip.Locator("[role=listitem]")).ToHaveCountAsync(16);
+            await strip.EvaluateAsync("strip => { strip.scrollLeft = -strip.scrollWidth / 2; }");
+            await page.WaitForFunctionAsync("""
+                () => {
+                    const strip = document.querySelector('[data-measure="pheno"] .clock-history-scroll');
+                    const box = strip.getBoundingClientRect();
+                    return [...strip.querySelectorAll('.clock-history-reading')].every(reading => {
+                        if (parseFloat(getComputedStyle(reading).opacity) === 0) return !!reading.getAttribute('aria-label');
+                        const range = document.createRange(); range.selectNodeContents(reading);
+                        const glyphs = range.getBoundingClientRect();
+                        return glyphs.left >= box.left - .5 && glyphs.right <= box.right + .5;
+                    });
+                }
+                """);
+        }
+    }
+
     private async Task<IBrowserContext> NewContextAsync(int width, bool dark)
     {
         var context = await Browser.NewContextAsync(new()
@@ -229,6 +397,21 @@ public sealed class AthleteDataAnalyticsBrowserTests(
             ReducedMotion = ReducedMotion.Reduce, HasTouch = width < 600, IsMobile = width < 600
         });
         await BrowserTestApp.RouteExternalResourcesAsync(context);
+        // Expose the real private renderer functions only in this intercepted
+        // test response, without adding a production testing API.
+        await context.RouteAsync("**/js/leaderboard-page.js*", async route =>
+        {
+            var response = await route.FetchAsync();
+            var script = await response.TextAsync();
+            var closureEnd = script.LastIndexOf("})();", StringComparison.Ordinal);
+            Assert.True(closureEnd > 0);
+            await route.FulfillAsync(new()
+            {
+                Response = response,
+                Body = script.Insert(closureEnd,
+                    "window.analyticsTest = {buildBiomarkerHistory, renderBiomarkerHistory, createResultChange, createBiomarkerSparkline, isBiomarkerHistoryValue};\n")
+            });
+        });
         var chartScript = Path.Combine(AppContext.BaseDirectory, "Fixtures", "chart.umd.js");
         await context.RouteAsync("https://cdn.jsdelivr.net/npm/chart.js@4.5.1", route => route.FulfillAsync(new()
         {

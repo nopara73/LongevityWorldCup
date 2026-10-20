@@ -570,7 +570,6 @@
         var radarGridColor = modalStyles ? (modalStyles.getPropertyValue('--athlete-modal-chart-grid').trim() || 'rgba(0,0,0,0.08)') : 'rgba(0,0,0,0.08)';
         var radarFill = modalStyles ? (modalStyles.getPropertyValue('--athlete-modal-cream-soft').trim() || 'rgba(246,244,237,.18)') : 'rgba(246,244,237,.18)';
         var radarStroke = modalStyles ? (modalStyles.getPropertyValue('--athlete-modal-cream').trim() || 'rgba(246,244,237,.92)') : 'rgba(246,244,237,.92)';
-        var radarPoint = modalStyles ? (modalStyles.getPropertyValue('--athlete-modal-cream').trim() || 'rgba(246,244,237,.92)') : 'rgba(246,244,237,.92)';
         // The web wears the selected clock's colour from Results over time.
         function clockColor(alpha?: number): string {
             var token = canvas?.dataset.clock === 'pheno' ? '--athlete-modal-chart-pheno' : '--athlete-modal-chart-bortz';
@@ -623,7 +622,7 @@
                     pointBackgroundColor: function () { return clockColor(); },
                     pointBorderColor: 'rgba(18,20,20,.95)',
                     pointBorderWidth: 2,
-                    pointHoverBackgroundColor: radarPoint,
+                    pointHoverBackgroundColor: function () { return clockColor(); },
                     borderJoinStyle: 'round',
                     pointHoverBorderColor: 'rgba(18,20,20,.95)',
                     pointHoverBorderWidth: 2,

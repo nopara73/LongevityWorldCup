@@ -1998,6 +1998,7 @@
  }
  #detailsModal .clock-history-reading.is-latest{ color:var(--result-accent); font-weight:700; }
  #detailsModal .clock-history-reading.is-latest::before{ background:currentColor; }
+ #detailsModal .clock-history-reading.is-clipped{ opacity:0; }
  #detailsModal .biomarker-overview-history svg{
      display:block;
      width:100%;
@@ -4827,7 +4828,7 @@ main[data-leaderboard-page="full"] .flag-section-heading{ padding-block:var(--lw
 #detailsModal .biomarker-history-table tbody td[aria-label]{ color:var(--athlete-modal-subtle); font-weight:400; }
 #detailsModal .biomarker-history-table tbody tr:nth-child(even) > *{ background:rgba(246,244,237,.03); }
 #detailsModal .biomarker-history-table tbody tr:last-child > *{ border-bottom:0; }
-#detailsModal .biomarker-history-table tbody tr:last-child td:not([aria-label]){ color:var(--result-accent); }
+#detailsModal .biomarker-history-table tbody tr.is-latest td:not([aria-label]){ color:var(--result-accent); }
 
 @media (max-width:600px){
     #detailsModal .modal-content > #athlete-biomarkers{
