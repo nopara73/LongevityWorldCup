@@ -595,8 +595,11 @@ public sealed class MediaKitBrowserTests(PlaywrightBrowserFixture browserFixture
         await using var failedContext = await NewContextAsync(Browser, App, new() { ReducedMotion = ReducedMotion.Reduce });
         await InstallKitFixtureAsync(failedContext);
         await failedContext.AddInitScriptAsync("""
-            const create = URL.createObjectURL.bind(URL);
-            URL.createObjectURL = blob => blob && /^image\//.test(blob.type) ? location.origin + '/missing-thumbnail.png' : create(blob);
+            const source = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, 'src');
+            Object.defineProperty(HTMLImageElement.prototype, 'src', {
+                ...source,
+                set(value) { source.set.call(this, location.origin + '/missing-thumbnail.png'); }
+            });
             """);
         page = await failedContext.NewPageAsync();
         await page.GotoAsync("/media", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
@@ -635,6 +638,137 @@ public sealed class MediaKitBrowserTests(PlaywrightBrowserFixture browserFixture
         Assert.NotEqual(normal, colours[0]);
         Assert.Equal(colours[2], colours[0]);
         Assert.Equal(colours[2], colours[1]);
+    }
+
+    [Theory]
+    [InlineData(1440, 3)]
+    [InlineData(1024, 3)]
+    [InlineData(320, 1)]
+    public async Task BalancedFolders_UseFullRowsWithoutEmptyTracksAndReflowWithText(int width, int expectedTeamColumns)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = 900 },
+            ReducedMotion = ReducedMotion.Reduce
+        });
+        var files = PressKitFiles();
+        files["MediaKit/One/Only.txt"] = KitFiles.Value["MediaKit/README.txt"];
+        await InstallKitFixtureAsync(context, kitFiles: files);
+        var page = await context.NewPageAsync();
+        var errors = new List<string>();
+        page.PageError += (_, error) => errors.Add(error);
+        await page.GotoAsync("/media");
+        await Assertions.Expect(page.Locator(".media-file-row")).ToHaveCountAsync(files.Count);
+        if (width == 320) await page.EvaluateAsync("document.documentElement.style.fontSize = '200%'");
+        var team = page.Locator(".media-kit-group").Filter(new() { Has = page.GetByRole(AriaRole.Heading, new() { Name = "Team", Exact = true }) }).Locator("ul");
+        await page.WaitForFunctionAsync("([list, columns]) => getComputedStyle(list).gridTemplateColumns.split(' ').length === columns",
+            new object[] { await team.ElementHandleAsync() ?? throw new InvalidOperationException(), expectedTeamColumns });
+        var one = page.Locator(".media-kit-group").Filter(new() { Has = page.GetByRole(AriaRole.Heading, new() { Name = "One", Exact = true }) }).Locator("ul");
+        Assert.Equal(1, await one.EvaluateAsync<int>("list => getComputedStyle(list).gridTemplateColumns.split(' ').length"));
+        var button = team.Locator("button").First;
+        await button.FocusAsync();
+        var order = await page.Locator(".media-file-name").AllTextContentsAsync();
+        await page.SetViewportSizeAsync(768, 600);
+        await page.SetViewportSizeAsync(width, 900);
+        await Assertions.Expect(button).ToBeFocusedAsync();
+        Assert.Equal(order, await page.Locator(".media-file-name").AllTextContentsAsync());
+        Assert.Empty(errors);
+    }
+
+    [Fact]
+    public async Task ThumbnailResources_CloseBitmapsOnCanvasFailureAndReleaseUrlsOnDeparture()
+    {
+        await using var context = await NewContextAsync(Browser, App, new() { ReducedMotion = ReducedMotion.Reduce });
+        await InstallKitFixtureAsync(context);
+        await context.AddInitScriptAsync("""
+            window.mediaResources = { urls: [], revoked: [], bitmaps: 0, closed: 0 };
+            const create = URL.createObjectURL.bind(URL), revoke = URL.revokeObjectURL.bind(URL);
+            URL.createObjectURL = blob => { const url = create(blob); mediaResources.urls.push(url); return url; };
+            URL.revokeObjectURL = url => { mediaResources.revoked.push(url); revoke(url); };
+            const bitmap = window.createImageBitmap.bind(window);
+            window.createImageBitmap = async (...args) => {
+                const value = await bitmap(...args); mediaResources.bitmaps++;
+                const close = value.close.bind(value);
+                value.close = () => { mediaResources.closed++; close(); };
+                return value;
+            };
+            const draw = CanvasRenderingContext2D.prototype.drawImage;
+            let fail = true;
+            CanvasRenderingContext2D.prototype.drawImage = function(...args) {
+                if (fail) { fail = false; throw new Error('canvas unavailable'); }
+                return draw.apply(this, args);
+            };
+            """);
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/media");
+        await Assertions.Expect(page.Locator(".media-file-row")).ToHaveCountAsync(KitFiles.Value.Count);
+        foreach (var image in await page.Locator(".media-file-thumb img").AllAsync())
+        {
+            await image.ScrollIntoViewIfNeededAsync();
+            await Assertions.Expect(image.Locator("..")).ToHaveAttributeAsync("data-state", "ready");
+        }
+        Assert.True(await page.EvaluateAsync<bool>("mediaResources.bitmaps > 0 && mediaResources.closed === mediaResources.bitmaps"));
+        await page.EvaluateAsync("dispatchEvent(new PageTransitionEvent('pagehide', { persisted: true }))");
+        Assert.True(await page.EvaluateAsync<bool>("mediaResources.urls.every(url => !mediaResources.revoked.includes(url))"));
+        await page.EvaluateAsync("dispatchEvent(new PageTransitionEvent('pagehide', { persisted: false }))");
+        Assert.True(await page.EvaluateAsync<bool>("mediaResources.urls.every(url => mediaResources.revoked.includes(url))"));
+    }
+
+    [Theory]
+    [InlineData("FactSheet.pdf", "application/pdf")]
+    [InlineData("README.txt", "text/plain")]
+    [InlineData("Transparent.png", "image/png")]
+    public async Task Downloads_KeepTheOriginalBytesAndDeclareTheirFileType(string filename, string type)
+    {
+        await using var context = await NewContextAsync(Browser, App, new());
+        await InstallKitFixtureAsync(context);
+        await context.AddInitScriptAsync("""
+            window.downloadTypes = [];
+            const create = URL.createObjectURL.bind(URL);
+            URL.createObjectURL = blob => { downloadTypes.push(blob.type); return create(blob); };
+            """);
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/media");
+        var download = await page.RunAndWaitForDownloadAsync(() =>
+            page.GetByRole(AriaRole.Button, new() { Name = $"Download {filename}", Exact = true }).ClickAsync());
+        Assert.Equal(type, await page.EvaluateAsync<string>("downloadTypes.at(-1)"));
+        var path = KitFiles.Value.Keys.Single(path => path.EndsWith($"/{filename}", StringComparison.Ordinal));
+        Assert.Equal(Convert.FromBase64String(KitFiles.Value[path]), await File.ReadAllBytesAsync((await download.PathAsync())!));
+    }
+
+    [Fact]
+    public async Task FileNames_StayLiteralAndPrototypeNamesRemainDocuments()
+    {
+        var files = new Dictionary<string, string>
+        {
+            ["MediaKit/<img onerror=alert(1)>.txt"] = KitFiles.Value["MediaKit/README.txt"],
+            ["MediaKit/notes.constructor"] = KitFiles.Value["MediaKit/README.txt"]
+        };
+        await using var context = await NewContextAsync(Browser, App, new());
+        await InstallKitFixtureAsync(context, kitFiles: files);
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/media");
+        await Assertions.Expect(page.Locator(".media-file-doc")).ToHaveCountAsync(2);
+        await Assertions.Expect(page.Locator(".media-file-name")).ToHaveTextAsync(["<img onerror=alert(1)>.txt", "notes.constructor"]);
+        await Assertions.Expect(page.Locator("img[onerror]")).ToHaveCountAsync(0);
+        await Assertions.Expect(page.GetByRole(AriaRole.Button, new() { Name = "Download <img onerror=alert(1)>.txt", Exact = true })).ToBeVisibleAsync();
+    }
+
+    [Fact]
+    public async Task TransparentThumbnails_DetectSmallCutoutsBetweenSampledPixels()
+    {
+        using var image = new Image<Rgba32>(520, 520, new Rgba32(0x12, 0x67, 0x47));
+        image[1, 0] = new Rgba32(0, 0, 0, 0);
+        using var stream = new MemoryStream();
+        image.SaveAsPng(stream);
+        var files = new Dictionary<string, string> { ["MediaKit/SmallCutout.png"] = Convert.ToBase64String(stream.ToArray()) };
+        await using var context = await NewContextAsync(Browser, App, new());
+        await InstallKitFixtureAsync(context, kitFiles: files);
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/media");
+        var thumb = page.Locator(".media-file-thumb");
+        await Assertions.Expect(thumb).ToHaveAttributeAsync("data-state", "ready");
+        await Assertions.Expect(thumb).ToHaveAttributeAsync("data-fill", "transparent");
     }
 
     private static Dictionary<string, string> PressKitFiles()

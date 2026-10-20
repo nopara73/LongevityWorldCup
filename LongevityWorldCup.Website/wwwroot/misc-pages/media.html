@@ -75,7 +75,7 @@
         }
 
         .media-kit-primary-download::before {
-            content: "\f019";
+            content: "\f019" / "";
             font-family: "Font Awesome 6 Free";
             font-weight: 900;
             font-size: 0.95em;
@@ -157,7 +157,7 @@
         }
 
         .media-kit-fallback::before {
-            content: "\f071";
+            content: "\f071" / "";
             flex: none;
             color: var(--lwc-warning);
             font-family: "Font Awesome 6 Free";
@@ -463,7 +463,7 @@
         }
 
         .media-kit-contact::before {
-            content: "\f0e0";
+            content: "\f0e0" / "";
             margin-inline-end: 0.5rem;
             color: var(--lwc-accent);
             font-family: "Font Awesome 6 Free";
@@ -485,8 +485,8 @@
             }
         }
 
-        /* Phones: the card's side space stops growing with the text, and
-           folders get a two-up grid of smaller tiles. */
+        /* Phones: limit the side space and let tile widths follow the text size,
+           including a single column when captions need the room. */
         @media (max-width: 600px) {
             .media-kit-panel {
                 --media-kit-gutter: min(1rem, 4vw);
@@ -573,12 +573,12 @@
 
             <!-- Live file list extracted from ZIP (auto-load) -->
             <div id="zipPreview" class="media-kit-preview">
-                <div id="loading" class="media-kit-loading">
+                <div id="loading" class="media-kit-loading" role="status">
                     <div class="media-kit-skeleton" aria-hidden="true"><span></span><span></span></div>
                     Loading…
                 </div>
                 <div id="fileList" class="media-kit-groups"></div>
-                <div id="fallback" class="media-kit-fallback" style="display:none;">
+                <div id="fallback" class="media-kit-fallback" role="status" style="display:none;">
                     Failed to preview. Use the ZIP link above.
                 </div>
                 <div id="downloadStatus" class="visually-hidden" role="status"></div>
@@ -603,6 +603,22 @@
         const loadingEl = document.getElementById('loading');
         const listEl = document.getElementById('fileList');
         const fallbackEl = document.getElementById('fallback');
+        // Photo backdrops need their URL for as long as the page is visible.
+        // Keep them across bfcache restores; release them on an actual departure.
+        const objectUrls = new Set();
+        function createFileUrl(blob) {
+            const url = URL.createObjectURL(blob);
+            objectUrls.add(url);
+            return url;
+        }
+        function releaseFileUrl(url) {
+            URL.revokeObjectURL(url);
+            objectUrls.delete(url);
+        }
+        window.addEventListener('pagehide', event => {
+            if (event.persisted) return;
+            for (const url of objectUrls) releaseFileUrl(url);
+        });
 
         function appendFileName(target, path) {
             for (const part of path.split(/([/_.-])/)) {
@@ -623,21 +639,20 @@
             return await res.arrayBuffer();
         }
 
-        // True when a sample of the scaled picture has see-through pixels.
+        // The scaled picture is at most 520px per side, so inspect every alpha
+        // value rather than skipping small cut-outs between sampled pixels.
         function hasTransparency(context, width, height) {
             try {
                 const { data } = context.getImageData(0, 0, width, height);
-                const step = 4 * Math.max(1, Math.floor(data.length / 4 / 4096));
-                for (let i = 3; i < data.length; i += step) if (data[i] < 250) return true;
+                for (let i = 3; i < data.length; i += 4) if (data[i] < 255) return true;
                 return false;
             } catch (_) {
                 return null;
             }
         }
 
-        // Even rows: among the column counts that fit, take the one that leaves the
-        // fewest empty cells in the last row, where each column given up counts as one
-        // empty cell, and never drop below half of what fits.
+        // Larger folders get at least two rows when space permits. Within that
+        // limit, trade an unused last-row cell for a column of wider captions.
         function balanceColumns(list) {
             const style = getComputedStyle(list);
             const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
@@ -647,18 +662,19 @@
             const width = list.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
             const count = list.children.length;
             if (!count || !(width > 0) || !(tile > 0)) return;
-            const fits = Math.max(1, Math.floor((width + gap) / (tile + gap)));
+            const fits = Math.min(
+                Math.max(1, Math.floor((width + gap) / (tile + gap))),
+                count > 3 ? Math.ceil(count / 2) : count);
             let columns = fits;
-            if (count <= fits) {
-                columns = Math.max(count, Math.ceil(fits / 2));
-            } else {
+            if (count > fits) {
                 let fewest = Infinity;
                 for (let c = fits; c >= Math.max(Math.min(2, fits), Math.ceil(fits / 2)); c--) {
                     const cost = (c - count % c) % c + (fits - c);
                     if (cost < fewest) { fewest = cost; columns = c; }
                 }
             }
-            list.style.gridTemplateColumns = `repeat(${columns}, minmax(0, 1fr))`;
+            const template = `repeat(${columns}, minmax(0px, 1fr))`;
+            if (list.style.gridTemplateColumns !== template) list.style.gridTemplateColumns = template;
         }
 
         // The page is observed too, so a text-size change re-balances lists whose width stays the same.
@@ -694,7 +710,13 @@
                     a === '' ? -1 : b === '' ? 1 : a.localeCompare(b, 'en', { sensitivity: 'base' }) || (a < b ? -1 : 1));
 
                 const imageTypes = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp', gif: 'image/gif' };
+                const documentTypes = { pdf: 'application/pdf', txt: 'text/plain', md: 'text/markdown', svg: 'image/svg+xml' };
                 const extensionOf = path => path.slice(path.lastIndexOf('.') + 1).toLowerCase();
+                const typeOf = path => {
+                    const extension = extensionOf(path);
+                    return Object.hasOwn(imageTypes, extension) ? imageTypes[extension]
+                        : Object.hasOwn(documentTypes, extension) ? documentTypes[extension] : 'application/octet-stream';
+                };
                 const thumbnails = 'IntersectionObserver' in window
                     ? new IntersectionObserver((entries, observer) => {
                         for (const entry of entries) {
@@ -718,23 +740,32 @@
                         let transparent = null;
                         try {
                             const bitmap = await createImageBitmap(original);
-                            const scale = Math.min(1, 520 / bitmap.width, 520 / bitmap.height);
-                            const canvas = document.createElement('canvas');
-                            canvas.width = Math.max(1, Math.round(bitmap.width * scale));
-                            canvas.height = Math.max(1, Math.round(bitmap.height * scale));
-                            const context = canvas.getContext('2d');
-                            context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-                            bitmap.close();
-                            transparent = hasTransparency(context, canvas.width, canvas.height);
-                            preview = await new Promise(resolve => canvas.toBlob(blob => resolve(blob || original), 'image/png'));
+                            try {
+                                const scale = Math.min(1, 520 / bitmap.width, 520 / bitmap.height);
+                                const canvas = document.createElement('canvas');
+                                canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+                                canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+                                const context = canvas.getContext('2d');
+                                context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+                                transparent = hasTransparency(context, canvas.width, canvas.height);
+                                preview = await new Promise(resolve => canvas.toBlob(blob => resolve(blob || original), 'image/png'));
+                            } finally {
+                                bitmap.close();
+                            }
                         } catch (_) {
                             preview = original;
                         }
                         // Without a sample, formats that usually carry a cut-out get the checkerboard.
                         if (transparent === null) transparent = ['png', 'gif'].includes(extensionOf(path));
-                        const url = URL.createObjectURL(preview);
+                        const url = createFileUrl(preview);
                         image.addEventListener('load', () => { thumb.dataset.state = 'ready'; }, { once: true });
-                        image.addEventListener('error', () => { image.remove(); thumb.dataset.state = 'failed'; }, { once: true });
+                        image.addEventListener('error', () => {
+                            releaseFileUrl(url);
+                            thumb.style.removeProperty('--media-file-backdrop');
+                            delete thumb.dataset.fill;
+                            image.remove();
+                            thumb.dataset.state = 'failed';
+                        }, { once: true });
                         if (transparent) {
                             thumb.dataset.fill = 'transparent';
                         } else {
@@ -749,7 +780,7 @@
                 }
 
                 function createTile(path) {
-                    const isPicture = extensionOf(path) in imageTypes;
+                    const isPicture = Object.hasOwn(imageTypes, extensionOf(path));
                     const filename = path.split('/').pop();
                     const li = document.createElement('li');
                     // Documents are tiles too: their file type fills the well a picture would.
@@ -786,15 +817,17 @@
                     btn.addEventListener('click', async () => {
                         const status = document.getElementById('downloadStatus');
                         try {
-                            const blob = await zip.file(path).async('blob');
-                            const url = URL.createObjectURL(blob);
+                            const extracted = await zip.file(path).async('blob');
+                            const blob = extracted.slice(0, extracted.size, typeOf(path));
+                            const url = createFileUrl(blob);
                             const a = document.createElement('a');
                             a.href = url;
                             a.download = filename;
                             document.body.appendChild(a);
                             a.click();
                             a.remove();
-                            URL.revokeObjectURL(url);
+                            // Allow the browser to consume the download before revoking.
+                            setTimeout(() => releaseFileUrl(url), 60000);
                             btn.removeAttribute('data-download-failed');
                             btn.removeAttribute('aria-description');
                             btn.removeAttribute('title');
