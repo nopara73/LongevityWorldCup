@@ -1414,6 +1414,8 @@
             restoreWhyDisplayBtn.addEventListener('click', restoreWhyDisplayToOriginal);
             restoreMediaContactBtn.addEventListener('click', restoreMediaContactToOriginal);
             initializeProfileDraftControls();
+            document.querySelectorAll('#editOptionsGroup input, #editOptionsGroup select, #editOptionsGroup textarea')
+                .forEach(input => input.addEventListener('focus', () => keepEditedControlClearOfDock(input)));
             profileEditorReady = true;
             updateSubmitButtonState();
             if (isValidSelectedAthlete(originalAthlete)) window.LwcInitialView.complete();

@@ -644,7 +644,7 @@ public sealed class EditProfileLayoutBrowserTests(
     private static async Task<IPage> OpenEditorAsync(IBrowserContext context)
     {
         var page = await context.NewPageAsync();
-        await page.GotoAsync("/edit-profile");
+        await page.GotoAsync("/edit-profile", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
         // Restored field values precede the editor's final controls and reveal.
         await page.WaitForFunctionAsync("""
             () => window.modulesReady && document.querySelector('#divisionDisplaySelect')?.value === "Men's"
