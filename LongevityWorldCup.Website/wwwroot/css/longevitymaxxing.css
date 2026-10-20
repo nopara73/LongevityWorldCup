@@ -6409,3 +6409,495 @@ html body .lmx-page #lmxAccessTabs .lmx-tab[aria-selected="true"] {
     .lmx-advice-conversation > .lmx-discussion-reply-item,
     .lmx-advice-archive > .lmx-discussion-reply-item { margin-left: .5rem; padding-left: .75rem; }
 }
+
+/* ==========================================================================
+   Signed-in system
+   The daily check-in reads as one ritual in the dialog and in the card:
+   habit icons fill as each question is answered, the three faces sit in one
+   inset track, and the Save bar's rail lights a segment per habit. The
+   personal dashboard, day switcher, profile and the participant's own
+   leaderboard row reuse the same habit colours, labels and cards.
+   ========================================================================== */
+
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card {
+    --lmx-rail-sleep: var(--lmx-surface-muted);
+    --lmx-rail-exercise: var(--lmx-surface-muted);
+    --lmx-rail-nutrition: var(--lmx-surface-muted);
+    --lmx-rail-vices: var(--lmx-surface-muted);
+}
+
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card:has(.lmx-question[data-key="sleep"] .lmx-answer-input:checked) {
+    --lmx-rail-sleep: var(--lmx-sleep-accent);
+}
+
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card:has(.lmx-question[data-key="exercise"] .lmx-answer-input:checked) {
+    --lmx-rail-exercise: var(--lmx-exercise-accent);
+}
+
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card:has(.lmx-question[data-key="nutrition"] .lmx-answer-input:checked) {
+    --lmx-rail-nutrition: var(--lmx-nutrition-accent);
+}
+
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card:has(.lmx-question[data-key="vices"] .lmx-answer-input:checked) {
+    --lmx-rail-vices: var(--lmx-vices-accent);
+}
+
+/* --- Day heading: the date is a tracked kicker beside a large day ------- */
+
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card > h3 {
+    align-items: baseline;
+    gap: var(--lwc-space-2);
+    color: var(--lmx-ink);
+    font-size: 1.35rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+}
+
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card > h3 > .lmx-phase {
+    color: var(--lmx-muted);
+    font-size: var(--lwc-type-xs);
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+/* --- Questions: one divided list, each row keyed by its habit ------------ */
+
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-question {
+    background: var(--lmx-surface);
+    box-shadow: inset 3px 0 0 rgba(var(--lmx-habit-soft), 0.28);
+    transition:
+        background-color var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease),
+        box-shadow var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
+}
+
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-question:has(.lmx-answer-input:checked) {
+    background: rgba(var(--lmx-habit-soft), 0.06);
+    box-shadow: inset 3px 0 0 var(--lmx-habit-accent);
+}
+
+/* Unanswered habits show an outlined icon; answering fills it. */
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-question-icon {
+    box-sizing: border-box;
+    border: 1.5px solid rgba(var(--lmx-habit-soft), 0.55);
+    background: transparent;
+    color: var(--lmx-habit-accent);
+    transition:
+        background-color var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease),
+        border-color var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease),
+        color var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
+}
+
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-question:has(.lmx-answer-input:checked) .lmx-question-icon {
+    border-color: var(--lmx-habit-accent);
+    background: var(--lmx-habit-accent);
+    color: #ffffff;
+}
+
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-plant {
+    background: radial-gradient(ellipse at 50% 82%, rgba(var(--lmx-habit-soft), 0.12), transparent 70%);
+}
+
+/* --- Answers: three faces in one inset track ------------------------------ */
+
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-answer-options {
+    gap: 2px;
+    padding: 0;
+    border: 1px solid var(--lmx-border);
+    border-radius: 9px;
+    background: var(--lmx-surface-muted);
+}
+
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-answer-option > .lmx-answer-face {
+    border-color: transparent;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--lmx-subtle);
+}
+
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-answer-option:hover > .lmx-answer-face {
+    border-color: transparent;
+    background: var(--lmx-surface);
+    color: var(--lmx-answer-deep);
+    transform: none;
+}
+
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-answer-input:checked + .lmx-answer-face {
+    border-color: var(--lmx-answer-accent);
+    background: var(--lmx-surface);
+    color: var(--lmx-answer-deep);
+    box-shadow:
+        inset 0 0 0 1px var(--lmx-answer-accent),
+        0 1px 3px rgba(15, 23, 42, 0.14);
+}
+
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-answer-input:checked + .lmx-answer-face .lmx-answer-face-icon {
+    animation: lmx-answer-pop var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
+}
+
+@keyframes lmx-answer-pop {
+    50% { transform: scale(1.14); }
+}
+
+/* --- Remarks: a section label, one quiet photo action, one focus ring ----- */
+
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-note-head > label {
+    color: var(--lmx-muted);
+    font-size: var(--lwc-type-xs);
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card .lmx-discussion-add-photo {
+    width: 44px;
+    height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 1px solid var(--lmx-border);
+    border-radius: var(--lwc-radius-md);
+    background: var(--lmx-surface);
+    color: var(--lmx-accent);
+}
+
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card .lmx-discussion-add-photo:hover:not(:disabled) {
+    border-color: var(--lmx-accent);
+    background: var(--lmx-surface-accent);
+}
+
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card .lmx-note-character-count {
+    color: var(--lmx-subtle);
+    font-size: var(--lwc-type-xs);
+    font-variant-numeric: tabular-nums;
+}
+
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card textarea {
+    border: 1px solid var(--lmx-border);
+    border-radius: var(--lwc-radius-md);
+    background: var(--lmx-surface);
+    box-shadow: none;
+}
+
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card textarea:focus,
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card textarea:focus-visible {
+    border-color: var(--lmx-accent);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(0, 188, 212, 0.22);
+}
+
+/* Pending photos: square thumbnails with a small corner remove mark. */
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card .lmx-note-photo-grid.pending {
+    grid-template-columns: repeat(auto-fill, minmax(min(5.5rem, 100%), 1fr));
+    gap: var(--lwc-space-2);
+}
+
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card .lmx-pending-photo .lmx-note-photo {
+    aspect-ratio: 1;
+    border-radius: var(--lwc-radius-md);
+}
+
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card .lmx-pending-photo .lmx-note-photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card .lmx-note-photo-remove {
+    top: 0;
+    right: 0;
+    background: transparent;
+}
+
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card .lmx-note-photo-remove::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 26px;
+    height: 26px;
+    box-sizing: border-box;
+    border: 2px solid var(--lmx-surface);
+    border-radius: 999px;
+    background: var(--lmx-inverse-surface);
+    transform: translate(-50%, -50%);
+}
+
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card .lmx-note-photo-remove > i {
+    position: relative;
+    font-size: 0.75rem;
+}
+
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card .lmx-pending-photo figcaption {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* --- Save bar: its top rail lights one segment per answered habit -------- */
+
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-actions {
+    border-top: 0;
+}
+
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-actions::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    border-radius: 999px;
+    background:
+        linear-gradient(90deg,
+            var(--lmx-rail-sleep) 0 calc(25% - 2px), transparent 0 25%,
+            var(--lmx-rail-exercise) 0 calc(50% - 2px), transparent 0 50%,
+            var(--lmx-rail-nutrition) 0 calc(75% - 2px), transparent 0 75%,
+            var(--lmx-rail-vices) 0 100%);
+}
+
+.lmx-page .lmx-participant-actions:not(.lmx-checkin-dialog-panel) .lmx-checkin-actions::before {
+    left: 1rem;
+    right: 1rem;
+}
+
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-progress {
+    color: var(--lmx-muted);
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+}
+
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-save-row > .lmx-button[type="submit"] {
+    min-width: 7.5rem;
+}
+
+/* --- Dialog frame ---------------------------------------------------------- */
+
+.lmx-checkin-dialog-panel .lmx-checkin-dialog-close {
+    border-color: var(--lmx-border);
+    border-radius: var(--lwc-radius-md);
+    background: var(--lmx-surface);
+    color: var(--lmx-muted);
+    font-size: 1.5rem;
+}
+
+.lmx-checkin-dialog-panel .lmx-checkin-dialog-close:hover {
+    outline: none;
+    color: var(--lmx-ink);
+}
+
+/* --- Catch-up day switcher: bordered cards; the open day is accent-ruled --- */
+
+.lmx-page .lmx-checkin-switcher {
+    gap: var(--lwc-space-2);
+    padding: 0;
+    border: 0;
+    background: transparent;
+}
+
+.lmx-page .lmx-checkin-switcher button {
+    border: 1px solid var(--lmx-border);
+    border-radius: var(--lwc-radius-md);
+    background: var(--lmx-surface);
+}
+
+.lmx-page .lmx-checkin-switcher button:hover:not([aria-pressed="true"]) {
+    border-color: var(--lmx-border-strong);
+    background: var(--lmx-surface);
+}
+
+#lmxCheckinList .lmx-checkin-switcher button[aria-pressed="true"] {
+    border-color: var(--lmx-accent);
+    background: var(--lmx-surface-accent);
+    color: var(--lmx-ink);
+    box-shadow: inset 0 -3px 0 var(--lmx-accent);
+}
+
+.lmx-page .lmx-checkin-switcher button[aria-pressed="true"] span {
+    color: var(--lmx-muted);
+}
+
+.lmx-page .lmx-checkin-switcher button[data-saved="true"]:not(.has-draft) em {
+    border-color: transparent;
+    background: var(--lmx-success-soft);
+    color: var(--lmx-success);
+}
+
+/* --- Personal dashboard ---------------------------------------------------- */
+
+.lmx-page .lmx-title-panel .lmx-track {
+    margin-top: var(--lwc-space-3);
+}
+
+/* The habits heading is ruled like the hero's other section headings. */
+.lmx-page .lmx-title-panel .lmx-dashboard-head {
+    margin-top: 0;
+}
+
+.lmx-page .lmx-title-panel .lmx-dashboard-head h2 {
+    flex: 1;
+}
+
+.lmx-page .lmx-title-panel .lmx-dashboard-head h2::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--lmx-border);
+}
+
+.lmx-page .lmx-habit-summary {
+    gap: var(--lwc-space-3);
+}
+
+.lmx-page .lmx-habit-summary .lmx-dashboard-category,
+.lmx-page .lmx-dashboard-row .lmx-dashboard-category {
+    grid-template-columns: 1.75rem minmax(0, 1fr) auto;
+    column-gap: var(--lwc-space-2);
+}
+
+/* Habit icons use the check-in's tile so both views share one key. */
+.lmx-page .lmx-dashboard-category i {
+    width: 1.75rem;
+    height: 1.75rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--lwc-radius-md);
+    background: rgba(var(--lmx-category-soft), 0.12);
+    color: var(--lmx-category-accent);
+    font-size: 0.8rem;
+}
+
+.lmx-page .lmx-dashboard-category strong {
+    color: var(--lmx-muted);
+    font-size: var(--lwc-type-xs);
+    font-weight: 700;
+}
+
+.lmx-page .lmx-dashboard-category .lmx-dashboard-bar {
+    height: 6px;
+    background: rgba(var(--lmx-category-soft), 0.12);
+}
+
+/* History cells sit beside their habit label, so the row carries its colours. */
+.lmx-page .lmx-dashboard-row:has(> .lmx-dashboard-category.sleep) {
+    --lmx-category-accent: var(--lmx-sleep-accent);
+    --lmx-category-soft: var(--lmx-sleep-soft);
+}
+
+.lmx-page .lmx-dashboard-row:has(> .lmx-dashboard-category.exercise) {
+    --lmx-category-accent: var(--lmx-exercise-accent);
+    --lmx-category-soft: var(--lmx-exercise-soft);
+}
+
+.lmx-page .lmx-dashboard-row:has(> .lmx-dashboard-category.nutrition) {
+    --lmx-category-accent: var(--lmx-nutrition-accent);
+    --lmx-category-soft: var(--lmx-nutrition-soft);
+}
+
+.lmx-page .lmx-dashboard-row:has(> .lmx-dashboard-category.vices) {
+    --lmx-category-accent: var(--lmx-vices-accent);
+    --lmx-category-soft: var(--lmx-vices-soft);
+}
+
+/* History cells fill with their habit colour: full, half, outlined miss. */
+.lmx-page .lmx-category-day {
+    border-radius: 5px;
+}
+
+.lmx-page .lmx-category-day.full {
+    background: var(--lmx-category-accent);
+}
+
+.lmx-page .lmx-category-day.partial {
+    background: linear-gradient(0deg, var(--lmx-category-accent) 0 50%, rgba(var(--lmx-category-soft), 0.16) 50% 100%);
+}
+
+.lmx-page .lmx-category-day.missed {
+    border: 1.5px solid rgba(var(--lmx-category-soft), 0.45);
+    background: var(--lmx-surface);
+}
+
+.lmx-page .lmx-category-day.empty {
+    border: 1px dashed var(--lmx-border);
+    background: transparent;
+}
+
+.lmx-page .lmx-category-day.today {
+    box-shadow:
+        0 0 0 2px var(--lmx-surface),
+        0 0 0 3.5px var(--lmx-accent);
+}
+
+.lmx-page .lmx-dashboard-day.today {
+    border-radius: 5px;
+}
+
+/* --- Profile and Home tabs -------------------------------------------------- */
+
+.lmx-page #lmxEditForm .lmx-label {
+    color: var(--lmx-muted);
+    font-size: var(--lwc-type-xs);
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.lmx-page #lmxEditForm .lmx-label > span {
+    margin-left: var(--lwc-space-1);
+    color: var(--lmx-subtle);
+    font-weight: 400;
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+.lmx-page #lmxEditForm .lmx-profile-identity,
+.lmx-page #lmxEditForm .lmx-profile-upload {
+    border: 1px solid var(--lmx-border);
+    border-radius: var(--lwc-radius-md);
+    background: var(--lmx-surface);
+}
+
+.lmx-page #lmxParticipantTools {
+    display: grid;
+}
+
+.lmx-page #lmxParticipantTools .lmx-button {
+    justify-content: center;
+    min-height: 48px;
+}
+
+/* --- Leaderboard: the signed-in participant's own row ---------------------- */
+
+.lmx-page .lmx-board .lmx-board-row.lmx-board-row--self,
+.lmx-page .lmx-board .lmx-board-row.lmx-board-row--self:not(.header):nth-child(even) {
+    --lmx-row-surface: var(--lmx-surface-accent);
+    background: var(--lmx-row-surface);
+    box-shadow: inset 0 0 0 1px var(--lmx-accent-soft);
+}
+
+.lmx-page .lmx-board .lmx-board-row.lmx-board-row--self > .lmx-name {
+    box-shadow:
+        inset 3px 0 0 var(--lmx-accent),
+        var(--lmx-board-gap) 0 0 var(--lmx-row-surface);
+}
+
+@media (max-width: 760px) {
+    .lmx-page .lmx-board .lmx-board-row.lmx-board-row--self,
+    .lmx-page .lmx-board .lmx-board-row.lmx-board-row--self:not(.header):nth-child(even) {
+        border-color: var(--lmx-accent);
+        box-shadow: inset 3px 0 0 var(--lmx-accent);
+    }
+
+    .lmx-page .lmx-board .lmx-board-row.lmx-board-row--self > .lmx-name {
+        box-shadow: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    :is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-answer-input:checked + .lmx-answer-face .lmx-answer-face-icon {
+        animation: none;
+    }
+}

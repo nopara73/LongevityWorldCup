@@ -2847,7 +2847,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 : "";
             const fullMarksClass = row.hasFullMarks ? " lmx-full-marks" : "";
             const groupEndClass = row.hasFullMarks && !leaderboardRows.visible[index + 1]?.hasFullMarks ? " lmx-full-marks-end" : "";
-            return `<div class="lmx-board-row${row.challengeInactive ? " inactive" : ""}${fullMarksClass}${groupEndClass}" role="row">
+            const selfClass = row.participantId === participantState?.participant.id ? " lmx-board-row--self" : "";
+            return `<div class="lmx-board-row${row.challengeInactive ? " inactive" : ""}${fullMarksClass}${groupEndClass}${selfClass}" role="row">
                 <div class="lmx-name" role="cell">${participant}</div>
                 <div class="lmx-number" role="cell" data-label="Score"><span class="lmx-score-value">${row.totalPoints}${fullMarks}</span></div>
                 <div class="lmx-cell-strip" role="cell" aria-label="Daily scores">${cells}</div>
