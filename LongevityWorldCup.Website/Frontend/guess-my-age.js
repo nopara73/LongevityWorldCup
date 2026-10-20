@@ -17,6 +17,7 @@ const gmaPayoffRegion = document.getElementById('gmaPayoffRegion');
 const GMA_RESULT_PRELUDE_MS = 1980;
 const GMA_MAX_TRAVEL_MS = 7000;
 const GMA_EXACT_JACKPOT_MS = 15000;
+const GMA_EXACT_OUTRO_MS = 900;
 const GMA_EXACT_WAVE_COUNT = 30;
 const GMA_EXACT_CONFETTI_CAP = 2200;
 const GMA_EXACT_TIME_ICON_CAP = 420;
@@ -121,6 +122,9 @@ const resetObserver = new MutationObserver(mutations => {
 
         const oldRealBubble = document.getElementById('gmaRealBubble');
         if (oldRealBubble) oldRealBubble.remove();
+        document.getElementById('gmaGap')?.remove();
+        delete gmaCard.dataset.gmaReaction;
+        modalContent.classList.remove('gma-handoff');
 
         gmaRange.value = gmaDefaultValue;
         gmaRange.disabled = false;
@@ -244,6 +248,37 @@ function syncGmaGeometry() {
     if (!realBubble) return;
     const revealedAge = Number.parseFloat(realBubble.dataset.age || realBubble.textContent);
     if (Number.isFinite(revealedAge)) positionGmaBubble(realBubble, revealedAge);
+    positionGmaGap();
+}
+
+// After the reveal, a dimension line under the track spans the guess and the real age,
+// drawn from the guess toward the answer, so the miss reads as a distance.
+function positionGmaGap() {
+    const gap = document.getElementById('gmaGap');
+    if (!gap) return;
+    const guessGeometry = gmaGeometryForAge(Number(gap.dataset.guess));
+    const actualGeometry = gmaGeometryForAge(Number(gap.dataset.actual));
+    if (guessGeometry.bubbleLeft == null || actualGeometry.bubbleLeft == null) return;
+    const left = Math.min(guessGeometry.bubbleLeft, actualGeometry.bubbleLeft);
+    const width = Math.abs(actualGeometry.bubbleLeft - guessGeometry.bubbleLeft);
+    gap.style.left = `${left}px`;
+    gap.style.width = `${width}px`;
+    gap.style.top = `${gmaRange.offsetTop + gmaRange.offsetHeight}px`;
+    gap.dataset.from = guessGeometry.bubbleLeft <= actualGeometry.bubbleLeft ? 'left' : 'right';
+}
+
+function showGmaGap(guess, actual, tone) {
+    document.getElementById('gmaGap')?.remove();
+    if (Math.round(guess) === Math.round(actual)) return;
+    const gap = document.createElement('span');
+    gap.id = 'gmaGap';
+    gap.className = 'gma-gap';
+    gap.setAttribute('aria-hidden', 'true');
+    gap.dataset.guess = String(clampGmaAge(guess));
+    gap.dataset.actual = String(clampGmaAge(actual));
+    gap.dataset.tone = tone;
+    gmaSliderWrap.insertBefore(gap, gmaBubble);
+    positionGmaGap();
 }
 
 window.addEventListener('resize', () => window.requestAnimationFrame(syncGmaGeometry), { passive: true });
@@ -470,7 +505,7 @@ function showGmaReaction(reaction) {
     const isNarrowPhone = window.innerWidth <= 420;
     const desiredX = isNarrowPhone
         ? rect.left - Math.min(30, rect.width * 0.12)
-        : rect.right + Math.min(96, rect.width * 0.26);
+        : rect.right + Math.min(72, rect.width * 0.2);
     const desiredY = rect.top + (rect.height * (isNarrowPhone ? 0.28 : 0.44));
     reactionElement.dataset.placement = 'beside-portrait';
     document.body.appendChild(reactionElement);
@@ -496,6 +531,11 @@ function showGmaReaction(reaction) {
 
     reactionElement.style.setProperty('--gma-reaction-x', `${reactionX}px`);
     reactionElement.style.setProperty('--gma-reaction-y', `${reactionY}px`);
+    // The glyph peeks out from behind the portrait rim instead of appearing in mid-air.
+    const rimX = isNarrowPhone
+        ? rect.left + (rect.width * 0.2)
+        : rect.right - (rect.width * 0.2);
+    reactionElement.style.setProperty('--gma-reaction-from-x', `${rimX - reactionX}px`);
     reactionElement.addEventListener('animationend', () => reactionElement.remove(), { once: true });
     window.setTimeout(() => reactionElement.remove(), 2200);
 }
@@ -612,17 +652,29 @@ function launchGmaExactJackpot(presentation) {
     canvas.dataset.burstsFired = '0';
     overlay.appendChild(canvas);
 
-    const topMarquee = document.createElement('div');
-    topMarquee.className = 'gma-exact-jackpot-marquee gma-exact-jackpot-marquee--top';
-    topMarquee.dataset.gmaMotif = 'victory-ribbon';
-    topMarquee.textContent = '🎯 PERFECT GUESS • ZERO YEARS OFF • TEMPORAL GENIUS • PERFECT GUESS • ZERO YEARS OFF • TEMPORAL GENIUS • ';
-    overlay.appendChild(topMarquee);
+    // The scrim darkens behind each copy beat so the words read over the confetti.
+    const scrim = document.createElement('div');
+    scrim.className = 'gma-exact-jackpot-scrim';
+    overlay.appendChild(scrim);
 
-    const bottomMarquee = document.createElement('div');
-    bottomMarquee.className = 'gma-exact-jackpot-marquee gma-exact-jackpot-marquee--bottom';
-    bottomMarquee.dataset.gmaMotif = 'victory-ribbon';
-    bottomMarquee.textContent = '⏱️ ABSOLUTE TIME LORD • CONFETTI CANNONS ENGAGED • NO NOTES • ABSOLUTE TIME LORD • CONFETTI CANNONS ENGAGED • ';
-    overlay.appendChild(bottomMarquee);
+    // Each ribbon carries its copy twice so the loop never shows an empty end.
+    const marquee = (side, copyText) => {
+        const element = document.createElement('div');
+        element.className = `gma-exact-jackpot-marquee gma-exact-jackpot-marquee--${side}`;
+        element.dataset.gmaMotif = 'victory-ribbon';
+        const track = document.createElement('span');
+        track.className = 'gma-exact-jackpot-marquee-track';
+        for (let copyIndex = 0; copyIndex < 2; copyIndex++) {
+            const segment = document.createElement('span');
+            segment.textContent = copyText;
+            if (copyIndex > 0) segment.setAttribute('aria-hidden', 'true');
+            track.appendChild(segment);
+        }
+        element.appendChild(track);
+        return element;
+    };
+    overlay.appendChild(marquee('top', '🎯 PERFECT GUESS • ZERO YEARS OFF • TEMPORAL GENIUS • PERFECT GUESS • ZERO YEARS OFF • TEMPORAL GENIUS • '));
+    overlay.appendChild(marquee('bottom', '⏱️ ABSOLUTE TIME LORD • CONFETTI CANNONS ENGAGED • NO NOTES • ABSOLUTE TIME LORD • CONFETTI CANNONS ENGAGED • '));
 
     const copy = document.createElement('div');
     copy.className = 'gma-exact-jackpot-copy';
@@ -737,7 +789,36 @@ function launchGmaExactJackpot(presentation) {
         });
     }
 
+    // Rays and flashes radiate from the gold answer on the ruler, not from empty space.
+    function placeJackpotOrigin() {
+        const answer = document.getElementById('gmaRealBubble')?.getBoundingClientRect();
+        const hasAnswer = answer && answer.width > 0;
+        overlay.style.setProperty('--gma-jackpot-x', `${hasAnswer ? answer.left + (answer.width / 2) : window.innerWidth / 2}px`);
+        overlay.style.setProperty('--gma-jackpot-y', `${hasAnswer ? answer.top + (answer.height / 2) : window.innerHeight / 2}px`);
+    }
+
+    // Every phase lands as one beat: the copy slams in over a darker scrim, holds long
+    // enough to read, then lifts away so the athlete and the gold answer own the stage.
+    function playCopyBeat(isFinal) {
+        copy.classList.remove('is-beat', 'is-final');
+        scrim.classList.remove('is-beat', 'is-final');
+        void copy.offsetWidth;
+        copy.classList.add('is-beat');
+        scrim.classList.add('is-beat');
+        if (isFinal) {
+            copy.classList.add('is-final');
+            scrim.classList.add('is-final');
+        }
+        overlay.classList.remove('is-impact');
+        waveTimers.push(window.setTimeout(() => {
+            if (isCancelled) return;
+            void overlay.offsetWidth;
+            overlay.classList.add('is-impact');
+        }, 300));
+    }
+
     function resizeCanvas() {
+        placeJackpotOrigin();
         const cssWidth = Math.max(1, window.innerWidth);
         const cssHeight = Math.max(1, window.innerHeight);
         const pixelRatioCap = Math.sqrt(GMA_EXACT_CANVAS_PIXEL_CAP / (cssWidth * cssHeight));
@@ -812,6 +893,7 @@ function launchGmaExactJackpot(presentation) {
             kicker.textContent = '🏆 maximum bullseye achieved 🏆';
             subtitle.textContent = 'ABSOLUTE TIME LORD · JACKPOT UNLOCKED';
         }
+        playCopyBeat(phase === 'finale');
         window.dispatchEvent(new CustomEvent('gma:exact-phase', {
             detail: { phase, wave: waveIndex }
         }));
@@ -1012,11 +1094,16 @@ function launchGmaExactJackpot(presentation) {
         }
     }
     frameId = window.requestAnimationFrame(drawFrame);
+    playCopyBeat(false);
     for (let waveIndex = 0; waveIndex < GMA_EXACT_WAVE_COUNT; waveIndex++) {
         waveTimers.push(window.setTimeout(
             () => fireWave(waveIndex),
             GMA_EXACT_WAVE_DELAYS_MS[waveIndex]));
     }
+    // The takeover fades out over its last stretch instead of vanishing mid-storm.
+    waveTimers.push(window.setTimeout(() => {
+        if (!isCancelled) overlay.dataset.ending = 'true';
+    }, GMA_EXACT_JACKPOT_MS - GMA_EXACT_OUTRO_MS));
     cleanupTimer = window.setTimeout(cancel, GMA_EXACT_JACKPOT_MS);
 }
 
@@ -1041,22 +1128,30 @@ function spawnGmaCelebration(kind, presentation) {
     const radiusY = Math.min(420, modalRect.height * 0.38);
 
     for (let index = 0; index < sparkCount; index++) {
-        const angle = ((Math.PI * 2) / sparkCount) * index - (Math.PI / 2);
-        const distanceScale = 0.68 + ((index % 5) * 0.08);
+        // Three rings leave the answer one after another: a tight fast one, then wider,
+        // slower ones. Each piece bursts out, then drifts down as it fades.
+        // The fan opens sideways and downward from the answer, leaving the face above clear.
+        const ring = index % 3;
+        const fanStart = -Math.PI / 6;
+        const fanSweep = Math.PI * (4 / 3);
+        const angle = fanStart + ((fanSweep / Math.max(1, sparkCount - 1)) * index)
+            + ((gmaJackpotUnit(index, 7) - 0.5) * 0.12);
+        const distanceScale = [0.5, 0.74, 0.96][ring] + (gmaJackpotUnit(index, 8) * 0.1);
         const deltaX = Math.cos(angle) * radiusX * distanceScale;
         const deltaY = Math.sin(angle) * radiusY * distanceScale;
         const spark = document.createElement('i');
         spark.className = `gma-celebration-spark fas fa-${icons[index % icons.length]}`;
         spark.setAttribute('aria-hidden', 'true');
+        spark.dataset.kind = isFirst ? 'first' : 'crowd';
         spark.dataset.quadrant = `${deltaX >= 0 ? 'right' : 'left'}-${deltaY >= 0 ? 'bottom' : 'top'}`;
         spark.style.setProperty('--gma-spark-x', `${centerX}px`);
         spark.style.setProperty('--gma-spark-y', `${centerY}px`);
         spark.style.setProperty('--gma-spark-dx', `${deltaX}px`);
         spark.style.setProperty('--gma-spark-dy', `${deltaY}px`);
-        spark.style.setProperty('--gma-spark-rotation', `${index % 2 === 0 ? 140 : -140}deg`);
-        spark.style.setProperty('--gma-spark-size', `${1.3 + ((index % 4) * 0.2)}rem`);
-        spark.style.animationDelay = `${(index % 2) * 140}ms`;
-        if (isFirst) spark.style.setProperty('--gma-spark-color', '#9a6700');
+        spark.style.setProperty('--gma-spark-fall', `${2.5 + (ring * 1.5) + (gmaJackpotUnit(index, 9) * 2)}rem`);
+        spark.style.setProperty('--gma-spark-rotation', `${(index % 2 === 0 ? 1 : -1) * (120 + (ring * 60))}deg`);
+        spark.style.setProperty('--gma-spark-size', `${[1.5, 1.85, 2.2][ring] + (gmaJackpotUnit(index, 10) * 0.3)}rem`);
+        spark.style.animationDelay = `${ring * 90}ms`;
         document.body.appendChild(spark);
         spark.addEventListener('animationend', () => spark.remove(), { once: true });
         window.setTimeout(() => spark.remove(), 3400);
@@ -1130,6 +1225,7 @@ function scheduleGmaExit(athleteSlug, profileImageId, presentationGeneration, dw
             // The dialog's smooth-scroll style must not race the new profile geometry.
             modalContent.scrollTo({ top: 0, left: 0, behavior: 'instant' });
             glideGmaPortraitIntoProfile(portrait, stageRect);
+            revealGmaProfileAfterHandoff();
             focusGmaCloseControl();
         }, exitDelay);
     };
@@ -1139,6 +1235,28 @@ function scheduleGmaExit(athleteSlug, profileImageId, presentationGeneration, dw
     } else {
         beginExit();
     }
+}
+
+let gmaHandoffTimer = 0;
+
+// While the portrait glides home, the profile underneath settles in behind it in reading
+// order instead of appearing all at once.
+function revealGmaProfileAfterHandoff() {
+    if (gmaHandoffTimer) window.clearTimeout(gmaHandoffTimer);
+    modalContent.classList.remove('gma-handoff');
+    if (prefersReducedGmaMotion()) return;
+    const parts = [
+        ...modalContent.querySelectorAll(':scope > #athlete-profile > *'),
+        ...modalContent.querySelectorAll(':scope > :not(#athlete-profile)')
+    ].filter(element => element.offsetParent !== null
+        && !element.matches('.portrait-wrapper, #modalProfilePic, #guessAgeContainer, #closeAthleteDetailsModal, .modal-sticky-header'));
+    parts.forEach((element, index) => element.style.setProperty('--gma-handoff-index', String(index)));
+    void modalContent.offsetWidth;
+    modalContent.classList.add('gma-handoff');
+    gmaHandoffTimer = window.setTimeout(() => {
+        gmaHandoffTimer = 0;
+        modalContent.classList.remove('gma-handoff');
+    }, 1200);
 }
 
 // The stage portrait is larger and lower than the profile portrait. Animate from the stage
@@ -1202,6 +1320,8 @@ function restoreGuessControls(message, focusTarget) {
     gmaSubmitBtn.disabled = false;
     gmaBubble.classList.remove('gma-bubble-inactive', 'gma-bubble-overlap');
     document.getElementById('gmaRealBubble')?.remove();
+    document.getElementById('gmaGap')?.remove();
+    delete gmaCard.dataset.gmaReaction;
     clearGmaEphemera();
     syncRange();
     (focusTarget || gmaRange).focus();
@@ -1339,6 +1459,7 @@ gmaSubmitBtn.addEventListener('click', async function () {
         gmaStatus.classList.add('gma-status--semantic');
         gmaStatus.textContent = `Actual age: ${realAge}. Your guess: ${userGuess}. ${reactionCopy}${outcomeCopy}`;
         gmaCard.removeAttribute('aria-busy');
+        gmaCard.dataset.gmaReaction = reactionKind;
         modalContent.classList.add('gma-result-ready');
         showGmaReaction(reactionKind);
 
@@ -1361,6 +1482,8 @@ gmaSubmitBtn.addEventListener('click', async function () {
 
         document.querySelectorAll('.gma-reaction').forEach(element => element.remove());
         focusGmaCloseControl();
+        const beatCrowd = crowdError !== null && userError < crowdError;
+        showGmaGap(userGuess, realAge, isFirstGuess ? 'first' : beatCrowd ? 'crowd' : 'plain');
 
         const outcomeDwell = userError === 0 && !prefersReducedGmaMotion()
             ? 16000
@@ -1373,7 +1496,7 @@ gmaSubmitBtn.addEventListener('click', async function () {
             } else if (isFirstGuess) {
                 popBanner(false, true, outcomeDwell);
                 spawnGmaCelebration('first');
-            } else if (crowdError !== null && userError < crowdError) {
+            } else if (beatCrowd) {
                 gmaCard.classList.add('celebrate-better');
                 popBanner(false, false, outcomeDwell);
                 spawnGmaCelebration('crowd');
@@ -1443,9 +1566,19 @@ function popBanner(isExact, isFirst, outcomeDwell) {
         : isFirst
             ? 'First accepted guess!'
             : 'You beat the crowd!';
-    const leadingEmoji = isExact ? '🎯🎯🎯 ' : isFirst ? '🥇 ' : '🎉 ';
-    const trailingEmoji = isExact ? ' 🎯🎯🎯' : isFirst ? ' 🥇' : ' 🏆';
-    b.append(document.createTextNode(leadingEmoji), bannerCopy, document.createTextNode(trailingEmoji));
+    b.classList.add(isExact ? 'gma-pop-banner--exact' : isFirst ? 'gma-pop-banner--first' : 'gma-pop-banner--crowd');
+    bannerCopy.className = 'gma-pop-banner-copy';
+    // The marks land a beat after the stamp, one from each side.
+    const mark = (glyph, side) => {
+        const element = document.createElement('span');
+        element.className = `gma-pop-banner-mark gma-pop-banner-mark--${side}`;
+        element.textContent = glyph;
+        return element;
+    };
+    b.append(
+        mark(isExact ? '🎯' : isFirst ? '🥇' : '🎉', 'start'),
+        bannerCopy,
+        mark(isExact ? '🎯' : isFirst ? '🥇' : '🏆', 'end'));
 
     gmaPayoffRegion.replaceChildren(b);
     requestAnimationFrame(() => b.classList.add('show'));

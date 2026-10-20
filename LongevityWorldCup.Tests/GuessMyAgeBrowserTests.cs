@@ -382,14 +382,19 @@ public sealed class GuessMyAgeBrowserTests(
                     return element.getBoundingClientRect().top;
                 };
                 const startTop = sample(0);
+                const risingTop = sample(400);
                 const middleTop = sample(1000);
                 const endTop = sample(2000);
+                const leanIn = element.querySelector('img').getAnimations();
+                leanIn.forEach(lean => { lean.pause(); lean.currentTime = 0; });
                 const overlay = element.getBoundingClientRect();
                 const image = element.querySelector('img').getBoundingClientRect();
                 return [
                     startTop,
                     middleTop,
                     endTop,
+                    risingTop,
+                    leanIn.length,
                     modal.top,
                     modal.bottom,
                     modal.width,
@@ -401,14 +406,18 @@ public sealed class GuessMyAgeBrowserTests(
                 ];
             }
             """);
-        Assert.InRange(Math.Abs(geometry[0] - geometry[4]), 0, 2);
-        Assert.True(geometry[1] < geometry[0] - (geometry[6] * 0.35));
-        Assert.True(geometry[1] > geometry[2] + (geometry[6] * 0.15));
-        Assert.InRange(Math.Abs(geometry[2] - geometry[3]), 0, 2);
-        Assert.InRange(Math.Abs(geometry[7] - geometry[5]), 0, 3);
-        Assert.InRange(Math.Abs(geometry[8] - geometry[6]), 0, 3);
-        Assert.InRange(Math.Abs(geometry[9] - geometry[7]), 0, 1);
-        Assert.InRange(Math.Abs(geometry[10] - geometry[8]), 0, 1);
+        // The trollface springs up: well on its way at 0.4s, landed with a small bounce by 1s,
+        // then it holds and leans in until the redirect.
+        Assert.InRange(Math.Abs(geometry[0] - geometry[6]), 0, 2);
+        Assert.True(geometry[3] < geometry[0] - (geometry[8] * 0.45));
+        Assert.True(geometry[3] > geometry[2] + (geometry[8] * 0.05));
+        Assert.InRange(Math.Abs(geometry[1] - geometry[2]), 0, geometry[8] * 0.06);
+        Assert.InRange(Math.Abs(geometry[2] - geometry[5]), 0, 2);
+        Assert.Equal(1, geometry[4]);
+        Assert.InRange(Math.Abs(geometry[9] - geometry[7]), 0, 3);
+        Assert.InRange(Math.Abs(geometry[10] - geometry[8]), 0, 3);
+        Assert.InRange(Math.Abs(geometry[11] - geometry[9]), 0, 1);
+        Assert.InRange(Math.Abs(geometry[12] - geometry[10]), 0, 1);
         Assert.True(await page.EvaluateAsync<bool>(
             "() => document.elementFromPoint(innerWidth / 2, innerHeight / 2)?.closest('#gmaTrollfaceContainer') !== null"));
         Assert.True(await page.EvaluateAsync<bool>(
