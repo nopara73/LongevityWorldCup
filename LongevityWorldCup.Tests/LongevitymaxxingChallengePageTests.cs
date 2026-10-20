@@ -572,7 +572,7 @@ public sealed class LongevitymaxxingChallengePageTests(TestWebApplicationFactory
         Assert.Contains("renderNotes(participantDiscussionThreads(state), true);", javascript);
         Assert.Contains("const DISCUSSION_BATCH_SIZE = 10;", javascript);
         Assert.Contains("const DISCUSSION_THREAD_LIMIT = 100;", javascript);
-        Assert.Contains("renderCheckIns(state.eligibleDays || []);", javascript);
+        Assert.Contains("renderCheckIns(correctingAdviceCheckIn ? [correctingAdviceCheckIn] : state.eligibleDays || []);", javascript);
         Assert.Contains("function systemDiscussionThreads(state: PublicState | null | undefined): ParticipantNote[]", javascript);
         Assert.Contains("function discussionThreadsInHotOrder(notes: ParticipantNote[], limited = true): ParticipantNote[]", javascript);
         Assert.Contains("function openDiscussionReplyComposer(button: HTMLButtonElement): void", javascript);
