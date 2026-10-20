@@ -99,67 +99,27 @@
     opacity: 0.86;
 }
 
-.ro-intro {
-    position: relative;
+/* One landing sheet rides over the poster's lower edge: cover, essay, timeline band, closing actions. */
+.ro-guide .ro-essay {
+    --landing-pad: var(--ro-card-pad);
+    --landing-column: var(--ro-column);
     z-index: 1;
     width: min(100% - 2 * var(--lwc-space-6), var(--ro-column) + 2 * var(--ro-card-pad));
     margin: clamp(-6rem, -8vw, -3rem) auto 0;
-    padding: var(--lwc-space-6) var(--ro-card-pad) var(--lwc-space-6);
-    border: 1px solid var(--lwc-border);
-    border-radius: var(--lwc-radius-lg);
-    background: var(--lwc-surface);
-    box-shadow: var(--lwc-shadow-md);
 }
 
-.ro-intro::before {
-    content: '';
-    display: block;
-    width: 3rem;
-    height: 4px;
-    margin-bottom: var(--lwc-space-5);
-    background: var(--lwc-accent);
+.ro-guide .ro-intro {
+    padding-top: var(--lwc-space-6);
 }
 
-.ro-guide .ro-eyebrow {
-    margin-bottom: var(--lwc-space-3);
-    color: var(--lwc-accent);
-    font-size: var(--lwc-type-xs);
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
+.ro-guide .ro-body {
+    padding-block: var(--lwc-space-6);
 }
 
-.ro-guide h1 {
-    margin-bottom: var(--lwc-space-5);
-    font-size: clamp(2.125rem, 5vw, 3.5rem);
-    line-height: 1.05;
-    letter-spacing: -0.035em;
-    text-wrap: balance;
-    overflow-wrap: anywhere;
-}
-
-.ro-guide .ro-lead {
-    font-size: clamp(1.125rem, 1.6vw, 1.3125rem);
-    line-height: 1.6;
-}
-
-/* One reading column; the timeline breaks out to the intro card's width. */
-.ro-essay > :not(.ro-intro, .ro-timeline) {
-    max-width: var(--ro-column);
-    margin-inline: auto;
-}
-
-.ro-essay > p {
+.ro-guide .ro-body p {
+    color: var(--lwc-ink);
     font-size: 1.125rem;
     line-height: 1.7;
-}
-
-.ro-essay > .ro-intro + p {
-    margin-top: var(--lwc-space-7);
-}
-
-.ro-essay > p + p {
-    margin-top: var(--lwc-space-5);
 }
 
 .ro-guide a {
@@ -171,12 +131,10 @@
     outline-offset: 5px;
 }
 
-.ro-timeline {
-    width: min(100%, var(--ro-column) + 2 * var(--ro-card-pad));
-    margin: var(--lwc-space-7) auto 0;
-    padding: var(--lwc-space-6) var(--ro-card-pad);
-    border: 1px solid var(--lwc-border);
-    border-radius: var(--lwc-radius-lg);
+/* The closing timeline is a full-bleed band of the sheet, read like a race card. */
+.ro-guide .ro-timeline {
+    padding: var(--lwc-space-6) var(--ro-card-pad) var(--lwc-space-6);
+    border-top: 1px solid var(--lwc-border);
     background: var(--lwc-surface-muted);
 }
 
@@ -189,13 +147,19 @@
     margin-bottom: var(--lwc-space-6);
 }
 
-.ro-timeline h2 {
-    font-size: 1.25rem;
-    line-height: 1.3;
+.ro-guide .ro-timeline h2 {
+    color: var(--lwc-ink);
+    font-size: var(--lwc-type-xs);
+    font-weight: 700;
+    line-height: 1.4;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    overflow-wrap: anywhere;
 }
 
 .ro-timeline-heading a {
     font-size: var(--lwc-type-sm);
+    font-weight: 700;
 }
 
 /* The milestones run along one track that ends at a filled finish marker. */
@@ -244,44 +208,59 @@
     background: var(--lwc-border-strong);
 }
 
-.ro-milestones time {
+/* Dates are competition marks: Orbitron, like the poster's RO x LWC. */
+.ro-guide .ro-milestones time {
     display: block;
     color: var(--lwc-accent);
-    font-size: clamp(1.375rem, 2.4vw, 1.75rem);
+    font-family: 'Orbitron', 'Roboto', sans-serif;
+    font-size: clamp(1.0625rem, 1.9vw, 1.375rem);
     font-weight: 700;
-    line-height: 1.15;
-    letter-spacing: -0.02em;
+    line-height: 1.2;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    overflow-wrap: anywhere;
     font-variant-numeric: tabular-nums;
 }
 
-.ro-milestones h3 {
-    margin-top: var(--lwc-space-2);
-    font-size: 1.0625rem;
-    line-height: 1.4;
+.ro-guide .ro-milestones h3 {
+    margin-top: var(--lwc-space-3);
+    color: var(--lwc-ink);
+    font-size: 1.125rem;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
 }
 
-.ro-milestones p {
+.ro-guide .ro-milestones p {
     margin-top: var(--lwc-space-2);
     color: var(--lwc-muted);
     font-size: var(--lwc-type-sm);
     line-height: 1.6;
 }
 
-.ro-timeline .ro-timeline-note {
+.ro-guide .ro-timeline .ro-timeline-note {
     margin-top: var(--lwc-space-6);
-    padding-top: var(--lwc-space-5);
-    border-top: 1px solid var(--lwc-border);
+    padding: var(--lwc-space-4) var(--lwc-space-5);
+    border: 1px solid var(--lwc-border);
+    border-left: 4px solid var(--lwc-accent);
+    border-radius: var(--lwc-radius-md);
+    background: var(--lwc-surface);
     color: var(--lwc-muted);
     font-size: var(--lwc-type-sm);
     line-height: 1.6;
 }
 
-.ro-actions {
+.ro-guide .ro-timeline-note strong {
+    color: var(--lwc-ink);
+}
+
+/* Closing band: the two ways forward share one centred row. */
+.ro-guide .ro-actions {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
+    justify-content: center;
     gap: var(--lwc-space-4);
-    margin-top: var(--lwc-space-7);
+    padding-block: var(--lwc-space-6);
 }
 
 .ro-guide :is(.ro-button, .ro-text-action) {
@@ -322,7 +301,7 @@
 
 .ro-guide .ro-text-action:hover {
     border-color: var(--lwc-accent);
-    background: var(--lwc-accent-soft);
+    background: var(--lwc-surface);
     color: var(--lwc-accent-hover);
 }
 
@@ -370,26 +349,28 @@
         font-size: min(0.625rem, 2.6vw);
     }
 
-    .ro-intro {
+    .ro-guide .ro-essay {
         width: calc(100% - 6vw);
         margin-top: -14vw;
+    }
+
+    .ro-guide .ro-intro {
         padding-block: var(--lwc-space-5);
     }
 
-    .ro-guide h1 {
-        font-size: 2.25rem;
+    .ro-guide .ro-intro::before {
+        margin-bottom: var(--lwc-space-4);
     }
 
-    .ro-essay > p {
+    .ro-guide .ro-body {
+        padding-block: var(--lwc-space-5);
+    }
+
+    .ro-guide .ro-body p {
         font-size: var(--lwc-type-body);
     }
 
-    .ro-essay > .ro-intro + p {
-        margin-top: var(--lwc-space-6);
-    }
-
-    .ro-timeline {
-        margin-top: var(--lwc-space-6);
+    .ro-guide .ro-timeline {
         padding-block: var(--lwc-space-5);
     }
 
@@ -403,22 +384,22 @@
     }
 
     .ro-milestones li::before {
-        top: 4px;
+        top: 2px;
     }
 
     .ro-milestones li:not(:last-child)::after {
-        top: calc(4px + var(--ro-node));
-        bottom: calc(-1 * var(--lwc-space-5) - 4px);
+        top: calc(2px + var(--ro-node));
+        bottom: calc(-1 * var(--lwc-space-5) - 2px);
         left: calc((var(--ro-node) - var(--ro-track)) / 2);
         right: auto;
         width: var(--ro-track);
         height: auto;
     }
 
-    .ro-actions {
+    .ro-guide .ro-actions {
         align-items: stretch;
         flex-direction: column;
-        margin-top: var(--lwc-space-6);
+        padding-block: var(--lwc-space-5);
     }
 }
 

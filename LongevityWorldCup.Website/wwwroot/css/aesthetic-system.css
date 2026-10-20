@@ -515,11 +515,15 @@ textarea:disabled,
     cursor: not-allowed;
 }
 
+/* Components can request taller fields without competing with the shared touch-size default. */
+:where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), select, textarea) {
+    min-height: 44px;
+}
+
 /* Forms retain visible boundaries and predictable state changes. */
 input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
 select,
 textarea {
-    min-height: 44px;
     border: 1px solid var(--lwc-border-strong);
     border-radius: var(--lwc-radius-md);
     background: var(--lwc-surface);
@@ -1644,12 +1648,5 @@ html body :is(#about-longevity-world-cup, #history-of-longevity-as-a-sport, #ro-
 
     html body .documentation-page-history .documentation-document {
         padding-inline: min(1.1rem, 5.5vw);
-    }
-}
-
-/* Full browser zoom can reflow a 320px window to 160 CSS pixels. */
-@media (max-width: 280px) {
-    html body .unsubscribe-panel {
-        padding-inline: min(20px, 6.25vw);
     }
 }

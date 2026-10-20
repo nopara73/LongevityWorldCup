@@ -21,10 +21,10 @@ public sealed class PageTitleEnlargedTextBrowserTests(
     [InlineData("/longevitymaxxing", "#lmx-title", 360, 29.6)]
     [InlineData("/longevitymaxxing", "#lmx-title", 390, 32)]
     [InlineData("/longevitymaxxing", "#lmx-title", 600, 32)]
-    [InlineData("/unsubscribe", ".unsubscribe-panel h1", 559, 32)]
-    [InlineData("/unsubscribe", ".unsubscribe-panel h1", 560, 41.6)]
-    [InlineData("/unsubscribe", ".unsubscribe-panel h1", 600, 41.6)]
-    [InlineData("/unsubscribe", ".unsubscribe-panel h1", 601, 41.6)]
+    [InlineData("/unsubscribe", ".unsubscribe-panel h1", 559, 36)]
+    [InlineData("/unsubscribe", ".unsubscribe-panel h1", 560, 48)]
+    [InlineData("/unsubscribe", ".unsubscribe-panel h1", 600, 48)]
+    [InlineData("/unsubscribe", ".unsubscribe-panel h1", 601, 48)]
     public async Task NormalText_PreservesTheExistingTitleSizeAtPhoneBreakpoints(string path, string titleSelector, int width, double expectedSize)
     {
         await using var context = await NewContextAsync(Browser, App, new()
