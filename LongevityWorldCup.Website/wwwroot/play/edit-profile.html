@@ -181,8 +181,9 @@
             }
         }
 
-        /* Narrow cards stack the two sources around their "or" rule. */
-        @container edit-profile-card (max-width: 28rem) {
+        /* Leave room for both sources, their divider and the restore target.
+           Narrow cards stack the sources around their "or" rule. */
+        @container edit-profile-card (max-width: 32rem) {
             #changeProfilePicWrapper > #takeProfileSelfieButton,
             #changeProfilePicWrapper > .upload-choice-divider {
                 flex-basis: 100%;
@@ -1428,11 +1429,19 @@
             image.dataset.profilePicValue = value || '';
             const request = String((Number(image.dataset.profilePicRequest) || 0) + 1);
             image.dataset.profilePicRequest = request;
-            image.src = placeholder;
-            if (source === placeholder || source.startsWith('data:')) {
+            if (image.getAttribute('src') === source && image.complete && image.naturalWidth) return;
+            if (image.getAttribute('src') !== placeholder) image.src = placeholder;
+            if (source === placeholder) return;
+            if (source.startsWith('data:')) {
                 image.src = source;
                 return;
             }
+            // Keep the versioned fallback when a stored URL names that same asset.
+            try {
+                const requestedUrl = new URL(source, location.href);
+                const placeholderUrl = new URL(placeholder, location.href);
+                if (requestedUrl.origin === placeholderUrl.origin && requestedUrl.pathname === placeholderUrl.pathname) return;
+            } catch (_) { }
             // Keep a decoded placeholder while the requested photo arrives.
             // A late load must not overwrite a crop, restore, reset or undo.
             const preview = new Image();

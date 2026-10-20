@@ -16,6 +16,7 @@ public sealed class EditProfileLayoutBrowserTests(
     [Theory]
     [InlineData(390, 844, false)]
     [InlineData(320, 640, true)]
+    [InlineData(500, 844, false)]
     [InlineData(1440, 900, false)]
     [InlineData(1280, 720, true)]
     public async Task PictureRestore_IsACircleBesideTheChangePictureButton(int width, int height, bool dark)
