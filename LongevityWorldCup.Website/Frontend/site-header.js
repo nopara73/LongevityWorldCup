@@ -143,9 +143,62 @@ loadingDialog.addEventListener('keydown', function (event) {
     loadingDialog.querySelector('.loading-dialog-panel')?.focus();
 });
 
-function customAlert(message) {
+const CUSTOM_ALERT_TONE_ICONS = {
+    success: 'fa-check',
+    warning: 'fa-exclamation',
+    danger: 'fa-xmark',
+    info: 'fa-info'
+};
+const CUSTOM_ALERT_ID_PATTERN = /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi;
+
+// The tone only picks the medallion and accent; every caller keeps its own wording.
+function inferCustomAlertTone(message) {
+    const text = String(message);
+    if (/\b(failed|error|interrupted)\b/i.test(text)) return 'danger';
+    if (/\b(could not|couldn't|missing|must be|unavailable|skipped|no athlete|try again)\b/i.test(text)) return 'warning';
+    if (/\b(received|submitted|sent|saved|copied)\b/i.test(text)) return 'success';
+    return 'info';
+}
+
+function renderCustomAlertMessage(message) {
+    const text = String(message);
+    const breakIndex = text.indexOf('\n\n');
+    const lead = breakIndex >= 0 ? text.slice(0, breakIndex) : text;
+    customAlertMessage.replaceChildren(...splitCustomAlertIds(lead));
+    if (breakIndex >= 0) {
+        // The blank line stays in textContent; the detail block collapses it visually.
+        const detail = document.createElement('span');
+        detail.className = 'custom-alert-detail';
+        detail.append(...splitCustomAlertIds(text.slice(breakIndex)));
+        customAlertMessage.append(detail);
+    }
+}
+
+function splitCustomAlertIds(text) {
+    const nodes = [];
+    let last = 0;
+    for (const match of text.matchAll(CUSTOM_ALERT_ID_PATTERN)) {
+        if (match.index > last) nodes.push(document.createTextNode(text.slice(last, match.index)));
+        const id = document.createElement('code');
+        id.className = 'custom-alert-id';
+        id.textContent = match[0];
+        nodes.push(id);
+        last = match.index + match[0].length;
+    }
+    if (last < text.length) nodes.push(document.createTextNode(text.slice(last)));
+    return nodes;
+}
+
+function customAlert(message, options) {
     customAlertPreviousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    customAlertMessage.textContent = message;
+    const requestedTone = options && options.tone;
+    const tone = Object.prototype.hasOwnProperty.call(CUSTOM_ALERT_TONE_ICONS, requestedTone)
+        ? requestedTone
+        : inferCustomAlertTone(message);
+    customAlertDialog.dataset.tone = tone;
+    const mark = customAlertDialog.querySelector('.custom-alert-mark i');
+    if (mark) mark.className = `fas ${CUSTOM_ALERT_TONE_ICONS[tone]}`;
+    renderCustomAlertMessage(message);
 
     return new Promise(resolve => {
         customAlertResolve = resolve;
