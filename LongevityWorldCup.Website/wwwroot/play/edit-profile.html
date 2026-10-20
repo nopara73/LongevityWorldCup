@@ -14,13 +14,23 @@
             display: none !important;
         }
 
+        /* ===== The editing card =====
+           The editor is the same player card as athlete selection and the
+           dashboard: a wide portrait is the card's header with the athlete's
+           name as its caption, and every control is the card's body. The
+           picture's own actions sit directly under it, the fields share an
+           even grid, and Reset all, Back and Submit close the card at its foot. */
         .edit-profile-main {
-            max-width: 760px;
+            --edit-card-pad: 1.35rem;
+            --edit-card-radius: 16px;
+            /* Everything on the first screen except the portrait: site header,
+               margins and the card's body. The portrait takes what is left. */
+            --edit-portrait-room: calc(100dvh - 41rem);
+            box-sizing: border-box;
+            width: 100%;
+            max-width: none;
             margin: 0 auto;
-            padding: 2.5rem 1rem 3.25rem;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+            padding: clamp(1rem, 4dvh, 2.25rem) 1rem 2rem;
         }
 
         .edit-profile-main [data-aos]:not(.aos-animate) {
@@ -28,26 +38,293 @@
             transform: none;
         }
 
-        .edit-profile-title {
-            margin: 0 0 1.25rem;
-            text-align: center;
-            font-size: 2.25rem;
-            line-height: 1.08;
-            letter-spacing: 0;
+        .edit-profile-card {
+            container: edit-profile-card / inline-size;
+            box-sizing: border-box;
+            width: min(100%, 560px);
+            margin: 0 auto;
+            border: 1px solid var(--lwc-border);
+            border-radius: var(--edit-card-radius);
+            background: var(--lwc-surface);
+            box-shadow: var(--lwc-shadow-md, 0 18px 40px rgba(15, 23, 42, 0.12));
         }
 
+        /* Header: the portrait, letterboxed like the dashboard's, never cropped. */
         .edit-profile-visual {
-            width: min(100%, 408px);
-            margin: 0 auto 1.45rem;
+            position: relative;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr);
+            /* The caption gets at most half the frame; long names and enlarged
+               text grow both rows, keeping the full name and the face visible. */
+            grid-template-rows: 1fr 1fr;
+            width: 100%;
+            min-height: clamp(9rem, min(62.5cqi, var(--edit-portrait-room)), 21.875rem);
+            margin: 0;
+            overflow: clip;
+            border-radius: calc(var(--edit-card-radius) - 1px) calc(var(--edit-card-radius) - 1px) 0 0;
+            background: var(--lwc-surface-muted);
+            line-height: 0;
             text-align: center;
+        }
+
+        .edit-profile-visual > picture {
+            grid-area: 1 / 1 / 3;
+            position: relative;
+            display: block;
+            min-height: 0;
         }
 
         .edit-profile-visual .illustration {
-            width: min(100%, 408px);
-            aspect-ratio: 1;
+            position: absolute;
+            inset: 0;
+            display: block;
+            width: 100%;
+            height: 100%;
+            max-width: none;
+            max-height: none;
+            margin: 0;
             object-fit: contain;
-            margin-bottom: 0;
+            object-position: center;
+            border-radius: 0;
             box-sizing: border-box;
+        }
+
+        .edit-profile-visual > .edit-profile-title {
+            position: relative;
+            grid-area: 2 / 1;
+            z-index: 2;
+            align-self: end;
+            margin: 0;
+            padding: 0.7rem 1rem;
+            background: linear-gradient(to top, rgba(6, 12, 18, 0.94), rgba(6, 12, 18, 0.82));
+            color: #ffffff;
+            font-size: 2rem;
+            line-height: 1.08;
+            letter-spacing: 0;
+            overflow-wrap: break-word;
+            text-align: center;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+            pointer-events: none;
+        }
+
+        .edit-profile-visual > .edit-profile-title::before {
+            content: "";
+            position: absolute;
+            inset: auto 0 100%;
+            height: 2rem;
+            background: linear-gradient(to top, rgba(6, 12, 18, 0.82), transparent);
+        }
+
+        /* Body: one padded column of sections with an even rhythm. */
+        .edit-profile-body {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            padding: var(--edit-card-pad);
+        }
+
+        /* The picture's actions: one row directly under the portrait. */
+        #changeProfilePicWrapper {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.65rem;
+            width: 100%;
+            max-width: none;
+            margin: 0;
+        }
+
+        #changeProfilePicWrapper > .option-button:not(.icon-only) {
+            flex: 1 1 11rem;
+            width: auto;
+            min-width: 0;
+            max-width: none;
+            min-height: 48px;
+            margin: 0;
+            padding-block: 0.55rem;
+            padding-inline: min(1rem, 16px) min(2.75rem, 44px);
+        }
+
+        #changeProfilePicWrapper > .flow-action > i {
+            right: min(1.1rem, 16px);
+            width: min(1.25rem, 20px);
+            font-size: min(1em, 20px);
+        }
+
+        #takeProfileSelfieButton {
+            display: none;
+        }
+
+        .upload-choice-divider {
+            display: none;
+            flex: 0 0 auto;
+            align-items: center;
+            justify-content: center;
+            gap: 0.65rem;
+            color: var(--lwc-muted);
+            font-size: 0.8rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            line-height: 1;
+            text-transform: uppercase;
+        }
+
+        @media (pointer: coarse) {
+            .upload-choice-divider {
+                display: flex;
+            }
+
+            #takeProfileSelfieButton {
+                display: inline-flex;
+            }
+        }
+
+        /* Narrow cards stack the two sources around their "or" rule. */
+        @container edit-profile-card (max-width: 36rem) {
+            #changeProfilePicWrapper > #takeProfileSelfieButton,
+            #changeProfilePicWrapper > .upload-choice-divider {
+                flex-basis: 100%;
+            }
+
+            .upload-choice-divider::before,
+            .upload-choice-divider::after {
+                content: "";
+                height: 1px;
+                flex: 1 1 auto;
+                background: var(--lwc-border);
+            }
+        }
+
+        /* Restore controls: quiet circles that return a value to its original. */
+        .edit-profile-main .option-button.icon-only {
+            flex: 0 0 auto;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 44px;
+            height: 44px;
+            min-width: 0;
+            min-height: 0;
+            max-width: none;
+            margin: 0;
+            padding: 0;
+            border: 1px solid var(--lwc-border);
+            border-radius: 50%;
+            background: var(--lwc-surface-muted);
+            color: var(--lwc-muted);
+            box-shadow: none;
+            font-size: 0.95rem;
+            transition: background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+        }
+
+        .edit-profile-main .option-button.icon-only:hover {
+            border-color: var(--lwc-accent);
+            background: var(--lwc-accent-soft);
+            color: var(--lwc-accent);
+            transform: none;
+            box-shadow: none;
+        }
+
+        .edit-profile-main .option-button.icon-only:focus-visible {
+            outline: 2px solid var(--lwc-accent);
+            outline-offset: 2px;
+        }
+
+        .edit-profile-main .option-button.icon-only i {
+            display: none;
+        }
+
+        .edit-profile-main .option-button.icon-only::before {
+            content: "\21BA";
+            color: inherit;
+            font-size: 1.08rem;
+            font-weight: 800;
+            line-height: 1;
+        }
+
+        /* Fields: an even grid that pairs short fields and gives the motivation
+           the full width. Enlarged text falls back to one column on its own. */
+        #editOptionsGroup {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 13.5rem), 1fr));
+            gap: 1rem 1.1rem;
+            align-items: start;
+            width: 100%;
+            margin: 0;
+            padding: 1rem 0 0;
+            border: 0;
+            border-top: 1px solid var(--lwc-border);
+            border-radius: 0;
+            background: none;
+            box-shadow: none;
+            box-sizing: border-box;
+        }
+
+        #editOptionsGroup > .inline-option-group {
+            position: relative;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            align-items: center;
+            gap: 0.4rem 0.5rem;
+            width: 100%;
+            min-width: 0;
+            max-width: none;
+            margin: 0;
+        }
+
+        #editOptionsGroup > .inline-option-group:has(#whyDisplayInput) {
+            grid-column: 1 / -1;
+        }
+
+        #editOptionsGroup > .inline-option-group > .field-label {
+            grid-column: 1;
+            grid-row: 1;
+            width: auto;
+            min-height: 1.5rem;
+            display: flex;
+            align-items: flex-end;
+            flex-wrap: wrap;
+            gap: 0 0.3em;
+            margin: 0;
+        }
+
+        #editOptionsGroup > .inline-option-group > :is(input, select, textarea) {
+            grid-column: 1 / -1;
+            grid-row: 2;
+            min-width: 0;
+        }
+
+        /* A field's restore sits on its label line, so a changed field keeps
+           its full width and stays aligned with its neighbours. */
+        #editOptionsGroup > .inline-option-group > .option-button.icon-only {
+            grid-column: 2;
+            grid-row: 1;
+            align-self: end;
+            width: 1.5rem;
+            height: 1.5rem;
+            font-size: 0.8rem;
+        }
+
+        #editOptionsGroup > .inline-option-group > .option-button.icon-only::before {
+            font-size: 0.95rem;
+        }
+
+        /* A wider hit area than the drawn circle. */
+        #editOptionsGroup > .inline-option-group > .option-button.icon-only::after {
+            content: "";
+            position: absolute;
+            inset: -0.5rem;
+        }
+
+        #editOptionsGroup > .inline-option-group > .option-button.icon-only {
+            position: relative;
+        }
+
+        #editOptionsGroup > .inline-option-group > .profile-field-error {
+            grid-column: 1 / -1;
+            grid-row: 3;
+            margin: 0;
         }
 
         .autocomplete-items {
@@ -109,19 +386,6 @@
                     overflow-wrap: anywhere;
                 }
 
-        .niceInputFieldDisplayWrapper {
-            position: relative;
-            width: min(100%, 408px);
-            max-width: 408px;
-            margin: 0 auto;
-        }
-
-        @supports selector(:has(*)) {
-            .niceInputFieldDisplayWrapper:has(.autocomplete-items) {
-                margin-bottom: 0;
-            }
-        }
-
         #divisionDisplayInput, #flagDisplayInput, #mediaContactInput, #personalLinkInput, #whyDisplayInput {
             width: 100%;
             min-height: 44px;
@@ -137,11 +401,9 @@
             box-sizing: border-box;
         }
 
-            #divisionDisplayInput:focus, #flagDisplayInput:focus, #mediaContactInput:focus, #personalLinkInput:focus, #whyDisplayInput:focus {
-                outline: none;
-                border-color: var(--primary-color, #00bcd4);
-                box-shadow: 0 0 0 3px rgba(0, 188, 212, 0.14);
-            }
+        #whyDisplayInput {
+            resize: vertical;
+        }
 
         #divisionDisplaySelect {
             width: 100%;
@@ -151,7 +413,7 @@
             border-radius: 8px;
             font-size: 1rem;
             font-family: inherit;
-            line-height: 1.35;
+            line-height: 1.5;
             transition: border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
             background-color: var(--lwc-surface, #fff);
             color: var(--lwc-ink, #17212b);
@@ -163,73 +425,331 @@
             box-sizing: border-box;
         }
 
-            #divisionDisplaySelect:focus {
-                outline: none;
-                border-color: var(--primary-color, #00bcd4);
-                box-shadow: 0 0 0 3px rgba(0, 188, 212, 0.14);
+        .edit-profile-main :is(input, select, textarea):focus {
+            border-color: var(--lwc-accent);
+            box-shadow: 0 0 0 3px var(--lwc-accent-soft);
+            outline: 2px solid var(--lwc-accent);
+            outline-offset: 1px;
+        }
+
+        .edit-profile-main .field-requirement {
+            font-size: var(--lwc-type-sm);
+            font-weight: 400;
+            line-height: 1.5;
+        }
+
+        .profile-field-error {
+            color: var(--lwc-danger);
+            font-size: var(--lwc-type-sm);
+            line-height: 1.5;
+            text-align: left;
+            overflow-wrap: anywhere;
+        }
+
+        .profile-field-error[hidden] { display: none; }
+
+        .edit-profile-main #editOptionsGroup [aria-invalid="true"] {
+            border-color: var(--lwc-danger);
+        }
+
+        .edit-profile-main #editOptionsGroup [aria-invalid="true"]:focus {
+            outline-color: var(--lwc-danger);
+            box-shadow: 0 0 0 3px var(--lwc-danger-soft);
+        }
+
+        /* Foot: Reset all / Undo on the left, the flow's commands on the right. */
+        .edit-profile-foot {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 0.65rem 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--lwc-border);
+        }
+
+        .edit-profile-foot:not(:has(> :not([hidden]))) {
+            display: none;
+        }
+
+        .edit-profile-foot > .flow-action-dock-placeholder {
+            flex: 1 1 100%;
+            width: 100%;
+            max-width: none;
+            margin: 0;
+        }
+
+        .profile-draft {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            flex: 0 1 auto;
+            gap: 0 0.25rem;
+            margin: 0 auto 0 0;
+        }
+
+        .profile-draft-status {
+            flex-basis: 100%;
+            margin: var(--lwc-space-1) 0;
+            color: var(--lwc-danger);
+            font-size: var(--lwc-type-sm);
+            line-height: 1.5;
+            text-align: left;
+        }
+
+        .profile-draft button {
+            min-height: 44px;
+            margin-left: -0.5rem;
+            padding: var(--lwc-space-2);
+            border: 0;
+            border-radius: var(--lwc-radius-sm);
+            background: transparent;
+            color: var(--lwc-muted);
+            font: inherit;
+            font-size: var(--lwc-type-sm);
+            text-decoration: underline;
+            text-underline-offset: 0.2em;
+            white-space: nowrap;
+            cursor: pointer;
+        }
+
+        .profile-draft button:hover { color: var(--lwc-ink); }
+        .profile-draft button:focus-visible { outline: 2px solid var(--lwc-accent); outline-offset: 2px; }
+        .profile-draft[hidden], .profile-draft [hidden] { display: none; }
+
+        .edit-profile-actions:not(.flow-action-stack--docked) {
+            flex: 1 1 22rem;
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr);
+            align-items: stretch;
+            gap: 0.65rem;
+            width: auto;
+            min-width: 0;
+            max-width: none;
+            margin: 0;
+        }
+
+        .edit-profile-actions:not(.flow-action-stack--docked) > .flow-action {
+            min-height: 50px;
+            margin: 0;
+        }
+
+        .edit-profile-actions:not(.flow-action-stack--docked) > #submitButton {
+            grid-column: 2;
+            grid-row: 1;
+            width: 100%;
+            max-width: none;
+        }
+
+        .edit-profile-actions:not(.flow-action-stack--docked) > .back-button {
+            grid-column: 1;
+            grid-row: 1;
+            width: auto !important;
+            min-width: 7.5rem;
+            max-width: 100% !important;
+            margin: 0 !important;
+            align-self: stretch;
+        }
+
+        /* With nothing to submit, Back is the card's only command: it closes
+           the foot on the right instead of floating in the middle. */
+        .edit-profile-actions.flow-action-stack--single-back-action:not(.flow-action-stack--docked) {
+            flex: 0 0 auto;
+            grid-template-columns: auto;
+        }
+
+        /* Short desktops: a slimmer motivation box leaves the portrait room. */
+        @media (min-width: 761px) and (max-height: 800px) {
+            .edit-profile-main {
+                --edit-portrait-room: calc(100dvh - 35.5rem);
+                padding-top: clamp(0.75rem, 2dvh, 1.5rem);
+                padding-bottom: 0.75rem;
             }
 
+            .edit-profile-body {
+                gap: 0.85rem;
+                padding-block: 1rem;
+            }
+
+            #editOptionsGroup {
+                row-gap: 0.65rem;
+                padding-top: 0.85rem;
+            }
+
+            .edit-profile-foot {
+                padding-top: 0.85rem;
+            }
+
+            .edit-profile-visual > .edit-profile-title {
+                padding-block: 0.5rem 0.6rem;
+                font-size: 1.75rem;
+            }
+
+            .edit-profile-visual > .edit-profile-title::before {
+                height: 1.25rem;
+            }
+
+            @supports (field-sizing: content) {
+                .edit-profile-main #whyDisplayInput {
+                    min-height: calc(2lh + 1.4rem);
+                }
+            }
+        }
+
+        /* Touch screens also offer Take selfie, stacked above Change profile
+           picture; the portrait gives up that row's height. */
+        @media (min-width: 761px) and (pointer: coarse) {
+            .edit-profile-main {
+                --edit-portrait-room: calc(100dvh - 46.5rem);
+            }
+        }
+
+        @media (min-width: 761px) and (max-height: 800px) and (pointer: coarse) {
+            .edit-profile-main {
+                --edit-portrait-room: calc(100dvh - 40.75rem);
+            }
+        }
+
+        /* Phones: the same card edge to edge within the gutter; the commands
+           dock to the bottom of the screen. */
+        @media (max-width: 760px) {
+            .edit-profile-main {
+                --edit-card-pad: 1rem;
+                --edit-card-radius: 14px;
+                --edit-portrait-room: 21.875rem;
+                padding: 1rem min(1rem, 16px) 1.5rem;
+            }
+
+            .edit-profile-foot:not(:has(> .profile-draft:not([hidden]))) {
+                padding-top: 0;
+                border-top: 0;
+            }
+        }
+
+        @media (max-width: 960px) {
+            .edit-profile-visual > .edit-profile-title {
+                font-size: 1.75rem;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .edit-profile-visual > .edit-profile-title {
+                padding-inline: min(0.6rem, 10px);
+                font-size: 1.35rem;
+            }
+        }
+
+        @media (min-width: 640px) and (max-width: 932px) and (max-height: 480px) and (orientation: landscape) {
+            .edit-profile-main {
+                --edit-portrait-room: 9rem;
+                padding-top: 0.6rem;
+            }
+
+            .edit-profile-visual > .edit-profile-title {
+                padding: 0.55rem 0.6rem;
+                font-size: 1.15rem;
+            }
+        }
+
+        /* ===== Cropper: a small card in the same language ===== */
         #changeProfileCropperModal {
             display: none;
             position: fixed;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: var(--lwc-surface, white);
-            color: var(--lwc-ink, #17212b);
             z-index: 10000;
             box-sizing: border-box;
-            padding: 1.25rem;
-            width: min(calc(100vw - 2rem), 430px);
-            max-width: 430px;
+            width: min(calc(100vw - 2rem), 480px);
             max-height: calc(100dvh - 1.5rem);
+            padding: 0;
             overflow: auto;
-            border: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.12));
-            border-radius: var(--lwc-radius-lg);
+            border: 1px solid var(--lwc-border);
+            border-radius: 16px;
+            background: var(--lwc-surface);
+            color: var(--lwc-ink, #17212b);
             box-shadow: var(--lwc-shadow-md);
-            display: flex;
             flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 0.95rem;
+            align-items: stretch;
+            gap: 0;
             overscroll-behavior: contain;
         }
 
         .cropper-dialog-title {
             margin: 0;
-            font-size: 1.2rem;
-            line-height: 1.25;
+            padding: 1rem 1.35rem;
+            border-bottom: 1px solid var(--lwc-border);
+            font-size: 0.9rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            line-height: 1.3;
             text-align: center;
+            text-transform: uppercase;
         }
 
-            #changeProfileCropperModal button {
-                margin-top: 0;
-                width: auto;
+        #changeProfileCropperImage {
+            display: block;
+            width: 100%;
+            aspect-ratio: 1;
+            max-height: min(56dvh, 420px);
+            object-fit: contain;
+            box-sizing: border-box;
+            border: 0;
+            border-radius: 0;
+            background: var(--lwc-surface-muted);
+        }
+
+        #changeProfileCropperModal .cropper-container {
+            max-width: 100%;
+        }
+
+        #changeProfileCropperModal .options-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr));
+            gap: 0.65rem;
+            width: 100%;
+            max-width: none;
+            margin: 0;
+            padding: 1rem 1.35rem 1.2rem;
+            border-top: 1px solid var(--lwc-border);
+            box-sizing: border-box;
+        }
+
+        #changeProfileCropperModal .option-button {
+            width: 100%;
+            max-width: none;
+            min-height: 52px;
+            margin: 0;
+            padding-inline: 1rem;
+        }
+
+        @media (max-width: 600px) {
+            #changeProfileCropperModal {
+                width: calc(100vw - 1.5rem);
+                max-height: calc(100dvh - 1rem);
             }
 
             #changeProfileCropperModal .options-container {
-                width: 100%;
-                max-width: none;
-                display: flex;
-                flex-direction: column;
-                gap: 0.75rem;
-                margin: 0;
+                padding: 0.85rem 1rem 1rem;
+            }
+        }
+
+        @media (min-width: 640px) and (max-width: 932px) and (max-height: 480px) and (orientation: landscape) {
+            #changeProfileCropperModal {
+                max-height: calc(100dvh - 0.75rem);
             }
 
-            #changeProfileCropperModal .option-button {
-                width: 100%;
-                max-width: none;
+            .cropper-dialog-title {
+                padding-block: 0.6rem;
             }
 
-        #changeProfileCropperImage {
-            width: 100%;
-            aspect-ratio: 4 / 3;
-            max-height: min(54vh, 360px);
-            object-fit: contain;
-            box-sizing: border-box;
-            border: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.14));
-            border-radius: 8px;
-            background: var(--lwc-surface-muted, #f8fafc);
+            #changeProfileCropperImage {
+                max-height: min(46dvh, 220px);
+            }
+
+            #changeProfileCropperModal .options-container {
+                padding-block: 0.6rem;
+            }
         }
 
         /* dark backdrop & lock scroll when modal is open */
@@ -249,664 +769,13 @@
         .no-scroll {
             overflow: hidden;
         }
-
-        .options-container.inline-option-group {
-            flex-direction: row;
-            align-items: center;
-            justify-content: center;
-            gap: 0.65rem;
-            width: min(100%, 408px);
-            max-width: 408px;
-            margin: 0 auto;
-        }
-
-        @supports selector(:has(*)) {
-            .options-container.inline-option-group.niceInputFieldDisplayWrapper:has(.autocomplete-items) {
-                margin-bottom: 0;
-            }
-        }
-
-        .option-button.icon-only {
-            flex: 0 0 44px;
-            width: 44px;
-            height: 44px;
-            min-width: 44px;
-            min-height: 44px;
-            max-width: none;
-            padding: 0;
-            margin: 0;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            border: 1px solid var(--lwc-border, rgba(96, 125, 139, 0.22));
-            border-radius: 50%;
-            background: var(--lwc-surface-muted, rgba(248, 250, 252, 0.96));
-            color: var(--lwc-muted, #4f6573);
-            font-size: 0.95rem;
-            box-shadow: none;
-        }
-
-        .option-button.icon-only:hover {
-            background: var(--lwc-surface, #fff);
-            color: var(--lwc-ink, #273d4a);
-            transform: none;
-            box-shadow: none;
-        }
-
-        .option-button.icon-only i {
-            display: none;
-            margin: 0;
-            color: inherit;
-            line-height: 1;
-        }
-
-        .option-button.icon-only::before {
-            content: "\21BA";
-            color: inherit;
-            font-size: 1.08rem;
-            font-weight: 800;
-            line-height: 1;
-        }
-
-        #editOptionsGroup {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            width: 100%;
-            gap: 0.65rem;
-            margin: 0 auto;
-        }
-
-        #changeProfilePicButton {
-            width: 100%;
-            flex: 1 1 0;
-        }
-
-        #changeProfilePicWrapper {
-            flex-direction: column;
-            align-items: stretch;
-        }
-
-        .upload-choice-divider {
-            display: none;
-            align-items: center;
-            justify-content: center;
-            gap: 0.65rem;
-            min-height: 1.25rem;
-            color: var(--lwc-muted, #526373);
-            font-size: 0.85rem;
-            font-weight: 700;
-            line-height: 1;
-            text-transform: uppercase;
-        }
-
-        .upload-choice-divider::before,
-        .upload-choice-divider::after {
-            content: "";
-            height: 1px;
-            flex: 1 1 auto;
-            background: var(--lwc-border, rgba(100, 116, 139, 0.22));
-        }
-
-        #changeProfilePicWrapper .option-button {
-            width: 100%;
-            max-width: none;
-        }
-
-        #changeProfilePicWrapper .option-button i {
-            margin-right: 0.45rem;
-        }
-
-        #takeProfileSelfieButton {
-            display: none;
-        }
-
-        #restoreProfilePicButton {
-            align-self: center;
-        }
-
-        .edit-profile-actions {
-            width: min(100%, 408px);
-            min-width: 0;
-            max-width: 408px;
-            display: flex;
-            flex-direction: column;
-            align-items: stretch;
-            gap: 0.85rem;
-            margin: 1rem auto 0;
-        }
-
-        .edit-profile-actions .option-button {
-            width: 100%;
-            min-width: 0;
-            max-width: none;
-            margin: 0;
-            box-sizing: border-box;
-        }
-
-        .edit-profile-actions .back-button {
-            margin-left: 0;
-        }
-
-        @media (max-width: 600px) {
-            .edit-profile-main {
-                padding: 2rem 1.35rem 2.75rem;
-                padding-inline: min(1.35rem, 20px);
-            }
-
-            .edit-profile-title {
-                margin-bottom: 1rem;
-                font-size: 2rem;
-            }
-
-            .edit-profile-visual {
-                margin-bottom: 1.25rem;
-            }
-
-            .edit-profile-visual .illustration {
-                width: min(100%, clamp(184px, 50vw, 240px));
-            }
-
-            #changeProfileCropperModal {
-                width: calc(100vw - 1.5rem);
-                max-height: calc(100dvh - 1rem);
-                padding: 1rem;
-            }
-
-            #changeProfileCropperImage {
-                max-height: min(48vh, 320px);
-            }
-
-        }
-
-        @media (min-width: 601px) and (max-width: 932px) {
-            .edit-profile-title {
-                font-size: 2.15rem;
-                line-height: 1.08;
-            }
-        }
-
-        @media (min-width: 720px) and (max-width: 959px), (min-width: 960px) and (max-height: 780px) {
-            .edit-profile-main {
-                display: grid;
-                row-gap: 0.85rem;
-                align-items: start;
-                justify-content: center;
-            }
-
-            .edit-profile-title {
-                grid-column: 1 / -1;
-            }
-
-            .edit-profile-visual {
-                grid-column: 1;
-                grid-row: 2;
-                margin: 0;
-            }
-
-            #editOptionsGroup {
-                grid-column: 2;
-                grid-row: 2;
-                align-items: stretch;
-                align-self: start;
-                max-width: 408px;
-            }
-
-            #changeProfilePicWrapper,
-            .options-container.inline-option-group {
-                width: 100%;
-            }
-
-            .edit-profile-actions {
-                grid-column: 1 / -1;
-            }
-        }
-
-        @media (min-width: 720px) and (max-width: 959px) {
-            .edit-profile-main {
-                max-width: 720px;
-                grid-template-columns: minmax(200px, 240px) minmax(0, 408px);
-                column-gap: 1.15rem;
-            }
-
-            .edit-profile-visual .illustration {
-                width: min(100%, 240px);
-            }
-
-            #editOptionsGroup {
-                gap: 0.6rem;
-            }
-        }
-
-        @media (min-width: 960px) and (max-height: 780px) {
-            .edit-profile-main {
-                max-width: 920px;
-                padding-top: 1.45rem;
-                grid-template-columns: minmax(220px, 260px) minmax(0, 408px);
-                column-gap: 1.35rem;
-            }
-
-            .edit-profile-title {
-                margin-bottom: 0.9rem;
-                font-size: 2.15rem;
-            }
-
-            .edit-profile-visual .illustration {
-                width: min(100%, 220px);
-            }
-
-            #editOptionsGroup {
-                gap: var(--lwc-space-2);
-            }
-
-            #flagDisplayInput,
-            #personalLinkInput,
-            #mediaContactInput,
-            #whyDisplayInput {
-                padding-block: var(--lwc-space-2);
-            }
-        }
-
-        @media (min-width: 960px) and (max-height: 720px) {
-            .edit-profile-main {
-                padding-top: 1.15rem;
-            }
-
-            .edit-profile-title {
-                margin-bottom: 0.7rem;
-                font-size: 2rem;
-            }
-
-            .edit-profile-visual .illustration {
-                width: min(100%, 210px);
-            }
-        }
-
-        @media (min-width: 640px) and (max-width: 932px) and (max-height: 480px) and (orientation: landscape) {
-            .edit-profile-main {
-                padding: 0.6rem 1rem 1.25rem;
-            }
-
-            .edit-profile-title {
-                margin-bottom: 0.45rem;
-                font-size: 1.8rem;
-                line-height: 1.05;
-            }
-
-            .edit-profile-visual {
-                margin-bottom: 0.65rem;
-            }
-
-            .edit-profile-visual .illustration {
-                width: min(100%, 240px, 26dvh);
-                max-width: min(100%, 240px);
-                max-height: 26dvh;
-                object-fit: contain;
-            }
-
-            #editOptionsGroup {
-                gap: 0.5rem;
-            }
-
-            .options-container.inline-option-group,
-            .edit-profile-actions {
-                gap: 0.5rem;
-            }
-
-            .edit-profile-actions {
-                margin-top: 0.65rem;
-            }
-
-            #changeProfileCropperModal {
-                width: min(calc(100vw - 1rem), 430px);
-                max-height: calc(100dvh - 0.75rem);
-                padding: 0.8rem;
-                gap: 0.55rem;
-            }
-
-            #changeProfileCropperImage {
-                max-height: min(42vh, 220px);
-            }
-        }
-
-        @media (pointer: coarse) {
-            .upload-choice-divider {
-                display: flex;
-            }
-
-            #takeProfileSelfieButton {
-                display: inline-flex;
-            }
-        }
-        .edit-profile-main :is(input,select,textarea):focus {
-            border-color: var(--lwc-accent);
-            box-shadow: 0 0 0 3px var(--lwc-accent-soft);
-            outline: 2px solid var(--lwc-accent);
-            outline-offset: 1px;
-        }
-        .edit-profile-main .field-requirement {
-            font-size: var(--lwc-type-sm);
-            line-height: 1.5;
-        }
-        #whyDisplayInput {
-            resize: vertical;
-        }
-        .edit-profile-main .option-button.icon-only {
-            background: var(--lwc-surface-muted);
-            color: var(--lwc-muted);
-            border-color: var(--lwc-border);
-        }
-        .edit-profile-main .option-button.icon-only:hover {
-            background: var(--lwc-accent-soft);
-            color: var(--lwc-accent);
-        }
-        .edit-profile-main .inline-option-group > :is(input, select, textarea) {
-            flex: 1 1 0;
-            min-width: 0;
-        }
-        .profile-field-error {
-            flex: 0 0 100%;
-            margin: calc(-1 * var(--lwc-space-1)) 0 0;
-            color: var(--lwc-danger);
-            font-size: var(--lwc-type-sm);
-            line-height: 1.5;
-            text-align: left;
-            overflow-wrap: anywhere;
-        }
-        .profile-field-error[hidden] { display: none; }
-        .edit-profile-main #editOptionsGroup [aria-invalid="true"] {
-            border-color: var(--lwc-danger);
-        }
-        .edit-profile-main #editOptionsGroup [aria-invalid="true"]:focus {
-            outline-color: var(--lwc-danger);
-            box-shadow: 0 0 0 3px var(--lwc-danger-soft);
-        }
-        .profile-draft {
-            display: flex;
-            align-items: center;
-            justify-content: flex-end;
-            flex-wrap: wrap;
-            grid-column: 1 / -1;
-            width: 100%;
-            max-width: 408px;
-            margin: 0 auto;
-        }
-        .profile-draft-status {
-            flex-basis: 100%;
-            margin: var(--lwc-space-1) 0;
-            color: var(--lwc-danger);
-            font-size: var(--lwc-type-sm);
-            line-height: 1.5;
-            text-align: left;
-        }
-        .profile-draft button {
-            min-height: 44px;
-            padding: var(--lwc-space-2);
-            border: 0;
-            border-radius: var(--lwc-radius-sm);
-            background: transparent;
-            color: var(--lwc-muted);
-            font: inherit;
-            font-size: var(--lwc-type-sm);
-            text-decoration: underline;
-            text-underline-offset: 0.2em;
-            cursor: pointer;
-        }
-        .profile-draft button:hover { color: var(--lwc-ink); }
-        .profile-draft button:focus-visible { outline: 2px solid var(--lwc-accent); outline-offset: 2px; }
-        .profile-draft[hidden], .profile-draft [hidden] { display: none; }
-
-        /* The portrait column: picture with its own actions directly beneath it. */
-        .edit-profile-portrait {
-            display: flex;
-            flex-direction: column;
-            align-items: stretch;
-            gap: 0.75rem;
-            width: min(100%, 408px);
-            max-width: 408px;
-            margin: 0 auto 1.25rem;
-        }
-
-        .edit-profile-portrait .edit-profile-visual {
-            margin: 0 auto;
-        }
-
-        #changeProfilePicWrapper {
-            flex-direction: row;
-            flex-wrap: wrap;
-            align-items: center;
-            justify-content: flex-end;
-            gap: 0.65rem;
-            width: 100%;
-            max-width: none;
-            margin: 0;
-        }
-
-        #changeProfilePicWrapper > .option-button:not(.icon-only) {
-            flex: 1 1 12em;
-            width: auto;
-            min-width: 0;
-            padding-inline: min(1rem, 16px) min(2.75rem, 52px);
-        }
-
-        #changeProfilePicWrapper > .flow-action > i {
-            right: min(1.35rem, 20px);
-            width: min(1.25rem, 24px);
-            font-size: min(1em, 24px);
-        }
-
-        #changeProfilePicWrapper > #takeProfileSelfieButton,
-        #changeProfilePicWrapper > .upload-choice-divider {
-            flex-basis: 100%;
-        }
-
-        #changeProfilePicWrapper > #restoreProfilePicButton {
-            flex: 0 0 44px;
-            width: 44px;
-            max-width: 44px;
-        }
-
-        /* The fields sit together in one card, like the application's athlete details. */
-        #editOptionsGroup {
-            align-items: stretch;
-            gap: var(--lwc-space-4, 1rem);
-            width: min(100%, 460px);
-            padding: min(var(--lwc-space-5, 1.5rem), 24px);
-            border: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.16));
-            border-radius: var(--lwc-radius-lg, 12px);
-            background: var(--lwc-surface, #fff);
-            box-shadow: var(--lwc-shadow-sm, 0 1px 2px rgba(15, 23, 42, 0.08));
-            box-sizing: border-box;
-        }
-
-        #editOptionsGroup .inline-option-group {
-            width: 100%;
-            max-width: none;
-        }
-
-        .profile-draft {
-            width: min(100%, 460px);
-            max-width: 460px;
-        }
-
-        @media (max-width: 600px) {
-            #editOptionsGroup {
-                padding: min(var(--lwc-space-4, 1rem), 16px);
-            }
-        }
-
-        /* Wider screens: portrait beside the card; enlarged text wraps the card below instead. */
-        @media (min-width: 720px) {
-            .edit-profile-main {
-                display: flex;
-                flex-direction: row;
-                flex-wrap: wrap;
-                align-items: flex-start;
-                justify-content: center;
-                gap: 0.85rem 2rem;
-                max-width: 920px;
-            }
-
-            .edit-profile-title,
-            .edit-profile-actions {
-                flex: 0 0 100%;
-            }
-
-            .edit-profile-actions {
-                max-width: 408px;
-            }
-
-            .edit-profile-portrait {
-                flex: 0 1 20rem;
-                min-width: 12.5rem;
-                margin: 0;
-            }
-
-            .edit-profile-portrait .edit-profile-visual,
-            .edit-profile-portrait .edit-profile-visual .illustration {
-                width: 100%;
-            }
-
-            #editOptionsGroup {
-                flex: 1 1 22rem;
-                width: auto;
-                max-width: 28.75rem;
-            }
-
-            .profile-draft {
-                flex: 0 0 100%;
-                max-width: calc(20rem + 2rem + 28.75rem);
-            }
-        }
-
-        /* Short desktops keep the whole form and its actions in the first screen. */
-        @media (min-width: 960px) and (max-height: 780px) {
-            .edit-profile-main {
-                row-gap: 0.5rem;
-            }
-
-            #editOptionsGroup {
-                gap: var(--lwc-space-2, 0.5rem);
-                padding: 0.75rem var(--lwc-space-4, 1rem);
-            }
-
-            .edit-profile-actions {
-                margin-top: 0.5rem;
-            }
-
-            .edit-profile-portrait .edit-profile-visual,
-            .edit-profile-portrait .edit-profile-visual .illustration {
-                width: min(100%, 260px);
-            }
-        }
-
-        /* The portrait is the same player card as the dashboard and athlete
-           selection: the athlete's name is its caption, not a heading above. */
-        .edit-profile-portrait .edit-profile-visual {
-            position: relative;
-            display: grid;
-            grid-template-columns: minmax(0, 1fr);
-            grid-template-rows: 1fr 1fr;
-            overflow: hidden;
-            border-radius: 8px;
-            line-height: 0;
-        }
-
-        .edit-profile-portrait .edit-profile-visual > picture {
-            grid-area: 1 / 1 / 3;
-            position: relative;
-            align-self: stretch;
-            width: 100%;
-            aspect-ratio: 1;
-        }
-
-        .edit-profile-portrait .edit-profile-visual .illustration {
-            position: absolute;
-            inset: 0;
-            display: block;
-            width: 100%;
-            height: 100%;
-            max-width: none;
-            max-height: none;
-            border-radius: 8px;
-        }
-
-        /* The caption gets at most half the frame. Long names and enlarged text
-           can grow both grid rows, keeping the full name and portrait visible. */
-        @media (max-width: 600px) {
-            .edit-profile-portrait .edit-profile-visual {
-                width: min(100%, clamp(11.5rem, 50vw, 15rem));
-                margin-inline: auto;
-            }
-
-            .edit-profile-portrait .edit-profile-visual .illustration {
-                width: 100%;
-            }
-        }
-
-        @media (min-width: 640px) and (max-width: 932px) and (max-height: 480px) and (orientation: landscape) {
-            .edit-profile-portrait .edit-profile-visual {
-                width: min(100%, 15rem, max(9.5rem, 26dvh));
-                margin-inline: auto;
-            }
-
-            .edit-profile-portrait .edit-profile-visual .illustration {
-                width: 100%;
-            }
-        }
-
-        .edit-profile-portrait .edit-profile-visual > .edit-profile-title {
-            position: relative;
-            grid-area: 2 / 1;
-            z-index: 2;
-            align-self: end;
-            margin: 0;
-            padding: 0.65rem 0.9rem;
-            border-radius: 0 0 8px 8px;
-            background: linear-gradient(to top, rgba(6, 12, 18, 0.94), rgba(6, 12, 18, 0.82));
-            color: #ffffff;
-            font-size: 1.85rem;
-            line-height: 1.1;
-            overflow-wrap: break-word;
-            text-align: center;
-            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
-            pointer-events: none;
-        }
-
-        @media (max-width: 959px) {
-            .edit-profile-portrait .edit-profile-visual > .edit-profile-title {
-                font-size: 1.5rem;
-            }
-        }
-
-        @media (max-width: 600px) {
-            .edit-profile-portrait .edit-profile-visual > .edit-profile-title {
-                font-size: 1.25rem;
-                padding-inline: min(0.9rem, 6px);
-            }
-        }
-
-        @media (min-width: 640px) and (max-width: 932px) and (max-height: 480px) and (orientation: landscape) {
-            .edit-profile-portrait .edit-profile-visual > .edit-profile-title {
-                font-size: 1.25rem;
-                padding-inline: min(0.9rem, 6px);
-            }
-        }
-
-        .edit-profile-portrait .edit-profile-visual > .edit-profile-title::before {
-            content: "";
-            position: absolute;
-            inset: auto 0 100%;
-            height: 2rem;
-            background: linear-gradient(to top, rgba(6, 12, 18, 0.82), transparent);
-        }
     </style>
 </head>
 <body class="play-flow-route">
     <!--HEADER-->
     <main class="edit-profile-main initial-view-main">
-        <div class="edit-profile-portrait">
-            <div class="edit-profile-visual" data-aos="fade" data-aos-duration="700" data-aos-delay="300">
+        <div class="edit-profile-card" data-aos="fade" data-aos-duration="700" data-aos-delay="300">
+            <div class="edit-profile-visual">
                 <h1 id="character-title" class="edit-profile-title">Edit athlete profile</h1>
                 <picture>
                     <source srcset="{{ASSET_PLAY_ATHLETE_PLACEHOLDER_WEBP}}" type="image/webp">
@@ -914,110 +783,113 @@
                     <img src="{{ASSET_PLAY_ATHLETE_PLACEHOLDER_JPEG}}" alt="Headshot" class="illustration" width="1024" height="1024" loading="lazy" decoding="async">
                 </picture>
             </div>
-            <div id="changeProfilePicWrapper" class="options-container flow-action-stack flow-action-stack--flush">
-                <button type="button" id="takeProfileSelfieButton" class="option-button grey flow-action flow-action--secondary">
-                    <span class="flow-action__label">Take selfie</span><i class="fa fa-camera" aria-hidden="true"></i>
-                </button>
-                <span class="upload-choice-divider" aria-hidden="true">or</span>
-                <button type="button" id="changeProfilePicButton" class="option-button grey flow-action flow-action--secondary">
-                    <span class="flow-action__label">Change profile picture</span><i class="fa fa-image" aria-hidden="true"></i>
-                </button>
-                <input type="file" id="profilePicInputModal" accept="image/*,.heic,.heif" style="display: none;">
-                <input type="file" id="profileCameraInputModal" accept="image/*,.heic,.heif" capture="user" style="display: none;">
-                <button id="restoreProfilePicButton" class="option-button icon-only" style="display:none" title="Restore profile picture" aria-label="Restore profile picture">
-                    <i class="fas fa-undo" aria-hidden="true"></i>
-                </button>
-            </div>
-        </div>
-        <div id="editOptionsGroup" data-aos="fade" data-aos-duration="700" data-aos-delay="350">
-            <div class="niceInputFieldDisplayWrapper options-container inline-option-group">
-                <label for="divisionDisplaySelect" class="field-label">Division</label>
-                <select id="divisionDisplaySelect"></select>
-                <button id="restoreDivisionBtn" class="option-button icon-only" style="display:none" title="Restore division" aria-label="Restore division">
-                    <i class="fas fa-undo" aria-hidden="true"></i>
-                </button>
-            </div>
-            <div class="niceInputFieldDisplayWrapper options-container inline-option-group">
-                <label for="flagDisplayInput" class="field-label">Flag <span class="field-requirement">(required)</span></label>
-                <input type="text"
-                       id="flagDisplayInput"
-                       aria-describedby="flagDisplayInputError"
-                       name="flagDisplay"
-                       required
-                       aria-required="true"
-                       minlength="3"
-                       maxlength="100"
-                       autocomplete="off"
-                       autocapitalize="none"
-                       spellcheck="false"
-                       placeholder="Type or select a flag…">
-                <button id="restoreFlagBtn" class="option-button icon-only" style="display:none" title="Restore flag" aria-label="Restore flag">
-                    <i class="fas fa-undo" aria-hidden="true"></i>
-                </button>
-                <p id="flagDisplayInputError" class="profile-field-error" aria-live="polite" hidden></p>
-            </div>
-            <div class="niceInputFieldDisplayWrapper options-container inline-option-group">
-                <label for="personalLinkInput" class="field-label">Personal link <span class="field-requirement">(optional)</span></label>
-                <input type="text"
-                       id="personalLinkInput"
-                       aria-describedby="personalLinkInputError"
-                       name="personalLink"
-                       inputmode="url"
-                       autocomplete="url"
-                       autocapitalize="none"
-                       spellcheck="false"
-                       placeholder="yourwebsite.com">
-                <button id="restorePersonalLinkBtn" class="option-button icon-only" style="display:none" title="Restore personal link" aria-label="Restore personal link">
-                    <i class="fas fa-undo" aria-hidden="true"></i>
-                </button>
-                <p id="personalLinkInputError" class="profile-field-error" aria-live="polite" hidden></p>
-            </div>
-            <div class="niceInputFieldDisplayWrapper options-container inline-option-group">
-                <label for="mediaContactInput" class="field-label">Media contact <span class="field-requirement">(required)</span></label>
-                <input type="text"
-                       id="mediaContactInput"
-                       aria-describedby="mediaContactInputError"
-                       name="mediaContact"
-                       required
-                       aria-required="true"
-                       inputmode="email"
-                       autocomplete="off"
-                       autocapitalize="none"
-                       spellcheck="false"
-                       placeholder="media@example.com or @handle">
-                <button id="restoreMediaContactBtn" class="option-button icon-only" style="display:none" title="Restore media contact" aria-label="Restore media contact">
-                    <i class="fas fa-undo" aria-hidden="true"></i>
-                </button>
-                <p id="mediaContactInputError" class="profile-field-error" aria-live="polite" hidden></p>
-            </div>
-            <div class="niceInputFieldDisplayWrapper options-container inline-option-group">
-                <label for="whyDisplayInput" class="field-label">Motivation <span class="field-requirement">(required)</span></label>
-                <textarea id="whyDisplayInput"
-                          aria-describedby="whyDisplayInputError"
-                          name="whyDisplay"
-                          rows="3"
-                          required
-                          aria-required="true"
-                          placeholder="What drives you?"></textarea>
+            <div class="edit-profile-body">
+                <div id="changeProfilePicWrapper" class="options-container flow-action-stack flow-action-stack--flush">
+                    <button type="button" id="takeProfileSelfieButton" class="option-button grey flow-action flow-action--secondary">
+                        <span class="flow-action__label">Take selfie</span><i class="fa fa-camera" aria-hidden="true"></i>
+                    </button>
+                    <span class="upload-choice-divider" aria-hidden="true">or</span>
+                    <button type="button" id="changeProfilePicButton" class="option-button grey flow-action flow-action--secondary">
+                        <span class="flow-action__label">Change profile picture</span><i class="fa fa-image" aria-hidden="true"></i>
+                    </button>
+                    <input type="file" id="profilePicInputModal" accept="image/*,.heic,.heif" style="display: none;">
+                    <input type="file" id="profileCameraInputModal" accept="image/*,.heic,.heif" capture="user" style="display: none;">
+                    <button id="restoreProfilePicButton" class="option-button grey icon-only" style="display:none" title="Restore profile picture" aria-label="Restore profile picture">
+                        <i class="fas fa-undo" aria-hidden="true"></i>
+                    </button>
+                </div>
+                <div id="editOptionsGroup">
+                    <div class="niceInputFieldDisplayWrapper options-container inline-option-group">
+                        <label for="divisionDisplaySelect" class="field-label">Division</label>
+                        <select id="divisionDisplaySelect"></select>
+                        <button id="restoreDivisionBtn" class="option-button grey icon-only" style="display:none" title="Restore division" aria-label="Restore division">
+                            <i class="fas fa-undo" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                    <div class="niceInputFieldDisplayWrapper options-container inline-option-group">
+                        <label for="flagDisplayInput" class="field-label">Flag <span class="field-requirement">(required)</span></label>
+                        <input type="text"
+                               id="flagDisplayInput"
+                               aria-describedby="flagDisplayInputError"
+                               name="flagDisplay"
+                               required
+                               aria-required="true"
+                               minlength="3"
+                               maxlength="100"
+                               autocomplete="off"
+                               autocapitalize="none"
+                               spellcheck="false"
+                               placeholder="Type or select a flag…">
+                        <button id="restoreFlagBtn" class="option-button grey icon-only" style="display:none" title="Restore flag" aria-label="Restore flag">
+                            <i class="fas fa-undo" aria-hidden="true"></i>
+                        </button>
+                        <p id="flagDisplayInputError" class="profile-field-error" aria-live="polite" hidden></p>
+                    </div>
+                    <div class="niceInputFieldDisplayWrapper options-container inline-option-group">
+                        <label for="personalLinkInput" class="field-label">Personal link <span class="field-requirement">(optional)</span></label>
+                        <input type="text"
+                               id="personalLinkInput"
+                               aria-describedby="personalLinkInputError"
+                               name="personalLink"
+                               inputmode="url"
+                               autocomplete="url"
+                               autocapitalize="none"
+                               spellcheck="false"
+                               placeholder="yourwebsite.com">
+                        <button id="restorePersonalLinkBtn" class="option-button grey icon-only" style="display:none" title="Restore personal link" aria-label="Restore personal link">
+                            <i class="fas fa-undo" aria-hidden="true"></i>
+                        </button>
+                        <p id="personalLinkInputError" class="profile-field-error" aria-live="polite" hidden></p>
+                    </div>
+                    <div class="niceInputFieldDisplayWrapper options-container inline-option-group">
+                        <label for="mediaContactInput" class="field-label">Media contact <span class="field-requirement">(required)</span></label>
+                        <input type="text"
+                               id="mediaContactInput"
+                               aria-describedby="mediaContactInputError"
+                               name="mediaContact"
+                               required
+                               aria-required="true"
+                               inputmode="email"
+                               autocomplete="off"
+                               autocapitalize="none"
+                               spellcheck="false"
+                               placeholder="media@example.com or @handle">
+                        <button id="restoreMediaContactBtn" class="option-button grey icon-only" style="display:none" title="Restore media contact" aria-label="Restore media contact">
+                            <i class="fas fa-undo" aria-hidden="true"></i>
+                        </button>
+                        <p id="mediaContactInputError" class="profile-field-error" aria-live="polite" hidden></p>
+                    </div>
+                    <div class="niceInputFieldDisplayWrapper options-container inline-option-group">
+                        <label for="whyDisplayInput" class="field-label">Motivation <span class="field-requirement">(required)</span></label>
+                        <textarea id="whyDisplayInput"
+                                  aria-describedby="whyDisplayInputError"
+                                  name="whyDisplay"
+                                  rows="3"
+                                  required
+                                  aria-required="true"
+                                  placeholder="What drives you?"></textarea>
 
-                <button id="restoreWhyDisplayBtn" class="option-button icon-only" style="display:none" title="Restore your why" aria-label="Restore your why">
-                    <i class="fas fa-undo" aria-hidden="true"></i>
-                </button>
-                <p id="whyDisplayInputError" class="profile-field-error" aria-live="polite" hidden></p>
+                        <button id="restoreWhyDisplayBtn" class="option-button grey icon-only" style="display:none" title="Restore your why" aria-label="Restore your why">
+                            <i class="fas fa-undo" aria-hidden="true"></i>
+                        </button>
+                        <p id="whyDisplayInputError" class="profile-field-error" aria-live="polite" hidden></p>
+                    </div>
+                </div>
+                <div class="edit-profile-foot">
+                    <div id="profileDraftSummary" class="profile-draft" hidden>
+                        <button type="button" id="resetProfileDraftButton">Reset all</button>
+                        <button type="button" id="undoProfileDraftButton" hidden>Undo reset</button>
+                        <p id="profileDraftStatus" class="profile-draft-status" role="status" hidden></p>
+                    </div>
+                    <div class="options-container edit-profile-actions flow-action-stack flow-action-stack--hide-disabled-primary" data-flow-dock="auto">
+                        <button id="submitButton" type="submit" disabled class="option-button green flow-action"><span class="flow-action__label">Submit change request</span><i class="fa fa-rocket" aria-hidden="true"></i></button>
+                        <button type="button" class="option-button back-button flow-action flow-action--secondary flow-action--icon-left" onclick="window.navigateToFlowDestination('/dashboard')">
+                            <i class="fas fa-arrow-left" aria-hidden="true"></i><span class="flow-action__label">Back</span>
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
-        <div id="profileDraftSummary" class="profile-draft" hidden>
-            <button type="button" id="resetProfileDraftButton">Reset all</button>
-            <button type="button" id="undoProfileDraftButton" hidden>Undo reset</button>
-            <p id="profileDraftStatus" class="profile-draft-status" role="status" hidden></p>
-        </div>
-        <div class="options-container edit-profile-actions flow-action-stack flow-action-stack--hide-disabled-primary" data-flow-dock="auto" data-aos="fade" data-aos-duration="700" data-aos-delay="400">
-            <button id="submitButton" type="submit" disabled class="option-button green flow-action"><span class="flow-action__label">Submit change request</span><i class="fa fa-rocket" aria-hidden="true"></i></button>
-            <button type="button" class="option-button back-button flow-action flow-action--secondary flow-action--icon-left" onclick="window.navigateToFlowDestination('/dashboard')">
-                <i class="fas fa-arrow-left" aria-hidden="true"></i><span class="flow-action__label">Back</span>
-            </button>
-        </div>
-
     </main>
     <div id="modalOverlay" aria-hidden="true" hidden></div>
     <div id="changeProfileCropperModal"

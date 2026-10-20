@@ -679,11 +679,13 @@ public sealed class FlowActionDockFormBrowserTests(
     }
 
     [Theory]
-    [InlineData(390, 844)]
-    [InlineData(1366, 768)]
+    [InlineData(390, 844, true)]
+    // Desktops keep the commands in the editing card's foot; the whole card fits the first screen.
+    [InlineData(1366, 768, false)]
     public async Task EditProfile_ChangedAthleteDocksSubmitActionsAfterEditing(
         int viewportWidth,
-        int viewportHeight)
+        int viewportHeight,
+        bool expectDocked)
     {
         var app = App;
         var browser = Browser;
@@ -711,15 +713,17 @@ public sealed class FlowActionDockFormBrowserTests(
         await page.Locator("#personalLinkInput").EvaluateAsync("input => input.blur()");
         await page.EvaluateAsync("() => window.LwcFlowActionDock.refreshNow()");
 
-        await ExpectActionStackDockedInViewportAsync(page, ".edit-profile-actions");
+        if (expectDocked) await ExpectActionStackDockedInViewportAsync(page, ".edit-profile-actions");
+        else await ExpectActionStackInViewportAsync(page, ".edit-profile-actions");
         await page.WaitForFunctionAsync(
             """
-            () => {
+            expectDocked => {
                 const actions = document.querySelector('.edit-profile-actions');
                 const personalLink = document.querySelector('#personalLinkInput')?.closest('.inline-option-group');
                 const mediaContact = document.querySelector('#mediaContactInput')?.closest('.inline-option-group');
                 const why = document.querySelector('#whyDisplayInput')?.closest('.inline-option-group');
-                if (!actions || !personalLink || !mediaContact || !why || !actions.classList.contains('flow-action-stack--docked')) return false;
+                if (!actions || !personalLink || !mediaContact || !why
+                    || actions.classList.contains('flow-action-stack--docked') !== expectDocked) return false;
 
                 const actionRect = actions.getBoundingClientRect();
                 const personalLinkRect = personalLink.getBoundingClientRect();
@@ -729,7 +733,7 @@ public sealed class FlowActionDockFormBrowserTests(
                     && mediaContactRect.bottom <= actionRect.top
                     && whyRect.bottom <= actionRect.top;
             }
-            """);
+            """, expectDocked);
 
         var state = await page.EvaluateAsync<EditProfileInitialState>(
             """
@@ -755,7 +759,9 @@ public sealed class FlowActionDockFormBrowserTests(
             """);
 
         Assert.False(state.SubmitDisabled, "A real edit should present Submit as an available primary action.");
-        Assert.True(state.ActionsDocked, "Changed edit profile actions should dock once text entry has finished.");
+        Assert.True(state.ActionsDocked == expectDocked, expectDocked
+            ? "Changed edit profile actions should dock once text entry has finished."
+            : "Desktop edit profile actions should stay in the card's foot.");
         Assert.NotEmpty(state.TempAthlete);
         Assert.True(state.ActionBottom <= state.ViewportHeight + 1,
             $"Docked edit profile actions overflow the viewport: {state.ActionBottom} > {state.ViewportHeight}.");
@@ -876,7 +882,8 @@ public sealed class FlowActionDockFormBrowserTests(
 
     [Theory]
     [InlineData(768, 1024, 38, 220)]
-    [InlineData(1280, 720, 36, 200)]
+    // Short desktops trade portrait height for the whole card, commands included, on one screen.
+    [InlineData(1280, 720, 36, 150)]
     public async Task EditProfile_FirstViewportUsesFormScaleTitleAndShowsPictureAction(
         int viewportWidth,
         int viewportHeight,
@@ -931,7 +938,7 @@ public sealed class FlowActionDockFormBrowserTests(
                 const title = document.querySelector('#character-title');
                 const image = document.querySelector('.edit-profile-visual img');
                 const pictureButton = document.querySelector('#changeProfilePicButton');
-                const options = document.querySelector('#editOptionsGroup');
+                const card = document.querySelector('.edit-profile-card');
                 const rectOf = element => {
                     const rect = element.getBoundingClientRect();
                     return {
@@ -949,7 +956,7 @@ public sealed class FlowActionDockFormBrowserTests(
                     Title: rectOf(title),
                     Picture: rectOf(image),
                     PictureButton: rectOf(pictureButton),
-                    OptionsAos: options?.getAttribute('data-aos') || '',
+                    OptionsAos: card?.getAttribute('data-aos') || '',
                     ViewportHeight: window.innerHeight
                 };
             }

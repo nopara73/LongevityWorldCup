@@ -42,58 +42,139 @@ public sealed class EditProfileLayoutBrowserTests(
     }
 
     [Theory]
-    [InlineData(1440, 900)]
-    [InlineData(1366, 768)]
-    [InlineData(768, 1024)]
-    public async Task WideScreens_PlaceThePortraitBesideOneFieldCard(int width, int height)
+    [InlineData(1440, 900, false)]
+    [InlineData(1366, 768, true)]
+    [InlineData(1280, 720, false)]
+    [InlineData(1024, 768, true)]
+    [InlineData(768, 1024, false)]
+    public async Task WideScreens_AreOnePlayerCard_WithTheCommandsInItsFoot(int width, int height, bool dark)
     {
-        await using var context = await CreateContextAsync(width, height);
+        await using var context = await CreateContextAsync(width, height, dark);
         var page = await OpenEditorAsync(context);
+        // A changed field reveals Submit beside Back, the editor's tallest first-screen state.
+        await page.Locator("#whyDisplayInput").FillAsync("Training for a longer, healthier life, every single season.");
+        await page.EvaluateAsync("""
+            async () => {
+                window.LwcFlowActionDock.refreshNow();
+                await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+            }
+            """);
 
         var layout = await page.EvaluateAsync<double[]>(
             """
             () => {
-                const picture = document.querySelector('.edit-profile-visual .illustration').getBoundingClientRect();
-                const pictureAction = document.getElementById('changeProfilePicButton').getBoundingClientRect();
-                const card = document.getElementById('editOptionsGroup').getBoundingClientRect();
-                const fields = [...document.querySelectorAll('#editOptionsGroup :is(input:not([type=file]), select, textarea)')]
-                    .map(field => field.getBoundingClientRect());
-                const lefts = fields.map(rect => rect.left);
-                const rights = fields.map(rect => rect.right);
+                const rect = element => element.getBoundingClientRect();
+                const card = document.querySelector('.edit-profile-card');
+                if (!card) return [];
+                const c = rect(card);
+                const portrait = rect(document.querySelector('.edit-profile-visual'));
+                // Touch screens lead with Take selfie; the picture's actions are one group.
+                const pictureAction = rect(document.getElementById('changeProfilePicWrapper'));
+                const fields = rect(document.getElementById('editOptionsGroup'));
+                const actions = document.querySelector('.edit-profile-actions');
+                const a = rect(actions);
+                const back = rect(actions.querySelector('.back-button'));
+                const submit = rect(document.getElementById('submitButton'));
+                const division = rect(document.getElementById('divisionDisplaySelect'));
+                const flag = rect(document.getElementById('flagDisplayInput'));
                 return [
-                    picture.right, card.left, picture.top, card.top,
-                    pictureAction.bottom, innerHeight,
-                    Math.max(...lefts) - Math.min(...lefts), Math.max(...rights) - Math.min(...rights),
-                    Math.min(...lefts) - card.left, card.right - Math.max(...rights)
+                    portrait.top - c.top, c.left - portrait.left, portrait.right - c.right,
+                    pictureAction.top - portrait.bottom, fields.top - pictureAction.bottom,
+                    fields.left - c.left, c.right - fields.right,
+                    actions.classList.contains('flow-action-stack--docked') ? 1 : 0,
+                    card.contains(actions) ? 1 : 0, a.top - fields.bottom, c.bottom - a.bottom,
+                    innerHeight - c.bottom,
+                    Math.abs(back.top - submit.top), submit.left - back.right,
+                    Math.abs(division.top - flag.top), flag.left - division.right
                 ];
             }
             """);
         var scenario = $"{width}x{height}";
-        Assert.True(layout[0] <= layout[1], $"{scenario}: the portrait should sit to the left of the field card.");
-        Assert.InRange(Math.Abs(layout[2] - layout[3]), 0, 2);
-        Assert.True(layout[4] <= layout[5] - 8, $"{scenario}: Change profile picture should stay in the first screen.");
-        Assert.True(layout[6] <= 1 && layout[7] <= 1, $"{scenario}: unchanged fields should share one column inside the card.");
-        Assert.True(layout[8] >= 12 && layout[9] >= 12, $"{scenario}: fields should sit inside the card's padding.");
+        Assert.True(layout.Length > 0, $"{scenario}: the editor should be one .edit-profile-card.");
+        Assert.InRange(layout[0], 0, 2);
+        Assert.InRange(layout[1], -2, 0);
+        Assert.InRange(layout[2], -2, 0);
+        Assert.True(layout[3] is > 0 and < 32, $"{scenario}: the picture's action should sit directly under the portrait header ({layout[3]}px).");
+        Assert.True(layout[4] > 0, $"{scenario}: the fields should follow the picture's action.");
+        Assert.True(layout[5] >= 12 && layout[6] >= 12, $"{scenario}: fields should sit inside the card's body padding.");
+        Assert.True(layout[7] == 0 && layout[8] == 1, $"{scenario}: Submit and Back should stay in the card's foot, not a docked bar.");
+        Assert.True(layout[9] > 0 && layout[10] >= 12, $"{scenario}: the commands should close the card below its fields.");
+        Assert.True(layout[11] >= 0, $"{scenario}: the whole card, commands included, should fit the first screen ({layout[11]}px).");
+        Assert.True(layout[12] <= 1 && layout[13] > 0, $"{scenario}: Back and Submit should share one row, Back first.");
+        Assert.True(layout[14] <= 1 && layout[15] > 0, $"{scenario}: Division and Flag should pair in one row of the field grid.");
+        await ExpectNoHorizontalOverflowAsync(page);
+    }
+
+    [Theory]
+    [InlineData(1440, 900, false)]
+    [InlineData(768, 1024, true)]
+    [InlineData(390, 844, false)]
+    [InlineData(320, 640, true)]
+    public async Task ChangedFields_KeepTheirWidth_WithAQuietRestoreOnTheLabelLine(int width, int height, bool dark)
+    {
+        await using var context = await CreateContextAsync(width, height, dark);
+        var page = await OpenEditorAsync(context);
+        var ids = new[] { "divisionDisplaySelect", "flagDisplayInput", "personalLinkInput", "mediaContactInput", "whyDisplayInput" };
+        const string widths = "ids => ids.map(id => document.getElementById(id).getBoundingClientRect().width)";
+        var before = await page.EvaluateAsync<double[]>(widths, ids);
+        await page.Locator("#divisionDisplaySelect").SelectOptionAsync("Women's");
+        await page.Locator("#flagDisplayInput").FillAsync("Hungary");
+        await page.Locator("#flagDisplayInput").PressAsync("Escape");
+        await page.Locator("#personalLinkInput").FillAsync("https://example.org");
+        await page.Locator("#mediaContactInput").FillAsync("@alexmorgan");
+        await page.Locator("#whyDisplayInput").FillAsync("A changed motivation.");
+        var after = await page.EvaluateAsync<double[]>(widths, ids);
+        var issues = await page.EvaluateAsync<string[]>(
+            """
+            () => [...document.querySelectorAll('#editOptionsGroup .icon-only')].flatMap(button => {
+                const label = button.parentElement.querySelector('.field-label').getBoundingClientRect();
+                const field = button.parentElement.querySelector('input, select, textarea').getBoundingClientRect();
+                const own = button.getBoundingClientRect();
+                const issues = [];
+                if (!own.width) return [`${button.id} hidden`];
+                if (own.bottom > field.top + 1) issues.push(`${button.id} not above its field`);
+                if (own.right > field.right + 1 || own.left < label.left) issues.push(`${button.id} not on its label line`);
+                // The accent fill belongs to primary commands, not a quiet undo.
+                const probe = document.createElement('span');
+                probe.style.color = 'var(--lwc-accent)';
+                document.body.append(probe);
+                const accent = getComputedStyle(probe).color;
+                probe.remove();
+                if (getComputedStyle(button).backgroundColor === accent) issues.push(`${button.id} filled with the accent`);
+                return issues;
+            })
+            """);
+        for (var i = 0; i < ids.Length; i++)
+            Assert.True(Math.Abs(after[i] - before[i]) <= 1, $"{width}x{height}: {ids[i]} narrowed from {before[i]} to {after[i]} when its restore appeared.");
+        Assert.True(issues.Length == 0, $"{width}x{height}: {string.Join(", ", issues)}");
         await ExpectNoHorizontalOverflowAsync(page);
     }
 
     [Theory]
     [InlineData(390, 844)]
     [InlineData(320, 640)]
-    public async Task Phones_StackThePortraitAboveTheFieldCard(int width, int height)
+    public async Task Phones_KeepTheSameCard_WithThePictureActionsUnderThePortrait(int width, int height)
     {
         await using var context = await CreateContextAsync(width, height);
         var page = await OpenEditorAsync(context);
         var layout = await page.EvaluateAsync<double[]>(
             """
             () => {
-                const action = document.getElementById('changeProfilePicButton').getBoundingClientRect();
-                const card = document.getElementById('editOptionsGroup').getBoundingClientRect();
-                return [action.bottom, card.top, card.left, card.right, innerWidth];
+                const card = document.querySelector('.edit-profile-card')?.getBoundingClientRect();
+                if (!card) return [];
+                const portrait = document.querySelector('.edit-profile-visual').getBoundingClientRect();
+                const action = document.getElementById('takeProfileSelfieButton').getBoundingClientRect();
+                const fields = document.getElementById('editOptionsGroup').getBoundingClientRect();
+                return [portrait.top - card.top, action.top - portrait.bottom, fields.top - action.bottom,
+                    card.left, innerWidth - card.right, portrait.width / portrait.height];
             }
             """);
-        Assert.True(layout[0] <= layout[1], $"{width}px: the picture action should come before the field card.");
-        Assert.True(layout[2] >= 0 && layout[3] <= layout[4], $"{width}px: the field card should fit the screen.");
+        Assert.True(layout.Length > 0, $"{width}px: the editor should be one .edit-profile-card.");
+        Assert.InRange(layout[0], 0, 2);
+        Assert.True(layout[1] is > 0 and < 32, $"{width}px: Take selfie should sit directly under the portrait.");
+        Assert.True(layout[2] > 0, $"{width}px: the fields should follow the picture's actions.");
+        Assert.True(layout[3] >= 8 && layout[4] >= 8, $"{width}px: the card should keep a gutter.");
+        Assert.True(layout[5] > 1.3, $"{width}px: the portrait should be a wide header, not a tall square ({layout[5]:F2}).");
         await ExpectNoHorizontalOverflowAsync(page);
     }
 
