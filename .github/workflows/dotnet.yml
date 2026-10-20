@@ -110,7 +110,13 @@ jobs:
           --configuration Release \
           --no-restore \
           --output "$publish_output" \
-          -p:BuildFrontend=false
+          -p:BuildFrontend=false \
+          -p:SourceRevisionId="$GITHUB_SHA"
+
+        if ! grep -a -Fq "$GITHUB_SHA" "$publish_output/LongevityWorldCup.Website.dll"; then
+          echo "Published assembly is missing the verified revision." >&2
+          exit 1
+        fi
 
         frontend_manifest "$publish_output/wwwroot/js" > "$published_manifest"
         if ! cmp -s "$source_manifest" "$published_manifest"; then

@@ -189,7 +189,12 @@ jobs:
               -C "$deploy_source/LongevityWorldCup.Website/wwwroot"
             frontend_manifest "$deploy_source/LongevityWorldCup.Website/wwwroot/js" > "$source_manifest"
             test -s "$source_manifest"
-            dotnet publish "$deploy_source/LongevityWorldCup.Website/LongevityWorldCup.Website.csproj" --configuration Release --output "$publish_output" -p:BuildFrontend=false
+            # The isolated source tree has no .git metadata to stamp the assembly.
+            dotnet publish "$deploy_source/LongevityWorldCup.Website/LongevityWorldCup.Website.csproj" --configuration Release --output "$publish_output" -p:BuildFrontend=false -p:SourceRevisionId="$verified_sha"
+            if ! grep -a -Fq "$verified_sha" "$publish_output/LongevityWorldCup.Website.dll"; then
+              echo "Published assembly is missing the verified revision." >&2
+              exit 1
+            fi
             frontend_manifest "$publish_output/wwwroot/js" > "$published_manifest"
             if ! cmp -s "$source_manifest" "$published_manifest"; then
               echo "Published frontend assets differ from the verified artifact." >&2
