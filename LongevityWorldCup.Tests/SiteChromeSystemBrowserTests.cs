@@ -432,6 +432,11 @@ public sealed class SiteChromeSystemBrowserTests(
                             if (r.width && (r.left < bar.left || r.right > bar.right || r.top < bar.top || r.bottom > bar.bottom))
                                 problems.push(text.textContent.trim() + ' clipped by band');
                         }
+                        for (const match of text.textContent.matchAll(/\S+/g)) {
+                            const word = document.createRange();
+                            word.setStart(text, match.index); word.setEnd(text, match.index + match[0].length);
+                            if (word.getClientRects().length > 1) problems.push(match[0] + ' split across lines');
+                        }
                     }
                 }
                 return problems;
