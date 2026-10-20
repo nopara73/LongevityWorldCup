@@ -46,6 +46,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await using var context = await NewContextAsync(Browser, App, new() {
             ViewportSize = new() { Width = 390, Height = 1000 }, ColorScheme = ColorScheme.Light, Locale = "en-US"
         });
+        await ObserveDiscussionReadSettlementAsync(context);
         await context.AddInitScriptAsync("Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: async () => {} } });");
         var state = UnreadConversationBrowserState();
         var calls = new List<JsonObject>();
@@ -78,6 +79,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
             await page.EvaluateAsync("getSelection().removeAllRanges()");
             await body.ClickAsync();
             await Assertions.Expect(first).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("lmx-unread-message"));
+            await page.WaitForFunctionAsync("() => window.pendingDiscussionReadsForTest() === 0");
             Assert.Single(calls);
             await body.ClickAsync();
             await started.Task.WaitAsync(TimeSpan.FromSeconds(5));
@@ -233,13 +235,8 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         }));
     }
 
-    [Theory]
-    [InlineData(390, ColorScheme.Light)]
-    [InlineData(390, ColorScheme.Dark)]
-    [InlineData(1280, ColorScheme.Light)]
-    public async Task DiscussionRead_ExplicitOpeningPreservesDraftAndDoesNotReadNewerActivity(int width, ColorScheme theme)
+    private static async Task ObserveDiscussionReadSettlementAsync(IBrowserContext context)
     {
-        await using var context = await NewContextAsync(Browser, App, new() { ViewportSize = new() { Width = width, Height = 1000 }, ColorScheme = theme });
         // Observe completion in this intercepted test response. An unchanged
         // unread label alone cannot tell us whether a failed request has settled.
         await context.RouteAsync("**/js/longevitymaxxing.js*", async route => {
@@ -250,6 +247,16 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
             await route.FulfillAsync(new() { Response = response, Body = script.Insert(closureEnd,
                 "window.pendingDiscussionReadsForTest = () => discussionReadPending.size;\n") });
         });
+    }
+
+    [Theory]
+    [InlineData(390, ColorScheme.Light)]
+    [InlineData(390, ColorScheme.Dark)]
+    [InlineData(1280, ColorScheme.Light)]
+    public async Task DiscussionRead_ExplicitOpeningPreservesDraftAndDoesNotReadNewerActivity(int width, ColorScheme theme)
+    {
+        await using var context = await NewContextAsync(Browser, App, new() { ViewportSize = new() { Width = width, Height = 1000 }, ColorScheme = theme });
+        await ObserveDiscussionReadSettlementAsync(context);
         var state = AdviceBrowserState(1);
         state["readContext"] = UnreadAdviceContext(10, FirstAdviceId, "old-answer");
         var calls = new List<JsonObject>();
