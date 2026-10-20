@@ -361,4 +361,6 @@ jobs:
             fi
 
             sudo systemctl status longevityworldcup.service --no-pager
+            sudo sh "$deploy_source/LongevityWorldCup.Website/Scripts/sync-outage-assets.sh" \
+              "$publish_output/wwwroot" /var/www/longevityworldcup-errors /etc/nginx/snippets/lwc-error-page.conf
             deploy_succeeded=1

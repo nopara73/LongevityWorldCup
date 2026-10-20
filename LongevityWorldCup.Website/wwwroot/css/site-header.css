@@ -1439,7 +1439,7 @@ header[role="banner"] .header-link,
     column-gap: var(--space-4);
     row-gap: 0;
     justify-content: start;
-    padding: var(--space-1) var(--space-2) var(--space-1) 0;
+    padding: 0 var(--space-2) 0 0;
     text-align: left;
 }
 
@@ -1569,12 +1569,10 @@ header[role="banner"] .join-game:not(.scrolled-button) .join-game-end {
 @keyframes chrome-sticky-arrive {
     from {
         opacity: 0;
-        transform: translateY(-8px);
     }
 
     to {
         opacity: 1;
-        transform: none;
     }
 }
 
@@ -1757,8 +1755,7 @@ header[role="banner"] .join-game:not(.scrolled-button) .join-game-end {
         display: inline-block;
     }
 
-    header[role="banner"] .header-link > .main-logo-image,
-    body.play-flow-route:not(.play-start-active) header[role="banner"] .header-link > .main-logo-image {
+    header[role="banner"] .header-link > .main-logo-image {
         width: 44px;
         height: 44px;
     }
@@ -1799,53 +1796,5 @@ header[role="banner"] .join-game:not(.scrolled-button) .join-game-end {
         width: auto;
         margin-left: auto;
         align-self: center;
-    }
-}
-
-/* Guided flows share the same band; their older compact sizing is retired. */
-body.play-flow-route:not(.play-start-active) header[role="banner"] {
-    padding-top: max(var(--space-3), env(safe-area-inset-top, 0px));
-    padding-bottom: var(--space-3);
-}
-
-body.play-flow-route:not(.play-start-active) header[role="banner"] .header-link > .main-logo-image {
-    width: 46px;
-    height: 46px;
-    margin: 0;
-}
-
-body.play-flow-route:not(.play-start-active) header[role="banner"] .bannertext {
-    font-size: clamp(1.2rem, 1.9vw, 1.45rem);
-    line-height: 1.1;
-}
-
-body.play-flow-route:not(.play-start-active) header[role="banner"] .tagline {
-    margin: 0.3rem 0 0;
-    font-size: 0.7rem;
-}
-
-@media (max-width: 640px) {
-    body.play-flow-route:not(.play-start-active) header[role="banner"] {
-        padding-top: max(var(--space-2), env(safe-area-inset-top, 0px));
-        padding-bottom: var(--space-2);
-    }
-
-    body.play-flow-route:not(.play-start-active) header[role="banner"] .bannertext {
-        font-size: clamp(1.02rem, 4.6vw, 1.2rem);
-    }
-}
-
-
-@media (max-width: 439px) {
-    body.play-flow-route:not(.play-start-active) header[role="banner"] .header-link > .main-logo-image {
-        width: 38px;
-        height: 38px;
-    }
-}
-
-@media (max-width: 360px) {
-    body.play-flow-route:not(.play-start-active) header[role="banner"] .header-link > .main-logo-image {
-        width: 34px;
-        height: 34px;
     }
 }

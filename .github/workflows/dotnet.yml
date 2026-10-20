@@ -38,6 +38,8 @@ jobs:
         fi
     - name: Verify retired static asset cleanup
       run: sh LongevityWorldCup.Website/Scripts/test-sync-owned-web-assets.sh
+    - name: Verify independent outage assets and rollback
+      run: sh LongevityWorldCup.Website/Scripts/test-sync-outage-assets.sh
     - name: Setup .NET
       uses: actions/setup-dotnet@v6
       with:

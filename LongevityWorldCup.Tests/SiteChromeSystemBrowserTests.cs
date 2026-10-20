@@ -1,4 +1,7 @@
 using Microsoft.Playwright;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.DependencyInjection;
+using System.Text.RegularExpressions;
 using Xunit;
 using static LongevityWorldCup.Tests.AestheticSystemBrowserTests;
 using static LongevityWorldCup.Tests.FlowActionDockBrowserTests;
@@ -256,6 +259,107 @@ public sealed class SiteChromeSystemBrowserTests(
         Assert.Equal("uppercase", band[4]);
         Assert.Equal("none", band[5]);
         Assert.Equal("700", band[6]);
+        await ExpectNoHorizontalOverflowAsync(page);
+    }
+
+    [Theory]
+    [InlineData(320)]
+    [InlineData(1440)]
+    public async Task StickyArrival_KeepsItsMeasuredEdgeAndPlayAlignedDuringMotion(int width)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = 900 },
+            ReducedMotion = ReducedMotion.NoPreference
+        });
+        var page = await OpenAsync(context, "/history");
+        var offsets = await page.EvaluateAsync<double[][]>(
+            """
+            async () => {
+                scrollTo(0, 600);
+                const samples = [];
+                for (let i = 0; i < 20; i++) {
+                    await new Promise(requestAnimationFrame);
+                    const bar = document.getElementById('site-sticky-header');
+                    if (bar.getAttribute('aria-hidden') !== 'false') continue;
+                    const b = bar.getBoundingClientRect();
+                    const a = document.querySelector('.scrolled-button').getBoundingClientRect();
+                    samples.push([b.top, Math.abs(a.top + a.height / 2 - b.top - b.height / 2)]);
+                }
+                return samples;
+            }
+            """);
+        Assert.NotEmpty(offsets);
+        Assert.All(offsets, sample =>
+        {
+            Assert.InRange(Math.Abs(sample[0]), 0, 0.5);
+            Assert.InRange(sample[1], 0, 1);
+        });
+    }
+
+    [Theory]
+    [InlineData(".site-sticky-header-link", "header[role=banner] .header-link")]
+    [InlineData(".scrolled-button", ".join-game:not(.scrolled-button)")]
+    public async Task StickyLinks_ReturnFocusToTheirVisibleBannerCounterpart(string stickySelector, string bannerSelector)
+    {
+        await using var context = await NewChromeContextAsync(1440, 900, dark: false);
+        var page = await OpenAsync(context, "/history");
+        await page.EvaluateAsync("scrollTo(0, 600)");
+        await Assertions.Expect(page.Locator("#site-sticky-header")).ToHaveAttributeAsync("aria-hidden", "false");
+        await page.Locator(stickySelector).FocusAsync();
+        await page.EvaluateAsync("scrollTo(0, 0)");
+        await Assertions.Expect(page.Locator("#site-sticky-header")).ToHaveAttributeAsync("aria-hidden", "true");
+        await Assertions.Expect(page.Locator(bannerSelector)).ToBeFocusedAsync();
+        Assert.True(await page.Locator("#site-sticky-header").EvaluateAsync<bool>("e => e.inert"));
+    }
+
+    [Theory]
+    [InlineData(502)]
+    [InlineData(503)]
+    [InlineData(504)]
+    public async Task OutageCards_LoadTheirCompleteDesignUsingOnlyNginxFallbackAliases(int code)
+    {
+        var webRoot = App.Services.GetRequiredService<IWebHostEnvironment>().WebRootPath;
+        var snippet = await File.ReadAllTextAsync(Path.Combine(webRoot, "..", "Scripts", "lwc-error-page.conf"));
+        var aliases = Regex.Matches(snippet, @"location = (\S+) \{\s*(?:internal;\s*)?alias /var/www/longevityworldcup-errors/(\S+);")
+            .ToDictionary(m => m.Groups[1].Value, m => m.Groups[2].Value);
+        var requested = new List<string>();
+        await using var context = await NewChromeContextAsync(390, 844, dark: true);
+        await context.RouteAsync("**/*", async route =>
+        {
+            var path = new Uri(route.Request.Url).AbsolutePath;
+            requested.Add(path);
+            if (path == "/") path = $"/{code}.html";
+            if (!aliases.TryGetValue(path, out var name))
+            {
+                await route.FulfillAsync(new() { Status = 502, Body = "Application unavailable" });
+                return;
+            }
+            var source = name switch
+            {
+                "error-system.css" => "css/error-system.css",
+                "favicon-128x128.png" => "assets/favicon-128x128.png",
+                "Roboto-Regular.woff2" or "Roboto-Bold.woff2" => $"assets/fonts/{name}",
+                _ => $"error/{name}"
+            };
+            var contentType = Path.GetExtension(name) switch
+            {
+                ".css" => "text/css",
+                ".png" => "image/png",
+                ".woff2" => "font/woff2",
+                _ => "text/html"
+            };
+            await route.FulfillAsync(new() { Status = 200, ContentType = contentType, BodyBytes = await File.ReadAllBytesAsync(Path.Combine(webRoot, source)) });
+        });
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("http://outage.test/");
+        await page.EvaluateAsync("async () => { await document.fonts.ready; await document.fonts.load('400 16px Roboto'); await document.fonts.load('700 32px Roboto'); }");
+        Assert.Contains("linear-gradient", await page.Locator(".card-bar").EvaluateAsync<string>("e => getComputedStyle(e).backgroundImage"));
+        Assert.Equal("invert(1)", await page.Locator(".mark img").EvaluateAsync<string>("e => getComputedStyle(e).filter"));
+        Assert.Contains("/css/error-system.css", requested);
+        Assert.Contains("/assets/fonts/Roboto-Regular.woff2", requested);
+        Assert.Contains("/assets/fonts/Roboto-Bold.woff2", requested);
+        Assert.All(requested.Where(p => p != "/"), p => Assert.True(aliases.ContainsKey(p), $"{p} fell through to the unavailable application."));
         await ExpectNoHorizontalOverflowAsync(page);
     }
 

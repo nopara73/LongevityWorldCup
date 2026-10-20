@@ -171,6 +171,9 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         var page = await context.NewPageAsync();
         await page.GotoAsync("/longevitymaxxing");
         await Assertions.Expect(page.Locator(".lmx-question-preview-item")).ToHaveCountAsync(4);
+        // Preview rows render before the public request resolves. The loading
+        // title panel is intentionally transparent until the view is ready.
+        await Assertions.Expect(page.Locator("main")).ToHaveAttributeAsync("aria-busy", "false");
 
         var hero = await page.EvaluateAsync<JsonElement>(
             """
