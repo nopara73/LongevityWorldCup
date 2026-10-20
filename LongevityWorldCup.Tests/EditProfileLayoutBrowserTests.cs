@@ -47,7 +47,7 @@ public sealed class EditProfileLayoutBrowserTests(
     [InlineData(1280, 720, false)]
     [InlineData(1024, 768, true)]
     [InlineData(768, 1024, false)]
-    public async Task WideScreens_AreOnePlayerCard_WithTheCommandsInItsFoot(int width, int height, bool dark)
+    public async Task WideScreens_AreOnePlayerCard_WithReachableCommands(int width, int height, bool dark)
     {
         await using var context = await CreateContextAsync(width, height, dark);
         var page = await OpenEditorAsync(context);
@@ -73,6 +73,9 @@ public sealed class EditProfileLayoutBrowserTests(
                 const fields = rect(document.getElementById('editOptionsGroup'));
                 const actions = document.querySelector('.edit-profile-actions');
                 const a = rect(actions);
+                const docked = actions.classList.contains('flow-action-stack--docked');
+                const source = docked ? card.querySelector('.edit-profile-foot .flow-action-dock-placeholder') : actions;
+                const foot = rect(source);
                 const back = rect(actions.querySelector('.back-button'));
                 const submit = rect(document.getElementById('submitButton'));
                 const division = rect(document.getElementById('divisionDisplaySelect'));
@@ -81,9 +84,9 @@ public sealed class EditProfileLayoutBrowserTests(
                     portrait.top - c.top, c.left - portrait.left, portrait.right - c.right,
                     pictureAction.top - portrait.bottom, fields.top - pictureAction.bottom,
                     fields.left - c.left, c.right - fields.right,
-                    actions.classList.contains('flow-action-stack--docked') ? 1 : 0,
-                    card.contains(actions) ? 1 : 0, a.top - fields.bottom, c.bottom - a.bottom,
-                    innerHeight - c.bottom,
+                    docked ? 1 : 0,
+                    card.contains(source) ? 1 : 0, foot.top - fields.bottom, c.bottom - foot.bottom,
+                    innerHeight - a.bottom,
                     Math.abs(back.top - submit.top), submit.left - back.right,
                     Math.abs(division.top - flag.top), flag.left - division.right
                 ];
@@ -97,9 +100,9 @@ public sealed class EditProfileLayoutBrowserTests(
         Assert.True(layout[3] is > 0 and < 32, $"{scenario}: the picture's action should sit directly under the portrait header ({layout[3]}px).");
         Assert.True(layout[4] > 0, $"{scenario}: the fields should follow the picture's action.");
         Assert.True(layout[5] >= 12 && layout[6] >= 12, $"{scenario}: fields should sit inside the card's body padding.");
-        Assert.True(layout[7] == 0 && layout[8] == 1, $"{scenario}: Submit and Back should stay in the card's foot, not a docked bar.");
+        Assert.True(layout[8] == 1, $"{scenario}: the command source or dock placeholder should remain in the card's foot.");
         Assert.True(layout[9] > 0 && layout[10] >= 12, $"{scenario}: the commands should close the card below its fields.");
-        Assert.True(layout[11] >= 0, $"{scenario}: the whole card, commands included, should fit the first screen ({layout[11]}px).");
+        Assert.True(layout[11] >= -1, $"{scenario}: commands should remain reachable in the viewport ({layout[11]}px).");
         Assert.True(layout[12] <= 1 && layout[13] > 0, $"{scenario}: Back and Submit should share one row, Back first.");
         Assert.True(layout[14] <= 1 && layout[15] > 0, $"{scenario}: Division and Flag should pair in one row of the field grid.");
         await ExpectNoHorizontalOverflowAsync(page);
@@ -398,6 +401,37 @@ public sealed class EditProfileLayoutBrowserTests(
         await Assertions.Expect(page.Locator(".edit-profile-visual .illustration")).ToHaveAttributeAsync("src", "/assets/content-images/play-athlete-placeholder.jpg");
     }
 
+    [Fact]
+    public async Task PendingPortrait_KeepsThePlaceholder_AndCannotOverwriteANewerPicture()
+    {
+        await using var context = await CreateContextAsync(390, 844, picture: "/review-delayed-portrait.png");
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await context.RouteAsync("**/review-delayed-portrait.png", async route =>
+        {
+            await release.Task;
+            await route.FulfillAsync(new()
+            {
+                ContentType = "image/png",
+                BodyBytes = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aO1cAAAAASUVORK5CYII=")
+            });
+        });
+        var page = await OpenEditorAsync(context);
+        try
+        {
+            var image = page.Locator(".edit-profile-visual .illustration");
+            await Assertions.Expect(image).ToHaveAttributeAsync("src", "/assets/content-images/play-athlete-placeholder.jpg");
+            await page.Locator("#whyDisplayInput").FillAsync("A motivation edited while the photo is loading.");
+            await page.EvaluateAsync("() => setProfilePictureValue('/assets/content-images/play-athlete-placeholder.jpg?new-picture')");
+            await Assertions.Expect(image).ToHaveAttributeAsync("src", "/assets/content-images/play-athlete-placeholder.jpg?new-picture");
+            release.SetResult();
+            await page.WaitForFunctionAsync("() => performance.getEntriesByType('resource').some(r => r.name.endsWith('/review-delayed-portrait.png'))");
+            await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+            await Assertions.Expect(image).ToHaveAttributeAsync("src", "/assets/content-images/play-athlete-placeholder.jpg?new-picture");
+            await Assertions.Expect(page.Locator("#whyDisplayInput")).ToHaveValueAsync("A motivation edited while the photo is loading.");
+        }
+        finally { release.TrySetResult(); }
+    }
+
     [Theory]
     [InlineData(390, 844)]
     [InlineData(1280, 720)]
@@ -423,13 +457,125 @@ public sealed class EditProfileLayoutBrowserTests(
             """);
     }
 
+    [Theory]
+    [InlineData(1024, 768)]
+    [InlineData(844, 390)]
+    public async Task TouchTablets_PairPictureSources_WithoutShrinkingTextOrMotivation(int width, int height)
+    {
+        await using var context = await CreateContextAsync(width, height, touch: true);
+        var page = await OpenEditorAsync(context);
+        var layout = await page.EvaluateAsync<double[]>("""
+            () => {
+                const selfie = document.getElementById('takeProfileSelfieButton').getBoundingClientRect();
+                const change = document.getElementById('changeProfilePicButton').getBoundingClientRect();
+                const motivation = document.getElementById('whyDisplayInput');
+                const style = getComputedStyle(motivation);
+                return [selfie.width, Math.abs(selfie.top - change.top), change.left - selfie.right,
+                    motivation.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom),
+                    parseFloat(style.lineHeight), document.querySelector('.edit-profile-visual').getBoundingClientRect().height];
+            }
+            """);
+        Assert.True(layout[0] >= 44 && layout[1] <= 1 && layout[2] > 0,
+            $"{width}x{height}: the two touch picture sources should share the tablet's available row.");
+        Assert.True(layout[3] >= layout[4] * 3 - 1, "Motivation should retain at least three lines.");
+        Assert.True(layout[5] >= 144, "Short viewports may scroll instead of shrinking the portrait.");
+        await ExpectNoHorizontalOverflowAsync(page);
+    }
+
+    [Theory]
+    [InlineData(1440, 900)]
+    [InlineData(390, 844)]
+    public async Task EveryFieldRestore_HasAnUnobscuredTouchTarget_AndReturnsKeyboardFocus(int width, int height)
+    {
+        await using var context = await CreateContextAsync(width, height);
+        var page = await OpenEditorAsync(context);
+        var fields = new[] {
+            ("divisionDisplaySelect", "restoreDivisionBtn", "Women's"),
+            ("flagDisplayInput", "restoreFlagBtn", "Hungary"),
+            ("personalLinkInput", "restorePersonalLinkBtn", "https://example.org"),
+            ("mediaContactInput", "restoreMediaContactBtn", "@alexmorgan"),
+            ("whyDisplayInput", "restoreWhyDisplayBtn", "A changed motivation.")
+        };
+        foreach (var (id, restoreId, value) in fields)
+        {
+            var field = page.Locator("#" + id);
+            var original = await field.InputValueAsync();
+            if (id == "divisionDisplaySelect") await field.SelectOptionAsync(value);
+            else await field.FillAsync(value);
+            await field.PressAsync("Escape");
+            var restore = page.Locator("#" + restoreId);
+            await restore.ScrollIntoViewIfNeededAsync();
+            await restore.FocusAsync();
+            var targetIsClear = await restore.EvaluateAsync<bool>("""
+                button => {
+                    const r = button.getBoundingClientRect();
+                    if (r.width < 44 || r.height < 44 || !button.getAttribute('aria-label')) return false;
+                    return [2, r.width - 2].every(x => [2, r.height - 2].every(y => {
+                        const hit = document.elementFromPoint(r.left + x, r.top + y);
+                        return hit === button || button.contains(hit);
+                    }));
+                }
+                """);
+            Assert.True(targetIsClear, $"{width}px: {restoreId} needs a clear, named 44px target.");
+            Assert.Equal(id, await field.EvaluateAsync<string>("e => e.labels[0].htmlFor"));
+            await restore.PressAsync("Enter");
+            await Assertions.Expect(field).ToBeFocusedAsync();
+            await Assertions.Expect(field).ToHaveValueAsync(original);
+            await Assertions.Expect(restore).ToBeHiddenAsync();
+        }
+        await Assertions.Expect(page.Locator("#submitButton")).ToBeDisabledAsync();
+    }
+
+    [Fact]
+    public async Task CommandTabOrder_FollowsBackThenSubmit_AcrossDockTransitions()
+    {
+        await using var context = await CreateContextAsync(1440, 900);
+        var page = await OpenEditorAsync(context);
+        await page.Locator("#whyDisplayInput").FillAsync("A changed motivation.");
+        var back = page.Locator(".edit-profile-actions .back-button");
+        var submit = page.Locator("#submitButton");
+        foreach (var size in new[] { (1440, 900), (390, 844), (1440, 900) })
+        {
+            await page.SetViewportSizeAsync(size.Item1, size.Item2);
+            await SettleTextLayoutAsync(page);
+            await back.FocusAsync();
+            await page.Keyboard.PressAsync("Tab");
+            await Assertions.Expect(submit).ToBeFocusedAsync();
+            await page.Keyboard.PressAsync("Shift+Tab");
+            await Assertions.Expect(back).ToBeFocusedAsync();
+        }
+    }
+
+    [Fact]
+    public async Task GridClearance_DoesNotScrollTheEditedFieldAboveTheViewport_ForATallFollowingMotivation()
+    {
+        await using var context = await CreateContextAsync(844, 390, touch: true);
+        var page = await OpenEditorAsync(context);
+        await page.Locator("#whyDisplayInput").FillAsync(string.Join("\n", Enumerable.Repeat("A longer motivation draft.", 30)));
+        var link = page.Locator("#personalLinkInput");
+        await link.FillAsync("https://example.org/a-long-personal-link");
+        await SettleTextLayoutAsync(page);
+        Assert.True(await link.EvaluateAsync<bool>("""
+            field => {
+                const r = field.getBoundingClientRect();
+                const dock = document.querySelector('.flow-action-stack--docked')?.getBoundingClientRect();
+                return document.activeElement === field && r.top >= 0 && r.bottom <= (dock?.top ?? innerHeight) - 8;
+            }
+            """), "The focused link must stay visible when the following motivation cannot fit.");
+        await page.SetViewportSizeAsync(390, 844);
+        await SettleTextLayoutAsync(page);
+        await Assertions.Expect(link).ToBeFocusedAsync();
+        await Assertions.Expect(link).ToHaveValueAsync("https://example.org/a-long-personal-link");
+        await ExpectNoHorizontalOverflowAsync(page);
+    }
+
     private async Task<IBrowserContext> CreateContextAsync(int width, int height, bool dark = false, string name = "Alex Morgan",
-        string picture = "/assets/content-images/play-athlete-placeholder.jpg")
+        string picture = "/assets/content-images/play-athlete-placeholder.jpg", bool? touch = null)
     {
         var context = await NewContextAsync(Browser, App, new()
         {
             ViewportSize = new() { Width = width, Height = height },
-            HasTouch = width < 960 || height < 480,
+            HasTouch = touch ?? (width < 960 || height < 480),
             IsMobile = width < 600 || height < 480,
             ColorScheme = dark ? ColorScheme.Dark : ColorScheme.Light,
             ReducedMotion = ReducedMotion.Reduce
