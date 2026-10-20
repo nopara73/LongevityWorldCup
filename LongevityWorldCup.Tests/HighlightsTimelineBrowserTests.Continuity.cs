@@ -11,6 +11,35 @@ public sealed partial class HighlightsTimelineBrowserTests
     [InlineData("UTC")]
     [InlineData("Asia/Singapore")]
     [InlineData("America/Los_Angeles")]
+    public async Task AthleteBursts_KeepTheFullTimelineInLocalCalendarOrder(string zone)
+    {
+        var midnight = zone switch
+        {
+            "Asia/Singapore" => new DateTime(2026, 1, 31, 16, 0, 0, DateTimeKind.Utc),
+            "America/Los_Angeles" => new DateTime(2026, 2, 1, 8, 0, 0, DateTimeKind.Utc),
+            _ => new DateTime(2026, 2, 1, 0, 0, 0, DateTimeKind.Utc)
+        };
+        var events = new[]
+        {
+            new { Id = "burst-new", Type = 1, Text = "slug[timeline-a]", OccurredAt = midnight.AddSeconds(10).ToString("O") },
+            new { Id = "burst-other", Type = 1, Text = "slug[timeline-b]", OccurredAt = midnight.AddSeconds(-6).ToString("O") },
+            new { Id = "burst-old", Type = 2, Text = "slug[timeline-a] rank[3]", OccurredAt = midnight.AddSeconds(-10).ToString("O") }
+        };
+        await using var context = await NewContextAsync(Browser, App, new() { TimezoneId = zone, ReducedMotion = ReducedMotion.Reduce });
+        await context.RouteAsync("**/api/data/athletes", route => route.FulfillAsync(new() { ContentType = "application/json", Body = Athletes }));
+        await context.RouteAsync("**/api/events", route => route.FulfillAsync(new() { ContentType = "application/json", Body = JsonSerializer.Serialize(events) }));
+        var page = await context.NewPageAsync();
+        await NavigateAndSettleAsync(page, "/events");
+        await Assertions.Expect(page.Locator("tr.main-row")).ToHaveCountAsync(3);
+        Assert.Equal(["burst-new", "burst-other", "burst-old"], await page.Locator("tr.main-row").EvaluateAllAsync<string[]>("rows => rows.map(row => row.dataset.eventId)"));
+        Assert.Equal(["burst-new", "burst-other"], await page.Locator("tr.main-row.month-start").EvaluateAllAsync<string[]>("rows => rows.map(row => row.dataset.eventId)"));
+        await Assertions.Expect(page.Locator("tr.main-row[data-event-id='burst-old']")).ToHaveClassAsync(new System.Text.RegularExpressions.Regex(@"\bday-repeat\b"));
+    }
+
+    [Theory]
+    [InlineData("UTC")]
+    [InlineData("Asia/Singapore")]
+    [InlineData("America/Los_Angeles")]
     [InlineData("Pacific/Kiritimati")]
     public async Task Grouping_UsesTheDisplayedLocalDayAcrossYearsTiesUnknownDatesAndReorders(string zone)
     {

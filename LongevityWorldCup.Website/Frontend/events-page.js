@@ -728,7 +728,7 @@ const eventsPageAssets = document.currentScript.dataset;
         return raw.split(',').map(s=>String(s).trim()).filter(Boolean);
     }
 
-    function groupAthleteBursts(rows, windowMs=60000){
+    function groupAthleteBursts(rows, windowMs=60000, respectLocalDays=false){
         const eligibleTypes=new Set([EVENT_TYPE.Joined, EVENT_TYPE.NewRank, EVENT_TYPE.DonationReceived, EVENT_TYPE.BadgeAward, EVENT_TYPE.LongevitymaxxingChallengeResult, EVENT_TYPE.BecamePro, EVENT_TYPE.BiologicalAgeImproved, EVENT_TYPE.CrowdAgeTop10Change, EVENT_TYPE.AgeImprovementTop10Change]);
 
         const timeOf=r=>{
@@ -745,11 +745,14 @@ const eventsPageAssets = document.currentScript.dataset;
             const slug=String(anchor.primarySlug);
             const tAnchor=timeOf(anchor);
             if(!Number.isFinite(tAnchor)) continue;
+            const anchorDay = respectLocalDays ? +startOfLocalDay(new Date(anchor.displayOccurredAt || anchor.occurredAt)) : null;
 
             const moved=[];
 
             for(let j=i-1;j>=0;j--){
                 const r=out[j];
+                // A dated timeline cannot pull tomorrow's event into yesterday's group.
+                if (respectLocalDays && +startOfLocalDay(new Date(r.displayOccurredAt || r.occurredAt)) !== anchorDay) break;
                 if(!(r && r.primarySlug && String(r.primarySlug)===slug && eligibleTypes.has(r.type) && r.occurredAt)) continue;
 
                 const tj=timeOf(r);
@@ -1795,7 +1798,7 @@ const eventsPageAssets = document.currentScript.dataset;
                 return tb - ta || +new Date(b.occurredAt||0) - +new Date(a.occurredAt||0);
             });
 
-            rows = groupAthleteBursts(rows, 60000);
+            rows = groupAthleteBursts(rows, 60000, mode === "viewAll" && !!root?.closest('.event-board-page'));
 
             if(n!==null) rows=rows.slice(0,n);
             const currentRowIds = rows.map(r => r && r.id ? String(r.id) : '').filter(Boolean);
