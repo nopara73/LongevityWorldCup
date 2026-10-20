@@ -227,34 +227,46 @@
     overflow: hidden;
     clip-path: inset(50%);
     white-space: nowrap;
+    bottom: calc(100% + 0.55rem);
+    background: #0b1117;
+    border: 0 solid var(--footer-line-strong);
+    border-radius: var(--lwc-radius-sm, 6px);
+    box-shadow: 0 8px 18px -10px rgba(0, 0, 0, 0.8);
+    color: #ffffff;
+    font-size: 0.8rem;
+    letter-spacing: 0.02em;
+    z-index: 1;
+}
+
+/* Keyboard focus also needs its name on touch screens with a keyboard. */
+.footer-column--follow .footer-link:focus-visible:not([data-label-dismissed]) .footer-link-label {
+    width: max-content;
+    height: auto;
+    margin: 0;
+    padding: 0.3rem 0.6rem;
+    overflow: visible;
+    clip-path: none;
+    border-width: 1px;
 }
 
 @media (hover: hover) {
-    .footer-column--follow .footer-link:is(:hover, :focus-visible):not([data-label-dismissed]) .footer-link-label {
+    .footer-column--follow .footer-link:hover:not([data-label-dismissed]) .footer-link-label {
         width: max-content;
         height: auto;
         margin: 0;
         padding: 0.3rem 0.6rem;
         overflow: visible;
         clip-path: none;
-        bottom: calc(100% + 0.55rem);
-        background: #0b1117;
-        border: 1px solid var(--footer-line-strong);
-        border-radius: var(--lwc-radius-sm, 6px);
-        box-shadow: 0 8px 18px -10px rgba(0, 0, 0, 0.8);
-        color: #ffffff;
-        font-size: 0.8rem;
-        letter-spacing: 0.02em;
-        z-index: 1;
+        border-width: 1px;
     }
+}
 
-    .footer-follow-links .footer-link:first-child .footer-link-label {
-        left: 0;
-    }
+.footer-follow-links .footer-link:first-child .footer-link-label {
+    left: 0;
+}
 
-    .footer-follow-links .footer-link:last-child .footer-link-label {
-        right: 0;
-    }
+.footer-follow-links .footer-link:last-child .footer-link-label {
+    right: 0;
 }
 
 /* Give subscriptions their own row when the smaller icons need more room. */
@@ -264,6 +276,14 @@
         justify-content: center;
         padding-left: 0;
         border-left: 0;
+    }
+}
+
+/* Browser zoom can leave less than three featured targets' intrinsic width. */
+@container (max-width: 220px) {
+    .footer-follow-links--primary {
+        flex-wrap: wrap;
+        gap: 0.5rem;
     }
 }
 

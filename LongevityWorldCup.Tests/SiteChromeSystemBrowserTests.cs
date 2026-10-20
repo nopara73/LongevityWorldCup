@@ -314,6 +314,46 @@ public sealed class SiteChromeSystemBrowserTests(
     }
 
     [Theory]
+    [InlineData(320, false)]
+    [InlineData(390, true)]
+    public async Task Footer_KeyboardNamesAndEscapeAlsoWorkWithATouchPrimaryPointer(int width, bool dark)
+    {
+        await using var context = await NewChromeContextAsync(width, 844, dark, mobile: true);
+        var page = await OpenAsync(context, "/ruleset");
+        Assert.True(await page.EvaluateAsync<bool>("matchMedia('(hover: none)').matches"));
+        await page.Keyboard.PressAsync("Tab");
+        var platform = page.Locator(".footer-follow-links--primary .footer-link").First;
+        await platform.FocusAsync();
+        var label = platform.Locator(".footer-link-label");
+        Assert.Equal("none", await label.EvaluateAsync<string>("e => getComputedStyle(e).clipPath"));
+        await page.Keyboard.PressAsync("Escape");
+        Assert.Equal("inset(50%)", await label.EvaluateAsync<string>("e => getComputedStyle(e).clipPath"));
+        await Assertions.Expect(platform).ToBeFocusedAsync();
+        await ExpectNoHorizontalOverflowAsync(page);
+    }
+
+    [Theory]
+    [InlineData(195)]
+    [InlineData(320)]
+    public async Task Footer_NarrowLayoutsKeepEveryRealLinkTargetInsideTheViewport(int width)
+    {
+        await using var context = await NewChromeContextAsync(width, 844, dark: true, mobile: true);
+        var page = await OpenAsync(context, "/ruleset");
+        var clipped = await page.Locator(".footer .footer-link").EvaluateAllAsync<string[]>(
+            """
+            links => links.filter(link => {
+                const b = link.getBoundingClientRect();
+                return b.left < -0.5 || b.right > innerWidth + 0.5 || b.width < 44 || b.height < 44;
+            }).map(link => link.getAttribute('aria-label'))
+            """);
+        Assert.Empty(clipped);
+        var platforms = await page.Locator(".footer-follow-links--primary .footer-link").EvaluateAllAsync<string[]>(
+            "links => links.map(link => link.textContent.trim())");
+        Assert.Equal(["Instagram", "YouTube", "X"], platforms);
+        await ExpectNoHorizontalOverflowAsync(page);
+    }
+
+    [Theory]
     [InlineData(502)]
     [InlineData(503)]
     [InlineData(504)]
