@@ -681,6 +681,7 @@
 
     function setDashboardLoading(loading: boolean): void {
         (el("statsExport") as HTMLButtonElement).disabled = loading;
+        document.querySelector(".stats-page")?.setAttribute("aria-busy", String(loading));
     }
 
     function needsDiagnosticEventReload(): boolean {
@@ -2798,10 +2799,10 @@
 
     function table(headers: readonly string[], rows: readonly (readonly unknown[])[]): string {
         return `
-            <table class="compact-table">
+            <div class="table-scroll"><table class="compact-table">
                 <thead><tr>${headers.map(h => `<th>${esc(h)}</th>`).join("")}</tr></thead>
                 <tbody>${rows.map(row => `<tr>${row.map(cell => `<td>${esc(String(cell ?? ""))}</td>`).join("")}</tr>`).join("")}</tbody>
-            </table>
+            </table></div>
         `;
     }
 
