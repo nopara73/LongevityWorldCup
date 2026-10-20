@@ -13,6 +13,7 @@
   },
   "devDependencies": {
     "chart.js": "4.5.1",
+    "cropperjs": "1.5.13",
     "typescript": "7.0.2"
   }
 }

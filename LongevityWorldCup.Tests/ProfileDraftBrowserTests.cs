@@ -64,7 +64,11 @@ public sealed class ProfileDraftBrowserTests(
         await Assertions.Expect(page.Locator("#divisionDisplaySelect")).ToHaveValueAsync("Open");
         await Assertions.Expect(page.Locator("#mediaContactInput")).ToHaveValueAsync("@alex");
         await Assertions.Expect(page.Locator("#whyDisplayInput")).ToHaveValueAsync("A different motivation.");
-        await Assertions.Expect(page.Locator(".illustration")).ToHaveAttributeAsync("src", "/assets/content-images/play-athlete-placeholder.webp");
+        // The fallback uses its current asset version; the raw draft still
+        // round-trips independently of that presentation URL.
+        await Assertions.Expect(page.Locator(".illustration")).ToHaveAttributeAsync("data-profile-pic-value", "/assets/content-images/play-athlete-placeholder.webp");
+        var placeholderUrl = await page.Locator("meta[name='lwc-athlete-placeholder']").GetAttributeAsync("content");
+        await Assertions.Expect(page.Locator(".illustration")).ToHaveAttributeAsync("src", placeholderUrl!);
         await page.Locator("#resetProfileDraftButton").ClickAsync();
         await page.Locator("#whyDisplayInput").FillAsync("Start a new draft.");
         await Assertions.Expect(page.Locator("#undoProfileDraftButton")).ToBeHiddenAsync();
