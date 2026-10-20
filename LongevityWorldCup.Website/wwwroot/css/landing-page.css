@@ -229,6 +229,7 @@
     line-height: 1.4;
     letter-spacing: 0.14em;
     text-transform: uppercase;
+    overflow-wrap: anywhere;
 }
 
 .landing-sheet .landing-close a {
@@ -261,5 +262,17 @@
 
     .landing-sheet .landing-title {
         font-size: 2.25rem;
+    }
+}
+
+/* Emergency wrapping still works when full zoom and enlarged text leave less than a syllable. */
+@media (max-width: 280px) {
+    .landing-sheet {
+        --landing-pad: min(1.25rem, 6.25vw);
+    }
+
+    html body .landing-sheet :is(#ro-title, .unsubscribe-panel h1),
+    html body .landing-sheet .page-title-word {
+        overflow-wrap: anywhere;
     }
 }

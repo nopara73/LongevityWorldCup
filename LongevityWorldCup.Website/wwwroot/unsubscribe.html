@@ -78,6 +78,7 @@
             font-weight: 700;
             letter-spacing: 0.14em;
             text-transform: uppercase;
+            overflow-wrap: anywhere;
         }
 
         .unsubscribe-form input {
@@ -98,11 +99,6 @@
             border-color: var(--lwc-accent);
             outline: none;
             box-shadow: 0 0 0 4px var(--lwc-accent-soft);
-        }
-
-        /* Shared phone rules lower field heights to 44px; keep the field level with the button. */
-        #unsubscribe-form input {
-            min-height: 56px;
         }
 
         #unsubscribe-form input[aria-invalid="true"] {
@@ -165,8 +161,7 @@
             overflow-wrap: anywhere;
         }
 
-        .unsubscribe-message::before {
-            content: '\2713';
+        .unsubscribe-message-icon {
             flex: none;
             display: grid;
             place-items: center;
@@ -180,6 +175,14 @@
             line-height: 1;
         }
 
+        .unsubscribe-message-icon::before {
+            content: '\2713';
+        }
+
+        .unsubscribe-message-text {
+            min-width: 0;
+        }
+
         .unsubscribe-message:empty {
             display: none;
         }
@@ -189,9 +192,12 @@
             background: var(--lwc-danger-soft);
         }
 
-        .unsubscribe-message.is-error::before {
-            content: '!';
+        .unsubscribe-message.is-error .unsubscribe-message-icon {
             background: var(--lwc-danger);
+        }
+
+        .unsubscribe-message.is-error .unsubscribe-message-icon::before {
+            content: '!';
         }
 
         /* Very narrow windows give the title the whole cover; the stamp steps aside. */
@@ -200,10 +206,8 @@
                 display: none;
             }
 
-            /* The sheet's bands own the inset, so the shared 160px zoom padding moves into them. */
-            html body .unsubscribe-panel.landing-sheet {
+            .unsubscribe-panel.landing-sheet {
                 --landing-pad: min(16px, 6.25vw);
-                padding-inline: 0;
             }
 
             .unsubscribe-panel .landing-title {
@@ -230,6 +234,18 @@
             .unsubscribe-button {
                 width: auto;
                 min-width: 10rem;
+            }
+        }
+
+        @media (max-width: 280px) {
+            .unsubscribe-button {
+                padding-inline: min(1.5rem, 5vw);
+                overflow-wrap: anywhere;
+            }
+
+            .unsubscribe-message {
+                gap: min(var(--lwc-space-3), 3vw);
+                padding: min(var(--lwc-space-4), 4vw);
             }
         }
 
@@ -306,8 +322,18 @@
             let retryEmail = "";
 
             function setMessage(text, isError) {
-                message.textContent = text;
                 message.classList.toggle("is-error", Boolean(text) && isError);
+                if (!text) {
+                    message.replaceChildren();
+                    return;
+                }
+                const icon = document.createElement("span");
+                icon.className = "unsubscribe-message-icon";
+                icon.setAttribute("aria-hidden", "true");
+                const content = document.createElement("span");
+                content.className = "unsubscribe-message-text";
+                content.textContent = text;
+                message.replaceChildren(icon, content);
             }
 
             function renderAction() {

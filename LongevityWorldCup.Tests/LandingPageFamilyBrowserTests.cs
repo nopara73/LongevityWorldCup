@@ -16,6 +16,56 @@ public sealed class LandingPageFamilyBrowserTests(
     private static readonly string[] FamilyPages = ["/rejuvenation-olympics", "/privacy", "/reddit-privacy.html", "/reddit-terms.html", "/unsubscribe"];
 
     [Theory]
+    [InlineData(1440, 200)]
+    [InlineData(1024, 200)]
+    [InlineData(768, 200)]
+    [InlineData(390, 200)]
+    [InlineData(320, 200)]
+    [InlineData(160, 100)]
+    [InlineData(160, 200)]
+    public async Task NarrowAndEnlargedText_KeepsTextInsideItsReadingColumn(int width, int textPercent)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = 900 },
+            ReducedMotion = ReducedMotion.Reduce
+        });
+        await context.RouteAsync("**/api/home/unsubscribe", route => route.AbortAsync());
+        var page = await context.NewPageAsync();
+        foreach (var path in FamilyPages)
+        {
+            await NavigateAndSettleAsync(page, path);
+            await page.AddStyleTagAsync(new() { Content = $"html {{ font-size: {textPercent}% !important; }}" });
+            if (path == "/unsubscribe")
+                await page.Locator("#unsubscribe-button").ClickAsync();
+            var overflowing = await page.EvaluateAsync<string[]>(
+                """
+                () => {
+                    const sheet = document.querySelector('main .landing-sheet').getBoundingClientRect();
+                    const issues = [];
+                    for (const element of document.querySelectorAll('.landing-sheet :is(h1,h2,h3,p,li,time,button,label)')) {
+                        if (!element.getClientRects().length) continue;
+                        const column = element.getBoundingClientRect();
+                        const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+                        while (walker.nextNode()) {
+                            const node = walker.currentNode;
+                            if (!node.textContent.trim()) continue;
+                            const range = document.createRange();
+                            range.selectNodeContents(node);
+                            if ([...range.getClientRects()].some(rect => rect.width > 0 &&
+                                (rect.left < Math.max(sheet.left, column.left) - 1 || rect.right > Math.min(sheet.right, column.right) + 1)))
+                                issues.push(`${element.tagName}: ${node.textContent.trim()}`);
+                        }
+                    }
+                    return [...new Set(issues)];
+                }
+                """);
+            Assert.True(overflowing.Length == 0, $"{path} {width}px {textPercent}%: {string.Join("; ", overflowing)}");
+            await ExpectNoHorizontalOverflowAsync(page);
+        }
+    }
+
+    [Theory]
     [InlineData(1440, 900, "light")]
     [InlineData(1024, 768, "dark")]
     [InlineData(768, 1024, "light")]
@@ -181,6 +231,9 @@ public sealed class LandingPageFamilyBrowserTests(
         await Assertions.Expect(page.Locator("#message")).ToHaveTextAsync("Removed athlete@example.com from the yearly newsletter.");
         var success = await GlyphAsync(page);
 
+        await Assertions.Expect(page.Locator(".unsubscribe-message-icon")).ToHaveAttributeAsync("aria-hidden", "true");
+        Assert.DoesNotContain("✓", await page.Locator("#message").AriaSnapshotAsync());
+
         Assert.Equal("!", error[0]);
         Assert.Equal("✓", success[0]);
         Assert.NotEqual(error[1], success[1]);
@@ -191,8 +244,9 @@ public sealed class LandingPageFamilyBrowserTests(
         """
         () => {
             const message = document.getElementById('message');
-            const glyph = getComputedStyle(message, '::before');
-            return [glyph.content.replaceAll('"', ''), glyph.backgroundColor, getComputedStyle(message).backgroundColor];
+            const icon = message.querySelector('.unsubscribe-message-icon');
+            const glyph = getComputedStyle(icon, '::before');
+            return [glyph.content.replaceAll('"', ''), getComputedStyle(icon).backgroundColor, getComputedStyle(message).backgroundColor];
         }
         """);
 }

@@ -1395,3 +1395,31 @@ html {
         padding-left: max(1rem, var(--site-sticky-action-space, 0px));
     }
 }
+
+/* Full zoom can leave a phone only 160 CSS pixels: keep the complete brand readable. */
+@media (max-width: 280px) {
+    header[role="banner"] {
+        flex-direction: column;
+        align-items: stretch;
+        padding-inline: min(1rem, 5vw);
+    }
+
+    header[role="banner"] .header-link {
+        flex: 0 1 auto;
+        flex-direction: column;
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    header[role="banner"] .bannertext {
+        min-width: 0;
+        padding: 0;
+        overflow-wrap: anywhere;
+    }
+
+    header[role="banner"] .join-game:not(.scrolled-button) {
+        align-self: center;
+        max-width: 100%;
+        margin-inline: 0;
+    }
+}
