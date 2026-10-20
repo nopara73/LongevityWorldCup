@@ -261,6 +261,17 @@
     }
 }
 
+/* A resting pointer must not cover the name being read by keyboard focus. */
+.footer-column--follow:has(.footer-link:focus-visible:not([data-label-dismissed])) .footer-link:not(:focus-visible) .footer-link-label {
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    border-width: 0;
+}
+
 .footer-follow-links .footer-link:first-child .footer-link-label {
     left: 0;
 }

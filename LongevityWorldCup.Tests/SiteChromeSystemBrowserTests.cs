@@ -354,6 +354,32 @@ public sealed class SiteChromeSystemBrowserTests(
     }
 
     [Theory]
+    [InlineData(320, 640, 200)]
+    [InlineData(844, 390, 200)]
+    [InlineData(195, 422, 100)]
+    public async Task Footer_KeyboardFocusKeepsOneReadableNameWhenThePointerRestsOnANeighbor(int width, int height, int textPercent)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = height },
+            ReducedMotion = ReducedMotion.Reduce
+        });
+        var page = await OpenAsync(context, "/ruleset");
+        await page.AddStyleTagAsync(new() { Content = $"html {{ font-size: {textPercent}% !important; }}" });
+        await page.Keyboard.PressAsync("Tab");
+        var platforms = page.Locator(".footer-follow-links--primary .footer-link");
+        await platforms.Nth(0).FocusAsync();
+        await platforms.Nth(1).HoverAsync();
+        var visible = await page.Locator(".footer-column--follow .footer-link-label").EvaluateAllAsync<string[]>(
+            "labels => labels.filter(e => getComputedStyle(e).clipPath === 'none').map(e => e.textContent.trim())");
+        Assert.Equal(["Instagram"], visible);
+        await Assertions.Expect(platforms.Nth(0)).ToBeFocusedAsync();
+        await page.Keyboard.PressAsync("Escape");
+        Assert.True(await page.Locator(".footer-column--follow .footer-link-label").EvaluateAllAsync<bool>(
+            "labels => labels.every(e => getComputedStyle(e).clipPath === 'inset(50%)')"));
+    }
+
+    [Theory]
     [InlineData(502)]
     [InlineData(503)]
     [InlineData(504)]
