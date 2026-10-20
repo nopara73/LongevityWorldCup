@@ -224,3 +224,139 @@ button:focus-visible {
         transition: none;
     }
 }
+
+/* Site chrome on the outage pages: the card opens with the same dark band,
+   phoenix lockup and hairline as the header, so a brief outage still looks
+   like the Longevity World Cup. */
+@font-face {
+    font-family: 'Roboto';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('/assets/fonts/Roboto-Regular.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'Roboto';
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url('/assets/fonts/Roboto-Bold.woff2') format('woff2');
+}
+
+:root {
+    --error-chrome: #101820;
+    --error-chrome-image: linear-gradient(120deg, #0b1117 0%, #2d3942 100%);
+    --error-chrome-line: rgba(255, 255, 255, 0.16);
+    --error-chrome-ink-soft: #cbd5e1;
+}
+
+body {
+    background:
+        radial-gradient(ellipse 70% 45% at 50% 0%, rgba(8, 118, 133, 0.08), transparent 70%),
+        var(--error-canvas);
+}
+
+.error-card {
+    overflow: hidden;
+    border-radius: 12px;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08), 0 18px 40px -24px rgba(15, 23, 42, 0.35);
+}
+
+.card-bar {
+    min-height: 68px;
+    padding: 0.75rem 1.25rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.09);
+    background: var(--error-chrome) var(--error-chrome-image);
+    color: #ffffff;
+}
+
+.brand {
+    gap: 0.85rem;
+    font-size: 1.1rem;
+    letter-spacing: 0.005em;
+}
+
+.mark {
+    width: 2.25rem;
+    height: 2.25rem;
+    padding-right: 0.85rem;
+    border-right: 1px solid var(--error-chrome-line);
+    border-radius: 0;
+    box-sizing: content-box;
+}
+
+.mark img {
+    padding: 0;
+    filter: invert(100%);
+}
+
+.code {
+    padding: 0.3rem 0.75rem;
+    border: 1px solid var(--error-chrome-line);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--error-chrome-ink-soft);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.visual {
+    box-shadow: none;
+    border-radius: 12px;
+}
+
+h1 {
+    font-weight: 700;
+    letter-spacing: -0.01em;
+}
+
+.joke {
+    margin-top: 0.85rem;
+}
+
+.actions {
+    margin-top: 1.5rem;
+}
+
+button {
+    padding: 0 1.5rem;
+}
+
+@media (max-width: 480px) {
+    .card-bar {
+        min-height: 60px;
+        padding: 0.6rem 1rem;
+    }
+
+    .mark {
+        width: 1.9rem;
+        height: 1.9rem;
+        padding-right: 0.6rem;
+    }
+
+    .brand {
+        gap: 0.6rem;
+        font-size: 0.95rem;
+    }
+
+    .code {
+        padding: 0.25rem 0.55rem;
+        font-size: 0.66rem;
+        letter-spacing: 0.08em;
+    }
+}
+
+@media (prefers-color-scheme: dark) {
+    body {
+        background:
+            radial-gradient(ellipse 70% 45% at 50% 0%, rgba(25, 195, 209, 0.07), transparent 70%),
+            var(--error-canvas);
+    }
+
+    .error-card {
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.28), 0 18px 40px -24px rgba(0, 0, 0, 0.7);
+    }
+}
