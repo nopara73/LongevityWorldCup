@@ -443,11 +443,12 @@ public sealed class EditProfileLayoutBrowserTests(
         await context.AddInitScriptAsync("window.Cropper = class { destroy() {} };");
         var page = await OpenEditorAsync(context);
         var scroll = await page.EvaluateAsync<double>("() => scrollY");
-        await page.Locator("#profilePicInputModal").SetInputFilesAsync(new FilePayload
+        var file = new FilePayload
         {
             Name = "fixture-selfie.png", MimeType = "image/png",
             Buffer = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aO1cAAAAASUVORK5CYII=")
-        });
+        };
+        await page.Locator("#profilePicInputModal").SetInputFilesAsync(file);
         await Assertions.Expect(page.Locator("#changeProfileCropButton")).ToBeFocusedAsync();
         foreach (var (width, height, text) in new[] { (1440, 900, 100), (640, 320, 200), (390, 844, 200), (390, 844, 100) })
         {
@@ -469,6 +470,22 @@ public sealed class EditProfileLayoutBrowserTests(
         await Assertions.Expect(page.Locator("#changeProfileCropperModal")).ToBeHiddenAsync();
         await Assertions.Expect(page.Locator("#changeProfilePicButton")).ToBeFocusedAsync();
         Assert.Equal(scroll, await page.EvaluateAsync<double>("() => scrollY"));
+
+        // Closing after a rotation must reveal the restored focus too, rather
+        // than preserving a scroll anchor that now leaves that action offscreen.
+        await page.Locator("#profilePicInputModal").SetInputFilesAsync(file);
+        await Assertions.Expect(page.Locator("#changeProfileCropButton")).ToBeFocusedAsync();
+        await page.SetViewportSizeAsync(640, 320);
+        await page.EvaluateAsync("() => document.documentElement.style.fontSize = '200%'");
+        await page.Keyboard.PressAsync("Escape");
+        await Assertions.Expect(page.Locator("#changeProfilePicButton")).ToBeFocusedAsync();
+        await page.WaitForFunctionAsync("""
+            () => {
+                const r = document.activeElement.getBoundingClientRect();
+                const dock = document.querySelector('.flow-action-stack--docked')?.getBoundingClientRect();
+                return r.top >= 0 && r.bottom <= (dock?.top ?? innerHeight) - 8;
+            }
+            """);
     }
 
     [Fact]

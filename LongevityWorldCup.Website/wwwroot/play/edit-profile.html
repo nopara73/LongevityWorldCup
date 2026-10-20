@@ -1566,6 +1566,8 @@
         function restoreProfileCropperFocus() {
             if (profileCropperReturnFocus?.isConnected && !profileCropperReturnFocus.disabled) {
                 profileCropperReturnFocus.focus({ preventScroll: true });
+                profileCropperReturnFocus.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+                window.LwcFlowActionDock?.ensureClear?.(profileCropperReturnFocus, { margin: 16 });
             }
         }
 
