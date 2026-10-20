@@ -1193,6 +1193,9 @@ public sealed class AestheticSystemBrowserTests(
                 case "onboarding/convergence.html":
                     await AssertApplicationContainerBoundariesAsync(page, source.ToArray());
                     break;
+                case "play/edit-profile.html":
+                    await AssertEditProfileContainerBoundariesAsync(page, source.ToArray());
+                    break;
                 case "misc-pages/about.html":
                 case "misc-pages/history.html":
                 case "misc-pages/ruleset.html":
@@ -1204,6 +1207,84 @@ public sealed class AestheticSystemBrowserTests(
                     Assert.Fail($"Add a rendered container-boundary probe for {source.Key}.");
                     break;
             }
+        }
+    }
+
+    private static async Task AssertEditProfileContainerBoundariesAsync(
+        IPage page, ResponsiveContainerCondition[] conditions)
+    {
+        var savedSelection = await page.EvaluateAsync<string?[]>("""
+            () => ['selectedAthlete', 'tempAthlete'].map(key => sessionStorage.getItem(key))
+            """);
+        try
+        {
+            await page.EvaluateAsync("""
+                () => {
+                    sessionStorage.setItem('selectedAthlete', JSON.stringify({
+                        Name: 'Container Probe Athlete', Division: "Men's", Flag: 'Hungary',
+                        MediaContact: 'press@example.com', Why: 'A healthy life.', Biomarkers: []
+                    }));
+                    sessionStorage.removeItem('tempAthlete');
+                }
+                """);
+            await NavigateAndSettleAsync(page, "/edit-profile");
+            await page.WaitForFunctionAsync("() => !document.documentElement.hasAttribute('data-initial-view')");
+            // Keep the real card ancestry and CSS, isolating this width probe
+            // from the editor's draft/dock observers. Expose both touch sources.
+            await page.EvaluateAsync("""
+                () => {
+                    const original = document.querySelector('.edit-profile-card');
+                    const card = original.cloneNode(true);
+                    original.replaceWith(card);
+                    card.dataset.editCardBoundaryProbe = '';
+                    card.querySelector('#takeProfileSelfieButton').style.display = 'inline-flex';
+                    card.querySelector('.upload-choice-divider').style.display = 'flex';
+                }
+                """);
+            foreach (var fontSize in new[] { 16, 32 })
+            {
+                await page.EvaluateAsync("size => document.documentElement.style.fontSize = size + 'px'", fontSize);
+                foreach (var condition in conditions)
+                {
+                    Assert.Equal("edit-profile-card", condition.Name);
+                    Assert.Equal("max", condition.Bound);
+                    Assert.Equal("rem", condition.Unit);
+                    var threshold = condition.Value * fontSize;
+                    foreach (var delta in new[] { -1, 0, 1, 0, -1 })
+                    {
+                        var width = threshold + delta;
+                        var diagnostics = await page.EvaluateAsync<ContainerQueryDiagnostics>("""
+                            async width => {
+                                const card = document.querySelector('[data-edit-card-boundary-probe]');
+                                Object.assign(card.style, { boxSizing: 'content-box', width: `${width}px`, maxWidth: 'none' });
+                                await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                                const selfie = card.querySelector('#takeProfileSelfieButton').getBoundingClientRect();
+                                const change = card.querySelector('#changeProfilePicButton').getBoundingClientRect();
+                                return {
+                                    ContainerWidth: parseFloat(getComputedStyle(card).width),
+                                    IsCompact: change.top >= selfie.bottom - 1,
+                                    HorizontalOverflow: Math.max(0, card.scrollWidth - card.clientWidth)
+                                };
+                            }
+                            """, width);
+                        Assert.Equal(width, diagnostics.ContainerWidth, 1);
+                        Assert.Equal(width <= threshold, diagnostics.IsCompact);
+                        Assert.True(diagnostics.HorizontalOverflow <= 1, $"Edit profile overflowed at {width}px.");
+                    }
+                }
+            }
+        }
+        finally
+        {
+            await page.EvaluateAsync("""
+                values => {
+                    document.documentElement.style.fontSize = '';
+                    ['selectedAthlete', 'tempAthlete'].forEach((key, i) => {
+                        if (values[i] === null) sessionStorage.removeItem(key);
+                        else sessionStorage.setItem(key, values[i]);
+                    });
+                }
+                """, savedSelection);
         }
     }
 
