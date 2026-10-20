@@ -218,7 +218,7 @@ public sealed class ProofUploadLayoutBrowserTests(
             """
             () => [...document.querySelectorAll('.proof-page-card')].map(card => {
                 const box = card.getBoundingClientRect();
-                const image = card.querySelector('.proof-page-preview img').getBoundingClientRect();
+                const image = card.querySelector('.proof-page-preview').getBoundingClientRect();
                 const caption = card.querySelector('.proof-page-caption').getBoundingClientRect();
                 const remove = card.querySelector('.proof-page-remove').getBoundingClientRect();
                 return [box.left, box.right, box.top, box.bottom, image.left, image.right, image.top, image.bottom,
@@ -230,7 +230,7 @@ public sealed class ProofUploadLayoutBrowserTests(
         {
             var t = tiles[index];
             var label = $"{scenario} page {index + 1}";
-            Assert.True(t[4] - t[0] <= 2 && t[1] - t[5] <= 2 && t[6] - t[2] <= 2, $"{label}: the page should fill its tile edge to edge.");
+            Assert.True(t[4] - t[0] <= 2 && t[1] - t[5] <= 2 && t[6] - t[2] <= 2, $"{label}: the page mat should fill its tile edge to edge.");
             Assert.True(t[8] >= t[7] - 1 && t[9] <= t[3] + 1, $"{label}: the caption should sit below the page inside the tile.");
             Assert.True(t[11] - t[10] >= 44 && t[13] - t[12] >= 44, $"{label}: the remove target should stay at least 44px.");
             Assert.True(t[10] >= t[4] && t[11] <= t[5] + 1 && t[12] >= t[6] - 1 && t[13] <= t[7],
@@ -258,7 +258,7 @@ public sealed class ProofUploadLayoutBrowserTests(
         var columns = await page.EvaluateAsync<double[][]>(
             """
             () => ['#proofUploadSection', '#proofUploadSection .convergence-upload-action',
-                '#proofImageContainer', '.proof-review-heading', '.proof-page-grid', '#biomarker-checklist']
+                '#proofImageContainer', '#biomarker-checklist']
                 .map(selector => {
                     const rect = document.querySelector(selector).getBoundingClientRect();
                     return [rect.left, rect.right];
@@ -269,6 +269,18 @@ public sealed class ProofUploadLayoutBrowserTests(
             Assert.InRange(Math.Abs(column[0] - columns[0][0]), 0, 1);
             Assert.InRange(Math.Abs(column[1] - columns[0][1]), 0, 1);
         }
+        // The page count band and the tiles fill the card inside its border.
+        var inner = await page.EvaluateAsync<double[]>(
+            """
+            () => {
+                const card = document.getElementById('proofImageContainer').getBoundingClientRect();
+                return ['.proof-review-head', '.proof-page-grid'].flatMap(selector => {
+                    const rect = document.querySelector(selector).getBoundingClientRect();
+                    return [rect.left - card.left, card.right - rect.right];
+                });
+            }
+            """);
+        Assert.All(inner, inset => Assert.InRange(inset, 0, 2));
         await ExpectNoHorizontalOverflowAsync(page);
     }
 

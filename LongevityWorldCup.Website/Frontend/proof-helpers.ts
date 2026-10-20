@@ -300,10 +300,15 @@ class ProofReview {
         }
         this.container.replaceChildren();
         this.container.hidden = !this.images.length && !this.removed.length && !this.progress && !this.notice;
+        // One document card: a header band with the page count and any preparation,
+        // the page tiles, then a footer for notices and undo.
+        const head = document.createElement('div');
+        head.className = 'proof-review-head';
         const heading = document.createElement('h3');
         heading.className = 'proof-review-heading';
         heading.textContent = `${this.images.length} proof ${this.images.length === 1 ? 'page' : 'pages'}`;
-        this.container.appendChild(heading);
+        head.appendChild(heading);
+        this.container.appendChild(head);
 
         if (this.progress) {
             const status = document.createElement('div');
@@ -316,7 +321,7 @@ class ProofReview {
             meter.value = this.progress.completed;
             meter.setAttribute('aria-label', 'Preparing proof files');
             status.append(label, meter);
-            this.container.appendChild(status);
+            head.appendChild(status);
         }
 
         const grid = document.createElement('div');
@@ -333,7 +338,10 @@ class ProofReview {
             image.alt = `Proof image ${index + 1}`;
             const previewLabel = document.createElement('span');
             previewLabel.textContent = 'Review page';
-            preview.append(image, previewLabel);
+            const hint = document.createElement('i');
+            hint.className = 'fas fa-magnifying-glass-plus proof-page-zoom-hint';
+            hint.setAttribute('aria-hidden', 'true');
+            preview.append(image, previewLabel, hint);
             const caption = document.createElement('div');
             caption.className = 'proof-page-caption';
             const title = document.createElement('strong');
@@ -358,6 +366,17 @@ class ProofReview {
             card.append(preview, caption, remove);
             grid.appendChild(card);
         });
+        if (this.progress) {
+            // Files still being prepared hold their place in the grid.
+            const pending = Math.max(1, this.progress.total - Math.floor(this.progress.completed));
+            for (let index = 0; index < Math.min(pending, 6); index++) {
+                const placeholder = document.createElement('div');
+                placeholder.className = 'proof-page-pending';
+                placeholder.setAttribute('aria-hidden', 'true');
+                placeholder.innerHTML = '<span class="proof-page-pending-sheet"><i class="fas fa-file-medical"></i></span><span class="proof-page-pending-line"></span><span class="proof-page-pending-line"></span>';
+                grid.appendChild(placeholder);
+            }
+        }
         this.container.appendChild(grid);
 
         if (this.notice || this.removed.length) {
@@ -367,6 +386,7 @@ class ProofReview {
             message.className = 'proof-upload-notice';
             message.setAttribute('role', 'status');
             message.textContent = this.notice;
+            status.classList.toggle('has-notice', Boolean(this.notice));
             status.appendChild(message);
             if (this.removed.length) {
                 const undo = this.button('Undo removal', 'proof-undo', () => {
@@ -381,6 +401,10 @@ class ProofReview {
                     this.container.querySelectorAll<HTMLButtonElement>('.proof-page-preview')[this.images.indexOf(removed.image)]?.focus({ preventScroll: true });
                 });
                 undo.disabled = Boolean(this.progress) || this.images.length >= maxProofImages;
+                const undoIcon = document.createElement('i');
+                undoIcon.className = 'fas fa-rotate-left';
+                undoIcon.setAttribute('aria-hidden', 'true');
+                undo.prepend(undoIcon);
                 status.appendChild(undo);
             }
             this.container.appendChild(status);
@@ -404,9 +428,10 @@ class ProofReview {
             const dialog = document.createElement('dialog');
             dialog.className = 'proof-review-dialog';
             dialog.setAttribute('aria-label', 'Review attached proofs');
-            dialog.innerHTML = `<div class="proof-review-toolbar"><h2></h2><button type="button" class="proof-review-close" aria-label="Close proof review">Close <span aria-hidden="true">×</span></button></div>
+            dialog.innerHTML = `<div class="proof-review-toolbar"><div class="proof-review-title"><span class="proof-review-position" role="status"></span><h2></h2></div><button type="button" class="proof-review-close" aria-label="Close proof review">Close <span aria-hidden="true">×</span></button></div>
                 <div class="proof-review-stage" tabindex="0" role="region" aria-label="Proof page"><img alt=""></div>
-                <div class="proof-review-navigation"><button type="button" class="proof-review-previous">← Previous</button><span class="proof-review-position" role="status"></span><button type="button" class="proof-review-next">Next →</button><button type="button" class="proof-review-zoom">Zoom in</button></div>`;
+                <div class="proof-review-filmstrip" role="group" aria-label="Proof pages"></div>
+                <div class="proof-review-navigation"><div class="proof-review-steps"><button type="button" class="proof-review-previous">← Previous</button><button type="button" class="proof-review-next">Next →</button></div><button type="button" class="proof-review-zoom">Zoom in</button></div>`;
             dialog.querySelector('.proof-review-close')?.addEventListener('click', () => dialog.close());
             dialog.querySelector('.proof-review-previous')?.addEventListener('click', () => this.navigate(-1));
             dialog.querySelector('.proof-review-next')?.addEventListener('click', () => this.navigate(1));
@@ -452,9 +477,31 @@ class ProofReview {
             this.dialog = dialog;
             document.body.appendChild(dialog);
         }
+        this.buildFilmstrip();
         this.updateViewer();
         document.body.classList.add('proof-review-open');
         this.dialog.showModal();
+    }
+
+    // Every page as a thumbnail under the viewer, so a long report can be crossed in one tap.
+    private buildFilmstrip(): void {
+        const strip = this.dialog?.querySelector<HTMLElement>('.proof-review-filmstrip');
+        if (!strip) return;
+        strip.replaceChildren();
+        strip.hidden = this.images.length < 2;
+        this.images.forEach((source, index) => {
+            const thumb = this.button('', 'proof-review-thumb', () => {
+                this.viewerIndex = index;
+                this.zoomed = false;
+                this.updateViewer();
+            });
+            thumb.setAttribute('aria-label', `Proof page ${index + 1}`);
+            const sheet = document.createElement('span');
+            sheet.className = 'proof-review-thumb-sheet';
+            sheet.style.backgroundImage = `url("${source}")`;
+            thumb.appendChild(sheet);
+            strip.appendChild(thumb);
+        });
     }
 
     private navigate(direction: number): void {
@@ -480,6 +527,16 @@ class ProofReview {
         dialog.classList.toggle('is-zoomed', this.zoomed);
         const stage = dialog.querySelector<HTMLElement>('.proof-review-stage')!;
         stage.scrollTo(0, 0);
+        const strip = dialog.querySelector<HTMLElement>('.proof-review-filmstrip');
+        strip?.querySelectorAll<HTMLButtonElement>('.proof-review-thumb').forEach((thumb, index) => {
+            const current = index === this.viewerIndex;
+            if (current) thumb.setAttribute('aria-current', 'true');
+            else thumb.removeAttribute('aria-current');
+            if (current && strip.scrollWidth > strip.clientWidth) {
+                const left = thumb.offsetLeft - (strip.clientWidth - thumb.offsetWidth) / 2;
+                strip.scrollTo({ left: Math.max(0, left), behavior: 'instant' });
+            }
+        });
     }
 }
 
@@ -949,19 +1006,37 @@ function generateBiomarkerChecklist(
 
     // Clear any existing content
     biomarkerChecklistContainer.innerHTML = '';
+    biomarkerChecklistContainer.classList.add('proof-tracker');
 
-    // Title
+    // Header band with a wordless meter that fills as items are confirmed.
+    const head = document.createElement('div');
+    head.className = 'proof-tracker-head';
     const title = document.createElement('h4');
     title.textContent = 'Proof tracker';
-    title.style.marginBottom = '4px';
-    biomarkerChecklistContainer.appendChild(title);
+    const meter = document.createElement('span');
+    meter.className = 'proof-tracker-meter';
+    meter.setAttribute('aria-hidden', 'true');
+    meter.appendChild(document.createElement('span'));
+    head.append(title, meter);
+    biomarkerChecklistContainer.appendChild(head);
 
     const instructions = document.createElement('p');
     instructions.textContent = "Check each item only when an uploaded proof shows its marker name and submitted value:";
-    instructions.style.marginTop = '1px';
-    instructions.style.marginBottom = '4px';
     instructions.classList.add('smaller-text');
     biomarkerChecklistContainer.appendChild(instructions);
+
+    // The report's date and source come first, apart from the markers themselves.
+    const groups = new Map<boolean, HTMLElement>();
+    const groupFor = (isContext: boolean): HTMLElement => {
+        let group = groups.get(isContext);
+        if (!group) {
+            group = document.createElement('div');
+            group.className = isContext ? 'proof-tracker-group proof-tracker-group--context' : 'proof-tracker-group';
+            groups.set(isContext, group);
+            biomarkerChecklistContainer.appendChild(group);
+        }
+        return group;
+    };
 
     biomarkers.forEach((name: string) => {
         // wrapper div
@@ -978,6 +1053,7 @@ function generateBiomarkerChecklist(
         // generate an ID like "biomarker-Albumin" or "biomarker-CReactiveProtein"
         input.id = 'biomarker-' + name.replace(/[^a-z0-9]/gi, '');
         input.addEventListener('change', function () {
+            updateProofTrackerProgress(biomarkerChecklistContainer);
             checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
         });
 
@@ -988,8 +1064,17 @@ function generateBiomarkerChecklist(
         label.appendChild(input);
         label.appendChild(span);
         itemDiv.appendChild(label);
-        biomarkerChecklistContainer.appendChild(itemDiv);
+        groupFor(PROOF_CONTEXT_CHECKLIST_LABELS.includes(name)).appendChild(itemDiv);
     });
+    updateProofTrackerProgress(biomarkerChecklistContainer);
 };
+
+function updateProofTrackerProgress(container: HTMLElement): void {
+    const boxes = Array.from(container.querySelectorAll<HTMLInputElement>('.biomarker-checkbox'));
+    const checked = boxes.filter(box => box.checked).length;
+    const fill = container.querySelector<HTMLElement>('.proof-tracker-meter > span');
+    if (fill) fill.style.width = boxes.length ? `${(checked / boxes.length) * 100}%` : '0%';
+    container.classList.toggle('is-complete', boxes.length > 0 && checked === boxes.length);
+}
 
 export {};
