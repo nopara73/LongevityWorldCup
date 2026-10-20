@@ -6326,6 +6326,7 @@ function createResultChange(measure, indices) {
     change.dataset.direction = delta > 0 ? 'up' : delta < 0 ? 'down' : 'flat';
     const magnitude = precision <= 12 ? Math.abs(delta).toFixed(precision) : String(Math.abs(delta));
     change.textContent = delta === 0 ? '±0' : `${delta > 0 ? '+' : '−'}${magnitude}`;
+    change.setAttribute('role', 'img');
     change.setAttribute('aria-label', `Change since first reading: ${change.textContent} ${measure.unit}`);
     return change;
 }

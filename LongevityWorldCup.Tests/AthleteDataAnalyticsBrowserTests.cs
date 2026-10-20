@@ -287,6 +287,10 @@ public sealed class AthleteDataAnalyticsBrowserTests(
             }
             """);
         Assert.Empty(failures);
+        await Expect(Row(page, "Albumin (g/L)").GetByRole(AriaRole.Img, new()
+        {
+            Name = "Change since first reading: −16 g/L", Exact = true
+        })).ToBeVisibleAsync();
     }
 
     [Fact]
