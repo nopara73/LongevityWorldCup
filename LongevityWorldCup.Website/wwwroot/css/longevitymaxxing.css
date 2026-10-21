@@ -4829,6 +4829,17 @@ a.lmx-note-mention:focus-visible {
     }
 }
 
+@container lmx-checkin (max-width: 240px) {
+    .lmx-question {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-areas: "label" "plant" "answers";
+    }
+
+    .lmx-answer-options {
+        grid-template-columns: minmax(44px, 1fr);
+    }
+}
+
 .lmx-answer-face-outline,
 .lmx-answer-face-mouth {
     fill: none;
@@ -6790,6 +6801,30 @@ html body .lmx-page #lmxAccessTabs .lmx-tab[aria-selected="true"] {
 .lmx-page .lmx-dashboard-category .lmx-dashboard-bar {
     height: 6px;
     background: rgba(var(--lmx-category-soft), 0.12);
+}
+
+@media (max-width: 280px) {
+    .lmx-page :is(.lmx-habit-summary, .lmx-dashboard-row) .lmx-dashboard-category {
+        grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .lmx-page .lmx-dashboard-category i {
+        grid-row: 1;
+    }
+
+    .lmx-page .lmx-dashboard-category span {
+        grid-column: 1 / -1;
+        grid-row: 2;
+    }
+
+    .lmx-page .lmx-dashboard-category strong {
+        grid-column: 2;
+        grid-row: 1;
+    }
+
+    .lmx-page .lmx-dashboard-category .lmx-dashboard-bar {
+        grid-column: 1 / -1;
+    }
 }
 
 /* History cells sit beside their habit label, so the row carries its colours. */

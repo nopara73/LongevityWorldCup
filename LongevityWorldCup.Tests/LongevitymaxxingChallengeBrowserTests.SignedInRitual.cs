@@ -10,19 +10,29 @@ namespace LongevityWorldCup.Tests;
 public sealed partial class LongevitymaxxingChallengeBrowserTests
 {
     [Theory]
-    [InlineData(320, 640, true)]
-    [InlineData(390, 844, false)]
-    [InlineData(844, 390, true)]
-    public async Task CheckIn_LargeTextKeepsEachAnsweredCountAndSaveControlReadable(int width, int height, bool direct)
+    [InlineData(320, 640, true, true)]
+    [InlineData(390, 844, false, true)]
+    [InlineData(844, 390, true, true)]
+    [InlineData(160, 320, true, false)]
+    public async Task CheckIn_LargeTextKeepsEachAnsweredCountAndSaveControlReadable(int width, int height, bool direct, bool largeText)
     {
         await using var context = await NewContextAsync(Browser, App, new()
         {
             ViewportSize = new() { Width = width, Height = height }, ReducedMotion = ReducedMotion.Reduce
         });
         var page = await OpenCheckInWorkspaceAsync(context, direct: direct);
-        await page.AddStyleTagAsync(new() { Content = "html { font-size: 200% !important; }" });
+        if (largeText) await page.AddStyleTagAsync(new() { Content = "html { font-size: 200% !important; }" });
         await page.EvaluateAsync("document.fonts.ready");
         var form = page.Locator(".lmx-checkin-card");
+        Assert.True(await form.EvaluateAsync<bool>("""
+            form => {
+                const bounds = form.querySelector('.lmx-checkin-fields').getBoundingClientRect();
+                return [...form.querySelectorAll('.lmx-answer-face')].every(face => {
+                    const box = face.getBoundingClientRect();
+                    return box.width >= 43.99 && box.height >= 43.99 && box.left >= bounds.left - 1 && box.right <= bounds.right + 1;
+                });
+            }
+            """));
         foreach (var key in new[] { "sleep", "exercise", "nutrition", "vices" })
         {
             Assert.True(await form.Locator(".lmx-checkin-actions").EvaluateAsync<bool>("""
@@ -240,9 +250,9 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
     }
 
     [Theory]
-    [InlineData(390, ColorScheme.Light)]
-    [InlineData(1440, ColorScheme.Dark)]
-    public async Task Leaderboard_MarksTheSignedInParticipantsOwnRow(int width, ColorScheme theme)
+    [InlineData(390, ColorScheme.Light, "p1", "Browser Tester")]
+    [InlineData(1440, ColorScheme.Dark, "p2", "Ari Able")]
+    public async Task Leaderboard_MarksTheSignedInParticipantsOwnRow(int width, ColorScheme theme, string participantId, string name)
     {
         await using var context = await NewContextAsync(Browser, App, new()
         {
@@ -252,16 +262,19 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         });
         await RouteChallengeResourcesAsync(context);
         var page = await context.NewPageAsync();
+        var state = JsonSerializer.SerializeToNode(BuildParticipantState(noEligibleDays: true, includeMentionParticipants: true))!;
+        state["participant"]!["id"] = participantId;
+        state["participant"]!["displayName"] = name;
         await page.RouteAsync("**/api/longevitymaxxing/state",
             route => FulfillJsonAsync(route, JsonSerializer.Serialize(BuildPublicState(includeMentionParticipants: true))));
         await page.RouteAsync("**/api/longevitymaxxing/participant",
-            route => FulfillJsonAsync(route, JsonSerializer.Serialize(BuildParticipantState(noEligibleDays: true, includeMentionParticipants: true))));
+            route => FulfillJsonAsync(route, state.ToJsonString()));
         await page.GotoAsync("/longevitymaxxing?token=browser-token");
         await page.Locator("#lmxParticipantPanel:not(.lmx-hidden)").WaitForAsync();
 
         var self = page.Locator("#lmxBoard .lmx-board-row.lmx-board-row--self");
         await Assertions.Expect(self).ToHaveCountAsync(1);
-        await Assertions.Expect(self.Locator(".lmx-name")).ToContainTextAsync("Browser Tester");
+        await Assertions.Expect(self.Locator(".lmx-name")).ToContainTextAsync(name);
         var colors = await page.Locator("#lmxBoard .lmx-board-row:not(.header)").EvaluateAllAsync<string[]>(
             "rows => rows.map(r => getComputedStyle(r).backgroundColor)");
         var selfColor = await self.EvaluateAsync<string>("e => getComputedStyle(e).backgroundColor");
