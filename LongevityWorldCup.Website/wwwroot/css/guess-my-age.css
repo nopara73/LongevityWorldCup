@@ -1480,6 +1480,14 @@
 
 /* Celebration pieces are bare glyphs with a soft halo: they burst from the answer, slow
    down, then drift and fade as they fall. */
+.gma-celebration {
+    position: fixed;
+    inset: 0;
+    z-index: 10001;
+    overflow: hidden;
+    pointer-events: none;
+}
+
 .gma-celebration-spark {
     --gma-spark-color: var(--lwc-accent-bright, #19c3d1);
     position: fixed;
@@ -1694,8 +1702,7 @@
 
 /* Hand-off: once the portrait glides home, the profile underneath settles in behind it
    in reading order instead of appearing all at once. */
-#detailsModal .modal-content.gma-handoff #athlete-profile > :not(.portrait-wrapper):not(#modalProfilePic):not(#guessAgeContainer),
-#detailsModal .modal-content.gma-handoff > :not(.athlete-profile):not(#closeAthleteDetailsModal):not(.modal-sticky-header):not(.gma-exact-jackpot) {
+#detailsModal .modal-content.gma-handoff [data-gma-handoff-part] {
     /* The script numbers the visible parts in reading order. */
     animation: gma-profile-settle calc(var(--lwc-duration-normal, 220ms) * 2) cubic-bezier(.2, .8, .2, 1) min(320ms, calc(40ms + (var(--gma-handoff-index, 0) * 45ms))) backwards;
 }
@@ -2080,6 +2087,30 @@
         overflow: visible;
         white-space: normal;
     }
+}
+
+/* Keep a round still after a live motion-preference change. Returning to normal motion
+   starts with the next athlete, without replaying the completed effects. */
+#detailsModal .modal-content.gma-motion-stopped #guessAgeContainer,
+#detailsModal .modal-content.gma-motion-stopped #guessAgeContainer *,
+#detailsModal .modal-content.gma-motion-stopped #guessAgeContainer *::after,
+#detailsModal .modal-content.gma-motion-stopped .portrait-wrapper,
+#detailsModal .modal-content.gma-motion-stopped .portrait-wrapper::before,
+#detailsModal .modal-content.gma-motion-stopped .portrait-wrapper::after,
+#detailsModal .modal-content.gma-motion-stopped .gma-trollface-container,
+#detailsModal .modal-content.gma-motion-stopped .gma-trollface-container img {
+    animation: none !important;
+    transition: none !important;
+}
+
+#detailsModal .modal-content.gma-motion-stopped .gma-pop-banner,
+#detailsModal .modal-content.gma-motion-stopped > .gma-trollface-container {
+    opacity: 1;
+    transform: none;
+}
+
+#detailsModal .modal-content.gma-motion-stopped #gmaRealBubble.is-settled {
+    transform: translateX(-50%) scale(1);
 }
 
 @media (prefers-reduced-motion: reduce) {

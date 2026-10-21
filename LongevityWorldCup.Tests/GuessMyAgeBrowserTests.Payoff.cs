@@ -6,7 +6,7 @@ using static LongevityWorldCup.Tests.GuessMyAgeBrowserTests;
 namespace LongevityWorldCup.Tests;
 
 [Collection(BrowserTestCollections.WorkloadB)]
-public sealed class GuessMyAgePayoffBrowserTests(
+public sealed partial class GuessMyAgePayoffBrowserTests(
     PlaywrightBrowserFixture browserFixture,
     BrowserTestAppFixture appFixture)
     : BrowserIntegrationTest(browserFixture, appFixture)
@@ -86,7 +86,7 @@ public sealed class GuessMyAgePayoffBrowserTests(
                 window.__gmaSparks = [];
                 new MutationObserver(records => records.forEach(record => record.addedNodes.forEach(node => {
                     if (node.classList?.contains('gma-celebration-spark')) window.__gmaSparks.push(node);
-                }))).observe(document.body, { childList: true });
+                }))).observe(document.body, { childList: true, subtree: true });
             }
             """);
         await SubmitAndSettleAsync(page);
@@ -107,6 +107,13 @@ public sealed class GuessMyAgePayoffBrowserTests(
                 gap?.getAnimations().forEach(animation => animation.finish());
                 const gapRect = gap?.getBoundingClientRect();
                 const style = gap ? getComputedStyle(gap) : null;
+                const clip = getComputedStyle(document.querySelector('.gma-celebration')).clipPath;
+                const mask = new Path2D(clip.match(/"(.*)"/)[1]);
+                const maskContext = document.createElement('canvas').getContext('2d');
+                const protectedCenters = ['#modalProfilePic', '.chrono-age-heading', '#gmaRealBubble', '#gmaPayoffRegion', '#closeAthleteDetailsModal']
+                    .map(selector => document.querySelector(selector).getBoundingClientRect())
+                    .filter(rect => rect.width && rect.height)
+                    .every(rect => !maskContext.isPointInPath(mask, rect.left + rect.width / 2, rect.top + rect.height / 2, 'evenodd'));
                 const trackBottom = range.getBoundingClientRect().bottom;
                 const sparks = window.__gmaSparks.map(spark => ({
                     dx: Number.parseFloat(spark.style.getPropertyValue('--gma-spark-dx')),
@@ -122,6 +129,7 @@ public sealed class GuessMyAgePayoffBrowserTests(
                     gapBelowTrack: gap ? gapRect.top >= trackBottom - 1 : false,
                     gapAnimation,
                     gapHidden: gap?.getAttribute('aria-hidden') ?? '',
+                    protectedCenters,
                     sparkCount: sparks.length,
                     sparksAimedAtFace: sparks.filter(spark => spark.dy < 0 && Math.abs(spark.dx) < Math.abs(spark.dy) * 1.2).length,
                     sparkDiscs: sparks.filter(spark => spark.background !== 'rgba(0, 0, 0, 0)').length,
@@ -137,6 +145,7 @@ public sealed class GuessMyAgePayoffBrowserTests(
         Assert.True(payoff.GetProperty("gapBelowTrack").GetBoolean());
         Assert.Equal("gma-gap-draw", payoff.GetProperty("gapAnimation").GetString());
         Assert.Equal("true", payoff.GetProperty("gapHidden").GetString());
+        Assert.True(payoff.GetProperty("protectedCenters").GetBoolean(), "Sparks can paint over the face, labels or controls.");
         Assert.Equal(48, payoff.GetProperty("sparkCount").GetInt32());
         Assert.Equal(0, payoff.GetProperty("sparksAimedAtFace").GetInt32());
         Assert.Equal(0, payoff.GetProperty("sparkDiscs").GetInt32());
