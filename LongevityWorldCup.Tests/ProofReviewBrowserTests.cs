@@ -452,6 +452,9 @@ public sealed class ProofReviewBrowserTests(PlaywrightBrowserFixture browserFixt
         await UploadAsync(page, files);
         Assert.Equal(37, (await ReadSourcesAsync(page)).Length);
         Assert.Contains("Only the first 37", await page.Locator(".proof-upload-notice").InnerTextAsync());
+        await UploadAsync(page, [files[0]]);
+        await Assertions.Expect(page.Locator(".proof-upload-notice")).ToHaveTextAsync("Duplicate proof images were skipped.");
+        Assert.Equal(37, (await ReadSourcesAsync(page)).Length);
         await page.Locator(".proof-page-remove").First.ClickAsync();
         await UploadAsync(page, [files[37]]);
         Assert.Equal(37, (await ReadSourcesAsync(page)).Length);

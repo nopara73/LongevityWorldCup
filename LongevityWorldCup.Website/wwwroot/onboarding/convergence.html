@@ -403,7 +403,6 @@
 
         /* Notes share one shape: a muted panel with a coloured rail. */
         .convergence-upload-guidance,
-        #biomarker-checklist,
         .convergence-application-copy {
             width: 100%;
             max-width: none;
@@ -466,32 +465,14 @@
             margin-top: 1.25rem;
         }
 
-        /* Proof tracker: compact rows with hairlines. */
+        /* The proof tracker card is shared with result uploads; it spans the stage column. */
+        #biomarker-checklist {
+            width: 100%;
+            margin: 1rem 0 0;
+        }
+
         #biomarker-checklist:empty {
             display: none;
-        }
-
-        #biomarker-checklist h4 {
-            margin: 0 0 0.15rem !important;
-            color: var(--lwc-ink, #17212b);
-            font-size: 1rem;
-        }
-
-        #biomarker-checklist p {
-            margin: 0 0 0.35rem !important;
-            color: var(--lwc-muted, #52606d);
-            line-height: 1.4;
-        }
-
-        #biomarker-checklist > div + div {
-            border-top: 1px solid var(--lwc-border, #d7e0e6);
-        }
-
-        #biomarker-checklist .biomarker-item {
-            min-height: 44px;
-            margin: 0;
-            padding: 0.25rem 0.35rem;
-            font-size: 1rem;
         }
 
         /* Upload controls fill the task column on both upload stages. */

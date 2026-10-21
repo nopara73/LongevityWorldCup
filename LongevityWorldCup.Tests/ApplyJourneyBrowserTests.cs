@@ -273,6 +273,9 @@ public sealed class ApplyJourneyBrowserTests(
         await page.WaitForFunctionAsync("() => document.querySelector('#biomarker-checklist .biomarker-item')");
         var proofUpload = await page.EvaluateAsync<double[]>(measureUpload, "#uploadProofButton");
         var tracker = await page.EvaluateAsync<string>(measureNote, "#biomarker-checklist");
+        await page.Locator("#proofPicInput").SetInputFilesAsync(new FilePayload { Name = "page.png", MimeType = "image/png", Buffer = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==") });
+        await page.WaitForFunctionAsync("() => !document.getElementById('proofPicInput').disabled && document.querySelector('#proofImageContainer .proof-page-card')");
+        var proofCard = await page.EvaluateAsync<string>(measureNote, "#proofImageContainer");
 
         await page.EvaluateAsync("() => { currentStage = 6; goToStage(6); }");
         var hint = await page.EvaluateAsync<string>(measureNote, ".convergence-helper-text");
@@ -282,7 +285,9 @@ public sealed class ApplyJourneyBrowserTests(
 
         Assert.InRange(profileUpload[0], profileUpload[1] - 1, profileUpload[1] + 1);
         Assert.InRange(proofUpload[0], proofUpload[1] - 1, proofUpload[1] + 1);
-        Assert.Equal(guidance, tracker);
+        // The tracker is a card in the same shape as the proof pages, not a note.
+        Assert.Equal(proofCard, tracker);
+        Assert.NotEqual(guidance, tracker);
         var guidanceParts = guidance.Split('|');
         var congratsParts = congrats.Split('|');
         Assert.Equal("3px", guidanceParts[0]);
