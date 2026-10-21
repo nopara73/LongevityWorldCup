@@ -6685,7 +6685,7 @@ html body .lmx-page #lmxAccessTabs .lmx-tab[aria-selected="true"] {
     min-width: min(7.5rem, 50%);
 }
 
-@container lmx-checkin (max-width: 22rem) {
+@container lmx-checkin (max-width: 14rem) {
     .lmx-checkin-save-row {
         flex-wrap: wrap;
     }
