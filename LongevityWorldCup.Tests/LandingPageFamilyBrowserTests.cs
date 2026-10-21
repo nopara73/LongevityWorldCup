@@ -5,7 +5,7 @@ using static LongevityWorldCup.Tests.FlowActionDockBrowserTests;
 
 namespace LongevityWorldCup.Tests;
 
-// The Rejuvenation Olympics guide, the policy pages and Unsubscribe are one landing-page family:
+// The Rejuvenation Olympics guide, the Reddit app policy pages and Unsubscribe are one landing-page family:
 // one sheet with a muted cover band (accent bar, eyebrow, bold title), a body and an accent-soft closing band.
 [Collection(BrowserTestCollections.WorkloadB)]
 public sealed class LandingPageFamilyBrowserTests(
@@ -13,7 +13,7 @@ public sealed class LandingPageFamilyBrowserTests(
     BrowserTestAppFixture appFixture)
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
-    private static readonly string[] FamilyPages = ["/rejuvenation-olympics", "/privacy", "/reddit-privacy.html", "/reddit-terms.html", "/unsubscribe"];
+    private static readonly string[] FamilyPages = ["/rejuvenation-olympics", "/reddit-privacy.html", "/reddit-terms.html", "/unsubscribe"];
 
     [Theory]
     [InlineData(1440, 200)]
@@ -114,48 +114,6 @@ public sealed class LandingPageFamilyBrowserTests(
             Assert.True(problems.Length == 0, $"{scenario}: {string.Join("; ", problems)}");
             await ExpectNoHorizontalOverflowAsync(page);
         }
-    }
-
-    [Theory]
-    [InlineData(1440, 900, "light")]
-    [InlineData(1024, 768, "dark")]
-    [InlineData(768, 1024, "dark")]
-    [InlineData(390, 844, "light")]
-    public async Task Privacy_NumbersItsSectionsAndClosesWithAFullBleedContactBand(int width, int height, string theme)
-    {
-        await using var context = await NewContextAsync(Browser, App, new()
-        {
-            ViewportSize = new() { Width = width, Height = height },
-            ColorScheme = theme == "dark" ? ColorScheme.Dark : ColorScheme.Light,
-            ReducedMotion = ReducedMotion.Reduce
-        });
-        var page = await context.NewPageAsync();
-        await NavigateAndSettleAsync(page, "/privacy");
-        var layout = await page.EvaluateAsync<string[]>(
-            """
-            () => {
-                const issues = [];
-                const heads = [...document.querySelectorAll('.landing-section-head')];
-                if (heads.length !== 6) return [`${heads.length} numbered sections`];
-                heads.forEach((head, index) => {
-                    // Computed content keeps the counter() expression; the section's increment proves the index.
-                    const number = getComputedStyle(head, '::before').content, increment = getComputedStyle(head.parentElement).counterIncrement;
-                    if (!number.includes('counter(landing-section, decimal-leading-zero)') || increment !== 'landing-section 1') issues.push(`section ${index + 1} is not numbered (${number} / ${increment})`);
-                    const text = head.nextElementSibling.getBoundingClientRect(), box = head.getBoundingClientRect();
-                    // Wide screens give headings a margin rail; narrower screens stack them over the text.
-                    if (innerWidth >= 900 ? !(box.right <= text.left && Math.abs(box.top - text.top) < 12) : !(box.bottom <= text.top + 1))
-                        issues.push(`section ${index + 1} heading placement`);
-                });
-                const sheet = document.querySelector('.landing-sheet').getBoundingClientRect();
-                const close = document.querySelector('.landing-sheet > .landing-close');
-                const band = close?.getBoundingClientRect();
-                if (!band || Math.abs(band.bottom - sheet.bottom) > 1.5 || Math.abs(band.width - sheet.width) > 2.5) issues.push('contact is not a full-bleed band at the foot of the sheet');
-                else if (!close.querySelector('a[href="mailto:hi@longevityworldcup.com"]')) issues.push('contact band lost the address');
-                return issues;
-            }
-            """);
-        Assert.True(layout.Length == 0, $"{width}px {theme}: {string.Join("; ", layout)}");
-        await ExpectNoHorizontalOverflowAsync(page);
     }
 
     [Theory]

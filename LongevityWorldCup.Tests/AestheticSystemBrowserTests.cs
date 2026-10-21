@@ -1238,6 +1238,7 @@ public sealed class AestheticSystemBrowserTests(
                 case "misc-pages/about.html":
                 case "misc-pages/history.html":
                 case "misc-pages/ruleset.html":
+                case "privacy-policy.html":
                     // These pages share the generator's table CSS. History has
                     // the standings table that actually exercises that component.
                     await AssertDocumentationTableContainerBoundariesAsync(page, source.ToArray());

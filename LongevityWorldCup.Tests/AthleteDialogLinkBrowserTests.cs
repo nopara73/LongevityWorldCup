@@ -371,8 +371,10 @@ public sealed class AthleteDialogLinkBrowserTests(
         }
     }
 
-    [Fact]
-    public async Task DelegatedHandler_OpensDynamicAndOfficialLinksButLeavesModifiedClicksNative()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task DelegatedHandler_OpensDynamicAndOfficialLinksButLeavesModifiedClicksNative(bool explicitNewTab)
     {
         var app = App;
         var browser = Browser;
@@ -417,7 +419,12 @@ public sealed class AthleteDialogLinkBrowserTests(
         var historyLink = page.Locator(
             "main.documentation-page a[href='https://www.longevityworldcup.com/athlete/michael-lustgarten']").First;
         await historyLink.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Visible });
-        Assert.Equal("_blank", await historyLink.GetAttributeAsync("target"));
+        Assert.Null(await historyLink.GetAttributeAsync("target"));
+        if (explicitNewTab)
+        {
+            await historyLink.EvaluateAsync("link => { link.target = '_blank'; link.rel = 'noopener noreferrer'; }");
+        }
+        Assert.Equal(explicitNewTab ? "_blank" : null, await historyLink.GetAttributeAsync("target"));
 
         var nativeActivations = await historyLink.EvaluateAsync<NativeActivationDiagnostics[]>(
             """
