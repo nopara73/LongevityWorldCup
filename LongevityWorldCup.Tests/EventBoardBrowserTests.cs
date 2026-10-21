@@ -160,7 +160,8 @@ public sealed class EventBoardBrowserTests(
                         issues.push(`${id}: date leaves the board`);
                     const dateStyle = getComputedStyle(date);
                     const dateRange = document.createRange();
-                    dateRange.selectNodeContents(date);
+                    // Wide, the day leads and its month is the chapter heading above.
+                    dateRange.selectNodeContents(innerWidth > 600 ? date.querySelector('.event-date-day') ?? date : date);
                     for (const line of dateRange.getClientRects()) {
                         if (line.width > 0 && (line.left < dateBox.left + parseFloat(dateStyle.paddingLeft) - 1
                             || line.right > dateBox.right - parseFloat(dateStyle.paddingRight) + 1))
