@@ -63,10 +63,8 @@ public sealed class AthleteDialogLinkBrowserTests(
     {
         await using var context = await NewContextAsync(Browser, App, width: 1440, height: 900);
         await context.AddInitScriptAsync("localStorage.setItem('gmaSkipAll', 'true');");
-        await context.RouteAsync("**/api/data/athletes", async route =>
+        await RouteAthleteFixtureAsync(context, athletes =>
         {
-            var response = await route.FetchAsync();
-            var athletes = JsonNode.Parse(await response.TextAsync())!.AsArray();
             var michael = athletes.OfType<JsonObject>().Single(athlete =>
                 athlete["AthleteSlug"]!.GetValue<string>() == "michael_lustgarten");
             michael["PersonalLink"] = "https://example.com/personal";
@@ -75,7 +73,6 @@ public sealed class AthleteDialogLinkBrowserTests(
             {
                 "Podcast", "First applicants", "Pregnancy", "Host", "Perfect application", "≥2 submissions"
             }.Select(label => (JsonNode)new JsonObject { ["BadgeLabel"] = label }).ToArray());
-            await route.FulfillAsync(new() { ContentType = "application/json", Body = athletes.ToJsonString() });
         });
         var page = await context.NewPageAsync();
         await page.GotoAsync("/leaderboard", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
