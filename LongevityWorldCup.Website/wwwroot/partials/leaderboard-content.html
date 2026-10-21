@@ -327,85 +327,82 @@
                     <p id="athleteBio"></p>
                     <!--AGE-VISUALIZATION-->
                     <div class="athlete-info" id="athlete-stats">
-                        <table class="athlete-info-table">
-                            <tbody>
-                            <tr>
-                                <th scope="row"><strong>Best rank:</strong></th>
-                                <td><span id="athleteRank"></span></td>
+                        <table class="athlete-info-table" role="table" aria-label="Athlete ages and profile details">
+                            <tbody class="athlete-age-board" role="rowgroup">
+                            <tr role="row" id="chronologicalAgeContainer">
+                                <th role="rowheader" scope="row"><strong>Chronological age</strong></th>
+                                <td role="cell"><span id="chronologicalAge" class="age-board-figure"></span> <span class="unit">years old</span></td>
                             </tr>
-                            <tr>
-                                <th scope="row"><strong>Division:</strong></th>
-                                <td><span id="athleteDivision"></span></td>
-                            </tr>
-                            <tr>
-                                <th scope="row"><strong>Generation:</strong></th>
-                                <td><span id="athleteGeneration"></span></td>
-                            </tr>
-                            <tr>
-                                <th scope="row"><strong>Flag:</strong></th>
-                                <td><span id="athleteFlag"></span></td>
-                            </tr>
-                            <tr>
-                                <th scope="row"><strong>Chronological age:</strong></th>
-                                <td><span id="chronologicalAge"></span> <span class="unit">years old</span></td>
-                            </tr>
-                            <tr class="athlete-info-divider-row" role="presentation" aria-hidden="true">
-                                <td colspan="2"><span class="athlete-info-divider"></span></td>
-                            </tr>
-                            <tr id="crowdAgeContainer" style="display:none;">
-                                <th scope="row"><strong>Crowd Age:</strong></th>
-                                <td>
-                                    <span id="notEmptyCrowdAgeContainer" style="display:none;">
-            <span id="crowdAge">0</span> <span class="unit">years</span>, <span id="crowdCount">0</span> <span class="detail-muted">guesses</span>
+                            <tr role="row" id="crowdAgeContainer" hidden>
+                                <th role="rowheader" scope="row"><strong>Crowd Age</strong></th>
+                                <td role="cell">
+                                    <span id="notEmptyCrowdAgeContainer" hidden>
+            <span id="crowdAge" class="age-board-figure">0</span> <span class="unit">years</span>, <span id="crowdCount">0</span> <span class="detail-muted">guesses</span>
           </span>
                                 </td>
                             </tr>
 
-
-                            <tr id="yourGuessContainer" style="display:none;">
-                                <th scope="row"><strong>Your guess:</strong></th>
-                                <td><span id="yourGuess"></span></td>
+                            <tr role="row" id="yourGuessContainer" hidden>
+                                <th role="rowheader" scope="row"><strong>Your guess</strong></th>
+                                <td role="cell"><span id="yourGuess"></span></td>
                             </tr>
 
-                            <tr id="lowestBortzAgeContainer" style="display:none;">
-                                <th scope="row"><strong>Lowest Bortz Age:</strong></th>
-                                <td><span id="lowestBortzAge"></span> <span class="unit">years</span></td>
+                            <tr role="row" id="lowestBortzAgeContainer" data-clock="bortz" hidden>
+                                <th role="rowheader" scope="row"><strong>Lowest Bortz Age</strong></th>
+                                <td role="cell"><span id="lowestBortzAge" class="age-board-figure"></span> <span class="unit">years</span></td>
                             </tr>
 
-                            <tr id="lowestPhenoAgeContainer">
-                                <th scope="row"><strong>Lowest Pheno Age:</strong></th>
-                                <td><span id="lowestPhenoAge"></span> <span class="unit">years</span></td>
+                            <tr role="row" id="lowestPhenoAgeContainer" data-clock="pheno" hidden>
+                                <th role="rowheader" scope="row"><strong>Lowest Pheno Age</strong></th>
+                                <td role="cell"><span id="lowestPhenoAge" class="age-board-figure"></span> <span class="unit">years</span></td>
                             </tr>
 
-
-                            <tr id="bortzPaceOfAgingContainer" title="Derived from the lowest biological age of the season" style="display:none;">
-                                <th scope="row"><strong>Bortz pace of aging:</strong></th>
-                                <td><span id="bortzPaceOfAging"></span> <span class="unit">years per year</span> <span class="detail-muted">(rank: <span id="bortzPaceOfAgingRank" class="detail-value"></span>)</span></td>
+                            <tr role="row" id="bortzPaceOfAgingContainer" data-clock="bortz" title="Derived from the lowest biological age of the season" hidden>
+                                <th role="rowheader" scope="row"><strong>Bortz pace of aging</strong></th>
+                                <td role="cell"><span id="bortzPaceOfAging" class="age-board-figure"></span> <span class="unit">years per year</span> <span class="detail-muted">(rank: <span id="bortzPaceOfAgingRank" class="detail-value"></span>)</span></td>
                             </tr>
 
-                            <tr id="paceOfAgingContainer" title="Derived from the lowest biological age of the season" style="display:none;">
-                                <th scope="row"><strong>Pheno pace of aging:</strong></th>
-                                <td><span id="paceOfAging"></span> <span class="unit">years per year</span> <span class="detail-muted">(rank: <span id="paceOfAgingRank" class="detail-value"></span>)</span></td>
+                            <tr role="row" id="paceOfAgingContainer" data-clock="pheno" title="Derived from the lowest biological age of the season" hidden>
+                                <th role="rowheader" scope="row"><strong>Pheno pace of aging</strong></th>
+                                <td role="cell"><span id="paceOfAging" class="age-board-figure"></span> <span class="unit">years per year</span> <span class="detail-muted">(rank: <span id="paceOfAgingRank" class="detail-value"></span>)</span></td>
                             </tr>
 
-                            <tr id="bortzAgeReductionContainer" title="Derived from the lowest biological age of the season" style="display:none;">
-                                <th scope="row">
-                                    <strong><span id="bortzAgeReductionAccelerationLabel">Bortz Age reduction:</span></strong>
+                            <tr role="row" id="bortzAgeReductionContainer" data-clock="bortz" title="Derived from the lowest biological age of the season" hidden>
+                                <th role="rowheader" scope="row">
+                                    <strong><span id="bortzAgeReductionAccelerationLabel">Bortz Age reduction</span></strong>
                                 </th>
-                                <td>
-                                    <span id="bortzAgeReduction"></span> <span class="unit">years</span>
-                                    (<span id="bortzAgeReductionPercent"></span><span class="unit">%</span>)
+                                <td role="cell">
+                                    <span id="bortzAgeReduction" class="age-board-figure"></span> <span class="unit">years</span>
+                                    <span id="bortzAgeReductionShare" class="age-board-share">(<span id="bortzAgeReductionPercent"></span><span class="unit">%</span>)</span>
                                 </td>
                             </tr>
 
-                            <tr id="ageReductionContainer" title="Derived from the lowest biological age of the season">
-                                <th scope="row">
-                                    <strong><span id="ageReductionAccelerationLabel">Pheno Age reduction:</span></strong>
+                            <tr role="row" id="ageReductionContainer" data-clock="pheno" title="Derived from the lowest biological age of the season" hidden>
+                                <th role="rowheader" scope="row">
+                                    <strong><span id="ageReductionAccelerationLabel">Pheno Age reduction</span></strong>
                                 </th>
-                                <td>
-                                    <span id="ageReduction"></span> <span class="unit">years</span>
-                                    (<span id="ageReductionPercent"></span><span class="unit">%</span>)
+                                <td role="cell">
+                                    <span id="ageReduction" class="age-board-figure"></span> <span class="unit">years</span>
+                                    <span id="ageReductionShare" class="age-board-share">(<span id="ageReductionPercent"></span><span class="unit">%</span>)</span>
                                 </td>
+                            </tr>
+                            </tbody>
+                            <tbody class="athlete-info-basics" role="rowgroup">
+                            <tr role="row" id="athleteRankContainer">
+                                <th role="rowheader" scope="row"><strong>Best rank:</strong></th>
+                                <td role="cell"><span id="athleteRank"></span></td>
+                            </tr>
+                            <tr role="row">
+                                <th role="rowheader" scope="row"><strong>Division:</strong></th>
+                                <td role="cell"><span id="athleteDivision"></span></td>
+                            </tr>
+                            <tr role="row">
+                                <th role="rowheader" scope="row"><strong>Generation:</strong></th>
+                                <td role="cell"><span id="athleteGeneration"></span></td>
+                            </tr>
+                            <tr role="row">
+                                <th role="rowheader" scope="row"><strong>Flag:</strong></th>
+                                <td role="cell"><span id="athleteFlag"></span></td>
                             </tr>
                             </tbody>
                         </table>
