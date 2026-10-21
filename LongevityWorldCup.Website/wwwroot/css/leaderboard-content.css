@@ -179,17 +179,6 @@
      border-radius:15px; box-shadow:0 10px 30px rgba(0,0,0,.1); overflow:clip; flex-grow:1;
  }
 
- @keyframes skeletonShimmer{
-     0%{ background-position:200% 0; }
-     100%{ background-position:-200% 0; }
- }
-
- .skeleton-shimmer{
-     background:linear-gradient(90deg, rgba(0,0,0,.06) 25%, rgba(255,255,255,.7) 50%, rgba(0,0,0,.06) 75%);
-     background-size:200% 100%;
-     animation:skeletonShimmer 1.4s ease-in-out infinite;
- }
-
  .podium-skeleton-item{
      pointer-events:none;
      cursor:default;
@@ -302,13 +291,6 @@
      display:inline-block;
      height:16px;
      min-width:72px;
- }
-
- @media (prefers-reduced-motion:reduce){
-     .skeleton-shimmer{
-         animation:none;
-         background:rgba(0,0,0,.08);
-     }
  }
 
  /* Scope table styles to the leaderboard table only */
@@ -1129,11 +1111,7 @@
  #athleteLoadError{
      width:min(100%, var(--athlete-modal-section-width));
      box-sizing:border-box;
-     margin:.5rem auto 0;
-     padding:.8rem;
-     border:1px solid var(--athlete-modal-cream-border);
-     border-radius:var(--lwc-radius-md, 8px);
-     background:rgba(255,255,255,.08);
+     margin:var(--athlete-doc-gap, 1.5rem) auto 0;
  }
  #athleteLoadError[hidden]{ display:none; }
  #detailsModal .modal-content[data-server-rendered-loading].is-loading > :not(#closeAthleteDetailsModal):not(#modalStickyHeader) {
@@ -1142,22 +1120,12 @@
  #detailsModal .modal-content[data-server-rendered-loading].is-loading::after {
      content:"";
      position:absolute;
-     top:4rem;
-     left:calc(50% - .75rem);
-     width:1.5rem;
-     height:1.5rem;
-     border:2px solid var(--athlete-modal-border);
-     border-top-color:var(--athlete-modal-text);
-     border-radius:50%;
-     animation:athlete-initial-loading 1s linear infinite;
- }
- @keyframes athlete-initial-loading { to { transform:rotate(360deg); } }
- @media (prefers-reduced-motion:reduce) {
-     #detailsModal .modal-content[data-server-rendered-loading].is-loading::after { animation:none; }
+     top:calc(4rem + var(--lwc-space-3));
+     left:calc(50% - 1.75rem);
  }
  #detailsModal #athleteLoadError p{
      margin:0 0 .65rem;
-     color:var(--athlete-modal-text);
+     color:inherit;
  }
  .modal-content{
      background:#fefefe; margin:1% auto; padding:20px; border:none; width:80%; height:88%; max-width:900px;
@@ -4068,7 +4036,6 @@
      --athlete-doc-radius:var(--lwc-radius-lg, 12px);
  }
  #detailsModal #athlete-profile > #athleteRankings,
- #detailsModal #athlete-profile > #athleteLoadError,
  #detailsModal #athlete-profile > #modalBadgeStrip,
  #detailsModal #athlete-profile > #ageVisualization,
  #detailsModal #athlete-profile > #athlete-stats,
@@ -4263,19 +4230,12 @@
      left:1rem;
      right:1rem;
      border-radius:var(--lwc-radius-md, 8px);
-     background:linear-gradient(90deg, rgba(246,244,237,.04) 25%, rgba(246,244,237,.1) 50%, rgba(246,244,237,.04) 75%);
-     background-size:200% 100%;
-     animation:skeletonShimmer 1.4s ease-in-out infinite;
- }
- @media (prefers-reduced-motion: reduce){
-     #detailsModal .modal-content.is-loading #ageVisualization::after{ animation:none; }
  }
 
  /* Failure: the message is a card in the same column, and the radar that
     cannot be drawn without data leaves no empty frame behind. */
  #detailsModal #athlete-profile > #athleteLoadError{
-     padding:1rem;
-     text-align:center;
+     text-align:start;
  }
  #detailsModal #athlete-profile > #athleteLoadError[hidden]{ display:none; }
  #detailsModal #athlete-profile:has(> #athleteLoadError:not([hidden])) > #ageVisualization{ display:none; }

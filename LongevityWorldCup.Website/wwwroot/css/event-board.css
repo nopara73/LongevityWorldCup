@@ -44,7 +44,6 @@
 @media (prefers-reduced-motion:reduce){
     .fade-in-board{animation:none!important}
     .row-appear,.row-appear.is-visible{opacity:1;transform:none;transition:none!important}
-    .skeleton-shimmer{animation:none!important;background:rgba(0,0,0,.08)}
 }
 
 .events-board{
@@ -61,17 +60,6 @@
     overflow:hidden;
     flex-grow:1;
     margin:0 auto
-}
-
-@keyframes skeletonShimmer{
-    0%{ background-position:200% 0; }
-    100%{ background-position:-200% 0; }
-}
-
-.skeleton-shimmer{
-    background:linear-gradient(90deg, rgba(0,0,0,.06) 25%, rgba(255,255,255,.72) 50%, rgba(0,0,0,.06) 75%);
-    background-size:200% 100%;
-    animation:skeletonShimmer 1.4s ease-in-out infinite;
 }
 
 .events-skeleton-row td{ cursor:default; }
