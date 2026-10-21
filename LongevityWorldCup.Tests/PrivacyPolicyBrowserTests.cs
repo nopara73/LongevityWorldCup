@@ -5,6 +5,8 @@ using static LongevityWorldCup.Tests.FlowActionDockBrowserTests;
 
 namespace LongevityWorldCup.Tests;
 
+// The Privacy policy is generated from Markdown into the documentation reading system:
+// site chrome, the contents rail, the cover band, numbered chapters and a closing contact band.
 [Collection(BrowserTestCollections.WorkloadB)]
 public sealed class PrivacyPolicyBrowserTests(
     PlaywrightBrowserFixture browserFixture,
@@ -17,7 +19,7 @@ public sealed class PrivacyPolicyBrowserTests(
     [InlineData(820, 1180, "light")]
     [InlineData(390, 844, "dark")]
     [InlineData(320, 640, "light")]
-    public async Task Policy_ReadsAsOneFullWidthColumnWithPhoneEdgeToEdgeCard(int width, int height, string theme)
+    public async Task Policy_ReadsAsADocumentationPageWithChaptersAndAContactBand(int width, int height, string theme)
     {
         await using var context = await NewContextAsync(Browser, App, new()
         {
@@ -26,26 +28,48 @@ public sealed class PrivacyPolicyBrowserTests(
             ReducedMotion = ReducedMotion.Reduce
         });
         var page = await context.NewPageAsync();
-        await page.GotoAsync("/privacy");
-        await page.EvaluateAsync("() => document.fonts.ready");
+        await NavigateAndSettleAsync(page, "/privacy");
 
-        var layout = await page.EvaluateAsync<double[]>(
+        var problems = await page.EvaluateAsync<string[]>(
             """
             () => {
-                const card = document.querySelector('.card').getBoundingClientRect();
-                let narrowest = Infinity;
-                for (const paragraph of document.querySelectorAll('.landing-section-text p')) {
-                    const parent = paragraph.parentElement, style = getComputedStyle(parent);
-                    const column = parent.getBoundingClientRect().width - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
-                    narrowest = Math.min(narrowest, paragraph.getBoundingClientRect().width / column);
+                const issues = [];
+                if (!document.querySelector('header[role="banner"]')) issues.push('no site header');
+                if (!document.querySelector('footer')) issues.push('no site footer');
+                const article = document.querySelector('main.documentation-page > article.documentation-document');
+                if (!article) return [...issues, 'not a documentation page'];
+                const cover = article.firstElementChild;
+                if (!cover?.matches('.documentation-cover') || cover.querySelector('h1')?.textContent !== 'Privacy policy')
+                    issues.push('the title is not on the cover');
+                const chapters = [...article.querySelectorAll('h2.documentation-chapter')];
+                const titles = chapters.map(h => h.textContent.trim());
+                const expected = ['Who we are', 'What data is used', 'How the data is used', 'What data is not used', 'Storage and retention', 'Third-party services'];
+                if (titles.join('|') !== expected.join('|')) issues.push(`chapters: ${titles.join('|')}`);
+                if (chapters.some(h => !getComputedStyle(h, '::before').content.includes('decimal-leading-zero'))) issues.push('chapters are not numbered');
+                const links = [...document.querySelectorAll('.documentation-nav a[href^="#"]')].map(a => a.getAttribute('href'));
+                if (links.length !== 7 || links[0] !== '#who-we-are' || links[6] !== '#contact') issues.push(`contents: ${links.join(',')}`);
+                const band = document.getElementById('contact')?.parentElement;
+                if (!band?.matches('.documentation-next')) issues.push('contact is not the closing band');
+                else {
+                    const a = article.getBoundingClientRect(), b = band.getBoundingClientRect();
+                    if (Math.abs(b.bottom - a.bottom) > 1.5) issues.push('contact does not close the document');
+                    if (!band.querySelector('a[href="mailto:hi@longevityworldcup.com"]')) issues.push('contact lost the address');
+                    const heading = band.querySelector('h2').getBoundingClientRect(), text = band.querySelector('p').getBoundingClientRect();
+                    if (text.top - heading.bottom < 8) issues.push('contact text is glued to its heading');
                 }
-                return [narrowest, card.left, card.right, innerWidth];
+                const firstChapter = chapters[0]?.getBoundingClientRect();
+                if (firstChapter && firstChapter.top - cover.getBoundingClientRect().bottom > 56)
+                    issues.push(`the first chapter floats ${Math.round(firstChapter.top - cover.getBoundingClientRect().bottom)}px below the cover`);
+                const text = article.textContent.replace(/\s+/g, ' ');
+                for (const sentence of [
+                    'This page explains how Longevity World Cup handles information related to the website and its Threads and Facebook integrations.',
+                    'refresh access tokens when required for continued operation.',
+                    "Use of Threads and Facebook is also subject to Meta's own terms and privacy practices."])
+                    if (!text.includes(sentence)) issues.push(`lost wording: ${sentence}`);
+                return issues;
             }
             """);
-        var scenario = $"{width}x{height} {theme}";
-        Assert.True(layout[0] >= 0.97, $"{scenario}: policy paragraphs should fill their column instead of leaving a ragged empty gutter ({layout[0]:0.00}).");
-        if (width <= 560)
-            Assert.True(layout[1] <= 0.5 && layout[2] >= layout[3] - 0.5, $"{scenario}: the policy card should run edge to edge on phones ({layout[1]:0.0}-{layout[2]:0.0} of {layout[3]}).");
+        Assert.True(problems.Length == 0, $"{width}x{height} {theme}: {string.Join("; ", problems)}");
         await ExpectNoHorizontalOverflowAsync(page);
     }
 }

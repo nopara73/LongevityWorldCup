@@ -30,7 +30,12 @@ var pages = new[]
         Output: Path.Combine(websiteRoot, "wwwroot", "misc-pages", "ruleset.html"),
         CanonicalPath: "/ruleset",
         SourceUrl: "https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/Ruleset.md",
-        Reference: true)
+        Reference: true),
+    new DocumentationPage(
+        Source: Path.Combine(repoRoot, "LongevityWorldCup.Documentation", "PrivacyPolicy.md"),
+        Output: Path.Combine(websiteRoot, "wwwroot", "privacy-policy.html"),
+        CanonicalPath: "/privacy",
+        SourceUrl: "https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/PrivacyPolicy.md")
 };
 
 var pipeline = new MarkdownPipelineBuilder()
@@ -60,7 +65,7 @@ foreach (var page in pages)
         documentHtml = ReferencePage.BuildDocument(documentHtml);
         contentsHtml = ReferencePage.BuildContents(contentsHtml, documentHtml);
     }
-    else if (page.CanonicalPath == "/about")
+    else if (page.CanonicalPath is "/about" or "/privacy")
     {
         (documentHtml, contentsHtml) = BuildChapters(documentHtml, contentsHtml);
     }
@@ -116,7 +121,7 @@ static string BuildContentsNav(string documentHtml, string sourceUrl)
         return $"""
         <nav class="documentation-nav" aria-label="Document navigation">
             <button type="button" class="documentation-nav-toggle" aria-expanded="false" aria-controls="documentation-nav-links">
-                <span>On this page</span><span class="documentation-nav-toggle-icon" aria-hidden="true">+</span>
+                <span class="documentation-nav-current">On this page</span><span class="documentation-nav-toggle-icon" aria-hidden="true">+</span>
             </button>
             <div class="documentation-nav-links" id="documentation-nav-links">
                 <a class="documentation-source-link" href="{source}" target="_blank" rel="noopener">Source Markdown</a>
@@ -128,7 +133,7 @@ static string BuildContentsNav(string documentHtml, string sourceUrl)
     return $$"""
         <nav class="documentation-nav" aria-label="Document navigation">
             <button type="button" class="documentation-nav-toggle" aria-expanded="false" aria-controls="documentation-nav-links">
-                <span>On this page</span><span class="documentation-nav-toggle-icon" aria-hidden="true">+</span>
+                <span class="documentation-nav-current">On this page</span><span class="documentation-nav-toggle-icon" aria-hidden="true">+</span>
             </button>
             <div class="documentation-nav-links" id="documentation-nav-links">
                 <div class="documentation-nav-title">Contents</div>
@@ -226,10 +231,10 @@ static string BuildCover(string documentHtml)
         TimeSpan.FromSeconds(1));
 }
 
-// The closing links sit in their own band at the foot of the document.
+// The closing section (next-step links, or the contact note) sits in its own band at
+// the foot of the document.
 static string BuildNextSteps(string documentHtml)
 {
-    const string heading = "<h2 id=\"where-to-go-next\">";
     if (documentHtml.Contains("<section class=\"ruleset-section ruleset-next\">", StringComparison.Ordinal))
     {
         return documentHtml.Replace(
@@ -238,8 +243,11 @@ static string BuildNextSteps(string documentHtml)
             StringComparison.Ordinal);
     }
 
-    var start = documentHtml.IndexOf(heading, StringComparison.Ordinal);
-    if (start < 0 || documentHtml.IndexOf("<h2", start + heading.Length, StringComparison.Ordinal) >= 0)
+    var heading = ClosingSectionIds
+        .Select(id => $"<h2 id=\"{id}\">")
+        .FirstOrDefault(candidate => documentHtml.Contains(candidate, StringComparison.Ordinal));
+    var start = heading is null ? -1 : documentHtml.IndexOf(heading, StringComparison.Ordinal);
+    if (heading is null || documentHtml.IndexOf("<h2", start + heading.Length, StringComparison.Ordinal) >= 0)
     {
         return documentHtml;
     }
@@ -255,7 +263,7 @@ static (string Document, string Contents) BuildChapters(string documentHtml, str
     var document = Regex.Replace(documentHtml, "<h2 id=\"(?<id>[^\"]+)\">(?<title>.*?)</h2>", match =>
     {
         var id = match.Groups["id"].Value;
-        if (id == "where-to-go-next")
+        if (ClosingSectionIds.Contains(id))
         {
             return match.Value;
         }
@@ -636,7 +644,7 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
             font-size: clamp(1.5rem, 2.6vw, 1.9rem);
         }
 
-        .documentation-cover + h2,
+        .documentation-document .documentation-cover + h2,
         .documentation-cover + .ruleset-section > h2:first-child {
             margin-top: 2.4rem;
             padding-top: 0;
@@ -918,6 +926,14 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
             border: 0;
         }
 
+        .documentation-document .documentation-next > h2 + p {
+            margin-top: 0.85rem;
+        }
+
+        .documentation-document .documentation-next > :last-child {
+            margin-bottom: 0;
+        }
+
         /* A short last row stretches to the full width instead of leaving an empty slot. */
         .documentation-page #where-to-go-next + ul {
             display: flex;
@@ -1169,8 +1185,10 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
                 padding: 0 1rem;
             }
 
-            /* Phones and tablets: the contents fold into a card above the document;
-               its toggle is the card's header row. */
+            /* Phones and tablets: the contents fold into a bar above the document
+               that stays under the site header while the document scrolls. Its
+               header row names the section being read, and its bottom edge fills
+               with the accent as the reader moves through the document. */
             .documentation-nav {
                 position: static;
                 display: block;
@@ -1180,8 +1198,69 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
             }
 
             .documentation-nav.is-enhanced {
+                position: relative;
+                z-index: 20;
                 padding: 0;
+                transition: box-shadow var(--lwc-duration-fast, 0.15s) var(--lwc-ease, ease);
+            }
+
+            .documentation-nav.is-enhanced.is-stuck {
+                box-shadow: var(--lwc-shadow-md, 0 10px 28px rgba(15, 23, 42, 0.1));
+            }
+
+            .documentation-nav.is-enhanced .documentation-nav-toggle {
+                position: relative;
                 overflow: hidden;
+                border-radius: calc(var(--lwc-radius-lg, 8px) - 1px);
+            }
+
+            .documentation-nav.is-enhanced.is-open .documentation-nav-toggle {
+                border-radius: calc(var(--lwc-radius-lg, 8px) - 1px) calc(var(--lwc-radius-lg, 8px) - 1px) 0 0;
+            }
+
+            .documentation-nav.is-enhanced .documentation-nav-toggle::after {
+                content: "";
+                position: absolute;
+                right: 0;
+                bottom: 0;
+                left: 0;
+                height: 3px;
+                background: var(--lwc-accent, var(--primary-color));
+                transform: scaleX(var(--documentation-progress, 0));
+                transform-origin: left center;
+                pointer-events: none;
+            }
+
+            .documentation-nav-current {
+                display: flex;
+                align-items: center;
+                gap: 0.65rem;
+                min-width: 0;
+            }
+
+            .documentation-nav-current[data-number]::before {
+                content: attr(data-number);
+                box-sizing: border-box;
+                display: inline-grid;
+                flex: 0 0 auto;
+                place-items: center;
+                min-width: 1.85rem;
+                height: 1.85rem;
+                padding: 0 0.3rem;
+                border-radius: var(--lwc-radius-sm, 4px);
+                background: var(--lwc-accent, var(--primary-color));
+                color: var(--lwc-on-accent, #ffffff);
+                font-family: Roboto, sans-serif;
+                font-size: var(--lwc-type-xs, 0.75rem);
+                font-variant-numeric: tabular-nums;
+                letter-spacing: 0.02em;
+            }
+
+            .documentation-nav-current-text {
+                min-width: 0;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
             }
 
             .documentation-nav.is-enhanced .documentation-nav-toggle {
@@ -1238,9 +1317,22 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
                 overscroll-behavior: contain;
             }
 
+            /* The open list hangs below the bar instead of pushing the document down. */
             .documentation-nav.is-enhanced .documentation-nav-links {
+                position: absolute;
+                top: 100%;
+                right: -1px;
+                left: -1px;
                 padding: 0.5rem 0.75rem 0.6rem;
-                border-top: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.1));
+                border: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.1));
+                border-radius: 0 0 var(--lwc-radius-lg, 8px) var(--lwc-radius-lg, 8px);
+                background: var(--lwc-surface, #ffffff);
+                box-shadow: var(--lwc-shadow-md, 0 10px 28px rgba(15, 23, 42, 0.1));
+            }
+
+            .documentation-nav.is-enhanced.is-open {
+                border-bottom-left-radius: 0;
+                border-bottom-right-radius: 0;
             }
 
             .documentation-nav.is-enhanced:not(.is-open) .documentation-nav-links {
@@ -1266,6 +1358,19 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
             .documentation-nav .documentation-source-link {
                 margin-top: 0.5rem;
                 padding-top: 0.5rem;
+            }
+        }
+
+        /* Only screens with room to spare keep the folded contents on screen;
+           short landscape phones scroll it away with the cover. */
+        @media (max-width: 900px) and (min-height: 500px) {
+            .documentation-nav.is-enhanced {
+                position: sticky;
+                top: calc(var(--site-sticky-height, 0px) + 0.5rem);
+            }
+
+            :root:has(.documentation-nav.is-enhanced) {
+                scroll-padding-top: calc(var(--site-sticky-height, 3.25rem) + 4.75rem);
             }
         }
 
@@ -1354,6 +1459,7 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
         }
 
         @media (prefers-reduced-motion: reduce) {
+            .documentation-nav,
             .documentation-nav a,
             .documentation-page #where-to-go-next + ul > li {
                 transition: none;
@@ -1394,7 +1500,30 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
             }
 
             documentationNavToggle?.addEventListener("click", () => {
-                setDocumentationNavOpen(documentationNavToggle.getAttribute("aria-expanded") !== "true");
+                const open = documentationNavToggle.getAttribute("aria-expanded") !== "true";
+                setDocumentationNavOpen(open);
+                // Open the list at the section being read.
+                const list = documentationNav.querySelector(".documentation-nav-links");
+                const current = documentationNav.querySelector("a.is-active");
+                if (open && list && current && current.offsetParent === list) {
+                    list.scrollTop = current.offsetTop - (list.clientHeight - current.offsetHeight) / 2;
+                }
+            });
+
+            // The open list overlays the document, so it closes like other menus.
+            document.addEventListener("click", event => {
+                if (documentationNav?.classList.contains("is-open") && !documentationNav.contains(event.target)) {
+                    setDocumentationNavOpen(false);
+                }
+            });
+            document.addEventListener("keydown", event => {
+                if (event.key === "Escape" && documentationNav?.classList.contains("is-open")) {
+                    const focusWasInside = documentationNav.contains(document.activeElement);
+                    setDocumentationNavOpen(false);
+                    if (focusWasInside) {
+                        documentationNavToggle?.focus();
+                    }
+                }
             });
 
             const navLinks = Array.from(document.querySelectorAll(".documentation-nav a[href^='#']"));
@@ -1405,7 +1534,12 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
             const getOffset = () => {
                 const stickyHeader = document.getElementById("site-sticky-header");
                 const measuredHeight = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--site-sticky-height"));
-                return ((stickyHeader && stickyHeader.offsetHeight) || measuredHeight || 52) + 18;
+                const header = (stickyHeader && stickyHeader.offsetHeight) || measuredHeight || 52;
+                // On phones and tablets the folded contents bar also stays on screen.
+                const bar = documentationNav?.classList.contains("is-enhanced") && getComputedStyle(documentationNav).position === "sticky"
+                    ? documentationNavToggle.offsetHeight + 8
+                    : 0;
+                return header + bar + 18;
             };
 
             let activeLink = null;
@@ -1424,6 +1558,48 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
                 } else if (target.bottom > pane.bottom - padding) {
                     documentationNav.scrollTop += target.bottom - pane.bottom + padding;
                 }
+            };
+
+            // The folded contents bar names the section being read and shows how
+            // far through the document the reader is.
+            const documentationNavCurrent = documentationNav?.querySelector(".documentation-nav-current");
+            const documentationNavLabel = documentationNavCurrent?.textContent || "";
+            const numberedLinks = navLinks.filter(link => link.matches(".documentation-nav-chapter, .documentation-nav-rule"));
+            const documentationArticle = document.querySelector(".documentation-document");
+            const updateCurrentSection = () => {
+                if (!documentationNav || !documentationNavCurrent) {
+                    return;
+                }
+
+                const offset = getOffset() + 6;
+                const entered = headings.length > 0 && headings[0].getBoundingClientRect().top <= offset;
+                const link = entered ? activeLink : null;
+                const number = link ? numberedLinks.indexOf(link) : -1;
+                const text = link ? link.textContent.replace(/\s+/g, " ").trim() : documentationNavLabel;
+                if (documentationNavCurrent.dataset.text !== text) {
+                    documentationNavCurrent.dataset.text = text;
+                    const label = document.createElement("span");
+                    label.className = "documentation-nav-current-text";
+                    label.textContent = text;
+                    documentationNavCurrent.replaceChildren(label);
+                }
+                if (number >= 0) {
+                    documentationNavCurrent.dataset.number = String(number + 1).padStart(2, "0");
+                } else {
+                    delete documentationNavCurrent.dataset.number;
+                }
+
+                if (documentationArticle) {
+                    const bounds = documentationArticle.getBoundingClientRect();
+                    const travel = Math.max(1, bounds.height - window.innerHeight + offset);
+                    const progress = Math.min(1, Math.max(0, (offset - bounds.top) / travel));
+                    documentationNav.style.setProperty("--documentation-progress", progress.toFixed(4));
+                }
+
+                const navStyle = getComputedStyle(documentationNav);
+                const stickyTop = parseFloat(navStyle.top);
+                documentationNav.classList.toggle("is-stuck", navStyle.position === "sticky" && window.scrollY > 0 &&
+                    Number.isFinite(stickyTop) && documentationNav.getBoundingClientRect().top <= stickyTop + 0.5);
             };
 
             const setActive = id => {
@@ -1475,6 +1651,7 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
                     const bounds = navigationDestination.target.getBoundingClientRect();
                     if (bounds.bottom > offset && bounds.top < window.innerHeight) {
                         setActive(navigationDestination.target.id);
+                        updateCurrentSection();
                         return;
                     }
                 }
@@ -1494,6 +1671,7 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
                 if (current) {
                     setActive(current.id);
                 }
+                updateCurrentSection();
             };
 
             const synchronizeNavigationFromHash = () => {
@@ -1546,6 +1724,11 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
 </body>
 </html>
 """;
+}
+
+internal static partial class Program
+{
+    private static readonly string[] ClosingSectionIds = ["where-to-go-next", "contact"];
 }
 
 internal sealed record DocumentationPage(string Source, string Output, string CanonicalPath, string SourceUrl, bool Reference = false);
