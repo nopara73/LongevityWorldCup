@@ -1994,9 +1994,11 @@ public sealed class AestheticSystemBrowserTests(
                             entry.style.inlineSize = `${width}px`;
                             entry.style.maxInlineSize = 'none';
                             await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                            const input = entry.querySelector('input').getBoundingClientRect();
+                            const unit = entry.querySelector('select').getBoundingClientRect();
                             return {
                                 ContainerWidth: parseFloat(getComputedStyle(entry).width),
-                                IsCompact: getComputedStyle(entry.querySelector('.input-group')).gridTemplateColumns.split(' ').length === 1,
+                                IsCompact: input.height >= 44 && unit.height >= 44 && unit.top >= input.bottom - 1,
                                 HorizontalOverflow: Math.max(0, entry.scrollWidth - entry.clientWidth)
                             };
                         }

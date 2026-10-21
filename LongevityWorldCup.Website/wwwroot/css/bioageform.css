@@ -2327,7 +2327,12 @@ body :is(#phenoAgeResult, #bortzAgeResult) #ensureCorrectInputSuggestion i {
    the same field rather than squeezing it. */
 @container bioage-entry (max-width: 14.5rem) {
     :is(#phenoAgeForm, #bortzAgeForm).bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card-content .input-group {
-        grid-template-columns: minmax(0, 1fr);
+        display: flex;
+        flex-direction: column;
+    }
+
+    :is(#phenoAgeForm, #bortzAgeForm).bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card-content .input-group :is(input, select, .bioage-fixed-unit) {
+        height: auto;
     }
 
     :is(#phenoAgeForm, #bortzAgeForm).bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card-content .input-group :is(select, .bioage-fixed-unit) {

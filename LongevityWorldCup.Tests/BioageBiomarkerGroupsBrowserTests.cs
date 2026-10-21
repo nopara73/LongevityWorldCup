@@ -67,6 +67,7 @@ public sealed class BioageBiomarkerGroupsBrowserTests(
 
     [Theory]
     [InlineData("/pheno-age", 1440, 900, 200)]
+    [InlineData("/pheno-age", 320, 844, 200)]
     [InlineData("/bortz-age", 320, 844, 200)]
     [InlineData("/pheno-age", 390, 844, 100)]
     [InlineData("/bortz-age", 844, 390, 100)]
