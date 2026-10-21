@@ -41,6 +41,11 @@ public sealed partial class HighlightsTimelineBrowserTests
                 }
 
                 const day = id => document.querySelector(`tr.main-row[data-event-id="${id}"] .col-date`);
+                for (const id of ['oct-a','oct-b']) {
+                    const time=day(id).querySelector('time');
+                    const expected=new Date(time.dateTime).toLocaleDateString(undefined,{calendar:'gregory',month:'long',day:'numeric',year:'numeric'});
+                    if(time.getAttribute('aria-label')!==expected) issues.push(`${id}: full accessible date is missing`);
+                }
                 if (innerWidth > 600) {
                     const lead = day('oct-a').querySelector('.event-date-day').getBoundingClientRect();
                     if (lead.height < 20) issues.push(`the day is ${lead.height}px tall`);

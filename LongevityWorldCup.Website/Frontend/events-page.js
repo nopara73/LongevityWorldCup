@@ -35,6 +35,8 @@ const eventsPageAssets = document.currentScript.dataset;
         if (preserveExistingRows && tbody.querySelector('tr.main-row')) return;
         [...tbody.closest('table').tBodies].slice(1).forEach(body=>body.remove());
         delete tbody.dataset.month;
+        tbody.style.removeProperty('--event-month-height');
+        monthHeadingObserver?.disconnect();
         tbody.innerHTML = buildEventSkeletonRows();
     }
 
@@ -50,6 +52,8 @@ const eventsPageAssets = document.currentScript.dataset;
         if (!tbody) return;
         [...tbody.closest('table').tBodies].slice(1).forEach(body=>body.remove());
         delete tbody.dataset.month;
+        tbody.style.removeProperty('--event-month-height');
+        monthHeadingObserver?.disconnect();
 
         const row = document.createElement('tr');
         const cell = document.createElement('td');
@@ -197,9 +201,9 @@ const eventsPageAssets = document.currentScript.dataset;
     // Keep embedded feeds on their existing date format.
     function formatListDateHtml(iso){
         const date=new Date(iso); if(!iso||isNaN(date)) return '';
-        const formatter=new Intl.DateTimeFormat(undefined,{calendar:'gregory',month:'short',day:'numeric'});
-        let html=formatter.formatToParts(date).map(part=>`<span class="${part.type==='day'?'event-date-day':'event-date-rest'}">${esc(part.value.replace(/,/g,''))}</span>`).join('');
-        if(date.getFullYear()!==new Date().getFullYear()) html+=`<span class="event-date-rest">, ${date.getFullYear()}</span>`;
+        const historical=date.getFullYear()!==new Date().getFullYear();
+        const formatter=new Intl.DateTimeFormat(undefined,{calendar:'gregory',month:'short',day:'numeric',...(historical?{year:'numeric'}:{})});
+        const html=formatter.formatToParts(date).map(part=>`<span class="${part.type==='day'?'event-date-day':'event-date-rest'}">${esc(historical?part.value:part.value.replace(/,/g,''))}</span>`).join('');
         const full=date.toLocaleDateString(undefined,{calendar:'gregory',year:'numeric',month:'long',day:'numeric'});
         return `<time datetime="${esc(iso)}" aria-label="${esc(full)}">${html}</time>`;
     }
@@ -805,8 +809,15 @@ const eventsPageAssets = document.currentScript.dataset;
     // The feed groups by month: a month's events sit together, and a repeated
     // day's date stays quiet under the first event of that day.
     // On the Highlights page every month opens with its own heading row.
+    let monthHeadingObserver=null;
     function markFeedGroups(tbody){
         const chapters=!!tbody.closest('.event-board-page');
+        if(chapters&&typeof ResizeObserver==='function'){
+            monthHeadingObserver??=new ResizeObserver(entries=>entries.forEach(({target})=>{
+                target.parentElement?.style.setProperty('--event-month-height',`${target.getBoundingClientRect().height}px`);
+            }));
+            monthHeadingObserver.disconnect();
+        }
         tbody.querySelectorAll('tr.events-month-row').forEach(r=>r.remove());
         const rows=[...tbody.querySelectorAll('tr.main-row')];
         const table=tbody.closest('table');
@@ -839,6 +850,7 @@ const eventsPageAssets = document.currentScript.dataset;
                 heading.dataset.month=month;
                 heading.innerHTML=`<th colspan="3" scope="rowgroup">${esc(date.toLocaleDateString(undefined,{calendar:'gregory',month:'long',year:'numeric'}))}</th>`;
                 group.appendChild(heading);
+                monthHeadingObserver?.observe(heading);
             }
             if(chapters){
                 const details=r.nextElementSibling?.classList.contains('details-row')?r.nextElementSibling:null;
@@ -876,6 +888,7 @@ const eventsPageAssets = document.currentScript.dataset;
         });
         tbody.querySelectorAll('tr.events-month-row').forEach(row=>row.remove());
         delete tbody.dataset.month;
+        tbody.style.removeProperty('--event-month-height');
         if (!shouldAppend) {
             tbody.innerHTML = "";
         } else {

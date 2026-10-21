@@ -173,6 +173,11 @@ main.event-board-page {
     text-transform: uppercase;
 }
 
+/* Keyboard scrolling already clears the site bar; also clear the chapter band. */
+.event-board-page .events-board tbody[data-month] :is(a, button) {
+    scroll-margin-block-start: calc(var(--event-month-height, 40px) + 6px);
+}
+
 .event-board-page .events-board tbody:first-of-type tr.events-month-row:first-child > th {
     border-top: 0;
 }

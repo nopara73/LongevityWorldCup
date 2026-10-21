@@ -7,6 +7,40 @@ namespace LongevityWorldCup.Tests;
 
 public sealed partial class HighlightsTimelineBrowserTests
 {
+    [Theory]
+    [InlineData(1440, 900, 100)]
+    [InlineData(390, 844, 100)]
+    [InlineData(320, 640, 200)]
+    public async Task Chapters_KeepKeyboardTargetsClearOfBothStickyBands(int width, int height, int percent)
+    {
+        var events = Enumerable.Range(0, 72).Select(i => new
+        {
+            Id = "focus-" + i, Type = 6, Text = $"Milestone {i}\n\nMore details",
+            OccurredAt = new DateTime(2026, 10 - i / 24, 28 - i % 24, 12, 0, 0, DateTimeKind.Utc).ToString("O")
+        });
+        await using var context = await OpenAsync(width, height, "light", JsonSerializer.Serialize(events));
+        var page = context.Pages[0];
+        await page.Locator("tr.main-row[data-event-id='focus-71']").WaitForAsync(new() { State = WaitForSelectorState.Attached });
+        await page.EvaluateAsync("p => document.documentElement.style.fontSize=`${p}%`", percent);
+        await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
+        await page.Locator("tr.main-row[data-event-id='focus-32'] .custom-event-expander").FocusAsync();
+        await page.EvaluateAsync("() => { const row=document.querySelector('tr.main-row[data-event-id=\"focus-32\"]'); scrollTo(0,scrollY+row.getBoundingClientRect().top-140); }");
+        for (var i = 0; i < 10; i++)
+        {
+            await page.Keyboard.PressAsync("Shift+Tab");
+            await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
+            var visible = await page.EvaluateAsync<bool>(
+                """
+                () => {
+                    const button=document.activeElement, box=button.getBoundingClientRect();
+                    const hit=document.elementFromPoint(box.left+box.width/2,box.top+box.height/2);
+                    return button.matches('.custom-event-expander')&&button.contains(hit);
+                }
+                """);
+            Assert.True(visible, $"{width}px {percent}%: keyboard target {i} is covered by a sticky band.");
+        }
+    }
+
     [Fact]
     public async Task Chapters_ReconcileRetainedAppendAndTrimWithoutLosingFocusOrDetails()
     {
@@ -44,7 +78,9 @@ public sealed partial class HighlightsTimelineBrowserTests
     [InlineData("ja-JP", 1440)]
     [InlineData("hu-HU", 390)]
     [InlineData("ar-EG", 390)]
+    [InlineData("bn-BD", 390)]
     [InlineData("fa-IR", 390)]
+    [InlineData("ja-JP", 390)]
     public async Task Chapters_KeepLocalizedDigitsAndAccessibleDatesInTheirActualMonth(string locale, int width)
     {
         await using var context = await NewContextAsync(Browser, App, new()
@@ -54,12 +90,13 @@ public sealed partial class HighlightsTimelineBrowserTests
         });
         var events = """
             [{"Id":"late","Type":0,"Text":"Late October","OccurredAt":"2026-10-23T12:00:00Z"},
-             {"Id":"early","Type":0,"Text":"Early October","OccurredAt":"2026-10-01T12:00:00Z"}]
+             {"Id":"early","Type":0,"Text":"Early October","OccurredAt":"2026-10-01T12:00:00Z"},
+             {"Id":"history","Type":0,"Text":"Previous October","OccurredAt":"2025-10-23T12:00:00Z"}]
             """;
         await context.RouteAsync("**/api/events", r => r.FulfillAsync(new() { ContentType = "application/json", Body = events }));
         var page = await context.NewPageAsync();
         await NavigateAndSettleAsync(page, "/events");
-        await Assertions.Expect(page.Locator("tr.main-row")).ToHaveCountAsync(2);
+        await Assertions.Expect(page.Locator("tr.main-row")).ToHaveCountAsync(3);
         var problems = await page.EvaluateAsync<string[]>(
             """
             () => {
@@ -67,11 +104,12 @@ public sealed partial class HighlightsTimelineBrowserTests
                 const rows=[...document.querySelectorAll('#eventsTable tr.main-row')];
                 const headers=[...document.querySelectorAll('.events-month-row th')];
                 const expectedMonth=new Date('2026-10-23T12:00:00Z').toLocaleDateString(undefined,{calendar:'gregory',month:'long',year:'numeric'});
-                if(headers.length!==1||headers[0].textContent!==expectedMonth) issues.push('chapter label uses a different calendar');
+                if(headers.length!==2||headers[0].textContent!==expectedMonth) issues.push('chapter label uses a different calendar');
                 for(const row of rows){
                     const time=row.querySelector('time'), date=new Date(time.dateTime);
                     const full=date.toLocaleDateString(undefined,{calendar:'gregory',year:'numeric',month:'long',day:'numeric'});
                     if(time.getAttribute('aria-label')!==full) issues.push('full accessible date is missing');
+                    if(date.getFullYear()!==new Date().getFullYear()&&time.textContent!==date.toLocaleDateString(undefined,{calendar:'gregory',year:'numeric',month:'short',day:'numeric'})) issues.push('historical year loses localized digits or order');
                     const day=row.querySelector('.event-date-day');
                     const expected=new Intl.DateTimeFormat(undefined,{calendar:'gregory',month:'short',day:'numeric'}).formatToParts(date).find(p=>p.type==='day').value;
                     if(day?.textContent!==expected) issues.push('localized day digits were not split');
@@ -80,7 +118,9 @@ public sealed partial class HighlightsTimelineBrowserTests
                     for(const rect of range.getClientRects()){
                         if(rect.width>1&&(rect.left<cell.left-1||rect.right>cell.right+1)) issues.push('visible date glyphs leave their cell');
                     }
-                    if(row.parentElement!==headers[0].closest('tbody')||headers[0].scope!=='rowgroup') issues.push('chapter association includes the wrong rows');
+                    const header=row.parentElement.querySelector('.events-month-row th');
+                    const month=date.toLocaleDateString(undefined,{calendar:'gregory',year:'numeric',month:'long'});
+                    if(header?.textContent!==month||header.scope!=='rowgroup') issues.push('chapter association includes the wrong rows');
                 }
                 if(document.documentElement.scrollWidth>innerWidth) issues.push('page overflows');
                 return issues;
