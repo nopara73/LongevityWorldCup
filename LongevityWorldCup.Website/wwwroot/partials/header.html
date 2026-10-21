@@ -55,8 +55,9 @@
     <a href="/play" class="join-game scrolled-button" aria-label="Play the game" style="display: none;">
         <strong>PLAY</strong>
     </a>
-    <div id="custom-alert" role="alertdialog" aria-modal="true" aria-labelledby="custom-alert-title" aria-describedby="custom-alert-message" hidden>
+    <div id="custom-alert" role="alertdialog" aria-modal="true" aria-labelledby="custom-alert-title" aria-describedby="custom-alert-message" data-tone="info" hidden>
         <div class="custom-alert-panel" tabindex="-1">
+            <span class="custom-alert-mark" aria-hidden="true"><i class="fas fa-info"></i></span>
             <h2 id="custom-alert-title" class="visually-hidden">Alert</h2>
             <p id="custom-alert-message"></p>
             <button id="custom-alert-close">OK</button>

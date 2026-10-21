@@ -273,6 +273,9 @@ public sealed class ApplyJourneyBrowserTests(
         await page.WaitForFunctionAsync("() => document.querySelector('#biomarker-checklist .biomarker-item')");
         var proofUpload = await page.EvaluateAsync<double[]>(measureUpload, "#uploadProofButton");
         var tracker = await page.EvaluateAsync<string>(measureNote, "#biomarker-checklist");
+        await page.Locator("#proofPicInput").SetInputFilesAsync(new FilePayload { Name = "page.png", MimeType = "image/png", Buffer = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==") });
+        await page.WaitForFunctionAsync("() => !document.getElementById('proofPicInput').disabled && document.querySelector('#proofImageContainer .proof-page-card')");
+        var proofCard = await page.EvaluateAsync<string>(measureNote, "#proofImageContainer");
 
         await page.EvaluateAsync("() => { currentStage = 6; goToStage(6); }");
         var hint = await page.EvaluateAsync<string>(measureNote, ".convergence-helper-text");
@@ -282,7 +285,9 @@ public sealed class ApplyJourneyBrowserTests(
 
         Assert.InRange(profileUpload[0], profileUpload[1] - 1, profileUpload[1] + 1);
         Assert.InRange(proofUpload[0], proofUpload[1] - 1, proofUpload[1] + 1);
-        Assert.Equal(guidance, tracker);
+        // The tracker is a card in the same shape as the proof pages, not a note.
+        Assert.Equal(proofCard, tracker);
+        Assert.NotEqual(guidance, tracker);
         var guidanceParts = guidance.Split('|');
         var congratsParts = congrats.Split('|');
         Assert.Equal("3px", guidanceParts[0]);
@@ -370,10 +375,12 @@ public sealed class ApplyJourneyBrowserTests(
                 const visual = document.querySelector('.application-review-visual').getBoundingClientRect();
                 const title = document.querySelector('.application-review-title').getBoundingClientRect();
                 const titleStyle = getComputedStyle(document.querySelector('.application-review-title'));
-                const copy = document.querySelector('.application-review-copy.primary').getBoundingClientRect();
+                const foot = document.querySelector('.application-review-foot');
+                const footStyle = getComputedStyle(foot);
+                const footContent = foot.getBoundingClientRect().width - parseFloat(footStyle.paddingLeft) - parseFloat(footStyle.paddingRight);
                 const home = document.querySelector('.application-review-actions .option-button').getBoundingClientRect();
                 return [rect.width, visual.top - rect.top, visual.width, title.top - visual.bottom,
-                    titleStyle.textAlign === 'left' ? 1 : 0, Math.abs(home.width - copy.width), parseFloat(getComputedStyle(panel).borderTopLeftRadius)];
+                    titleStyle.textAlign === 'center' ? 1 : 0, Math.abs(home.width - footContent), parseFloat(getComputedStyle(panel).borderTopLeftRadius)];
             }
             """);
 
@@ -381,7 +388,7 @@ public sealed class ApplyJourneyBrowserTests(
         Assert.True(Math.Abs(layout[1]) <= 2 && Math.Abs(layout[2] - layout[0]) <= 2, $"{width}px: the artwork band should be the card's top edge.");
         Assert.True(layout[3] >= 0, $"{width}px: the title should follow the artwork.");
         Assert.Equal(1, layout[4]);
-        Assert.True(layout[5] <= 1, $"{width}px: Home should span the copy column.");
+        Assert.True(layout[5] <= 1, $"{width}px: Home should span the footer band.");
         Assert.Equal(12, layout[6]);
         await ExpectNoHorizontalOverflowAsync(page);
     }
