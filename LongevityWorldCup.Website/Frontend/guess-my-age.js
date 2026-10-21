@@ -98,6 +98,12 @@ const resetObserver = new MutationObserver(mutations => {
         cancelGmaPresentation();
         clearGmaEphemera();
         document.getElementById('gmaGap')?.remove();
+        document.getElementById('gmaRealBubble')?.remove();
+        delete gmaCard.dataset.gmaReaction;
+        gmaCard.classList.remove('is-submitting', 'is-revealing', 'celebrate-exact', 'celebrate-better', 'gma-done');
+        gmaCard.style.removeProperty('--gma-exit-height');
+        chronoHeading.classList.remove('is-revealing');
+        if (modalContent.classList.contains('gma-result-ready')) modalContent.classList.remove('gma-result-ready');
     }
     if (isGuessMode || isUnavailable
         || athleteSlug !== gmaObservedAthleteSlug || profileImageId !== gmaObservedProfileImageId) {

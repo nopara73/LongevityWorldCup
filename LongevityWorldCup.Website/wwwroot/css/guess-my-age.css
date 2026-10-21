@@ -1239,6 +1239,7 @@
     width: min(94vw, 78rem);
     transform: translate(-50%, -50%);
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     justify-items: center;
     gap: clamp(0.25rem, 1vw, 0.75rem);
     text-align: center;
@@ -1264,6 +1265,9 @@
 .gma-exact-jackpot-kicker,
 .gma-exact-jackpot-subtitle {
     display: block;
+    box-sizing: border-box;
+    min-width: 0;
+    max-width: 100%;
     padding: 0.35rem 0.9rem;
     background: rgba(6, 9, 15, 0.82);
     border: 2px solid rgba(255, 231, 102, 0.82);
@@ -1287,7 +1291,8 @@
     display: block;
     max-width: 100%;
     font-family: Orbitron, Roboto, sans-serif;
-    font-size: clamp(4rem, 14vw, 11rem);
+    /* Fit the unbroken title and its 1.22x finale pulse even with enlarged text. */
+    font-size: min(clamp(4rem, 14vw, 11rem), 11.5vw);
     font-weight: 900;
     line-height: 0.86;
     letter-spacing: -0.06em;
@@ -1468,7 +1473,7 @@
 
     .gma-exact-jackpot-title {
         /* Leave room for the 1.22x finale slam without clipping the unbroken word. */
-        font-size: clamp(2.75rem, 11vw, 5.2rem);
+        font-size: min(clamp(2.75rem, 11vw, 5.2rem), 11.5vw);
         -webkit-text-stroke-width: 1px;
     }
 

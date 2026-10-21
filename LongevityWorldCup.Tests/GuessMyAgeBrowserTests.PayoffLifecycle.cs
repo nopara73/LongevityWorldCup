@@ -169,7 +169,50 @@ public sealed partial class GuessMyAgePayoffBrowserTests
             """);
         await page.Clock.RunForAsync(100);
         Assert.Equal(0, await page.Locator(".gma-celebration-spark, .gma-pop-banner, .gma-reaction, #gmaGap").CountAsync());
+        Assert.Equal(0, await page.Locator("#gmaRealBubble, #guessAgeContainer.is-submitting, #guessAgeContainer.is-revealing, #guessAgeContainer.celebrate-better").CountAsync());
+        Assert.Null(await page.Locator("#guessAgeContainer").GetAttributeAsync("data-gma-reaction"));
+        Assert.Equal("", await page.Locator("#guessAgeContainer").EvaluateAsync<string>("e => e.style.getPropertyValue('--gma-exit-height')"));
         await page.Clock.RunForAsync(20000);
         Assert.True(await page.Locator(".modal-content").EvaluateAsync<bool>("e => e.classList.contains('guess-mode')"));
+    }
+
+    [Theory]
+    [InlineData(320, 760)]
+    [InlineData(390, 844)]
+    [InlineData(1440, 900)]
+    public async Task EnlargedJackpot_KeepsTheLandedCopyAndFinalePulseInsideTheViewport(int width, int height)
+    {
+        await using var context = await NewStageContextAsync(Browser, App.BaseAddress,
+            """{"crowdAge":100,"crowdCount":12,"actualAge":41,"guessAccepted":true}""", width, height);
+        var page = await OpenStageAsync(context, "payoff-enlarged-jackpot", 41);
+        await page.EvaluateAsync("() => document.documentElement.style.fontSize = '200%'");
+        await SubmitAndSettleAsync(page);
+        await page.Clock.RunForAsync(12100);
+        await page.EvaluateAsync("""
+            async () => {
+                await document.fonts.ready;
+                for (const animation of document.querySelector('.gma-exact-jackpot-copy').getAnimations({ subtree: true })) {
+                    animation.pause();
+                    const timing = animation.effect.getTiming();
+                    animation.currentTime = animation.animationName === 'gma-exact-title-finale'
+                        ? timing.delay + timing.duration * 0.52 : timing.delay + timing.duration;
+                }
+            }
+            """);
+        var bounds = await page.EvaluateAsync<JsonElement[]>("""
+            () => [...document.querySelectorAll('.gma-exact-jackpot-kicker, .gma-exact-jackpot-title, .gma-exact-jackpot-subtitle')]
+                .map(element => {
+                    const range = document.createRange(); range.selectNodeContents(element);
+                    const rect = range.getBoundingClientRect();
+                    return { text: element.textContent, left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom };
+                })
+            """);
+        foreach (var bound in bounds)
+        {
+            Assert.True(bound.GetProperty("left").GetDouble() >= 0
+                && bound.GetProperty("right").GetDouble() <= width
+                && bound.GetProperty("top").GetDouble() >= 0
+                && bound.GetProperty("bottom").GetDouble() <= height, $"Jackpot copy is clipped: {bound}");
+        }
     }
 }
