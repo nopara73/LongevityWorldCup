@@ -926,7 +926,7 @@ interface Window {
         start();
     }
 
-    function ensureBiomarkerVisible(input: HTMLInputElement): void {
+    function ensureBiomarkerVisible(input: HTMLInputElement | HTMLSelectElement): void {
         const reveal = () => {
             const dock = getFlowActionDock();
             dock?.refreshNow?.();
@@ -935,8 +935,16 @@ interface Window {
             const visualViewport = window.visualViewport;
             const top = visualViewport?.offsetTop || 0;
             const bottom = top + (visualViewport?.height || window.innerHeight);
+            const band = input.closest('fieldset')?.querySelector<HTMLElement>(':scope > legend');
+            const bandHeight = band && getComputedStyle(band).position === 'sticky'
+                ? band.getBoundingClientRect().height : 0;
+            const fixedBottom = parseFloat(getComputedStyle(document.documentElement)
+                .getPropertyValue('--bioage-band-top')) || 0;
+            const clearTop = Math.max(top, fixedBottom) + bandHeight + 16;
             const rect = input.getBoundingClientRect();
-            if (rect.bottom > bottom - 16 || rect.top < top + 16) {
+            if (rect.top < clearTop) {
+                window.scrollBy({ top: Math.floor(rect.top - clearTop), behavior: 'auto' });
+            } else if (rect.bottom > bottom - 16) {
                 input.scrollIntoView({
                     block: 'center',
                     inline: 'nearest',
@@ -1088,6 +1096,8 @@ interface Window {
                 expandBiomarkerCard(input);
                 ensureBiomarkerVisible(input);
             });
+            const unit = controller.form.querySelector<HTMLSelectElement>(`#${input.id}Unit`);
+            unit?.addEventListener('focus', () => ensureBiomarkerVisible(unit));
             window.LwcFieldValidation.bind(input, {
                 validate: () => {
                     const valid = isCompleteBiomarkerInput(input)

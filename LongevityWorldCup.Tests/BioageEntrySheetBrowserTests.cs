@@ -227,6 +227,42 @@ public sealed class BioageEntrySheetBrowserTests(
         Assert.True(problems.Length == 0, string.Join(Environment.NewLine, problems));
     }
 
+    [Theory]
+    [InlineData("/pheno-age", 160, 450)]
+    [InlineData("/bortz-age", 160, 450)]
+    [InlineData("/pheno-age", 390, 844)]
+    [InlineData("/bortz-age", 390, 844)]
+    public async Task ReverseUnitFocus_KeepsTheSelectedControlClearOfItsStickyBand(string path, int width, int height)
+    {
+        var page = await OpenAsync(path, width, height, ColorScheme.Light);
+        await FillBioageStepOneAsync(page, "2026-09-01");
+        if (path == "/bortz-age") await FillBortzBiomarkersAsync(page);
+        else await FillPhenoBiomarkersAsync(page);
+
+        // Reverse keyboard navigation must still reach the unit on a phone,
+        // where forward Tab intentionally advances directly between values.
+        var secondValue = page.Locator("#lwc-step-2 input[type=number]").Nth(1);
+        await secondValue.FocusAsync();
+        await page.Keyboard.PressAsync("Shift+Tab");
+        await Assertions.Expect(page.Locator("#wbcUnit")).ToBeFocusedAsync();
+
+        var units = await page.Locator("#lwc-step-2 select:visible").EvaluateAllAsync<string[]>(
+            "selects => selects.map(select => select.id).reverse()");
+        foreach (var id in units)
+        {
+            await page.Locator($"#{id}").FocusAsync();
+            await page.WaitForFunctionAsync(
+                """
+                id => {
+                    const unit = document.getElementById(id);
+                    const box = unit.getBoundingClientRect();
+                    return document.activeElement === unit
+                        && document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2) === unit;
+                }
+                """, id);
+        }
+    }
+
     public override async Task DisposeAsync()
     {
         foreach (var context in _contexts) await context.DisposeAsync();
