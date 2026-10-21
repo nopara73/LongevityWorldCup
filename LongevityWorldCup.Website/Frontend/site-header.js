@@ -192,6 +192,8 @@ function inferCustomAlertTone(message) {
 
 function renderCustomAlertMessage(message) {
     const text = String(message);
+    customAlertMessage.tabIndex = -1;
+    customAlertMessage.scrollTop = 0;
     const separator = /\r?\n[\t ]*\r?\n/.exec(text);
     const lead = document.createElement('span');
     lead.className = 'custom-alert-lead';
@@ -248,6 +250,7 @@ function showNextCustomAlert() {
     customAlertOwnsScrollLock ||= !document.body.classList.contains('no-scroll');
     document.body.classList.add('no-scroll');
     requestAnimationFrame(() => {
+        updateCustomAlertMessageFocus();
         if (customAlertActive === entry && !customAlertDialog.hidden
             && (document.activeElement === customAlertPreviousFocus || document.activeElement === document.body
                 || customAlertDialog.contains(document.activeElement))) {
@@ -255,6 +258,15 @@ function showNextCustomAlert() {
         }
     });
 }
+
+function updateCustomAlertMessageFocus() {
+    if (!customAlertDialog.hidden) {
+        customAlertMessage.tabIndex = customAlertMessage.scrollHeight > customAlertMessage.clientHeight + 1 ? 0 : -1;
+    }
+}
+
+const customAlertMessageResizeObserver = new ResizeObserver(updateCustomAlertMessageFocus);
+customAlertMessageResizeObserver.observe(customAlertMessage);
 
 function showLoading() {
     loadingDialogPreviousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -296,9 +308,9 @@ function trapFocusWithin(container, event) {
     const last = focusable[focusable.length - 1];
     const active = document.activeElement;
 
-    if (!container.contains(active)) {
+    if (!container.contains(active) || !focusable.includes(active)) {
         event.preventDefault();
-        first.focus();
+        (event.shiftKey ? last : first).focus();
     } else if (event.shiftKey && active === first) {
         event.preventDefault();
         last.focus();

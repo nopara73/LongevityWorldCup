@@ -532,6 +532,14 @@ button.option-button:disabled {
         overflow-wrap: anywhere;
         word-break: normal;
         text-align: center;
+        min-height: 0;
+        overflow: auto;
+        overscroll-behavior: contain;
+    }
+
+    #custom-alert-message:focus-visible {
+        outline: 2px solid var(--lwc-accent);
+        outline-offset: 4px;
     }
 
     .custom-alert-lead,
@@ -680,6 +688,22 @@ button.option-button:disabled {
 
     to {
         transform: none;
+    }
+}
+
+@media (max-height: 300px) {
+    .custom-alert-panel {
+        max-height: calc(100dvh - max(12px, env(safe-area-inset-top)));
+        padding-block: 0.75rem;
+        padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+    }
+
+    .custom-alert-mark {
+        display: none;
+    }
+
+    #custom-alert p {
+        margin-bottom: 0.75rem;
     }
 }
 

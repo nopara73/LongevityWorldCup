@@ -325,6 +325,37 @@ public sealed class CustomAlertDialogBrowserTests(
         await Assertions.Expect(page.Locator("#dob-year")).ToBeFocusedAsync();
     }
 
+    [Theory]
+    [InlineData(1280, 720)]
+    [InlineData(390, 300)]
+    [InlineData(320, 160)]
+    public async Task Alert_LongDetailsKeepOkVisibleAndCanBeScrolledWithTheKeyboard(int width, int height)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = height }, ReducedMotion = ReducedMotion.Reduce
+        });
+        var page = await context.NewPageAsync();
+        await NavigateAndSettleAsync(page, "/apply");
+        await page.EvaluateAsync("() => { void customAlert('Failed to submit.\\r\\n\\r\\n' + 'Long server detail & <unsafe> '.repeat(100)); }");
+        await Assertions.Expect(page.Locator("#custom-alert-close")).ToBeFocusedAsync();
+        Assert.True(await page.Locator("#custom-alert-close").EvaluateAsync<bool>("""
+            button => {
+                const rect = button.getBoundingClientRect();
+                return rect.top >= 0 && rect.bottom <= innerHeight + 1
+                    && button.contains(document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2));
+            }
+            """), "OK must stay reachable without first scrolling a long server detail.");
+        await page.Keyboard.PressAsync("Tab");
+        await Assertions.Expect(page.Locator("#custom-alert-message")).ToBeFocusedAsync();
+        await page.Keyboard.PressAsync("PageDown");
+        await page.WaitForFunctionAsync("() => document.getElementById('custom-alert-message').scrollTop > 0");
+        await page.Keyboard.PressAsync("Shift+Tab");
+        await Assertions.Expect(page.Locator("#custom-alert-close")).ToBeFocusedAsync();
+        await page.Keyboard.PressAsync("Escape");
+        await Assertions.Expect(page.Locator("#custom-alert")).ToBeHiddenAsync();
+    }
+
     [Fact]
     public async Task Alert_PreservesAnExistingScrollLockAndReleasesALoadingHandoff()
     {

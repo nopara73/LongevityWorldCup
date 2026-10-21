@@ -149,7 +149,8 @@ public sealed class ApplicationReviewCelebrationBrowserTests(
     [InlineData("{\"checkedInvoice\":true,\"isPaid\":false,\"status\":\"Processing\"}", "is-waiting")]
     [InlineData("{\"checkedInvoice\":true,\"isPaid\":false,\"status\":\"Failed\"}", "is-failed")]
     [InlineData("{\"checkedInvoice\":true,\"isPaid\":false,\"status\":\"Cancelled\"}", "is-failed")]
-    [InlineData("{\"checkedInvoice\":true,\"isPaid\":true,\"status\":\"Expired\"}", "is-failed")]
+    [InlineData("{\"checkedInvoice\":true,\"isPaid\":false,\"status\":\"Expired\"}", "is-failed")]
+    [InlineData("{\"checkedInvoice\":true,\"isPaid\":true,\"status\":\"Expired\"}", "is-done")]
     public async Task Review_OnlyVerifiedPaidResponsesAdvanceTheTrail(string response, string state)
     {
         await using var context = await NewReviewContextAsync(390, 844, "dark");
@@ -161,8 +162,10 @@ public sealed class ApplicationReviewCelebrationBrowserTests(
         var page = await context.NewPageAsync();
         await NavigateAndSettleAsync(page, "/review");
         await Assertions.Expect(page.Locator("[data-step='payment']")).ToHaveClassAsync(state);
-        await Assertions.Expect(page.Locator("[data-step='review']")).ToHaveClassAsync("");
-        Assert.NotNull(await page.EvaluateAsync<string?>("sessionStorage.getItem('pendingPaymentInvoice')"));
+        await Assertions.Expect(page.Locator("[data-step='review']")).ToHaveClassAsync(state == "is-done" ? "is-current" : "");
+        var stored = await page.EvaluateAsync<string?>("sessionStorage.getItem('pendingPaymentInvoice')");
+        if (state == "is-done") Assert.Null(stored);
+        else Assert.NotNull(stored);
     }
 
     [Fact]
@@ -226,10 +229,16 @@ public sealed class ApplicationReviewCelebrationBrowserTests(
         Assert.Null(await page.EvaluateAsync<string?>("localStorage.getItem('hasApplication')"));
     }
 
-    [Fact]
-    public async Task Review_ZoomNarrowTrailKeepsEveryIconInsideTheCard()
+    [Theory]
+    [InlineData(160)]
+    [InlineData(261)]
+    [InlineData(270)]
+    [InlineData(279)]
+    [InlineData(280)]
+    [InlineData(320)]
+    public async Task Review_ZoomNarrowTrailKeepsEveryIconInsideTheCard(int width)
     {
-        await using var context = await NewReviewContextAsync(160, 320, "dark");
+        await using var context = await NewReviewContextAsync(width, 320, "dark");
         await context.AddInitScriptAsync($"sessionStorage.setItem('pendingPaymentInvoice', {System.Text.Json.JsonSerializer.Serialize(PendingInvoice)});");
         await context.RouteAsync("**/api/application/payment-status", route => route.FulfillAsync(new()
         {
@@ -246,7 +255,7 @@ public sealed class ApplicationReviewCelebrationBrowserTests(
                     return rect.left >= trail.left - 1 && rect.right <= trail.right + 1;
                 });
             }
-            """), "At an effective 160px viewport the trail must wrap without clipping an icon.");
+            """), $"At an effective {width}px viewport the trail must fit without clipping an icon.");
     }
 
     private async Task<IBrowserContext> NewReviewContextAsync(int width, int height, string scheme)

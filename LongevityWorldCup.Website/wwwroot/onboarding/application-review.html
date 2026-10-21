@@ -418,7 +418,7 @@
             }
         }
 
-        @media (max-width: 260px) {
+        @media (max-width: 280px) {
             .application-review-panel {
                 --review-seal: 36px;
                 --review-step: 24px;
@@ -829,12 +829,8 @@
                 }
 
                 const status = typeof result.status === 'string' ? result.status.trim().toLowerCase() : '';
-                if (['expired', 'invalid', 'failed', 'cancelled', 'canceled'].includes(status)) {
-                    paymentCheckComplete = true;
-                    setTrailStep('payment', 'is-failed');
-                    document.querySelector('[data-step="payment"] i').className = 'fas fa-circle-xmark';
-                    document.getElementById('review-payment-status').textContent = 'Payment was not confirmed: ' + status + '.';
-                } else if (result.isPaid === true) {
+                // The server also recognizes recorded payments on expired invoices.
+                if (result.isPaid === true) {
                     paymentCheckComplete = true;
                     setTrailStep('payment', 'is-done');
                     setTrailStep('review', 'is-current');
@@ -848,6 +844,11 @@
                     if (completedSubmissionId && typeof window.clearPendingApplicationSubmission === 'function') {
                         window.clearPendingApplicationSubmission(completedSubmissionId);
                     }
+                } else if (['expired', 'invalid', 'failed', 'cancelled', 'canceled'].includes(status)) {
+                    paymentCheckComplete = true;
+                    setTrailStep('payment', 'is-failed');
+                    document.querySelector('.application-review-trail [data-step="payment"] i').className = 'fas fa-circle-xmark';
+                    document.getElementById('review-payment-status').textContent = 'Payment was not confirmed: ' + status + '.';
                 }
             } catch (_) {
                 if (!paymentCheckStopped && paymentCheckAbort === controller) {
