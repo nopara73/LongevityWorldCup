@@ -246,4 +246,51 @@ public sealed class TransactionalEmailFamilyTests
         Assert.DoesNotContain("<Ada & Co>", submission);
         Assert.Contains(">Hi &lt;b&gt;Ada&lt;/b&gt;,</h1>", lmx.HtmlBody);
     }
+
+    [Theory]
+    [InlineData("javascript:alert(1)")]
+    [InlineData("data:text/html,<h1>Pay</h1>")]
+    [InlineData("//example.test/pay")]
+    [InlineData("https://name:password@example.test/pay")]
+    [InlineData("https://example.test/pay\r\nInjected: value")]
+    public void ClickableEmailLinks_RejectUnsafeDestinations(string url)
+    {
+        Assert.Throws<ArgumentException>(() => TransactionalEmail.Link(url, "Community"));
+        Assert.Throws<ArgumentException>(() => new TransactionalEmail("Message").Action("Pay", url));
+        Assert.Throws<ArgumentException>(() => new TransactionalEmail("Message").FooterLink(url, "Stop"));
+    }
+
+    [Fact]
+    public void EmailLinks_PreserveQueryAndFragmentWhileEncodingAttributeAndLabel()
+    {
+        const string url = "https://example.test/path?token=a%2Bb&next=%2Flongevitymaxxing#check-in";
+        var html = new TransactionalEmail("<Title>")
+            .Greeting("Hi <Ada>,")
+            .Action("Check <in> & reply", url)
+            .FooterLink(url, "Stop <reminders>")
+            .Render();
+
+        Assert.Equal(2, html.Split("href=\"https://example.test/path?token=a%2Bb&amp;next=%2Flongevitymaxxing#check-in\"", StringSplitOptions.None).Length - 1);
+        Assert.Contains("Check &lt;in&gt; &amp; reply", html);
+        Assert.Contains("<title>&lt;Title&gt;</title>", html);
+        Assert.DoesNotContain("<Ada>", html);
+    }
+
+    [Fact]
+    public void Digest_EncodesEveryAuthorAndWelcomeNameAndPreservesUnsubscribeDestination()
+    {
+        var digest = new LongevitymaxxingDiscussionDigest(4, 0,
+        [new(LongevitymaxxingDiscussionActivityKind.Mention, 1, "2026-10-20", 4,
+            ["<img src=x onerror=alert(1)>", "<b>Bea</b>", "<a href=evil>Cal</a>", "More"], "participant-joined", "<script>Ada</script>")], ["n1"]);
+        var content = SmtpLongevitymaxxingEmailSender.BuildDailyReminderEmailContent(Reminder(digest: digest),
+            "https://example.test/check?token=private&day=3", StopUrl + "&source=daily");
+
+        Assert.Contains("&lt;script&gt;Ada&lt;/script&gt;", content.HtmlBody);
+        Assert.Contains("&lt;img src=x onerror=alert(1)&gt;", content.HtmlBody);
+        Assert.Contains("and 1 more", content.HtmlBody);
+        Assert.DoesNotContain("<script>", content.HtmlBody);
+        Assert.Contains("href=\"" + StopUrl + "&amp;source=daily\"", content.HtmlBody);
+        Assert.DoesNotContain("stop-token&amp;utm_", content.HtmlBody);
+        Assert.Contains("utm_content=daily_reminder", content.TextBody);
+    }
 }

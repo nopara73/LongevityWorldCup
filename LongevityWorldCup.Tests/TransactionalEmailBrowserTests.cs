@@ -1,4 +1,5 @@
 using Microsoft.Playwright;
+using System.Text.RegularExpressions;
 using Xunit;
 using static LongevityWorldCup.Tests.AestheticSystemBrowserTests;
 using static LongevityWorldCup.Tests.FlowActionDockBrowserTests;
@@ -11,6 +12,65 @@ public sealed class TransactionalEmailBrowserTests(
     BrowserTestAppFixture appFixture)
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
+    [Theory]
+    [InlineData(1440, "outlook")]
+    [InlineData(390, "inline-only")]
+    [InlineData(320, "inline-only")]
+    [InlineData(320, "enlarged-text")]
+    [InlineData(195, "zoom-reflow")]
+    [InlineData(160, "zoom-reflow")]
+    public async Task EmailFallbacks_KeepContentAndActionsReadable(int width, string mode)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = 844 },
+            ReducedMotion = ReducedMotion.Reduce
+        });
+        await context.RouteAsync("https://**/*", route => route.AbortAsync());
+        var page = await context.NewPageAsync();
+        foreach (var (name, original) in TransactionalEmailFamilyTests.AthleteEmails())
+        {
+            var html = mode is "enlarged-text" or "zoom-reflow" ? original : Regex.Replace(original, "<style>.*?</style>", "", RegexOptions.Singleline);
+            if (mode == "outlook")
+            {
+                // Materialize MSO-only markup and remove unsupported table width CSS.
+                // This checks the fallback contract; Chromium is not the Word rendering engine.
+                Assert.Contains("<!--[if mso]><table role=\"presentation\" width=\"560\"", html);
+                if (html.Contains("class=\"lwc-email-action-link\"", StringComparison.Ordinal))
+                    Assert.Contains("mso-padding-alt:15px 20px", html);
+                html = Regex.Replace(html, @"<!--\[if mso\]>(.*?)<!\[endif\]-->", "$1", RegexOptions.Singleline);
+                html = html.Replace("max-width:560px;", "").Replace("table-layout:fixed;", "");
+            }
+            await page.SetContentAsync(html);
+            if (mode == "enlarged-text")
+                await page.EvaluateAsync("() => { for (const e of document.querySelectorAll('h1,p,a,span,td')) { const size=parseFloat(getComputedStyle(e).fontSize); e.dataset.textSize=size; } for (const e of document.querySelectorAll('[data-text-size]')) e.style.setProperty('font-size', (+e.dataset.textSize*2)+'px','important'); }");
+            await ExpectNoHorizontalOverflowAsync(page);
+            if (mode == "outlook")
+                Assert.InRange(await page.Locator(".lwc-email-shell").EvaluateAsync<double>("e => e.getBoundingClientRect().width"), 559, 561);
+
+            var clipped = await page.EvaluateAsync<string[]>(
+                """
+                () => {
+                    const bad=[];
+                    const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);
+                    for(let n; n=walker.nextNode();) {
+                        if(!n.textContent.trim() || ['STYLE','SCRIPT'].includes(n.parentElement.tagName)) continue;
+                        const range=document.createRange(); range.selectNodeContents(n);
+                        for(const r of range.getClientRects()) if(r.left < -1 || r.right > innerWidth+1) bad.push(n.textContent.trim());
+                    }
+                    return bad;
+                }
+                """);
+            Assert.True(clipped.Length == 0, $"{name}, {mode}: clipped glyphs: {string.Join(" | ", clipped)}");
+            if (name.StartsWith("lmx-") && name is not "lmx-confirmation" and not "lmx-access")
+            {
+                var stop = page.GetByRole(AriaRole.Link, new() { Name = "Stop Challenge reminder emails" });
+                Assert.Equal(TransactionalEmailFamilyTests.StopUrl, await stop.GetAttributeAsync("href"));
+                Assert.True((await stop.BoundingBoxAsync())!.Height >= 44);
+            }
+        }
+    }
+
     [Theory]
     [InlineData(1280, false)]
     [InlineData(390, false)]

@@ -502,7 +502,7 @@ namespace LongevityWorldCup.Website.Controllers
                 // Moved this block after processing images to include paths
 
                 // Create the email message
-                var message = new MimeMessage();
+                using var message = new MimeMessage();
                 message.From.Add(CreateConfiguredFromAddress(config, applicantData.Name));
                 message.To.Add(CreateConfiguredToAddress(config));
                 var applicationSubject = BuildApplicationSubject(applicantData.Name);
@@ -1362,7 +1362,7 @@ namespace LongevityWorldCup.Website.Controllers
 
             try
             {
-                var message = new MimeMessage();
+                using var message = new MimeMessage();
                 message.From.Add(CreateConfiguredFromAddress(config, "Longevity World Cup"));
                 message.To.Add(CreateSubmissionConfirmationRecipient(trimmedEmail));
                 message.Subject = BuildSubmissionConfirmationSubject(isResultSubmissionOnly, isEditSubmissionOnly);
@@ -1583,7 +1583,7 @@ namespace LongevityWorldCup.Website.Controllers
                 return StatusCode(500, $"Failed to load configuration: {ex.Message}");
             }
 
-            var message = BuildInterviewRequestEmail(config, email);
+            using var message = BuildInterviewRequestEmail(config, email);
 
             try
             {
@@ -2281,7 +2281,7 @@ namespace LongevityWorldCup.Website.Controllers
                 : trimmed.Replace('-', '_');
         }
 
-        private static async Task SendEmailThroughSmtpAsync(Config config, MimeMessage message, CancellationToken ct = default)
+        private async Task SendEmailThroughSmtpAsync(Config config, MimeMessage message, CancellationToken ct = default)
         {
             var smtpServer = RequireConfiguredValue(config.SmtpServer, nameof(config.SmtpServer));
             var smtpUser = RequireConfiguredValue(config.SmtpUser, nameof(config.SmtpUser));
@@ -2294,8 +2294,7 @@ namespace LongevityWorldCup.Website.Controllers
 
             await client.AuthenticateAsync(smtpUser, smtpPassword, ct);
 
-            await client.SendAsync(message, ct);
-            await client.DisconnectAsync(true, ct);
+            await SmtpMessageDelivery.SendAsync(client, message, _logger, ct);
         }
 
         private static MailboxAddress CreateConfiguredFromAddress(Config config, string? displayName)

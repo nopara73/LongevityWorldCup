@@ -2,6 +2,7 @@ using MailKit.Net.Smtp;
 using MailKit.Security;
 using MimeKit;
 using Microsoft.AspNetCore.WebUtilities;
+using LongevityWorldCup.Website.Tools;
 
 namespace LongevityWorldCup.Website.Business;
 
@@ -17,6 +18,10 @@ public sealed class SmtpLongevitymaxxingEmailSender(Config config, ILogger<SmtpL
 {
     private readonly Config _config = config;
     private readonly ILogger<SmtpLongevitymaxxingEmailSender> _logger = logger;
+    private readonly Func<SmtpClient> _createClient = () => new SmtpClient();
+
+    internal SmtpLongevitymaxxingEmailSender(Config config, ILogger<SmtpLongevitymaxxingEmailSender> logger, Func<SmtpClient> createClient)
+        : this(config, logger) => _createClient = createClient;
 
     public Task SendConfirmationAsync(string email, string displayName, string confirmationUrl, CancellationToken ct = default)
         => SendAsync(email, displayName, BuildConfirmationEmailContent(displayName, confirmationUrl), ct);
@@ -239,19 +244,19 @@ public sealed class SmtpLongevitymaxxingEmailSender(Config config, ILogger<SmtpL
         var smtpPort = RequireConfiguredPort(_config.SmtpPort);
         var smtpPassword = _config.GetSmtpPassword();
 
-        var message = new MimeMessage();
+        using var message = new MimeMessage();
         message.From.Add(new MailboxAddress("Longevity World Cup", RequireConfiguredValue(_config.EmailFrom, nameof(_config.EmailFrom))));
         message.To.Add(new MailboxAddress(displayName ?? string.Empty, email));
         message.Subject = content.Subject;
         message.Body = new BodyBuilder { TextBody = content.TextBody, HtmlBody = content.HtmlBody }.ToMessageBody();
 
-        using var client = new SmtpClient();
+        using var client = _createClient();
+        client.Timeout = checked((int)PublicRequestTimeoutPolicies.ApplicationExternalDependencyTimeout.TotalMilliseconds);
         await client.ConnectAsync(smtpServer, smtpPort, SecureSocketOptions.StartTls, ct).ConfigureAwait(false);
         await client.AuthenticateAsync(smtpUser, smtpPassword, ct).ConfigureAwait(false);
-        await client.SendAsync(message, ct).ConfigureAwait(false);
-        await client.DisconnectAsync(true, ct).ConfigureAwait(false);
+        await SmtpMessageDelivery.SendAsync(client, message, _logger, ct).ConfigureAwait(false);
 
-        _logger.LogInformation("Sent Longevitymaxxing email '{Subject}' to {Email}", content.Subject, email);
+        _logger.LogInformation("SMTP accepted a Longevitymaxxing email.");
     }
 
     private static string SafeName(string? displayName)
