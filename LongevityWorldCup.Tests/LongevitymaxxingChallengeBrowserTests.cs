@@ -1329,8 +1329,20 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
             Assert.Equal("Corrected reply for @Ari Able.", json.RootElement.GetProperty("body").GetString());
         }
 
-        page.Dialog += async (_, dialog) => await dialog.AcceptAsync();
-        await editedReplies.First.Locator("[data-discussion-reply-delete]").ClickAsync();
+        var confirmDeletion = false;
+        page.Dialog += async (_, dialog) =>
+        {
+            if (confirmDeletion) await dialog.AcceptAsync();
+            else await dialog.DismissAsync();
+        };
+        var deleteButton = editedReplies.First.Locator("[data-discussion-reply-delete]");
+        await deleteButton.ClickAsync();
+        Assert.Null(deletePayload);
+        await Assertions.Expect(editedReplies).ToHaveCountAsync(1);
+        await Assertions.Expect(deleteButton).ToBeFocusedAsync();
+        await Assertions.Expect(deleteButton).ToBeEnabledAsync();
+        confirmDeletion = true;
+        await deleteButton.ClickAsync();
         await Assertions.Expect(page.Locator("[data-discussion-reply-id='r6']")).ToHaveCountAsync(0);
         await Assertions.Expect(foxSurfaces).ToHaveCountAsync(1);
         for (var index = 0; index < await foxSurfaces.CountAsync(); index++)

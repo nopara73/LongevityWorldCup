@@ -728,8 +728,10 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
     {
         await using var context = await NewContextAsync(Browser, App, new());
         var state = AdviceBrowserState(2);
+        var withdrawals = 0;
         await context.RouteAsync("**/api/longevitymaxxing/advice/withdraw", async route =>
         {
+            withdrawals++;
             var updated = state["notes"]![0]!.DeepClone();
             updated["advice"]!["withdrawn"] = true;
             updated["advice"]!["story"] = "";
@@ -741,11 +743,24 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
             await FulfillJsonAsync(route, response.ToJsonString());
         });
         var page = await OpenDiscussionWorkspaceAsync(context, state);
-        page.Dialog += async (_, dialog) => await dialog.AcceptAsync();
+        var confirmWithdrawal = false;
+        page.Dialog += async (_, dialog) =>
+        {
+            if (confirmWithdrawal) await dialog.AcceptAsync();
+            else await dialog.DismissAsync();
+        };
+        var withdraw = page.Locator("#lmxNotes [data-advice-withdraw]");
+        await withdraw.ClickAsync();
+        Assert.Equal(0, withdrawals);
+        await Assertions.Expect(withdraw).ToBeFocusedAsync();
+        await Assertions.Expect(withdraw).ToBeEnabledAsync();
+        await Assertions.Expect(page.Locator("#lmxNotes .lmx-advice-story")).ToContainTextAsync(AdviceStory);
+        confirmWithdrawal = true;
         await page.Locator("#lmxNotes [data-advice-withdraw]").ClickAsync();
         await Assertions.Expect(page.Locator("#lmxNotes .lmx-advice-story")).ToContainTextAsync("Advice request withdrawn");
         await Assertions.Expect(page.Locator("#lmxNotes .lmx-advice-story")).Not.ToContainTextAsync(AdviceStory);
         await Assertions.Expect(page.Locator("#lmxNotes [data-discussion-reply][data-advice-root-id]")).ToHaveCountAsync(0);
+        Assert.Equal(1, withdrawals);
     }
 
     [Fact]
