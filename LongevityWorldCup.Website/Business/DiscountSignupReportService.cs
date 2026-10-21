@@ -5,6 +5,8 @@ using MailKit.Net.Smtp;
 using MailKit.Security;
 using Microsoft.Data.Sqlite;
 using MimeKit;
+using LongevityWorldCup.Website.Tools;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace LongevityWorldCup.Website.Business;
 
@@ -13,8 +15,14 @@ public interface IDiscountSignupReportEmailSender
     Task SendAsync(Config config, IReadOnlyList<string> recipientEmails, string subject, string textBody, CancellationToken ct = default);
 }
 
-public sealed class SmtpDiscountSignupReportEmailSender : IDiscountSignupReportEmailSender
+public sealed class SmtpDiscountSignupReportEmailSender(ILogger<SmtpDiscountSignupReportEmailSender>? logger = null) : IDiscountSignupReportEmailSender
 {
+    private readonly ILogger _logger = logger ?? NullLogger<SmtpDiscountSignupReportEmailSender>.Instance;
+    private readonly Func<SmtpClient> _createClient = () => new SmtpClient();
+
+    internal SmtpDiscountSignupReportEmailSender(ILogger<SmtpDiscountSignupReportEmailSender> logger, Func<SmtpClient> createClient)
+        : this(logger) => _createClient = createClient;
+
     public async Task SendAsync(Config config, IReadOnlyList<string> recipientEmails, string subject, string textBody, CancellationToken ct = default)
     {
         var smtpServer = RequireConfiguredValue(config.SmtpServer, nameof(config.SmtpServer));
@@ -23,7 +31,7 @@ public sealed class SmtpDiscountSignupReportEmailSender : IDiscountSignupReportE
         var smtpPassword = config.GetSmtpPassword();
         var recipients = RequireConfiguredRecipients(recipientEmails);
 
-        var message = new MimeMessage();
+        using var message = new MimeMessage();
         message.From.Add(new MailboxAddress("Longevity World Cup", RequireConfiguredValue(config.EmailFrom, nameof(config.EmailFrom))));
         foreach (var recipient in recipients)
         {
@@ -32,13 +40,13 @@ public sealed class SmtpDiscountSignupReportEmailSender : IDiscountSignupReportE
         message.Subject = subject;
         message.Body = new BodyBuilder { TextBody = textBody }.ToMessageBody();
 
-        using var client = new SmtpClient();
+        using var client = _createClient();
+        client.Timeout = checked((int)PublicRequestTimeoutPolicies.ApplicationExternalDependencyTimeout.TotalMilliseconds);
         await client.ConnectAsync(smtpServer, smtpPort, SecureSocketOptions.StartTls, ct).ConfigureAwait(false);
 
         await client.AuthenticateAsync(smtpUser, smtpPassword, ct).ConfigureAwait(false);
 
-        await client.SendAsync(message, ct).ConfigureAwait(false);
-        await client.DisconnectAsync(true, ct).ConfigureAwait(false);
+        await SmtpMessageDelivery.SendAsync(client, message, _logger, ct).ConfigureAwait(false);
     }
 
     private static string RequireConfiguredValue(string? value, string name)

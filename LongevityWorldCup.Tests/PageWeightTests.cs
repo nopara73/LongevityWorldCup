@@ -33,6 +33,14 @@ public sealed class PageWeightTests(TestWebApplicationFactory factory)
             Assert.Contains("/js/documentation.js?v=", html);
             Assert.DoesNotContain("const updateCurrentSection =", html);
         }
+        if (path == "/events")
+        {
+            var stylesheet = Regex.Match(html, @"/css/highlights-page\.css\?v=[^""']+");
+            Assert.True(stylesheet.Success, "Highlights styles must be versioned independently of the HTML.");
+            using var response = await client.GetAsync(stylesheet.Value);
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            Assert.Contains("immutable", response.Headers.CacheControl!.ToString());
+        }
 
         // Dynamic font URLs still use the same version as the head's preload.
         Assert.Matches(@"src: url\('/assets/fonts/Roboto-Regular\.woff2\?v=[^']+'\)", html);
