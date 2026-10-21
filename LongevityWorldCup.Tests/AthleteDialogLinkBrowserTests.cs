@@ -63,10 +63,8 @@ public sealed class AthleteDialogLinkBrowserTests(
     {
         await using var context = await NewContextAsync(Browser, App, width: 1440, height: 900);
         await context.AddInitScriptAsync("localStorage.setItem('gmaSkipAll', 'true');");
-        await context.RouteAsync("**/api/data/athletes", async route =>
+        await RouteAthleteFixtureAsync(context, athletes =>
         {
-            var response = await route.FetchAsync();
-            var athletes = JsonNode.Parse(await response.TextAsync())!.AsArray();
             var michael = athletes.OfType<JsonObject>().Single(athlete =>
                 athlete["AthleteSlug"]!.GetValue<string>() == "michael_lustgarten");
             michael["PersonalLink"] = "https://example.com/personal";
@@ -75,7 +73,6 @@ public sealed class AthleteDialogLinkBrowserTests(
             {
                 "Podcast", "First applicants", "Pregnancy", "Host", "Perfect application", "≥2 submissions"
             }.Select(label => (JsonNode)new JsonObject { ["BadgeLabel"] = label }).ToArray());
-            await route.FulfillAsync(new() { ContentType = "application/json", Body = athletes.ToJsonString() });
         });
         var page = await context.NewPageAsync();
         await page.GotoAsync("/leaderboard", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
@@ -92,6 +89,8 @@ public sealed class AthleteDialogLinkBrowserTests(
             Assert.Contains("noopener", await link.GetAttributeAsync("rel"));
             await link.FocusAsync();
             Assert.True(await link.EvaluateAsync<bool>("link => document.activeElement === link"));
+            Assert.Null(await link.GetAttributeAsync("aria-describedby"));
+            await Assertions.Expect(page.Locator(".badge-tip")).ToHaveAttributeAsync("aria-hidden", "true");
         }
         await page.Locator("#athleteSearch").FillAsync("podcast");
         await Assertions.Expect(row).ToBeVisibleAsync();
@@ -371,8 +370,10 @@ public sealed class AthleteDialogLinkBrowserTests(
         }
     }
 
-    [Fact]
-    public async Task DelegatedHandler_OpensDynamicAndOfficialLinksButLeavesModifiedClicksNative()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task DelegatedHandler_OpensDynamicAndOfficialLinksButLeavesModifiedClicksNative(bool explicitNewTab)
     {
         var app = App;
         var browser = Browser;
@@ -417,7 +418,12 @@ public sealed class AthleteDialogLinkBrowserTests(
         var historyLink = page.Locator(
             "main.documentation-page a[href='https://www.longevityworldcup.com/athlete/michael-lustgarten']").First;
         await historyLink.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Visible });
-        Assert.Equal("_blank", await historyLink.GetAttributeAsync("target"));
+        Assert.Null(await historyLink.GetAttributeAsync("target"));
+        if (explicitNewTab)
+        {
+            await historyLink.EvaluateAsync("link => { link.target = '_blank'; link.rel = 'noopener noreferrer'; }");
+        }
+        Assert.Equal(explicitNewTab ? "_blank" : null, await historyLink.GetAttributeAsync("target"));
 
         var nativeActivations = await historyLink.EvaluateAsync<NativeActivationDiagnostics[]>(
             """

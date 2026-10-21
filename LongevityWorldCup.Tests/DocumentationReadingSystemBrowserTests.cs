@@ -5,15 +5,15 @@ using static LongevityWorldCup.Tests.FlowActionDockBrowserTests;
 
 namespace LongevityWorldCup.Tests;
 
-// About, History and the Ruleset are one long-form reading system: the same cover,
-// contents rail, chapter tiles, picture plates and closing band on every page.
+// About, History, the Ruleset and the Privacy policy are one long-form reading system:
+// the same cover, contents rail, chapter tiles, picture plates and closing band on every page.
 [Collection(BrowserTestCollections.WorkloadB)]
 public sealed class DocumentationReadingSystemBrowserTests(
     PlaywrightBrowserFixture browserFixture,
     BrowserTestAppFixture appFixture)
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
-    private static readonly string[] Paths = ["/about", "/history", "/ruleset"];
+    private static readonly string[] Paths = ["/about", "/history", "/ruleset", "/privacy"];
 
     [Theory]
     [InlineData(1440, 900, false)]
@@ -57,13 +57,13 @@ public sealed class DocumentationReadingSystemBrowserTests(
                     }
                     const bar = getComputedStyle(document.querySelector('.documentation-document h1'), '::after');
                     if (bar.content === 'none' || parseFloat(bar.height) < 3) issues.push('the title has no accent stroke');
-                    const next = document.querySelector('#where-to-go-next')?.parentElement;
-                    if (!next?.matches('.documentation-next')) issues.push('the closing links are not in a band');
+                    const next = document.querySelector('#where-to-go-next, #contact')?.parentElement;
+                    if (!next?.matches('.documentation-next')) issues.push('the closing section is not in a band');
                     else {
                         if (!spans(next)) issues.push('the closing band does not span the document');
                         if (Math.abs(next.getBoundingClientRect().bottom - box.bottom + border) > 1.5) issues.push('the closing band does not end the document');
                         const tile = next.querySelector('ul > li');
-                        if (getComputedStyle(tile).backgroundColor === getComputedStyle(next).backgroundColor) issues.push('tiles do not stand out from the band');
+                        if (tile && getComputedStyle(tile).backgroundColor === getComputedStyle(next).backgroundColor) issues.push('tiles do not stand out from the band');
                     }
                     const h1 = getComputedStyle(document.querySelector('.documentation-document h1'));
                     const nav = getComputedStyle(document.querySelector('.documentation-nav'));
@@ -136,7 +136,7 @@ public sealed class DocumentationReadingSystemBrowserTests(
         });
         var page = await context.NewPageAsync();
         var tiles = new List<string>();
-        foreach (var (path, selector, count) in new[] { ("/about", ".documentation-document h2.documentation-chapter", 5), ("/ruleset", ".ruleset-rule > h2", 4) })
+        foreach (var (path, selector, count) in new[] { ("/about", ".documentation-document h2.documentation-chapter", 5), ("/ruleset", ".ruleset-rule > h2", 4), ("/privacy", ".documentation-document h2.documentation-chapter", 6) })
         {
             await NavigateAndSettleAsync(page, path);
             var styles = await page.Locator(selector).EvaluateAllAsync<string[]>(

@@ -63,10 +63,10 @@
             <button id="custom-alert-close">OK</button>
         </div>
     </div>
-    <div id="loading-dialog" role="status" aria-modal="true" aria-labelledby="loading-dialog-label" aria-live="polite" hidden>
+    <div id="loading-dialog" role="dialog" aria-modal="true" aria-labelledby="loading-dialog-label" hidden>
         <div class="loading-dialog-panel" tabindex="-1">
             <p id="loading-dialog-label" class="visually-hidden">Loading</p>
-            <div class="loader"></div>
+            <div class="loader" aria-hidden="true"></div>
         </div>
     </div>
 </header>

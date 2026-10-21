@@ -381,17 +381,6 @@ button:hover {
     margin: 0;
 }
 
-#newsletterStatus:not(:empty) {
-    padding: var(--lwc-space-3) var(--lwc-space-4);
-    border-inline-start: 3px solid var(--lwc-success);
-    border-radius: var(--lwc-radius-sm);
-    background: var(--lwc-surface-muted);
-}
-
-#newsletterStatus.is-error {
-    border-inline-start-color: var(--lwc-danger);
-}
-
 /* The newsletter intro, form and status share one panel, like the Contribute panel above it. */
 .newsletter-section {
     container: newsletter-section / inline-size;
