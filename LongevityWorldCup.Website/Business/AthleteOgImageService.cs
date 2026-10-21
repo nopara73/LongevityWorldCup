@@ -44,7 +44,7 @@ public sealed class AthleteOgImageService
         _athletes = athletes;
         _log = log;
         _logoPath = IOPath.Combine(_env.WebRootPath, "assets", "HdLogo.png");
-        _fonts = new ShareCardCanvas.Fonts(_env.WebRootPath);
+        _fonts = ShareCardCanvas.GetFonts(_env.WebRootPath);
         _outputDir = IOPath.Combine(_env.WebRootPath, "generated", "og", "athlete");
     }
 
@@ -244,7 +244,7 @@ public sealed class AthleteOgImageService
 
     private void DrawScoreboard(Image<Rgba32> image, AthleteOgPayload payload)
     {
-        var (nameLines, nameFont) = ShareCardCanvas.FitHeadline(_fonts.Bold, payload.Name, 70f, 54f, ColumnWidth, 2, 46f);
+        var (nameLines, nameFont) = ShareCardCanvas.FitHeadline(_fonts, payload.Name, 70f, 54f, ColumnWidth, 2, 46f);
         var lineHeight = nameFont.Size * 1.12f;
         var blockHeight = (nameLines.Count * lineHeight) + NameGap + TileHeight;
         var top = BodyCenterY - (blockHeight / 2f);
@@ -253,7 +253,7 @@ public sealed class AthleteOgImageService
 
         image.Mutate(ctx =>
         {
-            ShareCardCanvas.DrawLines(ctx, nameLines, nameFont, ShareCardCanvas.Ink, ColumnX, top, lineHeight);
+            ShareCardCanvas.DrawLines(ctx, _fonts, nameLines, nameFont, ShareCardCanvas.Ink, ColumnX, top, lineHeight);
             DrawMetricTile(ctx, $"#{payload.Rank.ToString(CultureInfo.InvariantCulture)}", payload.RankLabel, RankColor, ColumnX, tileY, tileWidth);
             DrawMetricTile(ctx, payload.MetricValue, payload.MetricLabel, ReductionColor, ColumnX + tileWidth + TileGap, tileY, tileWidth);
         });
@@ -267,9 +267,9 @@ public sealed class AthleteOgImageService
 
         var labelText = label.ToUpperInvariant();
         var labelFont = _fonts.Bold.CreateFont(17f, FontStyle.Bold);
-        while (ShareCardCanvas.MeasureTracked(labelText, labelFont, 1.8f) > width - (inset * 2f) && labelFont.Size > 12f)
+        while (ShareCardCanvas.MeasureTracked(_fonts, labelText, labelFont, 1.8f) > width - (inset * 2f) && labelFont.Size > 12f)
             labelFont = _fonts.Bold.CreateFont(labelFont.Size - 1f, FontStyle.Bold);
-        ShareCardCanvas.DrawTrackedText(ctx, labelText, labelFont, ShareCardCanvas.MutedInk, new PointF(x + inset, y + 42f), 1.8f);
+        ShareCardCanvas.DrawTrackedText(ctx, _fonts, labelText, labelFont, ShareCardCanvas.MutedInk, new PointF(x + inset, y + 42f), 1.8f);
 
         var valueFont = ImageTextLayout.FitFontToWidth(_fonts.Display, value, 66f, 30f, width - (inset * 2f));
         var valueY = ShareCardCanvas.CenterTextY(value, valueFont, y + 74f + ((TileHeight - 74f - 18f) / 2f));
@@ -304,7 +304,7 @@ public sealed class AthleteOgImageService
         var logoTicks = File.Exists(_logoPath) ? File.GetLastWriteTimeUtc(_logoPath).Ticks : 0L;
 
         var raw = string.Join("|",
-            "athlete-og-v35",
+            "athlete-og-v37",
             normalizedSlug,
             leagueSlug,
             rank.ToString(CultureInfo.InvariantCulture),
@@ -317,6 +317,7 @@ public sealed class AthleteOgImageService
             description,
             profilePicUrl ?? "",
             profileImageId ?? "",
+            ImageAssetRevision.ForFile(ResolveProfilePath(profilePicUrl)),
             logoTicks.ToString(CultureInfo.InvariantCulture),
             _fonts.Ticks);
 

@@ -1,3 +1,4 @@
+using System.Globalization;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Drawing.Processing;
@@ -7,13 +8,13 @@ namespace LongevityWorldCup.Website.Business;
 
 internal static class ImageTextLayout
 {
-    internal static Font FitFontToWidth(FontFamily family, string text, float startSize, float minSize, float maxWidth, float sizeStep = 2f)
+    internal static Font FitFontToWidth(FontFamily family, string text, float startSize, float minSize, float maxWidth, float sizeStep = 2f, IReadOnlyList<FontFamily>? fallbackFonts = null)
     {
         var size = startSize;
         while (size > minSize)
         {
             var font = family.CreateFont(size, FontStyle.Bold);
-            if (TextMeasurer.MeasureSize(text, new RichTextOptions(font)).Width <= maxWidth)
+            if (TextMeasurer.MeasureSize(text, new RichTextOptions(font) { FallbackFontFamilies = fallbackFonts ?? [] }).Width <= maxWidth)
                 return font;
             size -= sizeStep;
         }
@@ -85,19 +86,26 @@ internal static class ImageTextLayout
         return lines;
     }
 
-    internal static string EllipsizeToWidth(string text, Font font, float maxWidth)
+    internal static string EllipsizeToWidth(string text, Font font, float maxWidth, IReadOnlyList<FontFamily>? fallbackFonts = null)
     {
         const string ellipsis = "...";
-        if (TextMeasurer.MeasureSize(text, new RichTextOptions(font)).Width <= maxWidth)
+        var options = new RichTextOptions(font) { FallbackFontFamilies = fallbackFonts ?? [] };
+        if (TextMeasurer.MeasureSize(text, options).Width <= maxWidth)
             return text;
 
         var trimmed = text.TrimEnd();
-        while (trimmed.Length > 0 &&
-               TextMeasurer.MeasureSize(trimmed + ellipsis, new RichTextOptions(font)).Width > maxWidth)
+        var starts = StringInfo.ParseCombiningCharacters(trimmed);
+        var low = 0;
+        var high = starts.Length;
+        while (low < high)
         {
-            trimmed = trimmed[..^1].TrimEnd();
+            var middle = low + ((high - low + 1) / 2);
+            var end = middle == starts.Length ? trimmed.Length : starts[middle];
+            if (TextMeasurer.MeasureSize(trimmed[..end].TrimEnd() + ellipsis, options).Width <= maxWidth)
+                low = middle;
+            else high = middle - 1;
         }
-
-        return string.IsNullOrWhiteSpace(trimmed) ? ellipsis : trimmed + ellipsis;
+        var length = low == starts.Length ? trimmed.Length : starts[low];
+        return trimmed[..length].TrimEnd() + ellipsis;
     }
 }

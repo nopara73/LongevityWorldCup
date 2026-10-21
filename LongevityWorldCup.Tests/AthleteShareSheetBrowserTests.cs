@@ -1,4 +1,5 @@
 using Microsoft.Playwright;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 using static LongevityWorldCup.Tests.AestheticSystemBrowserTests;
 using static LongevityWorldCup.Tests.FlowActionDockBrowserTests;
@@ -41,13 +42,19 @@ public sealed class AthleteShareSheetBrowserTests(
     }
 
     [Theory]
-    [InlineData(1440, 900)]
-    [InlineData(390, 844)]
-    [InlineData(320, 640)]
-    public async Task ShareSheet_LaysTheDestinationsOutAsOneRowOfEqualTiles(int width, int height)
+    [InlineData(1440, 900, 100)]
+    [InlineData(390, 844, 100)]
+    [InlineData(320, 640, 100)]
+    [InlineData(320, 640, 200)]
+    [InlineData(390, 844, 200)]
+    [InlineData(160, 422, 100)]
+    [InlineData(844, 390, 100)]
+    public async Task ShareSheet_KeepsEqualTilesAndWholeLabelsAsTextGrows(int width, int height, int textPercent)
     {
         await using var context = await CreateAsync(width, height, dark: false, copyFails: false);
         var page = await OpenShareSheetAsync(context);
+        await page.EvaluateAsync("percent => document.documentElement.style.fontSize = `${percent}%`", textPercent);
+        await page.EvaluateAsync("() => { const menu=document.getElementById('athleteShareMenu'); menu.scrollIntoView({block:'nearest'}); }");
 
         var tiles = await page.Locator(".athlete-share-destinations > a").EvaluateAllAsync<Tile[]>(
             """
@@ -58,14 +65,14 @@ public sealed class AthleteShareSheetBrowserTests(
                 const range = document.createRange();
                 range.selectNodeContents(label);
                 const text = range.getBoundingClientRect();
-                return { top: box.top, width: box.width, height: box.height, iconBottom: icon.bottom, iconCenter: icon.left + icon.width / 2, center: box.left + box.width / 2, textTop: text.top };
+                return { top: box.top, width: box.width, height: box.height, iconBottom: icon.bottom, iconCenter: icon.left + icon.width / 2, center: box.left + box.width / 2, textTop: text.top, labelFits: [...range.getClientRects()].every(rect => rect.left >= box.left - 1 && rect.right <= box.right + 1 && rect.bottom <= box.bottom + 1) };
             })
             """);
         Assert.Equal(4, tiles.Length);
         foreach (var tile in tiles)
         {
-            Assert.InRange(Math.Abs(tile.Top - tiles[0].Top), 0, 1);
             Assert.InRange(Math.Abs(tile.Width - tiles[0].Width), 0, 1.5);
+            Assert.True(tile.LabelFits, "Every destination label's rendered glyphs must fit its tile.");
             Assert.True(tile.Height >= 56, $"Destination tiles must be at least 56px tall, got {tile.Height}.");
             Assert.InRange(Math.Abs(tile.IconCenter - tile.Center), 0, 2);
             Assert.True(tile.TextTop >= tile.IconBottom - 1, "Each destination's icon sits above its name.");
@@ -75,6 +82,93 @@ public sealed class AthleteShareSheetBrowserTests(
             "button => { const box = button.getBoundingClientRect(); const row = document.querySelector('.athlete-share-destinations').getBoundingClientRect(); return [box.width, row.width, box.height]; }");
         Assert.InRange(Math.Abs(copy[0] - copy[1]), 0, 1);
         Assert.True(copy[2] >= 44);
+        var ordered = await page.EvaluateAsync<bool>(
+            """
+            () => {
+                const menu = document.querySelector('#athleteShareMenu');
+                const preview = menu.querySelector('.athlete-share-preview');
+                const copy = menu.querySelector('#copyAthleteProfileLink');
+                const destinations = menu.querySelector('.athlete-share-destinations');
+                const box = copy.getBoundingClientRect();
+                const range = document.createRange(); range.selectNodeContents(copy);
+                const labelFits = [...range.getClientRects()].every(r => r.left >= box.left - 1 && r.right <= box.right + 1 && r.top >= box.top - 1 && r.bottom <= box.bottom + 1);
+                return labelFits && box.bottom <= destinations.getBoundingClientRect().top + 1
+                    && (getComputedStyle(preview).display === 'none' || preview.hidden || preview.getBoundingClientRect().bottom <= box.top + 1);
+            }
+            """);
+        Assert.True(ordered, "The full card, Copy link and destination tiles must have separate rows, including inside a scrolling sheet.");
+        await ExpectSheetInViewportAsync(page);
+    }
+
+    [Theory]
+    [InlineData("/athlete/michael-lustgarten?ctx=pheno")]
+    [InlineData("/leaderboard")]
+    public async Task Preview_UsesTheSharedProfilesCurrentSignatureAcrossPageContexts(string path)
+    {
+        await using var context = await CreateAsync(390, 844, false, false);
+        var page = await context.NewPageAsync();
+        await page.GotoAsync(path, new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.WaitForFunctionAsync("() => typeof window.openAthleteModalBySlug === 'function'");
+        await page.EvaluateAsync("() => window.openAthleteModalBySlug('ron-lugbill', {suppressGuessMyAge:true})");
+        await page.WaitForFunctionAsync("() => document.querySelector('#detailsModal .modal-content')?.dataset.athleteSlug === 'ron-lugbill' && !document.querySelector('#detailsModal .modal-content').matches('.is-loading,.has-load-error')");
+        await page.Locator("#shareAthleteProfile").ClickAsync();
+        await page.WaitForFunctionAsync("() => document.querySelector('.athlete-share-preview')?.classList.contains('is-loaded')");
+        var images = App.Services.GetRequiredService<LongevityWorldCup.Website.Business.AthleteOgImageService>();
+        Assert.True(images.TryGetCurrentPayload("ron-lugbill", out var payload));
+        var imageUrl = await page.Locator("#athleteSharePreview").GetAttributeAsync("src");
+        Assert.Equal(images.BuildVersionedImageUrl("", payload), new Uri(imageUrl!).PathAndQuery);
+        Assert.EndsWith("/athlete/ron-lugbill", await page.Locator("#shareAthleteProfile").GetAttributeAsync("data-share-url"));
+    }
+
+    [Fact]
+    public async Task Reopening_RefreshesMetadataAndIgnoresOldImageEvents()
+    {
+        await using var context = await CreateAsync(390, 844, false, false);
+        var revision = 0;
+        await context.RouteAsync("**/og/athlete/*/preview", route => route.FulfillAsync(new()
+        {
+            ContentType = "application/json",
+            Body = "{\"imageUrl\":\"/og/athlete/michael-lustgarten.png?v=revision-" + ++revision + "\"}"
+        }));
+        var page = await OpenShareSheetAsync(context);
+        await page.WaitForFunctionAsync("() => document.querySelector('.athlete-share-preview')?.classList.contains('is-loaded')");
+        await page.EvaluateAsync("() => { window.__oldPreview = document.getElementById('athleteSharePreview'); }");
+        await page.Keyboard.PressAsync("Escape");
+        await page.Locator("#shareAthleteProfile").ClickAsync();
+        await page.WaitForFunctionAsync("() => document.querySelector('.athlete-share-preview')?.classList.contains('is-loaded') && document.getElementById('athleteSharePreview').src.includes('revision-2')");
+        await page.EvaluateAsync("() => { window.__oldPreview.dispatchEvent(new Event('error')); window.__oldPreview.dispatchEvent(new Event('load')); }");
+        await Assertions.Expect(page.Locator(".athlete-share-preview")).ToBeVisibleAsync();
+        Assert.Equal(2, revision);
+        await Assertions.Expect(page.Locator("#copyAthleteProfileLink")).ToBeFocusedAsync();
+    }
+
+    [Fact]
+    public async Task LateMetadata_CannotReplaceAReopenedPreview()
+    {
+        await using var context = await CreateAsync(390, 844, false, false);
+        var started = new TaskCompletionSource();
+        var release = new TaskCompletionSource();
+        var settled = new TaskCompletionSource();
+        var revision = 0;
+        await context.RouteAsync("**/og/athlete/*/preview", async route =>
+        {
+            var requestRevision = ++revision;
+            if (requestRevision == 1) { started.SetResult(); await release.Task; }
+            try { await route.FulfillAsync(new() { ContentType = "application/json", Body = "{\"imageUrl\":\"/og/athlete/michael-lustgarten.png?v=revision-" + requestRevision + "\"}" }); }
+            catch (PlaywrightException) when (requestRevision == 1) { /* Closing aborts this request. */ }
+            finally { if (requestRevision == 1) settled.TrySetResult(); }
+        });
+        var page = await OpenShareSheetAsync(context);
+        await started.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        await page.Keyboard.PressAsync("Escape");
+        await page.Locator("#shareAthleteProfile").ClickAsync();
+        await page.WaitForFunctionAsync("() => document.querySelector('.athlete-share-preview')?.classList.contains('is-loaded')");
+        release.SetResult();
+        await settled.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+        await Assertions.Expect(page.Locator("#athleteSharePreview")).ToHaveAttributeAsync("src", new System.Text.RegularExpressions.Regex("revision-2$"));
+        await page.Locator("#copyAthleteProfileLink").ClickAsync();
+        await Assertions.Expect(page.Locator("#shareAthleteProfile")).ToHaveTextAsync("Copied");
     }
 
     [Fact]
@@ -111,6 +205,8 @@ public sealed class AthleteShareSheetBrowserTests(
         var context = await NewContextAsync(Browser, App, new()
         {
             ViewportSize = new() { Width = width, Height = height },
+            RecordHarPath = Environment.GetEnvironmentVariable("LWC_SHARE_TRACE_DIRECTORY") is { Length: > 0 } trace
+                ? Path.Combine(trace, $"share-{Guid.NewGuid():N}.har") : null,
             ColorScheme = dark ? ColorScheme.Dark : ColorScheme.Light,
             ReducedMotion = ReducedMotion.Reduce
         });
@@ -158,5 +254,6 @@ public sealed class AthleteShareSheetBrowserTests(
         public double IconCenter { get; set; }
         public double Center { get; set; }
         public double TextTop { get; set; }
+        public bool LabelFits { get; set; }
     }
 }

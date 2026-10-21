@@ -5108,7 +5108,8 @@ main[data-leaderboard-page="full"] .flag-section-heading{ padding-block:var(--lw
     width:min(22.5rem, calc(100vw - 2rem));
     min-width:0;
     padding:.75rem;
-    display:grid;
+    display:flex;
+    flex-direction:column;
     gap:.6rem;
     border-radius:var(--lwc-radius-lg);
     background:var(--athlete-modal-surface);
@@ -5118,6 +5119,7 @@ main[data-leaderboard-page="full"] .flag-section-heading{ padding-block:var(--lw
 }
 #detailsModal .athlete-share-menu.is-above{ transform-origin:bottom left; }
 #detailsModal .athlete-share-menu[hidden]{ display:none; }
+#detailsModal .athlete-share-menu > :is(figure, button, div){ flex:0 0 auto; }
 @keyframes athlete-share-sheet-in{
     from{ opacity:0; transform:translateY(-4px) scale(.98); }
     to{ opacity:1; transform:none; }
@@ -5168,7 +5170,8 @@ main[data-leaderboard-page="full"] .flag-section-heading{ padding-block:var(--lw
 }
 #detailsModal .athlete-share-destinations{
     display:grid;
-    grid-template-columns:repeat(4, minmax(0, 1fr));
+    font-size:clamp(.7rem, 2.9vw, .8rem);
+    grid-template-columns:repeat(auto-fit, minmax(min(100%, 5.5em), 1fr));
     gap:.45rem;
 }
 #detailsModal .athlete-share-menu .athlete-share-destinations a{
@@ -5180,10 +5183,11 @@ main[data-leaderboard-page="full"] .flag-section-heading{ padding-block:var(--lw
     padding:.55rem .25rem;
     border:1px solid var(--athlete-modal-border);
     background:var(--athlete-modal-card);
-    font-size:clamp(.7rem, 2.9vw, .8rem);
+    font-size:inherit;
     font-weight:700;
     text-align:center;
-    white-space:nowrap;
+    white-space:normal;
+    overflow-wrap:anywhere;
 }
 #detailsModal .athlete-share-menu .athlete-share-destinations a i{
     width:auto;
@@ -5209,3 +5213,4 @@ main[data-leaderboard-page="full"] .flag-section-heading{ padding-block:var(--lw
 }
 @media (max-width: 768px){
     #detailsModal .athlete-share-menu{ width:auto; }
+}

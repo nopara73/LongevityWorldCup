@@ -126,7 +126,7 @@ public sealed class PageOgImageService
         _env = env;
         _log = log;
         _logoPath = IOPath.Combine(_env.WebRootPath, "assets", "HdLogo.png");
-        _fonts = new ShareCardCanvas.Fonts(_env.WebRootPath);
+        _fonts = ShareCardCanvas.GetFonts(_env.WebRootPath);
         _outputDir = IOPath.Combine(_env.WebRootPath, "generated", "og", "page");
     }
 
@@ -302,7 +302,7 @@ public sealed class PageOgImageService
 
     private void DrawTextContent(Image<Rgba32> image, PageOgPayload payload, Color accent)
     {
-        var (lines, titleFont) = ShareCardCanvas.FitHeadline(_fonts.Bold, payload.Title, 88f, 72f, TitleWidth, 2, 60f);
+        var (lines, titleFont) = ShareCardCanvas.FitHeadline(_fonts, payload.Title, 88f, 72f, TitleWidth, 2, 60f);
         var lineHeight = titleFont.Size * 1.1f;
         var hasDescription = string.Equals(payload.Slug, "longevitymaxxing", StringComparison.OrdinalIgnoreCase);
         var descriptionFont = _fonts.Regular.CreateFont(36f, FontStyle.Regular);
@@ -315,7 +315,7 @@ public sealed class PageOgImageService
         {
             ctx.Fill(ShareCardCanvas.WithAlpha(accent, 235), new RectangularPolygon(ShareCardCanvas.Margin, top, 120f, 6f));
             var titleY = top + 6f + ruleGap;
-            ShareCardCanvas.DrawLines(ctx, lines, titleFont, ShareCardCanvas.Ink, ShareCardCanvas.Margin, titleY, lineHeight);
+            ShareCardCanvas.DrawLines(ctx, _fonts, lines, titleFont, ShareCardCanvas.Ink, ShareCardCanvas.Margin, titleY, lineHeight);
             if (hasDescription)
             {
                 ctx.DrawText(new RichTextOptions(descriptionFont)
@@ -333,7 +333,7 @@ public sealed class PageOgImageService
         var logoTicks = File.Exists(_logoPath) ? File.GetLastWriteTimeUtc(_logoPath).Ticks : 0L;
 
         var raw = string.Join("|",
-            "page-og-v10",
+            "page-og-v12",
             definition.Slug,
             definition.Kicker,
             definition.Title,

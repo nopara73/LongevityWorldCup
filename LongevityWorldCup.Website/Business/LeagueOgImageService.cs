@@ -63,7 +63,7 @@ public sealed class LeagueOgImageService
         _athletes = athletes;
         _log = log;
         _logoPath = IOPath.Combine(_env.WebRootPath, "assets", "HdLogo.png");
-        _fonts = new ShareCardCanvas.Fonts(_env.WebRootPath);
+        _fonts = ShareCardCanvas.GetFonts(_env.WebRootPath);
         _outputDir = IOPath.Combine(_env.WebRootPath, "generated", "og", "league");
     }
 
@@ -223,14 +223,16 @@ public sealed class LeagueOgImageService
 
         var title = payload.DisplayName;
         var subtitle = payload.Top3Names.Count == 0 ? "Rankings opening soon" : "Current top longevity athletes";
-        var titleFont = ImageTextLayout.FitFontToWidth(_fonts.Bold, title, 62f, 40f, 680f, sizeStep: 1f);
         var subtitleFont = _fonts.Regular.CreateFont(26f, FontStyle.Regular);
         var subtitleWidth = TextMeasurer.MeasureSize(subtitle, new RichTextOptions(subtitleFont)).Width;
+        var titleWidth = RowWidth - subtitleWidth - 32f;
+        var titleFont = ImageTextLayout.FitFontToWidth(_fonts.Bold, title, 62f, 32f, titleWidth, sizeStep: 1f);
+        title = ImageTextLayout.EllipsizeToWidth(title, titleFont, titleWidth);
         var titleCenterY = TitleY + 34f;
 
         image.Mutate(ctx =>
         {
-            ShareCardCanvas.DrawLines(ctx, [title], titleFont, ShareCardCanvas.Ink, RowX, ShareCardCanvas.CenterTextY(title, titleFont, titleCenterY), 0f);
+            ShareCardCanvas.DrawLines(ctx, _fonts, [title], titleFont, ShareCardCanvas.Ink, RowX, ShareCardCanvas.CenterTextY(title, titleFont, titleCenterY), 0f);
             ctx.DrawText(new RichTextOptions(subtitleFont)
             {
                 Origin = new PointF(RowX + RowWidth - subtitleWidth, ShareCardCanvas.CenterTextY(subtitle, subtitleFont, titleCenterY + 6f)),
@@ -336,8 +338,8 @@ public sealed class LeagueOgImageService
         var rankText = "#" + row.Rank.ToString(CultureInfo.InvariantCulture);
         var rankFont = _fonts.Display.CreateFont(38f, FontStyle.Bold);
         var maxNameWidth = row.Width - nameOffset - 40f;
-        var nameFont = ImageTextLayout.FitFontToWidth(_fonts.Bold, displayName, 42f, 26f, maxNameWidth, sizeStep: 1f);
-        var name = ImageTextLayout.EllipsizeToWidth(displayName, nameFont, maxNameWidth);
+        var nameFont = ImageTextLayout.FitFontToWidth(_fonts.Bold, displayName, 42f, 26f, maxNameWidth, sizeStep: 1f, fallbackFonts: _fonts.Fallbacks);
+        var name = ImageTextLayout.EllipsizeToWidth(displayName, nameFont, maxNameWidth, _fonts.Fallbacks);
         var centerY = row.Y + (row.Height / 2f);
 
         image.Mutate(ctx =>
@@ -348,7 +350,7 @@ public sealed class LeagueOgImageService
                 HorizontalAlignment = HorizontalAlignment.Left,
                 VerticalAlignment = VerticalAlignment.Top
             }, rankText, ShareCardCanvas.WithAlpha(row.Accent, 245));
-            ShareCardCanvas.DrawLines(ctx, [name], nameFont, isOpen ? MutedNameColor : ShareCardCanvas.Ink, row.X + nameOffset, ShareCardCanvas.CenterTextY(name, nameFont, centerY), 0f);
+            ShareCardCanvas.DrawLines(ctx, _fonts, [name], nameFont, isOpen ? MutedNameColor : ShareCardCanvas.Ink, row.X + nameOffset, ShareCardCanvas.CenterTextY(name, nameFont, centerY, _fonts), 0f);
         });
     }
 
@@ -358,11 +360,13 @@ public sealed class LeagueOgImageService
         var top3ProfileImageIds = GetProfileImageIds(top3Slugs);
 
         var raw = string.Join("|",
-            "league-og-v37",
+            "league-og-v39",
             leagueSlug,
             leagueDisplayName,
             string.Join(",", top3Slugs),
+            string.Join("\n", GetAthleteDisplayNames(top3Slugs)),
             string.Join(",", top3ProfileImageIds),
+            string.Join(",", top3Slugs.Select(slug => ImageAssetRevision.ForFile(TryResolveProfilePath(slug, out var path) ? path : null))),
             logoTicks.ToString(CultureInfo.InvariantCulture),
             _fonts.Ticks);
 

@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Collections.Concurrent;
 using System.Text;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
@@ -37,6 +38,9 @@ internal static class ShareCardCanvas
     internal static readonly Rgba32 PanelStroke = new(255, 255, 255, 38);
     internal static readonly Rgba32 Hairline = new(255, 255, 255, 26);
 
+    private static readonly ConcurrentDictionary<string, Fonts> FontSets = new(StringComparer.Ordinal);
+    internal static Fonts GetFonts(string webRootPath) => FontSets.GetOrAdd(webRootPath, path => new Fonts(path));
+
     internal sealed class Fonts
     {
         private readonly FontCollection _collection = new();
@@ -45,6 +49,7 @@ internal static class ShareCardCanvas
         private FontFamily _bold;
         private FontFamily _regular;
         private FontFamily _display;
+        private IReadOnlyList<FontFamily> _fallbacks = [];
 
         internal Fonts(string webRootPath)
         {
@@ -52,21 +57,28 @@ internal static class ShareCardCanvas
             BoldPath = IOPath.Combine(fonts, "Roboto-Bold.ttf");
             RegularPath = IOPath.Combine(fonts, "Roboto-Regular.ttf");
             DisplayPath = IOPath.Combine(fonts, "Orbitron-Bold.ttf");
+            FallbackPaths = [IOPath.Combine(fonts, "Poppins-Bold.ttf"),
+                IOPath.Combine(fonts, "share-cards", "NotoSansSC.ttf"),
+                IOPath.Combine(fonts, "share-cards", "NotoEmoji.ttf")];
         }
 
         internal string BoldPath { get; }
         internal string RegularPath { get; }
         internal string DisplayPath { get; }
+        private string[] FallbackPaths { get; }
 
-        internal bool Exist => File.Exists(BoldPath) && File.Exists(RegularPath) && File.Exists(DisplayPath);
+        internal bool Exist => AllPaths.All(File.Exists);
+        private IEnumerable<string> AllPaths => new[] { BoldPath, RegularPath, DisplayPath }.Concat(FallbackPaths);
 
         internal string Ticks => string.Join(",",
-            new[] { BoldPath, RegularPath, DisplayPath }.Select(path =>
+            AllPaths.Select(path =>
                 (File.Exists(path) ? File.GetLastWriteTimeUtc(path).Ticks : 0L).ToString(CultureInfo.InvariantCulture)));
 
         internal FontFamily Bold { get { Load(); return _bold; } }
         internal FontFamily Regular { get { Load(); return _regular; } }
         internal FontFamily Display { get { Load(); return _display; } }
+        internal IReadOnlyList<FontFamily> Fallbacks { get { Load(); return _fallbacks; } }
+        internal RichTextOptions Text(Font font) => new(font) { FallbackFontFamilies = Fallbacks };
 
         private void Load()
         {
@@ -77,6 +89,7 @@ internal static class ShareCardCanvas
                 _bold = _collection.Add(BoldPath);
                 _regular = _collection.Add(RegularPath);
                 _display = _collection.Add(DisplayPath);
+                _fallbacks = FallbackPaths.Select(path => _collection.Add(path)).ToArray();
                 _loaded = true;
             }
         }
@@ -163,19 +176,27 @@ internal static class ShareCardCanvas
         var wordmarkY = CenterTextY("LONGEVITY WORLD CUP", wordmark, MastheadHeight / 2f);
         image.Mutate(ctx =>
         {
-            DrawTrackedText(ctx, "LONGEVITY WORLD CUP", wordmark, Ink, new PointF(LogoX + LogoSize + 18f, wordmarkY), 2.2f);
+            const float wordmarkX = LogoX + LogoSize + 18f;
+            var wordmarkWidth = MeasureTracked(fonts, "LONGEVITY WORLD CUP", wordmark, 2.2f);
+            DrawTrackedText(ctx, fonts, "LONGEVITY WORLD CUP", wordmark, Ink, new PointF(wordmarkX, wordmarkY), 2.2f);
 
             if (!string.IsNullOrWhiteSpace(caption))
             {
                 var text = caption.Trim().ToUpperInvariant();
                 var captionFont = fonts.Bold.CreateFont(19f, FontStyle.Bold);
                 const float tracking = 2.4f;
-                const float maxWidth = 520f;
-                while (MeasureTracked(text, captionFont, tracking) > maxWidth && captionFont.Size > 14f)
+                var maxWidth = Width - Margin - wordmarkX - wordmarkWidth - 32f;
+                while (MeasureTracked(fonts, text, captionFont, tracking) > maxWidth && captionFont.Size > 14f)
                     captionFont = fonts.Bold.CreateFont(captionFont.Size - 1f, FontStyle.Bold);
-                var width = MeasureTracked(text, captionFont, tracking);
+                var captionElements = TextElements(text).ToList();
+                while (MeasureTracked(fonts, text, captionFont, tracking) > maxWidth && captionElements.Count > 0)
+                {
+                    captionElements.RemoveAt(captionElements.Count - 1);
+                    text = string.Concat(captionElements) + "...";
+                }
+                var width = MeasureTracked(fonts, text, captionFont, tracking);
                 var y = CenterTextY(text, captionFont, MastheadHeight / 2f);
-                DrawTrackedText(ctx, text, captionFont, accent, new PointF(Width - Margin - width, y), tracking);
+                DrawTrackedText(ctx, fonts, text, captionFont, accent, new PointF(Width - Margin - width, y), tracking);
             }
         });
     }
@@ -227,15 +248,14 @@ internal static class ShareCardCanvas
     {
         var words = (name ?? "")
             .Split([' ', '-', '_', '\'', '"', '.'], StringSplitOptions.RemoveEmptyEntries)
-            .Where(word => char.IsLetterOrDigit(word[0]))
             .ToArray();
         if (words.Length == 0)
             return "?";
 
         var builder = new StringBuilder();
-        builder.Append(char.ToUpperInvariant(words[0][0]));
+        builder.Append(StringInfo.GetNextTextElement(words[0]).ToUpperInvariant());
         if (words.Length > 1)
-            builder.Append(char.ToUpperInvariant(words[^1][0]));
+            builder.Append(StringInfo.GetNextTextElement(words[^1]).ToUpperInvariant());
         return builder.ToString();
     }
 
@@ -245,14 +265,11 @@ internal static class ShareCardCanvas
         var accentPixel = accent.ToPixel<Rgba32>();
         ctx.Fill(new Rgba32(28, 36, 40, 255), new EllipsePolygon(centerX, centerY, radius));
         ctx.Fill(new Rgba32(accentPixel.R, accentPixel.G, accentPixel.B, 34), new EllipsePolygon(centerX, centerY, radius));
-        var font = ImageTextLayout.FitFontToWidth(fonts.Display, initials, radius * 0.78f, radius * 0.4f, radius * 1.3f, sizeStep: 2f);
-        var size = TextMeasurer.MeasureSize(initials, new RichTextOptions(font));
-        ctx.DrawText(new RichTextOptions(font)
-        {
-            Origin = new PointF(centerX, centerY - (size.Height / 2f) - (font.Size * 0.04f)),
-            HorizontalAlignment = HorizontalAlignment.Center,
-            VerticalAlignment = VerticalAlignment.Top
-        }, initials, new Rgba32(255, 255, 255, 230));
+        var font = ImageTextLayout.FitFontToWidth(fonts.Bold, initials, radius * 0.78f, radius * 0.4f, radius * 1.3f, sizeStep: 2f, fallbackFonts: fonts.Fallbacks);
+        var options = fonts.Text(font);
+        var bounds = TextMeasurer.MeasureBounds(initials, options);
+        options.Origin = new PointF(centerX - bounds.Left - bounds.Width / 2f, centerY - bounds.Top - bounds.Height / 2f);
+        ctx.DrawText(options, initials, new Rgba32(255, 255, 255, 230));
     }
 
     internal static void DrawPortraitRing(IImageProcessingContext ctx, float centerX, float centerY, float radius, Color accent, float ringWidth)
@@ -263,39 +280,39 @@ internal static class ShareCardCanvas
         ctx.Fill(new Rgba32(pixel.R, pixel.G, pixel.B, 240), new EllipsePolygon(centerX, centerY, radius + ringWidth));
     }
 
-    internal static void DrawTrackedText(IImageProcessingContext ctx, string text, Font font, Color color, PointF origin, float tracking)
+    internal static void DrawTrackedText(IImageProcessingContext ctx, Fonts fonts, string text, Font font, Color color, PointF origin, float tracking)
     {
         var x = origin.X;
-        foreach (var ch in text)
+        foreach (var glyph in TextElements(text))
         {
-            var glyph = ch.ToString();
-            ctx.DrawText(new RichTextOptions(font)
-            {
-                Origin = new PointF(x, origin.Y),
-                HorizontalAlignment = HorizontalAlignment.Left,
-                VerticalAlignment = VerticalAlignment.Top
-            }, glyph, color);
-            x += Advance(glyph, font) + tracking;
+            var options = fonts.Text(font);
+            options.Origin = new PointF(x, origin.Y);
+            ctx.DrawText(options, glyph, color);
+            x += Advance(fonts, glyph, font) + tracking;
         }
     }
 
-    internal static float MeasureTracked(string text, Font font, float tracking)
+    internal static float MeasureTracked(Fonts fonts, string text, Font font, float tracking)
     {
         if (text.Length == 0)
             return 0f;
-        return text.Sum(ch => Advance(ch.ToString(), font)) + (tracking * (text.Length - 1));
+        var elements = TextElements(text).ToArray();
+        return elements.Sum(glyph => Advance(fonts, glyph, font)) + (tracking * (elements.Length - 1));
     }
 
-    private static float Advance(string glyph, Font font)
+    private static float Advance(Fonts fonts, string glyph, Font font) => glyph == " "
+        ? TextMeasurer.MeasureAdvance("a a", fonts.Text(font)).Width - TextMeasurer.MeasureAdvance("aa", fonts.Text(font)).Width
+        : TextMeasurer.MeasureAdvance(glyph, fonts.Text(font)).Width;
+
+    private static IEnumerable<string> TextElements(string text)
     {
-        return glyph == " "
-            ? TextMeasurer.MeasureAdvance("a a", new TextOptions(font)).Width - TextMeasurer.MeasureAdvance("aa", new TextOptions(font)).Width
-            : TextMeasurer.MeasureAdvance(glyph, new TextOptions(font)).Width;
+        var enumerator = StringInfo.GetTextElementEnumerator(text);
+        while (enumerator.MoveNext()) yield return enumerator.GetTextElement();
     }
 
-    internal static float CenterTextY(string text, Font font, float centerY)
+    internal static float CenterTextY(string text, Font font, float centerY, Fonts? fonts = null)
     {
-        var bounds = TextMeasurer.MeasureBounds(text, new RichTextOptions(font));
+        var bounds = TextMeasurer.MeasureBounds(text, fonts?.Text(font) ?? new RichTextOptions(font));
         return centerY - bounds.Top - (bounds.Height / 2f);
     }
 
@@ -304,7 +321,7 @@ internal static class ShareCardCanvas
     /// then ellipsize only as the last resort.
     /// </summary>
     internal static (IReadOnlyList<string> Lines, Font Font) FitHeadline(
-        FontFamily family,
+        Fonts fonts,
         string text,
         float startSize,
         float minSize,
@@ -313,39 +330,82 @@ internal static class ShareCardCanvas
         float wrapMinSize)
     {
         text = (text ?? "").Trim();
+        var family = fonts.Bold;
         for (var size = startSize; size >= minSize; size -= 2f)
         {
             var font = family.CreateFont(size, FontStyle.Bold);
-            if (TextMeasurer.MeasureSize(text, new RichTextOptions(font)).Width <= maxWidth)
+            if (TextMeasurer.MeasureSize(text, fonts.Text(font)).Width <= maxWidth)
                 return ([text], font);
         }
 
         for (var size = startSize; size >= wrapMinSize; size -= 2f)
         {
             var font = family.CreateFont(size, FontStyle.Bold);
-            var lines = Wrap(text, font, maxWidth);
-            if (lines.Count <= maxLines && lines.All(line => TextMeasurer.MeasureSize(line, new RichTextOptions(font)).Width <= maxWidth))
+            var lines = Wrap(text, fonts.Text(font), maxWidth, maxLines);
+            if (lines.Count <= maxLines && lines.All(line => TextMeasurer.MeasureSize(line, fonts.Text(font)).Width <= maxWidth))
                 return (lines, font);
         }
 
         var fallback = family.CreateFont(wrapMinSize, FontStyle.Bold);
-        var wrapped = Wrap(text, fallback, maxWidth).Take(maxLines).ToList();
+        var allLines = Wrap(text, fonts.Text(fallback), maxWidth);
+        var wrapped = allLines.Take(maxLines).ToList();
         wrapped[^1] = ImageTextLayout.EllipsizeToWidth(
-            string.Join(' ', Wrap(text, fallback, maxWidth).Skip(maxLines - 1)), fallback, maxWidth);
+            string.Join(' ', allLines.Skip(maxLines - 1)), fallback, maxWidth, fonts.Fallbacks);
         return (wrapped, fallback);
     }
 
-    private static List<string> Wrap(string text, Font font, float maxWidth)
+    private static List<string> Wrap(string text, RichTextOptions options, float maxWidth, int maxLines = int.MaxValue)
     {
         var lines = new List<string>();
         var current = "";
         foreach (var word in text.Split(' ', StringSplitOptions.RemoveEmptyEntries))
         {
             var candidate = current.Length == 0 ? word : current + " " + word;
-            if (current.Length > 0 && TextMeasurer.MeasureSize(candidate, new RichTextOptions(font)).Width > maxWidth)
+            if (TextMeasurer.MeasureSize(candidate, options).Width > maxWidth)
             {
-                lines.Add(current);
-                current = word;
+                if (current.Length > 0) lines.Add(current);
+                current = "";
+                if (lines.Count >= maxLines)
+                {
+                    lines.Add(word);
+                    return lines;
+                }
+                if (TextMeasurer.MeasureSize(word, options).Width <= maxWidth)
+                {
+                    current = word;
+                    continue;
+                }
+
+                // Shape whole prefixes rather than measuring every growing prefix
+                // at every font size. Break only at complete text elements.
+                var starts = StringInfo.ParseCombiningCharacters(word);
+                for (var offset = 0; offset < starts.Length;)
+                {
+                    var low = offset + 1;
+                    var high = starts.Length;
+                    var best = offset;
+                    while (low <= high)
+                    {
+                        var middle = low + ((high - low) / 2);
+                        var end = middle == starts.Length ? word.Length : starts[middle];
+                        if (TextMeasurer.MeasureSize(word[starts[offset]..end], options).Width <= maxWidth)
+                        {
+                            best = middle;
+                            low = middle + 1;
+                        }
+                        else high = middle - 1;
+                    }
+                    best = Math.Max(best, offset + 1);
+                    var chunkEnd = best == starts.Length ? word.Length : starts[best];
+                    current = word[starts[offset]..chunkEnd];
+                    offset = best;
+                    if (offset < starts.Length)
+                    {
+                        lines.Add(current);
+                        current = "";
+                        if (lines.Count > maxLines) return lines;
+                    }
+                }
             }
             else
             {
@@ -358,23 +418,16 @@ internal static class ShareCardCanvas
         return lines;
     }
 
-    internal static void DrawLines(IImageProcessingContext ctx, IReadOnlyList<string> lines, Font font, Color color, float x, float y, float lineHeight)
+    internal static void DrawLines(IImageProcessingContext ctx, Fonts fonts, IReadOnlyList<string> lines, Font font, Color color, float x, float y, float lineHeight)
     {
         for (var i = 0; i < lines.Count; i++)
         {
             var origin = new PointF(x, y + (i * lineHeight));
-            ctx.DrawText(new RichTextOptions(font)
-            {
-                Origin = new PointF(origin.X, origin.Y + 3f),
-                HorizontalAlignment = HorizontalAlignment.Left,
-                VerticalAlignment = VerticalAlignment.Top
-            }, lines[i], new Rgba32(0, 0, 0, 150));
-            ctx.DrawText(new RichTextOptions(font)
-            {
-                Origin = origin,
-                HorizontalAlignment = HorizontalAlignment.Left,
-                VerticalAlignment = VerticalAlignment.Top
-            }, lines[i], color);
+            var options = fonts.Text(font);
+            options.Origin = new PointF(origin.X, origin.Y + 3f);
+            ctx.DrawText(options, lines[i], new Rgba32(0, 0, 0, 150));
+            options.Origin = origin;
+            ctx.DrawText(options, lines[i], color);
         }
     }
 
