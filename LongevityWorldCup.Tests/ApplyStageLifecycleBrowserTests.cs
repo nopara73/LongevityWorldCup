@@ -88,6 +88,42 @@ public sealed class ApplyStageLifecycleBrowserTests(
         await page.Locator("#illustrationImage").EvaluateAsync("image => image.decode()");
     }
 
+    [Theory]
+    [InlineData(761)]
+    [InlineData(768)]
+    public async Task TabletInlineActions_KeepTheSameRowAndTabOrderWhenDocking(int width)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = 1100 }, ReducedMotion = ReducedMotion.Reduce
+        });
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/apply?fake=1");
+        await ReadyAsync(page);
+        foreach (var (height, stage, docked) in new[] { (1100, 2, false), (700, 3, true), (1100, 2, false) })
+        {
+            await page.SetViewportSizeAsync(width, height);
+            await page.EvaluateAsync("stage => { currentStage = stage; goToStage(stage); window.LwcFlowActionDock.refreshNow(); }", stage);
+            await page.WaitForFunctionAsync("docked => document.querySelector('.convergence-actions').classList.contains('flow-action-stack--docked') === docked", docked);
+            await page.EvaluateAsync("async () => { await document.fonts.ready; await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))); }");
+            var state = await page.EvaluateAsync<double[]>("""
+                () => {
+                    const actions = document.querySelector('.convergence-actions');
+                    const back = document.getElementById('backButton').getBoundingClientRect();
+                    const next = document.getElementById('nextButton').getBoundingClientRect();
+                    return [actions.firstElementChild.id === 'backButton' ? 1 : 0, back.top, next.top, back.right, next.left];
+                }
+                """);
+            Assert.Equal(1, state[0]);
+            Assert.InRange(Math.Abs(state[1] - state[2]), 0, 1);
+            Assert.True(state[3] <= state[4], "Back must precede Next in the same visual row.");
+            await page.Locator("#backButton").FocusAsync();
+            await page.Keyboard.PressAsync("Tab");
+            await Assertions.Expect(page.Locator("#nextButton")).ToBeFocusedAsync();
+            await ExpectNoHorizontalOverflowAsync(page);
+        }
+    }
+
     [Fact]
     public async Task BannerIdentity_AndExternalListenersSurviveEveryStage()
     {

@@ -776,6 +776,13 @@
         }
 
         @media (min-width: 761px) {
+            .convergence-stage-layout .convergence-actions:not(.flow-action-stack--docked) {
+                flex-direction: row;
+                flex-wrap: wrap;
+                align-items: stretch;
+                gap: 0.75rem;
+            }
+
             body[data-convergence-stage] > .convergence-actions.flow-action-stack--docked {
                 --convergence-card-pad: 28px;
                 left: calc(50% - 320px) !important;
@@ -829,7 +836,8 @@
                 }
             }
 
-            body[data-convergence-stage] > .convergence-actions.flow-action-stack--docked > .back-button.flow-action--icon-left > i {
+            body[data-convergence-stage] > .convergence-actions.flow-action-stack--docked > .back-button.flow-action--icon-left > i,
+            .convergence-stage-layout .convergence-actions:not(.flow-action-stack--docked) > .back-button.flow-action--icon-left > i {
                 position: static;
                 width: auto;
                 transform: none;
