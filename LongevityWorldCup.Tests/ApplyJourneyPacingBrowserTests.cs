@@ -172,7 +172,7 @@ public sealed class ApplyJourneyPacingBrowserTests(
         await using var context = await NewContextAsync(Browser, App, new() { ReducedMotion = ReducedMotion.NoPreference });
         var page = await OpenApplyAsync(context);
         const string entering = """
-            () => Array.from(document.querySelectorAll('.convergence-stage-head h1, #inputForm > fieldset'))
+            () => Array.from(document.querySelectorAll('.convergence-stage-head h1, #descriptionForm .convergence-stage-copy'))
                 .filter(element => getComputedStyle(element).display !== 'none')
                 .map(element => getComputedStyle(element).animationName)
             """;
@@ -183,7 +183,8 @@ public sealed class ApplyJourneyPacingBrowserTests(
         await page.EvaluateAsync("() => { currentStage = 1; goToStage(1); }");
         Assert.All(await page.EvaluateAsync<string[]>(entering), name => Assert.Equal("convergence-stage-back", name));
 
-        // The entrance never changes layout, so the dock and focus targets stay put while it plays.
+        // Editable controls stay still and fully visible while the story enters.
+        Assert.Equal("none", await page.Locator("#personalDetails").EvaluateAsync<string>("fields => getComputedStyle(fields).animationName"));
         await page.WaitForFunctionAsync("() => !document.querySelector('.convergence-stage-layout').classList.contains('convergence-stage-enter')");
 
         await using var reduced = await NewContextAsync(Browser, App, new() { ReducedMotion = ReducedMotion.Reduce });

@@ -210,6 +210,7 @@ public sealed class ApplyJourneyBrowserTests(
         {
             if (stage > 1)
                 await page.EvaluateAsync("stage => { currentStage = stage; goToStage(stage); }", stage);
+            await page.Locator("#illustrationImage").EvaluateAsync("image => image.decode()");
             await page.EvaluateAsync("async () => { await document.fonts.ready; await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))); }");
             var header = await page.EvaluateAsync<StageHeader>(MeasureStageHeader);
             var scenario = $"{width}px stage {stage} ({header.Title})";

@@ -234,6 +234,16 @@
             line-height: 0;
         }
 
+        #illustrationPicture {
+            display: block;
+            border-radius: calc(var(--lwc-radius-lg, 12px) - 1px) calc(var(--lwc-radius-lg, 12px) - 1px) 0 0;
+            background: var(--lwc-surface-muted, #eef2f5);
+        }
+
+        #illustrationPicture:is([data-banner-state="loading"], [data-banner-state="failed"]) > img {
+            visibility: hidden;
+        }
+
         #descriptionForm #illustrationImage.illustration {
             display: block;
             width: 100%;
@@ -722,7 +732,7 @@
         }
 
         /* Phones: the full-width dock lines its actions up with the card's fields. */
-        @media (max-width: 768px) {
+        @media (max-width: 760px) {
             body[data-convergence-stage] > .convergence-actions.flow-action-stack--docked {
                 --convergence-card-pad: clamp(16px, 4vw, 28px);
                 padding-inline: calc(1rem + 1px + var(--convergence-card-pad));
@@ -738,7 +748,34 @@
             border-color: var(--lwc-border-strong, #71808d);
         }
 
-        @media (min-width: 769px) and (min-height: 481px) {
+        @media (max-width: 240px) {
+            .convergence-stage-layout {
+                --convergence-card-pad: 8px;
+                max-width: calc(100vw - 1rem);
+            }
+
+            body[data-convergence-stage] > .convergence-actions.flow-action-stack--docked {
+                --convergence-card-pad: 8px;
+                padding-inline: calc(0.5rem + 1px + var(--convergence-card-pad));
+            }
+
+            #division { padding-inline: 0.5rem; }
+
+            .convergence-upload-action .flow-action {
+                flex-direction: column;
+                gap: 0.3em;
+                padding-inline: 0.5rem;
+                overflow-wrap: normal;
+            }
+
+            .convergence-upload-action .flow-action > i {
+                position: static;
+                width: auto;
+                transform: none;
+            }
+        }
+
+        @media (min-width: 761px) {
             body[data-convergence-stage] > .convergence-actions.flow-action-stack--docked {
                 --convergence-card-pad: 28px;
                 left: calc(50% - 320px) !important;
@@ -746,7 +783,7 @@
                 width: 640px !important;
                 display: flex;
                 flex-direction: row;
-                flex-wrap: nowrap;
+                flex-wrap: wrap;
                 justify-content: space-between;
                 gap: 0.75rem;
                 padding: 0.55rem var(--convergence-card-pad) calc(0.55rem + env(safe-area-inset-bottom));
@@ -770,23 +807,23 @@
 
             body[data-convergence-stage] > .convergence-actions.flow-action-stack--docked > #nextButton,
             .convergence-stage-layout .convergence-actions:not(.flow-action-stack--docked) > #nextButton {
-                flex: 1 1 auto;
+                flex: 1 1 min-content;
                 order: 2;
             }
 
             body[data-convergence-stage] > .convergence-actions.flow-action-stack--docked > .back-button.flow-action--icon-left,
             .convergence-stage-layout .convergence-actions:not(.flow-action-stack--docked) > .back-button.flow-action--icon-left {
-                flex: 0 0 8.5rem !important;
+                flex: 0 0 auto !important;
                 order: 1;
                 width: 8.5rem !important;
                 min-width: 0 !important;
-                max-width: none !important;
+                max-width: 100% !important;
                 justify-content: center;
                 gap: 0.5em;
                 padding-inline: 1.35rem !important;
             }
 
-            @media (max-height: 800px) {
+            @media (min-width: 769px) and (max-height: 800px) {
                 body[data-convergence-stage] > .convergence-actions.flow-action-stack--docked {
                     --convergence-card-pad: 18px;
                 }
@@ -821,8 +858,7 @@
         /* Next and Back travel: the new stage slides in from the side it is heading toward. */
         @media (prefers-reduced-motion: no-preference) {
             .convergence-stage-enter .convergence-stage-head h1,
-            .convergence-stage-enter #descriptionForm .convergence-stage-copy,
-            .convergence-stage-enter #inputForm > fieldset {
+            .convergence-stage-enter #descriptionForm .convergence-stage-copy {
                 animation: convergence-stage-forward 340ms var(--lwc-ease, cubic-bezier(0.2, 0, 0, 1)) both;
             }
 
@@ -830,13 +866,8 @@
                 animation-delay: 50ms;
             }
 
-            .convergence-stage-enter #inputForm > fieldset {
-                animation-delay: 100ms;
-            }
-
             .convergence-stage-enter[data-convergence-direction="back"] .convergence-stage-head h1,
-            .convergence-stage-enter[data-convergence-direction="back"] #descriptionForm .convergence-stage-copy,
-            .convergence-stage-enter[data-convergence-direction="back"] #inputForm > fieldset {
+            .convergence-stage-enter[data-convergence-direction="back"] #descriptionForm .convergence-stage-copy {
                 animation-name: convergence-stage-back;
             }
 
@@ -846,11 +877,11 @@
         }
 
         @keyframes convergence-stage-forward {
-            from { opacity: 0; transform: translateX(18px); }
+            from { opacity: 0.8; transform: translateX(18px); }
         }
 
         @keyframes convergence-stage-back {
-            from { opacity: 0; transform: translateX(-18px); }
+            from { opacity: 0.8; transform: translateX(-18px); }
         }
 
         @keyframes convergence-banner-in {
@@ -868,7 +899,7 @@
                     <picture id="illustrationPicture" style="display:''">
                         <source type="image/webp" srcset="../assets/content-images/apply-arena.webp">
                         <source type="image/jpeg" srcset="../assets/content-images/apply-arena.jpg">
-                        <img id="illustrationImage" src="../assets/content-images/apply-arena.jpg" alt="Hooded applicant enters a sunlit stadium with longevity athletes" class="illustration" width="2170" height="725" loading="lazy" decoding="async">
+                        <img id="illustrationImage" src="../assets/content-images/apply-arena.jpg" alt="Hooded applicant enters a sunlit stadium with longevity athletes" class="illustration" width="2170" height="725" loading="eager" fetchpriority="high" decoding="async">
                     </picture>
                     <img style="display:none" id="profileImage" src="" alt="Profile picture" class="illustration" loading="lazy">
                 </div>
@@ -1085,6 +1116,7 @@
         let applicationDraftUnsaved = false;
         let applicationDraftEdited = false;
         let applicationProfilePending = false;
+        let resumeProfileUpload = null;
 
         function saveApplicationDraft(event) {
             if (isFake || applicationDraftCompleted) return;
@@ -1818,30 +1850,30 @@
         // Each stage enters from the side it is travelling toward, so Next and Back read as one journey.
         let stageEntranceTimer = 0;
         let hasShownFirstStage = false;
+        let stageIllustrationVersion = 0;
+        const stageEntranceMotion = window.matchMedia('(prefers-reduced-motion: no-preference)');
+        function cancelStageEntrance() {
+            window.clearTimeout(stageEntranceTimer);
+            document.querySelector('.convergence-stage-layout')?.classList.remove('convergence-stage-enter');
+        }
+        stageEntranceMotion.addEventListener('change', cancelStageEntrance);
         function playStageEntrance(previousStage, stage) {
             const card = document.querySelector('.convergence-stage-layout');
             const isFirstStage = !hasShownFirstStage;
             hasShownFirstStage = true;
-            if (!card || isFirstStage || previousStage === stage) return;
+            cancelStageEntrance();
+            if (!card || isFirstStage || previousStage === stage || !stageEntranceMotion.matches) return;
             card.dataset.convergenceDirection = stage > previousStage ? 'forward' : 'back';
             card.classList.remove('convergence-stage-enter');
             void card.offsetWidth;
             card.classList.add('convergence-stage-enter');
-            window.clearTimeout(stageEntranceTimer);
-            stageEntranceTimer = window.setTimeout(() => card.classList.remove('convergence-stage-enter'), 900);
+            stageEntranceTimer = window.setTimeout(cancelStageEntrance, 600);
         }
 
         function goToStage(stage, { focus = false } = {}) {
             const previousStage = Number(document.body.dataset.convergenceStage) || 0;
             document.body.dataset.convergenceStage = String(stage);
             document.getElementById('descriptionForm').style.display = '';
-
-            // Clear out any lingering click‐handlers on the illustration
-            const oldImg = document.getElementById('illustrationImage');
-            const newImg = oldImg.cloneNode(true);
-            // cloneNode drops listeners, but retains their bookkeeping attributes.
-            newImg.removeAttribute('data-listener');
-            oldImg.parentNode.replaceChild(newImg, oldImg);
 
             // Clear visibility on all main form sections
             document.getElementById('privacyText').style.display = 'none';
@@ -1870,11 +1902,33 @@
             const jpegSource = illustrationPicture.querySelector('source[type="image/jpeg"]');
 
             function updateIllustration(imageName, format, webpSource, jpegSource, illustrationImage, width = 2172, height = 724) {
+                const source = `../assets/content-images/${imageName}.${format}`;
+                if (illustrationImage.getAttribute('src') === source && illustrationPicture.dataset.bannerState === 'ready') return;
+                const version = ++stageIllustrationVersion;
+                illustrationPicture.dataset.bannerState = 'loading';
+                // Keep the same node and its listeners. Hide old pixels until the current
+                // stage's image decodes; a late completion must not reveal another stage.
+                const reveal = async () => {
+                    try {
+                        await illustrationImage.decode();
+                        if (version === stageIllustrationVersion) illustrationPicture.dataset.bannerState = 'ready';
+                    } catch (_) {
+                        if (version === stageIllustrationVersion && illustrationImage.complete && !illustrationImage.naturalWidth) {
+                            illustrationPicture.dataset.bannerState = 'failed';
+                        }
+                    }
+                };
+                illustrationImage.onload = reveal;
+                illustrationImage.onerror = () => {
+                    if (version === stageIllustrationVersion) illustrationPicture.dataset.bannerState = 'failed';
+                };
+                illustrationImage.loading = 'eager';
                 webpSource.srcset = `../assets/content-images/${imageName}.webp`;
                 jpegSource.srcset = `../assets/content-images/${imageName}.${format}`;
-                illustrationImage.src = `../assets/content-images/${imageName}.${format}`;
+                illustrationImage.src = source;
                 illustrationImage.width = width;
                 illustrationImage.height = height;
+                reveal();
             }
 
             const nextButton = document.getElementById('nextButton');
@@ -1891,7 +1945,6 @@
                     document.querySelector('h1').textContent = "Enter the arena";
                     updateIllustration("apply-arena", "jpg", webpSource, jpegSource, illustrationImage, 2170, 725);
                     illustrationImage.alt = "Hooded applicant enters a sunlit stadium with longevity athletes";
-                    illustrationImage.loading = "lazy";
                     document.getElementById('personalDetails').style.display = '';
                     nextButton.innerHTML = '<span class="flow-action__label">Next</span><i class="fas fa-arrow-right" aria-hidden="true"></i>';
 
@@ -1913,7 +1966,6 @@
                     document.querySelector('h1').textContent = "Finding your why";
                     updateIllustration("apply-encouragement", "jpg", webpSource, jpegSource, illustrationImage);
                     illustrationImage.alt = "Dave Pascoe offers a helping hand to the hooded applicant";
-                    illustrationImage.loading = "lazy";
                     document.getElementById('whyField').style.display = 'block';
                     nextButton.innerHTML = '<span class="flow-action__label">Next</span><i class="fas fa-arrow-right" aria-hidden="true"></i>';
 
@@ -1933,7 +1985,6 @@
                     document.querySelector('h1').textContent = "The price of glory";
                     updateIllustration("apply-interview", "jpg", webpSource, jpegSource, illustrationImage);
                     illustrationImage.alt = "Siim Land and Wong join the hooded applicant for a press interview";
-                    illustrationImage.loading = "lazy";
                     document.getElementById('privacyText').style.display = '';
                     document.getElementById('privacyDetails').style.display = '';
                     // In the goToStage function, within case 3, replace the existing line with the following:
@@ -1948,7 +1999,6 @@
                     document.querySelector('h1').textContent = "Almost there";
                     updateIllustration("apply-reveal", "jpg", webpSource, jpegSource, illustrationImage);
                     illustrationImage.alt = "The applicant lifts their hood to reveal their identity";
-                    illustrationImage.loading = "lazy";
                     document.getElementById('profilePicText').style.display = '';
                     document.getElementById('profileUploadSection').style.display = '';
 
@@ -1964,7 +2014,7 @@
                         document.body.classList.add('convergence-has-portrait');
                         profileImage.src = profilePic;
                         // Enable Next button if profile picture exists
-                        nextButton.disabled = false;
+                        nextButton.disabled = applicationProfilePending;
                     }
                     updateUploadButtons();
 
@@ -1976,7 +2026,6 @@
                     document.querySelector('h1').textContent = "Don't trust, verify";
                     updateIllustration("apply-bloodwork", "jpg", webpSource, jpegSource, illustrationImage);
                     illustrationImage.alt = "A surprised judge examines the applicant's bloodwork";
-                    illustrationImage.loading = "lazy";
                     document.getElementById('proofText').style.display = '';
                     document.getElementById('proofUploadSection').style.display = '';
 
@@ -2006,7 +2055,6 @@
                     document.querySelector('h1').textContent = "Final details";
                     updateIllustration("apply-daydream", "jpg", webpSource, jpegSource, illustrationImage);
                     illustrationImage.alt = "The applicant imagines a trophy victory alongside longevity athletes";
-                    illustrationImage.loading = "lazy";
                     document.getElementById('finalDetailsText').style.display = '';
                     document.getElementById('finalDetails').style.display = '';
 
@@ -2031,7 +2079,6 @@
                     document.querySelector('h1').textContent = "Application";
                     updateIllustration("apply-first-step", "jpg", webpSource, jpegSource, illustrationImage);
                     illustrationImage.alt = "The applicant takes a first step across the stadium's painted field line";
-                    illustrationImage.loading = "lazy";
                     document.getElementById('congratsText').style.display = '';
                     document.getElementById('applyDetails').style.display = '';
 
@@ -2397,6 +2444,7 @@
             const illustrationImage = document.getElementById('illustrationImage');
             if (illustrationImage && !illustrationImage.hasAttribute('data-listener')) {
                 illustrationImage.addEventListener('click', function () {
+                    if (currentStage !== 4) return;
                     document.getElementById('profilePicInput').click();
                 });
                 illustrationImage.setAttribute('data-listener', 'true');
@@ -2405,8 +2453,58 @@
             // Handle the image upload and initialize Cropper.js
             const profilePicInput = document.getElementById('profilePicInput');
             const profileCameraInput = document.getElementById('profileCameraInput');
+            if (profilePicInput?.hasAttribute('data-listener')) {
+                resumeProfileUpload?.();
+                return;
+            }
             let cropper; // Declare Cropper instance at a higher scope
             let isProfileCropProcessing = false;
+            let pendingProfileSource = null;
+            let profileReadVersion = 0;
+
+            function showProfileCrop(source) {
+                const nextButton = document.getElementById('nextButton');
+                try {
+                    nextButton.disabled = true;
+                    updateUploadButtons();
+                    if (cropper) cropper.destroy();
+                    cropper = null;
+                    document.getElementById('cropperImage').src = source;
+                    document.getElementById('uploadPart').style.display = 'none';
+                    document.getElementById('croppingPart').style.display = 'block';
+                    cropper = new Cropper(document.getElementById('cropperImage'), {
+                        aspectRatio: 1,
+                        viewMode: 1,
+                        autoCropArea: 1,
+                        movable: true,
+                        zoomable: true,
+                        rotatable: false,
+                        scalable: false,
+                        cropBoxResizable: true,
+                        minCropBoxWidth: 200,
+                        minCropBoxHeight: 150,
+                    });
+                } catch (_) {
+                    applicationProfilePending = false;
+                    if (cropper) {
+                        try { cropper.destroy(); } catch (_) { }
+                        cropper = null;
+                    }
+                    document.getElementById('uploadPart').style.display = '';
+                    document.getElementById('croppingPart').style.display = 'none';
+                    nextButton.disabled = !profilePic;
+                    updateUploadButtons();
+                    customAlert('Profile picture upload failed. Please try another image.')
+                        .then(() => { if (currentStage === 4) uploadButton?.focus(); });
+                }
+            }
+
+            resumeProfileUpload = () => {
+                if (!pendingProfileSource) return;
+                const source = pendingProfileSource;
+                pendingProfileSource = null;
+                showProfileCrop(source);
+            };
 
             function handleProfileUploadChange(event) {
                 const input = event.target;
@@ -2421,54 +2519,23 @@
                     }
 
                     applicationProfilePending = true;
+                    if (currentStage === 4) document.getElementById('nextButton').disabled = true;
+                    const version = ++profileReadVersion;
+                    pendingProfileSource = null;
                     const reader = new FileReader();
                     reader.onload = function (e) {
-                        const nextButton = document.getElementById('nextButton');
-                        try {
-                            // Disable "Next" button while cropping
-                            nextButton.disabled = true;
-                            updateUploadButtons();
-
-                            if (cropper) {
-                                cropper.destroy();
-                                cropper = null;
-                            }
-
-                            document.getElementById('cropperImage').src = e.target.result;
-
-                            document.getElementById('uploadPart').style.display = 'none';
-                            document.getElementById('croppingPart').style.display = 'block';
-
-                            cropper = new Cropper(document.getElementById('cropperImage'), {
-                                aspectRatio: 1,
-                                viewMode: 1,
-                                autoCropArea: 1,
-                                movable: true,
-                                zoomable: true,
-                                rotatable: false,
-                                scalable: false,
-                                cropBoxResizable: true,
-                                minCropBoxWidth: 200,
-                                minCropBoxHeight: 150,
-                            });
-                        } catch (_) {
-                            applicationProfilePending = false;
-                            if (cropper) {
-                                try { cropper.destroy(); } catch (_) { }
-                                cropper = null;
-                            }
-                            document.getElementById('uploadPart').style.display = '';
-                            document.getElementById('croppingPart').style.display = 'none';
-                            nextButton.disabled = !profilePic;
-                            updateUploadButtons();
-                            customAlert('Profile picture upload failed. Please try another image.')
-                                .then(() => uploadButton?.focus());
-                        }
+                        if (version !== profileReadVersion) return;
+                        // A file may finish reading after Back. Keep it for the photo
+                        // stage instead of disabling another stage or sizing a hidden cropper.
+                        if (currentStage === 4) showProfileCrop(e.target.result);
+                        else pendingProfileSource = e.target.result;
                     };
                     reader.onerror = function () {
+                        if (version !== profileReadVersion) return;
                         applicationProfilePending = false;
+                        if (currentStage === 4) document.getElementById('nextButton').disabled = !profilePic;
                         customAlert('Profile picture upload failed. Please try another image.')
-                            .then(() => uploadButton?.focus());
+                            .then(() => { if (currentStage === 4) uploadButton?.focus(); });
                     };
                     reader.onabort = reader.onerror;
                     reader.readAsDataURL(file);
@@ -2506,12 +2573,16 @@
                         } catch {
                             croppedImageDataURL = raw;
                         }
-                        document.getElementById('profileImage').style.display = '';
-                        document.body.classList.add('convergence-has-portrait');
-                        document.getElementById('profileImage').src = croppedImageDataURL;
+                        if (currentStage === 4) {
+                            document.getElementById('profileImage').style.display = '';
+                            document.body.classList.add('convergence-has-portrait');
+                            document.getElementById('profileImage').src = croppedImageDataURL;
+                        }
 
                         profilePic = croppedImageDataURL;
                         applicationProfilePending = false;
+                        pendingProfileSource = null;
+                        ++profileReadVersion;
 
                         try { activeCropper.destroy(); } catch (_) { }
                         if (cropper === activeCropper) {
@@ -2522,7 +2593,7 @@
                         document.getElementById('croppingPart').style.display = 'none';
 
                         const nextButton = document.getElementById('nextButton');
-                        nextButton.disabled = false;
+                        if (currentStage === 4) nextButton.disabled = false;
                         updateUploadButtons();
                     } catch (_) {
                         customAlert('Profile picture crop failed. Please try another image.')
@@ -2537,6 +2608,8 @@
                 cancelProfileCropButton.addEventListener('click', function () {
                     if (isProfileCropProcessing) return;
                     applicationProfilePending = false;
+                    pendingProfileSource = null;
+                    ++profileReadVersion;
                     if (cropper) {
                         try { cropper.destroy(); } catch (_) { }
                         cropper = null;
