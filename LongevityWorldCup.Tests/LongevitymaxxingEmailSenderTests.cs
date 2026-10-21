@@ -132,7 +132,12 @@ public sealed class LongevitymaxxingEmailSenderTests
         Assert.All(smtp.ContentStreams, stream => Assert.False(stream.CanRead));
         using var message = MimeMessage.Load(new MemoryStream(smtp.MessageBytes!));
         Assert.Equal("Report", message.Subject);
-        Assert.Equal("Exact report body\r\n", message.TextBody);
+        var plain = Assert.IsType<TextPart>(message.Body);
+        using var decoded = new MemoryStream();
+        await plain.Content!.DecodeToAsync(decoded);
+        Assert.Equal("Exact report body\r\n", Encoding.UTF8.GetString(decoded.ToArray()));
+        // MimeKit's TextBody getter uses the native display newline after decoding.
+        Assert.Equal("Exact report body" + Environment.NewLine, message.TextBody);
         Assert.Null(message.HtmlBody);
     }
 }
@@ -161,7 +166,11 @@ internal sealed class EmailTestSmtpClient : SmtpClient
         SendCalls++;
         ContentStreams = message.BodyParts.OfType<TextPart>().Select(part => part.Content!.Stream!).ToList();
         using var buffer = new MemoryStream();
-        await message.WriteToAsync(buffer, cancellationToken);
+        // Match SMTP's CRLF framing regardless of host/display defaults.
+        var wireFormat = options.Clone();
+        wireFormat.NewLineFormat = NewLineFormat.Dos;
+        wireFormat.EnsureNewLine = true;
+        await message.WriteToAsync(wireFormat, buffer, cancellationToken);
         MessageBytes = buffer.ToArray();
         if (SendFailure is not null) throw SendFailure;
         AfterSend?.Invoke();
