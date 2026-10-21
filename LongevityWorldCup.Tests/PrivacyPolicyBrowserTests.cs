@@ -1,4 +1,9 @@
 using Microsoft.Playwright;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.DependencyInjection;
+using System.Net;
+using System.Text.RegularExpressions;
+using Markdig;
 using Xunit;
 using static LongevityWorldCup.Tests.AestheticSystemBrowserTests;
 using static LongevityWorldCup.Tests.FlowActionDockBrowserTests;
@@ -13,6 +18,26 @@ public sealed class PrivacyPolicyBrowserTests(
     BrowserTestAppFixture appFixture)
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
+    [Fact]
+    public async Task Policy_PreservesEverySourceSentenceAndLink()
+    {
+        await using var context = await NewContextAsync(Browser, App, new());
+        var page = await context.NewPageAsync();
+        await NavigateAndSettleAsync(page, "/privacy");
+        var root = App.Services.GetRequiredService<IWebHostEnvironment>().ContentRootPath;
+        var markdown = await File.ReadAllTextAsync(Path.Combine(root, "..", "LongevityWorldCup.Documentation", "PrivacyPolicy.md"));
+        var sourceHtml = Markdown.ToHtml(markdown);
+        static string Text(string value) => Regex.Replace(value, @"\s+", " ").Trim();
+        var expected = Text(WebUtility.HtmlDecode(Regex.Replace(sourceHtml, "<[^>]*>", "")));
+        Assert.Equal(expected, Text((await page.Locator(".documentation-document").TextContentAsync())!));
+        var sourceLinks = Regex.Matches(sourceHtml, "<a href=\"([^\"]+)\"")
+            .Select(match => WebUtility.HtmlDecode(match.Groups[1].Value)).ToArray();
+        Assert.Equal(sourceLinks, await page.Locator(".documentation-document a").EvaluateAllAsync<string[]>("links => links.map(a => a.getAttribute('href'))"));
+        Assert.Equal("https://longevityworldcup.com/privacy", await page.Locator("link[rel='canonical']").GetAttributeAsync("href"));
+        Assert.Equal("https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/PrivacyPolicy.md",
+            await page.Locator(".documentation-source-link").GetAttributeAsync("href"));
+    }
+
     [Theory]
     [InlineData(1440, 900, "light")]
     [InlineData(1280, 720, "dark")]

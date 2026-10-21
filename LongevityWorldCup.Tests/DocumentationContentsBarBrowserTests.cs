@@ -64,7 +64,7 @@ public sealed class DocumentationContentsBarBrowserTests(
 
         // Opening the list overlays the document instead of pushing it down.
         var before = await page.EvaluateAsync<double>("() => document.querySelector('.documentation-document').getBoundingClientRect().top");
-        await page.EvaluateAsync("() => document.querySelector('.documentation-nav-toggle').click()");
+        await page.Locator(".documentation-nav-toggle").ClickAsync();
         var open = await page.EvaluateAsync<double[]>(
             """
             () => {
@@ -113,5 +113,59 @@ public sealed class DocumentationContentsBarBrowserTests(
         var label = await page.Locator(".documentation-nav-current").TextContentAsync();
         var linkText = await page.Locator($".documentation-nav a[href='{href}']").TextContentAsync();
         Assert.Equal(linkText?.Trim(), label?.Trim());
+    }
+
+    [Theory]
+    [InlineData("/privacy", "#storage-and-retention")]
+    [InlineData("/ruleset", "#prizes-and-payouts")]
+    public async Task ContentsBar_UpdatesTheLabelInTheSameClickAsTheActiveLink(string path, string href)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = 390, Height = 844 }, ReducedMotion = ReducedMotion.Reduce
+        });
+        var page = await context.NewPageAsync();
+        await NavigateAndSettleAsync(page, path);
+        var synchronized = await page.EvaluateAsync<bool>("""
+            href => {
+                const link = document.querySelector(`.documentation-nav a[href='${href}']`);
+                document.querySelector('.documentation-nav-toggle').click();
+                link.click();
+                return link.getAttribute('aria-current') === 'location' &&
+                    document.querySelector('.documentation-nav-current').textContent.trim() === link.textContent.trim();
+            }
+            """, href);
+        Assert.True(synchronized, "The selected link and visible bar label must agree before a scroll frame runs.");
+    }
+
+    [Theory]
+    [InlineData("/privacy", "#storage-and-retention")]
+    [InlineData("/about", "#how-it-works")]
+    [InlineData("/ruleset", "#prizes-and-payouts")]
+    public async Task ContentsBar_RefitsToAResizedHeaderAndKeepsKeyboardDismissal(string path, string href)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = 390, Height = 640 }, ReducedMotion = ReducedMotion.Reduce
+        });
+        var page = await context.NewPageAsync();
+        await NavigateAndSettleAsync(page, path + href);
+        await page.WaitForFunctionAsync("href => document.querySelector('.documentation-nav a.is-active')?.hash === href", href);
+        await page.EvaluateAsync("document.getElementById('site-sticky-header').style.minHeight = '140px'");
+        await page.WaitForFunctionAsync("""
+            href => document.getElementById(href.slice(1)).getBoundingClientRect().top >=
+                document.querySelector('.documentation-nav-toggle').getBoundingClientRect().bottom
+            """, href);
+        await page.Locator(".documentation-nav-toggle").ClickAsync();
+        var listFits = await page.Locator(".documentation-nav-links").EvaluateAsync<bool>("e => e.getBoundingClientRect().bottom <= innerHeight");
+        Assert.True(listFits, "The open contents must fit below the resized header and bar.");
+        await page.Locator($".documentation-nav a[href='{href}']").FocusAsync();
+        await page.Keyboard.PressAsync("Escape");
+        Assert.Equal("false", await page.Locator(".documentation-nav-toggle").GetAttributeAsync("aria-expanded"));
+        Assert.True(await page.Locator(".documentation-nav-toggle").EvaluateAsync<bool>("e => e === document.activeElement"));
+        await page.Keyboard.PressAsync("Enter");
+        await page.Locator(".documentation-nav a[href='#contact'], .documentation-source-link").Last.FocusAsync();
+        await page.Keyboard.PressAsync("Tab");
+        Assert.Equal("false", await page.Locator(".documentation-nav-toggle").GetAttributeAsync("aria-expanded"));
     }
 }

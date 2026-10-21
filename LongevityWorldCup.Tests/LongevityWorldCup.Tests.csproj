@@ -24,6 +24,7 @@
   <ItemGroup>
     <ProjectReference Include="..\LongevityWorldCup.Website\LongevityWorldCup.Website.csproj" />
     <ProjectReference Include="..\LongevityWorldCup.ApplicationReviewer\LongevityWorldCup.ApplicationReviewer.csproj" />
+    <ProjectReference Include="..\LongevityWorldCup.MarkdownPageGenerator\LongevityWorldCup.MarkdownPageGenerator.csproj" />
   </ItemGroup>
 
   <ItemGroup>

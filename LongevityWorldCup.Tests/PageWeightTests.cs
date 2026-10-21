@@ -14,6 +14,7 @@ public sealed class PageWeightTests(TestWebApplicationFactory factory)
     [InlineData("/leaderboard", 430_000)]
     [InlineData("/events", 80_000)]
     [InlineData("/about", 100_000)]
+    [InlineData("/privacy", 100_000)]
     [InlineData("/pheno-age", 230_000)]
     [InlineData("/bortz-age", 285_000)]
     public async Task PublicDocuments_DoNotInlineSharedApplicationCode(string path, int budget)
@@ -27,6 +28,11 @@ public sealed class PageWeightTests(TestWebApplicationFactory factory)
         Assert.Contains("/js/guess-my-age.js?v=", html);
         Assert.DoesNotContain("window.openAthleteModalBySlug = function", html);
         Assert.DoesNotContain("{{ASSET_", html);
+        if (path is "/about" or "/privacy")
+        {
+            Assert.Contains("/js/documentation.js?v=", html);
+            Assert.DoesNotContain("const updateCurrentSection =", html);
+        }
 
         // Dynamic font URLs still use the same version as the head's preload.
         Assert.Matches(@"src: url\('/assets/fonts/Roboto-Regular\.woff2\?v=[^']+'\)", html);

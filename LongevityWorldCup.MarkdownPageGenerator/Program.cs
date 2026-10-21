@@ -48,7 +48,7 @@ foreach (var page in pages)
 {
     var markdown = await File.ReadAllTextAsync(page.Source);
     var title = ExtractTitle(markdown);
-    var documentHtml = AddTableCellLabels(OpenAbsoluteLinksInNewTabs(RewriteWebsiteAssetImageSources(Markdown.ToHtml(markdown, pipeline))));
+    var documentHtml = AddTableCellLabels(DocumentationLinks.OpenExternalLinksInNewTabs(RewriteWebsiteAssetImageSources(Markdown.ToHtml(markdown, pipeline))));
     if (page.CanonicalPath is "/about" or "/history")
     {
         // A discretionary break preserves the full title at enlarged text sizes.
@@ -351,15 +351,6 @@ static string AddTableCellLabels(string html)
             return $"<div class=\"documentation-table\">{Environment.NewLine}<table>{Environment.NewLine}<thead>{Environment.NewLine}<tr>{header}</tr>{Environment.NewLine}</thead>{Environment.NewLine}<tbody>{body}</tbody>{Environment.NewLine}</table>{Environment.NewLine}</div>";
         },
         RegexOptions.IgnoreCase | RegexOptions.Singleline);
-}
-
-static string OpenAbsoluteLinksInNewTabs(string html)
-{
-    return Regex.Replace(
-        html,
-        "<a href=\"(?<href>https?://[^\"]+)\">",
-        match => $"<a href=\"{match.Groups["href"].Value}\" target=\"_blank\" rel=\"noopener noreferrer\">",
-        RegexOptions.IgnoreCase);
 }
 
 static string RewriteWebsiteAssetImageSources(string html)
@@ -1312,7 +1303,7 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
             }
 
             .documentation-nav-links {
-                max-height: min(65svh, 30rem);
+                max-height: min(65svh, 30rem, var(--documentation-list-height, 65svh));
                 overflow-y: auto;
                 overscroll-behavior: contain;
             }
@@ -1369,9 +1360,12 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
                 top: calc(var(--site-sticky-height, 0px) + 0.5rem);
             }
 
-            :root:has(.documentation-nav.is-enhanced) {
-                scroll-padding-top: calc(var(--site-sticky-height, 3.25rem) + 4.75rem);
-            }
+        }
+
+        /* Reserve the bar for document fragments, while keyboard focus on the
+           sticky toggle can still use the space immediately below the header. */
+        :root:has(.documentation-nav.is-enhanced) .documentation-document :is(h1, h2, h3)[id] {
+            scroll-margin-top: max(0px, calc(var(--documentation-anchor-offset, 0px) - max(3.25rem, var(--site-sticky-height, 0px))));
         }
 
         @media (max-width: 600px) {
@@ -1476,251 +1470,7 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
         </article>
     </main>
     <!--FOOTER-->
-    <script>
-        history.replaceState({}, "", "{{canonicalPath}}" + (window.location.search || "") + (window.location.hash || ""));
-        document.addEventListener("DOMContentLoaded", () => {
-            const documentationNav = document.querySelector(".documentation-nav");
-            const documentationNavToggle = documentationNav?.querySelector(".documentation-nav-toggle");
-            const setDocumentationNavOpen = open => {
-                if (!documentationNav || !documentationNavToggle) {
-                    return;
-                }
-
-                documentationNav.classList.toggle("is-open", open);
-                documentationNavToggle.setAttribute("aria-expanded", String(open));
-                const icon = documentationNavToggle.querySelector(".documentation-nav-toggle-icon");
-                if (icon) {
-                    icon.textContent = open ? "−" : "+";
-                }
-            };
-
-            if (documentationNav && documentationNavToggle) {
-                documentationNav.classList.add("is-enhanced");
-                setDocumentationNavOpen(false);
-            }
-
-            documentationNavToggle?.addEventListener("click", () => {
-                const open = documentationNavToggle.getAttribute("aria-expanded") !== "true";
-                setDocumentationNavOpen(open);
-                // Open the list at the section being read.
-                const list = documentationNav.querySelector(".documentation-nav-links");
-                const current = documentationNav.querySelector("a.is-active");
-                if (open && list && current && current.offsetParent === list) {
-                    list.scrollTop = current.offsetTop - (list.clientHeight - current.offsetHeight) / 2;
-                }
-            });
-
-            // The open list overlays the document, so it closes like other menus.
-            document.addEventListener("click", event => {
-                if (documentationNav?.classList.contains("is-open") && !documentationNav.contains(event.target)) {
-                    setDocumentationNavOpen(false);
-                }
-            });
-            document.addEventListener("keydown", event => {
-                if (event.key === "Escape" && documentationNav?.classList.contains("is-open")) {
-                    const focusWasInside = documentationNav.contains(document.activeElement);
-                    setDocumentationNavOpen(false);
-                    if (focusWasInside) {
-                        documentationNavToggle?.focus();
-                    }
-                }
-            });
-
-            const navLinks = Array.from(document.querySelectorAll(".documentation-nav a[href^='#']"));
-            const headings = navLinks
-                .map(link => document.getElementById(decodeURIComponent(link.getAttribute("href").slice(1))))
-                .filter(Boolean);
-
-            const getOffset = () => {
-                const stickyHeader = document.getElementById("site-sticky-header");
-                const measuredHeight = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--site-sticky-height"));
-                const header = (stickyHeader && stickyHeader.offsetHeight) || measuredHeight || 52;
-                // On phones and tablets the folded contents bar also stays on screen.
-                const bar = documentationNav?.classList.contains("is-enhanced") && getComputedStyle(documentationNav).position === "sticky"
-                    ? documentationNavToggle.offsetHeight + 8
-                    : 0;
-                return header + bar + 18;
-            };
-
-            let activeLink = null;
-            let navigationDestination = null;
-            const revealActiveLink = () => {
-                const link = documentationNav?.querySelector("a:focus") || activeLink;
-                if (!documentationNav || !link || !window.matchMedia("(min-width: 901px)").matches) {
-                    return;
-                }
-
-                const pane = documentationNav.getBoundingClientRect();
-                const target = link.getBoundingClientRect();
-                const padding = parseFloat(getComputedStyle(documentationNav).scrollPaddingTop) || 0;
-                if (target.top < pane.top + padding) {
-                    documentationNav.scrollTop += target.top - pane.top - padding;
-                } else if (target.bottom > pane.bottom - padding) {
-                    documentationNav.scrollTop += target.bottom - pane.bottom + padding;
-                }
-            };
-
-            // The folded contents bar names the section being read and shows how
-            // far through the document the reader is.
-            const documentationNavCurrent = documentationNav?.querySelector(".documentation-nav-current");
-            const documentationNavLabel = documentationNavCurrent?.textContent || "";
-            const numberedLinks = navLinks.filter(link => link.matches(".documentation-nav-chapter, .documentation-nav-rule"));
-            const documentationArticle = document.querySelector(".documentation-document");
-            const updateCurrentSection = () => {
-                if (!documentationNav || !documentationNavCurrent) {
-                    return;
-                }
-
-                const offset = getOffset() + 6;
-                const entered = headings.length > 0 && headings[0].getBoundingClientRect().top <= offset;
-                const link = entered ? activeLink : null;
-                const number = link ? numberedLinks.indexOf(link) : -1;
-                const text = link ? link.textContent.replace(/\s+/g, " ").trim() : documentationNavLabel;
-                if (documentationNavCurrent.dataset.text !== text) {
-                    documentationNavCurrent.dataset.text = text;
-                    const label = document.createElement("span");
-                    label.className = "documentation-nav-current-text";
-                    label.textContent = text;
-                    documentationNavCurrent.replaceChildren(label);
-                }
-                if (number >= 0) {
-                    documentationNavCurrent.dataset.number = String(number + 1).padStart(2, "0");
-                } else {
-                    delete documentationNavCurrent.dataset.number;
-                }
-
-                if (documentationArticle) {
-                    const bounds = documentationArticle.getBoundingClientRect();
-                    const travel = Math.max(1, bounds.height - window.innerHeight + offset);
-                    const progress = Math.min(1, Math.max(0, (offset - bounds.top) / travel));
-                    documentationNav.style.setProperty("--documentation-progress", progress.toFixed(4));
-                }
-
-                const navStyle = getComputedStyle(documentationNav);
-                const stickyTop = parseFloat(navStyle.top);
-                documentationNav.classList.toggle("is-stuck", navStyle.position === "sticky" && window.scrollY > 0 &&
-                    Number.isFinite(stickyTop) && documentationNav.getBoundingClientRect().top <= stickyTop + 0.5);
-            };
-
-            const setActive = id => {
-                const previousActiveLink = activeLink;
-                activeLink = null;
-                navLinks.forEach(link => {
-                    const active = decodeURIComponent(link.getAttribute("href").slice(1)) === id;
-                    link.classList.toggle("is-active", active);
-                    if (active) {
-                        activeLink = link;
-                        link.setAttribute("aria-current", "location");
-                    } else {
-                        link.removeAttribute("aria-current");
-                    }
-                });
-                if (activeLink !== previousActiveLink) {
-                    revealActiveLink();
-                }
-            };
-
-            navLinks.forEach(link => {
-                link.addEventListener("click", event => {
-                    const target = document.getElementById(decodeURIComponent(link.getAttribute("href").slice(1)));
-                    if (!target) {
-                        return;
-                    }
-
-                    event.preventDefault();
-                    if (window.matchMedia("(max-width: 900px)").matches) {
-                        setDocumentationNavOpen(false);
-                    }
-                    const top = target.getBoundingClientRect().top + window.scrollY - getOffset();
-                    window.scrollTo({ top, behavior: "instant" });
-                    history.pushState(null, "", link.getAttribute("href"));
-                    navigationDestination = { target, scrollY: window.scrollY, hash: window.location.hash };
-                    setActive(target.id);
-
-                    target.setAttribute("tabindex", "-1");
-                    target.focus({ preventScroll: true });
-                });
-            });
-
-            const updateActiveFromScroll = () => {
-                const offset = getOffset() + 6;
-                // A section near the page end may be visible without reaching the offset.
-                // Honor that destination until the reader moves away from its landing position.
-                if (navigationDestination && window.scrollY === navigationDestination.scrollY &&
-                    window.location.hash === navigationDestination.hash) {
-                    const bounds = navigationDestination.target.getBoundingClientRect();
-                    if (bounds.bottom > offset && bounds.top < window.innerHeight) {
-                        setActive(navigationDestination.target.id);
-                        updateCurrentSection();
-                        return;
-                    }
-                }
-                navigationDestination = null;
-                let current = headings[0];
-
-                for (const heading of headings) {
-                    if (heading.getBoundingClientRect().top <= offset) {
-                        current = heading;
-                    } else {
-                        break;
-                    }
-                }
-                if (window.scrollY > 0 && window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 1) {
-                    current = headings[headings.length - 1];
-                }
-                if (current) {
-                    setActive(current.id);
-                }
-                updateCurrentSection();
-            };
-
-            const synchronizeNavigationFromHash = () => {
-                let id;
-                try {
-                    id = decodeURIComponent(window.location.hash.slice(1));
-                } catch {
-                    id = "";
-                }
-                const target = headings.find(heading => heading.id === id);
-                navigationDestination = null;
-                if (target) {
-                    const bounds = target.getBoundingClientRect();
-                    if (bounds.bottom > getOffset() && bounds.top < window.innerHeight) {
-                        navigationDestination = { target, scrollY: window.scrollY, hash: window.location.hash };
-                    }
-                }
-                updateActiveFromScroll();
-            };
-
-            let ticking = false;
-            window.addEventListener("scroll", () => {
-                if (ticking) {
-                    return;
-                }
-
-                ticking = true;
-                window.requestAnimationFrame(() => {
-                    updateActiveFromScroll();
-                    ticking = false;
-                });
-            }, { passive: true });
-            window.addEventListener("resize", () => {
-                updateActiveFromScroll();
-                revealActiveLink();
-            });
-            window.addEventListener("hashchange", () => window.requestAnimationFrame(synchronizeNavigationFromHash));
-            window.addEventListener("pageshow", event => {
-                if (!event.persisted && window.location.hash) {
-                    synchronizeNavigationFromHash();
-                }
-            });
-
-            updateActiveFromScroll();
-            if (window.location.hash) {
-                window.requestAnimationFrame(synchronizeNavigationFromHash);
-            }
-        });
-    </script>{{(page.Reference ? ReferencePage.Script : string.Empty)}}
+    <script src="{{"{{ASSET_DOCUMENTATION_JS}}"}}" data-canonical-path="{{canonicalPath}}"></script>{{(page.Reference ? ReferencePage.Script : string.Empty)}}
 </body>
 </html>
 """;
