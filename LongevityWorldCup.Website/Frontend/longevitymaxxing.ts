@@ -2847,7 +2847,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 : "";
             const fullMarksClass = row.hasFullMarks ? " lmx-full-marks" : "";
             const groupEndClass = row.hasFullMarks && !leaderboardRows.visible[index + 1]?.hasFullMarks ? " lmx-full-marks-end" : "";
-            return `<div class="lmx-board-row${row.challengeInactive ? " inactive" : ""}${fullMarksClass}${groupEndClass}" role="row">
+            const selfClass = row.participantId === participantState?.participant.id ? " lmx-board-row--self" : "";
+            return `<div class="lmx-board-row${row.challengeInactive ? " inactive" : ""}${fullMarksClass}${groupEndClass}${selfClass}" role="row">
                 <div class="lmx-name" role="cell">${participant}</div>
                 <div class="lmx-number" role="cell" data-label="Score"><span class="lmx-score-value">${row.totalPoints}${fullMarks}</span></div>
                 <div class="lmx-cell-strip" role="cell" aria-label="Daily scores">${cells}</div>
@@ -5824,11 +5825,13 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     async function submitCheckIn(form: HTMLFormElement): Promise<void> {
         if (!accessToken || checkInSaving) return;
         const key = checkInDayKey(form);
-        if (!participantState?.eligibleDays.some(day => checkInDraftKey(day) === key)) {
+        const submittedDay = participantState?.eligibleDays.find(day => checkInDraftKey(day) === key);
+        if (!participantState || !submittedDay) {
             renderAll();
             return;
         }
         const currentAccessToken = accessToken;
+        const currentParticipantId = participantState.participant.id;
         if (!hasCheckInChanged(form) && !checkInErrors.has(key)) return;
         const draft = collectCheckInDraft(form);
         if (!isCompleteCheckInDraft(draft)) {
@@ -5867,6 +5870,22 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 ? await postCheckInWithPhotos(payload, notePhotos)
                 : await postJson(`${API}/check-in`, payload);
             if (accessToken !== currentAccessToken) return;
+            const saved = result.eligibleDays.find(day => checkInDraftKey(day, result.participant.id) === key)?.existing;
+            // A delayed reply or an idempotent retry can arrive after this day leaves the editable window.
+            const closedDay = !result.eligibleDays.some(day => day.challengeDay === payload.challengeDay) &&
+                result.public.days.some(day => day.challengeDay === payload.challengeDay && day.date === submittedDay.date);
+            const history = closedDay ? result.public.leaderboard.find(row => row.participantId === currentParticipantId)
+                ?.cells.find(cell => cell.challengeDay === payload.challengeDay && cell.checkedIn) : null;
+            const historyNote = closedDay ? result.notes.find(note => note.participantId === currentParticipantId && note.challengeDay === payload.challengeDay) : null;
+            const confirmed = saved || history;
+            const confirmedNote = saved?.note || historyNote?.note || "";
+            const confirmedImages = saved?.images || historyNote?.images || [];
+            const savedPhotoCount = form.querySelectorAll(".lmx-note-photo-grid.saved img").length;
+            if (result.participant.id !== currentParticipantId || !confirmed ||
+                QUESTIONS.some(question => confirmed[question.key] !== draft[question.key]) ||
+                confirmedNote.trim() !== draft.note.trim() || confirmedImages.length < savedPhotoCount + notePhotos.length) {
+                throw invalidApiResponse(`${API}/check-in`);
+            }
             clearPendingNotePhotos(key);
             checkInDrafts.delete(key);
             checkInResetUndo.delete(key);
@@ -5883,8 +5902,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 participantTabManual = false;
             }
             acceptParticipantState(result);
-            const saved = result.eligibleDays.find(day => day.challengeDay === payload.challengeDay)?.existing;
-            if (saved && !String(saved.note || "").trim() && !saved.images.length &&
+            if (!confirmedNote.trim() && !confirmedImages.length &&
                 !result.notes.some(note => note.participantId === result.participant.id && note.challengeDay === payload.challengeDay && note.advice)) {
                 const postKey = discussionPermalink({ participantId: result.participant.id, challengeDay: payload.challengeDay, systemPostId: null });
                 discussionFeedNotes.delete(postKey);
@@ -7907,9 +7925,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         athleteDirectoryState = "loading";
         athleteSelectors.forEach(selector => selector.refreshDirectory());
         athleteDirectoryPromise = requestJson("/api/data/athletes", { headers: { "Accept": "application/json" } })
-            .then(async response => {
-                if (!response.ok) throw new Error("Athlete directory unavailable");
-                const data: unknown = await response.json();
+            .then(data => {
                 if (!Array.isArray(data)) throw new Error("Invalid athlete directory");
                 return data;
             })
@@ -9282,8 +9298,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     async function getJson(url: `${typeof API}/state`): Promise<PublicState>;
     async function getJson(url: string): Promise<unknown>;
     async function getJson(url: string): Promise<unknown> {
-        const response = await requestJson(url, { headers: { "Accept": "application/json" } });
-        const data = await readJsonResponse(response, url);
+        const data = await requestJson(url, { headers: { "Accept": "application/json" } });
         if (url === `${API}/state` && !isPublicState(data)) throw invalidApiResponse(url);
         return data;
     }
@@ -9305,7 +9320,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     ): Promise<unknown>;
     async function postJson(url: string, payload: object): Promise<unknown>;
     async function postJson(url: string, payload: object): Promise<unknown> {
-        const response = await requestJson(url, {
+        const data = await requestJson(url, {
             method: "POST",
             headers: {
                 "Accept": "application/json",
@@ -9313,7 +9328,6 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             },
             body: JSON.stringify(payload)
         });
-        const data = await readJsonResponse(response, url);
         if ((url === `${API}/signup` || url === `${API}/resend`) && !isSignupResult(data)) throw invalidApiResponse(url);
         if (url === `${API}/confirm` && !isAccessResult(data)) throw invalidApiResponse(url);
         if (url === `${API}/discussion/replies/page` && !isDiscussionReplyPage(data)) throw invalidApiResponse(url);
@@ -9330,29 +9344,29 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     }
 
     async function postForm(url: `${typeof API}/check-in` | `${typeof API}/profile-picture` | `${typeof API}/discussion/replies`, formData: FormData): Promise<ParticipantState> {
-        const response = await requestJson(url, {
+        const data = await requestJson(url, {
             method: "POST",
             headers: { "Accept": "application/json" },
             body: formData
         });
-        const data = await readJsonResponse(response, url);
         if (!isParticipantState(data)) throw invalidApiResponse(url);
         return data;
     }
 
-    async function requestJson(url: string, options: RequestInit): Promise<Response> {
+    async function requestJson(url: string, options: RequestInit): Promise<unknown> {
         const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
         const timer = controller
             ? window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
             : null;
 
         try {
-            return await fetch(url, {
+            const response = await fetch(url, {
                 ...(options || {}),
                 ...(controller ? { signal: controller.signal } : {})
             });
+            return await readJsonResponse(response, url);
         } catch (err) {
-            if (hasStringProperty(err, "name") && err.name === "AbortError") throw new Error("Request timed out");
+            if (controller?.signal.aborted || (hasStringProperty(err, "name") && err.name === "AbortError")) throw new Error("Request timed out");
             throw err;
         } finally {
             if (timer) window.clearTimeout(timer);

@@ -586,7 +586,8 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
         };
         Assert.Equal(expectedPalette, await ComputedColorsAsync(page.Locator(".lmx-habit-card i"), "backgroundColor"));
         Assert.Equal(expectedPalette, await ComputedColorsAsync(page.Locator(".lmx-question-preview-item i"), "backgroundColor"));
-        Assert.Equal(expectedPalette, await ComputedColorsAsync(page.Locator(".lmx-question .lmx-question-icon"), "backgroundColor"));
+        // Unanswered check-in icons are drawn in their habit colour and fill once answered.
+        Assert.Equal(expectedPalette, await ComputedColorsAsync(page.Locator(".lmx-question .lmx-question-icon"), "color"));
         Assert.Equal(expectedPalette, await ComputedColorsAsync(page.Locator(".lmx-habit-key i"), "color"));
 
         var cellAndDotColors = await page.EvaluateAsync<string[][]>("""

@@ -33,6 +33,10 @@ const eventsPageAssets = document.currentScript.dataset;
         const tbody = document.querySelector('#eventsTable tbody');
         if (!tbody) return;
         if (preserveExistingRows && tbody.querySelector('tr.main-row')) return;
+        [...tbody.closest('table').tBodies].slice(1).forEach(body=>body.remove());
+        delete tbody.dataset.month;
+        tbody.style.removeProperty('--event-month-height');
+        monthHeadingObserver?.disconnect();
         tbody.innerHTML = buildEventSkeletonRows();
     }
 
@@ -46,6 +50,10 @@ const eventsPageAssets = document.currentScript.dataset;
     function renderEventsLoadError(retry){
         const tbody = document.querySelector('#eventsTable tbody');
         if (!tbody) return;
+        [...tbody.closest('table').tBodies].slice(1).forEach(body=>body.remove());
+        delete tbody.dataset.month;
+        tbody.style.removeProperty('--event-month-height');
+        monthHeadingObserver?.disconnect();
 
         const row = document.createElement('tr');
         const cell = document.createElement('td');
@@ -188,6 +196,16 @@ const eventsPageAssets = document.currentScript.dataset;
         const nowYear=new Date().getFullYear();
         const base=d.toLocaleDateString(undefined,{month:'short',day:'numeric'}).replace(/,/g,'');
         return d.getFullYear()===nowYear?base:`${base}${separator}${d.getFullYear()}`;
+    }
+    // Chapters use local Gregorian months, with the reader's language and digits.
+    // Keep embedded feeds on their existing date format.
+    function formatListDateHtml(iso){
+        const date=new Date(iso); if(!iso||isNaN(date)) return '';
+        const historical=date.getFullYear()!==new Date().getFullYear();
+        const formatter=new Intl.DateTimeFormat(undefined,{calendar:'gregory',month:'short',day:'numeric',...(historical?{year:'numeric'}:{})});
+        const html=formatter.formatToParts(date).map(part=>`<span class="${part.type==='day'?'event-date-day':'event-date-rest'}">${esc(historical?part.value:part.value.replace(/,/g,''))}</span>`).join('');
+        const full=date.toLocaleDateString(undefined,{calendar:'gregory',year:'numeric',month:'long',day:'numeric'});
+        return `<time datetime="${esc(iso)}" aria-label="${esc(full)}">${html}</time>`;
     }
     function ordinal(n){const s=["th","st","nd","rd"],v=n%100;return `${n}${s[(v-20)%10]||s[v]||s[0]}`;}
     function podiumIcon(n){
@@ -778,7 +796,7 @@ const eventsPageAssets = document.currentScript.dataset;
 
     function applyZebraStriping(tbody){
         let idx=0;
-        const rows=[...tbody.querySelectorAll('tr')];
+        const rows=[...tbody.closest('table').querySelectorAll('tbody tr.main-row')];
         rows.forEach(r=>{
             if(r.classList.contains('details-row')) return;
             r.classList.remove('zebra-even','zebra-odd');
@@ -790,15 +808,55 @@ const eventsPageAssets = document.currentScript.dataset;
 
     // The feed groups by month: a month's events sit together, and a repeated
     // day's date stays quiet under the first event of that day.
+    // On the Highlights page every month opens with its own heading row.
+    let monthHeadingObserver=null;
     function markFeedGroups(tbody){
+        const chapters=!!tbody.closest('.event-board-page');
+        if(chapters&&typeof ResizeObserver==='function'){
+            monthHeadingObserver??=new ResizeObserver(entries=>entries.forEach(({target})=>{
+                target.parentElement?.style.setProperty('--event-month-height',`${target.getBoundingClientRect().height}px`);
+            }));
+            monthHeadingObserver.disconnect();
+        }
+        tbody.querySelectorAll('tr.events-month-row').forEach(r=>r.remove());
+        const rows=[...tbody.querySelectorAll('tr.main-row')];
+        const table=tbody.closest('table');
+        let group=tbody;
         let previousDay=null, previousMonth=null;
-        tbody.querySelectorAll('tr.main-row').forEach(r=>{
+        rows.forEach((r,i)=>{
             const day=r.dataset.day||'';
             const month=day.split('-').slice(0,2).join('-');
+            const nextMonth=(rows[i+1]?.dataset.day||'').split('-').slice(0,2).join('-');
             const dayStarts=!day||day!==previousDay;
+            const monthStarts=!month||month!==previousMonth;
             r.classList.toggle('day-start',dayStarts);
             r.classList.toggle('day-repeat',!dayStarts);
-            r.classList.toggle('month-start',!month||month!==previousMonth);
+            r.classList.toggle('month-start',monthStarts);
+            r.classList.toggle('month-end',!month||!rows[i+1]||nextMonth!==month);
+            if(chapters&&monthStarts){
+                if(i>0){
+                    group=document.createElement('tbody');
+                    table.appendChild(group);
+                }
+                if(month) group.dataset.month=month;
+                else delete group.dataset.month;
+            }
+            if(chapters&&monthStarts&&month){
+                const [y,m]=month.split('-').map(Number);
+                const date=new Date(0);
+                date.setFullYear(y,m-1,1);
+                const heading=document.createElement('tr');
+                heading.className='events-month-row';
+                heading.dataset.month=month;
+                heading.innerHTML=`<th colspan="3" scope="rowgroup">${esc(date.toLocaleDateString(undefined,{calendar:'gregory',month:'long',year:'numeric'}))}</th>`;
+                group.appendChild(heading);
+                monthHeadingObserver?.observe(heading);
+            }
+            if(chapters){
+                const details=r.nextElementSibling?.classList.contains('details-row')?r.nextElementSibling:null;
+                group.appendChild(r);
+                if(details) group.appendChild(details);
+            }
             previousDay=day;
             previousMonth=month;
         });
@@ -806,7 +864,9 @@ const eventsPageAssets = document.currentScript.dataset;
 
     function renderRows(rows, athletesIndex, linkNames, options=null){
         const tbody = document.querySelector("#eventsTable tbody");
-        const timelineRows = tbody.closest('.event-board-page') ? [...tbody.querySelectorAll('tr.main-row')] : [];
+        const table=tbody.closest('table');
+        const chapters=!!tbody.closest('.event-board-page');
+        const timelineRows = chapters ? [...table.querySelectorAll('tr.main-row')] : [];
         const expandedEvents = new Set(timelineRows.filter(row => row.classList.contains('is-open')).map(row => row.dataset.eventId));
         const active = document.activeElement;
         const focusedRow = active?.closest('tr');
@@ -820,6 +880,15 @@ const eventsPageAssets = document.currentScript.dataset;
         } : null;
         const appendFromIndex = options && Number.isFinite(options.appendFromIndex) ? Math.max(0, Math.floor(options.appendFromIndex)) : 0;
         const shouldAppend = !!(options && options.preserveExistingRows && appendFromIndex > 0);
+        // Flatten the previous chapters before reconciling; retain the actual rows,
+        // their handlers and open details when reusing a shared prefix.
+        [...table.tBodies].slice(1).forEach(body=>{
+            if(shouldAppend) tbody.append(...body.children);
+            body.remove();
+        });
+        tbody.querySelectorAll('tr.events-month-row').forEach(row=>row.remove());
+        delete tbody.dataset.month;
+        tbody.style.removeProperty('--event-month-height');
         if (!shouldAppend) {
             tbody.innerHTML = "";
         } else {
@@ -860,7 +929,7 @@ const eventsPageAssets = document.currentScript.dataset;
         rowsToRender.forEach((r, localIdx) => {
             const idx = shouldAppend ? appendFromIndex + localIdx : localIdx;
             const occurredAt = r.displayOccurredAt || r.occurredAt;
-            const dateLabel = occurredAt ? formatListDate(occurredAt) : "";
+            const dateLabel = occurredAt ? (chapters?formatListDateHtml(occurredAt):esc(formatListDate(occurredAt))) : "";
             const rel = (r.type === EVENT_TYPE.Joined && occurredAt)
                 ? relativeDayLabel(occurredAt)
                 : "";
@@ -1321,8 +1390,11 @@ const eventsPageAssets = document.currentScript.dataset;
 
         tbody.appendChild(frag);
 
+        applyZebraStriping(tbody);
+        markFeedGroups(tbody);
+
         const renderedTimelineRows = new Map(timelineRows.length
-            ? [...tbody.querySelectorAll('tr.main-row[data-event-id]')].map(row => [row.dataset.eventId, row])
+            ? [...table.querySelectorAll('tr.main-row[data-event-id]')].map(row => [row.dataset.eventId, row])
             : []);
         expandedEvents.forEach(id => renderedTimelineRows.get(id)?._setCustomEventExpanded?.(true));
         if (timelineFocus) {
@@ -1338,22 +1410,19 @@ const eventsPageAssets = document.currentScript.dataset;
             control?.focus({ preventScroll: true });
         }
 
-        applyZebraStriping(tbody);
-        markFeedGroups(tbody);
-
-        const rowsNow = shouldAppend ? tbody.querySelectorAll(".row-appear:not(.is-visible)") : tbody.querySelectorAll(".row-appear");
+        const rowsNow = shouldAppend ? table.querySelectorAll(".row-appear:not(.is-visible)") : table.querySelectorAll(".row-appear");
         if (!prefersReduced && rowsNow.length){
             const io = ensureRowObserver();
             rowsNow.forEach(r => io.observe(r));
-            requestAnimationFrame(() => revealVisibleRowsImmediately(tbody));
-            window.addEventListener("resize", () => revealVisibleRowsImmediately(tbody), { passive: true });
+            requestAnimationFrame(() => revealVisibleRowsImmediately(table));
+            window.addEventListener("resize", () => revealVisibleRowsImmediately(table), { passive: true });
         } else {
             rowsNow.forEach(r => r.classList.add("is-visible"));
         }
 
         const requestedEventId = getRequestedEventId();
         if (requestedEventId && window.CSS && typeof window.CSS.escape === "function") {
-            const targetRow = tbody.querySelector(`tr.main-row[data-event-id="${window.CSS.escape(requestedEventId)}"]`);
+            const targetRow = table.querySelector(`tr.main-row[data-event-id="${window.CSS.escape(requestedEventId)}"]`);
             if (targetRow && !timelineRows.some(row => row.dataset.eventId === requestedEventId)) {
                 if (targetRow.classList.contains("custom-event-row") && !targetRow.classList.contains("is-open")) {
                     targetRow._setCustomEventExpanded?.(true);

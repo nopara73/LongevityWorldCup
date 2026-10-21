@@ -5051,6 +5051,119 @@ main[data-leaderboard-page="full"] .show-all-athletes-btn{ border-radius:var(--l
     #detailsModal .biomarker-overview-table > tbody > .result-detail-row > td{ width:100%; box-sizing:border-box; }
 }
 
+/* 16) Share sheet: the card a link will unfurl into, one copy action, and the
+   destinations as a row of equal tiles. */
+#detailsModal .athlete-share-menu{
+    width:min(22.5rem, calc(100vw - 2rem));
+    min-width:0;
+    padding:.75rem;
+    display:flex;
+    flex-direction:column;
+    gap:.6rem;
+    border-radius:var(--lwc-radius-lg);
+    background:var(--athlete-modal-surface);
+    box-sizing:border-box;
+    transform-origin:top left;
+    animation:athlete-share-sheet-in var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease) both;
+}
+#detailsModal .athlete-share-menu.is-above{ transform-origin:bottom left; }
+#detailsModal .athlete-share-menu[hidden]{ display:none; }
+#detailsModal .athlete-share-menu > :is(figure, button, div){ flex:0 0 auto; }
+@keyframes athlete-share-sheet-in{
+    from{ opacity:0; transform:translateY(-4px) scale(.98); }
+    to{ opacity:1; transform:none; }
+}
+@media (prefers-reduced-motion: reduce){
+    #detailsModal .athlete-share-menu{ animation:none; }
+}
+#detailsModal .athlete-share-preview{
+    position:relative;
+    margin:0;
+    aspect-ratio:1200 / 630;
+    overflow:hidden;
+    border:1px solid var(--athlete-modal-border);
+    border-radius:var(--lwc-radius-md);
+    background:
+        linear-gradient(90deg, transparent, rgba(255,255,255,.06), transparent) 0 0 / 200% 100%,
+        linear-gradient(180deg, #05080b, #15181b);
+    animation:athlete-share-preview-wait 1.4s linear infinite;
+}
+#detailsModal .athlete-share-preview.is-loaded{ animation:none; background:#05080b; }
+#detailsModal .athlete-share-preview[hidden]{ display:none; }
+@keyframes athlete-share-preview-wait{ to{ background-position:-200% 0, 0 0; } }
+@media (prefers-reduced-motion: reduce){
+    #detailsModal .athlete-share-preview{ animation:none; }
+}
+#detailsModal .athlete-share-preview img{
+    display:block;
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    opacity:0;
+    transition:opacity var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
+}
+#detailsModal .athlete-share-preview.is-loaded img{ opacity:1; }
+#detailsModal .athlete-share-menu #copyAthleteProfileLink{
+    justify-content:center;
+    min-height:46px;
+    border:1px solid var(--athlete-modal-border-strong);
+    background:var(--athlete-modal-card);
+    font-weight:700;
+}
+#detailsModal .athlete-share-menu #copyAthleteProfileLink[aria-busy="true"]{ cursor:progress; opacity:.82; }
+#detailsModal .athlete-share-recovery{
+    padding:.7rem .75rem .8rem;
+    border:1px solid var(--athlete-modal-border);
+    border-radius:var(--lwc-radius-md);
+    background:var(--athlete-modal-card);
+}
+#detailsModal .athlete-share-destinations{
+    display:grid;
+    font-size:clamp(.7rem, 2.9vw, .8rem);
+    grid-template-columns:repeat(auto-fit, minmax(min(100%, 5.5em), 1fr));
+    gap:.45rem;
+}
+#detailsModal .athlete-share-menu .athlete-share-destinations a{
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    gap:.35rem;
+    min-height:64px;
+    padding:.55rem .25rem;
+    border:1px solid var(--athlete-modal-border);
+    background:var(--athlete-modal-card);
+    font-size:inherit;
+    font-weight:700;
+    text-align:center;
+    white-space:normal;
+    overflow-wrap:anywhere;
+}
+#detailsModal .athlete-share-menu .athlete-share-destinations a i{
+    width:auto;
+    flex:0 0 auto;
+    font-size:1.2rem;
+}
+#detailsModal .athlete-share-menu .athlete-share-destinations a:hover,
+#detailsModal .athlete-share-menu .athlete-share-destinations a:focus-visible,
+#detailsModal .athlete-share-menu #copyAthleteProfileLink:hover,
+#detailsModal .athlete-share-menu #copyAthleteProfileLink:focus-visible{
+    border-color:var(--athlete-modal-cream-border);
+    background:var(--athlete-modal-card-hover);
+}
+/* Copy feedback: the Share action itself confirms, with a check in place of the share icon. */
+#detailsModal .athlete-share-wrapper > #shareAthleteProfile.is-copied{
+    border-color:var(--lwc-success, #68c47d);
+    color:var(--athlete-modal-text);
+}
+#detailsModal .athlete-share-wrapper > #shareAthleteProfile.is-copied > i{ color:var(--lwc-success, #68c47d); }
+/* Short viewports need the actions more than the picture. */
+@media (max-height: 560px){
+    #detailsModal .athlete-share-preview{ display:none; }
+}
+@media (max-width: 768px){
+    #detailsModal .athlete-share-menu{ width:auto; }
+}
+
 /* =========================
    16) By Flag: a nations table
    The flag view is the athlete table's sibling: the same 57px row rhythm,
