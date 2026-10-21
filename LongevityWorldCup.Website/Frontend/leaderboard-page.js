@@ -6253,13 +6253,23 @@ function resultDisplayDecimals(value, measure) {
     // conversion of a short lab reading. Other high precision (including tiny
     // measurements and explicitly supplied decimal strings) stays intact.
     const factors = {
-        'Creatinine (µmol/L)': [0.0113], 'Glucose (mmol/L)': [18.016],
-        'Urea (mmol/L)': [6, 2.801], 'Cholesterol (mmol/L)': [38.67], 'SHBG (nmol/L)': [0.0347]
+        'Albumin (g/L)': [0.1], 'Creatinine (µmol/L)': [0.0113], 'Glucose (mmol/L)': [18.016],
+        'CRP (mg/L)': [0.1], 'Cystatin C (mg/L)': [0.1], 'Vitamin D (nmol/L)': [0.4],
+        'ApoA1 (g/L)': [100], 'Urea (mmol/L)': [6, 2.801], 'Cholesterol (mmol/L)': [38.67], 'SHBG (nmol/L)': [0.0347]
     }[measure.key] || [];
     for (const factor of factors) {
+        const inverse = 1 / factor;
         for (let precision = 0; precision <= 4; precision++) {
             const input = Number((value * factor).toFixed(precision));
-            if (input !== 0 && input / factor === value) return 2;
+            if (input !== 0 && (input / factor === value || input * inverse === value))
+                return resultDecimalPlaces(Number(value.toFixed(2)));
+            // Older canonical -> alternate unit -> canonical round trips can
+            // add a binary tail too. Keep the short canonical value's own
+            // precision rather than imposing two decimals on these readings.
+            const canonical = Number(value.toFixed(precision));
+            if (canonical !== 0 && [canonical * factor / factor, canonical / factor * factor,
+                canonical * inverse / inverse, canonical / inverse * inverse].includes(value))
+                return resultDecimalPlaces(canonical);
         }
     }
     return decimals;

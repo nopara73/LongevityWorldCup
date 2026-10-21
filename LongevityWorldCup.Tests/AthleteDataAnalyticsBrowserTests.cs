@@ -302,13 +302,14 @@ public sealed class AthleteDataAnalyticsBrowserTests(
             () => {
                 const failures = [], {buildBiomarkerHistory, renderBiomarkerHistory, createResultChange} = window.analyticsTest;
                 const athlete = {Name:'Synthetic conversion fixture', DateOfBirth:{Year:1980,Month:1,Day:1}, Biomarkers:[
-                    {Date:'2026-02-01', CreatUmolL:73.4, GluMmolL:5},
-                    {Date:'2026-01-01', CreatUmolL:0.72/0.0113, GluMmolL:84/18.016}
+                    {Date:'2026-02-01', CreatUmolL:73.4, GluMmolL:5, AlbGL:45.1, CrpMgL:1.7},
+                    {Date:'2026-01-01', CreatUmolL:0.72/0.0113, GluMmolL:84/18.016, AlbGL:42.199999999999996, CrpMgL:1.6799999999999997}
                 ]};
                 const original = JSON.stringify(athlete), history = buildBiomarkerHistory(athlete);
                 renderBiomarkerHistory(history, [athlete]);
                 for (const [key, first, latest, delta] of [
-                    ['Creatinine (µmol/L)', '63.72', '73.4', '+9.68'], ['Glucose (mmol/L)', '4.66', '5', '+0.34']
+                    ['Creatinine (µmol/L)', '63.72', '73.4', '+9.68'], ['Glucose (mmol/L)', '4.66', '5', '+0.34'],
+                    ['Albumin (g/L)', '42.2', '45.1', '+2.9'], ['CRP (mg/L)', '1.68', '1.7', '+0.02']
                 ]) {
                     const row = [...document.querySelectorAll('.result-summary')].find(row => row.dataset.measure === key);
                     if (row.querySelector('.biomarker-overview-current').textContent !== latest) failures.push(`${key}: latest changed`);
@@ -324,6 +325,21 @@ public sealed class AthleteDataAnalyticsBrowserTests(
                 ]) {
                     const change = createResultChange({key:'Creatinine (µmol/L)', unit:'µmol/L', values}, [0,1]);
                     if (change.textContent !== expected) failures.push(`genuine precision lost: ${change.textContent}`);
+                }
+                for (const [values, expected] of [
+                    [[7.800000000000001, 8], '+0.2'], [[1.6999999999999997, 1.8], '+0.1'],
+                    [[1.000000000001, 1.000000000002], '+0.000000000001']
+                ]) {
+                    const change = createResultChange({key:'CRP (mg/L)', unit:'mg/L', values}, [0,1]);
+                    if (change.textContent !== expected) failures.push(`conversion round trip or genuine precision: ${change.textContent}`);
+                }
+                for (const [key, values, expected] of [
+                    // These doubles are two representable steps apart here.
+                    ['Glucose (mmol/L)', [4.444444444444445, 4.444444444444446], '+2e-15'],
+                    ['Lymphocytes (%)', [52.2077922077922, 52.2077922077923], '+1e-13']
+                ]) {
+                    const change = createResultChange({key, unit:'test unit', values}, [0,1]);
+                    if (change.textContent !== expected) failures.push(`unmatched canonical precision changed: ${change.textContent}`);
                 }
                 if (JSON.stringify(athlete) !== original || history.biomarkersRaw['Creatinine (µmol/L)'][0] !== 0.72/0.0113)
                     failures.push('canonical data rounded or mutated');
