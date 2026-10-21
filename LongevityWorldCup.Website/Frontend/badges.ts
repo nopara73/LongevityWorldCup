@@ -964,6 +964,8 @@ if (!window.__lwcBadgeTipBound) {
         if (event.pointerType === 'touch') return;
         const badge = badgeTipTarget(event.target);
         if (badge && badge !== badgeTipOwner) showBadgeTip(badge);
+        // A row re-rendered under the pointer leaves no pointerout behind.
+        else if (!badge && badgeTipOwner && (!badgeTipOwner.isConnected || document.activeElement !== badgeTipOwner)) hideBadgeTip();
     });
     document.addEventListener('pointerout', event => {
         if (!badgeTipOwner || event.pointerType === 'touch') return;
