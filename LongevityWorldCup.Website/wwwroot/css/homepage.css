@@ -1574,7 +1574,7 @@ main > .main-container .leaderboard {
     display: block;
     margin-top: 0.18rem;
     margin-left: 0;
-    white-space: nowrap;
+    white-space: normal;
 }
 
 /* Link Styling Below Table */
@@ -2284,7 +2284,11 @@ html body main.homepage-main {
     --home-act-gap: calc(var(--home-gap) * 2);
 }
 
-html body main.homepage-main .lwc-highlights-countdown-wrapper {
+html body main.homepage-main:not([data-homepage-visit-layout="repeat"]) .lwc-highlights-countdown-wrapper {
+    margin-bottom: var(--home-act-gap);
+}
+
+html body main.homepage-main[data-homepage-visit-layout="repeat"] .full-rankings-action {
     margin-bottom: var(--home-act-gap);
 }
 
@@ -2367,12 +2371,16 @@ html body main.homepage-main:has(> .homepage-panel-pair:last-child) {
     margin-bottom: 0;
 }
 
-/* The footer partial carries an inline top margin; only here does a band meet it. */
+/* The finale band meets the footer's crest without the usual page gap. */
 html body:has(> main.homepage-main > .homepage-panel-pair:last-child) > .footer {
-    margin-top: 0 !important;
+    margin-top: 0;
 }
 
 @media (max-width: 991px) {
+    html body main.homepage-main #events-root-index .event-message-cell {
+        text-wrap: pretty;
+    }
+
     html body main.homepage-main .homepage-panel-pair > #contribute {
         border-radius: var(--lwc-radius-lg) var(--lwc-radius-lg) 0 0;
     }

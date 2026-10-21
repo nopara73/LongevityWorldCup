@@ -113,6 +113,77 @@ public sealed class HomeStoryBrowserTests(
         Assert.All(backgrounds, background => Assert.Equal(backgrounds[0], background));
     }
 
+    [Theory]
+    [InlineData(1440, 0)]
+    [InlineData(390, 0)]
+    [InlineData(1440, 3)]
+    [InlineData(390, 3)]
+    public async Task ReturningVisit_KeepsTheActBreakAfterTheBoard(int width, int visits)
+    {
+        await using var context = await HomepageChromeRegressionBrowserTests.NewContextAsync(Browser, App, ReducedMotion.Reduce);
+        await context.AddInitScriptAsync($"localStorage.setItem('lwcHomepageVisitCount:v1', '{visits}');");
+        var page = await context.NewPageAsync();
+        await page.SetViewportSizeAsync(width, 900);
+        await page.GotoAsync("/", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+        await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
+        var gaps = await page.EvaluateAsync<double[]>(
+            """
+            () => {
+                const main = document.querySelector('main.homepage-main');
+                const rect = selector => main.querySelector(selector).getBoundingClientRect();
+                const highlights = rect('.lwc-highlights-countdown-wrapper');
+                const boardBottom = rect('.full-rankings-action').bottom;
+                const hallTop = rect('#hall-of-fame').top;
+                return main.dataset.homepageVisitLayout === 'repeat'
+                    ? [rect('.podium').top - highlights.bottom, hallTop - boardBottom]
+                    : [highlights.top - boardBottom, hallTop - highlights.bottom];
+            }
+            """);
+        var gap = width <= 768 ? 16 : 24;
+        Assert.Equal(visits >= 3 ? "repeat" : "default", await page.Locator("main").GetAttributeAsync("data-homepage-visit-layout"));
+        Assert.InRange(gaps[0], gap - 1, gap + 1);
+        Assert.InRange(gaps[1], gap * 2 - 1, gap * 2 + 1);
+    }
+
+    [Theory]
+    [InlineData("/history")]
+    [InlineData("/ruleset")]
+    [InlineData("/leaderboard")]
+    [InlineData("/play")]
+    [InlineData("/events")]
+    [InlineData("/longevitymaxxing")]
+    public async Task SharedFooter_PreservesTheExistingPageGap(string path)
+    {
+        await using var context = await HomepageChromeRegressionBrowserTests.NewContextAsync(Browser, App, ReducedMotion.Reduce);
+        var page = await context.NewPageAsync();
+        await page.GotoAsync(path, new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        var footer = page.Locator(".footer");
+        Assert.Null(await footer.GetAttributeAsync("style"));
+        Assert.Equal(24, await footer.EvaluateAsync<double>("element => parseFloat(getComputedStyle(element).marginTop)"));
+    }
+
+    [Theory]
+    [InlineData(1440)]
+    [InlineData(768)]
+    public async Task HallOfFame_EnlargedScoresFitTheirCells(int width)
+    {
+        var (context, page) = await OpenHomepageAsync(width, 900, ColorScheme.Light);
+        await using var _ = context;
+        await page.EvaluateAsync("document.documentElement.style.fontSize = '200%'");
+        await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
+        var clipped = await page.Locator(".archive-table .age-reduction").EvaluateAllAsync<string[]>(
+            """
+            scores => scores.filter(score => {
+                const box = score.closest('td').getBoundingClientRect();
+                const range = document.createRange();
+                range.selectNodeContents(score);
+                return [...range.getClientRects()].some(text => text.left < box.left - 1 || text.right > box.right + 1);
+            }).map(score => score.textContent)
+            """);
+        Assert.Empty(clipped);
+    }
+
     private async Task<(IBrowserContext, IPage)> OpenHomepageAsync(int width, int height, ColorScheme scheme)
     {
         var context = await HomepageChromeRegressionBrowserTests.NewContextAsync(Browser, App, ReducedMotion.Reduce);
