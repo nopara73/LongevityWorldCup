@@ -5385,8 +5385,8 @@ main[data-leaderboard-page="full"] .flag-leaderboard > .leaderboard-recovery{
    The age results read as a scoreboard under the radar: chronological age and
    the crowd's guess set the reference, then each clock keeps its own column of
    lowest age, pace and reduction as large figures. The profile basics follow as
-   quiet label rows. Spans come from which rows are shown, so the server-rendered
-   profile and the client agree without script. */
+   quiet label rows. Native hidden state drives the same layout before and after
+   hydration; clock pairs reserve their metric row even when a pace is absent. */
 #detailsModal #athlete-profile > #athlete-stats{
     padding:0;
     overflow:hidden;
@@ -5396,7 +5396,8 @@ main[data-leaderboard-page="full"] .flag-leaderboard > .leaderboard-recovery{
 #detailsModal #athlete-stats .athlete-info-table > tbody.athlete-age-board{
     display:grid;
     grid-template-columns:repeat(6, minmax(0, 1fr));
-    grid-auto-flow:row dense;
+    --age-reference-rows:0;
+    grid-auto-flow:row;
 }
 #detailsModal #athlete-stats .athlete-age-board > tr{
     --age-tile-span:2;
@@ -5412,7 +5413,7 @@ main[data-leaderboard-page="full"] .flag-leaderboard > .leaderboard-recovery{
     /* Each tile draws its divider on its left and top; the card clips the edges. */
     box-shadow:-1px 0 0 var(--athlete-modal-border), 0 -1px 0 var(--athlete-modal-border);
 }
-#detailsModal #athlete-stats .athlete-age-board > tr[style*="none"]{ display:none; }
+#detailsModal #athlete-stats .athlete-age-board > tr[hidden]{ display:none; }
 #detailsModal #athlete-stats .athlete-age-board > tr > th,
 #detailsModal #athlete-stats .athlete-age-board > tr > th *{
     color:var(--athlete-modal-muted) !important;
@@ -5436,7 +5437,8 @@ main[data-leaderboard-page="full"] .flag-leaderboard > .leaderboard-recovery{
     letter-spacing:-.01em;
     line-height:1.1;
     font-variant-numeric:tabular-nums;
-    white-space:nowrap;
+    white-space:normal;
+    overflow-wrap:anywhere;
 }
 #detailsModal #athlete-stats .athlete-age-board .unit{ font-size:.82rem; }
 #detailsModal #athlete-stats .athlete-age-board td > .detail-muted,
@@ -5446,10 +5448,18 @@ main[data-leaderboard-page="full"] .flag-leaderboard > .leaderboard-recovery{
     font-size:.78rem;
     font-variant-numeric:tabular-nums;
 }
+#detailsModal #athlete-stats .athlete-age-board .age-board-share[hidden]{ display:none; }
 #detailsModal #athlete-stats .athlete-age-board .age-board-share .unit{ font-size:inherit; }
 #detailsModal #athlete-stats .athlete-age-board #crowdCount{ color:var(--athlete-modal-text); font-variant-numeric:tabular-nums; }
 #detailsModal #athlete-stats .athlete-age-board #notEmptyCrowdAgeContainer{ display:inline; }
-#detailsModal #athlete-stats .athlete-age-board #notEmptyCrowdAgeContainer[style*="none"]{ display:none; }
+#detailsModal #athlete-stats .athlete-age-board #notEmptyCrowdAgeContainer[hidden]{ display:none; }
+#detailsModal #athlete-stats .athlete-age-board #yourGuess{
+    max-width:100%;
+    box-sizing:border-box;
+    white-space:normal;
+    overflow-wrap:anywhere;
+}
+#detailsModal #athlete-stats .athlete-age-board .age-board-guess-note{ display:block; }
 
 /* The lowest age of each clock is the headline: its figure and a rail in the clock's colour. */
 #detailsModal #athlete-stats .athlete-age-board > tr[data-clock="bortz"]{ --age-tile-accent:var(--athlete-modal-chart-bortz); }
@@ -5463,15 +5473,23 @@ main[data-leaderboard-page="full"] .flag-leaderboard > .leaderboard-recovery{
 }
 
 /* Reference row: chronological age, the crowd and your guess share one line. */
-#detailsModal #athlete-stats .athlete-age-board:has(#crowdAgeContainer[style*="none"], #yourGuessContainer[style*="none"]) > tr:not([data-clock]){ --age-tile-span:3; }
-#detailsModal #athlete-stats .athlete-age-board:has(#crowdAgeContainer[style*="none"]):has(#yourGuessContainer[style*="none"]) > #chronologicalAgeContainer{ --age-tile-span:6; }
+#detailsModal #athlete-stats .athlete-age-board:has(> tr:not([data-clock]):not([hidden])){ --age-reference-rows:1; }
+#detailsModal #athlete-stats .athlete-age-board > tr:not([data-clock]){ --age-tile-span:6; }
+#detailsModal #athlete-stats .athlete-age-board:has(> tr:nth-child(2 of :not([data-clock]):not([hidden]))) > tr:not([data-clock]){ --age-tile-span:3; }
+#detailsModal #athlete-stats .athlete-age-board:has(> tr:nth-child(3 of :not([data-clock]):not([hidden]))) > tr:not([data-clock]){ --age-tile-span:2; }
 
 /* Two clocks: Bortz on the left, Pheno on the right, row for row. */
-#detailsModal #athlete-stats .athlete-age-board:has(#lowestBortzAgeContainer:not([style*="none"])) > tr[data-clock]{ --age-tile-span:3; }
-#detailsModal #athlete-stats .athlete-age-board:has(#lowestBortzAgeContainer:not([style*="none"])) > tr[data-clock="bortz"]{ grid-column-start:1; }
-#detailsModal #athlete-stats .athlete-age-board:has(#lowestBortzAgeContainer:not([style*="none"])) > tr[data-clock="pheno"]{ grid-column-start:4; }
-/* One clock: its age, pace and reduction side by side. */
-#detailsModal #athlete-stats .athlete-age-board:has(#lowestBortzAgeContainer[style*="none"]):has(#paceOfAgingContainer[style*="none"]) > tr[data-clock]{ --age-tile-span:3; }
+#detailsModal #athlete-stats .athlete-age-board > :is(#lowestBortzAgeContainer, #lowestPhenoAgeContainer){ --age-metric-row:1; }
+#detailsModal #athlete-stats .athlete-age-board > :is(#bortzPaceOfAgingContainer, #paceOfAgingContainer){ --age-metric-row:2; }
+#detailsModal #athlete-stats .athlete-age-board > :is(#bortzAgeReductionContainer, #ageReductionContainer){ --age-metric-row:3; }
+#detailsModal #athlete-stats .athlete-age-board:has(> tr[data-clock="bortz"]:not([hidden])):has(> tr[data-clock="pheno"]:not([hidden])) > tr[data-clock]{
+    --age-tile-span:3;
+    grid-row:calc(var(--age-reference-rows) + var(--age-metric-row));
+}
+#detailsModal #athlete-stats .athlete-age-board:has(> tr[data-clock="bortz"]:not([hidden])):has(> tr[data-clock="pheno"]:not([hidden])) > tr[data-clock="bortz"]{ grid-column-start:1; }
+#detailsModal #athlete-stats .athlete-age-board:has(> tr[data-clock="bortz"]:not([hidden])):has(> tr[data-clock="pheno"]:not([hidden])) > tr[data-clock="pheno"]{ grid-column-start:4; }
+/* A single clock without pace has two tiles rather than an empty third. */
+#detailsModal #athlete-stats .athlete-age-board:not(:has(> #bortzPaceOfAgingContainer:not([hidden]), > #paceOfAgingContainer:not([hidden]))) > tr[data-clock]{ --age-tile-span:3; }
 
 /* The profile basics follow under a firmer rule as plain label rows. */
 #detailsModal #athlete-stats .athlete-info-table > tbody.athlete-info-basics{
@@ -5485,15 +5503,17 @@ main[data-leaderboard-page="full"] .flag-leaderboard > .leaderboard-recovery{
 /* Phones: two tiles to a row; a lone last tile takes the whole row. */
 @container athlete-stats (max-width: 29.99em){
     #detailsModal #athlete-stats .athlete-age-board > tr{ --age-tile-span:3; padding:.8rem .9rem .9rem; }
-    #detailsModal #athlete-stats .athlete-age-board:not(:has(#crowdAgeContainer[style*="none"], #yourGuessContainer[style*="none"])) > #yourGuessContainer,
-    #detailsModal #athlete-stats .athlete-age-board:has(#crowdAgeContainer[style*="none"]):has(#yourGuessContainer[style*="none"]) > #chronologicalAgeContainer,
-    #detailsModal #athlete-stats .athlete-age-board:has(#lowestBortzAgeContainer[style*="none"]):not(:has(#paceOfAgingContainer[style*="none"])) > #ageReductionContainer{ --age-tile-span:6; }
+    #detailsModal #athlete-stats .athlete-age-board:has(> tr:nth-child(3 of :not([data-clock]):not([hidden]))){ --age-reference-rows:2; }
+    #detailsModal #athlete-stats .athlete-age-board:has(> tr:nth-child(3 of :not([data-clock]):not([hidden]))) > tr:not([data-clock]){ --age-tile-span:3; }
+    #detailsModal #athlete-stats .athlete-age-board > tr:nth-child(3 of :not([data-clock]):not([hidden])),
+    #detailsModal #athlete-stats .athlete-age-board:has(> #lowestBortzAgeContainer[hidden]):has(> #paceOfAgingContainer:not([hidden])) > #ageReductionContainer,
+    #detailsModal #athlete-stats .athlete-age-board:has(> #lowestPhenoAgeContainer[hidden]):has(> #bortzPaceOfAgingContainer:not([hidden])) > #bortzAgeReductionContainer{ --age-tile-span:6; }
     #detailsModal #athlete-stats .athlete-age-board .age-board-figure{ font-size:1.5rem; }
     #detailsModal #athlete-stats .athlete-age-board > tr:is(#lowestBortzAgeContainer, #lowestPhenoAgeContainer) .age-board-figure{ font-size:1.8rem; }
 }
 /* Enlarged text in a narrow dialog: one tile per row, in reading order. */
 @container athlete-stats (max-width: 15.99em){
     #detailsModal #athlete-stats .athlete-age-board > tr,
-    #detailsModal #athlete-stats .athlete-age-board > tr[data-clock]{ --age-tile-span:6; grid-column-start:auto; }
+    #detailsModal #athlete-stats .athlete-age-board:has(> tr[data-clock="bortz"]:not([hidden])):has(> tr[data-clock="pheno"]:not([hidden])) > tr[data-clock]{ grid-column:1 / -1 !important; grid-row:auto !important; }
     #detailsModal #athlete-stats .athlete-age-board .age-board-figure{ white-space:normal; }
 }

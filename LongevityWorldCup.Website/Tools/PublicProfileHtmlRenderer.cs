@@ -66,8 +66,7 @@ public static class PublicProfileHtmlRenderer
 
         // The best-rank badge and personalized/chart sections are populated by
         // the existing client. Do not publish a provisional or guessed best rank.
-        html = html.Replace("<tr>\r\n                                <th scope=\"row\"><strong>Best rank:", "<tr data-profile-pending hidden>\r\n                                <th scope=\"row\"><strong>Best rank:", StringComparison.Ordinal)
-            .Replace("<tr>\n                                <th scope=\"row\"><strong>Best rank:", "<tr data-profile-pending hidden>\n                                <th scope=\"row\"><strong>Best rank:", StringComparison.Ordinal);
+        html = html.Replace("id=\"athleteRankContainer\"", "id=\"athleteRankContainer\" data-profile-pending hidden", StringComparison.Ordinal);
         html = SetContent(html, "athleteDivision", LeagueLink(row.Division));
         html = SetContent(html, "athleteGeneration", LeagueLink(row.Generation));
         html = SetContent(html, "athleteFlag", FlagRouteCatalog.TryCreate(row.Flag, out var flag)
@@ -78,6 +77,13 @@ public static class PublicProfileHtmlRenderer
         html = SetContent(html, "ageReduction", SignedProfile(stats.AgeReduction));
         html = SetContent(html, "ageReductionPercent", PublicHtmlFormat.Fixed((1 - stats.PhenoPaceOfAging) * 100));
         html = SetContent(html, "ageReductionAccelerationLabel", stats.AgeReduction < 0 ? "Pheno Age reduction" : "Pheno Age acceleration");
+        if (stats.LowestPhenoAge is double phenoAge && double.IsFinite(phenoAge))
+            html = ShowRow(html, "lowestPhenoAgeContainer");
+        if (stats.AgeReduction is double phenoReduction && double.IsFinite(phenoReduction))
+            html = ShowRow(html, "ageReductionContainer");
+        html = PopulatePace(html, "paceOfAging", stats.PhenoPaceOfAging, snapshot.Athletes
+            .OrderByDescending(a => a.Stats.PhenoPaceOfAging is double pace && double.IsFinite(pace)
+                ? (1 - pace) * 100 : double.NegativeInfinity), row.Slug);
         var effectiveReduction = athlete.Metric("ultimate");
         foreach (var prefix in new[] { "ageRadarCenter", "ageRadarFallback" })
         {
@@ -94,6 +100,9 @@ public static class PublicProfileHtmlRenderer
             html = SetContent(html, "bortzAgeReductionPercent", PublicHtmlFormat.Fixed((1 - stats.BortzPaceOfAging) * 100));
             html = SetContent(html, "bortzAgeReductionAccelerationLabel", stats.BortzAgeReduction < 0 ? "Bortz Age reduction" : "Bortz Age acceleration");
         }
+        html = PopulatePace(html, "bortzPaceOfAging", stats.BortzPaceOfAging, snapshot.Athletes
+            .Where(a => a.Stats.BortzPaceOfAging is double pace && double.IsFinite(pace))
+            .OrderBy(a => a.Stats.BortzPaceOfAging), row.Slug);
         if (stats.CrowdCount > 0 && stats.CrowdAge is double crowdAge && double.IsFinite(crowdAge))
         {
             html = ShowRow(html, "crowdAgeContainer");
@@ -109,7 +118,16 @@ public static class PublicProfileHtmlRenderer
         match => match.Groups["opening"].Value + content + match.Groups["closing"].Value, RegexOptions.Singleline);
 
     private static string ShowRow(string html, string id) => Regex.Replace(html,
-        $"(<[^>]*\\bid=\"{Regex.Escape(id)}\"[^>]*?) style=\"display:none;\"", "$1");
+        $"(<[^>]*\\bid=\"{Regex.Escape(id)}\"[^>]*?) hidden(?=[\\s>])", "$1");
+
+    private static string PopulatePace(string html, string id, double? pace, IEnumerable<PublicAthlete> order, string slug)
+    {
+        if (pace is not double value || !double.IsFinite(value)) return html;
+        html = ShowRow(html, id + "Container");
+        html = SetContent(html, id, PublicHtmlFormat.Fixed(value, 2));
+        var rank = order.ToList().FindIndex(a => a.Row.Slug == slug) + 1;
+        return SetContent(html, id + "Rank", rank > 0 ? $"#{rank}" : "");
+    }
 
     private static string LeagueLink(string label)
     {

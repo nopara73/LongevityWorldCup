@@ -294,6 +294,71 @@ public sealed class AthleteDataAnalyticsBrowserTests(
     }
 
     [Fact]
+    public async Task ConvertedReadingDisplay_RemovesOnlyReproducibleUnitTailsAndKeepsCanonicalDataAndMicroPrecision()
+    {
+        await using var context = await NewContextAsync(390, true);
+        var page = await OpenAsync(context);
+        var failures = await page.EvaluateAsync<string[]>("""
+            () => {
+                const failures = [], {buildBiomarkerHistory, renderBiomarkerHistory, createResultChange} = window.analyticsTest;
+                const athlete = {Name:'Synthetic conversion fixture', DateOfBirth:{Year:1980,Month:1,Day:1}, Biomarkers:[
+                    {Date:'2026-02-01', CreatUmolL:73.4, GluMmolL:5},
+                    {Date:'2026-01-01', CreatUmolL:0.72/0.0113, GluMmolL:84/18.016}
+                ]};
+                const original = JSON.stringify(athlete), history = buildBiomarkerHistory(athlete);
+                renderBiomarkerHistory(history, [athlete]);
+                for (const [key, first, latest, delta] of [
+                    ['Creatinine (µmol/L)', '63.72', '73.4', '+9.68'], ['Glucose (mmol/L)', '4.66', '5', '+0.34']
+                ]) {
+                    const row = [...document.querySelectorAll('.result-summary')].find(row => row.dataset.measure === key);
+                    if (row.querySelector('.biomarker-overview-current').textContent !== latest) failures.push(`${key}: latest changed`);
+                    if (row.querySelector('.biomarker-overview-change').textContent !== delta) failures.push(`${key}: conversion tail in change`);
+                    row.querySelector('button').click();
+                    const ledger = document.querySelector('.result-detail-row:not([hidden]) .biomarker-history-table');
+                    if (ledger.querySelector('tbody td').textContent !== first) failures.push(`${key}: conversion tail in dated reading`);
+                    if (ledger.querySelector('time').dateTime !== '2026-01-01') failures.push(`${key}: chronology changed`);
+                }
+                for (const [values, expected] of [
+                    [[1e-7, 2e-7], '+0.0000001'], [[1.000000000001, 1.000000000002], '+0.000000000001'],
+                    [['1.000000000000001', '1.000000000000002'], '+1e-15']
+                ]) {
+                    const change = createResultChange({key:'Creatinine (µmol/L)', unit:'µmol/L', values}, [0,1]);
+                    if (change.textContent !== expected) failures.push(`genuine precision lost: ${change.textContent}`);
+                }
+                if (JSON.stringify(athlete) !== original || history.biomarkersRaw['Creatinine (µmol/L)'][0] !== 0.72/0.0113)
+                    failures.push('canonical data rounded or mutated');
+                return failures;
+            }
+            """);
+        Assert.Empty(failures);
+    }
+
+    [Fact]
+    public async Task SingleClockReading_HasOneDatedAccessibleHistoryPointWithoutAnEmptySparkline()
+    {
+        await using var context = await NewContextAsync(390, true);
+        var page = await OpenAsync(context);
+        var problems = await page.EvaluateAsync<string[]>("""
+            () => {
+                const {buildBiomarkerHistory, renderBiomarkerHistory} = window.analyticsTest;
+                const athlete = {Name:'Synthetic single reading', DateOfBirth:{Year:1980,Month:1,Day:1}, Biomarkers:[
+                    {Date:'2026-01-01', AlbGL:45, CreatUmolL:88.4, GluMmolL:5, CrpMgL:0.8, LymPc:30, McvFL:90, RdwPc:13, AlpUL:60, Wbc1000cellsuL:5}
+                ]};
+                const history=buildBiomarkerHistory(athlete); renderBiomarkerHistory(history,[athlete]);
+                const row=document.querySelector('.result-summary[data-measure="pheno"]'), point=row.querySelector('.clock-history-reading');
+                const problems=[];
+                if(row.querySelector('svg')) problems.push('single clock still has a sparkline track');
+                if(row.querySelectorAll('[role=listitem]').length !== 1) problems.push('single clock lacks a history point');
+                if(point?.dataset.date !== '2026-01-01' || !point.getAttribute('aria-label').includes('1 Jan 2026:')) problems.push('history date is missing or wrong');
+                if(point?.textContent !== history.phenoAges[0].toFixed(1)) problems.push('history value differs from the calculator');
+                if(row.querySelector('.biomarker-overview-change')) problems.push('single clock invents a change');
+                return problems;
+            }
+            """);
+        Assert.Empty(problems);
+    }
+
+    [Fact]
     public async Task Sparklines_PreserveSharedUnevenDatesGapsDuplicateDatesAndFiniteCoordinates()
     {
         await using var context = await NewContextAsync(390, true);
