@@ -213,12 +213,13 @@ public sealed class FeedbackSystemBrowserTests(
                 probe.remove();
                 const style = getComputedStyle(element);
                 const mark = getComputedStyle(element, '::before');
-                return [style.display, style.backgroundColor, soft, style.borderTopLeftRadius,
+                const pill = element.getBoundingClientRect().width < element.parentElement.getBoundingClientRect().width;
+                return [style.display.endsWith('flex') && pill ? 'pill' : style.display, style.backgroundColor, soft, style.borderTopLeftRadius,
                     mark.content.split(' / ')[0].replaceAll('"', ''), mark.backgroundColor, success, inlineIcon];
             }
             """);
 
-        Assert.Equal("inline-flex", copied[0]);
+        Assert.Equal("pill", copied[0]);
         Assert.Equal(copied[2], copied[1]);
         Assert.Equal("999px", copied[3]);
         Assert.Equal("✓", copied[4]);
