@@ -74,7 +74,9 @@ public sealed class BadgeFamilyBrowserTests(
         await Assertions.Expect(tip).ToBeVisibleAsync();
         await Assertions.Expect(tip.Locator(".badge-tip-title")).ToHaveTextAsync("Liver King");
         await Assertions.Expect(tip.Locator(".badge-tip-detail")).ToContainTextAsync("top liver profile");
-        Assert.Equal("badge-tip", await hexagon.GetAttributeAsync("aria-describedby"));
+        Assert.Null(await hexagon.GetAttributeAsync("aria-describedby"));
+        Assert.Equal("true", await tip.GetAttributeAsync("aria-hidden"));
+        Assert.Equal(title, await hexagon.GetAttributeAsync("aria-label"));
         // The native title is lifted while the popover shows, so two tooltips never stack.
         Assert.Null(await hexagon.GetAttributeAsync("title"));
 
@@ -140,8 +142,9 @@ public sealed class BadgeFamilyBrowserTests(
         await item.HoverAsync();
         Assert.Equal(before, await shelf.EvaluateAsync<int[][]>(positions));
 
-        await item.ClickAsync();
-        await Assertions.Expect(item).ToHaveAttributeAsync("aria-expanded", "true");
+        var toggle = item.Locator(".modal-badge-toggle");
+        await toggle.ClickAsync();
+        await Assertions.Expect(toggle).ToHaveAttributeAsync("aria-expanded", "true");
         var panel = shelf.Locator(".modal-badge-explainer");
         await Assertions.Expect(panel).ToHaveCountAsync(1);
         await Assertions.Expect(panel.Locator(".modal-badge-explainer-title")).ToHaveTextAsync("Time Bender");
@@ -167,9 +170,10 @@ public sealed class BadgeFamilyBrowserTests(
         Assert.True(layout.PanelWidth > layout.ShelfWidth * 0.8);
         Assert.InRange(layout.CaretX, layout.ItemCenter - 2, layout.ItemCenter + 2);
 
-        await item.ClickAsync();
+        await toggle.ClickAsync();
         await Assertions.Expect(panel).ToHaveCountAsync(0);
-        await Assertions.Expect(item).ToHaveAttributeAsync("aria-expanded", "false");
+        await Assertions.Expect(toggle).ToHaveAttributeAsync("aria-expanded", "false");
+        Assert.Null(await toggle.GetAttributeAsync("aria-controls"));
         await FlowActionDockBrowserTests.ExpectNoHorizontalOverflowAsync(page);
     }
 
@@ -177,12 +181,218 @@ public sealed class BadgeFamilyBrowserTests(
         page.Locator(".leaderboard tbody tr[data-athlete-name]")
             .Filter(new() { Has = page.Locator(".athlete-name", new() { HasText = "Michael Lustgarten" }) });
 
+    [Theory]
+    [InlineData(1, "Baby Boss", "#ffd700")]
+    [InlineData(2, "Lullaby Lord", "#c0c0c0")]
+    [InlineData(3, "Diaper Don", "#cd7f32")]
+    public async Task CanonicalCrowdAge_UsesItsHumorousNameRankShapeMedalAndOrder(int place, string name, string colour)
+    {
+        await using var context = await NewBadgeContextAsync(1440, 900, false);
+        var page = await OpenLeaderboardAsync(context);
+        var result = await page.EvaluateAsync<string[]>("""
+            place => {
+                const badge = {BadgeLabel:'Crowd Age – lowest', Place:place};
+                const host = document.createElement('div');
+                host.className = 'badge-section';
+                document.querySelector('#detailsModal').appendChild(host);
+                window.setBadges({Badges:[badge, {BadgeLabel:'Crowd – most guessed', Place:place},
+                    {BadgeLabel:'Age reduction', Place:place}, {BadgeLabel:'Best domain – liver', Place:1},
+                    {BadgeLabel:'≥2 submissions'}]}, host);
+                const lastTitle = host.lastElementChild.title;
+                host.remove();
+                return [window.makeTooltipFromServerBadge(badge, {CrowdAge:21.5}),
+                    window.makeTooltipFromServerBadge(badge, {CrowdAge:21.5}, {suppressValues:true}),
+                    window.getBadgeFamilyClass(badge), window.pickBackgroundForServerBadge(badge),
+                    lastTitle, window.pickIconForServerBadge(badge)];
+            }
+            """, place);
+        Assert.StartsWith(name + ":", result[0]);
+        Assert.Contains("21.5 years", result[0]);
+        Assert.StartsWith(name + ":", result[1]);
+        Assert.DoesNotContain("21.5", result[1]);
+        Assert.Equal("badge-family-rank", result[2]);
+        Assert.Contains(colour, result[3]);
+        Assert.StartsWith(name + ":", result[4]);
+        Assert.Equal("fa-baby", result[5]);
+    }
+
+    [Fact]
+    public async Task Tooltip_PermitsPointerTravelAndClosesWhenOwnerIsDetached()
+    {
+        await using var context = await NewBadgeContextAsync(1440, 900, false);
+        var page = await OpenLeaderboardAsync(context);
+        var chip = MichaelRow(page).Locator(".badge-overflow-count");
+        await chip.HoverAsync();
+        var tip = page.Locator(".badge-tip");
+        await Assertions.Expect(tip).ToBeVisibleAsync();
+        await tip.HoverAsync();
+        await Assertions.Expect(tip).ToBeVisibleAsync();
+        await page.WaitForTimeoutAsync(200); // longer than the pointer-travel grace period
+        await Assertions.Expect(tip).ToBeVisibleAsync();
+        var owner = await chip.ElementHandleAsync();
+        var title = await owner!.GetAttributeAsync("data-badge-tip");
+        await owner.EvaluateAsync("el => el.remove()");
+        await Assertions.Expect(tip).ToBeHiddenAsync();
+        Assert.Equal(title, await owner.GetAttributeAsync("title"));
+        Assert.Null(await owner.GetAttributeAsync("aria-describedby"));
+    }
+
+    [Fact]
+    public async Task Tooltip_RestoresExistingDescriptionsAndTitlesAndDismissesOnScrollResizeAndRerender()
+    {
+        await using var context = await NewBadgeContextAsync(1440, 900, false);
+        var page = await OpenLeaderboardAsync(context);
+        var chip = MichaelRow(page).Locator(".badge-overflow-count");
+        await chip.ScrollIntoViewIfNeededAsync();
+        await chip.EvaluateAsync("el => el.setAttribute('aria-describedby', 'leaderboardStatus')");
+        var title = await chip.GetAttributeAsync("title");
+        await chip.FocusAsync();
+        var tip = page.Locator(".badge-tip");
+        await Assertions.Expect(tip).ToBeVisibleAsync();
+        await Assertions.Expect(chip).ToHaveAttributeAsync("aria-describedby", "leaderboardStatus badge-tip");
+        await page.Keyboard.PressAsync("Escape");
+        await Assertions.Expect(tip).ToBeHiddenAsync();
+        Assert.Equal(title, await chip.GetAttributeAsync("title"));
+        Assert.Equal("leaderboardStatus", await chip.GetAttributeAsync("aria-describedby"));
+        await Assertions.Expect(chip).ToBeFocusedAsync();
+
+        await chip.HoverAsync();
+        await Assertions.Expect(tip).ToBeVisibleAsync();
+        await page.EvaluateAsync("window.dispatchEvent(new Event('scroll'))");
+        await Assertions.Expect(tip).ToBeHiddenAsync();
+        await chip.ClickAsync(new() { Trial = true });
+        await chip.EvaluateAsync("el => el.blur()");
+        await chip.FocusAsync();
+        await Assertions.Expect(tip).ToBeVisibleAsync();
+        await page.SetViewportSizeAsync(1280, 800);
+        await Assertions.Expect(tip).ToBeHiddenAsync();
+
+        await chip.EvaluateAsync("el => el.blur()");
+        await chip.FocusAsync();
+        await Assertions.Expect(tip).ToBeVisibleAsync();
+        await chip.EvaluateAsync("el => el.title = 'New rendered title'");
+        await Assertions.Expect(tip).ToBeHiddenAsync();
+        Assert.Equal("New rendered title", await chip.GetAttributeAsync("title"));
+        await chip.EvaluateAsync("el => el.blur()");
+        await chip.FocusAsync();
+        await Assertions.Expect(tip).ToBeVisibleAsync();
+        await chip.EvaluateAsync("el => el.parentElement.replaceChildren()");
+        await Assertions.Expect(tip).ToBeHiddenAsync();
+    }
+
+    [Theory]
+    [InlineData(1440)]
+    [InlineData(390)]
+    public async Task Shelf_TreatsBadgeNamesAsTextAndKeepsOnlyTheCurrentDisclosureOwner(int width)
+    {
+        await using var context = await NewBadgeContextAsync(width, 900, false);
+        await RouteAthleteFixtureAsync(context, athletes =>
+        {
+            var michael = athletes.OfType<JsonObject>().Single(a => a["AthleteSlug"]!.GetValue<string>() == "michael_lustgarten");
+            michael["Badges"] = new JsonArray(
+                new JsonObject { ["BadgeLabel"] = "Badge <img src=x onerror=window.badgeMarkupExecuted=1>: Detail <svg onload=window.badgeMarkupExecuted=1>" },
+                new JsonObject { ["BadgeLabel"] = "Crowd Age – lowest", ["Place"] = 1 });
+        });
+        var page = await context.NewPageAsync();
+        await NavigateAndSettleAsync(page, $"/athlete/{Slug}");
+        var shelf = page.Locator("#modalBadgeStrip");
+        var toggles = shelf.Locator(".modal-badge-toggle");
+        await Assertions.Expect(toggles).ToHaveCountAsync(2);
+        Assert.Equal(0, await shelf.Locator("img, svg").CountAsync());
+        Assert.False(await page.EvaluateAsync<bool>("() => Boolean(window.badgeMarkupExecuted)"));
+        var injected = toggles.Filter(new() { HasText = "onerror" });
+        await injected.ClickAsync();
+        await Assertions.Expect(shelf.Locator(".modal-badge-explainer")).ToContainTextAsync("<svg onload=");
+        var other = toggles.Filter(new() { HasText = "Baby Boss" });
+        await other.FocusAsync();
+        await page.Keyboard.PressAsync("Enter");
+        Assert.Null(await injected.GetAttributeAsync("aria-controls"));
+        await Assertions.Expect(injected).ToHaveAttributeAsync("aria-expanded", "false");
+        await Assertions.Expect(other).ToHaveAttributeAsync("aria-controls", "modalBadgeExplainer");
+        await Assertions.Expect(shelf.Locator("[aria-controls]")).ToHaveCountAsync(1);
+        await page.Keyboard.PressAsync("Escape");
+        await Assertions.Expect(shelf.Locator("[aria-controls]")).ToHaveCountAsync(0);
+        await Assertions.Expect(shelf.Locator(".modal-badge-explainer")).ToHaveCountAsync(0);
+        await Assertions.Expect(other).ToBeFocusedAsync();
+        await Assertions.Expect(page.Locator("#detailsModal")).ToBeVisibleAsync();
+    }
+
+    [Fact]
+    public async Task Shelf_RepositionsForContainerAndFontChangesAndKeepsLinksSeparateFromButtons()
+    {
+        await using var context = await NewBadgeContextAsync(1440, 900, true);
+        var page = await context.NewPageAsync();
+        await NavigateAndSettleAsync(page, $"/athlete/{Slug}");
+        var shelf = page.Locator("#modalBadgeStrip");
+        var toggles = shelf.Locator(".modal-badge-toggle");
+        await Assertions.Expect(toggles).ToHaveCountAsync(7);
+        Assert.Equal(0, await shelf.Locator("button a, a button, [role=button] a").CountAsync());
+        await Assertions.Expect(shelf.Locator("a[href='/']")).ToHaveCountAsync(1);
+        await toggles.Nth(4).ClickAsync();
+        foreach (var width in new[] { 280, 420, 180 })
+        {
+            await shelf.EvaluateAsync("(el, width) => { el.style.width = width+'px'; document.documentElement.style.fontSize='24px'; }", width);
+            await page.WaitForFunctionAsync("""
+                () => {
+                    const shelf = document.querySelector('#modalBadgeStrip');
+                    const item = shelf.querySelector('.modal-badge-item.expanded');
+                    const panel = shelf.querySelector('.modal-badge-explainer');
+                    if (!panel) return false;
+                    const rect = item.getBoundingClientRect();
+                    const next = panel.nextElementSibling?.getBoundingClientRect();
+                    const p = panel.getBoundingClientRect();
+                    return p.top >= rect.bottom && p.top - rect.bottom < 55 && (!next || next.top > p.bottom);
+                }
+                """);
+        }
+        await page.Keyboard.PressAsync("Escape");
+        await shelf.EvaluateAsync("el => el.style.width='400px'");
+        await Assertions.Expect(shelf.Locator(".modal-badge-explainer")).ToHaveCountAsync(0);
+    }
+
     private static async Task<IPage> OpenLeaderboardAsync(IBrowserContext context)
     {
         var page = await context.NewPageAsync();
         await NavigateAndSettleAsync(page, "/leaderboard");
         await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
         return page;
+    }
+
+    [Fact]
+    public async Task TouchAndLongOverflow_KeepEveryExplanationReachableInsideTheViewport()
+    {
+        await using var context = await NewBadgeContextAsync(320, 480, true);
+        var page = await context.NewPageAsync();
+        await NavigateAndSettleAsync(page, "/events");
+        await page.WaitForFunctionAsync("() => typeof window.setBadges === 'function'");
+        await page.EvaluateAsync("""
+            () => {
+                const host = document.createElement('div');
+                host.className = 'badge-section'; host.id = 'touch-badges';
+                document.querySelector('.events-board').prepend(host);
+                window.setBadges({Badges:Array.from({length:35}, (_,i) => ({
+                    BadgeLabel:i ? 'Best domain – inflammation' : '≥2 submissions', Place:1
+                }))}, host);
+            }
+            """);
+        var badge = page.Locator("#touch-badges .badge-explained").First;
+        await badge.TapAsync();
+        var tip = page.Locator(".badge-tip");
+        await Assertions.Expect(tip).ToBeVisibleAsync();
+        await Assertions.Expect(tip).ToContainTextAsync("The Regular");
+        await page.Keyboard.PressAsync("Escape");
+        await Assertions.Expect(tip).ToBeHiddenAsync();
+        var chip = page.Locator("#touch-badges .badge-overflow-count");
+        await chip.TapAsync();
+        await Assertions.Expect(tip).ToBeVisibleAsync();
+        await Assertions.Expect(tip.Locator(".badge-tip-row")).ToHaveCountAsync(32);
+        Assert.True(await tip.EvaluateAsync<bool>("""
+            el => {const r=el.getBoundingClientRect();return r.left>=0 && r.right<=innerWidth && r.top>=0 && r.bottom<=innerHeight && el.scrollHeight>el.clientHeight;}
+            """));
+        await tip.EvaluateAsync("el => el.scrollTop = el.scrollHeight");
+        await Assertions.Expect(tip).ToBeVisibleAsync();
+        await Assertions.Expect(tip.Locator(".badge-tip-row").Last).ToBeInViewportAsync();
+        await FlowActionDockBrowserTests.ExpectNoHorizontalOverflowAsync(page);
     }
 
     private async Task<IBrowserContext> NewBadgeContextAsync(int width, int height, bool dark)
@@ -196,10 +406,8 @@ public sealed class BadgeFamilyBrowserTests(
             HasTouch = width < 600
         });
         await context.AddInitScriptAsync("localStorage.setItem('gmaSkipAll', 'true');");
-        await context.RouteAsync("**/api/data/athletes", async route =>
+        await RouteAthleteFixtureAsync(context, athletes =>
         {
-            var response = await route.FetchAsync();
-            var athletes = JsonNode.Parse(await response.TextAsync())!.AsArray();
             var michael = athletes.OfType<JsonObject>().Single(athlete =>
                 athlete["AthleteSlug"]!.GetValue<string>() == "michael_lustgarten");
             michael["PersonalLink"] = null;
@@ -213,7 +421,6 @@ public sealed class BadgeFamilyBrowserTests(
                 new JsonObject { ["BadgeLabel"] = "Best domain – immune", ["Place"] = 1 },
                 new JsonObject { ["BadgeLabel"] = "Best domain – vitamin D", ["Place"] = 1 },
                 new JsonObject { ["BadgeLabel"] = "Pheno pace of aging", ["Place"] = 1 });
-            await route.FulfillAsync(new() { ContentType = "application/json", Body = athletes.ToJsonString() });
         });
         return context;
     }

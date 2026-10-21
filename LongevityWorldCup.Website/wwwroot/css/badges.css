@@ -103,11 +103,14 @@ a.badge-class,.badge-class.badge-clickable,.badge-class[data-clickable="true"],.
 /* The badge explanation popover (badges.ts): one dark card for every surface,
    so an explanation reads the same in rows, boards and both themes. */
 .badge-tip{
-    position:absolute;
+    position:fixed;
     z-index:10050;
     box-sizing:border-box;
     width:max-content;
     max-width:min(20rem,calc(100vw - 16px));
+    max-height:calc(100dvh - 16px);
+    overflow-y:auto;
+    overflow-wrap:anywhere;
     padding:.55rem .75rem;
     border:1px solid rgba(255,255,255,.14);
     border-radius:var(--lwc-radius-sm,8px);
@@ -118,7 +121,7 @@ a.badge-class,.badge-class.badge-clickable,.badge-class[data-clickable="true"],.
     font-weight:400;
     line-height:1.35;
     text-align:left;
-    pointer-events:none;
+    pointer-events:auto;
     animation:badge-tip-in var(--lwc-duration-fast,140ms) var(--lwc-ease,ease)
 }
 .badge-tip[hidden]{display:none}
@@ -147,7 +150,7 @@ a.badge-class,.badge-class.badge-clickable,.badge-class[data-clickable="true"],.
    under its row, pointing back at the badge. */
 #detailsModal .modal-badge-strip{
     display:grid;
-    grid-template-columns:repeat(auto-fill,minmax(5.5rem,1fr));
+    grid-template-columns:repeat(auto-fill,minmax(min(100%,5.5rem),1fr));
     justify-items:center;
     align-items:start;
     gap:.75rem .5rem;
@@ -172,7 +175,13 @@ a.badge-class,.badge-class.badge-clickable,.badge-class[data-clickable="true"],.
 }
 #detailsModal .modal-badge-strip .modal-badge-item:hover{background:rgba(255,255,255,.05)}
 #detailsModal .modal-badge-strip .modal-badge-item.expanded{background:var(--athlete-modal-cream-soft,rgba(246,244,237,.18))}
-#detailsModal .modal-badge-item[role="button"]:focus-visible{outline:3px solid var(--lwc-accent-bright,#19c3d1);outline-offset:2px;border-radius:var(--lwc-radius-md,12px)}
+#detailsModal .modal-badge-toggle{
+    display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
+    width:100%;min-width:0;flex:1;margin:0;padding:0;border:0;border-radius:4px;
+    background:transparent;box-shadow:none;color:inherit;font:inherit;cursor:pointer;
+}
+#detailsModal .modal-badge-toggle::before,#detailsModal .modal-badge-toggle::after{display:none}
+#detailsModal .modal-badge-toggle:focus-visible{outline:3px solid var(--lwc-accent-bright,#19c3d1);outline-offset:3px}
 #detailsModal .modal-badge-strip .badge-class{
     --badge-rim:rgba(246,244,237,.5);
     width:56px;
@@ -224,6 +233,7 @@ a.badge-class,.badge-class.badge-clickable,.badge-class[data-clickable="true"],.
     font-size:.85rem;
     line-height:1.4;
     text-align:center;
+    overflow-wrap:anywhere;
     animation:badge-tip-in var(--lwc-duration-fast,140ms) var(--lwc-ease,ease)
 }
 #detailsModal .modal-badge-explainer::before{
@@ -250,7 +260,7 @@ a.badge-class,.badge-class.badge-clickable,.badge-class[data-clickable="true"],.
 
 @media (max-width:768px){
     #detailsModal .modal-badge-strip{
-        grid-template-columns:repeat(auto-fill,minmax(4.75rem,1fr));
+        grid-template-columns:repeat(auto-fill,minmax(min(100%,4.75rem),1fr));
         gap:.5rem .25rem;
         padding:.85rem .5rem .8rem;
     }
