@@ -1120,7 +1120,7 @@
  #detailsModal .modal-content[data-server-rendered-loading].is-loading::after {
      content:"";
      position:absolute;
-     top:4rem;
+     top:calc(4rem + var(--lwc-space-3));
      left:calc(50% - 1.75rem);
  }
  #detailsModal #athleteLoadError p{

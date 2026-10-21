@@ -384,6 +384,71 @@ public sealed class FeedbackSystemBrowserTests(
         await Assertions.Expect(error).ToBeHiddenAsync();
     }
 
+    [Theory]
+    [InlineData(1440, 900, "light")]
+    [InlineData(1440, 900, "dark")]
+    [InlineData(390, 844, "light")]
+    [InlineData(390, 844, "dark")]
+    [InlineData(160, 284, "light")]
+    [InlineData(160, 284, "dark")]
+    public async Task DirectAthleteLoading_RendersItsMedallionClearOfTheCloseControl(int width, int height, string theme)
+    {
+        await using var context = await NewThemedContextAsync(width, height, theme);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await context.RouteAsync("**/api/data/athletes", async route =>
+        {
+            await release.Task;
+            await route.ContinueAsync();
+        });
+        var page = await context.NewPageAsync();
+        try
+        {
+            await NavigateAndSettleAsync(page, "/athlete/michael-lustgarten?guessmyage=1");
+            var panel = page.Locator("#detailsModal .modal-content[data-server-rendered-loading].is-loading");
+            await Assertions.Expect(panel).ToBeVisibleAsync();
+            Assert.NotEqual("none", await panel.EvaluateAsync<string>("element => getComputedStyle(element, '::after').display"));
+
+            // A pseudo-element can have the expected computed size while a
+            // shared display:none rule prevents it from drawing any box.
+            var cdp = await context.NewCDPSessionAsync(page);
+            try
+            {
+                var document = (await cdp.SendAsync("DOM.getDocument", new() { ["depth"] = 0 }))!.Value;
+                var node = (await cdp.SendAsync("DOM.querySelector", new()
+                {
+                    ["nodeId"] = document.GetProperty("root").GetProperty("nodeId").GetInt32(),
+                    ["selector"] = "#detailsModal .modal-content"
+                }))!.Value;
+                var description = (await cdp.SendAsync("DOM.describeNode", new()
+                {
+                    ["nodeId"] = node.GetProperty("nodeId").GetInt32(), ["depth"] = 0
+                }))!.Value;
+                var mark = description.GetProperty("node").GetProperty("pseudoElements").EnumerateArray()
+                    .Single(element => element.GetProperty("pseudoType").GetString() == "after");
+                var box = (await cdp.SendAsync("DOM.getBoxModel", new()
+                {
+                    ["backendNodeId"] = mark.GetProperty("backendNodeId").GetInt32()
+                }))!.Value.GetProperty("model");
+                Assert.Equal(56, box.GetProperty("width").GetInt32());
+                Assert.Equal(56, box.GetProperty("height").GetInt32());
+                var points = box.GetProperty("border").EnumerateArray().Select(value => value.GetDouble()).ToArray();
+                var close = Assert.IsType<LocatorBoundingBoxResult>(await page.Locator("#closeAthleteDetailsModal").BoundingBoxAsync());
+                var horizontalOverlap = Math.Min(points[2] + 7, close.X + close.Width) - Math.Max(points[0] - 7, close.X);
+                var verticalOverlap = Math.Min(points[5] + 7, close.Y + close.Height) - Math.Max(points[1] - 7, close.Y);
+                Assert.True(horizontalOverlap <= 0 || verticalOverlap <= 0, "The medallion's halo must clear Close.");
+                Assert.True(points[0] - 7 >= 0 && points[2] + 7 <= width && points[5] + 7 <= height,
+                    "The medallion and its halo must remain inside the viewport.");
+            }
+            finally { await cdp.DetachAsync(); }
+            await page.Locator("#closeAthleteDetailsModal").ClickAsync();
+            await Assertions.Expect(page.Locator("#detailsModal")).ToBeHiddenAsync();
+            release.TrySetResult();
+            await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+            await Assertions.Expect(page.Locator("#detailsModal")).ToBeHiddenAsync();
+        }
+        finally { release.TrySetResult(); }
+    }
+
     private Task<IBrowserContext> NewThemedContextAsync(int width, int height, string theme) =>
         NewContextAsync(Browser, App, new()
         {

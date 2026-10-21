@@ -786,6 +786,7 @@ button.option-button:disabled {
 
 .loader,
 #detailsModal .modal-content[data-server-rendered-loading].is-loading::after {
+    display: block;
     box-sizing: border-box;
     width: 3.5rem;
     height: 3.5rem;
