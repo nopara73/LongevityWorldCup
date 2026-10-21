@@ -236,7 +236,7 @@ public sealed class SiteChromeSystemBrowserTests(
     [InlineData("/error/502.html", 1440, 900, false)]
     [InlineData("/error/503.html", 390, 844, true)]
     [InlineData("/error/504.html", 768, 1024, false)]
-    public async Task OutageCards_OpenWithTheChromeBandAndAQuietCodeChip(string path, int width, int height, bool dark)
+    public async Task OutageCards_OpenWithTheChromeBandAndAnEyebrowCode(string path, int width, int height, bool dark)
     {
         await using var context = await NewChromeContextAsync(width, height, dark);
         var page = await OpenAsync(context, path, settle: false);
@@ -247,17 +247,17 @@ public sealed class SiteChromeSystemBrowserTests(
                 const bar = getComputedStyle(document.querySelector('.card-bar'));
                 const brand = getComputedStyle(document.querySelector('.brand'));
                 const mark = getComputedStyle(document.querySelector('.mark img'));
-                const code = getComputedStyle(document.querySelector('.code'));
+                const code = getComputedStyle(document.querySelector('.card-cover > .code'));
                 const visual = getComputedStyle(document.querySelector('.visual'));
-                return [bar.backgroundImage, brand.color, mark.filter, code.borderTopLeftRadius, code.textTransform, visual.boxShadow, getComputedStyle(document.querySelector('h1')).fontWeight];
+                return [bar.backgroundImage, brand.color, mark.filter, code.letterSpacing, code.textTransform, visual.borderTopLeftRadius, getComputedStyle(document.querySelector('h1')).fontWeight];
             }
             """);
         Assert.Contains("linear-gradient", band[0]);
         Assert.Equal("rgb(255, 255, 255)", band[1]);
         Assert.Equal("invert(1)", band[2]);
-        Assert.Equal("999px", band[3]);
+        Assert.NotEqual("normal", band[3]);
         Assert.Equal("uppercase", band[4]);
-        Assert.Equal("none", band[5]);
+        Assert.Equal("50%", band[5]);
         Assert.Equal("700", band[6]);
         await ExpectNoHorizontalOverflowAsync(page);
     }

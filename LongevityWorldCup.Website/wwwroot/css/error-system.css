@@ -1,233 +1,7 @@
-:root {
-    color-scheme: light;
-    --error-ink: #17212b;
-    --error-muted: #52606d;
-    --error-canvas: #f3f5f7;
-    --error-surface: #ffffff;
-    --error-surface-muted: #eef2f5;
-    --error-border: #d7e0e6;
-    --error-accent: #087685;
-    --error-accent-hover: #065d68;
-}
+/* Outage fallbacks (502, 503, 504). nginx serves these while the application is down, so this sheet
+   is self-contained: it mirrors the site's tokens and the status-sheet family in landing-page.css
+   (round seal, accent bar, centred title, closing band) under the header's dark phoenix band. */
 
-body {
-    color: var(--error-ink);
-    background: var(--error-canvas);
-    font-synthesis: none;
-}
-
-.error-card {
-    width: min(100%, 800px);
-    border: 1px solid var(--error-border);
-    border-radius: 12px;
-    background: var(--error-surface);
-    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
-}
-
-.card-bar {
-    min-height: 64px;
-    flex-direction: row;
-    align-items: center;
-    border-bottom: 1px solid var(--error-border);
-    background: var(--error-surface-muted);
-}
-
-.brand {
-    font-weight: 700;
-}
-
-.mark {
-    border: 0;
-    border-radius: 4px;
-    background: transparent;
-    box-shadow: none;
-}
-
-.code {
-    border: 1px solid var(--error-border);
-    border-radius: 4px;
-    background: var(--error-surface);
-    color: var(--error-muted);
-    font-weight: 700;
-}
-
-.visual {
-    display: block;
-    margin: 0;
-    overflow: hidden;
-    border: 1px solid var(--error-border);
-    border-radius: 8px;
-    background: var(--error-surface-muted);
-}
-
-.visual img {
-    display: block;
-    width: 100%;
-    height: auto;
-    aspect-ratio: 2 / 3;
-    object-fit: contain;
-    object-position: center;
-}
-
-.card-body {
-    display: grid;
-    grid-template-columns: minmax(170px, 210px) minmax(0, 1fr);
-    align-items: center;
-    gap: clamp(1.25rem, 4vw, 2rem);
-    max-width: none;
-    margin: 0;
-    padding: clamp(1.25rem, 4vw, 2.5rem);
-}
-
-h1 {
-    margin: 0;
-    color: var(--error-ink);
-    font-size: clamp(2rem, 6vw, 3.25rem);
-    line-height: 1.15;
-    text-wrap: initial;
-    white-space: nowrap;
-}
-
-.joke {
-    color: var(--error-ink);
-    font-weight: 700;
-}
-
-.note {
-    color: var(--error-muted);
-    line-height: 1.5;
-}
-
-button {
-    min-height: 44px;
-    border: 1px solid transparent;
-    border-radius: 8px;
-    background: var(--error-accent);
-    color: #ffffff;
-    box-shadow: none;
-    font-weight: 700;
-    transition: background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, cubic-bezier(0.2, 0, 0, 1));
-    font-family: inherit;
-    font-size: 1rem;
-    line-height: 1.5;
-}
-
-button:hover,
-button:active {
-    background: var(--error-accent-hover);
-    box-shadow: none;
-    transform: none;
-}
-
-button:focus-visible {
-    outline: 3px solid #19c3d1;
-    outline-offset: 3px;
-}
-
-@media (max-width: 700px) {
-    .card-body {
-        grid-template-columns: 1fr;
-    }
-
-    .visual {
-        width: min(100%, 10.5rem);
-        justify-self: center;
-    }
-}
-
-@media (max-width: 480px) {
-    .card-bar {
-        min-height: 56px;
-        flex-direction: row;
-        align-items: center;
-        padding: .75rem;
-    }
-
-    .brand {
-        gap: .5rem;
-        font-size: .9rem;
-    }
-
-    .mark {
-        width: 2rem;
-        height: 2rem;
-    }
-
-    .code {
-        margin-left: auto;
-        font-size: 0.875rem;
-        line-height: 1.5;
-    }
-
-    .card-body {
-        padding: 1.5rem 1.25rem;
-    }
-
-    h1 {
-        font-size: 2rem;
-        white-space: normal;
-    }
-}
-
-@media (min-width: 560px) and (max-width: 700px) and (max-height: 480px) {
-    body {
-        place-items: center;
-        padding: 0.75rem;
-    }
-
-    .error-card {
-        width: min(100%, 640px);
-    }
-
-    .card-body {
-        grid-template-columns: minmax(110px, 140px) minmax(0, 1fr);
-        gap: 1rem;
-        padding: 0.9rem 1rem;
-    }
-
-    .visual {
-        width: 100%;
-    }
-
-    .visual img {
-        aspect-ratio: 4 / 3;
-    }
-
-    h1 {
-        font-size: clamp(2rem, 7vw, 3rem);
-        white-space: nowrap;
-    }
-}
-
-@media (prefers-color-scheme: dark) {
-    :root {
-        color-scheme: dark;
-        --error-ink: #e6edf3;
-        --error-muted: #aebdca;
-        --error-canvas: #0d141b;
-        --error-surface: #17212b;
-        --error-surface-muted: #202d38;
-        --error-border: #42515e;
-        --error-accent: #087685;
-        --error-accent-hover: #0a6977;
-    }
-}
-
-@media (forced-colors: active) {
-    button:focus-visible {
-        outline-color: Highlight;
-    }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    button {
-        transition: none;
-    }
-}
-
-/* Site chrome on the outage pages: the card opens with the same dark band,
-   phoenix lockup and hairline as the header, so a brief outage still looks
-   like the Longevity World Cup. */
 @font-face {
     font-family: 'Roboto';
     font-style: normal;
@@ -245,134 +19,319 @@ button:focus-visible {
 }
 
 :root {
+    color-scheme: light;
+    --error-ink: #17212b;
+    --error-muted: #52606d;
+    --error-canvas: #f3f5f7;
+    --error-surface: #ffffff;
+    --error-surface-muted: #eef2f5;
+    --error-border: #d7e0e6;
+    --error-accent: #087685;
+    --error-on-accent: #ffffff;
+    --error-accent-hover: #065d68;
+    --error-accent-soft: #dff5f7;
+    --error-focus: #19c3d1;
+    --error-shadow: 0 10px 28px rgba(15, 23, 42, 0.10);
     --error-chrome: #101820;
     --error-chrome-image: linear-gradient(120deg, #0b1117 0%, #2d3942 100%);
     --error-chrome-line: rgba(255, 255, 255, 0.16);
-    --error-chrome-ink-soft: #cbd5e1;
+    --error-seal: clamp(7.5rem, 16vw, 10rem);
+    --error-pad: clamp(1.25rem, 5vw, 3rem);
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    min-height: 100%;
 }
 
 body {
+    margin: 0;
+    min-height: 100vh;
+    min-height: 100svh;
+    display: grid;
+    place-items: center;
+    padding: clamp(1.5rem, 6vh, 4.5rem) 16px;
+    color: var(--error-ink);
     background:
         radial-gradient(ellipse 70% 45% at 50% 0%, rgba(8, 118, 133, 0.08), transparent 70%),
         var(--error-canvas);
+    font-family: Roboto, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-synthesis: none;
 }
 
 .error-card {
+    width: min(100%, 40rem);
     overflow: hidden;
+    border: 1px solid var(--error-border);
     border-radius: 12px;
-    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08), 0 18px 40px -24px rgba(15, 23, 42, 0.35);
+    background: var(--error-surface);
+    box-shadow: var(--error-shadow);
 }
 
+/* The header's dark band and phoenix lockup, so a brief outage still looks like the site. */
 .card-bar {
-    min-height: 68px;
-    flex-wrap: wrap;
-    padding: 0.75rem 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 60px;
+    padding: 0.75rem var(--error-pad);
     border-bottom: 1px solid rgba(255, 255, 255, 0.09);
     background: var(--error-chrome) var(--error-chrome-image);
     color: #ffffff;
 }
 
 .brand {
-    gap: 0.85rem;
-    flex: 1 1 min-content;
-    flex-wrap: wrap;
-    max-width: 100%;
-    font-size: 1.1rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-width: 0;
+    font-size: 1.05rem;
+    font-weight: 700;
     letter-spacing: 0.005em;
 }
 
-.brand > :last-child {
-    flex: 1 1 min-content;
-    min-width: min-content;
-    overflow-wrap: normal;
-}
-
 .mark {
-    width: 2.25rem;
-    height: 2.25rem;
-    padding-right: 0.85rem;
+    flex: none;
+    width: 2rem;
+    height: 2rem;
+    padding-right: 0.75rem;
     border-right: 1px solid var(--error-chrome-line);
-    border-radius: 0;
     box-sizing: content-box;
 }
 
 .mark img {
-    padding: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
     filter: invert(100%);
 }
 
-.code {
-    padding: 0.3rem 0.75rem;
-    flex: 0 1 auto;
-    max-width: 100%;
-    margin-left: auto;
-    white-space: normal;
-    overflow-wrap: normal;
+.card-cover {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: clamp(1.75rem, 4.5vw, 2.75rem) var(--error-pad) clamp(1.75rem, 4vw, 2.5rem);
     text-align: center;
-    border: 1px solid var(--error-chrome-line);
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.05);
-    color: var(--error-chrome-ink-soft);
-    font-size: 0.72rem;
+    background:
+        radial-gradient(ellipse 70% 60% at 50% 0%, var(--error-accent-soft), transparent 72%),
+        var(--error-surface-muted);
+}
+
+/* The seal: Herold as a ringed round avatar, first on the cover's axis. */
+.visual {
+    flex: none;
+    width: var(--error-seal);
+    height: var(--error-seal);
+    margin: 0;
+    overflow: hidden;
+    border: 4px solid var(--error-surface);
+    border-radius: 50%;
+    background: var(--error-surface);
+    box-shadow: 0 0 0 1px var(--error-border), var(--error-shadow);
+}
+
+.visual img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: 50% 14%;
+    /* Frame the face and the shirt crest rather than the whole stand. */
+    transform: scale(1.18);
+    transform-origin: 50% 24%;
+}
+
+/* The status reads as the family's accent bar and eyebrow. */
+.code {
+    margin-top: 1.5rem;
+    color: var(--error-accent);
+    font-size: 0.75rem;
     font-weight: 700;
-    letter-spacing: 0.12em;
+    line-height: 1.4;
+    letter-spacing: 0.14em;
     text-transform: uppercase;
 }
 
-.visual {
-    box-shadow: none;
-    border-radius: 12px;
+.code::before {
+    content: '';
+    display: block;
+    width: 3rem;
+    height: 4px;
+    margin: 0 auto 1rem;
+    border-radius: 2px;
+    background: var(--error-accent);
 }
 
 h1 {
+    max-width: 16ch;
+    margin: 0.75rem 0 0;
+    font-size: 2.25rem;
     font-weight: 700;
-    letter-spacing: -0.01em;
+    line-height: 1.04;
+    letter-spacing: -0.035em;
+    text-wrap: balance;
 }
 
 .joke {
-    margin-top: 0.85rem;
+    margin: 1rem 0 0;
+    font-size: clamp(1.0625rem, 1.6vw, 1.1875rem);
+    font-weight: 700;
+    line-height: 1.45;
 }
 
+.note {
+    max-width: 30rem;
+    margin: 0.4rem 0 0;
+    color: var(--error-muted);
+    font-size: 1rem;
+    line-height: 1.55;
+}
+
+/* Closing band: the page's one way out. */
 .actions {
-    margin-top: 1.5rem;
+    display: flex;
+    justify-content: center;
+    padding: clamp(1.25rem, 3.5vw, 1.75rem) var(--error-pad);
+    border-top: 1px solid var(--error-border);
+    background: var(--error-accent-soft);
 }
 
 button {
-    padding: 0 1.5rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: min(100%, 12rem);
+    min-height: 48px;
+    padding: 0.75rem 1.75rem;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: var(--error-accent);
+    color: var(--error-on-accent);
+    font: inherit;
+    font-size: 1.0625rem;
+    font-weight: 700;
+    line-height: 1.3;
+    cursor: pointer;
+    transition: background-color 140ms cubic-bezier(0.2, 0, 0, 1);
 }
 
-@media (max-width: 480px) {
+button:hover,
+button:active {
+    background: var(--error-accent-hover);
+}
+
+button:focus-visible {
+    outline: 3px solid var(--error-focus);
+    outline-offset: 3px;
+}
+
+/* Type steps in rem, never vw, so enlarged text still enlarges the title. */
+@media (min-width: 560px) {
+    h1 {
+        font-size: 3rem;
+    }
+}
+
+@media (max-width: 560px) {
+    body {
+        place-items: start center;
+        padding-block: clamp(1rem, 4vh, 2rem);
+    }
+
+    button {
+        width: 100%;
+    }
+}
+
+/* Short landscape phones: the seal shrinks so Try again stays in the first screen. */
+@media (max-height: 480px) and (min-width: 560px) {
+    :root {
+        --error-seal: 6rem;
+    }
+
+    body {
+        padding-block: 0.5rem;
+    }
+
     .card-bar {
-        min-height: 60px;
-        padding: 0.6rem min(1rem, 16px);
+        min-height: 40px;
+        padding-block: 0.35rem;
     }
 
     .mark {
-        width: 1.9rem;
-        height: 1.9rem;
-        padding-right: 0.6rem;
+        width: 1.6rem;
+        height: 1.6rem;
     }
 
-    .brand {
-        gap: 0.6rem;
-        font-size: 0.95rem;
+    .card-cover {
+        padding-block: 0.75rem;
+    }
+
+    .note {
+        margin-top: 0.2rem;
+        line-height: 1.35;
     }
 
     .code {
-        padding: 0.25rem 0.55rem;
-        font-size: 0.66rem;
-        letter-spacing: 0.08em;
+        margin-top: 0.75rem;
+    }
+
+    .code::before {
+        display: none;
+    }
+
+    h1 {
+        margin-top: 0.4rem;
+        font-size: 2rem;
+    }
+
+    .joke {
+        margin-top: 0.35rem;
+    }
+
+    .actions {
+        padding-block: 0.6rem;
     }
 }
 
 @media (prefers-color-scheme: dark) {
+    :root {
+        color-scheme: dark;
+        --error-ink: #e6edf3;
+        --error-muted: #aebdca;
+        --error-canvas: #0d141b;
+        --error-surface: #17212b;
+        --error-surface-muted: #202d38;
+        --error-border: #42515e;
+        --error-accent: #5bd5dd;
+        --error-on-accent: #082f35;
+        --error-accent-hover: #8be6eb;
+        --error-accent-soft: #173e44;
+        --error-shadow: 0 12px 30px rgba(0, 0, 0, 0.42);
+    }
+
     body {
         background:
             radial-gradient(ellipse 70% 45% at 50% 0%, rgba(25, 195, 209, 0.07), transparent 70%),
             var(--error-canvas);
     }
+}
 
-    .error-card {
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.28), 0 18px 40px -24px rgba(0, 0, 0, 0.7);
+@media (forced-colors: active) {
+    button:focus-visible {
+        outline-color: Highlight;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    button {
+        transition: none;
     }
 }

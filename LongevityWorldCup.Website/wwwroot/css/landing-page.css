@@ -276,3 +276,216 @@
         overflow-wrap: anywhere;
     }
 }
+
+/* Status sheets: the small standalone pages (404, Unsubscribe and, mirrored in error-system.css,
+   the outage fallbacks) share one centred sheet. A round seal opens the cover the way an athlete's
+   avatar opens their card, the accent bar and title follow on one axis, and the closing band holds
+   the page's single way out. */
+body.status-page {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    min-height: 100svh;
+}
+
+.status-main {
+    flex: 1 0 auto;
+    display: grid;
+    place-items: center;
+    box-sizing: border-box;
+    width: 100%;
+    padding: clamp(1.5rem, 6vh, 4.5rem) 16px;
+}
+
+.status-sheet.landing-sheet {
+    --landing-pad: clamp(1.25rem, 5vw, 3rem);
+    --status-seal: clamp(7.5rem, 16vw, 10rem);
+    width: min(100%, 40rem);
+    margin: 0;
+}
+
+.status-sheet .landing-cover {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: clamp(1.75rem, 4.5vw, 2.75rem);
+    text-align: center;
+    background:
+        radial-gradient(ellipse 70% 60% at 50% 0%, var(--lwc-accent-soft), transparent 72%),
+        var(--lwc-surface-muted);
+}
+
+.status-sheet .landing-cover::before {
+    margin: var(--lwc-space-5) auto var(--lwc-space-4);
+}
+
+.status-sheet .landing-cover > :is(h1, p) {
+    margin-inline: auto;
+    text-align: center;
+}
+
+/* The seal: a ringed disc, photo or glyph, always first on the cover's axis. */
+.status-seal {
+    order: -1;
+    position: relative;
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: var(--status-seal);
+    height: var(--status-seal);
+    margin: 0;
+    overflow: hidden;
+    border: 4px solid var(--lwc-surface);
+    border-radius: 50%;
+    background: var(--lwc-surface);
+    color: var(--lwc-accent);
+    box-shadow: 0 0 0 1px var(--lwc-border), var(--lwc-shadow-md);
+}
+
+.status-sheet .status-seal img {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+    object-fit: cover;
+    object-position: 50% 14%;
+    /* Frame the face and the shirt crest rather than the whole stand. */
+    transform: scale(1.18);
+    transform-origin: 50% 24%;
+}
+
+.status-seal-glyph {
+    --status-seal: clamp(5rem, 12vw, 6rem);
+    font-size: calc(var(--status-seal) * 0.36);
+    transition: color var(--lwc-duration-normal) var(--lwc-ease), box-shadow var(--lwc-duration-normal) var(--lwc-ease);
+}
+
+.status-sheet .landing-title {
+    max-width: 16ch;
+    margin-bottom: var(--lwc-space-4);
+    font-size: 2.25rem;
+}
+
+.status-sheet .landing-lead {
+    max-width: 30rem;
+    color: var(--lwc-muted);
+    font-size: clamp(1.0625rem, 1.6vw, 1.1875rem);
+    line-height: 1.55;
+}
+
+/* A status number reads like the leaderboard's ranks: Orbitron, accent, on its own line. */
+.status-code {
+    display: block;
+    margin-bottom: var(--lwc-space-2);
+    color: var(--lwc-accent);
+    font-family: 'Orbitron', 'Roboto', sans-serif;
+    font-size: 4rem;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: 0.04em;
+    font-variant-numeric: tabular-nums;
+}
+
+.status-sheet .landing-close {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--lwc-space-3);
+    padding-block: clamp(1.25rem, 3.5vw, 1.75rem);
+}
+
+.status-sheet .landing-close :is(.option-button, button) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--lwc-space-2);
+    width: auto;
+    min-width: min(100%, 12rem);
+    min-height: 48px;
+    margin: 0;
+    padding: 0.75rem 1.75rem;
+    font-size: 1.0625rem;
+}
+
+/* Type steps in rem, never vw, so enlarged text still enlarges the title. */
+@media (min-width: 560px) {
+    .status-sheet .landing-title {
+        font-size: 3rem;
+    }
+
+    .status-code {
+        font-size: 5.5rem;
+    }
+}
+
+@media (max-width: 560px) {
+    .status-main {
+        place-items: start center;
+        padding-block: clamp(1rem, 4vh, 2rem);
+    }
+
+    .status-sheet .landing-close :is(.option-button, button) {
+        width: 100%;
+    }
+}
+
+/* Short landscape phones: the seal shrinks so the way out stays in the first screen. */
+@media (max-height: 480px) and (min-width: 560px) {
+    .status-main {
+        padding-block: 0.75rem;
+    }
+
+    .status-sheet.landing-sheet {
+        --status-seal: 6rem;
+        width: min(100%, 44rem);
+    }
+
+    /* Under the site header there is no height for a stack: the seal steps beside the title. */
+    .status-sheet .landing-cover {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        column-gap: var(--lwc-space-5);
+        align-items: center;
+        padding-block: 0.9rem;
+        text-align: left;
+    }
+
+    .status-sheet .landing-cover::before {
+        display: none;
+    }
+
+    .status-seal {
+        grid-row: 1 / span 2;
+    }
+
+    .status-sheet .landing-cover > :is(h1, p) {
+        margin-inline: 0;
+        text-align: left;
+    }
+
+    .status-sheet .landing-cover > .landing-title {
+        margin-bottom: var(--lwc-space-2);
+        font-size: 2.25rem;
+    }
+
+    .status-code {
+        display: inline;
+        margin-right: 0.15em;
+        font-size: 1em;
+    }
+
+    .status-sheet .landing-close {
+        padding-block: 0.9rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .status-seal-glyph {
+        transition: none;
+    }
+}

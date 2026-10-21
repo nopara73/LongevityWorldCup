@@ -9,65 +9,14 @@
             display: none !important;
         }
 
-        /* Short pages: let main absorb the spare height so the footer reaches the bottom. */
-        body.unsubscribe-page {
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-            min-height: 100svh;
-        }
-
-        .unsubscribe-main {
-            flex: 1 0 auto;
-            display: grid;
-            place-items: center;
-            box-sizing: border-box;
-            width: 100%;
-            padding: clamp(1.5rem, 6vh, 4.5rem) 16px;
-        }
-
-        .unsubscribe-panel.landing-sheet {
-            --landing-pad: clamp(1.25rem, 5vw, 2.75rem);
-            width: min(100%, 38rem);
-            margin: 0;
-        }
-
-        /* The envelope stamps the cover's corner, opposite the accent bar. */
-        .unsubscribe-mark {
-            position: absolute;
-            top: clamp(1.25rem, 4vw, 2.25rem);
-            right: var(--landing-pad);
-            display: grid;
-            place-items: center;
-            width: 56px;
-            height: 56px;
-            border: 1px solid var(--lwc-border);
-            border-radius: var(--lwc-radius-pill);
-            background: var(--lwc-surface);
-            color: var(--lwc-accent);
-            font-size: 22px;
-            box-shadow: var(--lwc-shadow-sm);
-            transform: rotate(-8deg);
-        }
-
-        .unsubscribe-panel .landing-title {
-            margin-bottom: var(--lwc-space-3);
-            padding-right: 64px;
-            font-size: 2.25rem;
-        }
-
-        .unsubscribe-panel .unsubscribe-copy {
-            max-width: 30rem;
-            color: var(--lwc-muted);
-            font-size: 1.0625rem;
-            line-height: 1.55;
-        }
-
+        /* The form sits under the cover on the same centred axis as the seal and title. */
         .unsubscribe-form {
             display: grid;
             grid-template-columns: minmax(0, 1fr);
             gap: var(--lwc-space-3);
-            margin: 0;
+            width: 100%;
+            max-width: 34rem;
+            margin: 0 auto;
             padding: clamp(1.5rem, 4vw, 2.25rem) var(--landing-pad) clamp(1.5rem, 4vw, 2.5rem);
             text-align: left;
         }
@@ -200,27 +149,24 @@
             content: '!';
         }
 
-        /* Very narrow windows give the title the whole cover; the stamp steps aside. */
-        @media (max-width: 359px) {
-            .unsubscribe-mark {
-                display: none;
-            }
+        /* The seal answers with the callout: a checked envelope when done, a danger ring on failure. */
+        .unsubscribe-panel[data-state="done"] .status-seal {
+            color: var(--lwc-success);
+            box-shadow: 0 0 0 2px var(--lwc-success), var(--lwc-shadow-md);
+        }
 
+        .unsubscribe-panel[data-state="error"] .status-seal {
+            color: var(--lwc-danger);
+            box-shadow: 0 0 0 2px var(--lwc-danger), var(--lwc-shadow-md);
+        }
+
+        @media (max-width: 359px) {
             .unsubscribe-panel.landing-sheet {
                 --landing-pad: min(16px, 6.25vw);
-            }
-
-            .unsubscribe-panel .landing-title {
-                padding-right: 0;
-                font-size: 2rem;
             }
         }
 
         @media (min-width: 560px) {
-            .unsubscribe-panel .landing-title {
-                font-size: 3rem;
-            }
-
             .unsubscribe-form {
                 grid-template-columns: minmax(0, 1fr) auto;
                 align-items: stretch;
@@ -250,19 +196,6 @@
         }
 
         @media (max-height: 480px) and (min-width: 560px) {
-            .unsubscribe-main {
-                padding-block: 0.9rem;
-            }
-
-            .unsubscribe-panel .landing-cover {
-                padding-block: 1rem;
-            }
-
-            .unsubscribe-panel .landing-cover::before,
-            .unsubscribe-mark {
-                display: none;
-            }
-
             .unsubscribe-form {
                 padding-block: 1rem;
             }
@@ -276,14 +209,14 @@
         }
     </style>
 </head>
-<body class="unsubscribe-page">
+<body class="unsubscribe-page status-page">
     <!--HEADER-->
-    <main class="unsubscribe-main">
-        <section class="unsubscribe-panel landing-sheet">
+    <main class="status-main unsubscribe-main">
+        <section class="unsubscribe-panel landing-sheet status-sheet" data-state="idle">
             <div class="landing-cover">
-                <div class="unsubscribe-mark" aria-hidden="true"><i class="fas fa-envelope"></i></div>
+                <div class="status-seal status-seal-glyph unsubscribe-mark" aria-hidden="true"><i id="unsubscribe-seal-icon" class="fas fa-envelope"></i></div>
                 <h1 class="landing-title" aria-label="Unsubscribe"><span class="page-title-word">Un&shy;sub&shy;scribe</span></h1>
-                <p class="unsubscribe-copy">Remove your email from the Longevity World Cup yearly newsletter.</p>
+                <p class="landing-lead unsubscribe-copy">Remove your email from the Longevity World Cup yearly newsletter.</p>
             </div>
 
             <form id="unsubscribe-form" class="unsubscribe-form" novalidate>
@@ -318,11 +251,15 @@
             const emailInput = document.getElementById("email");
             const button = document.getElementById("unsubscribe-button");
             const message = document.getElementById("message");
+            const panel = document.querySelector(".unsubscribe-panel");
+            const sealIcon = document.getElementById("unsubscribe-seal-icon");
             let submitting = false;
             let retryEmail = "";
 
             function setMessage(text, isError) {
                 message.classList.toggle("is-error", Boolean(text) && isError);
+                panel.dataset.state = !text ? "idle" : isError ? "error" : "done";
+                sealIcon.className = panel.dataset.state === "done" ? "fas fa-envelope-circle-check" : "fas fa-envelope";
                 if (!text) {
                     message.replaceChildren();
                     return;

@@ -4,195 +4,37 @@
     <title>404 Not Found - Longevity World Cup</title>
     <script id="pageAnalyticsPrivacy">window.LwcDisableGoogleAnalytics = true;</script>
     <!--HEAD-->
+    <link rel="stylesheet" href="{{ASSET_LANDING_PAGE_CSS}}">
     <style>
         /* Hide the join-game button in the header */
         .join-game {
             display: none !important;
         }
 
-        .not-found-main {
-            box-sizing: border-box;
-            width: 100%;
-            max-width: 980px;
-            min-height: min(calc(100svh - 4.5rem), 60rem);
-            margin: 0 auto;
-            padding: clamp(1.25rem, 4vh, 3rem) 1rem;
-            display: grid;
-            align-content: center;
-        }
-
         .not-found-main [data-aos]:not(.aos-animate) {
             opacity: 1;
             transform: none;
         }
-
-        .not-found-card {
-            display: grid;
-            grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
-            min-height: clamp(20rem, 60vh, 34rem);
-            overflow: hidden;
-            background: var(--lwc-surface);
-            border: 1px solid var(--lwc-border);
-            border-radius: var(--lwc-radius-lg);
-            box-shadow: var(--lwc-shadow-sm);
-        }
-
-        .not-found-visual {
-            position: relative;
-            min-height: 100%;
-            margin: 0;
-            background: var(--lwc-surface-muted);
-        }
-
-        .not-found-visual .illustration {
-            position: absolute;
-            inset: 0;
-            width: 100%;
-            height: 100%;
-            max-width: none;
-            margin: 0;
-            border: 0;
-            border-radius: 0;
-            object-fit: cover;
-            object-position: center 22%;
-        }
-
-        .not-found-body {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: flex-start;
-            gap: 1.1rem;
-            min-width: 0;
-            padding: clamp(1.75rem, 4.5vw, 3.5rem);
-        }
-
-        .not-found-title {
-            margin: 0;
-            text-align: left;
-            font-size: clamp(2.25rem, 4.2vw, 3.25rem);
-            line-height: 1.02;
-        }
-
-        .not-found-copy {
-            max-width: 26ch;
-            margin: 0;
-            color: var(--lwc-ink);
-            font-size: clamp(1.15rem, 1.6vw, 1.35rem);
-            line-height: 1.4;
-            text-align: left;
-        }
-
-        .not-found-body .not-found-actions {
-            width: auto;
-            min-width: min(100%, 13rem);
-            max-width: 100%;
-            display: flex;
-            flex-direction: column;
-            align-items: stretch;
-            margin: 0.6rem 0 0;
-        }
-
-        .not-found-actions .option-button {
-            width: 100%;
-            min-width: 0;
-            max-width: none;
-            margin: 0;
-            padding-inline: 1.75rem;
-            box-sizing: border-box;
-        }
-
-        .not-found-actions .back-button {
-            margin-left: 0;
-        }
-
-        @media (max-width: 719px) {
-            .not-found-main {
-                min-height: 0;
-                padding: 1rem 0.75rem 2rem;
-                align-content: start;
-            }
-
-            .not-found-card {
-                grid-template-columns: minmax(0, 1fr);
-                min-height: 0;
-            }
-
-            .not-found-visual {
-                min-height: 0;
-                aspect-ratio: 1;
-                max-height: 52svh;
-                border-bottom: 1px solid var(--lwc-border);
-            }
-
-            .not-found-body {
-                gap: 0.75rem;
-                padding: 1.25rem 1.1rem 1.35rem;
-            }
-
-            .not-found-title {
-                font-size: 2rem;
-            }
-
-            .not-found-copy {
-                max-width: none;
-                font-size: 1.1rem;
-            }
-
-            .not-found-body .not-found-actions {
-                width: 100%;
-                margin-top: 0.35rem;
-            }
-        }
-
-        @media (min-width: 560px) and (max-height: 480px) {
-            .not-found-main {
-                min-height: 0;
-                padding-block: 0.75rem;
-            }
-
-            .not-found-card {
-                grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
-                min-height: calc(100svh - 6rem);
-            }
-
-            .not-found-visual {
-                aspect-ratio: auto;
-                max-height: none;
-                border-bottom: 0;
-            }
-
-            .not-found-body {
-                gap: 0.6rem;
-                padding: 1.25rem 1.5rem;
-            }
-
-            .not-found-title {
-                font-size: 2rem;
-            }
-        }
     </style>
 </head>
-<body>
+<body class="status-page">
     <!--HEADER-->
-    <main class="not-found-main">
-        <section class="not-found-card">
-        <div class="not-found-visual" data-aos="fade" data-aos-duration="700" data-aos-delay="200">
-            <picture>
-                <img src="/error/herold.png" alt="Illustration for page not found" class="illustration" width="1024" height="1536" decoding="async">
-            </picture>
-        </div>
-        <div class="not-found-body">
-        <h1 id="appReviewTitle" class="not-found-title" data-aos="fade" data-aos-duration="700" data-aos-delay="200">404 not found</h1>
-        <p class="not-found-copy" data-aos="fade" data-aos-duration="700" data-aos-delay="300">
-            This page didn’t qualify for the Longevity World Cup
-        </p>
-        <div class="options-container not-found-actions" data-aos="fade" data-aos-duration="700" data-aos-delay="400">
-            <button class="option-button back-button" onclick="window.location.href = '/'">
-                <i class="fas fa-home"></i>&nbsp;Home
-            </button>
-        </div>
-        </div>
+    <main class="status-main not-found-main">
+        <section class="landing-sheet status-sheet not-found-card" aria-labelledby="appReviewTitle">
+            <div class="landing-cover">
+                <figure class="status-seal not-found-visual" data-aos="fade" data-aos-duration="700" data-aos-delay="200">
+                    <img src="/error/herold.png" alt="Illustration for page not found" width="1024" height="1536" decoding="async">
+                </figure>
+                <h1 id="appReviewTitle" class="landing-title not-found-title" data-aos="fade" data-aos-duration="700" data-aos-delay="200"><span class="status-code">404</span> not found</h1>
+                <p class="landing-lead not-found-copy" data-aos="fade" data-aos-duration="700" data-aos-delay="300">
+                    This page didn’t qualify for the Longevity World Cup
+                </p>
+            </div>
+            <div class="landing-close not-found-actions" data-aos="fade" data-aos-duration="700" data-aos-delay="400">
+                <button class="option-button" onclick="window.location.href = '/'">
+                    <i class="fas fa-home" aria-hidden="true"></i>Home
+                </button>
+            </div>
         </section>
     </main>
     <!--FOOTER-->

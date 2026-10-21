@@ -22,7 +22,7 @@ public sealed class NotFoundPageBrowserTests(
     [InlineData("/no-such-page", 719, 375)]
     [InlineData("/no-such-page", 720, 375)]
     [InlineData("/no-such-page", 844, 390)]
-    public async Task MissingPages_ShowHeroldAndHomeAsOneCardInTheFirstScreen(string path, int width, int height)
+    public async Task MissingPages_ShowHeroldOverTheTitleAndHomeInTheFirstScreen(string path, int width, int height)
     {
         await using var context = await NewContextAsync(Browser, App, new()
         {
@@ -42,7 +42,7 @@ public sealed class NotFoundPageBrowserTests(
             () => {
                 const image = document.querySelector('.not-found-visual img');
                 const rect = element => document.querySelector(element).getBoundingClientRect();
-                const card = rect('.not-found-card'), visual = image.getBoundingClientRect(), title = rect('.not-found-title'), home = rect('.not-found-actions .option-button');
+                const card = rect('.not-found-card'), visual = rect('.not-found-visual'), title = rect('.not-found-title'), home = rect('.not-found-actions .option-button');
                 return [image.naturalWidth, card.left, card.right, card.top, card.bottom, visual.left, visual.right, visual.top, visual.bottom,
                     title.left, title.top, home.left, home.right, home.top, home.bottom, innerHeight];
             }
@@ -52,8 +52,9 @@ public sealed class NotFoundPageBrowserTests(
         foreach (var start in new[] { 5, 11 })
             Assert.True(layout[start] >= layout[1] - 1 && layout[start + 1] <= layout[2] + 1 && layout[start + 2] >= layout[3] - 1 && layout[start + 3] <= layout[4] + 1,
                 $"{scenario}: the photo and Home action should share the one card.");
-        if (width >= 720 || width >= 560 && height <= 480)
-            Assert.True(layout[6] <= layout[9] && layout[10] >= layout[7], $"{scenario}: the photo should sit beside the title.");
+        // Herold's seal opens the cover above the title; short landscape screens set it beside the title.
+        if (width >= 560 && height <= 480)
+            Assert.True(layout[6] <= layout[9] && layout[10] < layout[8], $"{scenario}: the photo should sit beside the title.");
         else
             Assert.True(layout[8] <= layout[10], $"{scenario}: the photo should sit above the title.");
         Assert.True(layout[14] <= layout[15], $"{scenario}: Home should be in the first screen ({layout[14]}px of {layout[15]}px).");
