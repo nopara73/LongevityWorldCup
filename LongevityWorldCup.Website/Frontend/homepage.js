@@ -641,12 +641,12 @@ function copyBitcoinAddress() {
         document.getElementById('btcAddressLink').style.display = 'none';
         // Show the 'Copied' text
         const copiedTextElement = document.getElementById('copiedText');
-        copiedTextElement.style.display = 'inline';
+        copiedTextElement.hidden = false;
 
         // Restore the address after the concise text confirmation.
         setTimeout(function () {
             // Hide 'Copied' text
-            copiedTextElement.style.display = 'none';
+            copiedTextElement.hidden = true;
             // Show BTC address
             document.getElementById('btcAddressLink').style.display = 'inline';
         }, 2000);

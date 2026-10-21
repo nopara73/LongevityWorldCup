@@ -124,45 +124,9 @@
             border-radius: var(--lwc-radius-md);
         }
 
-        .media-kit-skeleton span,
-        .media-file-thumb[data-state="loading"] {
-            background: linear-gradient(100deg, var(--lwc-surface-muted) 30%, var(--lwc-surface) 50%, var(--lwc-surface-muted) 70%) 0 0 / 300% 100%;
-            animation: media-kit-shimmer 1.6s linear infinite;
-        }
-
-        @keyframes media-kit-shimmer {
-            from { background-position: 100% 0; }
-            to { background-position: 0 0; }
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-            .media-kit-skeleton span,
-            .media-file-thumb[data-state="loading"] {
-                animation: none;
-                background: var(--lwc-surface-muted);
-            }
-        }
-
+        /* The shimmer and the fallback banner come from the shared feedback system. */
         .media-kit-fallback {
-            display: flex;
-            gap: var(--lwc-space-3);
-            align-items: flex-start;
-            padding: var(--lwc-space-3) var(--lwc-space-4);
-            border: 1px solid var(--lwc-border);
-            border-left: 3px solid var(--lwc-warning);
-            border-radius: var(--lwc-radius-md);
-            background: var(--lwc-warning-soft);
-            color: var(--lwc-ink);
-            text-align: left;
-        }
-
-        .media-kit-fallback::before {
-            content: "\f071" / "";
-            flex: none;
-            color: var(--lwc-warning);
-            font-family: "Font Awesome 6 Free";
-            font-weight: 900;
-            line-height: 1.5;
+            margin: 0;
         }
 
         /* Folder sections: a header band names the folder and its file count,

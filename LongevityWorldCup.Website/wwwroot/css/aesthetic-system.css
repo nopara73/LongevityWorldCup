@@ -596,14 +596,286 @@ textarea:read-only {
     color: var(--lwc-danger);
 }
 
+/* Feedback system. Everything the site says about what just happened uses one mark
+   and one set of tones, at three sizes: a banner (page or form status) is a tinted
+   card with a tone rail and a small mark; a field error is the same mark beside its
+   words, under its input; a short confirmation is a pill with the mark. The modal
+   alert and the loading dialog carry the large mark on one panel (site-header.css). */
 .error-message:not(:empty),
+.profile-field-error,
 .validation-message:not(:empty),
 .bioage-inline-notice,
-.proof-upload-notice,
-.lmx-status:not(:empty),
+#applicationDraftStatus:not([hidden]),
+.profile-draft-status:not([hidden]),
+#newsletterStatus:not(:empty),
+.unsubscribe-message:not(:empty),
+.media-kit-fallback,
+#copiedText,
 body .bioage-rank-error,
 body .events-recovery,
 body .leaderboard-recovery {
+    --lwc-feedback-tone: var(--lwc-accent);
+    --lwc-feedback-soft: var(--lwc-accent-soft);
+    --lwc-feedback-glyph: "i";
+}
+
+#newsletterStatus:not(:empty),
+.unsubscribe-message:not(:empty),
+#copiedText {
+    --lwc-feedback-tone: var(--lwc-success);
+    --lwc-feedback-soft: var(--lwc-success-soft);
+    --lwc-feedback-glyph: "\2713";
+}
+
+.media-kit-fallback {
+    --lwc-feedback-tone: var(--lwc-warning);
+    --lwc-feedback-soft: var(--lwc-warning-soft);
+    --lwc-feedback-glyph: "!";
+}
+
+.error-message:not(:empty),
+.profile-field-error,
+.validation-message:not(:empty),
+.bioage-inline-notice,
+#applicationDraftStatus:not([hidden]),
+.profile-draft-status:not([hidden]),
+#newsletterStatus.is-error:not(:empty),
+.unsubscribe-message.is-error:not(:empty),
+body .bioage-rank-error,
+body .events-recovery,
+body .leaderboard-recovery {
+    --lwc-feedback-tone: var(--lwc-danger);
+    --lwc-feedback-soft: var(--lwc-danger-soft);
+    --lwc-feedback-glyph: "\2715";
+}
+
+/* Banner: tinted card, tone rail, small mark on the first line. */
+.validation-message:not(:empty),
+.bioage-inline-notice,
+#applicationDraftStatus:not([hidden]),
+.profile-draft-status:not([hidden]),
+#newsletterStatus:not(:empty),
+.unsubscribe-message:not(:empty),
+.media-kit-fallback,
+body .bioage-rank-error,
+body .events-recovery,
+body .leaderboard-recovery {
+    position: relative;
+    box-sizing: border-box;
+    padding: var(--lwc-space-3) var(--lwc-space-4);
+    padding-inline-start: calc(var(--lwc-space-4) + 1.375rem + var(--lwc-space-3));
+    border: 1px solid color-mix(in srgb, var(--lwc-feedback-tone) 35%, var(--lwc-border));
+    border-inline-start: 4px solid var(--lwc-feedback-tone);
+    border-radius: var(--lwc-radius-md);
+    background: var(--lwc-feedback-soft);
+    box-shadow: none;
+    color: var(--lwc-ink);
+    font-weight: 400;
+    line-height: 1.45;
+    text-align: start;
+    overflow-wrap: anywhere;
+}
+
+.error-message:not(:empty)::before,
+.profile-field-error::before,
+.validation-message:not(:empty)::before,
+.bioage-inline-notice::before,
+#applicationDraftStatus:not([hidden])::before,
+.profile-draft-status:not([hidden])::before,
+#newsletterStatus:not(:empty)::before,
+.unsubscribe-message:not(:empty)::before,
+.media-kit-fallback::before,
+#copiedText::before,
+body .bioage-rank-error::before,
+body .events-recovery::before,
+body .leaderboard-recovery::before {
+    content: var(--lwc-feedback-glyph) / "";
+    position: absolute;
+    top: calc(var(--lwc-space-3) + 0.05rem);
+    inset-inline-start: calc(var(--lwc-space-4) - 4px);
+    display: grid;
+    place-items: center;
+    width: 1.375rem;
+    height: 1.375rem;
+    border-radius: var(--lwc-radius-pill);
+    background: var(--lwc-feedback-tone);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--lwc-feedback-tone) 20%, transparent);
+    color: var(--lwc-surface);
+    font: normal 900 0.75rem/1 'Roboto', system-ui, sans-serif;
+}
+
+/* Status rows that hold a retry action read left to right: mark, words, Retry.
+   The mark joins the row itself, so page padding rules cannot slide words under it. */
+body .bioage-rank-error,
+body .events-recovery,
+body .leaderboard-recovery {
+    padding-inline-start: var(--lwc-space-4);
+}
+
+body .bioage-rank-error::before,
+body .events-recovery::before,
+body .leaderboard-recovery::before {
+    position: static;
+    flex: none;
+}
+
+body :is(.bioage-rank-error, .events-recovery, .leaderboard-recovery) > p {
+    flex: 1 1 12rem;
+    min-width: 0;
+}
+
+/* Field error: the same mark and tone, no card, directly under its input. */
+.error-message:not(:empty),
+.profile-field-error {
+    position: relative;
+    display: block;
+    box-sizing: border-box;
+    margin: var(--lwc-space-2) 0 0;
+    padding: 0;
+    padding-inline-start: calc(1.125rem + var(--lwc-space-2));
+    border: 0;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+    color: var(--lwc-danger);
+    font-size: var(--lwc-type-sm);
+    font-weight: 600;
+    line-height: 1.45;
+    text-align: start;
+    overflow-wrap: anywhere;
+}
+
+.profile-field-error[hidden],
+.profile-field-error:empty {
+    display: none;
+}
+
+.error-message:not(:empty)::before,
+.profile-field-error::before {
+    top: calc((var(--lwc-type-sm) * 1.45 - 1.125rem) / 2);
+    inset-inline-start: 0;
+    width: 1.125rem;
+    height: 1.125rem;
+    box-shadow: none;
+    font-size: 0.625rem;
+}
+
+/* A search hint that reuses the error slot stays a quiet line. */
+.error-message.athlete-search-empty:not(:empty) {
+    padding: 0;
+    color: var(--lwc-muted);
+    font-weight: 400;
+}
+
+.error-message.athlete-search-empty:not(:empty)::before {
+    content: none;
+}
+
+/* The invalid control wears the tone its message speaks in; this outranks the
+   shared field border below, which otherwise kept invalid text inputs grey. */
+html body :is(input, select, textarea):is([aria-invalid="true"], :has(+ .error-message:not(:empty)), :has(+ .profile-field-error:not([hidden]):not(:empty))):not([type="checkbox"]):not([type="radio"]):not([type="range"]) {
+    border-color: var(--lwc-danger);
+}
+
+/* Toast: a short confirmation is a pill with the same mark. */
+#copiedText {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    min-height: 2rem;
+    box-sizing: border-box;
+    padding: var(--lwc-space-1) var(--lwc-space-3);
+    padding-inline-start: calc(var(--lwc-space-2) + 1.25rem + var(--lwc-space-2));
+    border: 1px solid color-mix(in srgb, var(--lwc-feedback-tone) 35%, var(--lwc-border));
+    border-radius: var(--lwc-radius-pill);
+    background: var(--lwc-feedback-soft);
+    color: var(--lwc-ink);
+    font-weight: 700;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+
+#copiedText[hidden] {
+    display: none;
+}
+
+#copiedText::before {
+    top: 50%;
+    inset-inline-start: var(--lwc-space-2);
+    width: 1.25rem;
+    height: 1.25rem;
+    box-shadow: none;
+    font-size: 0.7rem;
+    transform: translateY(-50%);
+}
+
+#copiedText > i {
+    display: none;
+}
+
+.validation-message:not(:empty),
+.bioage-inline-notice,
+#applicationDraftStatus:not([hidden]),
+.profile-draft-status:not([hidden]),
+#newsletterStatus:not(:empty),
+.unsubscribe-message:not(:empty),
+.media-kit-fallback,
+.error-message:not(:empty),
+.profile-field-error,
+#copiedText {
+    animation: lwcFeedbackIn var(--lwc-duration-normal) var(--lwc-ease) both;
+}
+
+@keyframes lwcFeedbackIn {
+    from {
+        opacity: 0;
+        translate: 0 -3px;
+    }
+
+    to {
+        opacity: 1;
+        translate: none;
+    }
+}
+
+/* Loading placeholders share one shimmer, drawn from the surface tokens in both themes. */
+.skeleton-shimmer,
+.media-kit-skeleton span,
+.media-file-thumb[data-state="loading"] {
+    background: linear-gradient(100deg, var(--lwc-surface-muted) 30%, color-mix(in srgb, var(--lwc-surface-muted) 35%, var(--lwc-surface)) 50%, var(--lwc-surface-muted) 70%) 0 0 / 300% 100%;
+    animation: lwcSkeletonShimmer 1.6s linear infinite;
+}
+
+@keyframes lwcSkeletonShimmer {
+    from { background-position: 100% 0; }
+    to { background-position: 0 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .skeleton-shimmer,
+    .media-kit-skeleton span,
+    .media-file-thumb[data-state="loading"] {
+        animation: none;
+        background: var(--lwc-surface-muted);
+    }
+
+    .validation-message:not(:empty),
+    .bioage-inline-notice,
+    #applicationDraftStatus:not([hidden]),
+    .profile-draft-status:not([hidden]),
+    #newsletterStatus:not(:empty),
+    .unsubscribe-message:not(:empty),
+    .media-kit-fallback,
+    .error-message:not(:empty),
+    .profile-field-error,
+    #copiedText {
+        animation: none;
+    }
+}
+
+/* Proof and Longevitymaxxing statuses keep their own placement inside their cards. */
+.proof-upload-notice,
+.lmx-status:not(:empty) {
     padding: var(--lwc-space-3) var(--lwc-space-4);
     border: 0;
     border-inline-start: 4px solid var(--lwc-accent);
@@ -614,13 +886,7 @@ body .leaderboard-recovery {
     line-height: 1.45;
 }
 
-.error-message:not(:empty),
-.validation-message:not(:empty),
-.bioage-inline-notice,
-.lmx-status.error:not(:empty),
-body .bioage-rank-error,
-body .events-recovery,
-body .leaderboard-recovery {
+.lmx-status.error:not(:empty) {
     border-inline-start-color: var(--lwc-danger);
 }
 

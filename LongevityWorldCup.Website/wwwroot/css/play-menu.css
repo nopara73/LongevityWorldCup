@@ -888,31 +888,9 @@ html.play-panel-transitioning .play-hub-panel--entering {
             color: var(--lwc-accent-hover, #0f5965);
         }
 
-.error-message.athlete-search-empty:not(:empty) {
-    padding: 0;
-    border: 0;
-    background: none;
-    color: var(--lwc-muted);
-    font-weight: 400;
-}
-
+/* Filled errors use the shared field-error style (aesthetic-system.css). */
 .error-message {
     display: none;
-}
-
-.error-message:not(:empty) {
-    display: block;
-    margin-top: 0.55rem;
-    padding: 0.55rem 0.7rem;
-    border: 0;
-    border-inline-start: 4px solid var(--lwc-danger, #b4233b);
-    border-radius: 8px;
-    background: var(--lwc-surface-muted, rgba(254, 242, 242, 0.94));
-    color: var(--lwc-ink, #17212b);
-    font-size: 0.9rem;
-    font-weight: 700;
-    line-height: 1.35;
-    box-sizing: border-box;
 }
 
 .athlete-load-retry {
