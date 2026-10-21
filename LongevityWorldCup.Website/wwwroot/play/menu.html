@@ -20,15 +20,6 @@
       data-default-headshot-webp="{{ASSET_PLAY_ATHLETE_PLACEHOLDER_WEBP}}"
       data-default-headshot-jpeg="{{ASSET_PLAY_ATHLETE_PLACEHOLDER_JPEG}}">
     <!--HEADER-->
-    <img src="{{ASSET_FAVICON_DARK_512}}"
-         alt=""
-         class="play-logo-watermark"
-         width="512"
-         height="512"
-         loading="eager"
-         fetchpriority="high"
-         decoding="async"
-         aria-hidden="true">
     <main class="play-hub-main initial-view-main">
         <section id="playStartPanel" class="play-hub-panel play-start-panel">
             <h1 class="visually-hidden">Game menu</h1>
@@ -36,7 +27,18 @@
                 <div class="play-menu-wordmark" aria-label="Just Track It"><span class="play-menu-wordmark__word" aria-hidden="true">JUST</span> <span class="play-menu-wordmark__word" aria-hidden="true">TRACK</span> <span class="play-menu-wordmark__word" aria-hidden="true">IT</span></div>
             </div>
 
-            <div class="options-container play-menu-actions flow-action-stack" data-flow-dock="auto" data-flow-dock-max-height-ratio="0.5">
+            <div class="play-menu-crest" aria-hidden="true">
+                <img src="{{ASSET_FAVICON_DARK_512}}"
+                     alt=""
+                     class="play-logo-watermark"
+                     width="512"
+                     height="512"
+                     loading="eager"
+                     fetchpriority="high"
+                     decoding="async">
+            </div>
+
+            <div class="options-container play-menu-actions flow-action-stack" data-flow-dock="auto" data-flow-dock-max-height-ratio="0.5" data-flow-dock-fit=".play-start-panel">
                 <button disabled id="newGameBtn" type="button" class="option-button grey flow-action flow-action--secondary">
                     <span class="flow-action__label">I'm new here</span>
                 </button>
