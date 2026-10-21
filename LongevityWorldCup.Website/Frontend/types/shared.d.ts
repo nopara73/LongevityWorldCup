@@ -509,6 +509,7 @@ interface Window {
     pickClickUrl?(badge: ServerBadge, athlete?: BadgeAthlete | null): string | null;
     getBadgeFamilyClass?(badge: ServerBadge): string;
     styleWithBadgeVars?(style: string): string;
+    __lwcBadgeTipBound?: boolean;
     setBadges(athlete: BadgeAthlete, athleteCell: HTMLElement | null | undefined): void;
     computeBadges: (...args: unknown[]) => unknown;
     openAthleteModalBySlug?(

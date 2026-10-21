@@ -1367,33 +1367,6 @@ body .leaderboard-recovery {
     text-align: left;
 }
 
-.badge-clickable[title],
-.badge-explained[title] {
-    position: relative;
-}
-
-.badge-clickable[title]:focus-visible::after,
-.badge-explained[title]:focus-visible::after {
-    content: attr(title);
-    width: max-content;
-    max-width: min(18rem, 70vw);
-    padding: var(--lwc-space-2) var(--lwc-space-3);
-    position: absolute;
-    bottom: calc(100% + var(--lwc-space-2));
-    left: 50%;
-    z-index: 1200;
-    border: 1px solid var(--lwc-border-strong);
-    border-radius: var(--lwc-radius-sm);
-    background: #17212b;
-    color: #ffffff;
-    font-size: var(--lwc-type-sm);
-    font-weight: 400;
-    line-height: 1.35;
-    text-align: left;
-    white-space: normal;
-    transform: translateX(-50%);
-}
-
 body .bioage-rank-retry,
 body .events-retry-button,
 body .leaderboard-retry-button,
@@ -1573,8 +1546,7 @@ html body .leaderboard table th {
 }
 
 .leaderboard .badge-personal,
-.leaderboard .badge-podcast,
-.leaderboard .badge-overflow-count {
+.leaderboard .badge-podcast {
     margin: 0;
     background: transparent !important;
     border: 0 !important;
@@ -1585,10 +1557,8 @@ html body .leaderboard table th {
 
 .leaderboard .badge-personal:hover,
 .leaderboard .badge-podcast:hover,
-.leaderboard .badge-overflow-count:hover,
 .leaderboard .badge-personal:focus-visible,
-.leaderboard .badge-podcast:focus-visible,
-.leaderboard .badge-overflow-count:focus-visible {
+.leaderboard .badge-podcast:focus-visible {
     background: var(--lwc-surface-muted) !important;
     color: var(--lwc-accent) !important;
     box-shadow: none;
