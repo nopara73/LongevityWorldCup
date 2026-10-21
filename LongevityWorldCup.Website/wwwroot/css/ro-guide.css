@@ -234,8 +234,8 @@
     background: var(--ro-racing);
 }
 
-.ro-milestones li[data-ro-state='past'] > * {
-    opacity: 0.62;
+.ro-guide .ro-milestones li[data-ro-state='past'] :is(time, h3) {
+    color: var(--ro-field-muted);
 }
 
 .ro-milestones li[data-ro-state='next']::before {

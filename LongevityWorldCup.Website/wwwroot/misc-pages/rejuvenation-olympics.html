@@ -56,20 +56,7 @@
                         <p>RO rankings and scores become final.</p>
                     </li>
                 </ol>
-                <script>
-                    (() => {
-                        const items = [...document.currentScript.previousElementSibling.children];
-                        const ends = items.map(item => Date.parse(item.querySelector('time').dateTime) + 864e5);
-                        const now = Date.now();
-                        const next = ends.findIndex(end => now < end);
-                        items.forEach((item, i) => {
-                            item.dataset.roState = next === -1 || i < next ? 'past' : i === next ? 'next' : 'future';
-                            const leg = i + 1 < ends.length ? (now - ends[i]) / (ends[i + 1] - ends[i]) : 0;
-                            item.style.setProperty('--ro-leg', String(Math.min(1, Math.max(0, leg))));
-                        });
-                        items[0].parentElement.dataset.roLive = '';
-                    })();
-                </script>
+                <script src="{{ASSET_RO_TIMELINE_JS}}"></script>
                 <p class="ro-timeline-note">A verified RO position requires <strong>three qualifying tests within two years</strong>. New entrants can complete the remaining two after 30 October.</p>
             </section>
             <div class="ro-actions landing-close">

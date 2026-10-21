@@ -12,10 +12,14 @@ public sealed class RejuvenationOlympicsRaceStripBrowserTests(
 {
     [Theory]
     [InlineData("2026-10-21T12:00:00Z", "next,future,future", 0, 0)]
-    [InlineData("2027-01-15T12:00:00Z", "past,next,future", 0.4, 0)]
-    [InlineData("2027-04-05T12:00:00Z", "past,past,next", 1, 0.2)]
+    [InlineData("2026-10-30T23:59:59.999Z", "next,future,future", 0, 0)]
+    [InlineData("2026-10-31T00:00:00Z", "past,next,future", 0, 0)]
+    [InlineData("2027-01-14T12:00:00Z", "past,next,future", 0.5, 0)]
+    [InlineData("2027-03-31T00:00:00Z", "past,past,next", 1, 0)]
+    [InlineData("2027-04-08T00:00:00Z", "past,past,next", 1, 0.5)]
+    [InlineData("2027-04-16T00:00:00Z", "past,past,past", 1, 1)]
     [InlineData("2027-05-01T12:00:00Z", "past,past,past", 1, 1)]
-    public async Task Timeline_TracksTodayAlongTheRaceStrip(string now, string states, double firstLegAtLeast, double secondLegAtLeast)
+    public async Task Timeline_TracksTodayAlongTheRaceStrip(string now, string states, double firstLeg, double secondLeg)
     {
         await using var context = await NewContextAsync(Browser, App, new()
         {
@@ -47,11 +51,111 @@ public sealed class RejuvenationOlympicsRaceStripBrowserTests(
             """);
 
         Assert.Equal(states, timeline.States);
-        Assert.InRange(timeline.FirstLeg, firstLegAtLeast, firstLegAtLeast == 0 ? 0 : 1);
-        Assert.InRange(timeline.SecondLeg, secondLegAtLeast, secondLegAtLeast == 0 ? 0 : 1);
+        Assert.True(double.IsFinite(timeline.FirstLeg) && double.IsFinite(timeline.SecondLeg));
+        Assert.Equal(firstLeg, timeline.FirstLeg, precision: 10);
+        Assert.Equal(secondLeg, timeline.SecondLeg, precision: 10);
         Assert.Equal(timeline.Poster, timeline.Strip);
         Assert.All(timeline.PastNodes, color => Assert.Equal(timeline.Racing, color));
         Assert.All(timeline.NextHalo, shadow => Assert.NotEqual("none", shadow));
+    }
+
+    [Fact]
+    public async Task OpenTimeline_AdvancesAtTheInclusiveDeadlineAndWhenRestored()
+    {
+        await using var context = await NewContextAsync(Browser, App, new());
+        var page = await context.NewPageAsync();
+        var before = DateTime.Parse("2026-10-30T23:59:59Z", null, System.Globalization.DateTimeStyles.AdjustToUniversal);
+        await page.Clock.InstallAsync(new() { Time = before.ToString("O") });
+        await page.Clock.PauseAtAsync(before);
+        await page.GotoAsync("/rejuvenation-olympics");
+        var items = page.Locator(".ro-milestones li");
+        await Assertions.Expect(items.Nth(0)).ToHaveAttributeAsync("data-ro-state", "next");
+        await page.Clock.RunForAsync(1000);
+        await Assertions.Expect(items.Nth(0)).ToHaveAttributeAsync("data-ro-state", "past");
+        await Assertions.Expect(items.Nth(1)).ToHaveAttributeAsync("aria-current", "step");
+
+        await page.Clock.SetFixedTimeAsync(DateTime.Parse("2027-04-08T00:00:00Z", null, System.Globalization.DateTimeStyles.AdjustToUniversal));
+        await page.Clock.RunForAsync(60000);
+        await Assertions.Expect(items.Nth(2)).ToHaveAttributeAsync("aria-current", "step");
+        Assert.Equal(0.5, await items.Nth(1).EvaluateAsync<double>("e => Number(e.style.getPropertyValue('--ro-leg'))"));
+
+        foreach (var resumeEvent in new[] { "pageshow", "visibilitychange" })
+        {
+            await page.Clock.SetFixedTimeAsync(DateTime.Parse("2026-10-21T12:00:00Z", null, System.Globalization.DateTimeStyles.AdjustToUniversal));
+            await page.EvaluateAsync("name => (name === 'pageshow' ? window : document).dispatchEvent(new Event(name))", resumeEvent);
+            await Assertions.Expect(items.Nth(0)).ToHaveAttributeAsync("aria-current", "step");
+            await page.Clock.SetFixedTimeAsync(DateTime.Parse("2027-05-01T12:00:00Z", null, System.Globalization.DateTimeStyles.AdjustToUniversal));
+            await page.EvaluateAsync("name => (name === 'pageshow' ? window : document).dispatchEvent(new Event(name))", resumeEvent);
+            await Assertions.Expect(page.Locator(".ro-milestones [aria-current]")).ToHaveCountAsync(0);
+            Assert.Equal(new[] { "past", "past", "past" }, await items.EvaluateAllAsync<string[]>("items => items.map(item => item.dataset.roState)"));
+        }
+    }
+
+    [Theory]
+    [InlineData("Pacific/Kiritimati")]
+    [InlineData("America/Los_Angeles")]
+    public async Task DateOnlyDeadlines_IncludeTheWholeUtcDayInEveryVisitorTimezone(string timezone)
+    {
+        await using var context = await NewContextAsync(Browser, App, new() { TimezoneId = timezone });
+        var page = await context.NewPageAsync();
+        var ends = new[] { "2026-10-31", "2027-03-31", "2027-04-16" };
+        for (var i = 0; i < ends.Length; i++)
+        {
+            var end = DateTime.Parse(ends[i] + "T00:00:00Z", null, System.Globalization.DateTimeStyles.AdjustToUniversal);
+            await page.Clock.SetFixedTimeAsync(end.AddMilliseconds(-1));
+            await page.GotoAsync("/rejuvenation-olympics");
+            await Assertions.Expect(page.Locator(".ro-milestones li").Nth(i)).ToHaveAttributeAsync("data-ro-state", "next");
+            await page.Clock.SetFixedTimeAsync(end);
+            await page.ReloadAsync();
+            await Assertions.Expect(page.Locator(".ro-milestones li").Nth(i)).ToHaveAttributeAsync("data-ro-state", "past");
+        }
+    }
+
+    [Theory]
+    [InlineData(ColorScheme.Light)]
+    [InlineData(ColorScheme.Dark)]
+    public async Task PastMilestones_KeepReadableContrastAndExposeTheirStatus(ColorScheme scheme)
+    {
+        await using var context = await NewContextAsync(Browser, App, new() { ColorScheme = scheme });
+        var page = await context.NewPageAsync();
+        await page.Clock.SetFixedTimeAsync(DateTime.Parse("2027-01-14T12:00:00Z", null, System.Globalization.DateTimeStyles.AdjustToUniversal));
+        await page.GotoAsync("/rejuvenation-olympics");
+        Assert.True(await page.Locator(".ro-milestones li[data-ro-state=past] > :is(time,h3,p)")
+            .EvaluateAllAsync<bool>("elements => elements.every(e => getComputedStyle(e).opacity === '1')"),
+            "Fading milestone children compounds with their text alpha and loses contrast.");
+        var contrast = await BrowserContrast.MeasureVisibleTextAsync(page, ".ro-milestones time", ".ro-milestones h3", ".ro-milestones p");
+        Assert.Equal(9, contrast.Length);
+        BrowserContrast.AssertMinimum($"{scheme} race strip", contrast);
+        var snapshot = await page.Locator(".ro-milestones").AriaSnapshotAsync();
+        Assert.Contains("Deadline passed.", snapshot);
+        Assert.Contains("Next deadline.", snapshot);
+        Assert.Contains("Upcoming deadline.", snapshot);
+        await Assertions.Expect(page.Locator(".ro-milestones [aria-current=step]")).ToHaveCountAsync(1);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task UnavailableScript_KeepsTheStaticDatesAndEntryLinksUsable(bool javascript)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            JavaScriptEnabled = javascript,
+            ViewportSize = new() { Width = 320, Height = 640 }
+        });
+        await context.RouteAsync("**/js/ro-timeline.js*", route => route.AbortAsync());
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/rejuvenation-olympics");
+        await Assertions.Expect(page.Locator(".ro-milestones li")).ToHaveCountAsync(3);
+        await Assertions.Expect(page.Locator(".ro-milestones [data-ro-state], .ro-milestones [aria-current]")).ToHaveCountAsync(0);
+        await Assertions.Expect(page.Locator(".ro-milestones")).ToContainTextAsync("30 Oct 2026");
+        await Assertions.Expect(page.Locator(".ro-timeline-note")).ToBeVisibleAsync();
+        var join = page.GetByRole(AriaRole.Link, new() { Name = "Join Longevity World Cup" });
+        await Assertions.Expect(join).ToHaveAttributeAsync("href", "/join");
+        await join.FocusAsync();
+        await page.Keyboard.PressAsync("Tab");
+        await Assertions.Expect(page.GetByRole(AriaRole.Link, new() { Name = "View leaderboard" })).ToBeFocusedAsync();
+        await FlowActionDockBrowserTests.ExpectNoHorizontalOverflowAsync(page);
     }
 
     [Theory]
