@@ -5810,41 +5810,6 @@ function fetchFullAthleteData(athleteNameText, athleteData, options) {
                 }
             }
 
-            const bortzPaceOfAgingContainer = document.getElementById('bortzPaceOfAgingContainer');
-            const bortzPaceOfAgingValue =
-                (athleteData.lowestBortzAge && athleteData.chronoAtLowestBortzAge)
-                    ? (athleteData.lowestBortzAge / athleteData.chronoAtLowestBortzAge)
-                    : null;
-            if (Number.isFinite(bortzPaceOfAgingValue)) {
-                document.getElementById('bortzPaceOfAging').textContent = bortzPaceOfAgingValue.toFixed(2);
-                bortzPaceOfAgingContainer.style.display = '';
-                const bortzPaceOfAgingRank = findAthleteIndexByName(athletesOrderedByBortzPace, athleteData.name) + 1;
-                document.getElementById('bortzPaceOfAgingRank').textContent =
-                    Number.isFinite(bortzPaceOfAgingRank) && bortzPaceOfAgingRank > 0
-                        ? '#' + bortzPaceOfAgingRank
-                        : '';
-            } else {
-                bortzPaceOfAgingContainer.style.display = 'none';
-            }
-
-            const paceOfAgingContainer = document.getElementById('paceOfAgingContainer');
-            const paceOfAgingValue =
-                (athleteData.lowestPhenoAge && athleteData.chronoAtLowestPhenoAge)
-                    ? (athleteData.lowestPhenoAge / athleteData.chronoAtLowestPhenoAge)
-                    : null;
-            if (Number.isFinite(paceOfAgingValue)) {
-                document.getElementById('paceOfAging').textContent = paceOfAgingValue.toFixed(2);
-                paceOfAgingContainer.style.display = '';
-
-                const paceOfAgingRank = findAthleteIndexByName(athletesOrderedByPace, athleteData.name) + 1;
-                document.getElementById('paceOfAgingRank').textContent =
-                    Number.isFinite(paceOfAgingRank) && paceOfAgingRank > 0
-                        ? '#' + paceOfAgingRank
-                        : '';
-            } else {
-                paceOfAgingContainer.style.display = 'none';
-            }
-
             const currentEnlargedState = history.state;
             if (options?.restoreEnlargedState
                 && currentEnlargedState?.modal === 'enlarged'
@@ -5967,6 +5932,16 @@ function getCompletedChronologicalAge(fullAthleteData, athleteData) {
     return Math.floor(athleteData.chronologicalAge);
 }
 
+function populateProfilePace(id, lowestAge, chronologicalAge, orderedAthletes, name) {
+    const pace = Number.isFinite(lowestAge) && Number.isFinite(chronologicalAge) && chronologicalAge > 0
+        ? lowestAge / chronologicalAge : null;
+    const available = Number.isFinite(pace);
+    document.getElementById(id + 'Container').hidden = !available;
+    document.getElementById(id).textContent = available ? pace.toFixed(2) : '';
+    const rank = available ? findAthleteIndexByName(orderedAthletes || [], name) + 1 : 0;
+    document.getElementById(id + 'Rank').textContent = rank > 0 ? '#' + rank : '';
+}
+
 function populateModal(fullAthleteData, athleteData, rankSummary) {
     const ultimateRank = rankSummary ? rankSummary.ultimateRank : athleteData.rank;
     const modalDisplayName = (fullAthleteData.DisplayName && fullAthleteData.DisplayName.trim()) ? fullAthleteData.DisplayName.trim() : fullAthleteData.Name;
@@ -6014,31 +5989,42 @@ function populateModal(fullAthleteData, athleteData, rankSummary) {
     document.getElementById('athleteDivision').innerHTML = `<a href="/league/${window.slugifyName(athleteData.division, true)}" class="league-link">${escapeHtml(athleteData.division)}</a>${getModalTitleRankMarkup(athleteData.ranks[athleteData.division])}`;
     document.getElementById('athleteGeneration').innerHTML = `<a href="/league/${window.slugifyName(athleteData.generation, true)}" class="league-link">${escapeHtml(athleteData.generation)}</a>${getModalTitleRankMarkup(athleteData.ranks[athleteData.generation])}`;
     document.getElementById('athleteFlag').innerHTML = renderAthleteFlagDetail(fullAthleteData.Flag || athleteData.canonicalFlag, athleteData);
-    document.getElementById('chronologicalAge').textContent = getCompletedChronologicalAge(fullAthleteData, athleteData).toString();
+    const completedAge = getCompletedChronologicalAge(fullAthleteData, athleteData);
+    document.getElementById('chronologicalAge').textContent = Number.isFinite(completedAge) ? completedAge.toString() : '';
+    document.getElementById('chronologicalAgeContainer').hidden = !Number.isFinite(completedAge);
     updateCrowdContainer(athleteData.crowdAge, athleteData.crowdCount);
     updateYourGuess();
     const lowestBortzAgeEl = document.getElementById('lowestBortzAge');
     const lowestBortzAgeContainer = document.getElementById('lowestBortzAgeContainer');
     if (athleteData.lowestBortzAge != null && Number.isFinite(athleteData.lowestBortzAge)) {
         lowestBortzAgeEl.textContent = athleteData.lowestBortzAge.toFixed(1);
-        lowestBortzAgeContainer.style.display = '';
+        lowestBortzAgeContainer.hidden = false;
     } else {
-        lowestBortzAgeContainer.style.display = 'none';
+        lowestBortzAgeEl.textContent = '';
+        lowestBortzAgeContainer.hidden = true;
     }
-    document.getElementById('lowestPhenoAge').textContent = athleteData.lowestPhenoAge.toFixed(1);
+    const hasPhenoAge = Number.isFinite(athleteData.lowestPhenoAge);
+    document.getElementById('lowestPhenoAge').textContent = hasPhenoAge ? athleteData.lowestPhenoAge.toFixed(1) : '';
+    document.getElementById('lowestPhenoAgeContainer').hidden = !hasPhenoAge;
     const bortzAgeReductionContainer = document.getElementById('bortzAgeReductionContainer');
     const bortzAgeReductionLabel = document.getElementById('bortzAgeReductionAccelerationLabel');
     if (athleteData.bortzAgeReduction != null && Number.isFinite(athleteData.bortzAgeReduction)) {
-        bortzAgeReductionLabel.textContent = athleteData.bortzAgeReduction < 0 ? "Bortz Age reduction:" : "Bortz Age acceleration:";
+        bortzAgeReductionLabel.textContent = athleteData.bortzAgeReduction < 0 ? "Bortz Age reduction" : "Bortz Age acceleration";
         document.getElementById('bortzAgeReduction').textContent = (athleteData.bortzAgeReduction >= 0 ? "+" : "") + athleteData.bortzAgeReduction.toFixed(1);
-        document.getElementById('bortzAgeReductionPercent').textContent = athleteData.bortzAgeReductionPercent.toFixed(1);
-        bortzAgeReductionContainer.style.display = '';
+        document.getElementById('bortzAgeReductionPercent').textContent = Number.isFinite(athleteData.bortzAgeReductionPercent) ? athleteData.bortzAgeReductionPercent.toFixed(1) : '';
+        document.getElementById('bortzAgeReductionPercent').parentElement.hidden = !Number.isFinite(athleteData.bortzAgeReductionPercent);
+        bortzAgeReductionContainer.hidden = false;
     } else {
-        bortzAgeReductionContainer.style.display = 'none';
+        bortzAgeReductionContainer.hidden = true;
     }
-    document.getElementById('ageReductionAccelerationLabel').textContent = athleteData.ageReduction < 0 ? "Pheno Age reduction:" : "Pheno Age acceleration:";
-    document.getElementById('ageReduction').textContent = (athleteData.ageReduction >= 0 ? "+" : "") + athleteData.ageReduction.toFixed(1);
-    document.getElementById('ageReductionPercent').textContent = athleteData.ageReductionPercent.toFixed(1);
+    document.getElementById('ageReductionAccelerationLabel').textContent = athleteData.ageReduction < 0 ? "Pheno Age reduction" : "Pheno Age acceleration";
+    document.getElementById('ageReduction').textContent = Number.isFinite(athleteData.ageReduction)
+        ? (athleteData.ageReduction >= 0 ? "+" : "") + athleteData.ageReduction.toFixed(1) : '';
+    document.getElementById('ageReductionContainer').hidden = !Number.isFinite(athleteData.ageReduction);
+    document.getElementById('ageReductionPercent').textContent = Number.isFinite(athleteData.ageReductionPercent) ? athleteData.ageReductionPercent.toFixed(1) : '';
+    document.getElementById('ageReductionPercent').parentElement.hidden = !Number.isFinite(athleteData.ageReductionPercent);
+    populateProfilePace('bortzPaceOfAging', athleteData.lowestBortzAge, athleteData.chronoAtLowestBortzAge, athletesOrderedByBortzPace, athleteData.name);
+    populateProfilePace('paceOfAging', athleteData.lowestPhenoAge, athleteData.chronoAtLowestPhenoAge, athletesOrderedByPace, athleteData.name);
     updateAthleteInfoGrouping();
 
     // Personal Link
@@ -6341,8 +6327,47 @@ function isBiomarkerHistoryValue(value) {
     return (typeof value === 'number' || typeof value === 'string' && value.trim() !== '') && Number.isFinite(Number(value));
 }
 
+function resultDecimalPlaces(value) {
+    const [significand, exponent = '0'] = String(value).toLowerCase().split('e');
+    return Math.max(0, (significand.split('.')[1] || '').length - Number(exponent));
+}
+
+function resultDisplayDecimals(value, measure) {
+    if (measure.clock) return 1;
+    const decimals = resultDecimalPlaces(value);
+    if (typeof value !== 'number' || decimals < 12) return decimals;
+    // Legacy records retain canonical values, not the input unit or precision.
+    // Abbreviate only long tails reproduced EXACTLY by a supported calculator
+    // conversion of a short lab reading. Other high precision (including tiny
+    // measurements and explicitly supplied decimal strings) stays intact.
+    const factors = {
+        'Albumin (g/L)': [0.1], 'Creatinine (µmol/L)': [0.0113], 'Glucose (mmol/L)': [18.016],
+        'CRP (mg/L)': [0.1], 'Cystatin C (mg/L)': [0.1], 'Vitamin D (nmol/L)': [0.4],
+        'ApoA1 (g/L)': [100], 'Urea (mmol/L)': [6, 2.801], 'Cholesterol (mmol/L)': [38.67], 'SHBG (nmol/L)': [0.0347]
+    }[measure.key] || [];
+    for (const factor of factors) {
+        const inverse = 1 / factor;
+        for (let precision = 0; precision <= 4; precision++) {
+            const input = Number((value * factor).toFixed(precision));
+            if (input !== 0 && (input / factor === value || input * inverse === value))
+                return resultDecimalPlaces(Number(value.toFixed(2)));
+            // Older canonical -> alternate unit -> canonical round trips can
+            // add a binary tail too. Keep the short canonical value's own
+            // precision rather than imposing two decimals on these readings.
+            const canonical = Number(value.toFixed(precision));
+            if (canonical !== 0 && [canonical * factor / factor, canonical / factor * factor,
+                canonical * inverse / inverse, canonical / inverse * inverse].includes(value))
+                return resultDecimalPlaces(canonical);
+        }
+    }
+    return decimals;
+}
+
 function formatResultValue(value, measure) {
-    return isBiomarkerHistoryValue(value) ? (measure.clock ? Number(value).toFixed(1) : String(value)) : '—';
+    if (!isBiomarkerHistoryValue(value)) return '—';
+    if (measure.clock) return Number(value).toFixed(1);
+    const decimals = resultDisplayDecimals(value, measure);
+    return decimals < resultDecimalPlaces(value) ? String(Number(Number(value).toFixed(decimals))) : String(value);
 }
 
 function resultUnit(text) {
@@ -6430,7 +6455,7 @@ function renderBiomarkerHistory(history, athletes) {
         heading.appendChild(button);
         const sparkline = document.createElement('td');
         sparkline.className = 'biomarker-overview-history';
-        if (measure.clock && measuredIndices.length > 1) {
+        if (measure.clock) {
             sparkline.appendChild(createClockHistory(history, measure, measuredIndices));
         } else {
             sparkline.setAttribute('aria-hidden', 'true');
@@ -6464,18 +6489,13 @@ function renderBiomarkerHistory(history, athletes) {
     }
 }
 
-// The change since the first reading, signed and as precise as the readings themselves.
+// Calculate from unrounded canonical readings; format at their displayed precision.
 function createResultChange(measure, indices) {
     if (indices.length < 2) return null;
     const first = Number(measure.values[indices[0]]);
     const latest = Number(measure.values[indices.at(-1)]);
     if (!Number.isFinite(first) || !Number.isFinite(latest) || !Number.isFinite(latest - first)) return null;
-    const decimals = value => {
-        if (measure.clock) return 1;
-        const [significand, exponent = '0'] = String(value).toLowerCase().split('e');
-        return Math.max(0, (significand.split('.')[1] || '').length - Number(exponent));
-    };
-    const precision = Math.max(decimals(measure.values[indices[0]]), decimals(measure.values[indices.at(-1)]));
+    const precision = Math.max(resultDisplayDecimals(measure.values[indices[0]], measure), resultDisplayDecimals(measure.values[indices.at(-1)], measure));
     const delta = precision <= 100 ? Number((latest - first).toFixed(precision)) : latest - first;
     const change = document.createElement('span');
     change.className = 'biomarker-overview-change';
@@ -7416,11 +7436,13 @@ function updateCrowdContainer(crowdAge, crowdCount) {
     const hasCrowdAge = Number.isFinite(crowdAge) && Number.isFinite(crowdCount) && crowdCount > 0;
 
     if (!hasCrowdAge) {
-        crowdContainer.style.display = 'none';
-        notEmptyCrowdContainer.style.display = 'none';
+        crowdContainer.hidden = true;
+        notEmptyCrowdContainer.hidden = true;
+        document.getElementById('crowdAge').textContent = '';
+        document.getElementById('crowdCount').textContent = '0';
     } else {
-        crowdContainer.style.display = '';
-        notEmptyCrowdContainer.style.display = 'block';
+        crowdContainer.hidden = false;
+        notEmptyCrowdContainer.hidden = false;
         document.getElementById('crowdAge').textContent = crowdAge.toFixed(0);
         document.getElementById('crowdCount').textContent = crowdCount.toFixed(0);
     }
@@ -7435,12 +7457,9 @@ function updateYourGuess() {
         ProfileImageId: modalContent?.dataset.profileImageId
     });
 
-    if (guessData && guessData.value != null) {
-        // show the row (use '' so table layout is preserved; mobile CSS overrides tr to block)
-        yourGuessContainer.style.display = '';
-
-        // convert guess to a number
-        const guess = Number(guessData.value);
+    const guess = guessData?.value != null ? Number(guessData.value) : NaN;
+    if (Number.isFinite(guess)) {
+        yourGuessContainer.hidden = false;
 
         // grab the displayed chrono & crowd ages
         const chrono = parseInt(document.getElementById('chronologicalAge').textContent, 10);
@@ -7453,18 +7472,18 @@ function updateYourGuess() {
         // collect any matching icons
         const iconClasses = [];
         if (diffYou === 0) iconClasses.push('fa-bullseye');
-        if (diffYou < diffCrowd) iconClasses.push('fa-trophy');
+        if (!document.getElementById('crowdAgeContainer').hidden && diffYou < diffCrowd) iconClasses.push('fa-trophy');
         if (guessData.first) iconClasses.push('fa-medal');
 
         // build and render
-        const iconsHTML = iconClasses.map(c => `<i class="fa ${c}"></i>`).join(' ');
-        yourGuessSpan.innerHTML = `${iconsHTML} ${guess} years${guessData.first ? ' (first to guess)' : ''}`;
+        const iconsHTML = iconClasses.map(c => `<i class="fa ${c}" aria-hidden="true"></i>`).join(' ');
+        yourGuessSpan.innerHTML = `${iconsHTML} <span class="age-board-figure">${guess}</span> <span class="unit">years</span>${guessData.first ? '<span class="age-board-guess-note"> (first to guess)</span>' : ''}`;
 
         // apply stamp to the value span only so the row stays a normal table row
         yourGuessSpan.classList.remove('first-guess-stamp', 'primary-stamp', 'golden-stamp');
         if (diffYou === 0) {
             yourGuessSpan.classList.add('golden-stamp');
-        } else if (diffYou < diffCrowd) {
+        } else if (!document.getElementById('crowdAgeContainer').hidden && diffYou < diffCrowd) {
             yourGuessSpan.classList.add('primary-stamp');
         } else if (guessData.first) {
             yourGuessSpan.classList.add('first-guess-stamp');
@@ -7472,7 +7491,7 @@ function updateYourGuess() {
 
     } else {
         // hide if no guess
-        yourGuessContainer.style.display = 'none';
+        yourGuessContainer.hidden = true;
     }
     updateAthleteInfoGrouping();
 }
