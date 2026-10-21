@@ -25,6 +25,41 @@ public sealed class HighlightsRocketBrowserTests(
         ]
         """;
 
+    [Fact]
+    public async Task ShortHomepageDate_DoesNotLeaveAgoOnItsOwnLine()
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = 390, Height = 844 },
+            TimezoneId = "UTC",
+            ReducedMotion = ReducedMotion.Reduce
+        });
+        await RouteFixturesAsync(context, joinedOnly: true);
+        var page = await context.NewPageAsync();
+        await page.Clock.SetFixedTimeAsync(new DateTime(2026, 10, 21, 12, 0, 0, DateTimeKind.Utc));
+        await NavigateAndSettleAsync(page, "/");
+        var row = page.Locator("tr[data-event-id='rocket-joined'] .event-message-cell");
+        await row.Locator(".fa-rocket").WaitForAsync();
+        var lineDrift = await row.EvaluateAsync<double>(
+            """
+            cell => {
+                const walker = document.createTreeWalker(cell, NodeFilter.SHOW_TEXT);
+                while (walker.nextNode()) {
+                    const node = walker.currentNode;
+                    const start = node.textContent.indexOf('days');
+                    if (start < 0) continue;
+                    const range = document.createRange();
+                    range.setStart(node, start);
+                    range.setEnd(node, start + 4);
+                    return Math.abs(range.getBoundingClientRect().top
+                        - cell.querySelector('.event-rocket-tail').getBoundingClientRect().top);
+                }
+                throw new Error('The three-day fixture was not rendered.');
+            }
+            """);
+        Assert.InRange(lineDrift, 0, 1);
+    }
+
     [Theory]
     [InlineData("/events", false)]
     [InlineData("/events", true)]
