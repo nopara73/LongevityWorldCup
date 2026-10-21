@@ -1190,6 +1190,7 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
 
             .documentation-nav.is-enhanced {
                 position: relative;
+                top: auto;
                 z-index: 20;
                 padding: 0;
                 transition: box-shadow var(--lwc-duration-fast, 0.15s) var(--lwc-ease, ease);

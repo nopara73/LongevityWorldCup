@@ -168,4 +168,25 @@ public sealed class DocumentationContentsBarBrowserTests(
         await page.Keyboard.PressAsync("Tab");
         Assert.Equal("false", await page.Locator(".documentation-nav-toggle").GetAttributeAsync("aria-expanded"));
     }
+
+    [Theory]
+    [InlineData(844, 390)]
+    [InlineData(320, 422)]
+    public async Task ShortScreens_KeepTheStaticContentsAboveTheDocument(int width, int height)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = height }, ReducedMotion = ReducedMotion.Reduce
+        });
+        var page = await context.NewPageAsync();
+        await NavigateAndSettleAsync(page, "/privacy");
+        var layout = await page.EvaluateAsync<double[]>("""
+            () => [document.querySelector('.documentation-nav-toggle').getBoundingClientRect().bottom,
+                document.querySelector('.documentation-document').getBoundingClientRect().top]
+            """);
+        Assert.True(layout[0] <= layout[1], $"The static contents overlap the document ({layout[0]} > {layout[1]}).");
+        await page.Locator(".documentation-nav-toggle").ClickAsync();
+        Assert.Equal(layout[1], await page.Locator(".documentation-document").EvaluateAsync<double>("e => e.getBoundingClientRect().top"));
+        Assert.True(await page.Locator(".documentation-nav-links").EvaluateAsync<bool>("e => e.getBoundingClientRect().bottom <= innerHeight"));
+    }
 }
