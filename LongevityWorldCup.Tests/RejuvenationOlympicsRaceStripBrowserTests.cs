@@ -158,6 +158,37 @@ public sealed class RejuvenationOlympicsRaceStripBrowserTests(
         await FlowActionDockBrowserTests.ExpectNoHorizontalOverflowAsync(page);
     }
 
+    [Fact]
+    public async Task SlowTimelineDownload_KeepsTheRuleAndClosingLinksReadable()
+    {
+        await using var context = await NewContextAsync(Browser, App, new());
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var requested = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await context.RouteAsync("**/js/ro-timeline.js*", async route =>
+        {
+            requested.TrySetResult();
+            await release.Task;
+            await route.ContinueAsync();
+        });
+        var page = await context.NewPageAsync();
+        try
+        {
+            await page.GotoAsync("/rejuvenation-olympics", new() { WaitUntil = WaitUntilState.Commit });
+            await requested.Task.WaitAsync(TimeSpan.FromSeconds(10));
+            await Assertions.Expect(page.Locator(".ro-timeline-note")).ToBeVisibleAsync();
+            await Assertions.Expect(page.GetByRole(AriaRole.Link, new() { Name = "Join Longevity World Cup" }))
+                .ToHaveAttributeAsync("href", "/join");
+            await Assertions.Expect(page.GetByRole(AriaRole.Link, new() { Name = "View leaderboard" }))
+                .ToHaveAttributeAsync("href", "/leaderboard");
+            await Assertions.Expect(page.Locator(".ro-milestones [data-ro-state]")).ToHaveCountAsync(0);
+        }
+        finally
+        {
+            release.TrySetResult();
+        }
+        await Assertions.Expect(page.Locator(".ro-milestones[data-ro-live]")).ToHaveCountAsync(1);
+    }
+
     [Theory]
     [InlineData(1440, ColorScheme.Light)]
     [InlineData(1440, ColorScheme.Dark)]
