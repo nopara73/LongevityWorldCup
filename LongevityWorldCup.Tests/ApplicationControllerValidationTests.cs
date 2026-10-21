@@ -958,12 +958,9 @@ public sealed class ApplicationControllerValidationTests(TestWebApplicationFacto
     [Fact]
     public void SubmissionConfirmationHtmlBody_UsesLinkedSlackTextWithoutVisibleRawUrl()
     {
-        var buildTextMethod = typeof(ApplicationController).GetMethod("BuildSubmissionConfirmationBody", BindingFlags.Static | BindingFlags.NonPublic);
-        var buildHtmlMethod = typeof(ApplicationController).GetMethod("BuildSubmissionConfirmationHtmlBody", BindingFlags.Static | BindingFlags.NonPublic);
-        const string slackInviteUrl = "https://slack.example.test/invite";
-        var textBody = (string?)buildTextMethod!.Invoke(null, ["Athlete Ada", true, false, null, false, slackInviteUrl, false]);
+        const string slackInviteUrl = TransactionalEmailFamilyTests.SlackInviteUrl;
 
-        var htmlBody = (string?)buildHtmlMethod!.Invoke(null, [textBody!, slackInviteUrl, false]);
+        var htmlBody = TransactionalEmailFamilyTests.SubmissionHtml(isResult: true);
 
         Assert.NotNull(htmlBody);
         Assert.Contains($"href=\"{slackInviteUrl}\"", htmlBody);
@@ -978,12 +975,7 @@ public sealed class ApplicationControllerValidationTests(TestWebApplicationFacto
     [InlineData(true)]
     public void SubmissionConfirmationHtmlBody_EncodesApplicantSuppliedText(bool isPro)
     {
-        var buildTextMethod = typeof(ApplicationController).GetMethod("BuildSubmissionConfirmationBody", BindingFlags.Static | BindingFlags.NonPublic);
-        var buildHtmlMethod = typeof(ApplicationController).GetMethod("BuildSubmissionConfirmationHtmlBody", BindingFlags.Static | BindingFlags.NonPublic);
-        const string slackInviteUrl = "https://slack.example.test/invite";
-        var textBody = (string?)buildTextMethod!.Invoke(null, ["Athlete <Ada & Co>", true, false, null, false, slackInviteUrl, isPro]);
-
-        var htmlBody = (string?)buildHtmlMethod!.Invoke(null, [textBody!, slackInviteUrl, isPro]);
+        var htmlBody = TransactionalEmailFamilyTests.SubmissionHtml(name: "Athlete <Ada & Co>", isResult: true, isPro: isPro);
 
         Assert.NotNull(htmlBody);
         Assert.Contains("Hey Athlete &lt;Ada &amp; Co&gt;,", htmlBody);
@@ -1004,13 +996,12 @@ public sealed class ApplicationControllerValidationTests(TestWebApplicationFacto
     public void SubmissionConfirmation_IncludesMerchCouponOnlyForPro(
         bool isResultSubmissionOnly, bool isEditSubmissionOnly, bool hasCheckoutLink, bool paymentUnavailable, bool isPro)
     {
-        var buildText = typeof(ApplicationController).GetMethod("BuildSubmissionConfirmationBody", BindingFlags.Static | BindingFlags.NonPublic)!;
-        var buildHtml = typeof(ApplicationController).GetMethod("BuildSubmissionConfirmationHtmlBody", BindingFlags.Static | BindingFlags.NonPublic)!;
-        const string slackInviteUrl = "https://slack.example.test/invite";
+        const string slackInviteUrl = TransactionalEmailFamilyTests.SlackInviteUrl;
         var checkoutLink = hasCheckoutLink ? "https://pay.example.test/invoice" : null;
-        var text = (string)buildText.Invoke(null,
-            ["Athlete Ada", isResultSubmissionOnly, isEditSubmissionOnly, checkoutLink, paymentUnavailable, slackInviteUrl, isPro])!;
-        var html = (string)buildHtml.Invoke(null, [text, slackInviteUrl, isPro])!;
+        var text = TransactionalEmailFamilyTests.SubmissionText(
+            "Athlete Ada", isResultSubmissionOnly, isEditSubmissionOnly, checkoutLink, paymentUnavailable, isPro);
+        var html = TransactionalEmailFamilyTests.SubmissionHtml(
+            "Athlete Ada", isResultSubmissionOnly, isEditSubmissionOnly, checkoutLink, paymentUnavailable, isPro);
 
         if (isPro)
         {
@@ -1021,9 +1012,10 @@ public sealed class ApplicationControllerValidationTests(TestWebApplicationFacto
                 text.IndexOf("Questions, concerns, or signs of aging?", StringComparison.Ordinal));
             if (checkoutLink is not null)
                 Assert.True(text.IndexOf(checkoutLink, StringComparison.Ordinal) < text.IndexOf("Your Pro athlete perk:", StringComparison.Ordinal));
-            Assert.Contains("<strong>Your Pro athlete perk: 10% off all merch</strong>", html);
-            Assert.Contains("<strong>TR784DS7</strong>", html);
-            Assert.Contains("<a href=\"https://merch.longevityworldcup.com/\">Longevity World Cup merch store</a>", html);
+            Assert.Contains(">Your Pro athlete perk: 10% off all merch</p>", html);
+            Assert.Equal(1, html.Split(">TR784DS7</span>", StringSplitOptions.None).Length - 1);
+            Assert.Contains("href=\"https://merch.longevityworldcup.com/\"", html);
+            Assert.Contains(">Longevity World Cup merch store</a>. The code doesn’t expire.", html);
             Assert.DoesNotContain("merch store (https://merch.longevityworldcup.com/)", html);
         }
         else

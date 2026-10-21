@@ -1377,7 +1377,14 @@ namespace LongevityWorldCup.Website.Controllers
                 message.Body = new BodyBuilder
                 {
                     TextBody = textBody,
-                    HtmlBody = BuildSubmissionConfirmationHtmlBody(textBody, DefaultCommunitySlackInviteUrl, isPro)
+                    HtmlBody = BuildSubmissionConfirmationHtmlBody(
+                        applicantName,
+                        isResultSubmissionOnly,
+                        isEditSubmissionOnly,
+                        checkoutLink,
+                        paymentUnavailable,
+                        DefaultCommunitySlackInviteUrl,
+                        isPro)
                 }.ToMessageBody();
 
                 await SendEmailThroughSmtpAsync(config, message, ct);
@@ -1421,11 +1428,12 @@ namespace LongevityWorldCup.Website.Controllers
         private static string BuildApplicationConfirmationBody(string? applicantName, string? checkoutLink, bool paymentUnavailable, string? slackInviteUrl, bool isPro)
         {
             var greetingName = string.IsNullOrWhiteSpace(applicantName) ? "there" : applicantName.Trim();
+            var lead = GetSubmissionConfirmationLeadLines(false, false);
             var body = new StringBuilder()
                 .AppendLine($"Hey {greetingName},")
                 .AppendLine()
-                .AppendLine("We'll review your Longevity World Cup application, which usually takes a day or two.")
-                .AppendLine("We'll email you after the review.");
+                .AppendLine(lead.First)
+                .AppendLine(lead.Second);
 
             AppendSubmissionPaymentInstructions(body, checkoutLink, paymentUnavailable);
             return AppendSubmissionConfirmationClosing(body, slackInviteUrl, isPro).ToString();
@@ -1434,11 +1442,12 @@ namespace LongevityWorldCup.Website.Controllers
         private static string BuildResultUploadConfirmationBody(string? applicantName, string? checkoutLink, bool paymentUnavailable, string? slackInviteUrl, bool isPro)
         {
             var greetingName = string.IsNullOrWhiteSpace(applicantName) ? "there" : applicantName.Trim();
+            var lead = GetSubmissionConfirmationLeadLines(true, false);
             var body = new StringBuilder()
                 .AppendLine($"Hey {greetingName},")
                 .AppendLine()
-                .AppendLine("We received your Longevity World Cup result upload and proof.")
-                .AppendLine("We'll review it and update your athlete profile if the result is accepted.");
+                .AppendLine(lead.First)
+                .AppendLine(lead.Second);
 
             AppendSubmissionPaymentInstructions(body, checkoutLink, paymentUnavailable);
             return AppendSubmissionConfirmationClosing(body, slackInviteUrl, isPro).ToString();
@@ -1464,11 +1473,12 @@ namespace LongevityWorldCup.Website.Controllers
         private static string BuildChangeRequestConfirmationBody(string? applicantName, string? slackInviteUrl, bool isPro)
         {
             var greetingName = string.IsNullOrWhiteSpace(applicantName) ? "there" : applicantName.Trim();
+            var lead = GetSubmissionConfirmationLeadLines(false, true);
             var body = new StringBuilder()
                 .AppendLine($"Hey {greetingName},")
                 .AppendLine()
-                .AppendLine("We received your Longevity World Cup profile change request.")
-                .AppendLine("We'll review it and update your athlete profile if the changes are accepted.");
+                .AppendLine(lead.First)
+                .AppendLine(lead.Second);
 
             return AppendSubmissionConfirmationClosing(body, slackInviteUrl, isPro).ToString();
         }
@@ -1488,28 +1498,57 @@ namespace LongevityWorldCup.Website.Controllers
                 .AppendLine("Longevity World Cup");
         }
 
-        private static string BuildSubmissionConfirmationHtmlBody(string textBody, string? slackInviteUrl, bool isPro)
+        private static (string First, string Second) GetSubmissionConfirmationLeadLines(bool isResultSubmissionOnly, bool isEditSubmissionOnly)
         {
-            var normalizedText = textBody.Replace("\r\n", "\n", StringComparison.Ordinal);
-            var resolvedSlackInviteUrl = ResolveCommunitySlackInviteUrl(slackInviteUrl);
-            var plainTextSlackBlock = $"{CommunitySlackInvitationText}\n{resolvedSlackInviteUrl}";
-            var slackBlockIndex = normalizedText.IndexOf(plainTextSlackBlock, StringComparison.Ordinal);
+            if (isResultSubmissionOnly)
+                return ("We received your Longevity World Cup result upload and proof.",
+                    "We'll review it and update your athlete profile if the result is accepted.");
+            if (isEditSubmissionOnly)
+                return ("We received your Longevity World Cup profile change request.",
+                    "We'll review it and update your athlete profile if the changes are accepted.");
+            return ("We'll review your Longevity World Cup application, which usually takes a day or two.",
+                "We'll email you after the review.");
+        }
 
-            if (slackBlockIndex < 0)
-                return WrapSubmissionConfirmationHtml(EncodeSubmissionConfirmationText(normalizedText), isPro);
+        private static string BuildSubmissionConfirmationHtmlBody(
+            string? applicantName,
+            bool isResultSubmissionOnly,
+            bool isEditSubmissionOnly,
+            string? checkoutLink,
+            bool paymentUnavailable,
+            string? slackInviteUrl,
+            bool isPro)
+        {
+            var greetingName = string.IsNullOrWhiteSpace(applicantName) ? "there" : applicantName.Trim();
+            var (first, second) = GetSubmissionConfirmationLeadLines(isResultSubmissionOnly, isEditSubmissionOnly);
+            var email = new TransactionalEmail(BuildSubmissionConfirmationSubject(isResultSubmissionOnly, isEditSubmissionOnly))
+                .Greeting($"Hey {greetingName},")
+                .Lead(first, second);
 
-            var beforeSlackBlock = normalizedText[..slackBlockIndex];
-            var afterSlackBlock = normalizedText[(slackBlockIndex + plainTextSlackBlock.Length)..];
-            var encodedSlackUrl = System.Net.WebUtility.HtmlEncode(resolvedSlackInviteUrl);
+            if (!isEditSubmissionOnly)
+            {
+                if (paymentUnavailable)
+                    email.Notice("Your payment link is unavailable. We'll email you the next step.");
+                else if (!string.IsNullOrWhiteSpace(checkoutLink))
+                    email.Action("If you haven't paid yet, complete your payment here", checkoutLink.Trim());
+            }
+
+            if (isPro)
+            {
+                email.Panel(ProMerchCouponHeading,
+                    TransactionalEmail.PanelParagraph(
+                        $"Use {TransactionalEmail.Code(ProMerchCouponCode)} at checkout in the " +
+                        $"{TransactionalEmail.Link(ProMerchStoreUrl, "Longevity World Cup merch store")}. The code doesn’t expire.") +
+                    TransactionalEmail.PanelParagraph("Thanks to Klaus Townsend for making this possible!", muted: true));
+            }
+
             var linkedSlackInvitation =
                 "Want to hang out with other longevity athletes? Join the #longevity-world-cup room on the " +
-                $"<a href=\"{encodedSlackUrl}\">TumbleBit Slack</a>!";
+                $"{TransactionalEmail.Link(ResolveCommunitySlackInviteUrl(slackInviteUrl), "TumbleBit Slack")}!";
 
-            return WrapSubmissionConfirmationHtml(
-                EncodeSubmissionConfirmationText(beforeSlackBlock) +
-                linkedSlackInvitation +
-                EncodeSubmissionConfirmationText(afterSlackBlock),
-                isPro);
+            return email
+                .Closing("Questions, concerns, or signs of aging? Reply to this email.", linkedSlackInvitation)
+                .Render();
         }
 
         private static string ResolveCommunitySlackInviteUrl(string? slackInviteUrl)
@@ -1517,26 +1556,6 @@ namespace LongevityWorldCup.Website.Controllers
             return string.IsNullOrWhiteSpace(slackInviteUrl)
                 ? DefaultCommunitySlackInviteUrl
                 : slackInviteUrl.Trim();
-        }
-
-        private static string EncodeSubmissionConfirmationText(string text)
-        {
-            return System.Net.WebUtility.HtmlEncode(text)
-                .Replace("\n", "<br />\n", StringComparison.Ordinal);
-        }
-
-        private static string WrapSubmissionConfirmationHtml(string body, bool isPro)
-        {
-            if (isPro)
-            {
-                var couponHtml = $"<strong>{ProMerchCouponHeading}</strong><br />\n<br />\n" +
-                    $"Use <strong>{ProMerchCouponCode}</strong> at checkout in the " +
-                    $"<a href=\"{ProMerchStoreUrl}\">Longevity World Cup merch store</a>. The code doesn’t expire.<br />\n<br />\n" +
-                    "Thanks to Klaus Townsend for making this possible!";
-                body = body.Replace(EncodeSubmissionConfirmationText(ProMerchCouponText), couponHtml, StringComparison.Ordinal);
-            }
-
-            return $"<html><body><div style=\"font-family:Arial,sans-serif;line-height:1.5\">{body}</div></body></html>";
         }
 
         [HttpPost("interview-request")]
