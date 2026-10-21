@@ -185,7 +185,8 @@ function inferCustomAlertTone(message) {
     if (/\b(fail(?:ed|ure|ing|s)?|error|interrupted|unsuccessful(?:ly)?|rejected|denied|declined|timeout|timed out)\b/i.test(text)) return 'danger';
     // A success word inside a negation, uncertainty or validation request must never celebrate.
     if (/\b(not|never|no|nothing|none|neither|cannot|unable|may|maybe|might|perhaps|possibly|could|should|would|being|if|pending|awaiting|unconfirmed|unverified|uncertain|unclear|unknown|missing|invalid|required|must be|unavailable|skipped|cancelled|canceled|expired|unsent|try again|enter|select|provide|please complete|change at least)\b|\b\w+n['’]t\b/i.test(text)) return 'warning';
-    if (/\b(will|can|when|once)\b[\s\S]*\b(received|submitted|sent|saved|copied)\b/i.test(text)) return 'warning';
+    const future = /\b(will|can|when|once)\b/i.exec(text);
+    if (future && /\b(received|submitted|sent|saved|copied)\b/i.test(text.slice(future.index + future[0].length))) return 'warning';
     if (text.includes('?')) return 'info';
     if (/\b(received|submitted|sent|saved|copied)\b/i.test(text)) return 'success';
     return 'info';
@@ -198,30 +199,30 @@ function renderCustomAlertMessage(message) {
     const separator = /\r?\n[\t ]*\r?\n/.exec(text);
     const lead = document.createElement('span');
     lead.className = 'custom-alert-lead';
-    lead.append(...splitCustomAlertIds(separator ? text.slice(0, separator.index) : text));
+    lead.append(splitCustomAlertIds(separator ? text.slice(0, separator.index) : text));
     customAlertMessage.replaceChildren(lead);
     if (separator) {
         // Preserve the exact separator bytes outside the styled detail block.
         customAlertMessage.append(document.createTextNode(separator[0]));
         const detail = document.createElement('span');
         detail.className = 'custom-alert-detail';
-        detail.append(...splitCustomAlertIds(text.slice(separator.index + separator[0].length)));
+        detail.append(splitCustomAlertIds(text.slice(separator.index + separator[0].length)));
         customAlertMessage.append(detail);
     }
 }
 
 function splitCustomAlertIds(text) {
-    const nodes = [];
+    const nodes = document.createDocumentFragment();
     let last = 0;
     for (const match of text.matchAll(CUSTOM_ALERT_ID_PATTERN)) {
-        if (match.index > last) nodes.push(document.createTextNode(text.slice(last, match.index)));
+        if (match.index > last) nodes.append(document.createTextNode(text.slice(last, match.index)));
         const id = document.createElement('code');
         id.className = 'custom-alert-id';
         id.textContent = match[0];
-        nodes.push(id);
+        nodes.append(id);
         last = match.index + match[0].length;
     }
-    if (last < text.length) nodes.push(document.createTextNode(text.slice(last)));
+    if (last < text.length) nodes.append(document.createTextNode(text.slice(last)));
     return nodes;
 }
 

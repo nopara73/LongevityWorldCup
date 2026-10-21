@@ -259,6 +259,29 @@ public sealed class CustomAlertDialogBrowserTests(
     }
 
     [Fact]
+    public async Task Alert_LargeIdDetailsPreserveExactTextAndKeepOkReachable()
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = 1280, Height = 720 }, ReducedMotion = ReducedMotion.Reduce
+        });
+        var page = await context.NewPageAsync();
+        await NavigateAndSettleAsync(page, "/apply");
+        Assert.True(await page.EvaluateAsync<bool>("""
+            () => {
+                // Exceed the old variadic append's argument limit without changing the message contract.
+                const message = 'Failed to submit.\r\n\r\n' + 'ABCDEF01-2345-6789-ABCD-0123456789AB '.repeat(70000);
+                void customAlert(message);
+                const exact = document.getElementById('custom-alert-message').textContent === message;
+                const ids = document.querySelectorAll('#custom-alert-message .custom-alert-id').length;
+                const button = document.getElementById('custom-alert-close').getBoundingClientRect();
+                closeCustomAlert();
+                return exact && ids === 70000 && button.top >= 0 && button.bottom <= innerHeight;
+            }
+            """), "A large ID list must render as exact text without throwing or pushing OK offscreen.");
+    }
+
+    [Fact]
     public async Task Alert_QueuesRepeatedCallsAndSettlesEveryPromiseAfterItsDismissal()
     {
         await using var context = await NewContextAsync(Browser, App, new());
