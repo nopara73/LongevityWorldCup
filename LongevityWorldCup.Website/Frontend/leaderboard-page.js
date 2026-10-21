@@ -5199,7 +5199,59 @@ function setShareButtonState(button, label, disabled) {
     button.disabled = false;
     button.setAttribute('aria-disabled', String(!!disabled));
     button.setAttribute('aria-busy', String(!!disabled));
-    button.innerHTML = `<i class="fa fa-share-nodes" aria-hidden="true"></i> ${escapeHtml(label)}`;
+    const icon = label === 'Copied' ? 'fa-check' : 'fa-share-nodes';
+    button.classList.toggle('is-copied', label === 'Copied');
+    button.innerHTML = `<i class="fa ${icon}" aria-hidden="true"></i> ${escapeHtml(label)}`;
+}
+
+async function loadAthleteSharePreview(state, shareUrl) {
+    const previous = document.getElementById('athleteSharePreview');
+    const figure = previous?.closest('.athlete-share-preview');
+    const menu = document.getElementById('athleteShareMenu');
+    if (!previous || !figure || !menu) return;
+
+    // A distinct element binds load/error events to this opening, including when
+    // the same profile is reopened while an older image request is still in flight.
+    const image = document.createElement('img');
+    image.id = 'athleteSharePreview';
+    image.alt = '';
+    image.width = 1200;
+    image.height = 630;
+    previous.replaceWith(image);
+    figure.classList.remove('is-loaded');
+    figure.hidden = false;
+    const menuVersion = state.menuVersion;
+    const current = () => isCurrentAthleteShare(state) && state.menuVersion === menuVersion
+        && !menu.hidden && image.isConnected;
+    const recovery = document.getElementById('athleteShareRecovery');
+    image.onload = () => {
+        if (!current() || (recovery && !recovery.hidden)) return;
+        figure.classList.add('is-loaded');
+    };
+    image.onerror = () => { if (current()) figure.hidden = true; };
+
+    const abort = new AbortController();
+    state.previewAbort = abort;
+    const deadline = window.setTimeout(() => abort.abort(), 10000);
+    try {
+        // Sharing always uses the canonical athlete URL. The containing page's
+        // og:image may belong to another athlete, clock, league or data revision.
+        const slug = new URL(shareUrl).pathname.match(/^\/athlete\/([^/]+)$/)?.[1];
+        if (!slug) throw new Error('Missing profile');
+        const response = await fetch(`/og/athlete/${slug}/preview`, { cache: 'no-store', signal: abort.signal });
+        if (!response.ok) throw new Error('Preview unavailable');
+        const preview = await response.json();
+        if (!current()) return;
+        const url = new URL(preview.imageUrl, window.location.origin);
+        if (url.origin !== window.location.origin || url.pathname !== `/og/athlete/${slug}.png`)
+            throw new Error('Invalid preview');
+        image.src = url.toString();
+    } catch (error) {
+        if (current()) figure.hidden = true;
+    } finally {
+        window.clearTimeout(deadline);
+        if (state.previewAbort === abort) state.previewAbort = null;
+    }
 }
 
 function isCurrentAthleteShare(state) {
@@ -5209,8 +5261,8 @@ function isCurrentAthleteShare(state) {
 
 function resetAthleteShareState() {
     if (athleteShareState?.feedbackTimer) window.clearTimeout(athleteShareState.feedbackTimer);
-    athleteShareState = null;
     closeAthleteShareMenu();
+    athleteShareState = null;
     setShareButtonState(document.getElementById('shareAthleteProfile'), 'Share', false);
     const status = document.getElementById('athleteShareStatus');
     if (status) status.textContent = '';
@@ -5271,6 +5323,18 @@ function closeAthleteShareMenu(options) {
     if (!menu) return false;
     const wasOpen = !menu.hidden;
     if (athleteShareState) athleteShareState.menuVersion++;
+    athleteShareState?.previewAbort?.abort();
+    const image = document.getElementById('athleteSharePreview');
+    if (image) {
+        image.onload = null;
+        image.onerror = null;
+        image.removeAttribute('src');
+        const figure = image.closest('.athlete-share-preview');
+        if (figure) {
+            figure.hidden = true;
+            figure.classList.remove('is-loaded');
+        }
+    }
 
     menu.hidden = true;
     menu.classList.remove('is-above');
@@ -5382,6 +5446,9 @@ function configureAthleteShareMenu(button, sharePayload) {
                 if (recovery && manualLink) {
                     manualLink.value = sharePayload.url;
                     recovery.hidden = false;
+                    // A failed copy needs the room more than the picture does.
+                    const preview = menu.querySelector('.athlete-share-preview');
+                    if (preview) preview.hidden = true;
                     keepAthleteShareMenuInView(menu);
                     if (document.activeElement === copyButton) {
                         manualLink.focus({ preventScroll: true });
@@ -5417,6 +5484,7 @@ function openAthleteShareMenu(button, sharePayload) {
     state.menuVersion++;
     configureAthleteShareMenu(button, sharePayload);
     menu.hidden = false;
+    void loadAthleteSharePreview(state, sharePayload.url);
     button.setAttribute('aria-expanded', 'true');
 
     const copyButton = document.getElementById('copyAthleteProfileLink');
