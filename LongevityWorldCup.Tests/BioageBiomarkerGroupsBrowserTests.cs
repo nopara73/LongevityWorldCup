@@ -41,9 +41,15 @@ public sealed class BioageBiomarkerGroupsBrowserTests(
                     const name = group.querySelector('legend')?.textContent.trim();
                     const cards = [...group.querySelectorAll(':scope > .biomarker-card')];
                     const radius = card => parseFloat(getComputedStyle(card).borderTopLeftRadius);
-                    // Each domain is a ruled block of rows: a rule under its title and one closing it.
-                    if (parseFloat(getComputedStyle(cards[0]).borderTopWidth) < 1) problems.push(`${name}: the first row should be ruled off from the title`);
-                    if (parseFloat(getComputedStyle(cards[cards.length - 1]).borderBottomWidth) < 1) problems.push(`${name}: the last row should close the domain with a rule`);
+                    // Each domain is a ruled block of rows: its title band rules off the first row,
+                    // and the last row is closed by its own rule or by the next domain's band.
+                    const band = group.querySelector(':scope > legend');
+                    if (parseFloat(getComputedStyle(band).borderBottomWidth) < 1) problems.push(`${name}: the title band should rule off the first row`);
+                    const nextBand = group.nextElementSibling?.matches('fieldset') ? group.nextElementSibling.querySelector(':scope > legend') : null;
+                    const closing = Math.max(
+                        parseFloat(getComputedStyle(cards[cards.length - 1]).borderBottomWidth),
+                        nextBand ? parseFloat(getComputedStyle(nextBand).borderTopWidth) : 0);
+                    if (closing < 1) problems.push(`${name}: the last row should close the domain with a rule`);
                     for (let i = 0; i < cards.length; i++) {
                         if (radius(cards[i]) > 0.5) problems.push(`${name}: rows should not be rounded boxes`);
                     }
@@ -61,6 +67,7 @@ public sealed class BioageBiomarkerGroupsBrowserTests(
 
     [Theory]
     [InlineData("/pheno-age", 1440, 900, 200)]
+    [InlineData("/pheno-age", 320, 844, 200)]
     [InlineData("/bortz-age", 320, 844, 200)]
     [InlineData("/pheno-age", 390, 844, 100)]
     [InlineData("/bortz-age", 844, 390, 100)]

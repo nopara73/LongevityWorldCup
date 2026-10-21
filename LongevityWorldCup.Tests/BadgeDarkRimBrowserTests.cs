@@ -17,7 +17,7 @@ public sealed class BadgeDarkRimBrowserTests(
     [InlineData("/leaderboard", ".leaderboard", 390)]
     [InlineData("/events", ".events-board", 1440)]
     [InlineData("/events", ".events-board", 390)]
-    public async Task ThemeChanges_OnlyChangeTheRimOfRoundBadges(string path, string surface, int width)
+    public async Task ThemeChanges_OnlyChangeTheRimOfEveryBadgeShape(string path, string surface, int width)
     {
         await using var context = await NewContextAsync(Browser, App, new()
         {
@@ -52,12 +52,13 @@ public sealed class BadgeDarkRimBrowserTests(
             """, surface);
         var badges = page.Locator("#rim-test-badges .badge-class");
         var light = await MeasureAsync(badges);
-        Assert.All(light.Where(b => !b.Domain), b => Assert.Equal("rgba(0, 0, 0, 0.48)", b.Rim));
+        // The hexagon draws its rim with its backing colour, so it follows the theme too.
+        Assert.All(light, b => Assert.Equal("rgba(0, 0, 0, 0.48)", b.Rim));
         Assert.Equal("0px", Assert.Single(light, b => b.Domain).BorderWidth);
 
         await page.EmulateMediaAsync(new() { ColorScheme = ColorScheme.Dark });
         var dark = await MeasureAsync(badges);
-        Assert.All(dark.Where(b => !b.Domain), b => Assert.Equal("rgba(255, 255, 255, 0.26)", b.Rim));
+        Assert.All(dark, b => Assert.Equal("rgba(255, 255, 255, 0.26)", b.Rim));
         Assert.Equal("0px", Assert.Single(dark, b => b.Domain).BorderWidth);
         Assert.Equal(light.Select(b => b.Appearance), dark.Select(b => b.Appearance));
 
@@ -76,10 +77,11 @@ public sealed class BadgeDarkRimBrowserTests(
                 const icon = badge.querySelector('i');
                 return {
                     Domain: badge.classList.contains('badge-family-domain'),
-                    Rim: style.borderTopColor,
+                    Rim: badge.classList.contains('badge-family-domain') ? style.backgroundColor : style.borderTopColor,
                     BorderWidth: style.borderTopWidth,
                     Appearance: JSON.stringify([
-                        style.backgroundImage, style.backgroundColor, style.color,
+                        style.backgroundImage,
+                        badge.classList.contains('badge-family-domain') ? '' : style.backgroundColor, style.color,
                         style.width, style.height, style.borderRadius, style.clipPath,
                         style.borderTopWidth, style.borderTopStyle, icon?.className,
                         getComputedStyle(badge, '::before').backgroundImage,

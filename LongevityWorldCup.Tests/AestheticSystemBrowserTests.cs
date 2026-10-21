@@ -423,6 +423,7 @@ public sealed class AestheticSystemBrowserTests(
             NavigateAndSettleAsync(applyPage, "/apply"));
         await Assertions.Expect(challengePage.Locator(".lmx-page")).ToHaveAttributeAsync("aria-busy", "false");
         await Assertions.Expect(challengePage.Locator("#lmxSignupPanel")).ToBeVisibleAsync();
+        await applyCdp.SendAsync("DOM.enable");
 
         foreach (var deficiency in new[] { "protanopia", "deuteranopia", "tritanopia", "achromatopsia" })
         {
@@ -473,14 +474,16 @@ public sealed class AestheticSystemBrowserTests(
                     input.setAttribute('aria-invalid', 'true');
                     message.textContent = 'Name must contain at least three readable characters.';
                     const messageStyle = getComputedStyle(message);
+                    const mark = getComputedStyle(message, '::before');
                     const messageRect = message.getBoundingClientRect();
                     return {
                         ErrorHasText: message.textContent.trim().length > 0,
                         ErrorIsDescribedByControl: input.getAttribute('aria-describedby')
                             ?.split(/\s+/).includes(message.id) === true,
                         ErrorIsProgrammaticallyExposed: input.getAttribute('aria-invalid') === 'true',
-                        ErrorHasShapeIndicator: parseFloat(messageStyle.borderLeftWidth) >= 4
-                            || parseFloat(messageStyle.borderRightWidth) >= 4,
+                        ErrorHasShapeIndicator: mark.content.includes('✕')
+                            && mark.display !== 'none' && mark.visibility === 'visible'
+                            && parseFloat(mark.width) >= 16 && parseFloat(mark.height) >= 16,
                         ErrorIsVisible: messageRect.width > 0 && messageRect.height > 0
                             && messageStyle.display !== 'none' && messageStyle.visibility !== 'hidden'
                     };
@@ -493,8 +496,40 @@ public sealed class AestheticSystemBrowserTests(
             Assert.True(error.ErrorIsProgrammaticallyExposed,
                 $"Invalid state was not exposed under {deficiency} emulation.");
             Assert.True(error.ErrorHasShapeIndicator,
-                $"Error state had no non-color border indicator under {deficiency} emulation.");
+                $"Error state had no non-color error mark under {deficiency} emulation.");
             Assert.True(error.ErrorIsVisible, $"Error text was not visible under {deficiency} emulation.");
+
+            // A computed pseudo-element size is insufficient: display:none on an
+            // ancestor can suppress its real box. Check the rendered error disc.
+            var document = (await applyCdp.SendAsync("DOM.getDocument"))!.Value;
+            var messageNode = (await applyCdp.SendAsync("DOM.querySelector", new()
+            {
+                ["nodeId"] = document.GetProperty("root").GetProperty("nodeId").GetInt32(),
+                ["selector"] = "#nameError"
+            }))!.Value;
+            var description = (await applyCdp.SendAsync("DOM.describeNode", new()
+            {
+                ["nodeId"] = messageNode.GetProperty("nodeId").GetInt32(), ["depth"] = 0
+            }))!.Value;
+            var errorMark = description.GetProperty("node").GetProperty("pseudoElements").EnumerateArray()
+                .Single(element => element.GetProperty("pseudoType").GetString() == "before");
+            var markBox = (await applyCdp.SendAsync("DOM.getBoxModel", new()
+            {
+                ["backendNodeId"] = errorMark.GetProperty("backendNodeId").GetInt32()
+            }))!.Value.GetProperty("model");
+            Assert.Equal(18, markBox.GetProperty("width").GetInt32());
+            Assert.Equal(18, markBox.GetProperty("height").GetInt32());
+            var markPoints = markBox.GetProperty("border").EnumerateArray().Select(value => value.GetDouble()).ToArray();
+            var textLeft = await applyPage.Locator("#nameError").EvaluateAsync<double>(
+                """
+                element => {
+                    const range = document.createRange();
+                    range.selectNodeContents(element);
+                    return range.getBoundingClientRect().left;
+                }
+                """);
+            Assert.True(markPoints[2] <= textLeft,
+                $"Error mark overlaps its text under {deficiency} emulation.");
         }
 
         var resetEmulation = new Dictionary<string, object> { ["type"] = "none" };
@@ -1203,6 +1238,7 @@ public sealed class AestheticSystemBrowserTests(
                 case "misc-pages/about.html":
                 case "misc-pages/history.html":
                 case "misc-pages/ruleset.html":
+                case "privacy-policy.html":
                     // These pages share the generator's table CSS. History has
                     // the standings table that actually exercises that component.
                     await AssertDocumentationTableContainerBoundariesAsync(page, source.ToArray());
@@ -1977,7 +2013,7 @@ public sealed class AestheticSystemBrowserTests(
             if (condition.Name == "bioage-entry")
             {
                 Assert.Equal("max", condition.Bound);
-                Assert.Equal(18.5, condition.Value);
+                Assert.Contains(condition.Value, new[] { 18.5, 14.5 });
                 Assert.Equal("rem", condition.Unit);
                 await NavigateAndSettleAsync(page, route);
                 await FlowActionDockBrowserTests.FillBioageStepOneAsync(
@@ -1994,15 +2030,22 @@ public sealed class AestheticSystemBrowserTests(
                             entry.style.inlineSize = `${width}px`;
                             entry.style.maxInlineSize = 'none';
                             await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                            const input = entry.querySelector('input').getBoundingClientRect();
+                            const unit = entry.querySelector('select').getBoundingClientRect();
                             return {
                                 ContainerWidth: parseFloat(getComputedStyle(entry).width),
-                                IsCompact: getComputedStyle(entry.querySelector('.input-group')).gridTemplateColumns.split(' ').length === 1,
+                                IsCompact: input.height >= 44 && unit.height >= 44 && unit.top >= input.bottom - 1,
                                 HorizontalOverflow: Math.max(0, entry.scrollWidth - entry.clientWidth)
                             };
                         }
                         """, inlineSize);
                     Assert.Equal(inlineSize, diagnostics.ContainerWidth, 1);
-                    Assert.Equal(inlineSize <= entryThreshold, diagnostics.IsCompact);
+                    // The original 18.5rem rule remains for shared forms; the
+                    // calculators' unified measurement overrides it and stacks
+                    // at 14.5rem. Exercise both declared boundaries in both
+                    // directions, including the overridden rule.
+                    Assert.True(diagnostics.IsCompact == (inlineSize <= 14.5 * rootFontSize),
+                        $"{route} measurement did not use its 14.5rem boundary at {inlineSize}px (declared query: {condition.Value}rem).");
                     Assert.True(diagnostics.HorizontalOverflow <= 1,
                         $"{route} biomarker entry overflowed at {inlineSize}px.");
                 }

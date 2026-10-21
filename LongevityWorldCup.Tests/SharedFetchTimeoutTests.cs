@@ -31,7 +31,9 @@ public sealed class SharedFetchTimeoutTests(TestWebApplicationFactory sharedFact
         var html = await client.GetStringAsync("/");
 
         Assert.Contains("id=\"custom-alert\" role=\"alertdialog\"", html);
-        Assert.Contains("id=\"loading-dialog\" role=\"status\" aria-modal=\"true\"", html);
+        Assert.Contains("id=\"loading-dialog\" role=\"dialog\" aria-modal=\"true\" aria-labelledby=\"loading-dialog-label\"", html);
+        Assert.Contains("id=\"loading-dialog-label\" class=\"visually-hidden\">Loading</p>", html);
+        Assert.Contains("class=\"loader\" aria-hidden=\"true\"", html);
         var script = await ReadHeaderScriptAsync(client);
         Assert.Contains("customAlertDialog.hidden = false;", script);
         Assert.Contains("loadingDialog.hidden = false;", script);

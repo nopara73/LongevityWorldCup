@@ -44,7 +44,6 @@
 @media (prefers-reduced-motion:reduce){
     .fade-in-board{animation:none!important}
     .row-appear,.row-appear.is-visible{opacity:1;transform:none;transition:none!important}
-    .skeleton-shimmer{animation:none!important;background:rgba(0,0,0,.08)}
 }
 
 .events-board{
@@ -61,17 +60,6 @@
     overflow:hidden;
     flex-grow:1;
     margin:0 auto
-}
-
-@keyframes skeletonShimmer{
-    0%{ background-position:200% 0; }
-    100%{ background-position:-200% 0; }
-}
-
-.skeleton-shimmer{
-    background:linear-gradient(90deg, rgba(0,0,0,.06) 25%, rgba(255,255,255,.72) 50%, rgba(0,0,0,.06) 75%);
-    background-size:200% 100%;
-    animation:skeletonShimmer 1.4s ease-in-out infinite;
 }
 
 .events-skeleton-row td{ cursor:default; }
@@ -558,17 +546,17 @@
     max-width:var(--badge-size);
     max-height:var(--badge-size);
     flex:0 0 var(--badge-size);
-    border:1px solid rgba(0,0,0,.48)!important;
+    border:1px solid var(--badge-rim,rgba(0,0,0,.48))!important;
     border-radius:999px;
     line-height:1;
     color:#fff!important;
-    box-shadow:0 1px 2px rgba(0,0,0,.22);
+    box-shadow:var(--badge-ring,none),0 1px 2px rgba(0,0,0,.22);
     margin-inline:var(--badge-inline-gap);
     margin-block:1px;
     vertical-align:middle
 }
 .events-board .badge-class.badge-family-rank{border-radius:999px}
-.events-board .badge-class.badge-family-domain{border:0!important;border-radius:0;clip-path:polygon(24% 5%,76% 5%,100% 50%,76% 95%,24% 95%,0 50%);background:#111!important;box-shadow:none;filter:drop-shadow(0 1px 1px rgba(0,0,0,.16))}
+.events-board .badge-class.badge-family-domain{border:0!important;border-radius:0;clip-path:polygon(24% 5%,76% 5%,100% 50%,76% 95%,24% 95%,0 50%);background:var(--badge-rim,#111)!important;box-shadow:none;filter:drop-shadow(0 1px 1px rgba(0,0,0,.16))}
 .events-board .badge-class.badge-family-domain::before{content:"";position:absolute;inset:1px;z-index:0;background:var(--badge-bg,linear-gradient(135deg,#555,#222));clip-path:polygon(24% 5%,76% 5%,100% 50%,76% 95%,24% 95%,0 50%)}
 .events-board .badge-class.badge-family-pace{border-radius:8px}
 .events-board .badge-class.badge-family-utility{border-radius:6px}

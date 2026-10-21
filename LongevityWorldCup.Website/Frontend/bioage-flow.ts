@@ -830,9 +830,103 @@ interface Window {
             error.hidden = !visible;
         }
         input.setAttribute('aria-invalid', visible ? 'true' : 'false');
+        document.querySelector<HTMLElement>(`[data-bioage-pip="${input.id}"]`)
+            ?.classList.toggle('bioage-domain-pip--invalid', visible);
     }
 
-    function ensureBiomarkerVisible(input: HTMLInputElement): void {
+    // Each domain title carries one pip per biomarker, so a long panel shows
+    // where the gaps are without reading the rows.
+    function getOrCreateDomainPip(input: HTMLInputElement): HTMLElement | null {
+        const existing = document.querySelector<HTMLElement>(`[data-bioage-pip="${input.id}"]`);
+        if (existing) return existing;
+        const legend = input.closest<HTMLFieldSetElement>('fieldset')?.querySelector<HTMLLegendElement>(':scope > legend');
+        if (!legend) return null;
+        let tally = legend.querySelector<HTMLElement>('.bioage-domain-tally');
+        if (!tally) {
+            tally = document.createElement('span');
+            tally.className = 'bioage-domain-tally';
+            tally.setAttribute('aria-hidden', 'true');
+            legend.appendChild(tally);
+        }
+        const pip = document.createElement('span');
+        pip.className = 'bioage-domain-pip';
+        pip.dataset.bioagePip = input.id;
+        tally.appendChild(pip);
+        return pip;
+    }
+
+    function syncDomainTallies(controller: BioageBiomarkerEntryController): void {
+        const domains = new Map<HTMLFieldSetElement, boolean>();
+        controller.inputs.forEach(input => {
+            const isComplete = input.dataset.bioageComplete === 'true';
+            getOrCreateDomainPip(input)?.classList.toggle('bioage-domain-pip--complete', isComplete);
+            const domain = input.closest<HTMLFieldSetElement>('fieldset');
+            if (domain) domains.set(domain, (domains.get(domain) ?? true) && isComplete);
+        });
+        domains.forEach((complete, domain) => domain.classList.toggle('bioage-domain--complete', complete));
+    }
+
+    // Section bands stick below whichever fixed site bars are showing.
+    let sectionBandOffsetFrame = 0;
+    function syncSectionBandOffset(): void {
+        sectionBandOffsetFrame = 0;
+        let top = 0;
+        ['site-sticky-header', 'site-sticky-progress'].forEach(id => {
+            const bar = document.getElementById(id);
+            if (!bar) return;
+            const style = getComputedStyle(bar);
+            if (style.position !== 'fixed' || style.visibility === 'hidden') return;
+            const rect = bar.getBoundingClientRect();
+            // The progress row starts at the header's bottom, not at zero.
+            if (rect.height > 0 && rect.bottom > 0 && rect.top < window.innerHeight) top = Math.max(top, rect.bottom);
+        });
+        const offset = `${Math.ceil(top)}px`;
+        if (document.documentElement.style.getPropertyValue('--bioage-band-top') !== offset) {
+            document.documentElement.style.setProperty('--bioage-band-top', offset);
+        }
+    }
+
+    function watchSectionBandOffset(): void {
+        if (document.documentElement.dataset.bioageBandOffset === 'true') return;
+        document.documentElement.dataset.bioageBandOffset = 'true';
+        const schedule = () => {
+            if (!sectionBandOffsetFrame) sectionBandOffsetFrame = window.requestAnimationFrame(syncSectionBandOffset);
+        };
+        const bars = ['site-sticky-header', 'site-sticky-progress']
+            .map(id => document.getElementById(id))
+            .filter((bar): bar is HTMLElement => bar !== null);
+        // Font loading, progress visibility and header reflow can change these
+        // bounds without a scroll or viewport resize. Observe only the bars;
+        // writing the form's offset cannot feed back into this observer.
+        const sizeObserver = new ResizeObserver(schedule);
+        const visibilityObserver = new MutationObserver(schedule);
+        let watching = false;
+        const start = () => {
+            if (watching) return;
+            watching = true;
+            bars.forEach(bar => {
+                sizeObserver.observe(bar);
+                visibilityObserver.observe(bar, { attributes: true, attributeFilter: ['class', 'style', 'hidden', 'aria-hidden'] });
+            });
+            window.addEventListener('scroll', schedule, { passive: true });
+            window.addEventListener('resize', schedule, { passive: true });
+            schedule();
+        };
+        const stop = () => {
+            watching = false;
+            sizeObserver.disconnect();
+            visibilityObserver.disconnect();
+            window.removeEventListener('scroll', schedule);
+            window.removeEventListener('resize', schedule);
+            window.cancelAnimationFrame(sectionBandOffsetFrame);
+            sectionBandOffsetFrame = 0;
+        };
+        window.addEventListener('pagehide', stop);
+        window.addEventListener('pageshow', start);
+        start();
+    }
+
+    function ensureBiomarkerVisible(input: HTMLInputElement | HTMLSelectElement): void {
         const reveal = () => {
             const dock = getFlowActionDock();
             dock?.refreshNow?.();
@@ -841,8 +935,16 @@ interface Window {
             const visualViewport = window.visualViewport;
             const top = visualViewport?.offsetTop || 0;
             const bottom = top + (visualViewport?.height || window.innerHeight);
+            const band = input.closest('fieldset')?.querySelector<HTMLElement>(':scope > legend');
+            const bandHeight = band && getComputedStyle(band).position === 'sticky'
+                ? band.getBoundingClientRect().height : 0;
+            const fixedBottom = parseFloat(getComputedStyle(document.documentElement)
+                .getPropertyValue('--bioage-band-top')) || 0;
+            const clearTop = Math.max(top, fixedBottom) + bandHeight + 16;
             const rect = input.getBoundingClientRect();
-            if (rect.bottom > bottom - 16 || rect.top < top + 16) {
+            if (rect.top < clearTop) {
+                window.scrollBy({ top: Math.floor(rect.top - clearTop), behavior: 'auto' });
+            } else if (rect.bottom > bottom - 16) {
                 input.scrollIntoView({
                     block: 'center',
                     inline: 'nearest',
@@ -905,6 +1007,7 @@ interface Window {
             }
             if (!isComplete) incompleteInputs.push(input);
         });
+        syncDomainTallies(controller);
         controller.inputs.forEach((input, index) => {
             const hasOtherIncompleteInput = incompleteInputs.some(candidate => candidate !== input);
             input.enterKeyHint = (controller.isUpdate
@@ -993,6 +1096,8 @@ interface Window {
                 expandBiomarkerCard(input);
                 ensureBiomarkerVisible(input);
             });
+            const unit = controller.form.querySelector<HTMLSelectElement>(`#${input.id}Unit`);
+            unit?.addEventListener('focus', () => ensureBiomarkerVisible(unit));
             window.LwcFieldValidation.bind(input, {
                 validate: () => {
                     const valid = isCompleteBiomarkerInput(input)
@@ -1145,6 +1250,7 @@ interface Window {
         biomarkerEntryControllers.set(options.clock, controller);
         bindBiomarkerEntry(controller);
         syncBiomarkerHeaderSemantics(controller);
+        watchSectionBandOffset();
 
         const restoredDraft = options.restoreDraft !== false && restoreBioageDraft(controller);
         initializeBloodDrawDate(controller.form, !restoredDraft || controller.draftFields['blood-draw-date']?.customDate !== true);
