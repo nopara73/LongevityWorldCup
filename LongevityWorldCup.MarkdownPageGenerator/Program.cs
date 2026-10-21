@@ -1362,9 +1362,9 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
 
         }
 
-        /* Reserve the bar for document fragments, while keyboard focus on the
-           sticky toggle can still use the space immediately below the header. */
-        :root:has(.documentation-nav.is-enhanced) .documentation-document :is(h1, h2, h3)[id] {
+        /* Reserve the bar for fragments and focused document controls, while
+           the sticky toggle can use the space immediately below the header. */
+        :root:has(.documentation-nav.is-enhanced) .documentation-document :is([id], a, button, input, select, textarea, summary, li) {
             scroll-margin-top: max(0px, calc(var(--documentation-anchor-offset, 0px) - max(3.25rem, var(--site-sticky-height, 0px))));
         }
 

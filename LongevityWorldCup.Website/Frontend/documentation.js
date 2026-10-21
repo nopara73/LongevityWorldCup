@@ -273,6 +273,19 @@ document.addEventListener("DOMContentLoaded", () => {
     for (const element of [document.getElementById("site-sticky-header"), documentationNavToggle, documentationArticle]) {
         if (element) geometryObserver.observe(element);
     }
+    // The header publishes its measured height after its own animation frame.
+    // While it is hidden, that CSS value can change without resizing its box.
+    // Keep native fragment/focus clearance current after that measurement too.
+    const root = document.documentElement;
+    let observedHeaderHeight = getComputedStyle(root).getPropertyValue("--site-sticky-height");
+    const headerHeightObserver = new MutationObserver(() => {
+        const height = getComputedStyle(root).getPropertyValue("--site-sticky-height");
+        if (height !== observedHeaderHeight) {
+            observedHeaderHeight = height;
+            updateGeometry();
+        }
+    });
+    headerHeightObserver.observe(root, { attributes: true, attributeFilter: ["style"] });
     updateGeometry();
     if (window.location.hash) {
         document.fonts.ready.then(() => window.requestAnimationFrame(() => {
