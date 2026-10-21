@@ -2558,6 +2558,7 @@
                 cropButton.addEventListener('click', async function () {
                     const activeCropper = cropper;
                     if (isProfileCropProcessing || !activeCropper) return;
+                    const version = profileReadVersion;
 
                     isProfileCropProcessing = true;
                     cropButton.disabled = true;
@@ -2581,6 +2582,7 @@
                         } catch {
                             croppedImageDataURL = raw;
                         }
+                        if (version !== profileReadVersion) return;
                         if (currentStage === 4) {
                             document.getElementById('profileImage').style.display = '';
                             document.body.classList.add('convergence-has-portrait');

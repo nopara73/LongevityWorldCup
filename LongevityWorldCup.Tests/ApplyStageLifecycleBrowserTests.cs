@@ -293,6 +293,31 @@ public sealed class ApplyStageLifecycleBrowserTests(
         await page.EvaluateAsync("() => { currentStage = 4; goToStage(4); }");
         await Assertions.Expect(page.Locator("#profileImage")).ToBeVisibleAsync();
         await Assertions.Expect(page.Locator("#nextButton")).ToBeEnabledAsync();
+
+        // Selecting another file while the previous crop encodes makes that
+        // older result obsolete. Keep the newer crop and its pending readiness.
+        async Task SelectPortraitAsync()
+        {
+            await page.Locator("#profilePicInput").SetInputFilesAsync(Path.Combine(webRoot, "assets", "content-images", "play-athlete-placeholder.jpg"));
+            if (delayRead)
+            {
+                await page.WaitForFunctionAsync("() => window.releaseProfileRead");
+                await page.EvaluateAsync("() => window.releaseProfileRead()");
+            }
+            await page.WaitForFunctionAsync("() => document.getElementById('cropperImage').cropper?.getCroppedCanvas()?.width > 0");
+        }
+        await SelectPortraitAsync();
+        await page.EvaluateAsync("() => { window.releaseProfileSave = null; }");
+        await page.Locator("#cropButton").ClickAsync();
+        await page.WaitForFunctionAsync("() => window.releaseProfileSave");
+        await SelectPortraitAsync();
+        await page.EvaluateAsync("() => window.releaseProfileSave()");
+        await Assertions.Expect(page.Locator("#cropButton")).ToBeEnabledAsync();
+        await Assertions.Expect(page.Locator("#croppingPart")).ToBeVisibleAsync();
+        await Assertions.Expect(page.Locator("#nextButton")).ToBeDisabledAsync();
+        Assert.True(await page.EvaluateAsync<bool>("() => applicationProfilePending"));
+        await page.Locator("#cancelProfileCropButton").ClickAsync();
+        await Assertions.Expect(page.Locator("#nextButton")).ToBeEnabledAsync();
     }
 
     [Theory]
