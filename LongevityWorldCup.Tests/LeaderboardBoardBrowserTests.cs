@@ -131,10 +131,21 @@ public sealed class LeaderboardBoardBrowserTests(PlaywrightBrowserFixture browse
         await page.EvaluateAsync("percent => document.documentElement.style.fontSize = `${percent}%`", textPercent);
         await page.EvaluateAsync(
             "() => { document.documentElement.style.scrollBehavior = 'auto'; const row = document.querySelector('#athleteLeaderboard tbody tr:nth-child(40)'); scrollTo(0, row.getBoundingClientRect().top + scrollY - 300); }");
-        await page.WaitForTimeoutAsync(200);
-        var top = await page.Locator("#athleteLeaderboard thead th").Nth(1).EvaluateAsync<double>("th => th.getBoundingClientRect().top");
-        var headerBottom = await page.Locator("#site-sticky-header").EvaluateAsync<double>("header => header.getBoundingClientRect().bottom");
-        Assert.InRange(top - headerBottom, -1, 1);
+        // Text resizing updates the header through ResizeObserver. Wait for
+        // that measured offset, then sample both edges in the same layout.
+        await page.WaitForFunctionAsync("""
+            () => {
+                const header = document.getElementById('site-sticky-header');
+                const height = header.getBoundingClientRect().height;
+                const offset = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--site-sticky-height'));
+                return header.classList.contains('visible') && height > 0 && Math.abs(offset - height) < 0.1;
+            }
+            """);
+        var edges = await page.EvaluateAsync<double[]>("""
+            () => [document.querySelectorAll('#athleteLeaderboard thead th')[1].getBoundingClientRect().top,
+                document.getElementById('site-sticky-header').getBoundingClientRect().bottom]
+            """);
+        Assert.InRange(edges[0] - edges[1], -1, 1);
         var covered = await page.EvaluateAsync<bool>(
             "() => { const th = document.querySelectorAll('#athleteLeaderboard thead th')[1]; const box = th.getBoundingClientRect(); const hit = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2); return !th.contains(hit); }");
         Assert.False(covered, "Rows must pass under the held column heads.");

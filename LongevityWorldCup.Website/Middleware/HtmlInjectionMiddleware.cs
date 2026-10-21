@@ -118,7 +118,7 @@ namespace LongevityWorldCup.Website.Middleware
                     var progressBar = await ReadPartialAsync("main-progress-bar.html", bodyContent.Contains("<!--MAIN-PROGRESS-BAR-->", StringComparison.Ordinal));
                     var subProgressBar = await ReadPartialAsync("sub-progress-bar.html", bodyContent.Contains("<!--SUB-PROGRESS-BAR-->", StringComparison.Ordinal));
                     var needsAthleteDialogRuntime = !containsLeaderboardContent && ShouldInjectAthleteDialogRuntime(path);
-                    var leaderboardContent = await ReadPartialAsync("leaderboard-content.html", containsLeaderboardContent || needsAthleteDialogRuntime);
+                    var leaderboardContent = CompactProfileTableMarkup(await ReadPartialAsync("leaderboard-content.html", containsLeaderboardContent || needsAthleteDialogRuntime));
                     var guessMyAge = await ReadPartialAsync("guess-my-age.html",
                         bodyContent.Contains("<!--GUESS-MY-AGE-->", StringComparison.Ordinal) || leaderboardContent.Contains("<!--GUESS-MY-AGE-->", StringComparison.Ordinal));
                     var eventBoardContent = await ReadPartialAsync("event-board-content.html", bodyContent.Contains("<!--EVENT-BOARD-CONTENT-->", StringComparison.Ordinal));
@@ -306,6 +306,14 @@ namespace LongevityWorldCup.Website.Middleware
                 _ => false
             };
         }
+
+        private static string CompactProfileTableMarkup(string html) => Regex.Replace(
+            html,
+            @"<table class=""athlete-info-table""[^>]*>.*?</table>",
+            // Compact only static tag indentation, before athlete content is
+            // injected. Keep readable source and all inter-element line breaks.
+            table => Regex.Replace(table.Value, @"(?m)^[ \t]+(?=<)", string.Empty),
+            RegexOptions.Singleline);
 
         private static bool TryBuildAthleteDialogRuntime(string leaderboardContent, out string runtime)
         {
