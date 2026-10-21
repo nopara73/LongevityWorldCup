@@ -7924,9 +7924,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         athleteDirectoryState = "loading";
         athleteSelectors.forEach(selector => selector.refreshDirectory());
         athleteDirectoryPromise = requestJson("/api/data/athletes", { headers: { "Accept": "application/json" } })
-            .then(async response => {
-                if (!response.ok) throw new Error("Athlete directory unavailable");
-                const data: unknown = await response.json();
+            .then(data => {
                 if (!Array.isArray(data)) throw new Error("Invalid athlete directory");
                 return data;
             })
@@ -9299,8 +9297,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     async function getJson(url: `${typeof API}/state`): Promise<PublicState>;
     async function getJson(url: string): Promise<unknown>;
     async function getJson(url: string): Promise<unknown> {
-        const response = await requestJson(url, { headers: { "Accept": "application/json" } });
-        const data = await readJsonResponse(response, url);
+        const data = await requestJson(url, { headers: { "Accept": "application/json" } });
         if (url === `${API}/state` && !isPublicState(data)) throw invalidApiResponse(url);
         return data;
     }
@@ -9322,7 +9319,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     ): Promise<unknown>;
     async function postJson(url: string, payload: object): Promise<unknown>;
     async function postJson(url: string, payload: object): Promise<unknown> {
-        const response = await requestJson(url, {
+        const data = await requestJson(url, {
             method: "POST",
             headers: {
                 "Accept": "application/json",
@@ -9330,7 +9327,6 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             },
             body: JSON.stringify(payload)
         });
-        const data = await readJsonResponse(response, url);
         if ((url === `${API}/signup` || url === `${API}/resend`) && !isSignupResult(data)) throw invalidApiResponse(url);
         if (url === `${API}/confirm` && !isAccessResult(data)) throw invalidApiResponse(url);
         if (url === `${API}/discussion/replies/page` && !isDiscussionReplyPage(data)) throw invalidApiResponse(url);
@@ -9347,27 +9343,27 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     }
 
     async function postForm(url: `${typeof API}/check-in` | `${typeof API}/profile-picture` | `${typeof API}/discussion/replies`, formData: FormData): Promise<ParticipantState> {
-        const response = await requestJson(url, {
+        const data = await requestJson(url, {
             method: "POST",
             headers: { "Accept": "application/json" },
             body: formData
         });
-        const data = await readJsonResponse(response, url);
         if (!isParticipantState(data)) throw invalidApiResponse(url);
         return data;
     }
 
-    async function requestJson(url: string, options: RequestInit): Promise<Response> {
+    async function requestJson(url: string, options: RequestInit): Promise<unknown> {
         const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
         const timer = controller
             ? window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
             : null;
 
         try {
-            return await fetch(url, {
+            const response = await fetch(url, {
                 ...(options || {}),
                 ...(controller ? { signal: controller.signal } : {})
             });
+            return await readJsonResponse(response, url);
         } catch (err) {
             if (hasStringProperty(err, "name") && err.name === "AbortError") throw new Error("Request timed out");
             throw err;
