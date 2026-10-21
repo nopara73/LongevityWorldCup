@@ -963,6 +963,7 @@
         }
 
         .push-preview-body-wrap { min-width: 0; overflow-wrap: anywhere; }
+        .push-preview-icon { width: 22px; height: 22px; flex: 0 0 22px; margin-top: 4px; fill: #087685; }
         .push-preview-domain { margin-bottom: 6px; color: var(--dim); font-size: 12px; }
         .push-preview-body { white-space: pre-wrap; margin: 6px 0 0; color: var(--muted); }
 
@@ -992,6 +993,22 @@
         @media (pointer: coarse) {
             .tool-btn, button, .check { min-height: 44px; }
             input[type="text"], input[type="password"], textarea { font-size: 16px; }
+        }
+
+        @media (max-width: 280px) {
+            :root { --pad: 10px; }
+            body { padding: 8px; }
+            h1, h2, button, .x-name, .x-handle, .x-meta, .slack-author { overflow-wrap: anywhere; }
+            .format-toolbar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .checks { grid-template-columns: minmax(0, 1fr); }
+            .preview-title { flex-wrap: wrap; }
+            .preview-copy-btn { max-width: 100%; }
+            .payload-actions > button { min-width: 0; max-width: 100%; }
+            .x-post, .slack-message { grid-template-columns: minmax(0, 1fr); }
+            .x-actions, .instagram-head { flex-wrap: wrap; }
+            .instagram-head .x-name { min-width: 0; flex: 1; }
+            .instagram-menu { margin-left: 0; }
+            .preview-surface, .slack-shell, .push-preview { padding: 8px; }
         }
     </style>
 </head>
@@ -2594,7 +2611,7 @@
             return `<div class="panel preview-block" id="webPushPreview">
                 <div class="preview-title"><h2>Website push Preview</h2></div>
                 <div class="push-preview">
-                    <i class="fas fa-bell" aria-hidden="true" style="color:var(--secondary-color,#087685);font-size:22px;margin-top:4px;"></i>
+                    <svg class="push-preview-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 2a2 2 0 0 0-2 2v.35A6 6 0 0 0 6 10v5l-2 3v1h16v-1l-2-3v-5a6 6 0 0 0-4-5.65V4a2 2 0 0 0-2-2Zm-3 19a3 3 0 0 0 6 0Z"/></svg>
                     <div class="push-preview-body-wrap">
                         <div class="push-preview-domain">longevityworldcup.com</div>
                         <strong class="push-preview-title">${escapeHtml(pushPreviewText(titleRaw, 100, 512))}</strong>

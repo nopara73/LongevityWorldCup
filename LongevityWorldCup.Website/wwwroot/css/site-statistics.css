@@ -75,7 +75,7 @@ h2 {
 }
 
 h3 {
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 700;
     letter-spacing: 0.06em;
     text-transform: uppercase;
@@ -118,7 +118,7 @@ h3 {
 
 .stats-kicker {
     color: var(--cyan);
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 700;
     letter-spacing: 0.12em;
     text-transform: uppercase;
@@ -146,7 +146,7 @@ h3 {
 
 .stats-controls label > span {
     color: var(--dim);
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -527,7 +527,7 @@ select:focus-visible,
 
 .traffic-metric > span {
     color: var(--dim);
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -561,7 +561,7 @@ select:focus-visible,
 .traffic-day-picker select { max-width: 100%; min-height: 36px; font-size: 12px; }
 .traffic-chart { width: 100%; }
 .traffic-chart svg { display: block; width: 100%; height: 250px; overflow: visible; touch-action: pan-y; }
-.traffic-chart text { fill: var(--muted); font-family: inherit; font-size: 11px; font-variant-numeric: tabular-nums; }
+.traffic-chart text { fill: var(--muted); font-family: inherit; font-size: 12px; font-variant-numeric: tabular-nums; }
 .traffic-chart .traffic-bar-value { fill: var(--text); }
 .traffic-chart-grid { stroke: var(--line); stroke-width: 1; }
 .traffic-session-bar { fill: var(--cyan); opacity: .72; }
@@ -770,11 +770,18 @@ select:focus-visible,
 .stats-table th,
 .traffic-overview table th {
     color: var(--dim);
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     border-bottom-color: var(--line-strong);
+}
+
+.compact-table th:first-child,
+.stats-table th:first-child,
+.traffic-overview table th:first-child {
+    white-space: nowrap;
+    overflow-wrap: normal;
 }
 
 .compact-table tbody tr:hover td,
@@ -797,7 +804,7 @@ select:focus-visible,
 }
 
 .ai-stage { display: grid; gap: 6px; padding: 14px; background: var(--panel); }
-.ai-stage span { color: var(--dim); font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.ai-stage span { color: var(--dim); font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
 .ai-stage strong { font-size: 28px; font-weight: 400; line-height: 1.1; font-variant-numeric: tabular-nums; }
 .ai-stage progress { width: 100%; height: 6px; border: 0; border-radius: 3px; accent-color: var(--cyan); overflow: hidden; background: var(--panel-2); }
 .ai-stage progress::-webkit-progress-bar { background: var(--panel-2); }
@@ -840,7 +847,7 @@ select:focus-visible,
 
 .quality-card span {
     color: var(--dim);
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -918,7 +925,7 @@ select:focus-visible,
 .decision-gridline strong {
     padding-top: 2px;
     color: var(--dim);
-    font-size: 10px;
+    font-size: 12px;
     letter-spacing: 0.08em;
     text-transform: uppercase;
 }
@@ -938,7 +945,7 @@ select:focus-visible,
 .severity {
     border-radius: 999px;
     padding: 2px 9px;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 700;
     letter-spacing: 0.04em;
     color: #080a0e;
@@ -956,7 +963,7 @@ select:focus-visible,
 .segment-row,
 .trend-row {
     display: grid;
-    grid-template-columns: minmax(150px, 1fr) 96px 96px 96px;
+    grid-template-columns: minmax(0, 1.5fr) repeat(3, minmax(0, 1fr));
     align-items: center;
     gap: 10px;
     min-height: 48px;
@@ -968,9 +975,9 @@ select:focus-visible,
 .segment-row > span:first-child,
 .trend-row > span:first-child { display: grid; gap: 1px; min-width: 0; }
 .segment-row > span:not(:first-child),
-.trend-row > span:not(:first-child) { color: var(--muted); text-align: right; }
+.trend-row > span:not(:first-child) { min-width: 0; overflow-wrap: anywhere; color: var(--muted); text-align: right; }
 .segment-row strong, .trend-row strong { font-size: 14px; overflow-wrap: anywhere; }
-.segment-row em, .trend-row em { color: var(--dim); font-size: 11px; font-style: normal; }
+.segment-row em, .trend-row em { color: var(--dim); font-size: 12px; font-style: normal; }
 
 /* ---------- Diagnostics: outcome tiles ---------- */
 .outcome-strip {
@@ -989,8 +996,10 @@ select:focus-visible,
 }
 
 .metric-label {
+    min-width: 0;
+    overflow-wrap: anywhere;
     color: var(--dim);
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -1009,7 +1018,7 @@ select:focus-visible,
     align-items: end;
     gap: 8px;
     color: var(--muted);
-    font-size: 11px;
+    font-size: 12px;
     font-variant-numeric: tabular-nums;
 }
 
@@ -1067,7 +1076,7 @@ select:focus-visible,
 .summary-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .summary-grid + * { margin-top: 12px; }
 .summary-item { padding: 10px 12px; border-radius: var(--radius-sm); background: var(--row); }
-.summary-item span { display: block; color: var(--dim); font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.summary-item span { display: block; color: var(--dim); font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
 .summary-item strong { display: block; margin-top: 4px; font-size: 20px; font-weight: 400; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 
 .sample-row { display: grid; gap: 3px; padding: 9px 12px; }
@@ -1081,7 +1090,7 @@ select:focus-visible,
 .session-timeline > h3 { padding-bottom: 6px; }
 
 /* ---------- Diagnostics: funnel + friction ---------- */
-.flow-selectors { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; }
+.flow-selectors { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(170px, 100%), 1fr)); gap: 8px; }
 .flow-selectors:empty { display: none; }
 .flow-selectors:not(:empty) + .funnel { margin-top: 14px; }
 
@@ -1102,7 +1111,7 @@ select:focus-visible,
 
 .funnel-name { font-size: 14px; color: var(--text); overflow-wrap: anywhere; }
 .funnel-bar { height: 10px; overflow: hidden; border-radius: 999px; background: rgba(255, 255, 255, 0.08); }
-.funnel-fill { display: block; height: 100%; min-width: 2px; border-radius: 999px; background: linear-gradient(90deg, var(--pink), var(--cyan)); }
+.funnel-fill { display: block; height: 100%; min-width: 0; border-radius: 999px; background: linear-gradient(90deg, var(--pink), var(--cyan)); }
 .funnel-number { font-size: 15px; text-align: right; }
 .funnel-rate, .funnel-drop { color: var(--muted); font-size: 12px; text-align: right; }
 
@@ -1133,7 +1142,7 @@ select:focus-visible,
     padding: 2px 8px;
     border-radius: 999px;
     background: currentColor;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 700;
     text-transform: uppercase;
 }
@@ -1160,7 +1169,7 @@ select:focus-visible,
     align-items: center;
     margin-bottom: 4px;
     color: var(--dim);
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 700;
     letter-spacing: 0.06em;
     text-transform: uppercase;
@@ -1211,7 +1220,7 @@ select:focus-visible,
     align-items: center;
     gap: 4px;
     color: #080a0e;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 700;
     line-height: 1;
     font-variant-numeric: tabular-nums;
@@ -1229,7 +1238,7 @@ select:focus-visible,
 .stacked-bar { display: flex; }
 
 .field-visual-head { grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
-.field-visual-head span { color: var(--dim); font-size: 11px; }
+.field-visual-head span { color: var(--dim); font-size: 12px; }
 
 .chip-row { display: flex; flex-wrap: wrap; gap: 6px; }
 
@@ -1239,7 +1248,7 @@ select:focus-visible,
     padding: 3px 8px;
     color: var(--muted);
     background: var(--chip);
-    font-size: 11px;
+    font-size: 12px;
 }
 
 /* Wide tables (six or more columns) take two tracks so no column is squeezed. */
@@ -1350,6 +1359,30 @@ select:focus-visible,
     .stats-controls { grid-template-columns: 1fr; }
     .traffic-metrics { grid-template-columns: 1fr; }
     .traffic-metric + .traffic-metric { border-left: 0; border-top: 1px solid var(--line); }
+}
+
+@media (max-width: 280px) {
+    :root { --pad: 10px; }
+    .stats-page { padding: 12px 8px 32px; }
+    .stats-header { padding: 12px 10px; }
+    h1, h2, .panel-meta, .decision-gridline strong { overflow-wrap: anywhere; }
+    .panel-heading { flex-wrap: wrap; }
+    .panel-meta { max-width: 100%; }
+    .stats-tabs { flex-wrap: wrap; }
+    .stats-diagnostics { min-width: 0; max-width: 100%; flex-basis: 100%; }
+    .stats-diagnostic-tabs { margin-right: 0; padding-right: 0; }
+    .stats-diagnostics-toggle { max-width: 100%; white-space: normal; }
+    .outcome-strip, .summary-grid, .ai-stages { grid-template-columns: minmax(0, 1fr); }
+    .metric-footer { flex-wrap: wrap; }
+    .decision-card { padding: 10px 8px; }
+    .traffic-ranked-row { grid-template-columns: minmax(0, 1fr) auto; }
+    .traffic-ranked-row > span:first-child { min-width: 0; overflow-wrap: anywhere; }
+    .traffic-ranked-row > span:last-child { grid-column: 2; grid-row: 1; }
+    .traffic-meter { grid-column: 1 / -1; grid-row: 2; }
+    .funnel-row { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-areas: "name name" "number rate" "bar bar" "drop drop"; gap: 4px; }
+    .segment-row, .trend-row { grid-template-columns: minmax(0, 1fr); }
+    .segment-row > span:first-child, .trend-row > span:first-child { grid-column: auto; }
+    .friction-row { grid-template-columns: minmax(0, 1fr); }
 }
 
 @media (pointer: coarse) {

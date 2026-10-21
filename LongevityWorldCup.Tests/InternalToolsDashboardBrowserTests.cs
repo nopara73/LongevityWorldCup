@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Microsoft.Playwright;
 using Xunit;
 
@@ -61,6 +62,10 @@ public sealed class InternalToolsDashboardBrowserTests(
     [Theory]
     [InlineData(1440)]
     [InlineData(1024)]
+    [InlineData(1180)]
+    [InlineData(1181)]
+    [InlineData(195)]
+    [InlineData(160)]
     [InlineData(390)]
     public async Task Statistics_DiagnosticsListsAreReadableAndNeverClipped(int width)
     {
@@ -82,7 +87,7 @@ public sealed class InternalToolsDashboardBrowserTests(
                     .map(selector => document.querySelector(selector))
                     .filter(Boolean)
                     .map(row => ({ name: row.className, align: getComputedStyle(row).textAlign, background: getComputedStyle(row).backgroundColor }));
-                const fonts = [...document.querySelectorAll('.metric-label, .decision-gridline, .funnel-rate, .sample-meta, .friction-name span, .compact-table td')]
+                const fonts = [...document.querySelectorAll('.metric-label, .decision-gridline strong, .funnel-rate, .sample-meta, .friction-name span, .compact-table td, .compact-table th')]
                     .map(node => parseFloat(getComputedStyle(node).fontSize));
                 const headers = [...document.querySelectorAll('.compact-table th')]
                     .map(th => ({ text: th.textContent, wraps: getComputedStyle(th).whiteSpace !== 'nowrap' && th.getBoundingClientRect().height > 30 }));
@@ -91,7 +96,8 @@ public sealed class InternalToolsDashboardBrowserTests(
                     rows,
                     smallestFont: Math.min(...fonts),
                     wrappedHeaders: headers.filter(header => header.wraps).map(header => header.text),
-                    tablesScroll: [...document.querySelectorAll('.compact-table')].every(table => table.parentElement.classList.contains('table-scroll'))
+                    tablesScroll: [...document.querySelectorAll('.compact-table')].every(table => table.parentElement.classList.contains('table-scroll') && table.parentElement.tabIndex === 0),
+                    rowOverflow: [...document.querySelectorAll('.trend-row, .segment-row, .funnel-row')].filter(row => row.scrollWidth > row.clientWidth + 1).map(row => row.className)
                 };
             }
             """);
@@ -103,7 +109,8 @@ public sealed class InternalToolsDashboardBrowserTests(
             // Button rows never fall back to the browser's light-grey button face.
             Assert.NotEqual("rgb(239, 239, 239)", row.GetProperty("background").GetString());
         }
-        Assert.True(result.GetProperty("smallestFont").GetDouble() >= 10, $"Smallest diagnostics text is {result.GetProperty("smallestFont").GetDouble()}px.");
+        Assert.True(result.GetProperty("smallestFont").GetDouble() >= 12, $"Smallest diagnostics text is {result.GetProperty("smallestFont").GetDouble()}px.");
+        Assert.Empty(result.GetProperty("rowOverflow").EnumerateArray());
         Assert.Empty(result.GetProperty("wrappedHeaders").EnumerateArray());
         Assert.True(result.GetProperty("tablesScroll").GetBoolean());
         await FlowActionDockBrowserTests.ExpectNoHorizontalOverflowAsync(page);
@@ -183,6 +190,8 @@ public sealed class InternalToolsDashboardBrowserTests(
     [Theory]
     [InlineData(390, ColorScheme.Light)]
     [InlineData(320, ColorScheme.Dark)]
+    [InlineData(195, ColorScheme.Dark)]
+    [InlineData(160, ColorScheme.Dark)]
     public async Task Designer_AllDestinationsFitPhonesInOneColumn(int width, ColorScheme scheme)
     {
         await using var context = await NewContextAsync(width, scheme);
@@ -208,8 +217,53 @@ public sealed class InternalToolsDashboardBrowserTests(
 
         var editorWidth = layout.GetProperty("editorWidth").GetInt32();
         Assert.All(layout.GetProperty("blockWidths").EnumerateArray(), value => Assert.InRange(value.GetInt32(), editorWidth - 1, editorWidth + 1));
-        Assert.Equal(2, layout.GetProperty("columns").GetInt32());
+        Assert.Equal(width <= 280 ? 1 : 2, layout.GetProperty("columns").GetInt32());
         await FlowActionDockBrowserTests.ExpectNoHorizontalOverflowAsync(page);
+    }
+
+    [Fact]
+    public async Task Statistics_FunnelPreservesReachAndComparesAdjacentSessionCohorts()
+    {
+        await using var context = await NewContextAsync(1181, ColorScheme.Dark);
+        var page = await context.NewPageAsync();
+        var payload = JsonNode.Parse(DashboardPayload(diagnostics: false))!;
+        var at = DateTime.UtcNow.AddHours(-1).ToString("O", CultureInfo.InvariantCulture);
+        object Step(string name, string session) => Event(name, "challenge", session, "/longevitymaxxing", "viewed", at, "desktop", "direct");
+        payload["events"] = JsonSerializer.SerializeToNode(new[]
+        {
+            Step("challenge_page_viewed", "S-a"), Step("challenge_page_viewed", "S-b"),
+            Step("challenge_public_state_loaded", "S-b"), Step("challenge_public_state_loaded", "S-c"), Step("challenge_public_state_loaded", "S-d"),
+            Step("challenge_signup_started", "S-a"),
+            Step("challenge_scored_checkin_submitted", "S-returning")
+        });
+        await RouteDashboardAsync(page, payload.ToJsonString());
+        await page.GotoAsync(Statistics + "?tab=Challenge%20Diagnostics");
+        var rows = page.Locator("#primaryFunnel .funnel-row");
+        await Assertions.Expect(rows.Nth(1).Locator(".funnel-number")).ToHaveTextAsync("3");
+        await Assertions.Expect(rows.Nth(1).Locator(".funnel-rate")).ToHaveTextAsync("50%");
+        await Assertions.Expect(rows.Nth(1).Locator(".funnel-drop")).ToHaveTextAsync("drop 1");
+        await Assertions.Expect(rows.Nth(2).Locator(".funnel-number")).ToHaveTextAsync("0");
+        await Assertions.Expect(rows.Nth(2).Locator(".funnel-drop")).ToHaveTextAsync("drop 3");
+        await Assertions.Expect(rows.Nth(3).Locator(".funnel-rate")).ToHaveTextAsync("0%");
+        await Assertions.Expect(rows.Nth(3).Locator(".funnel-drop")).ToHaveTextAsync("drop 0");
+        Assert.Equal("100%", await rows.Nth(1).Locator(".funnel-fill").EvaluateAsync<string>("e => e.style.width"));
+        Assert.Equal(0, await rows.Nth(2).Locator(".funnel-fill").EvaluateAsync<double>("e => e.getBoundingClientRect().width"));
+        var widths = await page.Locator(".funnel-fill").EvaluateAllAsync<double[]>("fills => fills.map(e => parseFloat(e.style.width))");
+        Assert.All(widths, value => Assert.True(double.IsFinite(value) && value >= 0 && value <= 100));
+    }
+
+    [Fact]
+    public async Task Designer_PushPreviewRendersItsIconWithoutAnExternalFont()
+    {
+        await using var context = await NewContextAsync(390, ColorScheme.Dark);
+        var page = await context.NewPageAsync();
+        await page.GotoAsync(Designer);
+        await page.Locator("#sendWebPush").CheckAsync();
+        var icon = page.Locator("#webPushPreview svg.push-preview-icon");
+        await Assertions.Expect(icon).ToBeVisibleAsync();
+        var bounds = await icon.BoundingBoxAsync();
+        Assert.NotNull(bounds);
+        Assert.True(bounds.Width >= 22 && bounds.Height >= 22);
     }
 
     private Task<IBrowserContext> NewContextAsync(int width, ColorScheme scheme)
