@@ -70,7 +70,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
         await page.GotoAsync("/longevitymaxxing?token=browser-token");
         await page.Locator(".lmx-habit-history > summary").ClickAsync();
         var history = page.Locator(".lmx-dashboard-scroll");
-        await page.WaitForFunctionAsync("document.querySelector('.lmx-dashboard-scroll').scrollLeft > 0");
+        await page.WaitForFunctionAsync("() => document.querySelector('.lmx-dashboard-scroll').scrollLeft > 0");
         var initial = await history.EvaluateAsync<double>("e => e.scrollLeft");
         await history.FocusAsync();
         await page.Keyboard.PressAsync("ArrowLeft");
@@ -519,7 +519,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
         Assert.Equal(22, await cells.CountAsync());
         Assert.True(await page.Locator("#lmxWeekPager").IsHiddenAsync());
         var timeline = page.Locator("#lmxBoardSection .lmx-board-scroll");
-        await page.WaitForFunctionAsync("document.querySelector('#lmxBoardSection .lmx-board-scroll').scrollLeft > 0");
+        await page.WaitForFunctionAsync("() => document.querySelector('#lmxBoardSection .lmx-board-scroll').scrollLeft > 0");
         var latestPosition = await timeline.EvaluateAsync<double>("e => e.scrollLeft");
         await timeline.HoverAsync();
         await page.Mouse.WheelAsync(-200, 0);

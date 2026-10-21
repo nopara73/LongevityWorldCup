@@ -2263,6 +2263,7 @@ function setProofViewerZoom(enlargedElem, requestedIndex, shouldCenter = true) {
     const ready = enlargedElem.dataset.imageState === 'ready';
 
     enlargedElem.proofZoomIndex = boundedIndex;
+    enlargedElem.dataset.proofZoom = String(zoom);
     enlargedElem.style.setProperty('--proof-viewer-zoom', String(zoom));
     if (zoomOut) zoomOut.disabled = !ready || boundedIndex === 0;
     if (zoomIn) zoomIn.disabled = !ready || boundedIndex === proofViewerZoomLevels.length - 1;
@@ -6060,17 +6061,18 @@ function getBiomarkerTestDate(value) {
 }
 
 function buildBiomarkerHistory(fullAthleteData) {
-    const biomarkerData = (Array.isArray(fullAthleteData.Biomarkers) ? fullAthleteData.Biomarkers : [])
-        .slice().sort((a, b) => new Date(a?.Date) - new Date(b?.Date));
     const dob = new Date(
         fullAthleteData.DateOfBirth.Year,
         fullAthleteData.DateOfBirth.Month - 1,
         fullAthleteData.DateOfBirth.Day
     );
 
-    const chartData = biomarkerData.filter(entry => entry && entry.Date && Number.isFinite(Date.parse(entry.Date)) && Object.entries(entry).some(([key, value]) =>
-        key !== 'Date' && value != null && value !== '' && Number.isFinite(Number(value))
-    ));
+    // Filter before sorting: a NaN comparator from an invalid date can leave
+    // valid readings out of order and change which reading is called latest.
+    const chartData = (Array.isArray(fullAthleteData.Biomarkers) ? fullAthleteData.Biomarkers : [])
+        .filter(entry => entry && Number.isFinite(biomarkerHistoryTimestamp(entry.Date)) && Object.entries(entry).some(([key, value]) =>
+            key !== 'Date' && isBiomarkerHistoryValue(value)))
+        .sort((a, b) => biomarkerHistoryTimestamp(a.Date) - biomarkerHistoryTimestamp(b.Date));
 
     const labels = chartData.map(entry => entry.Date);
     const phenoAges = [];
@@ -6166,12 +6168,21 @@ function buildBiomarkerHistory(fullAthleteData) {
 
 const biomarkerHistoryDateFormat = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
 
+function biomarkerHistoryTimestamp(value) {
+    if (typeof value !== 'string') return NaN;
+    const calendarDate = /^(\d{4}-\d{2}-\d{2})(?:$|T)/.exec(value)?.[1];
+    const timestamp = Date.parse(value);
+    if (!calendarDate || !Number.isFinite(timestamp)) return NaN;
+    const midnight = Date.parse(`${calendarDate}T00:00:00Z`);
+    return Number.isFinite(midnight) && new Date(midnight).toISOString().slice(0, 10) === calendarDate ? timestamp : NaN;
+}
+
 function formatResultDate(date) {
     return biomarkerHistoryDateFormat.format(new Date(date));
 }
 
 function isBiomarkerHistoryValue(value) {
-    return value != null && value !== '' && Number.isFinite(Number(value));
+    return (typeof value === 'number' || typeof value === 'string' && value.trim() !== '') && Number.isFinite(Number(value));
 }
 
 function formatResultValue(value, measure) {
@@ -6277,7 +6288,10 @@ function renderBiomarkerHistory(history, athletes) {
         const arrow = document.createElement('span');
         arrow.className = 'biomarker-overview-arrow';
         arrow.setAttribute('aria-hidden', 'true');
-        result.append(current, arrow);
+        result.append(current);
+        const change = createResultChange(measure, measuredIndices);
+        if (change) result.appendChild(change);
+        result.appendChild(arrow);
         row.append(heading, sparkline, result);
         rows.append(row, detail);
     });
@@ -6294,11 +6308,41 @@ function renderBiomarkerHistory(history, athletes) {
     }
 }
 
+// The change since the first reading, signed and as precise as the readings themselves.
+function createResultChange(measure, indices) {
+    if (indices.length < 2) return null;
+    const first = Number(measure.values[indices[0]]);
+    const latest = Number(measure.values[indices.at(-1)]);
+    if (!Number.isFinite(first) || !Number.isFinite(latest) || !Number.isFinite(latest - first)) return null;
+    const decimals = value => {
+        if (measure.clock) return 1;
+        const [significand, exponent = '0'] = String(value).toLowerCase().split('e');
+        return Math.max(0, (significand.split('.')[1] || '').length - Number(exponent));
+    };
+    const precision = Math.max(decimals(measure.values[indices[0]]), decimals(measure.values[indices.at(-1)]));
+    const delta = precision <= 100 ? Number((latest - first).toFixed(precision)) : latest - first;
+    const change = document.createElement('span');
+    change.className = 'biomarker-overview-change';
+    change.dataset.direction = delta > 0 ? 'up' : delta < 0 ? 'down' : 'flat';
+    const magnitude = precision <= 12 ? Math.abs(delta).toFixed(precision) : String(Math.abs(delta));
+    change.textContent = delta === 0 ? '±0' : `${delta > 0 ? '+' : '−'}${magnitude}`;
+    change.setAttribute('role', 'img');
+    change.setAttribute('aria-label', `Change since first reading: ${change.textContent} ${measure.unit}`);
+    return change;
+}
+
 function updateClockHistoryOverflow(strip) {
     const overflow = strip.scrollWidth - strip.clientWidth;
     strip.style.setProperty('--clock-history-left-fade', overflow + strip.scrollLeft > 1 ? '8px' : '0px');
     strip.style.setProperty('--clock-history-right-fade', strip.scrollLeft < -1 ? '8px' : '0px');
     strip.tabIndex = overflow > 1 ? 0 : -1;
+    // Keep complete figures at the edge of the scroll window. Opacity retains
+    // every dated value in the accessible history while avoiding half a number.
+    const bounds = strip.getBoundingClientRect();
+    strip.querySelectorAll('.clock-history-reading').forEach(reading => {
+        const value = reading.getBoundingClientRect();
+        reading.classList.toggle('is-clipped', value.left < bounds.left - .5 || value.right > bounds.right + .5);
+    });
 }
 
 function createClockHistory(history, measure, indices) {
@@ -6395,8 +6439,10 @@ function createResultHistoryTable(history, measure) {
         heading.appendChild(cell);
     });
     const body = table.createTBody();
+    const latest = measure.values.findLastIndex(isBiomarkerHistoryValue);
     history.labels.forEach((date, index) => {
         const row = body.insertRow();
+        row.classList.toggle('is-latest', index === latest);
         const cell = document.createElement('th');
         cell.scope = 'row';
         const time = document.createElement('time');
@@ -6438,23 +6484,45 @@ function historySvgNode(parent, tag, attributes, text) {
 function createBiomarkerSparkline(labels, values) {
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     svg.setAttribute('viewBox', '0 0 120 40');
-    const measured = values.filter(isBiomarkerHistoryValue).map(Number);
-    const min = Math.min(...measured);
-    const max = Math.max(...measured);
-    const start = Date.parse(labels[0]);
-    const duration = Date.parse(labels.at(-1)) - start;
-    const latest = values.findLastIndex(isBiomarkerHistoryValue);
+    const dates = labels.map((date, index) => ({ index, timestamp: biomarkerHistoryTimestamp(date) }))
+        .filter(date => Number.isFinite(date.timestamp)).sort((a, b) => a.timestamp - b.timestamp);
+    const measured = dates.filter(date => isBiomarkerHistoryValue(values[date.index]));
+    const numbers = measured.map(date => Number(values[date.index]));
+    const min = numbers.length ? Math.min(...numbers) : 0;
+    const max = numbers.length ? Math.max(...numbers) : 0;
+    const valueScale = Math.max(Math.abs(min), Math.abs(max), 1);
+    const start = dates[0]?.timestamp ?? 0;
+    const duration = (dates.at(-1)?.timestamp ?? start) - start;
+    const xAt = date => duration ? 8 + (date.timestamp - start) / duration * 104 : 60;
+    const latest = measured.at(-1)?.index;
+    // The whole test timeline sits under every trend, so a short series reads as recent, not misplaced.
+    historySvgNode(svg, 'line', { class: 'sparkline-track', x1: 8, y1: 36, x2: 112, y2: 36 });
+    dates.forEach(date => {
+        const x = xAt(date);
+        historySvgNode(svg, 'line', { class: 'sparkline-tick', x1: x, y1: 34, x2: x, y2: 38 });
+    });
+    const areas = historySvgNode(svg, 'g', { class: 'sparkline-area' });
     const lines = historySvgNode(svg, 'g', {});
-    let previous = null;
-    values.forEach((value, index) => {
-        if (!isBiomarkerHistoryValue(value)) { previous = null; return; }
-        const x = duration ? 8 + (Date.parse(labels[index]) - start) / duration * 104 : 60;
-        const y = min === max ? 20 : 32 - (Number(value) - min) / (max - min) * 24;
+    let run = [];
+    const closeRun = () => {
+        if (run.length > 1) historySvgNode(areas, 'path', {
+            d: `M${run[0].x},36 ${run.map(point => `L${point.x},${point.y}`).join(' ')} L${run.at(-1).x},36Z`
+        });
+        run = [];
+    };
+    dates.forEach(date => {
+        const index = date.index;
+        const value = values[index];
+        if (!isBiomarkerHistoryValue(value)) { closeRun(); return; }
+        const x = xAt(date);
+        const y = min === max ? 18 : 30 - (Number(value) / valueScale - min / valueScale) / (max / valueScale - min / valueScale) * 24;
+        const previous = run.at(-1);
         if (previous) historySvgNode(lines, 'line', { x1: previous.x, y1: previous.y, x2: x, y2: y });
         historySvgNode(svg, 'circle', { cx: x, cy: y, r: index === latest ? 4 : 2.5,
-            class: index === latest ? 'is-latest' : index === 0 ? 'is-baseline' : '' });
-        previous = { x, y };
+            class: index === latest ? 'is-latest' : index === measured[0]?.index ? 'is-baseline' : '' });
+        run.push({ x, y });
     });
+    closeRun();
     return svg;
 }
 
@@ -6486,11 +6554,11 @@ function drawResultPlot(state) {
         const muted = color('--athlete-modal-muted');
         const ink = color('--athlete-modal-text');
         const own = points.filter(point => point.isAthlete);
-        const latestDate = own.reduce((date, point) => point.date > date ? point.date : date, '');
+        const latestIndex = measure.values.findLastIndex(isBiomarkerHistoryValue);
         const ownStyle = {
             borderColor: accent, borderWidth: 2, pointBorderColor: accent, pointBorderWidth: 2,
-            pointBackgroundColor: context => context.raw?.date === latestDate ? accent : tooltip,
-            pointRadius: context => context.raw?.date === latestDate ? 5.5 : 4,
+            pointBackgroundColor: context => context.raw?.index === latestIndex ? accent : tooltip,
+            pointRadius: context => context.raw?.index === latestIndex ? 5.5 : 4,
             pointHoverRadius: 7, pointHoverBorderColor: ink, pointHitRadius: 12, clip: false
         };
         const datasets = [

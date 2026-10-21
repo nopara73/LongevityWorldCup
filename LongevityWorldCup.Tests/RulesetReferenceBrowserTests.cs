@@ -100,7 +100,7 @@ public sealed class RulesetReferenceBrowserTests(
                 location.hash = 'how-can-i-cheat-answer';
             }
             """);
-        await page.WaitForFunctionAsync("window.faqBeforematches > 0");
+        await page.WaitForFunctionAsync("() => window.faqBeforematches > 0");
         var toggle = page.Locator("#how-can-i-cheat ~ .ruleset-faq-toggle");
         Assert.Equal("true", await toggle.GetAttributeAsync("aria-expanded"));
         Assert.Null(await page.Locator("#how-can-i-cheat-answer").GetAttributeAsync("hidden"));
@@ -108,9 +108,9 @@ public sealed class RulesetReferenceBrowserTests(
         Assert.Equal("until-found", await page.Locator("#how-can-i-cheat-answer").GetAttributeAsync("hidden"));
 
         await page.EvaluateAsync("location.hash = 'what-will-sponsorships-include'");
-        await page.WaitForFunctionAsync("document.querySelector('#what-will-sponsorships-include-answer:not([hidden])')");
+        await page.WaitForFunctionAsync("() => document.querySelector('#what-will-sponsorships-include-answer:not([hidden])')");
         await page.GoBackAsync();
-        await page.WaitForFunctionAsync("document.querySelector('#how-can-i-cheat-answer:not([hidden])')");
+        await page.WaitForFunctionAsync("() => document.querySelector('#how-can-i-cheat-answer:not([hidden])')");
         Assert.Equal("true", await toggle.GetAttributeAsync("aria-expanded"));
     }
 

@@ -32,6 +32,10 @@
              Link="Fixtures\chart.umd.js"
              CopyToOutputDirectory="PreserveNewest"
              CopyToPublishDirectory="Never" />
+    <Content Include="..\LongevityWorldCup.Website\node_modules\cropperjs\dist\cropper.min.js;..\LongevityWorldCup.Website\node_modules\cropperjs\dist\cropper.min.css"
+             Link="Fixtures\%(Filename)%(Extension)"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="Never" />
   </ItemGroup>
 
 </Project>

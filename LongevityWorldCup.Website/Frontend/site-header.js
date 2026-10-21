@@ -68,7 +68,16 @@ function handleScroll(scrollPos, remeasure = false) {
         ? mainHeader.offsetHeight - measuredStickyHeight
         : mainHeader.offsetHeight;
     const willBeVisible = scrollPos >= threshold;
+    // A focused sticky link must not disappear from the keyboard's location
+    // when scrolling or resizing brings the original banner back into view.
+    if (!willBeVisible && (stickyHeader.contains(document.activeElement) || document.activeElement === scrolledJoinButton)) {
+        const target = document.activeElement === scrolledJoinButton && mainJoinButtonVisible
+            ? joinGameBtn
+            : mainHeader.querySelector('.header-link');
+        target?.focus({ preventScroll: true });
+    }
     stickyHeader.classList.toggle('visible', willBeVisible);
+    stickyHeader.inert = !willBeVisible;
     stickyHeader.setAttribute('aria-hidden', String(!willBeVisible));
     if (scrolledJoinButton) {
         scrolledJoinButton.style.display = willBeVisible && actionAvailable ? 'inline-flex' : 'none';
