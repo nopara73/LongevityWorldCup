@@ -6088,6 +6088,10 @@ function populateModal(fullAthleteData, athleteData, rankSummary) {
         wrapper.setAttribute('tabindex', '0');
         wrapper.setAttribute('aria-expanded', 'false');
         wrapper.setAttribute('aria-label', fullTitle ? `Show badge details: ${fullTitle}` : 'Show badge details');
+        if (!badge.matches('a')) {
+            badge.setAttribute('tabindex', '-1');
+            badge.removeAttribute('title');
+        }
         wrapper.appendChild(badge);
 
         const label = document.createElement('div');
@@ -6103,13 +6107,16 @@ function populateModal(fullAthleteData, athleteData, rankSummary) {
 
         const toggleBadgeDetails = (event) => {
             if (event.target.closest('a.badge-podcast')) return;
-
-            const isExpanded = wrapper.classList.toggle('expanded');
-            wrapper.setAttribute('aria-expanded', isExpanded ? 'true' : 'false');
+            setModalBadgeExplainer(modalBadgeSection, wrapper.classList.contains('expanded') ? null : wrapper);
         };
 
         wrapper.addEventListener('click', toggleBadgeDetails);
         wrapper.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && wrapper.classList.contains('expanded')) {
+                event.stopPropagation();
+                setModalBadgeExplainer(modalBadgeSection, null);
+                return;
+            }
             if (event.key !== 'Enter' && event.key !== ' ') return;
             if (event.target.closest('a.badge-podcast')) return;
 
@@ -6119,6 +6126,56 @@ function populateModal(fullAthleteData, athleteData, rankSummary) {
         modalBadgeSection.appendChild(wrapper);
     });
 
+}
+
+// The shelf keeps its grid still: a chosen badge's explanation opens as one
+// panel under that badge's row, with a caret pointing back at the badge.
+function setModalBadgeExplainer(shelf, item) {
+    shelf.querySelectorAll('.modal-badge-item.expanded').forEach(open => {
+        open.classList.remove('expanded');
+        open.setAttribute('aria-expanded', 'false');
+    });
+    shelf.querySelector('.modal-badge-explainer')?.remove();
+    if (!item) return;
+
+    const detail = item.querySelector('.modal-badge-detail');
+    const title = item.querySelector('.modal-badge-title');
+    if (!detail && !title) return;
+
+    item.classList.add('expanded');
+    item.setAttribute('aria-expanded', 'true');
+
+    const panel = document.createElement('div');
+    panel.className = 'modal-badge-explainer';
+    panel.id = 'modalBadgeExplainer';
+    panel.setAttribute('role', 'region');
+    const heading = document.createElement('strong');
+    heading.className = 'modal-badge-explainer-title';
+    heading.textContent = title ? title.textContent : '';
+    panel.appendChild(heading);
+    if (detail) {
+        const text = document.createElement('span');
+        text.className = 'modal-badge-explainer-detail';
+        text.textContent = detail.textContent;
+        panel.appendChild(text);
+    }
+    item.setAttribute('aria-controls', panel.id);
+
+    const items = Array.from(shelf.querySelectorAll('.modal-badge-item'));
+    const top = item.offsetTop;
+    const rowEnd = items.filter(other => other.offsetTop === top).pop() || item;
+    rowEnd.after(panel);
+    const panelRect = panel.getBoundingClientRect();
+    const badgeRect = (item.querySelector('.badge-class') || item).getBoundingClientRect();
+    panel.style.setProperty('--explainer-caret', `${Math.round(badgeRect.left + badgeRect.width / 2 - panelRect.left)}px`);
+
+    if (!shelf.dataset.explainerResize) {
+        shelf.dataset.explainerResize = 'true';
+        window.addEventListener('resize', () => {
+            const open = shelf.querySelector('.modal-badge-item.expanded');
+            if (open) setModalBadgeExplainer(shelf, open);
+        }, { passive: true });
+    }
 }
 
 function getBiomarkerTestDate(value) {

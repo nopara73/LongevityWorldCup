@@ -1,4 +1,16 @@
-.badge-section{display:flex;align-items:center;flex-wrap:wrap;gap:.3rem}
+:root{
+    /* One rim, ring and sheen for every badge shape, so rank discs, pace tiles,
+       domain hexagons and utility tiles read as one minted family. */
+    --badge-rim:rgba(0,0,0,.48);
+    --badge-sheen:linear-gradient(180deg,rgba(255,255,255,.34),rgba(255,255,255,.06) 70%,rgba(255,255,255,0));
+    --badge-ring:inset 0 0 0 1px rgba(255,255,255,.16);
+    --badge-lift:0 1px 2px rgba(0,0,0,.16),0 2px 6px rgba(0,0,0,.1);
+}
+@media (prefers-color-scheme: dark){
+    /* On dark surfaces a black rim disappears, so the badges would read as loose glyphs. */
+    :root{--badge-rim:rgba(255,255,255,.26);--badge-lift:0 1px 2px rgba(0,0,0,.4),0 3px 8px rgba(0,0,0,.28)}
+}
+.badge-section{display:flex;align-items:center;flex-wrap:wrap;gap:.4rem}
 .badge-class{
     display:inline-flex;
     align-items:center;
@@ -11,23 +23,26 @@
     width:32px;
     height:32px;
     flex:0 0 auto;
-    border:1px solid rgba(0,0,0,.48)!important;
+    border:1px solid var(--badge-rim)!important;
     border-radius:50%;
     font-size:.95rem;
     line-height:1;
     font-weight:bold;
     color:#fff!important;
     margin-left:0;
-    box-shadow:0 1px 2px rgba(0,0,0,.18);
+    box-shadow:var(--badge-ring),var(--badge-lift);
     transition:filter var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease),box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease)
 }
 .badge-class::after{
     content:"";
     position:absolute;
-    inset:2px 3px auto;
-    height:42%;
+    inset:1px 1px auto;
+    height:52%;
     border-radius:inherit;
-    background:transparent;
+    border-bottom-left-radius:50% 30%;
+    border-bottom-right-radius:50% 30%;
+    background:var(--badge-sheen);
+    opacity:.7;
     pointer-events:none;
     z-index:0
 }
@@ -38,9 +53,9 @@
     border:0!important;
     border-radius:0;
     clip-path:polygon(24% 5%,76% 5%,100% 50%,76% 95%,24% 95%,0 50%);
-    background:#111!important;
+    background:var(--badge-rim)!important;
     box-shadow:none;
-    filter:drop-shadow(0 1px 1px rgba(0,0,0,.18))
+    filter:drop-shadow(0 1px 2px rgba(0,0,0,.2))
 }
 .badge-class.badge-family-domain::before{
     content:"";
@@ -50,11 +65,22 @@
     background:var(--badge-bg,linear-gradient(135deg,#555,#222));
     clip-path:polygon(24% 5%,76% 5%,100% 50%,76% 95%,24% 95%,0 50%)
 }
-.badge-class.badge-family-domain::after{inset:3px 5px auto;height:38%;clip-path:polygon(20% 0,80% 0,100% 55%,76% 100%,24% 100%,0 55%)}
+.badge-class.badge-family-domain::after{inset:2px 4px auto;height:46%;border-radius:0;clip-path:polygon(21% 0,79% 0,100% 62%,0 62%)}
 .badge-class.badge-family-pace{border-radius:12px}
 .badge-class.badge-family-utility{border-radius:9px}
-.badge-class.badge-overflow-count{background:linear-gradient(135deg,#f8fbfc,#dfe9ec)!important;border:1px solid rgba(0,188,212,.42)!important;color:var(--primary-color)!important;font-size:.78rem;font-weight:800;letter-spacing:.01em;box-shadow:inset 0 1px 0 rgba(255,255,255,.85),0 2px 4px rgba(0,0,0,.16)}
+.badge-class.badge-overflow-count{
+    background:var(--lwc-surface-muted,#f1f5f6)!important;
+    border:1px solid var(--lwc-border-strong,rgba(0,0,0,.24))!important;
+    border-radius:9px;
+    color:var(--lwc-muted,#5b6b73)!important;
+    font-size:.78rem;
+    font-weight:800;
+    font-variant-numeric:tabular-nums;
+    letter-spacing:.01em;
+    box-shadow:none
+}
 .badge-class.badge-overflow-count::after{display:none}
+a.badge-class.badge-overflow-count:hover,a.badge-class.badge-overflow-count:focus-visible{color:var(--lwc-accent,#00838f)!important;border-color:currentColor!important;box-shadow:none}
 .badge-class:hover{filter:brightness(1.06)}
 a.badge-class:hover,.badge-class.badge-clickable:hover,.badge-class[data-clickable="true"]:hover,.modal-badge-item>a.badge-class:hover{transform:none;animation:none;box-shadow:0 3px 8px rgba(0,0,0,.26)}
 a.badge-class:focus-visible,.badge-class.badge-clickable:focus-visible,.badge-class[data-clickable="true"]:focus-visible,.modal-badge-item>a.badge-class:focus-visible{transform:none;animation:none;outline:3px solid var(--lwc-accent-bright, #19c3d1);outline-offset:3px}
@@ -71,138 +97,171 @@ a.badge-class:focus-visible,.badge-class.badge-clickable:focus-visible,.badge-cl
 .modal-badge-item:hover .modal-badge-name,.modal-badge-item.expanded .modal-badge-name{-webkit-line-clamp:unset;max-height:none;overflow:visible}
 .modal-badge-item[role="button"]{cursor:pointer}
 .modal-badge-item[role="button"]:focus-visible{outline:3px solid rgba(0,188,212,.72);outline-offset:4px;border-radius:14px}
-/* In the profile the badges are the shelf of the rank card: an even grid of
-   equal cells under the ranks, not a separately framed cluster. The frame
-   itself comes from the dialog's shared card rules. */
-#detailsModal .modal-badge-strip{
-    display:flex;
-    flex-wrap:wrap;
-    justify-content:center;
-    align-items:flex-start;
-    gap:1rem .5rem;
-    box-sizing:border-box;
-    padding:1.1rem 1rem 1rem;
-}
-#detailsModal .modal-badge-strip .modal-badge-item{
-    flex:0 1 5.75rem;
-    width:5.75rem;
-    min-width:0;
-    margin:0;
-    text-align:center;
-}
-#detailsModal .modal-badge-strip .badge-class{
-    width:56px;
-    height:56px;
-    margin:0 0 .3rem;
-    font-size:1.6rem;
-}
-#detailsModal .modal-badge-strip .modal-badge-name{
-    width:auto;
-    max-width:7.5rem;
-    margin-inline:auto;
-    font-size:.72rem;
-}
-#detailsModal .modal-badge-strip .modal-badge-item.expanded{
-    flex-basis:100%;
-    width:100%;
-}
-#detailsModal .modal-badge-strip:empty{
-    display:none;
-}
-#detailsModal .modal-badge-strip .modal-badge-name{
-    color:var(--athlete-modal-muted,rgba(255,255,255,.68));
-    font-weight:800;
-    line-height:1.15;
-}
-#detailsModal .modal-badge-name .modal-badge-title{
-    color:var(--athlete-modal-text,rgba(255,255,255,.94));
-}
-#detailsModal .modal-badge-name .modal-badge-detail{
-    color:inherit;
-    font-weight:400;
-}
-#detailsModal .modal-badge-item:hover .modal-badge-name,
-#detailsModal .modal-badge-item.expanded .modal-badge-name{
-    color:var(--athlete-modal-text,rgba(255,255,255,.94));
-}
-#detailsModal .modal-badge-strip .badge-class{
-    border:1px solid rgba(246,244,237,.5)!important;
-    outline:none;
-    box-shadow:0 10px 24px rgba(0,0,0,.28), inset 1px 0 0 rgba(255,255,255,.46), inset -1px 0 0 rgba(255,255,255,.46), inset 0 0 0 1px rgba(255,255,255,.12), inset 0 1px 0 rgba(255,255,255,.22);
-}
-#detailsModal .modal-badge-strip .badge-class.badge-family-domain{
-    background:linear-gradient(90deg, rgba(255,255,255,.78), rgba(246,244,237,.48) 18%, rgba(246,244,237,.42) 50%, rgba(246,244,237,.48) 82%, rgba(255,255,255,.78))!important;
-    filter:drop-shadow(0 8px 16px rgba(0,0,0,.24));
-}
-#detailsModal .modal-badge-strip .badge-class.badge-family-domain::before{
-    inset:1px;
-}
-#detailsModal a.badge-class:focus-visible,
-#detailsModal .badge-class.badge-clickable:focus-visible,
-#detailsModal .badge-class[data-clickable="true"]:focus-visible,
-#detailsModal .modal-badge-item>a.badge-class:focus-visible{
-    outline:3px solid var(--lwc-accent-bright, #19c3d1);
-    outline-offset:3px;
-    box-shadow:0 0 0 3px rgba(246,244,237,.28),0 10px 22px rgba(0,0,0,.32);
-}
 .badge-class{cursor:default!important}
 a.badge-class,.badge-class.badge-clickable,.badge-class[data-clickable="true"],.modal-badge-item>a.badge-class{cursor:pointer!important}
 
+/* The badge explanation popover (badges.ts): one dark card for every surface,
+   so an explanation reads the same in rows, boards and both themes. */
+.badge-tip{
+    position:absolute;
+    z-index:10050;
+    box-sizing:border-box;
+    width:max-content;
+    max-width:min(20rem,calc(100vw - 16px));
+    padding:.55rem .75rem;
+    border:1px solid rgba(255,255,255,.14);
+    border-radius:var(--lwc-radius-sm,8px);
+    background:#17212b;
+    color:#fff;
+    box-shadow:0 10px 28px rgba(0,0,0,.28);
+    font-size:.8125rem;
+    font-weight:400;
+    line-height:1.35;
+    text-align:left;
+    pointer-events:none;
+    animation:badge-tip-in var(--lwc-duration-fast,140ms) var(--lwc-ease,ease)
+}
+.badge-tip[hidden]{display:none}
+.badge-tip::after{
+    content:"";
+    position:absolute;
+    left:var(--badge-tip-arrow,50%);
+    bottom:-6px;
+    width:10px;
+    height:10px;
+    border:solid rgba(255,255,255,.14);
+    border-width:0 1px 1px 0;
+    background:#17212b;
+    transform:translateX(-50%) rotate(45deg)
+}
+.badge-tip[data-side="below"]::after{bottom:auto;top:-6px;border-width:1px 0 0 1px}
+.badge-tip-row{display:block}
+.badge-tip-row+.badge-tip-row{margin-top:.4rem;padding-top:.4rem;border-top:1px solid rgba(255,255,255,.12)}
+.badge-tip-title{display:block;font-weight:700;color:#fff}
+.badge-tip-detail{display:block;color:rgba(255,255,255,.74)}
+@keyframes badge-tip-in{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion: reduce){.badge-tip{animation:none}}
+
+/* In the profile the badges are the shelf of the rank card: an even grid of
+   equal cells that never reflows. A chosen badge opens one explanation panel
+   under its row, pointing back at the badge. */
+#detailsModal .modal-badge-strip{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(5.5rem,1fr));
+    justify-items:center;
+    align-items:start;
+    gap:.75rem .5rem;
+    box-sizing:border-box;
+    margin:.5rem 0 1rem;
+    padding:1.1rem 1rem 1rem;
+}
+#detailsModal .modal-badge-strip:empty{display:none}
+#detailsModal .modal-badge-strip .modal-badge-item{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    box-sizing:border-box;
+    width:100%;
+    max-width:7.5rem;
+    min-width:0;
+    margin:0;
+    padding:.5rem .25rem .45rem;
+    border-radius:var(--lwc-radius-md,12px);
+    text-align:center;
+    transition:background-color var(--lwc-duration-fast,140ms) var(--lwc-ease,ease)
+}
+#detailsModal .modal-badge-strip .modal-badge-item:hover{background:rgba(255,255,255,.05)}
+#detailsModal .modal-badge-strip .modal-badge-item.expanded{background:var(--athlete-modal-cream-soft,rgba(246,244,237,.18))}
+#detailsModal .modal-badge-item[role="button"]:focus-visible{outline:3px solid var(--lwc-accent-bright,#19c3d1);outline-offset:2px;border-radius:var(--lwc-radius-md,12px)}
+#detailsModal .modal-badge-strip .badge-class{
+    --badge-rim:rgba(246,244,237,.5);
+    width:56px;
+    height:56px;
+    margin:0 0 .45rem;
+    font-size:1.6rem;
+    box-shadow:var(--badge-ring),0 8px 18px rgba(0,0,0,.28);
+}
+#detailsModal .modal-badge-strip .badge-class.badge-family-pace{border-radius:18px}
+#detailsModal .modal-badge-strip .badge-class.badge-family-utility{border-radius:14px}
+#detailsModal .modal-badge-strip .badge-class.badge-family-domain{
+    /* a hexagon's flat top and bottom make it look smaller than a disc of the same box */
+    width:62px;
+    margin-inline:-3px;
+    filter:drop-shadow(0 6px 12px rgba(0,0,0,.26));
+}
+#detailsModal .modal-badge-strip .badge-class.badge-family-domain::before{inset:1.5px}
+#detailsModal .modal-badge-strip .modal-badge-name{
+    display:-webkit-box;
+    width:auto;
+    max-width:100%;
+    margin:0;
+    color:var(--athlete-modal-text,rgba(255,255,255,.94));
+    font-size:.72rem;
+    font-weight:800;
+    line-height:1.2;
+    -webkit-line-clamp:2;
+    -webkit-box-orient:vertical;
+    overflow:hidden;
+    overflow-wrap:anywhere;
+}
+#detailsModal .modal-badge-name .modal-badge-title{color:inherit}
+#detailsModal .modal-badge-strip .modal-badge-name .modal-badge-detail,
+#detailsModal .modal-badge-strip .modal-badge-item:hover .modal-badge-detail,
+#detailsModal .modal-badge-strip .modal-badge-item.expanded .modal-badge-detail{display:none}
+#detailsModal .modal-badge-strip .modal-badge-item:hover .modal-badge-name,
+#detailsModal .modal-badge-strip .modal-badge-item.expanded .modal-badge-name{-webkit-line-clamp:2;max-height:none;overflow:hidden}
+#detailsModal .modal-badge-explainer{
+    position:relative;
+    grid-column:1/-1;
+    justify-self:stretch;
+    box-sizing:border-box;
+    margin:.15rem 0 .25rem;
+    padding:.7rem 1rem .75rem;
+    border:1px solid var(--athlete-modal-border,rgba(246,244,237,.34));
+    border-radius:var(--lwc-radius-md,12px);
+    background:var(--athlete-modal-cream-soft,rgba(246,244,237,.18));
+    color:var(--athlete-modal-muted,rgba(255,255,255,.68));
+    font-size:.85rem;
+    line-height:1.4;
+    text-align:center;
+    animation:badge-tip-in var(--lwc-duration-fast,140ms) var(--lwc-ease,ease)
+}
+#detailsModal .modal-badge-explainer::before{
+    content:"";
+    position:absolute;
+    top:-7px;
+    left:var(--explainer-caret,50%);
+    width:12px;
+    height:12px;
+    border:solid var(--athlete-modal-border,rgba(246,244,237,.34));
+    border-width:1px 0 0 1px;
+    background:inherit;
+    transform:translateX(-50%) rotate(45deg);
+    clip-path:polygon(0 0,100% 0,0 100%);
+}
+#detailsModal .modal-badge-explainer-title{display:block;color:var(--athlete-modal-text,rgba(255,255,255,.94));font-weight:800}
+#detailsModal .modal-badge-explainer-detail{display:block;overflow-wrap:anywhere}
+#detailsModal a.badge-class:focus-visible,
+#detailsModal .modal-badge-item>a.badge-class:focus-visible{
+    outline:3px solid var(--lwc-accent-bright,#19c3d1);
+    outline-offset:3px;
+}
+@media (prefers-reduced-motion: reduce){#detailsModal .modal-badge-explainer{animation:none}}
+
 @media (max-width:768px){
     #detailsModal .modal-badge-strip{
-        gap:.85rem .35rem;
-        padding:.9rem .5rem .85rem;
+        grid-template-columns:repeat(auto-fill,minmax(4.75rem,1fr));
+        gap:.5rem .25rem;
+        padding:.85rem .5rem .8rem;
     }
-    #detailsModal .modal-badge-strip .modal-badge-item{
-        flex-basis:5.25rem;
-        width:5.25rem;
-    }
-    #detailsModal .modal-badge-strip .badge-class{
-        width:50px;
-        height:50px;
-        font-size:1.45rem;
-        margin:.15rem;
-    }
-    #detailsModal .modal-badge-strip .modal-badge-name{
-        width:auto;
-        max-width:86px;
-        font-size:.66rem;
-        line-height:1.12;
-    }
-    #detailsModal .modal-badge-item:hover:not(.expanded) .modal-badge-detail{
-        display:none;
-    }
-    #detailsModal .modal-badge-item:hover:not(.expanded) .modal-badge-name{
-        -webkit-line-clamp:3;
-        max-height:none;
-        overflow:hidden;
-    }
-    #detailsModal .modal-badge-item.expanded .modal-badge-detail{
-        display:block;
-    }
-    #detailsModal .modal-badge-strip .modal-badge-item.expanded{
-        flex-basis:100%;
-        width:100%;
-        max-width:100%;
-    }
-    #detailsModal .modal-badge-item.expanded .modal-badge-name{
-        -webkit-line-clamp:unset;
-        max-height:none;
-        max-width:min(100%, 18rem);
-        font-size:.74rem;
-        line-height:1.18;
-        overflow:visible;
-        margin-inline:auto;
-    }
-    #detailsModal .badge-class{pointer-events:none;cursor:default}
-    #detailsModal .badge-class.badge-podcast{pointer-events:auto!important;cursor:pointer!important}
+    #detailsModal .modal-badge-strip .badge-class{width:50px;height:50px;font-size:1.45rem}
+    #detailsModal .modal-badge-strip .badge-class.badge-family-domain{width:56px}
+    #detailsModal .modal-badge-strip .modal-badge-name{font-size:.68rem}
+    #detailsModal .modal-badge-explainer{font-size:.8rem;padding:.65rem .8rem}
+    #detailsModal .modal-badge-strip .badge-class{pointer-events:none}
+    #detailsModal .modal-badge-strip .badge-class.badge-podcast{pointer-events:auto!important;cursor:pointer!important}
 }
 
-/* On dark surfaces a black rim disappears, so the black badges read as loose glyphs.
-   Dark mode gives every badge a faint light rim instead, keeping each one a shape. */
-@media (prefers-color-scheme: dark) {
-    html .badge-class,
-    html .events-board .badge-class {
-        border-color: rgba(255, 255, 255, 0.26) !important;
-    }
-}
+/* Name links borrow the badge box but are bare icons: no coin sheen or ring. */
+.athlete-name-links .badge-class::after{display:none}
+.athlete-name-links .badge-class{box-shadow:none}

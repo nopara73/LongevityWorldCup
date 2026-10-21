@@ -859,6 +859,133 @@ window.setBadges = function (athlete, athleteCell) {
     } catch {}
 };
 
+/* =========================
+   Badge explanation popover
+   =========================
+   One popover explains every badge on every surface. Native titles appear late
+   and in the OS style, and a CSS ::after tooltip is clipped by the badge's own
+   shape, so the title is lifted into this popover while it is shown and put
+   back afterwards. The profile shelf explains its badges in place instead. */
+const BADGE_TIP_TARGET = '.badge-class[title], .badge-class[data-badge-tip]';
+let badgeTip: HTMLElement | null = null;
+let badgeTipOwner: HTMLElement | null = null;
+
+function getBadgeTipText(badge: HTMLElement): string {
+    return badge.getAttribute('data-badge-tip') || badge.getAttribute('title') || '';
+}
+
+function ensureBadgeTip(): HTMLElement {
+    if (badgeTip && badgeTip.isConnected) return badgeTip;
+    badgeTip = document.createElement('div');
+    badgeTip.className = 'badge-tip';
+    badgeTip.setAttribute('role', 'tooltip');
+    badgeTip.id = 'badge-tip';
+    badgeTip.hidden = true;
+    document.body.appendChild(badgeTip);
+    return badgeTip;
+}
+
+function fillBadgeTip(tip: HTMLElement, text: string): void {
+    tip.replaceChildren();
+    const lines = text.split('\n').filter(Boolean);
+    lines.forEach(line => {
+        const row = document.createElement('span');
+        row.className = 'badge-tip-row';
+        const colon = line.indexOf(':');
+        const title = document.createElement('strong');
+        title.className = 'badge-tip-title';
+        title.textContent = colon > 0 ? line.slice(0, colon) : line;
+        row.appendChild(title);
+        if (colon > 0) {
+            const detail = document.createElement('span');
+            detail.className = 'badge-tip-detail';
+            detail.textContent = line.slice(colon + 1).trim();
+            row.appendChild(detail);
+        }
+        tip.appendChild(row);
+    });
+}
+
+function placeBadgeTip(tip: HTMLElement, badge: HTMLElement): void {
+    const gap = 10;
+    const edge = 8;
+    const rect = badge.getBoundingClientRect();
+    const tipRect = tip.getBoundingClientRect();
+    const below = rect.top - tipRect.height - gap < edge;
+    const center = rect.left + rect.width / 2;
+    const left = Math.min(Math.max(center - tipRect.width / 2, edge), window.innerWidth - tipRect.width - edge);
+    const top = below ? rect.bottom + gap : rect.top - tipRect.height - gap;
+    tip.dataset.side = below ? 'below' : 'above';
+    tip.style.left = `${Math.round(left + window.scrollX)}px`;
+    tip.style.top = `${Math.round(top + window.scrollY)}px`;
+    tip.style.setProperty('--badge-tip-arrow', `${Math.round(center - left)}px`);
+}
+
+function showBadgeTip(badge: HTMLElement): void {
+    const text = getBadgeTipText(badge);
+    if (!text) return;
+    if (badgeTipOwner && badgeTipOwner !== badge) hideBadgeTip();
+    const title = badge.getAttribute('title');
+    if (title) {
+        badge.setAttribute('data-badge-tip', title);
+        badge.removeAttribute('title');
+    }
+    const tip = ensureBadgeTip();
+    fillBadgeTip(tip, text);
+    tip.hidden = false;
+    placeBadgeTip(tip, badge);
+    badge.setAttribute('aria-describedby', tip.id);
+    badgeTipOwner = badge;
+}
+
+function hideBadgeTip(): void {
+    const owner = badgeTipOwner;
+    badgeTipOwner = null;
+    if (badgeTip) badgeTip.hidden = true;
+    if (!owner) return;
+    const text = owner.getAttribute('data-badge-tip');
+    if (text) {
+        owner.setAttribute('title', text);
+        owner.removeAttribute('data-badge-tip');
+    }
+    owner.removeAttribute('aria-describedby');
+}
+
+function badgeTipTarget(target: EventTarget | null): HTMLElement | null {
+    if (!(target instanceof Element)) return null;
+    const badge = target.closest<HTMLElement>(BADGE_TIP_TARGET);
+    if (!badge || badge.closest('#modalBadgeStrip')) return null;
+    return badge;
+}
+
+if (!window.__lwcBadgeTipBound) {
+    window.__lwcBadgeTipBound = true;
+    document.addEventListener('pointerover', event => {
+        if (event.pointerType === 'touch') return;
+        const badge = badgeTipTarget(event.target);
+        if (badge && badge !== badgeTipOwner) showBadgeTip(badge);
+    });
+    document.addEventListener('pointerout', event => {
+        if (!badgeTipOwner || event.pointerType === 'touch') return;
+        const next = event.relatedTarget instanceof Node ? event.relatedTarget : null;
+        if (next && badgeTipOwner.contains(next)) return;
+        if (badgeTipTarget(event.target) === badgeTipOwner && document.activeElement !== badgeTipOwner) hideBadgeTip();
+    });
+    document.addEventListener('focusin', event => {
+        const badge = badgeTipTarget(event.target);
+        if (badge) showBadgeTip(badge);
+        else if (badgeTipOwner) hideBadgeTip();
+    });
+    document.addEventListener('focusout', event => {
+        if (badgeTipOwner && event.target === badgeTipOwner) hideBadgeTip();
+    });
+    document.addEventListener('keydown', event => {
+        if (event.key === 'Escape' && badgeTipOwner) hideBadgeTip();
+    });
+    window.addEventListener('scroll', () => { if (badgeTipOwner) hideBadgeTip(); }, { capture: true, passive: true });
+    window.addEventListener('resize', () => { if (badgeTipOwner) hideBadgeTip(); }, { passive: true });
+}
+
 window.computeBadges = window.computeBadges || function () {};
 window.pickIconForServerBadge = pickIconForServerBadge;
 window.pickBackgroundForServerBadge = pickBackgroundForServerBadge;
