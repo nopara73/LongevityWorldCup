@@ -5825,7 +5825,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     async function submitCheckIn(form: HTMLFormElement): Promise<void> {
         if (!accessToken || checkInSaving) return;
         const key = checkInDayKey(form);
-        if (!participantState?.eligibleDays.some(day => checkInDraftKey(day) === key)) {
+        const submittedDay = participantState?.eligibleDays.find(day => checkInDraftKey(day) === key);
+        if (!participantState || !submittedDay) {
             renderAll();
             return;
         }
@@ -5870,10 +5871,18 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 : await postJson(`${API}/check-in`, payload);
             if (accessToken !== currentAccessToken) return;
             const saved = result.eligibleDays.find(day => checkInDraftKey(day, result.participant.id) === key)?.existing;
+            // A delayed reply or an idempotent retry can arrive after this day leaves the editable window.
+            const closedDay = !result.eligibleDays.some(day => day.challengeDay === payload.challengeDay) &&
+                result.public.days.some(day => day.challengeDay === payload.challengeDay && day.date === submittedDay.date);
+            const history = closedDay ? result.public.leaderboard.find(row => row.participantId === currentParticipantId)
+                ?.cells.find(cell => cell.challengeDay === payload.challengeDay && cell.checkedIn) : null;
+            const historyNote = closedDay ? result.notes.find(note => note.participantId === currentParticipantId && note.challengeDay === payload.challengeDay) : null;
+            const confirmed = saved || history;
             const savedPhotoCount = form.querySelectorAll(".lmx-note-photo-grid.saved img").length;
-            if (result.participant.id !== currentParticipantId || !saved ||
-                QUESTIONS.some(question => saved[question.key] !== draft[question.key]) ||
-                (saved.note || "").trim() !== draft.note.trim() || saved.images.length < savedPhotoCount + notePhotos.length) {
+            if (result.participant.id !== currentParticipantId || !confirmed ||
+                QUESTIONS.some(question => confirmed[question.key] !== draft[question.key]) ||
+                (saved?.note || historyNote?.note || "").trim() !== draft.note.trim() ||
+                (saved?.images || historyNote?.images || []).length < savedPhotoCount + notePhotos.length) {
                 throw invalidApiResponse(`${API}/check-in`);
             }
             clearPendingNotePhotos(key);

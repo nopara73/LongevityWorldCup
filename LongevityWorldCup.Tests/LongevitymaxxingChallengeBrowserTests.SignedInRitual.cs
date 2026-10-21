@@ -9,6 +9,29 @@ namespace LongevityWorldCup.Tests;
 
 public sealed partial class LongevitymaxxingChallengeBrowserTests
 {
+    [Fact]
+    public async Task CheckInResponse_AClosedDayCanConfirmThroughItsPersistedHistory()
+    {
+        await using var context = await NewContextAsync(Browser, App, new());
+        var state = CheckInWorkspaceState();
+        var page = await OpenCheckInWorkspaceAsync(context, state);
+        await page.RouteAsync("**/api/longevitymaxxing/check-in", async route =>
+        {
+            state["eligibleDays"]!.AsArray().RemoveAt(0);
+            var cell = state["public"]!["leaderboard"]![0]!["cells"]!.AsArray().Single(cell => (int?)cell!["challengeDay"] == 17)!;
+            cell["checkedIn"] = true;
+            cell["score"] = 0;
+            foreach (var habit in new[] { "sleep", "exercise", "nutrition", "vices" }) cell[habit] = 0;
+            await FulfillJsonAsync(route, state.ToJsonString());
+        });
+        var form = page.Locator(".lmx-checkin-card");
+        foreach (var habit in new[] { "sleep", "exercise", "nutrition", "vices" }) await AnswerHabitAsync(form, habit, "no");
+        await form.Locator("button[type='submit']").ClickAsync();
+        await Assertions.Expect(form).ToHaveAttributeAsync("data-day", "21");
+        await Assertions.Expect(form.Locator("[data-checkin-status]")).ToBeEmptyAsync();
+        await Assertions.Expect(form.Locator(".lmx-answer-input:checked")).ToHaveCountAsync(0);
+    }
+
     [Theory]
     [InlineData(320, 640, true, true)]
     [InlineData(390, 844, false, true)]
