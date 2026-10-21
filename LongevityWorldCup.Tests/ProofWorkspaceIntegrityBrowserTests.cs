@@ -13,20 +13,23 @@ public sealed class ProofWorkspaceIntegrityBrowserTests(PlaywrightBrowserFixture
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task ReuploadedRemoval_UndoRestoresTheSameBytesAtTheirOriginalPosition(bool onboarding)
+    public async Task ReuploadedRemoval_AtTheLimitUndoPreservesTheNewOrderAndOriginalBytes(bool onboarding)
     {
         await using var context = await NewContextAsync(Browser, App, new());
         var page = await PrepareAsync(context, onboarding);
-        var files = CreatePages(3);
+        var files = CreatePages(37);
         await UploadAsync(page, files);
         var original = await SourcesAsync(page);
-        await page.Locator(".proof-page-remove").Nth(1).ClickAsync();
-        await UploadAsync(page, [files[1]]);
-        Assert.Equal(new[] { original[0], original[2], original[1] }, await SourcesAsync(page));
+        await page.Locator(".proof-page-remove").Nth(17).ClickAsync();
+        await UploadAsync(page, [files[17]]);
+        var reordered = original.Where((_, index) => index != 17).Append(original[17]).ToArray();
+        Assert.Equal(reordered, await SourcesAsync(page));
+        await Assertions.Expect(page.Locator(".proof-undo")).ToBeEnabledAsync();
         await page.Locator(".proof-undo").ClickAsync();
-        Assert.Equal(original, await SourcesAsync(page));
-        Assert.Equal(original, await page.EvaluateAsync<string[]>("proofPics"));
-        await Assertions.Expect(page.Locator(".proof-page-preview").Nth(1)).ToBeFocusedAsync();
+        Assert.Equal(reordered, await SourcesAsync(page));
+        Assert.Equal(reordered, await page.EvaluateAsync<string[]>("proofPics"));
+        Assert.Equal(37, (await SourcesAsync(page)).Distinct().Count());
+        await Assertions.Expect(page.Locator(".proof-page-preview").Last).ToBeFocusedAsync();
     }
 
     [Theory]

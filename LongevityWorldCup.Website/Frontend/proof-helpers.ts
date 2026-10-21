@@ -393,11 +393,11 @@ class ProofReview {
                 const undo = this.button('Undo removal', 'proof-undo', () => {
                     const removed = this.removed.pop();
                     if (!removed) return;
-                    // A removed page may have been uploaded again at the end of the
-                    // report. Restore that same page to its original place once.
-                    const currentIndex = this.images.indexOf(removed.image);
-                    if (currentIndex >= 0) this.images.splice(currentIndex, 1);
-                    this.images.splice(Math.min(removed.index, this.images.length), 0, removed.image);
+                    // Re-uploading may already have restored this page in a new
+                    // position. Keep that order and never duplicate its bytes.
+                    if (!this.images.includes(removed.image)) {
+                        this.images.splice(Math.min(removed.index, this.images.length), 0, removed.image);
+                    }
                     this.notice = '';
                     this.render();
                     this.changed();
