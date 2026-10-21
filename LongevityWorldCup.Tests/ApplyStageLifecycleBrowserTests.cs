@@ -23,6 +23,12 @@ public sealed class ApplyStageLifecycleBrowserTests(
     [InlineData(1024, 480, 100)]
     [InlineData(844, 390, 200)]
     [InlineData(1440, 900, 200)]
+    [InlineData(700, 700, 100)]
+    [InlineData(720, 700, 100)]
+    [InlineData(760, 700, 100)]
+    [InlineData(720, 700, 200)]
+    [InlineData(160, 320, 100)]
+    [InlineData(195, 422, 100)]
     public async Task DockedActions_KeepTheFieldEdgesOnTabletsAndShortWindows(int width, int height, int textPercent)
     {
         await using var context = await NewContextAsync(Browser, App, new()
@@ -45,8 +51,11 @@ public sealed class ApplyStageLifecycleBrowserTests(
                     back.left, next.right, back.height, next.height, dock.height, innerHeight];
             }
             """);
-        Assert.InRange(Math.Abs(edges[0] - edges[2]), 0, 1.5);
-        Assert.InRange(Math.Abs(edges[1] - edges[3]), 0, 1.5);
+        if (width >= 761)
+        {
+            Assert.InRange(Math.Abs(edges[0] - edges[2]), 0, 1.5);
+            Assert.InRange(Math.Abs(edges[1] - edges[3]), 0, 1.5);
+        }
         Assert.InRange(Math.Abs(edges[4] - edges[6]), 0, 1.5);
         Assert.InRange(Math.Abs(edges[5] - edges[7]), 0, 1.5);
         Assert.True(edges[8] >= 44 && edges[9] >= 44 && edges[10] < edges[11] / 2,

@@ -194,6 +194,20 @@
         }
 
         /* Every stage is the same card: banner, step meter and title, story, then the task. */
+        body[data-convergence-stage] {
+            --convergence-page-pad: var(--space-5, 1.5rem);
+        }
+
+        .convergence-main {
+            padding-inline: var(--convergence-page-pad);
+        }
+
+        @media (max-width: 640px) {
+            body[data-convergence-stage] {
+                --convergence-page-pad: max(var(--space-4, 1rem), env(safe-area-inset-left, 0px));
+            }
+        }
+
         .convergence-stage-layout {
             --convergence-card-pad: clamp(16px, 4vw, 28px);
             width: min(100%, 640px);
@@ -735,7 +749,7 @@
         @media (max-width: 760px) {
             body[data-convergence-stage] > .convergence-actions.flow-action-stack--docked {
                 --convergence-card-pad: clamp(16px, 4vw, 28px);
-                padding-inline: calc(1rem + 1px + var(--convergence-card-pad));
+                padding-inline: calc(max(var(--convergence-page-pad), (100% - 640px) / 2) + 1px + var(--convergence-card-pad));
             }
         }
 
@@ -756,7 +770,6 @@
 
             body[data-convergence-stage] > .convergence-actions.flow-action-stack--docked {
                 --convergence-card-pad: 8px;
-                padding-inline: calc(0.5rem + 1px + var(--convergence-card-pad));
             }
 
             #division { padding-inline: 0.5rem; }
