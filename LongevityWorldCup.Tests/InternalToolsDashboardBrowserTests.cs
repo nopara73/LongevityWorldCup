@@ -97,7 +97,7 @@ public sealed class InternalToolsDashboardBrowserTests(
                     smallestFont: Math.min(...fonts),
                     wrappedHeaders: headers.filter(header => header.wraps).map(header => header.text),
                     tablesScroll: [...document.querySelectorAll('.compact-table')].every(table => table.parentElement.classList.contains('table-scroll') && table.parentElement.tabIndex === 0),
-                    rowOverflow: [...document.querySelectorAll('.trend-row, .segment-row, .funnel-row')].filter(row => row.scrollWidth > row.clientWidth + 1).map(row => row.className)
+                    rowOverflow: [...document.querySelectorAll('.trend-row, .segment-row, .funnel-row, .panel-meta')].filter(row => row.scrollWidth > row.clientWidth + 1).map(row => row.className)
                 };
             }
             """);

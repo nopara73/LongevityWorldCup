@@ -1367,7 +1367,7 @@ select:focus-visible,
     .stats-header { padding: 12px 10px; }
     h1, h2, .panel-meta, .decision-gridline strong { overflow-wrap: anywhere; }
     .panel-heading { flex-wrap: wrap; }
-    .panel-meta { max-width: 100%; }
+    .panel-meta { max-width: 100%; white-space: normal; }
     .stats-tabs { flex-wrap: wrap; }
     .stats-diagnostics { min-width: 0; max-width: 100%; flex-basis: 100%; }
     .stats-diagnostic-tabs { margin-right: 0; padding-right: 0; }
