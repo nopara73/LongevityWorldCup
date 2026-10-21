@@ -108,8 +108,10 @@ const customAlertDialog = document.getElementById('custom-alert');
 const customAlertMessage = document.getElementById('custom-alert-message');
 const customAlertCloseButton = document.getElementById('custom-alert-close');
 const loadingDialog = document.getElementById('loading-dialog');
-let customAlertResolve = null;
+const customAlertQueue = [];
+let customAlertActive = null;
 let customAlertPreviousFocus = null;
+let customAlertOwnsScrollLock = false;
 let loadingDialogPreviousFocus = null;
 
 function closeCustomAlert() {
@@ -117,30 +119,47 @@ function closeCustomAlert() {
         return;
     }
 
+    const dismissed = customAlertActive;
+    const restoreFocus = customAlertDialog.contains(document.activeElement) || document.activeElement === document.body;
+    const previousFocus = customAlertPreviousFocus;
+    customAlertActive = null;
     customAlertDialog.hidden = true;
-    document.body.classList.remove('no-scroll');
-
-    if (customAlertPreviousFocus && typeof customAlertPreviousFocus.focus === 'function') {
-        customAlertPreviousFocus.focus();
-    }
-
     customAlertPreviousFocus = null;
 
-    if (customAlertResolve) {
-        const resolve = customAlertResolve;
-        customAlertResolve = null;
-        resolve();
+    if (!customAlertQueue.length) {
+        if (customAlertOwnsScrollLock && loadingDialog.hidden) document.body.classList.remove('no-scroll');
+        customAlertOwnsScrollLock = false;
     }
+
+    if (restoreFocus && previousFocus?.isConnected && !previousFocus.closest('[hidden], [inert]')
+        && !previousFocus.disabled && previousFocus.getClientRects().length) {
+        previousFocus.focus({ preventScroll: true });
+    }
+
+    dismissed?.resolve();
+    // Existing .then callbacks (including field focus/navigation) run before the next alert opens.
+    queueMicrotask(showNextCustomAlert);
 }
 
 customAlertDialog.addEventListener('keydown', function (event) {
     if (event.key === 'Escape') {
         event.preventDefault();
+        event.stopPropagation();
         closeCustomAlert();
         return;
     }
 
     trapFocusWithin(customAlertDialog, event);
+    if (event.key === 'Tab') event.stopPropagation();
+});
+
+document.addEventListener('keydown', function (event) {
+    if (customAlertDialog.hidden || customAlertDialog.contains(event.target)) return;
+    if (event.key === 'Escape') {
+        event.preventDefault();
+        event.stopPropagation();
+        closeCustomAlert();
+    } else trapFocusWithin(customAlertDialog, event);
 });
 
 loadingDialog.addEventListener('keydown', function (event) {
@@ -152,19 +171,104 @@ loadingDialog.addEventListener('keydown', function (event) {
     loadingDialog.querySelector('.loading-dialog-panel')?.focus();
 });
 
-function customAlert(message) {
-    customAlertPreviousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    customAlertMessage.textContent = message;
+const CUSTOM_ALERT_TONE_ICONS = {
+    success: 'fa-check',
+    warning: 'fa-exclamation',
+    danger: 'fa-xmark',
+    info: 'fa-info'
+};
+const CUSTOM_ALERT_ID_PATTERN = /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi;
 
+// The tone only picks the medallion and accent; every caller keeps its own wording.
+function inferCustomAlertTone(message) {
+    const text = String(message);
+    if (/\b(fail(?:ed|ure|ing|s)?|error|interrupted|unsuccessful(?:ly)?|rejected|denied|declined|timeout|timed out)\b/i.test(text)) return 'danger';
+    // A success word inside a negation, uncertainty or validation request must never celebrate.
+    if (/\b(not|never|no|nothing|none|neither|cannot|unable|may|maybe|might|perhaps|possibly|could|should|would|being|if|pending|awaiting|unconfirmed|unverified|uncertain|unclear|unknown|missing|invalid|required|must be|unavailable|skipped|cancelled|canceled|expired|unsent|try again|enter|select|provide|please complete|change at least)\b|\b\w+n['’]t\b/i.test(text)) return 'warning';
+    const future = /\b(will|can|when|once)\b/i.exec(text);
+    if (future && /\b(received|submitted|sent|saved|copied)\b/i.test(text.slice(future.index + future[0].length))) return 'warning';
+    if (text.includes('?')) return 'info';
+    if (/\b(received|submitted|sent|saved|copied)\b/i.test(text)) return 'success';
+    return 'info';
+}
+
+function renderCustomAlertMessage(message) {
+    const text = String(message);
+    customAlertMessage.tabIndex = -1;
+    customAlertMessage.scrollTop = 0;
+    const separator = /\r?\n[\t ]*\r?\n/.exec(text);
+    const lead = document.createElement('span');
+    lead.className = 'custom-alert-lead';
+    lead.append(splitCustomAlertIds(separator ? text.slice(0, separator.index) : text));
+    customAlertMessage.replaceChildren(lead);
+    if (separator) {
+        // Preserve the exact separator bytes outside the styled detail block.
+        customAlertMessage.append(document.createTextNode(separator[0]));
+        const detail = document.createElement('span');
+        detail.className = 'custom-alert-detail';
+        detail.append(splitCustomAlertIds(text.slice(separator.index + separator[0].length)));
+        customAlertMessage.append(detail);
+    }
+}
+
+function splitCustomAlertIds(text) {
+    const nodes = document.createDocumentFragment();
+    let last = 0;
+    for (const match of text.matchAll(CUSTOM_ALERT_ID_PATTERN)) {
+        if (match.index > last) nodes.append(document.createTextNode(text.slice(last, match.index)));
+        const id = document.createElement('code');
+        id.className = 'custom-alert-id';
+        id.textContent = match[0];
+        nodes.append(id);
+        last = match.index + match[0].length;
+    }
+    if (last < text.length) nodes.append(document.createTextNode(text.slice(last)));
+    return nodes;
+}
+
+function customAlert(message, options) {
     return new Promise(resolve => {
-        customAlertResolve = resolve;
-
-        customAlertDialog.hidden = false;
-
-        document.body.classList.add('no-scroll');
-        requestAnimationFrame(() => customAlertCloseButton.focus());
+        customAlertQueue.push({ message: String(message), options, resolve });
+        showNextCustomAlert();
     });
 }
+
+function showNextCustomAlert() {
+    if (customAlertActive || !customAlertQueue.length) return;
+    const entry = customAlertQueue.shift();
+    customAlertActive = entry;
+    customAlertPreviousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const { message, options } = entry;
+    const requestedTone = options && options.tone;
+    const tone = Object.prototype.hasOwnProperty.call(CUSTOM_ALERT_TONE_ICONS, requestedTone)
+        ? requestedTone
+        : inferCustomAlertTone(message);
+    customAlertDialog.dataset.tone = tone;
+    const mark = customAlertDialog.querySelector('.custom-alert-mark i');
+    if (mark) mark.className = `fas ${CUSTOM_ALERT_TONE_ICONS[tone]}`;
+    renderCustomAlertMessage(message);
+
+    customAlertDialog.hidden = false;
+    customAlertOwnsScrollLock ||= !document.body.classList.contains('no-scroll');
+    document.body.classList.add('no-scroll');
+    requestAnimationFrame(() => {
+        updateCustomAlertMessageFocus();
+        if (customAlertActive === entry && !customAlertDialog.hidden
+            && (document.activeElement === customAlertPreviousFocus || document.activeElement === document.body
+                || customAlertDialog.contains(document.activeElement))) {
+            customAlertCloseButton.focus({ preventScroll: true });
+        }
+    });
+}
+
+function updateCustomAlertMessageFocus() {
+    if (!customAlertDialog.hidden) {
+        customAlertMessage.tabIndex = customAlertMessage.scrollHeight > customAlertMessage.clientHeight + 1 ? 0 : -1;
+    }
+}
+
+const customAlertMessageResizeObserver = new ResizeObserver(updateCustomAlertMessageFocus);
+customAlertMessageResizeObserver.observe(customAlertMessage);
 
 function showLoading() {
     loadingDialogPreviousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -178,9 +282,10 @@ function showLoading() {
 function hideLoading() {
     loadingDialog.hidden = true;
 
-    document.body.classList.remove('no-scroll');
+    if (customAlertDialog.hidden) document.body.classList.remove('no-scroll');
+    else customAlertOwnsScrollLock = true;
 
-    if (loadingDialogPreviousFocus && typeof loadingDialogPreviousFocus.focus === 'function') {
+    if (customAlertDialog.hidden && loadingDialogPreviousFocus && typeof loadingDialogPreviousFocus.focus === 'function') {
         loadingDialogPreviousFocus.focus();
     }
 
@@ -205,9 +310,9 @@ function trapFocusWithin(container, event) {
     const last = focusable[focusable.length - 1];
     const active = document.activeElement;
 
-    if (!container.contains(active)) {
+    if (!container.contains(active) || !focusable.includes(active)) {
         event.preventDefault();
-        first.focus();
+        (event.shiftKey ? last : first).focus();
     } else if (event.shiftKey && active === first) {
         event.preventDefault();
         last.focus();

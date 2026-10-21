@@ -375,10 +375,12 @@ public sealed class ApplyJourneyBrowserTests(
                 const visual = document.querySelector('.application-review-visual').getBoundingClientRect();
                 const title = document.querySelector('.application-review-title').getBoundingClientRect();
                 const titleStyle = getComputedStyle(document.querySelector('.application-review-title'));
-                const copy = document.querySelector('.application-review-copy.primary').getBoundingClientRect();
+                const foot = document.querySelector('.application-review-foot');
+                const footStyle = getComputedStyle(foot);
+                const footContent = foot.getBoundingClientRect().width - parseFloat(footStyle.paddingLeft) - parseFloat(footStyle.paddingRight);
                 const home = document.querySelector('.application-review-actions .option-button').getBoundingClientRect();
                 return [rect.width, visual.top - rect.top, visual.width, title.top - visual.bottom,
-                    titleStyle.textAlign === 'left' ? 1 : 0, Math.abs(home.width - copy.width), parseFloat(getComputedStyle(panel).borderTopLeftRadius)];
+                    titleStyle.textAlign === 'center' ? 1 : 0, Math.abs(home.width - footContent), parseFloat(getComputedStyle(panel).borderTopLeftRadius)];
             }
             """);
 
@@ -386,7 +388,7 @@ public sealed class ApplyJourneyBrowserTests(
         Assert.True(Math.Abs(layout[1]) <= 2 && Math.Abs(layout[2] - layout[0]) <= 2, $"{width}px: the artwork band should be the card's top edge.");
         Assert.True(layout[3] >= 0, $"{width}px: the title should follow the artwork.");
         Assert.Equal(1, layout[4]);
-        Assert.True(layout[5] <= 1, $"{width}px: Home should span the copy column.");
+        Assert.True(layout[5] <= 1, $"{width}px: Home should span the footer band.");
         Assert.Equal(12, layout[6]);
         await ExpectNoHorizontalOverflowAsync(page);
     }

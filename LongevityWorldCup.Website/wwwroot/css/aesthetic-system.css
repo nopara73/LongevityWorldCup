@@ -624,8 +624,7 @@ body .leaderboard-recovery {
     border-inline-start-color: var(--lwc-danger);
 }
 
-.lmx-status.success:not(:empty),
-.application-review-copy.primary {
+.lmx-status.success:not(:empty) {
     border-inline-start-color: var(--lwc-success);
 }
 
@@ -1626,17 +1625,6 @@ html body .leaderboard .athlete-name {
         color: var(--lwc-ink);
     }
 
-    html body .application-review-copy.primary {
-        border-color: var(--lwc-border);
-        border-inline-start: 4px solid var(--lwc-success);
-        background: #173525;
-        color: var(--lwc-ink);
-    }
-
-    html body .application-review-highlight {
-        color: #8ee2a1;
-    }
-
     html body .events-board,
     html body .leaderboard,
     html body .archive-table-wrapper,
@@ -1696,7 +1684,6 @@ html body .leaderboard .athlete-name {
         color: var(--lwc-ink);
     }
 
-    html body .application-review-actions .back-button,
     html body .proof-upload-final-actions .back-button {
         border-color: var(--lwc-border) !important;
         background: var(--lwc-surface-muted) !important;
