@@ -440,49 +440,174 @@ button.option-button:disabled {
     display: none;
 }
 
+/* One alert for every flow: a tone medallion, the message, one full-width OK.
+   The tone is inferred from the caller's own wording, so no copy changes. */
 .custom-alert-panel {
-    border: none;
-    border-radius: 15px;
-    padding: 20px;
-    max-width: 400px;
-    width: 90%;
-    max-height: calc(100dvh - 1.5rem);
+    --alert-tone: var(--lwc-accent);
+    --alert-tone-soft: var(--lwc-accent-soft);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: min(100%, 26rem);
+    max-height: calc(100dvh - 2.5rem);
     overflow: auto;
-    background: var(--card-bg);
-    color: var(--dark-text-color);
+    box-sizing: border-box;
+    padding: 2rem clamp(1.25rem, 5vw, 1.75rem) clamp(1.25rem, 5vw, 1.5rem);
+    padding-left: max(clamp(1.25rem, 5vw, 1.75rem), env(safe-area-inset-left));
+    padding-right: max(clamp(1.25rem, 5vw, 1.75rem), env(safe-area-inset-right));
+    border: 1px solid var(--lwc-border);
+    border-top: 4px solid var(--alert-tone);
+    border-radius: var(--lwc-radius-lg);
+    background: var(--lwc-surface);
+    color: var(--lwc-ink);
     text-align: center;
     font-family: 'Roboto', sans-serif;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    animation: fadeInDialog var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
+    box-shadow: var(--lwc-shadow-md);
+    animation: customAlertIn var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
+}
+
+#custom-alert[data-tone="success"] .custom-alert-panel {
+    --alert-tone: var(--lwc-success);
+    --alert-tone-soft: var(--lwc-success-soft);
+}
+
+#custom-alert[data-tone="warning"] .custom-alert-panel {
+    --alert-tone: var(--lwc-warning);
+    --alert-tone-soft: var(--lwc-warning-soft);
+}
+
+#custom-alert[data-tone="danger"] .custom-alert-panel {
+    --alert-tone: var(--lwc-danger);
+    --alert-tone-soft: var(--lwc-danger-soft);
+}
+
+.custom-alert-mark {
+    position: relative;
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 3.5rem;
+    height: 3.5rem;
+    margin: 0 0 1rem;
+    border-radius: var(--lwc-radius-pill);
+    background: var(--alert-tone-soft);
+    color: var(--alert-tone);
+    font-size: 1.45rem;
+    box-shadow: 0 0 0 6px var(--lwc-surface), 0 0 0 7px var(--alert-tone-soft);
+    animation: customAlertMarkIn 420ms var(--lwc-ease, ease) both;
+}
+
+/* Success gets a small burst of the podium colours around the medallion. */
+#custom-alert[data-tone="success"] .custom-alert-mark::before,
+#custom-alert[data-tone="success"] .custom-alert-mark::after {
+    content: "";
+    position: absolute;
+    inset: -22px -34px;
+    pointer-events: none;
+    background:
+        radial-gradient(circle, var(--lwc-gold) 0 3px, transparent 3.5px) 6% 30% / 14px 14px no-repeat,
+        radial-gradient(circle, var(--lwc-accent-bright) 0 2.5px, transparent 3px) 16% 88% / 12px 12px no-repeat,
+        radial-gradient(circle, var(--lwc-success) 0 2px, transparent 2.5px) 26% 4% / 10px 10px no-repeat,
+        radial-gradient(circle, var(--lwc-bronze) 0 2.5px, transparent 3px) 78% 2% / 12px 12px no-repeat,
+        radial-gradient(circle, var(--lwc-gold) 0 2px, transparent 2.5px) 96% 52% / 10px 10px no-repeat,
+        radial-gradient(circle, var(--lwc-accent-bright) 0 3px, transparent 3.5px) 84% 94% / 14px 14px no-repeat;
+    animation: customAlertBurst 640ms var(--lwc-ease, ease) both;
+}
+
+#custom-alert[data-tone="success"] .custom-alert-mark::after {
+    inset: -12px -20px;
+    background:
+        linear-gradient(var(--lwc-gold), var(--lwc-gold)) 0 70% / 7px 3px no-repeat,
+        linear-gradient(var(--lwc-accent-bright), var(--lwc-accent-bright)) 100% 22% / 7px 3px no-repeat,
+        linear-gradient(var(--lwc-success), var(--lwc-success)) 50% 100% / 3px 7px no-repeat;
+    animation-delay: 60ms;
 }
 
     #custom-alert p {
-        margin-bottom: 1rem;
-        font-size: 1rem;
-        line-height: 1.5;
+        width: 100%;
+        max-width: 22rem;
+        margin: 0 0 1.5rem;
+        color: var(--lwc-ink);
+        font-size: 1.0625rem;
+        line-height: 1.55;
         overflow-wrap: anywhere;
-        word-break: break-word;
+        word-break: normal;
+        text-align: center;
+        min-height: 0;
+        overflow: auto;
+        overscroll-behavior: contain;
+    }
+
+    #custom-alert-message:focus-visible {
+        outline: 2px solid var(--lwc-accent);
+        outline-offset: 4px;
+    }
+
+    .custom-alert-lead,
+    .custom-alert-detail {
+        white-space: pre-line;
+    }
+
+    /* Server detail after a blank line reads as a quiet note under the lead. */
+    .custom-alert-detail {
+        display: block;
+        margin-top: 0.85rem;
+        padding: 0.7rem 0.85rem;
+        border: 1px solid var(--lwc-border);
+        border-radius: var(--lwc-radius-md);
+        background: var(--lwc-surface-muted);
+        color: var(--lwc-muted);
+        font-size: var(--lwc-type-sm);
+        line-height: 1.5;
         text-align: left;
     }
 
+    .custom-alert-id {
+        display: inline-block;
+        max-width: 100%;
+        margin: 0.2rem 0;
+        padding: 0.1rem 0.45rem;
+        border: 1px solid var(--lwc-border);
+        border-radius: var(--lwc-radius-sm);
+        background: var(--lwc-surface-muted);
+        color: var(--lwc-ink);
+        font-family: ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace;
+        font-size: 0.82em;
+        line-height: 1.6;
+        overflow-wrap: anywhere;
+        user-select: all;
+        -webkit-user-select: all;
+    }
+
     #custom-alert button {
-        display: block;
-        margin: 0 auto;
-        padding: 0.7rem 1.5rem;
-        min-height: 44px;
-        font-size: 1rem;
-        background: var(--main-action-color);
-        color: var(--light-text-color);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: none;
+        width: 100%;
+        min-height: 48px;
+        margin: 0;
+        padding: 0.75rem 1.5rem;
         border: none;
-        border-radius: 25px;
+        border-radius: var(--lwc-radius-md);
+        background: var(--lwc-accent);
+        color: var(--lwc-on-accent);
+        font-size: 1.0625rem;
+        font-weight: 700;
         cursor: pointer;
-        transition: background var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        box-shadow: none;
+        transition: background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
     }
 
         #custom-alert button:hover {
-            background: var(--main-action-selected-color);
-            transform: scale(1.05);
+            background: var(--lwc-accent-hover);
+            transform: none;
+        }
+
+        #custom-alert button:focus-visible {
+            outline: 3px solid var(--lwc-accent);
+            outline-offset: 3px;
         }
 
 @keyframes fadeInDialog {
@@ -497,9 +622,99 @@ button.option-button:disabled {
     }
 }
 
-@media (max-width: 480px) {
+@keyframes customAlertIn {
+    from {
+        opacity: 0;
+        transform: translateY(12px) scale(0.98);
+    }
+
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@keyframes customAlertMarkIn {
+    0% {
+        transform: scale(0.4);
+    }
+
+    60% {
+        transform: scale(1.12);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+@keyframes customAlertBurst {
+    from {
+        opacity: 0;
+        transform: scale(0.5);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Phones: the alert rises as a bottom sheet, with OK under the thumb. */
+@media (max-width: 600px) {
+    #custom-alert {
+        align-items: flex-end;
+        padding: max(12px, env(safe-area-inset-top)) 0 0;
+    }
+
     .custom-alert-panel {
-        width: calc(100% - 2rem);
+        width: 100%;
+        max-height: calc(100dvh - 1.5rem);
+        padding-bottom: max(1.25rem, calc(env(safe-area-inset-bottom) + 1rem));
+        border-right: 0;
+        border-bottom: 0;
+        border-left: 0;
+        border-radius: var(--lwc-radius-lg) var(--lwc-radius-lg) 0 0;
+        animation-name: customAlertSheetIn;
+    }
+
+    #custom-alert p {
+        max-width: 30rem;
+    }
+}
+
+@keyframes customAlertSheetIn {
+    from {
+        transform: translateY(100%);
+    }
+
+    to {
+        transform: none;
+    }
+}
+
+@media (max-height: 300px) {
+    .custom-alert-panel {
+        max-height: calc(100dvh - max(12px, env(safe-area-inset-top)));
+        padding-block: 0.75rem;
+        padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+    }
+
+    .custom-alert-mark {
+        display: none;
+    }
+
+    #custom-alert p {
+        margin-bottom: 0.75rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .custom-alert-panel,
+    .custom-alert-mark,
+    #custom-alert[data-tone="success"] .custom-alert-mark::before,
+    #custom-alert[data-tone="success"] .custom-alert-mark::after {
+        animation: none;
     }
 }
 
@@ -955,8 +1170,7 @@ header[role="banner"] .tagline {
 }
 
 .option-button,
-.back-button,
-#custom-alert button {
+.back-button {
     border-radius: var(--radius-md);
     box-shadow: none;
     transition: background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
@@ -968,15 +1182,13 @@ header[role="banner"] .tagline {
 }
 
 .option-button:hover,
-.option-button.green:hover,
-#custom-alert button:hover {
+.option-button.green:hover {
     background: var(--primary-color-hover);
     box-shadow: none;
     transform: translateY(-1px);
 }
 
-.option-button.green,
-#custom-alert button {
+.option-button.green {
     background: var(--main-action-color);
 }
 
@@ -1021,7 +1233,6 @@ body.play-flow-route .option-button.green:not(:disabled):not([aria-disabled="tru
     box-shadow: none;
 }
 
-.custom-alert-panel,
 .loading-dialog-panel {
     border: 1px solid var(--border-color);
     border-radius: var(--radius-lg);
@@ -1286,7 +1497,6 @@ textarea:focus-visible {
         border-color: var(--border-color);
     }
 
-    .custom-alert-panel,
     .loading-dialog-panel {
         background: var(--card-bg);
         color: var(--dark-text-color);

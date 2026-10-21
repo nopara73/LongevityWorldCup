@@ -1,4 +1,5 @@
 using Microsoft.Playwright;
+using System.Text.Json.Nodes;
 using Xunit;
 
 namespace LongevityWorldCup.Tests;
@@ -166,6 +167,21 @@ public abstract class BrowserIntegrationTest(
     protected BrowserTestApp App => _isolatedApp ?? appFixture.App;
     protected IBrowser Browser => browserFixture.Browser;
     protected virtual bool UseIsolatedApplicationPerTest => false;
+
+    protected async Task RouteAthleteFixtureAsync(IBrowserContext context, Action<JsonArray> transform)
+    {
+        // Prepare transformed data before navigation instead of spending the
+        // browser's initialization deadline on a second intercepted HTTP fetch.
+        using var client = App.CreateClient();
+        client.Timeout = TimeSpan.FromSeconds(30);
+        var athletes = JsonNode.Parse(await client.GetStringAsync("/api/data/athletes"))!.AsArray();
+        transform(athletes);
+        var body = athletes.ToJsonString();
+        await context.RouteAsync("**/api/data/athletes", route => route.FulfillAsync(new()
+        {
+            Status = 200, ContentType = "application/json", Body = body
+        }));
+    }
 
     public virtual async Task InitializeAsync()
     {

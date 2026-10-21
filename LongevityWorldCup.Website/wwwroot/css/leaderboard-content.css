@@ -14,7 +14,8 @@
 .flag-team:last-child { border-bottom: 0; }
 .flag-team summary { display: grid; grid-template-columns: 3rem minmax(0, 1fr) auto 6.5rem 1rem; align-items: center; gap: 1rem; min-height: 100px; padding: 1rem 1.5rem; cursor: pointer; list-style: none; box-sizing: border-box; }
 .flag-team summary::-webkit-details-marker { display: none; }
-.flag-team summary:hover, .flag-team[open] summary { background: var(--lwc-accent-soft, rgba(8,118,133,.06)); }
+.flag-team[open] summary { background: var(--lwc-accent-soft, rgba(8,118,133,.06)); }
+@media (hover: hover) { .flag-team summary:hover { background: var(--lwc-accent-soft, rgba(8,118,133,.06)); } }
 .flag-team summary:focus-visible, .flag-athlete-link:focus-visible { outline: 3px solid var(--primary-color); outline-offset: -3px; border-radius: 6px; }
 .flag-team-rank { font-family: Orbitron, sans-serif; font-size: 1.4rem; font-weight: 700; text-align: center; color: var(--primary-color); font-variant-numeric: tabular-nums; }
 .flag-team-name { display: flex; align-items: center; gap: 1rem; min-width: 0; font-size: 1.12rem; font-weight: 700; overflow-wrap: anywhere; }
@@ -29,7 +30,7 @@
 .flag-team-athletes { list-style: none; margin: 0; padding: .25rem 1.5rem .75rem 5.5rem; }
 .flag-team-athletes li + li { border-top: 1px solid var(--border-color); }
 .flag-athlete-link { display: grid; grid-template-columns: 1.25rem 40px minmax(0, 1fr) auto; align-items: center; gap: .75rem; padding: .85rem .5rem; color: inherit; text-decoration: none; min-height: 66px; border-radius: 6px; }
-.flag-athlete-link:hover { background: var(--lwc-accent-soft, rgba(8,118,133,.06)); }
+@media (hover: hover) { .flag-athlete-link:hover { background: var(--lwc-accent-soft, rgba(8,118,133,.06)); } }
 .flag-athlete-link img { width: 40px; height: 40px; object-fit: cover; border-radius: 50%; }
 .flag-athlete-rank { color: var(--lwc-muted, #526373); font-size: .85rem; font-variant-numeric: tabular-nums; }
 .flag-athlete-name { font-weight: 600; overflow-wrap: anywhere; }
@@ -3904,6 +3905,15 @@
  .leaderboard-selection-chip:focus-visible,
  .leaderboard-clear-all:focus-visible,
  .sidebar-show-results:focus-visible { outline: 3px solid var(--lwc-accent); outline-offset: 2px; }
+ @media (max-width: 480px) {
+     .leaderboard-controls .leaderboard-selection-summary:has(.leaderboard-selection-chip:nth-child(2)) {
+         display: grid; grid-template-columns: minmax(0, 1fr) auto; width: 100%; align-items: end;
+     }
+     .leaderboard-selection-summary:has(.leaderboard-selection-chip:nth-child(2)) #leaderboardResultCount { grid-column: 1 / -1; margin: 0; }
+     .leaderboard-selection-summary:has(.leaderboard-selection-chip:nth-child(2)) .leaderboard-selection-chips {
+         display: flex; flex-wrap: wrap; gap: var(--lwc-space-2); min-width: 0;
+     }
+ }
  .sidebar-filter-list { display: contents; }
  .sidebar-results { display: none; }
 
@@ -4504,67 +4514,6 @@ main[data-leaderboard-page="full"] .no-results-empty-state::before{
 main[data-leaderboard-page="full"] .no-results-empty-state p{ color:var(--lwc-ink); font-weight:700; }
 main[data-leaderboard-page="full"] .show-all-athletes-btn{ border-radius:var(--lwc-radius-md); border-color:var(--lwc-border-strong); color:var(--lwc-accent); }
 
-/* By Flag: the same row rhythm, medal discs and column edges as the athlete table. */
-main[data-leaderboard-page="full"] .flag-team summary{ min-height:72px; padding-block:var(--lwc-space-3); grid-template-columns:3rem minmax(0, 1fr) auto 7.5rem 32px; }
-main[data-leaderboard-page="full"] .flag-team-rank{ justify-self:center; font-size:var(--lwc-type-body); color:var(--lwc-ink); }
-main[data-leaderboard-page="full"] .flag-team-rank:is([data-rank="1"], [data-rank="2"], [data-rank="3"]){
-    display:inline-grid; place-items:center; width:2rem; aspect-ratio:1; border-radius:50%; color:#17212b; font-size:var(--lwc-type-sm);
-    box-shadow:inset 0 0 0 2px rgba(23, 33, 43, .14);
-}
-main[data-leaderboard-page="full"] .flag-team-rank[data-rank="1"]{ background:var(--lwc-gold); }
-main[data-leaderboard-page="full"] .flag-team-rank[data-rank="2"]{ background:var(--lwc-silver); }
-main[data-leaderboard-page="full"] .flag-team-rank[data-rank="3"]{ background:var(--lwc-bronze); }
-main[data-leaderboard-page="full"] .flag-team-name{ font-size:var(--lwc-type-body); }
-main[data-leaderboard-page="full"] .flag-team-icon{ flex-basis:2rem; width:2rem; font-size:1.5rem; }
-main[data-leaderboard-page="full"] .flag-team-portraits img{ width:32px; height:32px; }
-main[data-leaderboard-page="full"] .flag-team-score{ font-size:1.125rem; color:var(--lwc-accent); line-height:1.15; }
-main[data-leaderboard-page="full"] .flag-team-score small{ margin-top:.15rem; font-size:var(--lwc-type-xs); }
-/* The chevron is drawn, so it reads as a disclosure control in every font. */
-main[data-leaderboard-page="full"] .flag-team-chevron{
-    position:relative; display:block; width:32px; height:32px; border-radius:50%; font-size:0; color:var(--lwc-muted);
-    box-shadow:inset 0 0 0 1px var(--lwc-border);
-    transition:transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
-}
-main[data-leaderboard-page="full"] .flag-team-chevron::before{
-    content:""; position:absolute; left:50%; top:45%; width:.45rem; height:.45rem;
-    border-right:2px solid currentColor; border-bottom:2px solid currentColor; transform:translate(-50%, -50%) rotate(45deg);
-}
-main[data-leaderboard-page="full"] .flag-team summary:hover .flag-team-chevron,
-main[data-leaderboard-page="full"] .flag-team[open] .flag-team-chevron{ color:var(--lwc-accent); box-shadow:inset 0 0 0 1px var(--lwc-accent); }
-main[data-leaderboard-page="full"] .flag-team-athletes{ padding-inline-start:calc(1.5rem + 3rem + 1rem); }
-main[data-leaderboard-page="full"] .flag-athlete-link{ min-height:56px; padding-block:.5rem; }
-main[data-leaderboard-page="full"] .flag-athlete-name small,
-main[data-leaderboard-page="full"] .flag-athlete-metric small{ display:block; color:var(--lwc-muted); font-size:var(--lwc-type-xs); font-weight:400; }
-main[data-leaderboard-page="full"] .flag-athlete-metric{ color:var(--lwc-accent); }
-main[data-leaderboard-page="full"] .flag-section-heading{ padding-block:var(--lwc-space-2); }
-@container flag-results (max-width: 42rem){
-    main[data-leaderboard-page="full"] .flag-team summary{ grid-template-columns:min(2.25rem, 36px) minmax(0, 1fr) auto 32px; padding-inline:var(--lwc-space-4); }
-    main[data-leaderboard-page="full"] .flag-team-athletes{ padding-inline:var(--lwc-space-4); padding-inline-start:calc(var(--lwc-space-4) + 2.25rem + .75rem); }
-}
-@container flag-results (max-width: 28rem){
-    main[data-leaderboard-page="full"] .flag-team-icon{ flex-basis:1.75rem; width:1.75rem; font-size:1.3rem; }
-}
-@container flag-results (max-width: 22rem){
-    main[data-leaderboard-page="full"] .flag-team summary{ grid-template-columns:max(24px, 1.25rem) minmax(0, 1fr) 32px; padding-inline:12px; }
-    main[data-leaderboard-page="full"] .flag-team-rank:is([data-rank="1"], [data-rank="2"], [data-rank="3"]){ width:max(24px, 1.25rem); font-size:var(--lwc-type-sm); line-height:1; }
-    main[data-leaderboard-page="full"] .flag-team-name{ flex-wrap:wrap; }
-    main[data-leaderboard-page="full"] .flag-team-name > span:last-child{ max-width:100%; overflow-wrap:break-word; }
-    main[data-leaderboard-page="full"] .flag-team-icon{ flex-basis:28px; width:28px; font-size:24px; }
-    main[data-leaderboard-page="full"] .flag-team-athletes{ padding-inline-start:12px; }
-    main[data-leaderboard-page="full"] .flag-athlete-link{ grid-template-columns:1rem 32px minmax(0, 1fr); }
-    main[data-leaderboard-page="full"] .flag-athlete-metric{ grid-column:3; text-align:left; }
-    main[data-leaderboard-page="full"] .flag-athlete-metric small{ display:inline; margin-inline-start:.4rem; }
-}
-/* Very narrow text-relative cards give names the complete line. */
-@container flag-results (max-width: 14rem){
-    main[data-leaderboard-page="full"] .flag-team summary{ grid-template-areas:"rank flag chevron" "name name name" "score score score"; }
-    main[data-leaderboard-page="full"] .flag-team-name{ display:contents; }
-    main[data-leaderboard-page="full"] .flag-team-icon{ grid-area:flag; }
-    main[data-leaderboard-page="full"] .flag-team-name > span:last-child{ grid-area:name; }
-    main[data-leaderboard-page="full"] .flag-athlete-name,
-    main[data-leaderboard-page="full"] .flag-athlete-metric{ grid-column:1 / -1; }
-}
-
 /* Phones and small tablets: the header band stacks into a title row with By
    Flag, full-width underline tabs, then search with its two tools. */
 @media (max-width: 768px), (max-width: 932px) and (max-height: 480px) and (orientation: landscape){
@@ -5100,4 +5049,219 @@ main[data-leaderboard-page="full"] .flag-section-heading{ padding-block:var(--lw
     #detailsModal .biomarker-overview-table > tbody > .result-detail-row:not([hidden]),
     #detailsModal .biomarker-overview-table > tbody > .result-detail-row > td{ display:block; }
     #detailsModal .biomarker-overview-table > tbody > .result-detail-row > td{ width:100%; box-sizing:border-box; }
+}
+
+/* =========================
+   16) By Flag: a nations table
+   The flag view is the athlete table's sibling: the same 57px row rhythm,
+   zebra, hover edge, medal discs, ringed portraits and inline scores. An
+   open team becomes one block whose members hang from its flag, and teams
+   that still need athletes show their empty seats.
+   ========================= */
+main[data-leaderboard-page="full"] .flag-leaderboard{
+    --flag-pad:var(--lwc-space-5); --flag-gap:var(--lwc-space-4); --flag-rank:3rem; --flag-icon:2rem;
+    --flag-score:10.5rem; --flag-toggle:32px; --flag-face:40px; --flag-seat:36px;
+    --flag-zebra:color-mix(in srgb, var(--lwc-surface-muted) 35%, var(--lwc-surface));
+    --flag-open:color-mix(in srgb, var(--lwc-surface-accent) 45%, var(--lwc-surface));
+}
+
+/* Switching from athletes to flags settles the new table into place. */
+@keyframes lwc-flag-board-in{ from{ opacity:0; transform:translateY(6px); } }
+@keyframes lwc-flag-members-in{ from{ opacity:0; transform:translateY(-4px); } }
+@media (scripting: enabled){
+    main[data-leaderboard-page="full"] .leaderboard--flags > .flag-leaderboard{ animation:lwc-flag-board-in var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease) both; }
+    main[data-leaderboard-page="full"] .flag-team[open] .flag-team-athletes{ animation:lwc-flag-members-in var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease) both; }
+}
+
+/* Team rows */
+main[data-leaderboard-page="full"] .flag-team{ position:relative; isolation:isolate; border-bottom:1px solid var(--lwc-border); color:var(--lwc-ink); background:var(--lwc-surface); }
+main[data-leaderboard-page="full"] .flag-team:nth-of-type(even){ background:var(--flag-zebra); }
+main[data-leaderboard-page="full"] .flag-team.tier-amateur{ background:var(--tier-amateur-bg); box-shadow:inset 4px 0 0 rgba(37, 99, 235, .45); }
+main[data-leaderboard-page="full"] .flag-team.tier-amateur:nth-of-type(even){ background:var(--tier-amateur-bg-even); }
+main[data-leaderboard-page="full"] .flag-team summary{
+    grid-template-columns:var(--flag-rank) minmax(0, 1fr) auto var(--flag-score) var(--flag-toggle);
+    gap:var(--flag-gap); min-height:57px; padding:6px var(--flag-pad); background:transparent;
+    transition:background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+}
+main[data-leaderboard-page="full"] .flag-team summary:focus-visible{ outline:3px solid var(--lwc-accent); outline-offset:-3px; border-radius:0; }
+
+main[data-leaderboard-page="full"] .flag-team-rank{
+    justify-self:center; font-family:Orbitron, Roboto, sans-serif; font-size:var(--lwc-type-body); font-weight:700; line-height:1; color:var(--lwc-ink);
+}
+main[data-leaderboard-page="full"] .flag-team-rank:is([data-rank="1"], [data-rank="2"], [data-rank="3"]){
+    display:inline-grid; place-items:center; width:2rem; aspect-ratio:1; border-radius:50%; color:#17212b; font-size:var(--lwc-type-sm);
+    box-shadow:inset 0 0 0 2px rgba(23, 33, 43, .14);
+}
+main[data-leaderboard-page="full"] .flag-team-rank[data-rank="1"]{ background:var(--lwc-gold); }
+main[data-leaderboard-page="full"] .flag-team-rank[data-rank="2"]{ background:var(--lwc-silver); }
+main[data-leaderboard-page="full"] .flag-team-rank[data-rank="3"]{ background:var(--lwc-bronze); }
+main[data-leaderboard-page="full"] .flag-team-rank[data-rank=""]{ color:var(--lwc-muted); font-family:Roboto, sans-serif; }
+
+main[data-leaderboard-page="full"] .flag-team-name{ gap:var(--lwc-space-3); font-size:var(--lwc-type-body); font-weight:700; line-height:1.3; }
+main[data-leaderboard-page="full"] .flag-team-icon{ display:grid; place-items:center; flex:0 0 var(--flag-icon); width:var(--flag-icon); font-size:1.5rem; line-height:1; color:var(--lwc-accent); }
+main[data-leaderboard-page="full"] .flag-team-icon .fi{ width:var(--flag-icon); height:1.5rem; line-height:1.5rem; background-size:cover; border-radius:4px; box-shadow:0 0 0 1px var(--lwc-border); }
+
+/* The team's three faces, ringed like the table's portraits; a missing member is an empty seat. */
+main[data-leaderboard-page="full"] .flag-team-portraits{ display:flex; align-items:center; padding-inline-start:10px; isolation:isolate; }
+/* Score and toggle keep the last two columns even when the faces step aside. */
+main[data-leaderboard-page="full"] .flag-team-score{ grid-column:-3 / -2; }
+main[data-leaderboard-page="full"] .flag-team-chevron{ grid-column:-2 / -1; }
+main[data-leaderboard-page="full"] .flag-team-portraits img,
+main[data-leaderboard-page="full"] .flag-team-portraits::before,
+main[data-leaderboard-page="full"] .flag-team-portraits::after{
+    flex:0 0 auto; width:var(--flag-seat); height:var(--flag-seat); margin-inline-start:-10px; box-sizing:border-box; border-radius:50%;
+}
+main[data-leaderboard-page="full"] .flag-team-portraits img{ border:2px solid var(--lwc-accent); box-shadow:0 0 0 2px var(--lwc-surface); background:var(--lwc-surface-muted); }
+main[data-leaderboard-page="full"] .flag-team-portraits img:nth-child(1){ position:relative; z-index:3; }
+main[data-leaderboard-page="full"] .flag-team-portraits img:nth-child(2){ position:relative; z-index:2; }
+main[data-leaderboard-page="full"] .flag-team-portraits:has(> img:only-child)::before,
+main[data-leaderboard-page="full"] .flag-team-portraits:has(> img:nth-child(2):last-child)::after,
+main[data-leaderboard-page="full"] .flag-team-portraits:has(> img:only-child)::after{
+    content:""; order:1; border:2px dashed var(--lwc-border-strong); background:var(--lwc-surface);
+}
+
+/* Scores read like the table's: one accent figure with its unit beside it. */
+main[data-leaderboard-page="full"] .flag-team-score{ font-size:1.125rem; font-weight:700; line-height:1.2; color:var(--lwc-accent); letter-spacing:-.01em; white-space:nowrap; }
+main[data-leaderboard-page="full"] .flag-team small{ font-family:Roboto, sans-serif; }
+main[data-leaderboard-page="full"] .flag-team-score small{ display:inline; margin:0 0 0 .3rem; color:inherit; font-size:var(--lwc-type-sm); font-weight:500; letter-spacing:0; }
+main[data-leaderboard-page="full"] .flag-team-rank[data-rank=""] ~ .flag-team-score{ color:var(--lwc-ink); }
+main[data-leaderboard-page="full"] .flag-team-rank[data-rank=""] ~ .flag-team-score small{ color:var(--lwc-muted); font-weight:400; }
+
+/* The disclosure is drawn, so it reads the same in every font; its ring appears on intent. */
+main[data-leaderboard-page="full"] .flag-team-chevron{
+    position:relative; display:block; width:var(--flag-toggle); height:var(--flag-toggle); border-radius:50%; font-size:0; color:var(--lwc-muted);
+    box-shadow:inset 0 0 0 1px transparent;
+    transition:transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+}
+main[data-leaderboard-page="full"] .flag-team-chevron::before{
+    content:""; position:absolute; left:50%; top:45%; width:.45rem; height:.45rem;
+    border-right:2px solid currentColor; border-bottom:2px solid currentColor; transform:translate(-50%, -50%) rotate(45deg);
+}
+main[data-leaderboard-page="full"] .flag-team summary:focus-visible .flag-team-chevron,
+main[data-leaderboard-page="full"] .flag-team[open] .flag-team-chevron{ color:var(--lwc-accent); box-shadow:inset 0 0 0 1px var(--lwc-accent); }
+
+/* An open team is one block: tinted, edged in accent, members hanging from the flag. */
+main[data-leaderboard-page="full"] .flag-team[open]{ background:var(--flag-open); box-shadow:inset 3px 0 0 var(--lwc-accent); }
+main[data-leaderboard-page="full"] .flag-team[open] summary{ background:var(--lwc-surface-accent); box-shadow:inset 3px 0 0 var(--lwc-accent); }
+main[data-leaderboard-page="full"] .flag-team-athletes{
+    --flag-thread:calc(var(--flag-pad) + var(--flag-rank) + var(--flag-gap) + var(--flag-icon) / 2);
+    position:relative; margin:0; padding:var(--lwc-space-2) var(--flag-pad) var(--lwc-space-3);
+    padding-inline-start:calc(var(--flag-pad) + var(--flag-rank) + var(--flag-gap));
+}
+main[data-leaderboard-page="full"] .flag-team-athletes::before{
+    content:""; position:absolute; inset-inline-start:calc(var(--flag-thread) - 1px); top:0; bottom:calc(var(--lwc-space-3) + 28px);
+    width:2px; border-radius:1px; background:var(--lwc-border-strong);
+}
+main[data-leaderboard-page="full"] .flag-team-athletes li + li{ border-top:0; }
+main[data-leaderboard-page="full"] .flag-athlete-link{
+    position:relative; grid-template-columns:var(--flag-icon) var(--flag-face) minmax(0, 1fr) auto; gap:var(--flag-gap);
+    min-height:56px; padding:var(--lwc-space-2) calc(var(--flag-toggle) + var(--flag-gap)) var(--lwc-space-2) 0;
+    border-radius:var(--lwc-radius-md); background:transparent; color:var(--lwc-ink);
+}
+main[data-leaderboard-page="full"] .flag-athlete-link:focus-visible{ outline:3px solid var(--lwc-accent); outline-offset:-3px; }
+main[data-leaderboard-page="full"] .flag-athlete-rank{
+    position:relative; z-index:1; display:grid; place-items:center; justify-self:center; width:1.5rem; aspect-ratio:1; border-radius:50%;
+    background:var(--lwc-surface); box-shadow:inset 0 0 0 2px var(--lwc-border-strong);
+    color:var(--lwc-muted); font:700 var(--lwc-type-xs)/1 Orbitron, Roboto, sans-serif; font-variant-numeric:tabular-nums;
+}
+main[data-leaderboard-page="full"] .flag-athlete-link img{ width:var(--flag-face); height:var(--flag-face); box-sizing:border-box; border:3px solid var(--lwc-accent); background:var(--lwc-surface-muted); }
+main[data-leaderboard-page="full"] .flag-athlete-name{
+    font-weight:700; line-height:1.3; text-decoration:underline; text-decoration-color:var(--lwc-border); text-underline-offset:.2em;
+}
+/* Inline-block keeps the track label out of the name's underline. */
+main[data-leaderboard-page="full"] .flag-athlete-name small{
+    display:inline-block; width:100%; margin-top:.15rem; color:var(--lwc-muted); font-size:var(--lwc-type-xs); font-weight:400; letter-spacing:.02em;
+}
+main[data-leaderboard-page="full"] .flag-athlete-metric{ color:var(--lwc-accent); font-size:1rem; font-weight:700; white-space:nowrap; }
+main[data-leaderboard-page="full"] .flag-athlete-metric small{ display:inline; margin:0 0 0 .3rem; color:inherit; font-size:var(--lwc-type-sm); font-weight:500; }
+
+/* Pointer hover marks the row's leading edge, as in the athlete table; touch taps leave no stuck tint. */
+@media (hover: hover){
+    main[data-leaderboard-page="full"] .flag-team summary:hover{ background:var(--lwc-surface-accent); box-shadow:inset 3px 0 0 var(--lwc-accent); }
+    main[data-leaderboard-page="full"] .flag-team[open] summary:hover{ background:var(--lwc-accent-soft); }
+    main[data-leaderboard-page="full"] .flag-team summary:hover .flag-team-chevron{ color:var(--lwc-accent); box-shadow:inset 0 0 0 1px var(--lwc-accent); }
+    main[data-leaderboard-page="full"] .flag-athlete-link:hover{ background:var(--lwc-surface-accent); }
+    main[data-leaderboard-page="full"] .flag-athlete-link:hover .flag-athlete-rank{ color:var(--lwc-accent); box-shadow:inset 0 0 0 2px var(--lwc-accent); }
+    main[data-leaderboard-page="full"] .flag-athlete-link:hover .flag-athlete-name{ color:var(--lwc-accent-hover); text-decoration-color:currentColor; }
+}
+
+/* Section bands match the table's track separator and stay in view under the header,
+   below the filter panel (z-index 3) that opens over the results. */
+main[data-leaderboard-page="full"] .flag-section-heading{
+    position:sticky; top:var(--board-sticky-top); z-index:1; display:flex; align-items:center; min-height:37px; box-sizing:border-box;
+    padding:var(--lwc-space-2) var(--flag-pad); background:var(--lwc-surface-muted); border-block:1px solid var(--lwc-border);
+    color:var(--lwc-muted); font:700 var(--lwc-type-xs)/1.3 Roboto, sans-serif; letter-spacing:.08em; text-transform:uppercase;
+}
+main[data-leaderboard-page="full"] .flag-section-heading.tier-separator-cell{ color:var(--lwc-accent); box-shadow:inset 4px 0 0 rgba(37, 99, 235, .45); }
+main[data-leaderboard-page="full"] .flag-section-heading .tier-separator-label{ letter-spacing:inherit; }
+
+/* Empty and failed: the same calm card the athlete table uses. */
+main[data-leaderboard-page="full"] .flag-empty{
+    display:grid; justify-items:center; gap:var(--lwc-space-4); box-sizing:border-box;
+    width:min(calc(100% - 2 * var(--lwc-space-4)), 24rem); margin:var(--lwc-space-7) auto; padding:var(--lwc-space-6) var(--lwc-space-5);
+    border:1px dashed var(--lwc-border-strong); border-radius:var(--board-radius); background:var(--lwc-surface-muted);
+    color:var(--lwc-ink); font-weight:700; text-align:center;
+}
+main[data-leaderboard-page="full"] .flag-empty::before{
+    content:"\f024" / ""; display:grid; place-items:center; width:3rem; height:3rem; border-radius:50%;
+    background:var(--lwc-surface); box-shadow:inset 0 0 0 1px var(--lwc-border); color:var(--lwc-accent);
+    font:900 1.1rem/1 "Font Awesome 6 Free";
+}
+main[data-leaderboard-page="full"] .flag-leaderboard > .leaderboard-recovery{
+    width:min(calc(100% - 2 * var(--lwc-space-4)), 24rem); margin:var(--lwc-space-5) auto; box-sizing:border-box;
+}
+
+/* Tablets and narrow boards: faces step aside, the score keeps its unit beneath. */
+@container flag-results (max-width: 42rem){
+    main[data-leaderboard-page="full"] .flag-team{ --flag-pad:var(--lwc-space-4); --flag-gap:var(--lwc-space-3); --flag-rank:2.25rem; --flag-face:36px; }
+    main[data-leaderboard-page="full"] .flag-section-heading{ padding-inline:var(--lwc-space-4); }
+    main[data-leaderboard-page="full"] .flag-team summary{ grid-template-columns:var(--flag-rank) minmax(0, 1fr) auto var(--flag-toggle); min-height:64px; }
+    main[data-leaderboard-page="full"] .flag-team-portraits{ display:none; }
+    main[data-leaderboard-page="full"] .flag-team-score{ text-align:right; }
+    main[data-leaderboard-page="full"] .flag-team-score small{ display:block; margin:.1rem 0 0; font-size:var(--lwc-type-xs); }
+}
+@container flag-results (max-width: 28rem){
+    main[data-leaderboard-page="full"] .flag-team{ --flag-pad:var(--lwc-space-3); --flag-gap:var(--lwc-space-2); --flag-rank:2rem; --flag-icon:1.75rem; --flag-face:32px; }
+    main[data-leaderboard-page="full"] .flag-section-heading{ padding-inline:var(--lwc-space-3); }
+    main[data-leaderboard-page="full"] .flag-team-icon{ font-size:1.3rem; }
+    main[data-leaderboard-page="full"] .flag-team-icon .fi{ height:1.3rem; line-height:1.3rem; }
+    main[data-leaderboard-page="full"] .flag-athlete-metric{ font-size:var(--lwc-type-sm); text-align:right; }
+    main[data-leaderboard-page="full"] .flag-athlete-metric small{ display:block; margin:.1rem 0 0; font-size:var(--lwc-type-xs); }
+}
+/* Small phones: the score moves under the name so long team names keep a full line. */
+@container flag-results (max-width: 22rem){
+    main[data-leaderboard-page="full"] .flag-team{ --flag-pad:12px; }
+    main[data-leaderboard-page="full"] .flag-team summary{
+        grid-template-columns:var(--flag-rank) minmax(0, 1fr) var(--flag-toggle); grid-template-areas:"rank name chevron" ". score score";
+        row-gap:var(--lwc-space-1); padding-block:var(--lwc-space-3);
+    }
+    main[data-leaderboard-page="full"] .flag-team-score{ grid-area:score; text-align:left; padding-inline-start:calc(var(--flag-icon) + var(--lwc-space-3)); }
+    main[data-leaderboard-page="full"] .flag-team-chevron{ grid-area:chevron; }
+    main[data-leaderboard-page="full"] .flag-team-score small{ display:inline; margin:0 0 0 .3rem; }
+    main[data-leaderboard-page="full"] .flag-team-rank:is([data-rank="1"], [data-rank="2"], [data-rank="3"]){ width:max(24px, 1.5rem); font-size:var(--lwc-type-xs); }
+    main[data-leaderboard-page="full"] .flag-team-name{ flex-wrap:wrap; }
+    main[data-leaderboard-page="full"] .flag-team-name > span:last-child{ max-width:100%; overflow-wrap:break-word; }
+    main[data-leaderboard-page="full"] .flag-athlete-link{ grid-template-columns:var(--flag-icon) var(--flag-face) minmax(0, 1fr); padding-inline-end:var(--lwc-space-2); }
+    main[data-leaderboard-page="full"] .flag-athlete-metric{ grid-column:3; text-align:left; }
+    main[data-leaderboard-page="full"] .flag-athlete-metric small{ display:inline; margin:0 0 0 .3rem; }
+}
+/* Very large text: every part of a team gets its own line. */
+@container flag-results (max-width: 14rem){
+    main[data-leaderboard-page="full"] .flag-team summary{ grid-template-areas:"rank flag chevron" "name name name" "score score score"; }
+    main[data-leaderboard-page="full"] .flag-team-name{ display:contents; }
+    main[data-leaderboard-page="full"] .flag-team-icon{ grid-area:flag; }
+    main[data-leaderboard-page="full"] .flag-team-name > span:last-child{ grid-area:name; }
+    main[data-leaderboard-page="full"] .flag-team-score{ padding-inline-start:0; }
+    main[data-leaderboard-page="full"] .flag-team-score small{ display:block; margin:.15rem 0 0; }
+    main[data-leaderboard-page="full"] .flag-team-athletes{ padding-inline-start:12px; }
+    main[data-leaderboard-page="full"] .flag-team-athletes::before{ display:none; }
+    main[data-leaderboard-page="full"] .flag-athlete-link{ grid-template-columns:var(--flag-face) minmax(0, 1fr); }
+    main[data-leaderboard-page="full"] .flag-athlete-rank{ display:none; }
+    main[data-leaderboard-page="full"] .flag-athlete-name,
+    main[data-leaderboard-page="full"] .flag-athlete-metric{ grid-column:1 / -1; }
+}
+@media (prefers-reduced-motion: reduce){
+    main[data-leaderboard-page="full"] .leaderboard--flags > .flag-leaderboard,
+    main[data-leaderboard-page="full"] .flag-team[open] .flag-team-athletes{ animation:none; }
+    main[data-leaderboard-page="full"] :is(.flag-team summary, .flag-team-chevron){ transition:none; }
 }

@@ -171,10 +171,10 @@ public sealed class AestheticSystemBrowserTests(
 
         Assert.True(review.ShowsResultReview);
         Assert.Equal("rgb(23, 33, 43)", review.PanelBackground);
-        Assert.Equal("rgb(23, 53, 37)", review.PrimaryCopyBackground);
+        Assert.Equal("rgba(0, 0, 0, 0)", review.PrimaryCopyBackground);
         Assert.Equal("rgb(230, 237, 243)", review.PrimaryCopyColor);
         Assert.Equal("rgb(230, 237, 243)", review.SecondaryCopyColor);
-        Assert.Equal("rgb(32, 45, 56)", review.SecondaryActionBackground);
+        Assert.Equal("rgb(23, 33, 43)", review.SecondaryActionBackground);
         Assert.Equal("rgb(230, 237, 243)", review.SecondaryActionColor);
     }
 
