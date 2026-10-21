@@ -419,6 +419,7 @@ public sealed class AestheticSystemBrowserTests(
             NavigateAndSettleAsync(applyPage, "/apply"));
         await Assertions.Expect(challengePage.Locator(".lmx-page")).ToHaveAttributeAsync("aria-busy", "false");
         await Assertions.Expect(challengePage.Locator("#lmxSignupPanel")).ToBeVisibleAsync();
+        await applyCdp.SendAsync("DOM.enable");
 
         foreach (var deficiency in new[] { "protanopia", "deuteranopia", "tritanopia", "achromatopsia" })
         {
@@ -469,14 +470,16 @@ public sealed class AestheticSystemBrowserTests(
                     input.setAttribute('aria-invalid', 'true');
                     message.textContent = 'Name must contain at least three readable characters.';
                     const messageStyle = getComputedStyle(message);
+                    const mark = getComputedStyle(message, '::before');
                     const messageRect = message.getBoundingClientRect();
                     return {
                         ErrorHasText: message.textContent.trim().length > 0,
                         ErrorIsDescribedByControl: input.getAttribute('aria-describedby')
                             ?.split(/\s+/).includes(message.id) === true,
                         ErrorIsProgrammaticallyExposed: input.getAttribute('aria-invalid') === 'true',
-                        ErrorHasShapeIndicator: parseFloat(messageStyle.borderLeftWidth) >= 4
-                            || parseFloat(messageStyle.borderRightWidth) >= 4,
+                        ErrorHasShapeIndicator: mark.content.includes('✕')
+                            && mark.display !== 'none' && mark.visibility === 'visible'
+                            && parseFloat(mark.width) >= 16 && parseFloat(mark.height) >= 16,
                         ErrorIsVisible: messageRect.width > 0 && messageRect.height > 0
                             && messageStyle.display !== 'none' && messageStyle.visibility !== 'hidden'
                     };
@@ -489,8 +492,40 @@ public sealed class AestheticSystemBrowserTests(
             Assert.True(error.ErrorIsProgrammaticallyExposed,
                 $"Invalid state was not exposed under {deficiency} emulation.");
             Assert.True(error.ErrorHasShapeIndicator,
-                $"Error state had no non-color border indicator under {deficiency} emulation.");
+                $"Error state had no non-color error mark under {deficiency} emulation.");
             Assert.True(error.ErrorIsVisible, $"Error text was not visible under {deficiency} emulation.");
+
+            // A computed pseudo-element size is insufficient: display:none on an
+            // ancestor can suppress its real box. Check the rendered error disc.
+            var document = (await applyCdp.SendAsync("DOM.getDocument"))!.Value;
+            var messageNode = (await applyCdp.SendAsync("DOM.querySelector", new()
+            {
+                ["nodeId"] = document.GetProperty("root").GetProperty("nodeId").GetInt32(),
+                ["selector"] = "#nameError"
+            }))!.Value;
+            var description = (await applyCdp.SendAsync("DOM.describeNode", new()
+            {
+                ["nodeId"] = messageNode.GetProperty("nodeId").GetInt32(), ["depth"] = 0
+            }))!.Value;
+            var errorMark = description.GetProperty("node").GetProperty("pseudoElements").EnumerateArray()
+                .Single(element => element.GetProperty("pseudoType").GetString() == "before");
+            var markBox = (await applyCdp.SendAsync("DOM.getBoxModel", new()
+            {
+                ["backendNodeId"] = errorMark.GetProperty("backendNodeId").GetInt32()
+            }))!.Value.GetProperty("model");
+            Assert.Equal(18, markBox.GetProperty("width").GetInt32());
+            Assert.Equal(18, markBox.GetProperty("height").GetInt32());
+            var markPoints = markBox.GetProperty("border").EnumerateArray().Select(value => value.GetDouble()).ToArray();
+            var textLeft = await applyPage.Locator("#nameError").EvaluateAsync<double>(
+                """
+                element => {
+                    const range = document.createRange();
+                    range.selectNodeContents(element);
+                    return range.getBoundingClientRect().left;
+                }
+                """);
+            Assert.True(markPoints[2] <= textLeft,
+                $"Error mark overlaps its text under {deficiency} emulation.");
         }
 
         var resetEmulation = new Dictionary<string, object> { ["type"] = "none" };
