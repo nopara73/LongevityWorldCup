@@ -317,7 +317,9 @@ public sealed class ApplyJourneyBrowserTests(
 
         foreach (var stage in new[] { 1, 3, 6 })
         {
-            await page.EvaluateAsync("stage => { currentStage = stage; goToStage(stage); window.LwcFlowActionDock?.refreshNow(); }", stage);
+            // The previous iteration scrolls to the card's end to check clearance.
+            // Reset the anchor so every stage exercises its overflowing first screen.
+            await page.EvaluateAsync("stage => { window.scrollTo({ top: 0, behavior: 'instant' }); currentStage = stage; goToStage(stage); window.LwcFlowActionDock?.refreshNow(); }", stage);
             await page.WaitForFunctionAsync("() => document.querySelector('.convergence-actions')?.classList.contains('flow-action-stack--docked')");
             const string measureTail = """
                 () => {
