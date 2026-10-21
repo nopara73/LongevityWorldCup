@@ -217,14 +217,19 @@ public sealed partial class NewAthleteOnboardingBrowserTests
     {
         await RunOnboardingBrowserAsync(async (page, errors) =>
         {
+            await page.Context.RouteAsync("**/cropperjs/1.5.13/cropper.min.*", route =>
+            {
+                var css = new Uri(route.Request.Url).AbsolutePath.EndsWith(".css", StringComparison.Ordinal);
+                return route.FulfillAsync(new()
+                {
+                    Path = Path.Combine(AppContext.BaseDirectory, "Fixtures", css ? "cropper.min.css" : "cropper.min.js"),
+                    ContentType = css ? "text/css" : "application/javascript"
+                });
+            });
             await page.GotoAsync("/apply");
             await FillApplicationIdentityDraftAsync(page);
             await page.EvaluateAsync("""
                 () => {
-                    window.Cropper = class {
-                        destroy() {}
-                        getCroppedCanvas() { const canvas = document.createElement('canvas'); canvas.width = 20; canvas.height = 20; return canvas; }
-                    };
                     currentStage = 4; goToStage(4);
                 }
                 """);

@@ -557,9 +557,12 @@ interface FlowActionDockApi {
         if (!dockHeight && !isKeyboardOpen) return;
 
         const requestedMargin = options.margin;
-        const margin = typeof requestedMargin === 'number' && Number.isFinite(requestedMargin) ? requestedMargin : 16;
         const rect = getClearanceRect(element, options);
         const viewport = getVisualViewportBounds();
+        const desiredMargin = typeof requestedMargin === 'number' && Number.isFinite(requestedMargin) ? requestedMargin : 16;
+        // Keep both ends visible when a field and its counter nearly fill the viewport.
+        const availableMargin = Math.max(0, (viewport.height - dockHeight - (rect.bottom - rect.top)) / 2);
+        const margin = Math.min(desiredMargin, availableMargin);
         const bottomLimit = viewport.bottom - dockHeight - margin;
         if (rect.bottom <= bottomLimit) return;
 
