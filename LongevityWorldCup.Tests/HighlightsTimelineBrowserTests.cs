@@ -67,21 +67,20 @@ public sealed partial class HighlightsTimelineBrowserTests(
                 if (!byId('oct-b').classList.contains('day-repeat')) issues.push('a repeated day is not marked');
                 if (getComputedStyle(byId('oct-b').querySelector('.col-date')).color === getComputedStyle(byId('oct-a').querySelector('.col-date')).color)
                     issues.push('a repeated day keeps a loud date');
-                if (getComputedStyle(byId('sep-a').querySelector('.col-date')).fontWeight < 700)
-                    issues.push('a month does not open with its date in bold');
-                for (const id of ['sep-a', 'aug-a']) {
-                    const style = getComputedStyle(byId(id));
-                    if (!style.boxShadow.includes('inset')) issues.push(`${id}: no hairline opens the month`);
-                    if (parseFloat(style.paddingTop) < 16) issues.push(`${id}: the month has no air above it`);
+                for (const id of ['oct-a', 'sep-a', 'aug-a']) {
+                    const heading = byId(id).previousElementSibling;
+                    if (!heading?.classList.contains('events-month-row')) issues.push(`${id}: no heading opens the month`);
                 }
-                if (getComputedStyle(byId('oct-b')).boxShadow !== 'none') issues.push('rows inside a month are ruled');
+                if (rows.some(row => getComputedStyle(row).boxShadow !== 'none')) issues.push('rows are ruled');
                 const backgrounds = new Set(rows.map(row => getComputedStyle(row).backgroundColor));
                 if (backgrounds.size !== 1) issues.push('rows are striped');
 
                 // The rail passes through every portrait's centre.
                 for (const row of rows) {
                     const style = getComputedStyle(row);
-                    if (!style.backgroundImage.includes('gradient')) { issues.push(`${row.dataset.eventId}: no rail`); continue; }
+                    const alone = row.classList.contains('month-start') && row.classList.contains('month-end');
+                    if (alone !== !style.backgroundImage.includes('gradient')) { issues.push(`${row.dataset.eventId}: rail ${style.backgroundImage}`); continue; }
+                    if (alone) continue;
                     const portrait = row.querySelector('.avatar, .avatar-fallback, .donation-gift-avatar, .milestone-people-avatar');
                     const box = portrait.getBoundingClientRect();
                     const rowBox = row.getBoundingClientRect();
@@ -178,10 +177,10 @@ public sealed partial class HighlightsTimelineBrowserTests(
         Assert.True(error[2] >= 40, $"the notice has {error[2]}px of air");
         Assert.InRange(error[3], 0, 1.5);
 
-        // Back closes the column at the card's edge.
+        // Back starts at the card's leading edge.
         var back = await failed.EvaluateAsync<double[]>(
             "() => { const b = document.querySelector('.event-board-page .back-button').getBoundingClientRect(); const c = document.querySelector('.events-board').getBoundingClientRect(); return [b.left, b.right, c.left, c.right]; }");
-        Assert.True(back[0] >= back[2] - 1 && back[1] <= back[3] + 1, $"Back runs {back[0]}-{back[1]} outside the card {back[2]}-{back[3]}");
+        Assert.True(Math.Abs(back[0] - back[2]) <= 1 && back[1] <= back[3] + 1, $"Back runs {back[0]}-{back[1]}, the card {back[2]}-{back[3]}");
     }
 
     private async Task<IBrowserContext> OpenAsync(int width, int height, string scheme, string? eventsBody)
