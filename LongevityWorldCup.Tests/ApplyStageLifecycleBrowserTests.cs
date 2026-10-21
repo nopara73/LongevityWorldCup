@@ -16,6 +16,51 @@ public sealed class ApplyStageLifecycleBrowserTests(
     private static async Task ReadyAsync(IPage page)
         => await page.WaitForFunctionAsync("() => !document.documentElement.hasAttribute('data-initial-view') && document.getElementById('nextButton')?.disabled === false");
 
+    [Fact]
+    public async Task PortraitReplacement_DisablesCropBeforeTheNewImageInitializes()
+    {
+        await using var context = await NewContextAsync(Browser, App, new() { ReducedMotion = ReducedMotion.Reduce });
+        await context.RouteAsync("**/cropperjs/1.5.13/cropper.min.*", route =>
+        {
+            var css = new Uri(route.Request.Url).AbsolutePath.EndsWith(".css", StringComparison.Ordinal);
+            return route.FulfillAsync(new()
+            {
+                Path = Path.Combine(AppContext.BaseDirectory, "Fixtures", css ? "cropper.min.css" : "cropper.min.js"),
+                ContentType = css ? "text/css" : "application/javascript"
+            });
+        });
+        var page = await context.NewPageAsync();
+        var errors = CapturePageErrors(page);
+        await page.GotoAsync("/apply?fake=1");
+        await ReadyAsync(page);
+        await page.EvaluateAsync("() => { currentStage = 4; goToStage(4); }");
+        var webRoot = App.Services.GetRequiredService<IWebHostEnvironment>().WebRootPath;
+        await page.Locator("#profilePicInput").SetInputFilesAsync(Path.Combine(webRoot, "assets", "logo.png"));
+        await page.WaitForFunctionAsync("() => document.getElementById('cropperImage').cropper?.ready && !document.getElementById('cropButton').disabled");
+        await Assertions.Expect(page.Locator("#cropButton")).ToBeEnabledAsync();
+        await page.EvaluateAsync("""
+            () => {
+                const RealCropper = window.Cropper;
+                window.Cropper = class extends RealCropper {
+                    constructor(image, options) {
+                        const actionEnabled = !document.getElementById('cropButton').disabled;
+                        super(image, options);
+                        window.replacementCropInitialization = {actionEnabled, pending: !this.ready};
+                    }
+                };
+            }
+            """);
+        await page.Locator("#profilePicInput").SetInputFilesAsync(Path.Combine(webRoot, "assets", "content-images", "play-athlete-placeholder.jpg"));
+        await page.WaitForFunctionAsync("() => window.replacementCropInitialization");
+        Assert.True(await page.EvaluateAsync<bool>("() => window.replacementCropInitialization.pending"));
+        Assert.False(await page.EvaluateAsync<bool>("() => window.replacementCropInitialization.actionEnabled"),
+            "Crop must be disabled before a replacement portrait starts initializing.");
+        await Assertions.Expect(page.Locator("#cropButton")).ToBeEnabledAsync();
+        await Assertions.Expect(page.Locator("#nextButton")).ToBeDisabledAsync();
+        await page.Locator("#cancelProfileCropButton").ClickAsync();
+        Assert.Empty(errors);
+    }
+
     [Theory]
     [InlineData(761, 700, 100)]
     [InlineData(768, 700, 100)]
