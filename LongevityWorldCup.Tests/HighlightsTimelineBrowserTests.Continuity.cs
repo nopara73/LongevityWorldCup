@@ -124,6 +124,14 @@ public sealed partial class HighlightsTimelineBrowserTests
                         priorDay = day; priorMonth = month;
                     }
                     if (document.querySelector('.details-row:is(.day-start,.day-repeat,.month-start), .details-row[data-day]')) issues.push('details grouped as an event');
+                    const headings=[...document.querySelectorAll('.events-month-row')];
+                    if(headings.some(h=>/Invalid Date|1970/.test(h.textContent))) issues.push('an unknown date created a fabricated chapter');
+                    for(const group of document.querySelectorAll('#eventsTable tbody')){
+                        const known=[...group.querySelectorAll('tr.main-row')].filter(r=>r.dataset.day);
+                        const months=new Set(known.map(r=>r.dataset.day.split('-').slice(0,2).join('-')));
+                        if(months.size>1) issues.push('one accessible row group spans several months');
+                        if(group.querySelectorAll('.events-month-row').length!==(known.length?1:0)) issues.push('missing or stale month heading');
+                    }
                     return issues;
                 }
                 """, dates);

@@ -85,6 +85,7 @@ public static partial class HtmlAssetPlaceholders
         ["{{ASSET_GUESS_MY_AGE_JS}}"] = "/js/guess-my-age.js",
         ["{{ASSET_AGE_VISUALIZATION_CSS}}"] = "/css/age-visualization.css",
         ["{{ASSET_EVENT_BOARD_CSS}}"] = "/css/event-board.css",
+        ["{{ASSET_HIGHLIGHTS_PAGE_CSS}}"] = "/css/highlights-page.css",
         ["{{ASSET_EVENTS_PAGE_JS}}"] = "/js/events-page.js",
         ["{{ASSET_WEB_PUSH_JS}}"] = "/js/web-push.js",
         ["{{ASSET_WEB_PUSH_WORKER_JS}}"] = "/js/web-push-worker.js",

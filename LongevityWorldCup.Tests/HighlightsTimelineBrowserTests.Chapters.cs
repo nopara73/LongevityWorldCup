@@ -52,11 +52,14 @@ public sealed partial class HighlightsTimelineBrowserTests
 
                 // Each month keeps its own rail: none runs through a heading.
                 for (const heading of headings) {
-                    const before = heading.previousElementSibling;
+                    const previousGroup = heading.closest('tbody').previousElementSibling;
+                    const before = previousGroup?.matches('tbody') ? previousGroup.lastElementChild : null;
                     if (!before) continue;
                     const row = before.classList.contains('details-row') ? before.previousElementSibling : before;
                     if (!row.classList.contains('month-end')) issues.push(`${row.dataset.eventId} does not end its month`);
                 }
+                if (headings.some(h => h.parentElement.querySelectorAll('.events-month-row').length !== 1))
+                    issues.push('a table row group contains several month headers');
                 if (document.documentElement.scrollWidth > innerWidth) issues.push('page overflows');
                 return issues;
             }
