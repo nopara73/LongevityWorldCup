@@ -114,6 +114,7 @@ a.badge-class,.badge-class.badge-clickable,.badge-class[data-clickable="true"],.
     max-width:min(20rem,calc(100vw - 16px));
     max-height:calc(100dvh - 16px);
     overflow-y:auto;
+    overscroll-behavior:contain;
     overflow-wrap:anywhere;
     padding:.55rem .75rem;
     border:1px solid rgba(255,255,255,.14);

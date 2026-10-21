@@ -881,6 +881,8 @@ let badgeTipOriginalTitle: string | null = null;
 let badgeTipOriginalData: string | null = null;
 let badgeTipOriginalDescription: string | null = null;
 let badgeTipTouchTarget: HTMLElement | null = null;
+let badgeTipPointerDown = false;
+let badgeTipHadOwnerFocus = false;
 
 function cancelBadgeTipDismiss(): void {
     window.clearTimeout(badgeTipDismissTimer);
@@ -948,7 +950,10 @@ function placeBadgeTip(tip: HTMLElement, badge: HTMLElement): void {
 
 function showBadgeTip(badge: HTMLElement): void {
     cancelBadgeTipDismiss();
-    if (badgeTipOwner === badge) return;
+    if (badgeTipOwner === badge) {
+        badgeTipHadOwnerFocus ||= badge.contains(document.activeElement);
+        return;
+    }
     const text = getBadgeTipText(badge);
     if (!text || !badge.isConnected) return;
     hideBadgeTip();
@@ -973,6 +978,7 @@ function showBadgeTip(badge: HTMLElement): void {
     tip.setAttribute('aria-hidden', alreadyNamed ? 'true' : 'false');
     if (!alreadyNamed) badge.setAttribute('aria-describedby', [badgeTipOriginalDescription, tip.id].filter(Boolean).join(' '));
     badgeTipOwner = badge;
+    badgeTipHadOwnerFocus = badge.contains(document.activeElement);
     const ownerBounds = badge.getBoundingClientRect();
     badgeTipObserver = new MutationObserver(() => {
         const bounds = badge.getBoundingClientRect();
@@ -985,12 +991,22 @@ function showBadgeTip(badge: HTMLElement): void {
         attributeFilter: ['title', 'data-badge-tip', 'hidden', 'inert', 'class', 'style'] });
 }
 
-function hideBadgeTip(): void {
+function hideBadgeTip(restoreFocus = false): void {
     cancelBadgeTipDismiss();
     badgeTipObserver?.disconnect();
     badgeTipObserver = null;
     const owner = badgeTipOwner;
+    const active = document.activeElement;
+    if (owner?.isConnected && owner.getClientRects().length && !owner.closest('[hidden], [inert]')
+        && (badgeTip?.contains(active) || (restoreFocus && badgeTipHadOwnerFocus
+            && (active === document.body || active === document.documentElement)))) {
+        // Keep the owner set during focus restoration: focusin then sees the
+        // same explanation instead of reopening a card that is being closed.
+        owner.focus({ preventScroll: true });
+    }
     badgeTipOwner = null;
+    badgeTipPointerDown = false;
+    badgeTipHadOwnerFocus = false;
     if (badgeTip) badgeTip.hidden = true;
     if (!owner) return;
     // Do not overwrite a title deliberately changed by a renderer while open.
@@ -1003,9 +1019,13 @@ function hideBadgeTip(): void {
 
 function scheduleBadgeTipDismiss(): void {
     cancelBadgeTipDismiss();
-    if (badgeTipOwner?.contains(document.activeElement)) return;
+    if (badgeTipPointerDown || badgeTipOwner?.contains(document.activeElement) || badgeTip?.contains(document.activeElement)) return;
     // Permit travel across the small arrow/gap to a hoverable explanation.
     badgeTipDismissTimer = window.setTimeout(hideBadgeTip, 140);
+}
+
+function isBadgeTipHovered(): boolean {
+    return !!(badgeTipOwner?.matches(':hover') || badgeTip?.matches(':hover'));
 }
 
 function badgeTipTarget(target: EventTarget | null): HTMLElement | null {
@@ -1035,23 +1055,38 @@ if (!window.__lwcBadgeTipBound) {
         if (badgeTipTarget(event.target) === badgeTipOwner || (event.target instanceof Node && badgeTip?.contains(event.target))) scheduleBadgeTipDismiss();
     });
     document.addEventListener('focusin', event => {
+        if (event.target instanceof Node && badgeTip?.contains(event.target)) {
+            cancelBadgeTipDismiss();
+            badgeTip.setAttribute('aria-hidden', 'false');
+            return;
+        }
         const badge = badgeTipTarget(event.target);
         if (badge && badge !== badgeTipTouchTarget) showBadgeTip(badge);
-        else if (badgeTipOwner) hideBadgeTip();
+        else if (badgeTipOwner && !badgeTipPointerDown && !isBadgeTipHovered()) hideBadgeTip();
     });
     document.addEventListener('focusout', event => {
-        if (badgeTipOwner && event.target === badgeTipOwner) hideBadgeTip();
+        if (!badgeTipOwner || !(event.target === badgeTipOwner || (event.target instanceof Node && badgeTip?.contains(event.target)))) return;
+        const next = event.relatedTarget instanceof Node ? event.relatedTarget : null;
+        if (next && (badgeTipOwner.contains(next) || badgeTip?.contains(next))) return;
+        if (!badgeTipPointerDown && !isBadgeTipHovered()) hideBadgeTip();
     });
     document.addEventListener('keydown', event => {
         if (event.key === 'Escape' && badgeTipOwner) {
             event.stopPropagation();
-            hideBadgeTip();
+            hideBadgeTip(true);
         }
     }, true);
     document.addEventListener('pointerdown', event => {
-        if (event.pointerType === 'touch') badgeTipTouchTarget = badgeTipTarget(event.target);
+        badgeTipPointerDown = event.target instanceof Node && !!badgeTip?.contains(event.target);
+        badgeTipTouchTarget = event.pointerType === 'touch' ? badgeTipTarget(event.target) : null;
     });
-    document.addEventListener('pointercancel', () => { badgeTipTouchTarget = null; });
+    document.addEventListener('pointerup', event => {
+        // Touch activation can focus during the compatibility click after up.
+        if (event.pointerType === 'touch') return;
+        badgeTipPointerDown = false;
+        if (badgeTipOwner && !isBadgeTipHovered()) scheduleBadgeTipDismiss();
+    });
+    document.addEventListener('pointercancel', () => { badgeTipTouchTarget = null; badgeTipPointerDown = false; });
     // Show touch explanations after activation so a focus tooltip cannot
     // intercept the pointerup/click that is still on its way to the badge.
     document.addEventListener('click', event => {
@@ -1059,12 +1094,13 @@ if (!window.__lwcBadgeTipBound) {
         if (badge && !badge.matches('a')) showBadgeTip(badge);
         else if (!badge && !(event.target instanceof Node && badgeTip?.contains(event.target))) hideBadgeTip();
         badgeTipTouchTarget = null;
+        badgeTipPointerDown = false;
     });
     window.addEventListener('scroll', event => {
         if (badgeTipOwner && !(event.target instanceof Node && badgeTip?.contains(event.target))) hideBadgeTip();
     }, { capture: true, passive: true });
     window.addEventListener('resize', () => { if (badgeTipOwner) hideBadgeTip(); }, { passive: true });
-    window.addEventListener('pagehide', hideBadgeTip);
+    window.addEventListener('pagehide', () => hideBadgeTip());
 }
 
 window.computeBadges = window.computeBadges || function () {};

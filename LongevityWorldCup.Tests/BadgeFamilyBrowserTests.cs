@@ -306,6 +306,29 @@ public sealed class BadgeFamilyBrowserTests(
         await Assertions.Expect(tip).ToBeHiddenAsync();
     }
 
+    [Fact]
+    public async Task OverflowCard_PermitsPointerReadingScrollingAndEscapeFocusRestoration()
+    {
+        await using var context = await NewBadgeContextAsync(1440, 390, false);
+        var page = await OpenLeaderboardAsync(context);
+        var chip = MichaelRow(page).Locator(".badge-overflow-count");
+        await chip.ScrollIntoViewIfNeededAsync();
+        var title = await chip.GetAttributeAsync("title");
+        await chip.FocusAsync();
+        var tip = page.Locator(".badge-tip");
+        await Assertions.Expect(tip).ToBeVisibleAsync();
+        Assert.True(await tip.EvaluateAsync<bool>("el => el.scrollHeight > el.clientHeight"));
+        await tip.ClickAsync(new() { Position = new() { X = 20, Y = 20 } });
+        await Assertions.Expect(tip).ToBeVisibleAsync();
+        await page.Mouse.WheelAsync(0, 1000);
+        await Assertions.Expect(tip.Locator(".badge-tip-row").Last).ToBeInViewportAsync();
+        await Assertions.Expect(tip).ToBeVisibleAsync();
+        await page.Keyboard.PressAsync("Escape");
+        await Assertions.Expect(tip).ToBeHiddenAsync();
+        await Assertions.Expect(chip).ToBeFocusedAsync();
+        Assert.Equal(title, await chip.GetAttributeAsync("title"));
+    }
+
     [Theory]
     [InlineData(1440)]
     [InlineData(390)]
@@ -412,12 +435,17 @@ public sealed class BadgeFamilyBrowserTests(
         await chip.TapAsync();
         await Assertions.Expect(tip).ToBeVisibleAsync();
         await Assertions.Expect(tip.Locator(".badge-tip-row")).ToHaveCountAsync(32);
+        await tip.TapAsync(new() { Position = new() { X = 20, Y = 20 } });
+        await Assertions.Expect(tip).ToBeVisibleAsync();
         Assert.True(await tip.EvaluateAsync<bool>("""
             el => {const r=el.getBoundingClientRect();return r.left>=0 && r.right<=innerWidth && r.top>=0 && r.bottom<=innerHeight && el.scrollHeight>el.clientHeight;}
             """));
         await tip.EvaluateAsync("el => el.scrollTop = el.scrollHeight");
         await Assertions.Expect(tip).ToBeVisibleAsync();
         await Assertions.Expect(tip.Locator(".badge-tip-row").Last).ToBeInViewportAsync();
+        await page.Keyboard.PressAsync("Escape");
+        await Assertions.Expect(tip).ToBeHiddenAsync();
+        await Assertions.Expect(chip).ToBeFocusedAsync();
         await FlowActionDockBrowserTests.ExpectNoHorizontalOverflowAsync(page);
     }
 
