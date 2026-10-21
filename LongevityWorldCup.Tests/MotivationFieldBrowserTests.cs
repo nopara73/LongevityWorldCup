@@ -222,11 +222,15 @@ public sealed class MotivationFieldBrowserTests(
                     mirror.remove();
                 }
                 const viewport = window.visualViewport;
-                return [top, bottom, Math.min((viewport?.offsetTop ?? 0) + (viewport?.height ?? innerHeight), dock?.top ?? innerHeight)];
+                const stickyBottoms = ['site-sticky-header', 'site-sticky-progress'].map(id => document.getElementById(id))
+                    .filter(bar => bar?.classList.contains('visible') && bar.getBoundingClientRect().width > 0)
+                    .map(bar => bar.getBoundingClientRect().bottom);
+                return [top, bottom, Math.min((viewport?.offsetTop ?? 0) + (viewport?.height ?? innerHeight), dock?.top ?? innerHeight),
+                    Math.max(viewport?.offsetTop ?? 0, ...stickyBottoms)];
             }
             """, caretOnly);
-        Assert.True(bounds[0] >= -1 && bounds[1] <= bounds[2] + 1,
-            $"Focused motivation spans {bounds[0]}–{bounds[1]}px; usable viewport ends at {bounds[2]}px.");
+        Assert.True(bounds[0] >= bounds[3] - 1 && bounds[1] <= bounds[2] + 1,
+            $"Focused motivation spans {bounds[0]}–{bounds[1]}px; usable viewport spans {bounds[3]}–{bounds[2]}px.");
     }
 
     private async Task<IBrowserContext> CreateContextAsync(int width, int height, bool dark = false)

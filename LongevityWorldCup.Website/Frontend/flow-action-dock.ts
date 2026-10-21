@@ -69,6 +69,22 @@ interface FlowActionDockApi {
         };
     }
 
+    function getInputViewportBounds(): VisualViewportBounds {
+        const viewport = getVisualViewportBounds();
+        let top = viewport.top;
+        for (const id of ['site-sticky-header', 'site-sticky-progress']) {
+            const bar = document.getElementById(id);
+            if (!bar?.classList.contains('visible') || !hasLayoutBox(bar)) continue;
+            const style = getComputedStyle(bar);
+            if (style.visibility === 'hidden') continue;
+            const rect = bar.getBoundingClientRect();
+            const fixedTop = parseFloat(style.top);
+            top = Math.max(top, Number.isFinite(fixedTop) ? fixedTop + rect.height : rect.bottom);
+        }
+        top = Math.min(top, viewport.bottom);
+        return { top, bottom: viewport.bottom, height: viewport.bottom - top };
+    }
+
     function isKeyboardEditingControl(element: Element | null): element is HTMLElement {
         if (element instanceof HTMLTextAreaElement) return !element.disabled && !element.readOnly;
         if (element instanceof HTMLElement && element.isContentEditable) return true;
@@ -138,7 +154,7 @@ interface FlowActionDockApi {
             if ((!isKeyboardOpen && !layoutResized) || !isKeyboardEditingControl(control) || !isVisible(control)
                 || control.closest('[hidden], [inert], [aria-hidden="true"]')) return;
 
-            const viewport = getVisualViewportBounds();
+            const viewport = getInputViewportBounds();
             const rect = control.getBoundingClientRect();
             const margin = 16;
             const topLimit = viewport.top + margin;
@@ -450,7 +466,9 @@ interface FlowActionDockApi {
         // Step changes intentionally focus with preventScroll. Ordinary focus
         // only opts into clearance when the viewport or text size really changed.
         const viewport = getVisualViewportBounds();
-        const layoutSignature = `${window.innerWidth}|${window.innerHeight}|${viewport.height}|${getComputedStyle(document.documentElement).fontSize}`;
+        const inputViewport = getInputViewportBounds();
+        document.documentElement.style.setProperty('--flow-input-top-occlusion', `${Math.ceil(inputViewport.top - viewport.top)}px`);
+        const layoutSignature = `${window.innerWidth}|${window.innerHeight}|${viewport.height}|${inputViewport.top}|${getComputedStyle(document.documentElement).fontSize}`;
         const layoutResized = focusedControlLayoutSignature !== '' && focusedControlLayoutSignature !== layoutSignature;
         focusedControlLayoutSignature = layoutSignature;
         const shouldClearFocusedControl = focusedControlClearanceRequested || layoutResized;
@@ -558,16 +576,18 @@ interface FlowActionDockApi {
 
         const requestedMargin = options.margin;
         const rect = getClearanceRect(element, options);
-        const viewport = getVisualViewportBounds();
+        const viewport = getInputViewportBounds();
         const desiredMargin = typeof requestedMargin === 'number' && Number.isFinite(requestedMargin) ? requestedMargin : 16;
         // Keep both ends visible when a field and its counter nearly fill the viewport.
         const availableMargin = Math.max(0, (viewport.height - dockHeight - (rect.bottom - rect.top)) / 2);
         const margin = Math.min(desiredMargin, availableMargin);
         const bottomLimit = viewport.bottom - dockHeight - margin;
-        if (rect.bottom <= bottomLimit) return;
-
-        window.scrollBy({
-            top: Math.ceil(rect.bottom - bottomLimit),
+        const topLimit = viewport.top + margin;
+        const fits = rect.bottom - rect.top <= viewport.height - dockHeight;
+        const scroll = rect.bottom > bottomLimit ? Math.ceil(rect.bottom - bottomLimit)
+            : fits && rect.top < topLimit ? Math.floor(rect.top - topLimit) : 0;
+        if (scroll) window.scrollBy({
+            top: scroll,
             behavior: options.behavior || (reducedMotionMedia.matches ? 'auto' : 'smooth')
         });
     }
