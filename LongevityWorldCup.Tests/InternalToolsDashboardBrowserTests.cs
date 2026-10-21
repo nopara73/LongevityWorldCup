@@ -222,6 +222,41 @@ public sealed class InternalToolsDashboardBrowserTests(
     }
 
     [Theory]
+    [InlineData("Onboarding Diagnostics")]
+    [InlineData("Challenge Diagnostics")]
+    [InlineData("Source Quality")]
+    [InlineData("Reliability Diagnostics")]
+    [InlineData("Review Queue Diagnostics")]
+    [InlineData("Public Event Diagnostics")]
+    public async Task Statistics_DrilldownRetainsItsViewAndKeyboardFocus(string tab)
+    {
+        await using var context = await NewContextAsync(1181, ColorScheme.Dark);
+        var page = await context.NewPageAsync();
+        await RouteDashboardAsync(page, DashboardPayload(diagnostics: true));
+        await page.GotoAsync(Statistics + "?tab=" + Uri.EscapeDataString(tab));
+        await page.Locator("#primaryFunnel .funnel-row").First.WaitForAsync();
+        var names = await page.Locator("#primaryFunnel .funnel-name").AllTextContentsAsync();
+        var selectedName = names[1];
+        await page.Locator("#primaryFunnel .funnel-row").Nth(1).FocusAsync();
+        await page.Keyboard.PressAsync("Enter");
+        Assert.Equal(names, await page.Locator("#primaryFunnel .funnel-name").AllTextContentsAsync());
+        Assert.Equal(selectedName, await page.EvaluateAsync<string>("() => document.activeElement.querySelector('.funnel-name')?.textContent || ''"));
+        if (tab == "Onboarding Diagnostics")
+        {
+            await page.GotoAsync(Statistics + "?tab=" + Uri.EscapeDataString(tab));
+            var sample = page.Locator("#eventSamples .sample-row").Nth(1);
+            await sample.WaitForAsync();
+            var sampleText = await sample.TextContentAsync();
+            await sample.FocusAsync();
+            await page.Keyboard.PressAsync("Enter");
+            Assert.Equal(sampleText, await page.EvaluateAsync<string>("() => document.activeElement.textContent"));
+            await page.Locator("#flowSelectors .flow-card").Nth(1).FocusAsync();
+            await page.Keyboard.PressAsync("Enter");
+            Assert.Equal("bortz age", await page.EvaluateAsync<string>("() => document.activeElement.querySelector('strong')?.textContent || ''"));
+        }
+    }
+
+    [Theory]
     [InlineData(390)]
     [InlineData(320)]
     public async Task Statistics_LargeCountsRemainReadableInsideTheirCards(int width)

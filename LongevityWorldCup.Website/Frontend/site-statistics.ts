@@ -1618,7 +1618,6 @@
     }
 
     function renderPrimaryPanel(): void {
-        const selected = state.tab === challengeDiagnosticsTab ? "challenge" : state.selectedFlow;
         const title = state.tab === challengeDiagnosticsTab
             ? "Challenge Activation Funnel"
             : state.tab === sourceQualityTab
@@ -1634,7 +1633,11 @@
         el("primaryMeta").textContent = `${uniqueSessions(scopedEvents())} sessions / ${scopedEvents().length} events`;
         renderFlowSelectors();
 
-        const defs = state.tab === challengeDiagnosticsTab
+        renderFunnel(primaryFunnelDefinitions(), scopedEvents());
+    }
+
+    function primaryFunnelDefinitions(): FunnelDefinition[] {
+        return state.tab === challengeDiagnosticsTab
             ? funnelDefs.challenge
             : state.tab === sourceQualityTab
                 ? sourceFunnelDefs()
@@ -1644,8 +1647,7 @@
                         ? funnelDefs.application.slice(10)
                         : state.tab === publicEventsDiagnosticsTab
                             ? eventsFunnelDefs()
-                            : funnelDefinitionsFor(selected);
-        renderFunnel(defs, scopedEvents());
+                            : funnelDefinitionsFor(state.selectedFlow);
     }
 
     function renderFlowSelectors(): void {
@@ -1670,10 +1672,12 @@
                 </span>
             `;
             button.addEventListener("click", () => {
-                state.selectedFlow = flow;
-                state.selectedEventName = null;
-                state.selectedSession = null;
-                renderAll();
+                preserveDiagnosticFocus(() => {
+                    state.selectedFlow = flow;
+                    state.selectedEventName = null;
+                    state.selectedSession = null;
+                    renderAll();
+                });
             });
             host.appendChild(button);
         });
@@ -1865,8 +1869,10 @@
             row.addEventListener("click", () => {
                 const selectedSession = row.dataset.session;
                 if (!selectedSession) return;
-                state.selectedSession = selectedSession;
-                renderDrilldown(events);
+                preserveDiagnosticFocus(() => {
+                    state.selectedSession = selectedSession;
+                    renderDrilldown(events);
+                });
             });
         });
     }
@@ -1952,14 +1958,30 @@
     }
 
     function selectDrilldown(eventName: string | null, label: string): void {
-        state.selectedEventName = eventName;
-        state.selectedSession = null;
-        state.selectedLabel = label || eventName || "all events";
-        renderOutcomeStrip();
-        renderFriction();
-        renderFunnel(state.tab === challengeDiagnosticsTab ? funnelDefs.challenge : funnelDefinitionsFor(state.selectedFlow), scopedEvents());
-        renderDrilldown();
-        updateUrl();
+        preserveDiagnosticFocus(() => {
+            state.selectedEventName = eventName;
+            state.selectedSession = null;
+            state.selectedLabel = label || eventName || "all events";
+            renderOutcomeStrip();
+            renderFriction();
+            renderFunnel(primaryFunnelDefinitions(), scopedEvents());
+            renderDrilldown();
+            updateUrl();
+        });
+    }
+
+    function preserveDiagnosticFocus(render: () => void): void {
+        const active = document.activeElement;
+        const host = active instanceof HTMLButtonElement
+            ? active.closest("#primaryFunnel, #outcomeStrip, #frictionRadar, #flowSelectors, #eventSamples")
+            : null;
+        const index = host ? Array.from(host.querySelectorAll("button")).indexOf(active as HTMLButtonElement) : -1;
+        render();
+        // Selection renders replace these lists synchronously without changing
+        // their order. Keep keyboard users on the button they just activated.
+        if (host && index >= 0 && !active?.isConnected) {
+            host.querySelectorAll("button")[index]?.focus({ preventScroll: true });
+        }
     }
 
     function isIgnoredClientError(e: DashboardEvent | null | undefined): boolean {
