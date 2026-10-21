@@ -15,6 +15,29 @@ public sealed class MotivationFieldBrowserTests(
     private const string Long = "I want to see what is possible in feeling the most energetic and excited about life. Following the status quo and the herd is not an option. I measure, I adjust, I compete, and I share what I learn so others can take back their biological age too.";
 
     [Theory]
+    [InlineData(true, 390, 844)]
+    [InlineData(false, 390, 844)]
+    [InlineData(true, 1440, 900)]
+    [InlineData(false, 1440, 900)]
+    public async Task FocusedMotivation_DoesNotUndoManualScrolling(bool application, int width, int height)
+    {
+        await using var context = await CreateContextAsync(width, height);
+        var (page, field) = await OpenAsync(context, application);
+        await page.EvaluateAsync("() => document.documentElement.style.fontSize = '200%'");
+        await SettleAsync(page);
+        // The progress bar deliberately performs a one-time scroll after 500ms.
+        // Exercise the user's gesture after that startup behavior has finished.
+        await page.WaitForTimeoutAsync(600);
+        await field.ClickAsync();
+        await SettleAsync(page);
+        await page.EvaluateAsync("() => scrollTo({top:0, behavior:'instant'})");
+        await SettleAsync(page);
+        await SettleAsync(page);
+        await Assertions.Expect(field).ToBeFocusedAsync();
+        Assert.InRange(await page.EvaluateAsync<double>("() => scrollY"), 0, 1);
+    }
+
+    [Theory]
     [InlineData(false, 1440, 900, false)]
     [InlineData(true, 1440, 900, true)]
     [InlineData(false, 768, 1024, true)]

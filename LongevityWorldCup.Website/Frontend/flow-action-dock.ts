@@ -49,6 +49,7 @@ interface FlowActionDockApi {
     let transitionsReady = false;
     let generatedFormId = 0;
     let keyboardClearFrame = 0;
+    let elementClearFrame = 0;
     let focusedControlClearanceRequested = false;
     let focusedControlLayoutSignature = '';
     let largestUnobscuredViewportHeight = 0;
@@ -468,7 +469,7 @@ interface FlowActionDockApi {
         const viewport = getVisualViewportBounds();
         const inputViewport = getInputViewportBounds();
         document.documentElement.style.setProperty('--flow-input-top-occlusion', `${Math.ceil(inputViewport.top - viewport.top)}px`);
-        const layoutSignature = `${window.innerWidth}|${window.innerHeight}|${viewport.height}|${inputViewport.top}|${getComputedStyle(document.documentElement).fontSize}`;
+        const layoutSignature = `${window.innerWidth}|${window.innerHeight}|${viewport.height}|${getComputedStyle(document.documentElement).fontSize}`;
         const layoutResized = focusedControlLayoutSignature !== '' && focusedControlLayoutSignature !== layoutSignature;
         focusedControlLayoutSignature = layoutSignature;
         const shouldClearFocusedControl = focusedControlClearanceRequested || layoutResized;
@@ -563,11 +564,11 @@ interface FlowActionDockApi {
         return { top, bottom };
     }
 
-    function ensureElementClear(
+    function scrollElementClear(
         element: Element | null | undefined,
         options: FlowActionDockEnsureClearOptions = {}
     ): void {
-        if (!element?.isConnected) return;
+        if (!isVisible(element)) return;
         refreshImmediately();
 
         const dockHeight = parseFloat(getComputedStyle(document.documentElement)
@@ -589,6 +590,20 @@ interface FlowActionDockApi {
         if (scroll) window.scrollBy({
             top: scroll,
             behavior: options.behavior || (reducedMotionMedia.matches ? 'auto' : 'smooth')
+        });
+    }
+
+    function ensureElementClear(element: Element | null | undefined, options: FlowActionDockEnsureClearOptions = {}): void {
+        if (elementClearFrame) window.cancelAnimationFrame(elementClearFrame);
+        scrollElementClear(element, options);
+        const focused = document.activeElement;
+        // A sticky bar may appear after this scroll. Reconcile that edit once,
+        // without turning a later manual scroll into another focus request.
+        elementClearFrame = window.requestAnimationFrame(() => {
+            elementClearFrame = window.requestAnimationFrame(() => {
+                elementClearFrame = 0;
+                if (document.activeElement === focused) scrollElementClear(element, options);
+            });
         });
     }
 
