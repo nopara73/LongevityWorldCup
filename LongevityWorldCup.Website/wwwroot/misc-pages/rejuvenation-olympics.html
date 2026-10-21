@@ -56,11 +56,25 @@
                         <p>RO rankings and scores become final.</p>
                     </li>
                 </ol>
+                <script>
+                    (() => {
+                        const items = [...document.currentScript.previousElementSibling.children];
+                        const ends = items.map(item => Date.parse(item.querySelector('time').dateTime) + 864e5);
+                        const now = Date.now();
+                        const next = ends.findIndex(end => now < end);
+                        items.forEach((item, i) => {
+                            item.dataset.roState = next === -1 || i < next ? 'past' : i === next ? 'next' : 'future';
+                            const leg = i + 1 < ends.length ? (now - ends[i]) / (ends[i + 1] - ends[i]) : 0;
+                            item.style.setProperty('--ro-leg', String(Math.min(1, Math.max(0, leg))));
+                        });
+                        items[0].parentElement.dataset.roLive = '';
+                    })();
+                </script>
                 <p class="ro-timeline-note">A verified RO position requires <strong>three qualifying tests within two years</strong>. New entrants can complete the remaining two after 30 October.</p>
             </section>
             <div class="ro-actions landing-close">
-                <a class="ro-button" href="/join">Join Longevity World Cup <span aria-hidden="true">↗</span></a>
-                <a class="ro-text-action" href="/leaderboard">View leaderboard <span aria-hidden="true">↗</span></a>
+                <a class="ro-button" href="/join">Join Longevity World Cup <span aria-hidden="true">→</span></a>
+                <a class="ro-text-action" href="/leaderboard">View leaderboard <span aria-hidden="true">→</span></a>
             </div>
         </article>
     </main>
