@@ -69,7 +69,9 @@ public sealed class BadgeFamilyBrowserTests(
         var title = await hexagon.GetAttributeAsync("title");
         Assert.StartsWith("Liver King:", title);
 
-        await hexagon.FocusAsync();
+        await hexagon.EvaluateAsync("el => el.nextElementSibling.focus({ preventScroll: true })");
+        await page.Keyboard.PressAsync("Shift+Tab");
+        await Assertions.Expect(hexagon).ToBeFocusedAsync();
         var tip = page.Locator(".badge-tip");
         await Assertions.Expect(tip).ToBeVisibleAsync();
         await Assertions.Expect(tip.Locator(".badge-tip-title")).ToHaveTextAsync("Liver King");
@@ -99,6 +101,22 @@ public sealed class BadgeFamilyBrowserTests(
         await Assertions.Expect(tip).ToBeHiddenAsync();
         Assert.Equal(title, await hexagon.GetAttributeAsync("title"));
         Assert.Null(await hexagon.GetAttributeAsync("aria-describedby"));
+
+        // An outline outside a clip-path can be declared in CSS yet paint no
+        // focus pixels. Check the rendered badge after dismissing its tooltip.
+        var accent = await hexagon.EvaluateAsync<string>(
+            "el => getComputedStyle(el).getPropertyValue('--lwc-accent-bright').trim() || '#19c3d1'");
+        var expected = SixLabors.ImageSharp.Color.Parse(accent).ToPixel<SixLabors.ImageSharp.PixelFormats.Rgba32>();
+        using var pixels = SixLabors.ImageSharp.Image.Load<SixLabors.ImageSharp.PixelFormats.Rgba32>(await hexagon.ScreenshotAsync());
+        var focusPixels = 0;
+        for (var y = 0; y < pixels.Height; y++)
+        for (var x = 0; x < pixels.Width; x++)
+        {
+            var pixel = pixels[x, y];
+            if (Math.Abs(pixel.R - expected.R) < 4 && Math.Abs(pixel.G - expected.G) < 4 && Math.Abs(pixel.B - expected.B) < 4)
+                focusPixels++;
+        }
+        Assert.True(focusPixels >= 20, $"Only {focusPixels} accent pixels remain in the focused hexagon after Escape.");
     }
 
     [Fact]

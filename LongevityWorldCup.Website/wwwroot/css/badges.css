@@ -83,7 +83,11 @@
 a.badge-class.badge-overflow-count:hover,a.badge-class.badge-overflow-count:focus-visible{color:var(--lwc-accent,#00838f)!important;border-color:currentColor!important;box-shadow:none}
 .badge-class:hover{filter:brightness(1.06)}
 a.badge-class:hover,.badge-class.badge-clickable:hover,.badge-class[data-clickable="true"]:hover,.modal-badge-item>a.badge-class:hover{transform:none;animation:none;box-shadow:0 3px 8px rgba(0,0,0,.26)}
-a.badge-class:focus-visible,.badge-class.badge-clickable:focus-visible,.badge-class[data-clickable="true"]:focus-visible,.modal-badge-item>a.badge-class:focus-visible{transform:none;animation:none;outline:3px solid var(--lwc-accent-bright, #19c3d1);outline-offset:3px}
+.badge-class:focus-visible{transform:none;animation:none;outline:3px solid var(--lwc-accent-bright, #19c3d1);outline-offset:3px}
+/* A clipped hexagon also clips its outside outline. Mint the focus ring
+   inside its rim so keyboard focus remains visible after Escape. */
+html .badge-class.badge-family-domain:focus-visible{background:var(--lwc-accent-bright,#19c3d1)!important}
+html .badge-class.badge-family-domain:focus-visible::before{inset:3px}
 .modal-badge-strip{display:flex;flex-wrap:wrap;justify-content:center;gap:.25rem;margin:.5rem 0 1rem}
 .modal-badge-strip .badge-class{width:70px;height:70px;font-size:2rem;margin:.4rem}
 .modal-badge-strip .badge-class i{font-size:.78em}
