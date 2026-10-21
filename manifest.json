@@ -597,6 +597,33 @@
       "width": 390,
       "height": 844,
       "sha256": "b93d4f2772a5aae7b657aa1766493179ccd76e8c904748e3b0899539f90c6264"
+    },
+    {
+      "file": "live-before-falcon-history-390.png",
+      "width": 390,
+      "height": 844,
+      "sha256": "571d9e767df78a95a2cc68a8e1c2c921c6d6dbdd80943798e5aa8c46c80294e3"
+    },
+    {
+      "file": "live-after-falcon-history-390.png",
+      "width": 390,
+      "height": 844,
+      "sha256": "b478488b008031de649f2b3a023c1e64cd8a7ae2a44b94558379344c0e36def2"
     }
-  ]
+  ],
+  "productionVerification": {
+    "mergeCommit": "fcdce412938c315725e7b3da327700ee822f6b4a",
+    "deployRun": 39613841241,
+    "deployConclusion": "success",
+    "health": "Healthy",
+    "profileChecks": 7,
+    "servedAssetChecks": 3,
+    "blockedWrites": 10,
+    "matchedProductionPairs": 1,
+    "completedUtc": "2026-10-21T14:11:12.464Z",
+    "screenshots": [
+      "live-before-falcon-history-390.png",
+      "live-after-falcon-history-390.png"
+    ]
+  }
 }

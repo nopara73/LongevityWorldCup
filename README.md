@@ -388,3 +388,14 @@ The complete local interactive gallery is preserved in the Codex review. This br
 ![SYNTHETIC STRESS FIXTURE: after-synthetic-long-numbers-320.png](after-synthetic-long-numbers-320.png)
 
 </details>
+
+## Verified production release
+
+Merge and deployed commit: `fcdce412938c315725e7b3da327700ee822f6b4a`. [Auto Deploy succeeded](https://github.com/nopara73/LongevityWorldCup/actions/runs/39613841241). The running assembly identified this commit; health was Healthy; the served controller and both shared/scoped stylesheets matched the published bytes. Seven read-only profile checks passed, including no-JS/hydrated parity, desktop/phone and the single-reading clock history. All POSTs were intercepted.
+
+The real production pair below uses Falcon's unchanged 23 Aug 2025 record, the same 390 × 844 viewport, dark system color scheme, fonts and results-table scroll anchor. Before release: `853a6ed86ac14c5f5fded0f2605c5bac7221bf26`. After release: `fcdce412938c315725e7b3da327700ee822f6b4a`. This pair is separate from the 53 matched local review pairs above.
+
+| Production BEFORE | Production AFTER |
+| --- | --- |
+| ![Production BEFORE: single-reading history](live-before-falcon-history-390.png) | ![Production AFTER: single-reading history](live-after-falcon-history-390.png) |
+
