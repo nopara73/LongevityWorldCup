@@ -48,4 +48,12 @@ public sealed class DocumentationLinksTests
         Assert.Equal("<a title='Source' rel=\"nofollow noopener noreferrer\" href='https://example.test/#part' target=\"_blank\">Text</a>", html);
         Assert.Contains("target=\"_blank\"", DocumentationLinks.OpenExternalLinksInNewTabs("<a rel=\"external\" href=\"https://longevityworldcup.com\">Text</a>"));
     }
+
+    [Fact]
+    public void RelationshipDefaults_DoNotRewriteQueryOrTitleTextThatLooksLikeAnAttribute()
+    {
+        const string href = "https://example.test/?rel=source&amp;q=1#part";
+        var html = DocumentationLinks.OpenExternalLinksInNewTabs($"<p>Before</p><a href=\"{href}\" title='Keep rel=original' rel='nofollow'>Text</a>");
+        Assert.Equal($"<p>Before</p><a href=\"{href}\" title='Keep rel=original' rel=\"nofollow noopener noreferrer\" target=\"_blank\">Text</a>", html);
+    }
 }

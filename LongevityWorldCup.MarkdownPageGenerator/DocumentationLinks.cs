@@ -8,9 +8,10 @@ internal static class DocumentationLinks
     public static string OpenExternalLinksInNewTabs(string html) => Regex.Replace(
         html, "<a\\b(?<attributes>[^>]*)>", match =>
         {
-            var attributes = Regex.Matches(match.Groups["attributes"].Value,
-                "(?<name>[^\\s=]+)(?:\\s*=\\s*(?:\"(?<double>[^\"]*)\"|'(?<single>[^']*)'|(?<bare>[^\\s>]+)))?")
-                .ToDictionary(attribute => attribute.Groups["name"].Value,
+            var attributeGroup = match.Groups["attributes"];
+            var attributeMatches = Regex.Matches(attributeGroup.Value,
+                "(?<name>[^\\s=]+)(?:\\s*=\\s*(?:\"(?<double>[^\"]*)\"|'(?<single>[^']*)'|(?<bare>[^\\s>]+)))?");
+            var attributes = attributeMatches.ToDictionary(attribute => attribute.Groups["name"].Value,
                     attribute => WebUtility.HtmlDecode(attribute.Groups["double"].Success ? attribute.Groups["double"].Value
                         : attribute.Groups["single"].Success ? attribute.Groups["single"].Value : attribute.Groups["bare"].Value),
                     StringComparer.OrdinalIgnoreCase);
@@ -34,8 +35,11 @@ internal static class DocumentationLinks
             if (attributes.ContainsKey("rel"))
             {
                 var tokens = rel.Concat(["noopener", "noreferrer"]).Distinct(StringComparer.OrdinalIgnoreCase);
-                result = Regex.Replace(result, "\\brel\\s*=\\s*(?:\"[^\"]*\"|'[^']*'|[^\\s>]+)",
-                    _ => $"rel=\"{WebUtility.HtmlEncode(string.Join(' ', tokens))}\"", RegexOptions.IgnoreCase);
+                var relAttribute = attributeMatches.First(attribute =>
+                    attribute.Groups["name"].Value.Equals("rel", StringComparison.OrdinalIgnoreCase));
+                var start = attributeGroup.Index - match.Index + relAttribute.Index;
+                result = result.Remove(start, relAttribute.Length).Insert(start,
+                    $"rel=\"{WebUtility.HtmlEncode(string.Join(' ', tokens))}\"");
             }
             else result += " rel=\"noopener noreferrer\"";
             return result + ">";
