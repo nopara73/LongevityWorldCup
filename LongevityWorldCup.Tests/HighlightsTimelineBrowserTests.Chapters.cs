@@ -72,12 +72,13 @@ public sealed partial class HighlightsTimelineBrowserTests
         Assert.True(problems.Length == 0, $"{width}px {scheme}: {string.Join("; ", problems)}");
 
         // Scrolled into September, its heading waits under the site's bar above its events.
+        await page.Keyboard.PressAsync("Shift");
         await page.EvaluateAsync(
             """
             () => {
                 document.body.style.paddingBottom = '200vh';
                 const row = document.querySelector('tr.main-row[data-event-id="sep-b"]');
-                scrollTo(0, scrollY + row.getBoundingClientRect().top - 140);
+                scrollTo({ top: scrollY + row.getBoundingClientRect().top - 140, behavior: 'instant' });
             }
             """);
         await page.WaitForFunctionAsync("() => document.querySelector('.site-sticky-header.visible')");

@@ -24,7 +24,7 @@ public sealed partial class HighlightsTimelineBrowserTests
         await page.EvaluateAsync("p => document.documentElement.style.fontSize=`${p}%`", percent);
         await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
         await page.Locator("tr.main-row[data-event-id='focus-32'] .custom-event-expander").FocusAsync();
-        await page.EvaluateAsync("() => { const row=document.querySelector('tr.main-row[data-event-id=\"focus-32\"]'); scrollTo(0,scrollY+row.getBoundingClientRect().top-140); }");
+        await page.EvaluateAsync("() => { const row=document.querySelector('tr.main-row[data-event-id=\"focus-32\"]'); scrollTo({top:scrollY+row.getBoundingClientRect().top-140,behavior:'instant'}); }");
         for (var i = 0; i < 10; i++)
         {
             await page.Keyboard.PressAsync("Shift+Tab");
@@ -45,7 +45,7 @@ public sealed partial class HighlightsTimelineBrowserTests
     public async Task Chapters_ReconcileRetainedAppendAndTrimWithoutLosingFocusOrDetails()
     {
         var events = """
-            [{"Id":"oct","Type":6,"Text":"October announcement\n\n[Read the rules](/ruleset)","OccurredAt":"2026-10-23T12:00:00Z"},
+            [{"Id":"oct","Type":6,"Text":"October announcement\n\n[Read the rules](https://longevityworldcup.com/ruleset)","OccurredAt":"2026-10-23T12:00:00Z"},
              {"Id":"sep","Type":6,"Text":"September announcement\n\nMore details","OccurredAt":"2026-09-01T12:00:00Z"},
              {"Id":"aug","Type":6,"Text":"August announcement\n\nMore details","OccurredAt":"2026-08-01T12:00:00Z"}]
             """;
@@ -142,7 +142,7 @@ public sealed partial class HighlightsTimelineBrowserTests
         var events = Enumerable.Range(0, 72).Select(i => new
         {
             Id = "long-" + i, Type = i == 23 ? 6 : 0,
-            Text = i == 23 ? "End of month\n\n[Read the rules](/ruleset)" : "Timeline milestone " + i,
+            Text = i == 23 ? "End of month\n\n[Read the rules](https://longevityworldcup.com/ruleset)" : "Timeline milestone " + i,
             OccurredAt = new DateTime(2026, 10 - i / 24, 28 - i % 24, 12, 0, 0, DateTimeKind.Utc).ToString("O")
         });
         await using var context = await NewContextAsync(Browser, App, new()
@@ -156,16 +156,17 @@ public sealed partial class HighlightsTimelineBrowserTests
         await Assertions.Expect(page.Locator("tr.main-row")).ToHaveCountAsync(72);
         await page.EvaluateAsync("p => { document.documentElement.style.fontSize=`${p}%`; document.querySelector('tr.main-row[data-event-id=\"long-23\"]')._setCustomEventExpanded(true); }", percent);
         await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
+        await page.Keyboard.PressAsync("Shift");
         // The final month is deliberately long too: no artificial body padding
         // can conceal a heading that outlives its real group.
         foreach (var index in new[] { 12, 36, 60 })
         {
-            await page.EvaluateAsync("i => { const row=document.querySelector(`tr.main-row[data-event-id=\"long-${i}\"]`); scrollTo(0,scrollY+row.getBoundingClientRect().top-innerHeight/2); }", index);
+            await page.EvaluateAsync("i => { const row=document.querySelector(`tr.main-row[data-event-id=\"long-${i}\"]`); scrollTo({top:scrollY+row.getBoundingClientRect().top-innerHeight/2,behavior:'instant'}); }", index);
             await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
             var gap = await page.EvaluateAsync<double>("i => document.querySelector(`tr.main-row[data-event-id=\"long-${i}\"]`).parentElement.querySelector('.events-month-row').getBoundingClientRect().top-document.querySelector('.site-sticky-header').getBoundingClientRect().bottom", index);
             Assert.InRange(gap, -1, 2);
         }
-        await page.EvaluateAsync("() => { const next=document.querySelector('tr.main-row[data-event-id=\"long-24\"]').parentElement; scrollTo(0,scrollY+next.getBoundingClientRect().top-parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--site-sticky-height'))-15); }");
+        await page.EvaluateAsync("() => { const next=document.querySelector('tr.main-row[data-event-id=\"long-24\"]').parentElement; scrollTo({top:scrollY+next.getBoundingClientRect().top-parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--site-sticky-height'))-15,behavior:'instant'}); }");
         await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
         Assert.True(await page.EvaluateAsync<bool>(
             """
