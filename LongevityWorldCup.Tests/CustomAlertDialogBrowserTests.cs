@@ -25,6 +25,12 @@ public sealed class CustomAlertDialogBrowserTests(
     [InlineData("Submission unsuccessful; nothing was sent", "danger", "fa-xmark")]
     [InlineData("Please enter your email.", "warning", "fa-exclamation")]
     [InlineData("Blood draw date cannot be in the future.", "warning", "fa-exclamation")]
+    [InlineData("This doesn't mean your application was received", "warning", "fa-exclamation")]
+    [InlineData("Nothing was submitted", "warning", "fa-exclamation")]
+    [InlineData("Your application will be received", "warning", "fa-exclamation")]
+    [InlineData("Unsuccessfully submitted", "danger", "fa-xmark")]
+    [InlineData("Submission was cancelled after the request was received", "warning", "fa-exclamation")]
+    [InlineData("Perhaps your application was received", "warning", "fa-exclamation")]
     public async Task Alert_TakesItsToneFromTheCallersOwnWording(string message, string tone, string icon)
     {
         await using var context = await NewContextAsync(Browser, App, new()

@@ -182,9 +182,10 @@ const CUSTOM_ALERT_ID_PATTERN = /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{
 // The tone only picks the medallion and accent; every caller keeps its own wording.
 function inferCustomAlertTone(message) {
     const text = String(message);
-    if (/\b(failed|failure|error|interrupted|unsuccessful|rejected)\b/i.test(text)) return 'danger';
+    if (/\b(fail(?:ed|ure|ing|s)?|error|interrupted|unsuccessful(?:ly)?|rejected|denied|declined|timeout|timed out)\b/i.test(text)) return 'danger';
     // A success word inside a negation, uncertainty or validation request must never celebrate.
-    if (/\b(not|never|no|cannot|can['’]t|couldn['’]t|wasn['’]t|weren['’]t|hasn['’]t|haven['’]t|didn['’]t|unable|may|might|could|should|would|being|if|pending|awaiting|unconfirmed|unknown|missing|invalid|required|must be|unavailable|skipped|try again|enter|select|provide|please complete|change at least)\b/i.test(text)) return 'warning';
+    if (/\b(not|never|no|nothing|none|neither|cannot|unable|may|maybe|might|perhaps|possibly|could|should|would|being|if|pending|awaiting|unconfirmed|unverified|uncertain|unclear|unknown|missing|invalid|required|must be|unavailable|skipped|cancelled|canceled|expired|unsent|try again|enter|select|provide|please complete|change at least)\b|\b\w+n['’]t\b/i.test(text)) return 'warning';
+    if (/\b(will|can|when|once)\b[\s\S]*\b(received|submitted|sent|saved|copied)\b/i.test(text)) return 'warning';
     if (text.includes('?')) return 'info';
     if (/\b(received|submitted|sent|saved|copied)\b/i.test(text)) return 'success';
     return 'info';
