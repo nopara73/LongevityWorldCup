@@ -1,6 +1,6 @@
 # PR #1069 visual review
 
-Reviewed application head: `5eec56045a920552ddd0012add95f1ce82eb53e7`. Current master baseline: `cc7dbe84f4a7b89c45e25f277f42790546f6b7ef`. Review intake: `d54f5c72cd8d64e13198eba245aa46e9f9e4c37f`.
+Reviewed application head: `1c455cfbb29256f44acc0c8e52472deb7d796581`. Current master baseline: `cc7dbe84f4a7b89c45e25f277f42790546f6b7ef`. Review intake: `d54f5c72cd8d64e13198eba245aa46e9f9e4c37f`.
 
 These are real application screenshots with matched public athlete fixtures, decoded portraits and fonts, viewport, system color scheme, and scroll anchor. The current-master baseline freezes its table, classic controller and CSS from Git while rendering through the actual application. After captures use the reviewed application. No guesses, applications, profile changes or clipboard/share actions were submitted.
 

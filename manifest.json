@@ -1,8 +1,8 @@
 {
-  "reviewedApplicationHead": "5eec56045a920552ddd0012add95f1ce82eb53e7",
+  "reviewedApplicationHead": "1c455cfbb29256f44acc0c8e52472deb7d796581",
   "currentMasterBaseline": "cc7dbe84f4a7b89c45e25f277f42790546f6b7ef",
   "matchedPairs": 53,
-  "createdUtc": "2026-10-21T12:37:49.152Z",
+  "createdUtc": "2026-10-21T13:20:41.550Z",
   "images": [
     {
       "file": "after-benjamin-garden-1440-dark-guess.png",
@@ -80,13 +80,13 @@
       "file": "after-layout-320x844-100-dark.png",
       "width": 320,
       "height": 844,
-      "sha256": "856648f802833551ef6f4b292a794d9783cac0a03bd8c0908162dbbae7448eb5"
+      "sha256": "0d45df330028f93d5958f92b72e5fddce94ad6af39f0737907eac98f5e193cf2"
     },
     {
       "file": "after-layout-320x844-100-light.png",
       "width": 320,
       "height": 844,
-      "sha256": "85f90734912a6c79130405bcbcb54651c244b5ab4355cdce4112533539436424"
+      "sha256": "856648f802833551ef6f4b292a794d9783cac0a03bd8c0908162dbbae7448eb5"
     },
     {
       "file": "after-layout-320x844-200-dark.png",
@@ -104,7 +104,7 @@
       "file": "after-layout-768x1024-100-dark.png",
       "width": 768,
       "height": 1024,
-      "sha256": "e96737553c087f34c529adc1785f66839307147e22ec631b637040bc8a4573db"
+      "sha256": "64c7c87db74b363027b843c7801f60943276d6b188365df654a266d8618ab506"
     },
     {
       "file": "after-layout-768x1024-100-light.png",
@@ -116,7 +116,7 @@
       "file": "after-layout-844x390-100-dark.png",
       "width": 844,
       "height": 390,
-      "sha256": "fd8754135388a83fc7e84f9a249db202de96f31bdf8b1cf7416a3450f2fc6941"
+      "sha256": "c1067245de27b8075d09b3cd3ba6d726025bbe31bf5720dbf5f6929dd4f1e906"
     },
     {
       "file": "after-layout-844x390-100-light.png",
