@@ -189,10 +189,9 @@ public sealed class LandingPageFamilyBrowserTests(
         await Assertions.Expect(page.Locator("#message")).ToHaveTextAsync("Removed athlete@example.com from the yearly newsletter.");
         var success = await GlyphAsync(page);
 
-        await Assertions.Expect(page.Locator(".unsubscribe-message-icon")).ToHaveAttributeAsync("aria-hidden", "true");
         Assert.DoesNotContain("✓", await page.Locator("#message").AriaSnapshotAsync());
 
-        Assert.Equal("!", error[0]);
+        Assert.Equal("✕", error[0]);
         Assert.Equal("✓", success[0]);
         Assert.NotEqual(error[1], success[1]);
         Assert.NotEqual(error[2], success[2]);
@@ -202,9 +201,8 @@ public sealed class LandingPageFamilyBrowserTests(
         """
         () => {
             const message = document.getElementById('message');
-            const icon = message.querySelector('.unsubscribe-message-icon');
-            const glyph = getComputedStyle(icon, '::before');
-            return [glyph.content.replaceAll('"', ''), getComputedStyle(icon).backgroundColor, getComputedStyle(message).backgroundColor];
+            const glyph = getComputedStyle(message, '::before');
+            return [glyph.content.split(' / ')[0].replaceAll('"', ''), glyph.backgroundColor, getComputedStyle(message).backgroundColor];
         }
         """);
 }
