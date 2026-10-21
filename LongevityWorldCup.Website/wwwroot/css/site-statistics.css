@@ -640,7 +640,7 @@ select:focus-visible,
 
 .traffic-ranked-row {
     display: grid;
-    grid-template-columns: minmax(100px, 1.3fr) minmax(40px, 1fr) 56px;
+    grid-template-columns: minmax(100px, 1.3fr) minmax(40px, 1fr) minmax(56px, max-content);
     align-items: center;
     gap: 14px;
     min-height: 36px;
@@ -1353,7 +1353,7 @@ select:focus-visible,
     .traffic-disclosure > summary { flex-wrap: wrap; position: relative; padding-right: 40px; }
     .traffic-disclosure > summary > .traffic-caption { flex-basis: 100%; }
     .traffic-disclosure > summary::after { position: absolute; right: var(--pad); top: 22px; }
-    .traffic-ranked-row { gap: 10px; grid-template-columns: minmax(90px, 1.3fr) minmax(30px, 1fr) 52px; }
+    .traffic-ranked-row { gap: 10px; grid-template-columns: minmax(90px, 1.3fr) minmax(30px, 1fr) minmax(52px, max-content); }
     .traffic-outcome strong { font-size: 30px; }
     .stats-tab { padding: 10px 12px; }
     .stats-tabs > .stats-tab.active::after,

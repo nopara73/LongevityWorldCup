@@ -231,10 +231,13 @@ public sealed class InternalToolsDashboardBrowserTests(
         var payload = JsonNode.Parse(DashboardPayload(diagnostics: false))!;
         payload["trafficSummary"]!["totals"]!["sessions"] = int.MaxValue;
         payload["trafficSummary"]!["totals"]!["pageViews"] = int.MaxValue;
+        var longLabel = string.Concat(Enumerable.Repeat("LongSyntheticRow", 20));
+        payload["trafficSummary"]!["topPages"] = JsonSerializer.SerializeToNode(new[] { new { route = "/" + longLabel, sessions = int.MaxValue, pageViews = int.MaxValue } });
+        payload["trafficSummary"]!["sources"] = JsonSerializer.SerializeToNode(new[] { new { label = longLabel, sessions = int.MaxValue, pageViews = int.MaxValue, events = int.MaxValue } });
         await RouteDashboardAsync(page, payload.ToJsonString());
         await page.GotoAsync(Statistics);
         await page.Locator("#trafficDailyChart").WaitForAsync();
-        var escaped = await page.Locator(".traffic-metric").EvaluateAllAsync<string[]>(
+        var escaped = await page.Locator(".traffic-metric, .traffic-ranked-row").EvaluateAllAsync<string[]>(
             """
             metrics => metrics.flatMap(metric => {
                 const box = metric.getBoundingClientRect();
