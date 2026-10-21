@@ -207,8 +207,9 @@ public sealed class FlowActionDockBrowserTests(
 
     [Theory]
     [InlineData(390, 844)]
+    [InlineData(375, 667)]
     [InlineData(844, 390)]
-    public async Task PlayStartBackNavigation_KeepsActionsBottomDockedDuringPanelTransition(
+    public async Task PlayStartBackNavigation_KeepsActionsReachableDuringPanelTransition(
         int viewportWidth,
         int viewportHeight)
     {
@@ -241,7 +242,7 @@ public sealed class FlowActionDockBrowserTests(
                     const actions = document.querySelector('.play-menu-actions');
                     return panel && !panel.hidden
                         && !document.documentElement.classList.contains('play-panel-transitioning')
-                        && actions?.classList.contains('flow-action-stack--docked');
+                        && actions && (window.innerWidth > 760 || actions.classList.contains('flow-action-stack--docked'));
                 }
                 """);
 
@@ -266,11 +267,15 @@ public sealed class FlowActionDockBrowserTests(
                 """);
 
         var scenario = $"{viewportWidth}x{viewportHeight}";
-        Assert.True(state.ActionDocked, $"{scenario}: back to /play should keep the start actions in the bottom dock immediately.");
-        Assert.InRange(Math.Abs(state.ActionBottom - state.ViewportHeight), 0, 1.1);
+        Assert.Equal(viewportWidth <= 760, state.ActionDocked);
+        if (state.ActionDocked) Assert.InRange(Math.Abs(state.ActionBottom - state.ViewportHeight), 0, 1.1);
+        else Assert.True(state.ActionBottom <= state.ViewportHeight + 1, $"{scenario}: inline actions extend below the viewport.");
         Assert.True(state.ActionTop >= 0, $"{scenario}: the returned play actions start above the viewport: {state.ActionTop}.");
-        Assert.True(state.ActionLeft <= 1, $"{scenario}: the returned play dock is inset from the left edge during transition: {state.ActionLeft}.");
-        Assert.True(state.ActionRight >= state.ViewportWidth - 1, $"{scenario}: the returned play dock does not reach the right edge during transition: {state.ActionRight} < {state.ViewportWidth}.");
+        if (state.ActionDocked)
+        {
+            Assert.True(state.ActionLeft <= 1, $"{scenario}: the returned play dock is inset from the left edge during transition: {state.ActionLeft}.");
+            Assert.True(state.ActionRight >= state.ViewportWidth - 1, $"{scenario}: the returned play dock does not reach the right edge during transition: {state.ActionRight} < {state.ViewportWidth}.");
+        }
         Assert.Equal("none", state.PanelTransform);
         Assert.True(errors.Count == 0, $"{scenario}: {string.Join(" | ", errors)}");
     }
@@ -748,14 +753,14 @@ public sealed class FlowActionDockBrowserTests(
         Assert.Equal("rgb(255, 255, 255)", playStartState.WordmarkColor);
         Assert.Equal("none", playStartState.LogoDisplay);
         Assert.Equal("block", playStartState.WatermarkDisplay);
-        Assert.True(playStartState.WatermarkWidth >= playStartState.ViewportWidth * 0.75, $"Watermark should stay visually dominant: {playStartState.WatermarkWidth}px");
-        Assert.True(playStartState.WatermarkWidth <= playStartState.ViewportWidth * 0.9, $"Watermark should fit the viewport width instead of cropping: {playStartState.WatermarkWidth}px");
+        Assert.True(playStartState.WatermarkWidth >= playStartState.ViewportWidth * 0.45, $"The crest phoenix should stay visually dominant: {playStartState.WatermarkWidth}px");
+        Assert.True(playStartState.WatermarkWidth <= playStartState.ViewportWidth * 0.75, $"The crest phoenix should sit inside its ring: {playStartState.WatermarkWidth}px");
         Assert.True(playStartState.WatermarkHeight <= playStartState.ViewportHeight * 0.42, $"Watermark should sit between the wordmark and buttons instead of filling the page: {playStartState.WatermarkHeight}px");
         AssertPlayStartLogoBetweenWordmarkAndActions(playStartState, 40);
-        Assert.Equal("0.17", playStartState.WatermarkOpacity);
+        Assert.Equal("0.3", playStartState.WatermarkOpacity);
         Assert.Equal("none", playStartState.WatermarkFilter);
         Assert.Equal("normal", playStartState.WatermarkMixBlendMode);
-        Assert.Equal("fixed", playStartState.WatermarkPosition);
+        Assert.Equal("relative", playStartState.WatermarkPosition);
         Assert.Equal("none", playStartState.WatermarkPointerEvents);
         Assert.Contains("/assets/favicon-dark-512x512.png?v=", playStartState.WatermarkSource);
         Assert.Equal("none", playStartState.StickyHeaderDisplay);
@@ -776,7 +781,7 @@ public sealed class FlowActionDockBrowserTests(
         Assert.Equal("none", playStartState.HeaderBoxShadow);
         Assert.InRange(Math.Abs(playStartState.MainTop - playStartState.HeaderBottom), 0, 1);
         Assert.Equal("none", playStartState.HeroBackgroundImage);
-        Assert.Contains("18, 18, 18", playStartState.ActionStackBackground);
+        Assert.Contains("16, 24, 32", playStartState.ActionStackBackground);
         Assert.DoesNotContain("238, 238, 238", playStartState.ActionStackBackground);
         Assert.Equal("0px", playStartState.ActionStackBorderTopWidth);
 
@@ -814,7 +819,7 @@ public sealed class FlowActionDockBrowserTests(
             }
             """);
 
-        Assert.True(desktopPlayStartState.WatermarkWidth >= 200, $"Desktop watermark should remain visible: {desktopPlayStartState.WatermarkWidth}px");
+        Assert.True(desktopPlayStartState.WatermarkWidth >= 150, $"Desktop crest phoenix should remain visible: {desktopPlayStartState.WatermarkWidth}px");
         Assert.True(desktopPlayStartState.WatermarkHeight <= desktopPlayStartState.ViewportHeight * 0.32, $"Desktop watermark should not crowd the action buttons: {desktopPlayStartState.WatermarkHeight}px");
         Assert.True(desktopPlayStartState.ScrollWidth <= desktopPlayStartState.ViewportWidth + 1, $"Play hero creates horizontal overflow on desktop: {desktopPlayStartState.ScrollWidth} > {desktopPlayStartState.ViewportWidth}");
         AssertPlayStartLogoBetweenWordmarkAndActions(desktopPlayStartState, 40);
