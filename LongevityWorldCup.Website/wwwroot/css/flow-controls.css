@@ -39,49 +39,6 @@ body.play-flow-route > main {
     margin-bottom: 0;
 }
 
-@media (max-width: 768px) {
-    body.play-flow-route:not(.play-start-active) header {
-        padding-top: 0.7rem;
-        padding-bottom: 0.75rem;
-    }
-
-    body.play-flow-route:not(.play-start-active) .header-link > .main-logo-image {
-        width: clamp(42px, 12vw, 54px);
-        margin-bottom: 0.3rem;
-    }
-
-    body.play-flow-route:not(.play-start-active) .bannertext {
-        font-size: clamp(1.45rem, 6vw, 1.85rem);
-        line-height: 1.05;
-    }
-
-    body.play-flow-route:not(.play-start-active) .tagline {
-        display: none;
-    }
-}
-
-@media (min-width: 769px) {
-    body.play-flow-route:not(.play-start-active) header {
-        padding-top: 0.75rem;
-        padding-bottom: 0.85rem;
-    }
-
-    body.play-flow-route:not(.play-start-active) .header-link > .main-logo-image {
-        width: clamp(54px, 5vw, 64px);
-        margin-bottom: 0.35rem;
-    }
-
-    body.play-flow-route:not(.play-start-active) .bannertext {
-        font-size: 1.9rem;
-        line-height: 1.04;
-    }
-
-    body.play-flow-route:not(.play-start-active) .tagline {
-        margin-top: 0.35rem;
-        font-size: 0.95rem;
-    }
-}
-
 .flow-action-dock-placeholder {
     width: min(100%, 408px);
     max-width: 408px;
