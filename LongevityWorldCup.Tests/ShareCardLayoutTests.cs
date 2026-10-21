@@ -20,7 +20,7 @@ public sealed class ShareCardLayoutTests(TestWebApplicationFactory factory)
     public void CjkFallback_HasABoldFaceInsteadOfTheUpstreamThinDefault()
     {
         var fonts = ShareCardCanvas.GetFonts(factory.Services.GetRequiredService<IWebHostEnvironment>().WebRootPath);
-        var cjk = Assert.Single(fonts.Fallbacks.Where(family => family.Name.Contains("Noto Sans SC", StringComparison.Ordinal)));
+        var cjk = Assert.Single(fonts.Fallbacks, family => family.Name.Contains("Noto Sans SC", StringComparison.Ordinal));
         Assert.Contains(FontStyle.Bold, cjk.GetAvailableStyles());
     }
     [Theory]
