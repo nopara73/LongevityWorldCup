@@ -322,18 +322,11 @@ public sealed class FlowActionDockFormBrowserTests(
 
         await ExpectActionStackInViewportAsync(page, ".play-menu-actions");
 
-        var inlineTail = await page.EvaluateAsync<double>(
-            """
-            () => {
-                const main = document.querySelector('.play-hub-main');
-                const actions = document.querySelector('.play-menu-actions');
-                if (!main || !actions) return Number.POSITIVE_INFINITY;
-                return main.getBoundingClientRect().bottom - actions.getBoundingClientRect().bottom;
-            }
-            """);
+        var scrollTail = await page.EvaluateAsync<double>(
+            "() => document.documentElement.scrollHeight - window.innerHeight");
 
-        Assert.True(inlineTail <= 16,
-            $"Inline /play actions leave {inlineTail}px of trailing page background after the menu.");
+        Assert.True(scrollTail <= 1,
+            $"The /play title screen scrolls {scrollTail}px past its inline menu.");
         Assert.Empty(errors);
     }
 
