@@ -473,8 +473,13 @@ interface FlowActionDockApi {
             updateActionLayoutState(element);
             const measuredHeight = element.getBoundingClientRect().height || element.offsetHeight;
             const maxHeightRatio = Number(element.getAttribute('data-flow-dock-max-height-ratio'));
-            if (maxHeightRatio > 0 && maxHeightRatio <= 1
-                && measuredHeight > getVisualViewportBounds().height * maxHeightRatio) {
+            const fitSelector = element.getAttribute('data-flow-dock-fit');
+            const fitContainer = fitSelector ? state.placeholder.closest<HTMLElement>(fitSelector) : null;
+            // A full-screen lockup needs room for its content as well as its
+            // actions. When text grows, keep the whole group in normal flow.
+            const viewportHeight = getVisualViewportBounds().height;
+            if ((maxHeightRatio > 0 && maxHeightRatio <= 1 && measuredHeight > viewportHeight * maxHeightRatio)
+                || (fitContainer && fitContainer.scrollHeight > viewportHeight + 1)) {
                 undockElement(element, state);
                 state.oversizedInlineSignature = getInlineSignature(element);
                 return;

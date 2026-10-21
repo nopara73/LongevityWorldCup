@@ -147,7 +147,7 @@ body.play-start-active #site-sticky-header {
 
     body.play-start-active.play-start-preintro .play-menu-actions .flow-action {
         opacity: 0.86;
-        transform: translate3d(0, 0.6rem, 0);
+        transform: translate3d(0, 0.35rem, 0);
     }
 
     body.play-start-active.play-start-intro .play-menu-wordmark__word {
@@ -243,6 +243,7 @@ body.play-start-active .play-menu-actions.flow-action-stack--docked {
     /* The intro already animates the buttons. Docking must keep their common
        container readable from its first frame, including the entering state. */
     opacity: 1;
+    pointer-events: auto;
     transition: none;
 }
 
@@ -293,6 +294,7 @@ body.play-start-active .play-menu-actions.flow-action-stack--docked {
     font-size: min(var(--play-wordmark-size), 14cqi);
     font-weight: 700;
     font-style: italic;
+    font-synthesis: style;
     line-height: 1;
     letter-spacing: 0;
     text-transform: uppercase;
@@ -376,7 +378,7 @@ body.play-start-active .play-menu-actions.flow-action-stack--docked {
 @keyframes play-action-settle {
     0% {
         opacity: 0.86;
-        transform: translate3d(0, 0.6rem, 0);
+        transform: translate3d(0, 0.35rem, 0);
     }
 
     100% {
@@ -2436,6 +2438,12 @@ body.play-start-active .play-menu-actions:not(.flow-action-stack--docked) .flow-
     margin: 0;
 }
 
+/* Reserve the actual dock, including its padding, without flex shrinking it. */
+.play-start-panel > .flow-action-dock-placeholder {
+    flex: none;
+    min-height: var(--flow-action-dock-height, 0px);
+}
+
 /* Phones: the free space falls evenly above the title, between the title and
    the crest, and below the crest; the menu waits at the foot of the stage. */
 @media (max-width: 760px) {
@@ -2466,9 +2474,9 @@ body.play-start-active .play-menu-actions:not(.flow-action-stack--docked) .flow-
 }
 
 /* Short landscape screens: a smaller crest and the doors side by side. */
-@media (min-width: 640px) and (max-height: 480px) {
+@media (max-height: 480px) {
     .play-start-panel {
-        --play-crest-size: min(26dvh, 7.5rem);
+        --play-crest-size: min(68vw, 26dvh, 7.5rem);
         --play-lockup-gap: clamp(0.6rem, 3dvh, 1rem);
         justify-content: center;
         gap: var(--play-lockup-gap);
@@ -2480,14 +2488,24 @@ body.play-start-active .play-menu-actions:not(.flow-action-stack--docked) .flow-
         margin-block: 0;
     }
 
-    body.play-start-active .play-menu-actions:not(.flow-action-stack--docked) {
+    .play-menu-wordmark {
+        --play-wordmark-size: 3.4rem;
+    }
+}
+
+@media (min-width: 480px) and (max-height: 480px) {
+    body.play-start-active .play-menu-actions:not(.flow-action-stack--docked),
+    body.play-start-active .play-menu-actions.flow-action-stack--docked {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
         width: min(100%, 36rem);
         max-width: 36rem;
     }
 
-    body.play-start-active .play-menu-actions:not(.flow-action-stack--docked) .flow-action {
+    body.play-start-active .play-menu-actions:not(.flow-action-stack--docked) .flow-action,
+    body.play-start-active .play-menu-actions.flow-action-stack--docked .flow-action {
+        width: 100%;
+        max-width: none;
         min-height: 48px;
     }
 }

@@ -208,7 +208,8 @@ public sealed class FlowActionDockBrowserTests(
     [Theory]
     [InlineData(390, 844)]
     [InlineData(375, 667)]
-    public async Task PlayStartBackNavigation_KeepsActionsBottomDockedDuringPanelTransition(
+    [InlineData(844, 390)]
+    public async Task PlayStartBackNavigation_KeepsActionsReachableDuringPanelTransition(
         int viewportWidth,
         int viewportHeight)
     {
@@ -241,7 +242,7 @@ public sealed class FlowActionDockBrowserTests(
                     const actions = document.querySelector('.play-menu-actions');
                     return panel && !panel.hidden
                         && !document.documentElement.classList.contains('play-panel-transitioning')
-                        && actions?.classList.contains('flow-action-stack--docked');
+                        && actions && (window.innerWidth > 760 || actions.classList.contains('flow-action-stack--docked'));
                 }
                 """);
 
@@ -266,11 +267,15 @@ public sealed class FlowActionDockBrowserTests(
                 """);
 
         var scenario = $"{viewportWidth}x{viewportHeight}";
-        Assert.True(state.ActionDocked, $"{scenario}: back to /play should keep the start actions in the bottom dock immediately.");
-        Assert.InRange(Math.Abs(state.ActionBottom - state.ViewportHeight), 0, 1.1);
+        Assert.Equal(viewportWidth <= 760, state.ActionDocked);
+        if (state.ActionDocked) Assert.InRange(Math.Abs(state.ActionBottom - state.ViewportHeight), 0, 1.1);
+        else Assert.True(state.ActionBottom <= state.ViewportHeight + 1, $"{scenario}: inline actions extend below the viewport.");
         Assert.True(state.ActionTop >= 0, $"{scenario}: the returned play actions start above the viewport: {state.ActionTop}.");
-        Assert.True(state.ActionLeft <= 1, $"{scenario}: the returned play dock is inset from the left edge during transition: {state.ActionLeft}.");
-        Assert.True(state.ActionRight >= state.ViewportWidth - 1, $"{scenario}: the returned play dock does not reach the right edge during transition: {state.ActionRight} < {state.ViewportWidth}.");
+        if (state.ActionDocked)
+        {
+            Assert.True(state.ActionLeft <= 1, $"{scenario}: the returned play dock is inset from the left edge during transition: {state.ActionLeft}.");
+            Assert.True(state.ActionRight >= state.ViewportWidth - 1, $"{scenario}: the returned play dock does not reach the right edge during transition: {state.ActionRight} < {state.ViewportWidth}.");
+        }
         Assert.Equal("none", state.PanelTransform);
         Assert.True(errors.Count == 0, $"{scenario}: {string.Join(" | ", errors)}");
     }
