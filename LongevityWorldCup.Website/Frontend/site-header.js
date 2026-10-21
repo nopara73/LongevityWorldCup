@@ -3,6 +3,7 @@ const joinGameBtn = document.querySelector('.join-game');
 let lastKnownScrollPosition = 0;
 let ticking = false;
 let measuredStickyHeight = 0;
+let measuredRootFontSize = '';
 let lastStickyActionAvailable = null;
 
 window.addEventListener('scroll', function () {
@@ -44,11 +45,14 @@ function handleScroll(scrollPos, remeasure = false) {
     const stickyHeader = document.getElementById('site-sticky-header');
     if (!mainHeader || !stickyHeader) return;
     const actionAvailable = Boolean(mainJoinButtonVisible || compactLandscape);
+    // Text enlargement can reach a scroll frame before resize callbacks run.
+    const rootFontSize = getComputedStyle(document.documentElement).fontSize;
 
     // Measure the complete bar before it appears, so the first anchor jump
     // and keyboard scroll reserve the same space as subsequent ones.
     // Cache this geometry between layout changes, keeping scrolling cheap.
-    if (remeasure || !measuredStickyHeight || lastStickyActionAvailable !== actionAvailable) {
+    if (remeasure || !measuredStickyHeight || lastStickyActionAvailable !== actionAvailable
+        || measuredRootFontSize !== rootFontSize) {
         const visibility = stickyHeader.style.visibility;
         const actionVisibility = scrolledJoinButton?.style.visibility;
         stickyHeader.style.visibility = 'hidden';
@@ -58,6 +62,7 @@ function handleScroll(scrollPos, remeasure = false) {
             scrolledJoinButton.style.display = actionAvailable ? 'inline-flex' : 'none';
         }
         measuredStickyHeight = fitStickyHeader(stickyHeader);
+        measuredRootFontSize = rootFontSize;
         lastStickyActionAvailable = actionAvailable;
         stickyHeader.style.visibility = visibility;
         if (scrolledJoinButton) scrolledJoinButton.style.visibility = actionVisibility;

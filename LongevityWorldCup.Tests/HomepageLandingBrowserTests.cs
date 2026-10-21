@@ -120,7 +120,7 @@ public sealed class HomepageLandingBrowserTests(
     [InlineData(1440, 900, 24)]
     [InlineData(1024, 768, 24)]
     [InlineData(390, 844, 16)]
-    public async Task Sections_FollowOneVerticalRhythm(int width, int height, double gap)
+    public async Task Sections_FollowTheThreeActRhythm(int width, int height, double gap)
     {
         var (context, page) = await OpenHomepageAsync(width, height);
         await using var _ = context;
@@ -136,7 +136,11 @@ public sealed class HomepageLandingBrowserTests(
             }
             """);
 
-        Assert.All(gaps, measured => Assert.InRange(measured, gap - 1, gap + 1));
+        // Within an act cards keep one gap; acts breathe twice as wide, and
+        // Hall of fame and the FAQ are one block joined at a seam.
+        var expected = new[] { gap, gap, gap * 2, 0, gap * 2 };
+        for (var i = 0; i < gaps.Length; i++)
+            Assert.InRange(gaps[i], expected[i] - 1, expected[i] + 1);
     }
 
     [Fact]
