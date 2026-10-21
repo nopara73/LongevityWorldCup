@@ -5830,6 +5830,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             return;
         }
         const currentAccessToken = accessToken;
+        const currentParticipantId = participantState.participant.id;
         if (!hasCheckInChanged(form) && !checkInErrors.has(key)) return;
         const draft = collectCheckInDraft(form);
         if (!isCompleteCheckInDraft(draft)) {
@@ -5868,6 +5869,13 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 ? await postCheckInWithPhotos(payload, notePhotos)
                 : await postJson(`${API}/check-in`, payload);
             if (accessToken !== currentAccessToken) return;
+            const saved = result.eligibleDays.find(day => checkInDraftKey(day, result.participant.id) === key)?.existing;
+            const savedPhotoCount = form.querySelectorAll(".lmx-note-photo-grid.saved img").length;
+            if (result.participant.id !== currentParticipantId || !saved ||
+                QUESTIONS.some(question => saved[question.key] !== draft[question.key]) ||
+                (saved.note || "").trim() !== draft.note.trim() || saved.images.length < savedPhotoCount + notePhotos.length) {
+                throw invalidApiResponse(`${API}/check-in`);
+            }
             clearPendingNotePhotos(key);
             checkInDrafts.delete(key);
             checkInResetUndo.delete(key);
@@ -5884,7 +5892,6 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 participantTabManual = false;
             }
             acceptParticipantState(result);
-            const saved = result.eligibleDays.find(day => day.challengeDay === payload.challengeDay)?.existing;
             if (saved && !String(saved.note || "").trim() && !saved.images.length &&
                 !result.notes.some(note => note.participantId === result.participant.id && note.challengeDay === payload.challengeDay && note.advice)) {
                 const postKey = discussionPermalink({ participantId: result.participant.id, challengeDay: payload.challengeDay, systemPostId: null });

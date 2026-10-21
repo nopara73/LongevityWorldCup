@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Microsoft.Playwright;
 using Xunit;
 using static LongevityWorldCup.Tests.AestheticSystemBrowserTests;
@@ -8,6 +9,137 @@ namespace LongevityWorldCup.Tests;
 
 public sealed partial class LongevitymaxxingChallengeBrowserTests
 {
+    [Theory]
+    [InlineData(320, 640, true)]
+    [InlineData(390, 844, false)]
+    [InlineData(844, 390, true)]
+    public async Task CheckIn_LargeTextKeepsEachAnsweredCountAndSaveControlReadable(int width, int height, bool direct)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = height }, ReducedMotion = ReducedMotion.Reduce
+        });
+        var page = await OpenCheckInWorkspaceAsync(context, direct: direct);
+        await page.AddStyleTagAsync(new() { Content = "html { font-size: 200% !important; }" });
+        await page.EvaluateAsync("document.fonts.ready");
+        var form = page.Locator(".lmx-checkin-card");
+        foreach (var key in new[] { "sleep", "exercise", "nutrition", "vices" })
+        {
+            Assert.True(await form.Locator(".lmx-checkin-actions").EvaluateAsync<bool>("""
+                actions => {
+                    const count = actions.querySelector('[data-checkin-progress]');
+                    const bounds = count.getBoundingClientRect();
+                    const walker = document.createTreeWalker(count, NodeFilter.SHOW_TEXT);
+                    let node;
+                    while (node = walker.nextNode()) {
+                        const range = document.createRange();
+                        range.selectNodeContents(node);
+                        if ([...range.getClientRects()].some(r => r.left < bounds.left - 1 || r.right > bounds.right + 1 || r.top < bounds.top - 1 || r.bottom > bounds.bottom + 1)) return false;
+                    }
+                    return actions.scrollWidth <= actions.clientWidth + 1;
+                }
+                """));
+            await AnswerHabitAsync(form, key, "no");
+        }
+        await Assertions.Expect(form.Locator(".lmx-answer-input:checked")).ToHaveCountAsync(4);
+        await Assertions.Expect(form.Locator("button[type='submit']")).ToBeEnabledAsync();
+        var save = form.Locator("button[type='submit']");
+        await save.ScrollIntoViewIfNeededAsync();
+        var box = (await save.BoundingBoxAsync())!;
+        Assert.InRange(box.X, 0, width - box.Width + 1);
+        Assert.InRange(box.Y, 0, height - box.Height + 1);
+        Assert.True(box.Width >= 44 && box.Height >= 44);
+        await FlowActionDockBrowserTests.ExpectNoHorizontalOverflowAsync(page);
+    }
+
+    [Theory]
+    [InlineData(ColorScheme.Light)]
+    [InlineData(ColorScheme.Dark)]
+    public async Task HabitHistory_TodayRetainsItsPracticeMarkerAndPerHabitAnswers(ColorScheme theme)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = 390, Height = 844 }, ColorScheme = theme, TimezoneId = "UTC"
+        });
+        var state = JsonSerializer.SerializeToNode(BuildParticipantState(noEligibleDays: true))!.AsObject();
+        var cells = state["public"]!["leaderboard"]![0]!["cells"]!.AsArray();
+        var today = cells.Last()!;
+        today["countsForScore"] = false;
+        today["sleep"] = 2;
+        today["exercise"] = 1;
+        today["nutrition"] = 0;
+        today["vices"] = 2;
+        await context.AddInitScriptAsync("localStorage.setItem('lmxAccessToken','browser-token')");
+        await context.RouteAsync("**/api/longevitymaxxing/state", r => FulfillJsonAsync(r, state["public"]!.ToJsonString()));
+        await context.RouteAsync("**/api/longevitymaxxing/participant", r => FulfillJsonAsync(r, state.ToJsonString()));
+        var page = await context.NewPageAsync();
+        await page.Clock.SetFixedTimeAsync(DateTime.Parse("2026-06-29T09:00:00Z", CultureInfo.InvariantCulture,
+            DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal));
+        await page.GotoAsync("/longevitymaxxing");
+        await page.Locator(".lmx-habit-history > summary").ClickAsync();
+        foreach (var (habit, answer) in new[] { ("sleep", "full"), ("exercise", "partial"), ("nutrition", "missed"), ("vices", "full") })
+        {
+            var cell = page.Locator($".lmx-dashboard-row:has(.lmx-dashboard-category.{habit}) .lmx-category-day[data-day='22']");
+            await Assertions.Expect(cell).ToHaveClassAsync(new System.Text.RegularExpressions.Regex($@"\b{answer}\b"));
+            await Assertions.Expect(cell).ToHaveClassAsync(new System.Text.RegularExpressions.Regex(@"\bpractice\b"));
+            Assert.Contains("inset", await cell.EvaluateAsync<string>("e => getComputedStyle(e).boxShadow"));
+            Assert.Contains("3.5px", await cell.EvaluateAsync<string>("e => getComputedStyle(e).boxShadow"));
+            await Assertions.Expect(cell).ToHaveAttributeAsync("title", new System.Text.RegularExpressions.Regex("practice"));
+        }
+        var zero = page.Locator(".lmx-dashboard-row:has(.lmx-dashboard-category.nutrition) .lmx-category-day[data-day='22']");
+        await Assertions.Expect(zero).ToHaveAttributeAsync("aria-label", new System.Text.RegularExpressions.Regex("0 of 2"));
+        var missing = page.Locator(".lmx-dashboard-row:has(.lmx-dashboard-category.nutrition) .lmx-category-day[data-day='21']");
+        await Assertions.Expect(missing).ToHaveClassAsync(new System.Text.RegularExpressions.Regex(@"\bempty\b"));
+        Assert.DoesNotContain("0 of 2", await missing.GetAttributeAsync("aria-label"));
+    }
+
+    [Theory]
+    [InlineData("participant")]
+    [InlineData("missing")]
+    [InlineData("answers")]
+    [InlineData("date")]
+    [InlineData("photos")]
+    public async Task CheckInResponse_MustConfirmTheParticipantDayAndSubmittedWorkBeforeClearingTheDraft(string mismatch)
+    {
+        await using var context = await NewContextAsync(Browser, App, new());
+        var state = CheckInWorkspaceState();
+        var page = await OpenCheckInWorkspaceAsync(context, state);
+        var requests = 0;
+        await page.RouteAsync("**/api/longevitymaxxing/check-in", async route =>
+        {
+            requests++;
+            var result = state.DeepClone().AsObject();
+            var saved = SavedCheckIn("Keep this draft.", 0);
+            saved["images"] = JsonSerializer.SerializeToNode(new[] { CheckInImage("/generated/longevitymaxxing/check-in-photos/walk.webp") });
+            result["eligibleDays"]![0]!["existing"] = saved;
+            if (requests == 1)
+            {
+                if (mismatch == "participant") result["participant"]!["id"] = "p-other";
+                if (mismatch == "missing") result["eligibleDays"]![0]!["existing"] = null;
+                if (mismatch == "answers") saved["sleep"] = 2;
+                if (mismatch == "date") result["eligibleDays"]![0]!["date"] = "2026-06-25";
+                if (mismatch == "photos") saved["images"] = new JsonArray();
+            }
+            await FulfillJsonAsync(route, result.ToJsonString());
+        });
+        var form = page.Locator(".lmx-checkin-card");
+        foreach (var key in new[] { "sleep", "exercise", "nutrition", "vices" }) await AnswerHabitAsync(form, key, "no");
+        await form.Locator("textarea").FillAsync("Keep this draft.");
+        await AddCheckInPhotosAsync(form, "walk.png");
+        var save = form.Locator("button[type='submit']");
+        await Assertions.Expect(save).ToBeEnabledAsync();
+        await save.ClickAsync();
+        await Assertions.Expect(save).ToHaveTextAsync("Retry");
+        await Assertions.Expect(form.Locator("[data-checkin-status]")).ToContainTextAsync("Not saved.");
+        await Assertions.Expect(form.Locator("textarea")).ToHaveValueAsync("Keep this draft.");
+        await Assertions.Expect(form.Locator("input[value='0']:checked")).ToHaveCountAsync(4);
+        await Assertions.Expect(form.Locator("[data-photo-previews] img")).ToHaveCountAsync(1);
+        await Assertions.Expect(page.Locator(".lmx-checkin-switcher button[data-day='17']")).ToHaveAttributeAsync("aria-pressed", "true");
+        await save.ClickAsync();
+        await Assertions.Expect(page.Locator(".lmx-checkin-switcher button[data-day='17'] em")).ToHaveTextAsync("Saved");
+        Assert.Equal(2, requests);
+    }
+
     [Theory]
     [InlineData(320, 640, ColorScheme.Light, true)]
     [InlineData(390, 844, ColorScheme.Dark, true)]
