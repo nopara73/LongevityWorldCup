@@ -183,6 +183,13 @@ public sealed class PlayStartTitleScreenBrowserTests(
         var page = await context.NewPageAsync();
         await page.GotoAsync(route);
         await page.WaitForFunctionAsync("() => !document.documentElement.hasAttribute('data-initial-view') && document.querySelector('.option-button.green')");
+        if (route == "/apply")
+        {
+            await page.Locator("#name").FillAsync("Browser Test Athlete");
+            await page.Locator("#flag").FillAsync("Hungary");
+            await page.Locator("#division").SelectOptionAsync(new SelectOptionValue { Label = "Men's" });
+            await Assertions.Expect(page.Locator("#nextButton")).ToBeEnabledAsync();
+        }
         // Probe CSS states on the actual controls without submitting any form.
         var colors = await page.EvaluateAsync<string[]>(
             """

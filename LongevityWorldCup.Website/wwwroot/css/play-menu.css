@@ -2483,11 +2483,6 @@ body.play-start-active .play-menu-actions:not(.flow-action-stack--docked) .flow-
         padding-block: 0.75rem;
     }
 
-    .play-start-panel > .play-menu-hero,
-    .play-start-panel > .play-menu-crest {
-        margin-block: 0;
-    }
-
     .play-menu-wordmark {
         --play-wordmark-size: 3.4rem;
     }
