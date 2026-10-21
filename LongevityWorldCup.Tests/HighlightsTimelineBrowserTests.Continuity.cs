@@ -286,7 +286,9 @@ public sealed partial class HighlightsTimelineBrowserTests
         await Assertions.Expect(page.Locator("#eventsStatus")).ToHaveTextAsync("Events loaded.");
         await Assertions.Expect(page.Locator("#eventsStatus")).ToHaveAttributeAsync("role", "status");
         await page.Locator(".event-board-page .back-button").ClickAsync();
-        await page.WaitForURLAsync(new Uri(App.BaseAddress, "ruleset").ToString(), new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        // History restoration can reuse a ready document without a new DOMContentLoaded.
+        await Assertions.Expect(page).ToHaveURLAsync(new Uri(App.BaseAddress, "ruleset").ToString(), new() { Timeout = 30000 });
+        await Assertions.Expect(page.Locator("h1#ruleset")).ToBeVisibleAsync();
     }
 
     [Fact]
@@ -306,7 +308,8 @@ public sealed partial class HighlightsTimelineBrowserTests
             await page.GotoAsync("/events", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
             await page.Locator(".event-board-page .back-button").FocusAsync();
             await page.Keyboard.PressAsync("Enter");
-            await page.WaitForURLAsync(new Uri(App.BaseAddress, "ruleset").ToString(), new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+            await Assertions.Expect(page).ToHaveURLAsync(new Uri(App.BaseAddress, "ruleset").ToString(), new() { Timeout = 30000 });
+            await Assertions.Expect(page.Locator("h1#ruleset")).ToBeVisibleAsync();
         }
         finally
         {
