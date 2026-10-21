@@ -118,19 +118,10 @@ public sealed class AthleteDialogLinkBrowserTests(
     {
         await using var context = await NewContextAsync(Browser, App, width: 1100, height: 760);
         await context.AddInitScriptAsync("localStorage.setItem('gmaSkipAll', 'true');");
-        await context.RouteAsync("**/api/data/athletes", async route =>
+        await RouteAthleteFixtureAsync(context, athletes =>
         {
-            var response = await route.FetchAsync();
-            var athletes = JsonNode.Parse(await response.TextAsync())!.AsArray();
             foreach (var athlete in athletes.OfType<JsonObject>())
                 athlete["MediaContact"] = contact;
-
-            await route.FulfillAsync(new RouteFulfillOptions
-            {
-                Status = response.Status,
-                ContentType = "application/json",
-                Body = athletes.ToJsonString()
-            });
         });
 
         var page = await context.NewPageAsync();

@@ -112,11 +112,9 @@ public sealed class FlagLeaderboardReviewBrowserTests(PlaywrightBrowserFixture b
         await Assertions.Expect(page.Locator(".flag-team")).ToHaveAttributeAsync("data-flag", "日本");
     }
 
-    private static Task UseTwoTeamsAsync(IBrowserContext context, string first, string second) =>
-        context.RouteAsync("**/api/data/athletes", async route =>
+    private Task UseTwoTeamsAsync(IBrowserContext context, string first, string second) =>
+        RouteAthleteFixtureAsync(context, athletes =>
         {
-            var response = await route.FetchAsync();
-            var athletes = JsonNode.Parse(await response.TextAsync())!.AsArray();
             var index = 0;
             foreach (var athlete in athletes.OfType<JsonObject>())
             {
@@ -125,6 +123,5 @@ public sealed class FlagLeaderboardReviewBrowserTests(PlaywrightBrowserFixture b
                 athlete["MediaContact"] = "";
                 if (index++ == 0) athlete["DisplayName"] = "Public Flag Winner";
             }
-            await route.FulfillAsync(new() { ContentType = "application/json", Body = athletes.ToJsonString() });
         });
 }
