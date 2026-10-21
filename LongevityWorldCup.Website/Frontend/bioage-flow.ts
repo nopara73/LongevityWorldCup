@@ -830,6 +830,65 @@ interface Window {
             error.hidden = !visible;
         }
         input.setAttribute('aria-invalid', visible ? 'true' : 'false');
+        document.querySelector<HTMLElement>(`[data-bioage-pip="${input.id}"]`)
+            ?.classList.toggle('bioage-domain-pip--invalid', visible);
+    }
+
+    // Each domain title carries one pip per biomarker, so a long panel shows
+    // where the gaps are without reading the rows.
+    function getOrCreateDomainPip(input: HTMLInputElement): HTMLElement | null {
+        const existing = document.querySelector<HTMLElement>(`[data-bioage-pip="${input.id}"]`);
+        if (existing) return existing;
+        const legend = input.closest<HTMLFieldSetElement>('fieldset')?.querySelector<HTMLLegendElement>(':scope > legend');
+        if (!legend) return null;
+        let tally = legend.querySelector<HTMLElement>('.bioage-domain-tally');
+        if (!tally) {
+            tally = document.createElement('span');
+            tally.className = 'bioage-domain-tally';
+            tally.setAttribute('aria-hidden', 'true');
+            legend.appendChild(tally);
+        }
+        const pip = document.createElement('span');
+        pip.className = 'bioage-domain-pip';
+        pip.dataset.bioagePip = input.id;
+        tally.appendChild(pip);
+        return pip;
+    }
+
+    function syncDomainTallies(controller: BioageBiomarkerEntryController): void {
+        const domains = new Map<HTMLFieldSetElement, boolean>();
+        controller.inputs.forEach(input => {
+            const isComplete = input.dataset.bioageComplete === 'true';
+            getOrCreateDomainPip(input)?.classList.toggle('bioage-domain-pip--complete', isComplete);
+            const domain = input.closest<HTMLFieldSetElement>('fieldset');
+            if (domain) domains.set(domain, (domains.get(domain) ?? true) && isComplete);
+        });
+        domains.forEach((complete, domain) => domain.classList.toggle('bioage-domain--complete', complete));
+    }
+
+    // Section bands stick below whichever fixed site bars are showing.
+    let sectionBandOffsetFrame = 0;
+    function syncSectionBandOffset(): void {
+        sectionBandOffsetFrame = 0;
+        let top = 0;
+        ['site-sticky-header', 'site-sticky-progress'].forEach(id => {
+            const bar = document.getElementById(id);
+            if (!bar || getComputedStyle(bar).position !== 'fixed') return;
+            const rect = bar.getBoundingClientRect();
+            if (rect.height > 0 && rect.top <= 1) top = Math.max(top, rect.bottom);
+        });
+        document.documentElement.style.setProperty('--bioage-band-top', `${Math.round(top)}px`);
+    }
+
+    function watchSectionBandOffset(): void {
+        if (document.documentElement.dataset.bioageBandOffset === 'true') return;
+        document.documentElement.dataset.bioageBandOffset = 'true';
+        const schedule = () => {
+            if (!sectionBandOffsetFrame) sectionBandOffsetFrame = window.requestAnimationFrame(syncSectionBandOffset);
+        };
+        window.addEventListener('scroll', schedule, { passive: true });
+        window.addEventListener('resize', schedule, { passive: true });
+        schedule();
     }
 
     function ensureBiomarkerVisible(input: HTMLInputElement): void {
@@ -905,6 +964,7 @@ interface Window {
             }
             if (!isComplete) incompleteInputs.push(input);
         });
+        syncDomainTallies(controller);
         controller.inputs.forEach((input, index) => {
             const hasOtherIncompleteInput = incompleteInputs.some(candidate => candidate !== input);
             input.enterKeyHint = (controller.isUpdate
@@ -1145,6 +1205,7 @@ interface Window {
         biomarkerEntryControllers.set(options.clock, controller);
         bindBiomarkerEntry(controller);
         syncBiomarkerHeaderSemantics(controller);
+        watchSectionBandOffset();
 
         const restoredDraft = options.restoreDraft !== false && restoreBioageDraft(controller);
         initializeBloodDrawDate(controller.form, !restoredDraft || controller.draftFields['blood-draw-date']?.customDate !== true);
