@@ -91,6 +91,10 @@ public sealed partial class GuessMyAgePayoffBrowserTests(
             """);
         await SubmitAndSettleAsync(page);
         await page.Clock.RunForAsync(100);
+        // Playwright's clock controls rAF but CSS animations still use compositor
+        // time. Freeze that pose, then let the protection mask sample the same pose.
+        await page.EvaluateAsync("() => document.getAnimations().forEach(animation => animation.pause())");
+        await page.Clock.RunForAsync(32);
 
         var payoff = await page.EvaluateAsync<JsonElement>(
             """
@@ -107,13 +111,17 @@ public sealed partial class GuessMyAgePayoffBrowserTests(
                 gap?.getAnimations().forEach(animation => animation.finish());
                 const gapRect = gap?.getBoundingClientRect();
                 const style = gap ? getComputedStyle(gap) : null;
-                const clip = getComputedStyle(document.querySelector('.gma-celebration')).clipPath;
+                const layer = document.querySelector('.gma-celebration');
+                const layerRect = layer.getBoundingClientRect();
+                const clip = getComputedStyle(layer).clipPath;
                 const mask = new Path2D(clip.match(/"(.*)"/)[1]);
                 const maskContext = document.createElement('canvas').getContext('2d');
                 const protectedCenters = ['#modalProfilePic', '.chrono-age-heading', '#gmaRealBubble', '#gmaPayoffRegion', '#closeAthleteDetailsModal']
                     .map(selector => document.querySelector(selector).getBoundingClientRect())
                     .filter(rect => rect.width && rect.height)
-                    .every(rect => !maskContext.isPointInPath(mask, rect.left + rect.width / 2, rect.top + rect.height / 2, 'evenodd'));
+                    .every(rect => !maskContext.isPointInPath(mask,
+                        rect.left + rect.width / 2 - layerRect.left,
+                        rect.top + rect.height / 2 - layerRect.top, 'evenodd'));
                 const trackBottom = range.getBoundingClientRect().bottom;
                 const sparks = window.__gmaSparks.map(spark => ({
                     dx: Number.parseFloat(spark.style.getPropertyValue('--gma-spark-dx')),
@@ -178,6 +186,16 @@ public sealed partial class GuessMyAgePayoffBrowserTests(
                 const answer = document.getElementById('gmaRealBubble').getBoundingClientRect();
                 const copy = overlay.querySelector('.gma-exact-jackpot-copy');
                 const scrim = overlay.querySelector('.gma-exact-jackpot-scrim');
+                const decoration = overlay.querySelector('.gma-exact-jackpot-decoration');
+                const decorationRect = decoration.getBoundingClientRect();
+                const protection = new Path2D(getComputedStyle(decoration).clipPath.match(/"(.*)"/)[1]);
+                const protectionContext = document.createElement('canvas').getContext('2d');
+                const protectedStage = ['#modalProfilePic', '#gmaRealBubble', '#gmaPayoffRegion']
+                    .map(selector => document.querySelector(selector).getBoundingClientRect())
+                    .filter(rect => rect.width && rect.height)
+                    .every(rect => !protectionContext.isPointInPath(protection,
+                        rect.left + rect.width / 2 - decorationRect.left,
+                        rect.top + rect.height / 2 - decorationRect.top, 'evenodd'));
                 const beat = copy.getAnimations().find(animation => animation.animationName === 'gma-exact-copy-beat');
                 const scrimBeat = scrim?.getAnimations().find(animation => animation.animationName === 'gma-exact-scrim-beat');
                 const finite = value => Number.isFinite(value) ? value : -1;
@@ -195,6 +213,7 @@ public sealed partial class GuessMyAgePayoffBrowserTests(
                     return {
                         segments: segments.length,
                         same: segments.length === 2 && segments[0] === segments[1],
+                        fillsRibbon: track?.firstElementChild.offsetWidth >= marquee.clientWidth,
                         finite: run ? run.effect.getTiming().iterations !== Infinity : false,
                         endsAtHalf: String(frames[frames.length - 1]?.transform || '').includes('-50%')
                     };
@@ -202,6 +221,7 @@ public sealed partial class GuessMyAgePayoffBrowserTests(
                 return {
                     originXError: finite(Math.abs(Number.parseFloat(overlay.style.getPropertyValue('--gma-jackpot-x')) - (answer.left + answer.width / 2))),
                     originYError: finite(Math.abs(Number.parseFloat(overlay.style.getPropertyValue('--gma-jackpot-y')) - (answer.top + answer.height / 2))),
+                    protectedStage,
                     beating: copy.classList.contains('is-beat'),
                     held: beat ? sampleOpacity(beat, copy, duration * 0.5) : -1,
                     cleared: beat ? sampleOpacity(beat, copy, duration * 0.999) : -1,
@@ -214,6 +234,7 @@ public sealed partial class GuessMyAgePayoffBrowserTests(
         // Measured once at launch while the answer is still bouncing into place.
         Assert.InRange(opening.GetProperty("originXError").GetDouble(), 0, 12);
         Assert.InRange(opening.GetProperty("originYError").GetDouble(), 0, 12);
+        Assert.True(opening.GetProperty("protectedStage").GetBoolean(), "Jackpot marks can obscure the athlete or result.");
         Assert.True(opening.GetProperty("beating").GetBoolean(), "The jackpot copy does not land as a beat.");
         Assert.InRange(opening.GetProperty("held").GetDouble(), 0.99, 1);
         Assert.InRange(opening.GetProperty("cleared").GetDouble(), 0, 0.05);
@@ -224,6 +245,7 @@ public sealed partial class GuessMyAgePayoffBrowserTests(
         {
             Assert.Equal(2, marquee.GetProperty("segments").GetInt32());
             Assert.True(marquee.GetProperty("same").GetBoolean());
+            Assert.True(marquee.GetProperty("fillsRibbon").GetBoolean(), "A marquee segment is shorter than its ribbon.");
             Assert.True(marquee.GetProperty("finite").GetBoolean());
             Assert.True(marquee.GetProperty("endsAtHalf").GetBoolean());
         }

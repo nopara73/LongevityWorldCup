@@ -103,7 +103,13 @@ const resetObserver = new MutationObserver(mutations => {
         gmaCard.classList.remove('is-submitting', 'is-revealing', 'celebrate-exact', 'celebrate-better', 'gma-done');
         gmaCard.style.removeProperty('--gma-exit-height');
         chronoHeading.classList.remove('is-revealing');
-        if (modalContent.classList.contains('gma-result-ready')) modalContent.classList.remove('gma-result-ready');
+        // The modal's close callback uses result-ready to finish leaving guess mode.
+        // Keep that marker through its fade; a directly hidden result can finish now.
+        if (!modal?.classList.contains('fade-out') && modalContent.classList.contains('gma-result-ready')) {
+            if (modal?.style.display === 'none') modalContent.classList.remove('guess-mode', 'gma-fast');
+            modalContent.classList.remove('gma-result-ready');
+        }
+        if (modalContent.classList.contains('gma-motion-stopped')) modalContent.classList.remove('gma-motion-stopped');
     }
     if (isGuessMode || isUnavailable
         || athleteSlug !== gmaObservedAthleteSlug || profileImageId !== gmaObservedProfileImageId) {
@@ -161,6 +167,7 @@ const resetObserver = new MutationObserver(mutations => {
     } else if (!isGuessMode && gmaWasGuessMode) {
         cancelGmaPresentation();
         clearGmaEphemera();
+        modalContent.classList.remove('gma-motion-stopped');
         setGuessMyAgeParam(false);
     }
 
@@ -709,27 +716,50 @@ function launchGmaExactJackpot(presentation) {
     canvas.dataset.activeParticles = '0';
     canvas.dataset.totalSpawned = '0';
     canvas.dataset.burstsFired = '0';
-    overlay.appendChild(canvas);
+    const decoration = document.createElement('div');
+    decoration.className = 'gma-exact-jackpot-decoration';
+    overlay.appendChild(decoration);
+    decoration.appendChild(canvas);
 
     // The scrim darkens behind each copy beat so the words read over the confetti.
     const scrim = document.createElement('div');
     scrim.className = 'gma-exact-jackpot-scrim';
     overlay.appendChild(scrim);
 
-    // Each ribbon carries its copy twice so the loop never shows an empty end.
+    // Each ribbon carries two equal segments. Fill each segment before duplicating it:
+    // a short segment can expose its trailing end on a wide or resized stage.
+    const marqueeFitters = [];
     const marquee = (side, copyText) => {
         const element = document.createElement('div');
         element.className = `gma-exact-jackpot-marquee gma-exact-jackpot-marquee--${side}`;
         element.dataset.gmaMotif = 'victory-ribbon';
         const track = document.createElement('span');
         track.className = 'gma-exact-jackpot-marquee-track';
+        const segments = [];
         for (let copyIndex = 0; copyIndex < 2; copyIndex++) {
             const segment = document.createElement('span');
             segment.textContent = copyText;
             if (copyIndex > 0) segment.setAttribute('aria-hidden', 'true');
             track.appendChild(segment);
+            segments.push(segment);
         }
         element.appendChild(track);
+        marqueeFitters.push(() => {
+            const width = element.clientWidth;
+            if (!width) return;
+            segments.forEach(segment => { segment.textContent = copyText; });
+            const unitWidth = segments[0].offsetWidth;
+            if (!unitWidth) return;
+            let repetitions = Math.max(1, Math.ceil(width / unitWidth));
+            const fill = () => segments.forEach(segment => { segment.textContent = copyText.repeat(repetitions); });
+            fill();
+            while (segments[0].offsetWidth < width && repetitions < 64) {
+                repetitions += 1;
+                fill();
+            }
+            // Keep the reading speed stable when an extra copy is needed.
+            track.style.setProperty('--gma-marquee-travel-ratio', String(segments[0].offsetWidth / unitWidth));
+        });
         return element;
     };
     overlay.appendChild(marquee('top', '🎯 PERFECT GUESS • ZERO YEARS OFF • TEMPORAL GENIUS • PERFECT GUESS • ZERO YEARS OFF • TEMPORAL GENIUS • '));
@@ -787,7 +817,7 @@ function launchGmaExactJackpot(presentation) {
             `${Math.round(GMA_EXACT_WAVE_DELAYS_MS[iconWave] + (gmaJackpotUnit(index, 5) * 380))}ms`);
         iconFragment.appendChild(icon);
     }
-    overlay.appendChild(iconFragment);
+    decoration.appendChild(iconFragment);
 
     const targetElements = [];
     const targetFragment = document.createDocumentFragment();
@@ -809,7 +839,7 @@ function launchGmaExactJackpot(presentation) {
         targetElements.push(target);
         targetFragment.appendChild(target);
     }
-    overlay.appendChild(targetFragment);
+    decoration.appendChild(targetFragment);
 
     modalContent.appendChild(overlay);
 
@@ -831,6 +861,7 @@ function launchGmaExactJackpot(presentation) {
     let lastFrameAt = performance.now();
     let seed = 0x9e3779b9;
     let isCancelled = false;
+    let marqueeResizeObserver = null;
 
     function random() {
         seed = ((seed * 1664525) + 1013904223) >>> 0;
@@ -879,6 +910,8 @@ function launchGmaExactJackpot(presentation) {
 
     function resizeCanvas() {
         placeJackpotOrigin();
+        decoration.style.clipPath = gmaStageProtectionClip(decoration);
+        marqueeFitters.forEach(fit => fit());
         const cssWidth = Math.max(1, window.innerWidth);
         const cssHeight = Math.max(1, window.innerHeight);
         const pixelRatioCap = Math.sqrt(GMA_EXACT_CANVAS_PIXEL_CAP / (cssWidth * cssHeight));
@@ -908,6 +941,7 @@ function launchGmaExactJackpot(presentation) {
         if (cleanupTimer) window.clearTimeout(cleanupTimer);
         if (frameId) window.cancelAnimationFrame(frameId);
         window.removeEventListener('resize', resizeCanvas);
+        marqueeResizeObserver?.disconnect();
         document.removeEventListener('visibilitychange', handleVisibilityChange);
         removeMotionListener();
         particles.length = 0;
@@ -1071,6 +1105,7 @@ function launchGmaExactJackpot(presentation) {
         // The answer can move during its settle, the stage impact, scrolling, font/image
         // loading, or a container resize without a window resize event.
         placeJackpotOrigin();
+        decoration.style.clipPath = gmaStageProtectionClip(decoration);
         const frameScale = Math.min(2.2, Math.max(0.35, (now - lastFrameAt) / (1000 / 60)));
         lastFrameAt = now;
         context.clearRect(0, 0, window.innerWidth, window.innerHeight);
@@ -1147,6 +1182,13 @@ function launchGmaExactJackpot(presentation) {
     }
 
     resizeCanvas();
+    if (typeof ResizeObserver === 'function') {
+        marqueeResizeObserver = new ResizeObserver(() => {
+            if (!isCancelled) marqueeFitters.forEach(fit => fit());
+        });
+        overlay.querySelectorAll('.gma-exact-jackpot-marquee, .gma-exact-jackpot-marquee-track > span:first-child')
+            .forEach(element => marqueeResizeObserver.observe(element));
+    }
     window.addEventListener('resize', resizeCanvas);
     document.addEventListener('visibilitychange', handleVisibilityChange);
     if (motionQuery) {
@@ -1168,6 +1210,37 @@ function launchGmaExactJackpot(presentation) {
         if (!isCancelled) overlay.dataset.ending = 'true';
     }, GMA_EXACT_JACKPOT_MS - GMA_EXACT_OUTRO_MS));
     cleanupTimer = window.setTimeout(cancel, GMA_EXACT_JACKPOT_MS);
+}
+
+function gmaStageProtectionClip(layer) {
+    const viewport = layer.getBoundingClientRect();
+    const regions = [...document.querySelectorAll(
+        '#detailsModal .portrait-wrapper, #detailsModal .pro-badge, #gmaBubble, #gmaRealBubble, #gmaRange, '
+        + '#guessAgeContainer .gma-heading, #guessAgeContainer .chrono-age-heading, '
+        + '#gmaPayoffRegion, #closeAthleteDetailsModal')]
+        .map(element => {
+            const rect = element.getBoundingClientRect();
+            return { left: rect.left - viewport.left - 8, right: rect.right - viewport.left + 8,
+                top: rect.top - viewport.top - 8, bottom: rect.bottom - viewport.top + 8, visible: rect.width > 0 && rect.height > 0 };
+        }).filter(rect => rect.visible);
+    // Merge overlapping cut-outs before using even-odd fill, which otherwise makes
+    // their overlap visible again. A conservative bounding box keeps that union quiet.
+    for (let index = 0; index < regions.length; index++) {
+        for (let other = index + 1; other < regions.length;) {
+            const a = regions[index], b = regions[other];
+            if (a.left <= b.right && a.right >= b.left && a.top <= b.bottom && a.bottom >= b.top) {
+                a.left = Math.min(a.left, b.left); a.right = Math.max(a.right, b.right);
+                a.top = Math.min(a.top, b.top); a.bottom = Math.max(a.bottom, b.bottom);
+                regions.splice(other, 1);
+                index = -1;
+                break;
+            }
+            other += 1;
+        }
+    }
+    const rectangle = rect => `M${rect.left} ${rect.top}H${rect.right}V${rect.bottom}H${rect.left}Z`;
+    const outline = rectangle({ left: 0, top: 0, right: viewport.width, bottom: viewport.height });
+    return `path(evenodd, "${outline}${regions.map(rectangle).join('')}")`;
 }
 
 function spawnGmaCelebration(kind, presentation) {
@@ -1212,33 +1285,7 @@ function spawnGmaCelebration(kind, presentation) {
             cancel();
             return;
         }
-        const regions = [...document.querySelectorAll(
-            '#detailsModal .portrait-wrapper, #detailsModal .pro-badge, #gmaBubble, #gmaRealBubble, #gmaRange, '
-            + '#guessAgeContainer .gma-heading, #guessAgeContainer .chrono-age-heading, '
-            + '#gmaPayoffRegion, #closeAthleteDetailsModal')]
-            .map(element => {
-                const rect = element.getBoundingClientRect();
-                return { left: rect.left - 8, right: rect.right + 8,
-                    top: rect.top - 8, bottom: rect.bottom + 8, visible: rect.width > 0 && rect.height > 0 };
-            }).filter(rect => rect.visible);
-        // Merge overlapping cut-outs before using even-odd fill, which otherwise makes
-        // their overlap visible again. A conservative bounding box keeps that union quiet.
-        for (let index = 0; index < regions.length; index++) {
-            for (let other = index + 1; other < regions.length;) {
-                const a = regions[index], b = regions[other];
-                if (a.left <= b.right && a.right >= b.left && a.top <= b.bottom && a.bottom >= b.top) {
-                    a.left = Math.min(a.left, b.left); a.right = Math.max(a.right, b.right);
-                    a.top = Math.min(a.top, b.top); a.bottom = Math.max(a.bottom, b.bottom);
-                    regions.splice(other, 1);
-                    index = -1;
-                    break;
-                }
-                other += 1;
-            }
-        }
-        const rectangle = rect => `M${rect.left} ${rect.top}H${rect.right}V${rect.bottom}H${rect.left}Z`;
-        const outline = rectangle({ left: 0, top: 0, right: window.innerWidth, bottom: window.innerHeight });
-        layer.style.clipPath = `path(evenodd, "${outline}${regions.map(rectangle).join('')}")`;
+        layer.style.clipPath = gmaStageProtectionClip(layer);
         maskFrame = window.requestAnimationFrame(protectStage);
     }
     protectStage();
@@ -1377,17 +1424,26 @@ function revealGmaProfileAfterHandoff() {
     const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
     let timer = 0;
     let cancelled = false;
+    const restorePart = ([element, value, priority]) => {
+        element.removeAttribute('data-gma-handoff-part');
+        if (value) element.style.setProperty('--gma-handoff-index', value, priority);
+        else element.style.removeProperty('--gma-handoff-index');
+    };
+    const showFocusedPart = event => {
+        const part = event.target?.closest?.('[data-gma-handoff-part]');
+        const previous = previousIndices.find(([element]) => element === part);
+        // Keyboard users can reach a part before its stagger starts. Finish that part
+        // permanently, so leaving it cannot restart an entrance around the next focus.
+        if (previous) restorePart(previous);
+    };
     const cancel = () => {
         if (cancelled) return;
         cancelled = true;
         window.clearTimeout(timer);
         motionQuery.removeEventListener('change', handleMotionChange);
+        modalContent.removeEventListener('focusin', showFocusedPart, true);
         modalContent.classList.remove('gma-handoff');
-        previousIndices.forEach(([element, value, priority]) => {
-            element.removeAttribute('data-gma-handoff-part');
-            if (value) element.style.setProperty('--gma-handoff-index', value, priority);
-            else element.style.removeProperty('--gma-handoff-index');
-        });
+        previousIndices.forEach(restorePart);
         if (gmaHandoffController?.cancel === cancel) gmaHandoffController = null;
     };
     const handleMotionChange = event => {
@@ -1399,8 +1455,10 @@ function revealGmaProfileAfterHandoff() {
     });
     gmaHandoffController = { cancel };
     motionQuery.addEventListener('change', handleMotionChange);
+    modalContent.addEventListener('focusin', showFocusedPart, true);
     void modalContent.offsetWidth;
     modalContent.classList.add('gma-handoff');
+    showFocusedPart({ target: document.activeElement });
     timer = window.setTimeout(cancel, 1200);
 }
 

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Microsoft.Playwright;
 using Xunit;
 using static LongevityWorldCup.Tests.GuessMyAgeBrowserTests;
@@ -141,6 +142,8 @@ public sealed partial class GuessMyAgePayoffBrowserTests
         await SubmitAndSettleAsync(page);
         await page.Clock.RunForAsync(64);
         await page.EmulateMediaAsync(new PageEmulateMediaOptions { ReducedMotion = ReducedMotion.Reduce });
+        await Assertions.Expect(page.Locator("#detailsModal .modal-content"))
+            .ToHaveClassAsync(new Regex("(^|\\s)gma-motion-stopped(\\s|$)"));
         await page.Clock.RunForAsync(64);
         await page.EmulateMediaAsync(new PageEmulateMediaOptions { ReducedMotion = ReducedMotion.NoPreference });
         await page.Clock.RunForAsync(64);
@@ -150,6 +153,8 @@ public sealed partial class GuessMyAgePayoffBrowserTests
                 && a.effect.target?.closest?.('#guessAgeContainer'))
             """));
         Assert.Equal("1", await page.Locator(".gma-pop-banner").EvaluateAsync<string>("e => getComputedStyle(e).opacity"));
+        await page.Clock.RunForAsync(17000);
+        Assert.False(await page.Locator(".modal-content").EvaluateAsync<bool>("e => e.classList.contains('gma-motion-stopped')"));
 
         await page.EvaluateAsync(OpenGuessModeScript, new { imageId = ProfileImageB, slug = "payoff-next-normal" });
         Assert.False(await page.Locator(".modal-content").EvaluateAsync<bool>("e => e.classList.contains('gma-motion-stopped')"));
@@ -199,7 +204,7 @@ public sealed partial class GuessMyAgePayoffBrowserTests
                 }
             }
             """);
-        var bounds = await page.EvaluateAsync<JsonElement[]>("""
+        var bounds = await page.EvaluateAsync<JsonElement>("""
             () => [...document.querySelectorAll('.gma-exact-jackpot-kicker, .gma-exact-jackpot-title, .gma-exact-jackpot-subtitle')]
                 .map(element => {
                     const range = document.createRange(); range.selectNodeContents(element);
@@ -207,12 +212,53 @@ public sealed partial class GuessMyAgePayoffBrowserTests
                     return { text: element.textContent, left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom };
                 })
             """);
-        foreach (var bound in bounds)
+        Assert.Equal(3, bounds.GetArrayLength());
+        foreach (var bound in bounds.EnumerateArray())
         {
             Assert.True(bound.GetProperty("left").GetDouble() >= 0
                 && bound.GetProperty("right").GetDouble() <= width
                 && bound.GetProperty("top").GetDouble() >= 0
                 && bound.GetProperty("bottom").GetDouble() <= height, $"Jackpot copy is clipped: {bound}");
         }
+    }
+
+    [Fact]
+    public async Task Handoff_RevealsAKeyboardFocusedPartWithoutRestartingItOnBlur()
+    {
+        await using var context = await NewStageContextAsync(Browser, App.BaseAddress,
+            """{"crowdAge":100,"crowdCount":12,"actualAge":41,"guessAccepted":true}""");
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/athlete/patrick-ruff?guessmyage=1", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.WaitForFunctionAsync("() => document.querySelector('.modal-content.guess-mode:not(.is-loading)')");
+        await page.Clock.InstallAsync();
+        await PauseClockAsync(page);
+        await page.Locator(".gma-btn--ghost:not(#gmaSkipAll)").EvaluateAsync("e => e.click()");
+        await page.Clock.RunForAsync(300);
+        var focus = await page.EvaluateAsync<JsonElement>("""
+            () => {
+                revealGmaProfileAfterHandoff();
+                document.querySelector('.modal-content').getAnimations({ subtree: true })
+                    .filter(a => a.animationName === 'gma-profile-settle')
+                    .forEach(a => { a.pause(); a.currentTime = 0; });
+                const parts = [...document.querySelectorAll('[data-gma-handoff-part]')];
+                const part = parts.find(p => p.querySelector('button:not(:disabled),a[href],[tabindex="0"]'));
+                const control = part.querySelector('button:not(:disabled),a[href],[tabindex="0"]');
+                control.focus();
+                const focusedOpacity = getComputedStyle(part).opacity;
+                const focused = document.activeElement === control;
+                control.blur();
+                return {
+                    focused, focusedOpacity, blurredOpacity: getComputedStyle(part).opacity,
+                    released: !part.hasAttribute('data-gma-handoff-part'),
+                    otherPartsStillStagger: parts.some(p => p !== part && p.getAnimations()
+                        .some(a => a.animationName === 'gma-profile-settle'))
+                };
+            }
+            """);
+        Assert.True(focus.GetProperty("focused").GetBoolean());
+        Assert.Equal("1", focus.GetProperty("focusedOpacity").GetString());
+        Assert.Equal("1", focus.GetProperty("blurredOpacity").GetString());
+        Assert.True(focus.GetProperty("released").GetBoolean());
+        Assert.True(focus.GetProperty("otherPartsStillStagger").GetBoolean());
     }
 }

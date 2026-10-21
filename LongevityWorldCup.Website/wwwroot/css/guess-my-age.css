@@ -1192,6 +1192,13 @@
     44% { opacity: 0.08; }
 }
 
+.gma-exact-jackpot-decoration {
+    position: absolute;
+    z-index: 2;
+    inset: 0;
+    pointer-events: none;
+}
+
 .gma-exact-confetti-canvas {
     position: absolute;
     z-index: 2;
@@ -1401,7 +1408,7 @@
 .gma-exact-jackpot-marquee-track {
     display: inline-flex;
     width: max-content;
-    animation: gma-exact-marquee-run calc(var(--lwc-duration-normal, 220ms) * 40) linear 2 both;
+    animation: gma-exact-marquee-run calc(var(--lwc-duration-normal, 220ms) * 40 * var(--gma-marquee-travel-ratio, 1)) linear 2 both;
 }
 
 .gma-exact-jackpot-marquee--bottom .gma-exact-jackpot-marquee-track {
