@@ -440,6 +440,10 @@ button.option-button:disabled {
     display: none;
 }
 
+#custom-alert {
+    z-index: 10051;
+}
+
 /* One alert for every flow: a tone medallion, the message, one full-width OK.
    The tone is inferred from the caller's own wording, so no copy changes. */
 .custom-alert-panel {
@@ -711,6 +715,7 @@ button.option-button:disabled {
 
 @media (prefers-reduced-motion: reduce) {
     .custom-alert-panel,
+    .loading-dialog-panel,
     .custom-alert-mark,
     #custom-alert[data-tone="success"] .custom-alert-mark::before,
     #custom-alert[data-tone="success"] .custom-alert-mark::after {
@@ -762,9 +767,10 @@ button.option-button:disabled {
     display: grid;
     place-items: center;
     box-sizing: border-box;
-    min-width: 9.5rem;
+    width: min(100%, 9.5rem);
+    min-width: 0;
     max-height: calc(100dvh - 1.5rem);
-    padding: 2.25rem 2.5rem;
+    padding: min(2.25rem, 8dvh) min(2.5rem, 10vw);
     border: 1px solid var(--lwc-border);
     border-top: 4px solid var(--lwc-accent);
     border-radius: var(--lwc-radius-lg);
@@ -778,7 +784,8 @@ button.option-button:disabled {
     outline: none;
 }
 
-.loader {
+.loader,
+#detailsModal .modal-content[data-server-rendered-loading].is-loading::after {
     box-sizing: border-box;
     width: 3.5rem;
     height: 3.5rem;
@@ -792,8 +799,10 @@ button.option-button:disabled {
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .loader {
-        animation-duration: 2.4s;
+    .loading-dialog-panel,
+    .loader,
+    #detailsModal .modal-content[data-server-rendered-loading].is-loading::after {
+        animation: none;
     }
 }
 

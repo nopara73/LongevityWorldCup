@@ -1,4 +1,5 @@
 let bitcoinDonationAddress = '';
+let bitcoinCopyTimer = null;
 let newsletterSubmitting = false;
 let newsletterRetryEmail = '';
 const newsletterForm = document.getElementById('newsletter-form');
@@ -641,12 +642,15 @@ function copyBitcoinAddress() {
         document.getElementById('btcAddressLink').style.display = 'none';
         // Show the 'Copied' text
         const copiedTextElement = document.getElementById('copiedText');
+        copiedTextElement.textContent = 'Copied';
         copiedTextElement.hidden = false;
 
         // Restore the address after the concise text confirmation.
-        setTimeout(function () {
+        clearTimeout(bitcoinCopyTimer);
+        bitcoinCopyTimer = setTimeout(function () {
             // Hide 'Copied' text
             copiedTextElement.hidden = true;
+            copiedTextElement.textContent = '';
             // Show BTC address
             document.getElementById('btcAddressLink').style.display = 'inline';
         }, 2000);

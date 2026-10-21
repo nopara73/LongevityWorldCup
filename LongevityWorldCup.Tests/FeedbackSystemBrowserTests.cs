@@ -195,15 +195,27 @@ public sealed class FeedbackSystemBrowserTests(
     public async Task CopiedConfirmation_IsASuccessPillWithTheSharedMark(string theme)
     {
         await using var context = await NewThemedContextAsync(390, 844, theme);
+        await context.RouteAsync("**/api/bitcoin/donation-address", route => route.FulfillAsync(new()
+        {
+            ContentType = "application/json", Body = "{\"address\":\"bc1qfeedbackfixture\"}"
+        }));
         var page = await context.NewPageAsync();
         await NavigateAndSettleAsync(page, "/");
+        await page.EvaluateAsync("""
+            () => Object.defineProperty(navigator, 'clipboard', {
+                configurable: true, value: { writeText: async () => {} }
+            })
+            """);
+        await page.Clock.InstallAsync();
+        await page.Locator("#bitcoinCopyButton").ClickAsync();
+        await Assertions.Expect(page.Locator("#copiedText")).ToHaveTextAsync("Copied");
+        await Assertions.Expect(page.Locator("#bitcoinCopyStatus")).ToHaveAttributeAsync("role", "status");
+        await Assertions.Expect(page.Locator("#bitcoinCopyStatus")).ToHaveAttributeAsync("aria-live", "polite");
+        Assert.Null(await page.Locator("#bitcoinCopyStatus").GetAttributeAsync("hidden"));
+        Assert.DoesNotContain("✓", await page.Locator("#bitcoinCopyStatus").AriaSnapshotAsync());
         var copied = await page.EvaluateAsync<string[]>("""
             () => {
                 const element = document.getElementById('copiedText');
-                const icon = element.querySelector('i');
-                const inlineIcon = icon.getAttribute('style') || '';
-                element.hidden = false;
-                element.style.removeProperty('display');
                 const probe = document.createElement('span');
                 document.body.append(probe);
                 probe.style.color = 'var(--lwc-success)';
@@ -213,9 +225,9 @@ public sealed class FeedbackSystemBrowserTests(
                 probe.remove();
                 const style = getComputedStyle(element);
                 const mark = getComputedStyle(element, '::before');
-                const pill = element.getBoundingClientRect().width < element.parentElement.getBoundingClientRect().width;
+                const pill = element.getBoundingClientRect().width < element.closest('.btc-address').getBoundingClientRect().width;
                 return [style.display.endsWith('flex') && pill ? 'pill' : style.display, style.backgroundColor, soft, style.borderTopLeftRadius,
-                    mark.content.split(' / ')[0].replaceAll('"', ''), mark.backgroundColor, success, inlineIcon];
+                    mark.content.split(' / ')[0].replaceAll('"', ''), mark.backgroundColor, success];
             }
             """);
 
@@ -224,7 +236,152 @@ public sealed class FeedbackSystemBrowserTests(
         Assert.Equal("999px", copied[3]);
         Assert.Equal("✓", copied[4]);
         Assert.Equal(copied[6], copied[5]);
-        Assert.Equal("", copied[7]);
+        await page.Clock.FastForwardAsync(1500);
+        await page.Locator("#bitcoinCopyButton").ClickAsync();
+        await page.Clock.FastForwardAsync(600);
+        await Assertions.Expect(page.Locator("#copiedText")).ToBeVisibleAsync();
+        await page.Clock.FastForwardAsync(1400);
+        await Assertions.Expect(page.Locator("#copiedText")).ToBeHiddenAsync();
+        await Assertions.Expect(page.Locator("#copiedText")).ToBeEmptyAsync();
+        await Assertions.Expect(page.Locator("#btcAddressLink")).ToBeVisibleAsync();
+    }
+
+    [Theory]
+    [InlineData("light")]
+    [InlineData("dark")]
+    public async Task NoMatchingAthlete_IsAStatusRatherThanAnInvalidField(string theme)
+    {
+        await using var context = await NewThemedContextAsync(390, 844, theme);
+        var page = await context.NewPageAsync();
+        await NavigateAndSettleAsync(page, "/select-athlete");
+        var input = page.Locator("#playAthleteInput");
+        await Assertions.Expect(input).ToBeEnabledAsync();
+        await input.FillAsync("zzzz no matching athlete zzzz");
+        await Assertions.Expect(page.Locator("#playAthleteError")).ToHaveTextAsync("No matching athlete.");
+        await input.BlurAsync();
+        Assert.NotEqual("true", await input.GetAttributeAsync("aria-invalid"));
+        await page.WaitForFunctionAsync("""
+            () => {
+                const field = document.getElementById('playAthleteInput');
+                const probe = document.createElement('span');
+                probe.style.color = 'var(--lwc-danger)';
+                document.body.append(probe);
+                const validBorder = getComputedStyle(field).borderTopColor !== getComputedStyle(probe).color;
+                probe.remove();
+                return validBorder;
+            }
+            """);
+        Assert.Equal("none", await page.Locator("#playAthleteError").EvaluateAsync<string>(
+            "element => getComputedStyle(element, '::before').content"));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Loading_RepeatedCallsRestoreFocusAndPreserveTheExistingScrollLock(bool initiallyLocked)
+    {
+        await using var context = await NewThemedContextAsync(390, 844, "dark");
+        var page = await context.NewPageAsync();
+        await NavigateAndSettleAsync(page, "/pheno-age");
+        await page.Locator("#dob-year").FocusAsync();
+        await page.EvaluateAsync("locked => { document.body.classList.toggle('no-scroll', locked); showLoading(); showLoading(); hideLoading(); hideLoading(); }", initiallyLocked);
+        await Assertions.Expect(page.Locator("#dob-year")).ToBeFocusedAsync();
+        Assert.Equal(initiallyLocked, await page.Locator("body").EvaluateAsync<bool>("e => e.classList.contains('no-scroll')"));
+        await page.EvaluateAsync("() => { showLoading(); document.getElementById('dob-month').focus(); hideLoading(); }");
+        await Assertions.Expect(page.Locator("#dob-month")).ToBeFocusedAsync();
+    }
+
+    [Theory]
+    [InlineData(true, true)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(false, false)]
+    public async Task LoadingAndAlert_TransferFocusAndScrollLockInEitherOrder(bool loadingFirst, bool loadingClosesFirst)
+    {
+        await using var context = await NewThemedContextAsync(390, 844, "dark");
+        var page = await context.NewPageAsync();
+        await NavigateAndSettleAsync(page, "/pheno-age");
+        await page.Locator("#dob-year").FocusAsync();
+        await page.EvaluateAsync("first => { if (first) showLoading(); void customAlert('Verification error'); if (!first) showLoading(); }", loadingFirst);
+        await Assertions.Expect(page.Locator("#custom-alert-close")).ToBeFocusedAsync();
+        if (loadingClosesFirst)
+        {
+            await page.EvaluateAsync("() => hideLoading()");
+            await page.Locator("#custom-alert-close").ClickAsync();
+        }
+        else
+        {
+            await page.Locator("#custom-alert-close").ClickAsync();
+            await Assertions.Expect(page.Locator(".loading-dialog-panel")).ToBeFocusedAsync();
+            await page.EvaluateAsync("() => hideLoading()");
+        }
+        await Assertions.Expect(page.Locator("#dob-year")).ToBeFocusedAsync();
+        Assert.False(await page.Locator("body").EvaluateAsync<bool>("e => e.classList.contains('no-scroll')"));
+    }
+
+    [Theory]
+    [InlineData(160, 284)]
+    [InlineData(390, 195)]
+    public async Task Loading_FitsNarrowAndShortViewportsAndRespectsReducedMotion(int width, int height)
+    {
+        await using var context = await NewThemedContextAsync(width, height, "dark");
+        var page = await context.NewPageAsync();
+        await NavigateAndSettleAsync(page, "/");
+        await page.EvaluateAsync("() => showLoading()");
+        await Assertions.Expect(page.GetByRole(AriaRole.Dialog, new() { Name = "Loading", Exact = true })).ToBeVisibleAsync();
+        Assert.True(await page.Locator(".loading-dialog-panel").EvaluateAsync<bool>("""
+            panel => {
+                const box = panel.getBoundingClientRect();
+                const mark = panel.querySelector('.loader');
+                const disc = mark.getBoundingClientRect();
+                return box.left >= 0 && box.right <= innerWidth && box.top >= 0 && box.bottom <= innerHeight
+                    && disc.left - 7 >= box.left && disc.right + 7 <= box.right
+                    && !panel.getAnimations().length && !mark.getAnimations().length;
+            }
+            """));
+        await page.Keyboard.PressAsync("Tab");
+        await Assertions.Expect(page.Locator(".loading-dialog-panel")).ToBeFocusedAsync();
+    }
+
+    [Theory]
+    [InlineData("light")]
+    [InlineData("dark")]
+    public async Task AthleteLoadFailure_UsesTheReadableBannerAndKeepsRetryUsable(string theme)
+    {
+        await using var context = await NewThemedContextAsync(390, 844, theme);
+        var fail = true;
+        await context.RouteAsync("**/api/data/athletes", route => fail ? route.AbortAsync() : route.ContinueAsync());
+        var page = await context.NewPageAsync();
+        await NavigateAndSettleAsync(page, "/athlete/michael-lustgarten");
+        var error = page.Locator("#athleteLoadError");
+        await Assertions.Expect(error).ToBeVisibleAsync();
+        var shape = await error.EvaluateAsync<string[]>(BannerShapeScript);
+        Assert.Equal("4px", shape[0]);
+        Assert.Equal("✕", shape[3]);
+        Assert.True(await error.EvaluateAsync<bool>("""
+            element => {
+                const words = element.querySelector('p');
+                const range = document.createRange();
+                range.selectNodeContents(words);
+                const text = range.getClientRects()[0];
+                const box = element.getBoundingClientRect();
+                const style = getComputedStyle(element);
+                const mark = getComputedStyle(element, '::before');
+                const right = box.left + parseFloat(style.borderLeftWidth) + parseFloat(mark.left) + parseFloat(mark.width);
+                const probe = document.createElement('span');
+                probe.style.color = 'var(--lwc-ink)';
+                document.body.append(probe);
+                const readable = getComputedStyle(words).color === getComputedStyle(probe).color;
+                probe.remove();
+                return readable && text.left >= right + 4 && text.right <= box.right;
+            }
+            """));
+        Assert.DoesNotContain("✕", await error.AriaSnapshotAsync());
+        await page.Locator("#retryAthleteLoad").FocusAsync();
+        await Assertions.Expect(page.Locator("#retryAthleteLoad")).ToBeFocusedAsync();
+        fail = false;
+        await page.Locator("#retryAthleteLoad").ClickAsync();
+        await Assertions.Expect(error).ToBeHiddenAsync();
     }
 
     private Task<IBrowserContext> NewThemedContextAsync(int width, int height, string theme) =>

@@ -610,6 +610,7 @@ textarea:read-only {
 #newsletterStatus:not(:empty),
 .unsubscribe-message:not(:empty),
 .media-kit-fallback,
+#athleteLoadError:not([hidden]),
 #copiedText,
 body .bioage-rank-error,
 body .events-recovery,
@@ -641,6 +642,7 @@ body .leaderboard-recovery {
 .profile-draft-status:not([hidden]),
 #newsletterStatus.is-error:not(:empty),
 .unsubscribe-message.is-error:not(:empty),
+#athleteLoadError:not([hidden]),
 body .bioage-rank-error,
 body .events-recovery,
 body .leaderboard-recovery {
@@ -657,6 +659,7 @@ body .leaderboard-recovery {
 #newsletterStatus:not(:empty),
 .unsubscribe-message:not(:empty),
 .media-kit-fallback,
+#athleteLoadError:not([hidden]),
 body .bioage-rank-error,
 body .events-recovery,
 body .leaderboard-recovery {
@@ -686,6 +689,7 @@ body .leaderboard-recovery {
 #newsletterStatus:not(:empty)::before,
 .unsubscribe-message:not(:empty)::before,
 .media-kit-fallback::before,
+#athleteLoadError:not([hidden])::before,
 #copiedText::before,
 body .bioage-rank-error::before,
 body .events-recovery::before,
@@ -772,9 +776,9 @@ body :is(.bioage-rank-error, .events-recovery, .leaderboard-recovery) > p {
     content: none;
 }
 
-/* The invalid control wears the tone its message speaks in; this outranks the
-   shared field border below, which otherwise kept invalid text inputs grey. */
-html body :is(input, select, textarea):is([aria-invalid="true"], :has(+ .error-message:not(:empty)), :has(+ .profile-field-error:not([hidden]):not(:empty))):not([type="checkbox"]):not([type="radio"]):not([type="range"]) {
+/* Match the control's validation state, rather than an adjacent status such as
+   "No matching athlete." This outranks the shared text-input border. */
+html body :is(input, select, textarea)[aria-invalid="true"]:not([type="checkbox"]):not([type="radio"]):not([type="range"]) {
     border-color: var(--lwc-danger);
 }
 
@@ -810,10 +814,6 @@ html body :is(input, select, textarea):is([aria-invalid="true"], :has(+ .error-m
     transform: translateY(-50%);
 }
 
-#copiedText > i {
-    display: none;
-}
-
 .validation-message:not(:empty),
 .bioage-inline-notice,
 #applicationDraftStatus:not([hidden]),
@@ -821,6 +821,7 @@ html body :is(input, select, textarea):is([aria-invalid="true"], :has(+ .error-m
 #newsletterStatus:not(:empty),
 .unsubscribe-message:not(:empty),
 .media-kit-fallback,
+#athleteLoadError:not([hidden]),
 .error-message:not(:empty),
 .profile-field-error,
 #copiedText {
@@ -842,7 +843,8 @@ html body :is(input, select, textarea):is([aria-invalid="true"], :has(+ .error-m
 /* Loading placeholders share one shimmer, drawn from the surface tokens in both themes. */
 .skeleton-shimmer,
 .media-kit-skeleton span,
-.media-file-thumb[data-state="loading"] {
+.media-file-thumb[data-state="loading"],
+#detailsModal .modal-content.is-loading #ageVisualization::after {
     background: linear-gradient(100deg, var(--lwc-surface-muted) 30%, color-mix(in srgb, var(--lwc-surface-muted) 35%, var(--lwc-surface)) 50%, var(--lwc-surface-muted) 70%) 0 0 / 300% 100%;
     animation: lwcSkeletonShimmer 1.6s linear infinite;
 }
@@ -855,9 +857,9 @@ html body :is(input, select, textarea):is([aria-invalid="true"], :has(+ .error-m
 @media (prefers-reduced-motion: reduce) {
     .skeleton-shimmer,
     .media-kit-skeleton span,
-    .media-file-thumb[data-state="loading"] {
+    .media-file-thumb[data-state="loading"],
+    #detailsModal .modal-content.is-loading #ageVisualization::after {
         animation: none;
-        background: var(--lwc-surface-muted);
     }
 
     .validation-message:not(:empty),
@@ -867,6 +869,7 @@ html body :is(input, select, textarea):is([aria-invalid="true"], :has(+ .error-m
     #newsletterStatus:not(:empty),
     .unsubscribe-message:not(:empty),
     .media-kit-fallback,
+    #athleteLoadError:not([hidden]),
     .error-message:not(:empty),
     .profile-field-error,
     #copiedText {
