@@ -10,7 +10,14 @@ public class BiomarkerChartScriptTests
     {
         var html = ReadLeaderboardScript();
 
-        Assert.Contains("const chartData = biomarkerData.filter(entry => entry && entry.Date", html);
+        // Dated partial records remain chartable; complete panels are required only for each age calculation.
+        var chartDataStart = html.IndexOf("const chartData =", StringComparison.Ordinal);
+        var chartDataEnd = html.IndexOf("const labels =", chartDataStart, StringComparison.Ordinal);
+        var chartData = html[chartDataStart..chartDataEnd];
+        Assert.Contains(".filter(entry => entry && Number.isFinite(biomarkerHistoryTimestamp(entry.Date))", chartData);
+        Assert.Contains("key !== 'Date' && isBiomarkerHistoryValue(value)", chartData);
+        Assert.DoesNotContain("isCompleteBiomarkerSet", chartData);
+        Assert.DoesNotContain("isCompleteBortzBiomarkerSet", chartData);
         Assert.Contains("chartData.forEach(entry =>", html);
         Assert.Contains("if (isCompleteBiomarkerSet(entry))", html);
         Assert.Contains("phenoAges.push(phenoAge);", html);

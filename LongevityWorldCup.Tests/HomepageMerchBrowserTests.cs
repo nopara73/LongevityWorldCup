@@ -387,12 +387,14 @@ public sealed class HomepageMerchBrowserTests(PlaywrightBrowserFixture browserFi
         // a later breakpoint change.
         await slides.Nth(1).EvaluateAsync("link => link.blur()");
         await page.SetViewportSizeAsync(768, 844);
-        await page.WaitForFunctionAsync("!document.querySelector('.lwc-merch-grid').inert && document.querySelector('#lwc-merch-mobile-carousel').inert");
+        await Assertions.Expect(page.Locator(".lwc-merch-grid")).ToHaveJSPropertyAsync("inert", false);
+        await Assertions.Expect(page.Locator("#lwc-merch-mobile-carousel")).ToHaveJSPropertyAsync("inert", true);
         Assert.True(await page.EvaluateAsync<bool>("document.activeElement === document.body"));
         await grid.Nth(0).FocusAsync();
         await page.Locator("#emailInput").FocusAsync();
         await page.SetViewportSizeAsync(390, 844);
-        await page.WaitForFunctionAsync("document.querySelector('.lwc-merch-grid').inert && !document.querySelector('#lwc-merch-mobile-carousel').inert");
+        await Assertions.Expect(page.Locator(".lwc-merch-grid")).ToHaveJSPropertyAsync("inert", true);
+        await Assertions.Expect(page.Locator("#lwc-merch-mobile-carousel")).ToHaveJSPropertyAsync("inert", false);
         await Assertions.Expect(page.Locator("#emailInput")).ToBeFocusedAsync();
     }
 
