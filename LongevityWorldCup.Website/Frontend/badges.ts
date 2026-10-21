@@ -969,7 +969,7 @@ function showBadgeTip(badge: HTMLElement): void {
     placeBadgeTip(tip, badge);
     // Most badge names already include the explanation. Repeating it as an
     // accessible description makes screen readers announce the same text twice.
-    const alreadyNamed = (badge.getAttribute('aria-label') || '').includes(text);
+    const alreadyNamed = (badge.getAttribute('aria-label') || '').toLowerCase().includes(text.toLowerCase());
     tip.setAttribute('aria-hidden', alreadyNamed ? 'true' : 'false');
     if (!alreadyNamed) badge.setAttribute('aria-describedby', [badgeTipOriginalDescription, tip.id].filter(Boolean).join(' '));
     badgeTipOwner = badge;

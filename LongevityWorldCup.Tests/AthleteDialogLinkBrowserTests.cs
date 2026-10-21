@@ -89,6 +89,8 @@ public sealed class AthleteDialogLinkBrowserTests(
             Assert.Contains("noopener", await link.GetAttributeAsync("rel"));
             await link.FocusAsync();
             Assert.True(await link.EvaluateAsync<bool>("link => document.activeElement === link"));
+            Assert.Null(await link.GetAttributeAsync("aria-describedby"));
+            await Assertions.Expect(page.Locator(".badge-tip")).ToHaveAttributeAsync("aria-hidden", "true");
         }
         await page.Locator("#athleteSearch").FillAsync("podcast");
         await Assertions.Expect(row).ToBeVisibleAsync();
