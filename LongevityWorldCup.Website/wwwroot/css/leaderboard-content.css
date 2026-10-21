@@ -14,7 +14,8 @@
 .flag-team:last-child { border-bottom: 0; }
 .flag-team summary { display: grid; grid-template-columns: 3rem minmax(0, 1fr) auto 6.5rem 1rem; align-items: center; gap: 1rem; min-height: 100px; padding: 1rem 1.5rem; cursor: pointer; list-style: none; box-sizing: border-box; }
 .flag-team summary::-webkit-details-marker { display: none; }
-.flag-team summary:hover, .flag-team[open] summary { background: var(--lwc-accent-soft, rgba(8,118,133,.06)); }
+.flag-team[open] summary { background: var(--lwc-accent-soft, rgba(8,118,133,.06)); }
+@media (hover: hover) { .flag-team summary:hover { background: var(--lwc-accent-soft, rgba(8,118,133,.06)); } }
 .flag-team summary:focus-visible, .flag-athlete-link:focus-visible { outline: 3px solid var(--primary-color); outline-offset: -3px; border-radius: 6px; }
 .flag-team-rank { font-family: Orbitron, sans-serif; font-size: 1.4rem; font-weight: 700; text-align: center; color: var(--primary-color); font-variant-numeric: tabular-nums; }
 .flag-team-name { display: flex; align-items: center; gap: 1rem; min-width: 0; font-size: 1.12rem; font-weight: 700; overflow-wrap: anywhere; }
@@ -29,7 +30,7 @@
 .flag-team-athletes { list-style: none; margin: 0; padding: .25rem 1.5rem .75rem 5.5rem; }
 .flag-team-athletes li + li { border-top: 1px solid var(--border-color); }
 .flag-athlete-link { display: grid; grid-template-columns: 1.25rem 40px minmax(0, 1fr) auto; align-items: center; gap: .75rem; padding: .85rem .5rem; color: inherit; text-decoration: none; min-height: 66px; border-radius: 6px; }
-.flag-athlete-link:hover { background: var(--lwc-accent-soft, rgba(8,118,133,.06)); }
+@media (hover: hover) { .flag-athlete-link:hover { background: var(--lwc-accent-soft, rgba(8,118,133,.06)); } }
 .flag-athlete-link img { width: 40px; height: 40px; object-fit: cover; border-radius: 50%; }
 .flag-athlete-rank { color: var(--lwc-muted, #526373); font-size: .85rem; font-variant-numeric: tabular-nums; }
 .flag-athlete-name { font-weight: 600; overflow-wrap: anywhere; }
@@ -5069,6 +5070,7 @@ main[data-leaderboard-page="full"] .flag-leaderboard{
 @keyframes lwc-flag-members-in{ from{ opacity:0; transform:translateY(-4px); } }
 @media (scripting: enabled){
     main[data-leaderboard-page="full"] .leaderboard--flags > .flag-leaderboard{ animation:lwc-flag-board-in var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease) both; }
+    main[data-leaderboard-page="full"] .flag-team[open] .flag-team-athletes{ animation:lwc-flag-members-in var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease) both; }
 }
 
 /* Team rows */
@@ -5146,7 +5148,6 @@ main[data-leaderboard-page="full"] .flag-team-athletes{
     position:relative; margin:0; padding:var(--lwc-space-2) var(--flag-pad) var(--lwc-space-3);
     padding-inline-start:calc(var(--flag-pad) + var(--flag-rank) + var(--flag-gap));
 }
-main[data-leaderboard-page="full"] .flag-team[open] .flag-team-athletes{ animation:lwc-flag-members-in var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease) both; }
 main[data-leaderboard-page="full"] .flag-team-athletes::before{
     content:""; position:absolute; inset-inline-start:calc(var(--flag-thread) - 1px); top:0; bottom:calc(var(--lwc-space-3) + 28px);
     width:2px; border-radius:1px; background:var(--lwc-border-strong);

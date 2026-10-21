@@ -173,10 +173,8 @@ public sealed class FlagLeaderboardBrowserTests(PlaywrightBrowserFixture browser
     public async Task CrowdTeams_OnlyScoreAthletesWithEnoughGuesses()
     {
         await using var context = await NewContextAsync(Browser, App, new());
-        await context.RouteAsync("**/api/data/athletes", async route =>
+        await RouteAthleteFixtureAsync(context, athletes =>
         {
-            var response = await route.FetchAsync();
-            var athletes = JsonNode.Parse(await response.TextAsync())!.AsArray();
             var index = 0;
             foreach (var athlete in athletes.OfType<JsonObject>())
             {
@@ -184,7 +182,6 @@ public sealed class FlagLeaderboardBrowserTests(PlaywrightBrowserFixture browser
                 athlete["CrowdCount"] = index < 3 ? 100 : 99;
                 athlete["Flag"] = index++ == 0 ? "USA" : "United States";
             }
-            await route.FulfillAsync(new() { ContentType = "application/json", Body = athletes.ToJsonString() });
         });
         var page = await context.NewPageAsync();
         await page.GotoAsync("/league/crowd?group=flags");
@@ -206,16 +203,13 @@ public sealed class FlagLeaderboardBrowserTests(PlaywrightBrowserFixture browser
     public async Task OpenFilters_KeepFlagNamesAndScoresReadableAcrossClocks(int width, int rootFontSize)
     {
         await using var context = await NewContextAsync(Browser, App, new() { ViewportSize = new() { Width = width, Height = 1100 }, ReducedMotion = ReducedMotion.Reduce });
-        await context.RouteAsync("**/api/data/athletes", async route =>
+        await RouteAthleteFixtureAsync(context, athletes =>
         {
-            var response = await route.FetchAsync();
-            var athletes = JsonNode.Parse(await response.TextAsync())!.AsArray();
             foreach (var athlete in athletes.OfType<JsonObject>())
             {
                 athlete["CrowdAge"] = 30;
                 athlete["CrowdCount"] = 150;
             }
-            await route.FulfillAsync(new() { ContentType = "application/json", Body = athletes.ToJsonString() });
         });
         var page = await context.NewPageAsync();
         foreach (var view in new[] { "ultimate", "pheno", "bortz", "crowd" })

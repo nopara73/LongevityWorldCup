@@ -35,6 +35,21 @@ public sealed class FlagNationsTableBrowserTests(PlaywrightBrowserFixture browse
     private static double Number(string value) => double.Parse(value, CultureInfo.InvariantCulture);
 
     [Theory]
+    [InlineData(390, false)]
+    [InlineData(320, true)]
+    public async Task HomepageFlagPreview_TouchDisclosureLeavesNoStuckHover(int width, bool dark)
+    {
+        var (context, page) = await OpenAsync(width, 844, dark, "/?group=flags", touch: true);
+        await using var _ = context;
+        var team = page.Locator(".flag-team").Nth(3);
+        await team.Locator("summary").TapAsync();
+        await Assertions.Expect(team.Locator(".flag-team-athletes")).ToBeVisibleAsync();
+        await team.Locator("summary").TapAsync();
+        await Assertions.Expect(team.Locator(".flag-team-athletes")).ToBeHiddenAsync();
+        Assert.Equal("rgba(0, 0, 0, 0)", await team.Locator("summary").EvaluateAsync<string>("e => getComputedStyle(e).backgroundColor"));
+    }
+
+    [Theory]
     [InlineData("/league/bortz?group=flags")]
     [InlineData("/league/improvement?group=flags")]
     [InlineData("/league/bortz-improvement?group=flags")]
@@ -50,6 +65,7 @@ public sealed class FlagNationsTableBrowserTests(PlaywrightBrowserFixture browse
         var team = page.Locator(".flag-team").First;
         await team.Locator("summary").ClickAsync();
         await Assertions.Expect(team.Locator(".flag-team-athletes")).ToBeVisibleAsync();
+        Assert.Equal("none", await team.Locator(".flag-team-athletes").EvaluateAsync<string>("e => getComputedStyle(e).animationName"));
     }
 
     [Theory]
