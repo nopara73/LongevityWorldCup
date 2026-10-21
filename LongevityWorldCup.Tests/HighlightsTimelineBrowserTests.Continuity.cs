@@ -124,6 +124,14 @@ public sealed partial class HighlightsTimelineBrowserTests
                         priorDay = day; priorMonth = month;
                     }
                     if (document.querySelector('.details-row:is(.day-start,.day-repeat,.month-start), .details-row[data-day]')) issues.push('details grouped as an event');
+                    const headings=[...document.querySelectorAll('.events-month-row')];
+                    if(headings.some(h=>/Invalid Date|1970/.test(h.textContent))) issues.push('an unknown date created a fabricated chapter');
+                    for(const group of document.querySelectorAll('#eventsTable tbody')){
+                        const known=[...group.querySelectorAll('tr.main-row')].filter(r=>r.dataset.day);
+                        const months=new Set(known.map(r=>r.dataset.day.split('-').slice(0,2).join('-')));
+                        if(months.size>1) issues.push('one accessible row group spans several months');
+                        if(group.querySelectorAll('.events-month-row').length!==(known.length?1:0)) issues.push('missing or stale month heading');
+                    }
                     return issues;
                 }
                 """, dates);
@@ -167,9 +175,11 @@ public sealed partial class HighlightsTimelineBrowserTests
                     const a=luminance(fg), b=luminance(bg), contrast=(Math.max(a,b)+.05)/(Math.min(a,b)+.05);
                     if (contrast < 4.5) issues.push(`${row.dataset.eventId}: date contrast ${contrast}`);
                     const range = document.createRange(); range.selectNodeContents(date);
-                    if (![...range.getClientRects()].some(r => r.width > 0 && r.height > 0)) issues.push('date has no visible glyphs');
+                    const shown = innerWidth > 600 && row.classList.contains('day-repeat') ? [] : [...date.querySelectorAll('.event-date-day')];
+                    if (shown.some(day => day.getBoundingClientRect().width <= 1) || ![...range.getClientRects()].some(r => r.width > 0 && r.height > 0)) issues.push('date has no visible glyphs');
                 }
-                const last = rows.at(-1), style=getComputedStyle(last), box=last.getBoundingClientRect();
+                if (getComputedStyle(rows.at(-1)).backgroundImage !== 'none') issues.push('a month of one event has a rail');
+                const last = rows.filter(row => row.classList.contains('month-end') && !row.classList.contains('month-start')).at(-1), style=getComputedStyle(last), box=last.getBoundingClientRect();
                 const portrait=last.querySelector('.avatar,.avatar-fallback,.milestone-people-avatar').getBoundingClientRect();
                 const length = style.backgroundSize.slice(style.backgroundSize.indexOf(' ') + 1);
                 let height = 0;
@@ -276,7 +286,9 @@ public sealed partial class HighlightsTimelineBrowserTests
         await Assertions.Expect(page.Locator("#eventsStatus")).ToHaveTextAsync("Events loaded.");
         await Assertions.Expect(page.Locator("#eventsStatus")).ToHaveAttributeAsync("role", "status");
         await page.Locator(".event-board-page .back-button").ClickAsync();
-        await page.WaitForURLAsync(new Uri(App.BaseAddress, "ruleset").ToString(), new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        // History restoration can reuse a ready document without a new DOMContentLoaded.
+        await Assertions.Expect(page).ToHaveURLAsync(new Uri(App.BaseAddress, "ruleset").ToString(), new() { Timeout = 30000 });
+        await Assertions.Expect(page.Locator("h1#ruleset")).ToBeVisibleAsync();
     }
 
     [Fact]
@@ -296,7 +308,8 @@ public sealed partial class HighlightsTimelineBrowserTests
             await page.GotoAsync("/events", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
             await page.Locator(".event-board-page .back-button").FocusAsync();
             await page.Keyboard.PressAsync("Enter");
-            await page.WaitForURLAsync(new Uri(App.BaseAddress, "ruleset").ToString(), new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+            await Assertions.Expect(page).ToHaveURLAsync(new Uri(App.BaseAddress, "ruleset").ToString(), new() { Timeout = 30000 });
+            await Assertions.Expect(page.Locator("h1#ruleset")).ToBeVisibleAsync();
         }
         finally
         {

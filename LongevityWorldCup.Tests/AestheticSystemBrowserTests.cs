@@ -2104,24 +2104,39 @@ public sealed class AestheticSystemBrowserTests(
                                     <div class="lmx-question-label">Did you set yourself up for good sleep last night?</div>
                                     <div class="lmx-growth-control"><figure class="lmx-plant"></figure>
                                         <div class="lmx-answer-options">${[0, 1, 2].map(() => '<label class="lmx-answer-option"><span class="lmx-answer-face"></span></label>').join('')}</div>
-                                    </div></div>`;
+                                    </div></div>
+                                    <div class="lmx-checkin-save-row">
+                                        <span class="lmx-checkin-progress">0/4 answered</span>
+                                        <button class="lmx-button" type="submit">Save</button>
+                                    </div>`;
                                 document.querySelector('main').append(entry);
                             }
                             entry.style.inlineSize = `${argument.InlineSize}px`;
                             await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
                             const question = entry.querySelector('.lmx-question');
+                            let isCompact;
+                            if (argument.Unit === 'rem' && argument.Boundary === 28)
+                                isCompact = getComputedStyle(question).gridTemplateColumns.split(' ').length === 2;
+                            else if (argument.Unit === 'rem' && argument.Boundary === 22)
+                                isCompact = getComputedStyle(question).gridTemplateAreas.startsWith('"label label"');
+                            else if (argument.Unit === 'px' && argument.Boundary === 240)
+                                isCompact = getComputedStyle(entry.querySelector('.lmx-answer-options')).gridTemplateColumns.split(' ').length === 1;
+                            else if (argument.Unit === 'rem' && argument.Boundary === 14)
+                                isCompact = getComputedStyle(entry.querySelector('.lmx-checkin-progress')).flexBasis === '100%';
+                            else
+                                throw new Error(`Add a check-in boundary probe for ${argument.Boundary}${argument.Unit}.`);
                             return {
                                 ContainerWidth: parseFloat(getComputedStyle(entry).width),
-                                IsCompact: argument.Boundary === 28
-                                    ? getComputedStyle(question).gridTemplateColumns.split(' ').length === 2
-                                    : getComputedStyle(question).gridTemplateAreas.startsWith('"label label"'),
+                                IsCompact: isCompact,
                                 HorizontalOverflow: Math.max(0, entry.scrollWidth - entry.clientWidth)
                             };
                         }
-                        """, new { InlineSize = inlineSize, Boundary = condition.Value });
+                        """, new { InlineSize = inlineSize, Boundary = condition.Value, condition.Unit });
                     Assert.Equal(inlineSize, diagnostics.ContainerWidth, 1);
-                    Assert.Equal(inlineSize <= thresholdPixels, diagnostics.IsCompact);
-                    Assert.True(diagnostics.HorizontalOverflow <= 1);
+                    Assert.True(diagnostics.IsCompact == (inlineSize <= thresholdPixels),
+                        $"Check-in did not cross its {condition.Value}{condition.Unit} boundary at {inlineSize}px.");
+                    Assert.True(diagnostics.HorizontalOverflow <= 1,
+                        $"Check-in overflowed by {diagnostics.HorizontalOverflow}px at {inlineSize}px for {condition.Value}{condition.Unit}.");
                 }
                 continue;
             }

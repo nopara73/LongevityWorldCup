@@ -19,11 +19,12 @@ public sealed class LongevitymaxxingChallengePageTests(TestWebApplicationFactory
 
         Assert.True(timeoutMatch.Success);
         Assert.True(int.Parse(timeoutMatch.Groups[1].Value) > PublicRequestTimeoutPolicies.PublicWorkTimeout.TotalMilliseconds);
-        Assert.Contains("async function requestJson(url: string, options: RequestInit): Promise<Response>", source);
+        Assert.Contains("async function requestJson(url: string, options: RequestInit): Promise<unknown>", source);
         Assert.Contains("window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)", source);
         Assert.Contains("...(controller ? { signal: controller.signal } : {})", source);
         Assert.Contains("hasStringProperty(err, \"name\") && err.name === \"AbortError\"", source);
-        Assert.Contains("const response = await requestJson(url, {", source);
+        Assert.Contains("const data = await requestJson(url, {", source);
+        Assert.Contains("return await readJsonResponse(response, url);", source);
         Assert.Contains("const fallback = response.statusText || (response.status ? `HTTP ${response.status}` : \"Request failed\");", source);
         Assert.Contains("typeof data === \"string\" && data.trim()", source);
         Assert.Contains("Array.isArray(data)", source);

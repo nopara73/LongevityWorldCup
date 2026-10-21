@@ -1218,6 +1218,15 @@ public sealed class SocialJobIntegrationTests
                 File.Copy(Path.Combine(sourceWebRoot, relativePath), destinationPath);
             }
 
+            // League cards use the same bundled font family as the public OG endpoint.
+            var fontsDirectory = Path.Combine(sourceWebRoot, "assets", "fonts");
+            foreach (var source in Directory.EnumerateFiles(fontsDirectory, "*.ttf", SearchOption.AllDirectories))
+            {
+                var destination = Path.Combine(destinationRoot, "assets", "fonts", Path.GetRelativePath(fontsDirectory, source));
+                Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
+                File.Copy(source, destination, overwrite: true);
+            }
+
             foreach (var slug in new[] { "benjamin_garden", "siim_land", "tiat_lim", "max", "nopara73" })
             {
                 var sourceAthleteDirectory = Path.Combine(sourceWebRoot, "athletes", slug);
