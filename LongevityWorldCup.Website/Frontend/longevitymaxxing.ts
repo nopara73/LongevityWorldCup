@@ -5878,11 +5878,12 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 ?.cells.find(cell => cell.challengeDay === payload.challengeDay && cell.checkedIn) : null;
             const historyNote = closedDay ? result.notes.find(note => note.participantId === currentParticipantId && note.challengeDay === payload.challengeDay) : null;
             const confirmed = saved || history;
+            const confirmedNote = saved?.note || historyNote?.note || "";
+            const confirmedImages = saved?.images || historyNote?.images || [];
             const savedPhotoCount = form.querySelectorAll(".lmx-note-photo-grid.saved img").length;
             if (result.participant.id !== currentParticipantId || !confirmed ||
                 QUESTIONS.some(question => confirmed[question.key] !== draft[question.key]) ||
-                (saved?.note || historyNote?.note || "").trim() !== draft.note.trim() ||
-                (saved?.images || historyNote?.images || []).length < savedPhotoCount + notePhotos.length) {
+                confirmedNote.trim() !== draft.note.trim() || confirmedImages.length < savedPhotoCount + notePhotos.length) {
                 throw invalidApiResponse(`${API}/check-in`);
             }
             clearPendingNotePhotos(key);
@@ -5901,7 +5902,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 participantTabManual = false;
             }
             acceptParticipantState(result);
-            if (saved && !String(saved.note || "").trim() && !saved.images.length &&
+            if (!confirmedNote.trim() && !confirmedImages.length &&
                 !result.notes.some(note => note.participantId === result.participant.id && note.challengeDay === payload.challengeDay && note.advice)) {
                 const postKey = discussionPermalink({ participantId: result.participant.id, challengeDay: payload.challengeDay, systemPostId: null });
                 discussionFeedNotes.delete(postKey);
@@ -9365,7 +9366,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             });
             return await readJsonResponse(response, url);
         } catch (err) {
-            if (hasStringProperty(err, "name") && err.name === "AbortError") throw new Error("Request timed out");
+            if (controller?.signal.aborted || (hasStringProperty(err, "name") && err.name === "AbortError")) throw new Error("Request timed out");
             throw err;
         } finally {
             if (timer) window.clearTimeout(timer);

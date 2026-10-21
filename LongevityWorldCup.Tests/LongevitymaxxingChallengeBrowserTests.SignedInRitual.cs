@@ -10,6 +10,47 @@ namespace LongevityWorldCup.Tests;
 public sealed partial class LongevitymaxxingChallengeBrowserTests
 {
     [Fact]
+    public async Task CheckInResponse_ClosedDayClearsOnlyItsRemovedRemarkFromDiscussion()
+    {
+        await using var context = await NewContextAsync(Browser, App, new());
+        var state = CheckInWorkspaceState();
+        state["eligibleDays"]![0]!["existing"] = SavedCheckIn("Old remark.", 0);
+        var otherDay = SavedCheckIn("Keep the other day's remark.", 2);
+        otherDay["exercise"] = 1;
+        otherDay["vices"] = 1;
+        state["eligibleDays"]![2]!["existing"] = otherDay;
+        var notes = JsonSerializer.SerializeToNode(new[]
+        {
+            Note("p1", "Browser Tester", 17, "2026-06-24", "Old remark."),
+            Note("p1", "Browser Tester", 22, "2026-06-29", "Keep the other day's remark.")
+        })!;
+        state["notes"] = notes.DeepClone();
+        state["public"]!["notes"] = notes.DeepClone();
+        var cell = state["public"]!["leaderboard"]![0]!["cells"]!.AsArray().Single(cell => (int?)cell!["challengeDay"] == 17)!;
+        cell["checkedIn"] = true;
+        cell["score"] = 0;
+        foreach (var habit in new[] { "sleep", "exercise", "nutrition", "vices" }) cell[habit] = 0;
+        var page = await OpenCheckInWorkspaceAsync(context, state);
+        await page.Locator(".lmx-checkin-switcher button[data-day='17']").ClickAsync();
+        var removed = page.Locator("#lmxNotes > article[data-discussion-post-participant-id='p1'][data-discussion-post-challenge-day='17']");
+        var retained = page.Locator("#lmxNotes > article[data-discussion-post-participant-id='p1'][data-discussion-post-challenge-day='22']");
+        await Assertions.Expect(removed).ToHaveCountAsync(1);
+        await Assertions.Expect(retained).ToHaveCountAsync(1);
+        await page.RouteAsync("**/api/longevitymaxxing/check-in", async route =>
+        {
+            state["eligibleDays"]!.AsArray().RemoveAt(0);
+            foreach (var feed in new[] { state["notes"]!.AsArray(), state["public"]!["notes"]!.AsArray() })
+                feed.Remove(feed.Single(note => (int?)note!["challengeDay"] == 17));
+            await FulfillJsonAsync(route, state.ToJsonString());
+        });
+        await page.Locator(".lmx-checkin-card textarea").FillAsync("");
+        await page.Locator(".lmx-checkin-card button[type='submit']").ClickAsync();
+        await Assertions.Expect(removed).ToHaveCountAsync(0);
+        await Assertions.Expect(retained).ToHaveCountAsync(1);
+        await Assertions.Expect(page.Locator(".lmx-checkin-card")).ToHaveAttributeAsync("data-day", "21");
+    }
+
+    [Fact]
     public async Task CheckInResponse_AClosedDayCanConfirmThroughItsPersistedHistory()
     {
         await using var context = await NewContextAsync(Browser, App, new());
