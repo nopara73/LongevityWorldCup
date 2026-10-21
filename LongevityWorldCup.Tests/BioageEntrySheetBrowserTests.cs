@@ -263,6 +263,53 @@ public sealed class BioageEntrySheetBrowserTests(
         }
     }
 
+    [Theory]
+    [InlineData("/pheno-age", "pheno")]
+    [InlineData("/bortz-age", "bortz")]
+    public async Task CalculatedPanel_KeepsUnitsReadableWhenMeasurementsAreEdited(string path, string clock)
+    {
+        var page = await OpenAsync(path, 160, 450, ColorScheme.Light);
+        await FillBioageStepOneAsync(page, "2026-09-01");
+        if (clock == "bortz") await FillBortzBiomarkersAsync(page);
+        else await FillPhenoBiomarkersAsync(page);
+        var entryWidth = await page.Locator("form.bioageform").EvaluateAsync<double>("form => form.getBoundingClientRect().width");
+
+        await page.Locator(".bioage-calculate-button").ClickAsync();
+        await Assertions.Expect(page.Locator($"#{clock}AgeResult")).ToBeVisibleAsync();
+        var initialAge = await page.EvaluateAsync<double>("clock => clock === 'pheno' ? lastCalculatedPhenoAge : lastCalculatedBortzAge", clock);
+        await page.Locator("#wbc").FillAsync("7.54");
+        await page.Keyboard.PressAsync("Tab");
+        await Assertions.Expect(page.Locator($"#{clock}AgeResult")).ToBeHiddenAsync();
+        await page.Locator(".bioage-calculate-button").ClickAsync();
+        await Assertions.Expect(page.Locator($"#{clock}AgeResult")).ToBeVisibleAsync();
+        var editedAge = await page.EvaluateAsync<double>("clock => clock === 'pheno' ? lastCalculatedPhenoAge : lastCalculatedBortzAge", clock);
+        Assert.NotEqual(initialAge, editedAge);
+
+        var problems = await page.EvaluateAsync<string[]>(
+            """
+            entryWidth => {
+                const issues = [];
+                const form = document.querySelector('form.bioageform').getBoundingClientRect();
+                if (Math.abs(form.width - entryWidth) > 1) issues.push('The editable panel shrank after calculating.');
+                if (form.left < 0 || form.right > innerWidth + 1) issues.push('The editable panel overflows.');
+                const ctx = document.createElement('canvas').getContext('2d');
+                for (const unit of document.querySelectorAll('#lwc-step-2 select')) {
+                    if (!unit.getBoundingClientRect().width) continue;
+                    const style = getComputedStyle(unit);
+                    ctx.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+                    const available = unit.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+                    for (const option of unit.options) {
+                        if (ctx.measureText(option.textContent.trim()).width > available + 1)
+                            issues.push(`${unit.id}: ${option.textContent.trim()} is clipped after calculating.`);
+                    }
+                }
+                return issues;
+            }
+            """, entryWidth);
+        Assert.True(problems.Length == 0, string.Join(Environment.NewLine, problems));
+        await ExpectNoHorizontalOverflowAsync(page);
+    }
+
     public override async Task DisposeAsync()
     {
         foreach (var context in _contexts) await context.DisposeAsync();

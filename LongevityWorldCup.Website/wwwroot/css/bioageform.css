@@ -2341,7 +2341,8 @@ body :is(#phenoAgeResult, #bortzAgeResult) #ensureCorrectInputSuggestion i {
     }
 
     :is(#phenoAgeForm, #bortzAgeForm).bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card-content .input-group select {
-        padding-right: 1.3rem;
+        padding-right: 20px;
+        background-position: right 6px center;
     }
 }
 
@@ -2395,16 +2396,10 @@ body :is(#phenoAgeResult, #bortzAgeResult) #ensureCorrectInputSuggestion i {
 }
 
 @media (max-width: 239px) {
-    body:not(.bioage-result-ready) :is(main.phenoage-main, main.bioage-main) {
-        padding-inline: 4px;
-    }
-
-    body:not(.bioage-result-ready) :is(main.phenoage-main, main.bioage-main) > .lwc-steps-shell {
-        width: 100%;
-    }
-
-    body:not(.bioage-result-ready) :is(#phenoAgeForm, #bortzAgeForm) {
-        --bioage-card-max-width: 100%;
+    body :is(#phenoAgeForm, #bortzAgeForm) {
+        width: calc(100% + 24px);
+        max-width: none;
+        margin-inline: -12px;
     }
 
     :is(#phenoAgeForm, #bortzAgeForm).bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card-content,
