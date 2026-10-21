@@ -276,7 +276,7 @@ public sealed class BadgeFamilyBrowserTests(
 
         await chip.HoverAsync();
         await Assertions.Expect(tip).ToBeVisibleAsync();
-        await page.EvaluateAsync("window.dispatchEvent(new Event('scroll'))");
+        await page.EvaluateAsync("window.scrollBy(0, 100)");
         await Assertions.Expect(tip).ToBeHiddenAsync();
         await chip.ClickAsync(new() { Trial = true });
         await chip.EvaluateAsync("el => el.blur()");

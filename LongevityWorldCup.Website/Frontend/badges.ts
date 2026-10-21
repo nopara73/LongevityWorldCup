@@ -883,6 +883,7 @@ let badgeTipOriginalDescription: string | null = null;
 let badgeTipTouchTarget: HTMLElement | null = null;
 let badgeTipPointerDown = false;
 let badgeTipHadOwnerFocus = false;
+let badgeTipOwnerBounds: DOMRect | null = null;
 
 function cancelBadgeTipDismiss(): void {
     window.clearTimeout(badgeTipDismissTimer);
@@ -979,7 +980,7 @@ function showBadgeTip(badge: HTMLElement): void {
     if (!alreadyNamed) badge.setAttribute('aria-describedby', [badgeTipOriginalDescription, tip.id].filter(Boolean).join(' '));
     badgeTipOwner = badge;
     badgeTipHadOwnerFocus = badge.contains(document.activeElement);
-    const ownerBounds = badge.getBoundingClientRect();
+    const ownerBounds = badgeTipOwnerBounds = badge.getBoundingClientRect();
     badgeTipObserver = new MutationObserver(() => {
         const bounds = badge.getBoundingClientRect();
         if (!badge.isConnected || !badge.getClientRects().length || badge.closest('[hidden], [inert]')
@@ -1005,6 +1006,7 @@ function hideBadgeTip(restoreFocus = false): void {
         owner.focus({ preventScroll: true });
     }
     badgeTipOwner = null;
+    badgeTipOwnerBounds = null;
     badgeTipPointerDown = false;
     badgeTipHadOwnerFocus = false;
     if (badgeTip) badgeTip.hidden = true;
@@ -1097,7 +1099,12 @@ if (!window.__lwcBadgeTipBound) {
         badgeTipPointerDown = false;
     });
     window.addEventListener('scroll', event => {
-        if (badgeTipOwner && !(event.target instanceof Node && badgeTip?.contains(event.target))) hideBadgeTip();
+        if (!badgeTipOwner || (event.target instanceof Node && badgeTip?.contains(event.target))) return;
+        // A scroll queued before pointerover can arrive after the card opens.
+        // Dismiss only when its anchor has actually moved from the shown position.
+        const bounds = badgeTipOwner.getBoundingClientRect();
+        if (!badgeTipOwnerBounds || Math.abs(bounds.left - badgeTipOwnerBounds.left) > 0.5
+            || Math.abs(bounds.top - badgeTipOwnerBounds.top) > 0.5) hideBadgeTip();
     }, { capture: true, passive: true });
     window.addEventListener('resize', () => { if (badgeTipOwner) hideBadgeTip(); }, { passive: true });
     window.addEventListener('pagehide', () => hideBadgeTip());
