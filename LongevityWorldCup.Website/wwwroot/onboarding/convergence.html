@@ -723,6 +723,160 @@
             }
 
         }
+
+        /* One journey foot. The actions close every stage in the same muted band as the
+           /review card. When the window is too short, the dock pins that same band to
+           the card's column, so Back and Next keep their place, size and look between stages. */
+        .convergence-stage-layout .convergence-actions:not(.flow-action-stack--docked) {
+            width: calc(100% + 2 * var(--convergence-card-pad));
+            max-width: none;
+            margin: 1.5rem calc(-1 * var(--convergence-card-pad)) calc(-1 * var(--convergence-card-pad));
+            padding: 0.55rem var(--convergence-card-pad);
+            border-top: 1px solid var(--lwc-border, #d7e0e6);
+            border-radius: 0 0 calc(var(--lwc-radius-lg, 12px) - 1px) calc(var(--lwc-radius-lg, 12px) - 1px);
+            background: var(--lwc-surface-muted, #eef2f5);
+        }
+
+        body[data-convergence-stage] > .convergence-actions.flow-action-stack--docked {
+            border-top: 1px solid var(--lwc-border, #d7e0e6);
+            background: var(--lwc-surface-muted, #eef2f5);
+        }
+
+        /* Phones: the full-width dock lines its actions up with the card's fields. */
+        @media (max-width: 768px) {
+            body[data-convergence-stage] > .convergence-actions.flow-action-stack--docked {
+                --convergence-card-pad: clamp(16px, 4vw, 28px);
+                padding-inline: calc(1rem + 1px + var(--convergence-card-pad));
+            }
+        }
+
+        .convergence-stage-layout .convergence-actions .option-button.flow-action.back-button,
+        body[data-convergence-stage] > .convergence-actions .option-button.flow-action.back-button {
+            background: var(--lwc-surface, #fff);
+        }
+
+        .convergence-actions .option-button.flow-action.back-button:hover {
+            border-color: var(--lwc-border-strong, #71808d);
+        }
+
+        @media (min-width: 769px) and (min-height: 481px) {
+            body[data-convergence-stage] > .convergence-actions.flow-action-stack--docked {
+                --convergence-card-pad: 28px;
+                left: calc(50% - 320px) !important;
+                right: auto !important;
+                width: 640px !important;
+                display: flex;
+                flex-direction: row;
+                flex-wrap: nowrap;
+                justify-content: space-between;
+                gap: 0.75rem;
+                padding: 0.55rem var(--convergence-card-pad) calc(0.55rem + env(safe-area-inset-bottom));
+                border: 1px solid var(--lwc-border, #d7e0e6);
+                border-bottom: 0;
+                box-shadow: 0 -8px 20px rgba(15, 23, 42, 0.08);
+            }
+
+            body[data-convergence-stage] > .convergence-actions.flow-action-stack--docked > .flow-action,
+            .convergence-stage-layout .convergence-actions:not(.flow-action-stack--docked) > .flow-action {
+                flex: 0 0 9.5rem;
+                width: auto;
+                min-width: 0;
+                max-width: none;
+                min-height: 3rem;
+                margin: 0;
+                padding-block: 0.55rem;
+                padding-inline: 1.25rem 2.85rem;
+                font-size: 1.05rem;
+            }
+
+            body[data-convergence-stage] > .convergence-actions.flow-action-stack--docked > #nextButton,
+            .convergence-stage-layout .convergence-actions:not(.flow-action-stack--docked) > #nextButton {
+                flex: 1 1 auto;
+                order: 2;
+            }
+
+            body[data-convergence-stage] > .convergence-actions.flow-action-stack--docked > .back-button.flow-action--icon-left,
+            .convergence-stage-layout .convergence-actions:not(.flow-action-stack--docked) > .back-button.flow-action--icon-left {
+                flex: 0 0 8.5rem !important;
+                order: 1;
+                width: 8.5rem !important;
+                min-width: 0 !important;
+                max-width: none !important;
+                justify-content: center;
+                gap: 0.5em;
+                padding-inline: 1.35rem !important;
+            }
+
+            @media (max-height: 800px) {
+                body[data-convergence-stage] > .convergence-actions.flow-action-stack--docked {
+                    --convergence-card-pad: 18px;
+                }
+            }
+
+            body[data-convergence-stage] > .convergence-actions.flow-action-stack--docked > .back-button.flow-action--icon-left > i {
+                position: static;
+                width: auto;
+                transform: none;
+                flex: none;
+            }
+        }
+
+        /* The stage decision reads as a note in the same shape as the upload guidance. */
+        #inputForm > #privacyDetails {
+            padding: 0.8rem 1rem;
+            border-inline-start: 3px solid var(--lwc-accent, #087685);
+            border-radius: var(--lwc-radius-md, 8px);
+            background: var(--lwc-surface-muted, #eef2f5);
+        }
+
+        #inputForm > #privacyDetails p + p {
+            margin-top: 0.35rem;
+        }
+
+        #inputForm > #privacyDetails .smaller-text {
+            display: block;
+            font-size: var(--lwc-type-sm, 0.875rem);
+            line-height: 1.5;
+        }
+
+        /* Next and Back travel: the new stage slides in from the side it is heading toward. */
+        @media (prefers-reduced-motion: no-preference) {
+            .convergence-stage-enter .convergence-stage-head h1,
+            .convergence-stage-enter #descriptionForm .convergence-stage-copy,
+            .convergence-stage-enter #inputForm > fieldset {
+                animation: convergence-stage-forward 340ms var(--lwc-ease, cubic-bezier(0.2, 0, 0, 1)) both;
+            }
+
+            .convergence-stage-enter #descriptionForm .convergence-stage-copy {
+                animation-delay: 50ms;
+            }
+
+            .convergence-stage-enter #inputForm > fieldset {
+                animation-delay: 100ms;
+            }
+
+            .convergence-stage-enter[data-convergence-direction="back"] .convergence-stage-head h1,
+            .convergence-stage-enter[data-convergence-direction="back"] #descriptionForm .convergence-stage-copy,
+            .convergence-stage-enter[data-convergence-direction="back"] #inputForm > fieldset {
+                animation-name: convergence-stage-back;
+            }
+
+            .convergence-stage-enter .convergence-visual .illustration {
+                animation: convergence-banner-in 480ms var(--lwc-ease, cubic-bezier(0.2, 0, 0, 1)) both;
+            }
+        }
+
+        @keyframes convergence-stage-forward {
+            from { opacity: 0; transform: translateX(18px); }
+        }
+
+        @keyframes convergence-stage-back {
+            from { opacity: 0; transform: translateX(-18px); }
+        }
+
+        @keyframes convergence-banner-in {
+            from { opacity: 0.25; }
+        }
     </style>
 </head>
 <body class="play-flow-route" data-convergence-stage="1">
@@ -850,7 +1004,7 @@
                 <fieldset id="finalDetails">
     
                     <!-- Link to Personal Page (Optional) -->
-                    <label for="personalLink">Link (optional)</label>
+                    <label for="personalLink">Link <span class="field-requirement">(optional)</span></label>
                     <input type="text" id="personalLink" name="personalLink" aria-describedby="personalLinkError" inputmode="url" autocomplete="url" autocapitalize="none" spellcheck="false" placeholder="yourwebsite.com">
                     <span id="personalLinkError" class="error-message" aria-live="polite"></span>
                     <p class="convergence-helper-text">
@@ -858,7 +1012,7 @@
                     </p>
     
                     <!-- Media Contact (Required) -->
-                    <label for="mediaContact">Media contact (required)</label>
+                    <label for="mediaContact">Media contact <span class="field-requirement">(required)</span></label>
                     <input type="text" id="mediaContact" name="mediaContact" required aria-required="true" aria-describedby="mediaContactError" inputmode="email" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="media@example.com or @handle">
                     <span id="mediaContactError" class="error-message" aria-live="polite"></span>
     
@@ -1682,7 +1836,24 @@
         }
 
         // Function to update the UI based on the current stage
+        // Each stage enters from the side it is travelling toward, so Next and Back read as one journey.
+        let stageEntranceTimer = 0;
+        let hasShownFirstStage = false;
+        function playStageEntrance(previousStage, stage) {
+            const card = document.querySelector('.convergence-stage-layout');
+            const isFirstStage = !hasShownFirstStage;
+            hasShownFirstStage = true;
+            if (!card || isFirstStage || previousStage === stage) return;
+            card.dataset.convergenceDirection = stage > previousStage ? 'forward' : 'back';
+            card.classList.remove('convergence-stage-enter');
+            void card.offsetWidth;
+            card.classList.add('convergence-stage-enter');
+            window.clearTimeout(stageEntranceTimer);
+            stageEntranceTimer = window.setTimeout(() => card.classList.remove('convergence-stage-enter'), 900);
+        }
+
         function goToStage(stage, { focus = false } = {}) {
+            const previousStage = Number(document.body.dataset.convergenceStage) || 0;
             document.body.dataset.convergenceStage = String(stage);
             document.getElementById('descriptionForm').style.display = '';
 
@@ -1900,6 +2071,7 @@
             }
 
             updateSubProgress(stage);
+            playStageEntrance(previousStage, stage);
             updateUploadButtons();
             window.LwcFlowActionDock?.refresh();
             saveApplicationDraft();

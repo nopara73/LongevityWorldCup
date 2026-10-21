@@ -53,10 +53,11 @@ public sealed class FlowStepActionsRowBrowserTests(
     }
 
     [Theory]
-    [InlineData("/pheno-age", 390, 844)]
-    [InlineData("/apply", 390, 844)]
-    [InlineData("/apply", 1440, 900)]
-    public async Task OverflowingStep_KeepsTheDockedRow(string path, int width, int height)
+    [InlineData("/pheno-age", 390, 844, 0)]
+    [InlineData("/apply", 390, 844, 0)]
+    // The identity step fits a 900px desktop; the privacy story is the stage that overflows it.
+    [InlineData("/apply", 1440, 900, 3)]
+    public async Task OverflowingStep_KeepsTheDockedRow(string path, int width, int height, int stage)
     {
         await using var context = await NewContextAsync(Browser, App, new()
         {
@@ -67,6 +68,8 @@ public sealed class FlowStepActionsRowBrowserTests(
         });
         var page = await context.NewPageAsync();
         await NavigateDockReadyAsync(page, path);
+        if (stage > 0)
+            await page.EvaluateAsync("stage => { currentStage = stage; goToStage(stage); }", stage);
         await page.EvaluateAsync("() => window.LwcFlowActionDock?.refreshNow?.()");
         await page.WaitForFunctionAsync("() => document.querySelector('.flow-action-stack--docked .back-button')");
         var sameRow = await page.EvaluateAsync<bool>(
