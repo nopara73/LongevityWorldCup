@@ -113,6 +113,7 @@ let customAlertActive = null;
 let customAlertPreviousFocus = null;
 let customAlertOwnsScrollLock = false;
 let loadingDialogPreviousFocus = null;
+let loadingDialogOwnsScrollLock = false;
 
 function closeCustomAlert() {
     if (customAlertDialog.hidden) {
@@ -127,11 +128,16 @@ function closeCustomAlert() {
     customAlertPreviousFocus = null;
 
     if (!customAlertQueue.length) {
-        if (customAlertOwnsScrollLock && loadingDialog.hidden) document.body.classList.remove('no-scroll');
+        if (customAlertOwnsScrollLock) {
+            if (loadingDialog.hidden) document.body.classList.remove('no-scroll');
+            else loadingDialogOwnsScrollLock = true;
+        }
         customAlertOwnsScrollLock = false;
     }
 
-    if (restoreFocus && previousFocus?.isConnected && !previousFocus.closest('[hidden], [inert]')
+    if (!loadingDialog.hidden) {
+        loadingDialog.querySelector('.loading-dialog-panel')?.focus({ preventScroll: true });
+    } else if (restoreFocus && previousFocus?.isConnected && !previousFocus.closest('[hidden], [inert]')
         && !previousFocus.disabled && previousFocus.getClientRects().length) {
         previousFocus.focus({ preventScroll: true });
     }
@@ -154,6 +160,11 @@ customAlertDialog.addEventListener('keydown', function (event) {
 });
 
 document.addEventListener('keydown', function (event) {
+    if (!loadingDialog.hidden && customAlertDialog.hidden && event.key === 'Tab') {
+        event.preventDefault();
+        loadingDialog.querySelector('.loading-dialog-panel')?.focus({ preventScroll: true });
+        return;
+    }
     if (customAlertDialog.hidden || customAlertDialog.contains(event.target)) return;
     if (event.key === 'Escape') {
         event.preventDefault();
@@ -237,7 +248,9 @@ function showNextCustomAlert() {
     if (customAlertActive || !customAlertQueue.length) return;
     const entry = customAlertQueue.shift();
     customAlertActive = entry;
-    customAlertPreviousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const activeElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    customAlertPreviousFocus = !loadingDialog.hidden && loadingDialog.contains(activeElement)
+        ? loadingDialogPreviousFocus : activeElement;
     const { message, options } = entry;
     const requestedTone = options && options.tone;
     const tone = Object.prototype.hasOwnProperty.call(CUSTOM_ALERT_TONE_ICONS, requestedTone)
@@ -254,7 +267,7 @@ function showNextCustomAlert() {
     requestAnimationFrame(() => {
         updateCustomAlertMessageFocus();
         if (customAlertActive === entry && !customAlertDialog.hidden
-            && (document.activeElement === customAlertPreviousFocus || document.activeElement === document.body
+            && (document.activeElement === activeElement || document.activeElement === document.body
                 || customAlertDialog.contains(document.activeElement))) {
             customAlertCloseButton.focus({ preventScroll: true });
         }
@@ -271,22 +284,33 @@ const customAlertMessageResizeObserver = new ResizeObserver(updateCustomAlertMes
 customAlertMessageResizeObserver.observe(customAlertMessage);
 
 function showLoading() {
-    loadingDialogPreviousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    if (!loadingDialog.hidden) return;
+    const activeElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    loadingDialogPreviousFocus = !customAlertDialog.hidden && customAlertDialog.contains(activeElement)
+        ? customAlertPreviousFocus : activeElement;
+    loadingDialogOwnsScrollLock = !document.body.classList.contains('no-scroll');
 
     loadingDialog.hidden = false;
 
     document.body.classList.add('no-scroll');
-    loadingDialog.querySelector('.loading-dialog-panel')?.focus();
+    if (customAlertDialog.hidden) loadingDialog.querySelector('.loading-dialog-panel')?.focus({ preventScroll: true });
 }
 
 function hideLoading() {
+    if (loadingDialog.hidden) return;
+    const restoreFocus = loadingDialog.contains(document.activeElement) || document.activeElement === document.body;
     loadingDialog.hidden = true;
 
-    if (customAlertDialog.hidden) document.body.classList.remove('no-scroll');
-    else customAlertOwnsScrollLock = true;
+    if (loadingDialogOwnsScrollLock) {
+        if (customAlertDialog.hidden) document.body.classList.remove('no-scroll');
+        else customAlertOwnsScrollLock = true;
+    }
+    loadingDialogOwnsScrollLock = false;
 
-    if (customAlertDialog.hidden && loadingDialogPreviousFocus && typeof loadingDialogPreviousFocus.focus === 'function') {
-        loadingDialogPreviousFocus.focus();
+    if (customAlertDialog.hidden && restoreFocus && loadingDialogPreviousFocus?.isConnected
+        && !loadingDialogPreviousFocus.closest('[hidden], [inert]') && !loadingDialogPreviousFocus.disabled
+        && loadingDialogPreviousFocus.getClientRects().length) {
+        loadingDialogPreviousFocus.focus({ preventScroll: true });
     }
 
     loadingDialogPreviousFocus = null;

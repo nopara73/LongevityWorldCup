@@ -144,60 +144,15 @@
             box-shadow: none;
         }
 
-        /* Status reads as a callout with a glyph, so success and failure differ beyond colour. */
+        /* The status is the shared feedback banner (aesthetic-system.css); it spans the form. */
         .unsubscribe-message {
             grid-column: 1 / -1;
-            display: flex;
-            align-items: flex-start;
-            gap: var(--lwc-space-3);
             min-width: 0;
-            padding: var(--lwc-space-4);
-            border: 1px solid var(--lwc-success);
-            border-radius: var(--lwc-radius-md);
-            background: var(--lwc-success-soft);
-            color: var(--lwc-ink);
-            text-align: left;
-            line-height: 1.5;
-            overflow-wrap: anywhere;
-        }
-
-        .unsubscribe-message-icon {
-            flex: none;
-            display: grid;
-            place-items: center;
-            width: 1.5rem;
-            height: 1.5rem;
-            border-radius: 50%;
-            background: var(--lwc-success);
-            color: var(--lwc-surface);
-            font-size: 0.875rem;
-            font-weight: 700;
-            line-height: 1;
-        }
-
-        .unsubscribe-message-icon::before {
-            content: '\2713';
-        }
-
-        .unsubscribe-message-text {
-            min-width: 0;
+            margin: 0;
         }
 
         .unsubscribe-message:empty {
             display: none;
-        }
-
-        .unsubscribe-message.is-error {
-            border-color: var(--lwc-danger);
-            background: var(--lwc-danger-soft);
-        }
-
-        .unsubscribe-message.is-error .unsubscribe-message-icon {
-            background: var(--lwc-danger);
-        }
-
-        .unsubscribe-message.is-error .unsubscribe-message-icon::before {
-            content: '!';
         }
 
         /* Very narrow windows give the title the whole cover; the stamp steps aside. */
@@ -241,11 +196,6 @@
             .unsubscribe-button {
                 padding-inline: min(1.5rem, 5vw);
                 overflow-wrap: anywhere;
-            }
-
-            .unsubscribe-message {
-                gap: min(var(--lwc-space-3), 3vw);
-                padding: min(var(--lwc-space-4), 4vw);
             }
         }
 
@@ -327,13 +277,7 @@
                     message.replaceChildren();
                     return;
                 }
-                const icon = document.createElement("span");
-                icon.className = "unsubscribe-message-icon";
-                icon.setAttribute("aria-hidden", "true");
-                const content = document.createElement("span");
-                content.className = "unsubscribe-message-text";
-                content.textContent = text;
-                message.replaceChildren(icon, content);
+                message.textContent = text;
             }
 
             function renderAction() {
