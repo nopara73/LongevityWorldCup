@@ -27,6 +27,11 @@ public sealed class PageWeightTests(TestWebApplicationFactory factory)
         Assert.Contains("/js/guess-my-age.js?v=", html);
         Assert.DoesNotContain("window.openAthleteModalBySlug = function", html);
         Assert.DoesNotContain("{{ASSET_", html);
+        if (path == "/about")
+        {
+            Assert.Contains("/js/documentation.js?v=", html);
+            Assert.DoesNotContain("const updateCurrentSection =", html);
+        }
         if (path == "/events")
         {
             var stylesheet = Regex.Match(html, @"/css/highlights-page\.css\?v=[^""']+");
@@ -37,6 +42,18 @@ public sealed class PageWeightTests(TestWebApplicationFactory factory)
         }
 
         // Dynamic font URLs still use the same version as the head's preload.
+        Assert.Matches(@"src: url\('/assets/fonts/Roboto-Regular\.woff2\?v=[^']+'\)", html);
+    }
+
+    [Fact]
+    public async Task PrivacyDocument_UsesTheSharedRuntimeWithinItsHtmlBudget()
+    {
+        using var client = factory.CreateClient();
+        var html = await client.GetStringAsync("/privacy");
+        Assert.True(Encoding.UTF8.GetByteCount(html) < 100_000, "Privacy exceeded its 100,000-byte HTML budget.");
+        Assert.Contains("/js/documentation.js?v=", html);
+        Assert.DoesNotContain("const updateCurrentSection =", html);
+        Assert.DoesNotContain("{{ASSET_", html);
         Assert.Matches(@"src: url\('/assets/fonts/Roboto-Regular\.woff2\?v=[^']+'\)", html);
     }
 
