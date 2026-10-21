@@ -48,86 +48,141 @@ body.play-start-active #site-sticky-header {
     pointer-events: none !important;
 }
 
-.play-logo-watermark {
-    display: none;
+/* ===== Start: one title screen =====
+   The wordmark, the phoenix crest and the menu are one centred lockup on the
+   night stage, in that order, with an even rhythm between them. On phones the
+   menu waits where the dock will hold it, so docking never moves the lockup. */
+.play-start-panel {
+    --play-crest-size: min(30dvh, 17rem);
+    --play-lockup-gap: clamp(1.25rem, 4.5dvh, 2.5rem);
+    position: relative;
+    isolation: isolate;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--play-lockup-gap);
+    min-height: 100dvh;
+    padding-block: clamp(1.5rem, 6dvh, 3.5rem);
+    box-sizing: border-box;
 }
 
-body.play-start-active .play-logo-watermark {
-    --play-fitted-logo-size: min(86vw, 38dvh, 560px);
-    display: block;
-    position: fixed;
-    top: min(
-        55dvh,
-        calc(100dvh - var(--flow-action-dock-height, 132px) - (var(--play-fitted-logo-size) / 2) - 1.25rem)
-    );
-    left: 50%;
-    width: var(--play-fitted-logo-size);
-    max-width: none;
-    height: auto;
-    z-index: 0;
+.play-menu-crest {
+    position: relative;
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: var(--play-crest-size);
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: radial-gradient(circle closest-side,
+        rgba(25, 195, 209, 0.16) 0%,
+        rgba(25, 195, 209, 0.06) 55%,
+        rgba(25, 195, 209, 0) 100%);
     pointer-events: none;
-    transform: translate(-50%, -50%);
-    opacity: 0.17;
     user-select: none;
 }
 
-@media (min-width: 769px) {
-    body.play-start-active .play-logo-watermark {
-        --play-fitted-logo-size: min(38dvh, 29vmin, 560px);
-        top: min(
-            51dvh,
-            calc(100dvh - var(--flow-action-dock-height, 132px) - (var(--play-fitted-logo-size) / 2) - 1.25rem)
-        );
-    }
+.play-menu-crest::before,
+.play-menu-crest::after {
+    content: "";
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+.play-menu-crest::before {
+    inset: 0;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.play-menu-crest::after {
+    inset: 7%;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.play-logo-watermark {
+    position: relative;
+    display: block;
+    width: 74%;
+    max-width: none;
+    height: auto;
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    opacity: 0.3;
+    pointer-events: none;
+    user-select: none;
 }
 
 @media (prefers-reduced-motion: no-preference) {
     body.play-start-active.play-start-intro {
         --play-intro-beat: var(--lwc-duration-fast, 140ms);
-        --play-intro-phase: calc(var(--lwc-duration-normal, 220ms) + var(--lwc-duration-normal, 220ms));
-        --play-logo-settle-duration: calc(var(--play-intro-phase) + var(--lwc-duration-normal, 220ms));
-        --play-wordmark-settle-duration: var(--play-intro-phase);
-        --play-action-settle-duration: var(--lwc-duration-normal, 220ms);
-    }
-
-    body.play-start-active.play-start-preintro .play-logo-watermark {
-        opacity: 0.14;
-        transform: translate(-50%, -50%) scale(0.985);
-    }
-
-    body.play-start-active.play-start-preintro .play-menu-wordmark {
-        opacity: 0.84;
-        transform: translate3d(0, 0.18rem, 0);
+        --play-word-duration: calc(var(--lwc-duration-normal, 220ms) * 2);
+        --play-word-stagger: 90ms;
+        --play-crest-delay: calc(var(--play-intro-beat) + var(--play-word-stagger) * 2);
+        --play-rule-delay: calc(var(--play-intro-beat) + var(--play-word-stagger) * 2 + var(--lwc-duration-normal, 220ms));
+        --play-action-delay: calc(var(--play-intro-beat) + var(--play-word-stagger) * 3 + var(--lwc-duration-normal, 220ms));
     }
 
     body.play-start-active.play-start-preintro .play-menu-wordmark__word {
-        opacity: 1;
-        transform: none;
+        opacity: 0.6;
+        transform: translate3d(0, 0.32em, 0) scale(1.04);
+    }
+
+    body.play-start-active.play-start-preintro .play-menu-hero::after {
+        transform: scaleX(0);
+    }
+
+    body.play-start-active.play-start-preintro .play-menu-crest {
+        opacity: 0.7;
+        transform: scale(0.92);
+    }
+
+    body.play-start-active.play-start-preintro .play-logo-watermark {
+        opacity: 0.12;
     }
 
     body.play-start-active.play-start-preintro .play-menu-actions .flow-action {
-        opacity: 0.92;
-        transform: translate3d(0, 0.12rem, 0);
+        opacity: 0.86;
+        transform: translate3d(0, 0.35rem, 0);
+    }
+
+    body.play-start-active.play-start-intro .play-menu-wordmark__word {
+        animation: play-word-rise var(--play-word-duration) var(--lwc-ease, ease) var(--play-intro-beat) both;
+        will-change: opacity, transform;
+    }
+
+    body.play-start-active.play-start-intro .play-menu-wordmark__word:nth-child(2) {
+        animation-delay: calc(var(--play-intro-beat) + var(--play-word-stagger));
+    }
+
+    body.play-start-active.play-start-intro .play-menu-wordmark__word:nth-child(3) {
+        animation-delay: calc(var(--play-intro-beat) + var(--play-word-stagger) * 2);
+    }
+
+    body.play-start-active.play-start-intro .play-menu-hero::after {
+        animation: play-rule-draw var(--play-word-duration) var(--lwc-ease, ease) var(--play-rule-delay) both;
+    }
+
+    body.play-start-active.play-start-intro .play-menu-crest {
+        animation: play-crest-settle calc(var(--play-word-duration) + var(--lwc-duration-normal, 220ms)) var(--lwc-ease, ease) var(--play-crest-delay) both;
+        will-change: opacity, transform;
     }
 
     body.play-start-active.play-start-intro .play-logo-watermark {
-        animation: play-logo-settle var(--play-logo-settle-duration) var(--lwc-ease, ease) both;
-        will-change: opacity, transform;
-    }
-
-    body.play-start-active.play-start-intro .play-menu-wordmark {
-        animation: play-wordmark-settle var(--play-wordmark-settle-duration) var(--lwc-ease, ease) var(--play-intro-beat) both;
-        will-change: opacity, transform;
+        animation: play-logo-settle calc(var(--play-word-duration) + var(--lwc-duration-normal, 220ms)) var(--lwc-ease, ease) var(--play-crest-delay) both;
     }
 
     body.play-start-active.play-start-intro .play-menu-actions .flow-action {
-        --play-action-delay: var(--play-intro-phase);
-        animation: play-action-settle var(--play-action-settle-duration) var(--lwc-ease, ease) var(--play-action-delay) both;
+        animation: play-action-settle var(--play-word-duration) var(--lwc-ease, ease) var(--play-action-delay) both;
         will-change: opacity, transform;
     }
 
     body.play-start-active.play-start-intro .play-menu-actions .flow-action:nth-child(2) {
-        --play-action-delay: calc(var(--play-intro-phase) + var(--play-intro-beat));
+        animation-delay: calc(var(--play-action-delay) + var(--play-word-stagger));
     }
 }
 
@@ -177,9 +232,9 @@ body.play-start-active .flow-action-stack.flow-action-stack--docked {
 body.play-start-active .play-menu-actions.flow-action-stack--docked {
     border-top: 0;
     background: linear-gradient(180deg,
-        rgba(0, 0, 0, 0) 0%,
-        rgba(21, 21, 21, 0.62) 34%,
-        rgba(18, 18, 18, 0.98) 100%);
+        rgba(16, 24, 32, 0) 0%,
+        rgba(16, 24, 32, 0.62) 34%,
+        rgba(16, 24, 32, 0.98) 100%);
     box-shadow: none;
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
@@ -188,12 +243,8 @@ body.play-start-active .play-menu-actions.flow-action-stack--docked {
     /* The intro already animates the buttons. Docking must keep their common
        container readable from its first frame, including the entering state. */
     opacity: 1;
+    pointer-events: auto;
     transition: none;
-}
-
-.play-start-panel {
-    position: relative;
-    isolation: isolate;
 }
 
 .play-start-panel::before {
@@ -209,13 +260,26 @@ body.play-start-active .play-menu-actions.flow-action-stack--docked {
 
 .play-menu-hero {
     container-type: inline-size;
-    min-height: clamp(430px, 64dvh, 760px);
     display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: center;
+    gap: 0.9rem;
+    width: 100%;
+    min-height: 0;
+    padding: 0;
     text-align: center;
-    padding: clamp(2rem, 6vh, 4rem) 1rem clamp(6rem, 18vh, 12rem);
     background: transparent;
+}
+
+/* The accent rule underlines the title the way active tabs are underlined. */
+.play-menu-hero::after {
+    content: "";
+    display: block;
+    width: min(26%, 7rem);
+    height: 4px;
+    border-radius: 999px;
+    background: var(--lwc-accent-bright, #19c3d1);
+    transform-origin: 50% 50%;
 }
 
 .play-menu-wordmark {
@@ -230,6 +294,7 @@ body.play-start-active .play-menu-actions.flow-action-stack--docked {
     font-size: min(var(--play-wordmark-size), 14cqi);
     font-weight: 700;
     font-style: italic;
+    font-synthesis: style;
     line-height: 1;
     letter-spacing: 0;
     text-transform: uppercase;
@@ -262,38 +327,58 @@ body.play-start-active .play-menu-actions.flow-action-stack--docked {
     transform-origin: 50% 70%;
 }
 
-@keyframes play-logo-settle {
+@keyframes play-word-rise {
     0% {
-        opacity: 0.14;
-        transform: translate(-50%, -50%) scale(0.985);
+        opacity: 0.6;
+        transform: translate3d(0, 0.32em, 0) scale(1.04);
+    }
+
+    60% {
+        opacity: 1;
     }
 
     100% {
-        opacity: 0.17;
-        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+        transform: translate3d(0, 0, 0) scale(1);
     }
 }
 
-@keyframes play-wordmark-settle {
+@keyframes play-rule-draw {
     0% {
-        opacity: 0.84;
-        transform: translate3d(0, 0.18rem, 0);
+        transform: scaleX(0);
     }
 
-    70% {
-        opacity: 1;
+    100% {
+        transform: scaleX(1);
+    }
+}
+
+@keyframes play-crest-settle {
+    0% {
+        opacity: 0.7;
+        transform: scale(0.92);
     }
 
     100% {
         opacity: 1;
-        transform: translate3d(0, 0, 0);
+        transform: scale(1);
+    }
+}
+
+@keyframes play-logo-settle {
+    0% {
+        opacity: 0.12;
+    }
+
+    100% {
+        opacity: 0.3;
     }
 }
 
 @keyframes play-action-settle {
     0% {
-        opacity: 0.92;
-        transform: translate3d(0, 0.12rem, 0);
+        opacity: 0.86;
+        transform: translate3d(0, 0.35rem, 0);
     }
 
     100% {
@@ -1157,11 +1242,6 @@ html.play-panel-transitioning .play-hub-panel--entering {
         padding-inline: 1.35rem;
     }
 
-    .play-menu-hero {
-        min-height: clamp(330px, 57dvh, 560px);
-        padding: clamp(1.5rem, 5vh, 3rem) 0 clamp(6rem, 18vh, 10rem);
-    }
-
     .play-menu-actions,
     .play-join-actions,
     .play-athlete-actions,
@@ -1576,21 +1656,6 @@ html.play-panel-transitioning .play-hub-panel--entering {
 }
 
 @media (min-width: 640px) and (max-width: 932px) and (max-height: 480px) and (orientation: landscape) {
-    body.play-start-active .play-logo-watermark {
-        --play-fitted-logo-size: min(30dvh, 120px);
-        top: 58dvh;
-    }
-
-    .play-menu-hero {
-        min-height: calc(100dvh - 62px);
-        padding: 1rem 1rem 10rem;
-    }
-
-    .play-start-panel > .flow-action-dock-placeholder {
-        height: 1px !important;
-        margin: 0;
-    }
-
     .play-menu-wordmark {
         --play-wordmark-size: 3.4rem;
     }
@@ -2350,28 +2415,93 @@ body.play-start-active .play-menu-actions .option-button.grey.flow-action--secon
     outline-offset: 2px;
 }
 
-/* Wide screens: both doors share one plate the width of the player card. */
-@media (min-width: 761px) and (min-height: 600px) {
-    body.play-start-active .play-menu-actions:not(.flow-action-stack--docked) {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 0.75rem;
-        width: min(100%, 560px);
-        max-width: 560px;
-        padding: 0.75rem;
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        border-radius: 16px;
-        background: rgba(255, 255, 255, 0.04);
-        box-sizing: border-box;
+/* The menu: one column of even doors under the crest on every screen, the
+   same column the phone dock holds. */
+body.play-start-active .play-menu-actions:not(.flow-action-stack--docked) {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+    width: min(100%, 22rem);
+    max-width: 22rem;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-sizing: border-box;
+}
+
+body.play-start-active .play-menu-actions:not(.flow-action-stack--docked) .flow-action {
+    width: 100%;
+    max-width: none;
+    min-height: 58px;
+    margin: 0;
+}
+
+/* Reserve the actual dock, including its padding, without flex shrinking it. */
+.play-start-panel > .flow-action-dock-placeholder {
+    flex: none;
+    min-height: var(--flow-action-dock-height, 0px);
+}
+
+/* Phones: the free space falls evenly above the title, between the title and
+   the crest, and below the crest; the menu waits at the foot of the stage. */
+@media (max-width: 760px) {
+    .play-start-panel {
+        --play-crest-size: min(68vw, 34dvh, 18rem);
+        justify-content: flex-start;
+        gap: 0;
+        padding-block: clamp(1rem, 4dvh, 2rem) calc(0.58rem + env(safe-area-inset-bottom));
     }
 
-    body.play-start-active .play-menu-actions:not(.flow-action-stack--docked) .flow-action {
-        align-self: stretch;
+    .play-start-panel > .play-menu-hero {
+        margin-top: auto;
+    }
+
+    .play-start-panel > .play-menu-crest {
+        margin-block: auto;
+    }
+
+    .play-start-panel > .flow-action-dock-placeholder {
+        margin: 0;
+    }
+
+    body.play-start-active .play-menu-actions:not(.flow-action-stack--docked) {
+        width: min(100%, 408px);
+        max-width: 408px;
+        gap: 0.55rem;
+    }
+}
+
+/* Short landscape screens: a smaller crest and the doors side by side. */
+@media (max-height: 480px) {
+    .play-start-panel {
+        --play-crest-size: min(68vw, 26dvh, 7.5rem);
+        --play-lockup-gap: clamp(0.6rem, 3dvh, 1rem);
+        justify-content: center;
+        gap: var(--play-lockup-gap);
+        padding-block: 0.75rem;
+    }
+
+    .play-menu-wordmark {
+        --play-wordmark-size: 3.4rem;
+    }
+}
+
+@media (min-width: 480px) and (max-height: 480px) {
+    body.play-start-active .play-menu-actions:not(.flow-action-stack--docked),
+    body.play-start-active .play-menu-actions.flow-action-stack--docked {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        width: min(100%, 36rem);
+        max-width: 36rem;
+    }
+
+    body.play-start-active .play-menu-actions:not(.flow-action-stack--docked) .flow-action,
+    body.play-start-active .play-menu-actions.flow-action-stack--docked .flow-action {
         width: 100%;
         max-width: none;
-        min-height: 58px;
-        margin: 0;
-        padding-inline: 1rem;
+        min-height: 48px;
     }
 }
 

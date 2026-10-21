@@ -141,8 +141,8 @@ public sealed class AestheticSystemBrowserTests(
         Assert.True(proof.HasExpectedAthleteCopy);
         Assert.Equal("rgb(230, 237, 243)", proof.MainCopyColor);
         Assert.Equal("rgb(230, 237, 243)", proof.SupportingCopyColor);
-        Assert.Equal("rgb(91, 213, 221)", proof.FilledActionBackground);
-        Assert.Equal("rgb(8, 47, 53)", proof.FilledActionColor);
+        Assert.Equal("rgb(31, 122, 56)", proof.FilledActionBackground);
+        Assert.Equal("rgb(255, 255, 255)", proof.FilledActionColor);
         Assert.False(proof.FilledActionDisabled);
         Assert.NotEqual(readOnly.Background, proof.FilledActionBackground);
         Assert.NotEqual(readOnly.Color, proof.FilledActionColor);
@@ -176,6 +176,10 @@ public sealed class AestheticSystemBrowserTests(
         Assert.Equal("rgb(230, 237, 243)", review.SecondaryCopyColor);
         Assert.Equal("rgb(23, 33, 43)", review.SecondaryActionBackground);
         Assert.Equal("rgb(230, 237, 243)", review.SecondaryActionColor);
+
+        await NavigateAndSettleAsync(page, "/");
+        await Assertions.Expect(page.Locator("#viewAllAthletesBtn")).ToHaveCSSAsync("background-color", "rgb(91, 213, 221)");
+        await Assertions.Expect(page.Locator("#viewAllAthletesBtn")).ToHaveCSSAsync("color", "rgb(8, 47, 53)");
     }
 
     [Fact]
