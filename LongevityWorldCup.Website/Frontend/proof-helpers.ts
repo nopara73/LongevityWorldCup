@@ -28,6 +28,7 @@ interface PdfPage {
 interface PdfDocument {
     numPages: number;
     getPage: (pageNumber: number) => Promise<PdfPage>;
+    destroy?: () => Promise<void>;
 }
 
 interface PdfJsLibrary {
@@ -369,7 +370,7 @@ class ProofReview {
         if (this.progress) {
             // Files still being prepared hold their place in the grid.
             const pending = Math.max(1, this.progress.total - Math.floor(this.progress.completed));
-            for (let index = 0; index < Math.min(pending, 6); index++) {
+            for (let index = 0; index < Math.min(pending, maxProofImages - this.images.length); index++) {
                 const placeholder = document.createElement('div');
                 placeholder.className = 'proof-page-pending';
                 placeholder.setAttribute('aria-hidden', 'true');
@@ -392,15 +393,18 @@ class ProofReview {
                 const undo = this.button('Undo removal', 'proof-undo', () => {
                     const removed = this.removed.pop();
                     if (!removed) return;
-                    if (!this.images.includes(removed.image)) {
-                        this.images.splice(Math.min(removed.index, this.images.length), 0, removed.image);
-                    }
+                    // A removed page may have been uploaded again at the end of the
+                    // report. Restore that same page to its original place once.
+                    const currentIndex = this.images.indexOf(removed.image);
+                    if (currentIndex >= 0) this.images.splice(currentIndex, 1);
+                    this.images.splice(Math.min(removed.index, this.images.length), 0, removed.image);
                     this.notice = '';
                     this.render();
                     this.changed();
                     this.container.querySelectorAll<HTMLButtonElement>('.proof-page-preview')[this.images.indexOf(removed.image)]?.focus({ preventScroll: true });
                 });
-                undo.disabled = Boolean(this.progress) || this.images.length >= maxProofImages;
+                undo.disabled = Boolean(this.progress) || (this.images.length >= maxProofImages
+                    && !this.images.includes(this.removed[this.removed.length - 1]!.image));
                 const undoIcon = document.createElement('i');
                 undoIcon.className = 'fas fa-rotate-left';
                 undoIcon.setAttribute('aria-hidden', 'true');
@@ -428,15 +432,16 @@ class ProofReview {
             const dialog = document.createElement('dialog');
             dialog.className = 'proof-review-dialog';
             dialog.setAttribute('aria-label', 'Review attached proofs');
-            dialog.innerHTML = `<div class="proof-review-toolbar"><div class="proof-review-title"><span class="proof-review-position" role="status"></span><h2></h2></div><button type="button" class="proof-review-close" aria-label="Close proof review">Close <span aria-hidden="true">×</span></button></div>
+            dialog.innerHTML = `<div class="proof-review-toolbar"><div class="proof-review-title"><span class="proof-review-position" role="status"></span><h2></h2></div><button type="button" class="proof-review-close" aria-label="Close proof review"><span class="proof-review-close-label">Close </span><span aria-hidden="true">×</span></button></div>
                 <div class="proof-review-stage" tabindex="0" role="region" aria-label="Proof page"><img alt=""></div>
                 <div class="proof-review-filmstrip" role="group" aria-label="Proof pages"></div>
-                <div class="proof-review-navigation"><div class="proof-review-steps"><button type="button" class="proof-review-previous">← Previous</button><button type="button" class="proof-review-next">Next →</button></div><button type="button" class="proof-review-zoom">Zoom in</button></div>`;
+                <div class="proof-review-navigation"><div class="proof-review-steps"><button type="button" class="proof-review-previous"><span>←</span> <span class="proof-review-step-label">Previous</span></button><button type="button" class="proof-review-next"><span class="proof-review-step-label">Next</span> <span>→</span></button></div><button type="button" class="proof-review-zoom"><span class="proof-review-zoom-label">Zoom in</span></button></div>`;
             dialog.querySelector('.proof-review-close')?.addEventListener('click', () => dialog.close());
             dialog.querySelector('.proof-review-previous')?.addEventListener('click', () => this.navigate(-1));
             dialog.querySelector('.proof-review-next')?.addEventListener('click', () => this.navigate(1));
             dialog.querySelector('.proof-review-zoom')?.addEventListener('click', () => { this.zoomed = !this.zoomed; this.updateViewer(); });
             dialog.addEventListener('keydown', event => {
+                const inFilmstrip = document.activeElement?.closest('.proof-review-filmstrip');
                 if (event.key === 'Tab') {
                     const controls = Array.from(dialog.querySelectorAll<HTMLElement>('button:not(:disabled), [tabindex="0"]'));
                     const first = controls[0];
@@ -446,7 +451,7 @@ class ProofReview {
                         (event.shiftKey ? last : first)?.focus();
                     }
                 }
-                if (this.zoomed && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) {
+                if (this.zoomed && !inFilmstrip && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) {
                     event.preventDefault();
                     const stage = dialog.querySelector<HTMLElement>('.proof-review-stage')!;
                     const horizontal = event.key === 'ArrowLeft' || event.key === 'ArrowRight';
@@ -457,6 +462,13 @@ class ProofReview {
                 if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
                     event.preventDefault();
                     this.navigate(event.key === 'ArrowLeft' ? -1 : 1);
+                    if (inFilmstrip) dialog.querySelector<HTMLButtonElement>('.proof-review-thumb[aria-current="true"]')?.focus({ preventScroll: true });
+                } else if (inFilmstrip && (event.key === 'Home' || event.key === 'End')) {
+                    event.preventDefault();
+                    this.viewerIndex = event.key === 'Home' ? 0 : this.images.length - 1;
+                    this.zoomed = false;
+                    this.updateViewer();
+                    dialog.querySelector<HTMLButtonElement>('.proof-review-thumb[aria-current="true"]')?.focus({ preventScroll: true });
                 }
             });
             dialog.addEventListener('click', event => {
@@ -476,11 +488,18 @@ class ProofReview {
             });
             this.dialog = dialog;
             document.body.appendChild(dialog);
+            const steps = dialog.querySelector<HTMLElement>('.proof-review-steps')!;
+            const viewerResize = new ResizeObserver(() => this.fitNavigation());
+            viewerResize.observe(steps);
+            viewerResize.observe(dialog);
+            void document.fonts.ready.then(() => this.fitNavigation());
         }
         this.buildFilmstrip();
-        this.updateViewer();
         document.body.classList.add('proof-review-open');
         this.dialog.showModal();
+        // Measure the filmstrip after the dialog has a layout, including when
+        // opening directly on a page at the end of a long report.
+        this.updateViewer();
     }
 
     // Every page as a thumbnail under the viewer, so a long report can be crossed in one tap.
@@ -510,11 +529,40 @@ class ProofReview {
         this.updateViewer();
     }
 
+    private fitNavigation(): void {
+        if (!this.dialog?.open) return;
+        const dialog = this.dialog;
+        dialog.classList.remove('is-compact-title', 'is-compact-height');
+        const title = dialog.querySelector<HTMLElement>('h2')!;
+        dialog.classList.toggle('is-compact-title', title.clientWidth < parseFloat(getComputedStyle(title).fontSize) * 3);
+        const toolbar = dialog.querySelector<HTMLElement>('.proof-review-toolbar')!;
+        const strip = dialog.querySelector<HTMLElement>('.proof-review-filmstrip')!;
+        const navigation = dialog.querySelector<HTMLElement>('.proof-review-navigation')!;
+        const stage = dialog.querySelector<HTMLElement>('.proof-review-stage')!;
+        const requiredHeight = toolbar.offsetHeight + strip.offsetHeight + navigation.offsetHeight
+            + parseFloat(getComputedStyle(stage).minHeight);
+        dialog.classList.toggle('is-compact-height', requiredHeight > dialog.clientHeight);
+        const steps = dialog.querySelector<HTMLElement>('.proof-review-steps')!;
+        steps.classList.remove('is-compact');
+        const buttons = Array.from(steps.querySelectorAll('button'));
+        const overflow = steps.scrollWidth > steps.clientWidth + 1
+            || buttons.some(button => button.scrollWidth > button.clientWidth + 1);
+        steps.classList.toggle('is-compact', overflow);
+        const current = strip.querySelector<HTMLElement>('[aria-current="true"]');
+        if (current && strip.scrollWidth > strip.clientWidth) {
+            const left = strip.scrollLeft + current.getBoundingClientRect().left
+                - strip.getBoundingClientRect().left - (strip.clientWidth - current.offsetWidth) / 2;
+            strip.scrollTo({ left: Math.max(0, left), behavior: 'instant' });
+        }
+    }
+
     private updateViewer(): void {
         const dialog = this.dialog;
         const source = this.images[this.viewerIndex];
         if (!dialog || !source) return;
-        dialog.querySelector('h2')!.textContent = this.labels.get(source) || `Proof page ${this.viewerIndex + 1}`;
+        const title = dialog.querySelector('h2')!;
+        title.textContent = this.labels.get(source) || `Proof page ${this.viewerIndex + 1}`;
+        title.title = title.textContent;
         const image = dialog.querySelector('img')!;
         image.src = source;
         image.alt = `Proof page ${this.viewerIndex + 1} of ${this.images.length}`;
@@ -522,7 +570,7 @@ class ProofReview {
         dialog.querySelector<HTMLButtonElement>('.proof-review-previous')!.disabled = this.viewerIndex === 0;
         dialog.querySelector<HTMLButtonElement>('.proof-review-next')!.disabled = this.viewerIndex === this.images.length - 1;
         const zoom = dialog.querySelector<HTMLButtonElement>('.proof-review-zoom')!;
-        zoom.textContent = this.zoomed ? 'Fit page' : 'Zoom in';
+        zoom.querySelector<HTMLElement>('.proof-review-zoom-label')!.textContent = this.zoomed ? 'Fit page' : 'Zoom in';
         zoom.setAttribute('aria-pressed', String(this.zoomed));
         dialog.classList.toggle('is-zoomed', this.zoomed);
         const stage = dialog.querySelector<HTMLElement>('.proof-review-stage')!;
@@ -530,13 +578,11 @@ class ProofReview {
         const strip = dialog.querySelector<HTMLElement>('.proof-review-filmstrip');
         strip?.querySelectorAll<HTMLButtonElement>('.proof-review-thumb').forEach((thumb, index) => {
             const current = index === this.viewerIndex;
+            thumb.tabIndex = current ? 0 : -1;
             if (current) thumb.setAttribute('aria-current', 'true');
             else thumb.removeAttribute('aria-current');
-            if (current && strip.scrollWidth > strip.clientWidth) {
-                const left = thumb.offsetLeft - (strip.clientWidth - thumb.offsetWidth) / 2;
-                strip.scrollTo({ left: Math.max(0, left), behavior: 'instant' });
-            }
         });
+        this.fitNavigation();
     }
 }
 
@@ -563,6 +609,7 @@ window.setupProofUploadHTML = function (
         return;
     }
     let isProofUploadProcessing = false;
+    const queuedProofSelections: { files: File[]; retryButton: HTMLButtonElement | null | undefined }[] = [];
     const proofOptimizationOptions = {
         maxSize: 2560,
         quality: 0.88,
@@ -609,11 +656,6 @@ window.setupProofUploadHTML = function (
         input: HTMLInputElement | null,
         retryButton: HTMLButtonElement | null | undefined
     ): Promise<void> {
-        if (isProofUploadProcessing) {
-            if (input) input.value = "";
-            return;
-        }
-
         const selectedFiles = Array.from(files || []);
         if (selectedFiles.length === 0) {
             if (input) input.value = "";
@@ -656,12 +698,21 @@ window.setupProofUploadHTML = function (
             });
 
             const optimizeProofImageOrFallback: (raw: string) => Promise<string> = async raw => {
+                let candidate = raw;
                 try {
                     const { dataUrl } = await window.optimizeImageClient(raw, proofOptimizationOptions);
-                    return dataUrl || raw;
-                } catch (_) {
-                    return raw;
+                    candidate = dataUrl || raw;
+                } catch (_) { /* Keep a decodable original when optimization fails. */ }
+                // Match the server's encoded-image limit. A corrupt image or an
+                // oversized fallback must not become a broken, submittable page.
+                if (candidate.length > 10 * 1024 * 1024) {
+                    throw new Error('Proof image exceeds the encoded-image limit.');
                 }
+                const image = new Image();
+                image.src = candidate;
+                await image.decode();
+                if (!image.naturalWidth || !image.naturalHeight) throw new Error('Proof image could not be decoded.');
+                return candidate;
             };
 
             const encodeCanvasBlob = (
@@ -791,47 +842,63 @@ window.setupProofUploadHTML = function (
                         // load PDF
                         const loadingTask = pdfLib.getDocument({ data: fileBytes });
                         const pdfDoc = await loadingTask.promise;
-                        // render each page
-                        for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
-                            review.setProgress({ label: `${file.name} · Page ${pageNum} of ${pdfDoc.numPages}`,
-                                completed: fileIndex + (pageNum - 1) / pdfDoc.numPages, total: supportedFiles.length });
-                            if (proofPics.length >= maxProofImages) {
-                                hitImageLimit = true;
-                                break;
+                        try {
+                            // render each page
+                            for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
+                                review.setProgress({ label: `${file.name} · Page ${pageNum} of ${pdfDoc.numPages}`,
+                                    completed: fileIndex + (pageNum - 1) / pdfDoc.numPages, total: supportedFiles.length });
+                                const sourceKey = `${sourceFingerprint}:page:${pageNum}`;
+                                if (isKnownLiveProofSource(sourceKey)) {
+                                    duplicateProofs++;
+                                    continue;
+                                }
+                                if (proofPics.length >= maxProofImages) {
+                                    hitImageLimit = true;
+                                    break;
+                                }
+                                const page = await pdfDoc.getPage(pageNum);
+                                let viewport = page.getViewport({ scale: 1.5 });
+                                const longestSide = Math.max(viewport.width, viewport.height);
+                                if (!Number.isFinite(longestSide) || Math.min(viewport.width, viewport.height) <= 0) {
+                                    throw new Error('Proof page has invalid dimensions.');
+                                }
+                                if (longestSide > proofOptimizationOptions.maxSize) {
+                                    viewport = page.getViewport({ scale: 1.5 * proofOptimizationOptions.maxSize / longestSide });
+                                }
+                                const canvas = document.createElement('canvas');
+                                canvas.width = viewport.width;
+                                canvas.height = viewport.height;
+                                const context = canvas.getContext('2d');
+                                if (!context) throw new Error('Canvas context unavailable.');
+                                let optimizedPage: string;
+                                try {
+                                    await page.render({ canvasContext: context, viewport }).promise;
+                                    optimizedPage = await encodeProofCanvas(canvas);
+                                } finally {
+                                    canvas.width = canvas.height = 0;
+                                }
+                                if (optimizedPage) {
+                                    if (!review.labels.has(optimizedPage)) review.labels.set(optimizedPage, `${file.name} · Page ${pageNum}`);
+                                    addProofImage(optimizedPage);
+                                    proofSourceImages.set(sourceKey, optimizedPage);
+                                }
                             }
-                            const sourceKey = `${sourceFingerprint}:page:${pageNum}`;
-                            if (isKnownLiveProofSource(sourceKey)) {
-                                duplicateProofs++;
-                                continue;
-                            }
-                            const page = await pdfDoc.getPage(pageNum);
-                            const viewport = page.getViewport({ scale: 1.5 });
-                            const canvas = document.createElement('canvas');
-                            canvas.width = viewport.width;
-                            canvas.height = viewport.height;
-                            const context = canvas.getContext('2d');
-                            if (!context) throw new Error('Canvas context unavailable.');
-                            await page.render({ canvasContext: context, viewport }).promise;
-                            const optimizedPage = await encodeProofCanvas(canvas);
-                            if (optimizedPage) {
-                                if (!review.labels.has(optimizedPage)) review.labels.set(optimizedPage, `${file.name} · Page ${pageNum}`);
-                                addProofImage(optimizedPage);
-                                proofSourceImages.set(sourceKey, optimizedPage);
-                            }
+                        } finally {
+                            await pdfDoc.destroy?.();
                         }
                         review.render();
                         checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
                         continue;
                     }
 
-                    if (proofPics.length >= maxProofImages) {
-                        hitImageLimit = true;
-                        break;
-                    }
                     const sourceKey = `${sourceFingerprint}:image`;
                     if (isKnownLiveProofSource(sourceKey)) {
                         duplicateProofs++;
                         continue;
+                    }
+                    if (proofPics.length >= maxProofImages) {
+                        hitImageLimit = true;
+                        break;
                     }
                     const raw = await readDataURL(file);
                     const dataUrl = await optimizeProofImageOrFallback(raw);
@@ -883,6 +950,27 @@ window.setupProofUploadHTML = function (
         } finally {
             // Reset the file input's value to allow re-uploading the same file if needed.
             if (input) input.value = "";
+        }
+    };
+
+    const handleProofSelection = async (
+        files: FileList | null,
+        input: HTMLInputElement,
+        retryButton: HTMLButtonElement | null | undefined
+    ): Promise<void> => {
+        // Snapshot each selection before another change can replace the FileList.
+        const selected = Array.from(files || []);
+        input.value = '';
+        if (!selected.length) return;
+        queuedProofSelections.push({ files: selected, retryButton });
+        if (isProofUploadProcessing) return;
+        isProofUploadProcessing = true;
+        try {
+            while (queuedProofSelections.length) {
+                const selection = queuedProofSelections.shift()!;
+                await handleProofFiles(selection.files, null, selection.retryButton);
+            }
+        } finally {
             isProofUploadProcessing = false;
             proofProcessingButtons.delete(nextButton);
             review.setProgress(null);
@@ -897,14 +985,14 @@ window.setupProofUploadHTML = function (
     // Handle proof uploads (without cropping)
     if (proofPicInput && !proofPicInput.hasAttribute('data-listener')) {
         proofPicInput.addEventListener('change', async function () {
-            await handleProofFiles(proofPicInput.files, proofPicInput, uploadProofButton);
+            await handleProofSelection(proofPicInput.files, proofPicInput, uploadProofButton);
         });
         proofPicInput.setAttribute('data-listener', 'true');
     }
 
     if (cameraInput && !cameraInput.hasAttribute('data-listener')) {
         cameraInput.addEventListener('change', async function () {
-            await handleProofFiles(cameraInput.files, cameraInput, cameraButton || uploadProofButton);
+            await handleProofSelection(cameraInput.files, cameraInput, cameraButton || uploadProofButton);
         });
         cameraInput.setAttribute('data-listener', 'true');
     }
