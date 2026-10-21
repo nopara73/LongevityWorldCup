@@ -221,6 +221,37 @@ public sealed class InternalToolsDashboardBrowserTests(
         await FlowActionDockBrowserTests.ExpectNoHorizontalOverflowAsync(page);
     }
 
+    [Theory]
+    [InlineData(390)]
+    [InlineData(320)]
+    public async Task Statistics_LargeCountsRemainReadableInsideTheirCards(int width)
+    {
+        await using var context = await NewContextAsync(width, ColorScheme.Dark);
+        var page = await context.NewPageAsync();
+        var payload = JsonNode.Parse(DashboardPayload(diagnostics: false))!;
+        payload["trafficSummary"]!["totals"]!["sessions"] = int.MaxValue;
+        payload["trafficSummary"]!["totals"]!["pageViews"] = int.MaxValue;
+        await RouteDashboardAsync(page, payload.ToJsonString());
+        await page.GotoAsync(Statistics);
+        await page.Locator("#trafficDailyChart").WaitForAsync();
+        var escaped = await page.Locator(".traffic-metric").EvaluateAllAsync<string[]>(
+            """
+            metrics => metrics.flatMap(metric => {
+                const box = metric.getBoundingClientRect();
+                return [...metric.children].flatMap(child => {
+                    const range = document.createRange();
+                    range.selectNodeContents(child);
+                    return [...range.getClientRects()].some(rect => rect.left < box.left - 1 || rect.right > box.right + 1)
+                        ? [child.textContent] : [];
+                });
+            })
+            """);
+        Assert.Empty(escaped);
+        var count = await page.Locator(".traffic-metric > strong").First.TextContentAsync();
+        Assert.Equal(int.MaxValue.ToString(CultureInfo.InvariantCulture), string.Concat(count!.Where(char.IsDigit)));
+        await FlowActionDockBrowserTests.ExpectNoHorizontalOverflowAsync(page);
+    }
+
     [Fact]
     public async Task Statistics_FunnelPreservesReachAndComparesAdjacentSessionCohorts()
     {

@@ -534,6 +534,8 @@ select:focus-visible,
 }
 
 .traffic-metric > strong {
+    min-width: 0;
+    overflow-wrap: anywhere;
     font-size: 40px;
     font-weight: 400;
     line-height: 1.15;
@@ -542,6 +544,8 @@ select:focus-visible,
 }
 
 .traffic-metric > em {
+    max-width: 100%;
+    overflow-wrap: anywhere;
     width: fit-content;
     color: var(--muted);
     font-size: 12px;
@@ -1302,6 +1306,8 @@ select:focus-visible,
     .stats-diagnostic-tabs::-webkit-scrollbar { display: none; }
     .stats-diagnostic-tabs .stats-tab { flex: 0 0 auto; }
     .data-quality-strip { grid-template-columns: 1fr; }
+    .traffic-metrics:has([data-wide-value="true"]) { grid-template-columns: minmax(0, 1fr); }
+    .traffic-metrics:has([data-wide-value="true"]) .traffic-metric + .traffic-metric { border-left: 0; border-top: 1px solid var(--line); }
     .outcome-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .detail-sections { grid-template-columns: minmax(0, 1fr); }
 

@@ -839,7 +839,8 @@
                 delta = `${change < 0 ? "↓" : change > 0 ? "↑" : ""} ${percent} vs previous ${/\d/.test(period) ? period : "period"}`;
             } else delta = "No activity in the previous period";
         }
-        return `<div class="traffic-metric"><span>${esc(label)}</span><strong>${esc(formatNumber(current))}</strong><em>${esc(delta)}</em></div>`;
+        const formatted = formatNumber(current);
+        return `<div class="traffic-metric" data-wide-value="${formatted.length > 8}"><span>${esc(label)}</span><strong>${esc(formatted)}</strong><em>${esc(delta)}</em></div>`;
     }
 
     function trafficOutcome(label: string, value: number, detail: string): string {
