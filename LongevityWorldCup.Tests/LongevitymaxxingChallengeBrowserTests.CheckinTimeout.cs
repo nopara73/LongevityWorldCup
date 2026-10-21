@@ -34,7 +34,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
                     if (String(url).endsWith('/api/longevitymaxxing/check-in') && ++attempts === 1) {
                         return new Response(new ReadableStream({
                             start(controller) {
-                                window.stalledCheckInBody = true;
+                                document.documentElement.setAttribute('data-stalled-checkin-body', 'true');
                                 options.signal.addEventListener('abort', () => controller.error(new DOMException('Aborted body', 'AbortError')), {once:true});
                                 controller.enqueue(new TextEncoder().encode('{'));
                             }
@@ -50,7 +50,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         if (withPhotos) await AddCheckInPhotosAsync(form, "walk.png");
         var save = form.Locator("button[type='submit']");
         await save.ClickAsync();
-        await page.WaitForFunctionAsync("window.stalledCheckInBody === true");
+        await Assertions.Expect(page.Locator("html")).ToHaveAttributeAsync("data-stalled-checkin-body", "true");
         await Assertions.Expect(save).ToHaveTextAsync("Saving…");
         await page.Clock.FastForwardAsync(65001);
         await Assertions.Expect(save).ToHaveTextAsync("Retry");
