@@ -2993,7 +2993,10 @@ function resetModalForLoading(athleteSlug) {
     }
 
     const modalBadgeStrip = document.getElementById('modalBadgeStrip');
-    if (modalBadgeStrip) modalBadgeStrip.innerHTML = '';
+    if (modalBadgeStrip) {
+        setModalBadgeExplainer(modalBadgeStrip, null);
+        modalBadgeStrip.replaceChildren();
+    }
     const athleteBio = document.getElementById('athleteBio');
     if (athleteBio) {
         athleteBio.textContent = '';
@@ -3317,6 +3320,8 @@ function closeModal(options) {
     const modalContent = document.querySelector('.modal-content');
     if (!modalContent) return;
     modal._historyClosePending = false;
+    const badgeShelf = document.getElementById('modalBadgeStrip');
+    if (badgeShelf) setModalBadgeExplainer(badgeShelf, null);
 
     currentAthleteModalRequestId++;
     const returnFocusElement = athleteDialogReturnFocusElement;
@@ -4926,6 +4931,12 @@ function closeOpenComponents(options) {
         if (!closeAll) return;
     }
 
+    const badgeShelf = document.getElementById('modalBadgeStrip');
+    if (badgeShelf?.querySelector('.modal-badge-item.expanded')) {
+        setModalBadgeExplainer(badgeShelf, null);
+        if (!closeAll) return;
+    }
+
     // Keep the parent details modal locked until the Guess My Age response is confirmed.
     // Its nested image viewer and share menu remain independently dismissible above this guard.
     const modalContent = document.querySelector('.modal-content');
@@ -6048,7 +6059,8 @@ function populateModal(fullAthleteData, athleteData, rankSummary) {
 
     // — Add badge strip into the modal —
     const modalBadgeSection = document.getElementById('modalBadgeStrip');
-    modalBadgeSection.innerHTML = '';
+    setModalBadgeExplainer(modalBadgeSection, null);
+    modalBadgeSection.replaceChildren();
     // Clone athleteData but disable personalLink for modal badges
     const athleteForBadges = { ...athleteData, personalLink: null };
     window.setBadges(athleteForBadges, {
@@ -6057,7 +6069,7 @@ function populateModal(fullAthleteData, athleteData, rankSummary) {
 
     // wrap each badge in a column with its name
     const badges = Array.from(modalBadgeSection.children);
-    modalBadgeSection.innerHTML = '';
+    modalBadgeSection.replaceChildren();
     badges.forEach(badge => {
         const fullTitle = badge.getAttribute('title') || '';
         const colonIndex = fullTitle.indexOf(':');
@@ -6070,41 +6082,117 @@ function populateModal(fullAthleteData, athleteData, rankSummary) {
 
         const wrapper = document.createElement('div');
         wrapper.classList.add('modal-badge-item');
-        wrapper.setAttribute('role', 'button');
-        wrapper.setAttribute('tabindex', '0');
-        wrapper.setAttribute('aria-expanded', 'false');
-        wrapper.setAttribute('aria-label', fullTitle ? `Show badge details: ${fullTitle}` : 'Show badge details');
-        wrapper.appendChild(badge);
+        const toggle = document.createElement('button');
+        toggle.type = 'button';
+        toggle.className = 'modal-badge-toggle';
+        toggle.setAttribute('aria-expanded', 'false');
+        toggle.setAttribute('aria-label', fullTitle ? `Show badge details: ${fullTitle}` : 'Show badge details');
+        badge.removeAttribute('title');
+        if (!badge.matches('a')) {
+            badge.removeAttribute('tabindex');
+            badge.removeAttribute('aria-label');
+            badge.setAttribute('aria-hidden', 'true');
+            toggle.appendChild(badge);
+        } else wrapper.appendChild(badge);
 
-        const label = document.createElement('div');
+        const label = document.createElement('span');
         label.classList.add('modal-badge-name');
+        const title = document.createElement('span');
+        title.className = 'modal-badge-title';
+        title.textContent = titlePart;
+        label.appendChild(title);
         if (detailPart) {
-            label.innerHTML =
-                `<span class="modal-badge-title">${titlePart}</span>` +
-                `<span class="modal-badge-detail">${detailPart}</span>`;
-        } else {
-            label.innerHTML = `<span class="modal-badge-title">${titlePart}</span>`;
+            const detail = document.createElement('span');
+            detail.className = 'modal-badge-detail';
+            detail.textContent = detailPart;
+            label.appendChild(detail);
         }
-        wrapper.appendChild(label);
+        toggle.appendChild(label);
+        wrapper.appendChild(toggle);
 
-        const toggleBadgeDetails = (event) => {
-            if (event.target.closest('a.badge-podcast')) return;
-
-            const isExpanded = wrapper.classList.toggle('expanded');
-            wrapper.setAttribute('aria-expanded', isExpanded ? 'true' : 'false');
-        };
-
-        wrapper.addEventListener('click', toggleBadgeDetails);
+        toggle.addEventListener('click', () => {
+            setModalBadgeExplainer(modalBadgeSection, wrapper.classList.contains('expanded') ? null : wrapper);
+        });
         wrapper.addEventListener('keydown', (event) => {
-            if (event.key !== 'Enter' && event.key !== ' ') return;
-            if (event.target.closest('a.badge-podcast')) return;
-
-            event.preventDefault();
-            toggleBadgeDetails(event);
+            if (event.key === 'Escape' && wrapper.classList.contains('expanded')) {
+                event.stopPropagation();
+                setModalBadgeExplainer(modalBadgeSection, null);
+                return;
+            }
         });
         modalBadgeSection.appendChild(wrapper);
     });
 
+}
+
+// The shelf keeps its grid still: a chosen badge's explanation opens as one
+// panel under that badge's row, with a caret pointing back at the badge.
+let modalBadgeExplainerObserver = null;
+let modalBadgeExplainerFrame = 0;
+
+function setModalBadgeExplainer(shelf, item) {
+    modalBadgeExplainerObserver?.disconnect();
+    modalBadgeExplainerObserver = null;
+    cancelAnimationFrame(modalBadgeExplainerFrame);
+    modalBadgeExplainerFrame = 0;
+    shelf.querySelectorAll('.modal-badge-item.expanded').forEach(open => {
+        open.classList.remove('expanded');
+        const toggle = open.querySelector('.modal-badge-toggle');
+        toggle?.setAttribute('aria-expanded', 'false');
+        toggle?.removeAttribute('aria-controls');
+    });
+    shelf.querySelector('.modal-badge-explainer')?.remove();
+    if (!item) return;
+
+    const detail = item.querySelector('.modal-badge-detail');
+    const title = item.querySelector('.modal-badge-title');
+    if (!detail && !title) return;
+
+    item.classList.add('expanded');
+    const toggle = item.querySelector('.modal-badge-toggle');
+    toggle.setAttribute('aria-expanded', 'true');
+
+    const panel = document.createElement('div');
+    panel.className = 'modal-badge-explainer';
+    panel.id = 'modalBadgeExplainer';
+    panel.setAttribute('role', 'region');
+    const heading = document.createElement('strong');
+    heading.className = 'modal-badge-explainer-title';
+    heading.id = 'modalBadgeExplainerTitle';
+    panel.setAttribute('aria-labelledby', heading.id);
+    heading.textContent = title ? title.textContent : '';
+    panel.appendChild(heading);
+    if (detail) {
+        const text = document.createElement('span');
+        text.className = 'modal-badge-explainer-detail';
+        text.textContent = detail.textContent;
+        panel.appendChild(text);
+    }
+    toggle.setAttribute('aria-controls', panel.id);
+
+    const placePanel = () => {
+        if (!shelf.isConnected || !item.isConnected || !shelf.getClientRects().length) {
+            setModalBadgeExplainer(shelf, null);
+            return;
+        }
+        // Measure natural rows without the old panel reserving a grid row.
+        panel.remove();
+        const items = Array.from(shelf.querySelectorAll('.modal-badge-item'));
+        const top = item.getBoundingClientRect().top;
+        const rowEnd = items.filter(other => Math.abs(other.getBoundingClientRect().top - top) < 1).pop() || item;
+        rowEnd.after(panel);
+        const panelRect = panel.getBoundingClientRect();
+        const badgeRect = (item.querySelector('.badge-class') || item).getBoundingClientRect();
+        panel.style.setProperty('--explainer-caret', `${Math.round(badgeRect.left + badgeRect.width / 2 - panelRect.left)}px`);
+    };
+    placePanel();
+    // Container and font changes can alter row placement without window resize.
+    modalBadgeExplainerObserver = new ResizeObserver(() => {
+        cancelAnimationFrame(modalBadgeExplainerFrame);
+        modalBadgeExplainerFrame = requestAnimationFrame(placePanel);
+    });
+    modalBadgeExplainerObserver.observe(shelf);
+    shelf.querySelectorAll('.modal-badge-item').forEach(badge => modalBadgeExplainerObserver.observe(badge));
 }
 
 function getBiomarkerTestDate(value) {
