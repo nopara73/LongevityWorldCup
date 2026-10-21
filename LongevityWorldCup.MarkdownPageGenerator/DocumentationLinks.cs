@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 
 // Markdown owns destinations. Only choose a default browsing context for links
 // that do not already specify one; never rewrite a URL or its fragment.
-public static class DocumentationLinks
+internal static class DocumentationLinks
 {
     public static string OpenExternalLinksInNewTabs(string html) => Regex.Replace(
         html, "<a\\b(?<attributes>[^>]*)>", match =>
