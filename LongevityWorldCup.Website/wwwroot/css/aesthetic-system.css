@@ -1960,7 +1960,8 @@ html body .leaderboard .athlete-name {
         color: var(--lwc-ink) !important;
     }
 
-    html body .option-button:not(.grey):not(.back-button):not(.flow-action--secondary):not(:disabled):not([aria-disabled="true"]),
+    /* Play's green forward actions retain their route-specific colours. */
+    html body .option-button:not(.grey):not(.back-button):not(.flow-action--secondary):not(:disabled):not([aria-disabled="true"]):not(:where(.play-flow-route .green)),
     html body .dialog-button:not(:disabled):not([aria-disabled="true"]),
     html body .rankings-btn:not(:disabled):not([aria-disabled="true"]),
     html body .enhanced-subscribe-btn:not(:disabled):not([aria-disabled="true"]),
@@ -1969,7 +1970,7 @@ html body .leaderboard .athlete-name {
         color: var(--lwc-on-accent);
     }
 
-    html body .option-button:not(.grey):not(.back-button):not(.flow-action--secondary):not(:disabled):not([aria-disabled="true"]):hover,
+    html body .option-button:not(.grey):not(.back-button):not(.flow-action--secondary):not(:disabled):not([aria-disabled="true"]):not(:where(.play-flow-route .green)):hover,
     html body .dialog-button:not(:disabled):not([aria-disabled="true"]):hover,
     html body .rankings-btn:not(:disabled):not([aria-disabled="true"]):hover,
     html body .enhanced-subscribe-btn:not(:disabled):not([aria-disabled="true"]):hover,
