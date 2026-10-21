@@ -21,6 +21,7 @@ public sealed class BioageBiomarkerSheetBrowserTests(
     [InlineData("/bortz-age", 320, 844, 100)]
     [InlineData("/bortz-age", 195, 844, 100)]
     [InlineData("/bortz-age", 160, 844, 100)]
+    [InlineData("/bortz-age", 240, 844, 100)]
     [InlineData("/bortz-age", 768, 1024, 200)]
     public async Task BiomarkerSheet_KeepsEveryValueOpenAndTypableInOrder(string path, int width, int height, int textPercent)
     {
@@ -56,9 +57,16 @@ public sealed class BioageBiomarkerSheetBrowserTests(
                     const title = [...legend.childNodes].find(node => node.nodeType === Node.TEXT_NODE && node.textContent.trim());
                     if (!title) continue;
                     const range = document.createRange();
-                    range.selectNodeContents(title);
+                    range.setStart(title, title.textContent.search(/\S/));
+                    range.setEnd(title, title.textContent.trimEnd().length);
                     const lines = new Set([...range.getClientRects()].filter(rect => rect.width > 1).map(rect => Math.round(rect.top)));
                     if (lines.size > 2) issues.push(`${title.textContent.trim()}: domain title is squeezed into ${lines.size} lines`);
+                    for (const word of title.textContent.matchAll(/\S+/g)) {
+                        range.setStart(title, word.index);
+                        range.setEnd(title, word.index + word[0].length);
+                        const wordLines = new Set([...range.getClientRects()].filter(rect => rect.width > 1).map(rect => Math.round(rect.top)));
+                        if (wordLines.size > 1) issues.push(`${word[0]}: domain word is broken across lines`);
+                    }
                 }
                 for (const card of document.querySelectorAll('#lwc-step-2 .biomarker-card')) {
                     const header = card.querySelector('.biomarker-card-header');

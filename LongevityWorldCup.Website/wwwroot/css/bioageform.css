@@ -2368,6 +2368,25 @@ body :is(#phenoAgeResult, #bortzAgeResult) #ensureCorrectInputSuggestion i {
     :is(#phenoAgeForm, #bortzAgeForm).bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card.active .biomarker-card-content {
         padding-inline: 8px !important;
     }
+
+    :is(#phenoAgeForm, #bortzAgeForm) :is(#lwc-step-1, #lwc-step-2) > fieldset > legend {
+        display: block;
+    }
+
+    :is(#phenoAgeForm, #bortzAgeForm) legend .category-icon {
+        display: inline-flex;
+        margin-right: 0.4rem;
+        vertical-align: middle;
+    }
+
+    :is(#phenoAgeForm, #bortzAgeForm) .bioage-domain-tally {
+        display: flex;
+        justify-content: flex-start;
+        gap: 4px;
+        margin-top: 0.4rem;
+        margin-left: 0;
+        padding-left: 0;
+    }
 }
 
 @media (max-width: 239px) {
@@ -2392,24 +2411,6 @@ body :is(#phenoAgeResult, #bortzAgeResult) #ensureCorrectInputSuggestion i {
         padding-left: 6px;
     }
 
-    :is(#phenoAgeForm, #bortzAgeForm) :is(#lwc-step-1, #lwc-step-2) > fieldset > legend {
-        display: block;
-    }
-
-    :is(#phenoAgeForm, #bortzAgeForm) legend .category-icon {
-        display: inline-flex;
-        margin-right: 0.4rem;
-        vertical-align: middle;
-    }
-
-    :is(#phenoAgeForm, #bortzAgeForm) .bioage-domain-tally {
-        display: flex;
-        justify-content: flex-start;
-        gap: 4px;
-        margin-top: 0.4rem;
-        margin-left: 0;
-        padding-left: 0;
-    }
 }
 
 #phenoAgeForm {
