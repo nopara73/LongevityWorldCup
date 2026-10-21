@@ -76,6 +76,8 @@ public static class PublicProfileHtmlRenderer
         html = SetContent(html, "lowestPhenoAge", PublicHtmlFormat.Fixed(stats.LowestPhenoAge));
         html = SetContent(html, "ageReduction", SignedProfile(stats.AgeReduction));
         html = SetContent(html, "ageReductionPercent", PublicHtmlFormat.Fixed((1 - stats.PhenoPaceOfAging) * 100));
+        if (stats.PhenoPaceOfAging is not double phenoPace || !double.IsFinite(phenoPace))
+            html = html.Replace("id=\"ageReductionShare\"", "id=\"ageReductionShare\" hidden", StringComparison.Ordinal);
         html = SetContent(html, "ageReductionAccelerationLabel", stats.AgeReduction < 0 ? "Pheno Age reduction" : "Pheno Age acceleration");
         if (stats.LowestPhenoAge is double phenoAge && double.IsFinite(phenoAge))
             html = ShowRow(html, "lowestPhenoAgeContainer");
@@ -98,6 +100,8 @@ public static class PublicProfileHtmlRenderer
             html = SetContent(html, "lowestBortzAge", PublicHtmlFormat.Fixed(stats.LowestBortzAge));
             html = SetContent(html, "bortzAgeReduction", SignedProfile(stats.BortzAgeReduction));
             html = SetContent(html, "bortzAgeReductionPercent", PublicHtmlFormat.Fixed((1 - stats.BortzPaceOfAging) * 100));
+            if (stats.BortzPaceOfAging is not double bortzPace || !double.IsFinite(bortzPace))
+                html = html.Replace("id=\"bortzAgeReductionShare\"", "id=\"bortzAgeReductionShare\" hidden", StringComparison.Ordinal);
             html = SetContent(html, "bortzAgeReductionAccelerationLabel", stats.BortzAgeReduction < 0 ? "Bortz Age reduction" : "Bortz Age acceleration");
         }
         html = PopulatePace(html, "bortzPaceOfAging", stats.BortzPaceOfAging, snapshot.Athletes

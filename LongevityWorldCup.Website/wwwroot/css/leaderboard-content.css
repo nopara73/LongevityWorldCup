@@ -4169,7 +4169,7 @@
      padding:.7rem 1rem;
      border-top:1px solid var(--athlete-doc-rule);
  }
- #detailsModal #athlete-stats .athlete-info-table tr[style*="none"]{ display:none; }
+ #detailsModal #athlete-stats .athlete-info-table tr[hidden]{ display:none; }
  #detailsModal #athlete-stats .athlete-info-table tr.athlete-info-group-first{ border-top:0; }
  #detailsModal #athlete-stats .athlete-info-table th,
  #detailsModal #athlete-stats .athlete-info-table td{

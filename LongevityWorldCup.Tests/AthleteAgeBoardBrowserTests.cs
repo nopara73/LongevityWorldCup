@@ -1,4 +1,8 @@
 using Microsoft.Playwright;
+using System.Net.Http.Json;
+using System.Text.Json.Nodes;
+using LongevityWorldCup.Website.Business;
+using LongevityWorldCup.Website.Tools;
 using Xunit;
 
 namespace LongevityWorldCup.Tests;
@@ -104,6 +108,67 @@ public sealed class AthleteAgeBoardBrowserTests(
     }
 
     [Theory]
+    [InlineData("bortz")]
+    [InlineData("pheno")]
+    [InlineData("both-without-bortz-pace")]
+    [InlineData("both-without-pheno-pace")]
+    [InlineData("crowd")]
+    public async Task ServerVisibility_PreservesCanonicalClockValuesAndHidesUnavailablePaceDetails(string state)
+    {
+        using var client = App.CreateClient();
+        var snapshot = new PublicLeaderboardSnapshot((await client.GetFromJsonAsync<JsonArray>("/api/data/athletes"))!, DateTime.UtcNow);
+        var athlete = snapshot.Athletes.Single(a => a.Stats.Name == "Benjamin Garden");
+        var original = athlete.Stats;
+        // Exercise unavailable presentation boundaries with the existing
+        // calculator results. No measurements or competition data are changed.
+        var stats = new PhenoStatsCalculator.Result
+        {
+            Slug = original.Slug, Name = original.Name, DobUtc = original.DobUtc, ChronoAge = original.ChronoAge,
+            LowestPhenoAge = state == "bortz" ? null : original.LowestPhenoAge,
+            AgeReduction = state == "bortz" ? null : original.AgeReduction,
+            PhenoPaceOfAging = state is "bortz" or "both-without-pheno-pace" ? null : original.PhenoPaceOfAging,
+            LowestBortzAge = state == "pheno" ? null : original.LowestBortzAge,
+            BortzAgeReduction = state == "pheno" ? null : original.BortzAgeReduction,
+            BortzPaceOfAging = state is "pheno" or "both-without-bortz-pace" ? null : original.BortzPaceOfAging,
+            CrowdAge = state == "crowd" ? 59 : null, CrowdCount = state == "crowd" ? 123 : 0
+        };
+        var html = PublicProfileHtmlRenderer.Render(await client.GetStringAsync("/"), snapshot, athlete with { Stats = stats }, DateTime.UtcNow);
+        await using var context = await NewContextAsync(1440, true, false);
+        await context.RouteAsync("**/athlete/benjamin-garden", route => route.FulfillAsync(new() { ContentType = "text/html", Body = html }));
+        var page = await OpenAsync(context, "benjamin-garden", false);
+        await Assertions.Expect(page.Locator("#yourGuessContainer")).ToBeHiddenAsync();
+        foreach (var (clock, expected) in new[] { ("bortz", state != "pheno"), ("pheno", state != "bortz") })
+        {
+            var id = clock == "bortz" ? "lowestBortzAge" : "lowestPhenoAge";
+            Assert.Equal(expected, await page.Locator("#" + id + "Container").IsVisibleAsync());
+            if (expected) await Assertions.Expect(page.Locator("#" + id)).ToHaveTextAsync(PublicHtmlFormat.Fixed(clock == "bortz" ? original.LowestBortzAge : original.LowestPhenoAge));
+        }
+        if (state is "bortz" or "pheno")
+        {
+            var perRow = await page.Locator(".athlete-age-board").EvaluateAsync<int>("""
+                board => { const tiles = [...board.querySelectorAll('tr[data-clock]')].filter(row => row.checkVisibility());
+                    return tiles.filter(row => Math.abs(row.getBoundingClientRect().top - tiles[0].getBoundingClientRect().top) < 1).length; }
+                """);
+            Assert.Equal(3, perRow);
+        }
+        if (state is "both-without-bortz-pace" or "both-without-pheno-pace")
+        {
+            var bortz = state == "both-without-bortz-pace";
+            await Assertions.Expect(page.Locator(bortz ? "#bortzPaceOfAgingContainer" : "#paceOfAgingContainer")).ToBeHiddenAsync();
+            await Assertions.Expect(page.Locator(bortz ? "#bortzAgeReductionShare" : "#ageReductionShare")).ToBeHiddenAsync();
+            await Assertions.Expect(page.Locator(bortz ? "#ageReductionShare" : "#bortzAgeReductionShare")).ToBeVisibleAsync();
+            Assert.True(await page.EvaluateAsync<bool>("Math.abs(document.getElementById('bortzAgeReductionContainer').getBoundingClientRect().top - document.getElementById('ageReductionContainer').getBoundingClientRect().top) < 1"));
+        }
+        if (state == "crowd")
+        {
+            await Assertions.Expect(page.Locator("#crowdAgeContainer")).ToBeVisibleAsync();
+            await Assertions.Expect(page.Locator("#crowdAge")).ToHaveTextAsync("59");
+            await Assertions.Expect(page.Locator("#crowdCount")).ToHaveTextAsync("123");
+        }
+        else await Assertions.Expect(page.Locator("#crowdAgeContainer")).ToBeHiddenAsync();
+    }
+
+    [Theory]
     [InlineData(1440, 100)]
     [InlineData(390, 100)]
     [InlineData(320, 200)]
@@ -128,7 +193,7 @@ public sealed class AthleteAgeBoardBrowserTests(
                             if (!walker.currentNode.textContent.trim()) continue;
                             const range = document.createRange(); range.selectNodeContents(walker.currentNode);
                             for (const rect of range.getClientRects())
-                                if (rect.width && (rect.left < bounds.left - 1 || rect.right > bounds.right + 1)) failures.push(`${state}: ${tile.id} text escapes`);
+                                if (rect.width && (rect.left < bounds.left - 1 || rect.right > bounds.right + 1 || rect.top < bounds.top - 1 || rect.bottom > bounds.bottom + 1)) failures.push(`${state}: ${tile.id} text escapes`);
                         }
                     }
                 };
@@ -166,6 +231,7 @@ public sealed class AthleteAgeBoardBrowserTests(
                     // Other inline styles must not affect layout visibility.
                     document.getElementById('chronologicalAgeContainer').style.userSelect = 'none';
                     await settle(); checkText(`crowd=${crowd}, guess=${guess?.value}`);
+                    if (!document.getElementById('chronologicalAgeContainer').checkVisibility()) failures.push('an unrelated inline style hides chronological age');
                     const firstClock = box('lowestBortzAgeContainer');
                     for (const row of board.querySelectorAll('tr:not([data-clock])'))
                         if (row.checkVisibility() && row.getBoundingClientRect().bottom > firstClock.top + 1) failures.push('reference follows a clock tile');
@@ -175,7 +241,9 @@ public sealed class AthleteAgeBoardBrowserTests(
                 await settle();
                 if (Math.abs(box('lowestBortzAgeContainer').top - board.getBoundingClientRect().top) > 1) failures.push('hidden references leave an empty row');
                 document.getElementById('chronologicalAgeContainer').hidden = false;
-                for (const id of ['lowestBortzAge', 'lowestPhenoAge', 'crowdCount']) document.getElementById(id).textContent = '12345678901234567890.1';
+                api.updateCrowdContainer(59, 123); window.updateYourGuess();
+                for (const id of ['chronologicalAge', 'lowestBortzAge', 'lowestPhenoAge', 'crowdCount', 'bortzAgeReductionPercent', 'ageReductionPercent']) document.getElementById(id).textContent = '12345678901234567890.1';
+                for (const id of ['bortzPaceOfAgingRank', 'paceOfAgingRank']) document.getElementById(id).textContent = '#12345678901234567890';
                 await settle(); checkText('long numeric stress fixture');
                 return failures;
             }
