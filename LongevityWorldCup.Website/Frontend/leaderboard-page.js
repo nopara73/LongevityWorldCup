@@ -6018,14 +6018,14 @@ function populateModal(fullAthleteData, athleteData, rankSummary) {
     const bortzAgeReductionContainer = document.getElementById('bortzAgeReductionContainer');
     const bortzAgeReductionLabel = document.getElementById('bortzAgeReductionAccelerationLabel');
     if (athleteData.bortzAgeReduction != null && Number.isFinite(athleteData.bortzAgeReduction)) {
-        bortzAgeReductionLabel.textContent = athleteData.bortzAgeReduction < 0 ? "Bortz Age reduction:" : "Bortz Age acceleration:";
+        bortzAgeReductionLabel.textContent = athleteData.bortzAgeReduction < 0 ? "Bortz Age reduction" : "Bortz Age acceleration";
         document.getElementById('bortzAgeReduction').textContent = (athleteData.bortzAgeReduction >= 0 ? "+" : "") + athleteData.bortzAgeReduction.toFixed(1);
         document.getElementById('bortzAgeReductionPercent').textContent = athleteData.bortzAgeReductionPercent.toFixed(1);
         bortzAgeReductionContainer.style.display = '';
     } else {
         bortzAgeReductionContainer.style.display = 'none';
     }
-    document.getElementById('ageReductionAccelerationLabel').textContent = athleteData.ageReduction < 0 ? "Pheno Age reduction:" : "Pheno Age acceleration:";
+    document.getElementById('ageReductionAccelerationLabel').textContent = athleteData.ageReduction < 0 ? "Pheno Age reduction" : "Pheno Age acceleration";
     document.getElementById('ageReduction').textContent = (athleteData.ageReduction >= 0 ? "+" : "") + athleteData.ageReduction.toFixed(1);
     document.getElementById('ageReductionPercent').textContent = athleteData.ageReductionPercent.toFixed(1);
     updateAthleteInfoGrouping();

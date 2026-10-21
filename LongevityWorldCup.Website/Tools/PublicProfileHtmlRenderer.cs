@@ -77,7 +77,7 @@ public static class PublicProfileHtmlRenderer
         html = SetContent(html, "lowestPhenoAge", PublicHtmlFormat.Fixed(stats.LowestPhenoAge));
         html = SetContent(html, "ageReduction", SignedProfile(stats.AgeReduction));
         html = SetContent(html, "ageReductionPercent", PublicHtmlFormat.Fixed((1 - stats.PhenoPaceOfAging) * 100));
-        html = SetContent(html, "ageReductionAccelerationLabel", stats.AgeReduction < 0 ? "Pheno Age reduction:" : "Pheno Age acceleration:");
+        html = SetContent(html, "ageReductionAccelerationLabel", stats.AgeReduction < 0 ? "Pheno Age reduction" : "Pheno Age acceleration");
         var effectiveReduction = athlete.Metric("ultimate");
         foreach (var prefix in new[] { "ageRadarCenter", "ageRadarFallback" })
         {
@@ -92,7 +92,7 @@ public static class PublicProfileHtmlRenderer
             html = SetContent(html, "lowestBortzAge", PublicHtmlFormat.Fixed(stats.LowestBortzAge));
             html = SetContent(html, "bortzAgeReduction", SignedProfile(stats.BortzAgeReduction));
             html = SetContent(html, "bortzAgeReductionPercent", PublicHtmlFormat.Fixed((1 - stats.BortzPaceOfAging) * 100));
-            html = SetContent(html, "bortzAgeReductionAccelerationLabel", stats.BortzAgeReduction < 0 ? "Bortz Age reduction:" : "Bortz Age acceleration:");
+            html = SetContent(html, "bortzAgeReductionAccelerationLabel", stats.BortzAgeReduction < 0 ? "Bortz Age reduction" : "Bortz Age acceleration");
         }
         if (stats.CrowdCount > 0 && stats.CrowdAge is double crowdAge && double.IsFinite(crowdAge))
         {
