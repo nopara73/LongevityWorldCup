@@ -19,6 +19,12 @@ public sealed class CustomAlertDialogBrowserTests(
     [InlineData("Failed to submit results. Please try again later.", "danger", "fa-xmark")]
     [InlineData("Verification error", "danger", "fa-xmark")]
     [InlineData("Bitcoin address copied to the clipboard", "success", "fa-check")]
+    [InlineData("Your application was not received", "warning", "fa-exclamation")]
+    [InlineData("Your results may have been received", "warning", "fa-exclamation")]
+    [InlineData("Your application wasn't submitted", "warning", "fa-exclamation")]
+    [InlineData("Submission unsuccessful; nothing was sent", "danger", "fa-xmark")]
+    [InlineData("Please enter your email.", "warning", "fa-exclamation")]
+    [InlineData("Blood draw date cannot be in the future.", "warning", "fa-exclamation")]
     public async Task Alert_TakesItsToneFromTheCallersOwnWording(string message, string tone, string icon)
     {
         await using var context = await NewContextAsync(Browser, App, new()
@@ -227,5 +233,112 @@ public sealed class CustomAlertDialogBrowserTests(
                 getComputedStyle(document.querySelector('.custom-alert-mark'), '::before').animationName]
             """);
         Assert.All(motion, name => Assert.Equal("none", name));
+    }
+
+    [Theory]
+    [InlineData("\r\n\r\n")]
+    [InlineData("\n\n")]
+    public async Task Alert_PreservesExactSpecialCharactersAndMultilineDetails(string separator)
+    {
+        await using var context = await NewContextAsync(Browser, App, new());
+        var page = await context.NewPageAsync();
+        await NavigateAndSettleAsync(page, "/apply");
+        var message = "Failed <img src=x onerror=alert(1)> & \"quoted\" 'text'" + separator
+            + "HTTP 500\r\nSubmission ID: ABCDEF01-2345-6789-ABCD-0123456789AB\n" + new string('x', 2000);
+        await page.EvaluateAsync("message => { void customAlert(message); }", message);
+        Assert.Equal(message, await page.Locator("#custom-alert-message").TextContentAsync());
+        await Assertions.Expect(page.Locator("#custom-alert-message .custom-alert-detail")).ToHaveCountAsync(1);
+        await Assertions.Expect(page.Locator("#custom-alert-message img")).ToHaveCountAsync(0);
+        await Assertions.Expect(page.Locator(".custom-alert-id")).ToHaveTextAsync("ABCDEF01-2345-6789-ABCD-0123456789AB");
+    }
+
+    [Fact]
+    public async Task Alert_QueuesRepeatedCallsAndSettlesEveryPromiseAfterItsDismissal()
+    {
+        await using var context = await NewContextAsync(Browser, App, new());
+        var page = await context.NewPageAsync();
+        await NavigateAndSettleAsync(page, "/apply");
+        await page.EvaluateAsync("""
+            () => {
+                window.alertReceipts = [];
+                void customAlert('First received').then(() => {
+                    window.alertReceipts.push('first');
+                    void customAlert('Third received').then(() => window.alertReceipts.push('third'));
+                });
+                void customAlert('Second received').then(() => window.alertReceipts.push('second'));
+            }
+            """);
+        foreach (var message in new[] { "First received", "Second received", "Third received" })
+        {
+            await Assertions.Expect(page.Locator("#custom-alert-message")).ToHaveTextAsync(message);
+            Assert.True(await page.Locator("body").EvaluateAsync<bool>("e => e.classList.contains('no-scroll')"));
+            await page.Locator("#custom-alert-close").ClickAsync();
+        }
+        await page.WaitForFunctionAsync("() => window.alertReceipts.length === 3");
+        Assert.Equal(["first", "second", "third"], await page.EvaluateAsync<string[]>("window.alertReceipts"));
+        await Assertions.Expect(page.Locator("#custom-alert")).ToBeHiddenAsync();
+        Assert.False(await page.Locator("body").EvaluateAsync<bool>("e => e.classList.contains('no-scroll')"));
+    }
+
+    [Fact]
+    public async Task Alert_DismissalDoesNotStealNewFocusAndPreservesLoadingScrollLock()
+    {
+        await using var context = await NewContextAsync(Browser, App, new());
+        var page = await context.NewPageAsync();
+        await NavigateAndSettleAsync(page, "/pheno-age");
+        await page.EvaluateAsync("""
+            () => {
+                document.getElementById('dob-year').focus();
+                void customAlert('Verification error');
+                closeCustomAlert();
+                document.getElementById('dob-month').focus();
+            }
+            """);
+        await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+        await Assertions.Expect(page.Locator("#dob-month")).ToBeFocusedAsync();
+        await page.EvaluateAsync("() => { showLoading(); void customAlert('Verification error'); }");
+        await Assertions.Expect(page.Locator("#custom-alert-close")).ToBeFocusedAsync();
+        await page.Keyboard.PressAsync("Escape");
+        Assert.True(await page.Locator("body").EvaluateAsync<bool>("e => e.classList.contains('no-scroll')"));
+        await Assertions.Expect(page.Locator("#loading-dialog")).ToBeVisibleAsync();
+    }
+
+    [Fact]
+    public async Task Alert_BackdropKeepsItOpenAndKeyboardDismissalRunsTheLegacyContinuation()
+    {
+        await using var context = await NewContextAsync(Browser, App, new() { ReducedMotion = ReducedMotion.Reduce });
+        var page = await context.NewPageAsync();
+        await NavigateAndSettleAsync(page, "/pheno-age");
+        await page.Locator("#dob-year").FocusAsync();
+        await page.EvaluateAsync("() => { void customAlert('Verification error').then(() => document.getElementById('dob-month').focus()); }");
+        await Assertions.Expect(page.Locator("#custom-alert-close")).ToBeFocusedAsync();
+        await page.Locator("#custom-alert").ClickAsync(new() { Position = new() { X = 3, Y = 3 } });
+        await Assertions.Expect(page.Locator("#custom-alert")).ToBeVisibleAsync();
+        await page.Keyboard.PressAsync("Shift+Tab");
+        await Assertions.Expect(page.Locator("#custom-alert-close")).ToBeFocusedAsync();
+        await page.Keyboard.PressAsync("Enter");
+        await Assertions.Expect(page.Locator("#custom-alert")).ToBeHiddenAsync();
+        await Assertions.Expect(page.Locator("#dob-month")).ToBeFocusedAsync();
+        await page.EvaluateAsync("() => { void customAlert('Verification error'); }");
+        await Assertions.Expect(page.Locator("#custom-alert-close")).ToBeFocusedAsync();
+        await page.EvaluateAsync("() => { document.getElementById('dob-year').focus(); closeCustomAlert(); }");
+        await Assertions.Expect(page.Locator("#dob-year")).ToBeFocusedAsync();
+    }
+
+    [Fact]
+    public async Task Alert_PreservesAnExistingScrollLockAndReleasesALoadingHandoff()
+    {
+        await using var context = await NewContextAsync(Browser, App, new());
+        var page = await context.NewPageAsync();
+        await NavigateAndSettleAsync(page, "/pheno-age");
+        await page.EvaluateAsync("() => { showLoading(); void customAlert('Verification error'); hideLoading(); }");
+        await Assertions.Expect(page.Locator("#custom-alert-close")).ToBeFocusedAsync();
+        Assert.True(await page.Locator("body").EvaluateAsync<bool>("e => e.classList.contains('no-scroll')"));
+        await page.Keyboard.PressAsync("Escape");
+        Assert.False(await page.Locator("body").EvaluateAsync<bool>("e => e.classList.contains('no-scroll')"));
+        await page.EvaluateAsync("() => { document.body.classList.add('no-scroll'); void customAlert('Verification error'); }");
+        await Assertions.Expect(page.Locator("#custom-alert-close")).ToBeFocusedAsync();
+        await page.Keyboard.PressAsync("Escape");
+        Assert.True(await page.Locator("body").EvaluateAsync<bool>("e => e.classList.contains('no-scroll')"));
     }
 }

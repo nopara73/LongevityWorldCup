@@ -218,6 +218,12 @@
             color: var(--lwc-warning);
         }
 
+        .application-review-trail .is-failed .application-review-step {
+            border: 2px solid var(--lwc-danger);
+            background: var(--lwc-danger-soft);
+            color: var(--lwc-danger);
+        }
+
         .application-review-copy {
             max-width: 32rem;
             margin: 0.75rem auto 0;
@@ -412,6 +418,27 @@
             }
         }
 
+        @media (max-width: 260px) {
+            .application-review-panel {
+                --review-seal: 36px;
+                --review-step: 24px;
+            }
+
+            .application-review-frame {
+                max-width: calc(100% - 12px);
+            }
+
+            .application-review-trail {
+                flex-wrap: wrap;
+                row-gap: 0.5rem;
+            }
+
+            .application-review-trail li + li::before {
+                width: 6px;
+                margin-inline: 3px;
+            }
+        }
+
         /* Laptop heights keep Home inline: a smaller photo and the address beside its sentence. */
         @media (min-width: 960px) and (max-height: 960px) {
             .application-review-frame {
@@ -523,6 +550,7 @@
                     <li data-step="email"><span class="application-review-step"><i class="fas fa-envelope"></i></span></li>
                     <li data-step="finish"><span class="application-review-step"><i class="fas fa-trophy"></i></span></li>
                 </ol>
+                <p id="review-payment-status" class="visually-hidden" role="status" aria-atomic="true"></p>
                 <p class="application-review-copy primary" data-aos="fade" data-aos-duration="700" data-aos-delay="300">
                     We're reviewing <span id="whatAreWeReviewing">your application</span>, which may take a day or two. Afterwards we'll contact you at <span id="contactEmailPlaceholder" class="application-review-highlight">
                         the email address you provided with your application
@@ -689,7 +717,7 @@
             const item = document.querySelector(`.application-review-trail [data-step="${step}"]`);
             if (!item) return;
             item.hidden = false;
-            item.classList.remove('is-done', 'is-current', 'is-waiting');
+            item.classList.remove('is-done', 'is-current', 'is-waiting', 'is-failed');
             if (state) item.classList.add(state);
         }
 
@@ -699,7 +727,11 @@
             const finishIcon = document.querySelector('.application-review-trail [data-step="finish"] i');
             if (finishIcon) finishIcon.className = `fas ${REVIEW_FINISH_ICONS[kind]}`;
             // A pending invoice adds the payment stop; it waits until the status check confirms it.
-            if (pendingPaymentInvoice) setTrailStep('payment', 'is-waiting');
+            if (pendingPaymentInvoice) {
+                setTrailStep('payment', 'is-waiting');
+                setTrailStep('review', null);
+                document.getElementById('review-payment-status').textContent = 'Payment confirmation pending.';
+            }
         }
 
         function initializeReviewCopy() {
@@ -730,37 +762,106 @@
                 : 'the email address you provided with your application';
         }
 
-        // mark that they’ve submitted an application
-        setLocalItem('hasApplication', 'true');
+        // Result and edit return routes do not represent a new application.
+        if (!isNewResultsUploaded && !isEditRequest) setLocalItem('hasApplication', 'true');
         window.LwcInitialView.complete();
 
-        function checkPendingPayment() {
+        let paymentCheckTimer = null;
+        let paymentCheckAbort = null;
+        let paymentCheckAttempts = 0;
+        let paymentCheckStopped = false;
+        let paymentCheckComplete = false;
+        const MAX_PAYMENT_CHECKS = 12;
+
+        function pausePaymentChecks() {
+            clearTimeout(paymentCheckTimer);
+            paymentCheckTimer = null;
+            paymentCheckAbort?.abort();
+            paymentCheckAbort = null;
+        }
+
+        window.addEventListener('pagehide', () => {
+            paymentCheckStopped = true;
+            pausePaymentChecks();
+        });
+        window.addEventListener('pageshow', event => {
+            if (!event.persisted) return;
+            paymentCheckStopped = false;
+            paymentCheckAttempts = 0;
+            checkPendingPayment();
+        });
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) pausePaymentChecks();
+            else if (!paymentCheckStopped) {
+                paymentCheckAttempts = 0;
+                checkPendingPayment();
+            }
+        });
+        window.addEventListener('online', () => {
+            paymentCheckAttempts = 0;
+            checkPendingPayment();
+        });
+
+        async function checkPendingPayment() {
             const pending = pendingPaymentInvoice;
+            if (!pending || !pending.invoiceId || paymentCheckStopped || paymentCheckComplete
+                || document.hidden || paymentCheckAbort || paymentCheckAttempts >= MAX_PAYMENT_CHECKS) return;
 
-            if (!pending || !pending.invoiceId) return;
+            clearTimeout(paymentCheckTimer);
+            paymentCheckTimer = null;
+            const controller = new AbortController();
+            paymentCheckAbort = controller;
+            paymentCheckAttempts++;
+            const timeout = setTimeout(() => controller.abort(), 12000);
 
-            fetchWithTimeout('/api/application/payment-status', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ invoiceId: pending.invoiceId })
-            }, 12000)
-                .then(response => response.ok ? response.json() : null)
-                .then(result => {
-                    if (!result) return;
-                    // Payment completes the browser handoff; notification delivery is server-owned.
-                    if (result.isPaid) {
-                        setTrailStep('payment', 'is-done');
-                        removeSessionItem(PENDING_PAYMENT_INVOICE_KEY);
-                        removeLocalItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY);
-                        const completedSubmissionId = normalizeOptionalString(pending.submissionId);
-                        if (completedSubmissionId && typeof window.clearPendingApplicationSubmission === 'function') {
-                            window.clearPendingApplicationSubmission(completedSubmissionId);
-                        }
-                    }
-                })
-                .catch(() => {
-                    // Silent failure: review page should still work even if payment check fails.
+            try {
+                const response = await fetch('/api/application/payment-status', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ invoiceId: pending.invoiceId }),
+                    signal: controller.signal
                 });
+                if (!response.ok) throw new Error('Payment status unavailable');
+                const result = await response.json();
+                if (paymentCheckStopped || paymentCheckAbort !== controller) return;
+                if (!result || result.checkedInvoice !== true || typeof result.isPaid !== 'boolean') {
+                    throw new Error('Payment status unconfirmed');
+                }
+
+                const status = typeof result.status === 'string' ? result.status.trim().toLowerCase() : '';
+                if (['expired', 'invalid', 'failed', 'cancelled', 'canceled'].includes(status)) {
+                    paymentCheckComplete = true;
+                    setTrailStep('payment', 'is-failed');
+                    document.querySelector('[data-step="payment"] i').className = 'fas fa-circle-xmark';
+                    document.getElementById('review-payment-status').textContent = 'Payment was not confirmed: ' + status + '.';
+                } else if (result.isPaid === true) {
+                    paymentCheckComplete = true;
+                    setTrailStep('payment', 'is-done');
+                    setTrailStep('review', 'is-current');
+                    document.getElementById('review-payment-status').textContent = 'Payment confirmed. Awaiting review.';
+                    // Clear only the invoice this page verified; another tab may have stored a newer one.
+                    for (const [storage, key] of [['sessionStorage', PENDING_PAYMENT_INVOICE_KEY], ['localStorage', PENDING_PAYMENT_INVOICE_STORAGE_KEY]]) {
+                        const stored = parsePendingPaymentInvoice(getStorageItem(storage, key), () => {});
+                        if (stored?.invoiceId === pending.invoiceId) removeStorageItem(storage, key);
+                    }
+                    const completedSubmissionId = normalizeOptionalString(pending.submissionId);
+                    if (completedSubmissionId && typeof window.clearPendingApplicationSubmission === 'function') {
+                        window.clearPendingApplicationSubmission(completedSubmissionId);
+                    }
+                }
+            } catch (_) {
+                if (!paymentCheckStopped && paymentCheckAbort === controller) {
+                    document.getElementById('review-payment-status').textContent = 'Payment confirmation unavailable. Awaiting confirmation.';
+                }
+            } finally {
+                clearTimeout(timeout);
+                if (paymentCheckAbort === controller) {
+                    paymentCheckAbort = null;
+                    if (!paymentCheckStopped && !paymentCheckComplete && !document.hidden && paymentCheckAttempts < MAX_PAYMENT_CHECKS) {
+                        paymentCheckTimer = setTimeout(checkPendingPayment, paymentCheckAttempts < 6 ? 5000 : 30000);
+                    }
+                }
+            }
         }
     </script>
 </body>

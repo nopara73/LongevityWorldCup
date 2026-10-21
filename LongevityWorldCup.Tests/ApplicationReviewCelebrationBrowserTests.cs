@@ -95,7 +95,7 @@ public sealed class ApplicationReviewCelebrationBrowserTests(
         await context.RouteAsync("**/api/application/payment-status", route => route.FulfillAsync(new()
         {
             ContentType = "application/json",
-            Body = isPaid ? """{"isPaid":true}""" : """{"isPaid":false}"""
+            Body = isPaid ? """{"checkedInvoice":true,"isPaid":true,"status":"Settled"}""" : """{"checkedInvoice":true,"isPaid":false,"status":"New"}"""
         }));
         var page = await context.NewPageAsync();
         var statusChecked = page.WaitForResponseAsync("**/api/application/payment-status");
@@ -107,7 +107,7 @@ public sealed class ApplicationReviewCelebrationBrowserTests(
         await Assertions.Expect(payment).ToHaveClassAsync(isPaid ? "is-done" : "is-waiting");
         var steps = await page.Locator(".application-review-trail li:not([hidden])").EvaluateAllAsync<string[]>(
             "items => items.map(li => li.dataset.step + ':' + li.className)");
-        Assert.Equal(["sent:is-done", expected, "review:is-current", "email:", "finish:"], steps);
+        Assert.Equal(["sent:is-done", expected, isPaid ? "review:is-current" : "review:", "email:", "finish:"], steps);
         await Assertions.Expect(page.Locator("#contactEmailPlaceholder")).ToHaveTextAsync("review@example.test");
         Assert.False(await page.Locator(".application-review-actions").EvaluateAsync<bool>(
             "element => element.classList.contains('flow-action-stack--docked')"));
@@ -141,6 +141,112 @@ public sealed class ApplicationReviewCelebrationBrowserTests(
         await Assertions.Expect(chip).ToHaveClassAsync("application-review-highlight is-fallback");
         Assert.Equal("dashed", await chip.EvaluateAsync<string>("element => getComputedStyle(element).borderTopStyle"));
         await ExpectNoHorizontalOverflowAsync(page);
+    }
+
+    [Theory]
+    [InlineData("{\"checkedInvoice\":false,\"isPaid\":true}", "is-waiting")]
+    [InlineData("{\"checkedInvoice\":true,\"isPaid\":\"false\"}", "is-waiting")]
+    [InlineData("{\"checkedInvoice\":true,\"isPaid\":false,\"status\":\"Processing\"}", "is-waiting")]
+    [InlineData("{\"checkedInvoice\":true,\"isPaid\":false,\"status\":\"Failed\"}", "is-failed")]
+    [InlineData("{\"checkedInvoice\":true,\"isPaid\":false,\"status\":\"Cancelled\"}", "is-failed")]
+    [InlineData("{\"checkedInvoice\":true,\"isPaid\":true,\"status\":\"Expired\"}", "is-failed")]
+    public async Task Review_OnlyVerifiedPaidResponsesAdvanceTheTrail(string response, string state)
+    {
+        await using var context = await NewReviewContextAsync(390, 844, "dark");
+        await context.AddInitScriptAsync($"sessionStorage.setItem('pendingPaymentInvoice', {System.Text.Json.JsonSerializer.Serialize(PendingInvoice)});");
+        await context.RouteAsync("**/api/application/payment-status", route => route.FulfillAsync(new()
+        {
+            ContentType = "application/json", Body = response
+        }));
+        var page = await context.NewPageAsync();
+        await NavigateAndSettleAsync(page, "/review");
+        await Assertions.Expect(page.Locator("[data-step='payment']")).ToHaveClassAsync(state);
+        await Assertions.Expect(page.Locator("[data-step='review']")).ToHaveClassAsync("");
+        Assert.NotNull(await page.EvaluateAsync<string?>("sessionStorage.getItem('pendingPaymentInvoice')"));
+    }
+
+    [Fact]
+    public async Task Review_RetriesAnUnreachableStatusThenStopsAfterVerifiedPayment()
+    {
+        await using var context = await NewReviewContextAsync(1440, 900, "light");
+        await context.AddInitScriptAsync($"sessionStorage.setItem('pendingPaymentInvoice', {System.Text.Json.JsonSerializer.Serialize(PendingInvoice)});");
+        var requests = 0;
+        await context.RouteAsync("**/api/application/payment-status", route =>
+        {
+            var attempt = Interlocked.Increment(ref requests);
+            return route.FulfillAsync(new()
+            {
+                Status = attempt == 1 ? 503 : 200,
+                ContentType = "application/json",
+                Body = attempt == 1 ? "{}" : """{"checkedInvoice":true,"isPaid":true,"status":"Settled"}"""
+            });
+        });
+        var page = await context.NewPageAsync();
+        await page.Clock.InstallAsync();
+        await NavigateAndSettleAsync(page, "/review");
+        await Assertions.Expect(page.Locator("#review-payment-status")).ToContainTextAsync("unavailable");
+        await page.Clock.FastForwardAsync(5000);
+        await Assertions.Expect(page.Locator("[data-step='payment']")).ToHaveClassAsync("is-done");
+        Assert.Null(await page.EvaluateAsync<string?>("sessionStorage.getItem('pendingPaymentInvoice')"));
+        await page.Clock.FastForwardAsync(120000);
+        Assert.Equal(2, Volatile.Read(ref requests));
+    }
+
+    [Fact]
+    public async Task Review_PageHideAbortsTheLookupAndIgnoresALatePaidResponse()
+    {
+        await using var context = await NewReviewContextAsync(390, 844, "light");
+        await context.AddInitScriptAsync($$"""
+            sessionStorage.setItem('pendingPaymentInvoice', {{System.Text.Json.JsonSerializer.Serialize(PendingInvoice)}});
+            const actualFetch = window.fetch;
+            window.fetch = (url, options) => {
+                if (url !== '/api/application/payment-status') return actualFetch(url, options);
+                window.paymentSignal = options.signal;
+                return new Promise(resolve => { window.finishPaymentLookup = () => resolve(new Response(
+                    '{"checkedInvoice":true,"isPaid":true,"status":"Settled"}', { headers: { 'Content-Type': 'application/json' } })); });
+            };
+            """);
+        var page = await context.NewPageAsync();
+        await NavigateAndSettleAsync(page, "/review");
+        await page.EvaluateAsync("() => { window.dispatchEvent(new PageTransitionEvent('pagehide')); window.finishPaymentLookup(); }");
+        await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(resolve))");
+        Assert.True(await page.EvaluateAsync<bool>("window.paymentSignal.aborted"));
+        await Assertions.Expect(page.Locator("[data-step='payment']")).ToHaveClassAsync("is-waiting");
+        Assert.NotNull(await page.EvaluateAsync<string?>("sessionStorage.getItem('pendingPaymentInvoice')"));
+    }
+
+    [Theory]
+    [InlineData("/review?from=proof-upload")]
+    [InlineData("/review?from=edit-profile")]
+    public async Task Review_ResultAndEditDoNotMarkANewApplication(string route)
+    {
+        await using var context = await NewReviewContextAsync(390, 844, "light");
+        var page = await context.NewPageAsync();
+        await NavigateAndSettleAsync(page, route);
+        Assert.Null(await page.EvaluateAsync<string?>("localStorage.getItem('hasApplication')"));
+    }
+
+    [Fact]
+    public async Task Review_ZoomNarrowTrailKeepsEveryIconInsideTheCard()
+    {
+        await using var context = await NewReviewContextAsync(160, 320, "dark");
+        await context.AddInitScriptAsync($"sessionStorage.setItem('pendingPaymentInvoice', {System.Text.Json.JsonSerializer.Serialize(PendingInvoice)});");
+        await context.RouteAsync("**/api/application/payment-status", route => route.FulfillAsync(new()
+        {
+            ContentType = "application/json", Body = """{"checkedInvoice":true,"isPaid":false,"status":"New"}"""
+        }));
+        var page = await context.NewPageAsync();
+        await NavigateAndSettleAsync(page, "/review");
+        Assert.True(await page.EvaluateAsync<bool>("""
+            () => {
+                const trail = document.querySelector('.application-review-trail').getBoundingClientRect();
+                const icons = [...document.querySelectorAll('.application-review-trail li:not([hidden]) .application-review-step')];
+                return icons.length === 5 && icons.every(icon => {
+                    const rect = icon.getBoundingClientRect();
+                    return rect.left >= trail.left - 1 && rect.right <= trail.right + 1;
+                });
+            }
+            """), "At an effective 160px viewport the trail must wrap without clipping an icon.");
     }
 
     private async Task<IBrowserContext> NewReviewContextAsync(int width, int height, string scheme)
