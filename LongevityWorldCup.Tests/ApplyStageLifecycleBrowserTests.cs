@@ -295,6 +295,7 @@ public sealed class ApplyStageLifecycleBrowserTests(
         await page.EvaluateAsync("() => { window.optimizeImageClient = raw => new Promise(resolve => { window.releaseProfileSave = () => resolve({ dataUrl: raw }); }); }");
         await page.Locator("#cropButton").ClickAsync();
         await page.WaitForFunctionAsync("() => window.releaseProfileSave");
+        Assert.True(await page.EvaluateAsync<bool>("() => document.getElementById('cropperImage').cropper.disabled"));
         await page.EvaluateAsync("() => { currentStage = 1; document.getElementById('name').value = ''; goToStage(1); window.releaseProfileSave(); }");
         await page.WaitForFunctionAsync("() => !applicationProfilePending");
         await Assertions.Expect(page.Locator("#nextButton")).ToBeDisabledAsync();
@@ -320,6 +321,7 @@ public sealed class ApplyStageLifecycleBrowserTests(
         await page.Locator("#cropButton").ClickAsync();
         await page.WaitForFunctionAsync("() => window.releaseProfileSave");
         await SelectPortraitAsync();
+        Assert.False(await page.EvaluateAsync<bool>("() => document.getElementById('cropperImage').cropper.disabled"));
         await page.EvaluateAsync("() => window.releaseProfileSave()");
         await Assertions.Expect(page.Locator("#cropButton")).ToBeEnabledAsync();
         await Assertions.Expect(page.Locator("#croppingPart")).ToBeVisibleAsync();
@@ -382,5 +384,58 @@ public sealed class ApplyStageLifecycleBrowserTests(
             var outside = overflow > 1 ? await page.EvaluateAsync<string>("() => JSON.stringify([...document.body.querySelectorAll('*')].filter(e => e.getBoundingClientRect().width && e.getBoundingClientRect().right > innerWidth + 1).map(e => [e.tagName, e.id, e.className, e.textContent.slice(0, 80), e.getBoundingClientRect().right]))") : "";
             Assert.True(overflow <= 1, $"Stage {stage}: {overflow}px horizontal overflow at {width}px. {outside}");
         }
+    }
+
+    [Theory]
+    [InlineData(160, 320, 100)]
+    [InlineData(195, 422, 100)]
+    [InlineData(390, 844, 200)]
+    public async Task PortraitCrop_ReflowsInsideTheAvailableStage(int width, int height, int textPercent)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = 1440, Height = 900 }, ReducedMotion = ReducedMotion.Reduce
+        });
+        await context.RouteAsync("**/cropperjs/1.5.13/cropper.min.*", route =>
+        {
+            var css = new Uri(route.Request.Url).AbsolutePath.EndsWith(".css", StringComparison.Ordinal);
+            return route.FulfillAsync(new()
+            {
+                Path = Path.Combine(AppContext.BaseDirectory, "Fixtures", css ? "cropper.min.css" : "cropper.min.js"),
+                ContentType = css ? "text/css" : "application/javascript"
+            });
+        });
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/apply?fake=1");
+        await ReadyAsync(page);
+        await page.EvaluateAsync("() => { currentStage = 4; goToStage(4); }");
+        var webRoot = App.Services.GetRequiredService<IWebHostEnvironment>().WebRootPath;
+        await page.Locator("#profilePicInput").SetInputFilesAsync(Path.Combine(webRoot, "assets", "content-images", "play-athlete-placeholder.jpg"));
+        await page.WaitForFunctionAsync("() => document.getElementById('cropperImage').cropper?.getCroppedCanvas()?.width > 0");
+        await page.SetViewportSizeAsync(width, height);
+        await page.EvaluateAsync("percent => document.documentElement.style.fontSize = percent + '%'", textPercent);
+        await page.WaitForFunctionAsync("""
+            () => {
+                const preview = document.querySelector('.convergence-crop-preview').getBoundingClientRect();
+                const container = document.querySelector('#croppingPart .cropper-container').getBoundingClientRect();
+                const crop = document.querySelector('#croppingPart .cropper-crop-box').getBoundingClientRect();
+                return container.width > 0 && container.left >= preview.left - 1 && container.right <= preview.right + 1
+                    && crop.width > 0 && crop.height > 0 && crop.left >= container.left - 1 && crop.right <= container.right + 1
+                    && crop.top >= container.top - 1 && crop.bottom <= container.bottom + 1;
+            }
+            """, options: new() { Timeout = 5_000 });
+        await Assertions.Expect(page.Locator("#nextButton")).ToBeDisabledAsync();
+        await page.Locator("#backButton").ClickAsync();
+        await page.SetViewportSizeAsync(width + 20, height);
+        await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+        Assert.True(await page.EvaluateAsync<bool>("() => document.getElementById('cropperImage').cropper.disabled"));
+        await page.Locator("#nextButton").ClickAsync();
+        await page.WaitForFunctionAsync("() => { const image = document.getElementById('cropperImage'); const stage = document.querySelector('.convergence-crop-stage'); return image.cropper.ready && !image.cropper.disabled && Math.abs(image.cropper.getContainerData().width - stage.clientWidth) <= 1; }");
+        await Assertions.Expect(page.Locator("#nextButton")).ToBeDisabledAsync();
+        await page.WaitForFunctionAsync("() => !document.getElementById('cropButton').disabled");
+        await Assertions.Expect(page.Locator("#cropButton")).ToBeFocusedAsync();
+        await page.Locator("#cancelProfileCropButton").ClickAsync();
+        await Assertions.Expect(page.Locator("#nextButton")).ToBeEnabledAsync();
+        await ExpectNoHorizontalOverflowAsync(page);
     }
 }

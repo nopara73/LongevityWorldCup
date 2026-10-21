@@ -548,6 +548,11 @@
             border-radius: var(--lwc-radius-sm, 4px);
         }
 
+        .convergence-crop-stage {
+            width: 100%;
+            min-width: 0;
+        }
+
         .convergence-crop-preview .cropper-container {
             max-width: 100%;
             margin: 0 auto;
@@ -1004,7 +1009,9 @@
                     </div>
                     <div id="croppingPart" style="display:none">
                         <div class="convergence-crop-preview">
-                            <img id="cropperImage" src="" alt="Selected profile image preview for cropping">
+                            <div class="convergence-crop-stage">
+                                <img id="cropperImage" src="" alt="Selected profile image preview for cropping">
+                            </div>
                         </div>
                         <div class="convergence-upload-action flow-action-stack">
                             <button type="button" id="cropButton" class="option-button flow-action">
@@ -1138,6 +1145,7 @@
         let applicationDraftEdited = false;
         let applicationProfilePending = false;
         let resumeProfileUpload = null;
+        let refreshProfileCrop = null;
 
         function saveApplicationDraft(event) {
             if (isFake || applicationDraftCompleted) return;
@@ -2120,6 +2128,7 @@
             updateSubProgress(stage);
             playStageEntrance(previousStage, stage);
             updateUploadButtons();
+            refreshProfileCrop?.();
             window.LwcFlowActionDock?.refresh();
             saveApplicationDraft();
             if (focus) {
@@ -2127,7 +2136,11 @@
                     1: 'name', 2: 'why', 4: 'uploadButton',
                     5: 'uploadProofButton', 6: 'personalLink', 7: 'accountEmail'
                 }[stage];
-                const target = targetId ? document.getElementById(targetId) : document.querySelector('h1');
+                let target = targetId ? document.getElementById(targetId) : document.querySelector('h1');
+                if (stage === 4 && document.getElementById('croppingPart').style.display !== 'none') {
+                    const cropButton = document.getElementById('cropButton');
+                    target = cropButton.disabled ? document.querySelector('h1') : cropButton;
+                }
                 target?.focus({ preventScroll: true });
             }
         }
@@ -2479,9 +2492,27 @@
                 return;
             }
             let cropper; // Declare Cropper instance at a higher scope
-            let isProfileCropProcessing = false;
+            let encodingCropper = null;
             let pendingProfileSource = null;
             let profileReadVersion = 0;
+
+            function syncProfileCropLayout() {
+                document.getElementById('cropButton').disabled = !!encodingCropper || !cropper?.ready;
+                document.getElementById('cancelProfileCropButton').disabled = !!encodingCropper;
+                if (!cropper?.ready) return;
+                if (currentStage !== 4 || cropper === encodingCropper) {
+                    cropper.disable();
+                    return;
+                }
+                cropper.enable();
+                const width = document.querySelector('.convergence-crop-stage').clientWidth;
+                if (width > 0 && Math.abs(cropper.getContainerData().width - width) > 1) cropper.resize();
+            }
+            refreshProfileCrop = syncProfileCropLayout;
+            if ('ResizeObserver' in window) {
+                const observer = new ResizeObserver(syncProfileCropLayout);
+                observer.observe(document.querySelector('.convergence-crop-stage'));
+            }
 
             function showProfileCrop(source) {
                 const nextButton = document.getElementById('nextButton');
@@ -2497,6 +2528,9 @@
                         aspectRatio: 1,
                         viewMode: 1,
                         autoCropArea: 1,
+                        minContainerWidth: 0,
+                        minContainerHeight: 0,
+                        ready() { window.requestAnimationFrame(syncProfileCropLayout); },
                         movable: true,
                         zoomable: true,
                         rotatable: false,
@@ -2570,10 +2604,10 @@
                 // Add the crop button event listener once
                 cropButton.addEventListener('click', async function () {
                     const activeCropper = cropper;
-                    if (isProfileCropProcessing || !activeCropper) return;
+                    if (encodingCropper || !activeCropper?.ready) return;
                     const version = profileReadVersion;
 
-                    isProfileCropProcessing = true;
+                    encodingCropper = activeCropper;
                     cropButton.disabled = true;
                     cancelProfileCropButton.disabled = true;
                     try {
@@ -2588,6 +2622,7 @@
                         }
 
                         const raw = croppedCanvas.toDataURL('image/png');
+                        activeCropper.disable();
                         let croppedImageDataURL = raw;
                         try {
                             const { dataUrl } = await window.optimizeImageClient(raw, window.PROFILE_IMAGE_OPTIMIZATION_OPTIONS);
@@ -2622,14 +2657,13 @@
                         customAlert('Profile picture crop failed. Please try another image.')
                             .then(() => cropButton.focus());
                     } finally {
-                        isProfileCropProcessing = false;
-                        cropButton.disabled = false;
-                        cancelProfileCropButton.disabled = false;
+                        encodingCropper = null;
+                        syncProfileCropLayout();
                     }
                 });
 
                 cancelProfileCropButton.addEventListener('click', function () {
-                    if (isProfileCropProcessing) return;
+                    if (encodingCropper) return;
                     applicationProfilePending = false;
                     pendingProfileSource = null;
                     ++profileReadVersion;
