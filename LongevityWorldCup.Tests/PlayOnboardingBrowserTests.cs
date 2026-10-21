@@ -402,7 +402,7 @@ public sealed class PlayOnboardingBrowserTests(
     [InlineData(768, 1024, false)]
     [InlineData(390, 844, false)]
     [InlineData(320, 640, true)]
-    public async Task StartDoors_ShareOnePlateOnWideScreensAndTheSecondIsOutlinedOnTheStage(int width, int height, bool returning)
+    public async Task StartDoors_StackAsOneMenuColumnAndTheSecondIsOutlinedOnTheStage(int width, int height, bool returning)
     {
         await using var context = await NewContextAsync(Browser, App, new()
         {
@@ -430,12 +430,12 @@ public sealed class PlayOnboardingBrowserTests(
                 const bg = s.backgroundColor.match(/[\d.]+/g).map(Number);
                 if (bg.length === 4 ? bg[3] > 0.2 : (bg[0] + bg[1] + bg[2]) / 3 > 90) issues.push(`second door is a pale slab ${s.backgroundColor}`);
                 const a = first.getBoundingClientRect(), b = second.getBoundingClientRect();
+                if (b.top < a.bottom - 1) issues.push('doors should stack as one menu column');
+                if (Math.abs(a.width - b.width) > 2 || Math.abs(a.height - b.height) > 1) issues.push('doors should be even');
                 if (innerWidth >= 761 && !actions.classList.contains('flow-action-stack--docked')) {
-                    const as = getComputedStyle(actions), box = actions.getBoundingClientRect();
-                    if (Math.abs(a.top - b.top) > 1 || Math.abs(a.height - b.height) > 1) issues.push('doors should share one row');
-                    if (Math.abs(a.width - b.width) > 2) issues.push('doors should be even');
-                    if (parseFloat(as.borderTopWidth) < 1 || parseFloat(as.borderTopLeftRadius) < 12) issues.push('doors have no plate');
-                    if (Math.abs(box.width - Math.min(560, innerWidth - 32)) > 2) issues.push(`plate is ${box.width}px, not the player card width`);
+                    const as = getComputedStyle(actions);
+                    if (parseFloat(as.borderTopWidth) > 0 || as.backgroundColor !== 'rgba(0, 0, 0, 0)') issues.push('the menu column should sit on the stage, not on a plate');
+                    if (a.width > 352 + 1) issues.push(`menu column is ${a.width}px wide`);
                 }
                 return issues;
             }
