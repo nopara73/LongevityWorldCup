@@ -3904,6 +3904,15 @@
  .leaderboard-selection-chip:focus-visible,
  .leaderboard-clear-all:focus-visible,
  .sidebar-show-results:focus-visible { outline: 3px solid var(--lwc-accent); outline-offset: 2px; }
+ @media (max-width: 480px) {
+     .leaderboard-controls .leaderboard-selection-summary:has(.leaderboard-selection-chip:nth-child(2)) {
+         display: grid; grid-template-columns: minmax(0, 1fr) auto; width: 100%; align-items: end;
+     }
+     .leaderboard-selection-summary:has(.leaderboard-selection-chip:nth-child(2)) #leaderboardResultCount { grid-column: 1 / -1; margin: 0; }
+     .leaderboard-selection-summary:has(.leaderboard-selection-chip:nth-child(2)) .leaderboard-selection-chips {
+         display: flex; flex-wrap: wrap; gap: var(--lwc-space-2); min-width: 0;
+     }
+ }
  .sidebar-filter-list { display: contents; }
  .sidebar-results { display: none; }
 
@@ -5058,10 +5067,12 @@ main[data-leaderboard-page="full"] .flag-leaderboard{
 /* Switching from athletes to flags settles the new table into place. */
 @keyframes lwc-flag-board-in{ from{ opacity:0; transform:translateY(6px); } }
 @keyframes lwc-flag-members-in{ from{ opacity:0; transform:translateY(-4px); } }
-main[data-leaderboard-page="full"] .leaderboard--flags > .flag-leaderboard{ animation:lwc-flag-board-in var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease) both; }
+@media (scripting: enabled){
+    main[data-leaderboard-page="full"] .leaderboard--flags > .flag-leaderboard{ animation:lwc-flag-board-in var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease) both; }
+}
 
 /* Team rows */
-main[data-leaderboard-page="full"] .flag-team{ position:relative; border-bottom:1px solid var(--lwc-border); color:var(--lwc-ink); background:var(--lwc-surface); }
+main[data-leaderboard-page="full"] .flag-team{ position:relative; isolation:isolate; border-bottom:1px solid var(--lwc-border); color:var(--lwc-ink); background:var(--lwc-surface); }
 main[data-leaderboard-page="full"] .flag-team:nth-of-type(even){ background:var(--flag-zebra); }
 main[data-leaderboard-page="full"] .flag-team.tier-amateur{ background:var(--tier-amateur-bg); box-shadow:inset 4px 0 0 rgba(37, 99, 235, .45); }
 main[data-leaderboard-page="full"] .flag-team.tier-amateur:nth-of-type(even){ background:var(--tier-amateur-bg-even); }
@@ -5240,6 +5251,7 @@ main[data-leaderboard-page="full"] .flag-leaderboard > .leaderboard-recovery{
     main[data-leaderboard-page="full"] .flag-team-icon{ grid-area:flag; }
     main[data-leaderboard-page="full"] .flag-team-name > span:last-child{ grid-area:name; }
     main[data-leaderboard-page="full"] .flag-team-score{ padding-inline-start:0; }
+    main[data-leaderboard-page="full"] .flag-team-score small{ display:block; margin:.15rem 0 0; }
     main[data-leaderboard-page="full"] .flag-team-athletes{ padding-inline-start:12px; }
     main[data-leaderboard-page="full"] .flag-team-athletes::before{ display:none; }
     main[data-leaderboard-page="full"] .flag-athlete-link{ grid-template-columns:var(--flag-face) minmax(0, 1fr); }

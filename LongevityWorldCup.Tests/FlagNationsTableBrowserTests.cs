@@ -35,6 +35,126 @@ public sealed class FlagNationsTableBrowserTests(PlaywrightBrowserFixture browse
     private static double Number(string value) => double.Parse(value, CultureInfo.InvariantCulture);
 
     [Theory]
+    [InlineData("/league/bortz?group=flags")]
+    [InlineData("/league/improvement?group=flags")]
+    [InlineData("/league/bortz-improvement?group=flags")]
+    public async Task WithoutJavaScript_ServerTeamsAreImmediatelyStableAndExpandable(string path)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            JavaScriptEnabled = false, ReducedMotion = ReducedMotion.NoPreference
+        });
+        var page = await context.NewPageAsync();
+        await page.GotoAsync(path);
+        Assert.Equal("none", await page.Locator("#flagLeaderboard").EvaluateAsync<string>("e => getComputedStyle(e).animationName"));
+        var team = page.Locator(".flag-team").First;
+        await team.Locator("summary").ClickAsync();
+        await Assertions.Expect(team.Locator(".flag-team-athletes")).ToBeVisibleAsync();
+    }
+
+    [Theory]
+    [InlineData(320, 100)]
+    [InlineData(390, 100)]
+    [InlineData(390, 200)]
+    public async Task PhoneSelection_ChipsWrapBesideClearAllInReadingOrder(int width, int textPercent)
+    {
+        var (context, page) = await OpenAsync(width, 844, false, "/leaderboard?group=flags&search=zzzzqq");
+        await using var _ = context;
+        await page.EvaluateAsync("size => document.documentElement.style.fontSize = size + '%'", textPercent);
+        var result = await page.EvaluateAsync<bool>(
+            """
+            () => {
+                const summary = document.getElementById('leaderboardSelectionSummary');
+                const count = document.getElementById('leaderboardResultCount').getBoundingClientRect();
+                const chips = document.getElementById('leaderboardSelectionChips').getBoundingClientRect();
+                const clear = document.getElementById('clearLeaderboardSelection').getBoundingClientRect();
+                return getComputedStyle(summary).display === 'grid'
+                    && count.bottom <= chips.top + 1 && chips.right <= clear.left + 1
+                    && Math.abs(chips.bottom - clear.bottom) < 2 && clear.width >= 44 && clear.height >= 44;
+            }
+            """);
+        Assert.True(result, "Keep the count above the wrapping chips and Clear all beside their final line.");
+        await page.Locator(".leaderboard-selection-chip").Last.FocusAsync();
+        await page.Keyboard.PressAsync("Tab");
+        await Assertions.Expect(page.Locator("#clearLeaderboardSelection")).ToBeFocusedAsync();
+        await page.Keyboard.PressAsync("Enter");
+        await Assertions.Expect(page.Locator("#athleteSearch")).ToHaveValueAsync("");
+        await Assertions.Expect(page.Locator(".leaderboard > table")).ToBeVisibleAsync();
+        await ExpectNoHorizontalOverflowAsync(page);
+    }
+
+    [Theory]
+    [InlineData(160, 100)]
+    [InlineData(320, 200)]
+    [InlineData(390, 200)]
+    [InlineData(768, 200)]
+    public async Task NarrowAndEnlargedTeams_KeepActualScoreAndNameTextInsideTheirRows(int width, int textPercent)
+    {
+        var (context, page) = await OpenAsync(width, 1000, false);
+        await using var _ = context;
+        await page.EvaluateAsync("size => document.documentElement.style.fontSize = size + '%'", textPercent);
+        await page.Locator(".flag-team summary").First.ClickAsync();
+        var failures = await page.EvaluateAsync<string[]>(
+            """
+            () => {
+                const failures = [];
+                for (const team of document.querySelectorAll('.flag-team')) {
+                    const row = team.getBoundingClientRect();
+                    for (const element of team.querySelectorAll('.flag-team-name > span:last-child, .flag-team-score, .flag-athlete-name, .flag-athlete-metric')) {
+                        if (!element.checkVisibility()) continue;
+                        const cell = element.getBoundingClientRect();
+                        const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+                        for (let node; (node = walker.nextNode());) {
+                            if (!node.textContent.trim()) continue;
+                            const range = document.createRange(); range.selectNodeContents(node);
+                            for (const glyphs of range.getClientRects())
+                                if (glyphs.width && (glyphs.left < row.left - 1 || glyphs.right > row.right + 1
+                                    || glyphs.left < cell.left - 1 || glyphs.right > cell.right + 1))
+                                    failures.push(`${team.dataset.flag}: ${node.textContent.trim()} leaves its cell`);
+                        }
+                    }
+                }
+                return failures;
+            }
+            """);
+        Assert.Empty(failures);
+        await ExpectNoHorizontalOverflowAsync(page);
+    }
+
+    [Fact]
+    public async Task StickyBandAndFilters_ReceivePointerInputAboveExpandedMembers()
+    {
+        var (context, page) = await OpenAsync(1440, 900, false);
+        await using var _ = context;
+        await page.Locator(".flag-team.tier-amateur summary").First.ClickAsync();
+        await page.Locator(".sidebar-toggle").ClickAsync();
+        await page.EvaluateAsync(
+            """
+            () => {
+                const band = document.querySelector('.flag-section-heading.tier-separator');
+                scrollTo({ top: scrollY + band.getBoundingClientRect().top + 100, behavior: 'instant' });
+            }
+            """);
+        await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
+        var clear = page.Locator(".sidebar-close");
+        Assert.True(await clear.EvaluateAsync<bool>(
+            """
+            e => {
+                const b = e.getBoundingClientRect();
+                return [.2, .5, .8].every(x => [.2, .5, .8].every(y =>
+                    e.contains(document.elementFromPoint(b.left + b.width * x, b.top + b.height * y))));
+            }
+            """), "The entire filter close target must stay above the sticky band and member layers.");
+        await clear.ClickAsync(new() { Position = new() { X = 22, Y = 8 } });
+        await page.Mouse.MoveAsync(0, 0);
+        await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
+        var bandLink = page.Locator(".flag-section-heading.tier-separator a");
+        Assert.True(await bandLink.EvaluateAsync<bool>(
+            "e => { const b = e.getBoundingClientRect(); return e.contains(document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2)); }"),
+            "An expanded member's place disc must stay below the track link.");
+    }
+
+    [Theory]
     [InlineData(1440, 900, false)]
     [InlineData(1280, 720, true)]
     [InlineData(1024, 768, false)]
