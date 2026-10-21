@@ -458,9 +458,11 @@
 
         function showReading(index: number): void {
             var state = useBortz ? bortz : pheno;
-            var reading = state.readings[index];
+            const reading = state.readings[index];
             if (!reading) return;
             state.selectedIndex = index;
+            // The web takes the chosen clock's colour, so set it before the chart redraws.
+            if (canvas) canvas.dataset.clock = useBortz ? 'bortz' : 'pheno';
             applyRadarData(reading.data);
             updateCenterAndFallback(reading.bio, reading.chrono, useBortz);
             if (select) select.value = String(index);
@@ -471,10 +473,11 @@
                 resultDate.setAttribute('datetime', reading.date?.slice(0, 10) || '');
             }
             if (canvas) {
-                canvas.dataset.clock = useBortz ? 'bortz' : 'pheno';
                 canvas.dataset.resultDate = reading.date || '';
                 canvas.setAttribute('aria-label', (useBortz ? 'Bortz Age' : 'Pheno Age') + ': '
-                    + resultLabel(reading) + '. Domain percentiles.');
+                    + resultLabel(reading) + '. Domain percentiles: ' + reading.data.labels.map(function (label, domainIndex) {
+                        return label + ': ' + reading.data.values[domainIndex];
+                    }).join('; ') + '.');
             }
         }
 
@@ -569,7 +572,48 @@
         var radarGridColor = modalStyles ? (modalStyles.getPropertyValue('--athlete-modal-chart-grid').trim() || 'rgba(0,0,0,0.08)') : 'rgba(0,0,0,0.08)';
         var radarFill = modalStyles ? (modalStyles.getPropertyValue('--athlete-modal-cream-soft').trim() || 'rgba(246,244,237,.18)') : 'rgba(246,244,237,.18)';
         var radarStroke = modalStyles ? (modalStyles.getPropertyValue('--athlete-modal-cream').trim() || 'rgba(246,244,237,.92)') : 'rgba(246,244,237,.92)';
-        var radarPoint = modalStyles ? (modalStyles.getPropertyValue('--athlete-modal-cream').trim() || 'rgba(246,244,237,.92)') : 'rgba(246,244,237,.92)';
+        // The web wears the selected clock's colour from Results over time.
+        function clockColor(alpha?: number): string {
+            var token = canvas?.dataset.clock === 'pheno' ? '--athlete-modal-chart-pheno' : '--athlete-modal-chart-bortz';
+            var color = modalStyles ? modalStyles.getPropertyValue(token).trim() : '';
+            if (!color) return alpha == null ? radarStroke : radarFill;
+            if (alpha == null) return color;
+            var channels = color.match(/rgba?\(([^)]+)\)/)?.[1]?.split(',').slice(0, 3).join(',');
+            return channels ? 'rgba(' + channels + ',' + alpha + ')' : color;
+        }
+        var radarTooltip = modalStyles ? (modalStyles.getPropertyValue('--athlete-modal-chart-tooltip').trim() || 'rgba(0,0,0,0.78)') : 'rgba(0,0,0,0.78)';
+        var radarInk = modalStyles ? (modalStyles.getPropertyValue('--athlete-modal-text').trim() || '#fff') : '#fff';
+        const radarTextContext = ctx;
+        function wrapRadarText(text: string, width: number, size: number, weight = '400'): string[] {
+            radarTextContext.save();
+            radarTextContext.font = weight + ' ' + size + 'px ' + fontFamily;
+            var lines: string[] = [];
+            var line = '';
+            text.split(/\s+/).forEach(function (word) {
+                var candidate = line ? line + ' ' + word : word;
+                if (line && radarTextContext.measureText(candidate).width <= width) {
+                    line = candidate;
+                    return;
+                }
+                if (line && radarTextContext.measureText(candidate).width > width) {
+                    lines.push(line);
+                    line = '';
+                }
+                for (const glyph of word) {
+                    if (line && radarTextContext.measureText(line + glyph).width > width) {
+                        lines.push(line);
+                        line = '';
+                    }
+                    line += glyph;
+                }
+            });
+            if (line) lines.push(line);
+            radarTextContext.restore();
+            return lines;
+        }
+        function tooltipFont(context: { readonly chart: { readonly width: number } }): { family: string; size: number; lineHeight: number } {
+            return { family: fontFamily, size: context.chart.width < 260 ? 11 : 12, lineHeight: context.chart.width < 260 ? 1.1 : 1.2 };
+        }
         var radarPointHitRadius = window.matchMedia && window.matchMedia('(pointer: coarse)').matches ? 18 : 8;
         var contributors = data.tooltipContributors || [];
         var radarWebSpokesPlugin = {
@@ -602,13 +646,17 @@
                 datasets: [{
                     label: 'Percentile (higher = better)',
                     data: data.values,
-                    backgroundColor: radarFill,
-                    borderColor: radarStroke,
+                    backgroundColor: function () { return clockColor(0.16); },
+                    borderColor: function () { return clockColor(); },
+                    // Results switch in Chart.js's 'active' mode, which would otherwise paint a saturated hover colour.
+                    hoverBackgroundColor: function () { return clockColor(0.16); },
+                    hoverBorderColor: function () { return clockColor(); },
                     borderWidth: 2.5,
-                    pointBackgroundColor: radarPoint,
+                    pointBackgroundColor: function () { return clockColor(); },
                     pointBorderColor: 'rgba(18,20,20,.95)',
                     pointBorderWidth: 2,
-                    pointHoverBackgroundColor: radarPoint,
+                    pointHoverBackgroundColor: function () { return clockColor(); },
+                    borderJoinStyle: 'round',
                     pointHoverBorderColor: 'rgba(18,20,20,.95)',
                     pointHoverBorderWidth: 2,
                     pointRadius: 5,
@@ -621,15 +669,27 @@
                 responsive: true,
                 // The wrapper sets a landscape shape, so side labels no longer shrink the web inside a square.
                 maintainAspectRatio: false,
-                layout: { padding: 4 },
+                layout: { padding: function (context: { readonly chart: { readonly width: number } }) { return context.chart.width < 160 ? 12 : 4; } },
                 plugins: {
                     legend: { display: false },
                     tooltip: {
-                        backgroundColor: 'rgba(0,0,0,0.78)',
-                        padding: 10,
-                        cornerRadius: 8,
-                        titleFont: { size: 12, weight: '600' },
-                        bodyFont: { size: 12 },
+                        backgroundColor: radarTooltip,
+                        titleColor: radarInk,
+                        bodyColor: radarInk,
+                        borderColor: function () { return clockColor(); },
+                        borderWidth: 1,
+                        displayColors: false,
+                        padding: function (context: { readonly chart: { readonly width: number; readonly height: number } }) { return context.chart.width < 260 || context.chart.height < 180 ? 6 : 10; },
+                        cornerRadius: 6,
+                        // Moving or resizing between contributors can carry stale bounds outside a narrow canvas.
+                        animations: {
+                            numbers: { duration: 0 },
+                            opacity: { duration: function () { return getRadarAnimationDuration() ? 200 : 0; } }
+                        },
+                        titleFont: function (context: { readonly chart: { readonly width: number } }) { return { ...tooltipFont(context), weight: '600' }; },
+                        bodyFont: tooltipFont,
+                        bodySpacing: function (context: { readonly chart: { readonly width: number } }) { return context.chart.width < 260 ? 1 : 2; },
+                        titleMarginBottom: function (context: { readonly chart: { readonly width: number } }) { return context.chart.width < 260 ? 4 : 6; },
                         callbacks: {
                             title: function (tooltipItems: readonly RadarTooltipItem[]) {
                                 var firstItem = tooltipItems[0];
@@ -640,13 +700,17 @@
                             afterBody: function (tooltipItems: readonly RadarTooltipItem[]) {
                                 var firstItem = tooltipItems[0];
                                 if (!firstItem) return [];
-                                var chart = radarChartInstance;
+                                const chart = radarChartInstance;
                                 if (!chart) return [];
                                 var contrib = chart._radarTooltipContributors;
                                 var idx = firstItem.dataIndex;
                                 var contributorLines = contrib?.[idx];
                                 if (!contributorLines?.length) return [];
-                                return [''].concat(contributorLines);
+                                var compact = chart.width < 260 || chart.height < 180;
+                                var wrapped = contributorLines.flatMap(function (line) {
+                                    return wrapRadarText(line, Math.max(32, chart.width - (compact ? 12 : 20)), chart.width < 260 ? 11 : 12);
+                                });
+                                return compact ? wrapped : [''].concat(wrapped);
                             }
                         }
                     }
@@ -666,6 +730,13 @@
                                 return { family: fontFamily, size: context.chart.width >= 420 ? 12 : 11, weight: '500' };
                             },
                             color: radarLabelColor,
+                            // Each domain carries its percentile under its name, like a labelled axis.
+                            callback: function (this: { readonly chart?: { readonly width: number; readonly data: { readonly datasets: ReadonlyArray<{ readonly data: readonly unknown[] }> } } }, label: string, index: number): string | string[] {
+                                var value = Number(this?.chart?.data.datasets[0]?.data[index]);
+                                var width = this?.chart?.width ?? 420;
+                                var names = width < 260 ? wrapRadarText(label, Math.max(32, width * .28), 11, '500') : [label];
+                                return Number.isFinite(value) ? names.concat(String(Math.round(value))) : names;
+                            },
                             padding: 6,
                             z: 1
                         },
