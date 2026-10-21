@@ -85,7 +85,7 @@ internal sealed partial class TransactionalEmail
             "<table role=\"presentation\" class=\"lwc-email-action\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"margin:8px 0 24px;border-collapse:separate;\">" +
             $"<tr><td class=\"lwc-email-action-cell\" align=\"center\" bgcolor=\"{Accent}\" style=\"background:{Accent};border-radius:8px;mso-padding-alt:15px 20px;\">" +
             $"<a href=\"{EncodeLinkUrl(url)}\" class=\"lwc-email-action-link\" style=\"display:block;padding:15px 20px;font-family:{FontStack};font-size:16px;line-height:1.4;font-weight:700;color:#ffffff;text-decoration:none;text-align:center;border-radius:8px;\">" +
-            $"{EncodeKeepingDatesWhole(label)}&nbsp;&rarr;</a></td></tr></table>");
+            $"<font color=\"#ffffff\">{EncodeKeepingDatesWhole(label)}&nbsp;&rarr;</font></a></td></tr></table>");
         return this;
     }
 
@@ -193,7 +193,7 @@ internal sealed partial class TransactionalEmail
             ".lwc-email-action-link:focus-visible,.lwc-email-link:focus-visible,.lwc-email-foot-link:focus-visible{outline-color:#5bd5dd !important;}" +
             "}" +
             "</style></head>" +
-            $"<body class=\"lwc-email-body\" style=\"margin:0;padding:0;background:{Canvas};\">" +
+            $"<body class=\"lwc-email-body\" bgcolor=\"{Canvas}\" text=\"{Ink}\" link=\"{Accent}\" vlink=\"{Accent}\" alink=\"{Accent}\" style=\"margin:0;padding:0;background:{Canvas};\">" +
             $"<table role=\"presentation\" class=\"lwc-email-canvas\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" bgcolor=\"{Canvas}\" style=\"background:{Canvas};\">" +
             "<tr><td class=\"lwc-email-pad\" align=\"center\" style=\"padding:32px 16px;\">" +
             "<!--[if mso]><table role=\"presentation\" width=\"560\" align=\"center\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"width:560px;mso-table-lspace:0pt;mso-table-rspace:0pt;\"><tr><td><![endif]-->" +

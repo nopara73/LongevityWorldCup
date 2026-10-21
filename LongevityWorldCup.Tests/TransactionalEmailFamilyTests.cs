@@ -101,7 +101,7 @@ public sealed class TransactionalEmailFamilyTests
         var html = SubmissionHtml(checkoutLink: CheckoutUrl);
 
         Assert.Contains($"<a href=\"{CheckoutUrl}\" class=\"lwc-email-action-link\"", html);
-        Assert.Contains(">If you haven&#39;t paid yet, complete your payment here&nbsp;&rarr;</a>", html);
+        Assert.Contains(">If you haven&#39;t paid yet, complete your payment here&nbsp;&rarr;</font></a>", html);
         Assert.DoesNotContain($">{CheckoutUrl}<", html);
         Assert.DoesNotContain($"{CheckoutUrl}<br", html);
         Assert.Contains("If you haven't paid yet, complete your payment here:\n" + CheckoutUrl, SubmissionText(checkoutLink: CheckoutUrl).Replace("\r\n", "\n"));
@@ -161,7 +161,7 @@ public sealed class TransactionalEmailFamilyTests
         var content = SmtpLongevitymaxxingEmailSender.BuildDailyReminderEmailContent(
             Reminder(digest: Digest()), "https://longevityworldcup.com/longevitymaxxing?access=a", StopUrl);
 
-        Assert.Contains(">Day 3 is ready. Check in for <span style=\"white-space:nowrap;\">2026-10-20</span>&nbsp;&rarr;</a>", content.HtmlBody);
+        Assert.Contains(">Day 3 is ready. Check in for <span style=\"white-space:nowrap;\">2026-10-20</span>&nbsp;&rarr;</font></a>", content.HtmlBody);
         Assert.Contains(">Discussion activity: 1 new mention and 2 new replies</p>", content.HtmlBody);
         Assert.Contains(">Mention Max mentioned you in a Day 2 post (<span style=\"white-space:nowrap;\">2026-10-19</span>).</td>", content.HtmlBody);
         Assert.Contains(">Your Day 1 post (<span style=\"white-space:nowrap;\">2026-10-18</span>): 2 new replies from Reply Rae, Echo Eve.</td>", content.HtmlBody);
@@ -232,7 +232,7 @@ public sealed class TransactionalEmailFamilyTests
             "https://longevityworldcup.com/a?token=t&utm_source=longevityworldcup&utm_medium=email&utm_campaign=longevitymaxxing&utm_content=access_link\n\n" +
             "Open it once on a browser and the page will remember you.\n\nLongevity World Cup",
             access.TextBody);
-        Assert.Contains(">Confirm your Longevitymaxxing Challenge spot&nbsp;&rarr;</a>", confirmation.HtmlBody);
+        Assert.Contains(">Confirm your Longevitymaxxing Challenge spot&nbsp;&rarr;</font></a>", confirmation.HtmlBody);
         Assert.Contains(">Hi there,</h1>", confirmation.HtmlBody);
     }
 

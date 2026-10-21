@@ -19,11 +19,14 @@ public sealed class TransactionalEmailBrowserTests(
     [InlineData(320, "enlarged-text")]
     [InlineData(195, "zoom-reflow")]
     [InlineData(160, "zoom-reflow")]
+    [InlineData(320, "no-css")]
+    [InlineData(390, "no-css-dark")]
     public async Task EmailFallbacks_KeepContentAndActionsReadable(int width, string mode)
     {
         await using var context = await NewContextAsync(Browser, App, new()
         {
             ViewportSize = new() { Width = width, Height = 844 },
+            ColorScheme = mode.EndsWith("-dark", StringComparison.Ordinal) ? ColorScheme.Dark : ColorScheme.Light,
             ReducedMotion = ReducedMotion.Reduce
         });
         await context.RouteAsync("https://**/*", route => route.AbortAsync());
@@ -31,6 +34,9 @@ public sealed class TransactionalEmailBrowserTests(
         foreach (var (name, original) in TransactionalEmailFamilyTests.AthleteEmails())
         {
             var html = mode is "enlarged-text" or "zoom-reflow" ? original : Regex.Replace(original, "<style>.*?</style>", "", RegexOptions.Singleline);
+            var noCss = mode.StartsWith("no-css", StringComparison.Ordinal);
+            if (noCss)
+                html = Regex.Replace(html, " style=\"[^\"]*\"", "");
             if (mode == "outlook")
             {
                 // Materialize MSO-only markup and remove unsupported table width CSS.
@@ -62,11 +68,22 @@ public sealed class TransactionalEmailBrowserTests(
                 }
                 """);
             Assert.True(clipped.Length == 0, $"{name}, {mode}: clipped glyphs: {string.Join(" | ", clipped)}");
+            if (noCss)
+            {
+                Assert.Equal("rgb(23, 33, 43)", await page.Locator(".lwc-email-greeting").EvaluateAsync<string>("e => getComputedStyle(e).color"));
+                foreach (var link in await page.Locator("a[href]").AllAsync())
+                {
+                    var action = await link.EvaluateAsync<bool>("e => e.classList.contains('lwc-email-action-link')");
+                    Assert.Equal(action ? "rgb(255, 255, 255)" : "rgb(8, 118, 133)",
+                        await link.EvaluateAsync<string>("e => getComputedStyle(e.querySelector('font') || e).color"));
+                }
+            }
             if (name.StartsWith("lmx-") && name is not "lmx-confirmation" and not "lmx-access")
             {
                 var stop = page.GetByRole(AriaRole.Link, new() { Name = "Stop Challenge reminder emails" });
                 Assert.Equal(TransactionalEmailFamilyTests.StopUrl, await stop.GetAttributeAsync("href"));
-                Assert.True((await stop.BoundingBoxAsync())!.Height >= 44);
+                if (!noCss)
+                    Assert.True((await stop.BoundingBoxAsync())!.Height >= 44);
             }
         }
     }
