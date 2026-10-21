@@ -1973,7 +1973,7 @@ public sealed class AestheticSystemBrowserTests(
             if (condition.Name == "bioage-entry")
             {
                 Assert.Equal("max", condition.Bound);
-                Assert.Equal(18.5, condition.Value);
+                Assert.Contains(condition.Value, new[] { 18.5, 14.5 });
                 Assert.Equal("rem", condition.Unit);
                 await NavigateAndSettleAsync(page, route);
                 await FlowActionDockBrowserTests.FillBioageStepOneAsync(
@@ -1998,7 +1998,12 @@ public sealed class AestheticSystemBrowserTests(
                         }
                         """, inlineSize);
                     Assert.Equal(inlineSize, diagnostics.ContainerWidth, 1);
-                    Assert.Equal(inlineSize <= entryThreshold, diagnostics.IsCompact);
+                    // The original 18.5rem rule remains for shared forms; the
+                    // calculators' unified measurement overrides it and stacks
+                    // at 14.5rem. Exercise both declared boundaries in both
+                    // directions, including the overridden rule.
+                    Assert.True(diagnostics.IsCompact == (inlineSize <= 14.5 * rootFontSize),
+                        $"{route} measurement did not use its 14.5rem boundary at {inlineSize}px (declared query: {condition.Value}rem).");
                     Assert.True(diagnostics.HorizontalOverflow <= 1,
                         $"{route} biomarker entry overflowed at {inlineSize}px.");
                 }

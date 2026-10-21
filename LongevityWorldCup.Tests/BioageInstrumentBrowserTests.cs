@@ -194,6 +194,7 @@ public sealed class BioageInstrumentBrowserTests(
             """
             input => {
                 const error = input.closest('.biomarker-card').querySelector('.bioage-biomarker-error');
+                const measurement = input.closest('.input-group');
                 const luminance = color => color.match(/[\d.]+/g).slice(0, 3).map(Number)
                     .map(channel => {
                         const value = channel / 255;
@@ -209,14 +210,16 @@ public sealed class BioageInstrumentBrowserTests(
                     return (Math.max(...values) + 0.05) / (Math.min(...values) + 0.05);
                 };
                 return [contrast(getComputedStyle(error).color, background(error)),
-                    contrast(getComputedStyle(input).borderColor, background(input))];
+                    contrast(getComputedStyle(measurement).borderColor, background(measurement)),
+                    parseFloat(getComputedStyle(measurement).borderTopWidth)];
             }
             """);
 
         Assert.True(contrasts[0] >= 4.5,
             $"{path} {scheme}: validation text has contrast {contrasts[0]:F2}:1.");
         Assert.True(contrasts[1] >= 3,
-            $"{path} {scheme}: the invalid input border has contrast {contrasts[1]:F2}:1.");
+            $"{path} {scheme}: the invalid measurement border has contrast {contrasts[1]:F2}:1.");
+        Assert.True(contrasts[2] >= 1, "The measured invalid border must actually be drawn.");
     }
 
     private readonly List<IBrowserContext> _contexts = [];
@@ -234,6 +237,8 @@ public sealed class BioageInstrumentBrowserTests(
     [InlineData("/bortz-age", 320, 100)]
     [InlineData("/pheno-age", 320, 200)]
     [InlineData("/bortz-age", 320, 200)]
+    [InlineData("/pheno-age", 160, 100)]
+    [InlineData("/bortz-age", 160, 100)]
     public async Task DateFields_KeepAllSelectedValuesReadable(string path, int width, int textPercent)
     {
         var page = await OpenAsync(path, width, 900, ColorScheme.Light);

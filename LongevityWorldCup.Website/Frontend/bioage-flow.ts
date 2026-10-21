@@ -873,11 +873,17 @@ interface Window {
         let top = 0;
         ['site-sticky-header', 'site-sticky-progress'].forEach(id => {
             const bar = document.getElementById(id);
-            if (!bar || getComputedStyle(bar).position !== 'fixed') return;
+            if (!bar) return;
+            const style = getComputedStyle(bar);
+            if (style.position !== 'fixed' || style.visibility === 'hidden') return;
             const rect = bar.getBoundingClientRect();
-            if (rect.height > 0 && rect.top <= 1) top = Math.max(top, rect.bottom);
+            // The progress row starts at the header's bottom, not at zero.
+            if (rect.height > 0 && rect.bottom > 0 && rect.top < window.innerHeight) top = Math.max(top, rect.bottom);
         });
-        document.documentElement.style.setProperty('--bioage-band-top', `${Math.round(top)}px`);
+        const offset = `${Math.ceil(top)}px`;
+        if (document.documentElement.style.getPropertyValue('--bioage-band-top') !== offset) {
+            document.documentElement.style.setProperty('--bioage-band-top', offset);
+        }
     }
 
     function watchSectionBandOffset(): void {
@@ -886,9 +892,38 @@ interface Window {
         const schedule = () => {
             if (!sectionBandOffsetFrame) sectionBandOffsetFrame = window.requestAnimationFrame(syncSectionBandOffset);
         };
-        window.addEventListener('scroll', schedule, { passive: true });
-        window.addEventListener('resize', schedule, { passive: true });
-        schedule();
+        const bars = ['site-sticky-header', 'site-sticky-progress']
+            .map(id => document.getElementById(id))
+            .filter((bar): bar is HTMLElement => bar !== null);
+        // Font loading, progress visibility and header reflow can change these
+        // bounds without a scroll or viewport resize. Observe only the bars;
+        // writing the form's offset cannot feed back into this observer.
+        const sizeObserver = new ResizeObserver(schedule);
+        const visibilityObserver = new MutationObserver(schedule);
+        let watching = false;
+        const start = () => {
+            if (watching) return;
+            watching = true;
+            bars.forEach(bar => {
+                sizeObserver.observe(bar);
+                visibilityObserver.observe(bar, { attributes: true, attributeFilter: ['class', 'style', 'hidden', 'aria-hidden'] });
+            });
+            window.addEventListener('scroll', schedule, { passive: true });
+            window.addEventListener('resize', schedule, { passive: true });
+            schedule();
+        };
+        const stop = () => {
+            watching = false;
+            sizeObserver.disconnect();
+            visibilityObserver.disconnect();
+            window.removeEventListener('scroll', schedule);
+            window.removeEventListener('resize', schedule);
+            window.cancelAnimationFrame(sectionBandOffsetFrame);
+            sectionBandOffsetFrame = 0;
+        };
+        window.addEventListener('pagehide', stop);
+        window.addEventListener('pageshow', start);
+        start();
     }
 
     function ensureBiomarkerVisible(input: HTMLInputElement): void {

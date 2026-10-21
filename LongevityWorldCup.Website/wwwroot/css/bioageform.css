@@ -1808,6 +1808,12 @@ body #validAgeInput + * {
         grid-column: 1 / -1;
         grid-row: auto;
     }
+
+    :is(#phenoAgeForm, #bortzAgeForm) fieldset#dobFieldset > select {
+        padding-inline: 6px 24px;
+        background-position: right 6px center;
+        background-size: 12px;
+    }
 }
 
 /*
@@ -2328,6 +2334,10 @@ body :is(#phenoAgeResult, #bortzAgeResult) #ensureCorrectInputSuggestion i {
         border-left: 0 !important;
         border-top: 1px solid var(--bioage-hairline) !important;
     }
+
+    :is(#phenoAgeForm, #bortzAgeForm).bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card-content .input-group select {
+        padding-right: 1.3rem;
+    }
 }
 
 /* A phone row is a name over a full-width measurement, set tighter so a full
@@ -2348,6 +2358,57 @@ body :is(#phenoAgeResult, #bortzAgeResult) #ensureCorrectInputSuggestion i {
     .bioage-domain-pip--complete,
     .bioage-domain-pip--invalid {
         background: CanvasText;
+    }
+}
+
+/* At a phone's actual 200% browser zoom, keep the native unit labels at their
+   normal text size by returning the outer gutter to the measurement. */
+@container bioage-form (max-width: 15rem) {
+    :is(#phenoAgeForm, #bortzAgeForm).bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card-content,
+    :is(#phenoAgeForm, #bortzAgeForm).bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card.active .biomarker-card-content {
+        padding-inline: 8px !important;
+    }
+}
+
+@media (max-width: 239px) {
+    body:not(.bioage-result-ready) :is(main.phenoage-main, main.bioage-main) {
+        padding-inline: 4px;
+    }
+
+    body:not(.bioage-result-ready) :is(main.phenoage-main, main.bioage-main) > .lwc-steps-shell {
+        width: 100%;
+    }
+
+    body:not(.bioage-result-ready) :is(#phenoAgeForm, #bortzAgeForm) {
+        --bioage-card-max-width: 100%;
+    }
+
+    :is(#phenoAgeForm, #bortzAgeForm).bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card-content,
+    :is(#phenoAgeForm, #bortzAgeForm).bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card.active .biomarker-card-content {
+        padding-inline: 6px !important;
+    }
+
+    :is(#phenoAgeForm, #bortzAgeForm).bioage-biomarker-entry-ready #lwc-step-2 .input-group select {
+        padding-left: 6px;
+    }
+
+    :is(#phenoAgeForm, #bortzAgeForm) :is(#lwc-step-1, #lwc-step-2) > fieldset > legend {
+        display: block;
+    }
+
+    :is(#phenoAgeForm, #bortzAgeForm) legend .category-icon {
+        display: inline-flex;
+        margin-right: 0.4rem;
+        vertical-align: middle;
+    }
+
+    :is(#phenoAgeForm, #bortzAgeForm) .bioage-domain-tally {
+        display: flex;
+        justify-content: flex-start;
+        gap: 4px;
+        margin-top: 0.4rem;
+        margin-left: 0;
+        padding-left: 0;
     }
 }
 

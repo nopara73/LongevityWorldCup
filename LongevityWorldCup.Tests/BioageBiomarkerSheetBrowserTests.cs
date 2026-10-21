@@ -19,6 +19,8 @@ public sealed class BioageBiomarkerSheetBrowserTests(
     [InlineData("/pheno-age", 320, 844, 200)]
     [InlineData("/bortz-age", 320, 844, 200)]
     [InlineData("/bortz-age", 320, 844, 100)]
+    [InlineData("/bortz-age", 195, 844, 100)]
+    [InlineData("/bortz-age", 160, 844, 100)]
     [InlineData("/bortz-age", 768, 1024, 200)]
     public async Task BiomarkerSheet_KeepsEveryValueOpenAndTypableInOrder(string path, int width, int height, int textPercent)
     {
@@ -50,6 +52,14 @@ public sealed class BioageBiomarkerSheetBrowserTests(
                     const available = element.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
                     return ctx.measureText(text).width <= available + 1;
                 };
+                for (const legend of document.querySelectorAll('#lwc-step-2 > fieldset > legend')) {
+                    const title = [...legend.childNodes].find(node => node.nodeType === Node.TEXT_NODE && node.textContent.trim());
+                    if (!title) continue;
+                    const range = document.createRange();
+                    range.selectNodeContents(title);
+                    const lines = new Set([...range.getClientRects()].filter(rect => rect.width > 1).map(rect => Math.round(rect.top)));
+                    if (lines.size > 2) issues.push(`${title.textContent.trim()}: domain title is squeezed into ${lines.size} lines`);
+                }
                 for (const card of document.querySelectorAll('#lwc-step-2 .biomarker-card')) {
                     const header = card.querySelector('.biomarker-card-header');
                     const name = header.childNodes[0].textContent.trim();

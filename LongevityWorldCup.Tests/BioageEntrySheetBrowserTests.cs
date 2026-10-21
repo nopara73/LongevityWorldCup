@@ -116,32 +116,115 @@ public sealed class BioageEntrySheetBrowserTests(
         Assert.InRange(groups.Max(group => group[5]) - groups.Min(group => group[5]), 0, 1);
     }
 
-    [Fact]
-    public async Task DomainBand_StaysInViewBelowTheSiteBarsOnAPhone()
+    [Theory]
+    [InlineData("/pheno-age", 1440, 900)]
+    [InlineData("/bortz-age", 390, 844)]
+    [InlineData("/bortz-age", 844, 390)]
+    public async Task DomainBand_StaysBelowTheStackedSiteBarsAndTracksTheirLayout(string path, int width, int height)
     {
-        var page = await OpenAsync("/bortz-age", 390, 844, ColorScheme.Light);
+        var page = await OpenAsync(path, width, height, ColorScheme.Light);
         await FillBioageStepOneAsync(page, DateTime.UtcNow.Date.AddDays(-9).ToString("yyyy-MM-dd"));
-        await page.Locator("#mch").FocusAsync();
-        await page.EvaluateAsync("() => window.scrollBy(0, 300)");
-        await page.WaitForTimeoutAsync(400);
-
-        var result = await page.EvaluateAsync<double[]>(
+        await page.EvaluateAsync(
             """
             () => {
-                const band = document.querySelector('#lwc-step-2 > fieldset:first-of-type > legend').getBoundingClientRect();
-                const bars = ['site-sticky-header', 'site-sticky-progress']
-                    .map(id => document.getElementById(id))
-                    .filter(bar => bar && getComputedStyle(bar).position === 'fixed')
-                    .map(bar => bar.getBoundingClientRect())
-                    .filter(box => box.height > 0 && box.top <= 1);
-                const barBottom = Math.max(0, ...bars.map(box => box.bottom));
-                const fieldset = document.querySelector('#lwc-step-2 > fieldset:first-of-type').getBoundingClientRect();
-                return [band.top, barBottom, fieldset.top];
+                const fieldset = document.querySelector('#lwc-step-2 > fieldset:first-of-type');
+                window.scrollTo(0, fieldset.getBoundingClientRect().top + scrollY + 60);
             }
             """);
+        await Assertions.Expect(page.Locator("#site-sticky-progress")).ToBeVisibleAsync();
+        // These routes normally hide the compact site header. Exercise the
+        // supported stacked-bar geometry explicitly rather than letting a
+        // zero-height header make the top-zero regression pass unnoticed.
+        await page.Locator("#site-sticky-header").EvaluateAsync(
+            "bar => { bar.style.setProperty('display', 'flex', 'important'); bar.style.setProperty('transform', 'none', 'important'); bar.style.opacity = '1'; bar.style.minHeight = '52px'; window.LwcStickyProgress.refresh(); }");
+        var bars = await page.EvaluateAsync<double[]>(
+            "() => ['site-sticky-header', 'site-sticky-progress'].map(id => document.getElementById(id).getBoundingClientRect().bottom)");
+        Assert.True(bars[0] >= 52 && bars[1] > bars[0] + 30, "The progress row must actually be stacked below the header in this regression test.");
+        await AssertBandTopAsync(page, "site-sticky-progress");
 
-        Assert.True(result[2] < result[1], "The first domain should have scrolled under the site bars.");
-        Assert.InRange(result[0], result[1] - 1, result[1] + 1);
+        // A font/content reflow can resize a fixed bar without a viewport event.
+        await page.Locator("#site-sticky-progress").EvaluateAsync("bar => bar.style.minHeight = '80px'");
+        await AssertBandTopAsync(page, "site-sticky-progress");
+        await page.Locator("#site-sticky-progress").EvaluateAsync("bar => bar.style.display = 'none'");
+        await AssertBandTopAsync(page, "site-sticky-header");
+        await page.Locator("#site-sticky-progress").EvaluateAsync("bar => bar.style.removeProperty('display')");
+        await AssertBandTopAsync(page, "site-sticky-progress");
+
+        // Offset writes settle instead of causing a style/observer feedback loop.
+        var writes = await page.EvaluateAsync<int>(
+            """
+            async () => {
+                let writes = 0;
+                const observer = new MutationObserver(records => writes += records.length);
+                observer.observe(document.documentElement, { attributes: true, attributeFilter: ['style'] });
+                await new Promise(resolve => setTimeout(resolve, 150));
+                observer.disconnect();
+                return writes;
+            }
+            """);
+        Assert.Equal(0, writes);
+    }
+
+    private static Task AssertBandTopAsync(IPage page, string barId)
+        => page.WaitForFunctionAsync(
+            """
+            id => {
+                const band = document.querySelector('#lwc-step-2 > fieldset:first-of-type > legend').getBoundingClientRect();
+                const bar = document.getElementById(id).getBoundingClientRect();
+                return Math.abs(band.top - bar.bottom) <= 1;
+            }
+            """, barId);
+
+    [Theory]
+    [InlineData("/pheno-age", "pheno")]
+    [InlineData("/bortz-age", "bortz")]
+    public async Task EverySelectableUnit_PreservesTheEquivalentPanelResult(string path, string clock)
+    {
+        var page = await OpenAsync(path, 1440, 900, ColorScheme.Light);
+        await FillBioageStepOneAsync(page, "2026-09-01");
+        if (clock == "bortz") await FillBortzBiomarkersAsync(page);
+        else await FillPhenoBiomarkersAsync(page);
+
+        var problems = await page.EvaluateAsync<string[]>(
+            """
+            clock => {
+                const age = () => clock === 'pheno' ? lastCalculatedPhenoAge : lastCalculatedBortzAge;
+                const fields = [...document.querySelectorAll('#lwc-step-2 input[type=number]')].map(input => {
+                    const select = document.getElementById(input.id + 'Unit');
+                    return { input, select, raw: Number(input.value), index: select.selectedIndex, factor: Number(select.value) };
+                });
+                calculateResult();
+                const expected = age();
+                const problems = [];
+                if (!Number.isFinite(expected)) return ['The reference panel did not calculate.'];
+                for (const field of fields) for (let index = 0; index < field.select.options.length; index++) {
+                    if (index === field.index) continue;
+                    fields.forEach(original => { original.input.value = String(original.raw); original.select.selectedIndex = original.index; });
+                    const option = field.select.options[index];
+                    const text = option.textContent.trim();
+                    let raw = field.raw / field.factor * Number(option.value);
+                    if (['lymphocyte', 'lymphocyte_percentage', 'neutrophil_percentage', 'monocyte_percentage'].includes(field.input.id) && text !== '%') {
+                        raw = fields.find(candidate => candidate.input.id === 'wbc').raw * field.raw / 100 * Number(option.value);
+                    }
+                    if (field.input.id === 'hba1c') {
+                        const percent = field.raw / 10.929 + 2.15;
+                        if (text.includes('%')) raw = percent;
+                        else if (text.includes('eAG')) raw = (percent * 28.7 - 46.7) / (text.includes('mmol/L') ? 18.018 : 1);
+                    }
+                    field.input.value = String(raw);
+                    field.select.selectedIndex = index;
+                    field.input.dispatchEvent(new Event('input', { bubbles: true }));
+                    field.select.dispatchEvent(new Event('change', { bubbles: true }));
+                    calculateResult();
+                    if (!Number.isFinite(age()) || Math.abs(age() - expected) > 1e-9)
+                        problems.push(`${field.input.id} / ${text}: ${age()} instead of ${expected}`);
+                    if (field.select.selectedIndex !== index)
+                        problems.push(`${field.input.id} did not retain the selected equivalent unit ${text}`);
+                }
+                return problems;
+            }
+            """, clock);
+        Assert.True(problems.Length == 0, string.Join(Environment.NewLine, problems));
     }
 
     public override async Task DisposeAsync()
