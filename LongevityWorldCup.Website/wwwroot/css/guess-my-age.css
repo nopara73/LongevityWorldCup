@@ -1,7 +1,8 @@
 /* The payoff lives inside the game card so it can never cover the athlete. */
 .gma-pop-banner {
     position: relative;
-    transform: translateY(-0.65rem) scale(0.72);
+    transform: scale(1.32);
+    opacity: 0;
     width: max-content;
     max-width: 100%;
     min-height: 56px;
@@ -24,7 +25,7 @@
 }
 
 .gma-pop-banner.show {
-    animation: gma-pop-slide-in calc(var(--lwc-duration-normal, 220ms) * 3) var(--lwc-ease, ease) forwards;
+    animation: gma-pop-stamp calc(var(--lwc-duration-normal, 220ms) * 3) cubic-bezier(.2, .9, .3, 1) forwards;
 }
 
 .gma-pop-banner.hide {
@@ -35,29 +36,92 @@
     background: linear-gradient(135deg, #fff3a1 0%, #d6a315 48%, #fff1a0 72%, #9a6700 100%) !important;
     border-color: rgba(95, 69, 0, 0.34);
     color: #4f3900 !important;
+    text-shadow: 0 1px 0 rgba(255, 248, 205, 0.6);
     box-shadow: 0 1.25rem 3rem rgba(63, 44, 0, 0.42), 0 0 1.8rem rgba(255, 215, 0, 0.5);
 }
 
-@keyframes gma-pop-slide-in {
+/* The copy lands like a stamp; the marks follow from either side a beat later, and one
+   light sweep crosses the pill once it has settled. */
+.gma-pop-banner {
+    gap: 0.5em;
+    overflow: hidden;
+    isolation: isolate;
+}
+
+.gma-pop-banner-copy {
+    letter-spacing: 0.01em;
+}
+
+.gma-pop-banner-mark {
+    display: inline-block;
+    font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+    line-height: 1;
+    text-shadow: none;
+}
+
+.gma-pop-banner.show .gma-pop-banner-mark {
+    animation: gma-pop-mark-in calc(var(--lwc-duration-normal, 220ms) * 2) cubic-bezier(.3, 1.5, .5, 1) calc(var(--lwc-duration-fast, 140ms) * 2) both;
+}
+
+.gma-pop-banner.show .gma-pop-banner-mark--end {
+    --gma-mark-from: 0.9em;
+    --gma-mark-turn: 24deg;
+    animation-delay: calc(var(--lwc-duration-fast, 140ms) * 2.6);
+}
+
+.gma-pop-banner::after {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    inset: 0;
+    background: linear-gradient(105deg, transparent 30%, rgba(255, 255, 255, 0.42) 48%, transparent 64%);
+    transform: translateX(-120%);
+    pointer-events: none;
+}
+
+.gma-pop-banner.show::after {
+    animation: gma-pop-sheen calc(var(--lwc-duration-normal, 220ms) * 4) var(--lwc-ease, ease) calc(var(--lwc-duration-normal, 220ms) * 2.4) both;
+}
+
+@keyframes gma-pop-stamp {
     0% {
-        transform: translateY(-0.65rem) scale(0.72) rotate(-2deg);
+        transform: scale(1.32);
         opacity: 0;
+        filter: blur(3px);
     }
 
-    58% {
-        transform: translateY(0.15rem) scale(1.1) rotate(1deg);
+    42% {
+        transform: scale(0.95);
         opacity: 1;
+        filter: blur(0);
     }
 
-    76% {
-        transform: translateY(0) scale(0.97) rotate(-0.6deg);
-        opacity: 1;
+    68% {
+        transform: scale(1.025);
     }
 
     100% {
-        transform: translateY(0) scale(1);
+        transform: scale(1);
         opacity: 1;
+        filter: none;
     }
+}
+
+@keyframes gma-pop-mark-in {
+    from {
+        opacity: 0;
+        transform: translateX(var(--gma-mark-from, -0.9em)) scale(0.2) rotate(var(--gma-mark-turn, -24deg));
+    }
+
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@keyframes gma-pop-sheen {
+    from { transform: translateX(-120%); }
+    to { transform: translateX(120%); }
 }
 
 @keyframes gma-pop-slide-out {
@@ -67,7 +131,7 @@
     }
 
     to {
-        transform: translateY(-0.6rem) scale(0.88);
+        transform: translateY(0.4rem) scale(0.94);
         opacity: 0;
     }
 }
@@ -261,7 +325,8 @@
     transition: opacity var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
 }
 
-#detailsModal .modal-content.guess-mode:has(#gmaRealBubble.is-travelling) #athlete-profile .portrait-wrapper::after {
+#detailsModal .modal-content.guess-mode:has(#gmaRealBubble.is-travelling) #athlete-profile .portrait-wrapper::after,
+#detailsModal .modal-content.guess-mode:has(.gma-card.is-submitting) #athlete-profile .portrait-wrapper::after {
     opacity: 1;
     animation: gma-bezel-sweep calc(var(--lwc-duration-normal, 220ms) * 5) linear infinite;
 }
@@ -505,23 +570,105 @@
     animation: gma-real-age-settle calc(var(--lwc-duration-normal, 220ms) * 4) var(--lwc-ease, ease) both;
 }
 
+/* The answer drops onto the ruler: a short fall, one firm overshoot, a small rebound. */
 @keyframes gma-real-age-settle {
     0% {
-        transform: translateX(-50%) scale(0.86);
+        transform: translateX(-50%) translateY(-0.45rem) scale(0.9);
         box-shadow: 0 0.8rem 1.75rem rgba(2, 8, 23, 0.28), 0 0 0 rgba(25, 195, 209, 0);
     }
-    48% {
-        transform: translateX(-50%) scale(1.24);
+    34% {
+        transform: translateX(-50%) translateY(0.12rem) scale(1.16);
         box-shadow: 0 1rem 2rem rgba(2, 8, 23, 0.3), 0 0 2.4rem var(--gma-settle-glow, rgba(25, 195, 209, 0.72));
     }
-    74% {
-        transform: translateX(-50%) scale(0.97);
-        box-shadow: 0 0.8rem 1.75rem rgba(2, 8, 23, 0.28), 0 0 1rem var(--gma-settle-afterglow, rgba(25, 195, 209, 0.28));
+    58% {
+        transform: translateX(-50%) translateY(0) scale(0.97);
+        box-shadow: 0 0.8rem 1.75rem rgba(2, 8, 23, 0.28), 0 0 1.2rem var(--gma-settle-afterglow, rgba(25, 195, 209, 0.28));
+    }
+    78% {
+        transform: translateX(-50%) scale(1.02);
     }
     100% {
         transform: translateX(-50%) scale(1);
         box-shadow: 0 0.8rem 1.75rem rgba(2, 8, 23, 0.28), 0 0 0 rgba(25, 195, 209, 0);
     }
+}
+
+/* Guessing younger earns a little hop; guessing older makes the answer shake its head. */
+.gma-card[data-gma-reaction="younger"] #gmaRealBubble.is-settled {
+    animation-name: gma-real-age-hop;
+    animation-duration: calc(var(--lwc-duration-normal, 220ms) * 4.5);
+}
+
+.gma-card[data-gma-reaction="older"] #gmaRealBubble.is-settled {
+    animation-name: gma-real-age-oof;
+    animation-duration: calc(var(--lwc-duration-normal, 220ms) * 4.5);
+}
+
+@keyframes gma-real-age-hop {
+    0% { transform: translateX(-50%) translateY(-0.45rem) scale(0.9); }
+    30% { transform: translateX(-50%) translateY(0.1rem) scale(1.14); box-shadow: 0 1rem 2rem rgba(2, 8, 23, 0.3), 0 0 2.4rem var(--gma-settle-glow, rgba(25, 195, 209, 0.72)); }
+    48% { transform: translateX(-50%) translateY(-0.7rem) scale(1.04); }
+    66% { transform: translateX(-50%) translateY(0) scale(0.98); }
+    82% { transform: translateX(-50%) translateY(-0.18rem) scale(1.01); }
+    100% { transform: translateX(-50%) scale(1); }
+}
+
+@keyframes gma-real-age-oof {
+    0% { transform: translateX(-50%) translateY(-0.45rem) scale(0.9); }
+    30% { transform: translateX(-50%) translateY(0.1rem) scale(1.12); box-shadow: 0 1rem 2rem rgba(2, 8, 23, 0.3), 0 0 1.6rem var(--gma-settle-afterglow, rgba(25, 195, 209, 0.28)); }
+    44% { transform: translateX(-50%) rotate(-7deg) scale(1); }
+    58% { transform: translateX(-50%) rotate(6deg) scale(1); }
+    72% { transform: translateX(-50%) rotate(-3.5deg) scale(1); }
+    86% { transform: translateX(-50%) rotate(1.5deg) scale(1); }
+    100% { transform: translateX(-50%) scale(1); }
+}
+
+/* The miss as a dimension line under the track: drawn from the guess to the answer. */
+.gma-gap {
+    --gma-gap-color: var(--athlete-modal-cream, rgba(246,244,237,.92));
+    position: absolute;
+    z-index: 1;
+    height: 6px;
+    margin-top: 6px;
+    border-radius: 999px;
+    background: var(--gma-gap-color);
+    box-shadow: 0 0 0.6rem color-mix(in srgb, var(--gma-gap-color) 45%, transparent);
+    pointer-events: none;
+    transform-origin: left center;
+    animation: gma-gap-draw calc(var(--lwc-duration-normal, 220ms) * 2.6) cubic-bezier(.2, .8, .2, 1) var(--lwc-duration-fast, 140ms) both;
+}
+
+.gma-gap[data-from="right"] {
+    transform-origin: right center;
+}
+
+.gma-gap::before,
+.gma-gap::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 3px;
+    height: 16px;
+    border-radius: 2px;
+    background: inherit;
+    transform: translateY(-50%);
+}
+
+.gma-gap::before { left: 0; }
+.gma-gap::after { right: 0; }
+
+.gma-gap[data-tone="crowd"] {
+    --gma-gap-color: var(--lwc-accent-bright, #19c3d1);
+}
+
+.gma-gap[data-tone="first"] {
+    --gma-gap-color: #f4d260;
+}
+
+@keyframes gma-gap-draw {
+    from { opacity: 0; transform: scaleX(0); }
+    20% { opacity: 1; }
+    to { opacity: 1; transform: scaleX(1); }
 }
 
     #gmaRealBubble::after {
@@ -723,13 +870,15 @@
     animation-duration: var(--lwc-duration-fast, 140ms) !important;
 }
 
-/* The original endpoint gag: a modal-covering trollface rises from below. */
+/* The original endpoint gag: a modal-covering trollface springs up from below, lands
+   with a bounce, then leans in on the player just before the redirect. */
 #detailsModal .modal-content > .gma-trollface-container {
     position: absolute;
     left: 0;
     right: 0;
     height: 100%;
-    bottom: -100%;
+    bottom: 0;
+    transform: translateY(100%);
     background: transparent;
     overflow: hidden;
     display: flex;
@@ -748,14 +897,25 @@
 }
 
 @keyframes gmaTrollSlideUpOverlay {
-    from { bottom: -100%; }
-    to { bottom: 0; }
+    0% { transform: translateY(100%); }
+    40% { transform: translateY(-4%); }
+    54% { transform: translateY(1.5%); }
+    66% { transform: translateY(-0.5%); }
+    76%, 100% { transform: translateY(0); }
 }
 
 .gma-trollface-container img {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    animation: gma-troll-lean-in calc(var(--lwc-duration-normal, 220ms) * 3.5) var(--lwc-ease, ease) calc(var(--lwc-duration-normal, 220ms) * 5.5) both;
+}
+
+@keyframes gma-troll-lean-in {
+    0% { transform: none; }
+    30% { transform: scale(1.03) rotate(-1.5deg); }
+    60% { transform: scale(1.06) rotate(1.5deg); }
+    100% { transform: scale(1.1) rotate(0); }
 }
 
 .gma-heading,
@@ -827,33 +987,85 @@
     z-index: 10003;
     pointer-events: none;
     font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
-    font-size: clamp(7rem, 18vw, 12rem);
+    font-size: clamp(5.5rem, 10vw, 8.5rem);
     line-height: 1;
-    filter: drop-shadow(0 0.5rem 1rem rgba(15, 23, 42, 0.24));
-    animation: gma-reaction-pop calc(var(--lwc-duration-normal, 220ms) * 5) var(--lwc-ease, ease) both;
+    filter: drop-shadow(0 0.6rem 0.9rem rgba(0, 0, 0, 0.32));
+    animation: gma-reaction-peek calc(var(--lwc-duration-normal, 220ms) * 5) var(--lwc-ease, ease) both;
 }
 
 /* The exact-guess eyes punctuate the feint, then clear before the Bullseye banner. */
 .gma-reaction--exact {
+    animation-name: gma-reaction-double-take;
     animation-duration: calc(var(--lwc-duration-normal, 220ms) * 4);
 }
 
-@keyframes gma-reaction-pop {
+.gma-reaction--older {
+    animation-name: gma-reaction-sob;
+}
+
+/* Every glyph starts tucked behind the portrait rim (--gma-reaction-from-x), springs out,
+   holds a readable beat, then floats away. */
+@keyframes gma-reaction-peek {
     0% {
         opacity: 0;
-        transform: translate(-50%, -42%) scale(0.18) rotate(-18deg);
+        transform: translate(calc(-50% + var(--gma-reaction-from-x, 0px)), -50%) scale(0.3) rotate(-24deg);
     }
-    38% {
+    26% {
         opacity: 1;
-        transform: translate(-50%, -58%) scale(1.16) rotate(5deg);
+        transform: translate(-50%, -60%) scale(1.12) rotate(7deg);
     }
-    68% {
+    40% {
+        transform: translate(-50%, -53%) scale(0.95) rotate(-3deg);
+    }
+    54% {
+        transform: translate(-50%, -56%) scale(1) rotate(0);
+    }
+    80% {
         opacity: 1;
-        transform: translate(-50%, -55%) scale(0.98) rotate(-1deg);
+        transform: translate(-50%, -58%) scale(1) rotate(0);
     }
     100% {
         opacity: 0;
-        transform: translate(-50%, -72%) scale(1.04) rotate(2deg);
+        transform: translate(-50%, -84%) scale(0.86) rotate(5deg);
+    }
+}
+
+@keyframes gma-reaction-sob {
+    0% {
+        opacity: 0;
+        transform: translate(calc(-50% + var(--gma-reaction-from-x, 0px)), -50%) scale(0.3) rotate(-24deg);
+    }
+    26% {
+        opacity: 1;
+        transform: translate(-50%, -60%) scale(1.12) rotate(7deg);
+    }
+    40% { transform: translate(-50%, -53%) scale(0.95) rotate(-3deg); }
+    52% { transform: translate(-50%, -55%) scale(1) rotate(-6deg); }
+    60% { transform: translate(-50%, -54%) scale(1) rotate(6deg); }
+    68% { transform: translate(-50%, -55%) scale(1) rotate(-5deg); }
+    76% { opacity: 1; transform: translate(-50%, -54%) scale(1) rotate(3deg); }
+    100% {
+        opacity: 0;
+        transform: translate(-50%, -40%) scale(0.86) rotate(0);
+    }
+}
+
+@keyframes gma-reaction-double-take {
+    0% {
+        opacity: 0;
+        transform: translate(calc(-50% + var(--gma-reaction-from-x, 0px)), -50%) scale(0.3);
+    }
+    24% {
+        opacity: 1;
+        transform: translate(-50%, -56%) scale(1.08);
+    }
+    38% { transform: translate(-58%, -55%) scale(1); }
+    50% { transform: translate(-42%, -55%) scale(1); }
+    62% { transform: translate(-50%, -55%) scale(1.14); }
+    80% { opacity: 1; transform: translate(-50%, -56%) scale(1); }
+    100% {
+        opacity: 0;
+        transform: translate(-50%, -78%) scale(0.86);
     }
 }
 
@@ -881,7 +1093,14 @@
         radial-gradient(circle at 12% 18%, rgba(255, 66, 173, 0.2), transparent 24%),
         radial-gradient(circle at 88% 22%, rgba(25, 195, 209, 0.22), transparent 25%),
         linear-gradient(135deg, rgba(50, 28, 0, 0.34), rgba(5, 8, 14, 0.12));
-    animation: gma-exact-jackpot-enter calc(var(--lwc-duration-normal, 220ms) * 4) var(--lwc-ease, ease) both;
+    /* Backwards fill only, so the closing fade below can take the opacity over. */
+    animation: gma-exact-jackpot-enter calc(var(--lwc-duration-normal, 220ms) * 4) var(--lwc-ease, ease) backwards;
+    transition: opacity 900ms var(--lwc-ease, ease);
+}
+
+/* The last stretch dissolves the takeover so the gold card is left standing, not cut to. */
+.gma-exact-jackpot[data-ending="true"] {
+    opacity: 0;
 }
 
 /* The generic guess-mode child rule hides everything except the profile. This exact-only
@@ -902,10 +1121,11 @@
     content: '';
     position: absolute;
     z-index: 0;
-    inset: -8vmin;
-    transform-origin: 50% 50%;
+    /* Oversized so rotating around the answer never exposes a corner. */
+    inset: -100vmax;
+    transform-origin: calc(var(--gma-jackpot-x, 50vw) + 100vmax) calc(var(--gma-jackpot-y, 50vh) + 100vmax);
     background: repeating-conic-gradient(
-        from -4deg,
+        from -4deg at calc(var(--gma-jackpot-x, 50vw) + 100vmax) calc(var(--gma-jackpot-y, 50vh) + 100vmax),
         rgba(255, 236, 126, 0.28) 0deg 5deg,
         rgba(255, 255, 255, 0.03) 5deg 11deg,
         rgba(25, 195, 209, 0.12) 11deg 15deg,
@@ -918,7 +1138,7 @@
     position: absolute;
     z-index: 1;
     inset: 0;
-    background: rgba(255, 247, 188, 0.52);
+    background: radial-gradient(circle at var(--gma-jackpot-x, 50%) var(--gma-jackpot-y, 50%), rgba(255, 247, 188, 0.92), rgba(255, 247, 188, 0.42) 32%, rgba(255, 247, 188, 0.08) 72%);
     opacity: 0;
     /* The first flashes are broad and slow. Later phases restart this pulse with more urgency. */
     animation: gma-exact-screen-flash calc(var(--lwc-duration-normal, 220ms) * 8) var(--lwc-ease, ease) 2 both;
@@ -930,8 +1150,8 @@
 }
 
 @keyframes gma-exact-rays {
-    0% { transform: rotate(0deg) scale(0.86); opacity: 0; }
-    8% { opacity: 1; }
+    0% { transform: rotate(-20deg) scale(0.6); opacity: 0; }
+    6% { transform: rotate(0deg) scale(1); opacity: 1; }
     88% { opacity: 0.72; }
     100% { transform: rotate(112deg) scale(1.05); opacity: 0; }
 }
@@ -972,6 +1192,13 @@
     44% { opacity: 0.08; }
 }
 
+.gma-exact-jackpot-decoration {
+    position: absolute;
+    z-index: 2;
+    inset: 0;
+    pointer-events: none;
+}
+
 .gma-exact-confetti-canvas {
     position: absolute;
     z-index: 2;
@@ -980,14 +1207,46 @@
     height: 100%;
 }
 
+/* Darkens the middle of the screen while a copy beat is up, so the words never fight
+   the confetti; it lifts again between beats. */
+.gma-exact-jackpot-scrim {
+    position: absolute;
+    z-index: 5;
+    inset: 0;
+    background: radial-gradient(ellipse 62% 42% at 50% 44%, rgba(5, 8, 14, 0.74), rgba(5, 8, 14, 0.38) 58%, transparent 88%);
+    opacity: 0;
+    pointer-events: none;
+}
+
+.gma-exact-jackpot-scrim.is-beat {
+    animation: gma-exact-scrim-beat calc(var(--lwc-duration-normal, 220ms) * 13.2) var(--lwc-ease, ease) both;
+}
+
+.gma-exact-jackpot-scrim.is-final {
+    animation: gma-exact-scrim-hold calc(var(--lwc-duration-normal, 220ms) * 2) var(--lwc-ease, ease) forwards;
+}
+
+@keyframes gma-exact-scrim-beat {
+    0% { opacity: 0; }
+    10%, 70% { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+@keyframes gma-exact-scrim-hold {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
 .gma-exact-jackpot-copy {
     position: absolute;
-    z-index: 6;
+    z-index: 7;
     left: 50%;
-    top: clamp(25%, 34vh, 38%);
+    top: 44%;
+    opacity: 0;
     width: min(94vw, 78rem);
     transform: translate(-50%, -50%);
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     justify-items: center;
     gap: clamp(0.25rem, 1vw, 0.75rem);
     text-align: center;
@@ -995,9 +1254,27 @@
     filter: drop-shadow(0 0.8rem 1rem rgba(0, 0, 0, 0.62));
 }
 
+/* One beat: the parts land, hold long enough to read, then the block lifts away. */
+.gma-exact-jackpot-copy.is-beat {
+    animation: gma-exact-copy-beat calc(var(--lwc-duration-normal, 220ms) * 13.2) var(--lwc-ease, ease) both;
+}
+
+.gma-exact-jackpot-copy.is-final {
+    opacity: 1;
+    animation: none;
+}
+
+@keyframes gma-exact-copy-beat {
+    0%, 76% { opacity: 1; transform: translate(-50%, -50%); }
+    100% { opacity: 0; transform: translate(-50%, calc(-50% - 1.6rem)) scale(0.92); }
+}
+
 .gma-exact-jackpot-kicker,
 .gma-exact-jackpot-subtitle {
     display: block;
+    box-sizing: border-box;
+    min-width: 0;
+    max-width: 100%;
     padding: 0.35rem 0.9rem;
     background: rgba(6, 9, 15, 0.82);
     border: 2px solid rgba(255, 231, 102, 0.82);
@@ -1011,14 +1288,18 @@
 
 .gma-exact-jackpot-kicker {
     font-size: clamp(0.78rem, 2.1vw, 1.45rem);
-    animation: gma-exact-cheese-drop calc(var(--lwc-duration-normal, 220ms) * 6) var(--lwc-ease, ease) both;
+}
+
+.is-beat > .gma-exact-jackpot-kicker {
+    animation: gma-exact-cheese-drop calc(var(--lwc-duration-normal, 220ms) * 3) cubic-bezier(.3, 1.4, .5, 1) calc(var(--lwc-duration-fast, 140ms) * 2.5) both;
 }
 
 .gma-exact-jackpot-title {
     display: block;
     max-width: 100%;
     font-family: Orbitron, Roboto, sans-serif;
-    font-size: clamp(4rem, 14vw, 11rem);
+    /* Fit the unbroken title and its 1.22x finale pulse even with enlarged text. */
+    font-size: min(clamp(4rem, 14vw, 11rem), 11.5vw);
     font-weight: 900;
     line-height: 0.86;
     letter-spacing: -0.06em;
@@ -1029,49 +1310,47 @@
     -webkit-text-fill-color: transparent;
     -webkit-text-stroke: 2px rgba(94, 43, 0, 0.72);
     text-shadow: 0 0 2.5rem rgba(255, 203, 0, 0.86);
-    animation: gma-exact-title-slam calc(var(--lwc-duration-normal, 220ms) * 8) var(--lwc-ease, ease) both;
+}
+
+.is-beat > .gma-exact-jackpot-title {
+    animation: gma-exact-title-slam calc(var(--lwc-duration-normal, 220ms) * 4) cubic-bezier(.5, 0, .2, 1) both;
+}
+
+/* The finale slams, then keeps pumping until the outro. */
+.is-final > .gma-exact-jackpot-title {
+    animation:
+        gma-exact-title-slam calc(var(--lwc-duration-normal, 220ms) * 4) cubic-bezier(.5, 0, .2, 1) both,
+        gma-exact-title-finale calc(var(--lwc-duration-normal, 220ms) * 6) var(--lwc-ease, ease) calc(var(--lwc-duration-normal, 220ms) * 4) 2 forwards;
 }
 
 .gma-exact-jackpot-subtitle {
     font-size: clamp(0.72rem, 1.8vw, 1.2rem);
-    animation: gma-exact-cheese-rise calc(var(--lwc-duration-normal, 220ms) * 8) var(--lwc-ease, ease) calc(var(--lwc-duration-fast, 140ms) * 3) both;
 }
 
+.is-beat > .gma-exact-jackpot-subtitle {
+    animation: gma-exact-cheese-rise calc(var(--lwc-duration-normal, 220ms) * 3) cubic-bezier(.3, 1.4, .5, 1) calc(var(--lwc-duration-fast, 140ms) * 3.5) both;
+}
+
+/* Falls toward the screen, hits once, and stands still: weight instead of wobble. */
 @keyframes gma-exact-title-slam {
-    0% { opacity: 0; transform: scale(4.5) rotate(-8deg); filter: blur(0.4rem); }
-    42% { opacity: 1; transform: scale(0.82) rotate(3deg); filter: blur(0); }
-    62% { transform: scale(1.14) rotate(-1deg); }
-    78% { transform: scale(0.96) rotate(0.5deg); }
-    100% { opacity: 1; transform: scale(1) rotate(0); filter: blur(0); }
+    0% { opacity: 0; transform: scale(3.1) rotate(-4deg); filter: blur(0.35rem); }
+    36% { opacity: 1; transform: scale(0.9) rotate(0.6deg); filter: blur(0); }
+    56% { transform: scale(1.06) rotate(-0.3deg); }
+    76% { transform: scale(0.985) rotate(0); }
+    100% { opacity: 1; transform: scale(1) rotate(0); filter: none; }
 }
 
-.gma-exact-jackpot[data-phase="escalation"] .gma-exact-jackpot-title {
-    animation: gma-exact-title-escalation calc(var(--lwc-duration-normal, 220ms) * 22) var(--lwc-ease, ease) both;
+/* The stage takes the hit when each title lands. */
+.modal-content:has(> .gma-exact-jackpot.is-impact) #athlete-profile {
+    animation: gma-exact-impact calc(var(--lwc-duration-normal, 220ms) * 1.6) var(--lwc-ease, ease) both;
 }
 
-.gma-exact-jackpot[data-phase="frenzy"] .gma-exact-jackpot-title {
-    animation: gma-exact-title-frenzy calc(var(--lwc-duration-normal, 220ms) * 24) var(--lwc-ease, ease) both;
-}
-
-.gma-exact-jackpot[data-phase="finale"] .gma-exact-jackpot-title {
-    animation: gma-exact-title-finale calc(var(--lwc-duration-normal, 220ms) * 12) var(--lwc-ease, ease) both;
-}
-
-@keyframes gma-exact-title-escalation {
-    0%, 100% { transform: scale(1) rotate(0); }
-    18% { transform: scale(1.08) rotate(-1deg); }
-    42% { transform: scale(0.98) rotate(0.7deg); }
-    67% { transform: scale(1.1) rotate(-0.6deg); }
-}
-
-@keyframes gma-exact-title-frenzy {
-    0%, 100% { transform: scale(1) rotate(0); }
-    12% { transform: scale(1.1) rotate(-1.2deg); }
-    25% { transform: scale(0.97) rotate(0.8deg); }
-    39% { transform: scale(1.13) rotate(-0.8deg); }
-    54% { transform: scale(0.98) rotate(0.5deg); }
-    70% { transform: scale(1.14) rotate(-0.5deg); }
-    86% { transform: scale(1.02) rotate(0.25deg); }
+@keyframes gma-exact-impact {
+    0%, 100% { transform: none; }
+    20% { transform: translate(0, 5px); }
+    40% { transform: translate(-3px, -2px); }
+    60% { transform: translate(2px, 1px); }
+    80% { transform: translate(-1px, 0); }
 }
 
 @keyframes gma-exact-title-finale {
@@ -1084,20 +1363,18 @@
 }
 
 @keyframes gma-exact-cheese-drop {
-    0% { opacity: 0; transform: translateY(-4rem) rotate(-8deg); }
-    64% { opacity: 1; transform: translateY(0.35rem) rotate(2deg); }
-    100% { opacity: 1; transform: translateY(0) rotate(0); }
+    0% { opacity: 0; transform: translateY(-1.6rem) scale(0.8); }
+    100% { opacity: 1; transform: none; }
 }
 
 @keyframes gma-exact-cheese-rise {
-    0% { opacity: 0; transform: translateY(3rem) scale(0.76); }
-    68% { opacity: 1; transform: translateY(-0.2rem) scale(1.06); }
-    100% { opacity: 1; transform: translateY(0) scale(1); }
+    0% { opacity: 0; transform: translateY(1.4rem) scale(0.8); }
+    100% { opacity: 1; transform: none; }
 }
 
 .gma-exact-jackpot-marquee {
     position: absolute;
-    z-index: 5;
+    z-index: 6;
     left: -24%;
     width: 148%;
     padding: 0.5rem 0;
@@ -1114,26 +1391,42 @@
     box-shadow: 0 0 2rem rgba(255, 209, 0, 0.62);
 }
 
+/* The ribbons unfurl, then run as one seamless loop: the track holds the copy twice and
+   travels exactly one copy per lap. */
 .gma-exact-jackpot-marquee--top {
-    top: 7%;
-    transform: rotate(-4deg);
-    animation: gma-exact-marquee-top calc(var(--lwc-duration-normal, 220ms) * 68) var(--lwc-ease, ease) both;
+    top: 4%;
+    transform: rotate(-2.5deg);
+    animation: gma-exact-ribbon-in calc(var(--lwc-duration-normal, 220ms) * 2) cubic-bezier(.2, .8, .2, 1) both;
 }
 
 .gma-exact-jackpot-marquee--bottom {
-    bottom: 7%;
-    transform: rotate(4deg);
-    animation: gma-exact-marquee-bottom calc(var(--lwc-duration-normal, 220ms) * 68) var(--lwc-ease, ease) both;
+    bottom: 4%;
+    transform: rotate(2.5deg);
+    animation: gma-exact-ribbon-in calc(var(--lwc-duration-normal, 220ms) * 2) cubic-bezier(.2, .8, .2, 1) var(--lwc-duration-fast, 140ms) both;
 }
 
-@keyframes gma-exact-marquee-top {
-    from { translate: -10% 0; }
-    to { translate: 10% 0; }
+.gma-exact-jackpot-marquee-track {
+    display: inline-flex;
+    width: max-content;
+    animation: gma-exact-marquee-run calc(var(--lwc-duration-normal, 220ms) * 40 * var(--gma-marquee-travel-ratio, 1)) linear 2 both;
 }
 
-@keyframes gma-exact-marquee-bottom {
-    from { translate: 10% 0; }
-    to { translate: -10% 0; }
+.gma-exact-jackpot-marquee--bottom .gma-exact-jackpot-marquee-track {
+    animation-direction: reverse;
+}
+
+.gma-exact-jackpot-marquee-track > span {
+    padding-inline-end: 0.6em;
+}
+
+@keyframes gma-exact-ribbon-in {
+    from { scale: 1 0; opacity: 0; }
+    to { scale: 1 1; opacity: 1; }
+}
+
+@keyframes gma-exact-marquee-run {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
 }
 
 .gma-exact-time-icon {
@@ -1161,7 +1454,7 @@
 .gma-exact-target {
     --gma-target-delay: 0ms;
     position: absolute;
-    z-index: 5;
+    z-index: 4;
     left: 50%;
     top: 48%;
     font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
@@ -1182,12 +1475,12 @@
 
 @media (max-width: 540px) {
     .gma-exact-jackpot-copy {
-        top: 36%;
+        top: 42%;
     }
 
     .gma-exact-jackpot-title {
         /* Leave room for the 1.22x finale slam without clipping the unbroken word. */
-        font-size: clamp(2.75rem, 11vw, 5.2rem);
+        font-size: min(clamp(2.75rem, 11vw, 5.2rem), 11.5vw);
         -webkit-text-stroke-width: 1px;
     }
 
@@ -1197,7 +1490,18 @@
     }
 }
 
+/* Celebration pieces are bare glyphs with a soft halo: they burst from the answer, slow
+   down, then drift and fade as they fall. */
+.gma-celebration {
+    position: fixed;
+    inset: 0;
+    z-index: 10001;
+    overflow: hidden;
+    pointer-events: none;
+}
+
 .gma-celebration-spark {
+    --gma-spark-color: var(--lwc-accent-bright, #19c3d1);
     position: fixed;
     left: var(--gma-spark-x, 50%);
     top: var(--gma-spark-y, 50%);
@@ -1206,29 +1510,42 @@
     height: var(--gma-spark-size, 1.75rem);
     display: grid;
     place-items: center;
-    border-radius: 50%;
-    background: color-mix(in srgb, var(--lwc-surface, #fff) 90%, transparent);
-    color: var(--gma-spark-color, var(--lwc-accent, #087685));
-    box-shadow: 0 0.45rem 1rem rgba(2, 8, 23, 0.2), 0 0 0 1px rgba(255,255,255,.42) inset;
+    color: var(--gma-spark-color);
+    font-size: calc(var(--gma-spark-size, 1.75rem) * 0.72);
+    filter: drop-shadow(0 0 0.35rem color-mix(in srgb, var(--gma-spark-color) 60%, transparent)) drop-shadow(0 0.2rem 0.3rem rgba(0, 0, 0, 0.45));
     pointer-events: none;
     opacity: 0;
-    animation: gma-spark-flight calc(var(--lwc-duration-normal, 220ms) * 10) var(--lwc-ease, ease) both;
+    animation: gma-spark-flight calc(var(--lwc-duration-normal, 220ms) * 10) linear both;
+}
+
+.gma-celebration-spark[data-kind="first"] {
+    --gma-spark-color: #f4d260;
+}
+
+.gma-celebration-spark:nth-child(4n) {
+    --gma-spark-color: var(--athlete-modal-cream, rgba(246,244,237,.92));
 }
 
 @keyframes gma-spark-flight {
     0% {
         opacity: 0;
-        transform: translate(-50%, -50%) scale(0.35) rotate(0);
+        transform: translate(-50%, -50%) scale(0.2) rotate(0);
+        animation-timing-function: cubic-bezier(.12, .8, .3, 1);
     }
-    14% {
+    8% {
         opacity: 1;
     }
-    62% {
+    36% {
         opacity: 1;
+        transform: translate(calc(-50% + var(--gma-spark-dx, 0px)), calc(-50% + var(--gma-spark-dy, -8rem))) scale(1) rotate(calc(var(--gma-spark-rotation, 120deg) * 0.5));
+        animation-timing-function: cubic-bezier(.45, 0, .8, .6);
+    }
+    70% {
+        opacity: 0.85;
     }
     100% {
         opacity: 0;
-        transform: translate(calc(-50% + var(--gma-spark-dx, 0px)), calc(-50% + var(--gma-spark-dy, -8rem))) scale(0.9) rotate(var(--gma-spark-rotation, 120deg));
+        transform: translate(calc(-50% + (var(--gma-spark-dx, 0px) * 1.12)), calc(-50% + var(--gma-spark-dy, -8rem) + var(--gma-spark-fall, 3rem))) scale(0.7) rotate(var(--gma-spark-rotation, 120deg));
     }
 }
 
@@ -1382,11 +1699,29 @@
     margin: 0.25rem auto 0;
     max-width: 34rem;
 }
-/* While the request is in flight the status sits where the buttons were. */
+/* While the request is in flight the status sits where the buttons were and breathes. */
 #detailsModal .gma-card.is-submitting #gmaStatus:not(.gma-status--semantic) {
     grid-area: dock;
     align-self: center;
     margin: 0;
+    animation: gma-status-breathe calc(var(--lwc-duration-normal, 220ms) * 6) ease-in-out infinite;
+}
+
+@keyframes gma-status-breathe {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.55; }
+}
+
+/* Hand-off: once the portrait glides home, the profile underneath settles in behind it
+   in reading order instead of appearing all at once. */
+#detailsModal .modal-content.gma-handoff [data-gma-handoff-part] {
+    /* The script numbers the visible parts in reading order. */
+    animation: gma-profile-settle calc(var(--lwc-duration-normal, 220ms) * 2) cubic-bezier(.2, .8, .2, 1) min(320ms, calc(40ms + (var(--gma-handoff-index, 0) * 45ms))) backwards;
+}
+
+@keyframes gma-profile-settle {
+    from { opacity: 0; transform: translateY(0.75rem); }
+    to { opacity: 1; transform: none; }
 }
 #detailsModal .gma-slider-wrap {
     grid-area: slider;
@@ -1766,6 +2101,30 @@
     }
 }
 
+/* Keep a round still after a live motion-preference change. Returning to normal motion
+   starts with the next athlete, without replaying the completed effects. */
+#detailsModal .modal-content.gma-motion-stopped #guessAgeContainer,
+#detailsModal .modal-content.gma-motion-stopped #guessAgeContainer *,
+#detailsModal .modal-content.gma-motion-stopped #guessAgeContainer *::after,
+#detailsModal .modal-content.gma-motion-stopped .portrait-wrapper,
+#detailsModal .modal-content.gma-motion-stopped .portrait-wrapper::before,
+#detailsModal .modal-content.gma-motion-stopped .portrait-wrapper::after,
+#detailsModal .modal-content.gma-motion-stopped .gma-trollface-container,
+#detailsModal .modal-content.gma-motion-stopped .gma-trollface-container img {
+    animation: none !important;
+    transition: none !important;
+}
+
+#detailsModal .modal-content.gma-motion-stopped .gma-pop-banner,
+#detailsModal .modal-content.gma-motion-stopped > .gma-trollface-container {
+    opacity: 1;
+    transform: none;
+}
+
+#detailsModal .modal-content.gma-motion-stopped #gmaRealBubble.is-settled {
+    transform: translateX(-50%) scale(1);
+}
+
 @media (prefers-reduced-motion: reduce) {
     .gma-pop-banner.show,
     .gma-pop-banner.hide,
@@ -1780,6 +2139,12 @@
     .chrono-age-heading,
     .gma-reaction,
     .gma-trollface-container,
+    .gma-trollface-container img,
+    .gma-pop-banner-mark,
+    .gma-gap,
+    #gmaStatus,
+    #detailsModal .modal-content.gma-handoff *,
+    #detailsModal .modal-content #athlete-profile,
     .gma-celebration-spark,
     .gma-exact-jackpot,
     .gma-exact-time-icon,
@@ -1794,7 +2159,12 @@
     }
 
     .gma-pop-banner {
-        transform: translateY(0) scale(1);
+        transform: none;
+        opacity: 1;
+    }
+
+    .gma-pop-banner::after {
+        display: none;
     }
 
     #gmaRealBubble.is-settled {
@@ -1818,7 +2188,7 @@
     }
 
     #detailsModal .modal-content.guess-mode > .gma-trollface-container {
-        bottom: 0;
+        transform: none;
     }
 }
 

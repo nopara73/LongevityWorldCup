@@ -17,6 +17,7 @@ const gmaPayoffRegion = document.getElementById('gmaPayoffRegion');
 const GMA_RESULT_PRELUDE_MS = 1980;
 const GMA_MAX_TRAVEL_MS = 7000;
 const GMA_EXACT_JACKPOT_MS = 15000;
+const GMA_EXACT_OUTRO_MS = 900;
 const GMA_EXACT_WAVE_COUNT = 30;
 const GMA_EXACT_CONFETTI_CAP = 2200;
 const GMA_EXACT_TIME_ICON_CAP = 420;
@@ -30,6 +31,7 @@ const GMA_EXACT_WAVE_DELAYS_MS = Object.freeze([
 const GMA_TROLL_REDIRECT_MS = 2000;
 const GMA_TROLL_RECOVERY_MS = 2000;
 let gmaWasGuessMode = modalContent.classList.contains('guess-mode');
+let gmaWasAvailable = !modalContent.classList.contains('is-loading');
 let gmaObservedAthleteSlug = modalContent.dataset.athleteSlug || '';
 let gmaObservedProfileImageId = modalContent.dataset.profileImageId || '';
 let gmaPresentationGeneration = 0;
@@ -38,6 +40,9 @@ let gmaExitTimer = 0;
 let gmaExactJackpotController = null;
 let gmaTrollController = null;
 let gmaPortraitGlide = null;
+const gmaMotionEphemera = new Map();
+let gmaSparkController = null;
+let gmaBannerController = null;
 
 function cancelGmaPortraitGlide() {
     gmaPortraitGlide?.cancel();
@@ -61,6 +66,7 @@ function cancelGmaPresentation() {
 
 function beginGmaPresentation(athleteSlug, profileImageId) {
     cancelGmaPresentation();
+    if (prefersReducedGmaMotion()) modalContent.classList.add('gma-motion-stopped');
     return {
         athleteSlug,
         profileImageId,
@@ -69,8 +75,12 @@ function beginGmaPresentation(athleteSlug, profileImageId) {
 }
 
 function isCurrentGmaPresentation(presentation) {
+    const modal = modalContent.closest('#detailsModal');
     return presentation.generation === gmaPresentationGeneration
         && modalContent.classList.contains('guess-mode')
+        && !modalContent.classList.contains('is-loading')
+        && modal?.style.display !== 'none'
+        && !modal?.classList.contains('fade-out')
         && modalContent.dataset.athleteSlug === presentation.athleteSlug
         && modalContent.dataset.profileImageId === presentation.profileImageId;
 }
@@ -84,16 +94,34 @@ const resetObserver = new MutationObserver(mutations => {
     const modal = modalContent.closest('#detailsModal');
     const isClosing = modal?.classList.contains('fade-out') || modal?.style.display === 'none';
     const isUnavailable = modalContent.classList.contains('is-loading') || isClosing;
-    if (isClosing) cancelGmaPresentation();
+    if (isUnavailable) {
+        cancelGmaPresentation();
+        clearGmaEphemera();
+        document.getElementById('gmaGap')?.remove();
+        document.getElementById('gmaRealBubble')?.remove();
+        delete gmaCard.dataset.gmaReaction;
+        gmaCard.classList.remove('is-submitting', 'is-revealing', 'celebrate-exact', 'celebrate-better', 'gma-done');
+        gmaCard.style.removeProperty('--gma-exit-height');
+        chronoHeading.classList.remove('is-revealing');
+        // The modal's close callback uses result-ready to finish leaving guess mode.
+        // Keep that marker through its fade; a directly hidden result can finish now.
+        if (!modal?.classList.contains('fade-out') && modalContent.classList.contains('gma-result-ready')) {
+            if (modal?.style.display === 'none') modalContent.classList.remove('guess-mode', 'gma-fast');
+            modalContent.classList.remove('gma-result-ready');
+        }
+        if (modalContent.classList.contains('gma-motion-stopped')) modalContent.classList.remove('gma-motion-stopped');
+    }
     if (isGuessMode || isUnavailable
         || athleteSlug !== gmaObservedAthleteSlug || profileImageId !== gmaObservedProfileImageId) {
         cancelGmaPortraitGlide();
+        cancelGmaProfileHandoff();
     }
     const guessModeWasAbsentDuringBatch = mutations.some(mutation =>
         mutation.target === modalContent && mutation.attributeName === 'class'
         && !String(mutation.oldValue || '').split(/\s+/).includes('guess-mode'));
-    const openedOrChangedAthlete = isGuessMode
+    const openedOrChangedAthlete = isGuessMode && !isUnavailable
         && (!gmaWasGuessMode
+            || !gmaWasAvailable
             || athleteSlug !== gmaObservedAthleteSlug
             || profileImageId !== gmaObservedProfileImageId
             || guessModeWasAbsentDuringBatch);
@@ -113,6 +141,7 @@ const resetObserver = new MutationObserver(mutations => {
         gmaActions.classList.remove('gma-actions-hide');
         gmaActions.inert = false;
         modalContent.classList.remove('gma-result-ready');
+        modalContent.classList.remove('gma-motion-stopped');
         gmaCard.classList.remove('gma-done');
         gmaCard.style.removeProperty('--gma-exit-height');
         gmaCard.classList.remove('is-submitting', 'is-revealing');
@@ -121,6 +150,9 @@ const resetObserver = new MutationObserver(mutations => {
 
         const oldRealBubble = document.getElementById('gmaRealBubble');
         if (oldRealBubble) oldRealBubble.remove();
+        document.getElementById('gmaGap')?.remove();
+        delete gmaCard.dataset.gmaReaction;
+        modalContent.classList.remove('gma-handoff');
 
         gmaRange.value = gmaDefaultValue;
         gmaRange.disabled = false;
@@ -135,10 +167,12 @@ const resetObserver = new MutationObserver(mutations => {
     } else if (!isGuessMode && gmaWasGuessMode) {
         cancelGmaPresentation();
         clearGmaEphemera();
+        modalContent.classList.remove('gma-motion-stopped');
         setGuessMyAgeParam(false);
     }
 
     gmaWasGuessMode = isGuessMode;
+    gmaWasAvailable = !isUnavailable;
     gmaObservedAthleteSlug = athleteSlug;
     gmaObservedProfileImageId = profileImageId;
 });
@@ -153,12 +187,14 @@ function gmaGeometryForAge(age) {
     const max = +gmaRange.max;
     const clampedAge = clampGmaAge(age);
     const ratio = max === min ? 0 : (clampedAge - min) / (max - min);
-    const rangeRect = gmaRange.getBoundingClientRect();
-    const wrapRect = gmaSliderWrap.getBoundingClientRect();
+    // Bubbles and the miss line use the slider wrap's local CSS coordinates. Viewport
+    // rectangles already include the card's celebration scale/rotation and would apply
+    // that transform a second time when assigned to `left`.
+    const rangeWidth = gmaRange.offsetWidth;
     const thumbSize = Number.parseFloat(
         getComputedStyle(gmaRange).getPropertyValue('--gma-thumb-size')) || 64;
 
-    if (rangeRect.width <= 0 || wrapRect.width <= 0) {
+    if (rangeWidth <= 0 || gmaSliderWrap.offsetWidth <= 0) {
         return {
             bubbleLeft: null,
             fillPercent: ratio * 100
@@ -166,10 +202,10 @@ function gmaGeometryForAge(age) {
     }
 
     const thumbCenter = (thumbSize / 2)
-        + (ratio * Math.max(0, rangeRect.width - thumbSize));
+        + (ratio * Math.max(0, rangeWidth - thumbSize));
     return {
-        bubbleLeft: (rangeRect.left - wrapRect.left) + thumbCenter,
-        fillPercent: (thumbCenter / rangeRect.width) * 100
+        bubbleLeft: gmaRange.offsetLeft + thumbCenter,
+        fillPercent: (thumbCenter / rangeWidth) * 100
     };
 }
 
@@ -216,8 +252,37 @@ gmaRange.addEventListener('input', syncRange);
 syncRange();   // initialise bubble
 
 function prefersReducedGmaMotion() {
-    return typeof window.matchMedia === 'function'
-        && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    return modalContent.classList.contains('gma-motion-stopped')
+        || (typeof window.matchMedia === 'function'
+            && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+}
+
+// A preference change ends the current round's decorative motion. Switching it back
+// must not restart an old celebration; the next athlete gets a fresh presentation.
+window.matchMedia?.('(prefers-reduced-motion: reduce)').addEventListener('change', event => {
+    if (!event.matches) return;
+    if (modalContent.classList.contains('guess-mode')) modalContent.classList.add('gma-motion-stopped');
+    cancelGmaMotionEphemera();
+    cancelGmaExactJackpot();
+    cancelGmaProfileHandoff();
+});
+
+function cancelGmaMotionEphemera() {
+    gmaSparkController?.cancel();
+    for (const cancel of gmaMotionEphemera.values()) cancel();
+}
+
+function trackGmaMotionEphemera(element, duration) {
+    const remove = event => {
+        if (event && event.target !== element) return;
+        window.clearTimeout(timer);
+        element.removeEventListener('animationend', remove);
+        element.remove();
+        gmaMotionEphemera.delete(element);
+    };
+    const timer = window.setTimeout(remove, duration);
+    element.addEventListener('animationend', remove);
+    gmaMotionEphemera.set(element, remove);
 }
 
 function clampGmaAge(age) {
@@ -244,9 +309,46 @@ function syncGmaGeometry() {
     if (!realBubble) return;
     const revealedAge = Number.parseFloat(realBubble.dataset.age || realBubble.textContent);
     if (Number.isFinite(revealedAge)) positionGmaBubble(realBubble, revealedAge);
+    positionGmaGap();
+}
+
+// After the reveal, a dimension line under the track spans the guess and the real age,
+// drawn from the guess toward the answer, so the miss reads as a distance.
+function positionGmaGap() {
+    const gap = document.getElementById('gmaGap');
+    if (!gap) return;
+    const guessGeometry = gmaGeometryForAge(Number(gap.dataset.guess));
+    const actualGeometry = gmaGeometryForAge(Number(gap.dataset.actual));
+    if (guessGeometry.bubbleLeft == null || actualGeometry.bubbleLeft == null) return;
+    const left = Math.min(guessGeometry.bubbleLeft, actualGeometry.bubbleLeft);
+    const width = Math.abs(actualGeometry.bubbleLeft - guessGeometry.bubbleLeft);
+    gap.style.left = `${left}px`;
+    gap.style.width = `${width}px`;
+    gap.style.top = `${gmaRange.offsetTop + gmaRange.offsetHeight}px`;
+    gap.dataset.from = guessGeometry.bubbleLeft <= actualGeometry.bubbleLeft ? 'left' : 'right';
+}
+
+function showGmaGap(guess, actual, tone) {
+    document.getElementById('gmaGap')?.remove();
+    if (Math.round(guess) === Math.round(actual)) return;
+    const gap = document.createElement('span');
+    gap.id = 'gmaGap';
+    gap.className = 'gma-gap';
+    gap.setAttribute('aria-hidden', 'true');
+    gap.dataset.guess = String(clampGmaAge(guess));
+    gap.dataset.actual = String(clampGmaAge(actual));
+    gap.dataset.tone = tone;
+    gmaSliderWrap.insertBefore(gap, gmaBubble);
+    positionGmaGap();
 }
 
 window.addEventListener('resize', () => window.requestAnimationFrame(syncGmaGeometry), { passive: true });
+// Text zoom and container changes can refit the ruler without resizing the window.
+if (typeof ResizeObserver === 'function') {
+    const geometryObserver = new ResizeObserver(syncGmaGeometry);
+    geometryObserver.observe(gmaSliderWrap);
+    geometryObserver.observe(gmaRange);
+}
 
 function startGmaResultPrelude(presentation) {
     heading.style.display = 'none';
@@ -470,7 +572,7 @@ function showGmaReaction(reaction) {
     const isNarrowPhone = window.innerWidth <= 420;
     const desiredX = isNarrowPhone
         ? rect.left - Math.min(30, rect.width * 0.12)
-        : rect.right + Math.min(96, rect.width * 0.26);
+        : rect.right + Math.min(72, rect.width * 0.2);
     const desiredY = rect.top + (rect.height * (isNarrowPhone ? 0.28 : 0.44));
     reactionElement.dataset.placement = 'beside-portrait';
     document.body.appendChild(reactionElement);
@@ -496,8 +598,12 @@ function showGmaReaction(reaction) {
 
     reactionElement.style.setProperty('--gma-reaction-x', `${reactionX}px`);
     reactionElement.style.setProperty('--gma-reaction-y', `${reactionY}px`);
-    reactionElement.addEventListener('animationend', () => reactionElement.remove(), { once: true });
-    window.setTimeout(() => reactionElement.remove(), 2200);
+    // The glyph peeks out from behind the portrait rim instead of appearing in mid-air.
+    const rimX = isNarrowPhone
+        ? rect.left + (rect.width * 0.2)
+        : rect.right - (rect.width * 0.2);
+    reactionElement.style.setProperty('--gma-reaction-from-x', `${rimX - reactionX}px`);
+    trackGmaMotionEphemera(reactionElement, 2200);
 }
 
 function cancelGmaTrollTakeover() {
@@ -610,19 +716,54 @@ function launchGmaExactJackpot(presentation) {
     canvas.dataset.activeParticles = '0';
     canvas.dataset.totalSpawned = '0';
     canvas.dataset.burstsFired = '0';
-    overlay.appendChild(canvas);
+    const decoration = document.createElement('div');
+    decoration.className = 'gma-exact-jackpot-decoration';
+    overlay.appendChild(decoration);
+    decoration.appendChild(canvas);
 
-    const topMarquee = document.createElement('div');
-    topMarquee.className = 'gma-exact-jackpot-marquee gma-exact-jackpot-marquee--top';
-    topMarquee.dataset.gmaMotif = 'victory-ribbon';
-    topMarquee.textContent = '🎯 PERFECT GUESS • ZERO YEARS OFF • TEMPORAL GENIUS • PERFECT GUESS • ZERO YEARS OFF • TEMPORAL GENIUS • ';
-    overlay.appendChild(topMarquee);
+    // The scrim darkens behind each copy beat so the words read over the confetti.
+    const scrim = document.createElement('div');
+    scrim.className = 'gma-exact-jackpot-scrim';
+    overlay.appendChild(scrim);
 
-    const bottomMarquee = document.createElement('div');
-    bottomMarquee.className = 'gma-exact-jackpot-marquee gma-exact-jackpot-marquee--bottom';
-    bottomMarquee.dataset.gmaMotif = 'victory-ribbon';
-    bottomMarquee.textContent = '⏱️ ABSOLUTE TIME LORD • CONFETTI CANNONS ENGAGED • NO NOTES • ABSOLUTE TIME LORD • CONFETTI CANNONS ENGAGED • ';
-    overlay.appendChild(bottomMarquee);
+    // Each ribbon carries two equal segments. Fill each segment before duplicating it:
+    // a short segment can expose its trailing end on a wide or resized stage.
+    const marqueeFitters = [];
+    const marquee = (side, copyText) => {
+        const element = document.createElement('div');
+        element.className = `gma-exact-jackpot-marquee gma-exact-jackpot-marquee--${side}`;
+        element.dataset.gmaMotif = 'victory-ribbon';
+        const track = document.createElement('span');
+        track.className = 'gma-exact-jackpot-marquee-track';
+        const segments = [];
+        for (let copyIndex = 0; copyIndex < 2; copyIndex++) {
+            const segment = document.createElement('span');
+            segment.textContent = copyText;
+            if (copyIndex > 0) segment.setAttribute('aria-hidden', 'true');
+            track.appendChild(segment);
+            segments.push(segment);
+        }
+        element.appendChild(track);
+        marqueeFitters.push(() => {
+            const width = element.clientWidth;
+            if (!width) return;
+            segments.forEach(segment => { segment.textContent = copyText; });
+            const unitWidth = segments[0].offsetWidth;
+            if (!unitWidth) return;
+            let repetitions = Math.max(1, Math.ceil(width / unitWidth));
+            const fill = () => segments.forEach(segment => { segment.textContent = copyText.repeat(repetitions); });
+            fill();
+            while (segments[0].offsetWidth < width && repetitions < 64) {
+                repetitions += 1;
+                fill();
+            }
+            // Keep the reading speed stable when an extra copy is needed.
+            track.style.setProperty('--gma-marquee-travel-ratio', String(segments[0].offsetWidth / unitWidth));
+        });
+        return element;
+    };
+    overlay.appendChild(marquee('top', '🎯 PERFECT GUESS • ZERO YEARS OFF • TEMPORAL GENIUS • PERFECT GUESS • ZERO YEARS OFF • TEMPORAL GENIUS • '));
+    overlay.appendChild(marquee('bottom', '⏱️ ABSOLUTE TIME LORD • CONFETTI CANNONS ENGAGED • NO NOTES • ABSOLUTE TIME LORD • CONFETTI CANNONS ENGAGED • '));
 
     const copy = document.createElement('div');
     copy.className = 'gma-exact-jackpot-copy';
@@ -676,7 +817,7 @@ function launchGmaExactJackpot(presentation) {
             `${Math.round(GMA_EXACT_WAVE_DELAYS_MS[iconWave] + (gmaJackpotUnit(index, 5) * 380))}ms`);
         iconFragment.appendChild(icon);
     }
-    overlay.appendChild(iconFragment);
+    decoration.appendChild(iconFragment);
 
     const targetElements = [];
     const targetFragment = document.createDocumentFragment();
@@ -698,7 +839,7 @@ function launchGmaExactJackpot(presentation) {
         targetElements.push(target);
         targetFragment.appendChild(target);
     }
-    overlay.appendChild(targetFragment);
+    decoration.appendChild(targetFragment);
 
     modalContent.appendChild(overlay);
 
@@ -720,6 +861,7 @@ function launchGmaExactJackpot(presentation) {
     let lastFrameAt = performance.now();
     let seed = 0x9e3779b9;
     let isCancelled = false;
+    let marqueeResizeObserver = null;
 
     function random() {
         seed = ((seed * 1664525) + 1013904223) >>> 0;
@@ -737,7 +879,39 @@ function launchGmaExactJackpot(presentation) {
         });
     }
 
+    // Rays and flashes radiate from the gold answer on the ruler, not from empty space.
+    function placeJackpotOrigin() {
+        const answer = document.getElementById('gmaRealBubble')?.getBoundingClientRect();
+        const stage = overlay.getBoundingClientRect();
+        const hasAnswer = answer && answer.width > 0;
+        overlay.style.setProperty('--gma-jackpot-x', `${hasAnswer ? answer.left + (answer.width / 2) - stage.left : stage.width / 2}px`);
+        overlay.style.setProperty('--gma-jackpot-y', `${hasAnswer ? answer.top + (answer.height / 2) - stage.top : stage.height / 2}px`);
+    }
+
+    // Every phase lands as one beat: the copy slams in over a darker scrim, holds long
+    // enough to read, then lifts away so the athlete and the gold answer own the stage.
+    function playCopyBeat(isFinal) {
+        copy.classList.remove('is-beat', 'is-final');
+        scrim.classList.remove('is-beat', 'is-final');
+        void copy.offsetWidth;
+        copy.classList.add('is-beat');
+        scrim.classList.add('is-beat');
+        if (isFinal) {
+            copy.classList.add('is-final');
+            scrim.classList.add('is-final');
+        }
+        overlay.classList.remove('is-impact');
+        waveTimers.push(window.setTimeout(() => {
+            if (isCancelled) return;
+            void overlay.offsetWidth;
+            overlay.classList.add('is-impact');
+        }, 300));
+    }
+
     function resizeCanvas() {
+        placeJackpotOrigin();
+        decoration.style.clipPath = gmaStageProtectionClip(decoration);
+        marqueeFitters.forEach(fit => fit());
         const cssWidth = Math.max(1, window.innerWidth);
         const cssHeight = Math.max(1, window.innerHeight);
         const pixelRatioCap = Math.sqrt(GMA_EXACT_CANVAS_PIXEL_CAP / (cssWidth * cssHeight));
@@ -767,6 +941,7 @@ function launchGmaExactJackpot(presentation) {
         if (cleanupTimer) window.clearTimeout(cleanupTimer);
         if (frameId) window.cancelAnimationFrame(frameId);
         window.removeEventListener('resize', resizeCanvas);
+        marqueeResizeObserver?.disconnect();
         document.removeEventListener('visibilitychange', handleVisibilityChange);
         removeMotionListener();
         particles.length = 0;
@@ -812,6 +987,7 @@ function launchGmaExactJackpot(presentation) {
             kicker.textContent = '🏆 maximum bullseye achieved 🏆';
             subtitle.textContent = 'ABSOLUTE TIME LORD · JACKPOT UNLOCKED';
         }
+        playCopyBeat(phase === 'finale');
         window.dispatchEvent(new CustomEvent('gma:exact-phase', {
             detail: { phase, wave: waveIndex }
         }));
@@ -926,6 +1102,10 @@ function launchGmaExactJackpot(presentation) {
             return;
         }
 
+        // The answer can move during its settle, the stage impact, scrolling, font/image
+        // loading, or a container resize without a window resize event.
+        placeJackpotOrigin();
+        decoration.style.clipPath = gmaStageProtectionClip(decoration);
         const frameScale = Math.min(2.2, Math.max(0.35, (now - lastFrameAt) / (1000 / 60)));
         lastFrameAt = now;
         context.clearRect(0, 0, window.innerWidth, window.innerHeight);
@@ -1002,6 +1182,13 @@ function launchGmaExactJackpot(presentation) {
     }
 
     resizeCanvas();
+    if (typeof ResizeObserver === 'function') {
+        marqueeResizeObserver = new ResizeObserver(() => {
+            if (!isCancelled) marqueeFitters.forEach(fit => fit());
+        });
+        overlay.querySelectorAll('.gma-exact-jackpot-marquee, .gma-exact-jackpot-marquee-track > span:first-child')
+            .forEach(element => marqueeResizeObserver.observe(element));
+    }
     window.addEventListener('resize', resizeCanvas);
     document.addEventListener('visibilitychange', handleVisibilityChange);
     if (motionQuery) {
@@ -1012,12 +1199,48 @@ function launchGmaExactJackpot(presentation) {
         }
     }
     frameId = window.requestAnimationFrame(drawFrame);
+    playCopyBeat(false);
     for (let waveIndex = 0; waveIndex < GMA_EXACT_WAVE_COUNT; waveIndex++) {
         waveTimers.push(window.setTimeout(
             () => fireWave(waveIndex),
             GMA_EXACT_WAVE_DELAYS_MS[waveIndex]));
     }
+    // The takeover fades out over its last stretch instead of vanishing mid-storm.
+    waveTimers.push(window.setTimeout(() => {
+        if (!isCancelled) overlay.dataset.ending = 'true';
+    }, GMA_EXACT_JACKPOT_MS - GMA_EXACT_OUTRO_MS));
     cleanupTimer = window.setTimeout(cancel, GMA_EXACT_JACKPOT_MS);
+}
+
+function gmaStageProtectionClip(layer) {
+    const viewport = layer.getBoundingClientRect();
+    const regions = [...document.querySelectorAll(
+        '#detailsModal .portrait-wrapper, #detailsModal .pro-badge, #gmaBubble, #gmaRealBubble, #gmaRange, '
+        + '#guessAgeContainer .gma-heading, #guessAgeContainer .chrono-age-heading, '
+        + '#gmaPayoffRegion, #closeAthleteDetailsModal')]
+        .map(element => {
+            const rect = element.getBoundingClientRect();
+            return { left: rect.left - viewport.left - 8, right: rect.right - viewport.left + 8,
+                top: rect.top - viewport.top - 8, bottom: rect.bottom - viewport.top + 8, visible: rect.width > 0 && rect.height > 0 };
+        }).filter(rect => rect.visible);
+    // Merge overlapping cut-outs before using even-odd fill, which otherwise makes
+    // their overlap visible again. A conservative bounding box keeps that union quiet.
+    for (let index = 0; index < regions.length; index++) {
+        for (let other = index + 1; other < regions.length;) {
+            const a = regions[index], b = regions[other];
+            if (a.left <= b.right && a.right >= b.left && a.top <= b.bottom && a.bottom >= b.top) {
+                a.left = Math.min(a.left, b.left); a.right = Math.max(a.right, b.right);
+                a.top = Math.min(a.top, b.top); a.bottom = Math.max(a.bottom, b.bottom);
+                regions.splice(other, 1);
+                index = -1;
+                break;
+            }
+            other += 1;
+        }
+    }
+    const rectangle = rect => `M${rect.left} ${rect.top}H${rect.right}V${rect.bottom}H${rect.left}Z`;
+    const outline = rectangle({ left: 0, top: 0, right: viewport.width, bottom: viewport.height });
+    return `path(evenodd, "${outline}${regions.map(rectangle).join('')}")`;
 }
 
 function spawnGmaCelebration(kind, presentation) {
@@ -1027,6 +1250,7 @@ function spawnGmaCelebration(kind, presentation) {
     }
     if (prefersReducedGmaMotion()) return;
 
+    gmaSparkController?.cancel();
     const isFirst = kind === 'first';
     const origin = document.getElementById('gmaRealBubble') || gmaCard;
     const rect = origin.getBoundingClientRect();
@@ -1039,33 +1263,69 @@ function spawnGmaCelebration(kind, presentation) {
     const sparkCount = isFirst ? 28 : 48;
     const radiusX = Math.min(360, modalRect.width * 0.46);
     const radiusY = Math.min(420, modalRect.height * 0.38);
+    const layer = document.createElement('div');
+    layer.className = 'gma-celebration';
+    layer.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(layer);
+    let maskFrame = 0;
+    let cleanupTimer = 0;
+    const cancel = () => {
+        window.cancelAnimationFrame(maskFrame);
+        window.clearTimeout(cleanupTimer);
+        for (const spark of [...layer.children]) gmaMotionEphemera.get(spark)?.();
+        layer.remove();
+        if (gmaSparkController?.cancel === cancel) gmaSparkController = null;
+    };
+    gmaSparkController = { cancel };
+
+    // The fan may pass a heading or the result pill, especially on a phone. Cut those
+    // regions out of its layer so decorations can never paint over faces or controls.
+    function protectStage() {
+        if (!layer.isConnected || prefersReducedGmaMotion()) {
+            cancel();
+            return;
+        }
+        layer.style.clipPath = gmaStageProtectionClip(layer);
+        maskFrame = window.requestAnimationFrame(protectStage);
+    }
+    protectStage();
+    cleanupTimer = window.setTimeout(cancel, 3400);
 
     for (let index = 0; index < sparkCount; index++) {
-        const angle = ((Math.PI * 2) / sparkCount) * index - (Math.PI / 2);
-        const distanceScale = 0.68 + ((index % 5) * 0.08);
+        // Three rings leave the answer one after another: a tight fast one, then wider,
+        // slower ones. Each piece bursts out, then drifts down as it fades.
+        // The fan opens sideways and downward from the answer, leaving the face above clear.
+        const ring = index % 3;
+        const fanStart = -Math.PI / 6;
+        const fanSweep = Math.PI * (4 / 3);
+        const angle = fanStart + ((fanSweep / Math.max(1, sparkCount - 1)) * index)
+            + ((gmaJackpotUnit(index, 7) - 0.5) * 0.12);
+        const distanceScale = [0.5, 0.74, 0.96][ring] + (gmaJackpotUnit(index, 8) * 0.1);
         const deltaX = Math.cos(angle) * radiusX * distanceScale;
         const deltaY = Math.sin(angle) * radiusY * distanceScale;
         const spark = document.createElement('i');
         spark.className = `gma-celebration-spark fas fa-${icons[index % icons.length]}`;
         spark.setAttribute('aria-hidden', 'true');
+        spark.dataset.kind = isFirst ? 'first' : 'crowd';
         spark.dataset.quadrant = `${deltaX >= 0 ? 'right' : 'left'}-${deltaY >= 0 ? 'bottom' : 'top'}`;
         spark.style.setProperty('--gma-spark-x', `${centerX}px`);
         spark.style.setProperty('--gma-spark-y', `${centerY}px`);
         spark.style.setProperty('--gma-spark-dx', `${deltaX}px`);
         spark.style.setProperty('--gma-spark-dy', `${deltaY}px`);
-        spark.style.setProperty('--gma-spark-rotation', `${index % 2 === 0 ? 140 : -140}deg`);
-        spark.style.setProperty('--gma-spark-size', `${1.3 + ((index % 4) * 0.2)}rem`);
-        spark.style.animationDelay = `${(index % 2) * 140}ms`;
-        if (isFirst) spark.style.setProperty('--gma-spark-color', '#9a6700');
-        document.body.appendChild(spark);
-        spark.addEventListener('animationend', () => spark.remove(), { once: true });
-        window.setTimeout(() => spark.remove(), 3400);
+        spark.style.setProperty('--gma-spark-fall', `${2.5 + (ring * 1.5) + (gmaJackpotUnit(index, 9) * 2)}rem`);
+        spark.style.setProperty('--gma-spark-rotation', `${(index % 2 === 0 ? 1 : -1) * (120 + (ring * 60))}deg`);
+        spark.style.setProperty('--gma-spark-size', `${[1.5, 1.85, 2.2][ring] + (gmaJackpotUnit(index, 10) * 0.3)}rem`);
+        spark.style.animationDelay = `${ring * 90}ms`;
+        layer.appendChild(spark);
+        trackGmaMotionEphemera(spark, 3400);
     }
 }
 
 function clearGmaEphemera() {
     cancelGmaExactJackpot();
     cancelGmaTrollTakeover();
+    cancelGmaMotionEphemera();
+    gmaBannerController?.cancel();
     document.querySelectorAll('.gma-reaction, .gma-celebration-spark, .gma-pop-banner, .gma-exact-jackpot')
         .forEach(element => element.remove());
 }
@@ -1130,6 +1390,7 @@ function scheduleGmaExit(athleteSlug, profileImageId, presentationGeneration, dw
             // The dialog's smooth-scroll style must not race the new profile geometry.
             modalContent.scrollTo({ top: 0, left: 0, behavior: 'instant' });
             glideGmaPortraitIntoProfile(portrait, stageRect);
+            revealGmaProfileAfterHandoff();
             focusGmaCloseControl();
         }, exitDelay);
     };
@@ -1139,6 +1400,66 @@ function scheduleGmaExit(athleteSlug, profileImageId, presentationGeneration, dw
     } else {
         beginExit();
     }
+}
+
+let gmaHandoffController = null;
+
+function cancelGmaProfileHandoff() {
+    gmaHandoffController?.cancel();
+}
+
+// While the portrait glides home, the profile underneath settles in behind it in reading
+// order instead of appearing all at once.
+function revealGmaProfileAfterHandoff() {
+    cancelGmaProfileHandoff();
+    if (prefersReducedGmaMotion()) return;
+    const parts = [
+        ...modalContent.querySelectorAll(':scope > #athlete-profile > *'),
+        ...modalContent.querySelectorAll(':scope > :not(#athlete-profile)')
+    ].filter(element => element.offsetParent !== null
+        && !element.matches('.portrait-wrapper, #modalProfilePic, #guessAgeContainer, #closeAthleteDetailsModal, .modal-sticky-header'));
+    const previousIndices = parts.map(element => [element,
+        element.style.getPropertyValue('--gma-handoff-index'),
+        element.style.getPropertyPriority('--gma-handoff-index')]);
+    const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    let timer = 0;
+    let cancelled = false;
+    const restorePart = ([element, value, priority]) => {
+        element.removeAttribute('data-gma-handoff-part');
+        if (value) element.style.setProperty('--gma-handoff-index', value, priority);
+        else element.style.removeProperty('--gma-handoff-index');
+    };
+    const showFocusedPart = event => {
+        const part = event.target?.closest?.('[data-gma-handoff-part]');
+        const previous = previousIndices.find(([element]) => element === part);
+        // Keyboard users can reach a part before its stagger starts. Finish that part
+        // permanently, so leaving it cannot restart an entrance around the next focus.
+        if (previous) restorePart(previous);
+    };
+    const cancel = () => {
+        if (cancelled) return;
+        cancelled = true;
+        window.clearTimeout(timer);
+        motionQuery.removeEventListener('change', handleMotionChange);
+        modalContent.removeEventListener('focusin', showFocusedPart, true);
+        modalContent.classList.remove('gma-handoff');
+        previousIndices.forEach(restorePart);
+        if (gmaHandoffController?.cancel === cancel) gmaHandoffController = null;
+    };
+    const handleMotionChange = event => {
+        if (event.matches) cancel();
+    };
+    parts.forEach((element, index) => {
+        element.style.setProperty('--gma-handoff-index', String(index));
+        element.setAttribute('data-gma-handoff-part', '');
+    });
+    gmaHandoffController = { cancel };
+    motionQuery.addEventListener('change', handleMotionChange);
+    modalContent.addEventListener('focusin', showFocusedPart, true);
+    void modalContent.offsetWidth;
+    modalContent.classList.add('gma-handoff');
+    showFocusedPart({ target: document.activeElement });
+    timer = window.setTimeout(cancel, 1200);
 }
 
 // The stage portrait is larger and lower than the profile portrait. Animate from the stage
@@ -1202,6 +1523,8 @@ function restoreGuessControls(message, focusTarget) {
     gmaSubmitBtn.disabled = false;
     gmaBubble.classList.remove('gma-bubble-inactive', 'gma-bubble-overlap');
     document.getElementById('gmaRealBubble')?.remove();
+    document.getElementById('gmaGap')?.remove();
+    delete gmaCard.dataset.gmaReaction;
     clearGmaEphemera();
     syncRange();
     (focusTarget || gmaRange).focus();
@@ -1339,6 +1662,7 @@ gmaSubmitBtn.addEventListener('click', async function () {
         gmaStatus.classList.add('gma-status--semantic');
         gmaStatus.textContent = `Actual age: ${realAge}. Your guess: ${userGuess}. ${reactionCopy}${outcomeCopy}`;
         gmaCard.removeAttribute('aria-busy');
+        gmaCard.dataset.gmaReaction = reactionKind;
         modalContent.classList.add('gma-result-ready');
         showGmaReaction(reactionKind);
 
@@ -1359,8 +1683,10 @@ gmaSubmitBtn.addEventListener('click', async function () {
             presentation);
         if (!revealCompleted || !isCurrentGmaPresentation(presentation)) return;
 
-        document.querySelectorAll('.gma-reaction').forEach(element => element.remove());
+        cancelGmaMotionEphemera();
         focusGmaCloseControl();
+        const beatCrowd = crowdError !== null && userError < crowdError;
+        showGmaGap(userGuess, realAge, isFirstGuess ? 'first' : beatCrowd ? 'crowd' : 'plain');
 
         const outcomeDwell = userError === 0 && !prefersReducedGmaMotion()
             ? 16000
@@ -1373,7 +1699,7 @@ gmaSubmitBtn.addEventListener('click', async function () {
             } else if (isFirstGuess) {
                 popBanner(false, true, outcomeDwell);
                 spawnGmaCelebration('first');
-            } else if (crowdError !== null && userError < crowdError) {
+            } else if (beatCrowd) {
                 gmaCard.classList.add('celebrate-better');
                 popBanner(false, false, outcomeDwell);
                 spawnGmaCelebration('crowd');
@@ -1382,6 +1708,7 @@ gmaSubmitBtn.addEventListener('click', async function () {
             // The server result and local completion are already durable. A decorative
             // renderer failure must never turn that success back into a retryable error.
             cancelGmaExactJackpot();
+            cancelGmaMotionEphemera();
             document.querySelectorAll('.gma-celebration-spark, .gma-exact-jackpot')
                 .forEach(element => element.remove());
             modalContent.classList.remove('gma-exact-takeover');
@@ -1430,6 +1757,7 @@ function hideCard(e) {
 }
 
 function popBanner(isExact, isFirst, outcomeDwell) {
+    gmaBannerController?.cancel();
     const b = document.createElement('div');
     b.setAttribute('aria-hidden', 'true');
     b.classList.add('gma-pop-banner');
@@ -1443,20 +1771,46 @@ function popBanner(isExact, isFirst, outcomeDwell) {
         : isFirst
             ? 'First accepted guess!'
             : 'You beat the crowd!';
-    const leadingEmoji = isExact ? '🎯🎯🎯 ' : isFirst ? '🥇 ' : '🎉 ';
-    const trailingEmoji = isExact ? ' 🎯🎯🎯' : isFirst ? ' 🥇' : ' 🏆';
-    b.append(document.createTextNode(leadingEmoji), bannerCopy, document.createTextNode(trailingEmoji));
+    b.classList.add(isExact ? 'gma-pop-banner--exact' : isFirst ? 'gma-pop-banner--first' : 'gma-pop-banner--crowd');
+    bannerCopy.className = 'gma-pop-banner-copy';
+    // The marks land a beat after the stamp, one from each side.
+    const mark = (glyph, side) => {
+        const element = document.createElement('span');
+        element.className = `gma-pop-banner-mark gma-pop-banner-mark--${side}`;
+        element.textContent = glyph;
+        return element;
+    };
+    b.append(
+        mark(isExact ? '🎯' : isFirst ? '🥇' : '🎉', 'start'),
+        bannerCopy,
+        mark(isExact ? '🎯' : isFirst ? '🥇' : '🏆', 'end'));
 
     gmaPayoffRegion.replaceChildren(b);
-    requestAnimationFrame(() => b.classList.add('show'));
+    let frame = window.requestAnimationFrame(() => {
+        frame = 0;
+        b.classList.add('show');
+    });
+    let hideTimer = 0;
+    let removeTimer = 0;
+    const cancel = event => {
+        if (event && event.target !== b) return;
+        window.cancelAnimationFrame(frame);
+        window.clearTimeout(hideTimer);
+        window.clearTimeout(removeTimer);
+        b.removeEventListener('animationend', cancel);
+        b.remove();
+        if (gmaBannerController?.cancel === cancel) gmaBannerController = null;
+    };
+    gmaBannerController = { cancel };
 
     const bannerDwell = prefersReducedGmaMotion()
         ? 1200
         : Math.max(2000, outcomeDwell - 600);
-    setTimeout(() => {
+    hideTimer = window.setTimeout(() => {
+        hideTimer = 0;
         b.classList.add('hide');
-        b.addEventListener('animationend', () => b.remove(), { once: true });
-        setTimeout(() => b.remove(), 600);
+        b.addEventListener('animationend', cancel);
+        removeTimer = window.setTimeout(cancel, 600);
     }, bannerDwell);
 
 }
