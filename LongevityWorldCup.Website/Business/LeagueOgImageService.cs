@@ -73,7 +73,10 @@ public sealed class LeagueOgImageService
         string DisplayName,
         IReadOnlyList<string> Top3Slugs,
         IReadOnlyList<string> Top3Names,
-        string Signature);
+        string Signature)
+    {
+        internal IReadOnlyList<string?>? ProfilePaths { get; init; }
+    }
 
     private readonly record struct LeaderboardRow(
         int Rank,
@@ -154,9 +157,12 @@ public sealed class LeagueOgImageService
             .Select(AthleteSlug.Normalize)
             .ToArray();
 
-        var top3Names = GetAthleteDisplayNames(top3Slugs);
+        var snapshot = _athletes.GetAthletesSnapshot();
+        var top3Names = GetAthleteDisplayNames(top3Slugs, snapshot);
+        var profileImageIds = GetProfileImageIds(top3Slugs, snapshot);
+        var profilePaths = top3Slugs.Select(slug => TryResolveProfilePath(slug, snapshot, out var path) ? path : null).ToArray();
         var displayName = LeagueDisplayNames[normalized];
-        var signature = ComputeSignature(normalized, displayName, top3Slugs);
+        var signature = ComputeSignature(normalized, displayName, top3Slugs, top3Names, profileImageIds, profilePaths);
 
         payload = new LeagueOgPayload(
             InternalSlug: normalized,
@@ -164,7 +170,7 @@ public sealed class LeagueOgImageService
             DisplayName: displayName,
             Top3Slugs: top3Slugs,
             Top3Names: top3Names,
-            Signature: signature);
+            Signature: signature) { ProfilePaths = profilePaths };
         return true;
     }
 
@@ -248,7 +254,10 @@ public sealed class LeagueOgImageService
             var hasAthlete = i < payload.Top3Slugs.Count;
             var slug = hasAthlete ? payload.Top3Slugs[i] : "";
             var name = hasAthlete && i < payload.Top3Names.Count ? payload.Top3Names[i] : "OPEN";
-            await DrawLeaderboardRowAsync(image, row, slug, name, ct);
+            var profilePath = payload.ProfilePaths is { } captured
+                ? (i < captured.Count ? captured[i] : null)
+                : (TryResolveProfilePath(slug, _athletes.GetAthletesSnapshot(), out var currentPath) ? currentPath : null);
+            await DrawLeaderboardRowAsync(image, row, slug, name, profilePath, ct);
         }
 
         ShareCardCanvas.DrawAccentBar(image, AccentColor);
@@ -260,6 +269,7 @@ public sealed class LeagueOgImageService
         LeaderboardRow row,
         string athleteSlug,
         string displayName,
+        string? profilePath,
         CancellationToken ct)
     {
         image.Mutate(ctx =>
@@ -270,7 +280,7 @@ public sealed class LeagueOgImageService
 
         var isOpen = string.IsNullOrWhiteSpace(athleteSlug);
         var drewPhoto = false;
-        if (!isOpen && TryResolveProfilePath(athleteSlug, out var profilePath))
+        if (!isOpen && profilePath is not null)
         {
             try
             {
@@ -354,19 +364,20 @@ public sealed class LeagueOgImageService
         });
     }
 
-    private string ComputeSignature(string leagueSlug, string leagueDisplayName, IReadOnlyList<string> top3Slugs)
+    private string ComputeSignature(string leagueSlug, string leagueDisplayName, IReadOnlyList<string> top3Slugs,
+        IReadOnlyList<string> top3Names, IReadOnlyList<string> profileImageIds, IReadOnlyList<string?> profilePaths)
     {
         var logoTicks = File.Exists(_logoPath) ? File.GetLastWriteTimeUtc(_logoPath).Ticks : 0L;
-        var top3ProfileImageIds = GetProfileImageIds(top3Slugs);
 
         var raw = string.Join("|",
-            "league-og-v39",
+            "league-og-v40",
             leagueSlug,
             leagueDisplayName,
             string.Join(",", top3Slugs),
-            string.Join("\n", GetAthleteDisplayNames(top3Slugs)),
-            string.Join(",", top3ProfileImageIds),
-            string.Join(",", top3Slugs.Select(slug => ImageAssetRevision.ForFile(TryResolveProfilePath(slug, out var path) ? path : null))),
+            string.Join("\n", top3Names),
+            string.Join(",", profileImageIds),
+            string.Join(",", profilePaths.Select(path => path is null ? "" : IOPath.GetRelativePath(_env.WebRootPath, path).Replace('\\', '/'))),
+            string.Join(",", profilePaths.Select(ImageAssetRevision.ForFile)),
             logoTicks.ToString(CultureInfo.InvariantCulture),
             _fonts.Ticks);
 
@@ -374,9 +385,8 @@ public sealed class LeagueOgImageService
         return Convert.ToHexString(bytes).ToLowerInvariant()[..12];
     }
 
-    private IReadOnlyList<string> GetProfileImageIds(IEnumerable<string> athleteSlugs)
+    private static IReadOnlyList<string> GetProfileImageIds(IEnumerable<string> athleteSlugs, JsonArray snapshot)
     {
-        var snapshot = _athletes.GetAthletesSnapshot();
         var bySlug = snapshot
             .OfType<JsonObject>()
             .Select(o => new
@@ -396,14 +406,13 @@ public sealed class LeagueOgImageService
             .ToArray();
     }
 
-    private bool TryResolveProfilePath(string athleteSlug, out string fullPath)
+    private bool TryResolveProfilePath(string athleteSlug, JsonArray snapshot, out string fullPath)
     {
         fullPath = "";
         if (string.IsNullOrWhiteSpace(athleteSlug))
             return false;
 
         var normalizedSlug = AthleteSlug.Normalize(athleteSlug);
-        var snapshot = _athletes.GetAthletesSnapshot();
         var athlete = snapshot
             .OfType<JsonObject>()
             .FirstOrDefault(o =>
@@ -452,9 +461,8 @@ public sealed class LeagueOgImageService
         return true;
     }
 
-    private IReadOnlyList<string> GetAthleteDisplayNames(IEnumerable<string> top3Slugs)
+    private static IReadOnlyList<string> GetAthleteDisplayNames(IEnumerable<string> top3Slugs, JsonArray snapshot)
     {
-        var snapshot = _athletes.GetAthletesSnapshot();
         var bySlug = snapshot
             .OfType<JsonObject>()
             .Select(o => new

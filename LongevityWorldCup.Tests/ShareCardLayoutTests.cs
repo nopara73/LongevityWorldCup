@@ -116,6 +116,28 @@ public sealed class ShareCardLayoutTests(TestWebApplicationFactory factory)
     }
 
     [Fact]
+    public async Task LeagueRender_KeepsThePortraitsCapturedWithItsSignature()
+    {
+        await using var isolated = new TestWebApplicationFactory();
+        var data = isolated.Services.GetRequiredService<AthleteDataService>();
+        var images = isolated.Services.GetRequiredService<LeagueOgImageService>();
+        Assert.True(images.TryGetCurrentPayload("ultimate", out var payload));
+        Assert.Contains(payload.ProfilePaths!, path => path is not null);
+        var control = payload with { Signature = "snapshot-before-" + payload.Signature };
+        var before = await File.ReadAllBytesAsync((await images.EnsureRenderedImageAsync(control))!);
+        data.UpdateAthletesJsonInPlace(athlete =>
+        {
+            athlete["ProfilePic"] = "/assets/HdLogo.png";
+            athlete["ProfileImageId"] = "changed-after-payload";
+        });
+        var queued = payload with { Signature = "snapshot-after-" + payload.Signature };
+        var after = await File.ReadAllBytesAsync((await images.EnsureRenderedImageAsync(queued))!);
+        Assert.Equal(before, after);
+        Assert.True(images.TryGetCurrentPayload("ultimate", out var current));
+        Assert.NotEqual(payload.Signature, current.Signature);
+    }
+
+    [Fact]
     public async Task LeagueSignature_IncludesDisplayNames()
     {
         await using var isolated = new TestWebApplicationFactory();
