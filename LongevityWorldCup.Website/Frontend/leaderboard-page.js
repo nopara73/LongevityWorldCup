@@ -7439,7 +7439,7 @@ function updateCrowdContainer(crowdAge, crowdCount) {
         crowdContainer.hidden = true;
         notEmptyCrowdContainer.hidden = true;
         document.getElementById('crowdAge').textContent = '';
-        document.getElementById('crowdCount').textContent = '';
+        document.getElementById('crowdCount').textContent = '0';
     } else {
         crowdContainer.hidden = false;
         notEmptyCrowdContainer.hidden = false;
