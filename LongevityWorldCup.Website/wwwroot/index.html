@@ -351,8 +351,8 @@
                         <a id="btcAddressLink" href="#" target="_blank" rel="noopener" title="View Bitcoin donations" aria-label="View the Bitcoin donation address on mempool.space">
                             <!-- Bitcoin address will be inserted here by JavaScript -->
                         </a>
-                        <span id="copiedText" aria-live="polite" style="display: none;">
-                            Copied <i class="fas fa-check" style="color: green;"></i>
+                        <span id="bitcoinCopyStatus" role="status" aria-live="polite" aria-atomic="true">
+                            <span id="copiedText" hidden></span>
                         </span>
                         <button type="button" id="bitcoinCopyButton" class="copy-btn" onclick="copyBitcoinAddress()" title="Copy Bitcoin address" aria-label="Copy Bitcoin donation address" disabled aria-disabled="true">
                             <i class="fas fa-copy"></i>
