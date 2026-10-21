@@ -26,14 +26,14 @@ public static class FlagLeaderboardHtmlRenderer
                 .Append("<span class=\"flag-team-portraits\" aria-hidden=\"true\">");
             foreach (var athlete in team.Athletes)
                 html.Append($"<img src=\"{Portrait(athlete)}\" alt=\"\" loading=\"lazy\">");
-            html.Append($"</span><span class=\"flag-team-score\">{(team.Rank.HasValue ? PublicHtmlFormat.Signed(team.Score, 2) : team.Athletes.Count + "/3")}<small>{(team.Rank.HasValue ? "years total" : "to qualify")}</small></span><span class=\"flag-team-chevron\" aria-hidden=\"true\">⌄</span></summary><ol class=\"flag-team-athletes\" aria-label=\"Top {FlagLeaderboard.Label(team.View)} athletes for {Encode(team.Flag.Name)}\">");
+            html.Append($"</span><span class=\"flag-team-score\">{(team.Rank.HasValue ? PublicHtmlFormat.Signed(team.Score, 2) : team.Athletes.Count + "/3")} <small>{(team.Rank.HasValue ? "years total" : "to qualify")}</small></span><span class=\"flag-team-chevron\" aria-hidden=\"true\">⌄</span></summary><ol class=\"flag-team-athletes\" aria-label=\"Top {FlagLeaderboard.Label(team.View)} athletes for {Encode(team.Flag.Name)}\">");
             var place = 0;
             foreach (var athlete in team.Athletes)
             {
                 place++;
                 html.Append($"<li><a class=\"flag-athlete-link\" href=\"{Encode(athlete.AthletePath)}\"><span class=\"flag-athlete-rank\" title=\"Rank within this team\">{place}</span>")
                     .Append($"<img src=\"{Portrait(athlete)}\" alt=\"\" loading=\"lazy\"><span class=\"flag-athlete-name\">{Encode(athlete.DisplayName)}<small>{athlete.Track}</small></span>")
-                    .Append($"<span class=\"flag-athlete-metric\">{PublicHtmlFormat.Signed(athlete.EffectiveAgeReductionYears, 1)}<small>years</small></span></a></li>");
+                    .Append($"<span class=\"flag-athlete-metric\">{PublicHtmlFormat.Signed(athlete.EffectiveAgeReductionYears, 1)} <small>years</small></span></a></li>");
             }
             html.Append("</ol></details>");
         }
