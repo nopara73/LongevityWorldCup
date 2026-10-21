@@ -973,9 +973,13 @@ function showBadgeTip(badge: HTMLElement): void {
     tip.setAttribute('aria-hidden', alreadyNamed ? 'true' : 'false');
     if (!alreadyNamed) badge.setAttribute('aria-describedby', [badgeTipOriginalDescription, tip.id].filter(Boolean).join(' '));
     badgeTipOwner = badge;
+    const ownerBounds = badge.getBoundingClientRect();
     badgeTipObserver = new MutationObserver(() => {
+        const bounds = badge.getBoundingClientRect();
         if (!badge.isConnected || !badge.getClientRects().length || badge.closest('[hidden], [inert]')
-            || badge.getAttribute('title') !== null || getBadgeTipText(badge) !== text) hideBadgeTip();
+            || badge.getAttribute('title') !== null || getBadgeTipText(badge) !== text
+            || Math.abs(bounds.left - ownerBounds.left) > 0.5 || Math.abs(bounds.top - ownerBounds.top) > 0.5
+            || Math.abs(bounds.width - ownerBounds.width) > 0.5 || Math.abs(bounds.height - ownerBounds.height) > 0.5) hideBadgeTip();
     });
     badgeTipObserver.observe(document.body, { childList: true, subtree: true, attributes: true,
         attributeFilter: ['title', 'data-badge-tip', 'hidden', 'inert', 'class', 'style'] });

@@ -270,6 +270,14 @@ public sealed class BadgeFamilyBrowserTests(
         await chip.EvaluateAsync("el => el.blur()");
         await chip.FocusAsync();
         await Assertions.Expect(tip).ToBeVisibleAsync();
+        // A layout update can move a focused owner without detaching it.
+        await chip.EvaluateAsync("el => el.style.marginInlineStart = '18px'");
+        await Assertions.Expect(tip).ToBeHiddenAsync();
+        Assert.Equal(title, await chip.GetAttributeAsync("title"));
+
+        await chip.EvaluateAsync("el => el.blur()");
+        await chip.FocusAsync();
+        await Assertions.Expect(tip).ToBeVisibleAsync();
         await chip.EvaluateAsync("el => el.title = 'New rendered title'");
         await Assertions.Expect(tip).ToBeHiddenAsync();
         Assert.Equal("New rendered title", await chip.GetAttributeAsync("title"));
