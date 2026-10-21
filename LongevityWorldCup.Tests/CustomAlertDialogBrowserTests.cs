@@ -357,6 +357,32 @@ public sealed class CustomAlertDialogBrowserTests(
     }
 
     [Fact]
+    public async Task Alert_BottomSheetKeepsOkInsideTheLandscapeSafeArea()
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = 580, Height = 300 }, ReducedMotion = ReducedMotion.Reduce
+        });
+        var page = await context.NewPageAsync();
+        await NavigateAndSettleAsync(page, "/apply");
+        var cdp = await context.NewCDPSessionAsync(page);
+        await cdp.SendAsync("Emulation.setSafeAreaInsetsOverride", new()
+        {
+            ["insets"] = new Dictionary<string, object> { ["top"] = 0, ["left"] = 44, ["right"] = 44, ["bottom"] = 21 }
+        });
+        await page.EvaluateAsync("() => { void customAlert('Failed to submit.\\n\\n' + 'Long server detail '.repeat(100)); }");
+        await Assertions.Expect(page.Locator("#custom-alert-close")).ToBeFocusedAsync();
+        Assert.True(await page.Locator("#custom-alert-close").EvaluateAsync<bool>("""
+            button => {
+                const rect = button.getBoundingClientRect();
+                return rect.left >= 44 && rect.right <= innerWidth - 44
+                    && rect.top >= 0 && rect.bottom <= innerHeight - 21;
+            }
+            """), "The sheet must keep OK clear of both landscape cutouts and the bottom safe area.");
+        await cdp.DetachAsync();
+    }
+
+    [Fact]
     public async Task Alert_PreservesAnExistingScrollLockAndReleasesALoadingHandoff()
     {
         await using var context = await NewContextAsync(Browser, App, new());

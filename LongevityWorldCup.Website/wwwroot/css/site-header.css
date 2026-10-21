@@ -454,6 +454,8 @@ button.option-button:disabled {
     overflow: auto;
     box-sizing: border-box;
     padding: 2rem clamp(1.25rem, 5vw, 1.75rem) clamp(1.25rem, 5vw, 1.5rem);
+    padding-left: max(clamp(1.25rem, 5vw, 1.75rem), env(safe-area-inset-left));
+    padding-right: max(clamp(1.25rem, 5vw, 1.75rem), env(safe-area-inset-right));
     border: 1px solid var(--lwc-border);
     border-top: 4px solid var(--alert-tone);
     border-radius: var(--lwc-radius-lg);
