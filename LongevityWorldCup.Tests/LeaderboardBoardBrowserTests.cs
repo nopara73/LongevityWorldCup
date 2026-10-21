@@ -157,6 +157,56 @@ public sealed class LeaderboardBoardBrowserTests(PlaywrightBrowserFixture browse
         }
     }
 
+    [Theory]
+    [InlineData(1440)]
+    [InlineData(901)]
+    [InlineData(769)]
+    [InlineData(390)]
+    public async Task FontEnlargement_RefreshesTheStickyOffsetBeforeResizeObservers(int width)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = 900 },
+            ReducedMotion = ReducedMotion.Reduce
+        });
+        await context.AddInitScriptAsync(
+            """
+            window.__holdHeaderResize = false;
+            window.__heldHeaderResizes = [];
+            const NativeResizeObserver = window.ResizeObserver;
+            window.ResizeObserver = class extends NativeResizeObserver {
+                constructor(callback) {
+                    super((entries, observer) => {
+                        const headerChanged = entries.some(entry => entry.target.matches(
+                            'header[role="banner"], header[role="banner"] .header-link, #site-sticky-header, .join-game'));
+                        if (window.__holdHeaderResize && headerChanged)
+                            window.__heldHeaderResizes.push(() => callback(entries, observer));
+                        else callback(entries, observer);
+                    });
+                }
+            };
+            """);
+        var page = await context.NewPageAsync();
+        await NavigateAndSettleAsync(page, "/leaderboard");
+        await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+        await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+        await page.EvaluateAsync(
+            """
+            () => {
+                window.__holdHeaderResize = true;
+                document.documentElement.style.fontSize = '200%';
+                document.documentElement.style.scrollBehavior = 'auto';
+                const row = document.querySelector('#athleteLeaderboard tbody tr:nth-child(40)');
+                scrollTo(0, row.getBoundingClientRect().top + scrollY - 300);
+            }
+            """);
+        await page.WaitForFunctionAsync(
+            "() => window.__heldHeaderResizes.length > 0 && document.querySelector('#site-sticky-header').classList.contains('visible')");
+        var gap = await page.EvaluateAsync<double>(
+            "() => document.querySelectorAll('#athleteLeaderboard thead th')[1].getBoundingClientRect().top - document.querySelector('#site-sticky-header').getBoundingClientRect().bottom");
+        Assert.InRange(gap, -1, 1);
+    }
+
     [Fact]
     public async Task WideRows_ShowMoreAthletesPerScreen()
     {

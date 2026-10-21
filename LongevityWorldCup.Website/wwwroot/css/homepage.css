@@ -1574,7 +1574,7 @@ main > .main-container .leaderboard {
     display: block;
     margin-top: 0.18rem;
     margin-left: 0;
-    white-space: nowrap;
+    white-space: normal;
 }
 
 /* Link Styling Below Table */
@@ -2269,5 +2269,137 @@ html body main.homepage-main .lwc-merch-item-price {
 
     html body main.homepage-main .podium-item.first > .podium-item-lower {
         margin-inline: calc(-1 * var(--lwc-space-3));
+    }
+}
+
+/* ===== Home page story =====
+   Below the board the page reads as three acts rather than one even stack:
+   what is happening now (Highlights and Swag), what the sport is (Hall of
+   fame and the FAQ, joined as one reading block), and how to take part
+   (Contribute and the newsletter, one finale card on its own band that runs
+   into the footer). Acts are separated by a wider breath than the cards
+   within them; every card closes on the same muted foot strip as the board's
+   "View all athletes". */
+html body main.homepage-main {
+    --home-act-gap: calc(var(--home-gap) * 2);
+}
+
+html body main.homepage-main:not([data-homepage-visit-layout="repeat"]) .lwc-highlights-countdown-wrapper {
+    margin-bottom: var(--home-act-gap);
+}
+
+html body main.homepage-main[data-homepage-visit-layout="repeat"] .full-rankings-action {
+    margin-bottom: var(--home-act-gap);
+}
+
+/* Act two: Hall of fame and the FAQ are one block, joined at a shared seam. */
+html body main.homepage-main > #hall-of-fame {
+    margin-bottom: 0;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    box-shadow: none;
+}
+
+html body main.homepage-main > #faq {
+    margin-bottom: var(--home-act-gap);
+    border-top: 0;
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+}
+
+/* Card feet: one muted strip, like the board's foot. */
+html body main.homepage-main .section-container .homepage-section-footer {
+    background: var(--lwc-surface-muted);
+}
+
+/* The FAQ's questions sit as tiles on the card instead of thin ruled columns. */
+html body main.homepage-main .homepage-faq-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--lwc-space-4);
+    padding: var(--home-card-inset);
+}
+
+html body main.homepage-main .homepage-faq-item:nth-child(n) {
+    padding: var(--lwc-space-4) var(--lwc-space-5);
+    border: 1px solid var(--lwc-border);
+    border-inline-start: 3px solid var(--lwc-accent);
+    border-radius: var(--lwc-radius-md);
+    background: var(--lwc-surface);
+}
+
+html body main.homepage-main .homepage-faq-item h3 {
+    margin-bottom: var(--lwc-space-2);
+    font-size: 1.05rem;
+}
+
+/* Act three: the finale. Contribute and the newsletter share one card split
+   by a rule, on a full-bleed band that meets the footer without a gap. */
+html body main.homepage-main > .homepage-panel-pair:last-child {
+    gap: 0;
+    margin: 0;
+    padding: var(--home-act-gap) 0;
+    background: var(--lwc-surface-accent);
+    /* Full bleed without widening the page: shadows paint the band and its
+       top hairline beyond the column, and the clip keeps them to this row. */
+    box-shadow:
+        0 0 0 100vmax var(--lwc-surface-accent),
+        0 -1px 0 100vmax var(--lwc-border);
+    clip-path: inset(-1px -100vmax 0);
+}
+
+html body main.homepage-main .homepage-panel-pair > .section-container {
+    box-shadow: var(--lwc-shadow-sm);
+}
+
+html body main.homepage-main .homepage-panel-pair > #contribute {
+    border-start-end-radius: 0;
+    border-end-end-radius: 0;
+}
+
+html body main.homepage-main .homepage-panel-pair > #newsletter {
+    border-inline-start: 0;
+    border-start-start-radius: 0;
+    border-end-start-radius: 0;
+}
+
+/* The newsletter reads from the top like Contribute beside it, not floating mid-card. */
+html body main.homepage-main .newsletter-panel {
+    align-content: start;
+}
+
+html body main.homepage-main:has(> .homepage-panel-pair:last-child) {
+    margin-bottom: 0;
+}
+
+/* The finale band meets the footer's crest without the usual page gap. */
+html body:has(> main.homepage-main > .homepage-panel-pair:last-child) > .footer {
+    margin-top: 0;
+}
+
+@media (max-width: 991px) {
+    html body main.homepage-main #events-root-index .event-message-cell {
+        text-wrap: pretty;
+    }
+
+    html body main.homepage-main .homepage-panel-pair > #contribute {
+        border-radius: var(--lwc-radius-lg) var(--lwc-radius-lg) 0 0;
+    }
+
+    html body main.homepage-main .homepage-panel-pair > #newsletter {
+        border-inline-start: 1px solid var(--lwc-border);
+        border-top: 0;
+        border-radius: 0 0 var(--lwc-radius-lg) var(--lwc-radius-lg);
+    }
+}
+
+@media (max-width: 600px) {
+    html body main.homepage-main .homepage-faq-grid {
+        grid-template-columns: minmax(0, 1fr);
+        gap: var(--lwc-space-3);
+    }
+
+    html body main.homepage-main .homepage-faq-item:nth-child(n) {
+        padding: var(--lwc-space-3) var(--lwc-space-4);
+        border-top: 1px solid var(--lwc-border);
     }
 }
