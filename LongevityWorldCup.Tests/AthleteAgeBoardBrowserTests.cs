@@ -105,7 +105,13 @@ public sealed class AthleteAgeBoardBrowserTests(
                     && [...document.querySelectorAll('link[rel="stylesheet"]')].every(link => !!link.sheet)
                 """, slug);
         else
-            await page.WaitForFunctionAsync("() => [...document.querySelectorAll('link[rel=\"stylesheet\"]')].every(link => !!link.sheet)");
+        {
+            // Without script, frames never run, so poll on a timer and skip the frame settle.
+            await page.WaitForFunctionAsync("() => [...document.querySelectorAll('link[rel=\"stylesheet\"]')].every(link => !!link.sheet)",
+                null, new() { PollingInterval = 100, Timeout = 30000 });
+            await page.EvaluateAsync("() => document.fonts?.ready");
+            return page;
+        }
         await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
         return page;
     }
