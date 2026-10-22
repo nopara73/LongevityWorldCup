@@ -88,16 +88,17 @@ public sealed class WebPushBrowserTests
         await context.AddInitScriptAsync("""
             window.testUnsubscribeCount = 0;
             window.testSubscribeStarted = false;
+            window.testSubscription = null;
             Object.defineProperty(Notification, 'permission', { get: () => 'granted' });
             Notification.requestPermission = async () => 'granted';
             const documentSubscription = {
                 toJSON: () => (SUBSCRIPTION),
-                unsubscribe: async () => { window.testUnsubscribeCount++; return true; }
+                unsubscribe: async () => { window.testUnsubscribeCount++; window.testSubscription = null; return true; }
             };
-            PushManager.prototype.getSubscription = async () => null;
+            PushManager.prototype.getSubscription = async () => window.testSubscription;
             PushManager.prototype.subscribe = () => {
                 window.testSubscribeStarted = true;
-                return new Promise(resolve => setTimeout(() => resolve(documentSubscription), DELAY));
+                return new Promise(resolve => setTimeout(() => { window.testSubscription = documentSubscription; resolve(documentSubscription); }, DELAY));
             };
             """.Replace("SUBSCRIPTION", subscription).Replace("DELAY", delay.ToString()));
         var page = await context.NewPageAsync();
@@ -109,7 +110,9 @@ public sealed class WebPushBrowserTests
         await page.WaitForFunctionAsync("() => window.testSubscribeStarted");
         await Assertions.Expect(bell).ToBeDisabledAsync();
         await Assertions.Expect(bell.Locator(".fa-spinner.fa-spin")).ToBeVisibleAsync();
-        await page.Clock.FastForwardAsync(delay);
+        // Observe the deadline before releasing a late provider result; jumping
+        // over both timers at once can coalesce them in the browser's fake clock.
+        await page.Clock.FastForwardAsync(enabled ? delay : 120001);
         await Assertions.Expect(bell).ToHaveAttributeAsync("aria-pressed", enabled ? "true" : "false");
         await Assertions.Expect(bell).ToBeEnabledAsync();
         if (enabled)
@@ -121,6 +124,7 @@ public sealed class WebPushBrowserTests
         else
         {
             await Assertions.Expect(page.Locator("#webPushStatus")).ToHaveTextAsync("Notifications could not connect. Try again.");
+            await page.Clock.FastForwardAsync(delay - 120001);
         }
         await page.WaitForFunctionAsync("() => window.testUnsubscribeCount === 1");
     }
@@ -222,7 +226,7 @@ public sealed class WebPushBrowserTests
                         openWindow: async url => opened.push(url)
                     }
                 };
-                new Function('self', source)(scope);
+                new Function('self', 'importScripts', 'LwcWebPush', source)(scope, () => {}, { state: async () => ({ enabled: true }) });
                 const push = () => handlers.push({ data: { json: () => ({ id: 'same-event', title: 'A sport for time', body: 'Hello', url: 'https://unrelated.example/' }) }, waitUntil: p => waits.push(p) });
                 push(); push(); await Promise.all(waits);
                 handlers.notificationclick({ notification: { close() {}, data: { url: 'https://unrelated.example/' } }, waitUntil: p => waits.push(p) });

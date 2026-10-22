@@ -90,6 +90,7 @@ public static partial class HtmlAssetPlaceholders
         ["{{ASSET_HIGHLIGHTS_PAGE_CSS}}"] = "/css/highlights-page.css",
         ["{{ASSET_EVENTS_PAGE_JS}}"] = "/js/events-page.js",
         ["{{ASSET_WEB_PUSH_JS}}"] = "/js/web-push.js",
+        ["{{ASSET_WEB_PUSH_SYNC_JS}}"] = "/js/web-push-sync.js",
         ["{{ASSET_WEB_PUSH_WORKER_JS}}"] = "/js/web-push-worker.js",
         ["{{ASSET_MAIN_PROGRESS_BAR_CSS}}"] = "/css/main-progress-bar.css",
         ["{{ASSET_MAIN_PROGRESS_BAR_JS}}"] = "/js/main-progress-bar.js",
