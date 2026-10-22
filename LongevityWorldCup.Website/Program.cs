@@ -248,6 +248,11 @@ namespace LongevityWorldCup.Website
             builder.Services.AddSingleton<SiteStatisticsService>();
             builder.Services.AddHostedService(sp => sp.GetRequiredService<SiteStatisticsService>());
             builder.Services.AddSingleton<ApplicationSubmissionRetryStore>();
+            builder.Services.AddSingleton<SubmissionConfirmationStore>();
+            builder.Services.AddSingleton<ISubmissionConfirmationSender, SmtpSubmissionConfirmationSender>();
+            builder.Services.AddSingleton<SubmissionConfirmationDispatcher>();
+            if (builder.Configuration.GetValue("EnableSubmissionConfirmations", builder.Environment.IsProduction()))
+                builder.Services.AddHostedService<SubmissionConfirmationWorker>();
 
             var appConfig = Config.LoadAsync().GetAwaiter().GetResult();
             builder.Services.AddSingleton(appConfig);

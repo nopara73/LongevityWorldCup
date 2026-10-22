@@ -436,6 +436,7 @@ namespace LongevityWorldCup.Website.Controllers
             using var submissionWorkspace = ApplicationSubmissionWorkspace.Create();
             string? recoverableZipPath = null;
             string? recoverableFolderKey = null;
+            ApplicationSubmissionResponse? acceptedResponse = null;
 
             try
             {
@@ -479,7 +480,7 @@ namespace LongevityWorldCup.Website.Controllers
                 Config config;
                 try
                 {
-                    config = await Config.LoadAsync() ?? throw new InvalidOperationException("Loaded configuration is null.");
+                    config = await LoadSubmissionConfigAsync() ?? throw new InvalidOperationException("Loaded configuration is null.");
                 }
                 catch (Exception ex)
                 {
@@ -513,6 +514,17 @@ namespace LongevityWorldCup.Website.Controllers
                 var correctedPersonalLink = NormalizeSubmittedPersonalLink(applicantData.PersonalLink);
                 var trimmedDisplayName = string.IsNullOrWhiteSpace(applicantData.DisplayName) ? null : applicantData.DisplayName.Trim();
                 var displayNameOrName = trimmedDisplayName ?? applicantData.Name?.Trim();
+
+                void CompleteSubmission(ApplicationSubmissionResponse response)
+                {
+                    // Persist the existing receipt with completion, before any cache hit can
+                    // bypass it. SMTP runs independently of request retries and cancellation.
+                    using var confirmation = BuildSubmissionConfirmationMessage(config, accountEmail,
+                        displayNameOrName, isResultSubmissionOnly, isEditSubmissionOnly, paymentDecision.IsPro,
+                        response.CheckoutLink, response.PaymentUnavailable == true);
+                    submissionLease.Complete(response, confirmation);
+                    acceptedResponse = response;
+                }
 
                 // 1) Build a temp folder with profile + proofs + athlete.json
                 var includePhenoDifference = !string.IsNullOrWhiteSpace(chronoPhenoDifference);
@@ -790,16 +802,7 @@ namespace LongevityWorldCup.Website.Controllers
                             PaymentRequired: false,
                             CheckoutLink: null,
                             InvoiceId: null);
-                        submissionLease.Complete(freeSubmissionResponse);
-
-                        await TrySendSubmissionConfirmationEmailAsync(
-                            config,
-                            accountEmail,
-                            displayNameOrName,
-                            isResultSubmissionOnly,
-                            isEditSubmissionOnly,
-                            isPro: paymentDecision.IsPro,
-                            ct: ct);
+                        CompleteSubmission(freeSubmissionResponse);
 
                         await TryRecordDiscountSignupAsync(
                             applicantData,
@@ -866,7 +869,7 @@ namespace LongevityWorldCup.Website.Controllers
                             CheckoutLink: null,
                             InvoiceId: null,
                             PaymentUnavailable: true);
-                        submissionLease.Complete(paymentUnavailableResponse);
+                        CompleteSubmission(paymentUnavailableResponse);
 
                         await TryRecordDiscountSignupAsync(
                             applicantData,
@@ -880,16 +883,6 @@ namespace LongevityWorldCup.Website.Controllers
                             invoiceId: null,
                             checkoutLink: null,
                             ct);
-
-                        await TrySendSubmissionConfirmationEmailAsync(
-                            config,
-                            accountEmail,
-                            displayNameOrName,
-                            isResultSubmissionOnly,
-                            isEditSubmissionOnly,
-                            isPro: paymentDecision.IsPro,
-                            paymentUnavailable: true,
-                            ct: ct);
 
                         await TrackApplicationPaymentEventAsync(
                             eventName: "payment_unavailable",
@@ -923,7 +916,7 @@ namespace LongevityWorldCup.Website.Controllers
                         PaymentRequired: true,
                         CheckoutLink: invoiceResult.CheckoutLink,
                         InvoiceId: invoiceResult.InvoiceId);
-                    submissionLease.Complete(paidSubmissionResponse);
+                    CompleteSubmission(paidSubmissionResponse);
 
                     await TryRecordDiscountSignupAsync(
                         applicantData,
@@ -937,16 +930,6 @@ namespace LongevityWorldCup.Website.Controllers
                         invoiceResult.InvoiceId,
                         invoiceResult.CheckoutLink,
                         ct);
-
-                    await TrySendSubmissionConfirmationEmailAsync(
-                        config,
-                        accountEmail,
-                        displayNameOrName,
-                        isResultSubmissionOnly,
-                        isEditSubmissionOnly,
-                        isPro: paymentDecision.IsPro,
-                        checkoutLink: invoiceResult.CheckoutLink,
-                        ct: ct);
 
                     _logger.LogInformation(
                         "Application submission succeeded. SubmissionId={SubmissionId} SubmissionKind={SubmissionKind} ProofCount={ProofCount} ZipSizeBytes={ZipSizeBytes} PaymentRequired={PaymentRequired} AuditEmailDelivered={AuditEmailDelivered} ArchivePath={ArchivePath}",
@@ -986,6 +969,8 @@ namespace LongevityWorldCup.Website.Controllers
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
                 {
+                    if (acceptedResponse is not null)
+                        return Ok(acceptedResponse);
                     _logger.LogError(
                         ex,
                         "Application submission failed. SubmissionId={SubmissionId} SubmissionKind={SubmissionKind} ProofCount={ProofCount} ProofDataUrlLengths={ProofDataUrlLengths} ProfilePicDataUrlLength={ProfilePicDataUrlLength} ZipSizeBytes={ZipSizeBytes}",
@@ -997,6 +982,10 @@ namespace LongevityWorldCup.Website.Controllers
                         zipSizeBytes);
                     return await StatusCodeWithStatsAsync(500, "application_processing_failed", $"Internal server error: {ex.Message}").ConfigureAwait(false);
                 }
+            }
+            catch (OperationCanceledException) when (acceptedResponse is not null)
+            {
+                return Ok(acceptedResponse);
             }
             catch (OperationCanceledException ex) when (processingTimeout.IsCancellationRequested)
             {
@@ -1163,7 +1152,7 @@ namespace LongevityWorldCup.Website.Controllers
                 ct: ct);
         }
 
-        private Task TrackApplicationEventAsync(
+        internal virtual Task TrackApplicationEventAsync(
             string eventName,
             string component,
             string step,
@@ -1210,7 +1199,7 @@ namespace LongevityWorldCup.Website.Controllers
         private static long ElapsedMilliseconds(long startTimestamp)
             => (long)Stopwatch.GetElapsedTime(startTimestamp).TotalMilliseconds;
 
-        private static async Task<string> PersistApplicationSubmissionArchiveAsync(
+        internal virtual async Task<string> PersistApplicationSubmissionArchiveAsync(
             string zipPath,
             string folderKey,
             string submissionId,
@@ -1339,7 +1328,7 @@ namespace LongevityWorldCup.Website.Controllers
             return Ok(new { success = true });
         }
 
-        private async Task TrySendSubmissionConfirmationEmailAsync(
+        internal MimeMessage? BuildSubmissionConfirmationMessage(
             Config config,
             string? accountEmail,
             string? applicantName,
@@ -1347,22 +1336,21 @@ namespace LongevityWorldCup.Website.Controllers
             bool isEditSubmissionOnly,
             bool isPro,
             string? checkoutLink = null,
-            bool paymentUnavailable = false,
-            CancellationToken ct = default)
+            bool paymentUnavailable = false)
         {
             if (string.IsNullOrWhiteSpace(accountEmail))
-                return;
+                return null;
 
             var trimmedEmail = accountEmail.Trim();
             if (!new EmailAddressAttribute().IsValid(trimmedEmail))
             {
                 _logger.LogWarning("Skipping submission confirmation email because applicant email is invalid.");
-                return;
+                return null;
             }
 
             try
             {
-                using var message = new MimeMessage();
+                var message = new MimeMessage();
                 message.From.Add(CreateConfiguredFromAddress(config, "Longevity World Cup"));
                 message.To.Add(CreateSubmissionConfirmationRecipient(trimmedEmail));
                 message.Subject = BuildSubmissionConfirmationSubject(isResultSubmissionOnly, isEditSubmissionOnly);
@@ -1387,11 +1375,12 @@ namespace LongevityWorldCup.Website.Controllers
                         isPro)
                 }.ToMessageBody();
 
-                await SendEmailThroughSmtpAsync(config, message, ct);
+                return message;
             }
-            catch (Exception ex) when (!ct.IsCancellationRequested)
+            catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Failed to send submission confirmation email.");
+                _logger.LogError("Failed to prepare submission confirmation. ExceptionType={ExceptionType}", ex.GetType().Name);
+                return null;
             }
         }
 
@@ -2281,7 +2270,9 @@ namespace LongevityWorldCup.Website.Controllers
                 : trimmed.Replace('-', '_');
         }
 
-        private async Task SendEmailThroughSmtpAsync(Config config, MimeMessage message, CancellationToken ct = default)
+        internal virtual Task<Config> LoadSubmissionConfigAsync() => Config.LoadAsync();
+
+        internal virtual async Task SendEmailThroughSmtpAsync(Config config, MimeMessage message, CancellationToken ct = default)
         {
             var smtpServer = RequireConfiguredValue(config.SmtpServer, nameof(config.SmtpServer));
             var smtpUser = RequireConfiguredValue(config.SmtpUser, nameof(config.SmtpUser));

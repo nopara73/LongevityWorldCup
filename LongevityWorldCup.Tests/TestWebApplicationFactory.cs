@@ -43,6 +43,7 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
         var dbPath = Path.Combine(_dbRoot, "test.db");
         builder.UseSetting("EnableScheduledJobs", "false");
         builder.UseSetting("EnableApplicationPaymentReconciliation", "false");
+        builder.UseSetting("EnableSubmissionConfirmations", "false");
         builder.UseSetting("EnableStartupBadgeRefresh", "false");
         builder.ConfigureTestServices(services =>
         {
@@ -56,7 +57,8 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             services.AddSingleton(serviceProvider => new ApplicationSubmissionRetryStore(
                 serviceProvider.GetRequiredService<IMemoryCache>(),
                 Path.Combine(_dbRoot, "application-submission-responses"),
-                TimeProvider.System));
+                TimeProvider.System,
+                confirmations: serviceProvider.GetRequiredService<SubmissionConfirmationStore>()));
         });
         _configure?.Invoke(builder);
         builder.ConfigureTestServices(services =>
