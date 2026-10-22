@@ -85,8 +85,8 @@
     }
 
     async function removeNative(subscription) {
-        if (subscription && !await deadline(subscription.unsubscribe(), 10000, 'Notifications could not disconnect. Try again.'))
-            throw new Error('Notifications could not disconnect. Try again.');
+        // false means the subscription was already deactivated, not a failure.
+        if (subscription) await deadline(subscription.unsubscribe(), 10000, 'Notifications could not disconnect. Try again.');
     }
 
     async function cleanup() {
@@ -122,7 +122,9 @@
             // Remember prior consent before configuration/provider work can fail.
             saved = await state(value => { if (value.revision === revision) value.enabled = true; });
         }
-        if (candidate?.expirationTime && candidate.expirationTime <= Date.now()) {
+        const retiredByEvent = options.oldSubscription && !options.newSubscription
+            && identity(json(candidate)) === identity(json(options.oldSubscription));
+        if (candidate && (retiredByEvent || (candidate.expirationTime && candidate.expirationTime <= Date.now()))) {
             await remember([candidate]);
             await removeNative(candidate);
             candidate = null;

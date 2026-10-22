@@ -100,6 +100,8 @@ public sealed class WebPushWorkerLifecycleTests
     [InlineData("new-only", 0, 0, 1)]
     [InlineData("null-both", 0, 0, 0)]
     [InlineData("expired", 1, 1, 1)]
+    [InlineData("already-inactive", 1, 1, 1)]
+    [InlineData("old-only", 1, 1, 1)]
     [InlineData("revoked", 0, 1, 0)]
     [InlineData("opted-out", 0, 1, 0)]
     [InlineData("same-endpoint", 0, 0, 1)]
@@ -117,7 +119,7 @@ public sealed class WebPushWorkerLifecycleTests
                 let created = 0, removed = 0, native = null;
                 const subscription = (name, endpoint = name) => ({ expirationTime: null,
                     toJSON: () => ({ endpoint: 'https://fcm.googleapis.com/send/' + endpoint, keys: { p256dh: name, auth: name } }),
-                    unsubscribe: async () => { removed++; native = null; return true; }
+                    unsubscribe: async () => { removed++; native = null; return scenario !== 'already-inactive'; }
                 });
                 const old = subscription('old');
                 const fresh = subscription('new', scenario === 'same-endpoint' ? 'old' : 'new');
@@ -131,12 +133,13 @@ public sealed class WebPushWorkerLifecycleTests
                 }, { permission: scenario === 'revoked' ? 'denied' : 'granted' });
                 new Function('self', 'LwcWebPush', 'importScripts', worker)(scope, scope.LwcWebPush, () => {});
                 if (scenario === 'opted-out') await scope.LwcWebPush.disable(scope.registration);
-                if (scenario === 'expired') { old.expirationTime = Date.now() - 1; native = old; }
+                if (['expired', 'already-inactive'].includes(scenario)) { old.expirationTime = Date.now() - 1; native = old; }
+                if (scenario === 'old-only') native = old;
                 if (scenario === 'same-endpoint') native = old; // Event's new keys must beat its stale old handle.
                 let done;
                 handlers.pushsubscriptionchange({
                     oldSubscription: ['new-only', 'null-both'].includes(scenario) ? null : old,
-                    newSubscription: ['expired', 'null-both'].includes(scenario) ? null : fresh,
+                    newSubscription: ['expired', 'already-inactive', 'old-only', 'null-both'].includes(scenario) ? null : fresh,
                     waitUntil: promise => { done = promise; }
                 });
                 await done;
