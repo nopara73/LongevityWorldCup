@@ -66,6 +66,9 @@ public sealed class RejuvenationOlympicsRaceStripBrowserTests(
         var page = await context.NewPageAsync();
         var before = DateTime.Parse("2026-10-30T23:59:59Z", null, System.Globalization.DateTimeStyles.AdjustToUniversal);
         await page.Clock.InstallAsync(new() { Time = before.ToString("O") });
+        // Freeze Date before pausing timers; the Playwright round trip may have
+        // already advanced an installed, running clock past the target instant.
+        await page.Clock.SetFixedTimeAsync(before);
         await page.Clock.PauseAtAsync(before);
         await page.GotoAsync("/rejuvenation-olympics");
         var items = page.Locator(".ro-milestones li");

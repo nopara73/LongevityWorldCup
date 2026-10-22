@@ -179,6 +179,16 @@ public sealed partial class GuessMyAgePayoffBrowserTests(
             await page.Clock.RunForAsync(50);
         await page.Clock.RunForAsync(400);
 
+        // JS timers are paused, but CSS animations are instantiated by the
+        // browser's rendering timeline. Wait for both ribbons before sampling.
+        await page.WaitForFunctionAsync("""
+            () => {
+                const tracks = [...document.querySelectorAll('.gma-exact-jackpot-marquee-track')];
+                return tracks.length === 2 && tracks.every(track => track.getAnimations()
+                    .some(animation => animation.animationName === 'gma-exact-marquee-run'));
+            }
+            """);
+
         var opening = await page.EvaluateAsync<JsonElement>(
             """
             () => {
@@ -246,7 +256,7 @@ public sealed partial class GuessMyAgePayoffBrowserTests(
             Assert.Equal(2, marquee.GetProperty("segments").GetInt32());
             Assert.True(marquee.GetProperty("same").GetBoolean());
             Assert.True(marquee.GetProperty("fillsRibbon").GetBoolean(), "A marquee segment is shorter than its ribbon.");
-            Assert.True(marquee.GetProperty("finite").GetBoolean());
+            Assert.True(marquee.GetProperty("finite").GetBoolean(), "A ribbon is missing its finite marquee animation: " + opening.GetRawText());
             Assert.True(marquee.GetProperty("endsAtHalf").GetBoolean());
         }
 
