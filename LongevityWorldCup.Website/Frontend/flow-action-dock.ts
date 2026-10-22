@@ -604,8 +604,8 @@ interface FlowActionDockApi {
 
     function ensureElementClear(element: Element | null | undefined, options: FlowActionDockEnsureClearOptions = {}): void {
         cancelDeferredElementClearance();
-        const scrollPath = scrollElementClear(element, options);
-        if (!scrollPath) return;
+        const scrollPath = scrollElementClear(element, options)
+            ?? { left: window.scrollX, minimumTop: window.scrollY, maximumTop: window.scrollY };
         const focused = document.activeElement;
         // A sticky bar may appear after this scroll. Reconcile that edit once,
         // allowing our smooth scroll to advance, while yielding to a later scroll.
