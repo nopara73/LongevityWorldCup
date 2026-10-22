@@ -567,13 +567,13 @@ interface FlowActionDockApi {
     function scrollElementClear(
         element: Element | null | undefined,
         options: FlowActionDockEnsureClearOptions = {}
-    ): void {
-        if (!isVisible(element)) return;
+    ): { left: number; minimumTop: number; maximumTop: number } | null {
+        if (!isVisible(element)) return null;
         refreshImmediately();
 
         const dockHeight = parseFloat(getComputedStyle(document.documentElement)
             .getPropertyValue('--flow-action-dock-height')) || 0;
-        if (!dockHeight && !isKeyboardOpen) return;
+        if (!dockHeight && !isKeyboardOpen) return null;
 
         const requestedMargin = options.margin;
         const rect = getClearanceRect(element, options);
@@ -587,22 +587,35 @@ interface FlowActionDockApi {
         const fits = rect.bottom - rect.top <= viewport.height - dockHeight;
         const scroll = rect.bottom > bottomLimit ? Math.ceil(rect.bottom - bottomLimit)
             : fits && rect.top < topLimit ? Math.floor(rect.top - topLimit) : 0;
+        const start = window.scrollY;
+        const target = Math.max(0, Math.min(start + scroll,
+            document.documentElement.scrollHeight - window.innerHeight));
         if (scroll) window.scrollBy({
             top: scroll,
             behavior: options.behavior || (reducedMotionMedia.matches ? 'auto' : 'smooth')
         });
+        return { left: window.scrollX, minimumTop: Math.min(start, target), maximumTop: Math.max(start, target) };
+    }
+
+    function cancelDeferredElementClearance(): void {
+        if (elementClearFrame) window.cancelAnimationFrame(elementClearFrame);
+        elementClearFrame = 0;
     }
 
     function ensureElementClear(element: Element | null | undefined, options: FlowActionDockEnsureClearOptions = {}): void {
-        if (elementClearFrame) window.cancelAnimationFrame(elementClearFrame);
-        scrollElementClear(element, options);
+        cancelDeferredElementClearance();
+        const scrollPath = scrollElementClear(element, options);
+        if (!scrollPath) return;
         const focused = document.activeElement;
         // A sticky bar may appear after this scroll. Reconcile that edit once,
-        // without turning a later manual scroll into another focus request.
+        // allowing our smooth scroll to advance, while yielding to a later scroll.
         elementClearFrame = window.requestAnimationFrame(() => {
             elementClearFrame = window.requestAnimationFrame(() => {
                 elementClearFrame = 0;
-                if (document.activeElement === focused) scrollElementClear(element, options);
+                if (document.activeElement === focused && window.scrollX === scrollPath.left
+                    && window.scrollY >= scrollPath.minimumTop - 1 && window.scrollY <= scrollPath.maximumTop + 1) {
+                    scrollElementClear(element, options);
+                }
             });
         });
     }
@@ -632,6 +645,8 @@ interface FlowActionDockApi {
         window.addEventListener('resize', scheduleFocusedControlClearance);
         window.addEventListener('orientationchange', scheduleFocusedControlClearance);
         window.addEventListener('scroll', scheduleRefresh, { passive: true });
+        window.addEventListener('wheel', cancelDeferredElementClearance, { passive: true });
+        window.addEventListener('touchmove', cancelDeferredElementClearance, { passive: true });
         window.addEventListener('load', scheduleRefresh);
         window.addEventListener('pageshow', scheduleRefresh);
         document.addEventListener('focusin', scheduleFocusedControlClearance, true);

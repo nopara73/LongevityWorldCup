@@ -38,6 +38,59 @@ public sealed class MotivationFieldBrowserTests(
     }
 
     [Theory]
+    [InlineData(false, 390, 844)]
+    [InlineData(true, 390, 844)]
+    [InlineData(false, 1440, 900)]
+    [InlineData(true, 1440, 900)]
+    public async Task ManualScroll_BeforeQueuedFocusClearanceFinishes_TakesPrecedence(bool application, int width, int height)
+    {
+        await using var context = await CreateContextAsync(width, height);
+        var (page, field) = await OpenAsync(context, application);
+        await field.ClickAsync();
+        await SettleAsync(page);
+        await field.EvaluateAsync("""
+            field => {
+                window.LwcFlowActionDock.ensureClear(field, {behavior: 'auto'});
+                // Run the gesture before the deferred reconciliation, without
+                // depending on a cross-process request winning the frame race.
+                scrollTo({top: 0, behavior: 'instant'});
+            }
+            """);
+        await SettleAsync(page);
+        await SettleAsync(page);
+        await Assertions.Expect(field).ToBeFocusedAsync();
+        Assert.InRange(await page.EvaluateAsync<double>("() => scrollY"), 0, 1);
+    }
+
+    [Fact]
+    public async Task DeferredClearance_AllowsItsOwnSmoothScrollToFinish()
+    {
+        await using var context = await CreateContextAsync(390, 844);
+        var (page, field) = await OpenAsync(context, false);
+        await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.NoPreference });
+        await page.EvaluateAsync("() => document.documentElement.style.fontSize = '200%'");
+        await SettleAsync(page);
+        await field.ClickAsync();
+        await SettleAsync(page);
+        await SettleAsync(page);
+        await field.EvaluateAsync("""
+            field => {
+                scrollTo({top: 0, behavior: 'instant'});
+                window.LwcFlowActionDock.ensureClear(field, {behavior: 'smooth'});
+            }
+            """);
+        await page.WaitForFunctionAsync("""
+            () => {
+                const field = document.getElementById('whyDisplayInput').getBoundingClientRect();
+                const dock = document.querySelector('.flow-action-stack--docked')?.getBoundingClientRect();
+                return scrollY > 0 && field.bottom <= (dock?.top ?? innerHeight);
+            }
+            """);
+        await ExpectFieldClearAsync(page, field);
+        await Assertions.Expect(field).ToHaveValueAsync(Saved);
+    }
+
+    [Theory]
     [InlineData(false, 1440, 900, false)]
     [InlineData(true, 1440, 900, true)]
     [InlineData(false, 768, 1024, true)]
