@@ -461,6 +461,10 @@ button:hover {
     white-space: normal;
 }
 
+#bitcoinCopyHelp {
+    word-break: normal;
+}
+
 .copy-btn {
     background: none;
     border: none;
