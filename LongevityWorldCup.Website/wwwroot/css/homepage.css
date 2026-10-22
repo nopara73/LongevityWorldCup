@@ -442,6 +442,25 @@ button:hover {
 }
 
 /* Styles for the copy button */
+#bitcoinAddressFallback {
+    flex: 1 1 0;
+    min-width: 0;
+    width: 0;
+    font-family: monospace;
+}
+
+.btc-address:has(#bitcoinAddressFallback:not([hidden])) {
+    flex-wrap: wrap;
+    padding-top: var(--lwc-space-2, 0.5rem);
+    padding-bottom: var(--lwc-space-2, 0.5rem);
+}
+
+#bitcoinCopyStatus:has(#bitcoinCopyHelp:not([hidden])) {
+    order: -1;
+    flex-basis: 100%;
+    white-space: normal;
+}
+
 .copy-btn {
     background: none;
     border: none;

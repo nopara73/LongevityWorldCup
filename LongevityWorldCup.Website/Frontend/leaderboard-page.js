@@ -5758,9 +5758,9 @@ function fetchFullAthleteData(athleteNameText, athleteData, options) {
             gmaCard.classList.remove('gma-done');
             const athleteGuessState = window.LwcGuessState?.get(guessStateIdentity);
             // check if the user has hit “Skip All”
-            const skipAll = localStorage.getItem('gmaSkipAll') === 'true';
+            const skipAll = window.LwcGuessState?.shouldSkipAll();
 
-            const seen = sessionStorage.getItem('gmaSeen');
+            const seen = window.LwcGuessState?.hasSeenPrompt();
 
             if (suppressGuessMyAge) {
                 markAthleteSkippedForGuessMyAge(guessStateIdentity);
@@ -5782,7 +5782,7 @@ function fetchFullAthleteData(athleteNameText, athleteData, options) {
             } else {
                 // first time on *this* athlete
                 modalContent.classList.add('guess-mode');
-                sessionStorage.setItem('gmaSeen', 'true');
+                window.LwcGuessState?.markPromptSeen();
             }
 
             const gmaSkipAllBtn = document.getElementById('gmaSkipAll');
@@ -5806,7 +5806,7 @@ function fetchFullAthleteData(athleteNameText, athleteData, options) {
                 if (seen) {
                     modalContent.classList.add('gma-fast');
                 } else {
-                    sessionStorage.setItem('gmaSeen', 'true');
+                    window.LwcGuessState?.markPromptSeen();
                 }
             }
 

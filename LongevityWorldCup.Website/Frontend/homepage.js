@@ -8,6 +8,18 @@ const newsletterSubmitButton = newsletterForm.querySelector('button[type="submit
 const newsletterStatus = document.getElementById('newsletterStatus');
 const bitcoinAddressLink = document.getElementById('btcAddressLink');
 const bitcoinCopyButton = document.getElementById('bitcoinCopyButton');
+const bitcoinAddressFallback = document.getElementById('bitcoinAddressFallback');
+const bitcoinCopyHelp = document.getElementById('bitcoinCopyHelp');
+
+bitcoinAddressFallback.addEventListener('keydown', event => {
+    if (event.key !== 'Escape') return;
+    event.preventDefault();
+    bitcoinAddressFallback.hidden = true;
+    bitcoinCopyHelp.hidden = true;
+    bitcoinAddressLink.style.display = '';
+    bitcoinCopyButton.focus({ preventScroll: true });
+});
+bitcoinAddressFallback.addEventListener('focus', () => bitcoinAddressFallback.select());
 
 function setBitcoinAddressUnavailable() {
     bitcoinDonationAddress = '';
@@ -630,33 +642,64 @@ function adjustBitcoinAddressDisplay() {
     btcAddressLink.title = fullAddress;
 }
 
-// Copy function
-function copyBitcoinAddress() {
+async function copyBitcoinAddress() {
     if (!bitcoinDonationAddress) {
         customAlert('Bitcoin donation address is unavailable right now.');
         return;
     }
 
-    navigator.clipboard.writeText(bitcoinDonationAddress).then(function () {
-        // Hide the BTC address
-        document.getElementById('btcAddressLink').style.display = 'none';
-        // Show the 'Copied' text
-        const copiedTextElement = document.getElementById('copiedText');
+    const copiedTextElement = document.getElementById('copiedText');
+    clearTimeout(bitcoinCopyTimer);
+    copiedTextElement.hidden = true;
+    copiedTextElement.textContent = '';
+    bitcoinCopyHelp.hidden = true;
+    let copied = false;
+    try {
+        if (typeof navigator.clipboard?.writeText === 'function') {
+            await navigator.clipboard.writeText(bitcoinDonationAddress);
+            copied = true;
+        }
+    } catch (_) { /* Try the selection-based fallback below. */ }
+
+    if (!copied) {
+        // Keep this entry point independent of the shared dialog's load order.
+        const previousFocus = document.activeElement;
+        const textarea = document.createElement('textarea');
+        textarea.value = bitcoinDonationAddress;
+        textarea.readOnly = true;
+        textarea.style.position = 'fixed';
+        textarea.style.left = '-9999px';
+        textarea.style.top = '0';
+        document.body.appendChild(textarea);
+        try {
+            textarea.focus({ preventScroll: true });
+            textarea.select();
+            copied = document.execCommand('copy');
+        } catch (_) { /* Manual selection remains available. */ }
+        finally {
+            textarea.remove();
+            if (previousFocus instanceof HTMLElement) previousFocus.focus({ preventScroll: true });
+        }
+    }
+
+    bitcoinAddressLink.style.display = 'none';
+    bitcoinAddressFallback.hidden = copied;
+    if (copied) {
         copiedTextElement.textContent = 'Copied';
         copiedTextElement.hidden = false;
-
-        // Restore the address after the concise text confirmation.
-        clearTimeout(bitcoinCopyTimer);
+        if (document.activeElement === bitcoinAddressFallback) bitcoinCopyButton.focus({ preventScroll: true });
         bitcoinCopyTimer = setTimeout(function () {
-            // Hide 'Copied' text
             copiedTextElement.hidden = true;
             copiedTextElement.textContent = '';
-            // Show BTC address
-            document.getElementById('btcAddressLink').style.display = 'inline';
+            bitcoinAddressLink.style.display = '';
+            adjustBitcoinAddressDisplay();
         }, 2000);
-    }, function (err) {
-        customAlert('Failed to copy the address');
-    });
+    } else {
+        bitcoinAddressFallback.value = bitcoinDonationAddress;
+        bitcoinCopyHelp.hidden = false;
+        bitcoinAddressFallback.focus({ preventScroll: true });
+        bitcoinAddressFallback.select();
+    }
 }
 
 // Fetch actual BTC data and update the progress
