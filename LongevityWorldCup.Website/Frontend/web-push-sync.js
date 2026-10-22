@@ -186,9 +186,9 @@
         try { if (registration.sync) await deadline(registration.sync.register(syncTag), 10000, ''); } catch {}
     }
 
-    async function run(registration, options) {
+    async function run(registration, options = {}) {
         try { return await serial(() => reconcile(registration, options)); }
-        catch (error) { await retryLater(registration); throw error; }
+        catch (error) { if (!options.background) await retryLater(registration); throw error; }
     }
 
     self.LwcWebPush = {

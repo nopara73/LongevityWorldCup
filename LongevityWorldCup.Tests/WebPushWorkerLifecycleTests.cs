@@ -58,6 +58,11 @@ public sealed class WebPushWorkerLifecycleTests
                     new Function('self', 'LwcWebPush', 'importScripts', worker)(scope, scope.LwcWebPush, () => {});
                 };
                 restart();
+                window.failedBackgroundRetry = async () => {
+                    let done;
+                    handlers.sync({ tag: 'lwc-web-push', waitUntil: promise => { done = promise; } });
+                    return done.then(() => false, () => true);
+                };
                 window.recover = async () => {
                     const before = await scope.LwcWebPush.state();
                     mode = 'success';
@@ -76,6 +81,7 @@ public sealed class WebPushWorkerLifecycleTests
         await page.WaitForFunctionAsync("() => calls.length > 0 || window.providerFailed");
         if (failure.Contains("timeout")) await page.Clock.FastForwardAsync(10001);
         Assert.True(await page.EvaluateAsync<bool>("window.failed"));
+        if (failure == "503") Assert.True(await page.EvaluateAsync<bool>("window.failedBackgroundRetry()"));
         var result = await page.EvaluateAsync<JsonElement>("window.recover()");
         Assert.True(result.GetProperty("before").GetProperty("enabled").GetBoolean());
         Assert.Equal("", result.GetProperty("before").GetProperty("synced").GetString());

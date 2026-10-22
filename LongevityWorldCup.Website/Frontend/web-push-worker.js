@@ -63,5 +63,6 @@ self.addEventListener('pushsubscriptionchange', event => {
 });
 
 self.addEventListener('sync', event => {
-    if (event.tag === LwcWebPush.syncTag) event.waitUntil(LwcWebPush.sync(self.registration));
+    // Reject failed attempts so the browser applies its own bounded sync retry policy.
+    if (event.tag === LwcWebPush.syncTag) event.waitUntil(LwcWebPush.sync(self.registration, { background: true }));
 });
