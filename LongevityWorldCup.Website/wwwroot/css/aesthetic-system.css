@@ -542,15 +542,17 @@ textarea {
     #whyDisplayInput,
     #why {
         field-sizing: content;
-        min-height: calc(3lh + 1.6rem);
-        max-height: min(22rem, calc(100dvh
+        --motivation-height-limit: min(22rem, max(calc(1lh + 1.6rem), calc(100dvh
             - var(--flow-input-keyboard-occlusion, 0px)
+            - var(--flow-input-top-occlusion, 0px)
             - var(--flow-action-dock-height, 0px)
-            - var(--motivation-counter-space, 0px) - 2rem));
+            - var(--motivation-counter-space, 0px) - 32px)));
+        min-height: min(calc(3lh + 1.6rem), var(--motivation-height-limit));
+        max-height: var(--motivation-height-limit);
     }
 
     #why {
-        --motivation-counter-space: 3rem;
+        --motivation-counter-space: calc(max(26px, var(--lwc-type-xs, 0.75rem) + 0.4rem + 2px) + 0.45rem);
     }
 }
 

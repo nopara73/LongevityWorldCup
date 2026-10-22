@@ -27,17 +27,30 @@
 }
 
 .sub-progress-container .stage {
+    position: relative;
     flex: 1 1 0;
     min-width: 0;
     height: 6px;
+    overflow: hidden;
     border-radius: var(--lwc-radius-pill, 999px);
     background: var(--lwc-border, #d7e0e6);
-    transition: background-color var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
 }
 
-.sub-progress-container .stage.completed,
-.sub-progress-container .stage.active {
+/* Segments fill from the left as the athlete moves forward and drain when they step back. */
+.sub-progress-container .stage::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
     background: var(--lwc-accent, var(--primary-color));
+    transform: scaleX(0);
+    transform-origin: left center;
+    transition: transform 420ms var(--lwc-ease, ease);
+}
+
+.sub-progress-container .stage.completed::before,
+.sub-progress-container .stage.active::before {
+    transform: scaleX(1);
 }
 
 .sub-progress-container .stage-dot {
@@ -53,7 +66,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .sub-progress-container .stage {
+    .sub-progress-container .stage::before {
         transition: none;
     }
 }
