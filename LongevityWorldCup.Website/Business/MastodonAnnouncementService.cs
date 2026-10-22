@@ -125,7 +125,7 @@ public sealed class MastodonAnnouncementService(
         }
         else
         {
-            text = messageComposer.TryBuildMessage(item.Type, item.Text, item.Id, item.VisibleOnWebsite) ?? "";
+            text = messageComposer.TryBuildMessage(item.Type, item.Text, item.Id, item.VisibleOnWebsite, resolveName) ?? "";
             if (string.IsNullOrWhiteSpace(text)) return null;
             if (MastodonPost.Count(text) > MastodonPost.MaxCharacters)
             {

@@ -37,5 +37,14 @@
   "Flag": "Natural longevity",
   "Why": "A sustainable future where longevity, biotechnology, and nature coexist",
   "PersonalLink": "https://ilhui.com/",
-  "PodcastLink": "https://www.youtube.com/watch?v=qFWWghmFSCc"
+  "PodcastLink": "https://www.youtube.com/watch?v=qFWWghmFSCc",
+  "SocialProfiles": {
+    "Instagram": {
+      "Url": "https://www.instagram.com/ilhui",
+      "EvidenceUrls": [
+        "https://ilhui.com/"
+      ],
+      "VerifiedOn": "2026-10-22"
+    }
+  }
 }

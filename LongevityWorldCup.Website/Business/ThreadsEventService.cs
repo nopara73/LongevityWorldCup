@@ -93,7 +93,8 @@ public class ThreadsEventService
         return await TrySendAsync(msg);
     }
 
-    public string? TryBuildMessage(EventType type, string rawText, string? eventId = null, bool visibleOnWebsite = true)
+    public string? TryBuildMessage(EventType type, string rawText, string? eventId = null, bool visibleOnWebsite = true,
+        Func<string, string>? resolveAthlete = null)
     {
         if (type == EventType.DonationReceived)
             return DonationReceivedPost.BuildText(rawText, visibleOnWebsite ? eventId : null);
@@ -103,13 +104,13 @@ public class ThreadsEventService
             if (string.IsNullOrWhiteSpace(eventId))
                 return null;
 
-            return CustomEventSocialComposer.BuildPlan(eventId, rawText, 500, ResolveMention, includeEventUrl: visibleOnWebsite).PostText;
+            return CustomEventSocialComposer.BuildPlan(eventId, rawText, 500, resolveAthlete ?? ResolveMention, includeEventUrl: visibleOnWebsite).PostText;
         }
 
         var message = ThreadsMessageBuilder.ForEventText(
             type,
             rawText,
-            SlugToName,
+            resolveAthlete ?? SlugToName,
             sampleForBasis: BuildSampleSize,
             getFieldSizeForLeague: GetFieldSizeForLeague,
             getPodcastLinkForSlug: GetPodcast,
@@ -207,6 +208,7 @@ public class ThreadsEventService
         {
             if (_bySlug.TryGetValue(slug, out var a))
             {
+                if (a.MentionFor(SocialPlatform.Threads) is { } mention) return mention;
                 if (!string.IsNullOrWhiteSpace(a.Name)) return a.Name;
             }
         }
@@ -220,7 +222,7 @@ public class ThreadsEventService
         {
             if (_bySlug.TryGetValue(slug, out var athlete))
             {
-                var mention = SocialContactParser.TryBuildMention(athlete.MediaContact, SocialPlatform.Threads);
+                var mention = athlete.MentionFor(SocialPlatform.Threads);
                 if (!string.IsNullOrWhiteSpace(mention))
                     return mention;
 

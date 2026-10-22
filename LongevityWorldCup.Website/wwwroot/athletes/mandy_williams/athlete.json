@@ -31,5 +31,21 @@
   "Division": "Women's",
   "Flag": "United Kingdom",
   "Why": "Avoiding hospitals and staying strong",
-  "PersonalLink": "https://whop.com/nthdegree"
+  "PersonalLink": "https://whop.com/nthdegree",
+  "SocialProfiles": {
+    "X": {
+      "Url": "https://x.com/mandywilli57939",
+      "EvidenceUrls": [
+        "https://whop.com/nthdegree"
+      ],
+      "VerifiedOn": "2026-10-22"
+    },
+    "Instagram": {
+      "Url": "https://www.instagram.com/mandybwilliams75",
+      "EvidenceUrls": [
+        "https://whop.com/nthdegree"
+      ],
+      "VerifiedOn": "2026-10-22"
+    }
+  }
 }

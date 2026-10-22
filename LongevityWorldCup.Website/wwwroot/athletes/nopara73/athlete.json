@@ -265,5 +265,21 @@
   "Why": "I don't have anything better to do",
   "PersonalLink": "https://www.youtube.com/nopara73",
   "ExclusiveLeague": "Prosperan",
-  "DisplayName": null
+  "DisplayName": null,
+  "SocialProfiles": {
+    "X": {
+      "Url": "https://x.com/nopara73",
+      "EvidenceUrls": [
+        "https://www.youtube.com/nopara73"
+      ],
+      "VerifiedOn": "2026-10-22"
+    },
+    "Instagram": {
+      "Url": "https://www.instagram.com/nopara73",
+      "EvidenceUrls": [
+        "https://www.youtube.com/nopara73"
+      ],
+      "VerifiedOn": "2026-10-22"
+    }
+  }
 }

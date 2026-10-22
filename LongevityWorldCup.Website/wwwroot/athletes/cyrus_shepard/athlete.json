@@ -23,5 +23,21 @@
   "Division": "Men's",
   "Flag": "United States",
   "Why": "I was not given a choice; I was compelled.",
-  "PersonalLink": "https://zyppy.com"
+  "PersonalLink": "https://zyppy.com",
+  "SocialProfiles": {
+    "X": {
+      "Url": "https://x.com/CyrusShepard",
+      "EvidenceUrls": [
+        "https://zyppy.com/about/"
+      ],
+      "VerifiedOn": "2026-10-22"
+    },
+    "Threads": {
+      "Url": "https://www.threads.com/@cyrusshepard",
+      "EvidenceUrls": [
+        "https://zyppy.com/about/"
+      ],
+      "VerifiedOn": "2026-10-22"
+    }
+  }
 }

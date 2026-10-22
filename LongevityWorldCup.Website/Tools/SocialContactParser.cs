@@ -13,15 +13,9 @@ public enum SocialPlatform
 
 public static class SocialContactParser
 {
-    public static string? TryBuildMention(string? mediaContact, SocialPlatform platform)
+    public static string? TryBuildMention(string? mediaContact, SocialPlatform platform, bool allowBareHandle = false)
     {
-        var handle = platform switch
-        {
-            SocialPlatform.X => TryExtractXHandle(mediaContact),
-            SocialPlatform.Threads => TryExtractThreadsHandle(mediaContact),
-            SocialPlatform.Facebook => null,
-            _ => null
-        };
+        var handle = TryExtractHandle(mediaContact, platform, allowBareHandle);
 
         return string.IsNullOrWhiteSpace(handle)
             ? null
@@ -30,30 +24,41 @@ public static class SocialContactParser
 
     public static string? TryExtractXHandle(string? mediaContact)
     {
-        return TryExtractHandle(mediaContact, isSupportedHost: host =>
-            IsHostOrSubdomain(host, "x.com") ||
-            IsHostOrSubdomain(host, "twitter.com"));
+        return TryExtractHandle(mediaContact, SocialPlatform.X);
     }
 
     public static string? TryExtractThreadsHandle(string? mediaContact)
     {
-        return TryExtractHandle(mediaContact, isSupportedHost: host =>
-            IsHostOrSubdomain(host, "threads.com"));
+        return TryExtractHandle(mediaContact, SocialPlatform.Threads);
     }
 
-    private static string? TryExtractHandle(string? mediaContact, Func<string, bool> isSupportedHost)
+    private static string? TryExtractHandle(string? mediaContact, SocialPlatform platform, bool allowBareHandle = false)
     {
-        if (string.IsNullOrWhiteSpace(mediaContact))
+        if (string.IsNullOrWhiteSpace(mediaContact) ||
+            platform is not (SocialPlatform.X or SocialPlatform.Threads or SocialPlatform.Instagram))
             return null;
 
         var trimmed = mediaContact.Trim();
-        if (trimmed.StartsWith('@'))
-            return NormalizeHandle(trimmed[1..]);
+        // Legacy unqualified media contacts were X handles. Never infer that
+        // the same username belongs to this athlete on another platform.
+        if ((allowBareHandle && !trimmed.Contains('/') && !trimmed.Contains(':')) ||
+            (platform == SocialPlatform.X && trimmed.StartsWith('@')))
+            return NormalizeHandle(trimmed, platform);
 
         if (!TryCreateContactUri(trimmed, out var uri))
             return null;
 
-        if (!isSupportedHost(uri.Host))
+        if (uri.Scheme is not ("http" or "https") || !string.IsNullOrEmpty(uri.UserInfo) || !uri.IsDefaultPort)
+            return null;
+
+        var supported = platform switch
+        {
+            SocialPlatform.X => IsSupportedHost(uri.Host, "x.com") || IsSupportedHost(uri.Host, "twitter.com"),
+            SocialPlatform.Threads => IsSupportedHost(uri.Host, "threads.com") || IsSupportedHost(uri.Host, "threads.net"),
+            SocialPlatform.Instagram => IsSupportedHost(uri.Host, "instagram.com"),
+            _ => false
+        };
+        if (!supported)
             return null;
 
         var path = uri.AbsolutePath.Trim('/');
@@ -64,7 +69,8 @@ public static class SocialContactParser
         if (string.IsNullOrWhiteSpace(firstSegment))
             return null;
 
-        return NormalizeHandle(firstSegment.TrimStart('@'));
+        if (IsReservedPath(firstSegment, platform)) return null;
+        return NormalizeHandle(firstSegment, platform);
     }
 
     private static bool TryCreateContactUri(string value, out Uri uri)
@@ -75,19 +81,35 @@ public static class SocialContactParser
         return Uri.TryCreate("https://" + value, UriKind.Absolute, out uri!);
     }
 
-    private static bool IsHostOrSubdomain(string host, string domain)
+    private static bool IsSupportedHost(string host, string domain)
     {
         return string.Equals(host, domain, StringComparison.OrdinalIgnoreCase) ||
-               host.EndsWith("." + domain, StringComparison.OrdinalIgnoreCase);
+               string.Equals(host, "www." + domain, StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(host, "mobile." + domain, StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(host, "m." + domain, StringComparison.OrdinalIgnoreCase);
     }
 
-    private static string? NormalizeHandle(string? value)
+    private static bool IsReservedPath(string value, SocialPlatform platform)
+    {
+        var path = value.ToLowerInvariant();
+        if (path is "share" or "search" or "explore" or "home" or "notifications" or
+            "messages" or "settings" or "tos" or "privacy" or "login" or "signup") return true;
+        return platform == SocialPlatform.X
+            ? path is "i" or "intent"
+            : path is "accounts" or "p" or "reel" or "reels" or "stories";
+    }
+
+    private static string? NormalizeHandle(string? value, SocialPlatform platform)
     {
         if (string.IsNullOrWhiteSpace(value))
             return null;
 
-        var normalized = value.Trim().TrimStart('@');
-        if (string.IsNullOrWhiteSpace(normalized))
+        var normalized = value.Trim();
+        if (normalized.StartsWith('@')) normalized = normalized[1..];
+        var maxLength = platform == SocialPlatform.X ? 15 : 30;
+        if (normalized.Length is 0 || normalized.Length > maxLength ||
+            normalized.Any(c => !char.IsAsciiLetterOrDigit(c) && c != '_' && (platform == SocialPlatform.X || c != '.')) ||
+            normalized.StartsWith('.') || normalized.EndsWith('.') || normalized.Contains(".."))
             return null;
 
         return normalized;

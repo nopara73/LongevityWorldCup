@@ -114,7 +114,7 @@ public sealed class BlueskyAnnouncementService(
         else
         {
             // Preserve established event copy and athlete names without borrowing X or Threads handles.
-            var text = messageComposer.TryBuildMessage(e.Type, e.Text, e.Id, e.VisibleOnWebsite);
+            var text = messageComposer.TryBuildMessage(e.Type, e.Text, e.Id, e.VisibleOnWebsite, resolveName);
             if (string.IsNullOrWhiteSpace(text)) return null;
             if (!BlueskyPost.Fits(text))
             {

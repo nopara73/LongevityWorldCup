@@ -96,7 +96,7 @@ public sealed class RedditAnnouncementService(
         var names = snapshot.ToDictionary(x => x.Slug, x => x.Name, StringComparer.OrdinalIgnoreCase);
         string ResolveName(string slug) => names.TryGetValue(slug, out var name) && !string.IsNullOrWhiteSpace(name)
             ? name : CultureInfo.InvariantCulture.TextInfo.ToTitleCase(slug.Replace('_', ' ').Replace('-', ' '));
-        var ordinaryText = item.Type == EventType.CustomEvent ? "" : messageComposer.TryBuildMessage(item.Type, item.Text, item.Id, item.VisibleOnWebsite) ?? "";
+        var ordinaryText = item.Type == EventType.CustomEvent ? "" : messageComposer.TryBuildMessage(item.Type, item.Text, item.Id, item.VisibleOnWebsite, ResolveName) ?? "";
         var request = RedditPost.Build(item, ordinaryText, ResolveName);
         if (request is null) deliveries.Skip(SocialDeliveryStore.Reddit, item.Id, SocialEventSkipReason.EmptyMessage.ToString(), now);
         return request;

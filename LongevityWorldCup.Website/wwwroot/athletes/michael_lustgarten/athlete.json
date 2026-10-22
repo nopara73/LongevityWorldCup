@@ -49,5 +49,21 @@
   "Flag": "Conquer Aging or Die Trying",
   "Why": "Health->Longevity->Immortality",
   "PersonalLink": "https://www.patreon.com/c/MichaelLustgartenPhD",
-  "PodcastLink": "https://youtu.be/KFfGdf20-1g"
+  "PodcastLink": "https://youtu.be/KFfGdf20-1g",
+  "SocialProfiles": {
+    "X": {
+      "Url": "https://x.com/mike_lustgarten",
+      "EvidenceUrls": [
+        "https://www.patreon.com/c/MichaelLustgartenPhD"
+      ],
+      "VerifiedOn": "2026-10-22"
+    },
+    "Instagram": {
+      "Url": "https://www.instagram.com/conqueraging122",
+      "EvidenceUrls": [
+        "https://www.patreon.com/c/MichaelLustgartenPhD"
+      ],
+      "VerifiedOn": "2026-10-22"
+    }
+  }
 }
