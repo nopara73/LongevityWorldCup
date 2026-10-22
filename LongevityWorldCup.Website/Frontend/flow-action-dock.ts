@@ -594,7 +594,10 @@ interface FlowActionDockApi {
             top: scroll,
             behavior: options.behavior || (reducedMotionMedia.matches ? 'auto' : 'smooth')
         });
-        return { left: window.scrollX, minimumTop: Math.min(start, target), maximumTop: Math.max(start, target) };
+        // An immediate scroll has already traversed its path. Only allow the
+        // remaining smooth-scroll movement during the deferred layout pass.
+        const remainingStart = window.scrollY;
+        return { left: window.scrollX, minimumTop: Math.min(remainingStart, target), maximumTop: Math.max(remainingStart, target) };
     }
 
     function cancelDeferredElementClearance(): void {
