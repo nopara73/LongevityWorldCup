@@ -476,6 +476,8 @@ namespace LongevityWorldCup.Website
                     var request = ctx.Context.Request;
                     var hasVersion = request.Query.ContainsKey("v");
                     var path = request.Path.Value ?? "";
+                    if (path == "/assets/media-kit/MediaKit.zip")
+                        ctx.Context.Response.ContentType = "application/zip";
                     if (path == "/js/web-push-worker.js")
                     {
                         ctx.Context.Response.Headers["Service-Worker-Allowed"] = "/";

@@ -1236,6 +1236,9 @@ public sealed class AestheticSystemBrowserTests(
                 case "play/edit-profile.html":
                     await AssertEditProfileContainerBoundariesAsync(page, source.ToArray());
                     break;
+                case "misc-pages/media.html":
+                    await AssertMediaKitDocsContainerBoundariesAsync(page, source.ToArray());
+                    break;
                 case "misc-pages/about.html":
                 case "misc-pages/history.html":
                 case "misc-pages/ruleset.html":
@@ -1248,6 +1251,61 @@ public sealed class AestheticSystemBrowserTests(
                     Assert.Fail($"Add a rendered container-boundary probe for {source.Key}.");
                     break;
             }
+        }
+    }
+
+    private static async Task AssertMediaKitDocsContainerBoundariesAsync(
+        IPage page, ResponsiveContainerCondition[] conditions)
+    {
+        await NavigateAndSettleAsync(page, "/media");
+        // Render one document row with the page's own markup, independent of the archive.
+        await page.EvaluateAsync("""
+            () => {
+                const list = document.createElement('ul');
+                list.className = 'media-kit-file-list media-kit-tiles media-kit-docs';
+                list.dataset.docsBoundaryProbe = '';
+                list.innerHTML = '<li class="media-file-row media-file-tile media-file-doc"><span class="media-file-thumb media-file-doc-thumb"><i class="fas fa-file-lines media-file-icon" aria-hidden="true"></i></span><span class="media-file-name">FactSheet.txt</span><button type="button" class="media-file-button" aria-label="Download FactSheet.txt">Download</button></li>';
+                document.querySelector('#zipPreview').prepend(list);
+            }
+            """);
+        try
+        {
+            foreach (var fontSize in new[] { 16, 32 })
+            {
+                await page.EvaluateAsync("size => document.documentElement.style.fontSize = size + 'px'", fontSize);
+                foreach (var condition in conditions)
+                {
+                    Assert.Equal("media-kit-docs", condition.Name);
+                    Assert.Equal("max", condition.Bound);
+                    Assert.Equal("rem", condition.Unit);
+                    var threshold = condition.Value * fontSize;
+                    foreach (var delta in new[] { -1, 0, 1, 0, -1 })
+                    {
+                        var width = threshold + delta;
+                        var diagnostics = await page.EvaluateAsync<ContainerQueryDiagnostics>("""
+                            async width => {
+                                const list = document.querySelector('[data-docs-boundary-probe]');
+                                Object.assign(list.style, { boxSizing: 'content-box', width: `${width}px`, maxWidth: 'none', gridTemplateColumns: 'minmax(0, 1fr)' });
+                                await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                                const icon = list.querySelector('.media-file-doc-thumb').getBoundingClientRect();
+                                const name = list.querySelector('.media-file-name').getBoundingClientRect();
+                                return {
+                                    ContainerWidth: parseFloat(getComputedStyle(list).width),
+                                    IsCompact: name.top >= icon.bottom - 1,
+                                    HorizontalOverflow: Math.max(0, list.scrollWidth - list.clientWidth)
+                                };
+                            }
+                            """, width);
+                        Assert.Equal(width, diagnostics.ContainerWidth, 1);
+                        Assert.Equal(width <= threshold, diagnostics.IsCompact);
+                        Assert.True(diagnostics.HorizontalOverflow <= 1, $"Media kit document row overflowed at {width}px.");
+                    }
+                }
+            }
+        }
+        finally
+        {
+            await page.EvaluateAsync("() => document.documentElement.style.fontSize = ''");
         }
     }
 
