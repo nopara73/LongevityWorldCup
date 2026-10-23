@@ -837,6 +837,11 @@ public sealed class LeaderboardOrderingBrowserTests(PlaywrightBrowserFixture bro
         var page = await context.NewPageAsync();
         await page.GotoAsync("/?sort=pheno&then=age&thenDir=desc");
         await Loaded(page);
+        await page.Locator("#view-ultimate").FocusAsync();
+        await page.Keyboard.PressAsync("Tab");
+        await Assertions.Expect(page.Locator("#group-flags")).ToBeFocusedAsync();
+        await page.Keyboard.PressAsync("Tab");
+        await Assertions.Expect(page.Locator("#athleteSearch")).ToBeFocusedAsync();
         foreach (var textPercent in new[] { 100, 200 })
         {
             await page.EvaluateAsync("size => document.documentElement.style.fontSize = `${size}%`", textPercent);

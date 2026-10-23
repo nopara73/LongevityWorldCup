@@ -20,6 +20,13 @@
     const swap = byId('leaderboardOrderSwap');
     const primaryClear = byId('leaderboardOrderPrimaryClear');
     const secondaryClear = byId('leaderboardOrderSecondaryClear');
+    if (panel?.closest('main[data-leaderboard-page="full"]')) {
+        // Keep keyboard and reading order aligned with the joined bar. The
+        // homepage retains its original separate grouping control.
+        const controls = panel.closest('.leaderboard-controls');
+        const grouping = controls.querySelector('.leaderboard-group-switcher');
+        if (grouping) controls.querySelector('.search-container')?.after(grouping);
+    }
     const defaults = () => ({ sort: 'rank', direction: 'asc', then: null, thenDirection: 'asc' });
     const direction = (value, field) => value === 'asc' || value === 'desc' ? value : field.direction;
     function normalize(value) {

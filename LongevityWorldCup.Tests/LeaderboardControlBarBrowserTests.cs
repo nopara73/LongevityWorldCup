@@ -200,6 +200,24 @@ public sealed class LeaderboardControlBarBrowserTests(PlaywrightBrowserFixture b
     }
 
     [Theory]
+    [InlineData(390)]
+    [InlineData(1440)]
+    public async Task JoinedBar_KeyboardOrderMatchesTheVisibleSegments(int width)
+    {
+        var (context, page) = await OpenAsync(width, 900, false);
+        await using var _ = context;
+        await page.Locator("#view-ultimate").FocusAsync();
+        await page.Keyboard.PressAsync("Tab");
+        await Assertions.Expect(page.Locator("#athleteSearch")).ToBeFocusedAsync();
+        await page.Keyboard.PressAsync("Tab");
+        await Assertions.Expect(page.Locator("#group-flags")).ToBeFocusedAsync();
+        await page.Keyboard.PressAsync("Tab");
+        await Assertions.Expect(page.Locator("#leaderboardOrderToggle")).ToBeFocusedAsync();
+        await page.Keyboard.PressAsync("Tab");
+        await Assertions.Expect(page.Locator(".leaderboard-controls .sidebar-toggle")).ToBeFocusedAsync();
+    }
+
+    [Theory]
     [InlineData(844, 390, 100)]
     [InlineData(844, 390, 200)]
     [InlineData(640, 320, 200)]
