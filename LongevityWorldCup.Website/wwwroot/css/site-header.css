@@ -47,7 +47,26 @@
     --gma-gold-shine: #f8e473;
 }
 
-/* Roboto Font Faces */
+/* Local fallback faces can be cached with the shared stylesheet. Versioned
+   network font URLs remain inline alongside the document's preloads. */
+@font-face {
+    font-family: 'Roboto Fallback';
+    font-weight: 300 400;
+    src: local('Arial'), local('ArialMT'), local('Liberation Sans'), local('Arimo');
+    size-adjust: 99.66%;
+    ascent-override: 93.09%;
+    descent-override: 24.5%;
+    line-gap-override: 0%;
+}
+@font-face {
+    font-family: 'Roboto Fallback';
+    font-weight: 700;
+    src: local('Arial Bold'), local('Arial-BoldMT'), local('Liberation Sans Bold'), local('Arimo Bold');
+    size-adjust: 94.05%;
+    ascent-override: 98.64%;
+    descent-override: 25.96%;
+    line-gap-override: 0%;
+}
 
 /* Orbitron Font Face */
 
@@ -1788,27 +1807,26 @@ header[role="banner"] .join-game:not(.scrolled-button) .join-game-end {
     display: none;
 }
 
-/* The bar slides down as the banner leaves and back up as it returns; the
-   compact action rides with it. Display flips at the end of the exit, so
-   neither disappears mid-gesture. Browsers without discrete transitions
-   simply show and hide them. */
+/* Reveal the bar without translating its measured frame or the separate
+   fixed PLAY action. Anchors and keyboard clearance use that stable edge.
+   Display flips at the end of the exit. */
 .site-sticky-header {
-    transform: translateY(-100%);
+    clip-path: inset(0 0 100%);
     opacity: 0;
     transition:
-        transform var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease),
+        clip-path var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease),
         opacity var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease),
         display var(--lwc-duration-normal, 220ms) allow-discrete;
 }
 
 .site-sticky-header.visible {
-    transform: none;
+    clip-path: inset(0);
     opacity: 1;
 }
 
 @starting-style {
     .site-sticky-header.visible {
-        transform: translateY(-100%);
+        clip-path: inset(0 0 100%);
         opacity: 0;
     }
 }
@@ -1821,19 +1839,16 @@ header[role="banner"] .join-game:not(.scrolled-button) .join-game-end {
         box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease),
         transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease),
         opacity var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease),
-        translate var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease),
         display var(--lwc-duration-normal, 220ms) allow-discrete;
 }
 
 .scrolled-button[style*="display: none"] {
     opacity: 0;
-    translate: 0 -0.75rem;
 }
 
 @starting-style {
     .scrolled-button {
         opacity: 0;
-        translate: 0 -0.75rem;
     }
 }
 

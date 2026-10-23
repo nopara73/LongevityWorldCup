@@ -201,7 +201,7 @@ public sealed class LoadingFeelBrowserTests(PlaywrightBrowserFixture browserFixt
     }
 
     [Fact]
-    public async Task StickyBar_SlidesInAndOut_InsteadOfPopping()
+    public async Task StickyBar_RevealsAndHidesWithoutMovingItsMeasuredFrame()
     {
         await using var context = await NewContextAsync(Browser, App, new() { ViewportSize = new() { Width = 1280, Height = 800 } });
         var page = await context.NewPageAsync();
@@ -211,8 +211,8 @@ public sealed class LoadingFeelBrowserTests(PlaywrightBrowserFixture browserFixt
         await page.EvaluateAsync("() => window.scrollTo(0, 900)");
         await page.WaitForFunctionAsync("() => document.getElementById('site-sticky-header').classList.contains('visible')");
         Assert.True(await sticky.EvaluateAsync<bool>("""
-            element => element.getAnimations().some(animation => animation.transitionProperty === 'transform')
-            """), "The bar must slide in.");
+            element => element.getAnimations().some(animation => animation.transitionProperty === 'clip-path')
+            """), "The bar must reveal from the top while its measured frame stays fixed.");
         await Assertions.Expect(sticky).ToBeVisibleAsync();
         await page.WaitForFunctionAsync("() => !document.getElementById('site-sticky-header').getAnimations().length");
 
@@ -221,7 +221,7 @@ public sealed class LoadingFeelBrowserTests(PlaywrightBrowserFixture browserFixt
         var leaving = await sticky.EvaluateAsync<string>("""
             element => getComputedStyle(element).display + ' ' + element.getAnimations().map(a => a.transitionProperty).join(',')
             """);
-        Assert.True(leaving.StartsWith("flex") && leaving.Contains("transform"), $"The bar must slide away before it hides ({leaving}).");
+        Assert.True(leaving.StartsWith("flex") && leaving.Contains("clip-path"), $"The bar must fold away before it hides ({leaving}).");
         Assert.True(await sticky.EvaluateAsync<bool>("element => element.inert"), "A leaving bar must not take focus or clicks.");
         await Assertions.Expect(sticky).ToBeHiddenAsync();
     }
@@ -241,6 +241,33 @@ public sealed class LoadingFeelBrowserTests(PlaywrightBrowserFixture browserFixt
         await page.WaitForURLAsync(url => new Uri(url).AbsolutePath == "/");
         await page.WaitForFunctionAsync("() => window.__lwcReveal !== undefined");
         Assert.True(await page.EvaluateAsync<bool>("window.__lwcReveal.transition"), "A same-site link must cross-fade into the next page.");
+    }
+
+    [Theory]
+    [InlineData("pageswap")]
+    [InlineData("pagereveal")]
+    public async Task SkippedPageTransition_DoesNotRaiseAnUnhandledRejection(string eventName)
+    {
+        await using var context = await NewContextAsync(Browser, App, new() { ViewportSize = new() { Width = 1280, Height = 800 } });
+        var page = await context.NewPageAsync();
+        var errors = new List<string>();
+        page.PageError += (_, error) => errors.Add(error);
+        await NavigateAndSettleAsync(page, "/history");
+        await page.EvaluateAsync("""
+            async name => {
+                // Use a real browser transition and its rejected ready promise,
+                // then deliver it through each cross-document lifecycle event.
+                const transition = document.startViewTransition(() => {});
+                const ready = transition.ready;
+                const event = new Event(name);
+                Object.defineProperty(event, 'viewTransition', { value: transition });
+                dispatchEvent(event);
+                transition.skipTransition();
+                await transition.finished;
+                await new Promise(resolve => setTimeout(resolve, 0));
+            }
+            """, eventName);
+        Assert.True(errors.Count == 0, string.Join("\n", errors));
     }
 
     [Fact]

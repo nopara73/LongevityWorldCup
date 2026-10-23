@@ -62,6 +62,10 @@
 <link rel="stylesheet" href="{{ASSET_FLAG_ICONS_CSS}}">
 
 <script>
+    // Skipping a cross-document transition is an ordinary navigation outcome.
+    for (const name of ['pageswap', 'pagereveal']) {
+        addEventListener(name, event => event.viewTransition?.ready.catch(() => {}));
+    }
     window.modulesReady = Promise.resolve();
 
     // Inline Back handlers can run before the asynchronous page modules load.
