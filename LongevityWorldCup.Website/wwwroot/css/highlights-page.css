@@ -387,6 +387,18 @@ main.event-board-page {
     transition: border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
 }
 
+/* Touch can retain :hover after a tap. Keep the chevron's ring as its
+   surface, and reserve the outer outline for keyboard navigation. */
+.event-board-page .events-board .custom-event-expander {
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+.event-board-page .events-board .custom-event-expander:focus-visible {
+    outline: 2px solid var(--secondary-color, #087685) !important;
+    outline-offset: 2px;
+}
+
 .event-board-page .events-board .custom-event-expander:hover::after,
 .event-board-page .events-board tr.custom-event-row.is-open .custom-event-expander::after {
     border-color: var(--secondary-color, #087685);
@@ -695,8 +707,7 @@ main.event-board-page {
     .event-board-page .events-board tbody tr.main-row,
     .event-board-page .events-board tbody tr.events-skeleton-row {
         --timeline-row-top: var(--lwc-space-2, 8px);
-        /* Row padding, cell inset, half a portrait. */
-        --event-rail-top: calc(var(--timeline-row-top) + 2px + var(--event-avatar-size) / 2);
+        --event-rail-top: calc(var(--timeline-row-top) + var(--event-avatar-target) / 2);
         grid-template-columns: var(--event-avatar-column) minmax(0, 1fr);
         grid-template-areas:
             "avatar message"
@@ -708,22 +719,28 @@ main.event-board-page {
     .event-board-page .events-board tbody tr.main-row > td.col-avatar,
     .event-board-page .events-board tbody tr.events-skeleton-row > td.col-avatar {
         align-self: start;
-        padding-top: 2px;
+        padding-top: 0;
     }
 
     .event-board-page .events-board .athlete-td {
-        align-items: flex-start;
+        align-items: center;
+        min-height: var(--event-avatar-target);
     }
 
     .event-board-page .events-board .avatar-link,
     .event-board-page .events-board .avatar-disabled {
-        align-items: flex-start;
+        align-items: center;
         min-height: 44px;
         padding-top: 0;
     }
 
     .event-board-page .events-board tbody tr.main-row > td.event-message .event-message-cell {
         padding-block: 0;
+    }
+
+    .event-board-page .events-board tbody tr.main-row > td.event-message,
+    .event-board-page .events-board tbody tr.events-skeleton-row > td.event-message {
+        align-self: center;
     }
 
     .event-board-page .events-board tbody tr > td.col-date,
@@ -782,7 +799,7 @@ main.event-board-page {
     .event-board-page .events-board tbody tr.main-row,
     .event-board-page .events-board tbody tr.events-skeleton-row {
         --event-date-label: 0px;
-        --event-rail-top: calc(var(--timeline-row-top) + var(--event-date-label) + 2px + var(--event-avatar-size) / 2);
+        --event-rail-top: calc(var(--timeline-row-top) + var(--event-date-label) + var(--event-avatar-target) / 2);
         position: relative;
         grid-template-areas:
             ". date"
