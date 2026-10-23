@@ -107,6 +107,14 @@ public sealed partial class HighlightsTimelineBrowserTests
                 if (tinted.length !== 1) issues.push(`${tinted.length} loading cards`);
                 const ruled = rows.filter(r => (getComputedStyle(r).backgroundImage.match(/gradient/g) || []).length > 1);
                 if (ruled.length < 1) issues.push('loading shows no day divisions');
+                if (innerWidth <= 600) {
+                    for (const row of rows) {
+                        const startsDay = row === rows[0] || ruled.includes(row);
+                        const date = row.querySelector('.col-date');
+                        const shown = getComputedStyle(date).display !== 'none';
+                        if (shown !== startsDay) issues.push(`loading row ${rows.indexOf(row) + 1}: date does not match its day division`);
+                    }
+                }
                 return issues;
             }
             """);

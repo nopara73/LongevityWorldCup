@@ -658,7 +658,7 @@ main.event-board-page {
     margin-top: 0;
 }
 
-/* The loading card has the same anatomy: two days and an announcement. */
+/* The loading card has the same anatomy: day groups and an announcement. */
 .event-board-page .events-board tr.events-skeleton-row:nth-child(3) .event-message-cell {
     border-radius: var(--lwc-radius-md, 8px);
     background: var(--details-bg);
@@ -807,7 +807,7 @@ main.event-board-page {
     }
 
     .event-board-page .events-board tbody tr.main-row.day-start,
-    .event-board-page .events-board tbody tr.events-skeleton-row:is(:first-child, :nth-child(3)) {
+    .event-board-page .events-board tbody tr.events-skeleton-row:is(:first-child, :nth-child(3), :nth-child(5)) {
         --event-date-label: calc(1rem + var(--lwc-space-2, 8px));
     }
 
@@ -841,13 +841,13 @@ main.event-board-page {
         display: none;
     }
 
-    .event-board-page .events-board tbody tr.events-skeleton-row:is(:first-child, :nth-child(3)) > td.col-date {
+    .event-board-page .events-board tbody tr.events-skeleton-row:is(:first-child, :nth-child(3), :nth-child(5)) > td.col-date {
         display: block;
         height: var(--event-date-label);
         padding: 0;
     }
 
-    .event-board-page .events-board tbody tr.events-skeleton-row:is(:first-child, :nth-child(3)) > td.col-date::before {
+    .event-board-page .events-board tbody tr.events-skeleton-row:is(:first-child, :nth-child(3), :nth-child(5)) > td.col-date::before {
         margin: .2rem 0 0;
         visibility: visible;
     }
