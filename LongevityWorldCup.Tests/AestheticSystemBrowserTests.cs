@@ -211,7 +211,7 @@ public sealed class AestheticSystemBrowserTests(
                         && Number(style.opacity) > 0
                         && rect.width > 0
                         && rect.height > 0;
-                }).length >= 34
+                }).length >= 30
             """);
 
         var diagnostics = await page.EvaluateAsync<IconFontDiagnostics>(
@@ -290,7 +290,8 @@ public sealed class AestheticSystemBrowserTests(
         Assert.True(diagnostics.SolidFaceLoaded, "The self-hosted solid Font Awesome face did not load.");
         Assert.True(diagnostics.BrandFaceLoaded, "The self-hosted brand Font Awesome face did not load.");
         var iconCount = diagnostics.Icons.Length + diagnostics.VectorIcons.Length;
-        Assert.True(iconCount >= 34, $"Expected at least 34 visible Challenge/footer icons, found {iconCount}.");
+        // Signed out, the habit tiles carry the daily questions, so their four icons are not repeated.
+        Assert.True(iconCount >= 30, $"Expected at least 30 visible Challenge/footer icons, found {iconCount}.");
         Assert.Equal(15, diagnostics.FooterIconCount);
         Assert.Equal(["Instagram", "YouTube", "X", "Nostr", "Reddit", "Threads", "Mastodon"], diagnostics.FooterPlatforms);
         Assert.Contains(diagnostics.VectorIcons, icon => icon.Label == "Nostr");

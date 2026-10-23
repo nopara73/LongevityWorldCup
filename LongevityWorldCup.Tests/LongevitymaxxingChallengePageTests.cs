@@ -672,8 +672,8 @@ public sealed class LongevitymaxxingChallengePageTests(TestWebApplicationFactory
         Assert.Contains("board.className = publicViewer ? \"lmx-board public\" : \"lmx-board\";", javascript);
         Assert.Contains("lmx-cell-strip", javascript);
         Assert.Contains("const leaderboardRows = splitLeaderboardRows(state);", javascript);
-        Assert.Contains("emptyBoardRow(visibleDays, leaderboardRows.inactive.length)", javascript);
-        Assert.Contains("emptyRosterRow(visibleDays, leaderboardRows.inactive.length)", javascript);
+        Assert.Contains("emptyBoardRow(visibleDays, leaderboardRows.inactive)", javascript);
+        Assert.Contains("emptyRosterRow(visibleDays, leaderboardRows.inactive)", javascript);
         Assert.Contains("No active participants", javascript);
         Assert.DoesNotContain("inactive participant${hiddenInactiveCount === 1 ? \" is\" : \"s are\"} hidden", javascript);
         Assert.Contains("id=\"lmxInactiveToggle\" class=\"lmx-inactive-toggle lmx-hidden\"", html);
