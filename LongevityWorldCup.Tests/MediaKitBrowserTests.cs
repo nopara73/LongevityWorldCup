@@ -9,7 +9,7 @@ using static LongevityWorldCup.Tests.AestheticSystemBrowserTests;
 namespace LongevityWorldCup.Tests;
 
 [Collection(BrowserTestCollections.WorkloadB)]
-public sealed class MediaKitBrowserTests(PlaywrightBrowserFixture browserFixture, BrowserTestAppFixture appFixture)
+public sealed partial class MediaKitBrowserTests(PlaywrightBrowserFixture browserFixture, BrowserTestAppFixture appFixture)
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     private static readonly Lazy<Dictionary<string, string>> KitFiles = new(CreateKitFiles);
@@ -178,13 +178,13 @@ public sealed class MediaKitBrowserTests(PlaywrightBrowserFixture browserFixture
     {
         await using var context = await NewContextAsync(Browser, App, new());
         await InstallKitFixtureAsync(context);
-        await context.RouteAsync("**/MediaKit.zip", route => route.AbortAsync());
+        await context.RouteAsync("**/MediaKit.zip*", route => route.AbortAsync());
         var page = await context.NewPageAsync();
         await page.GotoAsync("/media", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
         await Assertions.Expect(page.Locator("#fallback")).ToBeVisibleAsync();
         await Assertions.Expect(page.Locator("#fallback")).ToHaveTextAsync("Failed to preview. Use the ZIP link above.");
-        await Assertions.Expect(page.Locator("a[href$='MediaKit.zip']").First).ToBeVisibleAsync();
-        await context.UnrouteAsync("**/MediaKit.zip");
+        await Assertions.Expect(page.Locator("a.media-kit-primary-download").First).ToBeVisibleAsync();
+        await context.UnrouteAsync("**/MediaKit.zip*");
         await InstallKitFixtureAsync(context);
         await page.ReloadAsync();
         await Assertions.Expect(page.Locator("#fileList .media-file-row")).ToHaveCountAsync(KitFiles.Value.Count);
@@ -192,11 +192,12 @@ public sealed class MediaKitBrowserTests(PlaywrightBrowserFixture browserFixture
     }
 
     [Fact]
-    public async Task FailedPrimaryArchive_UsesTheFallbackAndFailedResizeStillShowsTheOriginal()
+    public async Task FailedArchiveRead_RetriesAndFailedResizeStillShowsTheOriginal()
     {
         await using var context = await NewContextAsync(Browser, App, new());
         await InstallKitFixtureAsync(context);
-        await context.RouteAsync("https://cdn.jsdelivr.net/**/MediaKit.zip", route => route.AbortAsync());
+        var attempts = 0;
+        await context.RouteAsync("**/MediaKit.zip*", route => ++attempts == 1 ? route.AbortAsync() : route.FulfillAsync(new() { Body = "fixture archive" }));
         await context.AddInitScriptAsync("window.createImageBitmap = async () => { throw new Error('resize unavailable'); }");
         var page = await context.NewPageAsync();
         await page.GotoAsync("/media", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
@@ -936,7 +937,7 @@ public sealed class MediaKitBrowserTests(PlaywrightBrowserFixture browserFixture
 
     private static async Task InstallKitFixtureAsync(IBrowserContext context, bool failDownloadOnce = false, IReadOnlyDictionary<string, string>? kitFiles = null)
     {
-        await context.RouteAsync("**/MediaKit.zip", route => route.FulfillAsync(new() { Body = "fixture archive" }));
+        await context.RouteAsync("**/MediaKit.zip*", route => route.FulfillAsync(new() { Body = "fixture archive" }));
         // Prepare source images outside the page's preview assertions. Encoding seven
         // megapixels in browser toBlob callbacks can exhaust the five-second row wait
         // under parallel CI load. The page still decodes and resizes the large originals.

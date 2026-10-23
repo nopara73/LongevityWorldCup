@@ -130,6 +130,8 @@ jobs:
           cmp "LongevityWorldCup.Website/wwwroot/css/athlete-dialog/$stylesheet.css" \
               "$publish_output/wwwroot/css/athlete-dialog/$stylesheet.css"
         done
+        cmp LongevityWorldCup.Documentation/MediaKit.zip \
+            "$publish_output/wwwroot/assets/media-kit/MediaKit.zip"
     - name: Install Playwright Chromium
       run: pwsh LongevityWorldCup.Tests/bin/Debug/net10.0/playwright.ps1 install chromium
     - name: Test with coverage
