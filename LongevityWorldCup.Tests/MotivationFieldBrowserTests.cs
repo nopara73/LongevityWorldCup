@@ -137,13 +137,16 @@ public sealed class MotivationFieldBrowserTests(
         await field.FillAsync("");
         await SettleAsync(page);
         var emptyHeight = (await field.BoundingBoxAsync())!.Height;
-        foreach (var text in new[] { "A short motivation.", Saved, Long, "First reason.\nSecond reason.\nThird reason.\nFourth reason." })
+        // Force more than the minimum three lines at both card widths; a
+        // paragraph that fits in three lines must not require artificial growth.
+        var multiline = string.Join("\n", Enumerable.Repeat("A reason to keep training.", 6));
+        foreach (var text in new[] { "A short motivation.", Saved, Long, multiline })
         {
             await field.FillAsync(text);
             await SettleAsync(page);
             await Assertions.Expect(field).ToHaveValueAsync(text);
             Assert.True(await field.EvaluateAsync<bool>("field => field.scrollHeight <= field.clientHeight + 1"));
-            if (text == Long) Assert.True((await field.BoundingBoxAsync())!.Height > emptyHeight + 1);
+            if (text == multiline) Assert.True((await field.BoundingBoxAsync())!.Height > emptyHeight + 1);
         }
         await field.FillAsync("Short again.");
         await SettleAsync(page);
