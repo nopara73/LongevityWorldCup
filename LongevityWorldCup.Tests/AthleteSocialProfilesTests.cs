@@ -202,6 +202,10 @@ public sealed class AthleteSocialProfilesTests
                 Assert.Contains(host, new[] { "reddit.com", "www.reddit.com" });
                 Assert.Matches(@"^/(user|u)/[a-zA-Z0-9_-]{3,20}$", path);
                 break;
+            case "Strava":
+                Assert.Contains(host, new[] { "strava.com", "www.strava.com" });
+                Assert.Matches(@"^/athletes/[1-9][0-9]*$", path);
+                break;
             default:
                 Assert.Fail($"Unsupported discovery platform: {platform}");
                 break;
