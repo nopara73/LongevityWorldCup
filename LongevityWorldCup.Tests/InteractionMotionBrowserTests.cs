@@ -210,15 +210,38 @@ public sealed class InteractionMotionBrowserTests(
         Assert.Equal([true, true, true], result);
     }
 
-    [Fact]
-    public async Task AthleteProfile_BackdropFadesInAsWellAsOut()
+    [Theory]
+    [InlineData(1280, 800)]
+    [InlineData(390, 844)]
+    public async Task AthleteProfile_BackdropFadesInAsWellAsOut(int width, int height)
     {
-        await using var context = await NewMotionContextAsync(1280, 800);
+        await using var context = await NewMotionContextAsync(width, height);
+        await context.AddInitScriptAsync("localStorage.setItem('gmaSkipAll', 'true');");
         var page = await context.NewPageAsync();
         await NavigateAndSettleAsync(page, "/leaderboard");
+        // Observe the browser's transition lifecycle before the click. The 200ms
+        // entrance may finish before ClickAsync returns on a busy runner.
+        await page.EvaluateAsync("""
+            () => {
+                window.__backdropMotion = [];
+                const backdrop = document.getElementById('detailsModal');
+                for (const type of ['transitionrun', 'transitionend']) {
+                    backdrop.addEventListener(type, event => {
+                        if (event.target !== backdrop || event.propertyName !== 'opacity') return;
+                        window.__backdropMotion.push((backdrop.classList.contains('fade-out') ? 'exit:' : 'enter:') + type);
+                    });
+                }
+            }
+            """);
         await page.Locator("#athleteLeaderboard tbody tr[data-athlete-name]").First.Locator(".athlete-name").ClickAsync();
-
-        Assert.Contains("opacity", await page.EvaluateAsync<string[]>(RunningMotionScript, "#detailsModal"));
+        await page.WaitForFunctionAsync("() => window.__backdropMotion.includes('enter:transitionend')");
+        await Assertions.Expect(page.Locator("#detailsModal")).ToHaveCSSAsync("opacity", "1");
+        await page.Locator("#closeAthleteDetailsModal").ClickAsync();
+        await Assertions.Expect(page.Locator("#detailsModal")).ToBeHiddenAsync();
+        var transitions = await page.EvaluateAsync<string[]>("() => window.__backdropMotion");
+        Assert.Contains("enter:transitionrun", transitions);
+        Assert.Contains("enter:transitionend", transitions);
+        Assert.Contains("exit:transitionrun", transitions);
     }
 
     [Fact]
