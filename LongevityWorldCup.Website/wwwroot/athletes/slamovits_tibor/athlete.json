@@ -24,5 +24,16 @@
   "Division": "Men's",
   "Flag": "Hungary",
   "Why": "My motivation is to turn longevity into something measurable and actionable. I want to push my own biological limits, test what truly works, and use data, training and science to build a longer, healthier, higher-performing life.",
-  "PersonalLink": "https://www.humancode.hu"
+  "PersonalLink": "https://www.humancode.hu",
+  "SocialProfiles": {
+    "LinkedIn": {
+      "Url": "https://www.linkedin.com/in/slamovits",
+      "EvidenceUrls": [
+        "https://hu.linkedin.com/in/slamovits",
+        "https://www.linkedin.com/pulse/h%C3%A1rom-h%C3%B3nap-m%C3%A9rlege-mi-mozdult-%C3%A9s-hol-t%C3%A9vedtem-tibor-slamovits-wmr8f",
+        "https://www.humancode.hu"
+      ],
+      "VerifiedOn": "2026-10-23"
+    }
+  }
 }

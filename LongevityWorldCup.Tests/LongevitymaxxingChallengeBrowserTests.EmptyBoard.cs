@@ -92,7 +92,9 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
             await Assertions.Expect(board).ToHaveAttributeAsync("role", "table");
             await Assertions.Expect(board.GetByRole(AriaRole.Row)).ToHaveCountAsync(width > 760 ? 2 : 1);
             var row = board.Locator(".lmx-board-row:not(.header)");
-            await Assertions.Expect(row.GetByRole(AriaRole.Cell)).ToHaveCountAsync(phase == "signup" ? 2 : 3);
+            // A phone row with nothing in the window keeps only its name and score cells.
+            var quietPhoneRow = width <= 760 && phase != "signup";
+            await Assertions.Expect(row.GetByRole(AriaRole.Cell)).ToHaveCountAsync(phase == "signup" || quietPhoneRow ? 2 : 3);
             await Assertions.Expect(row.Locator(".lmx-participant-label")).ToContainTextAsync("Browser Tester");
             await Assertions.Expect(board.Locator(".lmx-empty-row")).ToHaveCountAsync(0);
             Assert.False(await page.Locator("#lmxBoardSection").EvaluateAsync<bool>(
@@ -128,7 +130,8 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
                 {
                     await page.Locator("#lmxWeekOlder").TapAsync();
                     await Assertions.Expect(page.Locator("#lmxWeekLabel")).ToHaveTextAsync("Days 101–114");
-                    await Assertions.Expect(row.Locator("[data-day='114']")).ToBeVisibleAsync();
+                    if (quietPhoneRow) await Assertions.Expect(row.Locator("[data-day='114']")).ToBeAttachedAsync();
+                    else await Assertions.Expect(row.Locator("[data-day='114']")).ToBeVisibleAsync();
                 }
                 else
                 {

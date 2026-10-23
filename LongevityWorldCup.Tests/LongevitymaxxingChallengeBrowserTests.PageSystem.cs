@@ -129,7 +129,8 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
                 const cards = [...grid.querySelectorAll('.lmx-habit-card')];
                 if (cards.length !== 4) problems.push('missing habit cards');
                 const columns = getComputedStyle(grid).gridTemplateColumns.split(' ').length;
-                if (percent === 100 && columns !== 4) problems.push(`unexpected ${columns}-column habit grid`);
+                const expected = innerWidth <= 520 ? 1 : 2;
+                if (percent === 100 && columns !== expected) problems.push(`unexpected ${columns}-column habit grid`);
                 for (const card of cards) {
                     const label = card.querySelector('span');
                     const box = card.getBoundingClientRect();
@@ -173,7 +174,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         // Preview rows render before the public request resolves. The loading
         // title panel is intentionally transparent until the view is ready.
         await Assertions.Expect(page.Locator(".lmx-page")).ToHaveAttributeAsync("aria-busy", "false");
-        await Assertions.Expect(page.Locator(".lmx-question-preview-item")).ToHaveCountAsync(4);
+        await Assertions.Expect(page.Locator("#lmxHabitGrid .lmx-habit-question")).ToHaveCountAsync(4);
 
         var hero = await page.EvaluateAsync<JsonElement>(
             """
@@ -181,21 +182,15 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
                 const style = e => getComputedStyle(e);
                 const rect = e => e.getBoundingClientRect();
                 const habit = document.getElementById('lmxHabitHeading');
-                const daily = document.getElementById('lmxQuestionPreviewHeading');
                 const grid = document.getElementById('lmxHabitGrid');
-                const list = document.getElementById('lmxQuestionPreviewList');
                 const strip = document.getElementById('lmxLifeStrip');
-                const items = [...list.querySelectorAll('.lmx-question-preview-item')];
-                const headingStyle = e => [style(e).textAlign, style(e).fontSize, style(e).textTransform, style(e).letterSpacing].join('|');
+                const cards = [...grid.querySelectorAll('.lmx-habit-card')];
                 return {
-                    habitHeading: headingStyle(habit),
-                    dailyHeading: headingStyle(daily),
-                    headingLefts: [rect(habit).left, rect(daily).left, rect(grid).left, rect(list).left, rect(strip).left],
-                    dailyTextLeft: (() => { const r = document.createRange(); r.selectNodeContents(daily); return r.getBoundingClientRect().left; })(),
-                    rights: [rect(grid).right, rect(list).right],
-                    itemBackgrounds: items.map(i => style(i).backgroundColor),
-                    itemLefts: items.map(i => rect(i).left - rect(list).left),
-                    listBorder: style(list).borderTopWidth,
+                    habitHeading: [style(habit).textAlign, style(habit).fontSize, style(habit).textTransform, style(habit).letterSpacing].join('|'),
+                    headingLefts: [rect(habit).left, rect(grid).left, rect(strip).left],
+                    headingTextLeft: (() => { const r = document.createRange(); r.selectNodeContents(habit); return r.getBoundingClientRect().left; })(),
+                    rights: [rect(grid).right, rect(habit).right],
+                    cardBorders: cards.map(c => style(c).borderTopWidth),
                     tagBackgrounds: [...strip.querySelectorAll('span')].map(s => style(s).backgroundColor),
                     surface: style(document.querySelector('.lmx-title-panel')).backgroundColor,
                     overflow: document.documentElement.scrollWidth - innerWidth
@@ -203,18 +198,15 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
             }
             """);
         var scenario = $"{width}px {theme}";
-        Assert.Equal(hero.GetProperty("habitHeading").GetString(), hero.GetProperty("dailyHeading").GetString());
-        Assert.StartsWith("left|", hero.GetProperty("dailyHeading").GetString());
-        Assert.Contains("uppercase", hero.GetProperty("dailyHeading").GetString());
+        Assert.StartsWith("left|", hero.GetProperty("habitHeading").GetString());
+        Assert.Contains("uppercase", hero.GetProperty("habitHeading").GetString());
         var lefts = hero.GetProperty("headingLefts").EnumerateArray().Select(e => e.GetDouble()).ToArray();
         foreach (var left in lefts)
             Assert.True(Math.Abs(left - lefts[0]) <= 1, $"{scenario}: hero sections start at different edges ({string.Join(", ", lefts)}).");
-        Assert.True(Math.Abs(hero.GetProperty("dailyTextLeft").GetDouble() - lefts[0]) <= 1, $"{scenario}: the Daily checkins title is not left-aligned.");
+        Assert.True(Math.Abs(hero.GetProperty("headingTextLeft").GetDouble() - lefts[0]) <= 1, $"{scenario}: the Agencies title is not left-aligned.");
         var rights = hero.GetProperty("rights").EnumerateArray().Select(e => e.GetDouble()).ToArray();
-        Assert.True(Math.Abs(rights[0] - rights[1]) <= 1, $"{scenario}: the checkin list and habit tiles end at different edges.");
-        Assert.All(hero.GetProperty("itemLefts").EnumerateArray(), left => Assert.InRange(left.GetDouble(), -1, 2));
-        Assert.All(hero.GetProperty("itemBackgrounds").EnumerateArray(), bg => Assert.Equal("rgba(0, 0, 0, 0)", bg.GetString()));
-        Assert.Equal("1px", hero.GetProperty("listBorder").GetString());
+        Assert.True(Math.Abs(rights[0] - rights[1]) <= 1, $"{scenario}: the habit tiles and their heading end at different edges.");
+        Assert.All(hero.GetProperty("cardBorders").EnumerateArray(), border => Assert.Equal("1px", border.GetString()));
         var surface = hero.GetProperty("surface").GetString();
         Assert.All(hero.GetProperty("tagBackgrounds").EnumerateArray(), bg => Assert.Equal(surface, bg.GetString()));
         Assert.True(hero.GetProperty("overflow").GetDouble() <= 0, $"{scenario}: the page scrolls sideways.");
