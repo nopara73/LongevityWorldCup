@@ -35,5 +35,15 @@
   "Division": "Men's",
   "Flag": "United States",
   "Why": "To master my biology and push the limits of human performance.",
-  "PersonalLink": null
+  "PersonalLink": null,
+  "SocialProfiles": {
+    "X": {
+      "Url": "https://x.com/Max_Boost",
+      "EvidenceUrls": [
+        "https://x.com/Max_Boost"
+      ],
+      "VerifiedOn": "2026-10-23",
+      "VerificationNote": "Athlete/account identity confirmed by the Longevity World Cup operator on 2026-10-23."
+    }
+  }
 }
