@@ -102,9 +102,9 @@ jobs:
         frontend_manifest LongevityWorldCup.Website/wwwroot/js > "$source_manifest"
         test -s "$source_manifest"
 
-        # Prove Node-free publishing recreates the derived dialog CSS, including
-        # a clean checkout where these ignored files do not exist yet.
+        # Prove Node-free publishing recreates ignored assets in a clean checkout.
         rm -f LongevityWorldCup.Website/wwwroot/css/athlete-dialog/*.css
+        rm -f LongevityWorldCup.Website/wwwroot/assets/media-kit/MediaKit.zip
 
         PATH="$deny_node_bin:$PATH" dotnet publish LongevityWorldCup.Website/LongevityWorldCup.Website.csproj \
           --configuration Release \
