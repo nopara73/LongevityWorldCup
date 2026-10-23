@@ -142,7 +142,17 @@
         if (!panel || panel.hidden) return;
         panel.hidden = true;
         toggle.setAttribute('aria-expanded', 'false');
-        if (restoreFocus) toggle.focus({ preventScroll: true });
+        if (restoreFocus) {
+            toggle.focus({ preventScroll: true });
+            if (getComputedStyle(panel).position === 'static') {
+                // Opening a tall strip can scroll its trigger out of view.
+                // Escape must return visible focus, not only DOM focus.
+                const top = (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--site-sticky-height')) || 0) + 12;
+                const bounds = toggle.getBoundingClientRect();
+                const shift = bounds.top < top ? bounds.top - top : Math.max(0, bounds.bottom - document.documentElement.clientHeight + 12);
+                if (shift) window.scrollBy({ top: shift, behavior: 'instant' });
+            }
+        }
     }
     function positionPanel() {
         if (!panel || panel.hidden) return;

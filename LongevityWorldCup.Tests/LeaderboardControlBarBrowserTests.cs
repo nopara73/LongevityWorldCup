@@ -239,6 +239,10 @@ public sealed class LeaderboardControlBarBrowserTests(PlaywrightBrowserFixture b
         Assert.True(position[0] >= position[2], $"Focused field begins at {position[0]}px behind the {position[2]}px header.");
         Assert.True(position[1] <= position[3], $"Focused field ends at {position[1]}px below the {position[3]}px viewport.");
         await page.Keyboard.PressAsync("Escape");
-        await Assertions.Expect(page.Locator("#leaderboardOrderToggle")).ToBeFocusedAsync();
+        var toggle = page.Locator("#leaderboardOrderToggle");
+        await Assertions.Expect(toggle).ToBeFocusedAsync();
+        var trigger = (await toggle.BoundingBoxAsync())!;
+        Assert.True(trigger.Y >= position[2], $"Returned focus is at {trigger.Y}px behind the {position[2]}px header.");
+        Assert.True(trigger.Y + trigger.Height <= height, "Returned focus must fit in the viewport.");
     }
 }
