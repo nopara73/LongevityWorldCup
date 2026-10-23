@@ -24,7 +24,6 @@
 .leaderboard-order-reset svg { width:1rem; height:1rem; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; }
 .leaderboard-order-reset:hover { background:var(--lwc-surface-muted); }
 .leaderboard-order-panel {
-    container:order-panel / inline-size;
     display:grid; grid-template-columns:44px minmax(0,1fr); align-items:center; gap:.5rem;
     position:absolute; z-index:105; right:0; top:calc(100% + .5rem); box-sizing:border-box;
     width:26rem; max-width:calc(100vw - 24px); max-height:calc(100dvh - 24px); padding:min(.75rem,12px); overflow-y:auto;
@@ -194,10 +193,6 @@ th[data-order-direction="asc"] .order-indicator svg { transform:rotate(180deg); 
         --order-name-column:2 / -1; --order-score-column:2; --order-first-column:calc(2 + var(--order-metric-offset));
         --order-value-row:2; --order-value-gap:.35rem;
     }
-}
-@container order-panel (max-width:18em) {
-    .leaderboard-order-rows { grid-column:1 / -1; grid-row:1; }
-    .leaderboard-order-swap { grid-column:1 / -1; grid-row:2; width:44px; justify-self:center; }
 }
 /* Stack before the longest selected heading outgrows its sort button. */
 @container ordered-board (max-width:18.75em) {
