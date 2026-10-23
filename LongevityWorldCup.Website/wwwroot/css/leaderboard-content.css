@@ -5477,3 +5477,315 @@ main[data-leaderboard-page="full"] .flag-leaderboard > .leaderboard-recovery{
     #detailsModal #athlete-stats .athlete-age-board:has(> tr[data-clock="bortz"]:not([hidden])):has(> tr[data-clock="pheno"]:not([hidden])) > tr[data-clock]{ grid-column:1 / -1 !important; grid-row:auto !important; }
     #detailsModal #athlete-stats .athlete-age-board .age-board-figure{ white-space:normal; }
 }
+
+/* =========================
+   18) Athlete dialog frame
+   =========================
+   The frame is a contact card: one chrome row (close on the left, the
+   neighbouring athletes on the right) that the sticky header repeats; the
+   portrait carries the PRO badge and the flag on its rim; the name is
+   followed directly by the athlete's own actions as a row of rings with
+   captions; and phones receive the dialog as a sheet that rises into place. */
+#detailsModal .modal-content{
+    --athlete-frame-control:44px;
+    --athlete-frame-inset:24px;
+    --athlete-frame-ring:3.25rem;
+}
+
+/* Chrome: close and the athlete steps are one family of round controls. */
+#detailsModal .modal-content > .athlete-steps{
+    position:absolute;
+    top:var(--athlete-frame-inset);
+    right:var(--athlete-frame-inset);
+    z-index:60;
+}
+#detailsModal .athlete-steps{
+    display:flex;
+    flex:0 0 auto;
+    gap:.4rem;
+}
+#detailsModal .athlete-steps[hidden]{ display:none; }
+#detailsModal #closeAthleteDetailsModal,
+#detailsModal .modal-sticky-header .sticky-close-btn,
+#detailsModal .athlete-step{
+    box-sizing:border-box;
+    width:var(--athlete-frame-control);
+    height:var(--athlete-frame-control);
+    min-width:var(--athlete-frame-control);
+    min-height:var(--athlete-frame-control);
+    margin:0;
+    padding:0;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    border:1px solid var(--athlete-modal-border);
+    border-radius:50%;
+    background:rgba(255,255,255,.08);
+    color:rgba(255,255,255,.78);
+    font-size:1.6rem;
+    line-height:1;
+    box-shadow:none;
+    transform:none;
+    cursor:pointer;
+    transition:color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+}
+#detailsModal .athlete-step{
+    appearance:none;
+    -webkit-appearance:none;
+    font-size:1rem;
+}
+#detailsModal .athlete-step:not(:disabled):hover,
+#detailsModal .athlete-step:focus-visible{
+    color:#fff;
+    background:rgba(246,244,237,.16);
+    border-color:rgba(246,244,237,.56);
+    box-shadow:0 0 0 3px rgba(246,244,237,.18);
+    outline:none;
+}
+#detailsModal .athlete-step:disabled{
+    cursor:default;
+    opacity:.32;
+}
+#detailsModal .athlete-step:active:not(:disabled){ background:rgba(246,244,237,.22); }
+
+/* Sticky header: close, a small portrait and the name, then the same steps. */
+#detailsModal .modal-sticky-header{
+    gap:.75rem;
+    padding-left:calc(var(--athlete-frame-inset) - 1px);
+    padding-right:calc(var(--athlete-frame-inset) - 1px);
+}
+#detailsModal .modal-sticky-header .sticky-header-left{ gap:.65rem; }
+#detailsModal .sticky-athlete-portrait{
+    flex:0 0 auto;
+    width:2rem;
+    height:2rem;
+    box-sizing:border-box;
+    border:2px solid rgba(246,244,237,.62);
+    border-radius:50%;
+    object-fit:cover;
+    background:var(--athlete-modal-card-hover);
+}
+#detailsModal .sticky-athlete-portrait[hidden]{ display:none; }
+#detailsModal .modal-sticky-header .athlete-steps{ margin-inline-start:auto; }
+
+/* Portrait: a little smaller, so the name, actions and ranks share the first view. */
+#detailsModal #athlete-profile .portrait-wrapper{
+    width:min(56%, 236px);
+    max-width:236px;
+}
+/* The flag sits on the rim opposite the PRO badge and leads to the flag's team. */
+#detailsModal .portrait-flag{
+    position:absolute;
+    left:4%;
+    bottom:3%;
+    z-index:2;
+    display:inline-flex;
+    min-width:0;
+    min-height:0;
+    padding:0;
+    border:2px solid rgba(246,244,237,.88);
+    border-radius:6px;
+    overflow:hidden;
+    font-size:min(1.9rem, 13cqw);
+    line-height:0;
+    box-shadow:0 6px 16px rgba(0,0,0,.42);
+    transition:transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+}
+#detailsModal .portrait-flag[hidden],
+#detailsModal .modal-content.guess-mode .portrait-flag{ display:none; }
+#detailsModal .portrait-flag .portrait-flag-icon{
+    display:block;
+    width:1.3333em;
+    height:1em;
+    line-height:1em;
+    background-size:cover;
+}
+#detailsModal .portrait-flag:hover,
+#detailsModal .portrait-flag:focus-visible{
+    border-color:#fff;
+    transform:rotate(-6deg) scale(1.06);
+    outline:none;
+    box-shadow:0 0 0 3px rgba(246,244,237,.28), 0 6px 16px rgba(0,0,0,.42);
+}
+
+#detailsModal #athleteName{ margin-top:1.35rem; }
+
+/* Actions: rings with captions directly under the name, like a contact card. */
+#detailsModal #athlete-profile > .athlete-links{
+    position:relative;
+    display:flex;
+    flex-direction:row;
+    flex-wrap:wrap;
+    justify-content:center;
+    align-items:flex-start;
+    gap:.35rem 1.25rem;
+    width:min(100%, var(--athlete-doc-width, 640px));
+    margin:1.1rem auto 0;
+    padding:0;
+    border:0;
+    border-radius:0;
+    background:none;
+}
+#detailsModal #athlete-profile > .athlete-links > .athlete-share-wrapper{
+    position:static;
+    flex:0 0 auto;
+    display:flex;
+}
+#detailsModal #athlete-profile > .athlete-links > a,
+#detailsModal #athlete-profile > .athlete-links > .athlete-share-wrapper > #shareAthleteProfile{
+    flex:0 0 auto;
+    width:auto;
+    min-width:5.5rem;
+    max-width:9rem;
+    min-height:0;
+    flex-direction:column;
+    align-items:center;
+    justify-content:flex-start;
+    gap:.45rem;
+    padding:.2rem .25rem .35rem;
+    border:0;
+    border-radius:var(--lwc-radius-md);
+    background:none;
+    color:var(--athlete-modal-cream);
+    font-size:.82rem;
+    font-weight:600;
+    line-height:1.2;
+    text-align:center;
+    overflow-wrap:anywhere;
+}
+#detailsModal #athlete-profile > .athlete-links > a > i,
+#detailsModal #athlete-profile > .athlete-links > .athlete-share-wrapper > #shareAthleteProfile > i{
+    flex:0 0 auto;
+    display:grid;
+    place-items:center;
+    width:var(--athlete-frame-ring);
+    height:var(--athlete-frame-ring);
+    box-sizing:border-box;
+    border:1px solid var(--athlete-modal-border);
+    border-radius:50%;
+    background:rgba(246,244,237,.07);
+    color:var(--athlete-modal-link);
+    font-size:1.15rem;
+    transition:color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+}
+#detailsModal #athlete-profile > .athlete-links > a:hover,
+#detailsModal #athlete-profile > .athlete-links > a:focus-visible,
+#detailsModal #athlete-profile > .athlete-links > .athlete-share-wrapper > #shareAthleteProfile:not(:disabled):hover,
+#detailsModal #athlete-profile > .athlete-links > .athlete-share-wrapper > #shareAthleteProfile:focus-visible,
+#detailsModal #athlete-profile > .athlete-links > .athlete-share-wrapper > #shareAthleteProfile[aria-expanded="true"]{
+    color:#fff;
+    background:none;
+    box-shadow:none;
+    outline:none;
+}
+#detailsModal #athlete-profile > .athlete-links > a:hover > i,
+#detailsModal #athlete-profile > .athlete-links > a:focus-visible > i,
+#detailsModal #athlete-profile > .athlete-links > .athlete-share-wrapper > #shareAthleteProfile:not(:disabled):hover > i,
+#detailsModal #athlete-profile > .athlete-links > .athlete-share-wrapper > #shareAthleteProfile:focus-visible > i,
+#detailsModal #athlete-profile > .athlete-links > .athlete-share-wrapper > #shareAthleteProfile[aria-expanded="true"] > i{
+    color:#fff;
+    background:var(--athlete-modal-card-hover);
+    border-color:var(--athlete-modal-cream-border);
+    box-shadow:0 0 0 3px rgba(246,244,237,.18);
+}
+#detailsModal #athlete-profile > .athlete-links > .athlete-share-wrapper > #shareAthleteProfile.is-copied{ border:0; }
+#detailsModal #athlete-profile > .athlete-links > .athlete-share-wrapper > #shareAthleteProfile.is-copied > i{ border-color:var(--lwc-success, #68c47d); }
+/* A contact without a link reads as the athlete's own words under the rings. */
+#detailsModal #athlete-profile > .athlete-links > #mediaContact:not([href]){
+    order:1;
+    flex-basis:100%;
+    max-width:none;
+    padding-top:.25rem;
+    color:var(--athlete-modal-muted);
+    font-weight:400;
+}
+/* The share sheet opens centred under the actions. */
+#detailsModal #athlete-profile > .athlete-links .athlete-share-menu{
+    left:50%;
+    right:auto;
+    margin-left:calc(min(22.5rem, 100vw - 2rem) / -2);
+    transform-origin:top center;
+}
+#detailsModal #athlete-profile > .athlete-links .athlete-share-menu.is-above{ transform-origin:bottom center; }
+#detailsModal #athlete-profile > .athlete-links + #athleteRankings{ margin-top:1.35rem; }
+
+/* Opening: the card settles in; stepping slides the next athlete in from the side. */
+@keyframes athlete-frame-in{
+    from{ opacity:0; transform:translateY(12px) scale(.985); }
+    to{ opacity:1; transform:none; }
+}
+@keyframes athlete-sheet-in{
+    from{ opacity:.4; transform:translateY(6%); }
+    to{ opacity:1; transform:none; }
+}
+@keyframes athlete-step-next{
+    from{ opacity:0; transform:translateX(24px); }
+    to{ opacity:1; transform:none; }
+}
+@keyframes athlete-step-previous{
+    from{ opacity:0; transform:translateX(-24px); }
+    to{ opacity:1; transform:none; }
+}
+#detailsModal .modal-content{
+    animation:athlete-frame-in var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease) both;
+}
+#detailsModal.fade-out .modal-content{
+    transform:translateY(8px) scale(.99);
+    transition:transform var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
+}
+#detailsModal .modal-content[data-athlete-step="next"]:not(.is-loading) #athlete-profile{
+    animation:athlete-step-next var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease) both;
+}
+#detailsModal .modal-content[data-athlete-step="previous"]:not(.is-loading) #athlete-profile{
+    animation:athlete-step-previous var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease) both;
+}
+
+@media (max-width: 768px){
+    #detailsModal .modal-content{ --athlete-frame-inset:14px; }
+    #detailsModal .modal-content > .athlete-steps{
+        top:max(14px, env(safe-area-inset-top));
+        right:max(14px, env(safe-area-inset-right));
+    }
+    #detailsModal #closeAthleteDetailsModal{
+        top:max(14px, env(safe-area-inset-top));
+        left:max(14px, env(safe-area-inset-left));
+    }
+    /* The chrome row is the sheet's top edge; the portrait starts beneath it. */
+    #detailsModal .modal-content:not(.guess-mode) #athlete-profile{ padding-top:calc(var(--athlete-frame-control) + .1rem); }
+    #detailsModal #athlete-profile .portrait-wrapper{ width:min(44vw, 176px); }
+    #detailsModal #athleteName{ margin-top:1rem; }
+    #detailsModal .modal-sticky-header{ padding:.6rem 14px; }
+    #detailsModal .modal-content:not(.guess-mode){
+        animation:athlete-sheet-in var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease) both;
+    }
+    #detailsModal.fade-out .modal-content{ transform:translateY(4%); }
+}
+@media (max-width: 480px){
+    #detailsModal #athlete-profile > .athlete-links{
+        display:grid;
+        grid-template-columns:repeat(auto-fit, minmax(0, 6.5rem));
+        justify-content:center;
+        gap:.35rem .5rem;
+    }
+    #detailsModal #athlete-profile > .athlete-links > a,
+    #detailsModal #athlete-profile > .athlete-links > .athlete-share-wrapper > #shareAthleteProfile{
+        width:100%;
+        min-width:0;
+        max-width:none;
+        padding-inline:0;
+        font-size:.8rem;
+    }
+    #detailsModal #athlete-profile > .athlete-links > #mediaContact:not([href]){ grid-column:1 / -1; }
+    #detailsModal #athlete-profile > .athlete-links .athlete-share-menu{ left:0; right:0; margin-left:0; width:auto; }
+}
+@media (max-width: 932px) and (max-height: 480px) and (orientation: landscape){
+    #detailsModal .modal-content{ --athlete-frame-inset:12px; }
+    #detailsModal .modal-content > .athlete-steps{ top:12px; right:12px; }
+    #detailsModal .modal-content:not(.guess-mode) #athlete-profile{ padding-top:0; }
+}
+@media (prefers-reduced-motion: reduce){
+    #detailsModal .modal-content,
+    #detailsModal .modal-content:not(.guess-mode),
+    #detailsModal .modal-content[data-athlete-step] #athlete-profile{ animation:none; }
+    #detailsModal.fade-out .modal-content{ transform:none; transition:none; }
+}

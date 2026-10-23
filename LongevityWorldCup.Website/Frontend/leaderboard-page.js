@@ -2984,6 +2984,12 @@ function resetModalForLoading(athleteSlug) {
     }
     const stickyAthleteName = document.getElementById('stickyAthleteName');
     if (stickyAthleteName) stickyAthleteName.textContent = 'Loading...';
+    const stickyPortrait = document.getElementById('stickyAthletePortrait');
+    if (stickyPortrait) {
+        stickyPortrait.removeAttribute('src');
+        stickyPortrait.hidden = true;
+    }
+    renderPortraitFlagMark('');
 
     const profilePic = document.getElementById('modalProfilePic');
     if (profilePic) {
@@ -3240,6 +3246,15 @@ function setupModalKeyboardNavigation() {
             return;
         }
 
+        // Left and Right step to the neighbouring athlete, unless a control
+        // inside the profile uses them itself.
+        if ((event.key === 'ArrowLeft' || event.key === 'ArrowRight')
+            && !event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey
+            && !event.target.closest('[role="tablist"], [role="radiogroup"], [role="slider"], [role="listbox"], [role="menu"], [role="grid"], .age-clock-switch, canvas')) {
+            if (stepAthleteDialog(event.key === 'ArrowLeft' ? 'previous' : 'next')) event.preventDefault();
+            return;
+        }
+
         // Arrow keys for section navigation (when not in input/textarea)
         if ((event.key === 'ArrowDown' || event.key === 'ArrowUp') &&
             !['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) {
@@ -3277,6 +3292,54 @@ closeBtn.onclick = function () {
     if (isGuessMyAgeDismissBlocked(modalContent)) return;
     requestCloseAthleteModal();
 };
+
+// Neighbouring athletes follow the order the visitor is browsing: the board's
+// rows as filtered and sorted, or the overall ranking where there is no board.
+function getAthleteDialogSequence() {
+    const byName = new Map(athleteResults.map(athlete => [athlete.name, athlete]));
+    const rows = [...pageDocument.querySelectorAll('.leaderboard table tbody tr[data-athlete-name]')]
+        .filter(row => row.getClientRects().length > 0)
+        .map(row => byName.get(row.getAttribute('data-athlete-name')))
+        .filter(Boolean);
+    return rows.length ? rows : athleteResults;
+}
+
+function getAthleteDialogNeighbours() {
+    const slug = modal.querySelector('.modal-content')?.dataset.athleteSlug || '';
+    const sequence = slug ? getAthleteDialogSequence() : [];
+    const index = sequence.findIndex(athlete =>
+        normalizeAthleteSlugForLookup(athlete.athleteSlug || athlete.name) === slug);
+    return index < 0
+        ? { previous: null, next: null }
+        : { previous: sequence[index - 1] || null, next: sequence[index + 1] || null };
+}
+
+function updateAthleteDialogSteps() {
+    const neighbours = getAthleteDialogNeighbours();
+    const available = !!(neighbours.previous || neighbours.next);
+    modal.querySelectorAll('.athlete-steps').forEach(group => { group.hidden = !available; });
+    modal.querySelectorAll('.athlete-step').forEach(button => {
+        const blocked = !neighbours[button.dataset.step];
+        if (blocked && pageDocument.activeElement === button) {
+            button.closest('.athlete-steps')?.querySelector(`.athlete-step:not([data-step="${button.dataset.step}"])`)?.focus({ preventScroll: true });
+        }
+        button.disabled = blocked;
+    });
+}
+
+function stepAthleteDialog(direction) {
+    const modalContent = modal.querySelector('.modal-content');
+    if (!modalContent || modalContent.classList.contains('guess-mode') || modal.classList.contains('fade-out')) return false;
+    const target = getAthleteDialogNeighbours()[direction];
+    if (!target) return false;
+    modalContent.dataset.athleteStep = direction;
+    fetchFullAthleteData(target.name, target, { suppressGuessMyAge: true, historyMode: 'step' });
+    return true;
+}
+
+modal.querySelectorAll('.athlete-step').forEach(button => {
+    button.addEventListener('click', () => stepAthleteDialog(button.dataset.step));
+});
 
 window.addEventListener('click', function (event) {
     const modalContent = document.querySelector('.modal-content');
@@ -4898,6 +4961,25 @@ function getModalDetailRankMarkup(rank) {
     return rankText ? ` <span class="detail-muted">(rank: <span class="detail-value">${rankText}</span>)</span>` : '';
 }
 
+// The flag rides on the portrait's edge, opposite the PRO badge, and leads to the flag's team.
+function renderPortraitFlagMark(flag) {
+    const mark = document.getElementById('modalFlagMark');
+    if (!mark) return;
+    const canonicalFlag = getCanonicalFlagName(flag);
+    const icon = canonicalFlag ? window.LwcFlags.renderFlagIcon(canonicalFlag, 'portrait-flag-icon') : '';
+    mark.innerHTML = icon;
+    mark.hidden = !icon;
+    if (icon) {
+        mark.href = buildFlagHref(canonicalFlag);
+        mark.setAttribute('aria-label', canonicalFlag);
+        mark.title = canonicalFlag;
+    } else {
+        mark.removeAttribute('href');
+        mark.removeAttribute('aria-label');
+        mark.removeAttribute('title');
+    }
+}
+
 function renderAthleteFlagDetail(flag, athleteData) {
     const canonicalFlag = getCanonicalFlagName(flag);
     if (!canonicalFlag) return '';
@@ -5692,6 +5774,10 @@ function fetchFullAthleteData(athleteNameText, athleteData, options) {
             if (historyMode === 'replace' || (historyMode === 'push'
                 && previousState?.modal === 'details' && previousState.athlete === athleteSlug)) {
                 history.replaceState({ ...previousState, modal: 'details', athlete: athleteSlug }, '', window.location.href);
+            } else if (historyMode === 'step') {
+                // Stepping swaps the profile in place: Back and Close still return
+                // to the page the dialog was opened from.
+                history.replaceState({ ...previousState, modal: 'details', athlete: athleteSlug }, '', `/athlete/${athleteSlug}`);
             } else if (historyMode === 'push') {
                 const previousIsProfile = previousState?.modal === 'details' || previousState?.modal === 'enlarged';
                 const previousDepth = previousState?.athleteDialogDepth;
@@ -5736,6 +5822,7 @@ function fetchFullAthleteData(athleteNameText, athleteData, options) {
 
             // Initialize scroll progress indicator
             initializeScrollProgress(modalContent);
+            updateAthleteDialogSteps();
 
             // Setup scroll-to-section navigation (optional floating menu for long content)
             setupScrollToSectionNavigation(modalContent);
@@ -5965,6 +6052,12 @@ function populateModal(fullAthleteData, athleteData, rankSummary) {
     profilePic.loading = 'lazy';
     profilePic.classList.remove('portrait-fallback');
     wirePortraitFallback(profilePic, fullAthleteData);
+    const stickyPortrait = document.getElementById('stickyAthletePortrait');
+    if (stickyPortrait) {
+        stickyPortrait.src = profilePic.src;
+        stickyPortrait.hidden = !profilePic.src;
+        stickyPortrait.onerror = () => { stickyPortrait.hidden = true; };
+    }
 
     const athleteProfileEl = document.getElementById('athlete-profile');
     if (athleteProfileEl) {
@@ -5989,6 +6082,7 @@ function populateModal(fullAthleteData, athleteData, rankSummary) {
     document.getElementById('athleteDivision').innerHTML = `<a href="/league/${window.slugifyName(athleteData.division, true)}" class="league-link">${escapeHtml(athleteData.division)}</a>${getModalTitleRankMarkup(athleteData.ranks[athleteData.division])}`;
     document.getElementById('athleteGeneration').innerHTML = `<a href="/league/${window.slugifyName(athleteData.generation, true)}" class="league-link">${escapeHtml(athleteData.generation)}</a>${getModalTitleRankMarkup(athleteData.ranks[athleteData.generation])}`;
     document.getElementById('athleteFlag').innerHTML = renderAthleteFlagDetail(fullAthleteData.Flag || athleteData.canonicalFlag, athleteData);
+    renderPortraitFlagMark(fullAthleteData.Flag || athleteData.canonicalFlag);
     const completedAge = getCompletedChronologicalAge(fullAthleteData, athleteData);
     document.getElementById('chronologicalAge').textContent = Number.isFinite(completedAge) ? completedAge.toString() : '';
     document.getElementById('chronologicalAgeContainer').hidden = !Number.isFinite(completedAge);
