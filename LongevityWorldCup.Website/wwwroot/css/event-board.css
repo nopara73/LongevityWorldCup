@@ -1010,3 +1010,93 @@
 .event-rocket-tail {
     white-space: nowrap !important;
 }
+
+/* Event anatomy: the portrait carries a mark for the kind of moment, names
+   read as names rather than a row of underlines, and badges sit on the line. */
+.event-avatar-frame {
+    position: relative;
+    display: inline-flex;
+    flex: 0 0 auto;
+    line-height: 0;
+}
+
+.event-kind {
+    --event-kind-size: 16px;
+    position: absolute;
+    right: -5px;
+    bottom: -4px;
+    z-index: 1;
+    display: grid;
+    place-items: center;
+    width: var(--event-kind-size);
+    height: var(--event-kind-size);
+    border-radius: 50%;
+    background: var(--secondary-color, #087685);
+    color: var(--card-bg, #fff);
+    box-shadow: 0 0 0 2px var(--card-bg, #fff);
+    font-size: calc(var(--event-kind-size) * .55);
+    line-height: 1;
+    pointer-events: none;
+}
+
+.event-kind i {
+    display: block;
+    line-height: 1;
+}
+
+.event-kind[data-kind="younger"],
+.event-kind[data-kind="improvement"] {
+    background: #4caf50;
+}
+
+.event-kind[data-lost="true"] {
+    background: var(--events-muted);
+}
+
+/* Compact feeds keep 24px portraits, too small to carry a mark. */
+.events-board:not(.event-board-page .events-board) .event-kind {
+    display: none;
+}
+
+.event-message .name-and-rank > a {
+    color: var(--primary-color);
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.event-message .name-and-rank > a:hover,
+.event-message .name-and-rank > a:focus-visible {
+    color: var(--secondary-color, #087685);
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: .18em;
+}
+
+.event-message .name-and-rank > .athlete-name-text {
+    font-weight: 700;
+}
+
+.event-message .name-and-rank .placement-link,
+.events-board td.event-message .event-message-cell .name-and-rank .placement-link {
+    color: var(--events-muted);
+    font-size: .875em;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+}
+
+.event-message .name-and-rank a.placement-link:hover,
+.event-message .name-and-rank a.placement-link:focus-visible {
+    color: var(--secondary-color, #087685);
+    text-decoration: underline;
+}
+
+/* A badge is a word in the sentence: centred on the text, never floating above it. */
+.events-board td.event-message .event-message-cell .badge-class,
+.events-board td.event-message .event-message-cell .badge-with-from {
+    vertical-align: middle;
+}
+
+.events-board td.event-message .event-message-cell .badge-class {
+    position: relative;
+    margin-block: 0;
+}
