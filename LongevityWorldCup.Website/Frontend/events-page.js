@@ -33,6 +33,7 @@ const eventsPageAssets = document.currentScript.dataset;
         const tbody = document.querySelector('#eventsTable tbody');
         if (!tbody) return;
         if (preserveExistingRows && tbody.querySelector('tr.main-row')) return;
+        rowObserver?.disconnect();
         [...tbody.closest('table').tBodies].slice(1).forEach(body=>body.remove());
         delete tbody.dataset.month;
         tbody.style.removeProperty('--event-month-height');
@@ -50,6 +51,7 @@ const eventsPageAssets = document.currentScript.dataset;
     function renderEventsLoadError(retry){
         const tbody = document.querySelector('#eventsTable tbody');
         if (!tbody) return;
+        rowObserver?.disconnect();
         [...tbody.closest('table').tBodies].slice(1).forEach(body=>body.remove());
         delete tbody.dataset.month;
         tbody.style.removeProperty('--event-month-height');
@@ -213,6 +215,26 @@ const eventsPageAssets = document.currentScript.dataset;
         if(n===2) return '<i class="fa-solid fa-medal rank-icon" style="color: silver;" title="2nd place" aria-label="2nd place"></i>';
         if(n===3) return '<i class="fa-solid fa-award rank-icon" style="color: #cd7f32;" title="3rd place" aria-label="3rd place"></i>';
         return '';
+    }
+    // A small mark on the portrait says what kind of moment the row is.
+    function eventKindMark(r){
+        const lost = r.newRankDirection === "lost" || r.badgeDirection === "lost"
+            || r.crowdAgeDirection === "lost" || r.improvementDirection === "lost";
+        const kinds = {
+            [EVENT_TYPE.Joined]: ["joined", "fa-user-plus"],
+            [EVENT_TYPE.NewRank]: ["rank", lost ? "fa-arrow-trend-down" : "fa-arrow-trend-up"],
+            [EVENT_TYPE.BadgeAward]: ["badge", "fa-award"],
+            [EVENT_TYPE.SeasonFinalResult]: ["season", "fa-flag-checkered"],
+            [EVENT_TYPE.LongevitymaxxingChallengeResult]: ["challenge", "fa-list-check"],
+            [EVENT_TYPE.BecamePro]: ["pro", "fa-star"],
+            [EVENT_TYPE.BiologicalAgeImproved]: ["younger", "fa-heart-pulse"],
+            [EVENT_TYPE.CrowdAgeTop10Change]: ["crowd", lost ? "fa-arrow-trend-down" : "fa-users"],
+            [EVENT_TYPE.AgeImprovementTop10Change]: ["improvement", lost ? "fa-arrow-trend-down" : "fa-chart-line"],
+            [EVENT_TYPE.TestResultAccepted]: ["test", "fa-vial"]
+        };
+        const kind = kinds[r.type];
+        if (!kind) return "";
+        return `<span class="event-kind" data-kind="${kind[0]}"${lost ? ` data-lost="true"` : ""} aria-hidden="true"><i class="fa-solid ${kind[1]}"></i></span>`;
     }
     function setViewAllVisible(show){const link=document.getElementById("eventsViewAll"); if(link) link.style.display=show?"":"none";}
     function parseTimeVar(varName, fallbackMs){
@@ -633,6 +655,12 @@ const eventsPageAssets = document.currentScript.dataset;
     let rowObserver=null;
     function ensureRowObserver(){
         if(rowObserver) return rowObserver;
+        // One observer owns the feed's animation lifecycle. Look up the current
+        // table on resize so rerenders neither retain old rows nor add handlers.
+        window.addEventListener("resize", () => {
+            const table = document.getElementById("eventsTable");
+            if (table) revealVisibleRowsImmediately(table);
+        }, { passive: true });
         const prefersReduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         rowObserver=new IntersectionObserver((entries,io)=>{
             entries.forEach(entry=>{
@@ -865,6 +893,8 @@ const eventsPageAssets = document.currentScript.dataset;
     function renderRows(rows, athletesIndex, linkNames, options=null){
         const tbody = document.querySelector("#eventsTable tbody");
         const table=tbody.closest('table');
+        // Reobserve only the surviving, unrevealed rows after reconciliation.
+        rowObserver?.disconnect();
         const chapters=!!tbody.closest('.event-board-page');
         const timelineRows = chapters ? [...table.querySelectorAll('tr.main-row')] : [];
         const expandedEvents = new Set(timelineRows.filter(row => row.classList.contains('is-open')).map(row => row.dataset.eventId));
@@ -963,16 +993,13 @@ const eventsPageAssets = document.currentScript.dataset;
                 : ``;
 
             if (r.type === EVENT_TYPE.Joined || r.type === EVENT_TYPE.NewRank || r.type === EVENT_TYPE.BadgeAward || r.type === EVENT_TYPE.SeasonFinalResult || r.type === EVENT_TYPE.BecamePro || r.type === EVENT_TYPE.BiologicalAgeImproved || r.type === EVENT_TYPE.CrowdAgeTop10Change || r.type === EVENT_TYPE.AgeImprovementTop10Change || r.type === EVENT_TYPE.TestResultAccepted || (r.type === EVENT_TYPE.LongevitymaxxingChallengeResult && r.primarySlug)) {
-                if (img) {
-                    avatarHtml = canLinkAvatar
-                        ? `<a href="${url}" class="avatar-link event-athlete-link" title="${esc(name)}" aria-label="${esc(name)}"${avatarModalAttrs}${avatarTargetAttrs}><img class="avatar" src="${esc(img)}" alt="${esc(name)}" ${avatarLoadingAttrs} decoding="async" referrerpolicy="no-referrer"></a>`
-                        : `<span class="avatar-disabled" aria-label="${esc(name)}"><img class="avatar" src="${esc(img)}" alt="${esc(name)}" ${avatarLoadingAttrs} decoding="async" referrerpolicy="no-referrer"></span>`;
-                } else {
-                    const fallback = `<div class="avatar-fallback">${initialsFromName(name)}</div>`;
-                    avatarHtml = canLinkAvatar
-                        ? `<a href="${url}" class="avatar-link event-athlete-link" title="${esc(name)}" aria-label="${esc(name)}"${avatarModalAttrs}${avatarTargetAttrs}>${fallback}</a>`
-                        : `<span class="avatar-disabled" aria-label="${esc(name)}">${fallback}</span>`;
-                }
+                const portrait = img
+                    ? `<img class="avatar" src="${esc(img)}" alt="${esc(name)}" ${avatarLoadingAttrs} decoding="async" referrerpolicy="no-referrer">`
+                    : `<div class="avatar-fallback">${initialsFromName(name)}</div>`;
+                const framed = `<span class="event-avatar-frame">${portrait}${eventKindMark(r)}</span>`;
+                avatarHtml = canLinkAvatar
+                    ? `<a href="${url}" class="avatar-link event-athlete-link" title="${esc(name)}" aria-label="${esc(name)}"${avatarModalAttrs}${avatarTargetAttrs}>${framed}</a>`
+                    : `<span class="avatar-disabled" aria-label="${esc(name)}">${framed}</span>`;
             } else if (r.type === EVENT_TYPE.DonationReceived) {
                 avatarHtml = `<div class="avatar-fallback donation-gift-avatar" title="Donation" aria-label="Donation"><i class="fa-solid fa-gift" aria-hidden="true"></i></div>`;
             } else if (r.type === EVENT_TYPE.AthleteCountMilestone) {
@@ -1184,7 +1211,7 @@ const eventsPageAssets = document.currentScript.dataset;
                 const takenText = Number.isFinite(taken) ? ordinal(taken) : "?";
                 const iconHtml  = Number.isFinite(taken) ? podiumIcon(taken) : "";
                 const takenHtml = Number.isFinite(taken)
-                    ? `<span class="rank-badge"><strong style="color: var(--secondary-color, #087685)">${esc(takenText)}</strong>${iconHtml}</span>`
+                    ? `<span class="rank-badge"><strong class="event-rank-accent">${esc(takenText)}</strong>${iconHtml}</span>`
                     : esc(takenText);
 
                 if(r.newRankDirection === "lost"){
@@ -1226,7 +1253,7 @@ const eventsPageAssets = document.currentScript.dataset;
                 const placeText = placeN ? ordinal(placeN) : "?";
                 const placeIconHtml = placeN ? podiumIcon(placeN) : "";
                 const placeHtml = placeN
-                    ? `<span class="rank-badge"><strong style="color: var(--secondary-color, #087685)">${esc(placeText)}</strong>${placeIconHtml}</span>`
+                    ? `<span class="rank-badge"><strong class="event-rank-accent">${esc(placeText)}</strong>${placeIconHtml}</span>`
                     : esc(placeText);
 
                 const seasonN = Number.isFinite(r.seasonId) ? r.seasonId : null;
@@ -1255,18 +1282,19 @@ const eventsPageAssets = document.currentScript.dataset;
                 const placeText = placeN ? ordinal(placeN) : "";
                 const placeIconHtml = placeN ? podiumIcon(placeN) : "";
                 const placeHtml = placeN
-                    ? `<span class="rank-badge"><strong style="color: var(--secondary-color, #087685)">${esc(placeText)}</strong>${placeIconHtml}</span>`
+                    ? `<span class="rank-badge"><strong class="event-rank-accent">${esc(placeText)}</strong>${placeIconHtml}</span>`
                     : "";
 
                 const checkedIn = Number.isFinite(r.checkedInDays) ? r.checkedInDays : null;
                 const challengeDays = Number.isFinite(r.challengeDays) ? r.challengeDays : null;
                 const points = Number.isFinite(r.totalPoints) ? r.totalPoints : null;
+                // Only the numbers carry the accent; the words between them stay text.
                 const checkedInText = checkedIn !== null && challengeDays !== null
-                    ? `${checkedIn}/${challengeDays} checked-in days`
-                    : (checkedIn !== null ? `${checkedIn} checked-in days` : "");
-                const pointsText = points !== null ? `${points} points` : "";
+                    ? `<strong class="count-accent">${esc(`${checkedIn}/${challengeDays}`)}</strong> checked-in days`
+                    : (checkedIn !== null ? `<strong class="count-accent">${esc(String(checkedIn))}</strong> checked-in days` : "");
+                const pointsText = points !== null ? `<strong class="count-accent">${esc(String(points))}</strong> points` : "";
                 const summary = [checkedInText, pointsText].filter(Boolean).join(" and ");
-                const summaryText = summary ? ` with <strong class="count-accent">${esc(summary)}</strong>` : "";
+                const summaryText = summary ? ` with ${summary}` : "";
 
                 if (placeN !== null && placeN <= 3) {
                     msgHtml = `<span class="event-inline-text">${participantHtml} finished ${placeHtml} in the Longevitymaxxing Challenge${summaryText}</span>`;
@@ -1324,8 +1352,10 @@ const eventsPageAssets = document.currentScript.dataset;
             if (imgEl) {
                 const initials = initialsFromName(name);
                 imgEl.addEventListener("error", () => {
-                    const parent = imgEl.closest(".avatar-link, .avatar-disabled");
-                    if (parent) parent.innerHTML = `<div class="avatar-fallback">${initials}</div>`;
+                    const fallback = document.createElement("div");
+                    fallback.className = imgEl.classList.contains("custom-event-avatar") ? "avatar-fallback custom-event-avatar" : "avatar-fallback";
+                    fallback.textContent = initials;
+                    imgEl.replaceWith(fallback);
                 }, { once: true });
             }
             frag.appendChild(tr);
@@ -1415,7 +1445,6 @@ const eventsPageAssets = document.currentScript.dataset;
             const io = ensureRowObserver();
             rowsNow.forEach(r => io.observe(r));
             requestAnimationFrame(() => revealVisibleRowsImmediately(table));
-            window.addEventListener("resize", () => revealVisibleRowsImmediately(table), { passive: true });
         } else {
             rowsNow.forEach(r => r.classList.add("is-visible"));
         }
