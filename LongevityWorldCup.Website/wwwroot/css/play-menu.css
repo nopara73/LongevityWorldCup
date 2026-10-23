@@ -2730,7 +2730,31 @@ body.play-start-active .play-menu-actions:not(.flow-action-stack--docked) .flow-
     }
 
     .play-hub-main .play-join-head {
-        padding: 2rem var(--join-pad) 4.75rem;
+        padding: 1.5rem var(--join-pad) 4.25rem;
+    }
+
+    .play-hub-main .play-join-head .play-join-intro {
+        width: min(100%, 54rem);
+    }
+
+    .play-hub-main .play-join-head .play-join-title::after {
+        margin-block: 0.65rem 0.7rem;
+    }
+
+    .play-hub-main .play-join-cards {
+        margin-top: -2.85rem;
+    }
+
+    .play-hub-main .play-join-card {
+        --join-price-pad: 0.6rem;
+    }
+
+    .play-hub-main .play-join-card-head {
+        padding-block: 1rem 0.85rem;
+    }
+
+    .play-hub-main .play-join-card .play-join-details {
+        padding-bottom: 1.15rem;
     }
 
     .play-hub-main .play-join-cards {

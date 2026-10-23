@@ -302,4 +302,23 @@ public sealed class EntryJourneyBrowserTests(
         Assert.False(await page.EvaluateAsync<bool>("() => window.__lwcReveal.transition"), $"{from} -> {to} started a journey transition");
         Assert.True(errors.Count == 0, $"{from} -> {to}: {string.Join("; ", errors)}");
     }
+
+    [Fact]
+    public async Task DiscountedJoin_StillFitsTheStageTracksAndFootIn1440x900()
+    {
+        await using var context = await NewJourneyContextAsync(1440, 900, dark: false, reducedMotion: true);
+        await context.AddInitScriptAsync("""
+            const athlete = { Name: 'Browser Test Athlete', DisplayName: 'Browser Test Athlete', PersonalLink: 'https://example.test/a', DateOfBirth: { Year: 1980, Month: 5, Day: 20 }, Biomarkers: [] };
+            sessionStorage.setItem('selectedAthlete', JSON.stringify(athlete));
+            localStorage.setItem('selectedAthleteName', athlete.Name);
+            localStorage.setItem('hasApplication', 'true');
+            localStorage.setItem('gmaHasPerfectGuess', '1');
+            """);
+        var page = await OpenJoinAsync(context);
+        await Assertions.Expect(page.Locator("#joinProDiscountNote")).ToBeVisibleAsync();
+        await page.EvaluateAsync("async () => { window.LwcFlowActionDock?.refreshNow?.(); await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))); }");
+        Assert.False(await HasDockClassAsync(page, ".play-join-actions"), "Back left the foot for the dock");
+        var noteBottom = await page.EvaluateAsync<double>("() => document.querySelector('.play-join-challenge-note').getBoundingClientRect().bottom");
+        Assert.True(noteBottom <= 900, $"the lifestyle detour ends at {noteBottom}px, below the first screen");
+    }
 }
