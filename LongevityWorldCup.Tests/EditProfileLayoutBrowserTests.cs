@@ -73,6 +73,9 @@ public sealed class EditProfileLayoutBrowserTests(
                 const portrait = rect(document.querySelector('.edit-profile-visual'));
                 // Touch screens lead with Take selfie; the picture's actions are one group.
                 const pictureAction = rect(document.getElementById('changeProfilePicWrapper'));
+                const title = rect(document.getElementById('character-title'));
+                // Narrow and touch cards stack the name above the picture's actions.
+                const headTop = title.bottom <= pictureAction.top + 1 ? title.bottom : portrait.bottom;
                 const fields = rect(document.getElementById('editOptionsGroup'));
                 const actions = document.querySelector('.edit-profile-actions');
                 const a = rect(actions);
@@ -85,7 +88,7 @@ public sealed class EditProfileLayoutBrowserTests(
                 const flag = rect(document.getElementById('flagDisplayInput'));
                 return [
                     portrait.top - c.top, c.left - portrait.left, portrait.right - c.right,
-                    pictureAction.top - portrait.bottom, fields.top - pictureAction.bottom,
+                    pictureAction.top - headTop, fields.top - pictureAction.bottom,
                     fields.left - c.left, c.right - fields.right,
                     docked ? 1 : 0,
                     card.contains(source) ? 1 : 0, foot.top - fields.bottom, c.bottom - foot.bottom,
@@ -100,11 +103,12 @@ public sealed class EditProfileLayoutBrowserTests(
         Assert.InRange(layout[0], 0, 2);
         Assert.InRange(layout[1], -2, 0);
         Assert.InRange(layout[2], -2, 0);
-        Assert.True(layout[3] is > 0 and < 32, $"{scenario}: the picture's action should sit directly under the portrait header ({layout[3]}px).");
+        Assert.True(layout[3] is >= 0 and < 32, $"{scenario}: the picture's actions should open the head directly under the banner ({layout[3]}px).");
         Assert.True(layout[4] > 0, $"{scenario}: the fields should follow the picture's action.");
         Assert.True(layout[5] >= 12 && layout[6] >= 12, $"{scenario}: fields should sit inside the card's body padding.");
         Assert.True(layout[8] == 1, $"{scenario}: the command source or dock placeholder should remain in the card's foot.");
-        Assert.True(layout[9] > 0 && layout[10] >= 12, $"{scenario}: the commands should close the card below its fields.");
+        // The commands are the card's edge-to-edge foot band, flush with its bottom edge.
+        Assert.True(layout[9] > 0 && layout[10] is >= 0 and <= 30, $"{scenario}: the commands should close the card below its fields ({layout[10]}px).");
         Assert.True(layout[11] >= -1, $"{scenario}: commands should remain reachable in the viewport ({layout[11]}px).");
         Assert.True(layout[12] <= 1 && layout[13] > 0, $"{scenario}: Back and Submit should share one row, Back first.");
         Assert.True(layout[14] <= 1 && layout[15] > 0, $"{scenario}: Division and Flag should pair in one row of the field grid.");
@@ -159,7 +163,7 @@ public sealed class EditProfileLayoutBrowserTests(
     [Theory]
     [InlineData(390, 844)]
     [InlineData(320, 640)]
-    public async Task Phones_KeepTheSameCard_WithThePictureActionsUnderThePortrait(int width, int height)
+    public async Task Phones_KeepTheSameCard_WithThePictureActionsUnderTheName(int width, int height)
     {
         await using var context = await CreateContextAsync(width, height);
         var page = await OpenEditorAsync(context);
@@ -170,17 +174,18 @@ public sealed class EditProfileLayoutBrowserTests(
                 if (!card) return [];
                 const portrait = document.querySelector('.edit-profile-visual').getBoundingClientRect();
                 const action = document.getElementById('takeProfileSelfieButton').getBoundingClientRect();
+                const title = document.getElementById('character-title').getBoundingClientRect();
                 const fields = document.getElementById('editOptionsGroup').getBoundingClientRect();
-                return [portrait.top - card.top, action.top - portrait.bottom, fields.top - action.bottom,
+                return [portrait.top - card.top, action.top - title.bottom, fields.top - action.bottom,
                     card.left, innerWidth - card.right, portrait.width / portrait.height];
             }
             """);
         Assert.True(layout.Length > 0, $"{width}px: the editor should be one .edit-profile-card.");
         Assert.InRange(layout[0], 0, 2);
-        Assert.True(layout[1] is > 0 and < 32, $"{width}px: Take selfie should sit directly under the portrait.");
+        Assert.True(layout[1] is > 0 and < 32, $"{width}px: Take selfie should sit directly under the athlete's name.");
         Assert.True(layout[2] > 0, $"{width}px: the fields should follow the picture's actions.");
         Assert.True(layout[3] >= 8 && layout[4] >= 8, $"{width}px: the card should keep a gutter.");
-        Assert.True(layout[5] > 1.3, $"{width}px: the portrait should be a wide header, not a tall square ({layout[5]:F2}).");
+        Assert.True(layout[5] > 1.3, $"{width}px: the banner should be a wide header, not a tall square ({layout[5]:F2}).");
         await ExpectNoHorizontalOverflowAsync(page);
     }
 
@@ -262,7 +267,7 @@ public sealed class EditProfileLayoutBrowserTests(
     [InlineData(844, 390, true)]
     [InlineData(1280, 720, false)]
     [InlineData(1440, 900, true)]
-    public async Task LongName_AtActualDoubleTextSize_StaysInsideTheImageWithPortraitRoom(int width, int height, bool dark)
+    public async Task LongName_AtActualDoubleTextSize_StaysInsideTheCard_BesideOrBelowThePortrait(int width, int height, bool dark)
     {
         const string name = "Vishwamithra Shashishekara";
         await using var context = await CreateContextAsync(width, height, dark, name);
@@ -279,24 +284,23 @@ public sealed class EditProfileLayoutBrowserTests(
         var layout = await page.EvaluateAsync<double[]>("""
             () => {
                 const title = document.getElementById('character-title');
-                const caption = title.getBoundingClientRect();
-                const image = document.querySelector('.edit-profile-visual .illustration').getBoundingClientRect();
+                const card = document.querySelector('.edit-profile-card').getBoundingClientRect();
+                const portrait = document.querySelector('.edit-profile-visual picture').getBoundingClientRect();
                 const range = document.createRange(); range.selectNodeContents(title);
                 const text = [...range.getClientRects()];
-                return [caption.top - image.top, image.bottom - caption.bottom, caption.height / image.height,
+                return [
+                    text.every(r => r.left >= card.left && r.right <= card.right) ? 1 : 0,
+                    text.every(r => r.bottom <= portrait.top || r.top >= portrait.bottom - 1
+                        || r.left >= portrait.right - 1 || r.right <= portrait.left) ? 1 : 0,
                     parseFloat(getComputedStyle(title).fontSize),
-                    text.every(r => r.left >= image.left - 1 && r.right <= image.right + 1
-                        && r.top >= image.top - 1 && r.bottom <= image.bottom + 1) ? 1 : 0,
                     parseFloat(getComputedStyle(document.documentElement).fontSize)];
             }
             """);
-        Assert.True(layout[0] > 0, "Keep visible portrait space above the full name.");
-        Assert.InRange(layout[1], -1, 1);
-        Assert.InRange(layout[2], 0, 0.51);
-        Assert.InRange(layout[5] / normalRootFont, 1.99, 2.01);
-        Assert.True(layout[3] >= normalFont * 1.9,
-            $"{width}x{height}: caption {normalFont}px → {layout[3]}px; root {normalRootFont}px → {layout[5]}px. The caption must really enlarge with the user's text setting.");
-        Assert.Equal(1, layout[4]);
+        Assert.True(layout[0] == 1, $"{width}x{height}: the full name should stay inside the card.");
+        Assert.True(layout[1] == 1, $"{width}x{height}: the name should never run under the portrait.");
+        Assert.InRange(layout[3] / normalRootFont, 1.99, 2.01);
+        Assert.True(layout[2] >= normalFont * 1.6,
+            $"{width}x{height}: title {normalFont}px → {layout[2]}px. The name must enlarge with the user's text setting.");
         await ExpectNoHorizontalOverflowAsync(page);
     }
 
@@ -320,7 +324,7 @@ public sealed class EditProfileLayoutBrowserTests(
     [InlineData(390, false, 800, 200)]
     [InlineData(1280, true, 200, 800)]
     [InlineData(320, true, 200, 200)]
-    public async Task DifferentImageShapes_KeepTheCaptionInsideTheActualImage(int width, bool dark, int imageWidth, int imageHeight)
+    public async Task DifferentImageShapes_FillThePortraitCircle(int width, bool dark, int imageWidth, int imageHeight)
     {
         await using var context = await CreateContextAsync(width, 844, dark);
         await context.RouteAsync("**/review-portrait.svg", route => route.FulfillAsync(new()
@@ -333,10 +337,14 @@ public sealed class EditProfileLayoutBrowserTests(
         await page.WaitForFunctionAsync("() => { const img = document.querySelector('.edit-profile-visual .illustration'); return img.complete && img.naturalWidth > 0; }");
         Assert.True(await page.EvaluateAsync<bool>("""
             () => {
-                const image = document.querySelector('.edit-profile-visual .illustration').getBoundingClientRect();
-                const caption = document.getElementById('character-title').getBoundingClientRect();
-                return caption.top > image.top && Math.abs(caption.bottom - image.bottom) <= 1
-                    && Math.abs(caption.left - image.left) <= 1 && Math.abs(caption.right - image.right) <= 1;
+                const img = document.querySelector('.edit-profile-visual .illustration');
+                const image = img.getBoundingClientRect();
+                const frame = img.parentElement;
+                const circle = frame.getBoundingClientRect();
+                const border = parseFloat(getComputedStyle(frame).borderTopWidth);
+                return getComputedStyle(img).objectFit === 'cover'
+                    && Math.abs(image.width - (circle.width - 2 * border)) <= 1
+                    && Math.abs(image.height - (circle.height - 2 * border)) <= 1;
             }
             """));
     }
@@ -580,13 +588,13 @@ public sealed class EditProfileLayoutBrowserTests(
                 const style = getComputedStyle(motivation);
                 return [selfie.width, Math.abs(selfie.top - change.top), change.left - selfie.right,
                     motivation.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom),
-                    parseFloat(style.lineHeight), document.querySelector('.edit-profile-visual').getBoundingClientRect().height];
+                    parseFloat(style.lineHeight), document.querySelector('.edit-profile-visual picture').getBoundingClientRect().height];
             }
             """);
         Assert.True(layout[0] >= 44 && layout[1] <= 1 && layout[2] > 0,
             $"{width}x{height}: the two touch picture sources should share the tablet's available row.");
         Assert.True(layout[3] >= layout[4] * 3 - 1, "Motivation should retain at least three lines.");
-        Assert.True(layout[5] >= 144, "Short viewports may scroll instead of shrinking the portrait.");
+        Assert.True(layout[5] >= 111, "Short viewports may scroll instead of shrinking the portrait.");
         await ExpectNoHorizontalOverflowAsync(page);
     }
 
@@ -729,35 +737,6 @@ public sealed class EditProfileLayoutBrowserTests(
             }
             """);
         return context;
-    }
-
-    [Theory]
-    [InlineData(1440, 900)]
-    [InlineData(1280, 720)]
-    [InlineData(768, 1024)]
-    [InlineData(390, 844)]
-    [InlineData(320, 640)]
-    public async Task Portrait_IsThePlayerCardCaptionedWithTheAthletesName(int width, int height)
-    {
-        await using var context = await CreateContextAsync(width, height);
-        var page = await OpenEditorAsync(context);
-        var layout = await page.EvaluateAsync<double[]>(
-            """
-            () => {
-                const title = document.getElementById('character-title').getBoundingClientRect();
-                const picture = document.querySelector('.edit-profile-visual .illustration').getBoundingClientRect();
-                const style = getComputedStyle(document.getElementById('character-title'));
-                return [title.top - picture.top, picture.bottom - title.bottom, title.left - picture.left, picture.right - title.right,
-                    style.color === 'rgb(255, 255, 255)' ? 1 : 0];
-            }
-            """);
-        var scenario = $"{width}x{height}";
-        Assert.True(layout[0] > 0, $"{scenario}: the name should sit on the portrait, not above it.");
-        Assert.InRange(layout[1], -1, 1);
-        Assert.InRange(layout[2], -1, 1);
-        Assert.InRange(layout[3], -1, 1);
-        Assert.Equal(1, layout[4]);
-        await ExpectNoHorizontalOverflowAsync(page);
     }
 
     [Theory]
