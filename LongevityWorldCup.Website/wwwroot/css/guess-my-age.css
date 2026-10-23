@@ -1936,6 +1936,117 @@
 #detailsModal .gma-card.gma-done {
     margin: 0;
 }
+/*
+ * One game cabinet. Top to bottom the card reads as the prompt, a recessed dial well that
+ * holds the guess, and a dock shelf that bleeds to the card's edges. Skip and Submit, the
+ * in-flight status and later the payoff banner all land on that same shelf, so every beat
+ * of a round happens in the same three places.
+ */
+#detailsModal .gma-card {
+    --gma-card-pad-x: clamp(1rem, 4vw, 2.25rem);
+    --gma-dock-pad: clamp(0.8rem, 2vh, 1.1rem);
+    --gma-dock-pad-end: var(--gma-dock-pad);
+    --gma-well-pad-x: clamp(0.7rem, 2.2vw, 1.15rem);
+    --gma-well-pad-y: clamp(0.55rem, 1.5vh, 0.85rem);
+    --gma-cabinet-radius: var(--lwc-radius-lg, 12px);
+    /* The prompt clears the PRO plate that hangs off the portrait. */
+    padding:
+        calc(var(--gma-overlap, 0px) + var(--gma-bezel-gap, 0px) + clamp(1.1rem, 2.6vh, 1.6rem))
+        var(--gma-card-pad-x)
+        var(--gma-dock-pad-end);
+}
+
+/* The dock shelf is painted by the card itself, so it frames whichever beat owns the slot. */
+#detailsModal .gma-card::before {
+    content: '';
+    grid-area: dock;
+    justify-self: stretch;
+    align-self: stretch;
+    z-index: -1;
+    margin:
+        calc(-1 * var(--gma-dock-pad))
+        calc(-1 * var(--gma-card-pad-x))
+        calc(-1 * var(--gma-dock-pad-end));
+    border-top: 1px solid rgba(246,244,237,.16);
+    border-radius: 0 0 calc(var(--gma-cabinet-radius) - 1px) calc(var(--gma-cabinet-radius) - 1px);
+    background: linear-gradient(180deg, rgba(0,0,0,.26), rgba(0,0,0,.16));
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.05);
+    pointer-events: none;
+}
+
+/* The guess lives in a recessed well: bubble, track and ruler are one instrument.
+   The reveal keeps the same well, so nothing below it moves when the answer lands. */
+#detailsModal .gma-card .gma-slider-wrap,
+#detailsModal .gma-card.is-revealing .gma-slider-wrap {
+    box-sizing: border-box;
+    margin: 0 0 calc(var(--gma-slider-gap) + var(--gma-dock-pad));
+    padding:
+        calc(var(--gma-bubble-room, 5rem) + var(--gma-well-pad-y))
+        var(--gma-well-pad-x)
+        calc(var(--gma-ruler-room) + var(--gma-well-pad-y));
+    border: 1px solid rgba(246,244,237,.13);
+    border-radius: var(--gma-cabinet-radius);
+    background:
+        radial-gradient(90% 110% at 50% 100%, rgba(246,244,237,.07), transparent 70%),
+        rgba(0,0,0,.28);
+    box-shadow: inset 0 2px 7px rgba(0,0,0,.42), 0 1px 0 rgba(255,255,255,.06);
+}
+
+#detailsModal .gma-card #gmaBubble,
+#detailsModal .gma-card #gmaRealBubble {
+    top: var(--gma-well-pad-y);
+}
+
+/* Decades read as the major marks of the ruler, half-decades as the minor ones. */
+#detailsModal .gma-card .gma-slider-wrap::after {
+    left: calc(var(--gma-well-pad-x) + (var(--gma-thumb, 64px) / 2));
+    right: calc(var(--gma-well-pad-x) + (var(--gma-thumb, 64px) / 2));
+    bottom: calc(var(--gma-well-pad-y) + 0.1rem);
+    height: 0.7rem;
+    background:
+        linear-gradient(90deg, var(--athlete-modal-cream, rgba(246,244,237,.92)) 0 2px, transparent 2px) 0 0 / calc((100% - 2px) / 13) 100% repeat-x,
+        linear-gradient(90deg, var(--athlete-modal-border, rgba(246,244,237,.34)) 0 1px, transparent 1px) calc((100% - 2px) / 26) 100% / calc((100% - 2px) / 13) 45% repeat-x;
+    opacity: 0.7;
+}
+
+/* A failed or refused submission reads as a notice chip above the well, not loose text. */
+#detailsModal .gma-card:not(.is-submitting) #gmaStatus:not(.gma-status--semantic):not([hidden]) {
+    display: block;
+    box-sizing: border-box;
+    max-width: 100%;
+    margin: 0 auto clamp(0.6rem, 1.6vh, 0.9rem);
+    padding: 0.45rem 1rem;
+    border: 1px solid rgba(255,139,160,.5);
+    border-radius: var(--lwc-radius-pill, 999px);
+    background: rgba(59,32,40,.78);
+    color: var(--athlete-modal-text, rgba(255,255,255,.94));
+    font-weight: 600;
+    text-wrap: balance;
+}
+
+/* While the request is in flight the shelf carries the status between two quiet rules. */
+#detailsModal .gma-card.is-submitting #gmaStatus:not(.gma-status--semantic) {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    justify-self: stretch;
+    color: var(--athlete-modal-cream, rgba(246,244,237,.92));
+    font-weight: 600;
+    letter-spacing: 0.04em;
+}
+
+#detailsModal .gma-card.is-submitting #gmaStatus:not(.gma-status--semantic)::before,
+#detailsModal .gma-card.is-submitting #gmaStatus:not(.gma-status--semantic)::after {
+    content: '';
+    flex: 1 1 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--athlete-modal-border, rgba(246,244,237,.34)));
+}
+
+#detailsModal .gma-card.is-submitting #gmaStatus:not(.gma-status--semantic)::after {
+    background: linear-gradient(90deg, var(--athlete-modal-border, rgba(246,244,237,.34)), transparent);
+}
+
 @media (max-width: 768px) {
     #detailsModal .modal-content.guess-mode #guessAgeContainer {
         --gma-card-celebrate-scale: 1;
@@ -2098,6 +2209,44 @@
         min-width: 100%;
         overflow: visible;
         white-space: normal;
+    }
+}
+
+/*
+ * Phones hold the cabinet like a controller: the card becomes a sheet docked to the bottom
+ * edge, Submit sits in thumb reach above the home indicator, and the portrait takes the
+ * room that used to sit empty below the card.
+ */
+@media (max-width: 600px) and (orientation: portrait) {
+    #detailsModal .modal-content.guess-mode #athlete-profile {
+        --gma-portrait-max: min(340px, 80vw);
+        grid-template-rows:
+            minmax(var(--gma-top-room), 1fr)
+            minmax(var(--gma-portrait-min), var(--gma-portrait-max))
+            auto;
+    }
+
+    #detailsModal .modal-content.guess-mode #guessAgeContainer {
+        justify-self: stretch;
+        width: auto;
+        margin:
+            calc(-1 * var(--gma-overlap))
+            calc(-1 * max(15px, env(safe-area-inset-right)))
+            calc(-1 * max(15px, env(safe-area-inset-bottom)))
+            calc(-1 * max(15px, env(safe-area-inset-left)));
+    }
+
+    #detailsModal .modal-content.guess-mode .gma-card {
+        --gma-card-pad-x: max(1.1rem, calc(env(safe-area-inset-left) + 0.75rem));
+        --gma-dock-pad: 0.9rem;
+        --gma-dock-pad-end: max(1rem, calc(env(safe-area-inset-bottom) + 0.6rem));
+        border-width: 1px 0 0;
+        border-radius: calc(var(--gma-cabinet-radius) * 1.5) calc(var(--gma-cabinet-radius) * 1.5) 0 0;
+        box-shadow: 0 -0.9rem 2.2rem rgba(0,0,0,.34), 0 1px 0 rgba(255,255,255,.08) inset;
+    }
+
+    #detailsModal .modal-content.guess-mode .gma-card::before {
+        border-radius: 0;
     }
 }
 
