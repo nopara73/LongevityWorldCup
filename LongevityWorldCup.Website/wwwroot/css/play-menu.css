@@ -2849,6 +2849,14 @@ body.play-start-active .play-menu-actions:not(.flow-action-stack--docked) .flow-
 
     .play-hub-main .play-join-head {
         padding: 1.5rem 0.25rem 3.75rem;
+        /* The halo fades out by the band's own edges, so it meets the painted
+           gutters without a seam. */
+        background:
+            radial-gradient(ellipse 50% 100% at 50% 0%,
+                rgba(25, 195, 209, 0.18) 0%,
+                rgba(25, 195, 209, 0.06) 55%,
+                rgba(25, 195, 209, 0) 100%),
+            var(--play-track-it-bg, #101820);
         box-shadow: 0 0 0 100vmax var(--play-track-it-bg, #101820);
         clip-path: inset(0 -100vmax);
     }
