@@ -690,9 +690,15 @@ async function copyBitcoinAddress() {
         if (document.activeElement === bitcoinAddressFallback) bitcoinCopyButton.focus({ preventScroll: true });
         bitcoinCopyTimer = setTimeout(function () {
             copiedTextElement.hidden = true;
-            copiedTextElement.textContent = '';
-            bitcoinAddressLink.style.display = '';
-            adjustBitcoinAddressDisplay();
+            // The address returns to the toast's place once the toast has left it.
+            const restoreAddress = function () {
+                if (!copiedTextElement.hidden) return;
+                copiedTextElement.textContent = '';
+                bitcoinAddressLink.style.display = '';
+                adjustBitcoinAddressDisplay();
+            };
+            if (window.LwcMotion) window.LwcMotion.afterExit(copiedTextElement, restoreAddress);
+            else restoreAddress();
         }, 2000);
     } else {
         bitcoinAddressFallback.value = bitcoinDonationAddress;

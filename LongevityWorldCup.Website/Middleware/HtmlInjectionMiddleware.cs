@@ -594,7 +594,10 @@ $@"<div id=""{AthleteDialogRuntimeId}""
                 return html;
             }
 
-            var stylesheet = $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/aesthetic-system.css")}\">{Environment.NewLine}";
+            // Motion comes first so the aesthetic system stays the last stylesheet in the head.
+            var stylesheet = $"<script src=\"{_assetVersionProvider.AppendVersion("/js/motion.js")}\" defer></script>{Environment.NewLine}"
+                + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/motion.css")}\">{Environment.NewLine}"
+                + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/aesthetic-system.css")}\">{Environment.NewLine}";
             return html.Insert(closingHeadIndex, stylesheet);
         }
 
