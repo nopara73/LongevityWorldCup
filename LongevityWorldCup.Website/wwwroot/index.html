@@ -126,7 +126,7 @@
                         <p class="lwc-merch-copy"><a class="lwc-merch-copy-link"
                            href="https://merch.longevityworldcup.com/"
                            target="_blank"
-                           rel="noopener">The Longevity World Cup store</a> contains high-end, <strong>longevitymaxxing</strong> organic cotton clothing, blood tests, and more - now with reduced prices!</p>
+                           rel="noopener">The Longevity World Cup store</a> contains high-end, <strong>longevitymaxxing</strong> organic cotton clothing, blood tests, and more.</p>
                         <div class="lwc-merch-grid">
                             <a class="lwc-merch-item"
                                href="https://merch.longevityworldcup.com/product/white-glossy-mug/"
@@ -292,7 +292,7 @@
                 </div>
             </div>
             <p class="homepage-section-footer">
-                <a href="/history" style="color: var(--primary-color); text-decoration: underline;"><i class="fas fa-book-open" aria-hidden="true"></i> History of longevity as a sport</a>
+                <a href="/history"><i class="fas fa-book-open" aria-hidden="true"></i> History of longevity as a sport</a>
             </p>
         </section>
 
@@ -351,8 +351,10 @@
                         <a id="btcAddressLink" href="#" target="_blank" rel="noopener" title="View Bitcoin donations" aria-label="View the Bitcoin donation address on mempool.space">
                             <!-- Bitcoin address will be inserted here by JavaScript -->
                         </a>
+                        <input id="bitcoinAddressFallback" type="text" readonly hidden aria-label="Bitcoin donation address" aria-describedby="bitcoinCopyHelp" spellcheck="false">
                         <span id="bitcoinCopyStatus" role="status" aria-live="polite" aria-atomic="true">
                             <span id="copiedText" hidden></span>
+                            <span id="bitcoinCopyHelp" hidden>Copy the selected address.</span>
                         </span>
                         <button type="button" id="bitcoinCopyButton" class="copy-btn" onclick="copyBitcoinAddress()" title="Copy Bitcoin address" aria-label="Copy Bitcoin donation address" disabled aria-disabled="true">
                             <i class="fas fa-copy"></i>

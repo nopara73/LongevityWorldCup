@@ -1048,10 +1048,9 @@ public sealed class ApplicationControllerValidationTests(TestWebApplicationFacto
         Assert.Contains("paymentRequired: true", failureBody);
         Assert.Contains("invoiceId: null", failureBody);
         Assert.Contains("checkoutLink: null", failureBody);
-        Assert.Contains("await TrySendSubmissionConfirmationEmailAsync(", failureBody);
-        Assert.Contains("paymentUnavailable: true", failureBody);
         Assert.Contains("PaymentUnavailable: true", failureBody);
-        Assert.Contains("submissionLease.Complete(paymentUnavailableResponse);", failureBody);
+        Assert.Contains("CompleteSubmission(paymentUnavailableResponse);", failureBody);
+        Assert.Contains("response.CheckoutLink, response.PaymentUnavailable == true", source);
         Assert.Contains("return Ok(paymentUnavailableResponse);", failureBody);
         Assert.DoesNotContain("return StatusCode(500, $\"Application sent, but failed to create BTCPay invoice:", failureBody);
     }
@@ -1078,7 +1077,7 @@ public sealed class ApplicationControllerValidationTests(TestWebApplicationFacto
         Assert.Contains("return await StatusCodeWithStatsAsync(500, \"application_archive_failed\", \"Internal server error: application could not be saved.\").ConfigureAwait(false);", emailBody);
         Assert.Contains("return Ok(freeSubmissionResponse);", freeSubmissionBody);
         Assert.Contains("PaymentRequired: false", freeSubmissionBody);
-        Assert.Contains("submissionLease.Complete(freeSubmissionResponse);", freeSubmissionBody);
+        Assert.Contains("CompleteSubmission(freeSubmissionResponse);", freeSubmissionBody);
         Assert.Contains("AuditEmailDelivered={AuditEmailDelivered} ArchivePath={ArchivePath}", freeSubmissionBody);
     }
 
@@ -1179,15 +1178,16 @@ public sealed class ApplicationControllerValidationTests(TestWebApplicationFacto
     {
         var source = ReadApplicationControllerSource();
 
-        var freeComplete = source.IndexOf("submissionLease.Complete(freeSubmissionResponse);", StringComparison.Ordinal);
-        var freeConfirmation = source.IndexOf("await TrySendSubmissionConfirmationEmailAsync(", freeComplete, StringComparison.Ordinal);
-        var paymentUnavailableComplete = source.IndexOf("submissionLease.Complete(paymentUnavailableResponse);", StringComparison.Ordinal);
+        var freeComplete = source.IndexOf("CompleteSubmission(freeSubmissionResponse);", StringComparison.Ordinal);
+        var freeReport = source.IndexOf("await TryRecordDiscountSignupAsync(", freeComplete, StringComparison.Ordinal);
+        var paymentUnavailableComplete = source.IndexOf("CompleteSubmission(paymentUnavailableResponse);", StringComparison.Ordinal);
         var paymentUnavailableReport = source.IndexOf("await TryRecordDiscountSignupAsync(", paymentUnavailableComplete, StringComparison.Ordinal);
-        var paidComplete = source.IndexOf("submissionLease.Complete(paidSubmissionResponse);", StringComparison.Ordinal);
+        var paidComplete = source.IndexOf("CompleteSubmission(paidSubmissionResponse);", StringComparison.Ordinal);
         var paidReport = source.IndexOf("await TryRecordDiscountSignupAsync(", paidComplete, StringComparison.Ordinal);
 
         Assert.True(freeComplete >= 0);
-        Assert.True(freeConfirmation > freeComplete);
+        Assert.True(freeReport > freeComplete);
+        Assert.Contains("submissionLease.Complete(response, confirmation);", source);
         Assert.True(paymentUnavailableComplete >= 0);
         Assert.True(paymentUnavailableReport > paymentUnavailableComplete);
         Assert.True(paidComplete >= 0);
@@ -1198,7 +1198,7 @@ public sealed class ApplicationControllerValidationTests(TestWebApplicationFacto
     public void ApplicationArchive_UsesDurableDataDirectory()
     {
         var source = ReadApplicationControllerSource();
-        var methodStart = source.IndexOf("private static async Task<string> PersistApplicationSubmissionArchiveAsync", StringComparison.Ordinal);
+        var methodStart = source.IndexOf("internal virtual async Task<string> PersistApplicationSubmissionArchiveAsync", StringComparison.Ordinal);
         var methodEnd = source.IndexOf("private static string SanitizeArchiveFilePart", methodStart, StringComparison.Ordinal);
 
         Assert.True(methodStart >= 0);

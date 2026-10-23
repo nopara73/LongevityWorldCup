@@ -1735,11 +1735,7 @@ function hideCard(e) {
     // if they clicked “Skip All”, set global flag
     const isSkipAll = e.currentTarget.id === 'gmaSkipAll';
     if (isSkipAll) {
-        try {
-            localStorage.setItem('gmaSkipAll', 'true');
-        } catch (error) {
-            console.warn('Could not persist the Guess My Age skip-all preference.', error);
-        }
+        window.LwcGuessState?.skipAll();
     }
 
     const modalContent = document.querySelector('#detailsModal .modal-content');

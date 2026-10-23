@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using System.Text.Json.Nodes;
 using LongevityWorldCup.Website.Business;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
@@ -118,18 +119,17 @@ public sealed class ShareCardLayoutTests(TestWebApplicationFactory factory)
     [Fact]
     public async Task LeagueRender_KeepsThePortraitsCapturedWithItsSignature()
     {
-        await using var isolated = new TestWebApplicationFactory();
+        using var workspace = CreateLeagueWorkspace();
+        await using var isolated = new TestWebApplicationFactory(builder => builder.UseWebRoot(workspace.Root));
         var data = isolated.Services.GetRequiredService<AthleteDataService>();
         var images = isolated.Services.GetRequiredService<LeagueOgImageService>();
         Assert.True(images.TryGetCurrentPayload("ultimate", out var payload));
-        Assert.Contains(payload.ProfilePaths!, path => path is not null);
+        Assert.Equal(3, payload.Top3Slugs.Count);
+        Assert.All(payload.ProfilePaths!, path => Assert.NotNull(path));
         var control = payload with { Signature = "snapshot-before-" + payload.Signature };
         var before = await File.ReadAllBytesAsync((await images.EnsureRenderedImageAsync(control))!);
-        data.UpdateAthletesJsonInPlace(athlete =>
-        {
-            athlete["ProfilePic"] = "/assets/HdLogo.png";
-            athlete["ProfileImageId"] = "changed-after-payload";
-        });
+        await WaitForLeagueChangeAsync(data, images, workspace.ChangePortraits,
+            current => current.ProfilePaths!.Zip(payload.ProfilePaths!).All(pair => pair.First != pair.Second));
         var queued = payload with { Signature = "snapshot-after-" + payload.Signature };
         var after = await File.ReadAllBytesAsync((await images.EnsureRenderedImageAsync(queued))!);
         Assert.Equal(before, after);
@@ -140,12 +140,13 @@ public sealed class ShareCardLayoutTests(TestWebApplicationFactory factory)
     [Fact]
     public async Task LeagueSignature_IncludesDisplayNames()
     {
-        await using var isolated = new TestWebApplicationFactory();
+        using var workspace = CreateLeagueWorkspace();
+        await using var isolated = new TestWebApplicationFactory(builder => builder.UseWebRoot(workspace.Root));
         var data = isolated.Services.GetRequiredService<AthleteDataService>();
         var images = isolated.Services.GetRequiredService<LeagueOgImageService>();
         Assert.True(images.TryGetCurrentPayload("ultimate", out var before));
-        data.UpdateAthletesJsonInPlace(athlete => athlete["DisplayName"] = "Fixture name revision");
-        Assert.True(images.TryGetCurrentPayload("ultimate", out var after));
+        var after = await WaitForLeagueChangeAsync(data, images, workspace.ChangeDisplayNames,
+            current => current.Top3Names.Count == 3 && current.Top3Names.All(name => name.StartsWith("Revised fixture ", StringComparison.Ordinal)));
         Assert.Equal(before.Top3Slugs, after.Top3Slugs);
         Assert.NotEqual(before.Top3Names, after.Top3Names);
         Assert.NotEqual(before.Signature, after.Signature);
@@ -172,6 +173,99 @@ public sealed class ShareCardLayoutTests(TestWebApplicationFactory factory)
         {
             Assert.StartsWith(Path.GetFullPath(Path.GetTempPath()), Path.GetFullPath(directory));
             if (Directory.Exists(directory)) Directory.Delete(directory, true);
+        }
+    }
+
+    private LeagueWorkspace CreateLeagueWorkspace()
+    {
+        var source = factory.Services.GetRequiredService<IWebHostEnvironment>().WebRootPath;
+        var slugs = factory.Services.GetRequiredService<AthleteDataService>().GetTop3SlugsForLeague("ultimate");
+        return new LeagueWorkspace(source, slugs);
+    }
+
+    private static async Task<LeagueOgImageService.LeagueOgPayload> WaitForLeagueChangeAsync(
+        AthleteDataService data, LeagueOgImageService images, Action change,
+        Func<LeagueOgImageService.LeagueOgPayload, bool> changed)
+    {
+        var completion = new TaskCompletionSource<LeagueOgImageService.LeagueOgPayload>(TaskCreationOptions.RunContinuationsAsynchronously);
+        void Observe()
+        {
+            if (images.TryGetCurrentPayload("ultimate", out var current) && changed(current))
+                completion.TrySetResult(current);
+        }
+        data.AthletesChanged += Observe;
+        try
+        {
+            change();
+            Observe();
+            return await completion.Task.WaitAsync(TimeSpan.FromSeconds(30));
+        }
+        finally { data.AthletesChanged -= Observe; }
+    }
+
+    private sealed class LeagueWorkspace : IDisposable
+    {
+        private readonly List<string> _portraitPaths = [];
+        private readonly List<string> _athletePaths = [];
+        public string Root { get; } = Path.Combine(Path.GetTempPath(), "LwcLeagueSnapshot-" + Guid.NewGuid().ToString("N"));
+
+        public LeagueWorkspace(string source, IReadOnlyList<string> slugs)
+        {
+            Assert.Equal(3, slugs.Count);
+            var fonts = Path.Combine(source, "assets", "fonts");
+            foreach (var file in Directory.EnumerateFiles(fonts, "*", SearchOption.AllDirectories)
+                .Append(Path.Combine(source, "assets", "HdLogo.png")))
+            {
+                var target = Path.Combine(Root, Path.GetRelativePath(source, file));
+                Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+                File.Copy(file, target);
+            }
+            for (var index = 0; index < slugs.Count; index++)
+            {
+                var slug = "fixture-athlete-" + index;
+                var directory = Path.Combine(Root, "athletes", slug);
+                Directory.CreateDirectory(directory);
+                var athlete = JsonNode.Parse(File.ReadAllText(Path.Combine(source, "athletes", slugs[index], "athlete.json")))!;
+                athlete["Name"] = $"Fixture athlete {index}";
+                athlete["DisplayName"] = $"Fixture athlete {index}";
+                var jsonPath = Path.Combine(directory, "athlete.json");
+                File.WriteAllText(jsonPath, athlete.ToJsonString());
+                _athletePaths.Add(jsonPath);
+                _portraitPaths.Add(Path.Combine(directory, slug + ".png"));
+            }
+            WritePortraits(false);
+        }
+
+        public void ChangePortraits() => WritePortraits(true);
+
+        private void WritePortraits(bool changed)
+        {
+            for (var index = 0; index < _portraitPaths.Count; index++)
+            {
+                var color = changed ? new Rgba32(220, (byte)(50 + index * 60), 30) : new Rgba32(30, (byte)(50 + index * 60), 190);
+                using var image = new Image<Rgba32>(32, 32, color);
+                var temporary = _portraitPaths[index] + ".next";
+                image.SaveAsPng(temporary);
+                File.Move(temporary, _portraitPaths[index], overwrite: true);
+            }
+        }
+
+        public void ChangeDisplayNames()
+        {
+            for (var index = 0; index < _athletePaths.Count; index++)
+            {
+                var athlete = JsonNode.Parse(File.ReadAllText(_athletePaths[index]))!;
+                athlete["DisplayName"] = $"Revised fixture {index}";
+                var temporary = _athletePaths[index] + ".next";
+                File.WriteAllText(temporary, athlete.ToJsonString());
+                File.Move(temporary, _athletePaths[index], overwrite: true);
+            }
+        }
+
+        public void Dispose()
+        {
+            Assert.StartsWith(Path.GetFullPath(Path.GetTempPath()), Path.GetFullPath(Root));
+            if (Directory.Exists(Root)) Directory.Delete(Root, recursive: true);
         }
     }
 

@@ -131,10 +131,21 @@ public sealed class LeaderboardBoardBrowserTests(PlaywrightBrowserFixture browse
         await page.EvaluateAsync("percent => document.documentElement.style.fontSize = `${percent}%`", textPercent);
         await page.EvaluateAsync(
             "() => { document.documentElement.style.scrollBehavior = 'auto'; const row = document.querySelector('#athleteLeaderboard tbody tr:nth-child(40)'); scrollTo(0, row.getBoundingClientRect().top + scrollY - 300); }");
-        await page.WaitForTimeoutAsync(200);
-        var top = await page.Locator("#athleteLeaderboard thead th").Nth(1).EvaluateAsync<double>("th => th.getBoundingClientRect().top");
-        var headerBottom = await page.Locator("#site-sticky-header").EvaluateAsync<double>("header => header.getBoundingClientRect().bottom");
-        Assert.InRange(top - headerBottom, -1, 1);
+        // Text resizing updates the header through ResizeObserver. Wait for
+        // that measured offset, then sample both edges in the same layout.
+        await page.WaitForFunctionAsync("""
+            () => {
+                const header = document.getElementById('site-sticky-header');
+                const height = header.getBoundingClientRect().height;
+                const offset = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--site-sticky-height'));
+                return header.classList.contains('visible') && height > 0 && Math.abs(offset - height) < 0.1;
+            }
+            """);
+        var edges = await page.EvaluateAsync<double[]>("""
+            () => [document.querySelectorAll('#athleteLeaderboard thead th')[1].getBoundingClientRect().top,
+                document.getElementById('site-sticky-header').getBoundingClientRect().bottom]
+            """);
+        Assert.InRange(edges[0] - edges[1], -1, 1);
         var covered = await page.EvaluateAsync<bool>(
             "() => { const th = document.querySelectorAll('#athleteLeaderboard thead th')[1]; const box = th.getBoundingClientRect(); const hit = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2); return !th.contains(hit); }");
         Assert.False(covered, "Rows must pass under the held column heads.");
@@ -144,6 +155,56 @@ public sealed class LeaderboardBoardBrowserTests(PlaywrightBrowserFixture browse
             var railHeight = await page.Locator(".sidebar-rail-icon").EvaluateAsync<double>("icon => icon.getBoundingClientRect().height");
             Assert.InRange(railHeight - headingHeight, -1, 1);
         }
+    }
+
+    [Theory]
+    [InlineData(1440)]
+    [InlineData(901)]
+    [InlineData(769)]
+    [InlineData(390)]
+    public async Task FontEnlargement_RefreshesTheStickyOffsetBeforeResizeObservers(int width)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = 900 },
+            ReducedMotion = ReducedMotion.Reduce
+        });
+        await context.AddInitScriptAsync(
+            """
+            window.__holdHeaderResize = false;
+            window.__heldHeaderResizes = [];
+            const NativeResizeObserver = window.ResizeObserver;
+            window.ResizeObserver = class extends NativeResizeObserver {
+                constructor(callback) {
+                    super((entries, observer) => {
+                        const headerChanged = entries.some(entry => entry.target.matches(
+                            'header[role="banner"], header[role="banner"] .header-link, #site-sticky-header, .join-game'));
+                        if (window.__holdHeaderResize && headerChanged)
+                            window.__heldHeaderResizes.push(() => callback(entries, observer));
+                        else callback(entries, observer);
+                    });
+                }
+            };
+            """);
+        var page = await context.NewPageAsync();
+        await NavigateAndSettleAsync(page, "/leaderboard");
+        await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+        await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+        await page.EvaluateAsync(
+            """
+            () => {
+                window.__holdHeaderResize = true;
+                document.documentElement.style.fontSize = '200%';
+                document.documentElement.style.scrollBehavior = 'auto';
+                const row = document.querySelector('#athleteLeaderboard tbody tr:nth-child(40)');
+                scrollTo(0, row.getBoundingClientRect().top + scrollY - 300);
+            }
+            """);
+        await page.WaitForFunctionAsync(
+            "() => window.__heldHeaderResizes.length > 0 && document.querySelector('#site-sticky-header').classList.contains('visible')");
+        var gap = await page.EvaluateAsync<double>(
+            "() => document.querySelectorAll('#athleteLeaderboard thead th')[1].getBoundingClientRect().top - document.querySelector('#site-sticky-header').getBoundingClientRect().bottom");
+        Assert.InRange(gap, -1, 1);
     }
 
     [Fact]

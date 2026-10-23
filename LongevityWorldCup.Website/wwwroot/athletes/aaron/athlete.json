@@ -24,5 +24,14 @@
   "Division": "Men's",
   "Flag": "United States",
   "Why": "To extend my health span as long as possible",
-  "PersonalLink": null
+  "PersonalLink": null,
+  "SocialProfiles": {
+    "Threads": {
+      "Url": "https://www.threads.com/@aaron4td",
+      "EvidenceUrls": [
+        "https://www.instagram.com/aaron4td/"
+      ],
+      "VerifiedOn": "2026-10-23"
+    }
+  }
 }

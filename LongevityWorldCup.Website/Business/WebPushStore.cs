@@ -13,6 +13,8 @@ public sealed class WebPushStore
     private readonly DatabaseManager _db;
     private static string Stamp(DateTimeOffset value) => value.UtcDateTime.ToString("o", CultureInfo.InvariantCulture);
     private static string Id(WebPushSubscription subscription) => Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(subscription.Endpoint)));
+    private static string Identity(WebPushSubscription subscription) => Convert.ToHexStringLower(SHA256.HashData(
+        Encoding.UTF8.GetBytes(subscription.Endpoint + "\n" + subscription.Keys.P256dh + "\n" + subscription.Keys.Auth)));
 
     public WebPushStore(DatabaseManager db)
     {
@@ -31,12 +33,13 @@ public sealed class WebPushStore
                     PRIMARY KEY (EventId, SubscriptionId),
                     FOREIGN KEY (SubscriptionId) REFERENCES WebPushSubscriptions(Id) ON DELETE CASCADE
                 );
+                CREATE TABLE IF NOT EXISTS WebPushRevocations (Identity TEXT PRIMARY KEY, RevokedAtUtc TEXT NOT NULL);
                 """;
             cmd.ExecuteNonQuery();
         });
     }
 
-    internal void Subscribe(WebPushSubscription subscription, DateTimeOffset now) => _db.Run(sqlite =>
+    internal void Subscribe(WebPushSubscription subscription, DateTimeOffset now, IReadOnlyList<WebPushSubscription>? previous = null) => _db.Run(sqlite =>
     {
         using var tx = sqlite.BeginTransaction();
         using var cmd = sqlite.CreateCommand();
@@ -46,37 +49,92 @@ public sealed class WebPushStore
         cmd.Parameters.AddWithValue("@p256dh", subscription.Keys.P256dh);
         cmd.Parameters.AddWithValue("@auth", subscription.Keys.Auth);
         cmd.Parameters.AddWithValue("@now", Stamp(now));
+        cmd.Parameters.AddWithValue("@identity", Identity(subscription));
+        cmd.CommandText = "SELECT COUNT(*) FROM WebPushRevocations WHERE Identity = @identity;";
+        if ((long)cmd.ExecuteScalar()! != 0) throw new InvalidOperationException("Subscription was revoked.");
         cmd.CommandText = "SELECT P256dh, Auth FROM WebPushSubscriptions WHERE Id = @id;";
         var existing = false;
         using (var reader = cmd.ExecuteReader())
         {
             existing = reader.Read();
-            if (existing && (reader.GetString(0) != subscription.Keys.P256dh || reader.GetString(1) != subscription.Keys.Auth))
+            if (existing && (reader.GetString(0) != subscription.Keys.P256dh || reader.GetString(1) != subscription.Keys.Auth)
+                && !(previous?.Any(old => old.Endpoint == subscription.Endpoint && old.Keys.P256dh == reader.GetString(0)
+                    && old.Keys.Auth == reader.GetString(1)) ?? false))
                 throw new InvalidOperationException("Subscription keys do not match.");
         }
         if (!existing)
         {
             cmd.CommandText = "SELECT COUNT(*) FROM WebPushSubscriptions;";
-            if (Convert.ToInt64(cmd.ExecuteScalar()) >= 20_000) throw new InvalidOperationException("Subscription capacity reached.");
+            var count = Convert.ToInt64(cmd.ExecuteScalar());
+            foreach (var old in (previous ?? []).DistinctBy(Id))
+            {
+                using var proof = sqlite.CreateCommand();
+                proof.Transaction = tx;
+                proof.CommandText = "SELECT COUNT(*) FROM WebPushSubscriptions WHERE Id = @old AND P256dh = @key AND Auth = @auth;";
+                proof.Parameters.AddWithValue("@old", Id(old));
+                proof.Parameters.AddWithValue("@key", old.Keys.P256dh);
+                proof.Parameters.AddWithValue("@auth", old.Keys.Auth);
+                count -= (long)proof.ExecuteScalar()!;
+            }
+            if (count >= 20_000) throw new InvalidOperationException("Subscription capacity reached.");
         }
         cmd.CommandText = """
             INSERT INTO WebPushSubscriptions (Id, Endpoint, P256dh, Auth, CreatedAtUtc, LastSeenAtUtc)
             VALUES (@id, @endpoint, @p256dh, @auth, @now, @now)
-            ON CONFLICT(Id) DO UPDATE SET LastSeenAtUtc = @now;
+            ON CONFLICT(Id) DO UPDATE SET P256dh = @p256dh, Auth = @auth, LastSeenAtUtc = @now;
             """;
         cmd.ExecuteNonQuery();
+        foreach (var old in previous ?? [])
+        {
+            if (old == subscription) continue;
+            // Preserve frozen announcement recipients and their delivery receipts
+            // when the provider changes endpoint. Only the supplied old proof can move them.
+            using var move = sqlite.CreateCommand();
+            move.Transaction = tx;
+            move.Parameters.AddWithValue("@old", Id(old));
+            move.Parameters.AddWithValue("@new", Id(subscription));
+            move.Parameters.AddWithValue("@key", old.Keys.P256dh);
+            move.Parameters.AddWithValue("@auth", old.Keys.Auth);
+            move.CommandText = """
+                UPDATE WebPushSubscriptions SET CreatedAtUtc = MIN(CreatedAtUtc, COALESCE(
+                    (SELECT CreatedAtUtc FROM WebPushSubscriptions WHERE Id = @old AND P256dh = @key AND Auth = @auth), CreatedAtUtc))
+                WHERE Id = @new;
+                INSERT OR IGNORE INTO WebPushDeliveries (EventId, SubscriptionId, Status, Attempts, NextAttemptAtUtc, LastErrorCode, UpdatedAtUtc)
+                SELECT d.EventId, @new, d.Status, d.Attempts, d.NextAttemptAtUtc, d.LastErrorCode, d.UpdatedAtUtc
+                FROM WebPushDeliveries d JOIN WebPushSubscriptions s ON s.Id = d.SubscriptionId
+                WHERE s.Id = @old AND s.P256dh = @key AND s.Auth = @auth;
+                """;
+            move.ExecuteNonQuery();
+            Revoke(sqlite, tx, old, now);
+        }
         tx.Commit();
     });
 
     internal void Unsubscribe(WebPushSubscription subscription) => _db.Run(sqlite =>
     {
+        using var tx = sqlite.BeginTransaction();
+        Revoke(sqlite, tx, subscription, DateTimeOffset.UtcNow);
+        tx.Commit();
+    });
+
+    private static void Revoke(SqliteConnection sqlite, SqliteTransaction tx, WebPushSubscription subscription, DateTimeOffset now)
+    {
         using var cmd = sqlite.CreateCommand();
-        cmd.CommandText = "DELETE FROM WebPushSubscriptions WHERE Id = @id AND P256dh = @key AND Auth = @auth;";
+        cmd.Transaction = tx;
+        // A timed-out save can arrive after unsubscribe. Its exact identity must
+        // remain revoked even when there was no subscription row to delete yet.
+        cmd.CommandText = """
+            INSERT INTO WebPushRevocations (Identity, RevokedAtUtc) VALUES (@identity, @now)
+            ON CONFLICT(Identity) DO UPDATE SET RevokedAtUtc = @now;
+            DELETE FROM WebPushSubscriptions WHERE Id = @id AND P256dh = @key AND Auth = @auth;
+            """;
         cmd.Parameters.AddWithValue("@id", Id(subscription));
         cmd.Parameters.AddWithValue("@key", subscription.Keys.P256dh);
         cmd.Parameters.AddWithValue("@auth", subscription.Keys.Auth);
+        cmd.Parameters.AddWithValue("@identity", Identity(subscription));
+        cmd.Parameters.AddWithValue("@now", Stamp(now));
         cmd.ExecuteNonQuery();
-    });
+    }
 
     internal IReadOnlyList<PushAnnouncement> Pending() => _db.Run(sqlite =>
     {
@@ -141,7 +199,8 @@ public sealed class WebPushStore
         cmd.CommandText = """
             UPDATE WebPushDeliveries SET Status = @status, Attempts = Attempts + 1,
                 LastErrorCode = @code, NextAttemptAtUtc = @retry, UpdatedAtUtc = @now
-            WHERE EventId = @event AND SubscriptionId = @sub AND Status = 'pending';
+            WHERE EventId = @event AND SubscriptionId = @sub AND Status = 'pending'
+              AND EXISTS(SELECT 1 FROM WebPushSubscriptions WHERE Id = @sub AND P256dh = @key AND Auth = @auth);
             """;
         cmd.Parameters.AddWithValue("@event", eventId);
         cmd.Parameters.AddWithValue("@sub", recipient.Id);
@@ -149,6 +208,8 @@ public sealed class WebPushStore
         cmd.Parameters.AddWithValue("@code", (object?)code ?? DBNull.Value);
         cmd.Parameters.AddWithValue("@retry", retryAt is null ? DBNull.Value : Stamp(retryAt.Value));
         cmd.Parameters.AddWithValue("@now", Stamp(now));
+        cmd.Parameters.AddWithValue("@key", recipient.Subscription.Keys.P256dh);
+        cmd.Parameters.AddWithValue("@auth", recipient.Subscription.Keys.Auth);
         cmd.ExecuteNonQuery();
     });
 
@@ -168,6 +229,7 @@ public sealed class WebPushStore
         cmd.CommandText = """
             DELETE FROM WebPushSubscriptions WHERE LastSeenAtUtc < @inactive;
             DELETE FROM WebPushDeliveries WHERE Status != 'pending' AND UpdatedAtUtc < @old;
+            DELETE FROM WebPushRevocations WHERE RevokedAtUtc < @inactive;
             """;
         cmd.Parameters.AddWithValue("@inactive", Stamp(now.AddDays(-180)));
         cmd.Parameters.AddWithValue("@old", Stamp(now.AddDays(-30)));

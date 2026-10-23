@@ -1,4 +1,5 @@
 /* Push-only worker: no fetch handler or page cache. Each message displays a visible notification. */
+importScripts('/js/web-push-sync.js');
 self.addEventListener('install', event => event.waitUntil(self.skipWaiting()));
 self.addEventListener('activate', event => event.waitUntil(self.clients.claim()));
 
@@ -25,6 +26,7 @@ self.addEventListener('push', event => {
         let payload;
         try { payload = event.data?.json(); } catch { payload = null; }
         if (!payload || typeof payload.id !== 'string' || typeof payload.title !== 'string') return;
+        if ((await LwcWebPush.state()).enabled === false) return;
         const url = notificationDestination(payload.url);
         await self.registration.showNotification(payload.title, {
             body: typeof payload.body === 'string' ? payload.body : '',
@@ -55,22 +57,12 @@ self.addEventListener('notificationclick', event => {
 });
 
 self.addEventListener('pushsubscriptionchange', event => {
-    event.waitUntil((async () => {
-        const oldSubscription = event.oldSubscription;
-        if (oldSubscription) await fetch('/api/web-push/unsubscribe', {
-            method: 'POST', headers: { 'Content-Type': 'application/json', 'X-LWC-Push': '1' },
-            body: JSON.stringify(oldSubscription.toJSON())
-        });
-        if (Notification.permission !== 'granted') return;
-        const config = await (await fetch('/api/web-push/configuration')).json();
-        if (!config.publicKey) return;
-        const raw = atob(config.publicKey.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - config.publicKey.length % 4) % 4));
-        const subscription = event.newSubscription || await self.registration.pushManager.subscribe({
-            userVisibleOnly: true, applicationServerKey: Uint8Array.from(raw, c => c.charCodeAt(0))
-        });
-        await fetch('/api/web-push/subscribe', {
-            method: 'POST', headers: { 'Content-Type': 'application/json', 'X-LWC-Push': '1' },
-            body: JSON.stringify(subscription.toJSON())
-        });
-    })());
+    event.waitUntil(LwcWebPush.sync(self.registration, {
+        oldSubscription: event.oldSubscription, newSubscription: event.newSubscription
+    }));
+});
+
+self.addEventListener('sync', event => {
+    // Reject failed attempts so the browser applies its own bounded sync retry policy.
+    if (event.tag === LwcWebPush.syncTag) event.waitUntil(LwcWebPush.sync(self.registration, { background: true }));
 });

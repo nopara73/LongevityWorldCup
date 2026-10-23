@@ -49,6 +49,7 @@ interface FlowActionDockApi {
     let transitionsReady = false;
     let generatedFormId = 0;
     let keyboardClearFrame = 0;
+    let elementClearFrame = 0;
     let focusedControlClearanceRequested = false;
     let focusedControlLayoutSignature = '';
     let largestUnobscuredViewportHeight = 0;
@@ -67,6 +68,22 @@ interface FlowActionDockApi {
             bottom: top + height,
             height
         };
+    }
+
+    function getInputViewportBounds(): VisualViewportBounds {
+        const viewport = getVisualViewportBounds();
+        let top = viewport.top;
+        for (const id of ['site-sticky-header', 'site-sticky-progress']) {
+            const bar = document.getElementById(id);
+            if (!bar?.classList.contains('visible') || !hasLayoutBox(bar)) continue;
+            const style = getComputedStyle(bar);
+            if (style.visibility === 'hidden') continue;
+            const rect = bar.getBoundingClientRect();
+            const fixedTop = parseFloat(style.top);
+            top = Math.max(top, Number.isFinite(fixedTop) ? fixedTop + rect.height : rect.bottom);
+        }
+        top = Math.min(top, viewport.bottom);
+        return { top, bottom: viewport.bottom, height: viewport.bottom - top };
     }
 
     function isKeyboardEditingControl(element: Element | null): element is HTMLElement {
@@ -138,7 +155,7 @@ interface FlowActionDockApi {
             if ((!isKeyboardOpen && !layoutResized) || !isKeyboardEditingControl(control) || !isVisible(control)
                 || control.closest('[hidden], [inert], [aria-hidden="true"]')) return;
 
-            const viewport = getVisualViewportBounds();
+            const viewport = getInputViewportBounds();
             const rect = control.getBoundingClientRect();
             const margin = 16;
             const topLimit = viewport.top + margin;
@@ -354,6 +371,7 @@ interface FlowActionDockApi {
         const primary = actions.find(action => action !== back) as HTMLElement | undefined;
         if (!back || !primary) return;
         const inlineBackFirst = desktopRowMedia.matches
+            || (element.classList.contains('convergence-actions') && !mobileMedia.matches)
             || (element.classList.contains('play-athlete-actions') && playerCardRowMedia.matches);
         const backFirst = docked || element.hasAttribute('data-flow-dock-inline-back-first') || (inlineBackFirst
             && !element.classList.contains('flow-action-stack--hide-disabled-primary'));
@@ -449,6 +467,8 @@ interface FlowActionDockApi {
         // Step changes intentionally focus with preventScroll. Ordinary focus
         // only opts into clearance when the viewport or text size really changed.
         const viewport = getVisualViewportBounds();
+        const inputViewport = getInputViewportBounds();
+        document.documentElement.style.setProperty('--flow-input-top-occlusion', `${Math.ceil(inputViewport.top - viewport.top)}px`);
         const layoutSignature = `${window.innerWidth}|${window.innerHeight}|${viewport.height}|${getComputedStyle(document.documentElement).fontSize}`;
         const layoutResized = focusedControlLayoutSignature !== '' && focusedControlLayoutSignature !== layoutSignature;
         focusedControlLayoutSignature = layoutSignature;
@@ -544,27 +564,62 @@ interface FlowActionDockApi {
         return { top, bottom };
     }
 
-    function ensureElementClear(
+    function scrollElementClear(
         element: Element | null | undefined,
         options: FlowActionDockEnsureClearOptions = {}
-    ): void {
-        if (!element?.isConnected) return;
+    ): { left: number; minimumTop: number; maximumTop: number } | null {
+        if (!isVisible(element)) return null;
         refreshImmediately();
 
         const dockHeight = parseFloat(getComputedStyle(document.documentElement)
             .getPropertyValue('--flow-action-dock-height')) || 0;
-        if (!dockHeight && !isKeyboardOpen) return;
+        if (!dockHeight && !isKeyboardOpen) return null;
 
         const requestedMargin = options.margin;
-        const margin = typeof requestedMargin === 'number' && Number.isFinite(requestedMargin) ? requestedMargin : 16;
         const rect = getClearanceRect(element, options);
-        const viewport = getVisualViewportBounds();
+        const viewport = getInputViewportBounds();
+        const desiredMargin = typeof requestedMargin === 'number' && Number.isFinite(requestedMargin) ? requestedMargin : 16;
+        // Keep both ends visible when a field and its counter nearly fill the viewport.
+        const availableMargin = Math.max(0, (viewport.height - dockHeight - (rect.bottom - rect.top)) / 2);
+        const margin = Math.min(desiredMargin, availableMargin);
         const bottomLimit = viewport.bottom - dockHeight - margin;
-        if (rect.bottom <= bottomLimit) return;
-
-        window.scrollBy({
-            top: Math.ceil(rect.bottom - bottomLimit),
+        const topLimit = viewport.top + margin;
+        const fits = rect.bottom - rect.top <= viewport.height - dockHeight;
+        const scroll = rect.bottom > bottomLimit ? Math.ceil(rect.bottom - bottomLimit)
+            : fits && rect.top < topLimit ? Math.floor(rect.top - topLimit) : 0;
+        const start = window.scrollY;
+        const target = Math.max(0, Math.min(start + scroll,
+            document.documentElement.scrollHeight - window.innerHeight));
+        if (scroll) window.scrollBy({
+            top: scroll,
             behavior: options.behavior || (reducedMotionMedia.matches ? 'auto' : 'smooth')
+        });
+        // An immediate scroll has already traversed its path. Only allow the
+        // remaining smooth-scroll movement during the deferred layout pass.
+        const remainingStart = window.scrollY;
+        return { left: window.scrollX, minimumTop: Math.min(remainingStart, target), maximumTop: Math.max(remainingStart, target) };
+    }
+
+    function cancelDeferredElementClearance(): void {
+        if (elementClearFrame) window.cancelAnimationFrame(elementClearFrame);
+        elementClearFrame = 0;
+    }
+
+    function ensureElementClear(element: Element | null | undefined, options: FlowActionDockEnsureClearOptions = {}): void {
+        cancelDeferredElementClearance();
+        const scrollPath = scrollElementClear(element, options)
+            ?? { left: window.scrollX, minimumTop: window.scrollY, maximumTop: window.scrollY };
+        const focused = document.activeElement;
+        // A sticky bar may appear after this scroll. Reconcile that edit once,
+        // allowing our smooth scroll to advance, while yielding to a later scroll.
+        elementClearFrame = window.requestAnimationFrame(() => {
+            elementClearFrame = window.requestAnimationFrame(() => {
+                elementClearFrame = 0;
+                if (document.activeElement === focused && window.scrollX === scrollPath.left
+                    && window.scrollY >= scrollPath.minimumTop - 1 && window.scrollY <= scrollPath.maximumTop + 1) {
+                    scrollElementClear(element, options);
+                }
+            });
         });
     }
 
@@ -593,6 +648,8 @@ interface FlowActionDockApi {
         window.addEventListener('resize', scheduleFocusedControlClearance);
         window.addEventListener('orientationchange', scheduleFocusedControlClearance);
         window.addEventListener('scroll', scheduleRefresh, { passive: true });
+        window.addEventListener('wheel', cancelDeferredElementClearance, { passive: true });
+        window.addEventListener('touchmove', cancelDeferredElementClearance, { passive: true });
         window.addEventListener('load', scheduleRefresh);
         window.addEventListener('pageshow', scheduleRefresh);
         document.addEventListener('focusin', scheduleFocusedControlClearance, true);

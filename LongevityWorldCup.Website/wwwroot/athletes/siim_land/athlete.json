@@ -38,5 +38,31 @@
   "Flag": "Estonia",
   "Why": "I want to see humans solve the hardest problems in history, such as aging and longevity.",
   "PersonalLink": "https://www.youtube.com/c/siimland",
-  "PodcastLink": "https://www.youtube.com/watch?v=ogy7l0nka-Y"
+  "PodcastLink": "https://www.youtube.com/watch?v=ogy7l0nka-Y",
+  "SocialProfiles": {
+    "X": {
+      "Url": "https://x.com/siimland",
+      "EvidenceUrls": [
+        "https://s3.amazonaws.com/kajabi-storefronts-production/sites/54751/themes/2149960473/downloads/DTGb1opET1ugIl2buLk1_Siim_Land_Supplement_List.pdf",
+        "https://x.com/siimland",
+        "https://www.siimland.co/"
+      ],
+      "VerifiedOn": "2026-10-22"
+    },
+    "Instagram": {
+      "Url": "https://www.instagram.com/siimland",
+      "EvidenceUrls": [
+        "https://www.siimland.co/"
+      ],
+      "VerifiedOn": "2026-10-22"
+    },
+    "LinkedIn": {
+      "Url": "https://www.linkedin.com/in/siimland",
+      "EvidenceUrls": [
+        "https://www.linkedin.com/posts/siimland_did-a-comprehensive-blood-panel-one-of-activity-7475782287134167041-D4OS",
+        "https://www.youtube.com/c/siimland"
+      ],
+      "VerifiedOn": "2026-10-23"
+    }
+  }
 }

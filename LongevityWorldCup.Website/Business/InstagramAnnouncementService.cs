@@ -31,6 +31,8 @@ public sealed class InstagramAnnouncementService(
             var names = snapshot.ToDictionary(x => x.Slug, x => x.Name, StringComparer.OrdinalIgnoreCase);
             string ResolveName(string slug) => names.TryGetValue(slug, out var name) && !string.IsNullOrWhiteSpace(name)
                 ? name : CultureInfo.InvariantCulture.TextInfo.ToTitleCase(slug.Replace('_', ' ').Replace('-', ' '));
+            var mentions = snapshot.ToDictionary(x => x.Slug, x => x.MentionFor(SocialPlatform.Instagram), StringComparer.OrdinalIgnoreCase);
+            string ResolveMention(string slug) => mentions.GetValueOrDefault(slug) ?? ResolveName(slug);
 
             foreach (var pending in deliveries.GetPending(SocialDeliveryStore.Instagram, customOnly, now))
             {
@@ -59,7 +61,7 @@ public sealed class InstagramAnnouncementService(
                     var json = pending.RecordJson;
                     if (json is null)
                     {
-                        var request = await BuildRequestAsync(item, ResolveName, ct);
+                        var request = await BuildRequestAsync(item, ResolveName, ResolveMention, ct);
                         if (request is null)
                         {
                             deliveries.Skip(SocialDeliveryStore.Instagram, item.Id, SocialEventSkipReason.EmptyMessage.ToString(), now);
@@ -98,7 +100,8 @@ public sealed class InstagramAnnouncementService(
         finally { _dispatchGate.Release(); }
     }
 
-    private async Task<InstagramPostRequest?> BuildRequestAsync(EventItem item, Func<string, string> resolveName, CancellationToken ct)
+    private async Task<InstagramPostRequest?> BuildRequestAsync(EventItem item, Func<string, string> resolveName,
+        Func<string, string> resolveMention, CancellationToken ct)
     {
         string caption;
         InstagramVisual visual;
@@ -106,18 +109,19 @@ public sealed class InstagramAnnouncementService(
         string? meme = null;
         if (item.Type == EventType.CustomEvent)
         {
-            var plan = InstagramPost.BuildPlan(item.Id, item.Text, resolveName, item.VisibleOnWebsite);
+            var plan = InstagramPost.BuildPlan(item.Id, item.Text, resolveMention, item.VisibleOnWebsite);
             caption = plan.PostText;
             visual = InstagramVisual.ForCustom(item.Text, resolveName);
-            alt = plan.TitleText + "\n\n" + plan.BodyText;
+            var readable = InstagramPost.BuildPlan(item.Id, item.Text, resolveName, item.VisibleOnWebsite);
+            alt = readable.TitleText + "\n\n" + readable.BodyText;
         }
         else
         {
-            var text = messages.TryBuildMessage(item.Type, item.Text, item.Id, item.VisibleOnWebsite) ?? "";
+            var text = messages.TryBuildMessage(item.Type, item.Text, item.Id, item.VisibleOnWebsite, resolveMention) ?? "";
             if (string.IsNullOrWhiteSpace(text)) return null;
             caption = InstagramPost.Truncate(text, InstagramPost.MaxCaptionLength);
-            alt = text;
-            visual = InstagramVisual.ForEvent(item.Type, item.Text, text);
+            alt = messages.TryBuildMessage(item.Type, item.Text, item.Id, item.VisibleOnWebsite, resolveName) ?? text;
+            visual = InstagramVisual.ForEvent(item.Type, item.Text, alt);
             if (item.Type == EventType.AthleteCountMilestone && EventHelpers.TryExtractAthleteCount(item.Text, out var count)
                 && memes.TryGetMeme(count, out var media)) meme = media.FullPath;
         }

@@ -24,5 +24,31 @@
   "Division": "Open",
   "Flag": "United States",
   "Why": "Optimizing my lifestyle for the benefit of body and mind by maintaining my protocols, planning health interventions, and recording what works.",
-  "PersonalLink": "https://www.brianschung.com/health/"
+  "PersonalLink": "https://www.brianschung.com/health/",
+  "SocialProfiles": {
+    "X": {
+      "Url": "https://x.com/BrianSChung",
+      "EvidenceUrls": [
+        "https://www.brianschung.com/health/"
+      ],
+      "VerifiedOn": "2026-10-22"
+    },
+    "Bluesky": {
+      "Url": "https://bsky.app/profile/brianschung.bsky.social",
+      "EvidenceUrls": [
+        "https://bsky.app/profile/brianschung.bsky.social",
+        "https://www.brianschung.com/",
+        "https://www.brianschung.com/health/"
+      ],
+      "VerifiedOn": "2026-10-23",
+      "Did": "did:plc:d3yze3xppraotqzwayd6njcr"
+    },
+    "LinkedIn": {
+      "Url": "https://www.linkedin.com/in/brianschung",
+      "EvidenceUrls": [
+        "https://www.brianschung.com/"
+      ],
+      "VerifiedOn": "2026-10-23"
+    }
+  }
 }

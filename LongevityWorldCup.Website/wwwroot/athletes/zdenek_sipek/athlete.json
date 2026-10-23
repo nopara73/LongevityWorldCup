@@ -36,5 +36,15 @@
   "Flag": "Czech Republic",
   "Why": "Life extension, anti-aging, cancer research, collapse of complex systems, science in general.",
   "PersonalLink": "https://zdeneksipek.substack.com/",
-  "PodcastLink": "https://youtu.be/Ma13R7YRcho"
+  "PodcastLink": "https://youtu.be/Ma13R7YRcho",
+  "SocialProfiles": {
+    "X": {
+      "Url": "https://x.com/intj124",
+      "EvidenceUrls": [
+        "https://x.com/intj124",
+        "https://zdeneksipek.substack.com/"
+      ],
+      "VerifiedOn": "2026-10-23"
+    }
+  }
 }

@@ -396,6 +396,10 @@ interface GuessMyAgeStoredEntry {
 }
 
 interface LwcGuessStateApi {
+    shouldSkipAll(): boolean;
+    skipAll(): void;
+    hasSeenPrompt(): boolean;
+    markPromptSeen(): void;
     getAthleteSlug(athleteOrSlug: unknown): string;
     getProfileImageId(athleteOrSlug: unknown): string;
     get(athleteOrSlug: unknown): GuessMyAgeState | null;

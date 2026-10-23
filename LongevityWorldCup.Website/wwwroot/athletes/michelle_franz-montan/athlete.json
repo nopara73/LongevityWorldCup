@@ -23,5 +23,23 @@
   "Division": "Women's",
   "Flag": "UNICAMP",
   "Why": "Healthy food, strong body, peaceful mind and happiness 🚀🏃🏻‍♀️🚴🏻‍♀️🏊‍♀️🫶🏻👊🏻💪🏻",
-  "PersonalLink": null
+  "PersonalLink": null,
+  "SocialProfiles": {
+    "Instagram": {
+      "Url": "https://www.instagram.com/profa_michelle_franz/",
+      "EvidenceUrls": [
+        "https://www.instagram.com/profa_michelle_franz/",
+        "https://bv.fapesp.br/pt/pesquisador/68685/michelle-franz-montan-braga-leite/"
+      ],
+      "VerifiedOn": "2026-10-23"
+    },
+    "Threads": {
+      "Url": "https://www.threads.com/@profa_michelle_franz",
+      "EvidenceUrls": [
+        "https://www.instagram.com/profa_michelle_franz/",
+        "https://bv.fapesp.br/pt/pesquisador/68685/michelle-franz-montan-braga-leite/"
+      ],
+      "VerifiedOn": "2026-10-23"
+    }
+  }
 }

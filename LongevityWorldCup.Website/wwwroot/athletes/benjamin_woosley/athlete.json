@@ -36,5 +36,14 @@
   "Division": "Men's",
   "Flag": "United States",
   "Why": "Longevity escape velocity, and the prospect of witnessing and participating in our sci-fi future.",
-  "PersonalLink": "https://linktr.ee/benwoosley"
+  "PersonalLink": "https://linktr.ee/benwoosley",
+  "SocialProfiles": {
+    "Instagram": {
+      "Url": "https://www.instagram.com/benwoosley",
+      "EvidenceUrls": [
+        "https://linktr.ee/benwoosley"
+      ],
+      "VerifiedOn": "2026-10-22"
+    }
+  }
 }

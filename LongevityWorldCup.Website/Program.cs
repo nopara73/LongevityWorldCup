@@ -34,6 +34,7 @@ namespace LongevityWorldCup.Website
 
         public static void Main(string[] args)
         {
+            if (RecoveryBackupCommand.TryRun(args)) return;
             InitializeDefaultConfig(); // Ensure default config file is created
 
             var builder = WebApplication.CreateBuilder(args);
@@ -211,6 +212,12 @@ namespace LongevityWorldCup.Website
 
             builder.Services.AddSingleton<AssetVersionProvider>();
             builder.Services.AddSingleton<DatabaseManager>();
+            builder.Services.AddSingleton(sp => new RecoveryBackupService(
+                sp.GetRequiredService<DatabaseManager>(),
+                sp.GetRequiredService<IWebHostEnvironment>().ContentRootPath,
+                sp.GetRequiredService<IWebHostEnvironment>().WebRootPath ??
+                    Path.Combine(sp.GetRequiredService<IWebHostEnvironment>().ContentRootPath, "wwwroot"),
+                sp.GetRequiredService<TimeProvider>()));
             builder.Services.AddSingleton<CrowdAgeGuessRateLimiter>();
             builder.Services.AddSingleton<AthleteDataCorrections>();
             builder.Services.AddSingleton<AthleteDataService>();
@@ -248,6 +255,11 @@ namespace LongevityWorldCup.Website
             builder.Services.AddSingleton<SiteStatisticsService>();
             builder.Services.AddHostedService(sp => sp.GetRequiredService<SiteStatisticsService>());
             builder.Services.AddSingleton<ApplicationSubmissionRetryStore>();
+            builder.Services.AddSingleton<SubmissionConfirmationStore>();
+            builder.Services.AddSingleton<ISubmissionConfirmationSender, SmtpSubmissionConfirmationSender>();
+            builder.Services.AddSingleton<SubmissionConfirmationDispatcher>();
+            if (builder.Configuration.GetValue("EnableSubmissionConfirmations", builder.Environment.IsProduction()))
+                builder.Services.AddHostedService<SubmissionConfirmationWorker>();
 
             var appConfig = Config.LoadAsync().GetAwaiter().GetResult();
             builder.Services.AddSingleton(appConfig);

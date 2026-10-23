@@ -160,6 +160,8 @@ window.slugifyName = function (name, encode) {
 const GUESS_MY_AGE_STORAGE_KEY = 'gmaAllGuesses';
 let guessStateMemoryStore: Record<string, unknown> = {};
 let guessStateStorageUnavailable = false;
+let guessSkipAll = false;
+let guessPromptSeen = false;
 
 interface GuessStateIdentity {
     readonly canonicalSlug: string;
@@ -370,6 +372,30 @@ function migrateGuessState(
 }
 
 window.LwcGuessState = {
+    shouldSkipAll() {
+        try {
+            guessSkipAll = guessSkipAll || localStorage.getItem('gmaSkipAll') === 'true';
+        } catch (_) { /* Optional persistence; keep the current page's choice. */ }
+        return guessSkipAll;
+    },
+    skipAll() {
+        guessSkipAll = true;
+        try {
+            localStorage.setItem('gmaSkipAll', 'true');
+        } catch (_) { /* The preference still applies to this page. */ }
+    },
+    hasSeenPrompt() {
+        try {
+            guessPromptSeen = guessPromptSeen || !!sessionStorage.getItem('gmaSeen');
+        } catch (_) { /* The prompt does not require session storage. */ }
+        return guessPromptSeen;
+    },
+    markPromptSeen() {
+        guessPromptSeen = true;
+        try {
+            sessionStorage.setItem('gmaSeen', 'true');
+        } catch (_) { /* Retain the shorter replay for the current page. */ }
+    },
     getAthleteSlug(athleteOrSlug) {
         return getGuessStateIdentity(athleteOrSlug).canonicalSlug;
     },

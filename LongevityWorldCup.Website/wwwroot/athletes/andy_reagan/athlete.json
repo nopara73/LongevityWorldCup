@@ -32,5 +32,23 @@
   "Division": "Men's",
   "Flag": "United States",
   "Why": "I enjoy the act of optimizing and seeing the numbers",
-  "PersonalLink": "https://andyreagan.com"
+  "PersonalLink": "https://andyreagan.com",
+  "SocialProfiles": {
+    "GitHub": {
+      "Url": "https://github.com/andyreagan",
+      "EvidenceUrls": [
+        "https://andyreagan.com",
+        "https://github.com/andyreagan"
+      ],
+      "VerifiedOn": "2026-10-23"
+    },
+    "Strava": {
+      "Url": "https://www.strava.com/athletes/136573",
+      "EvidenceUrls": [
+        "https://andyreagan.com/about.html",
+        "https://www.strava.com/athletes/136573"
+      ],
+      "VerifiedOn": "2026-10-23"
+    }
+  }
 }

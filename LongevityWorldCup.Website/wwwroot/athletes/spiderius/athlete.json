@@ -24,5 +24,14 @@
   "Flag": "Ancap",
   "Why": "Aspiration for constant self-improvement",
   "PersonalLink": "https://davidstancel.com",
-  "ExclusiveLeague": "Prosperan"
+  "ExclusiveLeague": "Prosperan",
+  "SocialProfiles": {
+    "Instagram": {
+      "Url": "https://www.instagram.com/stanceldavid",
+      "EvidenceUrls": [
+        "https://davidstancel.com/"
+      ],
+      "VerifiedOn": "2026-10-22"
+    }
+  }
 }

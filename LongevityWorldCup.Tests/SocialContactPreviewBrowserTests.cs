@@ -1,5 +1,6 @@
 using LongevityWorldCup.Website.Tools;
 using Microsoft.Playwright;
+using System.Text.Json.Nodes;
 using Xunit;
 
 namespace LongevityWorldCup.Tests;
@@ -10,30 +11,75 @@ public sealed class SocialContactPreviewBrowserTests(
     BrowserTestAppFixture appFixture)
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
-    [Fact]
-    public async Task SocialPreviews_MatchTheServerMentionDestinations()
+    [Theory]
+    [InlineData(1280)]
+    [InlineData(390)]
+    public async Task SocialPreviews_MatchTheServerMentionDestinations(int width)
     {
         await using var context = await Browser.NewContextAsync(new BrowserNewContextOptions
         {
-            BaseURL = App.BaseAddress.ToString()
+            BaseURL = App.BaseAddress.ToString(), ViewportSize = new() { Width = width, Height = 844 }
         });
         await BrowserTestApp.RouteExternalResourcesAsync(context);
+        var athletes = JsonNode.Parse("""
+            [
+                {"AthleteSlug":"preview-verified","DisplayName":"Preview Verified",
+                 "MediaContact":"@legacy","PersonalLink":"https://instagram.com/personal",
+                 "SocialProfiles":{"X":{"Url":"https://x.com/verified"},"Threads":{"Url":"thread.owner"},"Instagram":{"Url":"@photo.owner"}}},
+                {"AthleteSlug":"preview-fallback","DisplayName":"Preview Fallback",
+                 "MediaContact":"@legacy","PersonalLink":"https://instagram.com/personal",
+                 "SocialProfiles":{"X":{"Url":"https://notx.com/imposter"}}},
+                {"AthleteSlug":"preview-link","DisplayName":"Preview Link",
+                 "MediaContact":"https://threads.net/@thread.owner","PersonalLink":"https://x.com/personal"},
+                {"AthleteSlug":"preview-malformed","DisplayName":"Preview Malformed","MediaContact":"@legacy",
+                 "SocialProfiles":{"X":{"Url":42},"Instagram":{"Url":"https://x.com/legacy"}}}
+            ]
+            """)!.AsArray();
+        await context.RouteAsync("**/api/data/athletes", route => route.FulfillAsync(new()
+        {
+            ContentType = "application/json", Body = athletes.ToJsonString()
+        }));
         var page = await context.NewPageAsync();
         await page.GotoAsync("/internal/custom-event-designer.html");
+        await page.WaitForFunctionAsync("() => athleteMentionIndex.has('preview-verified')");
         var contacts = new[]
         {
             "https://netflix.com/alice", "https://notthreads.com/alice",
             "https://x.com.evil.example/alice", "https://threads.com.evil.example/alice",
             "HTTPS://X.COM/alice", "HTTPS://THREADS.COM/@alice",
-            "https://mobile.twitter.com/alice", "www.threads.com/alice", "@alice"
+            "https://mobile.twitter.com/alice", "www.threads.com/alice", "@alice",
+            "alice", "@alice.smith", "@@alice", "@" + new string('a', 16),
+            "https://threads.net/@alice", "https://instagram.com/alice.smith",
+            "https://m.instagram.com/alice", "https://foo.x.com/alice",
+            "https://user@x.com/alice", "https://x.com:8443/alice", "https://x.com:443/alice",
+            "ftp://x.com/alice", "https://x.com/intent/post", "https://instagram.com/p/photo",
+            "https://threads.com/accounts", "https://x.com/home", "https://x.com/@alice/status/123",
+            "https://x.com/", "https://x.com/alice-smith", "https://instagram.com/.alice",
+            "https://instagram.com/alice.", "https://instagram.com/alice..smith",
+            "https://instagram.com/" + new string('a', 31)
         };
-        foreach (var contact in contacts)
-        foreach (var platform in new[] { SocialPlatform.X, SocialPlatform.Threads, SocialPlatform.Mastodon, SocialPlatform.Nostr, SocialPlatform.Instagram })
+        var cases = (from contact in contacts
+                     from platform in Enum.GetValues<SocialPlatform>()
+                     from allowBareHandle in new[] { false, true }
+                     select new
+                     {
+                         contact, platform = platform.ToString().ToLowerInvariant(), allowBareHandle,
+                         expected = SocialContactParser.TryBuildMention(contact, platform, allowBareHandle) ?? ""
+                     }).ToArray();
+        var actual = await page.EvaluateAsync<string[]>(
+            "cases => cases.map(args => extractMentionHandle(args.contact, args.platform, args.allowBareHandle))", cases);
+        Assert.Equal(cases.Select(item => item.expected), actual);
+
+        // The preview must also choose the same saved account and fallback as
+        // the sender, without guessing that an X handle belongs to other sites.
+        foreach (var athlete in athletes.OfType<JsonObject>())
+        foreach (var platform in Enum.GetValues<SocialPlatform>())
         {
-            var actual = await page.EvaluateAsync<string>(
-                "args => extractMentionHandle(args.contact, args.platform)",
-                new { contact, platform = platform.ToString().ToLowerInvariant() });
-            Assert.Equal(SocialContactParser.TryBuildMention(contact, platform) ?? "", actual);
+            var resolved = await page.EvaluateAsync<string>(
+                "args => resolveMentionSlug(args.slug, args.platform)",
+                new { slug = athlete["AthleteSlug"]!.GetValue<string>(), platform = platform.ToString().ToLowerInvariant() });
+            Assert.Equal(AthleteSocialProfiles.ResolveMention(athlete, platform)
+                ?? athlete["DisplayName"]!.GetValue<string>(), resolved);
         }
     }
 

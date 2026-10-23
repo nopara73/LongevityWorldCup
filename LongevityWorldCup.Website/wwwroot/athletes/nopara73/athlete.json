@@ -265,5 +265,39 @@
   "Why": "I don't have anything better to do",
   "PersonalLink": "https://www.youtube.com/nopara73",
   "ExclusiveLeague": "Prosperan",
-  "DisplayName": null
+  "DisplayName": null,
+  "SocialProfiles": {
+    "X": {
+      "Url": "https://x.com/nopara73",
+      "EvidenceUrls": [
+        "https://www.youtube.com/nopara73"
+      ],
+      "VerifiedOn": "2026-10-22"
+    },
+    "Instagram": {
+      "Url": "https://www.instagram.com/nopara73",
+      "EvidenceUrls": [
+        "https://www.youtube.com/nopara73"
+      ],
+      "VerifiedOn": "2026-10-22"
+    },
+    "Nostr": {
+      "Url": "https://primal.net/p/npub1qqvf96d53dps6l3hcfc9rlmm7s2vh3f20ay0g5wc2aqfeeurnh0q580c3j",
+      "EvidenceUrls": [
+        "https://primal.net/p/npub1qqvf96d53dps6l3hcfc9rlmm7s2vh3f20ay0g5wc2aqfeeurnh0q580c3j"
+      ],
+      "VerifiedOn": "2026-10-23",
+      "PublicKey": "001892e9b48b430d7e37c27051ff7bf414cbc52a7f48f451d857409ce7839dde",
+      "VerificationNote": "Athlete/account identity confirmed by the Longevity World Cup operator on 2026-10-23."
+    },
+    "GitHub": {
+      "Url": "https://github.com/nopara73",
+      "EvidenceUrls": [
+        "https://github.com/nopara73",
+        "https://adamficsor.com/",
+        "https://longevityworldcup.com/about"
+      ],
+      "VerifiedOn": "2026-10-23"
+    }
+  }
 }

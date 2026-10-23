@@ -11,7 +11,7 @@
     width: 100%;
     clear: both;
     box-sizing: border-box;
-    margin-top: 4rem;
+    margin-top: 1.5rem;
     padding: 3rem 0 2.5rem;
     background: var(--footer-surface) var(--chrome-surface-image, linear-gradient(120deg, #0b1117 0%, #2d3942 100%));
     color: var(--light-text-color);

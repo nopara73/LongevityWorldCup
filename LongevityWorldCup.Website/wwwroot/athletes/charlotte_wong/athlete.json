@@ -48,5 +48,15 @@
   "Division": "Women's",
   "Flag": "Singapore",
   "Why": "Advance MANkind by Disrupting Aging (AMANDA™)",
-  "PersonalLink": "https://www.deaging.guru"
+  "PersonalLink": "https://www.deaging.guru",
+  "SocialProfiles": {
+    "Instagram": {
+      "Url": "https://www.instagram.com/pullup_grandma/",
+      "EvidenceUrls": [
+        "https://bespoke-fitness.squarespace.com/ambassador",
+        "https://www.instagram.com/pullup_grandma/"
+      ],
+      "VerifiedOn": "2026-10-23"
+    }
+  }
 }

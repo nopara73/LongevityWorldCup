@@ -1780,7 +1780,9 @@
 
                 const item = {
                     name: String(athlete?.DisplayName || athlete?.Name || "").trim(),
-                    mediaContact: String(athlete?.MediaContact || "").trim()
+                    mediaContact: athlete?.MediaContact,
+                    personalLink: athlete?.PersonalLink,
+                    socialProfiles: athlete?.SocialProfiles || {}
                 };
                 index.set(slug, item);
                 athleteMentionItems.push({ slug, name: item.name });
@@ -1924,42 +1926,40 @@
             renderMentionSuggestions(matches);
         }
 
-        function extractMentionHandle(mediaContact, platformKey) {
-            const value = String(mediaContact || "").trim();
-            if (!value) {
+        function extractMentionHandle(mediaContact, platformKey, allowBareHandle = false) {
+            const value = typeof mediaContact === "string" ? mediaContact.trim() : "";
+            if (!value || !["x", "threads", "instagram"].includes(platformKey)) {
                 return "";
             }
 
-            if (value.startsWith("@")) {
-                if (platformKey === "x" || platformKey === "threads") {
-                    return value;
-                }
-
-                return "";
+            const normalize = handle => {
+                const normalized = handle.trim().replace(/^@/, "");
+                const valid = platformKey === "x" ? /^[a-z0-9_]{1,15}$/i : /^[a-z0-9_.]{1,30}$/i;
+                return valid.test(normalized) && !normalized.startsWith(".")
+                    && !normalized.endsWith(".") && !normalized.includes("..") ? `@${normalized}` : "";
+            };
+            // Unqualified legacy media contacts identify X only. A stored,
+            // platform-specific profile may explicitly supply a bare handle.
+            if ((allowBareHandle && !value.includes("/") && !value.includes(":"))
+                || (platformKey === "x" && value.startsWith("@"))) {
+                return normalize(value);
             }
 
             try {
-                const url = new URL(/^https?:\/\//i.test(value) ? value : `https://${value}`);
+                const url = new URL(/^[a-z][a-z0-9+.-]*:/i.test(value) ? value : `https://${value}`);
+                if (!["http:", "https:"].includes(url.protocol) || url.username || url.password || url.port) return "";
                 const host = url.hostname.toLowerCase();
-                const isHostOrSubdomain = domain => host === domain || host.endsWith(`.${domain}`);
+                const isSupportedHost = domain => [domain, `www.${domain}`, `mobile.${domain}`, `m.${domain}`].includes(host);
+                const domains = platformKey === "x" ? ["x.com", "twitter.com"]
+                    : platformKey === "threads" ? ["threads.com", "threads.net"] : ["instagram.com"];
+                if (!domains.some(isSupportedHost)) return "";
                 const path = url.pathname.replace(/^\/+|\/+$/g, "");
-                if (!path) {
-                    return "";
-                }
-
                 const firstSegment = path.split("/").find(Boolean) || "";
-                const normalizedSegment = firstSegment.replace(/^@+/, "");
-                if (!normalizedSegment) {
-                    return "";
-                }
-
-                if (platformKey === "x" && (isHostOrSubdomain("x.com") || isHostOrSubdomain("twitter.com"))) {
-                    return `@${normalizedSegment}`;
-                }
-
-                if (platformKey === "threads" && isHostOrSubdomain("threads.com")) {
-                    return `@${normalizedSegment}`;
-                }
+                const reserved = ["share", "search", "explore", "home", "notifications", "messages",
+                    "settings", "tos", "privacy", "login", "signup",
+                    ...(platformKey === "x" ? ["i", "intent"] : ["accounts", "p", "reel", "reels", "stories"])];
+                if (reserved.includes(firstSegment.toLowerCase())) return "";
+                return normalize(firstSegment);
             } catch {
             }
 
@@ -1977,7 +1977,10 @@
                 return humanizeSlug(key) || key;
             }
 
-            const mention = extractMentionHandle(athlete.mediaContact, platformKey);
+            const profileKey = { x: "X", threads: "Threads", instagram: "Instagram" }[platformKey];
+            const mention = extractMentionHandle(athlete.socialProfiles[profileKey]?.Url, platformKey, true)
+                || extractMentionHandle(athlete.mediaContact, platformKey)
+                || extractMentionHandle(athlete.personalLink, platformKey);
             if (mention) {
                 return mention;
             }

@@ -37,5 +37,45 @@
   "Division": "Men's",
   "Flag": "United States",
   "Why": "My ego, my love of progress, my hope for the future",
-  "PersonalLink": "https://www.patrickruff.com"
+  "PersonalLink": "https://www.patrickruff.com",
+  "SocialProfiles": {
+    "X": {
+      "Url": "https://x.com/Patrick_Ruff",
+      "EvidenceUrls": [
+        "https://www.patrickruff.com"
+      ],
+      "VerifiedOn": "2026-10-22"
+    },
+    "Instagram": {
+      "Url": "https://www.instagram.com/pat_ruff",
+      "EvidenceUrls": [
+        "https://www.patrickruff.com"
+      ],
+      "VerifiedOn": "2026-10-22"
+    },
+    "GitHub": {
+      "Url": "https://github.com/patruff",
+      "EvidenceUrls": [
+        "https://www.patrickruff.com",
+        "https://github.com/patruff"
+      ],
+      "VerifiedOn": "2026-10-23"
+    },
+    "YouTube": {
+      "Url": "https://www.youtube.com/@patruff",
+      "EvidenceUrls": [
+        "https://www.patrickruff.com",
+        "https://www.youtube.com/@patruff"
+      ],
+      "VerifiedOn": "2026-10-23"
+    },
+    "LinkedIn": {
+      "Url": "https://www.linkedin.com/in/patrick-ruff-3930984a",
+      "EvidenceUrls": [
+        "https://www.patrickruff.com",
+        "https://www.linkedin.com/in/patrick-ruff-3930984a"
+      ],
+      "VerifiedOn": "2026-10-23"
+    }
+  }
 }

@@ -23,5 +23,15 @@
   "Division": "Men's",
   "Flag": "Ecuador",
   "Why": "It seems it is the logical thing to do.",
-  "PodcastLink": "https://youtu.be/mYi8JlEWDYI"
+  "PodcastLink": "https://youtu.be/mYi8JlEWDYI",
+  "SocialProfiles": {
+    "Instagram": {
+      "Url": "https://www.instagram.com/thelastfermata/",
+      "EvidenceUrls": [
+        "https://x.com/Yet_another_ODE",
+        "https://www.instagram.com/thelastfermata/"
+      ],
+      "VerifiedOn": "2026-10-23"
+    }
+  }
 }

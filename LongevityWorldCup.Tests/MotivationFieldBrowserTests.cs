@@ -15,6 +15,113 @@ public sealed class MotivationFieldBrowserTests(
     private const string Long = "I want to see what is possible in feeling the most energetic and excited about life. Following the status quo and the herd is not an option. I measure, I adjust, I compete, and I share what I learn so others can take back their biological age too.";
 
     [Theory]
+    [InlineData(true, 390, 844)]
+    [InlineData(false, 390, 844)]
+    [InlineData(true, 1440, 900)]
+    [InlineData(false, 1440, 900)]
+    public async Task FocusedMotivation_DoesNotUndoManualScrolling(bool application, int width, int height)
+    {
+        await using var context = await CreateContextAsync(width, height);
+        var (page, field) = await OpenAsync(context, application);
+        await page.EvaluateAsync("() => document.documentElement.style.fontSize = '200%'");
+        await SettleAsync(page);
+        // The progress bar deliberately performs a one-time scroll after 500ms.
+        // Exercise the user's gesture after that startup behavior has finished.
+        await page.WaitForTimeoutAsync(600);
+        await field.ClickAsync();
+        await SettleAsync(page);
+        await page.EvaluateAsync("() => scrollTo({top:0, behavior:'instant'})");
+        await SettleAsync(page);
+        await SettleAsync(page);
+        await Assertions.Expect(field).ToBeFocusedAsync();
+        Assert.InRange(await page.EvaluateAsync<double>("() => scrollY"), 0, 1);
+    }
+
+    [Theory]
+    [InlineData(false, 390, 844)]
+    [InlineData(true, 390, 844)]
+    [InlineData(false, 1440, 900)]
+    [InlineData(true, 1440, 900)]
+    public async Task ManualScroll_BeforeQueuedFocusClearanceFinishes_TakesPrecedence(bool application, int width, int height)
+    {
+        await using var context = await CreateContextAsync(width, height);
+        var (page, field) = await OpenAsync(context, application);
+        await field.ClickAsync();
+        await SettleAsync(page);
+        await field.EvaluateAsync("""
+            field => {
+                window.LwcFlowActionDock.ensureClear(field, {behavior: 'auto'});
+                // Run the gesture before the deferred reconciliation, without
+                // depending on a cross-process request winning the frame race.
+                scrollTo({top: 0, behavior: 'instant'});
+            }
+            """);
+        await SettleAsync(page);
+        await SettleAsync(page);
+        await Assertions.Expect(field).ToBeFocusedAsync();
+        Assert.InRange(await page.EvaluateAsync<double>("() => scrollY"), 0, 1);
+    }
+
+    [Theory]
+    [InlineData(false, 390, 844)]
+    [InlineData(true, 390, 844)]
+    [InlineData(false, 1440, 900)]
+    [InlineData(true, 1440, 900)]
+    public async Task ManualScroll_WithinAnAlreadyCompletedClearancePath_TakesPrecedence(bool application, int width, int height)
+    {
+        await using var context = await CreateContextAsync(width, height);
+        var (page, field) = await OpenAsync(context, application);
+        await page.EvaluateAsync("() => document.documentElement.style.fontSize = '200%'");
+        await SettleAsync(page);
+        await field.ClickAsync();
+        await SettleAsync(page);
+        var positions = await field.EvaluateAsync<double[]>("""
+            field => {
+                scrollTo({top: 0, behavior: 'instant'});
+                window.LwcFlowActionDock.ensureClear(field, {behavior: 'auto'});
+                const cleared = scrollY;
+                const manual = Math.floor(cleared / 2);
+                scrollTo({top: manual, behavior: 'instant'});
+                return [cleared, manual];
+            }
+            """);
+        Assert.True(positions[0] > 2, "The immediate clearance must actually scroll before the manual move.");
+        Assert.InRange(positions[1], 1, positions[0] - 1);
+        await SettleAsync(page);
+        await SettleAsync(page);
+        await Assertions.Expect(field).ToBeFocusedAsync();
+        Assert.InRange(await page.EvaluateAsync<double>("() => scrollY"), positions[1] - 1, positions[1] + 1);
+    }
+
+    [Fact]
+    public async Task DeferredClearance_AllowsItsOwnSmoothScrollToFinish()
+    {
+        await using var context = await CreateContextAsync(390, 844);
+        var (page, field) = await OpenAsync(context, false);
+        await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.NoPreference });
+        await page.EvaluateAsync("() => document.documentElement.style.fontSize = '200%'");
+        await SettleAsync(page);
+        await field.ClickAsync();
+        await SettleAsync(page);
+        await SettleAsync(page);
+        await field.EvaluateAsync("""
+            field => {
+                scrollTo({top: 0, behavior: 'instant'});
+                window.LwcFlowActionDock.ensureClear(field, {behavior: 'smooth'});
+            }
+            """);
+        await page.WaitForFunctionAsync("""
+            () => {
+                const field = document.getElementById('whyDisplayInput').getBoundingClientRect();
+                const dock = document.querySelector('.flow-action-stack--docked')?.getBoundingClientRect();
+                return scrollY > 0 && field.bottom <= (dock?.top ?? innerHeight);
+            }
+            """);
+        await ExpectFieldClearAsync(page, field);
+        await Assertions.Expect(field).ToHaveValueAsync(Saved);
+    }
+
+    [Theory]
     [InlineData(false, 1440, 900, false)]
     [InlineData(true, 1440, 900, true)]
     [InlineData(false, 768, 1024, true)]
@@ -222,11 +329,15 @@ public sealed class MotivationFieldBrowserTests(
                     mirror.remove();
                 }
                 const viewport = window.visualViewport;
-                return [top, bottom, Math.min((viewport?.offsetTop ?? 0) + (viewport?.height ?? innerHeight), dock?.top ?? innerHeight)];
+                const stickyBottoms = ['site-sticky-header', 'site-sticky-progress'].map(id => document.getElementById(id))
+                    .filter(bar => bar?.classList.contains('visible') && bar.getBoundingClientRect().width > 0)
+                    .map(bar => bar.getBoundingClientRect().bottom);
+                return [top, bottom, Math.min((viewport?.offsetTop ?? 0) + (viewport?.height ?? innerHeight), dock?.top ?? innerHeight),
+                    Math.max(viewport?.offsetTop ?? 0, ...stickyBottoms)];
             }
             """, caretOnly);
-        Assert.True(bounds[0] >= -1 && bounds[1] <= bounds[2] + 1,
-            $"Focused motivation spans {bounds[0]}–{bounds[1]}px; usable viewport ends at {bounds[2]}px.");
+        Assert.True(bounds[0] >= bounds[3] - 1 && bounds[1] <= bounds[2] + 1,
+            $"Focused motivation spans {bounds[0]}–{bounds[1]}px; usable viewport spans {bounds[3]}–{bounds[2]}px.");
     }
 
     private async Task<IBrowserContext> CreateContextAsync(int width, int height, bool dark = false)

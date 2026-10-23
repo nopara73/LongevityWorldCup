@@ -210,6 +210,7 @@ public sealed class ApplyJourneyBrowserTests(
         {
             if (stage > 1)
                 await page.EvaluateAsync("stage => { currentStage = stage; goToStage(stage); }", stage);
+            await page.Locator("#illustrationImage").EvaluateAsync("image => image.decode()");
             await page.EvaluateAsync("async () => { await document.fonts.ready; await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))); }");
             var header = await page.EvaluateAsync<StageHeader>(MeasureStageHeader);
             var scenario = $"{width}px stage {stage} ({header.Title})";
@@ -316,7 +317,9 @@ public sealed class ApplyJourneyBrowserTests(
 
         foreach (var stage in new[] { 1, 3, 6 })
         {
-            await page.EvaluateAsync("stage => { currentStage = stage; goToStage(stage); window.LwcFlowActionDock?.refreshNow(); }", stage);
+            // The previous iteration scrolls to the card's end to check clearance.
+            // Reset the anchor so every stage exercises its overflowing first screen.
+            await page.EvaluateAsync("stage => { window.scrollTo({ top: 0, behavior: 'instant' }); currentStage = stage; goToStage(stage); window.LwcFlowActionDock?.refreshNow(); }", stage);
             await page.WaitForFunctionAsync("() => document.querySelector('.convergence-actions')?.classList.contains('flow-action-stack--docked')");
             const string measureTail = """
                 () => {

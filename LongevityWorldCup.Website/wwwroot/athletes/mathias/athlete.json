@@ -24,5 +24,14 @@
   "Division": "Open",
   "Flag": "Austria",
   "Why": "My plans for tomorrow and creating human evolution",
-  "PersonalLink": "https://www.instagram.com/mathihof"
+  "PersonalLink": "https://www.instagram.com/mathihof",
+  "SocialProfiles": {
+    "Threads": {
+      "Url": "https://www.threads.com/@mathihof",
+      "EvidenceUrls": [
+        "https://www.instagram.com/mathihof/"
+      ],
+      "VerifiedOn": "2026-10-23"
+    }
+  }
 }
