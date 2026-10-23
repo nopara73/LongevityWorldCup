@@ -1046,9 +1046,12 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             const email = normalizeEmailValue(signupEmailInput.value);
             signupEmailInput.dataset.complete = String(!!email && isEmailAddress(email));
             const name = requiredInput("lmxSignupName");
-            name.dataset.complete = String(!!name.value.trim());
+            name.setCustomValidity(!name.disabled && /[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+/.test(name.value)
+                ? "Choose a public username without an email address." : "");
+            name.dataset.complete = String(!!name.value.trim() && name.validity.valid);
         };
         signupForm.addEventListener("input", refreshSignupCompletion);
+        signupForm.addEventListener("change", refreshSignupCompletion);
         signupForm.addEventListener("reset", () => queueMicrotask(refreshSignupCompletion));
         refreshSignupCompletion();
         wireSignInForm();

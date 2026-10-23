@@ -8,6 +8,59 @@ namespace LongevityWorldCup.Tests;
 
 public sealed partial class LongevitymaxxingChallengeBrowserTests
 {
+    [Fact]
+    public async Task LandingBoard_EmailShapedUsernameStaysIncompleteAndCannotBeSubmitted()
+    {
+        await using var context = await NewContextAsync(Browser, App, new() { ViewportSize = new() { Width = 390, Height = 844 } });
+        await context.RouteAsync("**/api/longevitymaxxing/state",
+            route => FulfillJsonAsync(route, JsonSerializer.Serialize(BuildPublicState())));
+        var submissions = 0;
+        await context.RouteAsync("**/api/longevitymaxxing/signup", route =>
+        {
+            submissions++;
+            return FulfillJsonAsync(route, "{}");
+        });
+        var page = await context.NewPageAsync();
+        await NavigateAndSettleAsync(page, "/longevitymaxxing");
+        await Assertions.Expect(page.Locator(".lmx-page")).ToHaveAttributeAsync("aria-busy", "false");
+        await page.Locator("#lmxSignupEmail").FillAsync("contact@example.com");
+        var name = page.Locator("#lmxSignupName");
+        await name.FillAsync("private@example.com");
+        Assert.False(await name.EvaluateAsync<bool>("input => input.validity.valid"));
+        await Assertions.Expect(name).ToHaveAttributeAsync("data-complete", "false");
+        await page.Locator("#lmxSignupForm button[type=submit]").ClickAsync();
+        Assert.Equal(0, submissions);
+        await name.FillAsync("Public Person");
+        Assert.True(await name.EvaluateAsync<bool>("input => input.validity.valid"));
+        await Assertions.Expect(name).ToHaveAttributeAsync("data-complete", "true");
+    }
+
+    [Theory]
+    [InlineData(1440, ColorScheme.Light)]
+    [InlineData(390, ColorScheme.Dark)]
+    public async Task LandingBoard_SignedInDailyQuestionsFollowPendingCheckIns(int width, ColorScheme theme)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = 844 }, ColorScheme = theme
+        });
+        var noEligibleDays = false;
+        await context.RouteAsync("**/api/longevitymaxxing/state",
+            route => FulfillJsonAsync(route, JsonSerializer.Serialize(BuildPublicState())));
+        await context.RouteAsync("**/api/longevitymaxxing/participant",
+            route => FulfillJsonAsync(route, JsonSerializer.Serialize(BuildParticipantState(noEligibleDays: noEligibleDays))));
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/longevitymaxxing?token=browser-token");
+        await Assertions.Expect(page.Locator(".lmx-page")).ToHaveAttributeAsync("aria-busy", "false");
+        await Assertions.Expect(page.Locator("#lmxHabitGrid")).ToBeHiddenAsync();
+        await Assertions.Expect(page.Locator("#lmxQuestionPreview")).ToBeVisibleAsync();
+        await Assertions.Expect(page.Locator("#lmxQuestionPreviewList .lmx-question-preview-item")).ToHaveCountAsync(4);
+        noEligibleDays = true;
+        await page.ReloadAsync();
+        await Assertions.Expect(page.Locator(".lmx-page")).ToHaveAttributeAsync("aria-busy", "false");
+        await Assertions.Expect(page.Locator("#lmxQuestionPreview")).ToBeHiddenAsync();
+    }
+
     [Theory]
     [InlineData(1440, ColorScheme.Light, 2)]
     [InlineData(1024, ColorScheme.Dark, 2)]
