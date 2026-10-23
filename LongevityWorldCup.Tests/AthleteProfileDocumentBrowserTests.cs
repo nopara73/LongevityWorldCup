@@ -162,8 +162,14 @@ public sealed class AthleteProfileDocumentBrowserTests(
     private static async Task<IPage> OpenProfileAsync(IBrowserContext context)
     {
         var page = await context.NewPageAsync();
+        var failures = new List<string>();
+        page.PageError += (_, error) => failures.Add(error);
+        page.RequestFailed += (_, request) => failures.Add($"{request.Method} {request.Url}: {request.Failure}");
+        page.Console += (_, message) => { if (message.Type == "error") failures.Add(message.Text); };
         await page.GotoAsync(Profile, new() { WaitUntil = WaitUntilState.DOMContentLoaded });
-        await page.WaitForFunctionAsync(
+        try
+        {
+            await page.WaitForFunctionAsync(
             """
             () => {
                 const content = document.querySelector('#detailsModal .modal-content');
@@ -174,6 +180,33 @@ public sealed class AthleteProfileDocumentBrowserTests(
                     && [...document.querySelectorAll('link[rel="stylesheet"]')].every(link => !!link.sheet);
             }
             """);
+        }
+        catch (TimeoutException error)
+        {
+            var state = await page.EvaluateAsync<string>("""
+                async () => {
+                    const content = document.querySelector('#detailsModal .modal-content');
+                    const settle = promise => promise === undefined ? 'absent' : Promise.race([
+                        Promise.resolve(promise).then(() => 'fulfilled', error => 'rejected: ' + error),
+                        new Promise(resolve => setTimeout(() => resolve('pending'), 20))
+                    ]);
+                    return JSON.stringify({
+                        ready: document.readyState,
+                        visibility: document.visibilityState,
+                        contentClass: content?.className,
+                        contentData: content ? { ...content.dataset } : null,
+                        errorVisible: !document.getElementById('athleteLoadError')?.hidden,
+                        proofsPresent: !!document.getElementById('athlete-proofs'),
+                        modules: await settle(window.modulesReady),
+                        dialogModules: await settle(window.athleteDialogModulesReady),
+                        athletes: await settle(window.__sharedAthletesRequest),
+                        styles: [...document.querySelectorAll('link[rel="stylesheet"]')]
+                            .map(link => ({ href: link.href, media: link.media, disabled: link.disabled, loaded: !!link.sheet }))
+                    });
+                }
+                """);
+            throw new Xunit.Sdk.XunitException($"Direct profile hydration timed out: {state}\nBrowser failures: {string.Join("; ", failures)}\n{error.Message}");
+        }
         await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
         return page;
     }

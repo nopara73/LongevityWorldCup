@@ -24,6 +24,9 @@ public sealed class EntryJourneyBrowserTests(
                     window.__lwcReveal.animations = document.getAnimations()
                         .filter(a => a.effect && String(a.effect.pseudoElement || '').startsWith('::view-transition'))
                         .map(a => ({ name: a.animationName, pseudo: a.effect.pseudoElement, duration: a.effect.getTiming().duration, delay: a.effect.getTiming().delay }));
+                }, error => {
+                    window.__lwcReveal.skipped = String(error);
+                    window.__lwcReveal.animations = [];
                 });
             }
         });
@@ -301,6 +304,37 @@ public sealed class EntryJourneyBrowserTests(
         await page.WaitForTimeoutAsync(300);
         Assert.False(await page.EvaluateAsync<bool>("() => window.__lwcReveal.transition"), $"{from} -> {to} started a journey transition");
         Assert.True(errors.Count == 0, $"{from} -> {to}: {string.Join("; ", errors)}");
+    }
+
+    [Theory]
+    [InlineData("pageswap")]
+    [InlineData("pagereveal")]
+    public async Task SkippedPageTransition_DoesNotRaiseAnUnhandledRejection(string eventName)
+    {
+        // Keep this context free of the test recorder, which owns a separate
+        // ready promise observer. This specifically tests the page's handling.
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = 1280, Height = 720 },
+            ReducedMotion = ReducedMotion.NoPreference
+        });
+        var page = await context.NewPageAsync();
+        var errors = new List<string>();
+        page.PageError += (_, error) => errors.Add(error);
+        await NavigateAndSettleAsync(page, "/join");
+        await page.EvaluateAsync("""
+            async name => {
+                const transition = document.startViewTransition(() => {});
+                const ready = transition.ready;
+                const event = new Event(name);
+                Object.defineProperty(event, 'viewTransition', { value: transition });
+                dispatchEvent(event);
+                transition.skipTransition();
+                await transition.finished;
+                await new Promise(resolve => setTimeout(resolve, 0));
+            }
+            """, eventName);
+        Assert.True(errors.Count == 0, string.Join("\n", errors));
     }
 
     [Fact]
