@@ -112,7 +112,7 @@ public sealed partial class HighlightsTimelineBrowserTests(
                 if (Math.abs(body.getBoundingClientRect().left - row.querySelector('.event-message-cell').getBoundingClientRect().left) > 1)
                     issues.push('the panel does not start with the message');
                 if (!style.boxShadow.includes('inset')) issues.push('the panel has no accent edge');
-                if (parseFloat(style.borderTopLeftRadius) < 4) issues.push('the panel is square');
+                if (parseFloat(style.borderBottomLeftRadius) < 4) issues.push('the panel is square');
                 if (parseFloat(style.paddingLeft) < 12) issues.push('the panel text touches its edge');
                 if (!getComputedStyle(details).backgroundImage.includes('gradient')) issues.push('the rail breaks at the panel');
                 return issues;

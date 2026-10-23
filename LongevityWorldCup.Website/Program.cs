@@ -34,6 +34,7 @@ namespace LongevityWorldCup.Website
 
         public static void Main(string[] args)
         {
+            if (RecoveryBackupCommand.TryRun(args)) return;
             InitializeDefaultConfig(); // Ensure default config file is created
 
             var builder = WebApplication.CreateBuilder(args);
@@ -211,6 +212,12 @@ namespace LongevityWorldCup.Website
 
             builder.Services.AddSingleton<AssetVersionProvider>();
             builder.Services.AddSingleton<DatabaseManager>();
+            builder.Services.AddSingleton(sp => new RecoveryBackupService(
+                sp.GetRequiredService<DatabaseManager>(),
+                sp.GetRequiredService<IWebHostEnvironment>().ContentRootPath,
+                sp.GetRequiredService<IWebHostEnvironment>().WebRootPath ??
+                    Path.Combine(sp.GetRequiredService<IWebHostEnvironment>().ContentRootPath, "wwwroot"),
+                sp.GetRequiredService<TimeProvider>()));
             builder.Services.AddSingleton<CrowdAgeGuessRateLimiter>();
             builder.Services.AddSingleton<AthleteDataCorrections>();
             builder.Services.AddSingleton<AthleteDataService>();

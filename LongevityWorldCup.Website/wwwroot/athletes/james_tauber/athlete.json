@@ -35,5 +35,25 @@
   "Division": "Men's",
   "Flag": "Australia",
   "Why": "Making more of a contribution in life.",
-  "PersonalLink": null
+  "PersonalLink": null,
+  "SocialProfiles": {
+    "GitHub": {
+      "Url": "https://github.com/jtauber",
+      "EvidenceUrls": [
+        "https://github.com/jtauber",
+        "https://jtauber.com/"
+      ],
+      "VerifiedOn": "2026-10-23"
+    },
+    "Bluesky": {
+      "Url": "https://bsky.app/profile/jtauber.com",
+      "EvidenceUrls": [
+        "https://github.com/jtauber",
+        "https://jtauber.com/",
+        "https://bsky.app/profile/jtauber.com"
+      ],
+      "VerifiedOn": "2026-10-23",
+      "Did": "did:plc:cvmmvawq5z2qxfhtu3umrx3f"
+    }
+  }
 }

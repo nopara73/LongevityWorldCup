@@ -64,6 +64,25 @@
         "https://www.patreon.com/c/MichaelLustgartenPhD"
       ],
       "VerifiedOn": "2026-10-22"
+    },
+    "Mastodon": {
+      "Url": "https://mastodon.social/@Conquer_Aging_Or_Die_Trying",
+      "EvidenceUrls": [
+        "https://mastodon.social/@Conquer_Aging_Or_Die_Trying",
+        "https://mastodon.social/@Conquer_Aging_Or_Die_Trying/117462308626369471",
+        "https://www.youtube.com/watch?v=oh_-fWKOX6U",
+        "https://www.patreon.com/c/MichaelLustgartenPhD"
+      ],
+      "VerifiedOn": "2026-10-23"
+    },
+    "YouTube": {
+      "Url": "https://www.youtube.com/@conqueragingordietrying123",
+      "EvidenceUrls": [
+        "https://mastodon.social/@Conquer_Aging_Or_Die_Trying/117462308626369471",
+        "https://www.youtube.com/watch?v=oh_-fWKOX6U",
+        "https://www.patreon.com/c/MichaelLustgartenPhD"
+      ],
+      "VerifiedOn": "2026-10-23"
     }
   }
 }

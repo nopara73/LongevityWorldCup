@@ -167,10 +167,11 @@ public sealed class EventBoardBrowserTests(
                             || line.right > dateBox.right - parseFloat(dateStyle.paddingRight) + 1))
                             issues.push(`${id}: date text escapes its column`);
                     }
-                    // Wide: the date leads the row, right beside the portrait. Narrow: it sits under the message.
+                    // Wide: the date leads the row, right beside the portrait. Narrow: it labels its day over the message.
                     const besideMessage = dateBox.right <= textBox.left + 1 && textBox.left - dateBox.right < 120;
-                    const underMessage = dateBox.top >= textBox.bottom - 1 && Math.abs(dateBox.left - textBox.left) <= 1;
-                    if (!besideMessage && !underMessage) issues.push(`${id}: date is far from its event`);
+                    const overMessage = dateBox.bottom <= textBox.top + 1 && textBox.top - dateBox.bottom < 12 && Math.abs(dateBox.left - textBox.left) <= 1;
+                    const repeatedDay = innerWidth <= 600 && row.classList.contains('day-repeat') && dateBox.width <= 1;
+                    if (!besideMessage && !overMessage && !repeatedDay) issues.push(`${id}: date is far from its event`);
                 }
                 const title = document.querySelector('tr.main-row[data-event-id="timeline-announcement"] .custom-event-title');
                 const expander = title.querySelector('.custom-event-expander');
