@@ -82,7 +82,17 @@ public sealed class HighlightsEventAnatomyBrowserTests(
                     const cx = m.left + m.width / 2, cy = m.top + m.height / 2;
                     if (cx < p.left + p.width / 2 || cx > p.right + 2 || cy < p.top + p.height / 2 || cy > p.bottom + 2)
                         issues.push(`${row}: mark is not on the portrait's lower right`);
-                    if (style.backgroundColor === style.color) issues.push(`${row}: glyph has no contrast`);
+                    const luminance = color => {
+                        const channels = color.match(/[\d.]+/g).slice(0, 3).map(Number).map(v => {
+                            const c = v / 255;
+                            return c <= .04045 ? c / 12.92 : ((c + .055) / 1.055) ** 2.4;
+                        });
+                        return channels[0] * .2126 + channels[1] * .7152 + channels[2] * .0722;
+                    };
+                    const ink = luminance(getComputedStyle(mark.querySelector('i')).color);
+                    const fill = luminance(style.backgroundColor);
+                    const contrast = (Math.max(ink, fill) + .05) / (Math.min(ink, fill) + .05);
+                    if (contrast < 3) issues.push(`${row}: glyph contrast is ${contrast.toFixed(2)}:1`);
                 }
                 if (document.documentElement.scrollWidth > innerWidth) issues.push('page overflows horizontally');
                 return issues;
@@ -100,6 +110,78 @@ public sealed class HighlightsEventAnatomyBrowserTests(
         await Assertions.Expect(frame.Locator(".avatar-fallback")).ToHaveTextAsync("AA");
         Assert.Equal(0, await frame.Locator("img").CountAsync());
         Assert.Equal("joined", await frame.Locator(".event-kind").GetAttributeAsync("data-kind"));
+        var link = frame.Locator("..");
+        Assert.Equal("/athlete/ada-aging", await link.GetAttributeAsync("href"));
+        Assert.Equal("Ada Aging", await link.GetAttributeAsync("aria-label"));
+        Assert.Equal("ada-aging", await link.GetAttributeAsync("data-athlete-slug"));
+    }
+
+    [Theory]
+    [InlineData("light")]
+    [InlineData("dark")]
+    public async Task ProfileFeedKeepsLossMeaningAndBrokenPortraitNavigation(string scheme)
+    {
+        await using var context = await NewContextAsync(390, scheme);
+        var page = await context.NewPageAsync();
+        await page.GotoAsync($"/event-board-embed.html?embed=1&athlete=bo-biomarker&theme={scheme}",
+            new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        var rank = page.Locator("tr.main-row[data-event-id='a-rank']");
+        await Assertions.Expect(rank).ToContainTextAsync("lost");
+        await Assertions.Expect(rank.Locator(".event-kind")).ToHaveAttributeAsync("data-lost", "true");
+        Assert.Equal("none", await rank.Locator(".event-kind").EvaluateAsync<string>("e => getComputedStyle(e).display"));
+        Assert.Equal(1, await rank.Locator(".fa-arrow-trend-down").CountAsync());
+        Assert.Equal("test", await page.Locator("tr.main-row[data-event-id='a-test'] .event-kind").GetAttributeAsync("data-kind"));
+
+        // Ada's profile projects Bo's Crowd Age gain as Ada's loss, retaining
+        // the winner's original new-tab name link.
+        await page.GotoAsync($"/event-board-embed.html?embed=1&athlete=ada-aging&theme={scheme}",
+            new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        var lostCrowd = page.Locator("tr.main-row[data-event-id='a-crowd']");
+        await Assertions.Expect(lostCrowd).ToContainTextAsync("lost");
+        await Assertions.Expect(lostCrowd.Locator(".event-kind")).ToHaveAttributeAsync("data-lost", "true");
+        Assert.Equal(1, await lostCrowd.Locator(".fa-arrow-trend-down").CountAsync());
+        Assert.Equal("/athlete/bo-biomarker", await lostCrowd.Locator("a.event-athlete-link").GetAttributeAsync("href"));
+        Assert.Equal("_blank", await lostCrowd.Locator("a.event-athlete-link").GetAttributeAsync("target"));
+        Assert.Equal("season", await page.Locator("tr.main-row[data-event-id='a-season'] .event-kind").GetAttributeAsync("data-kind"));
+
+        // Ask for Bo's profile again, with an event that mentions Ada but gives no
+        // loss projection. The broken image must keep its own new-tab link.
+        var moreEvents = System.Text.Json.Nodes.JsonNode.Parse(Events)!.AsArray();
+        moreEvents.Add(System.Text.Json.Nodes.JsonNode.Parse("""{"Id":"cross-portrait","Type":1,"Text":"slug[ada_aging] slug[bo_biomarker]","OccurredAt":"2026-10-22T10:00:00Z"}"""));
+        await context.RouteAsync("**/api/events", route => route.FulfillAsync(new() {ContentType="application/json", Body=moreEvents.ToJsonString()}));
+        await page.GotoAsync($"/event-board-embed.html?embed=1&athlete=bo-biomarker&theme={scheme}",
+            new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        var portrait = page.Locator("tr.main-row[data-event-id='cross-portrait'] .avatar-link");
+        await Assertions.Expect(portrait.Locator(".avatar-fallback")).ToHaveTextAsync("AA");
+        Assert.Equal("/athlete/ada-aging", await portrait.GetAttributeAsync("href"));
+        Assert.Equal("_blank", await portrait.GetAttributeAsync("target"));
+        Assert.Contains("noopener", await portrait.GetAttributeAsync("rel"));
+        await context.RouteAsync("**/athlete/ada-aging", route => route.FulfillAsync(new() {ContentType="text/html", Body="<title>Ada destination</title>"}));
+        var popup = await page.RunAndWaitForPopupAsync(() => portrait.ClickAsync());
+        await Assertions.Expect(popup).ToHaveURLAsync(new System.Text.RegularExpressions.Regex(@"/athlete/ada-aging$"));
+        await popup.CloseAsync();
+    }
+
+    [Fact]
+    public async Task UnknownAndAggregateEventsKeepTheirExistingMeaning()
+    {
+        await using var context = await NewContextAsync(1280, "light");
+        var extra = System.Text.Json.Nodes.JsonNode.Parse(Events)!.AsArray();
+        extra.Add(System.Text.Json.Nodes.JsonNode.Parse("""{"Id":"unknown","Type":987,"Text":"An unfamiliar event","OccurredAt":"2026-10-21T10:00:00Z"}"""));
+        extra.Add(System.Text.Json.Nodes.JsonNode.Parse("""{"Id":"second-badge","Type":5,"Text":"slug[bo_biomarker] badge[PhenoAge - lowest] cat[Global] val[] place[2]","OccurredAt":"2026-10-18T10:00:05Z"}"""));
+        extra.Add(System.Text.Json.Nodes.JsonNode.Parse("""{"Id":"no-athlete-challenge","Type":8,"Text":"name[Challenge Guest] place[4] checkedIn[0] points[0] days[14]","OccurredAt":"2026-10-21T09:00:00Z"}"""));
+        await context.RouteAsync("**/api/events", route => route.FulfillAsync(new() {ContentType="application/json", Body=extra.ToJsonString()}));
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/events", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await Assertions.Expect(page.Locator("tr.main-row[data-event-id='unknown']")).ToContainTextAsync("An unfamiliar event");
+        Assert.Equal(0, await page.Locator("tr.main-row[data-event-id='unknown'] .event-kind").CountAsync());
+        var badges = page.Locator("tr.main-row[data-event-id='a-badge']");
+        Assert.Equal("badge", await badges.Locator(".event-kind").GetAttributeAsync("data-kind"));
+        await Assertions.Expect(badges).ToContainTextAsync("2");
+        var challenge = page.Locator("tr.main-row[data-event-id='no-athlete-challenge']");
+        Assert.Equal(0, await challenge.Locator(".event-kind").CountAsync());
+        await Assertions.Expect(challenge).ToContainTextAsync("0/14 checked-in days and 0 points");
+        Assert.Equal(new[] {"0/14", "0"}, await challenge.Locator(".count-accent").AllInnerTextsAsync());
     }
 
     [Theory]
@@ -129,6 +211,9 @@ public sealed class HighlightsEventAnatomyBrowserTests(
         Assert.True(int.Parse(styles[1]) >= 700, $"name weight {styles[1]}");
         Assert.NotEqual(styles[3], styles[2]);
         Assert.Equal("true", styles[4]);
+        Assert.Equal(0, await row.Locator(".rank-badge strong[style]").CountAsync());
+        Assert.Equal(await name.EvaluateAsync<string>("e => getComputedStyle(e).color"),
+            await row.Locator(".rank-badge strong").First.EvaluateAsync<string>("e => getComputedStyle(e).color"));
 
         // Hover still shows it is a link.
         if (width > 600)
@@ -136,6 +221,64 @@ public sealed class HighlightsEventAnatomyBrowserTests(
             await name.HoverAsync();
             Assert.Contains("underline", await name.EvaluateAsync<string>("e => getComputedStyle(e).textDecorationLine"));
         }
+        await rank.FocusAsync();
+        await Assertions.Expect(rank).ToHaveCSSAsync("color",
+            await name.EvaluateAsync<string>("e => getComputedStyle(e).color"));
+        Assert.Contains("underline", await rank.EvaluateAsync<string>("e => getComputedStyle(e).textDecorationLine"));
+    }
+
+    [Fact]
+    public async Task AnimatedRerendersReleaseOldRowsAndKeepOneResizeHandler()
+    {
+        await using var context = await NewContextAsync(1280, "light");
+        await context.AddInitScriptAsync(
+            """
+            (() => {
+                const listeners = new Set();
+                const add = window.addEventListener, remove = window.removeEventListener;
+                window.addEventListener = function(type, fn, options) {
+                    if (type === 'resize') listeners.add(fn);
+                    return add.call(this, type, fn, options);
+                };
+                window.removeEventListener = function(type, fn, options) {
+                    if (type === 'resize') listeners.delete(fn);
+                    return remove.call(this, type, fn, options);
+                };
+                const targets = new Set();
+                const NativeObserver = window.IntersectionObserver;
+                window.IntersectionObserver = class extends NativeObserver {
+                    observed = new Set();
+                    observe(element) { this.observed.add(element); targets.add(element); super.observe(element); }
+                    unobserve(element) { this.observed.delete(element); targets.delete(element); super.unobserve(element); }
+                    disconnect() { this.observed.forEach(element => targets.delete(element)); this.observed.clear(); super.disconnect(); }
+                };
+                window.eventLifecycle = () => ({
+                    listeners: listeners.size,
+                    detachedRows: [...targets].filter(element => element.matches('tr.row-appear') && !element.isConnected).length
+                });
+            })();
+            """);
+        var page = await context.NewPageAsync();
+        await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.NoPreference });
+        await page.GotoAsync("/events", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.WaitForFunctionAsync("() => document.querySelector('#events-root')?.getAttribute('aria-busy') === 'false'");
+        var listeners = await page.EvaluateAsync<int>("() => eventLifecycle().listeners");
+        for (var i = 0; i < 4; i++)
+        {
+            await page.EvaluateAsync("() => loadEventsTable(null, false)");
+            await page.WaitForFunctionAsync("() => document.querySelector('#events-root')?.getAttribute('aria-busy') === 'false'");
+        }
+        Assert.Equal(listeners, await page.EvaluateAsync<int>("() => eventLifecycle().listeners"));
+        Assert.Equal(0, await page.EvaluateAsync<int>("() => eventLifecycle().detachedRows"));
+        var last = page.Locator("tr.main-row[data-event-id='a-donation']");
+        await last.ScrollIntoViewIfNeededAsync();
+        await page.SetViewportSizeAsync(1000, 700);
+        await Assertions.Expect(last).ToHaveClassAsync(new System.Text.RegularExpressions.Regex(@"\bis-visible\b"));
+        await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.Reduce });
+        await page.EvaluateAsync("() => loadEventsTable(null, false)");
+        await page.WaitForFunctionAsync("() => document.querySelector('#events-root')?.getAttribute('aria-busy') === 'false'");
+        Assert.Equal(0, await page.Locator("tr.row-appear:not(.is-visible)").CountAsync());
+        Assert.Equal(0, await page.EvaluateAsync<int>("() => eventLifecycle().detachedRows"));
     }
 
     [Theory]

@@ -33,6 +33,7 @@ const eventsPageAssets = document.currentScript.dataset;
         const tbody = document.querySelector('#eventsTable tbody');
         if (!tbody) return;
         if (preserveExistingRows && tbody.querySelector('tr.main-row')) return;
+        rowObserver?.disconnect();
         [...tbody.closest('table').tBodies].slice(1).forEach(body=>body.remove());
         delete tbody.dataset.month;
         tbody.style.removeProperty('--event-month-height');
@@ -50,6 +51,7 @@ const eventsPageAssets = document.currentScript.dataset;
     function renderEventsLoadError(retry){
         const tbody = document.querySelector('#eventsTable tbody');
         if (!tbody) return;
+        rowObserver?.disconnect();
         [...tbody.closest('table').tBodies].slice(1).forEach(body=>body.remove());
         delete tbody.dataset.month;
         tbody.style.removeProperty('--event-month-height');
@@ -653,6 +655,12 @@ const eventsPageAssets = document.currentScript.dataset;
     let rowObserver=null;
     function ensureRowObserver(){
         if(rowObserver) return rowObserver;
+        // One observer owns the feed's animation lifecycle. Look up the current
+        // table on resize so rerenders neither retain old rows nor add handlers.
+        window.addEventListener("resize", () => {
+            const table = document.getElementById("eventsTable");
+            if (table) revealVisibleRowsImmediately(table);
+        }, { passive: true });
         const prefersReduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         rowObserver=new IntersectionObserver((entries,io)=>{
             entries.forEach(entry=>{
@@ -885,6 +893,8 @@ const eventsPageAssets = document.currentScript.dataset;
     function renderRows(rows, athletesIndex, linkNames, options=null){
         const tbody = document.querySelector("#eventsTable tbody");
         const table=tbody.closest('table');
+        // Reobserve only the surviving, unrevealed rows after reconciliation.
+        rowObserver?.disconnect();
         const chapters=!!tbody.closest('.event-board-page');
         const timelineRows = chapters ? [...table.querySelectorAll('tr.main-row')] : [];
         const expandedEvents = new Set(timelineRows.filter(row => row.classList.contains('is-open')).map(row => row.dataset.eventId));
@@ -1201,7 +1211,7 @@ const eventsPageAssets = document.currentScript.dataset;
                 const takenText = Number.isFinite(taken) ? ordinal(taken) : "?";
                 const iconHtml  = Number.isFinite(taken) ? podiumIcon(taken) : "";
                 const takenHtml = Number.isFinite(taken)
-                    ? `<span class="rank-badge"><strong style="color: var(--secondary-color, #087685)">${esc(takenText)}</strong>${iconHtml}</span>`
+                    ? `<span class="rank-badge"><strong class="event-rank-accent">${esc(takenText)}</strong>${iconHtml}</span>`
                     : esc(takenText);
 
                 if(r.newRankDirection === "lost"){
@@ -1243,7 +1253,7 @@ const eventsPageAssets = document.currentScript.dataset;
                 const placeText = placeN ? ordinal(placeN) : "?";
                 const placeIconHtml = placeN ? podiumIcon(placeN) : "";
                 const placeHtml = placeN
-                    ? `<span class="rank-badge"><strong style="color: var(--secondary-color, #087685)">${esc(placeText)}</strong>${placeIconHtml}</span>`
+                    ? `<span class="rank-badge"><strong class="event-rank-accent">${esc(placeText)}</strong>${placeIconHtml}</span>`
                     : esc(placeText);
 
                 const seasonN = Number.isFinite(r.seasonId) ? r.seasonId : null;
@@ -1272,7 +1282,7 @@ const eventsPageAssets = document.currentScript.dataset;
                 const placeText = placeN ? ordinal(placeN) : "";
                 const placeIconHtml = placeN ? podiumIcon(placeN) : "";
                 const placeHtml = placeN
-                    ? `<span class="rank-badge"><strong style="color: var(--secondary-color, #087685)">${esc(placeText)}</strong>${placeIconHtml}</span>`
+                    ? `<span class="rank-badge"><strong class="event-rank-accent">${esc(placeText)}</strong>${placeIconHtml}</span>`
                     : "";
 
                 const checkedIn = Number.isFinite(r.checkedInDays) ? r.checkedInDays : null;
@@ -1435,7 +1445,6 @@ const eventsPageAssets = document.currentScript.dataset;
             const io = ensureRowObserver();
             rowsNow.forEach(r => io.observe(r));
             requestAnimationFrame(() => revealVisibleRowsImmediately(table));
-            window.addEventListener("resize", () => revealVisibleRowsImmediately(table), { passive: true });
         } else {
             rowsNow.forEach(r => r.classList.add("is-visible"));
         }
