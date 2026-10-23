@@ -56,6 +56,63 @@ public sealed class RecoveryBackupTests
         Assert.Empty(Directory.GetDirectories(fixture.Service.BackupDirectory, ".pending-*"));
     }
 
+    [Theory]
+    [InlineData("state/indexnow-state.json")]
+    [InlineData("state/public-content-revisions.json")]
+    [InlineData("site/wwwroot/athletes/example/athlete.json")]
+    public async Task ChangesAfterTheSnapshotTimestampCannotChangeTheCapturedBytes(string relativePath)
+    {
+        using var fixture = new Fixture();
+        var source = Path.Combine(fixture.Root, relativePath);
+        var original = await File.ReadAllBytesAsync(source);
+        // The manifest timestamp marks a completed capture. Model an atomic writer
+        // replacing a live source immediately afterwards, before compression.
+        fixture.Clock.OnRead = () =>
+        {
+            var replacement = source + ".replacement";
+            File.WriteAllText(replacement, "{\"updated\":true}");
+            File.Move(replacement, source, overwrite: true);
+        };
+
+        var backup = await fixture.Service.CreateVerifiedAsync();
+        var destination = Path.Combine(fixture.Root, "snapshot");
+        await RecoveryBundle.ExtractVerifiedAsync(backup.Path, destination);
+
+        Assert.Equal(original, await File.ReadAllBytesAsync(Path.Combine(destination, relativePath)));
+        Assert.Equal("{\"updated\":true}", await File.ReadAllTextAsync(source));
+        Assert.Empty(Directory.GetDirectories(fixture.Service.BackupDirectory, ".pending-*"));
+    }
+
+    [Theory]
+    [InlineData("state/indexnow-state.json")]
+    [InlineData("site/wwwroot/athletes/example/proof_2.webp")]
+    public async Task ChangesDuringCaptureAreRetriedAndRestoreTheNewCompleteSource(string relativePath)
+    {
+        using var fixture = new Fixture();
+        using var release = new ManualResetEventSlim();
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var holdingDatabase = Task.Run(() => fixture.Db.Run(_ =>
+        {
+            entered.SetResult();
+            if (!release.Wait(TimeSpan.FromSeconds(15))) throw new TimeoutException("Backup test did not release the database.");
+        }));
+        await entered.Task.WaitAsync(TimeSpan.FromSeconds(15));
+        Task<RecoveryBackupResult> capturing;
+        try
+        {
+            // Source enumeration completes synchronously before the blocked SQLite capture.
+            capturing = fixture.Service.CreateVerifiedAsync();
+            await File.WriteAllTextAsync(Path.Combine(fixture.Root, relativePath), "{\"updated\":true}");
+        }
+        finally { release.Set(); }
+        await holdingDatabase;
+        var backup = await capturing;
+        var destination = Path.Combine(fixture.Root, "retried");
+        await RecoveryBundle.ExtractVerifiedAsync(backup.Path, destination);
+        Assert.Equal("{\"updated\":true}", await File.ReadAllTextAsync(Path.Combine(destination, relativePath)));
+        Assert.Empty(Directory.GetDirectories(fixture.Service.BackupDirectory, ".pending-*"));
+    }
+
     [Fact]
     public async Task RetainsSevenDistinctDaysAndRestartsRefreshOnlyThatDaysCopy()
     {
@@ -160,7 +217,12 @@ public sealed class RecoveryBackupTests
     private sealed class Clock : TimeProvider
     {
         public DateTimeOffset Now { get; set; } = new(2026, 10, 23, 0, 5, 0, TimeSpan.Zero);
-        public override DateTimeOffset GetUtcNow() => Now;
+        public Action? OnRead { get; set; }
+        public override DateTimeOffset GetUtcNow()
+        {
+            OnRead?.Invoke();
+            return Now;
+        }
     }
 
     private sealed class Fixture : IDisposable
