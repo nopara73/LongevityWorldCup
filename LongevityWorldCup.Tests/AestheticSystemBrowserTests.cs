@@ -1299,11 +1299,13 @@ public sealed class AestheticSystemBrowserTests(
                                 const card = document.querySelector('[data-edit-card-boundary-probe]');
                                 Object.assign(card.style, { boxSizing: 'content-box', width: `${width}px`, maxWidth: 'none' });
                                 await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-                                const selfie = card.querySelector('#takeProfileSelfieButton').getBoundingClientRect();
-                                const change = card.querySelector('#changeProfilePicButton').getBoundingClientRect();
+                                // Compact cards stack the name above the picture's actions;
+                                // wide cards keep both in the portrait's overhang row.
+                                const title = card.querySelector('#character-title').getBoundingClientRect();
+                                const actions = card.querySelector('#changeProfilePicWrapper').getBoundingClientRect();
                                 return {
                                     ContainerWidth: parseFloat(getComputedStyle(card).width),
-                                    IsCompact: change.top >= selfie.bottom - 1,
+                                    IsCompact: actions.top >= title.bottom - 1,
                                     HorizontalOverflow: Math.max(0, card.scrollWidth - card.clientWidth)
                                 };
                             }
