@@ -1046,9 +1046,12 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             const email = normalizeEmailValue(signupEmailInput.value);
             signupEmailInput.dataset.complete = String(!!email && isEmailAddress(email));
             const name = requiredInput("lmxSignupName");
-            name.dataset.complete = String(!!name.value.trim());
+            name.setCustomValidity(!name.disabled && /[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+/.test(name.value)
+                ? "Choose a public username without an email address." : "");
+            name.dataset.complete = String(!!name.value.trim() && name.validity.valid);
         };
         signupForm.addEventListener("input", refreshSignupCompletion);
+        signupForm.addEventListener("change", refreshSignupCompletion);
         signupForm.addEventListener("reset", () => queueMicrotask(refreshSignupCompletion));
         refreshSignupCompletion();
         wireSignInForm();
@@ -2127,6 +2130,13 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                     <span>${esc(q.text)}</span>
                 </div>
             </div>`).join("");
+
+        // Signed out, each habit tile carries its own daily question.
+        for (const q of QUESTIONS) {
+            const card = document.querySelector<HTMLElement>(`#lmxHabitGrid .lmx-habit-card.${q.key}`);
+            if (!card || card.querySelector(".lmx-habit-question")) continue;
+            card.insertAdjacentHTML("beforeend", `<p class="lmx-habit-question">${esc(q.text)}</p>`);
+        }
     }
 
     function renderBoardSummary(state: PublicState): void {
@@ -2385,7 +2395,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         toggle("lmxSignupDonePanel", signupSubmitted);
         toggle("lmxHabitHeading", hasPublicState && !hasParticipant);
         toggle("lmxHabitGrid", hasPublicState && !hasParticipant);
-        toggle("lmxQuestionPreview", hasPublicState && (!hasParticipant || pendingCheckInDays.length > 0));
+        toggle("lmxQuestionPreview", hasPublicState && hasParticipant && pendingCheckInDays.length > 0);
         toggle("lmxTrack", hasParticipant && dashboardMode);
         toggle("lmxBoardSection", hasPublicState);
         toggle("lmxParticipantTabs", hasParticipant);
@@ -2826,8 +2836,10 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             const name = row.athleteUrl
                 ? `<a href="${escAttr(row.athleteUrl)}">${esc(row.displayName)}</a>`
                 : `<span>${esc(row.displayName)}</span>`;
-            const participant = participantNameHtml(row, name, leaderboardRank(state, row));
+            // Resting rows sit outside the race, so they carry no rank.
+            const participant = participantNameHtml(row, name, row.challengeInactive ? 0 : leaderboardRank(state, row));
             const cellsByDay = new Map((row.cells || []).map(cell => [cell.challengeDay, cell]));
+            const quietClass = visibleDays.some(day => cellsByDay.get(day.challengeDay)?.checkedIn) ? "" : " lmx-board-row--quiet";
             const cells = visibleDays.map((day, dayIndex) => {
                 const cell = cellsByDay.get(day.challengeDay);
                 const reportingTitle = reportingDayTitle(day.challengeDay, state);
@@ -2848,7 +2860,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             const fullMarksClass = row.hasFullMarks ? " lmx-full-marks" : "";
             const groupEndClass = row.hasFullMarks && !leaderboardRows.visible[index + 1]?.hasFullMarks ? " lmx-full-marks-end" : "";
             const selfClass = row.participantId === participantState?.participant.id ? " lmx-board-row--self" : "";
-            return `<div class="lmx-board-row${row.challengeInactive ? " inactive" : ""}${fullMarksClass}${groupEndClass}${selfClass}" role="row">
+            return `<div class="lmx-board-row${row.challengeInactive ? " inactive" : ""}${fullMarksClass}${groupEndClass}${selfClass}${quietClass}" role="row">
                 <div class="lmx-name" role="cell">${participant}</div>
                 <div class="lmx-number" role="cell" data-label="Score"><span class="lmx-score-value">${row.totalPoints}${fullMarks}</span></div>
                 <div class="lmx-cell-strip" role="cell" aria-label="Daily scores">${cells}</div>
@@ -2859,7 +2871,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             <div class="lmx-name lmx-sticky-heading" role="columnheader">Participant</div>
             <div class="lmx-number lmx-sticky-heading" role="columnheader">Score</div>
             <div class="lmx-cell-strip lmx-header-days" role="presentation">${dayHeaders}</div>
-        </div>${rows || emptyBoardRow(visibleDays, leaderboardRows.inactive.length)}`;
+        </div>${rows || emptyBoardRow(visibleDays, leaderboardRows.inactive)}`;
     }
 
     function practiceDayCellHtml(cell: DayCell, state: PublicState): string {
@@ -2950,7 +2962,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             const name = row.athleteUrl
                 ? `<a href="${escAttr(row.athleteUrl)}">${esc(row.displayName)}</a>`
                 : `<span>${esc(row.displayName)}</span>`;
-            const participant = participantNameHtml(row, name, leaderboardRank(state, row));
+            const participant = participantNameHtml(row, name, row.challengeInactive ? 0 : leaderboardRank(state, row));
             const cells = visibleDays.map(day => `<div class="lmx-cell empty" data-day="${escAttr(day.challengeDay)}" title="Day ${day.challengeDay}"></div>`).join("");
             return `<div class="lmx-board-row lmx-roster-row${row.challengeInactive ? " inactive" : ""}" role="row">
                 <div class="lmx-name" role="cell">${participant}</div>
@@ -2961,7 +2973,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         board.innerHTML = `<div class="lmx-board-row lmx-roster-row header" role="row">
             <div class="lmx-name lmx-sticky-heading" role="columnheader">Participant</div>
             <div class="lmx-cell-strip lmx-header-days" role="presentation">${dayHeaders}</div>
-        </div>${rows || emptyRosterRow(visibleDays, leaderboardRows.inactive.length)}`;
+        </div>${rows || emptyRosterRow(visibleDays, leaderboardRows.inactive)}`;
     }
 
     function leaderboardDayWindow(state: PublicState): LeaderboardDayWindow {
@@ -3160,24 +3172,40 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     }
 
     // An empty board is one message across the board, not a row of blank day boxes.
-    function emptyBoardRow(days: DaySummary[], hiddenInactiveCount: number): string {
-        const hasHiddenInactive = hiddenInactiveCount > 0 && !showInactiveLeaderboard;
+    function emptyBoardRow(days: DaySummary[], hiddenInactive: LeaderboardRow[]): string {
+        const hasHiddenInactive = hiddenInactive.length > 0 && !showInactiveLeaderboard;
         const message = hasHiddenInactive ? "No active participants" : "No one has joined yet";
         return `<div class="lmx-board-row lmx-empty-row" role="row">
             <div class="lmx-name" role="cell" aria-colspan="3">
                 <span class="lmx-empty-name">${esc(message)}</span>
+                ${hasHiddenInactive ? restingFacesHtml(hiddenInactive) : ""}
             </div>
         </div>`;
     }
 
-    function emptyRosterRow(days: DaySummary[], hiddenInactiveCount: number): string {
-        const hasHiddenInactive = hiddenInactiveCount > 0 && !showInactiveLeaderboard;
+    function emptyRosterRow(days: DaySummary[], hiddenInactive: LeaderboardRow[]): string {
+        const hasHiddenInactive = hiddenInactive.length > 0 && !showInactiveLeaderboard;
         const message = hasHiddenInactive ? "No active participants" : "No one has joined yet";
         return `<div class="lmx-board-row lmx-roster-row lmx-empty-row" role="row">
             <div class="lmx-name" role="cell" aria-colspan="2">
                 <span class="lmx-empty-name">${esc(message)}</span>
+                ${hasHiddenInactive ? restingFacesHtml(hiddenInactive) : ""}
             </div>
         </div>`;
+    }
+
+    // While everyone rests, the empty board still shows who is behind the toggle.
+    function restingFacesHtml(rows: LeaderboardRow[]): string {
+        const pictured = rows.filter(row => participantAvatarDetails(row, row.displayName).hasProfileImage);
+        const shown = (pictured.length ? pictured : rows).slice(0, 7);
+        const faces = shown.map(row => {
+            const avatar = participantAvatarDetails(row, row.displayName);
+            return `<span class="lmx-participant-avatar${avatar.hasProfileImage ? "" : " placeholder"}" ${participantAvatarHydrationAttributes("participant", row.participantId, row.displayName)} aria-hidden="true">
+                <img src="${escAttr(avatar.image)}" alt="" loading="lazy" decoding="async">
+            </span>`;
+        }).join("");
+        const more = rows.length - shown.length;
+        return `<span class="lmx-resting-faces" aria-hidden="true">${faces}${more > 0 ? `<span class="lmx-resting-more">+${more}</span>` : ""}</span>`;
     }
 
     function renderCheckIns(days: EligibleDay[], containerId = "lmxCheckinList"): void {
@@ -7833,8 +7861,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const badges = [row.challengeInactive ? "Resting" : ""].filter(Boolean);
         const rankNumber = Number.isFinite(Number(rank)) ? Math.trunc(Number(rank)) : null;
         const rankHtml = rankNumber && rankNumber > 0
-            ? `<span class="lmx-rank" aria-label="Rank ${rankNumber}">#${rankNumber}</span>`
-            : "";
+            ? `<span class="lmx-rank${rankNumber <= 3 ? " lmx-rank--podium" : ""}" aria-label="Rank ${rankNumber}">#${rankNumber}</span>`
+            : `<span class="lmx-rank-slot" aria-hidden="true"></span>`;
         return `<div class="lmx-participant-name">
             ${rankHtml}
             <span class="${avatarClass}" ${hydrationAttributes} aria-hidden="${avatar.hasProfileImage ? "false" : "true"}">

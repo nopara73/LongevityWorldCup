@@ -71,7 +71,10 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
                     const underName = score.top >= name.bottom - 1;
                     if (!enlarged && !besideName) issues.push(`${who}: score is not beside the name`);
                     if (!besideName && !underName) issues.push(`${who}: score overlaps the name`);
-                    if (days.top < Math.max(name.bottom, score.bottom) - 1) issues.push(`${who}: days overlap the name or score`);
+                    // A row with nothing in this window drops its days on phones.
+                    const quiet = row.classList.contains('lmx-board-row--quiet');
+                    if (!quiet && days.top < Math.max(name.bottom, score.bottom) - 1) issues.push(`${who}: days overlap the name or score`);
+                    if (quiet && days.height !== 0) issues.push(`${who}: empty days still show`);
                     // A name may wrap between words, but never one letter per line.
                     const text = label.querySelector('a, span') ?? label;
                     const words = text.textContent.trim().split(/\s+/).length;
@@ -134,7 +137,8 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
                     const days = row.querySelector('.lmx-cell-strip').getBoundingClientRect();
                     const beside = score.left >= name.right - 1;
                     if (!beside && score.top < name.bottom - 1) issues.push('score overlaps the name');
-                    if (days.top < Math.max(name.bottom, score.bottom) - 1) issues.push('days overlap the name or score');
+                    if (!row.classList.contains('lmx-board-row--quiet') && days.top < Math.max(name.bottom, score.bottom) - 1)
+                        issues.push('days overlap the name or score');
                 }
                 if (document.documentElement.scrollWidth > innerWidth + 1) issues.push('horizontal overflow');
                 return issues;
