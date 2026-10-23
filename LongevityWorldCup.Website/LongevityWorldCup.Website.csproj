@@ -50,6 +50,18 @@
     <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.13" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Remove="wwwroot\assets\media-kit\MediaKit.zip" />
+    <Content Include="wwwroot\assets\media-kit\MediaKit.zip"
+             CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <Target Name="StageMediaKit" BeforeTargets="BeforeBuild">
+    <Copy SourceFiles="$(RepositoryRoot)/LongevityWorldCup.Documentation/MediaKit.zip"
+          DestinationFiles="$(MSBuildProjectDirectory)/wwwroot/assets/media-kit/MediaKit.zip"
+          SkipUnchangedFiles="true" />
+  </Target>
+
   <Target Name="GenerateDocumentationPages" BeforeTargets="BeforeBuild">
     <Exec Command="dotnet build &quot;$(DocumentationPageGeneratorProject)&quot; --configuration &quot;$(Configuration)&quot;" />
     <Exec Command="dotnet &quot;$(DocumentationPageGeneratorDll)&quot; &quot;$(RepositoryRoot)&quot; &quot;$(MSBuildProjectDirectory)&quot;" />

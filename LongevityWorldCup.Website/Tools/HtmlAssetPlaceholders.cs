@@ -53,6 +53,7 @@ public static partial class HtmlAssetPlaceholders
         ["{{ASSET_MERCH_HOODIE}}"] = "/assets/content-images/merch/hoodie.webp",
         ["{{ASSET_MERCH_MUG}}"] = "/assets/content-images/merch/mug.webp",
         ["{{ASSET_MISC_JS}}"] = "/js/misc.js",
+        ["{{ASSET_MEDIA_KIT_ZIP}}"] = "/assets/media-kit/MediaKit.zip",
         ["{{ASSET_MOBILE_ROUGHNESS_CSS}}"] = "/css/mobile-roughness.css",
         ["{{ASSET_ORBITRON_BOLD}}"] = "/assets/fonts/Orbitron-Bold.woff2",
         ["{{ASSET_PHENO_AGE_JS}}"] = "/js/pheno-age.js",
