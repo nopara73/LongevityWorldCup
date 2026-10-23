@@ -41,7 +41,6 @@ public sealed class RecoveryBackupService(DatabaseManager database, string conte
             using var processLock = new FileStream(Path.Combine(BackupDirectory, ".lock"), lockOptions);
             temporary = Path.Combine(BackupDirectory, ".pending-" + Guid.NewGuid().ToString("N"));
             RecoveryBundle.CreatePrivateDirectory(temporary);
-            var created = clock.GetUtcNow();
             var missing = new List<string>();
             var sources = EnumerateSources(missing);
             var captureDirectory = Path.Combine(temporary, "capture");
@@ -52,13 +51,45 @@ public sealed class RecoveryBackupService(DatabaseManager database, string conte
             sources.Add(new SourceFile(capturedDatabase, RecoveryBundle.DatabasePath, dbInfo.Length, dbInfo.LastWriteTimeUtc));
             if (sources.Sum(file => file.Length) > RecoveryBundle.MaximumBytes)
                 throw new IOException("Competition data exceeds the supported recovery bundle size.");
+
+            // Capture first, then compress only private immutable copies. Live ledgers
+            // must not stay unchanged throughout compression and archive verification.
+            var captured = new List<SourceFile>();
+            foreach (var source in sources)
+            {
+                ct.ThrowIfCancellationRequested();
+                if (source.ArchivePath == RecoveryBundle.DatabasePath)
+                {
+                    captured.Add(source);
+                    continue;
+                }
+                var path = Path.Combine(captureDirectory, source.ArchivePath.Replace('/', Path.DirectorySeparatorChar));
+                RecoveryBundle.CreatePrivateDirectory(Path.GetDirectoryName(path)!);
+                await using (var input = new FileStream(source.Path, FileMode.Open, FileAccess.Read,
+                    FileShare.Read | FileShare.Delete, 81920, FileOptions.Asynchronous | FileOptions.SequentialScan))
+                await using (var target = RecoveryBundle.CreatePrivateFile(path))
+                    await input.CopyToAsync(target, ct);
+                var info = new FileInfo(source.Path);
+                if (!info.Exists || info.Length != source.Length || info.LastWriteTimeUtc != source.LastWriteTimeUtc ||
+                    new FileInfo(path).Length != source.Length)
+                    throw new SourceChangedException($"Recovery source '{source.ArchivePath}' changed during capture; keep the previous verified copy.");
+                captured.Add(source with { Path = path });
+            }
+
+            // A deployment can add/remove athlete files during capture. Never certify
+            // a partial tree; once captured, later writes belong to the next backup.
+            var current = EnumerateSources(new List<string>());
+            var expected = sources.Where(file => file.ArchivePath != RecoveryBundle.DatabasePath).ToArray();
+            if (!current.OrderBy(file => file.ArchivePath).SequenceEqual(expected.OrderBy(file => file.ArchivePath)))
+                throw new SourceChangedException("Competition files changed during capture; keep the previous verified copy.");
+            var created = clock.GetUtcNow();
             var archivePath = Path.Combine(temporary, "bundle.zip");
             var files = new List<RecoveryFile>();
             await using (var output = RecoveryBundle.CreatePrivateFile(archivePath))
             {
                 using (var archive = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: true))
                 {
-                    foreach (var source in sources.OrderBy(file => file.ArchivePath, StringComparer.Ordinal))
+                    foreach (var source in captured.OrderBy(file => file.ArchivePath, StringComparer.Ordinal))
                     {
                         ct.ThrowIfCancellationRequested();
                         var entry = archive.CreateEntry(source.ArchivePath, CompressionLevel.Fastest);
@@ -66,9 +97,6 @@ public sealed class RecoveryBackupService(DatabaseManager database, string conte
                             FileShare.Read | FileShare.Delete, 81920, FileOptions.Asynchronous | FileOptions.SequentialScan))
                         await using (var target = entry.Open())
                             await input.CopyToAsync(target, ct);
-                        var info = new FileInfo(source.Path);
-                        if (!info.Exists || info.Length != source.Length || info.LastWriteTimeUtc != source.LastWriteTimeUtc)
-                            throw new SourceChangedException("Source data changed while creating the recovery bundle; keep the previous verified copy.");
                         files.Add(new RecoveryFile(source.ArchivePath, source.Length,
                             await RecoveryBundle.HashAsync(source.Path, ct), source.LastWriteTimeUtc));
                     }
@@ -82,11 +110,6 @@ public sealed class RecoveryBackupService(DatabaseManager database, string conte
                 output.Flush(flushToDisk: true);
             }
 
-            // A deployment can add/remove athlete files during capture. Never certify a partial tree.
-            var current = EnumerateSources(new List<string>());
-            var expected = sources.Where(file => file.ArchivePath != RecoveryBundle.DatabasePath).ToArray();
-            if (!current.OrderBy(file => file.ArchivePath).SequenceEqual(expected.OrderBy(file => file.ArchivePath)))
-                throw new SourceChangedException("Competition files changed during capture; keep the previous verified copy.");
             var restored = await RecoveryBundle.ExtractVerifiedAsync(archivePath, Path.Combine(temporary, "verification"), ct);
             var hash = await RecoveryBundle.HashAsync(archivePath, ct);
             ct.ThrowIfCancellationRequested();
