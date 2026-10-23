@@ -24,5 +24,15 @@
   "Flag": "Infinita",
   "Why": "Solving the loneliness epidemic. Creating circular economies for the unbanked.",
   "PersonalLink": "https://www.stellarmadic.com",
-  "ExclusiveLeague": "Prosperan"
+  "ExclusiveLeague": "Prosperan",
+  "SocialProfiles": {
+    "X": {
+      "Url": "https://x.com/StellarMadic",
+      "EvidenceUrls": [
+        "https://x.com/StellarMadic",
+        "https://www.stellarmadic.com"
+      ],
+      "VerifiedOn": "2026-10-23"
+    }
+  }
 }

@@ -24,5 +24,23 @@
   "Division": "Men's",
   "Flag": "Germany",
   "Why": "The desire to stay healthy and strong for my family, and to inspire others to take control of their longevity.",
-  "PersonalLink": "https://youtube.com/@bene_von_blkswn"
+  "PersonalLink": "https://youtube.com/@bene_von_blkswn",
+  "SocialProfiles": {
+    "X": {
+      "Url": "https://x.com/BENE__LONGEVITY",
+      "EvidenceUrls": [
+        "https://www.longevity-hackers.de/about",
+        "https://x.com/BENE__LONGEVITY"
+      ],
+      "VerifiedOn": "2026-10-23"
+    },
+    "Instagram": {
+      "Url": "https://www.instagram.com/_longevityhackers_/",
+      "EvidenceUrls": [
+        "https://www.longevity-hackers.de/about",
+        "https://www.instagram.com/_longevityhackers_/"
+      ],
+      "VerifiedOn": "2026-10-23"
+    }
+  }
 }

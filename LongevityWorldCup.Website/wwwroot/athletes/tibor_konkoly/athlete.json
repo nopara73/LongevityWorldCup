@@ -62,5 +62,14 @@
   "Division": "Men's",
   "Flag": "Hungary",
   "Why": "Building a stronger body for a longer life.",
-  "PersonalLink": "https://instagram.com/tibor.konkoly"
+  "PersonalLink": "https://instagram.com/tibor.konkoly",
+  "SocialProfiles": {
+    "Threads": {
+      "Url": "https://www.threads.com/@tibor.konkoly",
+      "EvidenceUrls": [
+        "https://www.instagram.com/tibor.konkoly/"
+      ],
+      "VerifiedOn": "2026-10-23"
+    }
+  }
 }

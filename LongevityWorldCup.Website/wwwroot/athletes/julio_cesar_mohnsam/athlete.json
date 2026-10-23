@@ -24,5 +24,21 @@
   "Division": "Men's",
   "Flag": "Brasil",
   "Why": "I want to reverse my biological age; I enjoy taking care of my health.",
-  "PersonalLink": "https://www.instagram.com/juliocmohnsam/"
+  "PersonalLink": "https://www.instagram.com/juliocmohnsam/",
+  "SocialProfiles": {
+    "X": {
+      "Url": "https://x.com/JulioMohnsam",
+      "EvidenceUrls": [
+        "https://www.instagram.com/juliocmohnsam/"
+      ],
+      "VerifiedOn": "2026-10-23"
+    },
+    "Threads": {
+      "Url": "https://www.threads.com/@juliocmohnsam",
+      "EvidenceUrls": [
+        "https://www.instagram.com/juliocmohnsam/"
+      ],
+      "VerifiedOn": "2026-10-23"
+    }
+  }
 }

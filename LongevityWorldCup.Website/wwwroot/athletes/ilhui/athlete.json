@@ -45,6 +45,22 @@
         "https://ilhui.com/"
       ],
       "VerifiedOn": "2026-10-22"
+    },
+    "X": {
+      "Url": "https://x.com/ilhuihdez",
+      "EvidenceUrls": [
+        "https://x.com/ilhuihdez",
+        "https://ilhui.com/",
+        "https://www.linkedin.com/in/ilhui-hernandez-021b1417a"
+      ],
+      "VerifiedOn": "2026-10-23"
+    },
+    "Threads": {
+      "Url": "https://www.threads.com/@ilhui",
+      "EvidenceUrls": [
+        "https://www.instagram.com/ilhui/"
+      ],
+      "VerifiedOn": "2026-10-23"
     }
   }
 }

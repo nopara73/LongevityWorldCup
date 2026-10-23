@@ -37,5 +37,21 @@
   "Division": "Open",
   "Flag": "Australia",
   "Why": "Living and loving every minute of life with my kids.",
-  "PersonalLink": null
+  "PersonalLink": null,
+  "SocialProfiles": {
+    "Instagram": {
+      "Url": "https://www.instagram.com/breemaddox/",
+      "EvidenceUrls": [
+        "https://www.instagram.com/breemaddox/"
+      ],
+      "VerifiedOn": "2026-10-23"
+    },
+    "Threads": {
+      "Url": "https://www.threads.com/@breemaddox",
+      "EvidenceUrls": [
+        "https://www.instagram.com/breemaddox/"
+      ],
+      "VerifiedOn": "2026-10-23"
+    }
+  }
 }
