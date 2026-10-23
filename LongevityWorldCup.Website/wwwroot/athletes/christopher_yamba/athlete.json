@@ -24,5 +24,25 @@
   "Division": "Men's",
   "Flag": "Sweden",
   "Why": "To manifest my vision and to create and invent. The recursive nature of self improvement and search for meaning. To understand and get insight..",
-  "PersonalLink": "https://www.dna2c.com"
+  "PersonalLink": "https://www.dna2c.com",
+  "SocialProfiles": {
+    "GitHub": {
+      "Url": "https://github.com/cyamba",
+      "EvidenceUrls": [
+        "https://github.com/cyamba",
+        "https://se.linkedin.com/in/christopheryamba",
+        "https://www.dna2c.com"
+      ],
+      "VerifiedOn": "2026-10-23"
+    },
+    "LinkedIn": {
+      "Url": "https://www.linkedin.com/in/christopheryamba",
+      "EvidenceUrls": [
+        "https://github.com/cyamba",
+        "https://se.linkedin.com/in/christopheryamba",
+        "https://www.dna2c.com"
+      ],
+      "VerifiedOn": "2026-10-23"
+    }
+  }
 }

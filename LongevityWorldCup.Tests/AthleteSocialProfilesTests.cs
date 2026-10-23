@@ -39,6 +39,9 @@ public sealed class AthleteSocialProfilesTests
     [InlineData("@@alice", SocialPlatform.X)]
     [InlineData("https://x.com/alice", SocialPlatform.Facebook)]
     [InlineData("https://x.com/alice", SocialPlatform.Bluesky)]
+    [InlineData("https://bsky.app/profile/alice.bsky.social", SocialPlatform.Bluesky)]
+    [InlineData("https://mastodon.social/@alice", SocialPlatform.Mastodon)]
+    [InlineData("https://primal.net/p/npub1qqvf96d53dps6l3hcfc9rlmm7s2vh3f20ay0g5wc2aqfeeurnh0q580c3j", SocialPlatform.Nostr)]
     public void UnqualifiedOrNonProfileDestinations_DoNotCreateWrongMentions(string value, SocialPlatform platform)
         => Assert.Null(SocialContactParser.TryBuildMention(value, platform));
 
@@ -120,12 +123,12 @@ public sealed class AthleteSocialProfilesTests
             {
                 foreach (var (key, node) in profiles)
                 {
-                    Assert.True(Enum.TryParse<SocialPlatform>(key, out var platform));
-                    Assert.Contains(platform, new[] { SocialPlatform.X, SocialPlatform.Threads, SocialPlatform.Instagram });
                     var profile = Assert.IsType<JsonObject>(node);
                     var url = profile["Url"]!.GetValue<string>();
-                    Assert.True(Uri.TryCreate(url, UriKind.Absolute, out var parsed) && parsed.Scheme == "https", file);
-                    Assert.NotNull(SocialContactParser.TryBuildMention(url, platform));
+                    var account = StoredAccountIdentity(key, url, profile);
+                    Assert.True(!accounts.TryGetValue(account, out var previous) || previous == slug,
+                        $"Ambiguous {account}: {previous} and {slug}");
+                    accounts[account] = slug;
                     Assert.True(DateOnly.TryParseExact(profile["VerifiedOn"]!.GetValue<string>(), "yyyy-MM-dd", out _), file);
                     var sources = Assert.IsType<JsonArray>(profile["EvidenceUrls"]);
                     Assert.NotEmpty(sources);
@@ -138,10 +141,72 @@ public sealed class AthleteSocialProfilesTests
             {
                 if (AthleteSocialProfiles.ResolveMention(athlete, platform) is not { } mention) continue;
                 var key = platform + ":" + mention;
-                Assert.True(accounts.TryAdd(key, slug), $"Ambiguous {key}: {accounts.GetValueOrDefault(key)} and {slug}");
+                Assert.True(!accounts.TryGetValue(key, out var previous) || previous == slug,
+                    $"Ambiguous {key}: {previous} and {slug}");
+                accounts[key] = slug;
             }
         }
         Assert.NotEmpty(identities);
+    }
+
+    private static string StoredAccountIdentity(string platform, string url, JsonObject profile)
+    {
+        Assert.True(Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Scheme == "https", url);
+        Assert.Empty(uri!.UserInfo);
+        Assert.True(uri.IsDefaultPort, url);
+        Assert.Empty(uri.Query);
+        Assert.Empty(uri.Fragment);
+        if (Enum.TryParse<SocialPlatform>(platform, out var destination) &&
+            destination is SocialPlatform.X or SocialPlatform.Threads or SocialPlatform.Instagram)
+        {
+            var mention = SocialContactParser.TryBuildMention(url, destination);
+            Assert.NotNull(mention);
+            return platform + ":" + mention;
+        }
+
+        // Discovery metadata is broader than the destinations that support @mentions.
+        // Require a platform-specific profile URL and keep identity collision checks for every platform.
+        var host = uri.IdnHost.ToLowerInvariant();
+        var path = uri.AbsolutePath.TrimEnd('/');
+        switch (platform)
+        {
+            case "Bluesky":
+                Assert.Equal("bsky.app", host);
+                Assert.Matches(@"^/profile/[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$", path);
+                var did = profile["Did"]!.GetValue<string>();
+                Assert.Matches(@"^did:plc:[a-z2-7]{24}$", did);
+                return platform + ":" + did;
+            case "Mastodon":
+                Assert.Equal("mastodon.social", host);
+                Assert.Matches(@"^/@[a-zA-Z0-9_]{1,30}$", path);
+                break;
+            case "Nostr":
+                Assert.Equal("primal.net", host);
+                var publicKey = profile["PublicKey"]!.GetValue<string>();
+                Assert.Matches(@"^[0-9a-f]{64}$", publicKey);
+                Assert.Equal("/p/" + NostrProtocol.EncodeIdentifier(publicKey, "npub"), path);
+                return platform + ":" + publicKey;
+            case "YouTube":
+                Assert.Contains(host, new[] { "youtube.com", "www.youtube.com" });
+                Assert.Matches(@"^/@[a-zA-Z0-9_.-]+$|^/channel/UC[a-zA-Z0-9_-]{22}$", path);
+                break;
+            case "LinkedIn":
+                Assert.Contains(host, new[] { "linkedin.com", "www.linkedin.com" });
+                Assert.Matches(@"^/in/[a-zA-Z0-9_-]+$", path);
+                break;
+            case "GitHub":
+                Assert.Equal("github.com", host);
+                Assert.Matches(@"^/[a-zA-Z0-9-]{1,39}$", path);
+                break;
+            case "Reddit":
+                Assert.Contains(host, new[] { "reddit.com", "www.reddit.com" });
+                Assert.Matches(@"^/(user|u)/[a-zA-Z0-9_-]{3,20}$", path);
+                break;
+            default:
+                Assert.Fail($"Unsupported discovery platform: {platform}");
+                break;
+        }
+        return platform + ":" + path;
     }
 
     private static string RepositoryRoot([CallerFilePath] string source = "")

@@ -87,6 +87,14 @@
         "https://www.threads.com/@longevityworldcup"
       ],
       "VerifiedOn": "2026-10-23"
+    },
+    "Mastodon": {
+      "Url": "https://mastodon.social/@deaging",
+      "EvidenceUrls": [
+        "https://mastodon.social/@deaging"
+      ],
+      "VerifiedOn": "2026-10-23",
+      "VerificationNote": "Athlete/account identity confirmed by the Longevity World Cup operator on 2026-10-23."
     }
   }
 }
