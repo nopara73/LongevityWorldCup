@@ -952,6 +952,7 @@ function canAutoScroll() {
 
 let includePodiumGlobal = true
 let maxAthletesGlobal = Infinity;
+let athleteDialogBoardSequence = [];
 const CROWD_AGE_LEADERBOARD_MINIMUM_GUESS_COUNT = 100;
 
 function isCompleteBiomarkerSet(set) {
@@ -2935,6 +2936,7 @@ function resetAthleteEventsFrame(athleteSlug) {
 function resetModalForLoading(athleteSlug) {
     ensureAthleteModalDeferredSections();
     resetAthleteShareState();
+    modal.querySelectorAll('.athlete-step').forEach(button => { button.disabled = true; });
     const viewer = document.querySelector('#athleteImageViewer[aria-hidden="false"]');
     if (viewer) closeEnlargedView(viewer);
     modal._historyClosePending = false;
@@ -3293,22 +3295,29 @@ closeBtn.onclick = function () {
     requestCloseAthleteModal();
 };
 
-// Neighbouring athletes follow the order the visitor is browsing: the board's
-// rows as filtered and sorted, or the overall ranking for an athlete the board
-// is not showing (a direct link, or a short board on another page).
-function getVisibleAthleteRows() {
-    const byName = new Map(athleteResults.map(athlete => [athlete.name, athlete]));
-    return [...pageDocument.querySelectorAll('.leaderboard table tbody tr[data-athlete-name]')]
-        .filter(row => row.getClientRects().length > 0)
-        .map(row => byName.get(row.getAttribute('data-athlete-name')))
-        .filter(Boolean);
+// Neighbouring athletes follow the selected board order before its display
+// limit, or the overall ranking for a profile outside that selection.
+function getAthleteDialogBoardSequence() {
+    if (isAthleteDialogOnlyRuntime) return [];
+    if (getSelectedLeaderboardState().byFlag) {
+        // The ordinary table is hidden in the flag view. Only the expanded,
+        // filtered team links form the sequence the visitor is browsing.
+        const bySlug = new Map(athleteResults.map(athlete => [normalizeAthleteSlugForLookup(athlete.athleteSlug || athlete.name), athlete]));
+        return [...pageDocument.querySelectorAll('#flagLeaderboard .flag-athlete-link')]
+            .filter(link => link.checkVisibility())
+            .map(link => bySlug.get(getAthleteSlugFromProfileLink(link)))
+            .filter(Boolean);
+    }
+    // Retain the selected order before the page's display limit, including
+    // podium athletes whose duplicate rows are hidden on the homepage.
+    return athleteDialogBoardSequence;
 }
 
 function getAthleteDialogNeighbours() {
     const slug = modal.querySelector('.modal-content')?.dataset.athleteSlug || '';
     if (!slug) return { previous: null, next: null };
     const matches = athlete => normalizeAthleteSlugForLookup(athlete.athleteSlug || athlete.name) === slug;
-    for (const sequence of [getVisibleAthleteRows(), athleteResults]) {
+    for (const sequence of [getAthleteDialogBoardSequence(), athleteResults]) {
         const index = sequence.findIndex(matches);
         if (index >= 0) return { previous: sequence[index - 1] || null, next: sequence[index + 1] || null };
     }
@@ -3330,7 +3339,10 @@ function updateAthleteDialogSteps() {
 
 function stepAthleteDialog(direction) {
     const modalContent = modal.querySelector('.modal-content');
-    if (!modalContent || modalContent.classList.contains('guess-mode') || modal.classList.contains('fade-out')) return false;
+    if (!modalContent || modal.style.display !== 'block' || modal._historyClosePending
+        || modalContent.matches('.guess-mode, .is-loading, .has-load-error, [data-server-rendered-profile], [data-server-rendered-loading]')
+        || modal.classList.contains('fade-out')
+        || modal.querySelector('#athleteImageViewer[aria-hidden="false"], #athleteShareMenu:not([hidden])')) return false;
     const target = getAthleteDialogNeighbours()[direction];
     if (!target) return false;
     // Restart the slide even when stepping the same way twice.
@@ -4165,6 +4177,7 @@ function performFilter({ updateUrl = true, orderingOnly = false } = {}) {
     window.LwcLeaderboardOrder.renderValues(matchingEntries, selectedState.ordering, rowsByName);
     const entriesByAthlete = new Map(matchingEntries.map(entry => [entry.athlete, entry]));
     const unslicedFilteredAthletes = matchingEntries.map(entry => entry.athlete);
+    athleteDialogBoardSequence = unslicedFilteredAthletes;
     const filteredAthletes = unslicedFilteredAthletes.slice(0, maxAthletesGlobal);
     updateViewAllAthletesButton(unslicedFilteredAthletes.length, !orderingSnapshot);
 

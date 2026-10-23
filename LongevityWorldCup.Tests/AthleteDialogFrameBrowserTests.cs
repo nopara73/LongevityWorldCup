@@ -6,7 +6,7 @@ namespace LongevityWorldCup.Tests;
 // The athlete dialog's frame: the chrome row, the hero with its actions and
 // flag, and stepping from one athlete to the next without leaving the dialog.
 [Collection(BrowserTestCollections.WorkloadB)]
-public sealed class AthleteDialogFrameBrowserTests(
+public sealed partial class AthleteDialogFrameBrowserTests(
     PlaywrightBrowserFixture browserFixture,
     BrowserTestAppFixture appFixture)
     : BrowserIntegrationTest(browserFixture, appFixture)

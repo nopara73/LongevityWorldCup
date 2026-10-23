@@ -5712,11 +5712,7 @@ main[data-leaderboard-page="full"] .flag-leaderboard > .leaderboard-recovery{
 
 /* Opening: the card settles in; stepping slides the next athlete in from the side. */
 @keyframes athlete-frame-in{
-    from{ opacity:0; transform:translateY(12px) scale(.985); }
-    to{ opacity:1; transform:none; }
-}
-@keyframes athlete-sheet-in{
-    from{ opacity:.4; transform:translateY(6%); }
+    from{ opacity:var(--athlete-entry-opacity, 0); transform:translateY(var(--athlete-entry-offset, 12px)) scale(var(--athlete-entry-scale, .985)); }
     to{ opacity:1; transform:none; }
 }
 @keyframes athlete-step-next{
@@ -5728,17 +5724,19 @@ main[data-leaderboard-page="full"] .flag-leaderboard > .leaderboard-recovery{
     to{ opacity:1; transform:none; }
 }
 #detailsModal .modal-content{
-    animation:athlete-frame-in var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease) both;
+    /* Release the transform after entry so fixed game celebrations keep the
+       viewport as their containing block. */
+    animation:athlete-frame-in var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease) backwards;
 }
 #detailsModal.fade-out .modal-content{
     transform:translateY(8px) scale(.99);
     transition:transform var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
 }
 #detailsModal .modal-content[data-athlete-step="next"]:not(.is-loading) #athlete-profile{
-    animation:athlete-step-next var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease) both;
+    animation:athlete-step-next var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease) backwards;
 }
 #detailsModal .modal-content[data-athlete-step="previous"]:not(.is-loading) #athlete-profile{
-    animation:athlete-step-previous var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease) both;
+    animation:athlete-step-previous var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease) backwards;
 }
 
 @media (max-width: 768px){
@@ -5756,9 +5754,12 @@ main[data-leaderboard-page="full"] .flag-leaderboard > .leaderboard-recovery{
     #detailsModal #athlete-profile .portrait-wrapper{ width:min(44vw, 176px); }
     #detailsModal #athleteName{ margin-top:1rem; }
     #detailsModal .modal-sticky-header{ padding:.6rem 14px; }
-    /* Not keyed to guess mode, so leaving a round never replays the entrance. */
+    /* Keep one animation name across viewport changes and guess mode, so
+       neither resizing nor leaving a round replays the entrance. */
     #detailsModal .modal-content{
-        animation:athlete-sheet-in var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease) both;
+        --athlete-entry-opacity:.4;
+        --athlete-entry-offset:6%;
+        --athlete-entry-scale:1;
     }
     #detailsModal.fade-out .modal-content{ transform:translateY(4%); }
 }
@@ -5785,6 +5786,24 @@ main[data-leaderboard-page="full"] .flag-leaderboard > .leaderboard-recovery{
     #detailsModal .modal-content{ --athlete-frame-inset:12px; }
     #detailsModal .modal-content > .athlete-steps{ top:12px; right:12px; }
     #detailsModal .modal-content:not(.guess-mode) #athlete-profile{ padding-top:0; }
+}
+@media (max-width: 280px){
+    /* At browser zoom, keep the portrait/name intact below the control row. */
+    #detailsModal .modal-sticky-header.visible{
+        display:grid;
+        grid-template-columns:44px 1fr auto;
+        column-gap:0;
+        row-gap:.4rem;
+        padding-inline:8px;
+    }
+    #detailsModal .modal-sticky-header .sticky-close-btn{ grid-column:1; grid-row:1; }
+    #detailsModal .modal-sticky-header .athlete-steps{ grid-column:3; grid-row:1; }
+    #detailsModal .modal-sticky-header .sticky-header-left{
+        grid-column:1 / -1;
+        grid-row:2;
+        width:100%;
+        justify-content:center;
+    }
 }
 @media (prefers-reduced-motion: reduce){
     #detailsModal .modal-content,
