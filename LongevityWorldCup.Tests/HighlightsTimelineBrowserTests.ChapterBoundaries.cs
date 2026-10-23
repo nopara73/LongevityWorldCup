@@ -175,7 +175,7 @@ public sealed partial class HighlightsTimelineBrowserTests
                 return headings[0].bottom<=headings[1].top+1;
             }
             """), "The outgoing heading overlaps the incoming chapter.");
-        Assert.Equal("none", await page.Locator("tr.main-row[data-event-id='long-23'] + tr.details-row").EvaluateAsync<string>("r=>getComputedStyle(r).backgroundImage"));
+        Assert.DoesNotContain("gradient", await page.Locator("tr.main-row[data-event-id='long-23'] + tr.details-row").EvaluateAsync<string>("r=>getComputedStyle(r).backgroundImage"));
         await Assertions.Expect(page.GetByRole(AriaRole.Link, new() { Name = "Read the rules", Exact = true })).ToBeVisibleAsync();
         await ReloadTimelineAsync(page);
         await Assertions.Expect(page.Locator("#eventsTable tbody")).ToHaveCountAsync(3);

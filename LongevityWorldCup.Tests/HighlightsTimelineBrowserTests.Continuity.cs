@@ -175,13 +175,13 @@ public sealed partial class HighlightsTimelineBrowserTests
                     const a=luminance(fg), b=luminance(bg), contrast=(Math.max(a,b)+.05)/(Math.min(a,b)+.05);
                     if (contrast < 4.5) issues.push(`${row.dataset.eventId}: date contrast ${contrast}`);
                     const range = document.createRange(); range.selectNodeContents(date);
-                    const shown = innerWidth > 600 && row.classList.contains('day-repeat') ? [] : [...date.querySelectorAll('.event-date-day')];
+                    const shown = row.classList.contains('day-repeat') ? [] : [...date.querySelectorAll('.event-date-day')];
                     if (shown.some(day => day.getBoundingClientRect().width <= 1) || ![...range.getClientRects()].some(r => r.width > 0 && r.height > 0)) issues.push('date has no visible glyphs');
                 }
-                if (getComputedStyle(rows.at(-1)).backgroundImage !== 'none') issues.push('a month of one event has a rail');
+                if (getComputedStyle(rows.at(-1)).backgroundImage.includes('gradient')) issues.push('a month of one event has a rail');
                 const last = rows.filter(row => row.classList.contains('month-end') && !row.classList.contains('month-start')).at(-1), style=getComputedStyle(last), box=last.getBoundingClientRect();
                 const portrait=last.querySelector('.avatar,.avatar-fallback,.milestone-people-avatar').getBoundingClientRect();
-                const length = style.backgroundSize.slice(style.backgroundSize.indexOf(' ') + 1);
+                const rail = style.backgroundSize.split(',')[0].trim(), length = rail.slice(rail.indexOf(' ') + 1);
                 let height = 0;
                 for (const term of length.matchAll(/(-?[\d.]+)(%|px)/g)) height += +term[1]*(term[2] === '%' ? box.height/100 : 1);
                 if (Math.abs(box.top + height - (portrait.top + portrait.height/2)) > 1.5) issues.push(`rail misses oldest portrait by ${box.top + height - (portrait.top + portrait.height/2)}`);
