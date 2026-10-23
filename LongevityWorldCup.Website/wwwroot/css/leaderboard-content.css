@@ -5504,7 +5504,8 @@ main[data-leaderboard-page="full"] .flag-leaderboard > .leaderboard-recovery{
     flex:0 0 auto;
     gap:.4rem;
 }
-#detailsModal .athlete-steps[hidden]{ display:none; }
+#detailsModal .athlete-steps[hidden],
+#detailsModal .modal-content.guess-mode .athlete-steps{ display:none; }
 #detailsModal #closeAthleteDetailsModal,
 #detailsModal .modal-sticky-header .sticky-close-btn,
 #detailsModal .athlete-step{
@@ -5761,21 +5762,22 @@ main[data-leaderboard-page="full"] .flag-leaderboard > .leaderboard-recovery{
     #detailsModal.fade-out .modal-content{ transform:translateY(4%); }
 }
 @media (max-width: 480px){
-    #detailsModal #athlete-profile > .athlete-links{
-        display:grid;
-        grid-template-columns:repeat(auto-fit, minmax(0, 6.5rem));
-        justify-content:center;
-        gap:.35rem .5rem;
+    /* Equal shares of one row; enlarged text wraps whole actions instead of overflowing. */
+    #detailsModal #athlete-profile > .athlete-links{ gap:.35rem .5rem; }
+    #detailsModal #athlete-profile > .athlete-links > a,
+    #detailsModal #athlete-profile > .athlete-links > .athlete-share-wrapper{
+        flex:1 1 0;
+        min-width:min-content;
+        max-width:6.5rem;
     }
     #detailsModal #athlete-profile > .athlete-links > a,
     #detailsModal #athlete-profile > .athlete-links > .athlete-share-wrapper > #shareAthleteProfile{
         width:100%;
-        min-width:0;
-        max-width:none;
+        min-width:min-content;
         padding-inline:0;
         font-size:.8rem;
     }
-    #detailsModal #athlete-profile > .athlete-links > #mediaContact:not([href]){ grid-column:1 / -1; }
+    #detailsModal #athlete-profile > .athlete-links > #mediaContact:not([href]){ flex-basis:100%; max-width:none; }
     #detailsModal #athlete-profile > .athlete-links .athlete-share-menu{ left:0; right:0; margin-left:0; width:auto; }
 }
 @media (max-width: 932px) and (max-height: 480px) and (orientation: landscape){

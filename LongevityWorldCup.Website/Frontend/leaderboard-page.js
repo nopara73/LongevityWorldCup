@@ -3294,24 +3294,25 @@ closeBtn.onclick = function () {
 };
 
 // Neighbouring athletes follow the order the visitor is browsing: the board's
-// rows as filtered and sorted, or the overall ranking where there is no board.
-function getAthleteDialogSequence() {
+// rows as filtered and sorted, or the overall ranking for an athlete the board
+// is not showing (a direct link, or a short board on another page).
+function getVisibleAthleteRows() {
     const byName = new Map(athleteResults.map(athlete => [athlete.name, athlete]));
-    const rows = [...pageDocument.querySelectorAll('.leaderboard table tbody tr[data-athlete-name]')]
+    return [...pageDocument.querySelectorAll('.leaderboard table tbody tr[data-athlete-name]')]
         .filter(row => row.getClientRects().length > 0)
         .map(row => byName.get(row.getAttribute('data-athlete-name')))
         .filter(Boolean);
-    return rows.length ? rows : athleteResults;
 }
 
 function getAthleteDialogNeighbours() {
     const slug = modal.querySelector('.modal-content')?.dataset.athleteSlug || '';
-    const sequence = slug ? getAthleteDialogSequence() : [];
-    const index = sequence.findIndex(athlete =>
-        normalizeAthleteSlugForLookup(athlete.athleteSlug || athlete.name) === slug);
-    return index < 0
-        ? { previous: null, next: null }
-        : { previous: sequence[index - 1] || null, next: sequence[index + 1] || null };
+    if (!slug) return { previous: null, next: null };
+    const matches = athlete => normalizeAthleteSlugForLookup(athlete.athleteSlug || athlete.name) === slug;
+    for (const sequence of [getVisibleAthleteRows(), athleteResults]) {
+        const index = sequence.findIndex(matches);
+        if (index >= 0) return { previous: sequence[index - 1] || null, next: sequence[index + 1] || null };
+    }
+    return { previous: null, next: null };
 }
 
 function updateAthleteDialogSteps() {
