@@ -3333,6 +3333,9 @@ function stepAthleteDialog(direction) {
     if (!modalContent || modalContent.classList.contains('guess-mode') || modal.classList.contains('fade-out')) return false;
     const target = getAthleteDialogNeighbours()[direction];
     if (!target) return false;
+    // Restart the slide even when stepping the same way twice.
+    delete modalContent.dataset.athleteStep;
+    void modalContent.offsetWidth;
     modalContent.dataset.athleteStep = direction;
     fetchFullAthleteData(target.name, target, { suppressGuessMyAge: true, historyMode: 'step' });
     return true;
@@ -5698,6 +5701,7 @@ function fetchFullAthleteData(athleteNameText, athleteData, options) {
     const suppressGuessMyAge = !!(options && options.suppressGuessMyAge);
     const requestId = ++currentAthleteModalRequestId;
     const modalContent = resetModalForLoading(athleteSlug);
+    if (modalContent && options?.historyMode !== 'step') delete modalContent.dataset.athleteStep;
 
     return window.getSharedAthletes()
         .then(athletes => {

@@ -5756,7 +5756,8 @@ main[data-leaderboard-page="full"] .flag-leaderboard > .leaderboard-recovery{
     #detailsModal #athlete-profile .portrait-wrapper{ width:min(44vw, 176px); }
     #detailsModal #athleteName{ margin-top:1rem; }
     #detailsModal .modal-sticky-header{ padding:.6rem 14px; }
-    #detailsModal .modal-content:not(.guess-mode){
+    /* Not keyed to guess mode, so leaving a round never replays the entrance. */
+    #detailsModal .modal-content{
         animation:athlete-sheet-in var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease) both;
     }
     #detailsModal.fade-out .modal-content{ transform:translateY(4%); }
@@ -5787,7 +5788,6 @@ main[data-leaderboard-page="full"] .flag-leaderboard > .leaderboard-recovery{
 }
 @media (prefers-reduced-motion: reduce){
     #detailsModal .modal-content,
-    #detailsModal .modal-content:not(.guess-mode),
     #detailsModal .modal-content[data-athlete-step] #athlete-profile{ animation:none; }
     #detailsModal.fade-out .modal-content{ transform:none; transition:none; }
 }
