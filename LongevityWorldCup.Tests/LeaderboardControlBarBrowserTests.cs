@@ -6,7 +6,7 @@ using static LongevityWorldCup.Tests.FlowActionDockBrowserTests;
 namespace LongevityWorldCup.Tests;
 
 /// <summary>
-/// On /leaderboard, search, By Flag, Order and Filters are one joined control
+/// On the homepage and /leaderboard, search, By Flag, Order and Filters are one joined control
 /// bar; the Order composer opens as a strip inside the card; phones lose the
 /// title row; and tablet rows keep the rank column narrow.
 /// </summary>
@@ -59,14 +59,19 @@ public sealed class LeaderboardControlBarBrowserTests(PlaywrightBrowserFixture b
     }
 
     [Theory]
-    [InlineData(1440, 900, false)]
-    [InlineData(1024, 768, true)]
-    [InlineData(768, 1024, false)]
-    [InlineData(390, 844, true)]
-    [InlineData(320, 640, false)]
-    public async Task SearchFlagOrderAndFilters_AreOneJoinedBar(int width, int height, bool dark)
+    [InlineData("/leaderboard", 1440, 900, false)]
+    [InlineData("/", 1440, 900, false)]
+    [InlineData("/leaderboard", 1024, 768, true)]
+    [InlineData("/", 1024, 768, true)]
+    [InlineData("/leaderboard", 768, 1024, false)]
+    [InlineData("/", 768, 1024, false)]
+    [InlineData("/leaderboard", 390, 844, true)]
+    [InlineData("/", 390, 844, true)]
+    [InlineData("/leaderboard", 320, 640, false)]
+    [InlineData("/", 320, 640, false)]
+    public async Task SearchFlagOrderAndFilters_AreOneJoinedBar(string path, int width, int height, bool dark)
     {
-        var (context, page) = await OpenAsync(width, height, dark);
+        var (context, page) = await OpenAsync(width, height, dark, path);
         await using var _ = context;
 
         AssertJoinedBar(await page.EvaluateAsync<double[][]>(ReadBar), 4, "default");
@@ -80,12 +85,15 @@ public sealed class LeaderboardControlBarBrowserTests(PlaywrightBrowserFixture b
     }
 
     [Theory]
-    [InlineData(390, 844, false)]
-    [InlineData(320, 640, true)]
-    [InlineData(768, 1024, true)]
-    public async Task Phone_TabsOpenTheCardAndRunEdgeToEdge(int width, int height, bool dark)
+    [InlineData("/leaderboard", 390, 844, false)]
+    [InlineData("/", 390, 844, false)]
+    [InlineData("/leaderboard", 320, 640, true)]
+    [InlineData("/", 320, 640, true)]
+    [InlineData("/leaderboard", 768, 1024, true)]
+    [InlineData("/", 768, 1024, true)]
+    public async Task Phone_TabsOpenTheCardAndRunEdgeToEdge(string path, int width, int height, bool dark)
     {
-        var (context, page) = await OpenAsync(width, height, dark);
+        var (context, page) = await OpenAsync(width, height, dark, path);
         await using var _ = context;
         var result = await page.EvaluateAsync<double[]>(
             """
@@ -107,15 +115,20 @@ public sealed class LeaderboardControlBarBrowserTests(PlaywrightBrowserFixture b
     }
 
     [Theory]
-    [InlineData(1440, 900, false)]
-    [InlineData(1024, 768, true)]
-    [InlineData(390, 844, true)]
-    [InlineData(320, 640, false)]
-    public async Task OrderComposer_OpensAsAStripInsideTheCard(int width, int height, bool dark)
+    [InlineData("/leaderboard", 1440, 900, false)]
+    [InlineData("/", 1440, 900, false)]
+    [InlineData("/leaderboard", 1024, 768, true)]
+    [InlineData("/", 1024, 768, true)]
+    [InlineData("/leaderboard", 390, 844, true)]
+    [InlineData("/", 390, 844, true)]
+    [InlineData("/leaderboard", 320, 640, false)]
+    [InlineData("/", 320, 640, false)]
+    public async Task OrderComposer_OpensAsAStripInsideTheCard(string path, int width, int height, bool dark)
     {
-        var (context, page) = await OpenAsync(width, height, dark);
+        var (context, page) = await OpenAsync(width, height, dark, path);
         await using var _ = context;
         var statusBefore = await ReadElementRectAsync(page, ".leaderboard-controls-status");
+        var documentTopBefore = statusBefore.Top + await page.EvaluateAsync<double>("scrollY");
 
         await page.Locator("#leaderboardOrderToggle").ClickAsync();
         await Assertions.Expect(page.Locator("#leaderboardOrderPanel")).ToBeVisibleAsync();
@@ -145,7 +158,9 @@ public sealed class LeaderboardControlBarBrowserTests(PlaywrightBrowserFixture b
         await page.Keyboard.PressAsync("Escape");
         await Assertions.Expect(page.Locator("#leaderboardOrderPanel")).ToBeHiddenAsync();
         var statusAfter = await ReadElementRectAsync(page, ".leaderboard-controls-status");
-        Assert.True(Math.Abs(statusAfter.Top - statusBefore.Top) <= 1, "Closing the strip returns the board to where it was.");
+        var documentTopAfter = statusAfter.Top + await page.EvaluateAsync<double>("scrollY");
+        Assert.True(Math.Abs(documentTopAfter - documentTopBefore) <= 1,
+            "Closing the strip restores the board's document position, including when the homepage scrolls to its controls.");
     }
 
     [Theory]
@@ -166,13 +181,17 @@ public sealed class LeaderboardControlBarBrowserTests(PlaywrightBrowserFixture b
     }
 
     [Theory]
-    [InlineData(320, 100)]
-    [InlineData(320, 200)]
-    [InlineData(390, 200)]
-    [InlineData(768, 200)]
-    public async Task NativeSelections_KeepEveryCatalogLabelReadableAtEnlargedText(int width, int textPercent)
+    [InlineData("/leaderboard", 320, 100)]
+    [InlineData("/", 320, 100)]
+    [InlineData("/leaderboard", 320, 200)]
+    [InlineData("/", 320, 200)]
+    [InlineData("/leaderboard", 390, 200)]
+    [InlineData("/", 390, 200)]
+    [InlineData("/leaderboard", 768, 200)]
+    [InlineData("/", 768, 200)]
+    public async Task NativeSelections_KeepEveryCatalogLabelReadableAtEnlargedText(string path, int width, int textPercent)
     {
-        var (context, page) = await OpenAsync(width, 844, true);
+        var (context, page) = await OpenAsync(width, 844, true, path);
         await using var _ = context;
         await page.EvaluateAsync("size => document.documentElement.style.fontSize = `${size}%`", textPercent);
         await page.Locator("#leaderboardOrderToggle").ClickAsync();
@@ -203,11 +222,13 @@ public sealed class LeaderboardControlBarBrowserTests(PlaywrightBrowserFixture b
     }
 
     [Theory]
-    [InlineData(390)]
-    [InlineData(1440)]
-    public async Task JoinedBar_KeyboardOrderMatchesTheVisibleSegments(int width)
+    [InlineData("/leaderboard", 390)]
+    [InlineData("/", 390)]
+    [InlineData("/leaderboard", 1440)]
+    [InlineData("/", 1440)]
+    public async Task JoinedBar_KeyboardOrderMatchesTheVisibleSegments(string path, int width)
     {
-        var (context, page) = await OpenAsync(width, 900, false);
+        var (context, page) = await OpenAsync(width, 900, false, path);
         await using var _ = context;
         await page.Locator("#view-ultimate").FocusAsync();
         await page.Keyboard.PressAsync("Tab");
@@ -221,11 +242,13 @@ public sealed class LeaderboardControlBarBrowserTests(PlaywrightBrowserFixture b
     }
 
     [Theory]
-    [InlineData(844, 390)]
-    [InlineData(640, 240)]
-    public async Task ShortLandscape_TabTraversalKeepsEveryNativeControlVisible(int width, int height)
+    [InlineData("/leaderboard", 844, 390)]
+    [InlineData("/", 844, 390)]
+    [InlineData("/leaderboard", 640, 240)]
+    [InlineData("/", 640, 240)]
+    public async Task ShortLandscape_TabTraversalKeepsEveryNativeControlVisible(string path, int width, int height)
     {
-        var (context, page) = await OpenAsync(width, height, false, "/leaderboard?sort=pheno&then=age");
+        var (context, page) = await OpenAsync(width, height, false, path + "?sort=pheno&then=age");
         await using var _ = context;
         await page.EvaluateAsync("document.documentElement.style.fontSize = '200%'");
         await page.Locator("#leaderboardOrderToggle").ClickAsync();
@@ -257,12 +280,15 @@ public sealed class LeaderboardControlBarBrowserTests(PlaywrightBrowserFixture b
     }
 
     [Theory]
-    [InlineData(844, 390, 100)]
-    [InlineData(844, 390, 200)]
-    [InlineData(640, 320, 200)]
-    public async Task ShortLandscape_OpeningTallStripKeepsNativeFocusBelowStickyHeader(int width, int height, int textPercent)
+    [InlineData("/leaderboard", 844, 390, 100)]
+    [InlineData("/", 844, 390, 100)]
+    [InlineData("/leaderboard", 844, 390, 200)]
+    [InlineData("/", 844, 390, 200)]
+    [InlineData("/leaderboard", 640, 320, 200)]
+    [InlineData("/", 640, 320, 200)]
+    public async Task ShortLandscape_OpeningTallStripKeepsNativeFocusBelowStickyHeader(string path, int width, int height, int textPercent)
     {
-        var (context, page) = await OpenAsync(width, height, false);
+        var (context, page) = await OpenAsync(width, height, false, path);
         await using var _ = context;
         await page.EvaluateAsync("size => document.documentElement.style.fontSize = `${size}%`", textPercent);
         await page.Locator("#leaderboardOrderToggle").ClickAsync();

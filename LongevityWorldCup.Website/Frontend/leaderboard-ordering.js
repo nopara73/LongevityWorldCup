@@ -20,13 +20,6 @@
     const swap = byId('leaderboardOrderSwap');
     const primaryClear = byId('leaderboardOrderPrimaryClear');
     const secondaryClear = byId('leaderboardOrderSecondaryClear');
-    if (panel?.closest('main[data-leaderboard-page="full"]')) {
-        // Keep keyboard and reading order aligned with the joined bar. The
-        // homepage retains its original separate grouping control.
-        const controls = panel.closest('.leaderboard-controls');
-        const grouping = controls.querySelector('.leaderboard-group-switcher');
-        if (grouping) controls.querySelector('.search-container')?.after(grouping);
-    }
     const defaults = () => ({ sort: 'rank', direction: 'asc', then: null, thenDirection: 'asc' });
     const direction = (value, field) => value === 'asc' || value === 'desc' ? value : field.direction;
     function normalize(value) {
@@ -44,7 +37,6 @@
     }
     let current = readUrl();
     let onChange = () => {};
-    let panelPositionFrame = 0;
     function writeUrl(url, state = current) {
         for (const key of [...url.searchParams.keys()]) if (['sort', 'dir', 'then', 'thendir'].includes(key.toLowerCase())) url.searchParams.delete(key);
         if (state.sort !== 'rank') {
@@ -154,25 +146,6 @@
             }
         }
     }
-    function positionPanel() {
-        if (!panel || panel.hidden) return;
-        // On /leaderboard the composer is a strip inside the board; it moves with the page.
-        if (getComputedStyle(panel).position === 'static') return;
-        const width = document.documentElement.clientWidth;
-        const height = document.documentElement.clientHeight;
-        // vw includes the page scrollbar; size against the actual usable viewport.
-        panel.style.maxWidth = `${Math.max(0, width - 24)}px`;
-        panel.style.maxHeight = `${Math.max(0, height - 24)}px`;
-        const bounds = panel.getBoundingClientRect();
-        const correction = bounds.left < 12 ? 12 - bounds.left : bounds.right > width - 12 ? width - 12 - bounds.right : 0;
-        const shift = parseFloat(panel.style.getPropertyValue('--order-panel-shift')) || 0;
-        if (correction) panel.style.setProperty('--order-panel-shift', `${shift + correction}px`);
-        let verticalCorrection = bounds.top < 12 ? 12 - bounds.top : bounds.bottom > height - 12 ? height - 12 - bounds.bottom : 0;
-        const anchor = toggle.getBoundingClientRect();
-        if (bounds.bottom > height - 12 && anchor.top - bounds.height - 8 >= 12) verticalCorrection = anchor.top - 8 - bounds.bottom;
-        const verticalShift = parseFloat(panel.style.getPropertyValue('--order-panel-shift-y')) || 0;
-        if (verticalCorrection) panel.style.setProperty('--order-panel-shift-y', `${verticalShift + verticalCorrection}px`);
-    }
     function revealStrip() {
         if (getComputedStyle(panel).position !== 'static') return;
         const viewport = document.documentElement.clientHeight;
@@ -185,13 +158,6 @@
         const overflow = bounds.bottom - (viewport - 12);
         const shift = Math.min(Math.max(0, overflow), field.top - top);
         if (shift) window.scrollBy({ top: shift, behavior: 'instant' });
-    }
-    function schedulePanelPosition() {
-        if (panelPositionFrame || !panel || panel.hidden) return;
-        panelPositionFrame = requestAnimationFrame(() => {
-            panelPositionFrame = 0;
-            positionPanel();
-        });
     }
     function sync(state = current, byFlag = false, metricLabel = 'Age reduction') {
         if (!toggle || !fields.size) return;
@@ -216,18 +182,16 @@
             }
             const metric = select.querySelector('option[value="metric"]');
             if (metric && metric.textContent !== metricLabel) metric.textContent = metricLabel;
-            if (panel.closest('main[data-leaderboard-page="full"]')) {
-                // Keep the native picker, keyboard interaction and accessible
-                // value; let its visible selected text wrap at enlarged sizes.
-                let label = select.parentElement.querySelector('.order-selected-value');
-                if (!label) {
-                    label = document.createElement('span');
-                    label.className = 'order-selected-value';
-                    label.setAttribute('aria-hidden', 'true');
-                    select.after(label);
-                }
-                label.textContent = select.selectedOptions[0]?.textContent || '';
+            // Keep the native picker, keyboard interaction and accessible
+            // value; let its visible selected text wrap at enlarged sizes.
+            let label = select.parentElement.querySelector('.order-selected-value');
+            if (!label) {
+                label = document.createElement('span');
+                label.className = 'order-selected-value';
+                label.setAttribute('aria-hidden', 'true');
+                select.after(label);
             }
+            label.textContent = select.selectedOptions[0]?.textContent || '';
         }
         for (const [button, key, dir, enabled] of [[primaryDirection, current.sort, current.direction, active], [secondaryDirection, current.then, current.thenDirection, active && !!current.then]]) {
             button.disabled = !enabled;
@@ -266,8 +230,6 @@
             previous = header;
         }
         document.querySelectorAll('th[data-order-key]').forEach(header => decorateHeader(header, display, metricLabel));
-        // Measure after the table's writes, never halfway through a reorder.
-        schedulePanelPosition();
     }
     function renderValues(entries, state = current, rowsByName) {
         const selected = columns(state);
@@ -326,11 +288,8 @@
         toggle.addEventListener('click', () => {
             if (!panel.hidden) close();
             else {
-                panel.style.removeProperty('--order-panel-shift');
-                panel.style.removeProperty('--order-panel-shift-y');
                 panel.hidden = false;
                 toggle.setAttribute('aria-expanded', 'true');
-                positionPanel();
                 revealStrip();
                 primary.focus({ preventScroll: true });
             }
@@ -340,8 +299,6 @@
             commit(defaults());
             close();
         });
-        new ResizeObserver(schedulePanelPosition).observe(panel);
-        window.addEventListener('resize', schedulePanelPosition);
         primary.addEventListener('change', () => commit({ ...current, sort: primary.value, direction: fields.get(primary.value)?.direction }));
         secondary.addEventListener('change', () => commit({ ...current, then: secondary.value, thenDirection: fields.get(secondary.value)?.direction }));
         primaryDirection.addEventListener('click', () => commit({ ...current, direction: current.direction === 'asc' ? 'desc' : 'asc' }));

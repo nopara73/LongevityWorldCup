@@ -109,7 +109,7 @@ A plausible-year December 31 DOB is an allowed privacy placeholder; never replac
 
 Visually inspect every proof image/PDF page; OCR is supplementary. For each record:
 
-- Verify ownership, collection date, each value/unit, and required biomarkers against one blood draw/coherent report for that date. Never combine unrelated tests, dates, or documents. Convert units only when the source unit is clear.
+- Verify ownership, collection/test date, each value/unit, and required biomarkers against coherent same-day evidence. Required markers may be documented across reports from that day; do not impose a same-blood-draw requirement or combine different test dates or unrelated evidence. Convert units only when the source unit is clear.
 - Correct unambiguous clerical errors locally (collection versus report date, mistyped value); disclose substantive corrections. Keep tiny conversion/rounding adjustments in the private review, not athlete emails. Uncertain values, units, or medical interpretation need human judgment.
 - Below-detection-limit results are valid: store the stated limit (CRP `<0.5 mg/L` becomes `"CrpMgL": 0.5`). If CRP's detection limit is unknown, use the competition default `1 mg/L`. Do not reject/remove the result because of the qualifier; disclose any changed submission value.
 - Retain every complete submitted report page and all clinical content, including unused analytes, units/ranges, flags, comments, diagnoses/referrals, and specimen/report dates. Public proof is not a competition-marker excerpt.
@@ -163,7 +163,7 @@ Do not use em dashes in newly written replies. Use periods or commas instead; pr
 
 Language priority: explicit user/athlete instruction; otherwise a clearly non-English `Why` field; otherwise latest direct exchange; otherwise English. Localize the entire reply, retaining names, URLs, biomarker labels, and exact values. Lab-report language alone does not establish preference.
 
-For new applications blocked by missing evidence, introduce Adam on first contact and ask only about the confirmed blocker. If unpaid, tell them to hold off paying until the evidence can be verified; if already paid and the evidence may not exist, offer a refund. Request only the missing markers, same-draw evidence, or safe proof needed, not a premature payment.
+For new applications blocked by missing evidence, introduce Adam on first contact and ask only about the confirmed blocker. If unpaid, tell them to hold off paying until the evidence can be verified; if already paid and the evidence may not exist, offer a refund. Request only the missing markers, same-day evidence, or safe proof needed, not a premature payment. Use the Ruleset's same-day wording in replies, not a stricter same-blood-draw requirement.
 
 An introduction belongs only on first direct human contact when needed, not automatically at acceptance. Never repeat Adam's name/founder introduction after requested corrections or when prior correspondence has already introduced him. Do not restart a welcome script because the application has become acceptable.
 
@@ -188,6 +188,8 @@ Do not automatically append Slack/community invitations or other promotional cop
 ## Approval Summary
 
 Before sending/committing/pushing, present the decision and exact proposed actions with:
+
+Always include the relevant athlete-authored inbound email verbatim, with sender and date, clearly separated from the proposed reply. Show each relevant new message when several inform the reply; a summary alone is not enough. This applies to follow-ups and security-only handoffs too. If only an automated submission notice exists, label it as automated and quote the submitted request/changed fields instead of inventing personal correspondence.
 
 - Athlete/profile and actual folder path (underscore folder keys, hyphenated URL slugs); new applicants stay under `.artifacts/pending-athlete-reviews/`.
 - Current message ID, `expectedThreadId`, saved draft thread ID, explicit equality, draft text/ID, verified sender, unread status/restorations.
