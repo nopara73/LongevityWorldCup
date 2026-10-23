@@ -27,7 +27,9 @@ function setDocumentationNavOpen(documentationNav, open) {
     }
 }
 
-document.addEventListener("DOMContentLoaded", () => {
+// The document has already been parsed. Bind the controls in the same turn
+// that collapses the list, including when a deferred script delays DCL.
+(function () {
     const documentationNav = document.querySelector(".documentation-nav");
     const documentationNavToggle = documentationNav?.querySelector(".documentation-nav-toggle");
 
@@ -306,4 +308,4 @@ document.addEventListener("DOMContentLoaded", () => {
             synchronizeNavigationFromHash();
         }));
     }
-});
+})();

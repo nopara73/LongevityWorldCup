@@ -2319,4 +2319,8 @@ html.lwc-media-fade img[data-lwc-media="ready"] {
     .event-board-page .events-board[aria-busy="false"] #eventsTable tbody {
         animation: none;
     }
+
+    html.lwc-media-fade img[data-lwc-media] {
+        opacity: 1;
+    }
 }

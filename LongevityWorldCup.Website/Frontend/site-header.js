@@ -28,12 +28,12 @@
             var record = records[i];
             if (record.type === 'attributes') {
                 // A new source on a painted portrait keeps the old one until it decodes.
-                if (record.target.matches(selector) && !record.target.complete && record.target.getAttribute('data-lwc-media') !== 'ready') track(record.target);
+                if (record.target.matches(selector)) track(record.target);
                 continue;
             }
             for (var j = 0; j < record.addedNodes.length; j++) scan(record.addedNodes[j]);
         }
-    }).observe(root, { childList: true, subtree: true, attributes: true, attributeFilter: ['src'] });
+    }).observe(root, { childList: true, subtree: true, attributes: true, attributeFilter: ['src', 'srcset'] });
 })();
 
 const scrolledJoinButton = document.querySelector('.scrolled-button');
@@ -131,7 +131,10 @@ function handleScroll(scrollPos, remeasure = false) {
     stickyHeader.inert = !willBeVisible;
     stickyHeader.setAttribute('aria-hidden', String(!willBeVisible));
     if (scrolledJoinButton) {
-        scrolledJoinButton.style.display = willBeVisible && actionAvailable ? 'inline-flex' : 'none';
+        const actionVisible = willBeVisible && actionAvailable;
+        scrolledJoinButton.inert = !actionVisible;
+        scrolledJoinButton.setAttribute('aria-hidden', String(!actionVisible));
+        scrolledJoinButton.style.display = actionVisible ? 'inline-flex' : 'none';
     }
     if (measuring) {
         // Settle the measured state without motion, then let later changes animate.
