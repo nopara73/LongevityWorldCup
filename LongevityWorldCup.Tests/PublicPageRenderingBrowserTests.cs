@@ -166,7 +166,7 @@ public sealed class PublicPageRenderingBrowserTests(PlaywrightBrowserFixture bro
         await Assertions.Expect(page.Locator("#shareAthleteProfile")).ToBeEnabledAsync();
         await page.Locator("#shareAthleteProfile").ClickAsync();
         await page.Locator("#copyAthleteProfileLink").ClickAsync();
-        await page.WaitForFunctionAsync("() => window.copiedProfileLink === 'https://www.longevityworldcup.com/athlete/michael-lustgarten'");
+        await page.WaitForFunctionAsync("() => window.copiedProfileLink === 'https://longevityworldcup.com/athlete/michael-lustgarten'");
         await Assertions.Expect(page.Locator("#athleteShareMenu")).ToBeHiddenAsync();
         offline = false;
         await page.Locator("#retryAthleteLoad").ClickAsync();
