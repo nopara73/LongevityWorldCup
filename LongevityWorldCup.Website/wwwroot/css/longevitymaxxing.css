@@ -4366,7 +4366,7 @@ a.lmx-note-mention:focus-visible {
 
 .lmx-checkin-save-row {
     display: flex;
-    align-items: center;
+    align-items: stretch;
     justify-content: flex-end;
     gap: var(--lwc-space-2);
 }
@@ -4375,6 +4375,7 @@ a.lmx-note-mention:focus-visible {
     flex: 1;
     min-width: 0;
     display: grid;
+    align-content: center;
     font-size: var(--lwc-type-sm);
     line-height: 1.5;
     color: var(--lmx-muted);
@@ -4386,8 +4387,8 @@ a.lmx-note-mention:focus-visible {
 }
 
 .lmx-checkin-save-row > .lmx-checkin-reset {
-    width: 44px;
-    padding-inline: 0;
+    min-width: 44px;
+    padding-inline: var(--lwc-space-2);
     font-size: var(--lwc-type-xs);
 }
 
@@ -6656,11 +6657,9 @@ html body .lmx-page #lmxAccessTabs .lmx-tab[aria-selected="true"] {
 
 :is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-actions::before {
     content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
+    display: block;
     height: 4px;
+    margin-bottom: var(--lwc-space-2);
     border-radius: 999px;
     background:
         linear-gradient(90deg,
@@ -6668,11 +6667,6 @@ html body .lmx-page #lmxAccessTabs .lmx-tab[aria-selected="true"] {
             var(--lmx-rail-exercise) 0 calc(50% - 2px), transparent 0 50%,
             var(--lmx-rail-nutrition) 0 calc(75% - 2px), transparent 0 75%,
             var(--lmx-rail-vices) 0 100%);
-}
-
-.lmx-page .lmx-participant-actions:not(.lmx-checkin-dialog-panel) .lmx-checkin-actions::before {
-    left: 1rem;
-    right: 1rem;
 }
 
 :is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-progress {
