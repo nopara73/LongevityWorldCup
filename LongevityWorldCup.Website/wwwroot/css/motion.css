@@ -31,6 +31,19 @@
     --lwc-motion-press-scale: 0.97;
 }
 
+/* A discrete display transition keeps a hidden surface rendered. Exclude its
+ * whole subtree from focus, pointer input and accessibility synchronously with
+ * the state change. Browsers without CSS inertness close immediately instead.
+ * This also covers native details, whose toggle event is dispatched too late
+ * for imperative focus/scroll callers in the same task. */
+@supports (interactivity: inert) {
+    :root[data-lwc-motion="on"] :is(#custom-alert, #loading-dialog, #lmxCheckinDialogBackdrop, #modalOverlay, #changeProfileCropperModal, .lmx-quote-dialog, .lmx-photo-viewer, .leaderboard-order-panel, .athlete-share-menu, .lmx-mention-options, .lmx-timezone-list, .lmx-timezone-popover, #copiedText)[hidden],
+    :root[data-lwc-motion="on"] details:not([open])::details-content {
+        interactivity: inert;
+        pointer-events: none;
+    }
+}
+
 /* 1) State feedback: every control eases between rest, hover, press and focus. */
 :where(button, a, input, select, textarea, summary, label, [role="button"], [role="tab"], .view-badge, .leaderboard table tbody tr, .leaderboard table tbody td) {
     transition-property: background-color, border-color, color, box-shadow, opacity, transform, scale, translate, outline-color;
@@ -221,5 +234,12 @@
 @media (prefers-reduced-motion: no-preference) {
     :root[data-lwc-motion="on"] [role="tab"] {
         transition-duration: var(--lwc-motion-base);
+    }
+}
+
+@supports not (interactivity: inert) {
+    :root[data-lwc-motion="on"] :is(#custom-alert, #loading-dialog, #lmxCheckinDialogBackdrop, #modalOverlay, #changeProfileCropperModal, .lmx-quote-dialog, .lmx-photo-viewer, .leaderboard-order-panel, .athlete-share-menu, .lmx-mention-options, .lmx-timezone-list, .lmx-timezone-popover, #copiedText)[hidden],
+    :root[data-lwc-motion="on"] details:not([open])::details-content {
+        transition: none;
     }
 }

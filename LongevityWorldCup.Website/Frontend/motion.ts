@@ -9,7 +9,7 @@
 interface LwcMotionApi {
     readonly enabled: () => boolean;
     readonly flip: (elements: readonly Element[], mutate: () => void) => void;
-    readonly afterExit: (element: Element, complete: () => void) => void;
+    readonly afterExit: (element: Element, complete: () => void) => () => void;
     readonly settle: (element: Element) => void;
 }
 
@@ -23,10 +23,13 @@ interface Window {
     // Rows further than this outside the viewport snap: nobody sees them travel.
     const flipMargin = 160;
     const flipLimit = 80;
+    const ownedAnimations = new Map<Element, Animation>();
+    const exitWaiters = new Map<Element, () => void>();
 
     function readToken(name: string, fallback: number): number {
-        const value = parseFloat(getComputedStyle(root).getPropertyValue(name));
-        return Number.isFinite(value) ? value : fallback;
+        const token = getComputedStyle(root).getPropertyValue(name).trim();
+        const value = parseFloat(token) * (token.endsWith("ms") ? 1 : 1000);
+        return Number.isFinite(value) && value >= 0 ? value : fallback;
     }
 
     function readEase(name: string): string {
@@ -46,9 +49,35 @@ interface Window {
 
     window.addEventListener("pointerdown", open, true);
     window.addEventListener("keydown", open, true);
-    reduced.addEventListener("change", () => {
-        if (reduced.matches) delete root.dataset["lwcMotion"];
-    });
+    function preferenceChanged(): void {
+        if (!reduced.matches) return;
+        delete root.dataset["lwcMotion"];
+        for (const animation of ownedAnimations.values()) animation.cancel();
+        ownedAnimations.clear();
+        // Re-enable only on a new trusted input after the preference changes back.
+        window.addEventListener("pointerdown", open, true);
+        window.addEventListener("keydown", open, true);
+    }
+    if (typeof reduced.addEventListener === "function") reduced.addEventListener("change", preferenceChanged);
+    else reduced.addListener?.(preferenceChanged);
+
+    function cancelOwned(element: Element): void {
+        ownedAnimations.get(element)?.cancel();
+        ownedAnimations.delete(element);
+    }
+
+    // Own only our animation, never cancel a component's animation. Repeated
+    // interactions replace their previous feedback and release finished targets.
+    function animate(element: HTMLElement, frames: Keyframe[], options: KeyframeAnimationOptions): void {
+        cancelOwned(element);
+        if (!enabled() || typeof element.animate !== "function") return;
+        const animation = element.animate(frames, options);
+        ownedAnimations.set(element, animation);
+        const release = () => {
+            if (ownedAnimations.get(element) === animation) ownedAnimations.delete(element);
+        };
+        void animation.finished.then(release, release);
+    }
 
     function nearViewport(rect: DOMRect): boolean {
         return rect.height > 0 && rect.bottom > -flipMargin && rect.top < window.innerHeight + flipMargin;
@@ -69,6 +98,10 @@ interface Window {
             if (nearViewport(rect)) before.set(element, rect);
         }
 
+        // Measure painted positions first, then measure final layout without the
+        // previous FLIP offset. Otherwise rapid reorders compound translations.
+        for (const element of elements) cancelOwned(element);
+
         mutate();
 
         const duration = readToken("--lwc-motion-move", 260);
@@ -81,9 +114,7 @@ interface Window {
             const first = before.get(element);
             if (!first) {
                 animated++;
-                element.animate(
-                    [{ opacity: 0.35, transform: "translateY(6px)" }, { opacity: 1, transform: "translateY(0)" }],
-                    { duration: readToken("--lwc-motion-base", 200), easing: readEase("--lwc-ease-enter") });
+                settle(element);
                 continue;
             }
             // A row arriving from far away slides in from just past the edge, not across the page.
@@ -91,44 +122,61 @@ interface Window {
             const dy = Math.max(-travel, Math.min(travel, first.top - after.top));
             if (Math.abs(dy) < 1) continue;
             animated++;
-            element.animate(
-                [{ transform: `translateY(${dy}px)` }, { transform: "translateY(0)" }],
+            animate(element,
+                [{ translate: `0 ${dy}px` }, { translate: "0 0" }],
                 { duration, easing, composite: "add" });
         }
     }
 
     // Run once the element's own exit transition or animation ends, or at once
     // when nothing is running (reduced motion, gate closed, no exit styles).
-    function afterExit(element: Element, complete: () => void): void {
+    function afterExit(element: Element, complete: () => void): () => void {
+        exitWaiters.get(element)?.();
         let done = false;
-        const finish = () => {
+        let timeout: number | undefined;
+        const cancel = () => {
             if (done) return;
             done = true;
+            window.clearTimeout(timeout);
+            if (exitWaiters.get(element) === cancel) exitWaiters.delete(element);
+        };
+        const finish = () => {
+            if (done) return;
+            cancel();
             complete();
         };
-        const running = element.getAnimations().filter(animation => animation.playState === "running");
+        const running = typeof element.getAnimations === "function"
+            ? element.getAnimations().filter(animation => animation.playState === "running") : [];
         if (!running.length) {
             finish();
-            return;
+            return cancel;
         }
+        exitWaiters.set(element, cancel);
         Promise.allSettled(running.map(animation => animation.finished)).then(finish);
         // A cancelled or interrupted animation must never strand the caller.
-        window.setTimeout(finish, readToken("--lwc-motion-slow", 280) + 120);
+        timeout = window.setTimeout(finish, readToken("--lwc-motion-slow", 280) + 120);
+        return cancel;
     }
 
     // A panel whose content was redrawn in place settles in instead of flashing.
     function settle(element: Element): void {
         if (!enabled() || !(element instanceof HTMLElement)) return;
-        element.animate(
-            [{ opacity: 0.35, transform: "translateY(4px)" }, { opacity: 1, transform: "translateY(0)" }],
+        cancelOwned(element);
+        const style = getComputedStyle(element);
+        const [x = "0px", y = "0px", z = "0px"] = style.translate === "none" ? [] : style.translate.split(/\s+/);
+        const opacity = Number(style.opacity);
+        animate(element,
+            [{ opacity: opacity * 0.35, translate: `${x} calc(${y} + 4px) ${z}` }, { opacity, translate: `${x} ${y} ${z}` }],
             { duration: readToken("--lwc-motion-base", 200), easing: readEase("--lwc-ease-enter") });
     }
 
     // A chip, toggle or checkbox that just became selected confirms it with a small pop.
     function pop(element: Element): void {
         if (!enabled() || !(element instanceof HTMLElement) || !element.getClientRects().length) return;
-        if (element.getAnimations({ subtree: true }).some(animation => animation.playState === "running" && !(animation instanceof CSSTransition))) return;
-        element.animate(
+        if (typeof element.getAnimations === "function" && element.getAnimations({ subtree: true }).some(animation =>
+            animation !== ownedAnimations.get(element) && animation.playState === "running"
+            && !(typeof CSSTransition !== "undefined" && animation instanceof CSSTransition))) return;
+        animate(element,
             [{ scale: "0.94" }, { scale: "1.04", offset: 0.55 }, { scale: "1" }],
             { duration: readToken("--lwc-motion-slow", 280), easing: readEase("--lwc-ease-standard"), composite: "add" });
     }
