@@ -584,7 +584,7 @@ public sealed class EditProfileLayoutBrowserTests(
             Path.Combine(webRoot, "assets", "content-images", "play-athlete-placeholder.jpg"));
         await page.WaitForFunctionAsync("() => window.changeProfileCropper?.getImageData().naturalWidth === 1024 && window.changeProfileCropper.getCropBoxData().width > 0");
         await page.EvaluateAsync("() => { window.changeProfileCropper.setData({ x: 256, y: 256, width: 512, height: 512 }); }");
-        foreach (var (width, height, text) in new[] { (1440, 900, 100), (1440, 900, 200), (640, 320, 200), (844, 390, 200), (390, 844, 200), (390, 844, 100) })
+        foreach (var (width, height, text) in new[] { (1440, 900, 100), (1440, 900, 200), (640, 320, 200), (844, 390, 200), (390, 844, 200), (195, 422, 100), (160, 320, 100), (390, 844, 100) })
         {
             await page.SetViewportSizeAsync(width, height);
             await page.EvaluateAsync("size => document.documentElement.style.fontSize = size + '%'", text);
