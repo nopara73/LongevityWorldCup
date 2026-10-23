@@ -8,6 +8,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
 using Microsoft.Data.Sqlite;
 using Microsoft.AspNetCore.Http;
 using SixLabors.ImageSharp;
@@ -1233,6 +1234,8 @@ public sealed partial class LongevitymaxxingChallengeService
     private List<LongevitymaxxingDiscussionReply> PopulateDiscussionReplyContexts(
         SqliteConnection sqlite, List<LongevitymaxxingDiscussionReply> replies)
     {
+        for (var index = 0; index < replies.Count; index++)
+            replies[index] = replies[index] with { DisplayName = PublicDisplayName(replies[index].DisplayName) };
         PopulateDiscussionReplyPhotos(sqlite, replies);
         PopulateAdviceReplyMetadata(sqlite, replies);
         var ids = replies.Select(reply => reply.ReplyToId).OfType<string>().Distinct(StringComparer.Ordinal).ToArray();
@@ -1252,7 +1255,7 @@ public sealed partial class LongevitymaxxingChallengeService
         for (var index = 0; index < ids.Length; index++) Add(cmd, $"@reply{index}", ids[index]);
         var contexts = new Dictionary<string, LongevitymaxxingDiscussionReplyContext>(StringComparer.Ordinal);
         using var reader = cmd.ExecuteReader();
-        while (reader.Read()) contexts[reader.GetString(0)] = new(reader.GetString(1), reader.GetString(2));
+        while (reader.Read()) contexts[reader.GetString(0)] = new(PublicDisplayName(reader.GetString(1)), reader.GetString(2));
         for (var index = 0; index < replies.Count; index++)
         {
             var reply = replies[index];
@@ -2947,7 +2950,8 @@ public sealed partial class LongevitymaxxingChallengeService
         {
             if (index == 0 || rows[index].TotalPoints != rows[index - 1].TotalPoints)
                 rank = index + 1;
-            rows[index] = rows[index] with { Rank = rank };
+            // Mask legacy custom names only after ordering; saved identities and tie breaks stay intact.
+            rows[index] = rows[index] with { Rank = rank, DisplayName = PublicDisplayName(rows[index].DisplayName) };
         }
 
         return rows;
@@ -3450,7 +3454,7 @@ public sealed partial class LongevitymaxxingChallengeService
                         : [];
                     return new LongevitymaxxingParticipantNote(
                         row.ParticipantId,
-                        row.DisplayName,
+                        PublicDisplayName(row.DisplayName),
                         row.ChallengeDay,
                         row.Date,
                         row.Note,
@@ -3521,7 +3525,7 @@ public sealed partial class LongevitymaxxingChallengeService
                     row.Id,
                     row.Kind,
                     row.ParticipantId,
-                    row.DisplayName,
+                    PublicDisplayName(row.DisplayName),
                     row.Date,
                     row.OccurredAtUtc,
                     row.LastActivityAtUtc.ToString("o"),
@@ -4064,17 +4068,21 @@ public sealed partial class LongevitymaxxingChallengeService
         return normalized;
     }
 
+    private static bool HasEmailShapedDisplayName(string displayName)
+        => Regex.IsMatch(displayName, @"[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+", RegexOptions.CultureInvariant | RegexOptions.NonBacktracking);
+
+    private static string PublicDisplayName(string displayName)
+        => HasEmailShapedDisplayName(displayName) ? "Participant" : displayName;
+
     private string ResolveSignupDisplayName(string? requestedDisplayName, string? athleteSlug, AthleteProfile? athleteProfile)
     {
-        if (!string.IsNullOrWhiteSpace(athleteSlug))
-        {
-            if (athleteProfile is not null)
-                return NormalizeDisplayName(athleteProfile.DisplayName);
+        if (!string.IsNullOrWhiteSpace(athleteSlug) && athleteProfile is not null)
+            return NormalizeDisplayName(athleteProfile.DisplayName);
 
-            return NormalizeDisplayName(requestedDisplayName ?? "");
-        }
-
-        return NormalizeDisplayName(requestedDisplayName ?? "");
+        var name = NormalizeDisplayName(requestedDisplayName ?? "");
+        if (HasEmailShapedDisplayName(name))
+            throw new InvalidOperationException("Choose a public username without an email address.");
+        return name;
     }
 
     private void EnsureParticipantIdentityAvailable(
