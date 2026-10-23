@@ -123,7 +123,7 @@ public sealed class HighlightsEventAnatomyBrowserTests(
     {
         await using var context = await NewContextAsync(390, scheme);
         var page = await context.NewPageAsync();
-        await page.GotoAsync($"/event-board-embed.html?embed=1&athlete=bo-biomarker&theme={scheme}",
+        await page.GotoAsync($"/event-board-embed.html?embed=1&athlete=bo-biomarker&rows=all&theme={scheme}",
             new() { WaitUntil = WaitUntilState.DOMContentLoaded });
         var rank = page.Locator("tr.main-row[data-event-id='a-rank']");
         await Assertions.Expect(rank).ToContainTextAsync("lost");
@@ -134,14 +134,15 @@ public sealed class HighlightsEventAnatomyBrowserTests(
 
         // Ada's profile projects Bo's Crowd Age gain as Ada's loss, retaining
         // the winner's original new-tab name link.
-        await page.GotoAsync($"/event-board-embed.html?embed=1&athlete=ada-aging&theme={scheme}",
+        await page.GotoAsync($"/event-board-embed.html?embed=1&athlete=ada-aging&rows=all&theme={scheme}",
             new() { WaitUntil = WaitUntilState.DOMContentLoaded });
         var lostCrowd = page.Locator("tr.main-row[data-event-id='a-crowd']");
         await Assertions.Expect(lostCrowd).ToContainTextAsync("lost");
         await Assertions.Expect(lostCrowd.Locator(".event-kind")).ToHaveAttributeAsync("data-lost", "true");
         Assert.Equal(1, await lostCrowd.Locator(".fa-arrow-trend-down").CountAsync());
-        Assert.Equal("/athlete/bo-biomarker", await lostCrowd.Locator("a.event-athlete-link").GetAttributeAsync("href"));
-        Assert.Equal("_blank", await lostCrowd.Locator("a.event-athlete-link").GetAttributeAsync("target"));
+        var winner = lostCrowd.GetByRole(AriaRole.Link, new() { Name = "Bo Biomarker", Exact = true });
+        Assert.Equal("/athlete/bo-biomarker", await winner.GetAttributeAsync("href"));
+        Assert.Equal("_blank", await winner.GetAttributeAsync("target"));
         Assert.Equal("season", await page.Locator("tr.main-row[data-event-id='a-season'] .event-kind").GetAttributeAsync("data-kind"));
 
         // Ask for Bo's profile again, with an event that mentions Ada but gives no
@@ -149,7 +150,7 @@ public sealed class HighlightsEventAnatomyBrowserTests(
         var moreEvents = System.Text.Json.Nodes.JsonNode.Parse(Events)!.AsArray();
         moreEvents.Add(System.Text.Json.Nodes.JsonNode.Parse("""{"Id":"cross-portrait","Type":1,"Text":"slug[ada_aging] slug[bo_biomarker]","OccurredAt":"2026-10-22T10:00:00Z"}"""));
         await context.RouteAsync("**/api/events", route => route.FulfillAsync(new() {ContentType="application/json", Body=moreEvents.ToJsonString()}));
-        await page.GotoAsync($"/event-board-embed.html?embed=1&athlete=bo-biomarker&theme={scheme}",
+        await page.GotoAsync($"/event-board-embed.html?embed=1&athlete=bo-biomarker&rows=all&theme={scheme}",
             new() { WaitUntil = WaitUntilState.DOMContentLoaded });
         var portrait = page.Locator("tr.main-row[data-event-id='cross-portrait'] .avatar-link");
         await Assertions.Expect(portrait.Locator(".avatar-fallback")).ToHaveTextAsync("AA");
