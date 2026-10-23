@@ -51,6 +51,9 @@ public sealed class PlayJoinTrackBrowserTests(
             await page.Locator(".play-join-card:not(.play-join-card--pro) summary").ClickAsync();
             await Assertions.Expect(page.Locator(".play-join-card:not(.play-join-card--pro) details")).ToHaveAttributeAsync("open", "");
         }
+        // Compare the resting layout: no hover lift and no entrance still running.
+        await page.Mouse.MoveAsync(0, 0);
+        await page.EvaluateAsync("() => Promise.all(document.getAnimations().map(a => a.finished.catch(() => {})))");
 
         var rows = await page.EvaluateAsync<double[]>(
             """

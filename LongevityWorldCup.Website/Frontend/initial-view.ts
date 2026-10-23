@@ -13,6 +13,14 @@ interface Window {
 
 (function () {
     const documentRoot = document.documentElement;
+
+    // A journey page transition (entry-journey.css) that the browser abandons,
+    // for example because this page took too long to render, is not an error.
+    window.addEventListener('pagereveal', event => {
+        const transition = (event as Event & { viewTransition?: { ready: Promise<void>; finished: Promise<void>; updateCallbackDone: Promise<void> } | null }).viewTransition;
+        if (!transition) return;
+        [transition.ready, transition.finished, transition.updateCallbackDone].forEach(promise => promise.catch(() => {}));
+    });
     let deadline = 0;
     let recoveryObserver: MutationObserver | null = null;
 

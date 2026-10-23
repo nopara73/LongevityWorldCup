@@ -465,6 +465,15 @@
         ].forEach(key => playFlow.removeSessionItem(key));
     }
 
+    // The chosen track holds its ring while the apply flow takes over.
+    function markJoinChoice(choice: 'amateur' | 'pro'): void {
+        document.getElementById('joinTrackPanel')?.setAttribute('data-join-choice', choice);
+    }
+
+    function clearJoinChoice(): void {
+        document.getElementById('joinTrackPanel')?.removeAttribute('data-join-choice');
+    }
+
     function startAmateurApplication(retryButton: HTMLButtonElement): void {
         const flow = requirePlayFlow();
         const stored = flow.setPendingPaymentOffer({
@@ -475,6 +484,7 @@
         }, retryButton);
         if (!stored) return;
         clearCompletedBioageHandoff(flow);
+        markJoinChoice('amateur');
         window.location.href = `/pheno-age${getCheckoutQuerySuffix()}`;
     }
 
@@ -492,6 +502,7 @@
         }, result);
         if (!flow.setPendingPaymentOffer(paymentOffer, retryButton)) return;
         clearCompletedBioageHandoff(flow);
+        markJoinChoice('pro');
         window.location.href = `/bortz-age${getCheckoutQuerySuffix()}`;
     }
 
@@ -630,6 +641,7 @@
             }
 
             joinTrackBackButton.addEventListener('click', navigateToStartPanel);
+            window.addEventListener('pageshow', clearJoinChoice);
             joinStartAmateurButton.addEventListener('click', () => startAmateurApplication(joinStartAmateurButton));
             joinMobileStartAmateurButton.addEventListener('click', () => startAmateurApplication(joinMobileStartAmateurButton));
             joinGoProButton.addEventListener('click', () => startProApplication(joinGoProButton));
