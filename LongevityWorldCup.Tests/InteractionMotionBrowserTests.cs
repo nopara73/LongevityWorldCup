@@ -26,12 +26,15 @@ public sealed class InteractionMotionBrowserTests(
                 + (animation.effect.pseudoElement || ''))
         """;
 
-    // Sums every layout shift reported from now on; read it back with window.__lwcShift.
+    // CLS excludes expected shifts within 500ms of a discrete user input.
+    // The in-flow Order strip deliberately makes room beneath the toolbar.
     private const string WatchLayoutShiftScript = """
         () => {
             window.__lwcShift = 0;
             new PerformanceObserver(list => {
-                for (const entry of list.getEntries()) window.__lwcShift += entry.value;
+                for (const entry of list.getEntries()) {
+                    if (!entry.hadRecentInput) window.__lwcShift += entry.value;
+                }
             }).observe({ type: 'layout-shift' });
         }
         """;
@@ -154,6 +157,8 @@ public sealed class InteractionMotionBrowserTests(
         var toggle = page.Locator("#leaderboardOrderToggle");
         await Assertions.Expect(toggle).ToBeEnabledAsync();
         await page.EvaluateAsync(WatchLayoutShiftScript);
+        var toolbar = page.Locator(".leaderboard-toolbar");
+        var toolbarBefore = await toolbar.BoundingBoxAsync();
 
         await toggle.ClickAsync();
         var opening = await page.EvaluateAsync<string[]>(RunningMotionScript, "#leaderboardOrderPanel");
@@ -166,6 +171,43 @@ public sealed class InteractionMotionBrowserTests(
         Assert.Contains("opacity", await page.EvaluateAsync<string[]>(RunningMotionScript, "#leaderboardOrderPanel"));
         await Assertions.Expect(page.Locator("#leaderboardOrderPanel")).ToHaveCSSAsync("display", "none");
         Assert.True(await page.EvaluateAsync<double>("() => window.__lwcShift") < 0.001);
+        var toolbarAfter = await toolbar.BoundingBoxAsync();
+        Assert.NotNull(toolbarBefore);
+        Assert.NotNull(toolbarAfter);
+        Assert.InRange(Math.Abs(toolbarAfter.X - toolbarBefore.X), 0, 0.5);
+        Assert.InRange(Math.Abs(toolbarAfter.Y - toolbarBefore.Y), 0, 0.5);
+        Assert.InRange(Math.Abs(toolbarAfter.Width - toolbarBefore.Width), 0, 0.5);
+        Assert.InRange(Math.Abs(toolbarAfter.Height - toolbarBefore.Height), 0, 0.5);
+    }
+
+    [Fact]
+    public async Task OpeningAnArchive_ImmediatelyAllowsFocusAndHistoryPositioning()
+    {
+        await using var context = await NewMotionContextAsync(390, 844);
+        var page = await context.NewPageAsync();
+        await NavigateAndSettleAsync(page, "/play");
+        await page.Mouse.ClickAsync(4, 400);
+        await page.EvaluateAsync("""
+            () => {
+                const archive = document.createElement('details');
+                archive.id = 'motion-archive-probe';
+                archive.innerHTML = '<summary>History</summary><div style="width:200px;overflow:auto"><button style="min-width:800px">Earlier reply</button></div>';
+                document.querySelector('main').append(archive);
+                getComputedStyle(archive, '::details-content').contentVisibility;
+            }
+            """);
+        var result = await page.EvaluateAsync<bool[]>("""
+            () => {
+                const archive = document.getElementById('motion-archive-probe');
+                archive.open = true;
+                const history = archive.querySelector('div');
+                const reply = archive.querySelector('button');
+                reply.focus({ preventScroll: true });
+                history.scrollLeft = history.scrollWidth;
+                return [document.activeElement === reply, history.clientWidth > 0, history.scrollLeft > 0];
+            }
+            """);
+        Assert.Equal([true, true, true], result);
     }
 
     [Fact]

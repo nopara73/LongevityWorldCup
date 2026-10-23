@@ -204,6 +204,10 @@
 
     :root[data-lwc-motion="on"] details[open]::details-content {
         block-size: auto;
+        /* Reveal descendants immediately so focus, scrolling and measurements
+           work in the same task that opens an archive. Only closing needs to
+           retain content visibility until its size transition finishes. */
+        transition-property: block-size;
     }
 
     /* A chevron or plus drawn on the summary turns with the panel. */
