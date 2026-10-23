@@ -4393,6 +4393,7 @@ a.lmx-note-mention:focus-visible {
 }
 
 .lmx-checkin-actions .lmx-status:empty,
+.lmx-checkin-progress:empty,
 .lmx-checkin-reset[hidden] {
     display: none;
 }
