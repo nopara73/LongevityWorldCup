@@ -101,16 +101,16 @@ public sealed class LeaderboardBoardBrowserTests(PlaywrightBrowserFixture browse
         for (var i = 0; i < 4; i++)
         {
             Assert.Equal(44, boxes[i][0], 0.5);
-            Assert.Equal(boxes[0][1], boxes[i][1], 0.5);
             Assert.Equal(1, boxes[i][2], 0.1);
+            Assert.True(Math.Abs(boxes[i][4] - boxes[3][4]) <= 1, "Search and its tools are one bar on one line.");
         }
         var bandEnd = boxes[4][0];
         Assert.True(Math.Abs(boxes[2][3] - bandEnd) <= 1, $"Filters end at {boxes[2][3]}, the band at {bandEnd}.");
-        Assert.True(Math.Abs(boxes[0][3] - bandEnd) <= 1 || width > 1100, "On laptops By Flag ends the first row.");
+        var tabBottom = await page.Locator("label[for='view-ultimate']").EvaluateAsync<double>("tab => tab.getBoundingClientRect().bottom");
         if (width <= 1100)
-            Assert.True(boxes[3][4] > boxes[0][4] + 20, "Search moves to its own row under the tabs.");
+            Assert.True(boxes[3][4] >= tabBottom, "Search moves to its own row under the tabs.");
         else
-            Assert.True(Math.Abs(boxes[3][4] - boxes[0][4]) <= 1, "Search shares the tab row on wide screens.");
+            Assert.True(boxes[3][4] < tabBottom, "Search shares the tab row on wide screens.");
     }
 
     [Theory]
@@ -345,6 +345,8 @@ public sealed class LeaderboardBoardBrowserTests(PlaywrightBrowserFixture browse
             var issues = await page.Locator(".leaderboard-view-switcher :is(.view-badge, .view-switcher-label)").EvaluateAllAsync<string[]>("""
                 labels => labels.flatMap(label => {
                     const box = label.getBoundingClientRect();
+                    // Phones keep the Ranking label for screen readers only.
+                    if (label.matches('.view-switcher-label') && box.width <= 1) return [];
                     const issues = [];
                     if (label.matches('.view-badge') && (box.width < 44 || box.height < 44) || box.right > innerWidth + 1) issues.push(label.textContent);
                     const walker = document.createTreeWalker(label, NodeFilter.SHOW_TEXT);

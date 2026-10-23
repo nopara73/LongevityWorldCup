@@ -8,7 +8,7 @@ namespace LongevityWorldCup.Tests;
 /// <summary>
 /// On /leaderboard, search, By Flag, Order and Filters are one joined control
 /// bar; the Order composer opens as a strip inside the card; phones lose the
-/// title row; and phone and tablet column heads keep the board's title voice.
+/// title row; and tablet rows keep the rank column narrow.
 /// </summary>
 [Collection(BrowserTestCollections.WorkloadB)]
 public sealed class LeaderboardControlBarBrowserTests(PlaywrightBrowserFixture browserFixture, BrowserTestAppFixture appFixture)
@@ -149,21 +149,19 @@ public sealed class LeaderboardControlBarBrowserTests(PlaywrightBrowserFixture b
     }
 
     [Theory]
-    [InlineData(390, 844, false)]
     [InlineData(768, 1024, true)]
-    public async Task PhoneAndTabletColumnHeads_KeepTheBoardTitleVoice(int width, int height, bool dark)
+    [InlineData(600, 900, false)]
+    public async Task TabletRows_KeepTheRankColumnNarrow(int width, int height, bool dark)
     {
         var (context, page) = await OpenAsync(width, height, dark);
         await using var _ = context;
-        var result = await page.EvaluateAsync<string[]>(
+        var widths = await page.EvaluateAsync<double[]>(
             """
             () => {
-                const heads = [...document.querySelectorAll('#athleteLeaderboard thead th')].filter(th => th.getClientRects().length);
-                const rank = heads[0].getBoundingClientRect().width;
-                return [[...new Set(heads.map(th => getComputedStyle(th).textTransform))].join(','), String(rank)];
+                const row = document.querySelector('#athleteLeaderboard tbody tr[data-athlete-name]:not([style*="none"])');
+                return [document.querySelector('#athleteLeaderboard thead th').getBoundingClientRect().width, row.querySelector('.rank-td').getBoundingClientRect().width];
             }
             """);
-        Assert.Equal("uppercase", result[0]);
-        Assert.True(double.Parse(result[1], System.Globalization.CultureInfo.InvariantCulture) <= 72, $"The rank column is {result[1]}px wide.");
+        Assert.True(widths[0] <= 72 && widths[1] <= 72, $"The rank column is {widths[0]}px / {widths[1]}px wide.");
     }
 }

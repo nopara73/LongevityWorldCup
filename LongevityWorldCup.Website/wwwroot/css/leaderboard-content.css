@@ -4346,11 +4346,12 @@ html body main[data-leaderboard-page="full"] .leaderboard-view-switcher input[na
    single bordered tool, so the band reads as "pick a ranking, then narrow
    it" instead of four loose buttons. The Order composer opens as a strip
    inside the card, under the bar that opened it, not as a floating card. */
-main[data-leaderboard-page="full"]{ --bar-height:44px; --bar-pad:var(--lwc-space-4); }
+main[data-leaderboard-page="full"]{ --bar-height:max(44px, 2.75rem); --bar-pad:var(--lwc-space-4); }
 main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-toolbar{
     display:grid; grid-template-columns:auto minmax(var(--lwc-space-4), 1fr) minmax(12rem, 22rem) repeat(4, auto);
     align-items:center; gap:0; padding:0 var(--bar-pad);
 }
+main[data-leaderboard-page="full"] .leaderboard-controls{ container:lwc-bar / inline-size; }
 main[data-leaderboard-page="full"] .leaderboard-controls :is(.search-wrapper, .leaderboard-actions, .leaderboard-order-tools:not([hidden])){ display:contents; }
 main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-view-switcher{ grid-row:1; grid-column:1; display:flex; align-self:stretch; }
 main[data-leaderboard-page="full"] .leaderboard-controls .search-container{ grid-row:1; grid-column:3; max-width:none; margin:0; }
@@ -4366,7 +4367,7 @@ main[data-leaderboard-page="full"] .leaderboard-group-switcher .view-badge,
 main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-order-toggle,
 main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-order-reset,
 main[data-leaderboard-page="full"] .leaderboard-controls .sidebar-toggle{
-    position:relative; box-sizing:border-box; height:var(--bar-height); min-height:var(--bar-height); margin:0;
+    position:relative; box-sizing:border-box; height:var(--bar-height); min-height:var(--bar-height); max-width:none; margin:0;
     border:1px solid var(--lwc-border-strong); border-radius:0; background:var(--lwc-surface);
     color:var(--lwc-accent); box-shadow:none; transform:none;
 }
@@ -4472,6 +4473,26 @@ main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-order-fiel
     main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-order-row{ grid-row:1; grid-column:2; }
     main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-order-row + .leaderboard-order-row{ grid-row:2; grid-column:2; }
     main[data-leaderboard-page="full"] .leaderboard-controls-status{ padding-inline:var(--bar-pad); }
+}
+/* Enlarged text on a phone: the query gets the whole row and the tools close
+   ranks under it, wrapping rather than pushing the page sideways. */
+@container lwc-bar (max-width: 17.5rem){
+    main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-toolbar{ display:flex; flex-direction:row; flex-wrap:wrap; justify-content:flex-start; align-items:center; row-gap:var(--lwc-space-2); }
+    main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-view-switcher{ order:0; flex:1 0 100%; box-sizing:border-box; margin-bottom:var(--lwc-space-1); }
+    main[data-leaderboard-page="full"] .leaderboard-controls .search-container{ order:1; flex:1 0 100%; }
+    main[data-leaderboard-page="full"] .leaderboard-controls #athleteSearch{ border-radius:var(--lwc-radius-md); }
+    main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-group-switcher{ order:2; }
+    main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-order-toggle{ order:3; }
+    main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-order-reset{ order:4; }
+    main[data-leaderboard-page="full"] .leaderboard-controls .sidebar-toggle{ order:5; }
+    main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-order-panel{ order:6; flex:1 0 calc(100% + 2 * var(--bar-pad)); margin-bottom:calc(-1 * var(--lwc-space-3)); }
+    main[data-leaderboard-page="full"] .leaderboard-controls :is(.leaderboard-order-toggle, .leaderboard-order-reset, .sidebar-toggle),
+    main[data-leaderboard-page="full"] .leaderboard-group-switcher .view-badge{ width:max(44px, 2.5rem); }
+    main[data-leaderboard-page="full"] .leaderboard-group-switcher .view-badge{ margin-inline-start:0; border-radius:var(--lwc-radius-md) 0 0 var(--lwc-radius-md); }
+    main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-order-panel{ grid-template-columns:minmax(0, 1fr); }
+    main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-order-row{ grid-column:1; grid-row:1; }
+    main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-order-row + .leaderboard-order-row{ grid-column:1; grid-row:2; }
+    main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-order-swap{ grid-column:1; grid-row:3; justify-self:end; }
 }
 /* Column heads: the site's small uppercase titles, held under the header
    while the rows scroll, so every score keeps its name. */
@@ -5536,16 +5557,9 @@ main[data-leaderboard-page="full"] .flag-leaderboard > .leaderboard-recovery{
 
 /* =========================
    18) Phone and tablet rows on the full board
-   The column heads keep the board's one title voice at every width, and on
-   tablets the rank column stays a rank column instead of a seventh of the row.
+   On tablets the rank column stays a rank column instead of a seventh of the row.
    ========================= */
-@media (max-width: 768px){
-    html body main[data-leaderboard-page="full"] .leaderboard table thead th{
-        font-size:var(--lwc-type-xs); font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--lwc-accent-hover);
-    }
-    main[data-leaderboard-page="full"] .leaderboard table tbody tr[data-athlete-name] .age-reduction-td{ font-variant-numeric:tabular-nums; }
-}
 @media (min-width: 481px) and (max-width: 768px){
     main[data-leaderboard-page="full"] .leaderboard table thead th:first-child,
-    main[data-leaderboard-page="full"] .leaderboard table tbody td.rank-td{ width:4rem; }
+    main[data-leaderboard-page="full"] .leaderboard table tbody td.rank-td{ width:64px; }
 }

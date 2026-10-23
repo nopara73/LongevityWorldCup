@@ -139,6 +139,8 @@
     }
     function positionPanel() {
         if (!panel || panel.hidden) return;
+        // On /leaderboard the composer is a strip inside the board; it moves with the page.
+        if (getComputedStyle(panel).position === 'static') return;
         const width = document.documentElement.clientWidth;
         const height = document.documentElement.clientHeight;
         // vw includes the page scrollbar; size against the actual usable viewport.
@@ -153,6 +155,11 @@
         if (bounds.bottom > height - 12 && anchor.top - bounds.height - 8 >= 12) verticalCorrection = anchor.top - 8 - bounds.bottom;
         const verticalShift = parseFloat(panel.style.getPropertyValue('--order-panel-shift-y')) || 0;
         if (verticalCorrection) panel.style.setProperty('--order-panel-shift-y', `${verticalShift + verticalCorrection}px`);
+    }
+    function revealStrip() {
+        if (getComputedStyle(panel).position !== 'static') return;
+        const overflow = panel.getBoundingClientRect().bottom - (document.documentElement.clientHeight - 12);
+        if (overflow > 0) window.scrollBy({ top: overflow, behavior: 'instant' });
     }
     function schedulePanelPosition() {
         if (panelPositionFrame || !panel || panel.hidden) return;
@@ -287,6 +294,7 @@
                 panel.hidden = false;
                 toggle.setAttribute('aria-expanded', 'true');
                 positionPanel();
+                revealStrip();
                 primary.focus({ preventScroll: true });
             }
         });
