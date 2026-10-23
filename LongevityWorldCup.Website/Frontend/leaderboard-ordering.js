@@ -20,6 +20,13 @@
     const swap = byId('leaderboardOrderSwap');
     const primaryClear = byId('leaderboardOrderPrimaryClear');
     const secondaryClear = byId('leaderboardOrderSecondaryClear');
+    if (panel?.closest('main[data-leaderboard-page="full"]')) {
+        // Keep keyboard and reading order aligned with the joined bar. The
+        // homepage retains its original separate grouping control.
+        const controls = panel.closest('.leaderboard-controls');
+        const grouping = controls.querySelector('.leaderboard-group-switcher');
+        if (grouping) controls.querySelector('.search-container')?.after(grouping);
+    }
     const defaults = () => ({ sort: 'rank', direction: 'asc', then: null, thenDirection: 'asc' });
     const direction = (value, field) => value === 'asc' || value === 'desc' ? value : field.direction;
     function normalize(value) {
@@ -135,10 +142,22 @@
         if (!panel || panel.hidden) return;
         panel.hidden = true;
         toggle.setAttribute('aria-expanded', 'false');
-        if (restoreFocus) toggle.focus({ preventScroll: true });
+        if (restoreFocus) {
+            toggle.focus({ preventScroll: true });
+            if (getComputedStyle(panel).position === 'static') {
+                // Opening a tall strip can scroll its trigger out of view.
+                // Escape must return visible focus, not only DOM focus.
+                const top = (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--site-sticky-height')) || 0) + 12;
+                const bounds = toggle.getBoundingClientRect();
+                const shift = bounds.top < top ? bounds.top - top : Math.max(0, bounds.bottom - document.documentElement.clientHeight + 12);
+                if (shift) window.scrollBy({ top: shift, behavior: 'instant' });
+            }
+        }
     }
     function positionPanel() {
         if (!panel || panel.hidden) return;
+        // On /leaderboard the composer is a strip inside the board; it moves with the page.
+        if (getComputedStyle(panel).position === 'static') return;
         const width = document.documentElement.clientWidth;
         const height = document.documentElement.clientHeight;
         // vw includes the page scrollbar; size against the actual usable viewport.
@@ -153,6 +172,19 @@
         if (bounds.bottom > height - 12 && anchor.top - bounds.height - 8 >= 12) verticalCorrection = anchor.top - 8 - bounds.bottom;
         const verticalShift = parseFloat(panel.style.getPropertyValue('--order-panel-shift-y')) || 0;
         if (verticalCorrection) panel.style.setProperty('--order-panel-shift-y', `${verticalShift + verticalCorrection}px`);
+    }
+    function revealStrip() {
+        if (getComputedStyle(panel).position !== 'static') return;
+        const viewport = document.documentElement.clientHeight;
+        const stickyHeight = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--site-sticky-height')) || 0;
+        const top = stickyHeight + 12;
+        const bounds = panel.getBoundingClientRect();
+        // A tall strip cannot fit in a short viewport. Keep its first field in
+        // view rather than aligning the bottom and scrolling focus off screen.
+        const field = primary.getBoundingClientRect();
+        const overflow = bounds.bottom - (viewport - 12);
+        const shift = Math.min(Math.max(0, overflow), field.top - top);
+        if (shift) window.scrollBy({ top: shift, behavior: 'instant' });
     }
     function schedulePanelPosition() {
         if (panelPositionFrame || !panel || panel.hidden) return;
@@ -184,6 +216,18 @@
             }
             const metric = select.querySelector('option[value="metric"]');
             if (metric && metric.textContent !== metricLabel) metric.textContent = metricLabel;
+            if (panel.closest('main[data-leaderboard-page="full"]')) {
+                // Keep the native picker, keyboard interaction and accessible
+                // value; let its visible selected text wrap at enlarged sizes.
+                let label = select.parentElement.querySelector('.order-selected-value');
+                if (!label) {
+                    label = document.createElement('span');
+                    label.className = 'order-selected-value';
+                    label.setAttribute('aria-hidden', 'true');
+                    select.after(label);
+                }
+                label.textContent = select.selectedOptions[0]?.textContent || '';
+            }
         }
         for (const [button, key, dir, enabled] of [[primaryDirection, current.sort, current.direction, active], [secondaryDirection, current.then, current.thenDirection, active && !!current.then]]) {
             button.disabled = !enabled;
@@ -287,6 +331,7 @@
                 panel.hidden = false;
                 toggle.setAttribute('aria-expanded', 'true');
                 positionPanel();
+                revealStrip();
                 primary.focus({ preventScroll: true });
             }
         });

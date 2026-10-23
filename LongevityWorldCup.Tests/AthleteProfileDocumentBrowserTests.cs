@@ -26,7 +26,7 @@ public sealed class AthleteProfileDocumentBrowserTests(
             () => {
                 const failures = [];
                 const visible = el => el && getComputedStyle(el).display !== 'none' && el.getBoundingClientRect().height > 0;
-                const cards = ['#athleteRankings', '#modalBadgeStrip', '#ageVisualization', '#athlete-stats', '.athlete-links',
+                const cards = ['#athleteRankings', '#modalBadgeStrip', '#ageVisualization', '#athlete-stats',
                     '#athlete-biomarkers', '#athlete-proofs', '#detailsModal .events-embed']
                     .map(selector => [selector, document.querySelector(selector)])
                     .filter(([, el]) => visible(el));
@@ -52,13 +52,12 @@ public sealed class AthleteProfileDocumentBrowserTests(
                         failures.push(`${upper} and ${lower} should share one card`);
                 };
                 attached('#athleteRankings', '#modalBadgeStrip');
-                attached('#athlete-stats', '.athlete-links');
 
                 const ranks = [...document.querySelectorAll('#athleteRankings a')];
                 if (ranks.length > 1 && ranks.some(link => Math.abs(link.getBoundingClientRect().top - ranks[0].getBoundingClientRect().top) > 1))
                     failures.push('rank cells should share the card band');
 
-                const gaps = [['#ageVisualization', '#athlete-stats'], ['.athlete-links', '#athlete-biomarkers'],
+                const gaps = [['#ageVisualization', '#athlete-stats'], ['#athlete-stats', '#athlete-biomarkers'],
                     ['#athlete-biomarkers', '#athlete-proofs'], ['#athlete-proofs', '#detailsModal .events-embed']]
                     .map(([a, b]) => [document.querySelector(a), document.querySelector(b)])
                     .filter(([a, b]) => visible(a) && visible(b))

@@ -952,6 +952,7 @@ function canAutoScroll() {
 
 let includePodiumGlobal = true
 let maxAthletesGlobal = Infinity;
+let athleteDialogBoardSequence = [];
 const CROWD_AGE_LEADERBOARD_MINIMUM_GUESS_COUNT = 100;
 
 function isCompleteBiomarkerSet(set) {
@@ -2935,6 +2936,7 @@ function resetAthleteEventsFrame(athleteSlug) {
 function resetModalForLoading(athleteSlug) {
     ensureAthleteModalDeferredSections();
     resetAthleteShareState();
+    modal.querySelectorAll('.athlete-step').forEach(button => { button.disabled = true; });
     const viewer = document.querySelector('#athleteImageViewer[aria-hidden="false"]');
     if (viewer) closeEnlargedView(viewer);
     modal._historyClosePending = false;
@@ -2984,6 +2986,12 @@ function resetModalForLoading(athleteSlug) {
     }
     const stickyAthleteName = document.getElementById('stickyAthleteName');
     if (stickyAthleteName) stickyAthleteName.textContent = 'Loading...';
+    const stickyPortrait = document.getElementById('stickyAthletePortrait');
+    if (stickyPortrait) {
+        stickyPortrait.removeAttribute('src');
+        stickyPortrait.hidden = true;
+    }
+    renderPortraitFlagMark('');
 
     const profilePic = document.getElementById('modalProfilePic');
     if (profilePic) {
@@ -3240,6 +3248,15 @@ function setupModalKeyboardNavigation() {
             return;
         }
 
+        // Left and Right step to the neighbouring athlete, unless a control
+        // inside the profile uses them itself.
+        if ((event.key === 'ArrowLeft' || event.key === 'ArrowRight')
+            && !event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey
+            && !event.target.closest('[role="tablist"], [role="radiogroup"], [role="slider"], [role="listbox"], [role="menu"], [role="grid"], .age-clock-switch, canvas')) {
+            if (stepAthleteDialog(event.key === 'ArrowLeft' ? 'previous' : 'next')) event.preventDefault();
+            return;
+        }
+
         // Arrow keys for section navigation (when not in input/textarea)
         if ((event.key === 'ArrowDown' || event.key === 'ArrowUp') &&
             !['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) {
@@ -3277,6 +3294,68 @@ closeBtn.onclick = function () {
     if (isGuessMyAgeDismissBlocked(modalContent)) return;
     requestCloseAthleteModal();
 };
+
+// Neighbouring athletes follow the selected board order before its display
+// limit, or the overall ranking for a profile outside that selection.
+function getAthleteDialogBoardSequence() {
+    if (isAthleteDialogOnlyRuntime) return [];
+    if (getSelectedLeaderboardState().byFlag) {
+        // The ordinary table is hidden in the flag view. Only the expanded,
+        // filtered team links form the sequence the visitor is browsing.
+        const bySlug = new Map(athleteResults.map(athlete => [normalizeAthleteSlugForLookup(athlete.athleteSlug || athlete.name), athlete]));
+        return [...pageDocument.querySelectorAll('#flagLeaderboard .flag-athlete-link')]
+            .filter(link => link.checkVisibility())
+            .map(link => bySlug.get(getAthleteSlugFromProfileLink(link)))
+            .filter(Boolean);
+    }
+    // Retain the selected order before the page's display limit, including
+    // podium athletes whose duplicate rows are hidden on the homepage.
+    return athleteDialogBoardSequence;
+}
+
+function getAthleteDialogNeighbours() {
+    const slug = modal.querySelector('.modal-content')?.dataset.athleteSlug || '';
+    if (!slug) return { previous: null, next: null };
+    const matches = athlete => normalizeAthleteSlugForLookup(athlete.athleteSlug || athlete.name) === slug;
+    for (const sequence of [getAthleteDialogBoardSequence(), athleteResults]) {
+        const index = sequence.findIndex(matches);
+        if (index >= 0) return { previous: sequence[index - 1] || null, next: sequence[index + 1] || null };
+    }
+    return { previous: null, next: null };
+}
+
+function updateAthleteDialogSteps() {
+    const neighbours = getAthleteDialogNeighbours();
+    const available = !!(neighbours.previous || neighbours.next);
+    modal.querySelectorAll('.athlete-steps').forEach(group => { group.hidden = !available; });
+    modal.querySelectorAll('.athlete-step').forEach(button => {
+        const blocked = !neighbours[button.dataset.step];
+        if (blocked && pageDocument.activeElement === button) {
+            button.closest('.athlete-steps')?.querySelector(`.athlete-step:not([data-step="${button.dataset.step}"])`)?.focus({ preventScroll: true });
+        }
+        button.disabled = blocked;
+    });
+}
+
+function stepAthleteDialog(direction) {
+    const modalContent = modal.querySelector('.modal-content');
+    if (!modalContent || modal.style.display !== 'block' || modal._historyClosePending
+        || modalContent.matches('.guess-mode, .is-loading, .has-load-error, [data-server-rendered-profile], [data-server-rendered-loading]')
+        || modal.classList.contains('fade-out')
+        || modal.querySelector('#athleteImageViewer[aria-hidden="false"], #athleteShareMenu:not([hidden])')) return false;
+    const target = getAthleteDialogNeighbours()[direction];
+    if (!target) return false;
+    // Restart the slide even when stepping the same way twice.
+    delete modalContent.dataset.athleteStep;
+    void modalContent.offsetWidth;
+    modalContent.dataset.athleteStep = direction;
+    fetchFullAthleteData(target.name, target, { suppressGuessMyAge: true, historyMode: 'step' });
+    return true;
+}
+
+modal.querySelectorAll('.athlete-step').forEach(button => {
+    button.addEventListener('click', () => stepAthleteDialog(button.dataset.step));
+});
 
 window.addEventListener('click', function (event) {
     const modalContent = document.querySelector('.modal-content');
@@ -4098,6 +4177,7 @@ function performFilter({ updateUrl = true, orderingOnly = false } = {}) {
     window.LwcLeaderboardOrder.renderValues(matchingEntries, selectedState.ordering, rowsByName);
     const entriesByAthlete = new Map(matchingEntries.map(entry => [entry.athlete, entry]));
     const unslicedFilteredAthletes = matchingEntries.map(entry => entry.athlete);
+    athleteDialogBoardSequence = unslicedFilteredAthletes;
     const filteredAthletes = unslicedFilteredAthletes.slice(0, maxAthletesGlobal);
     updateViewAllAthletesButton(unslicedFilteredAthletes.length, !orderingSnapshot);
 
@@ -4898,6 +4978,25 @@ function getModalDetailRankMarkup(rank) {
     return rankText ? ` <span class="detail-muted">(rank: <span class="detail-value">${rankText}</span>)</span>` : '';
 }
 
+// The flag rides on the portrait's edge, opposite the PRO badge, and leads to the flag's team.
+function renderPortraitFlagMark(flag) {
+    const mark = document.getElementById('modalFlagMark');
+    if (!mark) return;
+    const canonicalFlag = getCanonicalFlagName(flag);
+    const icon = canonicalFlag ? window.LwcFlags.renderFlagIcon(canonicalFlag, 'portrait-flag-icon') : '';
+    mark.innerHTML = icon;
+    mark.hidden = !icon;
+    if (icon) {
+        mark.href = buildFlagHref(canonicalFlag);
+        mark.setAttribute('aria-label', canonicalFlag);
+        mark.title = canonicalFlag;
+    } else {
+        mark.removeAttribute('href');
+        mark.removeAttribute('aria-label');
+        mark.removeAttribute('title');
+    }
+}
+
 function renderAthleteFlagDetail(flag, athleteData) {
     const canonicalFlag = getCanonicalFlagName(flag);
     if (!canonicalFlag) return '';
@@ -5615,6 +5714,7 @@ function fetchFullAthleteData(athleteNameText, athleteData, options) {
     const suppressGuessMyAge = !!(options && options.suppressGuessMyAge);
     const requestId = ++currentAthleteModalRequestId;
     const modalContent = resetModalForLoading(athleteSlug);
+    if (modalContent && options?.historyMode !== 'step') delete modalContent.dataset.athleteStep;
 
     return window.getSharedAthletes()
         .then(athletes => {
@@ -5692,6 +5792,10 @@ function fetchFullAthleteData(athleteNameText, athleteData, options) {
             if (historyMode === 'replace' || (historyMode === 'push'
                 && previousState?.modal === 'details' && previousState.athlete === athleteSlug)) {
                 history.replaceState({ ...previousState, modal: 'details', athlete: athleteSlug }, '', window.location.href);
+            } else if (historyMode === 'step') {
+                // Stepping swaps the profile in place: Back and Close still return
+                // to the page the dialog was opened from.
+                history.replaceState({ ...previousState, modal: 'details', athlete: athleteSlug }, '', `/athlete/${athleteSlug}`);
             } else if (historyMode === 'push') {
                 const previousIsProfile = previousState?.modal === 'details' || previousState?.modal === 'enlarged';
                 const previousDepth = previousState?.athleteDialogDepth;
@@ -5736,6 +5840,7 @@ function fetchFullAthleteData(athleteNameText, athleteData, options) {
 
             // Initialize scroll progress indicator
             initializeScrollProgress(modalContent);
+            updateAthleteDialogSteps();
 
             // Setup scroll-to-section navigation (optional floating menu for long content)
             setupScrollToSectionNavigation(modalContent);
@@ -5965,6 +6070,12 @@ function populateModal(fullAthleteData, athleteData, rankSummary) {
     profilePic.loading = 'lazy';
     profilePic.classList.remove('portrait-fallback');
     wirePortraitFallback(profilePic, fullAthleteData);
+    const stickyPortrait = document.getElementById('stickyAthletePortrait');
+    if (stickyPortrait) {
+        stickyPortrait.src = profilePic.src;
+        stickyPortrait.hidden = !profilePic.src;
+        stickyPortrait.onerror = () => { stickyPortrait.hidden = true; };
+    }
 
     const athleteProfileEl = document.getElementById('athlete-profile');
     if (athleteProfileEl) {
@@ -5989,6 +6100,7 @@ function populateModal(fullAthleteData, athleteData, rankSummary) {
     document.getElementById('athleteDivision').innerHTML = `<a href="/league/${window.slugifyName(athleteData.division, true)}" class="league-link">${escapeHtml(athleteData.division)}</a>${getModalTitleRankMarkup(athleteData.ranks[athleteData.division])}`;
     document.getElementById('athleteGeneration').innerHTML = `<a href="/league/${window.slugifyName(athleteData.generation, true)}" class="league-link">${escapeHtml(athleteData.generation)}</a>${getModalTitleRankMarkup(athleteData.ranks[athleteData.generation])}`;
     document.getElementById('athleteFlag').innerHTML = renderAthleteFlagDetail(fullAthleteData.Flag || athleteData.canonicalFlag, athleteData);
+    renderPortraitFlagMark(fullAthleteData.Flag || athleteData.canonicalFlag);
     const completedAge = getCompletedChronologicalAge(fullAthleteData, athleteData);
     document.getElementById('chronologicalAge').textContent = Number.isFinite(completedAge) ? completedAge.toString() : '';
     document.getElementById('chronologicalAgeContainer').hidden = !Number.isFinite(completedAge);
