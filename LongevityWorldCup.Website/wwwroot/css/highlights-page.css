@@ -271,10 +271,11 @@ main.event-board-page {
 .event-board-page .events-board table tbody tr.main-row,
 .event-board-page .events-board table tbody tr.events-skeleton-row,
 .event-board-page .events-board table tbody tr.custom-event-details {
-    background-image: var(--event-rail);
+    /* Two layers: the month's rail, and the hairline that opens a new day. */
+    background-image: var(--event-rail-image, var(--event-rail)), var(--event-day-rule, none);
     background-repeat: no-repeat;
-    background-position: var(--event-rail-x) 0;
-    background-size: 2px 100%;
+    background-position: var(--event-rail-x) var(--event-rail-y, 0), var(--event-message-start) 0;
+    background-size: 2px var(--event-rail-h, 100%), calc(100% - var(--event-message-start) - var(--feed-pad-x)) 1px;
 }
 
 .event-board-page .events-board table tbody tr.main-row:hover,
@@ -286,19 +287,19 @@ main.event-board-page {
 /* Each month has its own rail, from its newest portrait to its oldest. */
 .event-board-page .events-board table tbody tr.events-skeleton-row:first-child,
 .event-board-page .events-board table tbody tr.main-row.month-start {
-    background-position: var(--event-rail-x) 100%;
-    background-size: 2px calc(50% - (var(--timeline-row-top, 2px) - 2px) / 2);
+    --event-rail-y: 100%;
+    --event-rail-h: calc(50% - (var(--timeline-row-top, 2px) - 2px) / 2);
 }
 
 .event-board-page .events-board table tbody tr.events-skeleton-row:last-child,
 .event-board-page .events-board table tbody tr.main-row.month-end {
-    background-position: var(--event-rail-x) 0;
-    background-size: 2px calc(50% + (var(--timeline-row-top, 2px) - 2px) / 2);
+    --event-rail-y: 0px;
+    --event-rail-h: calc(50% + (var(--timeline-row-top, 2px) - 2px) / 2);
 }
 
 .event-board-page .events-board table tbody tr.main-row.month-start.month-end,
 .event-board-page .events-board table tbody tr.main-row.month-end + tr.custom-event-details {
-    background-image: none;
+    --event-rail-image: none;
 }
 
 /* The day leads its events in ink; its month is the chapter's heading. */
@@ -555,6 +556,108 @@ main.event-board-page {
     margin: 0;
 }
 
+/* Days are groups: a hairline and a breath open each new day, and the
+   events of one day sit close under its date. */
+.event-board-page .events-board table tbody tr.main-row.day-start:not(.month-start),
+.event-board-page .events-board table tbody tr.events-skeleton-row:is(:nth-child(3), :nth-child(5)) {
+    --timeline-row-top: var(--lwc-space-3, 12px);
+    --event-day-rule: var(--event-rail);
+}
+
+.event-board-page .events-board tbody tr.main-row.day-start:has(+ tr.main-row.day-repeat),
+.event-board-page .events-board tbody tr.main-row.day-repeat:has(+ tr.main-row.day-repeat) {
+    padding-bottom: 0;
+}
+
+/* Announcements are the news: each one is a card on the timeline, and
+   its opened story continues the same card. */
+.event-board-page .events-board table tbody tr.main-row.custom-event-row {
+    --timeline-row-top: var(--lwc-space-2, 8px);
+    padding-bottom: var(--lwc-space-2, 8px);
+}
+
+.event-board-page .events-board table tbody tr.main-row.day-start.custom-event-row:not(.month-start) {
+    --timeline-row-top: var(--lwc-space-4, 16px);
+}
+
+.event-board-page .events-board table tbody tr.main-row.custom-event-row:not(.custom-event-no-details) {
+    cursor: pointer;
+}
+
+/* The card fills its row, so the portrait's target never leaves a gap
+   between the title and its opened story. */
+.event-board-page .events-board table tbody tr.main-row.custom-event-row > td.event-message {
+    align-self: stretch;
+}
+
+.event-board-page .events-board table tbody tr.main-row.custom-event-row > td.event-message .event-message-cell {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+    box-sizing: border-box;
+    padding: var(--lwc-space-2, 8px) var(--lwc-space-2, 8px) var(--lwc-space-2, 8px) var(--lwc-space-5, 20px);
+    border-radius: var(--lwc-radius-md, 8px);
+    background: var(--details-bg);
+    box-shadow: inset 3px 0 0 var(--custom-event-accent);
+    transition: box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+}
+
+.event-board-page .events-board table tbody tr.main-row.custom-event-row.custom-event-no-details > td.event-message .event-message-cell {
+    padding-right: var(--lwc-space-4, 16px);
+}
+
+/* The card is the surface: the row behind it neither tints nor lifts. */
+.event-board-page .events-board table tbody tr.custom-event-row,
+.event-board-page .events-board table tbody tr.custom-event-row:is(:hover, :focus-within, .group-hover),
+.event-board-page .events-board table tbody tr.custom-event-row:has(+ tr.custom-event-details:hover),
+.event-board-page .events-board table tbody tr.custom-event-row + tr.custom-event-details,
+.event-board-page .events-board table tbody tr.custom-event-row + tr.custom-event-details:hover,
+.event-board-page .events-board table tbody tr.custom-event-row:hover + tr.custom-event-details {
+    background-color: transparent;
+    box-shadow: none;
+    transform: none;
+}
+
+.event-board-page .events-board .custom-event-row .custom-event-title {
+    flex: 1 1 auto;
+    font-size: 1.0625rem;
+    line-height: 1.4;
+}
+
+.event-board-page .events-board table tbody tr.main-row.custom-event-row.is-open {
+    padding-bottom: 0;
+}
+
+.event-board-page .events-board table tbody tr.main-row.custom-event-row.is-open > td.event-message .event-message-cell {
+    border-radius: var(--lwc-radius-md, 8px) var(--lwc-radius-md, 8px) 0 0;
+}
+
+.event-board-page .events-board tbody tr.custom-event-row.is-open + tr.custom-event-details .custom-event-content {
+    padding: 0 0 var(--lwc-space-3, 12px);
+}
+
+.event-board-page .events-board tbody tr.custom-event-row.is-open + tr.custom-event-details .custom-event-body {
+    padding-top: var(--lwc-space-1, 4px);
+    border-radius: 0 0 var(--lwc-radius-md, 8px) var(--lwc-radius-md, 8px);
+}
+
+.event-board-page .events-board tbody tr.custom-event-row.is-open + tr.custom-event-details .custom-event-body > :first-child {
+    margin-top: 0;
+}
+
+/* The loading card has the same anatomy: two days and an announcement. */
+.event-board-page .events-board tr.events-skeleton-row:nth-child(3) .event-message-cell {
+    border-radius: var(--lwc-radius-md, 8px);
+    background: var(--details-bg);
+    box-shadow: inset 3px 0 0 var(--custom-event-accent);
+    padding-inline: var(--lwc-space-5, 20px) var(--lwc-space-4, 16px);
+}
+
+.event-board-page .events-board tr.events-skeleton-row:is(:nth-child(2), :nth-child(4)) > td.col-date::before {
+    visibility: hidden;
+}
+
 /* Tablets: the date column narrows, everything else keeps its place. */
 @media (max-width: 820px) {
     main.event-board-page {
@@ -643,14 +746,14 @@ main.event-board-page {
     /* The rail meets each portrait's centre, which now sits near the row's top. */
     .event-board-page .events-board table tbody tr.events-skeleton-row:first-child,
     .event-board-page .events-board table tbody tr.main-row.month-start {
-        background-position: var(--event-rail-x) var(--event-rail-top);
-        background-size: 2px 100%;
+        --event-rail-y: var(--event-rail-top);
+        --event-rail-h: 100%;
     }
 
     .event-board-page .events-board table tbody tr.events-skeleton-row:last-child,
     .event-board-page .events-board table tbody tr.main-row.month-end {
-        background-position: var(--event-rail-x) 0;
-        background-size: 2px var(--event-rail-top);
+        --event-rail-y: 0px;
+        --event-rail-h: var(--event-rail-top);
     }
 
     .event-board-page .events-board tbody tr.events-month-row + tr.main-row {
@@ -672,5 +775,79 @@ main.event-board-page {
 
     .event-board-page .events-board tbody tr.custom-event-row.is-open + tr.custom-event-details .custom-event-body {
         padding: var(--lwc-space-3, 12px) var(--lwc-space-3, 12px) var(--lwc-space-3, 12px) var(--lwc-space-4, 16px);
+    }
+
+    /* The day leads its group as a label over its first event; the
+       events after it in that day carry no date of their own. */
+    .event-board-page .events-board tbody tr.main-row,
+    .event-board-page .events-board tbody tr.events-skeleton-row {
+        --event-date-label: 0px;
+        --event-rail-top: calc(var(--timeline-row-top) + var(--event-date-label) + 2px + var(--event-avatar-size) / 2);
+        position: relative;
+        grid-template-areas:
+            ". date"
+            "avatar message";
+    }
+
+    .event-board-page .events-board tbody tr.main-row.day-start,
+    .event-board-page .events-board tbody tr.events-skeleton-row:is(:first-child, :nth-child(3)) {
+        --event-date-label: calc(1rem + var(--lwc-space-2, 8px));
+    }
+
+    .event-board-page .events-board tbody tr.main-row > td.col-date,
+    .event-board-page .events-board:not(.athlete-scroll) tbody tr.main-row > td.col-date {
+        box-sizing: border-box;
+        height: var(--event-date-label);
+        padding: 0 0 var(--lwc-space-2, 8px);
+        color: var(--events-text);
+        font-size: var(--lwc-type-xs, .75rem);
+        font-weight: 700;
+        line-height: 1rem;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .event-board-page .events-board tbody tr.main-row.day-repeat > td.col-date {
+        color: var(--events-muted);
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        overflow: hidden;
+        clip-path: inset(50%);
+    }
+
+    .event-board-page .events-board tbody tr.events-skeleton-row > td.col-date {
+        display: none;
+    }
+
+    .event-board-page .events-board tbody tr.events-skeleton-row:is(:first-child, :nth-child(3)) > td.col-date {
+        display: block;
+        height: var(--event-date-label);
+        padding: 0;
+    }
+
+    .event-board-page .events-board tbody tr.events-skeleton-row:is(:first-child, :nth-child(3)) > td.col-date::before {
+        margin: .2rem 0 0;
+        visibility: visible;
+    }
+
+    .event-board-page .events-board table tbody tr.main-row.custom-event-row > td.event-message .event-message-cell {
+        padding: var(--lwc-space-2, 8px) var(--lwc-space-1, 4px) var(--lwc-space-2, 8px) var(--lwc-space-4, 16px);
+    }
+
+    .event-board-page .events-board .custom-event-row .custom-event-title {
+        font-size: var(--lwc-type-body, 1rem);
+    }
+
+    .event-board-page .events-board tbody tr.custom-event-row.is-open + tr.custom-event-details .custom-event-content {
+        padding-top: 0;
+    }
+
+    .event-board-page .events-board tbody tr.custom-event-row.is-open + tr.custom-event-details .custom-event-body {
+        padding-top: var(--lwc-space-2, 8px);
     }
 }
