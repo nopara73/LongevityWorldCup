@@ -988,7 +988,7 @@
                         <button type="button" id="undoProfileDraftButton" hidden>Undo reset</button>
                         <p id="profileDraftStatus" class="profile-draft-status" role="status" hidden></p>
                     </div>
-                    <div class="options-container edit-profile-actions flow-action-stack flow-action-stack--hide-disabled-primary" data-flow-dock="auto" data-flow-dock-inline-back-first>
+                    <div class="options-container edit-profile-actions flow-action-stack flow-action-stack--hide-disabled-primary" data-flow-dock="overflow" data-flow-dock-inline-back-first>
                         <button type="button" class="option-button back-button flow-action flow-action--secondary flow-action--icon-left" onclick="window.navigateToFlowDestination('/dashboard')">
                             <i class="fas fa-arrow-left" aria-hidden="true"></i><span class="flow-action__label">Back</span>
                         </button>
@@ -1633,6 +1633,7 @@
         const cropperImage = document.getElementById('changeProfileCropperImage');
         const cropperStage = cropperImage.parentElement;
         let cropperLayoutFrame = 0;
+        let profilePictureReadVersion = 0;
 
         function refreshProfileCropperLayout() {
             if (cropperModal.hidden || cropperLayoutFrame) return;
@@ -1730,11 +1731,14 @@
             setProfileCropperBackgroundInert(true);
 
             requestAnimationFrame(() => {
-                if (!cropperModal.hidden) cropBtn.focus({ preventScroll: true });
+                if (!cropperModal.hidden && !cropperModal.contains(document.activeElement)) {
+                    (cropBtn.disabled ? cropperModal : cropBtn).focus({ preventScroll: true });
+                }
             });
         }
 
         function closeChangeProfileCropperDialog({ destroyCropper = true, restoreFocus = true } = {}) {
+            ++profilePictureReadVersion;
             if (destroyCropper && window.changeProfileCropper) {
                 try { window.changeProfileCropper.destroy(); } catch (_) { }
             }
@@ -1823,14 +1827,18 @@
                 return;
             }
 
+            if (isChangeProfileCropProcessing) return;
+            const version = ++profilePictureReadVersion;
             const reader = new FileReader();
             reader.onload = (evt) => {
+                if (version !== profilePictureReadVersion) return;
                 try {
                     if (window.changeProfileCropper) {
                         window.changeProfileCropper.destroy();
                         window.changeProfileCropper = null;
                     }
                     cropperImage.src = evt.target.result;
+                    cropBtn.disabled = true;
                     openChangeProfileCropperDialog();
 
                     // expose globally so crop/cancel buttons can access it
@@ -1841,6 +1849,14 @@
                         // The stage observer handles viewport and text reflow,
                         // preserving image coordinates across aspect changes.
                         responsive: false,
+                        ready() {
+                            requestAnimationFrame(() => {
+                                if (version !== profilePictureReadVersion || cropperModal.hidden) return;
+                                cropBtn.disabled = false;
+                                refreshProfileCropperLayout();
+                                if (document.activeElement === cropperModal) cropBtn.focus({ preventScroll: true });
+                            });
+                        },
                     });
                 } catch (_) {
                     if (window.changeProfileCropper) {
@@ -1853,6 +1869,7 @@
                 }
             };
             reader.onerror = () => {
+                if (version !== profilePictureReadVersion) return;
                 customAlert('Profile picture upload failed. Please try another image.')
                     .then(restoreProfileCropperFocus);
             };
@@ -1866,7 +1883,8 @@
         // Crop & Cancel handlers for change-profile
         cropBtn.addEventListener('click', async function () {
             const activeCropper = window.changeProfileCropper;
-            if (isChangeProfileCropProcessing || !activeCropper) return;
+            if (isChangeProfileCropProcessing || !activeCropper?.ready) return;
+            const version = profilePictureReadVersion;
 
             isChangeProfileCropProcessing = true;
             cropperModal.setAttribute('aria-busy', 'true');
@@ -1891,6 +1909,7 @@
                 } catch {
                     newSrc = raw;
                 }
+                if (version !== profilePictureReadVersion || window.changeProfileCropper !== activeCropper) return;
                 const imgEl = document.querySelector('.edit-profile-visual .illustration');
                 setProfilePictureValue(newSrc);
                 imgEl.alt = getAthleteDisplayName() + ' headshot';

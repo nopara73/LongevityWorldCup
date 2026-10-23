@@ -377,6 +377,8 @@ public sealed class EditProfileLayoutBrowserTests(
         // contract with a real canvas; manual review also uses the pinned library.
         await context.AddInitScriptAsync("""
             window.Cropper = class {
+                ready = true;
+                constructor(image, options) { queueMicrotask(() => options.ready?.()); }
                 destroy() {}
                 getCroppedCanvas() {
                     const canvas = document.createElement('canvas'); canvas.width = canvas.height = 32;
@@ -448,7 +450,7 @@ public sealed class EditProfileLayoutBrowserTests(
     public async Task CropDialog_KeepsFocusedCommandsVisibleAcrossTextAndViewportChanges()
     {
         await using var context = await CreateContextAsync(1440, 900);
-        await context.AddInitScriptAsync("window.Cropper = class { destroy() {} };");
+        await context.AddInitScriptAsync("window.Cropper = class { ready = true; constructor(image, options) { queueMicrotask(() => options.ready?.()); } destroy() {} };");
         var page = await OpenEditorAsync(context);
         var scroll = await page.EvaluateAsync<double>("() => scrollY");
         var file = new FilePayload
@@ -494,6 +496,71 @@ public sealed class EditProfileLayoutBrowserTests(
                 return r.top >= 0 && r.bottom <= (dock?.top ?? innerHeight) - 8;
             }
             """);
+    }
+
+    [Fact]
+    public async Task CropDialog_WaitsForImageReadiness_AndCancelInvalidatesLateReady()
+    {
+        await using var context = await CreateContextAsync(390, 844);
+        await context.AddInitScriptAsync("""
+            window.Cropper = class {
+                ready = false;
+                constructor(image, options) { window.finishCropReady = () => { this.ready = true; options.ready(); }; }
+                destroy() {}
+                getCroppedCanvas() { throw new Error('Crop requested before image readiness'); }
+            };
+            """);
+        var page = await OpenEditorAsync(context);
+        var errors = CapturePageErrors(page);
+        var webRoot = App.Services.GetRequiredService<IWebHostEnvironment>().WebRootPath;
+        await page.Locator("#profilePicInputModal").SetInputFilesAsync(
+            Path.Combine(webRoot, "assets", "content-images", "play-athlete-placeholder.jpg"));
+        await Assertions.Expect(page.Locator("#changeProfileCropperModal")).ToBeVisibleAsync();
+        await Assertions.Expect(page.Locator("#changeProfileCropButton")).ToBeDisabledAsync();
+        await page.EvaluateAsync("() => document.getElementById('changeProfileCropButton').click()");
+        await Assertions.Expect(page.Locator("#changeProfileCropperModal")).ToBeVisibleAsync();
+        await page.Locator("#changeProfileCancelButton").ClickAsync();
+        await Assertions.Expect(page.Locator("#changeProfilePicButton")).ToBeFocusedAsync();
+        await page.EvaluateAsync("async () => { finishCropReady(); await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))); }");
+        await Assertions.Expect(page.Locator("#changeProfileCropperModal")).ToBeHiddenAsync();
+        await Assertions.Expect(page.Locator("#changeProfilePicButton")).ToBeFocusedAsync();
+        await Assertions.Expect(page.Locator("#submitButton")).ToBeDisabledAsync();
+        Assert.Empty(errors);
+    }
+
+    [Fact]
+    public async Task PictureSelection_LatestReadWins_AndCanceledReadsCannotReopenTheDialog()
+    {
+        await using var context = await CreateContextAsync(390, 844);
+        await context.AddInitScriptAsync("""
+            window.profileReads = [];
+            window.profileCropSources = [];
+            window.FileReader = class { readAsDataURL() { profileReads.push(this); } };
+            window.Cropper = class {
+                ready = true;
+                constructor(image, options) { profileCropSources.push(image.src); queueMicrotask(() => options.ready()); }
+                destroy() {}
+            };
+            """);
+        var page = await OpenEditorAsync(context);
+        var webRoot = App.Services.GetRequiredService<IWebHostEnvironment>().WebRootPath;
+        var file = Path.Combine(webRoot, "assets", "content-images", "play-athlete-placeholder.jpg");
+        await page.Locator("#profilePicInputModal").SetInputFilesAsync(file);
+        await page.Locator("#profileCameraInputModal").SetInputFilesAsync(file);
+        await page.EvaluateAsync("""
+            () => {
+                profileReads[1].onload({target: {result: '/second-photo.jpg'}});
+                profileReads[0].onload({target: {result: '/first-photo.jpg'}});
+            }
+            """);
+        Assert.Equal(new[] { new Uri(new Uri(page.Url), "/second-photo.jpg").ToString() },
+            await page.EvaluateAsync<string[]>("() => profileCropSources"));
+        await page.Locator("#changeProfileCancelButton").ClickAsync();
+        await Assertions.Expect(page.Locator("#takeProfileSelfieButton")).ToBeFocusedAsync();
+        await page.EvaluateAsync("() => profileReads[0].onload({target: {result: '/first-photo.jpg'}})");
+        await Assertions.Expect(page.Locator("#changeProfileCropperModal")).ToBeHiddenAsync();
+        await Assertions.Expect(page.Locator("#submitButton")).ToBeDisabledAsync();
+        Assert.Null(await page.EvaluateAsync<string?>("() => sessionStorage.getItem('tempAthlete')"));
     }
 
     [Fact]

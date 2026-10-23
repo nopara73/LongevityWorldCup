@@ -69,6 +69,8 @@ public sealed class EditProfileApplyFamilyBrowserTests(
     [InlineData(1440, 900, false)]
     [InlineData(1024, 1366, true)]
     [InlineData(820, 1400, false)]
+    [InlineData(390, 1400, false)]
+    [InlineData(390, 1400, true)]
     public async Task InlineFoot_IsTheMutedBandEdgeToEdge_WithBackThenSubmit(int width, int height, bool dark)
     {
         await using var context = await CreateContextAsync(width, height, dark);
