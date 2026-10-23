@@ -4439,7 +4439,7 @@ main[data-leaderboard-page="full"] .leaderboard-order-select:has(.order-selected
 }
 main[data-leaderboard-page="full"] .order-selected-value{
     display:flex; align-items:center; box-sizing:border-box; min-height:max(44px, 2.75rem);
-    padding:.5rem min(2rem, 32px) .5rem min(.75rem, 12px); font-size:.9rem; line-height:1.25;
+    padding:.5rem 2rem .5rem min(.75rem, 12px); font-size:.9rem; line-height:1.25;
     overflow-wrap:anywhere; pointer-events:none;
 }
 main[data-leaderboard-page="full"] select:disabled + .order-selected-value{ color:var(--lwc-muted); }

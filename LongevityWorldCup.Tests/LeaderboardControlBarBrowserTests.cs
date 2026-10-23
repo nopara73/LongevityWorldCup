@@ -186,15 +186,18 @@ public sealed class LeaderboardControlBarBrowserTests(PlaywrightBrowserFixture b
                 select => {
                     const label = select.parentElement.querySelector('.order-selected-value');
                     const bounds = select.getBoundingClientRect();
+                    const chevron = select.parentElement.querySelector('.order-select-chevron').getBoundingClientRect();
                     const range = document.createRange(); range.selectNodeContents(label);
                     const clipped = [...range.getClientRects()].some(r => r.width > 0 &&
                         (r.left < bounds.left - 1 || r.right > bounds.right + 1 || r.top < bounds.top - 1 || r.bottom > bounds.bottom + 1));
-                    return [select.selectedOptions[0].textContent, label.textContent, String(clipped), label.getAttribute('aria-hidden')];
+                    const overlapsChevron = [...range.getClientRects()].some(r => r.width > 0 && r.right > chevron.left + 1);
+                    return [select.selectedOptions[0].textContent, label.textContent, String(clipped), label.getAttribute('aria-hidden'), String(overlapsChevron)];
                 }
                 """);
             Assert.Equal(diagnostics[0], diagnostics[1]);
             Assert.Equal("false", diagnostics[2]);
             Assert.Equal("true", diagnostics[3]);
+            Assert.False(bool.Parse(diagnostics[4]), $"'{diagnostics[0]}' overlaps its dropdown arrow at {width}px and {textPercent}% text.");
         }
         await ExpectNoHorizontalOverflowAsync(page);
     }
