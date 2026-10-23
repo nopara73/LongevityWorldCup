@@ -4443,7 +4443,8 @@ main[data-leaderboard-page="full"] .order-selected-value{
     overflow-wrap:anywhere; pointer-events:none;
 }
 main[data-leaderboard-page="full"] select:disabled + .order-selected-value{ color:var(--lwc-muted); }
-main[data-leaderboard-page="full"] .leaderboard-order-panel :is(select, button){ scroll-margin-top:calc(var(--site-sticky-height, 52px) + 12px); }
+/* The page already reserves the sticky header; leave only focus-ring clearance here. */
+main[data-leaderboard-page="full"] .leaderboard-order-panel :is(select, button){ scroll-margin-block:12px; }
 
 /* Laptop and tablet: tabs across the first row, the whole bar across the second. */
 @media (max-width: 1100px){

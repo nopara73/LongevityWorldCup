@@ -27,7 +27,7 @@ public sealed class LeaderboardControlBarBrowserTests(PlaywrightBrowserFixture b
         }
         """;
 
-    private async Task<(IBrowserContext Context, IPage Page)> OpenAsync(int width, int height, bool dark)
+    private async Task<(IBrowserContext Context, IPage Page)> OpenAsync(int width, int height, bool dark, string path = "/leaderboard")
     {
         var context = await NewContextAsync(Browser, App, new()
         {
@@ -36,7 +36,7 @@ public sealed class LeaderboardControlBarBrowserTests(PlaywrightBrowserFixture b
             ReducedMotion = ReducedMotion.Reduce
         });
         var page = await context.NewPageAsync();
-        await NavigateAndSettleAsync(page, "/leaderboard");
+        await NavigateAndSettleAsync(page, path);
         await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
         await Assertions.Expect(page.Locator("#leaderboardOrderToggle")).ToBeEnabledAsync();
         return (context, page);
@@ -215,6 +215,42 @@ public sealed class LeaderboardControlBarBrowserTests(PlaywrightBrowserFixture b
         await Assertions.Expect(page.Locator("#leaderboardOrderToggle")).ToBeFocusedAsync();
         await page.Keyboard.PressAsync("Tab");
         await Assertions.Expect(page.Locator(".leaderboard-controls .sidebar-toggle")).ToBeFocusedAsync();
+    }
+
+    [Theory]
+    [InlineData(844, 390)]
+    [InlineData(640, 240)]
+    public async Task ShortLandscape_TabTraversalKeepsEveryNativeControlVisible(int width, int height)
+    {
+        var (context, page) = await OpenAsync(width, height, false, "/leaderboard?sort=pheno&then=age");
+        await using var _ = context;
+        await page.EvaluateAsync("document.documentElement.style.fontSize = '200%'");
+        await page.Locator("#leaderboardOrderToggle").ClickAsync();
+        await page.Keyboard.PressAsync("Shift+Tab");
+
+        async Task ExpectVisibleFocusAsync(string id)
+        {
+            var control = page.Locator("#" + id);
+            await Assertions.Expect(control).ToBeFocusedAsync();
+            await Assertions.Expect(control).ToBeInViewportAsync(new() { Ratio = 1 });
+            var bounds = (await control.BoundingBoxAsync())!;
+            var sticky = await page.EvaluateAsync<double>("parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--site-sticky-height')) || 0");
+            Assert.True(bounds.Y >= sticky - 1, $"{id} begins at {bounds.Y}px behind the {sticky}px header.");
+        }
+
+        var sequence = new[]
+        {
+            "leaderboardOrderSwap", "leaderboardOrderPrimary", "leaderboardOrderDirection",
+            "leaderboardOrderPrimaryClear", "leaderboardOrderSecondary", "leaderboardThenDirection",
+            "leaderboardOrderSecondaryClear"
+        };
+        for (var i = 0; i < sequence.Length; i++)
+        {
+            await ExpectVisibleFocusAsync(sequence[i]);
+            if (i + 1 < sequence.Length) await page.Keyboard.PressAsync("Tab");
+        }
+        await page.Keyboard.PressAsync("Escape");
+        await ExpectVisibleFocusAsync("leaderboardOrderToggle");
     }
 
     [Theory]
