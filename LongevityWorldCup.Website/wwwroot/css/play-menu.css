@@ -471,6 +471,7 @@ html.play-panel-transitioning .play-hub-panel--entering {
 
 /* Side by side while both cards have room; enlarged text stacks them instead of splitting words. */
 .play-join-cards {
+    container: play-track / inline-size;
     width: 100%;
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
@@ -479,7 +480,6 @@ html.play-panel-transitioning .play-hub-panel--entering {
 }
 
 .play-join-card {
-    container: play-track / inline-size;
     position: relative;
     display: flex;
     flex-direction: column;
@@ -1667,7 +1667,7 @@ html.play-panel-transitioning .play-hub-panel--entering {
     }
 
     .play-join-cards {
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
         gap: 1rem;
     }
 
@@ -2708,6 +2708,40 @@ body.play-start-active .play-menu-actions:not(.flow-action-stack--docked) .flow-
     padding-top: 1rem;
 }
 
+/* Share the comparison rows as well as the actions. A discount belongs to the
+   entry row, so it must not push every following Pro spec out of alignment.
+   Query the track area instead of containing each tile; tiles need intrinsic
+   row sizes for subgrid. Tiles below 18rem only occur in the stacked layout. */
+@supports (grid-template-rows: subgrid) {
+    .play-hub-main .play-join-card {
+        display: grid;
+        grid-row: span 7;
+        grid-template-rows: subgrid;
+        row-gap: 0;
+    }
+
+    .play-hub-main .play-join-card .play-join-details {
+        display: grid;
+        grid-row: span 6;
+        grid-template-rows: subgrid;
+        row-gap: 0;
+    }
+
+    .play-hub-main .play-join-card .play-join-meta {
+        grid-row: span 4;
+        grid-template-rows: subgrid;
+    }
+
+    .play-hub-main .play-join-card .play-join-biomarkers {
+        margin-top: 0;
+        align-self: start;
+    }
+
+    .play-hub-main .play-join-card .play-join-card-actions {
+        align-self: end;
+    }
+}
+
 .play-hub-main .play-join-foot {
     width: 100%;
 }
@@ -2938,8 +2972,15 @@ body.play-start-active .play-menu-actions:not(.flow-action-stack--docked) .flow-
 /* Pair each term with its value when a narrow tile or enlarged text needs
    another line. The divider belongs to the pair, not both stacked cells. */
 @container play-track (max-width: 18rem) {
+    .play-hub-main .play-join-card,
+    .play-hub-main .play-join-card .play-join-details {
+        display: flex;
+    }
+
     .play-hub-main .play-join-card .play-join-meta {
         grid-template-columns: minmax(0, 1fr);
+        /* Label/value pairs use separate rows once the cards stack narrowly. */
+        grid-template-rows: none;
     }
 
     .play-hub-main .play-join-card .play-join-meta dt {
@@ -3068,6 +3109,8 @@ body.play-start-active .play-menu-actions:not(.flow-action-stack--docked) .flow-
     }
 
     .play-hub-main .play-join-panel[data-join-choice] .play-join-card,
+    .play-hub-main .play-join-panel:not([data-join-choice]) .play-join-card:hover,
+    .play-hub-main .play-join-card:hover .play-join-card-actions .flow-action:not(:disabled) > i,
     .play-hub-main .play-join-card .play-join-card-actions .flow-action:active,
     .play-hub-main .play-join-actions .play-join-mobile-track-action:active {
         transform: none;

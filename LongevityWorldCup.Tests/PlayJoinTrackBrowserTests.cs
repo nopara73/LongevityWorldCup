@@ -64,7 +64,9 @@ public sealed class PlayJoinTrackBrowserTests(
                     amateur.getBoundingClientRect().top, pro.getBoundingClientRect().top,
                     top(amateur, '.play-join-card-actions .flow-action'), top(pro, '.play-join-card-actions .flow-action'),
                     amateur.getBoundingClientRect().bottom, pro.getBoundingClientRect().bottom,
-                    top(amateur, 'summary'), top(pro, 'summary')
+                    top(amateur, 'summary'), top(pro, 'summary'),
+                    top(amateur, '.play-join-meta dt:nth-of-type(2)'), top(pro, '.play-join-meta dt:nth-of-type(2)'),
+                    top(amateur, '.play-join-meta dt:nth-of-type(3)'), top(pro, '.play-join-meta dt:nth-of-type(3)')
                 ];
             }
             """);
@@ -77,6 +79,8 @@ public sealed class PlayJoinTrackBrowserTests(
             Assert.True(Math.Abs(rows[4] - rows[5]) <= 1, $"{scenario}: the track cards end at different heights ({rows[4]} vs {rows[5]}).");
             if (!openAmateurList)
                 Assert.True(Math.Abs(rows[6] - rows[7]) <= 1, $"{scenario}: the biomarker lists do not line up ({rows[6]} vs {rows[7]}).");
+            Assert.True(Math.Abs(rows[8] - rows[9]) <= 1, $"{scenario}: testing windows do not share a row.");
+            Assert.True(Math.Abs(rows[10] - rows[11]) <= 1, $"{scenario}: aging clocks do not share a row.");
         }
         await ExpectNoHorizontalOverflowAsync(page);
         Assert.Empty(errors);

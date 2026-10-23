@@ -380,35 +380,3 @@ function fetchWithTimeout(url, options = {}, timeout = 10000) {
             });
     });
 }
-
-// The entry journey (entry-journey.css) animates page changes only between its
-// own pages. Opting out before leaving for any other page keeps the browser
-// from starting a transition the next page would have to skip.
-(function () {
-    const journeyStyles = document.querySelectorAll('link[href*="entry-journey"]');
-    if (!journeyStyles.length || !window.navigation) return;
-    const journeyPath = /^\/(?:play|join|select-athlete|dashboard|pheno-age|bortz-age|apply|review)?\/?$/i;
-    window.navigation.addEventListener('navigate', function (event) {
-        // History updates keep rendering this document, including its styles.
-        if (event.destination.sameDocument) return;
-        const destination = new URL(event.destination.url);
-        const stays = destination.origin === window.location.origin && journeyPath.test(destination.pathname);
-        journeyStyles.forEach(function (link) {
-            link.disabled = !stays;
-        });
-    });
-    // An abandoned arrival transition (a slow first render) is not an error.
-    window.addEventListener('pagereveal', function (event) {
-        const transition = event.viewTransition;
-        if (!transition) return;
-        [transition.ready, transition.finished, transition.updateCallbackDone].forEach(function (promise) {
-            promise.catch(function () {});
-        });
-    });
-    // A page restored from the back-forward cache opts in again.
-    window.addEventListener('pageshow', function () {
-        journeyStyles.forEach(function (link) {
-            link.disabled = false;
-        });
-    });
-})();

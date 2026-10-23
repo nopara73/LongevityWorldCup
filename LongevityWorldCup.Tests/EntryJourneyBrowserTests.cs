@@ -58,6 +58,89 @@ public sealed class EntryJourneyBrowserTests(
     private static Task SettleAnimationsAsync(IPage page)
         => page.EvaluateAsync("() => Promise.all(document.getAnimations().map(a => a.finished.catch(() => {})))");
 
+    [Fact]
+    public async Task CanceledTrackNavigation_RestoresChoicesAndKeepsTheSavedOffer()
+    {
+        await using var context = await NewJourneyContextAsync(1440, 900, false, false);
+        var page = await OpenJoinAsync(context);
+        await SettleAnimationsAsync(page);
+        await page.EvaluateAsync("""
+            () => navigation.addEventListener('navigate', event => {
+                if (!event.destination.sameDocument) event.preventDefault();
+            })
+            """);
+        await page.Locator("#joinStartAmateurBtn").ClickAsync();
+        await Assertions.Expect(page.Locator("#joinTrackPanel")).Not.ToHaveAttributeAsync("data-join-choice", "amateur");
+        Assert.EndsWith("/join", page.Url);
+        Assert.True(await page.EvaluateAsync<bool>("() => !!sessionStorage.getItem('pendingPaymentOffer')"));
+        Assert.Equal("auto", await page.Locator(".play-join-card").First.EvaluateAsync<string>("card => getComputedStyle(card).pointerEvents"));
+    }
+
+    [Fact]
+    public async Task CanceledExit_DoesNotDisableJourneyStyles()
+    {
+        await using var context = await NewJourneyContextAsync(1440, 900, false, false);
+        var page = await OpenJoinAsync(context);
+        await page.EvaluateAsync("""
+            () => {
+                navigation.addEventListener('navigate', event => {
+                    if (!event.destination.sameDocument) event.preventDefault();
+                });
+                location.href = '/ruleset';
+            }
+            """);
+        await page.WaitForTimeoutAsync(100);
+        Assert.EndsWith("/join", page.Url);
+        Assert.True(await page.EvaluateAsync<bool>("() => [...document.querySelectorAll('link[rel=stylesheet]')].every(link => !link.disabled)"));
+    }
+
+    [Fact]
+    public async Task ReducedMotion_HoverKeepsTheTileAndArrowStill()
+    {
+        await using var context = await NewJourneyContextAsync(1440, 900, false, true);
+        var page = await OpenJoinAsync(context);
+        await page.Locator(".play-join-card").First.HoverAsync();
+        var transforms = await page.EvaluateAsync<string[]>("""
+            () => [document.querySelector('.play-join-card'), document.querySelector('.play-join-card .flow-action > i')]
+                .filter(Boolean).map(node => getComputedStyle(node).transform)
+            """);
+        Assert.All(transforms, transform => Assert.Equal("none", transform));
+    }
+
+    [Fact]
+    public async Task SlowArrival_PreservesTheCalculatorAndDoesNotRaiseAPageError()
+    {
+        await using var context = await NewJourneyContextAsync(1440, 900, false, false);
+        var page = await OpenJoinAsync(context);
+        var errors = new List<string>();
+        page.PageError += (_, error) => errors.Add(error);
+        await context.RouteAsync("**/css/bioageform.css*", async route =>
+        {
+            await Task.Delay(5500);
+            await route.ContinueAsync();
+        });
+        try
+        {
+            await page.Locator("#joinStartAmateurBtn").ClickAsync();
+            await page.WaitForURLAsync("**/pheno-age**");
+            await page.WaitForLoadStateAsync(LoadState.Load);
+            await page.WaitForFunctionAsync("() => !document.documentElement.hasAttribute('data-initial-view')");
+            Assert.True(errors.Count == 0, string.Join("\n", errors));
+        }
+        finally { await context.UnrouteAllAsync(new() { Behavior = UnrouteBehavior.Wait }); }
+    }
+
+    [Fact]
+    public async Task TransitionHandling_DoesNotHideUnrelatedRejections()
+    {
+        await using var context = await NewJourneyContextAsync(1440, 900, false, false);
+        var page = await OpenJoinAsync(context);
+        var reported = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+        page.PageError += (_, error) => reported.TrySetResult(error);
+        await page.EvaluateAsync("() => { void Promise.reject(new Error('Unrelated journey failure')); }");
+        Assert.Contains("Unrelated journey failure", await reported.Task.WaitAsync(TimeSpan.FromSeconds(5)));
+    }
+
     [Theory]
     [InlineData(1440, 900, false)]
     [InlineData(1280, 720, true)]

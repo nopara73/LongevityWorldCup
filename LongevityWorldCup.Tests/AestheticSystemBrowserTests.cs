@@ -1686,13 +1686,15 @@ public sealed class AestheticSystemBrowserTests(
                 var diagnostics = await page.EvaluateAsync<ContainerQueryDiagnostics>(
                     """
                     async width => {
-                        const card = document.querySelector('.play-join-card--pro');
-                        card.style.boxSizing = 'content-box';
-                        card.style.inlineSize = `${width}px`;
-                        card.style.maxInlineSize = 'none';
+                        const tracks = document.querySelector('.play-join-cards');
+                        const card = tracks.querySelector('.play-join-card--pro');
+                        tracks.style.boxSizing = 'content-box';
+                        tracks.style.inlineSize = `${width}px`;
+                        tracks.style.maxInlineSize = 'none';
+                        tracks.style.gridTemplateColumns = 'minmax(0, 1fr)';
                         await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
                         return {
-                            ContainerWidth: parseFloat(getComputedStyle(card).width),
+                            ContainerWidth: parseFloat(getComputedStyle(tracks).width),
                             IsCompact: getComputedStyle(card.querySelector('.play-join-ribbon')).position === 'static',
                             HorizontalOverflow: Math.max(0, card.scrollWidth - card.clientWidth)
                         };
