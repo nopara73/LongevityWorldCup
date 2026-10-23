@@ -819,9 +819,7 @@ public sealed class LeaderboardOrderingBrowserTests(PlaywrightBrowserFixture bro
         bounds = (await panel.BoundingBoxAsync())!;
         Assert.InRange(bounds.X, 0, width);
         Assert.InRange(bounds.X + bounds.Width, 0, width + 1);
-        // The full-page strip participates in document scrolling. At enlarged
-        // text its focus must fit; the homepage's floating panel still has the
-        // full-panel viewport contract, covered below at these same sizes.
+        // The shared strip scrolls with the document; enlarged text keeps its focused field in view.
         var focused = (await page.Locator("#leaderboardOrderPrimary").BoundingBoxAsync())!;
         Assert.InRange(focused.Y, 0, height);
         Assert.InRange(focused.Y + focused.Height, 0, height + 1);
@@ -834,7 +832,7 @@ public sealed class LeaderboardOrderingBrowserTests(PlaywrightBrowserFixture bro
     [InlineData(844, 390, false)]
     [InlineData(390, 844, true)]
     [InlineData(320, 720, false)]
-    public async Task HomepageComposer_RemainsFloatingAndFitsTheViewport(int width, int height, bool dark)
+    public async Task HomepageComposer_UsesTheSharedStripAndKeepsFocusVisible(int width, int height, bool dark)
     {
         await using var context = await NewContextAsync(Browser, App, new()
         {
@@ -847,22 +845,25 @@ public sealed class LeaderboardOrderingBrowserTests(PlaywrightBrowserFixture bro
         await Loaded(page);
         await page.Locator("#view-ultimate").FocusAsync();
         await page.Keyboard.PressAsync("Tab");
-        await Assertions.Expect(page.Locator("#group-flags")).ToBeFocusedAsync();
-        await page.Keyboard.PressAsync("Tab");
         await Assertions.Expect(page.Locator("#athleteSearch")).ToBeFocusedAsync();
+        await page.Keyboard.PressAsync("Tab");
+        await Assertions.Expect(page.Locator("#group-flags")).ToBeFocusedAsync();
         foreach (var textPercent in new[] { 100, 200 })
         {
             await page.EvaluateAsync("size => document.documentElement.style.fontSize = `${size}%`", textPercent);
             await page.Locator("#leaderboardOrderToggle").ClickAsync();
             var panel = page.Locator("#leaderboardOrderPanel");
             await Assertions.Expect(panel).ToBeVisibleAsync();
-            Assert.Equal("absolute", await panel.EvaluateAsync<string>("panel => getComputedStyle(panel).position"));
-            Assert.Equal(0, await panel.Locator(".order-selected-value").CountAsync());
+            Assert.Equal("static", await panel.EvaluateAsync<string>("panel => getComputedStyle(panel).position"));
+            Assert.Equal(2, await panel.Locator(".order-selected-value").CountAsync());
             var bounds = (await panel.BoundingBoxAsync())!;
             Assert.InRange(bounds.X, 0, width);
             Assert.InRange(bounds.X + bounds.Width, 0, width + 1);
-            Assert.InRange(bounds.Y, 0, height);
-            Assert.InRange(bounds.Y + bounds.Height, 0, height + 1);
+            var focus = (await page.Locator("#leaderboardOrderPrimary").BoundingBoxAsync())!;
+            var sticky = await page.EvaluateAsync<double>("parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--site-sticky-height')) || 0");
+            Assert.InRange(focus.Y, sticky, height);
+            Assert.InRange(focus.Y + focus.Height, 0, height + 1);
+            Assert.False(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth > innerWidth"));
             await page.Keyboard.PressAsync("Escape");
             await Assertions.Expect(page.Locator("#leaderboardOrderToggle")).ToBeFocusedAsync();
         }
