@@ -4434,6 +4434,16 @@ main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-order-row 
     color:var(--lwc-muted); font-size:var(--lwc-type-xs); font-weight:700; letter-spacing:.08em; text-transform:uppercase;
 }
 main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-order-field{ border-color:var(--lwc-border-strong); border-radius:var(--lwc-radius-md); background:var(--lwc-surface); }
+main[data-leaderboard-page="full"] .leaderboard-order-select:has(.order-selected-value) select{
+    position:absolute; inset:0; z-index:1; height:100% !important; opacity:0;
+}
+main[data-leaderboard-page="full"] .order-selected-value{
+    display:flex; align-items:center; box-sizing:border-box; min-height:max(44px, 2.75rem);
+    padding:.5rem min(2rem, 32px) .5rem min(.75rem, 12px); font-size:.9rem; line-height:1.25;
+    overflow-wrap:anywhere; pointer-events:none;
+}
+main[data-leaderboard-page="full"] select:disabled + .order-selected-value{ color:var(--lwc-muted); }
+main[data-leaderboard-page="full"] .leaderboard-order-panel :is(select, button){ scroll-margin-top:calc(var(--site-sticky-height, 52px) + 12px); }
 
 /* Laptop and tablet: tabs across the first row, the whole bar across the second. */
 @media (max-width: 1100px){
@@ -4493,6 +4503,9 @@ main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-order-fiel
     main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-order-row{ grid-column:1; grid-row:1; }
     main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-order-row + .leaderboard-order-row{ grid-column:1; grid-row:2; }
     main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-order-swap{ grid-column:1; grid-row:3; justify-self:end; }
+    main[data-leaderboard-page="full"] .leaderboard-order-select{ grid-column:1 / -1; }
+    main[data-leaderboard-page="full"] .leaderboard-order-direction{ grid-column:2; border-top:1px solid var(--lwc-border); }
+    main[data-leaderboard-page="full"] .leaderboard-order-clear{ grid-column:3; border-top:1px solid var(--lwc-border); }
 }
 /* Column heads: the site's small uppercase titles, held under the header
    while the rows scroll, so every score keeps its name. */

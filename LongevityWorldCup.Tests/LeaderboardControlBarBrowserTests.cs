@@ -164,4 +164,63 @@ public sealed class LeaderboardControlBarBrowserTests(PlaywrightBrowserFixture b
             """);
         Assert.True(widths[0] <= 72 && widths[1] <= 72, $"The rank column is {widths[0]}px / {widths[1]}px wide.");
     }
+
+    [Theory]
+    [InlineData(320, 100)]
+    [InlineData(320, 200)]
+    [InlineData(390, 200)]
+    [InlineData(768, 200)]
+    public async Task NativeSelections_KeepEveryCatalogLabelReadableAtEnlargedText(int width, int textPercent)
+    {
+        var (context, page) = await OpenAsync(width, 844, true);
+        await using var _ = context;
+        await page.EvaluateAsync("size => document.documentElement.style.fontSize = `${size}%`", textPercent);
+        await page.Locator("#leaderboardOrderToggle").ClickAsync();
+        var primary = page.Locator("#leaderboardOrderPrimary");
+        await Assertions.Expect(primary).ToHaveAccessibleNameAsync("Order by");
+        var values = await primary.Locator("option").EvaluateAllAsync<string[]>("options => options.map(option => option.value)");
+        foreach (var value in values)
+        {
+            await primary.SelectOptionAsync(value);
+            var diagnostics = await primary.EvaluateAsync<string[]>("""
+                select => {
+                    const label = select.parentElement.querySelector('.order-selected-value');
+                    const bounds = select.getBoundingClientRect();
+                    const range = document.createRange(); range.selectNodeContents(label);
+                    const clipped = [...range.getClientRects()].some(r => r.width > 0 &&
+                        (r.left < bounds.left - 1 || r.right > bounds.right + 1 || r.top < bounds.top - 1 || r.bottom > bounds.bottom + 1));
+                    return [select.selectedOptions[0].textContent, label.textContent, String(clipped), label.getAttribute('aria-hidden')];
+                }
+                """);
+            Assert.Equal(diagnostics[0], diagnostics[1]);
+            Assert.Equal("false", diagnostics[2]);
+            Assert.Equal("true", diagnostics[3]);
+        }
+        await ExpectNoHorizontalOverflowAsync(page);
+    }
+
+    [Theory]
+    [InlineData(844, 390, 100)]
+    [InlineData(844, 390, 200)]
+    [InlineData(640, 320, 200)]
+    public async Task ShortLandscape_OpeningTallStripKeepsNativeFocusBelowStickyHeader(int width, int height, int textPercent)
+    {
+        var (context, page) = await OpenAsync(width, height, false);
+        await using var _ = context;
+        await page.EvaluateAsync("size => document.documentElement.style.fontSize = `${size}%`", textPercent);
+        await page.Locator("#leaderboardOrderToggle").ClickAsync();
+        var primary = page.Locator("#leaderboardOrderPrimary");
+        await Assertions.Expect(primary).ToBeFocusedAsync();
+        var position = await primary.EvaluateAsync<double[]>("""
+            select => {
+                const rect = select.getBoundingClientRect();
+                const sticky = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--site-sticky-height')) || 0;
+                return [rect.top, rect.bottom, sticky, innerHeight];
+            }
+            """);
+        Assert.True(position[0] >= position[2], $"Focused field begins at {position[0]}px behind the {position[2]}px header.");
+        Assert.True(position[1] <= position[3], $"Focused field ends at {position[1]}px below the {position[3]}px viewport.");
+        await page.Keyboard.PressAsync("Escape");
+        await Assertions.Expect(page.Locator("#leaderboardOrderToggle")).ToBeFocusedAsync();
+    }
 }
