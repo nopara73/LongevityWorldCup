@@ -1,3 +1,41 @@
+// Media that arrives after its box is painted fades in; anything already
+// decoded (cache, bfcache, hydration swaps) appears at once. Without
+// scripts nothing is hidden.
+(function () {
+    var root = document.documentElement;
+    if (!window.MutationObserver || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    root.classList.add('lwc-media-fade');
+    var selector = 'img.podium-portrait, img.portrait, .events-board img.avatar';
+    function settle(img, instant) { img.setAttribute('data-lwc-media', instant ? 'instant' : 'ready'); }
+    function track(img) {
+        if (img.hasAttribute('data-lwc-media') && img.getAttribute('data-lwc-media') !== 'pending') return;
+        if (img.complete) { settle(img, true); return; }
+        img.setAttribute('data-lwc-media', 'pending');
+    }
+    function scan(node) {
+        if (node.nodeType !== 1) return;
+        if (node.matches(selector)) track(node);
+        if (node.firstElementChild) node.querySelectorAll(selector).forEach(track);
+    }
+    function finish(event) {
+        var img = event.target;
+        if (img && img.tagName === 'IMG' && img.getAttribute('data-lwc-media') === 'pending') settle(img);
+    }
+    document.addEventListener('load', finish, true);
+    document.addEventListener('error', finish, true);
+    new MutationObserver(function (records) {
+        for (var i = 0; i < records.length; i++) {
+            var record = records[i];
+            if (record.type === 'attributes') {
+                // A new source on a painted portrait keeps the old one until it decodes.
+                if (record.target.matches(selector) && !record.target.complete && record.target.getAttribute('data-lwc-media') !== 'ready') track(record.target);
+                continue;
+            }
+            for (var j = 0; j < record.addedNodes.length; j++) scan(record.addedNodes[j]);
+        }
+    }).observe(root, { childList: true, subtree: true, attributes: true, attributeFilter: ['src'] });
+})();
+
 const scrolledJoinButton = document.querySelector('.scrolled-button');
 const joinGameBtn = document.querySelector('.join-game');
 let lastKnownScrollPosition = 0;
@@ -51,8 +89,16 @@ function handleScroll(scrollPos, remeasure = false) {
     // Measure the complete bar before it appears, so the first anchor jump
     // and keyboard scroll reserve the same space as subsequent ones.
     // Cache this geometry between layout changes, keeping scrolling cheap.
+    let measuring = false;
     if (remeasure || !measuredStickyHeight || lastStickyActionAvailable !== actionAvailable
         || measuredRootFontSize !== rootFontSize) {
+        // Only a hidden bar is briefly shown to measure; a visible one keeps
+        // any entrance that a resize callback lands in the middle of.
+        measuring = !stickyHeader.classList.contains('visible');
+        if (measuring) {
+            stickyHeader.classList.add('is-measuring');
+            scrolledJoinButton?.classList.add('is-measuring');
+        }
         const visibility = stickyHeader.style.visibility;
         const actionVisibility = scrolledJoinButton?.style.visibility;
         stickyHeader.style.visibility = 'hidden';
@@ -86,6 +132,12 @@ function handleScroll(scrollPos, remeasure = false) {
     stickyHeader.setAttribute('aria-hidden', String(!willBeVisible));
     if (scrolledJoinButton) {
         scrolledJoinButton.style.display = willBeVisible && actionAvailable ? 'inline-flex' : 'none';
+    }
+    if (measuring) {
+        // Settle the measured state without motion, then let later changes animate.
+        stickyHeader.getBoundingClientRect();
+        stickyHeader.classList.remove('is-measuring');
+        scrolledJoinButton?.classList.remove('is-measuring');
     }
 }
 
