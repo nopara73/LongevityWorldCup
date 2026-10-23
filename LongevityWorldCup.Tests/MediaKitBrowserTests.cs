@@ -64,7 +64,7 @@ public sealed class MediaKitBrowserTests(PlaywrightBrowserFixture browserFixture
     [InlineData(320, 740, true, 200)]
     [InlineData(195, 422, false, 100)]
     [InlineData(768, 1024, false, 200)]
-    public async Task Documents_AreTilesThatLeadTheirFoldersGrid(int width, int height, bool dark, int textSize)
+    public async Task Documents_AreDownloadRowsThatLeadTheirFolder(int width, int height, bool dark, int textSize)
     {
         await using var context = await NewContextAsync(Browser, App, new()
         {
@@ -88,22 +88,27 @@ public sealed class MediaKitBrowserTests(PlaywrightBrowserFixture browserFixture
                 if (!docs.length) return ['no documents'];
                 for (const doc of docs) {
                     const name = doc.querySelector('.media-file-name').textContent.trim();
-                    if (!doc.classList.contains('media-file-tile')) issues.push(`${name}: not a tile`);
+                    const list = doc.parentElement;
+                    if (!list.classList.contains('media-kit-docs')) issues.push(`${name}: not in a document list`);
                     const thumb = doc.querySelector('.media-file-thumb');
                     const icon = thumb?.querySelector('.media-file-icon');
                     if (!thumb || !icon) { issues.push(`${name}: no file-type well`); continue; }
                     if (icon.getAttribute('aria-hidden') !== 'true') issues.push(`${name}: duplicate accessible icon text`);
                     if (!getComputedStyle(icon, '::before').content || getComputedStyle(icon, '::before').content === 'none') issues.push(`${name}: missing file-type glyph`);
                     const t = thumb.getBoundingClientRect(), i = icon.getBoundingClientRect(), b = doc.querySelector('.media-file-button').getBoundingClientRect();
-                    if (i.left < t.left || i.right > t.right || i.top < t.top || i.bottom > t.bottom || i.height < 32) issues.push(`${name}: file type is not shown in its well`);
-                    if (Math.min(i.right, b.right) - Math.max(i.left, b.left) > 1
-                        && Math.min(i.bottom, b.bottom) - Math.max(i.top, b.top) > 1)
-                        issues.push(`${name}: file-type icon is covered by its download control`);
-                    if (b.top < t.top - 1 || b.bottom > t.bottom + 1 || b.right > t.right + 1 || b.width < 44 || b.height < 44) issues.push(`${name}: download is not the round corner mark`);
-                    const grid = doc.parentElement;
-                    const firstPicture = [...grid.children].find(child => !docs.includes(child));
-                    if (firstPicture && [...grid.children].indexOf(firstPicture) < [...grid.children].indexOf(doc)) issues.push(`${name}: follows a picture`);
-                    if (!grid.classList.contains('media-kit-tiles')) issues.push(`${name}: not in the tile grid`);
+                    const n = doc.querySelector('.media-file-name').getBoundingClientRect(), row = doc.getBoundingClientRect();
+                    if (i.left < t.left - 1 || i.right > t.right + 1 || i.top < t.top - 1 || i.bottom > t.bottom + 1 || i.height < 24) issues.push(`${name}: file type is not shown in its well`);
+                    if (Math.min(t.right, b.right) - Math.max(t.left, b.left) > 1
+                        && Math.min(t.bottom, b.bottom) - Math.max(t.top, b.top) > 1)
+                        issues.push(`${name}: file-type well is covered by its download control`);
+                    if (b.width < 44 || b.height < 44) issues.push(`${name}: download target is ${Math.round(b.width)}x${Math.round(b.height)}`);
+                    if (b.left < row.left || b.right > row.right + 1 || n.left < row.left || n.right > row.right + 1) issues.push(`${name}: the row does not hold its name and download`);
+                    // A document row reads file type, name, download, and stays far shorter than a picture tile.
+                    if (innerWidth > 280 && (t.right > n.left + 1 || n.right > b.left + 1)) issues.push(`${name}: not read left to right`);
+                    if (innerWidth > 280 && row.height > Math.max(110, n.height + 40)) issues.push(`${name}: the row is ${Math.round(row.height)}px tall`);
+                    const group = list.parentElement;
+                    const pictures = group.querySelector('.media-kit-tiles:not(.media-kit-docs)');
+                    if (pictures && list.compareDocumentPosition(pictures) !== Node.DOCUMENT_POSITION_FOLLOWING) issues.push(`${name}: follows the pictures`);
                 }
                 return issues;
             }
@@ -251,7 +256,7 @@ public sealed class MediaKitBrowserTests(PlaywrightBrowserFixture browserFixture
             """
             () => {
                 const issues = [];
-                for (const tile of document.querySelectorAll('#fileList .media-file-tile')) {
+                for (const tile of document.querySelectorAll('#fileList .media-file-tile:not(.media-file-doc)')) {
                     const name = tile.querySelector('.media-file-name').textContent.trim();
                     const box = tile.getBoundingClientRect();
                     const thumb = tile.querySelector('.media-file-thumb').getBoundingClientRect();
@@ -500,13 +505,78 @@ public sealed class MediaKitBrowserTests(PlaywrightBrowserFixture browserFixture
     }
 
     [Theory]
+    [InlineData(1440, 900, false)]
+    [InlineData(1024, 768, true)]
+    [InlineData(768, 1024, false)]
+    [InlineData(390, 844, true)]
+    [InlineData(320, 640, false)]
+    public async Task PressPage_SitsOnTheLandingSheetWithDownloadRowsWideLogosAndAContactCloser(int width, int height, bool dark)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = height },
+            ColorScheme = dark ? ColorScheme.Dark : ColorScheme.Light,
+            ReducedMotion = ReducedMotion.Reduce,
+            IsMobile = width < 600,
+            HasTouch = width < 600
+        });
+        await InstallKitFixtureAsync(context, kitFiles: PressKitFiles());
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/media", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await Assertions.Expect(page.Locator("#fileList .media-file-row")).ToHaveCountAsync(PressKitFiles().Count);
+        await Assertions.Expect(page.Locator(".media-kit-contact")).ToContainTextAsync("Press contact:");
+        await page.EvaluateAsync("async () => { await document.fonts.ready; await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))); }");
+
+        var problems = await page.EvaluateAsync<string[]>(
+            """
+            () => {
+                const issues = [];
+                const box = element => element.getBoundingClientRect();
+                const panel = document.querySelector('.media-kit-panel');
+                if (!panel.classList.contains('landing-sheet')) issues.push('the page is not on the landing sheet');
+                const cover = document.querySelector('.media-kit-head');
+                const bar = getComputedStyle(cover, '::before');
+                if (bar.content === 'none' || Math.round(parseFloat(bar.height)) !== 4) issues.push('the cover has no accent bar');
+                const title = box(document.querySelector('.media-kit-title')), lead = box(document.querySelector('.media-kit-intro'));
+                const download = box(document.querySelector('.media-kit-primary-download'));
+                if (Math.abs(title.left - lead.left) > 2 || Math.abs(title.left - download.left) > 2) issues.push('the cover is not one left edge');
+                if (!['left', 'start'].includes(getComputedStyle(document.querySelector('.media-kit-title')).textAlign)) issues.push('the title is centred');
+                if (innerWidth <= 560 && (Math.abs(box(panel).left) > 1 || Math.abs(box(panel).right - innerWidth) > 1)) issues.push('the phone sheet does not run edge to edge');
+
+                const hero = box(document.querySelector('.media-kit-featured .media-file-tile'));
+                for (const doc of document.querySelectorAll('.media-file-doc')) {
+                    const name = doc.querySelector('.media-file-name').textContent;
+                    if (box(doc).height > hero.height * 0.5) issues.push(`${name}: a ${Math.round(box(doc).height)}px block, not a download row`);
+                }
+                const team = [...document.querySelectorAll('.media-kit-group')].find(group => group.querySelector('.media-kit-group-title')?.textContent === 'Team');
+                const teamDoc = box(team.querySelector('.media-file-doc')), teamPicture = box(team.querySelector('.media-file-tile:not(.media-file-doc)'));
+                if (teamDoc.height > teamPicture.height * 0.75) issues.push('a folder document takes a picture-sized tile');
+
+                const logos = [...document.querySelectorAll('.media-kit-group')].find(group => group.querySelector('.media-kit-group-title')?.textContent === 'Logos');
+                const logoList = logos.querySelector('.media-kit-tiles');
+                if (!logoList.classList.contains('media-kit-logos')) issues.push('logos are not their own wide row');
+                const athlete = box(document.querySelector('.media-kit-group:not(.media-kit-root) .media-kit-tiles:not(.media-kit-logos, .media-kit-docs) .media-file-tile'));
+                if (innerWidth >= 768 && box(logoList.querySelector('.media-file-tile')).width < athlete.width * 1.3) issues.push('logo wells are no wider than photo wells');
+
+                const contact = document.querySelector('.media-kit-contact');
+                if (getComputedStyle(contact).backgroundColor === getComputedStyle(cover).backgroundColor) issues.push('the contact band is not the accent closer');
+                if (Math.abs(box(contact).bottom - box(panel).bottom) > 2) issues.push('the contact does not close the sheet');
+                if (parseFloat(getComputedStyle(contact.querySelector('a')).fontSize) < 18) issues.push('the press address is small print');
+                return issues;
+            }
+            """);
+        Assert.True(problems.Length == 0, $"{width}x{height}: {string.Join("; ", problems)}");
+        await FlowActionDockBrowserTests.ExpectNoHorizontalOverflowAsync(page);
+    }
+
+    [Theory]
     [InlineData(1440, 900, 100, false)]
     [InlineData(1024, 768, 100, true)]
     [InlineData(768, 1024, 100, false)]
     [InlineData(390, 844, 100, true)]
     [InlineData(1440, 900, 200, false)]
     [InlineData(390, 844, 200, false)]
-    public async Task FolderSections_AreCountedCardsWithEvenRowsInCaseBlindOrder(int width, int height, int textSize, bool dark)
+    public async Task FolderSections_AreNumberedRuledSectionsWithEvenRowsInCaseBlindOrder(int width, int height, int textSize, bool dark)
     {
         await using var context = await NewContextAsync(Browser, App, new()
         {
@@ -532,12 +602,13 @@ public sealed class MediaKitBrowserTests(PlaywrightBrowserFixture browserFixture
                 for (const group of document.querySelectorAll('.media-kit-group:not(.media-kit-root)')) {
                     const name = group.querySelector('.media-kit-group-title').textContent;
                     const style = getComputedStyle(group);
-                    if (parseFloat(style.borderTopWidth) < 1 || style.borderTopStyle === 'none') issues.push(`${name}: not a card`);
+                    // Folders are open sections on the sheet: a hairline above, no boxed card.
+                    if (parseFloat(style.borderTopWidth) < 1 || style.borderTopStyle === 'none') issues.push(`${name}: no hairline above the section`);
+                    if (parseFloat(style.borderLeftWidth) > 0 && style.borderLeftStyle !== 'none') issues.push(`${name}: boxed as a card`);
                     const head = group.querySelector('.media-kit-group-head');
-                    const box = group.getBoundingClientRect(), headBox = head?.getBoundingClientRect();
-                    if (!head || headBox.top - box.top > 2 || getComputedStyle(head).backgroundColor === style.backgroundColor)
-                        issues.push(`${name}: no header band`);
-                    const tiles = [...group.querySelectorAll('.media-file-tile')];
+                    const index = head && getComputedStyle(head, '::before');
+                    if (!head || !index.content.includes('counter(')) issues.push(`${name}: no section number`);
+                    const tiles = [...group.querySelectorAll('.media-kit-tiles:not(.media-kit-docs) .media-file-tile')];
                     const rows = new Map();
                     for (const tile of tiles) {
                         const top = Math.round(tile.getBoundingClientRect().top);
@@ -660,7 +731,7 @@ public sealed class MediaKitBrowserTests(PlaywrightBrowserFixture browserFixture
         await page.GotoAsync("/media");
         await Assertions.Expect(page.Locator(".media-file-row")).ToHaveCountAsync(files.Count);
         if (width == 320) await page.EvaluateAsync("document.documentElement.style.fontSize = '200%'");
-        var team = page.Locator(".media-kit-group").Filter(new() { Has = page.GetByRole(AriaRole.Heading, new() { Name = "Team", Exact = true }) }).Locator("ul");
+        var team = page.Locator(".media-kit-group").Filter(new() { Has = page.GetByRole(AriaRole.Heading, new() { Name = "Team", Exact = true }) }).Locator("ul:not(.media-kit-docs)");
         await page.WaitForFunctionAsync("([list, columns]) => getComputedStyle(list).gridTemplateColumns.split(' ').length === columns",
             new object[] { await team.ElementHandleAsync() ?? throw new InvalidOperationException(), expectedTeamColumns });
         var one = page.Locator(".media-kit-group").Filter(new() { Has = page.GetByRole(AriaRole.Heading, new() { Name = "One", Exact = true }) }).Locator("ul");
