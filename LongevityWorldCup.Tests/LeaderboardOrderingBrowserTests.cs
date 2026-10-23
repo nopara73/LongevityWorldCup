@@ -188,7 +188,15 @@ public sealed class LeaderboardOrderingBrowserTests(PlaywrightBrowserFixture bro
         await Assertions.Expect(page.Locator("th[data-order-key=age]")).ToHaveAttributeAsync("data-order-direction", "asc");
         var toggle = page.GetByRole(AriaRole.Button, new() { Name = "Order athletes", Exact = true });
         Assert.Equal("", (await toggle.InnerTextAsync()).Trim());
-        Assert.True(await toggle.EvaluateAsync<bool>("e=>e.closest('.leaderboard-actions').previousElementSibling.classList.contains('search-container') && e.parentElement.nextElementSibling.classList.contains('sidebar-toggle')"));
+        Assert.True(await toggle.EvaluateAsync<bool>("""
+            e => {
+                const actions = e.closest('.leaderboard-actions');
+                const grouping = actions.previousElementSibling;
+                return grouping.classList.contains('leaderboard-group-switcher')
+                    && grouping.previousElementSibling.classList.contains('search-container')
+                    && e.parentElement.nextElementSibling.classList.contains('sidebar-toggle');
+            }
+            """), "The joined bar must keep Search, By Flag, Order and Filters in DOM order.");
         await toggle.ClickAsync();
         await Assertions.Expect(page.Locator("#leaderboardOrderPrimary")).ToBeFocusedAsync();
         await page.Locator("#leaderboardOrderSecondary").SelectOptionAsync("");
