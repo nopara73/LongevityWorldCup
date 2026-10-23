@@ -11,6 +11,47 @@ public sealed class AthleteProfileDocumentBrowserTests(
 {
     private const string Profile = "/athlete/michael-lustgarten";
 
+    [Fact]
+    public async Task HydrationAfterPageShow_KeepsTheCurrentDocumentsStylesheetsLoaded()
+    {
+        await using var context = await NewContextAsync(390, 844, true);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        Func<IRoute, Task> hold = async route => { await release.Task; await route.ContinueAsync(); };
+        await context.RouteAsync("**/api/data/athletes", hold);
+        await context.AddInitScriptAsync("""
+            window.__profileNavigation = [];
+            navigation.addEventListener('navigate', event => window.__profileNavigation.push({
+                type: event.navigationType, sameDocument: event.destination.sameDocument, url: event.destination.url
+            }));
+            """);
+        var page = await context.NewPageAsync();
+        try
+        {
+            await page.GotoAsync(Profile, new() { WaitUntil = WaitUntilState.Load });
+            release.TrySetResult();
+            await page.WaitForFunctionAsync("""
+                () => {
+                    const content = document.querySelector('#detailsModal .modal-content');
+                    return content?.dataset.athleteSlug === 'michael-lustgarten'
+                        && !content.classList.contains('is-loading')
+                        && !content.hasAttribute('data-server-rendered-profile');
+                }
+                """);
+            var state = await page.EvaluateAsync<string>("""
+                () => JSON.stringify({ navigation: window.__profileNavigation, styles:
+                    [...document.querySelectorAll('link[rel="stylesheet"]')]
+                        .map(link => ({ href: link.href, disabled: link.disabled, loaded: !!link.sheet })) })
+                """);
+            Assert.True(await page.EvaluateAsync<bool>("() => window.__profileNavigation.some(event => event.type === 'replace' && event.sameDocument)"), state);
+            Assert.True(await page.EvaluateAsync<bool>("() => [...document.querySelectorAll('link[rel=stylesheet]')].every(link => !!link.sheet && !link.disabled)"), state);
+        }
+        finally
+        {
+            release.TrySetResult();
+            await context.UnrouteAsync("**/api/data/athletes", hold);
+        }
+    }
+
     [Theory]
     [InlineData(1440, 900, true)]
     [InlineData(1024, 768, false)]

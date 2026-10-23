@@ -389,6 +389,8 @@ function fetchWithTimeout(url, options = {}, timeout = 10000) {
     if (!journeyStyles.length || !window.navigation) return;
     const journeyPath = /^\/(?:play|join|select-athlete|dashboard|pheno-age|bortz-age|apply|review)?\/?$/i;
     window.navigation.addEventListener('navigate', function (event) {
+        // History updates keep rendering this document, including its styles.
+        if (event.destination.sameDocument) return;
         const destination = new URL(event.destination.url);
         const stays = destination.origin === window.location.origin && journeyPath.test(destination.pathname);
         journeyStyles.forEach(function (link) {
