@@ -103,9 +103,15 @@ public sealed class MediaKitBrowserTests(PlaywrightBrowserFixture browserFixture
                         issues.push(`${name}: file-type well is covered by its download control`);
                     if (b.width < 44 || b.height < 44) issues.push(`${name}: download target is ${Math.round(b.width)}x${Math.round(b.height)}`);
                     if (b.left < row.left || b.right > row.right + 1 || n.left < row.left || n.right > row.right + 1) issues.push(`${name}: the row does not hold its name and download`);
-                    // A document row reads file type, name, download, and stays far shorter than a picture tile.
-                    if (innerWidth > 280 && (t.right > n.left + 1 || n.right > b.left + 1)) issues.push(`${name}: not read left to right`);
-                    if (innerWidth > 280 && row.height > Math.max(110, n.height + 40)) issues.push(`${name}: the row is ${Math.round(row.height)}px tall`);
+                    // A document row reads file type, name, download; when narrow, the name takes
+                    // its own line below. Either way it stays as short as its contents.
+                    const stacked = n.top >= t.bottom - 1;
+                    if (!stacked && (t.right > n.left + 1 || n.right > b.left + 1)) issues.push(`${name}: not read left to right`);
+                    if (stacked && (b.left < t.right || Math.abs(b.top + b.height / 2 - (t.top + t.height / 2)) > 2)) issues.push(`${name}: download is not beside the file type`);
+                    const content = stacked ? Math.max(t.height, b.height) + n.height : Math.max(t.height, n.height, b.height);
+                    const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
+                    if (row.height > content + 5 * rem) issues.push(`${name}: the row is ${Math.round(row.height)}px tall for ${Math.round(content)}px of content`);
+                    if (n.width < Math.min(row.width * 0.4, 120)) issues.push(`${name}: the name is squeezed to ${Math.round(n.width)}px`);
                     const group = list.parentElement;
                     const pictures = group.querySelector('.media-kit-tiles:not(.media-kit-docs)');
                     if (pictures && list.compareDocumentPosition(pictures) !== Node.DOCUMENT_POSITION_FOLLOWING) issues.push(`${name}: follows the pictures`);
@@ -550,7 +556,7 @@ public sealed class MediaKitBrowserTests(PlaywrightBrowserFixture browserFixture
                 }
                 const team = [...document.querySelectorAll('.media-kit-group')].find(group => group.querySelector('.media-kit-group-title')?.textContent === 'Team');
                 const teamDoc = box(team.querySelector('.media-file-doc')), teamPicture = box(team.querySelector('.media-file-tile:not(.media-file-doc)'));
-                if (teamDoc.height > teamPicture.height * 0.75) issues.push('a folder document takes a picture-sized tile');
+                if (teamDoc.height > teamPicture.height * 0.75 && teamDoc.width < box(team).width * 0.9) issues.push('a folder document takes a picture-sized tile');
 
                 const logos = [...document.querySelectorAll('.media-kit-group')].find(group => group.querySelector('.media-kit-group-title')?.textContent === 'Logos');
                 const logoList = logos.querySelector('.media-kit-tiles');

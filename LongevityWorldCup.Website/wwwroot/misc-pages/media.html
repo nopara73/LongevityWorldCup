@@ -459,6 +459,27 @@
             box-shadow: none;
         }
 
+        /* When the list is narrow for its text size, the name takes its own
+           line under the file type and download. */
+        .media-kit-docs {
+            container: media-kit-docs / inline-size;
+        }
+
+        @container media-kit-docs (max-width: 18rem) {
+            .media-kit-docs .media-file-doc {
+                grid-template-columns: auto minmax(0, 1fr);
+            }
+
+            .media-kit-docs .media-file-button {
+                justify-self: end;
+            }
+
+            .media-kit-docs .media-file-name {
+                grid-column: 1 / -1;
+                grid-row: 2;
+            }
+        }
+
         .media-kit-docs .media-file-button:hover,
         .media-kit-docs .media-file-button:focus-visible {
             border-color: var(--lwc-accent);
@@ -520,9 +541,10 @@
         /* Phones: the sheet runs edge to edge and tile widths follow the text
            size, including a single column when captions need the room. */
         @media (max-width: 560px) {
-            .media-kit-main {
+            main.media-kit-main {
                 width: 100%;
                 margin: 0 0 var(--lwc-space-6);
+                padding-inline: 0;
             }
         }
 
@@ -543,7 +565,7 @@
 
 
             .media-kit-tiles:not(.media-kit-featured, .media-kit-docs, .media-kit-logos) {
-                --media-kit-tile: 6.5rem;
+                --media-kit-tile: 8rem;
                 gap: var(--lwc-space-3) var(--lwc-space-2);
             }
 
@@ -584,17 +606,6 @@
         }
 
         @media (max-width: 280px) {
-            /* At full phone zoom a document row puts its name under the
-               file type and download instead of squeezing all three. */
-            .media-kit-docs .media-file-doc {
-                grid-template-columns: minmax(0, 1fr) auto;
-            }
-
-            .media-kit-docs .media-file-name {
-                grid-column: 1 / -1;
-                grid-row: 2;
-            }
-
             .media-kit-contact.landing-close {
                 grid-template-columns: minmax(0, 1fr);
             }
