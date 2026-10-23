@@ -23,7 +23,7 @@ function setDocumentationNavOpen(documentationNav, open) {
     const documentationNav = document.querySelector(".documentation-nav");
     if (documentationNav?.querySelector(".documentation-nav-toggle")) {
         documentationNav.classList.add("is-enhanced");
-        setDocumentationNavOpen(documentationNav, false);
+        setDocumentationNavOpen(documentationNav, documentationNav.classList.contains("is-open"));
     }
 }
 
@@ -33,6 +33,10 @@ function setDocumentationNavOpen(documentationNav, open) {
     const documentationNav = document.querySelector(".documentation-nav");
     const documentationNavToggle = documentationNav?.querySelector(".documentation-nav-toggle");
 
+    // The generated button works before this download finishes or if it fails.
+    // Replace its small native-click fallback without toggling twice or closing
+    // a contents list the reader has already opened.
+    documentationNavToggle?.removeAttribute("onclick");
     documentationNavToggle?.addEventListener("click", () => {
         const open = documentationNavToggle.getAttribute("aria-expanded") !== "true";
         updateGeometry();

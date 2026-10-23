@@ -8,6 +8,56 @@ namespace LongevityWorldCup.Tests;
 public sealed class LoadingResilienceBrowserTests(PlaywrightBrowserFixture browserFixture, BrowserTestAppFixture appFixture)
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task DocumentationContents_IsCompactAndUsableBeforeItsScriptLoads(bool failScript)
+    {
+        await using var context = await NewContextAsync(Browser, App, new() { ViewportSize = new() { Width = 390, Height = 844 } });
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await context.RouteAsync("**/js/documentation.js*", async route =>
+        {
+            await release.Task;
+            if (failScript) await route.AbortAsync();
+            else await route.ContinueAsync();
+        });
+        var page = await context.NewPageAsync();
+        try
+        {
+            await page.GotoAsync("/about", new() { WaitUntil = WaitUntilState.Commit });
+            var toggle = page.Locator(".documentation-nav-toggle");
+            await Assertions.Expect(toggle).ToBeVisibleAsync();
+            await Assertions.Expect(page.Locator(".documentation-nav-links")).ToBeHiddenAsync();
+            await page.EvaluateAsync("() => document.fonts.ready");
+            var top = await page.Locator(".documentation-document").EvaluateAsync<double>("element => element.getBoundingClientRect().top");
+            await toggle.FocusAsync();
+            await page.Keyboard.PressAsync("Enter");
+            await Assertions.Expect(page.Locator(".documentation-nav-links")).ToBeVisibleAsync();
+            release.TrySetResult();
+            await page.WaitForLoadStateAsync(LoadState.Load);
+            await Assertions.Expect(toggle).ToHaveAttributeAsync("aria-expanded", "true");
+            Assert.InRange(Math.Abs(await page.Locator(".documentation-document").EvaluateAsync<double>("element => element.getBoundingClientRect().top") - top), 0, 1);
+            // Both the fallback and the enhanced binding toggle only once.
+            await page.Keyboard.PressAsync("Enter");
+            await Assertions.Expect(page.Locator(".documentation-nav-links")).ToBeHiddenAsync();
+        }
+        finally
+        {
+            release.TrySetResult();
+            await context.UnrouteAllAsync(new() { Behavior = UnrouteBehavior.Wait });
+        }
+    }
+
+    [Fact]
+    public async Task DocumentationWithoutJavaScript_LeavesTheContentsLinksVisible()
+    {
+        await using var context = await NewContextAsync(Browser, App, new() { JavaScriptEnabled = false, ViewportSize = new() { Width = 390, Height = 844 } });
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/about");
+        await Assertions.Expect(page.Locator(".documentation-nav-links")).ToBeVisibleAsync();
+        await Assertions.Expect(page.Locator(".documentation-nav-links a").First).ToBeVisibleAsync();
+    }
+
     [Fact]
     public async Task DocumentationContents_WorksWhilePageModulesAreStillLoading()
     {

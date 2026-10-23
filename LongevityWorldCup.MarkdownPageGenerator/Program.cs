@@ -120,7 +120,7 @@ static string BuildContentsNav(string documentHtml, string sourceUrl)
     {
         return $"""
         <nav class="documentation-nav" aria-label="Document navigation">
-            <button type="button" class="documentation-nav-toggle" aria-expanded="false" aria-controls="documentation-nav-links">
+            <button type="button" class="documentation-nav-toggle" onclick="this.setAttribute('aria-expanded', this.closest('nav').classList.toggle('is-open')); this.lastElementChild.textContent = this.getAttribute('aria-expanded') === 'true' ? '−' : '+';" aria-expanded="false" aria-controls="documentation-nav-links">
                 <span class="documentation-nav-current">On this page</span><span class="documentation-nav-toggle-icon" aria-hidden="true">+</span>
             </button>
             <div class="documentation-nav-links" id="documentation-nav-links">
@@ -132,7 +132,7 @@ static string BuildContentsNav(string documentHtml, string sourceUrl)
 
     return $$"""
         <nav class="documentation-nav" aria-label="Document navigation">
-            <button type="button" class="documentation-nav-toggle" aria-expanded="false" aria-controls="documentation-nav-links">
+            <button type="button" class="documentation-nav-toggle" onclick="this.setAttribute('aria-expanded', this.closest('nav').classList.toggle('is-open')); this.lastElementChild.textContent = this.getAttribute('aria-expanded') === 'true' ? '−' : '+';" aria-expanded="false" aria-controls="documentation-nav-links">
                 <span class="documentation-nav-current">On this page</span><span class="documentation-nav-toggle-icon" aria-hidden="true">+</span>
             </button>
             <div class="documentation-nav-links" id="documentation-nav-links">
@@ -380,6 +380,7 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
 <head>
     <title>{{encodedTitle}} | Longevity World Cup</title>
     <!--HEAD-->
+    <script>document.documentElement.classList.add("documentation-js");</script>
     <link rel="alternate" type="text/markdown" title="Source Markdown" href="{{sourceUrl}}" />
     <style>
         /* About, History and the Ruleset share one long-form reading system: a
@@ -1188,7 +1189,7 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
                 box-shadow: none;
             }
 
-            .documentation-nav.is-enhanced {
+            .documentation-nav:is(.is-enhanced, .documentation-js *) {
                 position: relative;
                 top: auto;
                 z-index: 20;
@@ -1196,21 +1197,21 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
                 transition: box-shadow var(--lwc-duration-fast, 0.15s) var(--lwc-ease, ease);
             }
 
-            .documentation-nav.is-enhanced.is-stuck {
+            .documentation-nav:is(.is-enhanced, .documentation-js *).is-stuck {
                 box-shadow: var(--lwc-shadow-md, 0 10px 28px rgba(15, 23, 42, 0.1));
             }
 
-            .documentation-nav.is-enhanced .documentation-nav-toggle {
+            .documentation-nav:is(.is-enhanced, .documentation-js *) .documentation-nav-toggle {
                 position: relative;
                 overflow: hidden;
                 border-radius: calc(var(--lwc-radius-lg, 8px) - 1px);
             }
 
-            .documentation-nav.is-enhanced.is-open .documentation-nav-toggle {
+            .documentation-nav:is(.is-enhanced, .documentation-js *).is-open .documentation-nav-toggle {
                 border-radius: calc(var(--lwc-radius-lg, 8px) - 1px) calc(var(--lwc-radius-lg, 8px) - 1px) 0 0;
             }
 
-            .documentation-nav.is-enhanced .documentation-nav-toggle::after {
+            .documentation-nav:is(.is-enhanced, .documentation-js *) .documentation-nav-toggle::after {
                 content: "";
                 position: absolute;
                 right: 0;
@@ -1255,7 +1256,7 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
                 white-space: nowrap;
             }
 
-            .documentation-nav.is-enhanced .documentation-nav-toggle {
+            .documentation-nav:is(.is-enhanced, .documentation-js *) .documentation-nav-toggle {
                 box-sizing: border-box;
                 display: flex;
                 align-items: center;
@@ -1310,7 +1311,7 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
             }
 
             /* The open list hangs below the bar instead of pushing the document down. */
-            .documentation-nav.is-enhanced .documentation-nav-links {
+            .documentation-nav:is(.is-enhanced, .documentation-js *) .documentation-nav-links {
                 position: absolute;
                 top: 100%;
                 right: -1px;
@@ -1322,12 +1323,12 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
                 box-shadow: var(--lwc-shadow-md, 0 10px 28px rgba(15, 23, 42, 0.1));
             }
 
-            .documentation-nav.is-enhanced.is-open {
+            .documentation-nav:is(.is-enhanced, .documentation-js *).is-open {
                 border-bottom-left-radius: 0;
                 border-bottom-right-radius: 0;
             }
 
-            .documentation-nav.is-enhanced:not(.is-open) .documentation-nav-links {
+            .documentation-nav:is(.is-enhanced, .documentation-js *):not(.is-open) .documentation-nav-links {
                 display: none;
             }
 
@@ -1356,7 +1357,7 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
         /* Only screens with room to spare keep the folded contents on screen;
            short landscape phones scroll it away with the cover. */
         @media (max-width: 900px) and (min-height: 500px) {
-            .documentation-nav.is-enhanced {
+            .documentation-nav:is(.is-enhanced, .documentation-js *) {
                 position: sticky;
                 top: calc(var(--site-sticky-height, 0px) + 0.5rem);
             }
@@ -1365,7 +1366,7 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
 
         /* Reserve the bar for fragments and focused document controls, while
            the sticky toggle can use the space immediately below the header. */
-        :root:has(.documentation-nav.is-enhanced) .documentation-document :is([id], a, button, input, select, textarea, summary, li) {
+        :root:has(.documentation-nav:is(.is-enhanced, .documentation-js *)) .documentation-document :is([id], a, button, input, select, textarea, summary, li) {
             scroll-margin-top: max(0px, calc(var(--documentation-anchor-offset, 0px) - max(3.25rem, var(--site-sticky-height, 0px))));
         }
 
