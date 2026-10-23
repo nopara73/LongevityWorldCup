@@ -88,6 +88,9 @@ public sealed class InternalNavigationBrowserTests(
         Assert.EndsWith("#rank-1", href);
 
         var newPage = await context.RunAndWaitForPageAsync(() => link.ClickAsync(new() { Button = MouseButton.Middle }));
+        // Middle-click opens a background tab. Activate it before waiting for
+        // rendering work that Chromium may suspend in a hidden document.
+        await newPage.BringToFrontAsync();
         await WaitForLeaderboardAsync(newPage);
         Assert.EndsWith(href, newPage.Url);
         Assert.Equal(originalUrl, page.Url);

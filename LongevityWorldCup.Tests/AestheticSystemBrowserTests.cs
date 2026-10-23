@@ -1210,7 +1210,10 @@ public sealed class AestheticSystemBrowserTests(
                     }
                     break;
                 case "css/leaderboard-content.css":
-                    await AssertLeaderboardContainerBoundariesAsync(page, source.ToArray());
+                    await AssertControlBarContainerBoundariesAsync(page,
+                        source.Where(condition => condition.Name == "lwc-bar").ToArray());
+                    await AssertLeaderboardContainerBoundariesAsync(page,
+                        source.Where(condition => condition.Name != "lwc-bar").ToArray());
                     break;
                 case "css/leaderboard-ordering.css":
                     await AssertOrderingContainerBoundariesAsync(page, source.ToArray());
@@ -1236,6 +1239,9 @@ public sealed class AestheticSystemBrowserTests(
                 case "play/edit-profile.html":
                     await AssertEditProfileContainerBoundariesAsync(page, source.ToArray());
                     break;
+                case "misc-pages/media.html":
+                    await AssertMediaKitDocsContainerBoundariesAsync(page, source.ToArray());
+                    break;
                 case "misc-pages/about.html":
                 case "misc-pages/history.html":
                 case "misc-pages/ruleset.html":
@@ -1248,6 +1254,61 @@ public sealed class AestheticSystemBrowserTests(
                     Assert.Fail($"Add a rendered container-boundary probe for {source.Key}.");
                     break;
             }
+        }
+    }
+
+    private static async Task AssertMediaKitDocsContainerBoundariesAsync(
+        IPage page, ResponsiveContainerCondition[] conditions)
+    {
+        await NavigateAndSettleAsync(page, "/media");
+        // Render one document row with the page's own markup, independent of the archive.
+        await page.EvaluateAsync("""
+            () => {
+                const list = document.createElement('ul');
+                list.className = 'media-kit-file-list media-kit-tiles media-kit-docs';
+                list.dataset.docsBoundaryProbe = '';
+                list.innerHTML = '<li class="media-file-row media-file-tile media-file-doc"><span class="media-file-thumb media-file-doc-thumb"><i class="fas fa-file-lines media-file-icon" aria-hidden="true"></i></span><span class="media-file-name">FactSheet.txt</span><button type="button" class="media-file-button" aria-label="Download FactSheet.txt">Download</button></li>';
+                document.querySelector('#zipPreview').prepend(list);
+            }
+            """);
+        try
+        {
+            foreach (var fontSize in new[] { 16, 32 })
+            {
+                await page.EvaluateAsync("size => document.documentElement.style.fontSize = size + 'px'", fontSize);
+                foreach (var condition in conditions)
+                {
+                    Assert.Equal("media-kit-docs", condition.Name);
+                    Assert.Equal("max", condition.Bound);
+                    Assert.Equal("rem", condition.Unit);
+                    var threshold = condition.Value * fontSize;
+                    foreach (var delta in new[] { -1, 0, 1, 0, -1 })
+                    {
+                        var width = threshold + delta;
+                        var diagnostics = await page.EvaluateAsync<ContainerQueryDiagnostics>("""
+                            async width => {
+                                const list = document.querySelector('[data-docs-boundary-probe]');
+                                Object.assign(list.style, { boxSizing: 'content-box', width: `${width}px`, maxWidth: 'none', gridTemplateColumns: 'minmax(0, 1fr)' });
+                                await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                                const icon = list.querySelector('.media-file-doc-thumb').getBoundingClientRect();
+                                const name = list.querySelector('.media-file-name').getBoundingClientRect();
+                                return {
+                                    ContainerWidth: parseFloat(getComputedStyle(list).width),
+                                    IsCompact: name.top >= icon.bottom - 1,
+                                    HorizontalOverflow: Math.max(0, list.scrollWidth - list.clientWidth)
+                                };
+                            }
+                            """, width);
+                        Assert.Equal(width, diagnostics.ContainerWidth, 1);
+                        Assert.Equal(width <= threshold, diagnostics.IsCompact);
+                        Assert.True(diagnostics.HorizontalOverflow <= 1, $"Media kit document row overflowed at {width}px.");
+                    }
+                }
+            }
+        }
+        finally
+        {
+            await page.EvaluateAsync("() => document.documentElement.style.fontSize = ''");
         }
     }
 
@@ -1299,11 +1360,13 @@ public sealed class AestheticSystemBrowserTests(
                                 const card = document.querySelector('[data-edit-card-boundary-probe]');
                                 Object.assign(card.style, { boxSizing: 'content-box', width: `${width}px`, maxWidth: 'none' });
                                 await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-                                const selfie = card.querySelector('#takeProfileSelfieButton').getBoundingClientRect();
-                                const change = card.querySelector('#changeProfilePicButton').getBoundingClientRect();
+                                // Compact cards stack the name above the picture's actions;
+                                // wide cards keep both in the portrait's overhang row.
+                                const title = card.querySelector('#character-title').getBoundingClientRect();
+                                const actions = card.querySelector('#changeProfilePicWrapper').getBoundingClientRect();
                                 return {
                                     ContainerWidth: parseFloat(getComputedStyle(card).width),
-                                    IsCompact: change.top >= selfie.bottom - 1,
+                                    IsCompact: actions.top >= title.bottom - 1,
                                     HorizontalOverflow: Math.max(0, card.scrollWidth - card.clientWidth)
                                 };
                             }
@@ -1461,7 +1524,9 @@ public sealed class AestheticSystemBrowserTests(
             if (composer || results) Assert.Equal(composer ? 18 : 55, condition.Value);
             else Assert.Contains(condition.Value, new[] { 10d, 18.75d, 32d });
             await page.SetViewportSizeAsync(composer ? 1280 : results ? 1440 : 390, 900);
-            await NavigateAndSettleAsync(page, "/leaderboard?sort=pheno&then=age");
+            // The homepage retains the floating composer and its container query;
+            // the full page has a separate in-card strip with its own boundaries.
+            await NavigateAndSettleAsync(page, composer ? "/?sort=pheno&then=age" : "/leaderboard?sort=pheno&then=age");
             await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
             if (composer) await page.Locator("#leaderboardOrderToggle").ClickAsync();
             // Keep the real rendered markup and selectors, without live observers moving the probe.
@@ -1734,6 +1799,50 @@ public sealed class AestheticSystemBrowserTests(
                     Assert.Equal(width <= threshold, diagnostics.IsCompact);
                     Assert.True(diagnostics.HorizontalOverflow <= 1, $"Footer overflowed at {width}px with {fontSize}px text.");
                 }
+            }
+        }
+    }
+
+    private static async Task AssertControlBarContainerBoundariesAsync(
+        IPage page, ResponsiveContainerCondition[] conditions)
+    {
+        foreach (var condition in conditions)
+        {
+            Assert.Equal("lwc-bar", condition.Name);
+            Assert.Equal("max", condition.Bound);
+            Assert.Equal("rem", condition.Unit);
+            Assert.Equal(17.5, condition.Value);
+            foreach (var fontSize in new[] { 16, 32 })
+            {
+                await page.SetViewportSizeAsync(768, 1024);
+                await NavigateAndSettleAsync(page, "/leaderboard?sort=pheno&then=age");
+                await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+                await page.EvaluateAsync("size => document.documentElement.style.fontSize = `${size}px`", fontSize);
+                var threshold = condition.Value * fontSize;
+                foreach (var delta in new[] { -1, 0, 1, 0, -1 })
+                {
+                    var width = threshold + delta;
+                    var diagnostics = await page.EvaluateAsync<ContainerQueryDiagnostics>("""
+                        async width => {
+                            const bar = document.querySelector('.leaderboard-controls');
+                            Object.assign(bar.style, { boxSizing:'content-box', inlineSize:`${width}px`, maxInlineSize:'none' });
+                            await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                            const search = bar.querySelector('#athleteSearch').getBoundingClientRect();
+                            const tools = bar.querySelector('label[for="group-flags"]').getBoundingClientRect();
+                            return {
+                                ContainerWidth: parseFloat(getComputedStyle(bar).width),
+                                IsCompact: tools.top >= search.bottom,
+                                HorizontalOverflow: Math.max(0, bar.scrollWidth - bar.clientWidth)
+                            };
+                        }
+                        """, width);
+                    Assert.Equal(width, diagnostics.ContainerWidth, 1);
+                    Assert.True(diagnostics.IsCompact == (width <= threshold),
+                        $"Control bar did not cross {condition.Value}rem at {width}px with {fontSize}px text.");
+                    Assert.True(diagnostics.HorizontalOverflow <= 1,
+                        $"Control bar overflowed by {diagnostics.HorizontalOverflow}px at {width}px with {fontSize}px text.");
+                }
+                await page.EvaluateAsync("document.documentElement.style.removeProperty('font-size')");
             }
         }
     }

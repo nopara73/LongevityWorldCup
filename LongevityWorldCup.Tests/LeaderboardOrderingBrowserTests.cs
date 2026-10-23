@@ -188,7 +188,15 @@ public sealed class LeaderboardOrderingBrowserTests(PlaywrightBrowserFixture bro
         await Assertions.Expect(page.Locator("th[data-order-key=age]")).ToHaveAttributeAsync("data-order-direction", "asc");
         var toggle = page.GetByRole(AriaRole.Button, new() { Name = "Order athletes", Exact = true });
         Assert.Equal("", (await toggle.InnerTextAsync()).Trim());
-        Assert.True(await toggle.EvaluateAsync<bool>("e=>e.closest('.leaderboard-actions').previousElementSibling.classList.contains('search-container') && e.parentElement.nextElementSibling.classList.contains('sidebar-toggle')"));
+        Assert.True(await toggle.EvaluateAsync<bool>("""
+            e => {
+                const actions = e.closest('.leaderboard-actions');
+                const grouping = actions.previousElementSibling;
+                return grouping.classList.contains('leaderboard-group-switcher')
+                    && grouping.previousElementSibling.classList.contains('search-container')
+                    && e.parentElement.nextElementSibling.classList.contains('sidebar-toggle');
+            }
+            """), "The joined bar must keep Search, By Flag, Order and Filters in DOM order.");
         await toggle.ClickAsync();
         await Assertions.Expect(page.Locator("#leaderboardOrderPrimary")).ToBeFocusedAsync();
         await page.Locator("#leaderboardOrderSecondary").SelectOptionAsync("");
@@ -811,8 +819,53 @@ public sealed class LeaderboardOrderingBrowserTests(PlaywrightBrowserFixture bro
         bounds = (await panel.BoundingBoxAsync())!;
         Assert.InRange(bounds.X, 0, width);
         Assert.InRange(bounds.X + bounds.Width, 0, width + 1);
-        Assert.InRange(bounds.Y, 0, height);
-        Assert.InRange(bounds.Y + bounds.Height, 0, height + 1);
+        // The full-page strip participates in document scrolling. At enlarged
+        // text its focus must fit; the homepage's floating panel still has the
+        // full-panel viewport contract, covered below at these same sizes.
+        var focused = (await page.Locator("#leaderboardOrderPrimary").BoundingBoxAsync())!;
+        Assert.InRange(focused.Y, 0, height);
+        Assert.InRange(focused.Y + focused.Height, 0, height + 1);
+    }
+
+    [Theory]
+    [InlineData(1440, 1000, false)]
+    [InlineData(1024, 900, false)]
+    [InlineData(768, 1000, false)]
+    [InlineData(844, 390, false)]
+    [InlineData(390, 844, true)]
+    [InlineData(320, 720, false)]
+    public async Task HomepageComposer_RemainsFloatingAndFitsTheViewport(int width, int height, bool dark)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = height },
+            ColorScheme = dark ? ColorScheme.Dark : ColorScheme.Light,
+            ReducedMotion = ReducedMotion.Reduce
+        });
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/?sort=pheno&then=age&thenDir=desc");
+        await Loaded(page);
+        await page.Locator("#view-ultimate").FocusAsync();
+        await page.Keyboard.PressAsync("Tab");
+        await Assertions.Expect(page.Locator("#group-flags")).ToBeFocusedAsync();
+        await page.Keyboard.PressAsync("Tab");
+        await Assertions.Expect(page.Locator("#athleteSearch")).ToBeFocusedAsync();
+        foreach (var textPercent in new[] { 100, 200 })
+        {
+            await page.EvaluateAsync("size => document.documentElement.style.fontSize = `${size}%`", textPercent);
+            await page.Locator("#leaderboardOrderToggle").ClickAsync();
+            var panel = page.Locator("#leaderboardOrderPanel");
+            await Assertions.Expect(panel).ToBeVisibleAsync();
+            Assert.Equal("absolute", await panel.EvaluateAsync<string>("panel => getComputedStyle(panel).position"));
+            Assert.Equal(0, await panel.Locator(".order-selected-value").CountAsync());
+            var bounds = (await panel.BoundingBoxAsync())!;
+            Assert.InRange(bounds.X, 0, width);
+            Assert.InRange(bounds.X + bounds.Width, 0, width + 1);
+            Assert.InRange(bounds.Y, 0, height);
+            Assert.InRange(bounds.Y + bounds.Height, 0, height + 1);
+            await page.Keyboard.PressAsync("Escape");
+            await Assertions.Expect(page.Locator("#leaderboardOrderToggle")).ToBeFocusedAsync();
+        }
     }
 
     [Fact]

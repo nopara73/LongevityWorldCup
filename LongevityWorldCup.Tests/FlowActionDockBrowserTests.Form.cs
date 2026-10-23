@@ -467,7 +467,7 @@ public sealed class FlowActionDockFormBrowserTests(
     public async Task EditProfile_UnchangedAthleteWithStaleDraft_KeepsOnlyBackActionAndReachableFields(
         int viewportWidth,
         int viewportHeight,
-        bool expectDesktopCenteredBack)
+        bool expectDesktopBackAligned)
     {
         var app = App;
         var browser = Browser;
@@ -582,10 +582,14 @@ public sealed class FlowActionDockFormBrowserTests(
                 $"Unchanged edit-profile dock placeholder should not reserve hidden Submit space: {state.PlaceholderHeight}px placeholder vs {state.ActionHeight}px dock.");
         }
 
-        if (expectDesktopCenteredBack && state.ActionsDocked)
+        if (expectDesktopBackAligned && state.ActionsDocked)
         {
-            Assert.True(state.BackCenterDelta <= 3,
-                $"Lone desktop Back action should be centered in the dock; center was off by {state.BackCenterDelta}px.");
+            var alignment = await page.EvaluateAsync<double>("""
+                () => Math.abs(document.querySelector('.edit-profile-actions .back-button').getBoundingClientRect().left
+                    - document.getElementById('divisionDisplaySelect').getBoundingClientRect().left)
+                """);
+            Assert.True(alignment <= 1,
+                $"Back should keep its place at the left edge of the apply-style band; alignment was off by {alignment}px.");
             Assert.True(state.BackWidth <= 190,
                 $"Lone desktop Back action should stay compact; width was {state.BackWidth}px.");
         }
@@ -870,9 +874,9 @@ public sealed class FlowActionDockFormBrowserTests(
     }
 
     [Theory]
-    [InlineData(768, 1024, 38, 220)]
-    // Short desktops trade portrait height for the whole card, commands included, on one screen.
-    [InlineData(1280, 720, 36, 150)]
+    [InlineData(768, 1024, 38, 112)]
+    // The apply-family avatar keeps the same size even on short desktops.
+    [InlineData(1280, 720, 36, 112)]
     public async Task EditProfile_FirstViewportUsesFormScaleTitleAndShowsPictureAction(
         int viewportWidth,
         int viewportHeight,
@@ -943,7 +947,7 @@ public sealed class FlowActionDockFormBrowserTests(
                 return {
                     TitleFontSize: parseFloat(getComputedStyle(title).fontSize),
                     Title: rectOf(title),
-                    Picture: rectOf(image),
+                    Picture: rectOf(image.closest('picture')),
                     PictureButton: rectOf(pictureButton),
                     OptionsAos: card?.getAttribute('data-aos') || '',
                     ViewportHeight: window.innerHeight
