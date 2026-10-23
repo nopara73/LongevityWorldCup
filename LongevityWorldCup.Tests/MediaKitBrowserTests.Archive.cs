@@ -16,6 +16,8 @@ public sealed partial class MediaKitBrowserTests
         await InstallKitFixtureAsync(context);
         await context.UnrouteAsync("**/MediaKit.zip*");
         var page = await context.NewPageAsync();
+        var previewResponse = page.WaitForResponseAsync(response =>
+            new Uri(response.Url).AbsolutePath == "/assets/media-kit/MediaKit.zip");
         await page.GotoAsync("/media");
         var link = page.Locator(".media-kit-primary-download");
         var href = await link.GetAttributeAsync("href");
@@ -27,13 +29,12 @@ public sealed partial class MediaKitBrowserTests
             "LongevityWorldCup.Documentation", "MediaKit.zip"));
         var original = await File.ReadAllBytesAsync(source);
         Assert.EndsWith(Convert.ToHexString(SHA256.HashData(original)[..8]).ToLowerInvariant(), href);
-        using var client = App.CreateClient();
-        using var response = await client.GetAsync(href);
-        response.EnsureSuccessStatusCode();
-        Assert.Equal("application/zip", response.Content.Headers.ContentType?.MediaType);
-        Assert.True(response.Headers.CacheControl?.Public);
-        Assert.Contains("immutable", response.Headers.CacheControl!.ToString());
-        Assert.Equal(original, await response.Content.ReadAsByteArrayAsync());
+        var response = await previewResponse;
+        Assert.True(response.Ok);
+        Assert.Equal("application/zip", response.Headers["content-type"]);
+        Assert.Contains("public", response.Headers["cache-control"]);
+        Assert.Contains("immutable", response.Headers["cache-control"]);
+        Assert.Equal(original, await response.BodyAsync());
 
         var download = await page.RunAndWaitForDownloadAsync(() => link.ClickAsync());
         Assert.Equal("MediaKit.zip", download.SuggestedFilename);
