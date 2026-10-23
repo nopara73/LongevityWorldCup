@@ -277,7 +277,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
                 page,
                 "#lmxTitlePanel h1",
                 "#lmxHeroCopy",
-                ".lmx-question-preview-label span",
+                ".lmx-habit-question",
                 "#lmxBoardMeta",
                 ".lmx-board-row:not(.header) .lmx-name",
                 ".lmx-board-row:not(.header) .lmx-number",

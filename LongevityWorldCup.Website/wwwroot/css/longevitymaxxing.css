@@ -4392,6 +4392,7 @@ a.lmx-note-mention:focus-visible {
     font-size: var(--lwc-type-xs);
 }
 
+.lmx-checkin-progress:empty,
 .lmx-checkin-actions .lmx-status:empty,
 .lmx-checkin-reset[hidden] {
     display: none;
@@ -6941,4 +6942,216 @@ html body .lmx-page #lmxAccessTabs .lmx-tab[aria-selected="true"] {
     :is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-answer-input:checked + .lmx-answer-face .lmx-answer-face-icon {
         animation: none;
     }
+}
+
+/* ==========================================================================
+   Landing and board system
+   Signed out, each habit tile carries its own daily question, so the hero
+   names the four habits once. The board reads as one divided list: missed
+   days are quiet dots, day numbers are plain, resting rows step back, and an
+   empty board shows who is resting behind the toggle.
+   ========================================================================== */
+
+/* --- Habit tiles: icon, name and question in one card --------------------- */
+
+.lmx-page .lmx-habit-grid {
+    /* Two tiles a row while a question has room to read; one under enlarged text. */
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, max(14rem, calc(50% - var(--lwc-space-3)))), 1fr));
+}
+
+.lmx-page .lmx-habit-card {
+    grid-template-columns: 2.25rem minmax(0, 1fr);
+    grid-template-rows: minmax(2.25rem, auto) auto;
+    align-content: start;
+    align-items: center;
+    column-gap: var(--lwc-space-3);
+    row-gap: var(--lwc-space-1);
+    padding: var(--lwc-space-4);
+}
+
+.lmx-page .lmx-habit-card i {
+    grid-row: 1 / span 2;
+    align-self: start;
+}
+
+.lmx-page .lmx-habit-card span {
+    font-size: var(--lwc-type-lg, 1.125rem);
+    line-height: 1.2;
+}
+
+.lmx-page .lmx-habit-question {
+    grid-column: 2;
+    align-self: start;
+    margin: 0;
+    color: var(--lmx-muted);
+    font-size: var(--lwc-type-sm);
+    font-weight: 600;
+    line-height: 1.45;
+}
+
+@media (max-width: 760px) {
+    .lmx-page .lmx-habit-grid {
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, max(14rem, calc(50% - var(--lwc-space-3)))), 1fr));
+    }
+
+    .lmx-page .lmx-habit-card {
+        justify-items: start;
+        padding: var(--lwc-space-4);
+        gap: var(--lwc-space-1) var(--lwc-space-3);
+        text-align: left;
+    }
+
+    .lmx-page .lmx-habit-card span {
+        font-size: var(--lwc-type-body);
+    }
+}
+
+@media (max-width: 520px) {
+    .lmx-page .lmx-habit-grid {
+        gap: var(--lwc-space-2);
+    }
+
+    .lmx-page .lmx-habit-card {
+        padding: var(--lwc-space-3) var(--lwc-space-4);
+    }
+}
+
+/* The narrowest phones stack the icon over the name so long names keep their room. */
+@media (max-width: 340px) {
+    .lmx-page .lmx-habit-card {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .lmx-page .lmx-habit-card i {
+        grid-row: auto;
+    }
+
+    .lmx-page .lmx-habit-question {
+        grid-column: 1;
+    }
+}
+
+/* --- Board: one divided list ---------------------------------------------- */
+
+@media (min-width: 761px) {
+    .lmx-page .lmx-board .lmx-board-row:not(.header) {
+        border-radius: 0;
+    }
+
+    .lmx-page .lmx-board .lmx-board-row:not(.header):not(.lmx-full-marks):not(.lmx-board-row--self) {
+        --lmx-row-surface: var(--lmx-surface);
+        background: var(--lmx-row-surface);
+    }
+
+    /* Dividers are drawn, not bordered, so every row keeps the same height. */
+    .lmx-page .lmx-board .lmx-board-row:not(.header) + .lmx-board-row:not(.header):not(.lmx-board-row--self) {
+        box-shadow: inset 0 1px 0 var(--lmx-border);
+    }
+
+    .lmx-page .lmx-board .lmx-board-row.lmx-roster-row:not(.header) > .lmx-name {
+        box-shadow:
+            var(--lmx-board-gap) 0 0 var(--lmx-surface),
+            0.55rem 0 0.75rem -0.82rem rgba(15, 23, 42, 0.55);
+    }
+
+    .lmx-page .lmx-board .lmx-board-row.header {
+        border-radius: var(--lwc-radius-md);
+    }
+
+    /* Day numbers read as plain column labels, not as boxes above the boxes. */
+    .lmx-page .lmx-board .lmx-header-days .lmx-cell {
+        height: 1.6rem;
+        border-color: transparent;
+        background: transparent;
+        box-shadow: none;
+        color: var(--lmx-muted);
+        font-size: 0.72rem;
+    }
+}
+
+.lmx-page .lmx-board .lmx-board-row.lmx-full-marks {
+    --lmx-row-surface: var(--lmx-surface-accent);
+    background: var(--lmx-row-surface);
+}
+
+/* A missed day is a quiet dot, so the days that were checked in stand out. */
+.lmx-page .lmx-board .lmx-cell.empty:not(.lmx-reporting-open) {
+    border-color: transparent;
+    background: radial-gradient(circle, color-mix(in srgb, var(--lmx-border-strong) 42%, transparent) 0 0.16rem, transparent 0.19rem);
+    box-shadow: none;
+}
+
+.lmx-page .lmx-rank.lmx-rank--podium {
+    border-color: var(--lmx-accent);
+    background: var(--lmx-accent-soft);
+    color: var(--lmx-accent-hover);
+}
+
+.lmx-page .lmx-board-row.inactive .lmx-participant-avatar {
+    filter: grayscale(1);
+}
+
+/* Phones: a row with nothing to show in this window keeps just its name line. */
+@media (max-width: 760px) {
+    .lmx-page .lmx-board .lmx-board-row.lmx-board-row--quiet > .lmx-cell-strip {
+        display: none;
+    }
+
+    .lmx-page .lmx-board .lmx-board-row.lmx-board-row--quiet {
+        padding-block: 0.5rem;
+    }
+}
+
+/* --- Empty board: the message over the resting crew's faces --------------- */
+
+.lmx-page .lmx-board-wrap--empty .lmx-board .lmx-board-row.lmx-empty-row {
+    min-height: 9rem;
+    margin: var(--lwc-space-2) 0;
+    border: 0;
+    background: transparent;
+}
+
+.lmx-page .lmx-board-wrap--empty .lmx-board .lmx-board-row.lmx-empty-row > .lmx-name {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--lwc-space-3);
+    background: transparent;
+}
+
+.lmx-page .lmx-resting-faces {
+    display: inline-flex;
+    align-items: center;
+    padding-left: 0.6rem;
+}
+
+.lmx-page .lmx-resting-faces > .lmx-participant-avatar,
+.lmx-page .lmx-resting-faces > .lmx-resting-more {
+    width: 2.5rem;
+    height: 2.5rem;
+    margin-left: -0.6rem;
+    border: 3px solid var(--lmx-surface);
+    flex: none;
+    border-radius: 999px;
+    box-shadow: none;
+    filter: grayscale(1);
+    opacity: 0.85;
+}
+
+.lmx-page .lmx-resting-more {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    background: var(--lmx-surface-muted);
+    color: var(--lmx-muted);
+    font-family: Orbitron, Roboto, sans-serif;
+    font-size: 0.72rem;
+    font-weight: 800;
+}
+
+/* Resting rows keep the rank column, so names stay on one edge. */
+.lmx-rank-slot {
+    min-width: 2.25rem;
 }
