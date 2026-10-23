@@ -150,6 +150,12 @@ public sealed class PublicPageRenderingBrowserTests(PlaywrightBrowserFixture bro
     public async Task ProfileFailure_KeepsReadableDetails_AndRetryPreservesTheHomepage()
     {
         await using var context = await NewContextAsync(Browser, App, new() { ReducedMotion = ReducedMotion.Reduce });
+        await context.AddInitScriptAsync("""
+            Object.defineProperty(navigator, 'share', { value: undefined, configurable: true });
+            Object.defineProperty(navigator, 'clipboard', { value: {
+                writeText: async text => { window.copiedProfileLink = text; }
+            }, configurable: true });
+            """);
         var offline = true;
         await context.RouteAsync("**/api/data/athletes", route => offline ? route.AbortAsync() : route.ContinueAsync());
         var page = await context.NewPageAsync();
@@ -157,6 +163,11 @@ public sealed class PublicPageRenderingBrowserTests(PlaywrightBrowserFixture bro
         await Assertions.Expect(page.Locator("#athleteLoadError")).ToBeVisibleAsync();
         await Assertions.Expect(page.Locator("#athleteName")).ToContainTextAsync("Michael Lustgarten");
         await Assertions.Expect(page.Locator("#athleteBio")).Not.ToBeEmptyAsync();
+        await Assertions.Expect(page.Locator("#shareAthleteProfile")).ToBeEnabledAsync();
+        await page.Locator("#shareAthleteProfile").ClickAsync();
+        await page.Locator("#copyAthleteProfileLink").ClickAsync();
+        await page.WaitForFunctionAsync("() => window.copiedProfileLink === 'https://longevityworldcup.com/athlete/michael-lustgarten'");
+        await Assertions.Expect(page.Locator("#athleteShareMenu")).ToBeHiddenAsync();
         offline = false;
         await page.Locator("#retryAthleteLoad").ClickAsync();
         await page.WaitForFunctionAsync("() => !document.querySelector('#detailsModal .modal-content').hasAttribute('data-server-rendered-profile') && document.querySelector('#modalProfilePic').hasAttribute('data-full-src')");

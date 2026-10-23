@@ -62,8 +62,9 @@ public sealed class AthleteWhyBrowserTests(PlaywrightBrowserFixture browserFixtu
                     const modal = document.querySelector('#detailsModal .modal-content');
                     if (modal.scrollWidth > modal.clientWidth + 1) failures.push('dialog horizontal overflow');
                     if (getComputedStyle(bio).whiteSpace !== 'pre-wrap') failures.push('line breaks or whitespace collapsed');
-                    const links = document.querySelector('.athlete-links');
-                    if (links && links.getBoundingClientRect().top < bounds.bottom - 1) failures.push('following controls overlap');
+                    let following = bio.nextElementSibling;
+                    while (following && !following.getClientRects().length) following = following.nextElementSibling;
+                    if (following && following.getBoundingClientRect().top < bounds.bottom - 1) failures.push('following section overlaps');
                     return failures;
                 }
                 """);
