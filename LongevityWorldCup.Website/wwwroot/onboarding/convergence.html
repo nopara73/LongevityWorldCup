@@ -11,6 +11,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
     <link rel="stylesheet" href="{{ASSET_BIOAGEFORM_CSS}}">
     <link rel="stylesheet" href="{{ASSET_ENTRY_JOURNEY_CSS}}">
+    <link rel="stylesheet" href="{{ASSET_APPLY_FLOW_FEEL_CSS}}">
+    <script src="{{ASSET_APPLY_FLOW_FEEL_JS}}" defer></script>
     <style>
         /* Hide the join-game button in the header */
         .join-game {
@@ -1902,6 +1904,7 @@
 
         function goToStage(stage, { focus = false } = {}) {
             const previousStage = Number(document.body.dataset.convergenceStage) || 0;
+            const finishStageMotion = window.LwcApplyFeel?.beginStage(previousStage, stage);
             document.body.dataset.convergenceStage = String(stage);
             document.getElementById('descriptionForm').style.display = '';
 
@@ -2128,6 +2131,7 @@
 
             updateSubProgress(stage);
             playStageEntrance(previousStage, stage);
+            finishStageMotion?.();
             updateUploadButtons();
             refreshProfileCrop?.();
             window.LwcFlowActionDock?.refresh();

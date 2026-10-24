@@ -14,6 +14,8 @@ public static partial class HtmlAssetPlaceholders
         ["{{ASSET_AGE_VISUALIZATION_JS}}"] = "/js/age-visualization.js",
         ["{{ASSET_APPLE_TOUCH_ICON_DARK}}"] = "/assets/apple-touch-icon-dark.png",
         ["{{ASSET_APPLE_TOUCH_ICON}}"] = "/assets/apple-touch-icon.png",
+        ["{{ASSET_APPLY_FLOW_FEEL_CSS}}"] = "/css/apply-flow-feel.css",
+        ["{{ASSET_APPLY_FLOW_FEEL_JS}}"] = "/js/apply-flow-feel.js",
         ["{{ASSET_BADGES_CSS}}"] = "/css/badges.css",
         ["{{ASSET_BADGES_JS}}"] = "/js/badges.js",
         ["{{ASSET_BEAN_WAITING_PNG}}"] = "/assets/content-images/bean-waiting.png",

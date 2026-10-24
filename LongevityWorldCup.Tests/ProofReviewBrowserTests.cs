@@ -11,6 +11,83 @@ public sealed class ProofReviewBrowserTests(PlaywrightBrowserFixture browserFixt
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Theory]
+    [InlineData(1440, 900, 100, false)]
+    [InlineData(390, 844, 100, true)]
+    [InlineData(320, 640, 200, false)]
+    [InlineData(195, 422, 100, true)]
+    public async Task Review_LongFileNamesRemainReadableWithoutClippingTheTitle(int width, int height, int textPercent, bool dark)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = height },
+            ColorScheme = dark ? ColorScheme.Dark : ColorScheme.Light, ReducedMotion = ReducedMotion.Reduce
+        });
+        var page = await PrepareAsync(context, false);
+        var files = await CreatePagesAsync(1);
+        files[0].Name = "Comprehensive metabolic panel and complete blood count — laboratory results September 2026.png";
+        await UploadAsync(page, files);
+        await page.EvaluateAsync("percent => document.documentElement.style.fontSize = percent + '%'", textPercent);
+        await page.Locator(".proof-page-preview").First.ClickAsync();
+        var title = page.Locator(".proof-review-toolbar h2");
+        await Assertions.Expect(title).ToHaveTextAsync(files[0].Name);
+        Assert.True(await title.EvaluateAsync<bool>("e => e.scrollWidth <= e.clientWidth + 1 && e.scrollHeight <= e.clientHeight + 1"),
+            "The full proof filename must remain readable instead of being line-clamped.");
+        await page.Locator(".proof-review-close").FocusAsync();
+        await page.Keyboard.PressAsync("Enter");
+        await Assertions.Expect(page.Locator(".proof-page-preview").First).ToBeFocusedAsync();
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public async Task Removal_UpdatesDataAndValidationBeforeAnimationOrImmediateSubmit(bool onboarding, bool reduced)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ReducedMotion = reduced ? ReducedMotion.Reduce : ReducedMotion.NoPreference
+        });
+        var page = await PrepareAsync(context, onboarding);
+        await UploadAsync(page, await CreatePagesAsync(2));
+        // A single browser task deliberately gives the exit animation no time to
+        // finish. Exercise the real submission entry point with its write mocked.
+        Assert.True(await page.EvaluateAsync<bool>("""
+            onboarding => {
+                const expected = proofPics.slice(1);
+                let submitted;
+                window.submitApplicationWithRecovery = data => {
+                    submitted = JSON.parse(JSON.stringify(data));
+                    return new Promise(() => {});
+                };
+                const button = document.querySelector(onboarding ? '#nextButton' : '#submitButton');
+                document.querySelector('.proof-page-remove').click();
+                if (JSON.stringify(proofPics) !== JSON.stringify(expected) || button.disabled) return false;
+                if (!onboarding) {
+                    button.click();
+                    if (!submitted || JSON.stringify(submitted.proofPics) !== JSON.stringify(expected)) return false;
+                }
+                // Undo during the visual exit, then remove all pages in the same
+                // task. No delayed callback may remove the restored page again.
+                document.querySelector('.proof-undo').click();
+                window.__restoredProofs = [...proofPics];
+                for (const animation of document.getAnimations()) animation.cancel();
+                return JSON.stringify(proofPics) === JSON.stringify(window.__restoredProofs);
+            }
+            """, onboarding));
+        await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+        Assert.True(await page.EvaluateAsync<bool>("""
+            onboarding => {
+                if (JSON.stringify(proofPics) !== JSON.stringify(window.__restoredProofs)) return false;
+                while (document.querySelector('.proof-page-remove')) document.querySelector('.proof-page-remove').click();
+                const action = document.querySelector(onboarding ? '#nextButton' : '#submitButton');
+                return proofPics.length === 0 && action.disabled
+                    && window.dispatchEvent(new Event('beforeunload', { cancelable: true }));
+            }
+            """, onboarding));
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public async Task ReloadWithProofs_CanBeCancelledWithoutLosingThePages(bool onboarding)
