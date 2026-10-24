@@ -9,12 +9,14 @@ public sealed class FrontendTypeScriptBuildTests
 {
     private static readonly string[] ClassicScripts =
     [
+        "athlete-browse-motion",
         "bioage-flow",
         "custom-event-markup",
         "field-validation",
         "flow-action-dock",
         "initial-view",
         "longevitymaxxing",
+        "motion",
         "site-statistics",
         "site-statistics-tracking"
     ];

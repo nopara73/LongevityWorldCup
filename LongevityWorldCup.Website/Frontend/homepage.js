@@ -1,5 +1,6 @@
 let bitcoinDonationAddress = '';
 let bitcoinCopyTimer = null;
+let cancelBitcoinCopyExit = null;
 let newsletterSubmitting = false;
 let newsletterRetryEmail = '';
 const newsletterForm = document.getElementById('newsletter-form');
@@ -650,6 +651,8 @@ async function copyBitcoinAddress() {
 
     const copiedTextElement = document.getElementById('copiedText');
     clearTimeout(bitcoinCopyTimer);
+    cancelBitcoinCopyExit?.();
+    cancelBitcoinCopyExit = null;
     copiedTextElement.hidden = true;
     copiedTextElement.textContent = '';
     bitcoinCopyHelp.hidden = true;
@@ -690,9 +693,15 @@ async function copyBitcoinAddress() {
         if (document.activeElement === bitcoinAddressFallback) bitcoinCopyButton.focus({ preventScroll: true });
         bitcoinCopyTimer = setTimeout(function () {
             copiedTextElement.hidden = true;
-            copiedTextElement.textContent = '';
-            bitcoinAddressLink.style.display = '';
-            adjustBitcoinAddressDisplay();
+            // The address returns to the toast's place once the toast has left it.
+            const restoreAddress = function () {
+                if (!copiedTextElement.hidden) return;
+                copiedTextElement.textContent = '';
+                bitcoinAddressLink.style.display = '';
+                adjustBitcoinAddressDisplay();
+            };
+            if (window.LwcMotion) cancelBitcoinCopyExit = window.LwcMotion.afterExit(copiedTextElement, restoreAddress);
+            else restoreAddress();
         }, 2000);
     } else {
         bitcoinAddressFallback.value = bitcoinDonationAddress;

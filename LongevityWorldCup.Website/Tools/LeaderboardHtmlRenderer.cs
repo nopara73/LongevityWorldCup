@@ -21,7 +21,7 @@ public static class LeaderboardHtmlRenderer
             var blurred = visibleSlugs.Contains(row.Slug) ? "" : " blurred";
             sb.Append($"<div class=\"podium-item {rankClass}{blurred}\" data-athlete-name=\"{EncodeAttribute(row.AthleteName ?? row.DisplayName)}\">")
                 .Append($"<div class=\"podium-rank\" title=\"{place} Place\"><i class=\"fa-solid fa-{icon}\" style=\"color: {color};\"></i></div>")
-                .Append($"<a class=\"athlete-profile-link\" href=\"{EncodeAttribute(row.AthletePath)}\" aria-label=\"View stats of {EncodeAttribute(row.DisplayName)}\"><img src=\"{EncodeAttribute(row.LeaderboardThumbnailUrl)}\" alt=\"{EncodeAttribute(row.DisplayName)} portrait\" class=\"podium-portrait\" loading=\"lazy\"></a>")
+                .Append($"<a class=\"athlete-profile-link\" href=\"{EncodeAttribute(row.AthletePath)}\" aria-label=\"View stats of {EncodeAttribute(row.DisplayName)}\"><img src=\"{EncodeAttribute(row.LeaderboardThumbnailUrl)}\" alt=\"{EncodeAttribute(row.DisplayName)} portrait\" class=\"podium-portrait\" {PodiumPortraitLoading(row.Rank)}></a>")
                 .Append($"<div class=\"name-row\"><a class=\"athlete-name\" href=\"{EncodeAttribute(row.AthletePath)}\" title=\"View stats of {EncodeAttribute(row.DisplayName)}\">{EncodeText(row.DisplayName)}</a></div>")
                 .Append("<div class=\"podium-link-row\"></div>")
                 .Append($"<div class=\"podium-score\"><span class=\"age-reduction\">{PublicHtmlFormat.Fixed(Math.Abs(row.EffectiveAgeReductionYears ?? 0), row.MetricDecimals)} years</span> reduced</div>")
@@ -29,6 +29,13 @@ public static class LeaderboardHtmlRenderer
         }
         return sb.ToString();
     }
+
+    // The podium is the first thing a visitor looks at: its portraits load with the
+    // document instead of waiting for lazy-load layout, the champion first.
+    private static string PodiumPortraitLoading(int rank)
+        => rank == 1
+            ? "loading=\"eager\" fetchpriority=\"high\" decoding=\"async\""
+            : "loading=\"eager\" decoding=\"async\"";
 
     public static string RenderRows(LeaderboardSnapshot snapshot, string metricLabel = "Age reduction", bool separateTracks = true, LeaderboardOrderState? ordering = null)
     {

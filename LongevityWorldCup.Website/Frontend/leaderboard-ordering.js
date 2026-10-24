@@ -134,7 +134,7 @@
         if (!panel || panel.hidden) return;
         panel.hidden = true;
         toggle.setAttribute('aria-expanded', 'false');
-        if (restoreFocus) {
+        if (restoreFocus || panel.contains(document.activeElement)) {
             toggle.focus({ preventScroll: true });
             if (getComputedStyle(panel).position === 'static') {
                 // Opening a tall strip can scroll its trigger out of view.
