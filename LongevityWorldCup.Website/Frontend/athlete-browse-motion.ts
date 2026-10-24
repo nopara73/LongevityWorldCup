@@ -370,7 +370,14 @@
         if (body.style.position !== "fixed") return null;
         const saved = -parseFloat(body.style.top || "0") || 0;
         const rect = row.getBoundingClientRect();
-        if (rect.top >= innerHeight * 0.18 && rect.bottom <= innerHeight * 0.88) return null;
+        // A visible return target should stay where the visitor left it. The
+        // old percentage margins re-centered visible rows near the bottom,
+        // especially when the phone rank rail made names wrap onto more lines.
+        const head = row.closest("table")?.tHead;
+        const bannerBottom = document.querySelector("header[role='banner']")?.getBoundingClientRect().bottom ?? 0;
+        const coveredTop = Math.max(0, bannerBottom, ...Array.from(head?.querySelectorAll("th") ?? [])
+            .map(cell => cell.getBoundingClientRect().bottom));
+        if (rect.top >= coveredTop && rect.bottom <= innerHeight) return null;
         const max = Math.max(0, body.scrollHeight - innerHeight);
         const target = Math.round(Math.min(max, Math.max(0, rect.top + saved - (innerHeight - rect.height) / 2)));
         if (Math.abs(target - saved) < 1) return null;
