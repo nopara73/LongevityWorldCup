@@ -59,4 +59,34 @@ public sealed class NotFoundPageBrowserTests(
         Assert.True(layout[14] <= layout[15], $"{scenario}: Home should be in the first screen ({layout[14]}px of {layout[15]}px).");
         await ExpectNoHorizontalOverflowAsync(page);
     }
+
+    [Theory]
+    [InlineData(320, 740, false)]
+    [InlineData(320, 740, true)]
+    [InlineData(640, 360, false)]
+    [InlineData(1440, 900, true)]
+    public async Task Scoreboard_KeepsItsAccessibleTitleAndWholeDigitGlyphs(int width, int height, bool reduced)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = height },
+            ReducedMotion = reduced ? ReducedMotion.Reduce : ReducedMotion.NoPreference
+        });
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/no-such-page");
+        await Assertions.Expect(page.Locator("h1")).ToHaveAccessibleNameAsync("404 not found");
+        await page.EvaluateAsync("() => document.fonts.ready");
+        // Inspect the final animation frame, including the moving reel's real glyph.
+        await page.Locator(".nf-score").EvaluateAsync("e => e.getAnimations({subtree:true}).forEach(a => a.finish())");
+        Assert.True(await page.Locator(".nf-score").EvaluateAsync<bool>("""
+            score => [...score.querySelectorAll('.nf-reel')].every(reel => {
+                const range = document.createRange(); range.selectNodeContents(reel);
+                const tile = reel.parentElement.getBoundingClientRect();
+                return [...range.getClientRects()].every(r => r.left >= tile.left - 1 && r.right <= tile.right + 1
+                    && r.top >= tile.top - 1 && r.bottom <= tile.bottom + 1);
+            })
+            """));
+        if (reduced)
+            Assert.Equal("none", await page.Locator(".nf-reel").First.EvaluateAsync<string>("e => getComputedStyle(e, '::before').display"));
+    }
 }

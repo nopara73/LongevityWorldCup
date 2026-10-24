@@ -47,6 +47,9 @@ public sealed class PageTitleEnlargedTextBrowserTests(
     public async Task Titles_EnlargeAndReflowWithoutLosingWordingOrClippingGlyphs(string path, string titleSelector, string wording)
     {
         var widths = new[] { 160, 195, 320, 360, 390, 559, 560, 600, 601, 700, 701, 768, 820, 900, 901, 1024, 1440 };
+        // Reserve additional inline space for the native scrollbar in the
+        // narrow history-title case. Actual 200% zoom is verified separately.
+        if (path == "/history") widths = [150, .. widths];
         var normalSizes = new Dictionary<int, double>();
         // Keep each text setting fixed while resizing. Resetting the root after every
         // resize can expose a stale enlarged clamp() value as the "normal" reference.

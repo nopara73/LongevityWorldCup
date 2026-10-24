@@ -8,6 +8,38 @@ public sealed class EventFeedBrowserTests(PlaywrightBrowserFixture browserFixtur
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task InitialHeadingScroll_DoesNotInterruptHoverOrFocus(bool focus)
+    {
+        await using var context = await HomepageChromeRegressionBrowserTests.NewContextAsync(Browser, App, ReducedMotion.Reduce);
+        await context.AddInitScriptAsync("""
+            window.headingScrolls = 0;
+            const originalScrollIntoView = Element.prototype.scrollIntoView;
+            Element.prototype.scrollIntoView = function (...args) {
+                if (this.matches('.event-board-heading')) headingScrolls++;
+                return originalScrollIntoView.apply(this, args);
+            };
+            """);
+        var page = await context.NewPageAsync();
+        await page.SetViewportSizeAsync(844, 390);
+        var start = new DateTime(2026, 10, 24, 4, 0, 0, DateTimeKind.Utc);
+        await page.Clock.InstallAsync(new() { Time = start.ToString("O") });
+        await page.Clock.PauseAtAsync(start.AddSeconds(1));
+        await page.GotoAsync("/events", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.EvaluateAsync("() => document.fonts.ready");
+        var link = page.Locator(".event-feed-link");
+        if (focus) await link.FocusAsync();
+        else
+        {
+            var box = (await link.BoundingBoxAsync())!;
+            await page.Mouse.MoveAsync(box.X + box.Width / 2, box.Y + box.Height / 2);
+        }
+        await page.Clock.RunForAsync(600);
+        Assert.Equal(0, await page.EvaluateAsync<int>("headingScrolls"));
+    }
+
+    [Theory]
     [InlineData(360)]
     [InlineData(1280)]
     public async Task InitialHeadingScroll_RespectsReducedMotion(int width)
