@@ -35,6 +35,13 @@
     --lwc-chart-tip-ink: var(--athlete-modal-text, rgba(255,255,255,.94));
 }
 
+.stats-page {
+    --lwc-chart-accent: var(--cyan);
+    --lwc-chart-muted: var(--muted);
+    --lwc-chart-tip-bg: var(--panel-2);
+    --lwc-chart-tip-ink: var(--text);
+}
+
 /* ---- Figures: tabular, so values never jitter as they change or count ---- */
 
 .age-diff,
@@ -79,21 +86,19 @@
 
 canvas[data-lwc-draw="wait"],
 svg[data-lwc-draw="wait"] {
-    clip-path: inset(0 100% 0 0);
+    opacity: .85;
 }
 canvas[data-lwc-draw="in"],
 svg[data-lwc-draw="in"] {
-    clip-path: inset(0 0 0 0);
-    transition: clip-path var(--lwc-chart-draw) var(--lwc-chart-ease);
+    opacity: 1;
+    transition: opacity var(--lwc-chart-draw) var(--lwc-chart-ease);
 }
 canvas[data-lwc-chart="radar"][data-lwc-draw="wait"] {
-    clip-path: circle(0% at 50% 50%);
-    opacity: 0;
+    opacity: .85;
 }
 canvas[data-lwc-chart="radar"][data-lwc-draw="in"] {
-    clip-path: circle(75% at 50% 50%);
     opacity: 1;
-    transition: clip-path var(--lwc-chart-draw) var(--lwc-chart-ease), opacity 240ms var(--lwc-chart-ease);
+    transition: opacity 240ms var(--lwc-chart-ease);
 }
 
 /* Bars rise from the axis one after another; meters fill from the left. */
@@ -105,7 +110,7 @@ canvas[data-lwc-chart="radar"][data-lwc-draw="in"] {
     transform-origin: 50% 100%;
 }
 .traffic-chart svg[data-lwc-draw="wait"] rect[data-day] {
-    transform: scaleY(0);
+    opacity: .85;
 }
 .traffic-chart svg[data-lwc-draw="in"] rect[data-day] {
     transform: none;
@@ -127,22 +132,6 @@ canvas[data-lwc-chart="radar"][data-lwc-draw="in"] {
 #progressFill[data-lwc-draw="in"] {
     transform: none;
     transition: transform var(--lwc-chart-draw) var(--lwc-chart-ease);
-}
-
-/* ---- Meters: one track, one fill, rounded ends ---- */
-
-.traffic-meter {
-    display: block;
-    height: 6px;
-    overflow: hidden;
-    border-radius: var(--lwc-radius-pill, 999px);
-    background: var(--lwc-chart-track);
-}
-.traffic-meter > i {
-    display: block;
-    height: 100%;
-    border-radius: inherit;
-    background: var(--lwc-chart-accent);
 }
 
 /* ---- Crosshair and tooltip for SVG charts (LwcCharts.crosshair) ---- */
@@ -181,26 +170,30 @@ canvas[data-lwc-chart="radar"][data-lwc-draw="in"] {
     transform: translate(var(--lwc-guide-x, 0), var(--lwc-guide-y, 0)) scale(.4);
 }
 .lwc-chart-tip {
+    position: fixed;
     display: grid;
+    box-sizing: border-box;
     gap: 2px;
-    min-width: 7rem;
+    min-width: 0;
+    width: max-content;
+    overflow: auto;
+    overflow-wrap: anywhere;
     padding: 8px 10px;
     border-radius: var(--lwc-radius-md, 8px);
     background: var(--lwc-chart-tip-bg);
     color: var(--lwc-chart-tip-ink);
     border: 1px solid color-mix(in srgb, var(--lwc-chart-accent) 70%, transparent);
     box-shadow: var(--lwc-shadow-md, 0 10px 28px rgba(15, 23, 42, .1));
-    font: 400 12px/1.35 var(--lwc-chart-font);
+    font: 400 .875rem/1.4 var(--lwc-chart-font);
     font-variant-numeric: tabular-nums;
-    white-space: nowrap;
-    z-index: 2;
-    transform: translate(calc(var(--lwc-guide-x, 0px) + 14px), calc(var(--lwc-guide-y, 0px) - 50%));
+    white-space: normal;
+    z-index: 100;
+    pointer-events: auto;
+    transition: opacity 140ms ease;
 }
+.lwc-chart-tip[hidden] { display: none; }
 .lwc-chart-tip strong {
     font-weight: 600;
-}
-.lwc-chart-tip[data-side="left"] {
-    transform: translate(calc(var(--lwc-guide-x, 0px) - 100% - 14px), calc(var(--lwc-guide-y, 0px) - 50%));
 }
 .lwc-chart-host[data-lwc-reading] .lwc-chart-guide,
 .lwc-chart-host[data-lwc-reading] .lwc-chart-tip {
@@ -213,21 +206,6 @@ canvas[data-lwc-chart="radar"][data-lwc-draw="in"] {
 
 /* ---- Athlete dialog: sparklines and results share the system ---- */
 
-/* A single reading is a point, not a broken line: give it a halo and let the
-   timeline track carry it. */
-#detailsModal .biomarker-overview-history svg:not(:has(g line)) circle.is-latest {
-    stroke: color-mix(in srgb, var(--result-accent, var(--lwc-chart-accent)) 35%, transparent);
-    stroke-width: 6;
-    paint-order: stroke;
-}
-#detailsModal .biomarker-overview-history .sparkline-area path {
-    fill: color-mix(in srgb, var(--result-accent, var(--lwc-chart-accent)) 14%, transparent);
-}
-#detailsModal .biomarker-overview-history svg g line {
-    stroke: var(--result-accent, var(--lwc-chart-muted));
-    stroke-linecap: round;
-    opacity: .8;
-}
 #detailsModal .result-plot {
     border-radius: var(--lwc-radius-md, 8px);
 }

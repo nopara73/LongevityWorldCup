@@ -362,6 +362,7 @@
     };
     let loadGeneration = 0;
     let trafficChartObserver: ResizeObserver | null = null;
+    let disposeTrafficCrosshair: (() => void) | undefined;
     let selectedTrafficDay: string | null = null;
 
     function calculatorFunnel(selectionLabel: string): FunnelDefinition[] {
@@ -771,6 +772,8 @@
 
     function renderTrafficOverview(): void {
         const host = el("trafficOverview");
+        disposeTrafficCrosshair?.();
+        disposeTrafficCrosshair = undefined;
         trafficChartObserver?.disconnect();
         trafficChartObserver = null;
         el("statsWindow").textContent = formatTrafficWindow();
@@ -960,6 +963,7 @@
         };
         select.addEventListener("change", () => selectDay(select.value));
         svg.addEventListener("click", event => {
+            if (window.LwcCharts) return;
             const bounds = svg.getBoundingClientRect();
             const x = event.clientX - bounds.left;
             if (x < 44 || x > bounds.width - 12) return;
@@ -974,7 +978,7 @@
         trafficChartObserver.observe(svg.parentElement!);
         draw();
         // The shared crosshair reads the same day the bar click would pick.
-        window.LwcCharts?.crosshair(svg, {
+        disposeTrafficCrosshair = window.LwcCharts?.crosshair(svg, {
             points: () => Array.from(svg.querySelectorAll<SVGRectElement>("rect[data-day]")).map(bar => {
                 const day = bar.dataset["day"] || "";
                 const point = points.find(item => item.day === day);
@@ -983,7 +987,7 @@
                     key: day,
                     x,
                     y: bar.y.baseVal.value,
-                    title: formatTrafficDay(day),
+                    title: formatTrafficDay(day) + (isPartialTrafficDay(day) ? " · partial day" : ""),
                     lines: point ? [`${formatNumber(point.sessions)} sessions`, `${formatNumber(point.pageViews)} page views`] : []
                 };
             }),

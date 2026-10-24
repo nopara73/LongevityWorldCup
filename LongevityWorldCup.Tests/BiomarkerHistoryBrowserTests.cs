@@ -249,6 +249,8 @@ public sealed class BiomarkerHistoryBrowserTests(
     [InlineData(1280, false)]
     [InlineData(390, false)]
     [InlineData(320, true)]
+    [InlineData(195, false)]
+    [InlineData(160, true)]
     public async Task RawComparison_HoverAndTouchTooltipsShowExactValuesAndStayInsideChart(int width, bool touch)
     {
         await using var context = await NewContextAsync(width, true, touch: touch);

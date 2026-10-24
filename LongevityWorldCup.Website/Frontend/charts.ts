@@ -43,6 +43,7 @@ interface LwcChartsApi {
     readonly crosshair: (svg: SVGSVGElement, options: LwcCrosshairOptions) => () => void;
     readonly token: (name: string, scope?: Element | null) => string;
     readonly motion: () => boolean;
+    readonly install: (chart: unknown) => void;
 }
 
 interface Window {
@@ -126,8 +127,8 @@ interface Window {
         const text = element.textContent || "";
         const target = parseFigure(text);
         stopCount(element);
-        if (!target || !motion() || !element.isConnected) return;
-        const start = from ?? 0;
+        if (!target || !motion() || !element.isConnected || !element.checkVisibility()) return;
+        const start = from !== undefined && Number.isFinite(from) ? from : 0;
         if (Math.abs(start - target.value) < Math.pow(10, -target.decimals) / 2) return;
         const duration = Math.min(1100, 520 + Math.log10(1 + Math.abs(target.value - start)) * 160);
         const began = performance.now();
@@ -142,7 +143,7 @@ interface Window {
         };
         const tick = (now: number): void => {
             const progress = Math.min(1, (now - began) / duration);
-            if (progress >= 1 || !motion() || !element.isConnected || (element.textContent || "") !== text) {
+            if (progress >= 1 || !motion() || !element.isConnected || !element.checkVisibility() || (element.textContent || "") !== text) {
                 stopCount(element);
                 return;
             }
@@ -160,10 +161,12 @@ interface Window {
     // the attribute) the first time it is seen, and on from its previous
     // value whenever its text changes later.
     const shownNumber = new WeakMap<HTMLElement, number>();
+    const pendingNumbers = new Set<Element>();
     const numberWatch = "IntersectionObserver" in window ? new IntersectionObserver(entries => {
         for (const entry of entries) {
             if (!entry.isIntersecting) continue;
             numberWatch?.unobserve(entry.target);
+            pendingNumbers.delete(entry.target);
             countFigure(entry.target as HTMLElement, true);
         }
     }, { threshold: 0.6 }) : null;
@@ -187,6 +190,7 @@ interface Window {
             return;
         }
         shownNumber.set(element, NaN);
+        pendingNumbers.add(element);
         numberWatch.observe(element);
     }
 
@@ -217,8 +221,11 @@ interface Window {
         }));
     }
 
+    const revealed = new WeakSet<Element>();
     function reveal(element: Element): void {
         if (!(element instanceof HTMLElement || element instanceof SVGElement)) return;
+        if (revealed.has(element)) return;
+        revealed.add(element);
         if (element.dataset["lwcDraw"] || !arriving(element) || !drawWatch) return;
         element.dataset["lwcDraw"] = "wait";
         const watched = element.parentElement || element;
@@ -232,23 +239,27 @@ interface Window {
         if (!reduced.matches) return;
         document.querySelectorAll<HTMLElement>("[data-lwc-draw]").forEach(element => delete element.dataset["lwcDraw"]);
         counting.forEach((_, element) => stopCount(element));
+        drawWatch?.disconnect();
+        drawTargets.clear();
+        charts.forEach(chart => {
+            cancelAnimationFrame(chart._lwcRipple || 0);
+            delete chart._lwcRippleStart;
+            const tooltip = chart.options["plugins"]?.["tooltip"];
+            if (tooltip) tooltip.animation = { duration: 0 };
+            chart.draw();
+        });
     });
 
     // Shared chart surfaces adopt the draw-in and figures without page code.
     const drawSelector = [
         "[data-lwc-chart]",
         ".traffic-chart svg",
-        ".traffic-meter",
-        ".sub-progress-track",
-        "#progressFill",
-        "#detailsModal .result-plot canvas",
-        ".bioage-rank-preview svg"
+        ".traffic-meter"
     ].join(",");
     const figureSelector = [
         "[data-lwc-number]",
         ".traffic-metric strong",
-        ".traffic-outcome strong",
-        "#detailsModal .result-field-count"
+        ".traffic-outcome strong"
     ].join(",");
 
     function scan(node: ParentNode): void {
@@ -263,6 +274,15 @@ interface Window {
     const changed = new Set<HTMLElement>();
     let scanFrame = 0;
     new MutationObserver(records => {
+        if (records.some(record => record.removedNodes.length)) {
+            pendingNumbers.forEach(element => {
+                if (!element.isConnected) { numberWatch?.unobserve(element); pendingNumbers.delete(element); }
+            });
+            drawTargets.forEach((targets, host) => {
+                targets.forEach(element => { if (!element.isConnected) targets.delete(element); });
+                if (!targets.size) { drawWatch?.unobserve(host); drawTargets.delete(host); }
+            });
+        }
         for (const record of records) {
             if (record.type === "childList") {
                 record.addedNodes.forEach(node => { if (node instanceof Element) scan(node); });
@@ -286,7 +306,10 @@ interface Window {
 
     // --- SVG crosshair ------------------------------------------------------------
 
+    const bindings = new WeakMap<SVGSVGElement, () => void>();
+    let tipId = 0;
     function crosshair(svg: SVGSVGElement, options: LwcCrosshairOptions): () => void {
+        bindings.get(svg)?.();
         const host = svg.parentElement;
         if (!host) return () => {};
         host.classList.add("lwc-chart-host");
@@ -298,80 +321,122 @@ interface Window {
         dot.setAttribute("aria-hidden", "true");
         const tip = document.createElement("span");
         tip.className = "lwc-chart-tip";
-        tip.setAttribute("aria-hidden", "true");
+        tip.id = `lwc-chart-tip-${++tipId}`;
+        tip.setAttribute("role", "tooltip");
+        tip.hidden = true;
         host.append(guide, dot, tip);
-        let lingering = 0;
-        let lastKey = "";
+        const oldTab = svg.getAttribute("tabindex");
+        const oldDescription = svg.getAttribute("aria-describedby");
+        svg.setAttribute("tabindex", "0");
+        svg.setAttribute("aria-describedby", [oldDescription, tip.id].filter(Boolean).join(" "));
+        let selected = -1;
+        let lastText = "";
+        let disposed = false;
 
-        function place(clientX: number): void {
-            const points = options.points();
-            if (!points.length) return;
+        function show(index: number): void {
+            const point = options.points()[index];
+            const matrix = svg.getScreenCTM();
+            if (disposed || !point || !matrix) { hide(); return; }
+            selected = index;
+            const screen = new DOMPoint(point.x, point.y).matrixTransform(matrix);
             const box = svg.getBoundingClientRect();
-            const view = svg.viewBox.baseVal;
-            const scaleX = view && view.width ? box.width / view.width : 1;
-            const scaleY = view && view.height ? box.height / view.height : 1;
-            const local = clientX - box.left;
-            let nearest = points[0]!;
-            for (const point of points) {
-                if (Math.abs(point.x * scaleX - local) < Math.abs(nearest.x * scaleX - local)) nearest = point;
-            }
             const hostBox = host!.getBoundingClientRect();
-            const x = box.left - hostBox.left + nearest.x * scaleX;
-            const y = box.top - hostBox.top + nearest.y * scaleY;
-            host!.style.setProperty("--lwc-guide-x", x + "px");
-            host!.style.setProperty("--lwc-guide-y", y + "px");
-            host!.style.setProperty("--lwc-guide-top", box.top - hostBox.top + "px");
+            host!.style.setProperty("--lwc-guide-x", screen.x - hostBox.left + host!.scrollLeft + "px");
+            host!.style.setProperty("--lwc-guide-y", screen.y - hostBox.top + host!.scrollTop + "px");
+            host!.style.setProperty("--lwc-guide-top", box.top - hostBox.top + host!.scrollTop + "px");
             host!.style.setProperty("--lwc-guide-height", box.height + "px");
-            if (lastKey !== (nearest.key ?? nearest.title)) {
-                lastKey = nearest.key ?? nearest.title;
+            const content = JSON.stringify([point.title, point.lines]);
+            if (lastText !== content) {
+                lastText = content;
                 const title = document.createElement("strong");
-                title.textContent = nearest.title;
-                tip.replaceChildren(title, ...(nearest.lines || []).map(line => {
+                title.textContent = point.title;
+                tip.replaceChildren(title, ...(point.lines || []).map(line => {
                     const row = document.createElement("span");
                     row.textContent = line;
                     return row;
                 }));
             }
-            // Keep the tooltip inside the chart: flip it to the left near the edge.
-            const flip = x + tip.offsetWidth + 18 > hostBox.width;
-            tip.dataset["side"] = flip ? "left" : "right";
+            tip.hidden = false;
+            const margin = 8;
+            tip.style.maxWidth = Math.max(1, document.documentElement.clientWidth - margin * 2) + "px";
+            tip.style.maxHeight = Math.max(1, window.innerHeight - margin * 2) + "px";
+            const width = tip.offsetWidth;
+            const height = tip.offsetHeight;
+            const x = screen.x + width + 14 <= window.innerWidth - margin ? screen.x + 14 : screen.x - width - 14;
+            tip.style.left = Math.max(margin, Math.min(x, window.innerWidth - width - margin)) + "px";
+            tip.style.top = Math.max(margin, Math.min(screen.y - height / 2, window.innerHeight - height - margin)) + "px";
+            tip.tabIndex = tip.scrollHeight > tip.clientHeight ? 0 : -1;
             host!.dataset["lwcReading"] = "";
         }
 
         function hide(): void {
             delete host!.dataset["lwcReading"];
+            tip.hidden = true;
+            selected = -1;
         }
-
-        const move = (event: PointerEvent): void => {
-            window.clearTimeout(lingering);
-            place(event.clientX);
+        function nearest(clientX: number, clientY: number): number {
+            const matrix = svg.getScreenCTM();
+            if (!matrix) return -1;
+            const local = new DOMPoint(clientX, clientY).matrixTransform(matrix.inverse());
+            const points = options.points();
+            return points.reduce((best, point, index) => best < 0 || Math.abs(point.x - local.x) < Math.abs(points[best]!.x - local.x) ? index : best, -1);
+        }
+        const move = (event: PointerEvent): void => { if (event.pointerType === "mouse") show(nearest(event.clientX, event.clientY)); };
+        const pick = (event: MouseEvent): void => {
+            show(nearest(event.clientX, event.clientY));
+            const point = options.points()[selected];
+            if (point?.key) options.onPick?.(point.key);
         };
         const leave = (event: PointerEvent): void => {
-            if (event.pointerType === "mouse") hide();
-            else {
-                window.clearTimeout(lingering);
-                lingering = window.setTimeout(hide, 1600);
+            if (event.pointerType === "mouse" && !(event.relatedTarget instanceof Node && host!.contains(event.relatedTarget))) hide();
+        };
+        const focus = (): void => show(Math.max(0, selected));
+        const blur = (event: FocusEvent): void => { if (!(event.relatedTarget instanceof Node && host!.contains(event.relatedTarget))) hide(); };
+        const key = (event: KeyboardEvent): void => {
+            const count = options.points().length;
+            if (event.key === "Escape") { hide(); event.preventDefault(); return; }
+            if (tip.contains(event.target as Node)) return;
+            if (!count) return;
+            if (["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) {
+                event.preventDefault();
+                show(event.key === "Home" ? 0 : event.key === "End" ? count - 1 : Math.max(0, Math.min(count - 1, selected + (event.key === "ArrowLeft" ? -1 : 1))));
+            } else if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                const point = options.points()[selected];
+                if (point?.key) options.onPick?.(point.key);
             }
         };
-        const pick = (event: PointerEvent): void => {
-            place(event.clientX);
-            if (options.onPick && lastKey) options.onPick(lastKey);
-        };
+        const refit = (): void => { if (selected >= 0) show(selected); };
+        const resize = new ResizeObserver(refit);
+        resize.observe(svg);
         svg.addEventListener("pointermove", move);
-        svg.addEventListener("pointerdown", pick);
-        svg.addEventListener("pointerleave", leave);
-        svg.addEventListener("pointerup", leave);
-        return () => {
-            window.clearTimeout(lingering);
+        svg.addEventListener("click", pick);
+        host.addEventListener("pointerleave", leave);
+        svg.addEventListener("focus", focus);
+        host.addEventListener("focusout", blur);
+        host.addEventListener("keydown", key);
+        window.addEventListener("resize", refit);
+        window.addEventListener("scroll", refit, true);
+        const dispose = (): void => {
+            if (disposed) return;
+            disposed = true;
+            resize.disconnect();
             svg.removeEventListener("pointermove", move);
-            svg.removeEventListener("pointerdown", pick);
-            svg.removeEventListener("pointerleave", leave);
-            svg.removeEventListener("pointerup", leave);
-            guide.remove();
-            dot.remove();
-            tip.remove();
-            hide();
+            svg.removeEventListener("click", pick);
+            host.removeEventListener("pointerleave", leave);
+            svg.removeEventListener("focus", focus);
+            host.removeEventListener("focusout", blur);
+            host.removeEventListener("keydown", key);
+            window.removeEventListener("resize", refit);
+            window.removeEventListener("scroll", refit, true);
+            oldTab === null ? svg.removeAttribute("tabindex") : svg.setAttribute("tabindex", oldTab);
+            oldDescription === null ? svg.removeAttribute("aria-describedby") : svg.setAttribute("aria-describedby", oldDescription);
+            guide.remove(); dot.remove(); tip.remove(); hide();
+            host.classList.remove("lwc-chart-host");
+            bindings.delete(svg);
         };
+        bindings.set(svg, dispose);
+        return dispose;
     }
 
     // --- Chart.js -----------------------------------------------------------------
@@ -384,16 +449,19 @@ interface Window {
         chartArea?: { left: number; right: number; top: number; bottom: number };
         config: { type?: string };
         options: Record<string, any>;
-        data: { datasets: { data: unknown[]; borderColor?: unknown }[] };
+        data: { datasets: { data: { isAthlete?: boolean; date?: string }[]; borderColor?: unknown }[] };
         scales: Record<string, unknown>;
         tooltip?: { opacity: number; caretX: number; caretY: number; options?: { borderColor?: unknown }; getActiveElements?(): { datasetIndex: number; index: number }[] };
         getDatasetMeta(index: number): Meta;
         draw(): void;
         _lwcRipple?: number;
+        _lwcRippleStart?: number;
+        _lwcDrawn?: () => void;
     };
     type ChartStatic = {
         register(...items: unknown[]): void;
         defaults: Record<string, any>;
+        instances?: Record<string, ChartInstance>;
     };
 
     function chartScope(chart: ChartInstance): Element {
@@ -412,11 +480,12 @@ interface Window {
         return typeof value === "string" && value ? value : token("--lwc-chart-accent", chartScope(chart)) || fallback;
     }
 
+    const charts = new Set<ChartInstance>();
     function ripple(chart: ChartInstance): void {
         if (!motion()) return;
         const started = performance.now();
         const step = (): void => {
-            if (!chart.canvas.isConnected) return;
+            if (!motion() || !chart.canvas.isConnected || !chart.canvas.checkVisibility()) return;
             chart.draw();
             if (performance.now() - started < 1200) chart._lwcRipple = requestAnimationFrame(step);
             else chart._lwcRipple = 0;
@@ -429,6 +498,7 @@ interface Window {
     const plugin = {
         id: "lwcCharts",
         afterInit(chart: ChartInstance): void {
+            charts.add(chart);
             const options = chart.options;
             const tooltip = options["plugins"]?.["tooltip"];
             if (tooltip) {
@@ -450,7 +520,8 @@ interface Window {
             }
             chart.canvas.dataset["lwcChart"] = chart.config.type || "";
             if (!chart.canvas.dataset["lwcDraw"]) reveal(chart.canvas);
-            chart.canvas.addEventListener("lwc-chart-drawn", () => ripple(chart), { once: true });
+            chart._lwcDrawn = () => ripple(chart);
+            chart.canvas.addEventListener("lwc-chart-drawn", chart._lwcDrawn, { once: true });
         },
         beforeDatasetsDraw(chart: ChartInstance): void {
             const area = chart.chartArea;
@@ -472,19 +543,22 @@ interface Window {
             }
             // The athlete's own readings join into a trail, in time order, and it
             // grows from the first reading as the chart draws in.
-            const own = chart.data.datasets.length > 1 && chart.config.type === "scatter" ? chart.getDatasetMeta(0) : null;
-            const trail = own && !own.hidden ? own.data.filter(point => !point.skip && Number.isFinite(point.x) && Number.isFinite(point.y)) : [];
+            const ownIndex = ownDataset(chart);
+            const own = ownIndex >= 0 ? chart.getDatasetMeta(ownIndex) : null;
+            const trail = own && !own.hidden ? own.data.map((point, index) => ({ point, date: chart.data.datasets[ownIndex]!.data[index]?.date || "" }))
+                .filter(item => !item.point.skip && Number.isFinite(item.point.x) && Number.isFinite(item.point.y))
+                .sort((a, b) => a.date.localeCompare(b.date)).map(item => item.point) : [];
             if (trail.length > 1) {
                 const started = (chart as any)._lwcRippleStart as number | undefined;
                 const drawing = chart.canvas.dataset["lwcDraw"] === "wait";
                 const progress = drawing ? 0 : started ? Math.min(1, (performance.now() - started) / 900) : 1;
                 const eased = 1 - Math.pow(1 - progress, 3);
-                const sorted = trail.slice().sort((a, b) => a.x - b.x);
+                const sorted = trail;
                 ctx.save();
                 ctx.beginPath();
                 ctx.rect(area.left - 8, area.top - 8, (sorted.at(-1)!.x - sorted[0]!.x) * eased + sorted[0]!.x - area.left + 8, area.bottom - area.top + 16);
                 ctx.clip();
-                ctx.strokeStyle = colorOf(chart.data.datasets[0]?.borderColor, chart, "#5bd5dd");
+                ctx.strokeStyle = colorOf(chart.data.datasets[ownIndex]?.borderColor, chart, "#5bd5dd");
                 ctx.globalAlpha = 0.55;
                 ctx.lineWidth = 1.75;
                 ctx.lineJoin = "round";
@@ -513,14 +587,15 @@ interface Window {
             const ctx = chart.ctx;
             const accent = (index: number): string => colorOf(chart.data.datasets[index]?.borderColor, chart, "#5bd5dd");
             // The athlete's own reading: a lone point gets a halo so it reads as the subject, not noise.
-            const first = chart.data.datasets.length > 1 ? chart.getDatasetMeta(0) : null;
+            const ownIndex = ownDataset(chart);
+            const first = ownIndex >= 0 ? chart.getDatasetMeta(ownIndex) : null;
             const started = (chart as any)._lwcRippleStart as number | undefined;
             const age = started ? performance.now() - started : Infinity;
-            if (first && !first.hidden && first.data.length && first.data.length <= 3 && first.type !== "line") {
+            if (first && !first.hidden && first.data.length && first.type !== "line") {
                 ctx.save();
-                ctx.strokeStyle = accent(0);
+                ctx.strokeStyle = accent(ownIndex);
                 for (const point of first.data) {
-                    if (point.skip || !Number.isFinite(point.x)) continue;
+                    if (point.skip || !Number.isFinite(point.x) || !Number.isFinite(point.y)) continue;
                     ctx.globalAlpha = 0.28;
                     ctx.lineWidth = 1.5;
                     ctx.beginPath();
@@ -552,19 +627,32 @@ interface Window {
             }
             ctx.restore();
         },
-        afterDestroy(chart: ChartInstance): void {
+        beforeDestroy(chart: ChartInstance): void {
+            charts.delete(chart);
             cancelAnimationFrame(chart._lwcRipple || 0);
+            if (chart._lwcDrawn) chart.canvas.removeEventListener("lwc-chart-drawn", chart._lwcDrawn);
+            drawTargets.forEach((targets, host) => {
+                targets.delete(chart.canvas);
+                if (!targets.size) { drawWatch?.unobserve(host); drawTargets.delete(host); }
+            });
+            delete chart.canvas.dataset["lwcDraw"];
         }
     };
 
-    let installed = false;
+    function ownDataset(chart: ChartInstance): number {
+        if (chart.config.type !== "scatter") return -1;
+        return chart.data.datasets.findIndex(dataset => dataset.data.length > 0 && dataset.data.every(point => point?.isAthlete === true));
+    }
+
+    const installed = new WeakSet<object>();
     function install(Chart: unknown): void {
-        if (installed || typeof Chart !== "function") return;
+        if (typeof Chart !== "function" || installed.has(Chart)) return;
         const api = Chart as unknown as ChartStatic;
         if (typeof api.register !== "function") return;
-        installed = true;
         api.register(plugin);
+        installed.add(Chart);
         const defaults = api.defaults;
+        if (!defaults) return;
         const family = token("--lwc-chart-font") || "Roboto, system-ui, sans-serif";
         defaults["font"] = { ...defaults["font"], family, size: 12 };
         defaults["color"] = token("--lwc-chart-muted") || defaults["color"];
@@ -579,29 +667,19 @@ interface Window {
             tooltip.titleFont = { family, size: 12, weight: "600" };
             tooltip.bodyFont = { family, size: 12 };
         }
-        defaults["elements"].point.hoverRadius = 7;
-        defaults["elements"].line.borderJoinStyle = "round";
+        if (defaults["elements"]?.point) defaults["elements"].point.hoverRadius = 7;
+        if (defaults["elements"]?.line) defaults["elements"].line.borderJoinStyle = "round";
+        // An early module may finish loading Chart.js before this deferred
+        // script. Adopt already-created charts as well as future lazy instances.
+        Object.values(api.instances || {}).forEach(chart => {
+            if (charts.has(chart)) return;
+            plugin.afterInit(chart);
+            chart.draw();
+        });
     }
 
-    // Chart.js loads on demand. Catch its global as it arrives.
-    const existing = (window as unknown as { Chart?: unknown }).Chart;
-    if (existing) install(existing);
-    else {
-        let held: unknown;
-        try {
-            Object.defineProperty(window, "Chart", {
-                configurable: true,
-                enumerable: true,
-                get: () => held,
-                set: value => {
-                    held = value;
-                    install(value);
-                }
-            });
-        } catch {
-            // Another script owns the global; adoption then waits for the next check.
-        }
-    }
-
-    window.LwcCharts = { format, count, reveal, crosshair, token, motion };
+    // Lazy loaders call install after success. Do not redefine a third-party
+    // global: replacement constructors, stubs and accessors retain their contract.
+    install(window.Chart);
+    window.LwcCharts = { format, count, reveal, crosshair, token, motion, install };
 })();

@@ -2860,9 +2860,19 @@ if (initialServerDialog) {
     history.replaceState({ ...history.state, modal: 'details', athlete: initialServerDialog.dataset.athleteSlug }, '', window.location.href);
 }
 
+function adoptSharedCharts(loaded) {
+    const ready = !window.LwcCharts && document.readyState === 'loading'
+        ? new Promise(resolve => document.addEventListener('DOMContentLoaded', resolve, { once: true }))
+        : Promise.resolve();
+    return ready.then(() => {
+        if (loaded) window.LwcCharts?.install(window.Chart);
+        return loaded;
+    });
+}
+
 window.ensureChartJs = window.ensureChartJs || function () {
     if (typeof window.Chart === 'function') {
-        return Promise.resolve(true);
+        return adoptSharedCharts(true);
     }
 
     if (window.__chartJsPromise) {
@@ -2884,7 +2894,7 @@ window.ensureChartJs = window.ensureChartJs || function () {
         if (!loaded) {
             window.__chartJsPromise = null;
         }
-        return loaded;
+        return adoptSharedCharts(loaded);
     });
 
     return window.__chartJsPromise;
@@ -6886,8 +6896,31 @@ function drawResultPlot(state) {
             ticks: { color: muted, padding: 8, font: { family: 'Roboto', size: 11 }, maxRotation: 0 },
             title: { display: true, color: muted, font: { family: 'Roboto', size: 11 } } };
         const titleLines = text => {
-            const limit = compact() ? 24 : 38;
-            return String(text).match(new RegExp(`.{1,${limit}}(?:\\s|$)|.{1,${limit}}`, 'g'))?.map(line => line.trim()) || [];
+            // Browser zoom can leave less room than the usual phone layout.
+            // Measure the bold title font (also safely bounds body text) rather
+            // than guessing a character count or reducing readable type.
+            const context = canvas.getContext('2d');
+            context.save();
+            context.font = '600 12px Roboto';
+            const available = Math.max(1, plot.clientWidth - 32);
+            const lines = [];
+            let line = '';
+            for (const word of String(text).split(/\s+/)) {
+                if (line && context.measureText(line + ' ' + word).width > available) {
+                    lines.push(line);
+                    line = '';
+                }
+                for (const character of (line ? ' ' : '') + word) {
+                    if (line && context.measureText(line + character).width > available) {
+                        lines.push(line.trimEnd());
+                        line = '';
+                    }
+                    line += character;
+                }
+            }
+            if (line) lines.push(line);
+            context.restore();
+            return lines;
         };
         state.chart = new window.Chart(canvas, {
             type: 'scatter', data: { datasets },
