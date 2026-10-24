@@ -1,4 +1,5 @@
 using Microsoft.Playwright;
+using System.Text.Json.Nodes;
 using Xunit;
 using static Microsoft.Playwright.Assertions;
 
@@ -95,7 +96,7 @@ public sealed class TouchInteractionBrowserTests(PlaywrightBrowserFixture browse
     }
 
     [Fact]
-    public async Task Hover_RestoresOnHybridInputAndProcessesLateRules()
+    public async Task Hover_RestoresOnHybridInput()
     {
         await using var context = await ContextAsync();
         var page = await FixtureAsync(context);
@@ -105,8 +106,16 @@ public sealed class TouchInteractionBrowserTests(PlaywrightBrowserFixture browse
         await Expect(page.Locator("html")).Not.ToHaveAttributeAsync("data-lwc-touch", "touch");
         await page.Locator("#hover").HoverAsync();
         await Expect(page.Locator("#hover")).ToHaveCSSAsync("color", "rgb(255, 0, 0)");
-        await cdp.SendAsync("Emulation.setTouchEmulationEnabled", new Dictionary<string, object> { ["enabled"] = true, ["maxTouchPoints"] = 5 });
+        await cdp.DetachAsync();
+    }
+
+    [Fact]
+    public async Task Hover_ProcessesLateRulesOnTouch()
+    {
+        await using var context = await ContextAsync();
+        var page = await FixtureAsync(context);
         await page.EvaluateAsync("() => { document.styleSheets[0].insertRule('#hover:hover { background: rgb(255,0,0) }'); LwcTouch.refresh(); }");
+        await page.Locator("#hover").TapAsync();
         await Expect(page.Locator("html")).ToHaveAttributeAsync("data-lwc-touch", "touch");
         await Expect(page.Locator("#hover")).Not.ToHaveCSSAsync("background-color", "rgb(255, 0, 0)");
     }
@@ -180,5 +189,43 @@ public sealed class TouchInteractionBrowserTests(PlaywrightBrowserFixture browse
             """);
         Assert.Equal(initialRequests + 1, requests);
         Assert.Equal(before, await page.EvaluateAsync<string>(state));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task BoardRefresh_IgnoresLateInitialSuccessOrFailure(bool oldFails)
+    {
+        await using var context = await ContextAsync(true);
+        using var client = App.CreateClient();
+        var original = await client.GetStringAsync("/api/data/athletes");
+        var fresh = JsonNode.Parse(original)!.AsArray();
+        fresh[0]!["Name"] = "Refresh Race Marker";
+        if (fresh[0]!["DisplayName"] is not null) fresh[0]!["DisplayName"] = "Refresh Race Marker";
+        var pending = new TaskCompletionSource<IRoute>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var requests = 0;
+        await context.RouteAsync("**/api/data/athletes", async route => {
+            if (Interlocked.Increment(ref requests) == 1) pending.SetResult(route);
+            else await route.FulfillAsync(new() { ContentType = "application/json", Body = fresh.ToJsonString() });
+        });
+        var page = await context.NewPageAsync();
+        await page.GotoAsync(new Uri(App.BaseAddress, "/leaderboard").ToString(), new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.Locator("main[data-lwc-refresh-ready]").WaitForAsync();
+        await page.EvaluateAsync("""
+            async () => {
+                window.originalAthleteRequest = window.__sharedAthletesRequest;
+                const work=[];
+                document.querySelector('main[data-lwc-refresh-ready]').dispatchEvent(new CustomEvent('lwc:pull-refresh', {
+                    detail:{waitUntil:p=>work.push(p)}
+                }));
+                await Promise.all(work);
+            }
+            """);
+        var marker = page.Locator(".leaderboard tr[data-athlete-name='Refresh Race Marker']");
+        await Expect(marker).ToHaveCountAsync(1);
+        await (await pending.Task).FulfillAsync(new() { Status = oldFails ? 400 : 200, ContentType = "application/json", Body = oldFails ? "{}" : original });
+        await page.EvaluateAsync("async () => { await originalAthleteRequest.catch(() => {}); await new Promise(requestAnimationFrame); }");
+        await Expect(marker).ToHaveCountAsync(1);
+        await Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
     }
 }

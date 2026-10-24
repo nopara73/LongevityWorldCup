@@ -1186,6 +1186,9 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
 
     const currentLoadPromise = window.getSharedAthletes()
         .then(athletes => {
+            // A pull refresh can finish before the initial request. Only the
+            // latest load owns the visible board, including failure handling.
+            if (athleteResultsLoadPromise !== currentLoadPromise) return;
             const selectedFilters = refresh ? new Set(Array.from(document.querySelectorAll('.sidebar input:checked'))
                 .map(input => `${input.name}\n${input.value}`)) : null;
             const refreshFocus = refresh ? document.activeElement : null;
@@ -2037,6 +2040,7 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
             }
         })
         .catch(error => {
+            if (athleteResultsLoadPromise !== currentLoadPromise) return;
             athleteResultsReady = false;
             athleteResultsLoadPromise = null;
             const tableBody = document.querySelector('.leaderboard table tbody');
