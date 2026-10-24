@@ -197,6 +197,7 @@ public sealed class ShareSheetBrowserTests(PlaywrightBrowserFixture browserFixtu
         await AssertFitAsync(page.Locator(".lwc-share"));
         await page.Mouse.ClickAsync(10, 100);
         await Assertions.Expect(page.Locator(".lwc-share")).ToBeHiddenAsync();
+        await Assertions.Expect(page.Locator("#leaderboardTitle [data-lwc-share]")).ToBeFocusedAsync();
     }
 
     [Theory]

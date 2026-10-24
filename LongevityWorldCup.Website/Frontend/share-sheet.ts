@@ -603,7 +603,9 @@ interface Window {
             open(trigger);
             return;
         }
-        if (sheet && !sheet.hidden && target && !sheet.contains(target)) close(false);
+        if (sheet && !sheet.hidden && target && !sheet.contains(target)) {
+            close(sheet.contains(document.activeElement) || document.activeElement === document.body);
+        }
     });
     document.addEventListener("keydown", onKeydown, true);
     window.addEventListener("popstate", () => close(false));
