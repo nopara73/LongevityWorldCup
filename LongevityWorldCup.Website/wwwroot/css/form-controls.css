@@ -201,7 +201,8 @@ html body :is(label, .lmx-label, legend)[data-lwc-label~="invalid"] {
     html select:not([multiple]):not([size])::picker(select) {
         box-sizing: border-box;
         min-inline-size: anchor-size(self-inline);
-        max-block-size: min(22rem, 55dvh);
+        /* Keep the browser's available-space height and both-axis placement
+           fallbacks, so a zoomed picker can shrink to fit above its control. */
         max-inline-size: calc(100dvw - 16px);
         margin-block: 6px;
         padding: var(--lwc-space-1);
@@ -212,7 +213,6 @@ html body :is(label, .lmx-label, legend)[data-lwc-label~="invalid"] {
         box-shadow: var(--lwc-shadow-md);
         overscroll-behavior: contain;
         scrollbar-width: thin;
-        position-try-fallbacks: flip-block;
     }
 
     html select:not([multiple]):not([size]) option {

@@ -8,6 +8,35 @@ public sealed class FormControlsBrowserTests(PlaywrightBrowserFixture browserFix
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Theory]
+    [InlineData(195, 422)]
+    [InlineData(320, 390)]
+    [InlineData(720, 450)]
+    public async Task Picker_UsesAvailableHeightAndKeepsTheSelectedOptionVisible(int width, int height)
+    {
+        await using var context = await ContextAsync();
+        var page = await context.NewPageAsync();
+        await page.SetViewportSizeAsync(width, height);
+        await AestheticSystemBrowserTests.NavigateAndSettleAsync(page, "/pheno-age");
+        var picker = page.Locator("#dob-month");
+        await picker.SelectOptionAsync("12");
+        await picker.EvaluateAsync("el => el.scrollIntoView({block:'end'})");
+        await picker.ClickAsync();
+        Assert.True(await picker.EvaluateAsync<bool>("""
+            el => {
+                const r = el.selectedOptions[0].getBoundingClientRect();
+                return r.top >= 0 && r.bottom <= innerHeight && r.left >= 0 && r.right <= innerWidth;
+            }
+            """));
+        await page.Keyboard.PressAsync("Home");
+        await page.Keyboard.PressAsync("Enter");
+        await Assertions.Expect(picker).ToHaveValueAsync("1");
+        await picker.ClickAsync();
+        await page.Keyboard.PressAsync("End");
+        await page.Keyboard.PressAsync("Enter");
+        await Assertions.Expect(picker).ToHaveValueAsync("12");
+    }
+
+    [Theory]
     [InlineData(1440, "Escape")]
     [InlineData(390, "Escape")]
     [InlineData(1440, "Tab")]
