@@ -63,6 +63,7 @@ public sealed class PlayFlowMotionBrowserTests(
         var input = page.Locator("#playAthleteInput");
         await input.ClickAsync();
         await input.FillAsync(name);
+        await Assertions.Expect(page.Locator("#playAthleteInput-autocomplete-list [role=option]").First).ToBeVisibleAsync();
         await input.PressAsync("Enter");
         await Assertions.Expect(page.Locator("#playConfirmAthleteBtn")).ToBeEnabledAsync();
         await page.EvaluateAsync(WaitForSettledMotion);
@@ -88,45 +89,53 @@ public sealed class PlayFlowMotionBrowserTests(
         });
         var page = await OpenAsync(context, "/select-athlete");
         await SelectAthleteAsync(page, await PickAmateurAsync(page));
-
-        await page.Locator("#playConfirmAthleteBtn").ClickAsync();
-        await page.WaitForFunctionAsync("() => document.documentElement.dataset.playMove === 'forward'");
-        var forward = await page.EvaluateAsync<double[]>("""
+        // Measure in the frame that creates the move. A protocol round trip can
+        // otherwise outlive a 160ms exit on a busy runner.
+        await page.EvaluateAsync("""
             () => {
+                window.__moveFrames = {};
+                new MutationObserver(() => {
+                const direction = document.documentElement.dataset.playMove;
+                if (!direction || window.__moveFrames[direction]) return;
                 const panel = document.getElementById('athleteDashboardPanel');
                 const ghost = document.querySelector('.play-hub-panel--ghost');
                 const starts = document.getAnimations()
                     .filter(animation => animation.effect?.target === panel || animation.effect?.target === panel.querySelector('.play-dashboard-card'))
                     .map(animation => animation.effect.getKeyframes()[0].transform || '');
                 const shift = starts.map(value => /translate(?:X)?\((-?[\d.]+)px/.exec(value)).filter(Boolean).map(match => Number(match[1]));
-                return [
+                if (direction === 'forward') window.__moveFrames.forward = [
                     ghost ? 1 : 0,
                     ghost && ghost.inert && ghost.getAttribute('aria-hidden') === 'true' ? 1 : 0,
                     ghost ? ghost.querySelectorAll('[id], [role], [name]').length : -1,
                     ghost ? (getComputedStyle(ghost).pointerEvents === 'none' ? 1 : 0) : 0,
                     shift.length ? Math.max(...shift) : 0,
-                    panel.hidden ? 0 : 1
+                    panel.hidden ? 0 : 1,
+                    Math.max(document.documentElement.scrollWidth, document.body.scrollWidth) - document.documentElement.clientWidth
                 ];
+                if (direction === 'back') {
+                    const selection = document.getElementById('athleteSelectionPanel');
+                    const start = document.getAnimations().find(animation => animation.effect?.target === selection)?.effect.getKeyframes()[0].transform || '';
+                    const match = /translateX\((-?[\d.]+)px/.exec(start);
+                    window.__moveFrames.back = match ? Number(match[1]) : 0;
+                }
+                }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-play-move'] });
             }
             """);
+        await page.Locator("#playConfirmAthleteBtn").ClickAsync();
+        await page.WaitForFunctionAsync("() => window.__moveFrames.forward");
+        var forward = await page.EvaluateAsync<double[]>("() => window.__moveFrames.forward");
         Assert.True(forward[0] == 1, "Leaving athlete selection should leave a ghost of it fading out.");
         Assert.True(forward[1] == 1 && forward[3] == 1, "The ghost must be inert, hidden from assistive technology, and never take pointer input.");
         Assert.Equal(0, forward[2]);
         Assert.True(forward[4] > 10, $"Going deeper should arrive from the right, got a {forward[4]}px start.");
         Assert.True(forward[5] == 1, "The dashboard must be live from the move's first frame.");
+        Assert.True(forward[6] <= 1, $"The first motion frame has {forward[6]}px horizontal overflow.");
         await FlowActionDockBrowserTests.ExpectNoHorizontalOverflowAsync(page);
         await WaitForMoveToSettleAsync(page);
 
         await page.Locator("#playDashboardBackBtn").ClickAsync();
-        await page.WaitForFunctionAsync("() => document.documentElement.dataset.playMove === 'back'");
-        var backShift = await page.EvaluateAsync<double>("""
-            () => {
-                const panel = document.getElementById('athleteSelectionPanel');
-                const start = document.getAnimations().find(animation => animation.effect?.target === panel)?.effect.getKeyframes()[0].transform || '';
-                const match = /translateX\((-?[\d.]+)px/.exec(start);
-                return match ? Number(match[1]) : 0;
-            }
-            """);
+        await page.WaitForFunctionAsync("() => Object.hasOwn(window.__moveFrames, 'back')");
+        var backShift = await page.EvaluateAsync<double>("() => window.__moveFrames.back");
         Assert.True(backShift < -10, $"Going back should arrive from the left, got a {backShift}px start.");
         await WaitForMoveToSettleAsync(page);
     }
@@ -177,6 +186,7 @@ public sealed class PlayFlowMotionBrowserTests(
         await WaitForMoveToSettleAsync(page);
 
         await page.Keyboard.TypeAsync(name);
+        await Assertions.Expect(page.Locator("#playAthleteInput-autocomplete-list [role=option]").First).ToBeVisibleAsync();
         await page.Keyboard.PressAsync("Enter");
         await Assertions.Expect(page.Locator("#playConfirmAthleteBtn")).ToBeFocusedAsync();
         await page.Keyboard.PressAsync("Enter");
