@@ -272,10 +272,8 @@
 
         .check input {
             flex: 0 0 auto;
-            width: 16px;
-            height: 16px;
             margin: 0;
-            accent-color: var(--pink);
+            --lwc-control-tone: var(--pink);
             cursor: pointer;
         }
 
@@ -1045,17 +1043,17 @@
             <section class="editor-section">
                 <div class="field-label">Send to</div>
                 <div class="checks">
-                    <label class="check"><input id="sendWebpage" type="checkbox" checked /><span>Webpage</span></label>
-                    <label class="check"><input id="sendSlack" type="checkbox" checked /><span>Slack</span></label>
-                    <label class="check"><input id="sendX" type="checkbox" checked /><span>X</span></label>
-                    <label class="check"><input id="sendThreads" type="checkbox" /><span>Threads</span></label>
-                    <label class="check"><input id="sendFacebook" type="checkbox" /><span>Facebook</span></label>
-                    <label class="check"><input id="sendMastodon" type="checkbox" /><span>Mastodon</span></label>
-                    <label class="check"><input id="sendNostr" type="checkbox" /><span>Nostr</span></label>
-                    <label class="check"><input id="sendReddit" type="checkbox" /><span>Reddit</span></label>
-                    <label class="check"><input id="sendBluesky" type="checkbox" /><span>Bluesky</span></label>
-                    <label class="check"><input id="sendWebPush" type="checkbox" /><span>Website push</span></label>
-                    <label class="check"><input id="sendInstagram" type="checkbox" /><span>Instagram</span></label>
+                    <label class="check"><input id="sendWebpage" type="checkbox" role="switch" checked /><span>Webpage</span></label>
+                    <label class="check"><input id="sendSlack" type="checkbox" role="switch" checked /><span>Slack</span></label>
+                    <label class="check"><input id="sendX" type="checkbox" role="switch" checked /><span>X</span></label>
+                    <label class="check"><input id="sendThreads" type="checkbox" role="switch" /><span>Threads</span></label>
+                    <label class="check"><input id="sendFacebook" type="checkbox" role="switch" /><span>Facebook</span></label>
+                    <label class="check"><input id="sendMastodon" type="checkbox" role="switch" /><span>Mastodon</span></label>
+                    <label class="check"><input id="sendNostr" type="checkbox" role="switch" /><span>Nostr</span></label>
+                    <label class="check"><input id="sendReddit" type="checkbox" role="switch" /><span>Reddit</span></label>
+                    <label class="check"><input id="sendBluesky" type="checkbox" role="switch" /><span>Bluesky</span></label>
+                    <label class="check"><input id="sendWebPush" type="checkbox" role="switch" /><span>Website push</span></label>
+                    <label class="check"><input id="sendInstagram" type="checkbox" role="switch" /><span>Instagram</span></label>
                 </div>
             </section>
 
