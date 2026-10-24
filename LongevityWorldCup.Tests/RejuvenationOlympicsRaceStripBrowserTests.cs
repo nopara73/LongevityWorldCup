@@ -149,6 +149,7 @@ public sealed class RejuvenationOlympicsRaceStripBrowserTests(
         await context.RouteAsync("**/js/ro-timeline.js*", route => route.AbortAsync());
         var page = await context.NewPageAsync();
         await page.GotoAsync("/rejuvenation-olympics");
+        await Assertions.Expect(page.Locator(".ro-standings")).ToBeHiddenAsync();
         await Assertions.Expect(page.Locator(".ro-milestones li")).ToHaveCountAsync(3);
         await Assertions.Expect(page.Locator(".ro-milestones [data-ro-state], .ro-milestones [aria-current]")).ToHaveCountAsync(0);
         await Assertions.Expect(page.Locator(".ro-milestones")).ToContainTextAsync("30 Oct 2026");
@@ -213,10 +214,11 @@ public sealed class RejuvenationOlympicsRaceStripBrowserTests(
             """
             () => {
                 const issues = [];
-                const finish = getComputedStyle(document.querySelector('.ro-actions'), '::before');
+                const finishHost = document.querySelector('.ro-standings:not([hidden])') || document.querySelector('.ro-actions');
+                const finish = getComputedStyle(finishHost, '::before');
                 if (!finish.backgroundImage.includes('conic-gradient')) issues.push('no finish line');
                 const strip = document.querySelector('.ro-timeline').getBoundingClientRect();
-                const actions = document.querySelector('.ro-actions').getBoundingClientRect();
+                const actions = finishHost.getBoundingClientRect();
                 if (Math.abs(actions.top - strip.bottom) > 1) issues.push('finish line does not follow the strip');
                 for (const link of document.querySelectorAll('.ro-actions a')) {
                     const arrow = link.querySelector('[aria-hidden="true"]')?.textContent;

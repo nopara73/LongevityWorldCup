@@ -4,6 +4,9 @@
     if (!list?.matches('.ro-milestones')) return;
 
     const guide = list.closest('.ro-guide');
+    const standings = guide?.querySelector('[data-ro-standings]');
+    // No-script pages use the finish-line fallback. Measure the enhanced board only after revealing it.
+    if (standings) standings.hidden = false;
     const defaultPortrait = script.dataset.defaultPortrait || '';
     const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
     const moving = () => !motionQuery.matches;
@@ -30,17 +33,22 @@
             clock.setAttribute('aria-hidden', 'true');
             host.querySelector('time')?.after(clock);
         }
-        const cells = clock.children;
-        if (cells.length !== text.length) {
-            clock.replaceChildren(...[...text].map(char => {
+        const cells = clock.querySelectorAll('.ro-clock-part > span');
+        if (cells.length !== text.replace(' ', '').length) {
+            clock.replaceChildren(...text.split(' ').map(part => {
+                const group = document.createElement('span');
+                group.className = 'ro-clock-part';
+                group.append(...[...part].map(char => {
                 const cell = document.createElement('span');
                 cell.textContent = char;
                 if (!/\d/.test(char)) cell.className = 'is-sep';
                 return cell;
+                }));
+                return group;
             }));
             return;
         }
-        [...text].forEach((char, i) => {
+        [...text.replace(' ', '')].forEach((char, i) => {
             const cell = cells[i];
             if (cell.textContent === char) return;
             cell.textContent = char;
@@ -88,7 +96,7 @@
         list.dataset.roLive = '';
         tick();
         // Refresh progress while open, and meet the next deadline exactly.
-        if (next !== -1) timer = setTimeout(refresh, Math.min(60000, ends[next] - now));
+        if (next !== -1 && !document.hidden) timer = setTimeout(refresh, Math.min(60000, ends[next] - now));
     };
 
     if (timelineValid) {
@@ -96,6 +104,7 @@
         window.addEventListener('pageshow', refresh);
         document.addEventListener('visibilitychange', () => {
             if (!document.hidden) refresh();
+            else { clearTimeout(timer); clearTimeout(clockTimer); }
         });
     }
 
@@ -123,7 +132,7 @@
             if (!entry.isIntersecting) return;
             observer.unobserve(entry.target);
             reveal(entry.target);
-        }), { rootMargin: '0px 0px -12% 0px', threshold: 0.08 });
+        }), { rootMargin: '0px 0px -12% 0px', threshold: 0 });
         bands.forEach(band => {
             // Anything already on screen when the script runs stays put: no flash, no late entrance.
             if (band.getBoundingClientRect().top < fold * 0.88) {
@@ -139,12 +148,12 @@
 
     // ---- Standings board: the current top of the Ultimate League ----
 
-    const standings = guide?.querySelector('[data-ro-standings]');
     if (!standings) return;
 
     const podium = standings.querySelector('.ro-podium');
     const board = standings.querySelector('.ro-board');
-    const formatScore = (value, decimals) => (value > 0 ? '+' : '') + value.toFixed(decimals) + ' years';
+    const formatScore = (value, decimals) => Number.isFinite(value)
+        ? (value > 0 ? '+' : '') + value.toFixed(decimals) + ' years' : '\u2014';
 
     const make = (tag, className, text) => {
         const element = document.createElement(tag);
@@ -160,7 +169,10 @@
         img.width = 96;
         img.height = 96;
         img.decoding = 'async';
-        img.addEventListener('error', () => img.classList.add('is-missing'), { once: true });
+        img.addEventListener('error', () => {
+            if (defaultPortrait && img.getAttribute('src') !== defaultPortrait) img.src = defaultPortrait;
+            else img.classList.add('is-missing');
+        });
         return img;
     };
 
@@ -180,7 +192,7 @@
 
     const scoreCell = (className, row, scale) => {
         const score = make('span', className, formatScore(row.ageReduction, row.decimals));
-        score.dataset.value = String(row.ageReduction);
+        if (Number.isFinite(row.ageReduction)) score.dataset.value = String(row.ageReduction);
         score.dataset.decimals = String(row.decimals);
         score.style.setProperty('--ro-score', scale.toFixed(3));
         return score;
@@ -191,12 +203,14 @@
         step.dataset.place = String(row.rank);
         const link = make('a', 'ro-step-link');
         link.href = row.path;
+        link.setAttribute('aria-label', `${row.name}, rank ${row.rank}, age reduction ${formatScore(row.ageReduction, row.decimals)}`);
         const frame = make('span', 'ro-step-portrait');
         frame.append(portrait(row, null));
         const block = make('span', 'ro-step-block');
         block.append(make('span', 'ro-step-rank', String(row.rank)));
         link.append(frame, make('span', 'ro-step-name', row.name), scoreCell('ro-step-score', row, scale), block);
         const climb = climbOf(row);
+        if (climb) link.setAttribute('aria-label', `${link.getAttribute('aria-label')}, ranked up ${climb} ${climb === 1 ? 'place' : 'places'} since last month`);
         if (climb) frame.append(climbCue(climb));
         step.append(link);
         return step;
@@ -207,6 +221,7 @@
         item.dataset.rank = String(row.rank);
         const link = make('a', 'ro-row-link');
         link.href = row.path;
+        link.setAttribute('aria-label', `${row.name}, rank ${row.rank}, age reduction ${formatScore(row.ageReduction, row.decimals)}`);
         const bar = make('span', 'ro-row-bar');
         bar.style.setProperty('--ro-score', scale.toFixed(3));
         bar.setAttribute('aria-hidden', 'true');
@@ -218,6 +233,7 @@
             bar,
             scoreCell('ro-row-score', row, scale));
         const climb = climbOf(row);
+        if (climb) link.setAttribute('aria-label', `${link.getAttribute('aria-label')}, ranked up ${climb} ${climb === 1 ? 'place' : 'places'} since last month`);
         if (climb) {
             item.classList.add('is-climber');
             link.append(climbCue(climb));
@@ -227,7 +243,32 @@
     };
 
     // Scores count up from zero in the board's own rhythm, then settle on the exact text.
+    const entranceTimers = new Set();
+    const frames = new Set();
+    const later = (callback, delay) => {
+        const id = setTimeout(() => { entranceTimers.delete(id); callback(); }, delay);
+        entranceTimers.add(id);
+    };
+    const nextFrame = callback => {
+        const id = requestAnimationFrame(time => { frames.delete(id); callback(time); });
+        frames.add(id);
+    };
+    const settleEntrance = () => {
+        entranceTimers.forEach(clearTimeout);
+        entranceTimers.clear();
+        frames.forEach(cancelAnimationFrame);
+        frames.clear();
+        standings.classList.remove('is-playing');
+        standings.classList.add('is-settled', 'is-in');
+        // Commit final styles before canceling transitions created by settling.
+        void standings.offsetWidth;
+        standings.getAnimations({ subtree: true }).forEach(animation => animation.cancel());
+        standings.querySelectorAll('[data-value]').forEach(element => {
+            element.textContent = formatScore(Number(element.dataset.value), Number(element.dataset.decimals));
+        });
+    };
     const countUp = (element, delay) => {
+        if (!element.hasAttribute('data-value')) return;
         const value = Number(element.dataset.value);
         const decimals = Number(element.dataset.decimals) || 1;
         if (!Number.isFinite(value)) return;
@@ -238,18 +279,18 @@
             const t = Math.min(1, Math.max(0, (time - start) / duration));
             const eased = 1 - Math.pow(1 - t, 3);
             element.textContent = formatScore(value * eased, decimals);
-            if (t < 1) requestAnimationFrame(frame);
+            if (t < 1) nextFrame(frame);
             else element.textContent = formatScore(value, decimals);
         };
-        requestAnimationFrame(frame);
+        nextFrame(frame);
     };
 
     const ease = 'cubic-bezier(0.2, 0.8, 0.2, 1)';
     const settle = 'cubic-bezier(0.34, 1.4, 0.64, 1)';
 
     const playEntrance = (rows, steps, boardRows) => {
-        if (!moving()) {
-            standings.classList.add('is-settled');
+        if (!moving() || standings.classList.contains('is-settled') || document.hidden) {
+            settleEntrance();
             return;
         }
         standings.classList.add('is-playing');
@@ -270,7 +311,7 @@
             const score = step.querySelector('.ro-step-score');
             if (score) countUp(score, delay + 260);
             if (step.dataset.place === '1') {
-                window.setTimeout(() => step.classList.add('is-crowned'), delay + 520);
+                later(() => step.classList.add('is-crowned'), delay + 520);
             }
         });
 
@@ -278,10 +319,11 @@
         const lastOrder = [...rows.slice(3)].sort((a, b) =>
             (Number.isFinite(a.lastMonthRank) ? a.lastMonthRank : 1e6 + a.rank) -
             (Number.isFinite(b.lastMonthRank) ? b.lastMonthRank : 1e6 + b.rank));
-        const rowHeight = boardRows[0]?.getBoundingClientRect().height || 56;
+        const heights = new Map(boardRows.map(item => [Number(item.dataset.rank), item.getBoundingClientRect().height]));
+        const top = (order, index) => order.slice(0, index).reduce((sum, row) => sum + heights.get(row.rank), 0);
         boardRows.forEach((item, i) => {
             const was = lastOrder.findIndex(row => String(row.rank) === item.dataset.rank);
-            const offset = (was - i) * rowHeight;
+            const offset = top(lastOrder, was) - top(rows.slice(3), i);
             const delay = 520 + i * 70;
             item.animate(
                 [
@@ -292,9 +334,9 @@
                 { duration: offset ? 760 : 460, delay, easing: ease, fill: 'backwards' });
             const score = item.querySelector('.ro-row-score');
             if (score) countUp(score, delay + 200);
-            window.setTimeout(() => item.classList.add('is-landed'), delay + (offset ? 760 : 460));
+            later(() => item.classList.add('is-landed'), delay + (offset ? 760 : 460));
         });
-        window.setTimeout(() => standings.classList.add('is-settled'), 520 + boardRows.length * 70 + 900);
+        later(settleEntrance, 520 + boardRows.length * 70 + 900);
     };
 
     const render = rows => {
@@ -312,16 +354,36 @@
         if (!standings.classList.contains('ro-reveal') && !standings.classList.contains('is-in')) reveal(standings);
     };
 
+    guide.addEventListener('focusin', event => {
+        const band = event.target.closest('.ro-reveal');
+        if (band) { band.classList.remove('ro-reveal'); reveal(band); }
+        settleEntrance();
+    });
+    motionQuery.addEventListener('change', () => {
+        if (!moving()) { bands.forEach(reveal); settleEntrance(); }
+    });
+    document.addEventListener('visibilitychange', () => { if (document.hidden) settleEntrance(); });
+    window.addEventListener('pagehide', () => {
+        clearTimeout(timer);
+        clearTimeout(clockTimer);
+        settleEntrance();
+    });
+
     const fail = () => {
         // Without data the finish line hands straight over to the closing actions.
+        settleEntrance();
         standings.remove();
     };
 
-    fetch('/api/data/standings', { headers: { Accept: 'application/json' } })
+    const controller = new AbortController();
+    // The deadline includes JSON body consumption, not just response headers.
+    const deadline = setTimeout(() => { controller.abort(); fail(); }, 10000);
+    fetch('/api/data/standings', { signal: controller.signal, headers: { Accept: 'application/json' } })
         .then(response => {
             if (!response.ok) throw new Error(String(response.status));
             return response.json();
         })
-        .then(render)
-        .catch(fail);
+        .then(rows => { if (!controller.signal.aborted) render(rows); })
+        .catch(fail)
+        .finally(() => clearTimeout(deadline));
 })();
