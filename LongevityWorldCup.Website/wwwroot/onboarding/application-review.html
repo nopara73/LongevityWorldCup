@@ -723,10 +723,10 @@
             item.classList.remove('is-done', 'is-current', 'is-waiting', 'is-failed');
             if (state) item.classList.add(state);
             // A step that was waiting and just finished crosses its line once. The
-            // classes stay: removing them would replay the page's entrance motion.
+            // attributes stay: removing them would replay the page's entrance motion.
             if (crossed) {
-                item.classList.add('apply-just-crossed');
-                document.querySelector('.application-review-panel')?.classList.add('apply-crossing');
+                item.dataset.applyCrossed = 'true';
+                document.querySelector('.application-review-panel')?.setAttribute('data-apply-crossing', 'true');
             }
         }
 

@@ -1,7 +1,7 @@
 // How the inside of the athlete application moves. apply-flow-feel.css owns the
 // look of every state; this classic script only animates the changes CSS cannot
 // describe on its own:
-// - a stage change morphs the card's height and lets the new fields arrive in a
+// - a stage change morphs the card's height and lets the supporting copy arrive in a
 //   short stagger from the side the athlete is travelling toward;
 // - field errors open and close their space instead of shoving the form;
 // - files can be dropped on the photo and proof stages;
@@ -18,19 +18,29 @@ interface Window {
     LwcApplyFeel: LwcApplyFeelApi;
 }
 
+declare const applicationProfilePending: boolean;
+
 (() => {
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
     const moving = (): boolean => !reduced.matches;
     const enter = "cubic-bezier(0, 0, 0, 1)";
     const standard = "cubic-bezier(0.2, 0, 0, 1)";
     const running = new WeakMap<Element, Animation>();
+    const animations = new Set<Animation>();
+    const stageAnimations = new Set<Animation>();
+    reduced.addEventListener('change', () => {
+        if (reduced.matches) for (const animation of animations) animation.cancel();
+    });
 
     function play(element: Element, keyframes: Keyframe[], options: KeyframeAnimationOptions): Animation | null {
         if (!moving() || typeof element.animate !== "function") return null;
         running.get(element)?.cancel();
         const animation = element.animate(keyframes, options);
         running.set(element, animation);
+        animations.add(animation);
         const forget = (): void => {
+            animations.delete(animation);
+            stageAnimations.delete(animation);
             if (running.get(element) === animation) running.delete(element);
         };
         animation.addEventListener("finish", forget);
@@ -49,7 +59,11 @@ interface Window {
                 + " :scope > .autocomplete-container, :scope > .convergence-application-copy, :scope > .char-counter,"
                 + " :scope > div:not([style*='none']) > *, :scope > #proofImageContainer, :scope > #biomarker-checklist");
             for (const row of Array.from(rows)) {
-                if (row.offsetParent !== null && row.getClientRects().length) parts.push(row);
+                // Fields and upload controls must stay visible and stationary from
+                // the first frame, including when keyboard focus travels to them.
+                if (row.offsetParent !== null && row.getClientRects().length
+                    && !row.matches('input, select, textarea, button, label')
+                    && !row.querySelector('input, select, textarea, button')) parts.push(row);
             }
         }
         return parts.slice(0, 12);
@@ -57,8 +71,9 @@ interface Window {
 
     function beginStage(previousStage: number, stage: number): () => void {
         const card = document.querySelector<HTMLElement>(".convergence-stage-layout");
+        const before = card?.getBoundingClientRect().height || 0;
+        for (const animation of stageAnimations) animation.cancel();
         if (!card || !previousStage || previousStage === stage || !moving()) return () => {};
-        const before = card.getBoundingClientRect().height;
         const forward = stage > previousStage;
         card.dataset.applyTravel = forward ? "forward" : "back";
 
@@ -67,20 +82,22 @@ interface Window {
             // The card glides to its new height rather than snapping, so the dock and
             // footer never leap while the new stage settles.
             if (Math.abs(after - before) > 2) {
-                play(card, [
-                    { height: `${before}px`, overflow: "clip" },
-                    { height: `${after}px`, overflow: "clip" }
+                const animation = play(card, [
+                    { height: `${before}px` },
+                    { height: `${after}px` }
                 ], { duration: 280, easing: standard });
+                if (animation) stageAnimations.add(animation);
             }
 
             const inputForm = document.getElementById("inputForm");
             if (!inputForm) return;
             const shift = forward ? 18 : -18;
             visibleFieldParts(inputForm).forEach((part, index) => {
-                play(part, [
+                const animation = play(part, [
                     { opacity: 0, translate: `${shift}px 0` },
                     { opacity: 1, translate: "0 0" }
                 ], { duration: 240, delay: 50 + index * 28, easing: enter, fill: "backwards" });
+                if (animation) stageAnimations.add(animation);
             });
         };
     }
@@ -90,6 +107,7 @@ interface Window {
     // 2) Field errors open their space -----------------------------------------------
 
     const errorHeights = new WeakMap<HTMLElement, number>();
+    const errorSpacers = new WeakMap<HTMLElement, HTMLElement>();
 
     function watchErrors(root: ParentNode): void {
         const errors = Array.from(root.querySelectorAll<HTMLElement>(".error-message"));
@@ -109,6 +127,9 @@ interface Window {
     }
 
     function changed(error: HTMLElement): void {
+        running.get(error)?.cancel();
+        errorSpacers.get(error)?.remove();
+        errorSpacers.delete(error);
         const hasText = Boolean(error.textContent?.trim());
         const previous = errorHeights.get(error) || 0;
         if (hasText) {
@@ -116,8 +137,8 @@ interface Window {
             errorHeights.set(error, height);
             if (!previous && height) {
                 play(error, [
-                    { height: "0px", opacity: 0, marginTop: "0px", marginBottom: "0px", overflow: "clip" },
-                    { height: `${height}px`, opacity: 1, overflow: "clip" }
+                    { translate: "0 -2px" },
+                    { translate: "0 0" }
                 ], { duration: 200, easing: enter });
                 const field = error.previousElementSibling instanceof HTMLElement
                     && error.previousElementSibling.matches("input, select, textarea")
@@ -139,7 +160,9 @@ interface Window {
         spacer.className = "apply-error-spacer";
         spacer.setAttribute("aria-hidden", "true");
         error.after(spacer);
-        const animation = spacer.animate([{ height: `${previous}px` }, { height: "0px" }], { duration: 180, easing: "cubic-bezier(0.3, 0, 1, 1)" });
+        errorSpacers.set(error, spacer);
+        const animation = play(spacer, [{ height: `${previous}px` }, { height: "0px" }], { duration: 180, easing: "cubic-bezier(0.3, 0, 1, 1)" });
+        if (!animation) { spacer.remove(); return; }
         const remove = (): void => spacer.remove();
         animation.addEventListener("finish", remove);
         animation.addEventListener("cancel", remove);
@@ -154,10 +177,12 @@ interface Window {
     function dropTarget(): { section: HTMLElement; input: HTMLInputElement; single: boolean } | null {
         const stage = document.body.dataset.convergenceStage;
         if (stage === "4") {
+            if (typeof applicationProfilePending !== 'undefined' && applicationProfilePending) return null;
             const uploadPart = document.getElementById("uploadPart");
             const section = document.getElementById("profileUploadSection");
             const input = document.getElementById("profilePicInput") as HTMLInputElement | null;
-            if (!section || !input || !uploadPart || uploadPart.style.display === "none") return null;
+            const button = document.getElementById("uploadButton") as HTMLButtonElement | null;
+            if (!section || !input || input.disabled || button?.disabled || !uploadPart || uploadPart.style.display === "none") return null;
             return { section, input, single: true };
         }
         if (stage === "5") {
@@ -198,8 +223,12 @@ interface Window {
             if (!depth || !event.relatedTarget) disarm();
         });
         window.addEventListener("dragover", event => {
-            if (!armed || !hasFiles(event)) return;
-            const over = card.contains(event.target as Node);
+            if (!hasFiles(event)) return;
+            // A misplaced or busy-state drop must not navigate away with a draft.
+            event.preventDefault();
+            if (!dropTarget()) disarm();
+            if (!armed) { if (event.dataTransfer) event.dataTransfer.dropEffect = 'none'; return; }
+            const over = event.target instanceof Node && card.contains(event.target);
             armed.classList.toggle("apply-drop-over", over);
             if (over) {
                 event.preventDefault();
@@ -207,8 +236,10 @@ interface Window {
             }
         });
         window.addEventListener("drop", event => {
+            if (!hasFiles(event)) return;
+            event.preventDefault();
             const target = armed ? dropTarget() : null;
-            const inside = card.contains(event.target as Node);
+            const inside = event.target instanceof Node && card.contains(event.target);
             disarm();
             if (!target || !inside || !event.dataTransfer?.files.length) return;
             event.preventDefault();

@@ -387,20 +387,29 @@ class ProofReview {
             label.title = label.textContent;
             caption.append(title, label);
             const remove = this.button('Remove', 'proof-page-remove', () => {
-                if (card.classList.contains('is-leaving')) return;
-                const removeNow = (): void => this.removePage(source, index);
-                if (window.matchMedia('(prefers-reduced-motion: reduce)').matches || typeof card.animate !== 'function') {
-                    removeNow();
-                    return;
-                }
-                // The page folds away before the grid closes the gap.
-                card.classList.add('is-leaving');
-                const exit = card.animate([
+                if (!card.isConnected || this.progress) return;
+                const bounds = image.getBoundingClientRect();
+                // Submission state and validation change in this click, before any
+                // animation. Only an inert copy of the sheet remains on screen.
+                this.removePage(source, index);
+                if (window.matchMedia('(prefers-reduced-motion: reduce)').matches || typeof card.animate !== 'function') return;
+                const sheet = document.createElement('img');
+                sheet.src = source;
+                sheet.alt = '';
+                sheet.className = 'proof-page-exit';
+                sheet.setAttribute('aria-hidden', 'true');
+                sheet.inert = true;
+                Object.assign(sheet.style, {
+                    left: `${bounds.left}px`, top: `${bounds.top}px`,
+                    width: `${bounds.width}px`, height: `${bounds.height}px`
+                });
+                document.body.appendChild(sheet);
+                const exit = sheet.animate([
                     { opacity: 1, scale: '1' },
                     { opacity: 0, scale: '0.9' }
-                ], { duration: 140, easing: 'cubic-bezier(0.3, 0, 1, 1)', fill: 'forwards' });
-                exit.addEventListener('finish', removeNow);
-                exit.addEventListener('cancel', removeNow);
+                ], { duration: 140, easing: 'cubic-bezier(0.3, 0, 1, 1)' });
+                exit.addEventListener('finish', () => sheet.remove(), { once: true });
+                exit.addEventListener('cancel', () => sheet.remove(), { once: true });
             });
             remove.disabled = Boolean(this.progress);
             remove.setAttribute('aria-label', `Remove proof page ${index + 1}`);

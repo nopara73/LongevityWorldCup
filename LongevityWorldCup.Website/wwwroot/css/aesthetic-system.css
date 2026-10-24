@@ -1180,11 +1180,9 @@ html body #biomarker-checklist .proof-tracker-head h4 {
     }
 
     /* A new page lands in the grid, then is "scanned" onto its sheet. */
-    .proof-page-card.is-arriving {
-        animation: proof-card-arrive 380ms calc(0ms - var(--proof-elapsed, 0ms)) var(--lwc-ease-pop, ease) backwards;
-    }
     .proof-page-card.is-arriving .proof-page-preview img {
-        animation: proof-sheet-scan 620ms calc(140ms - var(--proof-elapsed, 0ms)) var(--lwc-ease-standard, ease) backwards;
+        animation: proof-sheet-scan 620ms calc(140ms - var(--proof-elapsed, 0ms)) var(--lwc-ease-standard, ease) backwards,
+            proof-card-arrive 380ms calc(0ms - var(--proof-elapsed, 0ms)) var(--lwc-ease-pop, ease) backwards;
     }
     .proof-page-card.is-arriving .proof-page-preview::after {
         content: "";
@@ -1206,6 +1204,12 @@ html body #biomarker-checklist .proof-tracker-head h4 {
 @keyframes proof-bar-shimmer { from { background-position: -40% 0; } to { background-position: 140% 0; } }
 @keyframes proof-bar-sweep { from { background-position: 130% 0; } to { background-position: -30% 0; } }
 @keyframes proof-card-arrive { from { opacity: 0; transform: translateY(10px) scale(0.94); } }
+.proof-page-exit {
+    position: fixed;
+    z-index: 100;
+    object-fit: contain;
+    pointer-events: none;
+}
 @keyframes proof-sheet-scan { from { clip-path: inset(0 0 100% 0); filter: brightness(1.25); } to { clip-path: inset(0); filter: none; } }
 @keyframes proof-scan-line {
     0% { top: 4%; opacity: 0; }
@@ -1336,7 +1340,7 @@ body.proof-review-open { overflow: hidden; }
     background: var(--lwc-surface-accent);
 }
 .proof-review-title { display: flex; align-items: center; gap: var(--lwc-space-3); min-width: 0; }
-.proof-review-toolbar h2 { min-width: 0; margin: 0; color: var(--lwc-ink); text-align: left; font-size: var(--lwc-type-body); font-weight: 700; overflow-wrap: anywhere; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+.proof-review-toolbar h2 { min-width: 0; margin: 0; color: var(--lwc-ink); text-align: left; font-size: var(--lwc-type-body); font-weight: 700; overflow-wrap: anywhere; }
 .proof-review-position {
     flex: 0 0 auto;
     padding: 3px 10px;
@@ -1396,7 +1400,6 @@ body.proof-review-open { overflow: hidden; }
 .proof-review-dialog.is-compact-height .proof-review-stage { grid-column: 1 / -1; }
 .proof-review-dialog.is-compact-height .proof-review-toolbar { gap: 8px; padding: 4px 8px; }
 .proof-review-dialog.is-compact-height .proof-review-title { gap: 8px; }
-.proof-review-dialog.is-compact-height .proof-review-toolbar h2 { -webkit-line-clamp: 1; }
 .proof-review-dialog.is-compact-height .proof-review-close { min-width: 44px; padding: 8px; }
 .proof-review-dialog.is-compact-height .proof-review-stage { min-height: 64px; padding: 8px; }
 .proof-review-dialog.is-compact-height .proof-review-filmstrip { min-width: 0; align-items: center; gap: 8px; padding: 4px 0; }

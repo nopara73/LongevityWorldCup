@@ -16,6 +16,13 @@
 
 /* ---------- Step meter: the athlete's marker ---------- */
 
+/* At browser zoom the unequal label lengths need unequal shares of the row. */
+@media (max-width: 300px) {
+    body[data-convergence-stage] #mainProgressBar { width: 100%; }
+    body[data-convergence-stage] #mainProgressBar .stage { flex-basis: auto; }
+    body[data-convergence-stage] #mainProgressBar .stage-label { overflow-wrap: normal; white-space: nowrap; }
+}
+
 .convergence-stage-layout .sub-progress-container .stages {
     padding-block: 4px;
 }
@@ -174,6 +181,12 @@ body[data-convergence-stage="7"] .convergence-stage-layout .sub-progress-contain
 .apply-error-spacer {
     display: block;
     overflow: hidden;
+}
+
+/* The script nudges new errors without hiding their text. Do not stack the
+   shared feedback fade on top of that immediate validation feedback. */
+#inputForm .error-message:not(:empty) {
+    animation: none;
 }
 
 /* ---------- Drop files on the photo and proof stages ---------- */
@@ -340,23 +353,23 @@ body[data-convergence-stage="7"] .convergence-stage-layout .sub-progress-contain
 
     /* A confirmed payment crosses its line: the step pops, a ring spreads once,
        the line to the review draws and the seal stamps again. */
-    .application-review-panel .application-review-trail li.apply-just-crossed {
+    .application-review-panel .application-review-trail li[data-apply-crossed] {
         animation: none;
     }
 
-    .application-review-panel .application-review-trail li.apply-just-crossed .application-review-step {
+    .application-review-panel .application-review-trail li[data-apply-crossed] .application-review-step {
         animation: apply-step-cross 640ms var(--lwc-ease-pop) both;
     }
 
-    .application-review-panel .application-review-trail li.apply-just-crossed + li::before {
+    .application-review-panel .application-review-trail li[data-apply-crossed] + li::before {
         animation: apply-trail-draw 480ms 120ms var(--lwc-ease-standard) backwards;
     }
 
-    .application-review-panel.apply-crossing .application-review-seal {
+    .application-review-panel[data-apply-crossing] .application-review-seal {
         animation: apply-seal-restamp 520ms var(--lwc-ease-pop) both;
     }
 
-    .application-review-panel.apply-crossing .application-review-frame::after {
+    .application-review-panel[data-apply-crossing] .application-review-frame::after {
         animation: apply-finish-sweep-again 1000ms var(--lwc-ease-standard) both;
     }
 }
