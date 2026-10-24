@@ -133,7 +133,9 @@ public sealed class HomepageArrivalBrowserTests(
             await page.WaitForFunctionAsync("() => typeof window.releaseOpeningFrame === 'function'");
             await page.EvaluateAsync("window.releaseOpeningFrame()");
             await page.WaitForFunctionAsync("() => !document.documentElement.classList.contains('homepage-arriving')");
-            Assert.Equal(6, await page.EvaluateAsync<int>("arrivalTargets.length"));
+            Assert.Equal(new[] { "main-logo-image", "bannertext", "podium-item first", "podium-item second",
+                "podium-item third", "athleteLeaderboard" },
+                await page.EvaluateAsync<string[]>("arrivalTargets"));
             Assert.DoesNotContain("events-root-index", await page.EvaluateAsync<string[]>("arrivalTargets"));
             Assert.Equal(0, await page.Locator("#lwc-countdown-box").CountAsync());
         }
@@ -213,6 +215,8 @@ public sealed class HomepageArrivalBrowserTests(
     public async Task ReplacingAnArrivingCard_PreservesTheOriginalAnimationDeadline()
     {
         await using var context = await NewContextAsync(1440);
+        // This exercises replacement during an active entrance. Keep parsing
+        // from consuming that entrance before the podium card is attached.
         await HoldOpeningFrameAsync(context);
         await context.AddInitScriptAsync("""
             window.podiumStartTimes = [];

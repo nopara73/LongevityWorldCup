@@ -195,6 +195,10 @@
 
     self.LwcWebPush = {
         state, identity, deadline, request, syncTag,
+        // Reuse the sender: BroadcastChannel does not echo a message to itself.
+        // A second channel in this document can receive our own completed change
+        // late and erase its error/status while starting a redundant refresh.
+        onChange: listener => changes?.addEventListener('message', listener),
         sync: run,
         enable: async (registration, publicKey) => {
             // Finish any durable opt-out before acquiring a fresh provider identity.

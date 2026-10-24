@@ -53,7 +53,7 @@ public sealed class PlayJoinTrackBrowserTests(
         }
         // Compare the resting layout: no hover lift and no entrance still running.
         await page.Mouse.MoveAsync(0, 0);
-        await page.EvaluateAsync("() => Promise.all(document.getAnimations().map(a => a.finished.catch(() => {})))");
+        await WaitForFiniteAnimationsAsync(page);
 
         var rows = await page.EvaluateAsync<double[]>(
             """

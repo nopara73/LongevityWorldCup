@@ -89,6 +89,28 @@ public sealed class WebPushBrowserTests
             window.testUnsubscribeCount = 0;
             window.testSubscribeStarted = false;
             window.testSubscription = null;
+            // Deliver this document's own preference broadcasts after the
+            // timeout has rendered, reproducing delayed message dispatch.
+            const NativeBroadcastChannel = window.BroadcastChannel;
+            const pushChannels = [];
+            const pendingPushMessages = [];
+            window.BroadcastChannel = class extends NativeBroadcastChannel {
+                constructor(name) {
+                    super(name);
+                    if (name === 'lwc-web-push') pushChannels.push(this);
+                }
+                postMessage(message) {
+                    if (this.name !== 'lwc-web-push') return super.postMessage(message);
+                    pendingPushMessages.push(() => pushChannels.filter(channel => channel !== this)
+                        .forEach(channel => channel.dispatchEvent(new MessageEvent('message', { data: message }))));
+                }
+            };
+            window.flushOwnPushChanges = () => pendingPushMessages.splice(0).forEach(deliver => deliver());
+            window.sendExternalPushChange = () => {
+                const sender = new NativeBroadcastChannel('lwc-web-push');
+                sender.postMessage('changed');
+                sender.close();
+            };
             Object.defineProperty(Notification, 'permission', { get: () => 'granted' });
             Notification.requestPermission = async () => 'granted';
             const documentSubscription = {
@@ -124,9 +146,20 @@ public sealed class WebPushBrowserTests
         else
         {
             await Assertions.Expect(page.Locator("#webPushStatus")).ToHaveTextAsync("Notifications could not connect. Try again.");
+            await page.EvaluateAsync("() => window.flushOwnPushChanges()");
+            await Assertions.Expect(bell).ToBeEnabledAsync();
+            await Assertions.Expect(page.Locator("#webPushStatus")).ToHaveTextAsync("Notifications could not connect. Try again.");
             await page.Clock.FastForwardAsync(delay - 120001);
         }
         await page.WaitForFunctionAsync("() => window.testUnsubscribeCount === 1");
+        if (!enabled)
+        {
+            // A different sender must still refresh this document's preference.
+            await page.EvaluateAsync("() => window.sendExternalPushChange()");
+            await Assertions.Expect(page.Locator("#webPushStatus")).ToBeEmptyAsync();
+            await Assertions.Expect(bell).ToBeEnabledAsync();
+            await Assertions.Expect(bell).ToHaveAttributeAsync("aria-pressed", "false");
+        }
     }
 
     [Fact]

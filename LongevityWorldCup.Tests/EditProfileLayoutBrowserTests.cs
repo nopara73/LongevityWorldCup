@@ -307,13 +307,10 @@ public sealed class EditProfileLayoutBrowserTests(
     private static async Task SettleTextLayoutAsync(IPage page)
     {
         await page.WaitForFunctionAsync("() => [...document.querySelectorAll('link[rel=stylesheet]')].every(link => link.sheet !== null)");
+        await page.EvaluateAsync("() => document.fonts.ready");
+        await WaitForFiniteAnimationsAsync(page);
         await page.EvaluateAsync("""
             async () => {
-                await document.fonts.ready;
-                document.body.getBoundingClientRect();
-                await Promise.all(document.getAnimations()
-                    .filter(animation => animation.effect?.getTiming().iterations !== Infinity)
-                    .map(animation => animation.finished.catch(() => {})));
                 window.LwcFlowActionDock.refreshNow();
                 await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
             }

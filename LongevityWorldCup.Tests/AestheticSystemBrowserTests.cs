@@ -1240,6 +1240,9 @@ public sealed class AestheticSystemBrowserTests(
                 case "css/site-footer.css":
                     await AssertFooterContainerBoundariesAsync(page, source.ToArray());
                     break;
+                case "css/site-header.css":
+                    await AssertNavigationContainerBoundariesAsync(page, source.ToArray());
+                    break;
                 case "css/ro-guide.css":
                     await AssertRejuvenationContainerBoundariesAsync(page, source.ToArray());
                     break;
@@ -1267,6 +1270,57 @@ public sealed class AestheticSystemBrowserTests(
                     Assert.Fail($"Add a rendered container-boundary probe for {source.Key}.");
                     break;
             }
+        }
+    }
+
+    private static async Task AssertNavigationContainerBoundariesAsync(
+        IPage page, ResponsiveContainerCondition[] conditions)
+    {
+        var condition = Assert.Single(conditions);
+        Assert.Null(condition.Name);
+        Assert.Equal("max", condition.Bound);
+        Assert.Equal("em", condition.Unit);
+        Assert.Equal(16, condition.Value);
+        var wasReduced = await page.EvaluateAsync<bool>("() => matchMedia('(prefers-reduced-motion: reduce)').matches");
+        await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.Reduce });
+        try
+        {
+            await NavigateAndSettleAsync(page, "/ruleset");
+            await page.Locator("header .site-menu-toggle").ClickAsync();
+            foreach (var fontSize in new[] { 16, 32 })
+            {
+                await page.EvaluateAsync("size => document.documentElement.style.fontSize = size + 'px'", fontSize);
+                var threshold = condition.Value * fontSize;
+                foreach (var delta in new[] { -1, 0, 1, 0, -1 })
+                {
+                    var width = threshold + delta;
+                    var diagnostics = await page.EvaluateAsync<double[]>("""
+                        async width => {
+                            const body = document.querySelector('.site-menu-body');
+                            Object.assign(body.style, { boxSizing: 'content-box', width: `${width}px`, maxWidth: 'none', flexShrink: '0' });
+                            Object.assign(document.querySelector('.site-menu-panel').style, { width: 'max-content', maxWidth: 'none' });
+                            await document.fonts.ready;
+                            await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                            const rail = body.querySelector('.site-menu-pages');
+                            const links = [...rail.querySelectorAll('.footer-link')];
+                            return [parseFloat(getComputedStyle(body).width),
+                                getComputedStyle(rail).gridTemplateColumns.split(' ').length,
+                                Math.max(0, body.scrollWidth - body.clientWidth),
+                                Math.max(0, ...links.map(link => link.scrollWidth - link.clientWidth))];
+                        }
+                        """, width);
+                    Assert.Equal(width, diagnostics[0], 1);
+                    Assert.Equal(width <= threshold ? 1 : 2, diagnostics[1]);
+                    Assert.True(diagnostics[2] <= 1 && diagnostics[3] <= 1,
+                        $"Navigation overflowed at {width}px with {fontSize}px text.");
+                }
+            }
+            await page.Keyboard.PressAsync("Escape");
+        }
+        finally
+        {
+            await page.EvaluateAsync("() => document.documentElement.style.removeProperty('font-size')");
+            await page.EmulateMediaAsync(new() { ReducedMotion = wasReduced ? ReducedMotion.Reduce : ReducedMotion.NoPreference });
         }
     }
 

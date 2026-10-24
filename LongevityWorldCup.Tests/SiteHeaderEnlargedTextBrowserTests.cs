@@ -165,32 +165,18 @@ public sealed class SiteHeaderEnlargedTextBrowserTests(
 
     private static async Task NavigateHeaderAsync(IPage page, string path)
     {
-        // Highlights aligns its heading after a delay. Observe that real call:
-        // scrollIntoView can legitimately settle at zero because of scroll padding.
-        if (path == "/events")
-            await page.AddInitScriptAsync(
-                """
-                (() => {
-                    const scrollIntoView = Element.prototype.scrollIntoView;
-                    Element.prototype.scrollIntoView = function (...args) {
-                        const result = scrollIntoView.apply(this, args);
-                        if (this.matches('.event-board-heading')) window.__headerEventBoardScrollObserved = true;
-                        return result;
-                    };
-                })();
-                """);
         await NavigateAndSettleAsync(page, path);
         await page.EvaluateAsync("async () => { await window.modulesReady; await Promise.allSettled([window.getSharedAthletes?.(), window.getSharedEvents?.()]); }");
         if (path == "/events")
-            await page.WaitForFunctionAsync("() => document.getElementById('events-root')?.getAttribute('aria-busy') === 'false' && window.__headerEventBoardScrollObserved === true");
+            await page.WaitForFunctionAsync("() => document.getElementById('events-root')?.getAttribute('aria-busy') === 'false'");
         await WaitForLayoutAsync(page);
         await ScrollToTopAsync(page);
     }
 
     private static async Task ScrollToTopAsync(IPage page)
     {
-        // Highlights deliberately opens below its banner. Inspect the banner
-        // after a real wheel input, and avoid the homepage's programmatic guard.
+        // Real wheel input cancels Highlights' optional opening scroll even when
+        // it has not started, and avoids the homepage's programmatic guard.
         await page.Mouse.WheelAsync(0, -10000);
         await page.WaitForFunctionAsync("() => window.scrollY === 0");
     }

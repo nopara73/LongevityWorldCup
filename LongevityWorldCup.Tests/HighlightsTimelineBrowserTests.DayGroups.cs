@@ -69,10 +69,10 @@ public sealed partial class HighlightsTimelineBrowserTests
         await page.Locator("tr.main-row[data-event-id='sep-a'] .custom-event-expander").ClickAsync();
         await page.WaitForFunctionAsync("() => document.querySelector('tr.custom-event-row.is-open + tr .custom-event-body').getBoundingClientRect().height > 40");
         await page.Mouse.MoveAsync(5, 5);
+        await WaitForFiniteAnimationsAsync(page);
         var opened = await page.EvaluateAsync<string[]>(
             """
             async () => {
-                await Promise.all(document.getAnimations().map(a => a.finished.catch(() => {})));
                 await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
                 const issues = [];
                 const row = document.querySelector('tr.main-row[data-event-id="sep-a"]');
