@@ -12,6 +12,46 @@ public sealed class CustomAlertDialogBrowserTests(
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Theory]
+    [InlineData(1440, 900)]
+    [InlineData(390, 844)]
+    public async Task GlobalDialogs_StayAboveJourneyContentAfterScrolling(int width, int height)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = height },
+            ReducedMotion = ReducedMotion.NoPreference
+        });
+        var page = await context.NewPageAsync();
+        await NavigateAndSettleAsync(page, "/apply");
+        await page.EvaluateAsync("scrollTo(0, document.documentElement.scrollHeight)");
+        await page.EvaluateAsync("() => { void customAlert('Proof files must be images or PDFs.'); }");
+        await Assertions.Expect(page.Locator("#custom-alert-close")).ToBeFocusedAsync();
+        await page.WaitForTimeoutAsync(350);
+        Assert.True(await page.Locator("#custom-alert-close").EvaluateAsync<bool>("""
+            button => {
+                const box = button.getBoundingClientRect();
+                return box.top >= 0 && box.bottom <= innerHeight + 1
+                    && button.contains(document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2));
+            }
+            """), "The alert must remain a viewport dialog above the journey's content.");
+        await page.Locator("#custom-alert-close").ClickAsync();
+        await Assertions.Expect(page.Locator("#custom-alert")).ToBeHiddenAsync();
+
+        await page.EvaluateAsync("() => showLoading()");
+        await Assertions.Expect(page.Locator("#loading-dialog")).ToBeVisibleAsync();
+        await page.WaitForTimeoutAsync(350);
+        Assert.True(await page.Locator("#loading-dialog").EvaluateAsync<bool>("""
+            dialog => {
+                const box = dialog.querySelector('.loading-dialog-panel').getBoundingClientRect();
+                return box.top >= 0 && box.bottom <= innerHeight + 1
+                    && dialog.contains(document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2));
+            }
+            """), "The loading dialog must also escape the header's transition stacking context.");
+        await page.EvaluateAsync("() => hideLoading()");
+        await Assertions.Expect(page.Locator("#loading-dialog")).ToBeHiddenAsync();
+    }
+
+    [Theory]
     [InlineData("Your application was received", "success", "fa-check")]
     [InlineData("Change request submitted!", "success", "fa-check")]
     [InlineData("Your results were received, but the payment page could not be opened. Check your confirmation email.", "warning", "fa-exclamation")]

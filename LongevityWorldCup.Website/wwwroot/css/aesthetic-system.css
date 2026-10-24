@@ -2257,10 +2257,10 @@ html body :is(#about-longevity-world-cup, #history-of-longevity-as-a-sport, #ro-
 /* Named only during a transition, so the banner never forms a lasting
    stacking context around the alert and loading dialogs it contains. */
 :root:active-view-transition header[role="banner"] {
-    view-transition-name: lwc-site-banner;
+    view-transition-name: lwc-site-header;
 }
 
-::view-transition-group(lwc-site-banner) {
+::view-transition-group(lwc-site-header) {
     animation-duration: var(--lwc-duration-normal);
     animation-timing-function: var(--lwc-ease);
 }
