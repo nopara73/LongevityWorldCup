@@ -72,6 +72,11 @@ foreach (var page in pages)
         (documentHtml, contentsHtml) = BuildChapters(documentHtml, contentsHtml);
     }
 
+    if (ScoringExplainers.AppliesTo(page.CanonicalPath))
+    {
+        documentHtml = ScoringExplainers.Inject(documentHtml, page.CanonicalPath);
+    }
+
     documentHtml = BuildCover(BuildNextSteps(documentHtml));
 
     var pageHtml = NormalizeGeneratedHtml(RenderPage(title, documentHtml, contentsHtml, page));
@@ -1464,7 +1469,7 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
             }
         }
     </style>{{(page.Reference ? ReferencePage.Style : string.Empty)}}
-    <link rel="stylesheet" href="{{"{{ASSET_DOCUMENTATION_READING_CSS}}"}}">
+    <link rel="stylesheet" href="{{"{{ASSET_DOCUMENTATION_READING_CSS}}"}}">{{(ScoringExplainers.AppliesTo(page.CanonicalPath) ? ScoringExplainers.Style : string.Empty)}}
 </head>
 <body>
     <!--HEADER-->
@@ -1475,7 +1480,7 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
         </article>
     </main>
     <!--FOOTER-->
-    <script src="{{"{{ASSET_DOCUMENTATION_JS}}"}}" data-canonical-path="{{canonicalPath}}"></script>{{(page.Reference ? ReferencePage.Script : string.Empty)}}
+    <script src="{{"{{ASSET_DOCUMENTATION_JS}}"}}" data-canonical-path="{{canonicalPath}}"></script>{{(page.Reference ? ReferencePage.Script : string.Empty)}}{{(ScoringExplainers.AppliesTo(page.CanonicalPath) ? ScoringExplainers.Script : string.Empty)}}
 </body>
 </html>
 """;
