@@ -1396,3 +1396,64 @@ select:focus-visible,
     .stats-diagnostic-tabs .stats-tab { min-height: 40px; }
     select, .traffic-day-picker select { font-size: 16px; min-height: 44px; }
 }
+
+/* Motion: the dashboard assembles instead of popping in. Panels settle in
+   reading order when data lands, every bar grows from its baseline, chart
+   columns rise, and the active tab's underline draws from the centre. A
+   filter change replays the growth so the eye sees what moved. */
+@media (prefers-reduced-motion: no-preference) {
+    .stats-page[aria-busy="false"] :is(.traffic-overview, .data-quality-strip, .outcome-strip) > *,
+    .stats-page[aria-busy="false"] .stats-panel {
+        animation: stats-settle 420ms cubic-bezier(0, 0, 0, 1) backwards;
+    }
+
+    .stats-page[aria-busy="false"] :is(.traffic-overview, .data-quality-strip, .outcome-strip) > :nth-child(2) { animation-delay: 50ms; }
+    .stats-page[aria-busy="false"] :is(.traffic-overview, .data-quality-strip, .outcome-strip) > :nth-child(3) { animation-delay: 100ms; }
+    .stats-page[aria-busy="false"] :is(.traffic-overview, .data-quality-strip, .outcome-strip) > :nth-child(4) { animation-delay: 150ms; }
+    .stats-page[aria-busy="false"] :is(.traffic-overview, .data-quality-strip, .outcome-strip) > :nth-child(n + 5) { animation-delay: 200ms; }
+    .stats-page[aria-busy="false"] .decision-grid > .stats-panel:nth-child(2),
+    .stats-page[aria-busy="false"] .decision-support-grid > .stats-panel:nth-child(2),
+    .stats-page[aria-busy="false"] .stats-main-grid > .stats-panel:nth-child(2) { animation-delay: 80ms; }
+
+    .funnel-fill,
+    .traffic-meter > i,
+    .stacked-bar > span {
+        transform-origin: left center;
+        animation: stats-grow 620ms 120ms cubic-bezier(0.2, 0, 0, 1) backwards;
+    }
+
+    .traffic-session-bar {
+        transform-box: fill-box;
+        transform-origin: 50% 100%;
+        animation: stats-rise 560ms cubic-bezier(0.2, 0, 0, 1) backwards;
+    }
+
+    .traffic-session-bar:nth-of-type(4n + 2) { animation-delay: 30ms; }
+    .traffic-session-bar:nth-of-type(4n + 3) { animation-delay: 60ms; }
+    .traffic-session-bar:nth-of-type(4n) { animation-delay: 90ms; }
+
+    .stats-tabs > .stats-tab.active::after {
+        animation: stats-underline 260ms cubic-bezier(0.2, 0, 0, 1) backwards;
+    }
+
+    .stats-button:active,
+    .stats-tab:active {
+        scale: 0.97;
+    }
+}
+
+@keyframes stats-settle {
+    from { opacity: 0; translate: 0 10px; }
+}
+
+@keyframes stats-grow {
+    from { transform: scaleX(0); }
+}
+
+@keyframes stats-rise {
+    from { transform: scaleY(0); }
+}
+
+@keyframes stats-underline {
+    from { transform: scaleX(0); opacity: 0; }
+}
