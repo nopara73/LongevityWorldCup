@@ -973,6 +973,22 @@
         trafficChartObserver = new ResizeObserver(draw);
         trafficChartObserver.observe(svg.parentElement!);
         draw();
+        // The shared crosshair reads the same day the bar click would pick.
+        window.LwcCharts?.crosshair(svg, {
+            points: () => Array.from(svg.querySelectorAll<SVGRectElement>("rect[data-day]")).map(bar => {
+                const day = bar.dataset["day"] || "";
+                const point = points.find(item => item.day === day);
+                const x = bar.x.baseVal.value + bar.width.baseVal.value / 2;
+                return {
+                    key: day,
+                    x,
+                    y: bar.y.baseVal.value,
+                    title: formatTrafficDay(day),
+                    lines: point ? [`${formatNumber(point.sessions)} sessions`, `${formatNumber(point.pageViews)} page views`] : []
+                };
+            }),
+            onPick: selectDay
+        });
     }
 
     function drawTrafficChart(svg: SVGSVGElement, points: TrafficDailyPoint[]): void {
@@ -1003,7 +1019,7 @@
             ${points.map((point, index) => {
                 const x = left + slot * (index + 0.5);
                 const showLabel = index === points.length - 1 || index % labelEvery === 0 && (index === 0 || index < points.length - labelEvery / 2);
-                return `<rect data-day="${escAttr(point.day)}" x="${x - barWidth / 2}" y="${y(point.sessions)}" width="${barWidth}" height="${bottom - y(point.sessions)}" rx="2" class="traffic-session-bar${isPartialTrafficDay(point.day) ? " partial" : ""}"><title>${esc(`${formatDay(point.day)}: ${formatNumber(point.sessions)} sessions${isPartialTrafficDay(point.day) ? ", partial day" : ""}`)}</title></rect>
+                return `<rect data-day="${escAttr(point.day)}" x="${x - barWidth / 2}" y="${y(point.sessions)}" width="${barWidth}" height="${bottom - y(point.sessions)}" rx="2" style="--lwc-bar-index:${index}" class="traffic-session-bar${isPartialTrafficDay(point.day) ? " partial" : ""}"><title>${esc(`${formatDay(point.day)}: ${formatNumber(point.sessions)} sessions${isPartialTrafficDay(point.day) ? ", partial day" : ""}`)}</title></rect>
                     ${slot >= 35 ? `<text x="${x}" y="${y(point.sessions) - 7}" text-anchor="middle" class="traffic-bar-value">${formatNumber(point.sessions)}</text>` : ""}
                     ${showLabel ? `<text class="traffic-date-label" x="${index === 0 ? left : index === points.length - 1 ? width - right : x}" y="${height - 9}" text-anchor="${index === 0 ? "start" : index === points.length - 1 ? "end" : "middle"}">${esc(formatTrafficDay(point.day))}</text>` : ""}`;
             }).join("")}`;

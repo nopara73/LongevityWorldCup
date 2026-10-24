@@ -219,4 +219,24 @@ interface Window {
     });
 
     window.LwcMotion = Object.freeze({ enabled, flip, afterExit, settle });
+
+    // The shared chart system rides along with motion on every page. Its
+    // stylesheet lands first so no chart state is ever unstyled.
+    // TODO: inject both from HtmlInjectionMiddleware with their own versions.
+    const self = document.currentScript instanceof HTMLScriptElement ? document.currentScript.src : "";
+    // Bump the revision with every charts.js or charts.css change until the
+    // middleware versions them itself.
+    const chartsRevision = "124-4";
+    const version = (self.includes("?") ? self.slice(self.indexOf("?")) + "-" : "?v=") + chartsRevision;
+    if (!document.querySelector("script[src*='/js/charts.js']")) {
+        const sheet = document.createElement("link");
+        sheet.rel = "stylesheet";
+        sheet.href = "/css/charts.css" + version;
+        const script = document.createElement("script");
+        script.src = "/js/charts.js" + version;
+        const load = (): void => { document.head.appendChild(script); };
+        sheet.addEventListener("load", load, { once: true });
+        sheet.addEventListener("error", load, { once: true });
+        document.head.appendChild(sheet);
+    }
 })();

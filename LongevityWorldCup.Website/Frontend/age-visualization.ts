@@ -328,7 +328,9 @@
 
     function updateCenterAndFallback(bioAge: number, chronoAge: number, useBortz: boolean): void {
         var diff = bioAge - chronoAge;
-        var diffText = (diff > 0 ? '+' : '') + diff.toFixed(1) + ' years';
+        // True minus signs, matching every other figure on the site.
+        var rounded = Number(diff.toFixed(1));
+        var diffText = (rounded > 0 ? '+' : rounded < 0 ? '−' : '') + Math.abs(rounded).toFixed(1) + ' years';
         var label = diff < 0 ? 'age reduction' : 'age acceleration';
         var bioText = 'biological age: ' + (Number.isFinite(bioAge) ? bioAge.toFixed(1) : '—');
 
@@ -786,7 +788,7 @@
         visualizationContainer.innerHTML = '';
         var difference = bioAge - chronoAge;
         var diff = difference.toFixed(1);
-        var text = (difference > 0 ? '+' : '') + diff + ' yrs';
+        var text = (Number(diff) > 0 ? '+' : Number(diff) < 0 ? '−' : '') + Math.abs(Number(diff)).toFixed(1) + ' yrs';
         visualizationContainer.innerHTML = '<span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:var(--light-text-color);font-weight:bold;">' + text + '</span>';
     }
 
