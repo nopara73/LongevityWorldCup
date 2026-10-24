@@ -327,9 +327,12 @@ public sealed class AthleteBrowseMotionBrowserTests(
             await pheno.ClickAsync();
             await page.WaitForFunctionAsync("() => window.__motion.animations.some(entry => entry.tag === 'TR')");
             var rows = (await ReadAnimationsAsync(page)).Where(entry => entry.Tag == "TR").ToArray();
-            var moved = rows.Count(entry => entry.First.Contains("translate(", StringComparison.Ordinal));
+            var moved = rows.Count(entry => entry.First.Contains("\"translate\":", StringComparison.Ordinal));
             Assert.True(moved >= 2, $"{pass}: rows should glide from their old places ({moved} moved).");
-            Assert.All(rows, entry => Assert.Contains("\"transform\":\"none\"", entry.Last, StringComparison.Ordinal));
+            Assert.All(rows, entry => Assert.Contains("\"translate\":\"0 0\"", entry.Last, StringComparison.Ordinal));
+            Assert.True(await page.EvaluateAsync<bool>(
+                "() => { const rows = window.__motion.animations.filter(entry => entry.tag === 'TR'); return new Set(rows.map(entry => entry.row)).size === rows.length; }"),
+                "The shared motion controller should animate each row only once.");
             await page.WaitForTimeoutAsync(400);
         }
     }

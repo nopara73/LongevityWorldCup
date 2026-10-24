@@ -6,7 +6,7 @@
 // - Stepping between athletes (buttons, arrow keys or a horizontal swipe)
 //   slides the old athlete out one way while the next arrives from the other.
 // - The profile's ages count in once they are on screen.
-// - Rows glide to their new places when filters, order or division change.
+// - The shared motion controller owns board movement when rankings change.
 // - Closing returns scroll and focus to the row of the athlete you ended on.
 //
 // This classic script observes content and receives explicit dialog lifecycle
@@ -21,7 +21,6 @@
     const modal = document.getElementById("detailsModal");
     if (!modal) return;
 
-    type SharedMotion = { readonly flip?: unknown };
     type Hold = { readonly element: HTMLElement; readonly animation: Animation };
     type Source = { readonly row: HTMLElement; readonly slug: string; readonly at: number };
     type CloseReturn = { scrollTop: number; returnFocusTo: HTMLElement | null };
@@ -32,14 +31,9 @@
     const root = document.documentElement;
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
     const rowSelector = "tr[data-athlete-name], .podium-item[data-athlete-name]";
-    const boardSelector = ".leaderboard table tbody, .podium";
     const figureSelector = ".age-board-figure, #ageRadarCenterValue, #ageRadarCenterBio";
     const swipeExclusions = "a, button, input, select, textarea, canvas, iframe, [contenteditable]:not([contenteditable='false']), [role='button'], [role='slider'], [role='tablist'], [role='listbox'], [role='menu'], .age-clock-switch, .athlete-share-menu";
     let gateOpen = false;
-
-    function sharedMotion(): SharedMotion | undefined {
-        return (window as unknown as { LwcMotion?: SharedMotion }).LwcMotion;
-    }
 
     function enabled(): boolean {
         return !reduced.matches && (gateOpen || root.dataset["lwcMotion"] === "on");
@@ -780,91 +774,10 @@
     modal.addEventListener("athlete-dialog-closed", () => releaseHolds(false));
     observeContent();
 
-    // --- Boards: rows glide to their new places ----------------------------------
-
-    let rowSnapshot: { readonly at: number; readonly rects: Map<Element, DOMRect> } = { at: 0, rects: new Map() };
-    const rowAnimations = new Set<Animation>();
-    function animateRow(item: HTMLElement, frames: Keyframe[], options: KeyframeAnimationOptions): void {
-        const animation = item.animate(frames, options);
-        rowAnimations.add(animation);
-        animation.finished.catch(() => undefined).finally(() => rowAnimations.delete(animation));
-    }
-    const boards = (): HTMLElement[] => [...document.querySelectorAll<HTMLElement>(boardSelector)].filter(board => !modal.contains(board));
-
-    function snapshotRows(): void {
-        // The shared motion system animates the board's own reorder itself.
-        if (!enabled() || sharedMotion()?.flip || isOpen()) return;
-        const rects = new Map<Element, DOMRect>();
-        for (const board of boards()) {
-            for (const item of board.children) {
-                const rect = item.getBoundingClientRect();
-                if (inViewport(rect, 160)) rects.set(item, rect);
-            }
-        }
-        rowSnapshot = { at: performance.now(), rects };
-    }
-
-    for (const type of ["pointerdown", "keydown", "click", "input", "change"]) {
-        document.addEventListener(type, snapshotRows, true);
-    }
-
-    function playRows(): void {
-        const snapshot = rowSnapshot;
-        if (!snapshot.at || performance.now() - snapshot.at > 1200 || !enabled() || sharedMotion()?.flip || isOpen()) return;
-        rowSnapshot = { at: 0, rects: new Map() };
-        rowAnimations.forEach(animation => animation.cancel());
-        rowAnimations.clear();
-        const move = token("--lwc-motion-move", 260);
-        const enter = token("--lwc-motion-base", 200);
-        const limit = innerHeight / 3;
-        let animated = 0;
-        let entered = 0;
-        for (const board of boards()) {
-            for (const item of board.children) {
-                if (!(item instanceof HTMLElement) || animated >= 80) continue;
-                const after = item.getBoundingClientRect();
-                if (!inViewport(after, 160)) continue;
-                const before = snapshot.rects.get(item);
-                if (!before) {
-                    animated++;
-                    animateRow(item,
-                        [{ opacity: 0, transform: "translateY(10px)" }, { opacity: 1, transform: "none" }],
-                        { duration: enter, delay: Math.min(entered++ * 18, 180), easing: enterEase(), fill: "backwards" });
-                    continue;
-                }
-                const dy = Math.max(-limit, Math.min(limit, before.top - after.top));
-                const dx = Math.max(-limit, Math.min(limit, before.left - after.left));
-                if (Math.abs(dy) < 1 && Math.abs(dx) < 1) continue;
-                animated++;
-                animateRow(item,
-                    [{ transform: `translate(${dx}px, ${dy}px)` }, { transform: "none" }],
-                    { duration: move, easing: standardEase(), composite: "add" });
-            }
-        }
-    }
-
-    const boardObserver = new MutationObserver(playRows);
-    const watched = new WeakSet<Element>();
-    function watchBoards(): void {
-        for (const board of boards()) {
-            if (watched.has(board)) continue;
-            watched.add(board);
-            boardObserver.observe(board, { childList: true, attributes: true, attributeFilter: ["style", "class", "hidden"], subtree: true });
-        }
-    }
-    watchBoards();
-    // Boards that render after this script (client-built tables, podiums) join later.
-    new MutationObserver(records => {
-        if (records.some(record => [...record.addedNodes].some(node => node instanceof Element
-            && (node.matches(boardSelector) || node.querySelector(boardSelector) !== null)))) watchBoards();
-    }).observe(document.body, { childList: true, subtree: true });
-
     reduced.addEventListener("change", () => {
         if (!reduced.matches) return;
         gateOpen = false;
         clearMotion();
         resetCounts();
-        rowAnimations.forEach(animation => animation.cancel());
-        rowAnimations.clear();
     });
 })();
