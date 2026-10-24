@@ -148,7 +148,8 @@ public sealed class HomeScoreboardBrowserTests(
             """);
         var target = (await page.Locator("tbody a").First.BoundingBoxAsync())!;
         await page.Mouse.ClickAsync(target.X + target.Width / 2, target.Y + target.Height - 1);
-        Assert.EndsWith("/#one", page.Url);
+        // Coordinate input does not wait for the resulting navigation event.
+        await Assertions.Expect(page).ToHaveURLAsync(App.BaseAddress + "#one");
     }
 
     [Theory]
