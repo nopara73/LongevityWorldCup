@@ -8,6 +8,30 @@ namespace LongevityWorldCup.Tests;
 public sealed class LoadingResilienceBrowserTests(PlaywrightBrowserFixture browserFixture, BrowserTestAppFixture appFixture)
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
+    [Fact]
+    public async Task StickyRemeasurement_PreservesTheEntranceAndItsFrame()
+    {
+        await using var context = await NewContextAsync(Browser, App, new() { ViewportSize = new() { Width = 1280, Height = 800 } });
+        var page = await context.NewPageAsync();
+        await NavigateAndSettleAsync(page, "/history");
+        var result = await page.EvaluateAsync<bool[]>("""
+            async () => {
+                const bar = document.getElementById('site-sticky-header');
+                handleScroll(0, true);
+                await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                // A font/resize can invalidate the cached height on the scroll
+                // that first reveals the bar.
+                handleScroll(900, true);
+                const frame = bar.getBoundingClientRect();
+                return [bar.classList.contains('visible'), !bar.inert,
+                    bar.getAnimations().some(a => a.transitionProperty === 'clip-path'),
+                    frame.top === 0 && frame.height > 0,
+                    !bar.classList.contains('is-measuring')];
+            }
+            """);
+        Assert.All(result, Assert.True);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

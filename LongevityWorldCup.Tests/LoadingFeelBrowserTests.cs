@@ -208,23 +208,32 @@ public sealed class LoadingFeelBrowserTests(PlaywrightBrowserFixture browserFixt
         await NavigateAndSettleAsync(page, "/history");
         var sticky = page.Locator("#site-sticky-header");
 
-        await page.EvaluateAsync("() => window.scrollTo(0, 900)");
-        await page.WaitForFunctionAsync("() => document.getElementById('site-sticky-header').classList.contains('visible')");
-        Assert.True(await sticky.EvaluateAsync<bool>("""
-            element => element.getAnimations().some(animation => animation.transitionProperty === 'clip-path')
-            """), "The bar must reveal from the top while its measured frame stays fixed.");
+        var entering = await CaptureStickyTransitionAsync(page, 900);
+        Assert.Contains("clip-path", entering, StringComparison.Ordinal);
         await Assertions.Expect(sticky).ToBeVisibleAsync();
         await page.WaitForFunctionAsync("() => !document.getElementById('site-sticky-header').getAnimations().length");
 
-        await page.EvaluateAsync("() => window.scrollTo(0, 0)");
-        await page.WaitForFunctionAsync("() => !document.getElementById('site-sticky-header').classList.contains('visible')");
-        var leaving = await sticky.EvaluateAsync<string>("""
-            element => getComputedStyle(element).display + ' ' + element.getAnimations().map(a => a.transitionProperty).join(',')
-            """);
+        var leaving = await CaptureStickyTransitionAsync(page, 0);
         Assert.True(leaving.StartsWith("flex") && leaving.Contains("clip-path"), $"The bar must fold away before it hides ({leaving}).");
         Assert.True(await sticky.EvaluateAsync<bool>("element => element.inert"), "A leaving bar must not take focus or clicks.");
         await Assertions.Expect(sticky).ToBeHiddenAsync();
     }
+
+    private static Task<string> CaptureStickyTransitionAsync(IPage page, int scrollY)
+        => page.EvaluateAsync<string>("""
+            async y => {
+                scrollTo(0, y);
+                const element = document.getElementById('site-sticky-header');
+                const deadline = performance.now() + 5000;
+                while (element.classList.contains('visible') !== (y > 0)) {
+                    if (performance.now() > deadline) throw new Error('The sticky state did not change.');
+                    await new Promise(requestAnimationFrame);
+                }
+                // Inspect in the reveal frame: a remote round trip can outlast
+                // this intentionally short transition on a busy runner.
+                return getComputedStyle(element).display + ' ' + element.getAnimations().map(a => a.transitionProperty).join(',');
+            }
+            """, scrollY);
 
     [Fact]
     public async Task SameSiteNavigation_CrossFadesWithAViewTransition()

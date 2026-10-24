@@ -89,18 +89,18 @@ function handleScroll(scrollPos, remeasure = false) {
     // Measure the complete bar before it appears, so the first anchor jump
     // and keyboard scroll reserve the same space as subsequent ones.
     // Cache this geometry between layout changes, keeping scrolling cheap.
-    let measuring = false;
     if (remeasure || !measuredStickyHeight || lastStickyActionAvailable !== actionAvailable
         || measuredRootFontSize !== rootFontSize) {
         // Only a hidden bar is briefly shown to measure; a visible one keeps
         // any entrance that a resize callback lands in the middle of.
-        measuring = !stickyHeader.classList.contains('visible');
+        const measuring = !stickyHeader.classList.contains('visible');
         if (measuring) {
             stickyHeader.classList.add('is-measuring');
             scrolledJoinButton?.classList.add('is-measuring');
         }
         const visibility = stickyHeader.style.visibility;
         const actionVisibility = scrolledJoinButton?.style.visibility;
+        const actionDisplay = scrolledJoinButton?.style.display;
         stickyHeader.style.visibility = 'hidden';
         stickyHeader.classList.add('visible');
         if (scrolledJoinButton) {
@@ -112,6 +112,15 @@ function handleScroll(scrollPos, remeasure = false) {
         lastStickyActionAvailable = actionAvailable;
         stickyHeader.style.visibility = visibility;
         if (scrolledJoinButton) scrolledJoinButton.style.visibility = actionVisibility;
+        if (measuring) {
+            // Restore the hidden state before starting a real entrance. A font
+            // or resize callback can invalidate geometry on that same scroll.
+            stickyHeader.classList.remove('visible');
+            if (scrolledJoinButton) scrolledJoinButton.style.display = actionDisplay;
+            stickyHeader.getBoundingClientRect();
+            stickyHeader.classList.remove('is-measuring');
+            scrolledJoinButton?.classList.remove('is-measuring');
+        }
     }
     // A bar taller than the original banner must wait until that banner leaves
     // the viewport; otherwise enlarged text can cover the primary links at 0.
@@ -135,12 +144,6 @@ function handleScroll(scrollPos, remeasure = false) {
         scrolledJoinButton.inert = !actionVisible;
         scrolledJoinButton.setAttribute('aria-hidden', String(!actionVisible));
         scrolledJoinButton.style.display = actionVisible ? 'inline-flex' : 'none';
-    }
-    if (measuring) {
-        // Settle the measured state without motion, then let later changes animate.
-        stickyHeader.getBoundingClientRect();
-        stickyHeader.classList.remove('is-measuring');
-        scrolledJoinButton?.classList.remove('is-measuring');
     }
 }
 
