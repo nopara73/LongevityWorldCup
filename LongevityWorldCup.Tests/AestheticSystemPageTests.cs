@@ -160,11 +160,13 @@ public sealed class AestheticSystemPageTests(TestWebApplicationFactory sharedFac
     [InlineData("/error/404.html")]
     [InlineData("/unsubscribe")]
     [InlineData("/media")]
-    [InlineData("/application-review")]
+    [InlineData("/review")]
     public async Task StandaloneMotion_UsesTheCanonicalVersionedStylesheet(string path)
     {
         using var client = sharedFactory.CreateClient();
         var response = await client.GetAsync(path);
+        Assert.Equal(path == "/error/404.html" ? System.Net.HttpStatusCode.NotFound : System.Net.HttpStatusCode.OK,
+            response.StatusCode);
         var html = await response.Content.ReadAsStringAsync();
         Assert.DoesNotContain("{{ASSET_STANDALONE_FEEL_CSS}}", html);
         var asset = System.Text.RegularExpressions.Regex.Match(html,
