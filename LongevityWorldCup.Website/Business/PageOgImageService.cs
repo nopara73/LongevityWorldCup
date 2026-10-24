@@ -77,6 +77,20 @@ public sealed class PageOgImageService
                 "Start longevitymaxxing today",
                 "78DA3B",
                 ["Daily check-ins", "Join anytime", "No finish line"]),
+            ["pheno-age"] = new(
+                "pheno-age",
+                "Pheno Age",
+                "Pheno Age Calculator",
+                "Calculate Pheno Age from nine blood biomarkers and your age using the Longevity World Cup calculator.",
+                "78DA3B",
+                ["Pheno Age", "Amateur track", "Public leaderboard"]),
+            ["bortz-age"] = new(
+                "bortz-age",
+                "Bortz Age",
+                "Bortz Age Calculator",
+                "Calculate Bortz Age from blood biomarkers and your age using the Longevity World Cup calculator.",
+                "FFB020",
+                ["Bortz Age", "Pro track", "Pheno Age + Bortz Age"]),
             ["view-bortz"] = new(
                 "view-bortz",
                 "Pro clock view",
@@ -333,7 +347,7 @@ public sealed class PageOgImageService
         var logoTicks = File.Exists(_logoPath) ? File.GetLastWriteTimeUtc(_logoPath).Ticks : 0L;
 
         var raw = string.Join("|",
-            "page-og-v12",
+            "page-og-v13",
             definition.Slug,
             definition.Kicker,
             definition.Title,

@@ -304,7 +304,7 @@ public sealed class AthleteOgImageService
         var logoTicks = File.Exists(_logoPath) ? File.GetLastWriteTimeUtc(_logoPath).Ticks : 0L;
 
         var raw = string.Join("|",
-            "athlete-og-v37",
+            "athlete-og-v38",
             normalizedSlug,
             leagueSlug,
             rank.ToString(CultureInfo.InvariantCulture),

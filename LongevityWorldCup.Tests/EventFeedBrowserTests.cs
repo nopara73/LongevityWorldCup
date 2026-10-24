@@ -63,11 +63,19 @@ public sealed class EventFeedBrowserTests(PlaywrightBrowserFixture browserFixtur
             """);
         var page = await context.NewPageAsync();
         await page.SetViewportSizeAsync(width, 850);
+        // Establish an idle pointer before the page installs its interaction
+        // cancellation listeners, then control the opening delay explicitly.
+        // Hover/focus cancellation is covered by the separate test above.
+        await page.Mouse.MoveAsync(-1, -1);
+        var start = new DateTime(2026, 10, 24, 4, 0, 0, DateTimeKind.Utc);
+        await page.Clock.InstallAsync(new() { Time = start.ToString("O") });
+        await page.Clock.PauseAtAsync(start.AddSeconds(1));
         await page.GotoAsync("/events", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
         await page.EvaluateAsync("() => document.fonts.ready");
 
         // Observe the real callback rather than sampling exactly at its timer boundary.
         // Capture alignment synchronously so an unintended smooth scroll cannot settle first.
+        await page.Clock.RunForAsync(600);
         await page.WaitForFunctionAsync("() => window.__initialHeadingScroll !== undefined");
         Assert.Equal("instant", await page.EvaluateAsync<string>("window.__initialHeadingScroll.behavior"));
         Assert.InRange(await page.EvaluateAsync<double>("window.__initialHeadingScroll.offset"), 0, 1);

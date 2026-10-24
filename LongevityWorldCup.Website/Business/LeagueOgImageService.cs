@@ -370,7 +370,7 @@ public sealed class LeagueOgImageService
         var logoTicks = File.Exists(_logoPath) ? File.GetLastWriteTimeUtc(_logoPath).Ticks : 0L;
 
         var raw = string.Join("|",
-            "league-og-v40",
+            "league-og-v41",
             leagueSlug,
             leagueDisplayName,
             string.Join(",", top3Slugs),

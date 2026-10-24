@@ -407,6 +407,8 @@ public sealed class AthleteBrowseMotionBrowserTests(
         await NavigateToLeaderboardAsync(page, "/leaderboard");
         var rows = page.Locator(Rows + ":visible");
         var next = await rows.Nth(2).Locator("a.athlete-name").GetAttributeAsync("href");
+        // Hold copies when they are created: waiting until profile readiness can
+        // miss the entire short animation on a loaded browser worker.
         if (!reducedMotion) await page.EvaluateAsync("() => window.__motion.holdCopies = true");
         await rows.Nth(1).Locator("a.athlete-name").TapAsync();
         await WaitForProfileAsync(page);

@@ -9,7 +9,7 @@ namespace LongevityWorldCup.Tests;
 /// The /leaderboard page reads as one board: header band with underline tabs
 /// and tools, the ranking's meaning, then column heads that stay in view.
 /// </summary>
-[Collection(BrowserTestCollections.WorkloadB)]
+[Collection(BrowserTestCollections.WorkloadD)]
 public sealed class LeaderboardBoardBrowserTests(PlaywrightBrowserFixture browserFixture, BrowserTestAppFixture appFixture)
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
