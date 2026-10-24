@@ -32,7 +32,9 @@ public sealed class InteractionMotionLifecycleBrowserTests(
             }
             """);
         await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.Reduce });
-        await page.WaitForFunctionAsync("() => !LwcMotion.enabled()");
+        // matches changes before the browser delivers MediaQueryList's change
+        // event. Wait for the handler to close the gate before checking cleanup.
+        await page.WaitForFunctionAsync("() => !document.documentElement.hasAttribute('data-lwc-motion')");
         Assert.Equal("idle", await page.EvaluateAsync<string>("() => window.motionProbe.playState"));
         await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.NoPreference });
         Assert.False(await page.EvaluateAsync<bool>("() => LwcMotion.enabled()"));
