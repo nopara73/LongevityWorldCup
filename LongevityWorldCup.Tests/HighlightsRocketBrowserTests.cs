@@ -127,8 +127,8 @@ public sealed class HighlightsRocketBrowserTests(
             await page.Clock.SetFixedTimeAsync(DateTime.Parse(now + "T12:00:00Z").ToUniversalTime());
             for (var pass = 0; pass < 2; pass++)
             {
-                await page.EvaluateAsync("() => { window.__rocketPreviousRow = document.querySelector('tr[data-event-id=\"rocket-joined\"]'); loadEventsTable(null, true, null, true); }");
-                await page.WaitForFunctionAsync("() => window.__rocketPreviousRow !== document.querySelector('tr[data-event-id=\"rocket-joined\"]')");
+                await page.EvaluateAsync("async () => { window.__rocketPreviousRow = document.querySelector('tr[data-event-id=\"rocket-joined\"]'); await loadEventsTable(null, true, null, true); }");
+                Assert.True(await page.EvaluateAsync<bool>("() => window.__rocketPreviousRow === document.querySelector('tr[data-event-id=\"rocket-joined\"]')"));
                 await Assertions.Expect(row.Locator(".fa-rocket")).ToHaveCountAsync(1);
                 await Assertions.Expect(row.Locator(".event-message-cell")).ToHaveTextAsync($"Nóra Marosvölgyi (#232) joined {label}");
                 await Assertions.Expect(row.Locator(".col-date")).ToHaveTextAsync(now.StartsWith("2026") ? "Oct 18" : "Oct 18, 2026");
