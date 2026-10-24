@@ -264,6 +264,10 @@ class ProofReview {
     private viewerIndex = 0;
     private opener: HTMLElement | null = null;
     private zoomed = false;
+    // Pages already on screen; anything new is revealed as it arrives.
+    private shown = new Set<string>();
+    private arrivals = new Map<string, number>();
+    private shownProgress = 0;
     private container: HTMLElement;
     private images: string[];
     private changed: () => void;
@@ -279,6 +283,7 @@ class ProofReview {
         this.images = images;
         this.changed = changed;
         this.hasUnsubmittedProofs = hasUnsubmittedProofs;
+        images.forEach(image => this.shown.add(image));
         container.classList.add('proof-review-panel');
     }
 
@@ -311,6 +316,7 @@ class ProofReview {
         head.appendChild(heading);
         this.container.appendChild(head);
 
+        if (!this.progress) this.shownProgress = 0;
         if (this.progress) {
             const status = document.createElement('div');
             status.className = 'proof-preparation';
@@ -321,16 +327,44 @@ class ProofReview {
             meter.max = this.progress.total;
             meter.value = this.progress.completed;
             meter.setAttribute('aria-label', 'Preparing proof files');
-            status.append(label, meter);
+            // The drawn bar starts where the last one stopped and creeps toward the
+            // next file while it is prepared, so a single file never sits at zero.
+            const ratio = this.progress.total ? Math.min(1, this.progress.completed / this.progress.total) : 0;
+            const next = this.progress.total ? Math.min(1, (Math.floor(this.progress.completed) + 0.85) / this.progress.total) : 0;
+            const bar = document.createElement('span');
+            bar.className = 'proof-preparation-bar';
+            bar.setAttribute('aria-hidden', 'true');
+            bar.style.setProperty('--proof-from', String(Math.min(this.shownProgress, ratio)));
+            bar.style.setProperty('--proof-to', String(ratio));
+            bar.style.setProperty('--proof-creep', String(Math.max(ratio, next)));
+            bar.appendChild(document.createElement('span'));
+            this.shownProgress = ratio;
+            status.append(label, meter, bar);
             head.appendChild(status);
         }
 
         const grid = document.createElement('div');
         grid.className = 'proof-page-grid';
         grid.setAttribute('aria-busy', String(Boolean(this.progress)));
+        let arriving = 0;
         this.images.forEach((source, index) => {
             const card = document.createElement('article');
             card.className = 'proof-page-card';
+            if (!this.shown.has(source)) {
+                this.shown.add(source);
+                this.arrivals.set(source, performance.now() - arriving++ * 70);
+            }
+            // Re-renders during an arrival continue its reveal instead of restarting it.
+            const arrivedAt = this.arrivals.get(source);
+            if (arrivedAt !== undefined) {
+                const elapsed = performance.now() - arrivedAt;
+                if (elapsed < 1000) {
+                    card.classList.add('is-arriving');
+                    card.style.setProperty('--proof-elapsed', `${Math.round(elapsed)}ms`);
+                } else {
+                    this.arrivals.delete(source);
+                }
+            }
             const preview = this.button('', 'proof-page-preview', () => this.open(index, preview));
             preview.disabled = Boolean(this.progress);
             preview.setAttribute('aria-label', `Review proof page ${index + 1}${this.labels.has(source) ? `: ${this.labels.get(source)}` : ''}`);
@@ -353,20 +387,55 @@ class ProofReview {
             label.title = label.textContent;
             caption.append(title, label);
             const remove = this.button('Remove', 'proof-page-remove', () => {
-                this.removed.push({ image: source, index });
-                this.images.splice(index, 1);
-                this.notice = '';
-                this.render();
-                this.changed();
-                const target = this.container.querySelectorAll<HTMLButtonElement>('.proof-page-remove')[Math.min(index, this.images.length - 1)]
-                    || this.container.querySelector<HTMLButtonElement>('.proof-undo');
-                target?.focus({ preventScroll: true });
+                if (!card.isConnected || this.progress) return;
+                const bounds = image.getBoundingClientRect();
+                // Submission state and validation change in this click, before any
+                // animation. Only an inert copy of the sheet remains on screen.
+                this.removePage(source, index);
+                if (window.matchMedia('(prefers-reduced-motion: reduce)').matches || typeof card.animate !== 'function') return;
+                const sheet = document.createElement('img');
+                sheet.src = source;
+                sheet.alt = '';
+                sheet.className = 'proof-page-exit';
+                sheet.setAttribute('aria-hidden', 'true');
+                sheet.inert = true;
+                Object.assign(sheet.style, {
+                    left: `${bounds.left}px`, top: `${bounds.top}px`,
+                    width: `${bounds.width}px`, height: `${bounds.height}px`
+                });
+                document.body.appendChild(sheet);
+                const exit = sheet.animate([
+                    { opacity: 1, scale: '1' },
+                    { opacity: 0, scale: '0.9' }
+                ], { duration: 140, easing: 'cubic-bezier(0.3, 0, 1, 1)' });
+                exit.addEventListener('finish', () => sheet.remove(), { once: true });
+                exit.addEventListener('cancel', () => sheet.remove(), { once: true });
             });
             remove.disabled = Boolean(this.progress);
             remove.setAttribute('aria-label', `Remove proof page ${index + 1}`);
             card.append(preview, caption, remove);
             grid.appendChild(card);
         });
+        this.renderRest(grid);
+    }
+
+    private removePage(source: string, index: number): void {
+        if (this.images[index] !== source) index = this.images.indexOf(source);
+        if (index < 0) return;
+        this.removed.push({ image: source, index });
+        this.images.splice(index, 1);
+        // Undo brings the page back with the same reveal as a fresh upload.
+        this.shown.delete(source);
+        this.arrivals.delete(source);
+        this.notice = '';
+        this.render();
+        this.changed();
+        const target = this.container.querySelectorAll<HTMLButtonElement>('.proof-page-remove')[Math.min(index, this.images.length - 1)]
+            || this.container.querySelector<HTMLButtonElement>('.proof-undo');
+        target?.focus({ preventScroll: true });
+    }
+
+    private renderRest(grid: HTMLElement): void {
         if (this.progress) {
             // Files still being prepared hold their place in the grid.
             const pending = Math.max(1, this.progress.total - Math.floor(this.progress.completed));
