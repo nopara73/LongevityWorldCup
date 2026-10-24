@@ -1,44 +1,5 @@
 <meta charset="UTF-8" />
-<script>
-    // A slow arrival can be skipped before pagereveal, which then carries no
-    // transition. Observe its actual ready promise before blocking resources;
-    // unrelated script and update failures remain observable.
-    (() => {
-        const observed = new WeakSet();
-        const observe = transition => {
-            if (!transition || observed.has(transition)) return;
-            observed.add(transition);
-            transition.ready.catch(error => {
-                if (!(error instanceof DOMException)
-                    || !['AbortError', 'InvalidStateError', 'TimeoutError'].includes(error.name)) throw error;
-            });
-        };
-        observe(document.activeViewTransition);
-        for (const name of ['pageswap', 'pagereveal']) {
-            addEventListener(name, event => observe(event.viewTransition));
-        }
-    })();
-    // Opt in before any render-blocking resource. Discovering the rule only
-    // after a slow stylesheet can try to animate an already revealed page.
-    (() => {
-        const journeyPath = /^\/(?:play|join|select-athlete|dashboard|pheno-age|bortz-age|apply|review)?\/?$/i;
-        if (!journeyPath.test(location.pathname)) return;
-        const motion = '(prefers-reduced-motion: no-preference)';
-        const optIn = document.createElement('style');
-        optIn.media = motion;
-        optIn.textContent = '@view-transition { navigation: auto; }';
-        document.head.append(optIn);
-        const restore = () => { optIn.media = motion; };
-        window.navigation?.addEventListener('navigate', event => {
-            if (event.destination.sameDocument) return;
-            const destination = new URL(event.destination.url);
-            optIn.media = destination.origin === location.origin && journeyPath.test(destination.pathname)
-                ? motion : 'not all';
-            event.signal.addEventListener('abort', restore, { once: true });
-        });
-        addEventListener('pageshow', restore);
-    })();
-</script>
+<script>document.activeViewTransition?.ready.catch(() => {});</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <meta name="lwc-athlete-placeholder" content="{{ASSET_PLAY_ATHLETE_PLACEHOLDER_WEBP}}" />
 <meta name="description" content="{{SEO_DESCRIPTION}}" />

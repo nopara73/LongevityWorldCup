@@ -3,9 +3,12 @@
    card and its review) hand over to each other as one journey instead of
    hard page cuts. The site header holds still while the leaving page lifts
    away and the arriving page rises into place. Each page opts in with this
-   stylesheet; the head opts in before loading styles so slow arrivals can
-   fall back safely. Reduced motion keeps the plain page change. */
+   stylesheet. Reduced motion keeps the plain page change. */
 @media (prefers-reduced-motion: no-preference) {
+    @view-transition {
+        navigation: auto;
+    }
+
     header[role="banner"] {
         view-transition-name: lwc-site-header;
     }
