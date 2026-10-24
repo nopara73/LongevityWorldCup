@@ -26,6 +26,20 @@ public sealed class InteractionMotionBrowserTests(
                 + (animation.effect.pseudoElement || ''))
         """;
 
+    // Capture short transitions in the same browser event task as the application
+    // handler. A protocol round trip after ClickAsync can outlast a 140ms exit.
+    private static async Task<string[]> CaptureEventMotionAsync(
+        ILocator trigger, string eventName, string selector, Func<Task> action)
+    {
+        await trigger.EvaluateAsync($$"""
+            (target, args) => target.addEventListener(args.eventName, () => {
+                window.__lwcEventMotion = ({{RunningMotionScript}})(args.selector);
+            }, { once: true })
+            """, new { eventName, selector });
+        await action();
+        return await trigger.EvaluateAsync<string[]>("() => window.__lwcEventMotion");
+    }
+
     // CLS excludes expected shifts within 500ms of a discrete user input.
     // The in-flow Order strip deliberately makes room beneath the toolbar.
     private const string WatchLayoutShiftScript = """
@@ -95,30 +109,32 @@ public sealed class InteractionMotionBrowserTests(
         await page.Mouse.ClickAsync(4, 400);
         await page.EvaluateAsync(WatchLayoutShiftScript);
 
-        await page.EvaluateAsync("() => { customAlert('Saved'); }");
-        var opening = await page.EvaluateAsync<string[]>(RunningMotionScript, "#custom-alert, #custom-alert *");
+        var opening = await page.EvaluateAsync<string[]>($$"""
+            () => { customAlert('Saved'); return ({{RunningMotionScript}})('#custom-alert, #custom-alert *'); }
+            """);
         Assert.Contains("opacity", opening);
 
         await page.WaitForTimeoutAsync(400);
-        await page.Locator("#custom-alert-close").ClickAsync();
-        var closing = await page.EvaluateAsync<string[]>("""
-            selector => {
+        var close = page.Locator("#custom-alert-close");
+        await close.EvaluateAsync("""
+            button => button.addEventListener('click', () => {
                 const alert = document.getElementById('custom-alert');
                 const panel = alert.querySelector('.custom-alert-panel').getBoundingClientRect();
                 const hit = document.elementFromPoint(panel.left + panel.width / 2, panel.top + panel.height / 2);
-                return [
+                window.__lwcAlertClosing = [
                     String(alert.hidden),
                     getComputedStyle(alert).display,
                     getComputedStyle(alert).pointerEvents,
                     String(alert.contains(hit))
                 ];
-            }
-            """, "#custom-alert");
+            }, { once: true })
+            """);
+        var exiting = await CaptureEventMotionAsync(close, "click", "#custom-alert, #custom-alert *", () => close.ClickAsync());
+        var closing = await page.EvaluateAsync<string[]>("() => window.__lwcAlertClosing");
         Assert.Equal("true", closing[0]);
         Assert.NotEqual("none", closing[1]);
         Assert.Equal("none", closing[2]);
         Assert.Equal("false", closing[3]);
-        var exiting = await page.EvaluateAsync<string[]>(RunningMotionScript, "#custom-alert, #custom-alert *");
         Assert.Contains("opacity", exiting);
         Assert.Contains(exiting, motion => motion is "translate" or "scale");
 
@@ -135,12 +151,14 @@ public sealed class InteractionMotionBrowserTests(
         await NavigateAndSettleAsync(page, "/leaderboard");
         await page.Mouse.ClickAsync(4, 400);
 
-        await page.EvaluateAsync("() => showLoading()");
-        Assert.Contains("opacity", await page.EvaluateAsync<string[]>(RunningMotionScript, "#loading-dialog"));
+        var opening = await page.EvaluateAsync<string[]>($$"""
+            () => { showLoading(); return ({{RunningMotionScript}})('#loading-dialog'); }
+            """);
+        Assert.Contains("opacity", opening);
         await page.WaitForTimeoutAsync(300);
-        await page.EvaluateAsync("() => hideLoading()");
-
-        var exiting = await page.EvaluateAsync<string[]>(RunningMotionScript, "#loading-dialog, #loading-dialog *");
+        var exiting = await page.EvaluateAsync<string[]>($$"""
+            () => { hideLoading(); return ({{RunningMotionScript}})('#loading-dialog, #loading-dialog *'); }
+            """);
         Assert.Contains("opacity", exiting);
         Assert.Contains(exiting, motion => motion is "translate" or "scale");
         await Assertions.Expect(page.Locator("#loading-dialog")).ToHaveCSSAsync("display", "none");
@@ -160,15 +178,14 @@ public sealed class InteractionMotionBrowserTests(
         var toolbar = page.Locator(".leaderboard-toolbar");
         var toolbarBefore = await toolbar.BoundingBoxAsync();
 
-        await toggle.ClickAsync();
-        var opening = await page.EvaluateAsync<string[]>(RunningMotionScript, "#leaderboardOrderPanel");
+        var opening = await CaptureEventMotionAsync(toggle, "click", "#leaderboardOrderPanel", () => toggle.ClickAsync());
         Assert.Contains("opacity", opening);
         Assert.Contains("scale", opening);
 
         await page.WaitForTimeoutAsync(400);
-        await toggle.ClickAsync();
+        var exiting = await CaptureEventMotionAsync(toggle, "click", "#leaderboardOrderPanel", () => toggle.ClickAsync());
         Assert.Equal("none", await page.Locator("#leaderboardOrderPanel").EvaluateAsync<string>("panel => getComputedStyle(panel).pointerEvents"));
-        Assert.Contains("opacity", await page.EvaluateAsync<string[]>(RunningMotionScript, "#leaderboardOrderPanel"));
+        Assert.Contains("opacity", exiting);
         await Assertions.Expect(page.Locator("#leaderboardOrderPanel")).ToHaveCSSAsync("display", "none");
         Assert.True(await page.EvaluateAsync<double>("() => window.__lwcShift") < 0.001);
         var toolbarAfter = await toolbar.BoundingBoxAsync();
@@ -256,13 +273,8 @@ public sealed class InteractionMotionBrowserTests(
         var primary = page.Locator("#leaderboardOrderPrimary");
         var option = await primary.EvaluateAsync<string>("select => [...select.options].map(o => o.value).find(v => v && v !== 'rank')");
 
-        await primary.SelectOptionAsync(option);
-        var moving = await page.EvaluateAsync<int>("""
-            () => document.getAnimations().filter(animation =>
-                animation.playState === 'running'
-                && animation.effect?.target?.matches?.('#athleteLeaderboard tbody tr')).length
-            """);
-        Assert.True(moving > 0, "Reordered rows should animate from their previous position.");
+        var moving = await CaptureEventMotionAsync(primary, "change", "#athleteLeaderboard tbody tr", async () => { await primary.SelectOptionAsync(option); });
+        Assert.NotEmpty(moving);
     }
 
     // Heights of the visible accordion on every frame for 400ms after a click on its summary.
@@ -319,9 +331,9 @@ public sealed class InteractionMotionBrowserTests(
         await page.EvaluateAsync("() => { const toast = document.getElementById('copiedText'); toast.textContent = 'Copied'; toast.hidden = false; }");
         // A real toast stays two seconds; let its entrance finish first.
         await page.WaitForTimeoutAsync(900);
-        await page.EvaluateAsync("() => { document.getElementById('copiedText').hidden = true; }");
-
-        var exiting = await page.EvaluateAsync<string[]>(RunningMotionScript, "#copiedText");
+        var exiting = await page.EvaluateAsync<string[]>($$"""
+            () => { document.getElementById('copiedText').hidden = true; return ({{RunningMotionScript}})('#copiedText'); }
+            """);
         Assert.Contains("opacity", exiting);
         await Assertions.Expect(page.Locator("#copiedText")).ToHaveCSSAsync("display", "none");
     }
