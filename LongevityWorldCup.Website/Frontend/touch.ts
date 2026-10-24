@@ -53,6 +53,7 @@ interface Window {
     const root = document.documentElement;
     const touchOnly = window.matchMedia("(hover: none) and (pointer: coarse) and (any-hover: none)");
     const coarse = window.matchMedia("(pointer: coarse)");
+    const anyCoarse = window.matchMedia("(any-pointer: coarse)");
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
 
     const tappable = [
@@ -119,6 +120,10 @@ interface Window {
 
     function isTouch(): boolean {
         return root.dataset["lwcTouch"] === "touch";
+    }
+
+    function supportsTouch(): boolean {
+        return coarse.matches || anyCoarse.matches || navigator.maxTouchPoints > 0;
     }
 
     function token(name: string, fallback: number): number {
@@ -199,6 +204,7 @@ interface Window {
     syncMode();
     touchOnly.addEventListener("change", () => { cancelGestures(); syncMode(); refresh(); });
     coarse.addEventListener("change", () => { cancelGestures(); syncMode(); refresh(); });
+    anyCoarse.addEventListener("change", refresh);
 
     // -------------------------------------------------------- sticky hover
     // :hover on a touch-only screen latches after a tap. Rewriting it to
@@ -765,6 +771,7 @@ interface Window {
         requestAnimationFrame(() => {
             pending = false;
             stripHover();
+            if (!supportsTouch()) return;
             growTargets(document);
             findScrollers(document);
             adopt();
@@ -777,6 +784,7 @@ interface Window {
     let mutationFrame = 0;
     const observer = new MutationObserver(records => {
         cleanRemoved();
+        if (!supportsTouch()) return;
         for (const record of records) for (const node of record.addedNodes) {
             if (!(node instanceof Element)) continue;
             if (node.matches("link[rel=stylesheet], style") || node.querySelector("link[rel=stylesheet], style")) {

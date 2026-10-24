@@ -181,6 +181,7 @@ public sealed class HomepageArrivalBrowserTests(
     public async Task EarlyInteraction_ImmediatelyFinishesArrival(string interaction)
     {
         await using var context = await NewContextAsync(1440);
+        await HoldOpeningFrameAsync(context);
         await context.AddInitScriptAsync("""
             const animate = Element.prototype.animate;
             Element.prototype.animate = function(...args) {
@@ -209,6 +210,7 @@ public sealed class HomepageArrivalBrowserTests(
     public async Task ReplacingAnArrivingCard_PreservesTheOriginalAnimationDeadline()
     {
         await using var context = await NewContextAsync(1440);
+        await HoldOpeningFrameAsync(context);
         await context.AddInitScriptAsync("""
             window.podiumStartTimes = [];
             const animate = Element.prototype.animate;
@@ -248,7 +250,7 @@ public sealed class HomepageArrivalBrowserTests(
 
     private static Task HoldOpeningFrameAsync(IBrowserContext context) => context.AddInitScriptAsync("""
         // Make static-content availability explicit. Parser-blocking scripts may
-        // otherwise consume the bounded entrance before its eighth target exists.
+        // otherwise consume the bounded entrance before its final target exists.
         // The late-parser test releases this frame while the final target is absent.
         const requestFrame = window.requestAnimationFrame.bind(window);
         let holdOpeningFrame = true;

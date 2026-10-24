@@ -71,6 +71,35 @@ public sealed class TouchInteractionBrowserTests(PlaywrightBrowserFixture browse
         await page.WaitForTimeoutAsync(350);
     }
 
+    [Fact]
+    public async Task Desktop_DefersAutomaticTouchWorkUntilTouchBecomesAvailable()
+    {
+        await using var context = await Browser.NewContextAsync(new() { ViewportSize = new() { Width = 1440, Height = 900 }, HasTouch = false });
+        // Chromium can still report a physical Windows touchscreen when touch
+        // emulation is disabled. Make this fixture explicitly mouse-only.
+        await context.AddInitScriptAsync("Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 0 });");
+        var page = await FixtureAsync(context);
+        await page.EvaluateAsync("""
+            async () => {
+                const strip = document.createElement('div');
+                strip.className = 'view-switcher-chips';
+                strip.style.cssText = 'width:120px;overflow:auto';
+                strip.innerHTML = '<div style="width:400px;height:40px">Choices</div>';
+                document.body.append(strip);
+                LwcTouch.refresh();
+                await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+            }
+            """);
+        var strip = page.Locator(".view-switcher-chips");
+        Assert.Null(await strip.GetAttributeAsync("data-lwc-scroller"));
+        await page.EvaluateAsync("() => delete navigator.maxTouchPoints");
+        var cdp = await context.NewCDPSessionAsync(page);
+        await cdp.SendAsync("Emulation.setTouchEmulationEnabled", new Dictionary<string, object> { ["enabled"] = true, ["maxTouchPoints"] = 1 });
+        await Expect(strip).ToHaveAttributeAsync("data-lwc-scroller", "");
+        await Expect(strip).ToHaveAttributeAsync("data-lwc-fade", "end");
+        await cdp.DetachAsync();
+    }
+
     [Theory]
     [InlineData(0)]
     [InlineData(180)]
