@@ -527,6 +527,7 @@
         if (!swipe) return;
         const { profile, active, id } = swipe;
         swipe = null;
+        window.LwcTouch?.release(profile);
         if (profile.hasPointerCapture(id)) profile.releasePointerCapture(id);
         if (!active) return;
         const from = profile.style.translate;
@@ -544,6 +545,7 @@
         const card = content();
         const profile = event.target.closest<HTMLElement>("#athlete-profile");
         if (!card || !profile || !isOpen() || isClosing() || card.matches(".guess-mode, .is-loading, .has-load-error")) return;
+        if (event.clientX < 20 || event.clientX > innerWidth - 20 || !window.getSelection()?.isCollapsed) return;
         if (event.target.closest(swipeExclusions) || horizontallyScrollable(event.target, profile)) return;
         if (!stepButton("previous") && !stepButton("next")) return;
         swipe = { id: event.pointerId, x: event.clientX, y: event.clientY, t: performance.now(), dx: 0, active: false, profile };
@@ -559,6 +561,7 @@
                 return;
             }
             if (Math.abs(dx) < 12 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+            if (window.LwcTouch && !window.LwcTouch.claim(swipe.profile)) { cancelSwipe(false); return; }
             swipe.active = true;
             // Capture only after horizontal intent; native vertical pan and
             // pinch still cancel the gesture through pointercancel.
@@ -571,6 +574,13 @@
         swipe.profile.style.translate = `${shift}px 0`;
         swipe.profile.style.opacity = String(1 - Math.min(0.3, Math.abs(shift) / 600));
     }, { passive: true });
+
+    modal.addEventListener("touchmove", event => {
+        // Once a horizontal swipe owns the gesture, do not leave the browser
+        // panning underneath it and consuming the next tap to stop scrolling.
+        // Vertical intent and multiple fingers retain their native behavior.
+        if (swipe?.active && event.touches.length === 1 && event.cancelable) event.preventDefault();
+    }, { passive: false });
 
     modal.addEventListener("pointerup", event => {
         if (!swipe || event.pointerId !== swipe.id) return;
@@ -593,6 +603,7 @@
         if (swipe && event.pointerId === swipe.id && !swipe.profile.hasPointerCapture(event.pointerId)) cancelSwipe();
     });
     window.addEventListener("blur", () => cancelSwipe(false));
+    document.addEventListener("lwc:gesture-cancel", () => cancelSwipe(false));
     document.addEventListener("visibilitychange", () => { if (document.hidden) cancelSwipe(false); });
 
     // --- Ages count in --------------------------------------------------------------
