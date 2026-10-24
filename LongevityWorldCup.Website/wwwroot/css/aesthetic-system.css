@@ -1123,6 +1123,97 @@ html body #biomarker-checklist .proof-tracker-head h4 {
 }
 @keyframes proof-page-pending { from { opacity: 1; } to { opacity: .55; } }
 
+/* Preparation: the drawn bar continues from where it stopped and creeps toward
+   the next file, so progress always feels alive. The native meter stays for
+   assistive technology. */
+.proof-preparation:has(.proof-preparation-bar) progress {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+}
+.proof-preparation-bar {
+    position: relative;
+    display: block;
+    height: 6px;
+    border-radius: var(--lwc-radius-pill);
+    background: var(--lwc-surface);
+    overflow: hidden;
+}
+.proof-preparation-bar > span {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: var(--lwc-accent);
+    transform-origin: left center;
+    transform: scaleX(var(--proof-to, 0));
+}
+@media (prefers-reduced-motion: no-preference) {
+    .proof-preparation-bar > span {
+        animation:
+            proof-bar-catch-up var(--lwc-motion-move, 260ms) var(--lwc-ease-standard, ease) both,
+            proof-bar-creep 6s var(--lwc-motion-move, 260ms) cubic-bezier(0, 0, 0.2, 1) forwards;
+    }
+    .proof-preparation-bar::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--lwc-surface) 55%, transparent), transparent);
+        background-size: 40% 100%;
+        background-repeat: no-repeat;
+        animation: proof-bar-shimmer 1.3s linear infinite;
+    }
+    .proof-page-pending {
+        position: relative;
+        overflow: hidden;
+    }
+    .proof-page-pending::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(100deg, transparent 30%, color-mix(in srgb, var(--lwc-accent-soft) 70%, transparent) 50%, transparent 70%) no-repeat;
+        background-size: 250% 100%;
+        animation: proof-bar-sweep 1.4s var(--lwc-ease) infinite;
+        pointer-events: none;
+    }
+
+    /* A new page lands in the grid, then is "scanned" onto its sheet. */
+    .proof-page-card.is-arriving {
+        animation: proof-card-arrive 380ms calc(0ms - var(--proof-elapsed, 0ms)) var(--lwc-ease-pop, ease) backwards;
+    }
+    .proof-page-card.is-arriving .proof-page-preview img {
+        animation: proof-sheet-scan 620ms calc(140ms - var(--proof-elapsed, 0ms)) var(--lwc-ease-standard, ease) backwards;
+    }
+    .proof-page-card.is-arriving .proof-page-preview::after {
+        content: "";
+        position: absolute;
+        left: 8%;
+        right: 8%;
+        top: 0;
+        height: 2px;
+        border-radius: 2px;
+        background: var(--lwc-accent);
+        box-shadow: 0 0 10px 2px color-mix(in srgb, var(--lwc-accent) 45%, transparent);
+        opacity: 0;
+        pointer-events: none;
+        animation: proof-scan-line 620ms calc(140ms - var(--proof-elapsed, 0ms)) var(--lwc-ease-standard, ease) both;
+    }
+}
+@keyframes proof-bar-catch-up { from { transform: scaleX(var(--proof-from, 0)); } }
+@keyframes proof-bar-creep { from { transform: scaleX(var(--proof-to, 0)); } to { transform: scaleX(var(--proof-creep, 0)); } }
+@keyframes proof-bar-shimmer { from { background-position: -40% 0; } to { background-position: 140% 0; } }
+@keyframes proof-bar-sweep { from { background-position: 130% 0; } to { background-position: -30% 0; } }
+@keyframes proof-card-arrive { from { opacity: 0; transform: translateY(10px) scale(0.94); } }
+@keyframes proof-sheet-scan { from { clip-path: inset(0 0 100% 0); filter: brightness(1.25); } to { clip-path: inset(0); filter: none; } }
+@keyframes proof-scan-line {
+    0% { top: 4%; opacity: 0; }
+    12% { opacity: 1; }
+    85% { opacity: 1; }
+    100% { top: 96%; opacity: 0; }
+}
+
 /* Notices and undo close the card as its footer. */
 .proof-review-feedback {
     display: flex;
